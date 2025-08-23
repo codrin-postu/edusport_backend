@@ -1,3 +1,37 @@
+# Backend - Strapi CMS
+
+This is the backend of the project, using Strapi as a headless CMS and Dockerized for local development.
+
+## Prerequisites
+
+- [Docker](https://www.docker.com/get-started) installed
+- [Docker Compose](https://docs.docker.com/compose/install/) installed
+- Node.js v24.6 (optional if using Docker only)
+
+## Setup and Run Locally
+
+1. Clone the repository:
+    ```bash
+    git clone <backend-repo-url>
+    cd backend
+    ```
+2. Build and start the Docker container:
+    ```bash
+    docker-compose up --build
+    ```
+3. Open the Strapi Admin Panel:
+    ```
+    http://localhost:1337/admin
+    ```
+4. First-time setup:
+    - Create an admin user when prompted in the browser.
+    - You can now log in and create content types such as Article and PricePage.
+
+5. Stop the container:
+    ```bash
+    docker-compose down
+    ```
+
 # 🚀 Getting started with Strapi
 
 Strapi comes with a full featured [Command Line Interface](https://docs.strapi.io/dev-docs/cli) (CLI) which lets you scaffold and manage your project in seconds.
