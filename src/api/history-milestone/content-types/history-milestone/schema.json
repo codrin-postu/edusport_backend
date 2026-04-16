@@ -1,0 +1,29 @@
+{
+  "kind": "collectionType",
+  "collectionName": "history_milestones",
+  "info": {
+    "singularName": "history-milestone",
+    "pluralName": "history-milestones",
+    "displayName": "Despre Noi / Moment din Istoric",
+    "description": "Intrări pe linia de timp a istoricului clubului"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "year": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "order": {
+      "type": "integer"
+    }
+  }
+}

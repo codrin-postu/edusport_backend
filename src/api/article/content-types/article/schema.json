@@ -4,46 +4,60 @@
   "info": {
     "singularName": "article",
     "pluralName": "articles",
-    "displayName": "Article",
-    "description": "Create your blog content"
+    "displayName": "Misc / Articol",
+    "description": "Articole de știri și evenimente"
   },
   "options": {
     "draftAndPublish": true
   },
-  "pluginOptions": {},
   "attributes": {
     "title": {
-      "type": "string"
-    },
-    "description": {
-      "type": "text",
-      "maxLength": 80
+      "type": "string",
+      "required": true
     },
     "slug": {
       "type": "uid",
-      "targetField": "title"
+      "targetField": "title",
+      "required": true
     },
-    "cover": {
+    "description": {
+      "type": "string",
+      "maxLength": 300
+    },
+    "body": {
+      "type": "blocks"
+    },
+    "coverImage": {
       "type": "media",
       "multiple": false,
       "required": false,
-      "allowedTypes": ["images", "files", "videos"]
-    },
-    "author": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::author.author",
-      "inversedBy": "articles"
+      "allowedTypes": [
+        "images"
+      ]
     },
     "category": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::category.category",
-      "inversedBy": "articles"
+      "type": "enumeration",
+      "enum": [
+        "evenimente",
+        "anunturi",
+        "general",
+        "competitii",
+        "tips"
+      ],
+      "required": true
     },
-    "blocks": {
-      "type": "dynamiczone",
-      "components": ["shared.media", "shared.quote", "shared.rich-text", "shared.slider"]
+    "date": {
+      "type": "date",
+      "required": true
+    },
+    "eventDate": {
+      "type": "datetime"
+    },
+    "eventLocation": {
+      "type": "string"
+    },
+    "eventAdmissionInfo": {
+      "type": "string"
     }
   }
 }

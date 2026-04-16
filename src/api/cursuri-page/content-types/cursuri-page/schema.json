@@ -1,0 +1,36 @@
+{
+  "kind": "singleType",
+  "collectionName": "cursuri_pages",
+  "info": {
+    "singularName": "cursuri-page",
+    "pluralName": "cursuri-pages",
+    "displayName": "Scoala Patinaj / Pagina Cursuri",
+    "description": "Conținut (fără prețuri) pentru pagina /cursuri"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "banner": {
+      "type": "json",
+      "customField": "plugin::component-preview.cursuri-page-banner"
+    },
+    "aboutSection": {
+      "type": "json",
+      "customField": "plugin::component-preview.cursuri-page-about"
+    },
+    "promoCard": {
+      "type": "json",
+      "customField": "plugin::component-preview.cursuri-page-promo-card"
+    },
+    "infoSection": {
+      "type": "json",
+      "customField": "plugin::component-preview.cursuri-page-info-section"
+    }
+  }
+}

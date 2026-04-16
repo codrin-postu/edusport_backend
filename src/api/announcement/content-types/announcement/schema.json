@@ -1,0 +1,35 @@
+{
+  "kind": "singleType",
+  "collectionName": "announcements",
+  "info": {
+    "singularName": "announcement",
+    "pluralName": "announcements",
+    "displayName": "Anunț Popup",
+    "description": "Anunț afișat ca popup pe site. Activați comutatorul pentru a afișa anunțul vizitatorilor."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": false
+    },
+    "expiresAt": {
+      "type": "datetime"
+    },
+    "announceContent": {
+      "type": "json",
+      "customField": "plugin::component-preview.announcement-content"
+    }
+  }
+}

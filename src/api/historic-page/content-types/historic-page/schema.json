@@ -1,0 +1,44 @@
+{
+  "kind": "singleType",
+  "collectionName": "historic_page",
+  "info": {
+    "singularName": "historic-page",
+    "pluralName": "historic-pages",
+    "displayName": "Despre Noi / Pagina Istoric",
+    "description": "Conținut editabil pentru pagina /despre-noi/istoric"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "banner": {
+      "type": "json",
+      "customField": "plugin::component-preview.page-banner"
+    },
+    "pageInfo": {
+      "type": "json",
+      "customField": "plugin::component-preview.historic-page-info"
+    },
+    "stats": {
+      "type": "json",
+      "customField": "plugin::component-preview.historic-stats"
+    },
+    "eventsOrganized": {
+      "type": "json",
+      "customField": "plugin::component-preview.historic-events-organized"
+    },
+    "eventsParticipated": {
+      "type": "json",
+      "customField": "plugin::component-preview.historic-events-participated"
+    },
+    "milestones": {
+      "type": "json",
+      "customField": "plugin::component-preview.history-milestones-link"
+    }
+  }
+}

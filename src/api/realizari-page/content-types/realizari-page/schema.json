@@ -1,0 +1,38 @@
+{
+  "kind": "singleType",
+  "collectionName": "realizari_page",
+  "info": {
+    "singularName": "realizari-page",
+    "pluralName": "realizari-pages",
+    "displayName": "Despre Noi / Pagina Realizări",
+    "description": "Conținut editabil pentru pagina /despre-noi/realizari"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "banner": {
+      "type": "json",
+      "customField": "plugin::component-preview.realizari-page-banner"
+    },
+    "notableAchievements": {
+      "type": "json",
+      "customField": "plugin::component-preview.realizari-achievements"
+    },
+    "galleryImages": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "competitions": {
+      "type": "json",
+      "customField": "plugin::component-preview.competitions-link"
+    }
+  }
+}

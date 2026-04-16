@@ -1,0 +1,36 @@
+{
+  "kind": "singleType",
+  "collectionName": "homepages",
+  "info": {
+    "singularName": "homepage",
+    "pluralName": "homepages",
+    "displayName": "Scoala Patinaj / Pagina Principală",
+    "description": "Conținut pentru landing page / pagina principală"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "hero": {
+      "type": "json",
+      "customField": "plugin::component-preview.homepage-hero"
+    },
+    "registration": {
+      "type": "json",
+      "customField": "plugin::component-preview.homepage-registration"
+    },
+    "registrationClosed": {
+      "type": "json",
+      "customField": "plugin::component-preview.homepage-registration-closed"
+    },
+    "about": {
+      "type": "json",
+      "customField": "plugin::component-preview.homepage-about"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "kind": "singleType",
+  "collectionName": "team_page",
+  "info": {
+    "singularName": "team-page",
+    "pluralName": "team-pages",
+    "displayName": "Despre Noi / Pagina Echipa",
+    "description": "Banner, textul de introducere și membrii echipei pentru pagina /despre-noi/echipa"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "banner": {
+      "type": "json",
+      "customField": "plugin::component-preview.page-banner"
+    },
+    "pageInfo": {
+      "type": "json",
+      "customField": "plugin::component-preview.team-page-info"
+    },
+    "teamMembers": {
+      "type": "json",
+      "customField": "plugin::component-preview.team-members-link"
+    }
+  }
+}

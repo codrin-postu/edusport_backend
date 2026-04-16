@@ -1,0 +1,41 @@
+{
+  "kind": "singleType",
+  "collectionName": "program_pages",
+  "info": {
+    "singularName": "program-page",
+    "pluralName": "program-pages",
+    "displayName": "Scoala Patinaj / Pagina Program",
+    "description": "Orar grupe, calendar sezon și disclaimer-uri pentru pagina /cursuri/program"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "banner": {
+      "type": "json",
+      "customField": "plugin::component-preview.page-banner"
+    },
+    "pageInfo": {
+      "type": "json",
+      "customField": "plugin::component-preview.program-page-info"
+    },
+    "scheduleGroups": {
+      "type": "json",
+      "customField": "plugin::component-preview.schedule-groups"
+    },
+    "calendarEvents": {
+      "type": "json",
+      "customField": "plugin::component-preview.calendar-events"
+    },
+    "disclaimers": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.disclaimer"
+    }
+  }
+}

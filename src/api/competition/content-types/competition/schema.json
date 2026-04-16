@@ -1,0 +1,40 @@
+{
+  "kind": "collectionType",
+  "collectionName": "competitions",
+  "info": {
+    "singularName": "competition",
+    "pluralName": "competitions",
+    "displayName": "Club / Competiție",
+    "description": "Rezultate competiții pe sezoane"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "date": {
+      "type": "date",
+      "required": true
+    },
+    "location": {
+      "type": "string"
+    },
+    "level": {
+      "type": "enumeration",
+      "enum": ["national", "international"],
+      "default": "national"
+    },
+    "season": {
+      "type": "string",
+      "required": true
+    },
+    "participants": {
+      "type": "component",
+      "repeatable": true,
+      "component": "competition.participant"
+    }
+  }
+}

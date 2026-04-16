@@ -1,0 +1,24 @@
+{
+  "kind": "singleType",
+  "collectionName": "course_regulations",
+  "info": {
+    "singularName": "course-regulations",
+    "pluralName": "course-regulations-list",
+    "displayName": "Scoala Patinaj / Regulament cursuri",
+    "description": "Reguli de curs organizate pe categorii"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "banner": {
+      "type": "json",
+      "customField": "plugin::component-preview.course-regs-banner"
+    },
+    "categories": {
+      "type": "component",
+      "repeatable": true,
+      "component": "regulations.regulation-category"
+    }
+  }
+}

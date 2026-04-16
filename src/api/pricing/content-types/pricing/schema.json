@@ -1,0 +1,42 @@
+{
+  "kind": "singleType",
+  "collectionName": "pricings",
+  "info": {
+    "singularName": "pricing",
+    "pluralName": "pricings",
+    "displayName": "Scoala Patinaj / Prețuri",
+    "description": "Tarife cursuri pentru membri și non-membri"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "banner": {
+      "type": "json",
+      "customField": "plugin::component-preview.page-banner"
+    },
+    "tiers": {
+      "type": "json",
+      "customField": "plugin::component-preview.pricing-tiers",
+      "pluginOptions": {
+        "content-manager": {
+          "displayOrder": 1
+        }
+      }
+    },
+    "footerNotes": {
+      "type": "json",
+      "customField": "plugin::component-preview.footer-notes",
+      "pluginOptions": {
+        "content-manager": {
+          "displayOrder": 2
+        }
+      }
+    }
+  }
+}

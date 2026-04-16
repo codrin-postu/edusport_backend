@@ -1,0 +1,28 @@
+{
+  "kind": "singleType",
+  "collectionName": "site_settings",
+  "info": {
+    "singularName": "site-settings",
+    "pluralName": "site-settings-list",
+    "displayName": "Setări Site",
+    "description": "Setări globale: înscrieri, contact"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "registration": {
+      "type": "json",
+      "customField": "plugin::component-preview.site-settings-registration"
+    },
+    "contact": {
+      "type": "json",
+      "customField": "plugin::component-preview.site-settings-contact"
+    },
+  }
+}
