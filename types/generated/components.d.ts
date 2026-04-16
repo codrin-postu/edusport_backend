@@ -1,5 +1,284 @@
 import type { Schema, Struct } from '@strapi/strapi';
 
+export interface AnnouncementCallToAction extends Struct.ComponentSchema {
+  collectionName: 'components_announcement_call_to_actions';
+  info: {
+    description: 'Butonul op\u021Bional care redirec\u021Bioneaz\u0103 utilizatorul spre mai multe informa\u021Bii';
+    displayName: 'Call to Action';
+    icon: 'cursor';
+  };
+  attributes: {
+    ctaLabel: Schema.Attribute.String;
+    ctaUrl: Schema.Attribute.String;
+  };
+}
+
+export interface AnnouncementMessageContent extends Struct.ComponentSchema {
+  collectionName: 'components_announcement_message_contents';
+  info: {
+    description: 'Textul \u0219i tipul anun\u021Bului afi\u0219at vizitatorilor';
+    displayName: 'Con\u021Binut Anun\u021B';
+    icon: 'bell';
+  };
+  attributes: {
+    message: Schema.Attribute.Text & Schema.Attribute.Required;
+    type: Schema.Attribute.Enumeration<
+      ['info', 'warning', 'success', 'error']
+    > &
+      Schema.Attribute.DefaultTo<'info'>;
+  };
+}
+
+export interface CompetitionParticipant extends Struct.ComponentSchema {
+  collectionName: 'components_competition_participants';
+  info: {
+    description: 'Rezultatul unui sportiv \u00EEn competi\u021Bie';
+    displayName: 'Participant';
+    icon: 'user';
+  };
+  attributes: {
+    athleteName: Schema.Attribute.String & Schema.Attribute.Required;
+    category: Schema.Attribute.String;
+    placement: Schema.Attribute.Enumeration<
+      ['gold', 'silver', 'bronze', '4th', '5th', '6th', 'top10']
+    >;
+    score: Schema.Attribute.Decimal;
+  };
+}
+
+export interface CursuriAbout extends Struct.ComponentSchema {
+  collectionName: 'components_cursuri_abouts';
+  info: {
+    description: 'Sec\u021Biunea despre \u0219coala de patinaj';
+    displayName: 'Despre noi';
+  };
+  attributes: {
+    coachesBullet: Schema.Attribute.String;
+    content: Schema.Attribute.Text;
+    eyebrow: Schema.Attribute.String;
+    heading: Schema.Attribute.String;
+    levelsBullet: Schema.Attribute.String;
+    locationBullet: Schema.Attribute.String;
+    videoLabel: Schema.Attribute.String;
+    videoUrl: Schema.Attribute.String;
+  };
+}
+
+export interface CursuriBanner extends Struct.ComponentSchema {
+  collectionName: 'components_cursuri_banners';
+  info: {
+    description: 'Sec\u021Biunea hero din partea de sus a paginii /cursuri';
+    displayName: 'Banner';
+  };
+  attributes: {
+    locationName: Schema.Attribute.String;
+    locationUrl: Schema.Attribute.String;
+    scheduleDays: Schema.Attribute.String;
+    scheduleTimes: Schema.Attribute.String;
+    title: Schema.Attribute.String;
+  };
+}
+
+export interface CursuriInfoSection extends Struct.ComponentSchema {
+  collectionName: 'components_cursuri_info_sections';
+  info: {
+    description: 'Sfaturi \u0219i reguli afi\u0219ate \u00EEn partea de jos a paginii /cursuri';
+    displayName: 'Sectiunea Informatii';
+  };
+  attributes: {
+    closingLine: Schema.Attribute.String;
+    sectionLabel: Schema.Attribute.String;
+    tips: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.info-tips'>;
+  };
+}
+
+export interface CursuriPromoCard extends Struct.ComponentSchema {
+  collectionName: 'components_cursuri_promo_cards';
+  info: {
+    description: 'Card albastru de promovare a abonamentului de club';
+    displayName: 'Card Promo Membru';
+  };
+  attributes: {
+    description: Schema.Attribute.Text;
+    eyebrow: Schema.Attribute.String;
+    subscriptionBullets: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.subscription-bullets'>;
+    subscriptionInfoTitle: Schema.Attribute.String;
+    title: Schema.Attribute.String;
+  };
+}
+
+export interface HomepageAbout extends Struct.ComponentSchema {
+  collectionName: 'components_homepage_abouts';
+  info: {
+    description: "Sec\u021Biunea 'Cine suntem' din pagina principal\u0103";
+    displayName: 'Sec\u021Biune Despre Noi';
+  };
+  attributes: {
+    body: Schema.Attribute.Text;
+    ctaLabel: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Despre noi'>;
+    ctaUrl: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'/despre-noi/istoric'>;
+    eyebrow: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Cine suntem'>;
+    heading: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Asocia\u021Bie non-profit pentru sport \u0219i educa\u021Bie'>;
+  };
+}
+
+export interface HomepageHero extends Struct.ComponentSchema {
+  collectionName: 'components_homepage_heroes';
+  info: {
+    description: 'Sec\u021Biunea hero din pagina principal\u0103';
+    displayName: 'Hero Section';
+  };
+  attributes: {
+    ctaLabel: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Descoper\u0103 Cursurile'>;
+    ctaUrl: Schema.Attribute.String & Schema.Attribute.DefaultTo<'/cursuri'>;
+    motto: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Educa\u021Bie prin sport'>;
+  };
+}
+
+export interface HomepageRegistration extends Struct.ComponentSchema {
+  collectionName: 'components_homepage_registrations';
+  info: {
+    description: 'Sec\u021Biunea de \u00EEnscrieri din pagina principal\u0103 (c\u00E2nd sunt deschise)';
+    displayName: 'Sec\u021Biune \u00CEnscrieri';
+  };
+  attributes: {
+    body: Schema.Attribute.Text;
+    bodySecondary: Schema.Attribute.Text;
+    ctaPrimaryLabel: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'\u00CEnscrie-te'>;
+    ctaPrimaryUrl: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'/inscrieri'>;
+    ctaSecondaryLabel: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Afl\u0103 mai mult'>;
+    ctaSecondaryUrl: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'/inscrieri'>;
+    heading: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Sezonul a \u00EEnceput!'>;
+    locationMapUrl: Schema.Attribute.String;
+    locationName: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'AFI Cotroceni'>;
+    pricesLinkLabel: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Vezi pre\u021Burile'>;
+    pricesLinkUrl: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'/inscrieri#preturi'>;
+    scheduleDays: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'S\u00E2mb\u0103t\u0103 & Duminic\u0103'>;
+    scheduleTimes: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'10:00\u201310:50 & 11:00\u201311:50'>;
+    seasonLabel: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Sezonul 2025\u20132026'>;
+  };
+}
+
+export interface HomepageRegistrationClosed extends Struct.ComponentSchema {
+  collectionName: 'components_homepage_registration_closeds';
+  info: {
+    description: 'Sec\u021Biunea afi\u0219at\u0103 c\u00E2nd \u00EEnscrierile sunt \u00EEnchise';
+    displayName: 'Sec\u021Biune \u00CEnscrieri \u00CEnchise';
+  };
+  attributes: {
+    body: Schema.Attribute.Text;
+    contactLabel: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Contacteaz\u0103-ne'>;
+    contactUrl: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'/contact'>;
+    heading: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Ne vedem \u00EEn urm\u0103torul sezon!'>;
+    seasonLabel: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Sezonul 2025\u20132026'>;
+    whatsappLabel: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Al\u0103tur\u0103-te pe WhatsApp'>;
+    whatsappUrl: Schema.Attribute.String;
+  };
+}
+
+export interface PricingFooterNote extends Struct.ComponentSchema {
+  collectionName: 'components_pricing_footer_notes';
+  info: {
+    description: 'O singur\u0103 not\u0103 bullet afi\u0219at\u0103 sub cardurile de pre\u021Buri';
+    displayName: 'Not\u0103 subsol';
+    icon: 'file-alt';
+  };
+  attributes: {
+    text: Schema.Attribute.Text & Schema.Attribute.Required;
+  };
+}
+
+export interface PricingPricingTier extends Struct.ComponentSchema {
+  collectionName: 'components_pricing_pricing_tiers';
+  info: {
+    description: 'Un singur r\u00E2nd de tarif';
+    displayName: 'Tarif';
+    icon: 'money-bill';
+  };
+  attributes: {
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    note: Schema.Attribute.String;
+    price: Schema.Attribute.String & Schema.Attribute.Required;
+    tooltip: Schema.Attribute.String;
+  };
+}
+
+export interface RegulationsRegulationCategory extends Struct.ComponentSchema {
+  collectionName: 'components_regulations_regulation_categories';
+  info: {
+    description: 'Un grup de reguli sub un titlu de categorie';
+    displayName: 'Categorie regulament';
+    icon: 'folder';
+  };
+  options: {
+    mainField: 'title';
+  };
+  attributes: {
+    icon: Schema.Attribute.Enumeration<
+      ['Users', 'CalendarCheck', 'Layers', 'ShieldAlert', 'MessageCircle']
+    >;
+    rules: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.rules-table'>;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface RegulationsRegulationRule extends Struct.ComponentSchema {
+  collectionName: 'components_regulations_regulation_rules';
+  info: {
+    description: 'O singur\u0103 regul\u0103';
+    displayName: 'Regul\u0103';
+    icon: 'list';
+  };
+  options: {
+    mainField: 'label';
+  };
+  attributes: {
+    highlight: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    text: Schema.Attribute.Text & Schema.Attribute.Required;
+  };
+}
+
+export interface SharedDisclaimer extends Struct.ComponentSchema {
+  collectionName: 'components_shared_disclaimers';
+  info: {
+    description: 'A single disclaimer/notice text entry';
+    displayName: 'Disclaimer';
+    icon: 'information';
+  };
+  options: {
+    mainField: 'text';
+  };
+  attributes: {
+    text: Schema.Attribute.Text & Schema.Attribute.Required;
+  };
+}
+
 export interface SharedMedia extends Struct.ComponentSchema {
   collectionName: 'components_shared_media';
   info: {
@@ -11,14 +290,15 @@ export interface SharedMedia extends Struct.ComponentSchema {
   };
 }
 
-export interface SharedQuote extends Struct.ComponentSchema {
-  collectionName: 'components_shared_quotes';
+export interface SharedPageBanner extends Struct.ComponentSchema {
+  collectionName: 'components_shared_page_banners';
   info: {
-    displayName: 'Quote';
-    icon: 'indent';
+    description: 'Titlul \u0219i subtitlul bannerului de pagin\u0103';
+    displayName: 'Page Banner';
+    icon: 'layout';
   };
   attributes: {
-    body: Schema.Attribute.Text;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -27,7 +307,7 @@ export interface SharedRichText extends Struct.ComponentSchema {
   collectionName: 'components_shared_rich_texts';
   info: {
     description: '';
-    displayName: 'Rich text';
+    displayName: 'Text formatat';
     icon: 'align-justify';
   };
   attributes: {
@@ -39,9 +319,9 @@ export interface SharedSeo extends Struct.ComponentSchema {
   collectionName: 'components_shared_seos';
   info: {
     description: '';
-    displayName: 'Seo';
+    displayName: 'SEO';
     icon: 'allergies';
-    name: 'Seo';
+    name: 'SEO';
   };
   attributes: {
     metaDescription: Schema.Attribute.Text & Schema.Attribute.Required;
@@ -50,26 +330,29 @@ export interface SharedSeo extends Struct.ComponentSchema {
   };
 }
 
-export interface SharedSlider extends Struct.ComponentSchema {
-  collectionName: 'components_shared_sliders';
-  info: {
-    description: '';
-    displayName: 'Slider';
-    icon: 'address-book';
-  };
-  attributes: {
-    files: Schema.Attribute.Media<'images', true>;
-  };
-}
-
 declare module '@strapi/strapi' {
   export module Public {
     export interface ComponentSchemas {
+      'announcement.call-to-action': AnnouncementCallToAction;
+      'announcement.message-content': AnnouncementMessageContent;
+      'competition.participant': CompetitionParticipant;
+      'cursuri.about': CursuriAbout;
+      'cursuri.banner': CursuriBanner;
+      'cursuri.info-section': CursuriInfoSection;
+      'cursuri.promo-card': CursuriPromoCard;
+      'homepage.about': HomepageAbout;
+      'homepage.hero': HomepageHero;
+      'homepage.registration': HomepageRegistration;
+      'homepage.registration-closed': HomepageRegistrationClosed;
+      'pricing.footer-note': PricingFooterNote;
+      'pricing.pricing-tier': PricingPricingTier;
+      'regulations.regulation-category': RegulationsRegulationCategory;
+      'regulations.regulation-rule': RegulationsRegulationRule;
+      'shared.disclaimer': SharedDisclaimer;
       'shared.media': SharedMedia;
-      'shared.quote': SharedQuote;
+      'shared.page-banner': SharedPageBanner;
       'shared.rich-text': SharedRichText;
       'shared.seo': SharedSeo;
-      'shared.slider': SharedSlider;
     }
   }
 }

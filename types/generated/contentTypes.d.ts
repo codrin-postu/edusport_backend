@@ -107,43 +107,6 @@ export interface AdminApiTokenPermission extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface AdminAuditLog extends Struct.CollectionTypeSchema {
-  collectionName: 'strapi_audit_logs';
-  info: {
-    displayName: 'Audit Log';
-    pluralName: 'audit-logs';
-    singularName: 'audit-log';
-  };
-  options: {
-    draftAndPublish: false;
-    timestamps: false;
-  };
-  pluginOptions: {
-    'content-manager': {
-      visible: false;
-    };
-    'content-type-builder': {
-      visible: false;
-    };
-  };
-  attributes: {
-    action: Schema.Attribute.String & Schema.Attribute.Required;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    date: Schema.Attribute.DateTime & Schema.Attribute.Required;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<'oneToMany', 'admin::audit-log'> &
-      Schema.Attribute.Private;
-    payload: Schema.Attribute.JSON;
-    publishedAt: Schema.Attribute.DateTime;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    user: Schema.Attribute.Relation<'oneToOne', 'admin::user'>;
-  };
-}
-
 export interface AdminPermission extends Struct.CollectionTypeSchema {
   collectionName: 'admin_permissions';
   info: {
@@ -410,29 +373,38 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface ApiAboutAbout extends Struct.SingleTypeSchema {
-  collectionName: 'abouts';
+export interface ApiAnnouncementAnnouncement extends Struct.SingleTypeSchema {
+  collectionName: 'announcements';
   info: {
-    description: 'Write about yourself and the content you create';
-    displayName: 'About';
-    pluralName: 'abouts';
-    singularName: 'about';
+    description: 'Anun\u021B afi\u0219at ca popup pe site. Activa\u021Bi comutatorul pentru a afi\u0219a anun\u021Bul vizitatorilor.';
+    displayName: 'Anun\u021B Popup';
+    pluralName: 'announcements';
+    singularName: 'announcement';
   };
   options: {
     draftAndPublish: false;
   };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
   attributes: {
-    blocks: Schema.Attribute.DynamicZone<
-      ['shared.media', 'shared.quote', 'shared.rich-text', 'shared.slider']
-    >;
+    announceContent: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.announcement-content'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    expiresAt: Schema.Attribute.DateTime;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<'oneToMany', 'api::about.about'> &
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::announcement.announcement'
+    > &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
-    title: Schema.Attribute.String;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -442,8 +414,8 @@ export interface ApiAboutAbout extends Struct.SingleTypeSchema {
 export interface ApiArticleArticle extends Struct.CollectionTypeSchema {
   collectionName: 'articles';
   info: {
-    description: 'Create your blog content';
-    displayName: 'Article';
+    description: 'Articole de \u0219tiri \u0219i evenimente';
+    displayName: 'Misc / Articol';
     pluralName: 'articles';
     singularName: 'article';
   };
@@ -451,19 +423,23 @@ export interface ApiArticleArticle extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
-    author: Schema.Attribute.Relation<'manyToOne', 'api::author.author'>;
-    blocks: Schema.Attribute.DynamicZone<
-      ['shared.media', 'shared.quote', 'shared.rich-text', 'shared.slider']
-    >;
-    category: Schema.Attribute.Relation<'manyToOne', 'api::category.category'>;
-    cover: Schema.Attribute.Media<'images' | 'files' | 'videos'>;
+    body: Schema.Attribute.Blocks;
+    category: Schema.Attribute.Enumeration<
+      ['evenimente', 'anunturi', 'general', 'competitii', 'tips']
+    > &
+      Schema.Attribute.Required;
+    coverImage: Schema.Attribute.Media<'images'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    description: Schema.Attribute.Text &
+    date: Schema.Attribute.Date & Schema.Attribute.Required;
+    description: Schema.Attribute.String &
       Schema.Attribute.SetMinMaxLength<{
-        maxLength: 80;
+        maxLength: 300;
       }>;
+    eventAdmissionInfo: Schema.Attribute.String;
+    eventDate: Schema.Attribute.DateTime;
+    eventLocation: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -471,39 +447,77 @@ export interface ApiArticleArticle extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
-    slug: Schema.Attribute.UID<'title'>;
-    title: Schema.Attribute.String;
+    slug: Schema.Attribute.UID<'title'> & Schema.Attribute.Required;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
   };
 }
 
-export interface ApiAuthorAuthor extends Struct.CollectionTypeSchema {
-  collectionName: 'authors';
+export interface ApiCompetitionCompetition extends Struct.CollectionTypeSchema {
+  collectionName: 'competitions';
   info: {
-    description: 'Create authors for your content';
-    displayName: 'Author';
-    pluralName: 'authors';
-    singularName: 'author';
+    description: 'Rezultate competi\u021Bii pe sezoane';
+    displayName: 'Club / Competi\u021Bie';
+    pluralName: 'competitions';
+    singularName: 'competition';
   };
   options: {
     draftAndPublish: false;
   };
   attributes: {
-    articles: Schema.Attribute.Relation<'oneToMany', 'api::article.article'>;
-    avatar: Schema.Attribute.Media<'images' | 'files' | 'videos'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    email: Schema.Attribute.String;
+    date: Schema.Attribute.Date & Schema.Attribute.Required;
+    level: Schema.Attribute.Enumeration<['national', 'international']> &
+      Schema.Attribute.DefaultTo<'national'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
-      'api::author.author'
+      'api::competition.competition'
     > &
       Schema.Attribute.Private;
-    name: Schema.Attribute.String;
+    location: Schema.Attribute.String;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    participants: Schema.Attribute.Component<'competition.participant', true>;
+    publishedAt: Schema.Attribute.DateTime;
+    season: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiCourseRegulationsCourseRegulations
+  extends Struct.SingleTypeSchema {
+  collectionName: 'course_regulations';
+  info: {
+    description: 'Reguli de curs organizate pe categorii';
+    displayName: 'Scoala Patinaj / Regulament cursuri';
+    pluralName: 'course-regulations-list';
+    singularName: 'course-regulations';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    banner: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.course-regs-banner'>;
+    categories: Schema.Attribute.Component<
+      'regulations.regulation-category',
+      true
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::course-regulations.course-regulations'
+    > &
+      Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -511,19 +525,105 @@ export interface ApiAuthorAuthor extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface ApiCategoryCategory extends Struct.CollectionTypeSchema {
-  collectionName: 'categories';
+export interface ApiCursuriPageCursuriPage extends Struct.SingleTypeSchema {
+  collectionName: 'cursuri_pages';
   info: {
-    description: 'Organize your content into categories';
-    displayName: 'Category';
-    pluralName: 'categories';
-    singularName: 'category';
+    description: 'Con\u021Binut (f\u0103r\u0103 pre\u021Buri) pentru pagina /cursuri';
+    displayName: 'Scoala Patinaj / Pagina Cursuri';
+    pluralName: 'cursuri-pages';
+    singularName: 'cursuri-page';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    aboutSection: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.cursuri-page-about'>;
+    banner: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.cursuri-page-banner'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    infoSection: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.cursuri-page-info-section'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::cursuri-page.cursuri-page'
+    > &
+      Schema.Attribute.Private;
+    promoCard: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.cursuri-page-promo-card'>;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiHistoricPageHistoricPage extends Struct.SingleTypeSchema {
+  collectionName: 'historic_page';
+  info: {
+    description: 'Con\u021Binut editabil pentru pagina /despre-noi/istoric';
+    displayName: 'Despre Noi / Pagina Istoric';
+    pluralName: 'historic-pages';
+    singularName: 'historic-page';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    banner: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.page-banner'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    eventsOrganized: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.historic-events-organized'>;
+    eventsParticipated: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.historic-events-participated'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::historic-page.historic-page'
+    > &
+      Schema.Attribute.Private;
+    milestones: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.history-milestones-link'>;
+    pageInfo: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.historic-page-info'>;
+    publishedAt: Schema.Attribute.DateTime;
+    stats: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.historic-stats'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiHistoryMilestoneHistoryMilestone
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'history_milestones';
+  info: {
+    description: 'Intr\u0103ri pe linia de timp a istoricului clubului';
+    displayName: 'Despre Noi / Moment din Istoric';
+    pluralName: 'history-milestones';
+    singularName: 'history-milestone';
   };
   options: {
     draftAndPublish: false;
   };
   attributes: {
-    articles: Schema.Attribute.Relation<'oneToMany', 'api::article.article'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -531,44 +631,295 @@ export interface ApiCategoryCategory extends Struct.CollectionTypeSchema {
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
-      'api::category.category'
+      'api::history-milestone.history-milestone'
     > &
       Schema.Attribute.Private;
-    name: Schema.Attribute.String;
+    order: Schema.Attribute.Integer;
     publishedAt: Schema.Attribute.DateTime;
-    slug: Schema.Attribute.UID;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    year: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
+export interface ApiHomepageHomepage extends Struct.SingleTypeSchema {
+  collectionName: 'homepages';
+  info: {
+    description: 'Con\u021Binut pentru landing page / pagina principal\u0103';
+    displayName: 'Scoala Patinaj / Pagina Principal\u0103';
+    pluralName: 'homepages';
+    singularName: 'homepage';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    about: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.homepage-about'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    hero: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.homepage-hero'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::homepage.homepage'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    registration: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.homepage-registration'>;
+    registrationClosed: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.homepage-registration-closed'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
   };
 }
 
-export interface ApiGlobalGlobal extends Struct.SingleTypeSchema {
-  collectionName: 'globals';
+export interface ApiPricingPricing extends Struct.SingleTypeSchema {
+  collectionName: 'pricings';
   info: {
-    description: 'Define global settings';
-    displayName: 'Global';
-    pluralName: 'globals';
-    singularName: 'global';
+    description: 'Tarife cursuri pentru membri \u0219i non-membri';
+    displayName: 'Scoala Patinaj / Pre\u021Buri';
+    pluralName: 'pricings';
+    singularName: 'pricing';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    banner: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.page-banner'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    footerNotes: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.footer-notes'> &
+      Schema.Attribute.SetPluginOptions<{
+        'content-manager': {
+          displayOrder: 2;
+        };
+      }>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::pricing.pricing'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    tiers: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.pricing-tiers'> &
+      Schema.Attribute.SetPluginOptions<{
+        'content-manager': {
+          displayOrder: 1;
+        };
+      }>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiProgramPageProgramPage extends Struct.SingleTypeSchema {
+  collectionName: 'program_pages';
+  info: {
+    description: 'Orar grupe, calendar sezon \u0219i disclaimer-uri pentru pagina /cursuri/program';
+    displayName: 'Scoala Patinaj / Pagina Program';
+    pluralName: 'program-pages';
+    singularName: 'program-page';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    banner: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.page-banner'>;
+    calendarEvents: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.calendar-events'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    disclaimers: Schema.Attribute.Component<'shared.disclaimer', true>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::program-page.program-page'
+    > &
+      Schema.Attribute.Private;
+    pageInfo: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.program-page-info'>;
+    publishedAt: Schema.Attribute.DateTime;
+    scheduleGroups: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.schedule-groups'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiRealizariPageRealizariPage extends Struct.SingleTypeSchema {
+  collectionName: 'realizari_page';
+  info: {
+    description: 'Con\u021Binut editabil pentru pagina /despre-noi/realizari';
+    displayName: 'Despre Noi / Pagina Realiz\u0103ri';
+    pluralName: 'realizari-pages';
+    singularName: 'realizari-page';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    banner: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.realizari-page-banner'>;
+    competitions: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.competitions-link'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    galleryImages: Schema.Attribute.Media<'images', true>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::realizari-page.realizari-page'
+    > &
+      Schema.Attribute.Private;
+    notableAchievements: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.realizari-achievements'>;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiSiteSettingsSiteSettings extends Struct.SingleTypeSchema {
+  collectionName: 'site_settings';
+  info: {
+    description: 'Set\u0103ri globale: \u00EEnscrieri, contact';
+    displayName: 'Set\u0103ri Site';
+    pluralName: 'site-settings-list';
+    singularName: 'site-settings';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    contact: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.site-settings-contact'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::site-settings.site-settings'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    registration: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.site-settings-registration'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiTeamMemberTeamMember extends Struct.CollectionTypeSchema {
+  collectionName: 'team_members';
+  info: {
+    description: 'Antrenori \u0219i instructori';
+    displayName: 'Despre Noi / Membru echip\u0103';
+    pluralName: 'team-members';
+    singularName: 'team-member';
   };
   options: {
     draftAndPublish: false;
   };
   attributes: {
+    bio: Schema.Attribute.Text;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    defaultSeo: Schema.Attribute.Component<'shared.seo', false>;
-    favicon: Schema.Attribute.Media<'images' | 'files' | 'videos'>;
+    groups: Schema.Attribute.JSON;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
-      'api::global.global'
+      'api::team-member.team-member'
     > &
       Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    order: Schema.Attribute.Integer;
+    photo: Schema.Attribute.Media<'images'>;
     publishedAt: Schema.Attribute.DateTime;
-    siteDescription: Schema.Attribute.Text & Schema.Attribute.Required;
-    siteName: Schema.Attribute.String & Schema.Attribute.Required;
+    role: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiTeamPageTeamPage extends Struct.SingleTypeSchema {
+  collectionName: 'team_page';
+  info: {
+    description: 'Banner, textul de introducere \u0219i membrii echipei pentru pagina /despre-noi/echipa';
+    displayName: 'Despre Noi / Pagina Echipa';
+    pluralName: 'team-pages';
+    singularName: 'team-page';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    banner: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.page-banner'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::team-page.team-page'
+    > &
+      Schema.Attribute.Private;
+    pageInfo: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.team-page-info'>;
+    publishedAt: Schema.Attribute.DateTime;
+    teamMembers: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.team-members-link'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1079,17 +1430,25 @@ declare module '@strapi/strapi' {
     export interface ContentTypeSchemas {
       'admin::api-token': AdminApiToken;
       'admin::api-token-permission': AdminApiTokenPermission;
-      'admin::audit-log': AdminAuditLog;
       'admin::permission': AdminPermission;
       'admin::role': AdminRole;
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
-      'api::about.about': ApiAboutAbout;
+      'api::announcement.announcement': ApiAnnouncementAnnouncement;
       'api::article.article': ApiArticleArticle;
-      'api::author.author': ApiAuthorAuthor;
-      'api::category.category': ApiCategoryCategory;
-      'api::global.global': ApiGlobalGlobal;
+      'api::competition.competition': ApiCompetitionCompetition;
+      'api::course-regulations.course-regulations': ApiCourseRegulationsCourseRegulations;
+      'api::cursuri-page.cursuri-page': ApiCursuriPageCursuriPage;
+      'api::historic-page.historic-page': ApiHistoricPageHistoricPage;
+      'api::history-milestone.history-milestone': ApiHistoryMilestoneHistoryMilestone;
+      'api::homepage.homepage': ApiHomepageHomepage;
+      'api::pricing.pricing': ApiPricingPricing;
+      'api::program-page.program-page': ApiProgramPageProgramPage;
+      'api::realizari-page.realizari-page': ApiRealizariPageRealizariPage;
+      'api::site-settings.site-settings': ApiSiteSettingsSiteSettings;
+      'api::team-member.team-member': ApiTeamMemberTeamMember;
+      'api::team-page.team-page': ApiTeamPageTeamPage;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

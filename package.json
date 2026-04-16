@@ -10,6 +10,11 @@
     "dev": "strapi develop",
     "develop": "strapi develop",
     "seed:example": "node ./scripts/seed.js",
+    "seed:regulations": "docker exec strapi_app node scripts/seed-regulations.js",
+    "seed:pricing": "docker exec strapi_app node scripts/seed-pricing.js",
+    "seed:cursuri-page": "docker exec strapi_app node scripts/seed-cursuri-page.js",
+    "seed:content": "docker exec strapi_app node scripts/seed-content.js",
+    "seed:homepage": "docker exec strapi_app node scripts/seed-homepage.js",
     "start": "strapi start",
     "strapi": "strapi",
     "upgrade": "npx @strapi/upgrade latest",
@@ -25,6 +30,7 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.0.0",
+    "strapi-5-plugin-responsive-backend": "^0.0.4",
     "styled-components": "^6.0.0"
   },
   "devDependencies": {

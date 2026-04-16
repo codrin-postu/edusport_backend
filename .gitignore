@@ -128,4 +128,5 @@ exports
 dist
 build
 .strapi-updater.json
-.strapi-cloud.json
+.strapi-cloud.json.dual-graph/
+.dual-graph/
