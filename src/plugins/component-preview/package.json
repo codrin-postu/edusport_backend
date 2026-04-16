@@ -1,0 +1,13 @@
+{
+  "name": "component-preview",
+  "version": "1.0.0",
+  "description": "Shows a text preview in collapsed repeatable component rows",
+  "strapi": {
+    "name": "component-preview",
+    "displayName": "Component Preview",
+    "description": "Shows a text preview in collapsed repeatable component rows"
+  },
+  "exports": {
+    "./strapi-admin": "./admin/src/index.ts"
+  }
+}
