@@ -1,0 +1,26 @@
+{
+  "collectionName": "components_cursuri_promo_cards",
+  "info": {
+    "displayName": "Card Promo Membru",
+    "description": "Card albastru de promovare a abonamentului de club"
+  },
+  "options": {},
+  "attributes": {
+    "eyebrow": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "subscriptionInfoTitle": {
+      "type": "string"
+    },
+    "subscriptionBullets": {
+      "type": "json",
+      "customField": "plugin::component-preview.subscription-bullets"
+    }
+  }
+}

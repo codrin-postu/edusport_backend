@@ -1,0 +1,24 @@
+{
+  "collectionName": "components_competition_participants",
+  "info": {
+    "displayName": "Participant",
+    "icon": "user",
+    "description": "Rezultatul unui sportiv în competiție"
+  },
+  "attributes": {
+    "athleteName": {
+      "type": "string",
+      "required": true
+    },
+    "category": {
+      "type": "string"
+    },
+    "placement": {
+      "type": "enumeration",
+      "enum": ["gold", "silver", "bronze", "4th", "5th", "6th", "top10"]
+    },
+    "score": {
+      "type": "decimal"
+    }
+  }
+}

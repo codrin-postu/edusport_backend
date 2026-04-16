@@ -1,0 +1,25 @@
+{
+  "collectionName": "components_regulations_regulation_rules",
+  "info": {
+    "displayName": "Regulă",
+    "icon": "list",
+    "description": "O singură regulă"
+  },
+  "options": {
+    "mainField": "label"
+  },
+  "attributes": {
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "text": {
+      "type": "text",
+      "required": true
+    },
+    "highlight": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

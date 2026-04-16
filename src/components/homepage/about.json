@@ -1,0 +1,33 @@
+{
+  "collectionName": "components_homepage_abouts",
+  "info": {
+    "displayName": "Secțiune Despre Noi",
+    "description": "Secțiunea 'Cine suntem' din pagina principală"
+  },
+  "attributes": {
+    "eyebrow": {
+      "type": "string",
+      "default": "Cine suntem",
+      "description": "Eticheta mică deasupra titlului, ex: Cine suntem"
+    },
+    "heading": {
+      "type": "string",
+      "default": "Asociație non-profit pentru sport și educație",
+      "description": "Titlul principal al secțiunii"
+    },
+    "body": {
+      "type": "text",
+      "description": "Textul secțiunii. Separă paragrafele cu o linie goală."
+    },
+    "ctaLabel": {
+      "type": "string",
+      "default": "Despre noi",
+      "description": "Textul linkului/butonului de acțiune"
+    },
+    "ctaUrl": {
+      "type": "string",
+      "default": "/despre-noi/istoric",
+      "description": "Link-ul destinație, ex: /despre-noi/istoric"
+    }
+  }
+}

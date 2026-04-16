@@ -1,0 +1,25 @@
+{
+  "collectionName": "components_cursuri_banners",
+  "info": {
+    "displayName": "Banner",
+    "description": "Secțiunea hero din partea de sus a paginii /cursuri"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "scheduleDays": {
+      "type": "string"
+    },
+    "scheduleTimes": {
+      "type": "string"
+    },
+    "locationName": {
+      "type": "string"
+    },
+    "locationUrl": {
+      "type": "string"
+    }
+  }
+}

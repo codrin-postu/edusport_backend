@@ -1,0 +1,42 @@
+{
+  "collectionName": "components_homepage_registration_closeds",
+  "info": {
+    "displayName": "Secțiune Înscrieri Închise",
+    "description": "Secțiunea afișată când înscrierile sunt închise"
+  },
+  "attributes": {
+    "seasonLabel": {
+      "type": "string",
+      "default": "Sezonul 2025–2026",
+      "description": "Eticheta sezonului (versiunea pentru înscrieri închise)"
+    },
+    "heading": {
+      "type": "string",
+      "default": "Ne vedem în următorul sezon!",
+      "description": "Titlul afișat când înscrierile sunt închise"
+    },
+    "body": {
+      "type": "text",
+      "description": "Mesajul afișat vizitatorilor când înscrierile sunt închise. Separă paragrafele cu o linie goală."
+    },
+    "whatsappLabel": {
+      "type": "string",
+      "default": "Alătură-te pe WhatsApp",
+      "description": "Textul butonului WhatsApp, ex: Alătură-te pe WhatsApp"
+    },
+    "whatsappUrl": {
+      "type": "string",
+      "description": "Link WhatsApp, ex: https://wa.me/40700000000"
+    },
+    "contactLabel": {
+      "type": "string",
+      "default": "Contactează-ne",
+      "description": "Textul linkului de contact"
+    },
+    "contactUrl": {
+      "type": "string",
+      "default": "/contact",
+      "description": "Link pagina de contact, ex: /contact"
+    }
+  }
+}

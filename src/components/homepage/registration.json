@@ -1,0 +1,76 @@
+{
+  "collectionName": "components_homepage_registrations",
+  "info": {
+    "displayName": "Secțiune Înscrieri",
+    "description": "Secțiunea de înscrieri din pagina principală (când sunt deschise)"
+  },
+  "attributes": {
+    "seasonLabel": {
+      "type": "string",
+      "default": "Sezonul 2025–2026",
+      "description": "Eticheta sezonului curent, ex: Sezonul 2025–2026"
+    },
+    "heading": {
+      "type": "string",
+      "default": "Sezonul a început!",
+      "description": "Titlul principal al secțiunii, ex: Sezonul a început!"
+    },
+    "body": {
+      "type": "text",
+      "description": "Textul principal. Separă paragrafele cu o linie goală."
+    },
+    "bodySecondary": {
+      "type": "text",
+      "description": "Text secundar afișat mai jos (opțional)"
+    },
+    "scheduleDays": {
+      "type": "string",
+      "default": "Sâmbătă & Duminică",
+      "description": "Zilele de curs, ex: Sâmbătă & Duminică"
+    },
+    "scheduleTimes": {
+      "type": "string",
+      "default": "10:00–10:50 & 11:00–11:50",
+      "description": "Orele de curs, ex: 10:00–10:50 & 11:00–11:50"
+    },
+    "locationName": {
+      "type": "string",
+      "default": "AFI Cotroceni",
+      "description": "Numele locației, ex: AFI Cotroceni"
+    },
+    "locationMapUrl": {
+      "type": "string",
+      "description": "Link Google Maps pentru locație, ex: https://maps.google.com/?q=AFI+Cotroceni"
+    },
+    "ctaPrimaryLabel": {
+      "type": "string",
+      "default": "Înscrie-te",
+      "description": "Textul butonului primar, ex: Înscrie-te"
+    },
+    "ctaPrimaryUrl": {
+      "type": "string",
+      "default": "/inscrieri",
+      "description": "Link-ul butonului primar, ex: /inscrieri"
+    },
+    "ctaSecondaryLabel": {
+      "type": "string",
+      "default": "Află mai mult",
+      "description": "Textul butonului secundar, ex: Află mai mult"
+    },
+    "ctaSecondaryUrl": {
+      "type": "string",
+      "default": "/inscrieri",
+      "description": "Link-ul butonului secundar"
+    },
+    "pricesLinkLabel": {
+      "type": "string",
+      "default": "Vezi prețurile",
+      "description": "Textul link-ului spre prețuri, ex: Vezi prețurile"
+    },
+    "pricesLinkUrl": {
+      "type": "string",
+      "default": "/inscrieri#preturi",
+      "description": "Link-ul spre prețuri, ex: /inscrieri#preturi"
+    }
+  }
+}

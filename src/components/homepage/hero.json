@@ -1,0 +1,24 @@
+{
+  "collectionName": "components_homepage_heroes",
+  "info": {
+    "displayName": "Hero Section",
+    "description": "Secțiunea hero din pagina principală"
+  },
+  "attributes": {
+    "motto": {
+      "type": "string",
+      "default": "Educație prin sport",
+      "description": "Textul motto afișat mare în secțiunea hero, ex: Educație prin sport"
+    },
+    "ctaLabel": {
+      "type": "string",
+      "default": "Descoperă Cursurile",
+      "description": "Textul butonului de acțiune principal"
+    },
+    "ctaUrl": {
+      "type": "string",
+      "default": "/cursuri",
+      "description": "Link-ul butonului de acțiune principal, ex: /cursuri"
+    }
+  }
+}

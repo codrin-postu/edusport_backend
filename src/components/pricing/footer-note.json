@@ -1,0 +1,14 @@
+{
+  "collectionName": "components_pricing_footer_notes",
+  "info": {
+    "displayName": "Notă subsol",
+    "icon": "file-alt",
+    "description": "O singură notă bullet afișată sub cardurile de prețuri"
+  },
+  "attributes": {
+    "text": {
+      "type": "text",
+      "required": true
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "collectionName": "components_shared_page_banners",
+  "info": {
+    "displayName": "Page Banner",
+    "icon": "layout",
+    "description": "Titlul și subtitlul bannerului de pagină"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "text"
+    }
+  }
+}

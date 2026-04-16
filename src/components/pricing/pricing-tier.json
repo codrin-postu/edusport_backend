@@ -1,0 +1,24 @@
+{
+  "collectionName": "components_pricing_pricing_tiers",
+  "info": {
+    "displayName": "Tarif",
+    "icon": "money-bill",
+    "description": "Un singur rând de tarif"
+  },
+  "attributes": {
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "price": {
+      "type": "string",
+      "required": true
+    },
+    "tooltip": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    }
+  }
+}

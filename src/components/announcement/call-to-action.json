@@ -1,0 +1,17 @@
+{
+  "collectionName": "components_announcement_call_to_actions",
+  "info": {
+    "displayName": "Call to Action",
+    "description": "Butonul opțional care redirecționează utilizatorul spre mai multe informații",
+    "icon": "cursor"
+  },
+  "options": {},
+  "attributes": {
+    "ctaLabel": {
+      "type": "string"
+    },
+    "ctaUrl": {
+      "type": "string"
+    }
+  }
+}

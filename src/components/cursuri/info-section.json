@@ -1,0 +1,20 @@
+{
+  "collectionName": "components_cursuri_info_sections",
+  "info": {
+    "displayName": "Sectiunea Informatii",
+    "description": "Sfaturi și reguli afișate în partea de jos a paginii /cursuri"
+  },
+  "options": {},
+  "attributes": {
+    "sectionLabel": {
+      "type": "string"
+    },
+    "tips": {
+      "type": "json",
+      "customField": "plugin::component-preview.info-tips"
+    },
+    "closingLine": {
+      "type": "string"
+    }
+  }
+}

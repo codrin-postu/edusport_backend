@@ -1,0 +1,17 @@
+{
+  "collectionName": "components_shared_disclaimers",
+  "info": {
+    "displayName": "Disclaimer",
+    "icon": "information",
+    "description": "A single disclaimer/notice text entry"
+  },
+  "options": {
+    "mainField": "text"
+  },
+  "attributes": {
+    "text": {
+      "type": "text",
+      "required": true
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "collectionName": "components_cursuri_abouts",
+  "info": {
+    "displayName": "Despre noi",
+    "description": "Secțiunea despre școala de patinaj"
+  },
+  "options": {},
+  "attributes": {
+    "eyebrow": {
+      "type": "string"
+    },
+    "heading": {
+      "type": "string"
+    },
+    "content": {
+      "type": "text",
+      "description": "Descrierea principală. Separă paragrafele cu o linie goală."
+    },
+    "locationBullet": {
+      "type": "string"
+    },
+    "levelsBullet": {
+      "type": "string"
+    },
+    "coachesBullet": {
+      "type": "string"
+    },
+    "videoUrl": {
+      "type": "string"
+    },
+    "videoLabel": {
+      "type": "string"
+    }
+  }
+}
