@@ -1,9 +1,9 @@
 import type { Core } from '@strapi/strapi';
 
-// Admin layout overrides — applied on every bootstrap so they survive DB resets.
+// Admin layout overrides - applied on every bootstrap so they survive DB resets.
 // Each key is the strapi_core_store_settings key for that component/content-type.
 // `edit` defines field order and column width (12 = full row, 6 = half).
-// Settings overrides (mainField etc.) — keyed by the same store key.
+// Settings overrides (mainField etc.) - keyed by the same store key.
 const SETTINGS_OVERRIDES: Record<string, Record<string, unknown>> = {
   'plugin_content_manager_configuration_content_types::api::homepage.homepage': {
     mainField: 'id',
@@ -46,7 +46,7 @@ const SETTINGS_OVERRIDES: Record<string, Record<string, unknown>> = {
   },
 };
 
-// Field label overrides — keyed by store key, value is { fieldName: label }
+// Field label overrides - keyed by store key, value is { fieldName: label }
 const METADATA_LABEL_OVERRIDES: Record<string, Record<string, string>> = {
   'plugin_content_manager_configuration_content_types::api::program-page.program-page': {
     banner:          'Banner Pagină',
@@ -245,11 +245,6 @@ export default {
       type: 'json',
     });
     strapi.customFields.register({
-      name: 'team-members-link',
-      plugin: 'component-preview',
-      type: 'json',
-    });
-    strapi.customFields.register({
       name: 'historic-stats',
       plugin: 'component-preview',
       type: 'json',
@@ -261,11 +256,6 @@ export default {
     });
     strapi.customFields.register({
       name: 'historic-events-participated',
-      plugin: 'component-preview',
-      type: 'json',
-    });
-    strapi.customFields.register({
-      name: 'history-milestones-link',
       plugin: 'component-preview',
       type: 'json',
     });
