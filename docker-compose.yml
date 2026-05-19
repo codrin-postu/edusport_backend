@@ -5,6 +5,7 @@ services:
     container_name: strapi_app
     ports:
       - "1337:1337"
+      - "5173:5173"
     environment:
       DATABASE_CLIENT: postgres
       DATABASE_HOST: db

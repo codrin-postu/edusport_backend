@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Seed script — populates Strapi with all hardcoded frontend content.
+ * Seed script - populates Strapi with all hardcoded frontend content.
  *
  * Usage (run from inside the Docker container or with Strapi running locally):
  *   docker exec strapi_app node scripts/seed-content.js
@@ -46,12 +46,12 @@ const HISTORIC_PAGE = {
   ],
   eventsParticipated: [
     'Spectacole organizate cu ocazia zilei de 1 Decembrie, în mall-ul AFI Palace Cotroceni',
-    '"Muzică, dans și speranță" — strângere de fonduri organizată de Asociația MAME, 2 iunie 2011',
-    'Concert simfonic la patinoar — spectacol organizat de Primăria Sectorului 6, prin Centrul Cultural European Sector 6, 9 mai 2014',
+    '"Muzică, dans și speranță" - strângere de fonduri organizată de Asociația MAME, 2 iunie 2011',
+    'Concert simfonic la patinoar - spectacol organizat de Primăria Sectorului 6, prin Centrul Cultural European Sector 6, 9 mai 2014',
     'Inaugurări de patinoar: City Park Constanța, patinoarul artificial din parcul Lumea Copiilor, AFI Palace Ploiești',
     'Spectacol organizat de TELUS International cu ocazia Zilei Canadei',
     'Musicalul «Alice în Țara Zăpezilor», 16–17 decembrie 2016, Cluj-Napoca',
-    'Demonstrații de patinaj artistic pe role inline — Decathlon Pallady, august 2017',
+    'Demonstrații de patinaj artistic pe role inline - Decathlon Pallady, august 2017',
   ],
 };
 
@@ -63,17 +63,17 @@ const HISTORY_MILESTONES = [
   },
   {
     year: '2013', order: 2,
-    title: 'Cupa EduSport — ediția I',
+    title: 'Cupa EduSport - ediția I',
     description: 'Prima ediție a Cupei EduSport – Patinaj Artistic pe Role Inline, 28–29 iunie 2013, marcând debutul clubului ca organizator de competiții.',
   },
   {
     year: '2014', order: 3,
-    title: 'Cupa EduSport — ediția a II-a',
+    title: 'Cupa EduSport - ediția a II-a',
     description: 'A doua ediție a Cupei EduSport – Patinaj Artistic pe Role Inline, 6–8 august 2014. Sportivii EduSport participă tot mai activ la competiții naționale, obținând primele medalii.',
   },
   {
     year: '2017', order: 4,
-    title: 'EduSport Trophy — prima competiție internațională',
+    title: 'EduSport Trophy - prima competiție internațională',
     description: 'EduSport Trophy – International Figure Skating Competition in Single Skating (Seniors, Juniors, Advanced Novices, Basic Novices, Chicks & Cubs), 4–7 ianuarie 2017, Otopeni. În aceeași perioadă a fost organizată și EduSport Recreational Cup.',
   },
   {
@@ -100,7 +100,7 @@ const CURSURI_PAGE = {
     eyebrow: 'Scoala de Patinaj',
     heading: 'Patinaj pentru toți, ghidați de campioni',
     content:
-      'Organizată anual în perioada octombrie – mai de foști sportivi de performanță, Școala de Patinaj EduSport oferă cursuri structurate pe mai multe niveluri — de la primii pași până la avansați.\n\nCei mai talentați cursanți pot fi selectați pentru spectacole și demonstrații de patinaj artistic sau pentru a continua pregătirea în cadrul Clubului Sportiv EduSport.',
+      'Organizată anual în perioada octombrie – mai de foști sportivi de performanță, Școala de Patinaj EduSport oferă cursuri structurate pe mai multe niveluri - de la primii pași până la avansați.\n\nCei mai talentați cursanți pot fi selectați pentru spectacole și demonstrații de patinaj artistic sau pentru a continua pregătirea în cadrul Clubului Sportiv EduSport.',
     locationBullet: 'Patinoarul Cotroceni On Ice, AFI Palace Cotroceni',
     levelsBullet: 'Grupe pentru toate nivelurile: primii pași, începători, intermediari, avansați',
     coachesBullet: 'Antrenori - foști sportivi de performanță și atleți pasionați de patinaj',
@@ -128,7 +128,7 @@ const CURSURI_PAGE = {
       'Abonamentul este valabil 4 săptămâni de la efectuarea primei ședințe. Dacă perioada se suprapune cu un weekend fără cursuri, valabilitatea se prelungește cu încă o săptămână.',
       'În cazul în care copilul nu se prezintă la cursuri, ședințele achitate și neefectuate NU se pot recupera.',
     ],
-    closingLine: 'Ne vedem pe gheață! — Echipa Școlii de Patinaj EduSport',
+    closingLine: 'Ne vedem pe gheață! - Echipa Școlii de Patinaj EduSport',
   },
 };
 
@@ -138,7 +138,7 @@ const TEAM_PAGE = {
     subtitle: 'Antrenorii și instructorii care ghidează cursanții Școlii de Patinaj EduSport.',
   },
   pageInfo: {
-    introText: 'Echipa EduSport este formată din antrenori și instructori cu formare solidă în patinaj artistic, dedicați progresului fiecărui cursant — de la primii pași pe gheață până la nivelurile avansate. Fiecare membru al echipei îmbină experiența tehnică cu răbdarea și entuziasmul pentru a crea un mediu de învățare sigur și motivant.',
+    introText: 'Echipa EduSport este formată din antrenori și instructori cu formare solidă în patinaj artistic, dedicați progresului fiecărui cursant - de la primii pași pe gheață până la nivelurile avansate. Fiecare membru al echipei îmbină experiența tehnică cu răbdarea și entuziasmul pentru a crea un mediu de învățare sigur și motivant.',
   },
 };
 
@@ -186,14 +186,14 @@ const REALIZARI_PAGE = {
     bannerSubtitle: 'Rezultatele sportivilor EduSport la competiții naționale și internaționale de patinaj artistic.',
   },
   notableAchievements: [
-    'Locul 1 la Campionatul Național de Patinaj Artistic — categoria Juniori I, ediția 2024',
-    'Locul 2 la Cupa României — categoria Juniori II, București 2024',
-    'Participare la Trofeul Internațional "Ice Star" Minsk, Belarus — Top 5 în categorie',
-    'Locul 1 la Campionatul Național — categoria Novice, ediția 2023',
-    'Locul 3 la Cupa României — categoria Seniori, Cluj-Napoca 2023',
+    'Locul 1 la Campionatul Național de Patinaj Artistic - categoria Juniori I, ediția 2024',
+    'Locul 2 la Cupa României - categoria Juniori II, București 2024',
+    'Participare la Trofeul Internațional "Ice Star" Minsk, Belarus - Top 5 în categorie',
+    'Locul 1 la Campionatul Național - categoria Novice, ediția 2023',
+    'Locul 3 la Cupa României - categoria Seniori, Cluj-Napoca 2023',
     'Echipa EduSport clasată pe locul 1 în clasamentul pe cluburi la Campionatul Național 2023',
-    'Participare la competiția internațională "Prague Skate" — primul podium internațional al clubului',
-    'Locul 2 la Campionatul Național — categoria Pre-Novice, ediția 2022',
+    'Participare la competiția internațională "Prague Skate" - primul podium internațional al clubului',
+    'Locul 2 la Campionatul Național - categoria Pre-Novice, ediția 2022',
   ],
 };
 
@@ -326,7 +326,7 @@ async function seedHistoryMilestones() {
   console.log('\n🏆  Seeding history-milestones…');
   const existing = await strapi.documents('api::history-milestone.history-milestone').findMany();
   if (existing.length > 0) {
-    console.log(`   ⏭   Already has ${existing.length} entries — skipping`);
+    console.log(`   ⏭   Already has ${existing.length} entries - skipping`);
     return;
   }
   for (const m of HISTORY_MILESTONES) {
@@ -384,7 +384,7 @@ async function seedTeamMembers() {
   console.log('\n🧑‍🏫  Seeding team-members…');
   const existing = await strapi.documents('api::team-member.team-member').findMany();
   if (existing.length > 0) {
-    console.log(`   ⏭   Already has ${existing.length} entries — skipping`);
+    console.log(`   ⏭   Already has ${existing.length} entries - skipping`);
     return;
   }
   for (const m of TEAM_MEMBERS) {
@@ -397,12 +397,12 @@ async function seedCompetitions() {
   console.log('\n🏅  Seeding competitions…');
   const existing = await strapi.documents('api::competition.competition').findMany();
   if (existing.length > 0) {
-    console.log(`   ⏭   Already has ${existing.length} entries — skipping`);
+    console.log(`   ⏭   Already has ${existing.length} entries - skipping`);
     return;
   }
   for (const comp of COMPETITIONS) {
     await strapi.documents('api::competition.competition').create({ data: comp });
-    console.log(`   ✅  ${comp.season} — ${comp.name} (${comp.participants.length} participants)`);
+    console.log(`   ✅  ${comp.season} - ${comp.name} (${comp.participants.length} participants)`);
   }
 }
 

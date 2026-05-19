@@ -1,5 +1,5 @@
 /**
- * Seed script — imports all mock articles into Strapi via REST API.
+ * Seed script - imports all mock articles into Strapi via REST API.
  * Run from the edusport_backend directory:
  *   node scripts/seed-articles.mjs
  */
@@ -115,7 +115,7 @@ const ARTICLES = [
 <p>Sportivii Școlii de Patinaj EduSport au participat la Campionatul Național de Patinaj Artistic 2025, desfășurat în perioada 12-15 noiembrie la Patinoarul Olimpic din București.</p>
 <p>Echipa noastră a obținut <strong>3 medalii de aur</strong>, <strong>2 de argint</strong> și <strong>4 de bronz</strong>, confirmând încă o dată calitatea programului de antrenament și dedicarea instructorilor.</p>
 <p>Felicitări tuturor sportivilor și antrenorilor pentru rezultatele obținute!</p>
-<blockquote><p>„Aceste rezultate sunt rodul muncii de echipă și al pasiunii pentru patinaj." — Antrenor Principal</p></blockquote>`,
+<blockquote><p>„Aceste rezultate sunt rodul muncii de echipă și al pasiunii pentru patinaj." - Antrenor Principal</p></blockquote>`,
   },
   {
     slug: "inscrieri-sezon-2025-2026",
@@ -128,16 +128,16 @@ const ARTICLES = [
 <p>Suntem bucuroși să anunțăm că înscrierile pentru sezonul 2025-2026 sunt oficial deschise. Cursurile vor începe pe 15 octombrie și se vor desfășura la Patinoarul Cotroceni On Ice.</p>
 <h3>Grupe disponibile</h3>
 <ul>
-<li><strong>Primii Pași</strong> — pentru copii de 3-5 ani, fără experiență anterioară</li>
-<li><strong>Începători</strong> — pentru copii de 5-8 ani</li>
-<li><strong>Intermediari</strong> — pentru cei cu minim 1 an experiență</li>
-<li><strong>Avansați</strong> — program de performanță</li>
+<li><strong>Primii Pași</strong> - pentru copii de 3-5 ani, fără experiență anterioară</li>
+<li><strong>Începători</strong> - pentru copii de 5-8 ani</li>
+<li><strong>Intermediari</strong> - pentru cei cu minim 1 an experiență</li>
+<li><strong>Avansați</strong> - program de performanță</li>
 </ul>
 <p>Locurile sunt limitate, iar înscrierea se face pe principiul „primul venit, primul servit".</p>`,
   },
   {
     slug: "echipament-patinaj-ghid-parinti",
-    title: "Echipamentul de patinaj — ghid complet pentru părinți",
+    title: "Echipamentul de patinaj - ghid complet pentru părinți",
     description:
       "Tot ce trebuie să știi despre alegerea patinelor, protecțiilor și îmbrăcămintei potrivite pentru primele lecții.",
     date: "2025-09-20",
@@ -148,16 +148,16 @@ const ARTICLES = [
 <p>Patinele de patinaj artistic diferă de cele de hochei sau de cele recreaționale. Ele au lama mai lungă și cu dinți la vârf, necesari pentru sărituri și piruete.</p>
 <h3>Protecții recomandate</h3>
 <ul>
-<li>Cască — obligatoriu pentru începători</li>
-<li>Genunchiere — recomandat pentru toți</li>
-<li>Mănuși — obligatoriu pentru toți</li>
-<li>Protecție șold — recomandat pentru avansați</li>
+<li>Cască - obligatoriu pentru începători</li>
+<li>Genunchiere - recomandat pentru toți</li>
+<li>Mănuși - obligatoriu pentru toți</li>
+<li>Protecție șold - recomandat pentru avansați</li>
 </ul>
 <p>Vă recomandăm să consultați instructorii înainte de a achiziționa echipament scump.</p>`,
   },
   {
     slug: "spectacol-craciun-2025",
-    title: "Spectacolul de Crăciun 2025 — Pregătiri în toi",
+    title: "Spectacolul de Crăciun 2025 - Pregătiri în toi",
     description:
       "Pregătirile pentru spectacolul anual de Crăciun sunt în plină desfășurare. Detalii despre program și bilete.",
     date: "2025-11-28",
@@ -167,30 +167,30 @@ const ARTICLES = [
     eventAdmissionInfo: "Intrare gratuită pentru familiile cursanților",
     bodyHtml: `<h2>Magia sărbătorilor pe gheață</h2>
 <p>Spectacolul de Crăciun 2025 va avea loc pe 21 decembrie la Patinoarul Cotroceni On Ice. Toți cursanții școlii vor participa într-un program artistic special.</p>
-<p>Cursanții din toate grupele — de la Primii Pași până la Avansați — vor urca pe gheață pentru a demonstra tot ce au învățat în acest sezon, într-o atmosferă plină de magie și spiritul sărbătorilor de iarnă.</p>
+<p>Cursanții din toate grupele - de la Primii Pași până la Avansați - vor urca pe gheață pentru a demonstra tot ce au învățat în acest sezon, într-o atmosferă plină de magie și spiritul sărbătorilor de iarnă.</p>
 <p>Intrarea este gratuită pentru toți membrii familiei cursanților. Locurile în tribune sunt limitate, vă rugăm să confirmați prezența prin mesaj pe canalul de WhatsApp.</p>
 <p>Pregătirile au început încă din luna noiembrie, cu repetiții săptămânale dedicate coreografiilor de grup.</p>`,
   },
   {
     slug: "rezultate-cupa-edusport-toamna",
-    title: "Rezultatele Cupei EduSport — Ediția de Toamnă",
+    title: "Rezultatele Cupei EduSport - Ediția de Toamnă",
     description:
       "Peste 40 de cursanți au participat la competiția internă. Descoperă clasamentele și momentele speciale.",
     date: "2025-11-20",
     category: "competitii",
     bodyHtml: `<h2>O competiție de succes</h2>
-<p>Cupa EduSport — Ediția de Toamnă 2025 a adunat peste 40 de participanți din toate grupele de nivel. Competiția s-a desfășurat într-o atmosferă plină de energie și fair-play.</p>
+<p>Cupa EduSport - Ediția de Toamnă 2025 a adunat peste 40 de participanți din toate grupele de nivel. Competiția s-a desfășurat într-o atmosferă plină de energie și fair-play.</p>
 <p>Felicitări tuturor participanților pentru efortul depus și spiritul sportiv demonstrat!</p>`,
   },
   {
     slug: "program-modificat-vacanta",
     title: "Program modificat în perioada vacanței de iarnă",
     description:
-      "Vă informăm că în perioada 23 decembrie — 7 ianuarie programul cursurilor va fi modificat.",
+      "Vă informăm că în perioada 23 decembrie - 7 ianuarie programul cursurilor va fi modificat.",
     date: "2025-12-10",
     category: "anunturi",
     bodyHtml: `<h2>Modificări de program</h2>
-<p>În perioada vacanței de iarnă (23 decembrie 2025 — 7 ianuarie 2026), programul cursurilor va suferi următoarele modificări:</p>
+<p>În perioada vacanței de iarnă (23 decembrie 2025 - 7 ianuarie 2026), programul cursurilor va suferi următoarele modificări:</p>
 <ul>
 <li>Cursurile de luni și miercuri se suspendă</li>
 <li>Cursurile de weekend se mențin conform programului obișnuit</li>
@@ -201,7 +201,7 @@ const ARTICLES = [
     slug: "beneficii-patinaj-copii",
     title: "5 beneficii ale patinajului artistic pentru copii",
     description:
-      "De la îmbunătățirea echilibrului la dezvoltarea disciplinei — descoperă cum patinajul ajută în dezvoltarea copilului tău.",
+      "De la îmbunătățirea echilibrului la dezvoltarea disciplinei - descoperă cum patinajul ajută în dezvoltarea copilului tău.",
     date: "2025-09-05",
     category: "tips",
     bodyHtml: `<h2>De ce patinaj artistic?</h2>
@@ -235,12 +235,12 @@ const ARTICLES = [
       "Sfaturi practice pentru părinți: ce trebuie să știi înainte de prima lecție pe gheață.",
     date: "2025-08-01",
     category: "tips",
-    bodyHtml: `<h2>Primul curs de patinaj — ghid pentru părinți</h2>
+    bodyHtml: `<h2>Primul curs de patinaj - ghid pentru părinți</h2>
 <p>Prima lecție de patinaj poate fi o experiență emoționantă atât pentru copii, cât și pentru părinți. Iată câteva sfaturi utile.</p>
 <h3>Înainte de curs</h3>
 <ul>
 <li>Asigurați-vă că copilul a dormit bine și a mâncat cu cel puțin o oră înainte</li>
-<li>Îmbrăcați-l în straturi subțiri dar calde — nu haine groase care restricționează mișcarea</li>
+<li>Îmbrăcați-l în straturi subțiri dar calde - nu haine groase care restricționează mișcarea</li>
 <li>Mănuși impermeabile sunt obligatorii</li>
 </ul>
 <h3>La patinoar</h3>
@@ -271,7 +271,7 @@ const ARTICLES = [
   },
   {
     slug: "tabara-vara-2025",
-    title: "Tabăra de vară de patinaj — Ediția 2025",
+    title: "Tabăra de vară de patinaj - Ediția 2025",
     description:
       "O săptămână intensivă de antrenamente, jocuri pe gheață și activități creative pentru cursanții EduSport.",
     date: "2025-06-01",
@@ -291,32 +291,32 @@ const ARTICLES = [
     category: "evenimente",
     eventDate: "2025-05-10T10:00:00",
     eventLocation: "Patinoarul Cotroceni On Ice",
-    bodyHtml: `<h2>Cupa EduSport — Primăvară 2025</h2>
+    bodyHtml: `<h2>Cupa EduSport - Primăvară 2025</h2>
 <p>Prima competiție internă a sezonului, în care cursanții din grupele Intermediari și Avansați s-au întrecut pe elemente tehnice impuse și un scurt program liber.</p>`,
   },
   {
     slug: "spectacol-de-craciun-2024",
     title: "Spectacol de Crăciun 2024",
     description:
-      "Ediția 2024 a spectacolului anual de Crăciun — o seară plină de emoție și momente frumoase pe gheață, cu toți cursanții școlii.",
+      "Ediția 2024 a spectacolului anual de Crăciun - o seară plină de emoție și momente frumoase pe gheață, cu toți cursanții școlii.",
     date: "2024-12-22",
     category: "evenimente",
     eventDate: "2024-12-22T11:00:00",
     eventLocation: "Patinoarul Cotroceni On Ice",
     bodyHtml: `<h2>Spectacol de Crăciun 2024</h2>
-<p>Ediția 2024 a spectacolului anual de Crăciun — o seară plină de emoție și momente frumoase pe gheață, cu toți cursanții școlii.</p>`,
+<p>Ediția 2024 a spectacolului anual de Crăciun - o seară plină de emoție și momente frumoase pe gheață, cu toți cursanții școlii.</p>`,
   },
   {
     slug: "cupa-edusport-toamna-2024",
     title: "Cupa EduSport – Toamnă 2024",
     description:
-      "A doua ediție a cupei interne, cu participare record — peste 40 de cursanți din toate grupele s-au înscris în competiție.",
+      "A doua ediție a cupei interne, cu participare record - peste 40 de cursanți din toate grupele s-au înscris în competiție.",
     date: "2024-11-16",
     category: "evenimente",
     eventDate: "2024-11-16T10:00:00",
     eventLocation: "Patinoarul Cotroceni On Ice",
     bodyHtml: `<h2>Cupa EduSport – Toamnă 2024</h2>
-<p>A doua ediție a cupei interne, cu participare record — peste 40 de cursanți din toate grupele s-au înscris în competiție.</p>`,
+<p>A doua ediție a cupei interne, cu participare record - peste 40 de cursanți din toate grupele s-au înscris în competiție.</p>`,
   },
   {
     slug: "tabara-de-patinaj-vara-2024",
@@ -399,7 +399,7 @@ async function main() {
   let skipped = 0;
   for (const article of ARTICLES) {
     if (existingSlugs.has(article.slug)) {
-      console.log(`  — Skipped (already exists): ${article.slug}`);
+      console.log(`  - Skipped (already exists): ${article.slug}`);
       skipped++;
       continue;
     }

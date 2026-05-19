@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Seed script — populates the homepage single type with default content.
+ * Seed script - populates the homepage single type with default content.
  *
  * Usage:
  *   docker exec strapi_app node scripts/seed-homepage.js
@@ -41,11 +41,43 @@ const DATA = {
     contactUrl: '/contact',
   },
   about: {
-    eyebrow: 'Cine suntem',
-    heading: 'Asociație non-profit pentru sport și educație',
-    body: 'ACS EduSport Reșița este o asociație sportivă non-profit înființată în 2012, cu misiunea de a contribui la dezvoltarea armonioasă a tineretului prin sport.\n\nOperăm cea mai mare Școală de Patinaj din București, cu aproximativ 150 de copii pe sezon, și sprijinim sportivii talentați în obținerea înaltei performanțe.',
-    ctaLabel: 'Despre noi',
-    ctaUrl: '/despre-noi/istoric',
+    panels: [
+      {
+        eyebrow: 'Cine suntem',
+        heading: 'Asociație non-profit\npentru sport și educație',
+        body: 'Fondată în 2012, EduSport este o asociație non-profit dedicată dezvoltării sportive și educative a tinerilor - de la primii pași pe gheață până la podiumuri naționale.',
+        ctaLabel: 'Despre noi',
+        ctaUrl: '/despre-noi',
+      },
+      {
+        eyebrow: 'Echipa noastră',
+        heading: 'Antrenori dedicați,\ncursanți motivați',
+        body: 'Patru antrenori certificați FRPA, fiecare cu o poveste proprie pe gheață. Împreună ghidează peste 50 de cursanți în 6 grupe.',
+        ctaLabel: 'Cunoaște echipa',
+        ctaUrl: '/despre-noi/echipa',
+      },
+      {
+        eyebrow: 'Realizările noastre',
+        heading: '32 de medalii\nși tot înainte',
+        body: 'De la primul campionat național la competiții internaționale, cursanții EduSport au urcat pe podium de 32 de ori în 8 ani.',
+        ctaLabel: 'Vezi realizările',
+        ctaUrl: '/despre-noi/realizari',
+      },
+    ],
+    notebook: [
+      { text: 'Plan', style: 'normal' },
+      { text: '', style: 'normal' },
+      { text: 'Muzică:', style: 'normal', dim: true },
+      { text: 'Swan Lake - Tchaikovsky', style: 'strikethrough', indent: true },
+      { text: 'Clair de Lune - Debussy', style: 'scratched', indent: true, replacement: "Comptine d'un autre été" },
+      { text: '', style: 'normal' },
+      { text: 'Elemente:', style: 'normal', dim: true },
+      { text: 'Axel simplu', style: 'normal', indent: true },
+      { text: 'Lutz + toe loop', style: 'normal', indent: true },
+      { text: 'Piruetă combinată', style: 'scratched', indent: true, replacement: 'Camel spin' },
+      { text: 'Step sequence nivel 2', style: 'normal', indent: true },
+      { text: 'Spiral sequence', style: 'normal', indent: true },
+    ],
   },
 };
 

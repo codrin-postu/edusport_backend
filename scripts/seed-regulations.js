@@ -11,7 +11,7 @@ const CATEGORIES = [
       { highlight: false, label: 'Informare instructor despre probleme de sănătate', text: 'Tutorele sau participantul trebuie sa informeze instructorul despre problemele de sanatate temporare si/sau daca apar probleme medicale in timpul desfasurarii cursului.' },
       { highlight: false, label: 'Înscriere doar online', text: 'Inscrierea la cursuri se poate face doar online pe site-ul www.scoaladepatinaj.com' },
       { highlight: true,  label: 'Locuri limitate, în ordinea înscrierii', text: 'Numarul locurilor este limitat pentru fiecare grupa/ora in parte. Ocuparea locurilor vacante se va face in ordinea inscrierii la cursuri.' },
-      { highlight: false, label: 'Taxa de membru — o dată pe sezon', text: 'Taxa de membru se achita o singura data pe sezon, la inscrierea la cursurile noastre, indiferent de momentul inscrierii la cursuri si este valabila in perioada octombrie – mai. Taxa nu este fractionara.' },
+      { highlight: false, label: 'Taxa de membru - o dată pe sezon', text: 'Taxa de membru se achita o singura data pe sezon, la inscrierea la cursurile noastre, indiferent de momentul inscrierii la cursuri si este valabila in perioada octombrie – mai. Taxa nu este fractionara.' },
       { highlight: false, label: 'Abonament valabil 4 săptămâni', text: 'Abonamentul este valabil 4 saptamani de la efectuarea primei sedinte! In cazul in care, perioada de 4 saptamani se suprapune cu un weekend in care nu se fac cursuri, valabilitatea abonamentului se prelungeste cu inca o saptamana.' },
     ],
   },
@@ -20,7 +20,7 @@ const CATEGORIES = [
     icon: 'CalendarCheck',
     rules: [
       { highlight: true,  label: 'Ședințele neefectuate nu se recuperează', text: 'Sedintele achitate si neefectuate pe parcursul celor 4 saptamani nu se pot reporta/recupera.' },
-      { highlight: false, label: 'Recuperare medicală — max 2 ședințe', text: 'In cazul in care se lipseste din motive medicale, se pot recupera 2 sedinte, in baza unei adeverinte medicale.' },
+      { highlight: false, label: 'Recuperare medicală - max 2 ședințe', text: 'In cazul in care se lipseste din motive medicale, se pot recupera 2 sedinte, in baza unei adeverinte medicale.' },
       { highlight: false, label: 'Rezervare modul următor în ultimele 2 ședințe', text: 'Rezervarea locurilor pentru urmatorul modul se face prin achizitionarea unui nou abonament in ultimele 2 sedinte ale modulului curent. In cazul in care abonamentele nu sunt achitate in perioada respectiva, locul este declarat din nou vacant, urmand sa inscriem urmatoarea persoana de pe lista. Regula se aplica atat pentru non-membri, cat si pentru membri.' },
       { highlight: false, label: 'Prezență cu 20 min înainte pentru încălzire', text: 'Prezenta la curs se face cu minimum 20 minute inainte de intrarea pe gheata, pentru efectuarea incalzirii. Incalzirea se efectueaza de fiecare copil, in mod independent (sub supravegherea parintilor).' },
     ],
@@ -48,7 +48,7 @@ const CATEGORIES = [
       { highlight: false, label: 'Comunicare și atenție la indicațiile instructorului', text: 'Participantii la curs trebuie sa comunice cu instructorul si sa fie foarte atenti la indicatiile acestuia.' },
       { highlight: false, label: 'Fără interacțiune părinți–copii pe gheață', text: 'Sa se respecte organizarea cursului si sa se evite interactionarea dintre parinti si copii.' },
       { highlight: false, label: 'Jocul liber pe gheață interzis', text: 'Jocul pe gheata nu este permis cu exceptia cazurilor in care face parte din pregatirea cursului.' },
-      { highlight: false, label: 'Patine închiriate — fără ieșire din aria patinoarului', text: 'Patinele inchiriate de la patinoar trebuie pastrate cu grija, nefiind acceptata pasirea cu ele pe gresia, marmura sau in alte spatii din afara ariei patinoarului.' },
+      { highlight: false, label: 'Patine închiriate - fără ieșire din aria patinoarului', text: 'Patinele inchiriate de la patinoar trebuie pastrate cu grija, nefiind acceptata pasirea cu ele pe gresia, marmura sau in alte spatii din afara ariei patinoarului.' },
       { highlight: false, label: 'Părăsire gheață doar cu acordul instructorului', text: 'Parasirea ghetii inainte de finalizarea cursului (in cazul nevoilor urgente – de folosire a toaletelor) se face prin invoirea de la instructor si numai in prezenta tutorelui.' },
     ],
   },
@@ -71,7 +71,7 @@ async function seedRegulations() {
 
   const existing = await strapi.documents('api::course-regulations.course-regulations').findFirst();
   if (existing) {
-    console.log('Course regulations already exist — skipping. Delete them in the admin panel first to re-seed.');
+    console.log('Course regulations already exist - skipping. Delete them in the admin panel first to re-seed.');
     return;
   }
 

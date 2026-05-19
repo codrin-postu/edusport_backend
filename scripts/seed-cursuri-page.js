@@ -12,7 +12,7 @@ const DATA = {
     eyebrow: 'Scoala de Patinaj',
     heading: 'Patinaj pentru toți, ghidați de campioni',
     content:
-      'Organizată anual în perioada octombrie – mai de foști sportivi de performanță, Școala de Patinaj EduSport oferă cursuri structurate pe mai multe niveluri — de la primii pași până la avansați.\n\nCei mai talentați cursanți pot fi selectați pentru spectacole și demonstrații de patinaj artistic sau pentru a continua pregătirea în cadrul Clubului Sportiv EduSport.',
+      'Organizată anual în perioada octombrie – mai de foști sportivi de performanță, Școala de Patinaj EduSport oferă cursuri structurate pe mai multe niveluri - de la primii pași până la avansați.\n\nCei mai talentați cursanți pot fi selectați pentru spectacole și demonstrații de patinaj artistic sau pentru a continua pregătirea în cadrul Clubului Sportiv EduSport.',
     locationBullet: 'Patinoarul Cotroceni On Ice, AFI Palace Cotroceni',
     levelsBullet: 'Grupe pentru toate nivelurile: primii pași, începători, intermediari, avansați',
     coachesBullet: 'Antrenori - foști sportivi de performanță și atleți pasionați de patinaj',
@@ -40,7 +40,7 @@ const DATA = {
       'Abonamentul este valabil 4 săptămâni de la efectuarea primei ședințe. Dacă perioada se suprapune cu un weekend fără cursuri, valabilitatea se prelungește cu încă o săptămână.',
       'În cazul în care copilul nu se prezintă la cursuri, ședințele achitate și neefectuate NU se pot recupera.',
     ],
-    closingLine: 'Ne vedem pe gheață! — Echipa Școlii de Patinaj EduSport',
+    closingLine: 'Ne vedem pe gheață! - Echipa Școlii de Patinaj EduSport',
   },
 };
 
