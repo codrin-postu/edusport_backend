@@ -16,10 +16,6 @@
     }
   },
   "attributes": {
-    "banner": {
-      "type": "json",
-      "customField": "plugin::component-preview.page-banner"
-    },
     "tiers": {
       "type": "json",
       "customField": "plugin::component-preview.pricing-tiers",

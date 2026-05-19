@@ -23,10 +23,6 @@
     "pageInfo": {
       "type": "json",
       "customField": "plugin::component-preview.team-page-info"
-    },
-    "teamMembers": {
-      "type": "json",
-      "customField": "plugin::component-preview.team-members-link"
     }
   }
 }

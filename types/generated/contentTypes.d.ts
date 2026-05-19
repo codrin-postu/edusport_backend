@@ -395,8 +395,11 @@ export interface ApiAnnouncementAnnouncement extends Struct.SingleTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    expiresAt: Schema.Attribute.DateTime;
-    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    expiresAt: Schema.Attribute.DateTime &
+      Schema.Attribute.CustomField<'plugin::component-preview.announcement-expires-at'>;
+    isActive: Schema.Attribute.Boolean &
+      Schema.Attribute.CustomField<'plugin::component-preview.announcement-is-active'> &
+      Schema.Attribute.DefaultTo<false>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -487,6 +490,69 @@ export interface ApiCompetitionCompetition extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+  };
+}
+
+export interface ApiContactSubmissionContactSubmission
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'contact_submissions';
+  info: {
+    description: 'Mesaje trimise prin formularul de contact public';
+    displayName: 'Misc / Mesaj de contact';
+    pluralName: 'contact-submissions';
+    singularName: 'contact-submission';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    email: Schema.Attribute.Email & Schema.Attribute.Required;
+    internalNote: Schema.Attribute.Text;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::contact-submission.contact-submission'
+    > &
+      Schema.Attribute.Private;
+    message: Schema.Attribute.Text &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 5000;
+      }>;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    phone: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    reason: Schema.Attribute.Enumeration<
+      [
+        'inscriere',
+        'informatii-cursuri',
+        'program',
+        'tarife',
+        'partenariat',
+        'feedback',
+        'altele',
+      ]
+    > &
+      Schema.Attribute.Required;
+    submittedAt: Schema.Attribute.DateTime;
+    submitterIp: Schema.Attribute.String;
+    triageStatus: Schema.Attribute.Enumeration<
+      ['new', 'read', 'replied', 'archived']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'new'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    userAgent: Schema.Attribute.String;
   };
 }
 
@@ -598,8 +664,6 @@ export interface ApiHistoricPageHistoricPage extends Struct.SingleTypeSchema {
       'api::historic-page.historic-page'
     > &
       Schema.Attribute.Private;
-    milestones: Schema.Attribute.JSON &
-      Schema.Attribute.CustomField<'plugin::component-preview.history-milestones-link'>;
     pageInfo: Schema.Attribute.JSON &
       Schema.Attribute.CustomField<'plugin::component-preview.historic-page-info'>;
     publishedAt: Schema.Attribute.DateTime;
@@ -702,8 +766,6 @@ export interface ApiPricingPricing extends Struct.SingleTypeSchema {
     };
   };
   attributes: {
-    banner: Schema.Attribute.JSON &
-      Schema.Attribute.CustomField<'plugin::component-preview.page-banner'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -918,8 +980,6 @@ export interface ApiTeamPageTeamPage extends Struct.SingleTypeSchema {
     pageInfo: Schema.Attribute.JSON &
       Schema.Attribute.CustomField<'plugin::component-preview.team-page-info'>;
     publishedAt: Schema.Attribute.DateTime;
-    teamMembers: Schema.Attribute.JSON &
-      Schema.Attribute.CustomField<'plugin::component-preview.team-members-link'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1438,6 +1498,7 @@ declare module '@strapi/strapi' {
       'api::announcement.announcement': ApiAnnouncementAnnouncement;
       'api::article.article': ApiArticleArticle;
       'api::competition.competition': ApiCompetitionCompetition;
+      'api::contact-submission.contact-submission': ApiContactSubmissionContactSubmission;
       'api::course-regulations.course-regulations': ApiCourseRegulationsCourseRegulations;
       'api::cursuri-page.cursuri-page': ApiCursuriPageCursuriPage;
       'api::historic-page.historic-page': ApiHistoricPageHistoricPage;

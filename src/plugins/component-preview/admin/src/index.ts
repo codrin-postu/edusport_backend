@@ -60,7 +60,7 @@ export default {
       type: 'json',
       intlLabel: {
         id: 'component-preview.subscription-bullets.label',
-        defaultMessage: 'Puncte abonament',
+        defaultMessage: 'Informații abonament',
       },
       intlDescription: {
         id: 'component-preview.subscription-bullets.description',
@@ -130,32 +130,6 @@ export default {
       intlLabel: { id: 'component-preview.historic-events-participated.label', defaultMessage: 'Participări sportivi' },
       intlDescription: { id: 'component-preview.historic-events-participated.description', defaultMessage: 'Lista participărilor sportivilor EduSport.' },
       components: { Input: async () => import('./FooterNotesEditor').then(m => ({ default: m.default as any })) },
-    });
-
-    app.customFields.register({
-      name: 'history-milestones-link',
-      pluginId: 'component-preview',
-      type: 'json',
-      intlLabel: { id: 'component-preview.history-milestones-link.label', defaultMessage: 'Momente cheie (Timeline)' },
-      intlDescription: { id: 'component-preview.history-milestones-link.description', defaultMessage: 'Link rapid către colecția de momente istorice.' },
-      components: { Input: async () => import('./HistoryMilestonesLink').then(m => ({ default: m.default as any })) },
-    });
-
-    app.customFields.register({
-      name: 'team-members-link',
-      pluginId: 'component-preview',
-      type: 'json',
-      intlLabel: {
-        id: 'component-preview.team-members-link.label',
-        defaultMessage: 'Membri echipă',
-      },
-      intlDescription: {
-        id: 'component-preview.team-members-link.description',
-        defaultMessage: 'Link rapid către colecția de membri ai echipei.',
-      },
-      components: {
-        Input: async () => import('./TeamMembersLink').then(m => ({ default: m.default as any })),
-      },
     });
 
     app.customFields.register({
@@ -348,6 +322,15 @@ export default {
     });
 
     app.customFields.register({
+      name: 'announcement-is-active',
+      pluginId: 'component-preview',
+      type: 'boolean',
+      intlLabel: { id: 'component-preview.announcement-is-active.label', defaultMessage: 'Stare anunț' },
+      intlDescription: { id: 'component-preview.announcement-is-active.description', defaultMessage: 'Activați sau dezactivați afișarea anunțului pe site.' },
+      components: { Input: async () => import('./AnnouncementIsActiveEditor').then(m => ({ default: m.default as any })) },
+    });
+
+    app.customFields.register({
       name: 'announcement-content',
       pluginId: 'component-preview',
       type: 'json',
@@ -357,10 +340,19 @@ export default {
     });
 
     app.customFields.register({
+      name: 'announcement-expires-at',
+      pluginId: 'component-preview',
+      type: 'datetime',
+      intlLabel: { id: 'component-preview.announcement-expires-at.label', defaultMessage: 'Expiră la' },
+      intlDescription: { id: 'component-preview.announcement-expires-at.description', defaultMessage: 'Data și ora la care anunțul expiră automat.' },
+      components: { Input: async () => import('./AnnouncementExpiresEditor').then(m => ({ default: m.default as any })) },
+    });
+
+    app.customFields.register({
       name: 'team-page-info',
       pluginId: 'component-preview',
       type: 'json',
-      intlLabel: { id: 'component-preview.team-page-info.label', defaultMessage: 'Pagina Echipă — Texte' },
+      intlLabel: { id: 'component-preview.team-page-info.label', defaultMessage: 'Pagina Echipă - Texte' },
       intlDescription: { id: 'component-preview.team-page-info.description', defaultMessage: 'Titlul bannerului și textele de introducere pentru pagina echipei.' },
       components: { Input: async () => import('./TeamPageInfoEditor').then(m => ({ default: m.default as any })) },
     });
@@ -369,7 +361,7 @@ export default {
       name: 'historic-page-info',
       pluginId: 'component-preview',
       type: 'json',
-      intlLabel: { id: 'component-preview.historic-page-info.label', defaultMessage: 'Pagina Istoric — Texte' },
+      intlLabel: { id: 'component-preview.historic-page-info.label', defaultMessage: 'Pagina Istoric - Texte' },
       intlDescription: { id: 'component-preview.historic-page-info.description', defaultMessage: 'Titluri și texte pentru pagina /despre-noi/istoric.' },
       components: { Input: async () => import('./HistoricPageInfoEditor').then(m => ({ default: m.default as any })) },
     });
@@ -378,7 +370,7 @@ export default {
       name: 'realizari-page-banner',
       pluginId: 'component-preview',
       type: 'json',
-      intlLabel: { id: 'component-preview.realizari-page-banner.label', defaultMessage: 'Pagina Realizări — Banner' },
+      intlLabel: { id: 'component-preview.realizari-page-banner.label', defaultMessage: 'Pagina Realizări - Banner' },
       intlDescription: { id: 'component-preview.realizari-page-banner.description', defaultMessage: 'Titlul și subtitlul bannerului pentru pagina realizărilor.' },
       components: { Input: async () => import('./RealizariPageBannerEditor').then(m => ({ default: m.default as any })) },
     });
@@ -387,8 +379,8 @@ export default {
       name: 'program-page-info',
       pluginId: 'component-preview',
       type: 'json',
-      intlLabel: { id: 'component-preview.program-page-info.label', defaultMessage: 'Pagina Program — Texte & Sezon' },
-      intlDescription: { id: 'component-preview.program-page-info.description', defaultMessage: 'Banner și informații sezon pentru pagina /cursuri/program.' },
+      intlLabel: { id: 'component-preview.program-page-info.label', defaultMessage: 'Pagina Program - Informații' },
+      intlDescription: { id: 'component-preview.program-page-info.description', defaultMessage: 'Subtitlu orar pentru /cursuri/program. Sezonul se setează în Setări Site.' },
       components: { Input: async () => import('./ProgramPageInfoEditor').then(m => ({ default: m.default as any })) },
     });
 
@@ -396,7 +388,7 @@ export default {
       name: 'course-regs-banner',
       pluginId: 'component-preview',
       type: 'json',
-      intlLabel: { id: 'component-preview.course-regs-banner.label', defaultMessage: 'Regulament Cursuri — Banner' },
+      intlLabel: { id: 'component-preview.course-regs-banner.label', defaultMessage: 'Regulament Cursuri - Banner' },
       intlDescription: { id: 'component-preview.course-regs-banner.description', defaultMessage: 'Titlul și subtitlul bannerului pentru pagina regulamentului.' },
       components: { Input: async () => import('./CourseRegsBannerEditor').then(m => ({ default: m.default as any })) },
     });

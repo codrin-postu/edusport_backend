@@ -40,7 +40,58 @@ export interface CompetitionParticipant extends Struct.ComponentSchema {
     athleteName: Schema.Attribute.String & Schema.Attribute.Required;
     category: Schema.Attribute.String;
     placement: Schema.Attribute.Enumeration<
-      ['gold', 'silver', 'bronze', '4th', '5th', '6th', 'top10']
+      [
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+        '8',
+        '9',
+        '10',
+        '11',
+        '12',
+        '13',
+        '14',
+        '15',
+        '16',
+        '17',
+        '18',
+        '19',
+        '20',
+        '21',
+        '22',
+        '23',
+        '24',
+        '25',
+        '26',
+        '27',
+        '28',
+        '29',
+        '30',
+        '31',
+        '32',
+        '33',
+        '34',
+        '35',
+        '36',
+        '37',
+        '38',
+        '39',
+        '40',
+        '41',
+        '42',
+        '43',
+        '44',
+        '45',
+        '46',
+        '47',
+        '48',
+        '49',
+        '50',
+      ]
     >;
     score: Schema.Attribute.Decimal;
   };
@@ -173,8 +224,6 @@ export interface HomepageRegistration extends Struct.ComponentSchema {
       Schema.Attribute.DefaultTo<'S\u00E2mb\u0103t\u0103 & Duminic\u0103'>;
     scheduleTimes: Schema.Attribute.String &
       Schema.Attribute.DefaultTo<'10:00\u201310:50 & 11:00\u201311:50'>;
-    seasonLabel: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'Sezonul 2025\u20132026'>;
   };
 }
 
@@ -192,8 +241,6 @@ export interface HomepageRegistrationClosed extends Struct.ComponentSchema {
       Schema.Attribute.DefaultTo<'/contact'>;
     heading: Schema.Attribute.String &
       Schema.Attribute.DefaultTo<'Ne vedem \u00EEn urm\u0103torul sezon!'>;
-    seasonLabel: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'Sezonul 2025\u20132026'>;
     whatsappLabel: Schema.Attribute.String &
       Schema.Attribute.DefaultTo<'Al\u0103tur\u0103-te pe WhatsApp'>;
     whatsappUrl: Schema.Attribute.String;

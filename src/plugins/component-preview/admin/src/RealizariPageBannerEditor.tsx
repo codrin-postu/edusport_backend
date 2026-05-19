@@ -1,5 +1,8 @@
 import * as React from 'react';
 import { useField } from '@strapi/admin/strapi-admin';
+import { Box, Grid, Textarea, TextInput } from '@strapi/design-system';
+import { EditorCard } from './components/EditorCard';
+import { EditorField } from './components/EditorField';
 
 interface Props {
   name: string;
@@ -11,20 +14,6 @@ interface RealizariPageBannerData {
   bannerSubtitle: string;
 }
 
-function useDark() {
-  const [dark, setDark] = React.useState(
-    () => document.documentElement.getAttribute('data-theme') === 'dark',
-  );
-  React.useEffect(() => {
-    const obs = new MutationObserver(() =>
-      setDark(document.documentElement.getAttribute('data-theme') === 'dark'),
-    );
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => obs.disconnect();
-  }, []);
-  return dark;
-}
-
 const EMPTY: RealizariPageBannerData = {
   bannerTitle: '',
   bannerSubtitle: '',
@@ -32,98 +21,73 @@ const EMPTY: RealizariPageBannerData = {
 
 export default function RealizariPageBannerEditor({ name }: Props) {
   const field = useField(name);
-  const dark = useDark();
 
   const [data, setData] = React.useState<RealizariPageBannerData>(() => {
     const v = field.value;
-    if (v && typeof v === 'object' && !Array.isArray(v)) return { ...EMPTY, ...(v as RealizariPageBannerData) };
+    if (v && typeof v === 'object' && !Array.isArray(v))
+      return { ...EMPTY, ...(v as RealizariPageBannerData) };
     return EMPTY;
   });
 
   React.useEffect(() => {
     const v = field.value;
-    if (v && typeof v === 'object' && !Array.isArray(v)) setData({ ...EMPTY, ...(v as RealizariPageBannerData) });
+    if (v && typeof v === 'object' && !Array.isArray(v))
+      setData({ ...EMPTY, ...(v as RealizariPageBannerData) });
   }, [field.value]);
 
-  const commit = (next: RealizariPageBannerData) => {
+  const update = (key: keyof RealizariPageBannerData, val: string) => {
+    const next = { ...data, [key]: val };
     setData(next);
     field.onChange(name, next);
   };
 
-  const update = (key: keyof RealizariPageBannerData, val: string) => {
-    commit({ ...data, [key]: val });
-  };
-
-  const s = makeStyles(dark);
-
   return (
-    <div style={s.groupWrapper} className="realizari-page-banner-editor">
-      <style>{`
-        .realizari-page-banner-editor input::placeholder { color: ${dark ? '#555' : '#bbb'}; font-style: italic; }
-        .realizari-page-banner-editor textarea::placeholder { color: ${dark ? '#555' : '#bbb'}; font-style: italic; }
-        .realizari-page-banner-editor textarea { resize: vertical; font-family: inherit; }
-      `}</style>
-      <div style={s.groupHeader}>
-        <span style={s.groupTitle}>Pagina Realizări — Banner</span>
-        <span style={s.groupDesc}>
-          Titlul și subtitlul bannerului pentru pagina /despre-noi/realizari.
-        </span>
-      </div>
+    <Box width="100%">
+      <EditorCard
+        title="Pagina Realizări - Banner"
+        description="Titlul și subtitlul bannerului pentru pagina /despre-noi/realizari."
+      >
+        <Box padding={4}>
+          <Grid.Root gridCols={12} gap={4}>
+            <Grid.Item col={12} s={12} xs={12}>
+              <EditorField
+                name="bannerTitle"
+                label="Titlu banner"
+                hint="ex: Realizările noastre"
+              >
+                <TextInput
+                  id="bannerTitle"
+                  name="bannerTitle"
+                  value={data.bannerTitle}
+                  placeholder="ex: Realizările noastre"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    update('bannerTitle', e.target.value)
+                  }
+                />
+              </EditorField>
+            </Grid.Item>
 
-      <div style={s.body}>
-        <div style={s.sectionLabel}>Banner</div>
-        <div style={s.fieldRowSingle}>
-          <div style={s.fieldFull}>
-            <span style={s.fieldLabel}>Titlu banner</span>
-            <span style={s.fieldHint}>ex: Realizările noastre</span>
-            <input
-              type="text"
-              value={data.bannerTitle}
-              placeholder="ex: Realizările noastre"
-              onChange={e => update('bannerTitle', e.target.value)}
-              style={{ ...s.input, width: '100%' }}
-            />
-          </div>
-        </div>
-
-        <div style={s.fieldRowSingle}>
-          <div style={s.fieldFull}>
-            <span style={s.fieldLabel}>Subtitlu banner</span>
-            <span style={s.fieldHint}>Textul de sub titlul bannerului</span>
-            <textarea
-              value={data.bannerSubtitle}
-              rows={3}
-              placeholder="Subtitlul bannerului..."
-              onChange={e => update('bannerSubtitle', e.target.value)}
-              style={{ ...s.input, height: 'auto', padding: '8px 9px' }}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+            <Grid.Item col={12} s={12} xs={12}>
+              <EditorField
+                name="bannerSubtitle"
+                label="Subtitlu banner"
+                hint="Textul de sub titlul bannerului"
+              >
+                <Textarea
+                  id="bannerSubtitle"
+                  name="bannerSubtitle"
+                  value={data.bannerSubtitle}
+                  rows={3}
+                  placeholder="Subtitlul bannerului..."
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    update('bannerSubtitle', e.target.value)
+                  }
+                />
+              </EditorField>
+            </Grid.Item>
+          </Grid.Root>
+        </Box>
+      </EditorCard>
+    </Box>
   );
-}
-
-function makeStyles(dark: boolean): Record<string, React.CSSProperties> {
-  const outerBorder = dark ? '#2a2a3e' : '#d0d0e0';
-  const inputBorder = dark ? '#4a4a6a' : '#c0c0d0';
-  const inputBg = dark ? '#252540' : '#fff';
-  const inputColor = dark ? '#e0e0f0' : '#111';
-
-  return {
-    groupWrapper: { border: `1px solid ${outerBorder}`, borderRadius: 10, overflow: 'hidden', background: dark ? '#16162a' : '#f8f8fc' },
-    groupHeader: { padding: '12px 16px 10px', borderBottom: `1px solid ${outerBorder}`, background: dark ? '#1a1a30' : '#eeeef8', display: 'flex', flexDirection: 'column' as const, gap: 4 },
-    groupTitle: { fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: dark ? '#9999cc' : '#4a4a88' },
-    groupDesc: { fontSize: 11, color: dark ? '#666' : '#888', lineHeight: 1.5 },
-    body: { display: 'flex', flexDirection: 'column' as const, background: dark ? '#1e1e2e' : '#fff' },
-    sectionLabel: { padding: '10px 14px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: dark ? '#7777aa' : '#8888aa' },
-    fieldRowSingle: { display: 'flex', gap: 12, padding: '4px 14px 12px' },
-    fieldRowDouble: { display: 'flex', gap: 12, padding: '4px 14px 12px' },
-    fieldHalf: { flex: 1, display: 'flex', flexDirection: 'column' as const, gap: 3, minWidth: 0 },
-    fieldFull: { flex: 1, display: 'flex', flexDirection: 'column' as const, gap: 3 },
-    fieldLabel: { fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', color: dark ? '#aaa' : '#555' },
-    fieldHint: { fontSize: 10, color: dark ? '#555' : '#999', lineHeight: 1.4 },
-    input: { padding: '6px 9px', border: `1px solid ${inputBorder}`, borderRadius: 4, fontSize: 12, fontWeight: 500, background: inputBg, color: inputColor, outline: 'none', boxSizing: 'border-box' as const, minWidth: 0, height: 30, width: '100%' },
-    divider: { height: 1, margin: '0 14px', background: dark ? '#2a2a3e' : '#e8e8f0' },
-  };
 }

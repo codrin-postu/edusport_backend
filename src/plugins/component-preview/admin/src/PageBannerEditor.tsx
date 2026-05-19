@@ -1,5 +1,8 @@
 import * as React from 'react';
 import { useField } from '@strapi/admin/strapi-admin';
+import { Box, Grid, Textarea, TextInput } from '@strapi/design-system';
+import { EditorCard } from './components/EditorCard';
+import { EditorField } from './components/EditorField';
 
 interface Props {
   name: string;
@@ -11,100 +14,69 @@ interface BannerData {
   subtitle: string;
 }
 
-function useDark() {
-  const [dark, setDark] = React.useState(
-    () => document.documentElement.getAttribute('data-theme') === 'dark',
-  );
-  React.useEffect(() => {
-    const obs = new MutationObserver(() =>
-      setDark(document.documentElement.getAttribute('data-theme') === 'dark'),
-    );
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => obs.disconnect();
-  }, []);
-  return dark;
-}
-
 const EMPTY: BannerData = { title: '', subtitle: '' };
 
 export default function PageBannerEditor({ name }: Props) {
   const field = useField(name);
-  const dark = useDark();
 
   const [data, setData] = React.useState<BannerData>(() => {
     const v = field.value;
-    if (v && typeof v === 'object' && !Array.isArray(v)) return { ...EMPTY, ...(v as BannerData) };
+    if (v && typeof v === 'object' && !Array.isArray(v))
+      return { ...EMPTY, ...(v as BannerData) };
     return EMPTY;
   });
 
   React.useEffect(() => {
     const v = field.value;
-    if (v && typeof v === 'object' && !Array.isArray(v)) setData({ ...EMPTY, ...(v as BannerData) });
+    if (v && typeof v === 'object' && !Array.isArray(v))
+      setData({ ...EMPTY, ...(v as BannerData) });
   }, [field.value]);
 
-  const commit = (next: BannerData) => { setData(next); field.onChange(name, next); };
-  const update = (key: keyof BannerData, val: string) => commit({ ...data, [key]: val });
-
-  const s = makeStyles(dark);
+  const update = (key: keyof BannerData, val: string) => {
+    const next = { ...data, [key]: val };
+    setData(next);
+    field.onChange(name, next);
+  };
 
   return (
-    <div style={s.groupWrapper} className="page-banner-editor">
-      <style>{`
-        .page-banner-editor input::placeholder { color: ${dark ? '#555' : '#bbb'}; font-style: italic; }
-        .page-banner-editor textarea::placeholder { color: ${dark ? '#555' : '#bbb'}; font-style: italic; }
-        .page-banner-editor textarea { resize: vertical; font-family: inherit; }
-      `}</style>
-      <div style={s.groupHeader}>
-        <span style={s.groupTitle}>Banner Pagină</span>
-        <span style={s.groupDesc}>Titlul și subtitlul afișate în banner-ul din partea de sus a paginii.</span>
-      </div>
-      <div style={s.body}>
-        <div style={s.fieldRowSingle}>
-          <div style={s.fieldFull}>
-            <span style={s.fieldLabel}>Titlu</span>
-            <span style={s.fieldHint}>Titlul mare afișat în banner</span>
-            <input
-              type="text"
-              value={data.title}
-              placeholder="ex: Echipa noastră"
-              onChange={e => update('title', e.target.value)}
-              style={s.input}
-            />
-          </div>
-        </div>
-        <div style={s.fieldRowSingle}>
-          <div style={s.fieldFull}>
-            <span style={s.fieldLabel}>Subtitlu</span>
-            <span style={s.fieldHint}>Textul descriptiv de sub titlu</span>
-            <textarea
-              value={data.subtitle}
-              rows={3}
-              placeholder="ex: Antrenorii și instructorii care ghidează cursanții..."
-              onChange={e => update('subtitle', e.target.value)}
-              style={{ ...s.input, height: 'auto', padding: '8px 9px' }}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+    <Box width="100%">
+      <EditorCard
+        title="Banner Pagină"
+        description="Titlul și subtitlul afișate în banner-ul din partea de sus a paginii."
+      >
+        <Box padding={4}>
+          <Grid.Root gridCols={12} gap={4}>
+            <Grid.Item col={12} s={12} xs={12}>
+              <EditorField name="title" label="Titlu" hint="Titlul mare afișat în banner">
+                <TextInput
+                  id="title"
+                  name="title"
+                  value={data.title}
+                  placeholder="ex: Echipa noastră"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    update('title', e.target.value)
+                  }
+                />
+              </EditorField>
+            </Grid.Item>
 
-function makeStyles(dark: boolean): Record<string, React.CSSProperties> {
-  const outerBorder = dark ? '#2a2a3e' : '#d0d0e0';
-  const inputBorder = dark ? '#4a4a6a' : '#c0c0d0';
-  const inputBg = dark ? '#252540' : '#fff';
-  const inputColor = dark ? '#e0e0f0' : '#111';
-  return {
-    groupWrapper: { border: `1px solid ${outerBorder}`, borderRadius: 10, overflow: 'hidden', background: dark ? '#16162a' : '#f8f8fc' },
-    groupHeader: { padding: '12px 16px 10px', borderBottom: `1px solid ${outerBorder}`, background: dark ? '#1a1a30' : '#eeeef8', display: 'flex', flexDirection: 'column' as const, gap: 4 },
-    groupTitle: { fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: dark ? '#9999cc' : '#4a4a88' },
-    groupDesc: { fontSize: 11, color: dark ? '#666' : '#888', lineHeight: 1.5 },
-    body: { display: 'flex', flexDirection: 'column' as const, background: dark ? '#1e1e2e' : '#fff' },
-    fieldRowSingle: { display: 'flex', gap: 12, padding: '4px 14px 12px' },
-    fieldFull: { flex: 1, display: 'flex', flexDirection: 'column' as const, gap: 3 },
-    fieldLabel: { fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', color: dark ? '#aaa' : '#555' },
-    fieldHint: { fontSize: 10, color: dark ? '#555' : '#999', lineHeight: 1.4 },
-    input: { padding: '6px 9px', border: `1px solid ${inputBorder}`, borderRadius: 4, fontSize: 12, fontWeight: 500, background: inputBg, color: inputColor, outline: 'none', boxSizing: 'border-box' as const, minWidth: 0, height: 30, width: '100%' },
-  };
+            <Grid.Item col={12} s={12} xs={12}>
+              <EditorField name="subtitle" label="Subtitlu" hint="Textul descriptiv de sub titlu">
+                <Textarea
+                  id="subtitle"
+                  name="subtitle"
+                  value={data.subtitle}
+                  rows={3}
+                  placeholder="ex: Antrenorii și instructorii care ghidează cursanții..."
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    update('subtitle', e.target.value)
+                  }
+                />
+              </EditorField>
+            </Grid.Item>
+          </Grid.Root>
+        </Box>
+      </EditorCard>
+    </Box>
+  );
 }

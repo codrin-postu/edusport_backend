@@ -35,10 +35,6 @@
     "eventsParticipated": {
       "type": "json",
       "customField": "plugin::component-preview.historic-events-participated"
-    },
-    "milestones": {
-      "type": "json",
-      "customField": "plugin::component-preview.history-milestones-link"
     }
   }
 }

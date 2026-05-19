@@ -1,6 +1,20 @@
 import * as React from 'react';
 import { useField } from '@strapi/admin/strapi-admin';
-import { Trash } from '@strapi/icons';
+import {
+  Box,
+  Button,
+  Field,
+  Flex,
+  Textarea,
+  TextInput,
+  Typography,
+} from '@strapi/design-system';
+import { Plus } from '@strapi/icons';
+import { EditorCard } from './components/EditorCard';
+import { EditorField } from './components/EditorField';
+import { DeleteIconButton } from './components/DeleteIconButton';
+import { AddListButton } from './components/AddListButton';
+import { Section } from './components/Section';
 
 interface Tier {
   label: string;
@@ -21,35 +35,28 @@ interface Props {
   attribute: Record<string, unknown>;
 }
 
-function useDark() {
-  const [dark, setDark] = React.useState(
-    () => document.documentElement.getAttribute('data-theme') === 'dark'
-  );
-  React.useEffect(() => {
-    const obs = new MutationObserver(() =>
-      setDark(document.documentElement.getAttribute('data-theme') === 'dark')
-    );
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => obs.disconnect();
-  }, []);
-  return dark;
-}
+const EMPTY: PricingData = {
+  memberTiers: [],
+  nonMemberTiers: [],
+  memberFeeLabel: '',
+  memberFeePrice: '',
+};
 
-const EMPTY: PricingData = { memberTiers: [], nonMemberTiers: [], memberFeeLabel: '', memberFeePrice: '' };
+type Side = 'memberTiers' | 'nonMemberTiers';
 
 export default function PricingTiersEditor({ name }: Props) {
   const field = useField(name);
-  const dark = useDark();
 
   const [data, setData] = React.useState<PricingData>(() => {
     const v = field.value;
-    if (v && typeof v === 'object' && !Array.isArray(v)) return v as PricingData;
+    if (v && typeof v === 'object' && !Array.isArray(v)) return { ...EMPTY, ...(v as PricingData) };
     return EMPTY;
   });
 
   React.useEffect(() => {
     const v = field.value;
-    if (v && typeof v === 'object' && !Array.isArray(v)) setData(v as PricingData);
+    if (v && typeof v === 'object' && !Array.isArray(v))
+      setData({ ...EMPTY, ...(v as PricingData) });
   }, [field.value]);
 
   const commit = (next: PricingData) => {
@@ -57,358 +64,240 @@ export default function PricingTiersEditor({ name }: Props) {
     field.onChange(name, next);
   };
 
-  const updateTier = (side: 'memberTiers' | 'nonMemberTiers', i: number, key: keyof Tier, val: string) => {
+  const updateTier = (side: Side, i: number, key: keyof Tier, val: string) => {
     const tiers = [...data[side]];
     tiers[i] = { ...tiers[i], [key]: val };
     commit({ ...data, [side]: tiers });
   };
 
-  const addTier = (side: 'memberTiers' | 'nonMemberTiers') => {
+  const addTier = (side: Side) =>
     commit({ ...data, [side]: [...data[side], { label: '', price: '' }] });
-  };
 
-  const removeTier = (side: 'memberTiers' | 'nonMemberTiers', i: number) => {
+  const removeTier = (side: Side, i: number) =>
     commit({ ...data, [side]: data[side].filter((_, idx) => idx !== i) });
+
+  const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set());
+
+  React.useEffect(() => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      let changed = false;
+      (['memberTiers', 'nonMemberTiers'] as Side[]).forEach((side) => {
+        data[side].forEach((tier, i) => {
+          const key = `${side}:${i}`;
+          if ((tier.tooltip || tier.note) && !next.has(key)) {
+            next.add(key);
+            changed = true;
+          }
+        });
+      });
+      return changed ? next : prev;
+    });
+  }, [data]);
+
+  const isExpanded = (side: Side, i: number) => expandedRows.has(`${side}:${i}`);
+
+  const toggleExpanded = (side: Side, i: number) => {
+    const key = `${side}:${i}`;
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   };
 
-  const s = makeStyles(dark);
+  const renderSection = (side: Side) => {
+    const tiers = data[side];
+    return (
+      <Box>
+        {tiers.length === 0 ? (
+          <Box paddingBottom={3}>
+            <Typography variant="omega" textColor="neutral500" fontStyle="italic">
+              Niciun rând adăugat
+            </Typography>
+          </Box>
+        ) : (
+          <Flex direction="column" gap={0} alignItems="stretch">
+            {tiers.map((tier, i) => {
+              const isLast = i === tiers.length - 1;
+              return (
+                <Box
+                  key={i}
+                  paddingTop={i === 0 ? 0 : 4}
+                  paddingBottom={4}
+                  borderColor="neutral200"
+                  borderStyle="solid"
+                  borderWidth={isLast ? '0' : '0 0 1px 0'}
+                >
+                  <Flex justifyContent="space-between" alignItems="center" paddingBottom={3}>
+                    <Typography variant="pi" fontWeight="bold" textColor="neutral500">
+                      Rând #{i + 1}
+                    </Typography>
+                    <DeleteIconButton
+                      onClick={() => removeTier(side, i)}
+                      label={`Șterge rândul ${i + 1}`}
+                      variant="danger"
+                    />
+                  </Flex>
 
-  const renderSection = (
-    title: string,
-    side: 'memberTiers' | 'nonMemberTiers',
-    accent: boolean
-  ) => (
-    <div style={s.section}>
-      <div style={{ ...s.sectionHeader, ...(accent ? s.sectionHeaderAccent : {}) }}>
-        <span style={{ ...s.sectionTitle, ...(accent ? s.sectionTitleAccent : {}) }}>{title}</span>
-        <button type="button" onClick={() => addTier(side)} style={s.addTierBtn}>+ Adaugă rând</button>
-      </div>
+                  <Flex direction="column" gap={3} alignItems="stretch">
+                    <Flex gap={3} alignItems="flex-start" wrap="wrap">
+                      <Box style={{ flex: '1 1 180px', minWidth: 0 }}>
+                        <Field.Root id={`${name}-${side}-${i}-label`} name={`${name}-${side}-${i}-label`}>
+                          <Field.Label>Etichetă</Field.Label>
+                          <TextInput
+                            id={`${name}-${side}-${i}-label`}
+                            value={tier.label}
+                            placeholder="Etichetă…"
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                              updateTier(side, i, 'label', e.target.value)
+                            }
+                          />
+                        </Field.Root>
+                      </Box>
+                      <Box style={{ flex: '1 1 180px', minWidth: 0 }}>
+                        <Field.Root id={`${name}-${side}-${i}-price`} name={`${name}-${side}-${i}-price`}>
+                          <Field.Label>Preț</Field.Label>
+                          <TextInput
+                            id={`${name}-${side}-${i}-price`}
+                            value={tier.price}
+                            placeholder="ex: 350 lei / lună"
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                              updateTier(side, i, 'price', e.target.value)
+                            }
+                          />
+                        </Field.Root>
+                      </Box>
+                    </Flex>
 
-      {data[side].length === 0 && (
-        <div style={s.emptyState}>Niciun rând adăugat</div>
-      )}
+                    {isExpanded(side, i) ? (
+                      <>
+                        <Field.Root id={`${name}-${side}-${i}-tooltip`} name={`${name}-${side}-${i}-tooltip`} hint="Opțional">
+                          <Field.Label>Tooltip</Field.Label>
+                          <Textarea
+                            id={`${name}-${side}-${i}-tooltip`}
+                            value={tier.tooltip ?? ''}
+                            rows={1}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                              updateTier(side, i, 'tooltip', e.target.value)
+                            }
+                          />
+                          <Field.Hint />
+                        </Field.Root>
 
-      {data[side].map((tier, i) => (
-        <div key={i} style={{ ...s.tierCard, ...(i % 2 === 1 ? s.tierCardAlt : {}) }}>
-          {/* Row 1: index + label + price + delete */}
-          <div style={s.row}>
-            <span style={s.rowNum}>{i + 1}</span>
-            <input
-              type="text"
-              value={tier.label}
-              placeholder="Etichetă…"
-              onChange={e => updateTier(side, i, 'label', e.target.value)}
-              style={{ ...s.inputRequired, flex: 1 }}
-            />
-            <input
-              type="text"
-              value={tier.price}
-              placeholder="Preț…"
-              onChange={e => updateTier(side, i, 'price', e.target.value)}
-              style={{ ...s.inputRequired, width: 110, flexShrink: 0 }}
-            />
-            <button type="button" onClick={() => removeTier(side, i)} style={s.deleteBtn} title="Șterge">
-              <Trash style={{ width: 13, height: 13 }} />
-            </button>
-          </div>
+                        <Field.Root
+                          id={`${name}-${side}-${i}-note`}
+                          name={`${name}-${side}-${i}-note`}
+                          hint="Opțional · text mic afișat sub numele prețului"
+                        >
+                          <Field.Label>Notă sub etichetă</Field.Label>
+                          <Textarea
+                            id={`${name}-${side}-${i}-note`}
+                            value={tier.note ?? ''}
+                            rows={1}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                              updateTier(side, i, 'note', e.target.value)
+                            }
+                          />
+                          <Field.Hint />
+                        </Field.Root>
 
-          {/* Row 2: tooltip full width */}
-          <div style={s.indentedRow}>
-            <div style={s.indent} />
-            <div style={s.optionalField}>
-              <span style={s.optionalLabel}>Tooltip <span style={s.optionalTag}>opțional</span></span>
-              <textarea
-                value={tier.tooltip ?? ''}
-                rows={2}
-                onChange={e => updateTier(side, i, 'tooltip', e.target.value)}
-                style={tier.tooltip ? { ...s.textarea, ...s.textareaFilled } : { ...s.textarea, ...s.textareaEmpty }}
-              />
-            </div>
-            <div style={{ width: 24, flexShrink: 0 }} />
-          </div>
+                        <Box>
+                          <Button
+                            variant="tertiary"
+                            size="S"
+                            disabled={!!tier.tooltip || !!tier.note}
+                            onClick={() => toggleExpanded(side, i)}
+                          >
+                            Ascunde detalii opționale
+                          </Button>
+                        </Box>
+                      </>
+                    ) : (
+                      <Box>
+                        <Button
+                          variant="tertiary"
+                          size="S"
+                          startIcon={<Plus />}
+                          onClick={() => toggleExpanded(side, i)}
+                        >
+                          Adaugă tooltip / notă
+                        </Button>
+                      </Box>
+                    )}
+                  </Flex>
+                </Box>
+              );
+            })}
+          </Flex>
+        )}
 
-          {/* Row 3: note full width */}
-          <div style={s.indentedRow}>
-            <div style={s.indent} />
-            <div style={s.optionalField}>
-              <span style={s.optionalLabel}>Notă sub etichetă <span style={s.optionalTag}>opțional · text mic afișat sub numele prețului</span></span>
-              <textarea
-                value={tier.note ?? ''}
-                rows={2}
-                onChange={e => updateTier(side, i, 'note', e.target.value)}
-                style={tier.note ? { ...s.textarea, ...s.textareaFilled } : { ...s.textarea, ...s.textareaEmpty }}
-              />
-            </div>
-            <div style={{ width: 24, flexShrink: 0 }} />
-          </div>
-        </div>
-      ))}
-
-      {/* Member fee */}
-      {side === 'memberTiers' && (
-        <div style={s.feeCard}>
-          <span style={s.feeLabel}>Taxă membru</span>
-          <input
-            type="text"
-            value={data.memberFeeLabel ?? ''}
-            placeholder="Etichetă taxă…"
-            onChange={e => commit({ ...data, memberFeeLabel: e.target.value })}
-            style={{ ...s.inputRequired, flex: 1 }}
-          />
-          <input
-            type="text"
-            value={data.memberFeePrice ?? ''}
-            placeholder="Preț…"
-            onChange={e => commit({ ...data, memberFeePrice: e.target.value })}
-            style={{ ...s.inputRequired, width: 110, flexShrink: 0 }}
-          />
-          <div style={{ width: 24, flexShrink: 0 }} />
-        </div>
-      )}
-    </div>
-  );
+        <Box
+          paddingTop={tiers.length === 0 ? 0 : 4}
+          borderColor={tiers.length === 0 ? undefined : 'neutral200'}
+          borderStyle={tiers.length === 0 ? undefined : 'solid'}
+          borderWidth={tiers.length === 0 ? undefined : '1px 0 0 0'}
+        >
+          <AddListButton onClick={() => addTier(side)} label="Adaugă rând" />
+        </Box>
+      </Box>
+    );
+  };
 
   return (
-    <div style={s.groupWrapper}>
-      {/* Group header */}
-      <div style={s.groupHeader}>
-        <span style={s.groupTitle}>Prețuri cursuri grup</span>
-        <span style={s.groupDesc}>
-          Rândurile de mai jos apar în secțiunea de tarife de pe site. Fiecare rând are o etichetă și un preț obligatorii; tooltip-ul și nota sunt opționale.
-        </span>
-      </div>
+    <Flex direction="column" gap={4} alignItems="stretch" width="100%">
+      <EditorCard
+        title="Prețuri curs membri"
+        description="Tarifele afișate pentru cursanții cu abonament."
+      >
+        <Box padding={4}>
+          <Flex direction="column" alignItems="stretch">
+            <Section title="Tarife" first>
+              {renderSection('memberTiers')}
+            </Section>
+            <Section title="Taxă membru">
+              <Flex gap={3} alignItems="flex-start" wrap="wrap">
+                <Box style={{ flex: '1 1 180px', minWidth: 0 }}>
+                  <EditorField name="memberFeeLabel" label="Etichetă taxă">
+                    <TextInput
+                      id="memberFeeLabel"
+                      name="memberFeeLabel"
+                      value={data.memberFeeLabel ?? ''}
+                      placeholder="Etichetă taxă…"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        commit({ ...data, memberFeeLabel: e.target.value })
+                      }
+                    />
+                  </EditorField>
+                </Box>
+                <Box style={{ flex: '1 1 180px', minWidth: 0 }}>
+                  <EditorField name="memberFeePrice" label="Preț">
+                    <TextInput
+                      id="memberFeePrice"
+                      name="memberFeePrice"
+                      value={data.memberFeePrice ?? ''}
+                      placeholder="ex: 100 lei"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        commit({ ...data, memberFeePrice: e.target.value })
+                      }
+                    />
+                  </EditorField>
+                </Box>
+              </Flex>
+            </Section>
+          </Flex>
+        </Box>
+      </EditorCard>
 
-      <div style={s.groupBody}>
-        {renderSection('Pentru Membri', 'memberTiers', true)}
-        {renderSection('Pentru Non-membri', 'nonMemberTiers', false)}
-      </div>
-    </div>
+      <EditorCard
+        title="Prețuri curs non-membri"
+        description="Tarifele afișate pentru cursanții fără abonament."
+      >
+        <Box padding={4}>
+          {renderSection('nonMemberTiers')}
+        </Box>
+      </EditorCard>
+    </Flex>
   );
-}
-
-function makeStyles(dark: boolean): Record<string, React.CSSProperties> {
-  const border = dark ? '#333340' : '#e0e0e8';
-  const bg = dark ? '#1e1e2e' : '#fff';
-  const subtle = dark ? '#666' : '#999';
-
-  const outerBorder = dark ? '#2a2a3e' : '#d0d0e0';
-
-  // Required fields — always clearly filled
-  const inputRequiredBorder = dark ? '#4a4a6a' : '#c0c0d0';
-  const inputRequiredBg = dark ? '#252540' : '#fff';
-  const inputRequiredColor = dark ? '#e0e0f0' : '#111';
-
-  // Optional fields — empty state: visually subdued
-  const textareaEmptyBorder = dark ? '#2e2e3e' : '#e8e8f0';
-  const textareaEmptyBg = dark ? '#181828' : '#f7f7fb';
-  const textareaEmptyColor = dark ? '#444' : '#aaa';
-
-  // Optional fields — filled state: clearly distinct
-  const textareaFilledBorder = dark ? '#5a5a9a' : '#7c7ccc';
-  const textareaFilledBg = dark ? '#1e1e38' : '#f0f0ff';
-  const textareaFilledColor = dark ? '#c8c8ff' : '#2a2a6a';
-
-  return {
-    groupWrapper: {
-      border: `1px solid ${outerBorder}`,
-      borderRadius: 10,
-      overflow: 'hidden',
-      background: dark ? '#16162a' : '#f8f8fc',
-    },
-    groupHeader: {
-      padding: '12px 16px 10px',
-      borderBottom: `1px solid ${outerBorder}`,
-      background: dark ? '#1a1a30' : '#eeeef8',
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: 3,
-    },
-    groupTitle: {
-      fontSize: 12,
-      fontWeight: 700,
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase' as const,
-      color: dark ? '#9999cc' : '#4a4a88',
-    },
-    groupDesc: {
-      fontSize: 11,
-      color: dark ? '#666' : '#888',
-      lineHeight: 1.5,
-    },
-    groupBody: {
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: 10,
-      padding: 10,
-    },
-    section: {
-      border: `1px solid ${border}`,
-      borderRadius: 8,
-      overflow: 'hidden',
-      background: bg,
-    },
-    sectionHeader: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '8px 12px',
-      background: dark ? '#252535' : '#f5f5fa',
-      borderBottom: `1px solid ${border}`,
-    },
-    sectionHeaderAccent: {
-      background: dark ? '#1a1a30' : '#eef2ff',
-      borderBottom: `1px solid ${dark ? '#2a2a50' : '#c7d2fe'}`,
-    },
-    sectionTitle: {
-      fontSize: 11,
-      fontWeight: 700,
-      letterSpacing: '0.08em',
-      textTransform: 'uppercase' as const,
-      color: dark ? '#888' : '#666',
-    },
-    sectionTitleAccent: {
-      color: dark ? '#8888bb' : '#4f5691',
-    },
-    addTierBtn: {
-      padding: '3px 8px',
-      border: `1px dashed ${dark ? '#555' : '#bbb'}`,
-      borderRadius: 4,
-      background: 'transparent',
-      color: dark ? '#888' : '#666',
-      cursor: 'pointer',
-      fontSize: 11,
-    },
-    emptyState: {
-      padding: '14px',
-      textAlign: 'center' as const,
-      fontSize: 12,
-      color: subtle,
-      fontStyle: 'italic',
-    },
-    tierCard: {
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: 5,
-      padding: '8px 10px',
-      borderBottom: `1px solid ${border}`,
-    },
-    tierCardAlt: {
-      background: dark ? '#191927' : '#fafafa',
-    },
-    row: {
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: 6,
-    },
-    indentedRow: {
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: 6,
-    },
-    indent: {
-      width: 24,
-      flexShrink: 0,
-    },
-    optionalField: {
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: 2,
-      minWidth: 0,
-    },
-    rowNum: {
-      width: 18,
-      height: 18,
-      marginTop: 5,
-      flexShrink: 0,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: 3,
-      background: dark ? '#2a2a3a' : '#f0f0f5',
-      color: subtle,
-      fontSize: 10,
-      fontWeight: 600,
-    },
-    inputRequired: {
-      padding: '5px 8px',
-      border: `1px solid ${inputRequiredBorder}`,
-      borderRadius: 4,
-      fontSize: 12,
-      fontWeight: 500,
-      background: inputRequiredBg,
-      color: inputRequiredColor,
-      outline: 'none',
-      boxSizing: 'border-box' as const,
-      minWidth: 0,
-      height: 28,
-    },
-    optionalLabel: {
-      fontSize: 10,
-      color: subtle,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 4,
-    },
-    optionalTag: {
-      fontSize: 9,
-      fontStyle: 'italic',
-      color: dark ? '#444' : '#bbb',
-    },
-    textarea: {
-      width: '100%',
-      padding: '5px 7px',
-      borderRadius: 4,
-      fontSize: 11,
-      lineHeight: 1.5,
-      resize: 'vertical' as const,
-      outline: 'none',
-      fontFamily: 'inherit',
-      boxSizing: 'border-box' as const,
-      transition: 'border-color 0.15s, background 0.15s',
-    },
-    textareaEmpty: {
-      border: `1px dashed ${textareaEmptyBorder}`,
-      background: textareaEmptyBg,
-      color: textareaEmptyColor,
-    },
-    textareaFilled: {
-      border: `1px solid ${textareaFilledBorder}`,
-      background: textareaFilledBg,
-      color: textareaFilledColor,
-      fontWeight: 500,
-    },
-    deleteBtn: {
-      width: 24,
-      height: 24,
-      marginTop: 2,
-      padding: 0,
-      border: '1px solid #fca5a5',
-      borderRadius: 4,
-      background: 'transparent',
-      color: '#ef4444',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-    feeCard: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6,
-      padding: '8px 10px',
-      borderTop: `2px dashed ${dark ? '#333' : '#e5e7eb'}`,
-      background: dark ? '#1a1a28' : '#f0f0f8',
-    },
-    feeLabel: {
-      fontSize: 10,
-      fontWeight: 700,
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase' as const,
-      color: subtle,
-      whiteSpace: 'nowrap' as const,
-      flexShrink: 0,
-    },
-  };
 }

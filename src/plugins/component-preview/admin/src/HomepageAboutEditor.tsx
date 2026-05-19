@@ -1,12 +1,28 @@
 import * as React from 'react';
 import { useField } from '@strapi/admin/strapi-admin';
+import {
+  Box,
+  Checkbox,
+  Flex,
+  Grid,
+  SingleSelect,
+  SingleSelectOption,
+  Textarea,
+  TextInput,
+  Typography,
+} from '@strapi/design-system';
+import { EditorCard } from './components/EditorCard';
+import { EditorField } from './components/EditorField';
+import { Section } from './components/Section';
+import { DeleteIconButton } from './components/DeleteIconButton';
+import { AddListButton } from './components/AddListButton';
 
 interface Props {
   name: string;
   attribute: Record<string, unknown>;
 }
 
-interface AboutData {
+interface AboutPanel {
   eyebrow: string;
   heading: string;
   body: string;
@@ -14,41 +30,108 @@ interface AboutData {
   ctaUrl: string;
 }
 
-function useDark() {
-  const [dark, setDark] = React.useState(
-    () => document.documentElement.getAttribute('data-theme') === 'dark',
-  );
-  React.useEffect(() => {
-    const obs = new MutationObserver(() =>
-      setDark(document.documentElement.getAttribute('data-theme') === 'dark'),
-    );
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => obs.disconnect();
-  }, []);
-  return dark;
+type NotebookLineStyle = 'normal' | 'strikethrough' | 'scratched';
+
+interface NotebookLine {
+  text: string;
+  style: NotebookLineStyle;
+  indent?: boolean;
+  dim?: boolean;
+  replacement?: string;
 }
 
-const EMPTY: AboutData = {
-  eyebrow: '',
-  heading: '',
-  body: '',
-  ctaLabel: '',
-  ctaUrl: '',
-};
+interface AboutData {
+  panels: AboutPanel[];
+  notebook: NotebookLine[];
+}
+
+const EMPTY_PANEL: AboutPanel = { eyebrow: '', heading: '', body: '', ctaLabel: '', ctaUrl: '' };
+
+const EMPTY_LINE: NotebookLine = { text: '', style: 'normal' };
+
+const DEFAULT_NOTEBOOK: NotebookLine[] = [
+  { text: 'Plan', style: 'normal' },
+  { text: '', style: 'normal' },
+  { text: 'Muzică:', style: 'normal', dim: true },
+  { text: 'Swan Lake - Tchaikovsky', style: 'strikethrough', indent: true },
+  { text: 'Clair de Lune - Debussy', style: 'scratched', indent: true, replacement: "Comptine d'un autre été" },
+  { text: '', style: 'normal' },
+  { text: 'Elemente:', style: 'normal', dim: true },
+  { text: 'Axel simplu', style: 'normal', indent: true },
+  { text: 'Lutz + toe loop', style: 'normal', indent: true },
+  { text: 'Piruetă combinată', style: 'scratched', indent: true, replacement: 'Camel spin' },
+  { text: 'Step sequence nivel 2', style: 'normal', indent: true },
+  { text: 'Spiral sequence', style: 'normal', indent: true },
+];
+
+const PANEL_COUNT = 3;
+
+const PANEL_TITLES = ['Panou #1', 'Panou #2', 'Panou #3'];
+
+const PANEL_HINTS = [
+  'Primul panou - în mod uzual „Cine suntem".',
+  'Al doilea panou - în mod uzual „Echipa noastră".',
+  'Al treilea panou - în mod uzual „Realizările noastre".',
+];
+
+const STYLE_OPTIONS: { value: NotebookLineStyle; label: string }[] = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'strikethrough', label: 'Tăiat (linie peste)' },
+  { value: 'scratched', label: 'Înlocuit (mâzgălit cu variantă nouă)' },
+];
+
+// Lift the legacy single-panel shape (`{ eyebrow, heading, body, ctaLabel, ctaUrl }`)
+// into the new `{ panels: [...], notebook: [...] }` shape, padding panels and
+// seeding the notebook with the default lines when missing. Idempotent.
+function normalize(value: unknown): AboutData {
+  const ensureLength = (panels: AboutPanel[]): AboutPanel[] => {
+    const next = panels.slice(0, PANEL_COUNT);
+    while (next.length < PANEL_COUNT) next.push({ ...EMPTY_PANEL });
+    return next;
+  };
+  const normalizeLines = (raw: unknown): NotebookLine[] => {
+    if (!Array.isArray(raw)) return DEFAULT_NOTEBOOK.map((l) => ({ ...l }));
+    return (raw as unknown[]).map((l) => {
+      if (!l || typeof l !== 'object') return { ...EMPTY_LINE };
+      const x = l as Partial<NotebookLine>;
+      return {
+        text: typeof x.text === 'string' ? x.text : '',
+        style: (x.style === 'strikethrough' || x.style === 'scratched') ? x.style : 'normal',
+        indent: !!x.indent,
+        dim: !!x.dim,
+        replacement: typeof x.replacement === 'string' ? x.replacement : undefined,
+      };
+    });
+  };
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { panels: ensureLength([]), notebook: DEFAULT_NOTEBOOK.map((l) => ({ ...l })) };
+  }
+  const v = value as Record<string, unknown>;
+  if (Array.isArray(v.panels)) {
+    const panels = (v.panels as unknown[]).map((p) => ({
+      ...EMPTY_PANEL,
+      ...(p && typeof p === 'object' ? (p as Partial<AboutPanel>) : {}),
+    }));
+    return { panels: ensureLength(panels), notebook: normalizeLines(v.notebook) };
+  }
+  // Legacy shape - single panel at the root, no notebook.
+  if ('eyebrow' in v || 'heading' in v || 'body' in v) {
+    return {
+      panels: ensureLength([{ ...EMPTY_PANEL, ...(v as Partial<AboutPanel>) }]),
+      notebook: DEFAULT_NOTEBOOK.map((l) => ({ ...l })),
+    };
+  }
+  return { panels: ensureLength([]), notebook: DEFAULT_NOTEBOOK.map((l) => ({ ...l })) };
+}
 
 export default function HomepageAboutEditor({ name }: Props) {
   const field = useField(name);
-  const dark = useDark();
 
-  const [data, setData] = React.useState<AboutData>(() => {
-    const v = field.value;
-    if (v && typeof v === 'object' && !Array.isArray(v)) return { ...EMPTY, ...(v as AboutData) };
-    return EMPTY;
-  });
+  const [data, setData] = React.useState<AboutData>(() => normalize(field.value));
 
   React.useEffect(() => {
-    const v = field.value;
-    if (v && typeof v === 'object' && !Array.isArray(v)) setData({ ...EMPTY, ...(v as AboutData) });
+    setData(normalize(field.value));
   }, [field.value]);
 
   const commit = (next: AboutData) => {
@@ -56,200 +139,232 @@ export default function HomepageAboutEditor({ name }: Props) {
     field.onChange(name, next);
   };
 
-  const update = (key: keyof AboutData, val: string) => {
-    commit({ ...data, [key]: val });
+  const updatePanel = (index: number, key: keyof AboutPanel, val: string) => {
+    commit({
+      ...data,
+      panels: data.panels.map((p, i) => (i === index ? { ...p, [key]: val } : p)),
+    });
   };
 
-  const s = makeStyles(dark);
+  const updateLine = <K extends keyof NotebookLine>(index: number, key: K, val: NotebookLine[K]) => {
+    commit({
+      ...data,
+      notebook: data.notebook.map((l, i) => (i === index ? { ...l, [key]: val } : l)),
+    });
+  };
+
+  const addLine = () => {
+    commit({ ...data, notebook: [...data.notebook, { ...EMPTY_LINE }] });
+  };
+
+  const removeLine = (index: number) => {
+    commit({ ...data, notebook: data.notebook.filter((_, i) => i !== index) });
+  };
 
   return (
-    <div style={s.groupWrapper} className="hp-about-editor">
-      <style>{`
-        .hp-about-editor input::placeholder,
-        .hp-about-editor textarea::placeholder { color: ${dark ? '#555' : '#bbb'}; font-style: italic; }
-        .hp-about-editor textarea { resize: vertical; font-family: inherit; }
-      `}</style>
-      <div style={s.groupHeader}>
-        <span style={s.groupTitle}>Secțiunea Cine Suntem</span>
-        <span style={s.groupDesc}>
-          Secțiunea de prezentare a asociației de pe pagina principală. Include un scurt text descriptiv și un link spre pagina Despre noi.
-        </span>
-      </div>
+    <Box width="100%">
+      <EditorCard
+        title="Secțiunea Cine Suntem"
+        description="Trei panouri pe pagina principală care se schimbă la scroll: Cine suntem, Echipa noastră și Realizările noastre. Fiecare panou are propriile texte și propriul link."
+      >
+        <Box padding={4}>
+          <Flex direction="column" alignItems="stretch">
+            {data.panels.map((panel, i) => (
+              <Section key={i} title={PANEL_TITLES[i]} first={i === 0}>
+                <Box paddingBottom={3}>
+                  <em
+                    style={{
+                      fontSize: 13,
+                      color: 'rgb(102, 102, 135)',
+                    }}
+                  >
+                    {PANEL_HINTS[i]}
+                  </em>
+                </Box>
+                <Grid.Root gridCols={12} gap={4}>
+                  <Grid.Item col={6} s={12} xs={12}>
+                    <EditorField
+                      name={`panel-${i}-eyebrow`}
+                      label="Etichetă mică (eyebrow)"
+                      hint="Textul mic deasupra titlului."
+                    >
+                      <TextInput
+                        id={`panel-${i}-eyebrow`}
+                        name={`panel-${i}-eyebrow`}
+                        value={panel.eyebrow}
+                        placeholder={i === 0 ? 'ex: Cine suntem' : i === 1 ? 'ex: Echipa noastră' : 'ex: Realizările noastre'}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          updatePanel(i, 'eyebrow', e.target.value)
+                        }
+                      />
+                    </EditorField>
+                  </Grid.Item>
+                  <Grid.Item col={6} s={12} xs={12}>
+                    <EditorField name={`panel-${i}-heading`} label="Titlu principal" hint="Titlul panoului. Apasă Enter pentru linie nouă.">
+                      <TextInput
+                        id={`panel-${i}-heading`}
+                        name={`panel-${i}-heading`}
+                        value={panel.heading}
+                        placeholder="ex: Asociație non-profit pentru sport și educație"
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          updatePanel(i, 'heading', e.target.value)
+                        }
+                      />
+                    </EditorField>
+                  </Grid.Item>
 
-      <div style={s.body}>
-        <div style={s.sectionLabel}>Titlu și subtitlu</div>
-        <div style={s.fieldRowDouble}>
-          <div style={s.fieldHalf}>
-            <span style={s.fieldLabel}>Etichetă mică (eyebrow)</span>
-            <span style={s.fieldHint}>Textul mic deasupra titlului, ex: Cine suntem</span>
-            <input
-              type="text"
-              value={data.eyebrow}
-              placeholder="ex: Cine suntem"
-              onChange={e => update('eyebrow', e.target.value)}
-              style={s.input}
-            />
-          </div>
-          <div style={s.fieldHalf}>
-            <span style={s.fieldLabel}>Titlu principal</span>
-            <span style={s.fieldHint}>Titlul secțiunii, ex: Asociație non-profit pentru sport și educație</span>
-            <input
-              type="text"
-              value={data.heading}
-              placeholder="ex: Asociație non-profit pentru sport și educație"
-              onChange={e => update('heading', e.target.value)}
-              style={s.input}
-            />
-          </div>
-        </div>
+                  <Grid.Item col={12} s={12} xs={12}>
+                    <EditorField name={`panel-${i}-body`} label="Text panou" hint="Descrierea afișată sub titlu.">
+                      <Textarea
+                        id={`panel-${i}-body`}
+                        name={`panel-${i}-body`}
+                        value={panel.body}
+                        rows={3}
+                        placeholder="ex: Fondată în 2012, EduSport este o asociație non-profit dedicată..."
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                          updatePanel(i, 'body', e.target.value)
+                        }
+                      />
+                    </EditorField>
+                  </Grid.Item>
 
-        <div style={s.divider} />
+                  <Grid.Item col={6} s={12} xs={12}>
+                    <EditorField name={`panel-${i}-cta-label`} label="Text link" hint="Textul linkului/butonului.">
+                      <TextInput
+                        id={`panel-${i}-cta-label`}
+                        name={`panel-${i}-cta-label`}
+                        value={panel.ctaLabel}
+                        placeholder={i === 0 ? 'ex: Despre noi' : i === 1 ? 'ex: Cunoaște echipa' : 'ex: Vezi realizările'}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          updatePanel(i, 'ctaLabel', e.target.value)
+                        }
+                      />
+                    </EditorField>
+                  </Grid.Item>
+                  <Grid.Item col={6} s={12} xs={12}>
+                    <EditorField name={`panel-${i}-cta-url`} label="Destinație link" hint="Pagina spre care duce.">
+                      <TextInput
+                        id={`panel-${i}-cta-url`}
+                        name={`panel-${i}-cta-url`}
+                        value={panel.ctaUrl}
+                        placeholder={i === 0 ? '/despre-noi' : i === 1 ? '/despre-noi/echipa' : '/despre-noi/realizari'}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          updatePanel(i, 'ctaUrl', e.target.value)
+                        }
+                      />
+                    </EditorField>
+                  </Grid.Item>
+                </Grid.Root>
+              </Section>
+            ))}
 
-        <div style={s.sectionLabel}>Conținut text</div>
-        <div style={s.fieldRowSingle}>
-          <div style={s.fieldFull}>
-            <span style={s.fieldLabel}>Text secțiune</span>
-            <span style={s.fieldHint}>Descrierea asociației. Separă paragrafele cu o linie goală.</span>
-            <textarea
-              value={data.body}
-              rows={5}
-              placeholder="ex: ACS EduSport Reșița este o asociație sportivă non-profit..."
-              onChange={e => update('body', e.target.value)}
-              style={{ ...s.input, height: 'auto', padding: '8px 9px' }}
-            />
-          </div>
-        </div>
+            <Section title="Caiet (notițele din lateral)">
+              <Box paddingBottom={3}>
+                <Typography variant="pi" textColor="neutral600">
+                  Liniile mâzgălite în caietul desenat lângă cele 3 panouri. Lasă text gol pentru spațiu între blocuri. Stilul „Înlocuit" arată textul tăiat cu mâzgălitură și varianta nouă scrisă alături.
+                </Typography>
+              </Box>
+              <Flex direction="column" alignItems="stretch" gap={2}>
+                {data.notebook.map((line, i) => (
+                  <Box
+                    key={i}
+                    padding={3}
+                    background="neutral0"
+                    hasRadius
+                    borderColor="neutral200"
+                    borderStyle="solid"
+                    borderWidth="1px"
+                  >
+                    <Grid.Root gridCols={12} gap={3}>
+                      <Grid.Item col={6} s={12} xs={12}>
+                        <EditorField name={`line-${i}-text`} label="Text" hint="Lasă gol pentru o linie de spațiu.">
+                          <TextInput
+                            id={`line-${i}-text`}
+                            name={`line-${i}-text`}
+                            value={line.text}
+                            placeholder="ex: Axel simplu"
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                              updateLine(i, 'text', e.target.value)
+                            }
+                          />
+                        </EditorField>
+                      </Grid.Item>
+                      <Grid.Item col={5} s={10} xs={10}>
+                        <EditorField name={`line-${i}-style`} label="Stil" hint="Cum arată linia în caiet.">
+                          <SingleSelect
+                            id={`line-${i}-style`}
+                            value={line.style}
+                            onChange={(val) =>
+                              updateLine(i, 'style', val as NotebookLineStyle)
+                            }
+                          >
+                            {STYLE_OPTIONS.map((opt) => (
+                              <SingleSelectOption key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SingleSelectOption>
+                            ))}
+                          </SingleSelect>
+                        </EditorField>
+                      </Grid.Item>
+                      <Grid.Item col={1} s={2} xs={2}>
+                        <Flex justifyContent="flex-end" alignItems="flex-end" height="100%" paddingBottom={1}>
+                          <DeleteIconButton
+                            variant="subtle"
+                            label="Șterge linia"
+                            onClick={() => removeLine(i)}
+                          />
+                        </Flex>
+                      </Grid.Item>
 
-        <div style={s.divider} />
+                      {line.style === 'scratched' && (
+                        <Grid.Item col={6} s={12} xs={12}>
+                          <EditorField
+                            name={`line-${i}-replacement`}
+                            label="Variantă nouă"
+                            hint="Textul scris lângă cel mâzgălit."
+                          >
+                            <TextInput
+                              id={`line-${i}-replacement`}
+                              name={`line-${i}-replacement`}
+                              value={line.replacement ?? ''}
+                              placeholder="ex: Camel spin"
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                                updateLine(i, 'replacement', e.target.value)
+                              }
+                            />
+                          </EditorField>
+                        </Grid.Item>
+                      )}
 
-        <div style={s.sectionLabel}>Link de acțiune</div>
-        <div style={s.fieldRowDouble}>
-          <div style={s.fieldHalf}>
-            <span style={s.fieldLabel}>Text link</span>
-            <span style={s.fieldHint}>Textul linkului/butonului</span>
-            <input
-              type="text"
-              value={data.ctaLabel}
-              placeholder="ex: Despre noi"
-              onChange={e => update('ctaLabel', e.target.value)}
-              style={s.input}
-            />
-          </div>
-          <div style={s.fieldHalf}>
-            <span style={s.fieldLabel}>Destinație link</span>
-            <span style={s.fieldHint}>Pagina spre care duce, ex: /despre-noi/istoric</span>
-            <input
-              type="text"
-              value={data.ctaUrl}
-              placeholder="ex: /despre-noi/istoric"
-              onChange={e => update('ctaUrl', e.target.value)}
-              style={s.input}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+                      <Grid.Item col={6} s={12} xs={12}>
+                        <Flex gap={4} alignItems="center" paddingTop={2}>
+                          <Checkbox
+                            checked={!!line.indent}
+                            onCheckedChange={(checked) =>
+                              updateLine(i, 'indent', !!checked)
+                            }
+                          >
+                            Indentat (sub-element)
+                          </Checkbox>
+                          <Checkbox
+                            checked={!!line.dim}
+                            onCheckedChange={(checked) =>
+                              updateLine(i, 'dim', !!checked)
+                            }
+                          >
+                            Estompat (titlu de secțiune)
+                          </Checkbox>
+                        </Flex>
+                      </Grid.Item>
+                    </Grid.Root>
+                  </Box>
+                ))}
+                <AddListButton onClick={addLine} label="Adaugă linie" />
+              </Flex>
+            </Section>
+          </Flex>
+        </Box>
+      </EditorCard>
+    </Box>
   );
-}
-
-function makeStyles(dark: boolean): Record<string, React.CSSProperties> {
-  const outerBorder = dark ? '#2a2a3e' : '#d0d0e0';
-  const inputBorder = dark ? '#4a4a6a' : '#c0c0d0';
-  const inputBg = dark ? '#252540' : '#fff';
-  const inputColor = dark ? '#e0e0f0' : '#111';
-
-  return {
-    groupWrapper: {
-      border: `1px solid ${outerBorder}`,
-      borderRadius: 10,
-      overflow: 'hidden',
-      background: dark ? '#16162a' : '#f8f8fc',
-    },
-    groupHeader: {
-      padding: '12px 16px 10px',
-      borderBottom: `1px solid ${outerBorder}`,
-      background: dark ? '#1a1a30' : '#eeeef8',
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: 4,
-    },
-    groupTitle: {
-      fontSize: 12,
-      fontWeight: 700,
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase' as const,
-      color: dark ? '#9999cc' : '#4a4a88',
-    },
-    groupDesc: {
-      fontSize: 11,
-      color: dark ? '#666' : '#888',
-      lineHeight: 1.5,
-    },
-    body: {
-      display: 'flex',
-      flexDirection: 'column' as const,
-      background: dark ? '#1e1e2e' : '#fff',
-    },
-    sectionLabel: {
-      padding: '10px 14px 4px',
-      fontSize: 10,
-      fontWeight: 700,
-      letterSpacing: '0.08em',
-      textTransform: 'uppercase' as const,
-      color: dark ? '#7777aa' : '#8888aa',
-    },
-    fieldRowSingle: {
-      display: 'flex',
-      gap: 12,
-      padding: '4px 14px 12px',
-    },
-    fieldRowDouble: {
-      display: 'flex',
-      gap: 12,
-      padding: '4px 14px 12px',
-    },
-    fieldHalf: {
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: 3,
-      minWidth: 0,
-    },
-    fieldFull: {
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: 3,
-    },
-    fieldLabel: {
-      fontSize: 11,
-      fontWeight: 600,
-      letterSpacing: '0.04em',
-      color: dark ? '#aaa' : '#555',
-    },
-    fieldHint: {
-      fontSize: 10,
-      color: dark ? '#555' : '#999',
-      lineHeight: 1.4,
-    },
-    input: {
-      padding: '6px 9px',
-      border: `1px solid ${inputBorder}`,
-      borderRadius: 4,
-      fontSize: 12,
-      fontWeight: 500,
-      background: inputBg,
-      color: inputColor,
-      outline: 'none',
-      boxSizing: 'border-box' as const,
-      minWidth: 0,
-      height: 30,
-      width: '100%',
-    },
-    divider: {
-      height: 1,
-      margin: '0 14px',
-      background: dark ? '#2a2a3e' : '#e8e8f0',
-    },
-  };
 }

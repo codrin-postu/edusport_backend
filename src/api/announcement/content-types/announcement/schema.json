@@ -22,10 +22,12 @@
     },
     "isActive": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "customField": "plugin::component-preview.announcement-is-active"
     },
     "expiresAt": {
-      "type": "datetime"
+      "type": "datetime",
+      "customField": "plugin::component-preview.announcement-expires-at"
     },
     "announceContent": {
       "type": "json",
