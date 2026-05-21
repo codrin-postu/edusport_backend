@@ -40,7 +40,6 @@ ENV PORT=1337
 
 COPY --from=builder --chown=strapi:strapi /opt/app/node_modules ./node_modules
 COPY --from=builder --chown=strapi:strapi /opt/app/dist ./dist
-COPY --from=builder --chown=strapi:strapi /opt/app/build ./build
 COPY --from=builder --chown=strapi:strapi /opt/app/public ./public
 COPY --from=builder --chown=strapi:strapi /opt/app/config ./config
 COPY --from=builder --chown=strapi:strapi /opt/app/package.json ./package.json
