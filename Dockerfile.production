@@ -38,11 +38,12 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=1337
 
-COPY --from=builder --chown=strapi:strapi /opt/app/node_modules ./node_modules
-COPY --from=builder --chown=strapi:strapi /opt/app/dist ./dist
-COPY --from=builder --chown=strapi:strapi /opt/app/public ./public
-COPY --from=builder --chown=strapi:strapi /opt/app/config ./config
-COPY --from=builder --chown=strapi:strapi /opt/app/package.json ./package.json
+# Copy the entire built app from the builder stage. Strapi 5 needs the
+# source `src/`, `tsconfig.json`, `database/`, etc. at runtime alongside
+# the compiled `dist/` so it can resolve TypeScript paths and load the
+# config layer. Selective copies miss files and trigger "Config file not
+# loaded" warnings followed by a fatal db.config.connection undefined.
+COPY --from=builder --chown=strapi:strapi /opt/app ./
 
 USER strapi
 
