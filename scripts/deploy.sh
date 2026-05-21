@@ -14,11 +14,17 @@ banner() {
 cd "$(dirname "$0")/.."
 
 COMPOSE_FILE="docker-compose.production.yml"
+ENV_FILE=".env.production"
+
+# docker compose only auto-reads `.env` (no suffix); we keep secrets in
+# `.env.production`, so every invocation must pass --env-file explicitly,
+# otherwise ${VAR} references in the compose file resolve to empty strings.
+COMPOSE=(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE")
 
 banner "1/6  Pre-flight checks"
 
-if [ ! -f .env.production ]; then
-  echo "ERROR: .env.production is missing. Copy .env.example and fill in real values."
+if [ ! -f "$ENV_FILE" ]; then
+  echo "ERROR: $ENV_FILE is missing. Copy .env.example and fill in real values."
   exit 1
 fi
 
@@ -33,15 +39,15 @@ git fetch --prune
 git reset --hard origin/main
 
 banner "3/6  Building backend image"
-docker compose -f "$COMPOSE_FILE" build backend
+"${COMPOSE[@]}" build backend
 
 banner "4/6  Bringing up Postgres and waiting for readiness"
-docker compose -f "$COMPOSE_FILE" up -d postgres
+"${COMPOSE[@]}" up -d postgres
 
 # Wait for pg_isready inside the postgres container before starting the backend.
 # Strapi 5 will run schema migrations on boot, so the DB must be live first.
 ATTEMPTS=0
-until docker compose -f "$COMPOSE_FILE" exec -T postgres pg_isready -U strapi >/dev/null 2>&1; do
+until "${COMPOSE[@]}" exec -T postgres pg_isready -U strapi >/dev/null 2>&1; do
   ATTEMPTS=$((ATTEMPTS + 1))
   if [ "$ATTEMPTS" -ge 30 ]; then
     echo "ERROR: Postgres did not become ready within 30 attempts."
@@ -52,23 +58,23 @@ until docker compose -f "$COMPOSE_FILE" exec -T postgres pg_isready -U strapi >/
 done
 
 banner "5/6  Starting backend"
-docker compose -f "$COMPOSE_FILE" up -d backend
+"${COMPOSE[@]}" up -d backend
 
 # Give Strapi a moment to migrate + boot before we probe the health endpoint.
 sleep 10
 
 banner "6/6  Health check"
-if docker compose -f "$COMPOSE_FILE" exec -T backend wget -qO- http://localhost:1337/_health >/dev/null; then
+if "${COMPOSE[@]}" exec -T backend wget -qO- http://localhost:1337/_health >/dev/null; then
   echo "OK: backend is healthy."
 else
   echo "WARN: /_health probe failed. Showing recent logs:"
-  docker compose -f "$COMPOSE_FILE" logs --tail=80 backend
+  "${COMPOSE[@]}" logs --tail=80 backend
   exit 1
 fi
 
 docker image prune -f >/dev/null
 
-docker compose -f "$COMPOSE_FILE" ps
+"${COMPOSE[@]}" ps
 
 echo ""
 echo "Deploy finished at $(date -u +%FT%TZ)."
