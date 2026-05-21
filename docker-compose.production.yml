@@ -33,6 +33,11 @@ services:
         condition: service_healthy
     expose:
       - "1337"
+    ports:
+      # Bound to VM loopback only so the host (or an SSH tunnel) can reach
+      # the admin panel during setup. nginx on the VM will be the public
+      # entry point once TLS is configured.
+      - "127.0.0.1:1337:1337"
     volumes:
       - uploads:/opt/app/public/uploads
     networks:
