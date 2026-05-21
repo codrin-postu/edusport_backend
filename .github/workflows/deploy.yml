@@ -1,0 +1,35 @@
+# Continuous deployment workflow for the EduSport Strapi backend.
+#
+# Disabled by default (`if: false`). To enable:
+#   1. Configure the following GitHub Actions secrets on this repository:
+#        VM_HOST           - public hostname or IP of the production VM
+#        VM_USER           - SSH user with rights to run docker on the VM (typically `deploy` or `root`)
+#        VM_SSH_KEY        - private SSH key matching the VM's authorized_keys
+#        VM_BACKEND_PATH   - absolute path to the cloned repo on the VM (e.g. /opt/edusport/edusport_backend)
+#   2. Remove the `if: false` guard on the `deploy` job below.
+#
+# The workflow simply SSHes in and runs the same `scripts/deploy.sh` that an
+# operator would run manually. It is intentionally a thin shim.
+
+name: Deploy backend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.VM_BACKEND_PATH }}"
+            ./scripts/deploy.sh

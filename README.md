@@ -1,95 +1,84 @@
-# Backend - Strapi CMS
+# EduSport CMS
 
-This is the backend of the project, using Strapi as a headless CMS and Dockerized for local development.
+Strapi 5 backend for the EduSport (scoaladepatinaj.com) website. Provides the content API
+consumed by the Next.js frontend in `edusport_frontend`.
 
-## Prerequisites
+## Overview
 
-- [Docker](https://www.docker.com/get-started) installed
-- [Docker Compose](https://docs.docker.com/compose/install/) installed
-- Node.js v24.6 (optional if using Docker only)
+- Strapi 5 with TypeScript.
+- PostgreSQL 16 as the persistence layer.
+- Media uploads stored on a Docker named volume (`public/uploads`).
+- One in-repo plugin: `src/plugins/component-preview` (built automatically by `strapi build`).
+- Roughly fifteen content types under `src/api/`, covering site settings, homepage,
+  pricing, courses, articles, announcements, competitions, team members, history,
+  and contact submissions.
 
-## Setup and Run Locally
+## Content types
 
-1. Clone the repository:
-    ```bash
-    git clone <backend-repo-url>
-    cd backend
-    ```
-2. Build and start the Docker container:
-    ```bash
-    docker-compose up --build
-    ```
-3. Open the Strapi Admin Panel:
-    ```
-    http://localhost:1337/admin
-    ```
-4. First-time setup:
-    - Create an admin user when prompted in the browser.
-    - You can now log in and create content types such as Article and PricePage.
-
-5. Stop the container:
-    ```bash
-    docker-compose down
-    ```
-
-# 🚀 Getting started with Strapi
-
-Strapi comes with a full featured [Command Line Interface](https://docs.strapi.io/dev-docs/cli) (CLI) which lets you scaffold and manage your project in seconds.
-
-### `develop`
-
-Start your Strapi application with autoReload enabled. [Learn more](https://docs.strapi.io/dev-docs/cli#strapi-develop)
+The current set under `src/api/` is:
 
 ```
-npm run develop
-# or
-yarn develop
+announcement, article, competition, contact-submission,
+course-regulations, cursuri-page, historic-page, history-milestone,
+homepage, pricing, program-page, realizari-page,
+site-settings, team-member, team-page
 ```
 
-### `start`
+Each is a standard Strapi content type with its own controller, route, service,
+and schema. Adding a new one follows the usual `strapi generate content-type` flow.
 
-Start your Strapi application with autoReload disabled. [Learn more](https://docs.strapi.io/dev-docs/cli#strapi-start)
+## Local development
 
-```
-npm run start
-# or
-yarn start
-```
+The repo ships with a development Docker Compose stack (`docker-compose.yml`) that
+runs Strapi via `strapi develop` against a local Postgres.
 
-### `build`
-
-Build your admin panel. [Learn more](https://docs.strapi.io/dev-docs/cli#strapi-build)
-
-```
-npm run build
-# or
-yarn build
+```bash
+cp .env.example .env
+docker compose up
 ```
 
-## ⚙️ Deployment
+The admin panel is available at <http://localhost:1337/admin>. On first boot,
+create an admin user via the form, then either:
 
-Strapi gives you many possible deployment options for your project including [Strapi Cloud](https://cloud.strapi.io). Browse the [deployment section of the documentation](https://docs.strapi.io/dev-docs/deployment) to find the best solution for your use case.
+- run a seed script to populate sample content (see below), or
+- import a dump from another environment with `strapi import`.
 
+### Seed scripts
+
+The `scripts/` directory contains one-off seeders. They are designed to run
+inside the live container so that they share Strapi's runtime:
+
+```bash
+npm run seed:homepage
+npm run seed:cursuri-page
+npm run seed:regulations
+npm run seed:pricing
+npm run seed:content
 ```
-yarn strapi deploy
-```
 
-## 📚 Learn more
+These call `docker exec strapi_app node scripts/seed-*.js`. Adjust the container
+name in `package.json` if you renamed the service.
 
-- [Resource center](https://strapi.io/resource-center) - Strapi resource center.
-- [Strapi documentation](https://docs.strapi.io) - Official Strapi documentation.
-- [Strapi tutorials](https://strapi.io/tutorials) - List of tutorials made by the core team and the community.
-- [Strapi blog](https://strapi.io/blog) - Official Strapi blog containing articles made by the Strapi team and the community.
-- [Changelog](https://strapi.io/changelog) - Find out about the Strapi product updates, new features and general improvements.
+## Custom plugin
 
-Feel free to check out the [Strapi GitHub repository](https://github.com/strapi/strapi). Your feedback and contributions are welcome!
+`src/plugins/component-preview/` is an in-repo Strapi plugin that provides a
+custom admin field for previewing dynamic-zone components. There is no separate
+install step. The admin build (`strapi build`) picks it up automatically.
 
-## ✨ Community
+## Production
 
-- [Discord](https://discord.strapi.io) - Come chat with the Strapi community including the core team.
-- [Forum](https://forum.strapi.io/) - Place to discuss, ask questions and find answers, show your Strapi project and get feedback or just talk with other Community members.
-- [Awesome Strapi](https://github.com/strapi/awesome-strapi) - A curated list of awesome things related to Strapi.
+The production stack uses `Dockerfile.production` and
+`docker-compose.production.yml`. See:
 
----
+- [DEPLOY.md](./DEPLOY.md) for full provisioning and deployment instructions.
+- [ARCHITECTURE.md](./ARCHITECTURE.md) for the request-flow diagram and
+  cross-service overview.
+- [CONTRIBUTING.md](./CONTRIBUTING.md) for branching, commits, and content-type
+  conventions.
 
-<sub>🤫 Psst! [Strapi is hiring](https://strapi.io/careers).</sub>
+## Reference
+
+- Strapi admin: `/admin`
+- Health check: `/_health`
+- Default port: `1337`
+- Frontend repo: `edusport_frontend`
