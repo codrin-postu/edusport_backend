@@ -64,7 +64,7 @@ banner "6/6  Health check"
 # Strapi prints "started successfully" a few seconds before /_health actually
 # responds, so poll for up to 60s rather than firing a single shot.
 HEALTH_ATTEMPTS=0
-until "${COMPOSE[@]}" exec -T backend wget -qO- http://localhost:1337/_health >/dev/null 2>&1; do
+until "${COMPOSE[@]}" exec -T backend wget -qO- http://127.0.0.1:1337/_health >/dev/null 2>&1; do
   HEALTH_ATTEMPTS=$((HEALTH_ATTEMPTS + 1))
   if [ "$HEALTH_ATTEMPTS" -ge 30 ]; then
     echo "ERROR: /_health did not respond after 30 attempts. Recent logs:"
