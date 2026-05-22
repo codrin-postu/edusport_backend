@@ -1,30 +1,37 @@
-# Continuous deployment workflow for the EduSport Strapi backend.
+# Manual deploy for the Strapi backend.
 #
-# Disabled by default (`if: false`). To enable:
-#   1. Configure the following GitHub Actions secrets on this repository:
-#        VM_HOST           - public hostname or IP of the production VM
-#        VM_USER           - SSH user with rights to run docker on the VM (typically `deploy` or `root`)
-#        VM_SSH_KEY        - private SSH key matching the VM's authorized_keys
-#        VM_BACKEND_PATH   - absolute path to the cloned repo on the VM (e.g. /opt/edusport/edusport_backend)
-#   2. Remove the `if: false` guard on the `deploy` job below.
+# Trigger:
+#   GitHub → Actions → Deploy backend → Run workflow → pick a branch/tag.
 #
-# The workflow simply SSHes in and runs the same `scripts/deploy.sh` that an
-# operator would run manually. It is intentionally a thin shim.
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   VM_HOST           - public hostname or IP of the production VM
+#   VM_USER           - SSH user on the VM with docker access (e.g. `codrin`)
+#   VM_SSH_KEY        - Private SSH key matching an authorized_keys entry on the VM
+#   VM_BACKEND_PATH   - absolute path to the cloned repo on the VM (e.g. /opt/edusport/edusport_backend)
+#
+# The workflow is a thin shim: it SSHes in, syncs the chosen ref, and runs the
+# same `scripts/deploy.sh` an operator would run manually.
 
 name: Deploy backend
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or tag to deploy (defaults to main)"
+        required: false
+        default: main
+
+concurrency:
+  group: deploy-backend-${{ inputs.ref }}
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    if: false
     runs-on: ubuntu-latest
     steps:
-      - name: SSH and deploy
-        uses: appleboy/ssh-action@v1.0.3
+      - name: SSH into VM and run deploy script
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
@@ -32,4 +39,6 @@ jobs:
           script: |
             set -euo pipefail
             cd "${{ secrets.VM_BACKEND_PATH }}"
+            git fetch --prune
+            git reset --hard "origin/${{ inputs.ref }}"
             ./scripts/deploy.sh
