@@ -60,17 +60,21 @@ done
 banner "5/6  Starting backend"
 "${COMPOSE[@]}" up -d backend
 
-# Give Strapi a moment to migrate + boot before we probe the health endpoint.
-sleep 10
-
 banner "6/6  Health check"
-if "${COMPOSE[@]}" exec -T backend wget -qO- http://localhost:1337/_health >/dev/null; then
-  echo "OK: backend is healthy."
-else
-  echo "WARN: /_health probe failed. Showing recent logs:"
-  "${COMPOSE[@]}" logs --tail=80 backend
-  exit 1
-fi
+# Strapi prints "started successfully" a few seconds before /_health actually
+# responds, so poll for up to 60s rather than firing a single shot.
+HEALTH_ATTEMPTS=0
+until "${COMPOSE[@]}" exec -T backend wget -qO- http://localhost:1337/_health >/dev/null 2>&1; do
+  HEALTH_ATTEMPTS=$((HEALTH_ATTEMPTS + 1))
+  if [ "$HEALTH_ATTEMPTS" -ge 30 ]; then
+    echo "ERROR: /_health did not respond after 30 attempts. Recent logs:"
+    "${COMPOSE[@]}" logs --tail=80 backend
+    exit 1
+  fi
+  echo "  /_health not ready yet (attempt $HEALTH_ATTEMPTS)..."
+  sleep 2
+done
+echo "OK: backend is healthy."
 
 docker image prune -f >/dev/null
 
