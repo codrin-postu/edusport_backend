@@ -443,6 +443,7 @@ export interface ApiArticleArticle extends Struct.CollectionTypeSchema {
     eventAdmissionInfo: Schema.Attribute.String;
     eventDate: Schema.Attribute.DateTime;
     eventLocation: Schema.Attribute.String;
+    gallery: Schema.Attribute.Media<'images', true>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -455,6 +456,8 @@ export interface ApiArticleArticle extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    video: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.video-embed'>;
   };
 }
 

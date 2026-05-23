@@ -27,6 +27,19 @@
     "body": {
       "type": "blocks"
     },
+    "gallery": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "video": {
+      "type": "json",
+      "customField": "plugin::component-preview.video-embed",
+      "required": false
+    },
     "coverImage": {
       "type": "media",
       "multiple": false,

@@ -401,5 +401,21 @@ export default {
       intlDescription: { id: 'component-preview.page-banner.description', defaultMessage: 'Titlul și subtitlul afișate în banner-ul din partea de sus a paginii.' },
       components: { Input: async () => import('./PageBannerEditor').then(m => ({ default: m.default as any })) },
     });
+
+    app.customFields.register({
+      name: 'video-embed',
+      pluginId: 'component-preview',
+      type: 'json',
+      intlLabel: { id: 'component-preview.video-embed.label', defaultMessage: 'Video' },
+      intlDescription: {
+        id: 'component-preview.video-embed.description',
+        defaultMessage:
+          'Un singur video — fie link extern (YouTube, Vimeo) fie fișier încărcat. Exclude-se reciproc.',
+      },
+      components: {
+        Input: async () =>
+          import('./VideoEmbedEditor').then((m) => ({ default: m.default as any })),
+      },
+    });
   },
 };
