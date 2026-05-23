@@ -18,7 +18,10 @@
     "start": "strapi start",
     "strapi": "strapi",
     "upgrade": "npx @strapi/upgrade latest",
-    "upgrade:dry": "npx @strapi/upgrade latest --dry"
+    "upgrade:dry": "npx @strapi/upgrade latest --dry",
+    "docker:restart": "docker exec strapi_app rm -rf .strapi build node_modules/.vite && docker exec strapi_app npm run build && docker compose restart strapi",
+    "docker:reset": "docker compose down && docker compose up -d --build",
+    "docker:logs": "docker compose logs --tail=80 -f strapi"
   },
   "dependencies": {
     "@strapi/plugin-cloud": "5.23.0",

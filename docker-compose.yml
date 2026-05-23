@@ -24,6 +24,11 @@ services:
       TRANSFER_TOKEN_SALT: ${TRANSFER_TOKEN_SALT:-localDevTransferTokenSalt}
       JWT_SECRET: ${JWT_SECRET:-localDevJwtSecret}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-localDevEncryptionKey}
+      # Frontend route that renders unpublished article drafts using the same
+      # _View component as production. Used by the admin's Previzualizează
+      # button to open a side-panel preview.
+      STRAPI_PREVIEW_FRONTEND_URL: ${STRAPI_PREVIEW_FRONTEND_URL:-http://localhost:3000}
+      STRAPI_PREVIEW_SECRET: ${STRAPI_PREVIEW_SECRET:-localDevPreviewSecret}
     volumes:
       - .:/app
       - /app/node_modules
