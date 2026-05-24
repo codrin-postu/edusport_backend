@@ -1,0 +1,20 @@
+{
+  "kind": "collectionType",
+  "collectionName": "disciplines",
+  "info": {
+    "singularName": "discipline",
+    "pluralName": "disciplines",
+    "displayName": "Club / Disciplină",
+    "description": "Disciplinele sportive practicate în club (editabile de administrator)"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    }
+  }
+}

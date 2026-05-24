@@ -1,0 +1,20 @@
+{
+  "collectionName": "components_sportsperson_program_seasons",
+  "info": {
+    "displayName": "Sezon programe",
+    "description": "Un sezon competițional cu programele muzicale aferente",
+    "icon": "calendar"
+  },
+  "attributes": {
+    "season": {
+      "type": "string",
+      "required": true,
+      "regex": "^[0-9]{4}-[0-9]{4}$"
+    },
+    "programs": {
+      "type": "component",
+      "repeatable": true,
+      "component": "sportsperson.program"
+    }
+  }
+}
