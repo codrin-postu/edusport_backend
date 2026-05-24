@@ -4,7 +4,7 @@
   "info": {
     "singularName": "course-regulations",
     "pluralName": "course-regulations-list",
-    "displayName": "Scoala Patinaj / Regulament cursuri",
+    "displayName": "Cursuri / Regulament cursuri",
     "description": "Reguli de curs organizate pe categorii"
   },
   "options": {

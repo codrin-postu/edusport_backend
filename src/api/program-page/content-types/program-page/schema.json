@@ -4,7 +4,7 @@
   "info": {
     "singularName": "program-page",
     "pluralName": "program-pages",
-    "displayName": "Scoala Patinaj / Pagina Program",
+    "displayName": "Cursuri / Pagina Program",
     "description": "Orar grupe, calendar sezon și disclaimer-uri pentru pagina /cursuri/program"
   },
   "options": {
