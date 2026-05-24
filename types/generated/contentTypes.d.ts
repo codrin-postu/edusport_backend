@@ -443,6 +443,7 @@ export interface ApiArticleArticle extends Struct.CollectionTypeSchema {
     eventAdmissionInfo: Schema.Attribute.String;
     eventDate: Schema.Attribute.DateTime;
     eventLocation: Schema.Attribute.String;
+    gallery: Schema.Attribute.Media<'images', true>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -455,6 +456,8 @@ export interface ApiArticleArticle extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    video: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.video-embed'>;
   };
 }
 
@@ -561,7 +564,7 @@ export interface ApiCourseRegulationsCourseRegulations
   collectionName: 'course_regulations';
   info: {
     description: 'Reguli de curs organizate pe categorii';
-    displayName: 'Scoala Patinaj / Regulament cursuri';
+    displayName: 'Cursuri / Regulament cursuri';
     pluralName: 'course-regulations-list';
     singularName: 'course-regulations';
   };
@@ -595,7 +598,7 @@ export interface ApiCursuriPageCursuriPage extends Struct.SingleTypeSchema {
   collectionName: 'cursuri_pages';
   info: {
     description: 'Con\u021Binut (f\u0103r\u0103 pre\u021Buri) pentru pagina /cursuri';
-    displayName: 'Scoala Patinaj / Pagina Cursuri';
+    displayName: 'Cursuri / Pagina Cursuri';
     pluralName: 'cursuri-pages';
     singularName: 'cursuri-page';
   };
@@ -632,11 +635,42 @@ export interface ApiCursuriPageCursuriPage extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiDisciplineDiscipline extends Struct.CollectionTypeSchema {
+  collectionName: 'disciplines';
+  info: {
+    description: 'Disciplinele sportive practicate \u00EEn club (editabile de administrator)';
+    displayName: 'Club / Disciplin\u0103';
+    pluralName: 'disciplines';
+    singularName: 'discipline';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::discipline.discipline'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiHistoricPageHistoricPage extends Struct.SingleTypeSchema {
   collectionName: 'historic_page';
   info: {
     description: 'Con\u021Binut editabil pentru pagina /despre-noi/istoric';
-    displayName: 'Despre Noi / Pagina Istoric';
+    displayName: 'Club / Pagina Istoric';
     pluralName: 'historic-pages';
     singularName: 'historic-page';
   };
@@ -680,7 +714,7 @@ export interface ApiHistoryMilestoneHistoryMilestone
   collectionName: 'history_milestones';
   info: {
     description: 'Intr\u0103ri pe linia de timp a istoricului clubului';
-    displayName: 'Despre Noi / Moment din Istoric';
+    displayName: 'Club / Moment din Istoric';
     pluralName: 'history-milestones';
     singularName: 'history-milestone';
   };
@@ -712,7 +746,7 @@ export interface ApiHomepageHomepage extends Struct.SingleTypeSchema {
   collectionName: 'homepages';
   info: {
     description: 'Con\u021Binut pentru landing page / pagina principal\u0103';
-    displayName: 'Scoala Patinaj / Pagina Principal\u0103';
+    displayName: 'Cursuri / Pagina Principal\u0103';
     pluralName: 'homepages';
     singularName: 'homepage';
   };
@@ -753,7 +787,7 @@ export interface ApiPricingPricing extends Struct.SingleTypeSchema {
   collectionName: 'pricings';
   info: {
     description: 'Tarife cursuri pentru membri \u0219i non-membri';
-    displayName: 'Scoala Patinaj / Pre\u021Buri';
+    displayName: 'Cursuri / Pre\u021Buri';
     pluralName: 'pricings';
     singularName: 'pricing';
   };
@@ -800,7 +834,7 @@ export interface ApiProgramPageProgramPage extends Struct.SingleTypeSchema {
   collectionName: 'program_pages';
   info: {
     description: 'Orar grupe, calendar sezon \u0219i disclaimer-uri pentru pagina /cursuri/program';
-    displayName: 'Scoala Patinaj / Pagina Program';
+    displayName: 'Cursuri / Pagina Program';
     pluralName: 'program-pages';
     singularName: 'program-page';
   };
@@ -842,7 +876,7 @@ export interface ApiRealizariPageRealizariPage extends Struct.SingleTypeSchema {
   collectionName: 'realizari_page';
   info: {
     description: 'Con\u021Binut editabil pentru pagina /despre-noi/realizari';
-    displayName: 'Despre Noi / Pagina Realiz\u0103ri';
+    displayName: 'Club / Pagina Realiz\u0103ri';
     pluralName: 'realizari-pages';
     singularName: 'realizari-page';
   };
@@ -915,11 +949,68 @@ export interface ApiSiteSettingsSiteSettings extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiSportspersonSportsperson
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'sportspeople';
+  info: {
+    description: 'Profil pentru sportivii clubului';
+    displayName: 'Club / Sportiv';
+    pluralName: 'sportspeople';
+    singularName: 'sportsperson';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    activeSince: Schema.Attribute.Date;
+    careerGoal: Schema.Attribute.Text &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 300;
+      }>;
+    choreographers: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::team-member.team-member'
+    >;
+    coach: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::team-member.team-member'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
+    disciplines: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::discipline.discipline'
+    >;
+    favoriteMoves: Schema.Attribute.JSON;
+    gallery: Schema.Attribute.Media<'images', true>;
+    hobbies: Schema.Attribute.JSON;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::sportsperson.sportsperson'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    photo: Schema.Attribute.Media<'images'>;
+    publishedAt: Schema.Attribute.DateTime;
+    seasons: Schema.Attribute.Component<'sportsperson.program-season', true>;
+    showPublicPage: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<false>;
+    slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiTeamMemberTeamMember extends Struct.CollectionTypeSchema {
   collectionName: 'team_members';
   info: {
     description: 'Antrenori \u0219i instructori';
-    displayName: 'Despre Noi / Membru echip\u0103';
+    displayName: 'Club / Membru echip\u0103';
     pluralName: 'team-members';
     singularName: 'team-member';
   };
@@ -953,7 +1044,7 @@ export interface ApiTeamPageTeamPage extends Struct.SingleTypeSchema {
   collectionName: 'team_page';
   info: {
     description: 'Banner, textul de introducere \u0219i membrii echipei pentru pagina /despre-noi/echipa';
-    displayName: 'Despre Noi / Pagina Echipa';
+    displayName: 'Club / Pagina Echipa';
     pluralName: 'team-pages';
     singularName: 'team-page';
   };
@@ -1501,6 +1592,7 @@ declare module '@strapi/strapi' {
       'api::contact-submission.contact-submission': ApiContactSubmissionContactSubmission;
       'api::course-regulations.course-regulations': ApiCourseRegulationsCourseRegulations;
       'api::cursuri-page.cursuri-page': ApiCursuriPageCursuriPage;
+      'api::discipline.discipline': ApiDisciplineDiscipline;
       'api::historic-page.historic-page': ApiHistoricPageHistoricPage;
       'api::history-milestone.history-milestone': ApiHistoryMilestoneHistoryMilestone;
       'api::homepage.homepage': ApiHomepageHomepage;
@@ -1508,6 +1600,7 @@ declare module '@strapi/strapi' {
       'api::program-page.program-page': ApiProgramPageProgramPage;
       'api::realizari-page.realizari-page': ApiRealizariPageRealizariPage;
       'api::site-settings.site-settings': ApiSiteSettingsSiteSettings;
+      'api::sportsperson.sportsperson': ApiSportspersonSportsperson;
       'api::team-member.team-member': ApiTeamMemberTeamMember;
       'api::team-page.team-page': ApiTeamPageTeamPage;
       'plugin::content-releases.release': PluginContentReleasesRelease;

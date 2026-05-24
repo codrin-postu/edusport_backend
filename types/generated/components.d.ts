@@ -94,6 +94,10 @@ export interface CompetitionParticipant extends Struct.ComponentSchema {
       ]
     >;
     score: Schema.Attribute.Decimal;
+    sportsperson: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::sportsperson.sportsperson'
+    >;
   };
 }
 
@@ -377,6 +381,36 @@ export interface SharedSeo extends Struct.ComponentSchema {
   };
 }
 
+export interface SportspersonProgram extends Struct.ComponentSchema {
+  collectionName: 'components_sportsperson_programs';
+  info: {
+    description: 'Un program individual (scurt / liber / exhibi\u021Bie) cu titlu \u0219i artist';
+    displayName: 'Program muzical';
+    icon: 'music';
+  };
+  attributes: {
+    artist: Schema.Attribute.String;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    type: Schema.Attribute.Enumeration<
+      ['Program Scurt', 'Program Liber', 'Program Exhibi\u021Bie']
+    > &
+      Schema.Attribute.Required;
+  };
+}
+
+export interface SportspersonProgramSeason extends Struct.ComponentSchema {
+  collectionName: 'components_sportsperson_program_seasons';
+  info: {
+    description: 'Un sezon competi\u021Bional cu programele muzicale aferente';
+    displayName: 'Sezon programe';
+    icon: 'calendar';
+  };
+  attributes: {
+    programs: Schema.Attribute.Component<'sportsperson.program', true>;
+    season: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
 declare module '@strapi/strapi' {
   export module Public {
     export interface ComponentSchemas {
@@ -400,6 +434,8 @@ declare module '@strapi/strapi' {
       'shared.page-banner': SharedPageBanner;
       'shared.rich-text': SharedRichText;
       'shared.seo': SharedSeo;
+      'sportsperson.program': SportspersonProgram;
+      'sportsperson.program-season': SportspersonProgramSeason;
     }
   }
 }

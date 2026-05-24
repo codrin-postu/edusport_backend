@@ -1,0 +1,22 @@
+{
+  "collectionName": "components_sportsperson_programs",
+  "info": {
+    "displayName": "Program muzical",
+    "description": "Un program individual (scurt / liber / exhibiție) cu titlu și artist",
+    "icon": "music"
+  },
+  "attributes": {
+    "type": {
+      "type": "enumeration",
+      "enum": ["Program Scurt", "Program Liber", "Program Exhibiție"],
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "artist": {
+      "type": "string"
+    }
+  }
+}
