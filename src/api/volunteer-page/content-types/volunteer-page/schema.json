@@ -1,0 +1,36 @@
+{
+  "kind": "singleType",
+  "collectionName": "volunteer_pages",
+  "info": {
+    "singularName": "volunteer-page",
+    "pluralName": "volunteer-pages",
+    "displayName": "Voluntariat / Pagina Voluntariat",
+    "description": "Conținutul paginii de voluntariat"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "content": {
+      "type": "json",
+      "customField": "plugin::component-preview.volunteer-page-content"
+    },
+    "helpWays": {
+      "type": "json",
+      "customField": "plugin::component-preview.volunteer-help-ways"
+    },
+    "gallery": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
+    }
+  }
+}
