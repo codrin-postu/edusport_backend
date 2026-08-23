@@ -230,10 +230,8 @@ const REALIZARI_PAGE = {
 };
 
 // Sportspeople — club athletes. Entries with `showPublicPage: true` get a
-// public profile at /despre-noi/sportivi/<slug>. The `name` here must match
-// the `athleteName` strings in COMPETITIONS for the participant relation to
-// be linked during seeding; unmatched athleteName strings stay as plain
-// strings (external athletes).
+// public profile at /despre-noi/sportivi/<slug>. Every competition participant
+// must reference a sportsperson by name via the `_name` seed key.
 const SPORTSPEOPLE = [
   {
     name: 'Maria Popescu',
@@ -244,7 +242,7 @@ const SPORTSPEOPLE = [
     favoriteMoves: ['Triple Lutz', 'Sărituri combinate', 'Spirală Biellmann', 'Piruetă combinată'],
     hobbies: ['Lectură', 'Pian', 'Drumeții montane'],
     disciplineNames: ['Patinaj Artistic'],
-    coachName: 'Andreea Stanciu',
+    coachNames: ['Andreea Stanciu'],
     choreographerNames: ['Ana Maria Stoica'],
     careerGoal: 'Vreau să reprezint România la Campionatul European de Patinaj Artistic.',
     seasons: [
@@ -272,7 +270,7 @@ const SPORTSPEOPLE = [
     favoriteMoves: ['Double Axel', 'Spirală Ina Bauer', 'Piruetă layback'],
     hobbies: ['Pictură', 'Yoga', 'Călătorii'],
     disciplineNames: ['Patinaj Artistic'],
-    coachName: 'Andreea Stanciu',
+    coachNames: ['Andreea Stanciu'],
     choreographerNames: ['Răzvan Marin'],
     seasons: [
       {
@@ -293,7 +291,7 @@ const SPORTSPEOPLE = [
     favoriteMoves: ['Sărituri simple', 'Spin scaun', 'Spirala arabesque'],
     hobbies: ['Înot', 'Desen', 'Voluntariat'],
     disciplineNames: ['Patinaj Artistic'],
-    coachName: 'Bogdan Radu',
+    coachNames: ['Bogdan Radu'],
     careerGoal: 'Să ating categoria Avansați – Juniors până la finalul sezonului 2026.',
     seasons: [
       {
@@ -312,6 +310,13 @@ const SPORTSPEOPLE = [
     description: 'Sportiv în categoria Intermediari.',
   },
   {
+    name: 'Luca Stan',
+    slug: 'luca-stan',
+    showPublicPage: false,
+    activeSince: '2021-01-01',
+    description: 'Sportiv în categoria Începători / Intermediari.',
+  },
+  {
     name: 'Sofia Marin',
     slug: 'sofia-marin',
     showPublicPage: true,
@@ -320,7 +325,7 @@ const SPORTSPEOPLE = [
     favoriteMoves: ['Salchow simplu', 'Spirală arabesque', 'Piruetă verticală'],
     hobbies: ['Balet', 'Muzică', 'Schi'],
     disciplineNames: ['Patinaj Artistic', 'Inline Skates'],
-    coachName: 'Bogdan Radu',
+    coachNames: ['Bogdan Radu'],
     careerGoal: 'Vreau să cuceresc primul podium național.',
     seasons: [
       {
@@ -371,11 +376,11 @@ const COMPETITIONS = [
     level: 'national',
     season: '2024-2025',
     participants: [
-      { athleteName: 'Maria Popescu',    category: 'Avansați – Juniors',  placement: '1',   score: 92.15 },
-      { athleteName: 'Andrei Ionescu',   category: 'Intermediari',        placement: '2', score: 78.30 },
-      { athleteName: 'Elena Dumitrescu', category: 'Avansați – Seniors',  placement: '3', score: 88.47 },
-      { athleteName: 'Luca Stan',        category: 'Intermediari',        placement: '4',    score: 74.12 },
-      { athleteName: 'Ana Vasile',       category: 'Avansați – Juniors',  placement: '6',    score: 81.60 },
+      { _name: 'Maria Popescu',    category: 'Avansați – Juniors',  placement: 1,   score: 92.15 },
+      { _name: 'Andrei Ionescu',   category: 'Intermediari',        placement: 2, score: 78.30 },
+      { _name: 'Elena Dumitrescu', category: 'Avansați – Seniors',  placement: 3, score: 88.47 },
+      { _name: 'Luca Stan',        category: 'Intermediari',        placement: 4,    score: 74.12 },
+      { _name: 'Ana Vasile',       category: 'Avansați – Juniors',  placement: 6,    score: 81.60 },
     ],
   },
   {
@@ -385,10 +390,10 @@ const COMPETITIONS = [
     level: 'national',
     season: '2024-2025',
     participants: [
-      { athleteName: 'Sofia Marin',    category: 'Începători',       placement: '1',   score: 65.80 },
-      { athleteName: 'Maria Popescu',  category: 'Avansați – Juniors', placement: '1', score: 89.92 },
-      { athleteName: 'Luca Stan',      category: 'Intermediari',     placement: '2', score: 72.55 },
-      { athleteName: 'Andrei Ionescu', category: 'Intermediari',     placement: '5',    score: 68.40 },
+      { _name: 'Sofia Marin',    category: 'Începători',       placement: 1,   score: 65.80 },
+      { _name: 'Maria Popescu',  category: 'Avansați – Juniors', placement: 1, score: 89.92 },
+      { _name: 'Luca Stan',      category: 'Intermediari',     placement: 2, score: 72.55 },
+      { _name: 'Andrei Ionescu', category: 'Intermediari',     placement: 5,    score: 68.40 },
     ],
   },
   {
@@ -398,9 +403,9 @@ const COMPETITIONS = [
     level: 'international',
     season: '2024-2025',
     participants: [
-      { athleteName: 'Maria Popescu',    category: 'Avansați – Juniors', placement: '2', score: 86.73 },
-      { athleteName: 'Elena Dumitrescu', category: 'Avansați – Seniors', placement: '3', score: 84.20 },
-      { athleteName: 'Sofia Marin',      category: 'Începători',         placement: '10',  score: 58.15 },
+      { _name: 'Maria Popescu',    category: 'Avansați – Juniors', placement: 2, score: 86.73 },
+      { _name: 'Elena Dumitrescu', category: 'Avansați – Seniors', placement: 3, score: 84.20 },
+      { _name: 'Sofia Marin',      category: 'Începători',         placement: 10,  score: 58.15 },
     ],
   },
   // ── Sezon 2023-2024 ──
@@ -411,10 +416,10 @@ const COMPETITIONS = [
     level: 'national',
     season: '2023-2024',
     participants: [
-      { athleteName: 'Maria Popescu',  category: 'Avansați – Juniors', placement: '1',   score: 87.60 },
-      { athleteName: 'Ana Vasile',     category: 'Intermediari',       placement: '1',   score: 76.45 },
-      { athleteName: 'Luca Stan',      category: 'Începători',         placement: '3', score: 62.30 },
-      { athleteName: 'Andrei Ionescu', category: 'Începători',         placement: '4',    score: 59.85 },
+      { _name: 'Maria Popescu',  category: 'Avansați – Juniors', placement: 1,   score: 87.60 },
+      { _name: 'Ana Vasile',     category: 'Intermediari',       placement: 1,   score: 76.45 },
+      { _name: 'Luca Stan',      category: 'Începători',         placement: 3, score: 62.30 },
+      { _name: 'Andrei Ionescu', category: 'Începători',         placement: 4,    score: 59.85 },
     ],
   },
   {
@@ -424,9 +429,9 @@ const COMPETITIONS = [
     level: 'national',
     season: '2023-2024',
     participants: [
-      { athleteName: 'Elena Dumitrescu', category: 'Avansați – Seniors', placement: '2', score: 82.10 },
-      { athleteName: 'Sofia Marin',      category: 'Începători',         placement: '1',   score: 61.25 },
-      { athleteName: 'Luca Stan',        category: 'Începători',         placement: '5',    score: 55.70 },
+      { _name: 'Elena Dumitrescu', category: 'Avansați – Seniors', placement: 2, score: 82.10 },
+      { _name: 'Sofia Marin',      category: 'Începători',         placement: 1,   score: 61.25 },
+      { _name: 'Luca Stan',        category: 'Începători',         placement: 5,    score: 55.70 },
     ],
   },
   {
@@ -436,8 +441,8 @@ const COMPETITIONS = [
     level: 'international',
     season: '2023-2024',
     participants: [
-      { athleteName: 'Maria Popescu',    category: 'Avansați – Juniors', placement: '1', score: 85.30 },
-      { athleteName: 'Elena Dumitrescu', category: 'Avansați – Seniors', placement: '6',  score: 79.15 },
+      { _name: 'Maria Popescu',    category: 'Avansați – Juniors', placement: 1, score: 85.30 },
+      { _name: 'Elena Dumitrescu', category: 'Avansați – Seniors', placement: 6,  score: 79.15 },
     ],
   },
   // ── Sezon 2022-2023 ──
@@ -448,9 +453,9 @@ const COMPETITIONS = [
     level: 'national',
     season: '2022-2023',
     participants: [
-      { athleteName: 'Ana Vasile',     category: 'Începători',   placement: '1',   score: 64.90 },
-      { athleteName: 'Maria Popescu',  category: 'Intermediari', placement: '2', score: 73.25 },
-      { athleteName: 'Andrei Ionescu', category: 'Începători',   placement: '10',  score: 52.80 },
+      { _name: 'Ana Vasile',     category: 'Începători',   placement: 1,   score: 64.90 },
+      { _name: 'Maria Popescu',  category: 'Intermediari', placement: 2, score: 73.25 },
+      { _name: 'Andrei Ionescu', category: 'Începători',   placement: 10,  score: 52.80 },
     ],
   },
   {
@@ -460,10 +465,10 @@ const COMPETITIONS = [
     level: 'national',
     season: '2022-2023',
     participants: [
-      { athleteName: 'Elena Dumitrescu', category: 'Avansați – Seniors', placement: '1',   score: 80.55 },
-      { athleteName: 'Sofia Marin',      category: 'Începători',         placement: '2', score: 57.40 },
-      { athleteName: 'Andrei Ionescu',   category: 'Începători',         placement: '3', score: 54.15 },
-      { athleteName: 'Luca Stan',        category: 'Începători',         placement: '4',    score: 51.90 },
+      { _name: 'Elena Dumitrescu', category: 'Avansați – Seniors', placement: 1,   score: 80.55 },
+      { _name: 'Sofia Marin',      category: 'Începători',         placement: 2, score: 57.40 },
+      { _name: 'Andrei Ionescu',   category: 'Începători',         placement: 3, score: 54.15 },
+      { _name: 'Luca Stan',        category: 'Începători',         placement: 4,    score: 51.90 },
     ],
   },
 ];
@@ -584,24 +589,23 @@ async function seedSportspeople(disciplineByName) {
     return new Map(existing.map((s) => [s.name, s.documentId]));
   }
 
-  // Resolve coach / choreographer references (SPORTSPEOPLE entries carry
-  // coachName + choreographerNames strings; turn them into Strapi relation
-  // `connect` payloads by looking up matching team-members by name).
+  // Resolve coaches / choreographer references by name lookup against team-members.
   const teamMembers = await strapi.documents('api::team-member.team-member').findMany();
   const teamMemberByName = new Map(teamMembers.map((tm) => [tm.name, tm.documentId]));
 
   const nameToDocId = new Map();
   for (const sp of SPORTSPEOPLE) {
-    const { coachName, choreographerNames, disciplineNames, ...rest } = sp;
+    const { coachNames, choreographerNames, disciplineNames, ...rest } = sp;
     const data = { ...rest };
 
-    if (coachName) {
-      const coachDocId = teamMemberByName.get(coachName);
-      if (coachDocId) {
-        data.coach = { connect: [{ documentId: coachDocId }] };
-      } else {
-        console.warn(`   ⚠   Coach "${coachName}" not found for ${sp.name}`);
+    if (Array.isArray(coachNames) && coachNames.length > 0) {
+      const connect = [];
+      for (const cn of coachNames) {
+        const docId = teamMemberByName.get(cn);
+        if (docId) connect.push({ documentId: docId });
+        else console.warn(`   ⚠   Coach "${cn}" not found for ${sp.name}`);
       }
+      if (connect.length > 0) data.coaches = { connect };
     }
 
     if (Array.isArray(choreographerNames) && choreographerNames.length > 0) {
@@ -641,21 +645,24 @@ async function seedCompetitions(nameToSportspersonDocId) {
     console.log(`   ⏭   Already has ${existing.length} entries - skipping`);
     return;
   }
-  const map = nameToSportspersonDocId ?? new Map();
+  const spMap = nameToSportspersonDocId ?? new Map();
   for (const comp of COMPETITIONS) {
-    // Enrich each participant with a sportsperson connection when the
-    // athleteName matches a seeded sportsperson. Unmatched names stay as
-    // plain string-only (external club athletes).
-    const enrichedParticipants = comp.participants.map((p) => {
-      const docId = map.get(p.athleteName);
-      return docId
-        ? { ...p, sportsperson: { connect: [{ documentId: docId }] } }
-        : p;
-    });
+    const { participants, ...compData } = comp;
+    const participantData = participants
+      .map((p) => {
+        const spDocId = spMap.get(p._name);
+        if (!spDocId) {
+          console.warn(`   ⚠   Sportsperson "${p._name}" not found — skipped`);
+          return null;
+        }
+        return { documentId: spDocId, name: p._name, category: p.category, placement: p.placement, score: p.score };
+      })
+      .filter(Boolean);
     await strapi.documents('api::competition.competition').create({
-      data: { ...comp, participants: enrichedParticipants },
+      data: { ...compData, participantData },
+      status: 'published',
     });
-    console.log(`   ✅  ${comp.season} - ${comp.name} (${comp.participants.length} participants)`);
+    console.log(`   ✅  ${comp.season} - ${comp.name} (${participantData.length} participants)`);
   }
 }
 
@@ -675,9 +682,9 @@ async function main() {
     await seedHistoryMilestones();
     await seedCursuriPage();
     await seedRealizariPage();
-    // Seed team members BEFORE sportspeople so the coach relation can be
-    // resolved by name. Sportspeople then seed BEFORE competitions so the
-    // participant.sportsperson relation can be linked by athleteName.
+    // Seed team members BEFORE sportspeople so the coaches relation can be
+    // resolved by name. Sportspeople seed BEFORE competitions so participant
+    // components can reference sportsperson documentIds.
     await seedTeamPage();
     await seedTeamMembers();
     const disciplineByName = await seedDisciplines();

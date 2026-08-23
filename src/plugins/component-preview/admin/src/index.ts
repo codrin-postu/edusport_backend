@@ -3,6 +3,50 @@ import type { StrapiApp } from '@strapi/strapi/admin';
 export default {
   register(app: StrapiApp) {
     app.customFields.register({
+      name: 'participants-editor',
+      pluginId: 'component-preview',
+      type: 'json',
+      intlLabel: { id: 'component-preview.participants-editor.label', defaultMessage: 'Participanți' },
+      intlDescription: { id: 'component-preview.participants-editor.description', defaultMessage: 'Sportivi participanți cu categorie, loc și scor' },
+      components: {
+        Input: async () => import('./ParticipantsEditor').then(m => ({ default: m.default as any })),
+      },
+    });
+
+    app.customFields.register({
+      name: 'volunteer-page-content',
+      pluginId: 'component-preview',
+      type: 'json',
+      intlLabel: { id: 'component-preview.volunteer-page-content.label', defaultMessage: 'Voluntariat - Text pagină' },
+      intlDescription: { id: 'component-preview.volunteer-page-content.description', defaultMessage: 'Titlul din antet și textul introductiv despre voluntariat.' },
+      components: {
+        Input: async () => import('./VolunteerContentEditor').then(m => ({ default: m.default as any })),
+      },
+    });
+
+    app.customFields.register({
+      name: 'volunteer-help-ways',
+      pluginId: 'component-preview',
+      type: 'json',
+      intlLabel: { id: 'component-preview.volunteer-help-ways.label', defaultMessage: 'Moduri de a ajuta' },
+      intlDescription: { id: 'component-preview.volunteer-help-ways.description', defaultMessage: 'Lista modurilor în care voluntarii pot contribui.' },
+      components: {
+        Input: async () => import('./VolunteerHelpWaysEditor').then(m => ({ default: m.default as any })),
+      },
+    });
+
+    app.customFields.register({
+      name: 'athlete-name-sync',
+      pluginId: 'component-preview',
+      type: 'string',
+      intlLabel: { id: 'component-preview.athlete-name-sync.label', defaultMessage: 'Nume sportiv (auto)' },
+      intlDescription: { id: 'component-preview.athlete-name-sync.description', defaultMessage: 'Auto-populat din relația cu sportivul' },
+      components: {
+        Input: async () => import('./AthleteNameSync').then(m => ({ default: m.default as any })),
+      },
+    });
+
+    app.customFields.register({
       name: 'rules-table',
       pluginId: 'component-preview',
       type: 'json',
@@ -400,6 +444,17 @@ export default {
       intlLabel: { id: 'component-preview.page-banner.label', defaultMessage: 'Banner Pagină' },
       intlDescription: { id: 'component-preview.page-banner.description', defaultMessage: 'Titlul și subtitlul afișate în banner-ul din partea de sus a paginii.' },
       components: { Input: async () => import('./PageBannerEditor').then(m => ({ default: m.default as any })) },
+    });
+
+    app.customFields.register({
+      name: 'tags',
+      pluginId: 'component-preview',
+      type: 'json',
+      intlLabel: { id: 'component-preview.tags.label', defaultMessage: 'Etichete' },
+      intlDescription: { id: 'component-preview.tags.description', defaultMessage: 'Listă de valori — tastați și apăsați Enter pentru a adăuga.' },
+      components: {
+        Input: async () => import('./TagsInput').then(m => ({ default: m.default as any })),
+      },
     });
 
     app.customFields.register({

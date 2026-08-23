@@ -461,6 +461,41 @@ export interface ApiArticleArticle extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCollaborationEventCollaborationEvent
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'collaboration_events';
+  info: {
+    description: 'Evenimente \u0219i colabor\u0103ri realizate \u00EEmpreun\u0103 cu partenerii';
+    displayName: 'Club / Eveniment colaborare';
+    pluralName: 'collaboration-events';
+    singularName: 'collaboration-event';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    date: Schema.Attribute.String;
+    description: Schema.Attribute.Text;
+    image: Schema.Attribute.Media<'images'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::collaboration-event.collaboration-event'
+    > &
+      Schema.Attribute.Private;
+    order: Schema.Attribute.Integer;
+    partner: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiCompetitionCompetition extends Struct.CollectionTypeSchema {
   collectionName: 'competitions';
   info: {
@@ -487,9 +522,14 @@ export interface ApiCompetitionCompetition extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     location: Schema.Attribute.String;
     name: Schema.Attribute.String & Schema.Attribute.Required;
-    participants: Schema.Attribute.Component<'competition.participant', true>;
+    participantData: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.participants-editor'>;
     publishedAt: Schema.Attribute.DateTime;
     season: Schema.Attribute.String & Schema.Attribute.Required;
+    sportspeople: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::sportsperson.sportsperson'
+    >;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -949,6 +989,38 @@ export interface ApiSiteSettingsSiteSettings extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiSponsorSponsor extends Struct.CollectionTypeSchema {
+  collectionName: 'sponsors';
+  info: {
+    description: 'Sponsori afi\u0219a\u021Bi pe pagina Parteneri';
+    displayName: 'Club / Sponsor';
+    pluralName: 'sponsors';
+    singularName: 'sponsor';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    href: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::sponsor.sponsor'
+    > &
+      Schema.Attribute.Private;
+    logo: Schema.Attribute.Media<'images'>;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    order: Schema.Attribute.Integer;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiSportspersonSportsperson
   extends Struct.CollectionTypeSchema {
   collectionName: 'sportspeople';
@@ -971,8 +1043,8 @@ export interface ApiSportspersonSportsperson
       'manyToMany',
       'api::team-member.team-member'
     >;
-    coach: Schema.Attribute.Relation<
-      'oneToOne',
+    coaches: Schema.Attribute.Relation<
+      'manyToMany',
       'api::team-member.team-member'
     >;
     createdAt: Schema.Attribute.DateTime;
@@ -983,9 +1055,11 @@ export interface ApiSportspersonSportsperson
       'manyToMany',
       'api::discipline.discipline'
     >;
-    favoriteMoves: Schema.Attribute.JSON;
+    favoriteMoves: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.tags'>;
     gallery: Schema.Attribute.Media<'images', true>;
-    hobbies: Schema.Attribute.JSON;
+    hobbies: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.tags'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -1000,6 +1074,7 @@ export interface ApiSportspersonSportsperson
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<false>;
     slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
+    story: Schema.Attribute.Blocks;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1070,6 +1145,44 @@ export interface ApiTeamPageTeamPage extends Struct.SingleTypeSchema {
       Schema.Attribute.Private;
     pageInfo: Schema.Attribute.JSON &
       Schema.Attribute.CustomField<'plugin::component-preview.team-page-info'>;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiVolunteerPageVolunteerPage extends Struct.SingleTypeSchema {
+  collectionName: 'volunteer_pages';
+  info: {
+    description: 'Con\u021Binutul paginii de voluntariat';
+    displayName: 'Voluntariat / Pagina Voluntariat';
+    pluralName: 'volunteer-pages';
+    singularName: 'volunteer-page';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    content: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.volunteer-page-content'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    gallery: Schema.Attribute.Media<'images', true>;
+    helpWays: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.volunteer-help-ways'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::volunteer-page.volunteer-page'
+    > &
+      Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -1534,6 +1647,11 @@ export interface PluginUsersPermissionsUser
     draftAndPublish: false;
     timestamps: true;
   };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
   attributes: {
     blocked: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     confirmationToken: Schema.Attribute.String & Schema.Attribute.Private;
@@ -1588,6 +1706,7 @@ declare module '@strapi/strapi' {
       'admin::user': AdminUser;
       'api::announcement.announcement': ApiAnnouncementAnnouncement;
       'api::article.article': ApiArticleArticle;
+      'api::collaboration-event.collaboration-event': ApiCollaborationEventCollaborationEvent;
       'api::competition.competition': ApiCompetitionCompetition;
       'api::contact-submission.contact-submission': ApiContactSubmissionContactSubmission;
       'api::course-regulations.course-regulations': ApiCourseRegulationsCourseRegulations;
@@ -1600,9 +1719,11 @@ declare module '@strapi/strapi' {
       'api::program-page.program-page': ApiProgramPageProgramPage;
       'api::realizari-page.realizari-page': ApiRealizariPageRealizariPage;
       'api::site-settings.site-settings': ApiSiteSettingsSiteSettings;
+      'api::sponsor.sponsor': ApiSponsorSponsor;
       'api::sportsperson.sportsperson': ApiSportspersonSportsperson;
       'api::team-member.team-member': ApiTeamMemberTeamMember;
       'api::team-page.team-page': ApiTeamPageTeamPage;
+      'api::volunteer-page.volunteer-page': ApiVolunteerPageVolunteerPage;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;
