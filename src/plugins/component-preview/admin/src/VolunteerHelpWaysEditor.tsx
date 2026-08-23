@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useField } from '@strapi/admin/strapi-admin';
-import { Box, Flex, Grid, Textarea, TextInput } from '@strapi/design-system';
+import { Box, Flex, Textarea, TextInput } from '@strapi/design-system';
 import { EditorCard } from './components/EditorCard';
 import { EditorField } from './components/EditorField';
 import { DeleteIconButton } from './components/DeleteIconButton';
@@ -76,8 +76,8 @@ export default function VolunteerHelpWaysEditor({ name }: Props) {
                 borderStyle="solid"
                 borderWidth="1px"
               >
-                <Grid.Root gridCols={12} gap={3}>
-                  <Grid.Item col={5} s={12} xs={12}>
+                <Flex justifyContent="space-between" alignItems="flex-start" gap={2}>
+                  <Box style={{ flex: 1, minWidth: 0 }}>
                     <EditorField name={`way-${i}-title`} label="Titlu" hint="Numele rolului.">
                       <TextInput
                         id={`way-${i}-title`}
@@ -89,30 +89,33 @@ export default function VolunteerHelpWaysEditor({ name }: Props) {
                         }
                       />
                     </EditorField>
-                  </Grid.Item>
-                  <Grid.Item col={6} s={10} xs={10}>
-                    <EditorField name={`way-${i}-desc`} label="Descriere" hint="Un rând despre ce presupune.">
-                      <TextInput
-                        id={`way-${i}-desc`}
-                        name={`way-${i}-desc`}
-                        value={way.desc}
-                        placeholder="ex: Culise și sprijin în ziua concursului."
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                          update(i, 'desc', e.target.value)
-                        }
-                      />
-                    </EditorField>
-                  </Grid.Item>
-                  <Grid.Item col={1} s={2} xs={2}>
-                    <Flex justifyContent="flex-end" alignItems="flex-end" height="100%" paddingBottom={1}>
-                      <DeleteIconButton
-                        variant="subtle"
-                        label="Șterge rolul"
-                        onClick={() => remove(i)}
-                      />
-                    </Flex>
-                  </Grid.Item>
-                </Grid.Root>
+                  </Box>
+                  <Box style={{ paddingTop: 26 }}>
+                    <DeleteIconButton
+                      variant="danger"
+                      label="Șterge rolul"
+                      onClick={() => remove(i)}
+                    />
+                  </Box>
+                </Flex>
+                <Box paddingTop={2}>
+                  <EditorField
+                    name={`way-${i}-desc`}
+                    label="Descriere"
+                    hint="Un rând despre ce presupune."
+                  >
+                    <Textarea
+                      id={`way-${i}-desc`}
+                      name={`way-${i}-desc`}
+                      value={way.desc}
+                      rows={2}
+                      placeholder="ex: Culise și sprijin în ziua concursului."
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                        update(i, 'desc', e.target.value)
+                      }
+                    />
+                  </EditorField>
+                </Box>
               </Box>
             ))}
             <AddListButton onClick={add} label="Adaugă rol" />

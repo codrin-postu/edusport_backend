@@ -823,6 +823,43 @@ export interface ApiHomepageHomepage extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiPartnersPagePartnersPage extends Struct.SingleTypeSchema {
+  collectionName: 'partners_pages';
+  info: {
+    description: 'Textele paginii de parteneri (antet, intro, colaborare)';
+    displayName: 'Club / Pagina Parteneri';
+    pluralName: 'partners-pages';
+    singularName: 'partners-page';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    content: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.partners-page-content'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    links: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.partners-links'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::partners-page.partners-page'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiPricingPricing extends Struct.SingleTypeSchema {
   collectionName: 'pricings';
   info: {
@@ -1156,7 +1193,7 @@ export interface ApiVolunteerPageVolunteerPage extends Struct.SingleTypeSchema {
   collectionName: 'volunteer_pages';
   info: {
     description: 'Con\u021Binutul paginii de voluntariat';
-    displayName: 'Voluntariat / Pagina Voluntariat';
+    displayName: 'Club / Pagina Voluntariat';
     pluralName: 'volunteer-pages';
     singularName: 'volunteer-page';
   };
@@ -1715,6 +1752,7 @@ declare module '@strapi/strapi' {
       'api::historic-page.historic-page': ApiHistoricPageHistoricPage;
       'api::history-milestone.history-milestone': ApiHistoryMilestoneHistoryMilestone;
       'api::homepage.homepage': ApiHomepageHomepage;
+      'api::partners-page.partners-page': ApiPartnersPagePartnersPage;
       'api::pricing.pricing': ApiPricingPricing;
       'api::program-page.program-page': ApiProgramPageProgramPage;
       'api::realizari-page.realizari-page': ApiRealizariPageRealizariPage;

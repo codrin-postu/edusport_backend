@@ -11,6 +11,9 @@ const SETTINGS_OVERRIDES: Record<string, Record<string, unknown>> = {
   'plugin_content_manager_configuration_content_types::api::volunteer-page.volunteer-page': {
     mainField: 'id',
   },
+  'plugin_content_manager_configuration_content_types::api::partners-page.partners-page': {
+    mainField: 'id',
+  },
   'plugin_content_manager_configuration_content_types::api::cursuri-page.cursuri-page': {
     mainField: 'id',
   },
@@ -59,6 +62,10 @@ const METADATA_LABEL_OVERRIDES: Record<string, Record<string, string>> = {
     content:  'Text pagină',
     helpWays: 'Moduri de a ajuta',
     gallery:  'Galerie foto',
+  },
+  'plugin_content_manager_configuration_content_types::api::partners-page.partners-page': {
+    content: 'Text pagină',
+    links:   'Sponsori & evenimente',
   },
   'plugin_content_manager_configuration_content_types::api::program-page.program-page': {
     banner:          'Banner Pagină',
@@ -138,6 +145,10 @@ const LAYOUT_OVERRIDES: Record<string, { name: string; size: number }[][]> = {
     [{ name: 'content', size: 12 }],
     [{ name: 'helpWays', size: 12 }],
     [{ name: 'gallery', size: 12 }],
+  ],
+  'plugin_content_manager_configuration_content_types::api::partners-page.partners-page': [
+    [{ name: 'content', size: 12 }],
+    [{ name: 'links', size: 12 }],
   ],
   // ── Cursuri Page components ──
   'plugin_content_manager_configuration_components::cursuri.banner': [
@@ -341,6 +352,16 @@ export default {
     });
     strapi.customFields.register({
       name: 'volunteer-help-ways',
+      plugin: 'component-preview',
+      type: 'json',
+    });
+    strapi.customFields.register({
+      name: 'partners-page-content',
+      plugin: 'component-preview',
+      type: 'json',
+    });
+    strapi.customFields.register({
+      name: 'partners-links',
       plugin: 'component-preview',
       type: 'json',
     });

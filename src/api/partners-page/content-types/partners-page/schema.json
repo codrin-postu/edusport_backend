@@ -1,0 +1,28 @@
+{
+  "kind": "singleType",
+  "collectionName": "partners_pages",
+  "info": {
+    "singularName": "partners-page",
+    "pluralName": "partners-pages",
+    "displayName": "Club / Pagina Parteneri",
+    "description": "Textele paginii de parteneri (antet, intro, colaborare)"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "content": {
+      "type": "json",
+      "customField": "plugin::component-preview.partners-page-content"
+    },
+    "links": {
+      "type": "json",
+      "customField": "plugin::component-preview.partners-links"
+    }
+  }
+}

@@ -51,6 +51,36 @@ const VOLUNTEER = {
   ],
 };
 
+const PARTNERS_PAGE = {
+  content: {
+    heroTitle: 'Parteneri',
+    heroSubtitle:
+      'Împreună cu partenerii și sponsorii noștri creștem patinajul din România — de la primii pași pe gheață până la podium.',
+    introEyebrow: 'De ce parteneriat',
+    introHeading: 'Susține o comunitate în creștere',
+    introBody:
+      'Un parteneriat cu clubul înseamnă vizibilitate la evenimente și competiții, asociere cu performanța și sprijin real pentru sportivii tineri.',
+    ctaEyebrow: 'Hai să colaborăm',
+    ctaHeading: 'Sponsorizează sau organizează un eveniment',
+    ctaBody:
+      'Vrei să sponsorizezi clubul sau să organizăm împreună un eveniment special? Scrie-ne și construim colaborarea potrivită.',
+  },
+};
+
+async function seedPartnersPage() {
+  const existing = await strapi.documents('api::partners-page.partners-page').findFirst();
+  if (existing) {
+    await strapi.documents('api::partners-page.partners-page').update({
+      documentId: existing.documentId,
+      data: PARTNERS_PAGE,
+    });
+    console.log('Partners page: updated.');
+  } else {
+    await strapi.documents('api::partners-page.partners-page').create({ data: PARTNERS_PAGE });
+    console.log('Partners page: created.');
+  }
+}
+
 async function seedSponsors() {
   const existing = await strapi.documents('api::sponsor.sponsor').findMany({});
   if (existing && existing.length > 0) {
@@ -102,6 +132,7 @@ async function main() {
     await seedSponsors();
     await seedEvents();
     await seedVolunteerPage();
+    await seedPartnersPage();
   } catch (error) {
     console.error('Seed failed:', error);
     process.exit(1);

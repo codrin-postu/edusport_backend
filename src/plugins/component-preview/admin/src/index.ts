@@ -36,6 +36,28 @@ export default {
     });
 
     app.customFields.register({
+      name: 'partners-page-content',
+      pluginId: 'component-preview',
+      type: 'json',
+      intlLabel: { id: 'component-preview.partners-page-content.label', defaultMessage: 'Parteneri - Text pagină' },
+      intlDescription: { id: 'component-preview.partners-page-content.description', defaultMessage: 'Textele din antet, „De ce parteneriat” și secțiunea de colaborare.' },
+      components: {
+        Input: async () => import('./PartnersContentEditor').then(m => ({ default: m.default as any })),
+      },
+    });
+
+    app.customFields.register({
+      name: 'partners-links',
+      pluginId: 'component-preview',
+      type: 'json',
+      intlLabel: { id: 'component-preview.partners-links.label', defaultMessage: 'Sponsori & evenimente (linkuri)' },
+      intlDescription: { id: 'component-preview.partners-links.description', defaultMessage: 'Linkuri către colecțiile de sponsori și evenimente de colaborare.' },
+      components: {
+        Input: async () => import('./PartnersLinksEditor').then(m => ({ default: m.default as any })),
+      },
+    });
+
+    app.customFields.register({
       name: 'athlete-name-sync',
       pluginId: 'component-preview',
       type: 'string',
