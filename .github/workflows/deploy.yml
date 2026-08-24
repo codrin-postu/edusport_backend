@@ -3,14 +3,18 @@
 # Trigger:
 #   GitHub → Actions → Deploy backend → Run workflow → pick a branch/tag.
 #
+# Two gated jobs:
+#   check   typecheck + security (dependency audit, secret scan) on the runner.
+#           NOTE: this repo has no lint script or test suite yet — typecheck and
+#           audit run as informational; the secret scan is blocking.
+#   deploy  (needs: check) SSH to the VM, split into pull/build/up/health steps so
+#           the Actions UI shows exactly which phase failed.
+#
 # Required repository secrets (Settings → Secrets and variables → Actions):
 #   VM_HOST           - public hostname or IP of the production VM
 #   VM_USER           - SSH user on the VM with docker access (e.g. `codrin`)
 #   VM_SSH_KEY        - Private SSH key matching an authorized_keys entry on the VM
 #   VM_BACKEND_PATH   - absolute path to the cloned repo on the VM (e.g. /opt/edusport/edusport_backend)
-#
-# The workflow is a thin shim: it SSHes in, syncs the chosen ref, and runs the
-# same `scripts/deploy.sh` an operator would run manually.
 
 name: Deploy backend
 
@@ -26,12 +30,57 @@ concurrency:
   group: deploy-backend-${{ inputs.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
-  deploy:
+  check:
+    name: Check (types, security)
     runs-on: ubuntu-latest
     steps:
-      - name: SSH into VM and run deploy script
-        uses: appleboy/ssh-action@v1
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck (informational)
+        continue-on-error: true
+        run: npx tsc --noEmit
+      - name: Dependency audit (informational)
+        continue-on-error: true
+        run: npm audit --audit-level=high
+      - name: Secret scan (gitleaks)
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            | tar -xz gitleaks
+          ./gitleaks detect --source . --no-banner --redact --exit-code 1
+
+  deploy:
+    name: Deploy to VM
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull latest code
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          DEPLOY_REF: ${{ inputs.ref }}
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          envs: DEPLOY_REF
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.VM_BACKEND_PATH }}"
+            ./scripts/deploy.sh pull
+      - name: Build image
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
@@ -39,6 +88,24 @@ jobs:
           script: |
             set -euo pipefail
             cd "${{ secrets.VM_BACKEND_PATH }}"
-            git fetch --prune
-            git reset --hard "origin/${{ inputs.ref }}"
-            ./scripts/deploy.sh
+            ./scripts/deploy.sh build
+      - name: Start services (postgres + backend)
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.VM_BACKEND_PATH }}"
+            ./scripts/deploy.sh up
+      - name: Health check
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.VM_BACKEND_PATH }}"
+            ./scripts/deploy.sh health
