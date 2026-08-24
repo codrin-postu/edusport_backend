@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "collaboration_events",
+  "info": {
+    "singularName": "collaboration-event",
+    "pluralName": "collaboration-events",
+    "displayName": "Club / Eveniment colaborare",
+    "description": "Evenimente și colaborări realizate împreună cu partenerii"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "partner": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "order": {
+      "type": "integer"
+    }
+  }
+}

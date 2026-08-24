@@ -29,6 +29,9 @@
     "description": {
       "type": "text"
     },
+    "story": {
+      "type": "blocks"
+    },
     "showPublicPage": {
       "type": "boolean",
       "default": false,
@@ -38,10 +41,12 @@
       "type": "date"
     },
     "favoriteMoves": {
-      "type": "json"
+      "type": "json",
+      "customField": "plugin::component-preview.tags"
     },
     "hobbies": {
-      "type": "json"
+      "type": "json",
+      "customField": "plugin::component-preview.tags"
     },
     "gallery": {
       "type": "media",
@@ -54,9 +59,9 @@
       "relation": "manyToMany",
       "target": "api::discipline.discipline"
     },
-    "coach": {
+    "coaches": {
       "type": "relation",
-      "relation": "oneToOne",
+      "relation": "manyToMany",
       "target": "api::team-member.team-member"
     },
     "choreographers": {

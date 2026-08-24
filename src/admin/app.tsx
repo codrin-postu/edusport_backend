@@ -90,18 +90,8 @@ const GLOBAL_CSS = `
 `;
 
 const MOBILE_OVERRIDES_CSS = `
-@media (max-width: 640px) {
-  /* (1) Hide Strapi's main navigation sidebar - replaced by our MobileNav burger.
-     Targeted via a runtime-set data attribute so we don't depend on
-     styled-components hash class names that change between Strapi versions. */
-  nav[${SIDEBAR_DATA_ATTR}] {
-    display: none !important;
-  }
-
-  /* (2) Strapi's secondary panel (Content Manager / Settings sub-nav) renders
-     as a sticky <nav> beside the main content. On mobile we stack it above
-     the content at full width, letting it grow to fit its full list - the
-     page itself scrolls. */
+/* ≤768px: SubNav stacks above content + form grid collapses to single column */
+@media (max-width: 768px) {
   [${SUBNAV_DATA_ATTR}] {
     width: 100% !important;
     max-width: 100% !important;
@@ -113,17 +103,23 @@ const MOBILE_OVERRIDES_CSS = `
     border-right: none !important;
     border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
   }
-  /* Force the SubNav's parent flex container to stack instead of laying out
-     row-wise, so the main content drops below the sub-menu. */
   [${SUBNAV_PARENT_DATA_ATTR}] {
     flex-direction: column !important;
     flex-wrap: nowrap !important;
     width: 100% !important;
     min-width: 0 !important;
   }
+  [data-edusport-grid-row] > * {
+    grid-column: 1 / -1 !important;
+  }
+}
 
-  /* (3) Pad the page so our fixed burger button (top-right, 38px) doesn't
-     overlap headers */
+@media (max-width: 640px) {
+  /* Hide Strapi's main navigation sidebar - replaced by our MobileNav burger. */
+  nav[${SIDEBAR_DATA_ATTR}] {
+    display: none !important;
+  }
+  /* Pad the page so our fixed burger button (top-right, 38px) doesn't overlap headers */
   main,
   [role="main"] {
     padding-top: 56px !important;
@@ -198,8 +194,6 @@ function tagAdminShellReliably() {
       } else {
         // Any subsequent sticky-tall nav = SubNav.
         if (nav.hasAttribute(SIDEBAR_DATA_ATTR)) {
-          // Was wrongly tagged as sidebar earlier (e.g., it was the only one
-          // visible at that moment); demote it to subnav now that we have both.
           nav.removeAttribute(SIDEBAR_DATA_ATTR);
         }
         if (!nav.hasAttribute(SUBNAV_DATA_ATTR)) {
@@ -539,6 +533,26 @@ function tagDefaultSaveAndPreview(): void {
   });
 }
 
+/**
+ * Tag each ResponsiveGridRoot (the container-type:inline-size grid row div
+ * rendered by @strapi/content-manager's FormLayout) so CSS can collapse its
+ * direct children to full-width at narrow viewports.
+ */
+function tagFormGridRows() {
+  const formCol = document.querySelector<HTMLElement>(`[${FORM_COLUMN_ATTR}]`);
+  if (!formCol) return;
+  formCol.querySelectorAll<HTMLElement>('div').forEach((div) => {
+    try {
+      const ct = window.getComputedStyle(div).getPropertyValue('container-type').trim();
+      if (ct === 'inline-size' && !div.hasAttribute('data-edusport-grid-row')) {
+        div.setAttribute('data-edusport-grid-row', 'true');
+      }
+    } catch {
+      // ignore getComputedStyle failures
+    }
+  });
+}
+
 function setupAdminShell() {
   injectGlobalStyles();
   injectMobileStyles();
@@ -553,6 +567,7 @@ function setupAdminShell() {
   const runTaggers = () => {
     tagDefaultSaveAndPreview();
     tagRightRail();
+    tagFormGridRows();
   };
   runTaggers();
   let scheduled = false;

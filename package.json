@@ -14,7 +14,9 @@
     "seed:pricing": "docker exec strapi_app node scripts/seed-pricing.js",
     "seed:cursuri-page": "docker exec strapi_app node scripts/seed-cursuri-page.js",
     "seed:content": "docker exec strapi_app node scripts/seed-content.js",
+    "wipe:club": "docker exec strapi_app node scripts/wipe-club-data.js",
     "seed:homepage": "docker exec strapi_app node scripts/seed-homepage.js",
+    "seed:partners-volunteer": "docker exec strapi_app node scripts/seed-partners-volunteer.js",
     "start": "strapi start",
     "strapi": "strapi",
     "upgrade": "npx @strapi/upgrade latest",
@@ -24,9 +26,9 @@
     "docker:logs": "docker compose logs --tail=80 -f strapi"
   },
   "dependencies": {
-    "@strapi/plugin-cloud": "5.23.0",
-    "@strapi/plugin-users-permissions": "5.23.0",
-    "@strapi/strapi": "5.23.0",
+    "@strapi/plugin-cloud": "5.52.1",
+    "@strapi/plugin-users-permissions": "5.52.1",
+    "@strapi/strapi": "5.52.1",
     "fs-extra": "^10.0.0",
     "mime-types": "^2.1.27",
     "pg": "8.8.0",

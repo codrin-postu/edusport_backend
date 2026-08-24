@@ -31,10 +31,14 @@
       "type": "string",
       "required": true
     },
-    "participants": {
-      "type": "component",
-      "repeatable": true,
-      "component": "competition.participant"
+    "participantData": {
+      "type": "json",
+      "customField": "plugin::component-preview.participants-editor"
+    },
+    "sportspeople": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::sportsperson.sportsperson"
     }
   }
 }

@@ -29,78 +29,6 @@ export interface AnnouncementMessageContent extends Struct.ComponentSchema {
   };
 }
 
-export interface CompetitionParticipant extends Struct.ComponentSchema {
-  collectionName: 'components_competition_participants';
-  info: {
-    description: 'Rezultatul unui sportiv \u00EEn competi\u021Bie';
-    displayName: 'Participant';
-    icon: 'user';
-  };
-  attributes: {
-    athleteName: Schema.Attribute.String & Schema.Attribute.Required;
-    category: Schema.Attribute.String;
-    placement: Schema.Attribute.Enumeration<
-      [
-        '1',
-        '2',
-        '3',
-        '4',
-        '5',
-        '6',
-        '7',
-        '8',
-        '9',
-        '10',
-        '11',
-        '12',
-        '13',
-        '14',
-        '15',
-        '16',
-        '17',
-        '18',
-        '19',
-        '20',
-        '21',
-        '22',
-        '23',
-        '24',
-        '25',
-        '26',
-        '27',
-        '28',
-        '29',
-        '30',
-        '31',
-        '32',
-        '33',
-        '34',
-        '35',
-        '36',
-        '37',
-        '38',
-        '39',
-        '40',
-        '41',
-        '42',
-        '43',
-        '44',
-        '45',
-        '46',
-        '47',
-        '48',
-        '49',
-        '50',
-      ]
-    >;
-    score: Schema.Attribute.Decimal;
-    sportsperson: Schema.Attribute.Relation<
-      'oneToOne',
-      'api::sportsperson.sportsperson'
-    >;
-  };
-}
-
 export interface CursuriAbout extends Struct.ComponentSchema {
   collectionName: 'components_cursuri_abouts';
   info: {
@@ -412,11 +340,10 @@ export interface SportspersonProgramSeason extends Struct.ComponentSchema {
 }
 
 declare module '@strapi/strapi' {
-  export module Public {
+  export namespace Public {
     export interface ComponentSchemas {
       'announcement.call-to-action': AnnouncementCallToAction;
       'announcement.message-content': AnnouncementMessageContent;
-      'competition.participant': CompetitionParticipant;
       'cursuri.about': CursuriAbout;
       'cursuri.banner': CursuriBanner;
       'cursuri.info-section': CursuriInfoSection;

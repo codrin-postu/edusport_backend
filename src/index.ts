@@ -8,6 +8,12 @@ const SETTINGS_OVERRIDES: Record<string, Record<string, unknown>> = {
   'plugin_content_manager_configuration_content_types::api::homepage.homepage': {
     mainField: 'id',
   },
+  'plugin_content_manager_configuration_content_types::api::volunteer-page.volunteer-page': {
+    mainField: 'id',
+  },
+  'plugin_content_manager_configuration_content_types::api::partners-page.partners-page': {
+    mainField: 'id',
+  },
   'plugin_content_manager_configuration_content_types::api::cursuri-page.cursuri-page': {
     mainField: 'id',
   },
@@ -46,8 +52,21 @@ const SETTINGS_OVERRIDES: Record<string, Record<string, unknown>> = {
   },
 };
 
+// Per-relation mainField overrides — keyed by PARENT store key, value is { relationFieldName: mainFieldOnTarget }
+// This controls what field from the related content type is shown as the entry label inside each relation panel.
+const RELATION_MAIN_FIELD_OVERRIDES: Record<string, Record<string, string>> = {};
+
 // Field label overrides - keyed by store key, value is { fieldName: label }
 const METADATA_LABEL_OVERRIDES: Record<string, Record<string, string>> = {
+  'plugin_content_manager_configuration_content_types::api::volunteer-page.volunteer-page': {
+    content:  'Text pagină',
+    helpWays: 'Moduri de a ajuta',
+    gallery:  'Galerie foto',
+  },
+  'plugin_content_manager_configuration_content_types::api::partners-page.partners-page': {
+    content: 'Text pagină',
+    links:   'Sponsori & evenimente',
+  },
   'plugin_content_manager_configuration_content_types::api::program-page.program-page': {
     banner:          'Banner Pagină',
     pageInfo:        'Sezon & Orar',
@@ -96,22 +115,41 @@ const METADATA_LABEL_OVERRIDES: Record<string, Record<string, string>> = {
     competitions:         'Competiții & Rezultate',
   },
   'plugin_content_manager_configuration_content_types::api::competition.competition': {
-    name:         'Numele competiției',
-    date:         'Data',
-    location:     'Locația',
-    level:        'Nivel (Național / Internațional)',
-    season:       'Sezon (ex: 2024-2025)',
-    participants: 'Participanți & Rezultate',
+    name:            'Numele competiției',
+    date:            'Data',
+    location:        'Locația',
+    level:           'Nivel (Național / Internațional)',
+    season:          'Sezon (ex: 2024-2025)',
+    participantData: 'Participanți',
   },
-  'plugin_content_manager_configuration_components::competition.participant': {
-    athleteName: 'Nume sportiv',
-    category:    'Categorie',
-    placement:   'Loc obținut',
-    score:       'Punctaj',
+  'plugin_content_manager_configuration_content_types::api::sportsperson.sportsperson': {
+    name:            'Nume complet',
+    slug:            'Slug (URL profil)',
+    showPublicPage:  'Pagină publică activă',
+    activeSince:     'Activ din',
+    photo:           'Fotografie profil',
+    description:     'Descriere / Bio',
+    careerGoal:      'Obiectiv carieră',
+    favoriteMoves:   'Elemente favorite',
+    hobbies:         'Hobby-uri',
+    disciplines:     'Discipline',
+    coaches:         'Antrenori',
+    choreographers:  'Coregrafi',
+    gallery:         'Galerie foto',
+    seasons:         'Sezoane (muzică & program)',
   },
 };
 
 const LAYOUT_OVERRIDES: Record<string, { name: string; size: number }[][]> = {
+  'plugin_content_manager_configuration_content_types::api::volunteer-page.volunteer-page': [
+    [{ name: 'content', size: 12 }],
+    [{ name: 'helpWays', size: 12 }],
+    [{ name: 'gallery', size: 12 }],
+  ],
+  'plugin_content_manager_configuration_content_types::api::partners-page.partners-page': [
+    [{ name: 'content', size: 12 }],
+    [{ name: 'links', size: 12 }],
+  ],
   // ── Cursuri Page components ──
   'plugin_content_manager_configuration_components::cursuri.banner': [
     [{ name: 'title', size: 12 }],
@@ -213,11 +251,24 @@ const LAYOUT_OVERRIDES: Record<string, { name: string; size: number }[][]> = {
     [{ name: 'name', size: 12 }],
     [{ name: 'date', size: 6 }, { name: 'level', size: 6 }],
     [{ name: 'location', size: 8 }, { name: 'season', size: 4 }],
-    [{ name: 'participants', size: 12 }],
+    [{ name: 'participantData', size: 12 }],
   ],
-  'plugin_content_manager_configuration_components::competition.participant': [
-    [{ name: 'athleteName', size: 6 }, { name: 'placement', size: 6 }],
-    [{ name: 'category', size: 8 }, { name: 'score', size: 4 }],
+  // ── Sportsperson (collection) ──
+  'plugin_content_manager_configuration_content_types::api::sportsperson.sportsperson': [
+    // Identity
+    [{ name: 'name', size: 8 }, { name: 'activeSince', size: 4 }],
+    [{ name: 'slug', size: 8 }, { name: 'showPublicPage', size: 4 }],
+    // Photo
+    [{ name: 'photo', size: 12 }],
+    // Bio
+    [{ name: 'description', size: 12 }],
+    [{ name: 'careerGoal', size: 12 }],
+    [{ name: 'favoriteMoves', size: 6 }, { name: 'hobbies', size: 6 }],
+    // Team & discipline
+    [{ name: 'disciplines', size: 4 }, { name: 'coaches', size: 4 }, { name: 'choreographers', size: 4 }],
+    // Media & history
+    [{ name: 'gallery', size: 12 }],
+    [{ name: 'seasons', size: 12 }],
   ],
 
   // ── Regulament (Course Regulations) ──
@@ -239,6 +290,31 @@ const LAYOUT_OVERRIDES: Record<string, { name: string; size: number }[][]> = {
 
 export default {
   register({ strapi }: { strapi: Core.Strapi }) {
+    // Hide the users-permissions User collection from the content manager sidebar.
+    // There is no login on the frontend so this type is unused.
+    const userCT = strapi.contentType('plugin::users-permissions.user' as any);
+    if (userCT) {
+      userCT.pluginOptions = userCT.pluginOptions ?? {};
+      (userCT.pluginOptions as any)['content-manager'] ??= {};
+      (userCT.pluginOptions as any)['content-manager'].visible = false;
+    }
+
+    strapi.customFields.register({
+      name: 'tags',
+      plugin: 'component-preview',
+      type: 'json',
+    });
+
+    strapi.customFields.register({
+      name: 'participants-editor',
+      plugin: 'component-preview',
+      type: 'json',
+    });
+    strapi.customFields.register({
+      name: 'athlete-name-sync',
+      plugin: 'component-preview',
+      type: 'string',
+    });
     strapi.customFields.register({
       name: 'rules-table',
       plugin: 'component-preview',
@@ -266,6 +342,26 @@ export default {
     });
     strapi.customFields.register({
       name: 'competitions-link',
+      plugin: 'component-preview',
+      type: 'json',
+    });
+    strapi.customFields.register({
+      name: 'volunteer-page-content',
+      plugin: 'component-preview',
+      type: 'json',
+    });
+    strapi.customFields.register({
+      name: 'volunteer-help-ways',
+      plugin: 'component-preview',
+      type: 'json',
+    });
+    strapi.customFields.register({
+      name: 'partners-page-content',
+      plugin: 'component-preview',
+      type: 'json',
+    });
+    strapi.customFields.register({
+      name: 'partners-links',
       plugin: 'component-preview',
       type: 'json',
     });
@@ -310,6 +406,26 @@ export default {
       if (existing) {
         const val = typeof existing.value === 'string' ? JSON.parse(existing.value) : existing.value;
         Object.assign(val.settings, settings);
+        await strapi.db.query('strapi::core-store').update({
+          where: { key },
+          data: { value: JSON.stringify(val) },
+        });
+      }
+    }
+
+    // Apply per-relation mainField overrides on parent content type store entries
+    for (const [key, fields] of Object.entries(RELATION_MAIN_FIELD_OVERRIDES)) {
+      const existing = await strapi.db.query('strapi::core-store').findOne({ where: { key } });
+      if (!existing) continue;
+      const val = typeof existing.value === 'string' ? JSON.parse(existing.value) : existing.value;
+      let changed = false;
+      for (const [field, mainField] of Object.entries(fields)) {
+        if (val.metadatas?.[field]?.edit) {
+          val.metadatas[field].edit.mainField = mainField;
+          changed = true;
+        }
+      }
+      if (changed) {
         await strapi.db.query('strapi::core-store').update({
           where: { key },
           data: { value: JSON.stringify(val) },
