@@ -1,0 +1,23 @@
+{
+  "collectionName": "components_calendar_exceptions",
+  "info": {
+    "displayName": "Excepție",
+    "icon": "calendar",
+    "description": "Anulează sau modifică o singură apariție a acestui eveniment"
+  },
+  "options": {
+    "mainField": "date"
+  },
+  "attributes": {
+    "date": { "type": "date", "required": true },
+    "kind": {
+      "type": "enumeration",
+      "enum": ["cancel", "override"],
+      "default": "cancel",
+      "required": true
+    },
+    "newStartTime": { "type": "time" },
+    "newEndTime": { "type": "time" },
+    "newTitle": { "type": "string" }
+  }
+}

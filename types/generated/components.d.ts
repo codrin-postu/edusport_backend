@@ -29,6 +29,58 @@ export interface AnnouncementMessageContent extends Struct.ComponentSchema {
   };
 }
 
+export interface CalendarException extends Struct.ComponentSchema {
+  collectionName: 'components_calendar_exceptions';
+  info: {
+    description: 'Anuleaz\u0103 sau modific\u0103 o singur\u0103 apari\u021Bie a acestui eveniment';
+    displayName: 'Excep\u021Bie';
+    icon: 'calendar';
+  };
+  options: {
+    mainField: 'date';
+  };
+  attributes: {
+    date: Schema.Attribute.Date & Schema.Attribute.Required;
+    kind: Schema.Attribute.Enumeration<['cancel', 'override']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'cancel'>;
+    newEndTime: Schema.Attribute.Time;
+    newStartTime: Schema.Attribute.Time;
+    newTitle: Schema.Attribute.String;
+  };
+}
+
+export interface CalendarRecurrence extends Struct.ComponentSchema {
+  collectionName: 'components_calendar_recurrences';
+  info: {
+    description: 'Regula de repetare: frecven\u021B\u0103, zilele s\u0103pt\u0103m\u00E2nii, ore \u0219i fereastra de sezon';
+    displayName: 'Recuren\u021B\u0103';
+    icon: 'clock';
+  };
+  attributes: {
+    endTime: Schema.Attribute.Time;
+    freq: Schema.Attribute.Enumeration<
+      ['none', 'weekly', 'biweekly', 'monthly']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'weekly'>;
+    fri: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    mon: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    sat: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    seasonEnd: Schema.Attribute.Date;
+    seasonStart: Schema.Attribute.Date;
+    singleDate: Schema.Attribute.Date;
+    startTime: Schema.Attribute.Time;
+    sun: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    thu: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    tue: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    wed: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    weekOfMonth: Schema.Attribute.Enumeration<
+      ['first', 'second', 'third', 'fourth', 'last']
+    >;
+  };
+}
+
 export interface CursuriAbout extends Struct.ComponentSchema {
   collectionName: 'components_cursuri_abouts';
   info: {
@@ -344,6 +396,8 @@ declare module '@strapi/strapi' {
     export interface ComponentSchemas {
       'announcement.call-to-action': AnnouncementCallToAction;
       'announcement.message-content': AnnouncementMessageContent;
+      'calendar.exception': CalendarException;
+      'calendar.recurrence': CalendarRecurrence;
       'cursuri.about': CursuriAbout;
       'cursuri.banner': CursuriBanner;
       'cursuri.info-section': CursuriInfoSection;

@@ -531,6 +531,79 @@ export interface ApiArticleArticle extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCalendarBlackoutCalendarBlackout
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'calendar_blackouts';
+  info: {
+    description: 'Interval \u00EEn care toate evenimentele recurente sunt anulate (ex. vacan\u021Ba de iarn\u0103)';
+    displayName: 'Calendar / Pauz\u0103';
+    pluralName: 'calendar-blackouts';
+    singularName: 'calendar-blackout';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    endDate: Schema.Attribute.Date & Schema.Attribute.Required;
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::calendar-blackout.calendar-blackout'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    startDate: Schema.Attribute.Date & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiCalendarEventCalendarEvent
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'calendar_events';
+  info: {
+    description: 'Eveniment din calendar (recurent sau unic), cu ore, sezon \u0219i excep\u021Bii';
+    displayName: 'Calendar / Eveniment';
+    pluralName: 'calendar-events';
+    singularName: 'calendar-event';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    color: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    exceptions: Schema.Attribute.Component<'calendar.exception', true>;
+    label: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::calendar-event.calendar-event'
+    > &
+      Schema.Attribute.Private;
+    order: Schema.Attribute.Integer;
+    publishedAt: Schema.Attribute.DateTime;
+    recurrence: Schema.Attribute.Component<'calendar.recurrence', false> &
+      Schema.Attribute.Required;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    type: Schema.Attribute.Enumeration<
+      ['curs', 'scoala', 'eveniment', 'concurs', 'liber']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'curs'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiCollaborationEventCollaborationEvent
   extends Struct.CollectionTypeSchema {
   collectionName: 'collaboration_events';
@@ -1815,6 +1888,8 @@ declare module '@strapi/strapi' {
       'admin::user': AdminUser;
       'api::announcement.announcement': ApiAnnouncementAnnouncement;
       'api::article.article': ApiArticleArticle;
+      'api::calendar-blackout.calendar-blackout': ApiCalendarBlackoutCalendarBlackout;
+      'api::calendar-event.calendar-event': ApiCalendarEventCalendarEvent;
       'api::collaboration-event.collaboration-event': ApiCollaborationEventCollaborationEvent;
       'api::competition.competition': ApiCompetitionCompetition;
       'api::contact-submission.contact-submission': ApiContactSubmissionContactSubmission;
