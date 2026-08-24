@@ -543,6 +543,11 @@ export interface ApiCalendarBlackoutCalendarBlackout
   options: {
     draftAndPublish: false;
   };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
   attributes: {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -575,13 +580,22 @@ export interface ApiCalendarEventCalendarEvent
   options: {
     draftAndPublish: false;
   };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
   attributes: {
     color: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
     exceptions: Schema.Attribute.Component<'calendar.exception', true>;
+    imageUrl: Schema.Attribute.String;
     label: Schema.Attribute.String;
+    linkLabel: Schema.Attribute.String;
+    linkUrl: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -594,7 +608,17 @@ export interface ApiCalendarEventCalendarEvent
       Schema.Attribute.Required;
     title: Schema.Attribute.String & Schema.Attribute.Required;
     type: Schema.Attribute.Enumeration<
-      ['curs', 'scoala', 'eveniment', 'concurs', 'liber']
+      [
+        'curs',
+        'scoala',
+        'eveniment',
+        'concurs',
+        'cantonament',
+        'spectacol',
+        'vacanta',
+        'sarbatoare',
+        'liber',
+      ]
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'curs'>;
@@ -1083,6 +1107,40 @@ export interface ApiProgramPageProgramPage extends Struct.SingleTypeSchema {
       Schema.Attribute.Private;
     pageInfo: Schema.Attribute.JSON &
       Schema.Attribute.CustomField<'plugin::component-preview.program-page-info'>;
+    publishedAt: Schema.Attribute.DateTime;
+    scheduleGroups: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.schedule-groups'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiProgramProgram extends Struct.SingleTypeSchema {
+  collectionName: 'programs';
+  info: {
+    description: 'Calendar unificat: prezentare general\u0103, evenimente \u0219i pauze';
+    displayName: 'Program';
+    pluralName: 'programs';
+    singularName: 'program';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    calendarEvents: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.calendar-events'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::program.program'
+    > &
+      Schema.Attribute.Private;
+    overview: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.program-overview'>;
     publishedAt: Schema.Attribute.DateTime;
     scheduleGroups: Schema.Attribute.JSON &
       Schema.Attribute.CustomField<'plugin::component-preview.schedule-groups'>;
@@ -1902,6 +1960,7 @@ declare module '@strapi/strapi' {
       'api::partners-page.partners-page': ApiPartnersPagePartnersPage;
       'api::pricing.pricing': ApiPricingPricing;
       'api::program-page.program-page': ApiProgramPageProgramPage;
+      'api::program.program': ApiProgramProgram;
       'api::realizari-page.realizari-page': ApiRealizariPageRealizariPage;
       'api::site-settings.site-settings': ApiSiteSettingsSiteSettings;
       'api::sponsor.sponsor': ApiSponsorSponsor;

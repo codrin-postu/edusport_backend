@@ -18,16 +18,18 @@ interface Recurrence {
   startTime?: string | null;
   endTime?: string | null;
   singleDate?: string | null;
+  endDate?: string | null;
   seasonStart?: string | null;
   seasonEnd?: string | null;
 }
 
 interface ExceptionRow {
   date: string;
-  kind: 'cancel' | 'override';
+  kind: 'cancel' | 'override' | 'liber' | 'anulat';
   newStartTime?: string | null;
   newEndTime?: string | null;
   newTitle?: string | null;
+  newDate?: string | null;
 }
 
 export interface CalendarEventRow {
@@ -61,6 +63,8 @@ export interface Occurrence {
   endTime: string | null;       // HH:mm
   status: 'scheduled' | 'cancelled' | 'override';
   cancelReason: 'exception' | 'blackout' | null;
+  state?: 'curs' | 'liber' | 'anulat' | null; // Școala only
+  note?: string | null; // per-occurrence note (e.g. reason for Liber/Anulat)
 }
 
 // --- date helpers (local, date-only — no timezone drift) ---
@@ -148,9 +152,13 @@ export function expandOccurrences(
     const dates: Date[] = [];
 
     if (r.freq === 'none') {
+      // One-off: a single day, or a day-by-day range (e.g. a break / pauză).
       if (r.singleDate) {
-        const d = parseYMD(r.singleDate);
-        if (d >= rangeStart && d <= rangeEnd) dates.push(d);
+        const s = parseYMD(r.singleDate);
+        const e = r.endDate ? parseYMD(r.endDate) : s;
+        for (let d = new Date(s); d <= e; d = addDays(d, 1)) {
+          if (d >= rangeStart && d <= rangeEnd) dates.push(new Date(d));
+        }
       }
     } else if (r.freq === 'weekly' || r.freq === 'biweekly') {
       const wdays = activeWeekdays(r);
@@ -178,17 +186,32 @@ export function expandOccurrences(
     for (const d of dates) {
       const key = ymd(d);
       const ex = exByDate.get(key);
+      const isScoala = ev.type === 'scoala';
       let status: Occurrence['status'] = 'scheduled';
       let cancelReason: Occurrence['cancelReason'] = null;
+      let state: Occurrence['state'] = isScoala ? 'curs' : null;
+      let note: string | null = null;
       let startTime = hhmm(r.startTime);
       let endTime = hhmm(r.endTime);
       let title = ev.title;
+      let outDate = key;
 
       if (ex?.kind === 'cancel') {
         status = 'cancelled';
         cancelReason = 'exception';
+      } else if (ex?.kind === 'anulat') {
+        status = 'cancelled';
+        cancelReason = 'exception';
+        state = 'anulat';
+        note = ex.newTitle ?? null;
+      } else if (ex?.kind === 'liber') {
+        status = 'cancelled';
+        cancelReason = 'exception';
+        state = 'liber';
+        note = ex.newTitle ?? null;
       } else if (ex?.kind === 'override') {
         status = 'override';
+        if (ex.newDate) outDate = ex.newDate;
         if (ex.newStartTime) startTime = hhmm(ex.newStartTime);
         if (ex.newEndTime) endTime = hhmm(ex.newEndTime);
         if (ex.newTitle) title = ex.newTitle;
@@ -208,11 +231,13 @@ export function expandOccurrences(
         label: ev.label ?? null,
         color: ev.color ?? null,
         order: ev.order ?? 0,
-        date: key,
+        date: outDate,
         startTime,
         endTime,
         status,
         cancelReason,
+        state,
+        note,
       });
     }
   }

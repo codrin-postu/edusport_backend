@@ -91,3 +91,6 @@ build
 # Local-only snapshots / backups
 /backups/
 /exports/
+
+# Brainstorm visual-companion mockups
+.superpowers/

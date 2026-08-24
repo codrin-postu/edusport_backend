@@ -12,12 +12,13 @@
     "date": { "type": "date", "required": true },
     "kind": {
       "type": "enumeration",
-      "enum": ["cancel", "override"],
+      "enum": ["cancel", "override", "liber", "anulat"],
       "default": "cancel",
       "required": true
     },
     "newStartTime": { "type": "time" },
     "newEndTime": { "type": "time" },
-    "newTitle": { "type": "string" }
+    "newTitle": { "type": "string" },
+    "newDate": { "type": "date" }
   }
 }

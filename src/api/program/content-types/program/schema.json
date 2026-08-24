@@ -1,0 +1,27 @@
+{
+  "kind": "singleType",
+  "collectionName": "programs",
+  "info": {
+    "singularName": "program",
+    "pluralName": "programs",
+    "displayName": "Program",
+    "description": "Calendar unificat: prezentare generală, evenimente și pauze"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "overview": {
+      "type": "json",
+      "customField": "plugin::component-preview.program-overview"
+    },
+    "scheduleGroups": {
+      "type": "json",
+      "customField": "plugin::component-preview.schedule-groups"
+    },
+    "calendarEvents": {
+      "type": "json",
+      "customField": "plugin::component-preview.calendar-events"
+    }
+  }
+}

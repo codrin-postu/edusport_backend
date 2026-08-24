@@ -58,6 +58,17 @@ export default {
     });
 
     app.customFields.register({
+      name: 'program-overview',
+      pluginId: 'component-preview',
+      type: 'json',
+      intlLabel: { id: 'component-preview.program-overview.label', defaultMessage: 'Program (calendar)' },
+      intlDescription: { id: 'component-preview.program-overview.description', defaultMessage: 'Calendar unificat: prezentare generală + gestionarea evenimentelor și pauzelor.' },
+      components: {
+        Input: async () => import('./ProgramOverviewEditor').then(m => ({ default: m.default as any })),
+      },
+    });
+
+    app.customFields.register({
       name: 'athlete-name-sync',
       pluginId: 'component-preview',
       type: 'string',

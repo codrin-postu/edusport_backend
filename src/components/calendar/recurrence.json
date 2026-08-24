@@ -27,6 +27,7 @@
     "startTime": { "type": "time" },
     "endTime": { "type": "time" },
     "singleDate": { "type": "date" },
+    "endDate": { "type": "date" },
     "seasonStart": { "type": "date" },
     "seasonEnd": { "type": "date" }
   }

@@ -74,6 +74,10 @@ const METADATA_LABEL_OVERRIDES: Record<string, Record<string, string>> = {
     calendarEvents:  'Calendar sezon',
     disclaimers:     'Notificări importante',
   },
+  'plugin_content_manager_configuration_content_types::api::program.program': {
+    overview:       'Calendar',
+    scheduleGroups: 'Serii Școala de Patinaj',
+  },
   'plugin_content_manager_configuration_components::shared.disclaimer': {
     text: 'Text notificare',
   },
@@ -196,6 +200,15 @@ const LAYOUT_OVERRIDES: Record<string, { name: string; size: number }[][]> = {
     [{ name: 'footerNotes', size: 12 }],
   ],
 
+  // ── Program (unified calendar) ──
+  // Show only the calendar editor. It manages calendarEvents (Școala) through
+  // the "Școala sezon" mode, so the separate Calendar sezonal editor is hidden.
+  // scheduleGroups (serii orar) stays until its own redesign.
+  'plugin_content_manager_configuration_content_types::api::program.program': [
+    [{ name: 'overview', size: 12 }],
+    [{ name: 'scheduleGroups', size: 12 }],
+  ],
+
   // ── Program Page ──
   'plugin_content_manager_configuration_content_types::api::program-page.program-page': [
     [{ name: 'banner', size: 12 }],
@@ -301,6 +314,12 @@ export default {
 
     strapi.customFields.register({
       name: 'tags',
+      plugin: 'component-preview',
+      type: 'json',
+    });
+
+    strapi.customFields.register({
+      name: 'program-overview',
       plugin: 'component-preview',
       type: 'json',
     });

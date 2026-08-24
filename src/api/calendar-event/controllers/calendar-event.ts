@@ -41,4 +41,48 @@ export default factories.createCoreController('api::calendar-event.calendar-even
       blackouts: blackouts.map((b) => ({ label: b.label, startDate: b.startDate, endDate: b.endDate })),
     };
   },
+
+  /**
+   * Admin-authenticated CRUD used by the custom Program calendar editor.
+   * The calendar-event type is hidden from the content-manager
+   * (content-manager.visible:false), so the standard /content-manager routes
+   * return 403 for it. These routes are mounted as `type: 'admin'` (see
+   * routes/02-admin.ts) so the logged-in CMS user's session authorises them,
+   * bypassing content-manager RBAC while still requiring an admin login.
+   */
+  async getEvent(ctx) {
+    const { documentId } = ctx.params;
+    const doc = await strapi.documents('api::calendar-event.calendar-event').findOne({
+      documentId,
+      populate: ['recurrence', 'exceptions'],
+    });
+    if (!doc) return ctx.notFound();
+    ctx.body = { data: doc };
+  },
+
+  async createEvent(ctx) {
+    const data = (ctx.request.body as any)?.data ?? ctx.request.body;
+    const doc = await strapi.documents('api::calendar-event.calendar-event').create({
+      data,
+      populate: ['recurrence', 'exceptions'],
+    });
+    ctx.body = { data: doc };
+  },
+
+  async updateEvent(ctx) {
+    const { documentId } = ctx.params;
+    const data = (ctx.request.body as any)?.data ?? ctx.request.body;
+    const doc = await strapi.documents('api::calendar-event.calendar-event').update({
+      documentId,
+      data,
+      populate: ['recurrence', 'exceptions'],
+    });
+    ctx.body = { data: doc };
+  },
+
+  async deleteEvent(ctx) {
+    const { documentId } = ctx.params;
+    await strapi.documents('api::calendar-event.calendar-event').delete({ documentId });
+    ctx.body = { data: { documentId } };
+  },
 }));

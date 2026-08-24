@@ -41,9 +41,12 @@ export interface CalendarException extends Struct.ComponentSchema {
   };
   attributes: {
     date: Schema.Attribute.Date & Schema.Attribute.Required;
-    kind: Schema.Attribute.Enumeration<['cancel', 'override']> &
+    kind: Schema.Attribute.Enumeration<
+      ['cancel', 'override', 'liber', 'anulat']
+    > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'cancel'>;
+    newDate: Schema.Attribute.Date;
     newEndTime: Schema.Attribute.Time;
     newStartTime: Schema.Attribute.Time;
     newTitle: Schema.Attribute.String;
@@ -58,6 +61,7 @@ export interface CalendarRecurrence extends Struct.ComponentSchema {
     icon: 'clock';
   };
   attributes: {
+    endDate: Schema.Attribute.Date;
     endTime: Schema.Attribute.Time;
     freq: Schema.Attribute.Enumeration<
       ['none', 'weekly', 'biweekly', 'monthly']

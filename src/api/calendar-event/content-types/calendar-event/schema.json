@@ -10,6 +10,11 @@
   "options": {
     "draftAndPublish": false
   },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
   "attributes": {
     "title": {
       "type": "string",
@@ -17,7 +22,7 @@
     },
     "type": {
       "type": "enumeration",
-      "enum": ["curs", "scoala", "eveniment", "concurs", "liber"],
+      "enum": ["curs", "scoala", "eveniment", "concurs", "cantonament", "spectacol", "vacanta", "sarbatoare", "liber"],
       "default": "curs",
       "required": true
     },
@@ -25,6 +30,18 @@
       "type": "string"
     },
     "color": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "imageUrl": {
+      "type": "string"
+    },
+    "linkUrl": {
+      "type": "string"
+    },
+    "linkLabel": {
       "type": "string"
     },
     "recurrence": {

@@ -467,6 +467,7 @@ function tagDefaultSaveAndPreview(): void {
   buttons.forEach((btn) => {
     if (isInsideSaveBar(btn)) return;
     if (isInsidePopover(btn)) return; // skip contextual Save/Publish buttons inside dialogs/popovers
+    if (btn.closest('.pce')) return; // skip our custom calendar editor's own buttons (its Save shares the "Salvează" label)
     const name = getAccessibleName(btn);
     // Check Unpublish FIRST because "Unpublish" contains "publish" — we
     // never want a Publish tag on the Unpublish button.
