@@ -1,0 +1,653 @@
+<style>
+/* ============================================================
+   PRESENTATION FRAME
+   The shell that hosts the mockups. Neutral, quiet, uses the
+   Strapi admin accent so it feels of-a-piece with the panels.
+   ============================================================ */
+:root{
+  --bg:#eef0f4;
+  --surface:#ffffff;
+  --canvas:#fafafa;          /* mimics the admin content background */
+  --ink:#1b1d26;
+  --ink-soft:#4a4d5a;
+  --muted:#8a8d99;
+  --line:#e2e4ea;
+  --accent:#2138b8;
+  --accent-soft:#eef1fb;
+  --danger:#be3330;
+  --liber:#8a8a8a;
+  --ok:#1f7a4d;
+  --shadow:0 6px 24px rgba(18,22,45,.08);
+  --radius:14px;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sys:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0f1014; --surface:#191b22; --canvas:#20222b;
+    --ink:#e9eaf0; --ink-soft:#b4b7c4; --muted:#7e818f; --line:#2b2e38;
+    --accent-soft:#20264a; --shadow:0 8px 30px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1014; --surface:#191b22; --canvas:#20222b;
+  --ink:#e9eaf0; --ink-soft:#b4b7c4; --muted:#7e818f; --line:#2b2e38;
+  --accent-soft:#20264a; --shadow:0 8px 30px rgba(0,0,0,.45);
+}
+:root[data-theme="light"]{
+  --bg:#eef0f4; --surface:#ffffff; --canvas:#fafafa;
+  --ink:#1b1d26; --ink-soft:#4a4d5a; --muted:#8a8d99; --line:#e2e4ea;
+  --accent-soft:#eef1fb; --shadow:0 6px 24px rgba(18,22,45,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sys);
+  line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px 120px}
+
+/* Masthead */
+.mast{padding:56px 0 30px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.kicker{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);margin:0 0 14px}
+.mast h1{font-size:clamp(28px,4vw,42px);line-height:1.08;margin:0 0 14px;
+  font-weight:800;letter-spacing:-.02em;text-wrap:balance;max-width:20ch}
+.mast p{margin:0;max-width:64ch;color:var(--ink-soft);font-size:15.5px}
+.mast .meta{margin-top:20px;display:flex;flex-wrap:wrap;gap:8px}
+.tag{font-size:11.5px;font-weight:600;color:var(--ink-soft);background:var(--surface);
+  border:1px solid var(--line);border-radius:20px;padding:5px 12px}
+.tag b{color:var(--accent)}
+
+/* Section scaffold */
+.sec{padding:52px 0;border-bottom:1px solid var(--line)}
+.sec-head{display:flex;gap:16px;align-items:baseline;margin-bottom:6px}
+.sec-no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);
+  border:1px solid var(--accent);border-radius:8px;padding:3px 9px;flex-shrink:0}
+.sec h2{font-size:23px;font-weight:800;letter-spacing:-.015em;margin:0;text-wrap:balance}
+.sec .lead{color:var(--ink-soft);font-size:15px;margin:12px 0 0;max-width:74ch}
+.sec .lead b{color:var(--ink)}
+
+/* Option grid */
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:20px;margin-top:34px;align-items:start}
+.opt{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.opt.pick{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow)}
+.opt-h{padding:16px 18px 14px;border-bottom:1px solid var(--line);
+  display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.opt-h .label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 5px}
+.opt-h h3{font-size:16px;font-weight:700;margin:0;letter-spacing:-.01em}
+.ribbon{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  color:#fff;background:var(--accent);border-radius:20px;padding:4px 10px;flex-shrink:0;white-space:nowrap}
+.opt-note{padding:12px 18px 0;font-size:13px;color:var(--ink-soft)}
+.opt-note ul{margin:8px 0 0;padding-left:16px}
+.opt-note li{margin:3px 0}
+.plus{color:var(--ok);font-weight:700}
+.minus{color:var(--danger);font-weight:700}
+
+/* Canvas that holds a real panel mockup at true width */
+.stage{padding:20px 18px 22px;background:var(--canvas);margin-top:14px;
+  border-top:1px solid var(--line);display:flex;flex-direction:column;gap:16px;align-items:center}
+.stage-cap{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted)}
+
+/* Recommendation callout */
+.rec{margin-top:30px;background:var(--accent-soft);border:1px solid var(--accent);
+  border-radius:12px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start}
+.rec .star{width:26px;height:26px;flex-shrink:0;border-radius:7px;background:var(--accent);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+.rec b{color:var(--ink)}
+.rec p{margin:0;font-size:14px;color:var(--ink-soft)}
+.rec h4{margin:0 0 4px;font-size:13px;font-weight:800;letter-spacing:.03em;
+  text-transform:uppercase;color:var(--accent)}
+
+/* Exact-edit code block (item 3) */
+.diff{margin-top:26px;background:#0f1116;border:1px solid #262a35;border-radius:12px;
+  overflow:hidden;font-family:var(--mono);font-size:13px}
+.diff-h{padding:10px 16px;border-bottom:1px solid #262a35;color:#9aa0b0;font-size:12px;
+  display:flex;justify-content:space-between;align-items:center}
+.diff-h .path{color:#c8ccd8}
+.diff pre{margin:0;padding:14px 16px;overflow-x:auto;line-height:1.7;color:#c8ccd8}
+.diff .del{background:rgba(190,51,48,.14);color:#f0a8a6;display:block;padding:0 6px;border-radius:3px}
+.diff .add{background:rgba(31,122,77,.16);color:#9fe0bd;display:block;padding:0 6px;border-radius:3px}
+.diff .ln{color:#5a6070;user-select:none;margin-right:14px}
+
+.field-facts{margin-top:16px;font-size:13.5px;color:var(--ink-soft);
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.field-facts code{font-family:var(--mono);font-size:12.5px;background:var(--accent-soft);
+  color:var(--accent);padding:1px 6px;border-radius:5px}
+
+/* Build steps (item 4) */
+.steps{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.step{display:flex;gap:14px;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:15px 17px}
+.step .sn{width:26px;height:26px;flex-shrink:0;border-radius:8px;background:var(--accent);
+  color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;
+  font-size:14px;font-family:var(--mono)}
+.step h4{margin:0 0 4px;font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+.step p{margin:0;font-size:13.5px;color:var(--ink-soft);line-height:1.5}
+.step code{font-family:var(--mono);font-size:12px;background:var(--accent-soft);
+  color:var(--accent);padding:1px 6px;border-radius:5px}
+
+/* Feasibility table (item 4) */
+.feas{margin-top:30px;overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{text-align:left;padding:12px 15px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--canvas);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);font-weight:700}
+tr:last-child td{border-bottom:none}
+td b{color:var(--ink)}
+.pilly{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:20px;letter-spacing:.03em}
+.pilly.sup{background:rgba(31,122,77,.14);color:var(--ok)}
+.pilly.part{background:#fbf1e0;color:#a05e00}
+.pilly.no{background:rgba(190,51,48,.12);color:var(--danger)}
+@media (prefers-color-scheme:dark){.pilly.part{background:#3a2f1a;color:#e0a94a}}
+:root[data-theme="dark"] .pilly.part{background:#3a2f1a;color:#e0a94a}
+
+.foot{padding:40px 0 0;color:var(--muted);font-size:13px}
+
+/* ============================================================
+   MOCKUP TOKENS  (scoped to .mock)
+   Copied verbatim from ProgramOverviewEditor.tsx CSS so every
+   panel below matches the live editor exactly.
+   ============================================================ */
+.mock{width:300px;max-width:100%;font-family:system-ui,-apple-system,sans-serif;
+  background:#fff;border:1px solid #dcdcdc;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.08);
+  overflow:hidden;color:#222}
+.mock .ph{display:flex;justify-content:space-between;align-items:center;padding:14px 15px;border-bottom:1px solid #eee}
+.mock .ph h4{margin:0;font-size:15px}
+.mock .ph .x{color:#999;font-size:20px;line-height:1}
+.mock .body{padding:15px}
+.mock .fld{margin-bottom:11px}
+.mock .fld:last-child{margin-bottom:0}
+.mock .fld label{display:block;font-size:10px;color:#888;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em}
+.mock .fld input,.mock .fld select{width:100%;padding:6px 8px;border:1px solid #d0d0d0;border-radius:6px;font-size:13px;background:#fff;color:#222;font-family:inherit}
+.mock .fld input:disabled{background:#f4f4f4;color:#777}
+.mock .row2{display:flex;gap:8px}
+.mock .hint{font-size:11px;color:#999;margin-top:8px}
+.mock .sub{padding:11px 9px;background:#fafafa;border:1px solid #eee;border-radius:8px;margin-top:9px;display:flex;flex-direction:column;gap:9px}
+/* existing round day-pills + spill pills (the CURRENT/baseline look) */
+.mock .pills{display:flex;gap:5px;flex-wrap:wrap}
+.mock .spill{padding:5px 12px;border:1px solid #d0d0d0;border-radius:20px;font-size:12px;color:#555;user-select:none}
+.mock .spill.on{background:#2138b8;color:#fff;border-color:#2138b8}
+.mock .st{font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.mock .save{display:block;width:100%;padding:12px;background:#2138b8;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;margin-top:14px}
+
+/* --- Proposed control A: segmented control --- */
+.seg{display:flex;border:1px solid #d0d0d0;border-radius:8px;overflow:hidden}
+.seg span{flex:1;text-align:center;font-size:12px;padding:7px 4px;color:#555;border-right:1px solid #e4e4e4;user-select:none}
+.seg span:last-child{border-right:none}
+.seg span.on{background:#2138b8;color:#fff;font-weight:600}
+/* state-colored segmented (item 2) — active segment paints its own state colour */
+.seg span.on.s-curs{background:#2138b8}
+.seg span.on.s-liber{background:#8a8a8a}
+.seg span.on.s-anulat{background:#be3330}
+.seg span .dotc{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:middle}
+
+/* --- Proposed control B: compact radio list --- */
+.radl{display:flex;flex-direction:column;gap:6px}
+.radl .r{display:flex;gap:9px;align-items:flex-start;padding:8px 9px;border:1px solid #e0e0e0;border-radius:8px;cursor:default}
+.radl .r.on{border-color:#2138b8;background:#f6f8ff}
+.radl .rc{width:15px;height:15px;border-radius:50%;border:1.5px solid #c4c4c4;flex-shrink:0;margin-top:1px;position:relative}
+.radl .r.on .rc{border-color:#2138b8}
+.radl .r.on .rc::after{content:"";position:absolute;inset:3px;border-radius:50%;background:#2138b8}
+.radl .rt{font-size:13px;line-height:1.3}
+.radl .rt small{display:block;font-size:11px;color:#999;margin-top:1px}
+
+/* --- Proposed control C: colored status chips (item 2) --- */
+.chips{display:flex;gap:6px}
+.chips .c{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;padding:7px 4px;border:1px solid #d8d8d8;border-radius:7px;color:#555;background:#fff}
+.chips .c .cd{width:8px;height:8px;border-radius:2px}
+.chips .c.on{color:#fff;border-color:transparent;font-weight:600}
+.chips .c.on .cd{background:#fff}
+.chips .c.on.s-curs{background:#2138b8}
+.chips .c.on.s-liber{background:#8a8a8a}
+.chips .c.on.s-anulat{background:#be3330}
+
+/* --- Proposed control C alt: status dropdown with colour dot --- */
+.selrow{display:flex;align-items:center;gap:8px;border:1px solid #d0d0d0;border-radius:6px;padding:6px 10px;font-size:13px}
+.selrow .cd{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.selrow .chev{margin-left:auto;color:#999}
+
+/* ============================================================
+   ITEM 4 — custom admin mockup (own scope .adm)
+   ============================================================ */
+.adm{border:1px solid #dcdcdc;border-radius:12px;overflow:hidden;display:flex;
+  font-family:system-ui,-apple-system,sans-serif;background:#f6f7f9;color:#222;
+  box-shadow:var(--shadow);width:100%;min-width:0}
+.adm-side{width:210px;flex-shrink:0;background:#0e1a3c;color:#c8cee0;padding:16px 0;display:flex;flex-direction:column}
+.adm-brand{display:flex;align-items:center;gap:9px;padding:0 16px 16px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:10px}
+.adm-brand .mark{width:30px;height:30px;border-radius:8px;background:#2138b8;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:13px}
+.adm-brand b{color:#fff;font-size:14px;letter-spacing:.02em}
+.adm-brand small{display:block;color:#8b93ad;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.adm-grp{padding:14px 16px 4px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#727b97}
+.adm-nav a{display:flex;align-items:center;gap:10px;padding:8px 16px;font-size:13px;color:#c8cee0;text-decoration:none}
+.adm-nav a .ic{width:16px;text-align:center;opacity:.8}
+.adm-nav a.on{background:rgba(33,56,184,.35);color:#fff;box-shadow:inset 3px 0 0 #4d68ff}
+.adm-main{flex:1;min-width:0;background:#f6f7f9;padding:20px 22px;overflow:hidden}
+.adm-greet{font-size:19px;font-weight:800;letter-spacing:-.01em;margin:0}
+.adm-greet span{color:#2138b8}
+.adm-sub{margin:3px 0 18px;color:#767a86;font-size:13px}
+.adm-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.adm-card{background:#fff;border:1px solid #e6e7ec;border-radius:10px;padding:12px 13px}
+.adm-card .k{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#8a8d99;font-weight:700}
+.adm-card .v{font-size:24px;font-weight:800;margin-top:5px;letter-spacing:-.02em}
+.adm-card .d{font-size:11px;margin-top:3px;color:#1f7a4d}
+.adm-card .bar{margin-top:4px;height:3px;border-radius:3px;background:#eef1fb;overflow:hidden}
+.adm-card .bar i{display:block;height:100%;background:#2138b8}
+.adm-cols{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+.adm-panel{background:#fff;border:1px solid #e6e7ec;border-radius:10px;padding:14px 15px}
+.adm-panel h5{margin:0 0 10px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#666;font-weight:700}
+.adm-ev{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid #f0f0f2;font-size:13px}
+.adm-ev:first-of-type{border-top:none}
+.adm-ev .dt{font-size:11px;color:#8a8d99;width:44px;flex-shrink:0}
+.adm-ev .bd{width:3px;height:26px;border-radius:3px;flex-shrink:0}
+.adm-ev b{font-weight:600;font-size:12.5px}
+.adm-ev small{display:block;color:#8a8d99;font-size:11px}
+.adm-act{display:flex;flex-direction:column;gap:8px}
+.adm-act a{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid #e6e7ec;border-radius:8px;font-size:13px;color:#222;text-decoration:none;background:#fff}
+.adm-act a .ic{width:24px;height:24px;border-radius:6px;background:#eef1fb;color:#2138b8;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.adm-act a.primary{background:#2138b8;color:#fff;border-color:#2138b8}
+.adm-act a.primary .ic{background:rgba(255,255,255,.18);color:#fff}
+@media (max-width:560px){.adm-side{display:none}.adm-stats{grid-template-columns:repeat(2,1fr)}.adm-cols{grid-template-columns:1fr}}
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <p class="kicker">EduSport / Panou de administrare Strapi</p>
+    <h1>Redesign editor calendar și panou de administrare</h1>
+    <p>Trei rafinări de control pentru editorul de calendar, plus un studiu de fezabilitate pentru un panou de administrare EduSport complet personalizat. Fiecare machetă folosește exact aceleași culori, fonturi și componente ca editorul real (font system-ui, alb #fff, accent #2138b8, pericol #be3330). Alege câte o variantă pentru fiecare punct.</p>
+    <div class="meta">
+      <span class="tag"><b>4</b> puncte</span>
+      <span class="tag"><b>2 - 3</b> variante fiecare</span>
+      <span class="tag">Lățime reală panou <b>~300px</b></span>
+      <span class="tag">Doar machete, sursa nu e modificată</span>
+    </div>
+  </header>
+
+  <!-- ============================ ITEM 1 ============================ -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">01</span>
+      <h2>Stare per apariție, eveniment recurent (non-Școala)</h2></div>
+    <p class="lead">Astăzi, pentru o dată dintr-un eveniment care se repetă, apar două pastile <b>.spill</b> rotunjite: <b>Anulat</b> și <b>Modifică</b>. Sunt voluminoase. Al treilea segment reprezintă cazul în care data rămâne exact ca în seria recurentă (nu se scrie nicio excepție). Cuvântul "Ca de obicei" suna tehnic, așa că îl redenumim <b>Ca de obicei</b>, care se citește natural: data aceasta are loc <b>ca de obicei</b> / e <b>anulată</b> / se <b>modifică</b>.</p>
+    <p class="lead" style="margin-top:8px">Alternativă: putem elimina complet acel segment și păstra doar <b>Anulat</b> și <b>Modifică</b>, caz în care "neselectat" înseamnă implicit ca de obicei. Recomand totuși să îl păstrăm, redenumit, pentru ca alegerea să fie explicită.</p>
+
+    <div class="opts">
+
+      <!-- Option A -->
+      <article class="opt pick">
+        <div class="opt-h">
+          <div><p class="label">Varianta A</p><h3>Control segmentat</h3></div>
+          <span class="ribbon">Recomandat</span>
+        </div>
+        <div class="opt-note">
+          Trei segmente egale, un singur rând. Reutilizează exact stilul <b>.scoala-tabs</b> deja folosit în panou, deci nu introduce un tipar nou.
+          <ul>
+            <li><span class="plus">+</span> Toate stările vizibile deodată</li>
+            <li><span class="plus">+</span> Un singur rând, foarte compact</li>
+            <li><span class="plus">+</span> Coerent cu tab-urile existente</li>
+          </ul>
+        </div>
+        <div class="stage">
+          <div class="stage-cap">Restrâns, starea "Ca de obicei"</div>
+          <div class="mock">
+            <div class="ph"><h4>Antrenament Grupa A</h4><span class="x">&times;</span></div>
+            <div class="body">
+              <div class="fld"><label>Data</label><input value="18 mar 2026" disabled></div>
+              <div class="fld"><label>Pentru această dată</label>
+                <div class="seg"><span class="on">Ca de obicei</span><span>Anulat</span><span>Modifică</span></div>
+              </div>
+              <div class="hint">Se aplică doar pentru această dată.</div>
+              <button class="save">Salvează</button>
+            </div>
+          </div>
+          <div class="stage-cap">În editare, starea "Modifică"</div>
+          <div class="mock">
+            <div class="ph"><h4>Antrenament Grupa A</h4><span class="x">&times;</span></div>
+            <div class="body">
+              <div class="fld"><label>Data</label><input value="18 mar 2026" disabled></div>
+              <div class="fld"><label>Pentru această dată</label>
+                <div class="seg"><span>Ca de obicei</span><span>Anulat</span><span class="on">Modifică</span></div>
+              </div>
+              <div class="sub">
+                <div class="fld" style="margin:0"><label>Dată nouă</label><input type="text" value="19 mar 2026"></div>
+                <div class="row2">
+                  <div class="fld" style="margin:0"><label>Început</label><input value="17:00"></div>
+                  <div class="fld" style="margin:0"><label>Sfârșit</label><input value="18:30"></div>
+                </div>
+              </div>
+              <div class="hint">Se aplică doar pentru această dată.</div>
+              <button class="save">Salvează</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Option B -->
+      <article class="opt">
+        <div class="opt-h">
+          <div><p class="label">Varianta B</p><h3>Listă radio compactă</h3></div>
+        </div>
+        <div class="opt-note">
+          Fiecare stare pe câte un rând, cu o descriere scurtă sub etichetă. Câmpurile pentru "Modifică" apar sub rândul selectat.
+          <ul>
+            <li><span class="plus">+</span> Cel mai explicit, cu microcopy</li>
+            <li><span class="minus">-</span> Mai înalt decât segmentul</li>
+          </ul>
+        </div>
+        <div class="stage">
+          <div class="stage-cap">În editare, starea "Modifică"</div>
+          <div class="mock">
+            <div class="ph"><h4>Antrenament Grupa A</h4><span class="x">&times;</span></div>
+            <div class="body">
+              <div class="fld"><label>Data</label><input value="18 mar 2026" disabled></div>
+              <div class="fld"><label>Pentru această dată</label>
+                <div class="radl">
+                  <div class="r"><span class="rc"></span><span class="rt">Ca de obicei<small>Ora obișnuită</small></span></div>
+                  <div class="r"><span class="rc"></span><span class="rt">Anulează<small>Nu are loc</small></span></div>
+                  <div class="r on"><span class="rc"></span><span class="rt">Modifică<small>Altă oră sau dată</small></span></div>
+                </div>
+              </div>
+              <div class="sub">
+                <div class="fld" style="margin:0"><label>Dată nouă</label><input value="19 mar 2026"></div>
+                <div class="row2">
+                  <div class="fld" style="margin:0"><label>Început</label><input value="17:00"></div>
+                  <div class="fld" style="margin:0"><label>Sfârșit</label><input value="18:30"></div>
+                </div>
+              </div>
+              <button class="save">Salvează</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Option C -->
+      <article class="opt">
+        <div class="opt-h">
+          <div><p class="label">Varianta C</p><h3>Meniu derulant de stare</h3></div>
+        </div>
+        <div class="opt-note">
+          O singură listă derulantă (Ca de obicei / Anulat / Modifică). Cel mai mic spațiu ocupat, dar starea nu se vede până nu deschizi lista.
+          <ul>
+            <li><span class="plus">+</span> Ocupă cel mai puțin loc</li>
+            <li><span class="minus">-</span> Stările ascunse până la deschidere</li>
+          </ul>
+        </div>
+        <div class="stage">
+          <div class="stage-cap">Restrâns</div>
+          <div class="mock">
+            <div class="ph"><h4>Antrenament Grupa A</h4><span class="x">&times;</span></div>
+            <div class="body">
+              <div class="fld"><label>Data</label><input value="18 mar 2026" disabled></div>
+              <div class="fld"><label>Pentru această dată</label>
+                <select><option>Modifică ora sau data</option></select>
+              </div>
+              <div class="sub">
+                <div class="fld" style="margin:0"><label>Dată nouă</label><input value="19 mar 2026"></div>
+                <div class="row2">
+                  <div class="fld" style="margin:0"><label>Început</label><input value="17:00"></div>
+                  <div class="fld" style="margin:0"><label>Sfârșit</label><input value="18:30"></div>
+                </div>
+              </div>
+              <button class="save">Salvează</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="rec">
+      <span class="star">A</span>
+      <div>
+        <h4>Recomandare</h4>
+        <p><b>Varianta A, control segmentat.</b> Rezolvă exact problema de volum, arată toate cele trei stări dintr-o privire și refolosește tiparul <b>.scoala-tabs</b> care există deja în panou, deci nu adaugă cod de stil nou și rămâne coerent vizual.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ ITEM 2 ============================ -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">02</span>
+      <h2>Stări Școala per dată: Curs / Liber / Anulat</h2></div>
+    <p class="lead">Astăzi, cele trei stări sunt pastile <b>.spill</b> rotunjite și voluminoase. Conform preferinței tale: un singur <b>meniu derulant</b>, doar text, fără puncte de culoare. Eticheta <b>"Stare"</b> suna ciudat în română, așa că o schimbăm în <b>"Ziua aceasta"</b>. Când alegi <b>Liber</b> sau <b>Anulat</b>, apare dedesubt un câmp opțional de <b>notă / motiv</b>.</p>
+    <p class="lead" style="margin-top:8px">Alternative de etichetă, dacă "Ziua aceasta" nu convine: <b>Cum e ziua</b> sau <b>Tip zi</b>.</p>
+
+    <div class="opts">
+
+      <!-- Chosen: plain dropdown -->
+      <article class="opt pick">
+        <div class="opt-h">
+          <div><p class="label">Ales</p><h3>Meniu derulant, doar text</h3></div>
+          <span class="ribbon">Recomandat</span>
+        </div>
+        <div class="opt-note">
+          Cel mai puțin loc ocupat și fără elemente noi de întreținut. Nota opțională apare doar la Liber / Anulat.
+        </div>
+        <div class="stage">
+          <div class="stage-cap">"Curs" (fără notă)</div>
+          <div class="mock">
+            <div class="ph"><h4>Școala de patinaj</h4><span class="x">&times;</span></div>
+            <div class="body">
+              <div class="fld"><label>Data</label><input value="14 mar 2026" disabled></div>
+              <div class="fld"><label>Ziua aceasta</label>
+                <select><option>Curs</option><option>Liber</option><option>Anulat</option></select>
+              </div>
+              <button class="save">Salvează</button>
+            </div>
+          </div>
+          <div class="stage-cap">"Liber" (apare nota opțională)</div>
+          <div class="mock">
+            <div class="ph"><h4>Școala de patinaj</h4><span class="x">&times;</span></div>
+            <div class="body">
+              <div class="fld"><label>Data</label><input value="21 mar 2026" disabled></div>
+              <div class="fld"><label>Ziua aceasta</label>
+                <select><option selected>Liber</option><option>Curs</option><option>Anulat</option></select>
+              </div>
+              <div class="fld"><label>Notă / motiv (opțional)</label><input value="Vacanță de primăvară"></div>
+              <button class="save">Salvează</button>
+            </div>
+          </div>
+          <div class="stage-cap">"Anulat" (apare nota opțională)</div>
+          <div class="mock">
+            <div class="ph"><h4>Școala de patinaj</h4><span class="x">&times;</span></div>
+            <div class="body">
+              <div class="fld"><label>Data</label><input value="28 mar 2026" disabled></div>
+              <div class="fld"><label>Ziua aceasta</label>
+                <select><option selected>Anulat</option><option>Curs</option><option>Liber</option></select>
+              </div>
+              <div class="fld"><label>Notă / motiv (opțional)</label><input value="Patinoar indisponibil"></div>
+              <button class="save">Salvează</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="rec">
+      <span class="star">&#10003;</span>
+      <div>
+        <h4>Recomandare</h4>
+        <p><b>Meniu derulant, doar text, etichetat "Ziua aceasta".</b> Curs / Liber / Anulat într-o listă simplă, fără puncte de culoare. La Liber și Anulat apare câmpul opțional de notă. Culorile rămân doar în calendar, nu în control.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ ITEM 3 ============================ -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">03</span>
+      <h2>Redenumire: "Serii orar" &rarr; "Serii Școala de Patinaj"</h2></div>
+    <p class="lead">Eticheta apare sub calendar, ca titlu al cardului de editor pentru grupele de orar. Am găsit sursa exactă: nu vine din <b>METADATA_LABEL_OVERRIDES</b> (acolo valoarea e deja corectă), ci e scrisă direct în componenta editorului, în prop-ul <b>title</b> al lui <b>EditorCard</b>.</p>
+
+    <div class="field-facts">
+      <p style="margin:0 0 8px"><b>Unde e setată:</b> <code>src/plugins/component-preview/admin/src/ScheduleGroupsEditor.tsx</code>, linia <b>93</b>, prop-ul <code>title</code> al componentei <code>EditorCard</code>.</p>
+      <p style="margin:0">Notă: <code>src/index.ts</code> (linia 79) setează deja pentru câmpul <code>scheduleGroups</code> eticheta panoului Strapi la "Serii Școala de Patinaj". Titlul vizibil din card era însă hardcodat separat în componentă. O singură linie de schimbat.</p>
+    </div>
+
+    <div class="diff">
+      <div class="diff-h">
+        <span class="path">src/plugins/component-preview/admin/src/ScheduleGroupsEditor.tsx</span>
+        <span>linia 93</span>
+      </div>
+      <pre><span class="del"><span class="ln">- 93</span>        title="Serii orar"</span><span class="add"><span class="ln">+ 93</span>        title="Serii Școala de Patinaj"</span></pre>
+    </div>
+
+    <div class="rec">
+      <span class="star">&#10003;</span>
+      <div>
+        <h4>Editare exactă</h4>
+        <p>Schimbă <code style="font-family:var(--mono)">title="Serii orar"</code> în <code style="font-family:var(--mono)">title="Serii Școala de Patinaj"</code> la linia 93. Fără alte modificări. (Neaplicat, conform cerinței.)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ ITEM 4 ============================ -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">04</span>
+      <h2>Panou de administrare EduSport personalizat: fezabilitate și machetă</h2></div>
+    <p class="lead">Ce permite oficial Strapi 5 pentru pagina de start și meniul lateral, verificat în documentația Strapi. Pe scurt: <b>pagina de start se personalizează prin widget-uri</b> (<code style="font-family:var(--mono)">app.widgets.register()</code>, din 5.13), iar <b>meniul lateral se augmentează</b> cu <code style="font-family:var(--mono)">app.addMenuLink()</code>. Înlocuirea completă a paginii de start sau a meniului nu are un API oficial, dar repo-ul are deja precedent de injecție în DOM (vezi <code style="font-family:var(--mono)">src/admin/app.tsx</code>: MobileNav, SaveBar, tagare nav).</p>
+
+    <div class="feas">
+      <table>
+        <thead><tr><th>Abordare</th><th>Ce oferă</th><th>Suport oficial</th><th>Efort</th><th>Risc la upgrade</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>A. Widget-uri + linkuri meniu</b><br><span style="color:var(--muted)">app.widgets.register() + app.addMenuLink()</span></td>
+            <td>Carduri proprii pe pagina de start (statistici, calendar, acțiuni rapide) și scurtături în bara laterală, sub cele Strapi.</td>
+            <td><span class="pilly sup">Complet</span></td>
+            <td>Mic</td>
+            <td>Foarte mic</td>
+          </tr>
+          <tr>
+            <td><b>B. Pagină plugin dedicată</b><br><span style="color:var(--muted)">rută plugin + addMenuLink, root redirecționat</span></td>
+            <td>Un panou EduSport complet, la o rută proprie (ex. <code style="font-family:var(--mono)">/plugins/edusport</code>), cu layout liber. Poate deveni prima pagină după login prin redirect.</td>
+            <td><span class="pilly part">Parțial</span></td>
+            <td>Mediu</td>
+            <td>Mic</td>
+          </tr>
+          <tr>
+            <td><b>C. Înlocuire prin DOM</b><br><span style="color:var(--muted)">injecție/override ca SaveBar, MobileNav</span></td>
+            <td>Control total asupra aspectului paginii de start și al meniului real Strapi (ascundere, reordonare, rebranding vizual).</td>
+            <td><span class="pilly no">Neoficial</span></td>
+            <td>Mare</td>
+            <td>Mare</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="rec" style="margin-top:22px">
+      <span class="star">&#9733;</span>
+      <div>
+        <h4>Recomandare</h4>
+        <p><b>A + B combinate.</b> Pentru pagina de start, folosește widget-uri oficiale (statistici, calendar, acțiuni) - stabil la upgrade. Pentru un panou EduSport bogat, adaugă o pagină de plugin dedicată și un <code style="font-family:var(--mono)">addMenuLink</code> către ea, opțional ca prima pagină după login. Evită abordarea C pentru pagina de start; păstrează injecția în DOM doar unde e deja necesară (mobil, save bar).</p>
+      </div>
+    </div>
+
+    <h3 style="margin:34px 0 4px;font-size:15px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)">Machetă: pagină de start + bară laterală EduSport</h3>
+    <p style="margin:0 0 18px;color:var(--ink-soft);font-size:14px;max-width:74ch">Bara laterală grupează navigația pe limbajul școlii (Conținut site, Program și calendar, Sportivi și echipă), nu pe tipurile tehnice Strapi. Pagina de start deschide cu un salut, patru indicatori, calendarul apropiat și acțiuni rapide.</p>
+
+    <div class="adm">
+      <aside class="adm-side">
+        <div class="adm-brand">
+          <span class="mark">ES</span>
+          <span><b>EduSport</b><small>Reșița</small></span>
+        </div>
+        <nav class="adm-nav">
+          <div class="adm-grp">Panou</div>
+          <a class="on"><span class="ic">&#9632;</span> Acasă</a>
+          <div class="adm-grp">Conținut site</div>
+          <a><span class="ic">&#9633;</span> Pagina principală</a>
+          <a><span class="ic">&#9633;</span> Cursuri</a>
+          <a><span class="ic">&#9633;</span> Prețuri</a>
+          <a><span class="ic">&#9633;</span> Regulament</a>
+          <div class="adm-grp">Program și calendar</div>
+          <a><span class="ic">&#9633;</span> Calendar sezon</a>
+          <a><span class="ic">&#9633;</span> Serii Școala de Patinaj</a>
+          <div class="adm-grp">Sportivi și echipă</div>
+          <a><span class="ic">&#9633;</span> Sportivi</a>
+          <a><span class="ic">&#9633;</span> Competiții</a>
+          <a><span class="ic">&#9633;</span> Membri echipă</a>
+          <div class="adm-grp">Sistem</div>
+          <a><span class="ic">&#9633;</span> Media</a>
+          <a><span class="ic">&#9633;</span> Setări</a>
+        </nav>
+      </aside>
+      <main class="adm-main">
+        <h4 class="adm-greet">Bună, <span>Antrenor</span>. Iată ce urmează la club.</h4>
+        <p class="adm-sub">Marți, 24 martie 2026</p>
+
+        <div class="adm-stats">
+          <div class="adm-card"><div class="k">Sportivi</div><div class="v">48</div><div class="d">+3 luna aceasta</div></div>
+          <div class="adm-card"><div class="k">Grupe active</div><div class="v">6</div><div class="bar"><i style="width:100%"></i></div></div>
+          <div class="adm-card"><div class="k">Competiții</div><div class="v">12</div><div class="d">2 în aprilie</div></div>
+          <div class="adm-card"><div class="k">Evenimente / lună</div><div class="v">21</div><div class="bar"><i style="width:70%"></i></div></div>
+        </div>
+
+        <div class="adm-cols">
+          <div class="adm-panel">
+            <h5>Următoarele evenimente</h5>
+            <div class="adm-ev"><span class="dt">Azi</span><span class="bd" style="background:#2138b8"></span><span><b>Antrenament Grupa A</b><small>17:00 - 18:30 &middot; Patinoar</small></span></div>
+            <div class="adm-ev"><span class="dt">Joi</span><span class="bd" style="background:#be3330"></span><span><b>Școala de patinaj</b><small>Curs &middot; grupa începători</small></span></div>
+            <div class="adm-ev"><span class="dt">Sâm</span><span class="bd" style="background:#7a1fa2"></span><span><b>Cupa Reșița, etapa 2</b><small>Competiție &middot; toată ziua</small></span></div>
+            <div class="adm-ev"><span class="dt">29 mar</span><span class="bd" style="background:#8a8a8a"></span><span><b>Zi liberă</b><small>Școala &middot; vacanță</small></span></div>
+          </div>
+          <div class="adm-panel">
+            <h5>Acțiuni rapide</h5>
+            <div class="adm-act">
+              <a class="primary"><span class="ic">+</span> Adaugă eveniment în calendar</a>
+              <a><span class="ic">&#9633;</span> Adaugă sportiv</a>
+              <a><span class="ic">&#9633;</span> Editează pagina principală</a>
+              <a><span class="ic">&#9633;</span> Actualizează prețuri</a>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <p style="margin:14px 0 0;color:var(--muted);font-size:12.5px">Machetă la scară; culorile evenimentelor (albastru antrenament, roșu Școala, mov competiție, gri liber) sunt exact cele din <code style="font-family:var(--mono);background:var(--accent-soft);color:var(--accent);padding:1px 5px;border-radius:4px">CATEGORIES</code> din editorul de calendar.</p>
+
+    <h3 style="margin:38px 0 4px;font-size:15px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)">Cum recreăm asta</h3>
+    <p style="margin:0 0 18px;color:var(--ink-soft);font-size:14px;max-width:74ch">Două lucruri separate: <b>(1)</b> aspectul (pagina de start + meniul grupat) și <b>(2)</b> restricția de acces per cont. Nu au nevoie unul de altul; le combinăm.</p>
+
+    <div class="steps">
+      <div class="step">
+        <span class="sn">1</span>
+        <div>
+          <h4>Pagina de start EduSport</h4>
+          <p>Carduri proprii pe homepage cu <code>app.widgets.register()</code> în <code>src/admin/app.tsx</code> (register): un widget pentru statistici, unul pentru "Următoarele evenimente", unul pentru "Acțiuni rapide". Fiecare widget e un component React care folosește <code>@strapi/design-system</code> și cheamă API-ul (ex. <code>/api/calendar/occurrences</code>) exact ca editorul actual. Oficial și stabil la upgrade.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="sn">2</span>
+        <div>
+          <h4>Meniul lateral grupat</h4>
+          <p>Bara laterală Strapi listează automat tipurile de conținut; nu se poate regrupa nativ. Pentru grupele EduSport (Conținut site / Program și calendar / Sportivi și echipă) adăugăm intrări cu <code>app.addMenuLink()</code>. Pentru un dashboard complet la o rută proprie, împachetăm pagina ca un plugin local de admin și o legăm cu <code>addMenuLink</code>; opțional o facem prima pagină după login printr-un redirect.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="sn">3</span>
+        <div>
+          <h4>Cont restricționat (doar ce vrei tu)</h4>
+          <p><b>RBAC este gratuit în Strapi 5.</b> În <b>Setări &rarr; Panou de administrare &rarr; Roluri</b>: folosești rolul <b>Editor</b> sau <b>Author</b> (sau un rol nou), apoi bifezi doar tipurile de conținut la care contul are voie și, la nevoie, doar acțiunile permise (citire / creare / modificare / publicare), până la nivel de câmp. Content Manager <b>ascunde automat</b> din meniu ce rolul nu poate citi, deci utilizatorul vede exact ce îi permiți.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="sn">4</span>
+        <div>
+          <h4>Punerea cap la cap</h4>
+          <p>Creezi contul de antrenor cu rolul restricționat (pasul 3). La login vede meniul redus la tipurile permise, plus intrările tale din <code>addMenuLink</code> (pasul 2) și pagina de start cu widget-urile EduSport (pasul 1). Widget-urile respectă și ele permisiunile prin proprietatea <code>permissions</code>, deci un card se ascunde dacă rolul nu are acces.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-facts" style="margin-top:16px">
+      <p style="margin:0"><b>De reținut la restricție:</b> editarea permisiunilor pe rolurile Editor / Author este complet disponibilă gratuit. Rolul <b>Super Admin</b> nu poate fi modificat (are tot). Dacă ai nevoie de mai multe roluri restricționate diferite, verifică în ecranul Roluri dacă planul tău permite crearea de roluri noi; restricționarea rolurilor existente e oricum suficientă pentru un singur cont de antrenor.</p>
+    </div>
+  </section>
+
+  <footer class="foot">
+    Machete de prezentare pentru alegere. Nicio modificare nu a fost aplicată în sursa reală a panoului de administrare (punctele 1, 2, 4). Punctul 3 este o editare de o linie, documentată mai sus, neaplicată.
+  </footer>
+
+</div>
