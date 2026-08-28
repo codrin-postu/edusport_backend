@@ -1,7 +1,7 @@
 import type { StrapiApp } from '@strapi/strapi/admin';
 import {
   House, Book, Cursor, Feather, Calendar, User, Star, GridFour,
-  Clock, Bell, Duplicate, Pencil, ChartCircle,
+  Clock, Bell, Duplicate, Pencil, ChartCircle, Mail,
 } from '@strapi/icons';
 
 /**
@@ -17,7 +17,7 @@ import {
  * The content routes already exist natively, so they are not re-registered.
  */
 
-export type Group = 'program' | 'team' | 'pages' | 'content' | 'system';
+export type Group = 'forms' | 'program' | 'team' | 'pages' | 'content' | 'system';
 
 export interface EdusportLink {
   to: string;
@@ -29,6 +29,7 @@ export interface EdusportLink {
 }
 
 export const GROUP_LABEL: Record<Group, string> = {
+  forms: 'Formulare',
   program: 'Program și calendar',
   team: 'Sportivi și echipă',
   pages: 'Pagini site',
@@ -36,10 +37,19 @@ export const GROUP_LABEL: Record<Group, string> = {
   system: 'Sistem',
 };
 
-export const GROUP_ORDER: Group[] = ['program', 'team', 'pages', 'content', 'system'];
+export const GROUP_ORDER: Group[] = ['forms', 'program', 'team', 'pages', 'content', 'system'];
 
 // Admin route for the custom dashboard page (basename is /admin at runtime).
 export const DASHBOARD_TO = '/plugins/edusport-dashboard';
+
+// Admin route for the custom registrations (Înscrieri) results page.
+export const INSCRIERI_TO = '/plugins/edusport-inscrieri';
+
+// Admin route for the custom "Formulare" hub page.
+export const FORMULARE_TO = '/plugins/edusport-formulare';
+
+// Admin route for the custom "Mesaje" contact inbox page.
+export const MESAJE_TO = '/plugins/edusport-mesaje';
 
 // Umami analytics dashboard URL. Leave empty until connected; the UI degrades
 // gracefully and shows a "coming soon" state rather than a broken link.
@@ -49,6 +59,10 @@ const single = (uid: string) => `/content-manager/single-types/${uid}`;
 const collection = (uid: string) => `/content-manager/collection-types/${uid}`;
 
 export const EDUSPORT_LINKS: EdusportLink[] = [
+  // Formulare (hub + results)
+  { to: FORMULARE_TO, label: 'Formulare', icon: Feather, group: 'forms', featured: true },
+  { to: INSCRIERI_TO, label: 'Înscrieri', icon: Mail, group: 'forms', featured: true },
+
   // Program și calendar
   { to: single('api::program.program'), label: 'Calendar și serii', icon: Calendar, group: 'program', featured: true },
 
@@ -76,7 +90,7 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: collection('api::sponsor.sponsor'), label: 'Sponsori', icon: Duplicate, group: 'content' },
   { to: collection('api::collaboration-event.collaboration-event'), label: 'Evenimente colaborare', icon: Calendar, group: 'content' },
   { to: collection('api::history-milestone.history-milestone'), label: 'Momente istoric', icon: Clock, group: 'content' },
-  { to: collection('api::contact-submission.contact-submission'), label: 'Mesaje contact', icon: Bell, group: 'content' },
+  { to: MESAJE_TO, label: 'Mesaje contact', icon: Mail, group: 'content' },
 
   // Sistem
   { to: '/plugins/upload', label: 'Media', icon: GridFour, group: 'system' },
@@ -93,5 +107,32 @@ export function registerEdusportMenu(app: StrapiApp) {
     Component: () => import('./DashboardPage'),
     permissions: [],
     position: 1,
+  });
+
+  app.addMenuLink({
+    to: FORMULARE_TO,
+    icon: Feather,
+    intlLabel: { id: 'edusport.menu.formulare', defaultMessage: 'Formulare' },
+    Component: () => import('./FormularePage'),
+    permissions: [],
+    position: 2,
+  });
+
+  app.addMenuLink({
+    to: INSCRIERI_TO,
+    icon: Mail,
+    intlLabel: { id: 'edusport.menu.inscrieri', defaultMessage: 'Înscrieri' },
+    Component: () => import('./InscrieriPage'),
+    permissions: [],
+    position: 3,
+  });
+
+  app.addMenuLink({
+    to: MESAJE_TO,
+    icon: Mail,
+    intlLabel: { id: 'edusport.menu.mesaje', defaultMessage: 'Mesaje contact' },
+    Component: () => import('./MesajePage'),
+    permissions: [],
+    position: 4,
   });
 }

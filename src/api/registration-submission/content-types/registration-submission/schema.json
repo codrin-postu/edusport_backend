@@ -1,0 +1,91 @@
+{
+  "kind": "collectionType",
+  "collectionName": "registration_submissions",
+  "info": {
+    "singularName": "registration-submission",
+    "pluralName": "registration-submissions",
+    "displayName": "Înscrieri / Formular",
+    "description": "Cereri de înscriere trimise prin formularul public de înscriere"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "email": {
+      "type": "string",
+      "required": true
+    },
+    "phone": {
+      "type": "string",
+      "required": true
+    },
+    "childName": {
+      "type": "string",
+      "required": true
+    },
+    "childBirthDate": {
+      "type": "string",
+      "required": true
+    },
+    "parentName": {
+      "type": "string",
+      "required": true
+    },
+    "shirtSize": {
+      "type": "string",
+      "required": true
+    },
+    "howHeard": {
+      "type": "string",
+      "required": true
+    },
+    "level": {
+      "type": "enumeration",
+      "enum": [
+        "Nu a mai patinat",
+        "A mai patinat in alta parte",
+        "Incepatori",
+        "Intermediari",
+        "Avansati",
+        "Performanta"
+      ],
+      "required": true
+    },
+    "priorExperience": {
+      "type": "text"
+    },
+    "expectations": {
+      "type": "text"
+    },
+    "clubInterest": {
+      "type": "boolean",
+      "default": false
+    },
+    "regulationsAgreement": {
+      "type": "boolean",
+      "default": false
+    },
+    "privacyConsent": {
+      "type": "boolean",
+      "required": true,
+      "default": false
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["Nou", "Contactat", "Confirmat", "Respins"],
+      "default": "Nou",
+      "required": true
+    },
+    "internalNote": {
+      "type": "text"
+    },
+    "submittedAt": {
+      "type": "datetime"
+    }
+  }
+}

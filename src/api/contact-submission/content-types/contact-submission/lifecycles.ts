@@ -11,7 +11,7 @@
  * add the attribute name to MUTABLE_FIELDS below.
  */
 
-const MUTABLE_FIELDS = new Set<string>(['triageStatus']);
+const MUTABLE_FIELDS = new Set<string>(['triageStatus', 'internalNote']);
 
 // Strapi-managed bookkeeping fields that always appear in update payloads —
 // ignore them so we don't false-positive on auto-bumped timestamps.

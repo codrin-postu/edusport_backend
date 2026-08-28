@@ -1190,6 +1190,73 @@ export interface ApiRealizariPageRealizariPage extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiRegistrationSubmissionRegistrationSubmission
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'registration_submissions';
+  info: {
+    description: 'Cereri de \u00EEnscriere trimise prin formularul public de \u00EEnscriere';
+    displayName: '\u00CEnscrieri / Formular';
+    pluralName: 'registration-submissions';
+    singularName: 'registration-submission';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    childBirthDate: Schema.Attribute.String & Schema.Attribute.Required;
+    childName: Schema.Attribute.String & Schema.Attribute.Required;
+    clubInterest: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    email: Schema.Attribute.String & Schema.Attribute.Required;
+    expectations: Schema.Attribute.Text;
+    howHeard: Schema.Attribute.String & Schema.Attribute.Required;
+    internalNote: Schema.Attribute.Text;
+    level: Schema.Attribute.Enumeration<
+      [
+        'Nu a mai patinat',
+        'A mai patinat in alta parte',
+        'Incepatori',
+        'Intermediari',
+        'Avansati',
+        'Performanta',
+      ]
+    > &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::registration-submission.registration-submission'
+    > &
+      Schema.Attribute.Private;
+    parentName: Schema.Attribute.String & Schema.Attribute.Required;
+    phone: Schema.Attribute.String & Schema.Attribute.Required;
+    priorExperience: Schema.Attribute.Text;
+    privacyConsent: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<false>;
+    publishedAt: Schema.Attribute.DateTime;
+    regulationsAgreement: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    shirtSize: Schema.Attribute.String & Schema.Attribute.Required;
+    status: Schema.Attribute.Enumeration<
+      ['Nou', 'Contactat', 'Confirmat', 'Respins']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'Nou'>;
+    submittedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiSiteSettingsSiteSettings extends Struct.SingleTypeSchema {
   collectionName: 'site_settings';
   info: {
@@ -1962,6 +2029,7 @@ declare module '@strapi/strapi' {
       'api::program-page.program-page': ApiProgramPageProgramPage;
       'api::program.program': ApiProgramProgram;
       'api::realizari-page.realizari-page': ApiRealizariPageRealizariPage;
+      'api::registration-submission.registration-submission': ApiRegistrationSubmissionRegistrationSubmission;
       'api::site-settings.site-settings': ApiSiteSettingsSiteSettings;
       'api::sponsor.sponsor': ApiSponsorSponsor;
       'api::sportsperson.sportsperson': ApiSportspersonSportsperson;
