@@ -40,6 +40,10 @@ export interface CalendarEventRow {
   label?: string | null;
   color?: string | null;
   order?: number | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  linkUrl?: string | null;
+  linkLabel?: string | null;
   recurrence: Recurrence;
   exceptions?: ExceptionRow[];
 }
@@ -65,6 +69,10 @@ export interface Occurrence {
   cancelReason: 'exception' | 'blackout' | null;
   state?: 'curs' | 'liber' | 'anulat' | null; // Școala only
   note?: string | null; // per-occurrence note (e.g. reason for Liber/Anulat)
+  description?: string | null; // event description (for tooltips / detail)
+  imageUrl?: string | null;
+  linkUrl?: string | null;
+  linkLabel?: string | null;
 }
 
 // --- date helpers (local, date-only — no timezone drift) ---
@@ -238,6 +246,10 @@ export function expandOccurrences(
         cancelReason,
         state,
         note,
+        description: ev.description ?? null,
+        imageUrl: ev.imageUrl ?? null,
+        linkUrl: ev.linkUrl ?? null,
+        linkLabel: ev.linkLabel ?? null,
       });
     }
   }
