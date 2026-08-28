@@ -15,6 +15,9 @@ const parseOrigin = (raw: string | undefined): string[] | string => {
 export default [
   'strapi::logger',
   'strapi::errors',
+  // Reports controller errors to Sentry/GlitchTip before `strapi::errors`
+  // formats them. Inert unless SENTRY_DSN is set.
+  'global::sentry',
   'strapi::security',
   {
     name: 'strapi::cors',

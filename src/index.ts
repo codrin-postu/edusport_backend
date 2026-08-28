@@ -1,4 +1,5 @@
 import type { Core } from '@strapi/strapi';
+import { initSentry } from './sentry';
 
 // Admin layout overrides - applied on every bootstrap so they survive DB resets.
 // Each key is the strapi_core_store_settings key for that component/content-type.
@@ -303,6 +304,9 @@ const LAYOUT_OVERRIDES: Record<string, { name: string; size: number }[][]> = {
 
 export default {
   register({ strapi }: { strapi: Core.Strapi }) {
+    // Backend error tracking (GlitchTip). Inert unless SENTRY_DSN is set.
+    initSentry();
+
     // Hide the users-permissions User collection from the content manager sidebar.
     // There is no login on the frontend so this type is unused.
     const userCT = strapi.contentType('plugin::users-permissions.user' as any);

@@ -26,6 +26,7 @@
     "docker:logs": "docker compose logs --tail=80 -f strapi"
   },
   "dependencies": {
+    "@sentry/node": "^10.71.0",
     "@strapi/plugin-cloud": "5.52.1",
     "@strapi/plugin-users-permissions": "5.52.1",
     "@strapi/strapi": "5.52.1",
