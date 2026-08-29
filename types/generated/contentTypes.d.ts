@@ -725,6 +725,7 @@ export interface ApiContactSubmissionContactSubmission
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     email: Schema.Attribute.Email & Schema.Attribute.Required;
+    extra: Schema.Attribute.JSON;
     internalNote: Schema.Attribute.Text;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -740,18 +741,7 @@ export interface ApiContactSubmissionContactSubmission
     name: Schema.Attribute.String & Schema.Attribute.Required;
     phone: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
-    reason: Schema.Attribute.Enumeration<
-      [
-        'inscriere',
-        'informatii-cursuri',
-        'program',
-        'tarife',
-        'partenariat',
-        'feedback',
-        'altele',
-      ]
-    > &
-      Schema.Attribute.Required;
+    reason: Schema.Attribute.String;
     submittedAt: Schema.Attribute.DateTime;
     submitterIp: Schema.Attribute.String;
     triageStatus: Schema.Attribute.Enumeration<
@@ -1254,19 +1244,10 @@ export interface ApiRegistrationSubmissionRegistrationSubmission
       Schema.Attribute.Private;
     email: Schema.Attribute.String & Schema.Attribute.Required;
     expectations: Schema.Attribute.Text;
+    extra: Schema.Attribute.JSON;
     howHeard: Schema.Attribute.String & Schema.Attribute.Required;
     internalNote: Schema.Attribute.Text;
-    level: Schema.Attribute.Enumeration<
-      [
-        'Nu a mai patinat',
-        'A mai patinat in alta parte',
-        'Incepatori',
-        'Intermediari',
-        'Avansati',
-        'Performanta',
-      ]
-    > &
-      Schema.Attribute.Required;
+    level: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',

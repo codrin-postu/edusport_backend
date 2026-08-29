@@ -45,16 +45,7 @@
       "required": true
     },
     "level": {
-      "type": "enumeration",
-      "enum": [
-        "Nu a mai patinat",
-        "A mai patinat in alta parte",
-        "Incepatori",
-        "Intermediari",
-        "Avansati",
-        "Performanta"
-      ],
-      "required": true
+      "type": "string"
     },
     "priorExperience": {
       "type": "text"
@@ -93,6 +84,9 @@
     "archived": {
       "type": "boolean",
       "default": false
+    },
+    "extra": {
+      "type": "json"
     }
   }
 }

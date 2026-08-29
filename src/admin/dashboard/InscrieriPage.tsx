@@ -78,11 +78,39 @@ interface ColumnDef {
   type: ColType;
   readOnly?: boolean;
   width: number;
+  custom?: boolean; // sourced from row.extra[extraKey]
+  extraKey?: string;
+  removed?: boolean; // removed from the form but still has data
 }
 
-const COLUMNS: ColumnDef[] = [
+// The registry keys that map to editable/removable built-in columns. status,
+// submittedAt and internalNote are meta columns and are never "removed".
+const REGISTRY_COL_KEYS = new Set<string>([
+  'childName',
+  'childBirthDate',
+  'parentName',
+  'email',
+  'phone',
+  'level',
+  'shirtSize',
+  'howHeard',
+  'clubInterest',
+  'regulationsAgreement',
+  'privacyConsent',
+  'priorExperience',
+  'expectations',
+]);
+
+interface FormMeta {
+  removedBuiltins: string[];
+  customs: { key: string; label: string; type: string; step: string }[];
+  selectOptions: Record<string, { value: string; label: string }[]>;
+  extraKeys: string[];
+}
+
+const BUILTIN_COLUMNS: ColumnDef[] = [
   { key: 'submittedAt', label: 'Trimis la', type: 'date', readOnly: true, width: 150 },
-  { key: 'status', label: 'Stare', type: 'status', width: 130 },
+  { key: 'status', label: 'Status', type: 'status', width: 130 },
   { key: 'childName', label: 'Nume copil', type: 'text', width: 170 },
   { key: 'childBirthDate', label: 'Data nașterii', type: 'text', width: 150 },
   { key: 'parentName', label: 'Nume părinte', type: 'text', width: 170 },
@@ -98,11 +126,50 @@ const COLUMNS: ColumnDef[] = [
   { key: 'expectations', label: 'Așteptări', type: 'longtext', width: 240 },
   { key: 'internalNote', label: 'Notă internă', type: 'longtext', width: 240 },
 ];
-const COL_BY_KEY: Record<string, ColumnDef> = Object.fromEntries(COLUMNS.map((c) => [c.key, c]));
-const DEFAULT_ORDER = COLUMNS.map((c) => c.key);
-
 // Compact list key columns.
 const COMPACT_KEYS = ['submittedAt', 'childName', 'parentName', 'level', 'status'];
+
+// Map a custom question type to a display column type.
+const customColType = (t: string): ColType => (t === 'checkbox' ? 'bool' : t === 'longtext' ? 'longtext' : 'text');
+const customColWidth = (t: string): number => (t === 'longtext' ? 240 : t === 'checkbox' ? 110 : 170);
+
+/**
+ * Build the full union column set: built-in columns (removed-from-form ones get
+ * a "(eliminată)" suffix + read-only) followed by custom columns (active first,
+ * then removed-from-config keys that still have data anywhere).
+ */
+function buildColumns(meta: FormMeta): ColumnDef[] {
+  const removed = new Set(meta.removedBuiltins ?? []);
+  const builtin = BUILTIN_COLUMNS.map((c) =>
+    REGISTRY_COL_KEYS.has(c.key) && removed.has(c.key)
+      ? { ...c, label: `${c.label} (eliminată)`, readOnly: true, removed: true }
+      : c,
+  );
+  const customByKey = new Map((meta.customs ?? []).map((c) => [c.key, c]));
+  const activeCustom: ColumnDef[] = (meta.customs ?? []).map((c) => ({
+    key: `x_${c.key}`,
+    extraKey: c.key,
+    label: c.label,
+    type: customColType(c.type),
+    width: customColWidth(c.type),
+    custom: true,
+    readOnly: true,
+  }));
+  const removedCustom: ColumnDef[] = (meta.extraKeys ?? [])
+    .filter((k) => !customByKey.has(k))
+    .sort()
+    .map((k) => ({
+      key: `x_${k}`,
+      extraKey: k,
+      label: `${k} (eliminată)`,
+      type: 'text' as ColType,
+      width: 170,
+      custom: true,
+      readOnly: true,
+      removed: true,
+    }));
+  return [...builtin, ...activeCustom, ...removedCustom];
+}
 
 interface Submission {
   documentId: string;
@@ -124,6 +191,7 @@ interface Submission {
   submittedAt: string | null;
   season: string | null;
   archived: boolean;
+  extra?: Record<string, unknown> | null;
   [k: string]: unknown;
 }
 
@@ -165,21 +233,19 @@ function fmtDateShort(iso: string | null): string {
   return `${d.getDate()} ${RO_MON_SHORT[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+// Raw load of the saved column config. It is reconciled against the dynamic
+// column set (built-in + custom + removed) by an effect once the columns load.
 function loadColConfig(userKey: string): ColConfig {
   try {
     const raw = localStorage.getItem(`edusport-inscrieri-cols-${userKey}`);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<ColConfig>;
-      const known = new Set(DEFAULT_ORDER);
-      const order = (parsed.order ?? DEFAULT_ORDER).filter((k) => known.has(k));
-      for (const k of DEFAULT_ORDER) if (!order.includes(k)) order.push(k);
-      const hidden = (parsed.hidden ?? []).filter((k) => known.has(k));
-      return { order, hidden };
+      return { order: parsed.order ?? [], hidden: parsed.hidden ?? [] };
     }
   } catch {
     /* ignore */
   }
-  return { order: [...DEFAULT_ORDER], hidden: [] };
+  return { order: [], hidden: [] };
 }
 function saveColConfig(userKey: string, cfg: ColConfig) {
   try {
@@ -257,6 +323,13 @@ const CSS = `
 .t-confirmat{color:var(--confirmat);background:var(--confirmat-s)}
 .t-respins{color:var(--respins);background:var(--respins-s)}
 .t-arhivat{color:var(--arhivat);background:var(--arhivat-s)}
+/* status selects tinted by value, same palette as the tags */
+select.sel-status{font-weight:700}
+select.sel-status.t-nou{color:var(--nou);background:var(--nou-s);border-color:#c6cff2}
+select.sel-status.t-contactat{color:var(--contactat);background:var(--contactat-s);border-color:#b6dde0}
+select.sel-status.t-confirmat{color:var(--confirmat);background:var(--confirmat-s);border-color:#bfe0cc}
+select.sel-status.t-respins{color:var(--respins);background:var(--respins-s);border-color:#e6c3c1}
+select.sel-status.t-arhivat{color:var(--arhivat);background:var(--arhivat-s);border-color:#d3d6dd}
 .lvchip{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:var(--r2);padding:2px 7px;display:inline-block}
 
 /* compact split */
@@ -284,6 +357,9 @@ const CSS = `
 .panel .pb{padding:14px 15px;max-height:calc(100vh - 340px);min-height:200px;overflow-y:auto}
 .fld{margin-bottom:11px}
 .fld label{display:block;font-size:10px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em}
+.statusbox{margin:0 0 14px;padding:11px 12px;border:1px solid #cdd6f6;background:var(--accent-soft);border-radius:var(--r);border-left:4px solid var(--accent)}
+.statusbox label{display:block;font-size:10px;color:var(--accent);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;font-weight:800}
+.statusbox select{width:100%;font-size:14px;font-weight:700;padding:8px 10px}
 .fld .v{font-size:13px;color:var(--ink);margin-top:2px;white-space:pre-wrap;word-break:break-word}
 .fld select,.fld textarea{width:100%}
 .fld textarea{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:var(--r2);padding:7px 9px;resize:vertical;background:var(--field)}
@@ -316,6 +392,7 @@ const CSS = `
 /* popover / menu */
 .popwrap{position:relative}
 .pop{position:absolute;right:0;top:calc(100% + 6px);z-index:20;width:288px;background:#fff;border:1px solid var(--border);border-radius:var(--r);box-shadow:0 8px 28px rgba(0,0,0,.14);padding:8px}
+.pop.pop-fixed{position:fixed;top:auto;right:auto;z-index:5000}
 .pop h4{margin:4px 6px 8px;font-size:11px;line-height:1.35;color:var(--muted);font-weight:700}
 .pop-body{max-height:320px;overflow-y:auto}
 .pop .prow{display:flex;align-items:center;gap:8px;padding:6px;border-radius:var(--r2);border:1px solid transparent}
@@ -392,9 +469,35 @@ export default function InscrieriPage() {
   const [dFrom, setDFrom] = React.useState('');
   const [dTo, setDTo] = React.useState('');
 
+  // union-column metadata (removed built-ins, custom questions, select options)
+  const [formMeta, setFormMeta] = React.useState<FormMeta>({
+    removedBuiltins: [],
+    customs: [],
+    selectOptions: {},
+    extraKeys: [],
+  });
+  const columns = React.useMemo(() => buildColumns(formMeta), [formMeta]);
+  const colByKey = React.useMemo(
+    () => Object.fromEntries(columns.map((c) => [c.key, c])) as Record<string, ColumnDef>,
+    [columns],
+  );
+  const defaultOrder = React.useMemo(() => columns.map((c) => c.key), [columns]);
+
   // full-view column config
   const [colCfg, setColCfg] = React.useState<ColConfig>(() => loadColConfig('anon'));
   const [popOpen, setPopOpen] = React.useState(false);
+  const colBtnRef = React.useRef<HTMLButtonElement>(null);
+  const [popPos, setPopPos] = React.useState<{ top: number; right: number } | null>(null);
+  const openColPop = React.useCallback(() => {
+    setPopOpen((o) => {
+      const next = !o;
+      if (next && colBtnRef.current) {
+        const r = colBtnRef.current.getBoundingClientRect();
+        setPopPos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) });
+      }
+      return next;
+    });
+  }, []);
   const [exportOpen, setExportOpen] = React.useState(false);
   const [dragKey, setDragKey] = React.useState<string | null>(null);
   const [overKey, setOverKey] = React.useState<string | null>(null);
@@ -446,6 +549,27 @@ export default function InscrieriPage() {
     };
   }, [get]);
 
+  // --- reconcile saved column config against the dynamic column set: append any
+  // new columns (custom/removed), drop unknown ones, keep hidden valid.
+  React.useEffect(() => {
+    if (!defaultOrder.length) return;
+    setColCfg((prev) => {
+      const known = new Set(defaultOrder);
+      const order = prev.order.filter((k) => known.has(k));
+      for (const k of defaultOrder) if (!order.includes(k)) order.push(k);
+      const hidden = prev.hidden.filter((k) => known.has(k));
+      const same =
+        order.length === prev.order.length &&
+        order.every((k, i) => k === prev.order[i]) &&
+        hidden.length === prev.hidden.length &&
+        hidden.every((k, i) => k === prev.hidden[i]);
+      if (same) return prev;
+      const next = { order, hidden };
+      saveColConfig(userKey, next);
+      return next;
+    });
+  }, [defaultOrder, userKey]);
+
   // --- debounce search -> resets to page 1
   React.useEffect(() => {
     const t = setTimeout(() => {
@@ -473,6 +597,15 @@ export default function InscrieriPage() {
         if (body.pagination) setPagination(body.pagination as Pagination);
         if (Array.isArray(body.seasons)) setSeasons(body.seasons as string[]);
         if (typeof body.activeSeason === 'string' || body.activeSeason === null) setActiveSeason(body.activeSeason);
+        if (body.formMeta && typeof body.formMeta === 'object') {
+          const fm = body.formMeta as Partial<FormMeta>;
+          setFormMeta({
+            removedBuiltins: Array.isArray(fm.removedBuiltins) ? fm.removedBuiltins : [],
+            customs: Array.isArray(fm.customs) ? fm.customs : [],
+            selectOptions: fm.selectOptions && typeof fm.selectOptions === 'object' ? fm.selectOptions : {},
+            extraKeys: Array.isArray(fm.extraKeys) ? fm.extraKeys : [],
+          });
+        }
       })
       .catch(() => {
         if (!off) setError(true);
@@ -774,7 +907,7 @@ export default function InscrieriPage() {
     order.splice(at, 0, from);
     updateCfg({ ...colCfg, order });
   };
-  const resetCols = () => updateCfg({ order: [...DEFAULT_ORDER], hidden: [] });
+  const resetCols = () => updateCfg({ order: [...defaultOrder], hidden: [] });
 
   const statusTag = (r: Submission) => {
     const label = r.archived ? 'Arhivat' : r.status;
@@ -782,12 +915,23 @@ export default function InscrieriPage() {
   };
 
   const renderCellInput = (row: Submission, col: ColumnDef) => {
-    const val = row[col.key];
-    if (col.type === 'date' || col.readOnly) return <span className="cellv">{fmtDateTime(row.submittedAt)}</span>;
+    // Custom columns render read-only from row.extra.
+    if (col.custom) {
+      const ex = row.extra && typeof row.extra === 'object' ? (row.extra as Record<string, unknown>) : {};
+      const v = ex[col.extraKey!];
+      if (col.type === 'bool') return <span className="cellv">{v === true ? 'Da' : v === false ? 'Nu' : ''}</span>;
+      return <span className="cellv">{v == null || v === '' ? '' : String(v)}</span>;
+    }
+    if (col.type === 'date') return <span className="cellv">{fmtDateTime(row.submittedAt)}</span>;
+    // Status is the only editable data cell (unless the row is archived).
     if (col.type === 'status') {
       if (row.archived) return <span className="cellv">Arhivat</span>;
       return (
-        <select value={String(val ?? 'Nou')} onChange={(e) => saveField(row.documentId, col.key, e.target.value as Status)}>
+        <select
+          className={`sel-status ${TAG_CLASS[String(row[col.key] ?? 'Nou')] ?? 't-nou'}`}
+          value={String(row[col.key] ?? 'Nou')}
+          onChange={(e) => saveField(row.documentId, col.key, e.target.value as Status)}
+        >
           {STATUSES.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -796,6 +940,7 @@ export default function InscrieriPage() {
         </select>
       );
     }
+    const val = row[col.key];
     if (col.type === 'bool') return <span className="cellv">{val ? 'Da' : 'Nu'}</span>;
     return <span className="cellv">{val == null || val === '' ? '' : String(val)}</span>;
   };
@@ -890,15 +1035,15 @@ export default function InscrieriPage() {
           </div>
           {view === 'full' && (
             <div className="popwrap">
-              <button className="btn sm" type="button" onClick={() => setPopOpen((o) => !o)}>
+              <button ref={colBtnRef} className="btn sm" type="button" onClick={openColPop}>
                 Coloane ▾
               </button>
               {popOpen && (
-                <div className="pop">
+                <div className="pop pop-fixed" style={popPos ? { top: popPos.top, right: popPos.right } : undefined}>
                   <h4>Coloane: trage pentru a reordona, bifează ce se afișează</h4>
                   <div className="pop-body">
                     {colCfg.order.map((key) => {
-                      const c = COL_BY_KEY[key];
+                      const c = colByKey[key];
                       if (!c) return null;
                       const shown = !colCfg.hidden.includes(key);
                       const cls = `prow${dragKey === key ? ' drag' : ''}${overKey === key && dragKey !== key ? ' over' : ''}`;
@@ -1005,7 +1150,7 @@ export default function InscrieriPage() {
           ) : dColIsLevel ? (
             <select value={dVal} onChange={(e) => setDVal(e.target.value)} style={{ minWidth: 160 }}>
               <option value="">valoare</option>
-              {LEVELS.map((l) => (
+              {(formMeta.selectOptions?.level?.map((o) => o.value) ?? [...LEVELS]).map((l) => (
                 <option key={l} value={l}>
                   {l}
                 </option>
@@ -1194,19 +1339,19 @@ export default function InscrieriPage() {
                   {statusTag(selected)}
                 </div>
                 <div className="pb">
-                  <div className="fld">
-                    <label>Trimis la</label>
-                    <div className="v">{fmtDateTime(selected.submittedAt)}</div>
-                  </div>
-                  <div className="fld">
-                    <label>Stare</label>
-                    <select value={selected.status} onChange={(e) => saveField(selected.documentId, 'status', e.target.value)}>
+                  <div className="statusbox">
+                    <label>Status</label>
+                    <select className={`sel-status ${TAG_CLASS[selected.status] ?? 't-nou'}`} value={selected.status} onChange={(e) => saveField(selected.documentId, 'status', e.target.value)}>
                       {STATUSES.map((s) => (
                         <option key={s} value={s}>
                           {s}
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div className="fld">
+                    <label>Trimis la</label>
+                    <div className="v">{fmtDateTime(selected.submittedAt)}</div>
                   </div>
                   <div className="fld">
                     <label>Arhivare</label>
@@ -1264,6 +1409,28 @@ export default function InscrieriPage() {
                     <label>Așteptări</label>
                     <div className="v">{String(selected.expectations ?? '') || '—'}</div>
                   </div>
+                  {(() => {
+                    const ex = selected.extra && typeof selected.extra === 'object' ? (selected.extra as Record<string, unknown>) : {};
+                    const customCols = columns.filter(
+                      (c) => c.custom && (c.extraKey! in ex || formMeta.customs.some((cc) => cc.key === c.extraKey)),
+                    );
+                    if (customCols.length === 0) return null;
+                    return (
+                      <div style={{ marginTop: 11 }}>
+                        {customCols.map((c) => {
+                          const v = ex[c.extraKey!];
+                          const text =
+                            v == null || v === '' ? '—' : typeof v === 'boolean' ? (v ? 'Da' : 'Nu') : String(v);
+                          return (
+                            <div className="fld" key={c.key}>
+                              <label>{c.label}</label>
+                              <div className="v">{text}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                   <div className="fld">
                     <label>Notă internă</label>
                     <textarea
@@ -1301,11 +1468,15 @@ export default function InscrieriPage() {
             <table className="sheet">
               <thead>
                 <tr>
-                  {visibleOrder.map((key, i) => (
-                    <th key={key} className={i === 0 ? 'frz' : ''} style={{ minWidth: COL_BY_KEY[key].width, left: i === 0 ? 0 : undefined }}>
-                      {COL_BY_KEY[key].label}
-                    </th>
-                  ))}
+                  {visibleOrder.map((key, i) => {
+                    const c = colByKey[key];
+                    if (!c) return null;
+                    return (
+                      <th key={key} className={i === 0 ? 'frz' : ''} style={{ minWidth: c.width, left: i === 0 ? 0 : undefined }}>
+                        {c.label}
+                      </th>
+                    );
+                  })}
                   <th style={{ minWidth: 150 }} />
                 </tr>
               </thead>
@@ -1313,7 +1484,8 @@ export default function InscrieriPage() {
                 {rows.map((r) => (
                   <tr key={r.documentId}>
                     {visibleOrder.map((key, i) => {
-                      const c = COL_BY_KEY[key];
+                      const c = colByKey[key];
+                      if (!c) return null;
                       const isBool = c.type === 'bool';
                       return (
                         <td key={key} className={`${i === 0 ? 'frz' : ''} ${isBool ? 'boolc' : ''}`} style={{ minWidth: c.width }}>

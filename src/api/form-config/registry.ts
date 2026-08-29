@@ -19,7 +19,29 @@
 
 export type FormType = 'inscriere' | 'contact';
 
-export type QuestionType = 'email' | 'tel' | 'text' | 'longtext' | 'select' | 'checkbox' | 'info';
+export type QuestionType = 'email' | 'tel' | 'text' | 'longtext' | 'date' | 'select' | 'checkbox' | 'info';
+
+/**
+ * Types an admin may pick when ADDING a custom question. The type is chosen at
+ * creation and is immutable afterwards. `info` is a built-in-only presentation
+ * block and can never be created as a custom question.
+ */
+export const CUSTOM_QUESTION_TYPES = ['text', 'longtext', 'email', 'tel', 'date', 'select', 'checkbox'] as const;
+export type CustomQuestionType = (typeof CUSTOM_QUESTION_TYPES)[number];
+export function isCustomQuestionType(v: unknown): v is CustomQuestionType {
+  return typeof v === 'string' && (CUSTOM_QUESTION_TYPES as readonly string[]).includes(v);
+}
+
+/**
+ * Built-in questions the admin must confirm before removing from the form
+ * (legally/technically sensitive: the identity email and the consent boxes).
+ * Removal never drops the DB column; it only sets removedFromForm in the overlay.
+ */
+export const SENSITIVE_BUILTIN_KEYS = new Set<string>([
+  'email',
+  'privacyConsent',
+  'regulationsAgreement',
+]);
 
 /**
  * optionSource describes where a select's option VALUES come from:
@@ -161,7 +183,9 @@ const inscriere: RegistryForm = {
           defaultLabel: 'Nivel de experiență',
           required: true,
           canHide: false,
-          optionSource: 'enum',
+          // Backed by a plain-string column, so the option list is fully dynamic:
+          // the editor may add / rename / reorder / disable values.
+          optionSource: 'freetext',
           options: LEVEL_VALUES.map((v) => ({ value: v, label: v })),
         },
         {
@@ -269,7 +293,8 @@ const contact: RegistryForm = {
           defaultLabel: 'Motivul mesajului',
           required: true,
           canHide: false,
-          optionSource: 'enum',
+          // Backed by a plain-string column, so the option list is fully dynamic.
+          optionSource: 'freetext',
           options: CONTACT_REASONS,
         },
         {

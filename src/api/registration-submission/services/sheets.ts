@@ -36,6 +36,10 @@ export interface SubmissionLike {
   status?: string | null;
   internalNote?: string | null;
   submittedAt?: string | null;
+  season?: string | null;
+  archived?: boolean | null;
+  /** Custom (admin-added) answers, keyed by custom question key. */
+  extra?: Record<string, unknown> | null;
 }
 
 export interface SheetsResult {
@@ -160,6 +164,34 @@ export async function appendSubmissions(subs: SubmissionLike[]): Promise<SheetsR
       appended: subs.length,
       spreadsheetUrl: urlFor(cfg.spreadsheetId),
     };
+  } catch (err) {
+    strapi?.log?.warn?.(`[sheets] append failed: ${(err as Error)?.message ?? err}`);
+    return { ok: false, configured: true, reason: 'append_failed' };
+  }
+}
+
+/**
+ * Append arbitrary pre-built rows (array of string cells) to the configured
+ * Sheet. Used by the dynamic results export, whose column set (built-in +
+ * custom + removed-with-data) is computed by the caller. Never throws.
+ */
+export async function appendValues(values: string[][]): Promise<SheetsResult> {
+  const cfg = readConfig();
+  if (!cfg) return { ok: false, configured: false, reason: 'not_configured' };
+  if (values.length === 0) {
+    return { ok: true, configured: true, appended: 0, spreadsheetUrl: urlFor(cfg.spreadsheetId) };
+  }
+  const sheets = await getSheetsClient(cfg);
+  if (!sheets) return { ok: false, configured: true, reason: 'client_unavailable' };
+  try {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: cfg.spreadsheetId,
+      range: `${cfg.tab}!A1`,
+      valueInputOption: 'RAW',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: { values },
+    });
+    return { ok: true, configured: true, appended: values.length, spreadsheetUrl: urlFor(cfg.spreadsheetId) };
   } catch (err) {
     strapi?.log?.warn?.(`[sheets] append failed: ${(err as Error)?.message ?? err}`);
     return { ok: false, configured: true, reason: 'append_failed' };

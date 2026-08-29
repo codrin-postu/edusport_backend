@@ -1,19 +1,10 @@
 import { factories } from '@strapi/strapi';
-import { appendSubmissions, isConfigured, HEADER, toRow } from '../services/sheets';
+import { appendValues, isConfigured } from '../services/sheets';
 import type { SubmissionLike } from '../services/sheets';
 
 const UID = 'api::registration-submission.registration-submission' as const;
 const SETTINGS_UID = 'api::site-settings.site-settings' as const;
-
-const LEVELS = [
-  'Nu a mai patinat',
-  'A mai patinat in alta parte',
-  'Incepatori',
-  'Intermediari',
-  'Avansati',
-  'Performanta',
-] as const;
-type Level = (typeof LEVELS)[number];
+const FORM_CONFIG_UID = 'api::form-config.form-config' as const;
 
 const STATUSES = ['Nou', 'Contactat', 'Confirmat', 'Respins'] as const;
 type Status = (typeof STATUSES)[number];
@@ -246,6 +237,101 @@ function csvCell(v: string): string {
   return out;
 }
 
+// Built-in export columns, in the historic HEADER order (between the two meta
+// columns and the trailing ID). `bool` fields render Da/Nu.
+const BUILTIN_EXPORT_COLS: { key: string; label: string; bool?: boolean }[] = [
+  { key: 'childName', label: 'Nume copil' },
+  { key: 'childBirthDate', label: 'Data nasterii' },
+  { key: 'parentName', label: 'Nume parinte' },
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Telefon' },
+  { key: 'level', label: 'Nivel' },
+  { key: 'shirtSize', label: 'Marime tricou' },
+  { key: 'howHeard', label: 'Cum a aflat' },
+  { key: 'clubInterest', label: 'Interes club', bool: true },
+  { key: 'regulationsAgreement', label: 'Acord regulament', bool: true },
+  { key: 'privacyConsent', label: 'Acord confidentialitate', bool: true },
+  { key: 'priorExperience', label: 'Experienta anterioara' },
+  { key: 'expectations', label: 'Asteptari' },
+  { key: 'internalNote', label: 'Nota interna' },
+];
+
+const yesNo = (v: unknown): string => (v === true ? 'Da' : v === false ? 'Nu' : '');
+const cellStr = (v: unknown): string => (v == null ? '' : String(v));
+
+/**
+ * Build the dynamic export header + matrix. Columns = the two meta columns +
+ * every built-in field (removed-from-form ones marked "(eliminata)") + every
+ * custom answer key that appears in the current config OR in any exported row's
+ * `extra` (removed-from-config ones marked "(eliminata)") + the trailing ID.
+ */
+async function buildExportMatrix(rows: SubmissionLike[]): Promise<{ header: string[]; matrix: string[][] }> {
+  let meta: { removedBuiltins: string[]; customs: { key: string; label: string }[] } = {
+    removedBuiltins: [],
+    customs: [],
+  };
+  try {
+    meta = await strapi.service(FORM_CONFIG_UID).adminFormMeta('inscriere');
+  } catch {
+    /* fall back to no config context */
+  }
+  const removed = new Set(meta.removedBuiltins ?? []);
+  const customByKey = new Map((meta.customs ?? []).map((c) => [c.key, c]));
+
+  const extraKeys = new Set<string>();
+  for (const r of rows) {
+    const ex = (r as any).extra;
+    if (ex && typeof ex === 'object') for (const k of Object.keys(ex)) extraKeys.add(k);
+  }
+  const activeCustomKeys = (meta.customs ?? []).map((c) => c.key);
+  const removedCustomKeys = [...extraKeys].filter((k) => !customByKey.has(k)).sort();
+  const customCols = [
+    ...activeCustomKeys.map((k) => ({ key: k, label: customByKey.get(k)!.label })),
+    ...removedCustomKeys.map((k) => ({ key: k, label: `${k} (eliminata)` })),
+  ];
+
+  const header = [
+    'Trimis la',
+    'Stare',
+    ...BUILTIN_EXPORT_COLS.map((c) => (removed.has(c.key) ? `${c.label} (eliminata)` : c.label)),
+    ...customCols.map((c) => c.label),
+    'ID',
+  ];
+
+  const matrix = rows.map((r) => {
+    const ex = (r as any).extra && typeof (r as any).extra === 'object' ? (r as any).extra : {};
+    return [
+      cellStr(r.submittedAt),
+      cellStr(r.status),
+      ...BUILTIN_EXPORT_COLS.map((c) => (c.bool ? yesNo((r as any)[c.key]) : cellStr((r as any)[c.key]))),
+      ...customCols.map((c) => {
+        const v = ex[c.key];
+        return typeof v === 'boolean' ? (v ? 'Da' : 'Nu') : cellStr(v);
+      }),
+      cellStr(r.documentId),
+    ];
+  });
+
+  return { header, matrix };
+}
+
+/** Distinct custom-answer keys present across every submission's `extra`. */
+async function collectExtraKeys(): Promise<string[]> {
+  const set = new Set<string>();
+  try {
+    const rows = (await strapi.db.query(UID).findMany({ select: ['extra'], limit: 100000 })) as Array<{
+      extra?: Record<string, unknown> | null;
+    }>;
+    for (const r of rows) {
+      const ex = r?.extra;
+      if (ex && typeof ex === 'object') for (const k of Object.keys(ex)) set.add(k);
+    }
+  } catch {
+    /* ignore */
+  }
+  return Array.from(set);
+}
+
 export default factories.createCoreController(UID, ({ strapi }) => ({
   /**
    * POST /api/forms/inscriere  (public, auth:false)
@@ -305,27 +391,37 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
       ctx.body = { ok: false, error: 'Câmpuri obligatorii lipsă.' };
       return;
     }
-    // Enum validity only matters when a level was actually provided.
-    if (level && !(LEVELS as readonly string[]).includes(level)) {
-      ctx.status = 400;
-      ctx.body = { ok: false, error: 'Nivel invalid.' };
-      return;
-    }
-
-    // Data-type format validation (email/tel), driven by the registry types.
+    // Built-in select value (`level`) must be a currently-enabled option, and
+    // email/tel formats are validated — both driven by the effective config.
+    // Custom answers arrive in `extra` and are validated per the effective
+    // config (required + typed formats + enabled select option).
+    let extraValues: Record<string, unknown> = {};
     try {
-      const fmtError = await strapi
-        .service('api::form-config.form-config')
-        .validateFieldFormats('inscriere', { email, phone });
+      const cfg = strapi.service(FORM_CONFIG_UID);
+      const selErr = await cfg.validateBuiltinSelects('inscriere', { level });
+      if (selErr) {
+        ctx.status = 400;
+        ctx.body = { ok: false, error: selErr };
+        return;
+      }
+      const fmtError = await cfg.validateFieldFormats('inscriere', { email, phone });
       if (fmtError) {
         ctx.status = 400;
         ctx.body = { ok: false, error: fmtError };
         return;
       }
+      const extraResult = await cfg.validateExtra('inscriere', (body as any).extra);
+      if (extraResult.error) {
+        ctx.status = 400;
+        ctx.body = { ok: false, error: extraResult.error };
+        return;
+      }
+      extraValues = extraResult.values ?? {};
     } catch {
-      /* if the config service is unavailable, skip format checks (never block) */
+      /* if the config service is unavailable, skip config-driven checks (never block) */
     }
-    if (!privacyConsent) {
+    // Privacy consent is enforced only while it is a required, non-removed field.
+    if (isRequired('privacyConsent') && !privacyConsent) {
       ctx.status = 400;
       ctx.body = { ok: false, error: 'Consimțământul de confidențialitate este obligatoriu.' };
       return;
@@ -342,7 +438,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
           parentName,
           shirtSize,
           howHeard,
-          level: level as Level,
+          level: level || undefined,
           priorExperience: priorExperience || undefined,
           expectations: expectations || undefined,
           clubInterest,
@@ -352,6 +448,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
           submittedAt: new Date().toISOString(),
           season: season ?? undefined,
           archived: false,
+          extra: (Object.keys(extraValues).length ? extraValues : undefined) as any,
         },
       });
       ctx.status = 200;
@@ -390,11 +487,24 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     ]);
     const seasons = await listSeasons(activeSeason);
 
+    // Results-table column metadata: removed built-ins, active custom questions,
+    // enabled built-in select options (for filters), and every custom key that
+    // has data anywhere (so removed-but-with-data columns still surface).
+    let formMeta: Record<string, unknown> = { removedBuiltins: [], customs: [], selectOptions: {}, extraKeys: [] };
+    try {
+      const meta = await strapi.service(FORM_CONFIG_UID).adminFormMeta('inscriere');
+      const extraKeys = await collectExtraKeys();
+      formMeta = { ...meta, extraKeys };
+    } catch {
+      /* leave defaults */
+    }
+
     ctx.body = {
       data,
       pagination: { page, pageSize, total, pageCount: Math.max(1, Math.ceil(total / pageSize)) },
       seasons,
       activeSeason,
+      formMeta,
     };
   },
 
@@ -417,9 +527,8 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     if (typeof data.status === 'string' && !(STATUSES as readonly string[]).includes(data.status)) {
       return ctx.badRequest('Stare invalidă.');
     }
-    if (typeof data.level === 'string' && !(LEVELS as readonly string[]).includes(data.level)) {
-      return ctx.badRequest('Nivel invalid.');
-    }
+    // `level` is now a plain string sourced from the dynamic effective options;
+    // it is no longer validated against a fixed enum here.
 
     const doc = await strapi.documents(UID).update({ documentId, data });
     if (!doc) return ctx.notFound();
@@ -513,8 +622,9 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
    */
   async exportCsv(ctx) {
     const rows = await fetchFiltered(ctx.query as Record<string, any>);
-    const lines = [HEADER.map(csvCell).join(',')];
-    for (const r of rows) lines.push(toRow(r).map(csvCell).join(','));
+    const { header, matrix } = await buildExportMatrix(rows);
+    const lines = [header.map(csvCell).join(',')];
+    for (const row of matrix) lines.push(row.map(csvCell).join(','));
     // Prepend a BOM so Excel opens UTF-8 (Romanian diacritics) correctly.
     const csv = '﻿' + lines.join('\r\n');
 
@@ -535,7 +645,10 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     }
     const query = { ...(ctx.query as Record<string, any>), ...((ctx.request.body as Record<string, any>) ?? {}) };
     const rows = await fetchFiltered(query);
-    const result = await appendSubmissions(rows);
+    const { header, matrix } = await buildExportMatrix(rows);
+    // Append a header row followed by the data rows so the dynamic (built-in +
+    // custom + removed-with-data) column set is self-describing in the Sheet.
+    const result = await appendValues([header, ...matrix]);
     ctx.body = result;
   },
 }));
