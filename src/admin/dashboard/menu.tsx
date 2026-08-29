@@ -51,6 +51,9 @@ export const FORMULARE_TO = '/plugins/edusport-formulare';
 // Admin route for the custom "Mesaje" contact inbox page.
 export const MESAJE_TO = '/plugins/edusport-mesaje';
 
+// Admin route for the custom "Editor formular" page (?type=inscriere|contact).
+export const FORM_EDITOR_TO = '/plugins/edusport-form-editor';
+
 // Admin routes for the custom Sportivi (sportsperson) list + edit pages.
 export const SPORTIVI_TO = '/plugins/edusport-sportivi';
 export const SPORTIV_EDIT_TO = '/plugins/edusport-sportiv-edit';
@@ -142,6 +145,15 @@ export function registerEdusportMenu(app: StrapiApp) {
     Component: () => import('./MesajePage'),
     permissions: [],
     position: 4,
+  });
+
+  app.addMenuLink({
+    to: FORM_EDITOR_TO,
+    icon: Pencil,
+    intlLabel: { id: 'edusport.menu.formEditor', defaultMessage: 'Editor formular' },
+    Component: () => import('./FormEditorPage'),
+    permissions: [],
+    position: 5,
   });
 
   app.addMenuLink({

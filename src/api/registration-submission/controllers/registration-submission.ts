@@ -278,15 +278,52 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     const regulationsAgreement = asBool(body.regulationsAgreement);
     const privacyConsent = asBool(body.privacyConsent);
 
-    if (!email || !phone || !childName || !childBirthDate || !parentName || !shirtSize || !howHeard || !level) {
+    // Which scalar/select fields are required is driven by the effective form
+    // config (registry + admin overlay). Defaults match the historic behaviour
+    // (all required) so nothing breaks when no overlay exists; an editor may
+    // relax a non-locked field to optional and empty values are then accepted.
+    const scalarValues: Record<string, string> = {
+      email,
+      phone,
+      childName,
+      childBirthDate,
+      parentName,
+      shirtSize,
+      howHeard,
+      level,
+    };
+    let requiredMap: Record<string, boolean> = {};
+    try {
+      requiredMap = await strapi.service('api::form-config.form-config').effectiveRequired('inscriere');
+    } catch {
+      requiredMap = {};
+    }
+    const isRequired = (key: string) => (key in requiredMap ? requiredMap[key] : true);
+    const missing = Object.entries(scalarValues).filter(([k, v]) => isRequired(k) && !v);
+    if (missing.length) {
       ctx.status = 400;
       ctx.body = { ok: false, error: 'Câmpuri obligatorii lipsă.' };
       return;
     }
-    if (!(LEVELS as readonly string[]).includes(level)) {
+    // Enum validity only matters when a level was actually provided.
+    if (level && !(LEVELS as readonly string[]).includes(level)) {
       ctx.status = 400;
       ctx.body = { ok: false, error: 'Nivel invalid.' };
       return;
+    }
+
+    // Data-type format validation (email/tel), driven by the registry types.
+    try {
+      const fmtError = await strapi
+        .service('api::form-config.form-config')
+        .validateFieldFormats('inscriere', { email, phone });
+      if (fmtError) {
+        ctx.status = 400;
+        ctx.body = { ok: false, error: fmtError };
+        return;
+      }
+    } catch {
+      /* if the config service is unavailable, skip format checks (never block) */
     }
     if (!privacyConsent) {
       ctx.status = 400;

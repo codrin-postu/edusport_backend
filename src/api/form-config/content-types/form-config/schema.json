@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "form_configs",
+  "info": {
+    "singularName": "form-config",
+    "pluralName": "form-configs",
+    "displayName": "Config / Formular",
+    "description": "Suprascriere (overlay) editabilă peste registrul de câmpuri al formularelor publice"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "type": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "overlay": {
+      "type": "json"
+    }
+  }
+}

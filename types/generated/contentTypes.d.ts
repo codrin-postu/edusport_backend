@@ -873,6 +873,43 @@ export interface ApiDisciplineDiscipline extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiFormConfigFormConfig extends Struct.CollectionTypeSchema {
+  collectionName: 'form_configs';
+  info: {
+    description: 'Suprascriere (overlay) editabil\u0103 peste registrul de c\u00E2mpuri al formularelor publice';
+    displayName: 'Config / Formular';
+    pluralName: 'form-configs';
+    singularName: 'form-config';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::form-config.form-config'
+    > &
+      Schema.Attribute.Private;
+    overlay: Schema.Attribute.JSON;
+    publishedAt: Schema.Attribute.DateTime;
+    type: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiHistoricPageHistoricPage extends Struct.SingleTypeSchema {
   collectionName: 'historic_page';
   info: {
@@ -2024,6 +2061,7 @@ declare module '@strapi/strapi' {
       'api::course-regulations.course-regulations': ApiCourseRegulationsCourseRegulations;
       'api::cursuri-page.cursuri-page': ApiCursuriPageCursuriPage;
       'api::discipline.discipline': ApiDisciplineDiscipline;
+      'api::form-config.form-config': ApiFormConfigFormConfig;
       'api::historic-page.historic-page': ApiHistoricPageHistoricPage;
       'api::history-milestone.history-milestone': ApiHistoryMilestoneHistoryMilestone;
       'api::homepage.homepage': ApiHomepageHomepage;

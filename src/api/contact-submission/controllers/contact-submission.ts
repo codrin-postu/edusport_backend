@@ -36,6 +36,17 @@ export default factories.createCoreController(
         return ctx.badRequest('Motiv invalid.');
       }
 
+      // Data-type format validation (email/tel), driven by the registry types.
+      // Phone is optional here, so an empty phone passes; a present one is checked.
+      try {
+        const fmtError = await strapi
+          .service('api::form-config.form-config')
+          .validateFieldFormats('contact', { email, phone });
+        if (fmtError) return ctx.badRequest(fmtError);
+      } catch {
+        /* if the config service is unavailable, skip format checks (never block) */
+      }
+
       // Force server-side defaults; ignore any client-supplied status/timestamps.
       const data = {
         name,

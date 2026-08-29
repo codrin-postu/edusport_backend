@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
-import { INSCRIERI_TO, MESAJE_TO } from './menu';
+import { INSCRIERI_TO, MESAJE_TO, FORM_EDITOR_TO } from './menu';
 
 /**
  * EduSport admin — "Formulare" hub page.
@@ -244,7 +244,13 @@ export default function FormularePage() {
               >
                 {f.resultsLabel ?? 'Rezultate'}
               </button>
-              <button className="esfm-btn" type="button" disabled title="În curând">
+              <button
+                className="esfm-btn"
+                type="button"
+                disabled={!f.live}
+                title={f.live ? undefined : 'În curând'}
+                onClick={() => f.live && navigate(`${FORM_EDITOR_TO}?type=${f.key}`)}
+              >
                 Editează întrebări
               </button>
             </div>
