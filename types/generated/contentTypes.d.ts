@@ -1380,6 +1380,7 @@ export interface ApiSportspersonSportsperson
     showPublicPage: Schema.Attribute.Boolean &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<false>;
+    skateResultsSlug: Schema.Attribute.String;
     slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
     story: Schema.Attribute.Blocks;
     updatedAt: Schema.Attribute.DateTime;

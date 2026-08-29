@@ -29,6 +29,10 @@ services:
       # button to open a side-panel preview.
       STRAPI_PREVIEW_FRONTEND_URL: ${STRAPI_PREVIEW_FRONTEND_URL:-http://localhost:3000}
       STRAPI_PREVIEW_SECRET: ${STRAPI_PREVIEW_SECRET:-localDevPreviewSecret}
+      # skate-results API base + shared key for the mutating proxy routes
+      # (import / delete). Key value comes from a gitignored .env.
+      SKATE_RESULTS_API: ${SKATE_RESULTS_API:-https://skate-api.codrin.space}
+      SKATE_RESULTS_API_KEY: ${SKATE_RESULTS_API_KEY:-}
     volumes:
       - .:/app
       - /app/node_modules
