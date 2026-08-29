@@ -90,7 +90,7 @@ export default function ScheduleGroupsEditor({ name }: Props) {
   return (
     <Box width="100%">
       <EditorCard
-        title="Serii orar"
+        title="Serii Școala de Patinaj"
         description="Fiecare serie are un interval orar și lista de grupe de cursanți."
       >
         <Box padding={4}>

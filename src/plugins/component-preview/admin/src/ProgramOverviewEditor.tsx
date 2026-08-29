@@ -426,10 +426,12 @@ export default function ProgramOverviewEditor(_props: Props) {
                       </select>
                     </div>
                   )}
-                  <div className="row2">
-                    <div className="fld"><label>Sezon de la</label><input type="date" value={form.seasonStart} onChange={(e) => upd({ seasonStart: e.target.value })} /></div>
-                    <div className="fld"><label>până la</label><input type="date" value={form.seasonEnd} onChange={(e) => upd({ seasonEnd: e.target.value })} /></div>
-                  </div>
+                  {form.type === 'scoala' && (
+                    <div className="row2">
+                      <div className="fld"><label>Sezon de la</label><input type="date" value={form.seasonStart} onChange={(e) => upd({ seasonStart: e.target.value })} /></div>
+                      <div className="fld"><label>până la</label><input type="date" value={form.seasonEnd} onChange={(e) => upd({ seasonEnd: e.target.value })} /></div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
