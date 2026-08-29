@@ -1208,6 +1208,7 @@ export interface ApiRegistrationSubmissionRegistrationSubmission
     };
   };
   attributes: {
+    archived: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     childBirthDate: Schema.Attribute.String & Schema.Attribute.Required;
     childName: Schema.Attribute.String & Schema.Attribute.Required;
     clubInterest: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
@@ -1244,6 +1245,7 @@ export interface ApiRegistrationSubmissionRegistrationSubmission
     publishedAt: Schema.Attribute.DateTime;
     regulationsAgreement: Schema.Attribute.Boolean &
       Schema.Attribute.DefaultTo<false>;
+    season: Schema.Attribute.String;
     shirtSize: Schema.Attribute.String & Schema.Attribute.Required;
     status: Schema.Attribute.Enumeration<
       ['Nou', 'Contactat', 'Confirmat', 'Respins']

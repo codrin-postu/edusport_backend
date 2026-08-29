@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
+import { INSCRIERI_TO, MESAJE_TO } from './menu';
 
 /**
  * EduSport admin dashboard page (Direction A).
@@ -173,6 +174,7 @@ export default function DashboardPage() {
   const [nextEv, setNextEv] = React.useState<Occurrence | null>(null);
 
   const [newContacts, setNewContacts] = React.useState<number | null>(null);
+  const [newInscrieri, setNewInscrieri] = React.useState<number | null>(null);
   const [reg, setReg] = React.useState<{ open: boolean; raw: Record<string, unknown> } | null>(null);
   const [regSaving, setRegSaving] = React.useState(false);
 
@@ -256,6 +258,15 @@ export default function DashboardPage() {
       .catch(() => { if (!off) setEventsError(true); });
     return () => { off = true; };
   }, [get, today, todayStr]);
+
+  // --- new registrations count (active season, non-archived, status Nou)
+  React.useEffect(() => {
+    let off = false;
+    get('/api/forms/inscrieri', { params: { page: 1, pageSize: 1, filters: JSON.stringify([{ col: 'status', op: 'equals', val: 'Nou' }]) } })
+      .then((r: any) => { if (!off) setNewInscrieri(typeof r?.data?.pagination?.total === 'number' ? r.data.pagination.total : null); })
+      .catch(() => { if (!off) setNewInscrieri(null); });
+    return () => { off = true; };
+  }, [get]);
 
   // --- registration (season) state
   React.useEffect(() => {
@@ -359,23 +370,40 @@ export default function DashboardPage() {
       )}
 
       {/* CE E NOU feed */}
-      <div className="feed">
-        <div className="feed-h">
-          <span className="t">Ce e nou</span>
-          {newContacts != null && newContacts > 0 && <span className="tot num">{newContacts} de rezolvat</span>}
-        </div>
-        {newContacts != null && newContacts > 0 ? (
-          <div className="feed-rows">
-            <button className="frow" type="button" onClick={() => navigate('/content-manager/collection-types/api::contact-submission.contact-submission')}>
-              <span className="tile" style={{ background: '#2138b8' }}>M</span>
-              <span className="bd"><b><span className="num">{newContacts}</span> mesaje de contact noi</b><small>pe Mesaje contact</small></span>
-              <span className="arr">&rsaquo;</span>
-            </button>
+      {(() => {
+        const feedItems = [
+          newInscrieri && newInscrieri > 0
+            ? { key: 'insc', n: newInscrieri, color: '#1f7a4d', tile: 'Î', to: INSCRIERI_TO,
+                label: newInscrieri === 1 ? 'înscriere nouă' : 'înscrieri noi', sub: 'pe Înscrieri' }
+            : null,
+          newContacts && newContacts > 0
+            ? { key: 'msg', n: newContacts, color: '#2138b8', tile: 'M', to: MESAJE_TO,
+                label: newContacts === 1 ? 'mesaj de contact nou' : 'mesaje de contact noi', sub: 'pe Mesaje contact' }
+            : null,
+        ].filter(Boolean) as Array<{ key: string; n: number; color: string; tile: string; to: string; label: string; sub: string }>;
+        const totalNew = feedItems.reduce((s, it) => s + it.n, 0);
+        return (
+          <div className="feed">
+            <div className="feed-h">
+              <span className="t">Ce e nou</span>
+              {totalNew > 0 && <span className="tot num">{totalNew} de rezolvat</span>}
+            </div>
+            {feedItems.length > 0 ? (
+              <div className="feed-rows">
+                {feedItems.map((it) => (
+                  <button key={it.key} className="frow" type="button" onClick={() => navigate(it.to)}>
+                    <span className="tile" style={{ background: it.color }}>{it.tile}</span>
+                    <span className="bd"><b><span className="num">{it.n}</span> {it.label}</b><small>{it.sub}</small></span>
+                    <span className="arr">&rsaquo;</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="feed-empty"><span className="ok">&#10003;</span> Nimic nou. Totul e la zi.</div>
+            )}
           </div>
-        ) : (
-          <div className="feed-empty"><span className="ok">&#10003;</span> Nimic nou. Totul e la zi.</div>
-        )}
-      </div>
+        );
+      })()}
 
       <div className="a-grid">
         {/* LEFT */}

@@ -29,6 +29,30 @@ export default {
       config: adminGuard,
     },
     {
+      method: 'POST',
+      path: '/forms/inscrieri/archive-season',
+      handler: 'registration-submission.archiveSeason',
+      config: adminGuard,
+    },
+    {
+      method: 'POST',
+      path: '/forms/inscrieri/delete-archived-season',
+      handler: 'registration-submission.deleteArchivedSeason',
+      config: adminGuard,
+    },
+    {
+      method: 'POST',
+      path: '/forms/inscrieri/move-season',
+      handler: 'registration-submission.moveSeason',
+      config: adminGuard,
+    },
+    {
+      method: 'POST',
+      path: '/forms/inscrieri/move-whole-season',
+      handler: 'registration-submission.moveWholeSeason',
+      config: adminGuard,
+    },
+    {
       method: 'PUT',
       path: '/forms/inscrieri/:documentId',
       handler: 'registration-submission.updateSubmission',

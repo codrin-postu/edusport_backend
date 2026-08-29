@@ -145,24 +145,19 @@ export default function FormularePage() {
     contact: { total: null, noi: null, loaded: false },
   });
 
-  // --- Înscriere counts (dedicated admin endpoint)
+  // --- Înscriere counts (dedicated admin endpoint, server-paginated).
+  // Both calls default to season=active + archived excluded; we read
+  // pagination.total rather than counting a full array. "noi" = status Nou.
   React.useEffect(() => {
     let off = false;
-    get(INSCRIERI_API)
-      .then((r: any) => {
-        if (off) return;
-        const data = r?.data?.data;
-        if (Array.isArray(data)) {
-          const total = data.length;
-          const noi = data.filter((d: any) => d?.status === 'Nou').length;
-          setCounts((c) => ({ ...c, inscriere: { total, noi, loaded: true } }));
-        } else {
-          setCounts((c) => ({ ...c, inscriere: { total: null, noi: null, loaded: true } }));
-        }
-      })
-      .catch(() => {
-        if (!off) setCounts((c) => ({ ...c, inscriere: { total: null, noi: null, loaded: true } }));
-      });
+    const totalOf = (r: any) => (typeof r?.data?.pagination?.total === 'number' ? r.data.pagination.total : null);
+    const nouFilter = JSON.stringify([{ col: 'status', op: 'equals', val: 'Nou' }]);
+    const total = get(INSCRIERI_API, { params: { pageSize: 1 } }).then(totalOf).catch(() => null);
+    const fresh = get(INSCRIERI_API, { params: { pageSize: 1, filters: nouFilter } }).then(totalOf).catch(() => null);
+    Promise.all([total, fresh]).then(([t, n]) => {
+      if (off) return;
+      setCounts((c) => ({ ...c, inscriere: { total: t, noi: n, loaded: true } }));
+    });
     return () => {
       off = true;
     };
