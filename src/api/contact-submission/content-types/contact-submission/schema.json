@@ -28,17 +28,7 @@
       "type": "string"
     },
     "reason": {
-      "type": "enumeration",
-      "enum": [
-        "inscriere",
-        "informatii-cursuri",
-        "program",
-        "tarife",
-        "partenariat",
-        "feedback",
-        "altele"
-      ],
-      "required": true
+      "type": "string"
     },
     "message": {
       "type": "text",
@@ -62,6 +52,9 @@
     },
     "userAgent": {
       "type": "string"
+    },
+    "extra": {
+      "type": "json"
     }
   }
 }

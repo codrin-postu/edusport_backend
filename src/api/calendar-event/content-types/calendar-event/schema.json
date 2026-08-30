@@ -1,0 +1,62 @@
+{
+  "kind": "collectionType",
+  "collectionName": "calendar_events",
+  "info": {
+    "singularName": "calendar-event",
+    "pluralName": "calendar-events",
+    "displayName": "Calendar / Eveniment",
+    "description": "Eveniment din calendar (recurent sau unic), cu ore, sezon și excepții"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": ["curs", "scoala", "eveniment", "concurs", "cantonament", "spectacol", "vacanta", "sarbatoare", "liber"],
+      "default": "curs",
+      "required": true
+    },
+    "label": {
+      "type": "string"
+    },
+    "color": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "imageUrl": {
+      "type": "string"
+    },
+    "linkUrl": {
+      "type": "string"
+    },
+    "linkLabel": {
+      "type": "string"
+    },
+    "recurrence": {
+      "type": "component",
+      "repeatable": false,
+      "component": "calendar.recurrence",
+      "required": true
+    },
+    "exceptions": {
+      "type": "component",
+      "repeatable": true,
+      "component": "calendar.exception"
+    },
+    "order": {
+      "type": "integer"
+    }
+  }
+}

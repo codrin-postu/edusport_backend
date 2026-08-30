@@ -5,7 +5,24 @@ import componentPreview from '../plugins/component-preview/admin/src';
 import { MobileNav } from './MobileNav';
 import { SaveBar } from './SaveBar';
 import { BlocksToolbarExtra } from './BlocksToolbarExtra';
+import { registerEdusportMenu } from './dashboard/menu';
+import { mountEdusportShell, tagShellParent, SHELL_CSS } from './dashboard/EdusportShell';
+import { applyLoginBranding } from './dashboard/loginBranding';
 import roTranslations from './translations/ro.json';
+import EdusportLogo from './edusport-logo.svg';
+
+// EduSport login/auth copy, overriding Strapi's default "Welcome to Strapi".
+// Applied to both `ro` and `en` so the auth screen is branded regardless of the
+// visitor's locale (a fresh session defaults to English).
+const AUTH_COPY = {
+  'Auth.form.welcome.title': 'Bine ai venit',
+  'Auth.form.welcome.subtitle': 'Autentifică-te ca să continui',
+  'Auth.form.button.login': 'Autentificare',
+  'Auth.form.email.label': 'Email',
+  'global.password': 'Parolă',
+  'Auth.form.rememberMe.label': 'Ține-mă minte',
+  'Auth.link.forgot-password': 'Ai uitat parola?',
+} as const;
 
 const SIDEBAR_DATA_ATTR = 'data-edusport-sidebar';
 const SUBNAV_DATA_ATTR = 'data-edusport-subnav';
@@ -137,7 +154,7 @@ function injectGlobalStyles() {
   if (document.getElementById(GLOBAL_STYLE_TAG_ID)) return;
   const style = document.createElement('style');
   style.id = GLOBAL_STYLE_TAG_ID;
-  style.textContent = GLOBAL_CSS;
+  style.textContent = GLOBAL_CSS + SHELL_CSS;
   document.head.appendChild(style);
 }
 
@@ -467,6 +484,7 @@ function tagDefaultSaveAndPreview(): void {
   buttons.forEach((btn) => {
     if (isInsideSaveBar(btn)) return;
     if (isInsidePopover(btn)) return; // skip contextual Save/Publish buttons inside dialogs/popovers
+    if (btn.closest('.pce')) return; // skip our custom calendar editor's own buttons (its Save shares the "Salvează" label)
     const name = getAccessibleName(btn);
     // Check Unpublish FIRST because "Unpublish" contains "publish" — we
     // never want a Publish tag on the Unpublish button.
@@ -559,6 +577,7 @@ function setupAdminShell() {
   mountMobileNav();
   mountSaveBar();
   mountBlocksToolbarExtra();
+  mountEdusportShell();
   tagAdminShellReliably();
   // Also tag Save/Preview now and on every nav-affecting mutation. The same
   // MutationObserver wired by tagAdminShellReliably observes the whole body
@@ -568,6 +587,8 @@ function setupAdminShell() {
     tagDefaultSaveAndPreview();
     tagRightRail();
     tagFormGridRows();
+    tagShellParent();
+    applyLoginBranding();
   };
   runTaggers();
   let scheduled = false;
@@ -608,11 +629,21 @@ export default {
   config: {
     locales: ['ro'],
     translations: {
-      ro: roTranslations as Record<string, string>,
+      ro: { ...(roTranslations as Record<string, string>), ...AUTH_COPY },
+      en: { ...AUTH_COPY },
     },
+    // EduSport branding: login page + sidebar logo, and browser-tab favicon.
+    auth: { logo: EdusportLogo },
+    menu: { logo: EdusportLogo },
+    head: { favicon: EdusportLogo },
   },
   register(app: StrapiApp) {
     componentPreview.register(app);
+
+    // EduSport dashboard route + navigation links (see ./dashboard/menu). The
+    // custom navy sidebar and the custom/default mode switch are mounted from
+    // ./dashboard/EdusportShell during bootstrap.
+    registerEdusportMenu(app);
   },
   bootstrap() {
     // bootstrap can fire before document.body is ready in some edge cases; wait if so.

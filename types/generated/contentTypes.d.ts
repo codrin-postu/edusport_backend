@@ -531,6 +531,103 @@ export interface ApiArticleArticle extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCalendarBlackoutCalendarBlackout
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'calendar_blackouts';
+  info: {
+    description: 'Interval \u00EEn care toate evenimentele recurente sunt anulate (ex. vacan\u021Ba de iarn\u0103)';
+    displayName: 'Calendar / Pauz\u0103';
+    pluralName: 'calendar-blackouts';
+    singularName: 'calendar-blackout';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    endDate: Schema.Attribute.Date & Schema.Attribute.Required;
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::calendar-blackout.calendar-blackout'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    startDate: Schema.Attribute.Date & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiCalendarEventCalendarEvent
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'calendar_events';
+  info: {
+    description: 'Eveniment din calendar (recurent sau unic), cu ore, sezon \u0219i excep\u021Bii';
+    displayName: 'Calendar / Eveniment';
+    pluralName: 'calendar-events';
+    singularName: 'calendar-event';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    color: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
+    exceptions: Schema.Attribute.Component<'calendar.exception', true>;
+    imageUrl: Schema.Attribute.String;
+    label: Schema.Attribute.String;
+    linkLabel: Schema.Attribute.String;
+    linkUrl: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::calendar-event.calendar-event'
+    > &
+      Schema.Attribute.Private;
+    order: Schema.Attribute.Integer;
+    publishedAt: Schema.Attribute.DateTime;
+    recurrence: Schema.Attribute.Component<'calendar.recurrence', false> &
+      Schema.Attribute.Required;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    type: Schema.Attribute.Enumeration<
+      [
+        'curs',
+        'scoala',
+        'eveniment',
+        'concurs',
+        'cantonament',
+        'spectacol',
+        'vacanta',
+        'sarbatoare',
+        'liber',
+      ]
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'curs'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiCollaborationEventCollaborationEvent
   extends Struct.CollectionTypeSchema {
   collectionName: 'collaboration_events';
@@ -628,6 +725,7 @@ export interface ApiContactSubmissionContactSubmission
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     email: Schema.Attribute.Email & Schema.Attribute.Required;
+    extra: Schema.Attribute.JSON;
     internalNote: Schema.Attribute.Text;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -643,18 +741,7 @@ export interface ApiContactSubmissionContactSubmission
     name: Schema.Attribute.String & Schema.Attribute.Required;
     phone: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
-    reason: Schema.Attribute.Enumeration<
-      [
-        'inscriere',
-        'informatii-cursuri',
-        'program',
-        'tarife',
-        'partenariat',
-        'feedback',
-        'altele',
-      ]
-    > &
-      Schema.Attribute.Required;
+    reason: Schema.Attribute.String;
     submittedAt: Schema.Attribute.DateTime;
     submitterIp: Schema.Attribute.String;
     triageStatus: Schema.Attribute.Enumeration<
@@ -770,6 +857,43 @@ export interface ApiDisciplineDiscipline extends Struct.CollectionTypeSchema {
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
     publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiFormConfigFormConfig extends Struct.CollectionTypeSchema {
+  collectionName: 'form_configs';
+  info: {
+    description: 'Suprascriere (overlay) editabil\u0103 peste registrul de c\u00E2mpuri al formularelor publice';
+    displayName: 'Config / Formular';
+    pluralName: 'form-configs';
+    singularName: 'form-config';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::form-config.form-config'
+    > &
+      Schema.Attribute.Private;
+    overlay: Schema.Attribute.JSON;
+    publishedAt: Schema.Attribute.DateTime;
+    type: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1019,6 +1143,40 @@ export interface ApiProgramPageProgramPage extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiProgramProgram extends Struct.SingleTypeSchema {
+  collectionName: 'programs';
+  info: {
+    description: 'Calendar unificat: prezentare general\u0103, evenimente \u0219i pauze';
+    displayName: 'Program';
+    pluralName: 'programs';
+    singularName: 'program';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    calendarEvents: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.calendar-events'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::program.program'
+    > &
+      Schema.Attribute.Private;
+    overview: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.program-overview'>;
+    publishedAt: Schema.Attribute.DateTime;
+    scheduleGroups: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.schedule-groups'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiRealizariPageRealizariPage extends Struct.SingleTypeSchema {
   collectionName: 'realizari_page';
   info: {
@@ -1053,6 +1211,66 @@ export interface ApiRealizariPageRealizariPage extends Struct.SingleTypeSchema {
     notableAchievements: Schema.Attribute.JSON &
       Schema.Attribute.CustomField<'plugin::component-preview.realizari-achievements'>;
     publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiRegistrationSubmissionRegistrationSubmission
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'registration_submissions';
+  info: {
+    description: 'Cereri de \u00EEnscriere trimise prin formularul public de \u00EEnscriere';
+    displayName: '\u00CEnscrieri / Formular';
+    pluralName: 'registration-submissions';
+    singularName: 'registration-submission';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    archived: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    childBirthDate: Schema.Attribute.String & Schema.Attribute.Required;
+    childName: Schema.Attribute.String & Schema.Attribute.Required;
+    clubInterest: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    email: Schema.Attribute.String & Schema.Attribute.Required;
+    expectations: Schema.Attribute.Text;
+    extra: Schema.Attribute.JSON;
+    howHeard: Schema.Attribute.String & Schema.Attribute.Required;
+    internalNote: Schema.Attribute.Text;
+    level: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::registration-submission.registration-submission'
+    > &
+      Schema.Attribute.Private;
+    parentName: Schema.Attribute.String & Schema.Attribute.Required;
+    phone: Schema.Attribute.String & Schema.Attribute.Required;
+    priorExperience: Schema.Attribute.Text;
+    privacyConsent: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<false>;
+    publishedAt: Schema.Attribute.DateTime;
+    regulationsAgreement: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    season: Schema.Attribute.String;
+    shirtSize: Schema.Attribute.String & Schema.Attribute.Required;
+    status: Schema.Attribute.Enumeration<
+      ['Nou', 'Contactat', 'Confirmat', 'Respins']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'Nou'>;
+    submittedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1180,6 +1398,7 @@ export interface ApiSportspersonSportsperson
     showPublicPage: Schema.Attribute.Boolean &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<false>;
+    skateResultsSlug: Schema.Attribute.String;
     slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
     story: Schema.Attribute.Blocks;
     updatedAt: Schema.Attribute.DateTime;
@@ -1815,19 +2034,24 @@ declare module '@strapi/strapi' {
       'admin::user': AdminUser;
       'api::announcement.announcement': ApiAnnouncementAnnouncement;
       'api::article.article': ApiArticleArticle;
+      'api::calendar-blackout.calendar-blackout': ApiCalendarBlackoutCalendarBlackout;
+      'api::calendar-event.calendar-event': ApiCalendarEventCalendarEvent;
       'api::collaboration-event.collaboration-event': ApiCollaborationEventCollaborationEvent;
       'api::competition.competition': ApiCompetitionCompetition;
       'api::contact-submission.contact-submission': ApiContactSubmissionContactSubmission;
       'api::course-regulations.course-regulations': ApiCourseRegulationsCourseRegulations;
       'api::cursuri-page.cursuri-page': ApiCursuriPageCursuriPage;
       'api::discipline.discipline': ApiDisciplineDiscipline;
+      'api::form-config.form-config': ApiFormConfigFormConfig;
       'api::historic-page.historic-page': ApiHistoricPageHistoricPage;
       'api::history-milestone.history-milestone': ApiHistoryMilestoneHistoryMilestone;
       'api::homepage.homepage': ApiHomepageHomepage;
       'api::partners-page.partners-page': ApiPartnersPagePartnersPage;
       'api::pricing.pricing': ApiPricingPricing;
       'api::program-page.program-page': ApiProgramPageProgramPage;
+      'api::program.program': ApiProgramProgram;
       'api::realizari-page.realizari-page': ApiRealizariPageRealizariPage;
+      'api::registration-submission.registration-submission': ApiRegistrationSubmissionRegistrationSubmission;
       'api::site-settings.site-settings': ApiSiteSettingsSiteSettings;
       'api::sponsor.sponsor': ApiSponsorSponsor;
       'api::sportsperson.sportsperson': ApiSportspersonSportsperson;

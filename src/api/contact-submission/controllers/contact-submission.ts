@@ -1,15 +1,6 @@
 import { factories } from '@strapi/strapi';
 
-const REASONS = [
-  'inscriere',
-  'informatii-cursuri',
-  'program',
-  'tarife',
-  'partenariat',
-  'feedback',
-  'altele',
-] as const;
-type Reason = (typeof REASONS)[number];
+const FORM_CONFIG_UID = 'api::form-config.form-config' as const;
 
 const MESSAGE_MAX = 5000;
 
@@ -32,8 +23,22 @@ export default factories.createCoreController(
       if (!name || !email || !reasonRaw || !message) {
         return ctx.badRequest('Câmpuri obligatorii lipsă.');
       }
-      if (!REASONS.includes(reasonRaw as Reason)) {
-        return ctx.badRequest('Motiv invalid.');
+
+      // `reason` and email/tel formats are validated against the effective
+      // config (the reason options are now fully dynamic). Custom answers arrive
+      // in `extra` and are validated per the effective config.
+      let extraValues: Record<string, unknown> = {};
+      try {
+        const cfg = strapi.service(FORM_CONFIG_UID);
+        const selErr = await cfg.validateBuiltinSelects('contact', { reason: reasonRaw });
+        if (selErr) return ctx.badRequest(selErr);
+        const fmtError = await cfg.validateFieldFormats('contact', { email, phone });
+        if (fmtError) return ctx.badRequest(fmtError);
+        const extraResult = await cfg.validateExtra('contact', body.extra);
+        if (extraResult.error) return ctx.badRequest(extraResult.error);
+        extraValues = extraResult.values ?? {};
+      } catch {
+        /* if the config service is unavailable, skip config-driven checks (never block) */
       }
 
       // Force server-side defaults; ignore any client-supplied status/timestamps.
@@ -41,12 +46,13 @@ export default factories.createCoreController(
         name,
         email,
         phone: phone || undefined,
-        reason: reasonRaw as Reason,
+        reason: reasonRaw,
         message,
         triageStatus: 'new' as const,
         submittedAt: new Date().toISOString(),
         submitterIp: submitterIp || undefined,
         userAgent: userAgent || undefined,
+        extra: (Object.keys(extraValues).length ? extraValues : undefined) as any,
       };
 
       const entity = await strapi

@@ -1,0 +1,32 @@
+{
+  "kind": "collectionType",
+  "collectionName": "calendar_blackouts",
+  "info": {
+    "singularName": "calendar-blackout",
+    "pluralName": "calendar-blackouts",
+    "displayName": "Calendar / Pauză",
+    "description": "Interval în care toate evenimentele recurente sunt anulate (ex. vacanța de iarnă)"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "startDate": {
+      "type": "date",
+      "required": true
+    },
+    "endDate": {
+      "type": "date",
+      "required": true
+    }
+  }
+}

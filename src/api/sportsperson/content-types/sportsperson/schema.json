@@ -73,6 +73,10 @@
       "type": "text",
       "maxLength": 300
     },
+    "skateResultsSlug": {
+      "type": "string",
+      "description": "Slug of this athlete in skate-results (skate-api.codrin.space); links their scraped competition results."
+    },
     "seasons": {
       "type": "component",
       "repeatable": true,

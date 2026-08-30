@@ -1,0 +1,34 @@
+{
+  "collectionName": "components_calendar_recurrences",
+  "info": {
+    "displayName": "Recurență",
+    "icon": "clock",
+    "description": "Regula de repetare: frecvență, zilele săptămânii, ore și fereastra de sezon"
+  },
+  "options": {},
+  "attributes": {
+    "freq": {
+      "type": "enumeration",
+      "enum": ["none", "weekly", "biweekly", "monthly"],
+      "default": "weekly",
+      "required": true
+    },
+    "mon": { "type": "boolean", "default": false },
+    "tue": { "type": "boolean", "default": false },
+    "wed": { "type": "boolean", "default": false },
+    "thu": { "type": "boolean", "default": false },
+    "fri": { "type": "boolean", "default": false },
+    "sat": { "type": "boolean", "default": false },
+    "sun": { "type": "boolean", "default": false },
+    "weekOfMonth": {
+      "type": "enumeration",
+      "enum": ["first", "second", "third", "fourth", "last"]
+    },
+    "startTime": { "type": "time" },
+    "endTime": { "type": "time" },
+    "singleDate": { "type": "date" },
+    "endDate": { "type": "date" },
+    "seasonStart": { "type": "date" },
+    "seasonEnd": { "type": "date" }
+  }
+}
