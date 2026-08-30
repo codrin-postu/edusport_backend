@@ -1,12 +1,24 @@
 /**
  * Seed script - imports all mock articles into Strapi via REST API.
  * Run from the edusport_backend directory:
- *   node scripts/seed-articles.mjs
+ *   STRAPI_API_TOKEN=<token> node scripts/seed-articles.mjs
+ *
+ * The token comes from the Strapi admin (Settings > API Tokens). Never commit
+ * one: this file used to carry a hardcoded token and it tripped the CI secret
+ * scan.
  */
 
-const STRAPI_URL = "http://localhost:1337";
-const TOKEN =
-  "31c9d4207e4cdb4274decb2ef7c666a7ae44d61f849180395125da8827a321b1da61b8dd864076351b001031dba8d0e7b25692b8b99052e99a017b0d199e0b9c4b70452dc5c2df729d5cd840f7c13388a74519f5ffde36a6e7929f45aca1c5c9e14ae641b2b4217232b07e345cfb31dd91059f99026afb4b23edb00b914c8800";
+const STRAPI_URL = process.env.STRAPI_URL || "http://localhost:1337";
+const TOKEN = process.env.STRAPI_API_TOKEN;
+
+if (!TOKEN) {
+  console.error(
+    "STRAPI_API_TOKEN is not set. Create a token in the Strapi admin " +
+      "(Settings > API Tokens) and run:\n" +
+      "  STRAPI_API_TOKEN=<token> node scripts/seed-articles.mjs",
+  );
+  process.exit(1);
+}
 
 // ---------------------------------------------------------------------------
 // Minimal HTML → Strapi Blocks converter
