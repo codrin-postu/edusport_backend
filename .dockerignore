@@ -35,3 +35,7 @@ DEPLOY.md
 ARCHITECTURE.md
 CONTRIBUTING.md
 CLAUDE.md
+
+# Database dumps written by scripts/backup.sh. They were being copied into
+# the image (14.9 MB and growing nightly).
+backups
