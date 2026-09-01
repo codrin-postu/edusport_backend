@@ -1,7 +1,13 @@
 # Production image for the EduSport Strapi 5 CMS.
-# Multi-stage: install -> build -> minimal runtime.
+# Multi-stage: deps -> proddeps -> builder -> minimal runtime.
+#
+# Layer ordering matters more than image size here. node_modules is 1.1 GB and
+# barely ever changes; application source changes on every deploy. Keeping them
+# in one COPY meant a one-byte source edit rewrote the whole 1.4 GB layer, and
+# the build cache grew by that much per deploy (it reached 36 GB before this).
+# Splitting them drops the recurring cost to ~140 MB. Measured 2026-08-31.
 
-# ---------- Stage 1: deps ----------
+# ---------- Stage 1: deps (full tree, needed to build) ----------
 FROM node:22-alpine AS deps
 WORKDIR /opt/app
 
@@ -10,7 +16,20 @@ RUN apk add --no-cache libc6-compat python3 make g++ vips-dev
 COPY package*.json ./
 RUN npm ci
 
-# ---------- Stage 2: builder ----------
+# ---------- Stage 2: proddeps (runtime tree) ----------
+# Deliberately separate from `deps`: this stage never sees application source,
+# so its cache key is just package*.json and the 1.1 GB layer is reused on every
+# build until a dependency actually changes. Yields the same 940 packages that
+# `npm prune --omit=dev` used to produce, typescript included.
+FROM node:22-alpine AS proddeps
+WORKDIR /opt/app
+
+RUN apk add --no-cache libc6-compat python3 make g++ vips-dev
+
+COPY package*.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+
+# ---------- Stage 3: builder ----------
 FROM node:22-alpine AS builder
 WORKDIR /opt/app
 
@@ -23,16 +42,21 @@ COPY . .
 
 RUN npm run build
 
-# Drop dev dependencies to slim the node_modules tree we copy into the runner.
-RUN npm prune --omit=dev && npm cache clean --force
+# Stage the app without node_modules so the volatile layer stays small and the
+# dependency layer stays reusable. Strapi 5 needs src/, tsconfig.json,
+# database/ and config/ at runtime alongside dist/, so this copies everything
+# else verbatim rather than cherry-picking (selective copies previously missed
+# files and caused "Config file not loaded" then a fatal undefined db config).
+RUN mkdir -p /opt/out \
+  && tar --exclude=./node_modules --exclude=./backups --exclude=./.git -cf - -C /opt/app . \
+   | tar -xf - -C /opt/out
 
-# ---------- Stage 3: runner ----------
+# ---------- Stage 4: runner ----------
 FROM node:22-alpine AS runner
 WORKDIR /opt/app
 
 # sharp bundles its own prebuilt libvips (8.18.3), so the vips-dev headers the
-# build stages need are dead weight here. Verified 2026-08-31: sharp loads and
-# resizes, the admin panel serves, and the app boots clean without them.
+# build stages need are dead weight here. Verified: sharp loads and resizes.
 RUN apk add --no-cache tini \
   && addgroup -S strapi \
   && adduser -S -G strapi strapi
@@ -41,12 +65,9 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=1337
 
-# Copy the entire built app from the builder stage. Strapi 5 needs the
-# source `src/`, `tsconfig.json`, `database/`, etc. at runtime alongside
-# the compiled `dist/` so it can resolve TypeScript paths and load the
-# config layer. Selective copies miss files and trigger "Config file not
-# loaded" warnings followed by a fatal db.config.connection undefined.
-COPY --from=builder --chown=strapi:strapi /opt/app ./
+# Stable layer first, volatile layer second.
+COPY --from=proddeps --chown=strapi:strapi /opt/app/node_modules ./node_modules
+COPY --from=builder  --chown=strapi:strapi /opt/out ./
 
 USER strapi
 
