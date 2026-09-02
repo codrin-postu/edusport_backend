@@ -1,5 +1,11 @@
 # Development only. Production uses docker-compose.production.yml.
 # Secrets here have sensible local-dev defaults but can be overridden via .env.
+#
+# Joins the shared external `edusport_net`, mirroring production, so the
+# frontend, umami and glitchtip compose projects in the sibling repos can reach
+# these containers by name. Create it once before the first `up`:
+#
+#   docker network create edusport_net
 
 services:
   strapi:
@@ -36,10 +42,20 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+    networks:
+      # `default` keeps this service talking to its own database; the shared
+      # net is only for reaching the sibling EduSport services.
+      - default
+      - edusport_net
     depends_on:
       - db
 
   db:
+    # NOTE: production runs postgres:16. Staying on 15 here on purpose: the
+    # existing `postgres_data` volume was initialised by 15, and 16 refuses to
+    # start on it ("database files are incompatible with server"). Upgrading is
+    # a deliberate step: pg_dump on 15, drop the volume, restore on 16. Do it
+    # alongside the content export, not as a silent bump.
     image: postgres:15
     container_name: strapi_db
     environment:
@@ -50,6 +66,10 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+
+networks:
+  edusport_net:
+    external: true
 
 volumes:
   postgres_data:

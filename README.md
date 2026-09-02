@@ -1,7 +1,55 @@
 # EduSport CMS
 
+> Status and remaining work: [`STATUS.md`](STATUS.md). Shipping history: [`CHANGELOG.md`](CHANGELOG.md). Ecosystem map: [`../ECOSYSTEM.md`](../ECOSYSTEM.md).
+
 Strapi 5 backend for the EduSport (scoaladepatinaj.com) website. Provides the content API
 consumed by the Next.js frontend in `edusport_frontend`.
+
+## Running the whole stack locally
+
+The five EduSport repos are separate, so there is no root compose file. They
+join a shared external docker network instead, exactly as production does, and
+each repo's compose stays versioned in its own repo.
+
+Create the network once:
+
+```bash
+docker network create edusport_net
+```
+
+Then start what you need, backend first:
+
+```bash
+cd edusport_backend       && docker compose up -d   # strapi :1337, postgres :5432
+cd ../umami-analytics     && docker compose up -d   # umami :3001
+cd ../glitchtip-analytics && docker compose up -d   # glitchtip :3002
+cd ../edusport_frontend   && docker compose up -d   # next :3000
+```
+
+`skate-results` is optional locally: the backend defaults `SKATE_RESULTS_API` to
+the hosted `https://skate-api.codrin.space`, which is where that service stays.
+Run it locally only if you need to work offline, and note its database starts
+empty.
+
+Inside the network, containers address each other by name (`strapi_app:1337`,
+`umami:3000`). From your machine, use the published ports above.
+
+**The frontend cannot run in Docker and via `npm run dev` at the same time** -
+both want port 3000. Stop the host dev server first, or map the container
+elsewhere.
+
+### Why the frontend needs two Strapi URLs
+
+`NEXT_PUBLIC_STRAPI_URL` is what the browser resolves, so it must be a host
+address. Server rendering happens inside the frontend container, where
+`localhost` is that container, so it needs `STRAPI_INTERNAL_URL`
+(`http://strapi_app:1337`). `src/lib/strapi-base.ts` in the frontend prefers the
+internal one and falls back to the public one, which is automatically what
+happens in the browser because non-`NEXT_PUBLIC_` variables are not bundled.
+
+Media URLs are the exception and deliberately stay public: they become
+`<img src>` values the browser has to load.
+
 
 ## Overview
 
