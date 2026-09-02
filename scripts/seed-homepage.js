@@ -10,20 +10,34 @@
  */
 
 const DATA = {
+  // Copy that used to be hardcoded in the frontend components.
+  sections: {
+    athletes: {
+      heading: 'Sportivii noștri',
+      intro:
+        'Sportivi care se antrenează săptămânal la EduSport, de la primii pași pe gheață până la podiumuri naționale.',
+      countLabel: 'sportivi legitimați',
+      ctaLabel: 'Vezi toți sportivii',
+      ctaUrl: '/despre-noi/sportivi',
+    },
+    stats: [
+      { value: '10+', label: 'ani de experiență' },
+      { value: '150', label: 'sportivi antrenați' },
+      { value: '500+', label: 'ore pe gheață' },
+      { value: '13+', label: 'competiții' },
+    ],
+  },
   hero: {
-    motto: 'Educație prin sport',
     ctaLabel: 'Descoperă Cursurile',
     ctaUrl: '/cursuri',
   },
   registration: {
-    seasonLabel: 'Sezonul 2025–2026',
     heading: 'Sezonul a început!',
     body: 'Suntem bucuroși să anunțăm că înscrierile pentru noul sezon sunt deschise. Alătură-te școlii noastre de patinaj și descoperă bucuria gheții alături de antrenorii noștri cu experiență.',
     bodySecondary: 'Locurile sunt limitate. Înscrierea se face în ordinea solicitărilor.',
     scheduleDays: 'Sâmbătă & Duminică',
     scheduleTimes: '10:00–10:50 & 11:00–11:50',
     locationName: 'AFI Cotroceni',
-    locationMapUrl: 'https://maps.google.com/?q=AFI+Cotroceni+Bucuresti',
     ctaPrimaryLabel: 'Înscrie-te',
     ctaPrimaryUrl: '/inscrieri',
     ctaSecondaryLabel: 'Află mai mult',
@@ -32,7 +46,6 @@ const DATA = {
     pricesLinkUrl: '/inscrieri#preturi',
   },
   registrationClosed: {
-    seasonLabel: 'Sezonul 2025–2026',
     heading: 'Ne vedem în următorul sezon!',
     body: 'Mulțumim tuturor cursanților și familiilor lor pentru un sezon minunat. Înscrierile pentru noul sezon vor fi disponibile în curând.\n\nPentru a fi primii care află când se deschid înscrierile, alăturați-vă canalului nostru de WhatsApp.',
     whatsappLabel: 'Alătură-te pe WhatsApp',
@@ -63,20 +76,6 @@ const DATA = {
         ctaLabel: 'Vezi realizările',
         ctaUrl: '/despre-noi/realizari',
       },
-    ],
-    notebook: [
-      { text: 'Plan', style: 'normal' },
-      { text: '', style: 'normal' },
-      { text: 'Muzică:', style: 'normal', dim: true },
-      { text: 'Swan Lake - Tchaikovsky', style: 'strikethrough', indent: true },
-      { text: 'Clair de Lune - Debussy', style: 'scratched', indent: true, replacement: "Comptine d'un autre été" },
-      { text: '', style: 'normal' },
-      { text: 'Elemente:', style: 'normal', dim: true },
-      { text: 'Axel simplu', style: 'normal', indent: true },
-      { text: 'Lutz + toe loop', style: 'normal', indent: true },
-      { text: 'Piruetă combinată', style: 'scratched', indent: true, replacement: 'Camel spin' },
-      { text: 'Step sequence nivel 2', style: 'normal', indent: true },
-      { text: 'Spiral sequence', style: 'normal', indent: true },
     ],
   },
 };

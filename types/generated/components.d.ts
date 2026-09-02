@@ -148,93 +148,6 @@ export interface CursuriPromoCard extends Struct.ComponentSchema {
   };
 }
 
-export interface HomepageAbout extends Struct.ComponentSchema {
-  collectionName: 'components_homepage_abouts';
-  info: {
-    description: "Sec\u021Biunea 'Cine suntem' din pagina principal\u0103";
-    displayName: 'Sec\u021Biune Despre Noi';
-  };
-  attributes: {
-    body: Schema.Attribute.Text;
-    ctaLabel: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'Despre noi'>;
-    ctaUrl: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'/despre-noi/istoric'>;
-    eyebrow: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'Cine suntem'>;
-    heading: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'Asocia\u021Bie non-profit pentru sport \u0219i educa\u021Bie'>;
-  };
-}
-
-export interface HomepageHero extends Struct.ComponentSchema {
-  collectionName: 'components_homepage_heroes';
-  info: {
-    description: 'Sec\u021Biunea hero din pagina principal\u0103';
-    displayName: 'Hero Section';
-  };
-  attributes: {
-    ctaLabel: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'Descoper\u0103 Cursurile'>;
-    ctaUrl: Schema.Attribute.String & Schema.Attribute.DefaultTo<'/cursuri'>;
-    motto: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'Educa\u021Bie prin sport'>;
-  };
-}
-
-export interface HomepageRegistration extends Struct.ComponentSchema {
-  collectionName: 'components_homepage_registrations';
-  info: {
-    description: 'Sec\u021Biunea de \u00EEnscrieri din pagina principal\u0103 (c\u00E2nd sunt deschise)';
-    displayName: 'Sec\u021Biune \u00CEnscrieri';
-  };
-  attributes: {
-    body: Schema.Attribute.Text;
-    bodySecondary: Schema.Attribute.Text;
-    ctaPrimaryLabel: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'\u00CEnscrie-te'>;
-    ctaPrimaryUrl: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'/inscrieri'>;
-    ctaSecondaryLabel: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'Afl\u0103 mai mult'>;
-    ctaSecondaryUrl: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'/inscrieri'>;
-    heading: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'Sezonul a \u00EEnceput!'>;
-    locationMapUrl: Schema.Attribute.String;
-    locationName: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'AFI Cotroceni'>;
-    pricesLinkLabel: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'Vezi pre\u021Burile'>;
-    pricesLinkUrl: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'/inscrieri#preturi'>;
-    scheduleDays: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'S\u00E2mb\u0103t\u0103 & Duminic\u0103'>;
-    scheduleTimes: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'10:00\u201310:50 & 11:00\u201311:50'>;
-  };
-}
-
-export interface HomepageRegistrationClosed extends Struct.ComponentSchema {
-  collectionName: 'components_homepage_registration_closeds';
-  info: {
-    description: 'Sec\u021Biunea afi\u0219at\u0103 c\u00E2nd \u00EEnscrierile sunt \u00EEnchise';
-    displayName: 'Sec\u021Biune \u00CEnscrieri \u00CEnchise';
-  };
-  attributes: {
-    body: Schema.Attribute.Text;
-    contactLabel: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'Contacteaz\u0103-ne'>;
-    contactUrl: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'/contact'>;
-    heading: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'Ne vedem \u00EEn urm\u0103torul sezon!'>;
-    whatsappLabel: Schema.Attribute.String &
-      Schema.Attribute.DefaultTo<'Al\u0103tur\u0103-te pe WhatsApp'>;
-    whatsappUrl: Schema.Attribute.String;
-  };
-}
-
 export interface PricingFooterNote extends Struct.ComponentSchema {
   collectionName: 'components_pricing_footer_notes';
   info: {
@@ -406,10 +319,6 @@ declare module '@strapi/strapi' {
       'cursuri.banner': CursuriBanner;
       'cursuri.info-section': CursuriInfoSection;
       'cursuri.promo-card': CursuriPromoCard;
-      'homepage.about': HomepageAbout;
-      'homepage.hero': HomepageHero;
-      'homepage.registration': HomepageRegistration;
-      'homepage.registration-closed': HomepageRegistrationClosed;
       'pricing.footer-note': PricingFooterNote;
       'pricing.pricing-tier': PricingPricingTier;
       'regulations.regulation-category': RegulationsRegulationCategory;

@@ -186,14 +186,6 @@ const LAYOUT_OVERRIDES: Record<string, { name: string; size: number }[][]> = {
     [{ name: 'closingLine', size: 12 }],
   ],
 
-  // ── Homepage ──
-  'plugin_content_manager_configuration_content_types::api::homepage.homepage': [
-    [{ name: 'hero', size: 12 }],
-    [{ name: 'registration', size: 12 }],
-    [{ name: 'registrationClosed', size: 12 }],
-    [{ name: 'about', size: 12 }],
-  ],
-
   // ── Pricing ──
   'plugin_content_manager_configuration_content_types::api::pricing.pricing': [
     [{ name: 'banner', size: 12 }],

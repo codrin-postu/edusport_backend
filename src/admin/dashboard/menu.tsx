@@ -58,6 +58,9 @@ export const FORM_EDITOR_TO = '/plugins/edusport-form-editor';
 export const SPORTIVI_TO = '/plugins/edusport-sportivi';
 export const SPORTIV_EDIT_TO = '/plugins/edusport-sportiv-edit';
 
+// Admin route for the custom "Pagina principală" single-type editor.
+export const HOMEPAGE_EDIT_TO = '/plugins/edusport-homepage';
+
 // Admin routes for the custom Competiții (competition) list + edit pages.
 export const COMPETITII_TO = '/plugins/edusport-competitii';
 export const COMPETITIE_EDIT_TO = '/plugins/edusport-competitie-edit';
@@ -84,7 +87,7 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: collection('api::discipline.discipline'), label: 'Discipline', icon: ChartCircle, group: 'team' },
 
   // Pagini site
-  { to: single('api::homepage.homepage'), label: 'Pagina principală', icon: House, group: 'pages', featured: true },
+  { to: HOMEPAGE_EDIT_TO, label: 'Pagina principală', icon: House, group: 'pages', featured: true },
   { to: single('api::cursuri-page.cursuri-page'), label: 'Cursuri', icon: Book, group: 'pages', featured: true },
   { to: single('api::pricing.pricing'), label: 'Prețuri', icon: Cursor, group: 'pages', featured: true },
   { to: single('api::course-regulations.course-regulations'), label: 'Regulament', icon: Feather, group: 'pages' },
@@ -181,6 +184,15 @@ export function registerEdusportMenu(app: StrapiApp) {
     Component: () => import('./CompetitiiPage'),
     permissions: [],
     position: 8,
+  });
+
+  app.addMenuLink({
+    to: HOMEPAGE_EDIT_TO,
+    icon: House,
+    intlLabel: { id: 'edusport.menu.homepage', defaultMessage: 'Pagina principală' },
+    Component: () => import('./HomepageEditPage'),
+    permissions: [],
+    position: 10,
   });
 
   app.addMenuLink({

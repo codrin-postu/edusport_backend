@@ -17,20 +17,19 @@
   },
   "attributes": {
     "hero": {
-      "type": "json",
-      "customField": "plugin::component-preview.homepage-hero"
+      "type": "json"
     },
     "registration": {
-      "type": "json",
-      "customField": "plugin::component-preview.homepage-registration"
+      "type": "json"
     },
     "registrationClosed": {
-      "type": "json",
-      "customField": "plugin::component-preview.homepage-registration-closed"
+      "type": "json"
     },
     "about": {
-      "type": "json",
-      "customField": "plugin::component-preview.homepage-about"
+      "type": "json"
+    },
+    "sections": {
+      "type": "json"
     }
   }
 }

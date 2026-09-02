@@ -993,13 +993,11 @@ export interface ApiHomepageHomepage extends Struct.SingleTypeSchema {
     };
   };
   attributes: {
-    about: Schema.Attribute.JSON &
-      Schema.Attribute.CustomField<'plugin::component-preview.homepage-about'>;
+    about: Schema.Attribute.JSON;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    hero: Schema.Attribute.JSON &
-      Schema.Attribute.CustomField<'plugin::component-preview.homepage-hero'>;
+    hero: Schema.Attribute.JSON;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -1007,10 +1005,9 @@ export interface ApiHomepageHomepage extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
-    registration: Schema.Attribute.JSON &
-      Schema.Attribute.CustomField<'plugin::component-preview.homepage-registration'>;
-    registrationClosed: Schema.Attribute.JSON &
-      Schema.Attribute.CustomField<'plugin::component-preview.homepage-registration-closed'>;
+    registration: Schema.Attribute.JSON;
+    registrationClosed: Schema.Attribute.JSON;
+    sections: Schema.Attribute.JSON;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

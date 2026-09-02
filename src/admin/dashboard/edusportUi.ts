@@ -182,6 +182,19 @@ export const EDU_CSS = `
 .eduf .miniadd{margin-top:8px}
 
 /* sticky action bar */
+/* Informational notice with an action. Same family as .msg, accent-tinted,
+   used to point at a setting that lives on another page. */
+.eduf .notice{display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--ink);background:var(--accent-soft);border:1px solid #cdd6f6;border-radius:var(--r);padding:10px 12px}
+.eduf .notice .ntx{flex:1;line-height:1.45}
+.eduf .notice .ntx b{display:block;font-weight:700;margin-bottom:1px}
+.eduf .notice .ntx span{color:var(--muted)}
+.eduf .notice .ico{width:18px;height:18px;flex-shrink:0;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.eduf .notice .btn{background:#fff;border-color:#cdd6f6;color:var(--accent)}
+/* Read-only value row, for values the system computes rather than accepts. */
+.eduf .ro{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);background:var(--field);border:1px solid var(--line);border-radius:var(--r);padding:8px 10px}
+.eduf .ro b{color:var(--ink);font-weight:700}
+.eduf .pill{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ok);background:#e7f3ec;border:1px solid #bfe0cc;border-radius:var(--r);padding:2px 6px}
+.eduf .pill.auto{color:var(--accent);background:var(--accent-soft);border-color:#cdd6f6}
 .eduf .pa{display:flex;align-items:center;gap:10px;padding:13px 18px;border-top:1px solid var(--line);background:#fcfcfd;position:sticky;bottom:0}
 .eduf .pa .grow{flex:1}
 `;
