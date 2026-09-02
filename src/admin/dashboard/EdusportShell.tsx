@@ -49,6 +49,9 @@ function getInitialOpen(pathname: string): OpenState {
   return active ? { [active.group]: true } : {};
 }
 
+/** Emitted by our history patch so the shell sees pushState navigations. */
+const ROUTE_EVENT = 'edusport:routechange';
+
 /** Navigate within Strapi's SPA from outside its Router (pushState + popstate). */
 function spaNavigate(to: string): void {
   const full = to.startsWith('/admin') ? to : `/admin${to}`;
@@ -150,11 +153,39 @@ function EdusportShell() {
     try { localStorage.setItem(MODE_KEY, mode); } catch { /* ignore */ }
   }, [mode]);
 
-  // Track SPA route changes (browser navigation and our own spaNavigate).
+  // Track SPA route changes.
+  //
+  // `popstate` alone is not enough: it fires for browser back/forward and for
+  // our own spaNavigate, but React Router navigates with history.pushState and
+  // emits nothing. Any move made by Strapi's own UI therefore left `path`
+  // stale and the sidebar highlighting the previous page. Patch pushState and
+  // replaceState to emit a private event, and listen for that too.
   React.useEffect(() => {
-    const onPop = () => setPath(window.location.pathname);
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    const sync = () => setPath(window.location.pathname);
+
+    const patch = (key: 'pushState' | 'replaceState') => {
+      const original = window.history[key];
+      const wrapped = function (this: History, ...args: Parameters<History['pushState']>) {
+        const out = original.apply(this, args);
+        window.dispatchEvent(new Event(ROUTE_EVENT));
+        return out;
+      };
+      window.history[key] = wrapped as History[typeof key];
+      return () => {
+        window.history[key] = original;
+      };
+    };
+
+    const restorePush = patch('pushState');
+    const restoreReplace = patch('replaceState');
+    window.addEventListener('popstate', sync);
+    window.addEventListener(ROUTE_EVENT, sync);
+    return () => {
+      window.removeEventListener('popstate', sync);
+      window.removeEventListener(ROUTE_EVENT, sync);
+      restorePush();
+      restoreReplace();
+    };
   }, []);
 
   // In custom mode the plain Strapi home is redirected to the custom dashboard.
