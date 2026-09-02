@@ -61,6 +61,9 @@ export const SPORTIV_EDIT_TO = '/plugins/edusport-sportiv-edit';
 // Admin route for the custom "Pagina principală" single-type editor.
 export const HOMEPAGE_EDIT_TO = '/plugins/edusport-homepage';
 
+// Admin route for the custom "Program" single-type editor (calendar + serii).
+export const PROGRAM_EDIT_TO = '/plugins/edusport-program';
+
 // Admin routes for the custom Competiții (competition) list + edit pages.
 export const COMPETITII_TO = '/plugins/edusport-competitii';
 export const COMPETITIE_EDIT_TO = '/plugins/edusport-competitie-edit';
@@ -78,7 +81,7 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: INSCRIERI_TO, label: 'Înscrieri', icon: Mail, group: 'forms', featured: true },
 
   // Program și calendar
-  { to: single('api::program.program'), label: 'Calendar și serii', icon: Calendar, group: 'program', featured: true },
+  { to: PROGRAM_EDIT_TO, label: 'Calendar și serii', icon: Calendar, group: 'program', featured: true },
 
   // Sportivi și echipă
   { to: SPORTIVI_TO, label: 'Sportivi', icon: User, group: 'team', featured: true },
@@ -184,6 +187,15 @@ export function registerEdusportMenu(app: StrapiApp) {
     Component: () => import('./CompetitiiPage'),
     permissions: [],
     position: 8,
+  });
+
+  app.addMenuLink({
+    to: PROGRAM_EDIT_TO,
+    icon: Calendar,
+    intlLabel: { id: 'edusport.menu.program', defaultMessage: 'Calendar și serii' },
+    Component: () => import('./ProgramEditPage'),
+    permissions: [],
+    position: 11,
   });
 
   app.addMenuLink({

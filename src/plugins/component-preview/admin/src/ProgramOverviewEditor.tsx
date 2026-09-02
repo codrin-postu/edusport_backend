@@ -102,6 +102,11 @@ export default function ProgramOverviewEditor(_props: Props) {
   const [reloadKey, setReloadKey] = React.useState(0);
   // For a Școala occurrence: edit just this date's state, or the whole series.
   const [scoalaView, setScoalaView] = React.useState<'date' | 'series'>('date');
+  // The edit panel sits below the calendar, so opening it can happen entirely
+  // off screen. Scroll to it, but only when it opens from closed: swapping
+  // between events with the panel already open should not yank the page.
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const scrollOnOpen = React.useRef(false);
 
   React.useEffect(() => {
     const first = new Date(ym.y, ym.m, 1);
@@ -148,6 +153,10 @@ export default function ProgramOverviewEditor(_props: Props) {
 
   const openEdit = async (documentId?: string, clickedDate?: string) => {
     if (!documentId) return;
+    setForm((f) => {
+      scrollOnOpen.current = f === null;
+      return f;
+    });
     setDirty(false);
     setScoalaView('date');
     try {
@@ -246,6 +255,18 @@ export default function ProgramOverviewEditor(_props: Props) {
     catch (err) { /* ignore */ } finally { setSaving(false); }
   };
 
+  React.useEffect(() => {
+    if (!form || !scrollOnOpen.current) return;
+    scrollOnOpen.current = false;
+    // `center` leaves the calendar visible above and the panel below, which is
+    // the point: show that the editor is down there without hiding the month.
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    panelRef.current?.scrollIntoView({
+      behavior: reduced ? 'auto' : 'smooth',
+      block: 'center',
+    });
+  }, [form]);
+
   const upd = (patch: Partial<FormState>) => { setDirty(true); setForm((f) => (f ? { ...f, ...patch } : f)); };
 
   return (
@@ -311,11 +332,13 @@ export default function ProgramOverviewEditor(_props: Props) {
           </div>
         </div>
 
+      </div>
+
         {/* PANEL */}
         {form && (
-          <div className="pce-panel">
+          <div className="pce-panel" ref={panelRef}>
             <div className="ph"><h4>{form.scoalaDate ? (form.title || 'Eveniment') : form.documentId ? 'Editează eveniment' : 'Adaugă eveniment'}</h4><span className="x" onClick={() => setForm(null)}>×</span></div>
-            <div className="pce-body">
+            <div className={`pce-body${(!form.scoalaDate || scoalaView === 'series') ? ' pce-body--cols' : ''}`}>
             {form.scoalaDate && (
               <>
                 <div className="scoala-tabs">
@@ -364,6 +387,7 @@ export default function ProgramOverviewEditor(_props: Props) {
             )}
             {(!form.scoalaDate || scoalaView === 'series') && (
             <>
+            <div className="pcol">
             <div className="fld"><label>Titlu</label><input value={form.title} onChange={(e) => upd({ title: e.target.value })} /></div>
             <div className="fld"><label>Categorie</label>
               <select value={form.type} onChange={(e) => upd({ type: e.target.value })}>
@@ -378,8 +402,8 @@ export default function ProgramOverviewEditor(_props: Props) {
                 <div className="fld"><label>Sfârșit</label><input type="time" value={form.endTime} onChange={(e) => upd({ endTime: e.target.value })} /></div>
               </div>
             )}
-
-            <div className="sec">
+            </div>
+            <div className="sec pcol">
               <div className="st">Detalii <span className="opt">opțional</span></div>
               <div className="fld"><label>Descriere</label><textarea rows={2} value={form.description} onChange={(e) => upd({ description: e.target.value })} /></div>
               <div className="fld"><label>Imagine</label>
@@ -395,7 +419,7 @@ export default function ProgramOverviewEditor(_props: Props) {
               </div>
             </div>
 
-            <div className="sec">
+            <div className="sec pcol">
               <div className="st">Recurență</div>
               <div className="fld">
                 <select value={form.freq} onChange={(e) => upd({ freq: e.target.value })}>
@@ -439,7 +463,7 @@ export default function ProgramOverviewEditor(_props: Props) {
             )}
 
             {(!form.scoalaDate || scoalaView === 'series') && form.freq !== 'none' && form.type !== 'scoala' && (
-            <div className="sec">
+            <div className="sec pcol-span">
               <div className="st">Excepții <span className="opt">anulări / mutări</span></div>
               <div className="exList">
                 {form.exceptions.map((x, i) => {
@@ -513,7 +537,6 @@ export default function ProgramOverviewEditor(_props: Props) {
             </div>
           </div>
         )}
-      </div>
 
       <MediaPicker open={mediaOpen} onClose={() => setMediaOpen(false)} onPick={(img) => { upd({ imageUrl: img.url }); setMediaOpen(false); }} />
     </div>
@@ -551,11 +574,32 @@ const CSS = `
 .ev { font-size:10px; padding:1px 5px; border-radius:3px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; border-left:3px solid #2138b8; color:#222; }
 .ev.cancel { text-decoration:line-through; color:#aaa; background:#f0f0f0 !important; }
 .more { font-size:9px; color:#999; }
-.pce-panel { width:320px; flex-shrink:0; align-self:flex-start; position:sticky; top:12px; max-height:calc(100vh - 200px); display:flex; flex-direction:column; border:1px solid #dcdcdc; border-radius:10px; background:#fff; box-shadow:0 6px 24px rgba(0,0,0,.08); overflow:hidden; }
+/* Sits BELOW the calendar, not beside it. As a third flex child of .pce-wrap
+   it was 320px + 14px gap of width taken straight out of .pce-main (the only
+   flex:1 column), so opening it squeezed the day cells; and its
+   max-height:calc(100vh - 200px) made it end short of a tall month. Full
+   width below the grid costs the calendar nothing and gives the form room
+   for two columns. */
+.pce-panel { width:100%; margin-top:14px; display:flex; flex-direction:column; border:1px solid #dcdcdc; border-radius:10px; background:#fff; box-shadow:0 6px 24px rgba(0,0,0,.08); overflow:hidden; }
 .pce-panel .ph { flex-shrink:0; background:#fff; display:flex; justify-content:space-between; align-items:center; padding:14px 15px; border-bottom:1px solid #eee; }
 .pce-panel .ph h4 { margin:0; font-size:15px; }
 .pce-panel .x { color:#999; cursor:pointer; font-size:20px; line-height:1; }
-.pce-body { flex:1 1 auto; min-height:0; overflow-y:auto; padding:15px; }
+.pce-body { flex:1 1 auto; min-height:0; padding:15px; }
+/* Three columns, but only on the "Toată seria" tab. The "Această dată" tab has
+   at most six fields, so columns there would leave two of them empty. The tab
+   switcher spans the full width so it does not jump when you change tab. */
+.pce-body--cols { display:grid; grid-template-columns:repeat(3, 1fr); gap:0 20px; align-items:start; }
+.pce-body--cols > .pcol, .pce-body--cols > .sec.pcol { min-width:0; }
+/* .sec draws a top border for stacked blocks; side by side it just adds noise,
+   so only the full-width section keeps it. */
+.pce-body--cols > .sec.pcol { border-top:none; margin-top:0; padding-top:0; }
+.pce-body--cols > .pcol-span,
+.pce-body--cols > .scoala-tabs { grid-column:1 / -1; }
+@media (max-width: 1200px) { .pce-body--cols { grid-template-columns:1fr 1fr; } }
+@media (max-width: 820px)  {
+  .pce-body--cols { grid-template-columns:1fr; }
+  .pce-body--cols > .sec.pcol { border-top:1px solid #eee; margin-top:12px; padding-top:11px; }
+}
 .fld { margin-bottom:11px; }
 .fld label { display:block; font-size:10px; color:#888; margin-bottom:3px; text-transform:uppercase; letter-spacing:.05em; }
 .fld input, .fld select, .fld textarea { width:100%; padding:6px 8px; border:1px solid #d0d0d0; border-radius:6px; font-size:13px; box-sizing:border-box; font-family:inherit; }
@@ -594,10 +638,10 @@ const CSS = `
 .exEdit .kt { display:flex; gap:6px; }
 .exEdit .darr { align-self:center; color:#2138b8; font-size:14px; line-height:1; margin:-2px 0; }
 .addlink { font-size:12px; color:#2138b8; cursor:pointer; display:inline-block; margin-top:2px; }
-.pa { flex-shrink:0; display:block; margin:0; padding:14px 15px; border-top:1px solid #e0e0e0; background:#fafafa; border-radius:0 0 10px 10px; }
-.pa .btn-save { display:block; width:100%; box-sizing:border-box; background:#2138b8; color:#fff; border:none; border-radius:8px; padding:12px; font-size:15px; font-weight:700; cursor:pointer; }
+.pa { flex-shrink:0; display:flex; align-items:center; gap:10px; margin:0; padding:14px 15px; border-top:1px solid #e0e0e0; background:#fafafa; border-radius:0 0 10px 10px; }
+.pa .btn-save { order:2; margin-left:auto; box-sizing:border-box; background:#2138b8; color:#fff; border:none; border-radius:8px; padding:11px 28px; font-size:14px; font-weight:700; cursor:pointer; }
 .pa .btn-save:disabled { opacity:.45; cursor:default; }
-.pa .btn-del { display:block; width:100%; box-sizing:border-box; margin-top:8px; background:#fff; color:#be3330; border:1px solid #e2c4c4; border-radius:8px; padding:10px; font-size:13px; cursor:pointer; }
+.pa .btn-del { order:1; box-sizing:border-box; background:#fff; color:#be3330; border:1px solid #e2c4c4; border-radius:8px; padding:10px 18px; font-size:13px; cursor:pointer; }
 .btn-save { background:#2138b8; color:#fff; border:none; padding:7px 16px; border-radius:6px; font-size:13px; cursor:pointer; }
 .btn-save:disabled { opacity:.5; cursor:default; }
 .btn-del { background:#fff; color:#be3330; border:1px solid #e6b8b6; padding:7px 12px; border-radius:6px; font-size:13px; cursor:pointer; }

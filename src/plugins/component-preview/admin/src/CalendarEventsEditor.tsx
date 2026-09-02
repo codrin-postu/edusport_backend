@@ -77,6 +77,16 @@ interface Props {
   attribute: Record<string, unknown>;
 }
 
+/**
+ * Value binding, so this editor works both inside Strapi's content-manager
+ * form (via the default export, which reads useField) and on the custom
+ * Program page, where there is no Form context and the page owns the value.
+ */
+interface InnerProps {
+  value: unknown;
+  onChange: (next: CalendarEvent[]) => void;
+}
+
 // ---------------------------------------------------------------------------
 // Calendar helpers (pure)
 // ---------------------------------------------------------------------------
@@ -785,8 +795,8 @@ const SpecialEventRow = React.memo(function SpecialEventRow({
 // Main editor
 // ---------------------------------------------------------------------------
 
-export default function CalendarEventsEditor({ name }: Props) {
-  const field = useField(name);
+function CalendarEventsInner({ value, onChange }: InnerProps) {
+  const field = { value, onChange: (_n: string, v: CalendarEvent[]) => onChange(v) };
   const { get } = useFetchClient();
   const isNarrow = useMatchMedia('(max-width: 640px)');
 
@@ -926,7 +936,7 @@ export default function CalendarEventsEditor({ name }: Props) {
       field.onChange(name, eventsRef.current);
       fieldChangeTimerRef.current = null;
     }, 300);
-  }, [field.onChange, name]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Final flush on unmount so a pending debounced write isn't lost if the user
   // navigates away or the form remounts before the timer fires.
@@ -1273,3 +1283,20 @@ export default function CalendarEventsEditor({ name }: Props) {
     </Box>
   );
 }
+
+/**
+ * Content-manager binding. Kept so the field still works on the stock
+ * single-type view; the custom Program page renders CalendarEventsInner and
+ * owns the value itself.
+ */
+export default function CalendarEventsEditor({ name }: Props) {
+  const field = useField(name);
+  return (
+    <CalendarEventsInner
+      value={field.value}
+      onChange={(next) => field.onChange(name, next)}
+    />
+  );
+}
+
+export { CalendarEventsInner };
