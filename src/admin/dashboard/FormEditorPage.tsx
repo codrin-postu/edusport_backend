@@ -42,6 +42,11 @@ interface EditQuestion {
   hidden: boolean;
   canHide: boolean;
   optionSource: 'none' | 'enum' | 'freetext';
+  /** checkbox + info render as a card once they have a title or an icon */
+  cardCapable?: boolean;
+  display: string; // 'plain' | 'card'
+  title: string;
+  icon: string;
   linkUrl: string;
   linkLabel: string;
   options: EditOption[];
@@ -134,7 +139,8 @@ const CSS = `
 .esfe .reqdot.req{color:var(--danger);font-weight:700}
 .esfe .q-body{border-top:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:11px;background:#fcfcfd}
 .esfe .fld{display:flex;flex-direction:column;gap:4px}
-.esfe .fld input,.esfe .fld textarea{width:100%}
+.esfe .fld input,.esfe .fld textarea,.esfe .fld select{width:100%}
+.esfe .hint2{text-transform:none;letter-spacing:0;font-weight:500;color:var(--muted);opacity:.85}
 .esfe .frow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .esfe .meta{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)}
 .esfe .toggle{width:32px;height:18px;border-radius:20px;background:var(--accent);position:relative;cursor:pointer;flex-shrink:0;border:none;padding:0}
@@ -335,6 +341,10 @@ export default function FormEditorPage() {
       hidden: false,
       canHide: true,
       optionSource: d.type === 'select' ? 'freetext' : 'none',
+      cardCapable: d.type === 'checkbox',
+      display: 'plain',
+      title: '',
+      icon: '',
       linkUrl: '',
       linkLabel: '',
       options:
@@ -384,6 +394,9 @@ export default function FormEditorPage() {
             help: q.help,
             required: q.required,
             hidden: q.hidden,
+            display: q.display,
+            title: q.title,
+            icon: q.icon,
             linkUrl: q.linkUrl,
             linkLabel: q.linkLabel,
             options:
@@ -529,8 +542,51 @@ export default function FormEditorPage() {
                                 </div>
                               )}
 
-                              {q.type === 'info' && (
+                              {q.cardCapable && (
+                                <div className="fld">
+                                  <span className="lbl">
+                                    Mod de afișare
+                                    <span className="hint2">
+                                      {' '}alege cum arată pe site
+                                    </span>
+                                  </span>
+                                  <select
+                                    value={q.display}
+                                    onChange={(e) => setQ(step.key, q.key, { display: e.target.value })}
+                                  >
+                                    <option value="plain">
+                                      {q.type === 'info' ? 'Text simplu' : 'Bifă simplă'}
+                                    </option>
+                                    <option value="card">Card cu pictogramă și link</option>
+                                  </select>
+                                </div>
+                              )}
+
+                              {q.cardCapable && q.display === 'card' && (
                                 <>
+                                  <div className="fld">
+                                    <span className="lbl">Titlu card</span>
+                                    <input
+                                      value={q.title}
+                                      placeholder="ex: Regulamentul Cursurilor"
+                                      onChange={(e) => setQ(step.key, q.key, { title: e.target.value })}
+                                    />
+                                  </div>
+                                  <div className="fld">
+                                    <span className="lbl">Pictogramă</span>
+                                    <select
+                                      value={q.icon}
+                                      onChange={(e) => setQ(step.key, q.key, { icon: e.target.value })}
+                                    >
+                                      <option value="">Fără pictogramă</option>
+                                      <option value="book">Carte (regulament)</option>
+                                      <option value="shield">Scut (protecția datelor)</option>
+                                      <option value="calendar">Calendar (program)</option>
+                                      <option value="info">Informație</option>
+                                      <option value="award">Premiu</option>
+                                      <option value="users">Persoane</option>
+                                    </select>
+                                  </div>
                                   <div className="fld">
                                     <span className="lbl">Link (opțional)</span>
                                     <input

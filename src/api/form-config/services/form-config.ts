@@ -30,6 +30,9 @@ import {
   type RegistryQuestion,
   type RegistryStep,
   type CustomQuestionType,
+  CARD_CAPABLE_TYPES,
+  isCardIcon,
+  isDisplayMode,
 } from '../registry';
 
 const UID = 'api::form-config.form-config' as const;
@@ -43,6 +46,9 @@ interface QuestionOverlay {
   help?: string;
   required?: boolean;
   hidden?: boolean;
+  display?: string;
+  title?: string;
+  icon?: string;
   linkUrl?: string;
   linkLabel?: string;
   options?: Record<string, OptionOverlay>; // keyed by option value
@@ -231,6 +237,9 @@ function mergePublicModel(form: RegistryForm, overlay: Overlay) {
               key: q.key,
               type: q.type,
               label: asStr(ov?.label) || q.defaultLabel,
+              display: asStr(ov?.display) || q.defaultDisplay || 'plain',
+              title: asStr(ov?.title) || q.defaultTitle || '',
+              icon: asStr(ov?.icon) || q.defaultIcon || '',
               linkUrl: asStr(ov?.linkUrl) || q.defaultLinkUrl || '',
               linkLabel: asStr(ov?.linkLabel) || q.defaultLinkLabel || '',
             };
@@ -247,6 +256,15 @@ function mergePublicModel(form: RegistryForm, overlay: Overlay) {
             base.options = effectiveOptions(q, ov)
               .filter((o) => o.enabled)
               .map((o) => ({ value: o.value, label: o.label, enabled: true }));
+          }
+          // A card-capable question renders as a card once it has a title or
+          // an icon; otherwise these are empty and it renders plainly.
+          if (CARD_CAPABLE_TYPES.has(q.type)) {
+            base.display = asStr(ov?.display) || q.defaultDisplay || 'plain';
+            base.title = asStr(ov?.title) || q.defaultTitle || '';
+            base.icon = asStr(ov?.icon) || q.defaultIcon || '';
+            base.linkUrl = asStr(ov?.linkUrl) || q.defaultLinkUrl || '';
+            base.linkLabel = asStr(ov?.linkLabel) || q.defaultLinkLabel || '';
           }
           return base;
         })
@@ -276,6 +294,10 @@ function editQuestion(e: StepEntry, overlay: Overlay) {
       hidden: false,
       canHide: true,
       optionSource: c.type === 'select' ? ('freetext' as const) : ('none' as const),
+      cardCapable: CARD_CAPABLE_TYPES.has(c.type),
+      display: 'plain',
+      title: '',
+      icon: '',
       linkUrl: '',
       linkLabel: '',
       options: c.type === 'select' ? customOptions(c) : [],
@@ -300,6 +322,10 @@ function editQuestion(e: StepEntry, overlay: Overlay) {
     hidden,
     canHide: Boolean(q.canHide),
     optionSource: q.optionSource ?? 'none',
+    cardCapable: CARD_CAPABLE_TYPES.has(q.type),
+    display: asStr(ov?.display) || q.defaultDisplay || 'plain',
+    title: asStr(ov?.title) || q.defaultTitle || '',
+    icon: asStr(ov?.icon) || q.defaultIcon || '',
     linkUrl: asStr(ov?.linkUrl) || q.defaultLinkUrl || '',
     linkLabel: asStr(ov?.linkLabel) || q.defaultLinkLabel || '',
     options: q.type === 'select' ? effectiveOptions(q, ov) : [],
@@ -451,9 +477,30 @@ function buildBuiltinOverlay(overlay: Overlay, regQ: RegistryQuestion, qIn: any)
     if (regQ.canHide) qov.hidden = hid;
   }
 
-  if (regQ.type === 'info') {
+  // Card fields. `checkbox` and `info` both render as a card once a title or
+  // icon is present, so both accept the same properties.
+  if (CARD_CAPABLE_TYPES.has(regQ.type)) {
+    if (typeof qIn.display === 'string') {
+      const mode = qIn.display.trim();
+      if (!isDisplayMode(mode)) {
+        throw new OverlayValidationError(
+          `Modul de afișare "${mode}" nu este valid pentru întrebarea ${qKey}.`,
+        );
+      }
+      qov.display = mode;
+    }
     if (typeof qIn.linkUrl === 'string') qov.linkUrl = qIn.linkUrl.trim();
     if (typeof qIn.linkLabel === 'string') qov.linkLabel = qIn.linkLabel.trim();
+    if (typeof qIn.title === 'string') qov.title = qIn.title.trim();
+    if (typeof qIn.icon === 'string') {
+      const icon = qIn.icon.trim();
+      if (icon !== '' && !isCardIcon(icon)) {
+        throw new OverlayValidationError(
+          `Pictograma "${icon}" nu este permisă pentru întrebarea ${qKey}.`,
+        );
+      }
+      qov.icon = icon;
+    }
   }
 
   if (regQ.type === 'select' && Array.isArray(qIn.options)) {

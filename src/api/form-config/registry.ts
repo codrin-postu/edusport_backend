@@ -52,6 +52,39 @@ export const SENSITIVE_BUILTIN_KEYS = new Set<string>([
  */
 export type OptionSource = 'none' | 'enum' | 'freetext';
 
+/**
+ * Icons an editor may pick for a card-style question. Deliberately a short,
+ * closed list: the frontend maps each name to a real icon component, so an
+ * arbitrary string would render nothing.
+ */
+export const CARD_ICONS = ['book', 'shield', 'calendar', 'info', 'award', 'users'] as const;
+export type CardIcon = (typeof CARD_ICONS)[number];
+export function isCardIcon(v: unknown): v is CardIcon {
+  return typeof v === 'string' && (CARD_ICONS as readonly string[]).includes(v);
+}
+
+/**
+ * Question types that render as a CARD when they carry a title or an icon:
+ * a bordered block with an icon, heading, description and an optional link.
+ * `checkbox` becomes a consent card; `info` becomes a link card. Both fall back
+ * to their plain rendering when no title and no icon are set.
+ */
+export const CARD_CAPABLE_TYPES = new Set<QuestionType>(['checkbox', 'info']);
+
+/**
+ * How a card-capable question is laid out. This is EXPLICIT on purpose: the
+ * layout must never be a side effect of whether a title happens to be filled
+ * in, or clearing a piece of copy would silently change the page design.
+ *
+ *   'plain' — a normal checkbox, or a paragraph for `info`
+ *   'card'  — bordered block with icon, heading, description and link
+ */
+export const DISPLAY_MODES = ['plain', 'card'] as const;
+export type DisplayMode = (typeof DISPLAY_MODES)[number];
+export function isDisplayMode(v: unknown): v is DisplayMode {
+  return typeof v === 'string' && (DISPLAY_MODES as readonly string[]).includes(v);
+}
+
 export interface RegistryOption {
   value: string;
   label: string;
@@ -70,7 +103,10 @@ export interface RegistryQuestion {
   canHide: boolean;
   optionSource?: OptionSource;
   options?: RegistryOption[];
-  /** info-block defaults */
+  /** card + info-block defaults (see CARD_CAPABLE_TYPES) */
+  defaultDisplay?: DisplayMode;
+  defaultTitle?: string;
+  defaultIcon?: CardIcon;
   defaultLinkUrl?: string;
   defaultLinkLabel?: string;
 }
@@ -221,9 +257,29 @@ const inscriere: RegistryForm = {
           defaultLinkLabel: '',
         },
         {
+          key: 'programCard',
+          type: 'info',
+          defaultDisplay: 'card',
+          // Renders as a link card because it carries a title, icon and link.
+          defaultLabel: 'Consultă orarul și perioadele de desfășurare',
+          defaultTitle: 'Programul Cursurilor',
+          defaultIcon: 'calendar',
+          defaultLinkUrl: '/cursuri/program',
+          defaultLinkLabel: 'Vezi programul',
+          canHide: true,
+          required: false,
+        },
+        {
           key: 'privacyConsent',
           type: 'checkbox',
-          defaultLabel: 'Sunt de acord cu politica de confidențialitate',
+          defaultDisplay: 'card',
+          defaultLabel: 'Am citit și sunt de acord',
+          defaultTitle: 'Protecția Datelor Personale',
+          defaultHelp:
+            'Politica de confidențialitate privind prelucrarea datelor cu caracter personal conform GDPR.',
+          defaultIcon: 'shield',
+          defaultLinkUrl: '/protectia-datelor',
+          defaultLinkLabel: 'Citește politica de confidențialitate',
           required: true,
           lockedRequired: true,
           canHide: false,
@@ -244,7 +300,14 @@ const inscriere: RegistryForm = {
         {
           key: 'regulationsAgreement',
           type: 'checkbox',
-          defaultLabel: 'Sunt de acord cu regulamentul',
+          defaultDisplay: 'card',
+          defaultLabel: 'Am citit și sunt de acord cu regulamentul',
+          defaultTitle: 'Regulamentul Cursurilor',
+          defaultHelp:
+            'Condițiile de participare, regulile de conduită pe gheață și informațiile esențiale pentru o experiență sigură.',
+          defaultIcon: 'book',
+          defaultLinkUrl: '/cursuri/regulament',
+          defaultLinkLabel: 'Citește regulamentul',
           required: true,
           lockedRequired: true,
           canHide: false,
