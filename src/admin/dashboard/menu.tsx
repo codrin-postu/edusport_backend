@@ -51,6 +51,12 @@ export const FORMULARE_TO = '/plugins/edusport-formulare';
 // Admin route for the custom "Mesaje" contact inbox page.
 export const MESAJE_TO = '/plugins/edusport-mesaje';
 
+// Admin route for the custom "Voluntari" volunteer-results page.
+export const VOLUNTARI_TO = '/plugins/edusport-voluntari';
+
+// Admin route for the custom "Parteneri" partnership-results page.
+export const PARTENERI_REZULTATE_TO = '/plugins/edusport-parteneri-rezultate';
+
 // Admin route for the custom "Editor formular" page (?type=inscriere|contact).
 export const FORM_EDITOR_TO = '/plugins/edusport-form-editor';
 
@@ -61,12 +67,22 @@ export const SPORTIV_EDIT_TO = '/plugins/edusport-sportiv-edit';
 // Admin route for the custom "Pagina principală" single-type editor.
 export const HOMEPAGE_EDIT_TO = '/plugins/edusport-homepage';
 
+// Admin route for the custom "Meniu site" page. The navigation single type is
+// hidden from the content-manager, so this route is the only way in.
+export const NAVIGATION_TO = '/plugins/edusport-meniu';
+
 // Admin route for the custom "Program" single-type editor (calendar + serii).
 export const PROGRAM_EDIT_TO = '/plugins/edusport-program';
 
 // Admin routes for the custom Competiții (competition) list + edit pages.
 export const COMPETITII_TO = '/plugins/edusport-competitii';
 export const COMPETITIE_EDIT_TO = '/plugins/edusport-competitie-edit';
+
+// Admin routes for the custom Anunțuri (announcement) list + edit pages.
+// The announcement content type is a hidden collection: it has no
+// content-manager view at all, so these two routes are the only way in.
+export const ANUNTURI_TO = '/plugins/edusport-anunturi';
+export const ANUNT_EDIT_TO = '/plugins/edusport-anunt-edit';
 
 // Umami analytics dashboard URL. Leave empty until connected; the UI degrades
 // gracefully and shows a "coming soon" state rather than a broken link.
@@ -79,6 +95,8 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   // Formulare (hub + results)
   { to: FORMULARE_TO, label: 'Formulare', icon: Feather, group: 'forms', featured: true },
   { to: INSCRIERI_TO, label: 'Înscrieri', icon: Mail, group: 'forms', featured: true },
+  { to: VOLUNTARI_TO, label: 'Voluntari', icon: User, group: 'forms' },
+  { to: PARTENERI_REZULTATE_TO, label: 'Parteneri', icon: Duplicate, group: 'forms' },
 
   // Program și calendar
   { to: PROGRAM_EDIT_TO, label: 'Calendar și serii', icon: Calendar, group: 'program', featured: true },
@@ -100,10 +118,14 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: single('api::realizari-page.realizari-page'), label: 'Realizări', icon: Star, group: 'pages' },
   { to: single('api::partners-page.partners-page'), label: 'Parteneri', icon: Duplicate, group: 'pages' },
   { to: single('api::volunteer-page.volunteer-page'), label: 'Voluntariat', icon: Bell, group: 'pages' },
+  { to: NAVIGATION_TO, label: 'Meniu site', icon: GridFour, group: 'pages' },
 
   // Articole și media
   { to: collection('api::article.article'), label: 'Articole', icon: Book, group: 'content', featured: true },
-  { to: single('api::announcement.announcement'), label: 'Anunț popup', icon: Bell, group: 'content', pinned: true },
+  // Re-pointed from single('api::announcement.announcement'): that single-type
+  // route is dead — announcements are now a hidden collection driven by the
+  // custom Anunțuri page.
+  { to: ANUNTURI_TO, label: 'Anunțuri', icon: Bell, group: 'content', pinned: true },
   { to: collection('api::sponsor.sponsor'), label: 'Sponsori', icon: Duplicate, group: 'content' },
   { to: collection('api::collaboration-event.collaboration-event'), label: 'Evenimente colaborare', icon: Calendar, group: 'content' },
   { to: collection('api::history-milestone.history-milestone'), label: 'Momente istoric', icon: Clock, group: 'content' },
@@ -151,6 +173,24 @@ export function registerEdusportMenu(app: StrapiApp) {
     Component: () => import('./MesajePage'),
     permissions: [],
     position: 4,
+  });
+
+  app.addMenuLink({
+    to: VOLUNTARI_TO,
+    icon: User,
+    intlLabel: { id: 'edusport.menu.voluntari', defaultMessage: 'Voluntari' },
+    Component: () => import('./VoluntariPage'),
+    permissions: [],
+    position: 12,
+  });
+
+  app.addMenuLink({
+    to: PARTENERI_REZULTATE_TO,
+    icon: Duplicate,
+    intlLabel: { id: 'edusport.menu.parteneriRezultate', defaultMessage: 'Parteneri' },
+    Component: () => import('./ParteneriRezultatePage'),
+    permissions: [],
+    position: 13,
   });
 
   app.addMenuLink({
@@ -205,6 +245,33 @@ export function registerEdusportMenu(app: StrapiApp) {
     Component: () => import('./HomepageEditPage'),
     permissions: [],
     position: 10,
+  });
+
+  app.addMenuLink({
+    to: NAVIGATION_TO,
+    icon: GridFour,
+    intlLabel: { id: 'edusport.menu.meniuSite', defaultMessage: 'Meniu site' },
+    Component: () => import('./NavigationPage'),
+    permissions: [],
+    position: 16,
+  });
+
+  app.addMenuLink({
+    to: ANUNTURI_TO,
+    icon: Bell,
+    intlLabel: { id: 'edusport.menu.anunturi', defaultMessage: 'Anunțuri' },
+    Component: () => import('./AnunturiPage'),
+    permissions: [],
+    position: 14,
+  });
+
+  app.addMenuLink({
+    to: ANUNT_EDIT_TO,
+    icon: Pencil,
+    intlLabel: { id: 'edusport.menu.anuntEdit', defaultMessage: 'Editor anunț' },
+    Component: () => import('./AnuntEditPage'),
+    permissions: [],
+    position: 15,
   });
 
   app.addMenuLink({

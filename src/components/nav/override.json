@@ -1,0 +1,22 @@
+{
+  "collectionName": "components_nav_overrides",
+  "info": {
+    "displayName": "Card meniu",
+    "description": "Descrierea si imaginea unui card promo din meniul site-ului. Cheia identifica sectiunea si nu se editeaza."
+  },
+  "options": {},
+  "attributes": {
+    "key": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": ["images"]
+    }
+  }
+}

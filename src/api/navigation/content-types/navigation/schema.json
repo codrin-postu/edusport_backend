@@ -1,0 +1,25 @@
+{
+  "kind": "singleType",
+  "collectionName": "navigations",
+  "info": {
+    "singularName": "navigation",
+    "pluralName": "navigations",
+    "displayName": "Meniu site",
+    "description": "Descrierea si imaginea cardurilor promo din meniu. Structura meniului ramane in codul site-ului."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "overrides": {
+      "type": "component",
+      "repeatable": true,
+      "component": "nav.override"
+    }
+  }
+}
