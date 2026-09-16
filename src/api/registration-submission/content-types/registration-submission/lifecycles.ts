@@ -1,22 +1,11 @@
 /**
  * Lifecycle hooks for registration-submission.
  *
- * afterCreate: append the new submission to the configured Google Sheet. This
- * is best-effort and fully inert when Sheets env vars are unset — it never
- * throws and never blocks the create, so a public submission always succeeds
- * regardless of whether the Sheet integration is configured or reachable.
+ * Mirrors every create/update/delete into the connected Google Sheet. The work
+ * is queued and debounced (see src/sheets/queue.ts) so a bulk season move costs
+ * a couple of API calls, and it is fully inert when no sheet is connected — a
+ * public submission always succeeds regardless of the Sheets integration.
  */
-import { appendOne } from '../../services/sheets';
-import type { SubmissionLike } from '../../services/sheets';
+import { sheetsLifecycle } from '../../../../sheets/lifecycle';
 
-export default {
-  async afterCreate(event: { result?: SubmissionLike }) {
-    const result = event.result;
-    if (!result) return;
-    try {
-      await appendOne(result);
-    } catch {
-      /* never let Sheets export affect the write */
-    }
-  },
-};
+export default sheetsLifecycle('inscrieri', 'api::registration-submission.registration-submission');

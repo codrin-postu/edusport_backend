@@ -1,0 +1,97 @@
+{
+  "kind": "collectionType",
+  "collectionName": "volunteer_submissions",
+  "info": {
+    "singularName": "volunteer-submission",
+    "pluralName": "volunteer-submissions",
+    "displayName": "Formulare / Voluntar",
+    "description": "Cereri de voluntariat trimise prin formularul public de voluntariat"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "fullName": {
+      "type": "string",
+      "required": true
+    },
+    "birthDate": {
+      "type": "date"
+    },
+    "email": {
+      "type": "email",
+      "required": true
+    },
+    "phone": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "occupation": {
+      "type": "string"
+    },
+    "parentName": {
+      "type": "string"
+    },
+    "parentPhone": {
+      "type": "string"
+    },
+    "parentalConsent": {
+      "type": "boolean",
+      "default": false
+    },
+    "helpAreas": {
+      "type": "json"
+    },
+    "availability": {
+      "type": "string"
+    },
+    "frequency": {
+      "type": "string"
+    },
+    "skatingExperience": {
+      "type": "string"
+    },
+    "childrenExperience": {
+      "type": "text"
+    },
+    "motivation": {
+      "type": "text",
+      "required": true
+    },
+    "howHeard": {
+      "type": "string"
+    },
+    "privacyConsent": {
+      "type": "boolean",
+      "default": false
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["Nou", "Contactat", "Acceptat", "Respins"],
+      "default": "Nou",
+      "required": true
+    },
+    "internalNote": {
+      "type": "text"
+    },
+    "submittedAt": {
+      "type": "datetime"
+    },
+    "submitterIp": {
+      "type": "string"
+    },
+    "userAgent": {
+      "type": "string"
+    },
+    "extra": {
+      "type": "json"
+    }
+  }
+}

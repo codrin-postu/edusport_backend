@@ -1,6 +1,9 @@
 import { factories } from '@strapi/strapi';
-import { appendValues, isConfigured } from '../services/sheets';
-import type { SubmissionLike } from '../services/sheets';
+// Column logic lives in src/sheets/matrix.ts so the CSV export and the Google
+// Sheets sync can never drift apart — they build the same header from it.
+import { buildInscrieriMatrix } from '../../../sheets/matrix';
+import type { RowLike as SubmissionLike } from '../../../sheets/matrix';
+import { resyncForm } from '../../../sheets/sync';
 
 const UID = 'api::registration-submission.registration-submission' as const;
 const SETTINGS_UID = 'api::site-settings.site-settings' as const;
@@ -235,84 +238,6 @@ function csvCell(v: string): string {
   if (/^[=+\-@\t\r]/.test(out)) out = `'${out}`;
   if (/[",\n\r]/.test(out)) return `"${out.replace(/"/g, '""')}"`;
   return out;
-}
-
-// Built-in export columns, in the historic HEADER order (between the two meta
-// columns and the trailing ID). `bool` fields render Da/Nu.
-const BUILTIN_EXPORT_COLS: { key: string; label: string; bool?: boolean }[] = [
-  { key: 'childName', label: 'Nume copil' },
-  { key: 'childBirthDate', label: 'Data nasterii' },
-  { key: 'parentName', label: 'Nume parinte' },
-  { key: 'email', label: 'Email' },
-  { key: 'phone', label: 'Telefon' },
-  { key: 'level', label: 'Nivel' },
-  { key: 'shirtSize', label: 'Marime tricou' },
-  { key: 'howHeard', label: 'Cum a aflat' },
-  { key: 'clubInterest', label: 'Interes club', bool: true },
-  { key: 'regulationsAgreement', label: 'Acord regulament', bool: true },
-  { key: 'privacyConsent', label: 'Acord confidentialitate', bool: true },
-  { key: 'priorExperience', label: 'Experienta anterioara' },
-  { key: 'expectations', label: 'Asteptari' },
-  { key: 'internalNote', label: 'Nota interna' },
-];
-
-const yesNo = (v: unknown): string => (v === true ? 'Da' : v === false ? 'Nu' : '');
-const cellStr = (v: unknown): string => (v == null ? '' : String(v));
-
-/**
- * Build the dynamic export header + matrix. Columns = the two meta columns +
- * every built-in field (removed-from-form ones marked "(eliminata)") + every
- * custom answer key that appears in the current config OR in any exported row's
- * `extra` (removed-from-config ones marked "(eliminata)") + the trailing ID.
- */
-async function buildExportMatrix(rows: SubmissionLike[]): Promise<{ header: string[]; matrix: string[][] }> {
-  let meta: { removedBuiltins: string[]; customs: { key: string; label: string }[] } = {
-    removedBuiltins: [],
-    customs: [],
-  };
-  try {
-    meta = await strapi.service(FORM_CONFIG_UID).adminFormMeta('inscriere');
-  } catch {
-    /* fall back to no config context */
-  }
-  const removed = new Set(meta.removedBuiltins ?? []);
-  const customByKey = new Map((meta.customs ?? []).map((c) => [c.key, c]));
-
-  const extraKeys = new Set<string>();
-  for (const r of rows) {
-    const ex = (r as any).extra;
-    if (ex && typeof ex === 'object') for (const k of Object.keys(ex)) extraKeys.add(k);
-  }
-  const activeCustomKeys = (meta.customs ?? []).map((c) => c.key);
-  const removedCustomKeys = [...extraKeys].filter((k) => !customByKey.has(k)).sort();
-  const customCols = [
-    ...activeCustomKeys.map((k) => ({ key: k, label: customByKey.get(k)!.label })),
-    ...removedCustomKeys.map((k) => ({ key: k, label: `${k} (eliminata)` })),
-  ];
-
-  const header = [
-    'Trimis la',
-    'Stare',
-    ...BUILTIN_EXPORT_COLS.map((c) => (removed.has(c.key) ? `${c.label} (eliminata)` : c.label)),
-    ...customCols.map((c) => c.label),
-    'ID',
-  ];
-
-  const matrix = rows.map((r) => {
-    const ex = (r as any).extra && typeof (r as any).extra === 'object' ? (r as any).extra : {};
-    return [
-      cellStr(r.submittedAt),
-      cellStr(r.status),
-      ...BUILTIN_EXPORT_COLS.map((c) => (c.bool ? yesNo((r as any)[c.key]) : cellStr((r as any)[c.key]))),
-      ...customCols.map((c) => {
-        const v = ex[c.key];
-        return typeof v === 'boolean' ? (v ? 'Da' : 'Nu') : cellStr(v);
-      }),
-      cellStr(r.documentId),
-    ];
-  });
-
-  return { header, matrix };
 }
 
 /** Distinct custom-answer keys present across every submission's `extra`. */
@@ -622,7 +547,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
    */
   async exportCsv(ctx) {
     const rows = await fetchFiltered(ctx.query as Record<string, any>);
-    const { header, matrix } = await buildExportMatrix(rows);
+    const { header, matrix } = await buildInscrieriMatrix(rows);
     const lines = [header.map(csvCell).join(',')];
     for (const row of matrix) lines.push(row.map(csvCell).join(','));
     // Prepend a BOM so Excel opens UTF-8 (Romanian diacritics) correctly.
@@ -635,20 +560,29 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
 
   /**
    * POST /api/forms/inscrieri/export-sheets  (admin-guarded)
-   * Appends the submissions matching the current season/archived/filters to the
-   * configured Google Sheet. Inert when unconfigured.
+   *
+   * Kept as an ALIAS of the new full sync so the existing "Google Sheets"
+   * button in SubmissionTable.tsx keeps working; the settings page may repoint
+   * it at POST /api/sheets/inscrieri/sync, which does exactly the same thing.
+   *
+   * Behaviour changed deliberately: this used to APPEND a fresh header row plus
+   * the filtered rows on every press, so the tab accumulated duplicate headers
+   * and rows whose columns no longer lined up. It now rewrites the tab from the
+   * database (clear + header + every row), which is also the migration off that
+   * old mess. Query filters no longer narrow it — the Sheet mirrors the table.
    */
   async exportSheets(ctx) {
-    if (!isConfigured()) {
-      ctx.body = { ok: false, configured: false, reason: 'not_configured' };
-      return;
-    }
-    const query = { ...(ctx.query as Record<string, any>), ...((ctx.request.body as Record<string, any>) ?? {}) };
-    const rows = await fetchFiltered(query);
-    const { header, matrix } = await buildExportMatrix(rows);
-    // Append a header row followed by the data rows so the dynamic (built-in +
-    // custom + removed-with-data) column set is self-describing in the Sheet.
-    const result = await appendValues([header, ...matrix]);
-    ctx.body = result;
+    const result = await resyncForm('inscrieri', 'manual');
+    ctx.body = {
+      ok: result.ok,
+      configured: result.reason !== 'not_configured',
+      appended: result.added,
+      added: result.added,
+      updated: result.updated,
+      removed: result.removed,
+      skipped: result.skipped ?? false,
+      reason: result.reason,
+      message: result.message,
+    };
   },
 }));

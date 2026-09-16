@@ -1,0 +1,52 @@
+{
+  "kind": "collectionType",
+  "collectionName": "sheet_sync_logs",
+  "info": {
+    "singularName": "sheet-sync-log",
+    "pluralName": "sheet-sync-logs",
+    "displayName": "Config / Istoric sincronizare Sheets",
+    "description": "Istoricul sincronizărilor cu Google Sheets (ultimele 100 pe formular)"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "form": {
+      "type": "enumeration",
+      "enum": ["inscrieri", "voluntari", "parteneri", "contact"],
+      "required": true
+    },
+    "trigger": {
+      "type": "enumeration",
+      "enum": ["submission", "manual", "scheduled"],
+      "required": true
+    },
+    "added": {
+      "type": "integer",
+      "default": 0
+    },
+    "updated": {
+      "type": "integer",
+      "default": 0
+    },
+    "removed": {
+      "type": "integer",
+      "default": 0
+    },
+    "ok": {
+      "type": "boolean",
+      "default": true
+    },
+    "message": {
+      "type": "text"
+    },
+    "at": {
+      "type": "datetime"
+    }
+  }
+}

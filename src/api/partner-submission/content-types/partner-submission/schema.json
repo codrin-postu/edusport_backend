@@ -1,0 +1,67 @@
+{
+  "kind": "collectionType",
+  "collectionName": "partner_submissions",
+  "info": {
+    "singularName": "partner-submission",
+    "pluralName": "partner-submissions",
+    "displayName": "Formulare / Partener",
+    "description": "Propuneri de parteneriat trimise prin formularul public de parteneriat"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": true
+    }
+  },
+  "attributes": {
+    "companyName": {
+      "type": "string",
+      "required": true
+    },
+    "contactName": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "email",
+      "required": true
+    },
+    "phone": {
+      "type": "string"
+    },
+    "collaborationType": {
+      "type": "string"
+    },
+    "message": {
+      "type": "text",
+      "required": true
+    },
+    "privacyConsent": {
+      "type": "boolean",
+      "default": false
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["Nou", "In discutii", "Confirmat", "Respins"],
+      "default": "Nou",
+      "required": true
+    },
+    "internalNote": {
+      "type": "text"
+    },
+    "submittedAt": {
+      "type": "datetime"
+    },
+    "submitterIp": {
+      "type": "string"
+    },
+    "userAgent": {
+      "type": "string"
+    },
+    "extra": {
+      "type": "json"
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "kind": "collectionType",
+  "collectionName": "sheet_links",
+  "info": {
+    "singularName": "sheet-link",
+    "pluralName": "sheet-links",
+    "displayName": "Config / Legătură Google Sheets",
+    "description": "Foaia de calcul conectată pentru fiecare formular public (una pe formular)"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "form": {
+      "type": "enumeration",
+      "enum": ["inscrieri", "voluntari", "parteneri", "contact"],
+      "required": true,
+      "unique": true
+    },
+    "spreadsheetId": {
+      "type": "string"
+    },
+    "spreadsheetName": {
+      "type": "string"
+    },
+    "tab": {
+      "type": "string",
+      "default": "Date",
+      "description": "Numele filei țintă. IGNORAT pentru formularul „inscrieri\": acolo fila este dedusă din sezonul fiecărei înscrieri (o filă pe sezon, ex. „2025-2026\"), iar rândurile fără sezon merg în fila fixă „fara-sezon\". GET /api/sheets/status întoarce partitioned=true și fallbackTab pentru formularele cu file pe sezon — UI-ul trebuie să ascundă câmpul „filă\" (și POST /sheets/:form/tab) pentru ele."
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "intervalHours": {
+      "type": "integer",
+      "default": 4,
+      "description": "Cât de des rulează verificarea periodică (reconcile), în ore. Valori permise: 0, 1, 4, 8, 24. 0 oprește verificarea periodică; scrierile instant la trimiterea formularului nu sunt afectate."
+    },
+    "lastSyncAt": {
+      "type": "datetime"
+    },
+    "lastReconcileAt": {
+      "type": "datetime",
+      "description": "Momentul ultimei verificări periodice (reconcile). Separat de lastSyncAt."
+    },
+    "lastSyncOk": {
+      "type": "boolean"
+    },
+    "lastSyncMessage": {
+      "type": "text"
+    }
+  }
+}

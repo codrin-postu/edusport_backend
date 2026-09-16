@@ -9,7 +9,14 @@
  *
  * To allow more fields to be edited later (e.g. an `internalNote` scratchpad),
  * add the attribute name to MUTABLE_FIELDS below.
+ *
+ * It also mirrors every create/update/delete into the connected Google Sheet
+ * (see src/sheets/lifecycle.ts). That part is queued, debounced and fully
+ * inert when no sheet is connected, so it can never fail a contact message.
  */
+import { sheetsLifecycle } from '../../../../sheets/lifecycle';
+
+const sheets = sheetsLifecycle('contact', 'api::contact-submission.contact-submission');
 
 const MUTABLE_FIELDS = new Set<string>(['triageStatus', 'internalNote']);
 
@@ -49,4 +56,10 @@ export default {
       }
     }
   },
+
+  // --- Google Sheets mirror (fire-and-forget, never blocks a write) ---
+  afterCreate: sheets.afterCreate,
+  afterUpdate: sheets.afterUpdate,
+  afterDelete: sheets.afterDelete,
+  afterUpdateMany: sheets.afterUpdateMany,
 };
