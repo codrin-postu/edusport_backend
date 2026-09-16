@@ -27,6 +27,18 @@ services:
       context: .
       dockerfile: Dockerfile.production
     container_name: edusport_backend
+    # --- Hardening, added 2026-09-16 after the frontend RCE compromise -------
+    # The attacker dropped a binary into the container's /tmp and executed it.
+    # A noexec /tmp removes that step entirely. Deliberately NOT read_only here:
+    # unlike the frontend, Strapi writes into its own tree at runtime (.tmp,
+    # .strapi, upload staging), so a read-only rootfs would break it. The cheap,
+    # high-value settings apply either way.
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=128m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     env_file: .env.production
     depends_on:
       postgres:
