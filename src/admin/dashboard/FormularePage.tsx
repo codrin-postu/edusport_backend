@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
-import { INSCRIERI_TO, MESAJE_TO, FORM_EDITOR_TO } from './menu';
+import { FORM_EDITOR_TO } from './menu';
+import { FORM_DEFS, fetchNewCount, fetchTotalCount, type AdminFormDef } from './formDefs';
 
 /**
  * EduSport admin — "Formulare" hub page.
@@ -12,79 +13,10 @@ import { INSCRIERI_TO, MESAJE_TO, FORM_EDITOR_TO } from './menu';
  * view. Light-only, using the shared admin tokens (system-ui, #fff, #dcdcdc
  * borders, accent #2138b8, danger #be3330, #d0d0d0 fields, squared buttons).
  *
- * Counts are real:
- *   - Înscriere cursuri reads the dedicated admin endpoint /api/forms/inscrieri
- *     (total = list length, "noi" = status "Nou").
- *   - Contact reads the content-manager collection API for contact-submission
- *     (total = pagination total, "noi" = triageStatus "new").
- * Forms without a backing collection (Voluntariat, Parteneri) are shown as
- * "în curând"; their counts are marked unavailable rather than invented.
+ * Counts are real, fetched via the shared helpers in ./formDefs (each form
+ * declares its count endpoint + dialect there; total = pagination total,
+ * "noi" = status "Nou" / triageStatus "new").
  */
-
-const CONTACT_UID = 'api::contact-submission.contact-submission';
-const INSCRIERI_API = '/api/forms/inscrieri';
-
-type Mode = 'Tabel' | 'Inbox';
-
-interface FormDef {
-  key: string;
-  name: string;
-  initials: string;
-  color: string;
-  questions: number;
-  mode: Mode;
-  desc: string;
-  live: boolean; // false => "în curând", no results/counts yet
-  resultsTo?: string;
-  resultsLabel?: string;
-}
-
-const FORMS: FormDef[] = [
-  {
-    key: 'inscriere',
-    name: 'Înscriere cursuri',
-    initials: 'ÎC',
-    color: '#2138b8',
-    questions: 13,
-    mode: 'Tabel',
-    desc: 'Cererile de înscriere trimise din pagina publică de cursuri.',
-    live: true,
-    resultsTo: INSCRIERI_TO,
-    resultsLabel: 'Rezultate',
-  },
-  {
-    key: 'contact',
-    name: 'Contact',
-    initials: 'CT',
-    color: '#00838f',
-    questions: 4,
-    mode: 'Inbox',
-    desc: 'Mesajele trimise din formularul de contact.',
-    live: true,
-    resultsTo: MESAJE_TO,
-    resultsLabel: 'Vezi mesajele',
-  },
-  {
-    key: 'voluntariat',
-    name: 'Voluntariat',
-    initials: 'VO',
-    color: '#1f7a4d',
-    questions: 6,
-    mode: 'Inbox',
-    desc: 'Înscrierile de voluntariat. Colectarea nu este încă activă.',
-    live: false,
-  },
-  {
-    key: 'parteneri',
-    name: 'Parteneri',
-    initials: 'PA',
-    color: '#e08a00',
-    questions: 5,
-    mode: 'Inbox',
-    desc: 'Propunerile de parteneriat. Colectarea nu este încă activă.',
-    live: false,
-  },
-];
 
 interface Counts {
   total: number | null;
@@ -140,50 +72,26 @@ export default function FormularePage() {
   const { get } = useFetchClient();
   const navigate = useNavigate();
 
-  const [counts, setCounts] = React.useState<Record<string, Counts>>({
-    inscriere: { total: null, noi: null, loaded: false },
-    contact: { total: null, noi: null, loaded: false },
-  });
+  const [counts, setCounts] = React.useState<Record<string, Counts>>(() =>
+    Object.fromEntries(FORM_DEFS.map((d) => [d.key, { total: null, noi: null, loaded: false }]))
+  );
 
-  // --- Înscriere counts (dedicated admin endpoint, server-paginated).
-  // Both calls default to season=active + archived excluded; we read
-  // pagination.total rather than counting a full array. "noi" = status Nou.
+  // --- counts for every live form (shared defs; per-form endpoint + dialect,
+  // total + "noi" both read from pagination.total with pageSize 1).
   React.useEffect(() => {
     let off = false;
-    const totalOf = (r: any) => (typeof r?.data?.pagination?.total === 'number' ? r.data.pagination.total : null);
-    const nouFilter = JSON.stringify([{ col: 'status', op: 'equals', val: 'Nou' }]);
-    const total = get(INSCRIERI_API, { params: { pageSize: 1 } }).then(totalOf).catch(() => null);
-    const fresh = get(INSCRIERI_API, { params: { pageSize: 1, filters: nouFilter } }).then(totalOf).catch(() => null);
-    Promise.all([total, fresh]).then(([t, n]) => {
-      if (off) return;
-      setCounts((c) => ({ ...c, inscriere: { total: t, noi: n, loaded: true } }));
+    FORM_DEFS.filter((d) => d.live).forEach((def) => {
+      Promise.all([fetchTotalCount(get, def), fetchNewCount(get, def)]).then(([t, n]) => {
+        if (off) return;
+        setCounts((c) => ({ ...c, [def.key]: { total: t, noi: n, loaded: true } }));
+      });
     });
     return () => {
       off = true;
     };
   }, [get]);
 
-  // --- Contact counts (content-manager collection API: total + filtered "new")
-  React.useEffect(() => {
-    let off = false;
-    const total = get(`/content-manager/collection-types/${CONTACT_UID}`, { params: { page: 1, pageSize: 1 } })
-      .then((r: any) => (typeof r?.data?.pagination?.total === 'number' ? r.data.pagination.total : null))
-      .catch(() => null);
-    const fresh = get(`/content-manager/collection-types/${CONTACT_UID}`, {
-      params: { page: 1, pageSize: 1, 'filters[triageStatus][$eq]': 'new' },
-    })
-      .then((r: any) => (typeof r?.data?.pagination?.total === 'number' ? r.data.pagination.total : null))
-      .catch(() => null);
-    Promise.all([total, fresh]).then(([t, n]) => {
-      if (off) return;
-      setCounts((c) => ({ ...c, contact: { total: t, noi: n, loaded: true } }));
-    });
-    return () => {
-      off = true;
-    };
-  }, [get]);
-
-  const renderCounts = (f: FormDef) => {
+  const renderCounts = (f: AdminFormDef) => {
     if (!f.live) return <span className="esfm-soon-chip">În curând</span>;
     const c = counts[f.key];
     if (!c || !c.loaded) return <span className="esfm-na">Se încarcă...</span>;
@@ -215,7 +123,7 @@ export default function FormularePage() {
       </div>
 
       <div className="esfm-list">
-        {FORMS.map((f) => (
+        {FORM_DEFS.map((f) => (
           <div key={f.key} className={`esfm-row ${f.live ? '' : 'soon'}`}>
             <span className="esfm-tile" style={{ background: f.color }}>
               {f.initials}

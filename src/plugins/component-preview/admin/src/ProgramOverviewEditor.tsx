@@ -1,6 +1,12 @@
 import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { MediaPicker } from './components/MediaPicker';
+import { TimePicker } from './components/TimePicker';
+// Canonical shared confirm dialog: src/admin/ConfirmDialog.tsx. The admin panel
+// and this local plugin compile into the same vite bundle (src/admin/app.tsx
+// imports this plugin by relative path), so importing across the boundary is
+// safe. Edit the canonical file, not a copy.
+import { ConfirmDialog } from '../../../../admin/ConfirmDialog';
 
 // Per-occurrence states for the Școala de patinaj recurring event.
 const SCOALA_STATES = [
@@ -56,7 +62,7 @@ interface FormState {
   title: string; type: string; label: string; color: string;
   description: string; imageUrl: string; linkUrl: string; linkLabel: string;
   freq: string; days: Record<string, boolean>; weekOfMonth: string; allDay: boolean;
-  startTime: string; endTime: string; singleDate: string; endDate: string; seasonStart: string; seasonEnd: string;
+  startTime: string; endTime: string; endsNextDay: boolean; singleDate: string; endDate: string; seasonStart: string; seasonEnd: string;
   exceptions: Exception[];
   // Set when editing a single occurrence of a recurring event (per-date).
   scoalaDate: string | null;
@@ -73,14 +79,81 @@ interface FormState {
 const pad = (n: number) => String(n).padStart(2, '0');
 const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const hhmm = (t?: string | null) => (t ? t.slice(0, 5) : '');
+
+// "2026-03-15" -> "15 martie 2026" (for the delete confirmation wording).
+const fmtRoDate = (iso: string): string => {
+  const p = String(iso).slice(0, 10).split('-');
+  if (p.length < 3) return String(iso);
+  const m = RO_MONTHS[Number(p[1]) - 1];
+  if (!m) return String(iso);
+  return `${Number(p[2])} ${m.toLowerCase()} ${p[0]}`;
+};
 const toTime = (v: string) => (v ? `${v}:00.000` : null);
+
+// --- 24h time adapters: FormState keeps "HH:mm" strings, TimePicker wants numbers.
+const parseHM = (v: string): { hour: number; minute: number } => {
+  const [h, m] = String(v || '').split(':');
+  return { hour: Number(h) || 0, minute: Number(m) || 0 };
+};
+const fmtHM = (h: number, m: number) => `${pad(h)}:${pad(m)}`;
+
+// --- series bounds rules (mirrored server-side in
+// src/api/calendar-event/services/validate-recurrence.ts).
+const MAX_SPAN_DAYS = 366;
+const daysBetween = (a: string, b: string): number => {
+  const [ay, am, ad] = a.split('-').map(Number);
+  const [by, bm, bd] = b.split('-').map(Number);
+  return Math.round((Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86_400_000);
+};
+// "2026-03-14" -> "14.03"
+const fmtDM = (d: string): string => {
+  const p = String(d || '').slice(0, 10).split('-');
+  return p.length < 3 ? '' : `${p[2]}.${p[1]}`;
+};
+const addDayYMD = (d: string): string => {
+  const [y, m, dd] = d.split('-').map(Number);
+  return ymd(new Date(y, m - 1, dd + 1));
+};
+
+/**
+ * Validate the whole series before saving. Returns a Romanian message, or null
+ * when the form is fine. The server enforces the same rules — this only spares
+ * the round trip and points at the field that is wrong.
+ */
+function validateForm(f: FormState): string | null {
+  if (!f.allDay && f.startTime && f.endTime && !f.endsNextDay && f.endTime <= f.startTime) {
+    return 'Ora de sfârșit trebuie să fie după ora de început. Bifează „Se termină a doua zi" dacă evenimentul trece de miezul nopții.';
+  }
+  if (f.freq === 'none') return null;
+  if (!f.seasonStart || !f.seasonEnd) {
+    return 'Un eveniment care se repetă are nevoie de prima și ultima dată a seriei.';
+  }
+  const span = daysBetween(f.seasonStart, f.seasonEnd);
+  if (span < 0) return 'Ultima dată a seriei nu poate fi înaintea primei date.';
+  if (span > MAX_SPAN_DAYS) return 'O serie poate dura cel mult un an. Alege o ultimă dată mai apropiată.';
+  return null;
+}
+
+/**
+ * "22:00 (13.09) – 02:00 (14.09)" — spells out which calendar day each end of
+ * the span lands on, so an overnight event is unambiguous at a glance. The
+ * reference day is the first date of the series (or the one-off's date).
+ */
+function spanHint(f: FormState): string {
+  const ref = (f.freq === 'none' ? f.singleDate : f.seasonStart) || ymd(new Date());
+  const endRef = f.endsNextDay ? addDayYMD(ref) : ref;
+  return `${f.startTime} (${fmtDM(ref)}) – ${f.endTime} (${fmtDM(endRef)})`;
+}
 
 function emptyForm(date?: string): FormState {
   return {
     documentId: null, title: '', type: 'curs', label: '', color: '',
     description: '', imageUrl: '', linkUrl: '', linkLabel: '',
     freq: 'weekly', days: { mon: false, tue: false, wed: false, thu: false, fri: false, sat: false, sun: false },
-    weekOfMonth: 'first', allDay: false, startTime: '', endTime: '', singleDate: date ?? '', endDate: '', seasonStart: '', seasonEnd: '',
+    weekOfMonth: 'first', allDay: false, startTime: '', endTime: '', endsNextDay: false,
+    // A click on a day in the grid seeds both the one-off date and the first
+    // date of a series, so whichever frequency is picked starts from that day.
+    singleDate: date ?? '', endDate: '', seasonStart: date ?? '', seasonEnd: '',
     exceptions: [],
     scoalaDate: null, scoalaState: 'curs', scoalaNote: '',
     occMode: 'keep', occNewDate: '', occNewStart: '', occNewEnd: '', occNewTitle: '',
@@ -96,6 +169,7 @@ export default function ProgramOverviewEditor(_props: Props) {
   const [loading, setLoading] = React.useState(false);
   const [form, setForm] = React.useState<FormState | null>(null);
   const [saving, setSaving] = React.useState(false);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
   const [dirty, setDirty] = React.useState(false);
   const [expEx, setExpEx] = React.useState<number | null>(null);
   const [mediaOpen, setMediaOpen] = React.useState(false);
@@ -149,15 +223,21 @@ export default function ProgramOverviewEditor(_props: Props) {
   const nextMonth = () => setYm(({ y, m }) => (m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 }));
   const toggleCat = (k: string) => setHidden((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
 
-  const openCreate = (date?: string) => { setDirty(true); setScoalaView('date'); setForm(emptyForm(date)); };
+  const openCreate = (date?: string) => {
+    scrollOnOpen.current = true;
+    setDirty(true);
+    setSaveError(null);
+    setScoalaView('date');
+    setForm(emptyForm(date));
+  };
 
   const openEdit = async (documentId?: string, clickedDate?: string) => {
     if (!documentId) return;
-    setForm((f) => {
-      scrollOnOpen.current = f === null;
-      return f;
-    });
+    // Always scroll the panel into view: it sits below the month grid, so
+    // switching between events without it looks like nothing happened.
+    scrollOnOpen.current = true;
     setDirty(false);
+    setSaveError(null);
     setScoalaView('date');
     try {
       const res = await get(`${CM_EVENT}/${documentId}`);
@@ -194,7 +274,8 @@ export default function ProgramOverviewEditor(_props: Props) {
         freq: r.freq ?? 'weekly',
         days: { mon: !!r.mon, tue: !!r.tue, wed: !!r.wed, thu: !!r.thu, fri: !!r.fri, sat: !!r.sat, sun: !!r.sun },
         weekOfMonth: r.weekOfMonth ?? 'first', allDay: !r.startTime,
-        startTime: hhmm(r.startTime), endTime: hhmm(r.endTime), singleDate: r.singleDate ?? '', endDate: r.endDate ?? '',
+        startTime: hhmm(r.startTime), endTime: hhmm(r.endTime), endsNextDay: !!r.endsNextDay,
+        singleDate: r.singleDate ?? '', endDate: r.endDate ?? '',
         seasonStart: r.seasonStart ?? '', seasonEnd: r.seasonEnd ?? '',
         exceptions: exs,
         scoalaDate: occDate,
@@ -212,6 +293,7 @@ export default function ProgramOverviewEditor(_props: Props) {
       freq: f.freq, mon: f.days.mon, tue: f.days.tue, wed: f.days.wed, thu: f.days.thu, fri: f.days.fri, sat: f.days.sat, sun: f.days.sun,
       weekOfMonth: f.freq === 'monthly' ? f.weekOfMonth : null,
       startTime: f.allDay ? null : toTime(f.startTime), endTime: f.allDay ? null : toTime(f.endTime),
+      endsNextDay: !f.allDay && !!f.endsNextDay,
       singleDate: f.freq === 'none' ? (f.singleDate || null) : null,
       endDate: f.freq === 'none' ? (f.endDate || null) : null,
       seasonStart: f.seasonStart || null, seasonEnd: f.seasonEnd || null,
@@ -234,8 +316,17 @@ export default function ProgramOverviewEditor(_props: Props) {
       }
       f = { ...form, exceptions: exs };
     } else if (!form.title.trim()) {
+      setSaveError('Titlul este obligatoriu.');
       return;
     }
+    // Series bounds / time order. Blocks the save; the server rejects the same
+    // payload anyway, so failing here just keeps the form usable.
+    const invalid = validateForm(f);
+    if (invalid) {
+      setSaveError(invalid);
+      return;
+    }
+    setSaveError(null);
     setSaving(true);
     try {
       const body = buildBody(f);
@@ -244,30 +335,56 @@ export default function ProgramOverviewEditor(_props: Props) {
       setForm(null);
       setDirty(false);
       setReloadKey((k) => k + 1);
-    } catch (err) { /* keep panel open on error */ }
+    } catch (err: any) {
+      // Surface the server's Romanian validation message instead of silently
+      // leaving the panel open with no explanation.
+      const msg = err?.response?.data?.error?.message ?? err?.message;
+      setSaveError(msg || 'Salvarea a eșuat.');
+    }
     finally { setSaving(false); }
   };
 
-  const remove = async () => {
+  // Delete confirmation (shared ConfirmDialog). `remove` opens it; `doRemove`
+  // performs the unchanged delete once confirmed.
+  const [confirmDel, setConfirmDel] = React.useState(false);
+  const [delError, setDelError] = React.useState<string | null>(null);
+
+  const remove = () => {
     if (!form?.documentId) { setForm(null); return; }
+    setDelError(null);
+    setConfirmDel(true);
+  };
+
+  const doRemove = async () => {
+    if (!form?.documentId) { setConfirmDel(false); setForm(null); return; }
     setSaving(true);
-    try { await del(`${CM_EVENT}/${form.documentId}`); setForm(null); setReloadKey((k) => k + 1); }
-    catch (err) { /* ignore */ } finally { setSaving(false); }
+    setDelError(null);
+    try {
+      await del(`${CM_EVENT}/${form.documentId}`);
+      setConfirmDel(false);
+      setForm(null);
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      // Keep the dialog open and say so, instead of silently doing nothing.
+      setDelError('Ștergerea a eșuat.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   React.useEffect(() => {
     if (!form || !scrollOnOpen.current) return;
     scrollOnOpen.current = false;
-    // `center` leaves the calendar visible above and the panel below, which is
-    // the point: show that the editor is down there without hiding the month.
+    // `start` puts the panel header at the top of the viewport: the form is
+    // tall, so centring it would push its first fields off-screen.
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     panelRef.current?.scrollIntoView({
       behavior: reduced ? 'auto' : 'smooth',
-      block: 'center',
+      block: 'start',
     });
   }, [form]);
 
-  const upd = (patch: Partial<FormState>) => { setDirty(true); setForm((f) => (f ? { ...f, ...patch } : f)); };
+  const upd = (patch: Partial<FormState>) => { setDirty(true); setSaveError(null); setForm((f) => (f ? { ...f, ...patch } : f)); };
 
   return (
     <div className="pce">
@@ -347,35 +464,42 @@ export default function ProgramOverviewEditor(_props: Props) {
                 </div>
                 {scoalaView === 'date' && (
                   <>
-                    <div className="fld"><label>Data</label><input value={form.scoalaDate ?? ''} disabled /></div>
+                    <div className="pce-fld"><label>Data</label><input value={form.scoalaDate ?? ''} disabled /></div>
                     {form.type === 'scoala' ? (
                       <>
-                        <div className="fld"><label>Stare</label>
-                          <div className="pills">
+                        <div className="pce-fld"><label>Stare</label>
+                          <div className="pce-pills">
                             {SCOALA_STATES.map((s) => (
                               <span key={s.key} className="spill" onClick={() => upd({ scoalaState: s.key })} style={form.scoalaState === s.key ? { background: s.color, borderColor: s.color, color: '#fff' } : undefined}>{s.label}</span>
                             ))}
                           </div>
                         </div>
                         {form.scoalaState !== 'curs' && (
-                          <div className="fld"><label>Notă / motiv (opțional)</label><input value={form.scoalaNote} onChange={(e) => upd({ scoalaNote: e.target.value })} placeholder="ex. Vacanță de Crăciun" /></div>
+                          <div className="pce-fld"><label>Notă / motiv (opțional)</label><input value={form.scoalaNote} onChange={(e) => upd({ scoalaNote: e.target.value })} placeholder="ex. Vacanță de Crăciun" /></div>
                         )}
                       </>
                     ) : (
                       <>
-                        <div className="fld"><label>Pentru această dată</label>
-                          <div className="pills">
+                        <div className="pce-fld"><label>Pentru această dată</label>
+                          <div className="pce-pills">
                             <span className={`spill${form.occMode === 'cancel' ? ' on' : ''}`} onClick={() => upd({ occMode: form.occMode === 'cancel' ? 'keep' : 'cancel' })}>Anulat</span>
                             <span className={`spill${form.occMode === 'override' ? ' on' : ''}`} onClick={() => upd({ occMode: form.occMode === 'override' ? 'keep' : 'override' })}>Modifică</span>
                           </div>
                         </div>
                         {form.occMode === 'override' && (
                           <>
-                            <div className="fld"><label>Dată</label><input type="date" value={form.occNewDate || form.scoalaDate || ''} onChange={(e) => upd({ occNewDate: e.target.value })} /></div>
+                            <div className="pce-fld"><label>Dată</label><input type="date" value={form.occNewDate || form.scoalaDate || ''} onChange={(e) => upd({ occNewDate: e.target.value })} /></div>
                             <div className="row2">
-                              <div className="fld"><label>Început</label><input type="time" value={form.occNewStart} onChange={(e) => upd({ occNewStart: e.target.value })} /></div>
-                              <div className="fld"><label>Sfârșit</label><input type="time" value={form.occNewEnd} onChange={(e) => upd({ occNewEnd: e.target.value })} /></div>
+                              <div className="pce-fld"><label>Început</label>
+                                <TimePicker id="pce-occ-start" {...parseHM(form.occNewStart || form.startTime)}
+                                  onChange={(h, m) => upd({ occNewStart: fmtHM(h, m) })} />
+                              </div>
+                              <div className="pce-fld"><label>Sfârșit</label>
+                                <TimePicker id="pce-occ-end" {...parseHM(form.occNewEnd || form.endTime)}
+                                  onChange={(h, m) => upd({ occNewEnd: fmtHM(h, m) })} />
+                              </div>
                             </div>
+                            {form.endsNextDay && <div className="pce-hint">Seria se termină a doua zi; ora de sfârșit rămâne pe ziua următoare.</div>}
                           </>
                         )}
                       </>
@@ -388,25 +512,40 @@ export default function ProgramOverviewEditor(_props: Props) {
             {(!form.scoalaDate || scoalaView === 'series') && (
             <>
             <div className="pcol">
-            <div className="fld"><label>Titlu</label><input value={form.title} onChange={(e) => upd({ title: e.target.value })} /></div>
-            <div className="fld"><label>Categorie</label>
+            <div className="pce-fld"><label>Titlu</label><input value={form.title} onChange={(e) => upd({ title: e.target.value })} /></div>
+            <div className="pce-fld"><label>Categorie</label>
               <select value={form.type} onChange={(e) => upd({ type: e.target.value })}>
                 {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
               </select>
             </div>
-            <div className="fld"><label>Etichetă (ex. Grupa A)</label><input value={form.label} onChange={(e) => upd({ label: e.target.value })} /></div>
+            <div className="pce-fld"><label>Etichetă (ex. Grupa A)</label><input value={form.label} onChange={(e) => upd({ label: e.target.value })} /></div>
             <label className="chk"><input type="checkbox" checked={form.allDay} onChange={(e) => upd({ allDay: e.target.checked })} /> Toată ziua</label>
             {!form.allDay && (
-              <div className="row2">
-                <div className="fld"><label>Început</label><input type="time" value={form.startTime} onChange={(e) => upd({ startTime: e.target.value })} /></div>
-                <div className="fld"><label>Sfârșit</label><input type="time" value={form.endTime} onChange={(e) => upd({ endTime: e.target.value })} /></div>
-              </div>
+              <>
+                <div className="row2">
+                  <div className="pce-fld"><label>Început</label>
+                    <TimePicker id="pce-start" {...parseHM(form.startTime)}
+                      onChange={(h, m) => upd({ startTime: fmtHM(h, m) })} />
+                  </div>
+                  <div className="pce-fld"><label>Sfârșit</label>
+                    {/* Constrained to after the start, unless the event is
+                        explicitly marked as ending the next day. */}
+                    <TimePicker id="pce-end" {...parseHM(form.endTime)}
+                      minTime={form.endsNextDay || !form.startTime ? undefined : parseHM(form.startTime)}
+                      onChange={(h, m) => upd({ endTime: fmtHM(h, m) })} />
+                  </div>
+                </div>
+                <label className="chk"><input type="checkbox" checked={form.endsNextDay} onChange={(e) => upd({ endsNextDay: e.target.checked })} /> Se termină a doua zi</label>
+                {form.startTime && form.endTime && (
+                  <div className="pce-hint">{spanHint(form)}</div>
+                )}
+              </>
             )}
             </div>
-            <div className="sec pcol">
+            <div className="pce-sec pcol">
               <div className="st">Detalii <span className="opt">opțional</span></div>
-              <div className="fld"><label>Descriere</label><textarea rows={2} value={form.description} onChange={(e) => upd({ description: e.target.value })} /></div>
-              <div className="fld"><label>Imagine</label>
+              <div className="pce-fld"><label>Descriere</label><textarea rows={2} value={form.description} onChange={(e) => upd({ description: e.target.value })} /></div>
+              <div className="pce-fld"><label>Imagine</label>
                 <div className="img">
                   <div className="thumb" style={form.imageUrl ? { backgroundImage: `url(${form.imageUrl})`, backgroundSize: 'cover' } : {}} />
                   <span className="up" onClick={() => setMediaOpen(true)}>{form.imageUrl ? 'schimbă imaginea' : 'alege imagine'}</span>
@@ -414,14 +553,14 @@ export default function ProgramOverviewEditor(_props: Props) {
                 </div>
               </div>
               <div className="row2">
-                <div className="fld" style={{ flex: 2 }}><label>Link</label><input value={form.linkUrl} onChange={(e) => upd({ linkUrl: e.target.value })} /></div>
-                <div className="fld" style={{ flex: 1 }}><label>Etichetă link</label><input value={form.linkLabel} onChange={(e) => upd({ linkLabel: e.target.value })} /></div>
+                <div className="pce-fld" style={{ flex: 2 }}><label>Link</label><input value={form.linkUrl} onChange={(e) => upd({ linkUrl: e.target.value })} /></div>
+                <div className="pce-fld" style={{ flex: 1 }}><label>Etichetă link</label><input value={form.linkLabel} onChange={(e) => upd({ linkLabel: e.target.value })} /></div>
               </div>
             </div>
 
-            <div className="sec pcol">
+            <div className="pce-sec pcol">
               <div className="st">Recurență</div>
-              <div className="fld">
+              <div className="pce-fld">
                 <select value={form.freq} onChange={(e) => upd({ freq: e.target.value })}>
                   <option value="weekly">Săptămânal</option>
                   <option value="biweekly">La 2 săptămâni</option>
@@ -431,31 +570,33 @@ export default function ProgramOverviewEditor(_props: Props) {
               </div>
               {form.freq === 'none' ? (
                 <div className="row2">
-                  <div className="fld"><label>Data</label><input type="date" value={form.singleDate} onChange={(e) => upd({ singleDate: e.target.value })} /></div>
-                  <div className="fld"><label>până la (opțional)</label><input type="date" value={form.endDate} onChange={(e) => upd({ endDate: e.target.value })} /></div>
+                  <div className="pce-fld"><label>Data</label><input type="date" value={form.singleDate} onChange={(e) => upd({ singleDate: e.target.value })} /></div>
+                  <div className="pce-fld"><label>până la (opțional)</label><input type="date" value={form.endDate} onChange={(e) => upd({ endDate: e.target.value })} /></div>
                 </div>
               ) : (
                 <>
-                  <div className="fld"><label>Zile</label>
-                    <div className="pills">
+                  <div className="pce-fld"><label>Zile</label>
+                    <div className="pce-pills">
                       {WD.map(([k, lbl]) => (
-                        <span key={k} className={`pill${form.days[k] ? ' on' : ''}`} onClick={() => upd({ days: { ...form.days, [k]: !form.days[k] } })}>{lbl}</span>
+                        <span key={k} className={`pce-pill${form.days[k] ? ' on' : ''}`} onClick={() => upd({ days: { ...form.days, [k]: !form.days[k] } })}>{lbl}</span>
                       ))}
                     </div>
                   </div>
                   {form.freq === 'monthly' && (
-                    <div className="fld"><label>Săptămâna din lună</label>
+                    <div className="pce-fld"><label>Săptămâna din lună</label>
                       <select value={form.weekOfMonth} onChange={(e) => upd({ weekOfMonth: e.target.value })}>
                         <option value="first">Prima</option><option value="second">A doua</option><option value="third">A treia</option><option value="fourth">A patra</option><option value="last">Ultima</option>
                       </select>
                     </div>
                   )}
-                  {form.type === 'scoala' && (
-                    <div className="row2">
-                      <div className="fld"><label>Sezon de la</label><input type="date" value={form.seasonStart} onChange={(e) => upd({ seasonStart: e.target.value })} /></div>
-                      <div className="fld"><label>până la</label><input type="date" value={form.seasonEnd} onChange={(e) => upd({ seasonEnd: e.target.value })} /></div>
-                    </div>
-                  )}
+                  {/* Every recurring series needs a window, not just Școala:
+                      without one it repeated forever, and the biweekly parity
+                      shifted with whatever range happened to be fetched. */}
+                  <div className="row2">
+                    <div className="pce-fld"><label>{form.type === 'scoala' ? 'Sezon de la' : 'Prima dată'}</label><input type="date" value={form.seasonStart} onChange={(e) => upd({ seasonStart: e.target.value })} /></div>
+                    <div className="pce-fld"><label>{form.type === 'scoala' ? 'până la' : 'Ultima dată'}</label><input type="date" min={form.seasonStart || undefined} value={form.seasonEnd} onChange={(e) => upd({ seasonEnd: e.target.value })} /></div>
+                  </div>
+                  <div className="pce-hint">Obligatoriu. Seria poate dura cel mult un an.</div>
                 </>
               )}
             </div>
@@ -463,7 +604,7 @@ export default function ProgramOverviewEditor(_props: Props) {
             )}
 
             {(!form.scoalaDate || scoalaView === 'series') && form.freq !== 'none' && form.type !== 'scoala' && (
-            <div className="sec pcol-span">
+            <div className="pce-sec pcol-span">
               <div className="st">Excepții <span className="opt">anulări / mutări</span></div>
               <div className="exList">
                 {form.exceptions.map((x, i) => {
@@ -501,14 +642,20 @@ export default function ProgramOverviewEditor(_props: Props) {
                             <span className={`spill${!isMove ? ' on cancel' : ''}`} onClick={() => patch({ kind: 'cancel' })}>Anulat</span>
                             <span className={`spill${isMove ? ' on' : ''}`} onClick={() => patch({ kind: 'override' })}>Mutat</span>
                           </div>
-                          <div className="fld" style={{ margin: 0 }}><label>Data</label><input type="date" value={x.date} onChange={(e) => patch({ date: e.target.value })} /></div>
+                          <div className="pce-fld" style={{ margin: 0 }}><label>Data</label><input type="date" value={x.date} onChange={(e) => patch({ date: e.target.value })} /></div>
                           {isMove && (
                             <>
                               <span className="darr">↓</span>
-                              <div className="fld" style={{ margin: 0 }}><label>Data nouă</label><input type="date" value={x.newDate || x.date} onChange={(e) => patch({ newDate: e.target.value })} /></div>
+                              <div className="pce-fld" style={{ margin: 0 }}><label>Data nouă</label><input type="date" value={x.newDate || x.date} onChange={(e) => patch({ newDate: e.target.value })} /></div>
                               <div className="row2">
-                                <div className="fld" style={{ margin: 0 }}><label>Început</label><input type="time" value={nStart} onChange={(e) => patch({ newStartTime: e.target.value })} /></div>
-                                <div className="fld" style={{ margin: 0 }}><label>Sfârșit</label><input type="time" value={nEnd} onChange={(e) => patch({ newEndTime: e.target.value })} /></div>
+                                <div className="pce-fld" style={{ margin: 0 }}><label>Început</label>
+                                  <TimePicker id={`pce-ex-start-${i}`} {...parseHM(nStart || form.startTime)}
+                                    onChange={(h, m) => patch({ newStartTime: fmtHM(h, m) })} />
+                                </div>
+                                <div className="pce-fld" style={{ margin: 0 }}><label>Sfârșit</label>
+                                  <TimePicker id={`pce-ex-end-${i}`} {...parseHM(nEnd || form.endTime)}
+                                    onChange={(h, m) => patch({ newEndTime: fmtHM(h, m) })} />
+                                </div>
                               </div>
                             </>
                           )}
@@ -523,7 +670,8 @@ export default function ProgramOverviewEditor(_props: Props) {
             )}
             </div>
 
-            <div className="pa">
+            {saveError && <div className="pce-err" role="alert">{saveError}</div>}
+            <div className="pce-pa">
               <button className="btn-save" onClick={save} disabled={saving || !dirty}
                 style={{ display: 'block', width: '100%', height: 'auto', minWidth: 0, boxSizing: 'border-box', padding: '12px', background: (saving || !dirty) ? '#9aa4d6' : '#2138b8', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: (saving || !dirty) ? 'default' : 'pointer' }}>
                 {saving ? 'Se salvează…' : 'Salvează'}
@@ -537,6 +685,22 @@ export default function ProgramOverviewEditor(_props: Props) {
             </div>
           </div>
         )}
+
+      <ConfirmDialog
+        open={confirmDel}
+        title={form && form.freq !== 'none' ? 'Ștergi seria?' : 'Ștergi evenimentul?'}
+        message={
+          !form
+            ? ''
+            : form.freq !== 'none'
+              ? `Ștergi seria „${form.title || 'fără titlu'}"? Toate aparițiile din calendar dispar definitiv. Acțiunea nu poate fi anulată.`
+              : `Ștergi evenimentul „${form.title || 'fără titlu'}"${form.singleDate ? ` din ${fmtRoDate(form.singleDate)}` : ''}? Acțiunea nu poate fi anulată.`
+        }
+        busy={saving}
+        error={delError}
+        onCancel={() => setConfirmDel(false)}
+        onConfirm={doRemove}
+      />
 
       <MediaPicker open={mediaOpen} onClose={() => setMediaOpen(false)} onPick={(img) => { upd({ imageUrl: img.url }); setMediaOpen(false); }} />
     </div>
@@ -589,36 +753,41 @@ const CSS = `
    at most six fields, so columns there would leave two of them empty. The tab
    switcher spans the full width so it does not jump when you change tab. */
 .pce-body--cols { display:grid; grid-template-columns:repeat(3, 1fr); gap:0 20px; align-items:start; }
-.pce-body--cols > .pcol, .pce-body--cols > .sec.pcol { min-width:0; }
-/* .sec draws a top border for stacked blocks; side by side it just adds noise,
-   so only the full-width section keeps it. */
-.pce-body--cols > .sec.pcol { border-top:none; margin-top:0; padding-top:0; }
+.pce-body--cols > .pcol, .pce-body--cols > .pce-sec { min-width:0; }
+/* .pce-sec draws a top border for stacked blocks. In the multi-column layout the
+   uppercase section titles already separate the blocks, so the rules only add
+   stray lines across the panel — drop them for every section, spanning ones
+   included. They come back below, where the blocks stack into a single column. */
+.pce-body--cols > .pce-sec { border-top:none; margin-top:0; padding-top:0; }
 .pce-body--cols > .pcol-span,
 .pce-body--cols > .scoala-tabs { grid-column:1 / -1; }
+/* Row gap is 0, so a spanning section needs its own breathing room now that it
+   no longer carries a separating border. */
+.pce-body--cols > .pce-sec.pcol-span { margin-top:14px; }
 @media (max-width: 1200px) { .pce-body--cols { grid-template-columns:1fr 1fr; } }
 @media (max-width: 820px)  {
   .pce-body--cols { grid-template-columns:1fr; }
-  .pce-body--cols > .sec.pcol { border-top:1px solid #eee; margin-top:12px; padding-top:11px; }
+  .pce-body--cols > .pce-sec { border-top:1px solid #eee; margin-top:12px; padding-top:11px; }
 }
-.fld { margin-bottom:11px; }
-.fld label { display:block; font-size:10px; color:#888; margin-bottom:3px; text-transform:uppercase; letter-spacing:.05em; }
-.fld input, .fld select, .fld textarea { width:100%; padding:6px 8px; border:1px solid #d0d0d0; border-radius:6px; font-size:13px; box-sizing:border-box; font-family:inherit; }
+.pce-fld { margin-bottom:11px; }
+.pce-fld label { display:block; font-size:10px; color:#888; margin-bottom:3px; text-transform:uppercase; letter-spacing:.05em; }
+.pce-fld input, .pce-fld select, .pce-fld textarea { width:100%; padding:6px 8px; border:1px solid #d0d0d0; border-radius:6px; font-size:13px; box-sizing:border-box; font-family:inherit; }
 .row2 { display:flex; gap:8px; }
 .chk { display:flex; align-items:center; gap:7px; font-size:13px; color:#333; margin-bottom:11px; cursor:pointer; user-select:none; }
 .chk input { width:auto; margin:0; }
-.sec { border-top:1px solid #eee; margin-top:12px; padding-top:11px; }
-.sec .st { font-size:11px; font-weight:700; color:#666; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }
-.sec-sep { font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.04em; margin:8px 0 2px; }
+.pce-sec { border-top:1px solid #eee; margin-top:12px; padding-top:11px; }
+.pce-sec .st { font-size:11px; font-weight:700; color:#666; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }
+.pce-sec-sep { font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.04em; margin:8px 0 2px; }
 .scoala-tabs { display:flex; border:1px solid #ccc; border-radius:7px; overflow:hidden; margin-bottom:12px; }
 .scoala-tabs button { flex:1; font-size:12px; padding:6px 0; border:none; background:#fff; cursor:pointer; }
 .scoala-tabs button.on { background:#2138b8; color:#fff; }
-.sec .opt { font-weight:400; color:#aaa; text-transform:none; letter-spacing:0; }
+.pce-sec .opt { font-weight:400; color:#aaa; text-transform:none; letter-spacing:0; }
 .img { display:flex; gap:10px; align-items:center; }
 .img .thumb { width:56px; height:42px; border-radius:5px; background:#eef1f8; border:1px solid #d0d0d0; flex-shrink:0; }
 .img .up { font-size:12px; color:#2138b8; cursor:pointer; }
-.pills { display:flex; gap:5px; }
-.pill { width:28px; height:28px; border-radius:50%; border:1px solid #d0d0d0; display:flex; align-items:center; justify-content:center; font-size:11px; color:#555; cursor:pointer; user-select:none; }
-.pill.on { background:#2138b8; color:#fff; border-color:#2138b8; font-weight:600; }
+.pce-pills { display:flex; gap:5px; }
+.pce-pill { width:28px; height:28px; border-radius:50%; border:1px solid #d0d0d0; display:flex; align-items:center; justify-content:center; font-size:11px; color:#555; cursor:pointer; user-select:none; }
+.pce-pill.on { background:#2138b8; color:#fff; border-color:#2138b8; font-weight:600; }
 .spill { padding:5px 12px; border:1px solid #d0d0d0; border-radius:20px; font-size:12px; color:#555; cursor:pointer; user-select:none; }
 .spill.on { background:#2138b8; color:#fff; border-color:#2138b8; }
 .exList { display:flex; flex-direction:column; gap:6px; }
@@ -638,10 +807,11 @@ const CSS = `
 .exEdit .kt { display:flex; gap:6px; }
 .exEdit .darr { align-self:center; color:#2138b8; font-size:14px; line-height:1; margin:-2px 0; }
 .addlink { font-size:12px; color:#2138b8; cursor:pointer; display:inline-block; margin-top:2px; }
-.pa { flex-shrink:0; display:flex; align-items:center; gap:10px; margin:0; padding:14px 15px; border-top:1px solid #e0e0e0; background:#fafafa; border-radius:0 0 10px 10px; }
-.pa .btn-save { order:2; margin-left:auto; box-sizing:border-box; background:#2138b8; color:#fff; border:none; border-radius:8px; padding:11px 28px; font-size:14px; font-weight:700; cursor:pointer; }
-.pa .btn-save:disabled { opacity:.45; cursor:default; }
-.pa .btn-del { order:1; box-sizing:border-box; background:#fff; color:#be3330; border:1px solid #e2c4c4; border-radius:8px; padding:10px 18px; font-size:13px; cursor:pointer; }
+.pce-err { margin:0 15px 12px; padding:9px 11px; border:1px solid #e2c4c4; border-left:3px solid #be3330; border-radius:6px; background:#faf0ef; color:#8f2723; font-size:12px; line-height:1.45; }
+.pce-pa { flex-shrink:0; display:flex; align-items:center; gap:10px; margin:0; padding:14px 15px; border-top:1px solid #e0e0e0; background:#fafafa; border-radius:0 0 10px 10px; }
+.pce-pa .btn-save { order:2; margin-left:auto; box-sizing:border-box; background:#2138b8; color:#fff; border:none; border-radius:8px; padding:11px 28px; font-size:14px; font-weight:700; cursor:pointer; }
+.pce-pa .btn-save:disabled { opacity:.45; cursor:default; }
+.pce-pa .btn-del { order:1; box-sizing:border-box; background:#fff; color:#be3330; border:1px solid #e2c4c4; border-radius:8px; padding:10px 18px; font-size:13px; cursor:pointer; }
 .btn-save { background:#2138b8; color:#fff; border:none; padding:7px 16px; border-radius:6px; font-size:13px; cursor:pointer; }
 .btn-save:disabled { opacity:.5; cursor:default; }
 .btn-del { background:#fff; color:#be3330; border:1px solid #e6b8b6; padding:7px 12px; border-radius:6px; font-size:13px; cursor:pointer; }

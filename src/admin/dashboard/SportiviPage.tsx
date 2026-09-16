@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { EDU_CSS, yearOf } from './edusportUi';
 import { SPORTIV_EDIT_TO } from './menu';
+import { ConfirmDialog } from '../ConfirmDialog';
 
 /**
  * EduSport admin — "Sportivi" list page (custom, replaces the default
@@ -40,8 +41,20 @@ function relNames(res: any): RelItem[] {
   return Array.isArray(r) ? r : [];
 }
 
+/**
+ * Copy for the athlete type-to-confirm delete dialog. Shared by this list page
+ * and the custom edit page (SportivEditPage imports it from here) so both entry
+ * points ask for exactly the same confirmation. The dialog itself is the
+ * generic `ConfirmDialog` in `src/admin/ConfirmDialog.tsx`.
+ */
+export const SPORTIV_DELETE_COPY = {
+  title: 'Ștergi sportivul?',
+  message: (name: string) =>
+    `„${name}" se șterge definitiv, împreună cu profilul, rezultatele și sezoanele. Acțiunea nu poate fi anulată.`,
+} as const;
+
 export default function SportiviPage() {
-  const { get } = useFetchClient();
+  const { get, del } = useFetchClient();
   const navigate = useNavigate();
 
   const [rows, setRows] = React.useState<Row[]>([]);
@@ -122,6 +135,33 @@ export default function SportiviPage() {
 
   const openEdit = (documentId: string) => navigate(`${SPORTIV_EDIT_TO}?id=${documentId}`);
 
+  // Permanent delete via the content-manager collection API (same base path the
+  // list/save calls use); on success the row is dropped from local state.
+  const [target, setTarget] = React.useState<Row | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
+  const [delError, setDelError] = React.useState<string | null>(null);
+
+  const closeConfirm = React.useCallback(() => {
+    if (deleting) return; // never dismiss mid-request
+    setTarget(null);
+    setDelError(null);
+  }, [deleting]);
+
+  const confirmDelete = async () => {
+    if (!target) return;
+    setDeleting(true);
+    setDelError(null);
+    try {
+      await del(`${CT}/${target.documentId}`);
+      setRows((rs) => rs.filter((r) => r.documentId !== target.documentId));
+      setTarget(null);
+    } catch {
+      setDelError('Ștergerea a eșuat.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="eduf">
       <style>{EDU_CSS}</style>
@@ -174,6 +214,7 @@ export default function SportiviPage() {
                 <th>Antrenori</th>
                 <th>Activ din</th>
                 <th>Public</th>
+                <th style={{ width: 1 }} />
               </tr>
             </thead>
             <tbody>
@@ -199,6 +240,21 @@ export default function SportiviPage() {
                   </td>
                   <td className="num">{yearOf(r.activeSince) || '—'}</td>
                   <td>{r.showPublicPage ? <span className="yes">Da</span> : <span className="no">Nu</span>}</td>
+                  <td className="num" style={{ whiteSpace: 'nowrap' }}>
+                    <button
+                      type="button"
+                      title="Șterge sportivul"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDelError(null);
+                        setTarget(r);
+                      }}
+                      disabled={deleting && target?.documentId === r.documentId}
+                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#be3330', fontWeight: 600, fontSize: 12 }}
+                    >
+                      {deleting && target?.documentId === r.documentId ? '…' : 'Șterge'}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -212,6 +268,16 @@ export default function SportiviPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={target !== null}
+        title={SPORTIV_DELETE_COPY.title}
+        message={SPORTIV_DELETE_COPY.message(target?.name ?? '')}
+        busy={deleting}
+        error={delError}
+        onCancel={closeConfirm}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

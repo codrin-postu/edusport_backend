@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
-import { INSCRIERI_TO, MESAJE_TO, PROGRAM_EDIT_TO, SPORTIV_EDIT_TO } from './menu';
+import { FORMULARE_TO, PROGRAM_EDIT_TO, SPORTIV_EDIT_TO } from './menu';
+import { FORM_DEFS, fetchNewCount } from './formDefs';
 
 /**
  * EduSport admin dashboard page (Direction A).
@@ -84,8 +85,6 @@ const CSS = `
 .a-hero h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
 .a-hero h1 span { color: #9fb0ff; }
 .a-hero .date { margin: 4px 0 0; font-size: 12.5px; color: #aeb7d4; text-transform: capitalize; }
-.a-hero .next { margin-top: 8px; font-size: 12px; color: #aeb7d4; }
-.a-hero .next b { color: #fff; }
 .a-pill { font-size: 11px; font-weight: 700; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); border-radius: 20px; padding: 5px 11px; color: #dfe4f5; white-space: nowrap; flex-shrink: 0; }
 
 .a-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
@@ -98,14 +97,13 @@ const CSS = `
 .feed { background: #fff; border: 1px solid #e6e7ec; border-radius: 12px; padding: 5px 6px 7px; margin-bottom: 14px; }
 .feed-h { display: flex; align-items: center; justify-content: space-between; padding: 11px 12px 8px; }
 .feed-h .t { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: #666; font-weight: 700; }
-.feed-h .tot { background: #be3330; color: #fff; font-size: 11px; font-weight: 800; border-radius: 20px; padding: 3px 10px; }
+.feed-h .tot { background: #be3330; color: #fff; font-size: 11px; font-weight: 800; border-radius: 4px; padding: 3px 9px; }
 .feed-rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 6px; }
 .frow { display: flex; align-items: center; gap: 11px; padding: 10px 11px; border-radius: 9px; border: 1px solid #f0f1f4; background: #fff; cursor: pointer; text-align: left; font-family: inherit; color: inherit; width: 100%; }
 .frow:hover { background: #fafbff; border-color: #dfe3f0; }
 .frow .tile { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0; }
 .frow .bd { flex: 1; min-width: 0; }
 .frow .bd b { font-size: 13px; font-weight: 700; display: block; line-height: 1.25; }
-.frow .bd small { font-size: 11px; color: #8a8d99; }
 .frow .arr { color: #c0c4cf; font-size: 16px; }
 .feed-empty { display: flex; align-items: center; gap: 10px; padding: 14px 12px; color: #5a5e6b; font-size: 13px; }
 .feed-empty .ok { width: 24px; height: 24px; border-radius: 50%; background: #e7f3ec; color: #1f7a4d; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; }
@@ -251,10 +249,8 @@ export default function DashboardPage() {
   const [events, setEvents] = React.useState<Occurrence[] | null>(null);
   const [eventsError, setEventsError] = React.useState(false);
   const [filter, setFilter] = React.useState('all');
-  const [nextEv, setNextEv] = React.useState<Occurrence | null>(null);
 
-  const [newContacts, setNewContacts] = React.useState<number | null>(null);
-  const [newInscrieri, setNewInscrieri] = React.useState<number | null>(null);
+  const [newCounts, setNewCounts] = React.useState<Record<string, number | null>>({});
   const [reg, setReg] = React.useState<{ open: boolean; raw: Record<string, unknown> } | null>(null);
   const [regSaving, setRegSaving] = React.useState(false);
 
@@ -302,8 +298,7 @@ export default function DashboardPage() {
         'filters[date][$lte]': `${year}-12-31`,
       }),
       monthEvents(),
-      count('api::contact-submission.contact-submission', { 'filters[triageStatus][$eq]': 'new' }),
-    ]).then(([sportivi, membri, competitii, month, contactsNew]) => {
+    ]).then(([sportivi, membri, competitii, month]) => {
       if (off) return;
       const out: Array<{ k: string; v: number; c?: string }> = [];
       if (sportivi != null) out.push({ k: 'Sportivi', v: sportivi });
@@ -315,7 +310,6 @@ export default function DashboardPage() {
         setMonthTypes(month.byType);
       }
       setKpis(out);
-      if (contactsNew != null) setNewContacts(contactsNew);
     });
     return () => { off = true; };
   }, [get, today]);
@@ -333,18 +327,19 @@ export default function DashboardPage() {
           .filter((o) => o.date >= todayStr)
           .sort((a, b) => (a.date === b.date ? (a.startTime || '').localeCompare(b.startTime || '') : a.date.localeCompare(b.date)));
         setEvents(sorted);
-        setNextEv(sorted[0] ?? null);
       })
       .catch(() => { if (!off) setEventsError(true); });
     return () => { off = true; };
   }, [get, today, todayStr]);
 
-  // --- new registrations count (active season, non-archived, status Nou)
+  // --- new-entry counts for every live form (shared defs, per-form dialect)
   React.useEffect(() => {
     let off = false;
-    get('/api/forms/inscrieri', { params: { page: 1, pageSize: 1, filters: JSON.stringify([{ col: 'status', op: 'equals', val: 'Nou' }]) } })
-      .then((r: any) => { if (!off) setNewInscrieri(typeof r?.data?.pagination?.total === 'number' ? r.data.pagination.total : null); })
-      .catch(() => { if (!off) setNewInscrieri(null); });
+    FORM_DEFS.filter((d) => d.live).forEach((def) => {
+      fetchNewCount(get, def).then((n) => {
+        if (!off) setNewCounts((c) => ({ ...c, [def.key]: n }));
+      });
+    });
     return () => { off = true; };
   }, [get]);
 
@@ -412,10 +407,6 @@ export default function DashboardPage() {
   const activeTypes = FILTERS.find((f) => f.key === filter)?.types ?? [];
   const shownEvents = (events ?? []).filter((o) => activeTypes.length === 0 || activeTypes.includes(o.type)).slice(0, 6);
 
-  const nextLabel = nextEv
-    ? `${dtLabel(nextEv.date).toLowerCase()} ${nextEv.startTime ? `${nextEv.startTime}, ` : ''}${evTitle(nextEv)}`
-    : null;
-
   const quickActions = [
     { label: 'Adaugă eveniment în calendar', to: PROGRAM_EDIT_TO, ic: '+', primary: true },
     { label: 'Adaugă sportiv', to: SPORTIV_EDIT_TO, ic: 'S' },
@@ -429,9 +420,8 @@ export default function DashboardPage() {
       {/* HERO */}
       <div className="a-hero">
         <div>
-          <h1>Bună{name ? <>, <span>{name}</span></> : null}. Iată ce urmează la club.</h1>
+          <h1>Bună{name ? <>, <span>{name}</span></> : null}.</h1>
           <p className="date">{dateLine}</p>
-          {nextLabel && <div className="next">Următorul eveniment: <b>{nextLabel}</b></div>}
         </div>
         <span className="a-pill">Sezon {today.getMonth() >= 7 ? `${today.getFullYear()} / ${today.getFullYear() + 1}` : `${today.getFullYear() - 1} / ${today.getFullYear()}`}</span>
       </div>
@@ -451,16 +441,13 @@ export default function DashboardPage() {
 
       {/* CE E NOU feed */}
       {(() => {
-        const feedItems = [
-          newInscrieri && newInscrieri > 0
-            ? { key: 'insc', n: newInscrieri, color: '#1f7a4d', tile: 'Î', to: INSCRIERI_TO,
-                label: newInscrieri === 1 ? 'înscriere nouă' : 'înscrieri noi', sub: 'pe Înscrieri' }
-            : null,
-          newContacts && newContacts > 0
-            ? { key: 'msg', n: newContacts, color: '#2138b8', tile: 'M', to: MESAJE_TO,
-                label: newContacts === 1 ? 'mesaj de contact nou' : 'mesaje de contact noi', sub: 'pe Mesaje contact' }
-            : null,
-        ].filter(Boolean) as Array<{ key: string; n: number; color: string; tile: string; to: string; label: string; sub: string }>;
+        const feedItems = FORM_DEFS
+          .filter((def) => def.live && (newCounts[def.key] ?? 0) > 0)
+          .map((def) => {
+            const n = newCounts[def.key] ?? 0;
+            return { key: def.key, n, color: def.feedColor, tile: def.feedTile, to: def.resultsTo ?? FORMULARE_TO,
+              name: def.feedName };
+          });
         const totalNew = feedItems.reduce((s, it) => s + it.n, 0);
         return (
           <div className="feed">
@@ -473,7 +460,7 @@ export default function DashboardPage() {
                 {feedItems.map((it) => (
                   <button key={it.key} className="frow" type="button" onClick={() => navigate(it.to)}>
                     <span className="tile" style={{ background: it.color }}>{it.tile}</span>
-                    <span className="bd"><b><span className="num">{it.n}</span> {it.label}</b><small>{it.sub}</small></span>
+                    <span className="bd"><b>{it.name}: <span className="num">{it.n}</span> {it.n === 1 ? 'mesaj nou' : 'mesaje noi'}</b></span>
                     <span className="arr">&rsaquo;</span>
                   </button>
                 ))}

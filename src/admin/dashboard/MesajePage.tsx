@@ -51,6 +51,9 @@ const REASONS: ReasonDef[] = [
   { value: 'tarife', label: 'Tarife', cls: 'tarife' },
   { value: 'partenariat', label: 'Parteneriat', cls: 'parteneriat' },
   { value: 'feedback', label: 'Feedback', cls: 'feedback' },
+  { value: 'voluntariat', label: 'Voluntariat', cls: 'voluntariat' },
+  { value: 'sponsorizare', label: 'Sponsorizare', cls: 'parteneriat' },
+  { value: 'eveniment-special', label: 'Eveniment special', cls: 'parteneriat' },
   { value: 'altele', label: 'Altele', cls: 'altele' },
 ];
 const REASON_BY_VALUE: Record<string, ReasonDef> = Object.fromEntries(REASONS.map((r) => [r.value, r]));
@@ -179,6 +182,7 @@ const CSS = `
 .rc.program { color: #00707a; background: #e0f3f4; }
 .rc.info { color: #2138b8; background: #eef1fb; }
 .rc.parteneriat { color: #7a1fa2; background: #f5e9f9; }
+.rc.voluntariat { color: #1f7a4d; background: #e7f3ec; }
 .rc.feedback { color: #0e7490; background: #e3f4f8; }
 .rc.altele { color: #5a5e6b; background: #eef0f3; }
 

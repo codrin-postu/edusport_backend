@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { EDU_CSS } from './edusportUi';
 import { SPORTIV_EDIT_TO } from './menu';
+import { ConfirmDialog } from '../ConfirmDialog';
 
 /**
  * EduSport admin — "Competiții" page (skate-results driven).
@@ -194,8 +195,10 @@ export default function CompetitiiPage() {
   };
 
   const [deletingId, setDeletingId] = React.useState<number | null>(null);
+  // Competition pending confirmation. `deleteEvent` only runs once the shared
+  // ConfirmDialog is confirmed; the delete call + side effects are unchanged.
+  const [delTarget, setDelTarget] = React.useState<EventRow | null>(null);
   const deleteEvent = async (ev: EventRow) => {
-    if (!window.confirm(`Ștergi competiția „${ev.name}"? Rezultatele ei din skate-results vor fi eliminate.`)) return;
     setDeletingId(ev.id);
     try {
       await del(`/api/skate/events/${ev.id}`);
@@ -211,6 +214,7 @@ export default function CompetitiiPage() {
       setMsg({ kind: 'err', text: 'Ștergerea a eșuat.' });
     } finally {
       setDeletingId(null);
+      setDelTarget(null);
     }
   };
 
@@ -406,7 +410,7 @@ export default function CompetitiiPage() {
                           title="Șterge competiția"
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteEvent(r);
+                            setDelTarget(r);
                           }}
                           disabled={deletingId === r.id}
                           style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#be3330', fontWeight: 600, fontSize: 12, marginRight: 10 }}
@@ -497,6 +501,17 @@ export default function CompetitiiPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={delTarget !== null}
+        title="Ștergi competiția?"
+        message={`Ștergi competiția „${delTarget?.name ?? ''}"? Rezultatele ei din skate-results vor fi eliminate.`}
+        busy={delTarget !== null && deletingId === delTarget.id}
+        onCancel={() => setDelTarget(null)}
+        onConfirm={() => {
+          if (delTarget) deleteEvent(delTarget);
+        }}
+      />
     </div>
   );
 }

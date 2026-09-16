@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { EDU_CSS, PROGRAM_TYPES } from './edusportUi';
 import { SPORTIVI_TO, SPORTIV_EDIT_TO } from './menu';
+import { SPORTIV_DELETE_COPY } from './SportiviPage';
+import { ConfirmDialog } from '../ConfirmDialog';
 
 /**
  * EduSport admin — custom "Sportiv" edit page (replaces the default
@@ -298,7 +300,7 @@ function StringListEditor({ items, onChange, placeholder }: { items: string[]; o
 }
 
 export default function SportivEditPage() {
-  const { get, put, post } = useFetchClient();
+  const { get, put, post, del } = useFetchClient();
   const navigate = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search || window.location.search);
@@ -556,6 +558,33 @@ export default function SportivEditPage() {
       setMsg({ kind: 'err', text: 'Salvarea a eșuat. Verifică datele și încearcă din nou.' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Permanent delete (edit mode only) — same content-manager collection path
+  // the save above PUTs to, keyed by documentId.
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const [delError, setDelError] = React.useState<string | null>(null);
+
+  const closeConfirm = React.useCallback(() => {
+    if (deleting) return; // never dismiss mid-request
+    setConfirmOpen(false);
+    setDelError(null);
+  }, [deleting]);
+
+  const confirmDelete = async () => {
+    if (!id) return;
+    setDeleting(true);
+    setDelError(null);
+    try {
+      await del(`${CT}/${id}`);
+      setConfirmOpen(false);
+      navigate(SPORTIVI_TO, { replace: true });
+    } catch {
+      setDelError('Ștergerea a eșuat.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -928,6 +957,20 @@ export default function SportivEditPage() {
             <button className="btn" type="button" onClick={() => navigate(SPORTIVI_TO)}>
               Înapoi
             </button>
+            {!isNew && (
+              <button
+                className="btn danger"
+                type="button"
+                title="Șterge sportivul definitiv"
+                onClick={() => {
+                  setDelError(null);
+                  setConfirmOpen(true);
+                }}
+                disabled={saving || deleting}
+              >
+                {deleting ? 'Se șterge...' : 'Șterge sportiv'}
+              </button>
+            )}
             <div className="grow" />
             <button className="btn pri" type="button" onClick={save} disabled={saving}>
               {saving ? 'Se salvează...' : 'Salvează'}
@@ -956,6 +999,16 @@ export default function SportivEditPage() {
           {saving ? 'Se salvează...' : 'Salvează'}
         </button>
       )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={SPORTIV_DELETE_COPY.title}
+        message={SPORTIV_DELETE_COPY.message(form.name)}
+        busy={deleting}
+        error={delError}
+        onCancel={closeConfirm}
+        onConfirm={confirmDelete}
+      />
 
       <MediaModal
         open={mediaFor !== null}

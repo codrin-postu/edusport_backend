@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { FORMULARE_TO } from './menu';
+import { ConfirmDialog } from '../ConfirmDialog';
 
 /**
  * EduSport admin — "Editor formular" page.
@@ -66,6 +67,8 @@ interface EditModel {
 const TITLES: Record<string, string> = {
   inscriere: 'Înscriere cursuri',
   contact: 'Contact',
+  voluntariat: 'Voluntariat',
+  parteneri: 'Parteneri',
 };
 
 // Data-type badge labels. The type is registry-fixed and NOT editable here.
@@ -76,6 +79,7 @@ const TYPE_LABEL: Record<string, string> = {
   longtext: 'text lung',
   date: 'dată',
   select: 'listă',
+  multiselect: 'alegere multiplă',
   checkbox: 'bifă',
   info: 'bloc info',
 };
@@ -185,11 +189,13 @@ const CSS = `
 .esfe .state{padding:40px 0;text-align:center;color:var(--muted);font-size:13px}
 `;
 
+const EDITOR_TYPES = ['inscriere', 'contact', 'voluntariat', 'parteneri'];
+
 function useQueryType(): string {
   const location = useLocation();
   const params = new URLSearchParams(location.search || window.location.search);
   const t = params.get('type') || '';
-  return t === 'contact' ? 'contact' : 'inscriere';
+  return EDITOR_TYPES.includes(t) ? t : 'inscriere';
 }
 
 let tmpCounter = 0;
@@ -265,20 +271,27 @@ export default function FormEditorPage() {
       if (q) Object.assign(q, patch);
     });
 
-  const deleteQuestion = (stepKey: string, q: EditQuestion) => {
+  // Removing a sensitive built-in question is destructive (the field leaves the
+  // public form), so it goes through the shared ConfirmDialog. Everything else
+  // removes immediately, as before.
+  const [pendingRemoveQ, setPendingRemoveQ] = React.useState<{ stepKey: string; q: EditQuestion } | null>(null);
+
+  const applyDeleteQuestion = (stepKey: string, q: EditQuestion) => {
     if (q.isBuiltin) {
-      if (q.sensitive) {
-        const ok = window.confirm(
-          `„${q.label}" este un câmp sensibil (${q.key}). Îl scoți din formular? Coloana și datele deja trimise rămân în tabel.`,
-        );
-        if (!ok) return;
-      }
       setRemoved((r) => (r.some((x) => x.key === q.key) ? r : [...r, { key: q.key, label: q.label, step: stepKey }]));
     }
     mutate((m) => {
       const step = m.steps.find((s) => s.key === stepKey);
       if (step) step.questions = step.questions.filter((x) => x.key !== q.key);
     });
+  };
+
+  const deleteQuestion = (stepKey: string, q: EditQuestion) => {
+    if (q.isBuiltin && q.sensitive) {
+      setPendingRemoveQ({ stepKey, q });
+      return;
+    }
+    applyDeleteQuestion(stepKey, q);
   };
 
   // --- options
@@ -400,7 +413,7 @@ export default function FormEditorPage() {
             linkUrl: q.linkUrl,
             linkLabel: q.linkLabel,
             options:
-              q.type === 'select'
+              q.type === 'select' || q.type === 'multiselect'
                 ? q.options.map((o) => ({ value: o._new ? '' : o.value, label: o.label, enabled: o.enabled }))
                 : undefined,
           })),
@@ -430,7 +443,7 @@ export default function FormEditorPage() {
       <div className="wrap">
         <div className="crumb">Formulare / Editează întrebări</div>
         <div className="hd">
-          <h1 className="ftitle">{type === 'contact' ? 'Contact' : 'Înscriere cursuri'}</h1>
+          <h1 className="ftitle">{TITLES[type] ?? type}</h1>
           <div className="who">
             <span className="note">Modificările apar pe site după salvare</span>
             <button className="btn" type="button" onClick={() => navigate(FORMULARE_TO)}>
@@ -637,7 +650,7 @@ export default function FormEditorPage() {
                                 </div>
                               )}
 
-                              {q.type === 'select' && (
+                              {(q.type === 'select' || q.type === 'multiselect') && (
                                 <div className="fld">
                                   <span className="lbl">Opțiuni</span>
                                   <div className="opts">
@@ -811,6 +824,22 @@ export default function FormEditorPage() {
       </div>
 
       {toast && <div className={`toast ${toast.kind}`}>{toast.msg}</div>}
+
+      <ConfirmDialog
+        open={pendingRemoveQ !== null}
+        title="Scoți câmpul din formular?"
+        message={
+          pendingRemoveQ
+            ? `„${pendingRemoveQ.q.label}" este un câmp sensibil (${pendingRemoveQ.q.key}). Îl scoți din formular? Coloana și datele deja trimise rămân în tabel.`
+            : ''
+        }
+        confirmLabel="Scoate din formular"
+        onCancel={() => setPendingRemoveQ(null)}
+        onConfirm={() => {
+          if (pendingRemoveQ) applyDeleteQuestion(pendingRemoveQ.stepKey, pendingRemoveQ.q);
+          setPendingRemoveQ(null);
+        }}
+      />
     </div>
   );
 }

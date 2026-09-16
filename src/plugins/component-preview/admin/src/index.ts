@@ -330,32 +330,9 @@ export default {
       components: { Input: async () => import('./CursuriPageInfoSectionEditor').then(m => ({ default: m.default as any })) },
     });
 
-    app.customFields.register({
-      name: 'announcement-is-active',
-      pluginId: 'component-preview',
-      type: 'boolean',
-      intlLabel: { id: 'component-preview.announcement-is-active.label', defaultMessage: 'Stare anunț' },
-      intlDescription: { id: 'component-preview.announcement-is-active.description', defaultMessage: 'Activați sau dezactivați afișarea anunțului pe site.' },
-      components: { Input: async () => import('./AnnouncementIsActiveEditor').then(m => ({ default: m.default as any })) },
-    });
-
-    app.customFields.register({
-      name: 'announcement-content',
-      pluginId: 'component-preview',
-      type: 'json',
-      intlLabel: { id: 'component-preview.announcement-content.label', defaultMessage: 'Conținut Anunț Popup' },
-      intlDescription: { id: 'component-preview.announcement-content.description', defaultMessage: 'Mesajul, tipul și butonul de acțiune pentru popup-ul de anunț.' },
-      components: { Input: async () => import('./AnnouncementEditor').then(m => ({ default: m.default as any })) },
-    });
-
-    app.customFields.register({
-      name: 'announcement-expires-at',
-      pluginId: 'component-preview',
-      type: 'datetime',
-      intlLabel: { id: 'component-preview.announcement-expires-at.label', defaultMessage: 'Expiră la' },
-      intlDescription: { id: 'component-preview.announcement-expires-at.description', defaultMessage: 'Data și ora la care anunțul expiră automat.' },
-      components: { Input: async () => import('./AnnouncementExpiresEditor').then(m => ({ default: m.default as any })) },
-    });
+    // The three announcement custom fields (is-active / content / expires-at)
+    // lived here. The announcement is now a collection edited by its own admin
+    // page, and the fields they bound to no longer exist on the schema.
 
     app.customFields.register({
       name: 'team-page-info',
