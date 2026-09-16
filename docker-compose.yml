@@ -54,6 +54,16 @@ services:
       # (import / delete). Key value comes from a gitignored .env.
       SKATE_RESULTS_API: ${SKATE_RESULTS_API:-https://skate-api.codrin.space}
       SKATE_RESULTS_API_KEY: ${SKATE_RESULTS_API_KEY:-}
+      # Google Sheets sync for the four public forms. Secrets only — which
+      # spreadsheet each form uses is stored in the database and edited from
+      # the admin settings page. Everything degrades to "not configured".
+      GOOGLE_SA_EMAIL: ${GOOGLE_SA_EMAIL:-}
+      GOOGLE_SA_PRIVATE_KEY: ${GOOGLE_SA_PRIVATE_KEY:-}
+      SHEETS_SHARE_WITH: ${SHEETS_SHARE_WITH:-}
+      SHEETS_DRY_RUN: ${SHEETS_DRY_RUN:-}
+      # Legacy, seeds the Înscrieri link on first boot only.
+      SHEETS_SPREADSHEET_ID: ${SHEETS_SPREADSHEET_ID:-}
+      SHEETS_TAB_NAME: ${SHEETS_TAB_NAME:-}
     volumes:
       - .:/app
       - /app/node_modules

@@ -17,6 +17,7 @@
     "wipe:club": "docker exec strapi_app node scripts/wipe-club-data.js",
     "seed:homepage": "docker exec strapi_app node scripts/seed-homepage.js",
     "seed:partners-volunteer": "docker exec strapi_app node scripts/seed-partners-volunteer.js",
+    "seed:navigation": "docker exec strapi_app node scripts/seed-navigation.js",
     "start": "strapi start",
     "strapi": "strapi",
     "upgrade": "npx @strapi/upgrade latest",

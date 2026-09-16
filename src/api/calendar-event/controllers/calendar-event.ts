@@ -1,6 +1,7 @@
 import { factories } from '@strapi/strapi';
 import { expandOccurrences } from '../services/expand';
 import type { CalendarEventRow, BlackoutRow } from '../services/expand';
+import { validateRecurrence } from '../services/validate-recurrence';
 
 const DAY = 86_400_000;
 
@@ -62,6 +63,14 @@ export default factories.createCoreController('api::calendar-event.calendar-even
 
   async createEvent(ctx) {
     const data = (ctx.request.body as any)?.data ?? ctx.request.body;
+    // Validated here as well as in the model lifecycle: this is the route the
+    // Program editor actually posts to, so a clear 400 gets back to the form
+    // even if a future Strapi version changes how components reach lifecycles.
+    try {
+      validateRecurrence(data?.recurrence);
+    } catch (e: any) {
+      return ctx.badRequest(e?.message ?? 'Recurență invalidă');
+    }
     const doc = await strapi.documents('api::calendar-event.calendar-event').create({
       data,
       populate: ['recurrence', 'exceptions'],
@@ -72,6 +81,13 @@ export default factories.createCoreController('api::calendar-event.calendar-even
   async updateEvent(ctx) {
     const { documentId } = ctx.params;
     const data = (ctx.request.body as any)?.data ?? ctx.request.body;
+    if (data && 'recurrence' in data) {
+      try {
+        validateRecurrence(data.recurrence);
+      } catch (e: any) {
+        return ctx.badRequest(e?.message ?? 'Recurență invalidă');
+      }
+    }
     const doc = await strapi.documents('api::calendar-event.calendar-event').update({
       documentId,
       data,

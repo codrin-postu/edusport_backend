@@ -17,6 +17,8 @@ interface Recurrence {
   weekOfMonth?: WeekOfMonth | null;
   startTime?: string | null;
   endTime?: string | null;
+  /** Explicit overnight flag: the end time lands on the day AFTER `date`. */
+  endsNextDay?: boolean | null;
   singleDate?: string | null;
   endDate?: string | null;
   seasonStart?: string | null;
@@ -62,9 +64,17 @@ export interface Occurrence {
   label: string | null;
   color: string | null;
   order: number;
-  date: string;                 // YYYY-MM-DD
+  date: string;                 // YYYY-MM-DD — the day the occurrence STARTS
   startTime: string | null;     // HH:mm
   endTime: string | null;       // HH:mm
+  /** True when `endTime` belongs to the day after `date` (crosses midnight). */
+  endsNextDay: boolean;
+  /**
+   * Resolved calendar day of `endTime` (YYYY-MM-DD), or null when the
+   * occurrence has no end time. Equals `date` unless `endsNextDay`.
+   * Emitted alongside the flag so consumers never redo date arithmetic.
+   */
+  endDate: string | null;
   status: 'scheduled' | 'cancelled' | 'override';
   cancelReason: 'exception' | 'blackout' | null;
   state?: 'curs' | 'liber' | 'anulat' | null; // Școala only
@@ -201,6 +211,7 @@ export function expandOccurrences(
       let note: string | null = null;
       let startTime = hhmm(r.startTime);
       let endTime = hhmm(r.endTime);
+      let endsNextDay = !!r.endsNextDay;
       let title = ev.title;
       let outDate = key;
 
@@ -223,6 +234,12 @@ export function expandOccurrences(
         if (ex.newStartTime) startTime = hhmm(ex.newStartTime);
         if (ex.newEndTime) endTime = hhmm(ex.newEndTime);
         if (ex.newTitle) title = ex.newTitle;
+        // The exception component carries no overnight flag of its own, so an
+        // override that moves the times re-derives it: an end strictly before
+        // the start can only mean "next day". Equal times keep the series flag.
+        if ((ex.newStartTime || ex.newEndTime) && startTime && endTime && startTime !== endTime) {
+          endsNextDay = endTime < startTime;
+        }
       }
 
       // Blackout wins over a normal scheduled slot (but a manual override stays).
@@ -242,6 +259,8 @@ export function expandOccurrences(
         date: outDate,
         startTime,
         endTime,
+        endsNextDay: endsNextDay && !!endTime,
+        endDate: endTime ? (endsNextDay ? ymd(addDays(parseYMD(outDate), 1)) : outDate) : null,
         status,
         cancelReason,
         state,

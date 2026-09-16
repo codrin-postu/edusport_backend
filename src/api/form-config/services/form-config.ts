@@ -88,6 +88,9 @@ const isPhoneLike = (v: string) => PHONE_ALLOWED_RE.test(v) && v.replace(/\D/g, 
 
 const MAX_TEXT = 5000;
 
+/** Built-in question types whose options come from the registry + overlay. */
+const hasBuiltinOptions = (t: RegistryQuestion['type']) => t === 'select' || t === 'multiselect';
+
 /** Short, collision-resistant id used for custom keys and generated option values. */
 function genId(prefix: string): string {
   return `${prefix}${Math.random().toString(36).slice(2, 8)}${Date.now().toString(36).slice(-3)}`;
@@ -252,7 +255,7 @@ function mergePublicModel(form: RegistryForm, overlay: Overlay) {
             required: builtinRequired(q, ov, hidden),
             hidden: false,
           };
-          if (q.type === 'select') {
+          if (hasBuiltinOptions(q.type)) {
             base.options = effectiveOptions(q, ov)
               .filter((o) => o.enabled)
               .map((o) => ({ value: o.value, label: o.label, enabled: true }));
@@ -328,7 +331,7 @@ function editQuestion(e: StepEntry, overlay: Overlay) {
     icon: asStr(ov?.icon) || q.defaultIcon || '',
     linkUrl: asStr(ov?.linkUrl) || q.defaultLinkUrl || '',
     linkLabel: asStr(ov?.linkLabel) || q.defaultLinkLabel || '',
-    options: q.type === 'select' ? effectiveOptions(q, ov) : [],
+    options: hasBuiltinOptions(q.type) ? effectiveOptions(q, ov) : [],
   };
 }
 
@@ -503,7 +506,7 @@ function buildBuiltinOverlay(overlay: Overlay, regQ: RegistryQuestion, qIn: any)
     }
   }
 
-  if (regQ.type === 'select' && Array.isArray(qIn.options)) {
+  if (hasBuiltinOptions(regQ.type) && Array.isArray(qIn.options)) {
     const regValues = new Set((regQ.options ?? []).map((o) => o.value));
     const optMap: Record<string, OptionOverlay> = {};
     const optionOrder: string[] = [];
@@ -672,23 +675,32 @@ export default factories.createCoreService(UID, ({ strapi }) => ({
   },
 
   /**
-   * Validate a provided BUILT-IN select value (e.g. `level`, `reason`) against
-   * the currently-enabled options in the effective config. Empty values pass.
-   * `values` is a key->string map. Returns the first Romanian error, or null.
+   * Validate a provided BUILT-IN select/multiselect value (e.g. `level`,
+   * `reason`, `helpAreas`) against the currently-enabled options in the
+   * effective config. Empty values pass. `values` maps key -> string (select)
+   * or string[] (multiselect). Returns the first Romanian error, or null.
    */
-  async validateBuiltinSelects(type: FormType, values: Record<string, string>): Promise<string | null> {
+  async validateBuiltinSelects(
+    type: FormType,
+    values: Record<string, string | string[]>,
+  ): Promise<string | null> {
     const overlay = await this.loadOverlay(type);
     for (const step of REGISTRY[type].steps) {
       for (const q of step.questions) {
-        if (q.type !== 'select') continue;
+        if (!hasBuiltinOptions(q.type)) continue;
         if (isRemoved(overlay, q.key)) continue;
         if (!(q.key in values)) continue;
-        const val = asStr(values[q.key]).trim();
-        if (!val) continue;
+        const raw = values[q.key];
+        const provided = q.type === 'multiselect'
+          ? (Array.isArray(raw) ? raw : []).map((v) => asStr(v).trim()).filter((v) => v !== '')
+          : [asStr(raw).trim()].filter((v) => v !== '');
+        if (!provided.length) continue;
         const enabled = new Set(effectiveOptions(q, overlay.q?.[q.key]).filter((o) => o.enabled).map((o) => o.value));
-        if (!enabled.has(val)) {
-          const label = asStr(overlay.q?.[q.key]?.label) || q.defaultLabel;
-          return `Valoare invalidă pentru câmpul "${label}".`;
+        for (const val of provided) {
+          if (!enabled.has(val)) {
+            const label = asStr(overlay.q?.[q.key]?.label) || q.defaultLabel;
+            return `Valoare invalidă pentru câmpul "${label}".`;
+          }
         }
       }
     }
@@ -775,7 +787,7 @@ export default factories.createCoreService(UID, ({ strapi }) => ({
     for (const step of REGISTRY[type].steps) {
       for (const q of step.questions) {
         if (isRemoved(overlay, q.key)) removedBuiltins.push(q.key);
-        if (q.type === 'select' && !isRemoved(overlay, q.key)) {
+        if (hasBuiltinOptions(q.type) && !isRemoved(overlay, q.key)) {
           selectOptions[q.key] = effectiveOptions(q, overlay.q?.[q.key])
             .filter((o) => o.enabled)
             .map((o) => ({ value: o.value, label: o.label }));

@@ -443,11 +443,12 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface ApiAnnouncementAnnouncement extends Struct.SingleTypeSchema {
+export interface ApiAnnouncementAnnouncement
+  extends Struct.CollectionTypeSchema {
   collectionName: 'announcements';
   info: {
-    description: 'Anun\u021B afi\u0219at ca popup pe site. Activa\u021Bi comutatorul pentru a afi\u0219a anun\u021Bul vizitatorilor.';
-    displayName: 'Anun\u021B Popup';
+    description: 'Anun\u021Buri programate afi\u0219ate pe site. Se administreaz\u0103 din pagina dedicat\u0103 \u201EAnun\u021Buri\u201D, nu din Content Manager.';
+    displayName: 'Anun\u021B';
     pluralName: 'announcements';
     singularName: 'announcement';
   };
@@ -456,27 +457,33 @@ export interface ApiAnnouncementAnnouncement extends Struct.SingleTypeSchema {
   };
   pluginOptions: {
     'content-manager': {
-      visible: true;
+      visible: false;
     };
   };
   attributes: {
-    announceContent: Schema.Attribute.JSON &
-      Schema.Attribute.CustomField<'plugin::component-preview.announcement-content'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    expiresAt: Schema.Attribute.DateTime &
-      Schema.Attribute.CustomField<'plugin::component-preview.announcement-expires-at'>;
-    isActive: Schema.Attribute.Boolean &
-      Schema.Attribute.CustomField<'plugin::component-preview.announcement-is-active'> &
-      Schema.Attribute.DefaultTo<false>;
+    ctaLabel: Schema.Attribute.String;
+    ctaUrl: Schema.Attribute.String;
+    dismissDays: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<7>;
+    endAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    eyebrow: Schema.Attribute.String;
+    format: Schema.Attribute.Enumeration<['card', 'modal']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'card'>;
+    isActive: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::announcement.announcement'
     > &
       Schema.Attribute.Private;
+    message: Schema.Attribute.Text & Schema.Attribute.Required;
+    priority: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<100>;
     publishedAt: Schema.Attribute.DateTime;
+    slug: Schema.Attribute.UID<'title'> & Schema.Attribute.Required;
+    startAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
     title: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -1014,6 +1021,92 @@ export interface ApiHomepageHomepage extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiNavigationNavigation extends Struct.SingleTypeSchema {
+  collectionName: 'navigations';
+  info: {
+    description: 'Descrierea si imaginea cardurilor promo din meniu. Structura meniului ramane in codul site-ului.';
+    displayName: 'Meniu site';
+    pluralName: 'navigations';
+    singularName: 'navigation';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::navigation.navigation'
+    > &
+      Schema.Attribute.Private;
+    overrides: Schema.Attribute.Component<'nav.override', true>;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiPartnerSubmissionPartnerSubmission
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'partner_submissions';
+  info: {
+    description: 'Propuneri de parteneriat trimise prin formularul public de parteneriat';
+    displayName: 'Formulare / Partener';
+    pluralName: 'partner-submissions';
+    singularName: 'partner-submission';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    collaborationType: Schema.Attribute.String;
+    companyName: Schema.Attribute.String & Schema.Attribute.Required;
+    contactName: Schema.Attribute.String & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    email: Schema.Attribute.Email & Schema.Attribute.Required;
+    extra: Schema.Attribute.JSON;
+    internalNote: Schema.Attribute.Text;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::partner-submission.partner-submission'
+    > &
+      Schema.Attribute.Private;
+    message: Schema.Attribute.Text & Schema.Attribute.Required;
+    phone: Schema.Attribute.String;
+    privacyConsent: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    publishedAt: Schema.Attribute.DateTime;
+    status: Schema.Attribute.Enumeration<
+      ['Nou', 'In discutii', 'Confirmat', 'Respins']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'Nou'>;
+    submittedAt: Schema.Attribute.DateTime;
+    submitterIp: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    userAgent: Schema.Attribute.String;
+  };
+}
+
 export interface ApiPartnersPagePartnersPage extends Struct.SingleTypeSchema {
   collectionName: 'partners_pages';
   info: {
@@ -1274,6 +1367,101 @@ export interface ApiRegistrationSubmissionRegistrationSubmission
   };
 }
 
+export interface ApiSheetLinkSheetLink extends Struct.CollectionTypeSchema {
+  collectionName: 'sheet_links';
+  info: {
+    description: 'Foaia de calcul conectat\u0103 pentru fiecare formular public (una pe formular)';
+    displayName: 'Config / Leg\u0103tur\u0103 Google Sheets';
+    pluralName: 'sheet-links';
+    singularName: 'sheet-link';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    enabled: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    form: Schema.Attribute.Enumeration<
+      ['inscrieri', 'voluntari', 'parteneri', 'contact']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    intervalHours: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<4>;
+    lastReconcileAt: Schema.Attribute.DateTime;
+    lastSyncAt: Schema.Attribute.DateTime;
+    lastSyncMessage: Schema.Attribute.Text;
+    lastSyncOk: Schema.Attribute.Boolean;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::sheet-link.sheet-link'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    spreadsheetId: Schema.Attribute.String;
+    spreadsheetName: Schema.Attribute.String;
+    tab: Schema.Attribute.String & Schema.Attribute.DefaultTo<'Date'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiSheetSyncLogSheetSyncLog
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'sheet_sync_logs';
+  info: {
+    description: 'Istoricul sincroniz\u0103rilor cu Google Sheets (ultimele 100 pe formular)';
+    displayName: 'Config / Istoric sincronizare Sheets';
+    pluralName: 'sheet-sync-logs';
+    singularName: 'sheet-sync-log';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    added: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    at: Schema.Attribute.DateTime;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    form: Schema.Attribute.Enumeration<
+      ['inscrieri', 'voluntari', 'parteneri', 'contact']
+    > &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::sheet-sync-log.sheet-sync-log'
+    > &
+      Schema.Attribute.Private;
+    message: Schema.Attribute.Text;
+    ok: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    publishedAt: Schema.Attribute.DateTime;
+    removed: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    trigger: Schema.Attribute.Enumeration<
+      ['submission', 'manual', 'scheduled']
+    > &
+      Schema.Attribute.Required;
+    updated: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiSiteSettingsSiteSettings extends Struct.SingleTypeSchema {
   collectionName: 'site_settings';
   info: {
@@ -1510,6 +1698,69 @@ export interface ApiVolunteerPageVolunteerPage extends Struct.SingleTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+  };
+}
+
+export interface ApiVolunteerSubmissionVolunteerSubmission
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'volunteer_submissions';
+  info: {
+    description: 'Cereri de voluntariat trimise prin formularul public de voluntariat';
+    displayName: 'Formulare / Voluntar';
+    pluralName: 'volunteer-submissions';
+    singularName: 'volunteer-submission';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: true;
+    };
+  };
+  attributes: {
+    availability: Schema.Attribute.String;
+    birthDate: Schema.Attribute.Date;
+    childrenExperience: Schema.Attribute.Text;
+    city: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    email: Schema.Attribute.Email & Schema.Attribute.Required;
+    extra: Schema.Attribute.JSON;
+    frequency: Schema.Attribute.String;
+    fullName: Schema.Attribute.String & Schema.Attribute.Required;
+    helpAreas: Schema.Attribute.JSON;
+    howHeard: Schema.Attribute.String;
+    internalNote: Schema.Attribute.Text;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::volunteer-submission.volunteer-submission'
+    > &
+      Schema.Attribute.Private;
+    motivation: Schema.Attribute.Text & Schema.Attribute.Required;
+    occupation: Schema.Attribute.String;
+    parentalConsent: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    parentName: Schema.Attribute.String;
+    parentPhone: Schema.Attribute.String;
+    phone: Schema.Attribute.String;
+    privacyConsent: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    publishedAt: Schema.Attribute.DateTime;
+    skatingExperience: Schema.Attribute.String;
+    status: Schema.Attribute.Enumeration<
+      ['Nou', 'Contactat', 'Acceptat', 'Respins']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'Nou'>;
+    submittedAt: Schema.Attribute.DateTime;
+    submitterIp: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    userAgent: Schema.Attribute.String;
   };
 }
 
@@ -2043,18 +2294,23 @@ declare module '@strapi/strapi' {
       'api::historic-page.historic-page': ApiHistoricPageHistoricPage;
       'api::history-milestone.history-milestone': ApiHistoryMilestoneHistoryMilestone;
       'api::homepage.homepage': ApiHomepageHomepage;
+      'api::navigation.navigation': ApiNavigationNavigation;
+      'api::partner-submission.partner-submission': ApiPartnerSubmissionPartnerSubmission;
       'api::partners-page.partners-page': ApiPartnersPagePartnersPage;
       'api::pricing.pricing': ApiPricingPricing;
       'api::program-page.program-page': ApiProgramPageProgramPage;
       'api::program.program': ApiProgramProgram;
       'api::realizari-page.realizari-page': ApiRealizariPageRealizariPage;
       'api::registration-submission.registration-submission': ApiRegistrationSubmissionRegistrationSubmission;
+      'api::sheet-link.sheet-link': ApiSheetLinkSheetLink;
+      'api::sheet-sync-log.sheet-sync-log': ApiSheetSyncLogSheetSyncLog;
       'api::site-settings.site-settings': ApiSiteSettingsSiteSettings;
       'api::sponsor.sponsor': ApiSponsorSponsor;
       'api::sportsperson.sportsperson': ApiSportspersonSportsperson;
       'api::team-member.team-member': ApiTeamMemberTeamMember;
       'api::team-page.team-page': ApiTeamPageTeamPage;
       'api::volunteer-page.volunteer-page': ApiVolunteerPageVolunteerPage;
+      'api::volunteer-submission.volunteer-submission': ApiVolunteerSubmissionVolunteerSubmission;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

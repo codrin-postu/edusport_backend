@@ -1,5 +1,8 @@
 import type { Core } from '@strapi/strapi';
 import { initSentry } from './sentry';
+import { registerRecurrenceValidation } from './api/calendar-event/services/validate-recurrence';
+import { registerAnnouncementValidation } from './api/announcement/services/validate-announcement';
+import { seedLegacyLink } from './sheets/store';
 
 // Admin layout overrides - applied on every bootstrap so they survive DB resets.
 // Each key is the strapi_core_store_settings key for that component/content-type.
@@ -299,6 +302,11 @@ export default {
     // Backend error tracking (GlitchTip). Inert unless SENTRY_DSN is set.
     initSentry();
 
+    // Calendar recurrence rules (series bounds, max one-year span, time order)
+    // enforced on every document-service write, not just the admin editor.
+    registerRecurrenceValidation(strapi);
+    registerAnnouncementValidation(strapi);
+
     // Hide the users-permissions User collection from the content manager sidebar.
     // There is no login on the frontend so this type is unused.
     const userCT = strapi.contentType('plugin::users-permissions.user' as any);
@@ -382,6 +390,22 @@ export default {
     });
   },
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
+    // Google Sheets back-compat: migrate the legacy SHEETS_SPREADSHEET_ID env
+    // into the per-form sheet-link record, once, if none exists yet.
+    await seedLegacyLink();
+
+    // Confirm the scheduled jobs actually registered — a cron block that is
+    // silently ignored (wrong config key, disabled) is otherwise invisible.
+    try {
+      const jobs = (strapi as any).cron?.jobs ?? [];
+      const names = jobs.map((j: any) => j?.name ?? j?.options?.name).filter(Boolean);
+      strapi.log.info(
+        `[cron] ${jobs.length} scheduled task(s) registered${names.length ? `: ${names.join(', ')}` : ''}`,
+      );
+    } catch {
+      /* diagnostics only */
+    }
+
     for (const [key, edit] of Object.entries(LAYOUT_OVERRIDES)) {
       const existing = await strapi.db.query('strapi::core-store').findOne({ where: { key } });
       if (existing) {

@@ -12,14 +12,25 @@
  * The registry keys/types deliberately mirror the real content-type schemas:
  *   - api::registration-submission.registration-submission  (form "inscriere")
  *   - api::contact-submission.contact-submission            (form "contact")
+ *   - api::volunteer-submission.volunteer-submission        (form "voluntariat")
+ *   - api::partner-submission.partner-submission            (form "parteneri")
  * Note: a few render-model questions (clubInterest as a Da/Nu select) are a
  * presentation over a differently-typed stored column; the stored write path is
  * the frontend's concern. The registry describes how the question RENDERS.
  */
 
-export type FormType = 'inscriere' | 'contact';
+export type FormType = 'inscriere' | 'contact' | 'voluntariat' | 'parteneri';
 
-export type QuestionType = 'email' | 'tel' | 'text' | 'longtext' | 'date' | 'select' | 'checkbox' | 'info';
+export type QuestionType =
+  | 'email'
+  | 'tel'
+  | 'text'
+  | 'longtext'
+  | 'date'
+  | 'select'
+  | 'multiselect'
+  | 'checkbox'
+  | 'info';
 
 /**
  * Types an admin may pick when ADDING a custom question. The type is chosen at
@@ -129,6 +140,30 @@ const LEVEL_VALUES = [
   'Intermediari',
   'Avansati',
   'Performanta',
+] as const;
+
+const VOLUNTEER_OCCUPATIONS = ['Elev', 'Student', 'Angajat', 'Altele'] as const;
+
+const VOLUNTEER_HELP_AREAS = [
+  'Sprijin la antrenamente pe gheață',
+  'Supraveghere / însoțire copii',
+  'Organizare competiții și evenimente',
+  'Foto-video & social media',
+  'Suport logistic (echipament, patine)',
+] as const;
+
+const VOLUNTEER_AVAILABILITY = ['În timpul săptămânii', 'În weekend', 'Ambele'] as const;
+
+const VOLUNTEER_FREQUENCY = ['Săptămânal', 'De câteva ori pe lună', 'Doar la evenimente'] as const;
+
+const VOLUNTEER_SKATING_EXPERIENCE = ['Da, patinez', 'Puțin', 'Deloc'] as const;
+
+const VOLUNTEER_HOW_HEARD = ['Social media', 'Prieteni sau familie', 'La patinoar', 'Google', 'Altele'] as const;
+
+const PARTNER_COLLABORATION_TYPES = [
+  'Sponsorizarea clubului',
+  'Organizarea unui eveniment special',
+  'Altă colaborare',
 ] as const;
 
 const CONTACT_REASONS: RegistryOption[] = [
@@ -373,12 +408,279 @@ const contact: RegistryForm = {
   ],
 };
 
-export const REGISTRY: Record<FormType, RegistryForm> = { inscriere, contact };
+const voluntariat: RegistryForm = {
+  type: 'voluntariat',
+  steps: [
+    {
+      key: 'personal',
+      title: 'Date personale',
+      questions: [
+        {
+          key: 'fullName',
+          type: 'text',
+          defaultLabel: 'Nume complet',
+          required: true,
+          canHide: false,
+          optionSource: 'none',
+        },
+        {
+          key: 'birthDate',
+          type: 'date',
+          defaultLabel: 'Data nașterii',
+          defaultHelp: 'Vârsta minimă pentru voluntariat este 15 ani.',
+          required: true,
+          canHide: false,
+          optionSource: 'none',
+        },
+        {
+          key: 'email',
+          type: 'email',
+          defaultLabel: 'E-mail',
+          required: true,
+          lockedRequired: true,
+          canHide: false,
+          optionSource: 'none',
+        },
+        {
+          key: 'phone',
+          type: 'tel',
+          defaultLabel: 'Telefon',
+          required: true,
+          canHide: false,
+          optionSource: 'none',
+        },
+        {
+          key: 'city',
+          type: 'text',
+          defaultLabel: 'Oraș / localitate',
+          required: true,
+          canHide: false,
+          optionSource: 'none',
+        },
+        {
+          key: 'occupation',
+          type: 'select',
+          defaultLabel: 'Ocupație',
+          required: true,
+          canHide: false,
+          // Backed by a plain-string column, so the option list is fully dynamic.
+          optionSource: 'freetext',
+          options: VOLUNTEER_OCCUPATIONS.map((v) => ({ value: v, label: v })),
+        },
+        {
+          key: 'parentName',
+          type: 'text',
+          defaultLabel: 'Nume părinte / tutore',
+          defaultHelp: 'Completează doar dacă ai sub 18 ani.',
+          required: false,
+          canHide: true,
+          optionSource: 'none',
+        },
+        {
+          key: 'parentPhone',
+          type: 'tel',
+          defaultLabel: 'Telefon părinte / tutore',
+          defaultHelp: 'Completează doar dacă ai sub 18 ani.',
+          required: false,
+          canHide: true,
+          optionSource: 'none',
+        },
+        {
+          key: 'parentalConsent',
+          type: 'checkbox',
+          defaultLabel: 'Am acordul părinților / tutorelui',
+          // Required is enforced conditionally (only for minors) by the frontend
+          // and the submit controller, never through the static config.
+          required: false,
+          canHide: true,
+          optionSource: 'none',
+        },
+      ],
+    },
+    {
+      key: 'implicare',
+      title: 'Implicare',
+      questions: [
+        {
+          key: 'helpAreas',
+          type: 'multiselect',
+          defaultLabel: 'Cum vrei să ajuți?',
+          required: false,
+          canHide: true,
+          // Backed by a json string-array column, so the option list is fully
+          // dynamic: the editor may add / rename / reorder / disable values.
+          optionSource: 'freetext',
+          options: VOLUNTEER_HELP_AREAS.map((v) => ({ value: v, label: v })),
+        },
+        {
+          key: 'availability',
+          type: 'select',
+          defaultLabel: 'Disponibilitate',
+          required: true,
+          canHide: false,
+          optionSource: 'freetext',
+          options: VOLUNTEER_AVAILABILITY.map((v) => ({ value: v, label: v })),
+        },
+        {
+          key: 'frequency',
+          type: 'select',
+          defaultLabel: 'Cât de des',
+          required: true,
+          canHide: false,
+          optionSource: 'freetext',
+          options: VOLUNTEER_FREQUENCY.map((v) => ({ value: v, label: v })),
+        },
+        {
+          key: 'skatingExperience',
+          type: 'select',
+          defaultLabel: 'Experiență cu patinajul',
+          required: true,
+          canHide: false,
+          optionSource: 'freetext',
+          options: VOLUNTEER_SKATING_EXPERIENCE.map((v) => ({ value: v, label: v })),
+        },
+        {
+          key: 'childrenExperience',
+          type: 'longtext',
+          defaultLabel: 'Experiență cu copiii',
+          defaultHelp: 'Ai mai lucrat cu copii? Povestește pe scurt.',
+          required: false,
+          canHide: true,
+          optionSource: 'none',
+        },
+      ],
+    },
+    {
+      key: 'motivatie',
+      title: 'Motivație & acord',
+      questions: [
+        {
+          key: 'motivation',
+          type: 'longtext',
+          defaultLabel: 'De ce vrei să fii voluntar?',
+          required: true,
+          canHide: false,
+          optionSource: 'none',
+        },
+        {
+          key: 'howHeard',
+          type: 'select',
+          defaultLabel: 'Cum ai aflat de noi?',
+          required: false,
+          canHide: true,
+          optionSource: 'freetext',
+          options: VOLUNTEER_HOW_HEARD.map((v) => ({ value: v, label: v })),
+        },
+        {
+          key: 'infoContract',
+          type: 'info',
+          defaultDisplay: 'card',
+          defaultLabel:
+            'Voluntarii care lucrează direct cu copiii vor semna un contract de voluntariat și vor prezenta certificatul de integritate comportamentală înainte de început (Legea 78/2014, Legea 118/2019).',
+          defaultTitle: 'Bine de știut',
+          defaultIcon: 'shield',
+          defaultLinkUrl: '',
+          defaultLinkLabel: '',
+          canHide: true,
+          required: false,
+        },
+        {
+          key: 'privacyConsent',
+          type: 'checkbox',
+          defaultLabel: 'Sunt de acord cu prelucrarea datelor personale',
+          required: true,
+          lockedRequired: true,
+          canHide: false,
+          optionSource: 'none',
+        },
+      ],
+    },
+  ],
+};
 
-export const FORM_TYPES: FormType[] = ['inscriere', 'contact'];
+const parteneri: RegistryForm = {
+  type: 'parteneri',
+  steps: [
+    {
+      key: 'contact',
+      title: 'Date de contact',
+      questions: [
+        {
+          key: 'companyName',
+          type: 'text',
+          defaultLabel: 'Companie / Organizație',
+          required: true,
+          canHide: false,
+          optionSource: 'none',
+        },
+        {
+          key: 'contactName',
+          type: 'text',
+          defaultLabel: 'Persoană de contact',
+          required: true,
+          canHide: false,
+          optionSource: 'none',
+        },
+        {
+          key: 'email',
+          type: 'email',
+          defaultLabel: 'E-mail',
+          required: true,
+          lockedRequired: true,
+          canHide: false,
+          optionSource: 'none',
+        },
+        {
+          key: 'phone',
+          type: 'tel',
+          defaultLabel: 'Telefon',
+          required: false,
+          canHide: true,
+          optionSource: 'none',
+        },
+      ],
+    },
+    {
+      key: 'colaborare',
+      title: 'Colaborare',
+      questions: [
+        {
+          key: 'collaborationType',
+          type: 'select',
+          defaultLabel: 'Tip colaborare',
+          required: true,
+          canHide: false,
+          optionSource: 'freetext',
+          options: PARTNER_COLLABORATION_TYPES.map((v) => ({ value: v, label: v })),
+        },
+        {
+          key: 'message',
+          type: 'longtext',
+          defaultLabel: 'Descrie colaborarea',
+          required: true,
+          canHide: false,
+          optionSource: 'none',
+        },
+        {
+          key: 'privacyConsent',
+          type: 'checkbox',
+          defaultLabel: 'Sunt de acord cu prelucrarea datelor personale',
+          required: true,
+          lockedRequired: true,
+          canHide: false,
+          optionSource: 'none',
+        },
+      ],
+    },
+  ],
+};
+
+export const REGISTRY: Record<FormType, RegistryForm> = { inscriere, contact, voluntariat, parteneri };
+
+export const FORM_TYPES: FormType[] = ['inscriere', 'contact', 'voluntariat', 'parteneri'];
 
 export function isFormType(v: unknown): v is FormType {
-  return v === 'inscriere' || v === 'contact';
+  return typeof v === 'string' && (FORM_TYPES as readonly string[]).includes(v);
 }
 
 export function getForm(type: FormType): RegistryForm {

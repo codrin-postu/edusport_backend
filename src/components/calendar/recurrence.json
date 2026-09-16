@@ -26,6 +26,7 @@
     },
     "startTime": { "type": "time" },
     "endTime": { "type": "time" },
+    "endsNextDay": { "type": "boolean", "default": false },
     "singleDate": { "type": "date" },
     "endDate": { "type": "date" },
     "seasonStart": { "type": "date" },

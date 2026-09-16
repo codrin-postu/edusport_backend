@@ -1,34 +1,5 @@
 import type { Schema, Struct } from '@strapi/strapi';
 
-export interface AnnouncementCallToAction extends Struct.ComponentSchema {
-  collectionName: 'components_announcement_call_to_actions';
-  info: {
-    description: 'Butonul op\u021Bional care redirec\u021Bioneaz\u0103 utilizatorul spre mai multe informa\u021Bii';
-    displayName: 'Call to Action';
-    icon: 'cursor';
-  };
-  attributes: {
-    ctaLabel: Schema.Attribute.String;
-    ctaUrl: Schema.Attribute.String;
-  };
-}
-
-export interface AnnouncementMessageContent extends Struct.ComponentSchema {
-  collectionName: 'components_announcement_message_contents';
-  info: {
-    description: 'Textul \u0219i tipul anun\u021Bului afi\u0219at vizitatorilor';
-    displayName: 'Con\u021Binut Anun\u021B';
-    icon: 'bell';
-  };
-  attributes: {
-    message: Schema.Attribute.Text & Schema.Attribute.Required;
-    type: Schema.Attribute.Enumeration<
-      ['info', 'warning', 'success', 'error']
-    > &
-      Schema.Attribute.DefaultTo<'info'>;
-  };
-}
-
 export interface CalendarException extends Struct.ComponentSchema {
   collectionName: 'components_calendar_exceptions';
   info: {
@@ -62,6 +33,7 @@ export interface CalendarRecurrence extends Struct.ComponentSchema {
   };
   attributes: {
     endDate: Schema.Attribute.Date;
+    endsNextDay: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     endTime: Schema.Attribute.Time;
     freq: Schema.Attribute.Enumeration<
       ['none', 'weekly', 'biweekly', 'monthly']
@@ -145,6 +117,19 @@ export interface CursuriPromoCard extends Struct.ComponentSchema {
       Schema.Attribute.CustomField<'plugin::component-preview.subscription-bullets'>;
     subscriptionInfoTitle: Schema.Attribute.String;
     title: Schema.Attribute.String;
+  };
+}
+
+export interface NavOverride extends Struct.ComponentSchema {
+  collectionName: 'components_nav_overrides';
+  info: {
+    description: 'Descrierea si imaginea unui card promo din meniul site-ului. Cheia identifica sectiunea si nu se editeaza.';
+    displayName: 'Card meniu';
+  };
+  attributes: {
+    description: Schema.Attribute.Text;
+    image: Schema.Attribute.Media<'images'>;
+    key: Schema.Attribute.String & Schema.Attribute.Required;
   };
 }
 
@@ -311,14 +296,13 @@ export interface SportspersonProgramSeason extends Struct.ComponentSchema {
 declare module '@strapi/strapi' {
   export namespace Public {
     export interface ComponentSchemas {
-      'announcement.call-to-action': AnnouncementCallToAction;
-      'announcement.message-content': AnnouncementMessageContent;
       'calendar.exception': CalendarException;
       'calendar.recurrence': CalendarRecurrence;
       'cursuri.about': CursuriAbout;
       'cursuri.banner': CursuriBanner;
       'cursuri.info-section': CursuriInfoSection;
       'cursuri.promo-card': CursuriPromoCard;
+      'nav.override': NavOverride;
       'pricing.footer-note': PricingFooterNote;
       'pricing.pricing-tier': PricingPricingTier;
       'regulations.regulation-category': RegulationsRegulationCategory;
