@@ -1,0 +1,237 @@
+<style>
+:root{
+  --bg:#eef0f4;--surface:#fff;--ink:#1b1d26;--ink-soft:#4a4d5a;--muted:#8a8d99;
+  --line:#e2e4ea;--accent:#2138b8;--accent-soft:#eef1fb;--navy:#0e1a3c;--ok:#1f7a4d;--danger:#be3330;--amber:#e08a00;
+  --shadow:0 8px 30px rgba(18,22,45,.10);--sys:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}}
+:root[data-theme="dark"]{--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}
+:root[data-theme="light"]{--bg:#eef0f4;--surface:#fff;--ink:#1b1d26;--ink-soft:#4a4d5a;--muted:#8a8d99;--line:#e2e4ea;--accent-soft:#eef1fb;--shadow:0 8px 30px rgba(18,22,45,.10)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sys);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px 110px}
+.mast{padding:50px 0 24px;border-bottom:1px solid var(--line)}
+.kick{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 13px}
+.mast h1{font-size:clamp(25px,3.4vw,36px);line-height:1.1;margin:0 0 12px;font-weight:800;letter-spacing:-.02em;text-wrap:balance;max-width:26ch}
+.mast p{margin:0;max-width:72ch;color:var(--ink-soft);font-size:15px}.mast p b{color:var(--ink)}
+.chgs{margin:18px 0 0;display:flex;flex-wrap:wrap;gap:8px}
+.chg{font-size:12px;font-weight:600;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:5px 12px}
+.chg b{color:var(--accent)}
+.frame{margin-top:26px;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.frame-cap{padding:9px 15px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.scrollx{overflow-x:auto}
+.foot{padding:34px 0 0;color:var(--muted);font-size:13px;max-width:76ch}
+
+.scr{display:flex;width:1020px;font-family:system-ui,-apple-system,sans-serif;color:#1b1d26;background:#f6f7f9}
+.scr *{box-sizing:border-box}
+.scr-side{width:186px;flex-shrink:0;background:#0e1a3c;color:#c8cee0;padding:12px 0}
+.scr-brand{display:flex;align-items:center;gap:8px;padding:0 14px 12px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:6px}
+.scr-brand .mk{width:26px;height:26px;border-radius:7px;background:#2138b8;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:11px}
+.scr-brand b{color:#fff;font-size:13px}.scr-brand small{display:block;color:#8b93ad;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.scr-side a{display:flex;align-items:center;gap:9px;padding:7px 14px;font-size:12px;color:#c8cee0;text-decoration:none}
+.scr-side a .d{width:9px;height:9px;border-radius:2px;background:currentColor;opacity:.7;flex-shrink:0}
+.scr-side a.on{background:rgba(33,56,184,.35);color:#fff;box-shadow:inset 3px 0 0 #4d68ff}
+.scr-side a .badge{margin-left:auto;background:#be3330;color:#fff;font-size:9px;font-weight:800;border-radius:20px;padding:1px 6px}
+.scr-side .g{padding:10px 14px 3px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#727b97;font-weight:700;display:flex;justify-content:space-between}
+.scr-side .g .cv{opacity:.55}
+.scr-main{flex:1;min-width:0;padding:16px 18px 22px;overflow:hidden}
+.num{font-variant-numeric:tabular-nums}
+
+.a-hero{background:linear-gradient(120deg,#0e1a3c,#182a5e);color:#fff;border-radius:12px;padding:15px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:13px}
+.a-hero h1{margin:0;font-size:18px;font-weight:800;letter-spacing:-.01em}
+.a-hero h1 span{color:#9fb0ff}
+.a-hero p{margin:3px 0 0;font-size:12px;color:#aeb7d4;text-transform:capitalize}
+.a-hero .next{margin-top:7px;font-size:11px;color:#aeb7d4}.a-hero .next b{color:#fff}
+.a-pill{display:inline-block;font-size:10.5px;font-weight:700;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:4px 10px;color:#dfe4f5;white-space:nowrap}
+
+.a-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:13px}
+.a-kpi{background:#fff;border:1px solid #e6e7ec;border-radius:11px;padding:11px 13px;border-left:3px solid #2138b8}
+.a-kpi .k{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:#8a8d99;font-weight:700}
+.a-kpi .v{font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin-top:3px}
+.a-kpi .c{font-size:10.5px;color:#1f7a4d;margin-top:1px}
+
+.feed{background:#fff;border:1px solid #e6e7ec;border-radius:12px;padding:5px 6px 7px;margin-bottom:13px}
+.feed-h{display:flex;align-items:center;justify-content:space-between;padding:11px 12px 8px}
+.feed-h .t{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#666;font-weight:700}
+.feed-h .tot{background:#be3330;color:#fff;font-size:11px;font-weight:800;border-radius:20px;padding:3px 10px}
+.feed-rows{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.frow{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:9px;text-decoration:none;color:inherit;border:1px solid #f0f1f4}
+.frow:hover{background:#fafbff}
+.frow .tile{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;flex-shrink:0}
+.frow .bd{flex:1;min-width:0}.frow .bd b{font-size:13px;font-weight:700;display:block;line-height:1.25}.frow .bd small{font-size:11px;color:#8a8d99}
+.frow .arr{color:#c0c4cf;font-size:16px}
+
+.a-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:13px;align-items:start}
+.a-col{display:flex;flex-direction:column;gap:13px}
+.m-card{background:#fff;border:1px solid #e6e7ec;border-radius:11px;padding:13px 15px}
+.m-h{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#666;font-weight:700;margin:0}
+.m-hrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.m-hrow a{font-size:11.5px;font-weight:600;color:#2138b8;text-decoration:none}
+.m-subhead{font-size:11px;color:#8a8d99;margin:0 0 10px}
+
+/* season + registration */
+.seas-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0 12px}
+.seas-row .l b{font-size:13.5px;font-weight:700;display:block}
+.seas-row .l small{font-size:11px;color:#1f7a4d}
+.seas-ctrl{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.stpill{font-size:10px;font-weight:800;border-radius:20px;padding:3px 10px;letter-spacing:.02em}
+.stpill.open{color:#1f7a4d;background:#e7f3ec}
+.tgl{width:36px;height:20px;border-radius:20px;background:#1f7a4d;position:relative;flex-shrink:0}
+.tgl i{position:absolute;top:2px;left:18px;width:16px;height:16px;border-radius:50%;background:#fff}
+.seas-links{display:flex;flex-direction:column;gap:0;border-top:1px solid #f0f0f2}
+.seas-links a{display:flex;align-items:center;justify-content:space-between;padding:9px 0;font-size:12.5px;color:#1b1d26;text-decoration:none;border-bottom:1px solid #f6f7f9}
+.seas-links a:last-child{border-bottom:none}
+.seas-links a .ar{color:#c0c4cf}
+
+.m-ev{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #f0f0f2}
+.m-ev:first-of-type{border-top:none}
+.m-ev .dt{font-size:10.5px;color:#8a8d99;width:52px;flex-shrink:0;font-weight:600}
+.m-ev .bd{width:3px;align-self:stretch;min-height:26px;border-radius:3px;flex-shrink:0}
+.m-ev b{font-size:12.5px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-ev small{font-size:11px;color:#8a8d99}
+
+.a-analytics{background:#0e1a3c;border:1px solid #0e1a3c;border-radius:11px;padding:13px 15px;color:#eef1fb}
+.a-analytics .m-h{color:#8b93ad}
+.a-analytics .stat{display:flex;align-items:baseline;gap:8px;margin:8px 0 2px}
+.a-analytics .stat b{font-size:22px;font-weight:800}
+.a-analytics .stat .up{font-size:11px;color:#7fd6a0}
+.a-analytics .spark{height:30px;margin:8px 0 10px;border-radius:6px;background:linear-gradient(180deg,rgba(77,104,255,.35),rgba(77,104,255,0));position:relative;overflow:hidden}
+.a-analytics .spark svg{position:absolute;inset:0;width:100%;height:100%}
+.a-analytics .go{display:inline-block;font-size:11.5px;font-weight:600;background:#2138b8;color:#fff;border-radius:7px;padding:7px 12px}
+
+/* site health (glitchtip) */
+.health .hstat{display:flex;align-items:center;gap:11px;margin:9px 0 10px}
+.health .hnum{font-size:28px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+.health .hnum.ok{color:#1f7a4d}
+.health .hlbl b{font-size:12.5px;font-weight:700;display:block}
+.health .hlbl small{font-size:11px;color:#8a8d99}
+.health .hbadge{margin-left:auto;font-size:10px;font-weight:800;border-radius:20px;padding:3px 9px}
+.health .hbadge.ok{color:#1f7a4d;background:#e7f3ec}
+.health .hbars{display:flex;align-items:flex-end;gap:3px;height:26px;margin-bottom:11px}
+.health .hbars i{flex:1;background:#e6ebe8;border-radius:2px}
+.health .hlink{font-size:11.5px;font-weight:600;color:#2138b8;text-decoration:none}
+
+.qa{display:flex;flex-direction:column;gap:7px;margin-top:11px}
+.m-btn{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid #e6e7ec;border-radius:8px;font-size:12.5px;background:#fff;color:#1b1d26}
+.m-btn.pri{background:#2138b8;color:#fff;border-color:#2138b8}
+.m-btn .i{width:22px;height:22px;border-radius:6px;background:#eef1fb;color:#2138b8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.m-btn.pri .i{background:rgba(255,255,255,.18);color:#fff}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <p class="kick">EduSport / Panou / Pagina de start &middot; versiune în lucru</p>
+    <h1>Pagina de start, cu sezon, formulare, trafic și sănătate site</h1>
+    <p>Am adăugat cele două module noi discutate: <b>Sezon și înscrieri</b> (starea reală „înscrieri deschise/închise" cu comutator) și <b>Sănătate site</b> alimentat din GlitchTip. Fâșia cu programul săptămânii a fost scoasă, rămâne lista de evenimente cu link. Aruncă o privire; nimic nu e aplicat în panoul real.</p>
+    <div class="chgs">
+      <span class="chg"><b>Nou:</b> Sezon și înscrieri (comutator real)</span>
+      <span class="chg"><b>Nou:</b> Sănătate site (GlitchTip)</span>
+      <span class="chg"><b>Nou:</b> grafic real de trafic (Umami)</span>
+      <span class="chg">Scos: fâșia programului săptămânii</span>
+    </div>
+  </header>
+
+  <div class="frame">
+    <div class="frame-cap">Pagina de start, versiunea curentă</div>
+    <div class="scrollx">
+    <div class="scr">
+      <aside class="scr-side">
+        <div class="scr-brand"><span class="mk">ES</span><span><b>EduSport</b><small>Panou</small></span></div>
+        <a class="on"><span class="d"></span>Acasă</a>
+        <a><span class="d"></span>Setări site</a>
+        <a><span class="d"></span>Anunț popup</a>
+        <div class="g">Formulare <span class="cv">&#9662;</span></div>
+        <a><span class="d"></span>Mesaje contact <span class="badge num">3</span></a>
+        <div class="g">Program și calendar <span class="cv">&#9656;</span></div>
+        <div class="g">Sportivi și echipă <span class="cv">&#9656;</span></div>
+        <div class="g">Pagini site <span class="cv">&#9656;</span></div>
+        <div class="g">Articole și media <span class="cv">&#9656;</span></div>
+        <div class="g">Sistem <span class="cv">&#9656;</span></div>
+      </aside>
+      <main class="scr-main">
+        <div class="a-hero">
+          <div>
+            <h1>Bună, <span>Antrenor</span>. Iată ce urmează la club.</h1>
+            <p>Marți, 26 august 2026</p>
+            <div class="next">Următorul eveniment: <b>azi 17:00, Antrenament Grupa A</b></div>
+          </div>
+          <span class="a-pill">Sezon 2026 / 2027</span>
+        </div>
+
+        <div class="a-kpis">
+          <div class="a-kpi"><div class="k">Sportivi</div><div class="v num">48</div><div class="c">+3 luna aceasta</div></div>
+          <div class="a-kpi"><div class="k">Membri echipă</div><div class="v num">9</div></div>
+          <div class="a-kpi"><div class="k">Competiții</div><div class="v num">12</div><div class="c">2 în septembrie</div></div>
+          <div class="a-kpi"><div class="k">Evenimente / lună</div><div class="v num">21</div></div>
+        </div>
+
+        <div class="feed">
+          <div class="feed-h"><span class="t">Ce e nou</span><span class="tot num">133 de rezolvat</span></div>
+          <div class="feed-rows">
+            <a class="frow"><span class="tile" style="background:#1f7a4d">Î</span><span class="bd"><b><span class="num">128</span> înscrieri noi</b><small>pe Înscrieri</small></span><span class="arr">&rsaquo;</span></a>
+            <a class="frow"><span class="tile" style="background:#2138b8">M</span><span class="bd"><b><span class="num">3</span> mesaje de contact</b><small>pe Mesaje contact</small></span><span class="arr">&rsaquo;</span></a>
+            <a class="frow"><span class="tile" style="background:#7a1fa2">V</span><span class="bd"><b><span class="num">2</span> cereri voluntariat</b><small>pe Voluntariat</small></span><span class="arr">&rsaquo;</span></a>
+          </div>
+        </div>
+
+        <div class="a-grid">
+          <div class="a-col">
+            <div class="m-card">
+              <div class="m-hrow"><span class="m-h">Sezon și înscrieri</span></div>
+              <p class="m-subhead">Sezon 2026 / 2027</p>
+              <div class="seas-row">
+                <div class="l"><b>Înscrieri pe site</b><small>Vizibile publicului acum</small></div>
+                <div class="seas-ctrl"><span class="stpill open">Deschise</span><span class="tgl"><i></i></span></div>
+              </div>
+              <div class="seas-links">
+                <a>Editează sezonul și orarul <span class="ar">&rsaquo;</span></a>
+                <a>Actualizează prețuri <span class="ar">&rsaquo;</span></a>
+              </div>
+            </div>
+
+            <div class="m-card">
+              <div class="m-hrow"><span class="m-h">Următoarele evenimente</span><a>Vezi tot programul &rarr;</a></div>
+              <p class="m-subhead">8 în următoarele 30 de zile</p>
+              <div class="m-ev"><span class="dt">Azi</span><span class="bd" style="background:#2138b8"></span><span><b>Antrenament Grupa A</b><small>17:00 - 18:30 &middot; Patinoar</small></span></div>
+              <div class="m-ev"><span class="dt">Mie</span><span class="bd" style="background:#2138b8"></span><span><b>Antrenament Grupa B</b><small>17:00 - 18:30 &middot; Patinoar</small></span></div>
+              <div class="m-ev"><span class="dt">Joi</span><span class="bd" style="background:#be3330"></span><span><b>Școala de patinaj</b><small>Curs &middot; grupa începători</small></span></div>
+              <div class="m-ev"><span class="dt">Sâm</span><span class="bd" style="background:#7a1fa2"></span><span><b>Cupa Reșița, etapa 2</b><small>Competiție &middot; toată ziua</small></span></div>
+            </div>
+          </div>
+
+          <div class="a-col">
+            <div class="a-analytics">
+              <span class="m-h">Analiză trafic</span>
+              <div class="stat"><b class="num">1.240</b><span class="up">&#9650; 18% vs. săpt. trecută</span></div>
+              <div class="spark"><svg viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="0,24 14,20 28,22 42,12 56,15 70,7 84,10 100,4" fill="none" stroke="#7f97ff" stroke-width="2"/></svg></div>
+              <span class="go">Deschide Umami</span>
+            </div>
+
+            <div class="m-card health">
+              <span class="m-h">Sănătate site</span>
+              <div class="hstat">
+                <span class="hnum ok num">0</span>
+                <div class="hlbl"><b>erori în 24h</b><small>Totul funcționează</small></div>
+                <span class="hbadge ok">OK</span>
+              </div>
+              <div class="hbars"><i style="height:15%"></i><i style="height:10%"></i><i style="height:20%"></i><i style="height:8%"></i><i style="height:12%"></i><i style="height:6%"></i><i style="height:10%"></i></div>
+              <a class="hlink">Deschide GlitchTip &rarr;</a>
+            </div>
+
+            <div class="m-card">
+              <span class="m-h">Acțiuni rapide</span>
+              <div class="qa">
+                <div class="m-btn pri"><span class="i">+</span>Adaugă eveniment</div>
+                <div class="m-btn"><span class="i">S</span>Adaugă sportiv</div>
+                <div class="m-btn"><span class="i">&#8599;</span>Vezi site-ul public</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    </div>
+  </div>
+
+  <p class="foot">Machete de prezentare, numere ilustrative. „Sezon și înscrieri" folosește comutatorul real din Setări Site (<code style="font-family:var(--mono);background:var(--accent-soft);color:var(--accent);padding:1px 5px;border-radius:4px">registration.open</code>); eticheta de sezon ar avea nevoie de un câmp mic dedicat, altfel arătăm doar starea. „Sănătate site" se alimentează din GlitchTip printr-un mic proxy pe backend. Nimic nu a fost aplicat în panoul real.</p>
+</div>

@@ -1,0 +1,420 @@
+<title>Stari Carduri Panou</title>
+<style>
+:root{
+  --pg:#f2f3f7; --ink:#1b1d26; --mut:#6b6f7e; --fai:#8a8d99;
+  --line:#e6e7ec; --blue:#2138b8; --frame:#fff; --fline:#dfe1e8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --pg:#14151a; --ink:#e8e9ee; --mut:#9ba0af; --fai:#7b8091;
+    --line:#2a2c35; --frame:#1c1e25; --fline:#2a2c35;
+  }
+}
+:root[data-theme="dark"]{
+  --pg:#14151a; --ink:#e8e9ee; --mut:#9ba0af; --fai:#7b8091;
+  --line:#2a2c35; --frame:#1c1e25; --fline:#2a2c35;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.55;
+  padding:34px 22px 70px}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font-size:23px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px}
+.lede{color:var(--mut);font-size:13.5px;max-width:72ch;margin:0 0 24px}
+h2.sec{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--fai);
+  font-weight:800;margin:36px 0 4px;padding-top:16px;border-top:1px solid var(--line)}
+.secnote{color:var(--mut);font-size:13px;max-width:74ch;margin:0 0 18px}
+.note{background:var(--frame);border:1px solid var(--fline);border-left:3px solid var(--blue);
+  border-radius:0 8px 8px 0;padding:11px 14px;font-size:13px;color:var(--mut);margin:0 0 20px}
+.note.warn{border-left-color:#be3330}
+.note b{color:var(--ink)}
+.note code{background:var(--pg);padding:1px 5px;border-radius:4px;font-size:12px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:20px}
+.opt{background:var(--frame);border:1px solid var(--fline);border-radius:12px;overflow:hidden}
+.opt > header{padding:12px 15px;border-bottom:1px solid var(--fline)}
+.opt > header .tag{font-size:10.5px;font-weight:800;letter-spacing:.05em;background:var(--blue);
+  color:#fff;border-radius:5px;padding:2px 7px;margin-right:8px}
+.opt > header .tag.cur{background:var(--fai)}
+.opt > header h3{font-size:14px;font-weight:700;margin:0;display:inline}
+.opt > header p{margin:4px 0 0;font-size:12.5px;color:var(--mut)}
+.stage{padding:20px 15px;background:var(--pg);display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
+.col{width:404px;max-width:100%}
+.cost{padding:10px 15px;border-top:1px solid var(--fline);font-size:12px;color:var(--mut)}
+.cost b{color:var(--ink);font-weight:700}
+
+/* verbatim admin styles */
+.card{background:#fff;color:#1b1d26;border:1px solid #e6e7ec;border-radius:12px;padding:14px 16px}
+/* These reproduce the light-only admin, so their ink is fixed. Without this the
+   title inherits body colour and turns near-white on #fff in dark mode. */
+.card h2{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#666;font-weight:700;margin:0}
+.analytics{background:#0e1a3c;border:1px solid #0e1a3c;border-radius:12px;padding:14px 16px;color:#eef1fb}
+.analytics h2{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#8b93ad;font-weight:700;margin:0}
+.analytics .soon{font-size:12px;color:#aab2c9;background:rgba(255,255,255,.05);
+  border:1px dashed rgba(255,255,255,.18);border-radius:8px;padding:10px 12px;margin-top:8px}
+.health .soon{font-size:12px;color:#8a8d99;background:#f3f4f7;border:1px dashed #d3d6de;
+  border-radius:8px;padding:10px 12px;margin:8px 0}
+.hrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hrow .lnk{font-size:11px;font-weight:700;color:#2138b8;text-decoration:none}
+.analytics .hrow .lnk{color:#8b93ad}
+
+/* skeleton */
+@keyframes sh{0%{background-position:-320px 0}100%{background-position:320px 0}}
+.sk{border-radius:5px;background:#e9ebf0;
+  background-image:linear-gradient(90deg,#e9ebf0 0,#f4f5f8 42%,#e9ebf0 84%);
+  background-size:320px 100%;background-repeat:no-repeat;animation:sh 1.25s ease-in-out infinite}
+.analytics .sk{background:rgba(255,255,255,.08);
+  background-image:linear-gradient(90deg,rgba(255,255,255,.08) 0,rgba(255,255,255,.17) 42%,rgba(255,255,255,.08) 84%);
+  background-size:320px 100%;background-repeat:no-repeat}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}
+.sk.n{height:31px;width:104px;margin:9px 0 4px}
+.sk.cap{height:10px;width:74%;margin-bottom:12px}
+.sk.ch{height:62px;width:100%;margin:2px 0 8px;border-radius:7px}
+.sk.r{height:10px;margin:9px 0}
+.sk.band{height:46px;width:100%;border-radius:9px;margin:10px 0 0}
+.sk.strip{height:30px;width:100%;border-radius:5px;margin:11px 0 4px}
+.sk.iss{height:34px;width:100%;border-radius:6px;margin-top:9px}
+.sk.pillw{height:16px;width:62px;border-radius:20px}
+
+/* real bits reused for context */
+.big{display:flex;align-items:flex-end;gap:9px;margin:9px 0 1px}
+.big b{font-size:32px;font-weight:800;letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums}
+.big .tr.up{color:#7fd6a0;font-size:11.5px;font-weight:700;padding-bottom:3px}
+.cap{font-size:11px;color:#aeb7d4;margin-bottom:10px}
+.area{height:62px;margin:10px 0 3px}
+.area svg{width:100%;height:100%;display:block}
+.axis{display:flex;justify-content:space-between;font-size:10px;color:#78809c;
+  border-top:1px solid rgba(255,255,255,.09);padding-top:5px}
+.tops{margin:12px 0 0;border-top:1px solid rgba(255,255,255,.09);padding-top:9px}
+.tops .t{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:#8b93ad;font-weight:700;margin-bottom:6px}
+.prow{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:12px}
+.prow .p{color:#cdd4ea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.prow .bar{width:74px;height:4px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}
+.prow .bar i{display:block;height:100%;background:#5a76e8;border-radius:3px}
+.prow .n{font-size:11.5px;color:#8b93ad;font-variant-numeric:tabular-nums;min-width:22px;text-align:right}
+.band{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;margin:10px 0 0}
+.band.ok{background:#e7f3ec}.band.warn{background:#fdf3e0}.band.dim{background:#f3f4f7}
+.band .ic{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  font-size:14px;font-weight:800;color:#fff;flex:none}
+.band.ok .ic{background:#1f7a4d}.band.warn .ic{background:#8a5a00}.band.dim .ic{background:#a4a8b4}
+.band .tx b{display:block;font-size:13px;font-weight:700;line-height:1.3}
+.band.ok .tx b{color:#1f7a4d}.band.warn .tx b{color:#8a5a00}.band.dim .tx b{color:#5c6070}
+.band .tx small{font-size:11px;color:#6b6f7e}
+.band .n{margin-left:auto;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.band.warn .n{color:#8a5a00}
+.strip{display:flex;gap:3px;align-items:flex-end;height:30px;margin:11px 0 4px}
+.strip i{flex:1;border-radius:2px;background:#e7f3ec;min-height:3px;display:block}
+.strip i.h{background:#f0b8b6}.strip i.hh{background:#be3330}
+.striplbl{display:flex;justify-content:space-between;font-size:10px;color:#8a8d99}
+.irow{display:flex;align-items:flex-start;gap:9px;padding:8px 0;text-decoration:none;color:inherit;
+  border-top:1px solid #eef0f4;margin-top:9px}
+.irow .lv{width:7px;height:7px;border-radius:50%;margin-top:6px;flex:none;background:#be3330}
+.irow .m{flex:1;min-width:0}
+.irow .m b{display:block;font-size:12.5px;font-weight:600;line-height:1.35;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.irow .m small{font-size:10.5px;color:#8a8d99}
+.irow .c{font-size:11px;font-weight:700;color:#6b6f7e;background:#f2f3f7;border-radius:20px;
+  padding:2px 7px;flex:none;margin-top:2px}
+/* state helpers */
+.stbox{border-radius:9px;padding:11px 12px;margin-top:9px;display:flex;gap:10px;align-items:flex-start}
+.analytics .stbox{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.13)}
+.card .stbox{background:#f7f8fa;border:1px solid #e6e7ec}
+.stbox .si{width:20px;height:20px;border-radius:50%;flex:none;display:grid;place-items:center;
+  font-size:11px;font-weight:800;color:#fff;margin-top:1px}
+.si.q{background:#7a8098}.si.x{background:#be3330}
+.stbox .st b{display:block;font-size:12.5px;font-weight:700;line-height:1.35}
+.analytics .stbox .st b{color:#eef1fb}
+.stbox .st small{font-size:11.5px;color:#8a8d99;display:block;margin-top:1px}
+.analytics .stbox .st small{color:#a2abc6}
+.stbox .st small.hi{color:#5c6070}
+.analytics .stbox .st small.hi{color:#ccd4e8}
+.stbox .st a{font-size:11.5px;font-weight:700;color:#2138b8;text-decoration:none;
+  display:inline-block;margin-top:5px}
+.analytics .stbox .st small.hi{color:#5c6070}
+.analytics .stbox .st small.hi{color:#ccd4e8}
+.stbox .st a{color:#8fa6f5}
+.lbl{display:block;text-align:center;font-size:11px;color:var(--fai);margin-top:8px;font-weight:600}
+.foot{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--fai)}
+</style>
+
+<div class="wrap">
+<h1>Stari Carduri Panou</h1>
+<p class="lede">Cardurile alese, <b>B</b> pentru trafic si <b>E</b> pentru sanatate, au patru
+stari in care pot fi, nu doar cea cu date. Mai jos sunt optiuni pentru starea de incarcare
+si machete pentru celelalte trei.</p>
+
+<div class="note warn"><b>Problema gasita in cod.</b> Controlerul are opt cai de esec
+diferite si toate returneaza acelasi <code>{ connected: false }</code>: variabile de mediu
+lipsa, parola gresita, serviciu picat, raspuns invalid. Pagina afiseaza pentru toate acelasi
+text, <i>"Se conecteaza in curand. Configureaza Umami"</i>. Adica atunci cand serviciul chiar
+cade, panoul spune ca nu a fost inca configurat. Ca sa putem desena starile corect, raspunsul
+trebuie sa spuna <b>de ce</b> a esuat, nu doar ca a esuat.</div>
+
+<h2 class="sec">1. Starea de incarcare</h2>
+<p class="secnote">Acum ambele carduri afiseaza o caseta cu linie punctata si textul
+"Se incarca...". Cardul isi schimba inaltimea cand sosesc datele, deci pagina sare.</p>
+
+<div class="opts">
+
+  <div class="opt">
+    <header><span class="tag cur">ACUM</span><h3>Caseta punctata</h3>
+    <p>Aceeasi caseta pentru incarcare si pentru neconfigurat.</p></header>
+    <div class="stage">
+      <div class="col">
+        <div class="analytics"><h2>Analiza trafic</h2>
+          <div class="soon">Se incarca...</div></div>
+        <div style="height:14px"></div>
+        <div class="card health"><h2>Sanatate site</h2>
+          <div class="soon">Se incarca...</div></div>
+        <span class="lbl">Inaltime aproximativ 78 px, apoi sare la 300 px</span>
+      </div>
+    </div>
+    <div class="cost"><b>Problema.</b> Nu seamana cu rezultatul, deci ochiul nu stie unde
+    sa se aseze. Cand sosesc datele cardul creste de aproape patru ori si impinge tot ce
+    urmeaza in coloana.</div>
+  </div>
+
+  <div class="opt">
+    <header><span class="tag">L1</span><h3>Schelet, aceeasi forma</h3>
+    <p>Blocuri gri exact acolo unde vor fi cifrele. Inaltime identica.</p></header>
+    <div class="stage">
+      <div class="col">
+        <div class="analytics">
+          <div class="hrow"><h2>Analiza trafic</h2><span class="sk pillw"></span></div>
+          <div class="sk n"></div>
+          <div class="sk cap"></div>
+          <div class="sk ch"></div>
+          <div class="tops"><div class="t">Cele mai vizitate pagini</div>
+            <div class="sk r" style="width:88%"></div>
+            <div class="sk r" style="width:64%"></div>
+            <div class="sk r" style="width:73%"></div>
+          </div>
+        </div>
+        <div style="height:14px"></div>
+        <div class="card health">
+          <div class="hrow"><h2>Sanatate site</h2><span class="sk pillw"></span></div>
+          <div class="sk band"></div>
+          <div class="sk strip"></div>
+          <div class="sk iss"></div>
+        </div>
+        <span class="lbl">Aceeasi inaltime ca starea finala. Pagina nu sare.</span>
+      </div>
+    </div>
+    <div class="cost"><b>De remarcat.</b> Titlurile de sectiune raman text real, doar cifrele
+    sunt blocuri. Animatia se opreste singura daca sistemul cere miscare redusa.</div>
+  </div>
+
+  <div class="opt">
+    <header><span class="tag">L2</span><h3>Structura reala, cifre absente</h3>
+    <p>Fara animatie. Se deseneaza cardul intreg, cu liniute in loc de cifre.</p></header>
+    <div class="stage">
+      <div class="col">
+        <div class="analytics">
+          <div class="hrow"><h2>Analiza trafic</h2>
+            </div>
+          <div class="big"><b style="color:#39456e">&ndash;&ndash;&ndash;</b></div>
+          <div class="cap" style="color:#5f6a8c">Vizitatori in septembrie</div>
+          <div class="area" style="display:grid;place-items:center;
+            border:1px solid rgba(255,255,255,.08);border-radius:7px">
+            <span style="font-size:11px;color:#5f6a8c">se incarca graficul</span></div>
+          <div class="tops"><div class="t">Cele mai vizitate pagini</div>
+            <div class="prow"><span class="p" style="color:#4f5a7d">&ndash;</span>
+              <span class="bar"></span><span class="n">&ndash;</span></div>
+            <div class="prow"><span class="p" style="color:#4f5a7d">&ndash;</span>
+              <span class="bar"></span><span class="n">&ndash;</span></div>
+          </div>
+        </div>
+        <div style="height:14px"></div>
+        <div class="card health">
+          <div class="hrow"><h2>Sanatate site</h2></div>
+          <div class="band dim"><span class="ic">&middot;</span>
+            <div class="tx"><b>Se verifica starea site-ului</b>
+              <small>Un moment</small></div></div>
+          <div class="strip">
+            <i style="height:14%;background:#eef0f4"></i><i style="height:14%;background:#eef0f4"></i>
+            <i style="height:14%;background:#eef0f4"></i><i style="height:14%;background:#eef0f4"></i>
+            <i style="height:14%;background:#eef0f4"></i><i style="height:14%;background:#eef0f4"></i>
+            <i style="height:14%;background:#eef0f4"></i></div>
+          <div class="striplbl"><span>acum 7 zile</span><span>azi</span></div>
+        </div>
+        <span class="lbl">Fara animatie, fara sclipire</span>
+      </div>
+    </div>
+    <div class="cost"><b>Diferenta fata de L1.</b> Etichetele reale se citesc imediat, deci
+    stii ce va aparea. Unora li se pare mai linistit, altora le pare card stricat.</div>
+  </div>
+
+  <div class="opt">
+    <header><span class="tag">L3</span><h3>Schelet doar la prima incarcare</h3>
+    <p>L1 prima data. La reincarcari, cifrele vechi raman si se estompeaza usor.</p></header>
+    <div class="stage">
+      <div class="col">
+        <div class="analytics" style="position:relative">
+          <div class="hrow"><h2>Analiza trafic</h2>
+            <span style="font-size:10.5px;font-weight:700;color:#8b93ad">se actualizeaza</span></div>
+          <div style="opacity:.45">
+            <div class="big"><b>1.284</b><span class="tr up">&#9650; 18%</span></div>
+            <div class="cap">Vizitatori in septembrie, fata de 1.088 in august</div>
+            <div class="area"><svg viewBox="0 0 300 62" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#7f97f2" stroke-width="2"
+                points="0,48 25,44 50,50 75,33 100,37 125,25 150,29 175,18 200,24 225,12 250,17 275,9 300,14"/></svg></div>
+            <div class="tops"><div class="t">Cele mai vizitate pagini</div>
+              <div class="prow"><span class="p">/</span><span class="bar"><i style="width:100%"></i></span><span class="n">612</span></div>
+              <div class="prow"><span class="p">/cursuri</span><span class="bar"><i style="width:47%"></i></span><span class="n">288</span></div>
+            </div>
+          </div>
+        </div>
+        <span class="lbl">Valorile anterioare raman vizibile cat se aduc cele noi</span>
+      </div>
+    </div>
+    <div class="cost"><b>Cost.</b> Cere ca pagina sa tina minte ultimul raspuns. Are sens
+    doar daca vrei sa reimprospatezi cardul periodic. Acum se incarca o singura data, la
+    deschiderea paginii, deci starea asta nu s-ar vedea niciodata. <b>De decis:</b>
+    reimprospatam cardurile la fiecare cateva minute?</div>
+  </div>
+
+</div>
+
+<h2 class="sec">2. Cand serviciul nu raspunde</h2>
+<p class="secnote">Ai ales S2. Mai jos este revizuit, cu legatura catre serviciu, si in doua
+variante de contrast pentru text. Alege varianta de culoare.</p>
+
+<div class="note"><b>Detaliu tehnic pentru legaturi.</b> Adresele folosite acum de server
+sunt interne, de exemplu <code>http://umami:3000</code>. Ele functioneaza doar intre
+containere. O legatura pe care o apesi in browser are nevoie de adresa publica, deci
+trebuie adaugate doua variabile noi, una pentru Umami si una pentru GlitchTip. Altfel
+legatura arata bine in cod dar nu duce nicaieri.</div>
+
+<div class="opts">
+  <div class="opt">
+    <header><span class="tag">C1</span><h3>Contrast asa cum era</h3>
+    <p>Textul secundar in gri deschis.</p></header>
+    <div class="stage"><div class="col">
+      <div class="analytics"><h2>Analiza trafic</h2>
+        <div class="stbox"><span class="si x">!</span>
+          <div class="st"><b>Nu am putut prelua statisticile</b>
+            <small>Serviciul nu a raspuns. Datele reapar singure cand revine.</small>
+            <a href="#">Deschide Umami &rsaquo;</a></div></div>
+      </div>
+      <div style="height:14px"></div>
+      <div class="card health"><h2>Sanatate site</h2>
+        <div class="stbox"><span class="si x">!</span>
+          <div class="st"><b>Nu am putut verifica erorile</b>
+            <small>Serviciul nu a raspuns. Asta nu inseamna ca site-ul are probleme.</small>
+            <a href="#">Deschide GlitchTip &rsaquo;</a></div></div>
+      </div>
+      <span class="lbl">Secundar #a2abc6 pe bleumarin, #8a8d99 pe alb</span>
+    </div></div>
+    <div class="cost">Textul secundar se estompeaza, mai ales pe cardul bleumarin.</div>
+  </div>
+
+  <div class="opt">
+    <header><span class="tag">C2</span><h3>Contrast intarit</h3>
+    <p>Acelasi text, culoare mai apropiata de cea principala.</p></header>
+    <div class="stage"><div class="col">
+      <div class="analytics"><h2>Analiza trafic</h2>
+        <div class="stbox"><span class="si x">!</span>
+          <div class="st"><b>Nu am putut prelua statisticile</b>
+            <small class="hi">Serviciul nu a raspuns. Datele reapar singure cand revine.</small>
+            <a href="#">Deschide Umami &rsaquo;</a></div></div>
+      </div>
+      <div style="height:14px"></div>
+      <div class="card health"><h2>Sanatate site</h2>
+        <div class="stbox"><span class="si x">!</span>
+          <div class="st"><b>Nu am putut verifica erorile</b>
+            <small class="hi">Serviciul nu a raspuns. Asta nu inseamna ca site-ul are probleme.</small>
+            <a href="#">Deschide GlitchTip &rsaquo;</a></div></div>
+      </div>
+      <span class="lbl">Secundar #ccd4e8 pe bleumarin, #5c6070 pe alb</span>
+    </div></div>
+    <div class="cost">Se citeste mai usor. Aceasta este varianta pe care o recomand.</div>
+  </div>
+</div>
+
+<p class="secnote" style="margin-top:22px">Aceeasi forma acopera si cazul in care serviciul
+nu a fost configurat deloc. Se schimba doar textul si semnul.</p>
+<div class="opts">
+  <div class="opt">
+    <header><span class="tag">C3</span><h3>Neconfigurat, aceeasi forma</h3>
+    <p>Cu contrastul din C2.</p></header>
+    <div class="stage"><div class="col">
+      <div class="analytics"><h2>Analiza trafic</h2>
+        <div class="stbox"><span class="si q">?</span>
+          <div class="st"><b>Umami nu este conectat</b>
+            <small class="hi">Lipsesc datele de acces catre serviciul de statistici.</small>
+            <a href="#">Deschide Umami &rsaquo;</a></div></div>
+      </div>
+      <div style="height:14px"></div>
+      <div class="card health"><h2>Sanatate site</h2>
+        <div class="stbox"><span class="si q">?</span>
+          <div class="st"><b>GlitchTip nu este conectat</b>
+            <small class="hi">Lipsesc datele de acces catre serviciul de erori.</small>
+            <a href="#">Deschide GlitchTip &rsaquo;</a></div></div>
+      </div>
+    </div></div>
+    <div class="cost"><b>De remarcat.</b> Semn de intrebare gri pentru neconfigurat, semn de
+    exclamare rosu pentru esec. Asa se vede din prima daca lipseste o setare sau chiar a
+    cazut ceva.</div>
+  </div>
+</div>
+
+<h2 class="sec">3. Conectat, dar fara date</h2>
+<p class="secnote">Cazul real de acum pe productie: Umami tocmai a fost legat si inca nu a
+strans trafic. Zero nu este o eroare, dar nici nu arata bine ca un zero simplu.</p>
+<div class="opts">
+  <div class="opt">
+    <header><span class="tag">S3</span><h3>Gol, dar sanatos</h3>
+    <p>Ambele carduri in cazul in care nu s-a intamplat nimic inca.</p></header>
+    <div class="stage"><div class="col">
+      <div class="analytics">
+        <div class="hrow"><h2>Analiza trafic</h2><a class="lnk" href="#">Vezi tot &rsaquo;</a></div>
+        <div class="big"><b>0</b></div>
+        <div class="cap">Niciun vizitator inregistrat inca in septembrie</div>
+        <div class="stbox"><span class="si q">i</span>
+          <div class="st"><small>Statisticile apar dupa prima vizita pe site.
+            Poate dura cateva minute.</small></div></div>
+      </div>
+      <div style="height:14px"></div>
+      <div class="card health">
+        <div class="hrow"><h2>Sanatate site</h2><a class="lnk" href="#">Deschide GlitchTip &rsaquo;</a></div>
+        <div class="band ok"><span class="ic">&#10003;</span>
+          <div class="tx"><b>Nicio eroare in ultimele 24 de ore</b>
+            <small>11 evenimente in ultimele 7 zile</small></div></div>
+        <div class="strip">
+          <i style="height:20%"></i><i style="height:8%"></i><i style="height:45%" class="h"></i>
+          <i style="height:12%"></i><i style="height:8%"></i><i style="height:30%" class="h"></i>
+          <i style="height:6%"></i></div>
+        <div class="striplbl"><span>acum 7 zile</span><span>azi</span></div>
+      </div>
+    </div></div>
+    <div class="cost"><b>De remarcat.</b> Cardul de sanatate gol este de fapt vestea buna,
+    deci ramane verde. Cardul de trafic gol nu este nici buna nici rea, deci ramane neutru.</div>
+  </div>
+</div>
+
+<h2 class="sec">Ce trebuie sa decizi</h2>
+<div class="note">
+Stabilit deja: <b>L1</b> pentru incarcare, <b>S3</b> pentru cazul fara date, si forma din
+<b>S2</b> pentru esec, cu legatura catre serviciu.<br><br>
+Ramase:<br>
+1. Contrastul textului secundar: <b>C1</b> sau <b>C2</b>.<br>
+2. Adaugam cele doua variabile cu adresele publice, ca legaturile sa functioneze?<br>
+3. Semne diferite pentru neconfigurat si esec, asa cum arata C3, sau acelasi semn peste tot?
+</div>
+
+<h2 class="sec">Nelamurire la banda de 7 zile din cardul E</h2>
+<div class="note warn">Am verificat capetele GlitchTip pentru a construi banda corect.
+Ce am aflat: capatul care da o serie in timp raspunde, dar intoarce numai valori goale.
+Tabelul intern cu numarul de erori pe ora chiar contine datele, insa niciun capat public
+nu il expune. Lista de evenimente individuale exista si se poate numara pe zile, dar are
+doua capcane pe care le-am confirmat prin teste: filtrul dupa data <b>este ignorat</b>
+(la fel ca eroarea gasita saptamana trecuta), iar evenimentele vin <b>de la cel mai vechi
+catre cel mai nou</b>, deci ar trebui parcurse toate paginile ca sa ajungem la zilele
+recente. Exista o cale de a sari direct la ziua dorita, dar se bazeaza pe forma interna a
+cursorului, deci s-ar putea strica la o actualizare GlitchTip.<br><br>
+<b>Optiuni pentru banda:</b> o construim din lista de evenimente cu saritura la zi, care este
+exacta acum dar fragila; o construim mai simplu si acceptam ca numara incidente si nu
+aparitii, care este robusta dar aproximativa; sau lasam <b>E</b> fara banda, adica exact
+<b>D</b>, si o adaugam cand GlitchTip expune capatul corect. Spune tu care.</div>
+
+<p class="foot">Machete pentru aprobare. Nimic nu este implementat inca.</p>
+</div>

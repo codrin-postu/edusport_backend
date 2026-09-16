@@ -1,0 +1,458 @@
+<style>
+/* ============================================================
+   PRESENTATION FRAME (theme-aware)
+   ============================================================ */
+:root{
+  --bg:#eef0f4; --surface:#fff; --ink:#1b1d26; --ink-soft:#4a4d5a; --muted:#8a8d99;
+  --line:#e2e4ea; --accent:#2138b8; --accent-soft:#eef1fb; --navy:#0e1a3c; --ok:#1f7a4d; --danger:#be3330;
+  --shadow:0 8px 30px rgba(18,22,45,.10); --sys:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}}
+:root[data-theme="dark"]{--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}
+:root[data-theme="light"]{--bg:#eef0f4;--surface:#fff;--ink:#1b1d26;--ink-soft:#4a4d5a;--muted:#8a8d99;--line:#e2e4ea;--accent-soft:#eef1fb;--shadow:0 8px 30px rgba(18,22,45,.10)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sys);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 120px}
+
+.mast{padding:52px 0 28px;border-bottom:1px solid var(--line)}
+.kick{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 13px}
+.mast h1{font-size:clamp(26px,3.6vw,38px);line-height:1.1;margin:0 0 12px;font-weight:800;letter-spacing:-.02em;text-wrap:balance;max-width:24ch}
+.mast p{margin:0;max-width:66ch;color:var(--ink-soft);font-size:15px}
+.mast .meta{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px}
+.tag{font-size:11.5px;font-weight:600;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:5px 12px}
+.tag b{color:var(--accent)}
+
+.dir{padding:48px 0;border-bottom:1px solid var(--line)}
+.dir-head{display:flex;gap:15px;align-items:baseline;flex-wrap:wrap}
+.dir-no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:3px 9px;flex-shrink:0}
+.dir h2{font-size:23px;font-weight:800;letter-spacing:-.015em;margin:0}
+.dir .tagline{color:var(--muted);font-size:14px;font-weight:600}
+.dir .lead{color:var(--ink-soft);font-size:14.5px;margin:12px 0 0;max-width:78ch}
+.dir .lead b{color:var(--ink)}
+.ribbon{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:20px;padding:4px 10px}
+
+.meta2{display:flex;flex-wrap:wrap;gap:22px;margin-top:20px}
+.meta2 .col{flex:1;min-width:230px}
+.meta2 h4{margin:0 0 7px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.meta2 ul{margin:0;padding-left:16px;font-size:13.5px;color:var(--ink-soft)}
+.meta2 li{margin:3px 0}
+.plus{color:var(--ok);font-weight:700}.minus{color:var(--danger);font-weight:700}
+
+.frame{margin-top:26px;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface)}
+.frame-cap{padding:9px 15px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);background:var(--surface)}
+.scrollx{overflow-x:auto}
+
+/* ============================================================
+   ADMIN MOCK  (exact product tokens, scoped to .scr)
+   ============================================================ */
+.scr{display:flex;width:1000px;font-family:system-ui,-apple-system,sans-serif;color:#1b1d26;background:#f6f7f9}
+.scr *{box-sizing:border-box}
+.scr-side{width:190px;flex-shrink:0;background:#0e1a3c;color:#c8cee0;padding:12px 0;display:flex;flex-direction:column}
+.scr-brand{display:flex;align-items:center;gap:8px;padding:0 14px 12px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:6px}
+.scr-brand .mk{width:26px;height:26px;border-radius:7px;background:#2138b8;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:11px}
+.scr-brand b{color:#fff;font-size:13px}
+.scr-brand small{display:block;color:#8b93ad;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.scr-side a{display:flex;align-items:center;gap:9px;padding:7px 14px;font-size:12px;color:#c8cee0;text-decoration:none}
+.scr-side a .d{width:9px;height:9px;border-radius:2px;background:currentColor;opacity:.7;flex-shrink:0}
+.scr-side a.on{background:rgba(33,56,184,.35);color:#fff;box-shadow:inset 3px 0 0 #4d68ff}
+.scr-side .g{padding:11px 14px 3px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#727b97;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.scr-side .g .cv{opacity:.6}
+.scr-main{flex:1;min-width:0;padding:18px 20px 24px;overflow:hidden}
+
+/* shared mock atoms */
+.m-card{background:#fff;border:1px solid #e6e7ec;border-radius:11px;padding:13px 15px}
+.m-h{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#666;font-weight:700;margin:0 0 10px}
+.m-ev{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #f0f0f2}
+.m-ev:first-of-type{border-top:none}
+.m-ev .dt{font-size:10.5px;color:#8a8d99;width:46px;flex-shrink:0;font-weight:600}
+.m-ev .bd{width:3px;align-self:stretch;min-height:24px;border-radius:3px;flex-shrink:0}
+.m-ev b{font-size:12.5px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-ev small{font-size:11px;color:#8a8d99}
+.m-btn{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid #e6e7ec;border-radius:8px;font-size:12.5px;background:#fff;color:#1b1d26}
+.m-btn.pri{background:#2138b8;color:#fff;border-color:#2138b8}
+.m-btn .i{width:22px;height:22px;border-radius:6px;background:#eef1fb;color:#2138b8;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.m-btn.pri .i{background:rgba(255,255,255,.18);color:#fff}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---- Direction A: command center ---- */
+.a-hero{background:linear-gradient(120deg,#0e1a3c,#182a5e);color:#fff;border-radius:12px;padding:16px 18px;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:14px}
+.a-hero h1{margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em}
+.a-hero h1 span{color:#9fb0ff}
+.a-hero p{margin:3px 0 0;font-size:12px;color:#aeb7d4;text-transform:capitalize}
+.a-hero .rt{text-align:right;flex-shrink:0}
+.a-pill{display:inline-block;font-size:10.5px;font-weight:700;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:4px 10px;color:#dfe4f5}
+.a-next{margin-top:8px;font-size:11px;color:#aeb7d4}
+.a-next b{color:#fff}
+.a-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:14px}
+.a-kpi{background:#fff;border:1px solid #e6e7ec;border-radius:11px;padding:11px 13px;border-left:3px solid #2138b8}
+.a-kpi .k{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:#8a8d99;font-weight:700}
+.a-kpi .v{font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin-top:3px}
+.a-kpi .c{font-size:10.5px;color:#1f7a4d;margin-top:1px}
+.a-grid{display:grid;grid-template-columns:1.55fr 1fr;gap:13px;align-items:start}
+.a-col{display:flex;flex-direction:column;gap:13px}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.week .d{text-align:center}
+.week .dn{font-size:9px;color:#8a8d99;text-transform:uppercase;letter-spacing:.03em}
+.week .db{margin-top:4px;height:44px;border:1px solid #eef0f3;border-radius:7px;padding:4px 0;display:flex;flex-direction:column;align-items:center;gap:3px}
+.week .db.today{border-color:#2138b8;background:#f5f7ff}
+.week .num2{font-size:11px;font-weight:700}
+.week .dots{display:flex;gap:2px}
+.week .dot{width:5px;height:5px;border-radius:50%}
+.a-analytics{background:#0e1a3c;border:1px solid #0e1a3c;border-radius:11px;padding:13px 15px;color:#eef1fb}
+.a-analytics .m-h{color:#8b93ad}
+.a-analytics .spark{height:34px;margin:8px 0 10px;border-radius:6px;background:linear-gradient(180deg,rgba(77,104,255,.35),rgba(77,104,255,0));position:relative;overflow:hidden}
+.a-analytics .spark svg{position:absolute;inset:0;width:100%;height:100%}
+.a-analytics .go{display:inline-block;font-size:11.5px;font-weight:600;background:#2138b8;color:#fff;border-radius:7px;padding:7px 12px}
+.a-msg{display:flex;gap:9px;padding:7px 0;border-top:1px solid #f0f0f2}
+.a-msg:first-of-type{border-top:none}
+.a-msg .av{width:26px;height:26px;border-radius:50%;background:#eef1fb;color:#2138b8;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.a-msg b{font-size:12px;font-weight:600;display:block}
+.a-msg small{font-size:10.5px;color:#8a8d99}
+
+/* ---- Direction B: focus ---- */
+.b-greet{font-size:26px;font-weight:800;letter-spacing:-.02em;margin:6px 0 2px}
+.b-greet span{color:#2138b8}
+.b-date{color:#8a8d99;font-size:13px;text-transform:capitalize;margin:0 0 16px}
+.b-kpis{display:flex;gap:0;border:1px solid #e6e7ec;border-radius:11px;background:#fff;margin-bottom:16px;overflow:hidden}
+.b-kpi{flex:1;padding:12px 16px;border-right:1px solid #eef0f3}
+.b-kpi:last-child{border-right:none}
+.b-kpi .k{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:#8a8d99;font-weight:700}
+.b-kpi .v{font-size:21px;font-weight:800;margin-top:2px}
+.b-main{background:#fff;border:1px solid #e6e7ec;border-radius:12px;padding:18px 20px;margin-bottom:14px}
+.b-main .m-h{font-size:12px;margin-bottom:14px}
+.b-main .m-ev{padding:11px 0}
+.b-main .m-ev b{font-size:14px}
+.b-two{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+
+/* ---- Direction C: operational ---- */
+.c-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.c-greet{font-size:17px;font-weight:800;letter-spacing:-.01em;margin:0}
+.c-greet span{color:#2138b8}
+.c-date{font-size:12px;color:#8a8d99;text-transform:capitalize}
+.c-grid{display:grid;grid-template-columns:1.5fr .9fr;gap:13px;align-items:start}
+.c-col{display:flex;flex-direction:column;gap:13px}
+.sched{display:flex;flex-direction:column;gap:0}
+.sched .row{display:flex;gap:11px;padding:8px 0;border-top:1px solid #f0f0f2}
+.sched .row:first-child{border-top:none}
+.sched .day{width:58px;flex-shrink:0;font-size:11px;font-weight:700;color:#4a4d5a}
+.sched .day small{display:block;font-size:9.5px;color:#8a8d99;font-weight:600}
+.sched .items{display:flex;flex-direction:column;gap:4px;min-width:0}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:2px 0}
+.chip .b3{width:3px;height:13px;border-radius:2px;flex-shrink:0}
+.rec{display:flex;align-items:center;gap:9px;padding:6px 0;border-top:1px solid #f0f0f2;font-size:12px}
+.rec:first-of-type{border-top:none}
+.rec .ty{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:#2138b8;background:#eef1fb;border-radius:5px;padding:1px 6px;flex-shrink:0}
+.rec small{margin-left:auto;color:#8a8d99;font-size:10.5px}
+
+.rec-box{margin-top:30px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:12px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start}
+.rec-box .st{width:26px;height:26px;flex-shrink:0;border-radius:7px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+.rec-box h4{margin:0 0 4px;font-size:13px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--accent)}
+.rec-box p{margin:0;font-size:14px;color:var(--ink-soft)}
+.rec-box b{color:var(--ink)}
+.foot{padding:36px 0 0;color:var(--muted);font-size:13px}
+.note{margin-top:14px;font-size:12.5px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <p class="kick">EduSport / Panou de administrare / Pagina de start</p>
+    <h1>Trei direcții de design pentru pagina de start</h1>
+    <p>Fiecare machetă e desenată cu exact aceleași culori și fonturi ca panoul real (bară navy #0e1a3c, accent #2138b8, carduri albe, font system-ui) și e arătată lângă bara laterală adevărată. Toate elementele se alimentează din date pe care le avem deja. Alege o direcție și o construiesc.</p>
+    <div class="meta">
+      <span class="tag"><b>3</b> direcții</span>
+      <span class="tag">Date reale: sportivi, evenimente, mesaje</span>
+      <span class="tag">Umami: pregătit, se activează la conectare</span>
+      <span class="tag">Doar machete, nimic aplicat</span>
+    </div>
+  </header>
+
+  <!-- ============ DIRECTION A ============ -->
+  <section class="dir">
+    <div class="dir-head">
+      <span class="dir-no">A</span>
+      <h2>Centru de comandă</h2>
+      <span class="tagline">coeziv cu bara navy, orientat pe azi</span>
+      <span class="ribbon">Recomandat</span>
+    </div>
+    <p class="lead">O bandă de întâmpinare navy care se leagă vizual de bara laterală, apoi patru indicatori, programul săptămânii cu puncte colorate pe categorii, evenimentele următoare și un panou lateral cu analiza traficului, acțiuni rapide și mesaje noi. Totul se citește dintr-o privire, ca un tablou de bord.</p>
+
+    <div class="frame">
+      <div class="frame-cap">Direcția A la lățimea reală a panoului</div>
+      <div class="scrollx">
+      <div class="scr">
+        <aside class="scr-side">
+          <div class="scr-brand"><span class="mk">ES</span><span><b>EduSport</b><small>Panou</small></span></div>
+          <a class="on"><span class="d"></span>Acasă</a>
+          <a><span class="d"></span>Setări site</a>
+          <a><span class="d"></span>Anunț popup</a>
+          <div class="g">Program și calendar <span class="cv">&#9656;</span></div>
+          <div class="g">Sportivi și echipă <span class="cv">&#9656;</span></div>
+          <div class="g">Pagini site <span class="cv">&#9656;</span></div>
+          <div class="g">Articole și media <span class="cv">&#9656;</span></div>
+          <div class="g">Sistem <span class="cv">&#9656;</span></div>
+        </aside>
+        <main class="scr-main">
+          <div class="a-hero">
+            <div>
+              <h1>Bună, <span>Antrenor</span>. Iată ce urmează la club.</h1>
+              <p>Marți, 26 august 2026</p>
+              <div class="a-next">Următorul eveniment: <b>azi 17:00, Antrenament Grupa A</b></div>
+            </div>
+            <div class="rt">
+              <span class="a-pill">Sezon 2026 / 2027</span>
+            </div>
+          </div>
+
+          <div class="a-kpis">
+            <div class="a-kpi"><div class="k">Sportivi</div><div class="v num">48</div><div class="c">+3 luna aceasta</div></div>
+            <div class="a-kpi"><div class="k">Membri echipă</div><div class="v num">9</div></div>
+            <div class="a-kpi"><div class="k">Competiții</div><div class="v num">12</div><div class="c">2 în septembrie</div></div>
+            <div class="a-kpi"><div class="k">Evenimente / lună</div><div class="v num">21</div></div>
+          </div>
+
+          <div class="a-grid">
+            <div class="a-col">
+              <div class="m-card">
+                <p class="m-h">Programul săptămânii</p>
+                <div class="week">
+                  <div class="d"><div class="dn">Lu</div><div class="db"><span class="num2">25</span><span class="dots"><i class="dot" style="background:#2138b8"></i></span></div></div>
+                  <div class="d"><div class="dn">Ma</div><div class="db today"><span class="num2">26</span><span class="dots"><i class="dot" style="background:#2138b8"></i><i class="dot" style="background:#be3330"></i></span></div></div>
+                  <div class="d"><div class="dn">Mi</div><div class="db"><span class="num2">27</span><span class="dots"><i class="dot" style="background:#2138b8"></i></span></div></div>
+                  <div class="d"><div class="dn">Jo</div><div class="db"><span class="num2">28</span><span class="dots"><i class="dot" style="background:#be3330"></i></span></div></div>
+                  <div class="d"><div class="dn">Vi</div><div class="db"><span class="num2">29</span><span class="dots"><i class="dot" style="background:#2138b8"></i></span></div></div>
+                  <div class="d"><div class="dn">Sâ</div><div class="db"><span class="num2">30</span><span class="dots"><i class="dot" style="background:#7a1fa2"></i></span></div></div>
+                  <div class="d"><div class="dn">Du</div><div class="db"><span class="num2">31</span></div></div>
+                </div>
+              </div>
+              <div class="m-card">
+                <p class="m-h">Următoarele evenimente</p>
+                <div class="m-ev"><span class="dt">Azi</span><span class="bd" style="background:#2138b8"></span><span><b>Antrenament Grupa A</b><small>17:00 - 18:30 &middot; Patinoar</small></span></div>
+                <div class="m-ev"><span class="dt">Joi</span><span class="bd" style="background:#be3330"></span><span><b>Școala de patinaj</b><small>Curs &middot; grupa începători</small></span></div>
+                <div class="m-ev"><span class="dt">Sâm</span><span class="bd" style="background:#7a1fa2"></span><span><b>Cupa Reșița, etapa 2</b><small>Competiție &middot; toată ziua</small></span></div>
+              </div>
+            </div>
+            <div class="a-col">
+              <div class="a-analytics">
+                <p class="m-h">Analiză trafic</p>
+                <div class="spark"><svg viewBox="0 0 100 34" preserveAspectRatio="none"><polyline points="0,26 14,22 28,24 42,14 56,17 70,9 84,12 100,5" fill="none" stroke="#7f97ff" stroke-width="2"/></svg></div>
+                <div style="font-size:11px;color:#aeb7d4;margin-bottom:10px">Vizitatori site public, 7 zile</div>
+                <span class="go">Deschide Umami</span>
+              </div>
+              <div class="m-card">
+                <p class="m-h">Acțiuni rapide</p>
+                <div style="display:flex;flex-direction:column;gap:7px">
+                  <div class="m-btn pri"><span class="i">+</span>Adaugă eveniment</div>
+                  <div class="m-btn"><span class="i">S</span>Adaugă sportiv</div>
+                  <div class="m-btn"><span class="i">A</span>Adaugă articol</div>
+                </div>
+              </div>
+              <div class="m-card">
+                <p class="m-h">Mesaje contact noi</p>
+                <div class="a-msg"><span class="av">MP</span><span><b>Maria Pop</b><small>Înscriere grupa copii &middot; azi</small></span></div>
+                <div class="a-msg"><span class="av">AI</span><span><b>Andrei Ionescu</b><small>Întrebare tarife &middot; ieri</small></span></div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+      </div>
+    </div>
+
+    <div class="meta2">
+      <div class="col"><h4>Din ce se alimentează</h4><ul>
+        <li>Salut + nume din contul curent</li>
+        <li>Indicatori: numărul de intrări + evenimente/lună</li>
+        <li>Săptămâna și evenimentele: din calendar (ocurențe)</li>
+        <li>Mesaje: colecția Mesaje contact</li>
+      </ul></div>
+      <div class="col"><h4>De ce merge</h4><ul>
+        <li><span class="plus">+</span> Banda navy leagă pagina de bara laterală</li>
+        <li><span class="plus">+</span> Săptămâna curentă vizibilă imediat</li>
+        <li><span class="plus">+</span> Cel mai mult context util pe un ecran</li>
+        <li><span class="minus">-</span> Cea mai densă dintre cele trei</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- ============ DIRECTION B ============ -->
+  <section class="dir">
+    <div class="dir-head">
+      <span class="dir-no">B</span>
+      <h2>Focus</h2>
+      <span class="tagline">aerisit, tipografic, un singur lucru important</span>
+    </div>
+    <p class="lead">Un salut mare, indicatori pe o linie subțire și un singur panou dominant cu ce urmează. Restul (analiză, acțiuni) rămâne secundar. Pentru cine vrea calm și claritate, nu un tablou plin.</p>
+
+    <div class="frame">
+      <div class="frame-cap">Direcția B la lățimea reală a panoului</div>
+      <div class="scrollx">
+      <div class="scr">
+        <aside class="scr-side">
+          <div class="scr-brand"><span class="mk">ES</span><span><b>EduSport</b><small>Panou</small></span></div>
+          <a class="on"><span class="d"></span>Acasă</a>
+          <a><span class="d"></span>Setări site</a>
+          <a><span class="d"></span>Anunț popup</a>
+          <div class="g">Program și calendar <span class="cv">&#9656;</span></div>
+          <div class="g">Sportivi și echipă <span class="cv">&#9656;</span></div>
+          <div class="g">Pagini site <span class="cv">&#9656;</span></div>
+          <div class="g">Articole și media <span class="cv">&#9656;</span></div>
+          <div class="g">Sistem <span class="cv">&#9656;</span></div>
+        </aside>
+        <main class="scr-main">
+          <h1 class="b-greet">Bună, <span>Antrenor</span>.</h1>
+          <p class="b-date">Marți, 26 august 2026 &middot; Sezon 2026 / 2027</p>
+
+          <div class="b-kpis">
+            <div class="b-kpi"><div class="k">Sportivi</div><div class="v num">48</div></div>
+            <div class="b-kpi"><div class="k">Membri echipă</div><div class="v num">9</div></div>
+            <div class="b-kpi"><div class="k">Competiții</div><div class="v num">12</div></div>
+            <div class="b-kpi"><div class="k">Articole</div><div class="v num">34</div></div>
+            <div class="b-kpi"><div class="k">Evenimente / lună</div><div class="v num">21</div></div>
+          </div>
+
+          <div class="b-main">
+            <p class="m-h">Ce urmează</p>
+            <div class="m-ev"><span class="dt">Azi</span><span class="bd" style="background:#2138b8"></span><span><b>Antrenament Grupa A</b><small>17:00 - 18:30 &middot; Patinoar</small></span></div>
+            <div class="m-ev"><span class="dt">Joi</span><span class="bd" style="background:#be3330"></span><span><b>Școala de patinaj</b><small>Curs &middot; grupa începători</small></span></div>
+            <div class="m-ev"><span class="dt">Sâm</span><span class="bd" style="background:#7a1fa2"></span><span><b>Cupa Reșița, etapa 2</b><small>Competiție &middot; toată ziua</small></span></div>
+            <div class="m-ev"><span class="dt">29 aug</span><span class="bd" style="background:#8a8a8a"></span><span><b>Zi liberă</b><small>Școala &middot; pauză</small></span></div>
+          </div>
+
+          <div class="b-two">
+            <div class="m-card">
+              <p class="m-h">Analiză trafic</p>
+              <div style="font-size:12px;color:#5a5e6b;margin-bottom:11px">Statistici de vizitare, prin Umami.</div>
+              <div class="m-btn pri" style="display:inline-flex"><span class="i">&#8599;</span>Deschide Umami</div>
+            </div>
+            <div class="m-card">
+              <p class="m-h">Acțiuni rapide</p>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div class="m-btn"><span class="i">+</span>Adaugă eveniment</div>
+                <div class="m-btn"><span class="i">S</span>Adaugă sportiv</div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+      </div>
+    </div>
+
+    <div class="meta2">
+      <div class="col"><h4>Din ce se alimentează</h4><ul>
+        <li>Salut + nume din contul curent</li>
+        <li>Indicatori pe o linie (aceleași surse ca A)</li>
+        <li>Panoul central: evenimente din calendar</li>
+      </ul></div>
+      <div class="col"><h4>Compromis</h4><ul>
+        <li><span class="plus">+</span> Cel mai curat și mai calm</li>
+        <li><span class="plus">+</span> Ușor de citit, fără aglomerație</li>
+        <li><span class="minus">-</span> Mai puțin context pe un ecran</li>
+        <li><span class="minus">-</span> Nu se leagă la fel de strâns de bara navy</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <!-- ============ DIRECTION C ============ -->
+  <section class="dir">
+    <div class="dir-head">
+      <span class="dir-no">C</span>
+      <h2>Operațional</h2>
+      <span class="tagline">suprafață de lucru, două coloane</span>
+    </div>
+    <p class="lead">Salut compact, apoi orarul săptămânii pe zile și modificările recente în coloana principală, cu acțiuni, analiză și mesaje noi în raftul din dreapta. Pentru cine trăiește în panou zilnic și vrea totul la îndemână.</p>
+
+    <div class="frame">
+      <div class="frame-cap">Direcția C la lățimea reală a panoului</div>
+      <div class="scrollx">
+      <div class="scr">
+        <aside class="scr-side">
+          <div class="scr-brand"><span class="mk">ES</span><span><b>EduSport</b><small>Panou</small></span></div>
+          <a class="on"><span class="d"></span>Acasă</a>
+          <a><span class="d"></span>Setări site</a>
+          <a><span class="d"></span>Anunț popup</a>
+          <div class="g">Program și calendar <span class="cv">&#9656;</span></div>
+          <div class="g">Sportivi și echipă <span class="cv">&#9656;</span></div>
+          <div class="g">Pagini site <span class="cv">&#9656;</span></div>
+          <div class="g">Articole și media <span class="cv">&#9656;</span></div>
+          <div class="g">Sistem <span class="cv">&#9656;</span></div>
+        </aside>
+        <main class="scr-main">
+          <div class="c-top">
+            <h1 class="c-greet">Bună, <span>Antrenor</span>.</h1>
+            <span class="c-date">Marți, 26 august 2026</span>
+          </div>
+
+          <div class="c-grid">
+            <div class="c-col">
+              <div class="m-card">
+                <p class="m-h">Săptămâna aceasta</p>
+                <div class="sched">
+                  <div class="row"><div class="day">Mar<small>26 aug</small></div><div class="items"><span class="chip"><span class="b3" style="background:#2138b8"></span>17:00 Antrenament Grupa A</span><span class="chip"><span class="b3" style="background:#be3330"></span>Școala de patinaj</span></div></div>
+                  <div class="row"><div class="day">Mie<small>27 aug</small></div><div class="items"><span class="chip"><span class="b3" style="background:#2138b8"></span>17:00 Antrenament Grupa B</span></div></div>
+                  <div class="row"><div class="day">Joi<small>28 aug</small></div><div class="items"><span class="chip"><span class="b3" style="background:#be3330"></span>Școala de patinaj</span></div></div>
+                  <div class="row"><div class="day">Vin<small>29 aug</small></div><div class="items"><span class="chip"><span class="b3" style="background:#8a8a8a"></span>Zi liberă</span></div></div>
+                  <div class="row"><div class="day">Sâm<small>30 aug</small></div><div class="items"><span class="chip"><span class="b3" style="background:#7a1fa2"></span>Cupa Reșița, etapa 2</span></div></div>
+                </div>
+              </div>
+              <div class="m-card">
+                <p class="m-h">Modificate recent</p>
+                <div class="rec"><span class="ty">Sportiv</span> Ana Munteanu <small>acum 2 ore</small></div>
+                <div class="rec"><span class="ty">Pagină</span> Prețuri <small>ieri</small></div>
+                <div class="rec"><span class="ty">Articol</span> Rezultate Cupa Timișoara <small>ieri</small></div>
+              </div>
+            </div>
+            <div class="c-col">
+              <div class="m-card">
+                <p class="m-h">Acțiuni rapide</p>
+                <div style="display:flex;flex-direction:column;gap:7px">
+                  <div class="m-btn pri"><span class="i">+</span>Adaugă eveniment</div>
+                  <div class="m-btn"><span class="i">S</span>Adaugă sportiv</div>
+                  <div class="m-btn"><span class="i">A</span>Adaugă articol</div>
+                </div>
+              </div>
+              <div class="a-analytics">
+                <p class="m-h">Analiză trafic</p>
+                <div class="spark"><svg viewBox="0 0 100 34" preserveAspectRatio="none"><polyline points="0,24 16,20 32,26 48,15 64,18 80,10 100,7" fill="none" stroke="#7f97ff" stroke-width="2"/></svg></div>
+                <span class="go">Deschide Umami</span>
+              </div>
+              <div class="m-card">
+                <p class="m-h">Mesaje contact noi</p>
+                <div class="a-msg"><span class="av">MP</span><span><b>Maria Pop</b><small>Înscriere &middot; azi</small></span></div>
+                <div class="a-msg"><span class="av">AI</span><span><b>Andrei Ionescu</b><small>Tarife &middot; ieri</small></span></div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+      </div>
+    </div>
+
+    <div class="meta2">
+      <div class="col"><h4>Din ce se alimentează</h4><ul>
+        <li>Orar: ocurențe din calendar, pe zile</li>
+        <li>Modificate recent: ultimele intrări editate</li>
+        <li>Mesaje: colecția Mesaje contact</li>
+      </ul></div>
+      <div class="col"><h4>Compromis</h4><ul>
+        <li><span class="plus">+</span> Cel mai orientat spre lucru zilnic</li>
+        <li><span class="plus">+</span> Orarul pe zile e foarte clar</li>
+        <li><span class="minus">-</span> Fără bandă de întâmpinare, mai sobru</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <div class="rec-box">
+    <span class="st">A</span>
+    <div>
+      <h4>Recomandarea mea</h4>
+      <p><b>Direcția A, centru de comandă.</b> Banda navy o face să pară o continuare a barei laterale, nu o pagină generică de Strapi, iar programul săptămânii plus evenimentele următoare răspund la întrebarea zilnică "ce urmează la club". Putem împrumuta orarul pe zile din C ca variantă, dacă vrei mai mult accent pe program. Spune-mi ce direcție aprobi și o construiesc; mesajele noi și modificările recente le pot adăuga în același pas, fiind tot date reale.</p>
+    </div>
+  </div>
+
+  <p class="note">Numerele din machete sunt ilustrative, pentru a arăta forma. În panoul real, fiecare valoare vine din date; ce nu are sursă nu se afișează, nu se inventează.</p>
+
+  <footer class="foot">Machete de prezentare pentru alegere. Nimic nu a fost aplicat în panoul real. După ce alegi o direcție, o implementez și o verific în admin.</footer>
+
+</div>

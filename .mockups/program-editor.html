@@ -1,0 +1,478 @@
+<style>
+/* ============================================================
+   PRESENTATION FRAME.
+   Everything inside .pce-wrap is the REAL calendar CSS, copied
+   verbatim from ProgramOverviewEditor.tsx (the CSS template
+   literal at the bottom of that file). Nothing redrawn.
+   ============================================================ */
+:root{
+  --bg:#eef0f4; --ink:#1b1d26; --ink-soft:#4a4d5a; --muted:#8a8d99;
+  --line:#e2e4ea; --accent:#2138b8; --accent-soft:#eef1fb; --danger:#be3330; --ok:#1f7a4d;
+  --shadow:0 6px 24px rgba(18,22,45,.08);
+  --sys:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sys);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px 110px}
+.mast{padding:52px 0 26px;border-bottom:1px solid var(--line)}
+.kick{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 13px}
+.mast h1{font-size:clamp(26px,3.6vw,38px);line-height:1.1;margin:0 0 12px;font-weight:800;letter-spacing:-.02em;max-width:24ch}
+.mast p{margin:0;max-width:72ch;color:var(--ink-soft);font-size:15px}
+.sec{padding:44px 0;border-bottom:1px solid var(--line)}
+.sec-head{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.sec-no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:3px 9px}
+.sec h2{font-size:22px;font-weight:800;letter-spacing:-.015em;margin:0}
+.lead{color:var(--ink-soft);font-size:14.5px;margin:12px 0 0;max-width:82ch}
+.lead b{color:var(--ink)}
+.verdict{display:inline-block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:5px;margin-left:4px}
+.verdict.good{color:#1f7a4d;background:#e7f3ec;border:1px solid #bfe0cc}
+.verdict.meh{color:#a35c00;background:#fdf3e4;border:1px solid #f0dcbb}
+.verdict.bad{color:#be3330;background:#faeceb;border:1px solid #e6c3c1}
+.stage{margin-top:22px;display:flex;flex-direction:column;gap:9px}
+.stage-cap{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.frame{border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);background:#fff;padding:16px;overflow:hidden}
+.pros{display:flex;gap:26px;flex-wrap:wrap;margin-top:14px;font-size:13.5px}
+.pros ul{margin:6px 0 0;padding-left:18px;color:var(--ink-soft)}
+.pros h4{margin:0;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.pros>div{flex:1 1 260px}
+table.spec{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:18px}
+table.spec th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line)}
+table.spec td{padding:8px 10px;border-bottom:1px solid #f0f1f4;vertical-align:top}
+table.spec code{font-family:var(--mono);font-size:12px;background:#f4f5f8;padding:1px 5px;border-radius:4px}
+.note{margin-top:18px;padding:13px 15px;border-left:3px solid var(--accent);background:var(--accent-soft);font-size:13.5px;color:var(--ink-soft);border-radius:0 6px 6px 0}
+.note b{color:var(--ink)}
+.note.bad{border-left-color:var(--danger);background:#faeceb}
+
+/* ============================================================
+   REAL CALENDAR CSS - ProgramOverviewEditor.tsx, verbatim
+   ============================================================ */
+.pce-wrap { display:flex; gap:14px; align-items:flex-start; font-family:system-ui,-apple-system,sans-serif; position:relative; }
+.pce-side { width:184px; flex-shrink:0; }
+.pce-add { width:100%; background:#2138b8; color:#fff; border:none; padding:8px 12px; border-radius:8px; font-size:13px; cursor:pointer; margin-bottom:12px; }
+.pce-cat-t { font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+.pce-cat label { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:13px; color:#333; cursor:pointer; user-select:none; }
+.pce-cat label.off { opacity:.35; text-decoration:line-through; }
+.dot { width:12px; height:12px; border-radius:3px; display:inline-block; flex-shrink:0; }
+.pce-main { flex:1; min-width:0; border:1px solid #e3e3e3; border-radius:8px; overflow:hidden; background:#fff; }
+.pce-head { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #eee; }
+.pce-nav { display:flex; align-items:center; gap:10px; font-size:14px; font-weight:600; color:#222; }
+.pce-nav button { border:1px solid #ddd; background:#fff; width:26px; height:26px; border-radius:6px; cursor:pointer; }
+.pce-load { font-size:12px; color:#999; }
+.pce-dows { display:grid; grid-template-columns:repeat(7,1fr); }
+.pce-dows div { text-align:center; font-size:11px; font-weight:700; color:#999; padding:6px 0; border-bottom:1px solid #eee; text-transform:uppercase; }
+.pce-grid { display:grid; grid-template-columns:repeat(7,1fr); }
+.pce-day { min-height:82px; border-right:1px solid #f2f2f2; border-bottom:1px solid #f2f2f2; padding:4px 5px; cursor:pointer; }
+.pce-day:hover { background:#fafbff; }
+.pce-day.off { background:#fafafa; }
+.pce-day.off .num { color:#ddd; }
+.pce-day .num { font-size:11px; color:#aaa; margin-bottom:2px; }
+.ev { font-size:10px; padding:1px 5px; border-radius:3px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; border-left:3px solid #2138b8; color:#222; }
+.ev.cancel { text-decoration:line-through; color:#aaa; background:#f0f0f0 !important; }
+.more { font-size:9px; color:#999; }
+.pce-panel { width:320px; flex-shrink:0; align-self:flex-start; position:sticky; top:12px; max-height:calc(100vh - 200px); display:flex; flex-direction:column; border:1px solid #dcdcdc; border-radius:10px; background:#fff; box-shadow:0 6px 24px rgba(0,0,0,.08); overflow:hidden; }
+.pce-panel .ph { flex-shrink:0; background:#fff; display:flex; justify-content:space-between; align-items:center; padding:14px 15px; border-bottom:1px solid #eee; }
+.pce-panel .ph h4 { margin:0; font-size:15px; }
+.pce-panel .x { color:#999; cursor:pointer; font-size:20px; line-height:1; }
+.pce-body { flex:1 1 auto; min-height:0; overflow-y:auto; padding:15px; }
+.fld { margin-bottom:11px; }
+.fld label { display:block; font-size:10px; color:#888; margin-bottom:3px; text-transform:uppercase; letter-spacing:.05em; }
+.fld input, .fld select, .fld textarea { width:100%; padding:6px 8px; border:1px solid #d0d0d0; border-radius:6px; font-size:13px; box-sizing:border-box; font-family:inherit; }
+.row2 { display:flex; gap:8px; }
+.chk { display:flex; align-items:center; gap:7px; font-size:13px; color:#333; margin-bottom:11px; }
+.pills { display:flex; gap:5px; }
+.pill { width:28px; height:28px; border-radius:50%; border:1px solid #d0d0d0; display:flex; align-items:center; justify-content:center; font-size:11px; color:#555; cursor:pointer; }
+.pill.on { background:#2138b8; color:#fff; border-color:#2138b8; font-weight:600; }
+.pa { flex-shrink:0; padding:14px 15px; border-top:1px solid #e0e0e0; background:#fafafa; border-radius:0 0 10px 10px; }
+.pa .btn-save { display:block; width:100%; background:#2138b8; color:#fff; border:none; border-radius:8px; padding:12px; font-size:15px; font-weight:700; cursor:pointer; }
+.pa .btn-del { display:block; width:100%; margin-top:8px; background:#fff; color:#be3330; border:1px solid #e2c4c4; border-radius:8px; padding:10px; font-size:13px; cursor:pointer; }
+
+/* ---- variants used only to demonstrate the options ---- */
+.opt-float .pce-panel { position:absolute; top:0; right:0; z-index:5; max-height:none; }
+.opt-modal .scrim { position:absolute; inset:0; background:rgba(20,26,54,.34); display:flex; align-items:flex-start; justify-content:center; padding-top:40px; z-index:6; }
+.opt-modal .pce-panel { position:static; width:440px; max-height:none; }
+.opt-drawer{display:flex;flex-direction:column;gap:0}
+.opt-drawer .pce-panel { width:100%; position:static; max-height:none; border-radius:10px; margin-top:12px; }
+.opt-drawer .drawer-grid { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+.opt-reserve .pce-panel.empty { display:flex; align-items:center; justify-content:center; color:#b9bcc4; font-size:12.5px; text-align:center; padding:30px 18px; min-height:220px; }
+</style>
+
+<div class="wrap">
+
+  <div class="mast">
+    <p class="kick">EduSport admin &middot; companion</p>
+    <h1>Panoul de eveniment din calendar</h1>
+    <p>Calendarul de mai jos e cel real, cu CSS-ul copiat exact din <code>ProgramOverviewEditor.tsx</code>. Nu se schimb&#259; nimic la el. Singura &icirc;ntrebare e cum apare panoul de editare, pentru c&#259; acum &icirc;ngusteaz&#259; calendarul &#537;i se termin&#259; &icirc;nainte de el.</p>
+  </div>
+
+  <!-- 01 -->
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">01</span><h2>Calendarul, a&#537;a cum e</h2></div>
+    <p class="lead">Bara de categorii pe st&acirc;nga, grila de zile &icirc;n mijloc. Nimic din ce urmeaz&#259; nu atinge asta.</p>
+
+    <div class="stage">
+      <div class="stage-cap">F&#259;r&#259; panou deschis, l&#259;&#539;ime complet&#259;</div>
+      <div class="frame">
+        <div class="pce-wrap">
+          <div class="pce-side">
+            <button class="pce-add">+ Adaug&#259;</button>
+            <div class="pce-cat">
+              <div class="pce-cat-t">Categorii</div>
+              <label><span class="dot" style="background:#2138b8"></span> Antrenament</label>
+              <label><span class="dot" style="background:#be3330"></span> &#536;coala de patinaj</label>
+              <label><span class="dot" style="background:#7a1fa2"></span> Competi&#539;ie</label>
+              <label><span class="dot" style="background:#1f7a4d"></span> Cantonament</label>
+              <label><span class="dot" style="background:#00838f"></span> Spectacol</label>
+              <label><span class="dot" style="background:#e08a00"></span> Eveniment</label>
+              <label class="off"><span class="dot" style="background:#0891b2"></span> Vacan&#539;&#259;</label>
+              <label><span class="dot" style="background:#c026d3"></span> S&#259;rb&#259;toare</label>
+              <label><span class="dot" style="background:#8a8a8a"></span> Pauz&#259; / zi liber&#259;</label>
+            </div>
+          </div>
+
+          <div class="pce-main">
+            <div class="pce-head">
+              <div class="pce-nav"><button>&#8249;</button><span>Noiembrie 2025</span><button>&#8250;</button></div>
+              <div class="pce-load">9 evenimente</div>
+            </div>
+            <div class="pce-dows"><div>Lu</div><div>Ma</div><div>Mi</div><div>Jo</div><div>Vi</div><div>S&acirc;</div><div>Du</div></div>
+            <div class="pce-grid">
+              <div class="pce-day off"><div class="num">27</div></div>
+              <div class="pce-day off"><div class="num">28</div></div>
+              <div class="pce-day off"><div class="num">29</div></div>
+              <div class="pce-day off"><div class="num">30</div></div>
+              <div class="pce-day off"><div class="num">31</div></div>
+              <div class="pce-day"><div class="num">1</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+              <div class="pce-day"><div class="num">2</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+
+              <div class="pce-day"><div class="num">3</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+              <div class="pce-day"><div class="num">4</div></div>
+              <div class="pce-day"><div class="num">5</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+              <div class="pce-day"><div class="num">6</div></div>
+              <div class="pce-day"><div class="num">7</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+              <div class="pce-day"><div class="num">8</div><div class="ev cancel" style="border-left-color:#be3330">&#536;coala: Anulat</div></div>
+              <div class="pce-day"><div class="num">9</div><div class="ev cancel" style="border-left-color:#be3330">&#536;coala: Anulat</div></div>
+
+              <div class="pce-day"><div class="num">10</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+              <div class="pce-day"><div class="num">11</div></div>
+              <div class="pce-day"><div class="num">12</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+              <div class="pce-day"><div class="num">13</div></div>
+              <div class="pce-day"><div class="num">14</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+              <div class="pce-day"><div class="num">15</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+              <div class="pce-day"><div class="num">16</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+
+              <div class="pce-day"><div class="num">17</div></div>
+              <div class="pce-day"><div class="num">18</div></div>
+              <div class="pce-day"><div class="num">19</div></div>
+              <div class="pce-day"><div class="num">20</div></div>
+              <div class="pce-day"><div class="num">21</div><div class="ev" style="border-left-color:#7a1fa2;background:#7a1fa21e">Cupa Bra&#537;ov</div></div>
+              <div class="pce-day"><div class="num">22</div><div class="ev" style="border-left-color:#7a1fa2;background:#7a1fa21e">Cupa Bra&#537;ov</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+              <div class="pce-day"><div class="num">23</div><div class="ev" style="border-left-color:#7a1fa2;background:#7a1fa21e">Cupa Bra&#537;ov</div></div>
+
+              <div class="pce-day"><div class="num">24</div></div>
+              <div class="pce-day"><div class="num">25</div></div>
+              <div class="pce-day"><div class="num">26</div></div>
+              <div class="pce-day"><div class="num">27</div></div>
+              <div class="pce-day"><div class="num">28</div></div>
+              <div class="pce-day"><div class="num">29</div><div class="ev" style="border-left-color:#e08a00;background:#e08a001e">Spectacol</div></div>
+              <div class="pce-day"><div class="num">30</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 -->
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">02</span><h2>Acum: panoul ia o coloan&#259;</h2><span class="verdict bad">problema</span></div>
+    <p class="lead"><code>.pce-panel</code> e al treilea copil din <code>.pce-wrap</code>, cu <code>width:320px; flex-shrink:0</code>. C&acirc;nd apare, singura coloan&#259; flexibil&#259; e calendarul, deci el pierde 334px. &#536;i are <code>max-height:calc(100vh - 200px)</code>, de aceea se termin&#259; &icirc;nainte de calendar.</p>
+
+    <div class="stage">
+      <div class="stage-cap">Panou deschis: grila s-a &icirc;ngustat, zilele s-au &icirc;ngu&#537;tat</div>
+      <div class="frame">
+        <div class="pce-wrap">
+          <div class="pce-side">
+            <button class="pce-add">+ Adaug&#259;</button>
+            <div class="pce-cat">
+              <div class="pce-cat-t">Categorii</div>
+              <label><span class="dot" style="background:#2138b8"></span> Antrenament</label>
+              <label><span class="dot" style="background:#be3330"></span> &#536;coala de patinaj</label>
+              <label><span class="dot" style="background:#7a1fa2"></span> Competi&#539;ie</label>
+            </div>
+          </div>
+          <div class="pce-main">
+            <div class="pce-head"><div class="pce-nav"><button>&#8249;</button><span>Noiembrie 2025</span><button>&#8250;</button></div></div>
+            <div class="pce-dows"><div>Lu</div><div>Ma</div><div>Mi</div><div>Jo</div><div>Vi</div><div>S&acirc;</div><div>Du</div></div>
+            <div class="pce-grid">
+              <div class="pce-day off"><div class="num">27</div></div><div class="pce-day off"><div class="num">28</div></div>
+              <div class="pce-day off"><div class="num">29</div></div><div class="pce-day off"><div class="num">30</div></div>
+              <div class="pce-day off"><div class="num">31</div></div>
+              <div class="pce-day"><div class="num">1</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+              <div class="pce-day"><div class="num">2</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+              <div class="pce-day"><div class="num">3</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antren.</div></div>
+              <div class="pce-day"><div class="num">4</div></div>
+              <div class="pce-day"><div class="num">5</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antren.</div></div>
+              <div class="pce-day"><div class="num">6</div></div>
+              <div class="pce-day"><div class="num">7</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antren.</div></div>
+              <div class="pce-day"><div class="num">8</div><div class="ev cancel" style="border-left-color:#be3330">&#536;coala: Anul.</div></div>
+              <div class="pce-day"><div class="num">9</div><div class="ev cancel" style="border-left-color:#be3330">&#536;coala: Anul.</div></div>
+              <div class="pce-day"><div class="num">10</div></div><div class="pce-day"><div class="num">11</div></div>
+              <div class="pce-day"><div class="num">12</div></div><div class="pce-day"><div class="num">13</div></div>
+              <div class="pce-day"><div class="num">14</div></div>
+              <div class="pce-day"><div class="num">15</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala</div></div>
+              <div class="pce-day"><div class="num">16</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala</div></div>
+            </div>
+          </div>
+          <div class="pce-panel">
+            <div class="ph"><h4>Editeaz&#259; eveniment</h4><span class="x">&times;</span></div>
+            <div class="pce-body">
+              <div class="fld"><label>Titlu</label><input value="Antrenament grupa avansa&#539;i"></div>
+              <div class="fld"><label>Categorie</label><select><option>Antrenament</option></select></div>
+              <div class="row2">
+                <div class="fld" style="flex:1"><label>De la</label><input value="17:00"></div>
+                <div class="fld" style="flex:1"><label>P&acirc;n&#259; la</label><input value="18:30"></div>
+              </div>
+              <div class="fld"><label>Se repet&#259;</label><div class="pills"><span class="pill on">Lu</span><span class="pill">Ma</span><span class="pill on">Mi</span><span class="pill">Jo</span><span class="pill on">Vi</span><span class="pill">S&acirc;</span><span class="pill">Du</span></div></div>
+              <div class="fld"><label>Loc</label><input value="Patinoar Cotroceni"></div>
+            </div>
+            <div class="pa"><button class="btn-save">Salveaz&#259;</button><button class="btn-del">&#536;terge</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 -->
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">03</span><h2>Op&#539;iunea A: panoul plute&#537;te peste calendar</h2><span class="verdict good">minim de schimbat</span></div>
+    <p class="lead">Acela&#537;i panou, acelea&#537;i c&acirc;mpuri. Doar <code>position:absolute; right:0</code> &#537;i f&#259;r&#259; <code>max-height</code>. Nu mai e o coloan&#259; &icirc;n flex, deci calendarul r&#259;m&acirc;ne la l&#259;&#539;imea lui &#537;i nu se re&#537;aseaz&#259; nimic. Acoper&#259; col&#539;ul din dreapta al grilei.</p>
+
+    <div class="stage">
+      <div class="stage-cap">Calendar la l&#259;&#539;ime complet&#259;, panoul deasupra</div>
+      <div class="frame">
+        <div class="pce-wrap opt-float">
+          <div class="pce-side">
+            <button class="pce-add">+ Adaug&#259;</button>
+            <div class="pce-cat">
+              <div class="pce-cat-t">Categorii</div>
+              <label><span class="dot" style="background:#2138b8"></span> Antrenament</label>
+              <label><span class="dot" style="background:#be3330"></span> &#536;coala de patinaj</label>
+              <label><span class="dot" style="background:#7a1fa2"></span> Competi&#539;ie</label>
+              <label><span class="dot" style="background:#1f7a4d"></span> Cantonament</label>
+            </div>
+          </div>
+          <div class="pce-main">
+            <div class="pce-head"><div class="pce-nav"><button>&#8249;</button><span>Noiembrie 2025</span><button>&#8250;</button></div></div>
+            <div class="pce-dows"><div>Lu</div><div>Ma</div><div>Mi</div><div>Jo</div><div>Vi</div><div>S&acirc;</div><div>Du</div></div>
+            <div class="pce-grid">
+              <div class="pce-day off"><div class="num">27</div></div><div class="pce-day off"><div class="num">28</div></div>
+              <div class="pce-day off"><div class="num">29</div></div><div class="pce-day off"><div class="num">30</div></div>
+              <div class="pce-day off"><div class="num">31</div></div>
+              <div class="pce-day"><div class="num">1</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+              <div class="pce-day"><div class="num">2</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+              <div class="pce-day"><div class="num">3</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+              <div class="pce-day"><div class="num">4</div></div>
+              <div class="pce-day"><div class="num">5</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+              <div class="pce-day"><div class="num">6</div></div>
+              <div class="pce-day"><div class="num">7</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+              <div class="pce-day"><div class="num">8</div><div class="ev cancel" style="border-left-color:#be3330">&#536;coala: Anulat</div></div>
+              <div class="pce-day"><div class="num">9</div><div class="ev cancel" style="border-left-color:#be3330">&#536;coala: Anulat</div></div>
+              <div class="pce-day"><div class="num">10</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+              <div class="pce-day"><div class="num">11</div></div>
+              <div class="pce-day"><div class="num">12</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+              <div class="pce-day"><div class="num">13</div></div>
+              <div class="pce-day"><div class="num">14</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+              <div class="pce-day"><div class="num">15</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+              <div class="pce-day"><div class="num">16</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+              <div class="pce-day"><div class="num">17</div></div><div class="pce-day"><div class="num">18</div></div>
+              <div class="pce-day"><div class="num">19</div></div><div class="pce-day"><div class="num">20</div></div>
+              <div class="pce-day"><div class="num">21</div><div class="ev" style="border-left-color:#7a1fa2;background:#7a1fa21e">Cupa Bra&#537;ov</div></div>
+              <div class="pce-day"><div class="num">22</div><div class="ev" style="border-left-color:#7a1fa2;background:#7a1fa21e">Cupa Bra&#537;ov</div></div>
+              <div class="pce-day"><div class="num">23</div><div class="ev" style="border-left-color:#7a1fa2;background:#7a1fa21e">Cupa Bra&#537;ov</div></div>
+            </div>
+          </div>
+          <div class="pce-panel">
+            <div class="ph"><h4>Editeaz&#259; eveniment</h4><span class="x">&times;</span></div>
+            <div class="pce-body">
+              <div class="fld"><label>Titlu</label><input value="Antrenament grupa avansa&#539;i"></div>
+              <div class="fld"><label>Categorie</label><select><option>Antrenament</option></select></div>
+              <div class="row2">
+                <div class="fld" style="flex:1"><label>De la</label><input value="17:00"></div>
+                <div class="fld" style="flex:1"><label>P&acirc;n&#259; la</label><input value="18:30"></div>
+              </div>
+              <div class="fld"><label>Se repet&#259;</label><div class="pills"><span class="pill on">Lu</span><span class="pill">Ma</span><span class="pill on">Mi</span><span class="pill">Jo</span><span class="pill on">Vi</span><span class="pill">S&acirc;</span><span class="pill">Du</span></div></div>
+              <div class="fld"><label>Loc</label><input value="Patinoar Cotroceni"></div>
+            </div>
+            <div class="pa"><button class="btn-save">Salveaz&#259;</button><button class="btn-del">&#536;terge</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pros">
+      <div><h4>Bun</h4><ul><li>Calendarul nu se mi&#537;c&#259; deloc</li><li>C&acirc;teva linii de CSS, zero schimb&#259;ri &icirc;n JSX</li><li>Panoul r&#259;m&acirc;ne identic</li></ul></div>
+      <div><h4>Mai pu&#539;in bun</h4><ul><li>Acoper&#259; ultimele dou&#259; coloane de zile</li><li>Pe ecrane mici acoper&#259; mai mult</li></ul></div>
+    </div>
+  </div>
+
+  <!-- 04 -->
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">04</span><h2>Op&#539;iunea B: fereastr&#259; centrat&#259;</h2><span class="verdict meh">nu vezi luna</span></div>
+    <p class="lead">Panoul devine o fereastr&#259; peste toat&#259; pagina, cu fundal &icirc;ntunecat. Nimic nu se re&#537;aseaz&#259;, dar pierzi din ochi calendarul c&acirc;t timp editezi.</p>
+
+    <div class="stage">
+      <div class="stage-cap">Fereastr&#259; centrat&#259;, mai lat&#259; dec&acirc;t panoul</div>
+      <div class="frame">
+        <div class="pce-wrap opt-modal">
+          <div class="pce-side">
+            <button class="pce-add">+ Adaug&#259;</button>
+            <div class="pce-cat"><div class="pce-cat-t">Categorii</div>
+              <label><span class="dot" style="background:#2138b8"></span> Antrenament</label>
+              <label><span class="dot" style="background:#be3330"></span> &#536;coala de patinaj</label>
+            </div>
+          </div>
+          <div class="pce-main">
+            <div class="pce-head"><div class="pce-nav"><button>&#8249;</button><span>Noiembrie 2025</span><button>&#8250;</button></div></div>
+            <div class="pce-dows"><div>Lu</div><div>Ma</div><div>Mi</div><div>Jo</div><div>Vi</div><div>S&acirc;</div><div>Du</div></div>
+            <div class="pce-grid">
+              <div class="pce-day off"><div class="num">27</div></div><div class="pce-day off"><div class="num">28</div></div>
+              <div class="pce-day off"><div class="num">29</div></div><div class="pce-day off"><div class="num">30</div></div>
+              <div class="pce-day off"><div class="num">31</div></div>
+              <div class="pce-day"><div class="num">1</div></div><div class="pce-day"><div class="num">2</div></div>
+              <div class="pce-day"><div class="num">3</div></div><div class="pce-day"><div class="num">4</div></div>
+              <div class="pce-day"><div class="num">5</div></div><div class="pce-day"><div class="num">6</div></div>
+              <div class="pce-day"><div class="num">7</div></div><div class="pce-day"><div class="num">8</div></div>
+              <div class="pce-day"><div class="num">9</div></div>
+              <div class="pce-day"><div class="num">10</div></div><div class="pce-day"><div class="num">11</div></div>
+              <div class="pce-day"><div class="num">12</div></div><div class="pce-day"><div class="num">13</div></div>
+              <div class="pce-day"><div class="num">14</div></div><div class="pce-day"><div class="num">15</div></div>
+              <div class="pce-day"><div class="num">16</div></div>
+            </div>
+          </div>
+          <div class="scrim">
+            <div class="pce-panel">
+              <div class="ph"><h4>Editeaz&#259; eveniment</h4><span class="x">&times;</span></div>
+              <div class="pce-body">
+                <div class="fld"><label>Titlu</label><input value="Antrenament grupa avansa&#539;i"></div>
+                <div class="row2">
+                  <div class="fld" style="flex:1"><label>Categorie</label><select><option>Antrenament</option></select></div>
+                  <div class="fld" style="flex:1"><label>Loc</label><input value="Patinoar Cotroceni"></div>
+                </div>
+                <div class="row2">
+                  <div class="fld" style="flex:1"><label>De la</label><input value="17:00"></div>
+                  <div class="fld" style="flex:1"><label>P&acirc;n&#259; la</label><input value="18:30"></div>
+                </div>
+                <div class="fld"><label>Se repet&#259;</label><div class="pills"><span class="pill on">Lu</span><span class="pill">Ma</span><span class="pill on">Mi</span><span class="pill">Jo</span><span class="pill on">Vi</span><span class="pill">S&acirc;</span><span class="pill">Du</span></div></div>
+              </div>
+              <div class="pa"><button class="btn-save">Salveaz&#259;</button><button class="btn-del">&#536;terge</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pros">
+      <div><h4>Bun</h4><ul><li>Nimic nu se re&#537;aseaz&#259;</li><li>Mai mult loc, c&acirc;mpurile pot sta pe dou&#259; coloane</li></ul></div>
+      <div><h4>Mai pu&#539;in bun</h4><ul><li>Nu mai vezi luna c&acirc;t editezi</li><li>Mai greu de f&#259;cut mai multe modific&#259;ri la r&acirc;nd</li></ul></div>
+    </div>
+  </div>
+
+  <!-- 05 -->
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">05</span><h2>Op&#539;iunea C: panou sub calendar</h2><span class="verdict good">cel mai mult loc</span></div>
+    <p class="lead">Calendarul r&#259;m&acirc;ne l&#259;&#539;ime complet&#259;, panoul apare dedesubt pe toat&#259; l&#259;&#539;imea. Nimic nu se acoper&#259; &#537;i nimic nu se &icirc;ngusteaz&#259;. C&acirc;mpurile &icirc;ncap pe dou&#259; coloane pentru c&#259; e mult mai lat.</p>
+
+    <div class="stage">
+      <div class="stage-cap">Panou sub grila de zile</div>
+      <div class="frame">
+        <div class="opt-drawer">
+          <div class="pce-wrap">
+            <div class="pce-side">
+              <button class="pce-add">+ Adaug&#259;</button>
+              <div class="pce-cat"><div class="pce-cat-t">Categorii</div>
+                <label><span class="dot" style="background:#2138b8"></span> Antrenament</label>
+                <label><span class="dot" style="background:#be3330"></span> &#536;coala de patinaj</label>
+                <label><span class="dot" style="background:#7a1fa2"></span> Competi&#539;ie</label>
+              </div>
+            </div>
+            <div class="pce-main">
+              <div class="pce-head"><div class="pce-nav"><button>&#8249;</button><span>Noiembrie 2025</span><button>&#8250;</button></div></div>
+              <div class="pce-dows"><div>Lu</div><div>Ma</div><div>Mi</div><div>Jo</div><div>Vi</div><div>S&acirc;</div><div>Du</div></div>
+              <div class="pce-grid">
+                <div class="pce-day off"><div class="num">27</div></div><div class="pce-day off"><div class="num">28</div></div>
+                <div class="pce-day off"><div class="num">29</div></div><div class="pce-day off"><div class="num">30</div></div>
+                <div class="pce-day off"><div class="num">31</div></div>
+                <div class="pce-day"><div class="num">1</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+                <div class="pce-day"><div class="num">2</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+                <div class="pce-day"><div class="num">3</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+                <div class="pce-day"><div class="num">4</div></div>
+                <div class="pce-day"><div class="num">5</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+                <div class="pce-day"><div class="num">6</div></div>
+                <div class="pce-day"><div class="num">7</div><div class="ev" style="border-left-color:#2138b8;background:#2138b81e">17:00 Antrenament</div></div>
+                <div class="pce-day"><div class="num">8</div><div class="ev cancel" style="border-left-color:#be3330">&#536;coala: Anulat</div></div>
+                <div class="pce-day"><div class="num">9</div><div class="ev cancel" style="border-left-color:#be3330">&#536;coala: Anulat</div></div>
+                <div class="pce-day"><div class="num">10</div></div><div class="pce-day"><div class="num">11</div></div>
+                <div class="pce-day"><div class="num">12</div></div><div class="pce-day"><div class="num">13</div></div>
+                <div class="pce-day"><div class="num">14</div></div>
+                <div class="pce-day"><div class="num">15</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+                <div class="pce-day"><div class="num">16</div><div class="ev" style="border-left-color:#be3330;background:#be33301e">&#536;coala: Curs</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pce-panel">
+            <div class="ph"><h4>Editeaz&#259; eveniment, 3 noiembrie</h4><span class="x">&times;</span></div>
+            <div class="pce-body">
+              <div class="drawer-grid">
+                <div>
+                  <div class="fld"><label>Titlu</label><input value="Antrenament grupa avansa&#539;i"></div>
+                  <div class="fld"><label>Categorie</label><select><option>Antrenament</option></select></div>
+                  <div class="fld"><label>Loc</label><input value="Patinoar Cotroceni"></div>
+                </div>
+                <div>
+                  <div class="row2">
+                    <div class="fld" style="flex:1"><label>De la</label><input value="17:00"></div>
+                    <div class="fld" style="flex:1"><label>P&acirc;n&#259; la</label><input value="18:30"></div>
+                  </div>
+                  <div class="fld"><label>Se repet&#259;</label><div class="pills"><span class="pill on">Lu</span><span class="pill">Ma</span><span class="pill on">Mi</span><span class="pill">Jo</span><span class="pill on">Vi</span><span class="pill">S&acirc;</span><span class="pill">Du</span></div></div>
+                  <div class="fld"><label>Note</label><input placeholder="Op&#539;ional"></div>
+                </div>
+              </div>
+            </div>
+            <div class="pa" style="display:flex;gap:10px">
+              <button class="btn-del" style="width:auto;margin:0">&#536;terge</button>
+              <div style="flex:1"></div>
+              <button class="btn-save" style="width:auto">Salveaz&#259;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pros">
+      <div><h4>Bun</h4><ul><li>Calendarul r&#259;m&acirc;ne complet vizibil &#537;i la l&#259;&#539;ime complet&#259;</li><li>Cel mai mult spa&#539;iu pentru c&acirc;mpuri</li><li>Merge bine &#537;i pe ecran mic</li></ul></div>
+      <div><h4>Mai pu&#539;in bun</h4><ul><li>Trebuie s&#259; cobori privirea sub calendar</li><li>Necesit&#259; mutarea panoului &icirc;n JSX, nu doar CSS</li></ul></div>
+    </div>
+  </div>
+
+  <!-- 06 -->
+  <div class="sec" style="border-bottom:none">
+    <div class="sec-head"><span class="sec-no">06</span><h2>Pe scurt</h2></div>
+    <table class="spec">
+      <thead><tr><th style="width:130px">Op&#539;iune</th><th style="width:150px">Efect asupra calendarului</th><th>Efort</th></tr></thead>
+      <tbody>
+        <tr><td><b>A</b> plutitor</td><td>Zero. Acoper&#259; col&#539;ul dreapta.</td><td>C&acirc;teva linii de CSS. Cel mai sigur.</td></tr>
+        <tr><td><b>B</b> fereastr&#259;</td><td>Zero. Ascunde tot c&acirc;t e deschis&#259;.</td><td>CSS plus un &icirc;nveli&#537; de fundal.</td></tr>
+        <tr><td><b>C</b> dedesubt</td><td>Zero. Nu acoper&#259; nimic.</td><td>Mutare &icirc;n JSX plus CSS.</td></tr>
+      </tbody>
+    </table>
+    <div class="note">
+      <b>Recomandarea mea:</b> C. Panoul are multe c&acirc;mpuri, inclusiv lista de excep&#539;ii, iar &icirc;n 320px totul e &icirc;nghesuit. Pe toat&#259; l&#259;&#539;imea &icirc;ncape pe dou&#259; coloane &#537;i nu ascunde nimic. Dac&#259; vrei cea mai mic&#259; interven&#539;ie posibil&#259;, A rezolv&#259; problema semnalat&#259; cu c&acirc;teva linii.
+    </div>
+    <div class="note bad">
+      <b>Nu am inclus:</b> seriile. Le fac &icirc;ntr-un companion separat dup&#259; ce alegi varianta de panou, ca s&#259; nu amestec&#259;m dou&#259; discu&#539;ii.
+    </div>
+  </div>
+
+</div>

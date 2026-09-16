@@ -1,0 +1,360 @@
+<title>Editorul de anunțuri</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;600;800;900&display=swap">
+<style>
+/* ── Companion chrome ───────────────────────────────────────────────────── */
+:root{
+  --bg:#eef0f4;--surface:#fff;--ink:#1b1d26;--ink-soft:#4a4d5a;--muted:#8a8d99;
+  --line:#e2e4ea;--accent:#2138b8;--accent-soft:#eef1fb;--ok:#1f7a4d;--danger:#be3330;
+  --shadow:0 8px 30px rgba(18,22,45,.10);
+  --sys:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}}
+:root[data-theme="dark"]{--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sys);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 120px}
+.mast{padding:52px 0 26px;border-bottom:1px solid var(--line)}
+.kick{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 13px}
+.mast h1{font-size:clamp(26px,3.6vw,38px);line-height:1.1;margin:0 0 12px;font-weight:800;letter-spacing:-.02em;max-width:24ch;text-wrap:balance}
+.mast p{margin:0 0 10px;max-width:70ch;color:var(--ink-soft);font-size:15px}
+.mast p b{color:var(--ink)}
+.sec{padding:46px 0;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:none}
+.sec-head{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.sec-no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:3px 9px;flex-shrink:0}
+.sec h2{font-size:22px;font-weight:800;letter-spacing:-.015em;margin:0}
+.sec .tagline{color:var(--muted);font-size:14px;font-weight:600}
+.sec .lead{color:var(--ink-soft);font-size:14.5px;margin:12px 0 0;max-width:78ch}
+.sec .lead b{color:var(--ink)}
+.frame{margin-top:22px;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface)}
+.frame-cap{padding:9px 15px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
+.tradeoff{display:flex;flex-wrap:wrap;gap:18px;margin-top:16px}
+.tradeoff div{flex:1;min-width:230px}
+.tradeoff h4{margin:0 0 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.tradeoff p{margin:0;font-size:13.5px;color:var(--ink-soft)}
+.tradeoff .yes{color:var(--ok)}.tradeoff .no{color:var(--danger)}
+.opt-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:4px}
+.opt-letter{font-family:var(--mono);font-size:12px;font-weight:700;color:#fff;background:var(--accent);border-radius:6px;padding:3px 9px}
+.opt-head h3{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em}
+
+/* ── Admin reproduction: real values from edusportUi.ts ─────────────────── */
+.eduf{--chrome:#fff;--ink2:#1b1d22;--muted2:#727888;--line2:#e0e2e8;--border2:#dcdcdc;
+  --accent2:#2138b8;--danger2:#be3330;--field:#fff;--fieldborder:#d0d0d0;--ok2:#1f7a4d;--r:4px;
+  background:#f6f7f9;color:var(--ink2);font-family:var(--sys);font-size:13px;padding:16px}
+.eduf .win{background:var(--chrome);border:1px solid var(--border2);border-radius:6px;box-shadow:0 4px 16px rgba(20,26,54,.06);overflow:hidden}
+.eduf .hd{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 18px;border-bottom:1px solid var(--line2)}
+.eduf .hd h1{margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em}
+.eduf .hd p{margin:3px 0 0;font-size:12.5px;color:var(--muted2)}
+.eduf .hd-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.eduf .btn{font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:var(--r);border:1px solid var(--fieldborder);background:var(--chrome);color:var(--ink2);white-space:nowrap}
+.eduf .btn.pri{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.eduf .btn.danger{color:var(--danger2);border-color:#e2c4c4}
+.eduf .body{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.eduf .sec2{border:1px solid var(--border2);border-radius:6px;background:#fff}
+.eduf .sh{font-size:11px;font-weight:800;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;padding:10px 13px;border-bottom:1px solid var(--line2);display:flex;align-items:center;justify-content:space-between}
+.eduf .sb{padding:13px}
+.eduf .fld{margin-bottom:12px}
+.eduf .fld:last-child{margin-bottom:0}
+.eduf .fld > label{display:block;font-size:10px;color:var(--muted2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.eduf .inp{display:block;width:100%;font-size:13px;color:var(--ink2);background:var(--field);border:1px solid var(--fieldborder);border-radius:var(--r);padding:7px 9px;min-height:32px}
+.eduf .inp.ph{color:#a9adb8}
+.eduf .inp.ta{min-height:70px}
+.eduf .hint{font-size:11px;color:var(--muted2);margin-top:3px}
+.eduf .ro{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted2);background:var(--field);border:1px solid var(--line2);border-radius:var(--r);padding:8px 10px}
+.eduf .ro b{color:var(--ink2);font-weight:700}
+.eduf .row{display:flex;gap:10px}
+.eduf .row > .fld{flex:1;margin-bottom:0}
+.eduf .toggle{display:flex;align-items:center;gap:9px;font-size:13px}
+.eduf .toggle i{width:13px;height:13px;border:1px solid var(--fieldborder);border-radius:3px;background:var(--accent2);display:inline-block;position:relative}
+.eduf .toggle i::after{content:"✓";position:absolute;inset:0;color:#fff;font-size:10px;line-height:13px;text-align:center}
+.eduf .seg{display:flex;border:1px solid var(--fieldborder);border-radius:var(--r);overflow:hidden;width:fit-content}
+.eduf .seg span{font-size:12.5px;font-weight:600;padding:7px 14px;background:#fff;color:var(--ink2)}
+.eduf .seg span.on{background:var(--accent2);color:#fff}
+.eduf .dt{display:flex;gap:8px}
+.eduf .dt .inp{width:auto;flex:1}
+.eduf .msg-ok{font-size:12px;padding:8px 11px;border-radius:4px;color:#1f7a4d;background:#e7f3ec;border:1px solid #bfe0cc;margin-bottom:12px}
+
+/* two-column layout for the proposed variant */
+.eduf .split{display:grid;grid-template-columns:1fr 330px;gap:16px;align-items:start}
+.eduf .side{position:sticky;top:16px;display:flex;flex-direction:column;gap:12px}
+.eduf .side .cap{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2);display:flex;justify-content:space-between;align-items:center}
+.eduf .side .cap em{font-style:normal;color:var(--accent2);cursor:pointer}
+.eduf .stage{border:1px solid var(--border2);border-radius:6px;background:#eef0f4;padding:16px;display:flex;align-items:center;justify-content:center;min-height:186px;position:relative;overflow:hidden}
+.eduf .stage.modal-stage{background:#0e1a3c}
+.eduf .miniwin{position:absolute;inset:0;background:#fbf8f1}
+.eduf .miniwin .bar{height:18px;background:#0e1a3c}
+.eduf .miniwin .ln{height:6px;background:#e4e0d6;margin:12px 16px 0;border-radius:2px}
+.eduf .miniwin .ln.s{width:40%}
+.eduf .scrim2{position:absolute;inset:0;background:rgba(14,26,60,.55)}
+
+/* Retro announcement previews — real site tokens */
+.prev{--navy:#0e1a3c;--cream:#fbf8f1;--mustard:#efb22b;--rust:#be3330;
+  font-family:var(--sys);position:relative;z-index:2}
+.prev.card{width:230px;background:var(--cream);border:1.5px solid var(--navy);box-shadow:6px 6px 0 rgba(14,26,60,.16);padding:12px 13px 11px;margin-left:auto;margin-top:auto}
+.prev.modal{width:250px;background:var(--cream);border:1.5px solid var(--navy);box-shadow:8px 8px 0 rgba(14,26,60,.28);padding:16px 17px 14px}
+.prev .eb{font-size:8.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--rust);margin:0}
+.prev h5{font-family:"League Spartan",var(--sys);font-weight:800;font-size:15px;line-height:1.1;color:var(--navy);margin:6px 0 5px}
+.prev p{margin:0;font-size:10.5px;line-height:1.5;color:#3b4257}
+.prev .cta{display:inline-block;margin-top:10px;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);background:var(--mustard);border:1.5px solid var(--navy);box-shadow:3px 3px 0 var(--rust);padding:6px 11px}
+.prev .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.prev .x{font-size:12px;color:#6b7280;line-height:1}
+.prev .laterrow{display:flex;align-items:center;gap:11px;margin-top:12px}
+.prev .later{font-size:10px;color:#6b7280;text-decoration:underline}
+
+.sched{border:1px solid var(--border2);border-radius:6px;background:#fff;padding:11px 12px}
+.sched .t{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted2);margin-bottom:7px}
+.sched .track{height:7px;background:#eef0f4;border-radius:4px;position:relative;overflow:hidden}
+.sched .track .fill{position:absolute;top:0;bottom:0;left:22%;right:34%;background:var(--accent2);border-radius:4px}
+.sched .track .now{position:absolute;top:-3px;bottom:-3px;left:46%;width:2px;background:var(--danger2)}
+.sched .lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--muted2);margin-top:6px;font-variant-numeric:tabular-nums}
+.sched .sum{font-size:11.5px;color:var(--ink2);margin-top:8px}
+.sched .sum b{font-weight:700}
+</style>
+
+<div class="wrap">
+
+  <div class="mast">
+    <p class="kick">Companion · Editor anunț</p>
+    <h1>Editorul de anunțuri</h1>
+    <p>Pagina de adăugare/editare, așa cum arată acum și două direcții mai bune. <b>Alege o variantă înainte să schimbăm ceva.</b></p>
+    <p>Machetele folosesc exact CSS-ul din <code>edusportUi.ts</code> (aceleași culori, câmpuri, butoane), iar previzualizarea anunțului folosește tokenurile reale ale site-ului.</p>
+  </div>
+
+  <!-- CURRENT -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">00</span><h2>Cum arată acum</h2><span class="tagline">reprodus fidel</span></div>
+    <p class="lead">Patru secțiuni una sub alta, într-o singură coloană. <b>Problema:</b> compui ceva vizual fără să-l vezi — nu știi cât de lung e textul în card, dacă titlul intră pe un rând, sau cum arată cu modal. Și nu vezi dacă fereastra de afișare e activă azi sau se suprapune cu alt anunț.</p>
+    <div class="frame">
+      <div class="frame-cap"><span>Acum</span><span>/plugins/edusport-anunt-edit</span></div>
+      <div class="eduf">
+        <div class="win">
+          <div class="hd">
+            <div><h1>Anunț nou</h1><p>Completează textul și fereastra de afișare.</p></div>
+            <div class="hd-right"><span class="btn">Înapoi</span><span class="btn pri">Salvează</span></div>
+          </div>
+          <div class="body" style="max-width:760px">
+            <div class="sec2"><div class="sh">Text</div><div class="sb">
+              <div class="fld"><label>Etichetă mică (deasupra titlului)</label><span class="inp ph">ex. Înscrieri deschise</span><div class="hint">Apare cu roșu-cărămiziu, deasupra titlului. Opțional.</div></div>
+              <div class="fld"><label>Titlu</label><span class="inp ph">ex. Sezonul 2026–2027</span></div>
+              <div class="fld"><label>Mesaj</label><span class="inp ta ph">Două-trei rânduri. Text simplu, fără formatare.</span><div class="hint">Text simplu: cardul și modalul îl afișează ca un singur paragraf.</div></div>
+              <div class="fld"><label>Id de urmărire (Umami)</label><div class="ro"><b>—</b><span>se generează automat din titlu la salvare</span></div></div>
+            </div></div>
+            <div class="sec2"><div class="sh">Afișare</div><div class="sb">
+              <div class="fld"><label>Format</label><div class="seg"><span class="on">Card în colț</span><span>Modal în centru</span></div><div class="hint">Card discret jos-dreapta. Pentru mesaje obișnuite.</div></div>
+              <div class="row"><div class="fld"><label>Text buton</label><span class="inp ph">ex. Vezi detalii</span></div><div class="fld"><label>Link buton</label><span class="inp ph">/inscriere</span></div></div>
+              <div class="hint">Lasă ambele goale dacă anunțul nu trimite nicăieri.</div>
+            </div></div>
+            <div class="sec2"><div class="sh">Programare</div><div class="sb">
+              <div class="fld"><label>Începe</label><div class="dt"><span class="inp ph">zz/ll/aaaa</span><span class="inp">08:00</span></div></div>
+              <div class="fld"><label>Se încheie</label><div class="dt"><span class="inp ph">zz/ll/aaaa</span><span class="inp">20:00</span></div><div class="hint">Finalul trebuie să fie după început.</div></div>
+              <div class="fld"><label>Stare</label><div class="toggle"><i></i> Activ</div><div class="hint">Intră pe site în fereastra de mai sus, dacă are cea mai mică prioritate dintre cele active.</div></div>
+              <div class="fld"><label>Zile până reapare după ce e închis</label><span class="inp" style="max-width:120px">7</span><div class="hint">Reapare după 7 zile pentru cine l-a închis. Maxim 365. Scrie 0 pentru „niciodată".</div></div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OPTION A -->
+  <section class="sec">
+    <div class="opt-head" style="margin-bottom:10px"><span class="opt-letter">A</span><h3>Previzualizare live lângă formular</h3></div>
+    <p class="lead" style="margin-top:0">Formularul rămâne în stânga, iar în dreapta stă anunțul desenat exact cum apare pe site, actualizat în timp ce scrii. Sub el, fereastra de afișare pe o bară de timp: vezi imediat dacă e activ azi. Comutatorul Card/Modal schimbă previzualizarea.</p>
+    <div class="frame">
+      <div class="frame-cap"><span>Varianta A</span><span>formular + previzualizare</span></div>
+      <div class="eduf">
+        <div class="win">
+          <div class="hd">
+            <div><h1>Anunț nou</h1><p>Completează textul și fereastra de afișare.</p></div>
+            <div class="hd-right"><span class="btn">Înapoi</span><span class="btn pri">Salvează</span></div>
+          </div>
+          <div class="body">
+            <div class="split">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div class="sec2"><div class="sh">Text</div><div class="sb">
+                  <div class="fld"><label>Etichetă mică</label><span class="inp">Înscrieri deschise</span></div>
+                  <div class="fld"><label>Titlu</label><span class="inp">Sezonul 2026–2027</span></div>
+                  <div class="fld"><label>Mesaj</label><span class="inp ta">Locurile pentru grupele de începători se ocupă rapid. Rezervă-ți locul completând formularul.</span></div>
+                  <div class="fld"><label>Id de urmărire (Umami)</label><div class="ro"><b>sezonul-2026-2027</b><span>se generează din titlu</span></div></div>
+                </div></div>
+                <div class="sec2"><div class="sh">Afișare</div><div class="sb">
+                  <div class="fld"><label>Format</label><div class="seg"><span class="on">Card în colț</span><span>Modal în centru</span></div></div>
+                  <div class="row"><div class="fld"><label>Text buton</label><span class="inp">Vreau un loc</span></div><div class="fld"><label>Link buton</label><span class="inp">/inscrieri</span></div></div>
+                </div></div>
+                <div class="sec2"><div class="sh">Programare</div><div class="sb">
+                  <div class="fld"><label>Începe</label><div class="dt"><span class="inp">01/09/2026</span><span class="inp">08:00</span></div></div>
+                  <div class="fld"><label>Se încheie</label><div class="dt"><span class="inp">20/09/2026</span><span class="inp">20:00</span></div></div>
+                  <div class="row">
+                    <div class="fld"><label>Stare</label><div class="toggle"><i></i> Activ</div></div>
+                    <div class="fld"><label>Reapare după</label><span class="inp" style="max-width:110px">7 zile</span></div>
+                  </div>
+                </div></div>
+              </div>
+
+              <div class="side">
+                <div class="cap"><span>Previzualizare</span><em>Card ▾</em></div>
+                <div class="stage">
+                  <div class="miniwin"><div class="bar"></div><div class="ln"></div><div class="ln s"></div></div>
+                  <div class="prev card">
+                    <div class="top"><p class="eb">Înscrieri deschise</p><span class="x">✕</span></div>
+                    <h5>Sezonul 2026–2027</h5>
+                    <p>Locurile pentru grupele de începători se ocupă rapid.</p>
+                    <span class="cta">Vreau un loc</span>
+                  </div>
+                </div>
+                <div class="sched">
+                  <div class="t">Fereastra de afișare</div>
+                  <div class="track"><div class="fill"></div><div class="now"></div></div>
+                  <div class="lbl"><span>01.09</span><span>azi</span><span>20.09</span></div>
+                  <div class="sum"><b>Activ acum</b> · se încheie peste 7 zile</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tradeoff">
+      <div><h4>Pentru</h4><p class="yes">Vezi exact ce publici, inclusiv cât text încape. Bara de timp răspunde la „e activ acum?" fără să calculezi datele în cap.</p></div>
+      <div><h4>Contra</h4><p class="no">Formularul devine mai îngust; pe ecrane mici previzualizarea trece sub formular.</p></div>
+      <div><h4>Cost</h4><p>Mediu. Previzualizarea e o copie mică a componentelor de pe site, întreținută separat de ele.</p></div>
+    </div>
+  </section>
+
+  <!-- OPTION B -->
+  <section class="sec">
+    <div class="opt-head" style="margin-bottom:10px"><span class="opt-letter">B</span><h3>Previzualizare deasupra, formular pe toată lățimea</h3></div>
+    <p class="lead" style="margin-top:0">Aceeași previzualizare, dar ca bandă în capul paginii, cu ambele formate unul lângă altul. Formularul rămâne pe toată lățimea, ca acum.</p>
+    <div class="frame">
+      <div class="frame-cap"><span>Varianta B</span><span>previzualizare în cap</span></div>
+      <div class="eduf">
+        <div class="win">
+          <div class="hd">
+            <div><h1>Editează anunțul</h1><p>Înscrieri sezonul de iarnă</p></div>
+            <div class="hd-right"><span class="btn">Înapoi</span><span class="btn danger">Șterge</span><span class="btn pri">Salvează</span></div>
+          </div>
+          <div class="body">
+            <div class="sec2">
+              <div class="sh"><span>Previzualizare</span><span style="font-weight:700;color:#2138b8">Activ acum · se încheie peste 7 zile</span></div>
+              <div class="sb">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <div class="stage">
+                    <div class="miniwin"><div class="bar"></div><div class="ln"></div><div class="ln s"></div></div>
+                    <div class="prev card">
+                      <div class="top"><p class="eb">Înscrieri deschise</p><span class="x">✕</span></div>
+                      <h5>Sezonul 2026–2027</h5>
+                      <p>Locurile pentru grupele de începători se ocupă rapid.</p>
+                      <span class="cta">Vreau un loc</span>
+                    </div>
+                  </div>
+                  <div class="stage modal-stage">
+                    <div class="miniwin"><div class="bar"></div><div class="ln"></div><div class="ln s"></div></div>
+                    <div class="scrim2"></div>
+                    <div class="prev modal">
+                      <p class="eb">Înscrieri deschise</p>
+                      <h5>Sezonul 2026–2027</h5>
+                      <p>Locurile pentru grupele de începători se ocupă rapid.</p>
+                      <div class="laterrow"><span class="cta" style="margin-top:0">Vreau un loc</span><span class="later">Mai târziu</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="hint" style="margin-top:9px">Formatul ales e cel evidențiat; celălalt arată cum ar fi dacă schimbi.</div>
+              </div>
+            </div>
+            <div class="sec2"><div class="sh">Text</div><div class="sb">
+              <div class="row"><div class="fld"><label>Etichetă mică</label><span class="inp">Înscrieri deschise</span></div><div class="fld"><label>Titlu</label><span class="inp">Sezonul 2026–2027</span></div></div>
+              <div class="fld" style="margin-top:12px"><label>Mesaj</label><span class="inp ta">Locurile pentru grupele de începători se ocupă rapid.</span></div>
+            </div></div>
+            <div class="sec2"><div class="sh">Programare</div><div class="sb">
+              <div class="row">
+                <div class="fld"><label>Începe</label><div class="dt"><span class="inp">01/09/2026</span><span class="inp">08:00</span></div></div>
+                <div class="fld"><label>Se încheie</label><div class="dt"><span class="inp">20/09/2026</span><span class="inp">20:00</span></div></div>
+              </div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tradeoff">
+      <div><h4>Pentru</h4><p class="yes">Formular lat, câmpurile pot sta două pe rând. Vezi ambele formate deodată.</p></div>
+      <div><h4>Contra</h4><p class="no">Previzualizarea iese din ecran cât completezi câmpurile de jos — exact când ai nevoie de ea.</p></div>
+      <div><h4>Cost</h4><p>Mediu, același ca A.</p></div>
+    </div>
+  </section>
+
+  <!-- OPTION C -->
+  <section class="sec">
+    <div class="opt-head" style="margin-bottom:10px"><span class="opt-letter">C</span><h3>Conținut în stânga, publicare în dreapta</h3></div>
+    <p class="lead" style="margin-top:0">Varianta A, dar coloana din dreapta ia și <b>Programarea</b>: previzualizare, fereastra de afișare, datele, starea și zilele până reapare. În stânga rămâne doar ce se vede pe site — textul și formatul. Aceeași împărțire ca la editoarele de articole: scrii în stânga, decizi publicarea în dreapta.</p>
+    <div class="frame">
+      <div class="frame-cap"><span>Varianta C</span><span>conținut | publicare</span></div>
+      <div class="eduf">
+        <div class="win">
+          <div class="hd">
+            <div><h1>Editează anunțul</h1><p>Înscrieri sezonul de iarnă</p></div>
+            <div class="hd-right"><span class="btn">Înapoi</span><span class="btn danger">Șterge</span><span class="btn pri">Salvează</span></div>
+          </div>
+          <div class="body">
+            <div class="split">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div class="sec2"><div class="sh">Text</div><div class="sb">
+                  <div class="fld"><label>Etichetă mică</label><span class="inp">Înscrieri deschise</span><div class="hint">Apare cu roșu-cărămiziu, deasupra titlului. Opțional.</div></div>
+                  <div class="fld"><label>Titlu</label><span class="inp">Sezonul 2026–2027</span></div>
+                  <div class="fld"><label>Mesaj</label><span class="inp ta">Locurile pentru grupele de începători se ocupă rapid. Rezervă-ți locul completând formularul de înscriere.</span><div class="hint">Text simplu: cardul și modalul îl afișează ca un singur paragraf.</div></div>
+                </div></div>
+                <div class="sec2"><div class="sh">Afișare</div><div class="sb">
+                  <div class="fld"><label>Format</label><div class="seg"><span class="on">Card în colț</span><span>Modal în centru</span></div><div class="hint">Card discret jos-dreapta. Pentru mesaje obișnuite.</div></div>
+                  <div class="row"><div class="fld"><label>Text buton</label><span class="inp">Vreau un loc</span></div><div class="fld"><label>Link buton</label><span class="inp">/inscrieri</span></div></div>
+                  <div class="hint">Lasă ambele goale dacă anunțul nu trimite nicăieri.</div>
+                  <div class="fld" style="margin-top:12px"><label>Id de urmărire (Umami)</label><div class="ro"><b>inscrieri-sezon-iarna</b><span>fixat la creare — statisticile sunt grupate după el</span></div></div>
+                </div></div>
+              </div>
+
+              <div class="side">
+                <div class="cap"><span>Previzualizare</span><em>Card ▾</em></div>
+                <div class="stage">
+                  <div class="miniwin"><div class="bar"></div><div class="ln"></div><div class="ln s"></div></div>
+                  <div class="prev card">
+                    <div class="top"><p class="eb">Înscrieri deschise</p><span class="x">✕</span></div>
+                    <h5>Sezonul 2026–2027</h5>
+                    <p>Locurile pentru grupele de începători se ocupă rapid.</p>
+                    <span class="cta">Vreau un loc</span>
+                  </div>
+                </div>
+
+                <div class="sec2"><div class="sh">Programare</div><div class="sb">
+                  <div class="sched" style="border:none;padding:0;margin-bottom:11px">
+                    <div class="track"><div class="fill"></div><div class="now"></div></div>
+                    <div class="lbl"><span>01.09</span><span>azi</span><span>20.09</span></div>
+                    <div class="sum"><b>Activ acum</b> · se încheie peste 7 zile</div>
+                  </div>
+                  <div class="fld"><label>Începe</label><div class="dt"><span class="inp">01/09/2026</span><span class="inp">08:00</span></div></div>
+                  <div class="fld"><label>Se încheie</label><div class="dt"><span class="inp">20/09/2026</span><span class="inp">20:00</span></div></div>
+                  <div class="fld"><label>Stare</label><div class="toggle"><i></i> Activ</div></div>
+                  <div class="fld"><label>Reapare după</label><span class="inp" style="max-width:110px">7 zile</span><div class="hint">0 = nu mai reapare niciodată.</div></div>
+                </div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tradeoff">
+      <div><h4>Pentru</h4><p class="yes">Stânga = ce văd vizitatorii, dreapta = când și cum se publică. Previzualizarea și fereastra de afișare stau lipite una de alta, unde și au sens împreună.</p></div>
+      <div><h4>Contra</h4><p class="no">Coloana dreaptă devine lungă; pe ecrane sub ~1100px trece sub formular, deci previzualizarea nu mai e vizibilă cât scrii.</p></div>
+      <div><h4>Cost</h4><p>Același ca A — doar mută secțiunea Programare în coloana laterală.</p></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">04</span><h2>De răspuns</h2></div>
+    <p class="lead">
+      <b>1.</b> A (previzualizare lateral, programarea rămâne jos în stânga), B (previzualizare în cap) sau C (previzualizare + programare în dreapta)?<br>
+      <b>2.</b> Comutatorul de stare scrie acum <b>„Activ / Pe pauză"</b>, dar eticheta din listă e <b>„inactiv"</b>. Le unificăm la „Activ / Inactiv"?
+    </p>
+  </section>
+
+</div>

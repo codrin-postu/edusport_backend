@@ -1,0 +1,247 @@
+<title>Pasul 3 Acorduri</title>
+<style>
+:root{
+  --navy:#0e1a3c; --cream:#fbf8f1; --rust:#be3330; --mustard:#efb22b;
+  --pg:#f2f1ec; --ink:#1c1d22; --mut:#5f636e; --fai:#8a8e99;
+  --line:#e2e0da; --card:#fff; --accent:#1f4fd8;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --pg:#16171b; --ink:#e9e9ee; --mut:#a0a4b0; --fai:#787d8a;
+    --line:#2b2d34; --card:#1e2026; --accent:#7d9bff;
+  }
+}
+:root[data-theme="dark"]{
+  --pg:#16171b; --ink:#e9e9ee; --mut:#a0a4b0; --fai:#787d8a;
+  --line:#2b2d34; --card:#1e2026; --accent:#7d9bff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.6;
+  padding:40px 22px 80px}
+.wrap{max-width:1120px;margin:0 auto}
+h1{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:0 0 8px}
+.lede{color:var(--mut);font-size:14.5px;max-width:70ch;margin:0 0 30px}
+h2.sec{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--fai);
+  font-weight:800;margin:44px 0 6px;padding-top:16px;border-top:1px solid var(--line)}
+.secnote{color:var(--mut);font-size:13.5px;max-width:76ch;margin:0 0 18px}
+.note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0;padding:13px 15px;font-size:13.5px;color:var(--mut);margin:0 0 20px}
+.note.warn{border-left-color:var(--rust)}
+.note b{color:var(--ink)}
+.note code{background:var(--pg);padding:1px 5px;border-radius:4px;font-size:12.5px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:22px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.panel>header{padding:12px 15px;border-bottom:1px solid var(--line)}
+.panel>header .tag{font-size:10.5px;font-weight:800;letter-spacing:.05em;border-radius:5px;
+  padding:2px 7px;margin-right:8px;color:#fff}
+.tag.now{background:var(--fai)} .tag.old{background:var(--rust)} .tag.new{background:var(--accent)}
+.panel>header h3{font-size:14.5px;font-weight:700;margin:0;display:inline}
+.panel>header p{margin:4px 0 0;font-size:12.5px;color:var(--mut)}
+.stage{padding:22px 18px;background:var(--cream);display:flex;justify-content:center}
+.form{width:430px;max-width:100%}
+
+/* ---- verbatim from the app ---- */
+.h3{font-family:Georgia,serif;font-size:24px;font-weight:800;color:var(--navy);margin:0 0 10px}
+.notice{font-size:13px;color:rgba(14,26,60,.6);line-height:1.65;margin:0 0 22px}
+.lnk{color:var(--rust);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.acard{border:1.5px solid var(--navy);background:var(--cream);padding:20px;margin-bottom:16px;
+  display:flex;gap:16px;align-items:flex-start;transition:.15s}
+.acard.on{border-color:var(--rust);background:rgba(190,51,48,.04)}
+.ico{width:40px;height:40px;border:1.5px solid var(--navy);background:var(--navy);
+  color:var(--cream);display:grid;place-items:center;flex:none}
+.ico svg{width:20px;height:20px}
+.acard .bd{flex:1;min-width:0}
+.acard h4{font-size:13.5px;font-weight:700;color:var(--navy);margin:0 0 4px}
+.acard p{font-size:12px;color:rgba(14,26,60,.6);line-height:1.6;margin:0 0 14px}
+.acard a.read{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;
+  color:var(--rust);text-decoration:underline;text-underline-offset:3px}
+.acard a.read svg{width:12px;height:12px}
+.chk{display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer}
+.chk input{width:16px;height:16px;accent-color:var(--rust)}
+.chk span{font-size:12px;font-weight:700;color:var(--navy)}
+.linkcard{border:1.5px solid var(--navy);background:var(--cream);padding:20px;
+  display:flex;gap:12px;align-items:center;text-decoration:none;transition:.15s}
+.linkcard:hover{box-shadow:4px 4px 0 rgba(14,26,60,.16)}
+.linkcard h4{font-size:13.5px;font-weight:700;color:var(--navy);margin:0 0 2px}
+.linkcard p{font-size:12px;color:rgba(14,26,60,.6);margin:0}
+.linkcard .chev{color:rgba(14,26,60,.4);flex:none}
+
+/* plain (current) */
+.plain{display:flex;flex-direction:column;gap:20px}
+.plain .row{display:flex;align-items:center;gap:8px}
+.plain .row input{width:16px;height:16px;accent-color:var(--rust)}
+.plain .row span{font-size:12px;font-weight:700;color:var(--navy)}
+.plain .info{font-size:13px;color:rgba(14,26,60,.6);line-height:1.65}
+
+.map{width:100%;border-collapse:collapse;font-size:13.5px;margin:12px 0 0}
+.map th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--fai);border-bottom:1.5px solid var(--line);padding:7px 12px 7px 0;font-weight:700}
+.map td{padding:8px 12px 8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.map td:first-child{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;white-space:nowrap}
+.pill{display:inline-block;font-size:10px;font-weight:800;border-radius:20px;padding:2px 8px}
+.pill.has{background:#e7f3ec;color:#1f7a4d}
+.pill.add{background:#e9edfb;color:var(--accent)}
+.foot{margin-top:52px;padding-top:16px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--fai)}
+</style>
+
+<div class="wrap">
+<h1>Pasul 3: acordurile</h1>
+<p class="lede">Stânga este cum arată acum, după ce formularul a devenit condus din CMS.
+Dreapta este cum arăta înainte, recuperat din git. A doua variantă este cea pe care o vrei
+înapoi, iar mai jos e ce trebuie adăugat în CMS ca să o putem păstra fără să revenim la cod fix.</p>
+
+<div class="cols">
+
+  <div class="panel">
+    <header><span class="tag now">ACUM</span><h3>Randare generică</h3>
+    <p>Fiecare întrebare devine o linie simplă. Se pierd cardurile, iconurile și legăturile.</p></header>
+    <div class="stage"><div class="form">
+      <div class="plain">
+        <p class="info">Prin trimiterea formularului confirmați că datele furnizate sunt corecte.
+          Vă vom contacta pentru pașii următori.</p>
+        <label class="row"><input type="checkbox"><span>Sunteți interesat de activitatea clubului? *</span></label>
+        <label class="row"><input type="checkbox"><span>Sunt de acord cu regulamentul *</span></label>
+        <label class="row"><input type="checkbox"><span>Sunt de acord cu politica de confidențialitate *</span></label>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="panel">
+    <header><span class="tag old">ÎNAINTE</span><h3>Carduri de acord</h3>
+    <p>Recuperat exact din versiunea anterioară. Aceasta este ținta.</p></header>
+    <div class="stage"><div class="form">
+      <h3 class="h3">Confirmare &amp; acorduri</h3>
+      <p class="notice">Înainte de trimitere, vă rugăm să citiți și să acceptați regulamentul
+        și politica de confidențialitate.</p>
+
+      <div class="acard on">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+        <div class="bd">
+          <h4>Regulamentul Cursurilor</h4>
+          <p>Condițiile de participare, regulile de conduită pe gheață și informațiile
+            esențiale pentru o experiență sigură.</p>
+          <a class="read" href="#">Citește regulamentul
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/>
+              <path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>
+          <label class="chk"><input type="checkbox" checked>
+            <span>Am citit și sunt de acord cu regulamentul</span></label>
+        </div>
+      </div>
+
+      <div class="acard">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+          <path d="m9 12 2 2 4-4"/></svg></span>
+        <div class="bd">
+          <h4>Protecția Datelor Personale</h4>
+          <p>Politica de confidențialitate privind prelucrarea datelor cu caracter personal
+            conform GDPR.</p>
+          <a class="read" href="#">Citește politica de confidențialitate
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/>
+              <path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a>
+          <label class="chk"><input type="checkbox">
+            <span>Am citit și sunt de acord</span></label>
+        </div>
+      </div>
+
+      <a class="linkcard" href="#">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/>
+          <rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg></span>
+        <span style="flex:1;min-width:0">
+          <h4>Programul Cursurilor</h4>
+          <p>Consultă orarul și perioadele de desfășurare</p>
+        </span>
+        <span class="chev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 3h6v6"/><path d="M10 14 21 3"/>
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></span>
+      </a>
+    </div></div>
+  </div>
+
+</div>
+
+<h2 class="sec">Ce lipsește din CMS ca să putem păstra designul</h2>
+<p class="secnote">Cardul de acord are cinci bucăți de conținut. CMS-ul stochează azi doar
+două dintre ele. Restul erau scrise direct în cod, de aceea s-au pierdut la trecerea pe
+randare din configurație.</p>
+
+<table class="map">
+  <tr><th>Bucata din card</th><th>Exemplu</th><th>În CMS azi</th></tr>
+  <tr><td>label</td><td>Am citit și sunt de acord cu regulamentul</td><td><span class="pill has">există</span></td></tr>
+  <tr><td>help</td><td>Condițiile de participare, regulile de conduită pe gheață...</td><td><span class="pill has">există</span></td></tr>
+  <tr><td>title</td><td>Regulamentul Cursurilor</td><td><span class="pill add">de adăugat</span></td></tr>
+  <tr><td>linkUrl</td><td>/cursuri/regulament</td><td><span class="pill add">de adăugat</span></td></tr>
+  <tr><td>linkLabel</td><td>Citește regulamentul</td><td><span class="pill add">de adăugat</span></td></tr>
+  <tr><td>icon</td><td>carte / scut / calendar</td><td><span class="pill add">de adăugat</span></td></tr>
+</table>
+
+<div class="note"><b>De remarcat.</b> <code>linkUrl</code> și <code>linkLabel</code> există deja
+în CMS, dar numai pentru întrebările de tip <code>info</code>. Trebuie doar permise și pentru
+<code>checkbox</code>, deci nu este un câmp nou, ci o extindere a unuia existent.</div>
+
+<h2 class="sec">Cardul "Programul Cursurilor"</h2>
+<p class="secnote">Nu este o întrebare, nu are bifă. Este doar o legătură desenată ca un card.
+Două feluri în care poate exista în CMS.</p>
+
+<div class="cols">
+  <div class="panel">
+    <header><span class="tag new">A</span><h3>Tip nou de element: card cu legătură</h3>
+    <p>Un tip <code>linkcard</code> alături de <code>info</code>.</p></header>
+    <div class="stage"><div class="form">
+      <a class="linkcard" href="#">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/>
+          <rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg></span>
+        <span style="flex:1;min-width:0"><h4>Programul Cursurilor</h4>
+          <p>Consultă orarul și perioadele de desfășurare</p></span>
+        <span class="chev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+          stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg></span>
+      </a>
+    </div></div>
+    <div class="note" style="margin:0;border:none;border-top:1px solid var(--line);border-radius:0">
+      Poți adăuga oricâte carduri de acest fel, în orice pas, cu orice legătură.
+      Cel mai flexibil, dar înseamnă un tip nou peste tot: registru, editor, randare.</div>
+  </div>
+
+  <div class="panel">
+    <header><span class="tag new">B</span><h3>Reutilizăm <code>info</code></h3>
+    <p>Elementul <code>info</code> primește aceleași câmpuri de card.</p></header>
+    <div class="stage"><div class="form">
+      <a class="linkcard" href="#">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/>
+          <rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg></span>
+        <span style="flex:1;min-width:0"><h4>Programul Cursurilor</h4>
+          <p>Consultă orarul și perioadele de desfășurare</p></span>
+        <span class="chev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+          stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg></span>
+      </a>
+    </div></div>
+    <div class="note" style="margin:0;border:none;border-top:1px solid var(--line);border-radius:0">
+      Fără tip nou. <code>info</code> se desenează ca text simplu când nu are titlu și icon,
+      și ca acest card când are. Mai puțin de implementat, dar un singur tip face două lucruri.</div>
+  </div>
+</div>
+
+<h2 class="sec">Ce trebuie să decizi</h2>
+<div class="note">
+1. Confirmi că designul din dreapta sus este cel pe care îl vrei înapoi, exact așa.<br>
+2. Cardul de program: varianta <b>A</b> (tip nou <code>linkcard</code>) sau <b>B</b>
+(<code>info</code> extins).<br>
+3. Iconurile: le alegi tu din CMS dintr-o listă scurtă, sau le fixăm noi în cod după
+cheia întrebării?<br>
+4. Întrebarea "Doriți ca fiul/fiica dvs. să devină membru A.C.S. EduSport?" apare acum tot
+ca bifă în pasul 3. Rămâne bifă simplă, sau primește și ea card cu titlu și descriere?
+</div>
+
+<p class="foot">Machete pentru aprobare. Nimic nu este implementat încă. Randarea generică
+de acum rămâne pe loc până alegi.</p>
+</div>

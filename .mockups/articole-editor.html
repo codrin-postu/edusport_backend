@@ -1,0 +1,453 @@
+<style>
+/* ============================================================
+   PRESENTATION FRAME
+   Same shell as homepage-editor.html and admin-redesign.html.
+   Everything inside .eduf is the REAL admin stylesheet
+   (edusportUi.ts EDU_CSS), copied verbatim.
+   ============================================================ */
+:root{
+  --bg:#eef0f4; --surface:#ffffff; --ink:#1b1d26; --ink-soft:#4a4d5a;
+  --muted:#8a8d99; --line:#e2e4ea; --accent:#2138b8; --accent-soft:#eef1fb;
+  --danger:#be3330; --ok:#1f7a4d;
+  --shadow:0 6px 24px rgba(18,22,45,.08);
+  --sys:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sys);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 110px}
+.mast{padding:52px 0 26px;border-bottom:1px solid var(--line)}
+.kick{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 13px}
+.mast h1{font-size:clamp(26px,3.6vw,38px);line-height:1.1;margin:0 0 12px;font-weight:800;letter-spacing:-.02em;max-width:24ch}
+.mast p{margin:0;max-width:70ch;color:var(--ink-soft);font-size:15px}
+.sec{padding:44px 0;border-bottom:1px solid var(--line)}
+.sec-head{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.sec-no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:3px 9px}
+.sec h2{font-size:22px;font-weight:800;letter-spacing:-.015em;margin:0}
+.lead{color:var(--ink-soft);font-size:14.5px;margin:12px 0 0;max-width:80ch}
+.lead b{color:var(--ink)}
+.stage{margin-top:24px;display:flex;flex-direction:column;gap:10px}
+.stage-cap{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.frame{border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:#eef0f4}
+table.spec{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:18px}
+table.spec th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line)}
+table.spec td{padding:8px 10px;border-bottom:1px solid #f0f1f4;vertical-align:top}
+table.spec code{font-family:var(--mono);font-size:12px;background:#f4f5f8;padding:1px 5px;border-radius:4px}
+.note{margin-top:18px;padding:13px 15px;border-left:3px solid var(--accent);background:var(--accent-soft);font-size:13.5px;color:var(--ink-soft);border-radius:0 6px 6px 0}
+.note b{color:var(--ink)}
+
+/* ============================================================
+   REAL ADMIN CSS - src/admin/dashboard/edusportUi.ts
+   ============================================================ */
+.eduf{--chrome:#fff;--ink:#1b1d22;--muted:#727888;--line:#e0e2e8;--border:#dcdcdc;
+  --accent:#2138b8;--accent-soft:#eef1fb;--danger:#be3330;--field:#f7f8fa;--fieldborder:#d0d0d0;
+  --ok:#1f7a4d;--r:4px;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#eef0f4;min-height:100%;padding:20px;line-height:1.5}
+.eduf *{box-sizing:border-box}
+.eduf .num{font-variant-numeric:tabular-nums}
+.eduf a{color:var(--accent);text-decoration:none}
+.eduf .win{background:var(--chrome);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 16px rgba(20,26,54,.06);overflow:hidden}
+.eduf input,.eduf select,.eduf textarea{font-family:inherit;font-size:13px;background:var(--field);border:1px solid var(--fieldborder);border-radius:4px;padding:7px 9px;color:var(--ink)}
+.eduf textarea{resize:vertical;line-height:1.5}
+.eduf .lbl{font-size:11px;color:var(--muted);font-weight:600}
+.eduf .btn{font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:var(--r);border:1px solid var(--fieldborder);background:var(--chrome);color:var(--ink);cursor:pointer;white-space:nowrap}
+.eduf .btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.eduf .btn.sm{padding:6px 10px;font-size:12px}
+.eduf .btn.danger{color:var(--danger);border-color:#e2c4c4;background:#fff}
+.eduf .hd{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.eduf .hd h1{font-size:19px;font-weight:800;letter-spacing:-.01em;margin:0}
+.eduf .hd p{font-size:12.5px;color:var(--muted);margin:3px 0 0}
+.eduf .hd-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.eduf .tb{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.eduf .search{display:flex;align-items:center;gap:6px;background:var(--field);border:1px solid var(--fieldborder);border-radius:var(--r);padding:0 9px;flex:1;min-width:200px}
+.eduf .search input{border:none;background:none;width:100%;padding:7px 0}
+.eduf .tbl{border-collapse:collapse;width:100%;font-size:13px}
+.eduf .tbl th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+.eduf .tbl td{padding:10px 14px;border-bottom:1px solid #f0f1f4}
+.eduf .tbl tbody tr{cursor:pointer}
+.eduf .tbl tbody tr:hover td{background:#fafbff}
+.eduf .nm{font-weight:600}
+.eduf .thumb{width:34px;height:34px;border-radius:4px;background-size:cover;background-position:center}
+.eduf .thumb.ph{display:flex;align-items:center;justify-content:center;color:#9aa0ad;background:#eef1f8;font-size:13px;font-weight:700}
+.eduf .yes{color:var(--ok);font-weight:700}
+.eduf .no{color:var(--muted)}
+.eduf .foot{display:flex;align-items:center;gap:8px;padding:11px 18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.eduf .body{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.eduf .cols{display:grid;grid-template-columns:280px 1fr;align-items:start}
+.eduf .rail{border-right:1px solid var(--line);padding:16px 18px;background:#fcfcfd}
+.eduf .fld{margin-bottom:12px}
+.eduf .fld:last-child{margin-bottom:0}
+.eduf .fld>label{display:block;font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.eduf .fld input,.eduf .fld select,.eduf .fld textarea{width:100%}
+.eduf .row{display:flex;gap:10px}
+.eduf .row>.fld{flex:1;margin-bottom:0}
+.eduf .hint{font-size:11px;color:var(--muted);margin-top:3px}
+.eduf .sec2{border:1px solid var(--border);border-radius:6px;background:#fff}
+.eduf .sec2>.sh{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:10px 13px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.eduf .sec2>.sb{padding:13px}
+.eduf .addbtn{font-size:12px;color:var(--accent);border:1px solid #cdd6f6;background:var(--accent-soft);border-radius:var(--r);padding:6px 10px;cursor:pointer;font-weight:600}
+.eduf .pa{display:flex;align-items:center;gap:10px;padding:13px 18px;border-top:1px solid var(--line);background:#fcfcfd;position:sticky;bottom:0}
+.eduf .pa .grow{flex:1}
+.eduf .pubseg{display:inline-flex;border:1px solid var(--fieldborder);border-radius:var(--r);overflow:hidden}
+.eduf .pubseg button{font-family:inherit;font-size:12.5px;padding:7px 18px;border:none;background:#fff;color:var(--muted);cursor:pointer;border-right:1px solid var(--fieldborder)}
+.eduf .pubseg button:last-child{border-right:none}
+.eduf .pubseg button.on{background:var(--accent);color:#fff;font-weight:700}
+.eduf .photo{display:flex;flex-direction:column;gap:8px}
+.eduf .photo .pv{width:100%;aspect-ratio:16/9;background:#eef1f8;background-size:cover;background-position:center;border:1px solid var(--fieldborder);display:flex;align-items:center;justify-content:center;color:#9aa0ad;font-size:12px}
+.eduf .photo .acts{display:flex;gap:8px}
+.eduf .gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.eduf .gi{position:relative;aspect-ratio:1/1;background:#eef1f8;border:1px solid var(--fieldborder)}
+.eduf .gi .x{position:absolute;top:2px;right:2px;width:20px;height:20px;border:none;background:rgba(255,255,255,.9);color:var(--danger);cursor:pointer;font-size:12px;line-height:1}
+.eduf .gal .add{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;border:1px solid var(--fieldborder);background:#fff;color:var(--accent);font-size:22px;cursor:pointer}
+.eduf .notice{display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--ink);background:var(--accent-soft);border:1px solid #cdd6f6;border-radius:var(--r);padding:10px 12px}
+.eduf .notice .ntx{flex:1;line-height:1.45}
+.eduf .notice .ntx b{display:block;font-weight:700;margin-bottom:1px}
+.eduf .notice .ntx span{color:var(--muted)}
+.eduf .notice .ico{width:18px;height:18px;flex-shrink:0;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.eduf .chip{display:inline-block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 7px;border-radius:var(--r);border:1px solid}
+.eduf .chip.ev{color:#2138b8;background:#eef1fb;border-color:#cdd6f6}
+.eduf .chip.an{color:#7a1fa2;background:#f6eefb;border-color:#e0c9ec}
+.eduf .chip.ge{color:#727888;background:#f2f3f6;border-color:#dfe1e7}
+.eduf .chip.co{color:#1f7a4d;background:#e7f3ec;border-color:#bfe0cc}
+.eduf .chip.ti{color:#a35c00;background:#fdf3e4;border-color:#f0dcbb}
+</style>
+
+<div class="wrap">
+
+  <div class="mast">
+    <p class="kick">EduSport admin &middot; companion</p>
+    <h1>Editor articole</h1>
+    <p>&Icirc;nlocuie&#537;te formularul generat de Strapi pentru Articole. Acelea&#537;i componente ca la Sportivi &#537;i Competi&#539;ii. Problema principal&#259;: articolul are 12 c&acirc;mpuri, dar patru dintre ele au sens doar pentru evenimente, iar formularul actual le arat&#259; mereu pe toate.</p>
+  </div>
+
+  <!-- 01 -->
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">01</span><h2>Lista</h2></div>
+    <p class="lead">Ca la Sportivi: r&acirc;nduri pe care dai clic, miniatur&#259; c&acirc;nd exist&#259; imagine, separatoare doar orizontale. Categoria apare ca etichet&#259; colorat&#259; ca s&#259; se citeasc&#259; dintr-o privire, iar coloana <b>Data evenimentului</b> e goal&#259; pentru articolele care nu sunt evenimente.</p>
+
+    <div class="stage">
+      <div class="stage-cap">Lista articolelor</div>
+      <div class="frame">
+        <div class="eduf">
+          <div class="win">
+            <div class="hd">
+              <div>
+                <h1>Articole</h1>
+                <p>Nout&#259;&#539;i, anun&#539;uri &#537;i evenimente</p>
+              </div>
+              <div class="hd-right">
+                <button class="btn pri">+ Adaug&#259; articol</button>
+              </div>
+            </div>
+
+            <div class="tb">
+              <span class="search"><input placeholder="Caut&#259; dup&#259; titlu..."></span>
+              <select style="width:150px"><option>Toate categoriile</option><option>Evenimente</option><option>Anun&#539;uri</option></select>
+              <select style="width:130px"><option>Toate</option><option>Publicate</option><option>Ciorne</option></select>
+            </div>
+
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th style="width:48px"></th>
+                  <th>Titlu</th>
+                  <th>Categorie</th>
+                  <th>Data</th>
+                  <th>Data evenimentului</th>
+                  <th>Publicat</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><div class="thumb ph">S</div></td>
+                  <td class="nm">Spectacol de Cr&#259;ciun 2025</td>
+                  <td><span class="chip ev">Evenimente</span></td>
+                  <td class="num">14 dec 2025</td>
+                  <td class="num">21 dec 2025, 11:00</td>
+                  <td><span class="yes">Da</span></td>
+                </tr>
+                <tr>
+                  <td><div class="thumb ph">&Icirc;</div></td>
+                  <td class="nm">&Icirc;nscrieri deschise pentru sezonul de prim&#259;var&#259;</td>
+                  <td><span class="chip an">Anun&#539;uri</span></td>
+                  <td class="num">12 mar 2025</td>
+                  <td class="no">fara</td>
+                  <td><span class="yes">Da</span></td>
+                </tr>
+                <tr>
+                  <td><div class="thumb ph">C</div></td>
+                  <td class="nm">Cupa Bra&#537;ov, trei medalii pentru club</td>
+                  <td><span class="chip co">Competi&#539;ii</span></td>
+                  <td class="num">18 mar 2025</td>
+                  <td class="num">16 mar 2025, 09:00</td>
+                  <td><span class="yes">Da</span></td>
+                </tr>
+                <tr>
+                  <td><div class="thumb ph">C</div></td>
+                  <td class="nm">Cum alegi primii patini</td>
+                  <td><span class="chip ti">Tips</span></td>
+                  <td class="num">30 ian 2025</td>
+                  <td class="no">fara</td>
+                  <td><span class="no">Nu</span></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="foot">4 articole</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 -->
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">02</span><h2>Editare, articol normal</h2></div>
+    <p class="lead">Coloana &icirc;ngust&#259; are propriet&#259;&#539;ile articolului: imagine, slug, dat&#259;, categorie, vizibilitate. Aici coloana e justificat&#259;, spre deosebire de pagina principal&#259;, pentru c&#259; articolul chiar are propriet&#259;&#539;i de &icirc;nregistrare. Con&#539;inutul st&#259; &icirc;n dreapta.</p>
+
+    <div class="stage">
+      <div class="stage-cap">Categoria "Anun&#539;uri", f&#259;r&#259; c&acirc;mpuri de eveniment</div>
+      <div class="frame">
+        <div class="eduf">
+          <div class="win">
+            <div class="hd">
+              <div>
+                <h1>Editeaz&#259; articol</h1>
+                <p>&Icirc;nscrieri deschise pentru sezonul de prim&#259;var&#259;</p>
+              </div>
+              <div class="hd-right">
+                <button class="btn">&Icirc;napoi</button>
+                <button class="btn pri">Salveaz&#259;</button>
+              </div>
+            </div>
+
+            <div class="cols">
+              <div class="rail">
+                <div class="fld">
+                  <label>Imagine principal&#259;</label>
+                  <div class="photo">
+                    <div class="pv">nicio imagine</div>
+                    <div class="acts"><button class="btn sm">Alege</button></div>
+                  </div>
+                </div>
+                <div class="fld">
+                  <label>Categorie</label>
+                  <select>
+                    <option>Anun&#539;uri</option>
+                    <option>Evenimente</option>
+                    <option>Competi&#539;ii</option>
+                    <option>General</option>
+                    <option>Tips</option>
+                  </select>
+                </div>
+                <div class="fld">
+                  <label>Data articolului</label>
+                  <input value="2025-03-12">
+                </div>
+                <div class="fld">
+                  <label>Slug</label>
+                  <input value="inscrieri-sezon-primavara">
+                  <div class="hint">Se completeaz&#259; din titlu. Schimb&#259;-l doar dac&#259; e nevoie.</div>
+                </div>
+                <div class="fld">
+                  <label>Vizibilitate pe site</label>
+                  <div class="pubseg">
+                    <button class="on">Publicat</button>
+                    <button>Ciorn&#259;</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="body">
+                <div class="sec2">
+                  <div class="sh">Text</div>
+                  <div class="sb">
+                    <div class="fld">
+                      <label>Titlu</label>
+                      <input value="&Icirc;nscrieri deschise pentru sezonul de prim&#259;var&#259;">
+                    </div>
+                    <div class="fld">
+                      <label>Descriere scurt&#259;</label>
+                      <textarea rows="2">Locuri limitate la grupele de &icirc;ncep&#259;tori &#537;i avansa&#539;i.</textarea>
+                      <div class="hint">Apare &icirc;n listele de articole &#537;i &icirc;n previzualiz&#259;rile din re&#539;elele sociale.</div>
+                    </div>
+                    <div class="fld">
+                      <label>Con&#539;inut</label>
+                      <textarea rows="7">Paragrafe, subtitluri, liste...</textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sec2">
+                  <div class="sh">Galerie <span class="lbl">3 imagini</span></div>
+                  <div class="sb">
+                    <div class="gal">
+                      <div class="gi"><button class="x">&#10005;</button></div>
+                      <div class="gi"><button class="x">&#10005;</button></div>
+                      <div class="gi"><button class="x">&#10005;</button></div>
+                      <button class="add">+</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sec2">
+                  <div class="sh">Video</div>
+                  <div class="sb">
+                    <div class="fld">
+                      <label>Link YouTube sau fi&#537;ier</label>
+                      <input placeholder="https://www.youtube.com/watch?v=...">
+                      <div class="hint">Se folose&#537;te editorul existent de video. L&#259;sat gol, nu se afi&#537;eaz&#259; nimic.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="pa">
+              <button class="btn">&Icirc;napoi</button>
+              <div class="grow"></div>
+              <button class="btn danger">&#536;terge</button>
+              <button class="btn pri">Salveaz&#259;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 -->
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">03</span><h2>Editare, eveniment</h2></div>
+    <p class="lead">Singura diferen&#539;&#259; fa&#539;&#259; de mai sus: c&acirc;nd categoria e <b>Evenimente</b> sau <b>Competi&#539;ii</b>, apare o sec&#539;iune &icirc;n plus cu data, locul &#537;i informa&#539;iile de intrare. Pentru celelalte categorii nu se afi&#537;eaz&#259; deloc, ca s&#259; nu par&#259; c&acirc;mpuri uitate necompletate.</p>
+
+    <div class="stage">
+      <div class="stage-cap">Categoria "Evenimente", cu sec&#539;iunea de eveniment</div>
+      <div class="frame">
+        <div class="eduf">
+          <div class="win">
+            <div class="hd">
+              <div>
+                <h1>Editeaz&#259; articol</h1>
+                <p>Spectacol de Cr&#259;ciun 2025</p>
+              </div>
+              <div class="hd-right">
+                <button class="btn">&Icirc;napoi</button>
+                <button class="btn pri">Salveaz&#259;</button>
+              </div>
+            </div>
+
+            <div class="cols">
+              <div class="rail">
+                <div class="fld">
+                  <label>Imagine principal&#259;</label>
+                  <div class="photo">
+                    <div class="pv">nicio imagine</div>
+                    <div class="acts"><button class="btn sm">Alege</button></div>
+                  </div>
+                </div>
+                <div class="fld">
+                  <label>Categorie</label>
+                  <select><option>Evenimente</option></select>
+                </div>
+                <div class="fld">
+                  <label>Data articolului</label>
+                  <input value="2025-12-14">
+                </div>
+                <div class="fld">
+                  <label>Slug</label>
+                  <input value="spectacol-de-craciun-2025">
+                </div>
+                <div class="fld">
+                  <label>Vizibilitate pe site</label>
+                  <div class="pubseg"><button class="on">Publicat</button><button>Ciorn&#259;</button></div>
+                </div>
+              </div>
+
+              <div class="body">
+                <div class="sec2">
+                  <div class="sh">Eveniment</div>
+                  <div class="sb">
+                    <div class="notice" style="margin-bottom:13px">
+                      <span class="ico">i</span>
+                      <span class="ntx">
+                        <b>Prima pagin&#259; folose&#537;te aceste date</b>
+                        <span>Primul eveniment care nu a trecut apare automat &icirc;n hero &#537;i la Evenimente &#537;i nout&#259;&#539;i.</span>
+                      </span>
+                    </div>
+                    <div class="row">
+                      <div class="fld">
+                        <label>Data &#537;i ora</label>
+                        <input value="2025-12-21T11:00">
+                      </div>
+                      <div class="fld">
+                        <label>Loc</label>
+                        <input value="Patinoarul Cotroceni On Ice">
+                      </div>
+                    </div>
+                    <div class="fld" style="margin-top:12px">
+                      <label>Informa&#539;ii intrare</label>
+                      <input value="Intrare liber&#259; pentru familiile cursan&#539;ilor">
+                    </div>
+                    <div class="hint">Data &#537;i ora decid ordinea evenimentelor pe site. F&#259;r&#259; ea, articolul nu apare ca eveniment viitor.</div>
+                  </div>
+                </div>
+
+                <div class="sec2">
+                  <div class="sh">Text</div>
+                  <div class="sb">
+                    <div class="fld"><label>Titlu</label><input value="Spectacol de Cr&#259;ciun 2025"></div>
+                    <div class="fld"><label>Descriere scurt&#259;</label><textarea rows="2">Cursan&#539;ii din toate grupele urc&#259; pe ghea&#539;&#259; pentru demonstra&#539;ia anual&#259;.</textarea></div>
+                    <div class="fld"><label>Con&#539;inut</label><textarea rows="6">Paragrafe, subtitluri, liste...</textarea></div>
+                  </div>
+                </div>
+
+                <div class="sec2">
+                  <div class="sh">Galerie <span class="lbl">0 imagini</span></div>
+                  <div class="sb">
+                    <div class="gal"><button class="add">+</button></div>
+                  </div>
+                </div>
+
+                <div class="sec2">
+                  <div class="sh">Video</div>
+                  <div class="sb">
+                    <div class="fld"><label>Link YouTube sau fi&#537;ier</label><input placeholder="https://www.youtube.com/watch?v=..."></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="pa">
+              <button class="btn">&Icirc;napoi</button>
+              <div class="grow"></div>
+              <button class="btn danger">&#536;terge</button>
+              <button class="btn pri">Salveaz&#259;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 -->
+  <div class="sec" style="border-bottom:none">
+    <div class="sec-head"><span class="sec-no">04</span><h2>Deciziile</h2></div>
+
+    <table class="spec">
+      <thead><tr><th style="width:230px">Ce</th><th>De ce</th></tr></thead>
+      <tbody>
+        <tr><td>C&acirc;mpurile de eveniment apar doar pentru Evenimente &#537;i Competi&#539;ii</td><td>Sunt 4 din 12 c&acirc;mpuri. Formularul actual le arat&#259; mereu, a&#537;a c&#259; par c&acirc;mpuri necompletate la fiecare anun&#539; obi&#537;nuit. Cele dou&#259; categorii sunt exact cele pe care site-ul le trateaz&#259; ca evenimente.</td></tr>
+        <tr><td>Categoria st&#259; &icirc;n coloana &icirc;ngust&#259;, nu &icirc;n con&#539;inut</td><td>Schimb&#259; ce se afi&#537;eaz&#259; mai jos, deci trebuie s&#259; fie l&acirc;ng&#259; celelalte propriet&#259;&#539;i &#537;i mereu vizibil&#259;.</td></tr>
+        <tr><td>Etichete colorate pe categorie &icirc;n list&#259;</td><td>Lista amestec&#259; cinci tipuri de con&#539;inut. Un cuv&acirc;nt simplu nu se distinge la scanare rapid&#259;.</td></tr>
+        <tr><td>Coloan&#259; separat&#259; pentru data evenimentului</td><td><code>date</code> e data articolului, <code>eventDate</code> e c&acirc;nd are loc. Sunt diferite &#537;i site-ul le folose&#537;te diferit, deci nu pot fi &icirc;n aceea&#537;i coloan&#259;.</td></tr>
+        <tr><td>Publicat / Ciorn&#259; ca buton segmentat</td><td>Articolul are draft &#537;i publicat, spre deosebire de pagina principal&#259;. Acela&#537;i control ca Public / Ascuns de la Sportivi.</td></tr>
+        <tr><td>&#536;terge st&#259; &icirc;n bara de jos, l&acirc;ng&#259; Salveaz&#259;</td><td>Articolele se &#537;terg des, spre deosebire de o pagin&#259; unic&#259;. La Sportivi nu exist&#259; buton de &#537;tergere &icirc;n editor, deci e o ad&#259;ugare, nu o copiere.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <b>De confirmat:</b> editorul de con&#539;inut. C&acirc;mpul <code>body</code> e de tip blocks &#537;i Strapi are deja un editor bogat pentru el. &Icirc;ntr-o pagin&#259; complet custom nu &icirc;l putem refolosi direct, iar &icirc;n mockup e desenat ca o zon&#259; simpl&#259; de text. Varianta cea mai sigur&#259; e s&#259; p&#259;str&#259;m editorul Strapi pentru acest c&acirc;mp; altfel pierdem formatarea. Spune-mi dac&#259; preferi altfel.
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,374 @@
+<title>Anunțuri — Direcții</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;600;800;900&display=swap">
+<style>
+/* ── Companion chrome (same language as the other .mockups files) ───────── */
+:root{
+  --bg:#eef0f4;--surface:#fff;--ink:#1b1d26;--ink-soft:#4a4d5a;--muted:#8a8d99;
+  --line:#e2e4ea;--accent:#2138b8;--accent-soft:#eef1fb;--ok:#1f7a4d;--danger:#be3330;--amber:#e08a00;
+  --shadow:0 8px 30px rgba(18,22,45,.10);
+  --sys:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}}
+:root[data-theme="dark"]{--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sys);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 120px}
+.mast{padding:52px 0 26px;border-bottom:1px solid var(--line)}
+.kick{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 13px}
+.mast h1{font-size:clamp(26px,3.6vw,38px);line-height:1.1;margin:0 0 12px;font-weight:800;letter-spacing:-.02em;max-width:22ch;text-wrap:balance}
+.mast p{margin:0 0 10px;max-width:70ch;color:var(--ink-soft);font-size:15px}
+.mast p b{color:var(--ink)}
+.sec{padding:46px 0;border-bottom:1px solid var(--line)}
+.sec-head{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.sec-no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:3px 9px;flex-shrink:0}
+.sec h2{font-size:22px;font-weight:800;letter-spacing:-.015em;margin:0}
+.sec .tagline{color:var(--muted);font-size:14px;font-weight:600}
+.sec .lead{color:var(--ink-soft);font-size:14.5px;margin:12px 0 0;max-width:78ch}
+.sec .lead b{color:var(--ink)}
+.opt{margin-top:30px}
+.opt-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:4px}
+.opt-letter{font-family:var(--mono);font-size:12px;font-weight:700;color:#fff;background:var(--accent);border-radius:6px;padding:3px 9px}
+.opt-head h3{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em}
+.opt-sub{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+.pair{display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start}
+@media (max-width:900px){.pair{grid-template-columns:1fr}}
+.frame{border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface)}
+.frame-cap{padding:9px 15px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
+.tradeoff{display:flex;flex-wrap:wrap;gap:18px;margin-top:16px}
+.tradeoff div{flex:1;min-width:230px}
+.tradeoff h4{margin:0 0 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.tradeoff p{margin:0;font-size:13.5px;color:var(--ink-soft)}
+.tradeoff .yes{color:var(--ok)}.tradeoff .no{color:var(--danger)}
+.decided{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:22px}
+.decided .c{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--surface)}
+.decided h4{margin:0 0 8px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);font-weight:800}
+.decided p{margin:0;font-size:13.5px;color:var(--ink-soft)}
+.decided code{font-family:var(--mono);font-size:12.5px;background:var(--accent-soft);color:var(--accent);padding:1px 5px;border-radius:4px}
+
+/* ── Site preview: REAL retro tokens copied from globals.css ─────────────
+   These previews are deliberately fixed-palette: the public site is a single
+   light theme, so the "screenshot" must not follow the companion's theme. */
+.site{
+  --navy:#0e1a3c;--retro-cream:#fbf8f1;--mustard:#efb22b;--rust:#be3330;
+  --orange:#ea7233;--pastel:#8ca3db;--ink2:#111827;
+  --disp:"League Spartan",system-ui,sans-serif;
+  position:relative;background:var(--retro-cream);color:var(--ink2);
+  font-family:var(--sys);height:390px;overflow:hidden;
+}
+.site.mob{height:430px}
+.site-hdr{height:54px;background:var(--navy);display:flex;align-items:center;justify-content:space-between;padding:0 22px;color:#eef2ff}
+.site-hdr .wm{font-family:var(--disp);font-weight:800;font-size:19px;letter-spacing:.02em}
+.site-hdr nav{display:flex;gap:18px;font-size:11.5px;font-weight:600;color:#aeb9d8}
+.site-body{padding:34px 26px}
+.site-eyebrow{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--rust);margin:0 0 10px}
+.site-h1{font-family:var(--disp);font-weight:800;font-size:40px;line-height:1.03;letter-spacing:-.5px;color:var(--navy);margin:0 0 14px;max-width:15ch}
+.site-p{margin:0;max-width:46ch;font-size:13.5px;color:#3b4257;line-height:1.6}
+.site-cards{display:flex;gap:12px;margin-top:22px}
+.site-cards i{display:block;height:74px;flex:1;background:#fff;border:1.5px solid var(--navy);box-shadow:5px 5px 0 rgba(14,26,60,.16)}
+.site.mob .site-body{padding:22px 18px}
+.site.mob .site-h1{font-size:27px}
+.site.mob .site-cards{display:none}
+
+/* A — top bar */
+.a-bar{display:flex;align-items:center;gap:14px;padding:11px 20px;background:var(--navy);color:#f4f1e8;font-size:13px}
+.a-bar .tag{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--navy);background:var(--mustard);padding:3px 8px}
+.a-bar .txt{flex:1;min-width:0}
+.a-bar .txt b{color:#fff}
+.a-bar .cta{font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--navy);background:var(--mustard);padding:7px 14px;white-space:nowrap}
+.a-bar .x{opacity:.6;font-size:15px;line-height:1}
+.site.mob .a-bar{flex-wrap:wrap;gap:9px;padding:10px 14px}
+.site.mob .a-bar .cta{width:100%;text-align:center}
+
+/* B — corner card */
+.b-card{position:absolute;right:22px;bottom:22px;width:310px;background:var(--retro-cream);border:1.5px solid var(--navy);box-shadow:8px 8px 0 rgba(14,26,60,.16);padding:16px 17px 15px}
+.b-card .top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.b-card .eyebrow{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--rust);margin:0}
+.b-card .x{font-size:15px;line-height:1;color:#6b7280}
+.b-card h4{font-family:var(--disp);font-weight:800;font-size:19px;line-height:1.1;color:var(--navy);margin:7px 0 6px}
+.b-card p{margin:0;font-size:12.5px;line-height:1.55;color:#3b4257}
+.b-card .cta{display:inline-block;margin-top:13px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);background:var(--mustard);border:1.5px solid var(--navy);box-shadow:4px 4px 0 var(--rust);padding:8px 15px}
+.site.mob .b-card{left:14px;right:14px;bottom:14px;width:auto}
+
+/* C — centre modal */
+.c-scrim{position:absolute;inset:0;background:rgba(14,26,60,.55)}
+.c-modal{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:390px;background:var(--retro-cream);border:1.5px solid var(--navy);box-shadow:10px 10px 0 rgba(14,26,60,.28)}
+.c-modal .in{padding:24px 24px 20px;text-align:left}
+.c-modal .eyebrow{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--rust);margin:0 0 9px}
+.c-modal h4{font-family:var(--disp);font-weight:800;font-size:27px;line-height:1.05;color:var(--navy);margin:0 0 10px}
+.c-modal p{margin:0;font-size:13px;line-height:1.6;color:#3b4257}
+.c-modal .row{display:flex;align-items:center;gap:14px;margin-top:18px}
+.c-modal .cta{font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);background:var(--mustard);border:1.5px solid var(--navy);box-shadow:4px 4px 0 var(--rust);padding:10px 18px}
+.c-modal .later{font-size:12px;font-weight:600;color:#6b7280;text-decoration:underline;text-underline-offset:3px}
+.site.mob .c-modal{width:calc(100% - 28px)}
+.site.mob .c-modal h4{font-size:22px}
+
+/* D — current popup, reproduced from AnnouncementPopup.tsx */
+.d-pop{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);width:min(460px,calc(100% - 32px));background:#fff;border:1px solid #f3f4f6;border-left:4px solid #f59e0b;border-radius:12px;box-shadow:0 25px 50px -12px rgba(0,0,0,.25);padding:14px 16px 12px}
+.d-pop .row{display:flex;align-items:flex-start;gap:12px}
+.d-pop .ic{width:16px;height:16px;border-radius:50%;border:2px solid #f59e0b;flex-shrink:0;margin-top:2px}
+.d-pop .msg{flex:1;font-size:13.5px;color:#1f2937;line-height:1.45}
+.d-pop .x{width:22px;height:22px;border-radius:6px;color:#9ca3af;font-size:13px;text-align:center;line-height:22px;flex-shrink:0}
+.d-pop .cta{display:inline-block;margin:11px 0 0 28px;background:#f59e0b;color:#fff;font-size:12px;font-weight:600;letter-spacing:.02em;border-radius:8px;padding:8px 15px}
+.site.mob .d-pop .cta{display:block;margin-left:0;text-align:center}
+
+/* ── Admin page preview (admin chrome: system-ui, #2138b8) ──────────────── */
+.adm{--a-line:#dcdcdc;--a-accent:#2138b8;background:#f6f7f9;color:#1b1d26;font-family:var(--sys);padding:18px 20px 24px}
+.adm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px}
+.adm-head h3{margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em}
+.adm-head p{margin:3px 0 0;font-size:12.5px;color:#6a6e7a}
+.adm-btn{font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:4px;border:1px solid #d0d0d0;background:#fff;white-space:nowrap}
+.adm-btn.pri{background:var(--a-accent);border-color:var(--a-accent);color:#fff}
+.grp{margin-bottom:18px}
+.grp-h{display:flex;align-items:center;gap:9px;margin:0 0 8px}
+.grp-h .t{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#6a6e7a}
+.grp-h .n{font-size:11px;font-weight:700;color:#8a8d99;font-variant-numeric:tabular-nums}
+.grp-h .hint{margin-left:auto;font-size:11px;color:#a3a6b2}
+.rows{background:#fff;border:1px solid var(--a-line);border-radius:5px;overflow:hidden}
+.row{display:flex;align-items:center;gap:13px;padding:11px 14px;border-bottom:1px solid #f0f1f4;font-size:13px}
+.row:last-child{border-bottom:none}
+.row .grab{color:#c3c6d0;font-size:13px;letter-spacing:-2px;cursor:grab}
+.row .pri{width:19px;height:19px;border-radius:4px;background:var(--a-accent);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-variant-numeric:tabular-nums}
+.row.live{background:#f7f9ff}
+.row .nm{font-weight:650;flex:1;min-width:0}
+.row .nm .sub{display:block;font-weight:400;font-size:11.5px;color:#8a8d99;margin-top:2px}
+.row .win{font-size:11.5px;color:#6a6e7a;white-space:nowrap;font-variant-numeric:tabular-nums}
+.row .stat{font-size:11.5px;color:#4a4d5a;white-space:nowrap;font-variant-numeric:tabular-nums;min-width:118px;text-align:right}
+.row .stat b{font-weight:700}
+.row .stat .z{color:#b6b9c4}
+.chip{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:3px;white-space:nowrap}
+.chip.on{color:#1f7a4d;background:#e7f3ec}
+.chip.pause{color:#8a5a00;background:#fbf1df}
+.chip.soon{color:#2138b8;background:#eef1fb}
+.chip.done{color:#5a5e6b;background:#eef0f3}
+.chip.fmt{color:#7a1fa2;background:#f5e9f9}
+.row.dim .nm,.row.dim .win{opacity:.55}
+.row.past{color:#6a6e7a}
+.legend{margin-top:9px;font-size:11.5px;color:#8a8d99}
+.legend b{color:#4a4d5a}
+</style>
+
+<div class="wrap">
+
+  <div class="mast">
+    <p class="kick">Companion · Anunțuri</p>
+    <h1>Cum arată anunțurile</h1>
+    <p>Două formate pentru site, alese per anunț, plus pagina de administrare. <b>Confirmă machetele înainte să construim.</b></p>
+    <p>Machetele folosesc CSS-ul real din <code>globals.css</code> — aceleași culori, borduri și umbre ca restul site-ului. Popup-ul alb de azi dispare: nu folosea limbajul vizual retro.</p>
+  </div>
+
+  <!-- DECIDED -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">00</span><h2>Ce e deja stabilit</h2><span class="tagline">nu se schimbă prin această alegere</span></div>
+    <div class="decided">
+      <div class="c"><h4>Un singur anunț</h4><p>Pot fi programate oricâte, dar vizitatorul vede doar pe cel activ cu prioritatea cea mai mare.</p></div>
+      <div class="c"><h4>Trei liste</h4><p>Active acum (reordonabile prin drag), Programate, Încheiate. Cele pe pauză rămân în lista lor, marcate.</p></div>
+      <div class="c"><h4>Măsurare</h4><p>Trei evenimente Umami cu proprietatea <code>id</code>: <code>view</code>, <code>click</code>, <code>dismiss</code>. Fără setări noi în Umami.</p></div>
+    </div>
+  </section>
+
+  <!-- SITE FORMATS -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">01</span><h2>Cum apare pe site</h2><span class="tagline">card sau modal, ales per anunț</span></div>
+    <p class="lead">Fiecare anunț are un câmp <b>Format</b>: card pentru mesaje obișnuite, modal pentru cele rare și importante. Un anunț de rutină („programul de sâmbătă se mută") nu merită aceeași greutate ca o campanie de înscrieri.</p>
+
+    <!-- B -->
+    <div class="opt">
+      <div class="opt-head"><span class="opt-letter">1</span><h3>Card în colț</h3></div>
+      <p class="opt-sub">Cardul retro al site-ului, jos-dreapta. Aceeași bordură și umbră ca celelalte carduri.</p>
+      <div class="pair">
+        <div class="frame">
+          <div class="frame-cap"><span>Desktop</span><span>1440 px</span></div>
+          <div class="site">
+            <div class="site-hdr"><span class="wm">EDUSPORT</span><nav><span>Cursuri</span><span>Noutăți</span><span>Contact</span></nav></div>
+            <div class="site-body">
+              <p class="site-eyebrow">Clubul Sportiv</p>
+              <h2 class="site-h1">Patinaj pentru copii în Reșița</h2>
+              <p class="site-p">Cursuri de patinaj artistic pentru toate vârstele, de la primii pași pe gheață până la competiții naționale.</p>
+              <div class="site-cards"><i></i><i></i><i></i></div>
+            </div>
+            <div class="b-card">
+              <div class="top"><p class="eyebrow">Înscrieri deschise</p><span class="x">✕</span></div>
+              <h4>Sezonul 2026–2027</h4>
+              <p>Locuri limitate la grupele de începători. Înscrierile se închid pe 20 septembrie.</p>
+              <span class="cta">Vezi detalii</span>
+            </div>
+          </div>
+        </div>
+        <div class="frame">
+          <div class="frame-cap"><span>Telefon</span><span>390 px</span></div>
+          <div class="site mob">
+            <div class="site-hdr"><span class="wm">EDUSPORT</span><nav><span>☰</span></nav></div>
+            <div class="site-body">
+              <p class="site-eyebrow">Clubul Sportiv</p>
+              <h2 class="site-h1">Patinaj pentru copii</h2>
+              <p class="site-p">Cursuri de patinaj artistic pentru toate vârstele.</p>
+            </div>
+            <div class="b-card">
+              <div class="top"><p class="eyebrow">Înscrieri deschise</p><span class="x">✕</span></div>
+              <h4>Sezonul 2026–2027</h4>
+              <p>Locuri limitate. Înscrierile se închid pe 20 septembrie.</p>
+              <span class="cta">Vezi detalii</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tradeoff">
+        <div><h4>Pentru</h4><p class="yes">Loc pentru titlu, text și buton. Arată ca restul site-ului, nu ca o notificare de browser.</p></div>
+        <div><h4>Contra</h4><p class="no">Pe telefon acoperă partea de jos a paginii.</p></div>
+        <div><h4>Cost</h4><p>Mic. Înlocuiește direct popup-ul actual, aceeași poziționare fixă.</p></div>
+      </div>
+    </div>
+
+    <!-- C -->
+    <div class="opt">
+      <div class="opt-head"><span class="opt-letter">2</span><h3>Modal în centru</h3></div>
+      <p class="opt-sub">Blochează pagina până la o acțiune. Pentru anunțuri rare și importante.</p>
+      <div class="pair">
+        <div class="frame">
+          <div class="frame-cap"><span>Desktop</span><span>1440 px</span></div>
+          <div class="site">
+            <div class="site-hdr"><span class="wm">EDUSPORT</span><nav><span>Cursuri</span><span>Noutăți</span><span>Contact</span></nav></div>
+            <div class="site-body">
+              <p class="site-eyebrow">Clubul Sportiv</p>
+              <h2 class="site-h1">Patinaj pentru copii în Reșița</h2>
+              <p class="site-p">Cursuri de patinaj artistic pentru toate vârstele.</p>
+              <div class="site-cards"><i></i><i></i><i></i></div>
+            </div>
+            <div class="c-scrim"></div>
+            <div class="c-modal">
+              <div class="in">
+                <p class="eyebrow">Înscrieri deschise</p>
+                <h4>Sezonul 2026–2027</h4>
+                <p>Locuri limitate la grupele de începători. Înscrierile se închid pe 20 septembrie.</p>
+                <div class="row"><span class="cta">Înscrie-te acum</span><span class="later">Mai târziu</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="frame">
+          <div class="frame-cap"><span>Telefon</span><span>390 px</span></div>
+          <div class="site mob">
+            <div class="site-hdr"><span class="wm">EDUSPORT</span><nav><span>☰</span></nav></div>
+            <div class="site-body">
+              <p class="site-eyebrow">Clubul Sportiv</p>
+              <h2 class="site-h1">Patinaj pentru copii</h2>
+              <p class="site-p">Cursuri pentru toate vârstele.</p>
+            </div>
+            <div class="c-scrim"></div>
+            <div class="c-modal">
+              <div class="in">
+                <p class="eyebrow">Înscrieri deschise</p>
+                <h4>Sezonul 2026–2027</h4>
+                <p>Locuri limitate. Se închid pe 20 septembrie.</p>
+                <div class="row"><span class="cta">Înscrie-te</span><span class="later">Mai târziu</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tradeoff">
+        <div><h4>Pentru</h4><p class="yes">Imposibil de ratat. Cel mai mare procent de click.</p></div>
+        <div><h4>Contra</h4><p class="no">Enervant dacă apare des. Trebuie folosit rar, altfel oamenii îl închid reflex.</p></div>
+        <div><h4>Cost</h4><p>Mediu. Necesită blocarea scroll-ului, focus trap și închidere cu Escape pentru accesibilitate.</p></div>
+      </div>
+    </div>
+
+    <p class="lead" style="margin-top:34px"><b>Regula priorității rămâne:</b> chiar dacă sunt active mai multe anunțuri, se afișează unul singur — primul din listă. Formatul nu schimbă asta, doar felul în care arată cel afișat.</p>
+  </section>
+
+  <!-- ADMIN -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">02</span><h2>Pagina de administrare</h2><span class="tagline">trei liste</span></div>
+    <p class="lead">Primul rând din „Active acum" e cel pe care îl văd vizitatorii. Restul așteaptă în ordine. Se trage de <b>⠿</b> pentru a schimba prioritatea — doar în prima listă, pentru că doar acolo ordinea înseamnă ceva.</p>
+    <div class="frame" style="margin-top:24px">
+      <div class="frame-cap"><span>Anunțuri</span><span>/admin/plugins/edusport-anunturi</span></div>
+      <div class="adm">
+        <div class="adm-head">
+          <div><h3>Anunțuri</h3><p>Un singur anunț e vizibil pe site — primul din lista de mai jos.</p></div>
+          <span class="adm-btn pri">+ Anunț nou</span>
+        </div>
+
+        <div class="grp">
+          <div class="grp-h"><span class="t">Active acum</span><span class="n">3</span><span class="hint">trage de ⠿ ca să schimbi ordinea</span></div>
+          <div class="rows">
+            <div class="row live">
+              <span class="grab">⠿</span><span class="pri">1</span>
+              <span class="nm">Înscrieri deschise <span class="sub">Sezonul 2026–2027, locuri limitate</span></span>
+              <span class="chip on">pe site</span><span class="chip fmt">card</span>
+              <span class="win">până 20.09</span>
+              <span class="stat"><b>1.243</b> văzut · <b>84</b> click · 6,8%</span>
+            </div>
+            <div class="row">
+              <span class="grab">⠿</span><span class="pri">2</span>
+              <span class="nm">Program modificat sâmbătă <span class="sub">Antrenamentele încep la 10:00</span></span>
+              <span class="chip fmt">modal</span>
+              <span class="win">până 18.09</span>
+              <span class="stat"><span class="z">— nu a rulat încă</span></span>
+            </div>
+            <div class="row dim">
+              <span class="grab">⠿</span><span class="pri">3</span>
+              <span class="nm">Cupa de iarnă — înscrieri <span class="sub">Competiție demonstrativă</span></span>
+              <span class="chip pause">pauzat</span><span class="chip fmt">card</span>
+              <span class="win">până 30.11</span>
+              <span class="stat"><b>310</b> văzut · <b>22</b> click · 7,1%</span>
+            </div>
+          </div>
+          <p class="legend">Rândul evidențiat e cel live. „Pauzat" rămâne în listă, dar e sărit pe site — <b>nu trebuie șters ca să-l oprești</b>.</p>
+        </div>
+
+        <div class="grp">
+          <div class="grp-h"><span class="t">Programate</span><span class="n">2</span><span class="hint">ordonate după data de început</span></div>
+          <div class="rows">
+            <div class="row">
+              <span class="pri" style="background:#eef1fb;color:#2138b8">—</span>
+              <span class="nm">Tabăra de vară <span class="sub">Înscrieri pentru tabăra de la Miercurea Ciuc</span></span>
+              <span class="chip soon">din 01.06</span><span class="chip fmt">card</span>
+              <span class="win">01.06 – 15.06</span>
+              <span class="stat"><span class="z">—</span></span>
+            </div>
+            <div class="row">
+              <span class="pri" style="background:#eef1fb;color:#2138b8">—</span>
+              <span class="nm">Spectacol de final de an <span class="sub">Bilete disponibile la patinoar</span></span>
+              <span class="chip soon">din 20.05</span><span class="chip fmt">modal</span>
+              <span class="win">20.05 – 12.06</span>
+              <span class="stat"><span class="z">—</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grp">
+          <div class="grp-h"><span class="t">Încheiate</span><span class="n">2</span><span class="hint">arhivă, cu rezultate</span></div>
+          <div class="rows">
+            <div class="row past">
+              <span class="pri" style="background:#eef0f3;color:#8a8d99">—</span>
+              <span class="nm">Vacanța de iarnă <span class="sub">Patinoarul e închis între 24.12 și 06.01</span></span>
+              <span class="chip done">încheiat</span>
+              <span class="win">încheiat 06.01</span>
+              <span class="stat"><b>2.104</b> văzut · <b>41</b> click · 1,9%</span>
+            </div>
+            <div class="row past">
+              <span class="pri" style="background:#eef0f3;color:#8a8d99">—</span>
+              <span class="nm">Cupa de toamnă <span class="sub">Rezultate publicate</span></span>
+              <span class="chip done">încheiat</span>
+              <span class="win">încheiat 12.11</span>
+              <span class="stat"><b>890</b> văzut · <b>132</b> click · 14,8%</span>
+            </div>
+          </div>
+          <p class="legend">Cifrele vin din Umami. Când Umami nu e configurat, coloana arată <b>—</b>, restul paginii funcționează normal.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" style="border-bottom:none">
+    <div class="sec-head"><span class="sec-no">03</span><h2>De răspuns</h2></div>
+    <p class="lead">
+      <b>Formatele sunt stabilite:</b> card în colț și modal în centru, alese per anunț.<br>
+      <b>Rămâne de decis:</b> cât timp rămâne închis un anunț după ce vizitatorul îl închide — până la închiderea tab-ului (ca acum), definitiv, sau reapare după câteva zile?
+    </p>
+  </section>
+
+</div>

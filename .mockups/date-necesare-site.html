@@ -1,0 +1,272 @@
+<title>Date Necesare Site EduSport</title>
+<style>
+:root{
+  --pg:#faf9f7; --ink:#1c1d22; --mut:#5f636e; --fai:#8a8e99;
+  --line:#e4e2dd; --card:#fff; --accent:#1f4fd8; --accent-soft:#eef2fd;
+  --warn:#8a5a00; --warn-soft:#fdf4e3; --ok:#1f7a4d; --ok-soft:#e8f4ed;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --pg:#16171b; --ink:#e9e9ee; --mut:#a0a4b0; --fai:#787d8a;
+    --line:#2b2d34; --card:#1e2026; --accent:#7d9bff; --accent-soft:#1c2440;
+    --warn:#e0ac5c; --warn-soft:#2e2415; --ok:#6fc79a; --ok-soft:#16281f;
+  }
+}
+:root[data-theme="dark"]{
+  --pg:#16171b; --ink:#e9e9ee; --mut:#a0a4b0; --fai:#787d8a;
+  --line:#2b2d34; --card:#1e2026; --accent:#7d9bff; --accent-soft:#1c2440;
+  --warn:#e0ac5c; --warn-soft:#2e2415; --ok:#6fc79a; --ok-soft:#16281f;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg);color:var(--ink);
+  font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  font-size:16px;line-height:1.65;padding:0}
+.wrap{max-width:820px;margin:0 auto;padding:48px 24px 90px}
+.eyebrow{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);margin:0 0 10px}
+h1{font-size:36px;line-height:1.15;font-weight:700;letter-spacing:-.02em;margin:0 0 12px;
+  text-wrap:balance}
+.lede{font-size:17px;color:var(--mut);margin:0 0 8px;max-width:62ch}
+.meta{font-family:system-ui,sans-serif;font-size:12.5px;color:var(--fai);
+  border-top:1px solid var(--line);margin-top:26px;padding-top:14px}
+h2{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink);margin:52px 0 6px;padding-bottom:8px;border-bottom:2px solid var(--ink)}
+h2 .num{color:var(--accent);margin-right:9px}
+h3{font-family:system-ui,sans-serif;font-size:16px;font-weight:700;margin:28px 0 4px}
+p{margin:0 0 12px}
+.hint{font-family:system-ui,sans-serif;font-size:13.5px;color:var(--mut);margin:0 0 14px}
+ul.items{list-style:none;padding:0;margin:10px 0 18px}
+ul.items li{position:relative;padding:7px 0 7px 30px;border-bottom:1px solid var(--line);
+  font-family:system-ui,sans-serif;font-size:14.5px}
+ul.items li:last-child{border-bottom:none}
+ul.items li::before{content:"";position:absolute;left:2px;top:11px;width:13px;height:13px;
+  border:1.5px solid var(--fai);border-radius:3px}
+ul.items li b{font-weight:700}
+ul.items li small{display:block;color:var(--mut);font-size:12.5px;margin-top:1px}
+.req{display:inline-block;font-family:system-ui,sans-serif;font-size:10px;font-weight:800;
+  letter-spacing:.04em;border-radius:20px;padding:2px 7px;margin-left:7px;vertical-align:1px}
+.req.must{background:var(--accent-soft);color:var(--accent)}
+.req.nice{background:var(--pg);color:var(--fai);border:1px solid var(--line)}
+.note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0;padding:14px 16px;margin:18px 0;
+  font-family:system-ui,sans-serif;font-size:14px;color:var(--mut)}
+.note.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.note b{color:var(--ink)}
+table{width:100%;border-collapse:collapse;margin:14px 0 18px;
+  font-family:system-ui,sans-serif;font-size:14px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--fai);border-bottom:1.5px solid var(--line);padding:7px 10px 7px 0;font-weight:700}
+td{padding:8px 10px 8px 0;border-bottom:1px solid var(--line);vertical-align:top}
+td:first-child{font-weight:600;white-space:nowrap;padding-right:18px}
+.ex{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+  color:var(--mut);background:var(--card);border:1px solid var(--line);
+  border-radius:6px;padding:2px 6px;display:inline-block}
+.exblock{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+  background:var(--card);border:1px solid var(--line);border-radius:8px;
+  padding:12px 14px;margin:10px 0 18px;color:var(--mut);overflow-x:auto;line-height:1.7}
+.foot{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);
+  font-family:system-ui,sans-serif;font-size:13px;color:var(--fai)}
+@media print{body{background:#fff}.wrap{padding:0}}
+</style>
+
+<div class="wrap">
+
+<p class="eyebrow">Școala de Patinaj EduSport</p>
+<h1>Ce date ne trebuie pentru site</h1>
+<p class="lede">Lista completă a informațiilor de care avem nevoie ca să umplem site-ul
+cu conținut real. Nu trebuie trimise toate deodată. Cele marcate
+<span class="req must">necesar</span> sunt cele fără de care o pagină rămâne goală.</p>
+<p class="meta">Poți răspunde direct în acest document, într-un e-mail, sau într-un fișier
+separat. Pentru poze, un folder partajat este cel mai simplu.</p>
+
+<div class="note warn"><b>Un lucru important înainte de poze.</b> Pentru orice fotografie
+în care apar copii avem nevoie de acordul scris al părintelui pentru publicare pe site.
+Fără acord nu putem urca poza, chiar dacă este o poză frumoasă de la concurs. Dacă ai deja
+acorduri semnate, spune-ne pentru ce copii, ca să știm ce putem folosi.</div>
+
+<h2><span class="num">01</span>Despre club</h2>
+<p class="hint">Informațiile de bază care apar pe prima pagină și pe pagina de istoric.</p>
+<ul class="items">
+  <li><b>Anul în care a început școala de patinaj</b><span class="req must">necesar</span>
+    <small>Anul fondării, plus o propoziție despre cum a început, dacă există o poveste.</small></li>
+  <li><b>Istoria clubului, pe etape</b><span class="req must">necesar</span>
+    <small>Momentele importante, fiecare cu an, titlu scurt și două trei rânduri de explicație.
+    Vezi exemplul de mai jos.</small></li>
+  <li><b>Numărul total de elevi de la înființare până acum</b><span class="req must">necesar</span>
+    <small>O estimare este suficientă. Nu avem nevoie de cifră exactă.</small></li>
+  <li><b>Numărul de elevi pe an</b><span class="req nice">util</span>
+    <small>Dacă există măcar aproximativ, pe ultimii ani. Ajută la graficul de evoluție.</small></li>
+  <li><b>Numărul de elevi în acest sezon</b><span class="req must">necesar</span></li>
+  <li><b>Câți antrenori și asistenți sunt acum</b><span class="req must">necesar</span></li>
+  <li><b>Text de prezentare a clubului</b><span class="req must">necesar</span>
+    <small>Cinci sau șase rânduri, cum ai descrie clubul unui părinte care întreabă prima dată.</small></li>
+  <li><b>Unde se țin antrenamentele</b><span class="req must">necesar</span>
+    <small>Numele patinoarului și adresa.</small></li>
+</ul>
+<p class="hint">Format pentru istoric, un rând pentru fiecare moment:</p>
+<div class="exblock">2015 &nbsp;|&nbsp; Înființarea clubului &nbsp;|&nbsp; Primul grup de 12 copii, antrenamente de două ori pe săptămână.<br>
+2018 &nbsp;|&nbsp; Prima participare la național &nbsp;|&nbsp; Trei sportivi calificați, un loc pe podium.<br>
+2022 &nbsp;|&nbsp; Mutarea la patinoarul nou &nbsp;|&nbsp; Capacitate dublă, grupe de avansați.</div>
+
+<h2><span class="num">02</span>Antrenori și echipă</h2>
+<p class="hint">Pentru fiecare persoană din echipă, inclusiv asistenți și personal auxiliar.</p>
+<table>
+  <tr><th>Câmp</th><th>Detalii</th></tr>
+  <tr><td>Nume complet</td><td>Așa cum vrea persoana să apară public</td></tr>
+  <tr><td>Funcția exactă</td><td>Titlul real, nu unul aproximativ. De exemplu antrenor principal,
+    antrenor secund, asistent, coregraf, preparator fizic, kinetoterapeut</td></tr>
+  <tr><td>Grupele de care se ocupă</td><td>Începători, avansați, performanță, sau numele grupei</td></tr>
+  <tr><td>Scurtă descriere</td><td>Trei sau patru rânduri. Experiență, certificări, ce predă</td></tr>
+  <tr><td>Fotografie</td><td>Portret, de preferat pe fundal simplu</td></tr>
+  <tr><td>Din ce an este în club</td><td>Opțional, dar arată bine pe pagina de echipă</td></tr>
+</table>
+<div class="note"><b>De ce insistăm pe funcția exactă.</b> Pe site apare sub numele fiecărei
+persoane. Dacă scrie doar "antrenor" pentru toată lumea, pagina nu spune nimic despre cine
+ce face, iar părinții nu știu cu cine vorbesc.</div>
+
+<h2><span class="num">03</span>Sportivi</h2>
+<p class="hint">Fiecare sportiv poate avea pagina lui. Ne spui tu care sportivi vrei să fie
+publici și care nu.</p>
+<ul class="items">
+  <li><b>Lista sportivilor care apar public</b><span class="req must">necesar</span>
+    <small>Nume și, pentru minori, confirmarea că părintele este de acord.</small></li>
+  <li><b>Fotografie de portret pentru fiecare</b><span class="req must">necesar</span></li>
+  <li><b>Din ce an patinează la club</b><span class="req must">necesar</span></li>
+  <li><b>Descriere scurtă</b><span class="req must">necesar</span>
+    <small>Două sau trei rânduri despre sportiv.</small></li>
+  <li><b>Povestea sportivului</b><span class="req nice">util</span>
+    <small>Un text mai lung, cum a început, ce l-a motivat. Apare pe pagina lui.</small></li>
+  <li><b>Elementele preferate</b><span class="req nice">util</span>
+    <small>De exemplu axel, piruetă, combinație. Ce știe să facă și îi place.</small></li>
+  <li><b>Hobby-uri în afara patinajului</b><span class="req nice">util</span></li>
+  <li><b>Disciplina</b><span class="req must">necesar</span>
+    <small>Patinaj artistic, dans pe gheață, sau ce practică.</small></li>
+  <li><b>Antrenorul și coregraful fiecăruia</b><span class="req nice">util</span></li>
+  <li><b>Obiectivul lui pentru sezonul acesta</b><span class="req nice">util</span></li>
+  <li><b>Poze de la concursuri</b><span class="req must">necesar</span>
+    <small>Trei până la opt poze per sportiv, dacă există. Vezi secțiunea de fotografii.</small></li>
+</ul>
+
+<h2><span class="num">04</span>Concursuri și rezultate</h2>
+<p class="hint">Pentru fiecare concurs la care a participat clubul, din trecut și din sezonul curent.</p>
+<table>
+  <tr><th>Câmp</th><th>Detalii</th></tr>
+  <tr><td>Numele concursului</td><td>Denumirea oficială</td></tr>
+  <tr><td>Data</td><td>Ziua sau perioada</td></tr>
+  <tr><td>Locul</td><td>Orașul și patinoarul</td></tr>
+  <tr><td>Nivelul</td><td>Local, național, internațional</td></tr>
+  <tr><td>Sezonul</td><td>De exemplu 2025 - 2026</td></tr>
+  <tr><td>Cine a participat</td><td>Numele sportivilor din club</td></tr>
+  <tr><td>Rezultate</td><td>Loc ocupat și punctaj, pentru fiecare sportiv, dacă le aveți</td></tr>
+  <tr><td>Poze</td><td>De la concurs, cu sportivii clubului</td></tr>
+</table>
+<ul class="items">
+  <li><b>Realizările de care sunteți cei mai mândri</b><span class="req must">necesar</span>
+    <small>Cinci sau șase, cele care merită scoase în față pe pagina de realizări.</small></li>
+</ul>
+
+<h2><span class="num">05</span>Parteneri și sponsori</h2>
+<ul class="items">
+  <li><b>Lista partenerilor actuali</b><span class="req must">necesar</span>
+    <small>Nume, logo, adresa site-ului lor.</small></li>
+  <li><b>Lista sponsorilor</b><span class="req must">necesar</span>
+    <small>Aceleași date. Spune-ne dacă un partener trebuie afișat înaintea altora.</small></li>
+  <li><b>Evenimente organizate împreună cu parteneri</b><span class="req must">necesar</span>
+    <small>Pentru fiecare: titlul evenimentului, partenerul, data, o descriere scurtă și o poză.</small></li>
+  <li><b>Acordul de a le folosi logo-ul</b><span class="req must">necesar</span>
+    <small>O confirmare că putem afișa numele și logo-ul pe site.</small></li>
+</ul>
+<p class="hint">Format pentru evenimente cu parteneri:</p>
+<div class="exblock">Titlu: Cupa de iarnă<br>
+Partener: Numele firmei<br>
+Data: 14 decembrie 2025<br>
+Descriere: Concurs demonstrativ pentru grupele de începători, 40 de participanți.<br>
+Poză: cupa-de-iarna-2025.jpg</div>
+
+<h2><span class="num">06</span>Cursuri, program și prețuri</h2>
+<ul class="items">
+  <li><b>Grupele existente</b><span class="req must">necesar</span>
+    <small>Numele fiecărei grupe, vârsta sau nivelul, câți copii intră.</small></li>
+  <li><b>Programul pe zile și ore</b><span class="req must">necesar</span>
+    <small>Ce grupă intră pe gheață, în ce interval, în ce zile.</small></li>
+  <li><b>Prețurile</b><span class="req must">necesar</span>
+    <small>Pentru fiecare tip de abonament: ce include, cât costă, pe ce perioadă.</small></li>
+  <li><b>Reduceri</b><span class="req nice">util</span>
+    <small>De exemplu pentru frați, sau plata pe tot sezonul.</small></li>
+  <li><b>Ce trebuie să aibă copilul la prima ședință</b><span class="req must">necesar</span>
+    <small>Echipament, patine, casca, dacă se închiriază ceva.</small></li>
+  <li><b>Perioada de înscrieri</b><span class="req must">necesar</span>
+    <small>Când se deschid și când se închid.</small></li>
+  <li><b>Regulamentul cursurilor</b><span class="req must">necesar</span>
+    <small>Documentul pe care îl semnează părinții, dacă există.</small></li>
+  <li><b>Zilele în care nu se ține antrenament</b><span class="req nice">util</span>
+    <small>Sărbători, vacanțe, perioade de întrerupere.</small></li>
+</ul>
+
+<h2><span class="num">07</span>Contact</h2>
+<ul class="items">
+  <li><b>Telefon</b><span class="req must">necesar</span></li>
+  <li><b>Adresa de e-mail</b><span class="req must">necesar</span>
+    <small>Cea pe care ajung înscrierile și mesajele de pe site.</small></li>
+  <li><b>Adresa fizică</b><span class="req must">necesar</span></li>
+  <li><b>Paginile de social media</b><span class="req must">necesar</span>
+    <small>Facebook, Instagram, orice altceva folosiți.</small></li>
+  <li><b>Datele oficiale ale clubului</b><span class="req nice">util</span>
+    <small>Denumirea juridică completă și codul fiscal, pentru subsolul site-ului.</small></li>
+  <li><b>Cine răspunde la mesaje</b><span class="req nice">util</span>
+    <small>Ca să știm unde trimitem notificările.</small></li>
+</ul>
+
+<h2><span class="num">08</span>Fotografii</h2>
+<p class="hint">Partea care durează cel mai mult, deci merită începută prima.</p>
+<table>
+  <tr><th>Unde apare</th><th>Ce ne trebuie</th></tr>
+  <tr><td>Prima pagină</td><td>Cinci până la zece poze bune, orizontale, de la antrenamente
+    sau concursuri</td></tr>
+  <tr><td>Fiecare antrenor</td><td>Un portret</td></tr>
+  <tr><td>Fiecare sportiv</td><td>Un portret plus trei până la opt poze de la concursuri</td></tr>
+  <tr><td>Concursuri</td><td>Poze de grup, premieri, momente din concurs</td></tr>
+  <tr><td>Evenimente cu parteneri</td><td>Cel puțin o poză per eveniment</td></tr>
+  <tr><td>Patinoarul</td><td>Câteva poze cu locul unde se fac antrenamentele</td></tr>
+</table>
+<div class="note"><b>Cum trimiți pozele.</b> Originalele direct de pe telefon sau aparat,
+fără să le micșorezi și fără să le trimiți prin WhatsApp, pentru că le strică
+calitatea. Cel mai simplu este un folder pe Google Drive sau WeTransfer. Dacă poți,
+pune-le în subfoldere cu nume clare, de exemplu <span class="ex">Concurs Brașov 2025</span>
+sau <span class="ex">Portrete antrenori</span>. Dacă știi cine apare în poză, scrie numele
+în numele fișierului.</div>
+
+<h2><span class="num">09</span>Diverse</h2>
+<ul class="items">
+  <li><b>Logo-ul clubului</b><span class="req must">necesar</span>
+    <small>În cea mai bună calitate pe care o ai, ideal fișierul original de la designer.</small></li>
+  <li><b>Culorile oficiale ale clubului</b><span class="req nice">util</span></li>
+  <li><b>Cum vrei să se numească clubul pe site</b><span class="req must">necesar</span>
+    <small>Denumirea scurtă folosită peste tot.</small></li>
+  <li><b>Un anunț curent, dacă există</b><span class="req nice">util</span>
+    <small>Apare ca bandă sus pe site. De exemplu o modificare de program.</small></li>
+  <li><b>Cum putem ajuta clubul</b><span class="req nice">util</span>
+    <small>Pentru pagina de voluntariat: ce fel de ajutor căutați.</small></li>
+  <li><b>Întrebări frecvente</b><span class="req nice">util</span>
+    <small>Ce vă întreabă părinții cel mai des, cu răspunsurile.</small></li>
+</ul>
+
+<h2><span class="num">10</span>De unde să începi</h2>
+<p class="hint">Dacă vrei să trimiți pe bucăți, ordinea asta ne ajută cel mai mult.</p>
+<table>
+  <tr><th>Pas</th><th>Ce trimiți</th></tr>
+  <tr><td>Întâi</td><td>Anul înființării, textul de prezentare, contactul, logo-ul</td></tr>
+  <tr><td>Apoi</td><td>Antrenorii cu funcțiile și pozele lor</td></tr>
+  <tr><td>Apoi</td><td>Grupele, programul și prețurile</td></tr>
+  <tr><td>Apoi</td><td>Sportivii și acordurile părinților</td></tr>
+  <tr><td>Apoi</td><td>Concursurile și rezultatele</td></tr>
+  <tr><td>La final</td><td>Partenerii, istoricul detaliat, restul pozelor</td></tr>
+</table>
+
+<p class="foot">Dacă la vreo secțiune nu ai datele sau nu ești sigur ce se cere, spune-ne
+și completăm împreună. Este mai bine să trimiți ceva incomplet decât să aștepți până
+ai tot.</p>
+
+</div>

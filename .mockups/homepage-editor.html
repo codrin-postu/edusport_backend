@@ -1,0 +1,280 @@
+<style>
+/* ============================================================
+   PRESENTATION FRAME
+   Same neutral shell as admin-redesign.html so the two read as
+   one series. Everything inside .eduf below is the REAL admin
+   stylesheet (edusportUi.ts EDU_CSS), copied verbatim, so what
+   you approve here is what ships.
+   ============================================================ */
+:root{
+  --bg:#eef0f4; --surface:#ffffff; --ink:#1b1d26; --ink-soft:#4a4d5a;
+  --muted:#8a8d99; --line:#e2e4ea; --accent:#2138b8; --accent-soft:#eef1fb;
+  --danger:#be3330; --ok:#1f7a4d;
+  --shadow:0 6px 24px rgba(18,22,45,.08);
+  --sys:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sys);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 110px}
+.mast{padding:52px 0 26px;border-bottom:1px solid var(--line)}
+.kick{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 13px}
+.mast h1{font-size:clamp(26px,3.6vw,38px);line-height:1.1;margin:0 0 12px;font-weight:800;letter-spacing:-.02em;max-width:24ch}
+.mast p{margin:0;max-width:70ch;color:var(--ink-soft);font-size:15px}
+.sec{padding:44px 0;border-bottom:1px solid var(--line)}
+.sec-head{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.sec-no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:3px 9px}
+.sec h2{font-size:22px;font-weight:800;letter-spacing:-.015em;margin:0}
+.lead{color:var(--ink-soft);font-size:14.5px;margin:12px 0 0;max-width:80ch}
+.lead b{color:var(--ink)}
+.stage{margin-top:24px;display:flex;flex-direction:column;gap:10px}
+.stage-cap{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.frame{border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:#eef0f4}
+table.spec{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:18px}
+table.spec th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line)}
+table.spec td{padding:8px 10px;border-bottom:1px solid #f0f1f4;vertical-align:top}
+table.spec code{font-family:var(--mono);font-size:12px;background:#f4f5f8;padding:1px 5px;border-radius:4px}
+.del{color:var(--danger);font-weight:700}
+.add{color:var(--ok);font-weight:700}
+.note{margin-top:18px;padding:13px 15px;border-left:3px solid var(--accent);background:var(--accent-soft);font-size:13.5px;color:var(--ink-soft);border-radius:0 6px 6px 0}
+.note b{color:var(--ink)}
+
+/* ============================================================
+   REAL ADMIN CSS - copied from src/admin/dashboard/edusportUi.ts
+   ============================================================ */
+.eduf{--chrome:#fff;--ink:#1b1d22;--muted:#727888;--line:#e0e2e8;--border:#dcdcdc;
+  --accent:#2138b8;--accent-soft:#eef1fb;--danger:#be3330;--field:#f7f8fa;--fieldborder:#d0d0d0;
+  --ok:#1f7a4d;--r:4px;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#eef0f4;min-height:100%;padding:20px;line-height:1.5}
+.eduf *{box-sizing:border-box}
+.eduf .num{font-variant-numeric:tabular-nums}
+.eduf .win{background:var(--chrome);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 16px rgba(20,26,54,.06);overflow:hidden}
+.eduf input,.eduf select,.eduf textarea{font-family:inherit;font-size:13px;background:var(--field);border:1px solid var(--fieldborder);border-radius:4px;padding:7px 9px;color:var(--ink)}
+.eduf textarea{resize:vertical;line-height:1.5}
+.eduf .lbl{font-size:11px;color:var(--muted);font-weight:600}
+.eduf .btn{font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:var(--r);border:1px solid var(--fieldborder);background:var(--chrome);color:var(--ink);cursor:pointer;white-space:nowrap}
+.eduf .btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.eduf .btn.sm{padding:6px 10px;font-size:12px}
+.eduf .btn.danger{color:var(--danger);border-color:#e2c4c4;background:#fff}
+.eduf .hd{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.eduf .hd h1{font-size:19px;font-weight:800;letter-spacing:-.01em;margin:0}
+.eduf .hd p{font-size:12.5px;color:var(--muted);margin:3px 0 0}
+.eduf .hd-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+.eduf .body{padding:16px 18px;display:flex;flex-direction:column;gap:14px;max-width:860px}
+.eduf .fld{margin-bottom:12px}
+.eduf .fld:last-child{margin-bottom:0}
+.eduf .fld>label{display:block;font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.eduf .fld input,.eduf .fld select,.eduf .fld textarea{width:100%}
+.eduf .row{display:flex;gap:10px}
+.eduf .row>.fld{flex:1;margin-bottom:0}
+.eduf .hint{font-size:11px;color:var(--muted);margin-top:3px}
+.eduf .sec2{border:1px solid var(--border);border-radius:6px;background:#fff}
+.eduf .sec2>.sh{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:10px 13px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.eduf .sec2>.sb{padding:13px}
+.eduf .addbtn{font-size:12px;color:var(--accent);border:1px solid #cdd6f6;background:var(--accent-soft);border-radius:var(--r);padding:6px 10px;cursor:pointer;font-weight:600}
+.eduf .mini{border-collapse:collapse;width:100%;font-size:12.5px}
+.eduf .mini th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;padding:4px 8px;border-bottom:1px solid var(--line)}
+.eduf .mini td{padding:4px 8px;border-bottom:1px solid #f0f1f4}
+.eduf .mini td input{width:100%}
+.eduf .mini td.act{width:1%;text-align:right}
+.eduf .rm{border:none;background:none;color:var(--danger);cursor:pointer;font-size:13px;line-height:1}
+.eduf .miniadd{margin-top:8px}
+.eduf .pa{display:flex;align-items:center;gap:10px;padding:13px 18px;border-top:1px solid var(--line);background:#fcfcfd}
+.eduf .pa .grow{flex:1}
+
+.eduf .notice{display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--ink);background:var(--accent-soft);border:1px solid #cdd6f6;border-radius:var(--r);padding:10px 12px}
+.eduf .notice .ntx{flex:1;line-height:1.45}
+.eduf .notice .ntx b{display:block;font-weight:700;margin-bottom:1px}
+.eduf .notice .ntx span{color:var(--muted)}
+.eduf .notice .ico{width:18px;height:18px;flex-shrink:0;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.eduf .notice .btn{background:#fff;border-color:#cdd6f6;color:var(--accent)}
+.eduf .ro{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);background:#f7f8fa;border:1px solid var(--line);border-radius:4px;padding:8px 10px}
+.eduf .ro b{color:var(--ink);font-weight:700}
+.eduf .pill{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ok);background:#e7f3ec;border:1px solid #bfe0cc;border-radius:4px;padding:2px 6px}
+.eduf .pill.auto{color:var(--accent);background:var(--accent-soft);border-color:#cdd6f6}
+</style>
+
+<div class="wrap">
+
+  <div class="mast">
+    <p class="kick">EduSport admin &middot; companion</p>
+    <h1>Editor pagina principal&#259;</h1>
+    <p>&Icirc;nlocuie&#537;te formularul generat de Strapi. Structura, spa&#539;ierea &#537;i culorile sunt cele din <code>edusportUi.ts</code>, acelea&#537;i ca la Sportivi &#537;i Competi&#539;ii. Con&#539;inutul de mai jos reflect&#259; exact ce afi&#537;eaz&#259; pagina real&#259;: c&acirc;mpurile nefolosite au fost scoase, iar textele care erau scrise &icirc;n cod devin editabile.</p>
+  </div>
+
+  <!-- 1 -->
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">01</span><h2>Ecranul complet</h2></div>
+    <p class="lead">O singur&#259; coloan&#259;. Admin-ul are deja bara lateral&#259; fix&#259; de 236px, iar coloana &icirc;ngust&#259; din editorul de sportiv e pentru propriet&#259;&#539;ile &icirc;nregistr&#259;rii, ca fotografie, slug sau vizibilitate. Pagina principal&#259; nu are a&#537;a ceva. Notele despre ce nu se editeaz&#259; aici stau l&acirc;ng&#259; sec&#539;iunea la care se refer&#259;, nu &icirc;ntr-o coloan&#259; separat&#259;. Salveaz&#259; apare sus &#537;i jos, ca la editorul de sportiv.</p>
+
+    <div class="stage">
+      <div class="stage-cap">Ecran complet</div>
+      <div class="frame">
+        <div class="eduf">
+          <div class="win">
+
+            <div class="hd">
+              <div>
+                <h1>Pagina principal&#259;</h1>
+                <p>Textele de pe prima pagin&#259; a site-ului</p>
+              </div>
+              <div class="hd-right">
+                <button class="btn">&Icirc;napoi</button>
+                <button class="btn pri">Salveaz&#259;</button>
+              </div>
+            </div>
+
+              <div class="body">
+
+                <div class="sec2">
+                  <div class="sh">Hero</div>
+                  <div class="sb">
+                    <div class="row">
+                      <div class="fld"><label>Text buton</label><input value="Descoper&#259; Cursurile"></div>
+                      <div class="fld"><label>Link buton</label><input value="/cursuri"></div>
+                    </div>
+                    <div class="hint">Titlul EDUSPORT &#537;i fundalul video nu se editeaz&#259;, fac parte din design.</div>
+                    <div class="notice" style="margin-top:13px">
+                      <span class="ico">i</span>
+                      <span class="ntx"><b>Evenimentul urm&#259;tor</b><span>Se ia automat din Nout&#259;&#539;i, primul eveniment care nu a trecut. C&acirc;nd nu urmeaz&#259; niciunul, eticheta nu se afi&#537;eaz&#259;.</span></span>
+                      <button class="btn sm">Vezi evenimentele</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sec2">
+                  <div class="sh">&Icirc;nscrieri deschise</div>
+                  <div class="sb">
+                    <div class="notice" style="margin-bottom:13px">
+                      <span class="ico">i</span>
+                      <span class="ntx"><b>Sezonul &#537;i starea &icirc;nscrierilor</b><span>Se schimb&#259; din Set&#259;ri site, nu de aici.</span></span>
+                      <button class="btn sm">Deschide Set&#259;ri site</button>
+                    </div>
+                    <div class="fld"><label>Titlu</label><input value="Sezonul a &icirc;nceput!"></div>
+                    <div class="fld"><label>Text</label><textarea rows="2">&Icirc;nscrierile pentru noul sezon sunt deschise.</textarea></div>
+                    <div class="fld"><label>Text secundar</label><textarea rows="2">Locurile sunt limitate.</textarea></div>
+                    <div class="row">
+                      <div class="fld"><label>Zile</label><input value="S&acirc;mb&#259;t&#259; &amp; Duminic&#259;"></div>
+                      <div class="fld"><label>Ore</label><input value="10:00-10:50 &amp; 11:00-11:50"></div>
+                    </div>
+                    <div class="fld" style="margin-top:12px"><label>Loca&#539;ie</label><input value="AFI Cotroceni"></div>
+                    <div class="row" style="margin-top:12px">
+                      <div class="fld"><label>Buton principal</label><input value="&Icirc;nscrie-te"></div>
+                      <div class="fld"><label>Link</label><input value="/inscrieri"></div>
+                    </div>
+                    <div class="row" style="margin-top:12px">
+                      <div class="fld"><label>Buton secundar</label><input value="Afl&#259; mai mult"></div>
+                      <div class="fld"><label>Link</label><input value="/cursuri"></div>
+                    </div>
+                    <div class="row" style="margin-top:12px">
+                      <div class="fld"><label>Link pre&#539;uri</label><input value="Vezi pre&#539;urile"></div>
+                      <div class="fld"><label>Adres&#259;</label><input value="/inscrieri#preturi"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sec2">
+                  <div class="sh">&Icirc;nscrieri &icirc;nchise <span class="lbl">se afi&#537;eaz&#259; c&acirc;nd &icirc;nscrierile sunt oprite</span></div>
+                  <div class="sb">
+                    <div class="fld"><label>Titlu</label><input value="Ne vedem &icirc;n urm&#259;torul sezon!"></div>
+                    <div class="fld"><label>Text</label><textarea rows="2">&Icirc;nscrierile sunt &icirc;nchise momentan.</textarea></div>
+                    <div class="row">
+                      <div class="fld"><label>Buton WhatsApp</label><input value="Scrie-ne pe WhatsApp"></div>
+                      <div class="fld"><label>Link</label><input value=""></div>
+                    </div>
+                    <div class="row" style="margin-top:12px">
+                      <div class="fld"><label>Buton contact</label><input value="Contact"></div>
+                      <div class="fld"><label>Link</label><input value="/contact"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sec2">
+                  <div class="sh">Despre noi <span class="lbl">3 panouri</span></div>
+                  <div class="sb">
+                    <div class="ro" style="margin-bottom:11px"><b>1.</b> Cine suntem <span style="margin-left:auto;color:#727888">/despre-noi</span></div>
+                    <div class="ro" style="margin-bottom:11px"><b>2.</b> Echipa noastr&#259; <span style="margin-left:auto;color:#727888">/despre-noi/echipa</span></div>
+                    <div class="ro"><b>3.</b> Realiz&#259;rile noastre <span style="margin-left:auto;color:#727888">/despre-noi/realizari</span></div>
+                    <div class="hint">Fiecare panou se deschide pentru editare. Layout-ul e construit pentru exact 3, un al patrulea nu s-ar afi&#537;a.</div>
+                  </div>
+                </div>
+
+                <div class="sec2">
+                  <div class="sh">Sportivi</div>
+                  <div class="sb">
+                    <div class="fld"><label>Titlu sec&#539;iune</label><input value="Sportivii no&#537;tri"></div>
+                    <div class="fld"><label>Descriere</label><textarea rows="3">Sportivi care se antreneaz&#259; s&#259;pt&#259;m&acirc;nal la EduSport, de la primii pa&#537;i pe ghea&#539;&#259; p&acirc;n&#259; la podiumuri na&#539;ionale.</textarea></div>
+                    <div class="fld">
+                      <label>Num&#259;r sportivi</label>
+                      <div class="ro"><span class="pill auto">automat</span> <b>2</b> sportivi publici</div>
+                      <div class="hint">Se actualizeaz&#259; c&acirc;nd ad&#259;ugi sau ascunzi un sportiv.</div>
+                    </div>
+                    <div class="row">
+                      <div class="fld"><label>Etichet&#259; sub num&#259;r</label><input value="sportivi legitima&#539;i"></div>
+                      <div class="fld"><label>Text buton</label><input value="Vezi to&#539;i sportivii"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sec2">
+                  <div class="sh">Statistici <button class="addbtn">+ Adaug&#259;</button></div>
+                  <div class="sb">
+                    <table class="mini">
+                      <thead><tr><th style="width:120px">Valoare</th><th>Etichet&#259;</th><th class="act"></th></tr></thead>
+                      <tbody>
+                        <tr><td><input value="10+"></td><td><input value="ani de experien&#539;&#259;"></td><td class="act"><button class="rm">&#10005;</button></td></tr>
+                        <tr><td><input value="150"></td><td><input value="sportivi antrena&#539;i"></td><td class="act"><button class="rm">&#10005;</button></td></tr>
+                        <tr><td><input value="500+"></td><td><input value="ore pe ghea&#539;&#259;"></td><td class="act"><button class="rm">&#10005;</button></td></tr>
+                        <tr><td><input value="13+"></td><td><input value="competi&#539;ii"></td><td class="act"><button class="rm">&#10005;</button></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+            </div>
+
+            <div class="pa">
+              <button class="btn">&Icirc;napoi</button>
+              <div class="grow"></div>
+              <button class="btn pri">Salveaz&#259;</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">02</span><h2>Ce se scoate &#537;i ce se adaug&#259;</h2></div>
+    <p class="lead">Fiecare &#537;tergere de mai jos a fost verificat&#259; &icirc;n cod, nu presupus&#259;. Coloana <b>Dovad&#259;</b> spune unde.</p>
+
+    <table class="spec">
+      <thead><tr><th style="width:230px">C&acirc;mp</th><th style="width:90px"></th><th>Dovad&#259;</th></tr></thead>
+      <tbody>
+        <tr><td><code>hero.motto</code></td><td class="del">scos</td><td>Trimis c&#259;tre <code>HeroSection</code>, dar niciodat&#259; folosit. Un comentariu &icirc;n cod confirm&#259; c&#259; a fost scos inten&#539;ionat din design.</td></tr>
+        <tr><td><code>about.notebook</code></td><td class="del">scos</td><td>12 r&acirc;nduri salvate &icirc;n baz&#259;. Componenta le prime&#537;te &#537;i nu le cite&#537;te deloc.</td></tr>
+        <tr><td><code>registration.locationMapUrl</code></td><td class="del">scos</td><td>Exist&#259; &icirc;n baz&#259;, nu apare nici &icirc;n editorul actual, nici pe site.</td></tr>
+        <tr><td><code>registrationClosed.seasonLabel</code></td><td class="del">scos</td><td>Ignorat c&acirc;nd sezonul e completat &icirc;n Set&#259;ri site, ceea ce e cazul.</td></tr>
+        <tr><td><code>registration.seasonLabel</code></td><td class="del">scos</td><td>Se afi&#537;eaz&#259;, dar nu poate fi editat nic&#259;ieri. Trece pe sezonul din Set&#259;ri site, ca varianta &icirc;nchis&#259;.</td></tr>
+        <tr><td><code>sections.athletes</code></td><td class="add">nou</td><td>Titlu, descriere, etichet&#259;, buton. Acum sunt scrise &icirc;n cod &#537;i nu pot fi schimbate f&#259;r&#259; deploy.</td></tr>
+        <tr><td>Evenimentul urm&#259;tor</td><td class="add">automat</td><td>Acum e scris &icirc;n cod (<code>CURRENT_EVENT</code>) &#537;i se &icirc;nveche&#537;te dup&#259; fiecare eveniment. Trece pe primul eveniment viitor din Nout&#259;&#539;i, aceea&#537;i regul&#259; ca pagina de evenimente.</td></tr>
+        <tr><td><code>sections.stats</code></td><td class="add">nou</td><td>Cele 4 cifre din band&#259;. Acum sunt &icirc;n cod &#537;i se &icirc;nvechesc.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <b>De verificat &icirc;nainte:</b> textul actual spune &bdquo;Peste 50 de sportivi&rdquo; iar cifra de l&acirc;ng&#259; el arat&#259; num&#259;rul real. Cele dou&#259; se contrazic deja. Dup&#259; schimbare, cifra e mereu num&#259;rul real de sportivi publici, f&#259;r&#259; plafon &#537;i f&#259;r&#259; &bdquo;50+&rdquo; scris de m&acirc;n&#259;.
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="sec" style="border-bottom:none">
+    <div class="sec-head"><span class="sec-no">03</span><h2>De ce arat&#259; a&#537;a</h2></div>
+    <p class="lead">Nimic nou inventat. Antetul, cardurile <code>.sec</code>, r&acirc;ndurile de c&acirc;mpuri, tabelul mic cu <code>&#10005;</code> &#537;i bara lipit&#259; jos sunt exact componentele din editorul de sportiv. Butonul principal e albastrul <code>#2138b8</code> deja folosit peste tot &icirc;n admin.</p>
+    <p class="lead">Singura ad&#259;ugare e r&acirc;ndul <span class="eduf" style="padding:0;background:none;display:inline"><span class="pill auto">automat</span></span> pentru valorile calculate. E nevoie de el ca s&#259; fie clar de ce num&#259;rul de sportivi nu poate fi tastat.</p>
+  </div>
+
+</div>

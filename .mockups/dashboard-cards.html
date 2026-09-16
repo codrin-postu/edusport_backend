@@ -1,0 +1,410 @@
+<title>Carduri Trafic si Sanatate</title>
+<style>
+:root{
+  --pg:#f2f3f7; --ink:#1b1d26; --mut:#6b6f7e; --fai:#8a8d99;
+  --line:#e6e7ec; --card:#fff; --blue:#2138b8; --navy:#0e1a3c;
+  --ok:#1f7a4d; --okbg:#e7f3ec; --bad:#be3330; --badbg:#faeceb;
+  --warn:#8a5a00; --warnbg:#fdf3e0;
+  --frame:#fff; --fline:#dfe1e8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --pg:#14151a; --ink:#e8e9ee; --mut:#9ba0af; --fai:#7b8091;
+    --line:#2a2c35; --card:#1c1e25; --frame:#1c1e25; --fline:#2a2c35;
+  }
+}
+:root[data-theme="dark"]{
+  --pg:#14151a; --ink:#e8e9ee; --mut:#9ba0af; --fai:#7b8091;
+  --line:#2a2c35; --card:#1c1e25; --frame:#1c1e25; --fline:#2a2c35;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:14px;line-height:1.55;padding:34px 22px 70px}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font-size:23px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px}
+.lede{color:var(--mut);font-size:13.5px;max-width:70ch;margin:0 0 26px}
+h2.sec{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--fai);
+  font-weight:800;margin:36px 0 4px;padding-top:16px;border-top:1px solid var(--line)}
+.secnote{color:var(--mut);font-size:13px;max-width:74ch;margin:0 0 18px}
+.note{background:var(--frame);border:1px solid var(--fline);border-left:3px solid var(--blue);
+  border-radius:0 8px 8px 0;padding:11px 14px;font-size:13px;color:var(--mut);margin:0 0 20px}
+.note b{color:var(--ink)}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:20px}
+.opt{background:var(--frame);border:1px solid var(--fline);border-radius:12px;overflow:hidden}
+.opt > header{padding:12px 15px;border-bottom:1px solid var(--fline);display:flex;
+  align-items:baseline;gap:9px;flex-wrap:wrap}
+.opt > header .tag{font-size:10.5px;font-weight:800;letter-spacing:.05em;background:var(--blue);
+  color:#fff;border-radius:5px;padding:2px 7px}
+.opt > header .tag.cur{background:var(--fai)}
+.opt > header h3{font-size:14px;font-weight:700;margin:0}
+.opt > header p{width:100%;margin:2px 0 0;font-size:12.5px;color:var(--mut)}
+.stage{padding:20px 15px;background:var(--pg);display:flex;justify-content:center}
+.col{width:404px;max-width:100%}
+.cost{padding:10px 15px;border-top:1px solid var(--fline);font-size:12px;color:var(--mut)}
+.cost b{color:var(--ink);font-weight:700}
+.cost ul{margin:5px 0 0;padding-left:17px}
+.cost li{margin:2px 0}
+.pill{display:inline-block;font-size:10px;font-weight:800;border-radius:20px;
+  padding:2px 8px;letter-spacing:.03em;vertical-align:middle}
+.pill.now{background:var(--okbg);color:var(--ok)}
+.pill.new{background:#e9edfb;color:var(--blue)}
+
+/* ---- verbatim from DashboardPage.tsx ---- */
+.card{background:#fff;color:#1b1d26;border:1px solid #e6e7ec;border-radius:12px;padding:14px 16px}
+/* These reproduce the light-only admin, so their ink is fixed. Without this the
+   title inherits body colour and turns near-white on #fff in dark mode. */
+.card h2{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#666;font-weight:700;margin:0}
+.analytics{background:#0e1a3c;border:1px solid #0e1a3c;border-radius:12px;padding:14px 16px;color:#eef1fb}
+.analytics h2{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#8b93ad;font-weight:700;margin:0}
+.analytics .stat{display:flex;align-items:baseline;gap:8px;margin:8px 0 2px}
+.analytics .stat b{font-size:22px;font-weight:800}
+.analytics .stat .tr{font-size:11px}
+.analytics .stat .tr.up{color:#7fd6a0}.analytics .stat .tr.dn{color:#e79a98}
+.analytics .spark{height:34px;margin:8px 0 10px}
+.analytics .spark svg{width:100%;height:100%;display:block}
+.health .hstat{display:flex;align-items:center;gap:11px;margin:9px 0 4px}
+.health .hnum{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.health .hnum.ok{color:#1f7a4d}.health .hnum.bad{color:#be3330}
+.health .hlbl b{font-size:12.5px;font-weight:700;display:block}
+.health .hlbl small{font-size:11px;color:#8a8d99}
+.health .hbadge{margin-left:auto;font-size:10px;font-weight:800;border-radius:20px;padding:3px 9px}
+.health .hbadge.ok{color:#1f7a4d;background:#e7f3ec}
+.health .hbadge.bad{color:#be3330;background:#faeceb}
+.cap{font-size:11px;color:#aeb7d4;margin-bottom:10px}
+
+/* ---- proposed ---- */
+.hrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.hrow .lnk{font-size:11px;font-weight:700;color:#8b93ad;text-decoration:none}
+.card .hrow .lnk{color:#2138b8}
+.livedot{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;
+  color:#7fd6a0;background:rgba(127,214,160,.13);border-radius:20px;padding:2px 8px}
+.livedot i{width:6px;height:6px;border-radius:50%;background:#7fd6a0;display:block}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.09);
+  border-radius:9px;overflow:hidden;margin:11px 0 0}
+.kpi{background:#0e1a3c;padding:9px 11px}
+.kpi .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:#8b93ad;font-weight:700}
+.kpi .v{font-size:19px;font-weight:800;letter-spacing:-.02em;line-height:1.25;
+  font-variant-numeric:tabular-nums}
+.kpi .d{font-size:10.5px;font-weight:600}
+.kpi .d.up{color:#7fd6a0}.kpi .d.dn{color:#e79a98}.kpi .d.fl{color:#78809c}
+.big{display:flex;align-items:flex-end;gap:9px;margin:9px 0 1px}
+.big b{font-size:32px;font-weight:800;letter-spacing:-.025em;line-height:1;
+  font-variant-numeric:tabular-nums}
+.big .tr{font-size:11.5px;font-weight:700;padding-bottom:3px}
+.big .tr.up{color:#7fd6a0}.big .tr.dn{color:#e79a98}
+.area{height:62px;margin:10px 0 3px}
+.area svg{width:100%;height:100%;display:block}
+.axis{display:flex;justify-content:space-between;font-size:10px;color:#78809c;
+  border-top:1px solid rgba(255,255,255,.09);padding-top:5px}
+.tops{margin:12px 0 0;border-top:1px solid rgba(255,255,255,.09);padding-top:9px}
+.tops .t{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:#8b93ad;
+  font-weight:700;margin-bottom:6px}
+.prow{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:12px}
+.prow .p{color:#cdd4ea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.prow .bar{width:74px;height:4px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}
+.prow .bar i{display:block;height:100%;background:#5a76e8;border-radius:3px}
+.prow .n{font-size:11.5px;color:#8b93ad;font-variant-numeric:tabular-nums;min-width:22px;text-align:right}
+
+.band{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;margin:10px 0 0}
+.band.ok{background:#e7f3ec}.band.bad{background:#faeceb}.band.warn{background:#fdf3e0}
+.band .ic{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  font-size:14px;font-weight:800;color:#fff;flex:none}
+.band.ok .ic{background:#1f7a4d}.band.bad .ic{background:#be3330}.band.warn .ic{background:#8a5a00}
+.band .tx b{display:block;font-size:13px;font-weight:700;line-height:1.3}
+.band.ok .tx b{color:#1f7a4d}.band.bad .tx b{color:#be3330}.band.warn .tx b{color:#8a5a00}
+.band .tx small{font-size:11px;color:#6b6f7e}
+.band .n{margin-left:auto;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.band.ok .n{color:#1f7a4d}.band.bad .n{color:#be3330}.band.warn .n{color:#8a5a00}
+.iss{margin-top:11px;border-top:1px solid #eef0f4;padding-top:4px}
+.irow{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px solid #f5f6f9;
+  text-decoration:none;color:inherit}
+.irow:last-child{border-bottom:none}
+.irow .lv{width:7px;height:7px;border-radius:50%;margin-top:6px;flex:none}
+.lv.err{background:#be3330}.lv.wrn{background:#d99100}.lv.inf{background:#8a8d99}
+.irow .m{flex:1;min-width:0}
+.irow .m b{display:block;font-size:12.5px;font-weight:600;line-height:1.35;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.irow .m small{font-size:10.5px;color:#8a8d99;font-variant-numeric:tabular-nums}
+.irow .c{font-size:11px;font-weight:700;color:#6b6f7e;background:#f2f3f7;border-radius:20px;
+  padding:2px 7px;flex:none;margin-top:2px;font-variant-numeric:tabular-nums}
+.strip{display:flex;gap:3px;align-items:flex-end;height:30px;margin:11px 0 4px}
+.strip i{flex:1;border-radius:2px;background:#e7f3ec;min-height:3px;display:block}
+.strip i.h{background:#f0b8b6}.strip i.hh{background:#be3330}
+.striplbl{display:flex;justify-content:space-between;font-size:10px;color:#8a8d99}
+.mini{display:flex;gap:14px;margin:10px 0 0;padding-top:9px;border-top:1px solid #eef0f4}
+.mini div{font-size:11px;color:#8a8d99}
+.mini div b{display:block;font-size:15px;font-weight:800;color:#1b1d26;
+  font-variant-numeric:tabular-nums;line-height:1.3}
+.foot{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);
+  font-size:12.5px;color:var(--fai)}
+</style>
+
+<div class="wrap">
+<h1>Carduri Trafic si Sanatate</h1>
+<p class="lede">Optiuni de design pentru cele doua carduri din coloana dreapta a
+paginii principale de administrare. Toate cifrele sunt exemple realiste. Fiecare optiune
+foloseste numai date pe care Umami si GlitchTip le returneaza deja, verificate pe instanta locala.</p>
+
+<div class="note"><b>Constrangere de latime.</b> Cardurile stau in coloana din dreapta a
+grilei <code>.a-grid</code>, care este <code>1.5fr 1fr</code>. La latimea obisnuita a
+ecranului asta inseamna aproximativ 404 px. Toate machetele de mai jos sunt desenate
+exact la aceasta latime, deci ce vezi este ce incape. Sub 900 px coloana trece dedesubt
+pe toata latimea.</div>
+
+<h2 class="sec">Ce date exista deja</h2>
+<p class="secnote">Verificat prin apeluri reale catre ambele servicii din containerul
+Strapi. Nimic din ce urmeaza nu este presupus.</p>
+<div class="note">
+<b>Umami</b>, un singur apel <code>/stats</code>: vizitatori, afisari, vizite, respingeri,
+timp total, plus un obiect <code>comparison</code> cu valorile perioadei anterioare pentru
+fiecare dintre ele. Apeluri separate: <code>/pageviews?unit=day</code> pentru serie zilnica,
+<code>/metrics?type=path</code> pentru cele mai vizitate pagini, la fel pentru
+<code>referrer</code>, <code>device</code>, <code>browser</code>, <code>country</code>,
+si <code>/active</code> pentru vizitatori in acest moment.<br><br>
+<b>GlitchTip</b>, un singur apel la lista de incidente: titlu, nivel, numar de aparitii,
+utilizatori afectati, prima si ultima aparitie, stare, cod scurt si legatura directa
+catre incident.
+</div>
+
+<h2 class="sec">Cardul de trafic</h2>
+<p class="secnote">Astazi arata un singur numar si un grafic pe sase luni.</p>
+
+<div class="opts">
+
+  <div class="opt">
+    <header><span class="tag cur">ACUM</span><h3>Designul curent</h3>
+    <p>Vizitatori pe luna, tendinta, grafic pe sase luni.</p></header>
+    <div class="stage"><div class="col">
+      <div class="analytics">
+        <h2>Analiza trafic</h2>
+        <div class="stat"><b>1.284</b><span class="tr up">&#9650; 18%</span></div>
+        <div class="spark"><svg viewBox="0 0 300 34" preserveAspectRatio="none">
+          <polyline fill="none" stroke="#5a76e8" stroke-width="2"
+            points="0,26 60,22 120,24 180,14 240,12 300,6"/></svg></div>
+        <div class="cap">Vizitatori unici pe luna</div>
+      </div>
+    </div></div>
+    <div class="cost"><b>Problema.</b> Sase puncte lunare inseamna ca graficul are forma
+    data de agregare, nu de trafic. Un singur numar din cinci disponibile.</div>
+  </div>
+
+  <div class="opt">
+    <header><span class="tag">A</span><h3>Patru indicatori</h3>
+    <p>Aceleasi date, un singur apel. Fiecare cifra cu propria tendinta.</p></header>
+    <div class="stage"><div class="col">
+      <div class="analytics">
+        <div class="hrow"><h2>Analiza trafic</h2>
+          <span class="livedot"><i></i>3 acum</span></div>
+        <div class="kpis">
+          <div class="kpi"><div class="k">Vizitatori</div><div class="v">1.284</div>
+            <div class="d up">&#9650; 18% fata de luna trecuta</div></div>
+          <div class="kpi"><div class="k">Afisari</div><div class="v">4.910</div>
+            <div class="d up">&#9650; 12%</div></div>
+          <div class="kpi"><div class="k">Vizite</div><div class="v">1.702</div>
+            <div class="d dn">&#9660; 4%</div></div>
+          <div class="kpi"><div class="k">Rata respingere</div><div class="v">38%</div>
+            <div class="d fl">la fel</div></div>
+        </div>
+        <div class="area"><svg viewBox="0 0 300 62" preserveAspectRatio="none">
+          <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#5a76e8" stop-opacity=".45"/>
+            <stop offset="1" stop-color="#5a76e8" stop-opacity="0"/></linearGradient></defs>
+          <path d="M0,48 L25,44 L50,50 L75,33 L100,37 L125,25 L150,29 L175,18 L200,24 L225,12 L250,17 L275,9 L300,14 L300,62 L0,62 Z" fill="url(#g1)"/>
+          <polyline fill="none" stroke="#7f97f2" stroke-width="2"
+            points="0,48 25,44 50,50 75,33 100,37 125,25 150,29 175,18 200,24 225,12 250,17 275,9 300,14"/>
+          <circle cx="300" cy="14" r="3" fill="#fff"/></svg></div>
+        <div class="axis"><span>1 sept.</span><span>zilnic</span><span>azi</span></div>
+      </div>
+    </div></div>
+    <div class="cost"><b>Cost.</b>
+      <ul><li>Cei patru indicatori si tendintele lor: zero apeluri noi, sunt deja in raspuns.</li>
+      <li>Graficul zilnic: un apel in plus la <code>/pageviews?unit=day</code>.</li>
+      <li>Pastila cu vizitatori in acest moment: un apel in plus la <code>/active</code>.</li></ul></div>
+  </div>
+
+  <div class="opt">
+    <header><span class="tag">B</span><h3>Un numar, cu context</h3>
+    <p>Ramane la un singur mesaj, dar il face lizibil dintr-o privire.</p></header>
+    <div class="stage"><div class="col">
+      <div class="analytics">
+        <div class="hrow"><h2>Analiza trafic</h2>
+          <a class="lnk" href="#">Vezi tot &rsaquo;</a></div>
+        <div class="big"><b>1.284</b><span class="tr up">&#9650; 18%</span></div>
+        <div class="cap">Vizitatori in septembrie, fata de 1.088 in august</div>
+        <div class="area"><svg viewBox="0 0 300 62" preserveAspectRatio="none">
+          <defs><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#5a76e8" stop-opacity=".45"/>
+            <stop offset="1" stop-color="#5a76e8" stop-opacity="0"/></linearGradient></defs>
+          <path d="M0,48 L25,44 L50,50 L75,33 L100,37 L125,25 L150,29 L175,18 L200,24 L225,12 L250,17 L275,9 L300,14 L300,62 L0,62 Z" fill="url(#g2)"/>
+          <polyline fill="none" stroke="#7f97f2" stroke-width="2"
+            points="0,48 25,44 50,50 75,33 100,37 125,25 150,29 175,18 200,24 225,12 250,17 275,9 300,14"/>
+          <circle cx="300" cy="14" r="3" fill="#fff"/></svg></div>
+        <div class="axis"><span>1 sept.</span><span>azi</span></div>
+        <div class="tops"><div class="t">Cele mai vizitate pagini</div>
+          <div class="prow"><span class="p">/</span><span class="bar"><i style="width:100%"></i></span><span class="n">612</span></div>
+          <div class="prow"><span class="p">/cursuri</span><span class="bar"><i style="width:47%"></i></span><span class="n">288</span></div>
+          <div class="prow"><span class="p">/despre-noi/sportivi</span><span class="bar"><i style="width:31%"></i></span><span class="n">190</span></div>
+        </div>
+      </div>
+    </div></div>
+    <div class="cost"><b>Cost.</b>
+      <ul><li>Comparatia in text: deja in raspuns.</li>
+      <li>Graficul zilnic: un apel in plus.</li>
+      <li>Lista de pagini: un apel in plus la <code>/metrics?type=path</code>.</li></ul></div>
+  </div>
+
+  <div class="opt">
+    <header><span class="tag">C</span><h3>Card alb, ca restul paginii</h3>
+    <p>Aceleasi date ca la A, dar fara cardul inchis la culoare.</p></header>
+    <div class="stage"><div class="col">
+      <div class="card">
+        <div class="hrow"><h2>Analiza trafic</h2>
+          <a class="lnk" href="#">Vezi tot &rsaquo;</a></div>
+        <div style="display:flex;align-items:flex-end;gap:9px;margin:9px 0 1px">
+          <b style="font-size:32px;font-weight:800;letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums">1.284</b>
+          <span style="font-size:11.5px;font-weight:700;color:#1f7a4d;padding-bottom:3px">&#9650; 18%</span></div>
+        <div style="font-size:11px;color:#8a8d99;margin-bottom:2px">Vizitatori in septembrie</div>
+        <div class="area"><svg viewBox="0 0 300 62" preserveAspectRatio="none">
+          <defs><linearGradient id="g3" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#2138b8" stop-opacity=".22"/>
+            <stop offset="1" stop-color="#2138b8" stop-opacity="0"/></linearGradient></defs>
+          <path d="M0,48 L25,44 L50,50 L75,33 L100,37 L125,25 L150,29 L175,18 L200,24 L225,12 L250,17 L275,9 L300,14 L300,62 L0,62 Z" fill="url(#g3)"/>
+          <polyline fill="none" stroke="#2138b8" stroke-width="2"
+            points="0,48 25,44 50,50 75,33 100,37 125,25 150,29 175,18 200,24 225,12 250,17 275,9 300,14"/>
+          <circle cx="300" cy="14" r="3" fill="#2138b8"/></svg></div>
+        <div class="mini">
+          <div><b>4.910</b>afisari</div>
+          <div><b>1.702</b>vizite</div>
+          <div><b>38%</b>respingeri</div>
+          <div><b>2m 14s</b>timp mediu</div>
+        </div>
+      </div>
+    </div></div>
+    <div class="cost"><b>Cost.</b> Identic cu A minus pastila live. <b>De decis:</b> cardul
+    inchis la culoare este singurul element de acest fel din pagina. Il tratam ca accent
+    intentionat sau il aliniem la restul?</div>
+  </div>
+
+</div>
+
+<h2 class="sec">Cardul de sanatate</h2>
+<p class="secnote">Astazi arata numarul de erori din ultimele 24 de ore si o eticheta.
+Cand totul merge bine afiseaza un zero, ceea ce este corect dar nu spune nimic.</p>
+
+<div class="opts">
+
+  <div class="opt">
+    <header><span class="tag cur">ACUM</span><h3>Designul curent</h3>
+    <p>Numar, eticheta, pastila de stare.</p></header>
+    <div class="stage"><div class="col">
+      <div class="card health">
+        <h2>Sanatate site</h2>
+        <div class="hstat"><span class="hnum bad">3</span>
+          <div class="hlbl"><b>erori in 24h</b><small>Verifica GlitchTip</small></div>
+          <span class="hbadge bad">ATENTIE</span></div>
+      </div>
+    </div></div>
+    <div class="cost"><b>Problema.</b> Spune ca exista erori, dar nu care sunt. Trebuie sa
+    deschizi GlitchTip ca sa afli daca e ceva serios sau acelasi robot care cere un fisier inexistent.</div>
+  </div>
+
+  <div class="opt">
+    <header><span class="tag">D</span><h3>Stare, apoi incidentele</h3>
+    <p>Aceeasi banda de stare, urmata de ce anume s-a stricat.</p></header>
+    <div class="stage"><div class="col">
+      <div class="card health">
+        <div class="hrow"><h2>Sanatate site</h2>
+          <a class="lnk" href="#">Deschide GlitchTip &rsaquo;</a></div>
+        <div class="band bad"><span class="ic">!</span>
+          <div class="tx"><b>3 erori in ultimele 24 de ore</b>
+            <small>Cea mai recenta acum 12 minute</small></div>
+          <span class="n">3</span></div>
+        <div class="iss">
+          <a class="irow" href="#"><span class="lv err"></span>
+            <div class="m"><b>TypeError: cannot read properties of undefined</b>
+              <small>EDUSPORT-FRONTEND-14 &middot; acum 12 min</small></div>
+            <span class="c">8&times;</span></a>
+          <a class="irow" href="#"><span class="lv err"></span>
+            <div class="m"><b>FetchError: request to /api/homepage failed</b>
+              <small>EDUSPORT-BACKEND-9 &middot; acum 3 ore</small></div>
+            <span class="c">2&times;</span></a>
+          <a class="irow" href="#"><span class="lv wrn"></span>
+            <div class="m"><b>Warning: imagine lipsa pentru sportiv</b>
+              <small>EDUSPORT-BACKEND-7 &middot; acum 9 ore</small></div>
+            <span class="c">1&times;</span></a>
+        </div>
+      </div>
+    </div></div>
+    <div class="cost"><b>Cost.</b> Zero apeluri noi. Titlul, nivelul, numarul de aparitii,
+    codul scurt si legatura directa vin toate in acelasi raspuns pe care il cerem deja.
+    Cand nu exista erori, banda devine verde si lista dispare.</div>
+  </div>
+
+  <div class="opt">
+    <header><span class="tag">E</span><h3>Sapte zile dintr-o privire</h3>
+    <p>Arata daca e o problema noua sau una care dureaza de o saptamana.</p></header>
+    <div class="stage"><div class="col">
+      <div class="card health">
+        <div class="hrow"><h2>Sanatate site</h2>
+          <a class="lnk" href="#">Deschide GlitchTip &rsaquo;</a></div>
+        <div class="band warn"><span class="ic">!</span>
+          <div class="tx"><b>3 erori in ultimele 24 de ore</b>
+            <small>11 in ultimele 7 zile</small></div>
+          <span class="n">3</span></div>
+        <div class="strip">
+          <i style="height:20%"></i><i style="height:8%"></i><i style="height:45%" class="h"></i>
+          <i style="height:12%"></i><i style="height:8%"></i><i style="height:30%" class="h"></i>
+          <i style="height:70%" class="hh"></i>
+        </div>
+        <div class="striplbl"><span>acum 7 zile</span><span>azi</span></div>
+        <div class="iss">
+          <a class="irow" href="#"><span class="lv err"></span>
+            <div class="m"><b>TypeError: cannot read properties of undefined</b>
+              <small>EDUSPORT-FRONTEND-14 &middot; acum 12 min</small></div>
+            <span class="c">8&times;</span></a>
+        </div>
+      </div>
+    </div></div>
+    <div class="cost"><b>Cost.</b> Lista si banda: zero apeluri noi. <b>Bara pe sapte zile:
+    de verificat.</b> Se poate construi grupand incidentele dupa <code>lastSeen</code>, dar
+    asta numara doar incidentele vazute ultima oara in ziua respectiva, nu toate aparitiile
+    din acea zi. Daca vrei bara corecta, trebuie sa confirm intai ca instanta expune
+    un capat de tip serie in timp. Nu il implementez pe presupunere.</div>
+  </div>
+
+  <div class="opt">
+    <header><span class="tag">F</span><h3>Totul merge bine</h3>
+    <p>Cum arata optiunea D in cazul obisnuit, cand nu exista nicio eroare.</p></header>
+    <div class="stage"><div class="col">
+      <div class="card health">
+        <div class="hrow"><h2>Sanatate site</h2>
+          <a class="lnk" href="#">Deschide GlitchTip &rsaquo;</a></div>
+        <div class="band ok"><span class="ic">&#10003;</span>
+          <div class="tx"><b>Nicio eroare in ultimele 24 de ore</b>
+            <small>Ultima verificare acum cateva secunde</small></div></div>
+        <div class="mini">
+          <div><b>0</b>ultimele 24h</div>
+          <div><b>2</b>ultimele 7 zile</div>
+          <div><b>4 zile</b>fara erori</div>
+        </div>
+      </div>
+    </div></div>
+    <div class="cost"><b>De remarcat.</b> Starea buna este cazul obisnuit, deci merita
+    desenata, nu lasata sa fie un zero. <b>Atentie:</b> cifra pe sapte zile si numarul de
+    zile fara erori cer un al doilea apel cu o fereastra mai lunga. Se poate, dar spune
+    daca le vrei sau taiem randul de jos.</div>
+  </div>
+
+</div>
+
+<h2 class="sec">Ce trebuie sa decizi</h2>
+<div class="note">
+1. Cardul de trafic: <b>A</b>, <b>B</b> sau <b>C</b>.<br>
+2. Cardul de sanatate: <b>D</b> sau <b>E</b>, iar <b>F</b> arata starea buna pentru oricare dintre ele.<br>
+3. Cardul inchis la culoare ramane accent sau devine alb ca restul paginii.<br>
+4. La optiunea F, pastram randul cu cifre pe sapte zile sau nu.
+</div>
+
+<p class="foot">Machete pentru aprobare. Nimic nu este implementat inca.</p>
+</div>

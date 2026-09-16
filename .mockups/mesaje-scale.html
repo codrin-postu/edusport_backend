@@ -1,0 +1,278 @@
+<style>
+:root{
+  --bg:#eef0f4;--surface:#fff;--ink:#1b1d26;--ink-soft:#4a4d5a;--muted:#8a8d99;
+  --line:#e2e4ea;--accent:#2138b8;--accent-soft:#eef1fb;--navy:#0e1a3c;--ok:#1f7a4d;--danger:#be3330;--amber:#e08a00;
+  --shadow:0 8px 30px rgba(18,22,45,.10);--sys:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}}
+:root[data-theme="dark"]{--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}
+:root[data-theme="light"]{--bg:#eef0f4;--surface:#fff;--ink:#1b1d26;--ink-soft:#4a4d5a;--muted:#8a8d99;--line:#e2e4ea;--accent-soft:#eef1fb;--shadow:0 8px 30px rgba(18,22,45,.10)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sys);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 120px}
+.mast{padding:52px 0 26px;border-bottom:1px solid var(--line)}
+.kick{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 13px}
+.mast h1{font-size:clamp(26px,3.6vw,38px);line-height:1.1;margin:0 0 12px;font-weight:800;letter-spacing:-.02em;text-wrap:balance;max-width:22ch}
+.mast p{margin:0;max-width:66ch;color:var(--ink-soft);font-size:15px}
+.sec{padding:46px 0;border-bottom:1px solid var(--line)}
+.sec-head{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.sec-no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:3px 9px;flex-shrink:0}
+.sec h2{font-size:22px;font-weight:800;letter-spacing:-.015em;margin:0}
+.sec .tagline{color:var(--muted);font-size:14px;font-weight:600}
+.sec .lead{color:var(--ink-soft);font-size:14.5px;margin:12px 0 0;max-width:78ch}
+.sec .lead b{color:var(--ink)}
+.frame{margin-top:24px;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface)}
+.frame-cap{padding:9px 15px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.scrollx{overflow-x:auto}
+.notes{display:flex;flex-wrap:wrap;gap:22px;margin-top:20px}
+.notes .col{flex:1;min-width:240px}
+.notes h4{margin:0 0 7px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.notes ul{margin:0;padding-left:16px;font-size:13.5px;color:var(--ink-soft)}
+.notes li{margin:4px 0}
+.notes b{color:var(--ink)}
+.rec-box{margin-top:30px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:12px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start}
+.rec-box .st{width:26px;height:26px;flex-shrink:0;border-radius:7px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+.rec-box h4{margin:0 0 4px;font-size:13px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--accent)}
+.rec-box p{margin:0;font-size:14px;color:var(--ink-soft)}.rec-box b{color:var(--ink)}
+.foot{padding:34px 0 0;color:var(--muted);font-size:13px}
+
+/* ===== admin mock, exact tokens ===== */
+.scr{display:flex;width:1040px;font-family:system-ui,-apple-system,sans-serif;color:#1b1d26;background:#f6f7f9}
+.scr *{box-sizing:border-box}
+.scr-side{width:184px;flex-shrink:0;background:#0e1a3c;color:#c8cee0;padding:12px 0}
+.scr-brand{display:flex;align-items:center;gap:8px;padding:0 14px 12px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:6px}
+.scr-brand .mk{width:26px;height:26px;border-radius:7px;background:#2138b8;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:11px}
+.scr-brand b{color:#fff;font-size:13px}.scr-brand small{display:block;color:#8b93ad;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.scr-side a{display:flex;align-items:center;gap:9px;padding:7px 14px;font-size:12px;color:#c8cee0;text-decoration:none}
+.scr-side a .d{width:9px;height:9px;border-radius:2px;background:currentColor;opacity:.7}
+.scr-side a.on{background:rgba(33,56,184,.35);color:#fff;box-shadow:inset 3px 0 0 #4d68ff}
+.scr-side a .badge{margin-left:auto;background:#be3330;color:#fff;font-size:9px;font-weight:800;border-radius:20px;padding:1px 6px}
+.scr-side .g{padding:10px 14px 3px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#727b97;font-weight:700}
+.scr-main{flex:1;min-width:0;padding:18px 20px 22px;overflow:hidden}
+.num{font-variant-numeric:tabular-nums}
+
+/* reason chips */
+.rc{display:inline-block;font-size:10px;font-weight:700;border-radius:20px;padding:2px 8px;white-space:nowrap}
+.rc.inscriere{color:#1f7a4d;background:#e7f3ec}
+.rc.tarife{color:#a05e00;background:#fbf1e0}
+.rc.program{color:#00707a;background:#e0f3f4}
+.rc.info{color:#2138b8;background:#eef1fb}
+.rc.parteneriat{color:#7a1fa2;background:#f5e9f9}
+.rc.feedback{color:#0e7490;background:#e3f4f8}
+.rc.altele{color:#5a5e6b;background:#eef0f3}
+
+/* ===== dashboard summary panel ===== */
+.dash-note{font-size:11px;color:#8a8d99;margin:0 0 12px}
+.mcard{background:#fff;border:1px solid #e6e7ec;border-radius:12px;padding:15px 16px;max-width:360px}
+.mcard-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.mcard-h .t{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#666;font-weight:700}
+.mcard-h .cnt{background:#be3330;color:#fff;font-size:11px;font-weight:800;border-radius:20px;padding:3px 10px}
+.mrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f0f0f2}
+.mrow:first-of-type{border-top:none}
+.mrow .dot{width:7px;height:7px;border-radius:50%;background:#be3330;flex-shrink:0}
+.mrow .who{min-width:0;flex:1}
+.mrow .who b{font-size:13px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrow .who small{font-size:11px;color:#8a8d99}
+.mrow .tm{font-size:10.5px;color:#8a8d99;flex-shrink:0}
+.mcard-f{margin-top:12px;padding-top:11px;border-top:1px solid #f0f0f2}
+.mcard-f a{display:flex;align-items:center;justify-content:center;gap:6px;font-size:12.5px;font-weight:600;color:#2138b8;text-decoration:none;padding:8px;border:1px solid #dfe3f5;border-radius:8px}
+
+/* ===== full inbox ===== */
+.inbox-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.inbox-top h1{margin:0;font-size:18px;font-weight:800;letter-spacing:-.01em}
+.inbox-top .sum{font-size:12px;color:#8a8d99}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #e6e7ec;margin-bottom:12px}
+.tabs .tab{display:flex;align-items:center;gap:6px;padding:8px 12px;font-size:12.5px;color:#5a5e6b;border-bottom:2px solid transparent;cursor:default}
+.tabs .tab .b{font-size:10px;font-weight:800;border-radius:20px;padding:1px 7px;background:#eef0f3;color:#5a5e6b}
+.tabs .tab.on{color:#2138b8;border-bottom-color:#2138b8;font-weight:700}
+.tabs .tab.on .b{background:#be3330;color:#fff}
+.toolbar{display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
+.search{flex:1;min-width:150px;display:flex;align-items:center;gap:7px;border:1px solid #d0d0d0;border-radius:8px;padding:6px 10px;background:#fff}
+.search input{border:none;outline:none;font-size:12.5px;width:100%;font-family:inherit;background:transparent;color:#1b1d26}
+.selct{border:1px solid #d0d0d0;border-radius:8px;padding:6px 10px;font-size:12.5px;background:#fff;color:#5a5e6b}
+.bulkbar{display:flex;align-items:center;gap:10px;background:#eef1fb;border:1px solid #cdd6f6;border-radius:8px;padding:7px 12px;margin-bottom:10px;font-size:12px}
+.bulkbar b{color:#2138b8}
+.bulkbar .act{margin-left:auto;display:flex;gap:8px}
+.bulkbar .act span{font-size:12px;color:#2138b8;font-weight:600;padding:4px 9px;border:1px solid #cdd6f6;border-radius:7px;background:#fff}
+
+.pane{display:grid;grid-template-columns:352px 1fr;gap:14px;align-items:start}
+.list{background:#fff;border:1px solid #e6e7ec;border-radius:11px;overflow:hidden}
+.grp{padding:8px 13px 5px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#8a8d99;font-weight:700;background:#fafbfc;border-bottom:1px solid #f0f0f2}
+.li{display:flex;gap:10px;padding:10px 13px;border-bottom:1px solid #f2f3f5;cursor:default;align-items:flex-start}
+.li:last-child{border-bottom:none}
+.li.sel{background:#f5f7ff;box-shadow:inset 3px 0 0 #2138b8}
+.li .chk{width:15px;height:15px;border:1.5px solid #c4c4c4;border-radius:4px;flex-shrink:0;margin-top:2px}
+.li.sel .chk,.li .chk.ck{background:#2138b8;border-color:#2138b8}
+.li .bd{flex:1;min-width:0}
+.li .l1{display:flex;align-items:center;gap:7px}
+.li .l1 b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li.unread .l1 b{font-weight:800}
+.li .l1 .nd{width:6px;height:6px;border-radius:50%;background:#be3330;flex-shrink:0}
+.li .l1 .tm{margin-left:auto;font-size:10px;color:#9a9da8;flex-shrink:0}
+.li .snip{font-size:11.5px;color:#8a8d99;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .chips{margin-top:5px}
+.pager{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;background:#fafbfc;border-top:1px solid #f0f0f2;font-size:11.5px;color:#8a8d99}
+.pager .pgs{display:flex;gap:4px}
+.pager .pg{min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;border:1px solid #e0e2e8;border-radius:6px;font-size:11px;color:#5a5e6b}
+.pager .pg.on{background:#2138b8;color:#fff;border-color:#2138b8;font-weight:700}
+
+.reader{background:#fff;border:1px solid #e6e7ec;border-radius:11px;padding:16px 18px;min-width:0}
+.reader .rh{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid #f0f0f2}
+.reader .rh h3{margin:0;font-size:16px;font-weight:800}
+.reader .rh .meta{font-size:12px;color:#8a8d99;margin-top:3px}
+.reader .rh .meta a{color:#2138b8;text-decoration:none}
+.reader .msg{font-size:13.5px;color:#2b2e38;line-height:1.6;padding:13px 0;border-bottom:1px solid #f0f0f2}
+.reader .lbl{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#8a8d99;font-weight:700;margin:13px 0 6px}
+.reader .note{width:100%;border:1px solid #d0d0d0;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#5a5e6b;background:#fafafa;font-family:inherit}
+.reader .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.reader .btn{font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:8px;border:1px solid #e6e7ec;background:#fff;color:#1b1d26}
+.reader .btn.pri{background:#2138b8;color:#fff;border-color:#2138b8}
+.reader .btn.g{color:#1f7a4d;border-color:#bfe0cc}
+@media(max-width:700px){.pane{grid-template-columns:1fr}}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <p class="kick">EduSport / Panou / Mesaje contact</p>
+    <h1>Cum arată la scară, de la 2 la 100+ mesaje</h1>
+    <p>Regula: pe tabloul de bord ține doar rezumatul (numărul plus câteva previzualizări), iar procesarea a zeci sau sute de mesaje se face pe o pagină dedicată, cu filtre, căutare, paginare și acțiuni în bloc. Așa, 2 mesaje și 128 de mesaje arată la fel de ordonat.</p>
+  </header>
+
+  <!-- SECTION 1: dashboard summary -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">1</span><h2>Pe tabloul de bord: doar rezumatul</h2><span class="tagline">nu crește niciodată</span></div>
+    <p class="lead">Cardul de pe pagina de start arată <b>numărul</b> de mesaje noi și doar cele mai recente <b>3</b>, apoi un buton „Vezi toate". Chiar dacă vin 128 de mesaje, cardul rămâne mic; numărul urcă, lista nu.</p>
+
+    <div class="frame">
+      <div class="frame-cap">Cardul de pe pagina de start, cu 37 de mesaje noi</div>
+      <div style="padding:20px;background:#f6f7f9;display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <p class="dash-note">Stare obișnuită</p>
+          <div class="mcard">
+            <div class="mcard-h"><span class="t">Mesaje contact noi</span><span class="cnt">37 noi</span></div>
+            <div class="mrow"><span class="dot"></span><span class="who"><b>Maria Pop</b><small><span class="rc inscriere">Înscriere</span></small></span><span class="tm">acum 20 min</span></div>
+            <div class="mrow"><span class="dot"></span><span class="who"><b>Andrei Ionescu</b><small><span class="rc tarife">Tarife</span></small></span><span class="tm">acum 2 ore</span></div>
+            <div class="mrow"><span class="dot"></span><span class="who"><b>Elena Vasile</b><small><span class="rc program">Program</span></small></span><span class="tm">azi 09:14</span></div>
+            <div class="mcard-f"><a>Vezi toate mesajele (37) &rarr;</a></div>
+          </div>
+        </div>
+        <div>
+          <p class="dash-note">Început de sezon, 128 de mesaje</p>
+          <div class="mcard">
+            <div class="mcard-h"><span class="t">Mesaje contact noi</span><span class="cnt num">128 noi</span></div>
+            <div class="mrow"><span class="dot"></span><span class="who"><b>Ioana Rusu</b><small><span class="rc inscriere">Înscriere</span></small></span><span class="tm">acum 3 min</span></div>
+            <div class="mrow"><span class="dot"></span><span class="who"><b>Vlad Dumitru</b><small><span class="rc inscriere">Înscriere</span></small></span><span class="tm">acum 8 min</span></div>
+            <div class="mrow"><span class="dot"></span><span class="who"><b>Cristina Marin</b><small><span class="rc info">Info cursuri</span></small></span><span class="tm">acum 15 min</span></div>
+            <div class="mcard-f"><a>Vezi toate mesajele (128) &rarr;</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:16px">Aceeași informație și în bara laterală: lângă „Mesaje contact" apare un contor roșu care arată câte sunt noi, ca la un inbox.</p>
+  </section>
+
+  <!-- SECTION 2: full inbox -->
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">2</span><h2>Pagina „Mesaje": inbox pentru volum mare</h2><span class="tagline">filtre, căutare, paginare, acțiuni în bloc</span></div>
+    <p class="lead">Aici procesezi 100+ mesaje fără să te pierzi: <b>taburi pe stare</b> cu numărătoare, <b>căutare</b> după nume sau email, <b>filtru pe motiv</b>, listă <b>paginată</b> (25 pe pagină) grupată pe zile, <b>selectare în bloc</b> pentru „marchează citit" sau „arhivează", și un panou de citire în dreapta.</p>
+
+    <div class="frame">
+      <div class="frame-cap">Pagina Mesaje, tabul „Noi" cu 128 de mesaje, 3 selectate</div>
+      <div class="scrollx">
+      <div class="scr">
+        <aside class="scr-side">
+          <div class="scr-brand"><span class="mk">ES</span><span><b>EduSport</b><small>Panou</small></span></div>
+          <a><span class="d"></span>Acasă</a>
+          <a><span class="d"></span>Setări site</a>
+          <a><span class="d"></span>Anunț popup</a>
+          <div class="g">Comunicare</div>
+          <a class="on"><span class="d"></span>Mesaje contact <span class="badge num">128</span></a>
+          <a><span class="d"></span>Articole</a>
+        </aside>
+        <main class="scr-main">
+          <div class="inbox-top">
+            <h1>Mesaje contact</h1>
+            <span class="sum num">128 noi &middot; 12 citite &middot; 340 în total</span>
+          </div>
+
+          <div class="tabs">
+            <div class="tab on">Noi <span class="b num">128</span></div>
+            <div class="tab">Citite <span class="b num">12</span></div>
+            <div class="tab">Răspunse <span class="b num">188</span></div>
+            <div class="tab">Arhivate <span class="b num">12</span></div>
+            <div class="tab">Toate</div>
+          </div>
+
+          <div class="toolbar">
+            <div class="search"><span style="color:#9a9da8">&#9906;</span><input placeholder="Caută după nume sau email" /></div>
+            <select class="selct"><option>Toate motivele</option><option>Înscriere</option><option>Tarife</option><option>Program</option></select>
+            <select class="selct"><option>Cele mai noi</option><option>Cele mai vechi</option></select>
+          </div>
+
+          <div class="bulkbar"><b>3 selectate</b><span class="act"><span>Marchează citit</span><span>Arhivează</span></span></div>
+
+          <div class="pane">
+            <div class="list">
+              <div class="grp">Azi</div>
+              <div class="li unread sel"><span class="chk ck"></span><div class="bd"><div class="l1"><span class="nd"></span><b>Ioana Rusu</b><span class="tm">acum 3 min</span></div><div class="snip">Bună ziua, aș dori să înscriu fetița la grupa de...</div><div class="chips"><span class="rc inscriere">Înscriere</span></div></div></div>
+              <div class="li unread sel"><span class="chk ck"></span><div class="bd"><div class="l1"><span class="nd"></span><b>Vlad Dumitru</b><span class="tm">acum 8 min</span></div><div class="snip">Salut, ce acte sunt necesare pentru înscriere și...</div><div class="chips"><span class="rc inscriere">Înscriere</span></div></div></div>
+              <div class="li unread sel"><span class="chk ck"></span><div class="bd"><div class="l1"><span class="nd"></span><b>Cristina Marin</b><span class="tm">acum 15 min</span></div><div class="snip">Aș vrea informații despre cursurile pentru adulți...</div><div class="chips"><span class="rc info">Info cursuri</span></div></div></div>
+              <div class="li unread"><span class="chk"></span><div class="bd"><div class="l1"><span class="nd"></span><b>Andrei Ionescu</b><span class="tm">acum 2 ore</span></div><div class="snip">Care sunt tarifele pentru abonamentul lunar la...</div><div class="chips"><span class="rc tarife">Tarife</span></div></div></div>
+              <div class="li unread"><span class="chk"></span><div class="bd"><div class="l1"><span class="nd"></span><b>Elena Vasile</b><span class="tm">azi 09:14</span></div><div class="snip">Bună, la ce ore are loc grupa de avansați?</div><div class="chips"><span class="rc program">Program</span></div></div></div>
+              <div class="grp">Ieri</div>
+              <div class="li unread"><span class="chk"></span><div class="bd"><div class="l1"><span class="nd"></span><b>George Stan</b><span class="tm">ieri 18:40</span></div><div class="snip">Suntem interesați de un parteneriat pentru...</div><div class="chips"><span class="rc parteneriat">Parteneriat</span></div></div></div>
+              <div class="li unread"><span class="chk"></span><div class="bd"><div class="l1"><span class="nd"></span><b>Diana Toma</b><span class="tm">ieri 12:05</span></div><div class="snip">Felicitări pentru organizare, copilul meu...</div><div class="chips"><span class="rc feedback">Feedback</span></div></div></div>
+              <div class="pager"><span class="num">1 - 25 din 128</span><span class="pgs"><span class="pg on">1</span><span class="pg">2</span><span class="pg">3</span><span class="pg">4</span><span class="pg">5</span><span class="pg">&rsaquo;</span></span></div>
+            </div>
+
+            <div class="reader">
+              <div class="rh">
+                <div>
+                  <h3>Ioana Rusu</h3>
+                  <div class="meta"><a>ioana.rusu@email.com</a> &middot; 0740 123 456</div>
+                  <div class="meta">Trimis azi, 26 aug 2026, 14:37</div>
+                </div>
+                <span class="rc inscriere" style="font-size:11px;padding:3px 10px">Înscriere</span>
+              </div>
+              <div class="msg">Bună ziua, aș dori să înscriu fetița la grupa de începători. Are 6 ani și nu a mai patinat până acum. Care este programul pentru grupa de copii și ce echipament are nevoie la primul antrenament? Mulțumesc.</div>
+              <div class="lbl">Notă internă (privată)</div>
+              <textarea class="note" rows="2" placeholder="Ex. Sunat, revin luni cu programul grupelor."></textarea>
+              <div class="acts">
+                <span class="btn pri">Marchează citit</span>
+                <span class="btn g">Răspuns trimis</span>
+                <span class="btn">Arhivează</span>
+                <span class="btn">Răspunde prin email</span>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="col"><h4>Cum ține pasul cu volumul</h4><ul>
+        <li><b>Numărul întâi:</b> vezi imediat câte sunt, nu o listă infinită</li>
+        <li><b>Paginare 25/pagină:</b> lista nu se încarcă niciodată toată odată</li>
+        <li><b>Grupare pe zile:</b> Azi / Ieri / mai vechi</li>
+        <li><b>Căutare + filtru pe motiv:</b> găsești un mesaj în secunde</li>
+      </ul></div>
+      <div class="col"><h4>Procesare rapidă</h4><ul>
+        <li><b>Selectare în bloc:</b> „marchează citit" sau „arhivează" pentru zeci deodată</li>
+        <li><b>Taburi pe stare:</b> Noi golește pe măsură ce le tratezi</li>
+        <li><b>Panou de citire:</b> mesajul întreg fără să pleci din listă</li>
+        <li><b>Notă internă + răspuns pe email</b> direct din mesaj</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <div class="rec-box">
+    <span class="st">&#10003;</span>
+    <div>
+      <h4>Ce propun să construim</h4>
+      <p><b>Cardul rezumat pe pagina de start</b> (număr + 3 recente + „Vezi toate") și <b>pagina Mesaje</b> ca inbox cu taburi, căutare, filtru pe motiv, paginare, selectare în bloc și panou de citire. Linkul „Mesaje contact" din bară duce la acest inbox, iar contorul roșu arată câte sunt noi. Toate acțiunile schimbă doar <code style="font-family:var(--mono);background:var(--accent-soft);color:var(--accent);padding:1px 5px;border-radius:4px">triageStatus</code>, exact ce permite deja modelul. Așa, 2 sau 200 de mesaje se gestionează la fel de curat.</p>
+    </div>
+  </div>
+
+  <p class="foot">Machete de prezentare. Numele și mesajele sunt ilustrative. Nimic nu a fost aplicat în panoul real; după ce aprobi, construiesc și verific în admin.</p>
+</div>

@@ -1,0 +1,547 @@
+<style>
+/* ============================================================
+   PRESENTATION FRAME.
+   All calendar/panel CSS below is copied verbatim from
+   ProgramOverviewEditor.tsx. Serii CSS reflects the current
+   ScheduleGroupsEditor (Strapi design-system fields).
+   ============================================================ */
+:root{
+  --bg:#eef0f4; --ink:#1b1d26; --ink-soft:#4a4d5a; --muted:#8a8d99;
+  --line:#e2e4ea; --accent:#2138b8; --accent-soft:#eef1fb; --danger:#be3330; --ok:#1f7a4d;
+  --shadow:0 6px 24px rgba(18,22,45,.08);
+  --sys:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sys);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px 110px}
+.mast{padding:52px 0 26px;border-bottom:1px solid var(--line)}
+.kick{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 13px}
+.mast h1{font-size:clamp(26px,3.6vw,38px);line-height:1.1;margin:0 0 12px;font-weight:800;letter-spacing:-.02em;max-width:26ch}
+.mast p{margin:0;max-width:72ch;color:var(--ink-soft);font-size:15px}
+.part{margin:44px 0 0;padding:16px 0 0;border-top:2px solid var(--ink)}
+.part h2{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em}
+.part p{margin:8px 0 0;color:var(--ink-soft);font-size:14.5px;max-width:78ch}
+.sec{padding:38px 0;border-bottom:1px solid var(--line)}
+.sec-head{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.sec-no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:3px 9px}
+.sec h3{font-size:20px;font-weight:800;letter-spacing:-.015em;margin:0}
+.lead{color:var(--ink-soft);font-size:14.5px;margin:11px 0 0;max-width:82ch}
+.lead b{color:var(--ink)}
+.tag{display:inline-block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:5px}
+.tag.now{color:#8a8d99;background:#f2f3f6;border:1px solid #dfe1e7}
+.tag.opt{color:#2138b8;background:#eef1fb;border:1px solid #cdd6f6}
+.stage{margin-top:20px;display:flex;flex-direction:column;gap:9px}
+.stage-cap{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.frame{border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);background:#fff;padding:16px;overflow:hidden}
+.pros{display:flex;gap:26px;flex-wrap:wrap;margin-top:14px;font-size:13.5px}
+.pros>div{flex:1 1 250px}
+.pros h4{margin:0;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.pros ul{margin:6px 0 0;padding-left:18px;color:var(--ink-soft)}
+.note{margin-top:18px;padding:13px 15px;border-left:3px solid var(--accent);background:var(--accent-soft);font-size:13.5px;color:var(--ink-soft);border-radius:0 6px 6px 0}
+.note b{color:var(--ink)}
+.note.warn{border-left-color:var(--danger);background:#faeceb}
+table.spec{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:16px}
+table.spec th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line)}
+table.spec td{padding:8px 10px;border-bottom:1px solid #f0f1f4;vertical-align:top}
+table.spec code{font-family:var(--mono);font-size:12px;background:#f4f5f8;padding:1px 5px;border-radius:4px}
+
+/* ====== REAL panel CSS (ProgramOverviewEditor.tsx) ====== */
+.pce-panel { width:100%; display:flex; flex-direction:column; border:1px solid #dcdcdc; border-radius:10px; background:#fff; box-shadow:0 6px 24px rgba(0,0,0,.08); overflow:hidden; font-family:system-ui,-apple-system,sans-serif; }
+.pce-panel .ph { display:flex; justify-content:space-between; align-items:center; padding:14px 15px; border-bottom:1px solid #eee; }
+.pce-panel .ph h4 { margin:0; font-size:15px; }
+.pce-panel .x { color:#999; cursor:pointer; font-size:20px; line-height:1; }
+.pce-body { padding:15px; }
+.fld { margin-bottom:11px; }
+.fld label { display:block; font-size:10px; color:#888; margin-bottom:3px; text-transform:uppercase; letter-spacing:.05em; }
+.fld input, .fld select, .fld textarea { width:100%; padding:6px 8px; border:1px solid #d0d0d0; border-radius:6px; font-size:13px; box-sizing:border-box; font-family:inherit; }
+.row2 { display:flex; gap:8px; }
+.row2 > .fld { flex:1; }
+.chk { display:flex; align-items:center; gap:7px; font-size:13px; color:#333; margin-bottom:11px; }
+.sec2 { border-top:1px solid #eee; margin-top:12px; padding-top:11px; }
+.sec2 .st { font-size:11px; font-weight:700; color:#666; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }
+.sec2 .opt2 { font-weight:400; color:#aaa; text-transform:none; letter-spacing:0; }
+.pills { display:flex; gap:5px; }
+.pill { width:28px; height:28px; border-radius:50%; border:1px solid #d0d0d0; display:flex; align-items:center; justify-content:center; font-size:11px; color:#555; }
+.pill.on { background:#2138b8; color:#fff; border-color:#2138b8; font-weight:600; }
+.img { display:flex; gap:10px; align-items:center; }
+.img .thumb { width:56px; height:42px; border-radius:5px; background:#eef1f8; border:1px solid #d0d0d0; flex-shrink:0; }
+.img .up { font-size:12px; color:#2138b8; cursor:pointer; }
+.exList { display:flex; flex-direction:column; gap:6px; }
+.exRow { border:1px solid #e2e2e2; border-radius:8px; }
+.exSum { display:flex; align-items:center; gap:8px; padding:7px 8px; }
+.kchip { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; padding:2px 7px; border-radius:20px; }
+.kchip.move { color:#2138b8; background:#eef2ff; }
+.kchip.cancel { color:#be3330; background:#faf0ef; }
+.chg { font-size:12px; flex:1; }
+.chg .f { color:#999; } .chg .a { color:#bbb; margin:0 3px; } .chg .t { color:#222; font-weight:600; }
+.addlink { font-size:12px; color:#2138b8; cursor:pointer; display:inline-block; margin-top:2px; }
+.pa { display:flex; align-items:center; gap:10px; padding:14px 15px; border-top:1px solid #e0e0e0; background:#fafafa; border-radius:0 0 10px 10px; }
+.btn-save { background:#2138b8; color:#fff; border:none; border-radius:8px; padding:11px 28px; font-size:14px; font-weight:700; cursor:pointer; margin-left:auto; }
+.btn-del { background:#fff; color:#be3330; border:1px solid #e2c4c4; border-radius:8px; padding:10px 18px; font-size:13px; cursor:pointer; }
+
+/* layout variants, demo only */
+.v3 .pce-body { display:grid; grid-template-columns:repeat(3,1fr); gap:0 20px; align-items:start; }
+.v3 .pce-body > .sec2 { border-top:none; margin-top:0; padding-top:0; }
+.v3 .pce-body > .span { grid-column:1/-1; border-top:1px solid #eee; margin-top:4px; padding-top:11px; }
+.v2 .pce-body { display:grid; grid-template-columns:1fr 1fr; gap:0 20px; align-items:start; }
+.v2 .pce-body > .sec2 { border-top:none; margin-top:0; padding-top:0; }
+.v2 .pce-body > .span { grid-column:1/-1; border-top:1px solid #eee; margin-top:4px; padding-top:11px; }
+.tabs { display:flex; gap:2px; padding:0 15px; border-bottom:1px solid #eee; }
+.tabs button { border:none; background:none; padding:10px 14px; font-size:13px; color:#777; cursor:pointer; border-bottom:2px solid transparent; font-family:inherit; }
+.tabs button.on { color:#2138b8; font-weight:700; border-bottom-color:#2138b8; }
+.scoala-tabs { display:flex; border:1px solid #ccc; border-radius:7px; overflow:hidden; margin-bottom:12px; max-width:340px; }
+.scoala-tabs button { flex:1; font-size:12px; padding:6px 0; border:none; background:#fff; cursor:pointer; font-family:inherit; }
+.scoala-tabs button.on { background:#2138b8; color:#fff; }
+.spill { padding:5px 12px; border:1px solid #d0d0d0; border-radius:20px; font-size:12px; color:#555; cursor:pointer; }
+.spill.on { background:#2138b8; color:#fff; border-color:#2138b8; }
+.twoup { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+@media (max-width:980px){ .twoup{ grid-template-columns:1fr; } }
+
+/* ====== serii ====== */
+.ds{font-family:system-ui,-apple-system,sans-serif;background:#f6f6f9;padding:16px;border-radius:8px}
+.ds-card{background:#fff;border:1px solid #dcdcdc;border-radius:4px;padding:16px}
+.ds-lbl{font-size:12px;font-weight:600;color:#32324d;margin-bottom:4px;display:block}
+.ds-in{width:100%;padding:8px 12px;border:1px solid #dcdcdc;border-radius:4px;font-size:14px;font-family:inherit;color:#32324d}
+.ds-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.ds-btn{background:#fff;border:1px solid #dcdcdc;border-radius:4px;padding:8px 14px;font-size:13px;color:#32324d;cursor:pointer;font-family:inherit}
+.ds-btn.pri{background:#4945ff;border-color:#4945ff;color:#fff}
+.ds-del{border:1px solid #dcdcdc;background:#fff;color:#be3330;border-radius:4px;width:32px;height:32px;cursor:pointer}
+.ds-sep{height:1px;background:#eaeaef;margin:16px 0}
+
+.serie{border:1px solid #dcdcdc;border-radius:6px;margin-bottom:12px;background:#fff}
+.serie-h{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #eee;background:#fcfcfd}
+.serie-h .t{font-weight:700;font-size:13px;font-variant-numeric:tabular-nums}
+.serie-h .n{font-size:11px;color:#888;font-weight:600}
+.serie-b{padding:11px 12px}
+.grab{color:#b8bcc6;cursor:grab;font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#2138b8;background:#eef1fb;border:1px solid #cdd6f6;border-radius:4px;padding:4px 8px}
+.chip button{border:none;background:none;color:#2138b8;cursor:pointer;opacity:.7;font-size:11px;padding:0}
+.stbl{width:100%;border-collapse:collapse;font-size:13px}
+.stbl th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#888;font-weight:700;padding:8px 10px;border-bottom:1px solid #eee}
+.stbl td{padding:8px 10px;border-bottom:1px solid #f4f4f6;vertical-align:middle}
+.stbl input{width:100%;padding:6px 8px;border:1px solid #d0d0d0;border-radius:4px;font-size:13px;font-family:inherit}
+.stbl td.act{width:1%;text-align:right;white-space:nowrap}
+</style>
+
+<div class="wrap">
+
+  <div class="mast">
+    <p class="kick">EduSport admin &middot; companion</p>
+    <h1>Panoul de eveniment &#537;i seriile</h1>
+    <p>Dou&#259; discu&#539;ii separate &icirc;n acela&#537;i document. Partea 1: cum a&#537;ez&#259;m c&acirc;mpurile &icirc;n panoul care acum e pe toat&#259; l&#259;&#539;imea. Partea 2: cum ar ar&#259;ta seriile &#537;i ce &icirc;nseamn&#259; mutarea pe pagin&#259; proprie. Nu am ales nimic, sunt variante.</p>
+  </div>
+
+  <!-- ============ PART 1 ============ -->
+  <div class="part">
+    <h2>Partea 1. Panoul de eveniment</h2>
+    <p>Panoul st&#259; sub calendar, pe toat&#259; l&#259;&#539;imea. C&acirc;mpurile sunt &icirc;nc&#259; pe o singur&#259; coloan&#259;, deci r&#259;m&acirc;ne mult loc gol &icirc;n dreapta. Are patru grupuri: c&acirc;mpurile de baz&#259;, Detalii, Recuren&#539;&#259; &#537;i Excep&#539;ii.</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">1.0</span><h3>Acum</h3><span class="tag now">actual</span></div>
+    <div class="stage">
+      <div class="stage-cap">O coloan&#259;, l&#259;&#539;ime nefolosit&#259; &icirc;n dreapta</div>
+      <div class="frame">
+        <div class="pce-panel">
+          <div class="ph"><h4>Editeaz&#259; eveniment</h4><span class="x">&times;</span></div>
+          <div class="pce-body" style="max-width:none">
+            <div class="fld"><label>Titlu</label><input value="Antrenament grupa avansa&#539;i"></div>
+            <div class="fld"><label>Categorie</label><select><option>Antrenament</option></select></div>
+            <div class="fld"><label>Etichet&#259; (ex. Grupa A)</label><input value="Grupa A"></div>
+            <div class="chk"><input type="checkbox"> Toat&#259; ziua</div>
+            <div class="row2">
+              <div class="fld"><label>&Icirc;nceput</label><input value="17:00"></div>
+              <div class="fld"><label>Sf&acirc;r&#537;it</label><input value="18:30"></div>
+            </div>
+            <div class="sec2">
+              <div class="st">Detalii <span class="opt2">op&#539;ional</span></div>
+              <div class="fld"><label>Descriere</label><textarea rows="2"></textarea></div>
+              <div class="fld"><label>Imagine</label><div class="img"><div class="thumb"></div><span class="up">Alege imagine</span></div></div>
+              <div class="row2"><div class="fld"><label>Link</label><input></div><div class="fld"><label>Etichet&#259; link</label><input></div></div>
+            </div>
+            <div class="sec2">
+              <div class="st">Recuren&#539;&#259;</div>
+              <div class="fld"><label>Se repet&#259;</label><select><option>S&#259;pt&#259;m&acirc;nal</option></select></div>
+              <div class="fld"><label>Zile</label><div class="pills"><span class="pill on">Lu</span><span class="pill">Ma</span><span class="pill on">Mi</span><span class="pill">Jo</span><span class="pill on">Vi</span><span class="pill">S&acirc;</span><span class="pill">Du</span></div></div>
+              <div class="row2"><div class="fld"><label>Sezon de la</label><input value="2025-10-04"></div><div class="fld"><label>p&acirc;n&#259; la</label><input value="2026-06-14"></div></div>
+            </div>
+            <div class="sec2">
+              <div class="st">Excep&#539;ii <span class="opt2">anul&#259;ri / mut&#259;ri</span></div>
+              <div class="exList">
+                <div class="exRow"><div class="exSum"><span class="kchip cancel">Anulat</span><span class="chg"><span class="f">8 noi</span></span></div></div>
+                <div class="exRow"><div class="exSum"><span class="kchip move">Mutat</span><span class="chg"><span class="f">15 noi 17:00</span><span class="a">&#8594;</span><span class="t">16 noi 10:00</span></span></div></div>
+              </div>
+              <span class="addlink">+ Adaug&#259; excep&#539;ie</span>
+            </div>
+          </div>
+          <div class="pa"><button class="btn-del">&#536;terge</button><button class="btn-save">Salveaz&#259;</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">1.A</span><h3>Trei coloane</h3><span class="tag opt">variant&#259;</span></div>
+    <p class="lead">Baz&#259;, Detalii &#537;i Recuren&#539;&#259; una l&acirc;ng&#259; alta. Excep&#539;iile sunt o list&#259; care cre&#537;te, deci stau dedesubt pe toat&#259; l&#259;&#539;imea. Totul se vede f&#259;r&#259; derulare.</p>
+    <div class="stage">
+      <div class="stage-cap">Trei coloane</div>
+      <div class="frame">
+        <div class="pce-panel v3">
+          <div class="ph"><h4>Editeaz&#259; eveniment</h4><span class="x">&times;</span></div>
+          <div class="pce-body">
+            <div>
+              <div class="fld"><label>Titlu</label><input value="Antrenament grupa avansa&#539;i"></div>
+              <div class="fld"><label>Categorie</label><select><option>Antrenament</option></select></div>
+              <div class="fld"><label>Etichet&#259;</label><input value="Grupa A"></div>
+              <div class="chk"><input type="checkbox"> Toat&#259; ziua</div>
+              <div class="row2"><div class="fld"><label>&Icirc;nceput</label><input value="17:00"></div><div class="fld"><label>Sf&acirc;r&#537;it</label><input value="18:30"></div></div>
+            </div>
+            <div class="sec2">
+              <div class="st">Detalii <span class="opt2">op&#539;ional</span></div>
+              <div class="fld"><label>Descriere</label><textarea rows="2"></textarea></div>
+              <div class="fld"><label>Imagine</label><div class="img"><div class="thumb"></div><span class="up">Alege</span></div></div>
+              <div class="fld"><label>Link</label><input></div>
+              <div class="fld"><label>Etichet&#259; link</label><input></div>
+            </div>
+            <div class="sec2">
+              <div class="st">Recuren&#539;&#259;</div>
+              <div class="fld"><label>Se repet&#259;</label><select><option>S&#259;pt&#259;m&acirc;nal</option></select></div>
+              <div class="fld"><label>Zile</label><div class="pills"><span class="pill on">Lu</span><span class="pill">Ma</span><span class="pill on">Mi</span><span class="pill">Jo</span><span class="pill on">Vi</span><span class="pill">S&acirc;</span><span class="pill">Du</span></div></div>
+              <div class="fld"><label>Sezon de la</label><input value="2025-10-04"></div>
+              <div class="fld"><label>p&acirc;n&#259; la</label><input value="2026-06-14"></div>
+            </div>
+            <div class="sec2 span">
+              <div class="st">Excep&#539;ii <span class="opt2">anul&#259;ri / mut&#259;ri</span></div>
+              <div class="exList">
+                <div class="exRow"><div class="exSum"><span class="kchip cancel">Anulat</span><span class="chg"><span class="f">8 noi</span></span></div></div>
+                <div class="exRow"><div class="exSum"><span class="kchip move">Mutat</span><span class="chg"><span class="f">15 noi 17:00</span><span class="a">&#8594;</span><span class="t">16 noi 10:00</span></span></div></div>
+              </div>
+              <span class="addlink">+ Adaug&#259; excep&#539;ie</span>
+            </div>
+          </div>
+          <div class="pa"><button class="btn-del">&#536;terge</button><button class="btn-save">Salveaz&#259;</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="pros">
+      <div><h4>Bun</h4><ul><li>Tot formularul pe un ecran</li><li>Folose&#537;te l&#259;&#539;imea c&acirc;&#537;tigat&#259;</li></ul></div>
+      <div><h4>Mai pu&#539;in bun</h4><ul><li>Trei coloane pot p&#259;rea dense</li><li>Sub 1100px trebuie s&#259; cad&#259; la dou&#259;, apoi la una</li></ul></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">1.B</span><h3>Dou&#259; coloane</h3><span class="tag opt">variant&#259;</span></div>
+    <p class="lead">Baz&#259; &#537;i Recuren&#539;&#259; sus, Detalii &#537;i Excep&#539;ii dedesubt. Mai aerisit dec&acirc;t trei coloane, dar r&#259;m&acirc;ne pu&#539;in&#259; derulare.</p>
+    <div class="stage">
+      <div class="stage-cap">Dou&#259; coloane</div>
+      <div class="frame">
+        <div class="pce-panel v2">
+          <div class="ph"><h4>Editeaz&#259; eveniment</h4><span class="x">&times;</span></div>
+          <div class="pce-body">
+            <div>
+              <div class="fld"><label>Titlu</label><input value="Antrenament grupa avansa&#539;i"></div>
+              <div class="fld"><label>Categorie</label><select><option>Antrenament</option></select></div>
+              <div class="fld"><label>Etichet&#259;</label><input value="Grupa A"></div>
+              <div class="chk"><input type="checkbox"> Toat&#259; ziua</div>
+              <div class="row2"><div class="fld"><label>&Icirc;nceput</label><input value="17:00"></div><div class="fld"><label>Sf&acirc;r&#537;it</label><input value="18:30"></div></div>
+            </div>
+            <div class="sec2">
+              <div class="st">Recuren&#539;&#259;</div>
+              <div class="fld"><label>Se repet&#259;</label><select><option>S&#259;pt&#259;m&acirc;nal</option></select></div>
+              <div class="fld"><label>Zile</label><div class="pills"><span class="pill on">Lu</span><span class="pill">Ma</span><span class="pill on">Mi</span><span class="pill">Jo</span><span class="pill on">Vi</span><span class="pill">S&acirc;</span><span class="pill">Du</span></div></div>
+              <div class="row2"><div class="fld"><label>Sezon de la</label><input value="2025-10-04"></div><div class="fld"><label>p&acirc;n&#259; la</label><input value="2026-06-14"></div></div>
+            </div>
+            <div class="sec2">
+              <div class="st">Detalii <span class="opt2">op&#539;ional</span></div>
+              <div class="fld"><label>Descriere</label><textarea rows="2"></textarea></div>
+              <div class="fld"><label>Imagine</label><div class="img"><div class="thumb"></div><span class="up">Alege</span></div></div>
+              <div class="row2"><div class="fld"><label>Link</label><input></div><div class="fld"><label>Etichet&#259;</label><input></div></div>
+            </div>
+            <div class="sec2">
+              <div class="st">Excep&#539;ii <span class="opt2">anul&#259;ri / mut&#259;ri</span></div>
+              <div class="exList">
+                <div class="exRow"><div class="exSum"><span class="kchip cancel">Anulat</span><span class="chg"><span class="f">8 noi</span></span></div></div>
+                <div class="exRow"><div class="exSum"><span class="kchip move">Mutat</span><span class="chg"><span class="f">15 noi 17:00</span><span class="a">&#8594;</span><span class="t">16 noi 10:00</span></span></div></div>
+              </div>
+              <span class="addlink">+ Adaug&#259; excep&#539;ie</span>
+            </div>
+          </div>
+          <div class="pa"><button class="btn-del">&#536;terge</button><button class="btn-save">Salveaz&#259;</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="pros">
+      <div><h4>Bun</h4><ul><li>Mai aerisit</li><li>Se pliaz&#259; simplu pe ecrane mici</li></ul></div>
+      <div><h4>Mai pu&#539;in bun</h4><ul><li>Tot r&#259;m&acirc;ne de derulat</li><li>Nu folose&#537;te toat&#259; l&#259;&#539;imea</li></ul></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">1.C</span><h3>Taburi</h3><span class="tag opt">variant&#259;</span></div>
+    <p class="lead">Panou scund, cu grupurile pe taburi. Cel mai compact pe vertical&#259;, dar ascunde c&acirc;mpuri &#537;i nu vezi dintr-o privire dac&#259; un eveniment are excep&#539;ii.</p>
+    <div class="stage">
+      <div class="stage-cap">Taburi</div>
+      <div class="frame">
+        <div class="pce-panel">
+          <div class="ph"><h4>Editeaz&#259; eveniment</h4><span class="x">&times;</span></div>
+          <div class="tabs">
+            <button class="on">General</button><button>Detalii</button><button>Recuren&#539;&#259;</button><button>Excep&#539;ii (2)</button>
+          </div>
+          <div class="pce-body">
+            <div class="row2">
+              <div class="fld"><label>Titlu</label><input value="Antrenament grupa avansa&#539;i"></div>
+              <div class="fld"><label>Categorie</label><select><option>Antrenament</option></select></div>
+              <div class="fld"><label>Etichet&#259;</label><input value="Grupa A"></div>
+            </div>
+            <div class="row2" style="margin-top:11px;max-width:420px">
+              <div class="fld"><label>&Icirc;nceput</label><input value="17:00"></div>
+              <div class="fld"><label>Sf&acirc;r&#537;it</label><input value="18:30"></div>
+            </div>
+            <div class="chk" style="margin-top:11px"><input type="checkbox"> Toat&#259; ziua</div>
+          </div>
+          <div class="pa"><button class="btn-del">&#536;terge</button><button class="btn-save">Salveaz&#259;</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="pros">
+      <div><h4>Bun</h4><ul><li>Panou foarte scund, calendarul r&#259;m&acirc;ne aproape</li></ul></div>
+      <div><h4>Mai pu&#539;in bun</h4><ul><li>Ascunde c&acirc;mpuri, trebuie c&#259;utate</li><li>Mai multe clicuri pentru o modificare complet&#259;</li></ul></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">1.D</span><h3>Cele dou&#259; taburi</h3></div>
+    <p class="lead">C&acirc;nd dai clic pe o apari&#539;ie a unui eveniment care se repet&#259;, panoul arat&#259; dou&#259; taburi: <b>Aceast&#259; dat&#259;</b> &#537;i <b>Toat&#259; seria</b>. Con&#539;in lucruri foarte diferite, de aceea nu merge acela&#537;i a&#537;ezaj la ambele.</p>
+
+    <table class="spec">
+      <thead><tr><th style="width:150px">Tab</th><th>Ce con&#539;ine</th><th style="width:150px">Potrivit pentru</th></tr></thead>
+      <tbody>
+        <tr><td><b>Aceast&#259; dat&#259;</b></td><td>Data (blocat&#259;), Stare, Not&#259;, apoi <code>Pentru aceast&#259; dat&#259;</code> cu Anulat / Modific&#259;. Dac&#259; alegi Modific&#259;, apar &#537;i Dat&#259;, &Icirc;nceput, Sf&acirc;r&#537;it. Maxim 6 c&acirc;mpuri.</td><td>O coloan&#259;. Trei ar r&#259;m&acirc;ne goale.</td></tr>
+        <tr><td><b>Toat&#259; seria</b></td><td>Formularul complet: Titlu, Categorie, Etichet&#259;, ore, Detalii, Recuren&#539;&#259;, Excep&#539;ii. Peste 15 c&acirc;mpuri.</td><td>Mai multe coloane.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="stage">
+      <div class="stage-cap">Tabul "Aceast&#259; dat&#259;" cu Modific&#259; activ, l&acirc;ng&#259; el "Toat&#259; seria" &icirc;n trei coloane</div>
+      <div class="frame">
+        <div class="twoup">
+          <div class="pce-panel">
+            <div class="ph"><h4>Antrenament grupa avansa&#539;i</h4><span class="x">&times;</span></div>
+            <div class="pce-body">
+              <div class="scoala-tabs"><button class="on">Aceast&#259; dat&#259;</button><button>Toat&#259; seria</button></div>
+              <div class="fld"><label>Data</label><input value="2025-11-15" disabled style="background:#f6f6f9;color:#999"></div>
+              <div class="fld"><label>Not&#259; / motiv (op&#539;ional)</label><input placeholder="ex. patinoar &icirc;nchis"></div>
+              <div class="fld"><label>Pentru aceast&#259; dat&#259;</label>
+                <div class="pills"><span class="spill">Anulat</span><span class="spill on">Modific&#259;</span></div>
+              </div>
+              <div class="fld"><label>Dat&#259;</label><input value="2025-11-16"></div>
+              <div class="row2"><div class="fld"><label>&Icirc;nceput</label><input value="10:00"></div><div class="fld"><label>Sf&acirc;r&#537;it</label><input value="11:30"></div></div>
+            </div>
+            <div class="pa"><button class="btn-del">&#536;terge</button><button class="btn-save">Salveaz&#259;</button></div>
+          </div>
+
+          <div class="pce-panel v3" style="grid-column:auto">
+            <div class="ph"><h4>Antrenament grupa avansa&#539;i</h4><span class="x">&times;</span></div>
+            <div class="pce-body" style="grid-template-columns:1fr 1fr">
+              <div class="span" style="border-top:none;margin-top:0;padding-top:0">
+                <div class="scoala-tabs"><button>Aceast&#259; dat&#259;</button><button class="on">Toat&#259; seria</button></div>
+              </div>
+              <div>
+                <div class="fld"><label>Titlu</label><input value="Antrenament grupa avansa&#539;i"></div>
+                <div class="fld"><label>Categorie</label><select><option>Antrenament</option></select></div>
+                <div class="row2"><div class="fld"><label>&Icirc;nceput</label><input value="17:00"></div><div class="fld"><label>Sf&acirc;r&#537;it</label><input value="18:30"></div></div>
+              </div>
+              <div class="sec2">
+                <div class="st">Recuren&#539;&#259;</div>
+                <div class="fld"><label>Zile</label><div class="pills"><span class="pill on">Lu</span><span class="pill">Ma</span><span class="pill on">Mi</span><span class="pill">Jo</span><span class="pill on">Vi</span></div></div>
+                <div class="row2"><div class="fld"><label>Sezon de la</label><input value="2025-10-04"></div><div class="fld"><label>p&acirc;n&#259; la</label><input value="2026-06-14"></div></div>
+              </div>
+              <div class="sec2 span">
+                <div class="st">Excep&#539;ii <span class="opt2">anul&#259;ri / mut&#259;ri</span></div>
+                <div class="exList"><div class="exRow"><div class="exSum"><span class="kchip move">Mutat</span><span class="chg"><span class="f">15 noi 17:00</span><span class="a">&#8594;</span><span class="t">16 noi 10:00</span></span></div></div></div>
+              </div>
+            </div>
+            <div class="pa"><button class="btn-del">&#536;terge</button><button class="btn-save">Salveaz&#259;</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <b>Propunerea:</b> a&#537;ezajul se adapteaz&#259; tabului. "Aceast&#259; dat&#259;" r&#259;m&acirc;ne o coloan&#259; &icirc;ngust&#259;, pentru c&#259; are pu&#539;ine c&acirc;mpuri &#537;i e o ac&#539;iune rapid&#259;. "Toat&#259; seria" folose&#537;te varianta pe care o alegi la 1.A, 1.B sau 1.C. Taburile stau mereu sus, pe toat&#259; l&#259;&#539;imea, ca s&#259; nu se mute c&acirc;nd comuti.
+    </div>
+    <div class="note warn">
+      <b>Aten&#539;ie:</b> dac&#259; alegi 1.C (taburi pe grupuri), ar fi dou&#259; r&acirc;nduri de taburi unul sub altul: "Aceast&#259; dat&#259; / Toat&#259; seria" &#537;i apoi "General / Detalii / Recuren&#539;&#259; / Excep&#539;ii". Confuz. 1.A sau 1.B nu au problema asta.
+    </div>
+  </div>
+
+  <!-- ============ PART 2 ============ -->
+  <div class="part">
+    <h2>Partea 2. Seriile</h2>
+    <p>O serie e un interval orar cu grupele care intr&#259; pe ghea&#539;&#259; atunci. Pe site apar &icirc;n ordinea din administrare.</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">2.0</span><h3>Acum</h3><span class="tag now">actual</span></div>
+    <p class="lead">Un c&acirc;mp text pentru interval &#537;i c&acirc;te un c&acirc;mp text pentru fiecare grup&#259;. Intervalul e text liber, deci se poate scrie orice format. Ordinea nu se poate schimba dec&acirc;t &#537;terg&acirc;nd &#537;i readaug&acirc;nd.</p>
+    <div class="stage">
+      <div class="stage-cap">ScheduleGroupsEditor, a&#537;a cum e</div>
+      <div class="frame">
+        <div class="ds">
+          <div class="ds-card">
+            <label class="ds-lbl">Interval orar</label>
+            <input class="ds-in" value="10:00 - 10:50" style="margin-bottom:14px">
+            <label class="ds-lbl">Cursuri</label>
+            <div class="ds-row"><input class="ds-in" value="Primii Pa&#537;i"><button class="ds-del">&#10005;</button></div>
+            <div class="ds-row"><input class="ds-in" value="Intermediari Silver"><button class="ds-del">&#10005;</button></div>
+            <div class="ds-row"><input class="ds-in" value="Avansa&#539;i Silver"><button class="ds-del">&#10005;</button></div>
+            <button class="ds-btn">+ Adaug&#259; curs</button>
+            <div class="ds-sep"></div>
+            <label class="ds-lbl">Interval orar</label>
+            <input class="ds-in" value="11:00 - 11:50" style="margin-bottom:14px">
+            <label class="ds-lbl">Cursuri</label>
+            <div class="ds-row"><input class="ds-in" value="&Icirc;ncep&#259;tori"><button class="ds-del">&#10005;</button></div>
+            <div class="ds-row"><input class="ds-in" value="Intermediari Bronze"><button class="ds-del">&#10005;</button></div>
+            <div class="ds-row"><input class="ds-in" value="Avansa&#539;i Bronze"><button class="ds-del">&#10005;</button></div>
+            <button class="ds-btn">+ Adaug&#259; curs</button>
+            <div class="ds-sep"></div>
+            <button class="ds-btn pri">+ Adaug&#259; serie</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note warn">
+      <b>Constatare:</b> fiecare serie salveaz&#259; &#537;i <code>duration</code> &#537;i <code>schedule</code>. Editorul nu le arat&#259; (interfa&#539;a lui declar&#259; doar <code>timeSlot</code> &#537;i <code>courses</code>) &#537;i site-ul nu le cite&#537;te (<code>ScheduleSection.tsx</code> folose&#537;te tot doar acele dou&#259;). Sunt date moarte.
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">2.A</span><h3>Carduri cu etichete</h3><span class="tag opt">variant&#259;</span></div>
+    <p class="lead">Fiecare serie e un card. Ora &icirc;n dou&#259; c&acirc;mpuri, grupele ca etichete, m&acirc;ner de tragere pentru ordine.</p>
+    <div class="stage">
+      <div class="stage-cap">Carduri</div>
+      <div class="frame">
+        <div style="font-family:system-ui,-apple-system,sans-serif">
+          <div class="serie">
+            <div class="serie-h">
+              <span class="grab">&#8942;&#8942;</span><span class="n">Seria 1</span><span class="t">10:00 - 10:50</span>
+              <span class="n">3 grupe</span><div style="flex:1"></div><button class="ds-del">&#10005;</button>
+            </div>
+            <div class="serie-b">
+              <div class="row2" style="margin-bottom:11px;max-width:320px">
+                <div class="fld"><label>De la</label><input value="10:00"></div>
+                <div class="fld"><label>P&acirc;n&#259; la</label><input value="10:50"></div>
+              </div>
+              <div class="fld">
+                <label>Grupe</label>
+                <div class="chips">
+                  <span class="chip">Primii Pa&#537;i <button>&#10005;</button></span>
+                  <span class="chip">Intermediari Silver <button>&#10005;</button></span>
+                  <span class="chip">Avansa&#539;i Silver <button>&#10005;</button></span>
+                </div>
+                <input placeholder="Scrie o grup&#259; &#537;i apas&#259; Enter">
+              </div>
+            </div>
+          </div>
+          <div class="serie">
+            <div class="serie-h">
+              <span class="grab">&#8942;&#8942;</span><span class="n">Seria 2</span><span class="t">11:00 - 11:50</span>
+              <span class="n">3 grupe</span><div style="flex:1"></div><button class="ds-del">&#10005;</button>
+            </div>
+            <div class="serie-b">
+              <div class="row2" style="margin-bottom:11px;max-width:320px">
+                <div class="fld"><label>De la</label><input value="11:00"></div>
+                <div class="fld"><label>P&acirc;n&#259; la</label><input value="11:50"></div>
+              </div>
+              <div class="fld">
+                <label>Grupe</label>
+                <div class="chips">
+                  <span class="chip">&Icirc;ncep&#259;tori <button>&#10005;</button></span>
+                  <span class="chip">Intermediari Bronze <button>&#10005;</button></span>
+                  <span class="chip">Avansa&#539;i Bronze <button>&#10005;</button></span>
+                </div>
+                <input placeholder="Scrie o grup&#259; &#537;i apas&#259; Enter">
+              </div>
+            </div>
+          </div>
+          <button class="ds-btn pri">+ Adaug&#259; serie</button>
+        </div>
+      </div>
+    </div>
+    <div class="pros">
+      <div><h4>Bun</h4><ul><li>Grupele ocup&#259; un r&acirc;nd, nu trei</li><li>Format de or&#259; garantat</li><li>Ordinea se schimb&#259; prin tragere</li></ul></div>
+      <div><h4>Mai pu&#539;in bun</h4><ul><li>Cardurile ocup&#259; mai mult loc dec&acirc;t un tabel</li></ul></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">2.B</span><h3>Tabel</h3><span class="tag opt">variant&#259;</span></div>
+    <p class="lead">Toate seriile &icirc;ntr-un tabel, un r&acirc;nd pe serie. Cel mai compact, se compar&#259; u&#537;or orele. Grupele tot ca etichete, dar &icirc;ntr-o celul&#259;.</p>
+    <div class="stage">
+      <div class="stage-cap">Tabel</div>
+      <div class="frame">
+        <div style="font-family:system-ui,-apple-system,sans-serif">
+          <table class="stbl">
+            <thead><tr><th style="width:28px"></th><th style="width:90px">De la</th><th style="width:90px">P&acirc;n&#259; la</th><th>Grupe</th><th class="act"></th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="grab">&#8942;&#8942;</span></td>
+                <td><input value="10:00"></td>
+                <td><input value="10:50"></td>
+                <td>
+                  <div class="chips" style="margin-bottom:0">
+                    <span class="chip">Primii Pa&#537;i <button>&#10005;</button></span>
+                    <span class="chip">Intermediari Silver <button>&#10005;</button></span>
+                    <span class="chip">Avansa&#539;i Silver <button>&#10005;</button></span>
+                    <span class="chip" style="color:#888;background:#f4f4f6;border-color:#e2e2e7">+ adaug&#259;</span>
+                  </div>
+                </td>
+                <td class="act"><button class="ds-del">&#10005;</button></td>
+              </tr>
+              <tr>
+                <td><span class="grab">&#8942;&#8942;</span></td>
+                <td><input value="11:00"></td>
+                <td><input value="11:50"></td>
+                <td>
+                  <div class="chips" style="margin-bottom:0">
+                    <span class="chip">&Icirc;ncep&#259;tori <button>&#10005;</button></span>
+                    <span class="chip">Intermediari Bronze <button>&#10005;</button></span>
+                    <span class="chip">Avansa&#539;i Bronze <button>&#10005;</button></span>
+                    <span class="chip" style="color:#888;background:#f4f4f6;border-color:#e2e2e7">+ adaug&#259;</span>
+                  </div>
+                </td>
+                <td class="act"><button class="ds-del">&#10005;</button></td>
+              </tr>
+            </tbody>
+          </table>
+          <button class="ds-btn pri" style="margin-top:10px">+ Adaug&#259; serie</button>
+        </div>
+      </div>
+    </div>
+    <div class="pros">
+      <div><h4>Bun</h4><ul><li>Cel mai compact</li><li>Orele se compar&#259; pe coloan&#259;</li></ul></div>
+      <div><h4>Mai pu&#539;in bun</h4><ul><li>R&acirc;ndul cre&#537;te dac&#259; sunt multe grupe</li><li>Mai str&acirc;mt pe ecrane mici</li></ul></div>
+    </div>
+  </div>
+
+  <div class="sec" style="border-bottom:none">
+    <div class="sec-head"><span class="sec-no">2.C</span><h3>Mutarea pe pagin&#259; proprie</h3></div>
+    <p class="lead">Ce &icirc;nseamn&#259; concret, ca s&#259; decizi &icirc;n cuno&#537;tin&#539;&#259; de cauz&#259;.</p>
+    <table class="spec">
+      <thead><tr><th style="width:210px">Aspect</th><th>Ce se schimb&#259;</th></tr></thead>
+      <tbody>
+        <tr><td>Ruta</td><td>Din <code>/content-manager/single-types/api::program.program</code> &icirc;ntr-o rut&#259; proprie, ca <code>/plugins/edusport-program</code>. Intrarea din meniu se mut&#259; pe ea.</td></tr>
+        <tr><td>&Icirc;nc&#259;rcare &#537;i salvare</td><td>Acum fiecare editor cite&#537;te &#537;i scrie prin <code>useField</code>, care exist&#259; doar &icirc;n formularul Strapi. Pe pagin&#259; proprie, pagina face GET &#537;i PUT pe single type &#537;i paseaz&#259; <code>value</code> &#537;i <code>onChange</code> ca propriet&#259;&#539;i. Schimbare mecanic&#259;, dar atinge toate trei editoarele, inclusiv cel de 1275 de linii.</td></tr>
+        <tr><td>Bara Strapi din dreapta</td><td>Dispare complet, nu mai trebuie ascuns&#259; prin CSS.</td></tr>
+        <tr><td>Salvarea</td><td>Un singur buton al paginii, ca la Pagina principal&#259;, &icirc;n loc de bara Strapi.</td></tr>
+        <tr><td>Riscul</td><td>Logica din calendar (st&#259;ri implicite, migrarea evenimentelor vechi, propagarea, detectarea intervalului) trebuie s&#259; r&#259;m&acirc;n&#259; neatins&#259;. Se mut&#259; fi&#537;ierele, nu se rescrie logica.</td></tr>
+      </tbody>
+    </table>
+    <div class="note">
+      <b>De ales:</b> o variant&#259; pentru panou (1.A, 1.B sau 1.C), o variant&#259; pentru serii (2.A sau 2.B), &#537;i dac&#259; facem sau nu mutarea pe pagin&#259; proprie acum sau mai t&acirc;rziu. Nu &icirc;ncep nimic p&acirc;n&#259; nu spui.
+    </div>
+  </div>
+
+</div>

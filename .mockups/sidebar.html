@@ -1,0 +1,340 @@
+<title>Bara laterală, variante</title>
+<style>
+:root{
+  --bg:#eef0f4;--surface:#fff;--ink:#1b1d26;--ink-soft:#4a4d5a;--muted:#8a8d99;
+  --line:#e2e4ea;--accent:#2138b8;--accent-soft:#eef1fb;--ok:#1f7a4d;--danger:#be3330;
+  --shadow:0 8px 30px rgba(18,22,45,.10);
+  --sys:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}}
+:root[data-theme="dark"]{--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sys);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 120px}
+.mast{padding:52px 0 26px;border-bottom:1px solid var(--line)}
+.kick{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 13px}
+.mast h1{font-size:clamp(26px,3.6vw,38px);line-height:1.1;margin:0 0 12px;font-weight:800;letter-spacing:-.02em;max-width:24ch;text-wrap:balance}
+.mast p{margin:0 0 10px;max-width:72ch;color:var(--ink-soft);font-size:15px}
+.mast p b{color:var(--ink)}
+.sec{padding:46px 0;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:none}
+.sec-head{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.sec-no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:8px;padding:3px 9px;flex-shrink:0}
+.sec h2{font-size:22px;font-weight:800;letter-spacing:-.015em;margin:0}
+.sec .tagline{color:var(--muted);font-size:14px;font-weight:600}
+.sec .lead{color:var(--ink-soft);font-size:14.5px;margin:12px 0 0;max-width:80ch}
+.sec .lead b{color:var(--ink)}
+.opt-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:30px 0 4px}
+.opt-letter{font-family:var(--mono);font-size:12px;font-weight:700;color:#fff;background:var(--accent);border-radius:6px;padding:3px 9px}
+.opt-head h3{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em}
+.opt-sub{color:var(--muted);font-size:13.5px;margin:0 0 16px;max-width:74ch}
+.frame{border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:var(--surface)}
+.frame-cap{padding:9px 15px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center}
+.tradeoff{display:flex;flex-wrap:wrap;gap:18px;margin-top:16px}
+.tradeoff div{flex:1;min-width:230px}
+.tradeoff h4{margin:0 0 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.tradeoff p{margin:0;font-size:13.5px;color:var(--ink-soft)}
+.tradeoff .yes{color:var(--ok)}.tradeoff .no{color:var(--danger)}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+@media(max-width:900px){.duo{grid-template-columns:1fr}}
+.duo .cap{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;display:flex;gap:8px;align-items:center}
+.duo .cap em{font-style:normal;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 6px;letter-spacing:0;text-transform:none;font-size:10.5px}
+.trio3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}
+@media(max-width:900px){.trio3{grid-template-columns:1fr}}
+.trio3 .cap{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;display:flex;gap:8px;align-items:center}
+.trio3 .cap em{font-style:normal;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:1px 6px;letter-spacing:0;text-transform:none;font-size:10.5px}
+.minor{font-size:12.5px;color:var(--ink-soft);margin:9px 0 0}
+.demo[data-short]{height:300px}
+.note{font-size:13px;color:var(--ink-soft);background:var(--accent-soft);border-left:3px solid var(--accent);padding:12px 14px;border-radius:0 6px 6px 0;margin-top:20px;max-width:80ch}
+.note b{color:var(--ink)}
+.togglebar{display:flex;gap:8px;align-items:center}
+.togglebar button{font-family:inherit;font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.togglebar button:hover{border-color:var(--accent);color:var(--accent)}
+.togglebar .hintxt{font-size:11.5px;color:var(--muted)}
+
+/* ── Sidebar reproduction: real values from EdusportShell.tsx ───────────── */
+.demo{display:flex;height:520px;background:#f6f7f9;overflow:hidden;position:relative}
+.side{width:236px;flex-shrink:0;background:#0e1a3c;color:#c8cee0;display:flex;flex-direction:column;
+  font-family:var(--sys);overflow:hidden;transition:width .26s cubic-bezier(.4,0,.2,1)}
+.brand{position:relative;display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap;flex-shrink:0}
+.brand .mark{width:29px;height:29px;border-radius:8px;background:#2138b8;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:12px;flex-shrink:0}
+.brand b{color:#fff;font-size:14px;display:block;line-height:1.15}
+.brand small{color:#8b93ad;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase}
+.brand .collapse{margin-left:auto;background:none;border:none;color:#8b93ad;cursor:pointer;padding:5px;border-radius:6px;display:flex;flex-shrink:0}
+.brand .collapse:hover{background:rgba(255,255,255,.08);color:#fff}
+.brand .collapse svg{width:15px;height:15px;transition:transform .26s cubic-bezier(.4,0,.2,1)}
+.demo.is-rail .brand .collapse{display:none}
+
+/* Expand control, railed. Three placements to compare — the page toggles
+   between them with a class on the demo. None of them takes vertical space
+   from the icon column. */
+.railbtn{display:none;background:none;border:none;color:#8b93ad;cursor:pointer;flex-shrink:0}
+.railbtn svg{width:15px;height:15px}
+.railbtn:hover{color:#fff}
+/* 1 — bottom of the rail, where the Strapi button used to be */
+.demo.is-rail.rb-bottom .railbtn.rb-b{display:flex;justify-content:center;padding:10px 0;border-top:none}
+.nav{flex:1;padding:6px 0 10px;overflow-y:auto;overflow-x:hidden}
+.nav::-webkit-scrollbar{width:7px}
+.nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:4px}
+.grp{padding:11px 18px 3px;border-left:3px solid transparent;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#727b97;font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:9px}
+.grp svg{width:15px;height:15px;flex-shrink:0;color:#c8cee0;opacity:.8}
+.nav a{display:flex;align-items:center;gap:11px;padding:7px 18px;font-size:13px;color:#c8cee0;text-decoration:none;border-left:3px solid transparent;white-space:nowrap;cursor:pointer}
+.nav a:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav a.on{background:rgba(33,56,184,.35);color:#fff;border-left-color:#4d68ff}
+.nav a svg{width:15px;height:15px;flex-shrink:0;opacity:.8}
+.nav .lbl{transition:opacity .16s ease}
+.nav a.sub{padding-left:38px;font-size:12.5px;color:#aeb6cd}
+.foot{padding:10px 14px;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0}
+.foot button{width:100%;padding:8px 10px;background:rgba(255,255,255,.06);color:#c8cee0;border:1px solid rgba(255,255,255,.14);border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.foot button:hover{background:rgba(255,255,255,.12);color:#fff}
+.foot svg{width:14px;height:14px;transition:transform .26s cubic-bezier(.4,0,.2,1)}
+.stage{flex:1;padding:18px 20px;min-width:0;overflow:hidden}
+.stage .h{height:13px;width:170px;background:#dfe2ea;border-radius:3px}
+.stage .b{height:8px;background:#e8eaf0;border-radius:3px;margin-top:10px}
+.stage .b.s{width:60%}
+.stage .cards{display:flex;gap:10px;margin-top:16px}
+.stage .cards i{flex:1;height:64px;background:#fff;border:1px solid #e2e4ea;border-radius:6px}
+
+/* ── collapsed rail ─────────────────────────────────────────────────────── */
+.demo.is-rail .side{width:58px}
+.demo.is-rail .nav a{padding:7px 18px;justify-content:flex-start;gap:0}
+.demo.is-rail .nav a.on{background:rgba(33,56,184,.35);box-shadow:inset 3px 0 0 #4d68ff}
+.demo.is-rail .nav a.sub{display:none}
+.demo.is-rail .lbl,.demo.is-rail .brand span:not(.mark){opacity:0;width:0;overflow:hidden}
+.demo.is-rail .grp{justify-content:flex-start;padding:9px 18px 3px;gap:0}
+.demo.is-rail .grp .lbl{display:none}
+.demo.is-rail .grp{margin-top:6px}
+.demo.is-rail .brand{justify-content:flex-start;padding:13px 14px}
+.demo.is-rail .foot{display:none}
+/* category icon in the rail is the clickable thing */
+.demo.is-rail .grp{cursor:pointer;color:#9aa3bd}
+.demo.is-rail .grp:hover{color:#fff}
+
+/* tooltip on the rail */
+.demo.is-rail .nav a{position:relative}
+.demo.is-rail .nav a:hover::after{content:attr(data-label);position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);background:#1b2b57;color:#fff;font-size:11.5px;padding:5px 9px;border-radius:5px;white-space:nowrap;z-index:5;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+
+/* flyout listing a category's pages */
+.fly{position:absolute;left:58px;top:0;bottom:0;width:206px;background:#16234d;border-left:1px solid rgba(255,255,255,.08);z-index:4;padding:10px 0;overflow-y:auto;
+  transform:translateX(-8px);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease}
+.demo.fly-open .fly{opacity:1;transform:translateX(0);pointer-events:auto}
+.fly .ft{padding:8px 16px 6px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#8b93ad;font-weight:700}
+.fly a{display:block;padding:7px 16px;font-size:12.5px;color:#c8cee0;text-decoration:none;white-space:nowrap}
+.fly a:hover{background:rgba(255,255,255,.06);color:#fff}
+
+/* hidden entirely */
+.demo.is-hidden .side{width:0;border:none}
+.demo.is-hidden .edge{opacity:1;pointer-events:auto}
+.edge{position:absolute;left:0;top:50%;transform:translateY(-50%);width:17px;height:56px;background:#0e1a3c;color:#fff;border-radius:0 8px 8px 0;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .2s ease;font-size:12px;z-index:6}
+
+/* hover peek */
+.demo.is-peek .side:hover{width:236px}
+.demo.is-peek .side:hover .lbl{opacity:1;width:auto}
+.demo.is-peek .side:hover .nav a{padding:7px 18px;justify-content:flex-start;gap:11px;border-left-width:3px}
+.demo.is-peek .side:hover .nav a.sub{display:flex;padding-left:38px}
+.demo.is-peek .side:hover .nav a::after{display:none}
+.demo.is-peek .side:hover .grp{justify-content:flex-start;padding:11px 18px 3px;gap:9px;border-top:none;margin-top:0}
+.demo.is-peek .side:hover .grp .lbl{display:inline}
+.demo.is-peek .side:hover .brand{justify-content:flex-start;padding:13px 18px}
+.demo.is-peek .side:hover .brand .collapse{position:static;margin-left:auto;border-top:none;padding:5px;border-radius:6px}
+.demo.is-peek .side:hover .nav{margin-top:0}
+.demo.is-peek .side:hover .brand span:not(.mark){opacity:1;width:auto}
+.demo.is-peek .side:hover .foot{display:block}
+
+/* marker variants */
+.mk-sq .nav a svg.real{display:none}
+.mk-sq .nav a svg.sq{display:block}
+.nav a svg.sq{display:none}
+.mk-cat .nav a.sub svg{display:none}
+.mk-cat .nav a.sub{gap:0;padding-left:32px}
+</style>
+
+<div class="wrap">
+
+  <div class="mast">
+    <p class="kick">Companion · Bara laterală</p>
+    <h1>Bara laterală: pătratul și plierea</h1>
+    <p>Toate cele <b>28 de pagini</b> reale, în cele 6 categorii din <code>menu.tsx</code>. Butoanele din machete funcționează — apasă-le ca să vezi animația.</p>
+    <p>Culorile și dimensiunile sunt cele reale din <code>EdusportShell.tsx</code>: fundal <code>#0e1a3c</code>, lățime 236px, rândul activ cu bară albastră în stânga.</p>
+  </div>
+
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">00</span><h2>Cum arată acum</h2><span class="tagline">reprodus fidel, cu toate paginile</span></div>
+    <p class="lead">Fiecare rând are <b>același pătrat</b>, de 28 de ori. Nu distinge nimic și, cu atâtea pagini, lista devine o coloană de pătrate identice. Derulează în machetă ca să vezi toată lista.</p>
+    <div class="frame" style="margin-top:22px">
+      <div class="frame-cap"><span>Acum</span><span>236 px · 28 pagini</span></div>
+      <div class="demo mk-sq" id="demo0"><div class="stage"><div class="h"></div><div class="b"></div><div class="b s"></div><div class="cards"><i></i><i></i><i></i></div></div></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">01</span><h2>Pictograme doar pe categorii</h2></div>
+    <p class="lead">Categoria primește pictograma, paginile rămân text curat și ușor indentate. Cu 28 de rânduri, asta dă structură fără să umple lista de simboluri: ochiul sare pe categorii, nu pe fiecare rând.</p>
+    <div class="duo">
+      <div>
+        <p class="cap">pictograme pe categorii <em>propus</em></p>
+        <div class="frame"><div class="demo mk-cat" id="demo1a"><div class="stage"><div class="h"></div><div class="b"></div><div class="b s"></div></div></div></div>
+      </div>
+      <div>
+        <p class="cap">pătratul de acum</p>
+        <div class="frame"><div class="demo mk-sq" id="demo1b"><div class="stage"><div class="h"></div><div class="b"></div><div class="b s"></div></div></div></div>
+      </div>
+    </div>
+    <div class="note"><b>Consecința pentru pliere:</b> dacă doar categoriile au pictograme, bara pliată nu poate arăta 28 de pagini — arată cele 6 categorii, iar paginile apar într-un panou lateral la click. Asta e varianta A de mai jos, și de fapt e mai curată decât o coloană de 28 de pictograme.</div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">02</span><h2>Cum se pliază</h2><span class="tagline">apasă butoanele — animația e reală</span></div>
+    <p class="lead">Aceeași animație peste tot: lățimea 236 → 58px în 260ms, etichetele se sting în 160ms ca să nu se vadă textul strivit.</p>
+
+    <div class="opt-head"><span class="opt-letter">A</span><h3>Pliere la categorii, cu panou lateral</h3></div>
+    <p class="opt-sub">Pliată, bara arată Acasă, cele două pagini fixate și cele 6 categorii. Click pe o categorie deschide paginile ei într-un panou alături. Apasă o pictogramă de categorie în machetă.</p>
+    <div class="frame">
+      <div class="frame-cap">
+        <span>Varianta A</span>
+        <span class="togglebar"><button type="button" data-toggle="demoA" data-cls="is-rail">Pliază / Desfă</button><span class="hintxt">236 ↔ 58 px · click pe categorie</span></span>
+      </div>
+      <div class="demo mk-cat is-rail rb-bottom" id="demoA"><div class="stage"><div class="h"></div><div class="b"></div><div class="b s"></div><div class="cards"><i></i><i></i><i></i></div></div></div>
+    </div>
+    <div class="tradeoff">
+      <div><h4>Pentru</h4><p class="yes">Cele 28 de pagini rămân la două click-uri, dar ocupă 58px în loc de 236. Panoul lateral arată etichete adevărate, nu pictograme de ghicit.</p></div>
+      <div><h4>Contra</h4><p class="no">Pagina căutată e la două click-uri, nu la unul.</p></div>
+      <div><h4>Cost</h4><p>Mediu: bara pliată, panoul lateral și starea reținută în localStorage.</p></div>
+    </div>
+
+    <div class="opt-head"><span class="opt-letter">B</span><h3>Ascundere completă</h3></div>
+    <p class="opt-sub">Bara dispare de tot; rămâne un mâner pe margine.</p>
+    <div class="frame">
+      <div class="frame-cap">
+        <span>Varianta B</span>
+        <span class="togglebar"><button type="button" data-toggle="demoB" data-cls="is-hidden">Ascunde / Arată</button><span class="hintxt">236 ↔ 0 px</span></span>
+      </div>
+      <div class="demo mk-cat" id="demoB"><span class="edge" data-toggle="demoB" data-cls="is-hidden">›</span><div class="stage"><div class="h"></div><div class="b"></div><div class="b s"></div><div class="cards"><i></i><i></i><i></i></div></div></div>
+    </div>
+    <div class="tradeoff">
+      <div><h4>Pentru</h4><p class="yes">Maxim de spațiu pentru tabelele late (Înscrieri, Voluntari).</p></div>
+      <div><h4>Contra</h4><p class="no">Cu 28 de pagini, ascunderea totală doare: orice navigare cere deschis, căutat, click.</p></div>
+      <div><h4>Cost</h4><p>Mic.</p></div>
+    </div>
+
+    <div class="opt-head"><span class="opt-letter">C</span><h3>Pliată, se întinde la hover</h3></div>
+    <p class="opt-sub">Ca A, dar se desface singură când duci mouse-ul peste ea. Treci cu mouse-ul peste bara de mai jos.</p>
+    <div class="frame">
+      <div class="frame-cap"><span>Varianta C</span><span class="hintxt">e pliată — treci cu mouse-ul peste ea</span></div>
+      <div class="demo mk-cat is-rail is-peek rb-bottom" id="demoC"><div class="stage"><div class="h"></div><div class="b"></div><div class="b s"></div><div class="cards"><i></i><i></i><i></i></div></div></div>
+    </div>
+    <div class="tradeoff">
+      <div><h4>Pentru</h4><p class="yes">Vezi toate cele 28 de pagini fără niciun click, dar bara stă strânsă cât lucrezi.</p></div>
+      <div><h4>Contra</h4><p class="no">Se deschide și când treci mouse-ul din greșeală. Acoperă conținutul în loc să-l împingă, altfel pagina ar sălta.</p></div>
+      <div><h4>Cost</h4><p>Mic, plus o regulă pentru tabletă, unde hover nu există.</p></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head"><span class="sec-no">03</span><h2>De răspuns</h2></div>
+    <p class="lead">
+      <b>1.</b> Pictograme doar pe categorii, așa cum ai cerut — confirmi cum arată în secțiunea 01?<br>
+      <b>2.</b> Pliere: A (categorii + panou lateral), B (ascundere totală), sau C (hover)?<br>
+      <b>3.</b> Categoriile sunt acum pliabile (se deschid și se închid). Rămân așa, sau stau toate deschise?
+    </p>
+  </section>
+
+</div>
+
+<script>
+// One source of truth for every demo: the real menu from menu.tsx.
+const I = {
+  house:'<path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  bell:'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+  chart:'<path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/>',
+  feather:'<path d="M20 12a8 8 0 0 0-8-8 8 8 0 0 0-8 8v8h8a8 8 0 0 0 8-8z"/><path d="M8 20l8-8"/>',
+  calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  user:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+  book:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.35.41.64.76.83H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
+};
+const svg = (d, cls) => `<svg class="${cls||''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const sq = '<svg class="sq" viewBox="0 0 16 16" fill="currentColor" stroke="none"><rect x="3" y="3" width="10" height="10" rx="2.5"/></svg>';
+
+const TOP = [
+  { label:'Acasă', icon:I.house, on:true },
+  { label:'Analiză trafic', icon:I.chart },
+  { label:'Anunțuri', icon:I.bell },
+  { label:'Setări site', icon:I.gear },
+];
+const GROUPS = [
+  { label:'Formulare', icon:I.feather, items:['Formulare','Înscrieri','Voluntari','Parteneri'] },
+  { label:'Program și calendar', icon:I.calendar, items:['Calendar și serii'] },
+  { label:'Sportivi și echipă', icon:I.user, items:['Sportivi','Membri echipă','Competiții','Discipline'] },
+  { label:'Pagini site', icon:I.grid, items:['Pagina principală','Cursuri','Prețuri','Regulament','Pagina Program','Pagina Echipă','Istoric','Realizări','Parteneri','Voluntariat'] },
+  { label:'Articole și media', icon:I.book, items:['Articole','Sponsori','Evenimente colaborare','Momente istoric','Mesaje contact'] },
+  { label:'Sistem', icon:I.gear, items:['Media'] },
+];
+
+function buildSidebar(demo){
+  const aside = document.createElement('aside');
+  aside.className = 'side';
+  const rows = TOP.map(t =>
+    `<a class="${t.on?'on':''}" data-label="${t.label}">${svg(t.icon,'real')}${sq}<span class="lbl">${t.label}</span></a>`).join('');
+  const groups = GROUPS.map((g, gi) => `
+    <div class="grp" data-g="${gi}" title="${g.label}">${svg(g.icon)}<span class="lbl">${g.label}</span></div>
+    ${g.items.map(it => `<a class="sub" data-label="${it}">${svg(I.book,'real')}${sq}<span class="lbl">${it}</span></a>`).join('')}`).join('');
+  aside.innerHTML = `
+    <div class="brand"><span class="mark">ES</span><span><b>EduSport</b><small>Panou</small></span>
+      <button type="button" class="collapse" data-collapse aria-label="Pliază bara">${svg('<path d="M15 18l-6-6 6-6"/>')}</button></div>
+    <nav class="nav">${rows}${groups}</nav>
+    <button type="button" class="railbtn rb-b" data-collapse aria-label="Desfă bara">${svg('<path d="M9 18l6-6-6-6"/>')}</button>
+    <div class="foot"><button type="button" class="switch"><span>Comută la meniul Strapi</span></button></div>`;
+  demo.insertBefore(aside, demo.firstChild);
+
+  const edge = document.createElement('button');
+  edge.type = 'button';
+  edge.className = 'railbtn rb-e';
+  edge.setAttribute('aria-label', 'Desfă bara');
+  edge.innerHTML = svg('<path d="M9 18l6-6-6-6"/>');
+  edge.addEventListener('click', () => demo.classList.toggle('is-rail'));
+  demo.insertBefore(edge, demo.firstChild.nextSibling);
+
+  const fly = document.createElement('div');
+  fly.className = 'fly';
+  demo.insertBefore(fly, demo.firstChild.nextSibling);
+
+  // Category click: collapse/expand when open, flyout when railed.
+  aside.querySelectorAll('.grp').forEach((el) => {
+    el.addEventListener('click', () => {
+      const gi = Number(el.dataset.g);
+      if (demo.classList.contains('is-rail')) {
+        const same = fly.dataset.g === String(gi) && demo.classList.contains('fly-open');
+        if (same) { demo.classList.remove('fly-open'); return; }
+        fly.dataset.g = String(gi);
+        fly.innerHTML = `<div class="ft">${GROUPS[gi].label}</div>` +
+          GROUPS[gi].items.map(it => `<a>${it}</a>`).join('');
+        demo.classList.add('fly-open');
+      } else {
+        let n = el.nextElementSibling;
+        while (n && n.classList.contains('sub')) {
+          n.style.display = n.style.display === 'none' ? '' : 'none';
+          n = n.nextElementSibling;
+        }
+      }
+    });
+  });
+  aside.querySelectorAll('[data-collapse]').forEach((btn) => btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    demo.classList.toggle('is-rail');
+    demo.classList.remove('fly-open');
+  }));
+}
+
+document.querySelectorAll('.demo').forEach(buildSidebar);
+document.querySelectorAll('[data-toggle]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const d = document.getElementById(b.dataset.toggle);
+    d.classList.toggle(b.dataset.cls);
+    d.classList.remove('fly-open');
+  });
+});
+</script>

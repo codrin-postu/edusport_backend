@@ -1,4 +1,9 @@
-# EduSport admin dashboard + observability — implementation plan
+# EduSport admin dashboard + observability - implementation plan
+
+> Streams A, B, C and D are built and committed on `staging`. What remains is
+> credentials, verification against the live instances, and the release. See
+> `STATUS.md` for current state and `CHANGELOG.md` for what shipped.
+> Reviewed 2026-08-30.
 
 Status legend: [ ] todo, [~] in progress, [x] done, [!] blocked/needs decision
 
@@ -50,12 +55,14 @@ parallel.
 - Files: src/sentry.ts, src/middlewares/sentry.ts, src/api/dashboard/{controllers,routes}/dashboard.ts; edits to src/index.ts + config/middlewares.ts.
 
 ### Stream B — Frontend observability (edusport_frontend) — OWNER: subagent
-- [x] Added `@sentry/nextjs` v10 (App Router: instrumentation.ts + onRequestError, instrumentation-client.ts, server/edge configs, withSentryConfig in next.config.ts). Inert when no DSN (guarded init + enabled:Boolean(dsn)). Build passes (exit 0, 33/33). Env: NEXT_PUBLIC_SENTRY_DSN, SENTRY_DSN. Uncommitted.
-- [ ] (pending decision) Add Mixpanel browser tracking (project token via env) so unique-visitor data exists.
+- [x] Added `@sentry/nextjs` v10 (App Router: instrumentation.ts + onRequestError, instrumentation-client.ts, server/edge configs, withSentryConfig in next.config.ts). Inert when no DSN (guarded init + enabled:Boolean(dsn)). Build passes (exit 0, 33/33). Env: NEXT_PUBLIC_SENTRY_DSN, SENTRY_DSN. Committed on staging (`df0a215`), not yet released.
+- [x] Dropped. Umami already collects unique visitors, Mixpanel is not used.
 
-### Stream C — GlitchTip self-host repo (new `glitchtip-analytics`) — OWNER: subagent
+### Stream C — GlitchTip self-host repo (`glitchtip-analytics`) — OWNER: subagent — DEPLOYED
 - [x] Created `/Users/codrin/Documents/Programming/glitchtip-analytics`: docker-compose(.production) with migrate/web/worker/db(postgres16)/redis, `.env.example`, `nginx/glitchtip.conf`, `scripts/deploy.sh`+`backup.sh`, README.
-- [x] Web bound to 127.0.0.1:3002 (Umami owns 3001). DSN retrieval documented (Project → Client Keys). Consuming apps set SENTRY_DSN / NEXT_PUBLIC_SENTRY_DSN. Not started, not committed.
+- [x] Web bound to 127.0.0.1:3002 (Umami owns 3001). DSN retrieval documented (Project → Client Keys). Consuming apps set SENTRY_DSN / NEXT_PUBLIC_SENTRY_DSN.
+- [x] Committed, deployed to the VM, live at glitchtip.codrin.space, first user created.
+- [ ] ENABLE_USER_REGISTRATION=false + real SMTP + create the EduSport projects and set the DSNs.
 
 ## Sequencing
 - B and C are independent of A/D and each other → parallel now.
