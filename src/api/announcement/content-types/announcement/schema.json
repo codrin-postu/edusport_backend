@@ -1,18 +1,18 @@
 {
-  "kind": "singleType",
+  "kind": "collectionType",
   "collectionName": "announcements",
   "info": {
     "singularName": "announcement",
     "pluralName": "announcements",
-    "displayName": "Anunț Popup",
-    "description": "Anunț afișat ca popup pe site. Activați comutatorul pentru a afișa anunțul vizitatorilor."
+    "displayName": "Anunț",
+    "description": "Anunțuri programate afișate pe site. Se administrează din pagina dedicată „Anunțuri”, nu din Content Manager."
   },
   "options": {
     "draftAndPublish": false
   },
   "pluginOptions": {
     "content-manager": {
-      "visible": true
+      "visible": false
     }
   },
   "attributes": {
@@ -20,18 +20,49 @@
       "type": "string",
       "required": true
     },
+    "slug": {
+      "type": "uid",
+      "targetField": "title",
+      "required": true
+    },
+    "eyebrow": {
+      "type": "string"
+    },
+    "message": {
+      "type": "text",
+      "required": true
+    },
+    "format": {
+      "type": "enumeration",
+      "enum": ["card", "modal"],
+      "default": "card",
+      "required": true
+    },
+    "ctaLabel": {
+      "type": "string"
+    },
+    "ctaUrl": {
+      "type": "string"
+    },
+    "startAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "endAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "priority": {
+      "type": "integer",
+      "default": 100
+    },
     "isActive": {
       "type": "boolean",
-      "default": false,
-      "customField": "plugin::component-preview.announcement-is-active"
+      "default": true
     },
-    "expiresAt": {
-      "type": "datetime",
-      "customField": "plugin::component-preview.announcement-expires-at"
-    },
-    "announceContent": {
-      "type": "json",
-      "customField": "plugin::component-preview.announcement-content"
+    "dismissDays": {
+      "type": "integer",
+      "default": 7
     }
   }
 }
