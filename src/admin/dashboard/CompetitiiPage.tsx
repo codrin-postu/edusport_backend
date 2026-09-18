@@ -175,7 +175,12 @@ export default function CompetitiiPage() {
 
   const [reimportingId, setReimportingId] = React.useState<number | null>(null);
   const reimport = async (ev: EventRow) => {
-    const payload = ev.source_url ? { url: ev.source_url } : { query: ev.name };
+    // force: a reimport is a deliberate request for fresh data. Without it the
+    // server short-circuits on competitions it already holds in full and
+    // reports zero rows, which reads as a failure.
+    const payload = ev.source_url
+      ? { url: ev.source_url, force: true }
+      : { query: ev.name };
     setReimportingId(ev.id);
     setMsg(null);
     try {

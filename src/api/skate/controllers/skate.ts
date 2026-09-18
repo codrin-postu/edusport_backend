@@ -173,12 +173,20 @@ export default {
       query?: string;
       url?: string;
       preview?: boolean;
+      force?: boolean;
     };
     try {
       const res = await fetch(`${base()}/import`, {
         method: 'POST',
         headers: mutHeaders({ 'content-type': 'application/json' }),
-        body: JSON.stringify({ query: body.query, url: body.url, preview: !!body.preview }),
+        body: JSON.stringify({
+          query: body.query,
+          url: body.url,
+          preview: !!body.preview,
+          // Forwarded, not dropped: a reimport asks for fresh data, and without
+          // it the server returns the stored competition and reports zero rows.
+          force: !!body.force,
+        }),
       });
       ctx.status = res.status;
       ctx.body = await res.json();

@@ -380,8 +380,13 @@ export default function SportivEditPage() {
     setImportingHist(true);
     setMsg(null);
     try {
+      // Prefer the id we already hold for this skater: it is exact, and it
+      // means the operator is not asked to paste the same link twice.
+      const knownId = skateLinked?.rinkresults_id
+        ? String(skateLinked.rinkresults_id)
+        : '';
       const discPayload = useId
-        ? { rinkresults_id: rrId.replace(/\D/g, '') }
+        ? { rinkresults_id: knownId || rrId.replace(/\D/g, '') }
         : { name: form.name };
       const disc: any = await post('/api/skate/skater-competitions', discPayload);
       const comps: Array<{ name: string; competition_id?: string; date?: string; city?: string }> =
@@ -756,29 +761,59 @@ export default function SportivEditPage() {
                       <div className="hint" style={{ marginTop: 6 }}>slug: {form.skateResultsSlug}</div>
                       <div style={{ marginTop: 12, borderTop: '1px solid #ececef', paddingTop: 12 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Istoric competițional</div>
-                        <div className="hint" style={{ marginBottom: 8 }}>
-                          Lipește linkul rinkresults al sportivului; importăm fiecare competiție din rezultatele oficiale (~4s fiecare, poate dura câteva minute).
-                        </div>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <input
-                            placeholder="https://www.rinkresults.com/skater?skater_id=15448"
-                            value={rrId}
-                            onChange={(e) => setRrId(e.target.value)}
-                          />
-                          <button type="button" className="btn pri" onClick={() => importHistory(true)} disabled={importingHist || !rrId.trim()}>
-                            {histProgress
-                              ? `Import ${histProgress.done}/${histProgress.total}…`
-                              : importingHist
-                                ? 'Se caută…'
-                                : 'Importă din link'}
-                          </button>
-                        </div>
-                        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <button type="button" className="btn" onClick={() => importHistory(false)} disabled={importingHist}>
-                            Încearcă după nume
-                          </button>
-                          <span className="hint">(mai puțin sigur — poate eșua de pe server)</span>
-                        </div>
+                        {skateLinked?.rinkresults_id ? (
+                          <>
+                            <div className="hint" style={{ marginBottom: 8 }}>
+                              Sportivul este deja identificat, așa că importul pornește
+                              direct. Aducem fiecare competiție pe care nu o avem încă;
+                              cele deja importate sunt sărite, deci a doua oară durează
+                              câteva secunde.
+                            </div>
+                            <button
+                              type="button"
+                              className="btn pri"
+                              onClick={() => importHistory(true)}
+                              disabled={importingHist}
+                            >
+                              {histProgress
+                                ? `Import ${histProgress.done}/${histProgress.total}…`
+                                : importingHist
+                                  ? 'Se importă…'
+                                  : 'Importă istoricul competițional'}
+                            </button>
+                            <div className="hint" style={{ marginTop: 6 }}>
+                              id sursă: {skateLinked.rinkresults_id}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="hint" style={{ marginBottom: 8 }}>
+                              Nu avem încă un identificator pentru acest sportiv. Lipește
+                              linkul paginii lui, o singură dată: după primul import îl
+                              reținem și butonul de mai sus pornește singur.
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <input
+                                placeholder="https://www.rinkresults.com/skater?skater_id=15448"
+                                value={rrId}
+                                onChange={(e) => setRrId(e.target.value)}
+                              />
+                              <button type="button" className="btn pri" onClick={() => importHistory(true)} disabled={importingHist || !rrId.trim()}>
+                                {histProgress
+                                  ? `Import ${histProgress.done}/${histProgress.total}…`
+                                  : importingHist
+                                    ? 'Se caută…'
+                                    : 'Importă din link'}
+                              </button>
+                            </div>
+                            <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <button type="button" className="btn" onClick={() => importHistory(false)} disabled={importingHist}>
+                                Caută după nume
+                              </button>
+                              <span className="hint">(mai puțin sigur, poate eșua)</span>
+                            </div>
+                          </>
+                        )}
                         {histLog.length > 0 && (
                           <div style={{ marginTop: 10, maxHeight: 200, overflowY: 'auto', border: '1px solid #ececef', borderRadius: 5 }}>
                             {histLog.map((l, i) => (
