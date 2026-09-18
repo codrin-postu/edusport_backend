@@ -369,7 +369,9 @@ export default function SportivEditPage() {
   const [importingHist, setImportingHist] = React.useState(false);
   const [rrId, setRrId] = React.useState('');
   const [showRrFallback, setShowRrFallback] = React.useState(false);
-  const [histProgress, setHistProgress] = React.useState<{ done: number; total: number } | null>(null);
+  const [histProgress, setHistProgress] = React.useState<
+    { done: number; total: number; current?: string } | null
+  >(null);
   const [histLog, setHistLog] = React.useState<{ name: string; ok: boolean }[]>([]);
 
   // Discover the athlete's competitions from rinkresults, then import each one
@@ -438,14 +440,26 @@ export default function SportivEditPage() {
         return;
       }
 
-      setHistProgress({ done: 0, total: missing.length });
+      setHistProgress({ done: 0, total: missing.length, current: missing[0]?.name });
       setHistLog([]);
+      setMsg({
+        kind: 'ok',
+        text:
+          `${already} competiții sunt deja la noi. Descarc ${missing.length} ` +
+          `${missing.length === 1 ? 'competiție nouă' : 'competiții noi'}; ` +
+          'fiecare durează un minut sau două, nu închide pagina.',
+      });
       const log: { name: string; ok: boolean }[] = [];
       let imported = 0;
       let failed = 0;
       // Only what we are missing. Each of these does scrape the source, one
       // category at a time, so it is slow by nature.
       for (let i = 0; i < missing.length; i++) {
+        // Announce before fetching, not after. Each competition is pulled one
+        // category at a time against the source's crawl delay, so it takes a
+        // minute or two; without this the panel sits on "0/N" with no sign of
+        // life and reads as frozen.
+        setHistProgress({ done: i, total: missing.length, current: missing[i].name });
         let ok = false;
         try {
           const ir: any = await post('/api/skate/import-competition', {
@@ -824,6 +838,11 @@ export default function SportivEditPage() {
                                   ? 'Se importă…'
                                   : 'Importă istoricul competițional'}
                             </button>
+                            {histProgress?.current && (
+                              <div className="hint" style={{ marginTop: 6 }}>
+                                Se descarcă: {histProgress.current}
+                              </div>
+                            )}
                             <div className="hint" style={{ marginTop: 6 }}>
                               id sursă: {skateLinked.rinkresults_id}
                             </div>
