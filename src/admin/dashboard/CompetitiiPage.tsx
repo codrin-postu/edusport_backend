@@ -69,6 +69,7 @@ export default function CompetitiiPage() {
   // Linked club athletes: skate-results slug -> sportsperson, used to filter a
   // competition's full field down to just the club's own skaters.
   const [clubBySlug, setClubBySlug] = React.useState<Map<string, { name: string; documentId: string }>>(new Map());
+  const [clubLoadFailed, setClubLoadFailed] = React.useState(false);
   const [expanded, setExpanded] = React.useState<number | null>(null);
   const [rowData, setRowData] = React.useState<Record<number, ClubResult[] | 'loading' | 'error'>>({});
 
@@ -81,8 +82,13 @@ export default function CompetitiiPage() {
           if (s.skateResultsSlug) m.set(s.skateResultsSlug, { name: s.name, documentId: s.documentId });
         }
         setClubBySlug(m);
+        setClubLoadFailed(false);
       })
-      .catch(() => {});
+      .catch(() => {
+        // A failed lookup and a genuine "no athletes matched" used to render
+        // identically, which made a real data problem look like an empty club.
+        setClubLoadFailed(true);
+      });
   }, [get]);
 
   const toggleRow = (ev: EventRow) => {
@@ -428,8 +434,10 @@ export default function CompetitiiPage() {
                           ) : data === 'error' || !data ? (
                             <div style={{ padding: '12px 18px', color: '#be3330', fontSize: 12 }}>Nu am putut încărca rezultatele.</div>
                           ) : data.length === 0 ? (
-                            <div style={{ padding: '12px 18px', color: '#6a6f7a', fontSize: 12 }}>
-                              Niciun sportiv conectat al clubului în această competiție. Conectează sportivii în editorul de sportiv.
+                            <div style={{ padding: '12px 18px', color: clubLoadFailed ? '#be3330' : '#6a6f7a', fontSize: 12 }}>
+                              {clubLoadFailed
+                                ? 'Nu am putut încărca lista sportivilor clubului, așa că nu putem spune cine a participat. Reîncarcă pagina.'
+                                : 'Niciun sportiv conectat al clubului în această competiție. Conectează sportivii în editorul de sportiv.'}
                             </div>
                           ) : (
                             <div style={{ padding: '8px 18px 14px' }}>
