@@ -407,9 +407,16 @@ export default function SportivEditPage() {
       try {
         const ours: any = await get('/api/skate/events');
         const list: any[] = Array.isArray(ours?.data) ? ours.data : [];
+        // Every URL each event has been seen at, not just the first. A
+        // competition held under two publishers keeps the second in
+        // source_urls, and reading only source_url made an event we already
+        // had look missing.
         known = new Set(
           list
-            .map((e) => /competition_id=(\d+)/.exec(e.source_url ?? '')?.[1])
+            .flatMap((e) =>
+              (e.source_urls?.length ? e.source_urls : [e.source_url]) as string[]
+            )
+            .map((u) => /competition_id=(\d+)/.exec(u ?? '')?.[1])
             .filter(Boolean) as string[]
         );
       } catch {
