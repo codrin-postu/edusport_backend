@@ -174,32 +174,38 @@ export default function CompetitiiPage() {
   };
 
   const [reimportingId, setReimportingId] = React.useState<number | null>(null);
-  const reimport = async (ev: EventRow) => {
-    // force: a reimport is a deliberate request for fresh data. Without it the
-    // server short-circuits on competitions it already holds in full and
-    // reports zero rows, which reads as a failure.
-    const payload = ev.source_url
-      ? { url: ev.source_url, force: true }
-      : { query: ev.name };
+
+  // Re-read one competition from our own database. Deliberately NOT a scrape:
+  // the results are already stored, and re-fetching them from the source would
+  // spend minutes retrieving every category to arrive at the same rows. Use the
+  // import box above to bring in a competition we do not hold yet.
+  const refresh = async (ev: EventRow) => {
     setReimportingId(ev.id);
     setMsg(null);
     try {
-      const res: any = await post('/api/skate/import', payload);
-      const d = res?.data ?? {};
-      if (d.scraped) {
-        const c = d.counts ?? {};
-        setMsg({ kind: 'ok', text: `Reimportat: ${ev.name} — ${c.skaters ?? 0} sportivi, ${c.results ?? 0} rezultate.` });
-        setRowData((rd) => {
-          const n = { ...rd };
-          delete n[ev.id];
-          return n;
-        });
-        loadEvents();
-      } else {
-        setMsg({ kind: 'err', text: `Nu am putut reimporta „${ev.name}".` });
-      }
+      const res: any = await get(`/api/skate/events/${ev.id}/results`);
+      const all: any[] = Array.isArray(res?.data) ? res.data : [];
+      const mine: ClubResult[] = all
+        .filter((r) => r.skater_slug && clubBySlug.has(r.skater_slug))
+        .map((r) => ({
+          skater_slug: r.skater_slug,
+          skater_name: r.skater_name,
+          category: r.category,
+          placement: r.placement,
+          total_score: r.total_score,
+          short_score: r.short_score,
+          free_score: r.free_score,
+          sportiv: clubBySlug.get(r.skater_slug)!,
+        }));
+      setRowData((d) => ({ ...d, [ev.id]: mine }));
+      setExpanded(ev.id);
+      setMsg({
+        kind: 'ok',
+        text: `Actualizat „${ev.name}": ${all.length} rezultate, ${mine.length} de la sportivii clubului.`,
+      });
+      loadEvents();
     } catch {
-      setMsg({ kind: 'err', text: 'Reimportul a eșuat.' });
+      setMsg({ kind: 'err', text: `Nu am putut citi rezultatele pentru „${ev.name}".` });
     } finally {
       setReimportingId(null);
     }
@@ -406,15 +412,15 @@ export default function CompetitiiPage() {
                       <td className="num" style={{ whiteSpace: 'nowrap' }}>
                         <button
                           type="button"
-                          title="Reimportă (re-scrapează) competiția"
+                          title="Recitește rezultatele din baza noastră de date"
                           onClick={(e) => {
                             e.stopPropagation();
-                            reimport(r);
+                            refresh(r);
                           }}
                           disabled={reimportingId === r.id}
                           style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#2138b8', fontWeight: 600, fontSize: 12, marginRight: 10 }}
                         >
-                          {reimportingId === r.id ? '…' : 'Reimportă'}
+                          {reimportingId === r.id ? '…' : 'Actualizează'}
                         </button>
                         <button
                           type="button"

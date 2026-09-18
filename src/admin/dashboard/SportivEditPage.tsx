@@ -397,35 +397,71 @@ export default function SportivEditPage() {
         return;
       }
       setShowRrFallback(false);
-      setHistProgress({ done: 0, total: comps.length });
+
+      // Ask our own database first. Every competition we already hold is one we
+      // must not fetch again: scraping it would spend a minute or more per
+      // competition retrieving every category to arrive at rows we have. Our
+      // events carry the source competition id in their URL, so the comparison
+      // is one request rather than one per competition.
+      let known = new Set<string>();
+      try {
+        const ours: any = await get('/api/skate/events');
+        const list: any[] = Array.isArray(ours?.data) ? ours.data : [];
+        known = new Set(
+          list
+            .map((e) => /competition_id=(\d+)/.exec(e.source_url ?? '')?.[1])
+            .filter(Boolean) as string[]
+        );
+      } catch {
+        // If we cannot tell what we hold, import everything rather than
+        // silently skipping competitions that may be missing.
+        known = new Set();
+      }
+
+      const missing = comps.filter(
+        (c) => c.competition_id && !known.has(String(c.competition_id))
+      );
+      const already = comps.length - missing.length;
+
+      if (missing.length === 0) {
+        setMsg({
+          kind: 'ok',
+          text: `Toate cele ${comps.length} competiții sunt deja în baza noastră de date. Nu am descărcat nimic.`,
+        });
+        return;
+      }
+
+      setHistProgress({ done: 0, total: missing.length });
       setHistLog([]);
       const log: { name: string; ok: boolean }[] = [];
       let imported = 0;
       let failed = 0;
-      // Each call scrapes a full competition from rinkresults by id; the server
-      // serializes at 10s (their crawl-delay), so no client-side wait is needed.
-      for (let i = 0; i < comps.length; i++) {
+      // Only what we are missing. Each of these does scrape the source, one
+      // category at a time, so it is slow by nature.
+      for (let i = 0; i < missing.length; i++) {
         let ok = false;
-        if (comps[i].competition_id) {
-          try {
-            const ir: any = await post('/api/skate/import-competition', {
-              competition_id: comps[i].competition_id,
-              event_date: comps[i].date,
-              city: comps[i].city,
-            });
-            ok = !!ir?.data?.event;
-          } catch {
-            ok = false;
-          }
+        try {
+          const ir: any = await post('/api/skate/import-competition', {
+            competition_id: missing[i].competition_id,
+            event_date: missing[i].date,
+            city: missing[i].city,
+          });
+          ok = !!ir?.data?.event;
+        } catch {
+          ok = false;
         }
         ok ? (imported += 1) : (failed += 1);
-        log.push({ name: comps[i].name, ok });
+        log.push({ name: missing[i].name, ok });
         setHistLog([...log]);
-        setHistProgress({ done: i + 1, total: comps.length });
+        setHistProgress({ done: i + 1, total: missing.length });
       }
       setMsg({
         kind: 'ok',
-        text: `Importat: ${imported} din ${comps.length} competiții${failed ? `, ${failed} eșuate` : ''}.`,
+        text:
+          `Importat: ${imported} din ${missing.length} competiții noi` +
+          (already ? `, ${already} erau deja la noi` : '') +
+          (failed ? `, ${failed} eșuate` : '') +
+          '.',
       });
       setSkateLinked((s: any) => (s ? { ...s } : s));
     } catch {
