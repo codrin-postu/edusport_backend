@@ -195,4 +195,48 @@ export default {
       ctx.body = { error: 'skate-results unreachable' };
     }
   },
+
+  // Queue a history import. Returns immediately: the work runs on the API and
+  // outlives this request, so the operator can leave the page.
+  async createJob(ctx: any) {
+    const body = (ctx.request?.body ?? {}) as { slug?: string; rinkresults_id?: number };
+    try {
+      const res = await fetch(`${base()}/jobs/skater-history`, {
+        method: 'POST',
+        headers: mutHeaders({ 'content-type': 'application/json' }),
+        body: JSON.stringify({ slug: body.slug, rinkresults_id: body.rinkresults_id }),
+      });
+      ctx.status = res.status;
+      ctx.body = await res.json();
+    } catch {
+      ctx.status = 502;
+      ctx.body = { error: 'skate-results unreachable' };
+    }
+  },
+
+  async getJob(ctx: any) {
+    const id = encodeURIComponent(ctx.params.id);
+    await proxy(ctx, `/jobs/${id}`);
+  },
+
+  async listJobs(ctx: any) {
+    const skater = typeof ctx.query.skater === 'string' ? ctx.query.skater : '';
+    ctx.state = { emptyOnError: [] };
+    await proxy(ctx, `/jobs?skater=${encodeURIComponent(skater)}&active=1`);
+  },
+
+  async cancelJob(ctx: any) {
+    const id = encodeURIComponent(ctx.params.id);
+    try {
+      const res = await fetch(`${base()}/jobs/${id}/cancel`, {
+        method: 'POST',
+        headers: mutHeaders({ 'content-type': 'application/json' }),
+      });
+      ctx.status = res.status;
+      ctx.body = await res.json();
+    } catch {
+      ctx.status = 502;
+      ctx.body = { error: 'skate-results unreachable' };
+    }
+  },
 };
