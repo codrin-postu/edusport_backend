@@ -41,6 +41,22 @@ interface SeasonRow {
   season: string;
   programs: ProgramRow[];
 }
+// Mirrors skate-results/app/schemas.py JobOut, so a renamed field fails the
+// build here instead of silently blanking a row in the panel.
+interface SkateJob {
+  id: number;
+  state: string;
+  skater_slug?: string | null;
+  discovered: number;
+  existing: number;
+  to_download: number;
+  downloaded: number;
+  current_name?: string | null;
+  failures: { name?: string | null; competition_id?: string | null; reason?: string | null }[];
+  error?: string | null;
+  queue_position?: number | null;
+  estimate_seconds?: number | null;
+}
 interface FormState {
   name: string;
   slug: string;
@@ -365,13 +381,16 @@ export default function SportivEditPage() {
 
   // The import runs on the server. This only creates the job and then asks how
   // it is going, so closing the page does not abandon the work.
-  const [job, setJob] = React.useState<any | null>(null);
+  const [job, setJob] = React.useState<SkateJob | null>(null);
 
   const pollJob = React.useCallback(
     async (id: number) => {
       try {
         const res: any = await get(`/api/skate/jobs/${id}`);
-        setJob(res?.data ?? null);
+        // A response that is not a job (an error body from a degraded proxy
+        // call, for instance) must not overwrite the last known good state;
+        // otherwise a single failed poll looks like the import vanished.
+        if (typeof res?.data?.state === 'string') setJob(res.data);
       } catch {
         // A failed poll is not a failed import; keep the last known state.
       }
@@ -761,21 +780,30 @@ export default function SportivEditPage() {
                           let detail: string | null = null;
                           let pct = 0;
 
+                          const minuteWord = (n: number) => (n === 1 ? 'minut' : 'minute');
+
                           if (s === 'queued') {
                             label = 'În așteptare';
                             value = `${job.queue_position} în listă`;
-                            detail = minutes ? `Start în aproximativ ${minutes} minute` : null;
+                            detail = minutes ? `Start în aproximativ ${minutes} ${minuteWord(minutes)}` : null;
                           } else if (s === 'discovering' || s === 'comparing') {
                             label = 'Verificare date existente';
                             value = job.discovered ? `${job.discovered} competiții` : null;
                             pct = 8;
                           } else if (s === 'downloading') {
                             label = 'Descărcare';
-                            value = minutes ? `${minutes} minute rămase` : null;
+                            value = minutes ? `${minutes} ${minuteWord(minutes)} rămase` : null;
                             detail = `${job.downloaded ?? 0}/${job.to_download ?? 0} competiții descărcate`;
                             pct = job.to_download ? Math.min(100, ((job.downloaded ?? 0) / job.to_download) * 100) : 0;
-                          } else if (s === 'done' || s === 'interrupted' || s === 'cancelled') {
+                          } else if (s === 'done' || s === 'cancelled') {
                             label = s === 'cancelled' ? 'Anulat' : 'Finalizat';
+                            value = `${job.downloaded ?? 0} competiții noi`;
+                            detail = `${(job.existing ?? 0) + (job.downloaded ?? 0)} competiții în total`;
+                            pct = 100;
+                          } else if (s === 'interrupted') {
+                            // Partial like a failure, not a green success: the
+                            // worker stopped mid run, the counts are not final.
+                            label = 'Întrerupt';
                             value = `${job.downloaded ?? 0} competiții noi`;
                             detail = `${(job.existing ?? 0) + (job.downloaded ?? 0)} competiții în total`;
                             pct = 100;
@@ -797,7 +825,7 @@ export default function SportivEditPage() {
                                   <div style={{
                                     height: '100%',
                                     width: `${pct}%`,
-                                    background: s === 'failed' || job?.failures?.length ? '#d02b20' : pct === 100 ? '#328048' : '#4945ff',
+                                    background: s === 'failed' || s === 'interrupted' || job?.failures?.length ? '#d02b20' : pct === 100 ? '#328048' : '#4945ff',
                                   }} />
                                 </div>
                               )}
