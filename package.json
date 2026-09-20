@@ -14,6 +14,8 @@
     "seed:pricing": "docker exec strapi_app node scripts/seed-pricing.js",
     "seed:cursuri-page": "docker exec strapi_app node scripts/seed-cursuri-page.js",
     "seed:content": "docker exec strapi_app node scripts/seed-content.js",
+    "export:content": "docker exec strapi_app node scripts/export-content.js",
+    "seed:from-export": "docker exec strapi_app node scripts/seed-from-export.js",
     "seed:club-figures": "docker exec strapi_app node scripts/seed-club-figures.js",
     "wipe:club": "docker exec strapi_app node scripts/wipe-club-data.js",
     "seed:homepage": "docker exec strapi_app node scripts/seed-homepage.js",
