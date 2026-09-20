@@ -34,13 +34,22 @@ HOST=""
 USER_NAME=""
 KEY=""
 BACKEND_PATH="/opt/edusport/edusport_backend"
+# Production keeps its uploads in a docker named volume mounted at
+# /opt/app/public/uploads inside the container, NOT in the repo checkout.
+# Writing to the repo path would leave Strapi serving 404s for media the
+# database happily points at, so the volume is addressed directly.
+REMOTE_UPLOADS="/var/lib/docker/volumes/edusport_backend_uploads/_data"
 ASSUME_YES=0
 
+# The two sides do not agree on names: locally the stack is strapi_app /
+# strapi_db with the database called edusport_postgres, while on the VM it is
+# edusport_backend / edusport_postgres with the database called strapi. Both
+# sets are therefore explicit, and overridable.
 LOCAL_DB_CONTAINER="strapi_db"
-LOCAL_APP_CONTAINER="strapi_app"
-REMOTE_DB_CONTAINER="strapi_db"
-REMOTE_APP_CONTAINER="strapi_app"
-DB_NAME="edusport_postgres"
+LOCAL_DB_NAME="edusport_postgres"
+REMOTE_DB_CONTAINER="edusport_postgres"
+REMOTE_APP_CONTAINER="edusport_backend"
+REMOTE_DB_NAME="strapi"
 DB_USER="strapi"
 
 while [[ $# -gt 0 ]]; do
@@ -49,6 +58,12 @@ while [[ $# -gt 0 ]]; do
     --user) USER_NAME="$2"; shift 2 ;;
     --key) KEY="$2"; shift 2 ;;
     --backend-path) BACKEND_PATH="$2"; shift 2 ;;
+    --remote-uploads) REMOTE_UPLOADS="$2"; shift 2 ;;
+    --local-db-container) LOCAL_DB_CONTAINER="$2"; shift 2 ;;
+    --local-db-name) LOCAL_DB_NAME="$2"; shift 2 ;;
+    --remote-db-container) REMOTE_DB_CONTAINER="$2"; shift 2 ;;
+    --remote-app-container) REMOTE_APP_CONTAINER="$2"; shift 2 ;;
+    --remote-db-name) REMOTE_DB_NAME="$2"; shift 2 ;;
     --yes) ASSUME_YES=1; shift ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -70,12 +85,12 @@ trap 'rm -rf "$WORK"' EXIT
 KEEP_PATTERNS="table_name LIKE 'admin\\_%' OR table_name LIKE 'strapi\\_api\\_token%' OR table_name LIKE 'strapi\\_transfer\\_token%' OR table_name LIKE 'up\\_%'"
 
 echo "== Preflight =="
-docker exec "$LOCAL_DB_CONTAINER" pg_isready -U "$DB_USER" -d "$DB_NAME" >/dev/null
+docker exec "$LOCAL_DB_CONTAINER" pg_isready -U "$DB_USER" -d "$LOCAL_DB_NAME" >/dev/null
 echo "  local database reachable"
 remote "docker inspect -f '{{.State.Running}}' ${REMOTE_DB_CONTAINER} ${REMOTE_APP_CONTAINER}" >/dev/null
 echo "  production containers reachable"
 
-KEEP_TABLES="$(remote "docker exec ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d ${DB_NAME} -At -c \"select table_name from information_schema.tables where table_schema='public' and (${KEEP_PATTERNS}) order by table_name\"")"
+KEEP_TABLES="$(remote "docker exec ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d ${REMOTE_DB_NAME} -At -c \"select table_name from information_schema.tables where table_schema='public' and (${KEEP_PATTERNS}) order by table_name\"")"
 [[ -n "$KEEP_TABLES" ]] || { echo "Found no auth tables on production, refusing to continue" >&2; exit 1; }
 echo "  auth tables to carry over:"
 echo "$KEEP_TABLES" | sed 's/^/    /'
@@ -94,16 +109,16 @@ WARNING
 fi
 
 echo "== Backing up production =="
-remote "docker exec ${REMOTE_DB_CONTAINER} pg_dump -U ${DB_USER} -Fc ${DB_NAME} > ~/prod-db-${STAMP}.dump"
-remote "tar czf ~/prod-uploads-${STAMP}.tar.gz -C ${BACKEND_PATH} public/uploads"
+remote "docker exec ${REMOTE_DB_CONTAINER} pg_dump -U ${DB_USER} -Fc ${REMOTE_DB_NAME} > ~/prod-db-${STAMP}.dump"
+remote "tar czf ~/prod-uploads-${STAMP}.tar.gz -C ${REMOTE_UPLOADS} ."
 remote "ls -la ~/prod-db-${STAMP}.dump ~/prod-uploads-${STAMP}.tar.gz"
 
 echo "== Saving production's auth layer =="
 KEEP_ARGS="$(echo "$KEEP_TABLES" | sed 's/^/--table=/' | tr '\n' ' ')"
-remote "docker exec ${REMOTE_DB_CONTAINER} pg_dump -U ${DB_USER} -Fc --data-only ${KEEP_ARGS} ${DB_NAME} > ~/prod-auth-${STAMP}.dump"
+remote "docker exec ${REMOTE_DB_CONTAINER} pg_dump -U ${DB_USER} -Fc --data-only ${KEEP_ARGS} ${REMOTE_DB_NAME} > ~/prod-auth-${STAMP}.dump"
 
 echo "== Dumping the local database =="
-docker exec "$LOCAL_DB_CONTAINER" pg_dump -U "$DB_USER" -Fc "$DB_NAME" > "$LOCAL_DUMP"
+docker exec "$LOCAL_DB_CONTAINER" pg_dump -U "$DB_USER" -Fc "$LOCAL_DB_NAME" > "$LOCAL_DUMP"
 ls -la "$LOCAL_DUMP"
 scp "${SSH_OPTS[@]}" "$LOCAL_DUMP" "${TARGET}:~/local-${STAMP}.dump"
 
@@ -113,30 +128,46 @@ remote "docker stop ${REMOTE_APP_CONTAINER}"
 echo "== Restoring the local database over production =="
 # The app is stopped, but psql itself holds a connection, so the drop is issued
 # from the maintenance database after terminating anything else still attached.
-remote "docker exec ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d postgres -c \"select pg_terminate_backend(pid) from pg_stat_activity where datname='${DB_NAME}' and pid <> pg_backend_pid()\" >/dev/null"
-remote "docker exec ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d postgres -c 'DROP DATABASE ${DB_NAME}'"
-remote "docker exec ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d postgres -c 'CREATE DATABASE ${DB_NAME} OWNER ${DB_USER}'"
-remote "docker exec -i ${REMOTE_DB_CONTAINER} pg_restore -U ${DB_USER} -d ${DB_NAME} --no-owner < ~/local-${STAMP}.dump"
+remote "docker exec ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d postgres -c \"select pg_terminate_backend(pid) from pg_stat_activity where datname='${REMOTE_DB_NAME}' and pid <> pg_backend_pid()\" >/dev/null"
+remote "docker exec ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d postgres -c 'DROP DATABASE ${REMOTE_DB_NAME}'"
+remote "docker exec ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d postgres -c 'CREATE DATABASE ${REMOTE_DB_NAME} OWNER ${DB_USER}'"
+remote "docker exec -i ${REMOTE_DB_CONTAINER} pg_restore -U ${DB_USER} -d ${REMOTE_DB_NAME} --no-owner < ~/local-${STAMP}.dump"
 
 echo "== Putting production's auth layer back =="
-TRUNCATE_LIST="$(echo "$KEEP_TABLES" | tr '\n' ',' | sed 's/,$//')"
-remote "docker exec ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d ${DB_NAME} -c 'TRUNCATE ${TRUNCATE_LIST} RESTART IDENTITY CASCADE'"
-remote "docker exec -i ${REMOTE_DB_CONTAINER} pg_restore -U ${DB_USER} -d ${DB_NAME} --data-only --no-owner --disable-triggers < ~/prod-auth-${STAMP}.dump"
+# Every content table carries created_by_id / updated_by_id pointing at
+# admin_users. TRUNCATE ... CASCADE on the auth tables therefore does not stop
+# at them: it walks those foreign keys and empties the content that was just
+# restored. Clearing the audit columns first removes the references, so the
+# auth rows can be deleted on their own.
+remote "docker exec ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d ${REMOTE_DB_NAME} -At -c \"
+  select 'update ' || quote_ident(table_name) || ' set ' || string_agg(quote_ident(column_name) || ' = null', ', ') || ';'
+  from information_schema.columns
+  where table_schema = 'public' and column_name in ('created_by_id', 'updated_by_id')
+  group by table_name
+\" > /tmp/null-audit-${STAMP}.sql"
+remote "docker exec -i ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d ${REMOTE_DB_NAME} -q < /tmp/null-audit-${STAMP}.sql >/dev/null"
+
+# Deleted rather than truncated, and children before parents, so no cascade is
+# needed and nothing outside these tables is touched.
+DELETE_ORDER="$(echo "$KEEP_TABLES" | grep '_lnk$' || true; echo "$KEEP_TABLES" | grep -v '_lnk$')"
+DELETE_SQL="$(echo "$DELETE_ORDER" | sed 's/^/delete from /; s/$/;/' | tr '\n' ' ')"
+remote "docker exec ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d ${REMOTE_DB_NAME} -q -c \"${DELETE_SQL}\""
+remote "docker exec -i ${REMOTE_DB_CONTAINER} pg_restore -U ${DB_USER} -d ${REMOTE_DB_NAME} --data-only --no-owner --disable-triggers < ~/prod-auth-${STAMP}.dump"
 
 # A data-only restore leaves each id sequence where the local dump left it, which
 # can sit below the ids just written. The next insert would then collide, so every
 # sequence is pushed past the highest id its table holds.
 echo "== Resetting id sequences =="
-remote "docker exec ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d ${DB_NAME} -At -c \"
+remote "docker exec ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d ${REMOTE_DB_NAME} -At -c \"
   select 'select setval(' || quote_literal(quote_ident(s.sequence_name)) || ', coalesce((select max(id) from ' || quote_ident(t.table_name) || '), 0) + 1, false);'
   from information_schema.sequences s
   join information_schema.tables t on s.sequence_name = t.table_name || '_id_seq'
   where s.sequence_schema = 'public' and t.table_schema = 'public'
 \" > /tmp/reseq-${STAMP}.sql"
-remote "docker exec -i ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d ${DB_NAME} -q < /tmp/reseq-${STAMP}.sql >/dev/null"
+remote "docker exec -i ${REMOTE_DB_CONTAINER} psql -U ${DB_USER} -d ${REMOTE_DB_NAME} -q < /tmp/reseq-${STAMP}.sql >/dev/null"
 
 echo "== Copying media =="
-rsync -az --delete -e "ssh ${SSH_OPTS[*]}" ./public/uploads/ "${TARGET}:${BACKEND_PATH}/public/uploads/"
+rsync -az --delete -e "ssh ${SSH_OPTS[*]}" ./public/uploads/ "${TARGET}:${REMOTE_UPLOADS}/"
 
 echo "== Starting Strapi =="
 remote "docker start ${REMOTE_APP_CONTAINER}"
