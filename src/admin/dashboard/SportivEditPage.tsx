@@ -689,10 +689,21 @@ export default function SportivEditPage() {
                             ? Math.max(1, Math.round(job.estimate_seconds / 60))
                             : null;
 
-                          let label = 'Neimportat';
-                          let value: string | null = skateLinked?.rinkresults_id
-                            ? `id sursă ${skateLinked.rinkresults_id}`
-                            : null;
+                          // With no job row the panel used to claim "Neimportat", which is
+                          // wrong for every skater imported before jobs existed: the state
+                          // reflects the job, not the data. Fall back to what we actually
+                          // hold for this skater.
+                          const held =
+                            typeof skateLinked?.events_count === 'number'
+                              ? skateLinked.events_count
+                              : 0;
+                          let label = held > 0 ? 'Importat' : 'Neimportat';
+                          let value: string | null =
+                            held > 0
+                              ? `${held} ${held === 1 ? 'competiție' : 'competiții'}`
+                              : skateLinked?.rinkresults_id
+                                ? `id sursă ${skateLinked.rinkresults_id}`
+                                : null;
                           let detail: string | null = null;
                           let pct = 0;
 
@@ -765,7 +776,7 @@ export default function SportivEditPage() {
                                 onClick={active ? cancelImport : startImport}
                                 disabled={!active && starting}
                               >
-                                {active ? (s === 'queued' ? 'Anulează' : 'Oprește') : job ? 'Importă din nou' : 'Importă'}
+                                {active ? (s === 'queued' ? 'Anulează' : 'Oprește') : job || held > 0 ? 'Importă din nou' : 'Importă'}
                               </button>
                             </>
                           );
