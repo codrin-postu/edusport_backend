@@ -750,8 +750,8 @@ export default function SportivEditPage() {
                         {(() => {
                           const s = job?.state;
                           const active = ['queued', 'discovering', 'comparing', 'downloading'].includes(s);
-                          const minutes = job?.estimated_seconds
-                            ? Math.max(1, Math.round(job.estimated_seconds / 60))
+                          const minutes = job?.estimate_seconds
+                            ? Math.max(1, Math.round(job.estimate_seconds / 60))
                             : null;
 
                           let label = 'Neimportat';
