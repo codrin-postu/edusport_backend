@@ -30,6 +30,12 @@
     },
     "sections": {
       "type": "json"
+    },
+    "competitionGallery": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
+      "allowedTypes": ["images"]
     }
   }
 }
