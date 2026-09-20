@@ -157,9 +157,8 @@ const CSS = `
 .fres-tabs { display: flex; gap: 4px; border-bottom: 1px solid #dcdcdc; margin-bottom: 12px; flex-wrap: wrap; }
 .fres-tab { display: flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 12.5px; color: #5a5e6b; border: none; background: none; border-bottom: 2px solid transparent; cursor: pointer; font-family: inherit; }
 .fres-tab:hover { color: #1b1d26; }
-.fres-tab .b { font-size: 10px; font-weight: 800; border-radius: 20px; padding: 1px 7px; background: #eef0f3; color: #5a5e6b; }
+.fres-tab .b { font-size: 10px; font-weight: 800; border-radius: 3px; padding: 2px 6px; background: #be3330; color: #fff; }
 .fres-tab.on { color: #2138b8; border-bottom-color: #2138b8; font-weight: 700; }
-.fres-tab.on .b { background: #be3330; color: #fff; }
 
 /* toolbar */
 .fres-toolbar { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
@@ -227,7 +226,10 @@ export default function FormResultsPage({ config }: { config: FormResultsConfig 
   const { get, put } = useFetchClient();
   const { apiBase, statuses, fields } = config;
 
-  const [activeTab, setActiveTab] = React.useState<string>(statuses[0]?.value ?? '');
+  // Inboxes open on "Toate": an inbox is for reading everything that came in,
+  // and defaulting to the unread-only view hid older messages until you noticed
+  // the tabs. Filtering to new stays one click away.
+  const [activeTab, setActiveTab] = React.useState<string>('');
   const [search, setSearch] = React.useState('');
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const [sort, setSort] = React.useState<'newest' | 'oldest'>('newest');
@@ -455,7 +457,8 @@ export default function FormResultsPage({ config }: { config: FormResultsConfig 
       </div>
 
       <div className="fres-tabs">
-        {[...statuses.map((s) => ({ key: s.value, label: s.label })), { key: '', label: 'Toate' }].map((t) => {
+        {/* statuses[0] is the form's "new" status by contract, see StatusDef. */}
+        {[{ key: '', label: 'Toate' }, ...statuses.map((s) => ({ key: s.value, label: s.label }))].map((t) => {
           const count = t.key === '' ? counts.all : counts[t.key];
           return (
             <button
@@ -465,7 +468,9 @@ export default function FormResultsPage({ config }: { config: FormResultsConfig 
               onClick={() => setActiveTab(t.key)}
             >
               {t.label}
-              {count != null && <span className="b num">{count}</span>}
+              {t.key === statuses[0]?.value && count != null && count > 0 && (
+                <span className="b num">{count}</span>
+              )}
             </button>
           );
         })}

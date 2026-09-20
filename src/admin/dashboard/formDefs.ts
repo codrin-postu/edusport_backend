@@ -103,7 +103,7 @@ export const FORM_DEFS: AdminFormDef[] = [
     desc: 'Propunerile de parteneriat trimise din pagina publică de parteneri.',
     live: true,
     resultsTo: PARTENERI_REZULTATE_TO,
-    resultsLabel: 'Rezultate',
+    resultsLabel: 'Vezi mesajele',
     countSource: { kind: 'formsApi', api: '/api/forms/parteneri-rezultate' },
     feedTile: 'P',
     feedColor: '#e08a00',

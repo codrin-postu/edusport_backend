@@ -19,7 +19,7 @@ export default function PartnersLinksEditor(_props: Props) {
         title="Sponsori"
         description="Logo-urile afișate în banda de sponsori sunt gestionate separat, ca înregistrări individuale."
         body="Adaugă, ordonează sau editează sponsorii din secțiunea dedicată."
-        href="/admin/content-manager/collection-types/api::sponsor.sponsor"
+        href="/admin/plugins/edusport-sponsori"
         linkLabel="Gestionează sponsorii"
       />
       <LinkOutCard

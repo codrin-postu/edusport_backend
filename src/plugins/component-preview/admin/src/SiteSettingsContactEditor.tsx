@@ -16,6 +16,7 @@ interface ContactData {
   instagramUrl: string;
   whatsappChannelUrl: string;
   addressDisplay: string;
+  addressMapsUrl: string;
 }
 
 const EMPTY: ContactData = {
@@ -25,6 +26,7 @@ const EMPTY: ContactData = {
   instagramUrl: '',
   whatsappChannelUrl: '',
   addressDisplay: '',
+  addressMapsUrl: '',
 };
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -110,6 +112,16 @@ export default function SiteSettingsContactEditor({ name }: Props) {
             <Grid.Item col={12} s={12} xs={12}>
               <EditorField name="addressDisplay" label="Adresă afișată" hint="Textul adresei care apare pe site">
                 <TextInput id="addressDisplay" name="addressDisplay" value={data.addressDisplay} placeholder="ex: Patinoarul AFI Cotroceni, București" onChange={onText('addressDisplay')} />
+              </EditorField>
+            </Grid.Item>
+
+            <Grid.Item col={12} s={12} xs={12}>
+              <EditorField
+                name="addressMapsUrl"
+                label="Link hartă (opțional)"
+                hint="Lasă gol și adresa duce automat la o căutare Google Maps. Completează doar dacă vrei un loc anume: deschide locația în Google Maps, apasă Partajează, copiază linkul."
+              >
+                <TextInput id="addressMapsUrl" name="addressMapsUrl" value={data.addressMapsUrl} placeholder="ex: https://maps.app.goo.gl/..." onChange={onText('addressMapsUrl')} />
               </EditorField>
             </Grid.Item>
           </Grid.Root>

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
+import ConfirmDialog from '../ConfirmDialog';
 
 /**
  * EduSport admin — "Mesaje" contact inbox page.
@@ -31,12 +32,18 @@ interface TabDef {
   key: TriageStatus | '';
   label: string;
 }
+// "Toate" leads: an inbox is for reading everything that arrived, and opening
+// on the unread-only view hid older messages until you noticed the tabs.
+//
+// No "Arhivate" tab: archiving was removed in favour of deleting. The
+// `archived` value is still understood, so messages archived before that change
+// keep rendering their badge under Toate rather than looking broken, but
+// nothing can set it any more.
 const TABS: TabDef[] = [
+  { key: '', label: 'Toate' },
   { key: 'new', label: 'Noi' },
   { key: 'read', label: 'Citite' },
   { key: 'replied', label: 'Răspunse' },
-  { key: 'archived', label: 'Arhivate' },
-  { key: '', label: 'Toate' },
 ];
 
 interface ReasonDef {
@@ -157,9 +164,8 @@ const CSS = `
 .mesg-tabs { display: flex; gap: 4px; border-bottom: 1px solid #dcdcdc; margin-bottom: 12px; flex-wrap: wrap; }
 .mesg-tab { display: flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 12.5px; color: #5a5e6b; border: none; background: none; border-bottom: 2px solid transparent; cursor: pointer; font-family: inherit; }
 .mesg-tab:hover { color: #1b1d26; }
-.mesg-tab .b { font-size: 10px; font-weight: 800; border-radius: 20px; padding: 1px 7px; background: #eef0f3; color: #5a5e6b; }
+.mesg-tab .b { font-size: 10px; font-weight: 800; border-radius: 3px; padding: 2px 6px; background: #be3330; color: #fff; }
 .mesg-tab.on { color: #2138b8; border-bottom-color: #2138b8; font-weight: 700; }
-.mesg-tab.on .b { background: #be3330; color: #fff; }
 
 /* toolbar */
 .mesg-toolbar { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
@@ -232,9 +238,9 @@ const CSS = `
 `;
 
 export default function MesajePage() {
-  const { get, put } = useFetchClient();
+  const { get, put, del } = useFetchClient();
 
-  const [activeTab, setActiveTab] = React.useState<TriageStatus | ''>('new');
+  const [activeTab, setActiveTab] = React.useState<TriageStatus | ''>('');
   const [search, setSearch] = React.useState('');
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const [reason, setReason] = React.useState('');
@@ -359,6 +365,48 @@ export default function MesajePage() {
     [put],
   );
 
+
+  // --- delete, with confirmation. Replaces archiving: an archived message was
+  // still an unread-looking row nobody ever went back to, so the useful action
+  // is removing it for good. The content-manager API is the same one this page
+  // already reads and writes through.
+  const [pendingDelete, setPendingDelete] = React.useState<string[] | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
+
+  const confirmDelete = React.useCallback(async () => {
+    const ids = pendingDelete ?? [];
+    if (!ids.length) return;
+    setDeleting(true);
+    setDeleteError(null);
+    let okCount = 0;
+    for (const id of ids) {
+      try {
+        await del(`${API}/${id}`);
+        okCount += 1;
+      } catch {
+        /* keep going, report the shortfall below */
+      }
+    }
+    setDeleting(false);
+    if (okCount === 0) {
+      setDeleteError('Stergerea nu a reusit. Incearca din nou.');
+      return;
+    }
+    setPendingDelete(null);
+    setChecked(new Set());
+    setSelectedId((cur) => (cur && ids.includes(cur) ? null : cur));
+    setMsg({
+      kind: okCount === ids.length ? 'ok' : 'err',
+      text:
+        okCount === ids.length
+          ? `${okCount} ${okCount === 1 ? 'mesaj sters' : 'mesaje sterse'}.`
+          : `Am sters ${okCount} din ${ids.length} mesaje.`,
+    });
+    reload();
+    reloadCounts();
+  }, [pendingDelete, del, reload, reloadCounts]);
+
   const setStatus = React.useCallback(
     async (documentId: string, status: TriageStatus) => {
       const ok = await updateFields(documentId, { triageStatus: status });
@@ -469,7 +517,12 @@ export default function MesajePage() {
               onClick={() => setActiveTab(t.key)}
             >
               {t.label}
-              {count != null && <span className="b num">{count}</span>}
+              {/* The badge marks unread only. Showing a count on every tab
+                  turned it into decoration; here a number means "these need
+                  reading". */}
+              {t.key === 'new' && count != null && count > 0 && (
+                <span className="b num">{count}</span>
+              )}
             </button>
           );
         })}
@@ -505,8 +558,13 @@ export default function MesajePage() {
             <button className="btn" type="button" disabled={busy} onClick={() => bulkSet('read')}>
               Marchează citit
             </button>
-            <button className="btn" type="button" disabled={busy} onClick={() => bulkSet('archived')}>
-              Arhivează
+            <button
+              className="btn danger"
+              type="button"
+              disabled={busy}
+              onClick={() => setPendingDelete(Array.from(checked))}
+            >
+              Șterge
             </button>
           </span>
         </div>
@@ -668,12 +726,11 @@ export default function MesajePage() {
                   Răspuns trimis
                 </button>
                 <button
-                  className="btn"
+                  className="btn danger"
                   type="button"
-                  disabled={selected.triageStatus === 'archived'}
-                  onClick={() => setStatus(selected.documentId, 'archived')}
+                  onClick={() => setPendingDelete([selected.documentId])}
                 >
-                  Arhivează
+                  Șterge
                 </button>
                 <a
                   className="btn"
@@ -687,6 +744,29 @@ export default function MesajePage() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        tone="danger"
+        title={
+          (pendingDelete?.length ?? 0) > 1 ? 'Stergi mesajele selectate?' : 'Stergi mesajul?'
+        }
+        message={
+          (pendingDelete?.length ?? 0) > 1
+            ? `Se sterg ${pendingDelete?.length} mesaje.`
+            : 'Mesajul se sterge definitiv.'
+        }
+        detail="Stergerea este definitiva. Datele expeditorului nu mai pot fi recuperate."
+        confirmLabel="Sterge"
+        busyLabel="Se sterge"
+        busy={deleting}
+        error={deleteError}
+        onCancel={() => {
+          setPendingDelete(null);
+          setDeleteError(null);
+        }}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }
