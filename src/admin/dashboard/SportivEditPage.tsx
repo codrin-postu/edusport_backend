@@ -382,7 +382,7 @@ export default function SportivEditPage() {
   // Reattach on mount: an import started earlier may still be running.
   React.useEffect(() => {
     if (!form.skateResultsSlug) return;
-    get(`/api/skate/jobs?skater=${encodeURIComponent(form.skateResultsSlug)}`)
+    get(`/api/skate/jobs?skater=${encodeURIComponent(form.skateResultsSlug)}&active=1`)
       .then((res: any) => setJob(res?.data?.[0] ?? null))
       .catch(() => {});
   }, [get, form.skateResultsSlug]);
@@ -395,8 +395,11 @@ export default function SportivEditPage() {
     return () => clearInterval(t);
   }, [job, pollJob]);
 
+  const [starting, setStarting] = React.useState(false);
+
   const startImport = async () => {
     setMsg(null);
+    setStarting(true);
     try {
       const res: any = await post('/api/skate/jobs', {
         slug: form.skateResultsSlug,
@@ -405,6 +408,8 @@ export default function SportivEditPage() {
       setJob(res?.data ?? null);
     } catch {
       setMsg({ kind: 'err', text: 'Nu am putut porni importul.' });
+    } finally {
+      setStarting(false);
     }
   };
 
@@ -745,13 +750,13 @@ export default function SportivEditPage() {
                         {(() => {
                           const s = job?.state;
                           const active = ['queued', 'discovering', 'comparing', 'downloading'].includes(s);
-                          const minutes = job?.estimate_seconds
-                            ? Math.max(1, Math.round(job.estimate_seconds / 60))
+                          const minutes = job?.estimated_seconds
+                            ? Math.max(1, Math.round(job.estimated_seconds / 60))
                             : null;
 
                           let label = 'Neimportat';
                           let value: string | null = skateLinked?.rinkresults_id
-                            ? `id sursa ${skateLinked.rinkresults_id}`
+                            ? `id sursă ${skateLinked.rinkresults_id}`
                             : null;
                           let detail: string | null = null;
                           let pct = 0;
@@ -767,12 +772,16 @@ export default function SportivEditPage() {
                           } else if (s === 'downloading') {
                             label = 'Descărcare';
                             value = minutes ? `${minutes} minute rămase` : null;
-                            detail = `${job.downloaded}/${job.to_download} competiții descărcate`;
-                            pct = job.to_download ? (job.downloaded / job.to_download) * 100 : 0;
+                            detail = `${job.downloaded ?? 0}/${job.to_download ?? 0} competiții descărcate`;
+                            pct = job.to_download ? Math.min(100, ((job.downloaded ?? 0) / job.to_download) * 100) : 0;
                           } else if (s === 'done' || s === 'interrupted' || s === 'cancelled') {
                             label = s === 'cancelled' ? 'Anulat' : 'Finalizat';
-                            value = `${job.downloaded} competiții noi`;
-                            detail = `${job.existing + job.downloaded} competiții în total`;
+                            value = `${job.downloaded ?? 0} competiții noi`;
+                            detail = `${(job.existing ?? 0) + (job.downloaded ?? 0)} competiții în total`;
+                            pct = 100;
+                          } else if (s === 'failed') {
+                            label = 'Eșuat';
+                            detail = job.error ?? null;
                             pct = 100;
                           }
 
@@ -788,7 +797,7 @@ export default function SportivEditPage() {
                                   <div style={{
                                     height: '100%',
                                     width: `${pct}%`,
-                                    background: job?.failures?.length ? '#d02b20' : pct === 100 ? '#328048' : '#4945ff',
+                                    background: s === 'failed' || job?.failures?.length ? '#d02b20' : pct === 100 ? '#328048' : '#4945ff',
                                   }} />
                                 </div>
                               )}
@@ -810,6 +819,7 @@ export default function SportivEditPage() {
                                 className={active ? 'btn' : 'btn pri'}
                                 style={{ marginTop: 12 }}
                                 onClick={active ? cancelImport : startImport}
+                                disabled={!active && starting}
                               >
                                 {active ? (s === 'queued' ? 'Anulează' : 'Oprește') : job ? 'Importă din nou' : 'Importă'}
                               </button>
