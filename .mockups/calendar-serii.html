@@ -1,0 +1,303 @@
+<title>Seria Școala de patinaj</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --bg:#eef0f4;--surface:#fff;--ink:#1b1d26;--ink-soft:#4a4d5a;--muted:#8a8d99;
+  --line:#e2e4ea;--accent:#2138b8;--accent-soft:#eef1fb;--ok:#1f7a4d;--danger:#be3330;--amber:#8a5a00;
+  --navy:#0e1a3c;--grey:#8a8a8a;
+  --shadow:0 8px 30px rgba(18,22,45,.10);
+  --sys:Inter,system-ui,-apple-system,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}}
+:root[data-theme="dark"]{--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sys);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 110px}
+.mast{padding:52px 0 26px;border-bottom:1px solid var(--line)}
+.kick{font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin:0 0 12px}
+.mast h1{font-size:clamp(28px,3.9vw,42px);line-height:1.04;margin:0 0 13px;font-weight:800;letter-spacing:-.02em;max-width:22ch;text-wrap:balance}
+.mast p{margin:0 0 9px;max-width:78ch;color:var(--ink-soft);font-size:15px}
+.mast p b{color:var(--ink)}
+.sec{padding:44px 0;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:none}
+.sec-head{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.sec-no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:7px;padding:2px 9px}
+.sec h2{font-size:22px;font-weight:800;letter-spacing:-.015em;margin:0}
+.tagline{color:var(--muted);font-size:14px;font-weight:600}
+.lead{color:var(--ink-soft);font-size:14.5px;margin:12px 0 0;max-width:84ch}
+.lead b{color:var(--ink)}
+.cap{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px}
+.note{font-size:13.5px;color:var(--ink-soft);background:var(--surface);border-left:3px solid var(--accent);padding:12px 15px;margin-top:17px;max-width:84ch}
+.note.bad{border-left-color:var(--danger)}
+.note b{color:var(--ink)}
+.frame{margin-top:16px;border:1px solid var(--line);box-shadow:var(--shadow);background:var(--surface);overflow:hidden}
+.frame-cap{padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.adm{--line2:#e0e2e8;--muted2:#727888;--fieldborder:#d0d0d0;--r:4px;background:#f6f7f9;color:#1b1d22;font-size:13px;padding:16px 18px;min-width:720px}
+.card{background:#fff;border:1px solid var(--line2);border-radius:var(--r);padding:14px 15px;margin-bottom:12px}
+.card h4{margin:0 0 3px;font-size:13.5px;font-weight:800}
+.card .h-sub{font-size:11.5px;color:var(--muted2);margin:0 0 12px}
+.btn{font-size:12.5px;font-weight:600;padding:6px 11px;border-radius:var(--r);border:1px solid var(--fieldborder);background:#fff;color:#1b1d22;display:inline-block}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.sm{font-size:11.5px;padding:4px 8px}
+
+/* state marks */
+.dot{display:inline-block;width:10px;height:10px;border-radius:2px;flex:none;vertical-align:middle}
+.dot.curs{background:var(--danger)}
+.dot.liber{background:var(--grey)}
+.dot.anulat{background:repeating-linear-gradient(135deg,var(--danger) 0 3px,#fff 3px 6px);border:1px solid var(--danger)}
+.dot.navy{background:var(--navy)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;align-items:center}
+.legend span.i{display:inline-flex;align-items:center;gap:7px}
+
+/* month list */
+.mon{border:1px solid var(--line2);border-radius:var(--r);background:#fff;margin-bottom:9px;overflow:hidden}
+.mon-h{display:flex;align-items:center;gap:10px;padding:9px 12px;background:#f6f7f9;border-bottom:1px solid var(--line2);font-weight:700;font-size:12.5px}
+.mon-h .car{color:var(--muted2);font-size:10px}
+.mon-h .sum{margin-left:auto;font-weight:600;font-size:11.5px;color:var(--muted2)}
+.row{display:flex;align-items:center;gap:11px;padding:8px 12px;border-bottom:1px solid #f0f1f4}
+.row:last-child{border-bottom:none}
+.row .d{width:150px;flex:none;font-size:12.5px}
+.row .d b{font-weight:700}
+.row .note-i{flex:1;font-size:12px;color:var(--muted2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seg{display:inline-flex;border:1px solid var(--fieldborder);border-radius:var(--r);overflow:hidden;flex:none}
+.seg span{padding:4px 10px;font-size:11.5px;font-weight:600;color:#5a5e6b;border-right:1px solid var(--fieldborder);display:inline-flex;align-items:center;gap:6px}
+.seg span:last-child{border-right:none}
+.seg span.on.curs{background:#fdeceb;color:#8c2b28}
+.seg span.on.liber{background:#f1f1f3;color:#4a4d5a}
+.seg span.on.anulat{background:#fdeceb;color:#8c2b28}
+.bulk{display:flex;align-items:center;gap:10px;background:var(--accent-soft);border:1px solid #cfd8f6;border-radius:var(--r);padding:8px 11px;margin-bottom:10px;font-size:12.5px}
+.bulk .grow{flex:1}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;max-width:430px}
+.cel{aspect-ratio:1;border:1px solid var(--line2);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#5a5e6b;background:#fff}
+.cel.curs{background:#fdeceb;border-color:#e6b6b4;color:#8c2b28;font-weight:700}
+.cel.navy{background:#e7e9f0;border-color:#b9bed2;color:var(--navy);font-weight:700}
+.cel.liber{background:#f1f1f3;border-color:#d8d8dc}
+.cel.anulat{background:repeating-linear-gradient(135deg,#fdeceb 0 5px,#fff 5px 10px);border-color:#e6b6b4;color:#8c2b28}
+
+.serie-old{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;border:1px solid var(--line2);border-radius:var(--r);padding:11px 12px;background:#fff}
+.serie-new{display:flex;align-items:flex-end;gap:14px;border:1px solid var(--line2);border-radius:var(--r);padding:11px 12px;background:#fff;margin-bottom:9px}
+.serie-new .grab{color:#b8bcc6;font-size:14px;padding-bottom:7px}
+.f{display:flex;flex-direction:column;gap:3px}
+.f label{font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.f .in{border:1px solid var(--fieldborder);border-radius:var(--r);padding:6px 8px;font-size:12.5px;background:#fff;min-width:88px}
+.chips{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.chip2{font-size:11.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);border:1px solid #cdd6f6;border-radius:4px;padding:3px 7px}
+
+.mgrid{display:grid;grid-template-columns:repeat(7,34px);gap:4px}
+.mg-h{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted2);text-align:center;font-weight:700}
+.mc{height:34px;border:1px solid var(--line2);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:11.5px;color:#5a5e6b;background:#fff;position:relative}
+.mc.off{background:#fafbfc;color:#c9ccd4;border-color:#f0f1f4}
+.mc.curs{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+.mc.liber{background:#e9e9ec;border-color:#d8d8dc;color:#5a5e6b}
+.mc.anulat{background:#fdeceb;border-color:#e6b6b4;color:#8c2b28;font-weight:700;text-decoration:line-through}
+.mc.sel{box-shadow:0 0 0 2px var(--accent)}
+.mgwrap{display:flex;gap:26px;flex-wrap:wrap}
+.mblock .mt{font-size:12px;font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:8px}
+.mblock .mt span{font-weight:600;color:var(--muted2);font-size:11px}
+.pop{border:1px solid var(--fieldborder);border-radius:var(--r);background:#fff;box-shadow:var(--shadow);padding:10px 11px;width:230px}
+.pop .ph{font-size:12.5px;font-weight:700;margin-bottom:8px}
+.pop .opt{display:flex;align-items:center;gap:8px;padding:6px 7px;border-radius:3px;font-size:12.5px}
+.pop .opt.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.cmp{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff}
+.cmp th{text-align:left;font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted2);font-weight:800;padding:7px 10px;border-bottom:1px solid var(--line2);background:#f6f7f9}
+.cmp td{padding:6px 10px;border-bottom:1px solid #f2f3f5}
+.cmp tr:last-child td{border-bottom:none}
+.cmp .sub td{background:#fafbfc;font-weight:700;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted2);padding:5px 10px}
+.pick{border:1px solid var(--fieldborder);border-radius:3px;padding:3px 7px;font-size:11.5px;display:inline-flex;align-items:center;gap:6px;background:#fff;min-width:96px;justify-content:space-between}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+@media(max-width:1000px){.duo{grid-template-columns:1fr}}
+.qa{background:var(--surface);border:1px solid var(--line);padding:14px 16px;font-size:13.5px;color:var(--ink-soft)}
+.qa b{color:var(--ink);display:block;margin-bottom:4px}
+</style>
+
+<div class="wrap">
+
+<div class="mast">
+  <p class="kick">Panou de administrare, Calendar</p>
+  <h1>Seria Școala de patinaj</h1>
+  <p>Trei lucruri: culoarea seriei intra în conflict cu cea a zilelor anulate, lista completă a datelor nu mai există deși înainte se putea vedea și modifica dintr-o privire, iar cardul de editare a unui eveniment stă în trei coloane egale.</p>
+  <p><b>Cauza, găsită în cod:</b> seria „Școala de patinaj" era roșie în legendă (<span class="mono">#be3330</span>), aceeași culoare pe care o foloseau zilele <b>anulate</b>, în timp ce o zi cu curs se desena bleumarin. Rezolvat: seria a trecut pe bleumarin, iar roșul rămâne doar pentru anulat.</p>
+  <p>Al treilea punct, adăugat după: cardul de adăugare sau editare a unui eveniment se împarte în trei coloane egale, oricât de diferite ar fi câmpurile din ele.</p>
+</div>
+
+<section class="sec">
+  <div class="sec-head"><span class="sec-no">01</span><h2>Culorile</h2><span class="tagline">plin înseamnă că se ține</span></div>
+  <p class="lead">Decizia luată: seria „Școala de patinaj" trece pe bleumarin, culoarea pe care o au deja zilele de curs. Legenda ajunge astfel identică cu grila, iar roșul rămâne cu un singur înțeles, anulat. Aplicat deja în cod.</p>
+  <div class="frame"><div class="frame-cap">Înainte și după</div>
+    <div class="adm">
+      <div class="card">
+        <h4>Acum</h4>
+        <p class="h-sub">Ziua cu curs iese bleumarin, deși seria e roșie. Roșul marchează anulările.</p>
+        <div class="legend">
+          <span class="i"><span class="dot navy"></span> Curs (bleumarin)</span>
+          <span class="i"><span class="dot liber"></span> Liber</span>
+          <span class="i"><span class="dot curs"></span> Anulat (roșu)</span>
+          <span class="i" style="margin-left:14px;color:var(--muted2)">legenda seriei: <span class="dot curs" style="margin-left:5px"></span> Școala de patinaj</span>
+        </div>
+        <div class="cal" style="margin-top:12px">
+          <div class="cel">S</div><div class="cel">D</div><div class="cel">L</div><div class="cel">M</div><div class="cel">M</div><div class="cel">J</div><div class="cel">V</div>
+          <div class="cel navy">4</div><div class="cel navy">5</div><div class="cel">6</div><div class="cel">7</div><div class="cel">8</div><div class="cel">9</div><div class="cel">10</div>
+          <div class="cel navy">11</div><div class="cel liber">12</div><div class="cel">13</div><div class="cel">14</div><div class="cel">15</div><div class="cel">16</div><div class="cel">17</div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:0">
+        <h4>Aplicat</h4>
+        <p class="h-sub">Seria devine bleumarin, la fel ca zilele de curs. Roșul rămâne doar pentru anulat.</p>
+        <div class="legend">
+          <span class="i"><span class="dot navy"></span> Curs</span>
+          <span class="i"><span class="dot liber"></span> Liber</span>
+          <span class="i"><span class="dot curs"></span> Anulat</span>
+          <span class="i" style="margin-left:14px;color:var(--muted2)">legenda seriei: <span class="dot navy" style="margin-left:5px"></span> Școala de patinaj</span>
+        </div>
+        <div class="cal" style="margin-top:12px">
+          <div class="cel">S</div><div class="cel">D</div><div class="cel">L</div><div class="cel">M</div><div class="cel">M</div><div class="cel">J</div><div class="cel">V</div>
+          <div class="cel navy">4</div><div class="cel navy">5</div><div class="cel">6</div><div class="cel">7</div><div class="cel">8</div><div class="cel">9</div><div class="cel">10</div>
+          <div class="cel navy">11</div><div class="cel liber">12</div><div class="cel">13</div><div class="cel">14</div><div class="cel">15</div><div class="cel">16</div><div class="cel curs">18</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note bad"><b>De ce contează.</b> Acum roșul din calendar înseamnă „anulat", iar roșul din legendă înseamnă „Școala de patinaj". Aceeași culoare, două înțelesuri, pe același ecran.</p>
+</section>
+
+<section class="sec">
+  <div class="sec-head"><span class="sec-no">02</span><h2>Datele seriei</h2><span class="tagline">două direcții, alege una</span></div>
+  <p class="lead">Prima variantă, cu rânduri și butoane pe fiecare rând, era încărcată. Mai jos două abordări diferite: una vizuală, care arată sezonul ca pe un calendar, și una densă, ca un tabel.</p>
+
+  <p class="cap">A, lunile ca mini-calendare</p>
+  <div class="frame"><div class="adm">
+    <div class="mgwrap">
+      <div class="mblock">
+        <div class="mt">Octombrie 2026 <span>8 date</span></div>
+        <div class="mgrid">
+          <div class="mg-h">L</div><div class="mg-h">M</div><div class="mg-h">M</div><div class="mg-h">J</div><div class="mg-h">V</div><div class="mg-h">S</div><div class="mg-h">D</div>
+          <div class="mc off">28</div><div class="mc off">29</div><div class="mc off">30</div><div class="mc">1</div><div class="mc">2</div><div class="mc curs">3</div><div class="mc curs">4</div>
+          <div class="mc">5</div><div class="mc">6</div><div class="mc">7</div><div class="mc">8</div><div class="mc">9</div><div class="mc anulat">10</div><div class="mc curs">11</div>
+          <div class="mc">12</div><div class="mc">13</div><div class="mc">14</div><div class="mc">15</div><div class="mc">16</div><div class="mc curs sel">17</div><div class="mc curs">18</div>
+          <div class="mc">19</div><div class="mc">20</div><div class="mc">21</div><div class="mc">22</div><div class="mc">23</div><div class="mc curs">24</div><div class="mc liber">25</div>
+        </div>
+      </div>
+      <div class="mblock">
+        <div class="mt">Noiembrie 2026 <span>9 date</span></div>
+        <div class="mgrid">
+          <div class="mg-h">L</div><div class="mg-h">M</div><div class="mg-h">M</div><div class="mg-h">J</div><div class="mg-h">V</div><div class="mg-h">S</div><div class="mg-h">D</div>
+          <div class="mc">1</div><div class="mc">2</div><div class="mc">3</div><div class="mc">4</div><div class="mc">5</div><div class="mc curs">7</div><div class="mc curs">8</div>
+          <div class="mc">9</div><div class="mc">10</div><div class="mc">11</div><div class="mc">12</div><div class="mc">13</div><div class="mc curs">14</div><div class="mc curs">15</div>
+          <div class="mc">16</div><div class="mc">17</div><div class="mc">18</div><div class="mc">19</div><div class="mc">20</div><div class="mc liber">21</div><div class="mc curs">22</div>
+          <div class="mc">23</div><div class="mc">24</div><div class="mc">25</div><div class="mc">26</div><div class="mc">27</div><div class="mc curs">28</div><div class="mc curs">29</div>
+        </div>
+      </div>
+      <div>
+        <div class="mt" style="font-size:12px;font-weight:700;margin-bottom:7px">La clic pe o dată</div>
+        <div class="pop">
+          <div class="ph">Sâmbătă, 17 octombrie</div>
+          <div class="opt on"><span class="dot navy"></span> Curs</div>
+          <div class="opt"><span class="dot liber"></span> Liber</div>
+          <div class="opt"><span class="dot curs"></span> Anulat</div>
+          <div class="f" style="margin-top:9px"><label>Notă</label><div class="in" style="font-size:11.5px;color:#a9adb8">ex. patinoar rezervat</div></div>
+        </div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>De ce merge.</b> Sezonul se citește ca un calendar, pentru că asta este. Se vede imediat unde sunt golurile și anulările, fără să derulezi o listă de șaizeci de rânduri. Starea se schimbă dintr-un clic pe zi.</p>
+
+  <p class="cap">B, tabel dens</p>
+  <div class="frame"><div class="adm">
+    <table class="cmp">
+      <thead><tr><th style="width:190px">Data</th><th style="width:130px">Stare</th><th>Notă</th></tr></thead>
+      <tbody>
+        <tr class="sub"><td colspan="3">Octombrie 2026, 8 date</td></tr>
+        <tr><td>sâmbătă, 3 octombrie</td><td><span class="pick"><span><span class="dot navy"></span> Curs</span><span style="font-size:9px;color:var(--muted2)">v</span></span></td><td style="color:var(--muted2)">10:00-10:50, 11:00-11:50</td></tr>
+        <tr><td>duminică, 4 octombrie</td><td><span class="pick"><span><span class="dot navy"></span> Curs</span><span style="font-size:9px;color:var(--muted2)">v</span></span></td><td style="color:var(--muted2)">10:00-10:50, 11:00-11:50</td></tr>
+        <tr><td>sâmbătă, 10 octombrie</td><td><span class="pick"><span><span class="dot curs"></span> Anulat</span><span style="font-size:9px;color:var(--muted2)">v</span></span></td><td>Patinoar rezervat pentru competiție</td></tr>
+        <tr><td>duminică, 11 octombrie</td><td><span class="pick"><span><span class="dot navy"></span> Curs</span><span style="font-size:9px;color:var(--muted2)">v</span></span></td><td style="color:var(--muted2)">10:00-10:50, 11:00-11:50</td></tr>
+        <tr class="sub"><td colspan="3">Noiembrie 2026, 9 date</td></tr>
+        <tr><td>sâmbătă, 7 noiembrie</td><td><span class="pick"><span><span class="dot navy"></span> Curs</span><span style="font-size:9px;color:var(--muted2)">v</span></span></td><td style="color:var(--muted2)">10:00-10:50, 11:00-11:50</td></tr>
+        <tr><td>duminică, 22 noiembrie</td><td><span class="pick"><span><span class="dot liber"></span> Liber</span><span style="font-size:9px;color:var(--muted2)">v</span></span></td><td>Pauză</td></tr>
+      </tbody>
+    </table>
+  </div></div>
+  <p class="note"><b>De ce merge.</b> Un rând pe dată, o singură listă derulantă pentru stare, luna ca antet gri. Fără butoane repetate pe fiecare rând, deci ochiul are ce urmări. Mai potrivit dacă notele contează la fel de mult ca stările.</p>
+</section>
+
+<section class="sec">
+  <div class="sec-head"><span class="sec-no">03</span><h2>Cardul de adăugare sau editare</h2><span class="tagline">trei coloane egale, pentru date foarte diferite</span></div>
+  <p class="lead">Când adaugi un eveniment sau editezi toată seria, cardul se împarte în trei coloane egale. Un titlu de un rând primește aceeași lățime ca o descriere pe mai multe rânduri, iar recurența, partea cea mai complicată, stă înghesuită într-o treime.</p>
+
+  <p class="cap">Acum: trei coloane egale</p>
+  <div class="frame"><div class="adm">
+    <div class="serie-old">
+      <div>
+        <div class="f" style="margin-bottom:9px"><label>Titlu</label><div class="in">Cupa EduSport</div></div>
+        <div class="f" style="margin-bottom:9px"><label>Categorie</label><div class="in">Competiție</div></div>
+        <div class="f"><label>Etichetă</label><div class="in">Grupa A</div></div>
+      </div>
+      <div>
+        <div class="f" style="margin-bottom:9px"><label>Descriere</label><div class="in" style="height:52px">Text pe mai multe rânduri, strivit</div></div>
+        <div class="f"><label>Link</label><div class="in">https://...</div></div>
+      </div>
+      <div>
+        <div class="f" style="margin-bottom:9px"><label>Recurență</label><div class="in">Săptămânal</div></div>
+        <div class="f" style="margin-bottom:9px"><label>Zile</label><div class="in">S, D</div></div>
+        <div class="f"><label>Sezon</label><div class="in">01.09 - 31.05</div></div>
+      </div>
+    </div>
+  </div></div>
+
+  <p class="cap">Propunere: două coloane sus, conținutul pe toată lățimea</p>
+  <div class="frame"><div class="adm">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="card" style="margin:0">
+        <h4>Evenimentul</h4>
+        <p class="h-sub">Ce este și când.</p>
+        <div class="f" style="margin-bottom:9px"><label>Titlu</label><div class="in">Cupa EduSport</div></div>
+        <div style="display:flex;gap:9px;margin-bottom:9px">
+          <div class="f" style="flex:1"><label>Categorie</label><div class="in">Competiție</div></div>
+          <div class="f" style="flex:1"><label>Etichetă</label><div class="in">Grupa A</div></div>
+        </div>
+        <div style="display:flex;gap:9px;align-items:flex-end">
+          <div class="f"><label>Început</label><div class="in">10:00</div></div>
+          <div class="f"><label>Sfârșit</label><div class="in">11:50</div></div>
+          <span style="font-size:12px;color:var(--muted2);padding-bottom:7px">Toată ziua</span>
+        </div>
+      </div>
+      <div class="card" style="margin:0">
+        <h4>Recurență</h4>
+        <p class="h-sub">Partea cea mai complicată primește spațiu real.</p>
+        <div class="f" style="margin-bottom:9px"><label>Se repetă</label><div class="in">Săptămânal</div></div>
+        <div class="f" style="margin-bottom:9px"><label>Zile</label>
+          <div class="chips"><span class="chip2">Sâmbătă</span><span class="chip2">Duminică</span></div>
+        </div>
+        <div style="display:flex;gap:9px">
+          <div class="f" style="flex:1"><label>Sezon de la</label><div class="in">01.09.2026</div></div>
+          <div class="f" style="flex:1"><label>până la</label><div class="in">31.05.2027</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <h4>Conținut</h4>
+      <p class="h-sub">Câmpurile care au nevoie de lățime, nu de o treime din ea.</p>
+      <div class="f" style="margin-bottom:9px"><label>Descriere</label><div class="in" style="height:46px">Text liber, acum lizibil pe toată lățimea cardului.</div></div>
+      <div style="display:flex;gap:9px">
+        <div class="f" style="flex:3"><label>Link</label><div class="in">https://exemplu.ro/inscrieri</div></div>
+        <div class="f" style="flex:1"><label>Etichetă link</label><div class="in">Înscrie-te</div></div>
+        <div class="f" style="flex:1"><label>Imagine</label><div class="in" style="color:#a9adb8">Alege</div></div>
+      </div>
+    </div>
+  </div></div>
+  <p class="note"><b>Ce se schimbă.</b> Câmpurile stau grupate după ce fac, nu după cât spațiu a mai rămas. Identitatea și ora sus-stânga, recurența sus-dreapta cu loc să respire, iar descrierea, linkul și imaginea pe toată lățimea, pentru că ele chiar au nevoie de ea.</p>
+</section>
+
+<section class="sec">
+  <div class="sec-head"><span class="sec-no">04</span><h2>De răspuns</h2></div>
+  <div class="duo">
+    <div class="qa"><b>1. Anulat hașurat</b>Merge hașura pentru anulat, sau preferi o culoare complet diferită, de exemplu gri închis cu text tăiat?</div>
+    <div class="qa"><b>2. Selecția multiplă</b>Bara de sus apare doar când selectezi date. Este utilă, sau e suficientă schimbarea rând cu rând?</div>
+    <div class="qa"><b>3. Ce lună se deschide</b>Luna curentă. Dacă sezonul nu a început, prima lună cu date. De acord?</div>
+    <div class="qa"><b>5. Datele trecute</b>Le arătăm la fel, le estompăm, sau le ascundem în spatele unui buton „arată datele trecute"?</div>
+  </div>
+</section>
+
+</div>

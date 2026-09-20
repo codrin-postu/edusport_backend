@@ -1,0 +1,198 @@
+<title>Editorul paginii Voluntariat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+:root{
+  --bg:#eef0f4;--surface:#fff;--ink:#1b1d26;--ink-soft:#4a4d5a;--muted:#8a8d99;
+  --line:#e2e4ea;--accent:#2138b8;--accent-soft:#eef1fb;--danger:#be3330;
+  --shadow:0 8px 30px rgba(18,22,45,.10);
+  --sys:Inter,system-ui,-apple-system,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}}
+:root[data-theme="dark"]{--bg:#0f1014;--surface:#191b22;--ink:#e9eaf0;--ink-soft:#b4b7c4;--muted:#7e818f;--line:#2b2e38;--accent-soft:#20264a;--shadow:0 8px 30px rgba(0,0,0,.5)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sys);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 110px}
+.mast{padding:52px 0 26px;border-bottom:1px solid var(--line)}
+.kick{font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin:0 0 12px}
+.mast h1{font-size:clamp(28px,3.9vw,42px);line-height:1.04;margin:0 0 13px;font-weight:800;letter-spacing:-.02em;max-width:24ch;text-wrap:balance}
+.mast p{margin:0 0 9px;max-width:78ch;color:var(--ink-soft);font-size:15px}
+.mast p b{color:var(--ink)}
+.sec{padding:44px 0;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:none}
+.sec-head{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.sec-no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:7px;padding:2px 9px}
+.sec h2{font-size:22px;font-weight:800;letter-spacing:-.015em;margin:0}
+.tagline{color:var(--muted);font-size:14px;font-weight:600}
+.lead{color:var(--ink-soft);font-size:14.5px;margin:12px 0 0;max-width:84ch}
+.lead b{color:var(--ink)}
+.cap{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px}
+.note{font-size:13.5px;color:var(--ink-soft);background:var(--surface);border-left:3px solid var(--accent);padding:12px 15px;margin-top:17px;max-width:84ch}
+.note b{color:var(--ink)}
+.frame{margin-top:16px;border:1px solid var(--line);box-shadow:var(--shadow);background:var(--surface);overflow:hidden}
+.frame-cap{padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+
+.adm{--line2:#e0e2e8;--muted2:#727888;--fieldborder:#d0d0d0;--r:4px;background:#f6f7f9;color:#1b1d22;font-size:13px;min-width:780px}
+.pgh{background:#fff;border-bottom:1px solid var(--line2);padding:12px 16px;display:flex;align-items:center;gap:13px}
+.pgh h3{margin:0;font-size:16px;font-weight:800;letter-spacing:-.2px}
+.pgh .sub{font-size:11.5px;color:var(--muted2);margin-top:1px}
+.grow{flex:1}
+.btn{font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:var(--r);border:1px solid var(--fieldborder);background:#fff;color:#1b1d22;display:inline-block}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.sm{font-size:11.5px;padding:3px 8px}
+.body{padding:14px 16px}
+.cols{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;align-items:start}
+.card{background:#fff;border:1px solid var(--line2);border-radius:var(--r);padding:12px 13px;margin-bottom:12px}
+.card:last-child{margin-bottom:0}
+.card h4{margin:0 0 9px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted2)}
+.fld{margin-bottom:9px}
+.fld:last-child{margin-bottom:0}
+.fld label{display:block;font-size:10px;color:var(--muted2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.in{display:block;width:100%;border:1px solid var(--fieldborder);border-radius:var(--r);padding:5px 8px;font-size:12.5px;min-height:28px;color:#1b1d22;background:#fff}
+.in.big{min-height:58px;line-height:1.5}
+.in.ph{color:#a9adb8}
+.two{display:grid;grid-template-columns:1fr 1.6fr;gap:9px}
+.wrow{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-top:1px solid #f0f1f4}
+.wrow:first-of-type{border-top:none}
+.wrow .grab{color:#b8bcc6;font-size:13px;padding-top:6px}
+.wrow .ff{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.wrow .rm{color:var(--danger);font-size:12px;padding-top:6px}
+.addrow{margin-top:9px;padding:6px;font-size:12px;font-weight:600;color:var(--accent);border:1px dashed var(--fieldborder);border-radius:var(--r);text-align:center}
+.gal{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.gt{aspect-ratio:1;border:1px solid var(--line2);border-radius:var(--r);background:linear-gradient(135deg,#d7dae2,#eceef3);display:flex;align-items:center;justify-content:center;font-size:9.5px;color:#7d818f;font-weight:700;text-transform:uppercase}
+.gt.empty{background:#fff;border-style:dashed;color:#a9adb8}
+/* the spaced-out "before" */
+.old .blk{background:#fff;border:1px solid var(--line2);border-radius:var(--r);padding:22px 20px;margin-bottom:20px}
+.old .blk h5{margin:0 0 18px;font-size:14px;font-weight:700}
+.old .fld{margin-bottom:22px}
+.old .in{min-height:36px;padding:9px 10px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+@media(max-width:1000px){.duo{grid-template-columns:1fr}}
+.qa{background:var(--surface);border:1px solid var(--line);padding:14px 16px;font-size:13.5px;color:var(--ink-soft)}
+.qa b{color:var(--ink);display:block;margin-bottom:4px}
+</style>
+
+<div class="wrap">
+
+<div class="mast">
+  <p class="kick">Panou de administrare</p>
+  <h1>Pagina Voluntariat</h1>
+  <p>Pagina are puțin conținut: cinci câmpuri de text, patru moduri de a ajuta și o galerie. În editorul generic ocupă câteva ecrane de derulare, pentru că fiecare câmp stă într-un bloc cu spațiu de secțiune în jur.</p>
+  <p><b>Propunerea:</b> un singur ecran, două coloane, fără derulare. Textul pe stânga, modurile de ajutor și galeria pe dreapta.</p>
+</div>
+
+<section class="sec">
+  <div class="sec-head"><span class="sec-no">00</span><h2>Cum arată acum</h2><span class="tagline">mult spațiu, puțin conținut</span></div>
+  <p class="lead">Fiecare grup este un bloc separat, cu titlu propriu și margini generoase. Pentru cinci câmpuri de text, asta înseamnă derulare.</p>
+  <div class="frame"><div class="adm old"><div class="body">
+    <div class="blk">
+      <h5>Conținut pagină</h5>
+      <div class="fld"><label>Hero title</label><div class="in">Voluntariat</div></div>
+      <div class="fld"><label>Hero subtitle</label><div class="in">Clubul crește cu oameni care dăruiesc timp.</div></div>
+      <div class="fld" style="margin-bottom:0"><label>Intro eyebrow</label><div class="in">De ce voluntariat</div></div>
+    </div>
+    <div class="blk" style="margin-bottom:0">
+      <h5>Moduri de a ajuta</h5>
+      <div class="fld"><label>Title</label><div class="in">La competiții</div></div>
+      <div class="fld" style="margin-bottom:0"><label>Desc</label><div class="in">Culise și sprijin pentru sportivi în ziua concursului.</div></div>
+    </div>
+    <div style="text-align:center;color:var(--muted2);font-size:12px;padding:10px">încă trei moduri și galeria, mai jos</div>
+  </div></div></div>
+</section>
+
+<section class="sec">
+  <div class="sec-head"><span class="sec-no">01</span><h2>Propunere</h2><span class="tagline">tot pe un ecran</span></div>
+  <p class="lead">Aceleași date, compactate. Câmpurile scurte stau pe același rând, modurile de ajutor devin rânduri într-o listă, iar galeria este o grilă de miniaturi în loc de o listă de fișiere.</p>
+  <div class="frame">
+    <div class="adm">
+      <div class="pgh">
+        <div><h3>Pagina Voluntariat</h3><div class="sub">Ultima salvare azi 13:40</div></div>
+        <span class="grow"></span>
+        <span class="btn">Vezi pe site</span>
+        <span class="btn pri">Salvează</span>
+      </div>
+      <div class="body">
+        <div class="cols">
+          <div>
+            <div class="card">
+              <h4>Banner</h4>
+              <div class="fld"><label>Titlu</label><div class="in">Voluntariat</div></div>
+              <div class="fld"><label>Subtitlu</label><div class="in big">Clubul crește cu oameni care dăruiesc timp. Dă o mână de ajutor și fii parte din echipă.</div></div>
+            </div>
+            <div class="card">
+              <h4>Introducere</h4>
+              <div class="two">
+                <div class="fld"><label>Supratitlu</label><div class="in">De ce voluntariat</div></div>
+                <div class="fld"><label>Titlu</label><div class="in">Timpul tău face diferența</div></div>
+              </div>
+              <div class="fld"><label>Text</label><div class="in big">Experiență reală lângă antrenori și sportivi, prieteni noi și un sport pe care îl duci mai departe în comunitate. Fără experiență prealabilă, te învățăm tot ce trebuie.</div></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="card">
+              <h4>Moduri de a ajuta</h4>
+              <div class="wrow">
+                <span class="grab">::</span>
+                <span class="ff">
+                  <span class="in">La competiții</span>
+                  <span class="in" style="font-size:12px;color:#5a5e6b">Culise și sprijin pentru sportivi în ziua concursului.</span>
+                </span>
+                <span class="rm">✕</span>
+              </div>
+              <div class="wrow">
+                <span class="grab">::</span>
+                <span class="ff">
+                  <span class="in">Organizare și logistică</span>
+                  <span class="in" style="font-size:12px;color:#5a5e6b">Pregătire materiale, transport și coordonare pe teren.</span>
+                </span>
+                <span class="rm">✕</span>
+              </div>
+              <div class="wrow">
+                <span class="grab">::</span>
+                <span class="ff">
+                  <span class="in">Cu cei mici</span>
+                  <span class="in" style="font-size:12px;color:#5a5e6b">Mentorat pentru începători la primii pași pe gheață.</span>
+                </span>
+                <span class="rm">✕</span>
+              </div>
+              <div class="wrow">
+                <span class="grab">::</span>
+                <span class="ff">
+                  <span class="in">Foto și promovare</span>
+                  <span class="in" style="font-size:12px;color:#5a5e6b">Fotografie, social media și povești din culise.</span>
+                </span>
+                <span class="rm">✕</span>
+              </div>
+              <div class="addrow">Adaugă un mod de a ajuta</div>
+            </div>
+
+            <div class="card">
+              <h4>Galerie</h4>
+              <div class="gal">
+                <div class="gt">foto</div>
+                <div class="gt">foto</div>
+                <div class="gt">foto</div>
+                <div class="gt empty">+</div>
+              </div>
+              <div style="font-size:11px;color:var(--muted2);margin-top:7px">Momentan nu există imagini. Se trag și se aranjează direct aici.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note"><b>Ce se schimbă concret.</b> Câmpurile scurte, supratitlu și titlu, stau pe un rând în loc de două. Fiecare mod de a ajuta este un rând cu două câmpuri lipite, nu un bloc cu titlu propriu. Galeria arată imaginile, nu numele fișierelor. Rezultatul intră pe un ecran de laptop, fără derulare.</p>
+</section>
+
+<section class="sec">
+  <div class="sec-head"><span class="sec-no">02</span><h2>De răspuns</h2></div>
+  <div class="duo">
+    <div class="qa"><b>1. Împărțirea</b>Text pe stânga, moduri de ajutor și galerie pe dreapta. Sau preferi textul sus pe toată lățimea și restul dedesubt?</div>
+    <div class="qa"><b>2. Salvarea</b>Un buton Salvează sus, ca pe celelalte pagini custom. Vrei și salvare automată, sau este mai clar așa?</div>
+    <div class="qa"><b>3. Galeria</b>Apare pe site doar dacă are imagini. Acum nu are niciuna, deci secțiunea e ascunsă. Rămâne așa?</div>
+  </div>
+</section>
+
+</div>
