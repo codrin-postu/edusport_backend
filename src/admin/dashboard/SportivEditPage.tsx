@@ -7,7 +7,7 @@ import { SPORTIV_DELETE_COPY } from './SportiviPage';
 import { ConfirmDialog } from '../ConfirmDialog';
 
 /**
- * EduSport admin — custom "Sportiv" edit page (replaces the default
+ * EduSport admin, custom "Sportiv" edit page (replaces the default
  * content-manager edit view for api::sportsperson.sportsperson).
  *
  * Two columns. Left rail: photo (single media), slug, activeSince, showPublicPage.
@@ -40,6 +40,22 @@ interface ProgramRow {
 interface SeasonRow {
   season: string;
   programs: ProgramRow[];
+}
+// Mirrors skate-results/app/schemas.py JobOut, so a renamed field fails the
+// build here instead of silently blanking a row in the panel.
+interface SkateJob {
+  id: number;
+  state: string;
+  skater_slug?: string | null;
+  discovered: number;
+  existing: number;
+  to_download: number;
+  downloaded: number;
+  current_name?: string | null;
+  failures: { name?: string | null; competition_id?: string | null; reason?: string | null }[];
+  error?: string | null;
+  queue_position?: number | null;
+  estimate_seconds?: number | null;
 }
 interface FormState {
   name: string;
@@ -363,134 +379,66 @@ export default function SportivEditPage() {
     }
   };
 
-  // Full-history import from the rinkresults person index, attached to the
-  // linked skater by slug. Tries by name first; falls back to a pasted
-  // rinkresults link/id when the name doesn't resolve.
-  const [importingHist, setImportingHist] = React.useState(false);
-  const [rrId, setRrId] = React.useState('');
-  const [showRrFallback, setShowRrFallback] = React.useState(false);
-  const [histProgress, setHistProgress] = React.useState<
-    { done: number; total: number; current?: string } | null
-  >(null);
-  const [histLog, setHistLog] = React.useState<{ name: string; ok: boolean }[]>([]);
+  // The import runs on the server. This only creates the job and then asks how
+  // it is going, so closing the page does not abandon the work.
+  const [job, setJob] = React.useState<SkateJob | null>(null);
 
-  // Discover the athlete's competitions from rinkresults, then import each one
-  // officially (resolve + scrape) so results carry TES/PCS + location, and
-  // club-mates get populated too. The loop runs in the browser with progress.
-  const importHistory = async (useId: boolean) => {
-    if (!form.skateResultsSlug) return;
-    setImportingHist(true);
-    setMsg(null);
-    try {
-      // Prefer the id we already hold for this skater: it is exact, and it
-      // means the operator is not asked to paste the same link twice.
-      const knownId = skateLinked?.rinkresults_id
-        ? String(skateLinked.rinkresults_id)
-        : '';
-      const discPayload = useId
-        ? { rinkresults_id: knownId || rrId.replace(/\D/g, '') }
-        : { name: form.name };
-      const disc: any = await post('/api/skate/skater-competitions', discPayload);
-      const comps: Array<{ name: string; competition_id?: string; date?: string; city?: string }> =
-        disc?.data?.competitions ?? [];
-      if (!comps.length) {
-        setShowRrFallback(true);
-        setMsg({ kind: 'err', text: 'Nu am găsit competiții pe rinkresults. Lipește linkul rinkresults.' });
-        return;
-      }
-      setShowRrFallback(false);
-
-      // Ask our own database first. Every competition we already hold is one we
-      // must not fetch again: scraping it would spend a minute or more per
-      // competition retrieving every category to arrive at rows we have. Our
-      // events carry the source competition id in their URL, so the comparison
-      // is one request rather than one per competition.
-      let known = new Set<string>();
+  const pollJob = React.useCallback(
+    async (id: number) => {
       try {
-        const ours: any = await get('/api/skate/events');
-        const list: any[] = Array.isArray(ours?.data) ? ours.data : [];
-        // Every URL each event has been seen at, not just the first. A
-        // competition held under two publishers keeps the second in
-        // source_urls, and reading only source_url made an event we already
-        // had look missing.
-        known = new Set(
-          list
-            .flatMap((e) =>
-              (e.source_urls?.length ? e.source_urls : [e.source_url]) as string[]
-            )
-            .map((u) => /competition_id=(\d+)/.exec(u ?? '')?.[1])
-            .filter(Boolean) as string[]
-        );
+        const res: any = await get(`/api/skate/jobs/${id}`);
+        // A response that is not a job (an error body from a degraded proxy
+        // call, for instance) must not overwrite the last known good state;
+        // otherwise a single failed poll looks like the import vanished.
+        if (typeof res?.data?.state === 'string') setJob(res.data);
       } catch {
-        // If we cannot tell what we hold, import everything rather than
-        // silently skipping competitions that may be missing.
-        known = new Set();
+        // A failed poll is not a failed import; keep the last known state.
       }
+    },
+    [get]
+  );
 
-      const missing = comps.filter(
-        (c) => c.competition_id && !known.has(String(c.competition_id))
-      );
-      const already = comps.length - missing.length;
+  // Reattach on mount: an import started earlier may still be running.
+  React.useEffect(() => {
+    if (!form.skateResultsSlug) return;
+    get(`/api/skate/jobs?skater=${encodeURIComponent(form.skateResultsSlug)}&active=1`)
+      .then((res: any) => setJob(res?.data?.[0] ?? null))
+      .catch(() => {});
+  }, [get, form.skateResultsSlug]);
 
-      if (missing.length === 0) {
-        setMsg({
-          kind: 'ok',
-          text: `Toate cele ${comps.length} competiții sunt deja în baza noastră de date. Nu am descărcat nimic.`,
-        });
-        return;
-      }
+  // Poll only while something is happening.
+  React.useEffect(() => {
+    const active = ['queued', 'discovering', 'comparing', 'downloading'];
+    if (!job || !active.includes(job.state)) return;
+    const t = setInterval(() => pollJob(job.id), 2000);
+    return () => clearInterval(t);
+  }, [job, pollJob]);
 
-      setHistProgress({ done: 0, total: missing.length, current: missing[0]?.name });
-      setHistLog([]);
-      setMsg({
-        kind: 'ok',
-        text:
-          `${already} competiții sunt deja la noi. Descarc ${missing.length} ` +
-          `${missing.length === 1 ? 'competiție nouă' : 'competiții noi'}; ` +
-          'fiecare durează un minut sau două, nu închide pagina.',
+  const [starting, setStarting] = React.useState(false);
+
+  const startImport = async () => {
+    setMsg(null);
+    setStarting(true);
+    try {
+      const res: any = await post('/api/skate/jobs', {
+        slug: form.skateResultsSlug,
+        rinkresults_id: skateLinked?.rinkresults_id,
       });
-      const log: { name: string; ok: boolean }[] = [];
-      let imported = 0;
-      let failed = 0;
-      // Only what we are missing. Each of these does scrape the source, one
-      // category at a time, so it is slow by nature.
-      for (let i = 0; i < missing.length; i++) {
-        // Announce before fetching, not after. Each competition is pulled one
-        // category at a time against the source's crawl delay, so it takes a
-        // minute or two; without this the panel sits on "0/N" with no sign of
-        // life and reads as frozen.
-        setHistProgress({ done: i, total: missing.length, current: missing[i].name });
-        let ok = false;
-        try {
-          const ir: any = await post('/api/skate/import-competition', {
-            competition_id: missing[i].competition_id,
-            event_date: missing[i].date,
-            city: missing[i].city,
-          });
-          ok = !!ir?.data?.event;
-        } catch {
-          ok = false;
-        }
-        ok ? (imported += 1) : (failed += 1);
-        log.push({ name: missing[i].name, ok });
-        setHistLog([...log]);
-        setHistProgress({ done: i + 1, total: missing.length });
-      }
-      setMsg({
-        kind: 'ok',
-        text:
-          `Importat: ${imported} din ${missing.length} competiții noi` +
-          (already ? `, ${already} erau deja la noi` : '') +
-          (failed ? `, ${failed} eșuate` : '') +
-          '.',
-      });
-      setSkateLinked((s: any) => (s ? { ...s } : s));
+      setJob(res?.data ?? null);
     } catch {
-      setShowRrFallback(true);
-      setMsg({ kind: 'err', text: 'Nu am găsit sportivul pe rinkresults după nume. Lipește linkul rinkresults.' });
+      setMsg({ kind: 'err', text: 'Nu am putut porni importul.' });
     } finally {
-      setHistProgress(null);
-      setImportingHist(false);
+      setStarting(false);
+    }
+  };
+
+  const cancelImport = async () => {
+    if (!job) return;
+    try {
+      const res: any = await post(`/api/skate/jobs/${job.id}/cancel`, {});
+      setJob(res?.data ?? null);
+    } catch {
+      /* the next poll will show the truth */
     }
   };
 
@@ -623,7 +571,7 @@ export default function SportivEditPage() {
     }
   };
 
-  // Permanent delete (edit mode only) — same content-manager collection path
+  // Permanent delete (edit mode only), same content-manager collection path
   // the save above PUTs to, keyed by documentId.
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
@@ -818,91 +766,94 @@ export default function SportivEditPage() {
                       <div className="hint" style={{ marginTop: 6 }}>slug: {form.skateResultsSlug}</div>
                       <div style={{ marginTop: 12, borderTop: '1px solid #ececef', paddingTop: 12 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Istoric competițional</div>
-                        {skateLinked?.rinkresults_id ? (
-                          <>
-                            <div className="hint" style={{ marginBottom: 8 }}>
-                              Sportivul este deja identificat, așa că importul pornește
-                              direct. Aducem fiecare competiție pe care nu o avem încă;
-                              cele deja importate sunt sărite, deci a doua oară durează
-                              câteva secunde.
-                            </div>
-                            <button
-                              type="button"
-                              className="btn pri"
-                              onClick={() => importHistory(true)}
-                              disabled={importingHist}
-                            >
-                              {histProgress
-                                ? `Import ${histProgress.done}/${histProgress.total}…`
-                                : importingHist
-                                  ? 'Se importă…'
-                                  : 'Importă istoricul competițional'}
-                            </button>
-                            {histProgress?.current && (
-                              <div className="hint" style={{ marginTop: 6 }}>
-                                Se descarcă: {histProgress.current}
+                        {(() => {
+                          const s = job?.state;
+                          const active = ['queued', 'discovering', 'comparing', 'downloading'].includes(s);
+                          const minutes = job?.estimate_seconds
+                            ? Math.max(1, Math.round(job.estimate_seconds / 60))
+                            : null;
+
+                          let label = 'Neimportat';
+                          let value: string | null = skateLinked?.rinkresults_id
+                            ? `id sursă ${skateLinked.rinkresults_id}`
+                            : null;
+                          let detail: string | null = null;
+                          let pct = 0;
+
+                          const minuteWord = (n: number) => (n === 1 ? 'minut' : 'minute');
+
+                          if (s === 'queued') {
+                            label = 'În așteptare';
+                            value = `${job.queue_position} în listă`;
+                            detail = minutes ? `Start în aproximativ ${minutes} ${minuteWord(minutes)}` : null;
+                          } else if (s === 'discovering' || s === 'comparing') {
+                            label = 'Verificare date existente';
+                            value = job.discovered ? `${job.discovered} competiții` : null;
+                            pct = 8;
+                          } else if (s === 'downloading') {
+                            label = 'Descărcare';
+                            value = minutes ? `${minutes} ${minuteWord(minutes)} rămase` : null;
+                            detail = `${job.downloaded ?? 0}/${job.to_download ?? 0} competiții descărcate`;
+                            pct = job.to_download ? Math.min(100, ((job.downloaded ?? 0) / job.to_download) * 100) : 0;
+                          } else if (s === 'done' || s === 'cancelled') {
+                            label = s === 'cancelled' ? 'Anulat' : 'Finalizat';
+                            value = `${job.downloaded ?? 0} competiții noi`;
+                            detail = `${(job.existing ?? 0) + (job.downloaded ?? 0)} competiții în total`;
+                            pct = 100;
+                          } else if (s === 'interrupted') {
+                            // Partial like a failure, not a green success: the
+                            // worker stopped mid run, the counts are not final.
+                            label = 'Întrerupt';
+                            value = `${job.downloaded ?? 0} competiții noi`;
+                            detail = `${(job.existing ?? 0) + (job.downloaded ?? 0)} competiții în total`;
+                            pct = 100;
+                          } else if (s === 'failed') {
+                            label = 'Eșuat';
+                            detail = job.error ?? null;
+                            pct = 100;
+                          }
+
+                          return (
+                            <>
+                              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+                                <b style={{ fontSize: 13 }}>{label}</b>
+                                {value && <span className="hint">{value}</span>}
                               </div>
-                            )}
-                            <div className="hint" style={{ marginTop: 6 }}>
-                              id sursă: {skateLinked.rinkresults_id}
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="hint" style={{ marginBottom: 8 }}>
-                              Nu avem încă un identificator pentru acest sportiv. Lipește
-                              linkul paginii lui, o singură dată: după primul import îl
-                              reținem și butonul de mai sus pornește singur.
-                            </div>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                              <input
-                                placeholder="https://www.rinkresults.com/skater?skater_id=15448"
-                                value={rrId}
-                                onChange={(e) => setRrId(e.target.value)}
-                              />
-                              <button type="button" className="btn pri" onClick={() => importHistory(true)} disabled={importingHist || !rrId.trim()}>
-                                {histProgress
-                                  ? `Import ${histProgress.done}/${histProgress.total}…`
-                                  : importingHist
-                                    ? 'Se caută…'
-                                    : 'Importă din link'}
-                              </button>
-                            </div>
-                            <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <button type="button" className="btn" onClick={() => importHistory(false)} disabled={importingHist}>
-                                Caută după nume
-                              </button>
-                              <span className="hint">(mai puțin sigur, poate eșua)</span>
-                            </div>
-                          </>
-                        )}
-                        {histLog.length > 0 && (
-                          <div style={{ marginTop: 10, maxHeight: 200, overflowY: 'auto', border: '1px solid #ececef', borderRadius: 5 }}>
-                            {histLog.map((l, i) => (
-                              <div
-                                key={i}
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  gap: 10,
-                                  padding: '5px 10px',
-                                  fontSize: 12,
-                                  borderTop: i ? '1px solid #f1f1f3' : 'none',
-                                }}
+                              {detail && <div className="hint" style={{ marginTop: 4 }}>{detail}</div>}
+                              {(active || pct === 100) && (
+                                <div style={{ height: 4, borderRadius: 2, background: '#eaeaef', overflow: 'hidden', marginTop: 8 }}>
+                                  <div style={{
+                                    height: '100%',
+                                    width: `${pct}%`,
+                                    background: s === 'failed' || s === 'interrupted' || job?.failures?.length ? '#d02b20' : pct === 100 ? '#328048' : '#4945ff',
+                                  }} />
+                                </div>
+                              )}
+                              {!!job?.failures?.length && (
+                                <div style={{ marginTop: 10, borderLeft: '2px solid #d02b20', background: '#fcecea', borderRadius: '0 4px 4px 0', padding: '7px 10px' }}>
+                                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: '#d02b20', fontWeight: 700, marginBottom: 3 }}>
+                                    Nedescărcate
+                                  </div>
+                                  {job.failures.map((f: any, i: number) => (
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '1px 0' }}>
+                                      <span>{f.name}</span>
+                                      <span style={{ color: '#8e4b45', fontSize: 12 }}>{f.reason}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                className={active ? 'btn' : 'btn pri'}
+                                style={{ marginTop: 12 }}
+                                onClick={active ? cancelImport : startImport}
+                                disabled={!active && starting}
                               >
-                                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.name}</span>
-                                <span style={{ flex: 'none', fontWeight: 600, color: l.ok ? '#1f7a4d' : '#be3330' }}>
-                                  {l.ok ? 'importat' : 'nerezolvat'}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {showRrFallback && (
-                          <div className="hint" style={{ marginTop: 8, color: '#be3330' }}>
-                            Nu l-am găsit după nume (de pe server). Folosește linkul rinkresults de mai sus.
-                          </div>
-                        )}
+                                {active ? (s === 'queued' ? 'Anulează' : 'Oprește') : job ? 'Importă din nou' : 'Importă'}
+                              </button>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   ) : (

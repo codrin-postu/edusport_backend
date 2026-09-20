@@ -17,5 +17,9 @@ export default {
     { method: 'POST', path: '/skate/skater-competitions', handler: 'skate.skaterCompetitions', config: adminGuard },
     { method: 'POST', path: '/skate/import-competition', handler: 'skate.importCompetitionById', config: adminGuard },
     { method: 'POST', path: '/skate/import-skater', handler: 'skate.importSkater', config: adminGuard },
+    { method: 'POST', path: '/skate/jobs', handler: 'skate.createJob', config: adminGuard },
+    { method: 'GET', path: '/skate/jobs', handler: 'skate.listJobs', config: adminGuard },
+    { method: 'GET', path: '/skate/jobs/:id', handler: 'skate.getJob', config: adminGuard },
+    { method: 'POST', path: '/skate/jobs/:id/cancel', handler: 'skate.cancelJob', config: adminGuard },
   ],
 };

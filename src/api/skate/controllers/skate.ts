@@ -23,10 +23,13 @@ function mutHeaders(extra: Record<string, string> = {}): Record<string, string> 
   return headers;
 }
 
-async function proxy(ctx: any, path: string) {
+async function proxy(ctx: any, path: string, degradeOnError = true) {
   try {
+    // Always attach the key: the unguarded reads ignore an extra header, the
+    // guarded ones (the job reads) reject the request without it, and it is
+    // only ever sent server to server to this same host.
     const res = await fetch(`${base()}${path}`, {
-      headers: { Accept: 'application/json' },
+      headers: mutHeaders(),
     });
     if (!res.ok) {
       ctx.status = res.status;
@@ -35,10 +38,17 @@ async function proxy(ctx: any, path: string) {
     }
     ctx.body = await res.json();
   } catch (err) {
-    // Service unreachable: degrade to an empty result rather than a 500 so the
-    // linker UI shows "no matches" instead of erroring.
-    ctx.status = 200;
-    ctx.body = ctx.state?.emptyOnError ?? { error: 'skate-results unreachable' };
+    if (degradeOnError) {
+      // Service unreachable: degrade to an empty result rather than a 500 so
+      // the linker UI shows "no matches" instead of erroring.
+      ctx.status = 200;
+      ctx.body = ctx.state?.emptyOnError ?? { error: 'skate-results unreachable' };
+      return;
+    }
+    // The job reads must not fabricate a 200: the panel takes an empty/error
+    // body as "no job" and permanently detaches from a live import.
+    ctx.status = 502;
+    ctx.body = { error: 'skate-results unreachable' };
   }
 }
 
@@ -187,6 +197,49 @@ export default {
           // it the server returns the stored competition and reports zero rows.
           force: !!body.force,
         }),
+      });
+      ctx.status = res.status;
+      ctx.body = await res.json();
+    } catch {
+      ctx.status = 502;
+      ctx.body = { error: 'skate-results unreachable' };
+    }
+  },
+
+  // Queue a history import. Returns immediately: the work runs on the API and
+  // outlives this request, so the operator can leave the page.
+  async createJob(ctx: any) {
+    const body = (ctx.request?.body ?? {}) as { slug?: string; rinkresults_id?: number };
+    try {
+      const res = await fetch(`${base()}/jobs/skater-history`, {
+        method: 'POST',
+        headers: mutHeaders({ 'content-type': 'application/json' }),
+        body: JSON.stringify({ slug: body.slug, rinkresults_id: body.rinkresults_id }),
+      });
+      ctx.status = res.status;
+      ctx.body = await res.json();
+    } catch {
+      ctx.status = 502;
+      ctx.body = { error: 'skate-results unreachable' };
+    }
+  },
+
+  async getJob(ctx: any) {
+    const id = encodeURIComponent(ctx.params.id);
+    await proxy(ctx, `/jobs/${id}`, false);
+  },
+
+  async listJobs(ctx: any) {
+    const skater = typeof ctx.query.skater === 'string' ? ctx.query.skater : '';
+    await proxy(ctx, `/jobs?skater=${encodeURIComponent(skater)}&active=1`, false);
+  },
+
+  async cancelJob(ctx: any) {
+    const id = encodeURIComponent(ctx.params.id);
+    try {
+      const res = await fetch(`${base()}/jobs/${id}/cancel`, {
+        method: 'POST',
+        headers: mutHeaders({ 'content-type': 'application/json' }),
       });
       ctx.status = res.status;
       ctx.body = await res.json();
