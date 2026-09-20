@@ -94,3 +94,7 @@ build
 
 # Brainstorm visual-companion mockups
 .superpowers/
+
+# Local agent tooling / snapshots
+.codex/
+.backups/
