@@ -244,6 +244,23 @@ export default {
     });
 
     app.customFields.register({
+      name: 'calendar-link',
+      pluginId: 'component-preview',
+      type: 'json',
+      intlLabel: {
+        id: 'component-preview.calendar-link.label',
+        defaultMessage: 'Calendar și serii',
+      },
+      intlDescription: {
+        id: 'component-preview.calendar-link.description',
+        defaultMessage: 'Link rapid către pagina unde se editează calendarul și seriile.',
+      },
+      components: {
+        Input: async () => import('./CalendarLink').then(m => ({ default: m.default as any })),
+      },
+    });
+
+    app.customFields.register({
       name: 'competitions-link',
       pluginId: 'component-preview',
       type: 'json',

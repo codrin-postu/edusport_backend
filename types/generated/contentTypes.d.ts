@@ -635,6 +635,40 @@ export interface ApiCalendarEventCalendarEvent
   };
 }
 
+export interface ApiClubFiguresClubFigures extends Struct.SingleTypeSchema {
+  collectionName: 'club_figures';
+  info: {
+    description: 'Sursa unica pentru cifrele clubului, folosite de paginile care le afiseaza';
+    displayName: 'Cifre club';
+    pluralName: 'club-figures-list';
+    singularName: 'club-figures';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    figures: Schema.Attribute.JSON;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::club-figures.club-figures'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiCollaborationEventCollaborationEvent
   extends Struct.CollectionTypeSchema {
   collectionName: 'collaboration_events';
@@ -1001,6 +1035,7 @@ export interface ApiHomepageHomepage extends Struct.SingleTypeSchema {
   };
   attributes: {
     about: Schema.Attribute.JSON;
+    competitionGallery: Schema.Attribute.Media<'images', true>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1194,7 +1229,7 @@ export interface ApiPricingPricing extends Struct.SingleTypeSchema {
 export interface ApiProgramPageProgramPage extends Struct.SingleTypeSchema {
   collectionName: 'program_pages';
   info: {
-    description: 'Orar grupe, calendar sezon \u0219i disclaimer-uri pentru pagina /cursuri/program';
+    description: 'Banner, subtitlu orar \u0219i notific\u0103ri pentru pagina /cursuri/program. Orarul \u0219i calendarul se editeaz\u0103 \u00EEn Program.';
     displayName: 'Cursuri / Pagina Program';
     pluralName: 'program-pages';
     singularName: 'program-page';
@@ -1212,6 +1247,8 @@ export interface ApiProgramPageProgramPage extends Struct.SingleTypeSchema {
       Schema.Attribute.CustomField<'plugin::component-preview.page-banner'>;
     calendarEvents: Schema.Attribute.JSON &
       Schema.Attribute.CustomField<'plugin::component-preview.calendar-events'>;
+    calendarLink: Schema.Attribute.JSON &
+      Schema.Attribute.CustomField<'plugin::component-preview.calendar-link'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -2284,6 +2321,7 @@ declare module '@strapi/strapi' {
       'api::article.article': ApiArticleArticle;
       'api::calendar-blackout.calendar-blackout': ApiCalendarBlackoutCalendarBlackout;
       'api::calendar-event.calendar-event': ApiCalendarEventCalendarEvent;
+      'api::club-figures.club-figures': ApiClubFiguresClubFigures;
       'api::collaboration-event.collaboration-event': ApiCollaborationEventCollaborationEvent;
       'api::competition.competition': ApiCompetitionCompetition;
       'api::contact-submission.contact-submission': ApiContactSubmissionContactSubmission;

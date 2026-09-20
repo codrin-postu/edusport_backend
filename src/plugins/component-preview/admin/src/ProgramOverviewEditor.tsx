@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
+import { Checkbox } from '@strapi/design-system';
 import { MediaPicker } from './components/MediaPicker';
 import { TimePicker } from './components/TimePicker';
 // Canonical shared confirm dialog: src/admin/ConfirmDialog.tsx. The admin panel
@@ -37,7 +38,7 @@ function fmtShort(d?: string): string {
 
 const CATEGORIES = [
   { key: 'curs', label: 'Antrenament', color: '#2138b8' },
-  { key: 'scoala', label: 'Școala de patinaj', color: '#be3330' },
+  { key: 'scoala', label: 'Școala de patinaj', color: '#0e1a3c' },
   { key: 'concurs', label: 'Competiție', color: '#7a1fa2' },
   { key: 'cantonament', label: 'Cantonament', color: '#1f7a4d' },
   { key: 'spectacol', label: 'Spectacol', color: '#00838f' },
@@ -49,7 +50,11 @@ const CATEGORIES = [
 const COLOR: Record<string, string> = Object.fromEntries(CATEGORIES.map((c) => [c.key, c.color]));
 const RO_MONTHS = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie', 'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie'];
 const RO_DOW = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du'];
+// Indexed by JS getDay(): 0 = duminică.
+const RO_DOW_FULL = ['duminică', 'luni', 'marți', 'miercuri', 'joi', 'vineri', 'sâmbătă'];
 const WD: Array<[string, string]> = [['mon', 'L'], ['tue', 'M'], ['wed', 'Mi'], ['thu', 'J'], ['fri', 'V'], ['sat', 'S'], ['sun', 'D']];
+// Form day keys mapped to JS getDay() numbers, for expanding a series locally.
+const WD_JS: Array<[string, number]> = [['sun', 0], ['mon', 1], ['tue', 2], ['wed', 3], ['thu', 4], ['fri', 5], ['sat', 6]];
 
 interface Occurrence {
   eventId: number; documentId?: string; title: string; type: string; label: string | null;
@@ -115,6 +120,70 @@ const addDayYMD = (d: string): string => {
   return ymd(new Date(y, m - 1, dd + 1));
 };
 
+// --- local series expansion, for the date table in the "Toată seria" tab.
+// Mirrors src/api/calendar-event/services/expand.ts (weekly / biweekly parity
+// anchored on seasonStart, monthly nth-weekday). Kept client-side so the table
+// reacts to unsaved changes of the recurrence fields; the server stays the
+// authority on what actually shows in the calendar.
+const parseYMD = (s: string): Date => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const startOfWeek = (x: Date): Date => new Date(x.getFullYear(), x.getMonth(), x.getDate() - ((x.getDay() + 6) % 7));
+const weekIndex = (d: Date, anchor: Date): number =>
+  Math.round((startOfWeek(d).getTime() - startOfWeek(anchor).getTime()) / (7 * 86_400_000));
+
+function nthWeekdayOfMonth(year: number, month: number, weekday: number, which: string): Date | null {
+  const first = new Date(year, month, 1);
+  const firstMatch = 1 + ((7 + weekday - first.getDay()) % 7);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  if (which === 'last') {
+    let day = firstMatch;
+    while (day + 7 <= daysInMonth) day += 7;
+    return new Date(year, month, day);
+  }
+  const nth = ({ first: 0, second: 1, third: 2, fourth: 3 } as Record<string, number>)[which] ?? 0;
+  const day = firstMatch + nth * 7;
+  return day > daysInMonth ? null : new Date(year, month, day);
+}
+
+/** Every date the series generates across its season, chronologically. */
+function seriesDates(f: FormState): string[] {
+  if (f.freq === 'none' || !f.seasonStart || !f.seasonEnd) return [];
+  const lo = parseYMD(f.seasonStart);
+  const hi = parseYMD(f.seasonEnd);
+  if (hi < lo) return [];
+  if (daysBetween(f.seasonStart, f.seasonEnd) > MAX_SPAN_DAYS) return [];
+  const wdays = WD_JS.filter(([k]) => f.days[k]).map(([, n]) => n);
+  if (wdays.length === 0) return [];
+  const out: string[] = [];
+  if (f.freq === 'monthly') {
+    let cursor = new Date(lo.getFullYear(), lo.getMonth(), 1);
+    const last = new Date(hi.getFullYear(), hi.getMonth(), 1);
+    while (cursor <= last) {
+      for (const wd of wdays) {
+        const d = nthWeekdayOfMonth(cursor.getFullYear(), cursor.getMonth(), wd, f.weekOfMonth);
+        if (d && d >= lo && d <= hi) out.push(ymd(d));
+      }
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    }
+  } else {
+    const step = f.freq === 'biweekly' ? 2 : 1;
+    for (const d = new Date(lo); d <= hi; d.setDate(d.getDate() + 1)) {
+      if (!wdays.includes(d.getDay())) continue;
+      if (step === 2 && weekIndex(d, lo) % 2 !== 0) continue;
+      out.push(ymd(d));
+    }
+  }
+  out.sort();
+  return out;
+}
+
+/** "2026-10-03" -> "sâmbătă, 3 octombrie" */
+const fmtRoLong = (iso: string): string => {
+  const p = iso.split('-');
+  if (p.length < 3) return iso;
+  const d = parseYMD(iso);
+  return `${RO_DOW_FULL[d.getDay()]}, ${Number(p[2])} ${RO_MONTHS[Number(p[1]) - 1].toLowerCase()}`;
+};
+
 /**
  * Validate the whole series before saving. Returns a Romanian message, or null
  * when the form is fine. The server enforces the same rules — this only spares
@@ -141,6 +210,9 @@ function validateForm(f: FormState): string | null {
  */
 function spanHint(f: FormState): string {
   const ref = (f.freq === 'none' ? f.singleDate : f.seasonStart) || ymd(new Date());
+  // An all-day event saves null hours, so the summary must not quote times
+  // that will never reach the database. It states the day instead.
+  if (f.allDay) return `Toată ziua (${fmtDM(ref)})`;
   const endRef = f.endsNextDay ? addDayYMD(ref) : ref;
   return `${f.startTime} (${fmtDM(ref)}) – ${f.endTime} (${fmtDM(endRef)})`;
 }
@@ -176,6 +248,10 @@ export default function ProgramOverviewEditor(_props: Props) {
   const [reloadKey, setReloadKey] = React.useState(0);
   // For a Școala occurrence: edit just this date's state, or the whole series.
   const [scoalaView, setScoalaView] = React.useState<'date' | 'series'>('date');
+  // Which row of the series date table has its state dropdown open.
+  const [pickOpen, setPickOpen] = React.useState<string | null>(null);
+  const dtScroll = React.useRef<HTMLDivElement>(null);
+  const dtAnchors = React.useRef<Record<string, HTMLTableRowElement | null>>({});
   // The edit panel sits below the calendar, so opening it can happen entirely
   // off screen. Scroll to it, but only when it opens from closed: swapping
   // between events with the panel already open should not yank the page.
@@ -386,6 +462,97 @@ export default function ProgramOverviewEditor(_props: Props) {
 
   const upd = (patch: Partial<FormState>) => { setDirty(true); setSaveError(null); setForm((f) => (f ? { ...f, ...patch } : f)); };
 
+  // --- series date table (Școala, "Toată seria" tab) ---
+  // The whole season expanded once, grouped by month for the grey subheaders.
+  const dtMonths = React.useMemo(() => {
+    if (!form || form.type !== 'scoala' || form.freq === 'none') return [];
+    const groups: Array<{ key: string; label: string; dates: string[] }> = [];
+    for (const d of seriesDates(form)) {
+      const key = d.slice(0, 7);
+      let g = groups[groups.length - 1];
+      if (!g || g.key !== key) {
+        g = { key, label: `${RO_MONTHS[Number(key.slice(5, 7)) - 1]} ${key.slice(0, 4)}`, dates: [] };
+        groups.push(g);
+      }
+      g.dates.push(d);
+    }
+    return groups;
+  }, [form?.type, form?.freq, form?.days, form?.weekOfMonth, form?.seasonStart, form?.seasonEnd]);
+
+  const dtCount = dtMonths.reduce((n, g) => n + g.dates.length, 0);
+  const showDateTable = !!form && (!form.scoalaDate || scoalaView === 'series') && form.type === 'scoala' && form.freq !== 'none';
+
+  // Exceptions keyed by date, so a row reads its own state in one lookup.
+  const exByDateForm = React.useMemo(() => {
+    const m = new Map<string, Exception>();
+    for (const x of form?.exceptions ?? []) m.set(x.date, x);
+    return m;
+  }, [form?.exceptions]);
+
+  // A Școala occurrence is "curs" unless an exception says otherwise. `cancel`
+  // predates the per-state kinds, so it reads as anulat.
+  const rowState = (date: string): string => {
+    const k = exByDateForm.get(date)?.kind;
+    if (k === 'liber') return 'liber';
+    if (k === 'anulat' || k === 'cancel') return 'anulat';
+    return 'curs';
+  };
+
+  /**
+   * Same write path as the "Această dată" tab: the state lives as an exception
+   * on the event, and going back to Curs removes it. When the row is the date
+   * the panel was opened on, the per-date fields are kept in step, because
+   * `save()` rebuilds that one exception from them.
+   */
+  const setRowState = (date: string, next: string) => {
+    if (!form) return;
+    const prev = exByDateForm.get(date);
+    const rest = form.exceptions.filter((x) => x.date !== date);
+    const exs = next === 'curs'
+      ? rest
+      : [...rest, { date, kind: next as Exception['kind'], newTitle: prev?.newTitle ?? '' }];
+    exs.sort((a, b) => a.date.localeCompare(b.date));
+    const patch: Partial<FormState> = { exceptions: exs };
+    if (date === form.scoalaDate) {
+      patch.scoalaState = next;
+      patch.scoalaNote = next === 'curs' ? '' : (prev?.newTitle ?? '');
+    }
+    upd(patch);
+  };
+
+  const setRowNote = (date: string, note: string) => {
+    if (!form) return;
+    const i = form.exceptions.findIndex((x) => x.date === date);
+    if (i < 0) return;
+    const exs = [...form.exceptions];
+    exs[i] = { ...exs[i], newTitle: note };
+    const patch: Partial<FormState> = { exceptions: exs };
+    if (date === form.scoalaDate) patch.scoalaNote = note;
+    upd(patch);
+  };
+
+  // Open on the current month, or the first month of the season when it has not
+  // started yet. Past dates stay in the list, only muted.
+  React.useEffect(() => {
+    if (!showDateTable || dtMonths.length === 0) return;
+    const nowKey = ymd(new Date()).slice(0, 7);
+    const target = dtMonths.find((g) => g.key >= nowKey) ?? dtMonths[dtMonths.length - 1];
+    const row = dtAnchors.current[target.key];
+    const box = dtScroll.current;
+    if (row && box) box.scrollTop = Math.max(0, row.offsetTop - 28);
+  }, [showDateTable, form?.documentId, dtMonths.length]);
+
+  // Any click outside a row dropdown closes it. The menu itself stops the
+  // mousedown, so picking an option still lands on the option.
+  React.useEffect(() => {
+    if (!pickOpen) return;
+    const close = () => setPickOpen(null);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [pickOpen]);
+
+  const todayKey = ymd(today);
+
   return (
     <div className="pce">
       <style>{CSS}</style>
@@ -511,53 +678,57 @@ export default function ProgramOverviewEditor(_props: Props) {
             )}
             {(!form.scoalaDate || scoalaView === 'series') && (
             <>
-            <div className="pcol">
+            {/* Top-left block: what the event is and when it happens. */}
+            <div className="pce-sec pcol">
+            <div className="st">Evenimentul</div>
             <div className="pce-fld"><label>Titlu</label><input value={form.title} onChange={(e) => upd({ title: e.target.value })} /></div>
-            <div className="pce-fld"><label>Categorie</label>
-              <select value={form.type} onChange={(e) => upd({ type: e.target.value })}>
-                {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-              </select>
+            <div className="row2">
+              <div className="pce-fld" style={{ flex: 1 }}><label>Categorie</label>
+                <select value={form.type} onChange={(e) => upd({ type: e.target.value })}>
+                  {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+                </select>
+              </div>
+              <div className="pce-fld" style={{ flex: 1 }}><label>Etichetă (ex. Grupa A)</label><input value={form.label} onChange={(e) => upd({ label: e.target.value })} /></div>
             </div>
-            <div className="pce-fld"><label>Etichetă (ex. Grupa A)</label><input value={form.label} onChange={(e) => upd({ label: e.target.value })} /></div>
-            <label className="chk"><input type="checkbox" checked={form.allDay} onChange={(e) => upd({ allDay: e.target.checked })} /> Toată ziua</label>
-            {!form.allDay && (
-              <>
-                <div className="row2">
-                  <div className="pce-fld"><label>Început</label>
-                    <TimePicker id="pce-start" {...parseHM(form.startTime)}
-                      onChange={(h, m) => upd({ startTime: fmtHM(h, m) })} />
-                  </div>
-                  <div className="pce-fld"><label>Sfârșit</label>
-                    {/* Constrained to after the start, unless the event is
-                        explicitly marked as ending the next day. */}
-                    <TimePicker id="pce-end" {...parseHM(form.endTime)}
-                      minTime={form.endsNextDay || !form.startTime ? undefined : parseHM(form.startTime)}
-                      onChange={(h, m) => upd({ endTime: fmtHM(h, m) })} />
-                  </div>
+            {/* The hours and the all-day switch sit on one line. Ticking the box
+                disables the pickers instead of removing them, so the panel keeps
+                its height. buildBody still saves null hours for an all-day event. */}
+            <div className="row2">
+              <div className="pce-fld"><label>Început</label>
+                <TimePicker id="pce-start" {...parseHM(form.startTime)} disabled={form.allDay}
+                  onChange={(h, m) => upd({ startTime: fmtHM(h, m) })} />
+              </div>
+              <div className="pce-fld"><label>Sfârșit</label>
+                {/* Constrained to after the start, unless the event is
+                    explicitly marked as ending the next day. */}
+                <TimePicker id="pce-end" {...parseHM(form.endTime)} disabled={form.allDay}
+                  minTime={form.endsNextDay || !form.startTime ? undefined : parseHM(form.startTime)}
+                  onChange={(h, m) => upd({ endTime: fmtHM(h, m) })} />
+              </div>
+              <div className="pce-chkfld">
+                <span className="lblspacer" aria-hidden="true">&nbsp;</span>
+                <div className="ctl">
+                  <Checkbox checked={form.allDay} onCheckedChange={(c) => upd({ allDay: Boolean(c) })}>
+                    Toată ziua
+                  </Checkbox>
                 </div>
-                <label className="chk"><input type="checkbox" checked={form.endsNextDay} onChange={(e) => upd({ endsNextDay: e.target.checked })} /> Se termină a doua zi</label>
-                {form.startTime && form.endTime && (
-                  <div className="pce-hint">{spanHint(form)}</div>
-                )}
-              </>
+              </div>
+            </div>
+            <div className="pce-chk">
+              <Checkbox
+                checked={form.endsNextDay}
+                disabled={form.allDay}
+                onCheckedChange={(c) => upd({ endsNextDay: Boolean(c) })}
+              >
+                Se termină a doua zi
+              </Checkbox>
+            </div>
+            {(form.allDay || (form.startTime && form.endTime)) && (
+              <div className="pce-hint">{spanHint(form)}</div>
             )}
             </div>
-            <div className="pce-sec pcol">
-              <div className="st">Detalii <span className="opt">opțional</span></div>
-              <div className="pce-fld"><label>Descriere</label><textarea rows={2} value={form.description} onChange={(e) => upd({ description: e.target.value })} /></div>
-              <div className="pce-fld"><label>Imagine</label>
-                <div className="img">
-                  <div className="thumb" style={form.imageUrl ? { backgroundImage: `url(${form.imageUrl})`, backgroundSize: 'cover' } : {}} />
-                  <span className="up" onClick={() => setMediaOpen(true)}>{form.imageUrl ? 'schimbă imaginea' : 'alege imagine'}</span>
-                  {form.imageUrl && <span className="up" style={{ color: '#be3330' }} onClick={() => upd({ imageUrl: '' })}>elimină</span>}
-                </div>
-              </div>
-              <div className="row2">
-                <div className="pce-fld" style={{ flex: 2 }}><label>Link</label><input value={form.linkUrl} onChange={(e) => upd({ linkUrl: e.target.value })} /></div>
-                <div className="pce-fld" style={{ flex: 1 }}><label>Etichetă link</label><input value={form.linkLabel} onChange={(e) => upd({ linkLabel: e.target.value })} /></div>
-              </div>
-            </div>
 
+            {/* Top-right block: the most complex group gets a full half. */}
             <div className="pce-sec pcol">
               <div className="st">Recurență</div>
               <div className="pce-fld">
@@ -600,7 +771,99 @@ export default function ProgramOverviewEditor(_props: Props) {
                 </>
               )}
             </div>
+
+            {/* Full width below: description, link and image need real width,
+                not a third of it. */}
+            <div className="pce-sec pcol-span">
+              <div className="st">Conținut <span className="opt">opțional</span></div>
+              <div className="pce-fld"><label>Descriere</label><textarea rows={3} value={form.description} onChange={(e) => upd({ description: e.target.value })} /></div>
+              <div className="row2 contentRow">
+                <div className="pce-fld" style={{ flex: 3 }}><label>Link</label><input value={form.linkUrl} onChange={(e) => upd({ linkUrl: e.target.value })} /></div>
+                <div className="pce-fld" style={{ flex: 1 }}><label>Etichetă link</label><input value={form.linkLabel} onChange={(e) => upd({ linkLabel: e.target.value })} /></div>
+                <div className="pce-fld" style={{ flex: 1 }}><label>Imagine</label>
+                  <div className="img">
+                    <div className="thumb" style={form.imageUrl ? { backgroundImage: `url(${form.imageUrl})`, backgroundSize: 'cover' } : {}} />
+                    <span className="up" onClick={() => setMediaOpen(true)}>{form.imageUrl ? 'schimbă imaginea' : 'alege imagine'}</span>
+                    {form.imageUrl && <span className="up" style={{ color: '#be3330' }} onClick={() => upd({ imageUrl: '' })}>elimină</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
             </>
+            )}
+
+            {showDateTable && (
+            <div className="pce-sec pcol-span">
+              <div className="st">Datele seriei <span className="opt">{dtCount === 1 ? 'o dată' : `${dtCount} date`}</span></div>
+              {dtCount === 0 ? (
+                <div className="pce-hint">Alege zilele din săptămână și sezonul, apoi datele apar aici.</div>
+              ) : (
+                <>
+                  <div className="dtWrap" ref={dtScroll}>
+                    <table className="dtTable">
+                      <thead>
+                        <tr><th className="c-date">Data</th><th className="c-state">Stare</th><th>Notă</th></tr>
+                      </thead>
+                      <tbody>
+                        {dtMonths.map((g) => (
+                          <React.Fragment key={g.key}>
+                            <tr className="dtSub" ref={(el) => { dtAnchors.current[g.key] = el; }}>
+                              <td colSpan={3}>{g.label}, {g.dates.length === 1 ? 'o dată' : `${g.dates.length} date`}</td>
+                            </tr>
+                            {g.dates.map((d) => {
+                              const st = rowState(d);
+                              const ex = exByDateForm.get(d);
+                              return (
+                                <tr key={d} className={`dtRow${d < todayKey ? ' past' : ''}${d === form.scoalaDate ? ' cur' : ''}`}>
+                                  <td className="c-date">{fmtRoLong(d)}</td>
+                                  <td className="c-state">
+                                    <div className="dtPick">
+                                      <button type="button" className="dtBtn" onClick={() => setPickOpen(pickOpen === d ? null : d)}>
+                                        <span className="dtDot" style={{ background: SCOALA_COLOR[st] }} />
+                                        <span className="dtLbl">{SCOALA_LABEL[st]}</span>
+                                        <span className="dtCar" />
+                                      </button>
+                                      {pickOpen === d && (
+                                        <div className="dtMenu" onMouseDown={(e) => e.stopPropagation()}>
+                                          {SCOALA_STATES.map((s) => (
+                                            <button
+                                              type="button"
+                                              key={s.key}
+                                              className={`dtOpt${s.key === st ? ' on' : ''}`}
+                                              onClick={() => { setRowState(d, s.key); setPickOpen(null); }}
+                                            >
+                                              <span className="dtDot" style={{ background: s.color }} />
+                                              {s.label}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td>
+                                    {st === 'curs' ? (
+                                      <span className="dtMuted">{form.allDay ? 'Toată ziua' : (form.startTime && form.endTime ? `${form.startTime} - ${form.endTime}` : '')}</span>
+                                    ) : (
+                                      <input
+                                        className="dtNote"
+                                        value={ex?.newTitle ?? ''}
+                                        onChange={(e) => setRowNote(d, e.target.value)}
+                                        placeholder="ex. patinoar rezervat"
+                                      />
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="pce-hint">Nota se păstrează pentru zilele Liber sau Anulat. Modificările intră în calendar după Salvează.</div>
+                </>
+              )}
+            </div>
             )}
 
             {(!form.scoalaDate || scoalaView === 'series') && form.freq !== 'none' && form.type !== 'scoala' && (
@@ -749,10 +1012,15 @@ const CSS = `
 .pce-panel .ph h4 { margin:0; font-size:15px; }
 .pce-panel .x { color:#999; cursor:pointer; font-size:20px; line-height:1; }
 .pce-body { flex:1 1 auto; min-height:0; padding:15px; }
-/* Three columns, but only on the "Toată seria" tab. The "Această dată" tab has
-   at most six fields, so columns there would leave two of them empty. The tab
-   switcher spans the full width so it does not jump when you change tab. */
-.pce-body--cols { display:grid; grid-template-columns:repeat(3, 1fr); gap:0 20px; align-items:start; }
+/* Two columns on the top row, one full-width block beneath, but only on the
+   "Toată seria" tab. The "Această dată" tab has at most six fields, so columns
+   there would leave them empty. The tab switcher spans the full width so it
+   does not jump when you change tab.
+   Three equal columns gave a one-line title the same width as a textarea and
+   squeezed recurrence, the densest group, into a third. Now identity and hours
+   sit top-left, recurrence top-right, and description/link/image run full
+   width below, where they actually need it. */
+.pce-body--cols { display:grid; grid-template-columns:1fr 1fr; gap:0 20px; align-items:start; }
 .pce-body--cols > .pcol, .pce-body--cols > .pce-sec { min-width:0; }
 /* .pce-sec draws a top border for stacked blocks. In the multi-column layout the
    uppercase section titles already separate the blocks, so the rules only add
@@ -764,17 +1032,35 @@ const CSS = `
 /* Row gap is 0, so a spanning section needs its own breathing room now that it
    no longer carries a separating border. */
 .pce-body--cols > .pce-sec.pcol-span { margin-top:14px; }
-@media (max-width: 1200px) { .pce-body--cols { grid-template-columns:1fr 1fr; } }
-@media (max-width: 820px)  {
+/* Flex items default to min-width:auto, so the image picker's intrinsic width
+   would otherwise push the link field narrower than its flex:3 share. */
+.row2 > .pce-fld { min-width:0; }
+.row2.contentRow .img { flex-wrap:wrap; gap:8px; }
+.row2.contentRow .img .thumb { width:38px; height:28px; }
+@media (max-width: 900px)  {
   .pce-body--cols { grid-template-columns:1fr; }
   .pce-body--cols > .pce-sec { border-top:1px solid #eee; margin-top:12px; padding-top:11px; }
+  .pce-body--cols > .pce-sec:first-of-type { border-top:none; margin-top:0; padding-top:0; }
+  .row2.contentRow { flex-wrap:wrap; }
+  .row2.contentRow > .pce-fld { flex-basis:45%; }
 }
 .pce-fld { margin-bottom:11px; }
 .pce-fld label { display:block; font-size:10px; color:#888; margin-bottom:3px; text-transform:uppercase; letter-spacing:.05em; }
 .pce-fld input, .pce-fld select, .pce-fld textarea { width:100%; padding:6px 8px; border:1px solid #d0d0d0; border-radius:6px; font-size:13px; box-sizing:border-box; font-family:inherit; }
-.row2 { display:flex; gap:8px; }
-.chk { display:flex; align-items:center; gap:7px; font-size:13px; color:#333; margin-bottom:11px; cursor:pointer; user-select:none; }
-.chk input { width:auto; margin:0; }
+/* align-items is left at its stretch default, so a field that shares a row with
+   another one grows to the same height. A checkbox column therefore centres
+   itself against the input beside it without a hand-tuned margin. */
+.row2 { display:flex; gap:8px; align-items:stretch; }
+/* A checkbox standing next to labelled fields. The spacer reproduces the
+   label's own box (same font-size and margin), so the control area below it
+   starts exactly where the neighbouring inputs start.
+   padding-left keeps the design-system checkbox's 44px touch target (an
+   invisible ::before centred on the 20px box) off the field to its left. */
+.pce-chkfld { display:flex; flex-direction:column; margin-bottom:11px; padding-left:6px; flex-shrink:0; white-space:nowrap; }
+.pce-chkfld .lblspacer { display:block; font-size:10px; margin-bottom:3px; }
+.pce-chkfld .ctl { flex:1; display:flex; align-items:center; }
+/* A checkbox on a line of its own. */
+.pce-chk { margin-bottom:11px; }
 .pce-sec { border-top:1px solid #eee; margin-top:12px; padding-top:11px; }
 .pce-sec .st { font-size:11px; font-weight:700; color:#666; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }
 .pce-sec-sep { font-size:11px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.04em; margin:8px 0 2px; }
@@ -790,6 +1076,33 @@ const CSS = `
 .pce-pill.on { background:#2138b8; color:#fff; border-color:#2138b8; font-weight:600; }
 .spill { padding:5px 12px; border:1px solid #d0d0d0; border-radius:20px; font-size:12px; color:#555; cursor:pointer; user-select:none; }
 .spill.on { background:#2138b8; color:#fff; border-color:#2138b8; }
+/* Series date table: one row per generated occurrence, months as grey
+   full-width subheaders. Flat and scrollable, not an accordion, so the whole
+   season stays one continuous list. */
+.dtWrap { position:relative; max-height:340px; overflow-y:auto; border:1px solid #e2e2e2; border-radius:8px; background:#fff; }
+.dtTable { width:100%; border-collapse:collapse; font-size:12.5px; }
+.dtTable thead th { position:sticky; top:0; z-index:2; text-align:left; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:#888; font-weight:700; padding:7px 10px; background:#f6f7f9; border-bottom:1px solid #e2e2e2; }
+.dtTable td { padding:5px 10px; border-bottom:1px solid #f2f3f5; vertical-align:middle; }
+.dtTable tr:last-child td { border-bottom:none; }
+.dtTable .c-date { width:190px; white-space:nowrap; }
+.dtTable .c-state { width:140px; }
+.dtSub td { background:#fafbfc; font-weight:700; font-size:10.5px; letter-spacing:.05em; text-transform:uppercase; color:#888; padding:5px 10px; border-bottom:1px solid #eceef1; }
+.dtRow.past { color:#a6a9b2; }
+.dtRow.past .dtLbl { color:#a6a9b2; }
+.dtRow.cur { background:#f4f7ff; }
+.dtMuted { color:#9a9da6; }
+.dtPick { position:relative; }
+.dtBtn { display:flex; align-items:center; gap:7px; width:100%; padding:3px 7px; border:1px solid #d0d0d0; border-radius:5px; background:#fff; font-size:12px; font-family:inherit; color:#333; cursor:pointer; text-align:left; }
+.dtLbl { flex:1; }
+.dtDot { width:9px; height:9px; border-radius:2px; flex-shrink:0; display:inline-block; }
+.dtCar { width:0; height:0; flex-shrink:0; border-left:4px solid transparent; border-right:4px solid transparent; border-top:4px solid #a6a9b2; }
+.dtMenu { position:absolute; z-index:5; top:calc(100% + 3px); left:0; min-width:130px; background:#fff; border:1px solid #d0d0d0; border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,.14); padding:3px; }
+.dtOpt { display:flex; align-items:center; gap:8px; width:100%; padding:5px 7px; border:none; border-radius:4px; background:none; font-size:12px; font-family:inherit; color:#333; cursor:pointer; text-align:left; }
+.dtOpt:hover { background:#f2f4fb; }
+.dtOpt.on { background:#eef2ff; color:#2138b8; font-weight:600; }
+.dtNote { width:100%; padding:3px 7px; border:1px solid transparent; border-radius:5px; background:transparent; font-size:12px; font-family:inherit; color:#333; box-sizing:border-box; }
+.dtNote:hover { border-color:#e2e2e2; }
+.dtNote:focus { border-color:#2138b8; background:#fff; outline:none; }
 .exList { display:flex; flex-direction:column; gap:6px; }
 .exRow { border:1px solid #e2e2e2; border-radius:8px; overflow:hidden; }
 .exSum { display:flex; align-items:center; gap:8px; padding:7px 8px; cursor:pointer; }

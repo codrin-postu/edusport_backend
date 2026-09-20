@@ -1,0 +1,23 @@
+{
+  "kind": "singleType",
+  "collectionName": "club_figures",
+  "info": {
+    "singularName": "club-figures",
+    "pluralName": "club-figures-list",
+    "displayName": "Cifre club",
+    "description": "Sursa unica pentru cifrele clubului, folosite de paginile care le afiseaza"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "figures": {
+      "type": "json"
+    }
+  }
+}

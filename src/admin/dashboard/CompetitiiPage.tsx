@@ -6,7 +6,7 @@ import { SPORTIV_EDIT_TO } from './menu';
 import { ConfirmDialog } from '../ConfirmDialog';
 
 /**
- * EduSport admin — "Competiții" page (skate-results driven).
+ * EduSport admin, "Competiții" page (skate-results driven).
  *
  * Competition data comes from the self-hosted skate-results service, not manual
  * entry. Importing a competition by name resolves its official results page and
@@ -44,7 +44,7 @@ interface ClubResult {
 }
 
 function score(v: number | null | undefined): string {
-  return typeof v === 'number' ? v.toFixed(2) : '—';
+  return typeof v === 'number' ? v.toFixed(2) : '-';
 }
 
 export default function CompetitiiPage() {
@@ -144,7 +144,7 @@ export default function CompetitiiPage() {
         setCandidates([]);
         setMsg({
           kind: 'ok',
-          text: `Importat: ${d.event.name} — ${c.skaters ?? 0} sportivi, ${c.results ?? 0} rezultate.`,
+          text: `Importat: ${d.event.name}, ${c.skaters ?? 0} sportivi, ${c.results ?? 0} rezultate.`,
         });
         setImpInput('');
         loadEvents();
@@ -406,7 +406,7 @@ export default function CompetitiiPage() {
                   <React.Fragment key={r.id}>
                     <tr onClick={() => toggleRow(r)} style={{ cursor: 'pointer' }}>
                       <td className="nm">{r.name}</td>
-                      <td className="num">{r.season || '—'}</td>
+                      <td className="num">{r.season || '-'}</td>
                       <td className="num">{r.skaters_count ?? 0}</td>
                       <td className="num">{r.results_count ?? 0}</td>
                       <td className="num" style={{ whiteSpace: 'nowrap' }}>
@@ -478,7 +478,7 @@ export default function CompetitiiPage() {
                                     >
                                       <td className="nm">{m.sportiv.name}</td>
                                       <td>{m.category}</td>
-                                      <td className="num">{m.placement ?? '—'}</td>
+                                      <td className="num">{m.placement ?? '-'}</td>
                                       <td className="num">{score(m.short_score)}</td>
                                       <td className="num">{score(m.free_score)}</td>
                                       <td className="num">{score(m.total_score)}</td>

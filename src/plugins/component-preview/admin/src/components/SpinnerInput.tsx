@@ -24,23 +24,60 @@ interface SpinnerInputProps {
 /** Two-digit number input with embedded up/down chevrons. Wraps min↔max. */
 export function SpinnerInput({ value, min, max, onChange, label }: SpinnerInputProps) {
   const theme = useTheme() as StrapiTheme;
+  // Raw text while the field is being typed into. null means "show the value".
+  // Re-padding on every keystroke made two-digit values like 23 unenterable.
+  const [draft, setDraft] = React.useState<string | null>(null);
 
   const clamp = (n: number) => Math.max(min, Math.min(max, n));
   const pad = (n: number) => String(n).padStart(2, '0');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const n = parseInt(e.target.value, 10);
+    const raw = e.target.value;
+    if (!/^\d{0,2}$/.test(raw)) return;
+    setDraft(raw);
+  };
+
+  // Commit on blur. Empty or unparsable text falls back to the current value.
+  const commit = () => {
+    if (draft === null) return;
+    const n = parseInt(draft, 10);
+    setDraft(null);
     if (!isNaN(n)) onChange(clamp(n));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commit();
+    } else if (e.key === 'Escape') {
+      setDraft(null);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setDraft(null);
+      onChange(value < max ? value + 1 : min);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setDraft(null);
+      onChange(value > min ? value - 1 : max);
+    }
   };
 
   return (
     <div style={{ position: 'relative', width: '64px' }} aria-label={label}>
       <NoSpinInput
-        type="number"
-        min={min}
-        max={max}
-        value={pad(value)}
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        maxLength={2}
+        role="spinbutton"
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={value}
+        value={draft ?? pad(value)}
         onChange={handleChange}
+        onBlur={commit}
+        onKeyDown={handleKeyDown}
+        onFocus={(e) => e.target.select()}
         aria-label={label}
         style={{
           width: '100%',

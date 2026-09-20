@@ -119,7 +119,7 @@ const ProgramEditPage: React.FC = () => {
             </div>
 
             <div className="sec">
-              <div className="sh">Serii de cursuri</div>
+              <div className="sh">Serii de cursuri Școala de Patinaj</div>
               <div className="sb">
                 <ScheduleGroupsInner
                   value={scheduleGroups}

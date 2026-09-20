@@ -71,12 +71,17 @@ const METADATA_LABEL_OVERRIDES: Record<string, Record<string, string>> = {
     content: 'Text pagină',
     links:   'Sponsori & evenimente',
   },
+  // Only banner, pageInfo and disclaimers still reach /cursuri/program from here.
+  // scheduleGroups and calendarEvents moved to the Program single type, so they
+  // are no longer labelled or laid out below.
   'plugin_content_manager_configuration_content_types::api::program-page.program-page': {
-    banner:          'Banner Pagină',
-    pageInfo:        'Sezon & Orar',
-    scheduleGroups:  'Grupe & ore',
-    calendarEvents:  'Calendar sezon',
-    disclaimers:     'Notificări importante',
+    calendarLink:   'Calendar și serii',
+    banner:         'Banner Pagină',
+    pageInfo:       'Subtitlu orar',
+    disclaimers:    'Notificări importante',
+    // Kept honest in case a stray layout ever shows them again.
+    scheduleGroups: 'Serii orar (vechi, nefolosit)',
+    calendarEvents: 'Calendar sezon (vechi, nefolosit)',
   },
   'plugin_content_manager_configuration_content_types::api::program.program': {
     overview:       'Calendar',
@@ -206,11 +211,12 @@ const LAYOUT_OVERRIDES: Record<string, { name: string; size: number }[][]> = {
   ],
 
   // ── Program Page ──
+  // Texts only. The schedule series and the season calendar are owned by the
+  // Program single type, so their legacy copies here are left out of the form.
   'plugin_content_manager_configuration_content_types::api::program-page.program-page': [
+    [{ name: 'calendarLink', size: 12 }],
     [{ name: 'banner', size: 12 }],
     [{ name: 'pageInfo', size: 12 }],
-    [{ name: 'scheduleGroups', size: 12 }],
-    [{ name: 'calendarEvents', size: 12 }],
     [{ name: 'disclaimers', size: 12 }],
   ],
   'plugin_content_manager_configuration_components::shared.disclaimer': [
@@ -365,6 +371,11 @@ export default {
     });
     strapi.customFields.register({
       name: 'competitions-link',
+      plugin: 'component-preview',
+      type: 'json',
+    });
+    strapi.customFields.register({
+      name: 'calendar-link',
       plugin: 'component-preview',
       type: 'json',
     });
