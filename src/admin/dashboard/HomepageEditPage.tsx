@@ -1026,7 +1026,6 @@ const HomepageEditPage: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
             {/* Competition gallery */}
             <div className="sec">
               <div className="sh">Galeria competițiilor</div>
@@ -1101,6 +1100,7 @@ const HomepageEditPage: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
         )}
 
 
