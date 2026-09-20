@@ -84,6 +84,17 @@ export const COMPETITIE_EDIT_TO = '/plugins/edusport-competitie-edit';
 export const ANUNTURI_TO = '/plugins/edusport-anunturi';
 export const ANUNT_EDIT_TO = '/plugins/edusport-anunt-edit';
 
+// Admin route for the custom "Pagina Voluntariat" single-type editor.
+export const VOLUNTARIAT_EDIT_TO = '/plugins/edusport-voluntariat';
+
+// Admin route for the custom "Membri echipă" page. Create / edit runs in a
+// modal on the page itself, so there is no separate edit route.
+export const MEMBRI_TO = '/plugins/edusport-membri';
+
+// Admin route for the custom Sponsori (sponsor) list page. Create / edit runs
+// in a modal on the list itself, so there is no separate edit route.
+export const SPONSORI_TO = '/plugins/edusport-sponsori';
+
 // Umami analytics dashboard URL. Leave empty until connected; the UI degrades
 // gracefully and shows a "coming soon" state rather than a broken link.
 export const UMAMI_URL = '';
@@ -97,13 +108,16 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: INSCRIERI_TO, label: 'Înscrieri', icon: Mail, group: 'forms', featured: true },
   { to: VOLUNTARI_TO, label: 'Voluntari', icon: User, group: 'forms' },
   { to: PARTENERI_REZULTATE_TO, label: 'Parteneri', icon: Duplicate, group: 'forms' },
+  { to: MESAJE_TO, label: 'Contact', icon: Mail, group: 'forms' },
 
   // Program și calendar
   { to: PROGRAM_EDIT_TO, label: 'Calendar și serii', icon: Calendar, group: 'program', featured: true },
 
   // Sportivi și echipă
   { to: SPORTIVI_TO, label: 'Sportivi', icon: User, group: 'team', featured: true },
-  { to: collection('api::team-member.team-member'), label: 'Membri echipă', icon: GridFour, group: 'team', featured: true },
+  // Re-pointed from collection('api::team-member.team-member'): team members are
+  // now edited on the custom Membri echipă page.
+  { to: MEMBRI_TO, label: 'Membri echipă', icon: GridFour, group: 'team', featured: true },
   { to: COMPETITII_TO, label: 'Competiții', icon: Star, group: 'team', featured: true },
   { to: collection('api::discipline.discipline'), label: 'Discipline', icon: ChartCircle, group: 'team' },
 
@@ -117,7 +131,9 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: single('api::historic-page.historic-page'), label: 'Istoric', icon: Clock, group: 'pages' },
   { to: single('api::realizari-page.realizari-page'), label: 'Realizări', icon: Star, group: 'pages' },
   { to: single('api::partners-page.partners-page'), label: 'Parteneri', icon: Duplicate, group: 'pages' },
-  { to: single('api::volunteer-page.volunteer-page'), label: 'Voluntariat', icon: Bell, group: 'pages' },
+  // Re-pointed from single('api::volunteer-page.volunteer-page'): the page is
+  // now edited on the custom, compact Voluntariat editor.
+  { to: VOLUNTARIAT_EDIT_TO, label: 'Voluntariat', icon: Bell, group: 'pages' },
   { to: NAVIGATION_TO, label: 'Meniu site', icon: GridFour, group: 'pages' },
 
   // Articole și media
@@ -126,10 +142,11 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   // route is dead — announcements are now a hidden collection driven by the
   // custom Anunțuri page.
   { to: ANUNTURI_TO, label: 'Anunțuri', icon: Bell, group: 'content', pinned: true },
-  { to: collection('api::sponsor.sponsor'), label: 'Sponsori', icon: Duplicate, group: 'content' },
+  // Re-pointed from collection('api::sponsor.sponsor'): sponsors are now edited
+  // on the custom Sponsori list page.
+  { to: SPONSORI_TO, label: 'Sponsori', icon: Duplicate, group: 'content' },
   { to: collection('api::collaboration-event.collaboration-event'), label: 'Evenimente colaborare', icon: Calendar, group: 'content' },
   { to: collection('api::history-milestone.history-milestone'), label: 'Momente istoric', icon: Clock, group: 'content' },
-  { to: MESAJE_TO, label: 'Mesaje contact', icon: Mail, group: 'content' },
 
   // Sistem
   { to: '/plugins/upload', label: 'Media', icon: GridFour, group: 'system' },
@@ -272,6 +289,33 @@ export function registerEdusportMenu(app: StrapiApp) {
     Component: () => import('./AnuntEditPage'),
     permissions: [],
     position: 15,
+  });
+
+  app.addMenuLink({
+    to: SPONSORI_TO,
+    icon: Duplicate,
+    intlLabel: { id: 'edusport.menu.sponsori', defaultMessage: 'Sponsori' },
+    Component: () => import('./SponsoriPage'),
+    permissions: [],
+    position: 17,
+  });
+
+  app.addMenuLink({
+    to: MEMBRI_TO,
+    icon: GridFour,
+    intlLabel: { id: 'edusport.menu.membri', defaultMessage: 'Membri echipă' },
+    Component: () => import('./MembriEchipaPage'),
+    permissions: [],
+    position: 19,
+  });
+
+  app.addMenuLink({
+    to: VOLUNTARIAT_EDIT_TO,
+    icon: Bell,
+    intlLabel: { id: 'edusport.menu.voluntariat', defaultMessage: 'Pagina Voluntariat' },
+    Component: () => import('./VoluntariatEditPage'),
+    permissions: [],
+    position: 18,
   });
 
   app.addMenuLink({
