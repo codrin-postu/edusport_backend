@@ -61,6 +61,63 @@ function getInitialOpen(pathname: string): OpenState {
   return active ? { [active.group]: true } : {};
 }
 
+
+/* --- account ---------------------------------------------------------------
+ * The shell hides Strapi's own nav, and that nav is where the profile and the
+ * logout live, so this panel had no way out of the session at all.
+ *
+ * Done by hand rather than with Strapi's `useAuth`: this tree mounts on a body
+ * level root, outside Strapi's providers, so its hooks are unavailable here
+ * (same reason the file avoids @strapi/design-system).
+ *
+ * Keys and endpoint read from the admin build: reducer.js stores the token as
+ * `jwtToken` and the flag as `isLoggedIn`, and services/auth.js posts to
+ * /admin/logout.
+ */
+const TOKEN_KEY = 'jwtToken';
+const STATUS_KEY = 'isLoggedIn';
+
+function readToken(): string | null {
+  try {
+    const raw = window.localStorage.getItem(TOKEN_KEY);
+    if (!raw) return null;
+    // Stored JSON-encoded; older sessions may hold a bare string.
+    try { return JSON.parse(raw); } catch { return raw; }
+  } catch {
+    return null;
+  }
+}
+
+async function logOut(): Promise<void> {
+  const token = readToken();
+  try {
+    // Tell the server first, while the token is still valid, so the session is
+    // invalidated there and not merely forgotten here.
+    await fetch('/admin/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+  } catch {
+    // Offline or server down: still clear locally, below.
+  }
+  try {
+    window.localStorage.removeItem(TOKEN_KEY);
+    window.localStorage.removeItem(STATUS_KEY);
+  } catch {
+    /* private mode */
+  }
+  window.location.href = '/admin/auth/login';
+}
+
+/** Initials for the avatar, from a name if we have one, else the address. */
+function initialsOf(user: { firstname?: string; lastname?: string; email?: string }): string {
+  const first = (user.firstname || '').trim();
+  const last = (user.lastname || '').trim();
+  if (first || last) return ((first[0] || '') + (last[0] || '')).toUpperCase() || '?';
+  return (user.email || '?').slice(0, 2).toUpperCase();
+}
+
 /** Emitted by our history patch so the shell sees pushState navigations. */
 const ROUTE_EVENT = 'edusport:routechange';
 
@@ -81,7 +138,7 @@ function isHome(pathname: string): boolean {
  * Hand-rolled glyphs. They live here rather than in menu.tsx because this file
  * renders outside Strapi's providers and must not touch @strapi/icons.
  */
-type IconKey = 'house' | 'chart' | 'bell' | 'gear' | 'feather' | 'calendar' | 'user' | 'grid' | 'book';
+type IconKey = 'house' | 'chart' | 'bell' | 'gear' | 'feather' | 'calendar' | 'user' | 'grid' | 'book' | 'exit';
 
 const ICON_PATHS: Record<IconKey, React.ReactNode> = {
   house: <path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />,
@@ -93,6 +150,7 @@ const ICON_PATHS: Record<IconKey, React.ReactNode> = {
   user: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></>,
   grid: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>,
   book: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></>,
+  exit: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><path d="M21 12H9" /></>,
 };
 
 function Icon({ name, className }: { name: IconKey; className?: string }) {
@@ -193,6 +251,21 @@ html[${MODE_ATTR}="custom"][${RAIL_ATTR}="1"] [${SHELL_PARENT_ATTR}] { padding-l
 .esd-foot { padding: 12px 14px; border-top: 1px solid rgba(255,255,255,.08); flex-shrink: 0; }
 .esd-switch { width: 100%; padding: 9px 12px; background: rgba(255,255,255,.06); color: #c8cee0; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; font-size: 12.5px; cursor: pointer; font-family: inherit; white-space: nowrap; }
 .esd-switch:hover { background: rgba(255,255,255,.12); color: #fff; }
+.esd-who { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; min-width: 0; }
+.esd-av { width: 26px; height: 26px; border-radius: 50%; background: #2138b8; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.esd-mail { font-size: 11px; color: #c8cee0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.esd-acts { display: flex; flex-direction: column; gap: 2px; margin-bottom: 9px; }
+.esd-act { text-align: left; background: none; border: none; padding: 5px 0; font-size: 12px; color: #c8cee0; cursor: pointer; font-family: inherit; text-decoration: none; }
+.esd-act:hover { color: #fff; }
+.esd-act.out { color: #ff9c8a; }
+.esd-act.out:hover { color: #ffb9ac; }
+/* In the rail the footer is hidden, so the way out must not go with it. */
+.esd-railacct { display: none; }
+.esd-side.rail .esd-railacct { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.08); flex-shrink: 0; }
+.esd-railacct a, .esd-railacct button { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; color: #c8cee0; font-size: 10px; font-weight: 700; padding: 0; font-family: inherit; text-decoration: none; }
+.esd-railacct .esd-av { width: 26px; height: 26px; }
+.esd-railacct button:hover { color: #fff; }
+.esd-railacct button.out { color: #ff9c8a; }
 .esd-railbtn { display: none; }
 
 /* --- collapsed rail ---------------------------------------------------- */
@@ -259,6 +332,30 @@ function EdusportShell() {
   const [openGroups, setOpenGroups] = React.useState<OpenState>(() => getInitialOpen(window.location.pathname));
   const [railed, setRailed] = React.useState<boolean>(getStoredRail);
   const [flyGroup, setFlyGroup] = React.useState<Group | null>(null);
+  const [me, setMe] = React.useState<{ email: string; initials: string } | null>(null);
+
+  React.useEffect(() => {
+    const token = readToken();
+    if (!token) return;
+    let off = false;
+    fetch('/admin/users/me', {
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        const u = j?.data;
+        if (off || !u?.email) return;
+        setMe({ email: u.email, initials: initialsOf(u) });
+      })
+      .catch(() => {
+        // The footer falls back to the actions alone; losing the address
+        // must not cost the way out of the session.
+      });
+    return () => {
+      off = true;
+    };
+  }, []);
 
   const toggleGroup = (g: Group) => setOpenGroups((prev) => {
     const next = { ...prev, [g]: !prev[g] };
@@ -432,7 +529,27 @@ function EdusportShell() {
         <button type="button" className="esd-railbtn" onClick={toggleRail} aria-label="Desfă bara" aria-expanded={!railed}>
           <Caret dir="right" />
         </button>
+        <div className="esd-railacct">
+          {me ? <span className="esd-av" title={me.email}>{me.initials}</span> : null}
+          <button type="button" className="out" onClick={logOut} title="Ieși din cont" aria-label="Ieși din cont">
+            <Icon name="exit" />
+          </button>
+        </div>
         <div className="esd-foot">
+          {me ? (
+            <div className="esd-who">
+              <span className="esd-av">{me.initials}</span>
+              <span className="esd-mail" title={me.email}>{me.email}</span>
+            </div>
+          ) : null}
+          <div className="esd-acts">
+            <a className="esd-act" href="/admin/me" onClick={go('/me')}>
+              Contul meu
+            </a>
+            <button className="esd-act out" type="button" onClick={logOut}>
+              Ieși din cont
+            </button>
+          </div>
           <button className="esd-switch" type="button" onClick={() => setMode('default')}>
             Comută la meniul Strapi
           </button>
