@@ -78,14 +78,35 @@ const TOKEN_KEY = 'jwtToken';
 const STATUS_KEY = 'isLoggedIn';
 
 function readToken(): string | null {
+  // The session token lives in a cookie in this version, not localStorage:
+  // signing in leaves `jwtToken=ey...` on document.cookie and no token key in
+  // storage at all. Storage is still checked first because older sessions, and
+  // other Strapi versions, put it there.
   try {
     const raw = window.localStorage.getItem(TOKEN_KEY);
-    if (!raw) return null;
-    // Stored JSON-encoded; older sessions may hold a bare string.
-    try { return JSON.parse(raw); } catch { return raw; }
+    if (raw) {
+      try { return JSON.parse(raw); } catch { return raw; }
+    }
   } catch {
-    return null;
+    /* private mode */
   }
+  const hit = document.cookie
+    .split('; ')
+    .find((c) => c.startsWith(`${TOKEN_KEY}=`));
+  return hit ? decodeURIComponent(hit.slice(TOKEN_KEY.length + 1)) : null;
+}
+
+/** Expire the auth cookie here, for every path and domain it might carry. */
+function dropAuthCookie(): void {
+  const expire = 'Max-Age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  const host = window.location.hostname;
+  const variants = [
+    `${TOKEN_KEY}=; path=/; ${expire}`,
+    `${TOKEN_KEY}=; path=/admin; ${expire}`,
+    `${TOKEN_KEY}=; path=/; domain=${host}; ${expire}`,
+    `${TOKEN_KEY}=; path=/; domain=.${host}; ${expire}`,
+  ];
+  for (const v of variants) document.cookie = v;
 }
 
 async function logOut(): Promise<void> {
@@ -107,6 +128,12 @@ async function logOut(): Promise<void> {
   } catch {
     /* private mode */
   }
+  // Without this the cookie survives, the login page sees a valid session and
+  // sends the visitor straight back to the dashboard, which looked exactly
+  // like the button doing nothing.
+  dropAuthCookie();
+  // A full load, not a client route: the admin keeps the old session in memory
+  // otherwise.
   window.location.href = '/admin/auth/login';
 }
 
