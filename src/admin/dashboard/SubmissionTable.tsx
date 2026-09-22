@@ -421,6 +421,9 @@ const CSS = `
 .seg button:last-child{border-right:none}
 .seg button.on{background:var(--accent);color:#fff;font-weight:600}
 
+.listbody{transition:opacity .12s ease}
+.listbody.busy{opacity:.5;pointer-events:none;transition-delay:.3s}
+
 /* quick filter dropdowns */
 .qfwrap{position:relative;display:inline-block}
 .btn.qf.on{border-color:#2138b8;color:#2138b8;background:#f4f6fd}
@@ -578,7 +581,16 @@ select.sel-status.${k}{color:${s.color};background:${s.soft};border-color:${s.bo
 }
 
 export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }) {
-  const { get, put, del, post } = useFetchClient();
+  // useFetchClient returns fresh function identities on every render, and the
+  // list effect depends on `get`. Without this, an optimistic row edit
+  // re-rendered the component and refetched the whole list as a side effect.
+  const client = useFetchClient();
+  const clientRef = React.useRef(client);
+  clientRef.current = client;
+  const get = React.useCallback((...args: Parameters<typeof client.get>) => clientRef.current.get(...args), []);
+  const put = React.useCallback((...args: Parameters<typeof client.put>) => clientRef.current.put(...args), []);
+  const del = React.useCallback((...args: Parameters<typeof client.del>) => clientRef.current.del(...args), []);
+  const post = React.useCallback((...args: Parameters<typeof client.post>) => clientRef.current.post(...args), []);
 
   const allTags = React.useMemo(() => [...cfg.statuses, ...(cfg.extraTags ?? [])], [cfg]);
   const tagClassByValue = React.useMemo(
@@ -627,6 +639,10 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(25);
   const [reloadTick, setReloadTick] = React.useState(0);
+  // The header counters refresh on their own tick. A status edit changes them
+  // without changing the visible rows, and rerunning the list query for that
+  // blanked the table on every click.
+  const [statTick, setStatTick] = React.useState(0);
 
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
@@ -823,7 +839,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     return () => {
       off = true;
     };
-  }, [get, cfg, season, reloadTick]);
+  }, [get, cfg, season, reloadTick, statTick]);
 
   // --- close popovers on outside click
   React.useEffect(() => {
@@ -850,6 +866,12 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
   }, [view, rows, selectedId]);
 
   const refetch = React.useCallback(() => setReloadTick((n) => n + 1), []);
+  const refetchStat = React.useCallback(() => setStatTick((n) => n + 1), []);
+
+  // Only the very first load replaces the table with a placeholder. Later
+  // fetches keep the rows on screen and dim them, so changing a filter does not
+  // collapse the page to a single line and expand it again.
+  const firstLoad = loading && rows.length === 0;
 
   // --- persist a single field (optimistic)
   const saveField = React.useCallback(
@@ -864,15 +886,20 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
       );
       try {
         await put(`${cfg.api}/${documentId}`, { [key]: value });
-        // status change can move the "noi" stat; a season change moves the row
-        // out of the current season view — refetch in both cases.
-        if (key === 'status' || key === 'season') refetch();
+        // A season change moves the row out of the current view, so the list
+        // must be refetched. A status change only moves the counters, unless a
+        // status filter is active, in which case the row may now be excluded.
+        if (key === 'season') refetch();
+        else if (key === 'status') {
+          refetchStat();
+          if (filters.some((f) => f.col === 'status')) refetch();
+        }
       } catch {
         setRows((cur) => cur.map((r) => (r.documentId === documentId ? { ...r, [key]: prev } : r)));
         setMsg({ kind: 'err', text: cfg.texts.saveError });
       }
     },
-    [put, refetch, cfg],
+    [put, refetch, refetchStat, filters, cfg],
   );
 
   // Destructive actions go through the shared ConfirmDialog. `removeRow` keeps
@@ -1774,7 +1801,8 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
         )}
 
         {/* content */}
-        {loading ? (
+        <div className={loading && !firstLoad ? 'listbody busy' : 'listbody'} aria-busy={loading}>
+        {firstLoad ? (
           <div className="insp-empty">Se încarcă...</div>
         ) : error ? (
           <div className="insp-empty">{cfg.texts.loadError}</div>
@@ -1929,9 +1957,10 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
             </table>
           </div>
         )}
+        </div>
 
         {/* footer: page size + pager */}
-        {!loading && !error && rows.length > 0 && (
+        {!firstLoad && !error && rows.length > 0 && (
           <div className="ft">
             <div className="l">
               Rânduri pe pagină:
