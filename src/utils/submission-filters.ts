@@ -28,6 +28,12 @@ export type DateKind = 'date' | 'datetime';
 export interface FilterOptions {
   /** e.g. { submittedAt: 'datetime', birthDate: 'date' } */
   dateCols?: Record<string, DateKind>;
+  /**
+   * Columns this form allows filtering on. `col` arrives from the query string
+   * and is used as a database field name, so anything outside the list is
+   * dropped rather than passed through. Each controller owns its own list.
+   */
+  allowedCols?: ReadonlySet<string>;
 }
 
 const trimOrEmpty = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
@@ -105,6 +111,7 @@ export function buildColClause(
   f: ColFilter,
   options: FilterOptions = {},
 ): Record<string, unknown> | null {
+  if (options.allowedCols && !options.allowedCols.has(f.col)) return null;
   const kind = options.dateCols?.[f.col];
   if (kind) return dateClause(f, kind);
   // A date operator on a text column is meaningless; drop it rather than

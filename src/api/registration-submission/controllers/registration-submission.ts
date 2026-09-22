@@ -123,7 +123,7 @@ function buildListFilters(query: Record<string, any>, activeSeason: string | nul
 
   // --- generic column filters
   for (const f of parseColFilters(query.filters)) {
-    const clause = buildColClause(f, { dateCols: DATE_COLS });
+    const clause = buildColClause(f, { dateCols: DATE_COLS, allowedCols: FILTER_COLS });
     if (clause) and.push(clause);
   }
 
