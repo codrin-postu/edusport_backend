@@ -318,6 +318,7 @@ const CFG: SubmissionTableCfg = {
   registryColKeys: REGISTRY_COL_KEYS,
   defaultHidden: DEFAULT_HIDDEN,
   filterColumns: FILTER_COLUMNS,
+  quickFilterCols: ['status', 'availability'],
   seasons: false,
   archive: false,
   sheetsForm: 'voluntari',

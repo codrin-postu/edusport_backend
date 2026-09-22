@@ -165,6 +165,13 @@ export interface SubmissionTableCfg {
   defaultHidden?: string[];
   /** Columns the filter builder may target (whitelisted server-side too). */
   filterColumns: readonly { key: string; label: string }[];
+  /**
+   * Columns that get their own dropdown button in the toolbar, in display order.
+   * Everything else stays in the "Alte filtre" panel. Kept short on purpose:
+   * Voluntari has six select columns, and one button each turned the toolbar
+   * into a wall. Defaults to the status column alone.
+   */
+  quickFilterCols?: readonly string[];
   /** Fallback value lists for select-driven filter columns (when formMeta has none). */
   filterSelectFallback?: Record<string, string[]>;
   /** Feature gates. */
@@ -1126,9 +1133,9 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
    */
   const quickCols = React.useMemo(
     () =>
-      [...cfg.filterColumns]
-        // Status leads: it is the column operators reach for first.
-        .sort((a, b) => (a.key === 'status' ? -1 : b.key === 'status' ? 1 : 0))
+      (cfg.quickFilterCols ?? ['status'])
+        .map((key) => cfg.filterColumns.find((c) => c.key === key))
+        .filter(Boolean)
         .map((c) => {
           const opts =
             c.key === 'status'
@@ -1479,55 +1486,6 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
               onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
-          {quickCols.map((qc) => {
-            const picked = quickSelected(qc.key);
-            return (
-              <div className="qfwrap" key={qc.key}>
-                <button
-                  type="button"
-                  className={picked.length ? 'btn sm qf on' : 'btn sm qf'}
-                  onClick={() => {
-                    setAdvOpen(false);
-                    setQuickOpen((cur) => (cur === qc.key ? null : qc.key));
-                  }}
-                >
-                  {qc.label}
-                  {picked.length ? ` (${picked.length})` : ''} ▾
-                </button>
-                {quickOpen === qc.key && (
-                  <div className="pop qfpop">
-                    <div className="pop-body">
-                      {qc.options.map((v) => {
-                        const on = picked.includes(v);
-                        return (
-                          <label className="prow" key={v}>
-                            <input type="checkbox" checked={on} onChange={() => toggleQuick(qc.key, v)} />
-                            <span>{v}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                    {picked.length > 0 && (
-                      <div className="qffoot">
-                        <button
-                          type="button"
-                          className="fclear"
-                          onClick={() => {
-                            setFilters((all) =>
-                              all.filter((x) => !(x.col === qc.key && (x.op === 'equals' || x.op === 'anyOf'))),
-                            );
-                            setPage(1);
-                          }}
-                        >
-                          Șterge
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
           <div className="seg">
             <button className={view === 'compact' ? 'on' : ''} type="button" onClick={() => setView('compact')}>
               Compact
@@ -1658,6 +1616,55 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
 
         {/* toolbar B: sort, plus the builder behind a dropdown */}
         <div className="tbB">
+          {quickCols.map((qc) => {
+            const picked = quickSelected(qc.key);
+            return (
+              <div className="qfwrap" key={qc.key}>
+                <button
+                  type="button"
+                  className={picked.length ? 'btn sm qf on' : 'btn sm qf'}
+                  onClick={() => {
+                    setAdvOpen(false);
+                    setQuickOpen((cur) => (cur === qc.key ? null : qc.key));
+                  }}
+                >
+                  {qc.label}
+                  {picked.length ? ` (${picked.length})` : ''} ▾
+                </button>
+                {quickOpen === qc.key && (
+                  <div className="pop qfpop">
+                    <div className="pop-body">
+                      {qc.options.map((v) => {
+                        const on = picked.includes(v);
+                        return (
+                          <label className="prow" key={v}>
+                            <input type="checkbox" checked={on} onChange={() => toggleQuick(qc.key, v)} />
+                            <span>{v}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {picked.length > 0 && (
+                      <div className="qffoot">
+                        <button
+                          type="button"
+                          className="fclear"
+                          onClick={() => {
+                            setFilters((all) =>
+                              all.filter((x) => !(x.col === qc.key && (x.op === 'equals' || x.op === 'anyOf'))),
+                            );
+                            setPage(1);
+                          }}
+                        >
+                          Șterge
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
           <div className="qfwrap">
             <button
               type="button"

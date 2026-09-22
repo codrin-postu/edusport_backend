@@ -206,6 +206,7 @@ const CFG: SubmissionTableCfg = {
   builtinColumns: BUILTIN_COLUMNS,
   registryColKeys: REGISTRY_COL_KEYS,
   filterColumns: FILTER_COLUMNS,
+  quickFilterCols: ['status', 'level'],
   filterSelectFallback: { level: [...LEVELS] },
   seasons: true,
   archive: true,
