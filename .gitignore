@@ -79,7 +79,11 @@ yarn-error.log
 # Tests
 coverage
 # Strapi
-.env
+# Every env file, not just the bare one: .env.production carries the Google
+# service account key and was previously only a `git add` away from being
+# committed. The example stays, since it documents the names with no values.
+.env*
+!.env.example
 license.txt
 .strapi
 dist
