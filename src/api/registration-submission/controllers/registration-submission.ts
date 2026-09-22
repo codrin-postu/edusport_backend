@@ -4,6 +4,7 @@ import { factories } from '@strapi/strapi';
 import { buildInscrieriMatrix } from '../../../sheets/matrix';
 import type { RowLike as SubmissionLike } from '../../../sheets/matrix';
 import { resyncForm } from '../../../sheets/sync';
+import { buildColClause, parseColFilters } from '../../../utils/submission-filters';
 
 const UID = 'api::registration-submission.registration-submission' as const;
 const SETTINGS_UID = 'api::site-settings.site-settings' as const;
@@ -85,78 +86,13 @@ async function listSeasons(activeSeason: string | null): Promise<string[]> {
   return Array.from(set).sort((a, b) => b.localeCompare(a));
 }
 
-interface ColFilter {
-  col: string;
-  op: string;
-  val: unknown;
-}
-
-/** Parse the `filters` param (JSON array of {col, op, val}); tolerant of junk. */
-function parseColFilters(raw: unknown): ColFilter[] {
-  if (!raw) return [];
-  let parsed: unknown = raw;
-  if (typeof raw === 'string') {
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return [];
-    }
-  }
-  if (!Array.isArray(parsed)) return [];
-  const out: ColFilter[] = [];
-  for (const f of parsed) {
-    if (f && typeof f === 'object' && typeof (f as any).col === 'string' && typeof (f as any).op === 'string') {
-      out.push({ col: (f as any).col, op: (f as any).op, val: (f as any).val });
-    }
-  }
-  return out;
-}
-
-/** Build a single Strapi where-clause for one column filter, or null to skip. */
-function buildColClause(f: ColFilter): Record<string, unknown> | null {
-  if (!FILTER_COLS.has(f.col)) return null;
-
-  if (f.op === 'between') {
-    // Range only makes sense for the date column.
-    if (f.col !== 'submittedAt') return null;
-    let from = '';
-    let to = '';
-    const v = f.val;
-    if (Array.isArray(v)) {
-      from = trimOrEmpty(v[0]);
-      to = trimOrEmpty(v[1]);
-    } else if (v && typeof v === 'object') {
-      from = trimOrEmpty((v as any).from);
-      to = trimOrEmpty((v as any).to);
-    } else if (typeof v === 'string' && v.includes(',')) {
-      const [a, b] = v.split(',');
-      from = trimOrEmpty(a);
-      to = trimOrEmpty(b);
-    }
-    const range: Record<string, unknown> = {};
-    if (from) range.$gte = from;
-    // Make the end date inclusive of the whole day.
-    if (to) range.$lte = /\d{2}:\d{2}/.test(to) ? to : `${to}T23:59:59.999Z`;
-    if (!Object.keys(range).length) return null;
-    return { submittedAt: range };
-  }
-
-  const opMap: Record<string, string> = {
-    contains: '$containsi',
-    equals: '$eq',
-    startsWith: '$startsWithi',
-  };
-  const strapiOp = opMap[f.op];
-  if (!strapiOp) return null;
-  const v = trimOrEmpty(f.val);
-  if (!v) return null;
-  return { [f.col]: { [strapiOp]: v } };
-}
-
 /**
- * Build the combined Strapi filters object from admin query params: season,
- * archived, quick `q` search, and the generic column-filter set.
+ * Column filters live in utils/submission-filters.ts, shared with the other
+ * submission table. The two copies had already drifted over which columns
+ * count as dates, so the date columns are passed in instead.
  */
+const DATE_COLS = { submittedAt: 'datetime' } as const;
+
 function buildListFilters(query: Record<string, any>, activeSeason: string | null): Record<string, unknown> {
   const and: Record<string, unknown>[] = [];
 
@@ -187,7 +123,7 @@ function buildListFilters(query: Record<string, any>, activeSeason: string | nul
 
   // --- generic column filters
   for (const f of parseColFilters(query.filters)) {
-    const clause = buildColClause(f);
+    const clause = buildColClause(f, { dateCols: DATE_COLS });
     if (clause) and.push(clause);
   }
 
