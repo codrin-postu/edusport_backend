@@ -414,6 +414,16 @@ const CSS = `
 .seg button:last-child{border-right:none}
 .seg button.on{background:var(--accent);color:#fff;font-weight:600}
 
+/* quick filter dropdowns */
+.qfwrap{position:relative;display:inline-block}
+.btn.qf.on{border-color:#2138b8;color:#2138b8;background:#f4f6fd}
+.qfpop{position:absolute;left:0;top:calc(100% + 6px);width:210px}
+.qfpop .prow{cursor:pointer}
+.qfpop .prow span{font-size:12.5px;color:#32324d}
+.advpop{position:absolute;left:0;top:calc(100% + 6px);width:auto;min-width:430px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px}
+.advpop .lbl{width:100%}
+.qffoot{display:flex;justify-content:flex-end;border-top:1px solid var(--line);margin-top:5px;padding-top:5px}
+
 /* toolbar B */
 .fvals{display:inline-flex;gap:4px;flex-wrap:wrap;align-items:center}
 .fval{display:inline-flex;align-items:center;gap:5px;border:1px solid #d0d0d0;background:#fff;padding:3px 8px;font-size:11.5px;color:#32324d;cursor:pointer;user-select:none}
@@ -645,6 +655,9 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
   const [popOpen, setPopOpen] = React.useState(false);
   const colBtnRef = React.useRef<HTMLButtonElement>(null);
   const [popPos, setPopPos] = React.useState<{ top: number; right: number } | null>(null);
+  // Which quick-filter dropdown is open, by column key.
+  const [quickOpen, setQuickOpen] = React.useState<string | null>(null);
+  const [advOpen, setAdvOpen] = React.useState(false);
   const openColPop = React.useCallback(() => {
     setPopOpen((o) => {
       const next = !o;
@@ -1079,13 +1092,6 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
       // date input is already bound to.
       if (!dFrom) return;
       f = { id, col: dCol, op: dOp, val: dFrom };
-    } else if (dValOptions) {
-      // A column with a fixed list: one tick is an equality, several are a set.
-      if (!dVals.length) return;
-      f =
-        dVals.length === 1
-          ? { id, col: dCol, op: 'equals', val: dVals[0]! }
-          : { id, col: dCol, op: 'anyOf', val: dVals.join(',') };
     } else {
       if (!dVal.trim()) return;
       f = { id, col: dCol, op: dOp, val: dVal.trim() };
@@ -1108,6 +1114,76 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     setFilters([]);
     setPage(1);
   };
+
+  /**
+   * Columns that filter from a dropdown of their own values, rather than
+   * through the generic builder. Status always; anything else whose options
+   * the form describes (level, and any CMS select question).
+   *
+   * `Arhivat` is excluded: it is the archive view toggle, not a status, and
+   * mixing it into a set would ask the server for a combination it does not
+   * model.
+   */
+  const quickCols = React.useMemo(
+    () =>
+      [...cfg.filterColumns]
+        // Status leads: it is the column operators reach for first.
+        .sort((a, b) => (a.key === 'status' ? -1 : b.key === 'status' ? 1 : 0))
+        .map((c) => {
+          const opts =
+            c.key === 'status'
+              ? statusFilterValues.filter((v) => v !== 'Arhivat')
+              : formMeta.selectOptions?.[c.key]?.map((o) => o.value) ??
+                cfg.filterSelectFallback?.[c.key] ??
+                null;
+          return opts && opts.length ? { key: c.key, label: c.label, options: opts } : null;
+        })
+        .filter(Boolean) as { key: string; label: string; options: string[] }[],
+    [cfg, statusFilterValues, formMeta],
+  );
+
+  /** Values currently selected for a quick column. */
+  const quickSelected = React.useCallback(
+    (col: string): string[] => {
+      const f = filters.find((x) => x.col === col && (x.op === 'equals' || x.op === 'anyOf'));
+      if (!f) return [];
+      return f.op === 'anyOf' ? f.val.split(',').filter(Boolean) : [f.val];
+    },
+    [filters],
+  );
+
+  /**
+   * Tick or untick one value. The dropdown edits that column's filter in place
+   * rather than adding another, so two ticks read as "either" instead of
+   * narrowing to nothing.
+   */
+  const toggleQuick = (col: string, val: string) => {
+    const cur = quickSelected(col);
+    const next = cur.includes(val) ? cur.filter((v) => v !== val) : cur.concat(val);
+    setFilters((all) => {
+      const rest = all.filter((x) => !(x.col === col && (x.op === 'equals' || x.op === 'anyOf')));
+      if (!next.length) return rest;
+      const id = `${Date.now()}-${Math.random()}`;
+      return rest.concat(
+        next.length === 1
+          ? { id, col, op: 'equals', val: next[0]! }
+          : { id, col, op: 'anyOf', val: next.join(',') },
+      );
+    });
+    setPage(1);
+  };
+
+  React.useEffect(() => {
+    if (!quickOpen && !advOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el?.closest?.('.qfwrap')) return;
+      setQuickOpen(null);
+      setAdvOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [quickOpen, advOpen]);
 
   const chipText = (f: ActiveFilter): string => {
     const label = colLabel[f.col] ?? f.col;
@@ -1403,6 +1479,55 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
               onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
+          {quickCols.map((qc) => {
+            const picked = quickSelected(qc.key);
+            return (
+              <div className="qfwrap" key={qc.key}>
+                <button
+                  type="button"
+                  className={picked.length ? 'btn sm qf on' : 'btn sm qf'}
+                  onClick={() => {
+                    setAdvOpen(false);
+                    setQuickOpen((cur) => (cur === qc.key ? null : qc.key));
+                  }}
+                >
+                  {qc.label}
+                  {picked.length ? ` (${picked.length})` : ''} ▾
+                </button>
+                {quickOpen === qc.key && (
+                  <div className="pop qfpop">
+                    <div className="pop-body">
+                      {qc.options.map((v) => {
+                        const on = picked.includes(v);
+                        return (
+                          <label className="prow" key={v}>
+                            <input type="checkbox" checked={on} onChange={() => toggleQuick(qc.key, v)} />
+                            <span>{v}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {picked.length > 0 && (
+                      <div className="qffoot">
+                        <button
+                          type="button"
+                          className="fclear"
+                          onClick={() => {
+                            setFilters((all) =>
+                              all.filter((x) => !(x.col === qc.key && (x.op === 'equals' || x.op === 'anyOf'))),
+                            );
+                            setPage(1);
+                          }}
+                        >
+                          Șterge
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
           <div className="seg">
             <button className={view === 'compact' ? 'on' : ''} type="button" onClick={() => setView('compact')}>
               Compact
@@ -1531,8 +1656,21 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
           </div>
         </div>
 
-        {/* toolbar B: filter builder */}
+        {/* toolbar B: sort, plus the builder behind a dropdown */}
         <div className="tbB">
+          <div className="qfwrap">
+            <button
+              type="button"
+              className={advOpen ? 'btn sm qf on' : 'btn sm qf'}
+              onClick={() => {
+                setQuickOpen(null);
+                setAdvOpen((v) => !v);
+              }}
+            >
+              Alte filtre ▾
+            </button>
+            {advOpen && (
+              <div className="pop advpop">
           <span className="lbl">Filtru:</span>
           <select
             value={dCol}
@@ -1563,31 +1701,23 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
           ) : dColIsDate ? (
             <input type="date" aria-label="Data" value={dFrom} onChange={(e) => setDFrom(e.target.value)} />
           ) : dValOptions ? (
-            /* Ticking several means "any of these". One tick still goes out as
-               an equality, so nothing changes for the common case. */
-            <span className="fvals">
-              {dValOptions.map((l) => {
-                const on = dVals.includes(l);
-                return (
-                  <label key={l} className={on ? 'fval on' : 'fval'}>
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      onChange={() =>
-                        setDVals((cur) => (on ? cur.filter((v) => v !== l) : cur.concat(l)))
-                      }
-                    />
-                    {l}
-                  </label>
-                );
-              })}
-            </span>
+            <select value={dVal} onChange={(e) => setDVal(e.target.value)} style={{ minWidth: 160 }}>
+              <option value="">valoare</option>
+              {dValOptions.map((l) => (
+                <option key={l} value={l}>
+                  {l}
+                </option>
+              ))}
+            </select>
           ) : (
             <input placeholder="valoare" value={dVal} onChange={(e) => setDVal(e.target.value)} style={{ minWidth: 160 }} />
           )}
           <button className="btn sm pri" type="button" onClick={addFilter}>
-            + Adaugă filtru
+            Adaugă filtru
           </button>
+              </div>
+            )}
+          </div>
           <span className="grow" />
           <span className="lbl">Sortare:</span>
           <select
@@ -1615,7 +1745,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
               </span>
             ))}
             <span className="lbl">
-              · {filters.length} {filters.length === 1 ? 'filtru activ' : 'filtre active'}
+              {filters.length} {filters.length === 1 ? 'filtru activ' : 'filtre active'}
             </span>
             <button type="button" className="fclear" onClick={clearFilters}>
               Șterge filtrele
