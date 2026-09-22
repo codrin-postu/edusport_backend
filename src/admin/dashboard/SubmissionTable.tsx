@@ -43,8 +43,15 @@ export const OPERATORS = [
   { key: 'contains', label: 'conține' },
   { key: 'equals', label: 'este' },
   { key: 'startsWith', label: 'începe cu' },
-  { key: 'between', label: 'între (date)' },
+  { key: 'anyOf', label: 'este una din' },
+  { key: 'on', label: 'în data de' },
+  { key: 'before', label: 'înainte de' },
+  { key: 'after', label: 'după' },
+  { key: 'between', label: 'între' },
 ] as const;
+// Which operators a date column offers. Previously a date was forced to
+// `between`, so "everything sent on the 15th" could not be asked for at all.
+const DATE_OPS = ['on', 'before', 'after', 'between'];
 const OP_LABEL: Record<string, string> = Object.fromEntries(OPERATORS.map((o) => [o.key, o.label]));
 
 export type ColType = 'date' | 'status' | 'level' | 'text' | 'bool' | 'longtext' | 'list';
@@ -408,6 +415,10 @@ const CSS = `
 .seg button.on{background:var(--accent);color:#fff;font-weight:600}
 
 /* toolbar B */
+.fvals{display:inline-flex;gap:4px;flex-wrap:wrap;align-items:center}
+.fval{display:inline-flex;align-items:center;gap:5px;border:1px solid #d0d0d0;background:#fff;padding:3px 8px;font-size:11.5px;color:#32324d;cursor:pointer;user-select:none}
+.fval.on{border-color:#2138b8;color:#2138b8;background:#f4f6fd}
+.fval input{margin:0;width:auto}
 .tbB{display:flex;align-items:center;gap:9px;padding:11px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap;background:#fbfbfc}
 .tbB .grow{flex:1}
 .fchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 18px 12px;border-bottom:1px solid var(--line)}
@@ -604,6 +615,9 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
 
   // filter-builder draft
   const [dCol, setDCol] = React.useState(cfg.filterColumns[0].key);
+  // Values ticked for a column that has a fixed option list. Several of them
+  // mean "any of these", which is what the table could not express before.
+  const [dVals, setDVals] = React.useState<string[]>([]);
   const [dOp, setDOp] = React.useState('contains');
   const [dVal, setDVal] = React.useState('');
   const [dFrom, setDFrom] = React.useState('');
@@ -1053,15 +1067,29 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
 
   // --- filter builder actions
   const addFilter = () => {
-    const isDate = dOp === 'between' || colByKey[dCol]?.type === 'date';
-    if (isDate) {
+    const isDate = colByKey[dCol]?.type === 'date';
+    const id = `${Date.now()}-${Math.random()}`;
+    let f: ActiveFilter;
+
+    if (isDate && dOp === 'between') {
       if (!dFrom && !dTo) return;
-    } else if (!dVal.trim()) {
-      return;
+      f = { id, col: dCol, op: 'between', val: '', from: dFrom, to: dTo };
+    } else if (isDate) {
+      // on / before / after take a single day in `from`, which is the field the
+      // date input is already bound to.
+      if (!dFrom) return;
+      f = { id, col: dCol, op: dOp, val: dFrom };
+    } else if (dValOptions) {
+      // A column with a fixed list: one tick is an equality, several are a set.
+      if (!dVals.length) return;
+      f =
+        dVals.length === 1
+          ? { id, col: dCol, op: 'equals', val: dVals[0]! }
+          : { id, col: dCol, op: 'anyOf', val: dVals.join(',') };
+    } else {
+      if (!dVal.trim()) return;
+      f = { id, col: dCol, op: dOp, val: dVal.trim() };
     }
-    const f: ActiveFilter = isDate
-      ? { id: `${Date.now()}-${Math.random()}`, col: dCol, op: 'between', val: '', from: dFrom, to: dTo }
-      : { id: `${Date.now()}-${Math.random()}`, col: dCol, op: dOp, val: dVal.trim() };
     // Only one "view archived" toggle at a time.
     setFilters((cur) => {
       const next = f.col === 'status' && f.val === 'Arhivat' ? cur.filter((x) => !(x.col === 'status' && x.val === 'Arhivat')) : cur;
@@ -1084,6 +1112,9 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
   const chipText = (f: ActiveFilter): string => {
     const label = colLabel[f.col] ?? f.col;
     if (f.op === 'between') return `${label}: între ${f.from || '...'} și ${f.to || '...'}`;
+    if (f.op === 'anyOf') return `${label}: ${f.val.split(',').join(', ')}`;
+    if (f.op === 'on') return `${label}: ${f.val}`;
+    if (f.op === 'before' || f.op === 'after') return `${label} ${OP_LABEL[f.op]} ${f.val}`;
     if (f.op === 'equals') return `${label}: ${f.val}`;
     return `${label} ${OP_LABEL[f.op] ?? f.op} „${f.val}"`;
   };
@@ -1294,11 +1325,19 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
   // a non-date column restores `contains`.
   const dColIsDate = colByKey[dCol]?.type === 'date';
   React.useEffect(() => {
-    setDOp((op) => (dColIsDate ? 'between' : op === 'between' ? 'contains' : op));
+    // Keep the operator valid for the column type rather than pinning dates to
+    // a range.
+    setDOp((op) => {
+      if (dColIsDate) return DATE_OPS.includes(op) ? op : 'on';
+      return DATE_OPS.includes(op) ? 'contains' : op;
+    });
   }, [dColIsDate, dCol]);
-  const dOpIsBetween = dOp === 'between' || dColIsDate;
+  const dOpIsBetween = dOp === 'between';
   const dOpOptions = React.useMemo(
-    () => OPERATORS.filter((o) => (dColIsDate ? o.key === 'between' : o.key !== 'between')),
+    () =>
+      OPERATORS.filter((o) =>
+        dColIsDate ? DATE_OPS.includes(o.key) : !DATE_OPS.includes(o.key),
+      ),
     [dColIsDate],
   );
   // Value options for select-driven filter columns: the status column always,
@@ -1500,6 +1539,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
             onChange={(e) => {
               setDCol(e.target.value);
               setDVal('');
+              setDVals([]);
             }}
           >
             {cfg.filterColumns.map((c) => (
@@ -1515,20 +1555,33 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
               </option>
             ))}
           </select>
-          {dOpIsBetween ? (
+          {dColIsDate && dOpIsBetween ? (
             <>
               <input type="date" aria-label="De la" value={dFrom} onChange={(e) => setDFrom(e.target.value)} />
               <input type="date" aria-label="Până la" value={dTo} onChange={(e) => setDTo(e.target.value)} />
             </>
+          ) : dColIsDate ? (
+            <input type="date" aria-label="Data" value={dFrom} onChange={(e) => setDFrom(e.target.value)} />
           ) : dValOptions ? (
-            <select value={dVal} onChange={(e) => setDVal(e.target.value)} style={{ minWidth: 160 }}>
-              <option value="">valoare</option>
-              {dValOptions.map((l) => (
-                <option key={l} value={l}>
-                  {l}
-                </option>
-              ))}
-            </select>
+            /* Ticking several means "any of these". One tick still goes out as
+               an equality, so nothing changes for the common case. */
+            <span className="fvals">
+              {dValOptions.map((l) => {
+                const on = dVals.includes(l);
+                return (
+                  <label key={l} className={on ? 'fval on' : 'fval'}>
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() =>
+                        setDVals((cur) => (on ? cur.filter((v) => v !== l) : cur.concat(l)))
+                      }
+                    />
+                    {l}
+                  </label>
+                );
+              })}
+            </span>
           ) : (
             <input placeholder="valoare" value={dVal} onChange={(e) => setDVal(e.target.value)} style={{ minWidth: 160 }} />
           )}
