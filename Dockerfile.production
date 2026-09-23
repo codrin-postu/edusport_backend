@@ -69,6 +69,12 @@ ENV PORT=1337
 COPY --from=proddeps --chown=strapi:strapi /opt/app/node_modules ./node_modules
 COPY --from=builder  --chown=strapi:strapi /opt/out ./
 
+# Docker seeds a named volume from the image path it is mounted over, including
+# its ownership. Without this directory present and owned by strapi, a freshly
+# created uploads volume lands as root:root and every upload fails with EACCES
+# (the container drops ALL capabilities, so it cannot chown its way out).
+RUN mkdir -p ./public/uploads && chown -R strapi:strapi ./public
+
 USER strapi
 
 EXPOSE 1337
