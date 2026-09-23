@@ -48,7 +48,7 @@ services:
       GLITCHTIP_API_URL: ${GLITCHTIP_API_URL:-http://glitchtip-web:8000}
       GLITCHTIP_API_TOKEN: ${GLITCHTIP_API_TOKEN:-}
       GLITCHTIP_ORG: ${GLITCHTIP_ORG:-edusport}
-      GLITCHTIP_PROJECT: ${GLITCHTIP_PROJECT:-edusport-backend}
+      GLITCHTIP_PROJECT: ${GLITCHTIP_PROJECT:-edusport-frontend}
       GLITCHTIP_PUBLIC_URL: ${GLITCHTIP_PUBLIC_URL:-}
       # skate-results API base + shared key for the mutating proxy routes
       # (import / delete). Key value comes from a gitignored .env.

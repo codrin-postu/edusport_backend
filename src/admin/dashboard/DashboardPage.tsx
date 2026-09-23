@@ -77,7 +77,7 @@ interface HealthData {
 const SITE_SETTINGS_UID = 'api::site-settings.site-settings';
 
 const CSS = `
-.esdp { font-family: system-ui, -apple-system, sans-serif; color: #1b1d26; background: #f6f7f9; min-height: 100%; padding: 16px 20px 40px; box-sizing: border-box; }
+.esdp { font-family: system-ui, -apple-system, sans-serif; color: #1b1d26; background: #f6f7f9; min-height: 100%; flex-shrink: 0; padding: 16px 20px 40px; box-sizing: border-box; }
 .esdp * { box-sizing: border-box; }
 .num { font-variant-numeric: tabular-nums; }
 

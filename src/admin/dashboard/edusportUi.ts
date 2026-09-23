@@ -45,10 +45,15 @@ export const LEVEL_LABEL: Record<string, string> = {
 
 // Shared stylesheet, scoped under `.eduf`. Injected once per page via <style>.
 export const EDU_CSS = `
+/* flex-shrink:0 below: Strapi renders plugin pages inside a column flex
+   container with a fixed height and overflow:auto. Without it the page root is
+   shrunk to one viewport while its content overflows, so the background paints
+   only the first screen and everything scrolled past it falls through to
+   Strapi's own body colour, which is near-black in the dark theme. */
 .eduf{--chrome:#fff;--ink:#1b1d22;--muted:#727888;--line:#e0e2e8;--border:#dcdcdc;
   --accent:#2138b8;--accent-soft:#eef1fb;--danger:#be3330;--field:#f7f8fa;--fieldborder:#d0d0d0;
   --ok:#1f7a4d;--r:4px;
-  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#eef0f4;min-height:100%;padding:20px;box-sizing:border-box;line-height:1.5}
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#eef0f4;min-height:100%;flex-shrink:0;padding:20px;box-sizing:border-box;line-height:1.5}
 .eduf *{box-sizing:border-box}
 .eduf .num{font-variant-numeric:tabular-nums}
 .eduf a{color:var(--accent);text-decoration:none}

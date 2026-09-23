@@ -163,6 +163,11 @@ async function fetchUmami(): Promise<Payload> {
  * Env: GLITCHTIP_API_URL, GLITCHTIP_API_TOKEN, GLITCHTIP_ORG (slug),
  * GLITCHTIP_PROJECT (slug). Optional: GLITCHTIP_PUBLIC_URL.
  *
+ * GLITCHTIP_PROJECT must be the FRONTEND project. The card answers "is the
+ * public site working" for a non-technical operator, so CMS-internal errors
+ * (upload permissions, policy rejections) do not belong in it. They are still
+ * collected under the backend project and read in GlitchTip directly.
+ *
  * On the daily bars: this counts ISSUES BY THEIR LAST OCCURRENCE, not the
  * number of times an error actually happened that day. An issue seen 40 times
  * on Monday and once on Friday contributes a single unit to Friday and nothing
