@@ -12,7 +12,7 @@ import { ConfirmDialog } from '../../../../admin/ConfirmDialog';
 // Per-occurrence states for the Școala de patinaj recurring event.
 const SCOALA_STATES = [
   { key: 'curs', label: 'Curs', color: '#0e1a3c' },
-  { key: 'liber', label: 'Liber', color: '#8a8a8a' },
+  { key: 'liber', label: 'Liber', color: '#9ca3af' },
   { key: 'anulat', label: 'Anulat', color: '#be3330' },
 ] as const;
 const SCOALA_COLOR: Record<string, string> = Object.fromEntries(SCOALA_STATES.map((s) => [s.key, s.color]));
@@ -43,9 +43,9 @@ const CATEGORIES = [
   { key: 'cantonament', label: 'Cantonament', color: '#ea7233' },
   { key: 'spectacol', label: 'Spectacol', color: '#ea7233' },
   { key: 'eveniment', label: 'Eveniment', color: '#ea7233' },
-  { key: 'vacanta', label: 'Vacanță', color: '#8a8a8a' },
-  { key: 'sarbatoare', label: 'Sărbătoare', color: '#8a8a8a' },
-  { key: 'liber', label: 'Pauză / zi liberă', color: '#8a8a8a' },
+  { key: 'vacanta', label: 'Vacanță', color: '#9ca3af' },
+  { key: 'sarbatoare', label: 'Sărbătoare', color: '#9ca3af' },
+  { key: 'liber', label: 'Pauză / zi liberă', color: '#9ca3af' },
 ] as const;
 const COLOR: Record<string, string> = Object.fromEntries(CATEGORIES.map((c) => [c.key, c.color]));
 const RO_MONTHS = ['Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie', 'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie'];

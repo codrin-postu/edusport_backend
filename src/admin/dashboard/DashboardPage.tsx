@@ -20,7 +20,7 @@ import { FORM_DEFS, fetchNewCount } from './formDefs';
 // Event colours mirror CATEGORIES in ProgramOverviewEditor.tsx exactly.
 const CATEGORY_COLOR: Record<string, string> = {
   curs: '#6e4256', scoala: '#0e1a3c', concurs: '#ea7233', cantonament: '#ea7233',
-  spectacol: '#ea7233', eveniment: '#ea7233', vacanta: '#8a8a8a', sarbatoare: '#8a8a8a', liber: '#8a8a8a',
+  spectacol: '#ea7233', eveniment: '#ea7233', vacanta: '#9ca3af', sarbatoare: '#9ca3af', liber: '#9ca3af',
 };
 const CATEGORY_LABEL: Record<string, string> = {
   curs: 'Antrenament', scoala: 'Școala de patinaj', concurs: 'Competiție', cantonament: 'Cantonament',
