@@ -37,14 +37,14 @@ function fmtShort(d?: string): string {
 }
 
 const CATEGORIES = [
-  { key: 'curs', label: 'Antrenament', color: '#2138b8' },
+  { key: 'curs', label: 'Antrenament', color: '#6e4256' },
   { key: 'scoala', label: 'Școala de patinaj', color: '#0e1a3c' },
-  { key: 'concurs', label: 'Competiție', color: '#7a1fa2' },
-  { key: 'cantonament', label: 'Cantonament', color: '#1f7a4d' },
-  { key: 'spectacol', label: 'Spectacol', color: '#00838f' },
-  { key: 'eveniment', label: 'Eveniment', color: '#e08a00' },
-  { key: 'vacanta', label: 'Vacanță', color: '#0891b2' },
-  { key: 'sarbatoare', label: 'Sărbătoare', color: '#c026d3' },
+  { key: 'concurs', label: 'Competiție', color: '#ea7233' },
+  { key: 'cantonament', label: 'Cantonament', color: '#ea7233' },
+  { key: 'spectacol', label: 'Spectacol', color: '#ea7233' },
+  { key: 'eveniment', label: 'Eveniment', color: '#ea7233' },
+  { key: 'vacanta', label: 'Vacanță', color: '#8a8a8a' },
+  { key: 'sarbatoare', label: 'Sărbătoare', color: '#8a8a8a' },
   { key: 'liber', label: 'Pauză / zi liberă', color: '#8a8a8a' },
 ] as const;
 const COLOR: Record<string, string> = Object.fromEntries(CATEGORIES.map((c) => [c.key, c.color]));
@@ -64,7 +64,7 @@ interface Occurrence {
 interface Exception { date: string; kind: 'cancel' | 'override' | 'liber' | 'anulat'; newStartTime?: string | null; newEndTime?: string | null; newTitle?: string | null; newDate?: string | null; }
 interface FormState {
   documentId: string | null;
-  title: string; type: string; label: string; color: string;
+  title: string; type: string; label: string;
   description: string; imageUrl: string; linkUrl: string; linkLabel: string;
   freq: string; days: Record<string, boolean>; weekOfMonth: string; allDay: boolean;
   startTime: string; endTime: string; endsNextDay: boolean; singleDate: string; endDate: string; seasonStart: string; seasonEnd: string;
@@ -219,7 +219,7 @@ function spanHint(f: FormState): string {
 
 function emptyForm(date?: string): FormState {
   return {
-    documentId: null, title: '', type: 'curs', label: '', color: '',
+    documentId: null, title: '', type: 'curs', label: '',
     description: '', imageUrl: '', linkUrl: '', linkLabel: '',
     freq: 'weekly', days: { mon: false, tue: false, wed: false, thu: false, fri: false, sat: false, sun: false },
     weekOfMonth: 'first', allDay: false, startTime: '', endTime: '', endsNextDay: false,
@@ -345,7 +345,7 @@ export default function ProgramOverviewEditor(_props: Props) {
       }
       setForm({
         documentId,
-        title: e.title ?? '', type: e.type ?? 'curs', label: e.label ?? '', color: e.color ?? '',
+        title: e.title ?? '', type: e.type ?? 'curs', label: e.label ?? '',
         description: e.description ?? '', imageUrl: e.imageUrl ?? '', linkUrl: e.linkUrl ?? '', linkLabel: e.linkLabel ?? '',
         freq: r.freq ?? 'weekly',
         days: { mon: !!r.mon, tue: !!r.tue, wed: !!r.wed, thu: !!r.thu, fri: !!r.fri, sat: !!r.sat, sun: !!r.sun },
@@ -363,7 +363,10 @@ export default function ProgramOverviewEditor(_props: Props) {
   };
 
   const buildBody = (f: FormState) => ({
-    title: f.title, type: f.type, label: f.label || null, color: f.color || null,
+    // No `color` here: the admin has no input for it and the website ignores
+    // it, so colour comes only from category / state. Omitting the key
+    // leaves any existing stored value untouched on update.
+    title: f.title, type: f.type, label: f.label || null,
     description: f.description || null, imageUrl: f.imageUrl || null, linkUrl: f.linkUrl || null, linkLabel: f.linkLabel || null,
     recurrence: {
       freq: f.freq, mon: f.days.mon, tue: f.days.tue, wed: f.days.wed, thu: f.days.thu, fri: f.days.fri, sat: f.days.sat, sun: f.days.sun,
@@ -593,7 +596,10 @@ export default function ProgramOverviewEditor(_props: Props) {
                     const isScoala = o.type === 'scoala';
                     const stateColor = isScoala ? (SCOALA_COLOR[(o as any).state] ?? SCOALA_COLOR.curs) : undefined;
                     const cancelled = o.status === 'cancelled' || (o as any).state === 'anulat' || (o as any).state === 'liber';
-                    const color = stateColor ?? (cancelled ? '#b0b0b0' : o.color || COLOR[o.type] || '#2138b8');
+                    // Colour comes only from category / state, never the per-event
+                    // color field: the website ignores it and the admin has no
+                    // input for it.
+                    const color = stateColor ?? (cancelled ? '#be3330' : COLOR[o.type] || '#0e1a3c');
                     const label = isScoala
                       ? `Școala: ${SCOALA_LABEL[(o as any).state] ?? 'Curs'}`
                       : `${o.startTime ? `${o.startTime} ` : ''}${o.label || o.title}`;

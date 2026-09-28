@@ -19,8 +19,8 @@ import { FORM_DEFS, fetchNewCount } from './formDefs';
 
 // Event colours mirror CATEGORIES in ProgramOverviewEditor.tsx exactly.
 const CATEGORY_COLOR: Record<string, string> = {
-  curs: '#2138b8', scoala: '#be3330', concurs: '#7a1fa2', cantonament: '#1f7a4d',
-  spectacol: '#00838f', eveniment: '#e08a00', vacanta: '#0891b2', sarbatoare: '#c026d3', liber: '#8a8a8a',
+  curs: '#6e4256', scoala: '#0e1a3c', concurs: '#ea7233', cantonament: '#ea7233',
+  spectacol: '#ea7233', eveniment: '#ea7233', vacanta: '#8a8a8a', sarbatoare: '#8a8a8a', liber: '#8a8a8a',
 };
 const CATEGORY_LABEL: Record<string, string> = {
   curs: 'Antrenament', scoala: 'Școala de patinaj', concurs: 'Competiție', cantonament: 'Cantonament',
@@ -400,7 +400,9 @@ export default function DashboardPage() {
     const p = date.split('-');
     return `${Number(p[2])} ${RO_MON_SHORT[Number(p[1]) - 1]}`;
   };
-  const colorOf = (o: Occurrence) => (o.type === 'scoala' ? CATEGORY_COLOR.scoala : (o.color || CATEGORY_COLOR[o.type] || '#2138b8'));
+  // Colour comes only from category / state, never the per-event color
+  // field: the website ignores it and the admin has no input for it.
+  const colorOf = (o: Occurrence) => (o.type === 'scoala' ? CATEGORY_COLOR.scoala : (CATEGORY_COLOR[o.type] || '#0e1a3c'));
   const isOff = (o: Occurrence) => o.status === 'cancelled' || o.state === 'anulat' || o.state === 'liber';
   const evTitle = (o: Occurrence) => (o.type === 'scoala' ? 'Școala de patinaj' : (o.title || o.label || 'Eveniment'));
 
