@@ -8,6 +8,7 @@ import { BlocksToolbarExtra } from './BlocksToolbarExtra';
 import { registerEdusportMenu } from './dashboard/menu';
 import { mountEdusportShell, tagShellParent, SHELL_CSS } from './dashboard/EdusportShell';
 import { applyLoginBranding } from './dashboard/loginBranding';
+import { ensureAdminUi } from './ui/styles';
 import roTranslations from './translations/ro.json';
 import EdusportLogo from './edusport-logo.svg';
 
@@ -484,7 +485,10 @@ function tagDefaultSaveAndPreview(): void {
   buttons.forEach((btn) => {
     if (isInsideSaveBar(btn)) return;
     if (isInsidePopover(btn)) return; // skip contextual Save/Publish buttons inside dialogs/popovers
-    if (btn.closest('.pce')) return; // skip our custom calendar editor's own buttons (its Save shares the "Salvează" label)
+    // Skip our own UI: the calendar editor (.pce) and every shared-component
+    // page or modal (.adm-root, src/admin/ui). Their Save buttons share the
+    // "Salvează" label and would otherwise be clipped to 1x1.
+    if (btn.closest('.pce, .adm-root')) return;
     const name = getAccessibleName(btn);
     // Check Unpublish FIRST because "Unpublish" contains "publish" — we
     // never want a Publish tag on the Unpublish button.
@@ -572,6 +576,8 @@ function tagFormGridRows() {
 }
 
 function setupAdminShell() {
+  // Shared admin UI: --adm-* tokens, component classes, <html data-adm-theme>.
+  ensureAdminUi();
   injectGlobalStyles();
   injectMobileStyles();
   mountMobileNav();
