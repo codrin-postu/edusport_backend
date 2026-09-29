@@ -1,8 +1,12 @@
 import * as React from 'react';
+import { Modal } from './ui/Modal';
+import { Button } from './ui/Button';
+import { Field } from './ui/Field';
+import { Input } from './ui/Input';
 
 /**
  * CANONICAL shared confirm-destructive-action dialog for the whole EduSport
- * admin. Single source of truth — used by both the custom dashboard pages
+ * admin. Single source of truth, used by both the custom dashboard pages
  * (`src/admin/dashboard/**`) and the local `component-preview` plugin
  * (`src/plugins/component-preview/admin/src/**`).
  *
@@ -12,14 +16,16 @@ import * as React from 'react';
  * safe in either direction. `src/admin/tsconfig.json` also type-checks both
  * (`include: ["../plugins/**\/admin/src/**\/*", "./"]`).
  *
- * Deliberately self-contained: every style is inline, so the dialog renders
- * identically inside the dashboard's `.eduf` root and the plugin's `.pce` root
- * without depending on either stylesheet.
+ * Built on the shared admin Modal (src/admin/ui/Modal): it portals to <body>
+ * with its own `.adm-root` scope and themed tokens, so it renders the same
+ * inside the dashboard's `.eduf` root, the plugin's `.pce` root, or anywhere
+ * else, and follows the Strapi light / dark theme. Props and behaviour are
+ * unchanged for every caller.
  *
  * SaveBar note: `src/admin/app.tsx` hides Strapi's default action buttons by
  * accessible name (save / salvează / publică / previzualizare / retrage). None
  * of this dialog's labels collide, and the tagger additionally skips anything
- * inside `.pce` (app.tsx ~line 487).
+ * inside a dialog, `.pce` or `.adm-root` (see tagDefaultSaveAndPreview).
  */
 
 export interface ConfirmDialogProps {
@@ -49,9 +55,6 @@ export interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
-const ACCENT = '#2138b8';
-const DANGER = '#be3330';
-
 export function ConfirmDialog({
   open,
   title,
@@ -71,160 +74,76 @@ export function ConfirmDialog({
   const [typed, setTyped] = React.useState('');
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
-  // Reset + focus only when the modal opens; keyed on `open` alone so a parent
-  // re-render never wipes what the user already typed.
+  // Reset only when the modal opens; keyed on `open` alone so a parent
+  // re-render never wipes what the user already typed. Focus is handled by
+  // Modal (the typed-text input when present, the dialog otherwise).
   React.useEffect(() => {
-    if (!open) return;
-    setTyped('');
-    const t = window.setTimeout(() => inputRef.current?.focus(), 0);
-    return () => window.clearTimeout(t);
+    if (open) setTyped('');
   }, [open]);
-
-  // Escape closes — unless a delete is already in flight.
-  React.useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !busy) onCancel();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, busy, onCancel]);
-
-  if (!open) return null;
 
   const expected = (requireTypedText ?? '').trim();
   const needsTyping = expected !== '';
   const matches = !needsTyping || typed.trim().toLowerCase() === expected.toLowerCase();
   const confirmDisabled = !matches || busy;
-  const accent = tone === 'danger' ? DANGER : ACCENT;
 
+  // Escape, overlay click and Cancel are all blocked while a delete is in flight.
   const dismiss = () => {
     if (!busy) onCancel();
   };
 
   return (
-    <div
-      onMouseDown={dismiss}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,.35)',
-        zIndex: 400,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        onMouseDown={(e) => e.stopPropagation()}
-        style={{
-          width: 460,
-          maxWidth: '100%',
-          background: '#fff',
-          border: '1px solid #dcdcdc',
-          borderRadius: 6,
-          overflow: 'hidden',
-          fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
-        }}
-      >
-        <div style={{ padding: '13px 15px', borderBottom: '1px solid #e0e2e8' }}>
-          <b style={{ fontSize: 14 }}>{title}</b>
-        </div>
-
-        <div style={{ padding: '14px 15px', fontSize: 12.5, color: '#3a3f4a', lineHeight: 1.5 }}>
-          <p style={{ margin: needsTyping || detail ? '0 0 12px' : 0 }}>{message}</p>
-
-          {detail && (
-            <p style={{ margin: needsTyping ? '0 0 12px' : 0, color: '#727888' }}>{detail}</p>
-          )}
-
-          {needsTyping && (
-            <>
-              <label style={{ display: 'block', marginBottom: 6, fontWeight: 600, color: '#141a36' }}>
-                {typedPrompt ?? `Scrie „${expected}" pentru confirmare:`}
-              </label>
-              <input
-                ref={inputRef}
-                value={typed}
-                onChange={(e) => setTyped(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && matches && !busy) onConfirm();
-                }}
-                placeholder={expected}
-                style={{
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  fontFamily: 'inherit',
-                  fontSize: 13,
-                  color: '#1b1d22',
-                  background: '#f7f8fa',
-                  border: '1px solid #d0d0d0',
-                  borderRadius: 4,
-                  padding: '7px 9px',
-                }}
-              />
-            </>
-          )}
-
-          {error && <div style={{ marginTop: 10, color: DANGER, fontWeight: 600 }}>{error}</div>}
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            gap: 10,
-            justifyContent: 'flex-end',
-            padding: '12px 15px',
-            borderTop: '1px solid #e0e2e8',
-            background: '#fcfcfd',
-          }}
-        >
-          <button
-            type="button"
-            onClick={dismiss}
-            disabled={busy}
-            style={{
-              fontFamily: 'inherit',
-              fontSize: 12.5,
-              fontWeight: 600,
-              padding: '7px 12px',
-              borderRadius: 4,
-              border: '1px solid #d0d0d0',
-              background: '#fff',
-              color: '#1b1d22',
-              cursor: busy ? 'default' : 'pointer',
-              opacity: busy ? 0.55 : 1,
-              whiteSpace: 'nowrap',
-            }}
-          >
+    <Modal
+      open={open}
+      onClose={dismiss}
+      dismissable={!busy}
+      title={title}
+      role="alertdialog"
+      initialFocusRef={needsTyping ? inputRef : undefined}
+      footer={
+        <>
+          <Button variant="secondary" onClick={dismiss} disabled={busy}>
             {cancelLabel}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant={tone === 'danger' ? 'danger' : 'primary'}
+            className={tone === 'danger' ? 'adm-btn--solid' : undefined}
             onClick={onConfirm}
             disabled={confirmDisabled}
-            style={{
-              fontFamily: 'inherit',
-              fontSize: 12.5,
-              fontWeight: 600,
-              padding: '7px 12px',
-              borderRadius: 4,
-              border: `1px solid ${accent}`,
-              background: accent,
-              color: '#fff',
-              cursor: confirmDisabled ? 'default' : 'pointer',
-              opacity: confirmDisabled ? 0.55 : 1,
-              whiteSpace: 'nowrap',
-            }}
           >
             {busy ? busyLabel : confirmLabel}
-          </button>
+          </Button>
+        </>
+      }
+    >
+      <p style={{ margin: needsTyping || detail ? '0 0 12px' : 0 }}>{message}</p>
+
+      {detail && (
+        <p className="adm-muted" style={{ margin: needsTyping ? '0 0 12px' : 0 }}>
+          {detail}
+        </p>
+      )}
+
+      {needsTyping && (
+        <Field label={typedPrompt ?? `Scrie „${expected}" pentru confirmare:`} className="adm-confirm-typed">
+          <Input
+            ref={inputRef}
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && matches && !busy) onConfirm();
+            }}
+            placeholder={expected}
+            autoComplete="off"
+          />
+        </Field>
+      )}
+
+      {error && (
+        <div className="adm-error" role="alert" style={{ marginTop: 10, fontSize: 12.5 }}>
+          {error}
         </div>
-      </div>
-    </div>
+      )}
+    </Modal>
   );
 }
 
