@@ -643,7 +643,7 @@ export default function ProgramOverviewEditor(_props: Props) {
                         <div className="pce-fld"><label>Stare</label>
                           <div className="pce-pills">
                             {SCOALA_STATES.map((s) => (
-                              <span key={s.key} className="spill" onClick={() => upd({ scoalaState: s.key })} style={form.scoalaState === s.key ? { background: s.color, borderColor: s.color, color: '#fff' } : undefined}>{s.label}</span>
+                              <span key={s.key} className="spill" onClick={() => upd({ scoalaState: s.key })} style={form.scoalaState === s.key ? { background: s.color, borderColor: s.color, color: s.key === 'liber' ? '#0e1a3c' : '#fbf8f1' } : undefined}>{s.label}</span>
                             ))}
                           </div>
                         </div>
