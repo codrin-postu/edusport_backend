@@ -3,6 +3,7 @@ import { initSentry } from './sentry';
 import { registerRecurrenceValidation } from './api/calendar-event/services/validate-recurrence';
 import { registerAnnouncementValidation } from './api/announcement/services/validate-announcement';
 import { seedLegacyLink } from './sheets/store';
+import { normalizeNavigationPages } from './api/navigation/services/pages';
 
 // Admin layout overrides - applied on every bootstrap so they survive DB resets.
 // Each key is the strapi_core_store_settings key for that component/content-type.
@@ -404,6 +405,11 @@ export default {
     // Google Sheets back-compat: migrate the legacy SHEETS_SPREADSHEET_ID env
     // into the per-form sheet-link record, once, if none exists yet.
     await seedLegacyLink();
+
+    // Keep "Meniu site"'s pages list in sync with the fixed PAGE_KEYS list
+    // (docs/admin-ui/PAGES-TOGGLE.md): add missing keys as enabled, drop
+    // unknown ones, never flip an existing value.
+    await normalizeNavigationPages(strapi);
 
     // Confirm the scheduled jobs actually registered — a cron block that is
     // silently ignored (wrong config key, disabled) is otherwise invisible.

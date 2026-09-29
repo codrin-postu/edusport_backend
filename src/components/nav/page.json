@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_nav_pages",
+  "info": {
+    "displayName": "Pagină meniu",
+    "description": "Cheia paginii (fixă, nu se editează) și dacă pagina este vizibilă în meniu, footer și sitemap."
+  },
+  "options": {},
+  "attributes": {
+    "key": {
+      "type": "string",
+      "required": true
+    },
+    "enabled": {
+      "type": "boolean",
+      "required": true,
+      "default": true
+    }
+  }
+}
