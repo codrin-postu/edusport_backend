@@ -1083,6 +1083,7 @@ export interface ApiNavigationNavigation extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.Private;
     overrides: Schema.Attribute.Component<'nav.override', true>;
+    pages: Schema.Attribute.Component<'nav.page', true>;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &

@@ -47,3 +47,7 @@
   target differs from `FRONTEND_ORIGIN`) in the deploy environment; without
   it the ping is silently skipped and cache purge falls back to each route's
   own TTL.
+
+## Exceptions (user, 2026-09-29)
+- The "Înscrie-te la cursuri" CTA buttons (header, mobile menu, footer enrolment band) stay visible even when Înscrieri or Cursuri is hidden.
+- Article previews (/noutati/preview/*) stay reachable for editors when Noutăți is hidden.

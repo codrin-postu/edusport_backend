@@ -133,6 +133,20 @@ export interface NavOverride extends Struct.ComponentSchema {
   };
 }
 
+export interface NavPage extends Struct.ComponentSchema {
+  collectionName: 'components_nav_pages';
+  info: {
+    description: 'Cheia paginii (fix\u0103, nu se editeaz\u0103) \u0219i dac\u0103 pagina este vizibil\u0103 \u00EEn meniu, footer \u0219i sitemap.';
+    displayName: 'Pagin\u0103 meniu';
+  };
+  attributes: {
+    enabled: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<true>;
+    key: Schema.Attribute.String & Schema.Attribute.Required;
+  };
+}
+
 export interface PricingFooterNote extends Struct.ComponentSchema {
   collectionName: 'components_pricing_footer_notes';
   info: {
@@ -303,6 +317,7 @@ declare module '@strapi/strapi' {
       'cursuri.info-section': CursuriInfoSection;
       'cursuri.promo-card': CursuriPromoCard;
       'nav.override': NavOverride;
+      'nav.page': NavPage;
       'pricing.footer-note': PricingFooterNote;
       'pricing.pricing-tier': PricingPricingTier;
       'regulations.regulation-category': RegulationsRegulationCategory;
