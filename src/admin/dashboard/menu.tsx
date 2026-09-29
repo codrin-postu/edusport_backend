@@ -95,6 +95,11 @@ export const MEMBRI_TO = '/plugins/edusport-membri';
 // in a modal on the list itself, so there is no separate edit route.
 export const SPONSORI_TO = '/plugins/edusport-sponsori';
 
+// Hidden reference page for the shared admin UI (src/admin/ui): every component
+// in every state, for light / dark screenshots. Registered with addRoute, so it
+// appears in no sidebar or menu. Open it by URL: /admin/plugins/edusport-ui.
+export const UI_REFERENCE_TO = '/plugins/edusport-ui';
+
 // Umami analytics dashboard URL. Leave empty until connected; the UI degrades
 // gracefully and shows a "coming soon" state rather than a broken link.
 export const UMAMI_URL = '';
@@ -154,6 +159,15 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
 ];
 
 export function registerEdusportMenu(app: StrapiApp) {
+  // Route only, no menu link (see UI_REFERENCE_TO).
+  app.router.addRoute({
+    path: `${UI_REFERENCE_TO.slice(1)}/*`,
+    lazy: async () => {
+      const mod = await import('./UiReferencePage');
+      return { Component: mod.default };
+    },
+  });
+
   // Register only the dashboard route (and its default-nav entry). Content routes
   // already exist natively; the custom sidebar links straight to them.
   app.addMenuLink({
