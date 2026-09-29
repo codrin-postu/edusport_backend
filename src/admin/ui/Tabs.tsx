@@ -2,7 +2,7 @@ import * as React from 'react';
 import { cx } from './cx';
 
 export interface TabItem {
-  key: string;
+  id: string;
   label: React.ReactNode;
   /** Small number next to the label (e.g. unread count). Hidden when null/undefined. */
   count?: number | null;
@@ -35,16 +35,16 @@ export function Tabs({ items, value, onChange, label, panelId, className }: Tabs
       target = enabled[(pos + dir + enabled.length) % enabled.length];
     }
     refs.current[target]?.focus();
-    onChange(items[target].key);
+    onChange(items[target].id);
   };
 
   return (
     <div role="tablist" aria-label={label} className={cx('adm-tabs', className)}>
       {items.map((t, i) => {
-        const on = t.key === value;
+        const on = t.id === value;
         return (
           <button
-            key={t.key}
+            key={t.id}
             ref={(el) => {
               refs.current[i] = el;
             }}
@@ -55,7 +55,7 @@ export function Tabs({ items, value, onChange, label, panelId, className }: Tabs
             tabIndex={on ? 0 : -1}
             disabled={t.disabled}
             className="adm-tab"
-            onClick={() => onChange(t.key)}
+            onClick={() => onChange(t.id)}
             onKeyDown={(e) => {
               if (e.key === 'ArrowRight') move(i, 1);
               else if (e.key === 'ArrowLeft') move(i, -1);

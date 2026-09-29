@@ -9,6 +9,7 @@ import { registerEdusportMenu } from './dashboard/menu';
 import { mountEdusportShell, tagShellParent, SHELL_CSS } from './dashboard/EdusportShell';
 import { applyLoginBranding } from './dashboard/loginBranding';
 import { ensureAdminUi } from './ui/styles';
+import { mountToastViewport } from './ui/Toast';
 import roTranslations from './translations/ro.json';
 import EdusportLogo from './edusport-logo.svg';
 
@@ -584,6 +585,7 @@ function setupAdminShell() {
   mountSaveBar();
   mountBlocksToolbarExtra();
   mountEdusportShell();
+  mountToastViewport();
   tagAdminShellReliably();
   // Also tag Save/Preview now and on every nav-affecting mutation. The same
   // MutationObserver wired by tagAdminShellReliably observes the whole body

@@ -245,6 +245,23 @@ ${R} .adm-ref-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--adm-s
 ${R} .adm-ref-swatch{display:flex;flex-direction:column;gap:4px;width:132px;font-size:var(--adm-fs-caption);color:var(--adm-text-muted)}
 ${R} .adm-ref-swatch i{display:block;height:36px;border:1px solid var(--adm-line);border-radius:var(--adm-radius-sm)}
 ${R} .adm-ref-code{font-family:var(--adm-font-mono);font-size:11px;color:var(--adm-text-secondary)}
+
+/* toast: general, short-lived feedback (see Toast.tsx). Notice stays for
+   persistent, page-bound messages. */
+.adm-root.adm-toast-viewport{position:fixed;top:calc(56px + var(--adm-space-4));right:var(--adm-space-4);z-index:500;display:flex;flex-direction:column;gap:var(--adm-space-2);width:360px;max-width:calc(100vw - 32px);pointer-events:none}
+${R} .adm-toast{pointer-events:auto;display:flex;align-items:flex-start;gap:var(--adm-space-3);background:var(--adm-surface-raised);border:1px solid var(--adm-line);border-left:3px solid var(--adm-toast-fg,var(--adm-line));border-radius:var(--adm-radius-sm);box-shadow:var(--adm-shadow-md);padding:10px 12px;font-size:var(--adm-fs-body);color:var(--adm-text-primary);animation:adm-toast-in var(--adm-motion-fast) var(--adm-easing) both}
+${R} .adm-toast-text{flex:1;line-height:1.45;min-width:0}
+${R} .adm-toast-title{display:block;font-weight:700;margin-bottom:1px}
+${R} .adm-toast-body{color:var(--adm-text-secondary)}
+${R} .adm-toast-close{flex-shrink:0;align-self:flex-start}
+${R} .adm-toast--ok{--adm-toast-fg:var(--adm-ok-fg)}
+${R} .adm-toast--info{--adm-toast-fg:var(--adm-info-fg)}
+${R} .adm-toast--warn{--adm-toast-fg:var(--adm-warn-fg)}
+${R} .adm-toast--danger{--adm-toast-fg:var(--adm-danger-fg)}
+@keyframes adm-toast-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+${R} .adm-toast--out{opacity:0;transform:translateY(-6px);transition:opacity var(--adm-motion-fast) var(--adm-easing),transform var(--adm-motion-fast) var(--adm-easing)}
+@media (prefers-reduced-motion:reduce){${R} .adm-toast{animation:none}${R} .adm-toast--out{transition:none}}
+@media (max-width:640px){.adm-root.adm-toast-viewport{top:var(--adm-space-3);left:var(--adm-space-3);right:var(--adm-space-3);width:auto;max-width:none}}
 `;
 
 const STYLE_ID = 'adm-ui-styles';

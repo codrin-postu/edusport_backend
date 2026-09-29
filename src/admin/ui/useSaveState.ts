@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { adminToast } from './Toast';
 
 /**
  * Dirty / saving / saved / error bookkeeping for an edit page, so a page can
@@ -11,7 +12,11 @@ import * as React from 'react';
  *   <SaveBar {...save.bar} onSave={onSave} onDiscard={discard} />
  *   <UnsavedGuard when={save.dirty} />
  *
- * `saved` stays true for SAVED_MS after a successful save ("Salvat").
+ * `saved` stays true for SAVED_MS after a successful save; SaveBar itself no
+ * longer shows a "Salvat" text for it (that would double the toast below).
+ * `run()` also raises the short-lived, general feedback: a success toast on
+ * every save, an error toast when it fails. Notice stays for persistent,
+ * page-bound messages (e.g. a load error) — this is not that.
  */
 
 export const SAVED_MS = 2000;
@@ -100,12 +105,12 @@ export function useSaveState(initialDirty = false): SaveState {
         timer.current = null;
         if (alive.current) setSaved(false);
       }, SAVED_MS);
+      adminToast.success('Modificările au fost salvate.');
       return true;
     } catch (e) {
-      if (alive.current) {
-        const msg = errorMessage ?? (e instanceof Error && e.message && !/^Request failed/i.test(e.message) ? e.message : DEFAULT_ERROR);
-        setError(msg);
-      }
+      const msg = errorMessage ?? (e instanceof Error && e.message && !/^Request failed/i.test(e.message) ? e.message : DEFAULT_ERROR);
+      if (alive.current) setError(msg);
+      adminToast.error(msg);
       return false;
     } finally {
       busy.current = false;

@@ -30,6 +30,7 @@ import {
   DataTable,
   ImagePicker,
   InboxLayout,
+  adminToast,
   useAdminTheme,
   themeVars,
   light,
@@ -413,9 +414,9 @@ function InboxDemo() {
     <div className="adm-win">
       <InboxLayout<Msg>
         tabs={[
-          { key: 'all', label: 'Toate' },
-          { key: 'new', label: 'Noi', count: MSGS.filter((m) => m.unread).length },
-          { key: 'done', label: 'Rezolvate' },
+          { id: 'all', label: 'Toate' },
+          { id: 'new', label: 'Noi', count: MSGS.filter((m) => m.unread).length },
+          { id: 'done', label: 'Rezolvate' },
         ]}
         activeTab={tab}
         onTabChange={setTab}
@@ -564,10 +565,10 @@ const UiReferencePage: React.FC = () => {
                 value={tab}
                 onChange={setTab}
                 items={[
-                  { key: 'one', label: 'Toate', count: 42 },
-                  { key: 'two', label: 'Noi', count: 3 },
-                  { key: 'three', label: 'Arhivate' },
-                  { key: 'four', label: 'Dezactivat', disabled: true },
+                  { id: 'one', label: 'Toate', count: 42 },
+                  { id: 'two', label: 'Noi', count: 3 },
+                  { id: 'three', label: 'Arhivate' },
+                  { id: 'four', label: 'Dezactivat', disabled: true },
                 ]}
               />
               <Pager page={page} pageCount={9} total={214} pageSize={25} onChange={setPage} />
@@ -608,6 +609,21 @@ const UiReferencePage: React.FC = () => {
           <div className="adm-body">
             <SaveBarDemo />
             <StaticSaveBars />
+          </div>
+        </Window>
+
+        <Window>
+          <PageHeader
+            title="Toast"
+            subtitle="Mesaje generale, cu durată scurtă. Notice rămâne pentru mesaje persistente, legate de o pagină."
+          />
+          <div className="adm-body">
+            <div className="adm-ref-row">
+              <Button onClick={() => adminToast.success('Modificările au fost salvate.')}>Success</Button>
+              <Button onClick={() => adminToast.info('Setarea este pe altă pagină.')}>Info</Button>
+              <Button onClick={() => adminToast.warn('Imaginea are peste 300 KB.')}>Warn</Button>
+              <Button onClick={() => adminToast.error('Nu am putut salva. Încearcă din nou.')}>Error</Button>
+            </div>
           </div>
         </Window>
 

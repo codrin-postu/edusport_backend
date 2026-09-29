@@ -5,8 +5,10 @@ import { Spinner } from './Spinner';
 /**
  * Sticky bottom save bar for custom edit pages.
  *
- *   status on the left: "Ai modificări nesalvate" / "Se salvează…" /
- *   "Salvat" (2s after a save) / the error;
+ *   status on the left: "Ai modificări nesalvate" / "Se salvează…" / the
+ *   error. A successful save shows no bar text of its own — useSaveState.run
+ *   raises a "Modificările au fost salvate." toast instead, so the message
+ *   isn't shown twice.
  *   Renunță (reverts via onDiscard) and Salvează (disabled until dirty);
  *   Cmd/Ctrl+S saves while the bar is mounted and dirty.
  *
@@ -89,7 +91,6 @@ export function SaveBar({
             <span>Ai modificări nesalvate</span>
           </>
         )}
-        {state === 'saved' && <span>Salvat</span>}
         {extra}
       </div>
       {shortcut && <span className="adm-savebar-keys">{isMac() ? '⌘S' : 'Ctrl+S'}</span>}
