@@ -134,7 +134,6 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   // Re-pointed from single('api::volunteer-page.volunteer-page'): the page is
   // now edited on the custom, compact Voluntariat editor.
   { to: VOLUNTARIAT_EDIT_TO, label: 'Voluntariat', icon: Bell, group: 'pages' },
-  { to: NAVIGATION_TO, label: 'Meniu site', icon: GridFour, group: 'pages' },
 
   // Articole și media
   { to: collection('api::article.article'), label: 'Articole', icon: Book, group: 'content', featured: true },
@@ -151,6 +150,7 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   // Sistem
   { to: '/plugins/upload', label: 'Media', icon: GridFour, group: 'system' },
   { to: single('api::site-settings.site-settings'), label: 'Setări site', icon: Pencil, group: 'system', pinned: true },
+  { to: NAVIGATION_TO, label: 'Meniu site', icon: GridFour, group: 'system', pinned: true },
 ];
 
 export function registerEdusportMenu(app: StrapiApp) {
