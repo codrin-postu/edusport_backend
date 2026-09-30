@@ -31,6 +31,23 @@ import {
   DataTable,
   ImagePicker,
   InboxLayout,
+  RepeatableList,
+  useDragReorder,
+  moveItem,
+  ExpandableRow,
+  AddButton,
+  useObjectField,
+  ObjectFieldCard,
+  EditorCard,
+  LinkOutCard,
+  HelpTip,
+  GalleryGrid,
+  DateRangeInput,
+  TimeInput,
+  NumberInput,
+  TagsInput,
+  SearchableSelect,
+  SegmentedControl,
   adminToast,
   useAdminTheme,
   themeVars,
@@ -44,6 +61,10 @@ import {
   type DataColumn,
   type PickedImage,
   type TypeRole,
+  type GalleryImage,
+  type DateRange,
+  type ComboOption,
+  type ObjectFieldConfig,
 } from '../ui';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { DASHBOARD_TO } from './menu';
@@ -522,6 +543,372 @@ function InboxDemo() {
   );
 }
 
+
+/* ---- phase 1b: field-editor components ---------------------------------- */
+
+interface Rule {
+  id: string;
+  label: string;
+  text: string;
+  highlight: boolean;
+}
+
+let ruleSeq = 3;
+const newRule = (): Rule => ({ id: `r${++ruleSeq}`, label: '', text: '', highlight: false });
+
+function RepeatableDemo() {
+  const [rules, setRules] = React.useState<Rule[]>([
+    { id: 'r1', label: 'Echipament', text: 'Patinele se ascut cel puțin o dată pe lună.', highlight: false },
+    { id: 'r2', label: 'Întârzieri', text: 'După 10 minute de întârziere, cursantul nu mai intră pe gheață.', highlight: true },
+    { id: 'r3', label: 'Absențe', text: 'Anunță absența cu o zi înainte, pe grupul grupei.', highlight: false },
+  ]);
+  const [names, setNames] = React.useState<{ id: string; name: string }[]>([
+    { id: 'n1', name: 'Ana Popescu' },
+    { id: 'n2', name: 'Ioana Mureșan' },
+  ]);
+  return (
+    <>
+      <Section title="RepeatableList: rânduri extensibile, reordonare, confirmare la ștergere">
+        <RepeatableList<Rule>
+          items={rules}
+          onChange={setRules}
+          getKey={(r) => r.id}
+          newItem={newRule}
+          addLabel="Adaugă regulă"
+          reorder
+          expandable
+          confirmDelete
+          defaultExpanded={['r2']}
+          itemLabel={(r, i) => (r.label ? `regula „${r.label}”` : `regula ${i + 1}`)}
+          renderSummary={(r) => (
+            <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+              {r.label || 'Regulă nouă'}
+              {r.highlight && <StatusBadge tone="accent">Evidențiată</StatusBadge>}
+            </span>
+          )}
+          renderRow={(r, _i, { update }) => (
+            <>
+              <Field label="Etichetă">
+                <Input value={r.label} onChange={(e) => update({ label: e.target.value })} placeholder="ex. Echipament" />
+              </Field>
+              <Field label="Text">
+                <Textarea value={r.text} rows={2} onChange={(e) => update({ text: e.target.value })} />
+              </Field>
+              <Switch checked={r.highlight} onChange={(v) => update({ highlight: v })} label="Evidențiază pe site" />
+            </>
+          )}
+        />
+        <span className="adm-hint">
+          Trage de mâner, sau focus pe mâner și săgețile sus / jos; Alt+săgeată mută rândul din orice câmp. Pe ecrane tactile apar butoane sus / jos.
+        </span>
+      </Section>
+      <Section title="RepeatableList: rânduri simple, maxim 4, fără confirmare">
+        <RepeatableList<{ id: string; name: string }>
+          items={names}
+          onChange={setNames}
+          getKey={(n) => n.id}
+          newItem={() => ({ id: `n${Date.now()}`, name: '' })}
+          addLabel="Adaugă participant"
+          reorder
+          maxItems={4}
+          emptyLabel="Niciun participant încă."
+          itemLabel={(n, i) => n.name || `participantul ${i + 1}`}
+          renderRow={(n, _i, { update }) => (
+            <Input aria-label="Nume participant" value={n.name} placeholder="Nume și prenume" onChange={(e) => update({ name: e.target.value })} />
+          )}
+        />
+      </Section>
+    </>
+  );
+}
+
+function PrimitivesDemo() {
+  const [open, setOpen] = React.useState(true);
+  const [items, setItems] = React.useState(['Luni', 'Marți', 'Miercuri', 'Joi']);
+  const drag = useDragReorder({ count: items.length, onMove: (f, t) => setItems((cur) => moveItem(cur, f, t)) });
+  return (
+    <Section title="ExpandableRow, useDragReorder, AddButton">
+      <ExpandableRow expanded={open} onToggle={() => setOpen((o) => !o)} summary="Grupa de începători, 17:00">
+        <span className="adm-muted">Conținutul rândului, afișat doar cât timp e deschis.</span>
+      </ExpandableRow>
+      <ul className="adm-rl-items">
+        {items.map((d, i) => (
+          <li key={d} className="adm-row adm-row--flat" {...drag.itemProps(i)}>
+            <button type="button" className="adm-iconbtn adm-grip" aria-label={`Mută ${d}`} {...drag.handleProps(i)}>
+              ⠿
+            </button>
+            <div className="adm-row-main" style={{ alignSelf: 'center' }}>
+              {d}
+            </div>
+          </li>
+        ))}
+      </ul>
+      {drag.live}
+      <AddButton label="Adaugă zi" onClick={() => adminToast.info('AddButton apăsat.')} />
+      <AddButton label="Dezactivat" disabled />
+    </Section>
+  );
+}
+
+interface Banner {
+  title: string;
+  subtitle: string;
+  ctaLabel: string;
+  ctaUrl: string;
+  places: number | null;
+  level: string;
+  date: string | null;
+  time: string | null;
+}
+
+const BANNER_EMPTY: Banner = { title: '', subtitle: '', ctaLabel: '', ctaUrl: '', places: null, level: '', date: null, time: null };
+
+const BANNER_FIELDS: ObjectFieldConfig<Banner>[] = [
+  { key: 'title', label: 'Titlu', hint: 'Titlul mare afișat în banner.', placeholder: 'ex: Echipa noastră', span: 2, required: true },
+  { key: 'subtitle', label: 'Subtitlu', type: 'textarea', rows: 3, placeholder: 'ex: Antrenorii și instructorii care ghidează cursanții...' },
+  { key: 'ctaLabel', label: 'Text buton', placeholder: 'ex: Înscrie-te' },
+  { key: 'ctaUrl', label: 'Link buton', type: 'url' },
+  { key: 'places', label: 'Locuri disponibile', type: 'number', min: 0, max: 200 },
+  {
+    key: 'level',
+    label: 'Nivel',
+    type: 'select',
+    options: [
+      { value: 'incepator', label: 'Începător' },
+      { value: 'avansat', label: 'Avansat' },
+    ],
+  },
+  { key: 'date', label: 'Data începerii', type: 'date' },
+  { key: 'time', label: 'Ora', type: 'time' },
+];
+
+function ObjectFieldDemo() {
+  // Stand-in for Strapi's field.value / field.onChange.
+  const [stored, setStored] = React.useState<unknown>({ title: 'Cursuri de patinaj', subtitle: 'Grupe pentru copii de la 4 ani.' });
+  const obj = useObjectField<Banner>(stored, setStored, BANNER_EMPTY);
+  return (
+    <div className="adm-stack" style={{ gap: 12 }}>
+      <ObjectFieldCard<Banner>
+        title="Banner pagină"
+        description="Titlul și subtitlul afișate în partea de sus a paginii."
+        headerAction={<HelpTip label="Textele apar pe site după ce salvezi pagina." />}
+        value={obj.data}
+        onFieldChange={obj.update}
+        fields={BANNER_FIELDS}
+        sections={[
+          { keys: ['title', 'subtitle'] },
+          { title: 'Buton', keys: ['ctaLabel', 'ctaUrl'] },
+          { title: 'Detalii curs', keys: ['places', 'level', 'date', 'time'] },
+        ]}
+      />
+      <div className="adm-ref-row">
+        <Button variant="secondary" size="sm" onClick={() => setStored({ title: 'Valoare încărcată din server' })}>
+          Simulează reîncărcarea valorii
+        </Button>
+        <Button variant="ghost" size="sm" onClick={obj.reset}>
+          Golește
+        </Button>
+      </div>
+      <pre className="adm-ref-code" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+        {JSON.stringify(stored)}
+      </pre>
+    </div>
+  );
+}
+
+function CardsDemo() {
+  return (
+    <Section title="EditorCard, LinkOutCard, HelpTip">
+      <EditorCard
+        title="Contact"
+        description="Datele de contact din subsolul site-ului."
+        headerAction={
+          <Button variant="secondary" size="sm">
+            Acțiune
+          </Button>
+        }
+      >
+        <Field label="Telefon">
+          <Input placeholder="07xx xxx xxx" />
+        </Field>
+      </EditorCard>
+      <LinkOutCard
+        title="Membri echipă"
+        description="Relația se gestionează din colecția separată."
+        body="Adaugă, editează sau ordonează membrii echipei în colecția lor."
+        href="/admin/content-manager/collection-types/api::team-member.team-member"
+        linkLabel="Gestionează membrii echipei"
+        external={false}
+      />
+      <div className="adm-ref-row" style={{ gap: 18 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          Jos, la stânga <HelpTip label="Tooltip pe hover, focus sau atingere. Escape îl închide." />
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          Sus, la dreapta <HelpTip placement="top-end" size={22} label="Portal în body: nu îl taie niciun container." />
+        </span>
+      </div>
+    </Section>
+  );
+}
+
+const SLOT_LABELS = ['Stânga', 'Centru', 'Dreapta'];
+const demoImg = (id: number, name: string): GalleryImage => ({
+  id,
+  name,
+  url: `data:image/svg+xml;utf8,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="currentColor" opacity="${0.25 + (id % 4) * 0.15}"/></svg>`,
+  )}`,
+});
+
+function GalleryDemo() {
+  const [slots, setSlots] = React.useState<Array<GalleryImage | null>>([demoImg(1, 'patinoar.jpg'), null, demoImg(3, 'gala.jpg')]);
+  const [list, setList] = React.useState<GalleryImage[]>([demoImg(11, 'antrenament-1.jpg'), demoImg(12, 'antrenament-2.jpg'), demoImg(13, 'podium.jpg')]);
+  return (
+    <Section title="GalleryGrid">
+      <span className="adm-label">Sloturi fixe (3), reordonarea schimbă sloturile între ele</span>
+      <GalleryGrid slots={3} images={slots} onChange={setSlots} slotLabels={SLOT_LABELS} columns={3} reorder />
+      <span className="adm-label">Listă deschisă, maxim 6, reordonare</span>
+      <GalleryGrid images={list} onChange={setList} reorder max={6} />
+    </Section>
+  );
+}
+
+const CLUBS: ComboOption[] = [
+  { value: 'edu', label: 'EduSport Reșița', hint: 'Reșița' },
+  { value: 'csm', label: 'CSM Timișoara', hint: 'Timișoara' },
+  { value: 'arad', label: 'CS Arad', hint: 'Arad' },
+  { value: 'stc', label: 'Steaua Ștefănești', hint: 'Ștefănești' },
+  { value: 'cj', label: 'Clubul Sportiv Cluj', hint: 'Cluj-Napoca' },
+];
+
+const ATHLETES = ROWS.map((r) => ({ value: String(r.id), label: r.name, hint: `${r.club}, ${r.year}` }));
+const loadAthletes = (q: string) =>
+  new Promise<ComboOption[]>((resolve) =>
+    window.setTimeout(() => resolve(ATHLETES.filter((a) => a.label.toLowerCase().includes(q.toLowerCase()))), 500),
+  );
+
+function InputsDemo() {
+  const [range, setRange] = React.useState<DateRange>({ start: '2026-10-12', end: '2026-10-14' });
+  const [time, setTime] = React.useState<string | null>('17:30');
+  const [time2, setTime2] = React.useState<string | null>(null);
+  const [num, setNum] = React.useState<number | null>(12);
+  const [price, setPrice] = React.useState<number | null>(150.5);
+  const [tags, setTags] = React.useState<string[]>(['Juniori', 'Program Scurt']);
+  const [club, setClub] = React.useState<string | null>('edu');
+  const [athlete, setAthlete] = React.useState<string | null>(null);
+  const [created, setCreated] = React.useState<ComboOption[]>([]);
+  const [tag, setTag] = React.useState<string | null>(null);
+  const [mode, setMode] = React.useState<'upload' | 'youtube'>('youtube');
+  const [pub, setPub] = React.useState('draft');
+  return (
+    <Section title="DateRangeInput, TimeInput, NumberInput, TagsInput, SearchableSelect, SegmentedControl">
+      <DateRangeInput value={range} onChange={setRange} hint="Sfârșitul nu poate fi înaintea începutului: alegerile se ajustează singure." required />
+      <FieldRow>
+        <Field label="Ora de început" hint="Scrie 9, 930, 9.30 sau folosește ceasul.">
+          <TimeInput value={time} onChange={setTime} />
+        </Field>
+        <Field label="Ora de sfârșit" hint={`Între ${time ?? '00:00'} și 22:00; gol = null.`}>
+          <TimeInput value={time2} onChange={setTime2} min={time ?? undefined} max="22:00" />
+        </Field>
+      </FieldRow>
+      <FieldRow>
+        <Field label="Locuri" hint="0 - 40, săgeți, PageUp / PageDown, Home / End.">
+          <NumberInput value={num} onChange={setNum} min={0} max={40} label="locurile" />
+        </Field>
+        <Field label="Preț (lei)" hint="Pas 0,5.">
+          <NumberInput value={price} onChange={setPrice} min={0} step={0.5} label="prețul" />
+        </Field>
+      </FieldRow>
+      <Field label="Etichete" hint="Enter sau virgulă adaugă, Backspace șterge ultima. Sugestii din listă.">
+        <TagsInput value={tags} onChange={setTags} suggestions={['Juniori', 'Seniori', 'Program Scurt', 'Program Liber', 'Național', 'Internațional']} />
+      </Field>
+      <FieldRow>
+        <Field label="Club" hint="Opțiuni locale, diacriticele nu contează (încearcă „stefanesti”).">
+          <SearchableSelect value={club} onChange={(v) => setClub(v)} options={CLUBS} placeholder="Alege clubul" />
+        </Field>
+        <Field label="Sportiv" hint="Opțiuni încărcate asincron (500ms).">
+          <SearchableSelect value={athlete} onChange={(v) => setAthlete(v)} loadOptions={loadAthletes} placeholder="Caută un sportiv" />
+        </Field>
+      </FieldRow>
+      <Field label="Categorie" hint="Creatable: scrie o categorie nouă și alege „Adaugă”.">
+        <SearchableSelect
+          value={tag}
+          onChange={(v) => setTag(v)}
+          options={[{ value: 'juniori', label: 'Juniori' }, { value: 'seniori', label: 'Seniori' }, ...created]}
+          creatable
+          onCreate={(text) => {
+            const o = { value: text.toLowerCase(), label: text };
+            setCreated((c) => [...c, o]);
+            return o;
+          }}
+        />
+      </Field>
+      <div className="adm-ref-row" style={{ gap: 24 }}>
+        <SegmentedControl<'upload' | 'youtube'>
+          aria-label="Sursa videoclipului"
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: 'upload', label: 'Fișier încărcat' },
+            { value: 'youtube', label: 'YouTube' },
+          ]}
+        />
+        <SegmentedControl
+          aria-label="Stare publicare"
+          size="sm"
+          value={pub}
+          onChange={setPub}
+          options={[
+            { value: 'draft', label: 'Ciornă' },
+            { value: 'published', label: 'Publicat' },
+            { value: 'archived', label: 'Arhivat' },
+            { value: 'x', label: 'Dezactivat', disabled: true },
+          ]}
+        />
+      </div>
+      <SegmentedControl
+        aria-label="Lățime completă"
+        block
+        value={pub}
+        onChange={setPub}
+        options={[
+          { value: 'draft', label: 'Ciornă' },
+          { value: 'published', label: 'Publicat' },
+          { value: 'archived', label: 'Arhivat' },
+        ]}
+      />
+    </Section>
+  );
+}
+
+function MediaAcceptDemo() {
+  const [accept, setAccept] = React.useState<null | 'video' | 'any'>(null);
+  const [picked, setPicked] = React.useState<string | null>(null);
+  return (
+    <Section title="ImagePicker: accept">
+      <div className="adm-ref-row">
+        <Button variant="secondary" onClick={() => setAccept('video')}>
+          Alege un videoclip
+        </Button>
+        <Button variant="secondary" onClick={() => setAccept('any')}>
+          Alege orice fișier
+        </Button>
+        {picked && <Chip onRemove={() => setPicked(null)}>{picked}</Chip>}
+      </div>
+      <ImagePicker
+        open={accept !== null}
+        accept={accept ?? 'image'}
+        onClose={() => setAccept(null)}
+        onPick={(f) => {
+          setPicked(f.name ?? `#${f.id}`);
+          setAccept(null);
+        }}
+      />
+    </Section>
+  );
+}
+
 const UiReferencePage: React.FC = () => {
   const theme = useAdminTheme();
   const [preview, setPreview] = React.useState<ThemeName | 'auto'>('auto');
@@ -667,6 +1054,22 @@ const UiReferencePage: React.FC = () => {
         <Window>
           <PageHeader title="DataTable gol" />
           <DataTable<Row> columns={COLUMNS} rows={[]} getRowKey={(r) => r.id} empty="Nu există încă sportivi." />
+        </Window>
+
+        <Window>
+          <PageHeader
+            title="Componente pentru editoare"
+            subtitle="Faza 1b: liste repetabile, câmpuri obiect, galerii, intrări speciale. Toate poartă .adm-root, deci merg și în câmpurile din content-manager."
+          />
+          <div className="adm-body">
+            <RepeatableDemo />
+            <PrimitivesDemo />
+            <ObjectFieldDemo />
+            <CardsDemo />
+            <GalleryDemo />
+            <InputsDemo />
+            <MediaAcceptDemo />
+          </div>
         </Window>
 
         <Window>

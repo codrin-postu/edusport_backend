@@ -92,13 +92,36 @@ Baseline at the end of phase 1: **28 files, 1130 hits (hex 889, rgb 60, radius 1
 
 ## Phase 1b: components from inventory pass 2 (2026-09-30)
 Accent: muted blue (steel 500 light / 300 dark), user choice on companion screen 107.
-- [ ] useObjectField(name) + ObjectFieldCard (declarative field config, sections) for the 11 banner/info editors
-- [ ] RepeatableList (+ useDragReorder, ExpandableRow, confirm-before-delete) for the 6 list editors
-- [ ] GalleryGrid (fixed slots or open list) on ImagePicker
-- [ ] DateRangeInput (clamped), TimeInput (from components/TimePicker), NumberInput (from SpinnerInput)
-- [ ] TagsInput, SearchableSelect (Combobox, creatable), SegmentedControl
-- [ ] HelpTip, LinkOutCard, EditorCard, AddButton promoted into src/admin/ui on tokens
-- [ ] MediaPicker / VideoPicker unified under ImagePicker (accept: image | video)
+- [x] useObjectField + ObjectFieldCard (declarative field config, sections) for the 11 banner/info editors
+- [x] RepeatableList (+ useDragReorder, ExpandableRow, confirm-before-delete) for the 6 list editors
+- [x] GalleryGrid (fixed slots or open list) on ImagePicker
+- [x] DateRangeInput (clamped), TimeInput (from components/TimePicker), NumberInput (from SpinnerInput)
+- [x] TagsInput, SearchableSelect (Combobox, creatable), SegmentedControl
+- [x] HelpTip, LinkOutCard, EditorCard, AddButton promoted into src/admin/ui on tokens
+- [x] MediaPicker / VideoPicker unified under ImagePicker (accept: image | video | any)
+
+Built only (2026-09-30); no page or editor migrated yet. Demos: reference page, window "Componente pentru editoare". Every new component root carries `.adm-root`, so it styles and themes inside content-manager custom fields too (no AdminPage around them). Popups (lists, time spinners, tooltips) go through the internal `Popover`: portalled to `<body>`, fixed, flips above, closes on outside pointer and Escape (Escape does not reach an enclosing Modal).
+
+### Phase 1b APIs (src/admin/ui, exported from index.ts)
+- `RepeatableList<T>` {items, onChange, getKey, renderRow(item, i, {index, update(patch | fn), remove, expanded, toggle, moveUp, moveDown}), renderSummary?, itemLabel?, newItem? | onAdd?, addLabel?, emptyLabel?, reorder?, expandable?, defaultExpanded?, confirmDelete? (true | message | {title, message, detail}), maxItems?, disabled?, hideDelete?}. Delete through ConfirmDialog when asked; expanded state keyed by getKey; new rows open.
+- `useDragReorder({count, onMove(from, to), axis? 'y' | 'x' | 'grid', swap?, disabled?, announce?})` -> {itemProps(i), handleProps(i), move, dragging, live}; `moveItem(arr, from, to)`. HTML5 drag from the handle, drop line (data-drop), arrow keys on the handle, Alt+ArrowUp/Down inside an item, focus kept, polite live region. Up / down buttons appear on touch screens (pointer: coarse) in RepeatableList.
+- `ExpandableRow` {summary, expanded, onToggle, lead?, actions?, children, toggleLabel?, rowProps?, as?}.
+- `AddButton` {label, ...button props}: full-width "+ label"; replaces components/AddListButton.
+- `useObjectField<T>(value, onChange, EMPTY)` -> {data, update(key, val), merge, set, reset}; no Strapi useField. `value` can be an object, a JSON string or empty; resyncs when the caller's value changes, ignores the echo of its own edit. `normalizeObject(value, EMPTY)`.
+- `ObjectFieldCard<T>` {title, description?, headerAction?, value, onFieldChange(key, val), fields: [{key, label, hint?, type? text | textarea | url | number | date | time | select, options?, placeholder?, rows?, span? 1 | 2, required?, min?, max?, step?, disabled?, error?}], sections?: [{title?, keys}], children?, disabled?}. 2 columns, 1 under 720px; textarea spans 2 by default.
+- `EditorCard` {title, description?, headerAction?, children, flush?}; `LinkOutCard` {title, description?, body, href, linkLabel, external? (default true)}; `HelpTip` {label, size?, placement?, ariaLabel?}.
+- `GalleryGrid` open list {images, onChange, max?} or fixed slots {slots, images: (img | null)[], onChange, slotLabels?}; common {columns? (4), reorder?, disabled?, addLabel?}. Square tiles, x removes, open list adds through ImagePicker multiple, a slot picks or replaces one image; reorder moves (list) or swaps (slots). `GalleryImage` {id, url, name?, thumbnailUrl?, mime?}.
+- `DateRangeInput` {value: {start, end}, onChange, startLabel?, endLabel?, hint?, error? (node or {start, end}), required?, withTime?, disabled?}: min / max between the two, end >= start always.
+- `TimeInput` {value: "HH:MM" | null, onChange, min?, max?, format? 'hh:mm' | 'strapi', allowEmpty?}: typed text ("9", "930", "9.30") committed on blur / Enter, clock button opens hour / minute spinners; `parseTimeText`, `formatTime`.
+- `NumberInput` {value: number | null, onChange, min?, max?, step?, wrap?, pad?, allowEmpty?, size? md | lg, label?}: text input with a stepper, no native spin buttons; arrows, PageUp / PageDown (x10), Home / End.
+- `TagsInput` {value: string[], onChange, suggestions?, suggestionsOnly?, placeholder?, maxTags?, disabled?}: Enter / comma add, paste splits on commas, Backspace removes the last chip, case-insensitive dedupe, Chip for each tag.
+- `SearchableSelect` {value, onChange(value, option), options? | loadOptions?(q), valueLabel?, placeholder?, creatable?, onCreate?, clearable? (true), disabled?, emptyLabel?}: ARIA combobox, keyboard navigation, 250ms debounced async loader with stale answers dropped, diacritics ignored when matching.
+- `SegmentedControl<V>` {options (2-4), value, onChange, aria-label, size? sm | md, block?, disabled?}: role="radiogroup", roving focus, accent fill; replaces .pubseg and VideoEmbedEditor's Radio.Group.
+- `ImagePicker` gains `accept?: 'image' | 'video' | 'any'` (default 'image', existing props unchanged): mime filter, upload accept, Romanian copy per kind, video tiles preview the first frame. `PickedMedia` = PickedImage.
+- `Popover` {open, anchorRef, onClose?, placement?, offset?, matchWidth?, role?, id?, popoverProps?}: exported for later popups.
+- `Field` exports the `FieldAria` type (what useFieldControl hands to a control); Field's own API is unchanged.
+
+Checker after phase 1b: src/admin/ui at 0 outside tokens.ts, total unchanged (27 files, 1093 hits); contrast passes in both themes.
 
 ## Token naming (decided 2026-09-30)
 - Two layers only: palette (raw hex, tokens.ts only) -> semantic theme tokens. No per-component tokens.
