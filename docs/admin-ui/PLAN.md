@@ -99,3 +99,12 @@ Accent: muted blue (steel 500 light / 300 dark), user choice on companion screen
 - [ ] TagsInput, SearchableSelect (Combobox, creatable), SegmentedControl
 - [ ] HelpTip, LinkOutCard, EditorCard, AddButton promoted into src/admin/ui on tokens
 - [ ] MediaPicker / VideoPicker unified under ImagePicker (accept: image | video)
+
+## Token naming (decided 2026-09-30)
+- Two layers only: palette (raw hex, tokens.ts only) -> semantic theme tokens. No per-component tokens.
+- Semantic tokens are named `--theme-*` and read as plain meaning: --theme-primary, --theme-primary-hover, --theme-primary-soft, --theme-primary-soft-line, --theme-on-primary, --theme-bg (page), --theme-surface, --theme-surface-subtle, --theme-surface-sunken, --theme-overlay, --theme-text, --theme-text-secondary, --theme-text-muted, --theme-text-disabled, --theme-border, --theme-border-subtle, --theme-border-strong, --theme-success/-warning/-danger/-info/-neutral (+ -bg, -border), --theme-focus, --theme-shadow-sm/md, --theme-cat-* (calendar), --theme-savebar-*.
+- "accent" is renamed "primary" everywhere.
+- Non-colour scales (radius, space, type roles, motion) keep their own names.
+- CSS class names keep the short `adm-` prefix.
+- A new theme = one more semantic mapping onto the palette.
+- [ ] Rename pass (after phase 1b lands): tokens.ts, styles.ts, every component, migrated pages, checker rule (no hex outside tokens.ts; components use only --theme-* for colour).
