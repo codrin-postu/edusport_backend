@@ -17,7 +17,7 @@ Decisions (companion screen 109, user said "yes do", recommended answers):
 | Parteneri (pagina) | api::partners-page.partners-page | /plugins/edusport-pagina-parteneri | [ ] |
 | Discipline | api::discipline.discipline | /plugins/edusport-discipline | [ ] |
 | Momente istoric | api::history-milestone.history-milestone | /plugins/edusport-momente-istoric | [ ] |
-| Cursuri | api::cursuri-page.cursuri-page | /plugins/edusport-cursuri | [ ] |
+| Cursuri | api::cursuri-page.cursuri-page | /plugins/edusport-cursuri | [x] |
 | Prețuri | api::pricing.pricing | /plugins/edusport-preturi | [ ] |
 | Regulament | api::course-regulations.course-regulations | /plugins/edusport-regulament | [ ] |
 | Pagina Program | api::program-page.program-page | /plugins/edusport-pagina-program | [ ] |
