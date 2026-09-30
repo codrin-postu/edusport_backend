@@ -1,7 +1,25 @@
 import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
-import { EDU_CSS } from './edusportUi';
 import { ConfirmDialog } from '../ConfirmDialog';
+import {
+  AdminPage,
+  Window,
+  PageHeader,
+  Button,
+  Field,
+  Input,
+  Textarea,
+  Select,
+  Chip,
+  ChipList,
+  Modal,
+  ImagePicker,
+  type PickedImage,
+  EmptyState,
+  Loading,
+  useSaveState,
+  adminToast,
+} from '../ui';
 
 /**
  * EduSport admin — "Membri echipă" page (custom, replaces the default
@@ -11,6 +29,11 @@ import { ConfirmDialog } from '../ConfirmDialog';
  * page is a card grid with create / edit running in a modal, the same shape
  * SponsoriPage uses. Everything talks to the admin content-manager collection
  * API, the same base path SportiviPage and CompetitiiPage use.
+ *
+ * NOT a DataTable: cards are dragged into place (order is the data, persisted
+ * per-row) and the grid carries a photo + wrapping tag list per card, which
+ * has no home in a row/column table. This keeps the card grid and only moves
+ * page chrome, the editor modal and messaging onto the shared components.
  *
  * Order matters on the public site: the frontend fetches members with
  * `sort=order:asc` (edusport_frontend/src/app/despre-noi/echipa/page.tsx), so
@@ -24,14 +47,6 @@ import { ConfirmDialog } from '../ConfirmDialog';
 
 const CT = '/content-manager/collection-types/api::team-member.team-member';
 const PROGRAM_CT = '/content-manager/single-types/api::program.program';
-
-interface UploadFile {
-  id: number;
-  name: string;
-  url: string;
-  mime: string;
-  formats?: { thumbnail?: { url?: string } };
-}
 
 interface FileRef {
   id: number;
@@ -116,217 +131,6 @@ function coursesOf(entry: any): string[] {
   return cleanGroups(groups.flatMap((g: any) => (Array.isArray(g?.courses) ? g.courses : [])));
 }
 
-// ---- media picker modal -----------------------------------------------------
-/**
- * Image picker over the media library, with an inline upload so a new portrait
- * can be added without leaving the page. Mirrors the picker in SponsoriPage.
- */
-function MediaModal({
-  open,
-  onClose,
-  onPick,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onPick: (f: FileRef) => void;
-}) {
-  const { get, post } = useFetchClient();
-  const [files, setFiles] = React.useState<UploadFile[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [uploading, setUploading] = React.useState(false);
-  const [err, setErr] = React.useState<string | null>(null);
-  const [q, setQ] = React.useState('');
-  const [reload, setReload] = React.useState(0);
-  const fileInput = React.useRef<HTMLInputElement | null>(null);
-
-  React.useEffect(() => {
-    if (!open) return;
-    let off = false;
-    setLoading(true);
-    const params: Record<string, string | number> = {
-      'filters[mime][$contains]': 'image',
-      sort: 'updatedAt:desc',
-      page: 1,
-      pageSize: 60,
-    };
-    if (q.trim()) params._q = q.trim();
-    get('/upload/files', { params })
-      .then((res: any) => {
-        if (off) return;
-        const data = res?.data;
-        const list: UploadFile[] = Array.isArray(data) ? data : (data?.results ?? []);
-        setFiles(list.filter((f) => f.mime?.startsWith('image/')));
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!off) setLoading(false);
-      });
-    return () => {
-      off = true;
-    };
-  }, [open, q, get, reload]);
-
-  const upload = async (file: File) => {
-    setUploading(true);
-    setErr(null);
-    try {
-      const fd = new FormData();
-      fd.append('files', file);
-      const res: any = await post('/upload', fd);
-      const uploaded = Array.isArray(res?.data) ? res.data[0] : res?.data;
-      if (uploaded && typeof uploaded.id === 'number') {
-        onPick({
-          id: uploaded.id,
-          url: uploaded.url ?? '',
-          thumb: uploaded.formats?.thumbnail?.url ?? uploaded.url ?? null,
-        });
-      } else {
-        setReload((n) => n + 1);
-      }
-    } catch {
-      setErr('Nu am putut încărca fișierul.');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  if (!open) return null;
-  return (
-    <div
-      onMouseDown={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(20,26,54,.28)',
-        zIndex: 300,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        onMouseDown={(e) => e.stopPropagation()}
-        style={{
-          width: 720,
-          maxWidth: '100%',
-          maxHeight: '86vh',
-          display: 'flex',
-          flexDirection: 'column',
-          background: '#fff',
-          border: '1px solid #dcdcdc',
-          borderRadius: 6,
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            padding: '13px 15px',
-            borderBottom: '1px solid #e0e2e8',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
-          <b style={{ fontSize: 14 }}>Alege o fotografie</b>
-          <input
-            placeholder="Caută imagini..."
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            style={{ flex: 1 }}
-          />
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/*"
-            style={{ display: 'none' }}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              e.target.value = '';
-              if (f) void upload(f);
-            }}
-          />
-          <button
-            className="btn sm"
-            type="button"
-            disabled={uploading}
-            onClick={() => fileInput.current?.click()}
-          >
-            {uploading ? 'Se încarcă...' : 'Încarcă'}
-          </button>
-          <button className="btn sm" type="button" onClick={onClose}>
-            Închide
-          </button>
-        </div>
-
-        {err && <div className="msg err">{err}</div>}
-
-        <div style={{ padding: 14, overflowY: 'auto' }}>
-          {loading ? (
-            <div className="empty">Se încarcă...</div>
-          ) : files.length === 0 ? (
-            <div className="empty">Nu există imagini.</div>
-          ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill,minmax(120px,1fr))',
-                gap: 10,
-              }}
-            >
-              {files.map((f) => {
-                const thumb = f.formats?.thumbnail?.url ?? f.url;
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    title={f.name}
-                    onClick={() =>
-                      onPick({ id: f.id, url: f.url, thumb: f.formats?.thumbnail?.url ?? f.url })
-                    }
-                    style={{
-                      padding: 5,
-                      border: '1px solid #d0d0d0',
-                      borderRadius: 4,
-                      background: '#fff',
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '100%',
-                        aspectRatio: '1/1',
-                        background: '#f6f6f9 center/cover no-repeat',
-                        backgroundImage: `url(${thumb})`,
-                        borderRadius: 3,
-                      }}
-                    />
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: '#32324d',
-                        marginTop: 4,
-                        overflow: 'hidden',
-                        whiteSpace: 'nowrap',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {f.name}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ---- teaching categories picker --------------------------------------------
 /**
  * "Predă la" editor. Selected values are removable chips; below them sit two
@@ -371,9 +175,9 @@ function GroupPicker({
         <div className="mem-sublabel">{label}</div>
         <div className="mem-chiprow">
           {items.map((g) => (
-            <button key={g} type="button" className="mem-chip" onClick={() => add(g)}>
+            <Button key={g} type="button" variant="secondary" size="sm" onClick={() => add(g)}>
               + {g}
-            </button>
+            </Button>
           ))}
         </div>
       </>
@@ -383,18 +187,15 @@ function GroupPicker({
     <div className="mem-groups">
       <div className="mem-sublabel">Selectate</div>
       {value.length === 0 ? (
-        <div className="hint">Nicio categorie aleasă. Membrul apare pe site fără lista „Predă la".</div>
+        <div className="adm-hint">Nicio categorie aleasă. Membrul apare pe site fără lista „Predă la".</div>
       ) : (
-        <div className="mem-chiprow">
+        <ChipList className="mem-chiprow">
           {value.map((g) => (
-            <span key={g} className="mem-chip on">
+            <Chip key={g} onRemove={() => remove(g)}>
               {g}
-              <button type="button" className="x" aria-label={`Elimină ${g}`} onClick={() => remove(g)}>
-                ✕
-              </button>
-            </span>
+            </Chip>
           ))}
-        </div>
+        </ChipList>
       )}
 
       {suggestionRow('Din Program', programSuggestions)}
@@ -402,7 +203,7 @@ function GroupPicker({
 
       <div className="mem-sublabel">Altceva</div>
       <div className="mem-addrow">
-        <input
+        <Input
           value={text}
           placeholder="Scrie o categorie nouă și apasă Enter"
           onChange={(e) => setText(e.target.value)}
@@ -413,9 +214,10 @@ function GroupPicker({
             setText('');
           }}
         />
-        <button
+        <Button
           type="button"
-          className="btn sm"
+          variant="secondary"
+          size="sm"
           disabled={!text.trim()}
           onClick={() => {
             add(text);
@@ -423,7 +225,7 @@ function GroupPicker({
           }}
         >
           Adaugă
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -455,174 +257,129 @@ function MemberEditor({
   const isNew = draft.documentId === null;
 
   return (
-    <div
-      onMouseDown={() => {
-        if (!saving) onCancel();
-      }}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(20,26,54,.28)',
-        zIndex: 250,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        onMouseDown={(e) => e.stopPropagation()}
-        style={{
-          width: 560,
-          maxWidth: '100%',
-          maxHeight: '88vh',
-          overflowY: 'auto',
-          background: '#fff',
-          border: '1px solid #dcdcdc',
-          borderRadius: 6,
-        }}
-      >
-        <div style={{ padding: '13px 15px', borderBottom: '1px solid #e0e2e8' }}>
-          <b style={{ fontSize: 14 }}>{isNew ? 'Membru nou' : 'Editează membrul'}</b>
-        </div>
-
-        <div style={{ padding: '14px 15px', display: 'grid', gridTemplateColumns: '120px 1fr', gap: 14 }}>
-          <div className="photo mem-photo">
-            <div
-              className="pv"
-              style={{
-                backgroundImage: draft.photo ? `url(${draft.photo.thumb ?? draft.photo.url})` : undefined,
-              }}
-            >
-              {!draft.photo && 'fără poză'}
-            </div>
-            <div className="acts">
-              <button className="btn sm" type="button" onClick={() => setPickerOpen(true)}>
-                {draft.photo ? 'Schimbă' : 'Alege'}
-              </button>
-              {draft.photo && (
-                <button className="btn sm danger" type="button" onClick={() => onChange({ photo: null })}>
-                  Elimină
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <div className="fld">
-              <label>Nume</label>
-              <input
-                value={draft.name}
-                placeholder="ex: Ana Maria Popescu"
-                onChange={(e) => onChange({ name: e.target.value })}
-              />
-            </div>
-            <div className="fld">
-              <label>Rol</label>
-              <input
-                value={draft.role}
-                placeholder="ex: Antrenor principal"
-                onChange={(e) => onChange({ role: e.target.value })}
-              />
-            </div>
-            <div className="fld">
-              <label>Descriere</label>
-              <textarea
-                rows={4}
-                value={draft.bio}
-                placeholder="Câteva rânduri despre experiența antrenorului"
-                onChange={(e) => onChange({ bio: e.target.value })}
-              />
-              <div className="hint">Apare sub nume, pe cardul din pagina Echipa.</div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ padding: '0 15px 14px' }}>
-          <div className="fld">
-            <label>Predă la</label>
-            <GroupPicker
-              value={draft.groups}
-              fromProgram={fromProgram}
-              fromMembers={fromMembers}
-              onChange={(next) => onChange({ groups: next })}
-            />
-          </div>
-          {error && <div className="msg err" style={{ margin: '12px 0 0' }}>{error}</div>}
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            gap: 10,
-            alignItems: 'center',
-            padding: '12px 15px',
-            borderTop: '1px solid #e0e2e8',
-            background: '#fcfcfd',
-          }}
-        >
+    <Modal
+      open
+      onClose={onCancel}
+      dismissable={!saving}
+      title={isNew ? 'Membru nou' : 'Editează membrul'}
+      size="md"
+      footer={
+        <>
           {!isNew && (
-            <button className="btn sm danger" type="button" disabled={saving} onClick={onDelete}>
+            <Button variant="danger" size="sm" disabled={saving} onClick={onDelete}>
               Șterge
-            </button>
+            </Button>
           )}
           <div style={{ flex: 1 }} />
-          <button className="btn" type="button" disabled={saving} onClick={onCancel}>
+          <Button variant="secondary" disabled={saving} onClick={onCancel}>
             Anulează
-          </button>
-          <button className="btn pri" type="button" disabled={saving} onClick={onSave}>
+          </Button>
+          <Button disabled={saving} loading={saving} onClick={onSave}>
             {saving ? 'Se salvează...' : 'Salvează'}
-          </button>
+          </Button>
+        </>
+      }
+    >
+      <div className="mem-editor-grid">
+        <div className="mem-photo">
+          <div className="mem-photo-pv" style={draft.photo ? { backgroundImage: `url(${draft.photo.thumb ?? draft.photo.url})` } : undefined}>
+            {!draft.photo && 'fără poză'}
+          </div>
+          <div className="mem-photo-acts">
+            <Button variant="secondary" size="sm" onClick={() => setPickerOpen(true)}>
+              {draft.photo ? 'Schimbă' : 'Alege'}
+            </Button>
+            {draft.photo && (
+              <Button variant="danger" size="sm" onClick={() => onChange({ photo: null })}>
+                Elimină
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <Field label="Nume">
+            <Input
+              value={draft.name}
+              placeholder="ex: Ana Maria Popescu"
+              onChange={(e) => onChange({ name: e.target.value })}
+            />
+          </Field>
+          <Field label="Rol">
+            <Input
+              value={draft.role}
+              placeholder="ex: Antrenor principal"
+              onChange={(e) => onChange({ role: e.target.value })}
+            />
+          </Field>
+          <Field label="Descriere" hint="Apare sub nume, pe cardul din pagina Echipa.">
+            <Textarea
+              rows={4}
+              value={draft.bio}
+              placeholder="Câteva rânduri despre experiența antrenorului"
+              onChange={(e) => onChange({ bio: e.target.value })}
+            />
+          </Field>
         </div>
       </div>
 
-      <MediaModal
+      <Field label="Predă la">
+        <GroupPicker
+          value={draft.groups}
+          fromProgram={fromProgram}
+          fromMembers={fromMembers}
+          onChange={(next) => onChange({ groups: next })}
+        />
+      </Field>
+
+      {error && (
+        <div className="adm-error" role="alert" style={{ marginTop: 10 }}>
+          {error}
+        </div>
+      )}
+
+      <ImagePicker
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
-        onPick={(f) => {
-          onChange({ photo: f });
+        onPick={(f: PickedImage) => {
+          onChange({ photo: { id: f.id, url: f.url, thumb: f.thumbnailUrl ?? f.url } });
           setPickerOpen(false);
         }}
       />
-    </div>
+    </Modal>
   );
 }
 
-// ---- page-local styles ------------------------------------------------------
+// ---- page-local styles -------------------------------------------------------
 /**
- * Card grid, drag states and the category chips. Kept here rather than in
- * edusportUi so the shared sheet stays generic; class names are prefixed
- * `mem-` to avoid colliding with it.
+ * Card grid, drag states and the category chips. Kept here rather than in the
+ * shared component set because they are specific to this card layout; tokens
+ * only (var(--adm-*)), classes prefixed `mem-`.
  */
 const PAGE_CSS = `
-.eduf .mem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;padding:16px 18px}
-.eduf .mem-card{position:relative;border:1px solid var(--border);border-radius:6px;background:#fff;padding:10px;text-align:left;font-family:inherit;cursor:pointer}
-.eduf .mem-card:hover{border-color:#b6bac4;background:#fafbff}
-.eduf .mem-card.can-drag{cursor:grab}
-.eduf .mem-card.is-dragging{opacity:.45}
-.eduf .mem-card.is-over{border-color:var(--accent);box-shadow:0 0 0 2px rgba(33,56,184,.15)}
-.eduf .mem-card .pv{width:100%;aspect-ratio:4/3;border-radius:var(--r);background:#eef1f8 center/cover no-repeat;border:1px solid var(--fieldborder);display:flex;align-items:center;justify-content:center;color:#9aa0ad;font-size:20px;font-weight:700}
-.eduf .mem-card .nm{display:block;font-size:13.5px;font-weight:700;margin-top:8px}
-.eduf .mem-card .rl{display:block;font-size:12px;color:var(--muted);margin-top:1px}
-.eduf .mem-card .grab{position:absolute;top:16px;left:16px;width:22px;height:22px;border-radius:var(--r);border:1px solid var(--fieldborder);background:rgba(255,255,255,.92);color:var(--muted);font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center}
-.eduf .mem-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
-.eduf .mem-tags .t{font-size:11px;color:var(--accent);background:var(--accent-soft);border:1px solid #cdd6f6;border-radius:var(--r);padding:2px 6px}
-.eduf .mem-tags .t.none{color:var(--muted);background:var(--field);border-color:var(--line)}
-.eduf .mem-photo .acts{flex-direction:column;gap:6px}
-.eduf .mem-photo .acts .btn{width:100%}
-.eduf .mem-groups{border:1px solid var(--fieldborder);border-radius:var(--r);background:#fff;padding:10px}
-.eduf .mem-sublabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:10px}
-.eduf .mem-sublabel:first-child{margin-top:0}
-.eduf .mem-chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
-.eduf .mem-chip{display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-size:12px;font-weight:600;color:var(--ink);background:#fff;border:1px solid var(--fieldborder);border-radius:var(--r);padding:5px 9px;cursor:pointer}
-.eduf .mem-chip:hover{border-color:#b6bac4;background:#fafbff}
-.eduf .mem-chip.on{background:var(--accent);border-color:var(--accent);color:#fff;cursor:default}
-.eduf .mem-chip .x{cursor:pointer;border:none;background:none;color:inherit;font-size:11px;padding:0;line-height:1;opacity:.75}
-.eduf .mem-chip .x:hover{opacity:1}
-.eduf .mem-addrow{display:flex;gap:8px;margin-top:5px}
-.eduf .mem-addrow input{flex:1}
+.adm-root .mem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;padding:16px 18px}
+.adm-root .mem-card{position:relative;border:1px solid var(--adm-line-strong);border-radius:var(--adm-radius-sm);background:var(--adm-surface-raised);padding:10px;text-align:left;font-family:inherit;cursor:pointer}
+.adm-root .mem-card:hover{border-color:var(--adm-accent);background:var(--adm-surface-subtle)}
+.adm-root .mem-card.can-drag{cursor:grab}
+.adm-root .mem-card.is-dragging{opacity:.45}
+.adm-root .mem-card.is-over{border-color:var(--adm-accent);box-shadow:0 0 0 2px var(--adm-accent-soft)}
+.adm-root .mem-card .pv{width:100%;aspect-ratio:4/3;border-radius:var(--adm-radius-sm);background:var(--adm-surface-sunken) center/cover no-repeat;border:1px solid var(--adm-line);display:flex;align-items:center;justify-content:center;color:var(--adm-text-muted);font-size:20px;font-weight:700}
+.adm-root .mem-card .nm{display:block;font-size:13.5px;font-weight:700;margin-top:8px}
+.adm-root .mem-card .rl{display:block;font-size:12px;color:var(--adm-text-muted);margin-top:1px}
+.adm-root .mem-card .grab{position:absolute;top:16px;left:16px;width:22px;height:22px;border-radius:var(--adm-radius-sm);border:1px solid var(--adm-line);background:var(--adm-surface-raised);color:var(--adm-text-muted);font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center}
+.adm-root .mem-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.adm-root .mem-tags .t{font-size:11px;color:var(--adm-accent);background:var(--adm-accent-soft);border:1px solid var(--adm-accent-soft-line);border-radius:var(--adm-radius-sm);padding:2px 6px}
+.adm-root .mem-tags .t.none{color:var(--adm-text-muted);background:var(--adm-surface-subtle);border-color:var(--adm-line)}
+
+.adm-root .mem-editor-grid{display:grid;grid-template-columns:120px 1fr;gap:14px;margin-bottom:14px}
+.adm-root .mem-photo-pv{width:100%;aspect-ratio:1/1;border-radius:var(--adm-radius-sm);background:var(--adm-surface-sunken) center/cover no-repeat;border:1px solid var(--adm-line-strong);display:flex;align-items:center;justify-content:center;color:var(--adm-text-muted);font-size:11.5px;text-align:center;padding:6px}
+.adm-root .mem-photo-acts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.adm-root .mem-groups{border:1px solid var(--adm-line-strong);border-radius:var(--adm-radius-sm);background:var(--adm-surface-raised);padding:10px}
+.adm-root .mem-sublabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--adm-text-muted);margin-top:10px}
+.adm-root .mem-sublabel:first-child{margin-top:0}
+.adm-root .mem-chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.adm-root .mem-addrow{display:flex;gap:8px;margin-top:5px}
+.adm-root .mem-addrow .adm-input{flex:1}
 `;
 
 // ---- page -------------------------------------------------------------------
@@ -634,7 +391,6 @@ export default function MembriEchipaPage() {
   const [error, setError] = React.useState(false);
   const [search, setSearch] = React.useState('');
   const [groupFilter, setGroupFilter] = React.useState('');
-  const [msg, setMsg] = React.useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [programGroups, setProgramGroups] = React.useState<string[]>([]);
 
   const load = React.useCallback(() => {
@@ -705,12 +461,11 @@ export default function MembriEchipaPage() {
 
   // ---- create / edit --------------------------------------------------------
   const [draft, setDraft] = React.useState<Draft | null>(null);
-  const [saving, setSaving] = React.useState(false);
-  const [saveError, setSaveError] = React.useState<string | null>(null);
+  const save = useSaveState();
 
   const openNew = () => {
     const maxOrder = rows.reduce((m, r) => Math.max(m, r.order ?? 0), 0);
-    setSaveError(null);
+    save.reset();
     setDraft({
       documentId: null,
       name: '',
@@ -723,7 +478,7 @@ export default function MembriEchipaPage() {
   };
 
   const openEdit = (r: Row) => {
-    setSaveError(null);
+    save.reset();
     setDraft({
       documentId: r.documentId,
       name: r.name,
@@ -738,25 +493,18 @@ export default function MembriEchipaPage() {
   const saveDraft = async () => {
     if (!draft) return;
     if (!draft.name.trim()) {
-      setSaveError('Numele este obligatoriu.');
+      save.setError('Numele este obligatoriu.');
       return;
     }
-    setSaving(true);
-    setSaveError(null);
-    try {
+    const ok = await save.run(async () => {
       if (draft.documentId) {
         await put(`${CT}/${draft.documentId}`, bodyOf(draft));
       } else {
         await post(CT, bodyOf(draft));
       }
-      setDraft(null);
-      setMsg({ kind: 'ok', text: draft.documentId ? 'Membru actualizat.' : 'Membru creat.' });
       await load();
-    } catch {
-      setSaveError('Salvarea a eșuat. Verifică datele și încearcă din nou.');
-    } finally {
-      setSaving(false);
-    }
+    }, 'Salvarea a eșuat. Verifică datele și încearcă din nou.');
+    if (ok) setDraft(null);
   };
 
   // ---- drag reordering ------------------------------------------------------
@@ -793,12 +541,11 @@ export default function MembriEchipaPage() {
     if (changed.length === 0) return;
 
     setReordering(true);
-    setMsg(null);
     setRows(renumbered);
     try {
       await Promise.all(changed.map((r) => put(`${CT}/${r.documentId}`, bodyOf(r))));
     } catch {
-      setMsg({ kind: 'err', text: 'Nu am putut salva ordinea. Lista a fost reîncărcată.' });
+      adminToast.error('Nu am putut salva ordinea. Lista a fost reîncărcată.');
       await load();
     } finally {
       setReordering(false);
@@ -825,7 +572,7 @@ export default function MembriEchipaPage() {
       setRows((rs) => rs.filter((r) => r.documentId !== target.documentId));
       setTarget(null);
       setDraft(null);
-      setMsg({ kind: 'ok', text: 'Membrul a fost șters.' });
+      adminToast.success('Membrul a fost șters.');
     } catch {
       setDelError('Ștergerea a eșuat.');
     } finally {
@@ -834,52 +581,38 @@ export default function MembriEchipaPage() {
   };
 
   return (
-    // `pce` opts the modal's "Salvează" button out of the global admin SaveBar tagger.
-    <div className="eduf pce">
-      <style>{EDU_CSS}</style>
+    <AdminPage>
       <style>{PAGE_CSS}</style>
-      <div className="win">
-        <div className="hd">
-          <div>
-            <h1>Membri echipă</h1>
-            <p>Antrenorii afișați pe pagina Echipa. Apasă un card pentru a edita, trage-l pentru a schimba ordinea.</p>
-          </div>
-          <div className="hd-right">
-            <button className="btn pri" type="button" onClick={openNew}>
-              + Adaugă membru
-            </button>
-          </div>
-        </div>
+      <Window>
+        <PageHeader
+          title="Membri echipă"
+          subtitle="Antrenorii afișați pe pagina Echipa. Apasă un card pentru a edita, trage-l pentru a schimba ordinea."
+          actions={<Button onClick={openNew}>+ Adaugă membru</Button>}
+        />
 
-        <div className="tb">
-          <div className="search">
-            <span aria-hidden="true">⌕</span>
-            <input
-              placeholder="Caută după nume sau rol..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
-            <option value="">Toate categoriile</option>
-            {filterOptions.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </select>
+        <div className="adm-dt-bar">
+          <Input
+            className="adm-dt-search"
+            placeholder="Caută după nume sau rol..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Caută după nume sau rol"
+          />
+          <Select
+            aria-label="Filtrează după categorie"
+            value={groupFilter}
+            onChange={(v) => setGroupFilter(v)}
+            placeholder="Toate categoriile"
+            options={filterOptions.map((g) => ({ value: g, label: g }))}
+          />
         </div>
-
-        {msg && <div className={`msg ${msg.kind}`}>{msg.text}</div>}
 
         {loading ? (
-          <div className="empty">Se încarcă...</div>
+          <Loading />
         ) : error ? (
-          <div className="empty">Nu am putut încărca membrii echipei.</div>
+          <EmptyState>Nu am putut încărca membrii echipei.</EmptyState>
         ) : filtered.length === 0 ? (
-          <div className="empty">
-            {rows.length === 0 ? 'Niciun membru adăugat.' : 'Niciun membru pentru filtrul curent.'}
-          </div>
+          <EmptyState>{rows.length === 0 ? 'Niciun membru adăugat.' : 'Niciun membru pentru filtrul curent.'}</EmptyState>
         ) : (
           <div className="mem-grid">
             {filtered.map((r) => {
@@ -963,27 +696,27 @@ export default function MembriEchipaPage() {
         )}
 
         {!loading && !error && (
-          <div className="foot">
+          <p className="adm-muted" style={{ margin: '0 18px 16px', fontSize: 12 }}>
             {filtered.length} {filtered.length === 1 ? 'membru' : 'membri'}
             {filtered.length !== rows.length ? ` din ${rows.length}` : ''}
             {reordering ? '. Se salvează ordinea...' : ''}
             {sortLocked ? '. Golește căutarea și filtrul pentru a putea reordona.' : ''}
-          </div>
+          </p>
         )}
-      </div>
+      </Window>
 
       {draft && (
         <MemberEditor
           draft={draft}
-          saving={saving}
-          error={saveError}
+          saving={save.saving}
+          error={save.error}
           fromProgram={programGroups}
           fromMembers={memberGroups}
           onChange={(patch) => setDraft((d) => (d ? { ...d, ...patch } : d))}
           onCancel={() => {
-            if (!saving) {
+            if (!save.saving) {
               setDraft(null);
-              setSaveError(null);
+              save.reset();
             }
           }}
           onSave={saveDraft}
@@ -1006,6 +739,6 @@ export default function MembriEchipaPage() {
         onCancel={closeConfirm}
         onConfirm={confirmDelete}
       />
-    </div>
+    </AdminPage>
   );
 }

@@ -11,12 +11,26 @@ Decisions (user, companion screens 101-102):
 
 ## Phases
 - [x] 1. Tokens + shared components in src/admin/ui/ (+ token checker script)
-- [ ] 2a. Move list pages: Sportivi, Competiții, Anunțuri, Sponsori, Membri echipă
+- [x] 2a. Move list pages: Sportivi, Competiții, Anunțuri, Sponsori, Membri echipă
 - [ ] 2b. Move edit pages: SportivEdit, CompetitieEdit, AnuntEdit, HomepageEdit, ProgramEdit, VoluntariatEdit (Navigation done in phase 1)
 - [ ] 2c. Move the rest: SubmissionTable (Înscrieri, Voluntari), Mesaje + FormResults (shared InboxLayout), Formulare, FormEditor, Dashboard, calendar editor (ProgramOverviewEditor, onto the `--adm-cat-*` tokens), MobileNav/BlocksToolbarExtra theme hook (SaveBar done, see below)
 - [ ] 3. Meniu site page switches (needs the hidden-page decisions) + frontend support
 
 Inventory: docs/admin-ui/INVENTORY.md
+
+### Phase 2a result (2026-09-30)
+All five list pages (Sportivi, Competiții, Anunțuri, Sponsori, Membri echipă) on
+AdminPage/Window/PageHeader; Sportivi and Sponsori on DataTable (client search,
+pageSize 25, sortable columns, EmptyState); Competiții keeps DataTable for the
+main list and its expanded per-competition result set, plus a Section for the
+skate-results import box. Anunțuri and Membri echipă keep their bespoke lists
+(grouped drag-reorder rows, and a draggable card grid) rather than DataTable:
+neither fits a generic sortable/paginated table (the order itself is
+hand-dragged data, and Anunțuri splits into three named groups while Membri
+echipă cards carry a photo + wrapping tag list). Sponsori and Membri echipă
+modals moved onto Modal + Field/Input/Textarea/Select + ImagePicker +
+useSaveState; deletes stay on ConfirmDialog. Booleans/levels on StatusBadge,
+messages on adminToast/Notice. Checker: 27 files/1093 hits -> 22 files/993 hits.
 
 ## Phase 1 result
 
