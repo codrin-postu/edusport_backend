@@ -58,6 +58,17 @@ export { ImagePicker, type ImagePickerProps, type PickedImage } from './ImagePic
 export { InboxLayout, type InboxLayoutProps, type InboxGroup } from './InboxLayout';
 
 export { Popover, type PopoverProps, type PopoverPlacement } from './Popover';
+export { AddButton, type AddButtonProps } from './AddButton';
+export { ExpandableRow, type ExpandableRowProps } from './ExpandableRow';
+export {
+  useDragReorder,
+  moveItem,
+  type UseDragReorderOptions,
+  type DragReorder,
+  type DragItemProps,
+  type DragHandleProps,
+} from './useDragReorder';
+export { RepeatableList, type RepeatableListProps, type RepeatableRowApi } from './RepeatableList';
 export { DateRangeInput, type DateRangeInputProps, type DateRange } from './DateRangeInput';
 export { TimeInput, parseTimeText, formatTime, type TimeInputProps, type HourMinute } from './TimeInput';
 export { NumberInput, type NumberInputProps } from './NumberInput';
