@@ -291,7 +291,7 @@ const NavigationPage: React.FC = () => {
                     </div>
                     <div>
                       <div className="meniu-acts">
-                        <Button size="sm" onClick={() => setPickerOpen(true)}>
+                        <Button variant="secondary" size="sm" onClick={() => setPickerOpen(true)}>
                           {image ? 'Schimbă' : 'Alege'}
                         </Button>
                         {image && (

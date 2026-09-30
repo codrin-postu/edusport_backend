@@ -6,6 +6,7 @@ export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 export type ButtonSize = 'sm' | 'md';
 
 interface BaseProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {
+  /** Default 'primary'. Pass 'secondary' for the outlined look, 'ghost' for text-only. */
   variant?: ButtonVariant;
   size?: ButtonSize;
   /** Shows a spinner, sets aria-busy and blocks clicks. */
@@ -31,7 +32,7 @@ interface IconButtonProps extends BaseProps {
 export type ButtonProps = TextButtonProps | IconButtonProps;
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = 'secondary', size = 'md', loading = false, icon, iconOnly, className, disabled, children, type = 'button', ...rest },
+  { variant = 'primary', size = 'md', loading = false, icon, iconOnly, className, disabled, children, type = 'button', ...rest },
   ref,
 ) {
   return (

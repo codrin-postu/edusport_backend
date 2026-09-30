@@ -263,7 +263,7 @@ function Controls() {
         </ChipList>
         {chips.length < 3 && (
           <div>
-            <Button size="sm" onClick={() => setChips(['Național', 'Juniori', 'Program Scurt'])}>
+            <Button variant="secondary" size="sm" onClick={() => setChips(['Național', 'Juniori', 'Program Scurt'])}>
               Refă lista
             </Button>
           </div>
@@ -330,12 +330,12 @@ function Dialogs() {
   return (
     <Section title="Modal, ConfirmDialog, ImagePicker">
       <div className="adm-ref-row">
-        <Button onClick={() => setModal(true)}>Deschide Modal</Button>
+        <Button variant="secondary" onClick={() => setModal(true)}>Deschide Modal</Button>
         <Button variant="danger" onClick={() => setConfirm('simple')}>ConfirmDialog</Button>
         <Button variant="danger" onClick={() => setConfirm('typed')}>Cu text de confirmare</Button>
         <Button variant="danger" onClick={() => setConfirm('busy')}>În curs (busy + eroare)</Button>
-        <Button onClick={() => setPicker('single')}>Alege o imagine</Button>
-        <Button onClick={() => setPicker('multiple')}>Alege mai multe imagini</Button>
+        <Button variant="secondary" onClick={() => setPicker('single')}>Alege o imagine</Button>
+        <Button variant="secondary" onClick={() => setPicker('multiple')}>Alege mai multe imagini</Button>
       </div>
       {picked.length > 0 && (
         <ChipList>
@@ -353,7 +353,7 @@ function Dialogs() {
         size="md"
         footer={
           <>
-            <Button onClick={() => setModal(false)}>Anulează</Button>
+            <Button variant="secondary" onClick={() => setModal(false)}>Anulează</Button>
             <Button variant="primary" onClick={() => setModal(false)}>
               Confirmă
             </Button>
@@ -542,14 +542,14 @@ const UiReferencePage: React.FC = () => {
             <Fields />
             <Section title="Notice">
               <Notice tone="ok" title="Salvat">Modificările au fost salvate.</Notice>
-              <Notice tone="info" title="Setarea este pe altă pagină" action={<Button size="sm">Deschide Setări site</Button>}>
+              <Notice tone="info" title="Setarea este pe altă pagină" action={<Button variant="secondary" size="sm">Deschide Setări site</Button>}>
                 Adresa de email se schimbă din Setări site.
               </Notice>
               <Notice tone="warn" title="Atenție">Imaginea are peste 300 KB și se încarcă greu pe telefon.</Notice>
               <Notice tone="danger">Nu am putut încărca meniul.</Notice>
             </Section>
             <Section title="EmptyState, Spinner">
-              <EmptyState icon={<Inbox />} action={<Button size="sm" icon={<Plus />}>Adaugă primul sportiv</Button>}>
+              <EmptyState icon={<Inbox />} action={<Button variant="secondary" size="sm" icon={<Plus />}>Adaugă primul sportiv</Button>}>
                 Nu există încă sportivi.
               </EmptyState>
               <EmptyState>Niciun rezultat pentru căutare.</EmptyState>
@@ -619,10 +619,10 @@ const UiReferencePage: React.FC = () => {
           />
           <div className="adm-body">
             <div className="adm-ref-row">
-              <Button onClick={() => adminToast.success('Modificările au fost salvate.')}>Success</Button>
-              <Button onClick={() => adminToast.info('Setarea este pe altă pagină.')}>Info</Button>
-              <Button onClick={() => adminToast.warn('Imaginea are peste 300 KB.')}>Warn</Button>
-              <Button onClick={() => adminToast.error('Nu am putut salva. Încearcă din nou.')}>Error</Button>
+              <Button variant="secondary" onClick={() => adminToast.success('Modificările au fost salvate.')}>Success</Button>
+              <Button variant="secondary" onClick={() => adminToast.info('Setarea este pe altă pagină.')}>Info</Button>
+              <Button variant="secondary" onClick={() => adminToast.warn('Imaginea are peste 300 KB.')}>Warn</Button>
+              <Button variant="secondary" onClick={() => adminToast.error('Nu am putut salva. Încearcă din nou.')}>Error</Button>
             </div>
           </div>
         </Window>

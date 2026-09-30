@@ -182,12 +182,12 @@ export function ImagePicker(props: ImagePickerProps) {
                   if (f) void upload(f);
                 }}
               />
-              <Button size="sm" loading={uploading} onClick={() => fileInput.current?.click()}>
+              <Button variant="secondary" size="sm" loading={uploading} onClick={() => fileInput.current?.click()}>
                 {uploading ? 'Se încarcă' : 'Încarcă fișier'}
               </Button>
             </>
           )}
-          <Button size="sm" onClick={onClose}>
+          <Button variant="secondary" size="sm" onClick={onClose}>
             Închide
           </Button>
         </>
@@ -198,7 +198,7 @@ export function ImagePicker(props: ImagePickerProps) {
             <span className="adm-muted" style={{ marginRight: 'auto', alignSelf: 'center' }}>
               {chosen.length === 0 ? 'Nicio imagine aleasă' : chosen.length === 1 ? '1 imagine aleasă' : `${chosen.length} imagini alese`}
             </span>
-            <Button onClick={onClose}>Anulează</Button>
+            <Button variant="secondary" onClick={onClose}>Anulează</Button>
             <Button variant="primary" disabled={chosen.length === 0} onClick={() => props.onPick(chosen)}>
               Adaugă
             </Button>
