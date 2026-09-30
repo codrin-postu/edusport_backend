@@ -3,6 +3,21 @@ import {
   House, Book, Cursor, Feather, Calendar, User, Star, GridFour,
   Clock, Bell, Duplicate, Pencil, ChartCircle, Mail,
 } from '@strapi/icons';
+import {
+  CUSTOM_PAGES,
+  SETARI_SITE_TO, PAGINA_ECHIPA_TO, ISTORIC_TO, PAGINA_PARTENERI_TO, DISCIPLINE_TO,
+  MOMENTE_ISTORIC_TO, CURSURI_TO, PRETURI_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
+  REALIZARI_TO, EVENIMENTE_COLABORARE_TO, UID,
+} from '../pages/routes';
+
+// Route constants of the custom pages (src/admin/pages), re-exported so every
+// *_TO lives behind one import. Defined in ../pages/routes (see there).
+export {
+  SETARI_SITE_TO, PAGINA_ECHIPA_TO, ISTORIC_TO, PAGINA_PARTENERI_TO, DISCIPLINE_TO,
+  MOMENTE_ISTORIC_TO, CURSURI_TO, PRETURI_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
+  REALIZARI_TO, EVENIMENTE_COLABORARE_TO, EVENIMENT_COLABORARE_EDIT_TO,
+  ARTICOLE_TO, ARTICOL_EDIT_TO,
+} from '../pages/routes';
 
 /**
  * EduSport admin navigation model.
@@ -12,9 +27,10 @@ import {
  *     layout and navigates to these (native content-manager) routes directly;
  *   - the in-context dashboard page, which shows a subset as "Scurtături".
  *
- * Only the dashboard itself is registered as an admin route (addMenuLink with a
- * Component) so it renders inside Strapi's providers and can use hooks / data.
- * The content routes already exist natively, so they are not re-registered.
+ * Custom pages are registered as admin routes so they render inside Strapi's
+ * providers and can use hooks / data: the older ones with addMenuLink, the
+ * pages in src/admin/pages (CUSTOM_PAGES in ../pages/routes) with
+ * app.router.addRoute, route only, since the EduSport sidebar is their nav.
  */
 
 export type Group = 'forms' | 'program' | 'team' | 'pages' | 'content' | 'system';
@@ -104,7 +120,6 @@ export const UI_REFERENCE_TO = '/plugins/edusport-ui';
 // gracefully and shows a "coming soon" state rather than a broken link.
 export const UMAMI_URL = '';
 
-const single = (uid: string) => `/content-manager/single-types/${uid}`;
 const collection = (uid: string) => `/content-manager/collection-types/${uid}`;
 
 export const EDUSPORT_LINKS: EdusportLink[] = [
@@ -124,24 +139,26 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   // now edited on the custom Membri echipă page.
   { to: MEMBRI_TO, label: 'Membri echipă', icon: GridFour, group: 'team', featured: true },
   { to: COMPETITII_TO, label: 'Competiții', icon: Star, group: 'team', featured: true },
-  { to: collection('api::discipline.discipline'), label: 'Discipline', icon: ChartCircle, group: 'team' },
+  { to: DISCIPLINE_TO, label: 'Discipline', icon: ChartCircle, group: 'team' },
 
   // Pagini site
   { to: HOMEPAGE_EDIT_TO, label: 'Pagina principală', icon: House, group: 'pages', featured: true },
-  { to: single('api::cursuri-page.cursuri-page'), label: 'Cursuri', icon: Book, group: 'pages', featured: true },
-  { to: single('api::pricing.pricing'), label: 'Prețuri', icon: Cursor, group: 'pages', featured: true },
-  { to: single('api::course-regulations.course-regulations'), label: 'Regulament', icon: Feather, group: 'pages' },
-  { to: single('api::program-page.program-page'), label: 'Pagina Program', icon: Calendar, group: 'pages' },
-  { to: single('api::team-page.team-page'), label: 'Pagina Echipă', icon: GridFour, group: 'pages' },
-  { to: single('api::historic-page.historic-page'), label: 'Istoric', icon: Clock, group: 'pages' },
-  { to: single('api::realizari-page.realizari-page'), label: 'Realizări', icon: Star, group: 'pages' },
-  { to: single('api::partners-page.partners-page'), label: 'Parteneri', icon: Duplicate, group: 'pages' },
+  { to: CURSURI_TO, label: 'Cursuri', icon: Book, group: 'pages', featured: true },
+  { to: PRETURI_TO, label: 'Prețuri', icon: Cursor, group: 'pages', featured: true },
+  { to: REGULAMENT_TO, label: 'Regulament', icon: Feather, group: 'pages' },
+  { to: PAGINA_PROGRAM_TO, label: 'Pagina Program', icon: Calendar, group: 'pages' },
+  { to: PAGINA_ECHIPA_TO, label: 'Pagina Echipă', icon: GridFour, group: 'pages' },
+  { to: ISTORIC_TO, label: 'Istoric', icon: Clock, group: 'pages' },
+  { to: REALIZARI_TO, label: 'Realizări', icon: Star, group: 'pages' },
+  { to: PAGINA_PARTENERI_TO, label: 'Parteneri', icon: Duplicate, group: 'pages' },
   // Re-pointed from single('api::volunteer-page.volunteer-page'): the page is
   // now edited on the custom, compact Voluntariat editor.
   { to: VOLUNTARIAT_EDIT_TO, label: 'Voluntariat', icon: Bell, group: 'pages' },
 
   // Articole și media
-  { to: collection('api::article.article'), label: 'Articole', icon: Book, group: 'content', featured: true },
+  // Stays on the Strapi editor until the Articole page is built (ARTICOLE_TO
+  // exists as a route already, see CUSTOM-PAGES.md).
+  { to: collection(UID.article), label: 'Articole', icon: Book, group: 'content', featured: true },
   // Re-pointed from single('api::announcement.announcement'): that single-type
   // route is dead — announcements are now a hidden collection driven by the
   // custom Anunțuri page.
@@ -149,12 +166,12 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   // Re-pointed from collection('api::sponsor.sponsor'): sponsors are now edited
   // on the custom Sponsori list page.
   { to: SPONSORI_TO, label: 'Sponsori', icon: Duplicate, group: 'content' },
-  { to: collection('api::collaboration-event.collaboration-event'), label: 'Evenimente colaborare', icon: Calendar, group: 'content' },
-  { to: collection('api::history-milestone.history-milestone'), label: 'Momente istoric', icon: Clock, group: 'content' },
+  { to: EVENIMENTE_COLABORARE_TO, label: 'Evenimente colaborare', icon: Calendar, group: 'content' },
+  { to: MOMENTE_ISTORIC_TO, label: 'Momente istoric', icon: Clock, group: 'content' },
 
   // Sistem
   { to: '/plugins/upload', label: 'Media', icon: GridFour, group: 'system' },
-  { to: single('api::site-settings.site-settings'), label: 'Setări site', icon: Pencil, group: 'system', pinned: true },
+  { to: SETARI_SITE_TO, label: 'Setări site', icon: Pencil, group: 'system', pinned: true },
   { to: NAVIGATION_TO, label: 'Meniu site', icon: GridFour, group: 'system', pinned: true },
 ];
 
@@ -168,8 +185,20 @@ export function registerEdusportMenu(app: StrapiApp) {
     },
   });
 
-  // Register only the dashboard route (and its default-nav entry). Content routes
-  // already exist natively; the custom sidebar links straight to them.
+  // Custom pages in src/admin/pages: route only, one per CUSTOM_PAGES entry.
+  // The list is complete (all rows of CUSTOM-PAGES.md), so page authors never
+  // edit this file.
+  for (const page of CUSTOM_PAGES) {
+    app.router.addRoute({
+      path: `${page.to.slice(1)}/*`,
+      lazy: async () => {
+        const mod = await page.load();
+        return { Component: mod.default as React.ComponentType };
+      },
+    });
+  }
+
+  // Dashboard route (and its default-nav entry).
   app.addMenuLink({
     to: DASHBOARD_TO,
     icon: House,

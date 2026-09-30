@@ -12,8 +12,8 @@
  * These three make up the total, comparable with the baseline.
  *
  * Two more rules, reported separately (not part of the total):
- *   - colour: in src/admin/ui (outside tokens.ts) and the migrated pages
- *     (MIGRATED below), a colour property (color, background, border*,
+ *   - colour: in src/admin/ui (outside tokens.ts), src/admin/pages,
+ *     src/admin/lib and the migrated pages (MIGRATED below), a colour property (color, background, border*,
  *     outline, fill, stroke, box-shadow, ...) may only use var(--theme-*) or
  *     var(--palette-*), plus the component-local colour channels in
  *     COLOR_CHANNELS (each set only from --theme-* in styles.ts). Any other
@@ -40,6 +40,8 @@ const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const ADMIN = join(ROOT, 'src', 'admin');
 const TOKENS = join(ADMIN, 'ui', 'tokens.ts');
 const UI_DIR = join(ADMIN, 'ui') + sep;
+/** Custom pages and their data helpers: born on src/admin/ui, held to the colour rule like it. */
+const RULED_DIRS = [UI_DIR, join(ADMIN, 'pages') + sep, join(ADMIN, 'lib') + sep];
 
 /** Pages already on src/admin/ui: held to the colour rule like src/admin/ui itself. */
 const MIGRATED = [
@@ -199,11 +201,11 @@ if (uiHits.length) {
 }
 
 /* ---- colour rule and legacy names -------------------------------------- */
-const colourFiles = files.filter((f) => f.startsWith(UI_DIR) || MIGRATED.includes(f));
+const colourFiles = files.filter((f) => RULED_DIRS.some((d) => f.startsWith(d)) || MIGRATED.includes(f));
 const colourHits = colourFiles.flatMap((f) => scanColour(f).map((h) => ({ file: relative(ROOT, f).split(sep).join('/'), ...h })));
 const legacyHits = walk(ADMIN).flatMap((f) => scanLegacy(f).map((h) => ({ file: relative(ROOT, f).split(sep).join('/'), ...h })));
 console.log(
-  `\ncolour   ${colourHits.length} hits in ${colourFiles.length} files (src/admin/ui + migrated pages: only var(--theme-*) / var(--palette-*))`,
+  `\ncolour   ${colourHits.length} hits in ${colourFiles.length} files (src/admin/ui, pages, lib + migrated pages: only var(--theme-*) / var(--palette-*))`,
 );
 console.log(`legacy   ${legacyHits.length} leftover --adm- names in src/admin`);
 for (const h of [...colourHits.map((h) => ['colour', h]), ...legacyHits.map((h) => ['legacy', h])]) {
