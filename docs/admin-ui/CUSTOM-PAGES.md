@@ -21,7 +21,7 @@ Decisions (companion screen 109, user said "yes do", recommended answers):
 | Prețuri | api::pricing.pricing | /plugins/edusport-preturi | [x] |
 | Regulament | api::course-regulations.course-regulations | /plugins/edusport-regulament | [x] |
 | Pagina Program | api::program-page.program-page | /plugins/edusport-pagina-program | [x] |
-| Realizări | api::realizari-page.realizari-page | /plugins/edusport-realizari | [ ] |
+| Realizări | api::realizari-page.realizari-page | /plugins/edusport-realizari | [x] |
 | Evenimente colaborare | api::collaboration-event.collaboration-event | /plugins/edusport-evenimente-colaborare (+ -edit) | [ ] |
 | Articole | api::article.article | /plugins/edusport-articole (+ -edit) | [ ] later |
 
