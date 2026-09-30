@@ -1,9 +1,19 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
-import { EDU_CSS, yearOf } from './edusportUi';
+import { yearOf } from './edusportUi';
 import { SPORTIV_EDIT_TO } from './menu';
 import { ConfirmDialog } from '../ConfirmDialog';
+import {
+  AdminPage,
+  Window,
+  PageHeader,
+  Button,
+  StatusBadge,
+  Select,
+  DataTable,
+  type DataColumn,
+} from '../ui';
 
 /**
  * EduSport admin — "Sportivi" list page (custom, replaces the default
@@ -53,6 +63,12 @@ export const SPORTIV_DELETE_COPY = {
     `„${name}" se șterge definitiv, împreună cu profilul, rezultatele și sezoanele. Acțiunea nu poate fi anulată.`,
 } as const;
 
+const SPORTIVI_CSS = `
+.adm-root .sp-thumb{width:32px;height:32px;border-radius:var(--adm-radius-sm);background:var(--adm-surface-sunken) center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:var(--adm-text-muted);font-weight:700;font-size:13px}
+.adm-root .sp-rel{color:var(--adm-text-secondary)}
+.adm-root .sp-rel.empty{color:var(--adm-text-muted)}
+`;
+
 export default function SportiviPage() {
   const { get, del } = useFetchClient();
   const navigate = useNavigate();
@@ -61,7 +77,6 @@ export default function SportiviPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
 
-  const [search, setSearch] = React.useState('');
   const [disciplineFilter, setDisciplineFilter] = React.useState('');
   const [publicFilter, setPublicFilter] = React.useState<'all' | 'public' | 'hidden'>('all');
 
@@ -123,15 +138,13 @@ export default function SportiviPage() {
   }, [rows]);
 
   const filtered = React.useMemo(() => {
-    const q = search.trim().toLowerCase();
     return rows.filter((r) => {
-      if (q && !r.name.toLowerCase().includes(q)) return false;
       if (disciplineFilter && !r.disciplines.includes(disciplineFilter)) return false;
       if (publicFilter === 'public' && !r.showPublicPage) return false;
       if (publicFilter === 'hidden' && r.showPublicPage) return false;
       return true;
     });
-  }, [rows, search, disciplineFilter, publicFilter]);
+  }, [rows, disciplineFilter, publicFilter]);
 
   const openEdit = (documentId: string) => navigate(`${SPORTIV_EDIT_TO}?id=${documentId}`);
 
@@ -162,112 +175,123 @@ export default function SportiviPage() {
     }
   };
 
-  return (
-    <div className="eduf">
-      <style>{EDU_CSS}</style>
-      <div className="win">
-        <div className="hd">
-          <div>
-            <h1>Sportivi</h1>
-            <p>Profilurile sportivilor clubului. Apasă un rând pentru a edita.</p>
-          </div>
-          <div className="hd-right">
-            <button className="btn pri" type="button" onClick={() => navigate(SPORTIV_EDIT_TO)}>
-              + Adaugă sportiv
-            </button>
-          </div>
-        </div>
-
-        <div className="tb">
-          <div className="search">
-            <span aria-hidden="true">⌕</span>
-            <input placeholder="Caută după nume..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <select value={disciplineFilter} onChange={(e) => setDisciplineFilter(e.target.value)}>
-            <option value="">Toate disciplinele</option>
-            {disciplineOptions.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-          <select value={publicFilter} onChange={(e) => setPublicFilter(e.target.value as any)}>
-            <option value="all">Public și ascuns</option>
-            <option value="public">Doar public</option>
-            <option value="hidden">Doar ascuns</option>
-          </select>
-        </div>
-
-        {loading ? (
-          <div className="empty">Se încarcă...</div>
-        ) : error ? (
-          <div className="empty">Nu am putut încărca sportivii.</div>
-        ) : filtered.length === 0 ? (
-          <div className="empty">Niciun sportiv pentru filtrul curent.</div>
+  const columns: DataColumn<Row>[] = [
+    {
+      key: 'photo',
+      header: '',
+      searchable: false,
+      width: '1%',
+      render: (r) =>
+        r.photoUrl ? (
+          <div className="sp-thumb" style={{ backgroundImage: `url(${r.photoUrl})` }} />
         ) : (
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th style={{ width: 1 }} />
-                <th>Nume</th>
-                <th>Discipline</th>
-                <th>Antrenori</th>
-                <th>Activ din</th>
-                <th>Public</th>
-                <th style={{ width: 1 }} />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r) => (
-                <tr key={r.documentId} onClick={() => openEdit(r.documentId)}>
-                  <td>
-                    {r.photoUrl ? (
-                      <div className="thumb" style={{ backgroundImage: `url(${r.photoUrl})` }} />
-                    ) : (
-                      <div className="thumb ph">{(r.name[0] ?? '?').toUpperCase()}</div>
-                    )}
-                  </td>
-                  <td className="nm">{r.name}</td>
-                  <td>
-                    <span className={`relnames${r.disciplines.length ? '' : ' empty'}`}>
-                      {r.disciplines.length ? r.disciplines.join(', ') : '—'}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`relnames${r.coaches.length ? '' : ' empty'}`}>
-                      {r.coaches.length ? r.coaches.join(', ') : '—'}
-                    </span>
-                  </td>
-                  <td className="num">{yearOf(r.activeSince) || '—'}</td>
-                  <td>{r.showPublicPage ? <span className="yes">Da</span> : <span className="no">Nu</span>}</td>
-                  <td className="num" style={{ whiteSpace: 'nowrap' }}>
-                    <button
-                      type="button"
-                      title="Șterge sportivul"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDelError(null);
-                        setTarget(r);
-                      }}
-                      disabled={deleting && target?.documentId === r.documentId}
-                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#be3330', fontWeight: 600, fontSize: 12 }}
-                    >
-                      {deleting && target?.documentId === r.documentId ? '…' : 'Șterge'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+          <div className="sp-thumb">{(r.name[0] ?? '?').toUpperCase()}</div>
+        ),
+    },
+    { key: 'name', header: 'Nume', value: (r) => r.name, sortable: true },
+    {
+      key: 'disciplines',
+      header: 'Discipline',
+      value: (r) => r.disciplines.join(', '),
+      render: (r) => (
+        <span className={r.disciplines.length ? 'sp-rel' : 'sp-rel empty'}>
+          {r.disciplines.length ? r.disciplines.join(', ') : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'coaches',
+      header: 'Antrenori',
+      value: (r) => r.coaches.join(', '),
+      render: (r) => (
+        <span className={r.coaches.length ? 'sp-rel' : 'sp-rel empty'}>
+          {r.coaches.length ? r.coaches.join(', ') : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'activeSince',
+      header: 'Activ din',
+      value: (r) => yearOf(r.activeSince) || '',
+      sortable: true,
+      align: 'right',
+    },
+    {
+      key: 'showPublicPage',
+      header: 'Public',
+      value: (r) => (r.showPublicPage ? 'Da' : 'Nu'),
+      sortable: true,
+      render: (r) => <StatusBadge tone={r.showPublicPage ? 'ok' : 'neutral'}>{r.showPublicPage ? 'Da' : 'Nu'}</StatusBadge>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      searchable: false,
+      align: 'right',
+      render: (r) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            setDelError(null);
+            setTarget(r);
+          }}
+          disabled={deleting && target?.documentId === r.documentId}
+        >
+          {deleting && target?.documentId === r.documentId ? '…' : 'Șterge'}
+        </Button>
+      ),
+    },
+  ];
 
-        {!loading && !error && (
-          <div className="foot">
-            {filtered.length} {filtered.length === 1 ? 'sportiv' : 'sportivi'}
-            {filtered.length !== rows.length ? ` din ${rows.length}` : ''}
-          </div>
-        )}
-      </div>
+  return (
+    <AdminPage>
+      <style>{SPORTIVI_CSS}</style>
+      <Window>
+        <PageHeader
+          title="Sportivi"
+          subtitle="Profilurile sportivilor clubului. Apasă un rând pentru a edita."
+          actions={
+            <Button onClick={() => navigate(SPORTIV_EDIT_TO)}>+ Adaugă sportiv</Button>
+          }
+        />
+
+        <DataTable
+          columns={columns}
+          rows={filtered}
+          getRowKey={(r) => r.documentId}
+          onRowClick={(r) => openEdit(r.documentId)}
+          rowLabel={(r) => `Editează ${r.name}`}
+          loading={loading}
+          empty={error ? 'Nu am putut încărca sportivii.' : 'Niciun sportiv pentru filtrul curent.'}
+          noMatches="Niciun sportiv pentru filtrul curent."
+          search
+          searchPlaceholder="Caută după nume..."
+          initialSort={{ key: 'name', dir: 'asc' }}
+          toolbar={
+            <>
+              <Select
+                aria-label="Filtrează după disciplină"
+                value={disciplineFilter}
+                onChange={(v) => setDisciplineFilter(v)}
+                placeholder="Toate disciplinele"
+                options={disciplineOptions.map((d) => ({ value: d, label: d }))}
+              />
+              <Select
+                aria-label="Filtrează după vizibilitate"
+                value={publicFilter}
+                onChange={(v) => setPublicFilter(v as 'all' | 'public' | 'hidden')}
+                options={[
+                  { value: 'all', label: 'Public și ascuns' },
+                  { value: 'public', label: 'Doar public' },
+                  { value: 'hidden', label: 'Doar ascuns' },
+                ]}
+              />
+            </>
+          }
+        />
+      </Window>
 
       <ConfirmDialog
         open={target !== null}
@@ -278,6 +302,6 @@ export default function SportiviPage() {
         onCancel={closeConfirm}
         onConfirm={confirmDelete}
       />
-    </div>
+    </AdminPage>
   );
 }
