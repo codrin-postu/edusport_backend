@@ -39,7 +39,7 @@ export interface DragItemProps {
   onDragLeave: (e: React.DragEvent<HTMLElement>) => void;
   onDrop: (e: React.DragEvent<HTMLElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => void;
-  'data-adm-drag-item': string;
+  'data-ui-drag-item': string;
   'data-dragging'?: 'true';
   'data-drop'?: 'before' | 'after' | 'on';
 }
@@ -133,7 +133,7 @@ export function useDragReorder({ count, onMove, axis = 'y', disabled = false, sw
   };
 
   const itemProps = (index: number): DragItemProps => ({
-    'data-adm-drag-item': '',
+    'data-ui-drag-item': '',
     'data-dragging': dragging === index ? 'true' : undefined,
     'data-drop': over && over.index === index && dragging !== null ? over.side : undefined,
     onDragOver: (e) => {
@@ -185,7 +185,7 @@ export function useDragReorder({ count, onMove, axis = 'y', disabled = false, sw
       e.dataTransfer.effectAllowed = 'move';
       // Firefox needs data to start a drag.
       e.dataTransfer.setData('text/plain', String(index));
-      const item = (e.currentTarget as HTMLElement).closest('[data-adm-drag-item]');
+      const item = (e.currentTarget as HTMLElement).closest('[data-ui-drag-item]');
       if (item instanceof HTMLElement) {
         const r = item.getBoundingClientRect();
         e.dataTransfer.setDragImage(item, e.clientX - r.left, e.clientY - r.top);
@@ -200,12 +200,12 @@ export function useDragReorder({ count, onMove, axis = 'y', disabled = false, sw
 
   const live = (
     <>
-      <span id={hintId} className="adm-sr">
+      <span id={hintId} className="ui-sr">
         {axis === 'y'
           ? 'Trage pentru a reordona, sau folosește săgețile sus și jos.'
           : 'Trage pentru a reordona, sau folosește săgețile stânga și dreapta.'}
       </span>
-      <span className="adm-sr" role="status" aria-live="polite">
+      <span className="ui-sr" role="status" aria-live="polite">
         {message}
       </span>
     </>

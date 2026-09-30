@@ -39,7 +39,7 @@ export function Tabs({ items, value, onChange, label, panelId, className }: Tabs
   };
 
   return (
-    <div role="tablist" aria-label={label} className={cx('adm-tabs', className)}>
+    <div role="tablist" aria-label={label} className={cx('ui-tabs', className)}>
       {items.map((t, i) => {
         const on = t.id === value;
         return (
@@ -54,7 +54,7 @@ export function Tabs({ items, value, onChange, label, panelId, className }: Tabs
             aria-controls={panelId}
             tabIndex={on ? 0 : -1}
             disabled={t.disabled}
-            className="adm-tab"
+            className="ui-tab"
             onClick={() => onChange(t.id)}
             onKeyDown={(e) => {
               if (e.key === 'ArrowRight') move(i, 1);
@@ -66,7 +66,7 @@ export function Tabs({ items, value, onChange, label, panelId, className }: Tabs
             }}
           >
             {t.label}
-            {t.count !== undefined && t.count !== null && <span className="adm-tab-count adm-num">{t.count}</span>}
+            {t.count !== undefined && t.count !== null && <span className="ui-tab-count ui-num">{t.count}</span>}
           </button>
         );
       })}

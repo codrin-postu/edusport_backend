@@ -64,9 +64,9 @@ export const SPORTIV_DELETE_COPY = {
 } as const;
 
 const SPORTIVI_CSS = `
-.adm-root .sp-thumb{width:32px;height:32px;border-radius:var(--adm-radius-sm);background:var(--adm-surface-sunken) center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:var(--adm-text-muted);font-weight:700;font-size:13px}
-.adm-root .sp-rel{color:var(--adm-text-secondary)}
-.adm-root .sp-rel.empty{color:var(--adm-text-muted)}
+.ui-root .sp-thumb{width:32px;height:32px;border-radius:var(--ui-radius-sm);background:var(--theme-surface-sunken) center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:var(--theme-text-muted);font-weight:700;font-size:13px}
+.ui-root .sp-rel{color:var(--theme-text-secondary)}
+.ui-root .sp-rel.empty{color:var(--theme-text-muted)}
 `;
 
 export default function SportiviPage() {
@@ -221,7 +221,7 @@ export default function SportiviPage() {
       header: 'Public',
       value: (r) => (r.showPublicPage ? 'Da' : 'Nu'),
       sortable: true,
-      render: (r) => <StatusBadge tone={r.showPublicPage ? 'ok' : 'neutral'}>{r.showPublicPage ? 'Da' : 'Nu'}</StatusBadge>,
+      render: (r) => <StatusBadge tone={r.showPublicPage ? 'success' : 'neutral'}>{r.showPublicPage ? 'Da' : 'Nu'}</StatusBadge>,
     },
     {
       key: 'actions',

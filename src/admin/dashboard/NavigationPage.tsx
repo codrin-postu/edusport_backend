@@ -105,25 +105,25 @@ interface Override {
   image: MediaRef | null;
 }
 
-// Page-local styles, tokens only (var(--adm-*)). Kept free of backticks on
+// Page-local styles, tokens only (var(--theme-*), var(--ui-*)). Kept free of backticks on
 // purpose: one stray backtick in a template literal takes the whole admin
 // panel down to a blank page.
 const NAV_CSS = `
-.adm-root .meniu-tree{padding:12px 10px}
-.adm-root .meniu-th{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--adm-text-muted);padding:4px 8px 10px}
-.adm-root .meniu-row{display:flex;align-items:center;gap:9px;width:100%;text-align:left;font-family:inherit;font-size:13px;color:var(--adm-text-primary);background:none;border:none;border-radius:var(--adm-radius-sm);padding:8px 10px;cursor:pointer}
-.adm-root .meniu-row:hover{background:var(--adm-accent-soft)}
-.adm-root .meniu-row[aria-current="true"]{background:var(--adm-accent-soft);color:var(--adm-accent);font-weight:700}
-.adm-root .meniu-row .meniu-addr{margin-left:auto;font-size:11px;color:var(--adm-text-muted);font-weight:400;font-variant-numeric:tabular-nums}
-.adm-root .meniu-row[aria-current="true"] .meniu-addr{color:var(--adm-accent)}
-.adm-root .meniu-row .adm-badge{margin-left:auto}
-.adm-root .meniu-subs{margin:2px 0 8px 22px;border-left:1px solid var(--adm-line);padding-left:10px}
-.adm-root .meniu-sub{display:flex;align-items:baseline;gap:10px;padding:5px 8px;font-size:12.5px;color:var(--adm-text-muted)}
-.adm-root .meniu-sub .meniu-addr{margin-left:auto;font-size:11px;color:var(--adm-text-muted)}
-.adm-root .meniu-note{padding:10px 8px 0}
-.adm-root .meniu-img{display:flex;gap:13px;align-items:flex-start;flex-wrap:wrap}
-.adm-root .meniu-pv{width:148px;height:92px;flex:none;border:1px solid var(--adm-line-strong);border-radius:var(--adm-radius-sm);background:var(--adm-surface-sunken) center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:var(--adm-text-muted);font-size:11.5px;text-align:center;padding:6px}
-.adm-root .meniu-acts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.ui-root .meniu-tree{padding:12px 10px}
+.ui-root .meniu-th{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--theme-text-muted);padding:4px 8px 10px}
+.ui-root .meniu-row{display:flex;align-items:center;gap:9px;width:100%;text-align:left;font-family:inherit;font-size:13px;color:var(--theme-text);background:none;border:none;border-radius:var(--ui-radius-sm);padding:8px 10px;cursor:pointer}
+.ui-root .meniu-row:hover{background:var(--theme-primary-soft)}
+.ui-root .meniu-row[aria-current="true"]{background:var(--theme-primary-soft);color:var(--theme-primary);font-weight:700}
+.ui-root .meniu-row .meniu-addr{margin-left:auto;font-size:11px;color:var(--theme-text-muted);font-weight:400;font-variant-numeric:tabular-nums}
+.ui-root .meniu-row[aria-current="true"] .meniu-addr{color:var(--theme-primary)}
+.ui-root .meniu-row .ui-badge{margin-left:auto}
+.ui-root .meniu-subs{margin:2px 0 8px 22px;border-left:1px solid var(--theme-border);padding-left:10px}
+.ui-root .meniu-sub{display:flex;align-items:baseline;gap:10px;padding:5px 8px;font-size:12.5px;color:var(--theme-text-muted)}
+.ui-root .meniu-sub .meniu-addr{margin-left:auto;font-size:11px;color:var(--theme-text-muted)}
+.ui-root .meniu-note{padding:10px 8px 0}
+.ui-root .meniu-img{display:flex;gap:13px;align-items:flex-start;flex-wrap:wrap}
+.ui-root .meniu-pv{width:148px;height:92px;flex:none;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);background:var(--theme-surface-sunken) center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:var(--theme-text-muted);font-size:11.5px;text-align:center;padding:6px}
+.ui-root .meniu-acts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
 `;
 
 function toMap(rows: Override[]): Record<string, Override> {
@@ -215,7 +215,7 @@ const NavigationPage: React.FC = () => {
           >
             {s.label}
             {s.promo ? (
-              <StatusBadge tone="accent">card</StatusBadge>
+              <StatusBadge tone="primary">card</StatusBadge>
             ) : s.href ? (
               <span className="meniu-addr">{s.href}</span>
             ) : null}
@@ -232,7 +232,7 @@ const NavigationPage: React.FC = () => {
           )}
         </React.Fragment>
       ))}
-      <div className="adm-hint meniu-note">
+      <div className="ui-hint meniu-note">
         Numele, adresele și ordinea sunt stabilite în codul site-ului și nu se pot schimba de aici.
       </div>
     </>
@@ -251,14 +251,14 @@ const NavigationPage: React.FC = () => {
         {loading ? (
           <Loading />
         ) : error ? (
-          <div className="adm-body">
+          <div className="ui-body">
             <Notice tone="danger">Nu am putut încărca meniul.</Notice>
           </div>
         ) : (
           <TwoColumn rail={rail} railLabel="Secțiunile meniului" railClassName="meniu-tree">
             {!editable ? (
               <Section title={section?.label}>
-                <p className="adm-muted" style={{ margin: 0 }}>
+                <p className="ui-muted" style={{ margin: 0 }}>
                   {section?.promo
                     ? 'Secțiunea are un card promo, dar el nu este încă înregistrat în administrare. Cere unui dezvoltator să îl adauge.'
                     : 'Secțiunea nu are card promo, deci nu are nimic de editat. Cardul apare doar la Despre Noi și Cursuri.'}
@@ -278,8 +278,8 @@ const NavigationPage: React.FC = () => {
                   />
                 </Field>
 
-                <div className="adm-field">
-                  <span className="adm-label" id="meniu-img-label">
+                <div className="ui-field">
+                  <span className="ui-label" id="meniu-img-label">
                     Imagine
                   </span>
                   <div className="meniu-img" role="group" aria-labelledby="meniu-img-label">
@@ -307,10 +307,10 @@ const NavigationPage: React.FC = () => {
                           </Button>
                         )}
                       </div>
-                      <div className="adm-hint">Recomandat 640 pe 400 px, sub 300 KB.</div>
-                      {image?.name && <div className="adm-hint">{image.name}</div>}
+                      <div className="ui-hint">Recomandat 640 pe 400 px, sub 300 KB.</div>
+                      {image?.name && <div className="ui-hint">{image.name}</div>}
                       {!image && (
-                        <div className="adm-hint">
+                        <div className="ui-hint">
                           Fără imagine, cardul se afișează doar cu titlu și descriere.
                         </div>
                       )}

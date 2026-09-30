@@ -16,7 +16,7 @@ export const AddButton = React.forwardRef<HTMLButtonElement, AddButtonProps>(fun
   ref,
 ) {
   return (
-    <button ref={ref} type={type} className={cx('adm-add', className)} {...rest}>
+    <button ref={ref} type={type} className={cx('ui-add', className)} {...rest}>
       <IconPlus />
       {label}
     </button>

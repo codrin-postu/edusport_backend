@@ -16,7 +16,7 @@ export function Checkbox({ checked, onChange, label, indeterminate = false, disa
     if (ref.current) ref.current.indeterminate = indeterminate;
   }, [indeterminate]);
   return (
-    <label className={cx('adm-check', disabled && 'adm-check--disabled', className)}>
+    <label className={cx('ui-check', disabled && 'ui-check--disabled', className)}>
       <input
         ref={ref}
         type="checkbox"

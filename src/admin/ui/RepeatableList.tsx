@@ -156,11 +156,11 @@ export function RepeatableList<T>({
   })();
 
   return (
-    <div className={cx('adm-root', 'adm-rl', className)}>
+    <div className={cx('ui-root', 'ui-rl', className)}>
       {items.length === 0 ? (
-        emptyLabel !== undefined && <div className="adm-rl-empty">{emptyLabel}</div>
+        emptyLabel !== undefined && <div className="ui-rl-empty">{emptyLabel}</div>
       ) : (
-        <ul className="adm-rl-items" aria-label={ariaLabel}>
+        <ul className="ui-rl-items" aria-label={ariaLabel}>
           {items.map((item, i) => {
             const key = getKey(item, i);
             const expanded = expandable ? open.has(key) : true;
@@ -195,20 +195,20 @@ export function RepeatableList<T>({
               <>
                 <button
                   type="button"
-                  className="adm-iconbtn adm-grip"
+                  className="ui-iconbtn ui-grip"
                   aria-label={`Mută ${name}`}
                   disabled={disabled}
                   {...drag.handleProps(i)}
                 >
                   <IconGrip />
                 </button>
-                <span className="adm-row-move">
-                  <button type="button" className="adm-iconbtn" aria-label={`Mută ${name} mai sus`} disabled={disabled || i === 0} onClick={api.moveUp}>
+                <span className="ui-row-move">
+                  <button type="button" className="ui-iconbtn" aria-label={`Mută ${name} mai sus`} disabled={disabled || i === 0} onClick={api.moveUp}>
                     <IconChevronUp />
                   </button>
                   <button
                     type="button"
-                    className="adm-iconbtn"
+                    className="ui-iconbtn"
                     aria-label={`Mută ${name} mai jos`}
                     disabled={disabled || i === items.length - 1}
                     onClick={api.moveDown}
@@ -220,7 +220,7 @@ export function RepeatableList<T>({
             ) : null;
 
             const del = hideDelete ? null : (
-              <button type="button" className="adm-iconbtn adm-iconbtn--danger" aria-label={`Șterge ${name}`} title="Șterge" disabled={disabled} onClick={api.remove}>
+              <button type="button" className="ui-iconbtn ui-iconbtn--danger" aria-label={`Șterge ${name}`} title="Șterge" disabled={disabled} onClick={api.remove}>
                 <IconTrash />
               </button>
             );
@@ -244,10 +244,10 @@ export function RepeatableList<T>({
               );
             }
             return (
-              <li key={key} {...rowProps} className="adm-row adm-row--flat">
-                {lead && <div className="adm-row-lead">{lead}</div>}
-                <div className="adm-row-main">{renderRow(item, i, api)}</div>
-                {del && <div className="adm-row-actions">{del}</div>}
+              <li key={key} {...rowProps} className="ui-row ui-row--flat">
+                {lead && <div className="ui-row-lead">{lead}</div>}
+                <div className="ui-row-main">{renderRow(item, i, api)}</div>
+                {del && <div className="ui-row-actions">{del}</div>}
               </li>
             );
           })}
@@ -256,7 +256,7 @@ export function RepeatableList<T>({
       {(onAdd || newItem) && (
         <>
           <AddButton label={addLabel} onClick={add} disabled={!canAdd} />
-          {full && <div className="adm-hint">Ai atins numărul maxim de elemente ({maxItems}).</div>}
+          {full && <div className="ui-hint">Ai atins numărul maxim de elemente ({maxItems}).</div>}
         </>
       )}
       {reorder && drag.live}

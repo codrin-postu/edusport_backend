@@ -13,7 +13,7 @@ export interface SpinnerProps {
 export function Spinner({ size = 16, label, className }: SpinnerProps) {
   return (
     <svg
-      className={cx('adm-spinner', className)}
+      className={cx('ui-spinner', className)}
       width={size}
       height={size}
       viewBox="0 0 16 16"
@@ -31,7 +31,7 @@ export function Spinner({ size = 16, label, className }: SpinnerProps) {
 /** Centred spinner + text for a loading area. */
 export function Loading({ text = 'Se încarcă...' }: { text?: string }) {
   return (
-    <div className="adm-loading" role="status">
+    <div className="ui-loading" role="status">
       <Spinner />
       <span>{text}</span>
     </div>

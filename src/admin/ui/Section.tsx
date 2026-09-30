@@ -16,19 +16,19 @@ export interface SectionProps {
 export function Section({ title, aside, footer, children, className, id }: SectionProps) {
   const headingId = React.useId();
   return (
-    <section className={cx('adm-sec', className)} id={id} aria-labelledby={title ? headingId : undefined}>
+    <section className={cx('ui-sec', className)} id={id} aria-labelledby={title ? headingId : undefined}>
       {(title || aside) && (
-        <div className="adm-sec-h">
+        <div className="ui-sec-h">
           {title && (
-            <h2 className="adm-sec-title" id={headingId}>
+            <h2 className="ui-sec-title" id={headingId}>
               {title}
             </h2>
           )}
           {aside}
         </div>
       )}
-      <div className="adm-sec-b">{children}</div>
-      {footer && <div className="adm-sec-f">{footer}</div>}
+      <div className="ui-sec-b">{children}</div>
+      {footer && <div className="ui-sec-f">{footer}</div>}
     </section>
   );
 }

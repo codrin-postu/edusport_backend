@@ -187,7 +187,7 @@ function GroupPicker({
     <div className="mem-groups">
       <div className="mem-sublabel">Selectate</div>
       {value.length === 0 ? (
-        <div className="adm-hint">Nicio categorie aleasă. Membrul apare pe site fără lista „Predă la".</div>
+        <div className="ui-hint">Nicio categorie aleasă. Membrul apare pe site fără lista „Predă la".</div>
       ) : (
         <ChipList className="mem-chiprow">
           {value.map((g) => (
@@ -333,7 +333,7 @@ function MemberEditor({
       </Field>
 
       {error && (
-        <div className="adm-error" role="alert" style={{ marginTop: 10 }}>
+        <div className="ui-error" role="alert" style={{ marginTop: 10 }}>
           {error}
         </div>
       )}
@@ -354,32 +354,32 @@ function MemberEditor({
 /**
  * Card grid, drag states and the category chips. Kept here rather than in the
  * shared component set because they are specific to this card layout; tokens
- * only (var(--adm-*)), classes prefixed `mem-`.
+ * only (var(--theme-*), var(--ui-*)), classes prefixed `mem-`.
  */
 const PAGE_CSS = `
-.adm-root .mem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;padding:16px 18px}
-.adm-root .mem-card{position:relative;border:1px solid var(--adm-line-strong);border-radius:var(--adm-radius-sm);background:var(--adm-surface-raised);padding:10px;text-align:left;font-family:inherit;cursor:pointer}
-.adm-root .mem-card:hover{border-color:var(--adm-accent);background:var(--adm-surface-subtle)}
-.adm-root .mem-card.can-drag{cursor:grab}
-.adm-root .mem-card.is-dragging{opacity:.45}
-.adm-root .mem-card.is-over{border-color:var(--adm-accent);box-shadow:0 0 0 2px var(--adm-accent-soft)}
-.adm-root .mem-card .pv{width:100%;aspect-ratio:4/3;border-radius:var(--adm-radius-sm);background:var(--adm-surface-sunken) center/cover no-repeat;border:1px solid var(--adm-line);display:flex;align-items:center;justify-content:center;color:var(--adm-text-muted);font-size:20px;font-weight:700}
-.adm-root .mem-card .nm{display:block;font-size:13.5px;font-weight:700;margin-top:8px}
-.adm-root .mem-card .rl{display:block;font-size:12px;color:var(--adm-text-muted);margin-top:1px}
-.adm-root .mem-card .grab{position:absolute;top:16px;left:16px;width:22px;height:22px;border-radius:var(--adm-radius-sm);border:1px solid var(--adm-line);background:var(--adm-surface-raised);color:var(--adm-text-muted);font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center}
-.adm-root .mem-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
-.adm-root .mem-tags .t{font-size:11px;color:var(--adm-accent);background:var(--adm-accent-soft);border:1px solid var(--adm-accent-soft-line);border-radius:var(--adm-radius-sm);padding:2px 6px}
-.adm-root .mem-tags .t.none{color:var(--adm-text-muted);background:var(--adm-surface-subtle);border-color:var(--adm-line)}
+.ui-root .mem-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;padding:16px 18px}
+.ui-root .mem-card{position:relative;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);background:var(--theme-surface);padding:10px;text-align:left;font-family:inherit;cursor:pointer}
+.ui-root .mem-card:hover{border-color:var(--theme-primary);background:var(--theme-surface-subtle)}
+.ui-root .mem-card.can-drag{cursor:grab}
+.ui-root .mem-card.is-dragging{opacity:.45}
+.ui-root .mem-card.is-over{border-color:var(--theme-primary);box-shadow:0 0 0 2px var(--theme-primary-soft)}
+.ui-root .mem-card .pv{width:100%;aspect-ratio:4/3;border-radius:var(--ui-radius-sm);background:var(--theme-surface-sunken) center/cover no-repeat;border:1px solid var(--theme-border);display:flex;align-items:center;justify-content:center;color:var(--theme-text-muted);font-size:20px;font-weight:700}
+.ui-root .mem-card .nm{display:block;font-size:13.5px;font-weight:700;margin-top:8px}
+.ui-root .mem-card .rl{display:block;font-size:12px;color:var(--theme-text-muted);margin-top:1px}
+.ui-root .mem-card .grab{position:absolute;top:16px;left:16px;width:22px;height:22px;border-radius:var(--ui-radius-sm);border:1px solid var(--theme-border);background:var(--theme-surface);color:var(--theme-text-muted);font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center}
+.ui-root .mem-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+.ui-root .mem-tags .t{font-size:11px;color:var(--theme-primary);background:var(--theme-primary-soft);border:1px solid var(--theme-primary-soft-line);border-radius:var(--ui-radius-sm);padding:2px 6px}
+.ui-root .mem-tags .t.none{color:var(--theme-text-muted);background:var(--theme-surface-subtle);border-color:var(--theme-border)}
 
-.adm-root .mem-editor-grid{display:grid;grid-template-columns:120px 1fr;gap:14px;margin-bottom:14px}
-.adm-root .mem-photo-pv{width:100%;aspect-ratio:1/1;border-radius:var(--adm-radius-sm);background:var(--adm-surface-sunken) center/cover no-repeat;border:1px solid var(--adm-line-strong);display:flex;align-items:center;justify-content:center;color:var(--adm-text-muted);font-size:11.5px;text-align:center;padding:6px}
-.adm-root .mem-photo-acts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
-.adm-root .mem-groups{border:1px solid var(--adm-line-strong);border-radius:var(--adm-radius-sm);background:var(--adm-surface-raised);padding:10px}
-.adm-root .mem-sublabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--adm-text-muted);margin-top:10px}
-.adm-root .mem-sublabel:first-child{margin-top:0}
-.adm-root .mem-chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
-.adm-root .mem-addrow{display:flex;gap:8px;margin-top:5px}
-.adm-root .mem-addrow .adm-input{flex:1}
+.ui-root .mem-editor-grid{display:grid;grid-template-columns:120px 1fr;gap:14px;margin-bottom:14px}
+.ui-root .mem-photo-pv{width:100%;aspect-ratio:1/1;border-radius:var(--ui-radius-sm);background:var(--theme-surface-sunken) center/cover no-repeat;border:1px solid var(--theme-border-strong);display:flex;align-items:center;justify-content:center;color:var(--theme-text-muted);font-size:11.5px;text-align:center;padding:6px}
+.ui-root .mem-photo-acts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.ui-root .mem-groups{border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);background:var(--theme-surface);padding:10px}
+.ui-root .mem-sublabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--theme-text-muted);margin-top:10px}
+.ui-root .mem-sublabel:first-child{margin-top:0}
+.ui-root .mem-chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}
+.ui-root .mem-addrow{display:flex;gap:8px;margin-top:5px}
+.ui-root .mem-addrow .ui-input{flex:1}
 `;
 
 // ---- page -------------------------------------------------------------------
@@ -590,9 +590,9 @@ export default function MembriEchipaPage() {
           actions={<Button onClick={openNew}>+ Adaugă membru</Button>}
         />
 
-        <div className="adm-dt-bar">
+        <div className="ui-table-bar">
           <Input
-            className="adm-dt-search"
+            className="ui-table-search"
             placeholder="Caută după nume sau rol..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -696,7 +696,7 @@ export default function MembriEchipaPage() {
         )}
 
         {!loading && !error && (
-          <p className="adm-muted" style={{ margin: '0 18px 16px', fontSize: 12 }}>
+          <p className="ui-muted" style={{ margin: '0 18px 16px', fontSize: 12 }}>
             {filtered.length} {filtered.length === 1 ? 'membru' : 'membri'}
             {filtered.length !== rows.length ? ` din ${rows.length}` : ''}
             {reordering ? '. Se salvează ordinea...' : ''}

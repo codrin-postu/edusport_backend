@@ -99,7 +99,7 @@ export function TagsInput({
   return (
     <div
       ref={boxRef}
-      className={cx('adm-root', 'adm-tags', disabled && 'adm-tags--disabled', className)}
+      className={cx('ui-root', 'ui-tags', disabled && 'ui-tags--disabled', className)}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) {
           e.preventDefault();
@@ -114,7 +114,7 @@ export function TagsInput({
       ))}
       <input
         ref={inputRef}
-        className="adm-tags-in"
+        className="ui-tags-in"
         id={p.id}
         aria-label={aria['aria-label']}
         aria-describedby={p['aria-describedby']}
@@ -145,14 +145,14 @@ export function TagsInput({
         }}
         onKeyDown={onKeyDown}
       />
-      <Popover open={showList} anchorRef={boxRef} onClose={() => setOpen(false)} matchWidth className="adm-list" id={listId} role="listbox">
+      <Popover open={showList} anchorRef={boxRef} onClose={() => setOpen(false)} matchWidth className="ui-list" id={listId} role="listbox">
         {matches.map((m, i) => (
           <div
             key={m}
             id={`${listId}-${i}`}
             role="option"
             aria-selected={i === active}
-            className="adm-opt"
+            className="ui-opt"
             data-active={i === active || undefined}
             onMouseDown={(e) => {
               e.preventDefault();

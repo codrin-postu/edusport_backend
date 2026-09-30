@@ -106,15 +106,15 @@ const fileExt = (name: string) => {
 
 /** Tile preview: the thumbnail for images, the first frame for videos, the extension otherwise. */
 function MediaPreview({ img }: { img: PickedImage }) {
-  if (img.mime?.startsWith('image/')) return <div className="adm-img-pv" style={{ backgroundImage: `url(${img.thumbnailUrl})` }} />;
+  if (img.mime?.startsWith('image/')) return <div className="ui-img-pv" style={{ backgroundImage: `url(${img.thumbnailUrl})` }} />;
   if (img.mime?.startsWith('video/'))
     return (
-      <div className="adm-img-pv">
+      <div className="ui-img-pv">
         <video src={img.url} muted preload="metadata" playsInline aria-hidden="true" tabIndex={-1} />
       </div>
     );
   return (
-    <div className="adm-img-pv adm-img-file">
+    <div className="ui-img-pv ui-img-file">
       <span>{fileExt(img.name ?? '')}</span>
     </div>
   );
@@ -261,7 +261,7 @@ export function ImagePicker(props: ImagePickerProps) {
       footer={
         props.multiple ? (
           <>
-            <span className="adm-muted" style={{ marginRight: 'auto', alignSelf: 'center' }}>
+            <span className="ui-muted" style={{ marginRight: 'auto', alignSelf: 'center' }}>
               {chosen.length === 0 ? copy.zero : chosen.length === 1 ? copy.one : `${chosen.length} ${copy.many}`}
             </span>
             <Button variant="secondary" onClick={onClose}>Anulează</Button>
@@ -280,7 +280,7 @@ export function ImagePicker(props: ImagePickerProps) {
       ) : files.length === 0 ? (
         <EmptyState>{copy.none}</EmptyState>
       ) : (
-        <div className="adm-imgs" style={err ? { marginTop: 12 } : undefined}>
+        <div className="ui-imgs" style={err ? { marginTop: 12 } : undefined}>
           {files.map((f) => {
             const img = toPicked(f);
             const on = chosen.some((c) => c.id === f.id);
@@ -288,14 +288,14 @@ export function ImagePicker(props: ImagePickerProps) {
               <button
                 key={f.id}
                 type="button"
-                className="adm-img"
+                className="ui-img"
                 title={f.name}
                 aria-pressed={props.multiple ? on : undefined}
                 onClick={() => pick(img)}
               >
                 <MediaPreview img={img} />
-                <div className="adm-img-name">{f.name}</div>
-                {props.multiple && <span className="adm-img-tick">ales</span>}
+                <div className="ui-img-name">{f.name}</div>
+                {props.multiple && <span className="ui-img-tick">ales</span>}
               </button>
             );
           })}

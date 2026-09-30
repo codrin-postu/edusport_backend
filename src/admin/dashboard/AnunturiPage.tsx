@@ -26,7 +26,7 @@ import { AdminPage, Window, PageHeader, Button, StatusBadge, Notice, EmptyState,
  * moves page chrome, chips and messaging onto the shared components.
  *
  * CSS NOTE: every class this page introduces is prefixed `anun-`, tokens only
- * (var(--adm-*)).
+ * (var(--theme-*), var(--ui-*)).
  */
 
 // ---------------------------------------------------------------------------
@@ -131,45 +131,45 @@ function ctrLabel(ctr: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// Page CSS — tokens only, every selector namespaced under `.adm-root .anun-*`
+// Page CSS — tokens only, every selector namespaced under `.ui-root .anun-*`
 // ---------------------------------------------------------------------------
 
 const ANUN_CSS = `
-.adm-root .anun-grp{margin-bottom:20px}
-.adm-root .anun-grp:last-child{margin-bottom:0}
-.adm-root .anun-grp-h{display:flex;align-items:center;gap:9px;margin:0 0 8px}
-.adm-root .anun-grp-h .anun-t{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--adm-text-muted)}
-.adm-root .anun-grp-h .anun-n{font-size:11px;font-weight:700;color:var(--adm-text-muted);font-variant-numeric:tabular-nums}
+.ui-root .anun-grp{margin-bottom:20px}
+.ui-root .anun-grp:last-child{margin-bottom:0}
+.ui-root .anun-grp-h{display:flex;align-items:center;gap:9px;margin:0 0 8px}
+.ui-root .anun-grp-h .anun-t{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--theme-text-muted)}
+.ui-root .anun-grp-h .anun-n{font-size:11px;font-weight:700;color:var(--theme-text-muted);font-variant-numeric:tabular-nums}
 
-.adm-root .anun-rows{background:var(--adm-surface-raised);border:1px solid var(--adm-line);border-radius:var(--adm-radius-sm);overflow:hidden}
-.adm-root .anun-none{padding:16px 14px;font-size:12.5px;color:var(--adm-text-muted)}
+.ui-root .anun-rows{background:var(--theme-surface);border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);overflow:hidden}
+.ui-root .anun-none{padding:16px 14px;font-size:12.5px;color:var(--theme-text-muted)}
 
-.adm-root .anun-row{display:flex;align-items:center;gap:13px;padding:11px 14px;border-bottom:1px solid var(--adm-line-subtle);font-size:13px;cursor:pointer}
-.adm-root .anun-row:last-child{border-bottom:none}
-.adm-root .anun-row:hover{background:var(--adm-surface-subtle)}
-.adm-root .anun-row.is-live{background:var(--adm-accent-soft)}
-.adm-root .anun-row.is-live:hover{background:var(--adm-accent-soft)}
+.ui-root .anun-row{display:flex;align-items:center;gap:13px;padding:11px 14px;border-bottom:1px solid var(--theme-border-subtle);font-size:13px;cursor:pointer}
+.ui-root .anun-row:last-child{border-bottom:none}
+.ui-root .anun-row:hover{background:var(--theme-surface-subtle)}
+.ui-root .anun-row.is-live{background:var(--theme-primary-soft)}
+.ui-root .anun-row.is-live:hover{background:var(--theme-primary-soft)}
 /* Active but held back by the row above: warm tint + a red left edge, so "not on
    the site right now" reads without counting positions. */
-.adm-root .anun-row.is-waiting{background:var(--adm-danger-bg);box-shadow:inset 3px 0 0 var(--adm-danger-line)}
-.adm-root .anun-row.is-waiting:hover{background:var(--adm-danger-bg)}
-.adm-root .anun-row.is-paused .anun-nm,.adm-root .anun-row.is-paused .anun-win{opacity:.55}
-.adm-root .anun-row.is-past{color:var(--adm-text-muted)}
-.adm-root .anun-row.is-dragging{opacity:.4}
-.adm-root .anun-row.is-over{box-shadow:inset 0 2px 0 var(--adm-accent)}
+.ui-root .anun-row.is-waiting{background:var(--theme-danger-bg);box-shadow:inset 3px 0 0 var(--theme-danger-border)}
+.ui-root .anun-row.is-waiting:hover{background:var(--theme-danger-bg)}
+.ui-root .anun-row.is-paused .anun-nm,.ui-root .anun-row.is-paused .anun-win{opacity:.55}
+.ui-root .anun-row.is-past{color:var(--theme-text-muted)}
+.ui-root .anun-row.is-dragging{opacity:.4}
+.ui-root .anun-row.is-over{box-shadow:inset 0 2px 0 var(--theme-primary)}
 
-.adm-root .anun-grab{border:none;background:none;padding:0 2px;color:var(--adm-text-muted);font-size:13px;letter-spacing:-2px;cursor:grab;line-height:1;flex-shrink:0}
-.adm-root .anun-grab:focus-visible{outline:2px solid var(--adm-focus);outline-offset:2px;border-radius:var(--adm-radius-sm);color:var(--adm-accent)}
-.adm-root .anun-grab:active{cursor:grabbing}
-.adm-root .anun-grab:disabled{cursor:default}
+.ui-root .anun-grab{border:none;background:none;padding:0 2px;color:var(--theme-text-muted);font-size:13px;letter-spacing:-2px;cursor:grab;line-height:1;flex-shrink:0}
+.ui-root .anun-grab:focus-visible{outline:2px solid var(--theme-focus);outline-offset:2px;border-radius:var(--ui-radius-sm);color:var(--theme-primary)}
+.ui-root .anun-grab:active{cursor:grabbing}
+.ui-root .anun-grab:disabled{cursor:default}
 
-.adm-root .anun-pri{width:19px;height:19px;border-radius:var(--adm-radius-sm);background:var(--adm-accent);color:var(--adm-text-on-accent);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-variant-numeric:tabular-nums}
+.ui-root .anun-pri{width:19px;height:19px;border-radius:var(--ui-radius-sm);background:var(--theme-primary);color:var(--theme-on-primary);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-variant-numeric:tabular-nums}
 
-.adm-root .anun-nm{font-weight:650;flex:1;min-width:0}
-.adm-root .anun-nm .anun-sub{display:block;font-weight:400;font-size:11.5px;color:var(--adm-text-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.adm-root .anun-win{font-size:11.5px;color:var(--adm-text-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
-.adm-root .anun-stat{font-size:11.5px;color:var(--adm-text-secondary);white-space:nowrap;font-variant-numeric:tabular-nums;min-width:118px;text-align:right}
-.adm-root .anun-stat b{font-weight:700}
+.ui-root .anun-nm{font-weight:650;flex:1;min-width:0}
+.ui-root .anun-nm .anun-sub{display:block;font-weight:400;font-size:11.5px;color:var(--theme-text-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ui-root .anun-win{font-size:11.5px;color:var(--theme-text-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.ui-root .anun-stat{font-size:11.5px;color:var(--theme-text-secondary);white-space:nowrap;font-variant-numeric:tabular-nums;min-width:118px;text-align:right}
+.ui-root .anun-stat b{font-weight:700}
 `;
 
 // ---------------------------------------------------------------------------
@@ -272,11 +272,11 @@ function AnuntRow({
       {/* No chip for the live row: active is the default, and the highlighted
           row already says which one is on the site. Only the exceptions are
           labelled. */}
-      {paused && <StatusBadge tone="warn">inactiv</StatusBadge>}
+      {paused && <StatusBadge tone="warning">inactiv</StatusBadge>}
       {waiting && !paused && <StatusBadge tone="danger">în așteptare</StatusBadge>}
       {a.group === 'scheduled' && <StatusBadge tone="info">din {dayMonth(a.startAt)}</StatusBadge>}
       {a.group === 'past' && <StatusBadge tone="neutral">încheiat</StatusBadge>}
-      <StatusBadge tone="accent">{a.format === 'modal' ? 'modal' : 'card'}</StatusBadge>
+      <StatusBadge tone="primary">{a.format === 'modal' ? 'modal' : 'card'}</StatusBadge>
 
       <span className="anun-win">{windowLabel(a)}</span>
 
@@ -598,7 +598,7 @@ export default function AnunturiPage() {
               </div>
             )}
 
-            <p className="adm-muted" style={{ marginTop: 14, fontSize: 12 }}>
+            <p className="ui-muted" style={{ marginTop: 14, fontSize: 12 }}>
               {rows.length} {rows.length === 1 ? 'anunț' : 'anunțuri'} · {active.length} active ·{' '}
               {scheduled.length} programate · {past.length} încheiate
             </p>

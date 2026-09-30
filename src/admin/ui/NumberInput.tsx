@@ -107,7 +107,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
   const downOff = disabled || (!wrap && min !== undefined && value !== null && value <= min);
 
   return (
-    <span className={cx('adm-root', 'adm-numin', size === 'lg' && 'adm-numin--lg', className)}>
+    <span className={cx('ui-root', 'ui-numin', size === 'lg' && 'ui-numin--lg', className)}>
       <input
         ref={ref}
         type="text"
@@ -117,7 +117,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={value ?? undefined}
-        className="adm-input"
+        className="ui-input"
         disabled={disabled}
         {...p}
         aria-label={props['aria-label'] ?? (p.id !== props.id ? undefined : label)}
@@ -158,7 +158,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           }
         }}
       />
-      <span className="adm-numin-steps">
+      <span className="ui-numin-steps">
         <button type="button" tabIndex={-1} aria-label={`Crește ${label ?? 'valoarea'}`} disabled={upOff} onClick={() => stepBy(1)}>
           <IconChevronUp size={size === 'lg' ? 12 : 10} />
         </button>

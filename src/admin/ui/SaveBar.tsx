@@ -16,8 +16,8 @@ import { SaveBarView, useDiscardConfirm, useSlideIn } from './SaveBarView';
  *
  * Not to be confused with src/admin/SaveBar.tsx, the global bar that mirrors
  * Strapi's own content-manager buttons. Custom pages never show that one: the
- * app.tsx tagger skips every button inside `.pce` or `.adm-root`, so nothing
- * on the page is tagged, and this bar's own buttons carry `.adm-root` too.
+ * app.tsx tagger skips every button inside `.pce` or `.ui-root`, so nothing
+ * on the page is tagged, and this bar's own buttons carry `.ui-root` too.
  */
 
 export interface SaveBarProps {
@@ -77,12 +77,12 @@ export function SaveBar({
   const failed = !!error && !saving && !confirming;
 
   // Portalled to <body>, so no Strapi ancestor (transform, contain) can
-  // break position:fixed. The bar root carries .adm-root and follows
-  // <html data-adm-theme>. The in-flow spacer keeps the end of the page
+  // break position:fixed. The bar root carries .ui-root and follows
+  // <html data-theme>. The in-flow spacer keeps the end of the page
   // scrollable out from under the floating bar while it is shown.
   return (
     <>
-      <div className="adm-sbar-spacer" aria-hidden="true" />
+      <div className="ui-savebar-spacer" aria-hidden="true" />
       {createPortal(
         <SaveBarView
           state={saving ? 'saving' : dirty ? 'dirty' : 'idle'}

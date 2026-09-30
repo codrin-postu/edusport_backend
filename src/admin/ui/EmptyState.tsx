@@ -9,8 +9,8 @@ export interface EmptyStateProps {
 /** "Nothing here" block for lists, tables and panes. */
 export function EmptyState({ children, icon, action }: EmptyStateProps) {
   return (
-    <div className="adm-empty">
-      {icon && <div className="adm-empty-icon" aria-hidden="true">{icon}</div>}
+    <div className="ui-empty">
+      {icon && <div className="ui-empty-icon" aria-hidden="true">{icon}</div>}
       <div>{children}</div>
       {action}
     </div>

@@ -40,10 +40,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       ref={ref}
       type={type}
       className={cx(
-        'adm-btn',
-        `adm-btn--${variant}`,
-        size === 'sm' && 'adm-btn--sm',
-        iconOnly && 'adm-btn--icon',
+        'ui-btn',
+        `ui-btn--${variant}`,
+        size === 'sm' && 'ui-btn--sm',
+        iconOnly && 'ui-btn--icon',
         className,
       )}
       disabled={disabled || loading}

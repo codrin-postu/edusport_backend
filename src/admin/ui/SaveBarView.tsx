@@ -17,8 +17,8 @@ import type { ThemeName } from './tokens';
  * Keyboard while mounted: Cmd/Ctrl+S saves, Esc asks to discard or cancels
  * the question.
  *
- * Styled only through --adm-savebar-* and --adm-radius-savebar* tokens
- * (tokens.ts); the classes live in styles.ts under .adm-sbar.
+ * Styled only through --theme-savebar-* and --ui-radius-savebar* tokens
+ * (tokens.ts); the classes live in styles.ts under .ui-savebar.
  */
 
 export type SaveBarViewState = 'dirty' | 'saving' | 'idle';
@@ -35,7 +35,7 @@ export interface SaveBarViewProps {
   inline?: boolean;
   /** Force the phone bottom-sheet layout (reference page). */
   sheet?: boolean;
-  /** Set data-adm-theme on the bar, for a bar mounted outside any themed root. */
+  /** Set data-theme on the bar, for a bar mounted outside any themed root. */
   theme?: ThemeName;
   /** Replaces the status text (e.g. a save error). */
   message?: string;
@@ -63,11 +63,11 @@ export interface SaveBarViewProps {
 
 /** True while a dialog is open, so Esc belongs to it and not to the bar. */
 function dialogOpen(): boolean {
-  return document.querySelector('.adm-modal-layer, [role="dialog"][aria-modal="true"], [role="alertdialog"]') != null;
+  return document.querySelector('.ui-modal-layer, [role="dialog"][aria-modal="true"], [role="alertdialog"]') != null;
 }
 
 function Spin() {
-  return <span className="adm-sbar-spin" aria-hidden="true" />;
+  return <span className="ui-savebar-spin" aria-hidden="true" />;
 }
 
 export function SaveBarView({
@@ -141,25 +141,25 @@ export function SaveBarView({
 
   return (
     <div
-      className={cx('adm-root', 'adm-sbar', inline && 'adm-sbar--inline', sheet && 'adm-sbar--sheet')}
+      className={cx('ui-root', 'ui-savebar', inline && 'ui-savebar--inline', sheet && 'ui-savebar--sheet')}
       data-visible={visible || inline ? 'true' : 'false'}
-      data-adm-theme={theme}
+      data-theme={theme}
       role="status"
       aria-live="polite"
     >
-      <span className="adm-sbar-icon" data-tone={dot} aria-hidden="true">
+      <span className="ui-savebar-icon" data-tone={dot} aria-hidden="true">
         {isSaving ? <Spin /> : '!'}
       </span>
-      <span className="adm-sbar-label">{label}</span>
-      {extra && <span className="adm-sbar-extra">{extra}</span>}
+      <span className="ui-savebar-label">{label}</span>
+      {extra && <span className="ui-savebar-extra">{extra}</span>}
       {confirming ? (
         <>
-          <button type="button" className="adm-sbar-btn" onClick={onCancelDiscard} aria-label="Anulează renunțarea">
+          <button type="button" className="ui-savebar-btn" onClick={onCancelDiscard} aria-label="Anulează renunțarea">
             Nu
           </button>
           <button
             type="button"
-            className="adm-sbar-btn adm-sbar-btn--danger"
+            className="ui-savebar-btn ui-savebar-btn--danger"
             onClick={onConfirmDiscard}
             aria-label="Confirmă renunțarea"
             autoFocus={!inline}
@@ -175,7 +175,7 @@ export function SaveBarView({
               {onDiscard && (
                 <button
                   type="button"
-                  className="adm-sbar-btn"
+                  className="ui-savebar-btn"
                   onClick={onDiscard}
                   disabled={isSaving}
                   aria-label="Renunță la modificări"
@@ -185,7 +185,7 @@ export function SaveBarView({
               )}
               <button
                 type="button"
-                className="adm-sbar-btn adm-sbar-btn--primary"
+                className="ui-savebar-btn ui-savebar-btn--primary"
                 onClick={onSave}
                 disabled={isSaving || !canSave}
                 aria-busy={isSaving || undefined}
@@ -197,18 +197,18 @@ export function SaveBarView({
             </>
           )}
           {canPreview && (
-            <button type="button" className="adm-sbar-btn" onClick={onPreview} disabled={isSaving} aria-label="Previzualizează articolul">
+            <button type="button" className="ui-savebar-btn" onClick={onPreview} disabled={isSaving} aria-label="Previzualizează articolul">
               Previzualizează
             </button>
           )}
           {/* Publish / Unpublish stay available dirty or clean; Strapi asks to save first if needed. */}
           {canPublish && (
-            <button type="button" className="adm-sbar-btn adm-sbar-btn--success" onClick={onPublish} disabled={isSaving} aria-label="Publică">
+            <button type="button" className="ui-savebar-btn ui-savebar-btn--success" onClick={onPublish} disabled={isSaving} aria-label="Publică">
               Publică
             </button>
           )}
           {canUnpublish && (
-            <button type="button" className="adm-sbar-btn" onClick={onUnpublish} disabled={isSaving} aria-label="Retrage publicarea">
+            <button type="button" className="ui-savebar-btn" onClick={onUnpublish} disabled={isSaving} aria-label="Retrage publicarea">
               Retrage publicarea
             </button>
           )}

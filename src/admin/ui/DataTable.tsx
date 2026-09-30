@@ -126,12 +126,12 @@ export function DataTable<T>({
   const showBar = search || toolbar;
 
   return (
-    <div className={cx('adm-dt-root', className)}>
+    <div className={cx('ui-table-root', className)}>
       {showBar && (
-        <div className="adm-dt-bar">
+        <div className="ui-table-bar">
           {search && (
             <Input
-              className="adm-dt-search"
+              className="ui-table-search"
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -149,9 +149,9 @@ export function DataTable<T>({
       ) : visible.length === 0 ? (
         <EmptyState>{noMatches}</EmptyState>
       ) : (
-        <div className="adm-dt-wrap">
-          <table className="adm-dt">
-            {caption && <caption className="adm-sr">{caption}</caption>}
+        <div className="ui-table-wrap">
+          <table className="ui-table">
+            {caption && <caption className="ui-sr">{caption}</caption>}
             <thead>
               <tr>
                 {columns.map((c) => {
@@ -167,7 +167,7 @@ export function DataTable<T>({
                       {c.sortable ? (
                         <button type="button" onClick={() => toggleSort(c.key)}>
                           {c.header}
-                          <span className="adm-dt-sort" aria-hidden="true">
+                          <span className="ui-table-sort" aria-hidden="true">
                             {dir === 'asc' ? '▲' : dir === 'desc' ? '▼' : ''}
                           </span>
                         </button>
@@ -183,7 +183,7 @@ export function DataTable<T>({
               {visible.map((row) => (
                 <tr
                   key={getRowKey(row)}
-                  className={onRowClick ? 'adm-dt-click' : undefined}
+                  className={onRowClick ? 'ui-table-click' : undefined}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   tabIndex={onRowClick ? 0 : undefined}
                   aria-label={onRowClick && rowLabel ? rowLabel(row) : undefined}
@@ -211,7 +211,7 @@ export function DataTable<T>({
         </div>
       )}
       {!loading && pageSize > 0 && sorted.length > pageSize && (
-        <Pager className="adm-dt-pager" page={current} pageCount={pageCount} onChange={setPage} total={sorted.length} pageSize={pageSize} />
+        <Pager className="ui-table-pager" page={current} pageCount={pageCount} onChange={setPage} total={sorted.length} pageSize={pageSize} />
       )}
     </div>
   );

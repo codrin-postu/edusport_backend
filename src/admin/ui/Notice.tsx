@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { cx } from './cx';
 
-export type NoticeTone = 'ok' | 'warn' | 'danger' | 'info';
+export type NoticeTone = 'success' | 'warning' | 'danger' | 'info';
 
 export interface NoticeProps {
   tone?: NoticeTone;
@@ -12,17 +12,17 @@ export interface NoticeProps {
   className?: string;
 }
 
-/** Inline message block. danger and warn are announced as alerts, ok and info politely. */
+/** Inline message block. danger and warning are announced as alerts, success and info politely. */
 export function Notice({ tone = 'info', title, children, action, className }: NoticeProps) {
-  const urgent = tone === 'danger' || tone === 'warn';
+  const urgent = tone === 'danger' || tone === 'warning';
   return (
-    <div className={cx('adm-notice', `adm-notice--${tone}`, className)} role={urgent ? 'alert' : 'status'}>
-      <span className="adm-notice-mark" aria-hidden="true" />
-      <div className="adm-notice-text">
-        {title && <b className="adm-notice-title">{title}</b>}
-        {children && <span className="adm-notice-body">{children}</span>}
+    <div className={cx('ui-notice', `ui-notice--${tone}`, className)} role={urgent ? 'alert' : 'status'}>
+      <span className="ui-notice-mark" aria-hidden="true" />
+      <div className="ui-notice-text">
+        {title && <b className="ui-notice-title">{title}</b>}
+        {children && <span className="ui-notice-body">{children}</span>}
       </div>
-      {action && <div className="adm-notice-action">{action}</div>}
+      {action && <div className="ui-notice-action">{action}</div>}
     </div>
   );
 }

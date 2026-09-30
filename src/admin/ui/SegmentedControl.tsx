@@ -61,7 +61,7 @@ export function SegmentedControl<V extends string = string>({
       aria-label={aria['aria-label']}
       aria-labelledby={aria['aria-labelledby']}
       aria-disabled={disabled || undefined}
-      className={cx('adm-root', 'adm-seg', size === 'sm' && 'adm-seg--sm', block && 'adm-seg--block', className)}
+      className={cx('ui-root', 'ui-seg', size === 'sm' && 'ui-seg--sm', block && 'ui-seg--block', className)}
     >
       {options.map((o, i) => {
         const on = o.value === value;
@@ -76,7 +76,7 @@ export function SegmentedControl<V extends string = string>({
             aria-checked={on}
             tabIndex={i === selected ? 0 : -1}
             disabled={disabled || o.disabled}
-            className="adm-seg-opt"
+            className="ui-seg-opt"
             onClick={() => {
               if (!on) onChange(o.value);
             }}

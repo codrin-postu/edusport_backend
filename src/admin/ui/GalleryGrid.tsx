@@ -78,17 +78,17 @@ function Tile({
 }) {
   const name = img.name || label;
   return (
-    <li {...itemProps} className="adm-gal-tile" style={{ backgroundImage: `url(${img.thumbnailUrl ?? img.url})` }}>
+    <li {...itemProps} className="ui-gal-tile" style={{ backgroundImage: `url(${img.thumbnailUrl ?? img.url})` }}>
       {onPick ? (
-        <button type="button" className="adm-gal-hit" aria-label={`Schimbă ${label}: ${name}`} disabled={disabled} onClick={onPick} />
+        <button type="button" className="ui-gal-hit" aria-label={`Schimbă ${label}: ${name}`} disabled={disabled} onClick={onPick} />
       ) : (
-        <span className="adm-sr">{name}</span>
+        <span className="ui-sr">{name}</span>
       )}
       {grip}
-      <button type="button" className="adm-gal-x" aria-label={`Elimină ${name}`} title="Elimină" disabled={disabled} onClick={onRemove}>
+      <button type="button" className="ui-gal-x" aria-label={`Elimină ${name}`} title="Elimină" disabled={disabled} onClick={onRemove}>
         <IconClose size={12} />
       </button>
-      <span className="adm-gal-cap" aria-hidden="true">
+      <span className="ui-gal-cap" aria-hidden="true">
         {label}
       </span>
     </li>
@@ -150,27 +150,27 @@ export function GalleryGrid(props: GalleryGridProps) {
     return n === 1 ? String(img.id) : `${img.id}~${n}`;
   };
 
-  const style = { '--adm-gal-cols': String(columns) } as React.CSSProperties;
+  const style = { '--ui-gal-cols': String(columns) } as React.CSSProperties;
 
   return (
-    <div className={cx('adm-root', 'adm-gal-wrap', className)}>
-      <ul className="adm-gal" style={style} aria-label={props['aria-label'] ?? 'Galerie'}>
+    <div className={cx('ui-root', 'ui-gal-wrap', className)}>
+      <ul className="ui-gal" style={style} aria-label={props['aria-label'] ?? 'Galerie'}>
         {list.map((img, i) => {
           const grip =
             reorder && img ? (
-              <button type="button" className="adm-gal-grip" aria-label={`Mută ${labelOf(i)}`} disabled={disabled} {...drag.handleProps(i)}>
+              <button type="button" className="ui-gal-grip" aria-label={`Mută ${labelOf(i)}`} disabled={disabled} {...drag.handleProps(i)}>
                 <IconGrip size={12} />
               </button>
             ) : null;
           const itemProps = reorder ? drag.itemProps(i) : undefined;
           if (!img) {
             return (
-              <li key={`slot-${i}`} {...itemProps} className="adm-gal-tile adm-gal-tile--empty">
-                <button type="button" className="adm-gal-add" disabled={disabled} onClick={() => setPicking({ slot: i })} aria-label={`${addLabel}: ${labelOf(i)}`}>
+              <li key={`slot-${i}`} {...itemProps} className="ui-gal-tile ui-gal-tile--empty">
+                <button type="button" className="ui-gal-add" disabled={disabled} onClick={() => setPicking({ slot: i })} aria-label={`${addLabel}: ${labelOf(i)}`}>
                   <IconPlus />
                   <span>{addLabel}</span>
                 </button>
-                <span className="adm-gal-cap" aria-hidden="true">
+                <span className="ui-gal-cap" aria-hidden="true">
                   {labelOf(i)}
                 </span>
               </li>
@@ -190,8 +190,8 @@ export function GalleryGrid(props: GalleryGridProps) {
           );
         })}
         {!slotMode && !full && (
-          <li className="adm-gal-tile adm-gal-tile--empty">
-            <button type="button" className="adm-gal-add" disabled={disabled} onClick={() => setPicking({ slot: null })}>
+          <li className="ui-gal-tile ui-gal-tile--empty">
+            <button type="button" className="ui-gal-add" disabled={disabled} onClick={() => setPicking({ slot: null })}>
               <IconPlus />
               <span>{addLabel}</span>
             </button>

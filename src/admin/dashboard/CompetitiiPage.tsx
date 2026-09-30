@@ -60,16 +60,16 @@ function score(v: number | null | undefined): string {
 }
 
 const COMPETITII_CSS = `
-.adm-root .cmp-cand{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
-.adm-root .cmp-cand-btn{text-align:left;border:1px solid var(--adm-line-strong);border-radius:var(--adm-radius-sm);padding:8px 12px;background:var(--adm-surface-raised);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;font:inherit;color:var(--adm-text-primary)}
-.adm-root .cmp-cand-btn:disabled{cursor:default;opacity:.6}
-.adm-root .cmp-cand-url{font-size:11.5px;color:var(--adm-text-muted);word-break:break-all}
-.adm-root .cmp-cand-go{flex:none;color:var(--adm-accent);font-weight:700;font-size:12px}
-.adm-root .cmp-detail{background:var(--adm-surface-subtle);border:1px solid var(--adm-line);border-radius:var(--adm-radius-sm);padding:8px 14px 14px;margin-top:-1px}
-.adm-root .cmp-detail-count{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--adm-text-muted);margin:6px 0}
-.adm-root .cmp-detail-msg{padding:10px 4px;font-size:12.5px;color:var(--adm-text-secondary)}
-.adm-root .cmp-mini-row{cursor:pointer}
-.adm-root .cmp-msg{margin-top:var(--adm-space-3)}
+.ui-root .cmp-cand{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.ui-root .cmp-cand-btn{text-align:left;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);padding:8px 12px;background:var(--theme-surface);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;font:inherit;color:var(--theme-text)}
+.ui-root .cmp-cand-btn:disabled{cursor:default;opacity:.6}
+.ui-root .cmp-cand-url{font-size:11.5px;color:var(--theme-text-muted);word-break:break-all}
+.ui-root .cmp-cand-go{flex:none;color:var(--theme-primary);font-weight:700;font-size:12px}
+.ui-root .cmp-detail{background:var(--theme-surface-subtle);border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);padding:8px 14px 14px;margin-top:-1px}
+.ui-root .cmp-detail-count{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--theme-text-muted);margin:6px 0}
+.ui-root .cmp-detail-msg{padding:10px 4px;font-size:12.5px;color:var(--theme-text-secondary)}
+.ui-root .cmp-mini-row{cursor:pointer}
+.ui-root .cmp-msg{margin-top:var(--ui-space-3)}
 `;
 
 export default function CompetitiiPage() {
@@ -356,7 +356,7 @@ export default function CompetitiiPage() {
         />
 
         <Section title="Importă o competiție">
-          <div className="adm-grid2">
+          <div className="ui-grid2">
             <Field label="Nume competiție sau URL rezultate" hideLabel>
               <Input
                 placeholder="Nume competiție (ex. Crystal Skate of Romania 2024) sau URL rezultate"
@@ -376,7 +376,7 @@ export default function CompetitiiPage() {
           </div>
 
           {msg && (
-            <Notice tone={msg.kind === 'ok' ? 'ok' : 'danger'} className="cmp-msg">
+            <Notice tone={msg.kind === 'ok' ? 'success' : 'danger'} className="cmp-msg">
               {msg.text}
             </Notice>
           )}
@@ -403,7 +403,7 @@ export default function CompetitiiPage() {
         </Section>
 
         <Section title="Competiții importate">
-          <div className="adm-grid2" style={{ marginBottom: 12 }}>
+          <div className="ui-grid2" style={{ marginBottom: 12 }}>
             <Select
               aria-label="Filtrează după sezon"
               value={seasonFilter}

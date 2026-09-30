@@ -27,14 +27,14 @@ function BackLink({ back }: { back: PageHeaderBack }) {
   const label = back.label ?? 'Înapoi';
   if (back.to) {
     return (
-      <Link className="adm-ph-back" to={back.to} onClick={back.onClick}>
+      <Link className="ui-ph-back" to={back.to} onClick={back.onClick}>
         <Arrow />
         {label}
       </Link>
     );
   }
   return (
-    <button type="button" className="adm-ph-back" onClick={back.onClick}>
+    <button type="button" className="ui-ph-back" onClick={back.onClick}>
       <Arrow />
       {label}
     </button>
@@ -44,13 +44,13 @@ function BackLink({ back }: { back: PageHeaderBack }) {
 /** Page title block: optional back link, h1, subtitle, actions slot. */
 export function PageHeader({ title, subtitle, actions, back }: PageHeaderProps) {
   return (
-    <header className="adm-ph">
+    <header className="ui-ph">
       <div>
         {back && <BackLink back={back} />}
-        <h1 className="adm-ph-title">{title}</h1>
-        {subtitle && <p className="adm-ph-sub">{subtitle}</p>}
+        <h1 className="ui-ph-title">{title}</h1>
+        {subtitle && <p className="ui-ph-sub">{subtitle}</p>}
       </div>
-      {actions && <div className="adm-ph-actions">{actions}</div>}
+      {actions && <div className="ui-ph-actions">{actions}</div>}
     </header>
   );
 }

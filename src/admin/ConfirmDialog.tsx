@@ -17,7 +17,7 @@ import { Input } from './ui/Input';
  * (`include: ["../plugins/**\/admin/src/**\/*", "./"]`).
  *
  * Built on the shared admin Modal (src/admin/ui/Modal): it portals to <body>
- * with its own `.adm-root` scope and themed tokens, so it renders the same
+ * with its own `.ui-root` scope and themed tokens, so it renders the same
  * inside the dashboard's `.eduf` root, the plugin's `.pce` root, or anywhere
  * else, and follows the Strapi light / dark theme. Props and behaviour are
  * unchanged for every caller.
@@ -25,7 +25,7 @@ import { Input } from './ui/Input';
  * SaveBar note: `src/admin/app.tsx` hides Strapi's default action buttons by
  * accessible name (save / salvează / publică / previzualizare / retrage). None
  * of this dialog's labels collide, and the tagger additionally skips anything
- * inside a dialog, `.pce` or `.adm-root` (see tagDefaultSaveAndPreview).
+ * inside a dialog, `.pce` or `.ui-root` (see tagDefaultSaveAndPreview).
  */
 
 export interface ConfirmDialogProps {
@@ -106,7 +106,7 @@ export function ConfirmDialog({
           </Button>
           <Button
             variant={tone === 'danger' ? 'danger' : 'primary'}
-            className={tone === 'danger' ? 'adm-btn--solid' : undefined}
+            className={tone === 'danger' ? 'ui-btn--solid' : undefined}
             onClick={onConfirm}
             disabled={confirmDisabled}
           >
@@ -118,13 +118,13 @@ export function ConfirmDialog({
       <p style={{ margin: needsTyping || detail ? '0 0 12px' : 0 }}>{message}</p>
 
       {detail && (
-        <p className="adm-muted" style={{ margin: needsTyping ? '0 0 12px' : 0 }}>
+        <p className="ui-muted" style={{ margin: needsTyping ? '0 0 12px' : 0 }}>
           {detail}
         </p>
       )}
 
       {needsTyping && (
-        <Field label={typedPrompt ?? `Scrie „${expected}" pentru confirmare:`} className="adm-confirm-typed">
+        <Field label={typedPrompt ?? `Scrie „${expected}" pentru confirmare:`} className="ui-confirm-typed">
           <Input
             ref={inputRef}
             value={typed}
@@ -139,7 +139,7 @@ export function ConfirmDialog({
       )}
 
       {error && (
-        <div className="adm-error" role="alert" style={{ marginTop: 10, fontSize: 12.5 }}>
+        <div className="ui-error" role="alert" style={{ marginTop: 10, fontSize: 12.5 }}>
           {error}
         </div>
       )}

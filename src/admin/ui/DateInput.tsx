@@ -12,7 +12,7 @@ export interface DateInputProps extends Omit<React.InputHTMLAttributes<HTMLInput
 /**
  * Native date (or datetime-local) input with a null-for-empty contract, so
  * pages can send the value straight to Strapi. Follows the theme through
- * color-scheme on .adm-root.
+ * color-scheme on .ui-root.
  */
 export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(function DateInput(
   { className, value, onChange, withTime = false, ...props },
@@ -24,7 +24,7 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(func
     <input
       ref={ref}
       type={withTime ? 'datetime-local' : 'date'}
-      className={cx('adm-input', className)}
+      className={cx('ui-input', className)}
       value={shown}
       onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
       {...p}

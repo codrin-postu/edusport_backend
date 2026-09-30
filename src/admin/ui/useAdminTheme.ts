@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { THEMES, type ThemeName } from './tokens';
+import { THEMES, THEME_ATTR, type ThemeName } from './tokens';
 
 /**
  * The one place that works out which theme the Strapi admin is showing.
@@ -18,12 +18,11 @@ import { THEMES, type ThemeName } from './tokens';
  *     EdusportShell).
  *
  * While at least one subscriber is listening (startAdminThemeSync() is one),
- * the resolved name is mirrored on <html data-adm-theme="...">, which is what
- * switches the --adm-* token blocks in ./styles.ts.
+ * the resolved name is mirrored on <html data-theme="...">, which is what
+ * switches the --theme-* token blocks from ./tokens.ts.
  */
 
 const STRAPI_THEME_KEY = 'STRAPI_THEME';
-const THEME_ATTR = 'data-adm-theme';
 const POLL_MS = 1500;
 
 function isThemeName(v: string): v is ThemeName {
@@ -116,7 +115,7 @@ export function subscribeAdminTheme(fn: Listener): () => void {
 }
 
 /**
- * Keep <html data-adm-theme> in sync for the lifetime of the admin. Called once
+ * Keep <html data-theme> in sync for the lifetime of the admin. Called once
  * from the admin bootstrap; idempotent.
  */
 let permanent: (() => void) | null = null;

@@ -42,26 +42,26 @@ export function ExpandableRow({
   const bodyId = React.useId().replace(/:/g, '');
   const Tag = as;
   return (
-    <Tag {...rowProps} className={cx('adm-row', expanded && 'adm-row--open', className)}>
-      <div className="adm-row-h">
+    <Tag {...rowProps} className={cx('ui-row', expanded && 'ui-row--open', className)}>
+      <div className="ui-row-h">
         {lead}
         <button
           type="button"
-          className="adm-row-toggle"
+          className="ui-row-toggle"
           aria-expanded={expanded}
-          aria-controls={expanded ? `adm-rb${bodyId}` : undefined}
+          aria-controls={expanded ? `ui-rb${bodyId}` : undefined}
           aria-label={toggleLabel}
           onClick={onToggle}
         >
-          <span className="adm-row-summary">{summary}</span>
-          <span className="adm-row-chev">
+          <span className="ui-row-summary">{summary}</span>
+          <span className="ui-row-chev">
             <IconChevronDown />
           </span>
         </button>
-        {actions && <div className="adm-row-actions">{actions}</div>}
+        {actions && <div className="ui-row-actions">{actions}</div>}
       </div>
       {expanded && (
-        <div className="adm-row-b" id={`adm-rb${bodyId}`}>
+        <div className="ui-row-b" id={`ui-rb${bodyId}`}>
           {children}
         </div>
       )}

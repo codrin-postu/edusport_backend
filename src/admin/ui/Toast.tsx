@@ -26,7 +26,7 @@ import { ensureAdminUi } from './styles';
  * triggered the toast.
  */
 
-export type ToastTone = 'ok' | 'info' | 'warn' | 'danger';
+export type ToastTone = 'success' | 'info' | 'warning' | 'danger';
 
 export interface ToastOptions {
   /** Optional bold lead-in, above the message. */
@@ -44,11 +44,11 @@ interface ToastItem {
   duration: number | null;
 }
 
-/** success/info: 3s. warn: 5s. danger: stays until closed. */
+/** success/info: 3s. warning: 5s. danger: stays until closed. */
 const DEFAULT_DURATION: Record<ToastTone, number | null> = {
-  ok: 3000,
+  success: 3000,
   info: 3000,
-  warn: 5000,
+  warning: 5000,
   danger: null,
 };
 
@@ -80,9 +80,11 @@ function dismiss(id: number): void {
 
 /** Usable from anywhere: a component, an event handler, a plain async function. No provider needed. */
 export const adminToast = {
-  success: (text: React.ReactNode, opts?: ToastOptions) => push('ok', text, opts),
+  success: (text: React.ReactNode, opts?: ToastOptions) => push('success', text, opts),
   info: (text: React.ReactNode, opts?: ToastOptions) => push('info', text, opts),
-  warn: (text: React.ReactNode, opts?: ToastOptions) => push('warn', text, opts),
+  warning: (text: React.ReactNode, opts?: ToastOptions) => push('warning', text, opts),
+  /** Alias of `warning`, kept for older call sites. */
+  warn: (text: React.ReactNode, opts?: ToastOptions) => push('warning', text, opts),
   error: (text: React.ReactNode, opts?: ToastOptions) => push('danger', text, opts),
   dismiss,
 };
@@ -151,19 +153,19 @@ function ToastCard({ item }: { item: ToastItem }) {
     startedAt.current = null;
   };
 
-  const urgent = item.tone === 'warn' || item.tone === 'danger';
+  const urgent = item.tone === 'warning' || item.tone === 'danger';
 
   return (
     <div
-      className={cx('adm-toast', `adm-toast--${item.tone}`, leaving && 'adm-toast--out')}
+      className={cx('ui-toast', `ui-toast--${item.tone}`, leaving && 'ui-toast--out')}
       role={urgent ? 'alert' : 'status'}
       aria-live={urgent ? undefined : 'polite'}
       onMouseEnter={pause}
       onMouseLeave={arm}
     >
-      <div className="adm-toast-text">
-        {item.title && <b className="adm-toast-title">{item.title}</b>}
-        <span className="adm-toast-body">{item.text}</span>
+      <div className="ui-toast-text">
+        {item.title && <b className="ui-toast-title">{item.title}</b>}
+        <span className="ui-toast-body">{item.text}</span>
       </div>
       <Button
         variant="ghost"
@@ -171,7 +173,7 @@ function ToastCard({ item }: { item: ToastItem }) {
         iconOnly
         icon={CLOSE_ICON}
         aria-label="Închide"
-        className="adm-toast-close"
+        className="ui-toast-close"
         onClick={close}
       />
     </div>
@@ -184,7 +186,7 @@ export function ToastViewport(): React.ReactPortal | null {
   const list = React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   if (typeof document === 'undefined') return null;
   return createPortal(
-    <div className="adm-root adm-toast-viewport" aria-label="Notificări">
+    <div className="ui-root ui-toast-viewport" aria-label="Notificări">
       {list.map((item) => (
         <ToastCard key={item.id} item={item} />
       ))}

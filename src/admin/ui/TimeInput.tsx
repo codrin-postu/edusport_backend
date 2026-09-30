@@ -119,10 +119,10 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(func
   const maxMinute = hi && base.hour === hi.hour ? hi.minute : 59;
 
   return (
-    <span ref={wrapRef} className={cx('adm-root', 'adm-time', disabled && 'adm-time--disabled', className)}>
+    <span ref={wrapRef} className={cx('ui-root', 'ui-time', disabled && 'ui-time--disabled', className)}>
       <button
         type="button"
-        className="adm-time-btn"
+        className="ui-time-btn"
         aria-label="Alege ora"
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -139,7 +139,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(func
         autoComplete="off"
         maxLength={5}
         placeholder={placeholder}
-        className="adm-input"
+        className="ui-input"
         disabled={disabled}
         {...p}
         value={draft ?? (cur ? formatTime(cur) : '')}
@@ -167,8 +167,8 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(func
           }
         }}
       />
-      <Popover open={open && !disabled} anchorRef={wrapRef} onClose={() => setOpen(false)} id={popId} role="dialog" className="adm-time-pop" offset={6} popoverProps={{ 'aria-label': 'Alege ora' }}>
-        <div className="adm-time-spin">
+      <Popover open={open && !disabled} anchorRef={wrapRef} onClose={() => setOpen(false)} id={popId} role="dialog" className="ui-time-pop" offset={6} popoverProps={{ 'aria-label': 'Alege ora' }}>
+        <div className="ui-time-spin">
           <NumberInput
             size="lg"
             label="ora"
@@ -184,7 +184,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(func
               emit(clamp({ hour: h, minute: base.minute }));
             }}
           />
-          <span className="adm-time-colon" aria-hidden="true">
+          <span className="ui-time-colon" aria-hidden="true">
             :
           </span>
           <NumberInput
@@ -203,7 +203,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(func
             }}
           />
         </div>
-        <div className="adm-hint adm-time-note">sau scrie ora direct în câmp</div>
+        <div className="ui-hint ui-time-note">sau scrie ora direct în câmp</div>
       </Popover>
     </span>
   );

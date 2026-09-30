@@ -2,25 +2,27 @@
  * EduSport admin design tokens.
  *
  * The ONLY file in src/admin allowed to hold raw colour values. Every
- * component class in ./styles.ts reads these through var(--adm-*) custom
- * properties, generated from the objects below.
+ * component class in ./styles.ts reads these through custom properties
+ * generated from the objects below: --palette-* (primitives), --theme-*
+ * (semantic colours, per theme) and --ui-* (theme-independent scales).
  *
  * Two layers, like the website:
  *   1. PALETTE: the primitive colours, named scales plus the brand colours
- *      (--adm-palette-<name>-<step>). The only place a hex value is written.
- *   2. The semantic themes (light, dark): surfaces, text, lines, accent,
- *      status, save bar, calendar categories. Each entry references PALETTE.
+ *      (--palette-<name>-<step>). The only place a hex value is written.
+ *   2. The semantic themes (light, dark), emitted as --theme-*: surfaces,
+ *      text, borders, primary, status, save bar, calendar categories. Each
+ *      entry references PALETTE.
  *   Pages use the semantic variables; palette variables are for the reference
  *   page and for the rare one-off that has no semantic name yet.
  *
  * Adding a theme = adding one more `AdminTheme` object to THEMES. Nothing else
- * changes: styles.ts emits a `:root[data-adm-theme="<name>"]` block per entry.
+ * changes: tokensCss() emits one `[data-theme="<name>"]` block per entry.
  *
  * Contrast (WCAG 2.1 AA, verified with scripts/admin-ui-check.mjs --contrast):
  *   - text.primary / secondary / muted: at least 4.5:1 on page, raised, subtle
  *     and sunken surfaces;
  *   - status fg: at least 4.5:1 on its own bg and on raised;
- *   - accent: at least 4.5:1 on raised (links), on-accent at least 4.5:1 on accent;
+ *   - primary: at least 4.5:1 on raised (links), on-primary at least 4.5:1 on primary;
  *   - line.strong (control borders: inputs, checkbox, switch track) and focus:
  *     at least 3:1 on raised and sunken (non-text contrast, 1.4.11);
  *   - line.default / line.subtle are decorative dividers (exempt), and
@@ -36,16 +38,16 @@
 /**
  * Every raw colour in the admin, as named scales (lighter steps have lower
  * numbers) plus the website's brand colours. Emitted as
- * --adm-palette-<name>-<step> (brand: --adm-palette-brand-<name>).
+ * --palette-<name>-<step> (brand: --palette-brand-<name>).
  * The semantic themes below only reference these entries; nothing outside
  * this block writes a hex value.
  *
- *   blue    the admin accent (#2138b8) family, light and dark
+ *   blue    the former admin primary (#2138b8) family, light and dark
  *   indigo  Strapi's own primary, used by the Strapi-matching save bar only
  *   sky     info
  *   grey    every neutral: light surfaces, text and lines, Strapi's dark
  *           neutrals (dark surfaces, the save bar) and black for shadows
- *   green / amber / red  ok / warn / danger, plus the save bar's states
+ *   green / amber / red  success / warning / danger, plus the save bar's states
  *   brand   the website's colours (navy, burgundy, orange, silver, rust,
  *           cream), shared by the calendar categories; *OnDark are the
  *           lifted fills the dark theme uses for them
@@ -64,7 +66,7 @@ export const PALETTE = {
     900: '#141a36',
     950: '#0d1233',
   },
-  /** The admin accent (chosen 2026-09-30): a muted blue, calmer than blue.600. */
+  /** The admin primary (chosen 2026-09-30): a muted blue, calmer than blue.600. */
   steel: {
     50: '#ecf0f7',
     100: '#cfd9ea',
@@ -177,7 +179,7 @@ function alpha(hex: string, a: number): string {
 
 /* ---- semantic themes ---------------------------------------------------- */
 
-export type StatusTone = 'ok' | 'warn' | 'danger' | 'info' | 'neutral';
+export type StatusTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
 export interface ToneColors {
   fg: string;
@@ -219,7 +221,7 @@ export interface AdminTheme {
     secondary: string;
     muted: string;
     disabled: string;
-    onAccent: string;
+    onPrimary: string;
   };
   line: {
     /** window and section borders, header dividers */
@@ -229,7 +231,7 @@ export interface AdminTheme {
     /** control borders (inputs, checkbox, switch track) */
     strong: string;
   };
-  accent: {
+  primary: {
     default: string;
     hover: string;
     soft: string;
@@ -244,7 +246,7 @@ export interface AdminTheme {
   /**
    * The floating save bar (SaveBarView), on native content-manager pages and
    * custom pages alike. Deliberately Strapi's own palette, not the EduSport
-   * accent: it is the approved Strapi-matching bar. In the light admin it is a
+   * primary: it is the approved Strapi-matching bar. In the light admin it is a
    * dark, inverse surface; in the dark admin a deeper one.
    */
   savebar: {
@@ -269,7 +271,7 @@ export interface AdminTheme {
     onIcon: string;
     shadow: string;
   };
-  /** Calendar category fills: --adm-cat-<name> and --adm-cat-<name>-fg. */
+  /** Calendar category fills: --theme-cat-<name> and --theme-cat-<name>-fg. */
   category: Record<CalendarCategory, CategoryColors>;
 }
 
@@ -287,22 +289,22 @@ export const light: AdminTheme = {
     secondary: P.grey[700],
     muted: P.grey[500],
     disabled: P.grey[350],
-    onAccent: P.grey[0],
+    onPrimary: P.grey[0],
   },
   line: {
     default: P.grey[200],
     subtle: P.grey[125],
     strong: P.grey[400],
   },
-  accent: {
+  primary: {
     default: P.steel[500],
     hover: P.steel[600],
     soft: P.steel[50],
     softLine: P.steel[100],
   },
   status: {
-    ok: { fg: P.green[700], bg: P.green[50], line: P.green[100] },
-    warn: { fg: P.amber[700], bg: P.amber[50], line: P.amber[100] },
+    success: { fg: P.green[700], bg: P.green[50], line: P.green[100] },
+    warning: { fg: P.amber[700], bg: P.amber[50], line: P.amber[100] },
     danger: { fg: P.red[600], bg: P.red[50], line: P.red[100] },
     info: { fg: P.sky[700], bg: P.sky[50], line: P.sky[100] },
     neutral: { fg: P.grey[600], bg: P.grey[125], line: P.grey[250] },
@@ -342,8 +344,8 @@ export const light: AdminTheme = {
 /**
  * Dark set, built on Strapi's own dark neutrals (#181826 page, #212134
  * surface, #32324d borders) so custom pages sit inside the dark admin without
- * a seam. The navy accent is lifted to a light periwinkle for contrast; text
- * on accent flips to a deep navy.
+ * a seam. The primary is lifted to a light periwinkle for contrast; text
+ * on primary flips to a deep navy.
  */
 export const dark: AdminTheme = {
   colorScheme: 'dark',
@@ -359,22 +361,22 @@ export const dark: AdminTheme = {
     secondary: P.grey[300],
     muted: P.grey[375],
     disabled: P.grey[525],
-    onAccent: P.steel[950],
+    onPrimary: P.steel[950],
   },
   line: {
     default: P.grey[750],
     subtle: P.grey[775],
     strong: P.grey[450],
   },
-  accent: {
+  primary: {
     default: P.steel[300],
     hover: P.steel[200],
     soft: P.steel[900],
     softLine: P.steel[800],
   },
   status: {
-    ok: { fg: P.green[200], bg: P.green[900], line: P.green[800] },
-    warn: { fg: P.amber[200], bg: P.amber[900], line: P.amber[800] },
+    success: { fg: P.green[200], bg: P.green[900], line: P.green[800] },
+    warning: { fg: P.amber[200], bg: P.amber[900], line: P.amber[800] },
     danger: { fg: P.red[300], bg: P.red[900], line: P.red[800] },
     info: { fg: P.sky[300], bg: P.sky[900], line: P.sky[800] },
     neutral: { fg: P.grey[300], bg: P.grey[775], line: P.grey[625] },
@@ -483,62 +485,86 @@ export const motion = {
 
 const kebab = (s: string) => s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
 
-/** Colour + shadow variables for one theme, e.g. { '--adm-surface-page': '#eef0f4', ... }. */
+/** Status tone -> CSS name part: --theme-success, --theme-success-bg, --theme-success-border. */
+const toneVar = (tone: string) => `--theme-${tone}`;
+
+/** Surface key -> CSS name: page is the page background, raised the default surface. */
+const SURFACE_VAR: Record<keyof AdminTheme['surface'], string> = {
+  page: '--theme-bg',
+  raised: '--theme-surface',
+  subtle: '--theme-surface-subtle',
+  sunken: '--theme-surface-sunken',
+  overlay: '--theme-overlay',
+};
+
+/** Text key -> CSS name: primary is plain --theme-text. */
+const TEXT_VAR: Record<keyof AdminTheme['text'], string> = {
+  primary: '--theme-text',
+  secondary: '--theme-text-secondary',
+  muted: '--theme-text-muted',
+  disabled: '--theme-text-disabled',
+  onPrimary: '--theme-on-primary',
+};
+
+/** Colour + shadow variables for one theme, e.g. { '--theme-bg': '#eef0f4', ... }. */
 export function themeVars(t: AdminTheme): Record<string, string> {
-  const v: Record<string, string> = { '--adm-color-scheme': t.colorScheme };
-  for (const [k, val] of Object.entries(t.surface)) v[`--adm-surface-${kebab(k)}`] = val;
-  for (const [k, val] of Object.entries(t.text)) v[`--adm-text-${kebab(k)}`] = val;
-  v['--adm-line'] = t.line.default;
-  v['--adm-line-subtle'] = t.line.subtle;
-  v['--adm-line-strong'] = t.line.strong;
-  v['--adm-accent'] = t.accent.default;
-  v['--adm-accent-hover'] = t.accent.hover;
-  v['--adm-accent-soft'] = t.accent.soft;
-  v['--adm-accent-soft-line'] = t.accent.softLine;
+  const v: Record<string, string> = { '--theme-color-scheme': t.colorScheme };
+  for (const [k, val] of Object.entries(t.surface)) v[SURFACE_VAR[k as keyof AdminTheme['surface']]] = val;
+  for (const [k, val] of Object.entries(t.text)) v[TEXT_VAR[k as keyof AdminTheme['text']]] = val;
+  v['--theme-border'] = t.line.default;
+  v['--theme-border-subtle'] = t.line.subtle;
+  v['--theme-border-strong'] = t.line.strong;
+  v['--theme-primary'] = t.primary.default;
+  v['--theme-primary-hover'] = t.primary.hover;
+  v['--theme-primary-soft'] = t.primary.soft;
+  v['--theme-primary-soft-line'] = t.primary.softLine;
   for (const [tone, c] of Object.entries(t.status)) {
-    v[`--adm-${tone}-fg`] = c.fg;
-    v[`--adm-${tone}-bg`] = c.bg;
-    v[`--adm-${tone}-line`] = c.line;
+    v[toneVar(tone)] = c.fg;
+    v[`${toneVar(tone)}-bg`] = c.bg;
+    v[`${toneVar(tone)}-border`] = c.line;
   }
-  v['--adm-focus'] = t.focus;
-  v['--adm-shadow-sm'] = t.shadow.sm;
-  v['--adm-shadow-md'] = t.shadow.md;
-  for (const [k, val] of Object.entries(t.savebar)) v[`--adm-savebar-${kebab(k)}`] = val;
+  v['--theme-focus'] = t.focus;
+  v['--theme-shadow-sm'] = t.shadow.sm;
+  v['--theme-shadow-md'] = t.shadow.md;
+  for (const [k, val] of Object.entries(t.savebar)) v[`--theme-savebar-${kebab(k)}`] = val;
   for (const [k, c] of Object.entries(t.category)) {
-    v[`--adm-cat-${k}`] = c.bg;
-    v[`--adm-cat-${k}-fg`] = c.fg;
+    v[`--theme-cat-${k}`] = c.bg;
+    v[`--theme-cat-${k}-fg`] = c.fg;
   }
   return v;
 }
 
-/** The primitive palette as variables: --adm-palette-blue-600, --adm-palette-brand-navy, ... */
+/** The primitive palette as variables: --palette-blue-600, --palette-brand-navy, ... */
 export function paletteVars(): Record<string, string> {
   const v: Record<string, string> = {};
   for (const [name, scale] of Object.entries(PALETTE)) {
-    for (const [step, hex] of Object.entries(scale)) v[`--adm-palette-${name}-${kebab(step)}`] = hex;
+    for (const [step, hex] of Object.entries(scale)) v[`--palette-${name}-${kebab(step)}`] = hex;
   }
   return v;
 }
 
-/** Theme-independent variables: palette, radius, spacing, type, font, motion. */
+/**
+ * Theme-independent variables of the component library (--ui-*): radius,
+ * spacing, type, font, motion. The palette (--palette-*) rides along.
+ */
 export function scaleVars(): Record<string, string> {
   const v: Record<string, string> = { ...paletteVars() };
-  for (const [k, val] of Object.entries(radius)) v[`--adm-radius-${k}`] = val;
-  v['--adm-radius-savebar'] = savebarRadius.bar;
-  v['--adm-radius-savebar-sheet'] = savebarRadius.sheet;
-  v['--adm-radius-savebar-dot'] = savebarRadius.dot;
-  for (const [k, val] of Object.entries(space)) v[`--adm-space-${k}`] = val;
+  for (const [k, val] of Object.entries(radius)) v[`--ui-radius-${k}`] = val;
+  v['--ui-radius-savebar'] = savebarRadius.bar;
+  v['--ui-radius-savebar-sheet'] = savebarRadius.sheet;
+  v['--ui-radius-savebar-dot'] = savebarRadius.dot;
+  for (const [k, val] of Object.entries(space)) v[`--ui-space-${k}`] = val;
   for (const [k, r] of Object.entries(type) as [string, TypeRole][]) {
     const n = kebab(k);
-    v[`--adm-fs-${n}`] = r.size;
-    v[`--adm-fw-${n}`] = String(r.weight);
-    v[`--adm-lh-${n}`] = r.lineHeight;
-    v[`--adm-ls-${n}`] = r.tracking ?? 'normal';
+    v[`--ui-fs-${n}`] = r.size;
+    v[`--ui-fw-${n}`] = String(r.weight);
+    v[`--ui-lh-${n}`] = r.lineHeight;
+    v[`--ui-ls-${n}`] = r.tracking ?? 'normal';
   }
-  v['--adm-font'] = font.family;
-  v['--adm-font-mono'] = font.mono;
-  v['--adm-motion-fast'] = motion.fast;
-  v['--adm-easing'] = motion.easing;
+  v['--ui-font'] = font.family;
+  v['--ui-font-mono'] = font.mono;
+  v['--ui-motion-fast'] = motion.fast;
+  v['--ui-easing'] = motion.easing;
   return v;
 }
 
@@ -549,18 +575,41 @@ function block(selector: string, vars: Record<string, string>, extra = ''): stri
   return `${selector}{${body}${extra}}`;
 }
 
+/** The theme attribute, on <html> (set by useAdminTheme) or on any element. */
+export const THEME_ATTR = 'data-theme';
+
 /**
- * All custom-property blocks: the scales on :root, then one block per theme.
- * The light set also applies when no theme attribute is set yet, so the first
- * paint is never unstyled. The theme blocks match the attribute on any
- * element, not only <html>, so a wrapper can preview another theme (the
- * reference page does); normally only <html data-adm-theme> carries it.
+ * An outermost `.ui-root`: one not nested in another. Nested roots (a gallery
+ * inside a page) inherit the variables instead of redeclaring them, so a
+ * wrapper that previews another theme reaches everything inside it. The
+ * :where() keeps the specificity at one class.
+ */
+const OUTER_ROOT = '.ui-root:not(:where(.ui-root .ui-root))';
+
+/**
+ * All custom-property blocks. Nothing is defined on :root or the page: the
+ * variables exist only on `.ui-root` (every surface we render carries it), so
+ * none of them leak into Strapi's own UI.
+ *
+ *   - scales + palette on every outermost .ui-root;
+ *   - one block per theme. The light set is also the default when no theme
+ *     attribute is set, so the first paint is never unstyled. Each theme block
+ *     applies to an outermost root under <html data-theme="<name>"> (weight of
+ *     one class, so it beats the default by order), and, winning over <html>,
+ *     to a root that carries the attribute itself or to any element with the
+ *     attribute inside a root (the reference page previews a theme this way).
  */
 export function tokensCss(): string {
-  const out = [block(':root', scaleVars())];
+  const out = [block(OUTER_ROOT, scaleVars())];
   for (const name of THEME_NAMES) {
     const t = THEMES[name];
-    const sel = name === 'light' ? `:root,[data-adm-theme="light"]` : `[data-adm-theme="${name}"]`;
+    const attr = `[${THEME_ATTR}="${name}"]`;
+    const sel = [
+      ...(name === 'light' ? [OUTER_ROOT] : []),
+      `:where(:root${attr}) ${OUTER_ROOT}`,
+      `${OUTER_ROOT}${attr}`,
+      `.ui-root ${attr}`,
+    ].join(',');
     out.push(block(sel, themeVars(t)));
   }
   return out.join('\n');

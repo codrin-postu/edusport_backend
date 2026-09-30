@@ -135,13 +135,13 @@ export function ObjectFieldCard<T extends object>({
   const groups: ObjectFieldSection<T>[] = sections ?? [{ keys: fields.map((f) => f.key) }];
 
   const grid = (keys: Array<keyof T & string>) => (
-    <div className="adm-ofc-grid">
+    <div className="ui-ofc-grid">
       {keys.map((k) => {
         const cfg = byKey.get(k);
         if (!cfg) return null;
         const span = cfg.span ?? (cfg.type === 'textarea' ? 2 : 1);
         return (
-          <Field key={k} label={cfg.label} hint={cfg.hint} required={cfg.required} error={cfg.error} className={cx(span === 2 && 'adm-ofc-span2')}>
+          <Field key={k} label={cfg.label} hint={cfg.hint} required={cfg.required} error={cfg.error} className={cx(span === 2 && 'ui-ofc-span2')}>
             <FieldControl<T>
               cfg={cfg}
               value={(value as Record<string, unknown>)[k]}
@@ -156,10 +156,10 @@ export function ObjectFieldCard<T extends object>({
 
   return (
     <EditorCard title={title} description={description} headerAction={headerAction} className={className}>
-      <div className="adm-ofc">
+      <div className="ui-ofc">
         {groups.map((g, i) => (
-          <div key={i} className="adm-ofc-sec">
-            {g.title && <h4 className="adm-ofc-sec-title">{g.title}</h4>}
+          <div key={i} className="ui-ofc-sec">
+            {g.title && <h4 className="ui-ofc-sec-title">{g.title}</h4>}
             {grid(g.keys)}
           </div>
         ))}

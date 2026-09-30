@@ -15,10 +15,10 @@ export interface ChipProps {
 export function Chip({ children, onRemove, removeLabel, title, className }: ChipProps) {
   const text = typeof children === 'string' ? children : '';
   return (
-    <span className={cx('adm-chip', !onRemove && 'adm-chip--static', className)} title={title ?? (text || undefined)}>
-      <span className="adm-chip-label">{children}</span>
+    <span className={cx('ui-chip', !onRemove && 'ui-chip--static', className)} title={title ?? (text || undefined)}>
+      <span className="ui-chip-label">{children}</span>
       {onRemove && (
-        <button type="button" className="adm-chip-x" onClick={onRemove} aria-label={removeLabel ?? (text ? `Elimină ${text}` : 'Elimină')}>
+        <button type="button" className="ui-chip-x" onClick={onRemove} aria-label={removeLabel ?? (text ? `Elimină ${text}` : 'Elimină')}>
           <span aria-hidden="true">×</span>
         </button>
       )}
@@ -28,7 +28,7 @@ export function Chip({ children, onRemove, removeLabel, title, className }: Chip
 
 /** Wrapping row of chips. */
 export function ChipList({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cx('adm-chips', className)}>{children}</div>;
+  return <div className={cx('ui-chips', className)}>{children}</div>;
 }
 
 export default Chip;

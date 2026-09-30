@@ -53,7 +53,7 @@ export function Modal({
 }: ModalProps) {
   const dialogRef = React.useRef<HTMLDivElement | null>(null);
   const titleId = React.useId();
-  const token = React.useMemo(() => Symbol('adm-modal'), []);
+  const token = React.useMemo(() => Symbol('ui-modal'), []);
   const closeRef = React.useRef(onClose);
   closeRef.current = onClose;
   const dismissRef = React.useRef(dismissable);
@@ -118,11 +118,11 @@ export function Modal({
 
   if (!open || typeof document === 'undefined') return null;
 
-  const layerStyle = zIndex ? ({ '--adm-modal-z': String(zIndex) } as React.CSSProperties) : undefined;
+  const layerStyle = zIndex ? ({ '--ui-modal-z': String(zIndex) } as React.CSSProperties) : undefined;
 
   return createPortal(
     <div
-      className="adm-root adm-modal-layer"
+      className="ui-root ui-modal-layer"
       style={layerStyle}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && dismissRef.current) closeRef.current();
@@ -134,16 +134,16 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={cx('adm-modal', size !== 'sm' && `adm-modal--${size}`, className)}
+        className={cx('ui-modal', size !== 'sm' && `ui-modal--${size}`, className)}
       >
-        <div className="adm-modal-h">
-          <h2 className="adm-modal-title" id={titleId}>
+        <div className="ui-modal-h">
+          <h2 className="ui-modal-title" id={titleId}>
             {title}
           </h2>
-          {headerExtra && <div className="adm-modal-extra">{headerExtra}</div>}
+          {headerExtra && <div className="ui-modal-extra">{headerExtra}</div>}
         </div>
-        {children !== undefined && children !== null && <div className={cx('adm-modal-b', bodyClassName)}>{children}</div>}
-        {footer && <div className="adm-modal-f">{footer}</div>}
+        {children !== undefined && children !== null && <div className={cx('ui-modal-b', bodyClassName)}>{children}</div>}
+        {footer && <div className="ui-modal-f">{footer}</div>}
       </div>
     </div>,
     document.body,

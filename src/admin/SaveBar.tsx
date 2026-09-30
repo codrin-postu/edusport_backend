@@ -8,11 +8,11 @@ import { ensureAdminUi } from './ui/styles';
  * hides Strapi's own Save / Publish / Unpublish / Preview controls and tags
  * them; this bar mirrors their state through a MutationObserver and forwards
  * clicks to them. The look is the shared SaveBarView (src/admin/ui), the same
- * bar custom pages get from ui/SaveBar.tsx; colours come from the --adm-*
+ * bar custom pages get from ui/SaveBar.tsx; colours come from the --theme-*
  * tokens and the theme from useAdminTheme.
  *
  * Custom pages never show this bar: their buttons sit inside `.pce` or
- * `.adm-root`, which the app.tsx tagger skips, so nothing is tagged there.
+ * `.ui-root`, which the app.tsx tagger skips, so nothing is tagged there.
  */
 
 const DEFAULT_SAVE_SELECTOR = '[data-edusport-default-save]';
@@ -183,7 +183,7 @@ export function SaveBar(): React.ReactElement | null {
   const theme = useAdminTheme();
   const { state: barState, clickSave, clickPublish, clickUnpublish, clickPreview } = useBarState();
 
-  // Tokens + .adm-sbar classes; the bootstrap already injects them, this is a safety net.
+  // Tokens + .ui-savebar classes; the bootstrap already injects them, this is a safety net.
   React.useEffect(() => {
     ensureAdminUi();
   }, []);

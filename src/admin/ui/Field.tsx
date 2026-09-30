@@ -58,7 +58,7 @@ export interface FieldProps {
 
 export function Field({ label, hint, error, required = false, id, hideLabel, className, children }: FieldProps) {
   const auto = React.useId();
-  const controlId = id ?? `adm-f${auto.replace(/:/g, '')}`;
+  const controlId = id ?? `ui-f${auto.replace(/:/g, '')}`;
   const hintId = hint ? `${controlId}-hint` : undefined;
   const errId = error ? `${controlId}-err` : undefined;
   const ctx = React.useMemo<FieldContextValue>(
@@ -71,23 +71,23 @@ export function Field({ label, hint, error, required = false, id, hideLabel, cla
     [controlId, errId, hintId, error, required],
   );
   return (
-    <div className={cx('adm-field', className)}>
-      <label htmlFor={controlId} className={cx('adm-label', hideLabel && 'adm-sr')}>
+    <div className={cx('ui-field', className)}>
+      <label htmlFor={controlId} className={cx('ui-label', hideLabel && 'ui-sr')}>
         {label}
         {required && (
-          <span className="adm-req" aria-hidden="true">
+          <span className="ui-req" aria-hidden="true">
             *
           </span>
         )}
       </label>
       <FieldContext.Provider value={ctx}>{children}</FieldContext.Provider>
       {error && (
-        <div id={errId} className="adm-error" role="alert">
+        <div id={errId} className="ui-error" role="alert">
           {error}
         </div>
       )}
       {hint && (
-        <div id={hintId} className="adm-hint">
+        <div id={hintId} className="ui-hint">
           {hint}
         </div>
       )}
@@ -97,7 +97,7 @@ export function Field({ label, hint, error, required = false, id, hideLabel, cla
 
 /** Two fields side by side, stacked on phones. */
 export function FieldRow({ children }: { children: React.ReactNode }) {
-  return <div className="adm-grid2">{children}</div>;
+  return <div className="ui-grid2">{children}</div>;
 }
 
 export default Field;

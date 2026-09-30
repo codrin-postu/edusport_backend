@@ -82,11 +82,11 @@ function byOrder(a: Row, b: Row): number {
 }
 
 const SPONSORI_CSS = `
-.adm-root .sp-logo{width:32px;height:32px;border-radius:var(--adm-radius-sm);background:var(--adm-surface-sunken) center/contain no-repeat;display:flex;align-items:center;justify-content:center;color:var(--adm-text-muted);font-weight:700;font-size:13px}
-.adm-root .sp-href{color:var(--adm-text-secondary)}
-.adm-root .sp-href.empty{color:var(--adm-text-muted)}
-.adm-root .sp-logo-pv{width:180px;aspect-ratio:16/9;border:1px solid var(--adm-line-strong);border-radius:var(--adm-radius-sm);background:var(--adm-surface-sunken) center/contain no-repeat;display:flex;align-items:center;justify-content:center;color:var(--adm-text-muted);font-size:11.5px}
-.adm-root .sp-acts{display:flex;gap:8px;margin-top:8px}
+.ui-root .sp-logo{width:32px;height:32px;border-radius:var(--ui-radius-sm);background:var(--theme-surface-sunken) center/contain no-repeat;display:flex;align-items:center;justify-content:center;color:var(--theme-text-muted);font-weight:700;font-size:13px}
+.ui-root .sp-href{color:var(--theme-text-secondary)}
+.ui-root .sp-href.empty{color:var(--theme-text-muted)}
+.ui-root .sp-logo-pv{width:180px;aspect-ratio:16/9;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);background:var(--theme-surface-sunken) center/contain no-repeat;display:flex;align-items:center;justify-content:center;color:var(--theme-text-muted);font-size:11.5px}
+.ui-root .sp-acts{display:flex;gap:8px;margin-top:8px}
 `;
 
 // ---- create / edit modal ----------------------------------------------------
@@ -150,7 +150,7 @@ function SponsorEditor({
         </div>
       </Field>
 
-      <div className="adm-grid2">
+      <div className="ui-grid2">
         <Field label="Link" hint="Opțional. Lasă gol dacă logo-ul nu trebuie să ducă nicăieri.">
           <Input
             value={draft.href}
@@ -172,7 +172,7 @@ function SponsorEditor({
       </div>
 
       {error && (
-        <div className="adm-error" role="alert" style={{ marginTop: 10 }}>
+        <div className="ui-error" role="alert" style={{ marginTop: 10 }}>
           {error}
         </div>
       )}
@@ -442,7 +442,7 @@ export default function SponsoriPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label="Caută după nume"
               />
-              {sortLocked && <span className="adm-hint">Golește căutarea pentru a putea reordona.</span>}
+              {sortLocked && <span className="ui-hint">Golește căutarea pentru a putea reordona.</span>}
             </>
           }
         />

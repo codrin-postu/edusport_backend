@@ -88,7 +88,7 @@ export function InboxLayout<T>({
     return (
       <div
         key={key}
-        className="adm-inbox-item"
+        className="ui-inbox-item"
         role="button"
         tabIndex={0}
         aria-current={on ? 'true' : undefined}
@@ -113,30 +113,30 @@ export function InboxLayout<T>({
   else
     list = groups.map((g) => (
       <React.Fragment key={g.label || 'all'}>
-        {g.label && <div className="adm-inbox-group">{g.label}</div>}
+        {g.label && <div className="ui-inbox-group">{g.label}</div>}
         {g.items.map(row)}
       </React.Fragment>
     ));
 
   return (
-    <div className="adm-inbox-root">
+    <div className="ui-inbox-root">
       {(tabs || notice) && (
-        <div className="adm-inbox-head">
+        <div className="ui-inbox-head">
           {tabs && activeTab !== undefined && onTabChange && <Tabs items={tabs} value={activeTab} onChange={onTabChange} />}
           {notice}
         </div>
       )}
-      {toolbar && <div className="adm-inbox-tools">{toolbar}</div>}
-      {bulkBar && <div className="adm-inbox-tools">{bulkBar}</div>}
-      <div className="adm-inbox" data-open={open ? 'true' : 'false'}>
-        <div className="adm-inbox-list" aria-label={listLabel} role="region">
-          <div className="adm-inbox-items">{list}</div>
+      {toolbar && <div className="ui-inbox-tools">{toolbar}</div>}
+      {bulkBar && <div className="ui-inbox-tools">{bulkBar}</div>}
+      <div className="ui-inbox" data-open={open ? 'true' : 'false'}>
+        <div className="ui-inbox-list" aria-label={listLabel} role="region">
+          <div className="ui-inbox-items">{list}</div>
           {!loading && !error && items.length > 0 && pageCount > 1 && (
-            <Pager className="adm-inbox-pager" page={page} pageCount={pageCount} total={total} pageSize={pageSize} onChange={onPageChange} />
+            <Pager className="ui-inbox-pager" page={page} pageCount={pageCount} total={total} pageSize={pageSize} onChange={onPageChange} />
           )}
         </div>
-        <div className="adm-inbox-reader">
-          <Button className="adm-inbox-back" size="sm" variant="ghost" onClick={() => onSelect(null)}>
+        <div className="ui-inbox-reader">
+          <Button className="ui-inbox-back" size="sm" variant="ghost" onClick={() => onSelect(null)}>
             Înapoi la listă
           </Button>
           {open ? reader : <EmptyState>{readerEmpty}</EmptyState>}

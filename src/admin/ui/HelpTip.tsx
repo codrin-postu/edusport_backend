@@ -46,7 +46,7 @@ export function HelpTip({ label, size = 18, placement = 'bottom-start', ariaLabe
       <button
         ref={ref}
         type="button"
-        className="adm-root adm-tipbtn"
+        className="ui-root ui-tipbtn"
         style={{ width: size, height: size }}
         aria-label={name}
         aria-describedby={open ? tipId : undefined}
@@ -70,7 +70,7 @@ export function HelpTip({ label, size = 18, placement = 'bottom-start', ariaLabe
         offset={6}
         id={tipId}
         role="tooltip"
-        className="adm-tip"
+        className="ui-tip"
         popoverProps={{
           onMouseEnter: () => {
             hover.current = true;

@@ -16,7 +16,7 @@ export interface EditorCardProps {
 
 /**
  * Card for a field editor: header (accent bar on the left, title, optional
- * description and action) over a raised body. Carries `.adm-root` itself, so
+ * description and action) over a raised body. Carries `.ui-root` itself, so
  * it renders the same inside a content-manager custom field (no AdminPage
  * around it) and on dashboard pages. Port of the plugin's
  * components/EditorCard, on tokens.
@@ -25,17 +25,17 @@ export function EditorCard({ title, description, headerAction, children, flush =
   React.useInsertionEffect(() => ensureAdminUi(), []);
   const headingId = React.useId().replace(/:/g, '');
   return (
-    <section id={id} className={cx('adm-root', 'adm-ecard', className)} aria-labelledby={`adm-ech${headingId}`}>
-      <div className="adm-ecard-h">
-        <div className="adm-ecard-titles">
-          <h3 className="adm-ecard-title" id={`adm-ech${headingId}`}>
+    <section id={id} className={cx('ui-root', 'ui-ecard', className)} aria-labelledby={`ui-ech${headingId}`}>
+      <div className="ui-ecard-h">
+        <div className="ui-ecard-titles">
+          <h3 className="ui-ecard-title" id={`ui-ech${headingId}`}>
             {title}
           </h3>
-          {description && <p className="adm-ecard-desc">{description}</p>}
+          {description && <p className="ui-ecard-desc">{description}</p>}
         </div>
-        {headerAction && <div className="adm-ecard-action">{headerAction}</div>}
+        {headerAction && <div className="ui-ecard-action">{headerAction}</div>}
       </div>
-      <div className={cx('adm-ecard-b', flush && 'adm-ecard-b--flush')}>{children}</div>
+      <div className={cx('ui-ecard-b', flush && 'ui-ecard-b--flush')}>{children}</div>
     </section>
   );
 }

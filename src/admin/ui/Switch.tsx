@@ -27,16 +27,16 @@ export function Switch({ checked, onChange, label, description, disabled, id, cl
       aria-checked={checked}
       aria-label={aria['aria-label']}
       disabled={disabled}
-      className={cx('adm-switch', className)}
+      className={cx('ui-switch', className)}
       onClick={() => onChange(!checked)}
     >
-      <span className="adm-switch-track" aria-hidden="true">
-        <span className="adm-switch-thumb" />
+      <span className="ui-switch-track" aria-hidden="true">
+        <span className="ui-switch-thumb" />
       </span>
       {(label || description) && (
-        <span className="adm-switch-text">
+        <span className="ui-switch-text">
           {label && <span>{label}</span>}
-          {description && <span className="adm-switch-desc">{description}</span>}
+          {description && <span className="ui-switch-desc">{description}</span>}
         </span>
       )}
     </button>

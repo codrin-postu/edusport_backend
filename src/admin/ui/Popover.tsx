@@ -9,7 +9,7 @@ import { cx } from './cx';
  * there is no room below. Used by TimeInput, SearchableSelect, TagsInput
  * and HelpTip.
  *
- * The portal root carries `.adm-root`, so the component classes and theme
+ * The portal root carries `.ui-root`, so the component classes and theme
  * tokens apply outside any AdminPage.
  */
 
@@ -141,7 +141,7 @@ export function Popover({
       }}
       id={id}
       role={role}
-      className={cx('adm-root', 'adm-pop', className)}
+      className={cx('ui-root', 'ui-pop', className)}
       style={{
         top: pos.top,
         left: pos.left,

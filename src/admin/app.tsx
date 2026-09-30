@@ -487,12 +487,12 @@ function tagDefaultSaveAndPreview(): void {
     if (isInsideSaveBar(btn)) return;
     if (isInsidePopover(btn)) return; // skip contextual Save/Publish buttons inside dialogs/popovers
     // Skip our own UI: the calendar editor and the older custom pages (.pce)
-    // and every shared-component page, modal or save bar (.adm-root,
+    // and every shared-component page, modal or save bar (.ui-root,
     // src/admin/ui). Their Save buttons share the "Salvează" label and would
     // otherwise be clipped to 1x1. This is also how a page never shows both
     // bars: nothing on a custom page is tagged, so the global <SaveBar /> has
     // nothing to mirror and stays hidden, while the page shows ui/SaveBar.
-    if (btn.closest('.pce, .adm-root')) return;
+    if (btn.closest('.pce, .ui-root')) return;
     const name = getAccessibleName(btn);
     // Check Unpublish FIRST because "Unpublish" contains "publish" — we
     // never want a Publish tag on the Unpublish button.
@@ -580,7 +580,7 @@ function tagFormGridRows() {
 }
 
 function setupAdminShell() {
-  // Shared admin UI: --adm-* tokens, component classes, <html data-adm-theme>.
+  // Shared admin UI: --theme-* / --ui-* tokens, .ui-* component classes, <html data-theme>.
   ensureAdminUi();
   injectGlobalStyles();
   injectMobileStyles();

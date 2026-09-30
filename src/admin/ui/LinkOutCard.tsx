@@ -24,12 +24,12 @@ export interface LinkOutCardProps {
 export function LinkOutCard({ title, description, body, href, linkLabel, external = true }: LinkOutCardProps) {
   return (
     <EditorCard title={title} description={description}>
-      <div className="adm-linkout">
-        <p className="adm-linkout-text">{body}</p>
-        <a className="adm-btn adm-btn--secondary" href={href} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
+      <div className="ui-linkout">
+        <p className="ui-linkout-text">{body}</p>
+        <a className="ui-btn ui-btn--secondary" href={href} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
           {linkLabel}
           <IconArrowRight />
-          {external && <span className="adm-sr"> (se deschide într-o filă nouă)</span>}
+          {external && <span className="ui-sr"> (se deschide într-o filă nouă)</span>}
         </a>
       </div>
     </EditorCard>

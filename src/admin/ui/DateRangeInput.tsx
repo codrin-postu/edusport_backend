@@ -52,8 +52,8 @@ export function DateRangeInput({
   const pair = isPairError(error) ? error : { start: undefined, end: error as React.ReactNode };
 
   return (
-    <div className={cx('adm-root', 'adm-range', className)}>
-      <div className="adm-grid2">
+    <div className={cx('ui-root', 'ui-range', className)}>
+      <div className="ui-grid2">
         <Field label={startLabel} required={required} error={pair.start}>
           <DateInput
             value={start}
@@ -73,7 +73,7 @@ export function DateRangeInput({
           />
         </Field>
       </div>
-      {hint && <div className="adm-hint">{hint}</div>}
+      {hint && <div className="ui-hint">{hint}</div>}
     </div>
   );
 }

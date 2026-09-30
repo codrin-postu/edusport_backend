@@ -13,13 +13,13 @@ export interface TwoColumnProps {
 
 /** Rail + body layout used by edit pages. */
 export function TwoColumn({ rail, children, railWidth, railLabel, className, railClassName }: TwoColumnProps) {
-  const style = railWidth ? ({ '--adm-rail-w': `${railWidth}px` } as React.CSSProperties) : undefined;
+  const style = railWidth ? ({ '--ui-rail-w': `${railWidth}px` } as React.CSSProperties) : undefined;
   return (
-    <div className={cx('adm-two', className)} style={style}>
-      <aside className={cx('adm-rail', railClassName)} aria-label={railLabel}>
+    <div className={cx('ui-two', className)} style={style}>
+      <aside className={cx('ui-rail', railClassName)} aria-label={railLabel}>
         {rail}
       </aside>
-      <div className="adm-body">{children}</div>
+      <div className="ui-body">{children}</div>
     </div>
   );
 }

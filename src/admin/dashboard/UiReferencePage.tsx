@@ -111,12 +111,12 @@ const ROWS: Row[] = [
   { id: 7, name: 'Irina Vasilescu', club: 'EduSport Reșița', year: 2014, status: 'pauză' },
 ];
 
-const STATUS_TONE = { activ: 'ok', pauză: 'warn', retras: 'neutral' } as const;
+const STATUS_TONE = { activ: 'success', pauză: 'warning', retras: 'neutral' } as const;
 
 const COLUMNS: DataColumn<Row>[] = [
   { key: 'name', header: 'Nume', sortable: true, render: (r) => <b>{r.name}</b> },
   { key: 'club', header: 'Club', sortable: true },
-  { key: 'year', header: 'An naștere', sortable: true, align: 'right', render: (r) => <span className="adm-num">{r.year}</span> },
+  { key: 'year', header: 'An naștere', sortable: true, align: 'right', render: (r) => <span className="ui-num">{r.year}</span> },
   {
     key: 'status',
     header: 'Stare',
@@ -142,16 +142,16 @@ const MSGS: Msg[] = [
 /** Primitive palette: one row per scale, each swatch with its step and hex. */
 function PaletteSwatches() {
   return (
-    <div className="adm-stack" style={{ gap: 12 }}>
+    <div className="ui-stack" style={{ gap: 12 }}>
       {Object.entries(PALETTE).map(([name, scale]) => (
-        <div key={name} className="adm-stack" style={{ gap: 6 }}>
-          <span className="adm-label">{name}</span>
-          <div className="adm-ref-row">
+        <div key={name} className="ui-stack" style={{ gap: 6 }}>
+          <span className="ui-label">{name}</span>
+          <div className="ui-ref-row">
             {Object.entries(scale).map(([step, hex]) => (
-              <div className="adm-ref-swatch adm-ref-swatch--sm" key={step}>
-                <i style={{ background: `var(--adm-palette-${name}-${step.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)})` }} />
-                <span className="adm-ref-code">{step}</span>
-                <span className="adm-ref-code adm-muted">{hex}</span>
+              <div className="ui-ref-swatch ui-ref-swatch--sm" key={step}>
+                <i style={{ background: `var(--palette-${name}-${step.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)})` }} />
+                <span className="ui-ref-code">{step}</span>
+                <span className="ui-ref-code ui-muted">{hex}</span>
               </div>
             ))}
           </div>
@@ -163,24 +163,24 @@ function PaletteSwatches() {
 
 /**
  * Semantic tokens, one panel per theme. Each panel carries its own
- * data-adm-theme, so the swatches resolve to that theme's values.
+ * data-theme, so the swatches resolve to that theme's values.
  */
 function SemanticSwatches() {
   return (
-    <div className="adm-stack" style={{ gap: 12 }}>
+    <div className="ui-stack" style={{ gap: 12 }}>
       {THEME_NAMES.map((name) => {
         const vars = Object.entries(themeVars(THEMES[name])).filter(
-          ([k]) => !k.startsWith('--adm-shadow') && !k.startsWith('--adm-savebar-shadow') && k !== '--adm-color-scheme',
+          ([k]) => !k.startsWith('--theme-shadow') && !k.startsWith('--theme-savebar-shadow') && k !== '--theme-color-scheme',
         );
         return (
-          <div key={name} className="adm-ref-theme" data-adm-theme={name}>
-            <span className="adm-label">Tema {name}</span>
-            <div className="adm-ref-row">
+          <div key={name} className="ui-ref-theme" data-theme={name}>
+            <span className="ui-label">Tema {name}</span>
+            <div className="ui-ref-row">
               {vars.map(([v, value]) => (
-                <div className="adm-ref-swatch" key={v}>
+                <div className="ui-ref-swatch" key={v}>
                   <i style={{ background: `var(${v})` }} />
-                  <span className="adm-ref-code">{v}</span>
-                  <span className="adm-ref-code adm-muted">{value}</span>
+                  <span className="ui-ref-code">{v}</span>
+                  <span className="ui-ref-code ui-muted">{value}</span>
                 </div>
               ))}
             </div>
@@ -193,26 +193,26 @@ function SemanticSwatches() {
 
 function Scales() {
   return (
-    <div className="adm-stack" style={{ gap: 12 }}>
-      <div className="adm-ref-row">
+    <div className="ui-stack" style={{ gap: 12 }}>
+      <div className="ui-ref-row">
         {Object.keys(radius).map((k) => (
-          <div className="adm-ref-swatch" key={k}>
-            <i style={{ borderRadius: `var(--adm-radius-${k})`, background: 'var(--adm-accent-soft)', borderColor: 'var(--adm-accent)' }} />
-            <span className="adm-ref-code">radius-{k}</span>
+          <div className="ui-ref-swatch" key={k}>
+            <i style={{ borderRadius: `var(--ui-radius-${k})`, background: 'var(--theme-primary-soft)', borderColor: 'var(--theme-primary)' }} />
+            <span className="ui-ref-code">radius-{k}</span>
           </div>
         ))}
         {(['sm', 'md'] as const).map((k) => (
-          <div className="adm-ref-swatch" key={k}>
-            <i style={{ boxShadow: `var(--adm-shadow-${k})`, background: 'var(--adm-surface-raised)' }} />
-            <span className="adm-ref-code">shadow-{k}</span>
+          <div className="ui-ref-swatch" key={k}>
+            <i style={{ boxShadow: `var(--theme-shadow-${k})`, background: 'var(--theme-surface)' }} />
+            <span className="ui-ref-code">shadow-{k}</span>
           </div>
         ))}
       </div>
-      <div className="adm-ref-row" style={{ alignItems: 'flex-end' }}>
+      <div className="ui-ref-row" style={{ alignItems: 'flex-end' }}>
         {Object.keys(space).map((k) => (
           <div key={k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <span style={{ display: 'block', width: `var(--adm-space-${k})`, height: `var(--adm-space-${k})`, background: 'var(--adm-accent)' }} />
-            <span className="adm-ref-code">{k}</span>
+            <span style={{ display: 'block', width: `var(--ui-space-${k})`, height: `var(--ui-space-${k})`, background: 'var(--theme-primary)' }} />
+            <span className="ui-ref-code">{k}</span>
           </div>
         ))}
       </div>
@@ -245,8 +245,8 @@ function SaveBarDemo() {
         ),
     );
   return (
-    <div className="adm-win">
-      <div className="adm-body">
+    <div className="ui-win">
+      <div className="ui-body">
         <Field label="Nume competiție" hint="Modifică textul ca să vezi bara activă. Cmd/Ctrl+S salvează.">
           <Input
             value={name}
@@ -256,7 +256,7 @@ function SaveBarDemo() {
             }}
           />
         </Field>
-        <div className="adm-ref-row">
+        <div className="ui-ref-row">
           <Switch checked={fail} onChange={setFail} label="Simulează o eroare la salvare" />
           <Switch checked={guard} onChange={setGuard} label="Protecție la ieșire" description="Cere confirmare dacă pleci cu modificări nesalvate" />
         </div>
@@ -298,10 +298,10 @@ function StaticSaveBars() {
     { label: 'Telefon (foaie jos, sub 640px)', bar: <SaveBarView {...base} state="dirty" sheet /> },
   ];
   return (
-    <div className="adm-stack" style={{ gap: 12 }}>
+    <div className="ui-stack" style={{ gap: 12 }}>
       {rows.map((r) => (
-        <div key={r.label} className="adm-stack" style={{ gap: 6 }}>
-          <span className="adm-label">{r.label}</span>
+        <div key={r.label} className="ui-stack" style={{ gap: 6 }}>
+          <span className="ui-label">{r.label}</span>
           {r.bar}
         </div>
       ))}
@@ -318,7 +318,7 @@ function Controls() {
   return (
     <>
       <Section title="Switch (setări pornit / oprit)">
-        <div className="adm-ref-row" style={{ gap: 24 }}>
+        <div className="ui-ref-row" style={{ gap: 24 }}>
           <Switch checked={sw} onChange={setSw} label="Vizibil pe site" />
           <Switch checked={sw2} onChange={setSw2} label="Afișează în meniu" description="Apare în lista din bara de sus" />
           <Switch checked onChange={() => {}} label="Pornit, dezactivat" disabled />
@@ -327,7 +327,7 @@ function Controls() {
         </div>
       </Section>
       <Section title="Checkbox (alegere de opțiuni)">
-        <div className="adm-ref-row" style={{ gap: 24 }}>
+        <div className="ui-ref-row" style={{ gap: 24 }}>
           <Checkbox checked={cb} onChange={setCb} label="Program Scurt" />
           <Checkbox checked={cb2} onChange={setCb2} label="Program Liber" />
           <Checkbox checked={false} onChange={() => {}} indeterminate label="Parțial" />
@@ -412,7 +412,7 @@ function Dialogs() {
   const [picked, setPicked] = React.useState<PickedImage[]>([]);
   return (
     <Section title="Modal, ConfirmDialog, ImagePicker">
-      <div className="adm-ref-row">
+      <div className="ui-ref-row">
         <Button variant="secondary" onClick={() => setModal(true)}>Deschide Modal</Button>
         <Button variant="danger" onClick={() => setConfirm('simple')}>ConfirmDialog</Button>
         <Button variant="danger" onClick={() => setConfirm('typed')}>Cu text de confirmare</Button>
@@ -494,7 +494,7 @@ function InboxDemo() {
   const items = tab === 'new' ? MSGS.filter((m) => m.unread) : MSGS;
   const current = MSGS.find((m) => m.id === sel) ?? null;
   return (
-    <div className="adm-win">
+    <div className="ui-win">
       <InboxLayout<Msg>
         tabs={[
           { id: 'all', label: 'Toate' },
@@ -511,11 +511,11 @@ function InboxDemo() {
           <div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
               <b style={{ fontWeight: m.unread ? 800 : 600 }}>{m.from}</b>
-              <span className="adm-muted" style={{ marginLeft: 'auto', fontSize: 11 }}>
+              <span className="ui-muted" style={{ marginLeft: 'auto', fontSize: 11 }}>
                 {m.when}
               </span>
             </div>
-            <div className="adm-muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div className="ui-muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {m.text}
             </div>
           </div>
@@ -531,9 +531,9 @@ function InboxDemo() {
         readerEmpty="Selectează un mesaj din listă pentru a-l citi."
         reader={
           current && (
-            <div className="adm-stack" style={{ gap: 10 }}>
+            <div className="ui-stack" style={{ gap: 10 }}>
               <h3 style={{ margin: 0 }}>{current.from}</h3>
-              <span className="adm-muted">Trimis {current.when}</span>
+              <span className="ui-muted">Trimis {current.when}</span>
               <p style={{ margin: 0 }}>{current.text}</p>
             </div>
           )
@@ -583,7 +583,7 @@ function RepeatableDemo() {
           renderSummary={(r) => (
             <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
               {r.label || 'Regulă nouă'}
-              {r.highlight && <StatusBadge tone="accent">Evidențiată</StatusBadge>}
+              {r.highlight && <StatusBadge tone="primary">Evidențiată</StatusBadge>}
             </span>
           )}
           renderRow={(r, _i, { update }) => (
@@ -598,7 +598,7 @@ function RepeatableDemo() {
             </>
           )}
         />
-        <span className="adm-hint">
+        <span className="ui-hint">
           Trage de mâner, sau focus pe mâner și săgețile sus / jos; Alt+săgeată mută rândul din orice câmp. Pe ecrane tactile apar butoane sus / jos.
         </span>
       </Section>
@@ -629,15 +629,15 @@ function PrimitivesDemo() {
   return (
     <Section title="ExpandableRow, useDragReorder, AddButton">
       <ExpandableRow expanded={open} onToggle={() => setOpen((o) => !o)} summary="Grupa de începători, 17:00">
-        <span className="adm-muted">Conținutul rândului, afișat doar cât timp e deschis.</span>
+        <span className="ui-muted">Conținutul rândului, afișat doar cât timp e deschis.</span>
       </ExpandableRow>
-      <ul className="adm-rl-items">
+      <ul className="ui-rl-items">
         {items.map((d, i) => (
-          <li key={d} className="adm-row adm-row--flat" {...drag.itemProps(i)}>
-            <button type="button" className="adm-iconbtn adm-grip" aria-label={`Mută ${d}`} {...drag.handleProps(i)}>
+          <li key={d} className="ui-row ui-row--flat" {...drag.itemProps(i)}>
+            <button type="button" className="ui-iconbtn ui-grip" aria-label={`Mută ${d}`} {...drag.handleProps(i)}>
               ⠿
             </button>
-            <div className="adm-row-main" style={{ alignSelf: 'center' }}>
+            <div className="ui-row-main" style={{ alignSelf: 'center' }}>
               {d}
             </div>
           </li>
@@ -687,7 +687,7 @@ function ObjectFieldDemo() {
   const [stored, setStored] = React.useState<unknown>({ title: 'Cursuri de patinaj', subtitle: 'Grupe pentru copii de la 4 ani.' });
   const obj = useObjectField<Banner>(stored, setStored, BANNER_EMPTY);
   return (
-    <div className="adm-stack" style={{ gap: 12 }}>
+    <div className="ui-stack" style={{ gap: 12 }}>
       <ObjectFieldCard<Banner>
         title="Banner pagină"
         description="Titlul și subtitlul afișate în partea de sus a paginii."
@@ -701,7 +701,7 @@ function ObjectFieldDemo() {
           { title: 'Detalii curs', keys: ['places', 'level', 'date', 'time'] },
         ]}
       />
-      <div className="adm-ref-row">
+      <div className="ui-ref-row">
         <Button variant="secondary" size="sm" onClick={() => setStored({ title: 'Valoare încărcată din server' })}>
           Simulează reîncărcarea valorii
         </Button>
@@ -709,7 +709,7 @@ function ObjectFieldDemo() {
           Golește
         </Button>
       </div>
-      <pre className="adm-ref-code" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+      <pre className="ui-ref-code" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
         {JSON.stringify(stored)}
       </pre>
     </div>
@@ -740,7 +740,7 @@ function CardsDemo() {
         linkLabel="Gestionează membrii echipei"
         external={false}
       />
-      <div className="adm-ref-row" style={{ gap: 18 }}>
+      <div className="ui-ref-row" style={{ gap: 18 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           Jos, la stânga <HelpTip label="Tooltip pe hover, focus sau atingere. Escape îl închide." />
         </span>
@@ -766,9 +766,9 @@ function GalleryDemo() {
   const [list, setList] = React.useState<GalleryImage[]>([demoImg(11, 'antrenament-1.jpg'), demoImg(12, 'antrenament-2.jpg'), demoImg(13, 'podium.jpg')]);
   return (
     <Section title="GalleryGrid">
-      <span className="adm-label">Sloturi fixe (3), reordonarea schimbă sloturile între ele</span>
+      <span className="ui-label">Sloturi fixe (3), reordonarea schimbă sloturile între ele</span>
       <GalleryGrid slots={3} images={slots} onChange={setSlots} slotLabels={SLOT_LABELS} columns={3} reorder />
-      <span className="adm-label">Listă deschisă, maxim 6, reordonare</span>
+      <span className="ui-label">Listă deschisă, maxim 6, reordonare</span>
       <GalleryGrid images={list} onChange={setList} reorder max={6} />
     </Section>
   );
@@ -844,7 +844,7 @@ function InputsDemo() {
           }}
         />
       </Field>
-      <div className="adm-ref-row" style={{ gap: 24 }}>
+      <div className="ui-ref-row" style={{ gap: 24 }}>
         <SegmentedControl<'upload' | 'youtube'>
           aria-label="Sursa videoclipului"
           value={mode}
@@ -887,7 +887,7 @@ function MediaAcceptDemo() {
   const [picked, setPicked] = React.useState<string | null>(null);
   return (
     <Section title="ImagePicker: accept">
-      <div className="adm-ref-row">
+      <div className="ui-ref-row">
         <Button variant="secondary" onClick={() => setAccept('video')}>
           Alege un videoclip
         </Button>
@@ -917,7 +917,8 @@ const UiReferencePage: React.FC = () => {
   const [loadingTable, setLoadingTable] = React.useState(false);
 
   return (
-    <div data-adm-theme={preview === 'auto' ? undefined : preview}>
+    // .ui-root on the wrapper: the theme attribute only applies on or inside a root.
+    <div className="ui-root" data-theme={preview === 'auto' ? undefined : preview}>
       <AdminPage>
         <Window>
           <PageHeader
@@ -942,19 +943,19 @@ const UiReferencePage: React.FC = () => {
           <TwoColumn
             railLabel="Coloană laterală"
             rail={
-              <div className="adm-stack" style={{ gap: 10 }}>
-                <span className="adm-label">Coloană laterală</span>
-                <span className="adm-muted">TwoColumn: 280px, se așază una sub alta sub 900px.</span>
-                <StatusBadge tone="accent" size="md">
+              <div className="ui-stack" style={{ gap: 10 }}>
+                <span className="ui-label">Coloană laterală</span>
+                <span className="ui-muted">TwoColumn: 280px, se așază una sub alta sub 900px.</span>
+                <StatusBadge tone="primary" size="md">
                   Auto
                 </StatusBadge>
               </div>
             }
           >
-            <Section title="Culori" aside={<span className="adm-muted">--adm-palette-*, apoi --adm-* pe teme</span>}>
-              <span className="adm-label">Paletă (primitive)</span>
+            <Section title="Culori" aside={<span className="ui-muted">--palette-*, apoi --theme-* pe teme</span>}>
+              <span className="ui-label">Paletă (primitive)</span>
               <PaletteSwatches />
-              <span className="adm-label">Tokenuri semantice</span>
+              <span className="ui-label">Tokenuri semantice</span>
               <SemanticSwatches />
             </Section>
             <Section title="Colțuri, umbre, spațiere, text">
@@ -962,7 +963,7 @@ const UiReferencePage: React.FC = () => {
             </Section>
             <Section title="Butoane">
               {(['md', 'sm'] as const).map((size) => (
-                <div className="adm-ref-row" key={size}>
+                <div className="ui-ref-row" key={size}>
                   <Button variant="primary" size={size}>Salvează</Button>
                   <Button variant="secondary" size={size}>Anulează</Button>
                   <Button variant="danger" size={size} icon={<Trash />}>Șterge</Button>
@@ -977,14 +978,14 @@ const UiReferencePage: React.FC = () => {
             </Section>
             <Section title="StatusBadge">
               {(['sm', 'md'] as const).map((size) => (
-                <div className="adm-ref-row" key={size}>
-                  <StatusBadge tone="ok" size={size}>Publicat</StatusBadge>
-                  <StatusBadge tone="warn" size={size}>În așteptare</StatusBadge>
+                <div className="ui-ref-row" key={size}>
+                  <StatusBadge tone="success" size={size}>Publicat</StatusBadge>
+                  <StatusBadge tone="warning" size={size}>În așteptare</StatusBadge>
                   <StatusBadge tone="danger" size={size}>Respins</StatusBadge>
                   <StatusBadge tone="info" size={size}>Nou</StatusBadge>
                   <StatusBadge tone="neutral" size={size}>Ascuns</StatusBadge>
-                  <StatusBadge tone="accent" size={size}>Auto</StatusBadge>
-                  <StatusBadge custom={{ fg: 'var(--adm-text-on-accent)', bg: 'var(--adm-accent)' }} size={size}>
+                  <StatusBadge tone="primary" size={size}>Auto</StatusBadge>
+                  <StatusBadge custom={{ fg: 'var(--theme-on-primary)', bg: 'var(--theme-primary)' }} size={size}>
                     Din configurare
                   </StatusBadge>
                 </div>
@@ -993,11 +994,11 @@ const UiReferencePage: React.FC = () => {
             <Controls />
             <Fields />
             <Section title="Notice">
-              <Notice tone="ok" title="Salvat">Modificările au fost salvate.</Notice>
+              <Notice tone="success" title="Salvat">Modificările au fost salvate.</Notice>
               <Notice tone="info" title="Setarea este pe altă pagină" action={<Button variant="secondary" size="sm">Deschide Setări site</Button>}>
                 Adresa de email se schimbă din Setări site.
               </Notice>
-              <Notice tone="warn" title="Atenție">Imaginea are peste 300 KB și se încarcă greu pe telefon.</Notice>
+              <Notice tone="warning" title="Atenție">Imaginea are peste 300 KB și se încarcă greu pe telefon.</Notice>
               <Notice tone="danger">Nu am putut încărca meniul.</Notice>
             </Section>
             <Section title="EmptyState, Spinner">
@@ -1005,7 +1006,7 @@ const UiReferencePage: React.FC = () => {
                 Nu există încă sportivi.
               </EmptyState>
               <EmptyState>Niciun rezultat pentru căutare.</EmptyState>
-              <div className="adm-ref-row">
+              <div className="ui-ref-row">
                 <Spinner />
                 <Spinner size={24} label="Se încarcă" />
               </div>
@@ -1059,9 +1060,9 @@ const UiReferencePage: React.FC = () => {
         <Window>
           <PageHeader
             title="Componente pentru editoare"
-            subtitle="Faza 1b: liste repetabile, câmpuri obiect, galerii, intrări speciale. Toate poartă .adm-root, deci merg și în câmpurile din content-manager."
+            subtitle="Faza 1b: liste repetabile, câmpuri obiect, galerii, intrări speciale. Toate poartă .ui-root, deci merg și în câmpurile din content-manager."
           />
-          <div className="adm-body">
+          <div className="ui-body">
             <RepeatableDemo />
             <PrimitivesDemo />
             <ObjectFieldDemo />
@@ -1077,7 +1078,7 @@ const UiReferencePage: React.FC = () => {
             title="SaveBar"
             subtitle="Aceeași bară pe paginile native și pe cele proprii. Demo: modifică textul și bara apare jos. Dedesubt, SaveBarView în fiecare stare."
           />
-          <div className="adm-body">
+          <div className="ui-body">
             <SaveBarDemo />
             <StaticSaveBars />
           </div>
@@ -1088,11 +1089,11 @@ const UiReferencePage: React.FC = () => {
             title="Toast"
             subtitle="Mesaje generale, cu durată scurtă. Notice rămâne pentru mesaje persistente, legate de o pagină."
           />
-          <div className="adm-body">
-            <div className="adm-ref-row">
+          <div className="ui-body">
+            <div className="ui-ref-row">
               <Button variant="secondary" onClick={() => adminToast.success('Modificările au fost salvate.')}>Success</Button>
               <Button variant="secondary" onClick={() => adminToast.info('Setarea este pe altă pagină.')}>Info</Button>
-              <Button variant="secondary" onClick={() => adminToast.warn('Imaginea are peste 300 KB.')}>Warn</Button>
+              <Button variant="secondary" onClick={() => adminToast.warning('Imaginea are peste 300 KB.')}>Warning</Button>
               <Button variant="secondary" onClick={() => adminToast.error('Nu am putut salva. Încearcă din nou.')}>Error</Button>
             </div>
           </div>

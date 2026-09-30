@@ -30,22 +30,22 @@ export function Pager({ page, pageCount, onChange, total, pageSize, className }:
       ? `${total === 0 ? 0 : (page - 1) * pageSize + 1} - ${Math.min(total, page * pageSize)} din ${total}`
       : null;
   return (
-    <nav className={cx('adm-pager', className)} aria-label="Paginare">
-      {range && <span className="adm-num adm-pager-range">{range}</span>}
-      <span className="adm-pager-pages">
-        <button type="button" className="adm-pg" disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label="Pagina anterioară">
+    <nav className={cx('ui-pager', className)} aria-label="Paginare">
+      {range && <span className="ui-num ui-pager-range">{range}</span>}
+      <span className="ui-pager-pages">
+        <button type="button" className="ui-pg" disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label="Pagina anterioară">
           ‹
         </button>
         {pages.map((p, i) =>
           p === -1 ? (
-            <span key={`gap-${i}`} className="adm-pg-gap" aria-hidden="true">
+            <span key={`gap-${i}`} className="ui-pg-gap" aria-hidden="true">
               …
             </span>
           ) : (
             <button
               key={p}
               type="button"
-              className="adm-pg adm-num"
+              className="ui-pg ui-num"
               aria-current={p === page ? 'page' : undefined}
               onClick={() => onChange(p)}
             >
@@ -55,7 +55,7 @@ export function Pager({ page, pageCount, onChange, total, pageSize, className }:
         )}
         <button
           type="button"
-          className="adm-pg"
+          className="ui-pg"
           disabled={page >= pageCount}
           onClick={() => onChange(page + 1)}
           aria-label="Pagina următoare"

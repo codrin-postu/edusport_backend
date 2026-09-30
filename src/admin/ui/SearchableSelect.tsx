@@ -177,10 +177,10 @@ export function SearchableSelect({
   const activeId = open && rows > 0 ? `${listId}-${active}` : undefined;
 
   return (
-    <div ref={wrapRef} className={cx('adm-root', 'adm-cbx', disabled && 'adm-cbx--disabled', className)}>
+    <div ref={wrapRef} className={cx('ui-root', 'ui-cbx', disabled && 'ui-cbx--disabled', className)}>
       <input
         ref={inputRef}
-        className="adm-input"
+        className="ui-input"
         id={p.id}
         role="combobox"
         aria-label={aria['aria-label']}
@@ -208,12 +208,12 @@ export function SearchableSelect({
         }}
         onKeyDown={onKeyDown}
       />
-      <span className="adm-cbx-actions">
+      <span className="ui-cbx-actions">
         {loading && open && <Spinner size={12} />}
         {clearable && value !== null && !disabled && (
           <button
             type="button"
-            className="adm-iconbtn adm-iconbtn--sm"
+            className="ui-iconbtn ui-iconbtn--sm"
             aria-label="Golește selecția"
             onClick={() => {
               setPicked(null);
@@ -227,7 +227,7 @@ export function SearchableSelect({
         )}
         <button
           type="button"
-          className="adm-iconbtn adm-iconbtn--sm"
+          className="ui-iconbtn ui-iconbtn--sm"
           tabIndex={-1}
           aria-label={open ? 'Închide lista' : 'Deschide lista'}
           disabled={disabled}
@@ -243,7 +243,7 @@ export function SearchableSelect({
           <IconChevronDown size={12} />
         </button>
       </span>
-      <Popover open={open && !disabled} anchorRef={wrapRef} onClose={close} matchWidth className="adm-list" id={listId} role="listbox" popoverProps={{ onMouseDown: (e) => e.preventDefault() }}>
+      <Popover open={open && !disabled} anchorRef={wrapRef} onClose={close} matchWidth className="ui-list" id={listId} role="listbox" popoverProps={{ onMouseDown: (e) => e.preventDefault() }}>
         {shown.map((o, i) => (
           <div
             key={o.value}
@@ -251,13 +251,13 @@ export function SearchableSelect({
             role="option"
             aria-selected={o.value === value}
             aria-disabled={o.disabled || undefined}
-            className="adm-opt"
+            className="ui-opt"
             data-active={i === active || undefined}
             onMouseEnter={() => setActive(i)}
             onClick={() => choose(o)}
           >
             <span>{o.label}</span>
-            {o.hint && <span className="adm-opt-hint">{o.hint}</span>}
+            {o.hint && <span className="ui-opt-hint">{o.hint}</span>}
           </div>
         ))}
         {canCreate && (
@@ -265,7 +265,7 @@ export function SearchableSelect({
             id={`${listId}-${shown.length}`}
             role="option"
             aria-selected={false}
-            className="adm-opt adm-opt--create"
+            className="ui-opt ui-opt--create"
             data-active={active === shown.length || undefined}
             onMouseEnter={() => setActive(shown.length)}
             onClick={() => void create()}
@@ -275,7 +275,7 @@ export function SearchableSelect({
           </div>
         )}
         {rows === 0 && (
-          <div className="adm-list-note" role="presentation">
+          <div className="ui-list-note" role="presentation">
             {loading ? 'Se caută...' : failed ? 'Nu am putut încărca opțiunile.' : emptyLabel}
           </div>
         )}

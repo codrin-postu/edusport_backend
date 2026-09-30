@@ -23,7 +23,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(function 
 ) {
   const p = useFieldControl(props);
   return (
-    <select ref={ref} className={cx('adm-input', className)} onChange={(e) => onChange?.(e.target.value, e)} {...p}>
+    <select ref={ref} className={cx('ui-input', className)} onChange={(e) => onChange?.(e.target.value, e)} {...p}>
       {placeholder !== undefined && <option value="">{placeholder}</option>}
       {options?.map((o) => (
         <option key={o.value} value={o.value} disabled={o.disabled}>
