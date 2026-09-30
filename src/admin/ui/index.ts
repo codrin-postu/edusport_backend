@@ -20,7 +20,7 @@ export { Chip, ChipList, type ChipProps } from './Chip';
 export { Switch, type SwitchProps } from './Switch';
 export { Checkbox, type CheckboxProps } from './Checkbox';
 
-export { Field, FieldRow, useFieldControl, type FieldProps } from './Field';
+export { Field, FieldRow, useFieldControl, type FieldProps, type FieldAria } from './Field';
 export { Input, type InputProps } from './Input';
 export { Textarea, type TextareaProps } from './Textarea';
 export { Select, type SelectProps, type SelectOption } from './Select';
@@ -56,3 +56,11 @@ export { Pager, pageList, type PagerProps } from './Pager';
 export { DataTable, type DataTableProps, type DataColumn, type SortDir } from './DataTable';
 export { ImagePicker, type ImagePickerProps, type PickedImage } from './ImagePicker';
 export { InboxLayout, type InboxLayoutProps, type InboxGroup } from './InboxLayout';
+
+export { Popover, type PopoverProps, type PopoverPlacement } from './Popover';
+export { DateRangeInput, type DateRangeInputProps, type DateRange } from './DateRangeInput';
+export { TimeInput, parseTimeText, formatTime, type TimeInputProps, type HourMinute } from './TimeInput';
+export { NumberInput, type NumberInputProps } from './NumberInput';
+export { TagsInput, type TagsInputProps } from './TagsInput';
+export { SearchableSelect, type SearchableSelectProps, type ComboOption } from './SearchableSelect';
+export { SegmentedControl, type SegmentedControlProps, type SegmentOption } from './SegmentedControl';

@@ -17,6 +17,14 @@ export interface FieldContextValue {
   required: boolean;
 }
 
+/** The attributes a Field hands to its control. */
+export interface FieldAria {
+  id?: string;
+  required?: boolean;
+  'aria-describedby'?: string;
+  'aria-invalid'?: React.AriaAttributes['aria-invalid'];
+}
+
 const FieldContext = React.createContext<FieldContextValue | null>(null);
 
 /** Control-side hook: merges the field context into the control's own props. */
