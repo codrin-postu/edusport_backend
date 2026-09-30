@@ -124,6 +124,12 @@ export function useDragReorder({ count, onMove, axis = 'y', disabled = false, sw
 
   const keyMove = (e: React.KeyboardEvent<HTMLElement>, index: number, needAlt: boolean) => {
     if (disabled || (needAlt && !e.altKey)) return;
+    // On the row itself, Alt+arrows must not steal the text-editing shortcut
+    // (Alt+Up/Down jumps to the paragraph start/end in macOS text fields).
+    if (needAlt) {
+      const t = e.target as HTMLElement;
+      if (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+    }
     const back = e.key === 'ArrowUp' || (axis !== 'y' && e.key === 'ArrowLeft');
     const fwd = e.key === 'ArrowDown' || (axis !== 'y' && e.key === 'ArrowRight');
     if (!back && !fwd) return;
