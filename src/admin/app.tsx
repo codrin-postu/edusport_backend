@@ -11,6 +11,7 @@ import { applyLoginBranding } from './dashboard/loginBranding';
 import { ensureAdminUi } from './ui/styles';
 import { mountToastViewport } from './ui/Toast';
 import { registerNativeFormBridge } from './nativeFormBridge';
+import { startLegacyRedirects } from './lib/legacyRedirects';
 import roTranslations from './translations/ro.json';
 import EdusportLogo from './edusport-logo.svg';
 
@@ -658,6 +659,10 @@ export default {
     registerEdusportMenu(app);
   },
   bootstrap(app: StrapiApp) {
+    // Old content-manager URLs of types with a custom page land on that page
+    // (?strapi=1 opts out). First, so a direct load is redirected before the
+    // router reads the URL. See ./lib/legacyRedirects.
+    startLegacyRedirects();
     // Lets the global save bar's Renunță reset the edit view form in place (see ./nativeFormBridge).
     registerNativeFormBridge(app);
     // bootstrap can fire before document.body is ready in some edge cases; wait if so.

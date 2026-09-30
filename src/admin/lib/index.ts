@@ -14,3 +14,4 @@ export {
 export { useCollection, type CollectionOptions, type CollectionState, type Row } from './useCollection';
 export { usePageForm, type PageForm } from './usePageForm';
 export { serialize, changedFields, deepEqual, loadSchemas, type ModelSchema, type Attribute, type SchemaSet } from './contentApi';
+export { startLegacyRedirects, legacyTarget } from './legacyRedirects';
