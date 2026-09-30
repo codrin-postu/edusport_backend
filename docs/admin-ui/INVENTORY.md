@@ -42,3 +42,17 @@ ConfirmDialog (Esc + backdrop); dashboard MediaModal (src/admin/dashboard/MediaP
 
 ## Other
 ProgramOverviewEditor mini calendar grid; tabs duplicated (.fres-tabs, .mesg-tabs, .scoala-tabs/.pce-mode).
+
+# Pass 2 (2026-09-30): field editors and page-level blocks (src/plugins/component-preview/admin/src)
+- Banner/info editor copied 11 times (~1150 lines): PageBanner, CourseRegsBanner, RealizariPageBanner, HistoricPageInfo, TeamPageInfo, ProgramPageInfo, SiteSettingsContact, CursuriPageBanner, CursuriPageAbout, PartnersContent, VolunteerContent. Same skeleton: EMPTY -> useField -> useState -> useEffect resync -> update(key) -> EditorCard + fields.
+- Repeatable object lists, 6 implementations: RulesTable (HTML5 drag :79-108, chevron expand :171), PricingTiersEditor (button expand :174-228), ScheduleGroupsEditor (drag :130-142, own .esg CSS raw hex, native time inputs :198-213), VolunteerHelpWaysEditor, ParticipantsEditor, CalendarEventsEditor special rows (Accordion). Deletes are one-click with no confirm (RulesTable :178, PricingTiers :137, VolunteerHelpWays :94, Participants :168).
+- Galleries x3: HomepageEdit (3 fixed slots :135), SportivEdit (open list :845), VoluntariatEdit (.gal 4 cols :134).
+- Date range x2: SiteSettingsRegistration :144-200 (not clamped), CalendarEvents SpecialEventRow :739-762 (clamped).
+- Time inputs x3: components/TimePicker (canonical), native in ScheduleGroups, TimePicker reused in ProgramOverview.
+- Number: components/SpinnerInput vs digit-filtered TextInput in ParticipantsEditor :134-165.
+- Tags/multi: DS MultiSelect (QuickCreateSportspersonModal :328), TagsInput (raw, var(--strapi-*)), InlineStringList.
+- Media: components/MediaPicker, dashboard MediaModal, VideoEmbedEditor's own VideoPicker :52-172, imagePickerStore + native MediaLibraryDialog.
+- Segmented: DS Radio.Group in VideoEmbedEditor :274-295 vs .pubseg.
+- Sections: components/Section duplicates src/admin/ui/Section; local SectionTitle copies in CursuriPageAbout :34, SiteSettingsContact :32, CursuriPageBanner :76, CursuriPagePromoCard :104.
+- Plugin mini design system: EditorCard, EditorField, AddListButton (raw #4945ff), InlineStringList (raw #d02b20), DeleteIconButton, LinkOutCard, HelpTip, LinkPicker, MarkdownEditor, SafeDatePicker, SpinnerInput, TimePicker, StringListEditor; PluginModalShell + FormSection/FormRow duplicate Modal/Section.
+- Regressions: QuickCreateSportspersonModal :295 uses raw DS DatePicker (timezone bug SafeDatePicker fixes); InlineStringList :133 copies AddListButton.

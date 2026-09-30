@@ -74,3 +74,14 @@ Baseline at the end of phase 1: **28 files, 1130 hits (hex 889, rgb 60, radius 1
 
 ### Checker after the save bar and palette work (2026-09-30)
 27 files, 1093 hits (hex 861, rgb 56, radius 176), 37 under the phase 1 baseline; src/admin/SaveBar.tsx is at 0 (its private palette is gone); src/admin/ui at 0 outside tokens.ts. Contrast passes in both themes.
+
+
+## Phase 1b: components from inventory pass 2 (2026-09-30)
+Accent: muted blue (steel 500 light / 300 dark), user choice on companion screen 107.
+- [ ] useObjectField(name) + ObjectFieldCard (declarative field config, sections) for the 11 banner/info editors
+- [ ] RepeatableList (+ useDragReorder, ExpandableRow, confirm-before-delete) for the 6 list editors
+- [ ] GalleryGrid (fixed slots or open list) on ImagePicker
+- [ ] DateRangeInput (clamped), TimeInput (from components/TimePicker), NumberInput (from SpinnerInput)
+- [ ] TagsInput, SearchableSelect (Combobox, creatable), SegmentedControl
+- [ ] HelpTip, LinkOutCard, EditorCard, AddButton promoted into src/admin/ui on tokens
+- [ ] MediaPicker / VideoPicker unified under ImagePicker (accept: image | video)
