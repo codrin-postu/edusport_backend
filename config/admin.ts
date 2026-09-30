@@ -13,6 +13,10 @@ export default ({ env }) => ({
   secrets: {
     encryptionKey: env('ENCRYPTION_KEY'),
   },
+  // Agent worktrees live in .worktrees/ inside the repo; without this the dev
+  // file watcher follows their node_modules symlinks and crashes when one is
+  // removed.
+  watchIgnoreFiles: ['**/.worktrees/**', '**/.superpowers/**'],
   flags: {
     nps: env.bool('FLAG_NPS', true),
     promoteEE: env.bool('FLAG_PROMOTE_EE', true),
