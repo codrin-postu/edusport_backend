@@ -316,6 +316,31 @@ ${R} .adm-row-move{display:none;align-items:center;gap:2px}
 @media (pointer:coarse){${R} .adm-row-move{display:inline-flex}${R} .adm-grip{display:none}}
 @media (prefers-reduced-motion:reduce){${R} .adm-row-chev{transition:none}}
 
+/* editor card (field editors) */
+.adm-root.adm-ecard{border:1px solid var(--adm-line);border-radius:var(--adm-radius-sm);background:var(--adm-surface-raised);width:100%}
+${R} .adm-ecard-h{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--adm-space-3);padding:12px 14px;background:var(--adm-surface-subtle);border-bottom:1px solid var(--adm-line);box-shadow:inset 3px 0 0 var(--adm-accent);border-top-left-radius:var(--adm-radius-sm);border-top-right-radius:var(--adm-radius-sm)}
+${R} .adm-ecard-titles{min-width:0;display:flex;flex-direction:column;gap:2px}
+${R} .adm-ecard-title{margin:0;font-size:var(--adm-fs-body);font-weight:700;line-height:1.35;color:var(--adm-text-primary)}
+${R} .adm-ecard-desc{margin:0;font-size:var(--adm-fs-caption);line-height:var(--adm-lh-caption);color:var(--adm-text-muted)}
+${R} .adm-ecard-action{flex-shrink:0;display:flex;align-items:center;gap:var(--adm-space-2)}
+${R} .adm-ecard-b{padding:14px;display:flex;flex-direction:column;gap:var(--adm-space-3)}
+${R} .adm-ecard-b--flush{padding:0}
+${R} .adm-linkout{display:flex;align-items:center;justify-content:space-between;gap:var(--adm-space-3);flex-wrap:wrap}
+${R} .adm-linkout-text{margin:0;flex:1;min-width:200px;font-size:var(--adm-fs-body-sm);color:var(--adm-text-secondary)}
+
+/* object field card */
+${R} .adm-ofc{display:flex;flex-direction:column;gap:var(--adm-space-4)}
+${R} .adm-ofc-sec + .adm-ofc-sec{border-top:1px solid var(--adm-line-subtle);padding-top:var(--adm-space-4)}
+${R} .adm-ofc-sec-title{margin:0 0 10px;font-size:var(--adm-fs-section-title);font-weight:var(--adm-fw-section-title);letter-spacing:var(--adm-ls-section-title);text-transform:uppercase;color:var(--adm-text-secondary)}
+${R} .adm-ofc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--adm-space-3) var(--adm-space-4)}
+${R} .adm-ofc-span2{grid-column:1 / -1}
+@media (max-width:720px){${R} .adm-ofc-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* help tip */
+.adm-root.adm-tipbtn{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;margin:0;border:none;background:none;color:var(--adm-text-muted);cursor:help;vertical-align:middle;line-height:0;border-radius:var(--adm-radius-sm)}
+.adm-root.adm-tipbtn:hover,.adm-root.adm-tipbtn[aria-expanded="true"]{color:var(--adm-accent)}
+.adm-root.adm-tipbtn:focus-visible{outline:2px solid var(--adm-focus);outline-offset:1px}
+
 /* floating layer (Popover): lists, time spinners, tooltips */
 .adm-root.adm-pop{position:fixed;z-index:99990;background:var(--adm-surface-raised);color:var(--adm-text-primary);border:1px solid var(--adm-line);border-radius:var(--adm-radius-sm);box-shadow:var(--adm-shadow-md)}
 .adm-root.adm-pop.adm-tip{max-width:280px;min-width:160px;padding:8px 12px;background:var(--adm-text-primary);color:var(--adm-surface-raised);border-color:var(--adm-text-primary);font-size:12px;font-weight:500;line-height:1.45}
