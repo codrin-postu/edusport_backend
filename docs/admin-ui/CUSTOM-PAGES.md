@@ -22,7 +22,7 @@ Decisions (companion screen 109, user said "yes do", recommended answers):
 | Regulament | api::course-regulations.course-regulations | /plugins/edusport-regulament | [x] |
 | Pagina Program | api::program-page.program-page | /plugins/edusport-pagina-program | [x] |
 | Realizări | api::realizari-page.realizari-page | /plugins/edusport-realizari | [x] |
-| Evenimente colaborare | api::collaboration-event.collaboration-event | /plugins/edusport-evenimente-colaborare (+ -edit) | [ ] |
+| Evenimente colaborare | api::collaboration-event.collaboration-event | /plugins/edusport-evenimente-colaborare (+ -edit) | [x] |
 | Articole | api::article.article | /plugins/edusport-articole (+ -edit) | [ ] later |
 
 ## How to build a page
