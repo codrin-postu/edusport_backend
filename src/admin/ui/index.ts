@@ -36,7 +36,7 @@ export {
   type SaveBarTone,
 } from './SaveBarView';
 export { useSaveState, SAVED_MS, type SaveState, type SaveStatus, type SaveBarState } from './useSaveState';
-export { useUnsavedGuard, UnsavedGuard, type UnsavedGuardOptions } from './useUnsavedGuard';
+export { useUnsavedGuard, UnsavedGuard, releaseUnsavedGuards, type UnsavedGuardOptions } from './useUnsavedGuard';
 
 export { Notice, type NoticeProps, type NoticeTone } from './Notice';
 export {

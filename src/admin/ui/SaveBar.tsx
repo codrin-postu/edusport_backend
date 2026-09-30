@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { SaveBarView, useDiscardConfirm, useSlideIn } from './SaveBarView';
+import { releaseUnsavedGuards } from './useUnsavedGuard';
 
 /**
  * Save bar for custom edit pages: the same floating, Strapi-matching bar as
@@ -69,6 +70,9 @@ export function SaveBar({
   discardRef.current = onDiscard;
   const confirmDiscard = React.useCallback(() => {
     cancel();
+    // "Da, renunță" is the only confirmation: stand the leave guards down
+    // before the page resets (or navigates), so no dialog or browser prompt follows.
+    releaseUnsavedGuards();
     discardRef.current?.();
   }, [cancel]);
 
