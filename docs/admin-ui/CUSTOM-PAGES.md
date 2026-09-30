@@ -11,12 +11,12 @@ Decisions (companion screen 109, user said "yes do", recommended answers):
 
 | Entry | Content type | Route | Status |
 |---|---|---|---|
-| Setări site | api::site-settings.site-settings | /plugins/edusport-setari | [ ] |
+| Setări site | api::site-settings.site-settings | /plugins/edusport-setari | [x] |
 | Pagina Echipă | api::team-page.team-page | /plugins/edusport-pagina-echipa | [x] |
-| Istoric | api::historic-page.historic-page | /plugins/edusport-istoric | [ ] |
-| Parteneri (pagina) | api::partners-page.partners-page | /plugins/edusport-pagina-parteneri | [ ] |
-| Discipline | api::discipline.discipline | /plugins/edusport-discipline | [ ] |
-| Momente istoric | api::history-milestone.history-milestone | /plugins/edusport-momente-istoric | [ ] |
+| Istoric | api::historic-page.historic-page | /plugins/edusport-istoric | [x] |
+| Parteneri (pagina) | api::partners-page.partners-page | /plugins/edusport-pagina-parteneri | [x] |
+| Discipline | api::discipline.discipline | /plugins/edusport-discipline | [x] |
+| Momente istoric | api::history-milestone.history-milestone | /plugins/edusport-momente-istoric | [x] |
 | Cursuri | api::cursuri-page.cursuri-page | /plugins/edusport-cursuri | [x] |
 | Prețuri | api::pricing.pricing | /plugins/edusport-preturi | [x] |
 | Regulament | api::course-regulations.course-regulations | /plugins/edusport-regulament | [x] |
