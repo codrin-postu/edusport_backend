@@ -20,6 +20,17 @@ import { startAdminThemeSync } from './useAdminTheme';
  */
 
 const R = '.adm-root';
+const SB = '.adm-root.adm-sbar';
+
+/** Phone bottom-sheet layout of the save bar, under `wrap` (a media query) or bare. */
+function sheet(sel: string, wrap: string): string {
+  const rules =
+    `${sel}{left:0;right:0;bottom:0;width:100%;min-width:0;max-width:none;gap:8px;padding:12px 14px;padding-bottom:max(12px, env(safe-area-inset-bottom));border-radius:var(--adm-radius-savebar-sheet);transform:translateY(110%)}` +
+    `${sel}[data-visible="true"]{transform:translateY(0)}` +
+    `${sel} .adm-sbar-btn{padding:8px 12px}` +
+    `${sel} .adm-sbar-btn--primary,${sel} .adm-sbar-btn--success,${sel} .adm-sbar-btn--danger{padding:8px 16px}`;
+  return wrap ? `${wrap}{${rules}}` : rules;
+}
 
 export const ADM_CSS = `
 ${R}{font-family:var(--adm-font);font-size:var(--adm-fs-body);line-height:var(--adm-lh-body);color:var(--adm-text-primary);color-scheme:var(--adm-color-scheme)}
@@ -136,15 +147,37 @@ ${R} .adm-rail{border-right:1px solid var(--adm-line);padding:var(--adm-space-4)
 ${R} .adm-body{padding:var(--adm-space-4) 18px;display:flex;flex-direction:column;gap:14px;min-width:0}
 @media (max-width:900px){${R} .adm-two{grid-template-columns:1fr}${R} .adm-rail{border-right:none;border-bottom:1px solid var(--adm-line)}}
 
-/* save bar */
-${R} .adm-savebar{position:sticky;bottom:0;z-index:20;display:flex;align-items:center;gap:var(--adm-space-3);padding:11px 18px;border-top:1px solid var(--adm-line);background:var(--adm-surface-subtle)}
-${R} .adm-savebar-status{flex:1;display:flex;align-items:center;gap:8px;font-size:var(--adm-fs-body-sm);color:var(--adm-text-muted);min-width:0}
-${R} .adm-savebar-status[data-state="dirty"]{color:var(--adm-warn-fg);font-weight:600}
-${R} .adm-savebar-status[data-state="saved"]{color:var(--adm-ok-fg);font-weight:600}
-${R} .adm-savebar-status[data-state="error"]{color:var(--adm-danger-fg);font-weight:600}
-${R} .adm-savebar-dot{width:8px;height:8px;flex-shrink:0;background:currentColor;border-radius:var(--adm-radius-none)}
-${R} .adm-savebar-keys{font-size:var(--adm-fs-caption);color:var(--adm-text-muted)}
-@media (max-width:640px){${R} .adm-savebar-keys{display:none}}
+/* save bar (SaveBarView): the floating, Strapi-matching bar used by the
+   native content-manager pages (src/admin/SaveBar.tsx) and by every custom
+   page (ui/SaveBar.tsx). Its root carries .adm-root itself, because the global
+   bar mounts outside any AdminPage. The 8px bar, the sheet's 12px top corners
+   and the round status dot are the approved exception to the square rule. */
+${SB}{position:fixed;z-index:9999;left:50%;bottom:16px;display:flex;align-items:center;gap:14px;padding:10px 12px 10px 16px;min-width:360px;max-width:720px;box-sizing:border-box;background:var(--adm-savebar-surface);color:var(--adm-savebar-text);border:1px solid var(--adm-savebar-line);border-radius:var(--adm-radius-savebar);box-shadow:var(--adm-savebar-shadow);font-family:var(--adm-font);font-size:14px;transform:translate(-50%,110%);opacity:0;transition:transform 140ms ease-in,opacity 140ms ease-in}
+${SB}[data-visible="true"]{transform:translate(-50%,0);opacity:1;transition:transform 180ms cubic-bezier(0.2,0.8,0.2,1),opacity 180ms ease-out}
+${SB} .adm-sbar-icon{width:18px;height:18px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-radius:var(--adm-radius-savebar-dot);background:var(--adm-savebar-warning);color:var(--adm-savebar-on-icon);font-size:12px;font-weight:700;line-height:1}
+${SB} .adm-sbar-icon[data-tone="success"]{background:var(--adm-savebar-success)}
+${SB} .adm-sbar-icon[data-tone="danger"]{background:var(--adm-savebar-danger)}
+${SB} .adm-sbar-label{flex:1;min-width:0;color:var(--adm-savebar-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+${SB} .adm-sbar-extra{display:flex;align-items:center;gap:8px;flex-shrink:0}
+${SB} .adm-sbar-btn{display:inline-flex;align-items:center;gap:8px;flex-shrink:0;padding:6px 12px;border:1px solid var(--adm-savebar-line);border-radius:var(--adm-radius-md);background:transparent;color:var(--adm-savebar-text);font-family:inherit;font-size:13px;font-weight:500;line-height:normal;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s}
+${SB} .adm-sbar-btn:hover:not(:disabled){background:var(--adm-savebar-surface-hover);border-color:var(--adm-savebar-line-hover)}
+${SB} .adm-sbar-btn:disabled{cursor:not-allowed;opacity:.5}
+${SB} .adm-sbar-btn--primary,${SB} .adm-sbar-btn--success,${SB} .adm-sbar-btn--danger{padding:6px 14px;border:none;font-weight:600;color:var(--adm-savebar-on-primary);background:var(--adm-savebar-primary);transition:background .15s}
+${SB} .adm-sbar-btn--primary:hover:not(:disabled){background:var(--adm-savebar-primary-hover)}
+${SB} .adm-sbar-btn--success{background:var(--adm-savebar-success);color:var(--adm-savebar-on-success)}
+${SB} .adm-sbar-btn--success:hover:not(:disabled){background:var(--adm-savebar-success-hover)}
+${SB} .adm-sbar-btn--danger,${SB} .adm-sbar-btn--danger:hover:not(:disabled){background:var(--adm-savebar-danger)}
+${SB} .adm-sbar-btn--primary:disabled{opacity:.55;cursor:default}
+${SB} .adm-sbar-btn--primary[aria-busy="true"]{opacity:1;cursor:progress}
+${SB} :focus-visible{outline-color:var(--adm-savebar-line-hover)}
+${SB} .adm-sbar-spin{display:inline-block;flex-shrink:0;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:var(--adm-radius-savebar-dot);animation:adm-spin .7s linear infinite}
+${sheet(SB + ':not(.adm-sbar--inline)', '@media (max-width:640px)')}
+${sheet(SB + '.adm-sbar--sheet', '')}
+${R} .adm-sbar-spacer{height:72px;flex-shrink:0}
+/* in-place rendering for the reference page: no fixed position, no slide */
+${SB}.adm-sbar--inline{position:relative;left:auto;bottom:auto;z-index:auto;display:inline-flex;vertical-align:top;transform:none;opacity:1;transition:none}
+${SB}.adm-sbar--inline.adm-sbar--sheet{display:flex}
+@media (prefers-reduced-motion:reduce){${SB}{transition:none}${SB} .adm-sbar-spin{animation-duration:2.4s}}
 
 /* notice */
 ${R} .adm-notice{display:flex;align-items:flex-start;gap:var(--adm-space-3);font-size:var(--adm-fs-body-sm);color:var(--adm-text-primary);background:var(--adm-notice-bg);border:1px solid var(--adm-notice-line);border-radius:var(--adm-radius-sm);padding:10px 12px}

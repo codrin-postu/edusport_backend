@@ -1,108 +1,108 @@
 import * as React from 'react';
-import { Button } from './Button';
-import { Spinner } from './Spinner';
+import { createPortal } from 'react-dom';
+import { SaveBarView, useDiscardConfirm, useSlideIn } from './SaveBarView';
 
 /**
- * Sticky bottom save bar for custom edit pages.
+ * Save bar for custom edit pages: the same floating, Strapi-matching bar as
+ * the native content-manager pages (SaveBarView), driven by useSaveState.
  *
- *   status on the left: "Ai modificări nesalvate" / "Se salvează…" / the
- *   error. A successful save shows no bar text of its own — useSaveState.run
- *   raises a "Modificările au fost salvate." toast instead, so the message
- *   isn't shown twice.
- *   Renunță (reverts via onDiscard) and Salvează (disabled until dirty);
- *   Cmd/Ctrl+S saves while the bar is mounted and dirty.
+ *   It slides in only while there are unsaved edits, a save is running or
+ *   Renunță is asking for confirmation. Text: "Modificări nesalvate" /
+ *   "Se salvează…" / "Sigur că renunți la modificări?", or the save error.
+ *   A successful save shows no bar text of its own: useSaveState.run raises
+ *   the "Modificările au fost salvate." toast and the bar slides away.
+ *   Renunță (two-step inline confirm, then onDiscard) and Salvează;
+ *   Cmd/Ctrl+S saves, Esc asks to discard.
  *
  * Not to be confused with src/admin/SaveBar.tsx, the global bar that mirrors
- * Strapi's own content-manager buttons. This one lives inside an AdminPage
- * (`.adm-root`), which keeps its Salvează out of the global button tagger.
+ * Strapi's own content-manager buttons. Custom pages never show that one: the
+ * app.tsx tagger skips every button inside `.pce` or `.adm-root`, so nothing
+ * on the page is tagged, and this bar's own buttons carry `.adm-root` too.
  */
 
 export interface SaveBarProps {
   dirty: boolean;
   saving: boolean;
-  /** true for ~2s after a successful save (see useSaveState). */
+  /** true for ~2s after a successful save (see useSaveState). Kept for API compatibility; the toast reports it. */
   saved?: boolean;
   error?: string | null;
   onSave: () => void;
-  /** Revert to the last saved values. Hides Renunță when omitted. */
+  /** Revert to the last saved values, after the confirm step. Hides Renunță when omitted. */
   onDiscard?: () => void;
   saveLabel?: string;
   discardLabel?: string;
-  /** Extra controls on the left, after the status. */
+  /** Extra controls between the status text and the buttons. */
   extra?: React.ReactNode;
   /** Blocks saving (e.g. a validation error), independent of dirty. */
   disabled?: boolean;
-  /** Listen for Cmd/Ctrl+S. Default true. */
+  /** Listen for Cmd/Ctrl+S and Esc. Default true. */
   shortcut?: boolean;
 }
-
-const isMac = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
 export function SaveBar({
   dirty,
   saving,
-  saved = false,
   error = null,
   onSave,
   onDiscard,
-  saveLabel = 'Salvează',
-  discardLabel = 'Renunță',
+  saveLabel,
+  discardLabel,
   extra,
   disabled = false,
   shortcut = true,
 }: SaveBarProps) {
-  const canSave = dirty && !saving && !disabled;
-  const saveRef = React.useRef(onSave);
-  saveRef.current = onSave;
-  const canRef = React.useRef(canSave);
-  canRef.current = canSave;
+  const { confirming, ask, cancel } = useDiscardConfirm(dirty);
+  const { mounted, visible } = useSlideIn(dirty || saving || confirming);
 
+  // Swallow the browser's "Save page" dialog on pages with a bar, even while
+  // the bar is hidden. Saving itself is SaveBarView's key handler.
   React.useEffect(() => {
     if (!shortcut) return undefined;
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.altKey || (e.key !== 's' && e.key !== 'S')) return;
-      // Always swallow the browser's "Save page" dialog on pages with a bar.
-      e.preventDefault();
-      if (canRef.current) saveRef.current();
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && (e.key === 's' || e.key === 'S')) e.preventDefault();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [shortcut]);
 
-  let state: 'saving' | 'error' | 'dirty' | 'saved' | 'clean' = 'clean';
-  if (saving) state = 'saving';
-  else if (error) state = 'error';
-  else if (dirty) state = 'dirty';
-  else if (saved) state = 'saved';
+  const discardRef = React.useRef(onDiscard);
+  discardRef.current = onDiscard;
+  const confirmDiscard = React.useCallback(() => {
+    cancel();
+    discardRef.current?.();
+  }, [cancel]);
 
+  if (!mounted) return null;
+
+  const failed = !!error && !saving && !confirming;
+
+  // Portalled to <body>, so no Strapi ancestor (transform, contain) can
+  // break position:fixed. The bar root carries .adm-root and follows
+  // <html data-adm-theme>. The in-flow spacer keeps the end of the page
+  // scrollable out from under the floating bar while it is shown.
   return (
-    <div className="adm-savebar" role="region" aria-label="Salvare">
-      <div className="adm-savebar-status" data-state={state} aria-live="polite">
-        {state === 'saving' && (
-          <>
-            <Spinner size={14} />
-            <span>Se salvează…</span>
-          </>
-        )}
-        {state === 'error' && <span role="alert">{error}</span>}
-        {state === 'dirty' && (
-          <>
-            <span className="adm-savebar-dot" aria-hidden="true" />
-            <span>Ai modificări nesalvate</span>
-          </>
-        )}
-        {extra}
-      </div>
-      {shortcut && <span className="adm-savebar-keys">{isMac() ? '⌘S' : 'Ctrl+S'}</span>}
-      {onDiscard && (
-        <Button variant="ghost" onClick={onDiscard} disabled={!dirty || saving}>
-          {discardLabel}
-        </Button>
+    <>
+      <div className="adm-sbar-spacer" aria-hidden="true" />
+      {createPortal(
+        <SaveBarView
+          state={saving ? 'saving' : dirty ? 'dirty' : 'idle'}
+          visible={visible}
+          confirming={confirming}
+          canSave={dirty && !saving && !disabled}
+          message={failed ? (error ?? undefined) : undefined}
+          tone={failed ? 'danger' : undefined}
+          onSave={onSave}
+          onDiscard={onDiscard ? ask : undefined}
+          onConfirmDiscard={confirmDiscard}
+          onCancelDiscard={cancel}
+          extra={extra}
+          saveLabel={saveLabel}
+          discardLabel={discardLabel}
+          keyboard={shortcut}
+        />,
+        document.body,
       )}
-      <Button variant="primary" onClick={onSave} disabled={!canSave} loading={saving}>
-        {saveLabel}
-      </Button>
-    </div>
+    </>
   );
 }
 

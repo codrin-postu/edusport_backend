@@ -27,6 +27,14 @@ export { Select, type SelectProps, type SelectOption } from './Select';
 export { DateInput, type DateInputProps } from './DateInput';
 
 export { SaveBar, type SaveBarProps } from './SaveBar';
+export {
+  SaveBarView,
+  useSlideIn,
+  useDiscardConfirm,
+  type SaveBarViewProps,
+  type SaveBarViewState,
+  type SaveBarTone,
+} from './SaveBarView';
 export { useSaveState, SAVED_MS, type SaveState, type SaveStatus, type SaveBarState } from './useSaveState';
 export { useUnsavedGuard, UnsavedGuard, type UnsavedGuardOptions } from './useUnsavedGuard';
 
