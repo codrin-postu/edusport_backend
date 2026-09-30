@@ -278,6 +278,11 @@ ${R} .adm-ref-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--adm-s
 ${R} .adm-ref-swatch{display:flex;flex-direction:column;gap:4px;width:132px;font-size:var(--adm-fs-caption);color:var(--adm-text-muted)}
 ${R} .adm-ref-swatch i{display:block;height:36px;border:1px solid var(--adm-line);border-radius:var(--adm-radius-sm)}
 ${R} .adm-ref-code{font-family:var(--adm-font-mono);font-size:11px;color:var(--adm-text-secondary)}
+${R} .adm-ref-code.adm-muted{color:var(--adm-text-muted)}
+${R} .adm-ref-swatch--sm{width:76px}
+${R} .adm-ref-swatch--sm i{height:28px}
+${R} .adm-ref-swatch .adm-ref-code{overflow-wrap:anywhere}
+${R} .adm-ref-theme{display:flex;flex-direction:column;gap:var(--adm-space-2);padding:var(--adm-space-3);background:var(--adm-surface-page);color:var(--adm-text-primary);border:1px solid var(--adm-line);border-radius:var(--adm-radius-sm)}
 
 /* toast: general, short-lived feedback (see Toast.tsx). Notice stays for
    persistent, page-bound messages. */

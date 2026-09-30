@@ -18,6 +18,7 @@ import {
   Select,
   DateInput,
   SaveBar,
+  SaveBarView,
   useSaveState,
   UnsavedGuard,
   Notice,
@@ -33,7 +34,8 @@ import {
   adminToast,
   useAdminTheme,
   themeVars,
-  light,
+  PALETTE,
+  THEMES,
   radius,
   space,
   type as typeRoles,
@@ -116,16 +118,54 @@ const MSGS: Msg[] = [
   { id: 'c', from: 'Radu Enache', text: 'Se poate plăti abonamentul prin transfer bancar?', when: 'luni, 09:15', unread: false },
 ];
 
-function Swatches() {
-  const vars = Object.keys(themeVars(light)).filter((k) => !k.startsWith('--adm-shadow') && k !== '--adm-color-scheme');
+/** Primitive palette: one row per scale, each swatch with its step and hex. */
+function PaletteSwatches() {
   return (
-    <div className="adm-ref-row">
-      {vars.map((v) => (
-        <div className="adm-ref-swatch" key={v}>
-          <i style={{ background: `var(${v})` }} />
-          <span className="adm-ref-code">{v.replace('--adm-', '')}</span>
+    <div className="adm-stack" style={{ gap: 12 }}>
+      {Object.entries(PALETTE).map(([name, scale]) => (
+        <div key={name} className="adm-stack" style={{ gap: 6 }}>
+          <span className="adm-label">{name}</span>
+          <div className="adm-ref-row">
+            {Object.entries(scale).map(([step, hex]) => (
+              <div className="adm-ref-swatch adm-ref-swatch--sm" key={step}>
+                <i style={{ background: `var(--adm-palette-${name}-${step.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)})` }} />
+                <span className="adm-ref-code">{step}</span>
+                <span className="adm-ref-code adm-muted">{hex}</span>
+              </div>
+            ))}
+          </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Semantic tokens, one panel per theme. Each panel carries its own
+ * data-adm-theme, so the swatches resolve to that theme's values.
+ */
+function SemanticSwatches() {
+  return (
+    <div className="adm-stack" style={{ gap: 12 }}>
+      {THEME_NAMES.map((name) => {
+        const vars = Object.entries(themeVars(THEMES[name])).filter(
+          ([k]) => !k.startsWith('--adm-shadow') && !k.startsWith('--adm-savebar-shadow') && k !== '--adm-color-scheme',
+        );
+        return (
+          <div key={name} className="adm-ref-theme" data-adm-theme={name}>
+            <span className="adm-label">Tema {name}</span>
+            <div className="adm-ref-row">
+              {vars.map(([v, value]) => (
+                <div className="adm-ref-swatch" key={v}>
+                  <i style={{ background: `var(${v})` }} />
+                  <span className="adm-ref-code">{v}</span>
+                  <span className="adm-ref-code adm-muted">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -213,15 +253,37 @@ function SaveBarDemo() {
   );
 }
 
+/** SaveBarView rendered in place, one per state. */
 function StaticSaveBars() {
   const noop = () => {};
+  const base = { inline: true, onSave: noop, onDiscard: noop, onConfirmDiscard: noop, onCancelDiscard: noop } as const;
+  const rows: { label: string; bar: React.ReactNode }[] = [
+    { label: 'Modificări nesalvate', bar: <SaveBarView {...base} state="dirty" /> },
+    { label: 'Se salvează', bar: <SaveBarView {...base} state="saving" /> },
+    { label: 'Confirmare Renunță', bar: <SaveBarView {...base} state="dirty" confirming /> },
+    {
+      label: 'Eroare la salvare',
+      bar: <SaveBarView {...base} state="dirty" tone="danger" message="Nu am putut salva. Încearcă din nou." />,
+    },
+    {
+      label: 'Gata de publicare (pagini native)',
+      bar: <SaveBarView {...base} state="idle" canPublish canPreview onPublish={noop} onPreview={noop} />,
+    },
+    { label: 'Publicat (pagini native)', bar: <SaveBarView {...base} state="idle" canUnpublish onUnpublish={noop} /> },
+    {
+      label: 'Nesalvat, cu Publică (pagini native)',
+      bar: <SaveBarView {...base} state="dirty" canPublish onPublish={noop} />,
+    },
+    { label: 'Telefon (foaie jos, sub 640px)', bar: <SaveBarView {...base} state="dirty" sheet /> },
+  ];
   return (
-    <div className="adm-stack" style={{ gap: 8 }}>
-      <div className="adm-win"><SaveBar dirty={false} saving={false} onSave={noop} onDiscard={noop} shortcut={false} /></div>
-      <div className="adm-win"><SaveBar dirty saving={false} onSave={noop} onDiscard={noop} shortcut={false} /></div>
-      <div className="adm-win"><SaveBar dirty saving onSave={noop} onDiscard={noop} shortcut={false} /></div>
-      <div className="adm-win"><SaveBar dirty={false} saving={false} saved onSave={noop} onDiscard={noop} shortcut={false} /></div>
-      <div className="adm-win"><SaveBar dirty saving={false} error="Nu am putut salva. Încearcă din nou." onSave={noop} onDiscard={noop} shortcut={false} /></div>
+    <div className="adm-stack" style={{ gap: 12 }}>
+      {rows.map((r) => (
+        <div key={r.label} className="adm-stack" style={{ gap: 6 }}>
+          <span className="adm-label">{r.label}</span>
+          {r.bar}
+        </div>
+      ))}
     </div>
   );
 }
@@ -502,8 +564,11 @@ const UiReferencePage: React.FC = () => {
               </div>
             }
           >
-            <Section title="Culori (tokens)" aside={<span className="adm-muted">--adm-*</span>}>
-              <Swatches />
+            <Section title="Culori" aside={<span className="adm-muted">--adm-palette-*, apoi --adm-* pe teme</span>}>
+              <span className="adm-label">Paletă (primitive)</span>
+              <PaletteSwatches />
+              <span className="adm-label">Tokenuri semantice</span>
+              <SemanticSwatches />
             </Section>
             <Section title="Colțuri, umbre, spațiere, text">
               <Scales />
@@ -605,7 +670,10 @@ const UiReferencePage: React.FC = () => {
         </Window>
 
         <Window>
-          <PageHeader title="SaveBar" subtitle="useSaveState + SaveBar + UnsavedGuard, apoi toate stările." />
+          <PageHeader
+            title="SaveBar"
+            subtitle="Aceeași bară pe paginile native și pe cele proprii. Demo: modifică textul și bara apare jos. Dedesubt, SaveBarView în fiecare stare."
+          />
           <div className="adm-body">
             <SaveBarDemo />
             <StaticSaveBars />
