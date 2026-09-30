@@ -10,6 +10,7 @@ import { mountEdusportShell, tagShellParent, SHELL_CSS } from './dashboard/Edusp
 import { applyLoginBranding } from './dashboard/loginBranding';
 import { ensureAdminUi } from './ui/styles';
 import { mountToastViewport } from './ui/Toast';
+import { registerNativeFormBridge } from './nativeFormBridge';
 import roTranslations from './translations/ro.json';
 import EdusportLogo from './edusport-logo.svg';
 
@@ -656,7 +657,9 @@ export default {
     // ./dashboard/EdusportShell during bootstrap.
     registerEdusportMenu(app);
   },
-  bootstrap() {
+  bootstrap(app: StrapiApp) {
+    // Lets the global save bar's Renunță reset the edit view form in place (see ./nativeFormBridge).
+    registerNativeFormBridge(app);
     // bootstrap can fire before document.body is ready in some edge cases; wait if so.
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', setupAdminShell, { once: true });

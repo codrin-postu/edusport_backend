@@ -2,6 +2,8 @@ import * as React from 'react';
 import { SaveBarView, useDiscardConfirm, useSlideIn } from './ui/SaveBarView';
 import { useAdminTheme } from './ui/useAdminTheme';
 import { ensureAdminUi } from './ui/styles';
+import { releaseUnsavedGuards } from './ui/useUnsavedGuard';
+import { resetNativeForm } from './nativeFormBridge';
 
 /**
  * Global save bar for Strapi's native content-manager edit pages. app.tsx
@@ -164,17 +166,27 @@ function useBarState(): {
 }
 
 /**
- * Discard pending changes. Strapi v5 doesn't expose a flat "Discard" button
- * in the right rail (the action lives behind the "More actions" dropdown,
- * which we don't want to programmatically traverse). Pragmatic approach:
- * reload the page; Strapi's content controller refetches the persisted entry,
- * effectively discarding the in-memory edits. We clear Strapi's own
- * beforeunload guard first so the user isn't double-prompted.
+ * Discard pending changes after the inline "Da, renunță", which is the only
+ * confirmation. The edit view's form is reset in place to its last saved
+ * values through the form bridge (./nativeFormBridge: Strapi's own
+ * `resetForm` from `useForm`), which clears the dirty state, so neither
+ * Strapi's navigation blocker nor any beforeunload prompt fires afterwards.
  *
- * The "are you sure?" UX is rendered inline by <SaveBar />, not via
- * window.confirm.
+ * Fallback, only when no bridge is registered: reload the page, after
+ * standing our own leave guards down and swallowing beforeunload in the
+ * capture phase. Strapi's own warning (useWarnIfUnsavedChanges) is an
+ * addEventListener('beforeunload') on window, which `onbeforeunload = null`
+ * cannot remove; the capture listener stops it in current browsers (capture
+ * listeners run first at the target), but a browser that does not honour
+ * that may still show its "leave page?" popup in this path.
  */
-function discardViaReload(): void {
+function discard(): void {
+  if (resetNativeForm()) return;
+  console.warn(
+    '[edusport] Renunță: no content-manager form bridge is registered (not an edit view, or the editView.right-links zone did not render); reloading the page instead.',
+  );
+  releaseUnsavedGuards();
+  window.addEventListener('beforeunload', (e) => e.stopImmediatePropagation(), { capture: true });
   window.onbeforeunload = null;
   window.location.reload();
 }
@@ -206,12 +218,12 @@ export function SaveBar(): React.ReactElement | null {
   const shouldShow = dirty || saving || canPublish || canUnpublish || canPreview;
   const { mounted, visible } = useSlideIn(shouldShow);
 
-  // Two-step discard: first click asks, second click reloads. Esc while
-  // asking cancels (keyboard handling lives in SaveBarView).
+  // Two-step discard: first click asks, second click resets the form in
+  // place. Esc while asking cancels (keyboard handling lives in SaveBarView).
   const { confirming, ask, cancel } = useDiscardConfirm(dirty);
   const confirmDiscard = React.useCallback(() => {
     cancel();
-    discardViaReload();
+    discard();
   }, [cancel]);
 
   if (!mounted) return null;
