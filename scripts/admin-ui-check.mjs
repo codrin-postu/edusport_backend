@@ -7,7 +7,8 @@
  *   - rgb() / rgba() / hsl() / hsla() colours;
  *   - border-radius values that are not a radius token (var(--adm-radius-*)),
  *     in CSS strings (border-radius: 6px) and in React styles (borderRadius: 6).
- *     0 / none / inherit are allowed.
+ *     0 / none / inherit are allowed, and the save bar's own
+ *     var(--adm-radius-savebar[-sheet|-dot]) (the approved exception).
  *
  * Usage:
  *   node scripts/admin-ui-check.mjs            report, always exits 0
@@ -60,7 +61,7 @@ const RGB = /\b(?:rgba?|hsla?)\(/g;
 // CSS: border-radius / border-top-left-radius etc.  JS: borderRadius / borderTopLeftRadius.
 const RADIUS_CSS = /border(?:-(?:top|bottom)-(?:left|right))?-radius\s*:\s*([^;}"'`\n]+)/g;
 const RADIUS_JS = /\bborder(?:(?:Top|Bottom)(?:Left|Right))?Radius\s*:\s*([^,\n]+)/g;
-const RADIUS_OK = /^\s*(?:0(?:px)?|none|inherit|var\(--adm-radius-(?:none|sm|md)\))\s*(?:!important)?\s*$/;
+const RADIUS_OK = /^\s*(?:0(?:px)?|none|inherit|var\(--adm-radius-(?:none|sm|md|savebar(?:-sheet|-dot)?)\))\s*(?:!important)?\s*$/;
 
 function cleanRadiusValue(v) {
   return v
@@ -176,6 +177,17 @@ async function contrast() {
     for (const [tone, c] of Object.entries(t.status)) {
       checks.push([`${tone}.fg on ${tone}.bg`, c.fg, c.bg, 4.5]);
       checks.push([`${tone}.fg on raised`, c.fg, t.surface.raised, 4.5]);
+    }
+    const sb = t.savebar;
+    checks.push(['savebar.text on savebar.surface', sb.text, sb.surface, 4.5]);
+    checks.push(['savebar.textMuted on savebar.surface', sb.textMuted, sb.surface, 4.5]);
+    checks.push(['savebar.onPrimary on savebar.primary', sb.onPrimary, sb.primary, 4.5]);
+    checks.push(['savebar.onSuccess on savebar.success', sb.onSuccess, sb.success, 4.5]);
+    // Calendar categories (shared with the website): text on the fill in every
+    // theme; in dark, the fill must also stand out from the surface (1.4.11).
+    for (const [cat, c] of Object.entries(t.category)) {
+      checks.push([`cat.${cat}.fg on cat.${cat}`, c.fg, c.bg, 4.5]);
+      if (t.colorScheme === 'dark') checks.push([`cat.${cat} on raised`, c.bg, t.surface.raised, 3]);
     }
     const fails = checks.filter(([, a, b, min]) => ratio(a, b) < min);
     const worst = checks.reduce((w, c) => (ratio(c[1], c[2]) / c[3] < ratio(w[1], w[2]) / w[3] ? c : w));
