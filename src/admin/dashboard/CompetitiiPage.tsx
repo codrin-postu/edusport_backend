@@ -1,9 +1,21 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
-import { EDU_CSS } from './edusportUi';
 import { SPORTIV_EDIT_TO } from './menu';
 import { ConfirmDialog } from '../ConfirmDialog';
+import {
+  AdminPage,
+  Window,
+  PageHeader,
+  Section,
+  Field,
+  Input,
+  Select,
+  Button,
+  Notice,
+  DataTable,
+  type DataColumn,
+} from '../ui';
 
 /**
  * EduSport admin, "Competiții" page (skate-results driven).
@@ -47,6 +59,19 @@ function score(v: number | null | undefined): string {
   return typeof v === 'number' ? v.toFixed(2) : '-';
 }
 
+const COMPETITII_CSS = `
+.adm-root .cmp-cand{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.adm-root .cmp-cand-btn{text-align:left;border:1px solid var(--adm-line-strong);border-radius:var(--adm-radius-sm);padding:8px 12px;background:var(--adm-surface-raised);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;font:inherit;color:var(--adm-text-primary)}
+.adm-root .cmp-cand-btn:disabled{cursor:default;opacity:.6}
+.adm-root .cmp-cand-url{font-size:11.5px;color:var(--adm-text-muted);word-break:break-all}
+.adm-root .cmp-cand-go{flex:none;color:var(--adm-accent);font-weight:700;font-size:12px}
+.adm-root .cmp-detail{background:var(--adm-surface-subtle);border:1px solid var(--adm-line);border-radius:var(--adm-radius-sm);padding:8px 14px 14px;margin-top:-1px}
+.adm-root .cmp-detail-count{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--adm-text-muted);margin:6px 0}
+.adm-root .cmp-detail-msg{padding:10px 4px;font-size:12.5px;color:var(--adm-text-secondary)}
+.adm-root .cmp-mini-row{cursor:pointer}
+.adm-root .cmp-msg{margin-top:var(--adm-space-3)}
+`;
+
 export default function CompetitiiPage() {
   const { get, post, del } = useFetchClient();
   const navigate = useNavigate();
@@ -54,12 +79,9 @@ export default function CompetitiiPage() {
   const [rows, setRows] = React.useState<EventRow[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
-  const [search, setSearch] = React.useState('');
   const [seasonFilter, setSeasonFilter] = React.useState('');
   const [memberFilter, setMemberFilter] = React.useState(''); // skate slug
   const [memberEventIds, setMemberEventIds] = React.useState<Set<number> | null>(null);
-  const [page, setPage] = React.useState(0);
-  const PER_PAGE = 20;
 
   const [impInput, setImpInput] = React.useState('');
   const [importing, setImporting] = React.useState(false);
@@ -273,253 +295,182 @@ export default function CompetitiiPage() {
   );
 
   const filtered = React.useMemo(() => {
-    const q = search.trim().toLowerCase();
     return rows.filter((r) => {
-      if (q && !(r.name ?? '').toLowerCase().includes(q)) return false;
       if (seasonFilter && r.season !== seasonFilter) return false;
       if (memberEventIds && !memberEventIds.has(r.id)) return false;
       return true;
     });
-  }, [rows, search, seasonFilter, memberEventIds]);
+  }, [rows, seasonFilter, memberEventIds]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
-  const safePage = Math.min(page, totalPages - 1);
-  const paged = filtered.slice(safePage * PER_PAGE, (safePage + 1) * PER_PAGE);
+  const expandedRow = expanded !== null ? filtered.find((r) => r.id === expanded) : undefined;
+  const expandedData = expanded !== null ? rowData[expanded] : undefined;
 
-  React.useEffect(() => setPage(0), [search, seasonFilter, memberFilter]);
+  const columns: DataColumn<EventRow>[] = [
+    { key: 'name', header: 'Nume', value: (r) => r.name, sortable: true },
+    { key: 'season', header: 'Sezon', value: (r) => r.season ?? '', sortable: true, align: 'right' },
+    { key: 'skaters_count', header: 'Sportivi', value: (r) => r.skaters_count ?? 0, sortable: true, align: 'right' },
+    { key: 'results_count', header: 'Rezultate', value: (r) => r.results_count ?? 0, sortable: true, align: 'right' },
+    {
+      key: 'actions',
+      header: '',
+      searchable: false,
+      align: 'right',
+      render: (r) => (
+        <>
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Recitește rezultatele din baza noastră de date"
+            onClick={(e) => {
+              e.stopPropagation();
+              refresh(r);
+            }}
+            disabled={reimportingId === r.id}
+          >
+            {reimportingId === r.id ? '…' : 'Actualizează'}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            title="Șterge competiția"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDelTarget(r);
+            }}
+            disabled={deletingId === r.id}
+          >
+            {deletingId === r.id ? '…' : 'Șterge'}
+          </Button>
+        </>
+      ),
+    },
+  ];
 
   return (
-    <div className="eduf">
-      <style>{EDU_CSS}</style>
-      <div className="win">
-        <div className="hd">
-          <div>
-            <h1>Competiții</h1>
-            <p>Importă o competiție după nume pentru a-i prelua rezultatele. Sportivii apar automat și pot fi conectați în editorul de sportiv.</p>
-          </div>
-        </div>
+    <AdminPage>
+      <style>{COMPETITII_CSS}</style>
+      <Window>
+        <PageHeader
+          title="Competiții"
+          subtitle="Importă o competiție după nume pentru a-i prelua rezultatele. Sportivii apar automat și pot fi conectați în editorul de sportiv."
+        />
 
-        <div className="tb" style={{ flexWrap: 'wrap', gap: 8 }}>
-          <div className="search" style={{ flex: '1 1 320px' }}>
-            <span aria-hidden="true">⌕</span>
-            <input
-              placeholder="Nume competiție (ex. Crystal Skate of Romania 2024) sau URL rezultate"
-              value={impInput}
-              onChange={(e) => setImpInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  onSearch();
-                }
-              }}
+        <Section title="Importă o competiție">
+          <div className="adm-grid2">
+            <Field label="Nume competiție sau URL rezultate" hideLabel>
+              <Input
+                placeholder="Nume competiție (ex. Crystal Skate of Romania 2024) sau URL rezultate"
+                value={impInput}
+                onChange={(e) => setImpInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    onSearch();
+                  }
+                }}
+              />
+            </Field>
+            <Button onClick={onSearch} disabled={importing} loading={importing}>
+              {importing ? 'Se caută…' : 'Caută competiție'}
+            </Button>
+          </div>
+
+          {msg && (
+            <Notice tone={msg.kind === 'ok' ? 'ok' : 'danger'} className="cmp-msg">
+              {msg.text}
+            </Notice>
+          )}
+
+          {candidates.length > 0 && (
+            <div className="cmp-cand">
+              {candidates.map((c) => (
+                <button
+                  key={c.url}
+                  type="button"
+                  className="cmp-cand-btn"
+                  onClick={() => runImport({ url: c.url })}
+                  disabled={importing}
+                >
+                  <span style={{ minWidth: 0 }}>
+                    <b>{c.title || c.url}</b>
+                    <div className="cmp-cand-url">{c.url}</div>
+                  </span>
+                  <span className="cmp-cand-go">{importing ? '…' : 'Importă →'}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section title="Competiții importate">
+          <div className="adm-grid2" style={{ marginBottom: 12 }}>
+            <Select
+              aria-label="Filtrează după sezon"
+              value={seasonFilter}
+              onChange={(v) => setSeasonFilter(v)}
+              placeholder="Toate sezoanele"
+              options={seasonOptions.map((s) => ({ value: s, label: s }))}
+            />
+            <Select
+              aria-label="Filtrează după sportiv"
+              value={memberFilter}
+              onChange={(v) => setMemberFilter(v)}
+              placeholder="Toți sportivii clubului"
+              options={memberOptions.map((m) => ({ value: m.slug, label: m.name }))}
             />
           </div>
-          <button className="btn pri" type="button" onClick={onSearch} disabled={importing}>
-            {importing ? 'Se caută…' : 'Caută competiție'}
-          </button>
-        </div>
 
-        {msg && (
-          <div className={`msg ${msg.kind}`} style={{ margin: '0 0 10px' }}>
-            {msg.text}
-          </div>
-        )}
+          <DataTable
+            columns={columns}
+            rows={filtered}
+            getRowKey={(r) => r.id}
+            onRowClick={toggleRow}
+            rowLabel={(r) => `Detalii ${r.name}`}
+            loading={loading}
+            empty={error ? 'Nu am putut încărca competițiile din skate-results.' : 'Nicio competiție importată încă. Importă una mai sus.'}
+            search
+            searchPlaceholder="Filtrează competițiile importate..."
+            initialSort={{ key: 'name', dir: 'asc' }}
+          />
 
-        {candidates.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-            {candidates.map((c) => (
-              <button
-                key={c.url}
-                type="button"
-                onClick={() => runImport({ url: c.url })}
-                disabled={importing}
-                style={{
-                  textAlign: 'left',
-                  border: '1px solid #dcdcdc',
-                  borderRadius: 5,
-                  padding: '8px 12px',
-                  background: '#fff',
-                  cursor: importing ? 'default' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                }}
-              >
-                <span style={{ minWidth: 0 }}>
-                  <b>{c.title || c.url}</b>
-                  <div style={{ fontSize: 12, color: '#6a6f7a', wordBreak: 'break-all' }}>{c.url}</div>
-                </span>
-                <span style={{ flex: 'none', color: '#2138b8', fontWeight: 700, fontSize: 12 }}>
-                  {importing ? '…' : 'Importă →'}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="tb" style={{ flexWrap: 'wrap', gap: 8 }}>
-          <div className="search" style={{ flex: '1 1 260px' }}>
-            <span aria-hidden="true">⌕</span>
-            <input placeholder="Filtrează competițiile importate..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <select value={seasonFilter} onChange={(e) => setSeasonFilter(e.target.value)}>
-            <option value="">Toate sezoanele</option>
-            {seasonOptions.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-          <select value={memberFilter} onChange={(e) => setMemberFilter(e.target.value)}>
-            <option value="">Toți sportivii clubului</option>
-            {memberOptions.map((m) => (
-              <option key={m.slug} value={m.slug}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {loading ? (
-          <div className="empty">Se încarcă...</div>
-        ) : error ? (
-          <div className="empty">Nu am putut încărca competițiile din skate-results.</div>
-        ) : filtered.length === 0 ? (
-          <div className="empty">Nicio competiție importată încă. Importă una mai sus.</div>
-        ) : (
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Nume</th>
-                <th>Sezon</th>
-                <th>Sportivi</th>
-                <th>Rezultate</th>
-                <th style={{ width: 24 }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {paged.map((r) => {
-                const isOpen = expanded === r.id;
-                const data = rowData[r.id];
-                return (
-                  <React.Fragment key={r.id}>
-                    <tr onClick={() => toggleRow(r)} style={{ cursor: 'pointer' }}>
-                      <td className="nm">{r.name}</td>
-                      <td className="num">{r.season || '-'}</td>
-                      <td className="num">{r.skaters_count ?? 0}</td>
-                      <td className="num">{r.results_count ?? 0}</td>
-                      <td className="num" style={{ whiteSpace: 'nowrap' }}>
-                        <button
-                          type="button"
-                          title="Recitește rezultatele din baza noastră de date"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            refresh(r);
-                          }}
-                          disabled={reimportingId === r.id}
-                          style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#2138b8', fontWeight: 600, fontSize: 12, marginRight: 10 }}
-                        >
-                          {reimportingId === r.id ? '…' : 'Actualizează'}
-                        </button>
-                        <button
-                          type="button"
-                          title="Șterge competiția"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDelTarget(r);
-                          }}
-                          disabled={deletingId === r.id}
-                          style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#be3330', fontWeight: 600, fontSize: 12, marginRight: 10 }}
-                        >
-                          {deletingId === r.id ? '…' : 'Șterge'}
-                        </button>
-                        <span style={{ color: '#8a8f98' }}>{isOpen ? '▾' : '▸'}</span>
-                      </td>
-                    </tr>
-                    {isOpen && (
-                      <tr>
-                        <td colSpan={5} style={{ background: '#f7f8fa', padding: 0 }}>
-                          {data === 'loading' ? (
-                            <div style={{ padding: '12px 18px', color: '#6a6f7a', fontSize: 12 }}>Se încarcă…</div>
-                          ) : data === 'error' || !data ? (
-                            <div style={{ padding: '12px 18px', color: '#be3330', fontSize: 12 }}>Nu am putut încărca rezultatele.</div>
-                          ) : data.length === 0 ? (
-                            <div style={{ padding: '12px 18px', color: clubLoadFailed ? '#be3330' : '#6a6f7a', fontSize: 12 }}>
-                              {clubLoadFailed
-                                ? 'Nu am putut încărca lista sportivilor clubului, așa că nu putem spune cine a participat. Reîncarcă pagina.'
-                                : 'Niciun sportiv conectat al clubului în această competiție. Conectează sportivii în editorul de sportiv.'}
-                            </div>
-                          ) : (
-                            <div style={{ padding: '8px 18px 14px' }}>
-                              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', color: '#6a6f7a', margin: '6px 0' }}>
-                                {data.length} sportiv{data.length === 1 ? '' : 'i'} din club
-                              </div>
-                              <table className="tbl" style={{ margin: 0 }}>
-                                <thead>
-                                  <tr>
-                                    <th>Sportiv</th>
-                                    <th>Categorie</th>
-                                    <th>Loc</th>
-                                    <th>PS</th>
-                                    <th>PL</th>
-                                    <th>Total</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {data.map((m, i) => (
-                                    <tr
-                                      key={`${m.skater_slug}-${i}`}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate(`${SPORTIV_EDIT_TO}?id=${m.sportiv.documentId}`);
-                                      }}
-                                      style={{ cursor: 'pointer' }}
-                                    >
-                                      <td className="nm">{m.sportiv.name}</td>
-                                      <td>{m.category}</td>
-                                      <td className="num">{m.placement ?? '-'}</td>
-                                      <td className="num">{score(m.short_score)}</td>
-                                      <td className="num">{score(m.free_score)}</td>
-                                      <td className="num">{score(m.total_score)}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-
-        {!loading && !error && (
-          <div className="foot" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <span>
-              {filtered.length} {filtered.length === 1 ? 'competiție' : 'competiții'}
-              {filtered.length !== rows.length ? ` din ${rows.length}` : ''}
-            </span>
-            {totalPages > 1 && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button className="btn" type="button" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0}>
-                  Înapoi
-                </button>
-                <span>
-                  {safePage + 1} / {totalPages}
-                </span>
-                <button className="btn" type="button" onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage >= totalPages - 1}>
-                  Înainte
-                </button>
-              </span>
-            )}
-          </div>
-        )}
-      </div>
+          {expandedRow && (
+            <div className="cmp-detail">
+              {expandedData === 'loading' ? (
+                <div className="cmp-detail-msg">Se încarcă…</div>
+              ) : expandedData === 'error' || !expandedData ? (
+                <div className="cmp-detail-msg">Nu am putut încărca rezultatele.</div>
+              ) : expandedData.length === 0 ? (
+                <div className="cmp-detail-msg">
+                  {clubLoadFailed
+                    ? 'Nu am putut încărca lista sportivilor clubului, așa că nu putem spune cine a participat. Reîncarcă pagina.'
+                    : 'Niciun sportiv conectat al clubului în această competiție. Conectează sportivii în editorul de sportiv.'}
+                </div>
+              ) : (
+                <>
+                  <div className="cmp-detail-count">
+                    {expandedData.length} sportiv{expandedData.length === 1 ? '' : 'i'} din club, {expandedRow.name}
+                  </div>
+                  <DataTable
+                    columns={[
+                      { key: 'skater_name', header: 'Sportiv', value: (m: ClubResult) => m.sportiv.name },
+                      { key: 'category', header: 'Categorie', value: (m: ClubResult) => m.category },
+                      { key: 'placement', header: 'Loc', value: (m: ClubResult) => m.placement ?? 0, align: 'right' },
+                      { key: 'short_score', header: 'PS', value: (m: ClubResult) => score(m.short_score), align: 'right' },
+                      { key: 'free_score', header: 'PL', value: (m: ClubResult) => score(m.free_score), align: 'right' },
+                      { key: 'total_score', header: 'Total', value: (m: ClubResult) => score(m.total_score), align: 'right' },
+                    ]}
+                    rows={expandedData}
+                    getRowKey={(m) => `${m.skater_slug}-${m.category}`}
+                    onRowClick={(m) => navigate(`${SPORTIV_EDIT_TO}?id=${m.sportiv.documentId}`)}
+                    rowLabel={(m) => `Editează ${m.sportiv.name}`}
+                    pageSize={0}
+                  />
+                </>
+              )}
+            </div>
+          )}
+        </Section>
+      </Window>
 
       <ConfirmDialog
         open={delTarget !== null}
@@ -531,6 +482,6 @@ export default function CompetitiiPage() {
           if (delTarget) deleteEvent(delTarget);
         }}
       />
-    </div>
+    </AdminPage>
   );
 }
