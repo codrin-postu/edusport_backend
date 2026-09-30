@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
-import { EDU_CSS } from './edusportUi';
 import { ANUNT_EDIT_TO } from './menu';
 import { ConfirmDialog } from '../ConfirmDialog';
+import { AdminPage, Window, PageHeader, Button, StatusBadge, Notice, EmptyState, Loading, adminToast } from '../ui';
 
 /**
  * EduSport admin — "Anunțuri" list page.
@@ -18,12 +18,15 @@ import { ConfirmDialog } from '../ConfirmDialog';
  *   - Programate   — ordered by start date, no drag (the dates decide);
  *   - Încheiate    — archive with final numbers.
  *
- * CSS NOTE: every class this page introduces is prefixed `anun-`. `EDU_CSS`
- * already owns generic names (`.sec`, `.row`, `.win`, `.hint`, `.pill`, `.fld`)
- * and the mockup happens to use three of them (`.row`, `.win`, `.hint`) for
- * completely different things. Namespacing is what keeps the two stylesheets
- * from colliding — an unnamespaced clash caused a real bug earlier in this
- * project, so do not drop the prefix when adding rules here.
+ * NOT a DataTable: the active group is hand-ordered by drag/keyboard (the order
+ * itself is the data, persisted via /reorder), and rows are split into three
+ * named groups rather than one sortable/searchable/paginated set. DataTable's
+ * generic model (search box, column sort, page slicing) has no place to hang a
+ * drag handle or a group header, so this page keeps its bespoke list and only
+ * moves page chrome, chips and messaging onto the shared components.
+ *
+ * CSS NOTE: every class this page introduces is prefixed `anun-`, tokens only
+ * (var(--adm-*)).
  */
 
 // ---------------------------------------------------------------------------
@@ -85,7 +88,7 @@ export function anuntErrorMessage(err: any, fallback: string): string {
 export function slugifyRo(input: string): string {
   return (input || '')
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .replace(/[îí]/gi, 'i')
     .replace(/[șş]/gi, 's')
     .replace(/[țţ]/gi, 't')
@@ -128,60 +131,45 @@ function ctrLabel(ctr: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// Page CSS — every selector namespaced under `.eduf .anun-*`
+// Page CSS — tokens only, every selector namespaced under `.adm-root .anun-*`
 // ---------------------------------------------------------------------------
 
 const ANUN_CSS = `
-.eduf .anun-body{padding:16px 18px}
-.eduf .anun-note{font-size:12px;color:var(--muted);background:var(--field);border:1px solid var(--line);border-radius:var(--r);padding:8px 11px;margin:0 0 14px}
-.eduf .anun-note b{color:var(--ink)}
+.adm-root .anun-grp{margin-bottom:20px}
+.adm-root .anun-grp:last-child{margin-bottom:0}
+.adm-root .anun-grp-h{display:flex;align-items:center;gap:9px;margin:0 0 8px}
+.adm-root .anun-grp-h .anun-t{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--adm-text-muted)}
+.adm-root .anun-grp-h .anun-n{font-size:11px;font-weight:700;color:var(--adm-text-muted);font-variant-numeric:tabular-nums}
 
-.eduf .anun-grp{margin-bottom:20px}
-.eduf .anun-grp:last-child{margin-bottom:0}
-.eduf .anun-grp-h{display:flex;align-items:center;gap:9px;margin:0 0 8px}
-.eduf .anun-grp-h .anun-t{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
-.eduf .anun-grp-h .anun-n{font-size:11px;font-weight:700;color:#8a8d99;font-variant-numeric:tabular-nums}
+.adm-root .anun-rows{background:var(--adm-surface-raised);border:1px solid var(--adm-line);border-radius:var(--adm-radius-sm);overflow:hidden}
+.adm-root .anun-none{padding:16px 14px;font-size:12.5px;color:var(--adm-text-muted)}
 
-.eduf .anun-rows{background:#fff;border:1px solid var(--border);border-radius:5px;overflow:hidden}
-.eduf .anun-none{padding:16px 14px;font-size:12.5px;color:var(--muted)}
-
-.eduf .anun-row{display:flex;align-items:center;gap:13px;padding:11px 14px;border-bottom:1px solid #f0f1f4;font-size:13px;cursor:pointer}
-.eduf .anun-row:last-child{border-bottom:none}
-.eduf .anun-row:hover{background:#fafbff}
-.eduf .anun-row.is-live{background:#f7f9ff}
-.eduf .anun-row.is-live:hover{background:#f1f5ff}
+.adm-root .anun-row{display:flex;align-items:center;gap:13px;padding:11px 14px;border-bottom:1px solid var(--adm-line-subtle);font-size:13px;cursor:pointer}
+.adm-root .anun-row:last-child{border-bottom:none}
+.adm-root .anun-row:hover{background:var(--adm-surface-subtle)}
+.adm-root .anun-row.is-live{background:var(--adm-accent-soft)}
+.adm-root .anun-row.is-live:hover{background:var(--adm-accent-soft)}
 /* Active but held back by the row above: warm tint + a red left edge, so "not on
    the site right now" reads without counting positions. */
-.eduf .anun-row.is-waiting{background:#fdf6f5;box-shadow:inset 3px 0 0 rgba(190,51,48,.55)}
-.eduf .anun-row.is-waiting:hover{background:#fbeeec}
-.eduf .anun-row.is-paused .anun-nm,.eduf .anun-row.is-paused .anun-win{opacity:.55}
-.eduf .anun-row.is-past{color:#6a6e7a}
-.eduf .anun-row.is-dragging{opacity:.4}
-.eduf .anun-row.is-over{box-shadow:inset 0 2px 0 var(--accent)}
+.adm-root .anun-row.is-waiting{background:var(--adm-danger-bg);box-shadow:inset 3px 0 0 var(--adm-danger-line)}
+.adm-root .anun-row.is-waiting:hover{background:var(--adm-danger-bg)}
+.adm-root .anun-row.is-paused .anun-nm,.adm-root .anun-row.is-paused .anun-win{opacity:.55}
+.adm-root .anun-row.is-past{color:var(--adm-text-muted)}
+.adm-root .anun-row.is-dragging{opacity:.4}
+.adm-root .anun-row.is-over{box-shadow:inset 0 2px 0 var(--adm-accent)}
 
-.eduf .anun-grab{border:none;background:none;padding:0 2px;color:#c3c6d0;font-size:13px;letter-spacing:-2px;cursor:grab;line-height:1;flex-shrink:0}
-.eduf .anun-grab:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px;color:var(--accent)}
-.eduf .anun-grab:active{cursor:grabbing}
-.eduf .anun-grab:disabled{cursor:default}
+.adm-root .anun-grab{border:none;background:none;padding:0 2px;color:var(--adm-text-muted);font-size:13px;letter-spacing:-2px;cursor:grab;line-height:1;flex-shrink:0}
+.adm-root .anun-grab:focus-visible{outline:2px solid var(--adm-focus);outline-offset:2px;border-radius:var(--adm-radius-sm);color:var(--adm-accent)}
+.adm-root .anun-grab:active{cursor:grabbing}
+.adm-root .anun-grab:disabled{cursor:default}
 
-.eduf .anun-pri{width:19px;height:19px;border-radius:4px;background:var(--accent);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-variant-numeric:tabular-nums}
+.adm-root .anun-pri{width:19px;height:19px;border-radius:var(--adm-radius-sm);background:var(--adm-accent);color:var(--adm-text-on-accent);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-variant-numeric:tabular-nums}
 
-.eduf .anun-nm{font-weight:650;flex:1;min-width:0}
-.eduf .anun-nm .anun-sub{display:block;font-weight:400;font-size:11.5px;color:#8a8d99;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.eduf .anun-win{font-size:11.5px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
-.eduf .anun-stat{font-size:11.5px;color:#4a4d5a;white-space:nowrap;font-variant-numeric:tabular-nums;min-width:118px;text-align:right}
-.eduf .anun-stat b{font-weight:700}
-
-.eduf .anun-chip{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:3px;white-space:nowrap;flex-shrink:0}
-.eduf .anun-chip.is-pause{color:#8a5a00;background:#fbf1df}
-.eduf .anun-chip.is-wait{color:#be3330;background:#faeceb}
-.eduf .anun-chip.is-soon{color:#2138b8;background:#eef1fb}
-.eduf .anun-chip.is-done{color:#5a5e6b;background:#eef0f3}
-.eduf .anun-chip.is-fmt{color:#7a1fa2;background:#f5e9f9}
-
-.eduf .anun-del{border:none;background:none;cursor:pointer;color:var(--danger);font-weight:600;font-size:12px;padding:0 2px;flex-shrink:0}
-.eduf .anun-del:disabled{opacity:.5;cursor:default}
-
+.adm-root .anun-nm{font-weight:650;flex:1;min-width:0}
+.adm-root .anun-nm .anun-sub{display:block;font-weight:400;font-size:11.5px;color:var(--adm-text-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adm-root .anun-win{font-size:11.5px;color:var(--adm-text-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.adm-root .anun-stat{font-size:11.5px;color:var(--adm-text-secondary);white-space:nowrap;font-variant-numeric:tabular-nums;min-width:118px;text-align:right}
+.adm-root .anun-stat b{font-weight:700}
 `;
 
 // ---------------------------------------------------------------------------
@@ -242,7 +230,6 @@ function AnuntRow({
     .filter(Boolean)
     .join(' ');
 
-
   return (
     <div
       className={cls}
@@ -285,11 +272,11 @@ function AnuntRow({
       {/* No chip for the live row: active is the default, and the highlighted
           row already says which one is on the site. Only the exceptions are
           labelled. */}
-      {paused && <span className="anun-chip is-pause">inactiv</span>}
-      {waiting && !paused && <span className="anun-chip is-wait">în așteptare</span>}
-      {a.group === 'scheduled' && <span className="anun-chip is-soon">din {dayMonth(a.startAt)}</span>}
-      {a.group === 'past' && <span className="anun-chip is-done">încheiat</span>}
-      <span className="anun-chip is-fmt">{a.format === 'modal' ? 'modal' : 'card'}</span>
+      {paused && <StatusBadge tone="warn">inactiv</StatusBadge>}
+      {waiting && !paused && <StatusBadge tone="danger">în așteptare</StatusBadge>}
+      {a.group === 'scheduled' && <StatusBadge tone="info">din {dayMonth(a.startAt)}</StatusBadge>}
+      {a.group === 'past' && <StatusBadge tone="neutral">încheiat</StatusBadge>}
+      <StatusBadge tone="accent">{a.format === 'modal' ? 'modal' : 'card'}</StatusBadge>
 
       <span className="anun-win">{windowLabel(a)}</span>
 
@@ -304,9 +291,9 @@ function AnuntRow({
         )}
       </span>
 
-      <button
-        type="button"
-        className="anun-del"
+      <Button
+        variant="ghost"
+        size="sm"
         title="Șterge anunțul"
         onClick={(e) => {
           e.stopPropagation();
@@ -314,7 +301,7 @@ function AnuntRow({
         }}
       >
         Șterge
-      </button>
+      </Button>
     </div>
   );
 }
@@ -331,7 +318,6 @@ export default function AnunturiPage() {
   const [umami, setUmami] = React.useState<UmamiState>('ok');
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
-  const [msg, setMsg] = React.useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [status, setStatus] = React.useState('');
 
   const applyList = React.useCallback((payload: any) => {
@@ -399,7 +385,6 @@ export default function AnunturiPage() {
       const renumbered = next.map((r, i) => ({ ...r, priority: i + 1 }));
 
       setRows([...renumbered, ...scheduled, ...past]);
-      setMsg(null);
       setStatus(`„${moved.title ?? ''}" mutat pe poziția ${to + 1} din ${next.length}.`);
       setReordering(true);
       try {
@@ -410,7 +395,7 @@ export default function AnunturiPage() {
       } catch (err) {
         setRows(previous);
         setStatus('');
-        setMsg({ kind: 'err', text: anuntErrorMessage(err, 'Reordonarea a eșuat. Ordinea a fost restaurată.') });
+        adminToast.error(anuntErrorMessage(err, 'Reordonarea a eșuat. Ordinea a fost restaurată.'));
       } finally {
         setReordering(false);
       }
@@ -470,36 +455,26 @@ export default function AnunturiPage() {
         ? 'Nu am putut citi statisticile din Umami. Coloana arată „—" până când conexiunea revine; restul paginii funcționează normal.'
         : null;
 
-
   return (
-    <div className="eduf">
-      <style>{EDU_CSS}</style>
+    <AdminPage>
       <style>{ANUN_CSS}</style>
 
-      <div className="win">
-        <div className="hd">
-          <div>
-            <h1>Anunțuri</h1>
-            <p>Un singur anunț e vizibil pe site — primul din lista de mai jos. Apasă un rând pentru a edita.</p>
-          </div>
-          <div className="hd-right">
-            <button className="btn pri" type="button" onClick={() => navigate(ANUNT_EDIT_TO)}>
-              + Anunț nou
-            </button>
-          </div>
-        </div>
-
-        {msg && <div className={`msg ${msg.kind}`}>{msg.text}</div>}
+      <Window>
+        <PageHeader
+          title="Anunțuri"
+          subtitle="Un singur anunț e vizibil pe site — primul din lista de mai jos. Apasă un rând pentru a edita."
+          actions={<Button onClick={() => navigate(ANUNT_EDIT_TO)}>+ Anunț nou</Button>}
+        />
 
         {loading ? (
-          <div className="empty">Se încarcă...</div>
+          <Loading />
         ) : error ? (
-          <div className="empty">Nu am putut încărca anunțurile.</div>
+          <EmptyState>Nu am putut încărca anunțurile.</EmptyState>
         ) : rows.length === 0 ? (
-          <div className="empty">Niciun anunț încă. Apasă „+ Anunț nou" ca să creezi primul.</div>
+          <EmptyState>Niciun anunț încă. Apasă „+ Anunț nou" ca să creezi primul.</EmptyState>
         ) : (
-          <div className="anun-body">
-            {umamiNote && <p className="anun-note">{umamiNote}</p>}
+          <>
+            {umamiNote && <Notice tone="info">{umamiNote}</Notice>}
 
             <div className="anun-grp">
               <div className="anun-grp-h">
@@ -622,16 +597,14 @@ export default function AnunturiPage() {
                 </div>
               </div>
             )}
-          </div>
-        )}
 
-        {!loading && !error && rows.length > 0 && (
-          <div className="foot">
-            {rows.length} {rows.length === 1 ? 'anunț' : 'anunțuri'} · {active.length} active ·{' '}
-            {scheduled.length} programate · {past.length} încheiate
-          </div>
+            <p className="adm-muted" style={{ marginTop: 14, fontSize: 12 }}>
+              {rows.length} {rows.length === 1 ? 'anunț' : 'anunțuri'} · {active.length} active ·{' '}
+              {scheduled.length} programate · {past.length} încheiate
+            </p>
+          </>
         )}
-      </div>
+      </Window>
 
       {/* Screen-reader feedback for keyboard reordering. */}
       <div
@@ -651,6 +624,6 @@ export default function AnunturiPage() {
         onCancel={closeConfirm}
         onConfirm={confirmDelete}
       />
-    </div>
+    </AdminPage>
   );
 }
