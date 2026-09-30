@@ -19,7 +19,7 @@ Decisions (companion screen 109, user said "yes do", recommended answers):
 | Momente istoric | api::history-milestone.history-milestone | /plugins/edusport-momente-istoric | [ ] |
 | Cursuri | api::cursuri-page.cursuri-page | /plugins/edusport-cursuri | [x] |
 | Prețuri | api::pricing.pricing | /plugins/edusport-preturi | [x] |
-| Regulament | api::course-regulations.course-regulations | /plugins/edusport-regulament | [ ] |
+| Regulament | api::course-regulations.course-regulations | /plugins/edusport-regulament | [x] |
 | Pagina Program | api::program-page.program-page | /plugins/edusport-pagina-program | [ ] |
 | Realizări | api::realizari-page.realizari-page | /plugins/edusport-realizari | [ ] |
 | Evenimente colaborare | api::collaboration-event.collaboration-event | /plugins/edusport-evenimente-colaborare (+ -edit) | [ ] |
