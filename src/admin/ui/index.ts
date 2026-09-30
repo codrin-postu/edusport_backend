@@ -54,7 +54,7 @@ export { Modal, type ModalProps } from './Modal';
 export { Tabs, type TabsProps, type TabItem } from './Tabs';
 export { Pager, pageList, type PagerProps } from './Pager';
 export { DataTable, type DataTableProps, type DataColumn, type SortDir } from './DataTable';
-export { ImagePicker, type ImagePickerProps, type PickedImage } from './ImagePicker';
+export { ImagePicker, type ImagePickerProps, type PickedImage, type PickedMedia, type MediaAccept } from './ImagePicker';
 export { InboxLayout, type InboxLayoutProps, type InboxGroup } from './InboxLayout';
 
 export { Popover, type PopoverProps, type PopoverPlacement } from './Popover';
@@ -80,6 +80,7 @@ export {
 export { EditorCard, type EditorCardProps } from './EditorCard';
 export { LinkOutCard, type LinkOutCardProps } from './LinkOutCard';
 export { HelpTip, type HelpTipProps } from './HelpTip';
+export { GalleryGrid, type GalleryGridProps, type GalleryImage } from './GalleryGrid';
 export { DateRangeInput, type DateRangeInputProps, type DateRange } from './DateRangeInput';
 export { TimeInput, parseTimeText, formatTime, type TimeInputProps, type HourMinute } from './TimeInput';
 export { NumberInput, type NumberInputProps } from './NumberInput';
