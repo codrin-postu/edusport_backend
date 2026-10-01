@@ -1,8 +1,29 @@
 import * as React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
+import {
+  AdminPage,
+  Window,
+  PageHeader,
+  Section,
+  EditorCard,
+  RepeatableList,
+  Field,
+  FieldRow,
+  Input,
+  Textarea,
+  Select,
+  Switch,
+  Button,
+  StatusBadge,
+  Notice,
+  Loading,
+  SaveBar,
+  UnsavedGuard,
+  useSaveState,
+  adminToast,
+} from '../ui';
 import { FORMULARE_TO } from './menu';
-import { ConfirmDialog } from '../ConfirmDialog';
 
 /**
  * EduSport admin — "Editor formular" page.
@@ -17,7 +38,14 @@ import { ConfirmDialog } from '../ConfirmDialog';
  * enable-disable / add), ADD custom questions (type chosen at creation, locked
  * after), and REMOVE any question (built-in => removedFromForm, keeps the DB
  * column + history; custom => dropped from config). Question types are never
- * editable. Light-only, shared admin tokens.
+ * editable.
+ *
+ * Built on the shared admin UI (src/admin/ui): each step is a Section, its
+ * questions a RepeatableList (drag / keyboard reorder within the step,
+ * expandable rows, delete through ConfirmDialog), the options of a list
+ * question a nested RepeatableList. Saving goes through the floating SaveBar
+ * (useSaveState, Cmd/Ctrl+S, Renunță restores the loaded configuration) and
+ * UnsavedGuard; results are toasts.
  */
 
 interface EditOption {
@@ -95,98 +123,27 @@ const NEW_TYPE_CHOICES: { value: string; label: string }[] = [
   { value: 'checkbox', label: 'Bifă' },
 ];
 
+// Page-local bits, tokens only. Kept free of backticks.
 const CSS = `
-.esfe{--bg:#eef0f4;--chrome:#fff;--ink:#1b1d22;--muted:#727888;--line:#e0e2e8;--border:#dcdcdc;
-  --accent:#2138b8;--accent-soft:#eef1fb;--danger:#be3330;--field:#f7f8fa;--ok:#1f7a4d;--warn:#8a5a00;--warn-s:#fbf1df;--r:5px;--r2:4px;
-  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg);min-height:100%;padding:24px 16px 80px;box-sizing:border-box;line-height:1.5}
-.esfe *{box-sizing:border-box}
-.esfe .wrap{max-width:760px;margin:0 auto}
-.esfe input,.esfe select,.esfe textarea{font-family:inherit;font-size:13px;color:var(--ink);background:#fff;border:1px solid #d0d0d0;border-radius:var(--r);padding:7px 9px}
-.esfe input:focus,.esfe textarea:focus,.esfe select:focus{outline:none;border-color:var(--accent)}
-.esfe textarea{resize:vertical;min-height:52px;width:100%}
-.esfe .btn{font-family:inherit;font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:var(--r);border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;white-space:nowrap}
-.esfe .btn:hover{border-color:#b6bac4;background:#fafbff}
-.esfe .btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
-.esfe .btn.pri:hover{background:#1b2fa0}
-.esfe .btn.sm{padding:6px 10px;font-size:12px}
-.esfe .btn.del{color:var(--danger);border-color:#e2c4c4;background:#fff}
-.esfe .btn.del:hover{background:#fdf4f3}
-.esfe .btn:disabled{opacity:.55;cursor:default}
-.esfe .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
-
-.esfe .hd{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:6px}
-.esfe .hd .ftitle{margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em}
-.esfe .hd .who{display:flex;align-items:center;gap:10px}
-.esfe .hd .who .note{font-size:12px;color:var(--muted)}
-.esfe .sub{color:var(--muted);font-size:12.5px;margin:0 0 18px}
-.esfe .crumb{font-size:11.5px;color:#8a8d99;margin:0 0 10px}
-
-.esfe .step{background:var(--chrome);border:1px solid var(--border);border-radius:8px;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 3px rgba(20,26,54,.04)}
-.esfe .step-h{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#f4f6fa;border-bottom:1px solid var(--line);cursor:pointer}
-.esfe .step-h.collapsed{border-bottom:none}
-.esfe .step-n{width:22px;height:22px;border-radius:var(--r2);background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
-.esfe .step-t{font-size:14px;font-weight:700;flex:1;min-width:0}
-.esfe .step-cnt{font-size:11px;color:var(--muted)}
-.esfe .chev{color:var(--muted);font-size:13px;transition:transform .15s;display:inline-block}
-.esfe .chev.open{transform:rotate(90deg)}
-.esfe .step-body{padding:10px 12px}
-
-.esfe .q{border:1px solid var(--line);border-radius:var(--r);background:#fff;margin-bottom:7px}
-.esfe .q.dragging{opacity:.45}
-.esfe .q.over{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
-.esfe .q-row{display:flex;align-items:center;gap:9px;padding:9px 11px;cursor:pointer}
-.esfe .grip{color:#b5b9c3;cursor:grab;font-size:15px;flex-shrink:0}
-.esfe .q-label{font-weight:600;font-size:13px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.esfe .tbadge{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:2px 7px;border-radius:var(--r2);background:var(--accent-soft);color:var(--accent);flex-shrink:0}
-.esfe .tbadge.info{background:var(--warn-s);color:var(--warn)}
-.esfe .reqdot{font-size:10.5px;color:var(--muted);flex-shrink:0}
-.esfe .reqdot.req{color:var(--danger);font-weight:700}
-.esfe .q-body{border-top:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:11px;background:#fcfcfd}
-.esfe .fld{display:flex;flex-direction:column;gap:4px}
-.esfe .fld input,.esfe .fld textarea,.esfe .fld select{width:100%}
-.esfe .hint2{text-transform:none;letter-spacing:0;font-weight:500;color:var(--muted);opacity:.85}
-.esfe .frow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.esfe .meta{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)}
-.esfe .toggle{width:32px;height:18px;border-radius:20px;background:var(--accent);position:relative;cursor:pointer;flex-shrink:0;border:none;padding:0}
-.esfe .toggle::after{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:2px;right:2px}
-.esfe .toggle.off{background:#c8ccd4}.esfe .toggle.off::after{right:auto;left:2px}
-.esfe .toggle.locked{background:#d6d9e0;cursor:not-allowed}
-.esfe .note{font-size:11px;color:var(--muted);font-style:italic}
-.esfe .locknote{font-size:11px;color:var(--warn);background:var(--warn-s);border-radius:var(--r2);padding:2px 7px}
-.esfe .warn{font-size:11px;color:var(--warn);background:var(--warn-s);border:1px solid #ecd9ac;border-radius:var(--r2);padding:6px 9px}
-.esfe .hint{font-size:11px;color:var(--muted)}
-
-.esfe .opts{border:1px solid var(--line);border-radius:var(--r);padding:9px;background:#fff}
-.esfe .opt{display:flex;align-items:center;gap:8px;padding:4px 0}
-.esfe .opt.over{outline:2px solid var(--accent-soft);border-radius:var(--r2)}
-.esfe .opt .g{color:#c2c6cf;cursor:grab;flex-shrink:0}
-.esfe .opt .val{font-size:10px;color:#a0a3ad;font-family:ui-monospace,monospace;min-width:52px;flex-shrink:0}
-.esfe .opt input{flex:1}
-.esfe .opt .en{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0}
-.esfe .opt .en .tg{width:26px;height:15px;border-radius:20px;background:var(--ok);position:relative;display:inline-block}
-.esfe .opt .en .tg::after{content:"";position:absolute;width:11px;height:11px;border-radius:50%;background:#fff;top:2px;right:2px}
-.esfe .opt .en.off .tg{background:#c8ccd4}.esfe .opt .en.off .tg::after{right:auto;left:2px}
-.esfe .opt .x{border:none;background:none;color:#b5b9c3;cursor:pointer;font-size:13px;padding:0 2px;flex-shrink:0}
-.esfe .opt .x:hover{color:var(--danger)}
-.esfe .optnote{font-size:11px;color:var(--muted);margin-top:6px}
-.esfe .addopt{font-size:12px;color:var(--accent);cursor:pointer;font-weight:600;margin-top:6px;display:inline-block;background:none;border:none;padding:0}
-
-.esfe .addbtn{margin-top:6px;width:100%;font-size:12.5px;font-weight:600;color:var(--accent);background:var(--accent-soft);border:1px solid #cdd6f6;border-radius:var(--r);padding:9px;cursor:pointer}
-.esfe .addbtn:hover{background:#e5eafc}
-.esfe .addcard{border:1px solid #cdd6f6;border-radius:var(--r);background:#fbfcff;margin:8px 0 6px;overflow:hidden}
-.esfe .addcard-h{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);padding:9px 12px;background:var(--accent-soft);border-bottom:1px solid #cdd6f6}
-.esfe .addcard-b{padding:11px 12px;display:flex;flex-direction:column;gap:9px}
-.esfe .addrow{display:flex;gap:10px;align-items:center}
-
-.esfe .removed{background:var(--chrome);border:1px solid var(--border);border-radius:8px;margin-bottom:14px;padding:12px 14px}
-.esfe .removed h3{margin:0 0 6px;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-.esfe .removed .ritem{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink);padding:5px 0}
-.esfe .removed .ritem .k{color:var(--muted);font-size:11px}
-
-.esfe .toast{position:fixed;right:20px;bottom:20px;z-index:50;padding:11px 15px;border-radius:var(--r);font-size:12.5px;font-weight:600;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.16)}
-.esfe .toast.ok{background:var(--ok)}
-.esfe .toast.err{background:var(--danger)}
-.esfe .state{padding:40px 0;text-align:center;color:var(--muted);font-size:13px}
+.ui-root .fe-step-closed .ui-sec-b{display:none}
+.ui-root .fe-step-closed .ui-sec-h{border-bottom:none}
+.ui-root .fe-step-aside{display:flex;align-items:center;gap:8px}
+.ui-root .fe-sum{display:flex;align-items:center;gap:8px;min-width:0}
+.ui-root .fe-sum-l{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ui-root .fe-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:var(--ui-fs-caption);color:var(--theme-text-muted)}
+.ui-root .fe-meta-i{display:inline-flex;align-items:center;gap:6px}
+.ui-root .fe-opt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ui-root .fe-opt .ui-input{flex:1;min-width:140px;width:auto}
+.ui-root .fe-opt-val{font-size:10px;color:var(--theme-text-muted);font-family:var(--ui-font-mono);min-width:52px;flex-shrink:0}
+.ui-root .fe-opt .ui-switch{font-size:var(--ui-fs-caption);color:var(--theme-text-muted);min-width:70px}
+.ui-root .fe-add-acts{display:flex;justify-content:flex-end;gap:8px}
+.ui-root .fe-add-row{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
+.ui-root .fe-add-row .ui-field{flex:1;min-width:180px}
+.ui-root .fe-add-row .ui-switch{padding-bottom:8px}
+.ui-root .fe-ritem{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--theme-text);padding:5px 0;border-bottom:1px solid var(--theme-border-subtle)}
+.ui-root .fe-ritem:last-of-type{border-bottom:none}
+.ui-root .fe-ritem-k{color:var(--theme-text-muted);font-size:11px}
+.ui-root .fe-ritem .ui-btn{margin-left:auto}
 `;
 
 const EDITOR_TYPES = ['inscriere', 'contact', 'voluntariat', 'parteneri'];
@@ -203,44 +160,44 @@ const tmpId = (p: string) => `${p}${Date.now().toString(36)}${(tmpCounter++).toS
 
 export default function FormEditorPage() {
   const { get, put } = useFetchClient();
-  const navigate = useNavigate();
   const type = useQueryType();
+  const save = useSaveState();
+  const { reset: resetSave, setDirty } = save;
 
   const [model, setModel] = React.useState<EditModel | null>(null);
-  const [removed, setRemoved] = React.useState<{ key: string; label: string; step: string }[]>([]);
+  const [removed, setRemoved] = React.useState<RemovedBuiltin[]>([]);
+  // Last loaded / saved configuration: the dirty baseline and what Renunță restores.
+  const [baseline, setBaseline] = React.useState<{ model: EditModel; removed: RemovedBuiltin[] } | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [saving, setSaving] = React.useState(false);
-  const [toast, setToast] = React.useState<{ kind: 'ok' | 'err'; msg: string } | null>(null);
 
   const [openSteps, setOpenSteps] = React.useState<Record<string, boolean>>({});
-  const [openQ, setOpenQ] = React.useState<Record<string, boolean>>({});
   const [addOpen, setAddOpen] = React.useState<Record<string, boolean>>({});
-  const [addDraft, setAddDraft] = React.useState<Record<string, { label: string; type: string; required: boolean }>>({});
+  const [addDraft, setAddDraft] = React.useState<Record<string, AddDraft>>({});
+  // Remounts a step's list after an add, so the new question opens.
+  const [listGen, setListGen] = React.useState<Record<string, { n: number; open: string[] }>>({});
 
-  // drag state (question reorder within a step)
-  const dragRef = React.useRef<{ step: string; key: string } | null>(null);
-  const [overKey, setOverKey] = React.useState<string | null>(null);
-
-  const showToast = React.useCallback((kind: 'ok' | 'err', msg: string) => {
-    setToast({ kind, msg });
-    window.setTimeout(() => setToast(null), 3600);
+  const adopt = React.useCallback((m: EditModel) => {
+    const rem = m.removedBuiltins ?? [];
+    setModel(m);
+    setRemoved(rem);
+    setBaseline({ model: clone(m), removed: clone(rem) });
   }, []);
 
   React.useEffect(() => {
     let off = false;
     setLoading(true);
     setError(null);
+    resetSave();
     get(`/api/forms/${type}/config/edit`)
       .then((r: any) => {
         if (off) return;
         const m = r.data as EditModel;
-        setModel(m);
-        setRemoved(m.removedBuiltins ?? []);
+        adopt(m);
         const os: Record<string, boolean> = {};
         m.steps.forEach((s) => (os[s.key] = true));
         setOpenSteps(os);
-        setOpenQ({});
+        setListGen({});
       })
       .catch(() => {
         if (!off) setError('Nu am putut încărca configurația formularului.');
@@ -251,12 +208,21 @@ export default function FormEditorPage() {
     return () => {
       off = true;
     };
-  }, [get, type]);
+  }, [get, type, adopt, resetSave]);
+
+  // Dirty = differs from the last loaded / saved configuration.
+  React.useEffect(() => {
+    if (!model || !baseline) return;
+    const same =
+      JSON.stringify(model.steps) === JSON.stringify(baseline.model.steps) &&
+      JSON.stringify(removed) === JSON.stringify(baseline.removed);
+    setDirty(!same);
+  }, [model, removed, baseline, setDirty]);
 
   const mutate = React.useCallback((fn: (m: EditModel) => void) => {
     setModel((prev) => {
       if (!prev) return prev;
-      const next: EditModel = JSON.parse(JSON.stringify(prev));
+      const next: EditModel = clone(prev);
       fn(next);
       return next;
     });
@@ -271,575 +237,491 @@ export default function FormEditorPage() {
       if (q) Object.assign(q, patch);
     });
 
-  // Removing a sensitive built-in question is destructive (the field leaves the
-  // public form), so it goes through the shared ConfirmDialog. Everything else
-  // removes immediately, as before.
-  const [pendingRemoveQ, setPendingRemoveQ] = React.useState<{ stepKey: string; q: EditQuestion } | null>(null);
-
-  const applyDeleteQuestion = (stepKey: string, q: EditQuestion) => {
-    if (q.isBuiltin) {
-      setRemoved((r) => (r.some((x) => x.key === q.key) ? r : [...r, { key: q.key, label: q.label, step: stepKey }]));
+  // Reorder or delete within a step (from the RepeatableList). A deleted
+  // built-in question is remembered in `removed` (removedFromForm on save:
+  // the DB column and the history stay); a custom one is simply dropped.
+  const setStepQuestions = (stepKey: string, next: EditQuestion[]) => {
+    const prev = model?.steps.find((s) => s.key === stepKey)?.questions ?? [];
+    const gone = prev.filter((q) => q.isBuiltin && !next.some((n) => n.key === q.key));
+    if (gone.length > 0) {
+      setRemoved((r) => [
+        ...r,
+        ...gone.filter((q) => !r.some((x) => x.key === q.key)).map((q) => ({ key: q.key, label: q.label, step: stepKey })),
+      ]);
     }
     mutate((m) => {
       const step = m.steps.find((s) => s.key === stepKey);
-      if (step) step.questions = step.questions.filter((x) => x.key !== q.key);
+      if (step) step.questions = next;
     });
   };
 
-  const deleteQuestion = (stepKey: string, q: EditQuestion) => {
-    if (q.isBuiltin && q.sensitive) {
-      setPendingRemoveQ({ stepKey, q });
-      return;
-    }
-    applyDeleteQuestion(stepKey, q);
-  };
-
-  // --- options
-  const setOpt = (stepKey: string, qKey: string, value: string, patch: Partial<EditOption>) =>
-    mutate((m) => {
-      const o = findQ(m, stepKey, qKey)?.options.find((x) => x.value === value);
-      if (o) Object.assign(o, patch);
-    });
-  const removeOpt = (stepKey: string, qKey: string, value: string) =>
+  const setOptions = (stepKey: string, qKey: string, next: EditOption[]) =>
     mutate((m) => {
       const q = findQ(m, stepKey, qKey);
-      if (q) q.options = q.options.filter((x) => x.value !== value);
-    });
-  const moveOpt = (stepKey: string, qKey: string, idx: number, dir: -1 | 1) =>
-    mutate((m) => {
-      const q = findQ(m, stepKey, qKey);
-      if (!q) return;
-      const j = idx + dir;
-      if (j < 0 || j >= q.options.length) return;
-      [q.options[idx], q.options[j]] = [q.options[j], q.options[idx]];
-    });
-  const addOpt = (stepKey: string, qKey: string) =>
-    mutate((m) => {
-      const q = findQ(m, stepKey, qKey);
-      if (!q || q.optionSource === 'enum') return;
-      q.options.push({ value: tmpId('tmp_'), label: '', enabled: true, isDefault: false, _new: true });
+      if (q) q.options = next;
     });
 
   // --- add custom question
-  const draftFor = (stepKey: string) => addDraft[stepKey] ?? { label: '', type: 'text', required: false };
+  const draftFor = (stepKey: string): AddDraft => addDraft[stepKey] ?? EMPTY_DRAFT;
+  const setDraft = (stepKey: string, patch: Partial<AddDraft>) =>
+    setAddDraft((d) => ({ ...d, [stepKey]: { ...(d[stepKey] ?? EMPTY_DRAFT), ...patch } }));
   const openAdd = (stepKey: string) => {
     setAddOpen((s) => ({ ...s, [stepKey]: true }));
-    setAddDraft((d) => ({ ...d, [stepKey]: d[stepKey] ?? { label: '', type: 'text', required: false } }));
+    setAddDraft((d) => ({ ...d, [stepKey]: d[stepKey] ?? EMPTY_DRAFT }));
   };
   const cancelAdd = (stepKey: string) => {
     setAddOpen((s) => ({ ...s, [stepKey]: false }));
-    setAddDraft((d) => ({ ...d, [stepKey]: { label: '', type: 'text', required: false } }));
+    setAddDraft((d) => ({ ...d, [stepKey]: EMPTY_DRAFT }));
   };
   const commitAdd = (stepKey: string) => {
     const d = draftFor(stepKey);
     const label = d.label.trim();
     if (!label) {
-      showToast('err', 'Eticheta întrebării este obligatorie.');
+      adminToast.error('Eticheta întrebării este obligatorie.');
       return;
     }
-    const key = tmpId('c_');
-    const q: EditQuestion = {
-      key,
-      type: d.type,
-      isBuiltin: false,
-      isCustom: true,
-      typeLocked: true,
-      sensitive: false,
-      removable: true,
-      defaultLabel: '',
-      label,
-      help: '',
-      required: d.required,
-      lockedRequired: false,
-      hidden: false,
-      canHide: true,
-      optionSource: d.type === 'select' ? 'freetext' : 'none',
-      cardCapable: d.type === 'checkbox',
-      display: 'plain',
-      title: '',
-      icon: '',
-      linkUrl: '',
-      linkLabel: '',
-      options:
-        d.type === 'select'
-          ? [
-              { value: tmpId('tmp_'), label: 'Opțiunea 1', enabled: true, isDefault: false, _new: true },
-              { value: tmpId('tmp_'), label: 'Opțiunea 2', enabled: true, isDefault: false, _new: true },
-            ]
-          : [],
-      _new: true,
-    };
+    const q = newCustomQuestion(label, d.type, d.required);
     mutate((m) => {
       const step = m.steps.find((s) => s.key === stepKey);
       if (step) step.questions.push(q);
     });
-    setOpenQ((o) => ({ ...o, [key]: true }));
+    setListGen((g) => ({ ...g, [stepKey]: { n: (g[stepKey]?.n ?? 0) + 1, open: [q.key] } }));
     cancelAdd(stepKey);
   };
 
-  // --- drag reorder within a step
-  const onQDrop = (stepKey: string, targetKey: string) =>
-    mutate((m) => {
-      const d = dragRef.current;
-      if (!d || d.step !== stepKey || d.key === targetKey) return;
-      const step = m.steps.find((s) => s.key === stepKey);
-      if (!step) return;
-      const from = step.questions.findIndex((q) => q.key === d.key);
-      const to = step.questions.findIndex((q) => q.key === targetKey);
-      if (from < 0 || to < 0) return;
-      const [moved] = step.questions.splice(from, 1);
-      step.questions.splice(to, 0, moved);
-    });
-
-  const save = async () => {
-    if (!model) return;
-    setSaving(true);
-    try {
-      const payload = {
-        removedBuiltins: removed.map((r) => r.key),
-        steps: model.steps.map((s) => ({
-          key: s.key,
-          questions: s.questions.map((q) => ({
-            key: q._new ? '' : q.key,
-            type: q.type,
-            isCustom: q.isCustom,
-            label: q.label,
-            help: q.help,
-            required: q.required,
-            hidden: q.hidden,
-            display: q.display,
-            title: q.title,
-            icon: q.icon,
-            linkUrl: q.linkUrl,
-            linkLabel: q.linkLabel,
-            options:
-              q.type === 'select' || q.type === 'multiselect'
-                ? q.options.map((o) => ({ value: o._new ? '' : o.value, label: o.label, enabled: o.enabled }))
-                : undefined,
-          })),
-        })),
-      };
-      const r: any = await put(`/api/forms/${type}/config`, payload);
-      const m = r.data as EditModel;
-      setModel(m);
-      setRemoved(m.removedBuiltins ?? []);
-      setOpenQ({});
-      showToast('ok', 'Configurația a fost salvată.');
-    } catch (e: any) {
-      const msg =
-        e?.response?.data?.error?.message ||
-        e?.response?.data?.error ||
-        'Salvarea a fost respinsă. Verificați modificările.';
-      showToast('err', typeof msg === 'string' ? msg : 'Salvarea a fost respinsă.');
-    } finally {
-      setSaving(false);
-    }
+  const discard = () => {
+    if (!baseline) return;
+    setModel(clone(baseline.model));
+    setRemoved(clone(baseline.removed));
+    resetSave();
   };
 
+  const onSave = () => {
+    if (!model) return;
+    void save.run(async () => {
+      try {
+        const r: any = await put(`/api/forms/${type}/config`, toPayload(model, removed));
+        adopt(r.data as EditModel);
+        setListGen({});
+      } catch (e: any) {
+        const msg =
+          e?.response?.data?.error?.message ||
+          e?.response?.data?.error ||
+          'Salvarea a fost respinsă. Verificați modificările.';
+        throw new Error(typeof msg === 'string' ? msg : 'Salvarea a fost respinsă.');
+      }
+    });
+  };
+
+  const title = TITLES[type] ?? type;
+
+  const renderQuestion = (stepKey: string, q: EditQuestion) => (
+    <QuestionBody
+      q={q}
+      onChange={(patch) => setQ(stepKey, q.key, patch)}
+      onOptions={(next) => setOptions(stepKey, q.key, next)}
+    />
+  );
+
   return (
-    // `pce` opts our own "Salvează" button out of the global admin SaveBar tagger.
-    <div className="esfe pce">
+    <AdminPage>
       <style>{CSS}</style>
-      <div className="wrap">
-        <div className="crumb">Formulare / Editează întrebări</div>
-        <div className="hd">
-          <h1 className="ftitle">{TITLES[type] ?? type}</h1>
-          <div className="who">
-            <span className="note">Modificările apar pe site după salvare</span>
-            <button className="btn" type="button" onClick={() => navigate(FORMULARE_TO)}>
-              Înapoi
-            </button>
-            <button className="btn pri" type="button" onClick={save} disabled={saving || !model}>
-              {saving ? 'Se salvează...' : 'Salvează'}
-            </button>
+      <Window>
+        <PageHeader
+          back={{ to: FORMULARE_TO, label: 'Formulare' }}
+          title={title}
+          subtitle={
+            <>
+              Editează textul, ordinea, opțiunile și întrebările formularului {title}. Adaugă sau șterge întrebări; nu
+              se pot crea formulare noi și tipul unei întrebări nu se schimbă. Modificările apar pe site după salvare.
+            </>
+          }
+        />
+
+        {loading ? (
+          <Loading />
+        ) : error || !model ? (
+          <div className="ui-body">
+            <Notice tone="danger">{error ?? 'Nu am putut încărca configurația formularului.'}</Notice>
           </div>
-        </div>
-        <p className="sub">
-          Editează textul, ordinea, opțiunile și întrebările formularului {TITLES[type] ?? type}. Adaugă sau șterge
-          întrebări; nu se pot crea formulare noi și tipul unei întrebări nu se schimbă.
-        </p>
-
-        {loading && <div className="state">Se încarcă...</div>}
-        {error && !loading && <div className="state">{error}</div>}
-
-        {model &&
-          !loading &&
-          model.steps.map((step, si) => {
-            const open = openSteps[step.key] !== false;
-            return (
-              <div className="step" key={step.key}>
-                <div
-                  className={`step-h ${open ? '' : 'collapsed'}`}
-                  onClick={() => setOpenSteps((s) => ({ ...s, [step.key]: !open }))}
+        ) : (
+          <div className="ui-body">
+            {model.steps.map((step, si) => {
+              const open = openSteps[step.key] !== false;
+              const gen = listGen[step.key];
+              const n = step.questions.length;
+              return (
+                <Section
+                  key={step.key}
+                  className={open ? undefined : 'fe-step-closed'}
+                  title={`${si + 1}. ${step.title}`}
+                  aside={
+                    <span className="fe-step-aside">
+                      <span className="ui-hint ui-num">
+                        {n} {n === 1 ? 'element' : 'elemente'}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-expanded={open}
+                        onClick={() => setOpenSteps((s) => ({ ...s, [step.key]: !open }))}
+                      >
+                        {open ? 'Restrânge' : 'Extinde'}
+                      </Button>
+                    </span>
+                  }
                 >
-                  <span className="step-n">{si + 1}</span>
-                  <span className="step-t">{step.title}</span>
-                  <span className="step-cnt">
-                    {step.questions.length}{' '}
-                    {step.questions.length === 1 ? 'element' : 'elemente'}
-                  </span>
-                  <span className={`chev ${open ? 'open' : ''}`}>&rsaquo;</span>
-                </div>
-
-                {open && (
-                  <div className="step-body">
-                    {step.questions.map((q) => {
-                      const qOpen = !!openQ[q.key];
-                      return (
-                        <div
-                          className={`q ${overKey === q.key ? 'over' : ''}`}
-                          key={q.key}
-                          onDragOver={(e) => {
-                            if (dragRef.current?.step === step.key) {
-                              e.preventDefault();
-                              if (overKey !== q.key) setOverKey(q.key);
-                            }
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            onQDrop(step.key, q.key);
-                            dragRef.current = null;
-                            setOverKey(null);
-                          }}
-                        >
-                          <div className="q-row" onClick={() => setOpenQ((o) => ({ ...o, [q.key]: !qOpen }))}>
-                            <span
-                              className="grip"
-                              draggable
-                              onClick={(e) => e.stopPropagation()}
-                              onDragStart={() => {
-                                dragRef.current = { step: step.key, key: q.key };
-                              }}
-                              onDragEnd={() => {
-                                dragRef.current = null;
-                                setOverKey(null);
-                              }}
-                              title="Trage pentru a reordona"
-                            >
-                              ⠿
-                            </span>
-                            <span className="q-label">{q.label || q.defaultLabel || '(fără etichetă)'}</span>
-                            <span className={`tbadge ${q.type === 'info' ? 'info' : ''}`}>
-                              {TYPE_LABEL[q.type] ?? q.type}
-                            </span>
-                            {q.type !== 'info' && (
-                              <span className={`reqdot ${q.required ? 'req' : ''}`}>
-                                {q.required ? 'obligatoriu' : 'opțional'}
-                              </span>
-                            )}
-                            <span className={`chev ${qOpen ? 'open' : ''}`}>&rsaquo;</span>
-                          </div>
-
-                          {qOpen && (
-                            <div className="q-body">
-                              <div className="fld">
-                                <span className="lbl">{q.type === 'info' ? 'Text informativ' : 'Etichetă (text afișat)'}</span>
-                                {q.type === 'info' ? (
-                                  <textarea value={q.label} onChange={(e) => setQ(step.key, q.key, { label: e.target.value })} />
-                                ) : (
-                                  <input value={q.label} onChange={(e) => setQ(step.key, q.key, { label: e.target.value })} />
-                                )}
-                                {q.defaultLabel && q.type !== 'info' && (
-                                  <span className="hint">Implicit: {q.defaultLabel}</span>
-                                )}
-                              </div>
-
-                              {q.type !== 'info' && (
-                                <div className="fld">
-                                  <span className="lbl">Text ajutor / placeholder</span>
-                                  <input
-                                    value={q.help}
-                                    placeholder="Opțional"
-                                    onChange={(e) => setQ(step.key, q.key, { help: e.target.value })}
-                                  />
-                                </div>
-                              )}
-
-                              {q.cardCapable && (
-                                <div className="fld">
-                                  <span className="lbl">
-                                    Mod de afișare
-                                    <span className="hint2">
-                                      {' '}alege cum arată pe site
-                                    </span>
-                                  </span>
-                                  <select
-                                    value={q.display}
-                                    onChange={(e) => setQ(step.key, q.key, { display: e.target.value })}
-                                  >
-                                    <option value="plain">
-                                      {q.type === 'info' ? 'Text simplu' : 'Bifă simplă'}
-                                    </option>
-                                    <option value="card">Card cu pictogramă și link</option>
-                                  </select>
-                                </div>
-                              )}
-
-                              {q.cardCapable && q.display === 'card' && (
-                                <>
-                                  <div className="fld">
-                                    <span className="lbl">Titlu card</span>
-                                    <input
-                                      value={q.title}
-                                      placeholder="ex: Regulamentul Cursurilor"
-                                      onChange={(e) => setQ(step.key, q.key, { title: e.target.value })}
-                                    />
-                                  </div>
-                                  <div className="fld">
-                                    <span className="lbl">Pictogramă</span>
-                                    <select
-                                      value={q.icon}
-                                      onChange={(e) => setQ(step.key, q.key, { icon: e.target.value })}
-                                    >
-                                      <option value="">Fără pictogramă</option>
-                                      <option value="book">Carte (regulament)</option>
-                                      <option value="shield">Scut (protecția datelor)</option>
-                                      <option value="calendar">Calendar (program)</option>
-                                      <option value="info">Informație</option>
-                                      <option value="award">Premiu</option>
-                                      <option value="users">Persoane</option>
-                                    </select>
-                                  </div>
-                                  <div className="fld">
-                                    <span className="lbl">Link (opțional)</span>
-                                    <input
-                                      value={q.linkUrl}
-                                      placeholder="https://..."
-                                      onChange={(e) => setQ(step.key, q.key, { linkUrl: e.target.value })}
-                                    />
-                                  </div>
-                                  <div className="fld">
-                                    <span className="lbl">Etichetă link (opțional)</span>
-                                    <input
-                                      value={q.linkLabel}
-                                      placeholder="Text afișat pentru link"
-                                      onChange={(e) => setQ(step.key, q.key, { linkLabel: e.target.value })}
-                                    />
-                                  </div>
-                                </>
-                              )}
-
-                              <div className="frow">
-                                {q.type !== 'info' && (
-                                  <div className="meta">
-                                    <button
-                                      type="button"
-                                      className={`toggle ${q.required ? '' : 'off'} ${q.lockedRequired ? 'locked' : ''}`}
-                                      onClick={() => !q.lockedRequired && setQ(step.key, q.key, { required: !q.required })}
-                                      aria-label="Obligatoriu"
-                                    />
-                                    obligatoriu
-                                    {q.lockedRequired && <span className="locknote">blocat</span>}
-                                  </div>
-                                )}
-                                <div className="meta">
-                                  tip: <span className={`tbadge ${q.type === 'info' ? 'info' : ''}`}>{TYPE_LABEL[q.type] ?? q.type}</span>
-                                  {q.isCustom && <span className="note">tipul nu se poate schimba</span>}
-                                </div>
-                                <span style={{ marginLeft: 'auto' }}>
-                                  <button className="btn sm del" type="button" onClick={() => deleteQuestion(step.key, q)}>
-                                    Șterge
-                                  </button>
-                                </span>
-                              </div>
-
-                              {q.isBuiltin && (
-                                <div className="warn">
-                                  Câmp încorporat. La ștergere dispare din formular, dar coloana și datele deja trimise rămân
-                                  în tabelul de rezultate.
-                                </div>
-                              )}
-
-                              {(q.type === 'select' || q.type === 'multiselect') && (
-                                <div className="fld">
-                                  <span className="lbl">Opțiuni</span>
-                                  <div className="opts">
-                                    {q.options.map((o, oi) => (
-                                      <div className="opt" key={o.value}>
-                                        <span
-                                          className="g"
-                                          draggable
-                                          onDragStart={() => {
-                                            /* option drag uses up/down buttons for reliability */
-                                          }}
-                                        >
-                                          ⠿
-                                        </span>
-                                        {!o._new && o.value !== o.label && <span className="val">{o.value}</span>}
-                                        <input
-                                          value={o.label}
-                                          placeholder="Etichetă opțiune"
-                                          onChange={(e) => setOpt(step.key, q.key, o.value, { label: e.target.value })}
-                                        />
-                                        <span
-                                          className={`en ${o.enabled ? '' : 'off'}`}
-                                          onClick={() => setOpt(step.key, q.key, o.value, { enabled: !o.enabled })}
-                                        >
-                                          <span className="tg" />
-                                          {o.enabled ? 'activ' : 'ascuns'}
-                                        </span>
-                                        <button
-                                          className="btn sm"
-                                          type="button"
-                                          onClick={() => moveOpt(step.key, q.key, oi, -1)}
-                                          disabled={oi === 0}
-                                          style={{ padding: '2px 6px' }}
-                                        >
-                                          ↑
-                                        </button>
-                                        <button
-                                          className="btn sm"
-                                          type="button"
-                                          onClick={() => moveOpt(step.key, q.key, oi, 1)}
-                                          disabled={oi === q.options.length - 1}
-                                          style={{ padding: '2px 6px' }}
-                                        >
-                                          ↓
-                                        </button>
-                                        {(q.optionSource !== 'enum' && !o.isDefault) && (
-                                          <button
-                                            className="x"
-                                            type="button"
-                                            title="Elimină opțiunea"
-                                            onClick={() => removeOpt(step.key, q.key, o.value)}
-                                          >
-                                            ✕
-                                          </button>
-                                        )}
-                                      </div>
-                                    ))}
-                                    {q.options.length === 0 && <div className="optnote">Nicio opțiune.</div>}
-                                    {q.optionSource !== 'enum' ? (
-                                      <button className="addopt" type="button" onClick={() => addOpt(step.key, q.key)}>
-                                        + Adaugă opțiune
-                                      </button>
-                                    ) : (
-                                      <div className="optnote">Opțiunile acestei liste sunt fixe; se pot redenumi și dezactiva.</div>
-                                    )}
-                                    <div className="optnote">
-                                      Poți redenumi, reordona sau dezactiva opțiuni. Redenumirea nu schimbă datele deja
-                                      trimise; o opțiune ștearsă cu date vechi rămâne vizibilă în rezultate.
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                    {addOpen[step.key] ? (
-                      <div className="addcard">
-                        <div className="addcard-h">Întrebare nouă</div>
-                        <div className="addcard-b">
-                          <div className="fld">
-                            <span className="lbl">Etichetă</span>
-                            <input
+                  {open ? (
+                    <>
+                      <RepeatableList<EditQuestion>
+                        key={`${type}-${step.key}-${gen?.n ?? 0}`}
+                        aria-label={`Întrebările pasului ${step.title}`}
+                        items={step.questions}
+                        onChange={(next) => setStepQuestions(step.key, next)}
+                        getKey={(q) => q.key}
+                        reorder
+                        expandable
+                        defaultExpanded={gen?.open}
+                        confirmDelete={{
+                          message: 'Întrebarea dispare din formular după ce salvezi.',
+                          detail:
+                            'Un câmp încorporat își păstrează coloana și datele deja trimise în tabelul de rezultate și poate fi readus din lista câmpurilor scoase.',
+                        }}
+                        itemLabel={(q) => `${q.sensitive ? 'câmpul sensibil ' : 'întrebarea '}„${questionLabel(q)}”`}
+                        renderSummary={(q) => <QuestionSummary q={q} />}
+                        renderRow={(q) => renderQuestion(step.key, q)}
+                        onAdd={addOpen[step.key] ? undefined : () => openAdd(step.key)}
+                        addLabel="Adaugă întrebare"
+                        emptyLabel="Nicio întrebare în acest pas."
+                      />
+                      {addOpen[step.key] && (
+                        <EditorCard title="Întrebare nouă">
+                          <Field label="Etichetă" required>
+                            <Input
                               autoFocus
                               placeholder="ex. Alergii sau probleme medicale"
                               value={draftFor(step.key).label}
-                              onChange={(e) =>
-                                setAddDraft((d) => ({ ...d, [step.key]: { ...draftFor(step.key), label: e.target.value } }))
-                              }
+                              onChange={(e) => setDraft(step.key, { label: e.target.value })}
+                            />
+                          </Field>
+                          <div className="fe-add-row">
+                            <Field label="Tip" hint="Tipul nu se mai poate schimba după adăugare.">
+                              <Select
+                                value={draftFor(step.key).type}
+                                onChange={(v) => setDraft(step.key, { type: v })}
+                                options={NEW_TYPE_CHOICES}
+                              />
+                            </Field>
+                            <Switch
+                              checked={draftFor(step.key).required}
+                              onChange={(v) => setDraft(step.key, { required: v })}
+                              label="Obligatoriu"
                             />
                           </div>
-                          <div className="addrow">
-                            <div className="fld" style={{ flex: 1 }}>
-                              <span className="lbl">Tip</span>
-                              <select
-                                value={draftFor(step.key).type}
-                                onChange={(e) =>
-                                  setAddDraft((d) => ({ ...d, [step.key]: { ...draftFor(step.key), type: e.target.value } }))
-                                }
-                              >
-                                {NEW_TYPE_CHOICES.map((c) => (
-                                  <option key={c.value} value={c.value}>
-                                    {c.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="meta" style={{ alignSelf: 'end', paddingBottom: 8 }}>
-                              <button
-                                type="button"
-                                className={`toggle ${draftFor(step.key).required ? '' : 'off'}`}
-                                onClick={() =>
-                                  setAddDraft((d) => ({
-                                    ...d,
-                                    [step.key]: { ...draftFor(step.key), required: !draftFor(step.key).required },
-                                  }))
-                                }
-                                aria-label="Obligatoriu"
-                              />
-                              obligatoriu
-                            </div>
-                          </div>
-                          <div className="addrow" style={{ justifyContent: 'flex-end' }}>
-                            <button className="btn sm" type="button" onClick={() => cancelAdd(step.key)}>
+                          <div className="fe-add-acts">
+                            <Button variant="secondary" size="sm" onClick={() => cancelAdd(step.key)}>
                               Anulează
-                            </button>
-                            <button className="btn sm pri" type="button" onClick={() => commitAdd(step.key)}>
+                            </Button>
+                            <Button size="sm" onClick={() => commitAdd(step.key)}>
                               Adaugă
-                            </button>
+                            </Button>
                           </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <button className="addbtn" type="button" onClick={() => openAdd(step.key)}>
-                        + Adaugă întrebare
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                        </EditorCard>
+                      )}
+                    </>
+                  ) : null}
+                </Section>
+              );
+            })}
 
-        {model && !loading && removed.length > 0 && (
-          <div className="removed">
-            <h3>Câmpuri scoase din formular</h3>
-            {removed.map((r) => (
-              <div className="ritem" key={r.key}>
-                <span>{r.label}</span>
-                <span className="k">{r.key}</span>
-                <span style={{ marginLeft: 'auto' }}>
-                  <button
-                    className="btn sm"
-                    type="button"
-                    onClick={() => setRemoved((cur) => cur.filter((x) => x.key !== r.key))}
-                    title="Anulează scoaterea (câmpul revine în formular la salvare)"
-                  >
-                    Anulează
-                  </button>
-                </span>
-              </div>
-            ))}
-            <div className="optnote">
-              Coloanele și datele deja trimise rămân în tabelul de rezultate, marcate „(eliminată)". Anulează pentru a
-              readuce câmpul în formular la următoarea salvare.
-            </div>
+            {removed.length > 0 && (
+              <Section title="Câmpuri scoase din formular">
+                <div>
+                  {removed.map((r) => (
+                    <div className="fe-ritem" key={r.key}>
+                      <span>{r.label}</span>
+                      <span className="fe-ritem-k">{r.key}</span>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setRemoved((cur) => cur.filter((x) => x.key !== r.key))}
+                        title="Anulează scoaterea (câmpul revine în formular la salvare)"
+                      >
+                        Anulează
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <div className="ui-hint">
+                  Coloanele și datele deja trimise rămân în tabelul de rezultate, marcate „(eliminată)". Anulează pentru a
+                  readuce câmpul în formular la următoarea salvare.
+                </div>
+              </Section>
+            )}
           </div>
         )}
+
+        {!loading && model && <SaveBar {...save.bar} onSave={onSave} onDiscard={discard} />}
+      </Window>
+      <UnsavedGuard when={save.dirty} />
+    </AdminPage>
+  );
+}
+
+// ---- helpers ---------------------------------------------------------------
+
+type RemovedBuiltin = { key: string; label: string; step: string };
+type AddDraft = { label: string; type: string; required: boolean };
+const EMPTY_DRAFT: AddDraft = { label: '', type: 'text', required: false };
+
+const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+
+const questionLabel = (q: EditQuestion) => q.label || q.defaultLabel || '(fără etichetă)';
+
+function newCustomQuestion(label: string, type: string, required: boolean): EditQuestion {
+  return {
+    key: tmpId('c_'),
+    type,
+    isBuiltin: false,
+    isCustom: true,
+    typeLocked: true,
+    sensitive: false,
+    removable: true,
+    defaultLabel: '',
+    label,
+    help: '',
+    required,
+    lockedRequired: false,
+    hidden: false,
+    canHide: true,
+    optionSource: type === 'select' ? 'freetext' : 'none',
+    cardCapable: type === 'checkbox',
+    display: 'plain',
+    title: '',
+    icon: '',
+    linkUrl: '',
+    linkLabel: '',
+    options:
+      type === 'select'
+        ? [
+            { value: tmpId('tmp_'), label: 'Opțiunea 1', enabled: true, isDefault: false, _new: true },
+            { value: tmpId('tmp_'), label: 'Opțiunea 2', enabled: true, isDefault: false, _new: true },
+          ]
+        : [],
+    _new: true,
+  };
+}
+
+function toPayload(model: EditModel, removed: RemovedBuiltin[]) {
+  return {
+    removedBuiltins: removed.map((r) => r.key),
+    steps: model.steps.map((s) => ({
+      key: s.key,
+      questions: s.questions.map((q) => ({
+        key: q._new ? '' : q.key,
+        type: q.type,
+        isCustom: q.isCustom,
+        label: q.label,
+        help: q.help,
+        required: q.required,
+        hidden: q.hidden,
+        display: q.display,
+        title: q.title,
+        icon: q.icon,
+        linkUrl: q.linkUrl,
+        linkLabel: q.linkLabel,
+        options:
+          q.type === 'select' || q.type === 'multiselect'
+            ? q.options.map((o) => ({ value: o._new ? '' : o.value, label: o.label, enabled: o.enabled }))
+            : undefined,
+      })),
+    })),
+  };
+}
+
+function TypeBadge({ type }: { type: string }) {
+  return <StatusBadge tone={type === 'info' ? 'warning' : 'primary'}>{TYPE_LABEL[type] ?? type}</StatusBadge>;
+}
+
+/** Collapsed row: label, the Field-style required mark, the data-type badge. */
+function QuestionSummary({ q }: { q: EditQuestion }) {
+  const req = q.type !== 'info' && q.required;
+  return (
+    <span className="fe-sum">
+      <span className="fe-sum-l">
+        {questionLabel(q)}
+        {req && (
+          <>
+            <span className="ui-req" aria-hidden="true">
+              *
+            </span>
+            <span className="ui-sr"> (obligatoriu)</span>
+          </>
+        )}
+      </span>
+      <TypeBadge type={q.type} />
+    </span>
+  );
+}
+
+const ICON_OPTIONS = [
+  { value: '', label: 'Fără pictogramă' },
+  { value: 'book', label: 'Carte (regulament)' },
+  { value: 'shield', label: 'Scut (protecția datelor)' },
+  { value: 'calendar', label: 'Calendar (program)' },
+  { value: 'info', label: 'Informație' },
+  { value: 'award', label: 'Premiu' },
+  { value: 'users', label: 'Persoane' },
+];
+
+/** The expanded editor of one question. */
+function QuestionBody({
+  q,
+  onChange,
+  onOptions,
+}: {
+  q: EditQuestion;
+  onChange: (patch: Partial<EditQuestion>) => void;
+  onOptions: (next: EditOption[]) => void;
+}) {
+  const isInfo = q.type === 'info';
+  return (
+    <>
+      <Field
+        label={isInfo ? 'Text informativ' : 'Etichetă (text afișat)'}
+        hint={q.defaultLabel && !isInfo ? `Implicit: ${q.defaultLabel}` : undefined}
+      >
+        {isInfo ? (
+          <Textarea value={q.label} onChange={(e) => onChange({ label: e.target.value })} />
+        ) : (
+          <Input value={q.label} onChange={(e) => onChange({ label: e.target.value })} />
+        )}
+      </Field>
+
+      {!isInfo && (
+        <Field label="Text ajutor / placeholder">
+          <Input value={q.help} placeholder="Opțional" onChange={(e) => onChange({ help: e.target.value })} />
+        </Field>
+      )}
+
+      {q.cardCapable && (
+        <Field label="Mod de afișare" hint="Alege cum arată pe site.">
+          <Select
+            value={q.display}
+            onChange={(v) => onChange({ display: v })}
+            options={[
+              { value: 'plain', label: isInfo ? 'Text simplu' : 'Bifă simplă' },
+              { value: 'card', label: 'Card cu pictogramă și link' },
+            ]}
+          />
+        </Field>
+      )}
+
+      {q.cardCapable && q.display === 'card' && (
+        <>
+          <FieldRow>
+            <Field label="Titlu card">
+              <Input value={q.title} placeholder="ex: Regulamentul Cursurilor" onChange={(e) => onChange({ title: e.target.value })} />
+            </Field>
+            <Field label="Pictogramă">
+              <Select value={q.icon} onChange={(v) => onChange({ icon: v })} options={ICON_OPTIONS} />
+            </Field>
+          </FieldRow>
+          <FieldRow>
+            <Field label="Link (opțional)">
+              <Input value={q.linkUrl} placeholder="https://..." onChange={(e) => onChange({ linkUrl: e.target.value })} />
+            </Field>
+            <Field label="Etichetă link (opțional)">
+              <Input
+                value={q.linkLabel}
+                placeholder="Text afișat pentru link"
+                onChange={(e) => onChange({ linkLabel: e.target.value })}
+              />
+            </Field>
+          </FieldRow>
+        </>
+      )}
+
+      <div className="fe-meta">
+        {!isInfo && (
+          <span className="fe-meta-i">
+            <Switch
+              checked={q.required}
+              onChange={(v) => onChange({ required: v })}
+              disabled={q.lockedRequired}
+              label="Obligatoriu"
+            />
+            {q.lockedRequired && <StatusBadge tone="warning">blocat</StatusBadge>}
+          </span>
+        )}
+        <span className="fe-meta-i">
+          tip: <TypeBadge type={q.type} />
+          {q.isCustom && <span>tipul nu se poate schimba</span>}
+        </span>
       </div>
 
-      {toast && <div className={`toast ${toast.kind}`}>{toast.msg}</div>}
+      {q.isBuiltin && (
+        <Notice tone="warning">
+          Câmp încorporat. La ștergere dispare din formular, dar coloana și datele deja trimise rămân în tabelul de
+          rezultate.
+        </Notice>
+      )}
 
-      <ConfirmDialog
-        open={pendingRemoveQ !== null}
-        title="Scoți câmpul din formular?"
-        message={
-          pendingRemoveQ
-            ? `„${pendingRemoveQ.q.label}" este un câmp sensibil (${pendingRemoveQ.q.key}). Îl scoți din formular? Coloana și datele deja trimise rămân în tabel.`
-            : ''
-        }
-        confirmLabel="Scoate din formular"
-        onCancel={() => setPendingRemoveQ(null)}
-        onConfirm={() => {
-          if (pendingRemoveQ) applyDeleteQuestion(pendingRemoveQ.stepKey, pendingRemoveQ.q);
-          setPendingRemoveQ(null);
-        }}
+      {(q.type === 'select' || q.type === 'multiselect') && <OptionsEditor q={q} onOptions={onOptions} />}
+    </>
+  );
+}
+
+/** Options of a list question: rename, reorder, enable / hide, add and remove (free-text lists only). */
+function OptionsEditor({ q, onOptions }: { q: EditQuestion; onOptions: (next: EditOption[]) => void }) {
+  const fixed = q.optionSource === 'enum';
+  return (
+    <div className="ui-field">
+      <span className="ui-label">Opțiuni</span>
+      <RepeatableList<EditOption>
+        aria-label={`Opțiunile întrebării ${questionLabel(q)}`}
+        items={q.options}
+        onChange={onOptions}
+        getKey={(o) => o.value}
+        reorder
+        hideDelete
+        itemLabel={(o, i) => `opțiunea ${o.label || i + 1}`}
+        newItem={fixed ? undefined : () => ({ value: tmpId('tmp_'), label: '', enabled: true, isDefault: false, _new: true })}
+        addLabel="Adaugă opțiune"
+        emptyLabel="Nicio opțiune."
+        renderRow={(o, i, api) => (
+          <div className="fe-opt">
+            {!o._new && o.value !== o.label && <span className="fe-opt-val">{o.value}</span>}
+            <Input
+              value={o.label}
+              placeholder="Etichetă opțiune"
+              aria-label={`Eticheta opțiunii ${i + 1}`}
+              onChange={(e) => api.update({ label: e.target.value })}
+            />
+            <Switch
+              checked={o.enabled}
+              onChange={(v) => api.update({ enabled: v })}
+              label={o.enabled ? 'activ' : 'ascuns'}
+            />
+            {!fixed && !o.isDefault && (
+              <button
+                type="button"
+                className="ui-iconbtn ui-iconbtn--danger"
+                title="Elimină opțiunea"
+                aria-label={`Elimină opțiunea ${o.label || i + 1}`}
+                onClick={api.remove}
+              >
+                <span aria-hidden="true">✕</span>
+              </button>
+            )}
+          </div>
+        )}
       />
+      {fixed && <div className="ui-hint">Opțiunile acestei liste sunt fixe; se pot redenumi și dezactiva.</div>}
+      <div className="ui-hint">
+        Poți redenumi, reordona sau dezactiva opțiuni. Redenumirea nu schimbă datele deja trimise; o opțiune ștearsă cu
+        date vechi rămâne vizibilă în rezultate.
+      </div>
     </div>
   );
 }
