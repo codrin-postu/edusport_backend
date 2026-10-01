@@ -1,6 +1,20 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
+import {
+  AdminPage,
+  Section,
+  StatTile,
+  StatusBadge,
+  Switch,
+  SegmentedControl,
+  EmptyState,
+  Notice,
+  Loading,
+  Button,
+  adminToast,
+  toastAutosaved,
+} from '../ui';
 import { FORMULARE_TO, PROGRAM_EDIT_TO, SPORTIV_EDIT_TO } from './menu';
 import { FORM_DEFS, fetchNewCount } from './formDefs';
 
@@ -17,18 +31,23 @@ import { FORM_DEFS, fetchNewCount } from './formDefs';
  * Every figure is real; a metric with no source is omitted, never invented.
  */
 
-// Event colours mirror CATEGORIES in ProgramOverviewEditor.tsx exactly.
-const CATEGORY_COLOR: Record<string, string> = {
-  curs: '#6e4256', scoala: '#0e1a3c', concurs: '#ea7233', cantonament: '#ea7233',
-  spectacol: '#ea7233', eveniment: '#ea7233', vacanta: '#9ca3af', sarbatoare: '#9ca3af', liber: '#9ca3af',
+// Event categories map onto the calendar category tokens shared with the
+// website (--theme-cat-*), the same mapping as CATEGORIES in
+// ProgramOverviewEditor.tsx: antrenament = burgundy, scoala = navy,
+// competitions / camps / shows / events = orange, holidays / breaks = silver.
+const CATEGORY_VAR: Record<string, string> = {
+  curs: 'var(--theme-cat-antrenament)', scoala: 'var(--theme-cat-scoala)', concurs: 'var(--theme-cat-eveniment)',
+  cantonament: 'var(--theme-cat-eveniment)', spectacol: 'var(--theme-cat-eveniment)', eveniment: 'var(--theme-cat-eveniment)',
+  vacanta: 'var(--theme-cat-liber)', sarbatoare: 'var(--theme-cat-liber)', liber: 'var(--theme-cat-liber)',
 };
 const CATEGORY_LABEL: Record<string, string> = {
   curs: 'Antrenament', scoala: 'Școala de patinaj', concurs: 'Competiție', cantonament: 'Cantonament',
   spectacol: 'Spectacol', eveniment: 'Eveniment', vacanta: 'Vacanță', sarbatoare: 'Sărbătoare', liber: 'Pauză',
 };
 
-// Upcoming-events filter chips. `types` empty = all.
-const FILTERS: Array<{ key: string; label: string; types: string[] }> = [
+// Upcoming-events filters. `types` empty = all.
+type FilterKey = 'all' | 'antr' | 'scoala' | 'comp' | 'alt';
+const FILTERS: Array<{ key: FilterKey; label: string; types: string[] }> = [
   { key: 'all', label: 'Toate', types: [] },
   { key: 'antr', label: 'Antrenamente', types: ['curs'] },
   { key: 'scoala', label: 'Școala', types: ['scoala'] },
@@ -76,165 +95,140 @@ interface HealthData {
 
 const SITE_SETTINGS_UID = 'api::site-settings.site-settings';
 
+// Page-local layout, tokens only (var(--theme-*), var(--palette-*), var(--ui-*)).
+// The greeting band and the analytics card keep their navy look on the brand
+// palette: solid colours only (no translucent white on the gradient), every
+// text colour at least 4.5:1 on both ends of the gradient.
+// Kept free of backticks: one stray backtick takes the admin down.
 const CSS = `
-.esdp { font-family: system-ui, -apple-system, sans-serif; color: #1b1d26; background: #f6f7f9; min-height: 100%; flex-shrink: 0; padding: 16px 20px 40px; box-sizing: border-box; }
-.esdp * { box-sizing: border-box; }
-.num { font-variant-numeric: tabular-nums; }
+.ui-root .dash-hero{background:linear-gradient(120deg,var(--palette-brand-navy),var(--palette-blue-800));border:1px solid var(--palette-blue-800);color:var(--palette-grey-0);border-radius:var(--ui-radius-md);padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.ui-root .dash-hero h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em;color:var(--palette-grey-0)}
+.ui-root .dash-hero h1 span{color:var(--palette-blue-200)}
+.ui-root .dash-hero .dash-date{margin:4px 0 0;font-size:12.5px;color:var(--palette-blue-100);text-transform:capitalize}
+.ui-root .dash-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:900px){.ui-root .dash-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
-.a-hero { background: linear-gradient(120deg, #0e1a3c, #182a5e); color: #fff; border-radius: 12px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; }
-.a-hero h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
-.a-hero h1 span { color: #9fb0ff; }
-.a-hero .date { margin: 4px 0 0; font-size: 12.5px; color: #aeb7d4; text-transform: capitalize; }
-.a-pill { font-size: 11px; font-weight: 700; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); border-radius: 20px; padding: 5px 11px; color: #dfe4f5; white-space: nowrap; flex-shrink: 0; }
+.ui-root .dash-feed{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px}
+.ui-root .dash-frow{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:var(--ui-radius-sm);border:1px solid var(--theme-border);background:var(--theme-surface);cursor:pointer;text-align:left;font-family:inherit;color:var(--theme-text);width:100%}
+.ui-root .dash-frow:hover{background:var(--theme-primary-soft);border-color:var(--theme-primary-soft-line)}
+.ui-root .dash-frow:focus-visible{outline:2px solid var(--theme-focus);outline-offset:1px}
+.ui-root .dash-tile{width:32px;height:32px;border-radius:var(--ui-radius-sm);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:var(--palette-grey-0);flex-shrink:0}
+.ui-root .dash-frow-t{flex:1;min-width:0;font-size:13px;font-weight:700;line-height:1.25}
+.ui-root .dash-arr{color:var(--theme-text-muted);font-size:16px}
+.ui-root .dash-empty-ok{color:var(--theme-success)}
+.ui-root .dash-feed-sec .ui-empty{padding:18px var(--ui-space-4)}
 
-.a-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
-.a-kpi { background: #fff; border: 1px solid #e6e7ec; border-radius: 11px; padding: 12px 14px; border-left: 3px solid #2138b8; }
-.a-kpi .k { font-size: 10px; letter-spacing: .05em; text-transform: uppercase; color: #8a8d99; font-weight: 700; }
-.a-kpi .v { font-size: 26px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; margin-top: 4px; }
-.a-kpi .c { font-size: 11px; color: #5a5e6b; margin-top: 2px; }
-@media (max-width: 900px) { .a-kpis { grid-template-columns: repeat(2, 1fr); } }
+.ui-root .dash-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:var(--ui-space-4);align-items:start}
+.ui-root .dash-col{display:flex;flex-direction:column;gap:var(--ui-space-4);min-width:0}
+@media (max-width:900px){.ui-root .dash-grid{grid-template-columns:minmax(0,1fr)}}
 
-.feed { background: #fff; border: 1px solid #e6e7ec; border-radius: 12px; padding: 5px 6px 7px; margin-bottom: 14px; }
-.feed-h { display: flex; align-items: center; justify-content: space-between; padding: 11px 12px 8px; }
-.feed-h .t { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: #666; font-weight: 700; }
-.feed-h .tot { background: #be3330; color: #fff; font-size: 11px; font-weight: 800; border-radius: 4px; padding: 3px 9px; }
-.feed-rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 6px; }
-.frow { display: flex; align-items: center; gap: 11px; padding: 10px 11px; border-radius: 9px; border: 1px solid #f0f1f4; background: #fff; cursor: pointer; text-align: left; font-family: inherit; color: inherit; width: 100%; }
-.frow:hover { background: #fafbff; border-color: #dfe3f0; }
-.frow .tile { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0; }
-.frow .bd { flex: 1; min-width: 0; }
-.frow .bd b { font-size: 13px; font-weight: 700; display: block; line-height: 1.25; }
-.frow .arr { color: #c0c4cf; font-size: 16px; }
-.feed-empty { display: flex; align-items: center; gap: 10px; padding: 14px 12px; color: #5a5e6b; font-size: 13px; }
-.feed-empty .ok { width: 24px; height: 24px; border-radius: 50%; background: #e7f3ec; color: #1f7a4d; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; }
+.ui-root .dash-seas{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ui-root .dash-seas b{font-size:13.5px;font-weight:700;display:block;color:var(--theme-text)}
+.ui-root .dash-seas small{font-size:11px;color:var(--theme-text-muted)}
+.ui-root .dash-seas small.on{color:var(--theme-success)}
+.ui-root .dash-seas-ctl{display:flex;align-items:center;gap:10px}
+.ui-root .dash-links{display:flex;flex-direction:column;border-top:1px solid var(--theme-border-subtle)}
+.ui-root .dash-links button{display:flex;align-items:center;justify-content:space-between;padding:10px 0;font-size:12.5px;color:var(--theme-text);background:none;border:none;border-bottom:1px solid var(--theme-border-subtle);cursor:pointer;font-family:inherit;text-align:left}
+.ui-root .dash-links button:last-child{border-bottom:none}
+.ui-root .dash-links button:hover{color:var(--theme-primary)}
+.ui-root .dash-links .dash-arr{font-size:14px}
 
-.a-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; align-items: start; }
-.a-col { display: flex; flex-direction: column; gap: 14px; }
-@media (max-width: 900px) { .a-grid { grid-template-columns: 1fr; } }
-.card { background: #fff; border: 1px solid #e6e7ec; border-radius: 12px; padding: 14px 16px; }
-.card h2 { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: #666; font-weight: 700; margin: 0; }
-.card-hrow { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-.card-hrow button.link { font-size: 11.5px; font-weight: 600; color: #2138b8; background: none; border: none; cursor: pointer; font-family: inherit; }
-.subhead { font-size: 11px; color: #8a8d99; margin: 0 0 10px; }
+.ui-root .dash-filter{flex-wrap:wrap}
+.ui-root .dash-ev{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--theme-border-subtle)}
+.ui-root .dash-ev:first-child{border-top:none}
+.ui-root .dash-ev-dt{font-size:11px;color:var(--theme-text-muted);width:54px;flex-shrink:0;font-weight:600}
+.ui-root .dash-ev-bar{width:3px;align-self:stretch;min-height:26px;flex-shrink:0}
+.ui-root .dash-ev-tx{min-width:0}
+.ui-root .dash-ev-tx b{font-weight:600;font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--theme-text)}
+.ui-root .dash-ev-tx small{font-size:11.5px;color:var(--theme-text-muted)}
+.ui-root .dash-ev.off .dash-ev-tx b{color:var(--theme-text-muted);text-decoration:line-through}
+.ui-root .dash-evs .ui-empty,.ui-root .dash-evs .ui-loading{padding:18px var(--ui-space-4)}
 
-/* season + registration */
-.seas-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0 12px; }
-.seas-row .l b { font-size: 13.5px; font-weight: 700; display: block; }
-.seas-row .l small { font-size: 11px; }
-.seas-row .l small.on { color: #1f7a4d; } .seas-row .l small.off { color: #8a8d99; }
-.stpill { font-size: 10px; font-weight: 800; border-radius: 20px; padding: 3px 10px; letter-spacing: .02em; }
-.stpill.on { color: #1f7a4d; background: #e7f3ec; } .stpill.off { color: #a83a38; background: #faeceb; }
-.tgl { width: 38px; height: 21px; border-radius: 20px; position: relative; border: none; cursor: pointer; padding: 0; transition: background .15s; }
-.tgl.on { background: #1f7a4d; } .tgl.off { background: #c8ccd6; }
-.tgl i { position: absolute; top: 2px; width: 17px; height: 17px; border-radius: 50%; background: #fff; transition: left .15s; }
-.tgl.on i { left: 19px; } .tgl.off i { left: 2px; }
-.tgl:disabled { opacity: .6; cursor: default; }
-.seas-links { display: flex; flex-direction: column; border-top: 1px solid #f0f0f2; }
-.seas-links button { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; font-size: 12.5px; color: #1b1d26; background: none; border: none; border-bottom: 1px solid #f6f7f9; cursor: pointer; font-family: inherit; text-align: left; }
-.seas-links button:last-child { border-bottom: none; }
-.seas-links button .ar { color: #c0c4cf; }
+.ui-root .dash-lnk{font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap;color:var(--theme-primary)}
+.ui-root .dash-lnk:hover{text-decoration:underline}
 
-/* filter chips */
-.chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 10px; }
-.chip { font-size: 11px; padding: 4px 10px; border: 1px solid #d8dae2; border-radius: 20px; color: #5a5e6b; background: #fff; cursor: pointer; font-family: inherit; }
-.chip.on { background: #2138b8; color: #fff; border-color: #2138b8; font-weight: 600; }
+/* analytics (Umami): the navy card */
+.ui-root .ui-sec.dash-dark{background:var(--palette-brand-navy);border-color:var(--palette-blue-800);color:var(--palette-blue-50)}
+.ui-root .dash-dark .ui-sec-h{border-bottom-color:var(--palette-blue-800)}
+.ui-root .dash-dark .ui-sec-title{color:var(--palette-grey-350)}
+.ui-root .dash-dark .dash-lnk{color:var(--palette-blue-200)}
+.ui-root .dash-big{display:flex;align-items:flex-end;gap:9px;margin:0 0 1px}
+.ui-root .dash-big b{font-size:32px;font-weight:800;letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums;color:var(--palette-grey-0)}
+.ui-root .dash-trend{font-size:11.5px;font-weight:700;padding-bottom:3px}
+.ui-root .dash-trend.up{color:var(--palette-green-200)}
+.ui-root .dash-trend.dn{color:var(--palette-red-300)}
+.ui-root .dash-cap{font-size:11px;color:var(--palette-blue-100)}
+.ui-root .dash-area{height:62px;margin:4px 0 3px}
+.ui-root .dash-area svg{width:100%;height:100%;display:block}
+.ui-root .dash-axis{display:flex;justify-content:space-between;font-size:10px;color:var(--palette-grey-350);border-top:1px solid var(--palette-blue-800);padding-top:5px}
+.ui-root .dash-tops{border-top:1px solid var(--palette-blue-800);padding-top:9px}
+.ui-root .dash-tops-t{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--palette-grey-350);font-weight:700;margin-bottom:6px}
+.ui-root .dash-prow{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:12px}
+.ui-root .dash-prow-p{color:var(--palette-blue-100);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.ui-root .dash-prow-bar{width:74px;height:4px;background:var(--palette-blue-800);overflow:hidden;flex:none}
+.ui-root .dash-prow-bar i{display:block;height:100%;background:var(--palette-blue-300)}
+.ui-root .dash-prow-n{font-size:11.5px;color:var(--palette-grey-350);font-variant-numeric:tabular-nums;min-width:22px;text-align:right}
 
-.ev { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid #f0f0f2; }
-.ev:first-of-type { border-top: none; }
-.ev .dt { font-size: 11px; color: #8a8d99; width: 54px; flex-shrink: 0; font-weight: 600; }
-.ev .bd { width: 3px; align-self: stretch; min-height: 26px; border-radius: 3px; flex-shrink: 0; }
-.ev .tx { min-width: 0; }
-.ev .tx b { font-weight: 600; font-size: 13px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ev .tx small { font-size: 11.5px; color: #8a8d99; }
-.ev.off .tx b { color: #9a9a9a; text-decoration: line-through; }
-.empty { color: #8a8d99; font-size: 13px; font-style: italic; padding: 8px 0; }
+/* site health (GlitchTip) */
+.ui-root .dash-band{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:var(--ui-radius-sm);border:1px solid var(--theme-success-border);background:var(--theme-success-bg);color:var(--theme-success)}
+.ui-root .dash-band.warn{border-color:var(--theme-warning-border);background:var(--theme-warning-bg);color:var(--theme-warning)}
+.ui-root .dash-band.bad{border-color:var(--theme-danger-border);background:var(--theme-danger-bg);color:var(--theme-danger)}
+.ui-root .dash-band-ic{width:26px;height:26px;border-radius:var(--ui-radius-sm);display:grid;place-items:center;font-size:14px;font-weight:800;flex:none;border:1.5px solid currentColor}
+.ui-root .dash-band-tx b{display:block;font-size:13px;font-weight:700;line-height:1.3}
+.ui-root .dash-band-tx small{font-size:11px;color:var(--theme-text-secondary)}
+.ui-root .dash-band-n{margin-left:auto;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.ui-root .dash-strip{display:flex;gap:3px;align-items:flex-end;height:30px;margin:0 0 4px}
+.ui-root .dash-strip i{flex:1;background:var(--theme-success-border);min-height:3px;display:block}
+.ui-root .dash-strip i.h{background:var(--theme-danger-border)}
+.ui-root .dash-strip i.hh{background:var(--theme-danger)}
+.ui-root .dash-striplbl{display:flex;justify-content:space-between;font-size:10px;color:var(--theme-text-muted)}
+.ui-root .dash-note{font-size:10.5px;color:var(--theme-text-muted);margin-top:4px;line-height:1.4}
+.ui-root .dash-iss{border-top:1px solid var(--theme-border-subtle)}
+.ui-root .dash-irow{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px solid var(--theme-border-subtle);text-decoration:none;color:var(--theme-text)}
+.ui-root .dash-irow:last-child{border-bottom:none}
+.ui-root .dash-irow:hover .dash-irow-m b{color:var(--theme-primary)}
+.ui-root .dash-lv{width:7px;height:7px;margin-top:6px;flex:none;background:var(--theme-neutral)}
+.ui-root .dash-lv.err{background:var(--theme-danger)}
+.ui-root .dash-lv.wrn{background:var(--theme-warning)}
+.ui-root .dash-irow-m{flex:1;min-width:0}
+.ui-root .dash-irow-m b{display:block;font-size:12.5px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ui-root .dash-irow-m small{font-size:10.5px;color:var(--theme-text-muted);font-variant-numeric:tabular-nums}
+.ui-root .dash-irow .ui-badge{margin-top:2px;flex:none}
 
-/* analytics (Umami) */
-.analytics { background: #0e1a3c; border: 1px solid #0e1a3c; border-radius: 12px; padding: 14px 16px; color: #eef1fb; }
-.analytics h2 { color: #8b93ad; }
-.chrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.chrow a.lnk { font-size: 11px; font-weight: 700; text-decoration: none; white-space: nowrap; }
-.analytics .chrow a.lnk { color: #8b93ad; }
-.card .chrow a.lnk { color: #2138b8; }
-.analytics .big { display: flex; align-items: flex-end; gap: 9px; margin: 9px 0 1px; }
-.analytics .big b { font-size: 32px; font-weight: 800; letter-spacing: -.025em; line-height: 1; font-variant-numeric: tabular-nums; }
-.analytics .big .tr { font-size: 11.5px; font-weight: 700; padding-bottom: 3px; }
-.analytics .big .tr.up { color: #7fd6a0; } .analytics .big .tr.dn { color: #e79a98; }
-.analytics .cap { font-size: 11px; color: #aeb7d4; margin-bottom: 2px; }
-.analytics .area { height: 62px; margin: 10px 0 3px; }
-.analytics .area svg { width: 100%; height: 100%; display: block; }
-.analytics .axis { display: flex; justify-content: space-between; font-size: 10px; color: #8b93ad; border-top: 1px solid rgba(255,255,255,.09); padding-top: 5px; }
-.analytics .tops { margin: 12px 0 0; border-top: 1px solid rgba(255,255,255,.09); padding-top: 9px; }
-.analytics .tops .t { font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; color: #8b93ad; font-weight: 700; margin-bottom: 6px; }
-.analytics .prow { display: flex; align-items: center; gap: 9px; padding: 4px 0; font-size: 12px; }
-.analytics .prow .p { color: #cdd4ea; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
-.analytics .prow .bar { width: 74px; height: 4px; border-radius: 3px; background: rgba(255,255,255,.1); overflow: hidden; flex: none; }
-.analytics .prow .bar i { display: block; height: 100%; background: #5a76e8; border-radius: 3px; }
-.analytics .prow .n { font-size: 11.5px; color: #8b93ad; font-variant-numeric: tabular-nums; min-width: 22px; text-align: right; }
+/* not-configured / error / info box, shared by both cards */
+.ui-root .dash-stbox{border-radius:var(--ui-radius-sm);padding:11px 12px;display:flex;gap:10px;align-items:flex-start;background:var(--theme-surface-sunken);border:1px solid var(--theme-border)}
+.ui-root .dash-dark .dash-stbox{background:var(--palette-brand-navy);border-color:var(--palette-blue-800)}
+.ui-root .dash-si{width:20px;height:20px;border-radius:var(--ui-radius-sm);flex:none;display:grid;place-items:center;font-size:11px;font-weight:800;margin-top:1px;color:var(--theme-text-muted);border:1.5px solid currentColor}
+.ui-root .dash-si.x{color:var(--theme-danger)}
+.ui-root .dash-dark .dash-si{color:var(--palette-grey-350)}
+.ui-root .dash-dark .dash-si.x{color:var(--palette-red-300)}
+.ui-root .dash-st b{display:block;font-size:12.5px;font-weight:700;line-height:1.35;color:var(--theme-text)}
+.ui-root .dash-dark .dash-st b{color:var(--palette-blue-50)}
+.ui-root .dash-st small{display:block;font-size:11.5px;margin-top:1px;color:var(--theme-text-secondary)}
+.ui-root .dash-dark .dash-st small{color:var(--palette-blue-100)}
+.ui-root .dash-st a{font-size:11.5px;font-weight:700;color:var(--theme-primary);text-decoration:none;display:inline-block;margin-top:5px}
+.ui-root .dash-dark .dash-st a{color:var(--palette-blue-200)}
 
-/* site health (glitchtip) */
-.health .band { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 9px; margin: 10px 0 0; }
-.health .band.ok { background: #e7f3ec; } .health .band.warn { background: #fdf3e0; } .health .band.bad { background: #faeceb; }
-.health .band .ic { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 800; color: #fff; flex: none; }
-.health .band.ok .ic { background: #1f7a4d; } .health .band.warn .ic { background: #8a5a00; } .health .band.bad .ic { background: #be3330; }
-.health .band .tx b { display: block; font-size: 13px; font-weight: 700; line-height: 1.3; }
-.health .band.ok .tx b { color: #1f7a4d; } .health .band.warn .tx b { color: #8a5a00; } .health .band.bad .tx b { color: #be3330; }
-.health .band .tx small { font-size: 11px; color: #5c6070; }
-.health .band .n { margin-left: auto; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.health .band.warn .n { color: #8a5a00; } .health .band.bad .n { color: #be3330; }
-.health .strip { display: flex; gap: 3px; align-items: flex-end; height: 30px; margin: 11px 0 4px; }
-.health .strip i { flex: 1; border-radius: 2px; background: #e7f3ec; min-height: 3px; display: block; }
-.health .strip i.h { background: #f0b8b6; } .health .strip i.hh { background: #be3330; }
-.health .striplbl { display: flex; justify-content: space-between; font-size: 10px; color: #8a8d99; }
-.health .stripnote { font-size: 10px; color: #9a9daa; margin-top: 4px; line-height: 1.4; }
-.health .iss { margin-top: 11px; border-top: 1px solid #eef0f4; padding-top: 2px; }
-.health .irow { display: flex; align-items: flex-start; gap: 9px; padding: 8px 0; border-bottom: 1px solid #f5f6f9; text-decoration: none; color: #1b1d26; }
-.health .irow:last-child { border-bottom: none; }
-.health .irow:hover .m b { color: #2138b8; }
-.health .irow .lv { width: 7px; height: 7px; border-radius: 50%; margin-top: 6px; flex: none; }
-.health .irow .lv.err { background: #be3330; } .health .irow .lv.wrn { background: #d99100; } .health .irow .lv.inf { background: #8a8d99; }
-.health .irow .m { flex: 1; min-width: 0; }
-.health .irow .m b { display: block; font-size: 12.5px; font-weight: 600; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.health .irow .m small { font-size: 10.5px; color: #8a8d99; font-variant-numeric: tabular-nums; }
-.health .irow .c { font-size: 11px; font-weight: 700; color: #5c6070; background: #f2f3f7; border-radius: 20px; padding: 2px 7px; flex: none; margin-top: 2px; font-variant-numeric: tabular-nums; }
+/* loading skeletons: same shape and height as the loaded card */
+@keyframes dash-skel{0%{background-position:-320px 0}100%{background-position:320px 0}}
+.ui-root .dash-sk{background:var(--theme-border-subtle);background-image:linear-gradient(90deg,var(--theme-border-subtle) 0,var(--theme-surface-sunken) 42%,var(--theme-border-subtle) 84%);background-size:320px 100%;background-repeat:no-repeat;animation:dash-skel 1.25s ease-in-out infinite;border-radius:var(--ui-radius-sm)}
+.ui-root .dash-dark .dash-sk{background:var(--palette-blue-800);background-image:linear-gradient(90deg,var(--palette-blue-800) 0,var(--palette-blue-500) 42%,var(--palette-blue-800) 84%);background-size:320px 100%;background-repeat:no-repeat}
+@media (prefers-reduced-motion:reduce){.ui-root .dash-sk{animation:none}}
+.ui-root .dash-sk.n{height:31px;width:104px}
+.ui-root .dash-sk.cap{height:10px;width:74%}
+.ui-root .dash-sk.ch{height:62px;width:100%}
+.ui-root .dash-sk.r{height:10px;margin:9px 0}
+.ui-root .dash-sk.bd{height:46px;width:100%}
+.ui-root .dash-sk.st{height:30px;width:100%}
+.ui-root .dash-sk.is{height:34px;width:100%}
+.ui-root .dash-sk.pl{height:16px;width:62px}
 
-/* shared not-configured / error / info box */
-.stbox { border-radius: 9px; padding: 11px 12px; margin-top: 9px; display: flex; gap: 10px; align-items: flex-start; }
-.analytics .stbox { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.13); }
-.card .stbox { background: #f7f8fa; border: 1px solid #e6e7ec; }
-.stbox .si { width: 20px; height: 20px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; margin-top: 1px; }
-.stbox .si.q { background: #7a8098; } .stbox .si.x { background: #be3330; }
-/* Set explicitly: inheriting would put page-level ink on these fixed backgrounds. */
-.stbox .st b { display: block; font-size: 12.5px; font-weight: 700; line-height: 1.35; color: #1b1d26; }
-.analytics .stbox .st b { color: #eef1fb; }
-.stbox .st small { display: block; font-size: 11.5px; margin-top: 1px; color: #5c6070; }
-.analytics .stbox .st small { color: #ccd4e8; }
-.stbox .st a { font-size: 11.5px; font-weight: 700; color: #2138b8; text-decoration: none; display: inline-block; margin-top: 5px; }
-.analytics .stbox .st a { color: #8fa6f5; }
-
-/* loading skeletons: same shape and height as the loaded card, so the column
-   does not jump when the data lands. */
-@keyframes eduskel { 0% { background-position: -320px 0; } 100% { background-position: 320px 0; } }
-.sk { border-radius: 5px; background: #e9ebf0; background-image: linear-gradient(90deg, #e9ebf0 0, #f4f5f8 42%, #e9ebf0 84%); background-size: 320px 100%; background-repeat: no-repeat; animation: eduskel 1.25s ease-in-out infinite; }
-.analytics .sk { background: rgba(255,255,255,.08); background-image: linear-gradient(90deg, rgba(255,255,255,.08) 0, rgba(255,255,255,.17) 42%, rgba(255,255,255,.08) 84%); background-size: 320px 100%; background-repeat: no-repeat; }
-@media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
-.sk.n { height: 31px; width: 104px; margin: 9px 0 4px; }
-.sk.cap { height: 10px; width: 74%; margin-bottom: 12px; }
-.sk.ch { height: 62px; width: 100%; margin: 2px 0 8px; border-radius: 7px; }
-.sk.r { height: 10px; margin: 9px 0; }
-.sk.bd { height: 46px; width: 100%; border-radius: 9px; margin: 10px 0 0; }
-.sk.st { height: 30px; width: 100%; border-radius: 5px; margin: 11px 0 4px; }
-.sk.is { height: 34px; width: 100%; border-radius: 6px; margin-top: 9px; }
-.sk.pl { height: 16px; width: 62px; border-radius: 20px; }
-
-.qa { display: flex; flex-direction: column; gap: 8px; margin-top: 11px; }
-.qa button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #e6e7ec; border-radius: 9px; font-size: 13px; background: #fff; color: #1b1d26; cursor: pointer; text-align: left; width: 100%; font-family: inherit; }
-.qa button:hover { border-color: #c3c8d4; background: #fafbff; }
-.qa button.pri { background: #2138b8; color: #fff; border-color: #2138b8; }
-.qa button.pri:hover { background: #1b2fa0; }
-.qa .i { width: 24px; height: 24px; border-radius: 7px; background: #eef1fb; color: #2138b8; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; flex-shrink: 0; }
-.qa button.pri .i { background: rgba(255,255,255,.18); color: #fff; }
+.ui-root .dash-qa{display:flex;flex-direction:column;gap:8px}
+.ui-root .dash-qa .ui-btn{width:100%;justify-content:flex-start;padding-top:10px;padding-bottom:10px}
+.ui-root .dash-qa-i{width:20px;display:inline-flex;justify-content:center;font-weight:800;font-size:14px}
 `;
+
+type QuickAction = { label: string; to: string; ic: string; primary?: boolean };
 
 export default function DashboardPage() {
   const { get, put } = useFetchClient();
@@ -245,10 +239,9 @@ export default function DashboardPage() {
 
   const [name, setName] = React.useState<string | null>(null);
   const [kpis, setKpis] = React.useState<Array<{ k: string; v: number; c?: string }>>([]);
-  const [monthTypes, setMonthTypes] = React.useState<Record<string, number> | null>(null);
   const [events, setEvents] = React.useState<Occurrence[] | null>(null);
   const [eventsError, setEventsError] = React.useState(false);
-  const [filter, setFilter] = React.useState('all');
+  const [filter, setFilter] = React.useState<FilterKey>('all');
 
   const [newCounts, setNewCounts] = React.useState<Record<string, number | null>>({});
   const [reg, setReg] = React.useState<{ open: boolean; raw: Record<string, unknown> } | null>(null);
@@ -266,7 +259,7 @@ export default function DashboardPage() {
     return () => { off = true; };
   }, [get]);
 
-  // --- KPIs + monthly breakdown
+  // --- KPIs
   React.useEffect(() => {
     let off = false;
     const year = today.getFullYear();
@@ -307,7 +300,6 @@ export default function DashboardPage() {
       if (month != null) {
         const antr = month.byType['curs'] ?? 0;
         out.push({ k: 'Evenimente luna aceasta', v: month.total, c: antr > 0 ? `din care ${antr} antrenamente` : undefined });
-        setMonthTypes(month.byType);
       }
       setKpis(out);
     });
@@ -357,7 +349,7 @@ export default function DashboardPage() {
     return () => { off = true; };
   }, [get]);
 
-  // --- analytics (Umami proxy) — graceful "not connected"
+  // --- analytics (Umami proxy): graceful "not connected"
   React.useEffect(() => {
     let off = false;
     get('/api/analytics/summary')
@@ -366,7 +358,7 @@ export default function DashboardPage() {
     return () => { off = true; };
   }, [get]);
 
-  // --- site health (GlitchTip proxy) — graceful "not connected"
+  // --- site health (GlitchTip proxy): graceful "not connected"
   React.useEffect(() => {
     let off = false;
     get('/api/site-health/summary')
@@ -375,16 +367,19 @@ export default function DashboardPage() {
     return () => { off = true; };
   }, [get]);
 
-  const toggleReg = async () => {
+  // The switch saves at once (no save bar): optimistic, reverted on failure,
+  // with the autosave toast either way.
+  const toggleReg = async (nextOpen: boolean) => {
     if (!reg || regSaving) return;
-    const nextOpen = !reg.open;
     setReg({ ...reg, open: nextOpen });
     setRegSaving(true);
     try {
       await put(`/content-manager/single-types/${SITE_SETTINGS_UID}`, { registration: { ...reg.raw, open: nextOpen } });
       setReg((c) => (c ? { open: nextOpen, raw: { ...c.raw, open: nextOpen } } : c));
+      toastAutosaved();
     } catch {
       setReg((c) => (c ? { ...c, open: !nextOpen } : c)); // revert
+      adminToast.error('Nu am putut schimba înscrierile. Încearcă din nou.');
     } finally {
       setRegSaving(false);
     }
@@ -402,370 +397,374 @@ export default function DashboardPage() {
   };
   // Colour comes only from category / state, never the per-event color
   // field: the website ignores it and the admin has no input for it.
-  const colorOf = (o: Occurrence) => (o.type === 'scoala' ? CATEGORY_COLOR.scoala : (CATEGORY_COLOR[o.type] || '#0e1a3c'));
+  const colorOf = (o: Occurrence) => CATEGORY_VAR[o.type] ?? 'var(--theme-cat-scoala)';
   const isOff = (o: Occurrence) => o.status === 'cancelled' || o.state === 'anulat' || o.state === 'liber';
   const evTitle = (o: Occurrence) => (o.type === 'scoala' ? 'Școala de patinaj' : (o.title || o.label || 'Eveniment'));
 
   const activeTypes = FILTERS.find((f) => f.key === filter)?.types ?? [];
   const shownEvents = (events ?? []).filter((o) => activeTypes.length === 0 || activeTypes.includes(o.type)).slice(0, 6);
 
-  const quickActions = [
+  const quickActions: QuickAction[] = [
     { label: 'Adaugă eveniment în calendar', to: PROGRAM_EDIT_TO, ic: '+', primary: true },
     { label: 'Adaugă sportiv', to: SPORTIV_EDIT_TO, ic: 'S' },
     { label: 'Adaugă articol', to: '/content-manager/collection-types/api::article.article/create', ic: 'A' },
   ];
 
+  const feedItems = FORM_DEFS
+    .filter((def) => def.live && (newCounts[def.key] ?? 0) > 0)
+    .map((def) => ({
+      key: def.key,
+      n: newCounts[def.key] ?? 0,
+      color: def.feedColor,
+      tile: def.feedTile,
+      to: def.resultsTo ?? FORMULARE_TO,
+      name: def.feedName,
+    }));
+  const totalNew = feedItems.reduce((s, it) => s + it.n, 0);
+  const season = today.getMonth() >= 7
+    ? `${today.getFullYear()} / ${today.getFullYear() + 1}`
+    : `${today.getFullYear() - 1} / ${today.getFullYear()}`;
+
   return (
-    <div className="esdp">
+    <AdminPage>
       <style>{CSS}</style>
 
       {/* HERO */}
-      <div className="a-hero">
+      <header className="dash-hero">
         <div>
           <h1>Bună{name ? <>, <span>{name}</span></> : null}.</h1>
-          <p className="date">{dateLine}</p>
+          <p className="dash-date">{dateLine}</p>
         </div>
-        <span className="a-pill">Sezon {today.getMonth() >= 7 ? `${today.getFullYear()} / ${today.getFullYear() + 1}` : `${today.getFullYear() - 1} / ${today.getFullYear()}`}</span>
-      </div>
+        <StatusBadge size="md" custom={HERO_BADGE}>Sezon {season}</StatusBadge>
+      </header>
 
       {/* KPIs */}
       {kpis.length > 0 && (
-        <div className="a-kpis">
+        <div className="ui-stats dash-kpis">
           {kpis.map((s) => (
-            <div key={s.k} className="a-kpi">
-              <div className="k">{s.k}</div>
-              <div className="v num">{s.v}</div>
-              {s.c && <div className="c">{s.c}</div>}
-            </div>
+            <StatTile key={s.k} label={s.k} value={s.v} caption={s.c} />
           ))}
         </div>
       )}
 
       {/* CE E NOU feed */}
-      {(() => {
-        const feedItems = FORM_DEFS
-          .filter((def) => def.live && (newCounts[def.key] ?? 0) > 0)
-          .map((def) => {
-            const n = newCounts[def.key] ?? 0;
-            return { key: def.key, n, color: def.feedColor, tile: def.feedTile, to: def.resultsTo ?? FORMULARE_TO,
-              name: def.feedName };
-          });
-        const totalNew = feedItems.reduce((s, it) => s + it.n, 0);
-        return (
-          <div className="feed">
-            <div className="feed-h">
-              <span className="t">Ce e nou</span>
-              {totalNew > 0 && <span className="tot num">{totalNew} de rezolvat</span>}
-            </div>
-            {feedItems.length > 0 ? (
-              <div className="feed-rows">
-                {feedItems.map((it) => (
-                  <button key={it.key} className="frow" type="button" onClick={() => navigate(it.to)}>
-                    <span className="tile" style={{ background: it.color }}>{it.tile}</span>
-                    <span className="bd"><b>{it.name}: <span className="num">{it.n}</span> {it.n === 1 ? 'mesaj nou' : 'mesaje noi'}</b></span>
-                    <span className="arr">&rsaquo;</span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="feed-empty"><span className="ok">&#10003;</span> Nimic nou. Totul e la zi.</div>
-            )}
+      <Section
+        title="Ce e nou"
+        className="dash-feed-sec"
+        aside={totalNew > 0 ? <StatusBadge tone="danger" size="md"><span className="ui-num">{totalNew}</span> de rezolvat</StatusBadge> : undefined}
+      >
+        {feedItems.length > 0 ? (
+          <div className="dash-feed">
+            {feedItems.map((it) => (
+              <button key={it.key} className="dash-frow" type="button" onClick={() => navigate(it.to)}>
+                <span className="dash-tile" style={{ background: it.color }}>{it.tile}</span>
+                <span className="dash-frow-t">{it.name}: <span className="ui-num">{it.n}</span> {it.n === 1 ? 'mesaj nou' : 'mesaje noi'}</span>
+                <span className="dash-arr" aria-hidden="true">&rsaquo;</span>
+              </button>
+            ))}
           </div>
-        );
-      })()}
+        ) : (
+          <EmptyState icon={<CheckIcon />}>Nimic nou. Totul e la zi.</EmptyState>
+        )}
+      </Section>
 
-      <div className="a-grid">
+      <div className="dash-grid">
         {/* LEFT */}
-        <div className="a-col">
+        <div className="dash-col">
           {/* Season & registration */}
-          <div className="card">
-            <div className="card-hrow"><h2>Sezon și înscrieri</h2></div>
+          <Section title="Sezon și înscrieri">
             {reg ? (
               <>
-                <div className="seas-row">
-                  <div className="l">
+                <div className="dash-seas">
+                  <div>
                     <b>Înscrieri pe site</b>
-                    <small className={reg.open ? 'on' : 'off'}>{reg.open ? 'Vizibile publicului acum' : 'Închise pe site'}</small>
+                    <small className={reg.open ? 'on' : undefined}>{reg.open ? 'Vizibile publicului acum' : 'Închise pe site'}</small>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span className={`stpill ${reg.open ? 'on' : 'off'}`}>{reg.open ? 'Deschise' : 'Închise'}</span>
-                    <button className={`tgl ${reg.open ? 'on' : 'off'}`} onClick={toggleReg} disabled={regSaving} aria-label="Comută înscrierile"><i /></button>
+                  <div className="dash-seas-ctl">
+                    <StatusBadge tone={reg.open ? 'success' : 'danger'} size="md">{reg.open ? 'Deschise' : 'Închise'}</StatusBadge>
+                    <Switch checked={reg.open} onChange={(v) => void toggleReg(v)} disabled={regSaving} aria-label="Comută înscrierile" />
                   </div>
                 </div>
-                <div className="seas-links">
-                  <button type="button" onClick={() => navigate(PROGRAM_EDIT_TO)}>Editează sezonul și orarul <span className="ar">&rsaquo;</span></button>
-                  <button type="button" onClick={() => navigate('/content-manager/single-types/api::pricing.pricing')}>Actualizează prețuri <span className="ar">&rsaquo;</span></button>
+                <div className="dash-links">
+                  <button type="button" onClick={() => navigate(PROGRAM_EDIT_TO)}>Editează sezonul și orarul <span className="dash-arr" aria-hidden="true">&rsaquo;</span></button>
+                  <button type="button" onClick={() => navigate('/content-manager/single-types/api::pricing.pricing')}>Actualizează prețuri <span className="dash-arr" aria-hidden="true">&rsaquo;</span></button>
                 </div>
               </>
-            ) : <div className="empty">Se încarcă...</div>}
-          </div>
+            ) : <Loading />}
+          </Section>
 
           {/* Upcoming events */}
-          <div className="card">
-            <div className="card-hrow">
-              <h2>Următoarele evenimente</h2>
-              <button className="link" type="button" onClick={() => navigate(PROGRAM_EDIT_TO)}>Vezi tot programul &rarr;</button>
-            </div>
-            <div className="chips">
-              {FILTERS.map((f) => (
-                <button key={f.key} className={`chip ${filter === f.key ? 'on' : ''}`} type="button" onClick={() => setFilter(f.key)}>{f.label}</button>
-              ))}
-            </div>
-            {eventsError && <div className="empty">Nu am putut încărca evenimentele.</div>}
-            {!eventsError && events === null && <div className="empty">Se încarcă...</div>}
-            {!eventsError && events !== null && shownEvents.length === 0 && <div className="empty">Niciun eveniment pentru acest filtru.</div>}
-            {shownEvents.map((o, i) => {
-              const off = isOff(o);
-              const color = off ? '#b0b0b0' : colorOf(o);
-              const time = o.startTime ? `${o.startTime}${o.endTime ? ` - ${o.endTime}` : ''}` : 'Toată ziua';
-              const sub = o.label && o.type !== 'scoala' ? `${time} · ${o.label}` : `${time} · ${CATEGORY_LABEL[o.type] ?? ''}`;
-              return (
-                <div key={`${o.date}-${i}`} className={`ev${off ? ' off' : ''}`}>
-                  <span className="dt">{dtLabel(o.date)}</span>
-                  <span className="bd" style={{ background: color }} />
-                  <span className="tx"><b>{evTitle(o)}</b><small>{sub}</small></span>
-                </div>
-              );
-            })}
-          </div>
+          <Section
+            title="Următoarele evenimente"
+            className="dash-evs"
+            aside={<Button variant="ghost" size="sm" onClick={() => navigate(PROGRAM_EDIT_TO)}>Vezi tot programul &rarr;</Button>}
+          >
+            <SegmentedControl<FilterKey>
+              className="dash-filter"
+              size="sm"
+              aria-label="Filtrează evenimentele"
+              options={FILTERS.map((f) => ({ value: f.key, label: f.label }))}
+              value={filter}
+              onChange={setFilter}
+            />
+            {eventsError ? (
+              <Notice tone="danger">Nu am putut încărca evenimentele.</Notice>
+            ) : events === null ? (
+              <Loading />
+            ) : shownEvents.length === 0 ? (
+              <EmptyState>Niciun eveniment pentru acest filtru.</EmptyState>
+            ) : (
+              <div>
+                {shownEvents.map((o, i) => {
+                  const off = isOff(o);
+                  const time = o.startTime ? `${o.startTime}${o.endTime ? ` - ${o.endTime}` : ''}` : 'Toată ziua';
+                  const sub = o.label && o.type !== 'scoala' ? `${time} · ${o.label}` : `${time} · ${CATEGORY_LABEL[o.type] ?? ''}`;
+                  return (
+                    <div key={`${o.date}-${i}`} className={`dash-ev${off ? ' off' : ''}`}>
+                      <span className="dash-ev-dt">{dtLabel(o.date)}</span>
+                      <span className="dash-ev-bar" style={{ background: off ? 'var(--theme-text-disabled)' : colorOf(o) }} />
+                      <span className="dash-ev-tx"><b>{evTitle(o)}</b><small>{sub}</small></span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Section>
         </div>
 
         {/* RIGHT */}
-        <div className="a-col">
-          {/* Analytics (Umami) */}
-          <div className="analytics">
-            {analytics == null ? (
-              <>
-                <div className="chrow"><h2>Analiză trafic</h2><span className="sk pl" /></div>
-                <div className="sk n" />
-                <div className="sk cap" />
-                <div className="sk ch" />
-                <div className="tops">
-                  <div className="t">Cele mai vizitate pagini</div>
-                  <div className="sk r" style={{ width: '88%' }} />
-                  <div className="sk r" style={{ width: '64%' }} />
-                  <div className="sk r" style={{ width: '73%' }} />
-                </div>
-              </>
-            ) : analytics.state === 'ok' ? (
-              (() => {
-                const series = analytics.series ?? [];
-                const visitors = analytics.visitors ?? 0;
-                const prev = analytics.prevVisitors ?? 0;
-                const paths = analytics.topPaths ?? [];
-                const topMax = Math.max(...paths.map((t) => t.count), 1);
-                // Nothing recorded yet is neither good nor bad news, so it stays
-                // neutral rather than reading as a drop to zero.
-                const noTraffic = visitors === 0 && series.every((v) => v === 0);
-                return (
-                  <>
-                    <div className="chrow">
-                      <h2>Analiză trafic</h2>
-                      {analytics.publicUrl && (
-                        <a className="lnk" href={analytics.publicUrl} target="_blank" rel="noreferrer">Vezi tot &rsaquo;</a>
-                      )}
-                    </div>
-                    <div className="big">
-                      <b>{roNum(visitors)}</b>
-                      {typeof analytics.trendPct === 'number' && !noTraffic && (
-                        <span className={`tr ${analytics.trendPct >= 0 ? 'up' : 'dn'}`}>
-                          {analytics.trendPct >= 0 ? '▲' : '▼'} {Math.abs(analytics.trendPct)}%
-                        </span>
-                      )}
-                    </div>
-                    <div className="cap">
-                      {noTraffic
-                        ? `Niciun vizitator înregistrat încă în ${monthName(analytics.monthStart)}`
-                        : prev > 0
-                          ? `Vizitatori în ${monthName(analytics.monthStart)}, față de ${roNum(prev)} în ${monthName(analytics.prevMonthStart)}`
-                          : `Vizitatori în ${monthName(analytics.monthStart)}`}
-                    </div>
-                    {noTraffic ? (
-                      <StateBox
-                        kind="q"
-                        body="Statisticile apar după prima vizită pe site. Poate dura câteva minute."
-                      />
-                    ) : (
-                      <>
-                        <div className="area">{renderArea(series)}</div>
-                        <div className="axis">
-                          <span>1 {monthName(analytics.monthStart)}</span>
-                          <span>azi</span>
-                        </div>
-                      </>
-                    )}
-                    {paths.length > 0 && (
-                      <div className="tops">
-                        <div className="t">Cele mai vizitate pagini</div>
-                        {paths.map((t) => (
-                          <div className="prow" key={t.path}>
-                            <span className="p" title={t.path}>{t.path}</span>
-                            <span className="bar"><i style={{ width: `${Math.round((t.count / topMax) * 100)}%` }} /></span>
-                            <span className="n">{roNum(t.count)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                );
-              })()
-            ) : (
-              <>
-                <h2>Analiză trafic</h2>
-                {analytics.state === 'not_configured' ? (
-                  <StateBox
-                    kind="q"
-                    title="Umami nu este conectat"
-                    body="Lipsesc datele de acces către serviciul de statistici."
-                  />
-                ) : (
-                  <StateBox
-                    kind="x"
-                    title="Nu am putut prelua statisticile"
-                    body="Serviciul nu a răspuns. Datele reapar singure când revine."
-                    href={analytics.publicUrl}
-                    linkLabel="Deschide Umami"
-                  />
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Site health (GlitchTip) */}
-          <div className="card health">
-            {health == null ? (
-              <>
-                <div className="chrow"><h2>Sănătate site</h2><span className="sk pl" /></div>
-                <div className="sk bd" />
-                <div className="sk st" />
-                <div className="sk is" />
-              </>
-            ) : health.state === 'ok' ? (
-              (() => {
-                const e24 = health.errors24h ?? 0;
-                const e7 = health.errors7d ?? 0;
-                const days = health.days ?? [];
-                const issues = health.issues ?? [];
-                const dayMax = Math.max(...days.map((d) => d.count), 0);
-                const tone = e24 === 0 ? 'ok' : e24 > 5 ? 'bad' : 'warn';
-                return (
-                  <>
-                    <div className="chrow">
-                      <h2>Sănătate site</h2>
-                      {health.publicUrl && (
-                        <a className="lnk" href={health.publicUrl} target="_blank" rel="noreferrer">Deschide GlitchTip &rsaquo;</a>
-                      )}
-                    </div>
-                    <div className={`band ${tone}`}>
-                      <span className="ic">{e24 === 0 ? '✓' : '!'}</span>
-                      <div className="tx">
-                        <b>
-                          {e24 === 0
-                            ? 'Nicio eroare în ultimele 24 de ore'
-                            : `${roNum(e24)} ${e24 === 1 ? 'eroare' : 'erori'} în ultimele 24 de ore`}
-                        </b>
-                        <small>
-                          {e24 > 0 && issues[0]?.lastSeen
-                            ? `Cea mai recentă ${relTime(issues[0].lastSeen)}`
-                            : e7 === 0
-                              ? 'Niciun incident în ultimele 7 zile'
-                              : `${roNum(e7)} ${e7 === 1 ? 'incident' : 'incidente'} în ultimele 7 zile`}
-                        </small>
-                      </div>
-                      {e24 > 0 && <span className="n">{roNum(e24)}</span>}
-                    </div>
-
-                    {days.length > 0 && (
-                      <>
-                        <div className="strip">
-                          {days.map((d) => {
-                            const pct = dayMax > 0 ? (d.count / dayMax) * 100 : 0;
-                            const cls = d.count === 0 ? '' : d.count === dayMax ? 'hh' : 'h';
-                            return (
-                              <i
-                                key={d.date}
-                                className={cls}
-                                style={{ height: `${Math.max(8, pct)}%` }}
-                                title={`${new Date(d.date).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })}: ${d.count}`}
-                              />
-                            );
-                          })}
-                        </div>
-                        <div className="striplbl"><span>acum 7 zile</span><span>azi</span></div>
-                        <div className="stripnote">
-                          Bara numără incidente după ultima apariție, nu numărul total de apariții.
-                        </div>
-                      </>
-                    )}
-
-                    {issues.length > 0 && (
-                      <div className="iss">
-                        {issues.map((i) => (
-                          <a
-                            className="irow"
-                            key={i.id}
-                            href={i.permalink}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            <span className={`lv ${levelClass(i.level)}`} />
-                            <div className="m">
-                              <b title={i.title}>{i.title}</b>
-                              <small>{[i.shortId, relTime(i.lastSeen)].filter(Boolean).join(' · ')}</small>
-                            </div>
-                            {i.count > 1 && <span className="c">{roNum(i.count)}×</span>}
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                    {health.capped && (
-                      <div className="stripnote">
-                        Sunt afișate primele 100 de incidente, deci cifrele sunt un minim.
-                      </div>
-                    )}
-                  </>
-                );
-              })()
-            ) : (
-              <>
-                <h2>Sănătate site</h2>
-                {health.state === 'not_configured' ? (
-                  <StateBox
-                    kind="q"
-                    title="GlitchTip nu este conectat"
-                    body="Lipsesc datele de acces către serviciul de erori."
-                  />
-                ) : (
-                  <StateBox
-                    kind="x"
-                    title="Nu am putut verifica erorile"
-                    body="Serviciul nu a răspuns. Asta nu înseamnă că site-ul are probleme."
-                    href={health.publicUrl}
-                    linkLabel="Deschide GlitchTip"
-                  />
-                )}
-              </>
-            )}
-          </div>
+        <div className="dash-col">
+          <AnalyticsCard analytics={analytics} />
+          <HealthCard health={health} />
 
           {/* Quick actions */}
-          <div className="card">
-            <h2>Acțiuni rapide</h2>
-            <div className="qa">
+          <Section title="Acțiuni rapide">
+            <div className="dash-qa">
               {quickActions.map((a) => (
-                <button key={a.to} className={a.primary ? 'pri' : ''} type="button" onClick={() => navigate(a.to)}>
-                  <span className="i">{a.ic}</span>{a.label}
-                </button>
+                <Button
+                  key={a.to}
+                  variant={a.primary ? 'primary' : 'secondary'}
+                  icon={<span className="dash-qa-i" aria-hidden="true">{a.ic}</span>}
+                  onClick={() => navigate(a.to)}
+                >
+                  {a.label}
+                </Button>
               ))}
             </div>
-          </div>
+          </Section>
         </div>
       </div>
-    </div>
+    </AdminPage>
   );
 }
 
-/** Inline sparkline from a numeric series (no chart library). */
+/** The hero's season label: square, outlined, solid colours on the navy band. */
+const HERO_BADGE = { fg: 'var(--palette-blue-50)', bg: 'var(--palette-brand-navy)', line: 'var(--palette-blue-400)' };
+
+function CheckIcon() {
+  return (
+    <svg className="dash-empty-ok" width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M5 12.5 10 17 19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="square" />
+    </svg>
+  );
+}
+
+/** Analytics (Umami): the navy card. */
+function AnalyticsCard({ analytics }: { analytics: AnalyticsData | null }) {
+  if (analytics == null) {
+    return (
+      <Section title="Analiză trafic" className="dash-dark" aside={<span className="dash-sk pl" />}>
+        <div className="dash-sk n" />
+        <div className="dash-sk cap" />
+        <div className="dash-sk ch" />
+        <div className="dash-tops">
+          <div className="dash-tops-t">Cele mai vizitate pagini</div>
+          <div className="dash-sk r" style={{ width: '88%' }} />
+          <div className="dash-sk r" style={{ width: '64%' }} />
+          <div className="dash-sk r" style={{ width: '73%' }} />
+        </div>
+      </Section>
+    );
+  }
+  if (analytics.state !== 'ok') {
+    return (
+      <Section title="Analiză trafic" className="dash-dark">
+        {analytics.state === 'not_configured' ? (
+          <StateBox kind="q" title="Umami nu este conectat" body="Lipsesc datele de acces către serviciul de statistici." />
+        ) : (
+          <StateBox
+            kind="x"
+            title="Nu am putut prelua statisticile"
+            body="Serviciul nu a răspuns. Datele reapar singure când revine."
+            href={analytics.publicUrl}
+            linkLabel="Deschide Umami"
+          />
+        )}
+      </Section>
+    );
+  }
+  const series = analytics.series ?? [];
+  const visitors = analytics.visitors ?? 0;
+  const prev = analytics.prevVisitors ?? 0;
+  const paths = analytics.topPaths ?? [];
+  const topMax = Math.max(...paths.map((t) => t.count), 1);
+  // Nothing recorded yet is neither good nor bad news, so it stays
+  // neutral rather than reading as a drop to zero.
+  const noTraffic = visitors === 0 && series.every((v) => v === 0);
+  return (
+    <Section
+      title="Analiză trafic"
+      className="dash-dark"
+      aside={analytics.publicUrl ? (
+        <a className="dash-lnk" href={analytics.publicUrl} target="_blank" rel="noreferrer">Vezi tot &rsaquo;</a>
+      ) : undefined}
+    >
+      <div>
+        <div className="dash-big">
+          <b>{roNum(visitors)}</b>
+          {typeof analytics.trendPct === 'number' && !noTraffic && (
+            <span className={`dash-trend ${analytics.trendPct >= 0 ? 'up' : 'dn'}`}>
+              {analytics.trendPct >= 0 ? '▲' : '▼'} {Math.abs(analytics.trendPct)}%
+            </span>
+          )}
+        </div>
+        <div className="dash-cap">
+          {noTraffic
+            ? `Niciun vizitator înregistrat încă în ${monthName(analytics.monthStart)}`
+            : prev > 0
+              ? `Vizitatori în ${monthName(analytics.monthStart)}, față de ${roNum(prev)} în ${monthName(analytics.prevMonthStart)}`
+              : `Vizitatori în ${monthName(analytics.monthStart)}`}
+        </div>
+      </div>
+      {noTraffic ? (
+        <StateBox kind="q" body="Statisticile apar după prima vizită pe site. Poate dura câteva minute." />
+      ) : (
+        <div>
+          <div className="dash-area">{renderArea(series)}</div>
+          <div className="dash-axis">
+            <span>1 {monthName(analytics.monthStart)}</span>
+            <span>azi</span>
+          </div>
+        </div>
+      )}
+      {paths.length > 0 && (
+        <div className="dash-tops">
+          <div className="dash-tops-t">Cele mai vizitate pagini</div>
+          {paths.map((t) => (
+            <div className="dash-prow" key={t.path}>
+              <span className="dash-prow-p" title={t.path}>{t.path}</span>
+              <span className="dash-prow-bar"><i style={{ width: `${Math.round((t.count / topMax) * 100)}%` }} /></span>
+              <span className="dash-prow-n">{roNum(t.count)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+/** Site health (GlitchTip). */
+function HealthCard({ health }: { health: HealthData | null }) {
+  if (health == null) {
+    return (
+      <Section title="Sănătate site" aside={<span className="dash-sk pl" />}>
+        <div className="dash-sk bd" />
+        <div className="dash-sk st" />
+        <div className="dash-sk is" />
+      </Section>
+    );
+  }
+  if (health.state !== 'ok') {
+    return (
+      <Section title="Sănătate site">
+        {health.state === 'not_configured' ? (
+          <StateBox kind="q" title="GlitchTip nu este conectat" body="Lipsesc datele de acces către serviciul de erori." />
+        ) : (
+          <StateBox
+            kind="x"
+            title="Nu am putut verifica erorile"
+            body="Serviciul nu a răspuns. Asta nu înseamnă că site-ul are probleme."
+            href={health.publicUrl}
+            linkLabel="Deschide GlitchTip"
+          />
+        )}
+      </Section>
+    );
+  }
+  const e24 = health.errors24h ?? 0;
+  const e7 = health.errors7d ?? 0;
+  const days = health.days ?? [];
+  const issues = health.issues ?? [];
+  const dayMax = Math.max(...days.map((d) => d.count), 0);
+  const tone = e24 === 0 ? '' : e24 > 5 ? ' bad' : ' warn';
+  return (
+    <Section
+      title="Sănătate site"
+      aside={health.publicUrl ? (
+        <a className="dash-lnk" href={health.publicUrl} target="_blank" rel="noreferrer">Deschide GlitchTip &rsaquo;</a>
+      ) : undefined}
+    >
+      <div className={`dash-band${tone}`}>
+        <span className="dash-band-ic" aria-hidden="true">{e24 === 0 ? '✓' : '!'}</span>
+        <div className="dash-band-tx">
+          <b>
+            {e24 === 0
+              ? 'Nicio eroare în ultimele 24 de ore'
+              : `${roNum(e24)} ${e24 === 1 ? 'eroare' : 'erori'} în ultimele 24 de ore`}
+          </b>
+          <small>
+            {e24 > 0 && issues[0]?.lastSeen
+              ? `Cea mai recentă ${relTime(issues[0].lastSeen)}`
+              : e7 === 0
+                ? 'Niciun incident în ultimele 7 zile'
+                : `${roNum(e7)} ${e7 === 1 ? 'incident' : 'incidente'} în ultimele 7 zile`}
+          </small>
+        </div>
+        {e24 > 0 && <span className="dash-band-n">{roNum(e24)}</span>}
+      </div>
+
+      {days.length > 0 && (
+        <div>
+          <div className="dash-strip">
+            {days.map((d) => {
+              const pct = dayMax > 0 ? (d.count / dayMax) * 100 : 0;
+              const cls = d.count === 0 ? '' : d.count === dayMax ? 'hh' : 'h';
+              return (
+                <i
+                  key={d.date}
+                  className={cls}
+                  style={{ height: `${Math.max(8, pct)}%` }}
+                  title={`${new Date(d.date).toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' })}: ${d.count}`}
+                />
+              );
+            })}
+          </div>
+          <div className="dash-striplbl"><span>acum 7 zile</span><span>azi</span></div>
+          <div className="dash-note">Bara numără incidente după ultima apariție, nu numărul total de apariții.</div>
+        </div>
+      )}
+
+      {issues.length > 0 && (
+        <div className="dash-iss">
+          {issues.map((i) => (
+            <a className="dash-irow" key={i.id} href={i.permalink} target="_blank" rel="noreferrer">
+              <span className={`dash-lv ${levelClass(i.level)}`} />
+              <div className="dash-irow-m">
+                <b title={i.title}>{i.title}</b>
+                <small>{[i.shortId, relTime(i.lastSeen)].filter(Boolean).join(' · ')}</small>
+              </div>
+              {i.count > 1 && <StatusBadge tone="neutral"><span className="ui-num">{roNum(i.count)}×</span></StatusBadge>}
+            </a>
+          ))}
+        </div>
+      )}
+      {health.capped && (
+        <div className="dash-note">Sunt afișate primele 100 de incidente, deci cifrele sunt un minim.</div>
+      )}
+    </Section>
+  );
+}
+
 /** Romanian thousands separator, matching the rest of the dashboard. */
 const roNum = (n: number) => n.toLocaleString('ro-RO');
 
@@ -790,7 +789,7 @@ function relTime(iso: string | null): string {
   return `acum ${d} ${d === 1 ? 'zi' : 'zile'}`;
 }
 
-/** Filled area chart of daily visits. One point per elapsed day of the month. */
+/** Filled area chart of daily visits (inline SVG, no chart library). One point per elapsed day of the month. */
 function renderArea(series: number[]) {
   if (!series || series.length < 2) return null;
   const W = 300;
@@ -808,21 +807,21 @@ function renderArea(series: number[]) {
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
       <defs>
         <linearGradient id="eduAreaFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#5a76e8" stopOpacity=".45" />
-          <stop offset="1" stopColor="#5a76e8" stopOpacity="0" />
+          <stop offset="0" style={{ stopColor: 'var(--palette-blue-400)', stopOpacity: 0.45 }} />
+          <stop offset="1" style={{ stopColor: 'var(--palette-blue-400)', stopOpacity: 0 }} />
         </linearGradient>
       </defs>
       <path d={area} fill="url(#eduAreaFill)" />
       <polyline
         points={line}
         fill="none"
-        stroke="#7f97f2"
+        style={{ stroke: 'var(--palette-blue-300)' }}
         strokeWidth={2}
         strokeLinejoin="round"
         strokeLinecap="round"
         vectorEffect="non-scaling-stroke"
       />
-      <circle cx={last[0]} cy={last[1]} r={3} fill="#fff" />
+      <rect x={last[0] - 3} y={last[1] - 3} width={6} height={6} style={{ fill: 'var(--palette-grey-0)' }} />
     </svg>
   );
 }
@@ -846,9 +845,9 @@ function StateBox({ kind, title, body, href, linkLabel }: {
   linkLabel?: string;
 }) {
   return (
-    <div className="stbox">
-      <span className={`si ${kind}`}>{kind === 'x' ? '!' : '?'}</span>
-      <div className="st">
+    <div className="dash-stbox">
+      <span className={`dash-si ${kind}`} aria-hidden="true">{kind === 'x' ? '!' : '?'}</span>
+      <div className="dash-st">
         {title && <b>{title}</b>}
         <small>{body}</small>
         {href && linkLabel && (

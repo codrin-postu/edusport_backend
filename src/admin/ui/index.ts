@@ -49,6 +49,7 @@ export {
   type ToastOptions,
 } from './Toast';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
+export { StatTile, type StatTileProps } from './StatTile';
 export { Spinner, Loading, type SpinnerProps } from './Spinner';
 export { Modal, type ModalProps } from './Modal';
 export { Tabs, type TabsProps, type TabItem } from './Tabs';
