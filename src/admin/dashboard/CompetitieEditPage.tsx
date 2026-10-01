@@ -1,7 +1,31 @@
 import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
-import { EDU_CSS, LEVEL_OPTIONS } from './edusportUi';
+import {
+  AdminPage,
+  Window,
+  PageHeader,
+  Section,
+  Field,
+  FieldRow,
+  Input,
+  DateInput,
+  NumberInput,
+  SearchableSelect,
+  SegmentedControl,
+  RepeatableList,
+  Chip,
+  ChipList,
+  Notice,
+  Loading,
+  SaveBar,
+  UnsavedGuard,
+  releaseUnsavedGuards,
+  useSaveState,
+  adminToast,
+} from '../ui';
+import { usePageForm } from '../lib';
+import { LEVEL_OPTIONS } from './edusportUi';
 import { COMPETITII_TO, COMPETITIE_EDIT_TO } from './menu';
 
 /**
@@ -10,10 +34,13 @@ import { COMPETITII_TO, COMPETITIE_EDIT_TO } from './menu';
  *
  * Compact single-column form. Relations (sportspeople) are read via the
  * content-manager relations endpoint and written as { set:[{id}] }. The results
- * table edits the participantData json array. The canonical json shape consumed
+ * list edits the participantData json array. The canonical json shape consumed
  * by the public site is { documentId, name, category, placement, score }, so the
- * editor keeps those keys (columns labelled Sportiv / Loc / Punctaj) and
+ * editor keeps those keys (fields labelled Sportiv / Loc / Punctaj) and
  * preserves any existing category value rather than dropping site data.
+ *
+ * Built on the shared admin UI (src/admin/ui): usePageForm + the floating
+ * SaveBar + UnsavedGuard, toasts for feedback.
  */
 
 const CT = '/content-manager/collection-types/api::competition.competition';
@@ -50,6 +77,15 @@ interface FormState {
 }
 
 const EMPTY: FormState = { name: '', date: '', location: '', level: 'national', season: '', participants: [], results: [] };
+const LEVEL_SEGMENTS = LEVEL_OPTIONS.map((o) => ({ value: o.value as string, label: o.label }));
+
+// Page-local layout, tokens only. No backticks inside.
+const COMPETITIE_CSS = `
+.ui-root .cp-narrow{max-width:760px;width:100%}
+.ui-root .cp-rel{display:flex;flex-direction:column;gap:var(--ui-space-2)}
+.ui-root .cp-res{display:grid;grid-template-columns:minmax(0,52fr) minmax(0,18fr) minmax(0,22fr);gap:var(--ui-space-3);align-items:start}
+@media (max-width:640px){.ui-root .cp-res{grid-template-columns:1fr 1fr}.ui-root .cp-res > :first-child{grid-column:1 / -1}}
+`;
 
 function relResults(res: any): Opt[] {
   const r = res?.data?.results ?? res?.data?.data ?? [];
@@ -73,129 +109,22 @@ function safeParse(s: string): any[] {
     return [];
   }
 }
-
-// relation multi-select box (sportspeople participants)
-function RelPicker({ value, options, onChange }: { value: Opt[]; options: Opt[]; onChange: (next: Opt[]) => void }) {
-  const [q, setQ] = React.useState('');
-  const [open, setOpen] = React.useState(false);
-  const boxRef = React.useRef<HTMLDivElement>(null);
-  React.useEffect(() => {
-    const onDoc = (e: MouseEvent) => {
-      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, []);
-  const selectedIds = new Set(value.map((v) => v.id));
-  const matches = options.filter((o) => !selectedIds.has(o.id) && o.name.toLowerCase().includes(q.trim().toLowerCase()));
-  return (
-    <div className="relbox" ref={boxRef}>
-      {value.length > 0 && (
-        <div className="tags">
-          {value.map((v) => (
-            <span className="tag" key={v.id}>
-              {v.name}
-              <button type="button" className="x" aria-label="Elimină" onClick={() => onChange(value.filter((x) => x.id !== v.id))}>
-                ✕
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-      <div className="addwrap">
-        <input
-          placeholder="Caută și adaugă sportiv..."
-          value={q}
-          onFocus={() => setOpen(true)}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setOpen(true);
-          }}
-        />
-        {open && (
-          <div className="relmenu">
-            {matches.length === 0 ? (
-              <div className="none">Niciun rezultat</div>
-            ) : (
-              matches.slice(0, 30).map((o) => (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => {
-                    onChange([...value, o]);
-                    setQ('');
-                  }}
-                >
-                  {o.name}
-                </button>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+function toForm(e: any): FormState {
+  const participants: Opt[] = Array.isArray(e?.sportspeople)
+    ? e.sportspeople.map((x: any) => ({ id: x.id, documentId: x.documentId, name: x.name ?? '' }))
+    : [];
+  return {
+    name: e?.name ?? '',
+    date: e?.date ?? '',
+    location: e?.location ?? '',
+    level: e?.level ?? 'national',
+    season: e?.season ?? '',
+    participants,
+    results: parseResults(e?.participantData),
+  };
 }
-
-export default function CompetitieEditPage() {
-  const { get, put, post } = useFetchClient();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const params = new URLSearchParams(location.search || window.location.search);
-  const id = params.get('id') || '';
-  const isNew = !id;
-
-  const [form, setForm] = React.useState<FormState>(EMPTY);
-  const [loading, setLoading] = React.useState(!isNew);
-  const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState(false);
-  const [msg, setMsg] = React.useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
-  const [sportspeople, setSportspeople] = React.useState<Opt[]>([]);
-
-  const upd = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
-
-  React.useEffect(() => {
-    get(SPORTSPERSON_LOOKUP)
-      .then((res: any) => setSportspeople(relResults(res)))
-      .catch(() => {});
-  }, [get]);
-
-  const load = React.useCallback(
-    (docId: string) => {
-      setLoading(true);
-      setError(false);
-      get(CT_WITH_REL(docId))
-        .then((main: any) => {
-          const e = main?.data?.data ?? main?.data;
-          const participants: Opt[] = Array.isArray(e?.sportspeople)
-            ? e.sportspeople.map((x: any) => ({ id: x.id, documentId: x.documentId, name: x.name ?? '' }))
-            : [];
-          setForm({
-            name: e?.name ?? '',
-            date: e?.date ?? '',
-            location: e?.location ?? '',
-            level: e?.level ?? 'national',
-            season: e?.season ?? '',
-            participants,
-            results: parseResults(e?.participantData),
-          });
-        })
-        .catch(() => setError(true))
-        .finally(() => setLoading(false));
-    },
-    [get],
-  );
-
-  React.useEffect(() => {
-    if (isNew) {
-      setForm(EMPTY);
-      setLoading(false);
-      return;
-    }
-    load(id);
-  }, [id, isNew, load]);
-
-  const buildBody = () => ({
+function buildBody(form: FormState) {
+  return {
     name: form.name,
     date: form.date || null,
     location: form.location || null,
@@ -209,200 +138,241 @@ export default function CompetitieEditPage() {
       score: r.score,
     })),
     sportspeople: { set: form.participants.map((p) => ({ id: p.id })) },
-  });
+  };
+}
 
-  const save = async () => {
-    if (!form.name.trim()) {
-      setMsg({ kind: 'err', text: 'Numele este obligatoriu.' });
+type Missing = { name: boolean; date: boolean; season: boolean };
+
+export default function CompetitieEditPage() {
+  const { get, put, post } = useFetchClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search || window.location.search);
+  const id = params.get('id') || '';
+  const isNew = !id;
+
+  const save = useSaveState();
+  const [loaded, setLoaded] = React.useState<FormState>(EMPTY);
+  const form = usePageForm<FormState>(loaded, save);
+  const v = form.value;
+  const upd = form.patch;
+
+  const [loading, setLoading] = React.useState(!isNew);
+  const [error, setError] = React.useState(false);
+  const [showErrors, setShowErrors] = React.useState(false);
+  const [sportspeople, setSportspeople] = React.useState<Opt[]>([]);
+  const loadedFor = React.useRef<string>('');
+
+  React.useEffect(() => {
+    get(SPORTSPERSON_LOOKUP)
+      .then((res: any) => setSportspeople(relResults(res)))
+      .catch(() => {});
+  }, [get]);
+
+  const fetchEntry = React.useCallback(
+    async (docId: string): Promise<FormState> => {
+      const main: any = await get(CT_WITH_REL(docId));
+      return toForm(main?.data?.data ?? main?.data);
+    },
+    [get],
+  );
+
+  React.useEffect(() => {
+    if (isNew) {
+      loadedFor.current = '';
+      setLoaded(EMPTY);
+      setLoading(false);
+      setError(false);
       return;
     }
-    if (!form.date) {
-      setMsg({ kind: 'err', text: 'Data este obligatorie.' });
+    if (loadedFor.current === id) return;
+    let off = false;
+    setLoading(true);
+    setError(false);
+    fetchEntry(id)
+      .then((f) => {
+        if (off) return;
+        loadedFor.current = id;
+        setLoaded(f);
+      })
+      .catch(() => !off && setError(true))
+      .finally(() => !off && setLoading(false));
+    return () => {
+      off = true;
+    };
+  }, [id, isNew, fetchEntry]);
+
+  const missing: Missing = { name: !v.name.trim(), date: !v.date, season: !v.season.trim() };
+
+  const onSave = () => {
+    const first = missing.name
+      ? 'Numele este obligatoriu.'
+      : missing.date
+        ? 'Data este obligatorie.'
+        : missing.season
+          ? 'Sezonul este obligatoriu.'
+          : null;
+    if (first) {
+      setShowErrors(true);
+      adminToast.error(first);
       return;
     }
-    if (!form.season.trim()) {
-      setMsg({ kind: 'err', text: 'Sezonul este obligatoriu.' });
-      return;
-    }
-    setSaving(true);
-    setMsg(null);
-    try {
-      const body = buildBody();
-      if (isNew) {
-        const res: any = await post(CT, body);
-        const newId = (res?.data?.data ?? res?.data)?.documentId;
-        setMsg({ kind: 'ok', text: 'Competiție creată.' });
-        if (newId) navigate(`${COMPETITIE_EDIT_TO}?id=${newId}`, { replace: true });
-      } else {
-        await put(`${CT}/${id}`, body);
-        setMsg({ kind: 'ok', text: 'Modificările au fost salvate.' });
-        load(id);
-      }
-    } catch {
-      setMsg({ kind: 'err', text: 'Salvarea a eșuat. Verifică datele și încearcă din nou.' });
-    } finally {
-      setSaving(false);
-    }
+    setShowErrors(false);
+    const body = buildBody(v);
+    let createdId: string | null = null;
+    void save
+      .run(async () => {
+        if (isNew) {
+          const res: any = await post(CT, body);
+          const newId = (res?.data?.data ?? res?.data)?.documentId;
+          if (newId) {
+            const fresh = await fetchEntry(newId).catch(() => null);
+            if (fresh) {
+              loadedFor.current = newId;
+              setLoaded(fresh);
+            }
+            createdId = newId;
+          }
+        } else {
+          await put(`${CT}/${id}`, body);
+          const fresh = await fetchEntry(id);
+          loadedFor.current = id;
+          setLoaded(fresh);
+        }
+      }, 'Salvarea a eșuat. Verifică datele și încearcă din nou.')
+      .then((ok) => {
+        if (ok && createdId) {
+          releaseUnsavedGuards();
+          navigate(`${COMPETITIE_EDIT_TO}?id=${createdId}`, { replace: true });
+        }
+      });
   };
 
-  const addResult = () => upd({ results: [...form.results, { documentId: '', name: '', category: '', placement: null, score: null }] });
-  const updResult = (i: number, patch: Partial<ResultRow>) => upd({ results: form.results.map((r, j) => (j === i ? { ...r, ...patch } : r)) });
-  const removeResult = (i: number) => upd({ results: form.results.filter((_, j) => j !== i) });
+  const discard = () => {
+    setShowErrors(false);
+    form.reset();
+  };
+
+  const chosen = new Set(v.participants.map((p) => p.id));
+  const participantPool = sportspeople.filter((s) => !chosen.has(s.id)).map((s) => ({ value: String(s.id), label: s.name }));
+  const resultOptions = sportspeople.map((s) => ({ value: s.documentId, label: s.name }));
+  const ready = !loading && !error;
 
   return (
-    // `pce` opts our custom "Salvează" buttons out of the global admin SaveBar tagger.
-    <div className="eduf pce">
-      <style>{EDU_CSS}</style>
-      <div className="win">
-        <div className="hd">
-          <div>
-            <h1>{isNew ? 'Adaugă competiție' : 'Editează competiție'}</h1>
-            <p>{isNew ? 'Completează datele competiției.' : form.name}</p>
-          </div>
-          <div className="hd-right">
-            <button className="btn" type="button" onClick={() => navigate(COMPETITII_TO)}>
-              Înapoi
-            </button>
-            <button className="btn pri" type="button" onClick={save} disabled={saving || loading}>
-              {saving ? 'Se salvează...' : 'Salvează'}
-            </button>
-          </div>
-        </div>
-
-        {msg && <div className={`msg ${msg.kind}`}>{msg.text}</div>}
+    <AdminPage>
+      <style>{COMPETITIE_CSS}</style>
+      <Window>
+        <PageHeader
+          back={{ to: COMPETITII_TO, label: 'Competiții' }}
+          title={isNew ? 'Adaugă competiție' : 'Editează competiție'}
+          subtitle={isNew ? 'Completează datele competiției.' : loaded.name}
+        />
 
         {loading ? (
-          <div className="empty">Se încarcă...</div>
+          <Loading />
         ) : error ? (
-          <div className="empty">Nu am putut încărca competiția.</div>
+          <div className="ui-body">
+            <Notice tone="danger">Nu am putut încărca competiția.</Notice>
+          </div>
         ) : (
-          <div className="body" style={{ maxWidth: 760 }}>
-            <div className="fld">
-              <label>Nume</label>
-              <input value={form.name} onChange={(e) => upd({ name: e.target.value })} placeholder="Numele competiției" />
-            </div>
-            <div className="row">
-              <div className="fld">
-                <label>Data</label>
-                <input type="date" value={form.date} onChange={(e) => upd({ date: e.target.value })} />
-              </div>
-              <div className="fld">
-                <label>Locație</label>
-                <input value={form.location} onChange={(e) => upd({ location: e.target.value })} placeholder="Oraș / arenă" />
-              </div>
-            </div>
-            <div className="row">
-              <div className="fld">
-                <label>Nivel</label>
-                <select value={form.level} onChange={(e) => upd({ level: e.target.value })}>
-                  {LEVEL_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="fld">
-                <label>Sezon</label>
-                <input value={form.season} onChange={(e) => upd({ season: e.target.value })} placeholder="ex. 2024-2025" />
-              </div>
-            </div>
+          <div className="ui-body">
+            <div className="cp-narrow ui-stack">
+              <Section title="Detalii">
+                <div className="ui-stack">
+                  <Field label="Nume" required error={showErrors && missing.name ? 'Numele este obligatoriu.' : undefined}>
+                    <Input value={v.name} onChange={(e) => upd({ name: e.target.value })} placeholder="Numele competiției" />
+                  </Field>
+                  <FieldRow>
+                    <Field label="Data" required error={showErrors && missing.date ? 'Data este obligatorie.' : undefined}>
+                      <DateInput value={v.date || null} onChange={(d) => upd({ date: d ?? '' })} />
+                    </Field>
+                    <Field label="Locație">
+                      <Input value={v.location} onChange={(e) => upd({ location: e.target.value })} placeholder="Oraș / arenă" />
+                    </Field>
+                  </FieldRow>
+                  <FieldRow>
+                    <div className="ui-field">
+                      <span className="ui-label" id="cp-level-label">
+                        Nivel
+                      </span>
+                      <SegmentedControl
+                        aria-labelledby="cp-level-label"
+                        options={LEVEL_SEGMENTS}
+                        value={v.level}
+                        onChange={(level) => upd({ level })}
+                      />
+                    </div>
+                    <Field label="Sezon" required error={showErrors && missing.season ? 'Sezonul este obligatoriu.' : undefined}>
+                      <Input value={v.season} onChange={(e) => upd({ season: e.target.value })} placeholder="ex. 2024-2025" />
+                    </Field>
+                  </FieldRow>
+                </div>
+              </Section>
 
-            <div className="sec">
-              <div className="sh">Sportivi participanți</div>
-              <div className="sb">
-                <RelPicker value={form.participants} options={sportspeople} onChange={(next) => upd({ participants: next })} />
-              </div>
-            </div>
+              <Section title="Sportivi participanți">
+                <Field label="Sportivi participanți" hideLabel>
+                  <div className="cp-rel">
+                    {v.participants.length > 0 && (
+                      <ChipList>
+                        {v.participants.map((p) => (
+                          <Chip key={p.id} onRemove={() => upd({ participants: v.participants.filter((x) => x.id !== p.id) })}>
+                            {p.name}
+                          </Chip>
+                        ))}
+                      </ChipList>
+                    )}
+                    <SearchableSelect
+                      value={null}
+                      clearable={false}
+                      options={participantPool}
+                      placeholder="Caută și adaugă sportiv..."
+                      onChange={(val) => {
+                        const o = sportspeople.find((s) => String(s.id) === val);
+                        if (o) upd({ participants: [...v.participants, o] });
+                      }}
+                    />
+                  </div>
+                </Field>
+              </Section>
 
-            <div className="sec">
-              <div className="sh">
-                Rezultate participanți
-                <button type="button" className="addbtn" onClick={addResult}>
-                  + Adaugă rezultat
-                </button>
-              </div>
-              <div className="sb">
-                {form.results.length === 0 ? (
-                  <div className="hint">Niciun rezultat adăugat.</div>
-                ) : (
-                  <table className="mini">
-                    <thead>
-                      <tr>
-                        <th style={{ width: '52%' }}>Sportiv</th>
-                        <th style={{ width: '18%' }}>Loc</th>
-                        <th style={{ width: '22%' }}>Punctaj</th>
-                        <th className="act" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {form.results.map((r, i) => (
-                        <tr key={i}>
-                          <td>
-                            <select
-                              value={r.documentId}
-                              onChange={(e) => {
-                                const sp = sportspeople.find((s) => s.documentId === e.target.value);
-                                updResult(i, { documentId: e.target.value, name: sp?.name ?? r.name });
-                              }}
-                            >
-                              <option value="">{r.name || 'Alege sportiv...'}</option>
-                              {sportspeople.map((s) => (
-                                <option key={s.documentId} value={s.documentId}>
-                                  {s.name}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td>
-                            <input
-                              inputMode="numeric"
-                              value={r.placement != null ? String(r.placement) : ''}
-                              placeholder="—"
-                              onChange={(e) => {
-                                const v = e.target.value.replace(/[^0-9]/g, '');
-                                updResult(i, { placement: v === '' ? null : parseInt(v, 10) });
-                              }}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              inputMode="decimal"
-                              value={r.score != null ? String(r.score) : ''}
-                              placeholder="—"
-                              onChange={(e) => {
-                                const v = e.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-                                updResult(i, { score: v === '' || v.endsWith('.') ? (v === '' ? null : r.score) : parseFloat(v) });
-                              }}
-                            />
-                          </td>
-                          <td className="act">
-                            <button type="button" className="rm" aria-label="Șterge rezultat" onClick={() => removeResult(i)}>
-                              ✕
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
+              <Section title="Rezultate participanți">
+                <RepeatableList<ResultRow>
+                  items={v.results}
+                  onChange={(results) => upd({ results })}
+                  getKey={(_, i) => i}
+                  itemLabel={(r, i) => (r.name ? `rezultatul lui ${r.name}` : `rezultatul ${i + 1}`)}
+                  newItem={() => ({ documentId: '', name: '', category: '', placement: null, score: null })}
+                  addLabel="Adaugă rezultat"
+                  emptyLabel="Niciun rezultat adăugat."
+                  aria-label="Rezultate participanți"
+                  renderRow={(r, _i, row) => (
+                    <div className="cp-res">
+                      <Field label="Sportiv">
+                        <SearchableSelect
+                          value={r.documentId || null}
+                          valueLabel={r.name || undefined}
+                          options={resultOptions}
+                          placeholder={r.name || 'Alege sportiv...'}
+                          onChange={(val, opt) => row.update({ documentId: val ?? '', name: opt?.label ?? r.name })}
+                        />
+                      </Field>
+                      <Field label="Loc">
+                        <NumberInput value={r.placement} min={0} onChange={(placement) => row.update({ placement })} label="locul" />
+                      </Field>
+                      <Field label="Punctaj">
+                        <NumberInput value={r.score} min={0} step={0.01} onChange={(score) => row.update({ score })} label="punctajul" />
+                      </Field>
+                    </div>
+                  )}
+                />
+              </Section>
             </div>
           </div>
         )}
 
-        {!loading && !error && (
-          <div className="pa">
-            <button className="btn" type="button" onClick={() => navigate(COMPETITII_TO)}>
-              Înapoi
-            </button>
-            <div className="grow" />
-            <button className="btn pri" type="button" onClick={save} disabled={saving}>
-              {saving ? 'Se salvează...' : 'Salvează'}
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+        {ready && <SaveBar {...save.bar} onSave={onSave} onDiscard={discard} />}
+      </Window>
+      <UnsavedGuard when={form.dirty} />
+    </AdminPage>
   );
 }
