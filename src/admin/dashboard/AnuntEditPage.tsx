@@ -1,34 +1,51 @@
 import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
-import { EDU_CSS } from './edusportUi';
+import {
+  AdminPage,
+  Window,
+  PageHeader,
+  Section,
+  Field,
+  FieldRow,
+  Input,
+  Textarea,
+  DateRangeInput,
+  TimeInput,
+  NumberInput,
+  SegmentedControl,
+  Button,
+  Notice,
+  Loading,
+  SaveBar,
+  UnsavedGuard,
+  releaseUnsavedGuards,
+  useSaveState,
+  adminToast,
+  parseTimeText,
+} from '../ui';
+import { usePageForm } from '../lib';
 import { ANUNTURI_TO, ANUNT_EDIT_TO } from './menu';
 import { ConfirmDialog } from '../ConfirmDialog';
-import {
-  ANUNT_API,
-  anuntErrorMessage,
-  slugifyRo,
-  type Anunt,
-} from './AnunturiPage';
-// The date/time controls the calendar editor uses. Both live in the same vite
-// bundle (src/admin/app.tsx imports the plugin by relative path), so importing
-// across the boundary is safe and type-checked — see ConfirmDialog's header.
-import { SafeDatePicker } from '../../plugins/component-preview/admin/src/components/SafeDatePicker';
-import { TimePicker } from '../../plugins/component-preview/admin/src/components/TimePicker';
+import { ANUNT_API, anuntErrorMessage, slugifyRo, type Anunt } from './AnunturiPage';
 
 /**
- * EduSport admin — "Anunț" create / edit page (`?id=<documentId>`, no id = new).
+ * EduSport admin, "Anunț" create / edit page (`?id=<documentId>`, no id = new).
  *
  * WHY A SEPARATE PAGE and not an in-place panel on the list: the list page owns
  * a drag-to-reorder interaction over the whole active group, and an overlay that
  * sits on top of rows being dragged fights it (pointer capture, scroll lock,
  * focus). A route also survives a refresh, is linkable, and matches the two
- * existing precedents (SportivEditPage, CompetitieEditPage) down to the sticky
- * `.pa` action bar — so nothing new has to be learned to use it.
+ * existing precedents (SportivEditPage, CompetitieEditPage).
  *
  * Writes go to the custom admin API, not the content-manager: the content type
  * is hidden there. Validation is enforced server-side; the checks below are a
  * courtesy, and any 400 the server returns is shown verbatim.
+ *
+ * Built on the shared admin UI (src/admin/ui): usePageForm + the floating
+ * SaveBar + UnsavedGuard, toasts for feedback. Dates on DateRangeInput (native
+ * date inputs, plain YYYY-MM-DD strings, so no timezone shift), times on
+ * TimeInput.
  */
 
 interface FormState {
@@ -65,19 +82,30 @@ const EMPTY: FormState = {
   dismissDays: 7,
 };
 
+const FORMAT_OPTIONS = [
+  { value: 'card', label: 'Card în colț' },
+  { value: 'modal', label: 'Modal în centru' },
+] as const;
+const STATE_OPTIONS = [
+  { value: 'on', label: 'Activ' },
+  { value: 'off', label: 'Inactiv' },
+] as const;
+
+// Page-local styles, tokens only. No backticks inside.
+const ANUNT_EDIT_CSS = `
+.ui-root .anun-narrow{max-width:760px;width:100%}
+.ui-root .anun-slug{font-family:var(--ui-font-mono);font-size:12px;font-weight:700;color:var(--theme-text)}
+.ui-root .anun-ro{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.ui-root .anun-days{max-width:140px}
+`;
+
 // --- date/time <-> ISO -----------------------------------------------------
 // FormState keeps a plain YYYY-MM-DD plus hour/minute; the API wants one ISO
-// datetime. SafeDatePicker hands back a Date anchored at local noon, so only the
-// calendar parts are ever read from it.
+// datetime in the browser's local time.
 
-const dateFromYMD = (s: string): Date | undefined => {
-  if (!s) return undefined;
-  const [y, m, d] = s.split('-').map(Number);
-  if (!y || !m || !d) return undefined;
-  return new Date(y, m - 1, d);
-};
-const dateToYMD = (d: Date): string =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const dateToYMD = (d: Date): string => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const hhmm = (h: number, m: number) => `${pad2(h)}:${pad2(m)}`;
 
 function toIso(ymd: string, hour: number, minute: number): string | null {
   const [y, m, d] = ymd.split('-').map(Number);
@@ -92,7 +120,7 @@ function splitIso(iso: string | null | undefined, fallbackHour: number, fallback
   return { date: dateToYMD(d), hour: d.getHours(), minute: d.getMinutes() };
 }
 
-/** "reapare după 7 zile" / "nu mai reapare" — shown live under the field. */
+/** "reapare după 7 zile" / "nu mai reapare", shown live under the field. */
 function dismissHint(days: number): string {
   if (!Number.isFinite(days) || days < 0) return '';
   if (days === 0) return 'Nu mai reapare: odată închis de un vizitator, nu îl mai vede niciodată.';
@@ -100,30 +128,46 @@ function dismissHint(days: number): string {
   return `Reapare după ${days} zile de la momentul în care vizitatorul l-a închis.`;
 }
 
+type Problem = { field: 'title' | 'message' | 'dates' | 'days'; text: string };
+
 /** Local mirror of the server rules, so the obvious mistakes never round-trip. */
-function localValidation(f: FormState): string | null {
-  if (!f.title.trim()) return 'Titlul anunțului este obligatoriu.';
-  if (!f.message.trim()) return 'Mesajul anunțului este obligatoriu.';
+function localValidation(f: FormState): Problem | null {
+  if (!f.title.trim()) return { field: 'title', text: 'Titlul anunțului este obligatoriu.' };
+  if (!f.message.trim()) return { field: 'message', text: 'Mesajul anunțului este obligatoriu.' };
   const start = toIso(f.startDate, f.startHour, f.startMinute);
   const end = toIso(f.endDate, f.endHour, f.endMinute);
-  if (!start || !end) return 'Un anunț are nevoie de o dată de început și una de final.';
-  if (Date.parse(end) <= Date.parse(start)) return 'Data de final trebuie să fie după data de început.';
+  if (!start || !end) return { field: 'dates', text: 'Un anunț are nevoie de o dată de început și una de final.' };
+  if (Date.parse(end) <= Date.parse(start)) return { field: 'dates', text: 'Data de final trebuie să fie după data de început.' };
   if (!Number.isInteger(f.dismissDays) || f.dismissDays < 0 || f.dismissDays > 365) {
-    return 'Numărul de zile trebuie să fie între 0 și 365.';
+    return { field: 'days', text: 'Numărul de zile trebuie să fie între 0 și 365.' };
   }
   return null;
 }
 
-const ANUNT_EDIT_CSS = `
-.eduf .anun-dt{display:flex;gap:10px;align-items:flex-end}
-.eduf .anun-dt > .anun-dt-date{flex:1 1 190px;min-width:0}
-.eduf .anun-dt > .anun-dt-time{flex:0 0 130px}
-.eduf .anun-seg{display:inline-flex;border:1px solid var(--fieldborder);border-radius:var(--r);overflow:hidden}
-.eduf .anun-seg button{font-family:inherit;font-size:12.5px;padding:7px 18px;border:none;background:#fff;color:var(--muted);cursor:pointer;border-right:1px solid var(--fieldborder)}
-.eduf .anun-seg button:last-child{border-right:none}
-.eduf .anun-seg button.is-on{background:var(--accent);color:#fff;font-weight:700}
-.eduf .anun-slug{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
-`;
+function toForm(a: Anunt): FormState {
+  const s = splitIso(a.startAt, EMPTY.startHour, EMPTY.startMinute);
+  const e = splitIso(a.endAt, EMPTY.endHour, EMPTY.endMinute);
+  return {
+    title: a.title ?? '',
+    eyebrow: a.eyebrow ?? '',
+    message: a.message ?? '',
+    format: a.format === 'modal' ? 'modal' : 'card',
+    ctaLabel: a.ctaLabel ?? '',
+    ctaUrl: a.ctaUrl ?? '',
+    startDate: s.date,
+    startHour: s.hour,
+    startMinute: s.minute,
+    endDate: e.date,
+    endHour: e.hour,
+    endMinute: e.minute,
+    isActive: a.isActive !== false,
+    dismissDays: typeof a.dismissDays === 'number' ? a.dismissDays : 7,
+  };
+}
+
+interface Loaded {
+  rows: Anunt[];
+}
 
 export default function AnuntEditPage() {
   const { get, post, put, del } = useFetchClient();
@@ -133,67 +177,63 @@ export default function AnuntEditPage() {
   const id = params.get('id') || '';
   const isNew = !id;
 
-  const [form, setForm] = React.useState<FormState>(EMPTY);
+  const save = useSaveState();
+  const [loaded, setLoaded] = React.useState<FormState>(EMPTY);
+  const form = usePageForm<FormState>(loaded, save);
+  const v = form.value;
+  const upd = form.patch;
+
   const [loading, setLoading] = React.useState(!isNew);
-  const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState(false);
-  const [msg, setMsg] = React.useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  const [problem, setProblem] = React.useState<Problem | null>(null);
   const [slug, setSlug] = React.useState('');
   const [takenSlugs, setTakenSlugs] = React.useState<string[]>([]);
-
-  const upd = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
+  const loadedFor = React.useRef<string | null>(null);
 
   /**
-   * There is no GET /anunturi/:id — the admin API exposes one list route that
+   * There is no GET /anunturi/:id: the admin API exposes one list route that
    * already carries every field, so the editor reads the list and
    * picks its row out of it. The same response supplies the slugs already in
    * use, which is what keeps an auto-generated slug unique on create.
    */
-  const load = React.useCallback(() => {
-    setLoading(true);
-    setError(false);
-    get(ANUNT_API)
-      .then((res: any) => {
-        const list: Anunt[] = res?.data?.data ?? res?.data ?? [];
-        const rows = Array.isArray(list) ? list : [];
-        setTakenSlugs(rows.map((r) => r.slug ?? '').filter(Boolean));
-        if (isNew) {
-          setForm(EMPTY);
-          setSlug('');
-          return;
-        }
-        const a = rows.find((r) => r.documentId === id);
-        if (!a) {
-          setError(true);
-          return;
-        }
-        const s = splitIso(a.startAt, EMPTY.startHour, EMPTY.startMinute);
-        const e = splitIso(a.endAt, EMPTY.endHour, EMPTY.endMinute);
-        setSlug(a.slug ?? '');
-        setForm({
-          title: a.title ?? '',
-          eyebrow: a.eyebrow ?? '',
-          message: a.message ?? '',
-          format: a.format === 'modal' ? 'modal' : 'card',
-          ctaLabel: a.ctaLabel ?? '',
-          ctaUrl: a.ctaUrl ?? '',
-          startDate: s.date,
-          startHour: s.hour,
-          startMinute: s.minute,
-          endDate: e.date,
-          endHour: e.hour,
-          endMinute: e.minute,
-          isActive: a.isActive !== false,
-          dismissDays: typeof a.dismissDays === 'number' ? a.dismissDays : 7,
-        });
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, [get, id, isNew]);
+  const fetchList = React.useCallback(async (): Promise<Loaded> => {
+    const res: any = await get(ANUNT_API);
+    const list: Anunt[] = res?.data?.data ?? res?.data ?? [];
+    return { rows: Array.isArray(list) ? list : [] };
+  }, [get]);
+
+  /** Applies a fresh list to the page; false when the entry is not in it. */
+  const apply = React.useCallback((docId: string, { rows }: Loaded): boolean => {
+    setTakenSlugs(rows.map((r) => r.slug ?? '').filter(Boolean));
+    if (!docId) {
+      setLoaded(EMPTY);
+      setSlug('');
+      return true;
+    }
+    const a = rows.find((r) => r.documentId === docId);
+    if (!a) return false;
+    setSlug(a.slug ?? '');
+    setLoaded(toForm(a));
+    return true;
+  }, []);
 
   React.useEffect(() => {
-    load();
-  }, [load]);
+    if (loadedFor.current === id) return;
+    let off = false;
+    setLoading(true);
+    setError(false);
+    fetchList()
+      .then((list) => {
+        if (off) return;
+        if (apply(id, list)) loadedFor.current = id;
+        else setError(true);
+      })
+      .catch(() => !off && setError(true))
+      .finally(() => !off && setLoading(false));
+    return () => {
+      off = true;
+    };
+  }, [id, fetchList, apply]);
 
   /** Unique tracking id derived from the title; only ever computed on create. */
   const newSlug = (title: string): string => {
@@ -206,49 +246,64 @@ export default function AnuntEditPage() {
     return `${base}-${Date.now()}`;
   };
 
-  const save = async () => {
-    const problem = localValidation(form);
-    if (problem) {
-      setMsg({ kind: 'err', text: problem });
+  const onSave = () => {
+    const found = localValidation(v);
+    setProblem(found);
+    if (found) {
+      adminToast.error(found.text);
       return;
     }
-    setSaving(true);
-    setMsg(null);
 
     const body: Record<string, unknown> = {
-      title: form.title.trim(),
-      eyebrow: form.eyebrow.trim() || null,
-      message: form.message.trim(),
-      format: form.format,
-      ctaLabel: form.ctaLabel.trim() || null,
-      ctaUrl: form.ctaUrl.trim() || null,
-      startAt: toIso(form.startDate, form.startHour, form.startMinute),
-      endAt: toIso(form.endDate, form.endHour, form.endMinute),
-      isActive: form.isActive,
-      dismissDays: form.dismissDays,
+      title: v.title.trim(),
+      eyebrow: v.eyebrow.trim() || null,
+      message: v.message.trim(),
+      format: v.format,
+      ctaLabel: v.ctaLabel.trim() || null,
+      ctaUrl: v.ctaUrl.trim() || null,
+      startAt: toIso(v.startDate, v.startHour, v.startMinute),
+      endAt: toIso(v.endDate, v.endHour, v.endMinute),
+      isActive: v.isActive,
+      dismissDays: v.dismissDays,
     };
 
-    try {
-      if (isNew) {
-        // `slug` is the Umami tracking id and the uid field is required, so it
-        // is generated here rather than left to the content type's default.
-        const res: any = await post(ANUNT_API, { ...body, slug: newSlug(form.title) });
-        const created = res?.data?.data ?? res?.data;
-        setMsg({ kind: 'ok', text: 'Anunț creat.' });
-        if (created?.documentId) navigate(`${ANUNT_EDIT_TO}?id=${created.documentId}`, { replace: true });
-      } else {
-        // `slug` is deliberately NOT sent on update: it is the key the Umami
-        // stats are grouped by, and rewriting it would orphan everything the
-        // announcement has already collected.
-        await put(`${ANUNT_API}/${id}`, body);
-        setMsg({ kind: 'ok', text: 'Modificările au fost salvate.' });
-        load();
-      }
-    } catch (err) {
-      setMsg({ kind: 'err', text: anuntErrorMessage(err, 'Salvarea a eșuat. Verifică datele și încearcă din nou.') });
-    } finally {
-      setSaving(false);
-    }
+    let createdId: string | null = null;
+    void save
+      .run(async () => {
+        try {
+          if (isNew) {
+            // `slug` is the Umami tracking id and the uid field is required, so it
+            // is generated here rather than left to the content type's default.
+            const res: any = await post(ANUNT_API, { ...body, slug: newSlug(v.title) });
+            const created = res?.data?.data ?? res?.data;
+            if (created?.documentId) {
+              createdId = created.documentId as string;
+              const list = await fetchList().catch(() => null);
+              if (list && apply(createdId, list)) loadedFor.current = createdId;
+            }
+          } else {
+            // `slug` is deliberately NOT sent on update: it is the key the Umami
+            // stats are grouped by, and rewriting it would orphan everything the
+            // announcement has already collected.
+            await put(`${ANUNT_API}/${id}`, body);
+            const list = await fetchList().catch(() => null);
+            if (list) apply(id, list);
+          }
+        } catch (err) {
+          throw new Error(anuntErrorMessage(err, 'Salvarea a eșuat. Verifică datele și încearcă din nou.'));
+        }
+      })
+      .then((ok) => {
+        if (ok && createdId) {
+          releaseUnsavedGuards();
+          navigate(`${ANUNT_EDIT_TO}?id=${createdId}`, { replace: true });
+        }
+      });
+  };
+
+  const discard = () => {
+    setProblem(null);
+    form.reset();
   };
 
   // -- delete ----------------------------------------------------------------
@@ -262,6 +317,7 @@ export default function AnuntEditPage() {
     setDelError(null);
     try {
       await del(`${ANUNT_API}/${id}`);
+      releaseUnsavedGuards();
       navigate(ANUNTURI_TO);
     } catch (err) {
       setDelError(anuntErrorMessage(err, 'Ștergerea a eșuat.'));
@@ -269,280 +325,191 @@ export default function AnuntEditPage() {
     }
   };
 
-  const previewSlug = isNew ? slugifyRo(form.title) || '—' : slug || '—';
+  const previewSlug = (isNew ? slugifyRo(v.title) : slug) || '-';
+  const ready = !loading && !error;
+  const errFor = (field: Problem['field']) => (problem?.field === field ? problem.text : undefined);
+
+  const setTime = (which: 'start' | 'end') => (t: string | null) => {
+    const hm = t ? parseTimeText(t) : null;
+    if (!hm) return;
+    upd(which === 'start' ? { startHour: hm.hour, startMinute: hm.minute } : { endHour: hm.hour, endMinute: hm.minute });
+  };
 
   return (
-    // `pce` opts our custom "Salvează" button out of the global admin SaveBar tagger.
-    <div className="eduf pce">
-      <style>{EDU_CSS}</style>
+    <AdminPage>
       <style>{ANUNT_EDIT_CSS}</style>
-
-      <div className="win">
-        <div className="hd">
-          <div>
-            <h1>{isNew ? 'Anunț nou' : 'Editează anunțul'}</h1>
-            <p>{isNew ? 'Completează textul și fereastra de afișare.' : form.title || 'Anunț'}</p>
-          </div>
-          <div className="hd-right">
-            <button className="btn" type="button" onClick={() => navigate(ANUNTURI_TO)}>
-              Înapoi
-            </button>
-            {!isNew && (
-              <button
-                className="btn danger"
-                type="button"
+      <Window>
+        <PageHeader
+          back={{ to: ANUNTURI_TO, label: 'Anunțuri' }}
+          title={isNew ? 'Anunț nou' : 'Editează anunțul'}
+          subtitle={isNew ? 'Completează textul și fereastra de afișare.' : loaded.title || 'Anunț'}
+          actions={
+            ready && !isNew ? (
+              <Button
+                variant="danger"
                 onClick={() => {
                   setDelError(null);
                   setConfirming(true);
                 }}
-                disabled={saving}
+                disabled={save.saving}
               >
                 Șterge
-              </button>
-            )}
-            <button className="btn pri" type="button" onClick={save} disabled={saving || loading}>
-              {saving ? 'Se salvează...' : 'Salvează'}
-            </button>
-          </div>
-        </div>
-
-        {msg && <div className={`msg ${msg.kind}`}>{msg.text}</div>}
+              </Button>
+            ) : undefined
+          }
+        />
 
         {loading ? (
-          <div className="empty">Se încarcă...</div>
+          <Loading />
         ) : error ? (
-          <div className="empty">Nu am putut încărca anunțul.</div>
+          <div className="ui-body">
+            <Notice tone="danger">Nu am putut încărca anunțul.</Notice>
+          </div>
         ) : (
-          <div className="body" style={{ maxWidth: 760 }}>
-            <div className="sec">
-              <div className="sh">Text</div>
-              <div className="sb">
-                <div className="fld">
-                  <label htmlFor="anun-eyebrow">Etichetă mică (deasupra titlului)</label>
-                  <input
-                    id="anun-eyebrow"
-                    value={form.eyebrow}
-                    onChange={(e) => upd({ eyebrow: e.target.value })}
-                    placeholder="ex. Înscrieri deschise"
-                  />
-                  <div className="hint">Apare cu roșu-cărămiziu, deasupra titlului. Opțional.</div>
-                </div>
-                <div className="fld">
-                  <label htmlFor="anun-title">Titlu</label>
-                  <input
-                    id="anun-title"
-                    value={form.title}
-                    onChange={(e) => upd({ title: e.target.value })}
-                    placeholder="ex. Sezonul 2026–2027"
-                  />
-                </div>
-                <div className="fld">
-                  <label htmlFor="anun-message">Mesaj</label>
+          <div className="ui-body">
+            <div className="anun-narrow ui-stack">
+              <Section title="Text">
+                <div className="ui-stack">
+                  <Field label="Etichetă mică (deasupra titlului)" hint="Apare cu roșu-cărămiziu, deasupra titlului. Opțional.">
+                    <Input value={v.eyebrow} onChange={(e) => upd({ eyebrow: e.target.value })} placeholder="ex. Înscrieri deschise" />
+                  </Field>
+                  <Field label="Titlu" required error={errFor('title')}>
+                    <Input value={v.title} onChange={(e) => upd({ title: e.target.value })} placeholder="ex. Sezonul 2026–2027" />
+                  </Field>
                   {/*
                     Plain textarea on purpose. A MarkdownEditor exists in this
                     bundle, but `message` is a plain text field that the site
-                    renders as a paragraph — markdown typed here would reach the
+                    renders as a paragraph: markdown typed here would reach the
                     visitor as literal `**asterisks**`.
                   */}
-                  <textarea
-                    id="anun-message"
-                    rows={4}
-                    value={form.message}
-                    onChange={(e) => upd({ message: e.target.value })}
-                    placeholder="Două-trei rânduri. Text simplu, fără formatare."
-                  />
-                  <div className="hint">Text simplu: cardul și modalul îl afișează ca un singur paragraf.</div>
+                  <Field
+                    label="Mesaj"
+                    required
+                    error={errFor('message')}
+                    hint="Text simplu: cardul și modalul îl afișează ca un singur paragraf."
+                  >
+                    <Textarea
+                      rows={4}
+                      value={v.message}
+                      onChange={(e) => upd({ message: e.target.value })}
+                      placeholder="Două-trei rânduri. Text simplu, fără formatare."
+                    />
+                  </Field>
+                  <div className="ui-field">
+                    <span className="ui-label">Id de urmărire (Umami)</span>
+                    <div className="anun-ro">
+                      <code className="anun-slug">{previewSlug}</code>
+                      <span className="ui-hint">
+                        {isNew
+                          ? 'se generează automat din titlu la salvare'
+                          : 'fixat la creare, statisticile sunt grupate după el'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="fld">
-                  <label>Id de urmărire (Umami)</label>
-                  <div className="ro">
-                    <b className="anun-slug">{previewSlug}</b>
-                    <span>
-                      {isNew
-                        ? 'se generează automat din titlu la salvare'
-                        : 'fixat la creare — statisticile sunt grupate după el'}
+              </Section>
+
+              <Section title="Afișare">
+                <div className="ui-stack">
+                  <div className="ui-field">
+                    <span className="ui-label" id="anun-format-label">
+                      Format
                     </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="sec">
-              <div className="sh">Afișare</div>
-              <div className="sb">
-                <div className="fld">
-                  <label>Format</label>
-                  <div className="anun-seg">
-                    <button
-                      type="button"
-                      className={form.format === 'card' ? 'is-on' : ''}
-                      onClick={() => upd({ format: 'card' })}
-                    >
-                      Card în colț
-                    </button>
-                    <button
-                      type="button"
-                      className={form.format === 'modal' ? 'is-on' : ''}
-                      onClick={() => upd({ format: 'modal' })}
-                    >
-                      Modal în centru
-                    </button>
-                  </div>
-                  <div className="hint">
-                    {form.format === 'card'
-                      ? 'Card discret jos-dreapta. Pentru mesaje obișnuite.'
-                      : 'Blochează pagina până la o acțiune. De folosit rar, pentru anunțuri importante.'}
-                  </div>
-                </div>
-
-                <div className="row">
-                  <div className="fld">
-                    <label htmlFor="anun-cta-label">Text buton</label>
-                    <input
-                      id="anun-cta-label"
-                      value={form.ctaLabel}
-                      onChange={(e) => upd({ ctaLabel: e.target.value })}
-                      placeholder="ex. Vezi detalii"
+                    <SegmentedControl
+                      aria-labelledby="anun-format-label"
+                      options={[...FORMAT_OPTIONS]}
+                      value={v.format}
+                      onChange={(format) => upd({ format })}
                     />
-                  </div>
-                  <div className="fld">
-                    <label htmlFor="anun-cta-url">Link buton</label>
-                    <input
-                      id="anun-cta-url"
-                      value={form.ctaUrl}
-                      onChange={(e) => upd({ ctaUrl: e.target.value })}
-                      placeholder="/inscriere"
-                    />
-                  </div>
-                </div>
-                <div className="hint">Lasă ambele goale dacă anunțul nu trimite nicăieri.</div>
-              </div>
-            </div>
-
-            <div className="sec">
-              <div className="sh">Programare</div>
-              <div className="sb">
-                <div className="fld">
-                  <label>Începe</label>
-                  <div className="anun-dt">
-                    <div className="anun-dt-date">
-                      <SafeDatePicker
-                        value={dateFromYMD(form.startDate)}
-                        maxDate={dateFromYMD(form.endDate)}
-                        onChange={(d) => {
-                          const next = d ? dateToYMD(d) : '';
-                          const endInvalid = !!next && !!form.endDate && form.endDate < next;
-                          upd(endInvalid ? { startDate: next, endDate: next } : { startDate: next });
-                        }}
-                        onClear={() => upd({ startDate: '' })}
-                        clearLabel="Șterge"
-                        placeholder="zz/ll/aaaa"
-                      />
-                    </div>
-                    <div className="anun-dt-time">
-                      <TimePicker
-                        id="anun-start-time"
-                        hour={form.startHour}
-                        minute={form.startMinute}
-                        onChange={(h, m) => upd({ startHour: h, startMinute: m })}
-                      />
+                    <div className="ui-hint">
+                      {v.format === 'card'
+                        ? 'Card discret jos-dreapta. Pentru mesaje obișnuite.'
+                        : 'Blochează pagina până la o acțiune. De folosit rar, pentru anunțuri importante.'}
                     </div>
                   </div>
-                </div>
 
-                <div className="fld">
-                  <label>Se încheie</label>
-                  <div className="anun-dt">
-                    <div className="anun-dt-date">
-                      <SafeDatePicker
-                        value={dateFromYMD(form.endDate)}
-                        minDate={dateFromYMD(form.startDate)}
-                        onChange={(d) => upd({ endDate: d ? dateToYMD(d) : '' })}
-                        onClear={() => upd({ endDate: '' })}
-                        clearLabel="Șterge"
-                        placeholder="zz/ll/aaaa"
-                      />
-                    </div>
-                    <div className="anun-dt-time">
-                      <TimePicker
-                        id="anun-end-time"
-                        hour={form.endHour}
-                        minute={form.endMinute}
-                        onChange={(h, m) => upd({ endHour: h, endMinute: m })}
-                      />
-                    </div>
-                  </div>
-                  <div className="hint">Finalul trebuie să fie după început.</div>
-                </div>
-
-                <div className="fld">
-                  <label>Stare</label>
-                  {/* Segmented control, same as the Format picker above: both
-                      states stay visible, so there is nothing to infer from a
-                      tick. */}
-                  <div className="anun-seg" role="group" aria-label="Stare">
-                    <button
-                      type="button"
-                      className={form.isActive ? 'is-on' : ''}
-                      aria-pressed={form.isActive}
-                      onClick={() => upd({ isActive: true })}
-                    >
-                      Activ
-                    </button>
-                    <button
-                      type="button"
-                      className={!form.isActive ? 'is-on' : ''}
-                      aria-pressed={!form.isActive}
-                      onClick={() => upd({ isActive: false })}
-                    >
-                      Inactiv
-                    </button>
-                  </div>
-                  <div className="hint">
-                    {form.isActive
-                      ? 'Se afișează pe site între datele de mai sus. Dacă mai multe anunțuri sunt active în același timp, apare cel aflat mai sus în listă.'
-                      : 'Nu se afișează pe site, dar rămâne în listă cu statisticile lui. Nu trebuie șters ca să-l oprești.'}
+                  <div>
+                    <FieldRow>
+                      <Field label="Text buton">
+                        <Input value={v.ctaLabel} onChange={(e) => upd({ ctaLabel: e.target.value })} placeholder="ex. Vezi detalii" />
+                      </Field>
+                      <Field label="Link buton">
+                        <Input value={v.ctaUrl} onChange={(e) => upd({ ctaUrl: e.target.value })} placeholder="/inscriere" />
+                      </Field>
+                    </FieldRow>
+                    <div className="ui-hint">Lasă ambele goale dacă anunțul nu trimite nicăieri.</div>
                   </div>
                 </div>
+              </Section>
 
-                <div className="fld">
-                  <label htmlFor="anun-dismiss">Zile până reapare după ce e închis</label>
-                  <input
-                    id="anun-dismiss"
-                    inputMode="numeric"
-                    style={{ maxWidth: 120 }}
-                    value={String(form.dismissDays)}
-                    onChange={(e) => {
-                      const v = e.target.value.replace(/[^0-9]/g, '');
-                      upd({ dismissDays: v === '' ? 0 : Math.min(365, parseInt(v, 10)) });
-                    }}
+              <Section title="Programare">
+                <div className="ui-stack">
+                  <DateRangeInput
+                    startLabel="Începe"
+                    endLabel="Se încheie"
+                    required
+                    value={{ start: v.startDate || null, end: v.endDate || null }}
+                    onChange={(r) => upd({ startDate: r.start ?? '', endDate: r.end ?? '' })}
+                    error={errFor('dates')}
+                    hint="Finalul trebuie să fie după început."
                   />
-                  <div className="hint">{dismissHint(form.dismissDays)} Maxim 365. Scrie 0 pentru „niciodată".</div>
+                  <FieldRow>
+                    <Field label="Ora de început">
+                      <TimeInput value={hhmm(v.startHour, v.startMinute)} allowEmpty={false} onChange={setTime('start')} />
+                    </Field>
+                    <Field label="Ora de final">
+                      <TimeInput value={hhmm(v.endHour, v.endMinute)} allowEmpty={false} onChange={setTime('end')} />
+                    </Field>
+                  </FieldRow>
+
+                  <div className="ui-field">
+                    <span className="ui-label" id="anun-state-label">
+                      Stare
+                    </span>
+                    {/* Segmented control, same as the Format picker above: both
+                        states stay visible, so there is nothing to infer from a
+                        tick. */}
+                    <SegmentedControl
+                      aria-labelledby="anun-state-label"
+                      options={[...STATE_OPTIONS]}
+                      value={v.isActive ? 'on' : 'off'}
+                      onChange={(s) => upd({ isActive: s === 'on' })}
+                    />
+                    <div className="ui-hint">
+                      {v.isActive
+                        ? 'Se afișează pe site între datele de mai sus. Dacă mai multe anunțuri sunt active în același timp, apare cel aflat mai sus în listă.'
+                        : 'Nu se afișează pe site, dar rămâne în listă cu statisticile lui. Nu trebuie șters ca să-l oprești.'}
+                    </div>
+                  </div>
+
+                  <Field
+                    label="Zile până reapare după ce e închis"
+                    error={errFor('days')}
+                    hint={`${dismissHint(v.dismissDays)} Maxim 365. Scrie 0 pentru „niciodată".`}
+                  >
+                    <NumberInput
+                      className="anun-days"
+                      value={v.dismissDays}
+                      min={0}
+                      max={365}
+                      label="zilele"
+                      onChange={(n) => upd({ dismissDays: n ?? 0 })}
+                    />
+                  </Field>
                 </div>
-              </div>
+              </Section>
             </div>
-
           </div>
         )}
 
-        {!loading && !error && (
-          <div className="pa">
-            <button className="btn" type="button" onClick={() => navigate(ANUNTURI_TO)}>
-              Înapoi
-            </button>
-            <div className="grow" />
-            <button className="btn pri" type="button" onClick={save} disabled={saving}>
-              {saving ? 'Se salvează...' : 'Salvează'}
-            </button>
-          </div>
-        )}
-      </div>
+        {ready && <SaveBar {...save.bar} onSave={onSave} onDiscard={discard} />}
+      </Window>
 
       <ConfirmDialog
         open={confirming}
         title="Ștergi anunțul?"
-        message={`„${form.title || 'Anunțul'}" se șterge definitiv. Acțiunea nu poate fi anulată.`}
-        detail="Dacă vrei doar să nu mai apară pe site, treci-l pe Inactiv — rămâne în listă cu statisticile lui."
+        message={`„${loaded.title || 'Anunțul'}" se șterge definitiv. Acțiunea nu poate fi anulată.`}
+        detail="Dacă vrei doar să nu mai apară pe site, treci-l pe Inactiv: rămâne în listă cu statisticile lui."
         busy={deleting}
         error={delError}
         onCancel={() => {
@@ -552,6 +519,7 @@ export default function AnuntEditPage() {
         }}
         onConfirm={confirmDelete}
       />
-    </div>
+      <UnsavedGuard when={form.dirty} />
+    </AdminPage>
   );
 }
