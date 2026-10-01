@@ -15,9 +15,17 @@ Decisions (user, companion screens 101-102):
 - [ ] 2b. Move edit pages: SportivEdit, CompetitieEdit, AnuntEdit, HomepageEdit, ProgramEdit, VoluntariatEdit (Navigation done in phase 1)
   - [x] SportivEdit, CompetitieEdit, AnuntEdit + ParticipantsEditor / QuickCreateSportspersonModal (2026-10-01, branch p2-edit1)
 - [ ] 2c. Move the rest: SubmissionTable (Înscrieri, Voluntari), Mesaje + FormResults (shared InboxLayout), Formulare, FormEditor, Dashboard, calendar editor (ProgramOverviewEditor, onto the `--theme-cat-*` tokens), MobileNav/BlocksToolbarExtra theme hook (SaveBar done, see below)
+  - [x] SubmissionTable (Înscrieri, Voluntari) + SheetsDialog (2026-10-01, p2-inbox)
+  - [x] Mesaje + FormResults (Parteneri) on InboxLayout (2026-10-01, p2-inbox)
 - [ ] 3. Meniu site page switches (needs the hidden-page decisions) + frontend support
 
 Inventory: docs/admin-ui/INVENTORY.md
+
+### Phase 2c inbox/table result (2026-10-01)
+- SubmissionTable (Înscrieri, Voluntari): .insp gone. AdminPage/Window/PageHeader, .ui-table for the compact list and the spreadsheet (page-local `.sbt-*` token CSS for selection, sticky header, frozen column, detail panel), Popover menus (quick filters, Alte filtre, Coloane, Export), Chip, Checkbox, useDragReorder for the column order, SegmentedControl, Pager, Modal (move whole season), ConfirmDialog. Status colours stay config-driven (`StatusDef` color/soft/border, now --theme-* tokens) and render through StatusBadge `custom`. TableApi: `tagClassOf` -> `statusOf`; detail panels use the exported `DetailHeader` / `DetailBody` / `DetailField` / `DetailFooter`. Inline edits autosave + `toastAutosaved()`; the .insp-msg banner became toasts.
+- SheetsDialog: on Modal + Field/Input/Select/Button/Notice, history on .ui-table; action results are toasts, a failed status load is a Notice.
+- Mesaje and FormResults (Parteneri) on InboxLayout; shared row / reader head / date helpers + CSS in `dashboard/inboxShared.tsx`. Reason chips on StatusBadge: six groups on tones, parteneriat on the burgundy calendar token pair, feedback on page variables backed by the blue palette (light 600/50/100, dark 200/900/800). Status + note autosave with `toastAutosaved()`.
+- Checker: 993 -> 600; SubmissionTable, SheetsDialog, Mesaje, FormResults, Înscrieri, Voluntari, ParteneriRezultate at 0. Admin tsc 41 -> 36 (the five SubmissionTable errors).
 
 ### Phase 2a result (2026-09-30)
 All five list pages (Sportivi, Competiții, Anunțuri, Sponsori, Membri echipă) on
@@ -82,7 +90,7 @@ Reference page with every component in every state (light, dark, theme preview s
 - `Tabs` {items: {id,label,count?,disabled?}[], value, onChange, label?, panelId?}: arrow keys. `Pager` {page, pageCount, onChange, total?, pageSize?}.
 - `DataTable<T>` {columns: {key, header, render?, value?, sortable?, searchable?, align?, width?}[], rows, getRowKey, onRowClick?, rowLabel?, loading?, empty?, noMatches?, search?, searchPlaceholder?, toolbar?, pageSize?=25 (0 = off), initialSort?}.
 - `ImagePicker` {open, onClose, onPick, multiple?, title?, allowUpload?=true}: dashboard MediaModal query (GET /upload/files) + POST /upload, on Modal.
-- `InboxLayout<T>` {tabs?, activeTab?, onTabChange?, toolbar?, bulkBar?, notice?, items, getKey, renderItem, groupBy?, selectedKey, onSelect, loading?, error?, empty?, page, pageCount, total?, pageSize?, onPageChange, reader, readerEmpty?}. Built only; Mesaje and FormResults move onto it in 2c.
+- `InboxLayout<T>` {tabs?, activeTab?, onTabChange?, toolbar?, bulkBar?, notice?, items, getKey, renderItem, groupBy?, selectedKey, onSelect, loading?, error?, empty?, page, pageCount, total?, pageSize?, onPageChange, reader, readerEmpty?}. Used by Mesaje and FormResults (2c).
 - Proved on NavigationPage (Meniu site): PageHeader, TwoColumn, Section, Field/Textarea, Button, StatusBadge, Notice, SaveBar + useSaveState + UnsavedGuard, ImagePicker.
 
 ### Token checker
