@@ -582,17 +582,20 @@ export const motion = {
 } as const;
 
 /**
- * Stacking order for body-portalled layers (Drawer, Modal, the Toast
- * viewport). Strapi's own chrome sits above the page content without using
- * this scale: the floating save bar at 9999, the shared popover at 99990,
- * and the mobile top bar (MobileNav) at 99998 (burger) / 99999 (panel). The
- * three entries below must outrank all of that, so a Drawer or a Modal (and
- * a ConfirmDialog opened from either) on a phone never ends up under the
- * mobile top bar, and a Toast always lands above a Modal.
+ * Stacking order for body-portalled layers (Drawer, Modal, the shared Popover,
+ * the Toast viewport). Strapi's own chrome sits above the page content
+ * without using this scale: the floating save bar at 9999 and the mobile top
+ * bar (MobileNav) at 99998 (burger) / 99999 (panel). The entries below must
+ * outrank all of that, so a Drawer or a Modal (and a ConfirmDialog opened
+ * from either) on a phone never ends up under the mobile top bar, a Popover
+ * opened from inside a Drawer or Modal (TimeInput, SearchableSelect,
+ * TagsInput, HelpTip, Popover) still renders above it, and a Toast always
+ * lands above a Modal.
  */
 export const zIndex = {
   drawer: 100100,
   modal: 100200,
+  popover: 100250,
   toast: 100300,
 } as const;
 

@@ -399,7 +399,7 @@ ${R} .ui-ofc-span2{grid-column:1 / -1}
 .ui-root.ui-tipbtn:focus-visible{outline:2px solid var(--theme-focus);outline-offset:1px}
 
 /* floating layer (Popover): lists, time spinners, tooltips */
-.ui-root.ui-pop{position:fixed;z-index:99990;background:var(--theme-surface);color:var(--theme-text);border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);box-shadow:var(--theme-shadow-md)}
+.ui-root.ui-pop{position:fixed;z-index:var(--ui-z-popover,99990);background:var(--theme-surface);color:var(--theme-text);border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);box-shadow:var(--theme-shadow-md)}
 .ui-root.ui-pop.ui-tip{max-width:280px;min-width:160px;padding:8px 12px;background:var(--theme-text);color:var(--theme-surface);border-color:var(--theme-text);font-size:12px;font-weight:500;line-height:1.45}
 .ui-root.ui-pop.ui-list{max-height:280px;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:1px}
 ${R} .ui-opt{display:flex;flex-direction:column;gap:1px;padding:7px 9px;border-radius:var(--ui-radius-sm);font-size:var(--ui-fs-body);color:var(--theme-text);cursor:pointer;user-select:none}
