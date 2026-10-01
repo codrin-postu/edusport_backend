@@ -9,6 +9,7 @@ import { registerEdusportMenu } from './dashboard/menu';
 import { mountEdusportShell, tagShellParent, SHELL_CSS } from './dashboard/EdusportShell';
 import { applyLoginBranding } from './dashboard/loginBranding';
 import { ensureAdminUi } from './ui/styles';
+import { PALETTE } from './ui/tokens';
 import { mountToastViewport } from './ui/Toast';
 import { registerNativeFormBridge } from './nativeFormBridge';
 import { startLegacyRedirects } from './lib/legacyRedirects';
@@ -122,7 +123,7 @@ const MOBILE_OVERRIDES_CSS = `
     max-height: none !important;
     overflow: visible !important;
     border-right: none !important;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-bottom: 1px solid color-mix(in srgb, ${PALETTE.grey[1000]} 8%, transparent) !important;
   }
   [${SUBNAV_PARENT_DATA_ATTR}] {
     flex-direction: column !important;

@@ -24,7 +24,7 @@ import {
   adminToast,
 } from '../ui';
 import { usePageForm } from '../lib';
-import { LEVEL_OPTIONS } from './edusportUi';
+import { LEVEL_OPTIONS } from './constants';
 import { COMPETITII_TO, COMPETITIE_EDIT_TO } from './menu';
 
 /**

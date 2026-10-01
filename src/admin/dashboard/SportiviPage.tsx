@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
-import { yearOf } from './edusportUi';
+import { yearOf } from './constants';
 import { SPORTIV_EDIT_TO } from './menu';
 import { ConfirmDialog } from '../ConfirmDialog';
 import {

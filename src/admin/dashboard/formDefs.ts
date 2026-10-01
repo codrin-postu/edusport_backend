@@ -26,7 +26,7 @@ export interface AdminFormDef {
   name: string;
   initials: string;
   /** Formulare tile colour: a theme tile pair (--theme-tile-<name> + -fg). */
-  color: TileColor;
+  tileColor: TileColor;
   questions: number;
   mode: 'Tabel' | 'Inbox';
   desc: string;
@@ -34,10 +34,10 @@ export interface AdminFormDef {
   resultsTo?: string;
   resultsLabel?: string;
   countSource: FormCountSource;
-  /** Dashboard feed tile: single initial + colour (kept separate from `color`
+  /** Dashboard feed tile: single initial + colour (kept separate from `tileColor`
       so the existing feed visuals stay as they were). */
   feedTile: string;
-  feedColor: TileColor;
+  feedTileColor: TileColor;
   /** Terse destination name for the feed row, e.g. "3 noi · Voluntari". */
   feedName: string;
 }
@@ -47,7 +47,7 @@ export const FORM_DEFS: AdminFormDef[] = [
     key: 'inscriere',
     name: 'Înscriere cursuri',
     initials: 'ÎC',
-    color: 'blue',
+    tileColor: 'blue',
     questions: 13,
     mode: 'Tabel',
     desc: 'Cererile de înscriere trimise din pagina publică de cursuri.',
@@ -56,14 +56,14 @@ export const FORM_DEFS: AdminFormDef[] = [
     resultsLabel: 'Rezultate',
     countSource: { kind: 'formsApiFilters', api: '/api/forms/inscrieri' },
     feedTile: 'Î',
-    feedColor: 'green',
+    feedTileColor: 'green',
     feedName: 'Înscrieri',
   },
   {
     key: 'contact',
     name: 'Contact',
     initials: 'CT',
-    color: 'teal',
+    tileColor: 'teal',
     questions: 4,
     mode: 'Inbox',
     desc: 'Mesajele trimise din formularul de contact.',
@@ -76,14 +76,14 @@ export const FORM_DEFS: AdminFormDef[] = [
       nouParams: { 'filters[triageStatus][$eq]': 'new' },
     },
     feedTile: 'M',
-    feedColor: 'blue',
+    feedTileColor: 'blue',
     feedName: 'Mesaje',
   },
   {
     key: 'voluntariat',
     name: 'Voluntariat',
     initials: 'VO',
-    color: 'green',
+    tileColor: 'green',
     questions: 19,
     mode: 'Tabel',
     desc: 'Cererile de voluntariat trimise din pagina publică de voluntariat.',
@@ -92,14 +92,14 @@ export const FORM_DEFS: AdminFormDef[] = [
     resultsLabel: 'Rezultate',
     countSource: { kind: 'formsApi', api: '/api/forms/voluntari' },
     feedTile: 'V',
-    feedColor: 'green',
+    feedTileColor: 'green',
     feedName: 'Voluntari',
   },
   {
     key: 'parteneri',
     name: 'Parteneri',
     initials: 'PA',
-    color: 'amber',
+    tileColor: 'amber',
     questions: 7,
     mode: 'Inbox',
     desc: 'Propunerile de parteneriat trimise din pagina publică de parteneri.',
@@ -108,7 +108,7 @@ export const FORM_DEFS: AdminFormDef[] = [
     resultsLabel: 'Vezi mesajele',
     countSource: { kind: 'formsApi', api: '/api/forms/parteneri-rezultate' },
     feedTile: 'P',
-    feedColor: 'amber',
+    feedTileColor: 'amber',
     feedName: 'Parteneri',
   },
 ];

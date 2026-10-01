@@ -104,7 +104,7 @@ export default function FormularePage() {
           {FORM_DEFS.map((f) => (
             <li key={f.key} className={`fm-row${f.live ? '' : ' soon'}`}>
               {/* Tile colour is form config (formDefs.ts): a --theme-tile-* pair. */}
-              <span className="fm-tile" style={tileStyle(f.color)} aria-hidden="true">
+              <span className="fm-tile" style={tileStyle(f.tileColor)} aria-hidden="true">
                 {f.initials}
               </span>
 

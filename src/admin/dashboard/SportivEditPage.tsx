@@ -30,7 +30,7 @@ import {
   type GalleryImage,
 } from '../ui';
 import { usePageForm } from '../lib';
-import { PROGRAM_TYPES } from './edusportUi';
+import { PROGRAM_TYPES } from './constants';
 import { SPORTIVI_TO, SPORTIV_EDIT_TO } from './menu';
 import { SPORTIV_DELETE_COPY } from './SportiviPage';
 import { ConfirmDialog } from '../ConfirmDialog';

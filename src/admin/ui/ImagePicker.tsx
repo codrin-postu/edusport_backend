@@ -10,7 +10,7 @@ import { Loading } from './Spinner';
 /**
  * One image picker for every custom page, on the shared Modal.
  *
- * Same data as the dashboard MediaModal (src/admin/dashboard/MediaPicker.tsx):
+ * Same data as the former dashboard MediaModal (removed once unused):
  * GET /upload/files, newest first, 60 per load, `_q` search; optional upload
  * through POST /upload (as NavigationPage's picker did). `accept` picks the
  * file kind: 'image' (default), 'video' (replaces VideoEmbedEditor's own
@@ -120,7 +120,7 @@ function MediaPreview({ img }: { img: PickedImage }) {
   );
 }
 
-/** The media library query shared with the dashboard MediaModal. */
+/** The media library query (as the former dashboard MediaModal ran it). */
 function useImageLibrary(open: boolean, q: string, reload: number, accept: MediaAccept) {
   const { get } = useFetchClient();
   const [files, setFiles] = React.useState<UploadFile[]>([]);

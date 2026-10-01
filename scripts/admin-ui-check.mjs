@@ -13,7 +13,8 @@
  *
  * Two more rules, reported separately (not part of the total):
  *   - colour: in src/admin/ui (outside tokens.ts), src/admin/pages,
- *     src/admin/lib and the migrated pages (MIGRATED below), a colour property (color, background, border*,
+ *     src/admin/lib and the migrated files (MIGRATED below, incl. the moved
+ *     component-preview editors), a colour property (color, background, border*,
  *     outline, fill, stroke, box-shadow, ...) may only use var(--theme-*) or
  *     var(--palette-*), plus the component-local colour channels in
  *     COLOR_CHANNELS (each set only from --theme-* in styles.ts). Any other
@@ -32,7 +33,7 @@
  * Later phases migrate pages onto src/admin/ui and drive the total to zero;
  * src/admin/ui itself must stay at zero.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -43,26 +44,70 @@ const UI_DIR = join(ADMIN, 'ui') + sep;
 /** Custom pages and their data helpers: born on src/admin/ui, held to the colour rule like it. */
 const RULED_DIRS = [UI_DIR, join(ADMIN, 'pages') + sep, join(ADMIN, 'lib') + sep];
 
-/** Pages already on src/admin/ui: held to the colour rule like src/admin/ui itself. */
+/**
+ * Files already on src/admin/ui: held to the colour rule like src/admin/ui itself.
+ * Paths are relative to src/admin; the moved component-preview editors live
+ * outside it (../plugins/...) and are scanned for the colour rule only.
+ */
 const MIGRATED = [
-  'dashboard/NavigationPage.tsx',
-  'dashboard/SportiviPage.tsx',
-  'dashboard/CompetitiiPage.tsx',
+  // dashboard pages and their helpers
+  'dashboard/AnuntEditPage.tsx',
   'dashboard/AnunturiPage.tsx',
-  'dashboard/SponsoriPage.tsx',
-  'dashboard/MembriEchipaPage.tsx',
-  'dashboard/UiReferencePage.tsx',
+  'dashboard/CompetitieEditPage.tsx',
+  'dashboard/CompetitiiPage.tsx',
   'dashboard/DashboardPage.tsx',
-  'dashboard/FormularePage.tsx',
   'dashboard/FormEditorPage.tsx',
+  'dashboard/FormResultsPage.tsx',
+  'dashboard/FormularePage.tsx',
+  'dashboard/formDefs.ts',
+  'dashboard/HomepageEditPage.tsx',
+  'dashboard/inboxShared.tsx',
+  'dashboard/InscrieriPage.tsx',
+  'dashboard/MembriEchipaPage.tsx',
+  'dashboard/menu.tsx',
+  'dashboard/MesajePage.tsx',
+  'dashboard/NavigationPage.tsx',
+  'dashboard/ParteneriRezultatePage.tsx',
+  'dashboard/ProgramEditPage.tsx',
+  'dashboard/SheetsDialog.tsx',
+  'dashboard/SponsoriPage.tsx',
+  'dashboard/SportivEditPage.tsx',
+  'dashboard/SportiviPage.tsx',
+  'dashboard/SubmissionTable.tsx',
+  'dashboard/UiReferencePage.tsx',
+  'dashboard/VoluntariatEditPage.tsx',
+  'dashboard/VoluntariPage.tsx',
+  'dashboard/constants.ts',
+  'dashboard/EdusportShell.tsx',
+  // admin chrome
   'SaveBar.tsx',
+  'nativeFormBridge.tsx',
   'MobileNav.tsx',
   'BlocksToolbarExtra.tsx',
   'ConfirmDialog.tsx',
+  // component-preview editors moved onto the shared UI
+  '../plugins/component-preview/admin/src/ParticipantsEditor.tsx',
+  '../plugins/component-preview/admin/src/ProgramOverviewEditor.tsx',
+  '../plugins/component-preview/admin/src/QuickCreateSportspersonModal.tsx',
+  '../plugins/component-preview/admin/src/ScheduleGroupsEditor.tsx',
+  '../plugins/component-preview/admin/src/components/AddListButton.tsx',
+  '../plugins/component-preview/admin/src/components/InlineStringList.tsx',
 ].map((f) => join(ADMIN, ...f.split('/')));
 
-/** Component-local colour channels (set in styles.ts from --theme-* only, or by StatusBadge's custom colours). */
-const COLOR_CHANNELS = new Set(['--ui-badge-fg', '--ui-badge-bg', '--ui-badge-border', '--ui-notice-fg', '--ui-notice-bg', '--ui-notice-border', '--ui-toast-fg']);
+/**
+ * Component-local colour channels (set in styles.ts from --theme-* only, or by StatusBadge's custom colours),
+ * plus the calendar editor's --cal-c (ProgramOverviewEditor: set inline from --theme-cat-<name> only).
+ */
+const COLOR_CHANNELS = new Set([
+  '--ui-badge-fg',
+  '--ui-badge-bg',
+  '--ui-badge-border',
+  '--ui-notice-fg',
+  '--ui-notice-bg',
+  '--ui-notice-border',
+  '--ui-toast-fg',
+  '--cal-c',
+]);
 
 /**
  * Recorded at the end of phase 1 (before phase 1 the same scan gave 30 files,
@@ -206,7 +251,10 @@ if (uiHits.length) {
 }
 
 /* ---- colour rule and legacy names -------------------------------------- */
-const colourFiles = files.filter((f) => RULED_DIRS.some((d) => f.startsWith(d)) || MIGRATED.includes(f));
+const missing = MIGRATED.filter((f) => !existsSync(f));
+if (missing.length) console.log(`\nMIGRATED lists missing files: ${missing.map((f) => relative(ROOT, f)).join(', ')}`);
+const outside = MIGRATED.filter((f) => !f.startsWith(ADMIN + sep) && existsSync(f));
+const colourFiles = [...files.filter((f) => RULED_DIRS.some((d) => f.startsWith(d)) || MIGRATED.includes(f)), ...outside];
 const colourHits = colourFiles.flatMap((f) => scanColour(f).map((h) => ({ file: relative(ROOT, f).split(sep).join('/'), ...h })));
 const legacyHits = walk(ADMIN).flatMap((f) => scanLegacy(f).map((h) => ({ file: relative(ROOT, f).split(sep).join('/'), ...h })));
 console.log(

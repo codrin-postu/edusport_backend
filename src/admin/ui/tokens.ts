@@ -52,6 +52,8 @@
  *   brand   the website's colours (navy, burgundy, orange, silver, rust,
  *           cream), shared by the calendar categories; *OnDark are the
  *           lifted fills the dark theme uses for them
+ *   shell   the navy sidebar (EdusportShell), auth the login page
+ *           (loginBranding); both are fixed looks, outside the themes
  */
 export const PALETTE = {
   blue: {
@@ -167,6 +169,30 @@ export const PALETTE = {
     navyOnDark: '#536cb6',
     burgundyOnDark: '#93607a',
     rustOnDark: '#c93d39',
+  },
+  /** The navy EduSport sidebar (EdusportShell): text and states on brand navy. */
+  shell: {
+    raised: '#16234d',
+    text: '#c8cee0',
+    textSub: '#aeb6cd',
+    textHover: '#aab2c9',
+    textRail: '#9aa3bd',
+    muted: '#8b93ad',
+    group: '#727b97',
+    active: '#4d68ff',
+    exit: '#ff9c8a',
+    exitHover: '#ffb9ac',
+  },
+  /** The login page (loginBranding): ribbon gold, brand panel and form text. */
+  auth: {
+    gold: '#efb22b',
+    eyebrow: '#8ea0dc',
+    eyebrowOnLight: '#6b7688',
+    wordmark: '#eef2ff',
+    label: '#aeb9d8',
+    heading: '#111827',
+    text: '#374151',
+    inputLine: '#d7dbe6',
   },
 } as const;
 

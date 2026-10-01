@@ -415,7 +415,7 @@ export default function DashboardPage() {
     .map((def) => ({
       key: def.key,
       n: newCounts[def.key] ?? 0,
-      color: def.feedColor,
+      tileColor: def.feedTileColor,
       tile: def.feedTile,
       to: def.resultsTo ?? FORMULARE_TO,
       name: def.feedName,
@@ -457,7 +457,7 @@ export default function DashboardPage() {
           <div className="dash-feed">
             {feedItems.map((it) => (
               <button key={it.key} className="dash-frow" type="button" onClick={() => navigate(it.to)}>
-                <span className="dash-tile" style={tileStyle(it.color)}>{it.tile}</span>
+                <span className="dash-tile" style={tileStyle(it.tileColor)}>{it.tile}</span>
                 <span className="dash-frow-t">{it.name}: <span className="ui-num">{it.n}</span> {it.n === 1 ? 'mesaj nou' : 'mesaje noi'}</span>
                 <span className="dash-arr" aria-hidden="true">&rsaquo;</span>
               </button>
