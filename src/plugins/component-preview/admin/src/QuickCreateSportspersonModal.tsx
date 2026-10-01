@@ -1,19 +1,32 @@
 import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
+// Shared admin UI. Same vite bundle (src/admin/app.tsx imports this plugin by
+// relative path), so importing across the boundary is safe and type-checked.
 import {
-  Box,
-  Button,
-  DatePicker,
+  Modal,
+  Section,
   Field,
-  MultiSelect,
-  MultiSelectOption,
-  TextInput,
+  FieldRow,
+  Input,
   Textarea,
-  Toggle,
-  Typography,
-} from '@strapi/design-system';
-import { ExternalLink } from '@strapi/icons';
-import PluginModalShell, { FormRow, FormSection } from './PluginModalShell';
+  DateInput,
+  Switch,
+  TagsInput,
+  Button,
+  Notice,
+} from '../../../../admin/ui';
+
+/**
+ * "Adaugă sportiv nou" dialog, opened from ParticipantsEditor when the typed
+ * name matches no sportsperson. Creates the entry through the content-manager
+ * and publishes it, then hands { documentId, name } back to the caller.
+ *
+ * Built on the shared admin UI (src/admin/ui): Modal, Field + inputs, Switch for
+ * the public page flag, TagsInput (suggestions only) for the relations, and
+ * DateInput, which keeps "Activ din" as the plain YYYY-MM-DD the user picked
+ * (the old DS DatePicker sent toISOString() of local midnight, one day early
+ * east of UTC).
+ */
 
 // ---------------------------------------------------------------------------
 // Types
@@ -41,7 +54,10 @@ interface Props {
 // ---------------------------------------------------------------------------
 
 const DIACRITICS: [RegExp, string][] = [
-  [/[ăâ]/g, 'a'], [/î/g, 'i'], [/[șş]/g, 's'], [/[țţ]/g, 't'],
+  [/[ăâ]/g, 'a'],
+  [/î/g, 'i'],
+  [/[șş]/g, 's'],
+  [/[țţ]/g, 't'],
 ];
 
 function toSlug(name: string): string {
@@ -50,16 +66,9 @@ function toSlug(name: string): string {
   return s.replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
 }
 
-function toISODate(d: Date | undefined | null): string | undefined {
-  if (!d) return undefined;
-  return d.toISOString().slice(0, 10);
-}
-
 async function fetchEntries(get: Function, uid: string): Promise<RefEntry[]> {
   try {
-    const res = await get(
-      `/content-manager/collection-types/${uid}?page=1&pageSize=200&sort=name:ASC`,
-    );
+    const res = await get(`/content-manager/collection-types/${uid}?page=1&pageSize=200&sort=name:ASC`);
     return (res?.data?.results ?? []).map((e: any) => ({
       documentId: e.documentId ?? '',
       name: e.name ?? '',
@@ -69,16 +78,26 @@ async function fetchEntries(get: Function, uid: string): Promise<RefEntry[]> {
   }
 }
 
+/**
+ * TagsInput works on labels; relations need documentIds. Names map back to the
+ * first entry with that name (case-insensitive, like TagsInput's dedupe).
+ */
+function namesToIds(names: string[], pool: RefEntry[]): string[] {
+  const byName = new Map<string, string>();
+  for (const e of pool) {
+    const k = e.name.trim().toLocaleLowerCase('ro');
+    if (!byName.has(k)) byName.set(k, e.documentId);
+  }
+  return names.map((n) => byName.get(n.trim().toLocaleLowerCase('ro'))).filter((id): id is string => !!id);
+}
+
+const uniqueNames = (pool: RefEntry[]) => Array.from(new Set(pool.map((e) => e.name).filter(Boolean)));
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export default function QuickCreateSportspersonModal({
-  isOpen,
-  onClose,
-  initialName,
-  onCreate,
-}: Props) {
+export default function QuickCreateSportspersonModal({ isOpen, onClose, initialName, onCreate }: Props) {
   const { get, post } = useFetchClient();
 
   const [name, setName] = React.useState('');
@@ -86,11 +105,11 @@ export default function QuickCreateSportspersonModal({
   const [slugTouched, setSlugTouched] = React.useState(false);
   const [description, setDescription] = React.useState('');
   const [careerGoal, setCareerGoal] = React.useState('');
-  const [activeSince, setActiveSince] = React.useState<Date | undefined>(undefined);
+  const [activeSince, setActiveSince] = React.useState<string | null>(null);
   const [showPublicPage, setShowPublicPage] = React.useState(false);
-  const [disciplineIds, setDisciplineIds] = React.useState<string[]>([]);
-  const [coachIds, setCoachIds] = React.useState<string[]>([]);
-  const [choreographerIds, setChoreographerIds] = React.useState<string[]>([]);
+  const [disciplineNames, setDisciplineNames] = React.useState<string[]>([]);
+  const [coachNames, setCoachNames] = React.useState<string[]>([]);
+  const [choreographerNames, setChoreographerNames] = React.useState<string[]>([]);
 
   const [disciplines, setDisciplines] = React.useState<RefEntry[]>([]);
   const [teamMembers, setTeamMembers] = React.useState<RefEntry[]>([]);
@@ -100,7 +119,9 @@ export default function QuickCreateSportspersonModal({
   const [createdDocumentId, setCreatedDocumentId] = React.useState<string | null>(null);
 
   const getRef = React.useRef(get);
-  React.useEffect(() => { getRef.current = get; });
+  React.useEffect(() => {
+    getRef.current = get;
+  });
   React.useEffect(() => {
     fetchEntries(getRef.current, 'api::discipline.discipline').then(setDisciplines);
     fetchEntries(getRef.current, 'api::team-member.team-member').then(setTeamMembers);
@@ -113,11 +134,11 @@ export default function QuickCreateSportspersonModal({
     setSlugTouched(false);
     setDescription('');
     setCareerGoal('');
-    setActiveSince(undefined);
+    setActiveSince(null);
     setShowPublicPage(false);
-    setDisciplineIds([]);
-    setCoachIds([]);
-    setChoreographerIds([]);
+    setDisciplineNames([]);
+    setCoachNames([]);
+    setChoreographerNames([]);
     setError(null);
     setSaving(false);
     setCreatedDocumentId(null);
@@ -129,9 +150,16 @@ export default function QuickCreateSportspersonModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // The dialog is portalled, but React still bubbles the submit to the
+    // content-manager form this editor sits in; keep it here.
+    e.stopPropagation();
     if (!name.trim() || !slug.trim()) return;
     setSaving(true);
     setError(null);
+
+    const disciplineIds = namesToIds(disciplineNames, disciplines);
+    const coachIds = namesToIds(coachNames, teamMembers);
+    const choreographerIds = namesToIds(choreographerNames, teamMembers);
 
     const body: Record<string, unknown> = {
       name: name.trim(),
@@ -140,27 +168,18 @@ export default function QuickCreateSportspersonModal({
     };
     if (description.trim()) body.description = description.trim();
     if (careerGoal.trim()) body.careerGoal = careerGoal.trim();
-    if (activeSince) body.activeSince = toISODate(activeSince);
-    if (disciplineIds.length)
-      body.disciplines = { connect: disciplineIds.map((id) => ({ documentId: id })) };
-    if (coachIds.length)
-      body.coaches = { connect: coachIds.map((id) => ({ documentId: id })) };
-    if (choreographerIds.length)
-      body.choreographers = { connect: choreographerIds.map((id) => ({ documentId: id })) };
+    if (activeSince) body.activeSince = activeSince;
+    if (disciplineIds.length) body.disciplines = { connect: disciplineIds.map((id) => ({ documentId: id })) };
+    if (coachIds.length) body.coaches = { connect: coachIds.map((id) => ({ documentId: id })) };
+    if (choreographerIds.length) body.choreographers = { connect: choreographerIds.map((id) => ({ documentId: id })) };
 
     try {
-      const createRes = await post(
-        '/content-manager/collection-types/api::sportsperson.sportsperson',
-        body,
-      );
+      const createRes = await post('/content-manager/collection-types/api::sportsperson.sportsperson', body);
       const entry = (createRes as any)?.data;
       const documentId: string = entry?.documentId ?? entry?.data?.documentId;
       if (!documentId) throw new Error('Nu s-a primit documentId de la server.');
 
-      await post(
-        `/content-manager/collection-types/api::sportsperson.sportsperson/${documentId}/actions/publish`,
-        {},
-      );
+      await post(`/content-manager/collection-types/api::sportsperson.sportsperson/${documentId}/actions/publish`, {});
 
       setCreatedDocumentId(documentId);
       onCreate({ documentId, name: name.trim() });
@@ -174,225 +193,139 @@ export default function QuickCreateSportspersonModal({
   const disabled = !!createdDocumentId;
 
   const footer = createdDocumentId ? (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-      <Typography variant="pi" textColor="success600" style={{ flex: 1 }}>
-        ✓ Sportivul a fost creat și publicat.
-      </Typography>
+    <>
       <Button
         variant="secondary"
-        startIcon={<ExternalLink />}
-        onClick={() =>
-          window.open(
-            `/admin/content-manager/collection-types/api::sportsperson.sportsperson/${createdDocumentId}`,
-            '_blank',
-          )
-        }
+        onClick={() => window.open(`/admin/content-manager/collection-types/api::sportsperson.sportsperson/${createdDocumentId}`, '_blank')}
       >
         Deschide profilul complet
       </Button>
       <Button onClick={onClose}>Închide</Button>
-    </div>
+    </>
   ) : (
-    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', width: '100%' }}>
-      <Button variant="tertiary" disabled={saving} onClick={onClose}>
+    <>
+      <Button variant="ghost" disabled={saving} onClick={onClose}>
         Anulează
       </Button>
-      <Button
-        type="submit"
-        form="quick-create-sportsperson"
-        loading={saving}
-        disabled={!name.trim() || !slug.trim()}
-      >
+      <Button type="submit" form="quick-create-sportsperson" loading={saving} disabled={!name.trim() || !slug.trim()}>
         Adaugă sportiv
       </Button>
-    </div>
+    </>
   );
 
   return (
-    <PluginModalShell
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Adaugă sportiv nou"
-      subtitle="Fotografia, galeria și muzica pot fi adăugate din profilul complet după creare."
-      footer={footer}
-      maxWidth={860}
-    >
-      <form
-        id="quick-create-sportsperson"
-        onSubmit={handleSubmit}
-        style={{ display: 'flex', flexDirection: 'column', gap: 24 }}
-      >
-        {error && (
-          <div style={{
-            padding: '10px 14px',
-            background: 'var(--strapi-danger100, #fcecea)',
-            borderRadius: 4,
-            borderLeft: '3px solid var(--strapi-danger600, #d02b20)',
-          }}>
-            <Typography textColor="danger600">{error}</Typography>
-          </div>
-        )}
+    <Modal open={isOpen} onClose={onClose} title="Adaugă sportiv nou" size="lg" footer={footer} dismissable={!saving}>
+      <form id="quick-create-sportsperson" onSubmit={handleSubmit} className="ui-stack">
+        <p className="ui-muted" style={{ margin: 0 }}>
+          Fotografia, galeria și muzica pot fi adăugate din profilul complet după creare.
+        </p>
 
-        {/* ── Identity ── */}
-        <FormSection label="Identitate">
-          <FormRow columns={2}>
-            <Field.Root name="sp-name" required>
-              <Field.Label>Nume complet *</Field.Label>
-              <TextInput
-                value={name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-                placeholder="ex: Maria Popescu"
-                required
-                disabled={disabled}
-              />
-            </Field.Root>
+        {error && <Notice tone="danger">{error}</Notice>}
+        {createdDocumentId && <Notice tone="success">Sportivul a fost creat și publicat.</Notice>}
 
-            <Field.Root name="sp-slug" required>
-              <Field.Label>Slug (URL) *</Field.Label>
-              <TextInput
+        <Section title="Identitate">
+          <FieldRow>
+            <Field label="Nume complet" required>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: Maria Popescu" disabled={disabled} />
+            </Field>
+            <Field label="Slug (URL)" required hint="Auto-generat din nume · folosit în URL-ul profilului">
+              <Input
                 value={slug}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                onChange={(e) => {
                   setSlug(e.target.value);
                   setSlugTouched(true);
                 }}
                 placeholder="ex: maria-popescu"
-                required
                 disabled={disabled}
               />
-              <Field.Hint>Auto-generat din nume · folosit în URL-ul profilului</Field.Hint>
-            </Field.Root>
-          </FormRow>
-        </FormSection>
+            </Field>
+          </FieldRow>
+        </Section>
 
-        {/* ── Profile ── */}
-        <FormSection label="Profil">
-          <Field.Root name="sp-description">
-            <Field.Label>Descriere</Field.Label>
-            <Textarea
-              value={description}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
-              placeholder="Scurt bio al sportivului…"
-              style={{ minHeight: 72, width: '100%' }}
-              disabled={disabled}
-            />
-          </Field.Root>
-
-          <Field.Root name="sp-career-goal">
-            <Field.Label>Obiectiv carieră</Field.Label>
-            <Textarea
-              value={careerGoal}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCareerGoal(e.target.value)}
-              placeholder="Ce vrea să atingă sportivul…"
-              style={{ minHeight: 56, width: '100%' }}
-              maxLength={300}
-              disabled={disabled}
-            />
-          </Field.Root>
-
-          <FormRow columns={2}>
-            <Field.Root name="sp-active-since">
-              <Field.Label>Activ din</Field.Label>
-              <DatePicker
-                value={activeSince}
-                onChange={(date: Date | undefined) => setActiveSince(date ?? undefined)}
-                clearLabel="Șterge"
-                onClear={() => setActiveSince(undefined)}
+        <Section title="Profil">
+          <div className="ui-stack">
+            <Field label="Descriere">
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Scurt bio al sportivului…"
+                rows={3}
                 disabled={disabled}
               />
-            </Field.Root>
-
-            <Field.Root name="sp-public">
-              <Field.Label>Pagină publică</Field.Label>
-              <Box paddingTop={1}>
-                <Toggle
+            </Field>
+            <Field label="Obiectiv carieră">
+              <Textarea
+                value={careerGoal}
+                onChange={(e) => setCareerGoal(e.target.value)}
+                placeholder="Ce vrea să atingă sportivul…"
+                rows={2}
+                maxLength={300}
+                disabled={disabled}
+              />
+            </Field>
+            <FieldRow>
+              <Field label="Activ din">
+                <DateInput value={activeSince} onChange={setActiveSince} disabled={disabled} />
+              </Field>
+              <div className="ui-field">
+                <span className="ui-label">Pagină publică</span>
+                <Switch
                   checked={showPublicPage}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setShowPublicPage(e.target.checked)
-                  }
-                  onLabel="Da"
-                  offLabel="Nu"
+                  onChange={setShowPublicPage}
+                  label={showPublicPage ? 'Da' : 'Nu'}
+                  description="Afișează profilul pe site-ul public"
                   disabled={disabled}
                 />
-              </Box>
-              <Field.Hint>Afișează profilul pe site-ul public</Field.Hint>
-            </Field.Root>
-          </FormRow>
-        </FormSection>
+              </div>
+            </FieldRow>
+          </div>
+        </Section>
 
-        {/* ── Relations ── */}
         {(disciplines.length > 0 || teamMembers.length > 0) && (
-          <FormSection label="Relații">
-            {disciplines.length > 0 && (
-              <Field.Root name="sp-disciplines">
-                <Field.Label>Discipline</Field.Label>
-                <MultiSelect
-                  value={disciplineIds}
-                  onChange={(vals: string[]) => setDisciplineIds(vals)}
-                  placeholder="Alege discipline…"
-                  withTags
-                  disabled={disabled}
-                >
-                  {disciplines.map((d) => (
-                    <MultiSelectOption key={d.documentId} value={d.documentId}>
-                      {d.name}
-                    </MultiSelectOption>
-                  ))}
-                </MultiSelect>
-              </Field.Root>
-            )}
-
-            {teamMembers.length > 0 && (
-              <FormRow columns={2}>
-                <Field.Root name="sp-coaches">
-                  <Field.Label>Antrenori</Field.Label>
-                  <MultiSelect
-                    value={coachIds}
-                    onChange={(vals: string[]) => setCoachIds(vals)}
-                    placeholder="Alege antrenori…"
-                    withTags
+          <Section title="Relații">
+            <div className="ui-stack">
+              {disciplines.length > 0 && (
+                <Field label="Discipline">
+                  <TagsInput
+                    value={disciplineNames}
+                    onChange={setDisciplineNames}
+                    suggestions={uniqueNames(disciplines)}
+                    suggestionsOnly
+                    placeholder="Alege discipline…"
                     disabled={disabled}
-                  >
-                    {teamMembers.map((m) => (
-                      <MultiSelectOption key={m.documentId} value={m.documentId}>
-                        {m.name}
-                      </MultiSelectOption>
-                    ))}
-                  </MultiSelect>
-                </Field.Root>
-
-                <Field.Root name="sp-choreographers">
-                  <Field.Label>Coregrafi</Field.Label>
-                  <MultiSelect
-                    value={choreographerIds}
-                    onChange={(vals: string[]) => setChoreographerIds(vals)}
-                    placeholder="Alege coregrafi…"
-                    withTags
-                    disabled={disabled}
-                  >
-                    {teamMembers.map((m) => (
-                      <MultiSelectOption key={m.documentId} value={m.documentId}>
-                        {m.name}
-                      </MultiSelectOption>
-                    ))}
-                  </MultiSelect>
-                </Field.Root>
-              </FormRow>
-            )}
-          </FormSection>
+                  />
+                </Field>
+              )}
+              {teamMembers.length > 0 && (
+                <FieldRow>
+                  <Field label="Antrenori">
+                    <TagsInput
+                      value={coachNames}
+                      onChange={setCoachNames}
+                      suggestions={uniqueNames(teamMembers)}
+                      suggestionsOnly
+                      placeholder="Alege antrenori…"
+                      disabled={disabled}
+                    />
+                  </Field>
+                  <Field label="Coregrafi">
+                    <TagsInput
+                      value={choreographerNames}
+                      onChange={setChoreographerNames}
+                      suggestions={uniqueNames(teamMembers)}
+                      suggestionsOnly
+                      placeholder="Alege coregrafi…"
+                      disabled={disabled}
+                    />
+                  </Field>
+                </FieldRow>
+              )}
+            </div>
+          </Section>
         )}
 
-        {/* Info note */}
-        <div style={{
-          padding: '10px 14px',
-          background: 'var(--strapi-neutral100, #f6f6f9)',
-          borderRadius: 4,
-          borderLeft: '3px solid var(--strapi-neutral300, #c0c0cf)',
-        }}>
-          <Typography variant="pi" textColor="neutral500">
-            Fotografie, galerie, muzică sezon și hobby-uri se completează din pagina profilului după creare.
-          </Typography>
-        </div>
+        <Notice tone="info">Fotografie, galerie, muzică sezon și hobby-uri se completează din pagina profilului după creare.</Notice>
       </form>
-    </PluginModalShell>
+    </Modal>
   );
 }
