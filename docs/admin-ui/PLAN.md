@@ -33,6 +33,14 @@ modals moved onto Modal + Field/Input/Textarea/Select + ImagePicker +
 useSaveState; deletes stay on ConfirmDialog. Booleans/levels on StatusBadge,
 messages on adminToast/Notice. Checker: 27 files/1093 hits -> 22 files/993 hits.
 
+### Phase 2c result: Acasă, Formulare, FormEditor, MobileNav, BlocksToolbarExtra, plugin buttons (2026-10-01)
+- [x] Dashboard (Acasă): AdminPage + Section cards, KPI tiles on the new shared `StatTile` {label, value, caption?, tone?} (+ `.ui-stats` grid) in src/admin/ui, season switch = Switch, Deschise / Închise = StatusBadge, event filters = SegmentedControl (5 options, wrapping), feed empty state = EmptyState, event colours = `--theme-cat-*`. The greeting band and the analytics card keep their navy look on solid `--palette-*` colours (no translucent white; every text pair 5.7:1 or more on both gradient ends). Registration switch keeps saving at once, now with toastAutosaved / adminToast.error.
+- [x] Formulare: AdminPage + Window + PageHeader, rows in the Window, Tabel / Inbox and În curând on StatusBadge, Button for the actions.
+- [x] FormEditor: steps = Section (collapsible), questions = RepeatableList (reorder within the step, expandable, delete through ConfirmDialog for every question, not only sensitive ones), options = nested RepeatableList (reorder, Switch activ / ascuns, remove only where allowed), Field / Input / Textarea / Select / Switch, required = Field's asterisk, floating SaveBar (dirty against the loaded config, Renunță restores it) + UnsavedGuard, toasts replace the page toast.
+- [x] MobileNav, BlocksToolbarExtra: copied theme readers and palettes gone; each renders inside its own `.ui-root` on `--theme-*` tokens (theme via ensureAdminUi / useAdminTheme sync). MobileNav keeps reading Strapi's main nav: on phones the burger replaces that nav, whose entries differ from EDUSPORT_LINKS.
+- [x] component-preview AddListButton = shared AddButton in a `.ui-root`; InlineStringList reuses it, delete buttons on danger tokens.
+- Checker: 22 files / 993 hits -> 17 files / 648 hits; all six admin files at 0 and in MIGRATED (colour rule).
+
 ## Phase 1 result
 
 Everything lives in `src/admin/ui/`, imported through the barrel `src/admin/ui/index.ts`.
