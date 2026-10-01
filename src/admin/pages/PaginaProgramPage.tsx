@@ -34,11 +34,10 @@ import { SETARI_SITE_TO, UID } from './routes';
  *   disclaimers   repeatable shared.disclaimer { text (required) }, the
  *                 "Notificări importante" list.
  *
- * scheduleGroups and calendarEvents are legacy copies on this type: the
- * schedule series and the calendar live on the Program single type (Calendar
- * și serii), the content-manager layout leaves them out, and the site only
- * falls back to them when Program has none. They are not shown here and never
- * sent (save sends only changed attributes), so their stored values stay.
+ * The schedule series and the season calendar live only on the Program single
+ * type (Calendar și serii). This type's own legacy copies (scheduleGroups,
+ * calendarEvents) were removed on 2026-10-01, see
+ * docs/admin-ui/CUSTOM-PAGES.md.
  */
 
 interface Banner {

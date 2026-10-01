@@ -72,17 +72,14 @@ const METADATA_LABEL_OVERRIDES: Record<string, Record<string, string>> = {
     content: 'Text pagină',
     links:   'Sponsori & evenimente',
   },
-  // Only banner, pageInfo and disclaimers still reach /cursuri/program from here.
-  // scheduleGroups and calendarEvents moved to the Program single type, so they
-  // are no longer labelled or laid out below.
+  // Only banner, pageInfo and disclaimers reach /cursuri/program from here.
+  // scheduleGroups and calendarEvents live only on the Program single type now
+  // (removed from program-page on 2026-10-01, see docs/admin-ui/CUSTOM-PAGES.md).
   'plugin_content_manager_configuration_content_types::api::program-page.program-page': {
     calendarLink:   'Calendar și serii',
     banner:         'Banner Pagină',
     pageInfo:       'Subtitlu orar',
     disclaimers:    'Notificări importante',
-    // Kept honest in case a stray layout ever shows them again.
-    scheduleGroups: 'Serii orar (vechi, nefolosit)',
-    calendarEvents: 'Calendar sezon (vechi, nefolosit)',
   },
   'plugin_content_manager_configuration_content_types::api::program.program': {
     overview:       'Calendar',

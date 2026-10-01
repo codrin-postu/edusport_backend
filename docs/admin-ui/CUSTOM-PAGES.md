@@ -25,6 +25,16 @@ Decisions (companion screen 109, user said "yes do", recommended answers):
 | Evenimente colaborare | api::collaboration-event.collaboration-event | /plugins/edusport-evenimente-colaborare (+ -edit) | [x] |
 | Articole | api::article.article | /plugins/edusport-articole (+ -edit) | [ ] later |
 
+## Field removals
+
+- 2026-10-01: removed the legacy `scheduleGroups` and `calendarEvents`
+  attributes (and their `component-preview` customField editors on this type)
+  from `api::program-page.program-page`. They were unused copies: the real
+  schedule series and season calendar are edited on the `program` single type
+  (ProgramEditPage / calendar-event), which still owns `scheduleGroups` and
+  `calendarEvents`. Strapi drops the program-page columns' stored data on its
+  next start; the nightly 03:00 backup keeps a copy of the old values.
+
 ## How to build a page
 
 Groundwork done 2026-10-01: every row above has a route, a sidebar entry (Articole excepted) and a placeholder page; old content-manager URLs redirect. Reference implementation: `src/admin/pages/PaginaEchipaPage.tsx`.

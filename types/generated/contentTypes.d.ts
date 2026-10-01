@@ -1246,8 +1246,6 @@ export interface ApiProgramPageProgramPage extends Struct.SingleTypeSchema {
   attributes: {
     banner: Schema.Attribute.JSON &
       Schema.Attribute.CustomField<'plugin::component-preview.page-banner'>;
-    calendarEvents: Schema.Attribute.JSON &
-      Schema.Attribute.CustomField<'plugin::component-preview.calendar-events'>;
     calendarLink: Schema.Attribute.JSON &
       Schema.Attribute.CustomField<'plugin::component-preview.calendar-link'>;
     createdAt: Schema.Attribute.DateTime;
@@ -1263,8 +1261,6 @@ export interface ApiProgramPageProgramPage extends Struct.SingleTypeSchema {
     pageInfo: Schema.Attribute.JSON &
       Schema.Attribute.CustomField<'plugin::component-preview.program-page-info'>;
     publishedAt: Schema.Attribute.DateTime;
-    scheduleGroups: Schema.Attribute.JSON &
-      Schema.Attribute.CustomField<'plugin::component-preview.schedule-groups'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

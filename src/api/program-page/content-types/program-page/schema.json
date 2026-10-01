@@ -24,14 +24,6 @@
       "type": "json",
       "customField": "plugin::component-preview.program-page-info"
     },
-    "scheduleGroups": {
-      "type": "json",
-      "customField": "plugin::component-preview.schedule-groups"
-    },
-    "calendarEvents": {
-      "type": "json",
-      "customField": "plugin::component-preview.calendar-events"
-    },
     "disclaimers": {
       "type": "component",
       "repeatable": true,
