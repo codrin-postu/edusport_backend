@@ -52,7 +52,8 @@ ${R} .ui-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflo
    flex column; without it the background stops after the first screen. */
 .ui-root.ui-page{background:var(--theme-bg);min-height:100%;flex-shrink:0;padding:var(--ui-space-5)}
 @media (max-width:640px){.ui-root.ui-page{padding:var(--ui-space-3)}}
-${R} .ui-stack{display:flex;flex-direction:column;gap:var(--ui-space-4)}
+/* .ui-root.ui-stack: AdminPage puts both classes on the page root itself. */
+.ui-root.ui-stack,${R} .ui-stack{display:flex;flex-direction:column;gap:var(--ui-space-4)}
 
 /* window */
 ${R} .ui-win{background:var(--theme-surface);border:1px solid var(--theme-border);border-radius:var(--ui-radius-md);box-shadow:var(--theme-shadow-sm);overflow:clip}

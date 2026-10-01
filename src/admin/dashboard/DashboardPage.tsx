@@ -105,7 +105,7 @@ const CSS = `
 .ui-root .dash-hero h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em;color:var(--palette-grey-0)}
 .ui-root .dash-hero h1 span{color:var(--palette-blue-200)}
 .ui-root .dash-hero .dash-date{margin:4px 0 0;font-size:12.5px;color:var(--palette-blue-100);text-transform:capitalize}
-.ui-root .dash-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+.ui-root .dash-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--ui-space-4)}
 @media (max-width:900px){.ui-root .dash-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .ui-root .dash-feed{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px}
