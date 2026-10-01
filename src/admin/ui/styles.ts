@@ -279,6 +279,21 @@ ${R} .ui-inbox-group{font-size:10px;font-weight:700;letter-spacing:.05em;text-tr
 ${R} .ui-inbox-pager{padding:10px 14px;border-top:1px solid var(--theme-border)}
 ${R} .ui-inbox-head{display:flex;flex-direction:column;gap:var(--ui-space-3);padding:var(--ui-space-3) 18px 0}
 ${R} .ui-inbox-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:var(--ui-space-3) 18px;border-bottom:1px solid var(--theme-border)}
+${R} .ui-inbox-row{display:flex;gap:10px;align-items:flex-start}
+${R} .ui-inbox-row-pick{flex-shrink:0;padding-top:1px}
+${R} .ui-inbox-row-bd{flex:1;min-width:0}
+${R} .ui-inbox-row-l1{display:flex;align-items:center;gap:7px}
+${R} .ui-inbox-row-l1 b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+${R} .ui-inbox-row[data-unread="true"] .ui-inbox-row-l1 b{font-weight:800}
+${R} .ui-inbox-dot{width:6px;height:6px;background:var(--theme-danger);flex-shrink:0}
+${R} .ui-inbox-time{margin-left:auto;font-size:10px;color:var(--theme-text-muted);flex-shrink:0}
+${R} .ui-inbox-snip{font-size:11.5px;color:var(--theme-text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+${R} .ui-inbox-chips{margin-top:5px}
+${R} .ui-inbox-rh{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--theme-border-subtle)}
+${R} .ui-inbox-rh h3{margin:0;font-size:16px;font-weight:800;color:var(--theme-text)}
+${R} .ui-inbox-meta{font-size:12px;color:var(--theme-text-muted);margin-top:3px}
+${R} .ui-inbox-meta a{color:var(--theme-primary);text-decoration:none}
+${R} .ui-inbox-meta a:hover{text-decoration:underline}
 @media (max-width:900px){${R} .ui-inbox{grid-template-columns:1fr}${R} .ui-inbox-list{border-right:none}${R} .ui-inbox[data-open="true"] .ui-inbox-list{display:none}${R} .ui-inbox[data-open="false"] .ui-inbox-reader{display:none}${R} .ui-inbox-back{display:inline-flex;margin-bottom:var(--ui-space-3)}}
 
 /* shared small icon button (rows, tiles, combobox) */

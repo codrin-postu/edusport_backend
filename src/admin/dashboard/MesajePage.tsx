@@ -6,6 +6,9 @@ import {
   Window,
   PageHeader,
   InboxLayout,
+  InboxRow,
+  InboxReaderHead,
+  groupByDay,
   StatusBadge,
   Checkbox,
   Button,
@@ -19,7 +22,7 @@ import {
   type CustomBadgeColors,
   type TabItem,
 } from '../ui';
-import { INBOX_CSS, InboxRow, ReaderHead, RO_MON_SHORT, pad2, relTime, groupByDay, snippet } from './inboxShared';
+import { INBOX_CSS, RO_MON_SHORT, pad2, relTime, snippet } from './inboxShared';
 
 /**
  * EduSport admin — "Mesaje" contact inbox page.
@@ -430,7 +433,7 @@ export default function MesajePage() {
 
   const reader = selected ? (
     <>
-      <ReaderHead
+      <InboxReaderHead
         title={selected.name}
         meta={[
           <>

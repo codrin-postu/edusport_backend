@@ -57,7 +57,7 @@ export { Tabs, type TabsProps, type TabItem } from './Tabs';
 export { Pager, pageList, type PagerProps } from './Pager';
 export { DataTable, type DataTableProps, type DataColumn, type SortDir } from './DataTable';
 export { ImagePicker, type ImagePickerProps, type PickedImage, type PickedMedia, type MediaAccept } from './ImagePicker';
-export { InboxLayout, type InboxLayoutProps, type InboxGroup } from './InboxLayout';
+export { InboxLayout, InboxRow, InboxReaderHead, groupByDay, type InboxLayoutProps, type InboxGroup, type InboxRowProps } from './InboxLayout';
 
 export { Popover, type PopoverProps, type PopoverPlacement } from './Popover';
 export { AddButton, type AddButtonProps } from './AddButton';

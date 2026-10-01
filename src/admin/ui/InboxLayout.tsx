@@ -146,4 +146,84 @@ export function InboxLayout<T>({
   );
 }
 
+/* ---- row, reader header and day grouping (promoted from dashboard/inboxShared) ---- */
+
+const MON_SHORT = ['ian', 'feb', 'mar', 'apr', 'mai', 'iun', 'iul', 'aug', 'sep', 'oct', 'noi', 'dec'];
+
+/** Day-group label for the list separators: Azi, Ieri, or "12 mar 2026". */
+function dayLabel(iso: string | null): string {
+  if (!iso) return 'Fără dată';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return 'Fără dată';
+  const now = new Date();
+  if (d.toDateString() === now.toDateString()) return 'Azi';
+  const yest = new Date(now);
+  yest.setDate(now.getDate() - 1);
+  if (d.toDateString() === yest.toDateString()) return 'Ieri';
+  return `${d.getDate()} ${MON_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** For `groupBy`: groups consecutive rows by day, keeping the server's order. */
+export function groupByDay<T>(rows: T[], when: (row: T) => string | null): InboxGroup<T>[] {
+  const out: InboxGroup<T>[] = [];
+  for (const r of rows) {
+    const label = dayLabel(when(r));
+    const last = out[out.length - 1];
+    if (last && last.label === label) last.items.push(r);
+    else out.push({ label, items: [r] });
+  }
+  return out;
+}
+
+export interface InboxRowProps {
+  title: React.ReactNode;
+  time: string;
+  unread: boolean;
+  snippet?: string;
+  badge?: React.ReactNode;
+  /** Leading control (e.g. a bulk-select Checkbox). Clicks on it do not open the row. */
+  lead?: React.ReactNode;
+}
+
+/** Row content for InboxLayout.renderItem: unread dot, title, time, snippet, badge. */
+export function InboxRow({ title, time, unread, snippet, badge, lead }: InboxRowProps) {
+  return (
+    <div className="ui-inbox-row" data-unread={unread ? 'true' : 'false'}>
+      {lead && (
+        // The row itself is a button (InboxLayout); keep picks from opening it.
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+        <span className="ui-inbox-row-pick" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          {lead}
+        </span>
+      )}
+      <div className="ui-inbox-row-bd">
+        <div className="ui-inbox-row-l1">
+          {unread && <span className="ui-inbox-dot" aria-label="Necitit" />}
+          <b>{title}</b>
+          <span className="ui-inbox-time">{time}</span>
+        </div>
+        {snippet ? <div className="ui-inbox-snip">{snippet}</div> : null}
+        {badge && <div className="ui-inbox-chips">{badge}</div>}
+      </div>
+    </div>
+  );
+}
+
+/** Reader header: name, meta lines, badge on the right. */
+export function InboxReaderHead({ title, meta, badge }: { title: React.ReactNode; meta: React.ReactNode[]; badge?: React.ReactNode }) {
+  return (
+    <div className="ui-inbox-rh">
+      <div>
+        <h3>{title}</h3>
+        {meta.filter(Boolean).map((m, i) => (
+          <div className="ui-inbox-meta" key={i}>
+            {m}
+          </div>
+        ))}
+      </div>
+      {badge}
+    </div>
+  );
+}
+
 export default InboxLayout;
