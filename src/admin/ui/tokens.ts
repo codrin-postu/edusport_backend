@@ -30,7 +30,8 @@
  *   - save bar: text / muted text on its surface, on-primary / on-success on
  *     their buttons;
  *   - calendar categories and form tiles: fg at least 4.5:1 on its fill; in
- *     dark, the fill at least 3:1 on the raised surface.
+ *     dark, the fill at least 3:1 on the raised surface. Category soft-fg at
+ *     least 4.5:1 on its soft fill.
  */
 
 /* ---- primitive palette -------------------------------------------------- */
@@ -52,6 +53,7 @@
  *   brand   the website's colours (navy, burgundy, orange, silver, rust,
  *           cream), shared by the calendar categories; *OnDark are the
  *           lifted fills the dark theme uses for them
+ *   brandTint  soft fills and inks of the brand colours (calendar entries)
  *   shell   the navy sidebar (EdusportShell), auth the login page
  *           (loginBranding); both are fixed looks, outside the themes
  */
@@ -170,6 +172,33 @@ export const PALETTE = {
     burgundyOnDark: '#93607a',
     rustOnDark: '#c93d39',
   },
+  /**
+   * Soft tints of the brand colours, for calendar entries (a pale fill with a
+   * dark ink in light, a deep fill with a pale ink in dark). *Tint is the fill,
+   * *Ink the text on it.
+   */
+  brandTint: {
+    navyTint: '#e6e9f3',
+    navyInk: '#1c2550',
+    burgundyTint: '#f3e9ed',
+    burgundyInk: '#4a2635',
+    orangeTint: '#fbeadd',
+    orangeInk: '#7a3608',
+    silverTint: '#eceef1',
+    silverInk: '#4a4f5c',
+    rustTint: '#faeceb',
+    rustInk: '#8f2522',
+    navyTintOnDark: '#1f2747',
+    navyInkOnDark: '#d3daf3',
+    burgundyTintOnDark: '#3a2431',
+    burgundyInkOnDark: '#f0dbe5',
+    orangeTintOnDark: '#3d2614',
+    orangeInkOnDark: '#f7c9a6',
+    silverTintOnDark: '#2c2f38',
+    silverInkOnDark: '#d7dae1',
+    rustTintOnDark: '#3a1c21',
+    rustInkOnDark: '#ffb3ae',
+  },
   /** The navy EduSport sidebar (EdusportShell): text and states on brand navy. */
   shell: {
     raised: '#16234d',
@@ -229,6 +258,18 @@ export interface CategoryColors {
   bg: string;
   /** text on the fill */
   fg: string;
+}
+
+/**
+ * A calendar category: the solid fill (day markers, swatches, the entry's
+ * left edge) plus a soft tint for entry backgrounds, with its own text colour.
+ * Emitted as --theme-cat-<name>, -fg, -soft and -soft-fg.
+ */
+export interface CalendarCategoryColors extends CategoryColors {
+  /** pale fill behind an entry's text */
+  soft: string;
+  /** text on the soft fill */
+  softFg: string;
 }
 
 /**
@@ -309,8 +350,8 @@ export interface AdminTheme {
     onIcon: string;
     shadow: string;
   };
-  /** Calendar category fills: --theme-cat-<name> and --theme-cat-<name>-fg. */
-  category: Record<CalendarCategory, CategoryColors>;
+  /** Calendar categories: --theme-cat-<name>, -fg, -soft and -soft-fg. */
+  category: Record<CalendarCategory, CalendarCategoryColors>;
   /** Form tiles: --theme-tile-<name> and --theme-tile-<name>-fg. */
   tile: Record<TileColor, CategoryColors>;
 }
@@ -373,11 +414,11 @@ export const light: AdminTheme = {
     shadow: `0 10px 32px ${alpha(P.grey[800], 0.32)}, 0 4px 12px ${alpha(P.grey[800], 0.16)}`,
   },
   category: {
-    scoala: { bg: P.brand.navy, fg: P.brand.cream },
-    antrenament: { bg: P.brand.burgundy, fg: P.brand.cream },
-    eveniment: { bg: P.brand.orange, fg: P.brand.navy },
-    liber: { bg: P.brand.silver, fg: P.brand.navy },
-    anulat: { bg: P.brand.rust, fg: P.brand.cream },
+    scoala: { bg: P.brand.navy, fg: P.brand.cream, soft: P.brandTint.navyTint, softFg: P.brandTint.navyInk },
+    antrenament: { bg: P.brand.burgundy, fg: P.brand.cream, soft: P.brandTint.burgundyTint, softFg: P.brandTint.burgundyInk },
+    eveniment: { bg: P.brand.orange, fg: P.brand.navy, soft: P.brandTint.orangeTint, softFg: P.brandTint.orangeInk },
+    liber: { bg: P.brand.silver, fg: P.brand.navy, soft: P.brandTint.silverTint, softFg: P.brandTint.silverInk },
+    anulat: { bg: P.brand.rust, fg: P.brand.cream, soft: P.brandTint.rustTint, softFg: P.brandTint.rustInk },
   },
   // Amber takes navy text: white on it is 2.7:1.
   tile: {
@@ -454,11 +495,16 @@ export const dark: AdminTheme = {
   // Navy, burgundy and rust are lifted so the fill still separates from the
   // dark surfaces (3:1); orange and silver already do. Text colours stay.
   category: {
-    scoala: { bg: P.brand.navyOnDark, fg: P.brand.cream },
-    antrenament: { bg: P.brand.burgundyOnDark, fg: P.brand.cream },
-    eveniment: { bg: P.brand.orange, fg: P.brand.navy },
-    liber: { bg: P.brand.silver, fg: P.brand.navy },
-    anulat: { bg: P.brand.rustOnDark, fg: P.brand.cream },
+    scoala: { bg: P.brand.navyOnDark, fg: P.brand.cream, soft: P.brandTint.navyTintOnDark, softFg: P.brandTint.navyInkOnDark },
+    antrenament: {
+      bg: P.brand.burgundyOnDark,
+      fg: P.brand.cream,
+      soft: P.brandTint.burgundyTintOnDark,
+      softFg: P.brandTint.burgundyInkOnDark,
+    },
+    eveniment: { bg: P.brand.orange, fg: P.brand.navy, soft: P.brandTint.orangeTintOnDark, softFg: P.brandTint.orangeInkOnDark },
+    liber: { bg: P.brand.silver, fg: P.brand.navy, soft: P.brandTint.silverTintOnDark, softFg: P.brandTint.silverInkOnDark },
+    anulat: { bg: P.brand.rustOnDark, fg: P.brand.cream, soft: P.brandTint.rustTintOnDark, softFg: P.brandTint.rustInkOnDark },
   },
   // Blue and green are lifted off the dark surfaces (3:1), like the categories.
   tile: {
@@ -584,6 +630,8 @@ export function themeVars(t: AdminTheme): Record<string, string> {
   for (const [k, c] of Object.entries(t.category)) {
     v[`--theme-cat-${k}`] = c.bg;
     v[`--theme-cat-${k}-fg`] = c.fg;
+    v[`--theme-cat-${k}-soft`] = c.soft;
+    v[`--theme-cat-${k}-soft-fg`] = c.softFg;
   }
   for (const [k, c] of Object.entries(t.tile)) {
     v[`--theme-tile-${k}`] = c.bg;

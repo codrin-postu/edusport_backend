@@ -317,6 +317,7 @@ async function contrast() {
     // theme; in dark, the fill must also stand out from the surface (1.4.11).
     for (const [cat, c] of Object.entries(t.category)) {
       checks.push([`cat-${cat}-fg on cat-${cat}`, c.fg, c.bg, 4.5]);
+      if (c.soft) checks.push([`cat-${cat}-soft-fg on cat-${cat}-soft`, c.softFg, c.soft, 4.5]);
       if (t.colorScheme === 'dark') checks.push([`cat-${cat} on surface`, c.bg, t.surface.raised, 3]);
     }
     // Form tiles (formDefs.ts): initials on the fill; in dark, the fill on the surface.
