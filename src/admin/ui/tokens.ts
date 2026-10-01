@@ -29,8 +29,8 @@
  *     text.disabled is exempt by definition;
  *   - save bar: text / muted text on its surface, on-primary / on-success on
  *     their buttons;
- *   - calendar categories: fg at least 4.5:1 on its fill; in dark, the fill
- *     at least 3:1 on the raised surface.
+ *   - calendar categories and form tiles: fg at least 4.5:1 on its fill; in
+ *     dark, the fill at least 3:1 on the raised surface.
  */
 
 /* ---- primitive palette -------------------------------------------------- */
@@ -45,6 +45,7 @@
  *   blue    the former admin primary (#2138b8) family, light and dark
  *   indigo  Strapi's own primary, used by the Strapi-matching save bar only
  *   sky     info
+ *   teal    the Contact form tile
  *   grey    every neutral: light surfaces, text and lines, Strapi's dark
  *           neutrals (dark surfaces, the save bar) and black for shadows
  *   green / amber / red  success / warning / danger, plus the save bar's states
@@ -121,6 +122,9 @@ export const PALETTE = {
     900: '#181826',
     950: '#0f0f1c',
     1000: '#000000',
+  },
+  teal: {
+    600: '#00838f',
   },
   green: {
     50: '#e7f3ec',
@@ -201,6 +205,14 @@ export interface CategoryColors {
   fg: string;
 }
 
+/**
+ * Form tiles (Acasă feed, Formulare): the coloured square with a form's
+ * initials. Config picks a colour by name (formDefs.ts); the fill and its
+ * text come from the theme, as --theme-tile-<name> and --theme-tile-<name>-fg.
+ */
+export type TileColor = 'blue' | 'green' | 'teal' | 'amber';
+export const TILE_COLORS: readonly TileColor[] = ['blue', 'green', 'teal', 'amber'];
+
 export interface AdminTheme {
   /** CSS color-scheme, so native controls (date picker, scrollbars) follow. */
   colorScheme: 'light' | 'dark';
@@ -273,6 +285,8 @@ export interface AdminTheme {
   };
   /** Calendar category fills: --theme-cat-<name> and --theme-cat-<name>-fg. */
   category: Record<CalendarCategory, CategoryColors>;
+  /** Form tiles: --theme-tile-<name> and --theme-tile-<name>-fg. */
+  tile: Record<TileColor, CategoryColors>;
 }
 
 export const light: AdminTheme = {
@@ -338,6 +352,13 @@ export const light: AdminTheme = {
     eveniment: { bg: P.brand.orange, fg: P.brand.navy },
     liber: { bg: P.brand.silver, fg: P.brand.navy },
     anulat: { bg: P.brand.rust, fg: P.brand.cream },
+  },
+  // Amber takes navy text: white on it is 2.7:1.
+  tile: {
+    blue: { bg: P.blue[600], fg: P.grey[0] },
+    green: { bg: P.green[700], fg: P.grey[0] },
+    teal: { bg: P.teal[600], fg: P.grey[0] },
+    amber: { bg: P.amber[500], fg: P.brand.navy },
   },
 };
 
@@ -412,6 +433,13 @@ export const dark: AdminTheme = {
     eveniment: { bg: P.brand.orange, fg: P.brand.navy },
     liber: { bg: P.brand.silver, fg: P.brand.navy },
     anulat: { bg: P.brand.rustOnDark, fg: P.brand.cream },
+  },
+  // Blue and green are lifted off the dark surfaces (3:1), like the categories.
+  tile: {
+    blue: { bg: P.blue[400], fg: P.grey[0] },
+    green: { bg: P.green[600], fg: P.grey[0] },
+    teal: { bg: P.teal[600], fg: P.grey[0] },
+    amber: { bg: P.amber[500], fg: P.brand.navy },
   },
 };
 
@@ -530,6 +558,10 @@ export function themeVars(t: AdminTheme): Record<string, string> {
   for (const [k, c] of Object.entries(t.category)) {
     v[`--theme-cat-${k}`] = c.bg;
     v[`--theme-cat-${k}-fg`] = c.fg;
+  }
+  for (const [k, c] of Object.entries(t.tile)) {
+    v[`--theme-tile-${k}`] = c.bg;
+    v[`--theme-tile-${k}-fg`] = c.fg;
   }
   return v;
 }

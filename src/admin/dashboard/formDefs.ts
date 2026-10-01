@@ -1,3 +1,4 @@
+import type { TileColor } from '../ui/tokens';
 import { INSCRIERI_TO, MESAJE_TO, VOLUNTARI_TO, PARTENERI_REZULTATE_TO } from './menu';
 
 /**
@@ -24,7 +25,8 @@ export interface AdminFormDef {
   key: string;
   name: string;
   initials: string;
-  color: string;
+  /** Formulare tile colour: a theme tile pair (--theme-tile-<name> + -fg). */
+  color: TileColor;
   questions: number;
   mode: 'Tabel' | 'Inbox';
   desc: string;
@@ -33,9 +35,9 @@ export interface AdminFormDef {
   resultsLabel?: string;
   countSource: FormCountSource;
   /** Dashboard feed tile: single initial + colour (kept separate from `color`
-      so the existing feed visuals stay exactly as they were). */
+      so the existing feed visuals stay as they were). */
   feedTile: string;
-  feedColor: string;
+  feedColor: TileColor;
   /** Terse destination name for the feed row, e.g. "3 noi · Voluntari". */
   feedName: string;
 }
@@ -45,7 +47,7 @@ export const FORM_DEFS: AdminFormDef[] = [
     key: 'inscriere',
     name: 'Înscriere cursuri',
     initials: 'ÎC',
-    color: '#2138b8',
+    color: 'blue',
     questions: 13,
     mode: 'Tabel',
     desc: 'Cererile de înscriere trimise din pagina publică de cursuri.',
@@ -54,14 +56,14 @@ export const FORM_DEFS: AdminFormDef[] = [
     resultsLabel: 'Rezultate',
     countSource: { kind: 'formsApiFilters', api: '/api/forms/inscrieri' },
     feedTile: 'Î',
-    feedColor: '#1f7a4d',
+    feedColor: 'green',
     feedName: 'Înscrieri',
   },
   {
     key: 'contact',
     name: 'Contact',
     initials: 'CT',
-    color: '#00838f',
+    color: 'teal',
     questions: 4,
     mode: 'Inbox',
     desc: 'Mesajele trimise din formularul de contact.',
@@ -74,14 +76,14 @@ export const FORM_DEFS: AdminFormDef[] = [
       nouParams: { 'filters[triageStatus][$eq]': 'new' },
     },
     feedTile: 'M',
-    feedColor: '#2138b8',
+    feedColor: 'blue',
     feedName: 'Mesaje',
   },
   {
     key: 'voluntariat',
     name: 'Voluntariat',
     initials: 'VO',
-    color: '#1f7a4d',
+    color: 'green',
     questions: 19,
     mode: 'Tabel',
     desc: 'Cererile de voluntariat trimise din pagina publică de voluntariat.',
@@ -90,14 +92,14 @@ export const FORM_DEFS: AdminFormDef[] = [
     resultsLabel: 'Rezultate',
     countSource: { kind: 'formsApi', api: '/api/forms/voluntari' },
     feedTile: 'V',
-    feedColor: '#1f7a4d',
+    feedColor: 'green',
     feedName: 'Voluntari',
   },
   {
     key: 'parteneri',
     name: 'Parteneri',
     initials: 'PA',
-    color: '#e08a00',
+    color: 'amber',
     questions: 7,
     mode: 'Inbox',
     desc: 'Propunerile de parteneriat trimise din pagina publică de parteneri.',
@@ -106,7 +108,7 @@ export const FORM_DEFS: AdminFormDef[] = [
     resultsLabel: 'Vezi mesajele',
     countSource: { kind: 'formsApi', api: '/api/forms/parteneri-rezultate' },
     feedTile: 'P',
-    feedColor: '#e08a00',
+    feedColor: 'amber',
     feedName: 'Parteneri',
   },
 ];
@@ -152,4 +154,9 @@ export async function fetchTotalCount(get: GetClient, def: AdminFormDef): Promis
   } catch {
     return null;
   }
+}
+
+/** Inline style for a form tile: the theme's fill and its text colour. */
+export function tileStyle(color: TileColor): { background: string; color: string } {
+  return { background: `var(--theme-tile-${color})`, color: `var(--theme-tile-${color}-fg)` };
 }

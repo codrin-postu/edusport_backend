@@ -271,6 +271,11 @@ async function contrast() {
       checks.push([`cat-${cat}-fg on cat-${cat}`, c.fg, c.bg, 4.5]);
       if (t.colorScheme === 'dark') checks.push([`cat-${cat} on surface`, c.bg, t.surface.raised, 3]);
     }
+    // Form tiles (formDefs.ts): initials on the fill; in dark, the fill on the surface.
+    for (const [tile, c] of Object.entries(t.tile ?? {})) {
+      checks.push([`tile-${tile}-fg on tile-${tile}`, c.fg, c.bg, 4.5]);
+      if (t.colorScheme === 'dark') checks.push([`tile-${tile} on surface`, c.bg, t.surface.raised, 3]);
+    }
     const fails = checks.filter(([, a, b, min]) => ratio(a, b) < min);
     const worst = checks.reduce((w, c) => (ratio(c[1], c[2]) / c[3] < ratio(w[1], w[2]) / w[3] ? c : w));
     console.log(

@@ -16,7 +16,7 @@ import {
   toastAutosaved,
 } from '../ui';
 import { FORMULARE_TO, PROGRAM_EDIT_TO, SPORTIV_EDIT_TO } from './menu';
-import { FORM_DEFS, fetchNewCount } from './formDefs';
+import { FORM_DEFS, fetchNewCount, tileStyle } from './formDefs';
 
 /**
  * EduSport admin dashboard page (Direction A).
@@ -112,7 +112,7 @@ const CSS = `
 .ui-root .dash-frow{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:var(--ui-radius-sm);border:1px solid var(--theme-border);background:var(--theme-surface);cursor:pointer;text-align:left;font-family:inherit;color:var(--theme-text);width:100%}
 .ui-root .dash-frow:hover{background:var(--theme-primary-soft);border-color:var(--theme-primary-soft-line)}
 .ui-root .dash-frow:focus-visible{outline:2px solid var(--theme-focus);outline-offset:1px}
-.ui-root .dash-tile{width:32px;height:32px;border-radius:var(--ui-radius-sm);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:var(--palette-grey-0);flex-shrink:0}
+.ui-root .dash-tile{width:32px;height:32px;border-radius:var(--ui-radius-sm);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
 .ui-root .dash-frow-t{flex:1;min-width:0;font-size:13px;font-weight:700;line-height:1.25}
 .ui-root .dash-arr{color:var(--theme-text-muted);font-size:16px}
 .ui-root .dash-empty-ok{color:var(--theme-success)}
@@ -457,7 +457,7 @@ export default function DashboardPage() {
           <div className="dash-feed">
             {feedItems.map((it) => (
               <button key={it.key} className="dash-frow" type="button" onClick={() => navigate(it.to)}>
-                <span className="dash-tile" style={{ background: it.color }}>{it.tile}</span>
+                <span className="dash-tile" style={tileStyle(it.color)}>{it.tile}</span>
                 <span className="dash-frow-t">{it.name}: <span className="ui-num">{it.n}</span> {it.n === 1 ? 'mesaj nou' : 'mesaje noi'}</span>
                 <span className="dash-arr" aria-hidden="true">&rsaquo;</span>
               </button>

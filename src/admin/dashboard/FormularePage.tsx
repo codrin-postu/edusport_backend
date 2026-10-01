@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { AdminPage, Window, PageHeader, Button, StatusBadge } from '../ui';
 import { FORM_EDITOR_TO } from './menu';
-import { FORM_DEFS, fetchNewCount, fetchTotalCount, type AdminFormDef } from './formDefs';
+import { FORM_DEFS, fetchNewCount, fetchTotalCount, tileStyle, type AdminFormDef } from './formDefs';
 
 /**
  * EduSport admin — "Formulare" hub page.
@@ -31,7 +31,7 @@ const CSS = `
 .ui-root .fm-row{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--theme-border-subtle);flex-wrap:wrap}
 .ui-root .fm-row:last-child{border-bottom:none}
 .ui-root .fm-row.soon{background:var(--theme-surface-subtle)}
-.ui-root .fm-tile{width:40px;height:40px;border-radius:var(--ui-radius-sm);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:var(--palette-grey-0);flex-shrink:0;letter-spacing:.02em}
+.ui-root .fm-tile{width:40px;height:40px;border-radius:var(--ui-radius-sm);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;letter-spacing:.02em}
 .ui-root .fm-main{flex:1;min-width:200px}
 .ui-root .fm-nm{font-size:14.5px;font-weight:700;line-height:1.2;display:flex;align-items:center;gap:9px;flex-wrap:wrap;color:var(--theme-text)}
 .ui-root .fm-meta{font-size:11.5px;color:var(--theme-text-muted);margin-top:3px}
@@ -103,8 +103,8 @@ export default function FormularePage() {
         <ul className="fm-list">
           {FORM_DEFS.map((f) => (
             <li key={f.key} className={`fm-row${f.live ? '' : ' soon'}`}>
-              {/* Tile colour is form config (formDefs.ts), like a StatusBadge custom colour. */}
-              <span className="fm-tile" style={{ background: f.color }} aria-hidden="true">
+              {/* Tile colour is form config (formDefs.ts): a --theme-tile-* pair. */}
+              <span className="fm-tile" style={tileStyle(f.color)} aria-hidden="true">
                 {f.initials}
               </span>
 
