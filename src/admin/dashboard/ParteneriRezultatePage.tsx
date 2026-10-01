@@ -13,10 +13,10 @@ const CONFIG: FormResultsConfig = {
   subtitle: 'Propunerile de parteneriat trimise din pagina publică de parteneri.',
   apiBase: '/api/forms/parteneri-rezultate',
   statuses: [
-    { value: 'Nou', label: 'Noi', color: '#2138b8' },
-    { value: 'In discutii', label: 'În discuții', color: '#00838f' },
-    { value: 'Confirmat', label: 'Confirmate', color: '#1f7a4d' },
-    { value: 'Respins', label: 'Respinse', color: '#be3330' },
+    { value: 'Nou', label: 'Noi', color: 'var(--theme-primary)' },
+    { value: 'In discutii', label: 'În discuții', color: 'var(--theme-info)' },
+    { value: 'Confirmat', label: 'Confirmate', color: 'var(--theme-success)' },
+    { value: 'Respins', label: 'Respinse', color: 'var(--theme-danger)' },
   ],
   fields: [
     { key: 'companyName', label: 'Companie' },
