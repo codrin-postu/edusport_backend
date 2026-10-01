@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { ConfirmDialog } from '../ConfirmDialog';
+import { Modal, Button, Field, Input, Select, Notice, Loading, adminToast, toastAutosaved } from '../ui';
 
 /**
  * EduSport admin — the Google Sheets connect-and-schedule window.
@@ -23,9 +24,11 @@ import { ConfirmDialog } from '../ConfirmDialog';
  * here. `schedule` is the newest endpoint; a 404 from it is reported as "not
  * available on the server yet" instead of a generic failure.
  *
- * Self-contained styling under `.sdlg`, mirroring the shared admin tokens
- * (system-ui, #fff chrome, #dcdcdc borders, accent #2138b8, danger #be3330,
- * #d0d0d0 fields, 4px radius). No backticks inside the CSS literal.
+ * Built on the shared Modal (Escape, backdrop, focus trap, stacking with the
+ * disconnect ConfirmDialog), Field / Input / Select / Button, Notice for the
+ * state boxes and the .ui-table classes for the history. Action results
+ * (connected, synced, a failed action) are toasts; a failed status load stays
+ * as a Notice in the dialog.
  */
 
 export type SheetsForm = 'inscrieri' | 'voluntari' | 'parteneri' | 'contact';
@@ -126,59 +129,36 @@ function countsText(added: number, updated: number, removed: number): string {
   return parts.length ? parts.join(', ') : 'fără diferențe';
 }
 
-const CSS = `
-.sdlg-scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:390;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;overflow-y:auto}
-.sdlg{width:560px;max-width:100%;background:#fff;border:1px solid #dcdcdc;border-radius:6px;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#1b1d22;font-size:13px;line-height:1.5;box-shadow:0 16px 48px rgba(0,0,0,.24)}
-.sdlg *{box-sizing:border-box}
-.sdlg .mh{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 16px;border-bottom:1px solid #e0e2e8}
-.sdlg .mh h3{margin:0;font-size:15.5px;font-weight:800}
-.sdlg .mh p{margin:3px 0 0;font-size:12px;color:#727888}
-.sdlg .mh .x{border:none;background:none;color:#9aa0ae;font-size:17px;line-height:1;cursor:pointer;padding:0 2px}
-.sdlg .mb{padding:15px 16px}
-.sdlg .mf{display:flex;align-items:center;gap:9px;padding:12px 16px;border-top:1px solid #e0e2e8;background:#fbfbfc}
-.sdlg .grow{flex:1}
-.sdlg .btn{font-family:inherit;font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:4px;border:1px solid #d0d0d0;background:#fff;color:#1b1d22;cursor:pointer;white-space:nowrap}
-.sdlg .btn:hover:not(:disabled){border-color:#b6bac4;background:#fafbff}
-.sdlg .btn.pri{background:#2138b8;border-color:#2138b8;color:#fff}
-.sdlg .btn.pri:hover:not(:disabled){background:#1b2fa0}
-.sdlg .btn.danger{color:#be3330;border-color:#e2c4c4;background:#fff}
-.sdlg .btn.danger:hover:not(:disabled){background:#fdf4f3}
-.sdlg .btn:disabled{opacity:.55;cursor:default}
-.sdlg .fld{margin-bottom:12px}
-.sdlg .fld label{display:block;font-size:10px;color:#727888;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
-.sdlg input[type=text]{display:block;width:100%;font-family:inherit;border:1px solid #d0d0d0;border-radius:4px;padding:7px 9px;font-size:12.5px;min-height:32px;color:#1b1d22;background:#fff}
-.sdlg input[type=text]:focus{outline:none;border-color:#2138b8}
-.sdlg select{font-family:inherit;font-size:12.5px;color:#1b1d22;background:#fff;border:1px solid #d0d0d0;border-radius:4px;padding:7px 10px;min-width:168px}
-.sdlg select:focus{outline:none;border-color:#2138b8}
-.sdlg .row{display:flex;gap:8px;align-items:flex-end}
-.sdlg .row .fld{flex:1;margin-bottom:0}
-.sdlg .hint{font-size:11px;color:#727888;margin-top:4px}
-.sdlg .cap{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#727888;margin:0 0 8px}
-.sdlg .sched{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.sdlg .sched .last{font-size:12px;color:#727888}
-.sdlg .sched .last b{color:#1b1d22;font-weight:600}
-.sdlg .ok-box{background:#e7f3ec;border:1px solid #bfe0cc;border-radius:4px;padding:10px 11px;font-size:12.5px;color:#1f5c3d}
-.sdlg .err-box{background:#faeceb;border:1px solid #e6c3c1;border-radius:4px;padding:10px 11px;font-size:12.5px;color:#8c2b28}
-.sdlg .info-box{background:#f6f7f9;border:1px solid #e0e2e8;border-radius:4px;padding:10px 11px;font-size:12.5px;color:#3b4050}
-.sdlg .warn-box{background:#fbf1df;border:1px solid #ecd9ac;border-radius:4px;padding:10px 11px;font-size:12.5px;color:#7a4f00}
-.sdlg .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;background:#f2f3f7;border:1px solid #e0e2e8;border-radius:3px;padding:3px 7px;white-space:nowrap;overflow-x:auto}
-.sdlg .addr{display:flex;align-items:center;gap:9px;margin-top:6px;min-width:0}
-.sdlg .addr .mono{flex:1;min-width:0}
-.sdlg .copy{font-family:inherit;font-size:11px;font-weight:700;color:#2138b8;background:none;border:none;cursor:pointer;white-space:nowrap;padding:0}
-.sdlg .link{font-family:inherit;font-size:11.5px;font-weight:700;color:#2138b8;background:none;border:none;cursor:pointer;padding:0}
-.sdlg .divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:#a3a6b2;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-.sdlg .divider::before,.sdlg .divider::after{content:"";height:1px;background:#e0e2e8;flex:1}
-.sdlg .hist{border:1px solid #e0e2e8;border-radius:4px;overflow:hidden;margin-top:6px}
-.sdlg .hist table{width:100%;border-collapse:collapse;font-size:11.5px}
-.sdlg .hist th{text-align:left;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:#8a8d99;font-weight:700;padding:6px 10px;background:#fafbfc;border-bottom:1px solid #e0e2e8}
-.sdlg .hist td{padding:6px 10px;border-bottom:1px solid #f2f3f6;color:#3b4050;font-variant-numeric:tabular-nums}
-.sdlg .hist tr:last-child td{border-bottom:none}
-.sdlg .hist .t{color:#727888}
-.sdlg .hist .good{color:#1f7a4d;font-weight:700}
-.sdlg .hist .bad{color:#be3330;font-weight:700}
-.sdlg .hist .zero{color:#b6b9c4}
-.sdlg .hist .none{padding:12px 10px;color:#727888;font-size:12px}
-.sdlg .loading{padding:28px 10px;text-align:center;color:#727888;font-size:12.5px}
+// Dialog-local styles, tokens only (var(--theme-*), var(--ui-*)). Kept free of
+// backticks on purpose: one stray backtick in a template literal takes the
+// whole admin panel down to a blank page.
+const SHEETS_CSS = `
+.ui-root .sdlg-sub{margin:0 0 12px;font-size:var(--ui-fs-body-sm);color:var(--theme-text-muted)}
+.ui-root .sdlg-stack{display:flex;flex-direction:column;gap:12px}
+.ui-root .sdlg-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.ui-root .sdlg-row .ui-field{flex:1;min-width:200px}
+.ui-root .sdlg-grow{flex:1}
+.ui-root .sdlg-cap{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--theme-text-muted);margin:0 0 8px}
+.ui-root .sdlg-sched{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.ui-root .sdlg-sched .ui-input{width:auto;min-width:168px}
+.ui-root .sdlg-last{font-size:12px;color:var(--theme-text-muted)}
+.ui-root .sdlg-last b{color:var(--theme-text);font-weight:600}
+.ui-root .sdlg-mono{font-family:var(--ui-font-mono);font-size:11.5px;color:var(--theme-text);background:var(--theme-surface-sunken);border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);padding:3px 7px;white-space:nowrap;overflow-x:auto}
+.ui-root .sdlg-addr{display:flex;align-items:center;gap:9px;margin-top:6px;min-width:0}
+.ui-root .sdlg-addr .sdlg-mono{flex:1;min-width:0}
+.ui-root .sdlg-link{font-family:inherit;font-size:11.5px;font-weight:700;color:var(--theme-primary);background:none;border:none;cursor:pointer;padding:0;white-space:nowrap}
+.ui-root .sdlg-link:hover{text-decoration:underline}
+.ui-root .sdlg-divider{display:flex;align-items:center;gap:10px;color:var(--theme-text-muted);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.ui-root .sdlg-divider::before,.ui-root .sdlg-divider::after{content:"";height:1px;background:var(--theme-border);flex:1}
+.ui-root .sdlg-hist{border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);overflow:hidden;margin-top:6px}
+.ui-root .sdlg-hist .ui-table{font-size:11.5px}
+.ui-root .sdlg-hist .ui-table th{padding:6px 10px;background:var(--theme-surface-subtle)}
+.ui-root .sdlg-hist .ui-table td{padding:6px 10px;color:var(--theme-text-secondary);font-variant-numeric:tabular-nums}
+.ui-root .sdlg-hist .ui-table tr:last-child td{border-bottom:none}
+.ui-root .sdlg-hist .sdlg-t{color:var(--theme-text-muted)}
+.ui-root .sdlg-hist .sdlg-good{color:var(--theme-success);font-weight:700}
+.ui-root .sdlg-hist .sdlg-bad{color:var(--theme-danger);font-weight:700}
+.ui-root .sdlg-hist .sdlg-none{padding:12px 10px;color:var(--theme-text-muted);font-size:12px}
 `;
 
 /** Address of the robot account with a copy control, used in two places. */
@@ -196,9 +176,9 @@ function ServiceAccountAddress({ email }: { email: string }) {
     }
   };
   return (
-    <div className="addr">
-      <span className="mono">{email}</span>
-      <button type="button" className="copy" onClick={copy}>
+    <div className="sdlg-addr">
+      <span className="sdlg-mono">{email}</span>
+      <button type="button" className="sdlg-link" onClick={copy}>
         {copied ? 'copiat' : 'copiază'}
       </button>
     </div>
@@ -224,8 +204,8 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
   const [entry, setEntry] = React.useState<FormStatus | null>(null);
   const [history, setHistory] = React.useState<HistoryRow[]>([]);
   const [busy, setBusy] = React.useState(false);
-  const [err, setErr] = React.useState<string | null>(null);
-  const [note, setNote] = React.useState<string | null>(null);
+  /** A failed status load: persistent, shown in the dialog. */
+  const [loadErr, setLoadErr] = React.useState<string | null>(null);
 
   // connect pane
   const [editing, setEditing] = React.useState(false);
@@ -240,7 +220,7 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
   const saEmail = status?.serviceAccountEmail ?? '';
 
   const load = React.useCallback(async () => {
-    setErr(null);
+    setLoadErr(null);
     try {
       const r: any = await get(`${SHEETS_API}/status`);
       const payload: StatusPayload = r?.data ?? { credentials: 'missing', serviceAccountEmail: null, forms: [] };
@@ -260,7 +240,7 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
         setHistory([]);
       }
     } catch {
-      setErr('Nu am putut citi starea conexiunii cu Google Sheets.');
+      setLoadErr('Nu am putut citi starea conexiunii cu Google Sheets.');
     } finally {
       setLoading(false);
     }
@@ -272,19 +252,9 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
     setEditing(false);
     setLink('');
     setVerify(null);
-    setErr(null);
-    setNote(null);
+    setLoadErr(null);
     load();
   }, [open, load]);
-
-  React.useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !busy && !confirmDisconnect) onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, busy, confirmDisconnect, onClose]);
 
   const sheetUrl = entry?.spreadsheetId
     ? `https://docs.google.com/spreadsheets/d/${entry.spreadsheetId}/edit`
@@ -297,7 +267,6 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
     if (!value) return;
     setBusy(true);
     setVerify(null);
-    setErr(null);
     try {
       // The controller reads `link`; `spreadsheetId` is sent too so a bare id
       // works whichever key the server prefers.
@@ -330,24 +299,23 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
   const runConnect = React.useCallback(async () => {
     if (verify?.kind !== 'ok') return;
     setBusy(true);
-    setErr(null);
     try {
       const r: any = await post(`${SHEETS_API}/${form}/connect`, {
         spreadsheetId: verify.spreadsheetId,
         spreadsheetName: verify.spreadsheetName,
       });
       if (r?.data?.ok === false) {
-        setErr(r.data.message ?? 'Conectarea a eșuat.');
+        adminToast.error(r.data.message ?? 'Conectarea a eșuat.');
         return;
       }
       setEditing(false);
       setLink('');
       setVerify(null);
-      setNote('Foaia a fost conectată.');
+      adminToast.success('Foaia a fost conectată.');
       await load();
       onChanged?.();
     } catch {
-      setErr('Conectarea a eșuat.');
+      adminToast.error('Conectarea a eșuat.');
     } finally {
       setBusy(false);
     }
@@ -355,26 +323,22 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
 
   const runCreate = React.useCallback(async () => {
     setBusy(true);
-    setErr(null);
     setVerify(null);
     try {
       const r: any = await post(`${SHEETS_API}/${form}/create`, {});
       const res = r?.data ?? {};
       if (!res.ok) {
-        setErr(res.message ?? 'Nu am putut crea foaia de calcul.');
+        adminToast.error(res.message ?? 'Nu am putut crea foaia de calcul.');
         return;
       }
       setEditing(false);
       setLink('');
-      setNote(
-        res.sharedWith
-          ? `Foaie nouă creată și partajată cu ${res.sharedWith}.`
-          : 'Foaie nouă creată. Nu am putut-o partaja automat, deschide-o din link.',
-      );
+      if (res.sharedWith) adminToast.success(`Foaie nouă creată și partajată cu ${res.sharedWith}.`);
+      else adminToast.warning('Foaie nouă creată. Nu am putut-o partaja automat, deschide-o din link.');
       await load();
       onChanged?.();
     } catch {
-      setErr('Nu am putut crea foaia de calcul.');
+      adminToast.error('Nu am putut crea foaia de calcul.');
     } finally {
       setBusy(false);
     }
@@ -382,20 +346,18 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
 
   const runSync = React.useCallback(async () => {
     setBusy(true);
-    setErr(null);
-    setNote(null);
     try {
       const r: any = await post(`${SHEETS_API}/${form}/sync`, { mode: 'full' });
       const res = r?.data ?? {};
       if (res.ok) {
-        setNote(`Sincronizare completă: ${countsText(res.added ?? 0, res.updated ?? 0, res.removed ?? 0)}.`);
+        adminToast.success(`Sincronizare completă: ${countsText(res.added ?? 0, res.updated ?? 0, res.removed ?? 0)}.`);
       } else {
-        setErr(res.message ?? 'Sincronizarea a eșuat.');
+        adminToast.error(res.message ?? 'Sincronizarea a eșuat.');
       }
       await load();
       onChanged?.();
     } catch {
-      setErr('Sincronizarea a eșuat.');
+      adminToast.error('Sincronizarea a eșuat.');
     } finally {
       setBusy(false);
     }
@@ -403,15 +365,14 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
 
   const runDisconnect = React.useCallback(async () => {
     setBusy(true);
-    setErr(null);
     try {
       await post(`${SHEETS_API}/${form}/disconnect`, {});
       setConfirmDisconnect(false);
-      setNote('Foaia a fost deconectată. Datele din foaie rămân neatinse.');
+      adminToast.success('Foaia a fost deconectată. Datele din foaie rămân neatinse.');
       await load();
       onChanged?.();
     } catch {
-      setErr('Deconectarea a eșuat.');
+      adminToast.error('Deconectarea a eșuat.');
     } finally {
       setBusy(false);
     }
@@ -421,18 +382,18 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
     async (value: number) => {
       const previous = interval;
       setIntervalValue(value);
-      setErr(null);
-      setNote(null);
       try {
         const r: any = await post(`${SHEETS_API}/${form}/schedule`, { intervalHours: value });
         if (r?.data?.ok === false) {
           setIntervalValue(previous);
-          setErr(r.data.message ?? 'Nu am putut salva ritmul verificării.');
+          adminToast.error(r.data.message ?? 'Nu am putut salva ritmul verificării.');
+        } else {
+          toastAutosaved();
         }
       } catch (e: any) {
         setIntervalValue(previous);
         const code = e?.response?.status ?? e?.status;
-        setErr(
+        adminToast.error(
           code === 404
             ? 'Ritmul verificării nu poate fi salvat încă: serverul nu are endpointul de programare.'
             : 'Nu am putut salva ritmul verificării.',
@@ -452,190 +413,141 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
 
   const credentialsMissing = status?.credentials === 'missing';
 
-  const header = (
-    <div className="mh">
+  const notConfigured = (
+    <Notice tone="warning" title="Google Sheets nu este configurat pe server.">
+      Lipsesc cheile contului de serviciu: <span className="sdlg-mono">GOOGLE_SA_EMAIL</span>,{' '}
+      <span className="sdlg-mono">GOOGLE_SA_PRIVATE_KEY</span>.
+    </Notice>
+  );
+
+  const connectBody = (
+    <div className="sdlg-stack">
+      {credentialsMissing && notConfigured}
       <div>
-        <h3>Google Sheets: {label}</h3>
-        <p>
-          {connected
-            ? 'Conectat, cu sincronizare la fiecare trimitere'
-            : 'Trimiterile sunt scrise automat într-o foaie de calcul.'}
-        </p>
+        <div className="sdlg-row">
+          <Field label="Link către foaie">
+            <Input
+              placeholder="https://docs.google.com/spreadsheets/d/"
+              value={link}
+              onChange={(e) => {
+                setLink(e.target.value);
+                setVerify(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') runVerify();
+              }}
+            />
+          </Field>
+          <Button variant="secondary" onClick={runVerify} disabled={busy || !link.trim()}>
+            Verifică
+          </Button>
+        </div>
+        {saEmail && (
+          <>
+            <div className="ui-hint" style={{ marginTop: 4 }}>
+              Foaia trebuie partajată cu drepturi de <b>editor</b> către adresa contului de serviciu (generată de Google
+              la crearea contului):
+            </div>
+            <ServiceAccountAddress email={saEmail} />
+          </>
+        )}
       </div>
-      <button type="button" className="x" aria-label="Închide" onClick={onClose} disabled={busy}>
-        ✕
-      </button>
+
+      {verify?.kind === 'ok' && (
+        <Notice tone="success" title={<>Conectat la „{verify.spreadsheetName}"</>}>
+          {tabText}, {plural(entry?.rowCountDb ?? 0, 'rânduri')} în baza de date
+        </Notice>
+      )}
+      {verify?.kind === 'no_access' && (
+        <Notice tone="danger" title="Foaia există, dar contul de serviciu nu are acces.">
+          Partajeaz-o cu drepturi de <b>editor</b> către:
+          {saEmail ? <ServiceAccountAddress email={saEmail} /> : <> {verify.message}</>}
+        </Notice>
+      )}
+      {verify?.kind === 'invalid' && <Notice tone="danger">{verify.message}</Notice>}
+      {verify?.kind === 'not_configured' && notConfigured}
+      {verify?.kind === 'failed' && <Notice tone="danger">{verify.message}</Notice>}
+
+      <div className="sdlg-divider">sau</div>
+      <Notice tone="info" title="Foaie nouă">
+        Creată de contul de serviciu și partajată cu adresa ta, ca să apară în Google Drive.
+      </Notice>
     </div>
   );
 
-  const messages = (
+  const connectFooter = (
     <>
-      {err && (
-        <div className="err-box" style={{ marginBottom: 12 }}>
-          {err}
-        </div>
-      )}
-      {note && !err && (
-        <div className="ok-box" style={{ marginBottom: 12 }}>
-          {note}
-        </div>
-      )}
+      <Button variant="secondary" onClick={runCreate} disabled={busy || credentialsMissing}>
+        Creează foaie nouă
+      </Button>
+      <span className="sdlg-grow" />
+      <Button
+        variant="secondary"
+        onClick={() => {
+          if (connected) {
+            setEditing(false);
+            setVerify(null);
+            setLink('');
+          } else {
+            onClose();
+          }
+        }}
+        disabled={busy}
+      >
+        Anulează
+      </Button>
+      <Button onClick={runConnect} disabled={busy || verify?.kind !== 'ok'}>
+        Conectează
+      </Button>
     </>
   );
 
-  const connectPane = (
-    <>
-      <div className="mb">
-        {messages}
-        {credentialsMissing && (
-          <div className="warn-box" style={{ marginBottom: 12 }}>
-            <b>Google Sheets nu este configurat pe server.</b>
-            <br />
-            Lipsesc cheile contului de serviciu: <span className="mono">GOOGLE_SA_EMAIL</span>,{' '}
-            <span className="mono">GOOGLE_SA_PRIVATE_KEY</span>.
-          </div>
-        )}
-        <div className="fld">
-          <label htmlFor="sdlg-link">Link către foaie</label>
-          <div className="row">
-            <div className="fld">
-              <input
-                id="sdlg-link"
-                type="text"
-                placeholder="https://docs.google.com/spreadsheets/d/"
-                value={link}
-                onChange={(e) => {
-                  setLink(e.target.value);
-                  setVerify(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') runVerify();
-                }}
-              />
-            </div>
-            <button type="button" className="btn" onClick={runVerify} disabled={busy || !link.trim()}>
-              Verifică
-            </button>
-          </div>
-          {saEmail && (
-            <>
-              <div className="hint">
-                Foaia trebuie partajată cu drepturi de <b>editor</b> către adresa contului de serviciu (generată de
-                Google la crearea contului):
-              </div>
-              <ServiceAccountAddress email={saEmail} />
-            </>
-          )}
-        </div>
-
-        {verify?.kind === 'ok' && (
-          <div className="ok-box">
-            Conectat la <b>„{verify.spreadsheetName}"</b>
-            <br />
-            {tabText}, {plural(entry?.rowCountDb ?? 0, 'rânduri')} în baza de date
-          </div>
-        )}
-        {verify?.kind === 'no_access' && (
-          <div className="err-box">
-            Foaia există, dar contul de serviciu nu are acces.
-            <br />
-            Partajeaz-o cu drepturi de <b>editor</b> către:
-            {saEmail ? <ServiceAccountAddress email={saEmail} /> : <> {verify.message}</>}
-          </div>
-        )}
-        {verify?.kind === 'invalid' && <div className="err-box">{verify.message}</div>}
-        {verify?.kind === 'not_configured' && (
-          <div className="warn-box">
-            <b>Google Sheets nu este configurat pe server.</b>
-            <br />
-            Lipsesc cheile contului de serviciu: <span className="mono">GOOGLE_SA_EMAIL</span>,{' '}
-            <span className="mono">GOOGLE_SA_PRIVATE_KEY</span>.
-          </div>
-        )}
-        {verify?.kind === 'failed' && <div className="err-box">{verify.message}</div>}
-
-        <div className="divider">sau</div>
-        <div className="info-box">
-          <b>Foaie nouă</b>
-          <br />
-          Creată de contul de serviciu și partajată cu adresa ta, ca să apară în Google Drive.
-        </div>
-      </div>
-      <div className="mf">
-        <button type="button" className="btn" onClick={runCreate} disabled={busy || credentialsMissing}>
-          Creează foaie nouă
-        </button>
-        <span className="grow" />
-        <button
-          type="button"
-          className="btn"
-          onClick={() => {
-            if (connected) {
-              setEditing(false);
-              setVerify(null);
-              setLink('');
-            } else {
-              onClose();
-            }
-          }}
-          disabled={busy}
-        >
-          Anulează
-        </button>
-        <button type="button" className="btn pri" onClick={runConnect} disabled={busy || verify?.kind !== 'ok'}>
-          Conectează
-        </button>
-      </div>
-    </>
-  );
-
-  const connectedPane = (
-    <>
-      <div className="mb">
-        {messages}
-        <div className="ok-box" style={{ marginBottom: 13 }}>
-          <b>{entry?.spreadsheetName || 'Foaie conectată'}</b>, {tabText}{' '}
-          {sheetUrl && (
-            <a className="copy" href={sheetUrl} target="_blank" rel="noopener noreferrer">
+  const connectedBody = (
+    <div className="sdlg-stack">
+      <Notice
+        tone="success"
+        title={
+          <>
+            {entry?.spreadsheetName || 'Foaie conectată'}, {tabText}
+          </>
+        }
+        action={
+          sheetUrl ? (
+            <a className="sdlg-link" href={sheetUrl} target="_blank" rel="noopener noreferrer">
               Deschide Google Sheet
             </a>
-          )}
-          <br />
-          {entry?.lastSyncAt
-            ? `Ultima sincronizare ${fmtWhen(entry.lastSyncAt)}${
-                entry.lastSyncMessage ? `: ${entry.lastSyncMessage}` : ''
-              }`
-            : 'Nicio sincronizare încă.'}
-        </div>
+          ) : undefined
+        }
+      >
+        {entry?.lastSyncAt
+          ? `Ultima sincronizare ${fmtWhen(entry.lastSyncAt)}${entry.lastSyncMessage ? `: ${entry.lastSyncMessage}` : ''}`
+          : 'Nicio sincronizare încă.'}
+      </Notice>
 
-        <div className="row" style={{ marginBottom: 14 }}>
-          <button type="button" className="btn pri" onClick={runSync} disabled={busy}>
-            Sincronizează acum
-          </button>
-          <button type="button" className="btn" onClick={() => setEditing(true)} disabled={busy}>
-            Schimbă foaia
-          </button>
-          <span className="grow" />
-          <button type="button" className="btn danger" onClick={() => setConfirmDisconnect(true)} disabled={busy}>
-            Deconectează
-          </button>
-        </div>
+      <div className="sdlg-row">
+        <Button onClick={runSync} disabled={busy}>
+          Sincronizează acum
+        </Button>
+        <Button variant="secondary" onClick={() => setEditing(true)} disabled={busy}>
+          Schimbă foaia
+        </Button>
+        <span className="sdlg-grow" />
+        <Button variant="danger" onClick={() => setConfirmDisconnect(true)} disabled={busy}>
+          Deconectează
+        </Button>
+      </div>
 
-        <p className="cap">Verificare automată</p>
-        <div className="sched" style={{ marginBottom: 6 }}>
-          <select
+      <div>
+        <p className="sdlg-cap">Verificare automată</p>
+        <div className="sdlg-sched" style={{ marginBottom: 6 }}>
+          <Select
             aria-label="Ritmul verificării automate"
             value={String(interval)}
-            onChange={(e) => changeInterval(Number(e.target.value))}
+            onChange={(v) => changeInterval(Number(v))}
             disabled={busy}
-          >
-            {INTERVALS.map((o) => (
-              <option key={o.value} value={String(o.value)}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          <span className="last">
+            options={INTERVALS.map((o) => ({ value: String(o.value), label: o.label }))}
+          />
+          <span className="sdlg-last">
             {lastReconcile ? (
               <>
                 Ultima verificare <b>{fmtWhen(lastReconcile)}</b>
@@ -645,73 +557,85 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
             )}
           </span>
         </div>
-        <div className="hint" style={{ marginBottom: 15 }}>
+        <div className="ui-hint">
           Trimiterile ajung în foaie imediat. Verificarea compară foaia cu baza de date și repară ce a lipsit, dacă
           Google a fost indisponibil.
           {interval === 0 && ' „Oprit" oprește doar verificarea periodică, nu și trimiterile către foaie.'}
         </div>
+      </div>
 
-        <p className="cap" style={{ marginBottom: 0 }}>
+      <div>
+        <p className="sdlg-cap" style={{ marginBottom: 0 }}>
           Istoric, ultimele 20
         </p>
-        <div className="hist">
+        <div className="sdlg-hist">
           {history.length === 0 ? (
-            <div className="none">Nicio rulare înregistrată încă.</div>
+            <div className="sdlg-none">Nicio rulare înregistrată încă.</div>
           ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Când</th>
-                  <th>Pornit de</th>
-                  <th>Adăugate</th>
-                  <th>Modificate</th>
-                  <th>Șterse</th>
-                  <th>Rezultat</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((h, i) => (
-                  <tr key={`${h.at ?? 'x'}-${i}`}>
-                    <td className="t">{fmtWhen(h.at)}</td>
-                    <td>{TRIGGER_LABEL[h.trigger] ?? h.trigger}</td>
-                    <td className={h.added ? undefined : 'zero'}>{h.added || ''}</td>
-                    <td className={h.updated ? undefined : 'zero'}>{h.updated || ''}</td>
-                    <td className={h.removed ? undefined : 'zero'}>{h.removed || ''}</td>
-                    <td className={h.ok ? 'good' : 'bad'}>{h.message || (h.ok ? 'ok' : 'eroare')}</td>
+            <div className="ui-table-wrap">
+              <table className="ui-table">
+                <thead>
+                  <tr>
+                    <th>Când</th>
+                    <th>Pornit de</th>
+                    <th>Adăugate</th>
+                    <th>Modificate</th>
+                    <th>Șterse</th>
+                    <th>Rezultat</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {history.map((h, i) => (
+                    <tr key={`${h.at ?? 'x'}-${i}`}>
+                      <td className="sdlg-t">{fmtWhen(h.at)}</td>
+                      <td>{TRIGGER_LABEL[h.trigger] ?? h.trigger}</td>
+                      <td>{h.added || ''}</td>
+                      <td>{h.updated || ''}</td>
+                      <td>{h.removed || ''}</td>
+                      <td className={h.ok ? 'sdlg-good' : 'sdlg-bad'}>{h.message || (h.ok ? 'ok' : 'eroare')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
-        <div className="hint">Se păstrează ultimele 20 de rulări per formular.</div>
+        <div className="ui-hint" style={{ marginTop: 4 }}>
+          Se păstrează ultimele 20 de rulări per formular.
+        </div>
       </div>
-      <div className="mf">
-        <span className="grow" />
-        <button type="button" className="btn" onClick={onClose} disabled={busy}>
-          Închide
-        </button>
-      </div>
-    </>
+    </div>
   );
+
+  const connectedFooter = (
+    <Button variant="secondary" onClick={onClose} disabled={busy}>
+      Închide
+    </Button>
+  );
+
+  const showConnected = !loading && connected && !editing;
 
   return (
     <>
-      <div className="sdlg-scrim" onMouseDown={() => !busy && !confirmDisconnect && onClose()}>
-        <div className="sdlg" role="dialog" aria-modal="true" onMouseDown={(e) => e.stopPropagation()}>
-          <style>{CSS}</style>
-          {header}
-          {loading ? (
-            <div className="mb">
-              <div className="loading">Se încarcă...</div>
-            </div>
-          ) : connected && !editing ? (
-            connectedPane
-          ) : (
-            connectPane
-          )}
-        </div>
-      </div>
+      <Modal
+        open={open}
+        onClose={onClose}
+        dismissable={!busy}
+        size="md"
+        title={`Google Sheets: ${label}`}
+        footer={loading ? undefined : showConnected ? connectedFooter : connectFooter}
+      >
+        <style>{SHEETS_CSS}</style>
+        <p className="sdlg-sub">
+          {connected ? 'Conectat, cu sincronizare la fiecare trimitere' : 'Trimiterile sunt scrise automat într-o foaie de calcul.'}
+        </p>
+        {loadErr && (
+          <div style={{ marginBottom: 12 }}>
+            <Notice tone="danger">{loadErr}</Notice>
+          </div>
+        )}
+        {loading ? <Loading /> : showConnected ? connectedBody : connectBody}
+      </Modal>
 
       <ConfirmDialog
         open={confirmDisconnect}
