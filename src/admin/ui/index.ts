@@ -53,6 +53,7 @@ export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { StatTile, type StatTileProps } from './StatTile';
 export { Spinner, Loading, type SpinnerProps } from './Spinner';
 export { Modal, type ModalProps } from './Modal';
+export { Drawer, DrawerSection, type DrawerProps, type DrawerSectionProps } from './Drawer';
 export { Tabs, type TabsProps, type TabItem } from './Tabs';
 export { Pager, pageList, type PagerProps } from './Pager';
 export { DataTable, type DataTableProps, type DataColumn, type SortDir } from './DataTable';

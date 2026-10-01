@@ -221,6 +221,40 @@ ${R} .ui-modal-extra{flex:1;display:flex;align-items:center;gap:8px;justify-cont
 ${R} .ui-modal-b{padding:14px 15px;overflow-y:auto;font-size:var(--ui-fs-body-sm);color:var(--theme-text-secondary);line-height:1.5}
 ${R} .ui-modal-f{display:flex;gap:10px;justify-content:flex-end;padding:12px 15px;border-top:1px solid var(--theme-border);background:var(--theme-surface-subtle)}
 
+/* drawer: side panel from the right (portal root carries .ui-root). The
+   overlay is lighter than the modal's, so the page behind stays readable. */
+.ui-root.ui-drawer-layer{position:fixed;inset:0;z-index:var(--ui-drawer-z,390);display:flex;justify-content:flex-end;background:color-mix(in srgb, var(--theme-overlay) 45%, transparent)}
+${R} .ui-drawer{width:var(--ui-drawer-w,420px);max-width:100%;height:100%;display:flex;flex-direction:column;background:var(--theme-surface);border-left:1px solid var(--theme-border);box-shadow:var(--theme-shadow-md);color:var(--theme-text);animation:ui-drawer-in 180ms var(--ui-easing)}
+${R} .ui-drawer:focus{outline:none}
+@keyframes ui-drawer-in{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
+${R} .ui-drawer-h{display:flex;align-items:center;gap:10px;padding:12px 12px 12px 16px;border-bottom:1px solid var(--theme-border);flex-shrink:0}
+${R} .ui-drawer-title{margin:0;flex:1;min-width:0;font-size:15px;font-weight:700;line-height:1.3;color:var(--theme-text);overflow-wrap:anywhere}
+${R} .ui-drawer-sub{flex-shrink:0;padding:0 16px;border-bottom:1px solid var(--theme-border)}
+${R} .ui-drawer-sub .ui-tabs{border-bottom:none}
+${R} .ui-drawer-b{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+${R} .ui-drawer-f{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 16px;padding-bottom:max(10px, env(safe-area-inset-bottom));border-top:1px solid var(--theme-border);background:var(--theme-surface);flex-shrink:0}
+${R} .ui-dsec{border-bottom:1px solid var(--theme-border)}
+${R} .ui-dsec-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px 0}
+${R} .ui-dsec-title{margin:0;font-size:var(--ui-fs-section-title);font-weight:var(--ui-fw-section-title);letter-spacing:var(--ui-ls-section-title);text-transform:uppercase;color:var(--theme-text-muted)}
+${R} .ui-dsec-b{display:flex;flex-direction:column;gap:var(--ui-space-3);padding:10px 16px 14px;min-width:0}
+${R} .ui-dsec-toggle{display:flex;align-items:center;gap:8px;width:100%;padding:12px 16px;border:none;background:none;font-family:inherit;font-size:var(--ui-fs-body);font-weight:600;color:var(--theme-text-secondary);text-align:left;cursor:pointer}
+${R} .ui-dsec-toggle:hover{background:var(--theme-surface-subtle);color:var(--theme-text)}
+${R} .ui-dsec-fold-title{flex:1;min-width:0}
+${R} .ui-dsec-chev{display:inline-flex;color:var(--theme-text-muted);transition:transform var(--ui-motion-fast) var(--ui-easing)}
+${R} .ui-dsec--fold[data-open="true"] .ui-dsec-chev{transform:rotate(180deg)}
+${R} .ui-dsec--fold .ui-dsec-b{padding-top:0}
+@media (max-width:640px){
+  .ui-root.ui-drawer-layer{background:var(--theme-surface)}
+  ${R} .ui-drawer{width:100%;border-left:none;box-shadow:none}
+  ${R} .ui-drawer-h{padding:10px 8px 10px 12px}
+  ${R} .ui-drawer-sub{padding:0 12px}
+  ${R} .ui-drawer-f{padding:10px 12px;padding-bottom:max(10px, env(safe-area-inset-bottom))}
+  ${R} .ui-dsec-h{padding:12px 12px 0}
+  ${R} .ui-dsec-b{padding:10px 12px 12px}
+  ${R} .ui-dsec-toggle{padding:12px}
+}
+@media (prefers-reduced-motion:reduce){${R} .ui-drawer{animation:none}${R} .ui-dsec-chev{transition:none}}
+
 /* tabs */
 ${R} .ui-tabs{display:flex;gap:2px;border-bottom:1px solid var(--theme-border);overflow-x:auto}
 ${R} .ui-tab{display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-size:var(--ui-fs-body-sm);font-weight:600;color:var(--theme-text-muted);background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;padding:9px 12px;cursor:pointer;white-space:nowrap}

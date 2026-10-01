@@ -26,6 +26,8 @@ import {
   Spinner,
   Loading,
   Modal,
+  Drawer,
+  DrawerSection,
   Tabs,
   Pager,
   DataTable,
@@ -408,13 +410,15 @@ function Fields() {
 
 function Dialogs() {
   const [modal, setModal] = React.useState(false);
+  const [drawer, setDrawer] = React.useState(false);
   const [confirm, setConfirm] = React.useState<null | 'simple' | 'typed' | 'busy'>(null);
   const [picker, setPicker] = React.useState<null | 'single' | 'multiple'>(null);
   const [picked, setPicked] = React.useState<PickedImage[]>([]);
   return (
-    <Section title="Modal, ConfirmDialog, ImagePicker">
+    <Section title="Modal, Drawer, ConfirmDialog, ImagePicker">
       <div className="ui-ref-row">
         <Button variant="secondary" onClick={() => setModal(true)}>Deschide Modal</Button>
+        <Button variant="secondary" onClick={() => setDrawer(true)}>Deschide Drawer</Button>
         <Button variant="danger" onClick={() => setConfirm('simple')}>ConfirmDialog</Button>
         <Button variant="danger" onClick={() => setConfirm('typed')}>Cu text de confirmare</Button>
         <Button variant="danger" onClick={() => setConfirm('busy')}>În curs (busy + eroare)</Button>
@@ -449,6 +453,32 @@ function Dialogs() {
           <Input placeholder="Focus prins în fereastră" />
         </Field>
       </Modal>
+      <Drawer
+        open={drawer}
+        onClose={() => setDrawer(false)}
+        title="Panou lateral"
+        footer={
+          <>
+            <span style={{ flex: 1 }} />
+            <Button variant="secondary" onClick={() => setDrawer(false)}>Anulează</Button>
+            <Button variant="primary" onClick={() => setDrawer(false)}>Salvează</Button>
+          </>
+        }
+      >
+        <DrawerSection title="Secțiune">
+          <p style={{ margin: 0 }}>
+            Pagina rămâne vizibilă în spate. Escape, X sau un clic pe fundal cer închiderea (onClose); pe telefon panoul ocupă tot ecranul.
+          </p>
+          <Field label="Câmp în panou">
+            <Input placeholder="Focus prins în panou" />
+          </Field>
+        </DrawerSection>
+        <DrawerSection title="Secțiune pliabilă (2)" collapsible>
+          <Field label="Câmp ascuns până la deschidere">
+            <Input />
+          </Field>
+        </DrawerSection>
+      </Drawer>
       <ConfirmDialog
         open={confirm !== null}
         title="Ștergi sportivul?"

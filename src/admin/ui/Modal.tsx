@@ -2,12 +2,14 @@ import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { cx } from './cx';
 import { ensureAdminUi } from './styles';
+import { isTopLayer, pushLayer, trapTab } from './layerStack';
 
 /**
  * Dialog shell for the admin: portal to <body>, backdrop, Escape and backdrop
  * click to close, focus trap, focus return to the opener, labelled title.
  *
- * Stacked modals: only the top one reacts to Escape and Tab.
+ * Stacked modals (and a Modal over a Drawer): only the top layer reacts to
+ * Escape and Tab (see ./layerStack).
  */
 
 export interface ModalProps {
@@ -30,11 +32,6 @@ export interface ModalProps {
   className?: string;
   bodyClassName?: string;
 }
-
-const FOCUSABLE =
-  'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
-
-const stack: symbol[] = [];
 
 export function Modal({
   open,
@@ -65,15 +62,14 @@ export function Modal({
   React.useEffect(() => {
     if (!open) return undefined;
     const opener = document.activeElement as HTMLElement | null;
-    stack.push(token);
+    const pop = pushLayer(token);
     const t = window.setTimeout(() => {
       const target = initialFocusRef?.current ?? dialogRef.current;
       target?.focus();
     }, 0);
     return () => {
       window.clearTimeout(t);
-      const i = stack.indexOf(token);
-      if (i >= 0) stack.splice(i, 1);
+      pop();
       if (opener && document.contains(opener)) opener.focus();
     };
     // initialFocusRef is a ref object: stable by contract.
@@ -84,33 +80,12 @@ export function Modal({
   React.useEffect(() => {
     if (!open) return undefined;
     const onKey = (e: KeyboardEvent) => {
-      if (stack[stack.length - 1] !== token) return;
+      if (!isTopLayer(token)) return;
       if (e.key === 'Escape') {
         if (dismissRef.current) closeRef.current();
         return;
       }
-      if (e.key !== 'Tab' || !dialogRef.current) return;
-      const items = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-        (el) => el.offsetParent !== null || el === document.activeElement,
-      );
-      if (items.length === 0) {
-        e.preventDefault();
-        dialogRef.current.focus();
-        return;
-      }
-      const first = items[0];
-      const last = items[items.length - 1];
-      const active = document.activeElement;
-      if (e.shiftKey && (active === first || active === dialogRef.current)) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && active === last) {
-        e.preventDefault();
-        first.focus();
-      } else if (!dialogRef.current.contains(active)) {
-        e.preventDefault();
-        first.focus();
-      }
+      if (e.key === 'Tab' && dialogRef.current) trapTab(e, dialogRef.current);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
