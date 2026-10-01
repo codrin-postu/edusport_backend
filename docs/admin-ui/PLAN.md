@@ -13,6 +13,7 @@ Decisions (user, companion screens 101-102):
 - [x] 1. Tokens + shared components in src/admin/ui/ (+ token checker script)
 - [x] 2a. Move list pages: Sportivi, Competiții, Anunțuri, Sponsori, Membri echipă
 - [ ] 2b. Move edit pages: SportivEdit, CompetitieEdit, AnuntEdit, HomepageEdit, ProgramEdit, VoluntariatEdit (Navigation done in phase 1)
+  - [x] SportivEdit, CompetitieEdit, AnuntEdit + ParticipantsEditor / QuickCreateSportspersonModal (2026-10-01, branch p2-edit1)
 - [ ] 2c. Move the rest: SubmissionTable (Înscrieri, Voluntari), Mesaje + FormResults (shared InboxLayout), Formulare, FormEditor, Dashboard, calendar editor (ProgramOverviewEditor, onto the `--theme-cat-*` tokens), MobileNav/BlocksToolbarExtra theme hook (SaveBar done, see below)
 - [ ] 3. Meniu site page switches (needs the hidden-page decisions) + frontend support
 
