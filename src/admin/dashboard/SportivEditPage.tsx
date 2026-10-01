@@ -854,7 +854,7 @@ export default function SportivEditPage() {
             </Section>
 
             <Section title="Galerie" aside={<StatusBadge tone="neutral">{`${v.gallery.length} imagini`}</StatusBadge>}>
-              <GalleryGrid images={v.gallery} onChange={(next) => upd({ gallery: next })} addLabel="Adaugă imagine" aria-label="Galerie" />
+              <GalleryGrid images={v.gallery} onChange={(next) => upd({ gallery: next })} addLabel="Adaugă imagine" aria-label="Galerie" confirmRemove="Imaginea nu va mai apărea în galeria sportivului." />
             </Section>
 
             <Section title="Programe pe sezon">

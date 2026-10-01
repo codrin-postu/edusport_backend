@@ -143,7 +143,7 @@ const RealizariPage: React.FC = () => {
               title="Galerie foto competiții"
               description="Fotografiile afișate în galeria paginii Realizări, în ordinea de aici."
             >
-              <GalleryGrid images={gallery.map(toTile)} onChange={setGallery} reorder aria-label="Galerie foto competiții" />
+              <GalleryGrid images={gallery.map(toTile)} onChange={setGallery} reorder aria-label="Galerie foto competiții" confirmRemove="Imaginea nu va mai apărea în galeria foto a competițiilor." />
             </EditorCard>
 
             <LinkOutCard

@@ -249,6 +249,7 @@ const VoluntariatEditPage: React.FC = () => {
                     columns={4}
                     addLabel="Adaugă imagine"
                     aria-label="Galerie"
+                    confirmRemove="Imaginea nu va mai apărea în galeria paginii de voluntariat."
                   />
                 </EditorCard>
               </div>

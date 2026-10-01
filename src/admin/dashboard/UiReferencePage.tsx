@@ -769,7 +769,7 @@ function GalleryDemo() {
       <span className="ui-label">Sloturi fixe (3), reordonarea schimbă sloturile între ele</span>
       <GalleryGrid slots={3} images={slots} onChange={setSlots} slotLabels={SLOT_LABELS} columns={3} reorder />
       <span className="ui-label">Listă deschisă, maxim 6, reordonare</span>
-      <GalleryGrid images={list} onChange={setList} reorder max={6} />
+      <GalleryGrid images={list} onChange={setList} reorder max={6} confirmRemove />
     </Section>
   );
 }

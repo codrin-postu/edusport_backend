@@ -820,6 +820,7 @@ const HomepageEditPage: React.FC = () => {
                 slotLabels={['Foto 1', 'Foto 2', 'Foto 3']}
                 addLabel="Alege"
                 aria-label="Galeria competițiilor"
+                confirmRemove="Imaginea nu va mai apărea în galeria competițiilor de pe pagina principală."
                 onChange={(next) =>
                   setForm((f) => ({
                     ...f,

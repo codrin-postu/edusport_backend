@@ -4,6 +4,7 @@ import { ensureAdminUi } from './styles';
 import { ImagePicker, type PickedImage } from './ImagePicker';
 import { useDragReorder, moveItem, type DragItemProps } from './useDragReorder';
 import { IconClose, IconGrip, IconPlus } from './icons';
+import { ConfirmDialog } from '../ConfirmDialog';
 
 /**
  * Grid of square image tiles, picked through ImagePicker.
@@ -18,6 +19,9 @@ import { IconClose, IconGrip, IconPlus } from './icons';
  *   image, a filled tile replaces its image on click. Reorder swaps slots.
  *
  * Reorder: drag a tile by its grip, or focus the grip and use the arrow keys.
+ *
+ * confirmRemove: ask through ConfirmDialog before the x removes a tile; true
+ * uses the default copy, a string replaces the message. Default false.
  */
 
 export interface GalleryImage {
@@ -35,6 +39,8 @@ interface BaseProps {
   disabled?: boolean;
   /** Text on the add tile / empty slots. */
   addLabel?: string;
+  /** Ask before removing a tile: true, or the message to show. Default false. */
+  confirmRemove?: boolean | string;
   className?: string;
   'aria-label'?: string;
 }
@@ -96,10 +102,11 @@ function Tile({
 }
 
 export function GalleryGrid(props: GalleryGridProps) {
-  const { columns = 4, reorder = false, disabled = false, className } = props;
+  const { columns = 4, reorder = false, disabled = false, confirmRemove = false, className } = props;
   React.useInsertionEffect(() => ensureAdminUi(), []);
   const slotMode = props.slots !== undefined;
   const [picking, setPicking] = React.useState<null | { slot: number | null }>(null);
+  const [asking, setAsking] = React.useState<number | null>(null);
   const imagesRef = React.useRef(props.images);
   imagesRef.current = props.images;
 
@@ -141,6 +148,13 @@ export function GalleryGrid(props: GalleryGridProps) {
     if (slotMode) emit(cur.map((x, j) => (j === i ? null : x)));
     else emit(cur.filter((_, j) => j !== i));
   };
+  const askRemove = (i: number) => {
+    if (disabled) return;
+    if (confirmRemove) setAsking(i);
+    else remove(i);
+  };
+  const askedImg = asking !== null ? (list[asking] ?? null) : null;
+  const askedName = askedImg ? askedImg.name || labelOf(asking as number) : '';
 
   // Stable keys (id, then id~2 for a repeated image) so a moved tile keeps its DOM node.
   const seen = new Map<number, number>();
@@ -185,7 +199,7 @@ export function GalleryGrid(props: GalleryGridProps) {
               disabled={disabled}
               itemProps={itemProps}
               onPick={slotMode ? () => setPicking({ slot: i }) : undefined}
-              onRemove={() => remove(i)}
+              onRemove={() => askRemove(i)}
             />
           );
         })}
@@ -199,6 +213,20 @@ export function GalleryGrid(props: GalleryGridProps) {
         )}
       </ul>
       {reorder && drag.live}
+      {confirmRemove && (
+        <ConfirmDialog
+          open={askedImg !== null}
+          title="Scoți imaginea?"
+          message={typeof confirmRemove === 'string' ? confirmRemove : `„${askedName}" nu va mai apărea pe site.`}
+          detail="Fișierul rămâne în biblioteca media. Modificarea se aplică după ce apeși Salvează."
+          confirmLabel="Scoate imaginea"
+          onCancel={() => setAsking(null)}
+          onConfirm={() => {
+            if (asking !== null) remove(asking);
+            setAsking(null);
+          }}
+        />
+      )}
       {picking?.slot === null ? (
         <ImagePicker
           open
