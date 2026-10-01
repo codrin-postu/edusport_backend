@@ -2,6 +2,7 @@ import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { Transforms } from 'slate';
 import { imagePickerStore, type MediaPickerAsset } from './imagePickerStore';
+import { ensureAdminUi } from './ui/styles';
 
 /**
  * Discoverability augmentation for Strapi's Blocks editor toolbar.
@@ -23,81 +24,21 @@ import { imagePickerStore, type MediaPickerAsset } from './imagePickerStore';
 
 const TOOLBAR_SELECTOR = '[role="toolbar"]';
 const SLOT_ATTR = 'data-edusport-blocks-toolbar-slot';
-const STRAPI_THEME_KEY = 'STRAPI_THEME';
 const JWT_KEY = 'jwtToken';
+const TOOLBAR_STYLE_ID = 'edu-tbx-styles';
 
-type ThemeName = 'light' | 'dark';
-
-interface Palette {
-  text: string;
-  textMuted: string;
-  hoverSurface: string;
-  border: string;
-  popoverSurface: string;
-  popoverBorder: string;
-  inputBg: string;
-  inputBorder: string;
-  primary: string;
-  primaryText: string;
-  primaryHover: string;
-  surface: string;
-  backdrop: string;
-}
-
-const PALETTES: Record<ThemeName, Palette> = {
-  light: {
-    text: '#212134',
-    textMuted: '#666687',
-    hoverSurface: '#f0f0ff',
-    border: '#dcdce4',
-    popoverSurface: '#ffffff',
-    popoverBorder: '#dcdce4',
-    inputBg: '#ffffff',
-    inputBorder: '#c0c0cf',
-    primary: '#4945ff',
-    primaryText: '#ffffff',
-    primaryHover: '#7b79ff',
-    surface: '#f6f6f9',
-    backdrop: 'rgba(33, 33, 52, 0.4)',
-  },
-  dark: {
-    text: '#f0f0ff',
-    textMuted: '#a5a5ba',
-    hoverSurface: '#2c2c45',
-    border: '#4a4a6a',
-    popoverSurface: '#212134',
-    popoverBorder: '#4a4a6a',
-    inputBg: '#181826',
-    inputBorder: '#4a4a6a',
-    primary: '#7b79ff',
-    primaryText: '#0f0f1c',
-    primaryHover: '#9b99ff',
-    surface: '#1a1a2e',
-    backdrop: 'rgba(0, 0, 0, 0.6)',
-  },
-};
-
-function useTheme(): ThemeName {
-  const read = React.useCallback((): ThemeName => {
-    try {
-      const raw = localStorage.getItem(STRAPI_THEME_KEY);
-      if (raw) {
-        const cleaned = raw.replace(/^"|"$/g, '').toLowerCase();
-        if (cleaned === 'light' || cleaned === 'dark') return cleaned;
-      }
-    } catch {
-      /* localStorage unavailable */
-    }
-    if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark';
-    return 'light';
-  }, []);
-  const [theme, setTheme] = React.useState<ThemeName>(read);
-  React.useEffect(() => {
-    const id = window.setInterval(() => setTheme(read()), 1500);
-    return () => window.clearInterval(id);
-  }, [read]);
-  return theme;
-}
+/*
+ * The slot sits inside Strapi's own toolbar, outside every page, so it
+ * carries `.ui-root`: the --theme-* tokens (light / dark, kept in step with
+ * Strapi's theme by useAdminTheme through ensureAdminUi) style the button,
+ * no private palette. Kept free of backticks.
+ */
+const TOOLBAR_CSS = `
+.ui-root.edu-tbx{display:inline-flex;align-items:center;gap:2px;margin-left:6px;padding-left:6px;border-left:1px solid var(--theme-border)}
+.ui-root .edu-tbx-btn{width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:var(--ui-radius-sm);background:transparent;color:var(--theme-text);cursor:pointer;transition:background-color var(--ui-motion-fast) var(--ui-easing);font-family:inherit}
+.ui-root .edu-tbx-btn:hover{background:var(--theme-primary-soft)}
+.ui-root .edu-tbx-btn:focus-visible{outline:2px solid var(--theme-focus);outline-offset:-2px}
+`;
 
 // --------------------------------------------------------------------------
 // Slate editor discovery via React fiber walking
@@ -251,48 +192,15 @@ function findEditorContentEditable(toolbar: Element): HTMLElement | null {
 // --------------------------------------------------------------------------
 
 interface ToolbarButtonProps {
-  palette: Palette;
   ariaLabel: string;
   title: string;
   onClick: () => void;
   children: React.ReactNode;
 }
 
-function ToolbarButton({
-  palette,
-  ariaLabel,
-  title,
-  onClick,
-  children,
-}: ToolbarButtonProps): React.ReactElement {
+function ToolbarButton({ ariaLabel, title, onClick, children }: ToolbarButtonProps): React.ReactElement {
   return (
-    <button
-      type="button"
-      aria-label={ariaLabel}
-      title={title}
-      onClick={onClick}
-      style={{
-        width: 32,
-        height: 32,
-        padding: 0,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        border: 'none',
-        borderRadius: 4,
-        background: 'transparent',
-        color: palette.text,
-        cursor: 'pointer',
-        transition: 'background 0.15s',
-        fontFamily: 'inherit',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = palette.hoverSurface;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'transparent';
-      }}
-    >
+    <button type="button" className="edu-tbx-btn" aria-label={ariaLabel} title={title} onClick={onClick}>
       {children}
     </button>
   );
@@ -322,13 +230,7 @@ function IconImage({ size = 18 }: { size?: number }): React.ReactElement {
 // Per-toolbar UI: rendered via portal directly into Strapi's toolbar root.
 // --------------------------------------------------------------------------
 
-function ToolbarExtraButtons({
-  toolbar,
-  palette,
-}: {
-  toolbar: HTMLElement;
-  palette: Palette;
-}): React.ReactElement {
+function ToolbarExtraButtons({ toolbar }: { toolbar: HTMLElement }): React.ReactElement {
   // Image button publishes to the shared store; MediaLibraryBridge (rendered
   // inside Strapi's app tree via VideoEmbedEditor) picks up the request and
   // shows the native MediaLibraryDialog. Closure captures the live Slate
@@ -350,22 +252,8 @@ function ToolbarExtraButtons({
   };
 
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 2,
-        marginLeft: 6,
-        paddingLeft: 6,
-        borderLeft: `1px solid ${palette.border}`,
-      }}
-    >
-      <ToolbarButton
-        palette={palette}
-        ariaLabel="Inserează imagine"
-        title="Inserează imagine"
-        onClick={handleImageClick}
-      >
+    <span className="ui-root edu-tbx">
+      <ToolbarButton ariaLabel="Inserează imagine" title="Inserează imagine" onClick={handleImageClick}>
         <IconImage />
       </ToolbarButton>
     </span>
@@ -392,9 +280,20 @@ function isBlocksToolbar(toolbar: HTMLElement): boolean {
   return false;
 }
 
+/** Injects the tokens (ensureAdminUi) and the button styles once, into <head>. */
+function StyleOnce(): null {
+  React.useInsertionEffect(() => {
+    ensureAdminUi();
+    if (document.getElementById(TOOLBAR_STYLE_ID)) return;
+    const el = document.createElement('style');
+    el.id = TOOLBAR_STYLE_ID;
+    el.textContent = TOOLBAR_CSS;
+    document.head.appendChild(el);
+  }, []);
+  return null;
+}
+
 export function BlocksToolbarExtra(): React.ReactElement | null {
-  const theme = useTheme();
-  const palette = PALETTES[theme];
   const [records, setRecords] = React.useState<ToolbarRecord[]>([]);
 
   React.useEffect(() => {
@@ -456,9 +355,10 @@ export function BlocksToolbarExtra(): React.ReactElement | null {
 
   return (
     <>
+      <StyleOnce />
       {records.map(({ toolbar, slot }, idx) =>
         createPortal(
-          <ToolbarExtraButtons toolbar={toolbar} palette={palette} />,
+          <ToolbarExtraButtons toolbar={toolbar} />,
           slot,
           `edusport-toolbar-extra-${idx}`,
         ),
