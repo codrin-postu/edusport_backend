@@ -70,8 +70,8 @@ export function snippet(text: unknown): string {
 export const INBOX_CSS = `
 .ui-root .inbx-sum{font-size:12px;color:var(--theme-text-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
 .ui-root .inbx-search{flex:1;min-width:170px}
-.ui-root .inbx-tools .ui-input{width:auto}
-.ui-root .inbx-tools .inbx-search .ui-input{width:100%}
+.ui-root .ui-inbox-tools .ui-input{width:auto}
+.ui-root .ui-inbox-tools .inbx-search .ui-input{width:100%}
 .ui-root .inbx-bulk{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--theme-text-secondary);width:100%}
 .ui-root .inbx-bulk b{color:var(--theme-primary);font-variant-numeric:tabular-nums}
 .ui-root .inbx-bulk-acts{margin-left:auto;display:flex;gap:8px}
