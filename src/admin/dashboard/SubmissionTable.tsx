@@ -2,6 +2,33 @@ import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { SheetsDialog, type SheetsForm } from './SheetsDialog';
+import {
+  AdminPage,
+  Window,
+  PageHeader,
+  Button,
+  StatusBadge,
+  Chip,
+  ChipList,
+  Checkbox,
+  Field,
+  Input,
+  Select,
+  Textarea,
+  DateInput,
+  SegmentedControl,
+  Pager,
+  Popover,
+  Modal,
+  Loading,
+  EmptyState,
+  useDragReorder,
+  moveItem,
+  adminToast,
+  toastAutosaved,
+  cx,
+} from '../ui';
+import { IconChevronDown, IconGrip } from '../ui/icons';
 
 /**
  * EduSport admin — shared submission-results table.
@@ -34,9 +61,13 @@ import { SheetsDialog, type SheetsForm } from './SheetsDialog';
  * Export menu drives the live connection through /api/sheets/* and the shared
  * SheetsDialog. The old one-shot `export-sheets` append was removed with it.
  *
- * Light-only, using the shared admin tokens (system-ui, #fff, #dcdcdc borders,
- * accent #2138b8, danger #be3330, #d0d0d0 fields, squared buttons; horizontal
- * row separators only).
+ * Built on src/admin/ui: AdminPage / Window / PageHeader chrome, .ui-table for
+ * both the compact list and the spreadsheet, Popover menus, Chip filter chips,
+ * Checkbox selection, useDragReorder for the column order, Pager, Modal for
+ * the move-whole-season dialog, ConfirmDialog for deletes. Inline edits
+ * (status, season, note) autosave with the "Salvat" toast; other results are
+ * toasts too. Status colours come from the config (CSS colours, normally
+ * --theme-* tokens) and reach StatusBadge through its `custom` prop.
  */
 
 export const OPERATORS = [
@@ -87,9 +118,12 @@ export interface FormMeta {
   extraKeys: string[];
 }
 
+/** A status and its colours: any CSS colour, normally a --theme-* token. */
 export interface StatusDef {
   value: string;
+  /** Text colour. */
   color: string;
+  /** Fill. */
   soft: string;
   border: string;
 }
@@ -126,7 +160,8 @@ export interface TableApi {
   seasons: string[];
   activeSeason: string | null;
   statuses: StatusDef[];
-  tagClassOf: (label: string) => string;
+  /** Colours of a status (or extra tag) value; falls back to the first status. */
+  statusOf: (label: string) => StatusDef;
   statusTag: (r: Row) => React.ReactElement;
   saveField: (documentId: string, key: string, value: unknown) => void;
   removeRow: (documentId: string) => void;
@@ -218,7 +253,7 @@ export interface SubmissionTableCfg {
     /** The detail panel content (header + body + footer) for the selected row. */
     renderDetail: (row: Row, api: TableApi) => React.ReactNode;
   };
-  /** Extra CSS appended after the shared stylesheet (screen-specific bits). */
+  /** Extra CSS appended after the shared stylesheet (screen-specific bits, tokens only). */
   extraCss?: string;
 }
 
@@ -320,7 +355,9 @@ export function SeasonSelect({
   emptyLabel,
   style,
   disabled,
+  'aria-label': ariaLabel,
 }: {
+  'aria-label'?: string;
   value: string;
   seasons: string[];
   activeSeason?: string | null;
@@ -337,20 +374,17 @@ export function SeasonSelect({
     return Array.from(set).sort((a, b) => b.localeCompare(a));
   }, [seasons, activeSeason, value]);
   return (
-    <select value={value} disabled={disabled} style={style} onChange={(e) => onChange(e.target.value)}>
-      <option value="">{emptyLabel ?? '— fără sezon —'}</option>
-      {options.map((s) => (
-        <option key={s} value={s}>
-          {s}
-          {s === activeSeason ? ' (activ)' : ''}
-        </option>
-      ))}
-    </select>
+    <Select
+      value={value}
+      disabled={disabled}
+      style={style}
+      aria-label={ariaLabel}
+      onChange={(v) => onChange(v)}
+      placeholder={emptyLabel ?? '— fără sezon —'}
+      options={options.map((s) => ({ value: s, label: `${s}${s === activeSeason ? ' (activ)' : ''}` }))}
+    />
   );
 }
-
-/** CSS class suffix for a status value, e.g. 'Nou' -> 't-nou'. */
-const tagClassOfValue = (v: string): string => `t-${v.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
 
 // Raw load of the saved column config. It is reconciled against the dynamic
 // column set (built-in + custom + removed) by an effect once the columns load.
@@ -381,203 +415,162 @@ function saveColConfig(cfg: SubmissionTableCfg, userKey: string, colCfg: ColConf
   }
 }
 
-const CSS = `
-.insp{--bg:#eef0f4;--chrome:#fff;--ink:#1b1d22;--muted:#727888;--line:#e0e2e8;--border:#dcdcdc;
-  --accent:#2138b8;--accent-soft:#eef1fb;--danger:#be3330;--field:#f7f8fa;--r:5px;--r2:4px;
-  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg);min-height:100%;padding:20px;box-sizing:border-box;line-height:1.5}
-.insp *{box-sizing:border-box}
-.insp .num{font-variant-numeric:tabular-nums}
-
-.insp .win{background:var(--chrome);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(20,26,54,.06);overflow:hidden}
-.insp input,.insp select{font-family:inherit;font-size:13px;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:var(--r);padding:7px 9px}
-.insp input:focus,.insp select:focus{outline:none;border-color:var(--accent)}
-.insp .lbl{font-size:11px;color:var(--muted);font-weight:600}
-
-.btn{font-family:inherit;font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--chrome);color:var(--ink);cursor:pointer;white-space:nowrap}
-.btn:hover{border-color:#b6bac4;background:#fafbff}
-.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
-.btn.pri:hover{background:#1b2fa0}
-.btn.sm{padding:6px 10px;font-size:12px}
-.btn:disabled{opacity:.55;cursor:default}
-.btn.danger{color:var(--danger);border-color:#e2c4c4;background:#fff}
-.btn.danger:hover{background:#fdf4f3}
-
-/* header */
-.hd{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 18px;border-bottom:1px solid var(--line)}
-.hd h1{margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em}
-.hd p{margin:3px 0 0;font-size:12.5px;color:var(--muted)}
-.hd-right{display:flex;align-items:center;gap:14px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
-.season{display:flex;align-items:center;gap:7px}
-.stat{text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
-.stat b{color:var(--ink);font-size:15px}
-.stat .noi{color:var(--danger);font-weight:700}
-
-/* toolbar A */
-.tbA{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.search{flex:1;min-width:200px;display:flex;align-items:center;gap:7px;background:var(--field);border:1px solid var(--line);border-radius:var(--r);padding:7px 10px;color:var(--muted);font-size:13px}
-.search input{border:none;background:none;outline:none;width:100%;color:var(--ink);font-size:13px;padding:0}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
-.seg button{font-family:inherit;font-size:12.5px;padding:7px 12px;cursor:pointer;color:var(--muted);border:none;border-right:1px solid var(--line);background:var(--chrome)}
-.seg button:last-child{border-right:none}
-.seg button.on{background:var(--accent);color:#fff;font-weight:600}
-
-.listbody{transition:opacity .12s ease}
-.listbody.busy{opacity:.5;pointer-events:none;transition-delay:.3s}
-
-/* quick filter dropdowns */
-.qfwrap{position:relative;display:inline-block}
-.btn.qf.on{border-color:#2138b8;color:#2138b8;background:#f4f6fd}
-.qfpop{position:absolute;left:0;top:calc(100% + 6px);width:210px}
-.qfpop .prow{cursor:pointer}
-.qfpop .prow span{font-size:12.5px;color:#32324d}
-.advpop{position:absolute;left:0;top:calc(100% + 6px);width:auto;min-width:430px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px}
-.advpop .lbl{width:100%}
-.qffoot{display:flex;justify-content:flex-end;border-top:1px solid var(--line);margin-top:5px;padding-top:5px}
-
-/* toolbar B */
-.fvals{display:inline-flex;gap:4px;flex-wrap:wrap;align-items:center}
-.fval{display:inline-flex;align-items:center;gap:5px;border:1px solid #d0d0d0;background:#fff;padding:3px 8px;font-size:11.5px;color:#32324d;cursor:pointer;user-select:none}
-.fval.on{border-color:#2138b8;color:#2138b8;background:#f4f6fd}
-.fval input{margin:0;width:auto}
-.tbB{display:flex;align-items:center;gap:9px;padding:11px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap;background:#fbfbfc}
-.tbB .grow{flex:1}
-.fchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 18px 12px;border-bottom:1px solid var(--line)}
-.fchip{display:inline-flex;align-items:center;gap:7px;background:var(--accent-soft);color:var(--accent);border:1px solid #cdd6f6;border-radius:var(--r2);padding:4px 9px;font-size:12px;font-weight:600}
-.fchip .x{cursor:pointer;opacity:.7;border:none;background:none;color:inherit;font-size:12px;padding:0;line-height:1}
-.fchip .x:hover{opacity:1}
-.fclear{border:none;background:none;color:var(--muted);font-family:inherit;font-size:11.5px;cursor:pointer;padding:2px 4px}
-.fclear:hover{color:var(--accent);text-decoration:underline}
-
-/* message banner */
-.insp-msg{font-size:12px;padding:8px 11px;border-radius:var(--r2);margin:12px 18px 0}
-.insp-msg.ok{color:#1f7a4d;background:#e7f3ec;border:1px solid #bfe0cc}
-.insp-msg.warn{color:#8a5a00;background:#fbf1df;border:1px solid #ecd9ac}
-.insp-msg.err{color:#be3330;background:#faeceb;border:1px solid #e6c3c1}
-
-.insp-empty{padding:44px 16px;text-align:center;color:var(--muted);font-size:13.5px}
-
-/* status tag (uniform width) */
-.tag{display:inline-block;min-width:96px;text-align:center;font-size:11px;font-weight:700;border-radius:var(--r2);padding:4px 0}
-/* status selects tinted by value, same palette as the tags */
-select.sel-status{font-weight:700}
-.lvchip{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:var(--r2);padding:2px 7px;display:inline-block}
-
-/* compact split */
-.insp-split{display:grid;grid-template-columns:1fr 360px;gap:0}
-@media (max-width:1040px){.insp-split{grid-template-columns:1fr}}
-.clist{border-collapse:collapse;width:100%;font-size:13px}
-.clist th{text-align:left;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
-.clist td{padding:10px 14px;border-bottom:1px solid #f0f1f4;vertical-align:middle;white-space:nowrap}
-.clist tr{cursor:pointer}
-.clist tbody tr:hover td{background:#fafbff}
-.clist tr.sel td{background:var(--accent-soft)}
-.clist .nm{font-weight:600}
-.clist .actcell{text-align:right;width:1%}
-.rowacts{display:inline-flex;gap:6px;opacity:0}
-.clist tr:hover .rowacts,.clist tr.sel .rowacts{opacity:1}
-.ra{font-size:11.5px;color:var(--muted);cursor:pointer;border:1px solid var(--line);border-radius:var(--r2);padding:3px 8px;background:#fff}
-.ra:hover{border-color:#b6bac4}
-.ra.del{color:var(--danger);border-color:#e2c4c4}
-
-/* detail panel */
-.panel{border-left:1px solid var(--line);background:#fcfcfd}
-@media (max-width:1040px){.panel{border-left:none;border-top:1px solid var(--line)}}
-.panel .ph{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;border-bottom:1px solid var(--line)}
-.panel .ph b{font-size:14.5px}
-.panel .pb{padding:14px 15px;max-height:calc(100vh - 340px);min-height:200px;overflow-y:auto}
-.fld{margin-bottom:11px}
-.fld label{display:block;font-size:10px;color:var(--muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em}
-.statusbox{margin:0 0 14px;padding:11px 12px;border:1px solid #cdd6f6;background:var(--accent-soft);border-radius:var(--r);border-left:4px solid var(--accent)}
-.statusbox label{display:block;font-size:10px;color:var(--accent);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;font-weight:800}
-.statusbox select{width:100%;font-size:14px;font-weight:700;padding:8px 10px}
-.fld .v{font-size:13px;color:var(--ink);margin-top:2px;white-space:pre-wrap;word-break:break-word}
-.fld select,.fld textarea{width:100%}
-.fld textarea{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:var(--r2);padding:7px 9px;resize:vertical;background:var(--field)}
-.fld textarea:focus{outline:none;border-color:var(--accent)}
-.pa{padding:12px 15px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:8px}
-
-/* spreadsheet */
-.sheetwrap{overflow-x:auto;background:#fff}
-/* macOS overlay scrollbars float ON TOP of the content, hiding the last row.
-   The gutter is added only while the table actually overflows horizontally
-   (class toggled from a ResizeObserver), so a table that fits keeps no gap. */
-.sheetwrap.xscroll{padding-bottom:14px}
-.sheet{border-collapse:separate;border-spacing:0;font-size:12.5px;width:100%}
-.sheet th,.sheet td{border-bottom:1px solid #f0f1f4;padding:0}
-.sheet th{background:#f6f7f9;text-align:left;font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:#6a6e7a;font-weight:700;padding:8px 10px;white-space:nowrap;position:sticky;top:0;z-index:2}
-.sheet td select{width:100%;border:none;background:transparent;font-family:inherit;font-size:12.5px;padding:8px 10px;color:var(--ink)}
-.sheet td .cellv{display:block;padding:8px 10px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sheet td select:focus{outline:2px solid var(--accent);outline-offset:-2px;background:#fff}
-.sheet td.boolc{text-align:center}
-.sheet td.acts{text-align:right;white-space:nowrap;padding:0 8px}
-.sheet tr:hover td{background:#fafbff}
-.sheet .frz{position:sticky;left:0;z-index:3;background:#fff;border-right:1px solid var(--border);box-shadow:1px 0 0 #ececf0}
-.sheet th.frz{z-index:4;background:#f6f7f9}
-
-/* footer */
-.ft{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
-.ft .l{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
-.pager{display:flex;gap:4px;flex-wrap:wrap}
-.pg{min-width:26px;height:26px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:var(--r2);font-size:12px;color:var(--muted);cursor:pointer;background:#fff}
-.pg:hover{border-color:#b6bac4}
-.pg.on{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
-.pg:disabled{opacity:.45;cursor:default}
-
-/* popover / menu */
-.popwrap{position:relative}
-.pop{position:absolute;right:0;top:calc(100% + 6px);z-index:20;width:288px;background:#fff;border:1px solid var(--border);border-radius:var(--r);box-shadow:0 8px 28px rgba(0,0,0,.14);padding:8px}
-.pop.pop-fixed{position:fixed;top:auto;right:auto;z-index:5000}
-.pop h4{margin:4px 6px 8px;font-size:11px;line-height:1.35;color:var(--muted);font-weight:700}
-.pop-body{max-height:320px;overflow-y:auto}
-.pop .prow{display:flex;align-items:center;gap:8px;padding:6px;border-radius:var(--r2);border:1px solid transparent}
-.pop .prow:hover{background:#f6f7f9}
-.pop .prow.drag{opacity:.5}
-.pop .prow.over{border-color:var(--accent);background:var(--accent-soft)}
-.pop .prow .grip{cursor:grab;color:#b6bac4;font-size:13px;line-height:1;user-select:none;padding:0 2px;flex-shrink:0}
-.pop .prow input{width:auto;margin:0;flex-shrink:0}
-.pop .prow span.plbl{flex:1;font-size:12.5px}
-.pop-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 4px 2px;margin-top:6px;border-top:1px solid var(--line)}
-.pop-foot .reset{border:none;background:none;color:#4a4d59;font-family:inherit;font-size:11.5px;cursor:pointer;padding:4px}
-.pop-foot .reset:hover{color:var(--accent);text-decoration:underline}
-.menu{position:absolute;right:0;top:calc(100% + 6px);z-index:20;width:260px;background:#fff;border:1px solid var(--border);border-radius:var(--r);box-shadow:0 8px 28px rgba(0,0,0,.14);padding:5px}
-.menu button{display:block;width:100%;text-align:left;font-family:inherit;font-size:12.5px;color:var(--ink);background:none;border:none;padding:8px 10px;border-radius:var(--r2);cursor:pointer}
-.menu button:hover{background:#f6f7f9}
-.menu button:disabled{opacity:.55;cursor:default}
-.menu button .sub{display:block;font-size:11px;color:var(--muted);margin-top:2px}
-.menu button.warn{color:#8a5a00}
-.menu .sep{height:1px;background:var(--line);margin:4px 0}
-.menu .grp{padding:8px 10px 3px;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#a3a6b2}
-
-/* bulk action bar + selection checkboxes */
-.bulkbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line);background:var(--accent-soft)}
-.bulkbar .bcount{font-size:12.5px;font-weight:700;color:var(--accent)}
-.bulkbar .grow{flex:1}
-.bulkbar input,.bulkbar select{background:#fff}
-.chk{width:15px;height:15px;cursor:pointer;accent-color:var(--accent)}
-.clist th.chkc,.clist td.chkc{width:1%;padding-right:0;text-align:center}
-
-/* move-whole-season dialog */
-.mws-back{position:fixed;inset:0;background:rgba(20,26,54,.28);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
-.mws{width:380px;max-width:100%;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,.22);overflow:hidden}
-.mws h3{margin:0;padding:14px 16px;font-size:15px;font-weight:800;border-bottom:1px solid var(--line)}
-.mws .mbody{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
-.mws .mrow label{display:block;font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
-.mws .mrow input[type=text],.mws .mrow .ro{width:100%}
-.mws .ro{font-size:13px;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:var(--r);padding:7px 9px}
-.mws .chkrow{display:flex;align-items:center;gap:8px;font-size:13px}
-.mws .chkrow input{width:auto}
-.mws .foot{padding:12px 16px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+// Table-local styles, tokens only (var(--theme-*), var(--ui-*)), scoped under
+// .ui-root. The compact list and the spreadsheet both sit on .ui-table; these
+// rules only add what the shared table has no notion of (selection, frozen
+// first column, tinted status selects, the detail panel). Kept free of
+// backticks on purpose: one stray backtick in a template literal takes the
+// whole admin panel down to a blank page.
+const TABLE_CSS = `
+.ui-root .sbt-stat{text-align:right;font-size:12px;color:var(--theme-text-muted);white-space:nowrap;line-height:1.45}
+.ui-root .sbt-stat b{color:var(--theme-text);font-size:15px}
+.ui-root .sbt-stat .sbt-noi{color:var(--theme-danger);font-weight:700}
+.ui-root .sbt-season{display:flex;align-items:center;gap:7px}
+.ui-root .sbt-season .ui-input{width:auto}
+.ui-root .sbt-lbl{font-size:11px;color:var(--theme-text-muted);font-weight:600}
+.ui-root .sbt-tbB{display:flex;align-items:center;gap:9px;padding:11px 18px;border-bottom:1px solid var(--theme-border);flex-wrap:wrap;background:var(--theme-surface-subtle)}
+.ui-root .sbt-tbB .ui-input{width:auto}
+.ui-root .sbt-grow{flex:1}
+.ui-root .ui-btn.sbt-qf-on{border-color:var(--theme-primary);color:var(--theme-primary);background:var(--theme-primary-soft)}
+.ui-root .sbt-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 18px 12px;border-bottom:1px solid var(--theme-border)}
+.ui-root .sbt-listbody{transition:opacity .12s ease}
+.ui-root .sbt-listbody[data-busy="true"]{opacity:.5;pointer-events:none;transition-delay:.3s}
+.ui-root .sbt-tag{min-width:96px;justify-content:center}
+.ui-root .ui-input.sbt-status-sel,.ui-root .ui-input.sbt-cell-sel{font-weight:700}
+.ui-root .sbt-statusbox{margin:0 0 14px;padding:11px 12px;border:1px solid var(--theme-primary-soft-line);background:var(--theme-primary-soft);border-radius:var(--ui-radius-sm);border-left:4px solid var(--theme-primary)}
+.ui-root .sbt-statusbox .ui-label{color:var(--theme-primary);font-weight:800}
+.ui-root .sbt-statusbox .ui-input{font-size:14px;padding:8px 10px}
+.ui-root .sbt-lv{font-size:11px;color:var(--theme-text-muted);border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);padding:2px 7px;display:inline-block}
+.ui-root .sbt-nm{font-weight:600}
+.ui-root .sbt-bulk{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--theme-border);background:var(--theme-primary-soft)}
+.ui-root .sbt-bulk .ui-input{width:auto;min-width:220px}
+.ui-root .sbt-bcount{font-size:12.5px;font-weight:700;color:var(--theme-primary)}
+.ui-root .sbt-split{display:grid;grid-template-columns:minmax(0,1fr) 360px}
+@media (max-width:1040px){.ui-root .sbt-split{grid-template-columns:1fr}}
+.ui-root .sbt-clist td{white-space:nowrap}
+.ui-root .sbt-clist tbody tr[aria-selected="true"] td{background:var(--theme-primary-soft)}
+.ui-root .sbt-chk{width:1%;padding-right:0}
+.ui-root .sbt-chk .ui-check input{margin:0}
+.ui-root .sbt-actcell{text-align:right;width:1%}
+.ui-root .sbt-rowacts{display:inline-flex;gap:6px;opacity:0}
+.ui-root .sbt-clist tr:hover .sbt-rowacts,.ui-root .sbt-clist tr[aria-selected="true"] .sbt-rowacts,.ui-root .sbt-rowacts:focus-within{opacity:1}
+.ui-root .sbt-panel{border-left:1px solid var(--theme-border);background:var(--theme-surface-subtle);min-width:0}
+@media (max-width:1040px){.ui-root .sbt-panel{border-left:none;border-top:1px solid var(--theme-border)}}
+.ui-root .sbt-ph{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;border-bottom:1px solid var(--theme-border)}
+.ui-root .sbt-ph b{font-size:14.5px;color:var(--theme-text)}
+.ui-root .sbt-pb{padding:14px 15px;max-height:calc(100vh - 340px);min-height:200px;overflow-y:auto}
+.ui-root .sbt-pa{padding:12px 15px;border-top:1px solid var(--theme-border);display:flex;justify-content:space-between;gap:8px}
+.ui-root .sbt-fld{margin-bottom:11px}
+.ui-root .sbt-v{font-size:13px;color:var(--theme-text);margin-top:2px;white-space:pre-wrap;word-break:break-word}
+.ui-root .sbt-sheetwrap{overflow-x:auto;background:var(--theme-surface)}
+.ui-root .sbt-sheetwrap[data-xscroll="true"]{padding-bottom:14px}
+.ui-root .ui-table.sbt-sheet{border-collapse:separate;border-spacing:0;font-size:12.5px}
+.ui-root .sbt-sheet th{background:var(--theme-surface-subtle);padding:8px 10px;position:sticky;top:0;z-index:2}
+.ui-root .sbt-sheet td{padding:0;border-bottom:1px solid var(--theme-border-subtle)}
+.ui-root .sbt-sheet tbody tr:hover td{background:var(--theme-surface-subtle)}
+.ui-root .sbt-sheet .sbt-cellv{display:block;padding:8px 10px;color:var(--theme-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ui-root .sbt-sheet .ui-input.sbt-cell-sel{border-color:transparent;font-size:12.5px;padding:7px 10px}
+.ui-root .sbt-sheet .ui-input.sbt-cell-sel:focus{box-shadow:inset 0 0 0 2px var(--theme-focus)}
+.ui-root .sbt-sheet td.sbt-boolc{text-align:center}
+.ui-root .sbt-sheet td.sbt-acts{text-align:right;white-space:nowrap;padding:0 8px}
+.ui-root .sbt-sheet .sbt-frz{position:sticky;left:0;z-index:3;background:var(--theme-surface);border-right:1px solid var(--theme-border)}
+.ui-root .sbt-sheet th.sbt-frz{z-index:4;background:var(--theme-surface-subtle)}
+.ui-root .sbt-ft{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ui-root .sbt-ft-l{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--theme-text-muted)}
+.ui-root .sbt-ft-l .ui-input{width:auto;padding:5px 8px}
+.ui-root.ui-pop.sbt-pop{width:288px;padding:8px}
+.ui-root.ui-pop.sbt-qfpop{width:210px;padding:6px}
+.ui-root.ui-pop.sbt-advpop{min-width:430px;max-width:calc(100vw - 16px);padding:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ui-root.sbt-advpop .ui-input{width:auto}
+.ui-root.sbt-advpop .sbt-lbl{width:100%}
+.ui-root.sbt-pop h4{margin:4px 6px 8px;font-size:11px;line-height:1.35;color:var(--theme-text-muted);font-weight:700}
+.ui-root .sbt-pop-body{max-height:320px;overflow-y:auto}
+.ui-root .sbt-prow{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:var(--ui-radius-sm)}
+.ui-root .sbt-prow:hover{background:var(--theme-surface-subtle)}
+.ui-root .sbt-prow[data-dragging="true"]{opacity:.5}
+.ui-root .sbt-prow .ui-check{flex:1;align-items:center}
+.ui-root .sbt-prow .ui-check input{margin:0}
+.ui-root .sbt-pop-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 4px 2px;margin-top:6px;border-top:1px solid var(--theme-border)}
+.ui-root .sbt-qffoot{display:flex;justify-content:flex-end;border-top:1px solid var(--theme-border);margin-top:5px;padding-top:5px}
+.ui-root.ui-pop.sbt-menu{width:260px;padding:5px}
+.ui-root.sbt-menu button{display:block;width:100%;text-align:left;font-family:inherit;font-size:12.5px;color:var(--theme-text);background:none;border:none;padding:8px 10px;border-radius:var(--ui-radius-sm);cursor:pointer}
+.ui-root.sbt-menu button:hover:not(:disabled),.ui-root.sbt-menu button:focus-visible{background:var(--theme-surface-subtle);outline:none}
+.ui-root.sbt-menu button:disabled{opacity:.55;cursor:default}
+.ui-root.sbt-menu .sbt-sub{display:block;font-size:11px;color:var(--theme-text-muted);margin-top:2px}
+.ui-root.sbt-menu button.sbt-warn{color:var(--theme-warning)}
+.ui-root.sbt-menu .sbt-sep{height:1px;background:var(--theme-border);margin:4px 0}
+.ui-root.sbt-menu .sbt-grp{padding:8px 10px 3px;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--theme-text-muted)}
+.ui-root .sbt-mws{display:flex;flex-direction:column;gap:12px}
 `;
 
-/** Per-status tag + tinted-select rules generated from the config palette. */
-function statusCss(defs: StatusDef[]): string {
-  return defs
-    .map((s) => {
-      const k = tagClassOfValue(s.value);
-      return `.${k}{color:${s.color};background:${s.soft}}
-select.sel-status.${k}{color:${s.color};background:${s.soft};border-color:${s.border}}`;
-    })
-    .join('\n');
+/** Read-only label + value block of the detail panel. */
+export function DetailField({ label, children, style }: { label: React.ReactNode; children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div className="ui-field sbt-fld" style={style}>
+      <span className="ui-label">{label}</span>
+      <div className="sbt-v">{children}</div>
+    </div>
+  );
+}
+
+/** Detail panel title row: name on the left, badge on the right. */
+export function DetailHeader({ children }: { children: React.ReactNode }) {
+  return <div className="sbt-ph">{children}</div>;
+}
+
+/** Scrolling detail panel body. */
+export function DetailBody({ children }: { children: React.ReactNode }) {
+  return <div className="sbt-pb">{children}</div>;
+}
+
+/** Detail panel action row. */
+export function DetailFooter({ children }: { children: React.ReactNode }) {
+  return <div className="sbt-pa">{children}</div>;
+}
+
+/** A toolbar dropdown button with its own anchored Popover. */
+function MenuButton({
+  label,
+  active,
+  open,
+  onToggle,
+  onClose,
+  disabled,
+  popClassName,
+  role,
+  children,
+}: {
+  label: React.ReactNode;
+  active?: boolean;
+  open: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  disabled?: boolean;
+  popClassName: string;
+  role?: string;
+  children: React.ReactNode;
+}) {
+  const ref = React.useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <Button
+        ref={ref}
+        size="sm"
+        variant="secondary"
+        className={active ? 'sbt-qf-on' : undefined}
+        aria-haspopup="true"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={onToggle}
+      >
+        {label}
+        <IconChevronDown size={12} />
+      </Button>
+      <Popover open={open} anchorRef={ref} onClose={onClose} className={popClassName} role={role}>
+        {children}
+      </Popover>
+    </>
+  );
 }
 
 export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }) {
@@ -593,13 +586,13 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
   const post = React.useCallback((...args: Parameters<typeof client.post>) => clientRef.current.post(...args), []);
 
   const allTags = React.useMemo(() => [...cfg.statuses, ...(cfg.extraTags ?? [])], [cfg]);
-  const tagClassByValue = React.useMemo(
-    () => Object.fromEntries(allTags.map((s) => [s.value, tagClassOfValue(s.value)])) as Record<string, string>,
+  const statusByValue = React.useMemo(
+    () => Object.fromEntries(allTags.map((s) => [s.value, s])) as Record<string, StatusDef>,
     [allTags],
   );
-  const tagClassOf = React.useCallback(
-    (label: string) => tagClassByValue[label] ?? tagClassOfValue(cfg.statuses[0].value),
-    [tagClassByValue, cfg],
+  const statusOf = React.useCallback(
+    (label: string): StatusDef => statusByValue[label] ?? cfg.statuses[0],
+    [statusByValue, cfg],
   );
   const colLabel = React.useMemo(
     () => Object.fromEntries(cfg.filterColumns.map((c) => [c.key, c.label])) as Record<string, string>,
@@ -609,10 +602,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     () => [...cfg.statuses.map((s) => s.value), ...(cfg.archive ? ['Arhivat'] : [])],
     [cfg],
   );
-  const fullCss = React.useMemo(
-    () => `${CSS}\n${statusCss(allTags)}\n${cfg.extraCss ?? ''}`,
-    [allTags, cfg],
-  );
+  const fullCss = React.useMemo(() => `${TABLE_CSS}\n${cfg.extraCss ?? ''}`, [cfg]);
 
   const [userKey, setUserKey] = React.useState<string>('anon');
   const [rows, setRows] = React.useState<Row[]>([]);
@@ -676,24 +666,10 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
   // full-view column config
   const [colCfg, setColCfg] = React.useState<ColConfig>(() => loadColConfig(cfg, 'anon'));
   const [popOpen, setPopOpen] = React.useState(false);
-  const colBtnRef = React.useRef<HTMLButtonElement>(null);
-  const [popPos, setPopPos] = React.useState<{ top: number; right: number } | null>(null);
   // Which quick-filter dropdown is open, by column key.
   const [quickOpen, setQuickOpen] = React.useState<string | null>(null);
   const [advOpen, setAdvOpen] = React.useState(false);
-  const openColPop = React.useCallback(() => {
-    setPopOpen((o) => {
-      const next = !o;
-      if (next && colBtnRef.current) {
-        const r = colBtnRef.current.getBoundingClientRect();
-        setPopPos({ top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) });
-      }
-      return next;
-    });
-  }, []);
   const [exportOpen, setExportOpen] = React.useState(false);
-  const [dragKey, setDragKey] = React.useState<string | null>(null);
-  const [overKey, setOverKey] = React.useState<string | null>(null);
 
   // Spreadsheet scroll container: `xscroll` adds a bottom gutter only while the
   // table really overflows, so the macOS overlay scrollbar stops sitting on top
@@ -701,7 +677,6 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
   const sheetWrapRef = React.useRef<HTMLDivElement>(null);
   const [sheetXScroll, setSheetXScroll] = React.useState(false);
 
-  const [msg, setMsg] = React.useState<{ kind: 'ok' | 'warn' | 'err'; text: string } | null>(null);
   const [busy, setBusy] = React.useState(false);
 
   // Destructive action awaiting confirmation in the shared ConfirmDialog.
@@ -841,20 +816,6 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     };
   }, [get, cfg, season, reloadTick, statTick]);
 
-  // --- close popovers on outside click
-  React.useEffect(() => {
-    if (!popOpen && !exportOpen) return;
-    const onDoc = (e: MouseEvent) => {
-      const t = e.target as HTMLElement;
-      if (!t.closest('.popwrap')) {
-        setPopOpen(false);
-        setExportOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [popOpen, exportOpen]);
-
   const selected = React.useMemo(() => rows.find((r) => r.documentId === selectedId) ?? null, [rows, selectedId]);
 
   // Keep the first row open in compact view so the detail column is never empty.
@@ -886,6 +847,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
       );
       try {
         await put(`${cfg.api}/${documentId}`, { [key]: value });
+        toastAutosaved();
         // A season change moves the row out of the current view, so the list
         // must be refetched. A status change only moves the counters, unless a
         // status filter is active, in which case the row may now be excluded.
@@ -896,7 +858,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
         }
       } catch {
         setRows((cur) => cur.map((r) => (r.documentId === documentId ? { ...r, [key]: prev } : r)));
-        setMsg({ kind: 'err', text: cfg.texts.saveError });
+        adminToast.error(cfg.texts.saveError);
       }
     },
     [put, refetch, refetchStat, filters, cfg],
@@ -911,7 +873,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
         await del(`${cfg.api}/${documentId}`);
         refetch();
       } catch {
-        setMsg({ kind: 'err', text: cfg.texts.deleteError });
+        adminToast.error(cfg.texts.deleteError);
       } finally {
         setPendingConfirm(null);
       }
@@ -945,14 +907,13 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     const toSeason = bulkSeason.trim();
     if (!toSeason || selectedIds.size === 0) return;
     setBusy(true);
-    setMsg(null);
     try {
       const r: any = await post(`${cfg.api}/move-season`, { documentIds: [...selectedIds], toSeason });
-      setMsg({ kind: 'ok', text: `Am mutat ${r?.data?.moved ?? 0} înscrieri în sezonul ${toSeason}.` });
+      adminToast.success(`Am mutat ${r?.data?.moved ?? 0} înscrieri în sezonul ${toSeason}.`);
       setBulkSeason('');
       refetch();
     } catch {
-      setMsg({ kind: 'err', text: 'Mutarea în sezon a eșuat.' });
+      adminToast.error('Mutarea în sezon a eșuat.');
     } finally {
       setBusy(false);
     }
@@ -962,13 +923,12 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     if (selectedIds.size === 0) return;
     const n = selectedIds.size;
     setBusy(true);
-    setMsg(null);
     try {
       await Promise.all([...selectedIds].map((id) => put(`${cfg.api}/${id}`, { archived: true })));
-      setMsg({ kind: 'ok', text: `Am arhivat ${n} înscrieri.` });
+      adminToast.success(`Am arhivat ${n} înscrieri.`);
       refetch();
     } catch {
-      setMsg({ kind: 'err', text: 'Arhivarea selecției a eșuat.' });
+      adminToast.error('Arhivarea selecției a eșuat.');
     } finally {
       setBusy(false);
     }
@@ -977,12 +937,11 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
   const bulkDelete = React.useCallback(async () => {
     if (selectedIds.size === 0) return;
     setBusy(true);
-    setMsg(null);
     try {
       await Promise.all([...selectedIds].map((id) => del(`${cfg.api}/${id}`)));
       refetch();
     } catch {
-      setMsg({ kind: 'err', text: 'Ștergerea selecției a eșuat.' });
+      adminToast.error('Ștergerea selecției a eșuat.');
     } finally {
       setBusy(false);
       setPendingConfirm(null);
@@ -994,16 +953,15 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     const to = mwsTo.trim();
     if (!from || !to) return;
     setBusy(true);
-    setMsg(null);
     try {
       const r: any = await post(`${cfg.api}/move-whole-season`, { fromSeason: from, toSeason: to, archivedOnly: mwsArchivedOnly });
-      setMsg({ kind: 'ok', text: `Am mutat ${r?.data?.moved ?? 0} înscrieri din ${from} în ${to}.` });
+      adminToast.success(`Am mutat ${r?.data?.moved ?? 0} înscrieri din ${from} în ${to}.`);
       setMwsOpen(false);
       setMwsTo('');
       setMwsArchivedOnly(false);
       refetch();
     } catch {
-      setMsg({ kind: 'err', text: 'Mutarea sezonului a eșuat.' });
+      adminToast.error('Mutarea sezonului a eșuat.');
     } finally {
       setBusy(false);
     }
@@ -1022,7 +980,6 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
   const exportCsv = React.useCallback(async () => {
     setExportOpen(false);
     setBusy(true);
-    setMsg(null);
     try {
       // `responseType: 'text'` is load-bearing. Without it Strapi's fetch client
       // defaults to 'json' and calls response.json() on the CSV body, which
@@ -1045,7 +1002,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
       a.remove();
       URL.revokeObjectURL(url);
     } catch {
-      setMsg({ kind: 'err', text: 'Exportul CSV a eșuat.' });
+      adminToast.error('Exportul CSV a eșuat.');
     } finally {
       setBusy(false);
     }
@@ -1092,21 +1049,19 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     if (!sheetsForm) return;
     setExportOpen(false);
     setBusy(true);
-    setMsg(null);
     try {
       const r: any = await post(`/api/sheets/${sheetsForm}/sync`, { mode: 'full' });
       const res = r?.data ?? {};
       if (res.ok) {
-        setMsg({
-          kind: 'ok',
-          text: `Sincronizare completă: ${res.added ?? 0} adăugate, ${res.updated ?? 0} modificate, ${res.removed ?? 0} șterse.`,
-        });
+        adminToast.success(
+          `Sincronizare completă: ${res.added ?? 0} adăugate, ${res.updated ?? 0} modificate, ${res.removed ?? 0} șterse.`,
+        );
       } else {
-        setMsg({ kind: 'err', text: res.message ?? 'Sincronizarea cu Google Sheets a eșuat.' });
+        adminToast.error(res.message ?? 'Sincronizarea cu Google Sheets a eșuat.');
       }
       loadSheetLink();
     } catch {
-      setMsg({ kind: 'err', text: 'Sincronizarea cu Google Sheets a eșuat.' });
+      adminToast.error('Sincronizarea cu Google Sheets a eșuat.');
     } finally {
       setBusy(false);
     }
@@ -1162,7 +1117,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     () =>
       (cfg.quickFilterCols ?? ['status'])
         .map((key) => cfg.filterColumns.find((c) => c.key === key))
-        .filter(Boolean)
+        .filter((c): c is { key: string; label: string } => Boolean(c))
         .map((c) => {
           const opts =
             c.key === 'status'
@@ -1207,18 +1162,6 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     setPage(1);
   };
 
-  React.useEffect(() => {
-    if (!quickOpen && !advOpen) return;
-    const onDoc = (e: MouseEvent) => {
-      const el = e.target as HTMLElement | null;
-      if (el?.closest?.('.qfwrap')) return;
-      setQuickOpen(null);
-      setAdvOpen(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [quickOpen, advOpen]);
-
   const chipText = (f: ActiveFilter): string => {
     const label = colLabel[f.col] ?? f.col;
     if (f.op === 'between') return `${label}: între ${f.from || '...'} și ${f.to || '...'}`;
@@ -1257,43 +1200,52 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     const hidden = colCfg.hidden.includes(key) ? colCfg.hidden.filter((k) => k !== key) : [...colCfg.hidden, key];
     updateCfg({ ...colCfg, hidden });
   };
-  const reorderCol = (from: string, to: string) => {
-    if (from === to) return;
-    const order = colCfg.order.filter((k) => k !== from);
-    const at = order.indexOf(to);
-    if (at < 0) return;
-    order.splice(at, 0, from);
-    updateCfg({ ...colCfg, order });
-  };
+  const colDrag = useDragReorder({
+    count: colCfg.order.length,
+    onMove: (from, to) => updateCfg({ ...colCfg, order: moveItem(colCfg.order, from, to) }),
+    announce: (to, count) => `Coloana mutată pe poziția ${to + 1} din ${count}.`,
+  });
   const resetCols = () => updateCfg({ order: [...defaultOrder], hidden: [...(cfg.defaultHidden ?? [])] });
 
   const statusTag = React.useCallback(
     (r: Row) => {
       const label = cfg.archive && r.archived ? 'Arhivat' : r.status;
-      return <span className={`tag ${tagClassOf(label)}`}>{label}</span>;
+      const s = statusOf(label);
+      return (
+        <StatusBadge className="sbt-tag" size="md" custom={{ fg: s.color, bg: s.soft, line: s.border }}>
+          {label}
+        </StatusBadge>
+      );
     },
-    [cfg, tagClassOf],
+    [cfg, statusOf],
   );
+
+  /** Status <select> tinted with the status colours (panel and spreadsheet cell). */
+  const statusSelect = (r: Row, key: string, className: string, label: string) => {
+    const value = String(r[key] ?? cfg.statuses[0].value);
+    const s = statusOf(value);
+    return (
+      <Select
+        className={className}
+        aria-label={label}
+        style={{ color: s.color, background: s.soft, borderColor: s.border }}
+        value={value}
+        onChange={(v) => saveField(r.documentId, key, v)}
+        options={cfg.statuses.map((o) => ({ value: o.value, label: o.value }))}
+      />
+    );
+  };
 
   // --- shared detail-panel blocks (identical on every screen)
   const statusBox = React.useCallback(
     (r: Row) => (
-      <div className="statusbox">
-        <label>Status</label>
-        <select
-          className={`sel-status ${tagClassOf(String(r.status ?? ''))}`}
-          value={String(r.status ?? cfg.statuses[0].value)}
-          onChange={(e) => saveField(r.documentId, 'status', e.target.value)}
-        >
-          {cfg.statuses.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.value}
-            </option>
-          ))}
-        </select>
+      <div className="sbt-statusbox">
+        <Field label="Status">{statusSelect(r, 'status', 'sbt-status-sel', 'Status')}</Field>
       </div>
     ),
-    [cfg, tagClassOf, saveField],
+    // statusSelect only reads cfg, statusOf and saveField.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cfg, statusOf, saveField],
   );
 
   const seasonField = React.useCallback(
@@ -1301,8 +1253,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
       if (!cfg.seasons) return null;
       const current = String(r.season ?? '');
       return (
-        <div className="fld">
-          <label>Sezon</label>
+        <Field label="Sezon" className="sbt-fld">
           <SeasonSelect
             value={current}
             seasons={seasons}
@@ -1311,7 +1262,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
               if (next !== current) saveField(r.documentId, 'season', next);
             }}
           />
-        </div>
+        </Field>
       );
     },
     [cfg, seasons, activeSeason, saveField],
@@ -1327,10 +1278,9 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
       return (
         <div style={{ marginTop: 11 }}>
           {customCols.map((c) => (
-            <div className="fld" key={c.key}>
-              <label>{c.label}</label>
-              <div className="v">{extraValueText(ex[c.extraKey!])}</div>
-            </div>
+            <DetailField key={c.key} label={c.label}>
+              {extraValueText(ex[c.extraKey!])}
+            </DetailField>
           ))}
         </div>
       );
@@ -1340,9 +1290,8 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
 
   const internalNoteField = React.useCallback(
     (r: Row) => (
-      <div className="fld">
-        <label>Notă internă</label>
-        <textarea
+      <Field label="Notă internă" className="sbt-fld">
+        <Textarea
           rows={3}
           key={`${r.documentId}-internalNote`}
           defaultValue={String(r.internalNote ?? '')}
@@ -1351,7 +1300,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
               saveField(r.documentId, 'internalNote', e.target.value);
           }}
         />
-      </div>
+      </Field>
     ),
     [saveField],
   );
@@ -1362,7 +1311,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     seasons,
     activeSeason,
     statuses: cfg.statuses,
-    tagClassOf,
+    statusOf,
     statusTag,
     saveField,
     removeRow,
@@ -1377,54 +1326,24 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     if (col.custom) {
       const ex = row.extra && typeof row.extra === 'object' ? (row.extra as Record<string, unknown>) : {};
       const v = ex[col.extraKey!];
-      if (col.type === 'bool') return <span className="cellv">{v === true ? 'Da' : v === false ? 'Nu' : ''}</span>;
-      return <span className="cellv">{v == null || v === '' ? '' : String(v)}</span>;
+      if (col.type === 'bool') return <span className="sbt-cellv">{v === true ? 'Da' : v === false ? 'Nu' : ''}</span>;
+      return <span className="sbt-cellv">{v == null || v === '' ? '' : String(v)}</span>;
     }
-    if (col.render) return <span className="cellv">{col.render(row)}</span>;
+    if (col.render) return <span className="sbt-cellv">{col.render(row)}</span>;
     if (col.type === 'date') {
       const raw = row[col.key];
-      return <span className="cellv">{fmtDateTime(typeof raw === 'string' ? raw : null)}</span>;
+      return <span className="sbt-cellv">{fmtDateTime(typeof raw === 'string' ? raw : null)}</span>;
     }
     // Status is the only editable data cell (unless the row is archived).
     if (col.type === 'status') {
-      if (cfg.archive && row.archived) return <span className="cellv">Arhivat</span>;
-      return (
-        <select
-          className={`sel-status ${tagClassOf(String(row[col.key] ?? cfg.statuses[0].value))}`}
-          value={String(row[col.key] ?? cfg.statuses[0].value)}
-          onChange={(e) => saveField(row.documentId, col.key, e.target.value)}
-        >
-          {cfg.statuses.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.value}
-            </option>
-          ))}
-        </select>
-      );
+      if (cfg.archive && row.archived) return <span className="sbt-cellv">Arhivat</span>;
+      return statusSelect(row, col.key, 'sbt-cell-sel', `${col.label}: ${String(row[col.key] ?? '')}`);
     }
     const val = row[col.key];
-    if (col.type === 'bool') return <span className="cellv">{val ? 'Da' : 'Nu'}</span>;
+    if (col.type === 'bool') return <span className="sbt-cellv">{val ? 'Da' : 'Nu'}</span>;
     if (col.type === 'list')
-      return <span className="cellv">{Array.isArray(val) ? val.map((x) => String(x)).join(', ') : val == null || val === '' ? '' : String(val)}</span>;
-    return <span className="cellv">{val == null || val === '' ? '' : String(val)}</span>;
-  };
-
-  // --- pager numbers (window around current page)
-  const pageNumbers = React.useMemo(() => {
-    const { page: p, pageCount } = pagination;
-    const out: number[] = [];
-    const from = Math.max(1, p - 2);
-    const to = Math.min(pageCount, from + 4);
-    for (let i = Math.max(1, to - 4); i <= to; i++) out.push(i);
-    return out;
-  }, [pagination]);
-
-  const rangeText = () => {
-    const { page: p, pageSize: ps, total } = pagination;
-    if (total === 0) return '0 din 0';
-    const start = (p - 1) * ps + 1;
-    const end = Math.min(total, p * ps);
-    return `${start}-${end} din ${total}`;
+      return <span className="sbt-cellv">{Array.isArray(val) ? val.map((x) => String(x)).join(', ') : val == null || val === '' ? '' : String(val)}</span>;
+    return <span className="sbt-cellv">{val == null || val === '' ? '' : String(val)}</span>;
   };
 
   const seasonSelectValue = season || activeSeason || 'all';
@@ -1460,586 +1379,545 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     return cfg.filterSelectFallback?.[dCol] ?? null;
   }, [dCol, statusFilterValues, formMeta, cfg]);
 
-  return (
-    <div className="insp">
-      <style>{fullCss}</style>
+  const statActions = (
+    <>
+      {cfg.seasons && (
+        <div className="sbt-season">
+          <span className="sbt-lbl">Sezon</span>
+          <Select
+            aria-label="Sezon"
+            value={seasonSelectValue}
+            onChange={(v) => {
+              setSeason(v === 'all' ? 'all' : v);
+              setPage(1);
+            }}
+            options={[
+              ...seasons.map((s) => ({ value: s, label: `${s}${s === activeSeason ? ' (activ)' : ''}` })),
+              { value: 'all', label: 'Toate sezoanele' },
+            ]}
+          />
+          <Button size="sm" variant="secondary" onClick={() => setMwsOpen(true)}>
+            Mută tot sezonul...
+          </Button>
+        </div>
+      )}
+      <div className="sbt-stat">
+        <b className="ui-num">{seasonStat.total ?? '—'}</b> în total
+        <br />
+        <span className="sbt-noi ui-num">{seasonStat.noi ?? 0} noi</span>
+        {cfg.texts.statSuffix}
+      </div>
+    </>
+  );
 
-      <div className="win">
-        {/* header */}
-        <div className="hd">
-          <div>
-            <h1>{cfg.texts.title}</h1>
-            <p>{cfg.texts.subtitle}</p>
-          </div>
-          <div className="hd-right">
-            {cfg.seasons && (
-              <div className="season">
-                <span className="lbl">Sezon</span>
-                <select
-                  value={seasonSelectValue}
-                  onChange={(e) => {
-                    setSeason(e.target.value === 'all' ? 'all' : e.target.value);
-                    setPage(1);
-                  }}
-                >
-                  {seasons.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                      {s === activeSeason ? ' (activ)' : ''}
-                    </option>
-                  ))}
-                  <option value="all">Toate sezoanele</option>
-                </select>
-                <button className="btn sm" type="button" onClick={() => setMwsOpen(true)}>
-                  Mută tot sezonul...
-                </button>
-              </div>
-            )}
-            <div className="stat">
-              <b className="num">{seasonStat.total ?? '—'}</b> în total
-              <br />
-              <span className="noi num">{seasonStat.noi ?? 0} noi</span>{cfg.texts.statSuffix}
+  const columnsMenu = (
+    <MenuButton
+      label="Coloane"
+      open={popOpen}
+      onToggle={() => setPopOpen((o) => !o)}
+      onClose={() => setPopOpen(false)}
+      popClassName="sbt-pop"
+    >
+      <h4>Coloane: trage pentru a reordona, bifează ce se afișează</h4>
+      <div className="sbt-pop-body">
+        {colCfg.order.map((key, i) => {
+          const c = colByKey[key];
+          if (!c) return null;
+          const shown = !colCfg.hidden.includes(key);
+          return (
+            <div key={key} className="sbt-prow" {...colDrag.itemProps(i)}>
+              <button type="button" className="ui-iconbtn ui-iconbtn--sm ui-grip" aria-label={`Mută coloana ${c.label}`} {...colDrag.handleProps(i)}>
+                <IconGrip size={12} />
+              </button>
+              <Checkbox checked={shown} onChange={() => toggleHidden(key)} label={c.label} />
             </div>
+          );
+        })}
+      </div>
+      {colDrag.live}
+      <div className="sbt-pop-foot">
+        <Button size="sm" variant="ghost" onClick={resetCols}>
+          Resetează la implicit
+        </Button>
+        <Button size="sm" onClick={() => setPopOpen(false)}>
+          Aplică
+        </Button>
+      </div>
+    </MenuButton>
+  );
+
+  const exportMenu = (
+    <MenuButton
+      label="Export"
+      open={exportOpen}
+      onToggle={() => setExportOpen((o) => !o)}
+      onClose={() => setExportOpen(false)}
+      disabled={busy}
+      popClassName="sbt-menu"
+      role="menu"
+    >
+      <button type="button" role="menuitem" onClick={exportCsv} disabled={busy}>
+        Descarcă CSV
+      </button>
+      {sheetsForm && <div className="sbt-sep" />}
+      {sheetsForm && !sheetsConnected && (
+        <button
+          type="button"
+          role="menuitem"
+          className="sbt-warn"
+          onClick={() => {
+            setExportOpen(false);
+            setSheetsOpen(true);
+          }}
+          disabled={busy}
+        >
+          Google Sheets
+          <span className="sbt-sub">Google Sheet nu este conectat</span>
+        </button>
+      )}
+      {sheetsForm && sheetsConnected && (
+        <>
+          <div className="sbt-grp">{sheetLink?.spreadsheetName || 'Foaie conectată'}</div>
+          <button type="button" role="menuitem" onClick={syncSheetNow} disabled={busy}>
+            Sincronizează acum
+            {sheetLink?.lastSyncAt && <span className="sbt-sub">Ultima sincronizare {fmtSheetWhen(sheetLink.lastSyncAt)}</span>}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setExportOpen(false);
+              if (sheetsUrl) window.open(sheetsUrl, '_blank', 'noopener');
+            }}
+            disabled={busy}
+          >
+            Deschide Google Sheet
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setExportOpen(false);
+              setSheetsOpen(true);
+            }}
+            disabled={busy}
+          >
+            Setări și istoric
+          </button>
+        </>
+      )}
+    </MenuButton>
+  );
+
+  const quickMenus = quickCols.map((qc) => {
+    const picked = quickSelected(qc.key);
+    return (
+      <MenuButton
+        key={qc.key}
+        label={`${qc.label}${picked.length ? ` (${picked.length})` : ''}`}
+        active={picked.length > 0}
+        open={quickOpen === qc.key}
+        onToggle={() => {
+          setAdvOpen(false);
+          setQuickOpen((cur) => (cur === qc.key ? null : qc.key));
+        }}
+        onClose={() => setQuickOpen((cur) => (cur === qc.key ? null : cur))}
+        popClassName="sbt-qfpop"
+      >
+        <div className="sbt-pop-body">
+          {qc.options.map((v) => (
+            <div className="sbt-prow" key={v}>
+              <Checkbox checked={picked.includes(v)} onChange={() => toggleQuick(qc.key, v)} label={v} />
+            </div>
+          ))}
+        </div>
+        {picked.length > 0 && (
+          <div className="sbt-qffoot">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setFilters((all) => all.filter((x) => !(x.col === qc.key && (x.op === 'equals' || x.op === 'anyOf'))));
+                setPage(1);
+              }}
+            >
+              Șterge
+            </Button>
           </div>
+        )}
+      </MenuButton>
+    );
+  });
+
+  const advMenu = (
+    <MenuButton
+      label="Alte filtre"
+      active={advOpen}
+      open={advOpen}
+      onToggle={() => {
+        setQuickOpen(null);
+        setAdvOpen((v) => !v);
+      }}
+      onClose={() => setAdvOpen(false)}
+      popClassName="sbt-advpop"
+    >
+      <span className="sbt-lbl">Filtru:</span>
+      <Select
+        aria-label="Coloana filtrului"
+        value={dCol}
+        onChange={(v) => {
+          setDCol(v);
+          setDVal('');
+          setDVals([]);
+        }}
+        options={cfg.filterColumns.map((c) => ({ value: c.key, label: c.label }))}
+      />
+      <Select
+        aria-label="Operator"
+        value={dOp}
+        disabled={dColIsDate}
+        onChange={(v) => setDOp(v)}
+        options={dOpOptions.map((o) => ({ value: o.key, label: o.label }))}
+      />
+      {dColIsDate && dOpIsBetween ? (
+        <>
+          <DateInput aria-label="De la" value={dFrom || null} onChange={(v) => setDFrom(v ?? '')} />
+          <DateInput aria-label="Până la" value={dTo || null} onChange={(v) => setDTo(v ?? '')} />
+        </>
+      ) : dColIsDate ? (
+        <DateInput aria-label="Data" value={dFrom || null} onChange={(v) => setDFrom(v ?? '')} />
+      ) : dValOptions ? (
+        <Select
+          aria-label="Valoare"
+          value={dVal}
+          onChange={(v) => setDVal(v)}
+          style={{ minWidth: 160 }}
+          placeholder="valoare"
+          options={dValOptions.map((l) => ({ value: l, label: l }))}
+        />
+      ) : (
+        <Input
+          aria-label="Valoare"
+          placeholder="valoare"
+          value={dVal}
+          onChange={(e) => setDVal(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') addFilter();
+          }}
+          style={{ minWidth: 160, width: 'auto' }}
+        />
+      )}
+      <Button size="sm" onClick={addFilter}>
+        Adaugă filtru
+      </Button>
+    </MenuButton>
+  );
+
+  const bulkBar = cfg.bulk && selectedIds.size > 0 && (
+    <div className="sbt-bulk">
+      <span className="sbt-bcount">{selectedIds.size} selectate</span>
+      {cfg.seasons && (
+        <>
+          <SeasonSelect
+            aria-label="Sezon destinație"
+            value={bulkSeason}
+            seasons={seasons}
+            activeSeason={activeSeason}
+            onChange={setBulkSeason}
+            emptyLabel="Sezon destinație..."
+          />
+          <Button size="sm" onClick={bulkMove} disabled={busy || !bulkSeason.trim()}>
+            Mută în sezon
+          </Button>
+        </>
+      )}
+      {cfg.archive && (
+        <Button size="sm" variant="secondary" onClick={bulkArchive} disabled={busy}>
+          Arhivează
+        </Button>
+      )}
+      <Button
+        size="sm"
+        variant="danger"
+        onClick={() => {
+          if (selectedIds.size > 0) setPendingConfirm({ kind: 'bulk', count: selectedIds.size });
+        }}
+        disabled={busy}
+      >
+        Șterge
+      </Button>
+      <span className="sbt-grow" />
+      <Button size="sm" variant="secondary" onClick={clearSelection}>
+        Deselectează
+      </Button>
+    </div>
+  );
+
+  const compactView = (
+    <>
+      {bulkBar}
+      <div className="sbt-split">
+        <div className="ui-table-wrap">
+          <table className="ui-table sbt-clist">
+            <thead>
+              <tr>
+                {cfg.bulk && (
+                  <th className="sbt-chk">
+                    <Checkbox
+                      aria-label="Selectează toate"
+                      checked={allPageSelected}
+                      indeterminate={!allPageSelected && rows.some((r) => selectedIds.has(r.documentId))}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
+                )}
+                {cfg.compact.headers.map((h) => (
+                  <th key={h}>{h}</th>
+                ))}
+                <th>
+                  <span className="ui-sr">Acțiuni</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr
+                  key={r.documentId}
+                  className="ui-table-click"
+                  aria-selected={selectedId === r.documentId}
+                  onClick={() => setSelectedId(r.documentId)}
+                >
+                  {cfg.bulk && (
+                    // The row opens the detail panel on click; the checkbox only selects.
+                    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
+                    <td className="sbt-chk" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        aria-label="Selectează rândul"
+                        checked={selectedIds.has(r.documentId)}
+                        onChange={() => toggleSelect(r.documentId)}
+                      />
+                    </td>
+                  )}
+                  {cfg.compact.renderCells(r, api)}
+                  <td className="sbt-actcell">
+                    <span className="sbt-rowacts">
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeRow(r.documentId);
+                        }}
+                      >
+                        Șterge
+                      </Button>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        {/* toolbar A */}
-        <div className="tbA">
-          <div className="search">
-            <span aria-hidden="true">⌕</span>
-            <input
+        {selected && <div className="sbt-panel">{cfg.compact.renderDetail(selected, api)}</div>}
+      </div>
+    </>
+  );
+
+  const sheetView = (
+    <div ref={sheetWrapRef} className="sbt-sheetwrap" data-xscroll={sheetXScroll ? 'true' : undefined}>
+      <table className="ui-table sbt-sheet">
+        <thead>
+          <tr>
+            {visibleOrder.map((key, i) => {
+              const c = colByKey[key];
+              if (!c) return null;
+              return (
+                <th key={key} className={i === 0 ? 'sbt-frz' : undefined} style={{ minWidth: c.width, left: i === 0 ? 0 : undefined }}>
+                  {c.label}
+                </th>
+              );
+            })}
+            <th style={{ minWidth: 150 }}>
+              <span className="ui-sr">Acțiuni</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.documentId}>
+              {visibleOrder.map((key, i) => {
+                const c = colByKey[key];
+                if (!c) return null;
+                return (
+                  <td key={key} className={cx(i === 0 && 'sbt-frz', c.type === 'bool' && 'sbt-boolc')} style={{ minWidth: c.width }}>
+                    {renderCellInput(r, c)}
+                  </td>
+                );
+              })}
+              <td className="sbt-acts">
+                <Button size="sm" variant="danger" onClick={() => removeRow(r.documentId)}>
+                  Șterge
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  return (
+    <AdminPage>
+      <style>{fullCss}</style>
+
+      <Window>
+        <PageHeader title={cfg.texts.title} subtitle={cfg.texts.subtitle} actions={statActions} />
+
+        {/* toolbar A: search, view, columns, export */}
+        <div className="ui-table-bar">
+          <div className="ui-table-search">
+            <Input
+              type="search"
+              aria-label="Caută"
               placeholder={cfg.texts.searchPlaceholder}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
-          <div className="seg">
-            <button className={view === 'compact' ? 'on' : ''} type="button" onClick={() => setView('compact')}>
-              Compact
-            </button>
-            <button className={view === 'full' ? 'on' : ''} type="button" onClick={() => setView('full')}>
-              Toate coloanele
-            </button>
-          </div>
-          {view === 'full' && (
-            <div className="popwrap">
-              <button ref={colBtnRef} className="btn sm" type="button" onClick={openColPop}>
-                Coloane ▾
-              </button>
-              {popOpen && (
-                <div className="pop pop-fixed" style={popPos ? { top: popPos.top, right: popPos.right } : undefined}>
-                  <h4>Coloane: trage pentru a reordona, bifează ce se afișează</h4>
-                  <div className="pop-body">
-                    {colCfg.order.map((key) => {
-                      const c = colByKey[key];
-                      if (!c) return null;
-                      const shown = !colCfg.hidden.includes(key);
-                      const cls = `prow${dragKey === key ? ' drag' : ''}${overKey === key && dragKey !== key ? ' over' : ''}`;
-                      return (
-                        <div
-                          key={key}
-                          className={cls}
-                          draggable
-                          onDragStart={(e) => {
-                            setDragKey(key);
-                            e.dataTransfer.effectAllowed = 'move';
-                          }}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            e.dataTransfer.dropEffect = 'move';
-                            if (overKey !== key) setOverKey(key);
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            if (dragKey) reorderCol(dragKey, key);
-                            setDragKey(null);
-                            setOverKey(null);
-                          }}
-                          onDragEnd={() => {
-                            setDragKey(null);
-                            setOverKey(null);
-                          }}
-                        >
-                          <span className="grip" aria-hidden="true">
-                            ⠿
-                          </span>
-                          <input type="checkbox" checked={shown} onChange={() => toggleHidden(key)} />
-                          <span className="plbl">{c.label}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="pop-foot">
-                    <button type="button" className="reset" onClick={resetCols}>
-                      Resetează la implicit
-                    </button>
-                    <button type="button" className="btn pri sm" onClick={() => setPopOpen(false)}>
-                      Aplică
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          <div className="popwrap">
-            <button className="btn sm" type="button" onClick={() => setExportOpen((o) => !o)} disabled={busy}>
-              Export ▾
-            </button>
-            {exportOpen && (
-              <div className="menu">
-                <button type="button" onClick={exportCsv} disabled={busy}>
-                  Descarcă CSV
-                </button>
-                {sheetsForm && <div className="sep" />}
-                {sheetsForm && !sheetsConnected && (
-                  <button
-                    type="button"
-                    className="warn"
-                    onClick={() => {
-                      setExportOpen(false);
-                      setSheetsOpen(true);
-                    }}
-                    disabled={busy}
-                  >
-                    Google Sheets
-                    <span className="sub">Google Sheet nu este conectat</span>
-                  </button>
-                )}
-                {sheetsForm && sheetsConnected && (
-                  <>
-                    <div className="grp">{sheetLink?.spreadsheetName || 'Foaie conectată'}</div>
-                    <button type="button" onClick={syncSheetNow} disabled={busy}>
-                      Sincronizează acum
-                      {sheetLink?.lastSyncAt && (
-                        <span className="sub">Ultima sincronizare {fmtSheetWhen(sheetLink.lastSyncAt)}</span>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setExportOpen(false);
-                        if (sheetsUrl) window.open(sheetsUrl, '_blank', 'noopener');
-                      }}
-                      disabled={busy}
-                    >
-                      Deschide Google Sheet
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setExportOpen(false);
-                        setSheetsOpen(true);
-                      }}
-                      disabled={busy}
-                    >
-                      Setări și istoric
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+          <SegmentedControl<'compact' | 'full'>
+            size="sm"
+            aria-label="Vizualizare"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: 'compact', label: 'Compact' },
+              { value: 'full', label: 'Toate coloanele' },
+            ]}
+          />
+          {view === 'full' && columnsMenu}
+          {exportMenu}
         </div>
 
-        {/* toolbar B: sort, plus the builder behind a dropdown */}
-        <div className="tbB">
-          {quickCols.map((qc) => {
-            const picked = quickSelected(qc.key);
-            return (
-              <div className="qfwrap" key={qc.key}>
-                <button
-                  type="button"
-                  className={picked.length ? 'btn sm qf on' : 'btn sm qf'}
-                  onClick={() => {
-                    setAdvOpen(false);
-                    setQuickOpen((cur) => (cur === qc.key ? null : qc.key));
-                  }}
-                >
-                  {qc.label}
-                  {picked.length ? ` (${picked.length})` : ''} ▾
-                </button>
-                {quickOpen === qc.key && (
-                  <div className="pop qfpop">
-                    <div className="pop-body">
-                      {qc.options.map((v) => {
-                        const on = picked.includes(v);
-                        return (
-                          <label className="prow" key={v}>
-                            <input type="checkbox" checked={on} onChange={() => toggleQuick(qc.key, v)} />
-                            <span>{v}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                    {picked.length > 0 && (
-                      <div className="qffoot">
-                        <button
-                          type="button"
-                          className="fclear"
-                          onClick={() => {
-                            setFilters((all) =>
-                              all.filter((x) => !(x.col === qc.key && (x.op === 'equals' || x.op === 'anyOf'))),
-                            );
-                            setPage(1);
-                          }}
-                        >
-                          Șterge
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          <div className="qfwrap">
-            <button
-              type="button"
-              className={advOpen ? 'btn sm qf on' : 'btn sm qf'}
-              onClick={() => {
-                setQuickOpen(null);
-                setAdvOpen((v) => !v);
-              }}
-            >
-              Alte filtre ▾
-            </button>
-            {advOpen && (
-              <div className="pop advpop">
-          <span className="lbl">Filtru:</span>
-          <select
-            value={dCol}
-            onChange={(e) => {
-              setDCol(e.target.value);
-              setDVal('');
-              setDVals([]);
-            }}
-          >
-            {cfg.filterColumns.map((c) => (
-              <option key={c.key} value={c.key}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-          <select value={dOp} disabled={dColIsDate} onChange={(e) => setDOp(e.target.value)}>
-            {dOpOptions.map((o) => (
-              <option key={o.key} value={o.key}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          {dColIsDate && dOpIsBetween ? (
-            <>
-              <input type="date" aria-label="De la" value={dFrom} onChange={(e) => setDFrom(e.target.value)} />
-              <input type="date" aria-label="Până la" value={dTo} onChange={(e) => setDTo(e.target.value)} />
-            </>
-          ) : dColIsDate ? (
-            <input type="date" aria-label="Data" value={dFrom} onChange={(e) => setDFrom(e.target.value)} />
-          ) : dValOptions ? (
-            <select value={dVal} onChange={(e) => setDVal(e.target.value)} style={{ minWidth: 160 }}>
-              <option value="">valoare</option>
-              {dValOptions.map((l) => (
-                <option key={l} value={l}>
-                  {l}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input placeholder="valoare" value={dVal} onChange={(e) => setDVal(e.target.value)} style={{ minWidth: 160 }} />
-          )}
-          <button className="btn sm pri" type="button" onClick={addFilter}>
-            Adaugă filtru
-          </button>
-              </div>
-            )}
-          </div>
-          <span className="grow" />
-          <span className="lbl">Sortare:</span>
-          <select
+        {/* toolbar B: quick filters, the builder behind a dropdown, sort */}
+        <div className="sbt-tbB">
+          {quickMenus}
+          {advMenu}
+          <span className="sbt-grow" />
+          <span className="sbt-lbl">Sortare:</span>
+          <Select
+            aria-label="Sortare"
             value={sort}
-            onChange={(e) => {
-              setSort(e.target.value as 'newest' | 'oldest' | 'name');
+            onChange={(v) => {
+              setSort(v as 'newest' | 'oldest' | 'name');
               setPage(1);
             }}
-          >
-            <option value="newest">Cele mai noi</option>
-            <option value="oldest">Cele mai vechi</option>
-            <option value="name">Nume A-Z</option>
-          </select>
+            options={[
+              { value: 'newest', label: 'Cele mai noi' },
+              { value: 'oldest', label: 'Cele mai vechi' },
+              { value: 'name', label: 'Nume A-Z' },
+            ]}
+          />
         </div>
 
         {/* active filter chips */}
         {filters.length > 0 && (
-          <div className="fchips">
-            {filters.map((f) => (
-              <span className="fchip" key={f.id}>
-                {chipText(f)}
-                <button type="button" className="x" aria-label="Elimină filtrul" onClick={() => removeFilter(f.id)}>
-                  ✕
-                </button>
-              </span>
-            ))}
-            <span className="lbl">
+          <div className="sbt-chips">
+            <ChipList>
+              {filters.map((f) => (
+                <Chip key={f.id} onRemove={() => removeFilter(f.id)} removeLabel="Elimină filtrul">
+                  {chipText(f)}
+                </Chip>
+              ))}
+            </ChipList>
+            <span className="sbt-lbl">
               {filters.length} {filters.length === 1 ? 'filtru activ' : 'filtre active'}
             </span>
-            <button type="button" className="fclear" onClick={clearFilters}>
+            <Button size="sm" variant="ghost" onClick={clearFilters}>
               Șterge filtrele
-            </button>
-          </div>
-        )}
-
-        {msg && (
-          <div className={`insp-msg ${msg.kind}`}>
-            {msg.text}
-            <button
-              type="button"
-              onClick={() => setMsg(null)}
-              style={{ float: 'right', border: 'none', background: 'none', cursor: 'pointer', color: 'inherit' }}
-            >
-              ×
-            </button>
+            </Button>
           </div>
         )}
 
         {/* content */}
-        <div className={loading && !firstLoad ? 'listbody busy' : 'listbody'} aria-busy={loading}>
-        {firstLoad ? (
-          <div className="insp-empty">Se încarcă...</div>
-        ) : error ? (
-          <div className="insp-empty">{cfg.texts.loadError}</div>
-        ) : rows.length === 0 ? (
-          <div className="insp-empty">{cfg.texts.empty}</div>
-        ) : view === 'compact' ? (
-          <>
-            {cfg.bulk && selectedIds.size > 0 && (
-              <div className="bulkbar">
-                <span className="bcount">{selectedIds.size} selectate</span>
-                {cfg.seasons && (
-                  <>
-                    <SeasonSelect
-                      value={bulkSeason}
-                      seasons={seasons}
-                      activeSeason={activeSeason}
-                      onChange={setBulkSeason}
-                      emptyLabel="Sezon destinație..."
-                      style={{ minWidth: 220 }}
-                    />
-                    <button className="btn sm pri" type="button" onClick={bulkMove} disabled={busy || !bulkSeason.trim()}>
-                      Mută în sezon
-                    </button>
-                  </>
-                )}
-                {cfg.archive && (
-                  <button className="btn sm" type="button" onClick={bulkArchive} disabled={busy}>
-                    Arhivează
-                  </button>
-                )}
-                <button
-                  className="btn sm danger"
-                  type="button"
-                  onClick={() => {
-                    if (selectedIds.size > 0) setPendingConfirm({ kind: 'bulk', count: selectedIds.size });
-                  }}
-                  disabled={busy}
-                >
-                  Șterge
-                </button>
-                <span className="grow" />
-                <button className="btn sm" type="button" onClick={clearSelection}>
-                  Deselectează
-                </button>
-              </div>
-            )}
-            <div className="insp-split">
-              <div style={{ overflowX: 'auto' }}>
-                <table className="clist">
-                  <thead>
-                    <tr>
-                      {cfg.bulk && (
-                        <th className="chkc">
-                          <input
-                            type="checkbox"
-                            className="chk"
-                            aria-label="Selectează toate"
-                            checked={allPageSelected}
-                            onChange={toggleSelectAll}
-                          />
-                        </th>
-                      )}
-                      {cfg.compact.headers.map((h) => (
-                        <th key={h}>{h}</th>
-                      ))}
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r) => (
-                      <tr
-                        key={r.documentId}
-                        className={selectedId === r.documentId ? 'sel' : ''}
-                        onClick={() => setSelectedId(r.documentId)}
-                      >
-                        {cfg.bulk && (
-                          <td className="chkc" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              className="chk"
-                              aria-label="Selectează rândul"
-                              checked={selectedIds.has(r.documentId)}
-                              onChange={() => toggleSelect(r.documentId)}
-                            />
-                          </td>
-                        )}
-                        {cfg.compact.renderCells(r, api)}
-                        <td className="actcell">
-                          <span className="rowacts">
-                            <button
-                              type="button"
-                              className="ra del"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeRow(r.documentId);
-                              }}
-                            >
-                              Șterge
-                            </button>
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {selected && <div className="panel">{cfg.compact.renderDetail(selected, api)}</div>}
-            </div>
-          </>
-        ) : (
-          // ---- spreadsheet view ----
-          <div ref={sheetWrapRef} className={`sheetwrap${sheetXScroll ? ' xscroll' : ''}`}>
-            <table className="sheet">
-              <thead>
-                <tr>
-                  {visibleOrder.map((key, i) => {
-                    const c = colByKey[key];
-                    if (!c) return null;
-                    return (
-                      <th key={key} className={i === 0 ? 'frz' : ''} style={{ minWidth: c.width, left: i === 0 ? 0 : undefined }}>
-                        {c.label}
-                      </th>
-                    );
-                  })}
-                  <th style={{ minWidth: 150 }} />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.documentId}>
-                    {visibleOrder.map((key, i) => {
-                      const c = colByKey[key];
-                      if (!c) return null;
-                      const isBool = c.type === 'bool';
-                      return (
-                        <td key={key} className={`${i === 0 ? 'frz' : ''} ${isBool ? 'boolc' : ''}`} style={{ minWidth: c.width }}>
-                          {renderCellInput(r, c)}
-                        </td>
-                      );
-                    })}
-                    <td className="acts">
-                      <span className="rowacts" style={{ opacity: 1 }}>
-                        <button type="button" className="ra del" onClick={() => removeRow(r.documentId)}>
-                          Șterge
-                        </button>
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div className="sbt-listbody" data-busy={loading && !firstLoad ? 'true' : undefined} aria-busy={loading}>
+          {firstLoad ? (
+            <Loading />
+          ) : error ? (
+            <EmptyState>{cfg.texts.loadError}</EmptyState>
+          ) : rows.length === 0 ? (
+            <EmptyState>{cfg.texts.empty}</EmptyState>
+          ) : view === 'compact' ? (
+            compactView
+          ) : (
+            sheetView
+          )}
         </div>
 
         {/* footer: page size + pager */}
         {!firstLoad && !error && rows.length > 0 && (
-          <div className="ft">
-            <div className="l">
+          <div className="ui-table-pager sbt-ft">
+            <div className="sbt-ft-l">
               Rânduri pe pagină:
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
+              <Select
+                aria-label="Rânduri pe pagină"
+                value={String(pageSize)}
+                onChange={(v) => {
+                  setPageSize(Number(v));
                   setPage(1);
                 }}
-                style={{ padding: '5px 8px' }}
-              >
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-              <span className="num">· {rangeText()}</span>
+                options={[
+                  { value: '25', label: '25' },
+                  { value: '50', label: '50' },
+                  { value: '100', label: '100' },
+                ]}
+              />
             </div>
-            <div className="pager">
-              <button className="pg" type="button" disabled={pagination.page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                ‹
-              </button>
-              {pageNumbers.map((n) => (
-                <button key={n} className={`pg ${n === pagination.page ? 'on' : ''}`} type="button" onClick={() => setPage(n)}>
-                  {n}
-                </button>
-              ))}
-              <button
-                className="pg"
-                type="button"
-                disabled={pagination.page >= pagination.pageCount}
-                onClick={() => setPage((p) => Math.min(pagination.pageCount, p + 1))}
-              >
-                ›
-              </button>
-            </div>
+            <Pager
+              page={pagination.page}
+              pageCount={pagination.pageCount}
+              total={pagination.total}
+              pageSize={pagination.pageSize}
+              onChange={(p) => setPage(Math.max(1, Math.min(pagination.pageCount, p)))}
+            />
           </div>
         )}
-      </div>
+      </Window>
 
-      {cfg.seasons && mwsOpen && (
-        <div className="mws-back" onMouseDown={() => setMwsOpen(false)}>
-          <div className="mws" onMouseDown={(e) => e.stopPropagation()}>
-            <h3>Mută tot sezonul</h3>
-            <div className="mbody">
-              <div className="mrow">
-                <label>Din sezonul</label>
-                <div className="ro">{season || activeSeason || '—'}</div>
-              </div>
-              <div className="mrow">
-                <label>În sezonul</label>
-                <SeasonSelect
-                  value={mwsTo}
-                  seasons={seasons}
-                  activeSeason={activeSeason}
-                  onChange={setMwsTo}
-                  emptyLabel="Alege sezonul..."
-                  style={{ width: '100%' }}
-                />
-              </div>
-              <label className="chkrow">
-                <input type="checkbox" checked={mwsArchivedOnly} onChange={(e) => setMwsArchivedOnly(e.target.checked)} />
-                Doar înscrierile arhivate
-              </label>
-            </div>
-            <div className="foot">
-              <button className="btn sm" type="button" onClick={() => setMwsOpen(false)}>
+      {cfg.seasons && (
+        <Modal
+          open={mwsOpen}
+          onClose={() => setMwsOpen(false)}
+          dismissable={!busy}
+          title="Mută tot sezonul"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setMwsOpen(false)} disabled={busy}>
                 Anulează
-              </button>
-              <button
-                className="btn sm pri"
-                type="button"
-                onClick={moveWholeSeason}
-                disabled={busy || !mwsTo.trim() || !(season || activeSeason)}
-              >
+              </Button>
+              <Button onClick={moveWholeSeason} loading={busy} disabled={!mwsTo.trim() || !(season || activeSeason)}>
                 Mută
-              </button>
-            </div>
+              </Button>
+            </>
+          }
+        >
+          <div className="sbt-mws">
+            <Field label="Din sezonul">
+              <Input readOnly value={season || activeSeason || '—'} />
+            </Field>
+            <Field label="În sezonul">
+              <SeasonSelect
+                value={mwsTo}
+                seasons={seasons}
+                activeSeason={activeSeason}
+                onChange={setMwsTo}
+                emptyLabel="Alege sezonul..."
+                style={{ width: '100%' }}
+              />
+            </Field>
+            <Checkbox checked={mwsArchivedOnly} onChange={setMwsArchivedOnly} label="Doar înscrierile arhivate" />
           </div>
-        </div>
+        </Modal>
       )}
 
       {sheetsForm && (
@@ -2068,6 +1946,6 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
           else doRemoveRow(pendingConfirm.documentId);
         }}
       />
-    </div>
+    </AdminPage>
   );
 }

@@ -1,5 +1,10 @@
 import * as React from 'react';
+import { Button, StatusBadge } from '../ui';
 import SubmissionTablePage, {
+  DetailBody,
+  DetailField,
+  DetailFooter,
+  DetailHeader,
   fmtDateTime,
   fmtDateShort,
   type ColumnDef,
@@ -110,12 +115,12 @@ const renderCells = (r: Row, api: TableApi) => {
   const s = r as Submission;
   return (
     <>
-      <td className="sub num">{fmtDateShort(s.submittedAt)}</td>
-      <td className="nm">{s.childName}</td>
+      <td className="ui-num">{fmtDateShort(s.submittedAt)}</td>
+      <td className="sbt-nm">{s.childName}</td>
       <td>{api.statusTag(s)}</td>
       <td>{s.parentName}</td>
       <td>
-        <span className="lvchip">{s.level}</span>
+        <span className="sbt-lv">{s.level}</span>
       </td>
     </>
   );
@@ -126,20 +131,14 @@ const renderDetail = (row: Row, api: TableApi) => {
   const { removeRow, statusTag, statusBox, seasonField, customFields, internalNoteField } = api;
   return (
     <>
-      <div className="ph">
+      <DetailHeader>
         <b>{selected.childName}</b>
         {statusTag(selected)}
-      </div>
-      <div className="pb">
+      </DetailHeader>
+      <DetailBody>
         {statusBox(selected)}
-        <div className="fld">
-          <label>Trimis la</label>
-          <div className="v">{fmtDateTime(selected.submittedAt)}</div>
-        </div>
-        <div className="fld">
-          <label>Arhivare</label>
-          <div className="v">{selected.archived ? 'Arhivat' : 'Activ'}</div>
-        </div>
+        <DetailField label="Trimis la">{fmtDateTime(selected.submittedAt)}</DetailField>
+        <DetailField label="Arhivare">{selected.archived ? 'Arhivat' : 'Activ'}</DetailField>
         {seasonField(selected)}
         {(
           [
@@ -152,40 +151,24 @@ const renderDetail = (row: Row, api: TableApi) => {
             ['level', 'Nivel'],
           ] as Array<[string, string]>
         ).map(([key, label]) => (
-          <div className="fld" key={key}>
-            <label>{label}</label>
-            <div className="v">{String(selected[key] ?? '') || '—'}</div>
-          </div>
+          <DetailField key={key} label={label}>{String(selected[key] ?? '') || '—'}</DetailField>
         ))}
-        <div className="fld">
-          <label>Interes club</label>
-          <div className="v">{selected.clubInterest ? 'Da' : 'Nu'}</div>
-        </div>
-        <div className="fld">
-          <label>Acord regulament</label>
-          <div className="v">{selected.regulationsAgreement ? 'Da' : 'Nu'}</div>
-        </div>
-        <div className="fld">
-          <label>Acord confidențialitate</label>
-          <div className="v">{selected.privacyConsent ? 'Da' : 'Nu'}</div>
-        </div>
-        <div className="fld" style={{ marginTop: 11 }}>
-          <label>Experiență anterioară</label>
-          <div className="v">{String(selected.priorExperience ?? '') || '—'}</div>
-        </div>
-        <div className="fld">
-          <label>Așteptări</label>
-          <div className="v">{String(selected.expectations ?? '') || '—'}</div>
-        </div>
+        <DetailField label="Interes club">{selected.clubInterest ? 'Da' : 'Nu'}</DetailField>
+        <DetailField label="Acord regulament">{selected.regulationsAgreement ? 'Da' : 'Nu'}</DetailField>
+        <DetailField label="Acord confidențialitate">{selected.privacyConsent ? 'Da' : 'Nu'}</DetailField>
+        <DetailField style={{ marginTop: 11 }} label="Experiență anterioară">
+          {String(selected.priorExperience ?? '') || '—'}
+        </DetailField>
+        <DetailField label="Așteptări">{String(selected.expectations ?? '') || '—'}</DetailField>
         {customFields(selected)}
         {internalNoteField(selected)}
-      </div>
-      <div className="pa">
+      </DetailBody>
+      <DetailFooter>
         <span />
-        <button className="btn danger sm" type="button" onClick={() => removeRow(selected.documentId)}>
+        <Button size="sm" variant="danger" onClick={() => removeRow(selected.documentId)}>
           Șterge înscrierea
-        </button>
-      </div>
+        </Button>
+      </DetailFooter>
     </>
   );
 };
@@ -197,12 +180,12 @@ const CFG: SubmissionTableCfg = {
   colConfigVersion: 1,
   csvPrefix: 'inscrieri',
   statuses: [
-    { value: 'Nou', color: '#2138b8', soft: '#eef1fb', border: '#c6cff2' },
-    { value: 'Contactat', color: '#00757f', soft: '#e2f4f5', border: '#b6dde0' },
-    { value: 'Confirmat', color: '#1f7a4d', soft: '#e5f3ec', border: '#bfe0cc' },
-    { value: 'Respins', color: '#be3330', soft: '#fbeeed', border: '#e6c3c1' },
+    { value: 'Nou', color: 'var(--theme-primary)', soft: 'var(--theme-primary-soft)', border: 'var(--theme-primary-soft-line)' },
+    { value: 'Contactat', color: 'var(--theme-info)', soft: 'var(--theme-info-bg)', border: 'var(--theme-info-border)' },
+    { value: 'Confirmat', color: 'var(--theme-success)', soft: 'var(--theme-success-bg)', border: 'var(--theme-success-border)' },
+    { value: 'Respins', color: 'var(--theme-danger)', soft: 'var(--theme-danger-bg)', border: 'var(--theme-danger-border)' },
   ],
-  extraTags: [{ value: 'Arhivat', color: '#6a6e7a', soft: '#eceef2', border: '#d3d6dd' }],
+  extraTags: [{ value: 'Arhivat', color: 'var(--theme-neutral)', soft: 'var(--theme-neutral-bg)', border: 'var(--theme-neutral-border)' }],
   builtinColumns: BUILTIN_COLUMNS,
   registryColKeys: REGISTRY_COL_KEYS,
   filterColumns: FILTER_COLUMNS,

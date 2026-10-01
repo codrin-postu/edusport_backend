@@ -1,5 +1,10 @@
 import * as React from 'react';
+import { Button, StatusBadge } from '../ui';
 import SubmissionTablePage, {
+  DetailBody,
+  DetailField,
+  DetailFooter,
+  DetailHeader,
   fmtDateTime,
   fmtDateShort,
   type ColumnDef,
@@ -74,8 +79,8 @@ function birthDateCell(row: VolunteerRow): React.ReactNode {
   return (
     <>
       {bd}
-      {age != null ? <span className="num"> · {age} ani</span> : null}
-      {age != null && age < 18 ? <span className="minor">minor</span> : null}
+      {age != null ? <span className="ui-num"> · {age} ani</span> : null}
+      {age != null && age < 18 ? <StatusBadge tone="warning" className="vol-minor">minor</StatusBadge> : null}
     </>
   );
 }
@@ -179,10 +184,10 @@ const renderCells = (r: Row, api: TableApi) => {
   const areas = helpAreasOf(v);
   return (
     <>
-      <td className="sub num">{fmtDateShort(v.submittedAt)}</td>
-      <td className="nm">
+      <td className="ui-num">{fmtDateShort(v.submittedAt)}</td>
+      <td className="sbt-nm">
         {v.fullName ?? '—'}
-        {age != null && age < 18 ? <span className="minor">minor</span> : null}
+        {age != null && age < 18 ? <StatusBadge tone="warning" className="vol-minor">minor</StatusBadge> : null}
       </td>
       <td>{api.statusTag(v)}</td>
       <td>{v.city ?? '—'}</td>
@@ -208,33 +213,27 @@ const renderDetail = (row: Row, api: TableApi) => {
   const hasParent = Boolean(selected.parentName || selected.parentPhone || selected.parentalConsent);
   return (
     <>
-      <div className="ph">
+      <DetailHeader>
         <b>
           {selected.fullName ?? '—'}
-          {age != null && age < 18 ? <span className="minor">minor</span> : null}
+          {age != null && age < 18 ? <StatusBadge tone="warning" className="vol-minor">minor</StatusBadge> : null}
         </b>
         {statusTag(selected)}
-      </div>
-      <div className="pb">
+      </DetailHeader>
+      <DetailBody>
         {statusBox(selected)}
-        <div className="fld">
-          <label>Trimis la</label>
-          <div className="v">{fmtDateTime(selected.submittedAt)}</div>
-        </div>
+        <DetailField label="Trimis la">{fmtDateTime(selected.submittedAt)}</DetailField>
         {seasonField(selected)}
-        <div className="fld">
-          <label>Data nașterii</label>
-          <div className="v">
-            {selected.birthDate ? (
-              <>
-                {selected.birthDate}
-                {age != null ? ` · ${age} ani` : ''}
-              </>
-            ) : (
-              '—'
-            )}
-          </div>
-        </div>
+        <DetailField label="Data nașterii">
+          {selected.birthDate ? (
+            <>
+              {selected.birthDate}
+              {age != null ? ` · ${age} ani` : ''}
+            </>
+          ) : (
+            '—'
+          )}
+        </DetailField>
         {(
           [
             ['email', 'E-mail'],
@@ -243,15 +242,9 @@ const renderDetail = (row: Row, api: TableApi) => {
             ['occupation', 'Ocupație'],
           ] as Array<[keyof VolunteerRow & string, string]>
         ).map(([key, label]) => (
-          <div className="fld" key={key}>
-            <label>{label}</label>
-            <div className="v">{String(selected[key] ?? '') || '—'}</div>
-          </div>
+          <DetailField key={key} label={label}>{String(selected[key] ?? '') || '—'}</DetailField>
         ))}
-        <div className="fld">
-          <label>Cum ajută</label>
-          <div className="v">{areas.length ? helpAreasText(selected) : '—'}</div>
-        </div>
+        <DetailField label="Cum ajută">{areas.length ? helpAreasText(selected) : '—'}</DetailField>
         {(
           [
             ['availability', 'Disponibilitate'],
@@ -259,45 +252,29 @@ const renderDetail = (row: Row, api: TableApi) => {
             ['skatingExperience', 'Experiență cu patinajul'],
           ] as Array<[keyof VolunteerRow & string, string]>
         ).map(([key, label]) => (
-          <div className="fld" key={key}>
-            <label>{label}</label>
-            <div className="v">{String(selected[key] ?? '') || '—'}</div>
-          </div>
+          <DetailField key={key} label={label}>{String(selected[key] ?? '') || '—'}</DetailField>
         ))}
-        <div className="fld" style={{ marginTop: 11 }}>
-          <label>Experiență cu copiii</label>
-          <div className="v">{String(selected.childrenExperience ?? '') || '—'}</div>
-        </div>
-        <div className="fld">
-          <label>Motivație</label>
-          <div className="v">{String(selected.motivation ?? '') || '—'}</div>
-        </div>
-        <div className="fld">
-          <label>Cum a aflat</label>
-          <div className="v">{String(selected.howHeard ?? '') || '—'}</div>
-        </div>
+        <DetailField style={{ marginTop: 11 }} label="Experiență cu copiii">
+          {String(selected.childrenExperience ?? '') || '—'}
+        </DetailField>
+        <DetailField label="Motivație">{String(selected.motivation ?? '') || '—'}</DetailField>
+        <DetailField label="Cum a aflat">{String(selected.howHeard ?? '') || '—'}</DetailField>
         {hasParent && (
-          <div className="fld">
-            <label>Părinte / tutore</label>
-            <div className="v">
-              {[selected.parentName, selected.parentPhone].filter(Boolean).join(' · ') || '—'}
-              {selected.parentalConsent === true ? ' · acord parental: Da' : ''}
-            </div>
-          </div>
+          <DetailField label="Părinte / tutore">
+            {[selected.parentName, selected.parentPhone].filter(Boolean).join(' · ') || '—'}
+            {selected.parentalConsent === true ? ' · acord parental: Da' : ''}
+          </DetailField>
         )}
-        <div className="fld">
-          <label>Acord confidențialitate</label>
-          <div className="v">{selected.privacyConsent ? 'Da' : 'Nu'}</div>
-        </div>
+        <DetailField label="Acord confidențialitate">{selected.privacyConsent ? 'Da' : 'Nu'}</DetailField>
         {customFields(selected)}
         {internalNoteField(selected)}
-      </div>
-      <div className="pa">
+      </DetailBody>
+      <DetailFooter>
         <span />
-        <button className="btn danger sm" type="button" onClick={() => removeRow(selected.documentId)}>
+        <Button size="sm" variant="danger" onClick={() => removeRow(selected.documentId)}>
           Șterge cererea
-        </button>
-      </div>
+        </Button>
+      </DetailFooter>
     </>
   );
 };
@@ -309,10 +286,10 @@ const CFG: SubmissionTableCfg = {
   colConfigVersion: 1,
   csvPrefix: 'voluntari',
   statuses: [
-    { value: 'Nou', color: '#2138b8', soft: '#eef1fb', border: '#c6cff2' },
-    { value: 'Contactat', color: '#00757f', soft: '#e2f4f5', border: '#b6dde0' },
-    { value: 'Acceptat', color: '#1f7a4d', soft: '#e5f3ec', border: '#bfe0cc' },
-    { value: 'Respins', color: '#be3330', soft: '#fbeeed', border: '#e6c3c1' },
+    { value: 'Nou', color: 'var(--theme-primary)', soft: 'var(--theme-primary-soft)', border: 'var(--theme-primary-soft-line)' },
+    { value: 'Contactat', color: 'var(--theme-info)', soft: 'var(--theme-info-bg)', border: 'var(--theme-info-border)' },
+    { value: 'Acceptat', color: 'var(--theme-success)', soft: 'var(--theme-success-bg)', border: 'var(--theme-success-border)' },
+    { value: 'Respins', color: 'var(--theme-danger)', soft: 'var(--theme-danger-bg)', border: 'var(--theme-danger-border)' },
   ],
   builtinColumns: BUILTIN_COLUMNS,
   registryColKeys: REGISTRY_COL_KEYS,
@@ -343,9 +320,9 @@ const CFG: SubmissionTableCfg = {
     renderDetail,
   },
   extraCss: `
-.insp .minor{display:inline-block;margin-left:6px;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#8a5a00;background:#fbf1df;border:1px solid #ecd9ac;border-radius:4px;padding:1px 6px;vertical-align:1px}
-.insp .clist td.wraphc{white-space:normal;min-width:220px;max-width:420px}
-.insp .clist td.wraphc .hclamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.35}
+.ui-root .vol-minor{margin-left:6px;vertical-align:1px}
+.ui-root .sbt-clist td.wraphc{white-space:normal;min-width:220px;max-width:420px}
+.ui-root .sbt-clist td.wraphc .hclamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.35}
 `,
 };
 
