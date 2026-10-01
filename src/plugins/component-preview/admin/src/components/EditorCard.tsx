@@ -19,16 +19,11 @@ export function EditorCard({ title, description, headerAction, children }: Edito
       overflow="hidden"
       background="neutral100"
     >
-      {/* Header - left border accent for visual distinction, neutral700 for readability */}
+      {/* Header, neutral700 text for readability. (The left accent and bottom line were
+          set through Box props the design system does not have, so they never rendered.) */}
       <Box
         padding={4}
         background="neutral100"
-        borderBottomColor="neutral200"
-        borderBottomStyle="solid"
-        borderBottomWidth="1px"
-        borderLeftColor="primary500"
-        borderLeftStyle="solid"
-        borderLeftWidth="3px"
       >
         <Flex justifyContent="space-between" alignItems="center" paddingBottom={description ? 1 : 0}>
           <Typography variant="omega" fontWeight="semiBold" textColor="neutral700">

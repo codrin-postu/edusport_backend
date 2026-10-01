@@ -108,7 +108,7 @@ export function MediaPicker({
             ) : error ? (
               <Typography textColor="danger600">{error}</Typography>
             ) : images.length === 0 ? (
-              <Typography textColor="neutral500" fontStyle="italic">
+              <Typography textColor="neutral500">
                 Nu există imagini.
               </Typography>
             ) : (

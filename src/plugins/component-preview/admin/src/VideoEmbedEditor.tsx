@@ -122,7 +122,7 @@ function VideoPicker({
           ) : error ? (
             <Typography textColor="danger600">{error}</Typography>
           ) : videos.length === 0 ? (
-            <Typography textColor="neutral500" fontStyle="italic">
+            <Typography textColor="neutral500">
               Niciun video găsit. Încarcă unul mai întâi în Biblioteca Media.
             </Typography>
           ) : (
@@ -189,7 +189,7 @@ function MediaLibraryBridge(): React.ReactElement | null {
 
   const components = useStrapiApp(
     'MediaLibraryBridge',
-    (state: { components: Record<string, React.ComponentType<unknown>> }) => state.components,
+    (state) => state.components as unknown as Record<string, React.ComponentType<unknown>>,
   );
 
   if (!snapshot.isOpen) return null;

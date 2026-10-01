@@ -123,7 +123,7 @@ export default function RulesTable({ name }: Props) {
         <Box padding={4}>
           {localRules.length === 0 ? (
             <Box paddingTop={3} paddingBottom={3}>
-              <Typography variant="omega" textColor="neutral500" fontStyle="italic">
+              <Typography variant="omega" textColor="neutral500">
                 Nicio regulă adăugată
               </Typography>
             </Box>

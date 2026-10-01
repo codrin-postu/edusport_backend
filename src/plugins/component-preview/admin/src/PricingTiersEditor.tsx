@@ -113,7 +113,7 @@ export default function PricingTiersEditor({ name }: Props) {
       <Box>
         {tiers.length === 0 ? (
           <Box paddingBottom={3}>
-            <Typography variant="omega" textColor="neutral500" fontStyle="italic">
+            <Typography variant="omega" textColor="neutral500">
               Niciun rând adăugat
             </Typography>
           </Box>

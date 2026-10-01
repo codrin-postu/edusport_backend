@@ -796,6 +796,10 @@ const SpecialEventRow = React.memo(function SpecialEventRow({
 // ---------------------------------------------------------------------------
 
 function CalendarEventsInner({ value, onChange }: InnerProps) {
+  // No field name here (the page owns the value): `name` used to resolve to the
+  // global window.name. Kept as the same runtime value: the id prefix of the
+  // special-day rows, and the ignored first argument of field.onChange.
+  const name = window.name;
   const field = { value, onChange: (_n: string, v: CalendarEvent[]) => onChange(v) };
   const { get } = useFetchClient();
   const isNarrow = useMatchMedia('(max-width: 640px)');
@@ -1218,12 +1222,12 @@ function CalendarEventsInner({ value, onChange }: InnerProps) {
             <Section title="Cursuri speciale">
               {specialCourses.length === 0 ? (
                 <Box paddingBottom={3}>
-                  <Typography variant="omega" textColor="neutral500" fontStyle="italic">
+                  <Typography variant="omega" textColor="neutral500">
                     Niciun curs special adăugat
                   </Typography>
                 </Box>
               ) : (
-                <Accordion.Root type="single" collapsible style={{ border: 'none', borderRadius: 0 }}>
+                <Accordion.Root collapsible style={{ border: 'none', borderRadius: 0 }}>
                   {specialCourses.map((ev, i) => (
                     <SpecialCourseRow
                       key={i}
@@ -1250,12 +1254,12 @@ function CalendarEventsInner({ value, onChange }: InnerProps) {
             <Section title="Zile speciale (sărbători, vacanțe, evenimente, concursuri)">
               {specialEvents.length === 0 ? (
                 <Box paddingBottom={3}>
-                  <Typography variant="omega" textColor="neutral500" fontStyle="italic">
+                  <Typography variant="omega" textColor="neutral500">
                     Nicio zi specială adăugată
                   </Typography>
                 </Box>
               ) : (
-                <Accordion.Root type="single" collapsible style={{ border: 'none', borderRadius: 0 }}>
+                <Accordion.Root collapsible style={{ border: 'none', borderRadius: 0 }}>
                   {specialEvents.map((ev, i) => (
                     <SpecialEventRow
                       key={i}
