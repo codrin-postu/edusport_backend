@@ -17,6 +17,7 @@ export { TwoColumn, type TwoColumnProps } from './TwoColumn';
 export { Button, type ButtonProps, type ButtonVariant, type ButtonSize } from './Button';
 export { StatusBadge, type StatusBadgeProps, type BadgeTone, type CustomBadgeColors } from './StatusBadge';
 export { Chip, ChipList, type ChipProps } from './Chip';
+export { RelationMultiSelect, type RelationMultiSelectProps, type RelationOption } from './RelationMultiSelect';
 export { Switch, type SwitchProps } from './Switch';
 export { Checkbox, type CheckboxProps } from './Checkbox';
 

@@ -103,6 +103,7 @@ ${R} .ui-chip-x{display:inline-flex;align-items:center;justify-content:center;wi
 ${R} .ui-chip-x:hover{opacity:1;background:var(--theme-primary-soft-line)}
 ${R} .ui-chip--static{padding-right:8px}
 ${R} .ui-chips{display:flex;flex-wrap:wrap;gap:6px}
+.ui-root.ui-relms{display:flex;flex-direction:column;gap:var(--ui-space-2)}
 
 /* switch */
 ${R} .ui-switch{display:inline-flex;align-items:center;gap:9px;background:none;border:none;padding:2px 0;font-family:inherit;font-size:var(--ui-fs-body);color:var(--theme-text);cursor:pointer;text-align:left}

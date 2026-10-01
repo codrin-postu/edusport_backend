@@ -11,7 +11,8 @@ import {
   Textarea,
   DateInput,
   Switch,
-  TagsInput,
+  RelationMultiSelect,
+  type RelationOption,
   Button,
   Notice,
 } from '../../../../admin/ui';
@@ -22,7 +23,7 @@ import {
  * and publishes it, then hands { documentId, name } back to the caller.
  *
  * Built on the shared admin UI (src/admin/ui): Modal, Field + inputs, Switch for
- * the public page flag, TagsInput (suggestions only) for the relations, and
+ * the public page flag, RelationMultiSelect (by documentId) for the relations, and
  * DateInput, which keeps "Activ din" as the plain YYYY-MM-DD the user picked
  * (the old DS DatePicker sent toISOString() of local midnight, one day early
  * east of UTC).
@@ -78,20 +79,7 @@ async function fetchEntries(get: Function, uid: string): Promise<RefEntry[]> {
   }
 }
 
-/**
- * TagsInput works on labels; relations need documentIds. Names map back to the
- * first entry with that name (case-insensitive, like TagsInput's dedupe).
- */
-function namesToIds(names: string[], pool: RefEntry[]): string[] {
-  const byName = new Map<string, string>();
-  for (const e of pool) {
-    const k = e.name.trim().toLocaleLowerCase('ro');
-    if (!byName.has(k)) byName.set(k, e.documentId);
-  }
-  return names.map((n) => byName.get(n.trim().toLocaleLowerCase('ro'))).filter((id): id is string => !!id);
-}
-
-const uniqueNames = (pool: RefEntry[]) => Array.from(new Set(pool.map((e) => e.name).filter(Boolean)));
+const toOptions = (pool: RefEntry[]): RelationOption[] => pool.map((e) => ({ documentId: e.documentId, label: e.name }));
 
 // ---------------------------------------------------------------------------
 // Component
@@ -107,9 +95,10 @@ export default function QuickCreateSportspersonModal({ isOpen, onClose, initialN
   const [careerGoal, setCareerGoal] = React.useState('');
   const [activeSince, setActiveSince] = React.useState<string | null>(null);
   const [showPublicPage, setShowPublicPage] = React.useState(false);
-  const [disciplineNames, setDisciplineNames] = React.useState<string[]>([]);
-  const [coachNames, setCoachNames] = React.useState<string[]>([]);
-  const [choreographerNames, setChoreographerNames] = React.useState<string[]>([]);
+  // documentIds: two entries with the same name stay two entries.
+  const [disciplineIds, setDisciplineIds] = React.useState<string[]>([]);
+  const [coachIds, setCoachIds] = React.useState<string[]>([]);
+  const [choreographerIds, setChoreographerIds] = React.useState<string[]>([]);
 
   const [disciplines, setDisciplines] = React.useState<RefEntry[]>([]);
   const [teamMembers, setTeamMembers] = React.useState<RefEntry[]>([]);
@@ -136,9 +125,9 @@ export default function QuickCreateSportspersonModal({ isOpen, onClose, initialN
     setCareerGoal('');
     setActiveSince(null);
     setShowPublicPage(false);
-    setDisciplineNames([]);
-    setCoachNames([]);
-    setChoreographerNames([]);
+    setDisciplineIds([]);
+    setCoachIds([]);
+    setChoreographerIds([]);
     setError(null);
     setSaving(false);
     setCreatedDocumentId(null);
@@ -156,10 +145,6 @@ export default function QuickCreateSportspersonModal({ isOpen, onClose, initialN
     if (!name.trim() || !slug.trim()) return;
     setSaving(true);
     setError(null);
-
-    const disciplineIds = namesToIds(disciplineNames, disciplines);
-    const coachIds = namesToIds(coachNames, teamMembers);
-    const choreographerIds = namesToIds(choreographerNames, teamMembers);
 
     const body: Record<string, unknown> = {
       name: name.trim(),
@@ -191,6 +176,8 @@ export default function QuickCreateSportspersonModal({ isOpen, onClose, initialN
   };
 
   const disabled = !!createdDocumentId;
+  const disciplineOptions = React.useMemo(() => toOptions(disciplines), [disciplines]);
+  const teamOptions = React.useMemo(() => toOptions(teamMembers), [teamMembers]);
 
   const footer = createdDocumentId ? (
     <>
@@ -286,11 +273,10 @@ export default function QuickCreateSportspersonModal({ isOpen, onClose, initialN
             <div className="ui-stack">
               {disciplines.length > 0 && (
                 <Field label="Discipline">
-                  <TagsInput
-                    value={disciplineNames}
-                    onChange={setDisciplineNames}
-                    suggestions={uniqueNames(disciplines)}
-                    suggestionsOnly
+                  <RelationMultiSelect
+                    value={disciplineIds}
+                    onChange={(ids) => setDisciplineIds(ids)}
+                    options={disciplineOptions}
                     placeholder="Alege discipline…"
                     disabled={disabled}
                   />
@@ -299,21 +285,19 @@ export default function QuickCreateSportspersonModal({ isOpen, onClose, initialN
               {teamMembers.length > 0 && (
                 <FieldRow>
                   <Field label="Antrenori">
-                    <TagsInput
-                      value={coachNames}
-                      onChange={setCoachNames}
-                      suggestions={uniqueNames(teamMembers)}
-                      suggestionsOnly
+                    <RelationMultiSelect
+                      value={coachIds}
+                      onChange={(ids) => setCoachIds(ids)}
+                      options={teamOptions}
                       placeholder="Alege antrenori…"
                       disabled={disabled}
                     />
                   </Field>
                   <Field label="Coregrafi">
-                    <TagsInput
-                      value={choreographerNames}
-                      onChange={setChoreographerNames}
-                      suggestions={uniqueNames(teamMembers)}
-                      suggestionsOnly
+                    <RelationMultiSelect
+                      value={choreographerIds}
+                      onChange={(ids) => setChoreographerIds(ids)}
+                      options={teamOptions}
                       placeholder="Alege coregrafi…"
                       disabled={disabled}
                     />

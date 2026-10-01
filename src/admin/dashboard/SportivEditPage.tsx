@@ -14,13 +14,11 @@ import {
   Select,
   DateInput,
   TagsInput,
-  SearchableSelect,
+  RelationMultiSelect,
   SegmentedControl,
   GalleryGrid,
   RepeatableList,
   Button,
-  Chip,
-  ChipList,
   StatusBadge,
   Notice,
   Loading,
@@ -142,7 +140,6 @@ const VISIBILITY_OPTIONS = [
 // Page-local styles, tokens only (var(--theme-*), var(--ui-*)). No backticks
 // inside: one stray backtick in a template literal blanks the admin panel.
 const SPORTIV_CSS = `
-.ui-root .sp-rel{display:flex;flex-direction:column;gap:var(--ui-space-2)}
 .ui-root .sp-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .ui-root .sp-name{font-weight:700;color:var(--theme-text)}
 .ui-root .sp-hist{margin-top:12px;border-top:1px solid var(--theme-border);padding-top:12px}
@@ -330,33 +327,19 @@ function skateStatus(job: SkateJob | null, linked: any): SkateStatus {
   return { active, held, label, value, detail, pct, tone };
 }
 
-// ---- relation multi-select (chips + searchable add) ---------------------------
+// ---- relation multi-select: the shared RelationMultiSelect, keyed by documentId ----
+// The form keeps { id, documentId, name } (the save sends { set: [{ id }] });
+// this maps the picker's documentIds back onto those entries.
 function RelationField({ label, value, options, onChange }: { label: string; value: Opt[]; options: Opt[]; onChange: (next: Opt[]) => void }) {
-  const chosen = new Set(value.map((v) => v.id));
-  const pool = options.filter((o) => !chosen.has(o.id)).map((o) => ({ value: String(o.id), label: o.name }));
+  const byDoc = new Map([...options, ...value].map((o) => [o.documentId, o]));
   return (
     <Field label={label}>
-      <div className="sp-rel">
-        {value.length > 0 && (
-          <ChipList>
-            {value.map((v) => (
-              <Chip key={v.id} onRemove={() => onChange(value.filter((x) => x.id !== v.id))}>
-                {v.name}
-              </Chip>
-            ))}
-          </ChipList>
-        )}
-        <SearchableSelect
-          value={null}
-          clearable={false}
-          options={pool}
-          placeholder="Caută și adaugă..."
-          onChange={(val) => {
-            const o = options.find((x) => String(x.id) === val);
-            if (o) onChange([...value, o]);
-          }}
-        />
-      </div>
+      <RelationMultiSelect
+        value={value.map((o) => o.documentId)}
+        options={options.map((o) => ({ documentId: o.documentId, label: o.name }))}
+        labels={Object.fromEntries(value.map((o) => [o.documentId, o.name]))}
+        onChange={(ids) => onChange(ids.map((d) => byDoc.get(d)).filter((o): o is Opt => !!o))}
+      />
     </Field>
   );
 }

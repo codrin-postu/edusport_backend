@@ -47,6 +47,7 @@ import {
   NumberInput,
   TagsInput,
   SearchableSelect,
+  RelationMultiSelect,
   SegmentedControl,
   adminToast,
   useAdminTheme,
@@ -788,6 +789,9 @@ const loadAthletes = (q: string) =>
     window.setTimeout(() => resolve(ATHLETES.filter((a) => a.label.toLowerCase().includes(q.toLowerCase()))), 500),
   );
 
+const loadAthleteRelations = (q: string) =>
+  loadAthletes(q).then((list) => list.map((a) => ({ documentId: a.value, label: a.label, hint: a.hint })));
+
 function InputsDemo() {
   const [range, setRange] = React.useState<DateRange>({ start: '2026-10-12', end: '2026-10-14' });
   const [time, setTime] = React.useState<string | null>('17:30');
@@ -797,6 +801,7 @@ function InputsDemo() {
   const [tags, setTags] = React.useState<string[]>(['Juniori', 'Program Scurt']);
   const [club, setClub] = React.useState<string | null>('edu');
   const [athlete, setAthlete] = React.useState<string | null>(null);
+  const [team, setTeam] = React.useState<string[]>([]);
   const [created, setCreated] = React.useState<ComboOption[]>([]);
   const [tag, setTag] = React.useState<string | null>(null);
   const [mode, setMode] = React.useState<'upload' | 'youtube'>('youtube');
@@ -831,6 +836,9 @@ function InputsDemo() {
           <SearchableSelect value={athlete} onChange={(v) => setAthlete(v)} loadOptions={loadAthletes} placeholder="Caută un sportiv" />
         </Field>
       </FieldRow>
+      <Field label="Sportivi (RelationMultiSelect)" hint="După documentId, nu după nume; încărcare asincronă, cei aleși lipsesc din listă.">
+        <RelationMultiSelect value={team} onChange={(ids) => setTeam(ids)} loadOptions={loadAthleteRelations} placeholder="Caută și adaugă sportiv..." />
+      </Field>
       <Field label="Categorie" hint="Creatable: scrie o categorie nouă și alege „Adaugă”.">
         <SearchableSelect
           value={tag}

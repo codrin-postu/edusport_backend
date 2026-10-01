@@ -14,8 +14,7 @@ import {
   SearchableSelect,
   SegmentedControl,
   RepeatableList,
-  Chip,
-  ChipList,
+  RelationMultiSelect,
   Notice,
   Loading,
   SaveBar,
@@ -82,7 +81,6 @@ const LEVEL_SEGMENTS = LEVEL_OPTIONS.map((o) => ({ value: o.value as string, lab
 // Page-local layout, tokens only. No backticks inside.
 const COMPETITIE_CSS = `
 .ui-root .cp-narrow{max-width:760px;width:100%}
-.ui-root .cp-rel{display:flex;flex-direction:column;gap:var(--ui-space-2)}
 .ui-root .cp-res{display:grid;grid-template-columns:minmax(0,52fr) minmax(0,18fr) minmax(0,22fr);gap:var(--ui-space-3);align-items:start}
 @media (max-width:640px){.ui-root .cp-res{grid-template-columns:1fr 1fr}.ui-root .cp-res > :first-child{grid-column:1 / -1}}
 `;
@@ -253,8 +251,9 @@ export default function CompetitieEditPage() {
     form.reset();
   };
 
-  const chosen = new Set(v.participants.map((p) => p.id));
-  const participantPool = sportspeople.filter((s) => !chosen.has(s.id)).map((s) => ({ value: String(s.id), label: s.name }));
+  // Participants are picked by documentId; the form keeps { id, documentId, name } (the save sends { set: [{ id }] }).
+  const participantOptions = sportspeople.map((s) => ({ documentId: s.documentId, label: s.name }));
+  const participantByDoc = new Map([...sportspeople, ...v.participants].map((o) => [o.documentId, o]));
   const resultOptions = sportspeople.map((s) => ({ value: s.documentId, label: s.name }));
   const ready = !loading && !error;
 
@@ -311,27 +310,13 @@ export default function CompetitieEditPage() {
 
               <Section title="Sportivi participanți">
                 <Field label="Sportivi participanți" hideLabel>
-                  <div className="cp-rel">
-                    {v.participants.length > 0 && (
-                      <ChipList>
-                        {v.participants.map((p) => (
-                          <Chip key={p.id} onRemove={() => upd({ participants: v.participants.filter((x) => x.id !== p.id) })}>
-                            {p.name}
-                          </Chip>
-                        ))}
-                      </ChipList>
-                    )}
-                    <SearchableSelect
-                      value={null}
-                      clearable={false}
-                      options={participantPool}
-                      placeholder="Caută și adaugă sportiv..."
-                      onChange={(val) => {
-                        const o = sportspeople.find((s) => String(s.id) === val);
-                        if (o) upd({ participants: [...v.participants, o] });
-                      }}
-                    />
-                  </div>
+                  <RelationMultiSelect
+                    value={v.participants.map((p) => p.documentId)}
+                    options={participantOptions}
+                    labels={Object.fromEntries(v.participants.map((p) => [p.documentId, p.name]))}
+                    placeholder="Caută și adaugă sportiv..."
+                    onChange={(ids) => upd({ participants: ids.map((d) => participantByDoc.get(d)).filter((o): o is Opt => !!o) })}
+                  />
                 </Field>
               </Section>
 
