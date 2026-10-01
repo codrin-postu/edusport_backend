@@ -137,3 +137,10 @@ Checker after phase 1b: src/admin/ui at 0 outside tokens.ts, total unchanged (27
 - CSS class names use the `ui-` prefix (the component library in src/admin/ui): .ui-btn, .ui-field, .ui-table, .ui-savebar. `--theme-*` = theme values, `.ui-*` = components.
 - A new theme = one more semantic mapping onto the palette.
 - [x] Rename pass (2026-10-01): tokens.ts, styles.ts, every component, migrated pages, SaveBar, checker rule (no hex outside tokens.ts; components use only --theme-* / --palette-* for colour; no leftover --adm-). Zero visual change: generated values and CSS identical after the name mapping. Tones renamed ok -> success, warn -> warning; badge tone accent -> primary; `.adm-dt*` -> `.ui-table*`, `.adm-sbar*` -> `.ui-savebar*`, `ADM_CSS` -> `UI_CSS`, `data-adm-theme` -> `data-theme`, `data-adm-drag-item` -> `data-ui-drag-item`. Checker after: 22 files, 993 hits (unchanged), colour 0, legacy 0; contrast passes.
+
+### Phase 2b/2c result: Pagina principală, Voluntariat, Program + calendar editor (2026-10-01)
+- [x] HomepageEdit: own two-document save (Cifre club, then homepage) on useSaveState + SaveBar + UnsavedGuard, structural dirty over form + figures; Hero / Sportivi on ObjectFieldCard, Tabs for the registration variants and About panels, StatusBadge (pe site, automat, din setări), figures on RepeatableList, 3-slot GalleryGrid.
+- [x] VoluntariatEdit: useSingleType + usePageForm; ObjectFieldCard, RepeatableList (help ways), GalleryGrid. VP_CSS reduced to the two-column layout.
+- [x] ProgramEdit: useSingleType + usePageForm for scheduleGroups (ScheduleGroupsInner itself not restyled, owned elsewhere).
+- [x] Calendar editor (ProgramOverviewEditor) on `--theme-cat-*` and the shared components; `.pce` no longer used by it (root is `.ui-root .cal`).
+- CalendarEventsEditor left as is: still registered (`calendar-events` custom field) but no edit layout shows it.
