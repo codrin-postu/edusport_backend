@@ -56,6 +56,7 @@ const MIGRATED = [
   'dashboard/FormularePage.tsx',
   'dashboard/FormEditorPage.tsx',
   'SaveBar.tsx',
+  'MobileNav.tsx',
   'ConfirmDialog.tsx',
 ].map((f) => join(ADMIN, ...f.split('/')));
 
