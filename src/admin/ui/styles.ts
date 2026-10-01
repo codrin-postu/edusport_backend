@@ -210,7 +210,7 @@ ${R} .ui-btn .ui-spinner{color:currentColor}
 ${R} .ui-loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:44px var(--ui-space-4);color:var(--theme-text-muted);font-size:var(--ui-fs-body)}
 
 /* modal (portal root carries .ui-root) */
-.ui-root.ui-modal-layer{position:fixed;inset:0;z-index:var(--ui-modal-z,400);display:flex;align-items:center;justify-content:center;padding:var(--ui-space-4);background:var(--theme-overlay)}
+.ui-root.ui-modal-layer{position:fixed;inset:0;z-index:var(--ui-modal-z,var(--ui-z-modal,400));display:flex;align-items:center;justify-content:center;padding:var(--ui-space-4);background:var(--theme-overlay)}
 ${R} .ui-modal{width:var(--ui-modal-w,460px);max-width:100%;max-height:86vh;display:flex;flex-direction:column;background:var(--theme-surface);border:1px solid var(--theme-border);border-radius:var(--ui-radius-md);box-shadow:var(--theme-shadow-md);overflow:hidden;color:var(--theme-text)}
 ${R} .ui-modal:focus{outline:none}
 ${R} .ui-modal--md{--ui-modal-w:600px}
@@ -223,7 +223,7 @@ ${R} .ui-modal-f{display:flex;gap:10px;justify-content:flex-end;padding:12px 15p
 
 /* drawer: side panel from the right (portal root carries .ui-root). The
    overlay is lighter than the modal's, so the page behind stays readable. */
-.ui-root.ui-drawer-layer{position:fixed;inset:0;z-index:var(--ui-drawer-z,390);display:flex;justify-content:flex-end;background:color-mix(in srgb, var(--theme-overlay) 45%, transparent)}
+.ui-root.ui-drawer-layer{position:fixed;inset:0;z-index:var(--ui-drawer-z,var(--ui-z-drawer,390));display:flex;justify-content:flex-end;background:color-mix(in srgb, var(--theme-overlay) 45%, transparent)}
 ${R} .ui-drawer{width:var(--ui-drawer-w,420px);max-width:100%;height:100%;display:flex;flex-direction:column;background:var(--theme-surface);border-left:1px solid var(--theme-border);box-shadow:var(--theme-shadow-md);color:var(--theme-text);animation:ui-drawer-in 180ms var(--ui-easing)}
 ${R} .ui-drawer:focus{outline:none}
 @keyframes ui-drawer-in{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
@@ -497,7 +497,7 @@ ${R} .ui-ref-theme{display:flex;flex-direction:column;gap:var(--ui-space-2);padd
 
 /* toast: general, short-lived feedback (see Toast.tsx). Notice stays for
    persistent, page-bound messages. */
-.ui-root.ui-toast-viewport{position:fixed;top:calc(56px + var(--ui-space-4));right:var(--ui-space-4);z-index:500;display:flex;flex-direction:column;gap:var(--ui-space-2);width:360px;max-width:calc(100vw - 32px);pointer-events:none}
+.ui-root.ui-toast-viewport{position:fixed;top:calc(56px + var(--ui-space-4));right:var(--ui-space-4);z-index:var(--ui-z-toast,500);display:flex;flex-direction:column;gap:var(--ui-space-2);width:360px;max-width:calc(100vw - 32px);pointer-events:none}
 ${R} .ui-toast{pointer-events:auto;display:flex;align-items:flex-start;gap:var(--ui-space-3);background:var(--theme-surface);border:1px solid var(--theme-border);border-left:3px solid var(--ui-toast-fg,var(--theme-border));border-radius:var(--ui-radius-sm);box-shadow:var(--theme-shadow-md);padding:10px 12px;font-size:var(--ui-fs-body);color:var(--theme-text);animation:ui-toast-in var(--ui-motion-fast) var(--ui-easing) both}
 ${R} .ui-toast-text{flex:1;line-height:1.45;min-width:0}
 ${R} .ui-toast-title{display:block;font-weight:700;margin-bottom:1px}

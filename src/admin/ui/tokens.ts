@@ -581,6 +581,21 @@ export const motion = {
   easing: 'ease',
 } as const;
 
+/**
+ * Stacking order for body-portalled layers (Drawer, Modal, the Toast
+ * viewport). Strapi's own chrome sits above the page content without using
+ * this scale: the floating save bar at 9999, the shared popover at 99990,
+ * and the mobile top bar (MobileNav) at 99998 (burger) / 99999 (panel). The
+ * three entries below must outrank all of that, so a Drawer or a Modal (and
+ * a ConfirmDialog opened from either) on a phone never ends up under the
+ * mobile top bar, and a Toast always lands above a Modal.
+ */
+export const zIndex = {
+  drawer: 100100,
+  modal: 100200,
+  toast: 100300,
+} as const;
+
 /* ---- CSS custom properties --------------------------------------------- */
 
 const kebab = (s: string) => s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
@@ -660,6 +675,7 @@ export function scaleVars(): Record<string, string> {
   v['--ui-radius-savebar-sheet'] = savebarRadius.sheet;
   v['--ui-radius-savebar-dot'] = savebarRadius.dot;
   for (const [k, val] of Object.entries(space)) v[`--ui-space-${k}`] = val;
+  for (const [k, val] of Object.entries(zIndex)) v[`--ui-z-${k}`] = String(val);
   for (const [k, r] of Object.entries(type) as [string, TypeRole][]) {
     const n = kebab(k);
     v[`--ui-fs-${n}`] = r.size;

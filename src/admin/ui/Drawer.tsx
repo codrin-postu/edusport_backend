@@ -37,7 +37,7 @@ export interface DrawerProps {
   initialFocusRef?: React.RefObject<HTMLElement | null>;
   className?: string;
   bodyClassName?: string;
-  /** Default 390, under Modal (400) so dialogs opened from the drawer sit on top. */
+  /** Default --ui-z-drawer (tokens.ts), under Modal's --ui-z-modal so dialogs opened from the drawer sit on top. */
   zIndex?: number;
 }
 
