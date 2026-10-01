@@ -1,35 +1,15 @@
 import * as React from 'react';
-import { Plus } from '@strapi/icons';
+import { AddButton } from '../../../../../admin/ui';
 
-// Full-width "+ label" button matching the InlineStringList pattern used
-// elsewhere in the admin (e.g. "Adaugă realizare"). Standardised so every list
-// section across the editors gets the same end-of-list affordance.
+// Full-width "+ label" button at the end of a list, used by every list section
+// across the editors. Now the shared admin AddButton (src/admin/ui) on the
+// --theme-* tokens instead of raw Strapi purple. These editors render inside
+// content-manager fields, outside any page, so the wrapper carries `.ui-root`
+// for the token variables and the .ui-add styles.
 export function AddListButton({ onClick, label }: { onClick: () => void; label: string }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        width: '100%',
-        padding: '10px 16px',
-        border: '1px solid #d9d8ff',
-        borderRadius: 4,
-        background: '#ffffff',
-        color: '#4945ff',
-        fontSize: 13,
-        fontWeight: 600,
-        fontFamily: 'inherit',
-        cursor: 'pointer',
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = '#f0f0ff'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = '#ffffff'; }}
-    >
-      <Plus aria-hidden />
-      {label}
-    </button>
+    <div className="ui-root">
+      <AddButton label={label} onClick={onClick} />
+    </div>
   );
 }
