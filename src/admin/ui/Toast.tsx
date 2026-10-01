@@ -44,10 +44,10 @@ interface ToastItem {
   duration: number | null;
 }
 
-/** success/info: 3s. warning: 5s. danger: stays until closed. */
+/** success/info: 5s. warning: 5s. danger: stays until closed. */
 const DEFAULT_DURATION: Record<ToastTone, number | null> = {
-  success: 3000,
-  info: 3000,
+  success: 5000,
+  info: 5000,
   warning: 5000,
   danger: null,
 };
@@ -160,8 +160,8 @@ function ToastCard({ item }: { item: ToastItem }) {
       className={cx('ui-toast', `ui-toast--${item.tone}`, leaving && 'ui-toast--out')}
       role={urgent ? 'alert' : 'status'}
       aria-live={urgent ? undefined : 'polite'}
-      onMouseEnter={pause}
-      onMouseLeave={arm}
+      onMouseEnter={urgent ? pause : undefined}
+      onMouseLeave={urgent ? arm : undefined}
     >
       <div className="ui-toast-text">
         {item.title && <b className="ui-toast-title">{item.title}</b>}
