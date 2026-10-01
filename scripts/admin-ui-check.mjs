@@ -88,6 +88,10 @@ const MIGRATED = [
   // component-preview editors moved onto the shared UI
   '../plugins/component-preview/admin/src/ParticipantsEditor.tsx',
   '../plugins/component-preview/admin/src/ProgramOverviewEditor.tsx',
+  '../plugins/component-preview/admin/src/calendar/CalendarView.tsx',
+  '../plugins/component-preview/admin/src/calendar/EventDrawer.tsx',
+  '../plugins/component-preview/admin/src/calendar/model.ts',
+  '../plugins/component-preview/admin/src/calendar/styles.ts',
   '../plugins/component-preview/admin/src/QuickCreateSportspersonModal.tsx',
   '../plugins/component-preview/admin/src/ScheduleGroupsEditor.tsx',
   '../plugins/component-preview/admin/src/components/AddListButton.tsx',
@@ -96,7 +100,8 @@ const MIGRATED = [
 
 /**
  * Component-local colour channels (set in styles.ts from --theme-* only, or by StatusBadge's custom colours),
- * plus the calendar editor's --cal-c (ProgramOverviewEditor: set inline from --theme-cat-<name> only).
+ * plus the calendar editor's --cal-c / --cal-s / --cal-sf (calendar/styles.ts: set per data-calcat from
+ * --theme-cat-<name>, -soft and -soft-fg only).
  */
 const COLOR_CHANNELS = new Set([
   '--ui-badge-fg',
@@ -107,6 +112,8 @@ const COLOR_CHANNELS = new Set([
   '--ui-notice-border',
   '--ui-toast-fg',
   '--cal-c',
+  '--cal-s',
+  '--cal-sf',
 ]);
 
 /**

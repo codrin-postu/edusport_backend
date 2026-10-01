@@ -33,7 +33,7 @@ import { FORM_DEFS, fetchNewCount, tileStyle } from './formDefs';
 
 // Event categories map onto the calendar category tokens shared with the
 // website (--theme-cat-*), the same mapping as CATEGORIES in
-// ProgramOverviewEditor.tsx: antrenament = burgundy, scoala = navy,
+// component-preview calendar/model.ts: antrenament = burgundy, scoala = navy,
 // competitions / camps / shows / events = orange, holidays / breaks = silver.
 const CATEGORY_VAR: Record<string, string> = {
   curs: 'var(--theme-cat-antrenament)', scoala: 'var(--theme-cat-scoala)', concurs: 'var(--theme-cat-eveniment)',
