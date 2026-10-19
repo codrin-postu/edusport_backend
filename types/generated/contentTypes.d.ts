@@ -443,6 +443,39 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiAcsMembershipAcsMembership
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'acs_memberships';
+  info: {
+    displayName: 'Club / Membru A.C.S.';
+    pluralName: 'acs-memberships';
+    singularName: 'acs-membership';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::acs-membership.acs-membership'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    season: Schema.Attribute.Relation<'manyToOne', 'api::season.season'>;
+    state: Schema.Attribute.Enumeration<['da', 'nu', 'in_asteptare']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'in_asteptare'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiAnnouncementAnnouncement
   extends Struct.CollectionTypeSchema {
   collectionName: 'announcements';
@@ -538,6 +571,49 @@ export interface ApiArticleArticle extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiAthleteAthlete extends Struct.CollectionTypeSchema {
+  collectionName: 'athletes';
+  info: {
+    displayName: 'Club / Sportiv';
+    pluralName: 'athletes';
+    singularName: 'athlete';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    birthDate: Schema.Attribute.Date;
+    contactName: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    dataIncomplete: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    email: Schema.Attribute.Email;
+    firstName: Schema.Attribute.String & Schema.Attribute.Required;
+    lastName: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::athlete.athlete'
+    > &
+      Schema.Attribute.Private;
+    notes: Schema.Attribute.Text;
+    phone: Schema.Attribute.String;
+    publicProfile: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::sportsperson.sportsperson'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    status: Schema.Attribute.Enumeration<['nou', 'activ', 'inactiv']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'activ'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiCalendarBlackoutCalendarBlackout
   extends Struct.CollectionTypeSchema {
   collectionName: 'calendar_blackouts';
@@ -599,6 +675,7 @@ export interface ApiCalendarEventCalendarEvent
       Schema.Attribute.Private;
     description: Schema.Attribute.Text;
     exceptions: Schema.Attribute.Component<'calendar.exception', true>;
+    group: Schema.Attribute.Relation<'manyToOne', 'api::group.group'>;
     imageUrl: Schema.Attribute.String;
     label: Schema.Attribute.String;
     linkLabel: Schema.Attribute.String;
@@ -941,6 +1018,76 @@ export interface ApiFormConfigFormConfig extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiGroupMembershipGroupMembership
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'group_memberships';
+  info: {
+    displayName: 'Club / Apartenen\u021B\u0103 la grup\u0103';
+    pluralName: 'group-memberships';
+    singularName: 'group-membership';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    from: Schema.Attribute.Date;
+    group: Schema.Attribute.Relation<'manyToOne', 'api::group.group'>;
+    isMain: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::group-membership.group-membership'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    season: Schema.Attribute.Relation<'manyToOne', 'api::season.season'>;
+    to: Schema.Attribute.Date;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiGroupGroup extends Struct.CollectionTypeSchema {
+  collectionName: 'club_groups';
+  info: {
+    displayName: 'Club / Grup\u0103';
+    pluralName: 'groups';
+    singularName: 'group';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    active: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    coaches: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::team-member.team-member'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::group.group'> &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    order: Schema.Attribute.Integer;
+    priceList: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::price-list.price-list'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    section: Schema.Attribute.Relation<'manyToOne', 'api::section.section'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiHistoricPageHistoricPage extends Struct.SingleTypeSchema {
   collectionName: 'historic_page';
   info: {
@@ -978,6 +1125,40 @@ export interface ApiHistoricPageHistoricPage extends Struct.SingleTypeSchema {
     publishedAt: Schema.Attribute.DateTime;
     stats: Schema.Attribute.JSON &
       Schema.Attribute.CustomField<'plugin::component-preview.historic-stats'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiHistoryEntryHistoryEntry
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'history_entries';
+  info: {
+    displayName: 'Club / Istoric';
+    pluralName: 'history-entries';
+    singularName: 'history-entry';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    action: Schema.Attribute.String & Schema.Attribute.Required;
+    actor: Schema.Attribute.String & Schema.Attribute.Required;
+    at: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    changes: Schema.Attribute.JSON;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::history-entry.history-entry'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    subjectId: Schema.Attribute.String & Schema.Attribute.Required;
+    subjectType: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1050,6 +1231,36 @@ export interface ApiHomepageHomepage extends Struct.SingleTypeSchema {
     registration: Schema.Attribute.JSON;
     registrationClosed: Schema.Attribute.JSON;
     sections: Schema.Attribute.JSON;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiLocationLocation extends Struct.CollectionTypeSchema {
+  collectionName: 'locations';
+  info: {
+    displayName: 'Club / Loca\u021Bie';
+    pluralName: 'locations';
+    singularName: 'location';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    address: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::location.location'
+    > &
+      Schema.Attribute.Private;
+    mapsUrl: Schema.Attribute.String;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1174,6 +1385,38 @@ export interface ApiPartnersPagePartnersPage extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiPriceListPriceList extends Struct.CollectionTypeSchema {
+  collectionName: 'price_lists';
+  info: {
+    displayName: 'Club / List\u0103 de pre\u021Buri';
+    pluralName: 'price-lists';
+    singularName: 'price-list';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    items: Schema.Attribute.Component<'club.price-item', true>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::price-list.price-list'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    publishedAt: Schema.Attribute.DateTime;
+    section: Schema.Attribute.Relation<'manyToOne', 'api::section.section'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1360,6 +1603,7 @@ export interface ApiRegistrationSubmissionRegistrationSubmission
   };
   attributes: {
     archived: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
     childBirthDate: Schema.Attribute.String & Schema.Attribute.Required;
     childName: Schema.Attribute.String & Schema.Attribute.Required;
     clubInterest: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
@@ -1385,9 +1629,12 @@ export interface ApiRegistrationSubmissionRegistrationSubmission
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<false>;
     publishedAt: Schema.Attribute.DateTime;
+    registrationNumber: Schema.Attribute.String & Schema.Attribute.Unique;
     regulationsAgreement: Schema.Attribute.Boolean &
       Schema.Attribute.DefaultTo<false>;
     season: Schema.Attribute.String;
+    seasonRef: Schema.Attribute.Relation<'manyToOne', 'api::season.season'>;
+    section: Schema.Attribute.Relation<'manyToOne', 'api::section.section'>;
     shirtSize: Schema.Attribute.String & Schema.Attribute.Required;
     status: Schema.Attribute.Enumeration<
       ['Nou', 'Contactat', 'Confirmat', 'Respins']
@@ -1395,6 +1642,77 @@ export interface ApiRegistrationSubmissionRegistrationSubmission
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'Nou'>;
     submittedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiSeasonSeason extends Struct.CollectionTypeSchema {
+  collectionName: 'seasons';
+  info: {
+    displayName: 'Club / Sezon';
+    pluralName: 'seasons';
+    singularName: 'season';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    endMonth: Schema.Attribute.Date & Schema.Attribute.Required;
+    isCurrent: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    label: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::season.season'
+    > &
+      Schema.Attribute.Private;
+    membershipFee: Schema.Attribute.Decimal;
+    needsReview: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    publishedAt: Schema.Attribute.DateTime;
+    startMonth: Schema.Attribute.Date & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiSectionSection extends Struct.CollectionTypeSchema {
+  collectionName: 'sections';
+  info: {
+    displayName: 'Club / Sec\u021Biune';
+    pluralName: 'sections';
+    singularName: 'section';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    kind: Schema.Attribute.Enumeration<['school', 'club']> &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::section.section'
+    > &
+      Schema.Attribute.Private;
+    location: Schema.Attribute.Relation<'manyToOne', 'api::location.location'>;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    order: Schema.Attribute.Integer;
+    publicPage: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    publishedAt: Schema.Attribute.DateTime;
+    registrationsOpen: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -2314,8 +2632,10 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::acs-membership.acs-membership': ApiAcsMembershipAcsMembership;
       'api::announcement.announcement': ApiAnnouncementAnnouncement;
       'api::article.article': ApiArticleArticle;
+      'api::athlete.athlete': ApiAthleteAthlete;
       'api::calendar-blackout.calendar-blackout': ApiCalendarBlackoutCalendarBlackout;
       'api::calendar-event.calendar-event': ApiCalendarEventCalendarEvent;
       'api::club-figures.club-figures': ApiClubFiguresClubFigures;
@@ -2326,17 +2646,24 @@ declare module '@strapi/strapi' {
       'api::cursuri-page.cursuri-page': ApiCursuriPageCursuriPage;
       'api::discipline.discipline': ApiDisciplineDiscipline;
       'api::form-config.form-config': ApiFormConfigFormConfig;
+      'api::group-membership.group-membership': ApiGroupMembershipGroupMembership;
+      'api::group.group': ApiGroupGroup;
       'api::historic-page.historic-page': ApiHistoricPageHistoricPage;
+      'api::history-entry.history-entry': ApiHistoryEntryHistoryEntry;
       'api::history-milestone.history-milestone': ApiHistoryMilestoneHistoryMilestone;
       'api::homepage.homepage': ApiHomepageHomepage;
+      'api::location.location': ApiLocationLocation;
       'api::navigation.navigation': ApiNavigationNavigation;
       'api::partner-submission.partner-submission': ApiPartnerSubmissionPartnerSubmission;
       'api::partners-page.partners-page': ApiPartnersPagePartnersPage;
+      'api::price-list.price-list': ApiPriceListPriceList;
       'api::pricing.pricing': ApiPricingPricing;
       'api::program-page.program-page': ApiProgramPageProgramPage;
       'api::program.program': ApiProgramProgram;
       'api::realizari-page.realizari-page': ApiRealizariPageRealizariPage;
       'api::registration-submission.registration-submission': ApiRegistrationSubmissionRegistrationSubmission;
+      'api::season.season': ApiSeasonSeason;
+      'api::section.section': ApiSectionSection;
       'api::sheet-link.sheet-link': ApiSheetLinkSheetLink;
       'api::sheet-sync-log.sheet-sync-log': ApiSheetSyncLogSheetSyncLog;
       'api::site-settings.site-settings': ApiSiteSettingsSiteSettings;
