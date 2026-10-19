@@ -16,16 +16,16 @@ Out of scope (later phases): confirming registrations and matching athletes (pha
 | Field | Type | Values |
 |---|---|---|
 | `relationship` | enum | `parinte`, `tutore`, `alta` (labels: Părinte, Tutore Legal, Alta (Vă rugăm specificați)) |
-| `relationshipOther` | string | free text when `alta` |
+| `relationshipOther` | string | free text when `alta` ("Specificați calitatea (ex: Bunic, Frate)") |
 | `childHeight` | integer | cm |
-| `lastSeason` | string | the script form's "Sezonul trecut" options, word for word |
-| `membershipAnswer` | enum | `da`, `nu` (label "Membru A.C.S.") |
+| `lastSeason` | enum | Nu a participat, Începători, Intermediari, Avansați |
+| `membershipAnswer` | enum | `da` (Da, doresc să devin membru), `nu` (Nu, optez pentru tarife neafiliați); label "Membru A.C.S." |
 | `subscriptionChoice` | json | `{ priceItemName, price, member }` frozen at submit |
-| `source` | string | the script form's "De unde ați aflat" list |
-| `sourceOther` | string | free text when Altele |
+| `source` | enum | Facebook, Instagram, Recomandare, Căutare Google, Altele |
+| `sourceOther` | string | free text when Altele ("Vă rugăm să specificați de unde ați aflat de noi") |
 | `gdprConsent`, `regulationsConsent` | boolean | shown as "Acord GDPR", "Acord Regulament" (Da/Nu) |
 
-Existing fields stay. Old registrations keep and show their old values; new ones use only the new set. The exact option lists and wording are copied from the script form before implementation (the form-config registry `inscriere` is rewritten to match).
+Existing fields stay. Old registrations keep and show their old values; new ones use only the new set. Option lists and wording are read from the live script form (2026-10-20); the form-config registry `inscriere` is rewritten to match.
 
 ### 1.2 Numbering at submit
 - `registrationNumber` = `<season start year>-<4-digit sequence>`, using `formatRegistrationNumber` from `src/club/registration-number.ts`.
@@ -39,9 +39,8 @@ Existing fields stay. Old registrations keep and show their old values; new ones
 
 ### 1.4 Prices and notes
 - `club.price-item` gets `tooltip` (text, optional).
-- `price-list` gets `showPublic` (boolean, label "Pe site și în formular"): on for Standard, off for Avansați Gold.
 - `section` gets `priceNotes` (json list of paragraphs, label "Notițe subsol").
-- A price item is complete when it has a non-member price and, for subscriptions, a member price. Incomplete items are hidden from the website and the form.
+- Prices are offered per audience, as in the script form: members see items with a member price, non-members see items with a non-member price (members: Abonament 6, Abonament 8, Abonament Avansați Gold 8; non-members: Abonament 6, Abonament 8, 1 ședință grup). An item with both prices missing is incomplete and hidden everywhere. The website and the form show every price list of the school.
 
 ### 1.5 One-time copy from old data
 A script in the style of `migrate:club` (dry run by default, `--apply`, idempotent):
@@ -59,11 +58,11 @@ Approved designs: `phase2-designs-v1` and `phase2-card-band` (companion).
 
 - **Prețuri** (replaces today's page; sidebar "Pagini site").
   - Tabs per school ("Școala de patinaj", "Club").
-  - One EditorCard per price list; its header has the "Pe site și în formular" switch.
+  - One EditorCard per price list.
   - Table columns: Nume, Tip, Ședințe, Membri, Non-membri. A `*` marks items with a tooltip.
   - Row click opens a Drawer with Nume, Tip, Ședințe, Preț membri, Preț non-membri, Tooltip ("Opțional" only as the hint, never as a placeholder) and "Șterge" (with confirmation).
   - "+ Adaugă preț" per card; "+ Listă nouă" (name and school).
-  - Incomplete items: notice "Preț incomplet" (title only) and "Lipsă" badges.
+  - An item with both prices missing: notice "Preț incomplet" (title only) and "Lipsă" badges. A single missing price is normal (shown as "-").
   - "Notițe subsol" card at the bottom of each school tab.
   - Club tab with no lists: "Nicio listă de prețuri" plus "+ Listă nouă".
 - **Sezoane** (new; sidebar "Sistem", next to Setări site).
@@ -82,7 +81,7 @@ Approved designs: `phase2-designs-v1` and `phase2-card-band` (companion).
 One public endpoint, read-only and cacheable, returns:
 - the current season label and period;
 - the membership fee;
-- per school with a public page: name, slug, the price lists with `showPublic` and their complete items (name, kind, sessions, member and non-member price, tooltip), and `priceNotes`.
+- per school with a public page: name, slug, every price list with its items that have at least one price (name, kind, sessions, member and non-member price, tooltip), and `priceNotes`.
 
 It returns no private data. Cursuri, the homepage, Regulament, Program and Înscrieri switch to it, with the same look as today.
 
@@ -92,7 +91,7 @@ The 3 steps approved in `form-3steps-v1` option B, with the same questions, word
 2. **Abonament**:
    - next month's dates from the school's calendar;
    - Membru A.C.S. Da/Nu;
-   - the price box, member or non-member, from the public price lists;
+   - the price box, member or non-member, from the public price lists, plus the annual membership fee in the member box;
    - an upsell for non-members, with savings computed from the prices;
    - the abonament choice, whose options depend on membership.
 3. **Finalizare înscriere**: "De unde ați aflat", Acord GDPR, Acord Regulament, submit.
@@ -160,4 +159,3 @@ Tests:
 - The association's legal numbers for the footer (C.I.F., C.I.S., registry number, IBAN and bank branch).
 - The WhatsApp channel link.
 - The real Avansați Gold prices (entered in the new Prețuri screen).
-- The exact option lists of the script form's "Sezonul trecut" and "De unde ați aflat", if not already captured in the mockups.
