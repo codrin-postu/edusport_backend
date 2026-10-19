@@ -23,8 +23,8 @@ export interface BackfillRow {
 }
 
 function bySubmission(a: BackfillRow, b: BackfillRow): number {
-  const aKey = a.submittedAt ?? '￿';
-  const bKey = b.submittedAt ?? '￿';
+  const aKey = a.submittedAt || '￿';
+  const bKey = b.submittedAt || '￿';
   if (aKey !== bKey) return aKey < bKey ? -1 : 1;
   return a.documentId < b.documentId ? -1 : a.documentId > b.documentId ? 1 : 0;
 }
