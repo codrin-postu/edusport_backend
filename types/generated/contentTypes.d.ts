@@ -454,6 +454,11 @@ export interface ApiAcsMembershipAcsMembership
   options: {
     draftAndPublish: false;
   };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
   attributes: {
     athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
     createdAt: Schema.Attribute.DateTime;
@@ -580,6 +585,11 @@ export interface ApiAthleteAthlete extends Struct.CollectionTypeSchema {
   };
   options: {
     draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
   };
   attributes: {
     birthDate: Schema.Attribute.Date;
@@ -1029,6 +1039,11 @@ export interface ApiGroupMembershipGroupMembership
   options: {
     draftAndPublish: false;
   };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
   attributes: {
     athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
     createdAt: Schema.Attribute.DateTime;
@@ -1061,6 +1076,11 @@ export interface ApiGroupGroup extends Struct.CollectionTypeSchema {
   };
   options: {
     draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
   };
   attributes: {
     active: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
@@ -1141,6 +1161,11 @@ export interface ApiHistoryEntryHistoryEntry
   };
   options: {
     draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
   };
   attributes: {
     action: Schema.Attribute.String & Schema.Attribute.Required;
@@ -1246,6 +1271,11 @@ export interface ApiLocationLocation extends Struct.CollectionTypeSchema {
   };
   options: {
     draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
   };
   attributes: {
     address: Schema.Attribute.String;
@@ -1400,6 +1430,11 @@ export interface ApiPriceListPriceList extends Struct.CollectionTypeSchema {
   };
   options: {
     draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
   };
   attributes: {
     createdAt: Schema.Attribute.DateTime;
@@ -1658,6 +1693,11 @@ export interface ApiSeasonSeason extends Struct.CollectionTypeSchema {
   options: {
     draftAndPublish: false;
   };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
   attributes: {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -1692,6 +1732,11 @@ export interface ApiSectionSection extends Struct.CollectionTypeSchema {
   };
   options: {
     draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
   };
   attributes: {
     createdAt: Schema.Attribute.DateTime;
@@ -1888,7 +1933,7 @@ export interface ApiSportspersonSportsperson
   collectionName: 'sportspeople';
   info: {
     description: 'Profil pentru sportivii clubului';
-    displayName: 'Club / Sportiv';
+    displayName: 'Club / Profil public';
     pluralName: 'sportspeople';
     singularName: 'sportsperson';
   };
