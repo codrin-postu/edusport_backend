@@ -1,0 +1,15 @@
+{
+  "kind": "collectionType",
+  "collectionName": "sections",
+  "info": { "singularName": "section", "pluralName": "sections", "displayName": "Club / Secțiune" },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "name": { "type": "string", "required": true },
+    "kind": { "type": "enumeration", "enum": ["school", "club"], "required": true },
+    "slug": { "type": "uid", "targetField": "name", "required": true },
+    "publicPage": { "type": "boolean", "default": false },
+    "registrationsOpen": { "type": "boolean", "default": false },
+    "order": { "type": "integer" },
+    "location": { "type": "relation", "relation": "manyToOne", "target": "api::location.location" }
+  }
+}

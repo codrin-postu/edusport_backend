@@ -1,0 +1,18 @@
+{
+  "kind": "collectionType",
+  "collectionName": "athletes",
+  "info": { "singularName": "athlete", "pluralName": "athletes", "displayName": "Club / Sportiv" },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "firstName": { "type": "string", "required": true },
+    "lastName": { "type": "string" },
+    "birthDate": { "type": "date" },
+    "contactName": { "type": "string" },
+    "phone": { "type": "string" },
+    "email": { "type": "email" },
+    "status": { "type": "enumeration", "enum": ["nou", "activ", "inactiv"], "default": "activ", "required": true },
+    "dataIncomplete": { "type": "boolean", "default": false },
+    "notes": { "type": "text" },
+    "publicProfile": { "type": "relation", "relation": "oneToOne", "target": "api::sportsperson.sportsperson" }
+  }
+}

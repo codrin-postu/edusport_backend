@@ -1,0 +1,11 @@
+{
+  "kind": "collectionType",
+  "collectionName": "price_lists",
+  "info": { "singularName": "price-list", "pluralName": "price-lists", "displayName": "Club / Listă de prețuri" },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "name": { "type": "string", "required": true, "unique": true },
+    "section": { "type": "relation", "relation": "manyToOne", "target": "api::section.section" },
+    "items": { "type": "component", "repeatable": true, "component": "club.price-item" }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "kind": "collectionType",
+  "collectionName": "acs_memberships",
+  "info": { "singularName": "acs-membership", "pluralName": "acs-memberships", "displayName": "Club / Membru A.C.S." },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete" },
+    "season": { "type": "relation", "relation": "manyToOne", "target": "api::season.season" },
+    "state": { "type": "enumeration", "enum": ["da", "nu", "in_asteptare"], "default": "in_asteptare", "required": true }
+  }
+}
