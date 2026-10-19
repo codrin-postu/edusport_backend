@@ -20,7 +20,7 @@ class Subscription {
   price : money  // frozen
   purchasedAt : date
   startsOn : date  // chosen by admin
-  validUntil : date  // free weekends extend
+  validUntil : date  // start + 4 weeks, admin may extend
 }
 class Payment {
   amount : money

@@ -19,7 +19,7 @@ One term per concept, used in all diagrams and code. UI copy stays Romanian.
 | Price list | Listă de prețuri | Named set of price items (e.g. Standard, Avansați Gold). Groups on the same list share subscriptions. |
 | Price item | Element de preț | One thing that can be bought or billed: 8-session subscription, single session, individual lesson. Member and non-member price. |
 | Membership fee | Cotizație membru A.C.S. | Yearly association fee, per season. |
-| Subscription | Abonament | Prepaid sessions (6 or 8) for the Skating School, valid 4 school weekends; free weekends extend it. |
+| Subscription | Abonament | Prepaid sessions (6 or 8) for the Skating School, valid from start date plus 4 weeks (estimate); an admin can manually extend all active subscriptions by X weeks. |
 | Subscription slot | Căsuță | One session in a subscription. Each attendance at a Skating School session uses one. |
 | Amount due | De achitat | What a club-group athlete owes for sessions done (billed after training). |
 | Payment | Plată | Money received: cash, POS at the rink, or bank transfer. |

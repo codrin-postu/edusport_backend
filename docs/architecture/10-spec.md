@@ -35,7 +35,7 @@ Rules that must always hold:
 4. **Season** is a record (label, start and end month, membership fee, current). Memberships, subscriptions and registrations point to it.
 5. Groups on the same **price list** share subscriptions. Today: Standard = Primii Pași, Începători, Intermediari Bronze, Intermediari Silver, Avansați Silver, Avansați Bronze; Avansați Gold has its own list. Club: Profesioniști, Avansați (Andreea Pascu).
 6. A group's schedule is 0..n **calendar events** linked to it. Only group-linked events produce sessions. Competitions, holidays and school events stay unlinked.
-7. A **subscription** stores the item name and price at purchase, a start date chosen by the admin, slots (6 or 8) and a validity end that free weekends extend. Each Skating School attendance uses one slot of an active subscription on the same price list; used-up or expired subscriptions use none.
+7. A **subscription** stores the item name and price at purchase, a start date chosen by the admin, slots (6 or 8) and a validity end: start date plus 4 weeks, an estimate, not calculated from the calendar. On a break (for example a cancelled weekend), an admin extends validity manually: one action extends all active Skating School subscriptions by X weeks. This belongs with subscriptions, not with cancelling a calendar date. Each Skating School attendance uses one slot of an active subscription on the same price list; used-up or expired subscriptions use none.
 8. **Membership (A.C.S.)** is stored per athlete per season (nothing is reset; past seasons stay in history), with three states: Da, Nu, În așteptare. Member prices apply only with Da for that season. When a new season becomes current, last season's members start as În așteptare; everyone else has no value (shown Nu).
 9. Every edit, correction, move, merge and send writes a **HistoryEntry** (who, what, when, old and new value).
 
@@ -97,7 +97,7 @@ Rules that must always hold:
 ### 3.8 Prices, subscriptions, payments
 
 - Price lists with items (subscription 6 or 8 sessions, single session, individual lesson; member and non-member price; "inclus" flag). The website Prețuri page reads the Skating School lists. Membership fee on Season.
-- Adding a subscription (any admin, also from attendance): item, start date, price frozen, and the option to cover earlier Skating School attendances that had no subscription. Validity 4 school weekends; free weekends extend it; unused slots are lost at expiry.
+- Adding a subscription (any admin, also from attendance): item, start date, price frozen, and the option to cover earlier Skating School attendances that had no subscription. Validity: start date plus 4 weeks (estimate). Separate admin action, with subscriptions: extend all active Skating School subscriptions by X weeks (for example after a cancelled weekend). Only admins; not an option in the cancel flow. Unused slots are lost at expiry.
 - Membership fee paid for a season (the admin picks it, default current) -> membership Da for that season only.
 - Club groups are billed after training (sessions x price of the day), settled per month per athlete: sessions, due, paid, remaining.
 - Payments recorded with method Numerar / Card (POS) / Transfer bancar (and "Încasat la patinoar" for school subscriptions). No document generated for these; paper receipts as today.

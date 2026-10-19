@@ -10,7 +10,7 @@ rectangle "EduSport" {
   usecase "Manage price lists\nfor groups" as PList
   usecase "Manage calendar events\nand course series" <<existing>> as Cal
   usecase "Cancel or change\na single date" <<existing>> as Occ
-  usecase "Mark a weekend free\n(extends subscriptions)" as Free
+  usecase "Mark a weekend free" as Free
   usecase "Edit registration form\n(fields, custom questions)" <<existing>> as Form
   usecase "Connect Google Sheets\nand sync" <<existing>> as Sheets
 }

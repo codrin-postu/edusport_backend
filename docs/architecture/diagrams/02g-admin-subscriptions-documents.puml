@@ -6,6 +6,7 @@ actor "Admin" as A
 rectangle "EduSport" {
   usecase "Add subscription\n(also from attendance)" as Sub
   usecase "View subscription\nslots and validity" as SubV
+  usecase "Extend all Skating School\nsubscriptions by X weeks" as Ext
   usecase "Record payment\n(cash, POS, transfer)" as Pay
   usecase "View amounts due\n(club groups)" <<proposed>> as Due
   usecase "Issue invoice" <<proposed>> as Inv
@@ -16,6 +17,7 @@ rectangle "EduSport" {
 }
 A -- Sub
 A -- SubV
+A -- Ext
 A -- Pay
 A -- Due
 A -- DType
