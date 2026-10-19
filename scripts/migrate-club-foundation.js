@@ -22,6 +22,19 @@ function buildCreated(app, recordHistory) {
   };
 }
 
+function buildNumbered(app, recordHistory) {
+  return async (documentId, registrationNumber, data) => {
+    await app.documents('api::registration-submission.registration-submission').update({ documentId, data });
+    await recordHistory(app, {
+      subjectType: 'registration-submission',
+      subjectId: documentId,
+      action: 'number-assigned',
+      actor: ACTOR,
+      changes: { registrationNumber },
+    });
+  };
+}
+
 async function migrateSeasons(ctx) {
   const { app, docs, log, created, planSeasons, pricing, parsePrice, settings, regRows } = ctx;
   const existingSeasons = await docs('api::season.season').findMany({ limit: 1000 });
@@ -115,7 +128,7 @@ async function migrateAthletes(ctx) {
 }
 
 async function migrateRegistrationNumbers(ctx, sectionsByKind) {
-  const { app, docs, log, planRegistrationBackfill, normalizeSeasonLabel, regRows } = ctx;
+  const { docs, log, planRegistrationBackfill, normalizeSeasonLabel, regRows, numbered } = ctx;
   const numberPlan = planRegistrationBackfill(regRows);
   log('registration numbers to assign:', numberPlan.assign.length, 'skipped (no season):', numberPlan.skipped.length);
   if (!APPLY) return;
@@ -124,9 +137,10 @@ async function migrateRegistrationNumbers(ctx, sectionsByKind) {
   const regById = Object.fromEntries(regRows.map((r) => [r.documentId, r]));
   for (const a of numberPlan.assign) {
     const label = normalizeSeasonLabel(regById[a.documentId].season);
-    await docs('api::registration-submission.registration-submission').update({
-      documentId: a.documentId,
-      data: { registrationNumber: a.registrationNumber, seasonRef: seasonByLabel[label], section: sectionsByKind.school?.documentId },
+    await numbered(a.documentId, a.registrationNumber, {
+      registrationNumber: a.registrationNumber,
+      seasonRef: seasonByLabel[label],
+      section: sectionsByKind.school?.documentId,
     });
   }
 }
@@ -144,6 +158,7 @@ function loadMigrationLib(app) {
     docs,
     log: buildLog(),
     created: buildCreated(app, recordHistory),
+    numbered: buildNumbered(app, recordHistory),
     planSeasons,
     planGroups,
     planPriceLists,
