@@ -23,16 +23,25 @@ export interface BackfillRow {
 }
 
 function bySubmission(a: BackfillRow, b: BackfillRow): number {
-  if (a.submittedAt && b.submittedAt && a.submittedAt !== b.submittedAt) {
-    return a.submittedAt < b.submittedAt ? -1 : 1;
-  }
-  if (a.submittedAt && !b.submittedAt) return -1;
-  if (!a.submittedAt && b.submittedAt) return 1;
+  const aKey = a.submittedAt ?? '￿';
+  const bKey = b.submittedAt ?? '￿';
+  if (aKey !== bKey) return aKey < bKey ? -1 : 1;
   return a.documentId < b.documentId ? -1 : a.documentId > b.documentId ? 1 : 0;
 }
 
-export function planRegistrationBackfill(rows: BackfillRow[]): {
-  assign: { documentId: string; registrationNumber: string }[];
+/** Highest existing seq per start year, read from every row's registrationNumber, regardless of season. */
+function maxSeqByStartYear(rows: BackfillRow[]): Map<number, number> {
+  const max = new Map<number, number>();
+  for (const row of rows) {
+    const parsed = parseRegistrationNumber(row.registrationNumber);
+    if (!parsed) continue;
+    max.set(parsed.startYear, Math.max(max.get(parsed.startYear) ?? 0, parsed.seq));
+  }
+  return max;
+}
+
+function groupBySeason(rows: BackfillRow[]): {
+  bySeason: Map<string, BackfillRow[]>;
   skipped: { documentId: string; reason: 'no-season' }[];
 } {
   const skipped: { documentId: string; reason: 'no-season' }[] = [];
@@ -47,15 +56,20 @@ export function planRegistrationBackfill(rows: BackfillRow[]): {
     list.push(row);
     bySeason.set(label, list);
   }
+  return { bySeason, skipped };
+}
+
+export function planRegistrationBackfill(rows: BackfillRow[]): {
+  assign: { documentId: string; registrationNumber: string }[];
+  skipped: { documentId: string; reason: 'no-season' }[];
+} {
+  const { bySeason, skipped } = groupBySeason(rows);
+  const maxSeqByYear = maxSeqByStartYear(rows);
   const assign: { documentId: string; registrationNumber: string }[] = [];
   for (const label of [...bySeason.keys()].sort()) {
-    const list = bySeason.get(label)!;
     const year = seasonStartYear(label);
-    let seq = list.reduce((max, r) => {
-      const parsed = parseRegistrationNumber(r.registrationNumber);
-      return parsed && parsed.startYear === year ? Math.max(max, parsed.seq) : max;
-    }, 0);
-    for (const row of [...list].sort(bySubmission)) {
+    let seq = maxSeqByYear.get(year) ?? 0;
+    for (const row of [...bySeason.get(label)!].sort(bySubmission)) {
       if (row.registrationNumber) continue;
       seq += 1;
       assign.push({ documentId: row.documentId, registrationNumber: formatRegistrationNumber(year, seq) });

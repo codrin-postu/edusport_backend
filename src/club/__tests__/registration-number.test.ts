@@ -74,4 +74,47 @@ describe('planRegistrationBackfill', () => {
     ]);
     expect(second.assign).toEqual([]);
   });
+
+  it('counts a number held by a row now in another season (reviewer reproduction)', () => {
+    const plan = planRegistrationBackfill([
+      { documentId: 'w', season: '2026-2027', submittedAt: '2026-08-01T10:00:00Z', registrationNumber: '2026-0001' },
+      { documentId: 'x', season: '2027-2028', submittedAt: '2026-08-02T10:00:00Z', registrationNumber: '2026-0002' },
+      { documentId: 'y', season: '2026-2027', submittedAt: '2026-09-01T10:00:00Z', registrationNumber: null },
+      { documentId: 'z', season: null, submittedAt: '2026-08-03T10:00:00Z', registrationNumber: '2026-0003' },
+    ]);
+    expect(plan.assign).toEqual([{ documentId: 'y', registrationNumber: '2026-0004' }]);
+    expect(plan.skipped).toEqual([{ documentId: 'z', reason: 'no-season' }]);
+  });
+
+  it('counts a number held by a row with no season', () => {
+    const plan = planRegistrationBackfill([
+      { documentId: 'z', season: null, submittedAt: null, registrationNumber: '2026-0005' },
+      { documentId: 'y', season: '2026-2027', submittedAt: '2026-09-01T10:00:00Z', registrationNumber: null },
+    ]);
+    expect(plan.assign).toEqual([{ documentId: 'y', registrationNumber: '2026-0006' }]);
+  });
+
+  it('stays idempotent after a cross-season fix (second run assigns nothing)', () => {
+    const rows = [
+      { documentId: 'w', season: '2026-2027', submittedAt: '2026-08-01T10:00:00Z', registrationNumber: '2026-0001' },
+      { documentId: 'x', season: '2027-2028', submittedAt: '2026-08-02T10:00:00Z', registrationNumber: '2026-0002' },
+      { documentId: 'y', season: '2026-2027', submittedAt: '2026-09-01T10:00:00Z', registrationNumber: null },
+      { documentId: 'z', season: null, submittedAt: '2026-08-03T10:00:00Z', registrationNumber: '2026-0003' },
+    ];
+    const first = planRegistrationBackfill(rows);
+    const updated = rows.map((row) => {
+      const assigned = first.assign.find((a) => a.documentId === row.documentId);
+      return assigned ? { ...row, registrationNumber: assigned.registrationNumber } : row;
+    });
+    expect(planRegistrationBackfill(updated).assign).toEqual([]);
+  });
+
+  it('orders multiple null-submittedAt rows by documentId', () => {
+    const plan = planRegistrationBackfill([
+      { documentId: 'z', season: '2026-2027', submittedAt: null, registrationNumber: null },
+      { documentId: 'm', season: '2026-2027', submittedAt: null, registrationNumber: null },
+      { documentId: 'a', season: '2026-2027', submittedAt: '2026-09-01T10:00:00Z', registrationNumber: null },
+    ]);
+    expect(plan.assign.map((r) => r.documentId)).toEqual(['a', 'm', 'z']);
+  });
 });
