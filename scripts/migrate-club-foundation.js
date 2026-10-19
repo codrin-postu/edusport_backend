@@ -131,7 +131,7 @@ async function migrateRegistrationNumbers(ctx, sectionsByKind) {
   }
 }
 
-async function loadContext(app) {
+function loadMigrationLib(app) {
   const lib = (p) => require(`../dist/src/club/${p}`);
   const { planSeasons, planGroups, planPriceLists, planAthletes } = lib('migrate/plan');
   const { CANONICAL_SECTIONS } = lib('migrate/canonical');
@@ -140,24 +140,10 @@ async function loadContext(app) {
   const { recordHistory } = lib('history');
   const { normalizeSeasonLabel } = lib('season');
   const docs = (uid) => app.documents(uid);
-  const log = buildLog();
-  const created = buildCreated(app, recordHistory);
-
-  const settings = (await docs('api::site-settings.site-settings').findFirst({}))?.registration ?? {};
-  const pricing = (await docs('api::pricing.pricing').findFirst({}))?.tiers ?? {};
-  const regRows = await app.db.query('api::registration-submission.registration-submission').findMany({
-    select: ['documentId', 'season', 'submittedAt', 'registrationNumber'],
-    limit: 100000,
-  });
-
   return {
-    app,
     docs,
-    log,
-    created,
-    settings,
-    pricing,
-    regRows,
+    log: buildLog(),
+    created: buildCreated(app, recordHistory),
     planSeasons,
     planGroups,
     planPriceLists,
@@ -167,6 +153,18 @@ async function loadContext(app) {
     parsePrice,
     normalizeSeasonLabel,
   };
+}
+
+async function loadContext(app) {
+  const lib = loadMigrationLib(app);
+  const settings = (await lib.docs('api::site-settings.site-settings').findFirst({}))?.registration ?? {};
+  const pricing = (await lib.docs('api::pricing.pricing').findFirst({}))?.tiers ?? {};
+  const regRows = await app.db.query('api::registration-submission.registration-submission').findMany({
+    select: ['documentId', 'season', 'submittedAt', 'registrationNumber'],
+    limit: 100000,
+  });
+
+  return { app, settings, pricing, regRows, ...lib };
 }
 
 async function main() {
