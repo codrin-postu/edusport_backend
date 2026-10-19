@@ -7,8 +7,11 @@ final whole-branch review (section I3).
 
 ## Production facts
 
-- Reach the VM with `ssh edusport-vm`.
-- Deploy path: `/opt/edusport/edusport_backend`.
+- Reach the VM with `ssh edusport-vm` (operator setup, confirm on the VM; this
+  alias is not in the repo).
+- Deploy path: `/opt/edusport/edusport_backend` (operator setup, confirm on
+  the VM; this is the example value of the `VM_BACKEND_PATH` repository secret
+  in `.github/workflows/deploy.yml`, not a value read from the repo itself).
 - Compose file: `docker-compose.production.yml`, env file `.env.production`.
 - Compose service for the app is `backend` (container name `edusport_backend`,
   from `docker-compose.production.yml`). The postgres service is `postgres`
@@ -27,10 +30,19 @@ final whole-branch review (section I3).
 ## Order of steps
 
 1. Deploy the branch with the normal pipeline (GitHub Actions, "Deploy backend",
-   pick the branch). This runs `scripts/deploy.sh all` on the VM: pull, build,
-   `up` (which runs `docker compose up -d backend`, and Strapi applies the new
-   schema on boot), then `health`. Wait for deploy-health to pass before
-   continuing.
+   pick the branch). Per `.github/workflows/deploy.yml`, this runs four jobs in
+   order, each gated on the previous one:
+   - `deploy-pull`: over SSH, `git fetch --prune` then `git reset --hard
+     origin/<ref>` in the deploy path. This step runs inline in the workflow,
+     not through `scripts/deploy.sh`.
+   - `deploy-build`: over SSH, `./scripts/deploy.sh build` (builds the
+     `backend` image).
+   - `deploy-up`: over SSH, `./scripts/deploy.sh up` (starts `postgres`, waits
+     for it to be ready, then starts `backend`; Strapi applies the new schema
+     on this boot).
+   - `deploy-health`: over SSH, `./scripts/deploy.sh health` (polls `/_health`,
+     prunes dangling images).
+   Wait for `deploy-health` to pass before continuing.
 2. Take a database backup. Either let `scripts/backup.sh` run (it is meant to
    be on a VM cron job, check on the VM whether it is installed) or run its
    dump step by hand:
