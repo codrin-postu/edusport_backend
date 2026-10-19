@@ -44,6 +44,14 @@ describe('planGroups', () => {
     const plan = planGroups({ seriesCourses: ['Primii Paşi'], coachGroups: [], existing: ['Primii Pași'] });
     expect(plan.create.find((g) => g.name === 'Primii Pași')).toBeUndefined();
   });
+  it('deduplicates unknown groups by nameKey', () => {
+    const plan = planGroups({
+      seriesCourses: [],
+      coachGroups: [{ coachId: 'c1', groups: ['Grupa Veche', 'grupa veche'] }],
+      existing: [],
+    });
+    expect(plan.unknown).toEqual(['Grupa Veche']);
+  });
 });
 
 describe('planPriceLists', () => {

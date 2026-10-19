@@ -2,6 +2,24 @@ import { normalizeSeasonLabel } from '../season';
 import { CANONICAL_GROUPS, CANONICAL_PRICE_LISTS } from './canonical';
 import { nameKey, parsePrice, splitPersonName } from './names';
 
+function buildSeasonItem(
+  label: string,
+  current: string | null,
+  input: { settings: { seasonStartDate?: string; seasonEndDate?: string }; memberFee: number | null },
+) {
+  const start = Number(label.slice(0, 4));
+  const isCurrent = label === current;
+  const hasDates = isCurrent && !!input.settings.seasonStartDate && !!input.settings.seasonEndDate;
+  return {
+    label,
+    startMonth: hasDates ? input.settings.seasonStartDate! : `${start}-10-01`,
+    endMonth: hasDates ? input.settings.seasonEndDate! : `${start + 1}-05-31`,
+    membershipFee: isCurrent ? input.memberFee : null,
+    isCurrent,
+    needsReview: !hasDates,
+  };
+}
+
 export function planSeasons(input: {
   registrationSeasons: (string | null)[];
   settings: { currentSeason?: string; seasonStartDate?: string; seasonEndDate?: string };
@@ -18,20 +36,27 @@ export function planSeasons(input: {
   const create = [...labels]
     .filter((label) => !existing.has(label))
     .sort()
-    .map((label) => {
-      const start = Number(label.slice(0, 4));
-      const isCurrent = label === current;
-      const hasDates = isCurrent && !!input.settings.seasonStartDate && !!input.settings.seasonEndDate;
-      return {
-        label,
-        startMonth: hasDates ? input.settings.seasonStartDate! : `${start}-10-01`,
-        endMonth: hasDates ? input.settings.seasonEndDate! : `${start + 1}-05-31`,
-        membershipFee: isCurrent ? input.memberFee : null,
-        isCurrent,
-        needsReview: !hasDates,
-      };
-    });
+    .map((label) => buildSeasonItem(label, current, input));
   return { create };
+}
+
+function collectUnknownGroups(
+  seriesCourses: string[],
+  coachGroups: { coachId: string; groups: string[] }[],
+  canonicalByKey: Map<string, unknown>,
+): string[] {
+  const unknownByKey = new Map<string, string>();
+  for (const raw of seriesCourses) {
+    const key = nameKey(raw);
+    if (!canonicalByKey.has(key) && !unknownByKey.has(key)) unknownByKey.set(key, raw.trim());
+  }
+  for (const { groups } of coachGroups) {
+    for (const raw of groups) {
+      const key = nameKey(raw);
+      if (!canonicalByKey.has(key) && !unknownByKey.has(key)) unknownByKey.set(key, raw.trim());
+    }
+  }
+  return [...unknownByKey.values()];
 }
 
 export function planGroups(input: {
@@ -42,18 +67,10 @@ export function planGroups(input: {
   const canonicalByKey = new Map(CANONICAL_GROUPS.map((g) => [nameKey(g.name), g]));
   const existingKeys = new Set(input.existing.map(nameKey));
   const coachesByKey = new Map<string, string[]>();
-  const unknown: string[] = [];
-  for (const raw of input.seriesCourses) {
-    if (!canonicalByKey.has(nameKey(raw)) && !unknown.includes(raw.trim())) unknown.push(raw.trim());
-  }
   for (const { coachId, groups } of input.coachGroups) {
     for (const raw of groups) {
       const key = nameKey(raw);
-      if (!canonicalByKey.has(key)) {
-        if (!unknown.includes(raw.trim())) unknown.push(raw.trim());
-        continue;
-      }
-      coachesByKey.set(key, [...(coachesByKey.get(key) ?? []), coachId]);
+      if (canonicalByKey.has(key)) coachesByKey.set(key, [...(coachesByKey.get(key) ?? []), coachId]);
     }
   }
   const create = CANONICAL_GROUPS.filter((g) => !existingKeys.has(nameKey(g.name))).map((g) => ({
@@ -62,6 +79,7 @@ export function planGroups(input: {
     priceList: g.priceList,
     coachIds: coachesByKey.get(nameKey(g.name)) ?? [],
   }));
+  const unknown = collectUnknownGroups(input.seriesCourses, input.coachGroups, canonicalByKey);
   return { create, unknown };
 }
 
@@ -76,15 +94,14 @@ function classify(label: string): { kind: ItemKind; sessions: number | null } | 
   return null;
 }
 
-export function planPriceLists(input: {
-  memberTiers: { label: string; price: unknown }[];
-  nonMemberTiers: { label: string; price: unknown }[];
-  existing: string[];
-}) {
-  const labels = new Map<string, string>();
-  for (const t of [...input.memberTiers, ...input.nonMemberTiers]) labels.set(nameKey(t.label), t.label.trim());
-  const priceOf = (tiers: { label: string; price: unknown }[], key: string) =>
-    parsePrice(tiers.find((t) => nameKey(t.label) === key)?.price);
+function buildPriceListItems(
+  labels: Map<string, string>,
+  memberTiers: { label: string; price: unknown }[],
+  nonMemberTiers: { label: string; price: unknown }[],
+): {
+  lists: Map<string, { name: string; kind: ItemKind; sessions: number | null; memberPrice: number | null; nonMemberPrice: number | null }[]>;
+  unmatched: string[];
+} {
   const lists = new Map<string, { name: string; kind: ItemKind; sessions: number | null; memberPrice: number | null; nonMemberPrice: number | null }[]>(
     CANONICAL_PRICE_LISTS.map((n) => [n, []]),
   );
@@ -96,14 +113,21 @@ export function planPriceLists(input: {
       continue;
     }
     const list = key.includes('gold') ? 'Avansați Gold' : 'Standard';
-    lists.get(list)!.push({
-      name: label,
-      kind: c.kind,
-      sessions: c.sessions,
-      memberPrice: priceOf(input.memberTiers, key),
-      nonMemberPrice: priceOf(input.nonMemberTiers, key),
-    });
+    const memberPrice = parsePrice(memberTiers.find((t) => nameKey(t.label) === key)?.price);
+    const nonMemberPrice = parsePrice(nonMemberTiers.find((t) => nameKey(t.label) === key)?.price);
+    lists.get(list)!.push({ name: label, kind: c.kind, sessions: c.sessions, memberPrice, nonMemberPrice });
   }
+  return { lists, unmatched };
+}
+
+export function planPriceLists(input: {
+  memberTiers: { label: string; price: unknown }[];
+  nonMemberTiers: { label: string; price: unknown }[];
+  existing: string[];
+}) {
+  const labels = new Map<string, string>();
+  for (const t of [...input.memberTiers, ...input.nonMemberTiers]) labels.set(nameKey(t.label), t.label.trim());
+  const { lists, unmatched } = buildPriceListItems(labels, input.memberTiers, input.nonMemberTiers);
   const existing = new Set(input.existing);
   const create = [...lists.entries()]
     .filter(([name]) => !existing.has(name))
