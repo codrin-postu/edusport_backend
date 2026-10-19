@@ -1,0 +1,18 @@
+@startuml
+!include ../_style.iuml
+hide circle
+class Group
+class ScheduleInterval {
+  weekdays, startTime, endTime
+  from, to
+}
+class "CalendarEvent" as Ev <<existing>>
+class Session
+Group *-- "1..*" ScheduleInterval
+ScheduleInterval ..> Ev : writes a copy >
+Session "0..1" .. "1" ScheduleInterval
+note bottom of Ev
+  Two places to keep in sync;
+  single-date changes need their own model.
+end note
+@enduml

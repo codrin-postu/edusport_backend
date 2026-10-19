@@ -1,0 +1,24 @@
+@startuml
+!include _style.iuml
+skinparam linetype polyline
+title Activity: start a new season
+|Admin|
+start
+:Create season 2027-2028\n(dates, membership fee);
+:Mark it current;
+|System|
+:Carry over all groups;
+|Admin|
+repeat
+  :For a group: copy last season's members?;
+  if (copy?) then (yes)
+    |System|
+    :Create memberships for new season;
+    |Admin|
+    :Edit list (remove, add);
+  else (no, e.g. Skating School)
+    :Leave empty;\nfilled from confirmed registrations;
+  endif
+repeat while (more groups?)
+stop
+@enduml

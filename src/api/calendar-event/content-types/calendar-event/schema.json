@@ -57,6 +57,7 @@
     },
     "order": {
       "type": "integer"
-    }
+    },
+    "group": { "type": "relation", "relation": "manyToOne", "target": "api::group.group" }
   }
 }

@@ -1,0 +1,17 @@
+@startuml
+!include ../_style.iuml
+hide circle
+class Group
+class "CalendarEvent" as Ev <<changed>> {
+  group : Group [0..1]
+  recurrence, exceptions
+}
+class Session
+Group "1" -- "0..*" Ev : schedule >
+Session "0..1" .. "1" Ev : occurrence of >
+note bottom of Ev
+  Coach edits the group's events.
+  Website calendar shows the same events.
+  Course series list becomes derived.
+end note
+@enduml

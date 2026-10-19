@@ -1,0 +1,30 @@
+@startuml
+!include _style.iuml
+left to right direction
+title Admin: people, accounts, other forms
+actor "Admin" as A
+rectangle "EduSport" {
+  usecase "Manage team members\n(coach profiles)" <<existing>> as Team
+  usecase "Invite coach to portal" as InvC
+  usecase "Disable an account" as Dis
+  usecase "Manage parent access\nfor an athlete" as Par
+  usecase "Invite parent" as InvP
+  usecase "Manage admin users" <<existing>> as Adm
+  usecase "Handle volunteer\napplications" <<existing>> as Vol
+  usecase "Handle partner requests" <<existing>> as Part
+  usecase "Handle contact messages" <<existing>> as Msg
+}
+A -- Team
+A -- InvC
+A -- Dis
+A -- Par
+A -- Adm
+A -- Vol
+A -- Part
+A -- Msg
+InvP .> Par : <<extend>>
+legend bottom right
+  Green «existing»: already in the admin panel today.
+  Blue: planned (decided). Yellow «proposed»: not decided.
+endlegend
+@enduml

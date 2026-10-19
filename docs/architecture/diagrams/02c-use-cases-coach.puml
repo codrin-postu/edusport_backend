@@ -1,0 +1,30 @@
+@startuml
+!include _style.iuml
+left to right direction
+title Coach
+actor "Coach\n(portal account)" as T
+rectangle "EduSport" {
+  usecase "Record attendance\nfor a session" as Att
+  usecase "Use one subscription\nslot (Skating School)" as Box
+  usecase "Correct attendance\n(until end of month)" as Fix
+  usecase "Add a new session" as NewS
+  usecase "Stand in for\nanother coach" as Sub
+  usecase "Individual lesson" as Ind
+  usecase "Add a new athlete\n(flagged «new»)" as NewA
+  usecase "View groups\n(others' marked)" as See
+  usecase "Accept invitation,\nset password" as Inv
+  usecase "Edit own account" as Acc
+  usecase "Update own Club group schedule\n(Skating School: admin only)" as Sch
+}
+T -- See
+T -- Att
+T -- Fix
+T -- NewS
+T -- Ind
+T -- NewA
+T -- Inv
+T -- Acc
+T -- Sch
+Att ..> Box : <<include>>
+Sub .> Att : <<extend>>
+@enduml

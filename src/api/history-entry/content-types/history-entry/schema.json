@@ -1,0 +1,15 @@
+{
+  "kind": "collectionType",
+  "collectionName": "history_entries",
+  "info": { "singularName": "history-entry", "pluralName": "history-entries", "displayName": "Club / Istoric" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "subjectType": { "type": "string", "required": true },
+    "subjectId": { "type": "string", "required": true },
+    "action": { "type": "string", "required": true },
+    "changes": { "type": "json" },
+    "actor": { "type": "string", "required": true },
+    "at": { "type": "datetime", "required": true }
+  }
+}

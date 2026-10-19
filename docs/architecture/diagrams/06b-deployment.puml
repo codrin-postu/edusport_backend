@@ -1,0 +1,24 @@
+@startuml
+!include _style.iuml
+title Deployment
+node "Prod VM (Ubuntu, Docker)" {
+  node "nginx (TLS, Let's Encrypt)" as N
+  node "edusport-frontend\n127.0.0.1:3000" as FE
+  node "edusport_backend\n127.0.0.1:1337" as BE
+  database "edusport_postgres" as PG
+  node "umami :3001" as UM
+  node "glitchtip :3002" as GT
+  node "skate-results :3003" as SK
+  node "nightly backups (cron)" as BK
+}
+cloud "Brevo (e-mail)" as BR
+cloud "Google Sheets" as GS
+N --> FE : edusport.codrin.space
+N --> BE : cms-edusport.codrin.space
+FE --> BE
+BE --> PG
+BE --> SK
+BE --> BR : HTTPS 443
+BE --> GS : HTTPS 443
+BK --> PG
+@enduml

@@ -1,0 +1,13 @@
+{
+  "collectionName": "components_club_price_items",
+  "info": { "displayName": "Element de preț" },
+  "options": {},
+  "attributes": {
+    "name": { "type": "string", "required": true },
+    "kind": { "type": "enumeration", "enum": ["subscription", "session", "individual"], "required": true },
+    "sessions": { "type": "integer" },
+    "memberPrice": { "type": "decimal" },
+    "nonMemberPrice": { "type": "decimal" },
+    "included": { "type": "boolean", "default": false }
+  }
+}

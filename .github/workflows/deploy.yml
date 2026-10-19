@@ -4,11 +4,10 @@
 #   GitHub → Actions → Deploy backend → Run workflow → pick a branch/tag.
 #
 # Each check and each deploy phase is its own JOB, so the Actions graph shows a
-# separate node per step. This repo has no lint script or tests yet, so
-# typecheck + audit run as informational (non-gating); the secret scan gates
-# the deploy.
+# separate node per step. Typecheck + audit run as informational (non-gating);
+# secret-scan and test gate the deploy.
 #
-#   secret-scan (blocking)      typecheck, audit (informational)
+#   secret-scan, test (blocking)      typecheck, audit (informational)
 #         └─> deploy-pull -> deploy-build -> deploy-up -> deploy-health
 #
 # Required repository secrets (Settings → Secrets and variables → Actions):
@@ -79,10 +78,24 @@ jobs:
             | tar -xz gitleaks
           ./gitleaks detect --no-git --source . --no-banner --redact --exit-code 1
 
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
   # ---------- deploy (gated on the blocking check) ----------
   deploy-pull:
     name: Deploy · pull
-    needs: [secret-scan]
+    needs: [secret-scan, test]
     runs-on: ubuntu-latest
     steps:
       - name: Fetch + reset to the chosen ref on the VM

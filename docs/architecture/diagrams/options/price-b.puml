@@ -1,0 +1,17 @@
+@startuml
+!include ../_style.iuml
+hide circle
+class "Pricing (website)" as P <<existing>> {
+  memberTiers, nonMemberTiers
+  memberFee
+}
+class PriceList
+class PriceItem
+class Group
+PriceList *-- "1..*" PriceItem
+Group "0..*" -- "0..1" PriceList
+note bottom of P
+  Website prices typed separately.
+  Two sources, can drift apart.
+end note
+@enduml

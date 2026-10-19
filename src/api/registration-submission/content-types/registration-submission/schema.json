@@ -87,6 +87,10 @@
     },
     "extra": {
       "type": "json"
-    }
+    },
+    "registrationNumber": { "type": "string", "unique": true },
+    "section": { "type": "relation", "relation": "manyToOne", "target": "api::section.section" },
+    "seasonRef": { "type": "relation", "relation": "manyToOne", "target": "api::season.season" },
+    "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete" }
   }
 }

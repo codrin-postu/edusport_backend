@@ -1,0 +1,53 @@
+@startuml
+!include _style.iuml
+title Class diagram: registrations, documents, accounts
+hide circle
+
+class "RegistrationSubmission" as Reg <<changed>> {
+  registrationNumber : string  // 2026-0142, new
+  season, status, answers
+  athlete : Athlete [0..1]  // new, set on confirm
+}
+class Athlete
+class DocumentType {
+  name : string
+  source : generated | uploaded
+  trigger : every registration | if member | manual
+  attachTo : athlete | club
+  hasBlankForm : bool
+}
+class Document {
+  file : PDF/JPG/PNG
+  version : int
+  createdAt : datetime
+}
+class "PortalAccount" as Acc {
+  email : string
+  role : coach | parent
+  status : invited | active | disabled
+}
+class "ParentAccess" as PA {
+  status : invited | active
+}
+class "TeamMember" as Coach <<changed>>
+class "HistoryEntry" as Hist {
+  subject, action, by, at
+}
+
+Reg "0..*" -- "0..1" Athlete : confirmed as >
+Document "0..*" -- "1" DocumentType
+Document "0..*" -- "0..1" Athlete
+Document "0..*" -- "0..1" Reg : generated from >
+Acc "1" -- "0..*" PA
+PA "0..*" -- "1" Athlete
+Coach "1" -- "0..1" Acc : can log in >
+
+note bottom of Hist
+  Every edit, correction and move
+  writes a HistoryEntry.
+end note
+legend bottom right
+  Green «existing»: today, unchanged. Orange «changed»: today, gets new fields.
+  Blue: new. Yellow «option»: depends on a decision.
+endlegend
+@enduml

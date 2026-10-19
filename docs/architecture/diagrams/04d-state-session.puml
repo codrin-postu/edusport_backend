@@ -1,0 +1,15 @@
+@startuml
+!include _style.iuml
+skinparam linetype polyline
+skinparam nodesep 70
+skinparam ranksep 70
+title State machine: Session
+[*] --> Planned : from the group's calendar events
+[*] --> Saved : recorded after the fact
+Planned --> Cancelled : date cancelled,\nliber or pause
+Planned --> NotDone : date passed,\nno attendance
+Planned --> Saved : coach or admin saves
+NotDone --> Saved : coach or admin saves
+Saved --> Saved : correction\n(coach until end of month,\nadmin any time)\n/ history entry
+Cancelled --> [*]
+@enduml

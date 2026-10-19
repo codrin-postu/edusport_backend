@@ -57,6 +57,24 @@ export interface CalendarRecurrence extends Struct.ComponentSchema {
   };
 }
 
+export interface ClubPriceItem extends Struct.ComponentSchema {
+  collectionName: 'components_club_price_items';
+  info: {
+    displayName: 'Element de pre\u021B';
+  };
+  attributes: {
+    included: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    kind: Schema.Attribute.Enumeration<
+      ['subscription', 'session', 'individual']
+    > &
+      Schema.Attribute.Required;
+    memberPrice: Schema.Attribute.Decimal;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    nonMemberPrice: Schema.Attribute.Decimal;
+    sessions: Schema.Attribute.Integer;
+  };
+}
+
 export interface CursuriAbout extends Struct.ComponentSchema {
   collectionName: 'components_cursuri_abouts';
   info: {
@@ -312,6 +330,7 @@ declare module '@strapi/strapi' {
     export interface ComponentSchemas {
       'calendar.exception': CalendarException;
       'calendar.recurrence': CalendarRecurrence;
+      'club.price-item': ClubPriceItem;
       'cursuri.about': CursuriAbout;
       'cursuri.banner': CursuriBanner;
       'cursuri.info-section': CursuriInfoSection;

@@ -21,8 +21,11 @@
     "seed:homepage": "docker exec strapi_app node scripts/seed-homepage.js",
     "seed:partners-volunteer": "docker exec strapi_app node scripts/seed-partners-volunteer.js",
     "seed:navigation": "docker exec strapi_app node scripts/seed-navigation.js",
+    "migrate:club": "node scripts/migrate-club-foundation.js",
     "start": "strapi start",
     "strapi": "strapi",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "upgrade": "npx @strapi/upgrade latest",
     "upgrade:dry": "npx @strapi/upgrade latest --dry",
     "docker:restart": "docker exec strapi_app rm -rf .strapi build node_modules/.vite && docker exec strapi_app npm run build && docker compose restart strapi",
@@ -48,7 +51,8 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   },
   "engines": {
     "node": ">=18.0.0 <=22.x.x",

@@ -1,0 +1,15 @@
+{
+  "kind": "collectionType",
+  "collectionName": "seasons",
+  "info": { "singularName": "season", "pluralName": "seasons", "displayName": "Club / Sezon" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "label": { "type": "string", "required": true, "unique": true, "regex": "^[0-9]{4}-[0-9]{4}$" },
+    "startMonth": { "type": "date", "required": true },
+    "endMonth": { "type": "date", "required": true },
+    "membershipFee": { "type": "decimal" },
+    "isCurrent": { "type": "boolean", "default": false },
+    "needsReview": { "type": "boolean", "default": false }
+  }
+}

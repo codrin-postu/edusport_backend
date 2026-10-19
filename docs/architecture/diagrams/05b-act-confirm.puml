@@ -1,0 +1,32 @@
+@startuml
+!include _style.iuml
+skinparam linetype polyline
+title Activity: confirm a registration
+|Admin|
+start
+:Open registration;
+|System|
+:Find matching athletes\n(name, birth date, phone, e-mail;\nincludes inactive);
+|Admin|
+if (Existing athlete?) then (yes)
+  :Compare and tick fields to update;
+  |System|
+  :Update athlete;\nreactivate if inactive;
+else (no)
+  |System|
+  :Create athlete;
+endif
+|Admin|
+if (Choose main group now?) then (yes)
+  :Pick group;
+  |System|
+  :Create membership for season;
+else (later)
+  |System|
+  :Athlete shows under "Fără grupă";
+endif
+|System|
+:Registration = Confirmed, linked to athlete;
+:History entry;
+stop
+@enduml

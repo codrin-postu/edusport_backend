@@ -1,0 +1,30 @@
+@startuml
+!include _style.iuml
+left to right direction
+title Admin: season and settings
+actor "Admin" as A
+rectangle "EduSport" {
+  usecase "Open or close registrations" <<existing>> as Open
+  usecase "Set current season\nand season dates" <<existing>> as Season
+  usecase "Edit prices and\nmembership fee" <<existing>> as Price
+  usecase "Manage price lists\nfor groups" as PList
+  usecase "Manage calendar events\nand course series" <<existing>> as Cal
+  usecase "Cancel or change\na single date" <<existing>> as Occ
+  usecase "Mark a weekend free" as Free
+  usecase "Edit registration form\n(fields, custom questions)" <<existing>> as Form
+  usecase "Connect Google Sheets\nand sync" <<existing>> as Sheets
+}
+A -- Open
+A -- Season
+A -- Price
+A -- PList
+A -- Cal
+A -- Form
+A -- Sheets
+Occ .> Cal : <<extend>>
+Free .> Cal : <<extend>>
+legend bottom right
+  Green «existing»: already in the admin panel today.
+  Blue: planned (decided). Yellow «proposed»: not decided.
+endlegend
+@enduml

@@ -1,0 +1,17 @@
+@startuml
+!include _style.iuml
+skinparam linetype polyline
+skinparam nodesep 70
+skinparam ranksep 70
+title State machine: Registration
+[*] --> New : parent submits form\n/ number, PDF, e-mail
+New --> Contacted : admin marks contacted
+New --> Confirmed : admin confirms\n/ link to athlete
+Contacted --> Confirmed : admin confirms\n/ link to athlete
+New --> Rejected : admin rejects
+Contacted --> Rejected : admin rejects
+New --> New : admin edits data\n/ rebuild PDF
+Confirmed --> Archived : season moved to archive
+Rejected --> Archived : season moved to archive
+Archived --> [*]
+@enduml

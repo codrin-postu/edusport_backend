@@ -1,0 +1,36 @@
+@startuml
+!include _style.iuml
+left to right direction
+title Admin: registrations and athletes
+actor "Admin" as A
+rectangle "EduSport" {
+  usecase "Browse and filter\nregistrations" <<existing>> as Browse
+  usecase "Change status, add note" <<existing>> as Status
+  usecase "Move to season, archive,\ndelete, export CSV" <<existing>> as Bulk
+  usecase "Edit registration data\n(rebuilds the PDF)" as EditReg
+  usecase "Resend registration e-mail" as Resend
+  usecase "Confirm registration" as Conf
+  usecase "Match with an\nexisting athlete" as Match
+  usecase "Update athlete data\nfrom the registration" as Upd
+  usecase "Edit athlete record" as EditA
+  usecase "Edit public profile\nand publish" <<existing>> as Pub
+  usecase "Link skate results,\nimport competitions" <<existing>> as Skate
+  usecase "Review athletes added\nby coaches («new»)" as Review
+}
+A -- Browse
+A -- Bulk
+A -- EditReg
+A -- Resend
+A -- Conf
+A -- EditA
+A -- Pub
+A -- Skate
+A -- Review
+Status .> Browse : <<extend>>
+Conf ..> Match : <<include>>
+Upd .> Conf : <<extend>>
+legend bottom right
+  Green «existing»: already in the admin panel today.
+  Blue: planned (decided). Yellow «proposed»: not decided.
+endlegend
+@enduml

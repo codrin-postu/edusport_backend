@@ -1,0 +1,17 @@
+@startuml
+!include ../_style.iuml
+hide circle
+class PriceList
+class PriceItem {
+  memberPrice, nonMemberPrice
+}
+class Group
+class "Pricing (website)" as P <<changed>>
+PriceList *-- "1..*" PriceItem
+Group "0..*" -- "0..1" PriceList
+P ..> PriceList : reads Skating School lists >
+note bottom of P
+  One source for site and portal.
+  Membership fee on Season.
+end note
+@enduml

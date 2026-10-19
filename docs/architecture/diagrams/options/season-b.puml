@@ -1,0 +1,15 @@
+@startuml
+!include ../_style.iuml
+hide circle
+class "SiteSettings" as S <<existing>> {
+  currentSeason : string
+  seasonStartDate, seasonEndDate
+}
+class Membership {
+  season : string
+}
+note bottom of S
+  Only the current season has dates and a fee;
+  past seasons are just text labels.
+end note
+@enduml

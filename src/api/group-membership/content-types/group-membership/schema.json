@@ -1,0 +1,15 @@
+{
+  "kind": "collectionType",
+  "collectionName": "group_memberships",
+  "info": { "singularName": "group-membership", "pluralName": "group-memberships", "displayName": "Club / Apartenență la grupă" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete" },
+    "group": { "type": "relation", "relation": "manyToOne", "target": "api::group.group" },
+    "season": { "type": "relation", "relation": "manyToOne", "target": "api::season.season" },
+    "isMain": { "type": "boolean", "default": false },
+    "from": { "type": "date" },
+    "to": { "type": "date" }
+  }
+}
