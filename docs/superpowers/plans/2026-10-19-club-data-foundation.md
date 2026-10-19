@@ -602,6 +602,8 @@ git commit -m "feat(club): A.C.S. membership per season and main-group rules"
 
 ### Task 4: Subscription validity and slot use
 
+> Superseded 2026-10-19 (user decision): validity is start + 4 weeks with a manual admin extension, not counted from school weekends. Implemented as Task 4b: `subscriptionValidUntil(startsOn, extraWeeks = 0)`, `extendValidUntil(validUntil, weeks)` in `src/club/subscription.ts`. The code below is the original version, kept for history.
+
 **Files:**
 - Create: `src/club/subscription.ts`
 - Test: `src/club/__tests__/subscription.test.ts`
