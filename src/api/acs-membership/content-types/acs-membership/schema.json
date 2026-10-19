@@ -3,6 +3,7 @@
   "collectionName": "acs_memberships",
   "info": { "singularName": "acs-membership", "pluralName": "acs-memberships", "displayName": "Club / Membru A.C.S." },
   "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
   "attributes": {
     "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete" },
     "season": { "type": "relation", "relation": "manyToOne", "target": "api::season.season" },

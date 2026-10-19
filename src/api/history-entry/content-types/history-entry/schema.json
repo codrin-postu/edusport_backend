@@ -3,6 +3,7 @@
   "collectionName": "history_entries",
   "info": { "singularName": "history-entry", "pluralName": "history-entries", "displayName": "Club / Istoric" },
   "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
   "attributes": {
     "subjectType": { "type": "string", "required": true },
     "subjectId": { "type": "string", "required": true },
