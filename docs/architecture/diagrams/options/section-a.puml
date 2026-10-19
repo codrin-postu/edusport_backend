@@ -1,0 +1,27 @@
+@startuml
+!include ../_style.iuml
+hide circle
+class Section <<new>> {
+  name : string  // Școala de patinaj Floreasca
+  kind : school | club
+  slug : string  // scoala-floreasca
+  publicPage : bool
+}
+class Location <<new>> {
+  rink name, address, map link
+}
+class Group
+class PriceList
+class "RegistrationSubmission" as Reg
+class "CalendarEvent" as Ev
+Section "0..*" -- "0..1" Location : at >
+Section "1" -- "0..*" Group
+Section "1" -- "0..*" PriceList
+Reg "0..*" -- "1" Section : for school >
+Group "1" -- "0..*" Ev : schedule >
+note bottom of Section
+  Today: 1 school + Club.
+  A new school = a new Section record,
+  no code change.
+end note
+@enduml

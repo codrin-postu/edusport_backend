@@ -1,0 +1,36 @@
+@startuml
+!include _style.iuml
+left to right direction
+title Use cases: overview
+actor "Visitor" as V
+actor "Parent" as P
+rectangle "EduSport: club management" {
+  usecase "Registrations" as I
+  usecase "Athletes" as At
+  usecase "Groups" as G
+  usecase "Attendance and\nindividual lessons" as Z
+  usecase "Subscriptions\nand payments" as S
+  usecase "Documents" as D
+  usecase "Season, prices,\ncalendar, settings" as Set
+  usecase "Accounts and\nother forms" as Acc
+}
+actor "Coach" as T
+actor "Admin" as A
+A -up-|> T
+V -- I
+P -- S
+P -- Z
+At -- T
+Z -- T
+I -- A
+At -- A
+G -- A
+S -- A
+D -- A
+Set -- A
+Acc -- A
+legend bottom right
+  Admin can do everything a Coach can (hollow triangle).
+  Details: Parent, Coach, then one Admin diagram per area.
+endlegend
+@enduml

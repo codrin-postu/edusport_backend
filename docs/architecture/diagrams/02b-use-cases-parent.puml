@@ -1,0 +1,26 @@
+@startuml
+!include _style.iuml
+left to right direction
+title Visitor and Parent
+actor "Visitor\n(new parent, on the website)" as V
+actor "Parent\n(portal account)" as P
+rectangle "EduSport" {
+  usecase "Submit registration" as R
+  usecase "Receive PDF and e-mail" as E
+  usecase "Accept invitation,\nset password" as PI
+  usecase "Change password" as PW
+  usecase "View child's\nattendance history" as PV
+  usecase "View subscriptions\nand payments" as PS
+  usecase "Pay by card" <<proposed>> as PC
+}
+V -- R
+R ..> E : <<include>>
+P -- PI
+P -- PW
+P -- PV
+P -- PS
+P -- PC
+legend bottom right
+  Blue: planned (decided). Yellow «proposed»: not decided.
+endlegend
+@enduml

@@ -1,0 +1,23 @@
+@startuml
+!include _style.iuml
+title Sequence: registration submitted
+actor Parent
+participant "Website\n(Next.js)" as W
+participant "Strapi API" as S
+database "Postgres" as DB
+participant "PDF builder" as PDF
+queue "E-mail job" as Q
+participant "Brevo" as B
+participant "Google Sheets" as G
+Parent -> W : fill 3-step form, submit
+W -> S : POST /api/forms/inscriere
+S -> DB : save registration\nnumber = next for season (2026-0142)
+S -> PDF : build Acord (+ Adeziune if member)
+PDF --> S : PDF files
+S -> DB : save documents
+S -> Q : queue registration e-mail
+S --> W : 201, number
+W --> Parent : success screen
+Q -> B : send e-mail with PDFs (retry on failure)
+S -> G : sync row (queue, ~2 s batch)
+@enduml

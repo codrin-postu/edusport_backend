@@ -1,0 +1,32 @@
+@startuml
+!include _style.iuml
+left to right direction
+title Admin: groups and attendance
+actor "Admin" as A
+rectangle "EduSport" {
+  usecase "Manage groups\n(section, price list, coaches)" as Grp
+  usecase "Assign athletes\nwithout a group" as Alloc
+  usecase "Move athlete\n(change main group)" as Move
+  usecase "Add athlete to\nanother group's list" as AddG
+  usecase "Browse attendance history\n(sessions and individual\nlessons, all coaches)" as Hist
+  usecase "Record or correct\nany attendance" as Fix
+  usecase "Add a new session" as NewS
+  usecase "Add athlete to a\nsingle session only" as Vis
+  usecase "Manage any\nindividual lesson" as Ind
+  usecase "Set any group schedule" as Sched
+}
+A -- Grp
+A -- Hist
+A -- Fix
+A -- NewS
+A -- Ind
+A -- Sched
+Alloc .> Grp : <<extend>>
+Move .> Grp : <<extend>>
+AddG .> Grp : <<extend>>
+Vis .> Fix : <<extend>>
+legend bottom right
+  Green «existing»: already in the admin panel today.
+  Blue: planned (decided). Yellow «proposed»: not decided.
+endlegend
+@enduml

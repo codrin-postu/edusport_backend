@@ -1,0 +1,14 @@
+@startuml
+!include _style.iuml
+skinparam linetype polyline
+skinparam nodesep 70
+skinparam ranksep 70
+title State machine: Subscription
+[*] --> Active : admin adds it, picks start date\n/ price frozen, validUntil set,\ncovers selected earlier attendances
+Active --> Active : attendance\n/ use one slot
+Active --> Active : free weekend\n/ extend validUntil
+Active --> UsedUp : last slot used
+Active --> Expired : validUntil passed\n(unused slots lost)
+UsedUp --> [*]
+Expired --> [*]
+@enduml

@@ -1,0 +1,18 @@
+@startuml
+!include ../_style.iuml
+title Domains
+actor Visitor
+actor Parent
+actor Coach
+actor Admin
+node "nginx (TLS)" as N
+node "edusport_frontend\n(one Next.js app,\npicks the site by host name)" as FE
+node "edusport_backend\n(Strapi)" as BE
+Visitor --> N : edusport.com
+Parent --> N : sportiv.edusport.com
+Coach --> N : antrenor.edusport.com
+Admin --> N : cms.edusport.com/admin
+N --> FE
+N --> BE
+FE --> BE
+@enduml

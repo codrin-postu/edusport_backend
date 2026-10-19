@@ -1,0 +1,30 @@
+@startuml
+!include _style.iuml
+left to right direction
+title Admin: subscriptions, payments, documents
+actor "Admin" as A
+rectangle "EduSport" {
+  usecase "Add subscription\n(also from attendance)" as Sub
+  usecase "View subscription\nslots and validity" as SubV
+  usecase "Record payment\n(cash, POS, transfer)" as Pay
+  usecase "View amounts due\n(club groups)" <<proposed>> as Due
+  usecase "Issue invoice" <<proposed>> as Inv
+  usecase "Manage document types" as DType
+  usecase "Browse, download, ZIP" as DList
+  usecase "Upload a document\n(athlete or club)" as DUp
+  usecase "Download blank forms" as DBlank
+}
+A -- Sub
+A -- SubV
+A -- Pay
+A -- Due
+A -- DType
+A -- DList
+A -- DUp
+A -- DBlank
+Inv .> Pay : <<extend>>
+legend bottom right
+  Green «existing»: already in the admin panel today.
+  Blue: planned (decided). Yellow «proposed»: not decided.
+endlegend
+@enduml

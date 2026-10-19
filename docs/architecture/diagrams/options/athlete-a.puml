@@ -1,0 +1,25 @@
+@startuml
+!include ../_style.iuml
+hide circle
+class "Athlete" as A <<changed>> {
+  name, birthDate
+  contact, status
+  memberships, subscriptions
+  documents, history
+}
+class "PublicProfile" as P <<changed>> {
+  slug, photo, story, gallery
+  disciplines, coaches
+  showPublicPage : bool
+}
+A *-- "0..1" P : has >
+note bottom of P
+  Today's sportsperson fields.
+  Only this part is served
+  to the website.
+end note
+note right of A
+  Every athlete. Private.
+  Renamed from sportsperson.
+end note
+@enduml

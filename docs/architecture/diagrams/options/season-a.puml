@@ -1,0 +1,14 @@
+@startuml
+!include ../_style.iuml
+hide circle
+class Season {
+  label, startMonth, endMonth
+  membershipFee, isCurrent
+}
+class Membership
+class Subscription
+class "RegistrationSubmission" as R
+Membership "0..*" -- "1" Season
+Subscription "0..*" -- "1" Season
+R "0..*" -- "1" Season
+@enduml

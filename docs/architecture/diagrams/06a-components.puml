@@ -1,0 +1,57 @@
+@startuml
+!include _style.iuml
+title Components
+skinparam ComponentBackgroundColor #eef7f0
+skinparam ComponentBorderColor #1d6b3a
+skinparam ComponentBackgroundColor<<new>> #eef2ff
+skinparam ComponentBorderColor<<new>> #3b4a9a
+actor Visitor
+actor Parent
+actor Coach
+actor Admin
+package "edusport_frontend (Next.js)" {
+  [Public website] as Site
+  [Registration form] as Form
+  [Coach site antrenor.\nParent site sportiv.] as Portal
+}
+package "edusport_backend (Strapi 5)" {
+  [Custom admin panel] as Panel
+  [Content API\n(public, read-only)] as Pub
+  [Forms API] as FormsApi
+  [Portal API] <<new>> as PortalApi
+  [Club services\n(attendance, subscriptions,\nmatching, season)] <<new>> as Club
+  [PDF builder] <<new>> as Pdf
+  [E-mail queue] <<new>> as Mail
+  [Sheets sync] as Sync
+  [Calendar expansion] as Cal
+  [Accounts\n(users-permissions)] as Auth
+}
+database "Postgres" as DB
+cloud "Brevo" as Brevo
+cloud "Google Sheets" as GS
+cloud "skate-results API" as SR
+Visitor --> Site
+Visitor --> Form
+Parent --> Portal
+Coach --> Portal
+Admin --> Panel
+Site --> Pub
+Site --> Cal
+Form --> FormsApi
+Portal --> PortalApi
+PortalApi --> Auth
+PortalApi --> Club
+Panel --> Club
+FormsApi --> Pdf
+FormsApi --> Mail
+FormsApi --> Sync
+Club --> Cal
+Club --> DB
+Pub --> DB
+Mail --> Brevo
+Sync --> GS
+Panel --> SR
+legend bottom right
+  Green: exists today. Blue «new»: to build.
+endlegend
+@enduml

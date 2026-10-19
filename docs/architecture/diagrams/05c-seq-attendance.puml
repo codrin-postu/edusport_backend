@@ -1,0 +1,29 @@
+@startuml
+!include _style.iuml
+title Sequence: coach records attendance
+actor Coach
+participant "Portal" as P
+participant "Strapi API" as S
+database "Postgres" as DB
+Coach -> P : open today's session
+P -> S : GET session (group, date, time)
+S -> DB : find or create Session\nfrom the calendar occurrence
+S --> P : group list + attendances
+Coach -> P : tick present,\nadd athlete to this session only
+Coach -> P : Save
+P -> S : PUT attendance
+loop each present athlete
+  alt Skating School group
+    S -> DB : active subscription on the same price list?
+    alt has one
+      S -> DB : use one slot
+    else none
+      S -> DB : mark "no subscription"
+    end
+  else Club group
+    S -> DB : add amount due (price on session day)
+  end
+end
+S -> DB : session saved (by, at); history entry
+S --> P : saved
+@enduml

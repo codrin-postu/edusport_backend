@@ -1,0 +1,78 @@
+@startuml
+!include _style.iuml
+title Class diagram: athletes, seasons, groups
+hide circle
+
+class Season {
+  label : string  // 2026-2027
+  startMonth : date
+  endMonth : date
+  membershipFee : money
+  isCurrent : bool
+}
+class Section {
+  name : string  // Școala de Patinaj - AFI Cotroceni
+  kind : school | club
+  slug, publicPage
+  registrationsOpen : bool
+}
+class Location {
+  rink, address, map link
+}
+class "Athlete\n(renamed from sportsperson)" as Athlete <<changed>> {
+  firstName, lastName : string
+  birthDate : date
+  contactName, phone, email : string
+  status : new | confirmed
+  isMember : bool  // A.C.S. member this season
+}
+class "PublicProfile" as Profile <<changed>> {
+  slug, photo, story, gallery
+  disciplines, coaches
+  showPublicPage : bool
+}
+class Group {
+  name : string
+}
+class Membership {
+  isMain : bool
+  from : date
+  to : date [0..1]
+}
+class "TeamMember\n(coach)" as Coach <<changed>> {
+  name, role, photo
+  groups : json  // replaced by relation
+}
+class PriceList
+
+Athlete "1" *-- "0..1" Profile : has >
+Athlete "1" -- "0..*" Membership
+Membership "0..*" -- "1" Group
+Membership "0..*" -- "1" Season
+Group "0..*" -- "1..*" Coach : coached by >
+Group "0..*" -- "0..1" PriceList : uses >
+Section "1" -- "0..*" Group
+Section "1" -- "0..*" PriceList
+Section "0..*" -- "0..1" Location : at >
+
+note bottom of Season
+  New season: groups carry over;
+  per group, copy members (optional).
+end note
+note right of Membership
+  {exactly one isMain per athlete per season}
+  Totals count distinct athletes.
+end note
+note right of Profile
+  Own table. Only this part
+  is served to the website.
+end note
+note bottom of PriceList
+  Groups on the same list
+  share subscriptions.
+end note
+legend bottom right
+  Green «existing»: today, unchanged. Orange «changed»: today, gets new fields.
+  Blue: new. Yellow «option»: depends on a decision.
+endlegend
+@enduml

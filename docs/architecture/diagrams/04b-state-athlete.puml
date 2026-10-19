@@ -1,0 +1,17 @@
+@startuml
+!include _style.iuml
+skinparam linetype polyline
+skinparam nodesep 70
+skinparam ranksep 70
+title State machine: Athlete
+[*] --> New : coach adds athlete
+[*] --> Active : admin confirms a registration
+New --> Active : admin reviews\n(merge duplicates, complete data)
+state Active {
+  [*] --> InGroup
+  InGroup --> WithoutGroup : removed from last group
+  WithoutGroup --> InGroup : assigned to a group
+}
+Active --> Inactive : left the club
+Inactive --> Active : registration matched and confirmed,\nor added to a group again
+@enduml

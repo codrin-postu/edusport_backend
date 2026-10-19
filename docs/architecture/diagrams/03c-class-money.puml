@@ -1,0 +1,59 @@
+@startuml
+!include _style.iuml
+title Class diagram: prices, subscriptions, payments
+hide circle
+
+class PriceList {
+  name : string  // Standard, Avansați Gold
+}
+class PriceItem {
+  name : string  // Abonament 8 ședințe
+  kind : subscription | session | individual
+  sessions : int [0..1]
+  memberPrice : money
+  nonMemberPrice : money
+  included : bool
+}
+class Subscription {
+  slots : int  // 6 or 8
+  itemName : string  // frozen
+  price : money  // frozen
+  purchasedAt : date
+  startsOn : date  // chosen by admin
+  validUntil : date  // free weekends extend
+}
+class Payment {
+  amount : money
+  method : cash | POS | transfer
+  paidAt : date
+  recordedBy : Admin
+}
+class Athlete
+class Attendance
+class IndividualLesson
+class Season
+
+PriceList *-- "1..*" PriceItem
+Subscription "0..*" -- "1" Athlete
+Subscription "0..*" -- "1" PriceItem : bought from >
+Attendance "0..*" -- "0..1" Subscription : uses slot >
+Payment "0..*" -- "1" Athlete
+Payment "0..1" -- "0..1" Subscription : pays >
+Payment "0..1" -- "0..*" Attendance : pays club sessions >
+Payment "0..1" -- "0..*" IndividualLesson : pays >
+
+note right of Subscription
+  {admin may select earlier attendances
+   without subscription to cover}
+  {attendances using it <= slots}
+  {used only in sessions of groups
+   on the same price list}
+end note
+note bottom of Season
+  membershipFee lives on Season.
+end note
+legend bottom right
+  Green «existing»: today, unchanged. Orange «changed»: today, gets new fields.
+  Blue: new. Yellow «option»: depends on a decision.
+endlegend
+@enduml

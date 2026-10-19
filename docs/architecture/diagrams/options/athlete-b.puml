@@ -1,0 +1,17 @@
+@startuml
+!include ../_style.iuml
+hide circle
+class "Athlete" as A <<changed>> {
+  name, birthDate, contact, status
+  memberships, subscriptions, documents
+  -- public part --
+  slug, photo, story, gallery
+  disciplines, coaches
+  showPublicPage : bool
+}
+note bottom of A
+  One table. The website endpoint must
+  filter fields; today's generic endpoint
+  returns every field, so it is replaced.
+end note
+@enduml

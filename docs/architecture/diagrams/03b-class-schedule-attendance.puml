@@ -1,0 +1,69 @@
+@startuml
+!include _style.iuml
+title Class diagram: schedule, sessions, attendance
+hide circle
+
+class Group
+class "CalendarEvent" as Ev <<changed>> {
+  title, type, color
+  group : Group [0..1]  // new link
+}
+class "Recurrence" as Rec <<existing>> {
+  freq, weekdays
+  startTime, endTime
+  seasonStart, seasonEnd
+}
+class "Exception" as Exc <<existing>> {
+  date
+  kind : cancel | override | liber | anulat
+  newDate, newStartTime, newEndTime
+}
+class "CalendarBlackout" as Bl <<existing>> {
+  label, startDate, endDate
+}
+abstract class Training {
+  date : date
+  startTime : time
+  coaches : Coach [1..*]
+  savedBy, savedAt
+}
+class Session {
+  source : schedule | added
+  // added = recorded after the fact,
+  // not on the website calendar
+}
+class IndividualLesson {
+  duration : minutes
+}
+class Attendance {
+  present : bool
+}
+class Athlete
+class Subscription
+
+Group "1" -- "0..*" Ev : schedule >
+Ev *-- "1" Rec
+Ev *-- "0..*" Exc
+Training <|-- Session
+Training <|-- IndividualLesson
+Session "0..*" -- "1" Group
+Session "0..1" .. "1" Ev : occurrence of >
+IndividualLesson "0..*" -- "1" Athlete
+Session "1" *-- "0..*" Attendance
+Attendance "0..*" -- "1" Athlete
+Attendance "0..1" -- "0..1" Subscription : uses one slot >
+
+note right of Attendance
+  An athlete not on the group's list
+  can still have an attendance
+  (single session only).
+end note
+note bottom of Bl
+  Global pauses: no sessions
+  in these date ranges.
+end note
+legend bottom right
+  Green «existing»: today, unchanged. Orange «changed»: today, gets new fields.
+  Blue: new. Yellow «option»: depends on a decision.
+endlegend
+@enduml
