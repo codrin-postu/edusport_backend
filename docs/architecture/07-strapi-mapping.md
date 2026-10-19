@@ -1,5 +1,7 @@
 # 07. Mapping to Strapi content types
 
+Status (phase 1, branch `feat/club-foundation`): new types created; `sportsperson` kept under its current API name and linked one-to-one from `athlete` (rename later); migration script `npm run migrate:club` (dry run) / `-- --apply`.
+
 What exists today, what changes, what is new. Facts from the code inventory (2026-10-11).
 
 ## Changes to existing types

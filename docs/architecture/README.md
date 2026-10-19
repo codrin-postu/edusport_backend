@@ -22,4 +22,6 @@ Not part of the build: `docs/` is documentation only.
 7. Mapping to existing Strapi content types
 8. Open decisions, then spec and implementation plan
 
+Implementation: phase 1 plan in `docs/superpowers/plans/2026-10-19-club-data-foundation.md`.
+
 Decisions log: `edusport_frontend/docs/portal/DECISIONS.md`.
