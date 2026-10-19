@@ -3,6 +3,7 @@
   "collectionName": "group_memberships",
   "info": { "singularName": "group-membership", "pluralName": "group-memberships", "displayName": "Club / Apartenență la grupă" },
   "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
   "attributes": {
     "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete" },
     "group": { "type": "relation", "relation": "manyToOne", "target": "api::group.group" },

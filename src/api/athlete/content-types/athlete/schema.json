@@ -3,6 +3,7 @@
   "collectionName": "athletes",
   "info": { "singularName": "athlete", "pluralName": "athletes", "displayName": "Club / Sportiv" },
   "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
   "attributes": {
     "firstName": { "type": "string", "required": true },
     "lastName": { "type": "string" },

@@ -23,5 +23,6 @@ Not part of the build: `docs/` is documentation only.
 8. Open decisions, then spec and implementation plan
 
 Implementation: phase 1 plan in `docs/superpowers/plans/2026-10-19-club-data-foundation.md`.
+Production migration runbook: `docs/architecture/11-migration-runbook.md`.
 
 Decisions log: `edusport_frontend/docs/portal/DECISIONS.md`.
