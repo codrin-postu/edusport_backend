@@ -8,7 +8,7 @@
 
 **Tech Stack:** Strapi 5.52.1 (TypeScript, CommonJS, `strict: false` on the server, `strict: true` in `src/admin`), React 18 admin pages on `src/admin/ui`, Postgres in production, Vitest 3, Node 22.
 
-**Validated:** every file in this plan was applied to a scratch copy of the repo on 2026-10-20 on top of plan 2A's Tasks 1-3 (schemas, form options, price rules): Vitest 159 tests passed, `npx tsc --noEmit` and `npx tsc --noEmit -p src/admin/tsconfig.json` had zero errors, `strapi build` built the admin, and the Task 11 checks below ran on a throwaway Postgres with Strapi on 1339 (container removed). Revised 2026-10-21 with the user's and the controller's rulings (Sezoane pinned, panel edits, delete text) and the cross-plan review (search placeholder, no middle dot, resend toast by status), and re-checked the same way. The 2D and 2F code did not exist yet: the panel showed "Niciun e-mail", the PDF buttons were not exercised, and Task 10 ran against stand-ins with 2D's signatures (`touchesDocuments`, `rebuildDocuments` returning `{ ok: true, documents }`).
+**Validated:** every file in this plan was applied to a scratch copy of the repo on 2026-10-20 on top of plan 2A's Tasks 1-3 (schemas, form options, price rules): Vitest 159 tests passed, `npx tsc --noEmit` and `npx tsc --noEmit -p src/admin/tsconfig.json` had zero errors, `strapi build` built the admin, and the Task 11 checks below ran on a throwaway Postgres with Strapi on 1339 (container removed). Revised 2026-10-21 with the user's and the controller's rulings (Sezoane pinned, panel edits, delete text) and the cross-plan review (search placeholder, no middle dot, resend toast by status), and re-checked the same way. The 2F code did not exist yet, so the panel showed "Niciun e-mail". Task 10 was re-validated on 2026-10-21 on a scratch copy with plan 2A and the committed plan 2D applied from their plan files (pdfkit and the fonts installed): 348 tests passed (1 skipped), both type-checks clean, and Task 11 Step 5 on Postgres gave exactly the outputs listed there, with real PDFs rebuilt.
 
 **Spec:** `docs/superpowers/specs/2026-10-19-registration-rebuild-design.md`, section 2 (and 1.4, 1.6, 4.1, 4.2 for what the screens show). Decisions log: `../edusport_frontend/docs/portal/DECISIONS.md` (dated decisions win: 2026-10-19 phase2-designs-v1, 2026-10-20 phase2-q4-gold). Approved designs (companion): `.superpowers/brainstorm/80180-1792422211/content/phase2-designs-v1.html` (option A for Prețuri and for Sezon), `phase2-card-band.html` (option A, remove the band everywhere). Shared brief for 2B-2F: contract names below are fixed.
 
@@ -3842,13 +3842,13 @@ git commit -m "feat(inscrieri): panel shows the new answers, PDFs and e-mail sta
 - Modify: `src/admin/dashboard/InscrieriPage.tsx` (`PanelAnswers`, doc comment)
 - Modify: `src/api/registration-submission/controllers/registration-submission.ts` (imports, `EDITABLE_FIELDS`, `updateSubmission`, a `recordDocumentRebuilt` helper)
 
-**Runs after:** Task 9, plan 2D (this task edits the lines 2D adds to `updateSubmission`: `rebuildDocuments` and `touchesDocuments`) and plan 2E (its controller edit, in `buildListFilters`, comes first; no overlap).
+**Runs after:** Task 9, plan 2D (this task edits the lines 2D Task 8 adds to the controller: its import block from `../../../club/documents` and the end of `updateSubmission`, `const rebuild = await rebuildAfterEdit(strapi, documentId, data);`) and plan 2E (its controller edit, in `buildListFilters`, comes first; no overlap).
 
 **Interfaces:**
-- Consumes: Task 1 `adminActor`; phase 1 `recordHistory`, `HistoryInput`; 2A `RELATIONSHIP_OTHER`, `RELATIONSHIP_OTHER_LABEL`, `MEMBERSHIP_NO`, `isRelationship`, `isMembershipAnswer`; Task 9 `registrationPanelRows`, `TableApi.saveField`; plan 2D in the controller: `touchesDocuments(data)` (from `src/club/documents/requests`) and `rebuildDocuments(documentId): Promise<{ ok: boolean; documents: DocumentKind[] }>`, used as `ctx.body = touchesDocuments(data) ? { data: doc, rebuild: await rebuildDocuments(documentId) } : { data: doc };`.
+- Consumes: Task 1 `adminActor`; phase 1 `recordHistory`, `HistoryInput`; 2A `RELATIONSHIP_OTHER`, `RELATIONSHIP_OTHER_LABEL`, `MEMBERSHIP_NO`, `isRelationship`, `isMembershipAnswer`; Task 9 `registrationPanelRows`, `TableApi.saveField`; plan 2D, exported from `src/club/documents/index.ts`: `type RebuildResult = { ok: boolean; documents: DocumentKind[]; reason?: 'unknown-season' | 'failed' }` and `rebuildAfterEdit(strapi, id, data): Promise<RebuildResult | null>` (null when no printed field is in `data`; never throws). 2D's `updateSubmission` ends with `const rebuild = await rebuildAfterEdit(strapi, documentId, data); ctx.body = rebuild ? { data: doc, rebuild } : { data: doc };`, after `if ('season' in data) data.seasonRef = await seasonIdForLabel(strapi, data.season);`. 2D's `DOCUMENT_FIELDS` already lists `relationship`, `relationshipOther` and `membershipAnswer`.
 - Produces (`src/club/registration-edit.ts`): `REGISTRATION_EDIT_FIELDS = ['relationship', 'relationshipOther', 'membershipAnswer']`, `REGISTRATION_EDIT_ERROR`, `registrationEditError(data): string | null`, `normalizeRegistrationEdit(data)`, `documentRebuiltEntry(documentId, documents, actor): HistoryInput`.
 - Produces (`src/club/registration-panel.ts`): `type PanelEdit = 'relationship' | 'membershipAnswer'`, `PanelRow.edit?: PanelEdit`, `RELATIONSHIP_EDIT_OPTIONS`, `MEMBERSHIP_EDIT_OPTIONS`.
-- Produces (HTTP): `PUT /api/forms/inscrieri/:documentId` now accepts `relationship` (`parinte|tutore|alta`), `relationshipOther` (text) and `membershipAnswer` (`da|nu`); any other value is refused with 400 "Valoare invalidă.". Moving off "Alta" clears `relationshipOther`. Saving one of them rebuilds the PDFs (2D), and a successful rebuild writes the history entry `{ subjectType: 'registration-submission', subjectId: <documentId>, action: 'document-rebuilt', changes: { documents }, actor: <admin e-mail> }` ("Document refăcut", DECISIONS 2026-10-05). The response stays 2D's.
+- Produces (HTTP): `PUT /api/forms/inscrieri/:documentId` now accepts `relationship` (`parinte|tutore|alta`), `relationshipOther` (text) and `membershipAnswer` (`da|nu`); any other value is refused with 400 "Valoare invalidă.". Moving off "Alta" clears `relationshipOther`. Saving one of them rebuilds the PDFs (2D). Only a rebuild with `ok: true` writes the history entry (none for `reason: 'unknown-season'` or `'failed'`, nor when nothing printed changed): `{ subjectType: 'registration-submission', subjectId: <documentId>, action: 'document-rebuilt', changes: { documents }, actor: <admin e-mail> }` ("Document refăcut", DECISIONS 2026-10-05). The response stays 2D's.
 
 Controller ruling (2026-10-21): the read-only panel stays; Calitate (with its "Alta" text) and Membru A.C.S., the script answers printed on the PDFs, are edited in place with the panel's existing pattern (a `Select` that saves on change and an `Input` that saves on blur, through `TableApi.saveField`, like Sezon and Notă internă). Tabs and an Istoric view are phase 3. No e-mail is sent on an edit (DECISIONS 2026-10-05). A failing history write is logged and never fails the save.
 
@@ -3901,6 +3901,7 @@ it('the admin PUT accepts these fields, checks them and records the rebuild', ()
   expect(controller).toContain('...REGISTRATION_EDIT_FIELDS,');
   expect(controller).toContain('const editError = registrationEditError(data);');
   expect(controller).toContain('await recordDocumentRebuilt(documentId, rebuild, ctx.request.header?.authorization);');
+  expect(controller).toContain('if (!rebuild?.ok) return;');
 });
 ```
 
@@ -4102,15 +4103,19 @@ Expected: the controller test (`the admin PUT accepts these fields...`) still fa
 
 In `src/api/registration-submission/controllers/registration-submission.ts`:
 
-Under
+Replace the end of 2D's import block
 
 ```ts
-import { touchesDocuments } from '../../../club/documents/requests';
+  submitBlockedReason,
+} from '../../../club/documents';
 ```
 
-(2D's import) add
+with
 
 ```ts
+  submitBlockedReason,
+  type RebuildResult,
+} from '../../../club/documents';
 import { adminActor } from '../../../club/admin-actor';
 import { recordHistory } from '../../../club/history';
 import {
@@ -4139,15 +4144,11 @@ with
 ]);
 ```
 
-Directly above `export default factories.createCoreController(UID, ({ strapi }) => ({` (below 2D's `rebuildDocuments`) add
+Directly above `export default factories.createCoreController(UID, ({ strapi }) => ({` (below 2D's `removeDocuments`) add
 
 ```ts
-/** "Document refăcut" in the registration's history after a successful rebuild (plan 2B). Never throws. */
-async function recordDocumentRebuilt(
-  documentId: string,
-  rebuild: { ok: boolean; documents: DocumentKind[] } | null,
-  authorization: string | undefined,
-): Promise<void> {
+/** "Document refăcut" in the registration's history, only after a rebuild that succeeded (plan 2B). Never throws. */
+async function recordDocumentRebuilt(documentId: string, rebuild: RebuildResult | null, authorization: string | undefined): Promise<void> {
   if (!rebuild?.ok) return;
   try {
     const actor = await adminActor(authorization, strapi);
@@ -4156,7 +4157,6 @@ async function recordDocumentRebuilt(
     strapi.log.error(`[inscrieri] history of the rebuild of ${documentId} failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
-
 ```
 
 In `updateSubmission` replace
@@ -4176,19 +4176,22 @@ with
     Object.assign(data, normalizeRegistrationEdit(data));
 ```
 
-and replace 2D's line
+and replace the end of 2D's `updateSubmission`
 
 ```ts
-    ctx.body = touchesDocuments(data) ? { data: doc, rebuild: await rebuildDocuments(documentId) } : { data: doc };
+    const rebuild = await rebuildAfterEdit(strapi, documentId, data);
+    ctx.body = rebuild ? { data: doc, rebuild } : { data: doc };
 ```
 
 with
 
 ```ts
-    const rebuild = touchesDocuments(data) ? await rebuildDocuments(documentId) : null;
+    const rebuild = await rebuildAfterEdit(strapi, documentId, data);
     await recordDocumentRebuilt(documentId, rebuild, ctx.request.header?.authorization);
     ctx.body = rebuild ? { data: doc, rebuild } : { data: doc };
 ```
+
+(The edit check runs before 2D's `seasonRef` line, so `normalizeRegistrationEdit` has already cleared `relationshipOther` when the rebuild reads the registration.)
 
 Run: `npm test -- src/club/__tests__/registration-edit.test.ts` (PASS) and `npx tsc --noEmit` (zero errors).
 
@@ -4489,6 +4492,8 @@ curl -s -X PUT -H "$H" -H "$J" $B/api/forms/inscrieri/$REG -d '{"relationship":"
 curl -s -X PUT -H "$H" -H "$J" $B/api/forms/inscrieri/$REG -d '{"membershipAnswer":"nu"}' | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d["data"]["membershipAnswer"], d.get("rebuild"))'
 curl -s -X PUT -H "$H" -H "$J" $B/api/forms/inscrieri/$REG -d '{"status":"Contactat"}' | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d["data"]["status"], "rebuild" in d)'
 docker exec es2b-pg psql -U strapi -d strapi -tAc "select action, actor, changes::text from history_entries where subject_type='registration-submission' order by id"
+curl -s -X PUT -H "$H" -H "$J" $B/api/forms/inscrieri/$REG -d '{"season":"2030-2031"}' | python3 -c 'import sys,json;print(json.load(sys.stdin).get("rebuild"))'
+docker exec es2b-pg psql -U strapi -d strapi -tAc "select count(*) from history_entries where subject_type='registration-submission'"
 ```
 
 Expected:
@@ -4499,6 +4504,7 @@ Expected:
 - `nu {'ok': True, 'documents': ['acord']}`
 - `Contactat False` (a status change rebuilds nothing)
 - four rows `document-rebuilt|admin@example.com|{"documents": [...]}`: three with `["acord", "adeziune"]`, the last with `["acord"]`.
+- `{'ok': False, 'documents': [], 'reason': 'unknown-season'}` (no Sezon has that label: 2D keeps the old PDFs), then `4`: no "Document refăcut" without `ok: true`.
 
 Task 10 needs plan 2D; until 2D is merged, Task 10 and this step wait.
 
