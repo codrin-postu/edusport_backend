@@ -8,20 +8,21 @@
 
 **Tech Stack:** Strapi 5.52.1 (TypeScript, CommonJS, `strict: false`), Postgres in production, Vitest 3, Node 22 (built-in `fetch`, `AbortSignal.timeout`), `@sentry/node` 10 (GlitchTip), Brevo transactional API v3, Pillow (one-off header image render).
 
-**Validated:** the code in this plan was applied on 2026-10-21 to a scratch copy of the repo with plan 2A applied, plan 2D's interface simulated (`SubmitResult` with `documentId`, `submitPublic` keeping `saved` and calling `finishSubmit`, `listRegistrationDocuments` returning one stored file, the fonts in `assets/fonts` fetched with 2D's pinned URLs and matching its SHA-256 sums) and plan 2E's `cmsPublicUrl` copied: Vitest 267 tests passed, `tsc --noEmit` zero errors after type generation. The Task 10 boot check ran on a throwaway Postgres (container removed): `/email/edusport-header.png` answered 200 `image/png`; a public submit created a `queued` job with 0 attempts (no key); the admin routes answered 403 without a token, 404 for an unknown registration, and with an admin token returned the status and logged the `email-resent` history entry; with a bogus Brevo key the deferred first attempt and the resend each recorded `Brevo 401: {"message":"Key not found","code":"unauthorized"}`; the cron task moved jobs from 1 to 2 attempts, skipped jobs touched within 5 minutes, and at the fifth failure marked them `failed` and logged the alert. The rendered HTML was screenshot at 760 px and 375 px and matches the E1 mockup (buttons side by side on desktop, stacked full width on the phone).
+**Validated:** the code in this plan was applied on 2026-10-21 to a scratch copy of the repo with plan 2A applied, plan 2D's interface simulated (`SubmitResult` with `documentId`, `submitPublic` keeping `saved` and calling `finishSubmit`, `listRegistrationDocuments` returning one stored file, the fonts in `assets/fonts` fetched with 2D's pinned URLs and matching its SHA-256 sums) plan 2E's Sheet files applied from its plan (`cells.ts`, `admin-link.ts`, `script-form.ts`, `matrix.ts`, `registry.ts` and their tests), plan 2D's `expiredLinkUrl` and plan 2B's `adminActor` copied: Vitest 298 tests passed, `tsc --noEmit` zero errors after type generation. The Task 11 boot check ran on a throwaway Postgres (container removed): `/email/edusport-header.png` answered 200 `image/png`; a public submit created a `queued` job with 0 attempts (no key); the admin routes answered 403 without a token, 404 for an unknown registration, and with an admin token returned the status and logged the `email-resent` history entry; with a bogus Brevo key the deferred first attempt and the resend each recorded `Brevo 401: {"message":"Key not found","code":"unauthorized"}`; the cron task moved jobs from 1 to 2 attempts, skipped jobs touched within 5 minutes, and at the fifth failure marked them `failed` and logged the alert; the Înscrieri rows read through the Sheets registry carried their `emailJobs`, and the "E-mail" cell read "În coadă", then "Eșuat", and "Trimis 03.10 14:23" for a job saved with `sentAt` `2026-10-03T11:23:00.000Z`. The rendered HTML was screenshot at 760 px and 375 px and matches the E1 mockup (buttons side by side on desktop, stacked full width on the phone).
 
 **Spec:** `docs/superpowers/specs/2026-10-19-registration-rebuild-design.md`, section 4.2 (and 3.4, 4.1 for the document wording). Decisions log: `../edusport_frontend/docs/portal/DECISIONS.md` (2026-10-03 Brevo, 2026-10-05 E1 and copy, 2026-10-05 "editing never sends an e-mail"); a dated decision wins over the spec. Approved design: `../edusport_frontend/docs/portal/mockups/screens/email-e-v2.html` option E1, generator `mockups/gen_email3.py` (on top of `gen_email2.py`, `gen_email.py`). Plan 2A (merged before this plan): `docs/superpowers/plans/2026-10-19-phase2a-registration-data.md`. Plan 2D (merged before this plan, wave 2) provides `src/club/documents/` (index.ts), the fonts in `assets/fonts/` and the `saved` / `finishSubmit` shape of `submitPublic`: `docs/superpowers/plans/2026-10-20-phase2d-documents.md`. Plan 2E (merged before this plan) provides the env `CMS_PUBLIC_URL` and `cmsPublicUrl()` in `src/sheets/admin-link.ts`: `docs/superpowers/plans/2026-10-20-phase2e-sheet.md`.
 
-**Rulings applied (coordinator and user, 2026-10-21):** F1 real parents only with `NODE_ENV=production` AND `EMAIL_LIVE=true`; F2 one document makes the whole step singular; F3 missing PDFs count as a failed attempt; F4 the header PNG uses 2D's bundled Inter and Climate Crisis; F5 the sign-off "Cu drag, Echipa Școlii de Patinaj EduSport" stays; the header image address is built from `CMS_PUBLIC_URL`; the WhatsApp button reads `site-settings.contact.whatsappChannelUrl` and is hidden when empty; the e-mail is queued in `submitPublic` right after `finishSubmit`.
+**Rulings applied (coordinator and user, 2026-10-21):** F1 real parents only with `NODE_ENV=production` AND `EMAIL_LIVE=true`; F2 one document makes the whole step singular; F3 missing PDFs count as a failed attempt; F4 the header PNG uses 2D's bundled Inter and Climate Crisis; F5 the sign-off "Cu drag, Echipa Școlii de Patinaj EduSport" stays; the header image address is built from `CMS_PUBLIC_URL`; the WhatsApp button reads `site-settings.contact.whatsappChannelUrl` and is hidden when empty; the e-mail is queued in `submitPublic` right after `finishSubmit`. From the cross-plan review: I3 the Sheet "E-mail" column (Task 10); M1/M2 the Task 9 anchor is the `finishSubmit` statement and 2D's fail-closed guard stays; M3 2B's `adminActor`; M12 one site address (2D's `FRONTEND_ORIGIN` rule, no `EMAIL_SITE_URL`); M13 `SENTRY_DSN` in `.env.example`; M15 the compose block after 2E's `CMS_PUBLIC_URL`.
 
 **Choices made in this plan (read before executing):**
 - **Brevo through `fetch`, no SDK.** One endpoint (`POST https://api.brevo.com/v3/smtp/email`) and one JSON body. The SDK would add a dependency tree to a server that was compromised once (2026-09-16 notes in `docker-compose.production.yml`), and its API was rewritten between major versions. `fetch` is built into Node 22, typed by `@types/node` 20, and trivially faked in tests (Task 2).
 - **Header image: hosted PNG, not an inline CID image.** The mockup draws CLUBUL SPORTIV / EDUSPORT with web fonts (League Spartan, Climate Crisis), which mail clients do not load, and the decision says "(image)". Brevo's attachment object has only `url`, `content` and `name` (no Content-ID), so an inline CID image is not possible through the API; it would also show as an extra attachment in several clients. The PNG is rendered once from the fonts plan 2D bundles (`assets/fonts/Inter-Bold.ttf` for CLUBUL SPORTIV, `assets/fonts/ClimateCrisis-Variable.ttf` at axis Year 1979, the cut the website uses, for EDUSPORT), committed to `public/email/edusport-header.png` and served by Strapi's `strapi::public` middleware at `<CMS_PUBLIC_URL>/email/edusport-header.png` (in production `https://cms.scoaladepatinaj.com/email/edusport-header.png`). Without `CMS_PUBLIC_URL` the header is rendered as text in the same two lines. Strapi's security middleware leaves `crossOriginResourcePolicy` off, so clients may load it. `alt="Clubul Sportiv EduSport"` covers clients that block images.
 - **"Production" means `NODE_ENV=production` AND `EMAIL_LIVE=true`.** `Dockerfile.production` bakes `ENV NODE_ENV=production` into the image, so any local run of the production image against a copy of the production database would otherwise e-mail real parents. `EMAIL_LIVE=true` is set only in the VM's `.env.production`. Everywhere else every e-mail goes to `EMAIL_TEST_RECIPIENT`; with no test address set, jobs wait in the queue (ruling F1).
-- **Footer contact and the WhatsApp link come from Setări site > Contact** (`site-settings.contact`: `phone`, `email`, `facebookUrl1`, `whatsappChannelUrl`), the same values the website footer and the form's success screen (plan 2C) show; the program and privacy links are `EMAIL_SITE_URL` + `/cursuri/program` and `/protectia-datelor`. With no WhatsApp link set, the "Canalul WhatsApp" button is left out.
+- **Footer contact and the WhatsApp link come from Setări site > Contact** (`site-settings.contact`: `phone`, `email`, `facebookUrl1`, `whatsappChannelUrl`), the same values the website footer and the form's success screen (plan 2C) show; the program and privacy links are the public site address + `/cursuri/program` and `/protectia-datelor`. The site address follows plan 2D's rule for the expired-link redirect (`expiredLinkUrl`): the first `FRONTEND_ORIGIN` entry, `http://localhost:3000` outside production; in production without it, jobs wait (`no-site-url`). With no WhatsApp link set, the "Canalul WhatsApp" button is left out.
 - **Copy deviations from the mockup:** the mockup footer joins facts with "·"; the copy rules forbid the middle dot, so the footer uses commas and line breaks. The mockup has only the plural; the singular (only the Acord attached) follows DECISIONS 2026-10-05 ("Documentul va fi semnat ...") and, per the user (F2), makes the whole step singular: title "Aduceți documentul", text "Tipăriți documentul atașat și aduceți-l la prima ședință. Documentul va fi semnat la prima ședință de curs." The sign-off "Cu drag, Echipa Școlii de Patinaj EduSport" stays (F5).
 - **Missing documents count as a failed attempt (ruling F3).** If 2D's build failed, the job retries hourly (the admin may rebuild meanwhile) and alerts after 5 attempts instead of sending a letter that says "Am atașat ..." with nothing attached.
 - **A resend reuses a still-queued job** (fresh address and subject, counter reset to 0) instead of adding a second one, so a parent never gets two copies when Brevo comes back. Otherwise a resend creates a new job; old jobs stay as the record.
+- **Sheet "E-mail" column through a relation, not a copy.** `email-job.registration` gets its inverse `registration-submission.emailJobs` (Task 5), so the Sheets registry populates a registration's jobs like it populates its school, and the cell shows the newest one. No status is copied onto the registration. Every job write refreshes that registration's Sheet row through the existing queue (Task 10).
 - **No personal data in alerts.** The GlitchTip message names the job's `documentId` and the error only.
 
 ## Global Constraints
@@ -40,7 +41,7 @@
 ## Review Focus
 
 - **Two attempts on one job at once** (the deferred first attempt still running when the hourly cron fires, or a resend while the cron runs): the parent must not get two e-mails. The cron only takes queued jobs untouched for 5 minutes (`QUIET_MS`); a resend reuses a queued job. Tests: Task 3 `isDue`, Task 6 "does not retry a job touched less than QUIET_MS ago" and "reuses a job that is still queued".
-- **Brevo key missing, wrong or revoked:** missing means the job waits with its counter unchanged and is sent once a key is set; wrong (401) counts as a failed attempt, so a bad key ends in `failed` plus an alert within 5 hours instead of silence. Tests: Task 6 "no Brevo key" (both cases) and "retries hourly and fails with one alert after 5 attempts"; Task 10 observes the real 401.
+- **Brevo key missing, wrong or revoked:** missing means the job waits with its counter unchanged and is sent once a key is set; wrong (401) counts as a failed attempt, so a bad key ends in `failed` plus an alert within 5 hours instead of silence. Tests: Task 6 "no Brevo key" (both cases) and "retries hourly and fails with one alert after 5 attempts"; Task 11 observes the real 401.
 - **A parent's input in the e-mail:** the child's name is HTML-escaped and collapsed to one line in the subject (a name with `<`, quotes or a newline). Test: Task 4 "escapes what the parent typed" and the subject test.
 - **Registration without documents or deleted before sending:** no documents is a failed attempt (alert after 5, the admin can rebuild and resend; a resend is refused with "Înscrierea nu are documente."); a deleted registration fails its job at once without an alert. Tests: Task 6 "counts missing documents as a failed attempt", "fails a job whose registration was deleted", "refuses an unknown registration and one without documents".
 - **Queueing the e-mail fails (database error) during a submit:** the parent still gets `{ ok: true, registrationNumber }`, the error is logged, and the admin can resend. Test: Task 9 "never throws when queueing fails, and logs it".
@@ -60,7 +61,9 @@ src/email/
   strapi-email.ts              buildEmailDeps(strapi), enqueueRegistrationEmail, retryRegistrationEmails (Task 7)
   __tests__/*.test.ts
 src/api/email-job/             content type (hidden, only: []), service, controller, admin routes      (Tasks 5, 8)
-src/utils/admin-actor.ts       actingAdminEmail(strapi, authorization) for history entries              (Task 8)
+src/api/registration-submission/content-types/.../schema.json   + emailJobs (inverse relation)            (Task 5)
+src/email/sheet-status.ts      emailStatusCell, sentAtLabel, sheetSyncedStore (Sheet "E-mail" column)     (Task 10)
+src/sheets/script-form.ts, src/sheets/registry.ts (plan 2E)   + E-mail column, + emailJobs populate         (Task 10)
 src/sentry.ts                  + captureMessage                                                          (Task 7)
 config/cron-tasks.ts           + registrationEmailRetry (hourly, minute 30)                              (Task 7)
 src/email/after-submit.ts      queueEmailAfterSubmit(saved, enqueue, logError)                           (Task 9)
@@ -76,8 +79,8 @@ scripts/render-email-header.py, public/email/edusport-header.png                
 | A | 1 Settings and delivery gate, 2 Brevo client, 3 Job state machine, 4 E1 template and header image, 5 `email-job` content type | 2A, 2D and 2E merged; all five in parallel (separate files; Task 5 alone regenerates types) |
 | B | 6 Job flow | group A |
 | C | 7 Strapi wiring, GlitchTip alert, hourly cron | group B |
-| D | 8 Admin routes, 9 Submit flow hook | group C; both in parallel (separate files) |
-| E | 10 Boot check on a throwaway Postgres | everything |
+| D | 8 Admin routes, 9 Submit flow hook, 10 Sheet "E-mail" column | group C (Task 8 also needs 2B Task 1, Task 10 needs 2E); all three in parallel (separate files) |
+| E | 11 Boot check on a throwaway Postgres | everything |
 
 Not code (needs the club): "Deliverability checklist" at the end.
 
@@ -87,20 +90,21 @@ Not code (needs the club): "Deliverability checklist" at the end.
 **Files:**
 - Create: `src/email/config.ts`
 - Test: `src/email/__tests__/config.test.ts`
-- Modify: `.env.example` (append a section), `docker-compose.yml` (strapi `environment`, after `SHEETS_TAB_NAME`)
+- Modify: `.env.example` (append a section), `docker-compose.yml` (strapi `environment`, after 2E's `CMS_PUBLIC_URL` line)
 
 **Interfaces:**
-- Consumes: plan 2E `cmsPublicUrl(env?: NodeJS.ProcessEnv): string` from `src/sheets/admin-link.ts` (the CMS origin from `CMS_PUBLIC_URL`, no trailing slash, `''` when unset).
+- Consumes: plan 2E `cmsPublicUrl(env?: NodeJS.ProcessEnv): string` from `src/sheets/admin-link.ts` (the CMS origin from `CMS_PUBLIC_URL`, no trailing slash, `''` when unset); plan 2D `expiredLinkUrl(env?: NodeJS.ProcessEnv): string | null` from `src/club/documents/requests.ts` (first `FRONTEND_ORIGIN` entry, `http://localhost:3000` outside production, null in production without it).
 - Produces:
   - `type Sender = { email: string; name: string }`
-  - `type EmailConfig = { apiKey: string | null; live: boolean; testRecipient: string | null; sender: Sender | null; replyTo: string | null; siteUrl: string; headerImageUrl: string | null }`
-  - `type BlockedReason = 'no-key' | 'no-sender' | 'no-test-recipient'`
+  - `type EmailConfig = { apiKey: string | null; live: boolean; testRecipient: string | null; sender: Sender | null; replyTo: string | null; siteUrl: string | null; headerImageUrl: string | null }`
+  - `type BlockedReason = 'no-key' | 'no-sender' | 'no-site-url' | 'no-test-recipient'`
   - `type Delivery = { ok: true; to: string } | { ok: false; reason: BlockedReason }`
   - `readEmailConfig(env?: NodeJS.ProcessEnv): EmailConfig` (defaults to `process.env`)
+  - `publicSiteUrl(env?: NodeJS.ProcessEnv): string | null` (the origin of 2D's `expiredLinkUrl`)
   - `blockedReason(config: EmailConfig): BlockedReason | null`
   - `deliveryTarget(config: EmailConfig, recipient: string): Delivery`
-  - constants `DEFAULT_SENDER_NAME`, `DEFAULT_SITE_URL`, `HEADER_IMAGE_PATH = '/email/edusport-header.png'`
-- Env vars: `BREVO_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO`, `EMAIL_LIVE`, `EMAIL_TEST_RECIPIENT`, `EMAIL_SITE_URL`; reads 2E's `CMS_PUBLIC_URL` (not redefined here).
+  - constants `DEFAULT_SENDER_NAME`, `HEADER_IMAGE_PATH = '/email/edusport-header.png'`
+- Env vars: `BREVO_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO`, `EMAIL_LIVE`, `EMAIL_TEST_RECIPIENT`; reads 2E's `CMS_PUBLIC_URL` and the existing `FRONTEND_ORIGIN` (neither redefined here).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -108,7 +112,7 @@ Not code (needs the club): "Deliverability checklist" at the end.
 
 ```ts
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SENDER_NAME, blockedReason, deliveryTarget, readEmailConfig } from '../config';
+import { DEFAULT_SENDER_NAME, blockedReason, deliveryTarget, publicSiteUrl, readEmailConfig } from '../config';
 
 const BASE = {
   BREVO_API_KEY: 'xkeysib-test',
@@ -118,9 +122,9 @@ const BASE = {
 
 describe('readEmailConfig', () => {
   it('reads the sender, defaults and trims', () => {
-    const c = readEmailConfig({ ...BASE, EMAIL_SITE_URL: ' https://example.ro/ ' });
+    const c = readEmailConfig({ ...BASE, FRONTEND_ORIGIN: 'https://scoaladepatinaj.com, https://www.scoaladepatinaj.com' });
     expect(c.sender).toEqual({ email: 'inscrieri@scoaladepatinaj.com', name: DEFAULT_SENDER_NAME });
-    expect(c.siteUrl).toBe('https://example.ro');
+    expect(c.siteUrl).toBe('https://scoaladepatinaj.com');
     expect(c.replyTo).toBeNull();
   });
 
@@ -129,6 +133,12 @@ describe('readEmailConfig', () => {
       'https://cms.scoaladepatinaj.com/email/edusport-header.png',
     );
     expect(readEmailConfig(BASE).headerImageUrl).toBeNull();
+  });
+
+  it('takes the site address from FRONTEND_ORIGIN, like the expired-link redirect', () => {
+    expect(publicSiteUrl({ FRONTEND_ORIGIN: ' https://scoaladepatinaj.com/ ,https://www.scoaladepatinaj.com' })).toBe('https://scoaladepatinaj.com');
+    expect(publicSiteUrl({ NODE_ENV: 'development' })).toBe('http://localhost:3000');
+    expect(publicSiteUrl({ NODE_ENV: 'production' })).toBeNull();
   });
 
   it('is live only in production with EMAIL_LIVE=true', () => {
@@ -141,14 +151,14 @@ describe('readEmailConfig', () => {
 
 describe('deliveryTarget', () => {
   it('sends to the parent only when live', () => {
-    const live = readEmailConfig({ ...BASE, NODE_ENV: 'production', EMAIL_LIVE: 'true' });
+    const live = readEmailConfig({ ...BASE, NODE_ENV: 'production', EMAIL_LIVE: 'true', FRONTEND_ORIGIN: 'https://scoaladepatinaj.com' });
     expect(deliveryTarget(live, 'parinte@example.ro')).toEqual({ ok: true, to: 'parinte@example.ro' });
   });
 
   it('replaces every recipient with the test address outside production', () => {
     const local = readEmailConfig({ ...BASE, NODE_ENV: 'development' });
     expect(deliveryTarget(local, 'parinte@example.ro')).toEqual({ ok: true, to: 'test@codrin.space' });
-    const prodNotLive = readEmailConfig({ ...BASE, NODE_ENV: 'production' });
+    const prodNotLive = readEmailConfig({ ...BASE, NODE_ENV: 'production', FRONTEND_ORIGIN: 'https://scoaladepatinaj.com' });
     expect(deliveryTarget(prodNotLive, 'parinte@example.ro')).toEqual({ ok: true, to: 'test@codrin.space' });
   });
 
@@ -162,10 +172,11 @@ describe('deliveryTarget', () => {
 describe('blockedReason', () => {
   it('is null when e-mail can go out', () => {
     expect(blockedReason(readEmailConfig(BASE))).toBeNull();
-    expect(blockedReason(readEmailConfig({ ...BASE, EMAIL_TEST_RECIPIENT: '', NODE_ENV: 'production', EMAIL_LIVE: 'true' }))).toBeNull();
+    expect(blockedReason(readEmailConfig({ ...BASE, EMAIL_TEST_RECIPIENT: '', NODE_ENV: 'production', EMAIL_LIVE: 'true', FRONTEND_ORIGIN: 'https://scoaladepatinaj.com' }))).toBeNull();
   });
   it('names the first missing setting', () => {
     expect(blockedReason(readEmailConfig({}))).toBe('no-key');
+    expect(blockedReason(readEmailConfig({ ...BASE, NODE_ENV: 'production', EMAIL_LIVE: 'true' }))).toBe('no-site-url');
   });
 });
 ```
@@ -180,12 +191,15 @@ Expected: FAIL (cannot find module `../config`).
 `src/email/config.ts`:
 
 ```ts
+import { expiredLinkUrl } from '../club/documents/requests';
 import { cmsPublicUrl } from '../sheets/admin-link';
 
 /**
  * E-mail settings, read from the environment (see .env.example, "E-mail (Brevo)").
  * The header image is served by this CMS at CMS_PUBLIC_URL + HEADER_IMAGE_PATH (CMS_PUBLIC_URL is
  * shared with the Sheet links, plan 2E); without CMS_PUBLIC_URL the header falls back to text.
+ * The site address ("Vezi programul", privacy, footer) is the one plan 2D sends expired links to: the
+ * first FRONTEND_ORIGIN entry, http://localhost:3000 outside production, none in production without it.
  *
  * Real recipients only in production with EMAIL_LIVE=true. Everywhere else every e-mail
  * goes to EMAIL_TEST_RECIPIENT, so a local or test run never reaches a parent, even with
@@ -199,19 +213,23 @@ export type EmailConfig = {
   testRecipient: string | null;
   sender: Sender | null;
   replyTo: string | null;
-  siteUrl: string;
+  siteUrl: string | null;
   headerImageUrl: string | null;
 };
 
-export type BlockedReason = 'no-key' | 'no-sender' | 'no-test-recipient';
+export type BlockedReason = 'no-key' | 'no-sender' | 'no-site-url' | 'no-test-recipient';
 export type Delivery = { ok: true; to: string } | { ok: false; reason: BlockedReason };
 
 export const DEFAULT_SENDER_NAME = 'Școala de Patinaj EduSport';
-export const DEFAULT_SITE_URL = 'https://scoaladepatinaj.com';
 export const HEADER_IMAGE_PATH = '/email/edusport-header.png';
 
 const clean = (v: string | undefined): string | null => (v && v.trim() ? v.trim() : null);
-const noTrailingSlash = (url: string): string => url.replace(/\/+$/, '');
+
+/** The public site's origin, by plan 2D's rule (`expiredLinkUrl`), so the site address is configured once. */
+export function publicSiteUrl(env: NodeJS.ProcessEnv = process.env): string | null {
+  const link = expiredLinkUrl(env);
+  return link ? new URL(link).origin : null;
+}
 
 export function readEmailConfig(env: NodeJS.ProcessEnv = process.env): EmailConfig {
   const from = clean(env.EMAIL_FROM_ADDRESS);
@@ -222,7 +240,7 @@ export function readEmailConfig(env: NodeJS.ProcessEnv = process.env): EmailConf
     testRecipient: clean(env.EMAIL_TEST_RECIPIENT),
     sender: from ? { email: from, name: clean(env.EMAIL_FROM_NAME) ?? DEFAULT_SENDER_NAME } : null,
     replyTo: clean(env.EMAIL_REPLY_TO),
-    siteUrl: noTrailingSlash(clean(env.EMAIL_SITE_URL) ?? DEFAULT_SITE_URL),
+    siteUrl: publicSiteUrl(env),
     headerImageUrl: cms ? `${cms}${HEADER_IMAGE_PATH}` : null,
   };
 }
@@ -231,6 +249,7 @@ export function readEmailConfig(env: NodeJS.ProcessEnv = process.env): EmailConf
 export function blockedReason(config: EmailConfig): BlockedReason | null {
   if (!config.apiKey) return 'no-key';
   if (!config.sender) return 'no-sender';
+  if (!config.siteUrl) return 'no-site-url';
   if (!config.live && !config.testRecipient) return 'no-test-recipient';
   return null;
 }
@@ -247,7 +266,7 @@ export function deliveryTarget(config: EmailConfig, recipient: string): Delivery
 - [ ] **Step 4: Run the test to see it pass**
 
 Run: `npm test -- src/email/__tests__/config.test.ts`
-Expected: PASS (8 tests).
+Expected: PASS (9 tests).
 
 - [ ] **Step 5: Document the variables**
 
@@ -269,13 +288,19 @@ EMAIL_REPLY_TO=
 # else every e-mail goes to EMAIL_TEST_RECIPIENT; without it, e-mails wait.
 EMAIL_LIVE=
 EMAIL_TEST_RECIPIENT=
-# Website base for "Vezi programul" (/cursuri/program) and the privacy link.
-EMAIL_SITE_URL=https://scoaladepatinaj.com
-# The header image is CMS_PUBLIC_URL + /email/edusport-header.png (CMS_PUBLIC_URL
-# is defined above for the Sheet links); unset, the e-mail header is plain text.
+# Links to the site ("Vezi programul", privacy) use the first FRONTEND_ORIGIN entry
+# (above). The header image is CMS_PUBLIC_URL + /email/edusport-header.png
+# (CMS_PUBLIC_URL is defined above for the Sheet links); unset, the header is text.
 ```
 
-In `docker-compose.yml`, in the `strapi` service `environment`, directly under `SHEETS_TAB_NAME: ${SHEETS_TAB_NAME:-}`, add (no `EMAIL_LIVE`: local runs never e-mail parents):
+In `docker-compose.yml`, in the `strapi` service `environment`, directly under plan 2E's block
+
+```yaml
+      # Public CMS address for the Înscrieri Sheet's "Document" links.
+      CMS_PUBLIC_URL: ${CMS_PUBLIC_URL:-http://localhost:1337}
+```
+
+add (no `EMAIL_LIVE`: local runs never e-mail parents):
 
 ```yaml
       # Registration e-mail (Brevo). Without EMAIL_LIVE every e-mail goes to
@@ -788,7 +813,7 @@ import { readEmailConfig } from '../config';
 import { buildEmailLinks } from '../links';
 
 it('builds the site links and reads the contact from Setări site', () => {
-  const config = readEmailConfig({ EMAIL_SITE_URL: 'https://scoaladepatinaj.com', CMS_PUBLIC_URL: 'https://cms.scoaladepatinaj.com' });
+  const config = readEmailConfig({ FRONTEND_ORIGIN: 'https://scoaladepatinaj.com', CMS_PUBLIC_URL: 'https://cms.scoaladepatinaj.com' });
   const contact = { phone: '0723.623.712', email: ' edusporttrophy@gmail.com ', facebookUrl1: 'https://www.facebook.com/EduSportClub', whatsappChannelUrl: '' };
   expect(buildEmailLinks(config, contact)).toEqual({
     site: 'https://scoaladepatinaj.com',
@@ -1063,15 +1088,18 @@ import type { EmailLinks } from './registration-template';
 const text = (value: unknown): string | null => (typeof value === 'string' && value.trim() ? value.trim() : null);
 
 /**
- * Links and contact lines for the e-mail. Site pages come from EMAIL_SITE_URL; the WhatsApp channel,
- * phone, e-mail and Facebook from Setări site > Contact (`site-settings.contact`), as the website footer.
+ * Links and contact lines for the e-mail. Site pages come from the public site address (`publicSiteUrl`;
+ * never null here, `blockedReason` keeps jobs queued while it is unset); the WhatsApp channel, phone,
+ * e-mail and Facebook from Setări site > Contact (`site-settings.contact`), as the website footer and
+ * the form's success screen (plan 2C) read them. An empty WhatsApp link hides the button.
  */
 export function buildEmailLinks(config: EmailConfig, contact: unknown): EmailLinks {
   const c = contact && typeof contact === 'object' ? (contact as Record<string, unknown>) : {};
+  const site = config.siteUrl ?? '';
   return {
-    site: config.siteUrl,
-    program: `${config.siteUrl}/cursuri/program`,
-    privacy: `${config.siteUrl}/protectia-datelor`,
+    site,
+    program: `${site}/cursuri/program`,
+    privacy: `${site}/protectia-datelor`,
     headerImage: config.headerImageUrl,
     whatsapp: text(c.whatsappChannelUrl),
     phone: text(c.phone),
@@ -1194,14 +1222,16 @@ git commit -m "feat(email): E1 registration e-mail template and header image"
 
 **Files:**
 - Create: `src/api/email-job/content-types/email-job/schema.json`, `src/api/email-job/services/email-job.ts`, `src/api/email-job/routes/email-job.ts`
+- Modify: `src/api/registration-submission/content-types/registration-submission/schema.json` (one attribute after `athlete`)
 - Test: `src/email/__tests__/email-job-schema.test.ts`
 - Regenerate: `types/generated/contentTypes.d.ts`
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: UID `api::email-job.email-job`, table `email_jobs`, attributes `recipient` string (required), `subject` string (required), `kind` enum `registration` (required, default), `registration` manyToOne relation to `api::registration-submission.registration-submission` (one-way), `status` enum `queued|sent|failed` (required, default `queued`), `attempts` integer (required, default 0, min 0), `lastError` text, `sentAt` datetime. Hidden in the Content Manager; no generated routes. The controller (handlers `emailStatus`, `resendEmail`) is Task 8.
+- Produces: UID `api::email-job.email-job`, table `email_jobs`, attributes `recipient` string (required), `subject` string (required), `kind` enum `registration` (required, default), `registration` manyToOne relation to `api::registration-submission.registration-submission` (`inversedBy: 'emailJobs'`), `status` enum `queued|sent|failed` (required, default `queued`), `attempts` integer (required, default 0, min 0), `lastError` text, `sentAt` datetime. Hidden in the Content Manager; no generated routes. The controller (handlers `emailStatus`, `resendEmail`) is Task 8.
+  - registration-submission gains `emailJobs`: oneToMany to `api::email-job.email-job`, `mappedBy: 'registration'` (read by the Sheet "E-mail" column, Task 10). It adds no column: Strapi keeps the link in the `email_jobs_registration_lnk` join table either way.
 
-`recipient` is a plain string, not Strapi's `email` type: the address was already validated at submit, and a stricter check here could only make a queued job unsavable. `registration` is one-way, so deleting a registration leaves its jobs with no registration (Task 6 fails such a job without an alert).
+`recipient` is a plain string, not Strapi's `email` type: the address was already validated at submit, and a stricter check here could only make a queued job unsavable. Deleting a registration leaves its jobs with no registration (Task 6 fails such a job without an alert).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1226,14 +1256,24 @@ it('stores recipient, subject, kind, registration, status, attempts, lastError a
   expect(Object.keys(attributes)).toEqual(['recipient', 'subject', 'kind', 'registration', 'status', 'attempts', 'lastError', 'sentAt']);
   expect(attributes.status).toEqual({ type: 'enumeration', enum: ['queued', 'sent', 'failed'], required: true, default: 'queued' });
   expect(attributes.attempts).toEqual({ type: 'integer', required: true, default: 0, min: 0 });
-  expect(attributes.registration).toEqual({ type: 'relation', relation: 'manyToOne', target: 'api::registration-submission.registration-submission' });
+  expect(attributes.registration).toEqual({
+    type: 'relation',
+    relation: 'manyToOne',
+    target: 'api::registration-submission.registration-submission',
+    inversedBy: 'emailJobs',
+  });
+});
+
+it('lets a registration reach its e-mail jobs, for the Sheet "E-mail" column', () => {
+  const { attributes } = JSON.parse(readFileSync(join(SRC, 'api/registration-submission/content-types/registration-submission/schema.json'), 'utf8'));
+  expect(attributes.emailJobs).toEqual({ type: 'relation', relation: 'oneToMany', target: 'api::email-job.email-job', mappedBy: 'registration' });
 });
 ```
 
 - [ ] **Step 2: Run the test to see it fail**
 
 Run: `npm test -- src/email/__tests__/email-job-schema.test.ts`
-Expected: FAIL (ENOENT on `schema.json`).
+Expected: FAIL (ENOENT on `schema.json`; no `emailJobs` on the registration).
 
 - [ ] **Step 3: Create the content type**
 
@@ -1250,7 +1290,7 @@ Expected: FAIL (ENOENT on `schema.json`).
     "recipient": { "type": "string", "required": true },
     "subject": { "type": "string", "required": true },
     "kind": { "type": "enumeration", "enum": ["registration"], "required": true, "default": "registration" },
-    "registration": { "type": "relation", "relation": "manyToOne", "target": "api::registration-submission.registration-submission" },
+    "registration": { "type": "relation", "relation": "manyToOne", "target": "api::registration-submission.registration-submission", "inversedBy": "emailJobs" },
     "status": { "type": "enumeration", "enum": ["queued", "sent", "failed"], "required": true, "default": "queued" },
     "attempts": { "type": "integer", "required": true, "default": 0, "min": 0 },
     "lastError": { "type": "text" },
@@ -1267,6 +1307,12 @@ import { factories } from '@strapi/strapi';
 export default factories.createCoreService('api::email-job.email-job');
 ```
 
+In `src/api/registration-submission/content-types/registration-submission/schema.json`, directly under the `"athlete"` attribute line, add:
+
+```json
+    "emailJobs": { "type": "relation", "relation": "oneToMany", "target": "api::email-job.email-job", "mappedBy": "registration" },
+```
+
 `src/api/email-job/routes/email-job.ts`:
 
 ```ts
@@ -1279,19 +1325,20 @@ export default factories.createCoreRouter('api::email-job.email-job', { only: []
 - [ ] **Step 4: Run the test to see it pass**
 
 Run: `npm test -- src/email/__tests__/email-job-schema.test.ts`
-Expected: PASS (2 tests).
+Expected: PASS (3 tests).
 
 - [ ] **Step 5: Regenerate the types**
 
 Run: `DATABASE_CLIENT=postgres npx strapi ts:generate-types`
-Expected: "The task completed successfully"; `git diff --stat types/generated` shows `contentTypes.d.ts` with `ApiEmailJobEmailJob` added.
+Expected: "The task completed successfully"; `git diff --stat types/generated` shows `contentTypes.d.ts` with `ApiEmailJobEmailJob` added and `emailJobs` on the registration.
 
 - [ ] **Step 6: Type-check, run everything, commit**
 
 Run: `npx tsc --noEmit` and `npm test` (zero errors, all PASS).
 
 ```bash
-git add src/api/email-job src/email/__tests__/email-job-schema.test.ts types/generated
+git add src/api/email-job src/api/registration-submission/content-types/registration-submission/schema.json \
+  src/email/__tests__/email-job-schema.test.ts types/generated
 git commit -m "feat(email): email-job content type (private queue)"
 ```
 
@@ -1455,7 +1502,7 @@ describe('test recipient', () => {
   });
 
   it('sends to the parent only in production with EMAIL_LIVE=true', async () => {
-    const { deps, sent, runDeferred } = fakeDeps({ env: { ...ENV, NODE_ENV: 'production', EMAIL_LIVE: 'true' } });
+    const { deps, sent, runDeferred } = fakeDeps({ env: { ...ENV, NODE_ENV: 'production', EMAIL_LIVE: 'true', FRONTEND_ORIGIN: 'https://scoaladepatinaj.com' } });
     await queueRegistrationEmail(deps, 'reg-1');
     await runDeferred();
     expect(sent.map((m) => m.to)).toEqual(['parinte@example.ro']);
@@ -2104,6 +2151,16 @@ Then add this entry after the `sheetsReconcile` entry, inside the exported objec
   },
 ```
 
+Append to `.env.example`:
+
+```bash
+
+# ----- Error tracking (GlitchTip, Sentry-compatible): src/sentry.ts -----
+# DSN of the backend project in GlitchTip. Unset: error tracking is off, and the
+# "registration e-mail failed after 5 attempts" alert only reaches the log.
+SENTRY_DSN=
+```
+
 In `config/server.ts`, replace the comment above `cron: {`:
 
 ```ts
@@ -2128,7 +2185,7 @@ Expected: PASS (2 + 2 + 1 tests).
 Run: `npx tsc --noEmit` (zero errors; a mismatch between the `email-job` schema and `jobStore` shows up here, fix the code, never cast) and `npm test` (all PASS).
 
 ```bash
-git add src/email/strapi-email.ts src/sentry.ts config/cron-tasks.ts config/server.ts \
+git add src/email/strapi-email.ts src/sentry.ts config/cron-tasks.ts config/server.ts .env.example \
   src/email/__tests__/strapi-email.test.ts src/email/__tests__/cron.test.ts src/email/__tests__/sentry-message.test.ts
 git commit -m "feat(email): Strapi wiring, hourly retry and GlitchTip alert"
 ```
@@ -2138,19 +2195,18 @@ git commit -m "feat(email): Strapi wiring, hourly retry and GlitchTip alert"
 ### Task 8: Admin routes (status and resend)
 
 **Files:**
-- Create: `src/api/email-job/controllers/email-job.ts`, `src/api/email-job/routes/02-admin.ts`, `src/utils/admin-actor.ts`
-- Test: `src/email/__tests__/email-routes.test.ts`, `src/utils/__tests__/admin-actor.test.ts`
+- Create: `src/api/email-job/controllers/email-job.ts`, `src/api/email-job/routes/02-admin.ts`
+- Test: `src/email/__tests__/email-routes.test.ts`
 
 **Interfaces:**
-- Consumes: Task 6 `registrationEmailStatus`, `resendRegistrationEmail`, `RESEND_ERRORS`; Task 7 `buildEmailDeps`.
+- Consumes: Task 6 `registrationEmailStatus`, `resendRegistrationEmail`, `RESEND_ERRORS`; Task 7 `buildEmailDeps`; plan 2B Task 1 `adminActor(authorization: string | undefined, strapi: ActorStrapi): Promise<string>` from `src/club/admin-actor.ts` (the admin's e-mail from the admin JWT, `'admin'` when unknown, never throws). 2B Task 1 runs right after 2A, so the helper exists before this plan.
 - Produces (plan 2B calls these by exactly these paths):
   - `GET /api/club/registrations/:documentId/email-status` (admin): 200 `{ ok: true, data: RegistrationEmailStatus }`; 404 `{ ok: false, code: 'not-found', error }`.
-  - `POST /api/club/registrations/:documentId/resend-email` (admin, no body): 200 `{ ok: true, data: RegistrationEmailStatus }` after one attempt (the status may be `queued` with `lastError` when Brevo failed or is not configured); 404 `not-found`; 409 `{ ok: false, code: 'no-documents', error: 'Înscrierea nu are documente.' }`. Every accepted resend writes a history entry `action: 'email-resent'`, `actor` = the admin's e-mail (fallback `admin`), `changes: { recipient, documents }`.
-  - `actingAdminEmail(strapi, authorization: unknown): Promise<string | null>` in `src/utils/admin-actor.ts` (reads the admin JWT like `src/policies/is-admin.ts`; reusable by 2B for its history entries).
+  - `POST /api/club/registrations/:documentId/resend-email` (admin, no body): 200 `{ ok: true, data: RegistrationEmailStatus }` after one attempt (the status may be `queued` with `lastError` when Brevo failed or is not configured); 404 `not-found`; 409 `{ ok: false, code: 'no-documents', error: 'Înscrierea nu are documente.' }`. Every accepted resend writes a history entry `action: 'email-resent'`, `actor` = `adminActor(...)`, `changes: { recipient, documents }`.
 
 The confirmation popup in 2B ("names the recipient and the documents", spec 4.2) reads `recipient` and `documents` from the status route before calling the resend route.
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **Step 1: Write the failing test**
 
 `src/email/__tests__/email-routes.test.ts`:
 
@@ -2167,83 +2223,12 @@ it('serves status and resend under /club/registrations, admin only', () => {
 });
 ```
 
-`src/utils/__tests__/admin-actor.test.ts`:
+- [ ] **Step 2: Run the test to see it fail**
 
-```ts
-import jwt from 'jsonwebtoken';
-import { describe, expect, it } from 'vitest';
-import { actingAdminEmail } from '../admin-actor';
+Run: `npm test -- src/email/__tests__/email-routes.test.ts`
+Expected: FAIL (`02-admin` not found).
 
-const SECRET = 'test-admin-secret';
-
-function fakeStrapi(users: Record<string, string>) {
-  return {
-    config: { get: (key: string) => (key === 'admin.auth.secret' ? SECRET : undefined) },
-    db: {
-      query: () => ({
-        findOne: async ({ where }: { where: { id: unknown } }) => (users[String(where.id)] ? { email: users[String(where.id)] } : null),
-      }),
-    },
-  };
-}
-
-describe('actingAdminEmail', () => {
-  it('reads the admin from the Bearer token', async () => {
-    const token = jwt.sign({ userId: 3 }, SECRET);
-    await expect(actingAdminEmail(fakeStrapi({ 3: 'ana@edusport.ro' }), `Bearer ${token}`)).resolves.toBe('ana@edusport.ro');
-  });
-
-  it('is null for a missing, foreign or unknown token', async () => {
-    const strapi = fakeStrapi({ 3: 'ana@edusport.ro' });
-    await expect(actingAdminEmail(strapi, undefined)).resolves.toBeNull();
-    await expect(actingAdminEmail(strapi, `Bearer ${jwt.sign({ userId: 3 }, 'other')}`)).resolves.toBeNull();
-    await expect(actingAdminEmail(strapi, `Bearer ${jwt.sign({ userId: 9 }, SECRET)}`)).resolves.toBeNull();
-  });
-});
-```
-
-- [ ] **Step 2: Run the tests to see them fail**
-
-Run: `npm test -- src/email/__tests__/email-routes.test.ts src/utils/__tests__/admin-actor.test.ts`
-Expected: FAIL (`02-admin` and `../admin-actor` not found).
-
-- [ ] **Step 3: Implement the admin actor**
-
-`src/utils/admin-actor.ts`:
-
-```ts
-import jwt from 'jsonwebtoken';
-
-type AdminLookup = {
-  config: { get(key: string): unknown };
-  db: { query(uid: 'admin::user'): { findOne(params: { where: { id: unknown }; select: string[] }): Promise<{ email?: unknown } | null> } };
-};
-
-function adminIdFrom(authorization: unknown, secret: unknown): unknown {
-  const header = typeof authorization === 'string' ? authorization : '';
-  if (!header.startsWith('Bearer ') || typeof secret !== 'string' || !secret) return null;
-  const payload = jwt.verify(header.slice(7), secret);
-  if (!payload || typeof payload !== 'object') return null;
-  return payload.userId ?? payload.id ?? payload.sub ?? null;
-}
-
-/**
- * The e-mail of the admin behind an admin-guarded request (the admin JWT the CMS sends as a
- * Bearer token, carrying `userId`), for history entries. Null when it cannot be read.
- */
-export async function actingAdminEmail(strapi: AdminLookup, authorization: unknown): Promise<string | null> {
-  try {
-    const id = adminIdFrom(authorization, strapi.config.get('admin.auth.secret'));
-    if (!id) return null;
-    const user = await strapi.db.query('admin::user').findOne({ where: { id }, select: ['email'] });
-    return typeof user?.email === 'string' ? user.email : null;
-  } catch {
-    return null;
-  }
-}
-```
-
-- [ ] **Step 4: Add the routes and the controller**
+- [ ] **Step 3: Add the routes and the controller**
 
 `src/api/email-job/routes/02-admin.ts`:
 
@@ -2266,11 +2251,9 @@ export default {
 
 ```ts
 import { factories } from '@strapi/strapi';
+import { adminActor } from '../../../club/admin-actor';
 import { RESEND_ERRORS, registrationEmailStatus, resendRegistrationEmail } from '../../../email/email-jobs';
 import { buildEmailDeps } from '../../../email/strapi-email';
-import { actingAdminEmail } from '../../../utils/admin-actor';
-
-const FALLBACK_ACTOR = 'admin';
 
 export default factories.createCoreController('api::email-job.email-job', ({ strapi }) => ({
   /** GET /api/club/registrations/:documentId/email-status (admin): 200 { ok, data } or 404. */
@@ -2286,7 +2269,7 @@ export default factories.createCoreController('api::email-job.email-job', ({ str
 
   /** POST /api/club/registrations/:documentId/resend-email (admin): logs Istoric, one attempt now. 200, 404 or 409. */
   async resendEmail(ctx) {
-    const actor = (await actingAdminEmail(strapi, ctx.request.header.authorization)) ?? FALLBACK_ACTOR;
+    const actor = await adminActor(ctx.request.header.authorization, strapi);
     const result = await resendRegistrationEmail(buildEmailDeps(strapi), String(ctx.params.documentId ?? ''), actor);
     if (result.ok === false) {
       ctx.status = result.code === 'not-found' ? 404 : 409;
@@ -2298,18 +2281,17 @@ export default factories.createCoreController('api::email-job.email-job', ({ str
 }));
 ```
 
-- [ ] **Step 5: Run the tests to see them pass**
+- [ ] **Step 4: Run the test to see it pass**
 
-Run: `npm test -- src/email/__tests__/email-routes.test.ts src/utils/__tests__/admin-actor.test.ts`
-Expected: PASS (1 + 2 tests).
+Run: `npm test -- src/email/__tests__/email-routes.test.ts`
+Expected: PASS (1 test).
 
-- [ ] **Step 6: Type-check, run everything, commit**
+- [ ] **Step 5: Type-check, run everything, commit**
 
 Run: `npx tsc --noEmit` and `npm test` (zero errors, all PASS).
 
 ```bash
-git add src/api/email-job/controllers/email-job.ts src/api/email-job/routes/02-admin.ts src/utils/admin-actor.ts \
-  src/email/__tests__/email-routes.test.ts src/utils/__tests__/admin-actor.test.ts
+git add src/api/email-job/controllers/email-job.ts src/api/email-job/routes/02-admin.ts src/email/__tests__/email-routes.test.ts
 git commit -m "feat(email): admin e-mail status and resend routes"
 ```
 
@@ -2430,23 +2412,33 @@ import { queueEmailAfterSubmit } from '../../../email/after-submit';
 import { enqueueRegistrationEmail } from '../../../email/strapi-email';
 ```
 
-In `submitPublic`, directly after the `finishSubmit` call that 2D added, which ends with
+In `submitPublic`, find 2D's `finishSubmit` statement (the only `finishSubmit(` call in the file; anchor on it, not on its last lines, which `deleteArchivedSeason` repeats):
 
 ```ts
+    const result = await finishSubmit(saved, {
+      buildDocuments: (documentId) => buildRegistrationDocuments(strapi, documentId),
+      createToken: (documentId) => createDownloadToken(documentId),
       logError: (message) => strapi.log.error(message),
     });
 ```
 
-and before `ctx.status = result.ok ? 200 : 400;`, add:
+and add directly below it, before `ctx.status = result.ok ? 200 : 400;`:
 
 ```ts
     await queueEmailAfterSubmit(saved, (documentId) => enqueueRegistrationEmail(strapi, documentId), (message) => strapi.log.error(message));
 ```
 
-The method then reads:
+The method then reads (2D's fail-closed `submitBlockedReason` guard stays first; only the `queueEmailAfterSubmit` line is new):
 
 ```ts
   async submitPublic(ctx) {
+    const blocked = submitBlockedReason();
+    if (blocked) {
+      strapi.log.error('[inscriere] DOCUMENT_TOKEN_SECRET is missing: registrations are refused');
+      ctx.status = 503;
+      ctx.body = blocked;
+      return;
+    }
     const body = (ctx.request.body ?? {}) as Record<string, unknown>;
     const slug = typeof ctx.query.scoala === 'string' ? ctx.query.scoala : null;
     const saved = await submitRegistration(body, slug, buildSubmitDeps(strapi));
@@ -2460,8 +2452,6 @@ The method then reads:
     ctx.body = result;
   },
 ```
-
-(2D's own lines in that method, such as the `submitBlockedReason` check at its start and the doc comment, stay as 2D wrote them.)
 
 - [ ] **Step 5: Run the tests to see them pass**
 
@@ -2480,12 +2470,303 @@ git commit -m "feat(inscrieri): queue the registration e-mail after the document
 
 ---
 
-### Task 10: Boot check on a throwaway Postgres
+### Task 10: Sheet "E-mail" column
+
+**Files:**
+- Create: `src/email/sheet-status.ts`
+- Modify: `src/sheets/script-form.ts` (import; `SCRIPT_FORM_TAIL`), `src/sheets/registry.ts` (Înscrieri `populate`), `src/email/strapi-email.ts` (imports; `jobs` in `buildEmailDeps`)
+- Modify (plan 2E's tests, for the new last column): `src/sheets/__tests__/script-form-plan.test.ts`, `src/sheets/__tests__/registry-tabs.test.ts`, `src/sheets/__tests__/sync-tabs.test.ts`
+- Test: `src/email/__tests__/sheet-status.test.ts`, `src/email/__tests__/sheet-column.test.ts`
+
+**Interfaces:**
+- Consumes: Task 5 relation `registration-submission.emailJobs`; Task 6 `EmailJobStore`; Task 7 `buildEmailDeps`; plan 2E `SCRIPT_FORM_TAIL: BuiltinCol[]` (`{ key; label; type?; cell?: (r: RowLike) => string }`), the Înscrieri `Spec.populate` in `src/sheets/registry.ts`; the existing Sheets queue `queueUpsert(form: FormKey, documentId: string)` from `src/sheets/queue.ts` (what the registration lifecycle calls on every edit).
+- Produces:
+  - `emailStatusCell(jobs: unknown): string`: the newest job (by `createdAt`) as "Trimis DD.MM HH:mm" (Europe/Bucharest), "În coadă", "Eșuat", or `''` with no job; `sentAtLabel(value: unknown): string`; `latestJob(jobs: unknown)`.
+  - `sheetSyncedStore(store: EmailJobStore, refreshRow: (registrationDocumentId: string) => void): EmailJobStore`: every `create` and `update` also calls `refreshRow` with the job's registration (reads do not; a job with no registration does not).
+  - The new-form Sheet tab (`SCRIPT_FORM_TAIL`) ends with `Document`, `E-mail`, then `ID`, as on the approved screen `decisions-1-5.html` ("Trimis 03.10 14:23"). Old-form tabs are unchanged.
+  - Înscrieri rows are read with `emailJobs` (`status`, `sentAt`, `createdAt`) populated.
+
+Why a store wrapper: every status change of a job goes through `EmailJobStore.create` or `update` (queue, attempt, retry, resend, a deleted registration), so wrapping the store refreshes the Sheet row for all of them in one place. `queueUpsert` is the same call the registration lifecycle makes on an admin edit (`src/sheets/lifecycle.ts`); it is debounced and does nothing while no sheet is connected.
+
+- [ ] **Step 1: Write the failing tests**
+
+`src/email/__tests__/sheet-status.test.ts`:
+
+```ts
+import { describe, expect, it } from 'vitest';
+import type { EmailJobRow, EmailJobStore } from '../email-jobs';
+import { emailStatusCell, sentAtLabel, sheetSyncedStore } from '../sheet-status';
+
+describe('the Sheet "E-mail" cell', () => {
+  it('prints the sending time in Bucharest time, summer and winter', () => {
+    expect(sentAtLabel('2026-10-03T11:23:00.000Z')).toBe('03.10 14:23');
+    expect(sentAtLabel('2026-12-01T12:05:00.000Z')).toBe('01.12 14:05');
+    expect(sentAtLabel(new Date('2027-01-31T22:30:00.000Z'))).toBe('01.02 00:30');
+  });
+
+  it('shows the newest job: sent, queued or failed', () => {
+    const sent = { status: 'sent', sentAt: '2026-10-03T11:23:00.000Z', createdAt: '2026-10-03T11:22:58.000Z' };
+    expect(emailStatusCell([sent])).toBe('Trimis 03.10 14:23');
+    expect(emailStatusCell([{ status: 'queued', createdAt: '2026-10-03T11:22:58.000Z' }])).toBe('În coadă');
+    expect(emailStatusCell([{ status: 'failed', createdAt: '2026-10-03T11:22:58.000Z' }])).toBe('Eșuat');
+    const resent = { status: 'queued', createdAt: '2026-10-05T08:00:00.000Z' };
+    expect(emailStatusCell([resent, sent])).toBe('În coadă');
+    expect(emailStatusCell([sent, { status: 'failed', createdAt: '2026-10-01T08:00:00.000Z' }])).toBe('Trimis 03.10 14:23');
+  });
+
+  it('is empty without a job', () => {
+    expect(emailStatusCell([])).toBe('');
+    expect(emailStatusCell(undefined)).toBe('');
+    expect(emailStatusCell(null)).toBe('');
+  });
+});
+
+describe('sheetSyncedStore', () => {
+  const row = (over: Partial<EmailJobRow> = {}): EmailJobRow => ({
+    documentId: 'job-1', recipient: 'p@example.ro', subject: 's', registrationDocumentId: 'reg-1',
+    status: 'queued', attempts: 0, lastError: null, sentAt: null, updatedAt: null, ...over,
+  });
+  const base: EmailJobStore = {
+    create: async (job) => row({ registrationDocumentId: job.registrationDocumentId }),
+    update: async (documentId, data) => row({ documentId, ...data }),
+    findQueued: async () => [row()],
+    findLatest: async () => row(),
+  };
+
+  it('refreshes the registration row in the Sheet when a job is created or changes status', async () => {
+    const refreshed: string[] = [];
+    const store = sheetSyncedStore(base, (id) => refreshed.push(id));
+    await store.create({ recipient: 'p@example.ro', subject: 's', registrationDocumentId: 'reg-1' });
+    await store.update('job-1', { status: 'sent', attempts: 1, lastError: null, sentAt: '2026-10-03T11:23:00.000Z' });
+    expect(refreshed).toEqual(['reg-1', 'reg-1']);
+  });
+
+  it('does nothing for reads, nor for a job whose registration was deleted', async () => {
+    const refreshed: string[] = [];
+    const store = sheetSyncedStore({ ...base, update: async (documentId, data) => row({ documentId, ...data, registrationDocumentId: null }) }, (id) => refreshed.push(id));
+    await store.findQueued(10);
+    await store.findLatest('reg-1');
+    await store.update('job-1', { status: 'failed', attempts: 2, lastError: 'registration deleted', sentAt: null });
+    expect(refreshed).toEqual([]);
+  });
+});
+```
+
+`src/email/__tests__/sheet-column.test.ts`:
+
+```ts
+import { expect, it } from 'vitest';
+import { SCRIPT_FORM_TAIL } from '../../sheets/script-form';
+
+it('ends the new-form Sheet tab with the "E-mail" column, after Document', () => {
+  expect(SCRIPT_FORM_TAIL.map((c) => c.label).slice(-2)).toEqual(['Document', 'E-mail']);
+  const column = SCRIPT_FORM_TAIL[SCRIPT_FORM_TAIL.length - 1];
+  expect(column.key).toBe('emailStatus');
+  const row = { emailJobs: [{ status: 'sent', sentAt: '2026-10-03T11:23:00.000Z', createdAt: '2026-10-03T11:22:58.000Z' }] };
+  expect(column.cell?.(row)).toBe('Trimis 03.10 14:23');
+  expect(column.cell?.({})).toBe('');
+});
+```
+
+- [ ] **Step 2: Run the tests to see them fail**
+
+Run: `npm test -- src/email/__tests__/sheet-status.test.ts src/email/__tests__/sheet-column.test.ts`
+Expected: FAIL (`../sheet-status` not found; the last tail column is `Document`).
+
+- [ ] **Step 3: Implement the cell and the store wrapper**
+
+`src/email/sheet-status.ts`:
+
+```ts
+/**
+ * The Înscrieri Sheet's "E-mail" column (approved screen decisions-1-5.html, last column after Document)
+ * and the hook that refreshes a registration's Sheet row whenever one of its e-mail jobs changes.
+ */
+import type { EmailJobStore } from './email-jobs';
+
+type JobForCell = { status?: unknown; sentAt?: unknown; createdAt?: unknown };
+
+const TIME_ZONE = 'Europe/Bucharest';
+const STATUS_TEXT: Record<string, string> = { queued: 'În coadă', failed: 'Eșuat' };
+
+const time = (value: unknown): number => {
+  const t = value instanceof Date ? value.getTime() : typeof value === 'string' ? Date.parse(value) : NaN;
+  return Number.isNaN(t) ? 0 : t;
+};
+
+/** "03.10 14:23": day, month, hour and minute in Bucharest time. */
+export function sentAtLabel(value: unknown): string {
+  const t = time(value);
+  if (!t) return '';
+  const parts = new Intl.DateTimeFormat('ro-RO', {
+    timeZone: TIME_ZONE, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date(t));
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${part('day')}.${part('month')} ${part('hour')}:${part('minute')}`;
+}
+
+/** The newest job of a registration (populated `emailJobs`), or null. */
+export function latestJob(jobs: unknown): JobForCell | null {
+  if (!Array.isArray(jobs) || !jobs.length) return null;
+  return (jobs as JobForCell[]).reduce((latest, job) => (time(job?.createdAt) >= time(latest?.createdAt) ? job : latest));
+}
+
+/** Cell text: "Trimis 03.10 14:23", "În coadă", "Eșuat", or empty with no job. */
+export function emailStatusCell(jobs: unknown): string {
+  const job = latestJob(jobs);
+  if (!job) return '';
+  if (job.status === 'sent') return `Trimis ${sentAtLabel(job.sentAt)}`.trim();
+  return STATUS_TEXT[String(job.status)] ?? '';
+}
+
+/** Wraps the job store so every create and update also refreshes that registration's Sheet row. */
+export function sheetSyncedStore(store: EmailJobStore, refreshRow: (registrationDocumentId: string) => void): EmailJobStore {
+  const notify = <T extends { registrationDocumentId: string | null }>(row: T): T => {
+    if (row.registrationDocumentId) refreshRow(row.registrationDocumentId);
+    return row;
+  };
+  return {
+    create: async (job) => notify(await store.create(job)),
+    update: async (documentId, data) => notify(await store.update(documentId, data)),
+    findQueued: (limit) => store.findQueued(limit),
+    findLatest: (registrationDocumentId) => store.findLatest(registrationDocumentId),
+  };
+}
+```
+
+- [ ] **Step 4: Add the column and read the jobs with the rows**
+
+In `src/sheets/script-form.ts`, add the import above `import { cmsPublicUrl, registrationAdminUrl } from './admin-link';`:
+
+```ts
+import { emailStatusCell } from '../email/sheet-status';
+```
+
+replace the comment above `SCRIPT_FORM_TAIL`
+
+```ts
+/** After the custom questions: the admin's note, then the link to the registration in the admin. */
+```
+
+with
+
+```ts
+/** After the custom questions: the admin's note, the link to the registration in the admin, the e-mail status. */
+```
+
+and in `SCRIPT_FORM_TAIL` replace the end of the `document` entry
+
+```ts
+    cell: (r) => registrationAdminUrl(cmsPublicUrl(), r.registrationNumber),
+  },
+];
+```
+
+with
+
+```ts
+    cell: (r) => registrationAdminUrl(cmsPublicUrl(), r.registrationNumber),
+  },
+  // The registration e-mail (plan 2F): "Trimis 03.10 14:23", "În coadă", "Eșuat", or empty.
+  { key: 'emailStatus', label: 'E-mail', cell: (r) => emailStatusCell(r.emailJobs) },
+];
+```
+
+In `src/sheets/registry.ts`, in the `inscrieri` spec, replace
+
+```ts
+    // The "Școală" column prints the section's name.
+    populate: { section: { fields: ['name'] } },
+```
+
+with
+
+```ts
+    // The "Școală" column prints the section's name; "E-mail" the newest e-mail job (plan 2F).
+    populate: { section: { fields: ['name'] }, emailJobs: { fields: ['status', 'sentAt', 'createdAt'] } },
+```
+
+- [ ] **Step 5: Refresh the Sheet row on every job write**
+
+In `src/email/strapi-email.ts`, below `import { buildEmailLinks } from './links';` add:
+
+```ts
+import { sheetSyncedStore } from './sheet-status';
+import { queueUpsert } from '../sheets/queue';
+```
+
+and in `buildEmailDeps` replace
+
+```ts
+    jobs: jobStore(strapi),
+```
+
+with
+
+```ts
+    // Every job write also refreshes the registration's Sheet row (the "E-mail" column), like an edit does.
+    jobs: sheetSyncedStore(jobStore(strapi), (registrationDocumentId) => queueUpsert('inscrieri', registrationDocumentId)),
+```
+
+- [ ] **Step 6: Update plan 2E's tests for the new last column**
+
+In `src/sheets/__tests__/script-form-plan.test.ts`:
+- in `SCRIPT_HEADER` replace `'Document', 'ID',` with `'Document', 'E-mail', 'ID',`;
+- in `SCREEN_ORDER` replace `'Acord Regulament', 'Document',` with `'Acord Regulament', 'Document', 'E-mail',`, and in the comment above it replace `(its E-mail column belongs to plan 2F)` with `(its E-mail column is plan 2F's)`;
+- replace `expect(plans.forTab('2026-2027').header.slice(-3)).toEqual(['Notă internă', 'Document', 'ID']);` with `expect(plans.forTab('2026-2027').header.slice(-4)).toEqual(['Notă internă', 'Document', 'E-mail', 'ID']);`;
+- in "prints codes as the form shows them ...", replace `'Sună după 18', 'https://cms.example.ro/admin/plugins/edusport-inscrieri?q=2026-0142&season=all', 'doc-new',` with `'Sună după 18', 'https://cms.example.ro/admin/plugins/edusport-inscrieri?q=2026-0142&season=all', '', 'doc-new',`;
+- in "leaves the Document cell empty ...", replace `expect(plan.row(NEW_ROW).at(-2)).toBe('');` with `expect(plan.row(NEW_ROW).at(-3)).toBe('');`.
+
+In `src/sheets/__tests__/registry-tabs.test.ts`, replace both occurrences of
+
+```ts
+      populate: { section: { fields: ['name'] } },
+```
+
+with
+
+```ts
+      populate: { section: { fields: ['name'] }, emailJobs: { fields: ['status', 'sentAt', 'createdAt'] } },
+```
+
+In `src/sheets/__tests__/sync-tabs.test.ts`, replace
+
+```ts
+    expect(season[0].slice(-3)).toEqual(['Notă internă', 'Document', 'ID']);
+```
+
+with
+
+```ts
+    expect(season[0].slice(-4)).toEqual(['Notă internă', 'Document', 'E-mail', 'ID']);
+```
+
+(`column(season, 'Document')` and the other lookups by title are unaffected; the new-form tab now has 26 columns, A to Z, inside the test's `A1:AZ` read range.)
+
+- [ ] **Step 7: Run the tests to see them pass**
+
+Run: `npm test -- src/email/__tests__/sheet-status.test.ts src/email/__tests__/sheet-column.test.ts src/sheets`
+Expected: PASS.
+
+- [ ] **Step 8: Type-check, run everything, commit**
+
+Run: `npx tsc --noEmit` and `npm test` (zero errors, all PASS).
+
+```bash
+git add src/email/sheet-status.ts src/email/strapi-email.ts src/sheets/script-form.ts src/sheets/registry.ts \
+  src/email/__tests__/sheet-status.test.ts src/email/__tests__/sheet-column.test.ts \
+  src/sheets/__tests__/script-form-plan.test.ts src/sheets/__tests__/registry-tabs.test.ts src/sheets/__tests__/sync-tabs.test.ts
+git commit -m "feat(email): e-mail status column in the Înscrieri Sheet"
+```
+
+---
+
+### Task 11: Boot check on a throwaway Postgres
 
 **Files:** none changed (a check). Working files go in `.es2f/` at the repo root; delete it at the end.
 
 **Interfaces:**
-- Consumes: everything above, plans 2A, 2D and 2E merged.
+- Consumes: everything above, plans 2A, 2B (Task 1), 2D and 2E merged.
 - Produces: evidence that the schema boots, the cron registers, the submit queues a job, the admin routes are guarded and answer, and the Brevo, retry and alert paths behave on a real database. No real e-mail is sent: the addresses are `example.invalid` and the key is invalid.
 
 - [ ] **Step 1: Start a throwaway database and build**
@@ -2567,7 +2848,27 @@ sleep 2
 docker exec es2f-pg psql -U strapi -d strapi -tAc "select recipient, subject, kind, status, attempts, last_error from email_jobs"
 ```
 
-Expected: `fixture ok`, `Successfully created new admin`, the submit answers `{"ok":true,"registrationNumber":"2026-0001",...}` (plus 2D's `downloadToken` and `documents`), and one job: `ana.pop@example.invalid|Înscriere înregistrată: Maria Pop (nr. 2026-0001)|registration|queued|0|` (no key: queued, 0 attempts, no error).
+Then read the registration as the Sheet sync reads it:
+
+```bash
+cat > "$T/sheetcell.js" <<'JS'
+const { createStrapi, compileStrapi } = require('@strapi/strapi');
+(async () => {
+  const app = await createStrapi(await compileStrapi()).load();
+  app.log.level = 'error';
+  const { getForm } = require(process.cwd() + '/dist/src/sheets/registry');
+  const { emailStatusCell } = require(process.cwd() + '/dist/src/email/sheet-status');
+  const rows = await getForm('inscrieri').fetchByIds([process.argv[2]]);
+  console.log('sheet cell:', JSON.stringify(emailStatusCell(rows[0] && rows[0].emailJobs)), 'jobs:', (rows[0].emailJobs || []).length);
+  await app.destroy();
+  process.exit(0);
+})().catch((e) => { console.error(e); process.exit(1); });
+JS
+REG=$(docker exec es2f-pg psql -U strapi -d strapi -tAc "select document_id from registration_submissions limit 1")
+(set -a; . "$T/env"; set +a; node "$T/sheetcell.js" "$REG" | grep 'sheet cell')
+```
+
+Expected: `fixture ok`, `Successfully created new admin`, the submit answers `{"ok":true,"registrationNumber":"2026-0001",...}` (plus 2D's `downloadToken` and `documents`), and one job: `ana.pop@example.invalid|Înscriere înregistrată: Maria Pop (nr. 2026-0001)|registration|queued|0|` (no key: queued, 0 attempts, no error); `sheet cell: "În coadă" jobs: 1`.
 
 - [ ] **Step 4: Admin routes without a key**
 
@@ -2626,6 +2927,12 @@ docker exec es2f-pg psql -U strapi -d strapi -tAc "select status, attempts from 
 
 Expected: first run `second tick: {"attempted":0,"skipped":null}` (the jobs it just tried are inside the 5-minute quiet period) and both jobs `queued|2`; second run prints two `[email-job] registration e-mail failed after 5 attempts (job ...): Brevo 401: ...` lines and both jobs `failed|5`.
 
+```bash
+(set -a; . "$T/env"; set +a; node "$T/sheetcell.js" "$REG" | grep 'sheet cell')
+```
+
+Expected: `sheet cell: "Eșuat" jobs: 1` (the Sheet row itself is rewritten by the queue when a sheet is connected; 2E's boot check covers the Sheet writes).
+
 - [ ] **Step 7: Clean up and re-run the suite**
 
 ```bash
@@ -2649,7 +2956,7 @@ Done by the user with the club; nothing here is automated. Port 443 egress from 
 3. **Local test send:** in the local `.env`: `BREVO_API_KEY`, `EMAIL_FROM_ADDRESS=<the codrin.space sender>`, `EMAIL_TEST_RECIPIENT=<your own Gmail>`, no `EMAIL_LIVE`. Submit a registration on the local form; the e-mail arrives at your Gmail, not at the address typed in the form. In Gmail, "Show original": SPF PASS, DKIM PASS, DMARC PASS. Check the header image loads, the PDFs open, the buttons work, and the phone layout (buttons stacked).
 4. **mail-tester:** open mail-tester.com, copy its address into `EMAIL_TEST_RECIPIENT`, restart, submit again, open the result. Required: 9/10 or better. Fix what it lists (usually DNS) and repeat.
 5. **Club domain (scoaladepatinaj.com, DNS at WordPress.com):** with the club, add the Brevo records for `scoaladepatinaj.com` the same way (one SPF record only, with the Brevo include merged in). Choose the sender with the club (the mockup shows `inscrieri@scoaladepatinaj.com`) and a reply-to inbox the club reads (for example `edusporttrophy@gmail.com`). Repeat steps 3 and 4 with this sender: Gmail SPF/DKIM/DMARC pass and mail-tester 9/10 or better.
-6. **Go live on the VM:** in `.env.production` set `BREVO_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME=Școala de Patinaj EduSport`, `EMAIL_REPLY_TO`, `EMAIL_LIVE=true`; leave `EMAIL_TEST_RECIPIENT` empty. Deploy, then check `curl -sI https://cms.scoaladepatinaj.com/email/edusport-header.png` answers 200 `image/png`. `CMS_PUBLIC_URL=https://cms.scoaladepatinaj.com` must be set (plan 2E's deploy note; the e-mail builds the header image address from it). After the first real registration, `GET /api/club/registrations/<documentId>/email-status` shows `sent`.
+6. **Go live on the VM:** in `.env.production` set `BREVO_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME=Școala de Patinaj EduSport`, `EMAIL_REPLY_TO`, `EMAIL_LIVE=true`; leave `EMAIL_TEST_RECIPIENT` empty. Deploy, then check `curl -sI https://cms.scoaladepatinaj.com/email/edusport-header.png` answers 200 `image/png`. `CMS_PUBLIC_URL=https://cms.scoaladepatinaj.com` must be set (plan 2E's deploy note; the e-mail builds the header image address from it). The first `FRONTEND_ORIGIN` entry must be `https://scoaladepatinaj.com` (it already is, for CORS); the e-mail's site links use it, and without it jobs wait (`no-site-url`). Set `SENTRY_DSN` to the backend's GlitchTip project so the failure alert reaches GlitchTip. After the first real registration, `GET /api/club/registrations/<documentId>/email-status` shows `sent`.
 7. **GlitchTip:** make sure the backend project has an alert rule that notifies someone on a new issue; the "registration e-mail failed after 5 attempts" message is only useful if it reaches a person. The project is chosen by the backend's `SENTRY_DSN`.
 8. **Content:** the WhatsApp channel link is entered in Setări site, Contact, "Canal WhatsApp" (the same field the website and the success screen read; until then the e-mail has no WhatsApp button). The sign-off "Cu drag, Echipa Școlii de Patinaj EduSport" stays (user, F5).
 
@@ -2657,10 +2964,12 @@ Done by the user with the club; nothing here is automated. Port 443 egress from 
 
 - 2B (admin): the Înscrieri panel shows the e-mail status (`GET .../email-status`) and the "Retrimite e-mailul" button with a confirmation naming `recipient` and `documents` (`POST .../resend-email`), and shows the history entry `email-resent` in Istoric. Labels and wording are 2B's (for example "E-mail retrimis").
 - 2D (PDFs): builds and stores the documents, `listRegistrationDocuments`, the fonts in `assets/fonts`, `finishSubmit` and the `saved` variable in `submitPublic`, the edit path that rebuilds the PDF and sends no e-mail.
-- 2E (Sheet): defines `CMS_PUBLIC_URL` (`.env.example`, `docker-compose.yml`, VM deploy note) and `cmsPublicUrl()`.
+- 2E (Sheet): defines `CMS_PUBLIC_URL` (`.env.example`, `docker-compose.yml`, VM deploy note), `cmsPublicUrl()`, `SCRIPT_FORM_TAIL` and the registry `populate`; 2F adds the "E-mail" column to them (Task 10).
+- 2B (admin): `adminActor` in `src/club/admin-actor.ts` (2B Task 1), used for the resend history entry.
 
 ## Notes for later plans
 
 - Other e-mails decided for later phases (DECISIONS 2026-10-19: portal invitation, password reset, login code, new-device login, "Plată înregistrată", schedule changes) can reuse `config.ts`, `brevo.ts`, `job-state.ts` and the queue: add a value to `email-job.kind`, a template module and a `queue...` function next to `queueRegistrationEmail`.
-- `src/utils/admin-actor.ts` (`actingAdminEmail`) is a shared helper for "who did it" in history entries; `src/api/sheet-link/controllers/sheet-link.ts` has its own private copy that can switch to it in a later cleanup.
+- The inverse relation `registration-submission.emailJobs` also appears in the generic Content Manager edit view of a registration (that type is visible there); the admin works from the Înscrieri page, so it was left as is. Hide it with a layout override in `src/index.ts` if the Content Manager view is still used.
+- The CSV export keeps today's columns (plan 2E's note), so it has no "E-mail" column.
 - The local `strapi_app` container reads env from `docker-compose.yml` only; to test e-mail locally, export the `EMAIL_*` and `BREVO_API_KEY` variables in the shell (or `.env` next to the compose file) before `docker compose up`.
