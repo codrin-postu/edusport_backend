@@ -8,14 +8,14 @@
 
 **Tech Stack:** Strapi 5.52.1 (TypeScript, CommonJS, `strict: false`), Postgres in production, Vitest 3, Node 22.
 
-**Validated:** the code in this plan was applied to a scratch copy of the repo on 2026-10-19: Vitest 199 tests passed, `tsc --noEmit` zero errors after type generation, and the Task 11 outputs below were observed on a throwaway Postgres (container removed).
+**Validated:** the code in this plan was applied to a scratch copy of the repo on 2026-10-19: Vitest 201 tests passed, `tsc --noEmit` zero errors after type generation, and the Task 11 outputs below were observed on a throwaway Postgres (container removed).
 
 **Spec:** `docs/superpowers/specs/2026-10-19-registration-rebuild-design.md`, sections 1.1-1.6 and 3.1. Decisions log: `../edusport_frontend/docs/portal/DECISIONS.md` (a dated decision wins over the spec). Phase 1 conventions: `docs/superpowers/plans/2026-10-19-club-data-foundation.md`.
 
 **Amendments to the spec (coordinator, 2026-10-19), applied in this plan:**
 - Option lists confirmed from the live script form (Task 2).
 - Spec 1.4 completeness rule replaced: an item is offered to members when it has `memberPrice`, to non-members when it has `nonMemberPrice`; it is incomplete only when BOTH are missing (Task 3).
-- Registration targets (user, 2026-10-19): one global "Înscrieri deschise" switch (`site-settings.registration.open`), enforced by the backend; a school is a section with `kind = 'school'` and `publicPage = true`; the per-section `registrationsOpen` is not used yet; Club is never a registration target (Tasks 4, 9).
+- Registration targets (user, 2026-10-19): one global "Înscrieri deschise" switch (`site-settings.registration.open`), enforced by the backend; a school is a section with `kind = 'school'` and `publicPage = true`; the per-section `registrationsOpen` is not used yet; Club is never a registration target and never appears in the public read, even with a public page (Tasks 4, 6, 9).
 - Extra CMS-added questions are removed from the registration form (user, 2026-10-03): the copy script deletes the custom questions of the `inscriere` form config; stored `extra` answers of old registrations stay (Tasks 8, 10).
 - `showPublic` dropped (user, 2026-10-19): no list visibility switch. The website and the form show every price list of the school, filtered per audience by `offeredItems(items, audience)`; items with both prices missing are hidden everywhere and flagged incomplete (Tasks 3, 6).
 
@@ -41,7 +41,7 @@
 - Registrations switched off (`registration.open` false) or no current Sezon (none marked, or a malformed one): submission refused with code `closed` and nothing saved; the public read returns `season: null` but still lists prices (Task 4, Task 6, Task 9).
 - An unknown `?scoala=` slug, the Club slug or a school without a public page is refused (`unknown-school`), never silently mapped to another school (Task 4, Task 9, Task 11).
 - An item with only one price (1 ședință grup: non-member only; Gold: member only) is offered only to that audience; a member choosing "1 ședință grup" is refused; the stored price comes from the server, never from the client body (Task 3, Task 6, Task 9).
-- The public endpoint never returns a private field (`documentId`, `id`, `included`, `location`, timestamps, the season's `documentId`, sections without a public page) (Task 6 whitelist test; Task 11 grep on the live response).
+- The public endpoint never returns a private field (`documentId`, `id`, `included`, `location`, timestamps, the season's `documentId`), and never lists Club or a section without a public page (Task 6 whitelist and Club tests; Task 11 grep on the live response).
 
 ---
 
@@ -1362,15 +1362,15 @@ git commit -m "feat(club): allocate registration numbers at submit with retry on
   - `type PublicSeason = { label: string; startMonth: string; endMonth: string }`
   - `type PublicClubInfo = { season: PublicSeason | null; membershipFee: number | null; schools: PublicSchool[] }`
   - `type SubscriptionChoice = { priceItemName: string; price: number; member: boolean }`
-  - `type RawPriceItem`, `type RawPriceList`, `type RawSection`
+  - `type RawPriceItem`, `type RawPriceList`, `type RawSection = { documentId?: unknown; name?: unknown; slug?: unknown; kind?: unknown; publicPage?: unknown; order?: unknown; priceNotes?: unknown }`
   - `toPublicItem(raw: RawPriceItem): PublicPriceItem | null` (null for an incomplete item)
-  - `buildPublicSchools(sections: RawSection[], lists: RawPriceList[]): PublicSchool[]` (lists keep the order given; the loader sorts by `createdAt`)
+  - `buildPublicSchools(sections: RawSection[], lists: RawPriceList[]): PublicSchool[]` (only sections with `kind = 'school'` and `publicPage = true`; lists keep the order given; the loader sorts by `createdAt`)
   - `buildPublicClubInfo(season: CurrentSeason | null, schools: PublicSchool[]): PublicClubInfo`
   - `resolveSubscriptionChoice(school: PublicSchool, priceItemName: string, member: boolean): SubscriptionChoice | null`
 - Produces (`src/club/public-info-loader.ts`): `loadPublicClubInfo(strapi: Core.Strapi): Promise<PublicClubInfo>`, `loadSchoolPrices(strapi: Core.Strapi, sectionDocumentId: string): Promise<PublicSchool | null>`.
 - Produces (HTTP): `GET /api/club/public`, unauthenticated, `Cache-Control: public, max-age=60`, body `{ data: PublicClubInfo }`.
 
-What the response carries (spec 3.1): current season label and period, the membership fee (the member price box shows it), and per section with `publicPage: true`: name, slug, every price list of the section with its items that have at least one price (a list left with no such item is omitted), and `priceNotes`. Each item carries both prices (null when missing); the frontend picks per audience with `offeredItems(items, audience)`: members see items with `memberPrice`, non-members items with `nonMemberPrice`. No `documentId`, no `id`, no `included`, no location, no timestamps. `slug` is the only identifier the frontend needs (`?scoala=<slug>`). The season period and fee are returned even when there are no schools; schools are returned even when there is no current season (the Cursuri page still shows prices; the form reads `season: null` as "closed").
+What the response carries (spec 3.1): current season label and period, the membership fee (the member price box shows it), and per school (a section with `kind = 'school'` and `publicPage = true`; Club never, even with a public page, cross-plan ruling 2026-10-21): name, slug, every price list of the section with its items that have at least one price (a list left with no such item is omitted), and `priceNotes`. Each item carries both prices (null when missing); the frontend picks per audience with `offeredItems(items, audience)`: members see items with `memberPrice`, non-members items with `nonMemberPrice`. No `documentId`, no `id`, no `included`, no location, no timestamps. `slug` is the only identifier the frontend needs (`?scoala=<slug>`). The season period and fee are returned even when there are no schools; schools are returned even when there is no current season (the Cursuri page still shows prices; the form reads `season: null` as "closed").
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1410,7 +1410,9 @@ const school = {
   location: { address: 'Bd. Vasile Milea' },
   createdAt: '2026-10-01T00:00:00.000Z',
 };
-const club = { id: 4, documentId: 'sec-club', name: 'Club', kind: 'club', slug: 'club', order: 2, registrationsOpen: false, priceNotes: null };
+// Club has a public page on purpose: it must still never appear.
+const club = { id: 4, documentId: 'sec-club', name: 'Club', kind: 'club', slug: 'club', order: 0, publicPage: true, registrationsOpen: false, priceNotes: ['Notă club'] };
+const hiddenSchool = { documentId: 'sec-hidden', name: 'Școală fără pagină', kind: 'school', slug: 'ascunsa', order: 3, publicPage: false, priceNotes: null };
 const item = (over: Record<string, unknown>) => ({
   id: 11,
   name: 'Abonament 8 ședințe grup',
@@ -1443,8 +1445,9 @@ const gold = {
 };
 const noPrices = { documentId: 'list-empty', name: 'Fără prețuri', section: { documentId: 'sec-school' }, items: [item({ memberPrice: null, nonMemberPrice: null })] };
 const otherSection = { documentId: 'list-other', name: 'Altă secțiune', section: { documentId: 'sec-hidden' }, items: [item({})] };
+const clubList = { documentId: 'list-club', name: 'Club', section: { documentId: 'sec-club' }, items: [item({ name: 'Antrenament club' })] };
 
-const schools = () => buildPublicSchools([club, school], [standard, gold, noPrices, otherSection]);
+const schools = () => buildPublicSchools([club, school, hiddenSchool], [standard, gold, noPrices, otherSection, clubList]);
 
 describe('buildPublicSchools', () => {
   it('builds the public view of each section with every list and its priced items', () => {
@@ -1470,8 +1473,12 @@ describe('buildPublicSchools', () => {
           },
         ],
       },
-      { name: 'Club', slug: 'club', priceNotes: [], priceLists: [] },
     ]);
+  });
+
+  it('never lists Club, even with a public page, nor a school without a public page', () => {
+    expect(schools().map((x) => x.slug)).toEqual(['afi-cotroceni']);
+    expect(JSON.stringify(schools())).not.toMatch(/Club|Antrenament club|Notă club|ascunsa/);
   });
 
   it('leaks no private field', () => {
@@ -1484,7 +1491,15 @@ describe('buildPublicSchools', () => {
   });
 
   it('drops sections without a usable name, slug or documentId', () => {
-    expect(buildPublicSchools([{ name: 'Fără slug', documentId: 'x' }, { slug: 'fara-nume', documentId: 'y' }], [])).toEqual([]);
+    const base = { kind: 'school', publicPage: true };
+    expect(
+      buildPublicSchools([{ ...base, name: 'Fără slug', documentId: 'x' }, { ...base, slug: 'fara-nume', documentId: 'y' }, { ...base, name: 'Fără id', slug: 'fara-id' }], []),
+    ).toEqual([]);
+  });
+
+  it('orders schools by their order field, then by name', () => {
+    const two = { ...school, documentId: 'sec-two', name: 'Alta', slug: 'alta', order: 0 };
+    expect(buildPublicSchools([school, two], []).map((x) => x.slug)).toEqual(['alta', 'afi-cotroceni']);
   });
 
   it('shows every list of the section; drops incomplete items and lists left empty', () => {
@@ -1503,7 +1518,7 @@ describe('buildPublicClubInfo', () => {
     const info = buildPublicClubInfo(null, schools());
     expect(info.season).toBeNull();
     expect(info.membershipFee).toBeNull();
-    expect(info.schools).toHaveLength(2);
+    expect(info.schools).toHaveLength(1);
   });
 });
 
@@ -1587,7 +1602,15 @@ export type SubscriptionChoice = { priceItemName: string; price: number; member:
 
 export type RawPriceItem = { name?: unknown; kind?: unknown; sessions?: unknown; memberPrice?: unknown; nonMemberPrice?: unknown; tooltip?: unknown };
 export type RawPriceList = { name?: unknown; section?: { documentId?: unknown } | null; items?: unknown };
-export type RawSection = { documentId?: unknown; name?: unknown; slug?: unknown; order?: unknown; priceNotes?: unknown };
+export type RawSection = {
+  documentId?: unknown;
+  name?: unknown;
+  slug?: unknown;
+  kind?: unknown;
+  publicPage?: unknown;
+  order?: unknown;
+  priceNotes?: unknown;
+};
 
 /** The public view of one price item, or null when it has no usable name, kind or any price. */
 export function toPublicItem(raw: RawPriceItem): PublicPriceItem | null {
@@ -1627,6 +1650,9 @@ function bySectionOrder(a: RawSection, b: RawSection): number {
   return sectionRank(a) - sectionRank(b) || asText(a.name).localeCompare(asText(b.name), 'ro');
 }
 
+/** Website and form schools: `kind = 'school'` with a public page. Club never, even with a public page. */
+const isPublicSchool = (s: RawSection) => s.kind === 'school' && s.publicPage === true;
+
 function toPublicSchool(s: RawSection, lists: Map<string, PublicPriceList[]>): PublicSchool | null {
   const name = asText(s.name);
   const slug = asText(s.slug);
@@ -1637,7 +1663,8 @@ function toPublicSchool(s: RawSection, lists: Map<string, PublicPriceList[]>): P
 
 export function buildPublicSchools(sections: RawSection[], lists: RawPriceList[]): PublicSchool[] {
   const bySection = listsBySection(lists);
-  return [...sections]
+  return sections
+    .filter(isPublicSchool)
     .sort(bySectionOrder)
     .map((s) => toPublicSchool(s, bySection))
     .filter((s): s is PublicSchool => s !== null);
@@ -1685,17 +1712,17 @@ async function loadLists(strapi: Core.Strapi, sectionIds: string[]) {
   });
 }
 
-/** Everything GET /api/club/public returns: current season, fee, sections with a public page. */
+/** Everything GET /api/club/public returns: current season, fee, school sections with a public page. */
 export async function loadPublicClubInfo(strapi: Core.Strapi): Promise<PublicClubInfo> {
   const [season, sections] = await Promise.all([
     findCurrentSeason(strapi),
-    strapi.documents('api::section.section').findMany({ filters: { publicPage: true }, limit: 100 }),
+    strapi.documents('api::section.section').findMany({ filters: { kind: 'school', publicPage: true }, limit: 100 }),
   ]);
   const lists = await loadLists(strapi, sections.map((s) => s.documentId));
   return buildPublicClubInfo(season, buildPublicSchools(sections, lists));
 }
 
-/** One section's prices as the form offers them, whether or not the section has a public page. */
+/** The prices the form offers for one school (the one `pickSchool` chose: a school with a public page). */
 export async function loadSchoolPrices(strapi: Core.Strapi, sectionDocumentId: string): Promise<PublicSchool | null> {
   const section = await strapi.documents('api::section.section').findOne({ documentId: sectionDocumentId });
   const sections = section ? [section] : [];
