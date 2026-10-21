@@ -8,7 +8,7 @@
 
 **Tech Stack:** Strapi 5.52.1 (TypeScript, CommonJS, `strict: false`), Postgres in production, Vitest 3, Node 22.
 
-**Validated:** the code in this plan was applied to a scratch copy of the repo on 2026-10-19: Vitest 201 tests passed, `tsc --noEmit` zero errors after type generation, and the Task 11 outputs below were observed on a throwaway Postgres (container removed).
+**Validated:** the code in this plan was applied to a scratch copy of the repo on 2026-10-19: Vitest 205 tests passed, `tsc --noEmit` zero errors after type generation, and the Task 11 outputs below were observed on a throwaway Postgres (container removed).
 
 **Spec:** `docs/superpowers/specs/2026-10-19-registration-rebuild-design.md`, sections 1.1-1.6 and 3.1. Decisions log: `../edusport_frontend/docs/portal/DECISIONS.md` (a dated decision wins over the spec). Phase 1 conventions: `docs/superpowers/plans/2026-10-19-club-data-foundation.md`.
 
@@ -16,7 +16,7 @@
 - Option lists confirmed from the live script form (Task 2).
 - Spec 1.4 completeness rule replaced: an item is offered to members when it has `memberPrice`, to non-members when it has `nonMemberPrice`; it is incomplete only when BOTH are missing (Task 3).
 - Registration targets (user, 2026-10-19): one global "Înscrieri deschise" switch (`site-settings.registration.open`), enforced by the backend; a school is a section with `kind = 'school'` and `publicPage = true`; the per-section `registrationsOpen` is not used yet; Club is never a registration target and never appears in the public read, even with a public page (Tasks 4, 6, 9).
-- Extra CMS-added questions are removed from the registration form (user, 2026-10-03): the copy script deletes the custom questions of the `inscriere` form config; stored `extra` answers of old registrations stay (Tasks 8, 10).
+- Extra CMS-added questions are removed from the registration form (user, 2026-10-03), and cannot come back (cross-plan review I2): the public config of `inscriere` never returns custom questions, and the submit neither validates nor stores `extra` (Tasks 2, 9). The copy script also deletes the stored custom questions of the `inscriere` form config; stored `extra` answers of old registrations stay (Tasks 8, 10).
 - `showPublic` dropped (user, 2026-10-19): no list visibility switch. The website and the form show every price list of the school, filtered per audience by `offeredItems(items, audience)`; items with both prices missing are hidden everywhere and flagged incomplete (Tasks 3, 6).
 
 ## Global Constraints
@@ -286,6 +286,9 @@ git commit -m "feat(club): registration form fields, price tooltips and section 
 - Test: `src/club/__tests__/registration-form-options.test.ts`
 - Modify: `src/api/form-config/registry.ts` (imports at the top; `SENSITIVE_BUILTIN_KEYS`; delete `LEVEL_VALUES`; replace the whole `const inscriere: RegistryForm = { ... };` block)
 - Test: `src/api/form-config/__tests__/registry-inscriere.test.ts`
+- Create: `src/api/form-config/custom-policy.ts`
+- Modify: `src/api/form-config/services/form-config.ts` (import; `publicConfig`)
+- Test: `src/api/form-config/__tests__/public-config.test.ts`
 
 **Interfaces:**
 - Consumes: nothing.
@@ -294,6 +297,7 @@ git commit -m "feat(club): registration form fields, price tooltips and section 
   - `MEMBERSHIP_OPTIONS: readonly { value: 'da' | 'nu'; label: string }[]`, `type MembershipAnswer`, `MEMBERSHIP_YES`, `MEMBERSHIP_NO`
   - `LAST_SEASON_OPTIONS: readonly string[]`, `SOURCE_OPTIONS: readonly string[]`, `SOURCE_OTHER` (`'Altele'`), `SOURCE_OTHER_LABEL`
   - `isRelationship(v: string): v is Relationship`, `isMembershipAnswer(v: string): v is MembershipAnswer`
+- Produces (`src/api/form-config/custom-policy.ts`): `FORMS_WITHOUT_CUSTOM_QUESTIONS: ReadonlySet<FormType>` (`inscriere`), `withoutCustomQuestions<T extends { custom?: unknown }>(type: FormType, overlay: T): T`. `publicConfig('inscriere')` never returns custom questions, even if an admin adds some again.
 - Produces (registry `inscriere`): steps `date`, `abonament`, `finalizare`; question keys listed in the test below. `subscriptionChoice` is a `select` with `optionSource: 'none'` and no options (its options come from the price lists).
 
 Sources: option lists and the two "other" labels were read from the live Apps Script form (coordinator, 2026-10-19). Question labels are from the approved mockup `edusport_frontend/docs/portal/mockups/gen_steps.py` (mockup-sourced). The script form submits "Da"/"Nu" for membership; we store the spec enum `da`/`nu` with the script's labels.
@@ -612,14 +616,111 @@ Note for the reviewer: `validateBuiltinSelects` skips any select key not present
 - [ ] **Step 5: Run the tests to see them pass**
 
 Run: `npm test -- src/club/__tests__/registration-form-options.test.ts src/api/form-config/__tests__/registry-inscriere.test.ts`
+Expected: PASS.
+
+- [ ] **Step 6: Write the failing test: no custom questions on the public registration form**
+
+The registration form has no custom questions (user decision 2026-10-03). An admin could still add one in the form editor; a required one would block every registration, since the new form never sends `extra`. So the public config of `inscriere` drops them. The test loads the real service factory with `@strapi/strapi` mocked, so Strapi does not boot.
+
+`src/api/form-config/__tests__/public-config.test.ts`:
+
+```ts
+import { describe, expect, it, vi } from 'vitest';
+
+// Load the real service factory without booting Strapi.
+vi.mock('@strapi/strapi', () => ({ factories: { createCoreService: (_uid: string, build: unknown) => build } }));
+
+import { withoutCustomQuestions } from '../custom-policy';
+import buildService from '../services/form-config';
+
+type PublicModel = { steps: { key: string; questions: { key: string }[] }[] };
+type Service = { publicConfig(type: string): Promise<PublicModel> };
+
+function service(overlay: unknown): Service {
+  const strapi = { documents: () => ({ findFirst: async () => ({ overlay }) }) };
+  return (buildService as unknown as (ctx: { strapi: unknown }) => Service)({ strapi });
+}
+
+const keys = (m: PublicModel) => m.steps.flatMap((s) => s.questions.map((q) => q.key));
+const custom = (step: string) => ({ key: 'c_old1', type: 'text', step, label: 'Întrebare veche', required: true });
+
+describe('custom questions', () => {
+  it('never appear on the public registration form, even when stored', async () => {
+    const model = await service({ custom: [custom('date')], order: { date: ['email', 'c_old1'] } }).publicConfig('inscriere');
+    expect(keys(model)).not.toContain('c_old1');
+    expect(keys(model)).toContain('email');
+  });
+
+  it('still appear on the other forms', async () => {
+    const model = await service({ custom: [custom('contact')] }).publicConfig('contact');
+    expect(keys(model)).toContain('c_old1');
+  });
+
+  it('withoutCustomQuestions drops them for inscriere only and keeps the rest of the overlay', () => {
+    const overlay = { q: { email: { label: 'E-mail' } }, custom: [custom('date')] };
+    expect(withoutCustomQuestions('inscriere', overlay)).toEqual({ q: { email: { label: 'E-mail' } } });
+    expect(withoutCustomQuestions('contact', overlay)).toBe(overlay);
+  });
+});
+```
+
+Run: `npm test -- src/api/form-config/__tests__/public-config.test.ts`
+Expected: FAIL (`Cannot find module '../custom-policy'`).
+
+- [ ] **Step 7: Hide them**
+
+`src/api/form-config/custom-policy.ts`:
+
+```ts
+import type { FormType } from './registry';
+
+/** Forms that never take admin-added questions. The registration form mirrors the club's script form (user decision, 2026-10-03). */
+export const FORMS_WITHOUT_CUSTOM_QUESTIONS: ReadonlySet<FormType> = new Set<FormType>(['inscriere']);
+
+/** The overlay as the public form sees it: custom questions removed for the forms above. */
+export function withoutCustomQuestions<T extends { custom?: unknown }>(type: FormType, overlay: T): T {
+  if (!FORMS_WITHOUT_CUSTOM_QUESTIONS.has(type)) return overlay;
+  const next = { ...overlay };
+  delete next.custom;
+  return next;
+}
+```
+
+In `src/api/form-config/services/form-config.ts`, after the `} from '../registry';` import add:
+
+```ts
+import { withoutCustomQuestions } from '../custom-policy';
+```
+
+and replace
+
+```ts
+  async publicConfig(type: FormType) {
+    const overlay = await this.loadOverlay(type);
+    return mergePublicModel(REGISTRY[type], overlay);
+  },
+```
+
+with
+
+```ts
+  async publicConfig(type: FormType) {
+    const overlay = await this.loadOverlay(type);
+    return mergePublicModel(REGISTRY[type], withoutCustomQuestions(type, overlay));
+  },
+```
+
+Run: `npm test -- src/api/form-config/__tests__/public-config.test.ts`
 Expected: PASS. Then `npm test` and `npx tsc --noEmit`: all PASS, zero errors.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/club/registration-form-options.ts src/club/__tests__/registration-form-options.test.ts \
-  src/api/form-config/registry.ts src/api/form-config/__tests__/registry-inscriere.test.ts
-git commit -m "feat(form-config): inscriere registry mirrors the club's script form"
+  src/api/form-config/registry.ts src/api/form-config/__tests__/registry-inscriere.test.ts \
+  src/api/form-config/custom-policy.ts src/api/form-config/services/form-config.ts \
+  src/api/form-config/__tests__/public-config.test.ts
+git commit -m "feat(form-config): inscriere registry mirrors the club's script form, without custom questions"
 ```
 
 ---
@@ -1791,7 +1892,7 @@ git commit -m "feat(club): public read of season, membership fee and public pric
 - Consumes: Task 2 (`RELATIONSHIP_OTHER`, `SOURCE_OTHER`, `isRelationship`, `isMembershipAnswer`, the option lists and the registry `inscriere`); Task 1 (schema enums, read by the test).
 - Produces:
   - `MAX_TEXT = 5000`, `CHILD_HEIGHT_CM = { min: 50, max: 230 }`
-  - `type RegistrationInput` (fields below; all strings trimmed, consents boolean, `extra: unknown`)
+  - `type RegistrationInput` (fields below; all strings trimmed, consents boolean; a body `extra` is never read)
   - `readRegistrationInput(body: Record<string, unknown>): RegistrationInput` (request contract: `subscriptionChoice: { priceItemName }`; any client `price` or `member` is never read)
   - `presenceValues(input): Record<string, string>` (registry key -> value, checked against `effectiveRequired`)
   - `selectValues(input): Record<string, string>` (`relationship`, `lastSeason`, `membershipAnswer`, `source`, checked by `validateBuiltinSelects`)
@@ -1951,7 +2052,6 @@ export type RegistrationInput = {
   sourceOther: string;
   gdprConsent: boolean;
   regulationsConsent: boolean;
-  extra: unknown;
 };
 
 export const RULE_ERRORS = {
@@ -1993,7 +2093,6 @@ export function readRegistrationInput(body: Record<string, unknown>): Registrati
     sourceOther: text(body.sourceOther),
     gdprConsent: yes(body.gdprConsent),
     regulationsConsent: yes(body.regulationsConsent),
-    extra: body.extra,
   };
 }
 
@@ -2460,7 +2559,7 @@ git commit -m "feat(club): planners for the registration data copy and cleanup"
   - `buildSubmitDeps(strapi: Core.Strapi): SubmitDeps` (`src/api/registration-submission/submit-deps.ts`)
   - HTTP: `POST /api/forms/inscriere?scoala=<slug>`; 200 `{ ok: true, registrationNumber }`; 400 `{ ok: false, code, error }`. The response no longer carries `documentId` (DECISIONS 2026-10-03: the internal id stays hidden; the frontend never read it).
 
-Order of checks: honeypot, the global switch `site-settings.registration.open` (`closed`), current Sezon (`closed`), school (`unknown-school`, `closed`, `choose-school`), required answers (form-config `effectiveRequired`), form-config selects, e-mail and phone formats, custom answers (`validateExtra`), rules (Task 7), subscription choice against the school's lists, then create with a number. As before, a failing form-config service never blocks a submission. Server-set fields: `status: 'Nou'`, `submittedAt`, `season` (current Sezon label, keeps the Înscrieri filters working), `seasonRef`, `section`, `archived: false`, and the frozen `subscriptionChoice`.
+Order of checks: honeypot, the global switch `site-settings.registration.open` (`closed`), current Sezon (`closed`), school (`unknown-school`, `closed`, `choose-school`), required answers (form-config `effectiveRequired`), form-config selects, e-mail and phone formats, rules (Task 7), subscription choice against the school's lists, then create with a number. As before, a failing form-config service never blocks a submission. The registration form has no custom questions (user decision 2026-10-03), so `validateExtra` is never called and `extra` is never stored, whatever the body sends. Server-set fields: `status: 'Nou'`, `submittedAt`, `season` (current Sezon label, keeps the Înscrieri filters working), `seasonRef`, `section`, `archived: false`, and the frozen `subscriptionChoice`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -2522,7 +2621,6 @@ function fake(over: Partial<SubmitDeps> = {}) {
     effectiveRequired: async () => ({}),
     validateBuiltinSelects: async () => null,
     validateFieldFormats: async () => null,
-    validateExtra: async () => ({ values: {} }),
     registrationsEnabled: async () => true,
     findCurrentSeason: async () => SEASON,
     findSections: async () => [
@@ -2656,6 +2754,12 @@ describe('submitRegistration', () => {
     expect(created[0].data.subscriptionChoice).toEqual({ priceItemName: '1 ședință grup', price: 150, member: false });
   });
 
+  it('never validates or stores custom answers (the form has no custom questions)', async () => {
+    const { deps, created } = fake();
+    await expect(submitRegistration({ ...BODY, extra: { c_old1: 'Răspuns' } }, null, deps)).resolves.toMatchObject({ ok: true });
+    expect('extra' in created[0].data).toBe(false);
+  });
+
   it('keeps the follow-up texts only with Alta / Altele', async () => {
     const { deps, created } = fake();
     await submitRegistration({ ...BODY, relationshipOther: 'Bunic', sourceOther: 'Ziar' }, null, deps);
@@ -2729,8 +2833,6 @@ export const SUBMIT_ERRORS: Record<SubmitErrorCode, string> = {
 export const MISSING_FIELDS_ERROR = 'Câmpuri obligatorii lipsă.';
 export const CHOICE_ERROR = 'Abonamentul ales nu este disponibil.';
 
-type Extra = Record<string, string | boolean>;
-
 /** Everything stored for a new registration except its number. A type alias: Strapi JSON needs one. */
 export type RegistrationCreateData = {
   email: string;
@@ -2757,14 +2859,12 @@ export type RegistrationCreateData = {
   seasonRef: string;
   section: string;
   archived: false;
-  extra?: Extra;
 };
 
 export interface SubmitDeps {
   effectiveRequired(): Promise<Record<string, boolean>>;
   validateBuiltinSelects(values: Record<string, string>): Promise<string | null>;
   validateFieldFormats(values: Record<string, string>): Promise<string | null>;
-  validateExtra(raw: unknown): Promise<{ error?: string; values?: Extra }>;
   registrationsEnabled(): Promise<boolean>;
   findCurrentSeason(): Promise<CurrentSeason | null>;
   findSections(): Promise<SchoolRow[]>;
@@ -2806,28 +2906,23 @@ async function loadRequired(deps: SubmitDeps): Promise<(key: string) => boolean>
   return (key) => (key in map ? map[key] : true);
 }
 
-async function configCheck(input: RegistrationInput, deps: SubmitDeps): Promise<Step<Extra>> {
+async function configCheck(input: RegistrationInput, deps: SubmitDeps): Promise<string | null> {
   try {
-    const error =
+    return (
       (await deps.validateBuiltinSelects(selectValues(input))) ??
-      (await deps.validateFieldFormats({ email: input.email, phone: input.phone }));
-    if (error) return stop('invalid', error);
-    const extra = await deps.validateExtra(input.extra);
-    if (extra.error) return stop('invalid', extra.error);
-    return { ok: true, value: extra.values ?? {} };
+      (await deps.validateFieldFormats({ email: input.email, phone: input.phone }))
+    );
   } catch {
-    return { ok: true, value: {} }; // config service unavailable: never block (unchanged behaviour)
+    return null; // config service unavailable: never block (unchanged behaviour)
   }
 }
 
-async function validateInput(input: RegistrationInput, deps: SubmitDeps): Promise<Step<Extra>> {
+/** The first error in the answers, or null. No custom answers: the registration form has none. */
+async function validateInput(input: RegistrationInput, deps: SubmitDeps): Promise<string | null> {
   const isRequired = await loadRequired(deps);
   const missing = Object.entries(presenceValues(input)).some(([key, value]) => isRequired(key) && !value);
-  if (missing) return stop('invalid', MISSING_FIELDS_ERROR);
-  const config = await configCheck(input, deps);
-  if (config.ok === false) return config;
-  const ruleError = checkRegistrationRules(input, isRequired);
-  return ruleError ? stop('invalid', ruleError) : config;
+  if (missing) return MISSING_FIELDS_ERROR;
+  return (await configCheck(input, deps)) ?? checkRegistrationRules(input, isRequired);
 }
 
 async function chooseSubscription(input: RegistrationInput, ctx: SubmitContext, deps: SubmitDeps): Promise<Step<SubscriptionChoice>> {
@@ -2870,7 +2965,7 @@ function answerFields(i: RegistrationInput, choice: SubscriptionChoice) {
   };
 }
 
-function buildCreateData(i: RegistrationInput, ctx: SubmitContext, choice: SubscriptionChoice, extra: Extra, now: Date): RegistrationCreateData {
+function buildCreateData(i: RegistrationInput, ctx: SubmitContext, choice: SubscriptionChoice, now: Date): RegistrationCreateData {
   return {
     ...personFields(i),
     ...childFields(i),
@@ -2881,7 +2976,6 @@ function buildCreateData(i: RegistrationInput, ctx: SubmitContext, choice: Subsc
     seasonRef: ctx.season.documentId,
     section: ctx.school.documentId,
     archived: false,
-    extra: Object.keys(extra).length ? extra : undefined,
   };
 }
 
@@ -2895,17 +2989,17 @@ async function save(data: RegistrationCreateData, startYear: number, deps: Submi
   }
 }
 
-/** POST /api/forms/inscriere: check, then store a numbered registration for the current Sezon. */
+/** POST /api/forms/inscriere: check, then store a numbered registration for the current Sezon. A body `extra` is ignored. */
 export async function submitRegistration(body: Record<string, unknown>, slug: string | null, deps: SubmitDeps): Promise<SubmitResult> {
   const input = readRegistrationInput(body);
   if (input.website) return stop('invalid').result; // honeypot: a filled value is a bot
   const ctx = await resolveContext(slug, deps);
   if (ctx.ok === false) return ctx.result;
-  const extra = await validateInput(input, deps);
-  if (extra.ok === false) return extra.result;
+  const error = await validateInput(input, deps);
+  if (error) return stop('invalid', error).result;
   const choice = await chooseSubscription(input, ctx.value, deps);
   if (choice.ok === false) return choice.result;
-  const data = buildCreateData(input, ctx.value, choice.value, extra.value, deps.now());
+  const data = buildCreateData(input, ctx.value, choice.value, deps.now());
   return save(data, seasonStartYear(ctx.value.season.label), deps);
 }
 ```
@@ -2940,7 +3034,6 @@ export function buildSubmitDeps(strapi: Core.Strapi): SubmitDeps {
     effectiveRequired: () => config().effectiveRequired(FORM),
     validateBuiltinSelects: (values) => config().validateBuiltinSelects(FORM, values),
     validateFieldFormats: (values) => config().validateFieldFormats(FORM, values),
-    validateExtra: (raw) => config().validateExtra(FORM, raw),
     registrationsEnabled: async () =>
       isRegistrationOpen((await strapi.documents('api::site-settings.site-settings').findFirst({}))?.registration),
     findCurrentSeason: () => findCurrentSeason(strapi),
