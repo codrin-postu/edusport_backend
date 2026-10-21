@@ -41,8 +41,7 @@
       "required": true
     },
     "howHeard": {
-      "type": "string",
-      "required": true
+      "type": "string"
     },
     "level": {
       "type": "string"
@@ -63,7 +62,6 @@
     },
     "privacyConsent": {
       "type": "boolean",
-      "required": true,
       "default": false
     },
     "status": {
@@ -88,9 +86,19 @@
     "extra": {
       "type": "json"
     },
-    "registrationNumber": { "type": "string", "unique": true },
+    "registrationNumber": { "type": "string", "unique": true, "column": { "unique": true } },
     "section": { "type": "relation", "relation": "manyToOne", "target": "api::section.section" },
     "seasonRef": { "type": "relation", "relation": "manyToOne", "target": "api::season.season" },
-    "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete" }
+    "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete" },
+    "relationship": { "type": "enumeration", "enum": ["parinte", "tutore", "alta"] },
+    "relationshipOther": { "type": "string" },
+    "childHeight": { "type": "integer" },
+    "lastSeason": { "type": "string" },
+    "membershipAnswer": { "type": "enumeration", "enum": ["da", "nu"] },
+    "subscriptionChoice": { "type": "json" },
+    "source": { "type": "string" },
+    "sourceOther": { "type": "string" },
+    "gdprConsent": { "type": "boolean" },
+    "regulationsConsent": { "type": "boolean" }
   }
 }
