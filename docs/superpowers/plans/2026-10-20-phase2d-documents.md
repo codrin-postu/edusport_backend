@@ -8,13 +8,13 @@
 
 **Tech Stack:** Strapi 5.52.1 (TypeScript, CommonJS, `strict: false`), pdfkit 0.20.2 (+ `@types/pdfkit` 0.17.6), Inter 4.1 and Climate Crisis (OFL) bundled in `assets/fonts`, `unpdf` 1.9.1 (dev, PDF text extraction in tests), Vitest 3, Node 22.
 
-**User decisions applied (2026-10-21, D1-D7):** body shrunk to about 88% with the full 4-column footer (D1); legal numbers from the mockups, the club confirms them before going live (D2); ș/ț with the comma below everywhere, the Cerere and the O.G. sentence included (D3); Climate Crisis bundled (D4); an expired or bad link redirects (302) to the site page `/inscrieri/link-expirat` (D5); 2B writes "Document refăcut" from the PUT `rebuild` field (D6); deleting a registration deletes its PDFs, singly or with the archived season (D7, extended by the controller to the bulk path).
+**User decisions applied (2026-10-21, D1-D7):** body shrunk to about 88% with the full 4-column footer (D1); legal numbers from the mockups, the club confirms them before going live (D2); ș/ț with the comma below everywhere, the Cerere and the O.G. sentence included (D3); Climate Crisis bundled (D4); an expired or bad link redirects (302) to the site page `/inscrieri/link-expirat` (D5); 2B writes "Document refăcut" from the PUT `rebuild` field (D6); deleting a registration deletes its PDFs, singly or with the archived season (D7, extended by the controller to the bulk path). Cross-plan review I1: moving a registration to another season (move, move whole season, or a PUT of `season`) keeps `seasonRef` in step and rebuilds the PDFs; M11: `touchesDocuments` and `rebuildDocuments` are exported from `index.ts`.
 
 **Spec:** `docs/superpowers/specs/2026-10-19-registration-rebuild-design.md` section 4.1 (plus 3.4 and 5). Decisions: `../edusport_frontend/docs/portal/DECISIONS.md` entries 2026-10-03 (document-v4, Nr. înscriere), 2026-10-05 (adeziune, blank templates, legal footer option B, header, typo fixes, rebuild on edit, no e-mail on edit), 2026-10-19 (pdfkit, private folder, backup). A dated decision wins over the spec. Cross-plan contract: the shared brief (`phase2-plan-brief.md`, section "Cross-plan contract").
 
 **Builds on plan 2A** (`docs/superpowers/plans/2026-10-19-phase2a-registration-data.md`), merged first. Used from 2A: `RELATIONSHIP_OPTIONS`, `MEMBERSHIP_YES` (`src/club/registration-form-options.ts`), `asText` (`src/club/narrow.ts`), `findCurrentSeason` (`src/club/current-season.ts`), `submitRegistration`, `SubmitResult`, `SubmitDeps`, `SUBMIT_ERRORS` (`src/club/registration-submit.ts`), the service method `createNumbered` (already returns `{ documentId, registrationNumber }`), and the `seasonRef`, `relationship`, `relationshipOther`, `membershipAnswer` attributes.
 
-**Validated:** the code in this plan was applied on 2026-10-21 (after the user's decisions) to a scratch clone of `feat/registration-rebuild` with plan 2A applied first: Vitest 265 passed (1 skipped: the preview writer), `tsc --noEmit` zero errors; the Task 9 boot check ran on a throwaway Postgres (Strapi `NODE_ENV=production`, port 1344): submit returned `{"ok":true,"registrationNumber":"2026-0001","downloadToken":"...","documents":["acord","adeziune"]}`, both files were written as `Maria_Stefanescu_Acord_2026-2027.pdf` / `..._Adeziune_...`, the token download returned 200 `application/pdf`, a bad token a 302 to `https://scoaladepatinaj.com/inscrieri/link-expirat`, the admin routes 403 without and 200 with an admin JWT, an edit of `childName` rebuilt both files under the new name and removed the old ones, deleting the registration removed its folder, deleting an archived season of two registrations removed both folders, the Cerere printed `octombrie 2026-mai 2027 este de 270 ron` read from Postgres, and without `DOCUMENT_TOKEN_SECRET` the submit returned 503 with nothing saved. The container was removed. The rendered pages were compared with headless-Chrome screenshots of the approved mockups (Task 10 reproduces this).
+**Validated:** the code in this plan was applied on 2026-10-21 (after the user's decisions) to a scratch clone of `feat/registration-rebuild` with plan 2A applied first: Vitest 273 passed (1 skipped: the preview writer), `tsc --noEmit` zero errors; the Task 9 boot check ran on a throwaway Postgres (Strapi `NODE_ENV=production`, port 1344): submit returned `{"ok":true,"registrationNumber":"2026-0001","downloadToken":"...","documents":["acord","adeziune"]}`, both files were written as `Maria_Stefanescu_Acord_2026-2027.pdf` / `..._Adeziune_...`, the token download returned 200 `application/pdf`, a bad token a 302 to `https://scoaladepatinaj.com/inscrieri/link-expirat`, the admin routes 403 without and 200 with an admin JWT, an edit of `childName` rebuilt both files under the new name and removed the old ones, deleting the registration removed its folder, deleting an archived season of two registrations removed both folders, `move-season` to an existing Sezon linked `seasonRef` and renamed the PDFs to `..._2027-2028.pdf` with the number unchanged, `move-whole-season` to an unknown label cleared `seasonRef`, kept the PDFs and logged the reason, and a PUT back to `2026-2027` relinked and rebuilt them, the Cerere printed `octombrie 2026-mai 2027 este de 270 ron` read from Postgres, and without `DOCUMENT_TOKEN_SECRET` the submit returned 503 with nothing saved. The container was removed. The rendered pages were compared with headless-Chrome screenshots of the approved mockups (Task 10 reproduces this).
 
 ## Global Constraints
 
@@ -37,6 +37,7 @@
 - A download link must open only its own registration, only for 24 hours, and never with a forged or re-signed token; an expired or forged link lands on the site's "link expirat" page, never on raw JSON (Task 6 token tests: other id with the same signature, rotated secret, expiry edge; Task 8: 302 redirect test).
 - A failed rebuild must never leave a registration without its PDF, and a status or archive change must not rewrite the PDFs (Task 6: old files kept when a write fails, no leftover `.tmp`; Task 8: `touchesDocuments` ignores status, note, archive).
 - Production without `DOCUMENT_TOKEN_SECRET` must refuse registrations with nothing saved instead of issuing links anyone could forge (Task 6: fails closed; Task 8: `submitBlockedReason`; Task 9: 503 and zero rows).
+- A registration moved to another season must print the new season everywhere (header, clause g period, file name) and keep its number; a move to a label with no Sezon must not print a wrong period, so the old PDFs stay and the reason is logged (Task 8: `season-move.test.ts`, `season-move-pdf.test.ts`; Task 9 run).
 - A deleted registration must not leave its PDFs (personal data) in the private folder, and deleting twice or with the files already gone must not fail The same holds for deleting a season's archived registrations, where a folder that fails must not stop the others (Task 6: `removeStored`; Task 8: `deleteRegistrationDocuments` and `deleteRegistrationsWithDocuments` tests; Task 9: folder gone after DELETE).
 
 ---
@@ -66,11 +67,12 @@ src/club/documents/
   service.ts                      buildRegistrationDocuments, listRegistrationDocuments, deleteRegistrationDocuments, renderBlankDocument (Task 8)
   submit-response.ts              finishSubmit, submitBlockedReason (Task 8)
   bulk-delete.ts                  deleteRegistrationsWithDocuments: ids, rows, then folders (Task 8)
+  season-move.ts                  moveRegistrationsToSeason: season text + seasonRef, then rebuild (Task 8)
   index.ts                        public exports for other plans (Task 8)
 src/api/club/controllers/documents.ts   publicDownload, registrationDocument, blankForm (Task 8)
 src/api/club/routes/03-documents.ts     the three routes of the contract (Task 8)
 src/club/registration-submit.ts         SubmitResult and createNumbered carry the internal documentId (Task 8)
-src/api/registration-submission/controllers/registration-submission.ts  submit builds PDFs; admin edit rebuilds; admin delete and delete-archived-season remove them (Task 8)
+src/api/registration-submission/controllers/registration-submission.ts  submit builds PDFs; admin edit and season moves rebuild; admin delete and delete-archived-season remove them (Task 8)
 config/admin.ts, .gitignore, .dockerignore, Dockerfile.production, docker-compose.production.yml, scripts/backup.sh, .env.example (Task 4)
 ```
 
@@ -2386,12 +2388,12 @@ git commit -m "feat(documents): draw the Acord and the Cerere de adeziune with p
 ### Task 8: Service, routes, submit and edit wiring
 
 **Files:**
-- Create: `src/club/documents/requests.ts`, `src/club/documents/service.ts`, `src/club/documents/submit-response.ts`, `src/club/documents/bulk-delete.ts`, `src/club/documents/index.ts`
+- Create: `src/club/documents/requests.ts`, `src/club/documents/service.ts`, `src/club/documents/submit-response.ts`, `src/club/documents/bulk-delete.ts`, `src/club/documents/season-move.ts`, `src/club/documents/index.ts`
 - Create: `src/api/club/controllers/documents.ts`, `src/api/club/routes/03-documents.ts`
 - Modify: `src/club/registration-submit.ts` (plan 2A: `SubmitResult`, `SubmitDeps.createNumbered`, `save`)
 - Modify: `src/club/__tests__/registration-submit.test.ts` (plan 2A: the fake `createNumbered` and the first expectation)
-- Modify: `src/api/registration-submission/controllers/registration-submission.ts` (imports, `rebuildDocuments` and `removeDocuments` helpers, `submitPublic`, the end of `updateSubmission`, `deleteSubmission`, `deleteArchivedSeason`)
-- Test: `src/club/documents/__tests__/requests.test.ts`, `submit-response.test.ts`, `routes.test.ts`, `public-download.test.ts`, `delete-documents.test.ts`, `bulk-delete.test.ts`
+- Modify: `src/api/registration-submission/controllers/registration-submission.ts` (imports, a `removeDocuments` helper, `submitPublic`, the end of `updateSubmission`, `deleteSubmission`, `deleteArchivedSeason`, `moveSeason`, `moveWholeSeason`)
+- Test: `src/club/documents/__tests__/requests.test.ts`, `submit-response.test.ts`, `routes.test.ts`, `public-download.test.ts`, `delete-documents.test.ts`, `bulk-delete.test.ts`, `season-move.test.ts`, `season-move-pdf.test.ts`
 
 **Interfaces:**
 - Consumes: Tasks 2, 6, 7; plan 2A (`submitRegistration`, `SubmitResult`, `SUBMIT_ERRORS`, `findCurrentSeason`, `asText`, service `createNumbered` returning `{ documentId, registrationNumber }`).
@@ -2402,6 +2404,12 @@ git commit -m "feat(documents): draw the Acord and the Cerere de adeziune with p
   - `createDownloadToken(registrationDocumentId: string, now?: Date): string`, `verifyDownloadToken(token: unknown, now?: Date): { registrationDocumentId: string } | null`
   - `deleteRegistrationDocuments(strapi: Core.Strapi, registrationDocumentId: string): Promise<void>` (deletes the registration's folder; missing files or an unsafe id: nothing happens)
   - `deleteRegistrationsWithDocuments(deps: BulkDeleteDeps): Promise<number>` with `BulkDeleteDeps = { findIds(); deleteRows(); deleteDocuments(id); logError(message) }`: reads the ids, deletes the rows, then each folder; a failing folder is logged and the rest continue; returns the deleted row count.
+  - `type RebuildResult = { ok: boolean; documents: DocumentKind[]; reason?: 'unknown-season' | 'failed' }`
+  - `rebuildDocuments(strapi, registrationDocumentId): Promise<RebuildResult>` (never throws; a failure is logged, `reason: 'failed'`)
+  - `rebuildAfterEdit(strapi, registrationDocumentId, data): Promise<RebuildResult | null>` (null when no printed field is in `data`; `reason: 'unknown-season'` without rebuilding when `data.season` is set but `data.seasonRef` is null)
+  - `touchesDocuments(data): boolean`, `DOCUMENT_FIELDS` (re-exported from `requests.ts`; plan 2B imports them from `index.ts` only)
+  - `seasonIdForLabel(strapi, label): Promise<string | null>` (the Sezon of that label, or null)
+  - `moveRegistrationsToSeason(ids, label, deps: SeasonMoveDeps): Promise<number>` and `seasonMoveDeps(strapi)`: for each registration, set `season` and `seasonRef` together, then rebuild its PDFs; a failure is logged and the loop goes on; with no Sezon of that label `seasonRef` is null and the rebuild is skipped with a logged reason. The registration number never changes (D2).
   - also `renderBlankDocument(strapi, kind)`, `finishSubmit`, `submitBlockedReason`, `type PublicSubmitResponse`, `documentTokenSecret`, `DOWNLOAD_TOKEN_TTL_MS`, `isDocumentKind`, `DOCUMENT_KINDS`.
   - HTTP:
     - `POST /api/forms/inscriere?scoala=` success: 200 `{ ok: true, registrationNumber, downloadToken, documents: DocumentKind[] }` (`documents` is `[]` when the build failed; the registration is saved anyway). Errors unchanged from 2A: 400 `{ ok: false, code, error }`. New: 503 `{ ok: false, code: 'save-failed', error: 'Nu am putut salva înscrierea.' }` in production without `DOCUMENT_TOKEN_SECRET` (nothing saved).
@@ -2410,7 +2418,8 @@ git commit -m "feat(documents): draw the Acord and the Cerere de adeziune with p
     - `GET /api/club/documents/blank/:kind` (admin): 200 PDF `Formular-gol_Acord_2026-2027.pdf` / `Formular-gol_Adeziune_2026-2027.pdf`, current Sezon printed (blank lines when no Sezon is current); not stored.
     - `DELETE /api/forms/inscrieri/:documentId` (admin, existing): also deletes the registration's PDFs (D7); a failure there is logged and the delete still answers 200 as before.
     - `POST /api/forms/inscrieri/delete-archived-season` (admin, existing): also deletes the PDFs of every registration it deletes (ids read before the rows are deleted); response unchanged `{ ok: true, deleted }`.
-    - `PUT /api/forms/inscrieri/:documentId` (admin, existing): when the saved fields include one printed on the PDFs (`DOCUMENT_FIELDS`: email, phone, parentName, relationship, relationshipOther, childName, childBirthDate, membershipAnswer, season), the PDFs are rebuilt and the response gains `rebuild: { ok: boolean; documents: DocumentKind[] }`; otherwise the response is unchanged `{ data }`. No e-mail.
+    - `PUT /api/forms/inscrieri/:documentId` (admin, existing): a `season` in the body also sets `seasonRef` to the Sezon of that label (null when none). When the saved fields include one printed on the PDFs (`DOCUMENT_FIELDS`: email, phone, parentName, relationship, relationshipOther, childName, childBirthDate, membershipAnswer, season), the response gains `rebuild: RebuildResult` (the PDFs are rebuilt, or `reason: 'unknown-season'` when the new season has no Sezon and the old PDFs stay); otherwise the response is unchanged `{ data }`. No e-mail.
+    - `POST /api/forms/inscrieri/move-season` and `POST /api/forms/inscrieri/move-whole-season` (admin, existing): also set `seasonRef` and rebuild each moved registration's PDFs (cross-plan review I1); responses unchanged `{ moved }` (now the number of registrations actually moved, one by one). The registration number never changes.
 
 Change to plan 2A's interface: `SubmitResult`'s success gains the internal `documentId` (needed to build the PDFs and sign the link), and `SubmitDeps.createNumbered` returns `{ documentId, registrationNumber }` (2A's real service already returns both). The controller never sends `documentId` to the browser (DECISIONS 2026-10-03); `finishSubmit` builds the public body field by field and its test pins that.
 
@@ -2712,9 +2721,188 @@ describe('deleteRegistrationsWithDocuments (delete archived season)', () => {
 });
 ```
 
+`src/club/documents/__tests__/season-move.test.ts`:
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { moveRegistrationsToSeason, type SeasonMoveDeps } from '../season-move';
+
+const A = 'reg0000000000000000000001';
+const B = 'reg0000000000000000000002';
+const C = 'reg0000000000000000000003';
+
+function fake(over: Partial<SeasonMoveDeps> = {}) {
+  const calls: string[] = [];
+  const errors: string[] = [];
+  const deps: SeasonMoveDeps = {
+    seasonIdFor: async (label) => (label === '2027-2028' ? 'season2027' : null),
+    setSeason: async (id, label, seasonRef) => {
+      calls.push(`set ${id} ${label} ${seasonRef}`);
+      return id !== C;
+    },
+    rebuild: async (id) => {
+      calls.push(`rebuild ${id}`);
+      return { ok: true, documents: ['acord'] };
+    },
+    logError: (m) => {
+      errors.push(m);
+    },
+    ...over,
+  };
+  return { deps, calls, errors };
+}
+
+describe('moveRegistrationsToSeason', () => {
+  it('sets the season text and its Sezon together, then rebuilds each moved registration', async () => {
+    const { deps, calls, errors } = fake();
+    await expect(moveRegistrationsToSeason([A, B], '2027-2028', deps)).resolves.toBe(2);
+    expect(calls).toEqual([`set ${A} 2027-2028 season2027`, `rebuild ${A}`, `set ${B} 2027-2028 season2027`, `rebuild ${B}`]);
+    expect(errors).toEqual([]);
+  });
+
+  it('an unknown season label sets seasonRef to null and skips the rebuild with a logged reason', async () => {
+    const { deps, calls, errors } = fake();
+    await expect(moveRegistrationsToSeason([A], '2030-2031', deps)).resolves.toBe(1);
+    expect(calls).toEqual([`set ${A} 2030-2031 null`]);
+    expect(errors).toEqual(['[inscrieri] no Sezon is labelled "2030-2031": documents of 1 moved registration(s) not rebuilt']);
+  });
+
+  it('never aborts: a failing registration is logged, a missing one is not counted, the others move', async () => {
+    const { deps, calls, errors } = fake({
+      setSeason: async (id, label, seasonRef) => {
+        calls.push(`set ${id} ${label} ${seasonRef}`);
+        if (id === A) throw new Error('database down');
+        return id !== C;
+      },
+    });
+    await expect(moveRegistrationsToSeason([A, C, B], '2027-2028', deps)).resolves.toBe(1);
+    expect(calls).toEqual([`set ${A} 2027-2028 season2027`, `set ${C} 2027-2028 season2027`, `set ${B} 2027-2028 season2027`, `rebuild ${B}`]);
+    expect(errors).toEqual([`[inscrieri] moving ${A} to 2027-2028 failed: database down`]);
+  });
+});
+```
+
+`src/club/documents/__tests__/season-move-pdf.test.ts`:
+
+```ts
+import { promises as fs } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import type { Core } from '@strapi/strapi';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { moveRegistrationsToSeason, seasonMoveDeps } from '../season-move';
+import { buildRegistrationDocuments, listRegistrationDocuments, rebuildAfterEdit } from '../service';
+import { pdfText } from './pdf-text';
+
+vi.setConfig({ testTimeout: 30_000 });
+
+const ID = 'reg0000000000000000000001';
+const SEASONS = [
+  { documentId: 'season2026', label: '2026-2027', startMonth: '2026-10-01', endMonth: '2027-05-31', membershipFee: 270 },
+  { documentId: 'season2027', label: '2027-2028', startMonth: '2027-10-01', endMonth: '2028-05-31', membershipFee: 300 },
+];
+
+let app: string;
+let row: Record<string, unknown>;
+let logs: string[];
+
+/** A Strapi stand-in: one registration, the two Sezoane, the app folder and a log. */
+function fakeStrapi(): Core.Strapi {
+  const registration = {
+    findOne: async () => row,
+    update: async ({ data }: { data: { season: string; seasonRef: string | null } }) => {
+      row = { ...row, season: data.season, seasonRef: SEASONS.find((s) => s.documentId === data.seasonRef) ?? null };
+      return row;
+    },
+  };
+  const seasons = { findFirst: async ({ filters }: { filters: { label: string } }) => SEASONS.find((s) => s.label === filters.label) ?? null };
+  const log = (m: string) => logs.push(m);
+  return {
+    dirs: { app: { root: app } },
+    documents: (uid: string) => (uid === 'api::season.season' ? seasons : registration),
+    log: { error: log, warn: log },
+  } as unknown as Core.Strapi;
+}
+
+beforeEach(async () => {
+  app = await fs.mkdtemp(path.join(os.tmpdir(), 'edusport-move-'));
+  vi.stubEnv('PRIVATE_FILES_DIR', '');
+  logs = [];
+  row = {
+    documentId: ID,
+    registrationNumber: '2026-0142',
+    parentName: 'Ana Pop',
+    phone: '0712345678',
+    email: 'ana.pop@example.com',
+    relationship: 'parinte',
+    childName: 'Maria Pop',
+    childBirthDate: '2016-03-14',
+    membershipAnswer: 'nu',
+    submittedAt: '2026-10-03T08:00:00.000Z',
+    season: '2026-2027',
+    seasonRef: SEASONS[0],
+  };
+});
+afterEach(async () => {
+  vi.unstubAllEnvs();
+  await fs.rm(app, { recursive: true, force: true });
+});
+
+const fileNames = async (strapi: Core.Strapi) => (await listRegistrationDocuments(strapi, ID)).map((d) => d.fileName);
+
+describe('moving a registration to another season', () => {
+  it('rebuilds the PDF with the new season, period and file name; the number stays', async () => {
+    const strapi = fakeStrapi();
+    await buildRegistrationDocuments(strapi, ID);
+    expect(await fileNames(strapi)).toEqual(['Maria_Pop_Acord_2026-2027.pdf']);
+    await expect(moveRegistrationsToSeason([ID], '2027-2028', seasonMoveDeps(strapi))).resolves.toBe(1);
+    const [doc] = await listRegistrationDocuments(strapi, ID);
+    expect(doc.fileName).toBe('Maria_Pop_Acord_2027-2028.pdf');
+    const { text } = await pdfText(await fs.readFile(doc.path));
+    expect(text).toContain('Sezonul 2027-2028');
+    expect(text).toContain('Nr. înscriere 2026-0142');
+    expect(text).toContain('(octombrie 2027 – mai 2028)');
+    expect(row.registrationNumber).toBe('2026-0142');
+  });
+
+  it('an unknown season label clears seasonRef and keeps the old PDF, with a logged reason', async () => {
+    const strapi = fakeStrapi();
+    await buildRegistrationDocuments(strapi, ID);
+    await moveRegistrationsToSeason([ID], '2030-2031', seasonMoveDeps(strapi));
+    expect(row).toMatchObject({ season: '2030-2031', seasonRef: null });
+    expect(await fileNames(strapi)).toEqual(['Maria_Pop_Acord_2026-2027.pdf']);
+    expect(logs).toEqual(['[inscrieri] no Sezon is labelled "2030-2031": documents of 1 moved registration(s) not rebuilt']);
+  });
+});
+
+describe('rebuildAfterEdit (admin PUT)', () => {
+  it('does nothing when no printed field changed', async () => {
+    await expect(rebuildAfterEdit(fakeStrapi(), ID, { status: 'Contactat' })).resolves.toBeNull();
+  });
+
+  it('skips the rebuild with a logged reason when the new season has no Sezon', async () => {
+    const strapi = fakeStrapi();
+    await expect(rebuildAfterEdit(strapi, ID, { season: '2030-2031', seasonRef: null })).resolves.toEqual({
+      ok: false,
+      documents: [],
+      reason: 'unknown-season',
+    });
+    expect(logs).toEqual([`[inscrieri] ${ID}: no Sezon is labelled "2030-2031"; documents not rebuilt`]);
+    expect(await fileNames(strapi)).toEqual([]);
+  });
+
+  it('rebuilds after a season change to a known Sezon', async () => {
+    const strapi = fakeStrapi();
+    row = { ...row, season: '2027-2028', seasonRef: SEASONS[1] };
+    await expect(rebuildAfterEdit(strapi, ID, { season: '2027-2028', seasonRef: 'season2027' })).resolves.toEqual({ ok: true, documents: ['acord'] });
+    expect(await fileNames(strapi)).toEqual(['Maria_Pop_Acord_2027-2028.pdf']);
+  });
+});
+```
+
 - [ ] **Step 2: Run them to see them fail**
 
-Run: `npm test -- src/club/documents/__tests__/requests.test.ts src/club/documents/__tests__/submit-response.test.ts src/club/documents/__tests__/routes.test.ts src/club/documents/__tests__/public-download.test.ts src/club/documents/__tests__/delete-documents.test.ts src/club/documents/__tests__/bulk-delete.test.ts`
+Run: `npm test -- src/club/documents/__tests__/requests.test.ts src/club/documents/__tests__/submit-response.test.ts src/club/documents/__tests__/routes.test.ts src/club/documents/__tests__/public-download.test.ts src/club/documents/__tests__/delete-documents.test.ts src/club/documents/__tests__/bulk-delete.test.ts src/club/documents/__tests__/season-move.test.ts src/club/documents/__tests__/season-move-pdf.test.ts`
 Expected: FAIL (modules not found).
 
 - [ ] **Step 3: Carry the internal id through plan 2A's submit result**
@@ -2863,6 +3051,7 @@ import type { Core } from '@strapi/strapi';
 import { asText } from '../narrow';
 import { findCurrentSeason } from '../current-season';
 import { blankFileName, documentFileName } from './format';
+import { touchesDocuments } from './requests';
 import { renderDocument } from './pdf/render';
 import { documentsRoot, isSafeDocumentId, listStored, registrationDir, removeStored, replaceStored, type NewFile } from './storage';
 import type { DocumentKind, DocumentSeason, StoredDocument } from './types';
@@ -2916,6 +3105,42 @@ export async function buildRegistrationDocuments(strapi: Core.Strapi, registrati
     files.push({ kind, fileName: documentFileName(kind, values.childName, values.season, fallback), data: await renderDocument(kind, values) });
   }
   return replaceStored(dir, files);
+}
+
+/** Outcome of a rebuild, as the admin PUT returns it (`reason` only when nothing was rebuilt). */
+export type RebuildResult = { ok: boolean; documents: DocumentKind[]; reason?: 'unknown-season' | 'failed' };
+
+const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+/** Rebuilds a registration's PDFs; never throws: a failure is logged and reported. Never sends an e-mail. */
+export async function rebuildDocuments(strapi: Core.Strapi, registrationDocumentId: string): Promise<RebuildResult> {
+  try {
+    return { ok: true, documents: (await buildRegistrationDocuments(strapi, registrationDocumentId)).map((d) => d.kind) };
+  } catch (err) {
+    strapi.log.error(`[inscrieri] rebuilding documents of ${registrationDocumentId} failed: ${message(err)}`);
+    return { ok: false, documents: [], reason: 'failed' };
+  }
+}
+
+/** The documentId of the Sezon labelled `label`, or null (no label, or no such Sezon). */
+export async function seasonIdForLabel(strapi: Core.Strapi, label: unknown): Promise<string | null> {
+  const text = asText(label);
+  if (!text) return null;
+  const season = await strapi.documents('api::season.season').findFirst({ filters: { label: text } });
+  return season?.documentId ?? null;
+}
+
+/**
+ * After an admin edit saved `data`: rebuild when a printed field changed. A season changed to a label with
+ * no Sezon (`seasonRef` null) skips the rebuild, logged, and the old PDFs stay.
+ */
+export async function rebuildAfterEdit(strapi: Core.Strapi, registrationDocumentId: string, data: Record<string, unknown>): Promise<RebuildResult | null> {
+  if (!touchesDocuments(data)) return null;
+  if ('season' in data && !data.seasonRef) {
+    strapi.log.warn(`[inscrieri] ${registrationDocumentId}: no Sezon is labelled "${asText(data.season)}"; documents not rebuilt`);
+    return { ok: false, documents: [], reason: 'unknown-season' };
+  }
+  return rebuildDocuments(strapi, registrationDocumentId);
 }
 
 /** The PDFs stored for a registration (empty when none were built). */
@@ -3006,6 +3231,61 @@ export async function deleteRegistrationsWithDocuments(deps: BulkDeleteDeps): Pr
 }
 ```
 
+`src/club/documents/season-move.ts`:
+
+```ts
+import type { Core } from '@strapi/strapi';
+import { rebuildDocuments, seasonIdForLabel, type RebuildResult } from './service';
+
+const UID = 'api::registration-submission.registration-submission' as const;
+
+export interface SeasonMoveDeps {
+  seasonIdFor(label: string): Promise<string | null>;
+  /** Sets the season text and its Sezon link; false when the registration does not exist. Never the number. */
+  setSeason(registrationDocumentId: string, label: string, seasonRef: string | null): Promise<boolean>;
+  rebuild(registrationDocumentId: string): Promise<RebuildResult>;
+  logError(message: string): void;
+}
+
+const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+async function moveOne(id: string, label: string, seasonRef: string | null, deps: SeasonMoveDeps): Promise<boolean> {
+  try {
+    if (!(await deps.setSeason(id, label, seasonRef))) return false;
+  } catch (err) {
+    deps.logError(`[inscrieri] moving ${id} to ${label} failed: ${message(err)}`);
+    return false;
+  }
+  if (seasonRef) await deps.rebuild(id); // logs its own failure, never throws
+  return true;
+}
+
+/**
+ * Moves registrations to the season `label`: the season text and `seasonRef` change together, then each
+ * registration's PDFs are rebuilt (new files first). One failure is logged and the loop goes on. With no
+ * Sezon of that label, `seasonRef` becomes null and the rebuild is skipped with a logged reason.
+ * The registration number never changes (D2). Returns how many registrations were moved.
+ */
+export async function moveRegistrationsToSeason(ids: string[], label: string, deps: SeasonMoveDeps): Promise<number> {
+  const seasonRef = await deps.seasonIdFor(label);
+  let moved = 0;
+  for (const id of ids) if (await moveOne(id, label, seasonRef, deps)) moved += 1;
+  if (!seasonRef && moved > 0) deps.logError(`[inscrieri] no Sezon is labelled "${label}": documents of ${moved} moved registration(s) not rebuilt`);
+  return moved;
+}
+
+/** The Strapi side of moveRegistrationsToSeason. */
+export function seasonMoveDeps(strapi: Core.Strapi): SeasonMoveDeps {
+  return {
+    seasonIdFor: (label) => seasonIdForLabel(strapi, label),
+    setSeason: async (documentId, label, seasonRef) =>
+      Boolean(await strapi.documents(UID).update({ documentId, data: { season: label, seasonRef } })),
+    rebuild: (documentId) => rebuildDocuments(strapi, documentId),
+    logError: (msg) => strapi.log.error(msg),
+  };
+}
+```
+
 `src/club/documents/index.ts`:
 
 ```ts
@@ -3015,10 +3295,16 @@ export {
   buildRegistrationDocuments,
   deleteRegistrationDocuments,
   listRegistrationDocuments,
+  rebuildAfterEdit,
+  rebuildDocuments,
+  seasonIdForLabel,
+  type RebuildResult,
   renderBlankDocument,
   RegistrationNotFoundError,
 } from './service';
 export { deleteRegistrationsWithDocuments, type BulkDeleteDeps } from './bulk-delete';
+export { DOCUMENT_FIELDS, touchesDocuments } from './requests';
+export { moveRegistrationsToSeason, seasonMoveDeps, type SeasonMoveDeps } from './season-move';
 export { createDownloadToken, verifyDownloadToken, documentTokenSecret, DOWNLOAD_TOKEN_TTL_MS } from './token';
 export { finishSubmit, submitBlockedReason, type PublicSubmitResponse, type PublicSubmitSuccess } from './submit-response';
 ```
@@ -3158,28 +3444,17 @@ import {
   deleteRegistrationDocuments,
   deleteRegistrationsWithDocuments,
   finishSubmit,
+  moveRegistrationsToSeason,
+  rebuildAfterEdit,
+  seasonIdForLabel,
+  seasonMoveDeps,
   submitBlockedReason,
-  type DocumentKind,
 } from '../../../club/documents';
-import { touchesDocuments } from '../../../club/documents/requests';
 ```
 
-2. Directly above `export default factories.createCoreController(UID, ({ strapi }) => ({` add the two helpers:
+2. Directly above `export default factories.createCoreController(UID, ({ strapi }) => ({` add the helper:
 
 ```ts
-/**
- * Saving a change to a field printed on the PDFs rebuilds them (new files first, then the old ones are
- * deleted). Never sends an e-mail (DECISIONS 2026-10-05). A failure is logged and reported, never thrown.
- */
-async function rebuildDocuments(documentId: string): Promise<{ ok: boolean; documents: DocumentKind[] }> {
-  try {
-    return { ok: true, documents: (await buildRegistrationDocuments(strapi, documentId)).map((d) => d.kind) };
-  } catch (err) {
-    strapi.log.error(`[inscrieri] rebuilding documents of ${documentId} failed: ${err instanceof Error ? err.message : String(err)}`);
-    return { ok: false, documents: [] };
-  }
-}
-
 /** A deleted registration takes its PDFs with it; a failure is logged, the delete still succeeds. */
 async function removeDocuments(documentId: string): Promise<void> {
   try {
@@ -3246,10 +3521,16 @@ with
 with
 
 ```ts
+    // A new season text also points seasonRef at the Sezon of that label (null when none matches).
+    if ('season' in data) data.seasonRef = await seasonIdForLabel(strapi, data.season);
+
     const doc = await strapi.documents(UID).update({ documentId, data });
     if (!doc) return ctx.notFound();
-    ctx.body = touchesDocuments(data) ? { data: doc, rebuild: await rebuildDocuments(documentId) } : { data: doc };
+    const rebuild = await rebuildAfterEdit(strapi, documentId, data);
+    ctx.body = rebuild ? { data: doc, rebuild } : { data: doc };
 ```
+
+(`data` holds only `EDITABLE_FIELDS`. Today that list has the printed fields `email`, `phone`, `childName`, `childBirthDate`, `parentName`, `season`; plan 2B adds `relationship`, `relationshipOther` and the other new fields to it, and their edits then rebuild too. `seasonRef` is set by the server only, never from the body.)
 
 5. In `deleteSubmission`, under its doc comment line `* DELETE /api/forms/inscrieri/:documentId  (admin-guarded) ...` add the line
 
@@ -3303,22 +3584,68 @@ with
     ctx.body = { ok: true, deleted: count };
 ```
 
-(`data` holds only `EDITABLE_FIELDS`. Today that list has the printed fields `email`, `phone`, `childName`, `childBirthDate`, `parentName`, `season`; plan 2B adds `relationship`, `relationshipOther` and the other new fields to it, and their edits then rebuild too.)
+7. In `moveSeason`, after the doc comment line `* Unknown ids are ignored. Returns { moved: number }.` add
+
+```ts
+   * Also points seasonRef at the Sezon of that label and rebuilds each moved registration's PDFs
+   * (plan 2D); the registration number never changes.
+```
+
+and replace
+
+```ts
+    const { count } = await strapi.db.query(UID).updateMany({
+      where: { documentId: { $in: ids } },
+      data: { season: toSeason },
+    });
+    ctx.body = { moved: count };
+```
+
+with
+
+```ts
+    ctx.body = { moved: await moveRegistrationsToSeason(ids, toSeason, seasonMoveDeps(strapi)) };
+```
+
+8. In `moveWholeSeason`, after the doc comment line ``* to `toSeason`. Body: { fromSeason, toSeason, archivedOnly? }.`` add
+
+```ts
+   * Also points seasonRef at the Sezon of that label and rebuilds each moved registration's PDFs
+   * (plan 2D; a failure is logged and the loop goes on); the registration number never changes.
+```
+
+and replace
+
+```ts
+    const { count } = await strapi.db.query(UID).updateMany({ where, data: { season: toSeason } });
+    ctx.body = { moved: count };
+```
+
+with
+
+```ts
+    const rows = (await strapi.db.query(UID).findMany({ select: ['documentId'], where })) as { documentId?: unknown }[];
+    const ids = rows.map((r) => r.documentId).filter((id): id is string => typeof id === 'string');
+    ctx.body = { moved: await moveRegistrationsToSeason(ids, toSeason, seasonMoveDeps(strapi)) };
+```
+
+Why one by one: `seasonRef` is a relation (a link table), which `db.query().updateMany` does not write; the document service `update` does, and each moved registration then needs its own rebuild anyway.
 
 - [ ] **Step 6: Run everything**
 
-Run: `npm test -- src/club/documents/__tests__/requests.test.ts src/club/documents/__tests__/submit-response.test.ts src/club/documents/__tests__/routes.test.ts src/club/documents/__tests__/public-download.test.ts src/club/documents/__tests__/delete-documents.test.ts src/club/documents/__tests__/bulk-delete.test.ts` (PASS, 16 tests), then `npm test` (all PASS) and `npx tsc --noEmit` (zero errors).
+Run: `npm test -- src/club/documents/__tests__/requests.test.ts src/club/documents/__tests__/submit-response.test.ts src/club/documents/__tests__/routes.test.ts src/club/documents/__tests__/public-download.test.ts src/club/documents/__tests__/delete-documents.test.ts src/club/documents/__tests__/bulk-delete.test.ts src/club/documents/__tests__/season-move.test.ts src/club/documents/__tests__/season-move-pdf.test.ts` (PASS, 24 tests), then `npm test` (all PASS) and `npx tsc --noEmit` (zero errors).
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/club/documents/requests.ts src/club/documents/service.ts src/club/documents/submit-response.ts src/club/documents/bulk-delete.ts src/club/documents/index.ts \
+git add src/club/documents/requests.ts src/club/documents/service.ts src/club/documents/submit-response.ts src/club/documents/bulk-delete.ts src/club/documents/season-move.ts src/club/documents/index.ts \
   src/api/club/controllers/documents.ts src/api/club/routes/03-documents.ts \
   src/club/registration-submit.ts src/club/__tests__/registration-submit.test.ts \
   src/api/registration-submission/controllers/registration-submission.ts \
   src/club/documents/__tests__/requests.test.ts src/club/documents/__tests__/submit-response.test.ts src/club/documents/__tests__/routes.test.ts \
-  src/club/documents/__tests__/public-download.test.ts src/club/documents/__tests__/delete-documents.test.ts src/club/documents/__tests__/bulk-delete.test.ts
-git commit -m "feat(documents): build PDFs at submit, rebuild on edit, delete with the registration, token and admin downloads, blank forms"
+  src/club/documents/__tests__/public-download.test.ts src/club/documents/__tests__/delete-documents.test.ts src/club/documents/__tests__/bulk-delete.test.ts \
+  src/club/documents/__tests__/season-move.test.ts src/club/documents/__tests__/season-move-pdf.test.ts
+git commit -m "feat(documents): build PDFs at submit, rebuild on edit and season moves, delete with the registration, token and admin downloads, blank forms"
 ```
 
 ---
@@ -3599,7 +3926,7 @@ Report the folder `../edusport_frontend/docs/portal/mockups/screens/pdf-check-v1
 
 ## Handled by later plans
 
-- 2B (admin): the "Formulare goale" button in the Înscrieri header (calls `GET /api/club/documents/blank/acord|adeziune`), the Documente tab of the Înscrieri panel (calls `GET /api/club/registrations/:documentId/documents/:kind`), the "Document refăcut" history line after an edit, written from the PUT response's `rebuild` (D6), and adding `relationship`, `relationshipOther`, `membershipAnswer` to `EDITABLE_FIELDS`.
+- 2B (admin): the "Formulare goale" button in the Înscrieri header (calls `GET /api/club/documents/blank/acord|adeziune`), the Documente tab of the Înscrieri panel (calls `GET /api/club/registrations/:documentId/documents/:kind`), the "Document refăcut" history line after an edit, written from the PUT response's `rebuild` (D6; `rebuild.reason` is `'unknown-season'` when the new season has no Sezon and nothing was rebuilt, `'failed'` on an error), and adding `relationship`, `relationshipOther`, `membershipAnswer` to `EDITABLE_FIELDS`.
 - 2C (form): the page `/inscrieri/link-expirat` (where an expired or bad download link is redirected, D5); the success screen link `${API}/api/forms/inscriere/documents?token=<downloadToken>&kind=<kind>` for each kind in `documents`; with `documents: []` it shows no link; the singular / plural sentence follows `documents.length`.
 - 2F (e-mail): attaches `listRegistrationDocuments(strapi, id)`; calls `enqueueRegistrationEmail(strapi, saved.documentId)` in `submitPublic` after `finishSubmit` when `saved.ok` (the variable `saved` is kept for this). Editing never e-mails; only "Retrimite e-mailul" does.
 - Phase 8 (Documente page): listing, ZIP, uploaded documents.
@@ -3621,10 +3948,11 @@ Report the folder `../edusport_frontend/docs/portal/mockups/screens/pdf-check-v1
 5. D5 expired or bad link: 302 redirect to `<site>/inscrieri/link-expirat`, the site being the first entry of the existing `FRONTEND_ORIGIN` (no new variable); 2C builds the page (Task 8, redirect test; Task 9).
 6. D6 "Document refăcut": 2B writes it from the PUT response's `rebuild: { ok, documents }` (Task 8 provides the field).
 7. D7 delete: deleting a registration from the admin deletes its stored PDFs; idempotent when they are missing. Extended by the controller to `deleteArchivedSeason`: ids read first, rows deleted, then every folder, a failing folder logged without stopping the others (Tasks 6, 8, 9).
+8. Cross-plan review I1 (season moves): `moveSeason`, `moveWholeSeason` and a PUT of `season` set `seasonRef` to the Sezon of the new label (null when none) and rebuild the PDFs, one registration at a time, failures logged; with no Sezon the rebuild is skipped with a logged reason and the old PDFs stay. The number never changes (D2). M11: `touchesDocuments`, `DOCUMENT_FIELDS`, `rebuildDocuments`, `rebuildAfterEdit`, `RebuildResult` exported from `index.ts` (Task 8).
 
 ## Conflicts with the contract or the spec
 
-- Contract signatures are kept exactly. Changed from the contract's wording: the public route answers an expired or bad token with a 302 redirect to the site page (D5) instead of an error. Additions: `deleteRegistrationDocuments`, `deleteRegistrationsWithDocuments`, `renderBlankDocument`, `finishSubmit`, `submitBlockedReason`, `RegistrationNotFoundError`, `documentTokenSecret`, `DOWNLOAD_TOKEN_TTL_MS` exported from `src/club/documents/index.ts`; the PUT response gains `rebuild` only when a printed field changed.
+- Contract signatures are kept exactly. Changed from the contract's wording: the public route answers an expired or bad token with a 302 redirect to the site page (D5) instead of an error. Additions: `deleteRegistrationDocuments`, `deleteRegistrationsWithDocuments`, `rebuildDocuments`, `rebuildAfterEdit`, `RebuildResult`, `touchesDocuments`, `DOCUMENT_FIELDS`, `seasonIdForLabel`, `moveRegistrationsToSeason`, `seasonMoveDeps`, `renderBlankDocument`, `finishSubmit`, `submitBlockedReason`, `RegistrationNotFoundError`, `documentTokenSecret`, `DOWNLOAD_TOKEN_TTL_MS` exported from `src/club/documents/index.ts`; the PUT response gains `rebuild` only when a printed field changed; the move routes keep their `{ moved }` responses.
 - Plan 2A's internal interface changes: `SubmitResult` success gains `documentId`, `SubmitDeps.createNumbered` returns `{ documentId, registrationNumber }`; one 2A test is updated (Task 8 Step 3). The public response never carries `documentId`.
 - Spec 4.1 asks for the `adeziune-v2` layout; `mockups/screens/` has only `adeziune-v3.html`. The plan follows the generator the 2026-10-05 decision names (`gen_adeziune.py`), plus the footer of `legal-footer-v2.html` option B, which is what v3 shows.
 - "Submit fails closed" is implemented as 503 with 2A's existing code `save-failed` (no new error code for 2C), checked before anything is saved.
@@ -3636,6 +3964,6 @@ Report the folder `../edusport_frontend/docs/portal/mockups/screens/pdf-check-v1
 1. Spec coverage (4.1, 3.4, 5) and the 2026-10-21 decisions D1-D7 (each mapped above): pdfkit (Tasks 1, 7); Acord for every registration and Cerere for Da (Task 2 `documentKindsFor`, Task 8 service); layouts and text word for word with the typo fixes, link, header, 4-column footer, O.G. sentence, dd.mm.yyyy, empty Da / Nu boxes, Data and signature, one page (Tasks 5, 7, render tests); values from registration, Sezon and association (Tasks 2, 5); Inter under OFL (Task 1); rendered next to the mockup before approval (Task 10); private folder outside `public/`, file names without diacritics, admin routes and 24-hour token, backup (Tasks 4, 6, 8); rebuild on edit, new file first, no e-mail (Tasks 6, 8); blank forms with season, period, fee (Tasks 2, 8); token tests valid, expired, wrong registration (Task 6); PDF text content and visual check (Tasks 7, 10). The "Formulare goale" button itself is 2B.
 2. Placeholder scan: no TBD or "similar to"; every code step has the full file or the exact replacement.
 3. Type consistency: `DocumentKind`, `StoredDocument`, `DocumentValues`, `Run`, `PlacedRun`, `Col` and the contract functions are defined once and used with the same names and shapes across Tasks 2-10; the code was run together.
-4. Review Focus: each of the six lines has its test in the owning task (Tasks 6, 7, 8, 9).
+4. Review Focus: each of the seven lines has its test in the owning task (Tasks 6, 7, 8, 9).
 
 Execution: this plan was written under an execution method already chosen by the controller; it only asks for review.
