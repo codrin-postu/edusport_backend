@@ -8,6 +8,7 @@
     "sessions": { "type": "integer" },
     "memberPrice": { "type": "decimal" },
     "nonMemberPrice": { "type": "decimal" },
-    "included": { "type": "boolean", "default": false }
+    "included": { "type": "boolean", "default": false },
+    "tooltip": { "type": "text" }
   }
 }
