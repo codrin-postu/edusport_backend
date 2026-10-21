@@ -8,11 +8,13 @@
 
 **Tech Stack:** Strapi 5.52.1 (TypeScript, CommonJS, `strict: false` on the server, `strict: true` in `src/admin`), React 18 admin pages on `src/admin/ui`, Postgres in production, Vitest 3, Node 22.
 
-**Validated:** every file in this plan was applied to a scratch copy of the repo on 2026-10-20 on top of plan 2A's Tasks 1-3 (schemas, form options, price rules): Vitest 158 tests passed, `npx tsc --noEmit` and `npx tsc --noEmit -p src/admin/tsconfig.json` had zero errors, `strapi build` built the admin, and the Task 11 checks below ran on a throwaway Postgres with Strapi on 1339 (container removed). Revised 2026-10-21 with the user's and the controller's rulings (Sezoane pinned, panel edits, delete text) and re-checked the same way. The 2D and 2F code did not exist yet: the panel showed "Niciun e-mail", the PDF buttons were not exercised, and Task 10 ran against stand-ins with 2D's signatures (`touchesDocuments`, `rebuildDocuments` returning `{ ok: true, documents }`).
+**Validated:** every file in this plan was applied to a scratch copy of the repo on 2026-10-20 on top of plan 2A's Tasks 1-3 (schemas, form options, price rules): Vitest 159 tests passed, `npx tsc --noEmit` and `npx tsc --noEmit -p src/admin/tsconfig.json` had zero errors, `strapi build` built the admin, and the Task 11 checks below ran on a throwaway Postgres with Strapi on 1339 (container removed). Revised 2026-10-21 with the user's and the controller's rulings (Sezoane pinned, panel edits, delete text) and the cross-plan review (search placeholder, no middle dot, resend toast by status), and re-checked the same way. The 2D and 2F code did not exist yet: the panel showed "Niciun e-mail", the PDF buttons were not exercised, and Task 10 ran against stand-ins with 2D's signatures (`touchesDocuments`, `rebuildDocuments` returning `{ ok: true, documents }`).
 
 **Spec:** `docs/superpowers/specs/2026-10-19-registration-rebuild-design.md`, section 2 (and 1.4, 1.6, 4.1, 4.2 for what the screens show). Decisions log: `../edusport_frontend/docs/portal/DECISIONS.md` (dated decisions win: 2026-10-19 phase2-designs-v1, 2026-10-20 phase2-q4-gold). Approved designs (companion): `.superpowers/brainstorm/80180-1792422211/content/phase2-designs-v1.html` (option A for Prețuri and for Sezon), `phase2-card-band.html` (option A, remove the band everywhere). Shared brief for 2B-2F: contract names below are fixed.
 
 **Builds on plan 2A** (`docs/superpowers/plans/2026-10-19-phase2a-registration-data.md`), assumed merged: `club.price-item.tooltip`, `section.priceNotes`, the registration fields (`relationship`, `childHeight`, `membershipAnswer`, `subscriptionChoice`, ...), `src/club/narrow.ts`, `src/club/price-item.ts` (`isIncomplete`, `isPrice`, `isPriceItemKind`, `duplicateItemNames`, `PriceItemKind`), `src/club/registration-form-options.ts`, and `recordHistory` from `src/club/history.ts` (phase 1).
+
+**Also after plan 2E (Tasks 9 and 10)** (`docs/superpowers/plans/2026-10-20-phase2e-sheet.md`): 2E's edits to `src/admin/dashboard/SubmissionTable.tsx` (`initialQuery`, before `SubmissionTablePage` and in the "server query state" lines) and to `src/api/registration-submission/controllers/registration-submission.ts` (the quick-search block of `buildListFilters`, which then also matches the registration number) come first. 2B's anchors in those files (`MenuButton`, the end of `SubmissionTableCfg` and its `texts` comment, `statActions`; the imports under 2D's, `EDITABLE_FIELDS`, `updateSubmission`) don't overlap them. Task 10 also comes after plan 2D.
 
 ## Global Constraints
 
@@ -73,11 +75,11 @@ docs/admin-ui/CUSTOM-PAGES.md (Task 8)
 
 | Group | Tasks | Runs after |
 |---|---|---|
-| A | 1 Admin request helpers, 5 Card band and drawer section, 6 Setări site and retired editors, 9 Înscrieri panel | plan 2A; all four in parallel (separate files) |
+| A | 1 Admin request helpers, 5 Card band and drawer section, 6 Setări site and retired editors, 9 Înscrieri panel | plan 2A (Task 9 also after plan 2E); all four in parallel (separate files) |
 | B | 2 Price list actions, 3 Season actions | Task 1; both in parallel |
 | C | 4 Admin API routes | Tasks 2 and 3 |
 | D | 7 Prețuri page, 8 Sezoane page | Tasks 4 and 5; both in parallel |
-| E | 10 Panel edits and Document refăcut | Task 9 and plan 2D |
+| E | 10 Panel edits and Document refăcut | Task 9, plan 2D and plan 2E |
 | F | 11 Boot check and browser pass | everything (and, for the PDF and e-mail buttons, plans 2D and 2F if merged) |
 
 ---
@@ -94,7 +96,7 @@ docs/admin-ui/CUSTOM-PAGES.md (Task 8)
   - `type AdminResult<T> = { ok: true; data: T } | { ok: false; status: 400 | 404 | 409; error: string }`, `refuse(status, error): AdminResult<never>`
   - `type FieldChange = { from: unknown; to: unknown }`, `changedFields<T extends object>(keys: readonly (keyof T)[], before: T | null, after: T | null): Record<string, FieldChange>`
   - `type AdminCtx` (params, query, request.body, request.header.authorization, status, body), `respond<T>(ctx, result: AdminResult<T>): void` (200 `{ data }` or Strapi's error shape `{ data: null, error: { status, name: 'ClubAdminError', message } }`), `refuseWith(ctx, status, message): void`, `indexParam(raw: string | undefined): number | null`
-  - `type ActorStrapi`, `UNKNOWN_ACTOR = 'admin'`, `adminActor(authorization: string | undefined, strapi: ActorStrapi): Promise<string>` (the admin's e-mail; never throws)
+  - `type ActorStrapi`, `UNKNOWN_ACTOR = 'admin'`, `adminActor(authorization: string | undefined, strapi: ActorStrapi): Promise<string>` (the admin's e-mail; never throws). Stable export, consumed by plan 2F (its resend history entry) and by Task 10; do not rename or change its signature.
 
 Why the error shape: the admin fetch client (`@strapi/admin` `getFetchClient`) throws a `FetchError` whose `message` is `error.message` of the JSON body, and `useSaveState().run` shows that message in a toast. So a refusal written here reaches the admin word for word.
 
@@ -2983,13 +2985,15 @@ git commit -m "feat(admin): Sezoane page with period and membership fee"
 
 **Interfaces:**
 - Consumes: 2A (`MEMBERSHIP_YES`, `RELATIONSHIP_OPTIONS`, `RELATIONSHIP_OTHER`, `SOURCE_OTHER` from `registration-form-options.ts`; the registration fields). Plan 2D routes: `GET /api/club/registrations/:documentId/documents/:kind` and `GET /api/club/documents/blank/:kind` (`kind` = `acord` | `adeziune`), each answering a PDF with a `Content-Disposition` file name. Plan 2F routes: `GET /api/club/registrations/:documentId/email-status` and `POST /api/club/registrations/:documentId/resend-email`, each answering 200 `{ ok: true, data: RegistrationEmailStatus }` (2F plan, Task 8), or `{ ok: false, code, error }` (404 `not-found`, 409 `no-documents` "Înscrierea nu are documente.").
-- Produces (`src/club/registration-panel.ts`): `type PanelDocumentKind = 'acord' | 'adeziune'` (mirrors 2D's `DocumentKind`), `type EmailStatus = { status: 'queued' | 'sent' | 'failed' | 'none'; recipient: string; attempts: number; lastError: string | null; sentAt: string | null; updatedAt: string | null; documents: string[] }` (mirrors 2F's `RegistrationEmailStatus`; `documents` are file names), `DOCUMENT_LABELS`, `MISSING`, `isScriptFormRegistration`, `registrationPanelRows`, `registrationDocumentKinds`, `readEmailStatus`, `emailStatusText`, `resendTarget`, `requestErrorText`, `fileNameFrom`.
+- Produces (`src/club/registration-panel.ts`): `type PanelDocumentKind = 'acord' | 'adeziune'` (mirrors 2D's `DocumentKind`), `type EmailStatus = { status: 'queued' | 'sent' | 'failed' | 'none'; recipient: string; attempts: number; lastError: string | null; sentAt: string | null; updatedAt: string | null; documents: string[] }` (mirrors 2F's `RegistrationEmailStatus`; `documents` are file names), `DOCUMENT_LABELS`, `MISSING`, `isScriptFormRegistration`, `registrationPanelRows`, `registrationDocumentKinds`, `readEmailStatus`, `emailStatusText`, `resendTarget`, `resendToast`, `failedEmailError`, `requestErrorText`, `fileNameFrom`.
 - Produces (`SubmissionTable.tsx`): exported `MenuButton`; `SubmissionTableCfg.headerActions?: React.ReactNode`.
 
 What the panel shows (spec 1.1, 4.1, 4.2; DECISIONS 2026-10-05):
 - Same layout as today (label/value `DetailField` rows, long texts after a gap). "Nr. înscriere" first when set.
 - A registration sent through the new form (it has `relationship` or `membershipAnswer`) shows: Data nașterii, Înălțime ("128 cm"), Nume părinte, Calitate (option label; with Alta, the typed text), Email, Telefon, Mărime tricou, Sezonul trecut, Membru A.C.S. (Da/Nu), Abonament ("Abonament 8 ședințe grup, 590 RON", the frozen choice), Cum a aflat ("Altele: <text>" when given), Acord GDPR, Acord Regulament, then Experiență anterioară and Așteptări. Older registrations keep their old rows (Nivel, Interes club, ...). An empty value shows "-" (the old panel's em dash goes).
 - New registrations also get "Documente" (one button per PDF: Acord, plus Cerere de adeziune when the answer was Da; 2D builds a missing set on that request) and "E-mail" (status "Trimis <dată>", "În coadă", "Netrimis", or "Niciun e-mail" before the first job, and "Retrimite e-mailul"). The confirmation is titled "Retrimiți e-mailul?" and names the recipient ("Către: ...", 2F's address) and the documents ("Documente: ...", 2F's file names; before 2F answers, the labels "Acord, Cerere de adeziune"). A refusal shows 2F's own text (for example "Înscrierea nu are documente."). Logging the resend in history is 2F's job (spec 4.2).
+- After "Retrimite e-mailul" the toast follows the status 2F answers after its one attempt: `sent` "E-mail trimis." (success), `queued` "E-mailul va fi trimis în curând." (info), `failed` "Trimiterea a eșuat." (error); a failed status also shows its `lastError` under the status in the panel.
+- The search box reads "Caută după nume, număr, părinte, e-mail sau telefon..." (2E adds the registration number to the quick search), and the header stat reads "1 noi, exclus arhivate" (no middle dot).
 - The header gets "Formulare goale", a menu with Acord and Cerere de adeziune (blank PDFs with season, period and fee, spec 4.1), until the Documente page exists.
 - Deleting a registration asks "Ștergi definitiv această înscriere și documentele ei? Acțiunea nu poate fi anulată." (user, 2026-10-21; 2D deletes the files on the backend). The bulk delete text is unchanged.
 - Downloads go through the admin fetch client with `responseType: 'blob'` (the admin token is a header, so a plain link would not work). A missing PDF (404) shows "Documentul nu a putut fi descărcat.".
@@ -3006,9 +3010,11 @@ import {
   fileNameFrom,
   readEmailStatus,
   registrationDocumentKinds,
+  failedEmailError,
   registrationPanelRows,
   requestErrorText,
   resendTarget,
+  resendToast,
   type EmailStatus,
 } from '../registration-panel';
 
@@ -3111,6 +3117,16 @@ describe('documents and e-mail', () => {
       recipient: 'maria@example.com',
       documents: ['Acord'],
     });
+  });
+
+  it("the resend toast follows 2F's status, and a failure shows its reason in the panel", () => {
+    expect(resendToast(status({}))).toEqual({ tone: 'success', text: 'E-mail trimis.' });
+    expect(resendToast(status({ status: 'queued', sentAt: null }))).toEqual({ tone: 'info', text: 'E-mailul va fi trimis în curând.' });
+    expect(resendToast(status({ status: 'failed', sentAt: null, lastError: 'Brevo 401' }))).toEqual({ tone: 'error', text: 'Trimiterea a eșuat.' });
+    expect(resendToast(null)).toEqual({ tone: 'info', text: 'E-mailul va fi trimis în curând.' });
+    expect(failedEmailError(status({ status: 'failed', sentAt: null, lastError: 'Brevo 401' }))).toBe('Brevo 401');
+    expect(failedEmailError(status({ status: 'queued', sentAt: null, lastError: 'Brevo 401' }))).toBeNull();
+    expect(failedEmailError(null)).toBeNull();
   });
 
   it("shows the server's refusal text, in Strapi's shape or 2F's", () => {
@@ -3277,6 +3293,20 @@ export function resendTarget(status: EmailStatus | null, r: RegistrationRow): { 
   return { recipient, documents };
 }
 
+export type ResendToast = { tone: 'success' | 'info' | 'error'; text: string };
+
+/** The toast after "Retrimite e-mailul", from the status 2F answers after its one attempt. */
+export function resendToast(status: EmailStatus | null): ResendToast {
+  if (status?.status === 'sent') return { tone: 'success', text: 'E-mail trimis.' };
+  if (status?.status === 'failed') return { tone: 'error', text: 'Trimiterea a eșuat.' };
+  return { tone: 'info', text: 'E-mailul va fi trimis în curând.' };
+}
+
+/** The reason shown in the panel under a failed status; null otherwise. */
+export function failedEmailError(status: EmailStatus | null): string | null {
+  return status?.status === 'failed' ? status.lastError : null;
+}
+
 /** The refusal text of a failed admin request: Strapi's `error.message` or 2F's `error` string. */
 export function requestErrorText(err: unknown, fallback: string): string {
   const data = (err as { response?: { data?: { error?: unknown } } } | null)?.response?.data;
@@ -3331,6 +3361,18 @@ with
   /** Page-specific buttons at the start of the header actions (Înscrieri: "Formulare goale"). */
   headerActions?: React.ReactNode;
 }
+```
+
+In the `texts` of `interface SubmissionTableCfg`, replace
+
+```tsx
+    /** Appended after the "X noi" stat, e.g. ' · exclus arhivate'. */
+```
+
+with
+
+```tsx
+    /** Appended after the "X noi" stat, e.g. ', exclus arhivate'. */
 ```
 
 Replace
@@ -3450,7 +3492,15 @@ import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import { Button, Spinner, adminToast } from '../../ui';
 import { DetailField, fmtDateTime, type Row } from '../SubmissionTable';
-import { emailStatusText, readEmailStatus, requestErrorText, resendTarget, type EmailStatus } from '../../../club/registration-panel';
+import {
+  emailStatusText,
+  failedEmailError,
+  readEmailStatus,
+  requestErrorText,
+  resendTarget,
+  resendToast,
+  type EmailStatus,
+} from '../../../club/registration-panel';
 
 /** E-mail routes of plan 2F. */
 const emailUrl = (documentId: string, action: 'email-status' | 'resend-email') => `/api/club/registrations/${documentId}/${action}`;
@@ -3483,8 +3533,10 @@ function useResend(documentId: string, onStatus: (s: EmailStatus | null) => void
   const resend = async () => {
     setBusy(true);
     try {
-      onStatus(readEmailStatus((await post(emailUrl(documentId, 'resend-email'))).data));
-      adminToast.success('E-mailul se retrimite.');
+      const status = readEmailStatus((await post(emailUrl(documentId, 'resend-email'))).data);
+      onStatus(status);
+      const toast = resendToast(status);
+      adminToast[toast.tone](toast.text);
       return true;
     } catch (err) {
       adminToast.error(requestErrorText(err, 'Nu am putut retrimite e-mailul.'));
@@ -3511,6 +3563,7 @@ export function RegistrationEmail({ row }: { row: Row }) {
           Retrimite e-mailul
         </Button>
       </div>
+      {failedEmailError(email.status) && <div className="ui-error">{failedEmailError(email.status)}</div>}
       <ConfirmDialog
         open={confirming}
         title="Retrimiți e-mailul?"
@@ -3743,11 +3796,11 @@ const CFG: SubmissionTableCfg = {
   texts: {
     title: 'Înscrieri',
     subtitle: 'Cererile trimise prin formularul public de înscriere.',
-    // The server's quick `q` searches childName/parentName/email/phone only.
-    searchPlaceholder: 'Caută după nume, părinte, email sau telefon...',
+    // The server's quick `q` searches childName/parentName/email/phone and, after plan 2E, the registration number.
+    searchPlaceholder: 'Caută după nume, număr, părinte, e-mail sau telefon...',
     empty: 'Nicio înscriere pentru filtrul curent.',
     loadError: 'Nu am putut încărca înscrierile.',
-    statSuffix: ' · exclus arhivate',
+    statSuffix: ', exclus arhivate',
     deleteConfirm: 'Ștergi definitiv această înscriere și documentele ei? Acțiunea nu poate fi anulată.',
     bulkDeleteNoun: 'înscrieri',
     deleteError: 'Nu am putut șterge înscrierea.',
@@ -3789,7 +3842,7 @@ git commit -m "feat(inscrieri): panel shows the new answers, PDFs and e-mail sta
 - Modify: `src/admin/dashboard/InscrieriPage.tsx` (`PanelAnswers`, doc comment)
 - Modify: `src/api/registration-submission/controllers/registration-submission.ts` (imports, `EDITABLE_FIELDS`, `updateSubmission`, a `recordDocumentRebuilt` helper)
 
-**Runs after:** Task 9 and plan 2D (this task edits the lines 2D adds to `updateSubmission`: `rebuildDocuments` and `touchesDocuments`).
+**Runs after:** Task 9, plan 2D (this task edits the lines 2D adds to `updateSubmission`: `rebuildDocuments` and `touchesDocuments`) and plan 2E (its controller edit, in `buildListFilters`, comes first; no overlap).
 
 **Interfaces:**
 - Consumes: Task 1 `adminActor`; phase 1 `recordHistory`, `HistoryInput`; 2A `RELATIONSHIP_OTHER`, `RELATIONSHIP_OTHER_LABEL`, `MEMBERSHIP_NO`, `isRelationship`, `isMembershipAnswer`; Task 9 `registrationPanelRows`, `TableApi.saveField`; plan 2D in the controller: `touchesDocuments(data)` (from `src/club/documents/requests`) and `rebuildDocuments(documentId): Promise<{ ok: boolean; documents: DocumentKind[] }>`, used as `ctx.body = touchesDocuments(data) ? { data: doc, rebuild: await rebuildDocuments(documentId) } : { data: doc };`.
@@ -4541,4 +4594,4 @@ Expected: container removed; all tests PASS; zero type errors in both projects. 
 - **Înscrieri panel** (controller, option c): the display stays read-only; Calitate (with its "Alta" text) and Membru A.C.S. are edited in place with the existing pattern, and a successful rebuild writes "Document refăcut" (`registration-submission`, `document-rebuilt`, actor from `adminActor`) (Task 10). Tabs and an Istoric view are phase 3.
 - **Deleting a registration** (user): "Ștergi definitiv această înscriere și documentele ei? Acțiunea nu poate fi anulată." (Task 9).
 - **Not built** (controller): no rename or delete of price lists; the Înscrieri list columns stay as they are until the phase 3 Înscrieri redesign; the form-config editor is not touched.
-- Pre-existing copy kept as is: the Înscrieri header stat "1 noi · exclus arhivate" uses a middle dot (`statSuffix`), and the bulk delete text is unchanged.
+- Cross-plan review (2026-10-21): the Înscrieri search placeholder names the registration number ("Caută după nume, număr, părinte, e-mail sau telefon..."); the header stat drops its middle dot ("1 noi, exclus arhivate"); the resend toast follows 2F's status (Task 9). The bulk delete text is unchanged.
