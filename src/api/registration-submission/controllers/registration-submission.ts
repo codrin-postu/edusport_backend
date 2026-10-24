@@ -16,6 +16,7 @@ import {
   deleteRegistrationsWithDocuments,
   finishSubmit,
   moveRegistrationsToSeason,
+  moveRegistrationsToSeasonInBackground,
   rebuildAfterEdit,
   seasonIdForLabel,
   seasonMoveDeps,
@@ -364,7 +365,8 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
    *   { documentIds: string[], toSeason: string }
    * Unknown ids are ignored. Returns { moved: number }.
    * Also points seasonRef at the Sezon of that label and rebuilds each moved registration's PDFs
-   * (plan 2D); the registration number never changes.
+   * (plan 2D); the registration number never changes. Moving more than one registration rebuilds
+   * in the background (plan-mandated: a synchronous rebuild of many registrations can time out).
    */
   async moveSeason(ctx) {
     const body = (ctx.request.body ?? {}) as Record<string, unknown>;
@@ -377,7 +379,12 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
       ctx.body = { moved: 0 };
       return;
     }
-    ctx.body = { moved: await moveRegistrationsToSeason(ids, toSeason, seasonMoveDeps(strapi)) };
+    if (ids.length === 1) {
+      ctx.body = { moved: await moveRegistrationsToSeason(ids, toSeason, seasonMoveDeps(strapi)) };
+      return;
+    }
+    const { moved } = await moveRegistrationsToSeasonInBackground(ids, toSeason, seasonMoveDeps(strapi));
+    ctx.body = { moved };
   },
 
   /**
@@ -387,6 +394,8 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
    * Returns { moved: number }.
    * Also points seasonRef at the Sezon of that label and rebuilds each moved registration's PDFs
    * (plan 2D; a failure is logged and the loop goes on); the registration number never changes.
+   * The rebuild runs in the background (plan-mandated: a whole season can be hundreds of
+   * registrations, and a synchronous rebuild would time out the request).
    */
   async moveWholeSeason(ctx) {
     const body = (ctx.request.body ?? {}) as Record<string, unknown>;
@@ -401,7 +410,8 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     if (asBool(body.archivedOnly)) where.archived = true;
     const rows = (await strapi.db.query(UID).findMany({ select: ['documentId'], where })) as { documentId?: unknown }[];
     const ids = rows.map((r) => r.documentId).filter((id): id is string => typeof id === 'string');
-    ctx.body = { moved: await moveRegistrationsToSeason(ids, toSeason, seasonMoveDeps(strapi)) };
+    const { moved } = await moveRegistrationsToSeasonInBackground(ids, toSeason, seasonMoveDeps(strapi));
+    ctx.body = { moved };
   },
 
   /**

@@ -13,6 +13,6 @@ export {
 } from './service';
 export { deleteRegistrationsWithDocuments, type BulkDeleteDeps } from './bulk-delete';
 export { DOCUMENT_FIELDS, touchesDocuments } from './requests';
-export { moveRegistrationsToSeason, seasonMoveDeps, type SeasonMoveDeps } from './season-move';
+export { moveRegistrationsToSeason, moveRegistrationsToSeasonInBackground, seasonMoveDeps, type SeasonMoveDeps } from './season-move';
 export { createDownloadToken, verifyDownloadToken, documentTokenSecret, DOWNLOAD_TOKEN_TTL_MS } from './token';
 export { finishSubmit, submitBlockedReason, type PublicSubmitResponse, type PublicSubmitSuccess } from './submit-response';

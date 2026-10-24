@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { TextStyle } from '../runs';
 
@@ -46,8 +47,20 @@ export function fontsDir(): string {
   return path.resolve(process.cwd(), 'assets', 'fonts');
 }
 
+/** Font file bytes, read from disk once per process and reused for every document (a PDF build is per-request). */
+const fontData = new Map<string, Buffer>();
+
+function cachedFontData(filePath: string): Buffer {
+  let data = fontData.get(filePath);
+  if (!data) {
+    data = readFileSync(filePath);
+    fontData.set(filePath, data);
+  }
+  return data;
+}
+
 export function registerFonts(doc: PDFKit.PDFDocument, dir: string = fontsDir()): void {
-  for (const [name, file] of Object.entries(FONT_FILES)) doc.registerFont(name, path.join(dir, file));
+  for (const [name, file] of Object.entries(FONT_FILES)) doc.registerFont(name, cachedFontData(path.join(dir, file)));
 }
 
 export const STYLE_FONT: Record<TextStyle, string> = {
