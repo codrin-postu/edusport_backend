@@ -118,6 +118,13 @@ export async function enqueueRegistrationEmail(strapi: Core.Strapi, registration
   await queueRegistrationEmail(buildEmailDeps(strapi), registrationDocumentId);
 }
 
+/** Deletes the e-mail jobs of registrations about to be deleted; call it before the rows go, while the link resolves. */
+export async function deleteRegistrationEmailJobs(strapi: Core.Strapi, registrationDocumentIds: string[]): Promise<number> {
+  if (registrationDocumentIds.length === 0) return 0;
+  const { count } = await strapi.db.query(JOB_UID).deleteMany({ where: { registration: { documentId: { $in: registrationDocumentIds } } } });
+  return count;
+}
+
 /** Hourly cron entry (config/cron-tasks.ts). */
 export function retryRegistrationEmails(strapi: Core.Strapi): Promise<RetrySummary> {
   return retryDueJobs(buildEmailDeps(strapi));

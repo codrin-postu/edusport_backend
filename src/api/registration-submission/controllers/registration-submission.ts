@@ -10,7 +10,7 @@ import { findCurrentSeason } from '../../../club/current-season';
 import { submitRegistration } from '../../../club/registration-submit';
 import { buildSubmitDeps } from '../submit-deps';
 import { queueEmailAfterSubmit } from '../../../email/after-submit';
-import { enqueueRegistrationEmail } from '../../../email/strapi-email';
+import { deleteRegistrationEmailJobs, enqueueRegistrationEmail } from '../../../email/strapi-email';
 import {
   buildRegistrationDocuments,
   createDownloadToken,
@@ -344,10 +344,11 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
 
   /**
    * DELETE /api/forms/inscrieri/:documentId  (admin-guarded) — permanent.
-   * Its stored PDFs are deleted too (user, 2026-10-21).
+   * Its stored PDFs are deleted too (user, 2026-10-21), and its e-mail jobs before the row.
    */
   async deleteSubmission(ctx) {
     const { documentId } = ctx.params;
+    await deleteRegistrationEmailJobs(strapi, [documentId]);
     await strapi.documents(UID).delete({ documentId });
     await removeDocuments(documentId);
     ctx.body = { data: { documentId } };
@@ -370,7 +371,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
   /**
    * POST /api/forms/inscrieri/delete-archived-season  (admin-guarded)
    * Permanently delete every archived submission in a season. Body: { season }.
-   * Their stored PDFs are deleted too (user, 2026-10-21): ids first, then the rows, then the folders.
+   * Their stored PDFs are deleted too (user, 2026-10-21): ids first, then their e-mail jobs, the rows, the folders.
    */
   async deleteArchivedSeason(ctx) {
     const season = trimOrEmpty((ctx.request.body as any)?.season);
@@ -380,6 +381,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
         const rows = (await strapi.db.query(UID).findMany({ select: ['documentId'], where: { season, archived: true } })) as { documentId?: unknown }[];
         return rows.map((r) => r.documentId).filter((id): id is string => typeof id === 'string');
       },
+      deleteEmailJobs: (ids) => deleteRegistrationEmailJobs(strapi, ids),
       deleteRows: async (ids) => (await strapi.db.query(UID).deleteMany({ where: { documentId: { $in: ids } } })).count,
       deleteDocuments: (documentId) => deleteRegistrationDocuments(strapi, documentId),
       logError: (message) => strapi.log.error(message),

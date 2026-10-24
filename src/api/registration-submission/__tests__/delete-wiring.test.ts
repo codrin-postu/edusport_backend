@@ -10,3 +10,14 @@ it('deleteArchivedSeason deletes the rows by the ids it collected, not by a seco
   expect(del.length).toBeGreaterThan(0);
   expect(del).toMatch(/deleteRows: async \(ids\) => \(await strapi\.db\.query\(UID\)\.deleteMany\(\{ where: \{ documentId: \{ \$in: ids \} \} \}\)\)\.count/);
 });
+
+it('deleteSubmission deletes the e-mail jobs before the row, while the link still resolves', () => {
+  const del = method('deleteSubmission', 'archiveSeason');
+  const jobs = del.indexOf('deleteRegistrationEmailJobs(strapi, [documentId])');
+  expect(jobs).toBeGreaterThan(-1);
+  expect(jobs).toBeLessThan(del.indexOf('strapi.documents(UID).delete('));
+});
+
+it('deleteArchivedSeason deletes the e-mail jobs of the collected ids', () => {
+  expect(method('deleteArchivedSeason', 'moveSeason')).toContain('deleteEmailJobs: (ids) => deleteRegistrationEmailJobs(strapi, ids)');
+});
