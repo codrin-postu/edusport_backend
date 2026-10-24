@@ -12,6 +12,7 @@ export interface SeasonMoveDeps {
 }
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
+const yieldToEventLoop = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 async function moveOne(id: string, label: string, seasonRef: string | null, deps: SeasonMoveDeps): Promise<boolean> {
   try {
@@ -51,7 +52,10 @@ async function moveRowsOnly(ids: string[], label: string, seasonRef: string | nu
   return moved;
 }
 
-/** Rebuilds the moved registrations' PDFs one by one; never throws. With no Sezon, logs once instead. */
+/**
+ * Rebuilds the moved registrations' PDFs one by one; never throws. With no Sezon, logs once instead.
+ * Each render blocks the event loop, so it yields between registrations to let requests through.
+ */
 async function rebuildMoved(moved: string[], label: string, seasonRef: string | null, deps: SeasonMoveDeps): Promise<void> {
   if (!seasonRef) {
     if (moved.length > 0) deps.logError(`[inscrieri] no Sezon is labelled "${label}": documents of ${moved.length} moved registration(s) not rebuilt`);
@@ -63,6 +67,7 @@ async function rebuildMoved(moved: string[], label: string, seasonRef: string | 
     } catch (err) {
       deps.logError(`[inscrieri] rebuilding documents of ${id} after moving to ${label} failed: ${message(err)}`);
     }
+    await yieldToEventLoop();
   }
 }
 

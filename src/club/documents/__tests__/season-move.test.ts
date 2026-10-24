@@ -91,6 +91,19 @@ describe('moveRegistrationsToSeasonInBackground', () => {
     expect(errors).toEqual([`[inscrieri] rebuilding documents of ${A} after moving to 2027-2028 failed: disk full`]);
   });
 
+  it('lets queued work run between two rebuilds', async () => {
+    const { deps, calls } = fake({
+      rebuild: async (id) => {
+        calls.push(`rebuild ${id}`);
+        setImmediate(() => calls.push(`other work after ${id}`));
+        return { ok: true, documents: ['acord'] };
+      },
+    });
+    const { rebuilt } = await moveRegistrationsToSeasonInBackground([A, B], '2027-2028', deps);
+    await rebuilt;
+    expect(calls.slice(2)).toEqual([`rebuild ${A}`, `other work after ${A}`, `rebuild ${B}`, `other work after ${B}`]);
+  });
+
   describe('with a logger that throws', () => {
     const unhandled: unknown[] = [];
     const onUnhandled = (reason: unknown) => {
