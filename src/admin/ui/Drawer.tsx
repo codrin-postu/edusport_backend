@@ -135,7 +135,8 @@ export function Drawer({
 }
 
 export interface DrawerSectionProps {
-  title: React.ReactNode;
+  /** Small uppercase title. Omit for a drawer with a single block of fields (no header row). */
+  title?: React.ReactNode;
   /** Right of the title (a count, a hint). */
   aside?: React.ReactNode;
   /** Header becomes a toggle; the body stays unmounted while closed. */
@@ -155,10 +156,12 @@ export function DrawerSection({ title, aside, collapsible = false, defaultOpen =
   if (!collapsible) {
     return (
       <section className={cx('ui-dsec', className)}>
-        <div className="ui-dsec-h">
-          <h3 className="ui-dsec-title">{title}</h3>
-          {aside}
-        </div>
+        {title !== undefined && (
+          <div className="ui-dsec-h">
+            <h3 className="ui-dsec-title">{title}</h3>
+            {aside}
+          </div>
+        )}
         <div className="ui-dsec-b">{children}</div>
       </section>
     );
