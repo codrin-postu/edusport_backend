@@ -64,7 +64,8 @@ export default {
       try {
         const { attempted, skipped } = await retryRegistrationEmails(strapi);
         if (attempted) strapi.log.info(`[email-job][cron] ${attempted} queued e-mail(s) attempted`);
-        if (skipped) strapi.log.debug(`[email-job][cron] skipped: ${skipped}`);
+        // In production a skip means parents' e-mails are piling up unsent: visible in the logs.
+        if (skipped) strapi.log[process.env.NODE_ENV === 'production' ? 'warn' : 'debug'](`[email-job][cron] skipped: ${skipped}`);
       } catch (err) {
         strapi.log.warn(`[email-job][cron] retry failed: ${err instanceof Error ? err.message : String(err)}`);
       }

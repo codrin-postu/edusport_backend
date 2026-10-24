@@ -42,11 +42,32 @@ async function loadRegistration(strapi: Core.Strapi, documentId: string) {
   return { row, season: await seasonOf(strapi, row.seasonRef, row.season) };
 }
 
+const building = new Map<string, Promise<void>>();
+
+/** Runs `task` after every earlier task of the same key has settled; the entry is dropped once the queue is empty. */
+function oneAtATime<T>(key: string, task: () => Promise<T>): Promise<T> {
+  const result = (building.get(key) ?? Promise.resolve()).then(task);
+  const tail = result.then(
+    () => undefined,
+    () => undefined,
+  );
+  building.set(key, tail);
+  void tail.then(() => {
+    if (building.get(key) === tail) building.delete(key);
+  });
+  return result;
+}
+
 /**
  * Builds (or rebuilds) a registration's PDFs and stores them: the Acord, plus the Cerere de adeziune when
  * the membership answer is Da. New files are written before old ones are deleted. Never sends an e-mail.
+ * Builds of the same registration run one at a time: two overlapping ones could delete each other's files.
  */
-export async function buildRegistrationDocuments(strapi: Core.Strapi, registrationDocumentId: string): Promise<StoredDocument[]> {
+export function buildRegistrationDocuments(strapi: Core.Strapi, registrationDocumentId: string): Promise<StoredDocument[]> {
+  return oneAtATime(registrationDocumentId, () => buildNow(strapi, registrationDocumentId));
+}
+
+async function buildNow(strapi: Core.Strapi, registrationDocumentId: string): Promise<StoredDocument[]> {
   const dir = registrationDir(root(strapi), registrationDocumentId);
   const { row, season } = await loadRegistration(strapi, registrationDocumentId);
   const values = registrationValues(row, season);

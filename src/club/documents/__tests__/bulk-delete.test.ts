@@ -9,9 +9,12 @@ function fake(over: Partial<BulkDeleteDeps> = {}) {
       calls.push('find');
       return ['reg0000000000000000000001', 'reg0000000000000000000002', 'reg0000000000000000000003'];
     },
-    deleteRows: async () => {
-      calls.push('delete rows');
-      return 3;
+    deleteEmailJobs: async (ids) => {
+      calls.push(`delete e-mail jobs ${ids.join(',')}`);
+    },
+    deleteRows: async (ids) => {
+      calls.push(`delete rows ${ids.join(',')}`);
+      return ids.length;
     },
     deleteDocuments: async (id) => {
       calls.push(`delete documents ${id}`);
@@ -25,12 +28,13 @@ function fake(over: Partial<BulkDeleteDeps> = {}) {
 }
 
 describe('deleteRegistrationsWithDocuments (delete archived season)', () => {
-  it('reads the ids first, deletes the rows, then every registration folder', async () => {
+  it('reads the ids first, deletes their e-mail jobs, the rows, then every registration folder', async () => {
     const { deps, calls } = fake();
     await expect(deleteRegistrationsWithDocuments(deps)).resolves.toBe(3);
     expect(calls).toEqual([
       'find',
-      'delete rows',
+      'delete e-mail jobs reg0000000000000000000001,reg0000000000000000000002,reg0000000000000000000003',
+      'delete rows reg0000000000000000000001,reg0000000000000000000002,reg0000000000000000000003',
       'delete documents reg0000000000000000000001',
       'delete documents reg0000000000000000000002',
       'delete documents reg0000000000000000000003',
@@ -50,6 +54,27 @@ describe('deleteRegistrationsWithDocuments (delete archived season)', () => {
     expect(errors).toEqual(['[inscrieri] deleting documents of reg0000000000000000000002 failed: EACCES']);
   });
 
+  it('deletes nothing when no registration matches', async () => {
+    const { deps, calls } = fake({
+      findIds: async () => {
+        calls.push('find');
+        return [];
+      },
+    });
+    await expect(deleteRegistrationsWithDocuments(deps)).resolves.toBe(0);
+    expect(calls).toEqual(['find']);
+  });
+
+  it('keeps the rows and folders when deleting the e-mail jobs fails', async () => {
+    const { deps, calls } = fake({
+      deleteEmailJobs: async () => {
+        throw new Error('database down');
+      },
+    });
+    await expect(deleteRegistrationsWithDocuments(deps)).rejects.toThrow('database down');
+    expect(calls).toEqual(['find']);
+  });
+
   it('removes no folder when deleting the rows fails', async () => {
     const { deps, calls } = fake({
       deleteRows: async () => {
@@ -57,6 +82,6 @@ describe('deleteRegistrationsWithDocuments (delete archived season)', () => {
       },
     });
     await expect(deleteRegistrationsWithDocuments(deps)).rejects.toThrow('database down');
-    expect(calls).toEqual(['find']);
+    expect(calls).toEqual(['find', 'delete e-mail jobs reg0000000000000000000001,reg0000000000000000000002,reg0000000000000000000003']);
   });
 });

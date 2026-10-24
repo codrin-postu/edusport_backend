@@ -29,6 +29,7 @@ import {
   cx,
 } from '../ui';
 import { IconChevronDown, IconGrip } from '../ui/icons';
+import { fieldsClearedByEdit } from '../../club/registration-edit';
 
 /**
  * EduSport admin — shared submission-results table.
@@ -845,6 +846,12 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
   // collapse the page to a single line and expand it again.
   const firstLoad = loading && rows.length === 0;
 
+  const patchRow = React.useCallback(
+    (documentId: string, patch: Record<string, unknown>) =>
+      setRows((cur) => cur.map((r) => (r.documentId === documentId ? { ...r, ...patch } : r))),
+    [],
+  );
+
   // --- persist a single field (optimistic)
   const saveField = React.useCallback(
     async (documentId: string, key: string, value: unknown) => {
@@ -859,6 +866,8 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
       try {
         await put(`${cfg.api}/${documentId}`, { [key]: value });
         toastAutosaved();
+        const cleared = fieldsClearedByEdit(key, value);
+        if (cleared) patchRow(documentId, cleared);
         // A season change moves the row out of the current view, so the list
         // must be refetched. A status change only moves the counters, unless a
         // status filter is active, in which case the row may now be excluded.
@@ -868,11 +877,11 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
           if (filters.some((f) => f.col === 'status')) refetch();
         }
       } catch {
-        setRows((cur) => cur.map((r) => (r.documentId === documentId ? { ...r, [key]: prev } : r)));
+        patchRow(documentId, { [key]: prev });
         adminToast.error(cfg.texts.saveError);
       }
     },
-    [put, refetch, refetchStat, filters, cfg],
+    [put, refetch, refetchStat, filters, cfg, patchRow],
   );
 
   // Destructive actions go through the shared ConfirmDialog. `removeRow` keeps

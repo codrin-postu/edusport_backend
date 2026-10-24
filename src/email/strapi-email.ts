@@ -4,7 +4,7 @@
  */
 import { readFile } from 'node:fs/promises';
 import type { Core } from '@strapi/strapi';
-import { listRegistrationDocuments } from '../club/documents';
+import { buildRegistrationDocuments, listRegistrationDocuments } from '../club/documents';
 import { recordHistory } from '../club/history';
 import { captureMessage } from '../sentry';
 import { sendWithBrevo } from './brevo';
@@ -97,6 +97,7 @@ export function buildEmailDeps(strapi: Core.Strapi, config: EmailConfig = readEm
     jobs: sheetSyncedStore(jobStore(strapi), (registrationDocumentId) => queueUpsert('inscrieri', registrationDocumentId)),
     loadRegistration: (documentId) => loadRegistration(strapi, documentId),
     listDocuments: (documentId) => listRegistrationDocuments(strapi, documentId),
+    buildDocuments: (documentId) => buildRegistrationDocuments(strapi, documentId),
     readDocument: (document) => readFile(document.path),
     loadLinks: async () => buildEmailLinks(config, (await strapi.documents(SETTINGS_UID).findFirst({}))?.contact),
     send: deliver(config),
@@ -116,6 +117,13 @@ export function buildEmailDeps(strapi: Core.Strapi, config: EmailConfig = readEm
 /** Contract for the submit flow (plan 2D/2F): queue the registration e-mail after the documents are built. */
 export async function enqueueRegistrationEmail(strapi: Core.Strapi, registrationDocumentId: string): Promise<void> {
   await queueRegistrationEmail(buildEmailDeps(strapi), registrationDocumentId);
+}
+
+/** Deletes the e-mail jobs of registrations about to be deleted; call it before the rows go, while the link resolves. */
+export async function deleteRegistrationEmailJobs(strapi: Core.Strapi, registrationDocumentIds: string[]): Promise<number> {
+  if (registrationDocumentIds.length === 0) return 0;
+  const { count } = await strapi.db.query(JOB_UID).deleteMany({ where: { registration: { documentId: { $in: registrationDocumentIds } } } });
+  return count;
 }
 
 /** Hourly cron entry (config/cron-tasks.ts). */

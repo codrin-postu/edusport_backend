@@ -22,3 +22,6 @@ export function priceValue(text: string): number | null | string {
 export const priceInput = (price: number | null) => (price === null ? '' : String(price));
 
 export const hasTooltip = (items: AdminPriceItem[]) => items.some((i) => i.tooltip);
+
+/** The delete URL carries the row's name, encoded: the fetch client does not encode `params`, so "&", "+", "#", "%" broke it. */
+export const withExpectedName = (url: string, expectedName: string) => `${url}?expectedName=${encodeURIComponent(expectedName)}`;

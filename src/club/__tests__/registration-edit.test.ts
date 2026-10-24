@@ -4,6 +4,7 @@ import { expect, it } from 'vitest';
 import {
   REGISTRATION_EDIT_ERROR,
   documentRebuiltEntry,
+  fieldsClearedByEdit,
   normalizeRegistrationEdit,
   registrationEditError,
 } from '../registration-edit';
@@ -25,6 +26,13 @@ it('clears the "Alta" text when the relationship moves off Alta, and trims it ot
   expect(normalizeRegistrationEdit({ relationshipOther: '  Bunică ' })).toEqual({ relationshipOther: 'Bunică' });
   expect(normalizeRegistrationEdit({ relationshipOther: ' ' })).toEqual({ relationshipOther: null });
   expect(normalizeRegistrationEdit({ status: 'Nou' })).toEqual({ status: 'Nou' });
+});
+
+it('a saved Calitate other than Alta also clears the "Alta" text in the panel row', () => {
+  expect(fieldsClearedByEdit('relationship', 'parinte')).toEqual({ relationshipOther: null });
+  expect(fieldsClearedByEdit('relationship', 'alta')).toBeNull();
+  expect(fieldsClearedByEdit('relationshipOther', 'Bunică')).toBeNull();
+  expect(fieldsClearedByEdit('membershipAnswer', 'nu')).toBeNull();
 });
 
 it('writes "Document refăcut" with the rebuilt documents and the admin', () => {

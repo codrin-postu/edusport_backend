@@ -111,3 +111,22 @@ describe('rebuildAfterEdit (admin PUT)', () => {
     expect(await fileNames(strapi)).toEqual(['Maria_Pop_Acord_2027-2028.pdf']);
   });
 });
+
+describe('two builds of one registration at the same time', () => {
+  it('run one after the other, so the folder keeps the newest set (never empty)', async () => {
+    const strapi = fakeStrapi();
+    const first = buildRegistrationDocuments(strapi, ID);
+    row = { ...row, childName: 'Ioana Pop' };
+    const second = buildRegistrationDocuments(strapi, ID);
+    await Promise.all([first, second]);
+    expect(await fileNames(strapi)).toEqual(['Ioana_Pop_Acord_2026-2027.pdf']);
+  });
+
+  it('a failed build does not block the next one', async () => {
+    const strapi = fakeStrapi();
+    const missing = { ...strapi, documents: () => ({ findOne: async () => null }) } as unknown as Core.Strapi;
+    await expect(buildRegistrationDocuments(missing, ID)).rejects.toThrow(`Registration ${ID} not found`);
+    await buildRegistrationDocuments(strapi, ID);
+    expect(await fileNames(strapi)).toEqual(['Maria_Pop_Acord_2026-2027.pdf']);
+  });
+});
