@@ -197,6 +197,11 @@ describe('submitRegistration', () => {
     await submitRegistration({ ...BODY, relationshipOther: 'Bunic', sourceOther: 'Ziar' }, null, deps);
     expect(created[0].data.relationshipOther).toBeUndefined();
     expect(created[0].data.sourceOther).toBeUndefined();
+
+    const other = { ...BODY, relationship: 'alta', relationshipOther: 'Bunic', source: 'Altele', sourceOther: 'Ziar' };
+    await submitRegistration(other, null, deps);
+    expect(created[1].data.relationshipOther).toBe('Bunic');
+    expect(created[1].data.sourceOther).toBe('Ziar');
   });
 
   it('reports a failed save without details and logs it', async () => {
@@ -207,6 +212,50 @@ describe('submitRegistration', () => {
     });
     await expect(submitRegistration(BODY, null, deps)).resolves.toEqual({ ok: false, code: 'save-failed', error: SUBMIT_ERRORS['save-failed'] });
     expect(errors[0]).toContain('No free registration number');
+  });
+
+  it('reports save-failed when the "Înscrieri deschise" lookup throws', async () => {
+    const { deps, created, errors } = fake({
+      registrationsEnabled: async () => {
+        throw new Error('db unreachable');
+      },
+    });
+    await expect(submitRegistration(BODY, null, deps)).resolves.toEqual({ ok: false, code: 'save-failed', error: SUBMIT_ERRORS['save-failed'] });
+    expect(created).toEqual([]);
+    expect(errors[0]).toContain('db unreachable');
+  });
+
+  it('reports save-failed when the current-Sezon lookup throws', async () => {
+    const { deps, created, errors } = fake({
+      findCurrentSeason: async () => {
+        throw new Error('db unreachable');
+      },
+    });
+    await expect(submitRegistration(BODY, null, deps)).resolves.toEqual({ ok: false, code: 'save-failed', error: SUBMIT_ERRORS['save-failed'] });
+    expect(created).toEqual([]);
+    expect(errors[0]).toContain('db unreachable');
+  });
+
+  it('reports save-failed when the sections lookup throws', async () => {
+    const { deps, created, errors } = fake({
+      findSections: async () => {
+        throw new Error('db unreachable');
+      },
+    });
+    await expect(submitRegistration(BODY, null, deps)).resolves.toEqual({ ok: false, code: 'save-failed', error: SUBMIT_ERRORS['save-failed'] });
+    expect(created).toEqual([]);
+    expect(errors[0]).toContain('db unreachable');
+  });
+
+  it('reports save-failed when the school-prices lookup throws', async () => {
+    const { deps, created, errors } = fake({
+      findSchoolPrices: async () => {
+        throw new Error('db unreachable');
+      },
+    });
+    await expect(submitRegistration(BODY, null, deps)).resolves.toEqual({ ok: false, code: 'save-failed', error: SUBMIT_ERRORS['save-failed'] });
+    expect(created).toEqual([]);
+    expect(errors[0]).toContain('db unreachable');
   });
 });
 

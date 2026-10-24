@@ -87,13 +87,31 @@ function stop(code: SubmitErrorCode, error: string = SUBMIT_ERRORS[code]): Failu
   return { ok: false, result: { ok: false, code, error } };
 }
 
+/** Runs a dependency lookup; a thrown error becomes `save-failed` instead of an unhandled rejection. */
+async function guard<T>(fn: () => Promise<T>, deps: SubmitDeps): Promise<Step<T>> {
+  try {
+    return { ok: true, value: await fn() };
+  } catch (err) {
+    deps.logError(`[inscriere] lookup failed: ${err instanceof Error ? err.message : String(err)}`);
+    return stop('save-failed');
+  }
+}
+
 async function resolveContext(slug: string | null, deps: SubmitDeps): Promise<Step<SubmitContext>> {
-  if (!(await deps.registrationsEnabled())) return stop('closed');
-  const season = await deps.findCurrentSeason();
-  if (!season) return stop('closed');
-  const school = pickSchool(await deps.findSections(), slug);
+  const enabled = await guard(() => deps.registrationsEnabled(), deps);
+  if (enabled.ok === false) return enabled;
+  if (!enabled.value) return stop('closed');
+
+  const seasonStep = await guard(() => deps.findCurrentSeason(), deps);
+  if (seasonStep.ok === false) return seasonStep;
+  if (!seasonStep.value) return stop('closed');
+
+  const sectionsStep = await guard(() => deps.findSections(), deps);
+  if (sectionsStep.ok === false) return sectionsStep;
+  const school = pickSchool(sectionsStep.value, slug);
   if (school.ok === false) return stop(school.code);
-  return { ok: true, value: { season, school: { documentId: school.documentId, slug: school.slug } } };
+
+  return { ok: true, value: { season: seasonStep.value, school: { documentId: school.documentId, slug: school.slug } } };
 }
 
 async function loadRequired(deps: SubmitDeps): Promise<(key: string) => boolean> {
@@ -126,9 +144,10 @@ async function validateInput(input: RegistrationInput, deps: SubmitDeps): Promis
 }
 
 async function chooseSubscription(input: RegistrationInput, ctx: SubmitContext, deps: SubmitDeps): Promise<Step<SubscriptionChoice>> {
-  const school = await deps.findSchoolPrices(ctx.school.documentId);
+  const schoolStep = await guard(() => deps.findSchoolPrices(ctx.school.documentId), deps);
+  if (schoolStep.ok === false) return schoolStep;
   const member = input.membershipAnswer === MEMBERSHIP_YES;
-  const choice = school ? resolveSubscriptionChoice(school, input.priceItemName, member) : null;
+  const choice = schoolStep.value ? resolveSubscriptionChoice(schoolStep.value, input.priceItemName, member) : null;
   return choice ? { ok: true, value: choice } : stop('invalid', CHOICE_ERROR);
 }
 
