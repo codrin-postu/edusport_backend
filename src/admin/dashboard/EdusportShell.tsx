@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
-import { EDUSPORT_LINKS, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, UMAMI_URL, ANUNTURI_TO, NAVIGATION_TO } from './menu';
+import { EDUSPORT_LINKS, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, UMAMI_URL, ANUNTURI_TO, NAVIGATION_TO, SEZOANE_TO } from './menu';
 import type { Group } from './menu';
 import { scaleVars } from '../ui/tokens';
 
@@ -215,7 +215,7 @@ const GROUP_ICON: Record<Group, IconKey> = {
 };
 
 /** Glyphs for the pinned top-level rows, which sit outside any category. */
-const PINNED_ICON: Record<string, IconKey> = { [ANUNTURI_TO]: 'bell', [NAVIGATION_TO]: 'grid' };
+const PINNED_ICON: Record<string, IconKey> = { [ANUNTURI_TO]: 'bell', [NAVIGATION_TO]: 'grid', [SEZOANE_TO]: 'calendar' };
 
 function Chevron({ open }: { open: boolean }) {
   return (
