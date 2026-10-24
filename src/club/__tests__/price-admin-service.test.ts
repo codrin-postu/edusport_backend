@@ -103,6 +103,14 @@ describe('editPriceItem', () => {
     await expect(editPriceItem(store, 'nope', { kind: 'remove', index: 0, expectedName: 'x' }, 'a')).resolves.toEqual({ ok: false, status: 404, error: PRICE_ERRORS.listMissing });
     await expect(editPriceItem(store, 'std', { kind: 'remove', index: 0, expectedName: 'Alt nume' }, 'a')).resolves.toEqual({ ok: false, status: 409, error: PRICE_ERRORS.stale });
   });
+
+  it('writes nothing when the submitted item is unchanged', async () => {
+    const { store, history, saved } = fakeStore();
+    const edit = { kind: 'update' as const, index: 0, expectedName: 'Abonament 8 ședințe grup', item: fields('Abonament 8 ședințe grup') };
+    await expect(editPriceItem(store, 'std', edit, 'a')).resolves.toMatchObject({ ok: true });
+    expect(saved).toEqual([]);
+    expect(history).toEqual([]);
+  });
 });
 
 describe('createPriceList', () => {

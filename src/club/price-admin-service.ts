@@ -54,10 +54,13 @@ export async function editPriceItem(store: PriceStore, listId: string, edit: Ite
   if (renamed && nameClash(await sectionListsWith(store, list, applied.items), applied.after.name)) {
     return fail(409, duplicateNameError(applied.after.name));
   }
+  const changes = fieldChanges(applied.before, applied.after);
+  if (edit.kind === 'update' && Object.keys(changes).length === 0) {
+    return { ok: true, data: await loadAdminPrices(store) };
+  }
   await store.saveItems(listId, applied.items);
   const item = (applied.after ?? applied.before)?.name;
-  const changes = { item, ...fieldChanges(applied.before, applied.after) };
-  await store.record({ subjectType: 'price-list', subjectId: listId, action: ITEM_ACTIONS[edit.kind], changes, actor });
+  await store.record({ subjectType: 'price-list', subjectId: listId, action: ITEM_ACTIONS[edit.kind], changes: { item, ...changes }, actor });
   return { ok: true, data: await loadAdminPrices(store) };
 }
 
