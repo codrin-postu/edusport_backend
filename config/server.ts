@@ -6,8 +6,8 @@ export default ({ env }) => ({
   app: {
     keys: env.array('APP_KEYS'),
   },
-  // Scheduled jobs (see config/cron-tasks.ts). Currently only the Google Sheets
-  // reconcile pass, which is itself inert until a sheet is connected.
+  // Scheduled jobs (see config/cron-tasks.ts): the Google Sheets reconcile pass
+  // and the registration e-mail retry. Both are inert until configured.
   cron: {
     enabled: true,
     tasks: cronTasks,
