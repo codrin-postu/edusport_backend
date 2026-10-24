@@ -1493,7 +1493,6 @@ export interface ApiPricingPricing extends Struct.SingleTypeSchema {
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     tiers: Schema.Attribute.JSON &
-      Schema.Attribute.CustomField<'plugin::component-preview.pricing-tiers'> &
       Schema.Attribute.SetPluginOptions<{
         'content-manager': {
           displayOrder: 1;

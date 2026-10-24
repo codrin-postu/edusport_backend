@@ -8,10 +8,9 @@ import {
   SaveBar,
   UnsavedGuard,
   ObjectFieldCard,
-  DateRangeInput,
+  EditorCard,
   Switch,
   Field,
-  Input,
   HelpTip,
   normalizeObject,
 } from '../ui';
@@ -27,18 +26,18 @@ import { UID } from './routes';
  * SiteSettingsContactEditor (`contact`). Both are JSON attributes; the shapes
  * stay exactly as those editors wrote them, so the website reads them
  * unchanged:
- *   registration: { open, currentSeason, seasonStartDate, seasonEndDate }
+ *   registration: { open } (editable here), plus the retired season fields
+ *                 currentSeason, seasonStartDate, seasonEndDate (spec 1.6: kept, no longer
+ *                 edited; seasons live on the Sezoane page)
  *   contact:      { phone, email, facebookUrl1, instagramUrl,
  *                   whatsappChannelUrl, addressDisplay, addressMapsUrl }
  * Keys the editors did not know are kept (the objects are merged, not
  * rebuilt). These are the only two attributes on the schema.
  */
 
+/** Only `open` is edited; the stored season keys ride along untouched (normalizeObject keeps them). */
 interface Registration {
   open: boolean;
-  currentSeason: string;
-  seasonStartDate: string;
-  seasonEndDate: string;
 }
 
 interface Contact {
@@ -56,12 +55,7 @@ interface SiteSettings {
   contact: Contact | null;
 }
 
-const EMPTY_REGISTRATION: Registration = {
-  open: false,
-  currentSeason: '',
-  seasonStartDate: '',
-  seasonEndDate: '',
-};
+const EMPTY_REGISTRATION: Registration = { open: false };
 
 const EMPTY_CONTACT: Contact = {
   phone: '',
@@ -86,7 +80,7 @@ const SetariSitePage: React.FC = () => {
   return (
     <AdminPage>
       <Window>
-        <PageHeader back={{ to: DASHBOARD_TO }} title="Setări site" subtitle="Înscrieri, sezon curent și date de contact, folosite pe tot site-ul." />
+        <PageHeader back={{ to: DASHBOARD_TO }} title="Setări site" subtitle="Înscrieri și date de contact, folosite pe tot site-ul." />
 
         {page.loading ? (
           <Loading />
@@ -96,20 +90,7 @@ const SetariSitePage: React.FC = () => {
           </div>
         ) : (
           <div className="ui-body">
-            <ObjectFieldCard<Registration>
-              title="Înscrieri & sezon curent"
-              description="Starea înscrierilor și sezonul curent. Setate o singură dată; folosite peste tot pe site."
-              value={registration}
-              onFieldChange={(key, v) => setRegistration({ [key]: v } as Partial<Registration>)}
-              fields={[
-                {
-                  key: 'currentSeason',
-                  label: 'Etichetă sezon',
-                  hint: 'Eticheta scurtă a sezonului - apare în mai multe locuri pe site (homepage, pagina Program, calendar).',
-                  placeholder: 'ex: 2025–2026',
-                },
-              ]}
-            >
+            <EditorCard title="Înscrieri">
               <Field label="Înscrieri deschise" hint="Când este activ, pe site se afișează secțiunea de înscrieri. Când este inactiv, apare mesajul că înscrierile sunt închise.">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-3)' }}>
                   <Switch
@@ -121,22 +102,7 @@ const SetariSitePage: React.FC = () => {
                   <HelpTip label="Comută starea de înscrieri afișată public pe site." />
                 </div>
               </Field>
-
-              <div style={{ marginTop: 'var(--ui-space-4)' }}>
-                <DateRangeInput
-                  value={{ start: registration.seasonStartDate || null, end: registration.seasonEndDate || null }}
-                  onChange={(next) =>
-                    setRegistration({
-                      seasonStartDate: next.start ?? '',
-                      seasonEndDate: next.end ?? '',
-                    })
-                  }
-                  startLabel="Început sezon"
-                  endLabel="Sfârșit sezon"
-                  hint="Folosite în pagina Program și în calendar."
-                />
-              </div>
-            </ObjectFieldCard>
+            </EditorCard>
 
             <ObjectFieldCard<Contact>
               title="Date de contact & rețele sociale"

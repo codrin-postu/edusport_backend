@@ -97,23 +97,6 @@ export default {
     });
 
     app.customFields.register({
-      name: 'pricing-tiers',
-      pluginId: 'component-preview',
-      type: 'json',
-      intlLabel: {
-        id: 'component-preview.pricing-tiers.label',
-        defaultMessage: 'Tarife cursuri',
-      },
-      intlDescription: {
-        id: 'component-preview.pricing-tiers.description',
-        defaultMessage: 'Tabel editabil cu tarifele pentru membri și non-membri',
-      },
-      components: {
-        Input: async () => import('./PricingTiersEditor').then(m => ({ default: m.default as any })),
-      },
-    });
-
-    app.customFields.register({
       name: 'footer-notes',
       pluginId: 'component-preview',
       type: 'json',
