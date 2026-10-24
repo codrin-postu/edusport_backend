@@ -336,6 +336,7 @@ const WIDTH: Record<ColumnType, number> = {
   bool: 110,
   list: 200,
   id: 190,
+  link: 160,
 };
 
 export const widthFor = (t: ColumnType): number => WIDTH[t] ?? WIDTH.text;
