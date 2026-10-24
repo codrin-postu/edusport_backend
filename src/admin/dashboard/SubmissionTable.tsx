@@ -573,6 +573,13 @@ function MenuButton({
   );
 }
 
+/** The first list query from the page URL: `?q=` (search) and `?season=` (a season label or `all`). */
+function initialQuery(): { q: string; season: string } {
+  if (typeof window === 'undefined') return { q: '', season: '' };
+  const params = new URLSearchParams(window.location.search);
+  return { q: (params.get('q') ?? '').trim(), season: (params.get('season') ?? '').trim() };
+}
+
 export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }) {
   // useFetchClient returns fresh function identities on every render, and the
   // list effect depends on `get`. Without this, an optimistic row edit
@@ -620,10 +627,12 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
 
   const [view, setView] = React.useState<'compact' | 'full'>('compact');
 
-  // --- server query state
-  const [season, setSeason] = React.useState<string>(''); // '' => server default (active)
-  const [searchInput, setSearchInput] = React.useState('');
-  const [search, setSearch] = React.useState('');
+  // --- server query state; `?q=` and `?season=` in the page URL set the first query (the
+  // Google Sheet's Document link opens one registration this way, see src/sheets/admin-link.ts)
+  const [initial] = React.useState(initialQuery);
+  const [season, setSeason] = React.useState<string>(initial.season); // '' => server default (active)
+  const [searchInput, setSearchInput] = React.useState(initial.q);
+  const [search, setSearch] = React.useState(initial.q);
   const [filters, setFilters] = React.useState<ActiveFilter[]>([]);
   const [sort, setSort] = React.useState<'newest' | 'oldest' | 'name'>('newest');
   const [page, setPage] = React.useState(1);
