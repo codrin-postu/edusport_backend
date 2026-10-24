@@ -8,6 +8,9 @@ dist
 public/uploads/*
 !public/uploads/.gitkeep
 
+# Generated registration PDFs (personal data): never baked into an image.
+private
+
 # Never bake env files into images.
 .env
 .env.*

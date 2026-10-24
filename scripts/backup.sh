@@ -4,9 +4,10 @@
 # Schedule via cron on the host (as root or the deploy user):
 #   0 3 * * * /opt/edusport/edusport_backend/scripts/backup.sh >> /var/log/edusport-backup.log 2>&1
 #
-# Produces two files per run, in ./backups/:
-#   strapi-YYYY-MM-DD.sql.gz   - Postgres dump
-#   uploads-YYYY-MM-DD.tar.gz  - public/uploads tarball
+# Produces three files per run, in ./backups/:
+#   strapi-YYYY-MM-DD.sql.gz     - Postgres dump
+#   uploads-YYYY-MM-DD.tar.gz    - public/uploads tarball
+#   documents-YYYY-MM-DD.tar.gz  - private/ tarball (registration PDFs)
 #
 # Rotation: keeps only the last 14 of each kind.
 
@@ -31,6 +32,7 @@ mkdir -p "$BACKUP_DIR"
 DATE="$(date +%F)"
 SQL_FILE="$BACKUP_DIR/strapi-$DATE.sql.gz"
 UPLOADS_FILE="$BACKUP_DIR/uploads-$DATE.tar.gz"
+DOCUMENTS_FILE="$BACKUP_DIR/documents-$DATE.tar.gz"
 
 echo "[$(date -u +%FT%TZ)] starting backup"
 
@@ -47,8 +49,15 @@ docker compose -f docker-compose.production.yml exec -T backend \
 
 echo "  wrote $UPLOADS_FILE ($(du -h "$UPLOADS_FILE" | cut -f1))"
 
+# Registration PDFs live in the private_documents volume, mounted at /opt/app/private.
+docker compose -f docker-compose.production.yml exec -T backend \
+  tar -C /opt/app -czf - private > "$DOCUMENTS_FILE"
+
+echo "  wrote $DOCUMENTS_FILE ($(du -h "$DOCUMENTS_FILE" | cut -f1))"
+
 # Rotate: keep last 14 of each.
 ls -1t "$BACKUP_DIR"/strapi-*.sql.gz 2>/dev/null | tail -n +15 | xargs -r rm --
 ls -1t "$BACKUP_DIR"/uploads-*.tar.gz 2>/dev/null | tail -n +15 | xargs -r rm --
+ls -1t "$BACKUP_DIR"/documents-*.tar.gz 2>/dev/null | tail -n +15 | xargs -r rm --
 
 echo "[$(date -u +%FT%TZ)] backup finished"
