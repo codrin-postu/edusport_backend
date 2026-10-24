@@ -1,7 +1,7 @@
 import type { Core } from '@strapi/strapi';
 import { findCurrentSeason } from '../../club/current-season';
 import { loadSchoolPrices } from '../../club/public-info-loader';
-import { isRegistrationOpen, type SubmitDeps } from '../../club/registration-submit';
+import { isRegistrationOpen, type RepeatMatch, type SubmitDeps } from '../../club/registration-submit';
 import type { NumberedRegistration, RegistrationData } from './services/registration-submission';
 
 const FORM = 'inscriere';
@@ -9,6 +9,20 @@ const FORM_CONFIG_UID = 'api::form-config.form-config' as const;
 const UID = 'api::registration-submission.registration-submission' as const;
 
 type NumberedService = { createNumbered(data: RegistrationData, startYear: number): Promise<NumberedRegistration> };
+
+async function findRecentRepeat(strapi: Core.Strapi, match: RepeatMatch, since: Date): Promise<NumberedRegistration | null> {
+  const found = await strapi.documents(UID).findFirst({
+    filters: {
+      email: { $eqi: match.email },
+      childName: { $eqi: match.childName },
+      seasonRef: { documentId: match.seasonRef },
+      createdAt: { $gte: since.toISOString() },
+    },
+    sort: 'createdAt:desc',
+    fields: ['registrationNumber'],
+  });
+  return found?.registrationNumber ? { documentId: found.documentId, registrationNumber: found.registrationNumber } : null;
+}
 
 /** The real Strapi side of submitRegistration. `RegistrationCreateData` is type-checked against the schema here. */
 export function buildSubmitDeps(strapi: Core.Strapi): SubmitDeps {
@@ -24,6 +38,7 @@ export function buildSubmitDeps(strapi: Core.Strapi): SubmitDeps {
     findSections: () => strapi.documents('api::section.section').findMany({ limit: 100 }),
     findSchoolPrices: (documentId) => loadSchoolPrices(strapi, documentId),
     createNumbered: (data, startYear) => registrations().createNumbered(data, startYear),
+    findRecentRepeat: (match, since) => findRecentRepeat(strapi, match, since),
     logError: (message) => strapi.log.error(message),
     now: () => new Date(),
   };

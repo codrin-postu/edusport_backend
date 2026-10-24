@@ -17,6 +17,7 @@ import {
   deleteRegistrationDocuments,
   deleteRegistrationsWithDocuments,
   finishSubmit,
+  listRegistrationDocuments,
   moveRegistrationsToSeason,
   moveRegistrationsToSeasonInBackground,
   rebuildAfterEdit,
@@ -235,6 +236,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
    * numbered registration (src/club/registration-submit.ts). Status, dates, season,
    * school and price are set by the server; client values for them are ignored.
    * Then builds the PDFs (plan 2D; a failed build is logged, the registration still succeeds).
+   * A repeat of a registration saved in the last 10 minutes gets that registration's answer, nothing new.
    * Returns 200 {ok:true, registrationNumber, downloadToken, documents} or 400 {ok:false, code, error};
    * 503 when DOCUMENT_TOKEN_SECRET is missing in production (fails closed, nothing saved).
    */
@@ -251,6 +253,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     const saved = await submitRegistration(body, slug, buildSubmitDeps(strapi));
     const result = await finishSubmit(saved, {
       buildDocuments: (documentId) => buildRegistrationDocuments(strapi, documentId),
+      listDocuments: (documentId) => listRegistrationDocuments(strapi, documentId),
       createToken: (documentId) => createDownloadToken(documentId),
       logError: (message) => strapi.log.error(message),
     });
