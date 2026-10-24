@@ -18,7 +18,6 @@
   "attributes": {
     "tiers": {
       "type": "json",
-      "customField": "plugin::component-preview.pricing-tiers",
       "pluginOptions": {
         "content-manager": {
           "displayOrder": 1
