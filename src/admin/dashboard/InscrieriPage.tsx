@@ -14,6 +14,7 @@ import SubmissionTablePage, {
 } from './SubmissionTable';
 import { isScriptFormRegistration, registrationPanelRows } from '../../club/registration-panel';
 import { BlankFormsMenu } from './inscrieri/BlankFormsMenu';
+import { EditableAnswer } from './inscrieri/EditableAnswer';
 import { RegistrationDocuments } from './inscrieri/RegistrationDocuments';
 import { RegistrationEmail } from './inscrieri/RegistrationEmail';
 
@@ -30,7 +31,9 @@ import { RegistrationEmail } from './inscrieri/RegistrationEmail';
  * Phase 2: the panel shows the script form's answers for new registrations
  * (src/club/registration-panel.ts), their PDFs (plan 2D routes) and the e-mail
  * status with "Retrimite e-mailul" (plan 2F routes). The header has "Formulare
- * goale" (blank PDFs).
+ * goale" (blank PDFs). Calitate and Membru A.C.S. are edited in place: they are
+ * printed on the PDFs, so saving one rebuilds them (plan 2D) and writes "Document
+ * refăcut" to the history; no e-mail is sent.
  *
  * Endpoints (admin-guarded, server-side filtering/sorting/pagination):
  *   GET    /api/forms/inscrieri
@@ -135,14 +138,18 @@ const renderCells = (r: Row, api: TableApi) => {
   );
 };
 
-/** Answers as label/value rows (src/club/registration-panel.ts), the long texts after a gap. */
-function PanelAnswers({ row }: { row: Row }) {
+/** Answers as label/value rows (src/club/registration-panel.ts), the long texts after a gap. Calitate and Membru A.C.S. are edited in place. */
+function PanelAnswers({ row, save }: { row: Row; save: TableApi['saveField'] }) {
   const { rows, longRows } = registrationPanelRows(row);
   return (
     <>
-      {rows.map((r) => (
-        <DetailField key={r.label} label={r.label}>{r.value}</DetailField>
-      ))}
+      {rows.map((r) =>
+        r.edit ? (
+          <EditableAnswer key={r.label} row={row} edit={r.edit} save={save} />
+        ) : (
+          <DetailField key={r.label} label={r.label}>{r.value}</DetailField>
+        ),
+      )}
       {longRows.map((r, i) => (
         <DetailField key={r.label} label={r.label} style={i === 0 ? { marginTop: 11 } : undefined}>
           {r.value}
@@ -166,7 +173,7 @@ const renderDetail = (row: Row, api: TableApi) => {
         <DetailField label="Trimis la">{fmtDateTime(selected.submittedAt)}</DetailField>
         <DetailField label="Arhivare">{selected.archived ? 'Arhivat' : 'Activ'}</DetailField>
         {api.seasonField(selected)}
-        <PanelAnswers row={selected} />
+        <PanelAnswers row={selected} save={api.saveField} />
         {scriptForm && <RegistrationDocuments row={selected} />}
         {scriptForm && <RegistrationEmail row={selected} />}
         {api.customFields(selected)}

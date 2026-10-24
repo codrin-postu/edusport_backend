@@ -21,7 +21,16 @@ import {
   seasonIdForLabel,
   seasonMoveDeps,
   submitBlockedReason,
+  type RebuildResult,
 } from '../../../club/documents';
+import { adminActor } from '../../../club/admin-actor';
+import { recordHistory } from '../../../club/history';
+import {
+  REGISTRATION_EDIT_FIELDS,
+  documentRebuiltEntry,
+  normalizeRegistrationEdit,
+  registrationEditError,
+} from '../../../club/registration-edit';
 
 const UID = 'api::registration-submission.registration-submission' as const;
 const FORM_CONFIG_UID = 'api::form-config.form-config' as const;
@@ -49,6 +58,8 @@ const EDITABLE_FIELDS = new Set<string>([
   'internalNote',
   'archived',
   'season',
+  // Script form answers printed on the PDFs (plan 2B): saving one rebuilds them (plan 2D).
+  ...REGISTRATION_EDIT_FIELDS,
 ]);
 
 // Columns the generic filter builder may target. Anything else is ignored so a
@@ -204,6 +215,17 @@ async function removeDocuments(documentId: string): Promise<void> {
   }
 }
 
+/** "Document refăcut" in the registration's history, only after a rebuild that succeeded (plan 2B). Never throws. */
+async function recordDocumentRebuilt(documentId: string, rebuild: RebuildResult | null, authorization: string | undefined): Promise<void> {
+  if (!rebuild?.ok) return;
+  try {
+    const actor = await adminActor(authorization, strapi);
+    await recordHistory(strapi, documentRebuiltEntry(documentId, rebuild.documents, actor));
+  } catch (err) {
+    strapi.log.error(`[inscrieri] history of the rebuild of ${documentId} failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 export default factories.createCoreController(UID, ({ strapi }) => ({
   /**
    * POST /api/forms/inscriere?scoala=<slug>  (public, auth:false)
@@ -301,6 +323,9 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     if (typeof data.status === 'string' && !(STATUSES as readonly string[]).includes(data.status)) {
       return ctx.badRequest('Stare invalidă.');
     }
+    const editError = registrationEditError(data);
+    if (editError) return ctx.badRequest(editError);
+    Object.assign(data, normalizeRegistrationEdit(data));
     // `level` is now a plain string sourced from the dynamic effective options;
     // it is no longer validated against a fixed enum here.
 
@@ -310,6 +335,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     const doc = await strapi.documents(UID).update({ documentId, data });
     if (!doc) return ctx.notFound();
     const rebuild = await rebuildAfterEdit(strapi, documentId, data);
+    await recordDocumentRebuilt(documentId, rebuild, ctx.request.header?.authorization);
     ctx.body = rebuild ? { data: doc, rebuild } : { data: doc };
   },
 

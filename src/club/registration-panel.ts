@@ -1,4 +1,4 @@
-import { MEMBERSHIP_YES, RELATIONSHIP_OPTIONS, RELATIONSHIP_OTHER, SOURCE_OTHER } from './registration-form-options';
+import { MEMBERSHIP_NO, MEMBERSHIP_YES, RELATIONSHIP_OPTIONS, RELATIONSHIP_OTHER, SOURCE_OTHER } from './registration-form-options';
 
 /**
  * What the Înscrieri detail panel shows for one registration, as label/value text. Registrations
@@ -8,7 +8,9 @@ import { MEMBERSHIP_YES, RELATIONSHIP_OPTIONS, RELATIONSHIP_OTHER, SOURCE_OTHER 
 
 /** Mirrors `DocumentKind` of src/club/documents (plan 2D). */
 export type PanelDocumentKind = 'acord' | 'adeziune';
-export type PanelRow = { label: string; value: string };
+/** Answers the panel edits in place (printed on the PDFs; saving one rebuilds them). */
+export type PanelEdit = 'relationship' | 'membershipAnswer';
+export type PanelRow = { label: string; value: string; edit?: PanelEdit };
 export type PanelRows = { rows: PanelRow[]; longRows: PanelRow[] };
 export type RegistrationRow = Record<string, unknown>;
 
@@ -29,6 +31,17 @@ export type EmailStatus = {
 
 export const DOCUMENT_LABELS: Record<PanelDocumentKind, string> = { acord: 'Acord', adeziune: 'Cerere de adeziune' };
 export const MISSING = '-';
+
+/** Options of the panel's Calitate select ("Alta" without the form's request to specify). */
+export const RELATIONSHIP_EDIT_OPTIONS = RELATIONSHIP_OPTIONS.map((o) => ({
+  value: o.value,
+  label: o.value === RELATIONSHIP_OTHER ? 'Alta' : o.label,
+}));
+/** Options of the panel's Membru A.C.S. select, worded as the panel shows the answer. */
+export const MEMBERSHIP_EDIT_OPTIONS = [
+  { value: MEMBERSHIP_YES, label: 'Da' },
+  { value: MEMBERSHIP_NO, label: 'Nu' },
+];
 
 const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 const orMissing = (v: string) => v || MISSING;
@@ -65,12 +78,12 @@ function scriptFormRows(r: RegistrationRow): PanelRow[] {
     row('Data nașterii', text(r.childBirthDate)),
     row('Înălțime', heightText(r.childHeight)),
     row('Nume părinte', text(r.parentName)),
-    row('Calitate', relationshipText(r)),
+    { ...row('Calitate', relationshipText(r)), edit: 'relationship' },
     row('Email', text(r.email)),
     row('Telefon', text(r.phone)),
     row('Mărime tricou', text(r.shirtSize)),
     row('Sezonul trecut', text(r.lastSeason)),
-    row('Membru A.C.S.', r.membershipAnswer === MEMBERSHIP_YES ? 'Da' : 'Nu'),
+    { ...row('Membru A.C.S.', r.membershipAnswer === MEMBERSHIP_YES ? 'Da' : 'Nu'), edit: 'membershipAnswer' },
     row('Abonament', subscriptionText(r.subscriptionChoice)),
     row('Cum a aflat', sourceText(r)),
     row('Acord GDPR', yesNo(r.gdprConsent)),
