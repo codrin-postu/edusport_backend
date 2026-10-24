@@ -41,6 +41,7 @@
     "fs-extra": "^10.0.0",
     "googleapis": "^144.0.0",
     "mime-types": "^2.1.27",
+    "pdfkit": "^0.20.2",
     "pg": "8.8.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
@@ -50,9 +51,11 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/pdfkit": "^0.17.6",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "typescript": "^5",
+    "unpdf": "^1.9.1",
     "vitest": "^3.2.7"
   },
   "engines": {
