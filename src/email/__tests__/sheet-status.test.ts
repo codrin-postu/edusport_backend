@@ -4,25 +4,25 @@ import { emailStatusCell, sentAtLabel, sheetSyncedStore } from '../sheet-status'
 
 describe('the Sheet "E-mail" cell', () => {
   it('prints the sending time in Bucharest time, summer and winter', () => {
-    expect(sentAtLabel('2026-10-03T11:23:00.000Z')).toBe('03.10 14:23');
-    expect(sentAtLabel('2026-12-01T12:05:00.000Z')).toBe('01.12 14:05');
-    expect(sentAtLabel(new Date('2027-01-31T22:30:00.000Z'))).toBe('01.02 00:30');
+    expect(sentAtLabel('2026-10-03T11:23:00.000Z')).toBe('03.10.2026, 14:23');
+    expect(sentAtLabel('2026-12-01T12:05:00.000Z')).toBe('01.12.2026, 14:05');
+    expect(sentAtLabel(new Date('2027-01-31T22:30:00.000Z'))).toBe('01.02.2027, 00:30');
   });
 
   it('shows the newest job: sent, queued or failed', () => {
     const sent = { status: 'sent', sentAt: '2026-10-03T11:23:00.000Z', createdAt: '2026-10-03T11:22:58.000Z' };
-    expect(emailStatusCell([sent])).toBe('Trimis 03.10 14:23');
-    expect(emailStatusCell([{ status: 'queued', createdAt: '2026-10-03T11:22:58.000Z' }])).toBe('În coadă');
-    expect(emailStatusCell([{ status: 'failed', createdAt: '2026-10-03T11:22:58.000Z' }])).toBe('Eșuat');
+    expect(emailStatusCell([sent])).toBe('Trimis 03.10.2026, 14:23');
+    expect(emailStatusCell([{ status: 'queued', createdAt: '2026-10-03T11:22:58.000Z' }])).toBe('Urmează să fie trimis');
+    expect(emailStatusCell([{ status: 'failed', createdAt: '2026-10-03T11:22:58.000Z' }])).toBe('Netrimis');
     const resent = { status: 'queued', createdAt: '2026-10-05T08:00:00.000Z' };
-    expect(emailStatusCell([resent, sent])).toBe('În coadă');
-    expect(emailStatusCell([sent, { status: 'failed', createdAt: '2026-10-01T08:00:00.000Z' }])).toBe('Trimis 03.10 14:23');
+    expect(emailStatusCell([resent, sent])).toBe('Urmează să fie trimis');
+    expect(emailStatusCell([sent, { status: 'failed', createdAt: '2026-10-01T08:00:00.000Z' }])).toBe('Trimis 03.10.2026, 14:23');
   });
 
-  it('is empty without a job', () => {
-    expect(emailStatusCell([])).toBe('');
-    expect(emailStatusCell(undefined)).toBe('');
-    expect(emailStatusCell(null)).toBe('');
+  it('shows "Niciun e-mail trimis" without a job', () => {
+    expect(emailStatusCell([])).toBe('Niciun e-mail trimis');
+    expect(emailStatusCell(undefined)).toBe('Niciun e-mail trimis');
+    expect(emailStatusCell(null)).toBe('Niciun e-mail trimis');
   });
 });
 

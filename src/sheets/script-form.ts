@@ -71,6 +71,6 @@ export const SCRIPT_FORM_TAIL: BuiltinCol[] = [
     type: 'link',
     cell: (r) => registrationAdminUrl(cmsPublicUrl(), r.registrationNumber),
   },
-  // The registration e-mail (plan 2F): "Trimis 03.10 14:23", "În coadă", "Eșuat", or empty.
+  // The registration e-mail (plan 2F): "Trimis 03.10.2026, 14:23", "Urmează să fie trimis", "Netrimis", or "Niciun e-mail trimis".
   { key: 'emailStatus', label: 'E-mail', cell: (r) => emailStatusCell(r.emailJobs) },
 ];

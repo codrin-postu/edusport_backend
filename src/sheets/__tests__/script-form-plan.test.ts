@@ -117,7 +117,7 @@ describe('a new-form row in its season tab', () => {
       '2026-0142', '2026-10-03T11:22:00.000Z', 'Nou', 'AFI Cotroceni', 'parinte@exemplu.ro', 'Mihaela Dumitrescu',
       'Părinte', '', '0722111222', 'Maria Dumitrescu', '14.03.2014', '142', 'S', 'Începători',
       'Patinaj înainte, frânare', 'Să învețe piruete', 'Da', 'Abonament 8', 'Recomandare', '', 'Da', 'Da',
-      'Sună după 18', 'https://cms.example.ro/admin/plugins/edusport-inscrieri?q=2026-0142&season=all', '', 'doc-new',
+      'Sună după 18', 'https://cms.example.ro/admin/plugins/edusport-inscrieri?q=2026-0142&season=all', 'Niciun e-mail trimis', 'doc-new',
     ]);
   });
 

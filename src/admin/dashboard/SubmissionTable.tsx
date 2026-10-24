@@ -576,7 +576,6 @@ export function MenuButton({
   );
 }
 
-/** The first list query from the page URL: `?q=` (search) and `?season=` (a season label or `all`). */
 /** "Salvat", or a warning when the field saved but the PDFs could not be rebuilt (the PUT's `rebuild`, plan 2D). */
 function toastFieldSaved(body: unknown): void {
   const rebuild = (body as { rebuild?: { ok?: unknown } } | null)?.rebuild;
@@ -584,6 +583,7 @@ function toastFieldSaved(body: unknown): void {
   else toastAutosaved();
 }
 
+/** The first list query from the page URL: `?q=` (search) and `?season=` (a season label or `all`). */
 function initialQuery(): { q: string; season: string } {
   if (typeof window === 'undefined') return { q: '', season: '' };
   const params = new URLSearchParams(window.location.search);
