@@ -234,7 +234,7 @@ export interface SubmissionTableCfg {
     searchPlaceholder: string;
     empty: string;
     loadError: string;
-    /** Appended after the "X noi" stat, e.g. ' · exclus arhivate'. */
+    /** Appended after the "X noi" stat, e.g. ', exclus arhivate'. */
     statSuffix: string;
     deleteConfirm: string;
     /**
@@ -255,6 +255,8 @@ export interface SubmissionTableCfg {
   };
   /** Extra CSS appended after the shared stylesheet (screen-specific bits, tokens only). */
   extraCss?: string;
+  /** Page-specific buttons at the start of the header actions (Înscrieri: "Formulare goale"). */
+  headerActions?: React.ReactNode;
 }
 
 // Map a custom question type to a display column type.
@@ -528,8 +530,8 @@ export function DetailFooter({ children }: { children: React.ReactNode }) {
   return <div className="sbt-pa">{children}</div>;
 }
 
-/** A toolbar dropdown button with its own anchored Popover. */
-function MenuButton({
+/** A toolbar dropdown button with its own anchored Popover. Exported for page-specific header menus. */
+export function MenuButton({
   label,
   active,
   open,
@@ -1390,6 +1392,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
 
   const statActions = (
     <>
+      {cfg.headerActions}
       {cfg.seasons && (
         <div className="sbt-season">
           <span className="sbt-lbl">Sezon</span>
