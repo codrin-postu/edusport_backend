@@ -18,6 +18,7 @@ Covers plans 2A-2F (backend `feat/registration-rebuild`) and 2C (frontend `feat/
 | 10 | The club confirms the legal numbers in `src/club/documents/association.ts` (C.I.F., C.I.S., registry no., IBAN, bank branch) | club | wrong data printed on every PDF |
 | 11 | Frontend `NEXT_PUBLIC_STRAPI_URL` = the public CMS address | frontend env | submit and PDF links fail |
 | 12 | Registration seasons and numbers: `SELECT season, count(*) FROM registration_submissions GROUP BY 1;` and `SELECT count(*) FROM registration_submissions WHERE registration_number IS NULL;`. Note the en-dash seasons (`2026–2027`) and the unnumbered count; the copy script's dry run (step 5) reports the same counts | prod DB, read-only | old registrations missing from the Înscrieri default view; unnumbered registrations |
+| 13 | The live nginx site for the CMS sets `proxy_set_header X-Real-IP $remote_addr;` (as in `DEPLOY.md`): `grep -n X-Real-IP /etc/nginx/sites-enabled/*` | VM, read-only | every parent shares one submit limit (5 per 10 minutes); registrations refused |
 
 ## In the window
 
@@ -44,6 +45,7 @@ Covers plans 2A-2F (backend `feat/registration-rebuild`) and 2C (frontend `feat/
 ## After
 
 - Next morning: `backups/documents-*.tar.gz` exists next to the database dump.
+- Log in to the admin once: Strapi now trusts the proxy headers (`server.proxy.koa`), so the admin cookie is marked Secure; the login must work over HTTPS.
 - The first real registrations: e-mail status "Trimis" in Înscrieri and in the Sheet.
 - If an e-mail fails 5 times: GlitchTip alert, fix the cause, "Retrimite e-mailul".
 
