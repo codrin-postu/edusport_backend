@@ -6,7 +6,7 @@ import {
 import {
   CUSTOM_PAGES,
   SETARI_SITE_TO, PAGINA_ECHIPA_TO, ISTORIC_TO, PAGINA_PARTENERI_TO, DISCIPLINE_TO,
-  MOMENTE_ISTORIC_TO, CURSURI_TO, PRETURI_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
+  MOMENTE_ISTORIC_TO, CURSURI_TO, PRETURI_TO, SEZOANE_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
   REALIZARI_TO, EVENIMENTE_COLABORARE_TO, UID,
 } from '../pages/routes';
 
@@ -14,7 +14,7 @@ import {
 // *_TO lives behind one import. Defined in ../pages/routes (see there).
 export {
   SETARI_SITE_TO, PAGINA_ECHIPA_TO, ISTORIC_TO, PAGINA_PARTENERI_TO, DISCIPLINE_TO,
-  MOMENTE_ISTORIC_TO, CURSURI_TO, PRETURI_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
+  MOMENTE_ISTORIC_TO, CURSURI_TO, PRETURI_TO, SEZOANE_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
   REALIZARI_TO, EVENIMENTE_COLABORARE_TO, EVENIMENT_COLABORARE_EDIT_TO,
   ARTICOLE_TO, ARTICOL_EDIT_TO,
 } from '../pages/routes';
@@ -172,6 +172,7 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   // Sistem
   { to: '/plugins/upload', label: 'Media', icon: GridFour, group: 'system' },
   { to: SETARI_SITE_TO, label: 'Setări site', icon: Pencil, group: 'system', pinned: true },
+  { to: SEZOANE_TO, label: 'Sezoane', icon: Calendar, group: 'system', pinned: true },
   { to: NAVIGATION_TO, label: 'Meniu site', icon: GridFour, group: 'system', pinned: true },
 ];
 

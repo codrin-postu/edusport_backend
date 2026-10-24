@@ -18,7 +18,8 @@ Decisions (companion screen 109, user said "yes do", recommended answers):
 | Discipline | api::discipline.discipline | /plugins/edusport-discipline | [x] |
 | Momente istoric | api::history-milestone.history-milestone | /plugins/edusport-momente-istoric | [x] |
 | Cursuri | api::cursuri-page.cursuri-page | /plugins/edusport-cursuri | [x] |
-| Prețuri | api::pricing.pricing | /plugins/edusport-preturi | [x] |
+| Prețuri | api::price-list.price-list, api::section.section (old api::pricing.pricing URLs land here) | /plugins/edusport-preturi | [x] |
+| Sezoane | api::season.season | /plugins/edusport-sezoane | [x] |
 | Regulament | api::course-regulations.course-regulations | /plugins/edusport-regulament | [x] |
 | Pagina Program | api::program-page.program-page | /plugins/edusport-pagina-program | [x] |
 | Realizări | api::realizari-page.realizari-page | /plugins/edusport-realizari | [x] |
