@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { moveRegistrationsToSeason, moveRegistrationsToSeasonInBackground, type SeasonMoveDeps } from '../season-move';
 
 const A = 'reg0000000000000000000001';
@@ -89,5 +89,32 @@ describe('moveRegistrationsToSeasonInBackground', () => {
     await rebuilt;
     expect(built).toEqual([B]);
     expect(errors).toEqual([`[inscrieri] rebuilding documents of ${A} after moving to 2027-2028 failed: disk full`]);
+  });
+
+  describe('with a logger that throws', () => {
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => {
+      unhandled.push(reason);
+    };
+    afterEach(() => {
+      process.off('unhandledRejection', onUnhandled);
+    });
+
+    it('a throwing rebuild and a throwing logError still resolve rebuilt, with no unhandled rejection', async () => {
+      process.on('unhandledRejection', onUnhandled);
+      const { deps } = fake({
+        rebuild: async () => {
+          throw new Error('disk full');
+        },
+        logError: () => {
+          throw new Error('logger down');
+        },
+      });
+      const { moved, rebuilt } = await moveRegistrationsToSeasonInBackground([A], '2027-2028', deps);
+      expect(moved).toBe(1);
+      await expect(rebuilt).resolves.toBeUndefined();
+      await new Promise((r) => setImmediate(r));
+      expect(unhandled).toEqual([]);
+    });
   });
 });

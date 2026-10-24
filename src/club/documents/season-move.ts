@@ -78,7 +78,10 @@ export async function moveRegistrationsToSeasonInBackground(ids: string[], label
   const moved = await moveRowsOnly(ids, label, seasonRef, deps);
   const rebuilt = new Promise<void>((resolve) => {
     setImmediate(() => {
-      rebuildMoved(moved, label, seasonRef, deps).then(resolve);
+      rebuildMoved(moved, label, seasonRef, deps)
+        .catch((err) => deps.logError(`[inscrieri] background rebuild after moving to ${label} crashed: ${message(err)}`))
+        .catch(() => undefined)
+        .finally(resolve);
     });
   });
   return { moved: moved.length, rebuilt };
