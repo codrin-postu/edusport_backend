@@ -95,8 +95,8 @@ function headerHtml(input: RegistrationEmailInput): string {
   return (
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
     `<td valign="top">${brandHtml(input.links.headerImage)}</td>` +
-    `<td valign="top" align="right" style="${meta}">Sezonul <b style="color:${NAVY};">${escapeHtml(input.seasonLabel)}</b><br>` +
-    `Nr. înscriere <b style="color:${NAVY};">${escapeHtml(input.registrationNumber)}</b></td>` +
+    `<td valign="top" align="right" style="${meta}">Sezonul <b style="color:${NAVY};white-space:nowrap;">${escapeHtml(input.seasonLabel)}</b><br>` +
+    `Nr. înscriere <b style="color:${NAVY};white-space:nowrap;">${escapeHtml(input.registrationNumber)}</b></td>` +
     '</tr></table>'
   );
 }

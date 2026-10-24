@@ -83,6 +83,12 @@ describe('renderRegistrationEmail', () => {
     expect(html).toContain('max-width:600px');
   });
 
+  it('never breaks the season or the registration number mid-value', () => {
+    const { html } = renderRegistrationEmail(INPUT);
+    expect(html).toContain('<b style="color:#0e1a3c;white-space:nowrap;">2026-2027</b>');
+    expect(html).toContain('<b style="color:#0e1a3c;white-space:nowrap;">2026-0142</b>');
+  });
+
   it('has a plain-text part with the same content and the link targets', () => {
     const { text } = renderRegistrationEmail(INPUT);
     expect(text).toContain('Înscriere înregistrată');
