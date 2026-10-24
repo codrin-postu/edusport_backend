@@ -1,8 +1,8 @@
 export interface BulkDeleteDeps {
   /** Ids of the registrations about to be deleted, read before the delete. */
   findIds(): Promise<string[]>;
-  /** Deletes the rows; returns how many were deleted. */
-  deleteRows(): Promise<number>;
+  /** Deletes exactly these rows (the ids read first); returns how many were deleted. */
+  deleteRows(ids: string[]): Promise<number>;
   deleteDocuments(registrationDocumentId: string): Promise<void>;
   logError(message: string): void;
 }
@@ -13,7 +13,8 @@ export interface BulkDeleteDeps {
  */
 export async function deleteRegistrationsWithDocuments(deps: BulkDeleteDeps): Promise<number> {
   const ids = await deps.findIds();
-  const count = await deps.deleteRows();
+  if (ids.length === 0) return 0;
+  const count = await deps.deleteRows(ids);
   for (const id of ids) {
     try {
       await deps.deleteDocuments(id);

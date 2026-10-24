@@ -375,13 +375,12 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
   async deleteArchivedSeason(ctx) {
     const season = trimOrEmpty((ctx.request.body as any)?.season);
     if (!season) return ctx.badRequest('Sezon lipsă.');
-    const where = { season, archived: true };
     const count = await deleteRegistrationsWithDocuments({
       findIds: async () => {
-        const rows = (await strapi.db.query(UID).findMany({ select: ['documentId'], where })) as { documentId?: unknown }[];
+        const rows = (await strapi.db.query(UID).findMany({ select: ['documentId'], where: { season, archived: true } })) as { documentId?: unknown }[];
         return rows.map((r) => r.documentId).filter((id): id is string => typeof id === 'string');
       },
-      deleteRows: async () => (await strapi.db.query(UID).deleteMany({ where })).count,
+      deleteRows: async (ids) => (await strapi.db.query(UID).deleteMany({ where: { documentId: { $in: ids } } })).count,
       deleteDocuments: (documentId) => deleteRegistrationDocuments(strapi, documentId),
       logError: (message) => strapi.log.error(message),
     });

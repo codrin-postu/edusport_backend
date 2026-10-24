@@ -9,9 +9,9 @@ function fake(over: Partial<BulkDeleteDeps> = {}) {
       calls.push('find');
       return ['reg0000000000000000000001', 'reg0000000000000000000002', 'reg0000000000000000000003'];
     },
-    deleteRows: async () => {
-      calls.push('delete rows');
-      return 3;
+    deleteRows: async (ids) => {
+      calls.push(`delete rows ${ids.join(',')}`);
+      return ids.length;
     },
     deleteDocuments: async (id) => {
       calls.push(`delete documents ${id}`);
@@ -30,7 +30,7 @@ describe('deleteRegistrationsWithDocuments (delete archived season)', () => {
     await expect(deleteRegistrationsWithDocuments(deps)).resolves.toBe(3);
     expect(calls).toEqual([
       'find',
-      'delete rows',
+      'delete rows reg0000000000000000000001,reg0000000000000000000002,reg0000000000000000000003',
       'delete documents reg0000000000000000000001',
       'delete documents reg0000000000000000000002',
       'delete documents reg0000000000000000000003',
@@ -48,6 +48,17 @@ describe('deleteRegistrationsWithDocuments (delete archived season)', () => {
     await expect(deleteRegistrationsWithDocuments(deps)).resolves.toBe(3);
     expect(removed).toEqual(['reg0000000000000000000001', 'reg0000000000000000000003']);
     expect(errors).toEqual(['[inscrieri] deleting documents of reg0000000000000000000002 failed: EACCES']);
+  });
+
+  it('deletes nothing when no registration matches', async () => {
+    const { deps, calls } = fake({
+      findIds: async () => {
+        calls.push('find');
+        return [];
+      },
+    });
+    await expect(deleteRegistrationsWithDocuments(deps)).resolves.toBe(0);
+    expect(calls).toEqual(['find']);
   });
 
   it('removes no folder when deleting the rows fails', async () => {
