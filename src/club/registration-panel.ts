@@ -134,11 +134,33 @@ export function readEmailStatus(body: unknown): EmailStatus | null {
   return { status: d.status, recipient: text(d.recipient), attempts, lastError: textOrNull(d.lastError), ...dates, documents };
 }
 
-/** "Trimis 20.10.2026, 14:05", "În coadă", "Netrimis", or "Niciun e-mail" before the first job. */
+const EMAIL_TIME_ZONE = 'Europe/Bucharest';
+
+/** "24.10.2026, 11:31": day.month.year, 24h hour:minute, Europe/Bucharest. Shared by the panel and the Sheet. */
+export function formatEmailSentAt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const parts = new Intl.DateTimeFormat('ro-RO', {
+    timeZone: EMAIL_TIME_ZONE, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(d);
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${part('day')}.${part('month')}.${part('year')}, ${part('hour')}:${part('minute')}`;
+}
+
+/** "Trimis 24.10.2026, 11:31", "Urmează să fie trimis", "Netrimis", or "Niciun e-mail trimis" before the first job. */
 export function emailStatusText(status: EmailStatus | null, formatDate: (iso: string) => string): string {
-  if (!status || status.status === 'none') return 'Niciun e-mail';
+  if (!status || status.status === 'none') return 'Niciun e-mail trimis';
   if (status.status === 'sent') return status.sentAt ? `Trimis ${formatDate(status.sentAt)}` : 'Trimis';
-  return status.status === 'queued' ? 'În coadă' : 'Netrimis';
+  return status.status === 'queued' ? 'Urmează să fie trimis' : 'Netrimis';
+}
+
+export type EmailPanelState = 'loading' | 'load-failed' | 'ready';
+export const EMAIL_LOAD_FAILED_TEXT = 'Starea nu s-a încărcat.';
+
+/** What the panel's e-mail block shows: a spinner before the GET answers, the reload message after it refuses, or the status once loaded. */
+export function emailPanelState(loaded: boolean, loadFailed: boolean): EmailPanelState {
+  if (!loaded) return 'loading';
+  return loadFailed ? 'load-failed' : 'ready';
 }
 
 /**
@@ -156,13 +178,16 @@ export type ResendToast = { tone: 'success' | 'info' | 'error'; text: string };
 /** The toast after "Retrimite e-mailul", from the status 2F answers after its one attempt. */
 export function resendToast(status: EmailStatus | null): ResendToast {
   if (status?.status === 'sent') return { tone: 'success', text: 'E-mail trimis.' };
-  if (status?.status === 'failed') return { tone: 'error', text: 'Trimiterea a eșuat.' };
-  return { tone: 'info', text: 'E-mailul va fi trimis în curând.' };
+  if (status?.status === 'failed') return { tone: 'error', text: 'Nu s-a putut trimite.' };
+  return { tone: 'info', text: 'Urmează să fie trimis.' };
 }
 
-/** The reason shown in the panel under a failed status; null otherwise. */
+/**
+ * The line shown in the panel under a failed status; null otherwise. The technical `lastError`
+ * is no longer rendered here (it stays in the API answer, logs and GlitchTip).
+ */
 export function failedEmailError(status: EmailStatus | null): string | null {
-  return status?.status === 'failed' ? status.lastError : null;
+  return status?.status === 'failed' ? 'Apasă Retrimite sau verifică adresa.' : null;
 }
 
 /** The refusal text of a failed admin request: Strapi's `error.message` or 2F's `error` string. */

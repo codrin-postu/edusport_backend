@@ -3,8 +3,10 @@ import {
   MEMBERSHIP_EDIT_OPTIONS,
   MISSING,
   RELATIONSHIP_EDIT_OPTIONS,
+  emailPanelState,
   emailStatusText,
   fileNameFrom,
+  formatEmailSentAt,
   readEmailStatus,
   registrationDocumentKinds,
   failedEmailError,
@@ -114,11 +116,23 @@ describe('documents and e-mail', () => {
 
   it('describes the status tersely', () => {
     const fmt = () => '20 oct 2026, 14:05';
-    expect(emailStatusText(null, fmt)).toBe('Niciun e-mail');
-    expect(emailStatusText(status({ status: 'none' }), fmt)).toBe('Niciun e-mail');
+    expect(emailStatusText(null, fmt)).toBe('Niciun e-mail trimis');
+    expect(emailStatusText(status({ status: 'none' }), fmt)).toBe('Niciun e-mail trimis');
     expect(emailStatusText(status({}), fmt)).toBe('Trimis 20 oct 2026, 14:05');
-    expect(emailStatusText(status({ status: 'queued', sentAt: null }), fmt)).toBe('În coadă');
+    expect(emailStatusText(status({ status: 'queued', sentAt: null }), fmt)).toBe('Urmează să fie trimis');
     expect(emailStatusText(status({ status: 'failed', sentAt: null }), fmt)).toBe('Netrimis');
+  });
+
+  it('formats the sent date for the panel and the Sheet, in Bucharest time, summer and winter', () => {
+    expect(formatEmailSentAt('2026-10-24T08:31:00.000Z')).toBe('24.10.2026, 11:31');
+    expect(formatEmailSentAt('2026-12-01T12:05:00.000Z')).toBe('01.12.2026, 14:05');
+    expect(formatEmailSentAt('not-a-date')).toBe('');
+  });
+
+  it('shows a spinner while loading, the reload prompt after a failed GET, else the status', () => {
+    expect(emailPanelState(false, false)).toBe('loading');
+    expect(emailPanelState(true, true)).toBe('load-failed');
+    expect(emailPanelState(true, false)).toBe('ready');
   });
 
   it('the resend confirmation names the recipient and the documents', () => {
@@ -133,12 +147,12 @@ describe('documents and e-mail', () => {
     });
   });
 
-  it("the resend toast follows 2F's status, and a failure shows its reason in the panel", () => {
+  it("the resend toast follows 2F's status, and a failure shows the retry hint, not the technical reason", () => {
     expect(resendToast(status({}))).toEqual({ tone: 'success', text: 'E-mail trimis.' });
-    expect(resendToast(status({ status: 'queued', sentAt: null }))).toEqual({ tone: 'info', text: 'E-mailul va fi trimis în curând.' });
-    expect(resendToast(status({ status: 'failed', sentAt: null, lastError: 'Brevo 401' }))).toEqual({ tone: 'error', text: 'Trimiterea a eșuat.' });
-    expect(resendToast(null)).toEqual({ tone: 'info', text: 'E-mailul va fi trimis în curând.' });
-    expect(failedEmailError(status({ status: 'failed', sentAt: null, lastError: 'Brevo 401' }))).toBe('Brevo 401');
+    expect(resendToast(status({ status: 'queued', sentAt: null }))).toEqual({ tone: 'info', text: 'Urmează să fie trimis.' });
+    expect(resendToast(status({ status: 'failed', sentAt: null, lastError: 'Brevo 401' }))).toEqual({ tone: 'error', text: 'Nu s-a putut trimite.' });
+    expect(resendToast(null)).toEqual({ tone: 'info', text: 'Urmează să fie trimis.' });
+    expect(failedEmailError(status({ status: 'failed', sentAt: null, lastError: 'Brevo 401' }))).toBe('Apasă Retrimite sau verifică adresa.');
     expect(failedEmailError(status({ status: 'queued', sentAt: null, lastError: 'Brevo 401' }))).toBeNull();
     expect(failedEmailError(null)).toBeNull();
   });

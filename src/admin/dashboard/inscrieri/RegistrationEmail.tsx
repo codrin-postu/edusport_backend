@@ -2,39 +2,47 @@ import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import { Button, Spinner, adminToast } from '../../ui';
-import { DetailField, fmtDateTime, type Row } from '../SubmissionTable';
+import { DetailField, type Row } from '../SubmissionTable';
 import {
+  EMAIL_LOAD_FAILED_TEXT,
+  emailPanelState,
   emailStatusText,
   failedEmailError,
+  formatEmailSentAt,
   readEmailStatus,
   requestErrorText,
   resendTarget,
   resendToast,
+  type EmailPanelState,
   type EmailStatus,
 } from '../../../club/registration-panel';
 
 /** E-mail routes of plan 2F. */
 const emailUrl = (documentId: string, action: 'email-status' | 'resend-email') => `/api/club/registrations/${documentId}/${action}`;
 
-/** The e-mail job of one registration, loaded when the panel opens on it. */
+/** The e-mail job of one registration, loaded when the panel opens on it; `reload` re-runs the GET. */
 function useEmailStatus(documentId: string) {
   const { get } = useFetchClient();
+  const getRef = React.useRef(get);
+  getRef.current = get;
   const [status, setStatus] = React.useState<EmailStatus | null>(null);
   const [loaded, setLoaded] = React.useState(false);
-  React.useEffect(() => {
+  const [loadFailed, setLoadFailed] = React.useState(false);
+  const load = React.useCallback(() => {
     let off = false;
     setLoaded(false);
-    get(emailUrl(documentId, 'email-status'))
+    setLoadFailed(false);
+    getRef
+      .current(emailUrl(documentId, 'email-status'))
       .then((r) => !off && setStatus(readEmailStatus(r.data)))
-      .catch(() => !off && setStatus(null))
+      .catch(() => !off && setLoadFailed(true))
       .finally(() => !off && setLoaded(true));
     return () => {
       off = true;
     };
-    // get changes identity on every render; the status depends on the registration only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId]);
-  return { status, setStatus, loaded };
+  React.useEffect(() => load(), [load]);
+  return { status, setStatus, loaded, loadFailed, reload: load };
 }
 
 /** "Retrimite e-mailul": 2F logs it in history and tries once at once; resolves true on success. */
@@ -59,6 +67,39 @@ function useResend(documentId: string, onStatus: (s: EmailStatus | null) => void
   return { busy, resend };
 }
 
+/** The block inside the "E-mail" field: a spinner, the reload prompt, or the status and resend button. */
+function EmailStatusDisplay({
+  view,
+  status,
+  onReload,
+  onResend,
+}: {
+  view: EmailPanelState;
+  status: EmailStatus | null;
+  onReload: () => void;
+  onResend: () => void;
+}) {
+  if (view === 'loading') return <Spinner size={12} />;
+  if (view === 'load-failed') {
+    return (
+      <>
+        <span>{EMAIL_LOAD_FAILED_TEXT}</span>
+        <Button size="sm" variant="secondary" onClick={onReload}>
+          Reîncarcă
+        </Button>
+      </>
+    );
+  }
+  return (
+    <>
+      <span>{emailStatusText(status, formatEmailSentAt)}</span>
+      <Button size="sm" variant="secondary" onClick={onResend}>
+        Retrimite e-mailul
+      </Button>
+    </>
+  );
+}
+
 /** E-mail status in the Înscrieri panel; the confirmation names the recipient and the documents. */
 export function RegistrationEmail({ row }: { row: Row }) {
   const email = useEmailStatus(row.documentId);
@@ -66,13 +107,11 @@ export function RegistrationEmail({ row }: { row: Row }) {
   const [confirming, setConfirming] = React.useState(false);
   const target = resendTarget(email.status, row);
   const confirm = async () => (await resend()) && setConfirming(false);
+  const view = emailPanelState(email.loaded, email.loadFailed);
   return (
     <DetailField label="E-mail">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        {email.loaded ? <span>{emailStatusText(email.status, fmtDateTime)}</span> : <Spinner size={12} />}
-        <Button size="sm" variant="secondary" onClick={() => setConfirming(true)}>
-          Retrimite e-mailul
-        </Button>
+        <EmailStatusDisplay view={view} status={email.status} onReload={email.reload} onResend={() => setConfirming(true)} />
       </div>
       {failedEmailError(email.status) && <div className="ui-error">{failedEmailError(email.status)}</div>}
       <ConfirmDialog
