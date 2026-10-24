@@ -90,6 +90,7 @@
     "section": { "type": "relation", "relation": "manyToOne", "target": "api::section.section" },
     "seasonRef": { "type": "relation", "relation": "manyToOne", "target": "api::season.season" },
     "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete" },
+    "emailJobs": { "type": "relation", "relation": "oneToMany", "target": "api::email-job.email-job", "mappedBy": "registration" },
     "relationship": { "type": "enumeration", "enum": ["parinte", "tutore", "alta"] },
     "relationshipOther": { "type": "string" },
     "childHeight": { "type": "integer" },

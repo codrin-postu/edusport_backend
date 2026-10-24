@@ -1,0 +1,17 @@
+{
+  "kind": "collectionType",
+  "collectionName": "email_jobs",
+  "info": { "singularName": "email-job", "pluralName": "email-jobs", "displayName": "Club / E-mail" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "recipient": { "type": "string", "required": true },
+    "subject": { "type": "string", "required": true },
+    "kind": { "type": "enumeration", "enum": ["registration"], "required": true, "default": "registration" },
+    "registration": { "type": "relation", "relation": "manyToOne", "target": "api::registration-submission.registration-submission", "inversedBy": "emailJobs" },
+    "status": { "type": "enumeration", "enum": ["queued", "sent", "failed"], "required": true, "default": "queued" },
+    "attempts": { "type": "integer", "required": true, "default": 0, "min": 0 },
+    "lastError": { "type": "text" },
+    "sentAt": { "type": "datetime" }
+  }
+}

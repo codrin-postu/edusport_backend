@@ -991,6 +991,61 @@ export interface ApiDisciplineDiscipline extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiEmailJobEmailJob extends Struct.CollectionTypeSchema {
+  collectionName: 'email_jobs';
+  info: {
+    displayName: 'Club / E-mail';
+    pluralName: 'email-jobs';
+    singularName: 'email-job';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    attempts: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    kind: Schema.Attribute.Enumeration<['registration']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'registration'>;
+    lastError: Schema.Attribute.Text;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::email-job.email-job'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    recipient: Schema.Attribute.String & Schema.Attribute.Required;
+    registration: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::registration-submission.registration-submission'
+    >;
+    sentAt: Schema.Attribute.DateTime;
+    status: Schema.Attribute.Enumeration<['queued', 'sent', 'failed']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'queued'>;
+    subject: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiFormConfigFormConfig extends Struct.CollectionTypeSchema {
   collectionName: 'form_configs';
   info: {
@@ -1646,6 +1701,10 @@ export interface ApiRegistrationSubmissionRegistrationSubmission
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     email: Schema.Attribute.String & Schema.Attribute.Required;
+    emailJobs: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::email-job.email-job'
+    >;
     expectations: Schema.Attribute.Text;
     extra: Schema.Attribute.JSON;
     gdprConsent: Schema.Attribute.Boolean;
@@ -2699,6 +2758,7 @@ declare module '@strapi/strapi' {
       'api::course-regulations.course-regulations': ApiCourseRegulationsCourseRegulations;
       'api::cursuri-page.cursuri-page': ApiCursuriPageCursuriPage;
       'api::discipline.discipline': ApiDisciplineDiscipline;
+      'api::email-job.email-job': ApiEmailJobEmailJob;
       'api::form-config.form-config': ApiFormConfigFormConfig;
       'api::group-membership.group-membership': ApiGroupMembershipGroupMembership;
       'api::group.group': ApiGroupGroup;
