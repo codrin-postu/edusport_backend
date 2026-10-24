@@ -5,13 +5,14 @@ import { buildInscrieriMatrix } from '../../../sheets/matrix';
 import type { RowLike as SubmissionLike } from '../../../sheets/matrix';
 import { resyncForm } from '../../../sheets/sync';
 import { buildColClause, parseColFilters } from '../../../utils/submission-filters';
+import { findCurrentSeason } from '../../../club/current-season';
+import { submitRegistration } from '../../../club/registration-submit';
+import { buildSubmitDeps } from '../submit-deps';
 
 const UID = 'api::registration-submission.registration-submission' as const;
-const SETTINGS_UID = 'api::site-settings.site-settings' as const;
 const FORM_CONFIG_UID = 'api::form-config.form-config' as const;
 
 const STATUSES = ['Nou', 'Contactat', 'Confirmat', 'Respins'] as const;
-type Status = (typeof STATUSES)[number];
 
 // Fields an admin may write through the update endpoint. Everything else in a
 // PUT body is ignored so the endpoint can never set arbitrary columns.
@@ -52,17 +53,13 @@ const FILTER_COLS = new Set<string>([
 
 const PAGE_SIZES = [25, 50, 100] as const;
 
-const MAX_TEXT = 5000;
 const trimOrEmpty = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 const asBool = (v: unknown) => v === true || v === 'true' || v === 1 || v === '1';
 
-/** Read the active season from site-settings `registration.currentSeason`. */
+/** The current Sezon's label. The old `site-settings.registration.currentSeason` text is no longer read. */
 async function getActiveSeason(): Promise<string | null> {
   try {
-    const settings = await strapi.documents(SETTINGS_UID).findFirst({});
-    const reg = (settings as any)?.registration;
-    const season = reg?.currentSeason;
-    return typeof season === 'string' && season.trim() ? season.trim() : null;
+    return (await findCurrentSeason(strapi))?.label ?? null;
   } catch {
     return null;
   }
@@ -195,130 +192,18 @@ async function collectExtraKeys(): Promise<string[]> {
 
 export default factories.createCoreController(UID, ({ strapi }) => ({
   /**
-   * POST /api/forms/inscriere  (public, auth:false)
-   * Honeypot-guarded public submit. Validates required fields, forces
-   * server-side status + submittedAt, stamps the active season and
-   * archived:false. Never trusts a client-supplied status/season/archived.
-   * Returns 200 {ok:true, documentId} or 400 {ok:false, error}.
+   * POST /api/forms/inscriere?scoala=<slug>  (public, auth:false)
+   * Honeypot, "Înscrieri deschise", current Sezon, school, form-config checks and the price choice, then a
+   * numbered registration (src/club/registration-submit.ts). Status, dates, season,
+   * school and price are set by the server; client values for them are ignored.
+   * Returns 200 {ok:true, registrationNumber} or 400 {ok:false, code, error}.
    */
   async submitPublic(ctx) {
     const body = (ctx.request.body ?? {}) as Record<string, unknown>;
-
-    // Honeypot: `website` must be empty. A filled value = bot; reject silently.
-    if (trimOrEmpty(body.website)) {
-      ctx.status = 400;
-      ctx.body = { ok: false, error: 'Cerere invalidă.' };
-      return;
-    }
-
-    const email = trimOrEmpty(body.email);
-    const phone = trimOrEmpty(body.phone);
-    const childName = trimOrEmpty(body.childName);
-    const childBirthDate = trimOrEmpty(body.childBirthDate);
-    const parentName = trimOrEmpty(body.parentName);
-    const shirtSize = trimOrEmpty(body.shirtSize);
-    const howHeard = trimOrEmpty(body.howHeard);
-    const level = trimOrEmpty(body.level);
-    const priorExperience = trimOrEmpty(body.priorExperience).slice(0, MAX_TEXT);
-    const expectations = trimOrEmpty(body.expectations).slice(0, MAX_TEXT);
-    const clubInterest = asBool(body.clubInterest);
-    const regulationsAgreement = asBool(body.regulationsAgreement);
-    const privacyConsent = asBool(body.privacyConsent);
-
-    // Which scalar/select fields are required is driven by the effective form
-    // config (registry + admin overlay). Defaults match the historic behaviour
-    // (all required) so nothing breaks when no overlay exists; an editor may
-    // relax a non-locked field to optional and empty values are then accepted.
-    const scalarValues: Record<string, string> = {
-      email,
-      phone,
-      childName,
-      childBirthDate,
-      parentName,
-      shirtSize,
-      howHeard,
-      level,
-    };
-    let requiredMap: Record<string, boolean> = {};
-    try {
-      requiredMap = await strapi.service('api::form-config.form-config').effectiveRequired('inscriere');
-    } catch {
-      requiredMap = {};
-    }
-    const isRequired = (key: string) => (key in requiredMap ? requiredMap[key] : true);
-    const missing = Object.entries(scalarValues).filter(([k, v]) => isRequired(k) && !v);
-    if (missing.length) {
-      ctx.status = 400;
-      ctx.body = { ok: false, error: 'Câmpuri obligatorii lipsă.' };
-      return;
-    }
-    // Built-in select value (`level`) must be a currently-enabled option, and
-    // email/tel formats are validated — both driven by the effective config.
-    // Custom answers arrive in `extra` and are validated per the effective
-    // config (required + typed formats + enabled select option).
-    let extraValues: Record<string, unknown> = {};
-    try {
-      const cfg = strapi.service(FORM_CONFIG_UID);
-      const selErr = await cfg.validateBuiltinSelects('inscriere', { level });
-      if (selErr) {
-        ctx.status = 400;
-        ctx.body = { ok: false, error: selErr };
-        return;
-      }
-      const fmtError = await cfg.validateFieldFormats('inscriere', { email, phone });
-      if (fmtError) {
-        ctx.status = 400;
-        ctx.body = { ok: false, error: fmtError };
-        return;
-      }
-      const extraResult = await cfg.validateExtra('inscriere', (body as any).extra);
-      if (extraResult.error) {
-        ctx.status = 400;
-        ctx.body = { ok: false, error: extraResult.error };
-        return;
-      }
-      extraValues = extraResult.values ?? {};
-    } catch {
-      /* if the config service is unavailable, skip config-driven checks (never block) */
-    }
-    // Privacy consent is enforced only while it is a required, non-removed field.
-    if (isRequired('privacyConsent') && !privacyConsent) {
-      ctx.status = 400;
-      ctx.body = { ok: false, error: 'Consimțământul de confidențialitate este obligatoriu.' };
-      return;
-    }
-
-    try {
-      const season = await getActiveSeason(); // stamped server-side; client value ignored
-      const doc = await strapi.documents(UID).create({
-        data: {
-          email,
-          phone,
-          childName,
-          childBirthDate,
-          parentName,
-          shirtSize,
-          howHeard,
-          level: level || undefined,
-          priorExperience: priorExperience || undefined,
-          expectations: expectations || undefined,
-          clubInterest,
-          regulationsAgreement,
-          privacyConsent,
-          status: 'Nou' as Status, // forced server-side; client status ignored
-          submittedAt: new Date().toISOString(),
-          season: season ?? undefined,
-          archived: false,
-          extra: (Object.keys(extraValues).length ? extraValues : undefined) as any,
-        },
-      });
-      ctx.status = 200;
-      ctx.body = { ok: true, documentId: doc.documentId };
-    } catch (err) {
-      strapi.log.error(`[inscriere] create failed: ${(err as Error)?.message ?? err}`);
-      ctx.status = 400;
-      ctx.body = { ok: false, error: 'Nu am putut salva înscrierea.' };
-    }
+    const slug = typeof ctx.query.scoala === 'string' ? ctx.query.scoala : null;
+    const result = await submitRegistration(body, slug, buildSubmitDeps(strapi));
+    ctx.status = result.ok ? 200 : 400;
+    ctx.body = result;
   },
 
   /**
