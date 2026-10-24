@@ -3,7 +3,7 @@ import { ConfirmDialog } from '../../ConfirmDialog';
 import { Button, Drawer, DrawerSection, Field, FieldRow, Input, NumberInput, Select, Textarea, useSaveState } from '../../ui';
 import type { AdminPriceItem, AdminPriceList } from '../../../club/price-admin';
 import type { PriceItemKind } from '../../../club/price-item';
-import { KIND_OPTIONS, priceInput, priceValue } from './format';
+import { KIND_OPTIONS, priceInput, priceValue, withExpectedName } from './format';
 import { LISTS_API, type PricesState } from './usePrices';
 
 /** What the drawer edits: the open list, and the row (null for "Adaugă preț"). */
@@ -58,7 +58,7 @@ function useItemActions(target: ItemTarget | null, mutate: PricesState['mutate']
     mutate((c) =>
       target?.index === null ? c.post(base, toBody(draft)) : c.put(`${base}/${target?.index}`, { item: toBody(draft), expectedName }),
     );
-  const remove = () => mutate((c) => c.del(`${base}/${target?.index}`, { params: { expectedName } }));
+  const remove = () => mutate((c) => c.del(withExpectedName(`${base}/${target?.index}`, expectedName)));
   return { save, remove };
 }
 
