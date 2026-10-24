@@ -17,6 +17,7 @@ Covers plans 2A-2F (backend `feat/registration-rebuild`) and 2C (frontend `feat/
 | 9 | Brevo DNS on the club domain (SPF include, DKIM, DMARC); mail-tester 9/10 or better from a test sender | club DNS (WordPress.com) | e-mails land in spam |
 | 10 | The club confirms the legal numbers in `src/club/documents/association.ts` (C.I.F., C.I.S., registry no., IBAN, bank branch) | club | wrong data printed on every PDF |
 | 11 | Frontend `NEXT_PUBLIC_STRAPI_URL` = the public CMS address | frontend env | submit and PDF links fail |
+| 12 | Registration seasons and numbers: `SELECT season, count(*) FROM registration_submissions GROUP BY 1;` and `SELECT count(*) FROM registration_submissions WHERE registration_number IS NULL;`. Note the en-dash seasons (`2026–2027`) and the unnumbered count; the copy script's dry run (step 5) reports the same counts | prod DB, read-only | old registrations missing from the Înscrieri default view; unnumbered registrations |
 
 ## In the window
 
@@ -24,7 +25,7 @@ Covers plans 2A-2F (backend `feat/registration-rebuild`) and 2C (frontend `feat/
 2. Backup: database and uploads (`scripts/backup.sh`, or the dump step in `11-migration-runbook.md`). Keep it on the VM.
 3. Deploy the backend (Actions, "Deploy backend", ref `feat/registration-rebuild` or `main` after merge). The new container restarts Strapi, which applies the schema (new fields, unique index, `email-job`, private documents volume).
 4. Check the volume is writable: `docker compose -f docker-compose.production.yml exec backend sh -c 'touch /opt/app/private/documents/.w && rm /opt/app/private/documents/.w'`.
-5. Copy script, dry run: `docker compose -f docker-compose.production.yml --env-file .env.production exec backend npm run migrate:registration`. Review it: tooltips copied, price notes, Școala public page on, old custom questions removed, season check, duplicate price names.
+5. Copy script, dry run: `docker compose -f docker-compose.production.yml --env-file .env.production exec backend npm run migrate:registration`. Review it: tooltips copied, price notes, Școala public page on, old custom questions removed, season check, duplicate price names, **registration season texts to rewrite** (per old text, matching item 12's en-dash counts) and **registration numbers to assign** (plus "skipped (no season)", matching item 12's unnumbered count).
 6. Copy script, apply: the same with `-- --apply`. Run the dry run again: nothing left to do.
 7. Admin checks:
    - Sezoane: 2026-2027 current, period Octombrie 2026 - Mai 2027, fee 270.
