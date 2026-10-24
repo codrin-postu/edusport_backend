@@ -39,7 +39,17 @@ const LINKS: EmailLinks = {
 };
 const ENV = { BREVO_API_KEY: 'k', EMAIL_FROM_ADDRESS: 'inscrieri@scoaladepatinaj.com', EMAIL_TEST_RECIPIENT: 'test@codrin.space', NODE_ENV: 'test' };
 
-type Options = { env?: Record<string, string | undefined>; send?: (m: OutgoingEmail) => Promise<SendResult>; documents?: StoredDocument[]; registration?: RegistrationForEmail | null };
+type Options = {
+  env?: Record<string, string | undefined>;
+  send?: (m: OutgoingEmail) => Promise<SendResult>;
+  documents?: StoredDocument[];
+  build?: (registrationDocumentId: string) => Promise<StoredDocument[]>;
+  registration?: RegistrationForEmail | null;
+};
+
+const buildFails = async (): Promise<StoredDocument[]> => {
+  throw new Error('render failed');
+};
 
 function fakeDeps(options: Options = {}) {
   const jobs = new Map<string, EmailJobRow>();
@@ -63,6 +73,7 @@ function fakeDeps(options: Options = {}) {
     },
     loadRegistration: async () => (options.registration === undefined ? REGISTRATION : options.registration),
     listDocuments: async () => options.documents ?? DOCUMENTS,
+    buildDocuments: options.build ?? buildFails,
     readDocument: async (d) => Buffer.from(`pdf:${d.fileName}`),
     loadLinks: async () => LINKS,
     send:
@@ -184,7 +195,23 @@ describe('retries', () => {
     expect(jobs.get(job!.documentId)!.attempts).toBe(1);
   });
 
-  it('counts missing documents as a failed attempt', async () => {
+  it('builds missing documents first, then sends them', async () => {
+    const built: string[] = [];
+    const { deps, jobs, sent, runDeferred } = fakeDeps({
+      documents: [],
+      build: async (id) => {
+        built.push(id);
+        return [DOCUMENTS[0]];
+      },
+    });
+    const job = await queueRegistrationEmail(deps, 'reg-1');
+    await runDeferred();
+    expect(built).toEqual(['reg-1']);
+    expect(sent[0].attachments).toEqual([{ name: 'Pop_Maria_Acord_2026-2027.pdf', content: Buffer.from('pdf:Pop_Maria_Acord_2026-2027.pdf').toString('base64') }]);
+    expect(jobs.get(job!.documentId)).toMatchObject({ status: 'sent', attempts: 1 });
+  });
+
+  it('counts missing documents whose build fails as a failed attempt', async () => {
     const { deps, jobs, sent, runDeferred } = fakeDeps({ documents: [] });
     const job = await queueRegistrationEmail(deps, 'reg-1');
     await runDeferred();
@@ -246,7 +273,15 @@ describe('resendRegistrationEmail', () => {
     expect([...jobs.values()][0]).toMatchObject({ status: 'queued', attempts: 1 });
   });
 
-  it('refuses an unknown registration and one without documents', async () => {
+  it('builds missing documents first, then resends with them', async () => {
+    const { deps, history, sent } = fakeDeps({ documents: [], build: async () => [DOCUMENTS[0]] });
+    const result = await resendRegistrationEmail(deps, 'reg-1', 'admin@edusport.ro');
+    expect(result).toMatchObject({ ok: true, status: { status: 'sent', documents: ['Pop_Maria_Acord_2026-2027.pdf'] } });
+    expect(history[0].changes).toEqual({ recipient: 'parinte@example.ro', documents: ['Pop_Maria_Acord_2026-2027.pdf'] });
+    expect(sent).toHaveLength(1);
+  });
+
+  it('refuses an unknown registration and one whose missing documents fail to build', async () => {
     await expect(resendRegistrationEmail(fakeDeps({ registration: null }).deps, 'x', 'a')).resolves.toEqual({ ok: false, code: 'not-found', error: RESEND_ERRORS['not-found'] });
     const empty = fakeDeps({ documents: [] });
     await expect(resendRegistrationEmail(empty.deps, 'reg-1', 'a')).resolves.toEqual({ ok: false, code: 'no-documents', error: RESEND_ERRORS['no-documents'] });

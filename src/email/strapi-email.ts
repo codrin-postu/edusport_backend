@@ -4,7 +4,7 @@
  */
 import { readFile } from 'node:fs/promises';
 import type { Core } from '@strapi/strapi';
-import { listRegistrationDocuments } from '../club/documents';
+import { buildRegistrationDocuments, listRegistrationDocuments } from '../club/documents';
 import { recordHistory } from '../club/history';
 import { captureMessage } from '../sentry';
 import { sendWithBrevo } from './brevo';
@@ -97,6 +97,7 @@ export function buildEmailDeps(strapi: Core.Strapi, config: EmailConfig = readEm
     jobs: sheetSyncedStore(jobStore(strapi), (registrationDocumentId) => queueUpsert('inscrieri', registrationDocumentId)),
     loadRegistration: (documentId) => loadRegistration(strapi, documentId),
     listDocuments: (documentId) => listRegistrationDocuments(strapi, documentId),
+    buildDocuments: (documentId) => buildRegistrationDocuments(strapi, documentId),
     readDocument: (document) => readFile(document.path),
     loadLinks: async () => buildEmailLinks(config, (await strapi.documents(SETTINGS_UID).findFirst({}))?.contact),
     send: deliver(config),

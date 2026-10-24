@@ -42,6 +42,7 @@ export interface EmailDeps {
   jobs: EmailJobStore;
   loadRegistration(documentId: string): Promise<RegistrationForEmail | null>;
   listDocuments(registrationDocumentId: string): Promise<StoredDocument[]>;
+  buildDocuments(registrationDocumentId: string): Promise<StoredDocument[]>;
   readDocument(document: StoredDocument): Promise<Buffer>;
   loadLinks(): Promise<EmailLinks>;
   send(message: OutgoingEmail): Promise<SendResult>;
@@ -81,10 +82,22 @@ async function attachmentsFor(deps: EmailDeps, documents: StoredDocument[]): Pro
   );
 }
 
+/** The stored PDFs; when none are stored (the build failed at submit), they are built first. Empty only if that fails. */
+async function documentsFor(deps: EmailDeps, registrationDocumentId: string): Promise<StoredDocument[]> {
+  const stored = await deps.listDocuments(registrationDocumentId);
+  if (stored.length) return stored;
+  try {
+    return await deps.buildDocuments(registrationDocumentId);
+  } catch (err) {
+    deps.log('warn', `[email-job] building the documents of ${registrationDocumentId} failed: ${message(err)}`);
+    return [];
+  }
+}
+
 async function compose(deps: EmailDeps, registrationDocumentId: string, to: string): Promise<OutgoingEmail> {
   const registration = await deps.loadRegistration(registrationDocumentId);
   if (!registration) throw new Error('registration not found');
-  const documents = await deps.listDocuments(registrationDocumentId);
+  const documents = await documentsFor(deps, registrationDocumentId);
   if (!documents.length) throw new Error('no documents built for this registration');
   const rendered = renderRegistrationEmail({
     childName: registration.childName,
@@ -190,7 +203,7 @@ async function jobForResend(deps: EmailDeps, registrationDocumentId: string, reg
 export async function resendRegistrationEmail(deps: EmailDeps, registrationDocumentId: string, actor: string): Promise<ResendResult> {
   const registration = await deps.loadRegistration(registrationDocumentId);
   if (!registration) return { ok: false, code: 'not-found', error: RESEND_ERRORS['not-found'] };
-  const documents = await deps.listDocuments(registrationDocumentId);
+  const documents = await documentsFor(deps, registrationDocumentId);
   if (!documents.length) return { ok: false, code: 'no-documents', error: RESEND_ERRORS['no-documents'] };
   const job = await jobForResend(deps, registrationDocumentId, registration);
   await deps.recordHistory({
