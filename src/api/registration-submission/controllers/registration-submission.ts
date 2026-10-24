@@ -5,6 +5,7 @@ import { buildInscrieriMatrix } from '../../../sheets/matrix';
 import type { RowLike as SubmissionLike } from '../../../sheets/matrix';
 import { resyncForm } from '../../../sheets/sync';
 import { buildColClause, parseColFilters } from '../../../utils/submission-filters';
+import { quickSearchClause } from '../list-search';
 
 const UID = 'api::registration-submission.registration-submission' as const;
 const SETTINGS_UID = 'api::site-settings.site-settings' as const;
@@ -108,18 +109,9 @@ function buildListFilters(query: Record<string, any>, activeSeason: string | nul
   if (arch === 'only') and.push({ archived: true });
   else if (arch !== 'all') and.push({ archived: { $ne: true } });
 
-  // --- quick search across name/parent/email/phone
-  const q = trimOrEmpty(query.q);
-  if (q) {
-    and.push({
-      $or: [
-        { childName: { $containsi: q } },
-        { parentName: { $containsi: q } },
-        { email: { $containsi: q } },
-        { phone: { $containsi: q } },
-      ],
-    });
-  }
+  // --- quick search across name/parent/email/phone/registration number
+  const search = quickSearchClause(trimOrEmpty(query.q));
+  if (search) and.push(search);
 
   // --- generic column filters
   for (const f of parseColFilters(query.filters)) {
