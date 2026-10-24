@@ -112,8 +112,8 @@ const SPECS: Spec[] = [
     partition: byField('season', INSCRIERI_FALLBACK_TAB),
     // A season tab filled by the new registration form gets its own columns.
     tabPlans: inscrieriTabPlans,
-    // The "Școală" column prints the section's name.
-    populate: { section: { fields: ['name'] } },
+    // The "Școală" column prints the section's name; "E-mail" the newest e-mail job (plan 2F).
+    populate: { section: { fields: ['name'] }, emailJobs: { fields: ['status', 'sentAt', 'createdAt'] } },
   },
   {
     key: 'voluntari',

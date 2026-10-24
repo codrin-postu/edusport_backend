@@ -127,7 +127,7 @@ describe('Înscrieri tabs with their own columns', () => {
     expect((await tab('fara-sezon'))[0]).toEqual(today.header);
     const season = await tab('2026-2027');
     expect(season[0].slice(0, 4)).toEqual(['Nr. înscriere', 'Trimis la', 'Stare', 'Școală']);
-    expect(season[0].slice(-3)).toEqual(['Notă internă', 'Document', 'ID']);
+    expect(season[0].slice(-4)).toEqual(['Notă internă', 'Document', 'E-mail', 'ID']);
     expect(season[1].slice(0, 4)).toEqual(['2026-0142', '03.10.2026 14:22', 'Nou', 'AFI Cotroceni']);
     expect(column(season, 'Membru A.C.S.')).toEqual(['Da']);
     expect(column(season, 'Document')).toEqual(['Deschide documentul']);

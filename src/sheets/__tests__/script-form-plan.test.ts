@@ -52,15 +52,15 @@ const SCRIPT_HEADER = [
   'Calitatea față de sportiv', 'Altă calitate', 'Telefon de contact', 'Numele copilului', 'Data nașterii',
   'Înălțimea (cm)', 'Măsura bluză', 'Sezonul trecut', 'Nivel de experiență', 'Așteptări', 'Membru A.C.S.',
   'La primul modul', 'De unde ați aflat', 'Altă sursă', 'Acord GDPR', 'Acord Regulament', 'Notă internă',
-  'Document', 'ID',
+  'Document', 'E-mail', 'ID',
 ];
 
-/** The 2026-2027 columns of the approved screen, in its order (its E-mail column belongs to plan 2F). */
+/** The 2026-2027 columns of the approved screen, in its order (its E-mail column is plan 2F's). */
 const SCREEN_ORDER = [
   'Nr. înscriere', 'Trimis la', 'Stare', 'Adresă de e-mail', 'Persoana care completează', 'Calitatea față de sportiv',
   'Telefon de contact', 'Numele copilului', 'Data nașterii', 'Înălțimea (cm)', 'Măsura bluză', 'Sezonul trecut',
   'Nivel de experiență', 'Așteptări', 'Membru A.C.S.', 'La primul modul', 'De unde ați aflat', 'Acord GDPR',
-  'Acord Regulament', 'Document',
+  'Acord Regulament', 'Document', 'E-mail',
 ];
 
 describe('which columns a season tab gets', () => {
@@ -96,7 +96,7 @@ describe('which columns a season tab gets', () => {
     const plans = await inscrieriTabPlans([OLD_ROW, answered], tabFor);
     expect(plans.forTab('2025-2026').header).not.toContain('tricouMarime (eliminata)');
     expect(plans.forTab('2026-2027').header).toContain('tricouMarime (eliminata)');
-    expect(plans.forTab('2026-2027').header.slice(-3)).toEqual(['Notă internă', 'Document', 'ID']);
+    expect(plans.forTab('2026-2027').header.slice(-4)).toEqual(['Notă internă', 'Document', 'E-mail', 'ID']);
   });
 });
 
@@ -117,7 +117,7 @@ describe('a new-form row in its season tab', () => {
       '2026-0142', '2026-10-03T11:22:00.000Z', 'Nou', 'AFI Cotroceni', 'parinte@exemplu.ro', 'Mihaela Dumitrescu',
       'Părinte', '', '0722111222', 'Maria Dumitrescu', '14.03.2014', '142', 'S', 'Începători',
       'Patinaj înainte, frânare', 'Să învețe piruete', 'Da', 'Abonament 8', 'Recomandare', '', 'Da', 'Da',
-      'Sună după 18', 'https://cms.example.ro/admin/plugins/edusport-inscrieri?q=2026-0142&season=all', 'doc-new',
+      'Sună după 18', 'https://cms.example.ro/admin/plugins/edusport-inscrieri?q=2026-0142&season=all', '', 'doc-new',
     ]);
   });
 
@@ -144,7 +144,7 @@ describe('a new-form row in its season tab', () => {
   it('leaves the Document cell empty when the CMS address is not configured', async () => {
     delete process.env.CMS_PUBLIC_URL;
     const plan = (await inscrieriTabPlans([NEW_ROW], tabFor)).forTab('2026-2027');
-    expect(plan.row(NEW_ROW).at(-2)).toBe('');
+    expect(plan.row(NEW_ROW).at(-3)).toBe('');
   });
 
   it('shows an old-form row moved into a new season with the answers both forms share', async () => {

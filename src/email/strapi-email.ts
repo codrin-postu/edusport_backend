@@ -20,6 +20,8 @@ import {
 } from './email-jobs';
 import type { EmailJobStatus } from './job-state';
 import { buildEmailLinks } from './links';
+import { sheetSyncedStore } from './sheet-status';
+import { queueUpsert } from '../sheets/queue';
 
 const JOB_UID = 'api::email-job.email-job' as const;
 const REGISTRATION_UID = 'api::registration-submission.registration-submission' as const;
@@ -91,7 +93,8 @@ function deliver(config: EmailConfig): EmailDeps['send'] {
 export function buildEmailDeps(strapi: Core.Strapi, config: EmailConfig = readEmailConfig()): EmailDeps {
   return {
     config,
-    jobs: jobStore(strapi),
+    // Every job write also refreshes the registration's Sheet row (the "E-mail" column), like an edit does.
+    jobs: sheetSyncedStore(jobStore(strapi), (registrationDocumentId) => queueUpsert('inscrieri', registrationDocumentId)),
     loadRegistration: (documentId) => loadRegistration(strapi, documentId),
     listDocuments: (documentId) => listRegistrationDocuments(strapi, documentId),
     readDocument: (document) => readFile(document.path),

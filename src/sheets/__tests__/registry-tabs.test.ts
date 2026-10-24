@@ -17,7 +17,7 @@ describe('form descriptors and per-tab plans', () => {
     expect(findMany).toHaveBeenCalledWith({
       sort: { submittedAt: 'asc' },
       limit: 5000,
-      populate: { section: { fields: ['name'] } },
+      populate: { section: { fields: ['name'] }, emailJobs: { fields: ['status', 'sentAt', 'createdAt'] } },
     });
   });
 
@@ -28,7 +28,7 @@ describe('form descriptors and per-tab plans', () => {
     expect(findMany).toHaveBeenCalledWith({
       filters: { documentId: { $in: ['new-1'] } },
       limit: 1,
-      populate: { section: { fields: ['name'] } },
+      populate: { section: { fields: ['name'] }, emailJobs: { fields: ['status', 'sentAt', 'createdAt'] } },
     });
     findMany.mockClear();
     expect(await getForm('inscrieri').fetchByIds([])).toEqual([]);
