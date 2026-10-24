@@ -9,6 +9,19 @@ import { quickSearchClause } from '../list-search';
 import { findCurrentSeason } from '../../../club/current-season';
 import { submitRegistration } from '../../../club/registration-submit';
 import { buildSubmitDeps } from '../submit-deps';
+import {
+  buildRegistrationDocuments,
+  createDownloadToken,
+  deleteRegistrationDocuments,
+  deleteRegistrationsWithDocuments,
+  finishSubmit,
+  moveRegistrationsToSeason,
+  moveRegistrationsToSeasonInBackground,
+  rebuildAfterEdit,
+  seasonIdForLabel,
+  seasonMoveDeps,
+  submitBlockedReason,
+} from '../../../club/documents';
 
 const UID = 'api::registration-submission.registration-submission' as const;
 const FORM_CONFIG_UID = 'api::form-config.form-config' as const;
@@ -182,18 +195,41 @@ async function collectExtraKeys(): Promise<string[]> {
   return Array.from(set);
 }
 
+/** A deleted registration takes its PDFs with it; a failure is logged, the delete still succeeds. */
+async function removeDocuments(documentId: string): Promise<void> {
+  try {
+    await deleteRegistrationDocuments(strapi, documentId);
+  } catch (err) {
+    strapi.log.error(`[inscrieri] deleting documents of ${documentId} failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 export default factories.createCoreController(UID, ({ strapi }) => ({
   /**
    * POST /api/forms/inscriere?scoala=<slug>  (public, auth:false)
    * Honeypot, "Înscrieri deschise", current Sezon, school, form-config checks and the price choice, then a
    * numbered registration (src/club/registration-submit.ts). Status, dates, season,
    * school and price are set by the server; client values for them are ignored.
-   * Returns 200 {ok:true, registrationNumber} or 400 {ok:false, code, error}.
+   * Then builds the PDFs (plan 2D; a failed build is logged, the registration still succeeds).
+   * Returns 200 {ok:true, registrationNumber, downloadToken, documents} or 400 {ok:false, code, error};
+   * 503 when DOCUMENT_TOKEN_SECRET is missing in production (fails closed, nothing saved).
    */
   async submitPublic(ctx) {
+    const blocked = submitBlockedReason();
+    if (blocked) {
+      strapi.log.error('[inscriere] DOCUMENT_TOKEN_SECRET is missing: registrations are refused');
+      ctx.status = 503;
+      ctx.body = blocked;
+      return;
+    }
     const body = (ctx.request.body ?? {}) as Record<string, unknown>;
     const slug = typeof ctx.query.scoala === 'string' ? ctx.query.scoala : null;
-    const result = await submitRegistration(body, slug, buildSubmitDeps(strapi));
+    const saved = await submitRegistration(body, slug, buildSubmitDeps(strapi));
+    const result = await finishSubmit(saved, {
+      buildDocuments: (documentId) => buildRegistrationDocuments(strapi, documentId),
+      createToken: (documentId) => createDownloadToken(documentId),
+      logError: (message) => strapi.log.error(message),
+    });
     ctx.status = result.ok ? 200 : 400;
     ctx.body = result;
   },
@@ -268,17 +304,23 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     // `level` is now a plain string sourced from the dynamic effective options;
     // it is no longer validated against a fixed enum here.
 
+    // A new season text also points seasonRef at the Sezon of that label (null when none matches).
+    if ('season' in data) data.seasonRef = await seasonIdForLabel(strapi, data.season);
+
     const doc = await strapi.documents(UID).update({ documentId, data });
     if (!doc) return ctx.notFound();
-    ctx.body = { data: doc };
+    const rebuild = await rebuildAfterEdit(strapi, documentId, data);
+    ctx.body = rebuild ? { data: doc, rebuild } : { data: doc };
   },
 
   /**
    * DELETE /api/forms/inscrieri/:documentId  (admin-guarded) — permanent.
+   * Its stored PDFs are deleted too (user, 2026-10-21).
    */
   async deleteSubmission(ctx) {
     const { documentId } = ctx.params;
     await strapi.documents(UID).delete({ documentId });
+    await removeDocuments(documentId);
     ctx.body = { data: { documentId } };
   },
 
@@ -299,12 +341,20 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
   /**
    * POST /api/forms/inscrieri/delete-archived-season  (admin-guarded)
    * Permanently delete every archived submission in a season. Body: { season }.
+   * Their stored PDFs are deleted too (user, 2026-10-21): ids first, then the rows, then the folders.
    */
   async deleteArchivedSeason(ctx) {
     const season = trimOrEmpty((ctx.request.body as any)?.season);
     if (!season) return ctx.badRequest('Sezon lipsă.');
-    const { count } = await strapi.db.query(UID).deleteMany({
-      where: { season, archived: true },
+    const where = { season, archived: true };
+    const count = await deleteRegistrationsWithDocuments({
+      findIds: async () => {
+        const rows = (await strapi.db.query(UID).findMany({ select: ['documentId'], where })) as { documentId?: unknown }[];
+        return rows.map((r) => r.documentId).filter((id): id is string => typeof id === 'string');
+      },
+      deleteRows: async () => (await strapi.db.query(UID).deleteMany({ where })).count,
+      deleteDocuments: (documentId) => deleteRegistrationDocuments(strapi, documentId),
+      logError: (message) => strapi.log.error(message),
     });
     ctx.body = { ok: true, deleted: count };
   },
@@ -314,6 +364,9 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
    * Reassign a set of submissions to another season. Body:
    *   { documentIds: string[], toSeason: string }
    * Unknown ids are ignored. Returns { moved: number }.
+   * Also points seasonRef at the Sezon of that label and rebuilds each moved registration's PDFs
+   * (plan 2D); the registration number never changes. Moving more than one registration rebuilds
+   * in the background (plan-mandated: a synchronous rebuild of many registrations can time out).
    */
   async moveSeason(ctx) {
     const body = (ctx.request.body ?? {}) as Record<string, unknown>;
@@ -326,11 +379,12 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
       ctx.body = { moved: 0 };
       return;
     }
-    const { count } = await strapi.db.query(UID).updateMany({
-      where: { documentId: { $in: ids } },
-      data: { season: toSeason },
-    });
-    ctx.body = { moved: count };
+    if (ids.length === 1) {
+      ctx.body = { moved: await moveRegistrationsToSeason(ids, toSeason, seasonMoveDeps(strapi)) };
+      return;
+    }
+    const { moved } = await moveRegistrationsToSeasonInBackground(ids, toSeason, seasonMoveDeps(strapi));
+    ctx.body = { moved };
   },
 
   /**
@@ -338,6 +392,10 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
    * Reassign every submission in `fromSeason` (optionally only archived ones)
    * to `toSeason`. Body: { fromSeason, toSeason, archivedOnly? }.
    * Returns { moved: number }.
+   * Also points seasonRef at the Sezon of that label and rebuilds each moved registration's PDFs
+   * (plan 2D; a failure is logged and the loop goes on); the registration number never changes.
+   * The rebuild runs in the background (plan-mandated: a whole season can be hundreds of
+   * registrations, and a synchronous rebuild would time out the request).
    */
   async moveWholeSeason(ctx) {
     const body = (ctx.request.body ?? {}) as Record<string, unknown>;
@@ -350,8 +408,10 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     }
     const where: Record<string, unknown> = { season: fromSeason };
     if (asBool(body.archivedOnly)) where.archived = true;
-    const { count } = await strapi.db.query(UID).updateMany({ where, data: { season: toSeason } });
-    ctx.body = { moved: count };
+    const rows = (await strapi.db.query(UID).findMany({ select: ['documentId'], where })) as { documentId?: unknown }[];
+    const ids = rows.map((r) => r.documentId).filter((id): id is string => typeof id === 'string');
+    const { moved } = await moveRegistrationsToSeasonInBackground(ids, toSeason, seasonMoveDeps(strapi));
+    ctx.body = { moved };
   },
 
   /**
