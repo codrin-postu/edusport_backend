@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  MEMBERSHIP_EDIT_OPTIONS,
   MISSING,
+  RELATIONSHIP_EDIT_OPTIONS,
   emailStatusText,
   fileNameFrom,
   readEmailStatus,
@@ -48,9 +50,25 @@ describe('registrationPanelRows', () => {
     expect(value(rows, 'Cum a aflat')).toBe('Altele: Ziar');
     expect(value(rows, 'Acord GDPR')).toBe('Da');
     expect(value(rows, 'Nivel')).toBeUndefined();
+    expect(rows.filter((r) => r.edit).map((r) => [r.label, r.edit])).toEqual([
+      ['Calitate', 'relationship'],
+      ['Membru A.C.S.', 'membershipAnswer'],
+    ]);
     expect(longRows).toEqual([
       { label: 'Experiență anterioară', value: 'Nu este cazul' },
       { label: 'Așteptări', value: MISSING },
+    ]);
+  });
+
+  it('edits Calitate and Membru A.C.S. with the stored values', () => {
+    expect(RELATIONSHIP_EDIT_OPTIONS).toEqual([
+      { value: 'parinte', label: 'Părinte' },
+      { value: 'tutore', label: 'Tutore Legal' },
+      { value: 'alta', label: 'Alta' },
+    ]);
+    expect(MEMBERSHIP_EDIT_OPTIONS).toEqual([
+      { value: 'da', label: 'Da' },
+      { value: 'nu', label: 'Nu' },
     ]);
   });
 
@@ -66,6 +84,7 @@ describe('registrationPanelRows', () => {
     ]);
     expect(value(rows, 'Nivel')).toBe('Avansati');
     expect(value(rows, 'Email')).toBe(MISSING);
+    expect(rows.some((r) => r.edit)).toBe(false);
   });
 });
 
