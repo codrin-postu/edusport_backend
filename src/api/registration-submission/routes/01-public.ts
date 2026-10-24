@@ -2,6 +2,7 @@
  * Public registration submit endpoint. Served at POST /api/forms/inscriere.
  * Auth is disabled (mirrors the public calendar route); the controller
  * enforces a honeypot + field validation and forces server-side status.
+ * A per-IP limit runs first (middlewares/submit-rate-limit.ts).
  */
 export default {
   routes: [
@@ -12,7 +13,7 @@ export default {
       config: {
         auth: false,
         policies: [],
-        middlewares: [],
+        middlewares: ['api::registration-submission.submit-rate-limit'],
       },
     },
   ],

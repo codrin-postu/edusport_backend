@@ -18,6 +18,14 @@ describe('queueEmailAfterSubmit', () => {
     expect(queued).toEqual([]);
   });
 
+  it('queues nothing for a repeat submit: the first one already did', async () => {
+    const queued: string[] = [];
+    await queueEmailAfterSubmit({ ok: true, documentId: 'reg-doc', repeat: true }, async (id) => {
+      queued.push(id);
+    }, () => undefined);
+    expect(queued).toEqual([]);
+  });
+
   it('never throws when queueing fails, and logs it', async () => {
     const errors: string[] = [];
     const failing = async (): Promise<void> => {

@@ -10,6 +10,15 @@ const UID = 'api::registration-submission.registration-submission' as const;
 
 type NumberedService = { createNumbered(data: RegistrationData, startYear: number): Promise<NumberedRegistration> };
 
+async function findRecentRepeat(strapi: Core.Strapi, submissionKey: string, since: Date): Promise<NumberedRegistration | null> {
+  const found = await strapi.documents(UID).findFirst({
+    filters: { submissionKey, createdAt: { $gte: since.toISOString() } },
+    sort: 'createdAt:desc',
+    fields: ['registrationNumber'],
+  });
+  return found?.registrationNumber ? { documentId: found.documentId, registrationNumber: found.registrationNumber } : null;
+}
+
 /** The real Strapi side of submitRegistration. `RegistrationCreateData` is type-checked against the schema here. */
 export function buildSubmitDeps(strapi: Core.Strapi): SubmitDeps {
   const config = () => strapi.service(FORM_CONFIG_UID);
@@ -24,6 +33,7 @@ export function buildSubmitDeps(strapi: Core.Strapi): SubmitDeps {
     findSections: () => strapi.documents('api::section.section').findMany({ limit: 100 }),
     findSchoolPrices: (documentId) => loadSchoolPrices(strapi, documentId),
     createNumbered: (data, startYear) => registrations().createNumbered(data, startYear),
+    findRecentRepeat: (match, since) => findRecentRepeat(strapi, match, since),
     logError: (message) => strapi.log.error(message),
     now: () => new Date(),
   };

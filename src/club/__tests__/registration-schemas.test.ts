@@ -28,6 +28,10 @@ describe('registration-submission, phase 2 fields', () => {
     expect(a.privacyConsent).toEqual({ type: 'boolean', default: false });
   });
 
+  it('keeps the draft key out of the API and the content manager', () => {
+    expect(registration().submissionKey).toEqual({ type: 'string', private: true, visible: false });
+  });
+
   it('enforces unique numbers in the database, not only in Strapi', () => {
     expect(registration().registrationNumber).toEqual({ type: 'string', unique: true, column: { unique: true } });
   });

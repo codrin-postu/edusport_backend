@@ -24,6 +24,7 @@ import {
   adminToast,
 } from '../ui';
 import { FORMULARE_TO } from './menu';
+import { FORMS_WITHOUT_CUSTOM_QUESTIONS } from '../../api/form-config/custom-policy';
 
 /**
  * EduSport admin — "Editor formular" page.
@@ -161,6 +162,8 @@ const tmpId = (p: string) => `${p}${Date.now().toString(36)}${(tmpCounter++).toS
 export default function FormEditorPage() {
   const { get, put } = useFetchClient();
   const type = useQueryType();
+  // The public form drops admin-added questions for these forms, so the editor does not offer them.
+  const customQuestionsAllowed = !(FORMS_WITHOUT_CUSTOM_QUESTIONS as ReadonlySet<string>).has(type);
   const save = useSaveState();
   const { reset: resetSave, setDirty } = save;
 
@@ -390,7 +393,7 @@ export default function FormEditorPage() {
                         itemLabel={(q) => `${q.sensitive ? 'câmpul sensibil ' : 'întrebarea '}„${questionLabel(q)}”`}
                         renderSummary={(q) => <QuestionSummary q={q} />}
                         renderRow={(q) => renderQuestion(step.key, q)}
-                        onAdd={addOpen[step.key] ? undefined : () => openAdd(step.key)}
+                        onAdd={!customQuestionsAllowed || addOpen[step.key] ? undefined : () => openAdd(step.key)}
                         addLabel="Adaugă întrebare"
                         emptyLabel="Nicio întrebare în acest pas."
                       />

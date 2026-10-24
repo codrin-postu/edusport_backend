@@ -577,6 +577,13 @@ export function MenuButton({
 }
 
 /** The first list query from the page URL: `?q=` (search) and `?season=` (a season label or `all`). */
+/** "Salvat", or a warning when the field saved but the PDFs could not be rebuilt (the PUT's `rebuild`, plan 2D). */
+function toastFieldSaved(body: unknown): void {
+  const rebuild = (body as { rebuild?: { ok?: unknown } } | null)?.rebuild;
+  if (rebuild?.ok === false) adminToast.warning('Salvat. Documentul PDF nu a putut fi refăcut.');
+  else toastAutosaved();
+}
+
 function initialQuery(): { q: string; season: string } {
   if (typeof window === 'undefined') return { q: '', season: '' };
   const params = new URLSearchParams(window.location.search);
@@ -864,8 +871,8 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
         }),
       );
       try {
-        await put(`${cfg.api}/${documentId}`, { [key]: value });
-        toastAutosaved();
+        const res = await put(`${cfg.api}/${documentId}`, { [key]: value });
+        toastFieldSaved(res.data);
         const cleared = fieldsClearedByEdit(key, value);
         if (cleared) patchRow(documentId, cleared);
         // A season change moves the row out of the current view, so the list

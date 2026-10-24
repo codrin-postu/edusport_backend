@@ -50,5 +50,6 @@ export function sheetSyncedStore(store: EmailJobStore, refreshRow: (registration
     update: async (documentId, data) => notify(await store.update(documentId, data)),
     findQueued: (limit) => store.findQueued(limit),
     findLatest: (registrationDocumentId) => store.findLatest(registrationDocumentId),
+    countForRecipientSince: (recipient, since) => store.countForRecipientSince(recipient, since),
   };
 }

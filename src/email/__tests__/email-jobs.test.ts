@@ -4,6 +4,7 @@ import type { OutgoingEmail, SendResult } from '../brevo';
 import { readEmailConfig } from '../config';
 import {
   QUIET_MS,
+  RECIPIENT_DAILY_CAP,
   RESEND_ACTION,
   RESEND_ERRORS,
   attemptJob,
@@ -57,6 +58,8 @@ function fakeDeps(options: Options = {}) {
   const alerts: string[] = [];
   const history: HistoryNote[] = [];
   const deferred: (() => Promise<void>)[] = [];
+  const createdAt = new Map<string, number>();
+  const warnings: string[] = [];
   let seq = 0;
   const save = (row: EmailJobRow) => {
     jobs.set(row.documentId, row);
@@ -65,11 +68,16 @@ function fakeDeps(options: Options = {}) {
   const deps: EmailDeps = {
     config: readEmailConfig(options.env ?? ENV),
     jobs: {
-      create: async (job: NewEmailJob) =>
-        save({ documentId: `job-${++seq}`, ...job, status: 'queued', attempts: 0, lastError: null, sentAt: null, updatedAt: NOW.toISOString() }),
+      create: async (job: NewEmailJob) => {
+        const row = save({ documentId: `job-${++seq}`, ...job, status: 'queued', attempts: 0, lastError: null, sentAt: null, updatedAt: NOW.toISOString() });
+        createdAt.set(row.documentId, NOW.getTime());
+        return row;
+      },
       update: async (id: string, data: JobUpdate) => save({ ...jobs.get(id)!, ...data, updatedAt: NOW.toISOString() }),
       findQueued: async () => [...jobs.values()].filter((j) => j.status === 'queued'),
       findLatest: async (regId: string) => [...jobs.values()].filter((j) => j.registrationDocumentId === regId).pop() ?? null,
+      countForRecipientSince: async (recipient: string, since: Date) =>
+        [...jobs.values()].filter((j) => j.recipient.toLowerCase() === recipient.toLowerCase() && createdAt.get(j.documentId)! >= since.getTime()).length,
     },
     loadRegistration: async () => (options.registration === undefined ? REGISTRATION : options.registration),
     listDocuments: async () => options.documents ?? DOCUMENTS,
@@ -88,7 +96,9 @@ function fakeDeps(options: Options = {}) {
     alert: (m) => {
       alerts.push(m);
     },
-    log: () => undefined,
+    log: (level, m) => {
+      if (level === 'warn') warnings.push(m);
+    },
     defer: (task) => {
       deferred.push(task);
     },
@@ -98,7 +108,8 @@ function fakeDeps(options: Options = {}) {
     for (const task of deferred.splice(0)) await task();
   };
   const age = (id: string) => jobs.set(id, { ...jobs.get(id)!, updatedAt: LONG_AGO });
-  return { deps, jobs, sent, alerts, history, runDeferred, age };
+  const createdBefore = (id: string, ms: number) => createdAt.set(id, NOW.getTime() - ms);
+  return { deps, jobs, sent, alerts, history, warnings, runDeferred, age, createdBefore };
 }
 
 const failing = async (): Promise<SendResult> => ({ ok: false, error: 'Brevo 500: down' });
@@ -129,6 +140,39 @@ describe('queueRegistrationEmail', () => {
     const { deps, jobs } = fakeDeps({ registration: null });
     await expect(queueRegistrationEmail(deps, 'gone')).resolves.toBeNull();
     expect(jobs.size).toBe(0);
+  });
+});
+
+describe('recipient cap', () => {
+  const DAY = 24 * 60 * 60_000;
+
+  it('queues 3 registration e-mails to one address in 24 h, not a 4th, and warns once', async () => {
+    const { deps, jobs, warnings } = fakeDeps();
+    expect(RECIPIENT_DAILY_CAP).toBe(3);
+    for (const id of ['reg-1', 'reg-2', 'reg-3']) await expect(queueRegistrationEmail(deps, id)).resolves.not.toBeNull();
+    await expect(queueRegistrationEmail(deps, 'reg-4')).resolves.toBeNull();
+    expect(jobs.size).toBe(3);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('reg-4');
+    expect(warnings[0]).not.toContain('parinte@example.ro');
+  });
+
+  it('stops counting an e-mail once it is older than 24 h', async () => {
+    const { deps, jobs, createdBefore } = fakeDeps();
+    for (const id of ['reg-1', 'reg-2', 'reg-3']) await queueRegistrationEmail(deps, id);
+    createdBefore('job-1', DAY + 1);
+    await expect(queueRegistrationEmail(deps, 'reg-4')).resolves.not.toBeNull();
+    expect(jobs.size).toBe(4);
+  });
+
+  it('never caps the admin resend', async () => {
+    const { deps, jobs, sent, runDeferred } = fakeDeps();
+    for (const id of ['reg-1', 'reg-2', 'reg-3']) await queueRegistrationEmail(deps, id);
+    await runDeferred();
+    await expect(resendRegistrationEmail(deps, 'reg-1', 'Admin')).resolves.toMatchObject({ ok: true });
+    await expect(resendRegistrationEmail(deps, 'reg-2', 'Admin')).resolves.toMatchObject({ ok: true });
+    expect(jobs.size).toBe(5);
+    expect(sent).toHaveLength(5);
   });
 });
 

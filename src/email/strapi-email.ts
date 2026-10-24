@@ -74,6 +74,8 @@ function jobStore(strapi: Core.Strapi): EmailJobStore {
       const rows = await jobs().findMany({ filters: { registration: { documentId: registrationDocumentId } }, sort: ['createdAt:desc', 'id:desc'], limit: 1, populate: POPULATE });
       return rows.length ? toJobRow(rows[0]) : null;
     },
+    countForRecipientSince: (recipient, since) =>
+      jobs().count({ filters: { kind: 'registration', recipient: { $eqi: recipient }, createdAt: { $gte: since.toISOString() } } }),
   };
 }
 

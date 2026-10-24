@@ -9,6 +9,7 @@ export type PublicSubmitResponse = PublicSubmitSuccess | PublicSubmitFailure;
 
 export interface FinishDeps {
   buildDocuments(registrationDocumentId: string): Promise<StoredDocument[]>;
+  listDocuments(registrationDocumentId: string): Promise<StoredDocument[]>;
   createToken(registrationDocumentId: string): string;
   logError(message: string): void;
 }
@@ -22,12 +23,16 @@ export function submitBlockedReason(env: NodeJS.ProcessEnv = process.env): Publi
   return { ok: false, code: 'save-failed', error: SUBMIT_ERRORS['save-failed'] };
 }
 
-/** After a saved registration: build its PDFs (a failure is logged; the registration still succeeds) and sign the link. */
+/**
+ * After a saved registration: build its PDFs (a failure is logged; the registration still succeeds) and sign the link.
+ * A repeat lists the PDFs its first submit stored instead of building them again.
+ */
 export async function finishSubmit(result: SubmitResult, deps: FinishDeps): Promise<PublicSubmitResponse> {
   if (result.ok === false) return result;
+  const documentsOf = result.repeat ? deps.listDocuments : deps.buildDocuments;
   let documents: DocumentKind[] = [];
   try {
-    documents = (await deps.buildDocuments(result.documentId)).map((d) => d.kind);
+    documents = (await documentsOf(result.documentId)).map((d) => d.kind);
   } catch (err) {
     deps.logError(`[inscriere] documents for ${result.registrationNumber} failed: ${err instanceof Error ? err.message : String(err)}`);
   }

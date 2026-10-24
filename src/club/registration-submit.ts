@@ -21,9 +21,12 @@ import { pickSchool, type SchoolChoiceCode, type SchoolRow } from './school-choi
 import { seasonStartYear } from './season';
 
 export type SubmitErrorCode = 'invalid' | SchoolChoiceCode | 'save-failed';
-/** `documentId` is internal: the controller never returns it (DECISIONS 2026-10-03); it is used to build the PDFs. */
+/**
+ * `documentId` is internal: the controller never returns it (DECISIONS 2026-10-03); it is used to build the PDFs.
+ * `repeat`: the same draft (submissionKey) was already saved minutes ago; nothing new is stored, built or e-mailed.
+ */
 export type SubmitResult =
-  | { ok: true; registrationNumber: string; documentId: string }
+  | { ok: true; registrationNumber: string; documentId: string; repeat?: true }
   | { ok: false; code: SubmitErrorCode; error: string };
 
 export const SUBMIT_ERRORS: Record<SubmitErrorCode, string> = {
@@ -35,6 +38,8 @@ export const SUBMIT_ERRORS: Record<SubmitErrorCode, string> = {
 };
 export const MISSING_FIELDS_ERROR = 'Câmpuri obligatorii lipsă.';
 export const CHOICE_ERROR = 'Abonamentul ales nu este disponibil.';
+/** A resubmit of the same draft within this window (lost response) is answered with the first registration (user, 2026-10-24). */
+export const REPEAT_WINDOW_MS = 10 * 60_000;
 
 /** Everything stored for a new registration except its number. A type alias: Strapi JSON needs one. */
 export type RegistrationCreateData = {
@@ -56,6 +61,7 @@ export type RegistrationCreateData = {
   sourceOther?: string;
   gdprConsent: boolean;
   regulationsConsent: boolean;
+  submissionKey?: string;
   status: 'Nou';
   submittedAt: string;
   season: string;
@@ -73,6 +79,7 @@ export interface SubmitDeps {
   findSections(): Promise<SchoolRow[]>;
   findSchoolPrices(sectionDocumentId: string): Promise<PublicSchool | null>;
   createNumbered(data: RegistrationCreateData, startYear: number): Promise<{ documentId: string; registrationNumber: string }>;
+  findRecentRepeat(submissionKey: string, since: Date): Promise<{ documentId: string; registrationNumber: string } | null>;
   logError(message: string): void;
   now(): Date;
 }
@@ -184,6 +191,7 @@ function answerFields(i: RegistrationInput, choice: SubscriptionChoice) {
     sourceOther: i.source === SOURCE_OTHER ? i.sourceOther : undefined,
     gdprConsent: i.gdprConsent,
     regulationsConsent: i.regulationsConsent,
+    submissionKey: i.submissionKey || undefined,
   };
 }
 
@@ -211,6 +219,18 @@ async function save(data: RegistrationCreateData, startYear: number, deps: Submi
   }
 }
 
+/** The registration saved from the same draft key in the window, or null. No key, no lookup. A failed lookup never blocks. */
+async function findRepeat(data: RegistrationCreateData, deps: SubmitDeps): Promise<SubmitResult | null> {
+  if (!data.submissionKey) return null;
+  try {
+    const found = await deps.findRecentRepeat(data.submissionKey, new Date(deps.now().getTime() - REPEAT_WINDOW_MS));
+    return found ? { ok: true, registrationNumber: found.registrationNumber, documentId: found.documentId, repeat: true } : null;
+  } catch (err) {
+    deps.logError(`[inscriere] repeat lookup failed: ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
+}
+
 /** POST /api/forms/inscriere: check, then store a numbered registration for the current Sezon. A body `extra` is ignored. */
 export async function submitRegistration(body: Record<string, unknown>, slug: string | null, deps: SubmitDeps): Promise<SubmitResult> {
   const input = readRegistrationInput(body);
@@ -222,5 +242,5 @@ export async function submitRegistration(body: Record<string, unknown>, slug: st
   const choice = await chooseSubscription(input, ctx.value, deps);
   if (choice.ok === false) return choice.result;
   const data = buildCreateData(input, ctx.value, choice.value, deps.now());
-  return save(data, seasonStartYear(ctx.value.season.label), deps);
+  return (await findRepeat(data, deps)) ?? save(data, seasonStartYear(ctx.value.season.label), deps);
 }

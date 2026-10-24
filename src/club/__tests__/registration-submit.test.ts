@@ -5,6 +5,7 @@ import { LAST_SEASON_OPTIONS, SOURCE_OPTIONS } from '../registration-form-option
 import {
   CHOICE_ERROR,
   MISSING_FIELDS_ERROR,
+  REPEAT_WINDOW_MS,
   SUBMIT_ERRORS,
   isRegistrationOpen,
   submitRegistration,
@@ -60,6 +61,7 @@ function fake(over: Partial<SubmitDeps> = {}) {
       { documentId: 'sec-club', slug: 'club', kind: 'club', publicPage: false },
     ],
     findSchoolPrices: async () => SCHOOL,
+    findRecentRepeat: async () => null,
     createNumbered: async (data, startYear) => {
       created.push({ data, startYear });
       return { documentId: 'reg0000000000000000000001', registrationNumber: '2026-0008' };
@@ -269,5 +271,93 @@ describe('isRegistrationOpen', () => {
     expect(isRegistrationOpen({ open: true })).toBe(true);
     expect(isRegistrationOpen({})).toBe(true);
     expect(isRegistrationOpen(null)).toBe(true);
+  });
+});
+
+type StoredRow = { documentId: string; registrationNumber: string; submissionKey?: string; createdAt: number };
+
+const KEY = '3f2b8c1e-9a4d-4e7b-8c21-5d6f7a8b9c0d';
+const OTHER_KEY = 'a1b2c3d4-e5f6-4a7b-9c8d-0e1f2a3b4c5d';
+
+/** createNumbered and findRecentRepeat over one in-memory table, with a clock the test moves. */
+function repeatStore() {
+  const rows: StoredRow[] = [];
+  const lookups: { key: string; since: Date }[] = [];
+  let t = new Date('2026-10-19T08:00:00.000Z').getTime();
+  const { deps } = fake({
+    now: () => new Date(t),
+    createNumbered: async (data) => {
+      const row = { documentId: `reg-${rows.length + 1}`, registrationNumber: `2026-000${rows.length + 1}`, submissionKey: data.submissionKey, createdAt: t };
+      rows.push(row);
+      return row;
+    },
+    findRecentRepeat: async (key, since) => {
+      lookups.push({ key, since });
+      const hit = rows.find((r) => r.submissionKey === key && r.createdAt >= since.getTime());
+      return hit ? { documentId: hit.documentId, registrationNumber: hit.registrationNumber } : null;
+    },
+  });
+  return { deps, rows, lookups, advance: (ms: number) => (t += ms) };
+}
+
+describe('repeat submit', () => {
+  const KEYED = { ...BODY, submissionKey: KEY };
+
+  it('answers the same draft key within 10 minutes with the first registration and saves nothing', async () => {
+    const store = repeatStore();
+    await submitRegistration(KEYED, null, store.deps);
+    store.advance(REPEAT_WINDOW_MS - 1);
+    await expect(submitRegistration({ ...KEYED, submissionKey: KEY.toUpperCase() }, null, store.deps)).resolves.toEqual({
+      ok: true,
+      registrationNumber: '2026-0001',
+      documentId: 'reg-1',
+      repeat: true,
+    });
+    expect(store.rows).toHaveLength(1);
+    expect(REPEAT_WINDOW_MS).toBe(10 * 60_000);
+  });
+
+  it('stores the key and looks it up 10 minutes back', async () => {
+    const store = repeatStore();
+    await submitRegistration(KEYED, null, store.deps);
+    expect(store.rows[0].submissionKey).toBe(KEY);
+    expect(store.lookups).toEqual([{ key: KEY, since: new Date('2026-10-19T07:50:00.000Z') }]);
+  });
+
+  it('saves a new registration for another key, even with the same parent and child', async () => {
+    const store = repeatStore();
+    await submitRegistration(KEYED, null, store.deps);
+    await expect(submitRegistration({ ...KEYED, submissionKey: OTHER_KEY }, null, store.deps)).resolves.toEqual({ ok: true, registrationNumber: '2026-0002', documentId: 'reg-2' });
+    expect(store.rows).toHaveLength(2);
+  });
+
+  it('never dedupes without a valid key, and stores no invalid one', async () => {
+    const store = repeatStore();
+    await submitRegistration(BODY, null, store.deps);
+    await submitRegistration(BODY, null, store.deps);
+    await submitRegistration({ ...BODY, submissionKey: 'not-a-uuid' }, null, store.deps);
+    await submitRegistration({ ...BODY, submissionKey: 'not-a-uuid' }, null, store.deps);
+    expect(store.rows).toHaveLength(4);
+    expect(store.rows.map((r) => r.submissionKey)).toEqual([undefined, undefined, undefined, undefined]);
+    expect(store.lookups).toEqual([]);
+  });
+
+  it('saves a new registration after 10 minutes', async () => {
+    const store = repeatStore();
+    await submitRegistration(KEYED, null, store.deps);
+    store.advance(REPEAT_WINDOW_MS + 1);
+    await expect(submitRegistration(KEYED, null, store.deps)).resolves.toEqual({ ok: true, registrationNumber: '2026-0002', documentId: 'reg-2' });
+    expect(store.rows).toHaveLength(2);
+  });
+
+  it('never blocks a submit when the lookup fails, and logs it', async () => {
+    const { deps, created, errors } = fake({
+      findRecentRepeat: async () => {
+        throw new Error('db down');
+      },
+    });
+    await expect(submitRegistration(KEYED, null, deps)).resolves.toMatchObject({ ok: true, registrationNumber: '2026-0008' });
+    expect(created).toHaveLength(1);
+    expect(errors).toEqual(['[inscriere] repeat lookup failed: db down']);
   });
 });

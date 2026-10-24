@@ -17,6 +17,7 @@ function deps(over: Partial<FinishDeps> = {}) {
       built.push(id);
       return STORED;
     },
+    listDocuments: async () => STORED.slice(0, 1),
     createToken: (id) => `token-for-${id}`,
     logError: (m) => {
       errors.push(m);
@@ -44,6 +45,17 @@ describe('finishSubmit', () => {
     await expect(finishSubmit(OK, d)).resolves.toMatchObject({ ok: true, registrationNumber: '2026-0008', documents: [] });
     expect(errors[0]).toContain('2026-0008');
     expect(errors[0]).toContain('disk full');
+  });
+
+  it('answers a repeat with its stored documents and a fresh token, building nothing', async () => {
+    const { d, built } = deps();
+    await expect(finishSubmit({ ...OK, repeat: true }, d)).resolves.toEqual({
+      ok: true,
+      registrationNumber: '2026-0008',
+      downloadToken: 'token-for-reg0000000000000000000001',
+      documents: ['acord'],
+    });
+    expect(built).toEqual([]);
   });
 
   it('passes a refused submit through without building anything', async () => {
