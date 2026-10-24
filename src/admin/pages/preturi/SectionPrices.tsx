@@ -22,7 +22,17 @@ export function SectionPrices({ section, lists, notes, onOpen, onNewList }: Sect
       Listă nouă
     </Button>
   );
-  if (lists.length === 0) return <EmptyState action={newList}>Nicio listă de prețuri</EmptyState>;
+  const notesCard = section.kind === 'school' && (
+    <PriceNotesCard notes={notes.value(section.documentId)} onChange={(next) => notes.set(section.documentId, next)} />
+  );
+  if (lists.length === 0) {
+    return (
+      <>
+        <EmptyState action={newList}>Nicio listă de prețuri</EmptyState>
+        {notesCard}
+      </>
+    );
+  }
   return (
     <>
       {lists.map((list) => (
@@ -35,9 +45,7 @@ export function SectionPrices({ section, lists, notes, onOpen, onNewList }: Sect
         />
       ))}
       <div>{newList}</div>
-      {section.kind === 'school' && (
-        <PriceNotesCard notes={notes.value(section.documentId)} onChange={(next) => notes.set(section.documentId, next)} />
-      )}
+      {notesCard}
     </>
   );
 }
