@@ -30,6 +30,28 @@
  * new tab always happens BEFORE the delete from the old one. A crash between
  * the two therefore leaves a duplicate, which the next `reconcile` removes —
  * strictly better than the opposite order, where the same crash loses the row.
+ *
+ * COLUMNS PER TAB
+ * ---------------
+ * A partitioned form's tabs need not share columns: `ctx.plans.forTab(tab)`
+ * gives each tab its own plan (Înscrieri: a season tab filled by the new
+ * registration form has the script-form columns, older tabs keep theirs; see
+ * `matrix.ts` `inscrieriTabPlans`). Every row is rendered with the plan of the
+ * tab it is written to, and every header check compares a tab with its own
+ * plan. A tab's ID column is looked for at the end of its own plan first (one
+ * read in the steady state), then found from its header row, so a tab still
+ * laid out for other columns is recognised as ours: rewritten, and its rows
+ * moved or removed, never mistaken for a stranger's.
+ *
+ * LINK CELLS
+ * ----------
+ * A `link` column (Înscrieri "Document") is written as its text through the
+ * values API, then turned into a rich-text link by an `updateCells` request.
+ * Every write of such rows queues those requests (`queueLinks`); one
+ * `spreadsheets.batchUpdate` per operation sends them all (`sendLinks`), after
+ * the inserts and before any delete, while the row numbers still hold. A
+ * reconcile compares the shown text only, so a changed address (a new
+ * `CMS_PUBLIC_URL`) is applied by a full rewrite ("Sincronizează acum").
  */
 import {
   appendValues,
@@ -45,11 +67,11 @@ import {
   quoteTab,
   updateValues,
 } from './client';
-import type { Cell } from './client';
-import { formatIsCurrent, formatRequests, toCells, toDisplay } from './format';
-import type { TabState } from './format';
-import type { ColumnType, RowLike } from './matrix';
-import type { ColumnPlan } from './matrix';
+import type { Cell, TabInfo } from './client';
+import { formatIsCurrent, formatRequests, linkRequests, toCells, toDisplay } from './format';
+import type { LinkRequest, TabState } from './format';
+import { ID_LABEL } from './matrix';
+import type { ColumnPlan, ColumnType, RowLike, TabPlans } from './matrix';
 import type { FormKey, Partition } from './registry';
 import { getForm } from './registry';
 import type { SheetLink, SyncCounts, SyncTrigger } from './store';
@@ -80,12 +102,6 @@ interface BaseCtx {
   form: FormKey;
   link: SheetLink;
   spreadsheetId: string;
-  header: string[];
-  /** What each column HOLDS: drives date typing, widths and the status colours. */
-  types: ColumnType[];
-  idIndex: number;
-  lastCol: string;
-  toRow(doc: RowLike): string[];
   /** tab title -> numeric sheetId, for every tab in the spreadsheet. */
   tabs: Map<string, number>;
   /**
@@ -97,19 +113,23 @@ interface BaseCtx {
   fresh: Set<string>;
   /** Tabs this operation has already formatted; never format one twice. */
   formatted: Set<string>;
+  /** Link requests for rows written by this operation, not sent yet. */
+  links: LinkRequest[];
 }
 
-/** Single-tab form: one fixed target tab, resolved and created up front. */
+/** Single-tab form: one fixed target tab and one column plan, resolved up front. */
 interface SingleCtx extends BaseCtx {
   kind: 'single';
   tab: string;
   sheetId: number;
+  plan: ColumnPlan;
 }
 
-/** Partitioned form: the tab is decided per row, lazily. */
+/** Partitioned form: the tab is decided per row, lazily, and so are its columns. */
 interface MultiCtx extends BaseCtx {
   kind: 'multi';
   partition: Partition;
+  plans: TabPlans;
 }
 
 type Ctx = SingleCtx | MultiCtx;
@@ -119,11 +139,17 @@ type Ctx = SingleCtx | MultiCtx;
 // a nullability-based type guard therefore narrows to `never`.
 const isMulti = (ctx: Ctx): ctx is MultiCtx => ctx.kind === 'multi';
 
+/** The columns of `tab`: the form's one plan, or the tab's own on a partitioned form. */
+const planOf = (ctx: Ctx, tab: string): ColumnPlan => (isMulti(ctx) ? ctx.plans.forTab(tab) : ctx.plan);
+
+/** A1 letter of a plan's last (ID) column. */
+const lastColOf = (plan: ColumnPlan): string => colLetter(plan.header.length - 1);
+
 /**
  * Resolve everything an operation needs: the link, the spreadsheet's tab list,
- * and the current column plan. For a single-tab form the target tab is created
- * here if missing; a partitioned form creates tabs lazily, per row. Returns a
- * string reason instead of a context when the form is not syncable right now.
+ * and the current column plan(s). For a single-tab form the target tab is
+ * created here if missing; a partitioned form creates tabs lazily, per row.
+ * Returns a result instead of a context when the form is not syncable now.
  */
 async function context(form: FormKey): Promise<Ctx | SyncResult> {
   if (!isConfigured()) return skip('not_configured');
@@ -134,45 +160,82 @@ async function context(form: FormKey): Promise<Ctx | SyncResult> {
   const info = await getSpreadsheet(link.spreadsheetId);
   if (!info.ok) return failed(info.reason ?? 'read_failed', info.message);
 
+  const base = baseContext(form, link, info.data!.tabs);
   const desc = getForm(form);
-  const plan = await desc.resolvePlan();
-  const header = plan.header;
-  const base: BaseCtx = {
+  const partition = desc.partition;
+  if (partition) return { ...base, kind: 'multi', partition, plans: await desc.resolveTabPlans() };
+  return singleContext(base, await desc.resolvePlan());
+}
+
+function baseContext(form: FormKey, link: SheetLink, tabs: TabInfo[]): BaseCtx {
+  return {
     form,
     link,
     spreadsheetId: link.spreadsheetId,
-    header,
-    types: plan.types,
-    idIndex: header.length - 1,
-    lastCol: colLetter(header.length - 1),
-    toRow: (doc) => desc.toRow(doc),
-    tabs: new Map(info.data!.tabs.map((t) => [t.title, t.sheetId])),
+    tabs: new Map(tabs.map((t) => [t.title, t.sheetId])),
     tabState: new Map(
-      info.data!.tabs.map((t) => [
+      tabs.map((t) => [
         t.title,
         { sheetId: t.sheetId, frozenRowCount: t.frozenRowCount, conditionalFormats: t.conditionalFormats },
       ]),
     ),
     fresh: new Set<string>(),
     formatted: new Set<string>(),
+    links: [],
   };
+}
 
-  const partition = desc.partition;
-  if (partition) return { ...base, kind: 'multi', partition };
-
-  const single: SingleCtx = { ...base, kind: 'single', tab: link.tab, sheetId: -1 };
-  const sheetId = await ensureTabIn(single, link.tab);
+/** A single-tab form's target tab is created here, before any row is written. */
+async function singleContext(base: BaseCtx, plan: ColumnPlan): Promise<SingleCtx | SyncResult> {
+  const single: SingleCtx = { ...base, kind: 'single', tab: base.link.tab, sheetId: -1, plan };
+  const sheetId = await ensureTabIn(single, single.tab);
   if (typeof sheetId !== 'number') return sheetId;
   single.sheetId = sheetId;
   return single;
+}
+
+/**
+ * A partitioned form picks each tab's columns from the rows in it, so a write
+ * plans over the rows as they are now, not over a snapshot up to 15 s old that
+ * may predate the very row being written (the first new-form row of a season).
+ */
+function freshPlans(form: FormKey): void {
+  const desc = getForm(form);
+  if (desc.partition) desc.invalidate();
 }
 
 /** Narrow a "value or early-exit result" union (the value may be a number). */
 const isResult = (v: unknown): v is SyncResult =>
   typeof v === 'object' && v !== null && typeof (v as SyncResult).ok === 'boolean';
 
-const rowRange = (ctx: BaseCtx, tab: string, row: number) =>
-  `${quoteTab(tab)}!A${row}:${ctx.lastCol}${row}`;
+const rowRange = (ctx: Ctx, tab: string, row: number) =>
+  `${quoteTab(tab)}!A${row}:${lastColOf(planOf(ctx, tab))}${row}`;
+
+/** A row as read back, without the empty cells at its end. */
+function withoutTrailingBlanks(row: string[]): string[] {
+  const cells = [...row];
+  while (cells.length && !(cells[cells.length - 1] ?? '').trim()) cells.pop();
+  return cells;
+}
+
+/** Row 1 as read back equals `header`. */
+function sameHeader(current: string[], header: string[]): boolean {
+  const cells = withoutTrailingBlanks(current);
+  return cells.length === header.length && header.every((h, i) => (cells[i] ?? '').trim() === h);
+}
+
+/** Index of the ID column in a header row as read back, or -1 when the tab is not ours. */
+function idIndexIn(head: string[]): number {
+  const cells = withoutTrailingBlanks(head);
+  return cells.length > 0 && cells[cells.length - 1].trim() === ID_LABEL ? cells.length - 1 : -1;
+}
+
+/** Row 1 in full, whatever its width. */
+async function readHeaderRow(ctx: BaseCtx, tab: string): Promise<string[] | SyncResult> {
+  const res = await getValues(ctx.spreadsheetId, `${quoteTab(tab)}!1:1`);
+  if (!res.ok) return failed(res.reason ?? 'read_failed', res.message);
+  return res.data?.[0] ?? [];
+}
 
 /* --------------------------------------------------- values vs shown values */
 
@@ -190,6 +253,25 @@ const cellsOf = (types: ColumnType[], row: string[]): Cell[] => toCells(types, r
  * every date cell and rewrite the whole sheet, forever.
  */
 const shownOf = (types: ColumnType[], row: string[]): string[] => toDisplay(types, row);
+
+/** Queue the links of rows just written to `tab` from 1-based sheet row `firstRow` (unknown: none). */
+function queueLinks(ctx: BaseCtx, tab: string, firstRow: number | null, rows: Cell[][]): void {
+  const sheetId = ctx.tabs.get(tab);
+  if (sheetId === undefined || !firstRow) return;
+  ctx.links.push(...linkRequests(sheetId, firstRow - 1, rows));
+}
+
+/**
+ * Send every queued link in one `spreadsheets.batchUpdate`. Never fatal: the
+ * rows are written; a failure is logged and the next full rewrite sets the
+ * links again.
+ */
+async function sendLinks(ctx: BaseCtx): Promise<void> {
+  if (!ctx.links.length) return;
+  const requests = ctx.links.splice(0);
+  const res = await batchUpdateSheet(ctx.spreadsheetId, '(links)', requests);
+  if (!res.ok) strapi?.log?.warn?.(`[sheets] ${ctx.form}: links not set (${res.reason}): ${res.message ?? ''}`);
+}
 
 /* ------------------------------------------------------------- tab styling */
 
@@ -254,7 +336,7 @@ async function applyFormat(
  * does not exist. Answers from the per-operation cache, so a burst of rows
  * spread over several seasons never triggers a `spreadsheets.get` per row.
  */
-async function ensureTabIn(ctx: BaseCtx, tab: string): Promise<number | SyncResult> {
+async function ensureTabIn(ctx: Ctx, tab: string): Promise<number | SyncResult> {
   const hit = ctx.tabs.get(tab);
   if (hit !== undefined) return hit;
 
@@ -263,12 +345,13 @@ async function ensureTabIn(ctx: BaseCtx, tab: string): Promise<number | SyncResu
   const sheetId = created.data!;
   ctx.tabs.set(tab, sheetId);
 
-  const written = await updateValues(ctx.spreadsheetId, `${quoteTab(tab)}!A1`, [ctx.header]);
+  const plan = planOf(ctx, tab);
+  const written = await updateValues(ctx.spreadsheetId, `${quoteTab(tab)}!A1`, [plan.header]);
   if (!written.ok) return failed(written.reason ?? 'update_failed', written.message);
   ctx.fresh.add(tab);
   // A brand-new tab is styled immediately, so a season tab created next August
   // looks exactly like the one created today.
-  await applyFormat(ctx, tab, ctx.types, true);
+  await applyFormat(ctx, tab, plan.types, true);
   strapi?.log?.info?.(`[sheets] created tab "${tab}"`);
   return sheetId;
 }
@@ -279,8 +362,8 @@ async function ensureTabIn(ctx: BaseCtx, tab: string): Promise<number | SyncResu
  * Map documentId -> 1-based sheet row for ONE tab, read from the id column
  * only. Reading a single column keeps the payload tiny even at 5000 rows.
  */
-async function readIdMap(ctx: BaseCtx, tab: string): Promise<{ map: Map<string, number> } | SyncResult> {
-  const col = colLetter(ctx.idIndex);
+async function readIdMap(ctx: SingleCtx, tab: string): Promise<{ map: Map<string, number> } | SyncResult> {
+  const col = lastColOf(ctx.plan);
   const res = await getValues(ctx.spreadsheetId, `${quoteTab(tab)}!${col}1:${col}`);
   if (!res.ok) return failed(res.reason ?? 'read_failed', res.message);
   const map = new Map<string, number>();
@@ -307,32 +390,51 @@ interface IdScan {
 
 /**
  * Scan the id column of EVERY tab in the spreadsheet, so a row can be found
- * wherever it currently sits. A tab counts as ours only when row 1 of the id
- * column holds the plan's last header label; anything else (a stray `Sheet1`,
- * a chart tab, a user's own notes) is read but never written to or cleared.
+ * wherever it currently sits. A tab counts as ours only when the last cell of
+ * row 1 is the `ID` label (`readTabIds`); anything else (a stray `Sheet1`, a
+ * chart tab, a user's own notes) is never written to or cleared.
  */
 async function scanIds(ctx: MultiCtx): Promise<IdScan | SyncResult> {
-  const col = colLetter(ctx.idIndex);
-  const idLabel = ctx.header[ctx.idIndex];
   const located = new Map<string, Located[]>();
   const dataTabs: string[] = [];
-
   for (const tab of [...ctx.tabs.keys()]) {
-    const res = await getValues(ctx.spreadsheetId, `${quoteTab(tab)}!${col}1:${col}`);
-    if (!res.ok) return failed(res.reason ?? 'read_failed', res.message);
-    const cells = res.data ?? [];
-    if ((cells[0]?.[0] ?? '').trim() !== idLabel) continue;
+    const cells = await readTabIds(ctx, tab);
+    if (isResult(cells)) return cells;
+    if (!cells) continue;
     dataTabs.push(tab);
     cells.forEach((line, i) => {
-      if (i === 0) return;
       const id = (line?.[0] ?? '').trim();
-      if (!id) return;
-      const at = located.get(id);
-      if (at) at.push({ tab, row: i + 1 });
-      else located.set(id, [{ tab, row: i + 1 }]);
+      if (i > 0 && id) addPlace(located, id, { tab, row: i + 1 });
     });
   }
   return { located, dataTabs };
+}
+
+async function readColumn(ctx: BaseCtx, tab: string, index: number): Promise<string[][] | SyncResult> {
+  const col = colLetter(index);
+  const res = await getValues(ctx.spreadsheetId, `${quoteTab(tab)}!${col}1:${col}`);
+  if (!res.ok) return failed(res.reason ?? 'read_failed', res.message);
+  return res.data ?? [];
+}
+
+/**
+ * The ID column of `tab`, header cell included; null when the tab is not ours.
+ * The tab's own plan says where it should be (one read in the steady state); a
+ * tab still laid out for other columns is found from its header row.
+ */
+async function readTabIds(ctx: MultiCtx, tab: string): Promise<string[][] | null | SyncResult> {
+  const expected = await readColumn(ctx, tab, planOf(ctx, tab).header.length - 1);
+  if (isResult(expected) || (expected[0]?.[0] ?? '').trim() === ID_LABEL) return expected;
+  const head = await readHeaderRow(ctx, tab);
+  if (isResult(head)) return head;
+  const index = idIndexIn(head);
+  return index < 0 ? null : readColumn(ctx, tab, index);
+}
+
+function addPlace(located: Map<string, Located[]>, id: string, place: Located): void {
+  const list = located.get(id);
+  if (list) list.push(place);
+  else located.set(id, [place]);
 }
 
 /* ----------------------------------------------------------- ensureHeader */
@@ -350,7 +452,7 @@ export async function ensureHeader(form: FormKey): Promise<SyncResult> {
   if (isResult(ctx)) return ctx;
   if (!isMulti(ctx)) {
     const res = await ensureHeaderIn(form, ctx, ctx.tab);
-    if (res.ok) await applyFormat(ctx, ctx.tab, ctx.types, false);
+    if (res.ok) await applyFormat(ctx, ctx.tab, ctx.plan.types, false);
     return res;
   }
 
@@ -361,29 +463,27 @@ export async function ensureHeader(form: FormKey): Promise<SyncResult> {
     if (!res.ok) return res;
     // A rewrite already fixed every tab.
     if (res.added || res.updated || res.removed) return res;
-    await applyFormat(ctx, tab, ctx.types, false);
+    await applyFormat(ctx, tab, planOf(ctx, tab).types, false);
   }
   return { ...EMPTY, ok: true };
 }
 
-/** Verify (or write) row 1 of one specific tab. */
-async function ensureHeaderIn(form: FormKey, ctx: BaseCtx, tab: string): Promise<SyncResult> {
+/** Verify (or write) row 1 of one specific tab against that tab's own plan. */
+async function ensureHeaderIn(form: FormKey, ctx: Ctx, tab: string): Promise<SyncResult> {
   // A tab this operation just created was given the current header already.
   if (ctx.fresh.has(tab)) return { ...EMPTY, ok: true };
 
-  const res = await getValues(ctx.spreadsheetId, `${quoteTab(tab)}!A1:${ctx.lastCol}1`);
+  const header = planOf(ctx, tab).header;
+  const res = await getValues(ctx.spreadsheetId, `${quoteTab(tab)}!A1:${colLetter(header.length - 1)}1`);
   if (!res.ok) return failed(res.reason ?? 'read_failed', res.message);
   const current = res.data?.[0] ?? [];
 
   if (current.length === 0) {
-    const w = await updateValues(ctx.spreadsheetId, `${quoteTab(tab)}!A1`, [ctx.header]);
+    const w = await updateValues(ctx.spreadsheetId, `${quoteTab(tab)}!A1`, [header]);
     if (!w.ok) return failed(w.reason ?? 'update_failed', w.message);
     return { ...EMPTY, ok: true };
   }
-
-  const same =
-    current.length === ctx.header.length && ctx.header.every((h, i) => (current[i] ?? '').trim() === h);
-  if (same) return { ...EMPTY, ok: true };
+  if (sameHeader(current, header)) return { ...EMPTY, ok: true };
 
   // Column set changed: rewrite everything so no row can misalign.
   strapi.log.info(`[sheets] ${form}: header changed in "${tab}", rewriting`);
@@ -394,6 +494,7 @@ async function ensureHeaderIn(form: FormKey, ctx: BaseCtx, tab: string): Promise
 
 /** Write one document: update its existing row, or append it if it is new. */
 export async function upsertRow(form: FormKey, doc: RowLike): Promise<SyncResult> {
+  freshPlans(form);
   const ctx = await context(form);
   if (isResult(ctx)) return ctx;
   const documentId = String(doc?.documentId ?? '').trim();
@@ -417,7 +518,7 @@ async function upsertSingle(
   const ids = await readIdMap(ctx, ctx.tab);
   if (isResult(ids)) return ids;
 
-  const row = cellsOf(ctx.types, ctx.toRow(doc));
+  const row = cellsOf(ctx.plan.types, ctx.plan.row(doc));
   const existing = ids.map.get(documentId);
   if (existing) {
     const res = await updateValues(ctx.spreadsheetId, rowRange(ctx, ctx.tab, existing), [row]);
@@ -452,7 +553,8 @@ async function upsertMulti(
   const scan = await scanIds(ctx);
   if (isResult(scan)) return scan;
 
-  const row = cellsOf(ctx.types, ctx.toRow(doc));
+  const plan = planOf(ctx, target);
+  const row = cellsOf(plan.types, plan.row(doc));
   const places = scan.located.get(documentId) ?? [];
   const here = places.find((p) => p.tab === target);
   const elsewhere = places.filter((p) => p.tab !== target);
@@ -463,14 +565,17 @@ async function upsertMulti(
   if (here) {
     const res = await updateValues(ctx.spreadsheetId, rowRange(ctx, target, here.row), [row]);
     if (!res.ok) return failed(res.reason ?? 'update_failed', res.message);
+    queueLinks(ctx, target, here.row, [row]);
     updated = 1;
   } else {
     // INSERT FIRST. If the process dies now, the row exists twice and the next
     // reconcile drops the stale copy; the row itself is never lost.
     const res = await appendValues(ctx.spreadsheetId, `${quoteTab(target)}!A1`, [row]);
     if (!res.ok) return failed(res.reason ?? 'append_failed', res.message);
+    queueLinks(ctx, target, res.data?.startRow ?? null, [row]);
     added = 1;
   }
+  await sendLinks(ctx);
 
   const removed = await dropRows(ctx, elsewhere);
   if (isResult(removed)) return removed;
@@ -553,13 +658,11 @@ export async function resyncForm(
 
   const desc = getForm(form);
   const rows = await desc.fetchAll();
-  // Rebuild the plan over exactly the rows we are about to write, so a custom
-  // answer that only exists on old rows still gets a column.
-  const plan = await desc.resolvePlan(rows);
-
+  // Rebuild the plan(s) over exactly the rows we are about to write, so a
+  // custom answer that only exists on old rows still gets a column.
   const result = isMulti(ctx)
-    ? await resyncMulti(ctx, plan, rows)
-    : await resyncSingle(ctx, plan, rows);
+    ? await resyncMulti({ ...ctx, plans: await desc.resolveTabPlans(rows) }, rows)
+    : await resyncSingle(ctx, await desc.resolvePlan(rows), rows);
 
   if (shouldLog) {
     const message = result.ok
@@ -589,38 +692,68 @@ async function resyncSingle(ctx: SingleCtx, plan: ColumnPlan, rows: RowLike[]): 
   return { ok: true, added: rows.length, updated: 0, removed: 0 };
 }
 
-async function resyncMulti(ctx: MultiCtx, plan: ColumnPlan, rows: RowLike[]): Promise<SyncResult> {
+async function resyncMulti(ctx: MultiCtx, rows: RowLike[]): Promise<SyncResult> {
   // Which tabs do we currently own? Read before anything is cleared, so a tab
   // that ends up empty can still be reported rather than silently forgotten.
   const scan = await scanIds(ctx);
   if (isResult(scan)) return scan;
 
-  const groups = new Map<string, RowLike[]>();
-  for (const doc of rows) {
-    const tab = ctx.partition.tabFor(doc);
-    const list = groups.get(tab);
-    if (list) list.push(doc);
-    else groups.set(tab, [doc]);
+  const groups = groupByTab(ctx, rows);
+  for (const [tab, docs] of groups) {
+    const res = await rewriteTab(ctx, tab, docs);
+    if (res) return res;
   }
 
-  for (const [tab, docs] of groups) {
-    const sheetId = await ensureTabIn(ctx, tab);
-    if (typeof sheetId !== 'number') return sheetId;
-    const cleared = await clearValues(ctx.spreadsheetId, tab);
-    if (!cleared.ok) return failed(cleared.reason ?? 'clear_failed', cleared.message);
-    const written = await updateValues(ctx.spreadsheetId, `${quoteTab(tab)}!A1`, [
-      plan.header,
-      ...docs.map((doc) => cellsOf(plan.types, plan.row(doc))),
-    ]);
-    if (!written.ok) return failed(written.reason ?? 'update_failed', written.message);
-    await applyFormat(ctx, tab, plan.types, true);
-  }
+  await sendLinks(ctx);
 
   const staleTabs = scan.dataTabs.filter((t) => !groups.has(t)).sort();
+  // A stale tab is kept, but not the copies it still holds of rows just
+  // written to their own tab (the source half of a move).
+  const removed = await dropRows(ctx, movedAway(scan, staleTabs, rows));
+  if (isResult(removed)) return removed;
   if (staleTabs.length) {
     strapi?.log?.info?.(`[sheets] tabs with no rows left in the database (kept): ${staleTabs.join(', ')}`);
   }
-  return { ok: true, added: rows.length, updated: 0, removed: 0, staleTabs };
+  return { ok: true, added: rows.length, updated: 0, removed, staleTabs };
+}
+
+/** Where tabs with no rows in the database hold rows that the database places in another tab. */
+function movedAway(scan: IdScan, staleTabs: string[], rows: RowLike[]): Located[] {
+  const ids = new Set(rows.map((r) => String(r?.documentId ?? '').trim()));
+  const stale = new Set(staleTabs);
+  return [...scan.located]
+    .filter(([id]) => ids.has(id))
+    .flatMap(([, places]) => places.filter((p) => stale.has(p.tab)));
+}
+
+/** Rows grouped by the tab they belong in, oldest first within each tab. */
+function groupByTab(ctx: MultiCtx, rows: RowLike[]): Map<string, RowLike[]> {
+  const groups = new Map<string, RowLike[]>();
+  for (const doc of rows) appendTo(groups, ctx.partition.tabFor(doc), doc);
+  return groups;
+}
+
+function appendTo<T>(map: Map<string, T[]>, key: string, item: T): void {
+  const list = map.get(key);
+  if (list) list.push(item);
+  else map.set(key, [item]);
+}
+
+/** Clear one tab and write its header and rows with the tab's own columns. Null when it worked. */
+async function rewriteTab(ctx: MultiCtx, tab: string, docs: RowLike[]): Promise<SyncResult | null> {
+  const sheetId = await ensureTabIn(ctx, tab);
+  if (typeof sheetId !== 'number') return sheetId;
+  const plan = planOf(ctx, tab);
+  const cleared = await clearValues(ctx.spreadsheetId, tab);
+  if (!cleared.ok) return failed(cleared.reason ?? 'clear_failed', cleared.message);
+  const rows = docs.map((doc) => cellsOf(plan.types, plan.row(doc)));
+  const written = await updateValues(ctx.spreadsheetId, `${quoteTab(tab)}!A1`, [plan.header, ...rows]);
+  if (!written.ok) return failed(written.reason ?? 'update_failed', written.message);
+  queueLinks(ctx, tab, 2, rows);
+  // `values.clear` wipes contents, never formatting; the column set may have
+  // just changed, so the widths, date formats and status colours are redone.
+  await applyFormat(ctx, tab, plan.types, true);
+  return null;
 }
 
 /* --------------------------------------------------------------- reconcile */
@@ -642,12 +775,9 @@ export async function reconcile(form: FormKey, trigger: SyncTrigger = 'scheduled
 
   const desc = getForm(form);
   const rows = await desc.fetchAll();
-  const plan = await desc.resolvePlan(rows);
-
-  const res = isMulti(ctx)
-    ? await reconcileMulti(form, ctx, plan, rows, trigger)
-    : await reconcileSingle(form, ctx, plan, rows, trigger);
-  return res;
+  return isMulti(ctx)
+    ? reconcileMulti(form, { ...ctx, plans: await desc.resolveTabPlans(rows) }, rows, trigger)
+    : reconcileSingle(form, ctx, await desc.resolvePlan(rows), rows, trigger);
 }
 
 /** Row 1 of `tab` compared against the plan header. */
@@ -656,17 +786,9 @@ async function headerState(
   tab: string,
   plan: ColumnPlan,
 ): Promise<{ matches: boolean } | SyncResult> {
-  const res = await getValues(
-    ctx.spreadsheetId,
-    `${quoteTab(tab)}!A1:${colLetter(plan.header.length - 1)}1`,
-  );
+  const res = await getValues(ctx.spreadsheetId, `${quoteTab(tab)}!A1:${lastColOf(plan)}1`);
   if (!res.ok) return failed(res.reason ?? 'read_failed', res.message);
-  const current = res.data?.[0] ?? [];
-  return {
-    matches:
-      current.length === plan.header.length &&
-      plan.header.every((h, i) => (current[i] ?? '').trim() === h),
-  };
+  return { matches: sameHeader(res.data?.[0] ?? [], plan.header) };
 }
 
 async function reconcileSingle(
@@ -765,162 +887,252 @@ async function reconcileSingle(
   return { ...counts, ok, reason: ok ? undefined : 'reconcile_failed', message };
 }
 
+/** What the tabs we own hold, read once per reconcile. */
+interface SheetState {
+  dataTabs: string[];
+  /** Every place each id occurs. */
+  located: Map<string, Located[]>;
+  /** `${tab}#${row}` -> the row's cells as the sheet shows them. */
+  cellsAt: Map<string, string[]>;
+}
+
+/** One database row: the tab it belongs in, the cells to write, and the text they will show. */
+interface Wanted {
+  tab: string;
+  cells: Cell[];
+  shown: string[];
+}
+
+/** A row rewritten in place: where, and its cells. */
+interface RowUpdate {
+  range: string;
+  values: Cell[][];
+  tab: string;
+  row: number;
+}
+
+/** The writes that bring a partitioned form's tabs in line with the database. */
+interface Changes {
+  toUpdate: RowUpdate[];
+  appendsByTab: Map<string, Cell[][]>;
+  toDelete: Located[];
+}
+
+/** What a set of changes did. */
+interface Applied extends SyncCounts {
+  ok: boolean;
+  problems: string[];
+}
+
+const HEADER_CHANGED = 'header_changed' as const;
+
+/** How a tab relates to its plan: ours and current, ours with other columns (ID at `idIndex`), or not ours. */
+type Layout = { kind: 'current' | 'changed'; idIndex: number } | { kind: 'foreign' };
+
 async function reconcileMulti(
   form: FormKey,
   ctx: MultiCtx,
-  plan: ColumnPlan,
   rows: RowLike[],
   trigger: SyncTrigger,
 ): Promise<SyncResult> {
-  const idIndex = plan.header.length - 1;
-  const lastCol = colLetter(idIndex);
-  const idLabel = plan.header[idIndex];
-
-  // Read every tab in full, once. Tabs that are not ours are skipped outright.
-  const dataTabs: string[] = [];
-  const located = new Map<string, Located[]>();
-  const cellsAt = new Map<string, string[]>(); // `${tab}#${row}` -> cells
-
-  for (const tab of [...ctx.tabs.keys()]) {
-    const res = await getValues(ctx.spreadsheetId, `${quoteTab(tab)}!A1:${lastCol}`);
-    if (!res.ok) return failed(res.reason ?? 'read_failed', res.message);
-    const grid = res.data ?? [];
-    const head = grid[0] ?? [];
-    // Not one of ours: leave it completely alone.
-    if ((head[idIndex] ?? '').trim() !== idLabel) continue;
-
+  const want = wantedRows(ctx, rows);
+  const wantedTabs = new Set([...want.values()].map((w) => w.tab));
+  const sheet = await readOwnTabs(ctx, wantedTabs);
+  if (sheet === HEADER_CHANGED) {
     // A changed column set makes a cell-by-cell diff meaningless: rewrite all.
-    const headerMatches =
-      head.length === plan.header.length && plan.header.every((h, i) => (head[i] ?? '').trim() === h);
-    if (!headerMatches) {
-      const res2 = await resyncForm(form, trigger, { log: false });
-      await logSync(form, trigger, res2, res2.ok, res2.ok ? 'Antet diferit: rescriere completă' : res2.reason);
-      return res2;
-    }
-
-    dataTabs.push(tab);
-    await applyFormat(ctx, tab, plan.types, false);
-    grid.forEach((cells, i) => {
-      if (i === 0) return;
-      const id = (cells?.[idIndex] ?? '').trim();
-      if (!id) return;
-      const place: Located = { tab, row: i + 1 };
-      const list = located.get(id);
-      if (list) list.push(place);
-      else located.set(id, [place]);
-      cellsAt.set(`${tab}#${i + 1}`, cells);
-    });
+    const res = await resyncForm(form, trigger, { log: false });
+    await logSync(form, trigger, res, res.ok, res.ok ? 'Antet diferit: rescriere completă' : res.reason);
+    return res;
   }
+  if (isResult(sheet)) return sheet;
 
-  // What the database says: id -> { tab it belongs in, the row to write, and
-  // the text that row will SHOW once written — the diffable form }.
-  const want = new Map<string, { tab: string; cells: Cell[]; shown: string[] }>();
+  const { changes, misplaced } = reconcileChanges(ctx, sheet, want);
+  const applied = await applyChanges(ctx, changes);
+  const staleTabs = sheet.dataTabs.filter((t) => !wantedTabs.has(t)).sort();
+  const message = applied.ok ? reconcileMessage(applied, misplaced, staleTabs) : applied.problems.join('; ');
+  const counts: SyncCounts = { added: applied.added, updated: applied.updated, removed: applied.removed };
+  await logSync(form, trigger, counts, applied.ok, message);
+  return { ...counts, ok: applied.ok, reason: applied.ok ? undefined : 'reconcile_failed', message, staleTabs };
+}
+
+/**
+ * Read every tab in full, once. Tabs that are not ours are skipped outright. A
+ * tab of ours whose header is not its plan's means the column set changed,
+ * unless the database has no rows for it any more: such a tab keeps whatever
+ * columns it has, and only its ids are read, to remove what it still holds.
+ */
+async function readOwnTabs(
+  ctx: MultiCtx,
+  wantedTabs: Set<string>,
+): Promise<SheetState | SyncResult | typeof HEADER_CHANGED> {
+  const sheet: SheetState = { dataTabs: [], located: new Map(), cellsAt: new Map() };
+  for (const tab of [...ctx.tabs.keys()]) {
+    const res = await readOwnTab(ctx, tab, wantedTabs.has(tab), sheet);
+    if (res) return res;
+  }
+  return sheet;
+}
+
+/** Read one tab into `sheet`. Null when done (or when the tab is not ours). */
+async function readOwnTab(
+  ctx: MultiCtx,
+  tab: string,
+  wanted: boolean,
+  sheet: SheetState,
+): Promise<SyncResult | typeof HEADER_CHANGED | null> {
+  const plan = planOf(ctx, tab);
+  const res = await getValues(ctx.spreadsheetId, `${quoteTab(tab)}!A1:${lastColOf(plan)}`);
+  if (!res.ok) return failed(res.reason ?? 'read_failed', res.message);
+  const grid = res.data ?? [];
+  const layout = await layoutOf(ctx, tab, plan, grid[0] ?? []);
+  if (isResult(layout)) return layout;
+  if (layout.kind === 'foreign') return null;
+  if (layout.kind === 'changed') return wanted ? HEADER_CHANGED : collectIds(ctx, sheet, tab, layout.idIndex);
+  await applyFormat(ctx, tab, plan.types, false);
+  collectRows(sheet, tab, grid, layout.idIndex);
+  return null;
+}
+
+/** A tab with no rows left in the database, laid out for other columns: only find what it holds. */
+async function collectIds(ctx: MultiCtx, sheet: SheetState, tab: string, idIndex: number): Promise<SyncResult | null> {
+  const ids = await readColumn(ctx, tab, idIndex);
+  if (isResult(ids)) return ids;
+  collectRows(sheet, tab, ids, 0);
+  return null;
+}
+
+/** `head` is row 1 read up to the plan's last column; the full row is read only when that is not ours. */
+async function layoutOf(ctx: MultiCtx, tab: string, plan: ColumnPlan, head: string[]): Promise<Layout | SyncResult> {
+  const idIndex = plan.header.length - 1;
+  if ((head[idIndex] ?? '').trim() === ID_LABEL) {
+    return { kind: sameHeader(head, plan.header) ? 'current' : 'changed', idIndex };
+  }
+  const full = await readHeaderRow(ctx, tab);
+  if (isResult(full)) return full;
+  const found = idIndexIn(full);
+  return found < 0 ? { kind: 'foreign' } : { kind: 'changed', idIndex: found };
+}
+
+function collectRows(sheet: SheetState, tab: string, grid: string[][], idIndex: number): void {
+  sheet.dataTabs.push(tab);
+  grid.forEach((cells, i) => {
+    const id = (cells?.[idIndex] ?? '').trim();
+    if (i === 0 || !id) return;
+    addPlace(sheet.located, id, { tab, row: i + 1 });
+    sheet.cellsAt.set(`${tab}#${i + 1}`, cells);
+  });
+}
+
+/** What the database says: id -> the tab it belongs in and the row as that tab's plan renders it. */
+function wantedRows(ctx: MultiCtx, rows: RowLike[]): Map<string, Wanted> {
+  const want = new Map<string, Wanted>();
   for (const doc of rows) {
     const id = String(doc?.documentId ?? '').trim();
     if (!id) continue;
+    const tab = ctx.partition.tabFor(doc);
+    const plan = planOf(ctx, tab);
     const rendered = plan.row(doc);
-    want.set(id, {
-      tab: ctx.partition.tabFor(doc),
-      cells: cellsOf(plan.types, rendered),
-      shown: shownOf(plan.types, rendered),
-    });
+    want.set(id, { tab, cells: cellsOf(plan.types, rendered), shown: shownOf(plan.types, rendered) });
   }
+  return want;
+}
 
-  const appendsByTab = new Map<string, Cell[][]>();
-  const toUpdate: { range: string; values: Cell[][] }[] = [];
-  const toDelete: Located[] = [];
-  /** Rows found in a tab their season does not match. */
+/**
+ * Diff the sheet against the database. A row in the wrong tab (a moved season,
+ * or the leftover half of a crashed move) is re-inserted in its own tab and
+ * removed from the other; rows whose document is gone are removed; a duplicate
+ * inside one tab keeps its first copy.
+ */
+function reconcileChanges(
+  ctx: MultiCtx,
+  sheet: SheetState,
+  want: Map<string, Wanted>,
+): { changes: Changes; misplaced: number } {
+  const changes: Changes = { toUpdate: [], appendsByTab: new Map(), toDelete: [] };
   let misplaced = 0;
-
   for (const [id, target] of want) {
-    const places = located.get(id) ?? [];
-    const here = places.find((p) => p.tab === target.tab);
-    if (here) {
-      const current = cellsAt.get(`${here.tab}#${here.row}`) ?? [];
-      if (!target.shown.every((cell, i) => (current[i] ?? '') === cell)) {
-        toUpdate.push({ range: rowRange(ctx, here.tab, here.row), values: [target.cells] });
-      }
-    } else {
-      const list = appendsByTab.get(target.tab);
-      if (list) list.push(target.cells);
-      else appendsByTab.set(target.tab, [target.cells]);
-    }
-    // Every copy outside the target tab is wrong — a moved season, or the
-    // leftover half of a move that crashed. Removed AFTER the insert below.
-    for (const p of places) {
-      if (p.tab !== target.tab) {
-        toDelete.push(p);
-        misplaced += 1;
-      }
-    }
+    const places = sheet.located.get(id) ?? [];
+    placeRow(ctx, sheet, changes, target, places);
+    const away = places.filter((p) => p.tab !== target.tab);
+    changes.toDelete.push(...away);
+    misplaced += away.length;
   }
-
-  // Rows in the sheet whose document no longer exists at all.
-  for (const [id, places] of located) {
-    if (want.has(id)) continue;
-    toDelete.push(...places);
-  }
-  // A duplicate inside the SAME tab: keep the first, drop the rest.
-  for (const [id, places] of located) {
+  for (const [id, places] of sheet.located) {
     const target = want.get(id);
-    if (!target) continue;
-    const same = places.filter((p) => p.tab === target.tab);
-    for (const dup of same.slice(1)) toDelete.push(dup);
+    if (!target) changes.toDelete.push(...places);
+    else changes.toDelete.push(...places.filter((p) => p.tab === target.tab).slice(1));
   }
+  return { changes, misplaced };
+}
 
-  let ok = true;
-  const problems: string[] = [];
-  let added = 0;
-
-  if (toUpdate.length) {
-    const res = await batchUpdateValues(ctx.spreadsheetId, toUpdate);
-    if (!res.ok) {
-      ok = false;
-      problems.push(`${res.reason}: ${res.message ?? ''}`.trim());
-    }
+/** Update the row where it already sits in its tab (when it shows something else), or append it there. */
+function placeRow(ctx: MultiCtx, sheet: SheetState, changes: Changes, target: Wanted, places: Located[]): void {
+  const here = places.find((p) => p.tab === target.tab);
+  if (!here) {
+    appendTo(changes.appendsByTab, target.tab, target.cells);
+    return;
   }
-
-  // INSERTS BEFORE DELETES: a failure here must never leave a row nowhere.
-  for (const [tab, values] of appendsByTab) {
-    const sheetId = await ensureTabIn(ctx, tab);
-    if (typeof sheetId !== 'number') {
-      ok = false;
-      problems.push(`${sheetId.reason}: ${sheetId.message ?? ''}`.trim());
-      continue;
-    }
-    const res = await appendValues(ctx.spreadsheetId, `${quoteTab(tab)}!A1`, values);
-    if (!res.ok) {
-      ok = false;
-      problems.push(`${res.reason}: ${res.message ?? ''}`.trim());
-      continue;
-    }
-    added += values.length;
+  // Compare against what the sheet SHOWS: a date cell reads back as
+  // "13.09.2026 15:30", never as the ISO string the database holds.
+  const current = sheet.cellsAt.get(`${here.tab}#${here.row}`) ?? [];
+  if (!target.shown.every((cell, i) => (current[i] ?? '') === cell)) {
+    changes.toUpdate.push({ range: rowRange(ctx, here.tab, here.row), values: [target.cells], tab: here.tab, row: here.row });
   }
+}
 
-  let removed = 0;
-  // Only delete once every insert succeeded; otherwise a row could vanish.
-  if (ok && toDelete.length) {
-    const res = await dropRows(ctx, toDelete);
-    if (isResult(res)) {
-      ok = false;
-      problems.push(`${res.reason}: ${res.message ?? ''}`.trim());
-    } else {
-      removed = res;
-    }
-  } else if (!ok && toDelete.length) {
-    problems.push('ștergerile au fost amânate: o inserare a eșuat');
+function reconcileMessage(counts: SyncCounts, misplaced: number, staleTabs: string[]): string {
+  return (
+    `Verificare: +${counts.added} ~${counts.updated} -${counts.removed}` +
+    (misplaced > 0 ? ` (${misplaced} mutate între file)` : '') +
+    (staleTabs.length ? `; file păstrate fără rânduri: ${staleTabs.join(', ')}` : '')
+  );
+}
+
+/** Record a failed step; true when the step worked. */
+function note(out: Applied, res: { ok: boolean; reason?: string; message?: string }): boolean {
+  if (res.ok) return true;
+  out.ok = false;
+  out.problems.push(`${res.reason}: ${res.message ?? ''}`.trim());
+  return false;
+}
+
+/**
+ * Write a set of changes: the updates in one call, the appends one call per
+ * tab, and only then, when every write worked, the deletes. INSERTS BEFORE
+ * DELETES: a failure here must never leave a row nowhere.
+ */
+async function applyChanges(ctx: MultiCtx, changes: Changes): Promise<Applied> {
+  const out: Applied = { ok: true, problems: [], added: 0, updated: changes.toUpdate.length, removed: 0 };
+  if (changes.toUpdate.length && note(out, await batchUpdateValues(ctx.spreadsheetId, changes.toUpdate))) {
+    for (const u of changes.toUpdate) queueLinks(ctx, u.tab, u.row, u.values);
   }
+  for (const [tab, values] of changes.appendsByTab) await appendRows(ctx, tab, values, out);
+  await sendLinks(ctx);
+  await deleteAfterInserts(ctx, changes.toDelete, out);
+  return out;
+}
 
-  const wantedTabs = new Set([...want.values()].map((w) => w.tab));
-  const staleTabs = dataTabs.filter((t) => !wantedTabs.has(t)).sort();
-  const counts: SyncCounts = { added, updated: toUpdate.length, removed };
-  const message = ok
-    ? `Verificare: +${counts.added} ~${counts.updated} -${counts.removed}` +
-      (misplaced > 0 ? ` (${misplaced} mutate între file)` : '') +
-      (staleTabs.length ? `; file păstrate fără rânduri: ${staleTabs.join(', ')}` : '')
-    : problems.join('; ');
-  await logSync(form, trigger, counts, ok, message);
-  return { ...counts, ok, reason: ok ? undefined : 'reconcile_failed', message, staleTabs };
+async function appendRows(ctx: MultiCtx, tab: string, values: Cell[][], out: Applied): Promise<void> {
+  const sheetId = await ensureTabIn(ctx, tab);
+  if (typeof sheetId !== 'number') {
+    note(out, sheetId);
+    return;
+  }
+  const res = await appendValues(ctx.spreadsheetId, `${quoteTab(tab)}!A1`, values);
+  if (!note(out, res)) return;
+  out.added += values.length;
+  queueLinks(ctx, tab, res.data?.startRow ?? null, values);
+}
+
+async function deleteAfterInserts(ctx: MultiCtx, toDelete: Located[], out: Applied): Promise<void> {
+  if (!toDelete.length) return;
+  if (!out.ok) {
+    out.problems.push('ștergerile au fost amânate: o inserare a eșuat');
+    return;
+  }
+  const res = await dropRows(ctx, toDelete);
+  if (isResult(res)) note(out, res);
+  else out.removed = res;
 }
 
 /* ------------------------------------------------------------ batch writes */
@@ -937,16 +1149,11 @@ export async function applyBatch(
   upsertIds: string[],
   deleteIds: string[],
 ): Promise<SyncResult> {
+  freshPlans(form);
   const ctx = await context(form);
   if (isResult(ctx)) return ctx;
 
-  const desc = getForm(form);
-  const docs: RowLike[] = upsertIds.length
-    ? ((await strapi.documents(desc.uid as any).findMany({
-        filters: { documentId: { $in: upsertIds } } as any,
-        limit: upsertIds.length,
-      })) as unknown as RowLike[])
-    : [];
+  const docs = await getForm(form).fetchByIds(upsertIds);
 
   return isMulti(ctx)
     ? batchMulti(form, ctx, docs, deleteIds)
@@ -972,7 +1179,7 @@ async function batchSingle(
   for (const doc of docs) {
     const id = String(doc?.documentId ?? '').trim();
     if (!id) continue;
-    const row = cellsOf(ctx.types, ctx.toRow(doc));
+    const row = cellsOf(ctx.plan.types, ctx.plan.row(doc));
     const at = ids.map.get(id);
     if (at) toUpdate.push({ range: rowRange(ctx, ctx.tab, at), values: [row] });
     else toAppend.push(row);
@@ -1021,7 +1228,8 @@ async function batchSingle(
 /**
  * Partitioned batch. Same shape as the single-tab one, plus the move case:
  * every queued document is appended to (or updated in) the tab its season says
- * it belongs in, and only then are its copies in other tabs removed.
+ * it belongs in, with that tab's columns, and only then are its copies in
+ * other tabs removed.
  */
 async function batchMulti(
   form: FormKey,
@@ -1029,91 +1237,68 @@ async function batchMulti(
   docs: RowLike[],
   deleteIds: string[],
 ): Promise<SyncResult> {
-  // Create every target tab first, so the scan below already sees them.
-  const targets = new Map<string, string>(); // documentId -> tab
-  for (const doc of docs) {
-    const id = String(doc?.documentId ?? '').trim();
-    if (!id) continue;
-    const tab = ctx.partition.tabFor(doc);
-    targets.set(id, tab);
-    const sheetId = await ensureTabIn(ctx, tab);
-    if (typeof sheetId !== 'number') return sheetId;
-    const headerRes = await ensureHeaderIn(form, ctx, tab);
-    if (!headerRes.ok) return headerRes;
-    if (headerRes.added || headerRes.updated || headerRes.removed) return headerRes;
-  }
+  const targets = await prepareTargets(form, ctx, docs);
+  if (isResult(targets)) return targets;
 
   const scan = await scanIds(ctx);
   if (isResult(scan)) return scan;
 
-  const toUpdate: { range: string; values: Cell[][] }[] = [];
-  const appendsByTab = new Map<string, Cell[][]>();
-  const toDelete: Located[] = [];
+  const applied = await applyChanges(ctx, batchChanges(ctx, scan, docs, targets, deleteIds));
+  return {
+    ok: applied.ok,
+    added: applied.added,
+    updated: applied.updated,
+    removed: applied.removed,
+    reason: applied.ok ? undefined : 'batch_failed',
+    message: applied.ok ? undefined : applied.problems.join('; '),
+  };
+}
 
+/**
+ * documentId -> target tab. Every target tab is created and its header checked
+ * first, so the scan already sees it. A header that had to change rewrote the
+ * whole form; that result is returned and the queued work is subsumed.
+ */
+async function prepareTargets(form: FormKey, ctx: MultiCtx, docs: RowLike[]): Promise<Map<string, string> | SyncResult> {
+  const targets = new Map<string, string>();
   for (const doc of docs) {
     const id = String(doc?.documentId ?? '').trim();
     if (!id) continue;
-    const tab = targets.get(id)!;
-    const row = cellsOf(ctx.types, ctx.toRow(doc));
+    const tab = ctx.partition.tabFor(doc);
+    const seen = [...targets.values()].includes(tab);
+    targets.set(id, tab);
+    if (seen) continue;
+    const sheetId = await ensureTabIn(ctx, tab);
+    if (typeof sheetId !== 'number') return sheetId;
+    const headerRes = await ensureHeaderIn(form, ctx, tab);
+    if (failedOrRewrote(headerRes)) return headerRes;
+  }
+  return targets;
+}
+
+/** A header check that failed, or that rewrote the whole form (which subsumes the queued work). */
+const failedOrRewrote = (res: SyncResult): boolean => !res.ok || res.added + res.updated + res.removed > 0;
+
+function batchChanges(
+  ctx: MultiCtx,
+  scan: IdScan,
+  docs: RowLike[],
+  targets: Map<string, string>,
+  deleteIds: string[],
+): Changes {
+  const changes: Changes = { toUpdate: [], appendsByTab: new Map(), toDelete: [] };
+  for (const doc of docs) {
+    const id = String(doc?.documentId ?? '').trim();
+    const tab = targets.get(id);
+    if (!tab) continue;
+    const plan = planOf(ctx, tab);
+    const row = cellsOf(plan.types, plan.row(doc));
     const places = scan.located.get(id) ?? [];
     const here = places.find((p) => p.tab === tab);
-    if (here) {
-      toUpdate.push({ range: rowRange(ctx, tab, here.row), values: [row] });
-    } else {
-      const list = appendsByTab.get(tab);
-      if (list) list.push(row);
-      else appendsByTab.set(tab, [row]);
-    }
-    for (const p of places) if (p.tab !== tab) toDelete.push(p);
+    if (here) changes.toUpdate.push({ range: rowRange(ctx, tab, here.row), values: [row], tab, row: here.row });
+    else appendTo(changes.appendsByTab, tab, row);
+    changes.toDelete.push(...places.filter((p) => p.tab !== tab));
   }
-
-  for (const raw of deleteIds) {
-    const id = String(raw ?? '').trim();
-    if (!id) continue;
-    toDelete.push(...(scan.located.get(id) ?? []));
-  }
-
-  let ok = true;
-  const problems: string[] = [];
-  let added = 0;
-
-  if (toUpdate.length) {
-    const res = await batchUpdateValues(ctx.spreadsheetId, toUpdate);
-    if (!res.ok) {
-      ok = false;
-      problems.push(`${res.reason}: ${res.message ?? ''}`.trim());
-    }
-  }
-  // INSERTS BEFORE DELETES.
-  for (const [tab, values] of appendsByTab) {
-    const res = await appendValues(ctx.spreadsheetId, `${quoteTab(tab)}!A1`, values);
-    if (!res.ok) {
-      ok = false;
-      problems.push(`${res.reason}: ${res.message ?? ''}`.trim());
-      continue;
-    }
-    added += values.length;
-  }
-
-  let removed = 0;
-  if (ok && toDelete.length) {
-    const res = await dropRows(ctx, toDelete);
-    if (isResult(res)) {
-      ok = false;
-      problems.push(`${res.reason}: ${res.message ?? ''}`.trim());
-    } else {
-      removed = res;
-    }
-  } else if (!ok && toDelete.length) {
-    problems.push('ștergerile au fost amânate: o inserare a eșuat');
-  }
-
-  return {
-    ok,
-    added,
-    updated: toUpdate.length,
-    removed,
-    reason: ok ? undefined : 'batch_failed',
-    message: ok ? undefined : problems.join('; '),
-  };
+  for (const raw of deleteIds) changes.toDelete.push(...(scan.located.get(String(raw ?? '').trim()) ?? []));
+  return changes;
 }
