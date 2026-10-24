@@ -21,7 +21,10 @@ import { pickSchool, type SchoolChoiceCode, type SchoolRow } from './school-choi
 import { seasonStartYear } from './season';
 
 export type SubmitErrorCode = 'invalid' | SchoolChoiceCode | 'save-failed';
-export type SubmitResult = { ok: true; registrationNumber: string } | { ok: false; code: SubmitErrorCode; error: string };
+/** `documentId` is internal: the controller never returns it (DECISIONS 2026-10-03); it is used to build the PDFs. */
+export type SubmitResult =
+  | { ok: true; registrationNumber: string; documentId: string }
+  | { ok: false; code: SubmitErrorCode; error: string };
 
 export const SUBMIT_ERRORS: Record<SubmitErrorCode, string> = {
   invalid: 'Cerere invalidă.',
@@ -69,7 +72,7 @@ export interface SubmitDeps {
   findCurrentSeason(): Promise<CurrentSeason | null>;
   findSections(): Promise<SchoolRow[]>;
   findSchoolPrices(sectionDocumentId: string): Promise<PublicSchool | null>;
-  createNumbered(data: RegistrationCreateData, startYear: number): Promise<{ registrationNumber: string }>;
+  createNumbered(data: RegistrationCreateData, startYear: number): Promise<{ documentId: string; registrationNumber: string }>;
   logError(message: string): void;
   now(): Date;
 }
@@ -200,8 +203,8 @@ function buildCreateData(i: RegistrationInput, ctx: SubmitContext, choice: Subsc
 
 async function save(data: RegistrationCreateData, startYear: number, deps: SubmitDeps): Promise<SubmitResult> {
   try {
-    const { registrationNumber } = await deps.createNumbered(data, startYear);
-    return { ok: true, registrationNumber };
+    const { registrationNumber, documentId } = await deps.createNumbered(data, startYear);
+    return { ok: true, registrationNumber, documentId };
   } catch (err) {
     deps.logError(`[inscriere] create failed: ${err instanceof Error ? err.message : String(err)}`);
     return stop('save-failed').result;

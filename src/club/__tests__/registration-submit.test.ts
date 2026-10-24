@@ -62,7 +62,7 @@ function fake(over: Partial<SubmitDeps> = {}) {
     findSchoolPrices: async () => SCHOOL,
     createNumbered: async (data, startYear) => {
       created.push({ data, startYear });
-      return { registrationNumber: '2026-0008' };
+      return { documentId: 'reg0000000000000000000001', registrationNumber: '2026-0008' };
     },
     logError: (message) => {
       errors.push(message);
@@ -76,7 +76,11 @@ function fake(over: Partial<SubmitDeps> = {}) {
 describe('submitRegistration', () => {
   it('saves a numbered registration with server-set season, school and price', async () => {
     const { deps, created } = fake();
-    await expect(submitRegistration(BODY, null, deps)).resolves.toEqual({ ok: true, registrationNumber: '2026-0008' });
+    await expect(submitRegistration(BODY, null, deps)).resolves.toEqual({
+      ok: true,
+      registrationNumber: '2026-0008',
+      documentId: 'reg0000000000000000000001',
+    });
     expect(created).toEqual([
       {
         startYear: 2026,
