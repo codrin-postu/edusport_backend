@@ -11,6 +11,7 @@
  */
 import { cellStr } from './cells';
 import { cmsPublicUrl, registrationAdminUrl } from './admin-link';
+import { emailStatusCell } from '../email/sheet-status';
 import type { BuiltinCol, RowLike } from './matrix';
 
 const RELATIONSHIP_CELLS: Record<string, string> = { parinte: 'Părinte', tutore: 'Tutore Legal', alta: 'Alta' };
@@ -61,7 +62,7 @@ export const SCRIPT_FORM_COLS: BuiltinCol[] = [
   { key: 'regulationsConsent', label: 'Acord Regulament', type: 'bool' },
 ];
 
-/** After the custom questions: the admin's note, then the link to the registration in the admin. */
+/** After the custom questions: the admin's note, the link to the registration in the admin, the e-mail status. */
 export const SCRIPT_FORM_TAIL: BuiltinCol[] = [
   { key: 'internalNote', label: 'Notă internă', type: 'longtext' },
   {
@@ -70,4 +71,6 @@ export const SCRIPT_FORM_TAIL: BuiltinCol[] = [
     type: 'link',
     cell: (r) => registrationAdminUrl(cmsPublicUrl(), r.registrationNumber),
   },
+  // The registration e-mail (plan 2F): "Trimis 03.10 14:23", "În coadă", "Eșuat", or empty.
+  { key: 'emailStatus', label: 'E-mail', cell: (r) => emailStatusCell(r.emailJobs) },
 ];
