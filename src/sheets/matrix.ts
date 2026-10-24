@@ -11,7 +11,15 @@
  * (removed-from-form ones suffixed " (eliminata)"), the custom questions from
  * the form config (removed-but-with-data ones likewise suffixed), and finally
  * `ID` — the documentId, which is the sync key. The ID column is ALWAYS last.
+ *
+ * Înscrieri has two column sets, picked per season tab (`inscrieriTabPlans`):
+ * today's, and the new registration form's (`script-form.ts`), which adds
+ * `Nr. înscriere` before `Trimis la` and `Document` before `ID`.
  */
+
+import type { FormType } from '../api/form-config/registry';
+import { cellStr, extraCell, listStr, yesNo } from './cells';
+import { isScriptFormRow, SCRIPT_FORM_COLS, SCRIPT_FORM_LEAD, SCRIPT_FORM_TAIL } from './script-form';
 
 const FORM_CONFIG_UID = 'api::form-config.form-config' as const;
 
@@ -42,6 +50,7 @@ export interface RowLike {
  *   longtext  a paragraph (motivation, message, internal note)
  *   bool      rendered Da/Nu
  *   list      a json string array, rendered comma-joined
+ *   link      an address, shown as "Deschide documentul" linking to it
  *   id        the documentId — always the last column, the sync key
  */
 export type ColumnType =
@@ -54,6 +63,7 @@ export type ColumnType =
   | 'longtext'
   | 'bool'
   | 'list'
+  | 'link'
   | 'id';
 
 /** A resolved column set: the header, its types, plus how to render one document. */
@@ -69,22 +79,48 @@ export interface Matrix {
   matrix: string[][];
 }
 
-export const yesNo = (v: unknown): string => (v === true ? 'Da' : v === false ? 'Nu' : '');
-export const cellStr = (v: unknown): string => (v == null ? '' : String(v));
-export const listStr = (v: unknown): string =>
-  Array.isArray(v) ? v.map((x) => cellStr(x)).join(', ') : cellStr(v);
+/**
+ * Column plans of a partitioned form, one per tab (Înscrieri: one tab per season).
+ * `forTab` answers for any tab name; a tab with no rows in the database gets the default plan.
+ */
+export interface TabPlans {
+  forTab(tab: string): ColumnPlan;
+}
 
-interface BuiltinCol {
+/** One plan for every tab (forms whose columns do not depend on the tab). */
+export function singlePlan(plan: ColumnPlan): TabPlans {
+  return { forTab: () => plan };
+}
+
+export { cellStr, listStr, yesNo } from './cells';
+
+/** A fixed column: a row field, its header label, and how it is printed. */
+export interface BuiltinCol {
   key: string;
   label: string;
   /** Drives BOTH how the cell renders and how the sheet formats it. */
   type?: ColumnType;
+  /** A renderer for values that are not printed as stored (codes, relations, json). */
+  cell?: (r: RowLike) => string;
+}
+
+/** Where the fixed columns go around the system columns and the custom questions. */
+interface Layout {
+  /** Before `Trimis la`. */
+  lead: BuiltinCol[];
+  /** After `Stare`; a built-in removed from the form config gets " (eliminata)". */
+  builtins: BuiltinCol[];
+  /** After the custom questions, before `ID`. */
+  tail: BuiltinCol[];
 }
 
 interface FormMeta {
   removedBuiltins: string[];
   customs: { key: string; label: string; type?: string }[];
 }
+
+/** The header of the last column, which holds the documentId (the sync key). */
+export const ID_LABEL = 'ID';
 
 /**
  * A custom question's editor type -> the column type. The editor's list lives
@@ -103,7 +139,7 @@ const CUSTOM_TYPES: Record<string, ColumnType> = {
 
 async function loadMeta(type: string): Promise<FormMeta> {
   try {
-    const meta = await strapi.service(FORM_CONFIG_UID).adminFormMeta(type as any);
+    const meta = await strapi.service(FORM_CONFIG_UID).adminFormMeta(type as FormType);
     return {
       removedBuiltins: meta?.removedBuiltins ?? [],
       customs: meta?.customs ?? [],
@@ -114,74 +150,72 @@ async function loadMeta(type: string): Promise<FormMeta> {
   }
 }
 
-/** Render a custom answer cell (booleans as Da/Nu, arrays comma-joined). */
-function extraCell(v: unknown): string {
-  if (typeof v === 'boolean') return v ? 'Da' : 'Nu';
-  if (Array.isArray(v)) return listStr(v);
-  return cellStr(v);
+const extraOf = (r: RowLike): Record<string, unknown> =>
+  r?.extra && typeof r.extra === 'object' ? (r.extra as Record<string, unknown>) : {};
+
+/** Render one fixed column for one row. */
+function builtinCell(c: BuiltinCol, r: RowLike): string {
+  if (c.cell) return c.cell(r);
+  if (c.type === 'bool') return yesNo(r?.[c.key]);
+  if (c.type === 'list') return listStr(r?.[c.key]);
+  return cellStr(r?.[c.key]);
 }
 
 /**
- * Build the column plan for one form.
+ * The custom-question columns: every question in the form config, then the
+ * answer keys found in `rows` that no longer have a question, as "(eliminata)".
+ * A question whose type the config no longer reports is treated as text: a
+ * wrong WIDTH is harmless, a wrong date parse would not be.
+ */
+function customColumns(meta: FormMeta, rows: RowLike[]): BuiltinCol[] {
+  const byKey = new Map(meta.customs.map((c) => [c.key, c]));
+  const answered = new Set(rows.flatMap((r) => Object.keys(extraOf(r))));
+  const retired = [...answered].filter((k) => !byKey.has(k)).sort();
+  const answer = (key: string) => (r: RowLike) => extraCell(extraOf(r)[key]);
+  return [
+    ...meta.customs.map((c) => {
+      const q = byKey.get(c.key)!;
+      return { key: q.key, label: q.label, type: CUSTOM_TYPES[String(q.type ?? '')] ?? 'text', cell: answer(q.key) };
+    }),
+    ...retired.map((k) => ({ key: k, label: `${k} (eliminata)`, type: 'text' as ColumnType, cell: answer(k) })),
+  ];
+}
+
+/** `Trimis la` and `Stare`, the same on every form. */
+function systemColumns(type: string): BuiltinCol[] {
+  return [
+    { key: 'submittedAt', label: 'Trimis la', type: 'datetime' },
+    { key: 'status', label: 'Stare', type: 'status', cell: (r) => cellStr(statusOf(type, r)) },
+  ];
+}
+
+/**
+ * Build a column plan from an already loaded form config.
  *
  * `rows` is used only to discover custom answer keys that no longer exist in
- * the form config but still carry data — those become trailing "(eliminata)"
+ * the form config but still carry data; those become trailing "(eliminata)"
  * columns. Pass every row you are about to write so no answer is silently lost.
  */
-async function buildPlan(type: string, builtins: BuiltinCol[], rows: RowLike[]): Promise<ColumnPlan> {
-  const meta = await loadMeta(type);
+function planFromMeta(type: string, layout: Layout, rows: RowLike[], meta: FormMeta): ColumnPlan {
   const removed = new Set(meta.removedBuiltins);
-  const customByKey = new Map(meta.customs.map((c) => [c.key, c]));
-
-  const extraKeys = new Set<string>();
-  for (const r of rows) {
-    const ex = r?.extra;
-    if (ex && typeof ex === 'object') for (const k of Object.keys(ex)) extraKeys.add(k);
-  }
-  const activeCustomKeys = meta.customs.map((c) => c.key);
-  const removedCustomKeys = [...extraKeys].filter((k) => !customByKey.has(k)).sort();
-  const customCols: { key: string; label: string; type: ColumnType }[] = [
-    ...activeCustomKeys.map((k) => ({
-      key: k,
-      label: customByKey.get(k)!.label,
-      // A question whose type the config no longer reports is treated as text:
-      // a wrong WIDTH is harmless, a wrong date parse would not be.
-      type: CUSTOM_TYPES[String(customByKey.get(k)!.type ?? '')] ?? ('text' as ColumnType),
-    })),
-    // A removed question keeps its answers but no longer has a declared type.
-    ...removedCustomKeys.map((k) => ({ key: k, label: `${k} (eliminata)`, type: 'text' as ColumnType })),
+  const columns: BuiltinCol[] = [
+    ...layout.lead,
+    ...systemColumns(type),
+    ...layout.builtins.map((c) => (removed.has(c.key) ? { ...c, label: `${c.label} (eliminata)` } : c)),
+    ...customColumns(meta, rows),
+    ...layout.tail,
+    { key: 'documentId', label: ID_LABEL, type: 'id' },
   ];
-
-  const header = [
-    'Trimis la',
-    'Stare',
-    ...builtins.map((c) => (removed.has(c.key) ? `${c.label} (eliminata)` : c.label)),
-    ...customCols.map((c) => c.label),
-    'ID',
-  ];
-
-  const types: ColumnType[] = [
-    'datetime',
-    'status',
-    ...builtins.map((c) => c.type ?? 'text'),
-    ...customCols.map((c) => c.type),
-    'id',
-  ];
-
-  const row = (r: RowLike): string[] => {
-    const ex = r?.extra && typeof r.extra === 'object' ? (r.extra as Record<string, unknown>) : {};
-    return [
-      cellStr(r?.submittedAt),
-      cellStr(statusOf(type, r)),
-      ...builtins.map((c) =>
-        c.type === 'bool' ? yesNo(r?.[c.key]) : c.type === 'list' ? listStr(r?.[c.key]) : cellStr(r?.[c.key]),
-      ),
-      ...customCols.map((c) => extraCell(ex[c.key])),
-      cellStr(r?.documentId),
-    ];
+  return {
+    header: columns.map((c) => c.label),
+    types: columns.map((c) => c.type ?? 'text'),
+    row: (r) => columns.map((c) => builtinCell(c, r)),
   };
+}
 
-  return { header, types, row };
+/** Build the column plan for one single-tab form (see `planFromMeta`). */
+async function buildPlan(type: string, builtins: BuiltinCol[], rows: RowLike[]): Promise<ColumnPlan> {
+  return planFromMeta(type, { lead: [], builtins, tail: [] }, rows, await loadMeta(type));
 }
 
 /** Contact submissions keep their state in `triageStatus`, not `status`. */
@@ -193,6 +227,18 @@ const toMatrix = (plan: ColumnPlan, rows: RowLike[]): Matrix => ({
   header: plan.header,
   matrix: rows.map(plan.row),
 });
+
+/** Rows grouped by the tab they belong in, in their original order. */
+function groupByTab(rows: RowLike[], tabFor: (doc: RowLike) => string): Map<string, RowLike[]> {
+  const groups = new Map<string, RowLike[]>();
+  for (const r of rows) {
+    const tab = tabFor(r);
+    const list = groups.get(tab);
+    if (list) list.push(r);
+    else groups.set(tab, [r]);
+  }
+  return groups;
+}
 
 /* ------------------------------------------------------------- Înscrieri */
 
@@ -220,6 +266,25 @@ export const INSCRIERI_COLS: BuiltinCol[] = [
 ];
 
 export const inscrieriPlan = (rows: RowLike[]) => buildPlan('inscriere', INSCRIERI_COLS, rows);
+
+const INSCRIERI_LAYOUT: Layout = { lead: [], builtins: INSCRIERI_COLS, tail: [] };
+const SCRIPT_FORM_LAYOUT: Layout = { lead: SCRIPT_FORM_LEAD, builtins: SCRIPT_FORM_COLS, tail: SCRIPT_FORM_TAIL };
+
+/**
+ * Înscrieri columns per season tab. A tab holding at least one row from the new
+ * form (`isScriptFormRow`) gets the script-form columns, planned over its own
+ * rows. Every other tab keeps today's columns, planned over the rows of those
+ * tabs only, so a new season never changes an old tab. No season list.
+ */
+export async function inscrieriTabPlans(rows: RowLike[], tabFor: (doc: RowLike) => string): Promise<TabPlans> {
+  const meta = await loadMeta('inscriere');
+  const groups = [...groupByTab(rows, tabFor)];
+  const scriptTabs = groups.filter(([, list]) => list.some(isScriptFormRow));
+  const legacyRows = groups.filter(([, list]) => !list.some(isScriptFormRow)).flatMap(([, list]) => list);
+  const legacy = planFromMeta('inscriere', INSCRIERI_LAYOUT, legacyRows, meta);
+  const byTab = new Map(scriptTabs.map(([tab, list]) => [tab, planFromMeta('inscriere', SCRIPT_FORM_LAYOUT, list, meta)]));
+  return { forTab: (tab) => byTab.get(tab) ?? legacy };
+}
 
 /* -------------------------------------------------------------- Voluntari */
 
