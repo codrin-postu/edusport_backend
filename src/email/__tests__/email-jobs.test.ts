@@ -231,6 +231,33 @@ describe('retries', () => {
     expect(alerts).toHaveLength(1);
   });
 
+  it('logs a job whose attempt throws and still tries the rest of the batch', async () => {
+    const { deps, jobs, runDeferred, age } = fakeDeps({ send: failing });
+    const first = await queueRegistrationEmail(deps, 'reg-1');
+    const second = await queueRegistrationEmail(deps, 'reg-2');
+    await runDeferred();
+    age(first!.documentId);
+    age(second!.documentId);
+    const logs: string[] = [];
+    const update = deps.jobs.update;
+    const flaky: EmailDeps = {
+      ...deps,
+      jobs: {
+        ...deps.jobs,
+        update: async (id, data) => {
+          if (id === first!.documentId) throw new Error('row gone');
+          return update(id, data);
+        },
+      },
+      log: (level, m) => {
+        logs.push(`${level} ${m}`);
+      },
+    };
+    await expect(retryDueJobs(flaky)).resolves.toEqual({ attempted: 2, skipped: null });
+    expect(jobs.get(second!.documentId)!.attempts).toBe(2);
+    expect(logs).toContain(`error [email-job] retry of job ${first!.documentId} crashed: row gone`);
+  });
+
   it('fails a job whose registration was deleted, without an alert', async () => {
     const { deps, alerts } = fakeDeps();
     const row: EmailJobRow = { documentId: 'job-x', recipient: 'p@example.ro', subject: 's', registrationDocumentId: null, status: 'queued', attempts: 2, lastError: null, sentAt: null, updatedAt: LONG_AGO };

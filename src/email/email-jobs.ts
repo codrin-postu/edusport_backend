@@ -158,13 +158,22 @@ export async function queueRegistrationEmail(deps: EmailDeps, registrationDocume
   return job;
 }
 
+/** One cron attempt; a job that throws (a job store error) is logged and the batch goes on. */
+async function retryJob(deps: EmailDeps, job: EmailJobRow): Promise<void> {
+  try {
+    await attemptJob(deps, job);
+  } catch (err) {
+    deps.log('error', `[email-job] retry of job ${job.documentId} crashed: ${message(err)}`);
+  }
+}
+
 /** Hourly cron: one more attempt for every queued job left alone for QUIET_MS. Nothing happens while e-mail cannot be sent. */
 export async function retryDueJobs(deps: EmailDeps): Promise<RetrySummary> {
   const skipped = blockedReason(deps.config);
   if (skipped) return { attempted: 0, skipped };
   const now = deps.now();
   const due = (await deps.jobs.findQueued(RETRY_BATCH)).filter((job) => isDue(job, now, QUIET_MS));
-  for (const job of due) await attemptJob(deps, job);
+  for (const job of due) await retryJob(deps, job);
   return { attempted: due.length, skipped: null };
 }
 
