@@ -66,6 +66,13 @@ services:
       SHEETS_TAB_NAME: ${SHEETS_TAB_NAME:-}
       # Public CMS address for the Înscrieri Sheet's "Document" links.
       CMS_PUBLIC_URL: ${CMS_PUBLIC_URL:-http://localhost:1337}
+      # Registration e-mail (Brevo). Without EMAIL_LIVE every e-mail goes to
+      # EMAIL_TEST_RECIPIENT, so a local run never reaches a parent.
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-}
+      EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-}
+      EMAIL_TEST_RECIPIENT: ${EMAIL_TEST_RECIPIENT:-}
     volumes:
       - .:/app
       - /app/node_modules
