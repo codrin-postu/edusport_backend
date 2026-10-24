@@ -23,11 +23,16 @@ export function registrationEditError(data: Record<string, unknown>): string | n
   return bad ? REGISTRATION_EDIT_ERROR : null;
 }
 
+/** Fields a saved edit clears as well: the "Alta" text once the relationship moves off "Alta". Null: none. */
+export function fieldsClearedByEdit(key: string, value: unknown): { relationshipOther: null } | null {
+  return key === 'relationship' && value !== RELATIONSHIP_OTHER ? { relationshipOther: null } : null;
+}
+
 /** The text after "Alta" is trimmed, and cleared when the relationship moves off "Alta" (as the form stores it). */
 export function normalizeRegistrationEdit(data: Record<string, unknown>): Record<string, unknown> {
   const out = { ...data };
   if (typeof out.relationshipOther === 'string') out.relationshipOther = out.relationshipOther.trim() || null;
-  if ('relationship' in out && out.relationship !== RELATIONSHIP_OTHER) out.relationshipOther = null;
+  if ('relationship' in out) Object.assign(out, fieldsClearedByEdit('relationship', out.relationship));
   return out;
 }
 
