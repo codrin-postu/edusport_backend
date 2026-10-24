@@ -26,7 +26,7 @@ Covers plans 2A-2F (backend `feat/registration-rebuild`) and 2C (frontend `feat/
 3. Deploy the backend (Actions, "Deploy backend", ref `feat/registration-rebuild` or `main` after merge). The new container restarts Strapi, which applies the schema (new fields, unique index, `email-job`, private documents volume).
 4. Check the volume is writable: `docker compose -f docker-compose.production.yml exec backend sh -c 'touch /opt/app/private/documents/.w && rm /opt/app/private/documents/.w'`.
 5. Copy script, dry run: `docker compose -f docker-compose.production.yml --env-file .env.production exec backend npm run migrate:registration`. Review it: tooltips copied, price notes, Școala public page on, old custom questions removed, season check, duplicate price names, **registration season texts to rewrite** (per old text, matching item 12's en-dash counts) and **registration numbers to assign** (plus "skipped (no season)", matching item 12's unnumbered count).
-6. Copy script, apply: the same with `-- --apply`. Run the dry run again: nothing left to do.
+6. Copy script, apply: the same with `-- --apply`. Run the dry run again: every count to rewrite, assign or link is 0 (the "not recognised" and "skipped (no season)" lines still list the same rows; that is expected). If rows had the en-dash season, the next Sheet sync moves them from the `2026–2027` tab to `2026-2027`; delete the empty en-dash tab in the club's Sheet afterwards.
 7. Admin checks:
    - Sezoane: 2026-2027 current, period Octombrie 2026 - Mai 2027, fee 270.
    - Prețuri: enter the real **Avansați Gold** prices; no "Preț incomplet" left that should not be there.
