@@ -12,6 +12,9 @@ import { registrationSubject, renderRegistrationEmail, type EmailLinks } from '.
 /** A job is not retried by the cron until it has been left alone this long (a first attempt may be running). */
 export const QUIET_MS = 5 * 60_000;
 export const RESEND_ACTION = 'email-resent';
+/** Registration e-mails per recipient address per 24 h from the public submit; a resend is not capped (user, 2026-10-24). */
+export const RECIPIENT_DAILY_CAP = 3;
+const DAY_MS = 24 * 60 * 60_000;
 
 export type EmailJobRow = {
   documentId: string;
@@ -35,6 +38,7 @@ export interface EmailJobStore {
   update(documentId: string, data: JobUpdate): Promise<EmailJobRow>;
   findQueued(limit: number): Promise<EmailJobRow[]>;
   findLatest(registrationDocumentId: string): Promise<EmailJobRow | null>;
+  countForRecipientSince(recipient: string, since: Date): Promise<number>;
 }
 
 export interface EmailDeps {
@@ -140,11 +144,23 @@ export async function attemptJob(deps: EmailDeps, job: EmailJobRow): Promise<Ema
   return updated;
 }
 
-/** Called by the submit flow once the documents are built: store the job, then try it right away (not awaited). */
+async function recipientCapReached(deps: EmailDeps, recipient: string): Promise<boolean> {
+  const since = new Date(deps.now().getTime() - DAY_MS);
+  return (await deps.jobs.countForRecipientSince(recipient, since)) >= RECIPIENT_DAILY_CAP;
+}
+
+/**
+ * Called by the submit flow once the documents are built: store the job, then try it right away (not awaited).
+ * No job once the recipient already had RECIPIENT_DAILY_CAP in 24 h; the registration itself is kept.
+ */
 export async function queueRegistrationEmail(deps: EmailDeps, registrationDocumentId: string): Promise<EmailJobRow | null> {
   const registration = await deps.loadRegistration(registrationDocumentId);
   if (!registration) {
     deps.log('warn', `[email-job] registration ${registrationDocumentId} not found, no e-mail queued`);
+    return null;
+  }
+  if (await recipientCapReached(deps, registration.email)) {
+    deps.log('warn', `[email-job] recipient of ${registrationDocumentId} already had ${RECIPIENT_DAILY_CAP} e-mails in 24 h, no e-mail queued`);
     return null;
   }
   const job = await deps.jobs.create({

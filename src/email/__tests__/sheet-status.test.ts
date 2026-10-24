@@ -36,6 +36,7 @@ describe('sheetSyncedStore', () => {
     update: async (documentId, data) => row({ documentId, ...data }),
     findQueued: async () => [row()],
     findLatest: async () => row(),
+    countForRecipientSince: async () => 0,
   };
 
   it('refreshes the registration row in the Sheet when a job is created or changes status', async () => {
@@ -51,6 +52,7 @@ describe('sheetSyncedStore', () => {
     const store = sheetSyncedStore({ ...base, update: async (documentId, data) => row({ documentId, ...data, registrationDocumentId: null }) }, (id) => refreshed.push(id));
     await store.findQueued(10);
     await store.findLatest('reg-1');
+    await store.countForRecipientSince('p@example.ro', new Date());
     await store.update('job-1', { status: 'failed', attempts: 2, lastError: 'registration deleted', sentAt: null });
     expect(refreshed).toEqual([]);
   });
