@@ -52,6 +52,8 @@ services:
       - "127.0.0.1:1337:1337"
     volumes:
       - uploads:/opt/app/public/uploads
+      # Registration PDFs (personal data), outside public/: served only by guarded routes.
+      - private_documents:/opt/app/private
     networks:
       - edusport_net
     restart: unless-stopped
@@ -63,3 +65,4 @@ networks:
 volumes:
   pgdata:
   uploads:
+  private_documents:

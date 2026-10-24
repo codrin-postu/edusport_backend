@@ -56,6 +56,8 @@ ssl
 nbproject
 public/uploads/*
 !public/uploads/.gitkeep
+# Generated registration PDFs (personal data): never committed.
+private/
 .tsbuildinfo
 .eslintcache
 # Node.js
