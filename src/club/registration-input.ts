@@ -23,6 +23,7 @@ export type RegistrationInput = {
   sourceOther: string;
   gdprConsent: boolean;
   regulationsConsent: boolean;
+  submissionKey: string;
 };
 
 export const RULE_ERRORS = {
@@ -37,6 +38,9 @@ export const RULE_ERRORS = {
 const text = (v: unknown): string => (typeof v === 'string' ? v.trim().slice(0, MAX_TEXT) : '');
 const numberOrText = (v: unknown): string => (typeof v === 'number' && Number.isFinite(v) ? String(v) : text(v));
 const yes = (v: unknown): boolean => v === true || v === 'true' || v === 1 || v === '1';
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** The website's per-draft key (a UUID v4) that recognises a resubmit; anything else is ignored. */
+const submissionKey = (v: unknown): string => (typeof v === 'string' && UUID_V4.test(v) ? v.toLowerCase() : '');
 
 /** Only the item name is read from `subscriptionChoice`; price and membership are decided by the server. */
 function choiceName(v: unknown): string {
@@ -64,6 +68,7 @@ export function readRegistrationInput(body: Record<string, unknown>): Registrati
     sourceOther: text(body.sourceOther),
     gdprConsent: yes(body.gdprConsent),
     regulationsConsent: yes(body.regulationsConsent),
+    submissionKey: submissionKey(body.submissionKey),
   };
 }
 

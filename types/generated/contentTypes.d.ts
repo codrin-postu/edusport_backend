@@ -1742,6 +1742,7 @@ export interface ApiRegistrationSubmissionRegistrationSubmission
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'Nou'>;
+    submissionKey: Schema.Attribute.String & Schema.Attribute.Private;
     submittedAt: Schema.Attribute.DateTime;
     subscriptionChoice: Schema.Attribute.JSON;
     updatedAt: Schema.Attribute.DateTime;

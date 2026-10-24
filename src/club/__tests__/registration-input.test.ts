@@ -35,6 +35,13 @@ const BODY = {
 const always = () => true;
 
 describe('readRegistrationInput', () => {
+  it('keeps a UUID v4 submissionKey (lower case) and ignores anything else', () => {
+    expect(readRegistrationInput({ submissionKey: '3F2B8C1E-9A4D-4E7B-8C21-5D6F7A8B9C0D' }).submissionKey).toBe('3f2b8c1e-9a4d-4e7b-8c21-5d6f7a8b9c0d');
+    for (const bad of ['not-a-uuid', ' 3f2b8c1e-9a4d-4e7b-8c21-5d6f7a8b9c0d', '3f2b8c1e-9a4d-1e7b-8c21-5d6f7a8b9c0d', 'x'.repeat(36), 42, null]) {
+      expect(readRegistrationInput({ submissionKey: bad }).submissionKey).toBe('');
+    }
+  });
+
   it('reads and trims the answers; takes only the item name from the choice', () => {
     const input = readRegistrationInput(BODY);
     expect(input).toMatchObject({ email: 'ana.pop@example.com', childHeight: '132', priceItemName: 'Abonament 8 ședințe grup', gdprConsent: true, regulationsConsent: true });

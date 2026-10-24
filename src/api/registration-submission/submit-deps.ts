@@ -1,7 +1,7 @@
 import type { Core } from '@strapi/strapi';
 import { findCurrentSeason } from '../../club/current-season';
 import { loadSchoolPrices } from '../../club/public-info-loader';
-import { isRegistrationOpen, type RepeatMatch, type SubmitDeps } from '../../club/registration-submit';
+import { isRegistrationOpen, type SubmitDeps } from '../../club/registration-submit';
 import type { NumberedRegistration, RegistrationData } from './services/registration-submission';
 
 const FORM = 'inscriere';
@@ -10,14 +10,9 @@ const UID = 'api::registration-submission.registration-submission' as const;
 
 type NumberedService = { createNumbered(data: RegistrationData, startYear: number): Promise<NumberedRegistration> };
 
-async function findRecentRepeat(strapi: Core.Strapi, match: RepeatMatch, since: Date): Promise<NumberedRegistration | null> {
+async function findRecentRepeat(strapi: Core.Strapi, submissionKey: string, since: Date): Promise<NumberedRegistration | null> {
   const found = await strapi.documents(UID).findFirst({
-    filters: {
-      email: { $eqi: match.email },
-      childName: { $eqi: match.childName },
-      seasonRef: { documentId: match.seasonRef },
-      createdAt: { $gte: since.toISOString() },
-    },
+    filters: { submissionKey, createdAt: { $gte: since.toISOString() } },
     sort: 'createdAt:desc',
     fields: ['registrationNumber'],
   });

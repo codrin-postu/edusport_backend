@@ -236,7 +236,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
    * numbered registration (src/club/registration-submit.ts). Status, dates, season,
    * school and price are set by the server; client values for them are ignored.
    * Then builds the PDFs (plan 2D; a failed build is logged, the registration still succeeds).
-   * A repeat of a registration saved in the last 10 minutes gets that registration's answer, nothing new.
+   * A resubmit of the same draft (body `submissionKey`) within 10 minutes gets that registration's answer, nothing new.
    * Returns 200 {ok:true, registrationNumber, downloadToken, documents} or 400 {ok:false, code, error};
    * 503 when DOCUMENT_TOKEN_SECRET is missing in production (fails closed, nothing saved).
    */

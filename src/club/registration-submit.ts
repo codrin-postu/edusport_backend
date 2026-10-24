@@ -23,7 +23,7 @@ import { seasonStartYear } from './season';
 export type SubmitErrorCode = 'invalid' | SchoolChoiceCode | 'save-failed';
 /**
  * `documentId` is internal: the controller never returns it (DECISIONS 2026-10-03); it is used to build the PDFs.
- * `repeat`: the same registration was already saved minutes ago; nothing new is stored, built or e-mailed.
+ * `repeat`: the same draft (submissionKey) was already saved minutes ago; nothing new is stored, built or e-mailed.
  */
 export type SubmitResult =
   | { ok: true; registrationNumber: string; documentId: string; repeat?: true }
@@ -38,7 +38,7 @@ export const SUBMIT_ERRORS: Record<SubmitErrorCode, string> = {
 };
 export const MISSING_FIELDS_ERROR = 'Câmpuri obligatorii lipsă.';
 export const CHOICE_ERROR = 'Abonamentul ales nu este disponibil.';
-/** A resubmit within this window (lost response, second tab) is answered with the first registration (user, 2026-10-24). */
+/** A resubmit of the same draft within this window (lost response) is answered with the first registration (user, 2026-10-24). */
 export const REPEAT_WINDOW_MS = 10 * 60_000;
 
 /** Everything stored for a new registration except its number. A type alias: Strapi JSON needs one. */
@@ -61,6 +61,7 @@ export type RegistrationCreateData = {
   sourceOther?: string;
   gdprConsent: boolean;
   regulationsConsent: boolean;
+  submissionKey?: string;
   status: 'Nou';
   submittedAt: string;
   season: string;
@@ -68,9 +69,6 @@ export type RegistrationCreateData = {
   section: string;
   archived: false;
 };
-
-/** E-mail trimmed and lower case, child name trimmed; the lookup compares both case-insensitively. */
-export type RepeatMatch = { email: string; childName: string; seasonRef: string };
 
 export interface SubmitDeps {
   effectiveRequired(): Promise<Record<string, boolean>>;
@@ -81,7 +79,7 @@ export interface SubmitDeps {
   findSections(): Promise<SchoolRow[]>;
   findSchoolPrices(sectionDocumentId: string): Promise<PublicSchool | null>;
   createNumbered(data: RegistrationCreateData, startYear: number): Promise<{ documentId: string; registrationNumber: string }>;
-  findRecentRepeat(match: RepeatMatch, since: Date): Promise<{ documentId: string; registrationNumber: string } | null>;
+  findRecentRepeat(submissionKey: string, since: Date): Promise<{ documentId: string; registrationNumber: string } | null>;
   logError(message: string): void;
   now(): Date;
 }
@@ -193,6 +191,7 @@ function answerFields(i: RegistrationInput, choice: SubscriptionChoice) {
     sourceOther: i.source === SOURCE_OTHER ? i.sourceOther : undefined,
     gdprConsent: i.gdprConsent,
     regulationsConsent: i.regulationsConsent,
+    submissionKey: i.submissionKey || undefined,
   };
 }
 
@@ -220,11 +219,11 @@ async function save(data: RegistrationCreateData, startYear: number, deps: Submi
   }
 }
 
-/** The registration this one repeats, or null. A failed lookup is logged and never blocks the submit. */
+/** The registration saved from the same draft key in the window, or null. No key, no lookup. A failed lookup never blocks. */
 async function findRepeat(data: RegistrationCreateData, deps: SubmitDeps): Promise<SubmitResult | null> {
-  const match = { email: data.email.toLowerCase(), childName: data.childName, seasonRef: data.seasonRef };
+  if (!data.submissionKey) return null;
   try {
-    const found = await deps.findRecentRepeat(match, new Date(deps.now().getTime() - REPEAT_WINDOW_MS));
+    const found = await deps.findRecentRepeat(data.submissionKey, new Date(deps.now().getTime() - REPEAT_WINDOW_MS));
     return found ? { ok: true, registrationNumber: found.registrationNumber, documentId: found.documentId, repeat: true } : null;
   } catch (err) {
     deps.logError(`[inscriere] repeat lookup failed: ${err instanceof Error ? err.message : String(err)}`);

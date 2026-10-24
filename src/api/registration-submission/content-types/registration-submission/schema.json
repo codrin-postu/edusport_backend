@@ -100,6 +100,7 @@
     "source": { "type": "string" },
     "sourceOther": { "type": "string" },
     "gdprConsent": { "type": "boolean" },
-    "regulationsConsent": { "type": "boolean" }
+    "regulationsConsent": { "type": "boolean" },
+    "submissionKey": { "type": "string", "private": true, "visible": false }
   }
 }
