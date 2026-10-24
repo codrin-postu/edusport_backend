@@ -11,7 +11,14 @@
  * The schedule is per form, not global: the task ticks once an hour and each
  * connected form runs only when its own `intervalHours` has elapsed since its
  * own `lastReconcileAt`. A form set to 0 never runs the periodic pass.
+ *
+ * `registrationEmailRetry` gives every queued registration e-mail one more attempt
+ * per hour (src/email/email-jobs.ts); after 5 failed attempts a job is marked
+ * `failed` and GlitchTip is alerted. Inert while Brevo is not configured: jobs
+ * simply wait in the queue.
  */
+import type { Core } from '@strapi/strapi';
+import { retryRegistrationEmails } from '../src/email/strapi-email';
 import { allForms } from '../src/sheets/registry';
 import { isConfigured } from '../src/sheets/client';
 import { getLink, isConnected, isReconcileDue, stampReconcile } from '../src/sheets/store';
@@ -49,6 +56,21 @@ export default {
     },
     options: {
       rule: '0 * * * *',
+      tz: 'Europe/Bucharest',
+    },
+  },
+  registrationEmailRetry: {
+    task: async ({ strapi }: { strapi: Core.Strapi }) => {
+      try {
+        const { attempted, skipped } = await retryRegistrationEmails(strapi);
+        if (attempted) strapi.log.info(`[email-job][cron] ${attempted} queued e-mail(s) attempted`);
+        if (skipped) strapi.log.debug(`[email-job][cron] skipped: ${skipped}`);
+      } catch (err) {
+        strapi.log.warn(`[email-job][cron] retry failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    },
+    options: {
+      rule: '30 * * * *',
       tz: 'Europe/Bucharest',
     },
   },

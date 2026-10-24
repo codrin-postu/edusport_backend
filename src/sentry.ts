@@ -33,3 +33,16 @@ export function captureException(err: unknown): void {
     /* ignore */
   }
 }
+
+/**
+ * Report a message (no exception object) as an error-level event. GlitchTip groups events by
+ * message and alerts on a new issue, so callers keep personal data out of `message`.
+ */
+export function captureMessage(message: string): void {
+  if (!initialized) return;
+  try {
+    Sentry.captureMessage(message, 'error');
+  } catch {
+    /* ignore */
+  }
+}
