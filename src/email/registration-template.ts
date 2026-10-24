@@ -91,7 +91,7 @@ function brandHtml(headerImage: string | null): string {
 }
 
 function headerHtml(input: RegistrationEmailInput): string {
-  const meta = `font-family:${FONT};font-size:12px;line-height:1.6;color:${MUTED};white-space:nowrap;`;
+  const meta = `font-family:${FONT};font-size:12px;line-height:1.6;color:${MUTED};`;
   return (
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
     `<td valign="top">${brandHtml(input.links.headerImage)}</td>` +
@@ -187,7 +187,7 @@ export function registrationHtml(input: RegistrationEmailInput): string {
   return (
     `<!DOCTYPE html><html lang="ro">${HEAD}<body style="margin:0;padding:0;background:#f3f4f6;">` +
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f4f6"><tr><td align="center" style="padding:24px 12px;">' +
-    '<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width:100%;max-width:600px;background:#ffffff;">' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width:100%;max-width:600px;background:#ffffff;">' +
     letterHtml(input) +
     `<tr>${footerHtml(input.links)}</tr>` +
     '</table></td></tr></table></body></html>'

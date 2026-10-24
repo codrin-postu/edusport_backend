@@ -76,6 +76,13 @@ describe('renderRegistrationEmail', () => {
     expect(html).not.toMatch(/border-radius|dashed|dotted/);
   });
 
+  it('fits phone screens: the outer table has no fixed 600 width, only a max-width', () => {
+    const { html } = renderRegistrationEmail(INPUT);
+    expect(html).not.toMatch(/width="600"/);
+    expect(html).not.toMatch(/(?<!max-)width:\s*600px/);
+    expect(html).toContain('max-width:600px');
+  });
+
   it('has a plain-text part with the same content and the link targets', () => {
     const { text } = renderRegistrationEmail(INPUT);
     expect(text).toContain('Înscriere înregistrată');
