@@ -22,6 +22,7 @@
     "seed:partners-volunteer": "docker exec strapi_app node scripts/seed-partners-volunteer.js",
     "seed:navigation": "docker exec strapi_app node scripts/seed-navigation.js",
     "migrate:club": "node scripts/migrate-club-foundation.js",
+    "migrate:registration": "node scripts/migrate-registration-data.js",
     "start": "strapi start",
     "strapi": "strapi",
     "test": "vitest run",
