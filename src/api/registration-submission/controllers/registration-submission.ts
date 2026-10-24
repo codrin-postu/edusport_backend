@@ -9,6 +9,8 @@ import { quickSearchClause } from '../list-search';
 import { findCurrentSeason } from '../../../club/current-season';
 import { submitRegistration } from '../../../club/registration-submit';
 import { buildSubmitDeps } from '../submit-deps';
+import { queueEmailAfterSubmit } from '../../../email/after-submit';
+import { enqueueRegistrationEmail } from '../../../email/strapi-email';
 import {
   buildRegistrationDocuments,
   createDownloadToken,
@@ -252,6 +254,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
       createToken: (documentId) => createDownloadToken(documentId),
       logError: (message) => strapi.log.error(message),
     });
+    await queueEmailAfterSubmit(saved, (documentId) => enqueueRegistrationEmail(strapi, documentId), (message) => strapi.log.error(message));
     ctx.status = result.ok ? 200 : 400;
     ctx.body = result;
   },
