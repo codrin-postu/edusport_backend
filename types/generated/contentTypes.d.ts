@@ -596,6 +596,7 @@ export interface ApiAthleteDuplicateAthleteDuplicate
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    dismissed: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     first: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<

@@ -36,6 +36,7 @@ describe('possible duplicates', () => {
     expect(s.attributes).toEqual({
       first: { type: 'relation', relation: 'manyToOne', target: 'api::athlete.athlete' },
       second: { type: 'relation', relation: 'manyToOne', target: 'api::athlete.athlete' },
+      dismissed: { type: 'boolean', default: false },
     });
   });
 });
