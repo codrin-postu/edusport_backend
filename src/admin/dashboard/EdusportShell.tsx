@@ -208,6 +208,7 @@ function Icon({ name, className }: { name: IconKey; className?: string }) {
 const GROUP_ICON: Record<Group, IconKey> = {
   forms: 'feather',
   program: 'calendar',
+  club: 'user',
   team: 'user',
   pages: 'grid',
   content: 'book',
