@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { AthleteCard, MergePreview, MergeSideView } from '../../athletes/api-types';
-import { ADD_COPY, SEARCH_COPY, cardSubline, noResultsText, searchUrl, showNewRow, withoutAthlete } from '../search-view';
+import {
+  ADD_COPY, SEARCH_COPY, SEARCH_FAILED, cardSubline, movedOption, noResultsText, resultsText, searchUrl, showNewRow, withoutAthlete,
+} from '../search-view';
 import { MERGE_COPY, initialMerge, keptName, mergeRequest, mergeRows, withKept, withPick } from '../merge-view';
 
 const card = (over: Partial<AthleteCard> = {}): AthleteCard => ({
@@ -42,6 +44,31 @@ const preview: MergePreview = {
   removed: side('a2', 'Sara-Maria Ilie', { phone: '0755 000 000' }),
   differing: ['name', 'phone', 'email'],
 };
+
+describe('search announcements and keys', () => {
+  it('announces the count with the list plurals, or the empty-state text', () => {
+    expect(resultsText({ q: 'Ion', cards: [card()] })).toBe('1 rezultat');
+    expect(resultsText({ q: 'Ion', cards: [card(), card({ documentId: 'a2' })] })).toBe('2 rezultate');
+    expect(resultsText({ q: 'Ion', cards: Array.from({ length: 20 }, (_, i) => card({ documentId: `a${i}` })) })).toBe('20 de rezultate');
+    expect(resultsText({ q: 'Ion', cards: [] })).toBe('Niciun sportiv găsit pentru "Ion".');
+  });
+
+  it('a failed search has its own text', () => {
+    expect(SEARCH_FAILED).toBe('Nu am putut încărca datele.');
+  });
+
+  it('ArrowUp / ArrowDown stop at the ends, Home / End jump, other keys do not move', () => {
+    expect(movedOption('ArrowDown', 0, 3)).toBe(1);
+    expect(movedOption('ArrowDown', 2, 3)).toBe(2);
+    expect(movedOption('ArrowUp', 0, 3)).toBe(0);
+    expect(movedOption('ArrowUp', 2, 3)).toBe(1);
+    expect(movedOption('Home', 2, 3)).toBe(0);
+    expect(movedOption('End', 0, 3)).toBe(2);
+    expect(movedOption('ArrowDown', 0, 0)).toBeNull();
+    expect(movedOption('Enter', 0, 3)).toBeNull();
+    expect(movedOption('toString', 0, 3)).toBeNull();
+  });
+});
 
 describe('merge (spec 6.6)', () => {
   it('opens with the current record kept and its values (Needs decision 3c, option A)', () => {
