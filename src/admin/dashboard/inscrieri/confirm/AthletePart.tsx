@@ -93,7 +93,7 @@ function WithAthlete({ state, dispatch, ctx, athlete, notAttended, onLeave, busy
 function NoMatch({ ctx, dispatch, busy }: { ctx: ConfirmContext; dispatch: Dispatch; busy: boolean }) {
   return (
     <>
-      <div className="ins-acard">
+      <div className="ins-acard ins-acard--new">
         <span className="ins-av">{initials(ctx.newAthlete.name)}</span>
         <span className="ins-acard-t">
           <b>{CONFIRM_COPY.newLabel}</b>

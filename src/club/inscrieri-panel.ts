@@ -122,8 +122,8 @@ export function panelTabs(row: InscriereRow, historyCount: number | null): Panel
   return [
     { id: 'date', label: t.date },
     { id: 'abonament', label: t.abonament },
-    { id: 'documente', label: t.documente, count: documentCount(row) },
-    { id: 'istoric', label: t.istoric, count: historyCount },
+    { id: 'documente', label: t.documente, count: documentCount(row) || null },
+    { id: 'istoric', label: t.istoric, count: historyCount || null },
   ];
 }
 

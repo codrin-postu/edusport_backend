@@ -68,12 +68,17 @@ function PanelFooter({ row, api, onConfirm, onContacted }: FooterProps) {
   );
 }
 
-/** The Înscrieri panel (spec 3.3): fixed header, tabs, scrolling body, fixed footer. Keyed by the registration. */
+/** The Înscrieri panel (spec 3.3): fixed header, tabs, scrolling body, fixed footer. Keyed by the registration.
+ * After a confirm (or its undo) it shows Istoric, where the new entry is (proto v5). */
 export function RegistrationPanel({ row, api }: { row: Row; api: TableApi }) {
   const [tab, setTab] = React.useState<PanelTab>('date');
   const [confirming, setConfirming] = React.useState(false);
   const data = usePanelData(row.documentId, panelVersion(row));
   const ref = React.useRef<HTMLDivElement>(null);
+  const afterConfirm = () => {
+    setTab('istoric');
+    api.refetch();
+  };
   return (
     <div className="ins-panel" ref={ref}>
       <PanelHeader row={row} api={api} />
@@ -99,7 +104,7 @@ export function RegistrationPanel({ row, api }: { row: Row; api: TableApi }) {
         onContacted={() => focusAfterContactat(ref.current)}
       />
       {confirming && data.match && (
-        <ConfirmWindow row={row} view={data.match} onClose={() => setConfirming(false)} onDone={api.refetch} />
+        <ConfirmWindow row={row} view={data.match} onClose={() => setConfirming(false)} onDone={afterConfirm} />
       )}
     </div>
   );

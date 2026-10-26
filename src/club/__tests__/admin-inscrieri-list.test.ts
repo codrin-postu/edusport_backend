@@ -13,7 +13,7 @@ const checker = read('scripts', 'admin-ui-check.mjs');
 it('list cells: number, date, name with the "Sportiv existent" line, school, age, status, parent, wish', () => {
   expect(page).toContain('headers: (api) => compactHeaders(readListMeta(api.pageMeta).multipleSchools)');
   expect(page).toContain('{showsExistingLine(r) && (');
-  expect(page).toContain('{multiple && <td>{cellText(r.schoolName)}</td>}');
+  expect(page).toContain('{multiple && <td className="ins-school">{cellText(r.schoolName)}</td>}');
   expect(page).toContain('<td className="ui-num">{ageText(r.age)}</td>');
   expect(page).toContain('<td>{wishText(r.membershipAnswer)}</td>');
 });

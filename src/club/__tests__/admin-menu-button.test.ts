@@ -34,3 +34,10 @@ it('a picked item and Escape give focus back to the trigger, the item before its
   expect(hook).toContain('popoverProps: { onKeyDown, onClickCapture }');
   expect(hook).toMatch(/const inside = popoverRef\.current\?\.contains\(document\.activeElement\) \?\? false;\s+onClose\(\);\s+if \(inside\) triggerRef\.current\?\.focus\(\);/);
 });
+
+it('MenuButton takes a placement; the Înscrieri panel "..." menu opens to the left, inside the page', () => {
+  expect(table).toContain('placement?: PopoverPlacement;');
+  expect(table).toContain('placement={placement}');
+  const menu = readFileSync(join(admin, 'dashboard', 'inscrieri', 'PanelMenu.tsx'), 'utf8');
+  expect(menu).toContain('placement="bottom-end"');
+});

@@ -28,8 +28,9 @@ import {
   toastAutosaved,
   useMenuFocus,
   cx,
+  type PopoverPlacement,
 } from '../ui';
-import { IconChevronDown, IconChevronUp, IconGrip } from '../ui/icons';
+import { IconChevronDown, IconChevronUp, IconGrip, IconSearch } from '../ui/icons';
 import { fieldsClearedByEdit } from '../../club/registration-edit';
 import { SEASON_EMPTY_LABEL, headerLabel, headerSortDir, listMeta, nextHeaderSort, savedStamp, type CompactHeader } from '../../club/ui-table';
 
@@ -475,6 +476,11 @@ const TABLE_CSS = `
 .ui-root .sbt-bulk .ui-input{width:auto;min-width:220px}
 .ui-root .sbt-bcount{font-size:12.5px;font-weight:700;color:var(--theme-primary)}
 .ui-root .sbt-split{display:grid;grid-template-columns:minmax(0,1fr) 360px}
+.ui-root .sbt-search{position:relative}
+.ui-root .sbt-search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--theme-text-muted);pointer-events:none}
+.ui-root .sbt-search .ui-input{padding-left:30px;text-overflow:ellipsis}
+.ui-root .sbt-sort{display:inline-flex;align-items:center;gap:7px}
+@media (max-width:640px){.ui-root .sbt-season{flex-wrap:wrap}.ui-root .sbt-season .ui-input{flex:none}.ui-root .sbt-stat{text-align:left}}
 @media (max-width:1040px){.ui-root .sbt-split{grid-template-columns:1fr}}
 .ui-root .sbt-clist td{white-space:nowrap}
 .ui-root .sbt-clist tbody tr[aria-selected="true"] td{background:var(--theme-primary-soft)}
@@ -491,7 +497,7 @@ const TABLE_CSS = `
 .ui-root .sbt-pa{padding:12px 15px;border-top:1px solid var(--theme-border);display:flex;justify-content:space-between;gap:8px}
 .ui-root .sbt-fld{margin-bottom:11px}
 .ui-root .sbt-v{font-size:13px;color:var(--theme-text);margin-top:2px;white-space:pre-wrap;word-break:break-word}
-.ui-root .sbt-sheetwrap{overflow-x:auto;background:var(--theme-surface)}
+.ui-root .sbt-sheetwrap{position:relative;overflow-x:auto;background:var(--theme-surface)}
 .ui-root .sbt-sheetwrap[data-xscroll="true"]{padding-bottom:14px}
 .ui-root .ui-table.sbt-sheet{border-collapse:separate;border-spacing:0;font-size:12.5px}
 .ui-root .sbt-sheet th{background:var(--theme-surface-subtle);padding:8px 10px;position:sticky;top:0;z-index:2}
@@ -571,6 +577,7 @@ export function MenuButton({
   popClassName,
   role,
   chevron = true,
+  placement,
   children,
 }: {
   label: React.ReactNode;
@@ -582,6 +589,8 @@ export function MenuButton({
   popClassName: string;
   role?: string;
   chevron?: boolean;
+  /** Default 'bottom-start'; 'bottom-end' keeps a menu at the right edge inside the page. */
+  placement?: PopoverPlacement;
   children: React.ReactNode;
 }) {
   const ref = React.useRef<HTMLButtonElement>(null);
@@ -605,6 +614,7 @@ export function MenuButton({
         open={open}
         anchorRef={ref}
         onClose={menu.close}
+        placement={placement}
         className={popClassName}
         role={role}
         popoverRef={menu.popoverRef}
@@ -1776,7 +1786,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
   const compactView = (
     <>
       {bulkBar}
-      <div className="sbt-split">
+      <div className={cx('sbt-split', selected && 'sbt-split--panel')}>
         <div className="ui-table-wrap">
           <table className="ui-table sbt-clist">
             <thead>
@@ -1896,7 +1906,8 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
 
         {/* toolbar A: search, view, columns, export */}
         <div className="ui-table-bar">
-          <div className="ui-table-search">
+          <div className="ui-table-search sbt-search">
+            <IconSearch size={14} />
             <Input
               type="search"
               aria-label="Caută"
@@ -1925,16 +1936,18 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
           {advMenu}
           {extras?.toolbar}
           <span className="sbt-grow" />
-          <span className="sbt-lbl">Sortare:</span>
-          <Select
-            aria-label="Sortare"
-            value={sortOptions.some((o) => o.value === sort) ? sort : ''}
-            onChange={(v) => {
-              setSort(v);
-              setPage(1);
-            }}
-            options={sortOptions}
-          />
+          <span className="sbt-sort">
+            <span className="sbt-lbl">Sortare:</span>
+            <Select
+              aria-label="Sortare"
+              value={sortOptions.some((o) => o.value === sort) ? sort : ''}
+              onChange={(v) => {
+                setSort(v);
+                setPage(1);
+              }}
+              options={sortOptions}
+            />
+          </span>
         </div>
 
         {extras?.aboveList}

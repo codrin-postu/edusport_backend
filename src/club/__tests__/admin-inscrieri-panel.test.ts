@@ -63,7 +63,7 @@ it('?open= mode shows a way back to the full list; the "..." button is named for
 
 it('fix round 1: undo busy label, plain "..." trigger, named tabs, focus after Contactat', () => {
   expect(menu).toContain('busy={busy} busyLabel={c.confirm}');
-  expect(menu).toContain('popClassName="sbt-menu" role="menu" chevron={false}>');
+  expect(menu).toContain('popClassName="sbt-menu" role="menu" chevron={false} placement="bottom-end">');
   expect(panel).toContain('label={cellText(row.childName)}');
   expect(panel).toContain('panelId={PANEL_BODY_ID}');
   expect(panel).toContain('<div role="tabpanel" id={PANEL_BODY_ID} aria-label={PANEL_COPY.tabs[tab]}>');
