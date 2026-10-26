@@ -20,3 +20,9 @@ export function headerSortDir(sort: string, pair: readonly [string, string]): He
 
 /** The empty row of a season Select, without the em dash (plan 3-4 Needs decision 7f, option A). */
 export const SEASON_EMPTY_LABEL = 'Fără sezon';
+
+/** The saved `updatedAt` of a field PUT's answer (`{ data }`): copied into the row, the Înscrieri panel (`panelVersion`) reloads its Istoric after the write. */
+export function savedStamp(body: unknown): { updatedAt: string } | null {
+  const updatedAt = (body as { data?: { updatedAt?: unknown } | null } | null)?.data?.updatedAt;
+  return typeof updatedAt === 'string' && updatedAt ? { updatedAt } : null;
+}

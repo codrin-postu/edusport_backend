@@ -31,7 +31,7 @@ import {
 } from '../ui';
 import { IconChevronDown, IconChevronUp, IconGrip } from '../ui/icons';
 import { fieldsClearedByEdit } from '../../club/registration-edit';
-import { SEASON_EMPTY_LABEL, headerLabel, headerSortDir, listMeta, nextHeaderSort, type CompactHeader } from '../../club/ui-table';
+import { SEASON_EMPTY_LABEL, headerLabel, headerSortDir, listMeta, nextHeaderSort, savedStamp, type CompactHeader } from '../../club/ui-table';
 
 /**
  * EduSport admin — shared submission-results table.
@@ -951,8 +951,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
       try {
         const res = await put(`${cfg.api}/${documentId}`, { [key]: value });
         toastFieldSaved(res.data);
-        const cleared = fieldsClearedByEdit(key, value);
-        if (cleared) patchRow(documentId, cleared);
+        patchRow(documentId, { ...fieldsClearedByEdit(key, value), ...savedStamp(res.data) });
         // A season change moves the row out of the current view, so the list
         // must be refetched. A status change only moves the counters, unless a
         // status filter is active, in which case the row may now be excluded.
