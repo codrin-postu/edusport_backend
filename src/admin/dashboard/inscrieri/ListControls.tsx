@@ -1,6 +1,7 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Select, Tabs } from '../../ui';
-import { LIST_COPY } from '../../../club/inscrieri-copy';
+import { INSCRIERI_PENDING_COPY, LIST_COPY } from '../../../club/inscrieri-copy';
 import { CLUB_URLS, moveTargets, schoolTabs, type ListMeta } from '../../../club/inscrieri-panel';
 import { moveSchool } from './moves';
 import { useStableClient } from './useClient';
@@ -17,6 +18,18 @@ export function ExistingFilter({ value, onChange }: { value: string; onChange: (
       <span className="sbt-lbl">{LIST_COPY.existing}:</span>
       <Select aria-label={LIST_COPY.existing} value={value} onChange={onChange} placeholder={LIST_COPY.all} options={EXISTING_OPTIONS} />
     </span>
+  );
+}
+
+/** Shown while one registration is opened by address (`?open=`): back to the full list. */
+export function BackToList() {
+  const navigate = useNavigate();
+  return (
+    <div className="ins-back">
+      <button type="button" className="ins-link" onClick={() => navigate({ search: '' })}>
+        {INSCRIERI_PENDING_COPY.backToList}
+      </button>
+    </div>
   );
 }
 

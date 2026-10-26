@@ -1,17 +1,13 @@
-import { MEMBERSHIP_NO, MEMBERSHIP_YES, RELATIONSHIP_OPTIONS, RELATIONSHIP_OTHER, SOURCE_OTHER } from './registration-form-options';
+import { MEMBERSHIP_YES, RELATIONSHIP_OPTIONS, RELATIONSHIP_OTHER, SOURCE_OTHER } from './registration-form-options';
 
 /**
- * What the Înscrieri detail panel shows for one registration, as label/value text. Registrations
- * sent through the script form (phase 2) show its questions; older ones keep their old fields.
+ * Registration pieces shared by the Înscrieri panel, the Sheet and the history texts: answer texts, the
+ * document kinds and the e-mail block (plan 2F). The panel's tab rows live in src/club/inscrieri-panel.ts.
  * Pure, so the admin page and the tests share it.
  */
 
 /** Mirrors `DocumentKind` of src/club/documents (plan 2D). */
 export type PanelDocumentKind = 'acord' | 'adeziune';
-/** Answers the panel edits in place (printed on the PDFs; saving one rebuilds them). */
-export type PanelEdit = 'relationship' | 'membershipAnswer';
-export type PanelRow = { label: string; value: string; edit?: PanelEdit };
-export type PanelRows = { rows: PanelRow[]; longRows: PanelRow[] };
 export type RegistrationRow = Record<string, unknown>;
 
 /**
@@ -30,23 +26,14 @@ export type EmailStatus = {
 };
 
 export const DOCUMENT_LABELS: Record<PanelDocumentKind, string> = { acord: 'Acord', adeziune: 'Cerere de adeziune' };
-export const MISSING = '-';
 
-/** Options of the panel's Calitate select ("Alta" without the form's request to specify). */
+/** Calitate options of "Editează" ("Alta" without the form's request to specify); the history texts use them too. */
 export const RELATIONSHIP_EDIT_OPTIONS = RELATIONSHIP_OPTIONS.map((o) => ({
   value: o.value,
   label: o.value === RELATIONSHIP_OTHER ? 'Alta' : o.label,
 }));
-/** Options of the panel's Membru A.C.S. select, worded as the panel shows the answer. */
-export const MEMBERSHIP_EDIT_OPTIONS = [
-  { value: MEMBERSHIP_YES, label: 'Da' },
-  { value: MEMBERSHIP_NO, label: 'Nu' },
-];
 
 const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
-const orMissing = (v: string) => v || MISSING;
-const yesNo = (v: unknown) => (v === true ? 'Da' : 'Nu');
-const row = (label: string, value: string): PanelRow => ({ label, value: orMissing(value) });
 
 /** New registrations carry the script form's answers; old ones have them empty. */
 export function isScriptFormRegistration(r: RegistrationRow): boolean {
@@ -69,48 +56,6 @@ export function sourceText(r: RegistrationRow): string {
   const source = text(r.source);
   const other = text(r.sourceOther);
   return source === SOURCE_OTHER && other ? `${source}: ${other}` : source;
-}
-
-const heightText = (v: unknown) => (typeof v === 'number' ? `${v} cm` : '');
-
-function scriptFormRows(r: RegistrationRow): PanelRow[] {
-  return [
-    row('Data nașterii', text(r.childBirthDate)),
-    row('Înălțime', heightText(r.childHeight)),
-    row('Nume părinte', text(r.parentName)),
-    { ...row('Calitate', relationshipText(r)), edit: 'relationship' },
-    row('Email', text(r.email)),
-    row('Telefon', text(r.phone)),
-    row('Mărime tricou', text(r.shirtSize)),
-    row('Sezonul trecut', text(r.lastSeason)),
-    { ...row('Membru A.C.S.', r.membershipAnswer === MEMBERSHIP_YES ? 'Da' : 'Nu'), edit: 'membershipAnswer' },
-    row('Abonament', subscriptionText(r.subscriptionChoice)),
-    row('Cum a aflat', sourceText(r)),
-    row('Acord GDPR', yesNo(r.gdprConsent)),
-    row('Acord Regulament', yesNo(r.regulationsConsent)),
-  ];
-}
-
-function legacyRows(r: RegistrationRow): PanelRow[] {
-  const plain: Array<[string, string]> = [
-    ['childBirthDate', 'Data nașterii'], ['parentName', 'Nume părinte'], ['email', 'Email'], ['phone', 'Telefon'],
-    ['shirtSize', 'Mărime tricou'], ['howHeard', 'Cum a aflat'], ['level', 'Nivel'],
-  ];
-  return [
-    ...plain.map(([key, label]) => row(label, text(r[key]))),
-    row('Interes club', yesNo(r.clubInterest)),
-    row('Acord regulament', yesNo(r.regulationsAgreement)),
-    row('Acord confidențialitate', yesNo(r.privacyConsent)),
-  ];
-}
-
-/** Short rows first, then the long free texts (shown after a gap, as before). */
-export function registrationPanelRows(r: RegistrationRow): PanelRows {
-  const number = text(r.registrationNumber);
-  const head = number ? [row('Nr. înscriere', number)] : [];
-  const rows = isScriptFormRegistration(r) ? scriptFormRows(r) : legacyRows(r);
-  const longRows = [row('Experiență anterioară', text(r.priorExperience)), row('Așteptări', text(r.expectations))];
-  return { rows: [...head, ...rows], longRows };
 }
 
 /** The PDFs a registration has: the Acord always, the Cerere de adeziune when the answer was Da. */

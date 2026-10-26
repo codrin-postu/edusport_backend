@@ -77,6 +77,7 @@ export { ImagePicker, type ImagePickerProps, type PickedImage, type PickedMedia,
 export { InboxLayout, InboxRow, InboxReaderHead, groupByDay, type InboxLayoutProps, type InboxGroup, type InboxRowProps } from './InboxLayout';
 
 export { Popover, type PopoverProps, type PopoverPlacement } from './Popover';
+export { useMenuFocus, type MenuFocus } from './useMenuFocus';
 export { useMediaQuery, useIsPhone, PHONE_QUERY } from './useMediaQuery';
 export { AddButton, type AddButtonProps } from './AddButton';
 export { ExpandableRow, type ExpandableRowProps } from './ExpandableRow';

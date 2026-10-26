@@ -144,12 +144,12 @@ describe('panel (spec 3.3, 3.5)', () => {
     expect(all.some((r) => /^(-|—|undefined|null)$/.test(r.value))).toBe(false);
   });
 
-  it('footer: Contactat unless already, Confirmă unless Respins or archived, the record link once confirmed', () => {
+  it('footer: Contactat unless already Contactat or Confirmat, Confirmă unless Respins or archived, the record link once confirmed', () => {
     expect(footerActions(script)).toEqual({ contactat: true, confirm: true, openAthlete: false });
     expect(footerActions({ ...script, status: 'Contactat' })).toEqual({ contactat: false, confirm: true, openAthlete: false });
     expect(footerActions({ ...script, status: 'Respins' })).toEqual({ contactat: true, confirm: false, openAthlete: false });
     expect(footerActions({ ...script, archived: true })).toEqual({ contactat: true, confirm: false, openAthlete: false });
-    expect(footerActions({ ...script, status: 'Confirmat' })).toEqual({ contactat: true, confirm: true, openAthlete: false });
+    expect(footerActions({ ...script, status: 'Confirmat' })).toEqual({ contactat: false, confirm: true, openAthlete: false });
     expect(footerActions({ ...script, status: 'Confirmat', athleteId: 'a1' })).toEqual({ contactat: false, confirm: false, openAthlete: true });
   });
 

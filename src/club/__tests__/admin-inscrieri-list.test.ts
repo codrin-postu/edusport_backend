@@ -34,7 +34,8 @@ it('opens one registration from ?open=<documentId> (plan 3-5 links), else the fi
 it('passes the filter, the school tabs and the bulk move as table extras', () => {
   expect(page).toContain('params: open ? openListParams(open) : listParams(existing, school, meta)');
   expect(page).toContain('toolbar: <ExistingFilter value={existing} onChange={setExisting} />');
-  expect(page).toContain('aboveList: <SchoolTabs meta={meta} value={school} onChange={setSchool} />');
+  expect(page).toContain('{open && <BackToList />}');
+  expect(page).toContain('<SchoolTabs meta={meta} value={school} onChange={setSchool} />');
   expect(page).toContain('bulkActions: meta.multipleSchools ? (ids, done) => <BulkMoveSchool ids={ids} meta={meta} done={done} /> : undefined');
   expect(controls).toContain('if (!meta.multipleSchools) return null;');
   expect(controls).toContain('placeholder={LIST_COPY.all}');
