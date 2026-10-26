@@ -60,7 +60,8 @@ export interface ClubStore {
   createAcs(data: Omit<AcsRow, 'id'>): Promise<string>;
   updateAcs(id: string, data: Partial<Pick<AcsRow, 'athleteId' | 'state'>>): Promise<void>;
   deleteAcs(id: string): Promise<void>;
-  createDuplicate(firstId: string, secondId: string): Promise<void>;
+  /** `dismissed` lets a merge re-create a pair the admin already dismissed. */
+  createDuplicate(firstId: string, secondId: string, dismissed?: boolean): Promise<void>;
   dismissDuplicate(id: string): Promise<void>;
   deleteDuplicate(id: string): Promise<void>;
   createProfile(name: string, slug: string): Promise<string>;

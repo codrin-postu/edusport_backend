@@ -28,7 +28,7 @@ export const GROUPS: GroupRow[] = [
 const defined = <T extends object>(o: T): Partial<T> => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
 
 export function athleteRow(over: Partial<AthleteRow> & { id: string }): AthleteRow {
-  const base: AthleteRow = { id: over.id, name: null, birthDate: null, contactName: null, phone: null, email: null, status: 'activ', dataIncomplete: true, profileId: null, updatedAt: '2026-10-01T10:00:00.000Z' };
+  const base: AthleteRow = { id: over.id, name: null, birthDate: null, contactName: null, phone: null, email: null, status: 'activ', dataIncomplete: false, profileId: null, updatedAt: '2026-10-01T10:00:00.000Z' };
   return { ...base, ...defined(over) };
 }
 
@@ -116,8 +116,8 @@ function fakeRowWrites(s: FakeState, next: Next): Pick<ClubStore, 'createMembers
     deleteAcs: async (id) => {
       s.acs = s.acs.filter((r) => r.id !== id);
     },
-    createDuplicate: async (firstId, secondId) => {
-      s.duplicates.push({ id: next('dup'), firstId, secondId, dismissed: false });
+    createDuplicate: async (firstId, secondId, dismissed = false) => {
+      s.duplicates.push({ id: next('dup'), firstId, secondId, dismissed });
     },
     dismissDuplicate: async (id) => {
       must(s.duplicates, id).dismissed = true;
@@ -146,6 +146,7 @@ function fakeProfileWrites(s: FakeState, next: Next): Pick<ClubStore, 'createPro
     },
     deleteProfile: async (id) => {
       s.profiles = s.profiles.filter((p) => p.id !== id);
+      for (const a of s.athletes) if (a.profileId === id) a.profileId = null;
       s.removedParticipations.push(id);
     },
   };

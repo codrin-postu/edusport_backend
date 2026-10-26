@@ -36,6 +36,13 @@ describe('Strapi rows -> store rows', () => {
     ]);
   });
 
+  it('takes name and slug from the published row, whatever the row order', () => {
+    expect(toProfileRows([
+      { documentId: 'sp1', name: 'Maria', slug: 'maria', showPublicPage: true, publishedAt: '2026-01-01', previousSlugs: null },
+      { documentId: 'sp1', name: 'Maria Draft', slug: 'maria-draft', showPublicPage: false, publishedAt: null, previousSlugs: null },
+    ])).toEqual([{ id: 'sp1', name: 'Maria', slug: 'maria', previousSlugs: [], showPublicPage: true, published: true }]);
+  });
+
   it('reads a duplicate pair; a pair without the flag is not dismissed', () => {
     expect(toDuplicateRow({ documentId: 'd1', first: { documentId: 'a1' }, second: { documentId: 'a2' }, dismissed: true }))
       .toEqual({ id: 'd1', firstId: 'a1', secondId: 'a2', dismissed: true });

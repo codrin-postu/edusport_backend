@@ -20,6 +20,7 @@ const PROFILE = 'api::sportsperson.sportsperson' as const;
 const COMPETITION = 'api::competition.competition' as const;
 const HISTORY = 'api::history-entry.history-entry' as const;
 const MAX = 100000;
+const BY_ID = 'id:asc' as const;
 
 type Raw = Record<string, unknown>;
 const raws = (v: unknown): Raw[] => (Array.isArray(v) ? (v as Raw[]) : []);
@@ -56,17 +57,20 @@ export function toRegistrationRow(r: Raw): RegistrationRow {
 
 const slugList = (v: unknown): string[] => (Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string') : []);
 
+const isPublished = (r: Raw): boolean => r.publishedAt !== null && r.publishedAt !== undefined;
+
+/** Draft rows first, so the published row, when there is one, decides name, slug and visibility. */
 export function toProfileRows(rows: Raw[]): ProfileRow[] {
   const byId = new Map<string, ProfileRow>();
-  for (const r of rows) {
+  for (const r of [...rows.filter((x) => !isPublished(x)), ...rows.filter(isPublished)]) {
     const id = text(r.documentId);
     const before = byId.get(id);
-    const published = r.publishedAt !== null && r.publishedAt !== undefined;
+    const published = isPublished(r);
     byId.set(id, {
       id, name: text(r.name), slug: text(r.slug),
       previousSlugs: slugList(r.previousSlugs).length ? slugList(r.previousSlugs) : before?.previousSlugs ?? [],
-      showPublicPage: published ? r.showPublicPage === true : before?.showPublicPage === true,
-      published: published || before?.published === true,
+      showPublicPage: published && r.showPublicPage === true,
+      published,
     });
   }
   return [...byId.values()];
@@ -97,7 +101,7 @@ function registrationReads(strapi: Core.Strapi): Pick<ClubStore, 'registration' 
     },
     registrations: async (where = {}) => {
       const filters = where.athleteId ? { athlete: { documentId: where.athleteId } } : {};
-      return raws(await regs().findMany({ filters, populate: REGISTRATION_POPULATE, limit: MAX })).map(toRegistrationRow);
+      return raws(await regs().findMany({ filters, populate: REGISTRATION_POPULATE, sort: BY_ID, limit: MAX })).map(toRegistrationRow);
     },
   };
 }
@@ -109,14 +113,14 @@ function clubReads(strapi: Core.Strapi): Pick<ClubStore, 'athlete' | 'athletes' 
       const a = await athletes().findOne({ documentId: id, populate: ['publicProfile'] });
       return a ? toAthleteRow(a as unknown as Raw) : null;
     },
-    athletes: async () => raws(await athletes().findMany({ populate: ['publicProfile'], limit: MAX })).map(toAthleteRow),
-    seasons: async () => raws(await strapi.documents(SEASON).findMany({ limit: 1000 })).map((s): SeasonRow => ({
+    athletes: async () => raws(await athletes().findMany({ populate: ['publicProfile'], sort: BY_ID, limit: MAX })).map(toAthleteRow),
+    seasons: async () => raws(await strapi.documents(SEASON).findMany({ sort: BY_ID, limit: 1000 })).map((s): SeasonRow => ({
       id: text(s.documentId), label: text(s.label), startMonth: text(s.startMonth), endMonth: text(s.endMonth), isCurrent: s.isCurrent === true,
     })),
-    sections: async () => raws(await strapi.documents(SECTION).findMany({ limit: 1000 })).map((s): SectionRow => ({
+    sections: async () => raws(await strapi.documents(SECTION).findMany({ sort: BY_ID, limit: 1000 })).map((s): SectionRow => ({
       id: text(s.documentId), name: text(s.name), kind: s.kind === 'club' ? 'club' : 'school', publicPage: s.publicPage === true, order: typeof s.order === 'number' ? s.order : null,
     })),
-    groups: async () => raws(await strapi.documents(GROUP).findMany({ populate: ['section'], limit: 1000 })).map((g): GroupRow => ({
+    groups: async () => raws(await strapi.documents(GROUP).findMany({ populate: ['section'], sort: BY_ID, limit: 1000 })).map((g): GroupRow => ({
       id: text(g.documentId), name: text(g.name), sectionId: linkId(g.section), order: typeof g.order === 'number' ? g.order : null, active: g.active !== false,
     })),
   };
@@ -125,15 +129,15 @@ function clubReads(strapi: Core.Strapi): Pick<ClubStore, 'athlete' | 'athletes' 
 function rowReads(strapi: Core.Strapi): Pick<ClubStore, 'memberships' | 'acsRows' | 'duplicates' | 'profiles'> {
   const byAthlete = (athleteId?: string) => (athleteId ? { athlete: { documentId: athleteId } } : {});
   return {
-    memberships: async (athleteId) => raws(await strapi.documents(MEMBERSHIP).findMany({ filters: byAthlete(athleteId), populate: LINKS, limit: MAX })).map(toMembership),
+    memberships: async (athleteId) => raws(await strapi.documents(MEMBERSHIP).findMany({ filters: byAthlete(athleteId), populate: LINKS, sort: BY_ID, limit: MAX })).map(toMembership),
     acsRows: async (athleteId) =>
-      raws(await strapi.documents(ACS).findMany({ filters: byAthlete(athleteId), populate: ['athlete', 'season'], limit: MAX })).map(toAcs),
+      raws(await strapi.documents(ACS).findMany({ filters: byAthlete(athleteId), populate: ['athlete', 'season'], sort: BY_ID, limit: MAX })).map(toAcs),
     duplicates: async () =>
-      raws(await strapi.documents(DUPLICATE).findMany({ populate: ['first', 'second'], limit: MAX }))
+      raws(await strapi.documents(DUPLICATE).findMany({ populate: ['first', 'second'], sort: BY_ID, limit: MAX }))
         .map(toDuplicateRow)
         .filter((d) => d.firstId && d.secondId),
     profiles: async () =>
-      toProfileRows(raws(await strapi.db.query(PROFILE).findMany({ select: ['documentId', 'name', 'slug', 'showPublicPage', 'publishedAt', 'previousSlugs'], limit: MAX }))),
+      toProfileRows(raws(await strapi.db.query(PROFILE).findMany({ select: ['documentId', 'name', 'slug', 'showPublicPage', 'publishedAt', 'previousSlugs'], orderBy: { id: 'asc' }, limit: MAX }))),
   };
 }
 
@@ -157,6 +161,12 @@ function athleteFields(d: AthleteWrite) {
   return profileId === undefined ? rest : { ...rest, publicProfile: profileId };
 }
 
+/** The link tables cascade, but `matchLevel` is a column: a match to a deleted athlete is cleared first. */
+async function clearMatchesTo(strapi: Core.Strapi, athleteId: string): Promise<void> {
+  const matched = raws(await strapi.documents(REGISTRATION).findMany({ filters: { matchAthlete: { documentId: athleteId } }, fields: ['documentId'], limit: MAX }));
+  for (const r of matched) await strapi.documents(REGISTRATION).update({ documentId: text(r.documentId), data: { matchAthlete: null, matchLevel: null } });
+}
+
 function athleteWrites(strapi: Core.Strapi): Pick<ClubStore, 'updateRegistration' | 'createAthlete' | 'updateAthlete' | 'deleteAthlete'> {
   return {
     updateRegistration: async (id, patch) => {
@@ -167,6 +177,7 @@ function athleteWrites(strapi: Core.Strapi): Pick<ClubStore, 'updateRegistration
       await strapi.documents(ATHLETE).update({ documentId: id, data: athleteFields(data) });
     },
     deleteAthlete: async (id) => {
+      await clearMatchesTo(strapi, id);
       await strapi.documents(ATHLETE).delete({ documentId: id });
     },
   };
@@ -191,8 +202,8 @@ function rowWrites(strapi: Core.Strapi): Pick<ClubStore, RowWrites> {
       await strapi.documents(ACS).update({ documentId: id, data: { ...links(d), ...(d.state === undefined ? {} : { state: d.state }) } });
     },
     deleteAcs: del(ACS),
-    createDuplicate: async (firstId, secondId) => {
-      await strapi.documents(DUPLICATE).create({ data: { first: firstId, second: secondId } });
+    createDuplicate: async (firstId, secondId, dismissed = false) => {
+      await strapi.documents(DUPLICATE).create({ data: { first: firstId, second: secondId, dismissed } });
     },
     dismissDuplicate: async (id) => {
       await strapi.documents(DUPLICATE).update({ documentId: id, data: { dismissed: true } });
@@ -227,23 +238,31 @@ function profileWrites(strapi: Core.Strapi): Pick<ClubStore, 'createProfile' | '
   };
 }
 
-/** ClubStore on Strapi: document service for writes (validation, lifecycles), db queries for bulk reads. */
-export function strapiClubStore(strapi: Core.Strapi): ClubStore {
+/** A nested `transaction` reuses the outer one (Strapi), so `active` is restored, not cleared, when it ends. */
+function transactions(strapi: Core.Strapi): Pick<ClubStore, 'transaction' | 'lockRegistration'> {
   let active: Knex.Transaction | null = null;
   return {
     async transaction<T>(work: () => Promise<T>): Promise<T> {
       return await strapi.db.transaction(async ({ trx }: { trx: Knex.Transaction }) => {
+        const outer = active;
         active = trx;
         try {
           return await work();
         } finally {
-          active = null;
+          active = outer;
         }
       });
     },
     lockRegistration: async (id) => {
-      if (active) await strapi.db.connection('registration_submissions').transacting(active).forUpdate().where('document_id', id).select('id');
+      if (active) await strapi.db.getConnection('registration_submissions').transacting(active).forUpdate().where('document_id', id).select('id');
     },
+  };
+}
+
+/** ClubStore on Strapi: document service for writes (validation, lifecycles), db queries for bulk reads. */
+export function strapiClubStore(strapi: Core.Strapi): ClubStore {
+  return {
+    ...transactions(strapi),
     ...registrationReads(strapi),
     ...clubReads(strapi),
     ...rowReads(strapi),
