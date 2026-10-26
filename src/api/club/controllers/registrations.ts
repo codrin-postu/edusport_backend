@@ -1,4 +1,6 @@
+import type { AdminResult } from '../../../club/admin-result';
 import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
+import type { MoveSchoolResponse } from '../../../club/athletes/api-types';
 import { confirmRegistration } from '../../../club/athletes/confirm-service';
 import { confirmContext, registrationMatchView } from '../../../club/athletes/confirm-read';
 import { ADMIN_ERRORS, CONFIRM_ERRORS } from '../../../club/athletes/errors';
@@ -9,6 +11,12 @@ import { undoConfirmation } from '../../../club/athletes/undo-service';
 import { todayInBucharest } from '../../../club/birth-date';
 import { readConfirmRequest } from '../../../club/confirm/plan';
 import { SUBJECT } from '../../../club/history-text';
+
+/** 409 stale when a move answered ok but moved nothing (shared by the single and bulk move routes). */
+function respondMove(ctx: AdminCtx, result: AdminResult<MoveSchoolResponse>): void {
+  if (result.ok === true && result.data.moved === 0) return refuseWith(ctx, 409, ADMIN_ERRORS.stale);
+  respond(ctx, result);
+}
 
 /** Admin API of the Înscrieri confirmation (routes/04-registrations.ts, all `global::is-admin`). */
 export default {
@@ -41,14 +49,12 @@ export default {
 
   async moveSchool(ctx: AdminCtx) {
     const sectionId = queryText((ctx.request.body as { sectionId?: unknown } | undefined)?.sectionId);
-    const result = await moveToSchool(await serviceContext(strapi, ctx), [ctx.params.documentId ?? ''], sectionId);
-    if (result.ok === true && result.data.moved === 0) return refuseWith(ctx, 409, ADMIN_ERRORS.stale);
-    respond(ctx, result);
+    respondMove(ctx, await moveToSchool(await serviceContext(strapi, ctx), [ctx.params.documentId ?? ''], sectionId));
   },
 
   async moveSchoolBulk(ctx: AdminCtx) {
     const request = readMoveSchool(ctx.request.body);
     if (!request) return refuseWith(ctx, 400, ADMIN_ERRORS.invalid);
-    respond(ctx, await moveToSchool(await serviceContext(strapi, ctx), request.ids, request.sectionId));
+    respondMove(ctx, await moveToSchool(await serviceContext(strapi, ctx), request.ids, request.sectionId));
   },
 };
