@@ -71,6 +71,7 @@ import {
 } from '../ui';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { DASHBOARD_TO } from './menu';
+import { Phase3Demos } from './ui-reference/Phase3Demos';
 
 /**
  * Living reference for the shared admin UI (src/admin/ui): every component in
@@ -1136,6 +1137,8 @@ const UiReferencePage: React.FC = () => {
             </div>
           </div>
         </Window>
+
+        <Phase3Demos />
 
         <Window>
           <PageHeader title="InboxLayout" subtitle="Listă + cititor, cu file și paginare." />
