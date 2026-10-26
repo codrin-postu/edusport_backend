@@ -11,7 +11,14 @@ const UID = 'api::registration-submission.registration-submission' as const;
 export function registrationEditDeps(strapi: Core.Strapi): RegistrationEditDeps {
   const docs = () => strapi.documents(UID);
   return {
-    find: async (id) => (await docs().findOne({ documentId: id })) as unknown as Record<string, unknown> | null,
+    find: async (id) => (await docs().findOne({ documentId: id, populate: ['athlete', 'matchAthlete'] })) as unknown as Record<string, unknown> | null,
+    exclusive: (id, work) => {
+      const store = clubStore(strapi);
+      return store.transaction(async () => {
+        await store.lockRegistration(id);
+        return work();
+      });
+    },
     save: async (id, data) => (await docs().update({ documentId: id, data })) as unknown as Record<string, unknown> | null,
     seasonIdForLabel: (label) => seasonIdForLabel(strapi, label),
     rebuild: (id, data) => rebuildAfterEdit(strapi, id, data),

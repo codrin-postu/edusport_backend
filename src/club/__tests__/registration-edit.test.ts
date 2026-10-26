@@ -13,6 +13,7 @@ it('accepts the stored option values only', () => {
   expect(registrationEditError({ relationship: 'tutore' })).toBeNull();
   expect(registrationEditError({ membershipAnswer: 'nu' })).toBeNull();
   expect(registrationEditError({ relationshipOther: 'Bunică' })).toBeNull();
+  expect(registrationEditError({ relationshipOther: null })).toBeNull();
   expect(registrationEditError({ status: 'Nou' })).toBeNull();
   expect(registrationEditError({ relationship: 'Părinte' })).toBe(REGISTRATION_EDIT_ERROR);
   expect(registrationEditError({ relationship: null })).toBe(REGISTRATION_EDIT_ERROR);

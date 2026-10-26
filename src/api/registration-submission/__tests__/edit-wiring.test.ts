@@ -15,3 +15,10 @@ it('a delete notes it on the athlete before the row goes', () => {
   expect(del.indexOf('beforeRegistrationDeleted(')).toBeLessThan(del.indexOf('strapi.documents(UID).delete('));
   expect(method('deleteArchivedSeason', 'moveSeason')).toContain('beforeRegistrationDeleted(');
 });
+
+it('the edit holds the row as the confirmation does, and a status change on a linked one is a 409', () => {
+  const deps = readFileSync(join(__dirname, '..', 'edit-deps.ts'), 'utf8');
+  expect(deps).toContain('await store.lockRegistration(id);');
+  expect(deps).toContain("populate: ['athlete', 'matchAthlete']");
+  expect(method('updateSubmission', 'deleteSubmission')).toContain('ctx.status = 409;');
+});

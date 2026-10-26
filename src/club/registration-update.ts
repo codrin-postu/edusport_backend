@@ -1,4 +1,5 @@
 import type { FieldChange } from './admin-result';
+import { ADMIN_ERRORS } from './athletes/errors';
 import { birthDateSortKey } from './birth-date';
 import type { RebuildResult } from './documents';
 import type { HistoryInput } from './history';
@@ -14,6 +15,8 @@ import { parseChildHeight } from './registration-input';
  */
 export const SETTABLE_STATUSES = ['Nou', 'Contactat', 'Respins'] as const;
 export const STATUS_ERROR = 'Stare invalidă.';
+/** A registration with an athlete linked leaves "Confirmat" only through "Anulează confirmarea": a status change is a stale page. */
+export const LINKED_STATUS_ERROR = ADMIN_ERRORS.stale;
 
 export const EDITABLE_FIELDS: ReadonlySet<string> = new Set<string>([
   'email', 'phone', 'childName', 'childBirthDate', 'parentName', 'shirtSize', 'howHeard', 'level', 'priorExperience', 'expectations',
@@ -23,7 +26,10 @@ export const EDITABLE_FIELDS: ReadonlySet<string> = new Set<string>([
 const MATCH_FIELDS = ['childName', 'childBirthDate', 'phone', 'email'];
 
 export type RegistrationEditDeps = {
+  /** The row with its `athlete` and `matchAthlete` links. */
   find(id: string): Promise<Record<string, unknown> | null>;
+  /** Runs `work` holding the registration's row, as the confirmation does (spec 4.7). */
+  exclusive<T>(id: string, work: () => Promise<T>): Promise<T>;
   save(id: string, data: Record<string, unknown>): Promise<Record<string, unknown> | null>;
   seasonIdForLabel(label: unknown): Promise<string | null>;
   rebuild(id: string, data: Record<string, unknown>): Promise<RebuildResult | null>;
@@ -33,12 +39,16 @@ export type RegistrationEditDeps = {
 };
 export type RegistrationEditResult =
   | { ok: true; data: Record<string, unknown>; rebuild: RebuildResult | null; changed: string[] }
-  | { ok: false; status: 400 | 404; error: string };
+  | { ok: false; status: 400 | 404 | 409; error: string };
+type Refusal = Extract<RegistrationEditResult, { ok: false }>;
+type Written = { saved: Record<string, unknown>; changes: Record<string, FieldChange>; data: Record<string, unknown> };
+type CheckedSave = Refusal | { ok: true; before: Record<string, unknown>; written: Written | null };
 
 const NOT_FOUND = { ok: false as const, status: 404 as const, error: 'not-found' };
 const trimOrEmpty = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 const asBool = (v: unknown) => v === true || v === 'true' || v === 1 || v === '1';
 const blankToNull = (v: unknown) => (v === '' || v === undefined ? null : v);
+const isLinked = (row: Record<string, unknown>) => row.athlete !== null && row.athlete !== undefined;
 
 export function pickEditable(raw: Record<string, unknown>): Record<string, unknown> {
   const data: Record<string, unknown> = {};
@@ -115,24 +125,43 @@ async function guarded(deps: RegistrationEditDeps, what: string, work: () => Pro
   }
 }
 
-async function saveChanges(deps: RegistrationEditDeps, id: string, changes: Record<string, FieldChange>, actor: string): Promise<RegistrationEditResult> {
-  const data = await withDerived(deps, changes);
-  const saved = await deps.save(id, data);
-  if (!saved) return NOT_FOUND;
-  await guarded(deps, `history of ${id}`, () => deps.record({ subjectType: SUBJECT.registration, subjectId: id, action: HISTORY_ACTIONS.updated, changes: { fields: changes }, actor }));
-  const rebuild = await deps.rebuild(id, data);
-  if (rebuild?.ok) await guarded(deps, `rebuild history of ${id}`, () => deps.record(documentRebuiltEntry(id, rebuild.documents, actor)));
-  if (MATCH_FIELDS.some((k) => k in changes)) await guarded(deps, `match of ${id}`, () => deps.refreshMatch(id));
-  return { ok: true, data: saved, rebuild, changed: Object.keys(changes) };
-}
-
-export async function updateRegistration(deps: RegistrationEditDeps, id: string, raw: Record<string, unknown>, actor: string): Promise<RegistrationEditResult> {
+/** Read, check and save in one go under the row lock, so a confirmation that landed first is seen. */
+async function checkAndSave(deps: RegistrationEditDeps, id: string, raw: Record<string, unknown>): Promise<CheckedSave> {
   const before = await deps.find(id);
   if (!before) return NOT_FOUND;
   const sent = changedOnly(before, pickEditable(raw));
+  if ('status' in sent && isLinked(before)) return { ok: false, status: 409, error: LINKED_STATUS_ERROR };
   const error = editError(sent);
   if (error) return { ok: false, status: 400, error };
   const changes = editChanges(before, normalizeEdit(sent, before));
-  if (Object.keys(changes).length === 0) return { ok: true, data: before, rebuild: null, changed: [] };
-  return saveChanges(deps, id, changes, actor);
+  if (Object.keys(changes).length === 0) return { ok: true, before, written: null };
+  const data = await withDerived(deps, changes);
+  const saved = await deps.save(id, data);
+  return saved ? { ok: true, before, written: { saved, changes, data } } : NOT_FOUND;
+}
+
+/** The match is refreshed before the answer is built, so its `matchAthlete` / `matchLevel` are current. */
+async function rowAfterMatch(deps: RegistrationEditDeps, id: string): Promise<Record<string, unknown> | null> {
+  let row: Record<string, unknown> | null = null;
+  await guarded(deps, `match of ${id}`, () => deps.refreshMatch(id));
+  await guarded(deps, `re-read of ${id}`, async () => {
+    row = await deps.find(id);
+  });
+  return row;
+}
+
+async function afterSave(deps: RegistrationEditDeps, id: string, written: Written, actor: string): Promise<RegistrationEditResult> {
+  const { saved, changes, data } = written;
+  await guarded(deps, `history of ${id}`, () => deps.record({ subjectType: SUBJECT.registration, subjectId: id, action: HISTORY_ACTIONS.updated, changes: { fields: changes }, actor }));
+  const rebuild = await deps.rebuild(id, data);
+  if (rebuild?.ok) await guarded(deps, `rebuild history of ${id}`, () => deps.record(documentRebuiltEntry(id, rebuild.documents, actor)));
+  const current = MATCH_FIELDS.some((k) => k in changes) ? await rowAfterMatch(deps, id) : null;
+  return { ok: true, data: current ?? saved, rebuild, changed: Object.keys(changes) };
+}
+
+export async function updateRegistration(deps: RegistrationEditDeps, id: string, raw: Record<string, unknown>, actor: string): Promise<RegistrationEditResult> {
+  const result = await deps.exclusive(id, () => checkAndSave(deps, id, raw));
+  if (result.ok === false) return result;
+  if (!result.written) return { ok: true, data: result.before, rebuild: null, changed: [] };
+  return afterSave(deps, id, result.written, actor);
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { HistoryInput } from '../history';
 import { historyTexts } from '../history-text';
 import { REGISTRATION_EDIT_ERROR } from '../registration-edit';
-import { STATUS_ERROR, updateRegistration, type RegistrationEditDeps } from '../registration-update';
+import { LINKED_STATUS_ERROR, STATUS_ERROR, updateRegistration, type RegistrationEditDeps } from '../registration-update';
 
 const BASE = { documentId: 'r1', childName: 'Maria Pop', childBirthDate: '14 martie 2016', phone: '0722', status: 'Nou', season: '2026-2027', archived: false, childHeight: 130, lastSeason: null };
 
@@ -13,6 +13,7 @@ function deps(row: Record<string, unknown> | null = { ...BASE }) {
   const logs: string[] = [];
   const d: RegistrationEditDeps = {
     find: async () => row,
+    exclusive: (_id, work) => work(),
     save: async (_id, data) => {
       saved.push(data);
       return { ...row, ...data };
@@ -131,5 +132,62 @@ describe('"De unde ați aflat" and "Calitatea față de sportiv" in Editează (p
     const t = deps({ ...BASE, source: 'Facebook', sourceOther: 'Ziar', relationship: 'parinte', relationshipOther: 'Bunica' });
     await updateRegistration(t.d, 'r1', { sourceOther: 'Afiș', relationshipOther: 'Bunic' }, 'ana');
     expect(t.saved).toEqual([{ sourceOther: null, relationshipOther: null }]);
+  });
+});
+
+describe('a registration with an athlete linked keeps "Confirmat" (only "Anulează confirmarea" leaves it)', () => {
+  const LINKED = { ...BASE, status: 'Confirmat', athlete: { documentId: 'a1' } };
+
+  it('refuses a status change with 409, saves nothing', async () => {
+    const t = deps({ ...LINKED });
+    expect(await updateRegistration(t.d, 'r1', { status: 'Contactat' }, 'ana')).toEqual({ ok: false, status: 409, error: LINKED_STATUS_ERROR });
+    expect([t.saved, t.history]).toEqual([[], []]);
+  });
+
+  it('still saves its other fields, and "Confirmat" sent back unchanged', async () => {
+    const t = deps({ ...LINKED });
+    expect(await updateRegistration(t.d, 'r1', { status: 'Confirmat', phone: '0733' }, 'ana')).toMatchObject({ ok: true, changed: ['phone'] });
+  });
+
+  it('sees a confirmation that landed first, because the read and the save hold the row', async () => {
+    const row: Record<string, unknown> = { ...BASE };
+    const t = deps(row);
+    let holding = false;
+    t.d.exclusive = async (_id, work) => {
+      Object.assign(row, { status: 'Confirmat', athlete: { documentId: 'a1' } });
+      holding = true;
+      const result = await work();
+      holding = false;
+      return result;
+    };
+    const save = t.d.save;
+    t.d.save = async (id, data) => {
+      expect(holding).toBe(true);
+      return save(id, data);
+    };
+    expect(await updateRegistration(t.d, 'r1', { status: 'Contactat' }, 'ana')).toEqual({ ok: false, status: 409, error: LINKED_STATUS_ERROR });
+    expect(t.saved).toEqual([]);
+    expect(await updateRegistration(t.d, 'r1', { phone: '0733' }, 'ana')).toMatchObject({ ok: true, changed: ['phone'] });
+  });
+});
+
+describe('the answer and the "Alta" text', () => {
+  it('a null "Alta" text clears it', async () => {
+    const t = deps({ ...BASE, relationship: 'alta', relationshipOther: 'Bunica' });
+    expect(await updateRegistration(t.d, 'r1', { relationship: 'parinte', relationshipOther: null }, 'ana')).toMatchObject({ ok: true });
+    expect(t.saved).toEqual([{ relationship: 'parinte', relationshipOther: null }]);
+  });
+
+  it('answers with the match refreshed after a name edit', async () => {
+    const row: Record<string, unknown> = { ...BASE, matchLevel: null };
+    const t = deps(row);
+    t.d.save = async (_id, data) => {
+      Object.assign(row, data);
+      return { ...row };
+    };
+    t.d.refreshMatch = async () => {
+      row.matchLevel = 'sigur';
+    };
+    expect(await updateRegistration(t.d, 'r1', { childName: 'Maria Popa' }, 'ana')).toMatchObject({ ok: true, data: { childName: 'Maria Popa', matchLevel: 'sigur' } });
   });
 });
