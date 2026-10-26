@@ -157,18 +157,9 @@ const PENDING = {
   'past-registrations': async (ctx) => (await pastPlan(ctx)).create.length,
 };
 
-const NEEDS = {
-  'profile-athletes': ['athlete-name'],
-  'past-registrations': ['profile-athletes'],
-  'match-backfill': ['past-registrations'],
-  duplicates: ['athlete-name', 'profile-athletes', 'past-registrations'],
-};
-
 async function requirePreviousSteps(ctx) {
-  for (const previous of NEEDS[STEP] || []) {
-    const left = await PENDING[previous](ctx);
-    if (left > 0) throw new StepRefused(`--step=${previous} still has ${left} item(s) to write: run it with --apply first, then this step`);
-  }
+  const blocked = await lib('deploy/step-order').blockingStep(STEP, (previous) => PENDING[previous](ctx));
+  if (blocked) throw new StepRefused(`--step=${blocked.step} still has ${blocked.left} item(s) to write: run it with --apply first, then this step`);
 }
 
 const STEPS = {
