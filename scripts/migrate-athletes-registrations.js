@@ -16,38 +16,59 @@ const ATHLETE = 'api::athlete.athlete';
 const log = (...a) => console.log(APPLY ? '[apply]' : '[dry-run]', ...a);
 const lib = (p) => require(`../dist/src/club/${p}`);
 
-async function stepAthleteName({ app }) {
-  const { planNameMigration } = lib('deploy/name-migration');
-  const rows = await app.db.query(ATHLETE).findMany({
-    select: ['documentId', 'name', 'firstName', 'lastName'],
-    populate: { publicProfile: { select: ['name'] } },
-    limit: 100000,
-  });
-  const plan = planNameMigration(rows.map((r) => ({
-    id: r.documentId, name: r.name || null, firstName: r.firstName || null, lastName: r.lastName || null, profileName: r.publicProfile ? r.publicProfile.name : null,
-  })));
-  log('athlete names to write:', plan.updates.length, 'without first/last name:', plan.empty.length);
-  plan.profileMismatches.forEach((m) => log(`  differs from the public profile: "${m.name}" (profile "${m.profileName}")`));
-  if (!APPLY) return;
-  for (const u of plan.updates) await app.documents(ATHLETE).update({ documentId: u.id, data: { name: u.name } });
+class StepRefused extends Error {}
+
+const noName = (id) => `(no name, ${id})`;
+
+async function writeEach(items, label, write) {
+  for (let i = 0; i < items.length; i += 1) {
+    try {
+      await write(items[i]);
+    } catch (e) {
+      throw new Error(`${label(items[i])} failed; ${i} of ${items.length} written before it; re-running the step continues safely: ${e.message}`, { cause: e });
+    }
+  }
 }
 
-async function stepProfileAthletes({ app, store }) {
+async function namePlan({ app, store }) {
+  const { planNameMigration } = lib('deploy/name-migration');
+  const [rows, profiles] = await Promise.all([
+    app.db.query(ATHLETE).findMany({ select: ['documentId', 'name', 'firstName', 'lastName'], populate: { publicProfile: { select: ['documentId'] } }, limit: 100000 }),
+    store.profiles(),
+  ]);
+  const profileName = new Map(profiles.map((p) => [p.id, p.name]));
+  return planNameMigration(rows.map((r) => ({
+    id: r.documentId, name: r.name || null, firstName: r.firstName || null, lastName: r.lastName || null,
+    profileName: r.publicProfile ? profileName.get(r.publicProfile.documentId) || null : null,
+  })));
+}
+
+async function stepAthleteName(ctx) {
+  const plan = await namePlan(ctx);
+  log('athlete names to write:', plan.updates.length, 'without first/last name:', plan.empty.length);
+  plan.empty.forEach((id) => log(`  without first/last name, name it in Sportivi: ${id}`));
+  plan.profileMismatches.forEach((m) => log(`  differs from the public profile: "${m.name}" (profile "${m.profileName}")`));
+  if (!APPLY) return;
+  await writeEach(plan.updates, (u) => `athlete ${u.id}`, (u) => ctx.app.documents(ATHLETE).update({ documentId: u.id, data: { name: u.name } }));
+}
+
+async function profilePlan({ store }) {
   const { planAthletes } = lib('migrate/plan');
+  const [profiles, athletes] = await Promise.all([store.profiles(), store.athletes()]);
+  return planAthletes({ sportspeople: profiles.map((p) => ({ documentId: p.id, name: p.name })), linkedProfileIds: athletes.map((a) => a.profileId).filter(Boolean) });
+}
+
+async function stepProfileAthletes(ctx) {
+  const { store } = ctx;
   const { HISTORY_ACTIONS, SUBJECT } = lib('history-text');
-  const profiles = await app.db.query('api::sportsperson.sportsperson').findMany({ select: ['documentId', 'name'], limit: 5000 });
-  const unique = [...new Map(profiles.map((p) => [p.documentId, p])).values()];
-  const athletes = await store.athletes();
-  const plan = planAthletes({ sportspeople: unique, linkedProfileIds: athletes.map((a) => a.profileId).filter(Boolean) });
+  const plan = await profilePlan(ctx);
   log('athletes to create for public profiles:', plan.create.length);
-  for (const a of plan.create) {
-    log('  athlete', a.name);
-    if (!APPLY) continue;
-    await store.transaction(async () => {
-      const id = await store.createAthlete({ name: a.name, dataIncomplete: true, profileId: a.publicProfileId });
-      await store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.createdFromProfile, actor: ACTOR, changes: { publicProfile: a.publicProfileId } });
-    });
-  }
+  plan.create.forEach((a) => log('  athlete', a.name || noName(a.publicProfileId)));
+  if (!APPLY) return;
+  await writeEach(plan.create, (a) => `athlete for profile ${a.publicProfileId}`, (a) => store.transaction(async () => {
+    const id = await store.createAthlete({ name: a.name, dataIncomplete: true, profileId: a.publicProfileId });
+    await store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.createdFromProfile, actor: ACTOR, changes: { publicProfile: a.publicProfileId } });
+  }));
 }
 
 function pastRows(registrations, seasons) {
@@ -59,51 +80,61 @@ function pastRows(registrations, seasons) {
   }));
 }
 
-async function stepPastRegistrations({ store }) {
+async function pastPlan({ store }) {
   const { planPastRegistrationAthletes } = lib('deploy/past-registrations');
-  const { HISTORY_ACTIONS, SUBJECT } = lib('history-text');
+  const { HISTORY_ACTIONS } = lib('history-text');
   const [registrations, seasons, done] = await Promise.all([store.registrations(), store.seasons(), store.historyByAction(HISTORY_ACTIONS.createdFromRegistrations)]);
   const current = seasons.find((s) => s.isCurrent);
-  if (!current) throw new Error('no current Sezon: mark one current before this step');
+  if (!current) throw new StepRefused('no current Sezon: mark one current before this step');
   const covered = new Set(done.flatMap((h) => (Array.isArray(h.changes.registrations) ? h.changes.registrations : []).map((r) => r.documentId)));
-  const plan = planPastRegistrationAthletes(pastRows(registrations, seasons), current.label, covered);
-  log('athletes to create from past registrations:', plan.create.length, 'skipped:', JSON.stringify(plan.skipped));
-  log('  already linked to an athlete, left as they are:', plan.skipped.linked);
-  for (const a of plan.create) {
-    log('  athlete', a.values.name, a.values.birthDate || '(no readable birth date)', `${a.registrations.length} registration(s)`);
-    if (!APPLY) continue;
-    await store.transaction(async () => {
-      const id = await store.createAthlete({ ...a.values, dataIncomplete: true });
-      await store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.createdFromRegistrations, actor: ACTOR, changes: { registrations: a.registrations } });
-    });
-  }
+  return planPastRegistrationAthletes(pastRows(registrations, seasons), current.label, covered);
 }
 
-async function stepMatchBackfill({ store }) {
+async function stepPastRegistrations(ctx) {
+  const { store } = ctx;
+  const { HISTORY_ACTIONS, SUBJECT } = lib('history-text');
+  const plan = await pastPlan(ctx);
+  log('athletes to create from past registrations:', plan.create.length, 'skipped:', JSON.stringify(plan.skipped));
+  log('  already linked to an athlete, left as they are:', plan.skipped.linked);
+  plan.create.forEach((a) => log('  athlete', a.values.name || '(no name)', a.values.birthDate ? 'birth date readable' : 'no readable birth date', `${a.registrations.length} registration(s)`));
+  if (!APPLY) return;
+  await writeEach(plan.create, (a) => `athlete for registration(s) ${a.registrations.map((r) => r.documentId).join(', ')}`, (a) => store.transaction(async () => {
+    const id = await store.createAthlete({ ...a.values, dataIncomplete: true });
+    await store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.createdFromRegistrations, actor: ACTOR, changes: { registrations: a.registrations } });
+  }));
+}
+
+async function matchPlan({ store }) {
   const { planMatchUpdates } = lib('athletes/matches');
-  const { parseBirthDate } = lib('birth-date');
   const [registrations, athletes] = await Promise.all([store.registrations(), store.athletes()]);
-  if (athletes.some((a) => !a.name)) throw new Error('athletes without a name: run --step=athlete-name first');
-  const updates = planMatchUpdates(registrations, athletes);
+  return { registrations, athletes, updates: planMatchUpdates(registrations, athletes) };
+}
+
+async function stepMatchBackfill(ctx) {
+  const { parseBirthDate } = lib('birth-date');
+  const { registrations, athletes, updates } = await matchPlan(ctx);
+  const unnamed = athletes.filter((a) => !a.name).map((a) => a.id);
+  if (unnamed.length) throw new StepRefused(`athletes without a name: ${unnamed.join(', ')}; name them in Sportivi (or run --step=athlete-name), then re-run`);
   const levels = {};
   for (const u of updates) levels[u.patch.matchLevel || 'none'] = (levels[u.patch.matchLevel || 'none'] || 0) + 1;
   const unreadable = registrations.filter((r) => !parseBirthDate(r.childBirthDate)).length;
   log('registrations to update:', updates.length, 'by level:', JSON.stringify(levels), 'unreadable birth dates:', unreadable);
   if (!APPLY) return;
-  for (const u of updates) await store.updateRegistration(u.registrationId, u.patch);
+  await writeEach(updates, (u) => `registration ${u.registrationId}`, (u) => ctx.store.updateRegistration(u.registrationId, u.patch));
 }
 
 async function stepDuplicates({ store }) {
   const { planDuplicateFlags } = lib('deploy/duplicate-flags');
   const [athletes, existing] = await Promise.all([store.athletes(), store.duplicates()]);
   const names = new Map(athletes.map((a) => [a.id, a.name]));
+  const nameOf = (id) => names.get(id) || noName(id);
   const facts = athletes.map((a) => ({ id: a.id, name: a.name || '', birthDate: a.birthDate, phone: a.phone, email: a.email }));
   const pairs = planDuplicateFlags(facts, existing);
   log('pairs already stored:', existing.length, 'dismissed:', existing.filter((p) => p.dismissed).length);
   log('possible duplicate pairs to flag:', pairs.length);
-  pairs.forEach((p) => log(`  ${names.get(p.firstId)} / ${names.get(p.secondId)} (${p.level})`));
+  pairs.forEach((p) => log(`  ${nameOf(p.firstId)} / ${nameOf(p.secondId)} (${p.level})`));
   if (!APPLY) return;
-  for (const p of pairs) await store.createDuplicate(p.firstId, p.secondId, false);
+  await writeEach(pairs, (p) => `pair ${p.firstId} / ${p.secondId}`, (p) => store.createDuplicate(p.firstId, p.secondId, false));
 }
 
 async function stepStatus({ store }) {
@@ -112,18 +143,39 @@ async function stepStatus({ store }) {
   const { normalizeSeasonLabel } = lib('season');
   const [athletes, registrations, seasons, profiles] = await Promise.all([store.athletes(), store.registrations(), store.seasons(), store.profiles()]);
   const current = seasons.find((s) => s.isCurrent);
-  if (!current) throw new Error('no current Sezon: mark one current before this step');
+  if (!current) throw new StepRefused('no current Sezon: mark one current before this step');
   const inCurrent = registrations
     .filter((r) => r.seasonId === current.id || normalizeSeasonLabel(r.season) === current.label)
     .map((r) => ({ status: r.status, athleteId: r.athleteId, matchAthleteId: r.matchAthleteId, matchLevel: r.matchLevel }));
   const changes = planDeployStatus(athletes, inCurrent, new Set(profiles.filter((p) => p.showPublicPage).map((p) => p.id)));
   log('status changes:', changes.length, 'to Inactiv:', changes.filter((c) => c.to === 'inactiv').length, 'to Activ:', changes.filter((c) => c.to === 'activ').length);
   if (!APPLY) return;
-  for (const c of changes) {
-    await store.transaction(async () => {
-      await store.updateAthlete(c.id, { status: c.to });
-      await store.record({ subjectType: SUBJECT.athlete, subjectId: c.id, action: HISTORY_ACTIONS.statusChanged, actor: ACTOR, changes: { from: c.from, to: c.to } });
-    });
+  await writeEach(changes, (c) => `status of athlete ${c.id}`, (c) => store.transaction(async () => {
+    await store.updateAthlete(c.id, { status: c.to });
+    await store.record({ subjectType: SUBJECT.athlete, subjectId: c.id, action: HISTORY_ACTIONS.statusChanged, actor: ACTOR, changes: { from: c.from, to: c.to } });
+  }));
+}
+
+/** Work a step still has; a later step refuses to run while any step it needs has some. */
+const PENDING = {
+  'athlete-name': async (ctx) => (await namePlan(ctx)).updates.length,
+  'profile-athletes': async (ctx) => (await profilePlan(ctx)).create.length,
+  'past-registrations': async (ctx) => (await pastPlan(ctx)).create.length,
+  'match-backfill': async (ctx) => (await matchPlan(ctx)).updates.length,
+};
+
+const NEEDS = {
+  'profile-athletes': ['athlete-name'],
+  'past-registrations': ['profile-athletes'],
+  'match-backfill': ['past-registrations'],
+  duplicates: ['athlete-name', 'profile-athletes', 'past-registrations'],
+  status: ['match-backfill'],
+};
+
+async function requirePreviousSteps(ctx) {
+  for (const previous of NEEDS[STEP] || []) {
+    const left = await PENDING[previous](ctx);
+    if (left > 0) throw new StepRefused(`--step=${previous} still has ${left} item(s) to write: run it with --apply first, then this step`);
   }
 }
 
@@ -144,10 +196,12 @@ async function main() {
   }
   const app = await createStrapi(await compileStrapi()).load();
   app.log.level = 'error';
+  const ctx = { app, store: lib('athletes/strapi-store').strapiClubStore(app) };
   try {
-    await step({ app, store: lib('athletes/strapi-store').strapiClubStore(app) });
+    await requirePreviousSteps(ctx);
+    await step(ctx);
   } catch (e) {
-    console.error(e);
+    console.error(e instanceof StepRefused ? `refused, nothing written: ${e.message}` : e);
     await app.destroy();
     process.exit(1);
   }
