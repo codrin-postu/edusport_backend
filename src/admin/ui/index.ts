@@ -22,7 +22,7 @@ export { Switch, type SwitchProps } from './Switch';
 export { Checkbox, type CheckboxProps } from './Checkbox';
 export { Radio, RadioGroup, type RadioProps, type RadioGroupProps, type RadioOption } from './Radio';
 
-export { Field, FieldRow, NoFieldContext, useFieldControl, type FieldProps, type FieldAria } from './Field';
+export { Field, FieldRow, NoFieldContext, useFieldControl, useFieldLabelId, type FieldProps, type FieldAria } from './Field';
 export { Input, type InputProps } from './Input';
 export { Textarea, type TextareaProps } from './Textarea';
 export { Select, type SelectProps, type SelectOption } from './Select';
@@ -30,6 +30,7 @@ export { DateInput, type DateInputProps } from './DateInput';
 export { BirthDatePicker, type BirthDatePickerProps } from './BirthDatePicker';
 export {
   EMPTY_DATE,
+  BIRTH_DATE_ERROR,
   isFullDate,
   partsFromDisplay,
   partsToDisplay,

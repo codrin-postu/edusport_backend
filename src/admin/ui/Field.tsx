@@ -12,6 +12,8 @@ import { cx } from './cx';
 
 export interface FieldContextValue {
   id: string;
+  /** Id of the Field's own <label>, for a compound control that names a wrapping group. */
+  labelId: string;
   describedBy: string | undefined;
   invalid: boolean;
   required: boolean;
@@ -49,6 +51,12 @@ export function NoFieldContext({ children }: { children: React.ReactNode }) {
   return <FieldContext.Provider value={null}>{children}</FieldContext.Provider>;
 }
 
+/** Id of the enclosing Field's <label>, for a compound control (BirthDatePicker) that
+ * names its own wrapping group with aria-labelledby. Undefined outside a Field. */
+export function useFieldLabelId(): string | undefined {
+  return React.useContext(FieldContext)?.labelId;
+}
+
 export interface FieldProps {
   label: React.ReactNode;
   /** Shown under the control, muted. */
@@ -69,18 +77,20 @@ export function Field({ label, hint, error, required = false, id, hideLabel, cla
   const controlId = id ?? `ui-f${auto.replace(/:/g, '')}`;
   const hintId = hint ? `${controlId}-hint` : undefined;
   const errId = error ? `${controlId}-err` : undefined;
+  const labelId = `${controlId}-label`;
   const ctx = React.useMemo<FieldContextValue>(
     () => ({
       id: controlId,
+      labelId,
       describedBy: [errId, hintId].filter(Boolean).join(' ') || undefined,
       invalid: Boolean(error),
       required,
     }),
-    [controlId, errId, hintId, error, required],
+    [controlId, labelId, errId, hintId, error, required],
   );
   return (
     <div className={cx('ui-field', className)}>
-      <label htmlFor={controlId} className={cx('ui-label', hideLabel && 'ui-sr')}>
+      <label htmlFor={controlId} id={labelId} className={cx('ui-label', hideLabel && 'ui-sr')}>
         {label}
         {required && (
           <span className="ui-req" aria-hidden="true">

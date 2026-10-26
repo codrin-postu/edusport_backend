@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BIRTH_DATE_ERROR,
   EMPTY_DATE,
   birthYears,
   dayChoices,
@@ -93,5 +94,9 @@ describe('stored formats', () => {
     expect(partsFromIso('2016-02-30')).toBeNull();
     expect(partsFromIso(null)).toBeNull();
     expect(partsToIso({ day: 4, month: 3, year: 2016 })).toBe('2016-03-04');
+  });
+
+  it('pins the decided error copy, same string as the website module', () => {
+    expect(BIRTH_DATE_ERROR).toBe('Alegeți data nașterii.');
   });
 });

@@ -10,7 +10,7 @@
  * 2a day labels zero-padded "01".."31", months by name; 2b years oldest first;
  * 2c empty first rows "Zi" / "Lună" / "An"; 2d all 31 days always listed, a
  * select never auto-clears another part, an impossible date is caught by
- * isFullDate (the caller refuses it with "Alegeți data nașterii.").
+ * isFullDate (the caller refuses it with BIRTH_DATE_ERROR).
  */
 
 export interface DateParts {
@@ -74,6 +74,10 @@ export function isFullDate(p: DateParts): p is FullDate {
   if (p.day === null || p.month === null || p.year === null) return false;
   return p.month >= 1 && p.month <= 12 && p.day >= 1 && p.day <= daysInMonth(p.month, p.year);
 }
+
+/** Decided copy (Needs decision 2d) for a date that fails isFullDate; same string as the
+ * website's BIRTH_DATE_ERROR (_rules.ts). The caller (Înscrieri / athlete edit form) shows it. */
+export const BIRTH_DATE_ERROR = 'Alegeți data nașterii.';
 
 /** Parts after one select changes; no other part is touched (Needs decision 2d: an impossible result is left for isFullDate to catch, not auto-fixed here). */
 export function withPart(p: DateParts, key: keyof DateParts, value: number | null): DateParts {
