@@ -4,6 +4,7 @@ import { confirmContext, registrationMatchView } from '../../../club/athletes/co
 import { ADMIN_ERRORS, CONFIRM_ERRORS } from '../../../club/athletes/errors';
 import { readHistory } from '../../../club/athletes/history-read';
 import { clubStore, queryText, serviceContext } from '../../../club/athletes/http';
+import { moveToSchool, readMoveSchool } from '../../../club/athletes/school-move';
 import { undoConfirmation } from '../../../club/athletes/undo-service';
 import { todayInBucharest } from '../../../club/birth-date';
 import { readConfirmRequest } from '../../../club/confirm/plan';
@@ -36,5 +37,18 @@ export default {
 
   async undo(ctx: AdminCtx) {
     respond(ctx, await undoConfirmation(await serviceContext(strapi, ctx), ctx.params.documentId ?? ''));
+  },
+
+  async moveSchool(ctx: AdminCtx) {
+    const sectionId = queryText((ctx.request.body as { sectionId?: unknown } | undefined)?.sectionId);
+    const result = await moveToSchool(await serviceContext(strapi, ctx), [ctx.params.documentId ?? ''], sectionId);
+    if (result.ok === true && result.data.moved === 0) return refuseWith(ctx, 409, ADMIN_ERRORS.stale);
+    respond(ctx, result);
+  },
+
+  async moveSchoolBulk(ctx: AdminCtx) {
+    const request = readMoveSchool(ctx.request.body);
+    if (!request) return refuseWith(ctx, 400, ADMIN_ERRORS.invalid);
+    respond(ctx, await moveToSchool(await serviceContext(strapi, ctx), request.ids, request.sectionId));
   },
 };

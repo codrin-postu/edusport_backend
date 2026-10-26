@@ -6,10 +6,12 @@ const adminGuard = { auth: false, policies: ['global::is-admin'], middlewares: [
 
 export default {
   routes: [
+    { method: 'POST', path: '/club/registrations/move-school', handler: 'registrations.moveSchoolBulk', config: adminGuard },
     { method: 'GET', path: '/club/registrations/:documentId/history', handler: 'registrations.history', config: adminGuard },
     { method: 'GET', path: '/club/registrations/:documentId/match', handler: 'registrations.match', config: adminGuard },
     { method: 'GET', path: '/club/registrations/:documentId/confirm-context', handler: 'registrations.confirmContext', config: adminGuard },
     { method: 'POST', path: '/club/registrations/:documentId/confirm', handler: 'registrations.confirm', config: adminGuard },
     { method: 'POST', path: '/club/registrations/:documentId/undo-confirmation', handler: 'registrations.undo', config: adminGuard },
+    { method: 'POST', path: '/club/registrations/:documentId/move-school', handler: 'registrations.moveSchool', config: adminGuard },
   ],
 };
