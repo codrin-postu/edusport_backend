@@ -8,16 +8,22 @@ import type { AthleteRow, RegistrationRow } from './store';
  */
 export type SearchSubject = { names: (string | null)[]; phone: string | null; texts: (string | null)[]; birthDate: string | null };
 
-const wordHit = (q: string, word: string) => word.startsWith(q) || (q.length >= 4 && withinOneEdit(q, word));
+type WordTest = (q: string, word: string) => boolean;
 
-function namesHit(query: string, names: (string | null)[]): boolean {
-  const words = nameWords(query);
+const wholeWord: WordTest = (q, word) => word === q;
+const wordStart: WordTest = (q, word) => word.startsWith(q);
+const wordHit: WordTest = (q, word) => wordStart(q, word) || (q.length >= 4 && withinOneEdit(q, word));
+
+/** Every typed word passes `test` against some word of one same name. */
+function everyWord(words: string[], names: (string | null)[], test: WordTest): boolean {
   if (words.length === 0) return false;
   return names.some((name) => {
     const own = nameWords(name);
-    return words.every((q) => own.some((w) => wordHit(q, w)));
+    return words.every((q) => own.some((w) => test(q, w)));
   });
 }
+
+const namesHit = (query: string, names: (string | null)[]): boolean => everyWord(nameWords(query), names, wordHit);
 
 function phoneHit(query: string, phone: string | null): boolean {
   if (!/^[\d\s+().-]+$/.test(query)) return false;
@@ -49,4 +55,14 @@ export function searchSubjects(athletes: AthleteRow[], registrations: Registrati
     const regs = linked.get(a.id) ?? [];
     return [a.id, { names: [a.name, a.contactName, ...regs.map((r) => r.parentName)], phone: a.phone, texts: [a.email, ...regs.map((r) => r.number)], birthDate: a.birthDate }];
   }));
+}
+
+/**
+ * Order of the search rows: 0 every typed word is a whole name word, 1 every typed word begins a name word,
+ * 2 anything else (one wrong letter, phone, e-mail, number, birth date). Exact and prefix names come before typos.
+ */
+export function queryRank(subject: SearchSubject, raw: string): number {
+  const words = nameWords(raw);
+  if (everyWord(words, subject.names, wholeWord)) return 0;
+  return everyWord(words, subject.names, wordStart) ? 1 : 2;
 }
