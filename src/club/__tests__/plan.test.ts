@@ -88,7 +88,7 @@ describe('planPriceLists', () => {
 });
 
 describe('planAthletes', () => {
-  it('creates one athlete per public profile not linked yet', () => {
+  it('creates one athlete per public profile not linked yet, with the full name', () => {
     const plan = planAthletes({
       sportspeople: [
         { documentId: 'p1', name: 'Maria Dumitrescu' },
@@ -96,6 +96,6 @@ describe('planAthletes', () => {
       ],
       linkedProfileIds: ['p2'],
     });
-    expect(plan.create).toEqual([{ firstName: 'Maria', lastName: 'Dumitrescu', publicProfileId: 'p1', dataIncomplete: true }]);
+    expect(plan.create).toEqual([{ name: 'Maria Dumitrescu', publicProfileId: 'p1', dataIncomplete: true }]);
   });
 });

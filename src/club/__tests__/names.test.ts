@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nameKey, normalizeGroupName, parsePrice, splitPersonName } from '../migrate/names';
+import { nameKey, normalizeGroupName, parsePrice } from '../migrate/names';
 
 describe('normalizeGroupName', () => {
   it('replaces cedilla letters with comma-below letters', () =>
@@ -12,12 +12,6 @@ describe('nameKey', () => {
     expect(nameKey('Profesioniști')).toBe(nameKey('profesionisti '));
     expect(nameKey('Primii Paşi')).toBe(nameKey('Primii Pași'));
   });
-});
-
-describe('splitPersonName', () => {
-  it('last word is the last name', () =>
-    expect(splitPersonName('Ana Maria Dumitrescu')).toEqual({ firstName: 'Ana Maria', lastName: 'Dumitrescu' }));
-  it('a single word goes to firstName', () => expect(splitPersonName('Ana')).toEqual({ firstName: 'Ana', lastName: '' }));
 });
 
 describe('parsePrice', () => {
