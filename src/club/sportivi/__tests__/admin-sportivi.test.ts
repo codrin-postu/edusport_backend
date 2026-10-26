@@ -170,3 +170,39 @@ describe('Adaugă sportiv (Task 11)', () => {
     expect(dash).not.toContain('SPORTIV_EDIT_TO');
   });
 });
+
+describe('Profil public (Task 8)', () => {
+  const editor = read('sportivi/ProfileEditor.tsx');
+
+  it('name read-only from the athlete, slug read-only, nothing of them saved', () => {
+    expect(editor).toContain('<Input value={athleteName} readOnly />');
+    expect(editor).toContain('hint={RECORD_COPY.profile.nameHint}');
+    expect(editor).toContain('<Input value={v.slug} readOnly />');
+    const body = editor.slice(editor.indexOf('function buildBody'), editor.indexOf('// ---- skate-results'));
+    expect(body).toContain('skateResultsSlug');
+    expect(body).not.toMatch(/\bname:|\bslug:|showPublicPage:/);
+  });
+
+  it('the page switch goes through the athlete route; no delete and no page chrome', () => {
+    expect(editor).toContain('api.setVisibility(athleteId, v.showPublicPage)');
+    expect(editor).not.toMatch(/ConfirmDialog|PageHeader|SPORTIV_DELETE_COPY|export default/);
+    expect(editor).toContain('{ready && active && !inFooter && <SaveBar');
+  });
+
+  it('every section of today stays', () => {
+    for (const s of ['Identitate', 'Poveste', 'Echipă și discipline', 'Mișcări și hobby-uri', 'Obiectiv de carieră', 'Rezultate competiții', 'Galerie', 'Programe pe sezon', 'Fotografie', 'Activ din', 'Vizibilitate pe site']) {
+      expect(editor).toContain(s);
+    }
+  });
+
+  it('skate-results lines joined by commas, no middle dot', () => {
+    expect(editor).not.toContain('\u00b7');
+  });
+
+  it('the tab: note, "Creează profil public", stays mounted once opened', () => {
+    const tab = read('sportivi/ProfileTab.tsx');
+    expect(tab).toContain('RECORD_COPY.profile.note');
+    expect(tab).toContain('RECORD_COPY.profile.create');
+    expect(read('sportivi/AthleteRecordPage.tsx')).toContain("seen.includes('profil') && (");
+  });
+});

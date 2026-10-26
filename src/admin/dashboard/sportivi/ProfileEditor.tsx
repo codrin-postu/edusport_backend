@@ -1,10 +1,6 @@
 import * as React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import {
-  AdminPage,
-  Window,
-  PageHeader,
   TwoColumn,
   Section,
   Field,
@@ -24,28 +20,23 @@ import {
   Loading,
   SaveBar,
   UnsavedGuard,
-  releaseUnsavedGuards,
   useSaveState,
   adminToast,
   type GalleryImage,
 } from '../../ui';
 import { usePageForm } from '../../lib';
 import { PROGRAM_TYPES } from '../constants';
-import { SPORTIVI_TO, SPORTIV_EDIT_TO } from '../menu';
-import { ConfirmDialog } from '../../ConfirmDialog';
-
-/** Today's delete copy, kept with the editor until plan 3-5 Task 8 removes its delete button. */
-const SPORTIV_DELETE_COPY = {
-  title: 'Ștergi sportivul?',
-  message: (name: string) =>
-    `„${name}" se șterge definitiv, împreună cu profilul, rezultatele și sezoanele. Acțiunea nu poate fi anulată.`,
-} as const;
+import type { AthleteRecord } from '../../../club/athletes/api-types';
+import { RECORD_COPY } from '../../../club/sportivi/record-view';
+import type { SportiviApi } from './api';
+import { useRecordFooter, type FooterAction } from './recordFooter';
 
 /**
- * EduSport admin, custom "Sportiv" edit page (replaces the default
- * content-manager edit view for api::sportsperson.sportsperson).
+ * EduSport admin, the "Profil public" tab of the athlete record (spec 6.3): today's whole profile
+ * editor (it was SportivEditPage), with the name read-only (it follows the athlete name, changed
+ * in Date) and the slug read-only (the address never changes after creation).
  *
- * Two columns. Left rail: photo (single media), slug, activeSince, showPublicPage.
+ * Two columns. Left rail: photo (single media), slug, activeSince, page visibility.
  * Right: name/description, story (blocks, edited as plain text), team & disciplines
  * (relation multi-selects), favoriteMoves/hobbies (json string arrays), careerGoal,
  * skate-results link + import, gallery (multiple media), seasons (repeatable
@@ -53,13 +44,15 @@ const SPORTIV_DELETE_COPY = {
  *
  * Reads scalars + media via content-manager GET; relations via the dedicated
  * content-manager relations endpoint (list GET returns counts only). Writes via
- * content-manager PUT/POST: media as numeric file ids, relations as { set:[{id}] },
- * story converted between the blocks structure and plain text, then publishes
- * through /api/sportspeople/:id/publish.
+ * content-manager PUT (never name, slug or showPublicPage): media as numeric file ids,
+ * relations as { set:[{id}] }, story converted between the blocks structure and plain
+ * text, then publishes through /api/sportspeople/:id/publish. The page switch goes
+ * through the athlete route, which writes "Pagina publică pornită / oprită" (spec 1.6).
  *
- * Built on the shared admin UI (src/admin/ui): usePageForm keeps the working
- * copy and the dirty flag against the loaded profile, the floating SaveBar
- * saves (Cmd/Ctrl+S), UnsavedGuard asks before leaving with edits.
+ * Built on the shared admin UI (src/admin/ui): usePageForm keeps the working copy and
+ * the dirty flag against the loaded profile; on desktop the floating SaveBar saves
+ * (Cmd/Ctrl+S), on phones the record's sheet footer does; UnsavedGuard asks before
+ * leaving with edits.
  */
 
 const CT = '/content-manager/collection-types/api::sportsperson.sportsperson';
@@ -186,21 +179,6 @@ function textToBlocks(text: string): unknown {
   return t.split('\n').map((line) => ({ type: 'paragraph', children: [{ type: 'text', text: line }] }));
 }
 
-/** URL-safe slug from a name; the `slug` uid field is required, so the editor
- *  never lets it be empty (Strapi's auto-uid is bypassed by our direct save). */
-function slugify(s: string): string {
-  return (s || '')
-    .replace(/[șşȘŞ]/g, 's')
-    .replace(/[țţȚŢ]/g, 't')
-    .replace(/[ăâĂÂ]/g, 'a')
-    .replace(/[îÎ]/g, 'i')
-    .normalize('NFKD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-}
-
 function toStringArray(v: unknown): string[] {
   if (Array.isArray(v)) return v.map((x) => String(x)).filter((x) => x.trim() !== '');
   return [];
@@ -245,12 +223,8 @@ function toForm(e: any, dRes: any, cRes: any, chRes: any): FormState {
 
 function buildBody(form: FormState) {
   return {
-    name: form.name,
-    // The uid slug is required; never send it empty or publishing fails.
-    slug: (form.slug && form.slug.trim()) || slugify(form.name),
     description: form.description || null,
     story: textToBlocks(form.storyText),
-    showPublicPage: form.showPublicPage,
     activeSince: form.activeSince || null,
     careerGoal: form.careerGoal || null,
     favoriteMoves: form.favoriteMoves.map((s) => s.trim()).filter(Boolean),
@@ -350,13 +324,19 @@ function RelationField({ label, value, options, onChange }: { label: string; val
   );
 }
 
-export default function SportivEditPage() {
-  const { get, put, post, del } = useFetchClient();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const params = new URLSearchParams(location.search || window.location.search);
-  const id = params.get('id') || '';
-  const isNew = !id;
+type ProfileEditorProps = {
+  profileId: string;
+  athleteId: string;
+  athleteName: string;
+  api: SportiviApi;
+  onRecord: (record: AthleteRecord) => void;
+  /** The tab is visible: only then its buttons reach the phone footer or the SaveBar shows. */
+  active: boolean;
+};
+
+export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord, active }: ProfileEditorProps) {
+  const { get, put, post } = useFetchClient();
+  const id = profileId;
 
   const save = useSaveState();
   const [loaded, setLoaded] = React.useState<FormState>(EMPTY);
@@ -364,11 +344,10 @@ export default function SportivEditPage() {
   const v = form.value;
   const upd = form.patch;
 
-  const [loading, setLoading] = React.useState(!isNew);
+  const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
-  const [showErrors, setShowErrors] = React.useState(false);
-  // documentId whose data `loaded` holds, so the URL change after a create
-  // does not reload what the save already fetched.
+  // documentId whose data `loaded` holds, so a re-run of the load effect does not
+  // reload what the save already fetched.
   const loadedFor = React.useRef<string>('');
 
   const [disciplineOpts, setDisciplineOpts] = React.useState<Opt[]>([]);
@@ -503,13 +482,6 @@ export default function SportivEditPage() {
   );
 
   React.useEffect(() => {
-    if (isNew) {
-      loadedFor.current = '';
-      setLoaded(EMPTY);
-      setLoading(false);
-      setError(false);
-      return;
-    }
     if (loadedFor.current === id) return;
     let off = false;
     setLoading(true);
@@ -525,96 +497,42 @@ export default function SportivEditPage() {
     return () => {
       off = true;
     };
-  }, [id, isNew, fetchEntry]);
-
-  const nameMissing = !v.name.trim();
+  }, [id, fetchEntry]);
 
   const onSave = () => {
-    if (nameMissing) {
-      setShowErrors(true);
-      adminToast.error('Numele este obligatoriu.');
-      return;
-    }
-    setShowErrors(false);
     const body = buildBody(v);
-    // Save updates the draft; publishing makes it live (visibility is still
-    // gated by the Public/Ascuns toggle). Publish failure never blocks the save.
-    // The draft is already persisted by the POST/PUT; the publish action just
-    // promotes it. It rejects the update-shaped body (relations as {set:...}),
-    // so send an empty payload.
-    const publish = async (docId: string) => {
+    // Save updates the draft; publishing makes it live (visibility is still gated by the
+    // page switch). Publish failure never blocks the save. The publish action rejects the
+    // update-shaped body (relations as {set:...}), so send an empty payload.
+    const publish = async () => {
       try {
-        await post(`/api/sportspeople/${docId}/publish`, {});
+        await post(`/api/sportspeople/${id}/publish`, {});
       } catch {
         /* leave as draft if publish endpoint is unavailable */
       }
     };
-    let createdId: string | null = null;
-    void save
-      .run(async () => {
-        if (isNew) {
-          const res: any = await post(CT, body);
-          const newId = (res?.data?.data ?? res?.data)?.documentId;
-          if (newId) {
-            await publish(newId);
-            const fresh = await fetchEntry(newId).catch(() => null);
-            if (fresh) {
-              loadedFor.current = newId;
-              setLoaded(fresh);
-            }
-            createdId = newId;
-          }
-        } else {
-          await put(`${CT}/${id}`, body);
-          await publish(id);
-          const fresh = await fetchEntry(id);
-          loadedFor.current = id;
-          setLoaded(fresh);
-        }
-      }, 'Salvarea a eșuat. Verifică datele și încearcă din nou.')
-      .then((ok) => {
-        if (ok && createdId) {
-          releaseUnsavedGuards();
-          navigate(`${SPORTIV_EDIT_TO}?id=${createdId}`, { replace: true });
-        }
-      });
+    void save.run(async () => {
+      await put(`${CT}/${id}`, body);
+      if (v.showPublicPage !== loaded.showPublicPage) onRecord(await api.setVisibility(athleteId, v.showPublicPage));
+      await publish();
+      const fresh = await fetchEntry(id);
+      loadedFor.current = id;
+      setLoaded(fresh);
+    }, 'Salvarea a eșuat. Verifică datele și încearcă din nou.');
   };
 
-  const discard = () => {
-    setShowErrors(false);
-    form.reset();
-  };
-
-  // Permanent delete (edit mode only), same content-manager collection path
-  // the save above PUTs to, keyed by documentId.
-  const [confirmOpen, setConfirmOpen] = React.useState(false);
-  const [deleting, setDeleting] = React.useState(false);
-  const [delError, setDelError] = React.useState<string | null>(null);
-
-  const closeConfirm = React.useCallback(() => {
-    if (deleting) return; // never dismiss mid-request
-    setConfirmOpen(false);
-    setDelError(null);
-  }, [deleting]);
-
-  const confirmDelete = async () => {
-    if (!id) return;
-    setDeleting(true);
-    setDelError(null);
-    try {
-      await del(`${CT}/${id}`);
-      setConfirmOpen(false);
-      releaseUnsavedGuards();
-      navigate(SPORTIVI_TO, { replace: true });
-    } catch {
-      setDelError('Ștergerea a eșuat.');
-    } finally {
-      setDeleting(false);
-    }
-  };
+  const discard = () => form.reset();
 
   const ready = !loading && !error;
   const status = skateStatus(job, skateLinked);
+  const buttons: FooterAction[] | null =
+    ready && form.dirty
+      ? [
+          { label: 'Renunță', variant: 'secondary', onClick: discard, disabled: save.saving },
+          { label: 'Salvează', onClick: onSave, loading: save.saving },
+        ]
+      : null;
+  const inFooter = useRecordFooter(active ? buttons : null);
 
   const rail = (
     <div className="ui-stack">
@@ -627,8 +545,8 @@ export default function SportivEditPage() {
           onChange={(tiles) => upd({ photo: tiles[0] ?? null })}
         />
       </Field>
-      <Field label="Slug" hint="Se generează din nume dacă e gol.">
-        <Input value={v.slug} onChange={(e) => upd({ slug: e.target.value })} placeholder="ex. nume-sportiv" />
+      <Field label="Slug">
+        <Input value={v.slug} readOnly />
       </Field>
       <Field label="Activ din">
         <DateInput value={v.activeSince || null} onChange={(d) => upd({ activeSince: d ?? '' })} />
@@ -648,30 +566,8 @@ export default function SportivEditPage() {
   );
 
   return (
-    <AdminPage>
+    <>
       <style>{SPORTIV_CSS}</style>
-      <Window>
-        <PageHeader
-          back={{ to: SPORTIVI_TO, label: 'Sportivi' }}
-          title={isNew ? 'Adaugă sportiv' : 'Editează sportiv'}
-          subtitle={isNew ? 'Completează profilul noului sportiv.' : loaded.name}
-          actions={
-            ready && !isNew ? (
-              <Button
-                variant="danger"
-                title="Șterge sportivul definitiv"
-                onClick={() => {
-                  setDelError(null);
-                  setConfirmOpen(true);
-                }}
-                disabled={save.saving || deleting}
-              >
-                Șterge sportiv
-              </Button>
-            ) : undefined
-          }
-        />
-
         {loading ? (
           <Loading />
         ) : error ? (
@@ -682,8 +578,8 @@ export default function SportivEditPage() {
           <TwoColumn rail={rail} railLabel="Profil">
             <Section title="Identitate">
               <div className="ui-stack">
-                <Field label="Nume" required error={showErrors && nameMissing ? 'Numele este obligatoriu.' : undefined}>
-                  <Input value={v.name} onChange={(e) => upd({ name: e.target.value })} placeholder="Nume și prenume" />
+                <Field label="Nume" hint={RECORD_COPY.profile.nameHint}>
+                  <Input value={athleteName} readOnly />
                 </Field>
                 <Field label="Descriere scurtă">
                   <Textarea rows={2} value={v.description} onChange={(e) => upd({ description: e.target.value })} />
@@ -737,9 +633,14 @@ export default function SportivEditPage() {
                     <div>
                       <div className="sp-name">{skateLinked?.display_name ?? v.skateResultsSlug}</div>
                       <div className="ui-hint">
-                        {[skateLinked?.nation, skateLinked?.club].filter(Boolean).join(' · ')}
-                        {typeof skateLinked?.events_count === 'number' ? ` · ${skateLinked.events_count} competiții` : ''}
-                        {skateLinked?.coach ? ` · antrenor ${skateLinked.coach}` : ''}
+                        {[
+                          skateLinked?.nation,
+                          skateLinked?.club,
+                          typeof skateLinked?.events_count === 'number' ? `${skateLinked.events_count} competiții` : '',
+                          skateLinked?.coach ? `antrenor ${skateLinked.coach}` : '',
+                        ]
+                          .filter(Boolean)
+                          .join(', ')}
                       </div>
                     </div>
                     <Button
@@ -830,9 +731,14 @@ export default function SportivEditPage() {
                         <button type="button" className="sp-cand" key={c.slug ?? c.id} onClick={() => upd({ skateResultsSlug: c.slug ?? String(c.id) })}>
                           <span className="sp-name">{c.display_name}</span>
                           <span className="ui-hint">
-                            {[c.nation, c.club].filter(Boolean).join(' · ')}
-                            {typeof c.events_count === 'number' ? ` · ${c.events_count} competiții` : ''}
-                            {typeof c.best_total === 'number' ? ` · max ${c.best_total.toFixed(2)}` : ''}
+                            {[
+                              c.nation,
+                              c.club,
+                              typeof c.events_count === 'number' ? `${c.events_count} competiții` : '',
+                              typeof c.best_total === 'number' ? `max ${c.best_total.toFixed(2)}` : '',
+                            ]
+                              .filter(Boolean)
+                              .join(', ')}
                           </span>
                         </button>
                       ))}
@@ -888,19 +794,8 @@ export default function SportivEditPage() {
           </TwoColumn>
         )}
 
-        {ready && <SaveBar {...save.bar} onSave={onSave} onDiscard={discard} />}
-      </Window>
-
-      <ConfirmDialog
-        open={confirmOpen}
-        title={SPORTIV_DELETE_COPY.title}
-        message={SPORTIV_DELETE_COPY.message(loaded.name)}
-        busy={deleting}
-        error={delError}
-        onCancel={closeConfirm}
-        onConfirm={confirmDelete}
-      />
+        {ready && active && !inFooter && <SaveBar {...save.bar} onSave={onSave} onDiscard={discard} />}
       <UnsavedGuard when={form.dirty} />
-    </AdminPage>
+    </>
   );
 }
