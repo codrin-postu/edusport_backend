@@ -26,7 +26,7 @@ Tracks the phases of `10-spec.md` section 7. Update the status line of a phase w
 
 ## Small open items
 
-- [ ] Admin stat tiles (`.ui-stat`): keep or drop the left colour band (cards already dropped theirs)
+- [x] Admin stat tiles keep the left band (decided 2026-10-26)
 - [ ] Local `strapi_app`: `npm install` inside the container (pdfkit), then start
 - [ ] Delete local branch `backup/registration-rebuild-pre-msgfilter` once no longer needed
 
