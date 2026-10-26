@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const ROOT = join(__dirname, '..', '..', 'api');
-const NEW_TYPES = ['season', 'location', 'section', 'price-list', 'group', 'athlete', 'group-membership', 'acs-membership', 'history-entry'];
+const NEW_TYPES = ['season', 'location', 'section', 'price-list', 'group', 'athlete', 'group-membership', 'acs-membership', 'history-entry', 'athlete-duplicate'];
 
 describe.each(NEW_TYPES)('content type %s', (name) => {
   const schema = JSON.parse(readFileSync(join(ROOT, name, 'content-types', name, 'schema.json'), 'utf8'));
