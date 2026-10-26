@@ -1,0 +1,84 @@
+import { describe, expect, it, vi } from 'vitest';
+import { CONFIRM_ERRORS } from '../errors';
+import { confirmRegistration } from '../confirm-service';
+import type { ConfirmRequest } from '../../confirm/plan';
+import { athleteRow, fakeClubStore, registrationRow, type Fake } from './fake-store';
+
+const ctx = (fake: Fake) => ({ store: fake.store, actor: 'ana@club.ro', today: { year: 2026, month: 10, day: 26 }, log: vi.fn() });
+const existing = (over: Partial<ConfirmRequest> = {}): ConfirmRequest => ({ choice: 'existing', athleteId: 'a1', groupId: 'g-pp', makeMain: false, updateFields: null, ...over });
+const seed = () => ({
+  athletes: [athleteRow({ id: 'a1', name: 'Maria Pop', birthDate: '2016-03-14', phone: '0711', status: 'inactiv', profileId: 'sp1' })],
+  registrations: [registrationRow({ id: 'r1', status: 'Contactat' })],
+  profiles: [{ id: 'sp1', name: 'Maria Pop', slug: 'maria-pop', previousSlugs: [], showPublicPage: true, published: true }],
+});
+
+describe('Sportiv existent (spec 4.5)', () => {
+  it('links, applies the default ticks, reactivates, adds the group and A.C.S., writes both histories', async () => {
+    const fake = fakeClubStore(seed());
+    const result = await confirmRegistration(ctx(fake), 'r1', existing());
+    expect(result).toEqual({ ok: true, data: { athleteId: 'a1', athleteName: 'Maria Pop', registrationId: 'r1' } });
+    const reg = fake.state.registrations[0];
+    expect([reg.athleteId, reg.status, reg.matchAthleteId, reg.confirmation?.previousStatus]).toEqual(['a1', 'Confirmat', null, 'Contactat']);
+    expect(fake.state.athletes[0]).toMatchObject({ phone: '0722111222', contactName: 'Ana Pop', email: 'ana@example.com', status: 'activ', dataIncomplete: false });
+    expect(fake.state.memberships).toEqual([{ id: expect.any(String), athleteId: 'a1', groupId: 'g-pp', seasonId: 's26', isMain: true, from: '2026-10-26' }]);
+    expect(fake.state.acs).toEqual([{ id: expect.any(String), athleteId: 'a1', seasonId: 's26', state: 'in_asteptare' }]);
+    expect(fake.state.history.map((h) => h.action)).toEqual(['confirmed', 'registration-confirmed', 'updated', 'group-added', 'acs-changed', 'reactivated']);
+    expect(fake.state.locks).toEqual(['r1']);
+  });
+
+  it('renames the public profile when the name is ticked; the slug stays', async () => {
+    const fake = fakeClubStore({ ...seed(), registrations: [registrationRow({ id: 'r1', childName: 'Maria Ioana Pop' })] });
+    await confirmRegistration(ctx(fake), 'r1', existing({ updateFields: ['name'] }));
+    expect(fake.state.profiles[0]).toMatchObject({ name: 'Maria Ioana Pop', slug: 'maria-pop' });
+  });
+
+  it('a second registration of the same child adds nothing twice (r4 e5)', async () => {
+    const fake = fakeClubStore({ ...seed(), registrations: [registrationRow({ id: 'r1' }), registrationRow({ id: 'r2', number: '2026-0150' })] });
+    await confirmRegistration(ctx(fake), 'r1', existing());
+    await confirmRegistration(ctx(fake), 'r2', existing());
+    expect([fake.state.memberships.length, fake.state.acs.length]).toEqual([1, 1]);
+  });
+});
+
+describe('Sportiv nou (spec 4.5)', () => {
+  it('creates the athlete from the registration, activ, linked', async () => {
+    const fake = fakeClubStore(seed());
+    const result = await confirmRegistration(ctx(fake), 'r1', { choice: 'new', athleteId: null, groupId: null, makeMain: false, updateFields: null });
+    const created = fake.state.athletes[1];
+    expect(result.ok && result.data.athleteId).toBe(created.id);
+    expect(created).toMatchObject({ name: 'Maria Pop', birthDate: '2016-03-14', contactName: 'Ana Pop', status: 'activ', dataIncomplete: false });
+    expect(fake.state.registrations[0].confirmation?.createdAthlete).toBe(true);
+  });
+});
+
+describe('errors and concurrency (spec 4.7)', () => {
+  it('the second confirmation is refused and nothing is doubled', async () => {
+    const fake = fakeClubStore(seed());
+    await confirmRegistration(ctx(fake), 'r1', existing());
+    const second = await confirmRegistration(ctx(fake), 'r1', { choice: 'new', athleteId: null, groupId: null, makeMain: false, updateFields: null });
+    expect(second).toEqual({ ok: false, status: 409, error: CONFIRM_ERRORS.taken });
+    expect(fake.state.athletes).toHaveLength(1);
+  });
+
+  it('all or nothing: a failing write leaves no athlete, link, group, A.C.S. or history', async () => {
+    const fake = fakeClubStore(seed());
+    fake.failOn('createAcs');
+    const result = await confirmRegistration(ctx(fake), 'r1', { choice: 'new', athleteId: null, groupId: 'g-pp', makeMain: false, updateFields: null });
+    expect(result).toEqual({ ok: false, status: 500, error: CONFIRM_ERRORS.failed });
+    expect([fake.state.athletes.length, fake.state.memberships.length, fake.state.acs.length, fake.state.history.length]).toEqual([1, 0, 0, 0]);
+    expect(fake.state.registrations[0]).toMatchObject({ athleteId: null, status: 'Contactat', confirmation: null });
+  });
+
+  it('refuses an unreadable birth date, an unknown athlete or a group outside the picker', async () => {
+    const fake = fakeClubStore({ ...seed(), registrations: [registrationRow({ id: 'r1', childBirthDate: 'martie' }), registrationRow({ id: 'r2' })] });
+    expect(await confirmRegistration(ctx(fake), 'r1', existing())).toEqual({ ok: false, status: 400, error: CONFIRM_ERRORS.birthDate });
+    expect(await confirmRegistration(ctx(fake), 'r2', existing({ athleteId: 'nope' }))).toEqual({ ok: false, status: 400, error: CONFIRM_ERRORS.failed });
+    expect(await confirmRegistration(ctx(fake), 'r2', existing({ groupId: 'g-nope' }))).toEqual({ ok: false, status: 400, error: CONFIRM_ERRORS.failed });
+  });
+
+  it('refreshes the saved matches after a confirmation', async () => {
+    const fake = fakeClubStore({ ...seed(), registrations: [registrationRow({ id: 'r1' }), registrationRow({ id: 'r2', number: '2026-0150' })] });
+    await confirmRegistration(ctx(fake), 'r1', existing());
+    expect(fake.state.registrations[1]).toMatchObject({ matchAthleteId: 'a1', matchLevel: 'sigur' });
+  });
+});
