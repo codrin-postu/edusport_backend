@@ -121,7 +121,8 @@ describe('readListQuery', () => {
     });
   });
 
-  it('pageSize accepts 50 or a multiple of 30 up to 300 (phone reload of pages 1..P); anything else falls back to 50', () => {
-    expect([30, 90, 300, 330, 45].map((pageSize) => readListQuery({ pageSize: String(pageSize) }).pageSize)).toEqual([30, 90, 300, 50, 50]);
+  it('pageSize accepts 50 or a multiple of 30 up to 1200 (phone reload of pages 1..P); anything else falls back to 50', () => {
+    const sizes = [30, 90, 300, 330, 1200, 1230, 45, 0, 20];
+    expect(sizes.map((pageSize) => readListQuery({ pageSize: String(pageSize) }).pageSize)).toEqual([30, 90, 300, 330, 1200, 50, 50, 50, 50]);
   });
 });
