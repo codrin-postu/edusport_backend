@@ -74,18 +74,26 @@ function planDemote(f: UndoFacts): string | null {
   return promoted && f.membershipIds.includes(promoted) && f.mainMembershipId === promoted ? promoted : null;
 }
 
+/** Whether, once `deleteMembershipId` and `demoteMembershipId` are applied, the season keeps no main at all
+ * (never true when a later admin action made a third membership main: that one is left alone). */
+function seasonMainGone(f: UndoFacts, deleteMembershipId: string | null, demoteMembershipId: string | null): boolean {
+  return f.mainMembershipId === null || f.mainMembershipId === deleteMembershipId || f.mainMembershipId === demoteMembershipId;
+}
+
 export function planUndo(f: UndoFacts): UndoPlan {
   const acs = planAcsUndo(f);
   const own = f.record.membershipId;
   const deleteMembershipId = own && f.membershipIds.includes(own) ? own : null;
+  const demoteMembershipId = planDemote(f);
   const demoted = f.record.demotedMainId;
+  const canRestore = demoted && f.membershipIds.includes(demoted) && seasonMainGone(f, deleteMembershipId, demoteMembershipId);
   const deleteAthlete = f.record.createdAthlete && isUnused(f, deleteMembershipId, acs?.op === 'delete' ? acs.id : null);
   const athlete = deleteAthlete ? { athleteUpdate: null, revertedFields: {}, renameProfile: null } : planAthleteRevert(f);
   return {
     registration: { status: f.record.previousStatus },
     deleteMembershipId,
-    restoreMainId: demoted && f.membershipIds.includes(demoted) ? demoted : null,
-    demoteMembershipId: planDemote(f),
+    restoreMainId: canRestore ? demoted : null,
+    demoteMembershipId,
     acs,
     ...athlete,
     deleteAthlete,
