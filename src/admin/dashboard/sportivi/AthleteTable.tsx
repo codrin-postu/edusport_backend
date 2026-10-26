@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { EmptyState, Loading, Pager } from '../../ui';
+import { IconWarning } from '../../ui/icons';
 import type { AthleteListRow } from '../../../club/athletes/api-types';
 import {
   LIST_COPY, acsCell, ageText, countLine, groupCell, groupHeader, missingTip, profileCell, withHeaderSort, withPage, type SortKey,
@@ -10,6 +11,8 @@ import type { AthleteList } from './useAthleteList';
 
 type Open = (documentId: string) => void;
 
+const SORT_MARK = { asc: '▲', desc: '▼' } as const;
+
 function SortHeader({ list, sortKey, children }: { list: AthleteList; sortKey: SortKey; children: React.ReactNode }) {
   const { state, setState } = list;
   const dir = state.sort === sortKey ? state.dir : null;
@@ -17,23 +20,35 @@ function SortHeader({ list, sortKey, children }: { list: AthleteList; sortKey: S
     <th scope="col" aria-sort={dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : 'none'}>
       <button type="button" onClick={() => setState(withHeaderSort(state, sortKey))}>
         {children}
-        <span className="ui-table-sort" aria-hidden="true">{dir === 'asc' ? '▲' : dir === 'desc' ? '▼' : ''}</span>
+        <span className={dir ? 'ui-table-sort' : 'ui-table-sort spv-unsorted'} aria-hidden="true">{dir ? SORT_MARK[dir] : '↕'}</span>
       </button>
     </th>
   );
 }
 
+function MissingMarker({ row }: { row: AthleteListRow }) {
+  const tip = missingTip(row);
+  return (
+    <span className="spv-miss" title={tip ?? undefined}>
+      <IconWarning size={12} />
+      {LIST_COPY.incompleteMarker}
+      {tip && <span className="ui-sr">{tip}</span>}
+    </span>
+  );
+}
+
 function Row({ row, onOpen }: { row: AthleteListRow; onOpen: Open }) {
   const open = (e: React.MouseEvent) => {
-    e.preventDefault();
     e.stopPropagation();
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
     onOpen(row.documentId);
   };
   return (
     <tr className="ui-table-click" onClick={() => onOpen(row.documentId)}>
       <td>
         <Link className="spv-name" to={athleteRecordTo(row.documentId)} onClick={open}>{row.name}</Link>
-        {row.dataIncomplete && <span className="spv-miss" title={missingTip(row) ?? undefined}>{LIST_COPY.incompleteMarker}</span>}
+        {row.dataIncomplete && <MissingMarker row={row} />}
       </td>
       <td>{ageText(row.age)}</td>
       <td className={row.mainGroup ? undefined : 'spv-muted'}>{groupCell(row)}</td>

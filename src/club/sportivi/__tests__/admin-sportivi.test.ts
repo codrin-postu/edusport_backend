@@ -54,10 +54,19 @@ describe('athlete search accessibility (Task 5 review)', () => {
 });
 
 describe('list screens (Task 6)', () => {
-  it('desktop 50 rows, phone 30 appended only after page 1', () => {
+  it('pages come from listRequest: phone appends only the next page, a remembered page reloads 1..N', () => {
     const hook = read('sportivi/useAthleteList.ts');
-    expect(hook).toContain('phone ? PAGE_SIZE.phone : PAGE_SIZE.desktop');
-    expect(hook).toContain('const append = phone && state.page > 1;');
+    expect(hook).toContain('listRequest(wanted, phone, loaded.current)');
+    expect(hook).toContain('req.append ? [...prev, ...p.data] : p.data');
+    expect(hook).toContain('loaded.current = req.loaded;');
+  });
+
+  it('"date lipsă" and the card badge carry the triangle warning icon; the missing list reaches screen readers', () => {
+    expect(read('../ui/icons.tsx')).toMatch(/export const IconWarning[\s\S]*M7 1\.6L12\.6 12\.2H1\.4z/);
+    const table = read('sportivi/AthleteTable.tsx');
+    expect(table).toContain('<IconWarning size={12} />');
+    expect(table).toContain('{tip && <span className="ui-sr">{tip}</span>}');
+    expect(read('sportivi/AthleteCards.tsx')).toContain('<IconWarning size={11} />');
   });
 
   it('header and toolbar as spec 5: no Export, no Coloane, sort in the sheet on phones', () => {

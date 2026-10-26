@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Button, EmptyState, Loading, StatusBadge } from '../../ui';
+import { IconWarning } from '../../ui/icons';
 import { LIST_COPY, cardLine, countLine, withPage } from '../../../club/sportivi/list-view';
 import type { AthleteList } from './useAthleteList';
 
@@ -19,7 +20,12 @@ export function AthleteCards({ list, onOpen }: { list: AthleteList; onOpen: (doc
             <button type="button" className="spv-card" onClick={() => onOpen(r.documentId)}>
               <span className="spv-name">{r.name}</span>
               <span className="spv-sub2">{cardLine(r)}</span>
-              {r.dataIncomplete && <StatusBadge tone="warning">{LIST_COPY.incompleteBadge}</StatusBadge>}
+              {r.dataIncomplete && (
+                <StatusBadge tone="warning">
+                  <IconWarning size={11} />
+                  {LIST_COPY.incompleteBadge}
+                </StatusBadge>
+              )}
             </button>
           </li>
         ))}

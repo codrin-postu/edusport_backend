@@ -11,7 +11,8 @@ export const SPORTIVI_CSS = `
 .ui-root .spv-name{font-weight:600;color:var(--theme-text)}
 .ui-root a.spv-name{text-decoration:none}
 .ui-root a.spv-name:hover{text-decoration:underline}
-.ui-root .spv-miss{display:block;font-size:11.5px;line-height:1.2;margin-top:1px;color:var(--theme-warning)}
+.ui-root .spv-miss{display:flex;align-items:center;gap:4px;font-size:11.5px;line-height:1.2;margin-top:1px;color:var(--theme-warning)}
+.ui-root .spv-unsorted{color:var(--theme-text-muted)}
 .ui-root .spv-muted{color:var(--theme-text-muted)}
 .ui-root .spv-sub2{display:block;font-size:12px;color:var(--theme-text-muted)}
 .ui-root .spv-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 18px;border-top:1px solid var(--theme-border);font-size:12.5px;color:var(--theme-text-secondary)}
@@ -64,6 +65,7 @@ export const SPORTIVI_CSS = `
 .ui-root .spv-toolbar > *{min-height:40px}
 .ui-root .spv-q{flex-basis:100%}
 .ui-root .spv-fields,.ui-root .spv-form{grid-template-columns:minmax(0,1fr)}
-.ui-root .spv-banner,.ui-root .spv-dups{padding:10px 0 0}
+.ui-root .spv-banner{padding:10px 16px 0}
+.ui-root .spv-dups{padding:10px 0 0}
 }
 `;
