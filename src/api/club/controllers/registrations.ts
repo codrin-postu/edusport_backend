@@ -12,7 +12,7 @@ import { todayInBucharest } from '../../../club/birth-date';
 import { readConfirmRequest } from '../../../club/confirm/plan';
 import { SUBJECT } from '../../../club/history-text';
 
-/** 409 stale when a move answered ok but moved nothing (shared by the single and bulk move routes). */
+/** 409 stale when a single move answered ok but moved nothing. */
 function respondMove(ctx: AdminCtx, result: AdminResult<MoveSchoolResponse>): void {
   if (result.ok === true && result.data.moved === 0) return refuseWith(ctx, 409, ADMIN_ERRORS.stale);
   respond(ctx, result);
@@ -55,6 +55,7 @@ export default {
   async moveSchoolBulk(ctx: AdminCtx) {
     const request = readMoveSchool(ctx.request.body);
     if (!request) return refuseWith(ctx, 400, ADMIN_ERRORS.invalid);
-    respondMove(ctx, await moveToSchool(await serviceContext(strapi, ctx), request.ids, request.sectionId));
+    // Bulk answers 200 even when nothing moved: the toast reports "Nemutate (deja confirmate): n." (spec 3.6).
+    respond(ctx, await moveToSchool(await serviceContext(strapi, ctx), request.ids, request.sectionId));
   },
 };

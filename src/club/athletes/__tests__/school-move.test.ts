@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { ADMIN_ERRORS } from '../errors';
 import { moveToSchool, readMoveSchool } from '../school-move';
@@ -76,5 +78,14 @@ describe('Mută la altă școală (spec 3.6, r4 e12)', () => {
       throw new Error('boom');
     };
     expect(await moveToSchool(ctx(fake), ['r1', 'r2'], 'p2')).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
+  });
+});
+
+describe('move routes (controller)', () => {
+  const src = readFileSync(join(__dirname, '..', '..', '..', 'api', 'club', 'controllers', 'registrations.ts'), 'utf8');
+
+  it('bulk answers 200 with moved and skipped even when nothing moved; single answers 409', () => {
+    expect(src).toMatch(/async moveSchoolBulk[\s\S]*?respond\(ctx, await moveToSchool/);
+    expect(src).toMatch(/async moveSchool\(ctx[\s\S]*?respondMove\(ctx, await moveToSchool/);
   });
 });
