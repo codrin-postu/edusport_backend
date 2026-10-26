@@ -38,6 +38,21 @@ function useMergePreview(api: SportiviApi, keptId: string, otherId: string | nul
   return preview;
 }
 
+/** Focus on the search box when the window opens on it, on the first field radio once the comparison shows. */
+function useMergeFocus(preview: MergePreview | null) {
+  const searchRef = React.useRef<HTMLInputElement>(null);
+  const tableRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!preview) return undefined;
+    const t = window.setTimeout(() => {
+      const box = tableRef.current;
+      (box?.querySelector<HTMLElement>('tbody input[type=radio]') ?? box?.querySelector<HTMLElement>('input[type=radio]'))?.focus();
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [preview]);
+  return { searchRef, tableRef };
+}
+
 type TableProps = { preview: MergePreview; state: MergeState; onChange: (s: MergeState) => void };
 
 function MergeFieldRow({ row, state, onChange }: { row: MergeRow } & Omit<TableProps, 'preview'>) {
@@ -47,7 +62,7 @@ function MergeFieldRow({ row, state, onChange }: { row: MergeRow } & Omit<TableP
       {SIDES.map((side) => (
         <td key={side} className={row.differs ? 'spv-diff' : undefined}>
           {row.differs ? (
-            <Radio name={`spv-${row.field}`} value={side} checked={pickOf(state, row.field) === side} onChange={() => onChange(withPick(state, row.field, side))} label={row[side]} />
+            <Radio name={`spv-${row.field}`} value={side} checked={pickOf(state, row.field) === side} onChange={() => onChange(withPick(state, row.field, side))} label={<><span className="ui-sr">{`${row.label}: `}</span>{row[side]}</>} />
           ) : (
             row[side]
           )}
@@ -57,10 +72,10 @@ function MergeFieldRow({ row, state, onChange }: { row: MergeRow } & Omit<TableP
   );
 }
 
-function MergeTable({ preview, state, onChange }: TableProps) {
+function MergeTable({ preview, state, onChange, boxRef }: TableProps & { boxRef: React.RefObject<HTMLDivElement> }) {
   const v = sides(preview);
   return (
-    <div className="spv-merge-wrap">
+    <div className="spv-merge-wrap" ref={boxRef}>
       <table className="spv-merge">
         <thead>
           <tr>
@@ -91,6 +106,7 @@ export function MergeDialog({ record, otherId, api, onClose, onMerged }: MergeDi
   const [confirming, setConfirming] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const { searchRef, tableRef } = useMergeFocus(preview);
   React.useEffect(() => setState(initialMerge()), [preview]);
   const submit = async () => {
     if (!preview) return;
@@ -111,15 +127,15 @@ export function MergeDialog({ record, otherId, api, onClose, onMerged }: MergeDi
     </>
   );
   const body = !other ? (
-    <AthleteSearch api={api} exclude={record.documentId} onPick={(c) => setOther(c.documentId)} />
+    <AthleteSearch api={api} exclude={record.documentId} inputRef={searchRef} onPick={(c) => setOther(c.documentId)} />
   ) : preview ? (
-    <MergeTable preview={preview} state={state} onChange={setState} />
+    <MergeTable preview={preview} state={state} onChange={setState} boxRef={tableRef} />
   ) : (
     <Loading />
   );
   return (
     <>
-      <BottomSheet open onClose={onClose} title={MERGE_COPY.title} desktop="modal" modalSize="lg" fullHeight dismissable={!busy} footer={footer}>
+      <BottomSheet open onClose={onClose} title={MERGE_COPY.title} desktop="modal" modalSize="lg" fullHeight dismissable={!busy} footer={footer} initialFocusRef={searchRef}>
         {body}
       </BottomSheet>
       <ConfirmDialog

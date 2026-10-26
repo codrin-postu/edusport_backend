@@ -71,4 +71,12 @@ describe('merge window (Task 9)', () => {
   it('modal on desktop, full-height sheet on phones', () => {
     expect(merge).toContain('desktop="modal" modalSize="lg" fullHeight');
   });
+
+  it('focus lands on the search box or the first field radio, field radios name their field (Task 9 review)', () => {
+    expect(merge).toContain('initialFocusRef={searchRef}');
+    expect(merge).toContain('inputRef={searchRef}');
+    expect(merge).toContain("querySelector<HTMLElement>('tbody input[type=radio]')");
+    expect(merge).toContain('<span className="ui-sr">{`${row.label}: `}</span>{row[side]}');
+    expect(read('sportivi/AthleteSearch.tsx')).toContain('ref={inputRef} type="search"');
+  });
 });
