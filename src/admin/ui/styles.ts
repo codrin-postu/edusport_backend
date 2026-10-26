@@ -274,6 +274,27 @@ ${R} .ui-dsec--fold .ui-dsec-b{padding-top:0}
 }
 @media (prefers-reduced-motion:reduce){${R} .ui-drawer{animation:none}${R} .ui-dsec-chev{transition:none}}
 
+/* bottom sheet (bottom-sheet-v1/v2): phones; on wider screens the same content is a dropdown (.ui-sheetdd) or a Modal */
+.ui-root.ui-sheet-layer{position:fixed;inset:0;z-index:var(--ui-z-sheet,100150);display:flex;flex-direction:column;justify-content:flex-end;background:var(--theme-overlay)}
+${R} .ui-sheet{display:flex;flex-direction:column;width:100%;max-height:85vh;max-height:85dvh;background:var(--theme-surface);color:var(--theme-text);border-radius:var(--ui-radius-sheet);box-shadow:var(--theme-shadow-md);outline:none;transition:transform var(--ui-motion-fast) var(--ui-easing);animation:ui-sheet-in var(--ui-motion-fast) var(--ui-easing)}
+${R} .ui-sheet--full{height:100vh;max-height:100vh}
+${R} .ui-sheet--full{height:100dvh;max-height:100dvh}
+${R} .ui-sheet--full .ui-sheet-h{padding-top:max(8px, env(safe-area-inset-top))}
+${R} .ui-sheet-h{flex-shrink:0;padding:8px 16px 6px;touch-action:none;cursor:grab}
+${R} .ui-sheet-grab{display:block;width:40px;height:4px;margin:0 auto 10px;background:var(--theme-border-strong);border-radius:var(--ui-radius-handle)}
+${R} .ui-sheet-hrow{display:flex;align-items:center;justify-content:space-between;gap:var(--ui-space-2)}
+${R} .ui-sheet-title{margin:0;min-width:0;font-size:15px;font-weight:700;color:var(--theme-text)}
+${R} .ui-sheet-b{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:4px 16px 12px}
+${R} .ui-sheet-b:last-child{padding-bottom:max(12px, env(safe-area-inset-bottom))}
+${R} .ui-sheet-f{flex-shrink:0;display:flex;gap:8px;padding:12px 16px;padding-bottom:max(12px, env(safe-area-inset-bottom));border-top:1px solid var(--theme-border)}
+${R} .ui-sheet-f > *{flex:1}
+${R} .ui-sheet-f .ui-btn{min-height:40px}
+@keyframes ui-sheet-in{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@media (prefers-reduced-motion:reduce){${R} .ui-sheet{animation:none;transition:none}}
+.ui-root.ui-pop.ui-sheetdd{display:flex;flex-direction:column;max-width:calc(100vw - 16px);max-height:min(560px, calc(100vh - 32px));border-radius:var(--ui-radius-lg);outline:none}
+${R} .ui-sheetdd-b{flex:1;min-height:0;overflow-y:auto}
+${R} .ui-sheetdd-f{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--theme-border)}
+
 /* tabs */
 ${R} .ui-tabs{display:flex;gap:2px;border-bottom:1px solid var(--theme-border);overflow-x:auto}
 ${R} .ui-tab{display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-size:var(--ui-fs-body-sm);font-weight:600;color:var(--theme-text-muted);background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;padding:9px 12px;cursor:pointer;white-space:nowrap}
