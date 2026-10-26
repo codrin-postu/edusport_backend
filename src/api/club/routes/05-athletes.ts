@@ -7,6 +7,11 @@ const adminGuard = { auth: false, policies: ['global::is-admin'], middlewares: [
 export default {
   routes: [
     { method: 'GET', path: '/club/athletes/search', handler: 'athletes.search', config: adminGuard },
+    { method: 'GET', path: '/club/athletes/by-profile/:profileId', handler: 'athletes.byProfile', config: adminGuard },
     { method: 'GET', path: '/club/athletes/:documentId/history', handler: 'athletes.history', config: adminGuard },
+    { method: 'GET', path: '/club/athletes/:documentId', handler: 'athletes.record', config: adminGuard },
+    { method: 'PUT', path: '/club/athletes/:documentId', handler: 'athletes.update', config: adminGuard },
+    { method: 'POST', path: '/club/athletes/:documentId/profile', handler: 'athletes.createProfile', config: adminGuard },
+    { method: 'PUT', path: '/club/athletes/:documentId/profile/visibility', handler: 'athletes.profileVisibility', config: adminGuard },
   ],
 };
