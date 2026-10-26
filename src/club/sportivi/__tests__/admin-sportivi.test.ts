@@ -151,3 +151,20 @@ describe('athlete record (Task 7)', () => {
     expect(read('sportivi/HistoryTab.tsx')).toContain('historyWhen(l.at)');
   });
 });
+
+describe('Adaugă sportiv (Task 11)', () => {
+  it('search first, "Sportiv nou" form, birth date required', () => {
+    const add = read('sportivi/AddAthleteDialog.tsx');
+    expect(add).toContain('onNew={(text) => setForm(newAthleteDraft(text))}');
+    expect(add).toContain('checkDraft(form, true)');
+    expect(add).toContain('hint={ADD_COPY.optional}');
+    expect(add).toContain('desktop="modal" modalSize="md" fullHeight');
+  });
+
+  it('opened from the list header and from the dashboard', () => {
+    expect(read('sportivi/SportiviList.tsx')).toContain('wantsAddAthlete(search)');
+    const dash = read('DashboardPage.tsx');
+    expect(dash).toContain("{ label: 'Adaugă sportiv', to: addAthleteTo, ic: 'S' },");
+    expect(dash).not.toContain('SPORTIV_EDIT_TO');
+  });
+});

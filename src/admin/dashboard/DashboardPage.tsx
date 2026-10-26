@@ -15,8 +15,9 @@ import {
   adminToast,
   toastAutosaved,
 } from '../ui';
-import { FORMULARE_TO, PROGRAM_EDIT_TO, SPORTIV_EDIT_TO } from './menu';
+import { FORMULARE_TO, PROGRAM_EDIT_TO } from './menu';
 import { FORM_DEFS, fetchNewCount, tileStyle } from './formDefs';
+import { addAthleteTo } from '../../club/sportivi/routes';
 
 /**
  * EduSport admin dashboard page (Direction A).
@@ -406,7 +407,7 @@ export default function DashboardPage() {
 
   const quickActions: QuickAction[] = [
     { label: 'Adaugă eveniment în calendar', to: PROGRAM_EDIT_TO, ic: '+', primary: true },
-    { label: 'Adaugă sportiv', to: SPORTIV_EDIT_TO, ic: 'S' },
+    { label: 'Adaugă sportiv', to: addAthleteTo, ic: 'S' },
     { label: 'Adaugă articol', to: '/content-manager/collection-types/api::article.article/create', ic: 'A' },
   ];
 
