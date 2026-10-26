@@ -32,7 +32,7 @@ it('Înscrieri with the panel open: every list column fits (prototype split padd
   expect(source('admin/dashboard/SubmissionTable.tsx')).toContain("<div className={cx('sbt-split', selected && 'sbt-split--panel')}>");
   expect(ins).toContain('@media (min-width:1041px){.ui-root .sbt-split--panel .sbt-clist th,.ui-root .sbt-split--panel .sbt-clist td{padding-left:8px;padding-right:8px}');
   expect(ins).toContain('.ui-root .sbt-tag{min-width:0}');
-  expect(ins).toContain('.ui-root .sbt-clist td.ins-school{white-space:normal;line-height:1.25}');
+  expect(ins).toContain('.ui-root .sbt-clist td.ins-school{min-width:140px;white-space:normal;line-height:1.25}');
 });
 
 it('Înscrieri panel: the four tabs fit 360px, the card comparison wraps its cells (proto v5)', () => {
