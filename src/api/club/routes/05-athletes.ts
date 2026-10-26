@@ -1,0 +1,11 @@
+/**
+ * Admin API of Sportivi (spec 5, 6). Content-api routes (under /api) with auth off and the `global::is-admin`
+ * policy. Fixed paths (search, merge, by-profile) come before `/club/athletes/:documentId`.
+ */
+const adminGuard = { auth: false, policies: ['global::is-admin'], middlewares: [] };
+
+export default {
+  routes: [
+    { method: 'GET', path: '/club/athletes/:documentId/history', handler: 'athletes.history', config: adminGuard },
+  ],
+};
