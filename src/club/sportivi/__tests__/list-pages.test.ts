@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PHONE_RELOAD_MAX_PAGES, listRequest } from '../list-pages';
-import { INITIAL_LIST_STATE, withPage, withSearch } from '../list-view';
+import { PAGE_SIZE_MAX } from '../../athletes/list';
+import { INITIAL_LIST_STATE, PAGE_SIZE, withPage, withSearch } from '../list-view';
 
 const params = (query: string) => Object.fromEntries(new URLSearchParams(query));
 
@@ -58,5 +59,11 @@ describe('listRequest', () => {
     const r = listRequest(withPage(INITIAL_LIST_STATE, 41), true, loaded);
     expect(params(r.query)).toMatchObject({ page: '41', pageSize: '30' });
     expect(r.append).toBe(true);
+  });
+});
+
+describe('phone reload cap matches the server', () => {
+  it('the largest phone reload is exactly the server page size limit', () => {
+    expect(PHONE_RELOAD_MAX_PAGES * PAGE_SIZE.phone).toBe(PAGE_SIZE_MAX);
   });
 });

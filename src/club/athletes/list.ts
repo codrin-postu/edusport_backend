@@ -35,7 +35,7 @@ function readFilters(q: Record<string, unknown>): Omit<AthleteListQuery, 'sort' 
 }
 
 const PAGE_SIZE_STEP = 30;
-const PAGE_SIZE_MAX = 1200;
+export const PAGE_SIZE_MAX = 1200;
 const DEFAULT_PAGE_SIZE = 50;
 
 /** 50 (desktop), or any multiple of 30 up to 1200 (the phone client reloads pages 1..P as `30 * P` in one request). */
