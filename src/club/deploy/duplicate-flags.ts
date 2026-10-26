@@ -1,6 +1,10 @@
 import { duplicateLevel, type PersonFacts, type StoredMatchLevel } from '../matching';
 
-/** Deploy step 11 (spec 2.3, d12): pairs flagged once, for the "Posibil același copil cu <nume>" line. */
+/**
+ * Deploy step 11 (spec 2.3, d12): pairs flagged once, for the "Posibil același copil cu <nume>" line.
+ * `existing`: every pair already in athlete-duplicate, in any state, dismissed ("Nu e același copil") included,
+ * so a dismissed pair is never flagged again (spec 1.1).
+ */
 export type FlagCandidate = PersonFacts & { id: string };
 export type FlagPair = { firstId: string; secondId: string; level: StoredMatchLevel };
 
