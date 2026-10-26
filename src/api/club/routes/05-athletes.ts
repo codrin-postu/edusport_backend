@@ -7,6 +7,8 @@ const adminGuard = { auth: false, policies: ['global::is-admin'], middlewares: [
 export default {
   routes: [
     { method: 'GET', path: '/club/athletes/search', handler: 'athletes.search', config: adminGuard },
+    { method: 'POST', path: '/club/athletes', handler: 'athletes.add', config: adminGuard },
     { method: 'GET', path: '/club/athletes/:documentId/history', handler: 'athletes.history', config: adminGuard },
+    { method: 'POST', path: '/club/athletes/:documentId/status', handler: 'athletes.status', config: adminGuard },
   ],
 };
