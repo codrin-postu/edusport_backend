@@ -2309,7 +2309,7 @@ Expected: FAIL (`Failed to resolve import "../ui-filters"`).
 
 - [ ] **Step 3: The rules**
 
-`src/club/ui-filters.ts` (Needs decision 3, option B: `sectionSummary` returns the count text for two or more labels instead of joining them):
+`src/club/ui-filters.ts`:
 
 ```ts
 import { foldText } from './ui-select';
@@ -2374,7 +2374,7 @@ export function activeSections(sections: ReadonlyArray<Pick<FilterSectionState, 
 
 - [ ] **Step 4: The component**
 
-`src/admin/ui/FilterPanel.tsx` (Needs decision 4, option B: drop the `placeholder` prop of the search `Input` and the `SEARCH_PLACEHOLDER` constant):
+`src/admin/ui/FilterPanel.tsx`:
 
 ```tsx
 import * as React from 'react';
