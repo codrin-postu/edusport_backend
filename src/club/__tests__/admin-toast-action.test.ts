@@ -21,3 +21,7 @@ it('a toast with an action waits while the pointer or the focus is on it', () =>
   expect(toast).toContain('onFocus={item.action ? pause : undefined}');
   expect(toast).toContain('onBlur={item.action ? arm : undefined}');
 });
+
+it('the close X is hidden only for a toast that both has an action and times out', () => {
+  expect(toast).toContain('{(!item.action || item.duration === null) && (');
+});

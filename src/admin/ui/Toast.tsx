@@ -40,9 +40,11 @@ export interface ToastOptions {
   /** Overrides the tone's default auto-dismiss delay (ms). danger ignores this and stays until closed. */
   duration?: number;
   /**
-   * A button between the text and the close X. Clicking it runs `onClick`
-   * once and closes the toast. While a toast has an action, the countdown
-   * waits as long as the pointer or the keyboard focus is on the toast.
+   * A button between the text and the close X (the X stays hidden unless
+   * `duration` is `null`, since a timed-out toast would otherwise only be
+   * dismissable by running the action). Clicking it runs `onClick` once and
+   * closes the toast. While a toast has an action, the countdown waits as
+   * long as the pointer or the keyboard focus is on the toast.
    */
   action?: ToastAction;
 }
@@ -185,7 +187,7 @@ function ToastCard({ item }: { item: ToastItem }) {
         <span className="ui-toast-body">{item.text}</span>
       </div>
       {item.action && <ToastActionButton action={item.action} disabled={leaving} onDone={close} />}
-      {!item.action && (
+      {(!item.action || item.duration === null) && (
         <Button
           variant="ghost"
           size="sm"
