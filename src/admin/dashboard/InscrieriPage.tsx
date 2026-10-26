@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Button, StatusBadge } from '../ui';
+import { useLocation } from 'react-router-dom';
+import { Button } from '../ui';
 import SubmissionTablePage, {
   DetailBody,
   DetailField,
@@ -10,41 +11,40 @@ import SubmissionTablePage, {
   type ColumnDef,
   type Row,
   type SubmissionTableCfg,
+  type SubmissionTableExtras,
   type TableApi,
 } from './SubmissionTable';
 import { isScriptFormRegistration, registrationPanelRows } from '../../club/registration-panel';
+import { LIST_COPY } from '../../club/inscrieri-copy';
+import {
+  ALL_SCHOOLS,
+  EMPTY_LIST_META,
+  ageText,
+  cellText,
+  compactHeaders,
+  listParams,
+  openListParams,
+  readListMeta,
+  readOpenParam,
+  showsExistingLine,
+  statusMenuValues,
+  wishText,
+  type ListMeta,
+} from '../../club/inscrieri-panel';
 import { BlankFormsMenu } from './inscrieri/BlankFormsMenu';
 import { EditableAnswer } from './inscrieri/EditableAnswer';
+import { BulkMoveSchool, ExistingFilter, SchoolTabs } from './inscrieri/ListControls';
 import { RegistrationDocuments } from './inscrieri/RegistrationDocuments';
 import { RegistrationEmail } from './inscrieri/RegistrationEmail';
+import { IconUser } from './inscrieri/icons';
+import { INSCRIERI_CSS } from './inscrieri/styles';
 
 /**
- * EduSport admin — "Înscrieri" results page.
- *
- * A thin configuration wrapper around the shared SubmissionTablePage (the table
- * machinery originally lived here and was extracted verbatim — see
- * ./SubmissionTable.tsx). Everything below only describes the registration
- * screen: endpoints, statuses, built-in columns, filterable columns, the
- * compact-list cells and the read-only detail panel. Seasons, the archived view,
- * bulk actions and the Google Sheets connection are enabled here.
- *
- * Phase 2: the panel shows the script form's answers for new registrations
- * (src/club/registration-panel.ts), their PDFs (plan 2D routes) and the e-mail
- * status with "Retrimite e-mailul" (plan 2F routes). The header has "Formulare
- * goale" (blank PDFs). Calitate and Membru A.C.S. are edited in place: they are
- * printed on the PDFs, so saving one rebuilds them (plan 2D) and writes "Document
- * refăcut" to the history; no e-mail is sent.
- *
- * Endpoints (admin-guarded, server-side filtering/sorting/pagination):
- *   GET    /api/forms/inscrieri
- *            ?season&archived&q&filters&sort&page&pageSize
- *            -> { data, pagination, seasons, activeSeason, formMeta }
- *   PUT    /api/forms/inscrieri/:documentId     update editable field
- *   DELETE /api/forms/inscrieri/:documentId     permanent delete
- *   GET    /api/forms/inscrieri/export.csv        CSV (respects season+filters)
- *
- * Google Sheets is a live connection, not an export: see SheetsDialog.tsx and
- * the /api/sheets/* endpoints.
+ * EduSport admin: the "Înscrieri" page (spec 3). A configuration of the shared SubmissionTablePage plus the
+ * page state the table does not own ("Sportiv existent" filter, school tabs, bulk school move), passed as extras.
+ * Rows come from GET /api/forms/inscrieri with plan 3-2's extras (age, existingAthlete, athleteId, canUndo,
+ * schoolId, schoolName) and the top-level school data (schools, multipleSchools, allSchoolsTotal).
+ * Google Sheets is a live connection, not an export: see SheetsDialog.tsx and the /api/sheets/* endpoints.
  */
 
 const LEVELS = [
@@ -55,22 +55,6 @@ const LEVELS = [
   'Avansati',
   'Performanta',
 ] as const;
-
-interface Submission extends Row {
-  email: string;
-  phone: string;
-  childName: string;
-  childBirthDate: string;
-  parentName: string;
-  shirtSize: string;
-  howHeard: string;
-  level: string;
-  priorExperience: string | null;
-  expectations: string | null;
-  clubInterest: boolean;
-  regulationsAgreement: boolean;
-  privacyConsent: boolean;
-}
 
 // The registry keys that map to editable/removable built-in columns. status,
 // submittedAt and internalNote are meta columns and are never "removed".
@@ -90,12 +74,12 @@ const REGISTRY_COL_KEYS = [
   'expectations',
 ];
 
-// Order convention shared with VoluntariPage: `submittedAt`, the row's name
-// column, `status`, then the rest. Bump `colConfigVersion` in CFG whenever this
-// order changes so saved per-user orders do not pin the old positions.
+// Order convention shared with VoluntariPage: `submittedAt`, the row's name column, `status`, then the rest.
+// Bump `colConfigVersion` in CFG whenever this order changes (2 = "Vârstă" after the name, spec 3.2).
 const BUILTIN_COLUMNS: ColumnDef[] = [
   { key: 'submittedAt', label: 'Trimis la', type: 'date', readOnly: true, width: 150 },
-  { key: 'childName', label: 'Nume copil', type: 'text', width: 170 },
+  { key: 'childName', label: 'Nume sportiv', type: 'text', width: 170 },
+  { key: 'age', label: 'Vârstă', type: 'text', readOnly: true, width: 90, render: (row) => ageText(row.age) },
   { key: 'status', label: 'Status', type: 'status', width: 130 },
   { key: 'childBirthDate', label: 'Data nașterii', type: 'text', width: 150 },
   { key: 'parentName', label: 'Nume părinte', type: 'text', width: 170 },
@@ -114,7 +98,7 @@ const BUILTIN_COLUMNS: ColumnDef[] = [
 
 // Filter-builder column options (map to whitelisted server fields).
 const FILTER_COLUMNS = [
-  { key: 'childName', label: 'Nume copil' },
+  { key: 'childName', label: 'Nume sportiv' },
   { key: 'parentName', label: 'Nume părinte' },
   { key: 'level', label: 'Nivel' },
   { key: 'status', label: 'Status' },
@@ -123,22 +107,34 @@ const FILTER_COLUMNS = [
   { key: 'submittedAt', label: 'Data înscrierii' },
 ] as const;
 
+/** One list row (spec 3.1): the "Sportiv existent" line sits tight under the name; rows without it keep the line empty. */
 const renderCells = (r: Row, api: TableApi) => {
-  const s = r as Submission;
+  const multiple = readListMeta(api.pageMeta).multipleSchools;
   return (
     <>
-      <td className="ui-num">{fmtDateShort(s.submittedAt)}</td>
-      <td className="sbt-nm">{s.childName}</td>
-      <td>{api.statusTag(s)}</td>
-      <td>{s.parentName}</td>
-      <td>
-        <span className="sbt-lv">{s.level}</span>
+      <td className="ui-num ins-nr">{cellText(r.registrationNumber)}</td>
+      <td className="ui-num">{fmtDateShort(r.submittedAt)}</td>
+      <td className="ins-name">
+        <b>{cellText(r.childName)}</b>
+        <span className="ins-ex">
+          {showsExistingLine(r) && (
+            <>
+              <IconUser size={12} />
+              {LIST_COPY.existing}
+            </>
+          )}
+        </span>
       </td>
+      {multiple && <td>{cellText(r.schoolName)}</td>}
+      <td className="ui-num">{ageText(r.age)}</td>
+      <td>{api.statusTag(r)}</td>
+      <td>{cellText(r.parentName)}</td>
+      <td>{wishText(r.membershipAnswer)}</td>
     </>
   );
 };
 
-/** Answers as label/value rows (src/club/registration-panel.ts), the long texts after a gap. Calitate and Membru A.C.S. are edited in place. */
+/** Answers as label/value rows (src/club/registration-panel.ts), the long texts after a gap. Replaced by the tabs in Task 6. */
 function PanelAnswers({ row, save }: { row: Row; save: TableApi['saveField'] }) {
   const { rows, longRows } = registrationPanelRows(row);
   return (
@@ -160,28 +156,27 @@ function PanelAnswers({ row, save }: { row: Row; save: TableApi['saveField'] }) 
 }
 
 const renderDetail = (row: Row, api: TableApi) => {
-  const selected = row as Submission;
-  const scriptForm = isScriptFormRegistration(selected);
+  const scriptForm = isScriptFormRegistration(row);
   return (
     <>
       <DetailHeader>
-        <b>{selected.childName}</b>
-        {api.statusTag(selected)}
+        <b>{cellText(row.childName)}</b>
+        {api.statusTag(row)}
       </DetailHeader>
       <DetailBody>
-        {api.statusBox(selected)}
-        <DetailField label="Trimis la">{fmtDateTime(selected.submittedAt)}</DetailField>
-        <DetailField label="Arhivare">{selected.archived ? 'Arhivat' : 'Activ'}</DetailField>
-        {api.seasonField(selected)}
-        <PanelAnswers row={selected} save={api.saveField} />
-        {scriptForm && <RegistrationDocuments row={selected} />}
-        {scriptForm && <RegistrationEmail row={selected} />}
-        {api.customFields(selected)}
-        {api.internalNoteField(selected)}
+        {api.statusBox(row)}
+        <DetailField label="Trimis la">{fmtDateTime(row.submittedAt)}</DetailField>
+        <DetailField label="Arhivare">{row.archived ? 'Arhivat' : 'Activ'}</DetailField>
+        {api.seasonField(row)}
+        <PanelAnswers row={row} save={api.saveField} />
+        {scriptForm && <RegistrationDocuments row={row} />}
+        {scriptForm && <RegistrationEmail row={row} />}
+        {api.customFields(row)}
+        {api.internalNoteField(row)}
       </DetailBody>
       <DetailFooter>
         <span />
-        <Button size="sm" variant="danger" onClick={() => api.removeRow(selected.documentId)}>
+        <Button size="sm" variant="danger" onClick={() => api.removeRow(row.documentId)}>
           Șterge înscrierea
         </Button>
       </DetailFooter>
@@ -192,8 +187,8 @@ const renderDetail = (row: Row, api: TableApi) => {
 const CFG: SubmissionTableCfg = {
   api: '/api/forms/inscrieri',
   storagePrefix: 'edusport-inscrieri-cols',
-  // 1 = status moved directly after `childName`.
-  colConfigVersion: 1,
+  // 1 = status moved directly after `childName`; 2 = "Vârstă" added after the name.
+  colConfigVersion: 2,
   csvPrefix: 'inscrieri',
   statuses: [
     { value: 'Nou', color: 'var(--theme-primary)', soft: 'var(--theme-primary-soft)', border: 'var(--theme-primary-soft-line)' },
@@ -202,6 +197,8 @@ const CFG: SubmissionTableCfg = {
     { value: 'Respins', color: 'var(--theme-danger)', soft: 'var(--theme-danger-bg)', border: 'var(--theme-danger-border)' },
   ],
   extraTags: [{ value: 'Arhivat', color: 'var(--theme-neutral)', soft: 'var(--theme-neutral-bg)', border: 'var(--theme-neutral-border)' }],
+  // "Confirmat" only through "Confirmă înscrierea" (spec 3.2, 3.5); none on a Confirmat row (Needs decision 2).
+  statusMenu: statusMenuValues,
   builtinColumns: BUILTIN_COLUMNS,
   registryColKeys: REGISTRY_COL_KEYS,
   filterColumns: FILTER_COLUMNS,
@@ -212,11 +209,11 @@ const CFG: SubmissionTableCfg = {
   sheetsForm: 'inscrieri',
   bulk: true,
   headerActions: <BlankFormsMenu />,
+  extraCss: INSCRIERI_CSS,
   texts: {
     title: 'Înscrieri',
     subtitle: 'Cererile trimise prin formularul public de înscriere.',
-    // The server's quick `q` searches childName/parentName/email/phone and, after plan 2E, the registration number.
-    searchPlaceholder: 'Caută după nume, număr, părinte, e-mail sau telefon...',
+    searchPlaceholder: LIST_COPY.searchPlaceholder,
     empty: 'Nicio înscriere pentru filtrul curent.',
     loadError: 'Nu am putut încărca înscrierile.',
     statSuffix: ', exclus arhivate',
@@ -226,12 +223,24 @@ const CFG: SubmissionTableCfg = {
     saveError: 'Nu am putut salva modificarea.',
   },
   compact: {
-    headers: ['Trimis la', 'Nume copil', 'Status', 'Nume părinte', 'Nivel'],
+    headers: (api) => compactHeaders(readListMeta(api.pageMeta).multipleSchools),
     renderCells,
     renderDetail,
   },
 };
 
 export default function InscrieriPage() {
-  return <SubmissionTablePage cfg={CFG} />;
+  const open = readOpenParam(useLocation().search);
+  const [existing, setExisting] = React.useState('');
+  const [school, setSchool] = React.useState<string>(ALL_SCHOOLS);
+  const [meta, setMeta] = React.useState<ListMeta>(EMPTY_LIST_META);
+  const onMeta = React.useCallback((m: Record<string, unknown>) => setMeta(readListMeta(m)), []);
+  const extras: SubmissionTableExtras = {
+    params: open ? openListParams(open) : listParams(existing, school, meta),
+    onMeta,
+    toolbar: <ExistingFilter value={existing} onChange={setExisting} />,
+    aboveList: <SchoolTabs meta={meta} value={school} onChange={setSchool} />,
+    bulkActions: meta.multipleSchools ? (ids, done) => <BulkMoveSchool ids={ids} meta={meta} done={done} /> : undefined,
+  };
+  return <SubmissionTablePage cfg={CFG} extras={extras} />;
 }

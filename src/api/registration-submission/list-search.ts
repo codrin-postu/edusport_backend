@@ -42,9 +42,14 @@ export function schoolClause(v: unknown): Record<string, unknown> | null {
   return text(v) ? { section: { documentId: text(v) } } : null;
 }
 
-/** The phase 3 filters: "Sportiv existent" and the school tab. */
+/** `?open=<documentId>`: one registration, for the athlete record's "Înscrieri" links (plan 3-5). */
+export function openClause(v: unknown): Record<string, unknown> | null {
+  return text(v) ? { documentId: text(v) } : null;
+}
+
+/** The phase 3 filters: "Sportiv existent", the school tab and the opened registration. */
 export function phase3Clauses(query: Record<string, unknown>): Record<string, unknown>[] {
-  return [existingClause(query.existing), schoolClause(query.school)].filter((c): c is Record<string, unknown> => c !== null);
+  return [existingClause(query.existing), schoolClause(query.school), openClause(query.open)].filter((c): c is Record<string, unknown> => c !== null);
 }
 
 export const isAgeSort = (v: unknown): boolean => text(v) === 'age-asc' || text(v) === 'age-desc';

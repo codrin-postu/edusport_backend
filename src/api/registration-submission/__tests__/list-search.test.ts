@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ageSortedPage, agePageSlices, existingClause, listSort, phase3Clauses, quickSearchClause, schoolClause, type PageQuery } from '../list-search';
+import { ageSortedPage, agePageSlices, existingClause, listSort, openClause, phase3Clauses, quickSearchClause, schoolClause, type PageQuery } from '../list-search';
 
 describe('Înscrieri quick search', () => {
   it('matches the registration number as well as names, e-mail and phone', () => {
@@ -97,5 +97,16 @@ describe('"Vârstă" sort: no age comes last', () => {
     expect(await page(rows, 'age-asc', 0)).toEqual(['d-2018', 'u-new']);
     expect(await page(rows, 'age-desc', 0)).toEqual(['d-2018', 'u-new']);
     expect(await page(rows, 'age-desc', 2)).toEqual(['u-old']);
+  });
+});
+
+describe('Înscrieri list, ?open=<documentId> (plan 3-5 links)', () => {
+  it('narrows the list to that registration', () => {
+    expect(openClause(' r1 ')).toEqual({ documentId: 'r1' });
+    expect([openClause(''), openClause(undefined), openClause(5)]).toEqual([null, null, null]);
+  });
+
+  it('is one of the phase 3 clauses', () => {
+    expect(phase3Clauses({ open: 'r1' })).toEqual([{ documentId: 'r1' }]);
   });
 });
