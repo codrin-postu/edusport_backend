@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { CONFIRM_ERRORS } from '../errors';
 import { confirmRegistration } from '../confirm-service';
 import type { ConfirmRequest } from '../../confirm/plan';
+import { planUndo } from '../../confirm/undo-plan';
 import { athleteRow, fakeClubStore, registrationRow, type Fake } from './fake-store';
 
 const ctx = (fake: Fake) => ({ store: fake.store, actor: 'ana@club.ro', today: { year: 2026, month: 10, day: 26 }, log: vi.fn() });
@@ -80,5 +81,53 @@ describe('errors and concurrency (spec 4.7)', () => {
     const fake = fakeClubStore({ ...seed(), registrations: [registrationRow({ id: 'r1' }), registrationRow({ id: 'r2', number: '2026-0150' })] });
     await confirmRegistration(ctx(fake), 'r1', existing());
     expect(fake.state.registrations[1]).toMatchObject({ matchAthleteId: 'a1', matchLevel: 'sigur' });
+  });
+
+  it('a failing match refresh after the commit still returns ok and keeps the writes (M3)', async () => {
+    const fake = fakeClubStore(seed());
+    fake.failOn('athletes');
+    const result = await confirmRegistration(ctx(fake), 'r1', existing());
+    expect(result.ok).toBe(true);
+    expect(fake.state.registrations[0].athleteId).toBe('a1');
+    expect(fake.state.memberships).toHaveLength(1);
+  });
+});
+
+describe('fix round 1: review findings', () => {
+  it('promotes an existing non-main membership to main, demoting the old one; undo reverses both (I1)', async () => {
+    const fake = fakeClubStore({
+      athletes: [athleteRow({ id: 'a1', name: 'Maria Pop', birthDate: '2016-03-14', phone: '0722111222', contactName: 'Ana Pop', email: 'ana@example.com', status: 'activ' })],
+      registrations: [registrationRow({ id: 'r1', membershipAnswer: 'nu' })],
+      memberships: [
+        { id: 'm0', athleteId: 'a1', groupId: 'g-ib', seasonId: 's26', isMain: true, from: '2026-10-01' },
+        { id: 'm9', athleteId: 'a1', groupId: 'g-pp', seasonId: 's26', isMain: false, from: '2026-10-01' },
+      ],
+    });
+    const result = await confirmRegistration(ctx(fake), 'r1', existing({ makeMain: true, updateFields: [] }));
+    expect(result.ok).toBe(true);
+    expect(fake.state.memberships).toHaveLength(2);
+    expect(fake.state.memberships.find((m) => m.id === 'm0')?.isMain).toBe(false);
+    expect(fake.state.memberships.find((m) => m.id === 'm9')?.isMain).toBe(true);
+    const record = fake.state.registrations[0].confirmation;
+    expect(record).toMatchObject({ demotedMainId: 'm0', promotedMainId: 'm9' });
+    const undo = planUndo({
+      record: record!,
+      linkedAthleteId: 'a1',
+      athlete: { id: 'a1', status: 'activ', profileId: null, ...fake.state.athletes[0] },
+      membershipIds: fake.state.memberships.map((m) => m.id),
+      mainMembershipId: fake.state.memberships.find((m) => m.isMain)?.id ?? null,
+      acsRows: fake.state.acs.map(({ id, state }) => ({ id, state })),
+      otherRegistrations: 0,
+    });
+    expect([undo.demoteMembershipId, undo.restoreMainId]).toEqual(['m9', 'm0']);
+  });
+
+  it('an ended season ignores a stale groupId: links only, writes no membership and no A.C.S. (deviation 2, M2)', async () => {
+    const fake = fakeClubStore({ ...seed(), registrations: [registrationRow({ id: 'r1', season: '2025-2026', seasonId: 's25' })] });
+    const result = await confirmRegistration(ctx(fake), 'r1', existing({ groupId: 'g-nope' }));
+    expect(result.ok).toBe(true);
+    expect(fake.state.registrations[0]).toMatchObject({ athleteId: 'a1', status: 'Confirmat' });
+    expect(fake.state.memberships).toHaveLength(0);
+    expect(fake.state.acs).toHaveLength(0);
   });
 });
