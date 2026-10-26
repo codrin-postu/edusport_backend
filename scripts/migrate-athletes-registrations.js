@@ -138,22 +138,16 @@ async function stepDuplicates({ store }) {
 }
 
 async function stepStatus({ store }) {
-  const { planDeployStatus } = lib('deploy/deploy-status');
-  const { HISTORY_ACTIONS, SUBJECT } = lib('history-text');
-  const { normalizeSeasonLabel } = lib('season');
-  const [athletes, registrations, seasons, profiles] = await Promise.all([store.athletes(), store.registrations(), store.seasons(), store.profiles()]);
-  const current = seasons.find((s) => s.isCurrent);
-  if (!current) throw new StepRefused('no current Sezon: mark one current before this step');
-  const inCurrent = registrations
-    .filter((r) => r.seasonId === current.id || normalizeSeasonLabel(r.season) === current.label)
-    .map((r) => ({ status: r.status, athleteId: r.athleteId, matchAthleteId: r.matchAthleteId, matchLevel: r.matchLevel }));
-  const changes = planDeployStatus(athletes, inCurrent, new Set(profiles.filter((p) => p.showPublicPage).map((p) => p.id)));
+  const { planStatusStep, applyStatusChange } = lib('deploy/status-step');
+  const plan = await planStatusStep(store);
+  if (!plan) throw new StepRefused('no current Sezon: mark one current before this step');
+  if (plan.pendingSigur.length) {
+    throw new StepRefused(`--step=match-backfill would change the Sigur link of ${plan.pendingSigur.length} current-season registration(s): run it with --apply first, then this step`);
+  }
+  const { changes } = plan;
   log('status changes:', changes.length, 'to Inactiv:', changes.filter((c) => c.to === 'inactiv').length, 'to Activ:', changes.filter((c) => c.to === 'activ').length);
   if (!APPLY) return;
-  await writeEach(changes, (c) => `status of athlete ${c.id}`, (c) => store.transaction(async () => {
-    await store.updateAthlete(c.id, { status: c.to });
-    await store.record({ subjectType: SUBJECT.athlete, subjectId: c.id, action: HISTORY_ACTIONS.statusChanged, actor: ACTOR, changes: { from: c.from, to: c.to } });
-  }));
+  await writeEach(changes, (c) => `status of athlete ${c.id}`, (c) => applyStatusChange(store, c, ACTOR));
 }
 
 /** Work a step still has; a later step refuses to run while any step it needs has some. */
@@ -161,7 +155,6 @@ const PENDING = {
   'athlete-name': async (ctx) => (await namePlan(ctx)).updates.length,
   'profile-athletes': async (ctx) => (await profilePlan(ctx)).create.length,
   'past-registrations': async (ctx) => (await pastPlan(ctx)).create.length,
-  'match-backfill': async (ctx) => (await matchPlan(ctx)).updates.length,
 };
 
 const NEEDS = {
@@ -169,7 +162,6 @@ const NEEDS = {
   'past-registrations': ['profile-athletes'],
   'match-backfill': ['past-registrations'],
   duplicates: ['athlete-name', 'profile-athletes', 'past-registrations'],
-  status: ['match-backfill'],
 };
 
 async function requirePreviousSteps(ctx) {
