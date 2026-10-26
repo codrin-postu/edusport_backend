@@ -20,6 +20,12 @@ const seed = () => ({
 });
 
 describe('athlete record (spec 6.1 to 6.6)', () => {
+  it('a deploy-marked record stays "Date incomplete" with no field missing (task 27 F2)', async () => {
+    const athlete = athleteRow({ id: 'a1', name: 'Luca Stoica', birthDate: '2015-01-01', contactName: 'Ana', phone: '07', email: 'e', dataIncomplete: true });
+    const record = await readAthleteRecord(fakeClubStore({ athletes: [athlete] }).store, 'a1', null);
+    expect([record?.dataIncomplete, record?.missing]).toEqual([true, []]);
+  });
+
   it('Date, header, A.C.S. of the season, Înscrieri, Documente, Profil public, duplicate line, Istoric count', async () => {
     const fake = fakeClubStore(seed());
     await fake.store.record({ subjectType: 'athlete', subjectId: 'a1', action: 'profile-created', actor: 'ana@club.ro' });

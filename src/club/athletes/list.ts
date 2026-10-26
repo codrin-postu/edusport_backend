@@ -109,7 +109,7 @@ function publicRow(a: AthleteRow, ix: Index, group: GroupRow | null): AthleteLis
   const missing = missingFields(pickAthleteValues(a));
   return {
     documentId: a.id, name: a.name ?? '', age: ageFromIso(a.birthDate, ix.today), birthDate: birthDateForPicker(a.birthDate),
-    status: a.status, dataIncomplete: missing.length > 0, missing: missing.map((f) => MISSING_FIELD_WORDS[f]),
+    status: a.status, dataIncomplete: a.dataIncomplete || missing.length > 0, missing: missing.map((f) => MISSING_FIELD_WORDS[f]),
     mainGroup: group ? { documentId: group.id, name: group.name } : null, contactName: a.contactName, phone: a.phone,
     acs: ix.acs.get(a.id) ?? 'nu', publicProfile: a.profileId !== null && ix.publicProfiles.has(a.profileId) ? 'public' : 'ascuns',
     possibleDuplicate: ix.duplicateIds.has(a.id),

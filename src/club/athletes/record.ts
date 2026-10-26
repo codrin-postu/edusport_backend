@@ -58,7 +58,7 @@ function assemble(a: AthleteRow, src: RecordSource): AthleteRecord {
     fields: { ...values, birthDate: birthDateForPicker(a.birthDate) },
     missing: missingFields(values),
     status: a.status,
-    dataIncomplete: isDataIncomplete(values),
+    dataIncomplete: a.dataIncomplete || isDataIncomplete(values),
     header: { birthDate: birthDateForPicker(a.birthDate), mainGroup: mainGroupName(src) },
     season: src.season ? { documentId: src.season.id, label: src.season.label } : null,
     acs: { seasonLabel: src.season?.label ?? null, state: src.acs.find((r) => r.seasonId === src.season?.id)?.state ?? 'nu' },
