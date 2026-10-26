@@ -11,6 +11,7 @@ import {
 } from '../athlete-data';
 import { CONFIRM_ERRORS } from '../athletes/errors';
 import { parseBirthDate, type DateParts } from '../birth-date';
+import { normalizeEmail, normalizePhone } from '../person-match';
 import { membershipFrom, type SeasonFacts } from './season';
 
 /** "Confirmă înscrierea" (spec 4.5 to 4.7): what one confirmation writes, decided before anything is written. */
@@ -28,6 +29,7 @@ export type ConfirmationRecord = {
   fieldsAfter: Partial<AthleteValues>;
   membershipId: string | null;
   demotedMainId: string | null;
+  promotedMainId: string | null;
   acs: { id: string; previous: AcsState | null } | null;
   at: string;
 };
@@ -52,7 +54,11 @@ export type AthletePlan = {
   statusChange: { from: AthleteStatus; to: 'activ' } | null;
   renameProfile: string | null;
 };
-export type MembershipPlan = { membership: { groupId: string; seasonId: string; isMain: boolean; from: string } | null; demoteMainId: string | null };
+export type MembershipPlan = {
+  membership: { groupId: string; seasonId: string; isMain: boolean; from: string } | null;
+  demoteMainId: string | null;
+  promoteMembershipId: string | null;
+};
 export type AcsPlan = { existingId: string | null; seasonId: string; seasonLabel: string; from: AcsState | null; to: AcsState } | null;
 export type ConfirmPlan = AthletePlan & MembershipPlan & { acs: AcsPlan; groupName: string | null };
 
@@ -90,10 +96,20 @@ function changedOnly(changes: Record<string, FieldChange>, values: AthleteValues
   return out;
 }
 
+/** A value that differs from the athlete's only in format (phone spacing/prefix, e-mail case/space) is not a difference. */
+function sameFormat(field: AthleteField, a: string | null, b: string | null): boolean {
+  if (field === 'phone') return normalizePhone(a) === normalizePhone(b);
+  if (field === 'email') return normalizeEmail(a) === normalizeEmail(b);
+  return false;
+}
+
 function planExisting(f: ConfirmFacts, athlete: NonNullable<ConfirmFacts['athlete']>): AthletePlan {
   const before = pickAthleteValues(athlete);
   const after = { ...before };
-  for (const field of f.updateFields) after[field] = f.registration.values[field];
+  for (const field of f.updateFields) {
+    const value = f.registration.values[field];
+    if (!sameFormat(field, before[field], value)) after[field] = value;
+  }
   const fieldChanges = changedFields(ATHLETE_FIELDS, before, after);
   const statusChange = athlete.status === 'activ' ? null : { from: athlete.status, to: 'activ' as const };
   const athleteUpdate = { ...changedOnly(fieldChanges, after), dataIncomplete: isDataIncomplete(after), ...(statusChange ? { status: 'activ' as const } : {}) };
@@ -102,13 +118,19 @@ function planExisting(f: ConfirmFacts, athlete: NonNullable<ConfirmFacts['athlet
 
 function planMembership(f: ConfirmFacts, season: SeasonFacts | null): MembershipPlan {
   const group = f.group;
-  if (!season || !group || f.seasonMemberships.some((m) => m.groupId === group.id)) return { membership: null, demoteMainId: null };
-  const first = f.seasonMemberships.length === 0;
-  const isMain = first || f.makeMain;
+  if (!season || !group) return { membership: null, demoteMainId: null, promoteMembershipId: null };
   const currentMain = f.seasonMemberships.find((m) => m.isMain);
+  const existing = f.seasonMemberships.find((m) => m.groupId === group.id);
+  if (existing) {
+    if (existing.isMain || !f.makeMain) return { membership: null, demoteMainId: null, promoteMembershipId: null };
+    return { membership: null, demoteMainId: currentMain ? currentMain.id : null, promoteMembershipId: existing.id };
+  }
+  const noMainYet = !currentMain;
+  const isMain = noMainYet || f.makeMain;
   return {
     membership: { groupId: group.id, seasonId: season.id, isMain, from: membershipFrom(season, f.today) },
     demoteMainId: isMain && currentMain ? currentMain.id : null,
+    promoteMembershipId: null,
   };
 }
 
@@ -147,6 +169,7 @@ export function confirmationRecord({ plan, facts, athleteId, membershipId, acsId
     fieldsAfter: sideOf(plan.fieldChanges, 'to'),
     membershipId,
     demotedMainId: plan.demoteMainId,
+    promotedMainId: plan.promoteMembershipId,
     acs: plan.acs && acsId ? { id: acsId, previous: plan.acs.from } : null,
     at,
   };

@@ -1,6 +1,7 @@
 import { acsWord } from './acs';
 import { ATHLETE_FIELD_LABELS, athleteValueText, isAthleteField, type AthleteStatus } from './athlete-data';
 import { RELATIONSHIP_EDIT_OPTIONS } from './registration-panel';
+import { RELATIONSHIP_OTHER } from './registration-form-options';
 
 /** Istoric lines (spec 1.6): one line per change, old → new, newest first. Pure; the history read renders with it. */
 export const SUBJECT = { registration: 'registration-submission', athlete: 'athlete' } as const;
@@ -98,11 +99,35 @@ function valueText(subjectType: string, key: string, value: unknown): string {
   return registrationValueText(key, value);
 }
 
+/** "Alta" with its free text, else the option's label; `relationship` falls back to "Alta" when only `relationshipOther` changed. */
+function relationshipSide(relationship: { from: unknown; to: unknown } | null, other: { from: unknown; to: unknown } | null, side: 'from' | 'to'): string {
+  const value = relationship ? relationship[side] : RELATIONSHIP_OTHER;
+  if (value !== RELATIONSHIP_OTHER) return registrationValueText('relationship', value);
+  const otherValue = other ? other[side] : null;
+  const otherText = typeof otherValue === 'string' ? otherValue.trim() : '';
+  return otherText ? `Alta: ${otherText}` : 'Alta';
+}
+
+/** `relationship` and `relationshipOther` share one label (spec): a change to either renders ONE line, not two. */
+function relationshipLine(fields: Changes): string | null {
+  const relationship = isChange(fields.relationship) ? fields.relationship : null;
+  const other = isChange(fields.relationshipOther) ? fields.relationshipOther : null;
+  if (!relationship && !other) return null;
+  return quotedChange(REGISTRATION_FIELD_LABELS.relationship, relationshipSide(relationship, other, 'from'), relationshipSide(relationship, other, 'to'));
+}
+
 function fieldLines(c: Changes, subjectType: string): string[] {
   const fields = isRecord(c.fields) ? c.fields : c;
   const fromRegistration = subjectType === SUBJECT.athlete && typeof c.registrationNumber === 'string';
   const suffix = fromRegistration ? ` (din înscrierea ${c.registrationNumber})` : '';
+  const merged = subjectType === SUBJECT.registration ? relationshipLine(fields) : null;
+  let mergedUsed = false;
   return Object.entries(fields).flatMap(([key, change]) => {
+    if (key === 'relationship' || key === 'relationshipOther') {
+      if (!merged || mergedUsed) return [];
+      mergedUsed = true;
+      return [merged + suffix];
+    }
     const label = fieldLabel(subjectType, key);
     if (!label || !isChange(change)) return [];
     return [quotedChange(label, valueText(subjectType, key, change.from), valueText(subjectType, key, change.to)) + suffix];
@@ -110,7 +135,8 @@ function fieldLines(c: Changes, subjectType: string): string[] {
 }
 
 function confirmedLine(c: Changes): string {
-  const who = c.createdAthlete === true ? 'Sportiv nou creat' : `Fișa existentă folosită (${text(c.athleteName)})`;
+  const name = text(c.athleteName);
+  const who = c.createdAthlete === true ? 'Sportiv nou creat' : name ? `Fișa existentă folosită (${name})` : 'Fișa existentă folosită';
   const group = c.groupName ? `grupa ${text(c.groupName)}` : 'fără grupă';
   return `Confirmat. ${who}; ${group}.`;
 }

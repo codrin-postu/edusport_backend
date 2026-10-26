@@ -37,6 +37,23 @@ describe('registration lines (spec 1.6)', () => {
   it('archive uses the pending label (N2 c)', () => {
     expect(reg(A.updated, { fields: { archived: { from: false, to: true } } })).toEqual([`${PENDING_COPY.archivedLabel}: "Nu" → "Da"`]);
   });
+
+  it('drops the brackets when the existing athlete has no name', () => {
+    expect(reg(A.confirmed, { athleteName: '', createdAthlete: false, groupName: null })).toEqual(['Confirmat. Fișa existentă folosită; fără grupă.']);
+    expect(reg(A.confirmed, { createdAthlete: false, groupName: 'Intermediari Bronze' })).toEqual(['Confirmat. Fișa existentă folosită; grupa Intermediari Bronze.']);
+  });
+
+  it('relationship and relationshipOther render as one line, "Alta: <text>"', () => {
+    expect(reg(A.updated, { fields: { relationship: { from: 'parinte', to: 'alta' }, relationshipOther: { from: null, to: 'Bunica' } } })).toEqual([
+      'Calitatea față de sportiv: "Părinte" → "Alta: Bunica"',
+    ]);
+    expect(reg(A.updated, { fields: { relationshipOther: { from: 'Bunica', to: 'Matusa' } } })).toEqual([
+      'Calitatea față de sportiv: "Alta: Bunica" → "Alta: Matusa"',
+    ]);
+    expect(reg(A.updated, { fields: { relationship: { from: 'alta', to: 'parinte' }, relationshipOther: { from: 'Bunica', to: null } } })).toEqual([
+      'Calitatea față de sportiv: "Alta: Bunica" → "Părinte"',
+    ]);
+  });
 });
 
 describe('athlete lines (spec 1.6)', () => {
