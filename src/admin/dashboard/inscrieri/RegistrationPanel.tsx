@@ -14,6 +14,7 @@ import {
   showMatchCard,
   type PanelTab,
 } from '../../../club/inscrieri-panel';
+import { ConfirmWindow } from './ConfirmWindow';
 import { MatchCard } from './MatchCard';
 import { PanelHeader } from './PanelHeader';
 import { PanelBody } from './PanelTabs';
@@ -70,6 +71,7 @@ function PanelFooter({ row, api, onConfirm, onContacted }: FooterProps) {
 /** The Înscrieri panel (spec 3.3): fixed header, tabs, scrolling body, fixed footer. Keyed by the registration. */
 export function RegistrationPanel({ row, api }: { row: Row; api: TableApi }) {
   const [tab, setTab] = React.useState<PanelTab>('date');
+  const [confirming, setConfirming] = React.useState(false);
   const data = usePanelData(row.documentId, panelVersion(row));
   const ref = React.useRef<HTMLDivElement>(null);
   return (
@@ -90,7 +92,15 @@ export function RegistrationPanel({ row, api }: { row: Row; api: TableApi }) {
           <PanelBody tab={tab} row={row} api={api} data={data} />
         </div>
       </DetailBody>
-      <PanelFooter row={row} api={api} onContacted={() => focusAfterContactat(ref.current)} />
+      <PanelFooter
+        row={row}
+        api={api}
+        onConfirm={data.match ? () => setConfirming(true) : undefined}
+        onContacted={() => focusAfterContactat(ref.current)}
+      />
+      {confirming && data.match && (
+        <ConfirmWindow row={row} view={data.match} onClose={() => setConfirming(false)} onDone={api.refetch} />
+      )}
     </div>
   );
 }
