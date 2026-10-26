@@ -20,52 +20,17 @@ import {
   listRegistrationDocuments,
   moveRegistrationsToSeason,
   moveRegistrationsToSeasonInBackground,
-  rebuildAfterEdit,
-  seasonIdForLabel,
   seasonMoveDeps,
   submitBlockedReason,
-  type RebuildResult,
 } from '../../../club/documents';
 import { adminActor } from '../../../club/admin-actor';
-import { recordHistory } from '../../../club/history';
-import {
-  REGISTRATION_EDIT_FIELDS,
-  documentRebuiltEntry,
-  normalizeRegistrationEdit,
-  registrationEditError,
-} from '../../../club/registration-edit';
 import { clubStore } from '../../../club/athletes/http';
-import { afterRegistrationSubmitted } from '../../../club/athletes/registration-hooks';
+import { afterRegistrationSubmitted, beforeRegistrationDeleted } from '../../../club/athletes/registration-hooks';
+import { updateRegistration } from '../../../club/registration-update';
+import { registrationEditDeps } from '../edit-deps';
 
 const UID = 'api::registration-submission.registration-submission' as const;
 const FORM_CONFIG_UID = 'api::form-config.form-config' as const;
-
-const STATUSES = ['Nou', 'Contactat', 'Confirmat', 'Respins'] as const;
-
-// Fields an admin may write through the update endpoint. Everything else in a
-// PUT body is ignored so the endpoint can never set arbitrary columns.
-// `archived` is included so per-row archive/restore goes through the same PUT.
-const EDITABLE_FIELDS = new Set<string>([
-  'email',
-  'phone',
-  'childName',
-  'childBirthDate',
-  'parentName',
-  'shirtSize',
-  'howHeard',
-  'level',
-  'priorExperience',
-  'expectations',
-  'clubInterest',
-  'regulationsAgreement',
-  'privacyConsent',
-  'status',
-  'internalNote',
-  'archived',
-  'season',
-  // Script form answers printed on the PDFs (plan 2B): saving one rebuilds them (plan 2D).
-  ...REGISTRATION_EDIT_FIELDS,
-]);
 
 // Columns the generic filter builder may target. Anything else is ignored so a
 // crafted `filters` payload can never query arbitrary attributes.
@@ -220,17 +185,6 @@ async function removeDocuments(documentId: string): Promise<void> {
   }
 }
 
-/** "Document refăcut" in the registration's history, only after a rebuild that succeeded (plan 2B). Never throws. */
-async function recordDocumentRebuilt(documentId: string, rebuild: RebuildResult | null, authorization: string | undefined): Promise<void> {
-  if (!rebuild?.ok) return;
-  try {
-    const actor = await adminActor(authorization, strapi);
-    await recordHistory(strapi, documentRebuiltEntry(documentId, rebuild.documents, actor));
-  } catch (err) {
-    strapi.log.error(`[inscrieri] history of the rebuild of ${documentId} failed: ${err instanceof Error ? err.message : String(err)}`);
-  }
-}
-
 export default factories.createCoreController(UID, ({ strapi }) => ({
   /**
    * POST /api/forms/inscriere?scoala=<slug>  (public, auth:false)
@@ -315,37 +269,14 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
 
   /**
    * PUT /api/forms/inscrieri/:documentId  (admin-guarded)
-   * Update any editable field (status, internalNote, archived, or the body).
+   * Panel "Editează" and full-table cell edits: src/club/registration-update.ts. Answers { data, rebuild?, changed }.
    */
   async updateSubmission(ctx) {
-    const { documentId } = ctx.params;
-    const raw = ((ctx.request.body as any)?.data ?? ctx.request.body ?? {}) as Record<string, unknown>;
-
-    const data: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(raw)) {
-      if (!EDITABLE_FIELDS.has(key)) continue;
-      if (key === 'archived') data[key] = asBool(value);
-      // season is a free-form string; empty trims to null (clears the season).
-      else if (key === 'season') data[key] = trimOrEmpty(value) || null;
-      else data[key] = value;
-    }
-    if (typeof data.status === 'string' && !(STATUSES as readonly string[]).includes(data.status)) {
-      return ctx.badRequest('Stare invalidă.');
-    }
-    const editError = registrationEditError(data);
-    if (editError) return ctx.badRequest(editError);
-    Object.assign(data, normalizeRegistrationEdit(data));
-    // `level` is now a plain string sourced from the dynamic effective options;
-    // it is no longer validated against a fixed enum here.
-
-    // A new season text also points seasonRef at the Sezon of that label (null when none matches).
-    if ('season' in data) data.seasonRef = await seasonIdForLabel(strapi, data.season);
-
-    const doc = await strapi.documents(UID).update({ documentId, data });
-    if (!doc) return ctx.notFound();
-    const rebuild = await rebuildAfterEdit(strapi, documentId, data);
-    await recordDocumentRebuilt(documentId, rebuild, ctx.request.header?.authorization);
-    ctx.body = rebuild ? { data: doc, rebuild } : { data: doc };
+    const raw = ((ctx.request.body as Record<string, unknown>)?.data ?? ctx.request.body ?? {}) as Record<string, unknown>;
+    const actor = await adminActor(ctx.request.header?.authorization, strapi);
+    const result = await updateRegistration(registrationEditDeps(strapi), ctx.params.documentId, raw, actor);
+    if (result.ok === false) return result.status === 404 ? ctx.notFound() : ctx.badRequest(result.error);
+    ctx.body = result.rebuild ? { data: result.data, rebuild: result.rebuild, changed: result.changed } : { data: result.data, changed: result.changed };
   },
 
   /**
@@ -354,6 +285,8 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
    */
   async deleteSubmission(ctx) {
     const { documentId } = ctx.params;
+    const actor = await adminActor(ctx.request.header?.authorization, strapi);
+    await beforeRegistrationDeleted(clubStore(strapi), documentId, actor, (m) => strapi.log.error(m));
     await deleteRegistrationEmailJobs(strapi, [documentId]);
     await strapi.documents(UID).delete({ documentId });
     await removeDocuments(documentId);
@@ -382,10 +315,13 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
   async deleteArchivedSeason(ctx) {
     const season = trimOrEmpty((ctx.request.body as any)?.season);
     if (!season) return ctx.badRequest('Sezon lipsă.');
+    const actor = await adminActor(ctx.request.header?.authorization, strapi);
     const count = await deleteRegistrationsWithDocuments({
       findIds: async () => {
         const rows = (await strapi.db.query(UID).findMany({ select: ['documentId'], where: { season, archived: true } })) as { documentId?: unknown }[];
-        return rows.map((r) => r.documentId).filter((id): id is string => typeof id === 'string');
+        const ids = rows.map((r) => r.documentId).filter((id): id is string => typeof id === 'string');
+        for (const id of ids) await beforeRegistrationDeleted(clubStore(strapi), id, actor, (m) => strapi.log.error(m));
+        return ids;
       },
       deleteEmailJobs: (ids) => deleteRegistrationEmailJobs(strapi, ids),
       deleteRows: async (ids) => (await strapi.db.query(UID).deleteMany({ where: { documentId: { $in: ids } } })).count,

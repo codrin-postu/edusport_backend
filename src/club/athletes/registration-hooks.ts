@@ -11,3 +11,17 @@ export async function afterRegistrationSubmitted(store: ClubStore, registrationI
   );
   await safely(() => refreshRegistrationMatch(store, registrationId), log, `match after submit of ${registrationId}`);
 }
+
+/** A confirmed registration deleted: the athlete keeps its data, groups and A.C.S.; Istoric notes it (r4 e3). */
+export async function beforeRegistrationDeleted(store: ClubStore, registrationId: string, actor: string, log: (message: string) => void): Promise<void> {
+  await safely(
+    async () => {
+      const registration = await store.registration(registrationId);
+      if (!registration?.athleteId) return;
+      const changes = { registrationNumber: registration.number };
+      await store.record({ subjectType: SUBJECT.athlete, subjectId: registration.athleteId, action: HISTORY_ACTIONS.registrationDeleted, changes, actor });
+    },
+    log,
+    `history of deleting ${registrationId}`,
+  );
+}
