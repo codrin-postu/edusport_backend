@@ -2,6 +2,7 @@ import { parseBirthDate, roDate } from './birth-date';
 import { REGISTRATION_FIELD_LABELS } from './history-text';
 import { EDIT_TOASTS, PANEL_COPY } from './inscrieri-copy';
 import { LEGACY_DATE_KEYS, LEGACY_LABELS, cellText, type InscriereRow, type ToastSpec } from './inscrieri-panel';
+import { registrationEditError } from './registration-edit';
 import {
   LAST_SEASON_OPTIONS,
   MEMBERSHIP_OPTIONS,
@@ -12,13 +13,17 @@ import {
   SOURCE_OTHER_LABEL,
 } from './registration-form-options';
 import { RELATIONSHIP_EDIT_OPTIONS, isScriptFormRegistration } from './registration-panel';
+import { parseChildHeight, RULE_ERRORS } from './registration-input';
 import { BIRTH_DATE_ERROR, EMPTY_DATE, partsFromDisplay, partsToDisplay, type DateParts } from './ui-birth-date';
 
 /**
- * "Editează" in the Date tab (spec 3.4): every answer in one form, the wish last under "Abonament".
- * Nr. înscriere, Trimis la and the consents are never edited. "De unde ați aflat" is editable
- * there too (plan header RESOLVED #6, option B): plan 3-2 Task 14 adds source/sourceOther to
- * EDITABLE_FIELDS. Pure; the admin form renders these fields.
+ * "Editează" in the Date tab (spec 3.4): every answer in one form, "De unde ați aflat" then the
+ * wish last under "Abonament" (spec 3.4, gap #25). Nr. înscriere, Trimis la and the consents are
+ * never edited. "De unde ați aflat" is editable too (plan header RESOLVED #6, option B): the
+ * server's EDITABLE_FIELDS (`registration-update.ts`, merged) already carries source/sourceOther.
+ * Changed values are checked the way the server does, reusing its own rules (`registrationEditError`,
+ * `parseChildHeight`) so the toast names the field before the PUT ever runs. Pure; the admin form
+ * renders these fields.
  */
 export type EditKind = 'text' | 'textarea' | 'height' | 'select' | 'birthDate' | 'bool';
 export type EditOption = { value: string; label: string };
@@ -45,9 +50,9 @@ const SCRIPT_FIELDS: readonly EditField[] = [
   field('lastSeason', 'select', L.lastSeason, LAST_SEASON_CHOICES),
   field('priorExperience', 'textarea'),
   field('expectations', 'textarea'),
-  { ...field('membershipAnswer', 'select', L.membershipAnswer, MEMBERSHIP_OPTIONS), section: 'abonament' },
   { ...field('source', 'select', PANEL_COPY.abonament.source, SOURCE_CHOICES), section: 'abonament' },
   { ...field('sourceOther', 'text', SOURCE_OTHER_LABEL), section: 'abonament' },
+  { ...field('membershipAnswer', 'select', L.membershipAnswer, MEMBERSHIP_OPTIONS), section: 'abonament' },
 ];
 
 const LEGACY_KIND: Readonly<Record<string, EditKind>> = { childBirthDate: 'birthDate', priorExperience: 'textarea', expectations: 'textarea' };
@@ -101,7 +106,13 @@ function valueChange(row: InscriereRow, f: EditField, draft: EditDraft): Record<
   return next === cellText(row[f.key]) ? {} : { [f.key]: next };
 }
 
-/** The PUT body: only the answers that changed. */
+/** A changed height must be 2-3 digits between 50 and 230, same rule as the server (`parseChildHeight`). */
+function heightError(patch: Record<string, unknown>): string | null {
+  const next = patch.childHeight;
+  return typeof next === 'string' && next !== '' && parseChildHeight(next) === null ? RULE_ERRORS.childHeight : null;
+}
+
+/** The PUT body: only the answers that changed, checked as the server checks them (changed values only). */
 export function editPatch(row: InscriereRow, fields: readonly EditField[], draft: EditDraft): EditPatch {
   const birth = birthChange(row, draft);
   if (birth.error) return birth;
@@ -109,6 +120,10 @@ export function editPatch(row: InscriereRow, fields: readonly EditField[], draft
   for (const f of visibleFields(fields, draft)) {
     if (f.kind !== 'birthDate') Object.assign(patch, valueChange(row, f, draft));
   }
+  const height = heightError(patch);
+  if (height) return { patch: {}, error: height };
+  const choice = registrationEditError(patch);
+  if (choice) return { patch: {}, error: choice };
   return { patch, error: null };
 }
 

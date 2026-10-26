@@ -14,13 +14,13 @@ const draftOf = (row: Record<string, unknown>) => initialDraft(row, editFields(r
 const patchOf = (row: Record<string, unknown>, change: (d: EditDraft) => EditDraft) => editPatch(row, editFields(row), change(draftOf(row)));
 
 describe('"Editează" fields (spec 3.4)', () => {
-  it('script form: every answer in form order, the wish and "De unde ați aflat" last under "Abonament", no consents', () => {
+  it('script form: every answer in form order, "De unde ați aflat" then the wish last under "Abonament" (gap #25), no consents', () => {
     const fields = editFields(script);
     expect(fields.map((f) => [f.key, f.kind, f.section ?? ''])).toEqual([
       ['email', 'text', ''], ['parentName', 'text', ''], ['relationship', 'select', ''], ['relationshipOther', 'text', ''],
       ['phone', 'text', ''], ['childName', 'text', ''], ['childBirthDate', 'birthDate', ''], ['childHeight', 'height', ''],
       ['shirtSize', 'text', ''], ['lastSeason', 'select', ''], ['priorExperience', 'textarea', ''], ['expectations', 'textarea', ''],
-      ['membershipAnswer', 'select', 'abonament'], ['source', 'select', 'abonament'], ['sourceOther', 'text', 'abonament'],
+      ['source', 'select', 'abonament'], ['sourceOther', 'text', 'abonament'], ['membershipAnswer', 'select', 'abonament'],
     ]);
     expect(fields.find((f) => f.key === 'membershipAnswer')?.options).toEqual([
       { value: 'da', label: 'Da, doresc să devin membru' },
@@ -106,6 +106,30 @@ describe('draft and patch', () => {
     expect(
       patchOf(script, (d) => ({ ...d, text: { ...d.text, source: 'Altele', sourceOther: 'Un prieten' } })).patch,
     ).toEqual({ source: 'Altele', sourceOther: 'Un prieten' });
+  });
+
+  it('an old value outside today\'s options, left unchanged, is not sent', () => {
+    const stale = { ...script, lastSeason: 'Nivel desființat', source: 'Un canal vechi' };
+    const result = patchOf(stale, (d) => ({ ...d, text: { ...d.text, phone: '0712' } }));
+    expect(result).toEqual({ patch: { phone: '0712' }, error: null });
+  });
+});
+
+describe('changed-value checks match the server (registration-update.ts editError)', () => {
+  it('a changed height must be 2 or 3 digits between 50 and 230', () => {
+    expect(patchOf(script, (d) => ({ ...d, text: { ...d.text, childHeight: '12' } }))).toEqual({ patch: {}, error: 'Înălțimea copilului nu este validă.' });
+    expect(patchOf(script, (d) => ({ ...d, text: { ...d.text, childHeight: '999' } }))).toEqual({ patch: {}, error: 'Înălțimea copilului nu este validă.' });
+    expect(patchOf(script, (d) => ({ ...d, text: { ...d.text, childHeight: 'abc' } }))).toEqual({ patch: {}, error: 'Înălțimea copilului nu este validă.' });
+    expect(patchOf(script, (d) => ({ ...d, text: { ...d.text, childHeight: '150' } })).patch).toEqual({ childHeight: '150' });
+    expect(patchOf(script, (d) => ({ ...d, text: { ...d.text, childHeight: '' } })).patch).toEqual({ childHeight: '' });
+  });
+
+  it('Calitate cannot be cleared', () => {
+    expect(patchOf(script, (d) => ({ ...d, text: { ...d.text, relationship: '' } }))).toEqual({ patch: {}, error: 'Valoare invalidă.' });
+  });
+
+  it('the wish ("Dorește să fie membru") cannot be cleared', () => {
+    expect(patchOf(script, (d) => ({ ...d, text: { ...d.text, membershipAnswer: '' } }))).toEqual({ patch: {}, error: 'Valoare invalidă.' });
   });
 });
 
