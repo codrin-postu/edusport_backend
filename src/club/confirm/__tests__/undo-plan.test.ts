@@ -62,8 +62,18 @@ describe('undo reverts what the confirmation wrote (spec 4.6, gaps #32)', () => 
   });
 
   it('restores the previous main when the picked group was already present (fix/p3-2-g3: no membership created, so nothing to delete)', () => {
-    const plan = planUndo(facts({ record: record({ membershipId: null, demotedMainId: 'm0' }) }));
+    const plan = planUndo(facts({ record: record({ membershipId: null, demotedMainId: 'm0' }), mainMembershipId: null }));
     expect(plan.deleteMembershipId).toBeNull();
+    expect(plan.restoreMainId).toBe('m0');
+  });
+
+  it('does not restore the old main when a later admin action already made a different one main (Minor 3)', () => {
+    const plan = planUndo(facts({ mainMembershipId: 'm3', membershipIds: ['m0', 'm9', 'm3'] }));
+    expect(plan.restoreMainId).toBeNull();
+  });
+
+  it('restores the old main once the demotion leaves the season with none (Minor 3)', () => {
+    const plan = planUndo(facts({ mainMembershipId: null }));
     expect(plan.restoreMainId).toBe('m0');
   });
 
