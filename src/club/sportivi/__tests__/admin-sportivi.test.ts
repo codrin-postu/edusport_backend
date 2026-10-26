@@ -84,3 +84,31 @@ describe('list screens (Task 6)', () => {
     expect(read('sportivi/AthleteTable.tsx')).toContain('withHeaderSort(state, sortKey)');
   });
 });
+
+describe('merge window (Task 9)', () => {
+  const merge = read('sportivi/MergeDialog.tsx');
+
+  it('search first when no other record is given, then the comparison', () => {
+    expect(merge).toContain('<AthleteSearch api={api} exclude={record.documentId}');
+    expect(merge).toContain('api.mergePreview(keptId, otherId)');
+  });
+
+  it('kept record and per-field choice, confirmation naming the kept record', () => {
+    expect(merge).toContain('label={MERGE_COPY.kept}');
+    expect(merge).toContain('withPick(state, row.field, side)');
+    expect(merge).toContain('MERGE_COPY.confirmMessage(keptName(preview, state))');
+    expect(merge).toContain('mergeRequest(preview, state)');
+  });
+
+  it('modal on desktop, full-height sheet on phones', () => {
+    expect(merge).toContain('desktop="modal" modalSize="lg" fullHeight');
+  });
+
+  it('focus lands on the search box or the first field radio, field radios name their field (Task 9 review)', () => {
+    expect(merge).toContain('initialFocusRef={searchRef}');
+    expect(merge).toContain('inputRef={searchRef}');
+    expect(merge).toContain("querySelector<HTMLElement>('tbody input[type=radio]')");
+    expect(merge).toContain('<span className="ui-sr">{`${row.label}: `}</span>{row[side]}');
+    expect(read('sportivi/AthleteSearch.tsx')).toContain('ref={inputRef} type="search"');
+  });
+});

@@ -6,7 +6,13 @@ import {
 } from '../../../club/sportivi/search-view';
 import type { SportiviApi } from './api';
 
-type Props = { api: SportiviApi; onPick: (card: AthleteCard) => void; onNew?: (text: string) => void; exclude?: string };
+type Props = {
+  api: SportiviApi;
+  onPick: (card: AthleteCard) => void;
+  onNew?: (text: string) => void;
+  exclude?: string;
+  inputRef?: React.Ref<HTMLInputElement>;
+};
 type Search = { result: SearchResult | null; failed: boolean };
 type Option = { key: string; name: string; sub?: string; pick: () => void };
 
@@ -87,7 +93,7 @@ function OptionList({ id, options, active, onActive }: ListProps) {
 const statusText = ({ result, failed }: Search): string => (failed ? SEARCH_FAILED : result ? resultsText(result) : '');
 
 /** "Caută alt sportiv" (spec 4.1) for "Adaugă sportiv" (6.7) and the merge (6.6), on the admin combobox pattern. */
-export function AthleteSearch({ api, onPick, onNew, exclude }: Props) {
+export function AthleteSearch({ api, onPick, onNew, exclude, inputRef }: Props) {
   const [text, setText] = React.useState('');
   const search = useAthleteSearch(api, text, exclude);
   const { result, failed } = search;
@@ -98,7 +104,7 @@ export function AthleteSearch({ api, onPick, onNew, exclude }: Props) {
   return (
     <div className="spv-search">
       <Input
-        type="search" role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={open ? listId : undefined}
+        ref={inputRef} type="search" role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={open ? listId : undefined}
         aria-activedescendant={open ? `${listId}-${active}` : undefined} autoComplete="off" value={text} onKeyDown={onKeyDown}
         onChange={(e) => setText(e.target.value)} placeholder={SEARCH_COPY.placeholder} aria-label={SEARCH_COPY.placeholder} autoFocus
       />
