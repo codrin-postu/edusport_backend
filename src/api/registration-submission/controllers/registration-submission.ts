@@ -34,6 +34,8 @@ import {
   normalizeRegistrationEdit,
   registrationEditError,
 } from '../../../club/registration-edit';
+import { clubStore } from '../../../club/athletes/http';
+import { afterRegistrationSubmitted } from '../../../club/athletes/registration-hooks';
 
 const UID = 'api::registration-submission.registration-submission' as const;
 const FORM_CONFIG_UID = 'api::form-config.form-config' as const;
@@ -251,6 +253,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     const body = (ctx.request.body ?? {}) as Record<string, unknown>;
     const slug = typeof ctx.query.scoala === 'string' ? ctx.query.scoala : null;
     const saved = await submitRegistration(body, slug, buildSubmitDeps(strapi));
+    if (saved.ok === true && !saved.repeat) await afterRegistrationSubmitted(clubStore(strapi), saved.documentId, (m) => strapi.log.error(m));
     const result = await finishSubmit(saved, {
       buildDocuments: (documentId) => buildRegistrationDocuments(strapi, documentId),
       listDocuments: (documentId) => listRegistrationDocuments(strapi, documentId),
