@@ -41,6 +41,10 @@ describe('athlete search accessibility (Task 5 review)', () => {
     expect(s).toMatch(/e\.key === 'Escape'[\s\S]*clear\(\)/);
   });
 
+  it('Enter picks only from the answer to the text in the box, never from the previous one', () => {
+    expect(s).toContain("e.key === 'Enter' && options[active] && result?.q === e.currentTarget.value.trim()");
+  });
+
   it('"Sportiv nou" is the last option', () => {
     expect(s).toContain("[...rows, { key: '', name: SEARCH_COPY.newAthlete");
   });

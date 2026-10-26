@@ -54,7 +54,7 @@ function useOptionKeys(options: Option[], result: SearchResult | null, clear: ()
     if (next !== null) {
       e.preventDefault();
       setActive(next);
-    } else if (e.key === 'Enter' && options[active]) {
+    } else if (e.key === 'Enter' && options[active] && result?.q === e.currentTarget.value.trim()) {
       e.preventDefault();
       options[active].pick();
     } else if (e.key === 'Escape' && e.currentTarget.value) {
