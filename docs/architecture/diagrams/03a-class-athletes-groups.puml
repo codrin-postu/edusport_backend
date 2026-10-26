@@ -19,17 +19,19 @@ class Section {
 class Location {
   rink, address, map link
 }
-class "Athlete\n(renamed from sportsperson)" as Athlete <<changed>> {
-  firstName, lastName : string
-  birthDate : date
-  contactName, phone, email : string
-  status : new | confirmed
-  isMember : bool  // A.C.S. member this season
+class "Athlete" as Athlete <<changed>> {
+  name : string  // one full-name field, replaces firstName + lastName
+  birthDate : date [0..1]
+  contactName, phone, email : string [0..1]
+  status : nou | activ | inactiv
+  dataIncomplete : bool  // recomputed on every save and at confirmation
+  notes : text
 }
-class "PublicProfile" as Profile <<changed>> {
+class "PublicProfile\n(sportsperson)" as Profile <<changed>> {
   slug, photo, story, gallery
-  disciplines, coaches
+  disciplines, coaches, choreographers
   showPublicPage : bool
+  previousSlugs : string[] <<new>>  // old addresses, redirected after a merge; private
 }
 class Group {
   name : string
@@ -38,6 +40,12 @@ class Membership {
   isMain : bool
   from : date
   to : date [0..1]
+}
+class "AcsMembership" as Acs <<new>> {
+  state : da | nu | in_asteptare
+}
+class "AthleteDuplicate" as Dup <<new>> {
+  dismissed : bool  // "Nu e același copil"; row kept so the pair is never flagged again
 }
 class "TeamMember\n(coach)" as Coach <<changed>> {
   name, role, photo
@@ -49,6 +57,10 @@ Athlete "1" *-- "0..1" Profile : has >
 Athlete "1" -- "0..*" Membership
 Membership "0..*" -- "1" Group
 Membership "0..*" -- "1" Season
+Athlete "1" -- "0..*" Acs
+Acs "0..*" -- "1" Season
+Athlete "0..1" -- "0..*" Dup : first >
+Athlete "0..1" -- "0..*" Dup : second >
 Group "0..*" -- "1..*" Coach : coached by >
 Group "0..*" -- "0..1" PriceList : uses >
 Section "1" -- "0..*" Group
@@ -63,9 +75,27 @@ note right of Membership
   {exactly one isMain per athlete per season}
   Totals count distinct athletes.
 end note
+note right of Acs
+  One row per athlete per season (spec 1.4, 4.4).
+  Wish "Da" writes "În așteptare"; wish "Nu" writes
+  nothing; never lowered; never written twice.
+end note
+note right of Dup
+  Flagged once at deploy (spec 2.3): Sigur or Probabil
+  between two athletes, or one with no birth date and
+  agreeing names. Cleared by "Nu e același copil",
+  a merge or a delete.
+end note
 note right of Profile
   Own table. Only this part
   is served to the website.
+  Slug never changes after creation;
+  a merge redirects the deleted one.
+end note
+note bottom of Athlete
+  firstName / lastName kept in storage, read-only,
+  until the name migration has run (11 step 7, P5);
+  all 3A+3B code reads/writes `name` only.
 end note
 note bottom of PriceList
   Groups on the same list
@@ -73,6 +103,6 @@ note bottom of PriceList
 end note
 legend bottom right
   Green «existing»: today, unchanged. Orange «changed»: today, gets new fields.
-  Blue: new. Yellow «option»: depends on a decision.
+  Blue «new»: added in phase 3A+3B.
 endlegend
 @enduml

@@ -1,0 +1,21 @@
+@startuml
+!include _style.iuml
+skinparam linetype polyline
+title Activity: delete an athlete ("Șterge sportivul")
+|Admin|
+start
+:"Șterge sportivul" (record menu);
+:Confirm – "<nume> se șterge definitiv,\nîmpreună cu profilul public, rezultatele\nși sezoanele. Înscrierile rămân, fără\nlegătură. Nu se poate anula.";
+|System|
+:All in one transaction;
+:Unlink every registration of this athlete\n(clears its ConfirmationRecord too;\neach shows "Confirmă înscrierea" again);
+:Delete its group memberships\nand A.C.S. rows;
+:Delete its possible-duplicate pairs;
+if (has a public profile?) then (yes)
+  :Delete it, with its\ncompetition participations;
+endif
+:History "Sportiv șters: <nume>"\n(kept for audit, shown nowhere in 3B);
+:Delete the athlete;
+:Refresh every registration's match\n(best effort, failure only logged);
+stop
+@enduml

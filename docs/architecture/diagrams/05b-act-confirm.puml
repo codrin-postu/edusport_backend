@@ -4,29 +4,42 @@ skinparam linetype polyline
 title Activity: confirm a registration
 |Admin|
 start
-:Open registration;
+:Open registration\n(already matched at submit/edit, spec 2.2);
+if (birth date unreadable?) then (yes)
+  :"Data nașterii nu poate fi citită.\nCorectați-o în Date.";
+  stop
+endif
+:Open "Confirmă înscrierea";
 |System|
-:Find matching athletes\n(name, birth date, phone, e-mail;\nincludes inactive);
-|Admin|
-if (Existing athlete?) then (yes)
-  :Compare and tick fields to update;
-  |System|
-  :Update athlete;\nreactivate if inactive;
-else (no)
-  |System|
-  :Create athlete;
+:Lock the registration row;
+if (already linked to an athlete?) then (yes)
+  :409 "Înscrierea a fost deja\nconfirmată de alt administrator.";
+  stop
 endif
 |Admin|
-if (Choose main group now?) then (yes)
-  :Pick group;
-  |System|
-  :Create membership for season;
-else (later)
-  |System|
-  :Athlete shows under "Fără grupă";
+if (match found?) then (yes, Sigur preselected)
+  :Choose "Sportiv existent"\nor "Sportiv nou";
+  :Compară și actualizează:\ntick fields to update\n(on by default, except name/birth date);
+else (no match)
+  :"Sportiv nou" (only option);
+endif
+if (season still running?) then (yes)
+  :Pick a group (optional);\n"Grupă principală" tick when the\nathlete already has one this season;
+  if (form wish "Da"?) then (yes)
+    :note: A.C.S. "În așteptare"\n(never lowered, never twice);
+  endif
+else (ended)
+  :"Sezonul s-a încheiat.\nSe leagă doar fișa sportivului."\n(no group, no A.C.S. write);
 endif
 |System|
-:Registration = Confirmed, linked to athlete;
-:History entry;
+:All in one transaction;
+:Create the athlete, or update\nthe ticked fields;\nreactivate if inactive; "nou" -> "activ";
+:Write the group membership\n(promote/demote the previous main);
+:Write the A.C.S. status;
+:Registration = Confirmat,\nlinked to the athlete;\nConfirmationRecord saved (undo's source);
+:History on registration and athlete;
+:Refresh every registration's match\n(best effort, failure only logged);
+|Admin|
+:Toast "Înscriere confirmată: <nume>"\nfor 8s, action "Anulează";
 stop
 @enduml

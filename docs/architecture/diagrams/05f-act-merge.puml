@@ -1,0 +1,31 @@
+@startuml
+!include _style.iuml
+skinparam linetype polyline
+title Activity: merge two athletes ("Unește cu alt sportiv")
+|Admin|
+start
+:"Unește cu alt sportiv" (record menu),\nor "Unește" on a possible-duplicate line\n(other athlete preselected);
+:Pick which record is kept;
+|System|
+:Load both sides (values, memberships,\nA.C.S. rows, profile, notes);
+:Diff fields -> comparison;
+|Admin|
+:For each differing field,\npick which value is kept;
+:Confirm "Unești cele două fișe?\nCealaltă se șterge. Nu se poate anula.";
+|System|
+:All in one transaction;
+:Re-link the removed athlete's\nregistrations to the kept one;\nclear any confirmation record on\neither side (no undo is possible after);
+:Memberships: same group+season twice\nis kept once; otherwise moved\n(main only if the kept side had none\nthat season);
+:A.C.S. rows: moved per season;\nthe higher state wins when both have one\n(da > în așteptare > nu);
+:Possible-duplicate pairs of the removed\nathlete repointed to the kept one\n(a pair with the kept athlete already\nmerges its "dismissed" flag);
+if (both have a public profile?) then (yes)
+  :Kept profile stays; the other is\ndeleted; its slug (+ its own\npreviousSlugs) joins the kept\nprofile's previousSlugs (redirect);
+else (only one has a profile)
+  :That profile moves to the kept athlete;
+endif
+:Write the kept athlete's picked field\nvalues, dataIncomplete; notes appended;\nrename the profile to the kept name;
+:Move the removed athlete's history\nto the kept one;\nHistory "Unit cu <nume>" on the kept athlete;
+:Delete the removed athlete;
+:Refresh every registration's match\n(best effort, failure only logged);
+stop
+@enduml

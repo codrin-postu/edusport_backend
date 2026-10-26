@@ -6,7 +6,7 @@ Tracks the phases of `10-spec.md` section 7. Update the status line of a phase w
 |---|---|---|
 | 1 | Data foundation | Live (deployed, migrated) |
 | 2 | Registration rebuild | Merged to main 2026-10-26 (be 9f869cf, fe e35e41a). Not deployed: waits on the club items below, then `12-phase2-deploy-runbook.md` |
-| 3 | Admin Înscrieri + Sportivi, confirmation and matching | Split (2026-10-26): 3A Înscrieri (matching, confirm, list, tabs, move school) in design; 3B Sportivi list + record; 3C personal data. Parent access moves to phase 6 |
+| 3 | Admin Înscrieri + Sportivi, confirmation and matching | 3A + 3B built and reviewed on feat/athletes (2026-10-27), not merged to main, not deployed; 3C personal data next |
 | 4 | Groups and schedules | Not started |
 | 5 | Attendance, subscriptions and payments | Not started |
 | 6 | Login and the coach portal | Not started |

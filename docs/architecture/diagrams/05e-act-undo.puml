@@ -1,0 +1,39 @@
+@startuml
+!include _style.iuml
+skinparam linetype polyline
+title Activity: undo a confirmation ("Anulează confirmarea")
+|Admin|
+start
+:Toast "Anulează", or\n"..." menu > "Anulează confirmarea"\n(asks to confirm);
+|System|
+:Lock the registration row;
+if (a ConfirmationRecord exists\nand still names the linked athlete?) then (no)
+  :409 (already undone or\nconfirmed again elsewhere);
+  stop
+endif
+:Load the athlete, its memberships,\nA.C.S. rows and other registrations;
+:All in one transaction;
+if (A.C.S. status this\nconfirmation wrote is still\n"În așteptare"?) then (yes)
+  :Revert it (delete if it had no\nprevious state, else restore it);
+else (no)
+  :Leave it (a payment happened since);
+endif
+if (the membership this\nconfirmation created still exists?) then (yes)
+  :Delete it;
+endif
+if (this confirmation promoted\nanother membership to main?) then (yes)
+  :Demote it (never deleted);
+endif
+if (this confirmation demoted\na membership, and the season\nhas no main group now?) then (yes)
+  :Restore it as main;
+endif
+if (athlete was created by this\nconfirmation AND has nothing else\n(no other registration, group,\nA.C.S. row or public profile)?) then (yes)
+  :Delete the athlete;
+else (no)
+  :Revert only the fields this\nconfirmation changed, and the\nstatus if it was activated;\nrename the profile back if needed;
+endif
+:Registration: unlink the athlete,\nstatus back to what it was before,\nconfirmation cleared;
+:History "Confirmare anulată"\non the registration, and on the\nathlete unless it was just deleted;
+:Refresh every registration's match\n(best effort, failure only logged);
+stop
+@enduml

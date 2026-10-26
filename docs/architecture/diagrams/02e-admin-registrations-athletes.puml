@@ -1,36 +1,77 @@
 @startuml
 !include _style.iuml
 left to right direction
-title Admin: registrations and athletes
+title Admin: registrations and athletes (routes /api/club/registrations, /api/club/athletes)
 actor "Admin" as A
-rectangle "EduSport" {
+
+rectangle "Înscrieri" {
   usecase "Browse and filter\nregistrations" <<existing>> as Browse
   usecase "Change status, add note" <<existing>> as Status
   usecase "Move to season, archive,\ndelete, export CSV" <<existing>> as Bulk
-  usecase "Edit registration data\n(rebuilds the PDF)" as EditReg
-  usecase "Resend registration e-mail" as Resend
-  usecase "Confirm registration" as Conf
+  usecase "Move to another school\n(bulk or one)" as MoveSchool
+  usecase "Edit registration data\n(Editează, rebuilds the PDF)" <<existing>> as EditReg
+  usecase "Resend registration e-mail" <<existing>> as Resend
+  usecase "View registration history" as RegHist
   usecase "Match with an\nexisting athlete" as Match
-  usecase "Update athlete data\nfrom the registration" as Upd
-  usecase "Edit athlete record" as EditA
-  usecase "Edit public profile\nand publish" <<existing>> as Pub
-  usecase "Link skate results,\nimport competitions" <<existing>> as Skate
-  usecase "Review athletes added\nby coaches («new»)" as Review
+  usecase "Compare and tick\nfields to update" as Compare
+  usecase "Pick group, main group,\nA.C.S. wish" as PickGroup
+  usecase "Confirm registration" as Conf
+  usecase "Undo confirmation" as Undo
 }
+
+rectangle "Sportivi" {
+  usecase "Browse, filter, search\nSportivi" as List
+  usecase "View athlete record" as Record
+  usecase "Edit athlete data (Date tab)" as EditA
+  usecase "Create public profile" as CreateProf
+  usecase "Edit public profile\nand publish" <<existing>> as Pub
+  usecase "Toggle public page" as Visibility
+  usecase "Link skate results,\nimport competitions" <<existing>> as Skate
+  usecase "View athlete history" as AHist
+  usecase "Add athlete\n(Adaugă sportiv)" as Add
+  usecase "Mark inactive / active" as MarkStatus
+  usecase "Dismiss possible duplicate\n(Nu e același copil)" as Dismiss
+  usecase "Merge with\nanother athlete" as Merge
+  usecase "Delete athlete" as Delete
+  usecase "Review athletes added\nby coaches («proposed»)" <<proposed>> as Review
+}
+
 A -- Browse
+A -- Status
 A -- Bulk
+A -- MoveSchool
 A -- EditReg
 A -- Resend
+A -- RegHist
 A -- Conf
+A -- Undo
+A -- List
+A -- Record
 A -- EditA
 A -- Pub
+A -- Visibility
 A -- Skate
+A -- AHist
+A -- Add
+A -- MarkStatus
+A -- Dismiss
+A -- Merge
+A -- Delete
 A -- Review
+
 Status .> Browse : <<extend>>
 Conf ..> Match : <<include>>
-Upd .> Conf : <<extend>>
+Conf ..> Compare : <<include>>
+Conf ..> PickGroup : <<include>>
+Undo .> Conf : <<extend>>
+EditReg .> Match : <<extend>>
+CreateProf .> Record : <<extend>>
+Visibility .> Pub : <<extend>>
+Dismiss .> Record : <<extend>>
+Merge .> Dismiss : <<extend>>
+
 legend bottom right
-  Green «existing»: already in the admin panel today.
-  Blue: planned (decided). Yellow «proposed»: not decided.
+  Green «existing»: already in the admin panel before phase 3.
+  Blue: built in phase 3A+3B. Yellow «proposed»: not built, phase 6.
 endlegend
 @enduml
