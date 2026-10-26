@@ -138,7 +138,6 @@ ${R} .ui-input:focus{outline:none;border-color:var(--theme-primary);box-shadow:0
 ${R} .ui-input:disabled{color:var(--theme-text-disabled);cursor:not-allowed}
 ${R} .ui-input[aria-invalid="true"]{border-color:var(--theme-danger)}
 ${R} textarea.ui-input{resize:vertical;min-height:64px}
-${R} select.ui-input{padding-right:6px}
 ${R} .ui-grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--ui-space-3)}
 @media (max-width:640px){${R} .ui-grid2{grid-template-columns:1fr}}
 

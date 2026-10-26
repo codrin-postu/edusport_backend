@@ -168,7 +168,7 @@ export interface TableApi {
   removeRow: (documentId: string) => void;
   /** Shared detail-panel blocks — identical on every screen, so they live here. */
   statusBox: (r: Row) => React.ReactNode;
-  /** Season <select> for the detail panel; null when the screen has no seasons. */
+  /** Season Select for the detail panel; null when the screen has no seasons. */
   seasonField: (r: Row) => React.ReactNode;
   /** Custom-question answers read out of `row.extra`; null when there are none. */
   customFields: (r: Row) => React.ReactNode;
@@ -343,7 +343,7 @@ export function extraValueText(v: unknown): string {
 }
 
 /**
- * Season picker. A real <select> everywhere a season is chosen — a free-text
+ * Season picker. A Select with fixed options everywhere a season is chosen — a free-text
  * field silently created phantom seasons, and a season is now how a row is
  * retired (the list defaults to the active season server-side), so a typo would
  * quietly lose rows. Options are the seasons the API returned plus the active
@@ -1247,7 +1247,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     [cfg, statusOf],
   );
 
-  /** Status <select> tinted with the status colours (panel and spreadsheet cell). */
+  /** Status Select tinted with the status colours (panel and spreadsheet cell). */
   const statusSelect = (r: Row, key: string, className: string, label: string) => {
     const value = String(r[key] ?? cfg.statuses[0].value);
     const s = statusOf(value);
