@@ -519,6 +519,7 @@ ${R} .ui-toast-text{flex:1;line-height:1.45;min-width:0}
 ${R} .ui-toast-title{display:block;font-weight:700;margin-bottom:1px}
 ${R} .ui-toast-body{color:var(--theme-text-secondary)}
 ${R} .ui-toast-close{flex-shrink:0;align-self:flex-start}
+${R} .ui-toast-action{flex-shrink:0;align-self:center;color:var(--theme-primary);font-weight:700}
 ${R} .ui-toast--success{--ui-toast-fg:var(--theme-success)}
 ${R} .ui-toast--info{--ui-toast-fg:var(--theme-info)}
 ${R} .ui-toast--warning{--ui-toast-fg:var(--theme-warning)}

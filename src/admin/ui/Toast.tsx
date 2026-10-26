@@ -28,11 +28,23 @@ import { ensureAdminUi } from './styles';
 
 export type ToastTone = 'success' | 'info' | 'warning' | 'danger';
 
+/** One button in a toast, e.g. { label: 'Anulează', onClick: undo }. */
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 export interface ToastOptions {
   /** Optional bold lead-in, above the message. */
   title?: React.ReactNode;
   /** Overrides the tone's default auto-dismiss delay (ms). danger ignores this and stays until closed. */
   duration?: number;
+  /**
+   * A button between the text and the close X. Clicking it runs `onClick`
+   * once and closes the toast. While a toast has an action, the countdown
+   * waits as long as the pointer or the keyboard focus is on the toast.
+   */
+  action?: ToastAction;
 }
 
 interface ToastItem {
@@ -42,6 +54,7 @@ interface ToastItem {
   title?: React.ReactNode;
   /** null = stays until the user closes it. */
   duration: number | null;
+  action?: ToastAction;
 }
 
 /** success/info: 5s. warning: 5s. danger: stays until closed. */
@@ -66,7 +79,7 @@ function emit(): void {
 function push(tone: ToastTone, text: React.ReactNode, opts?: ToastOptions): number {
   const id = ++seq;
   const duration = tone === 'danger' ? null : opts?.duration ?? DEFAULT_DURATION[tone];
-  toasts = [...toasts, { id, tone, text, title: opts?.title, duration }].slice(-MAX_VISIBLE);
+  toasts = [...toasts, { id, tone, text, title: opts?.title, duration, action: opts?.action }].slice(-MAX_VISIBLE);
   emit();
   return id;
 }
@@ -154,29 +167,54 @@ function ToastCard({ item }: { item: ToastItem }) {
   };
 
   const urgent = item.tone === 'warning' || item.tone === 'danger';
+  // A toast with an action waits while the pointer or the focus is on it, so the action stays reachable.
+  const pausable = urgent || item.action !== undefined;
 
   return (
     <div
       className={cx('ui-toast', `ui-toast--${item.tone}`, leaving && 'ui-toast--out')}
       role={urgent ? 'alert' : 'status'}
       aria-live={urgent ? undefined : 'polite'}
-      onMouseEnter={urgent ? pause : undefined}
-      onMouseLeave={urgent ? arm : undefined}
+      onMouseEnter={pausable ? pause : undefined}
+      onMouseLeave={pausable ? arm : undefined}
+      onFocus={item.action ? pause : undefined}
+      onBlur={item.action ? arm : undefined}
     >
       <div className="ui-toast-text">
         {item.title && <b className="ui-toast-title">{item.title}</b>}
         <span className="ui-toast-body">{item.text}</span>
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        iconOnly
-        icon={CLOSE_ICON}
-        aria-label="Închide"
-        className="ui-toast-close"
-        onClick={close}
-      />
+      {item.action && <ToastActionButton action={item.action} disabled={leaving} onDone={close} />}
+      {!item.action && (
+        <Button
+          variant="ghost"
+          size="sm"
+          iconOnly
+          icon={CLOSE_ICON}
+          aria-label="Închide"
+          className="ui-toast-close"
+          onClick={close}
+        />
+      )}
     </div>
+  );
+}
+
+/** The toast's action: runs once (disabled while the toast leaves), then closes the toast. */
+function ToastActionButton({ action, disabled, onDone }: { action: ToastAction; disabled: boolean; onDone: () => void }) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="ui-toast-action"
+      disabled={disabled}
+      onClick={() => {
+        action.onClick();
+        onDone();
+      }}
+    >
+      {action.label}
+    </Button>
   );
 }
 
