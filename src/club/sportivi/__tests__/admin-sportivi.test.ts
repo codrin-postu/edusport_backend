@@ -52,3 +52,35 @@ describe('athlete search accessibility (Task 5 review)', () => {
     expect(s).toContain('.catch(() => { if (!off) setSearch({ result: null, failed: true }); })');
   });
 });
+
+describe('list screens (Task 6)', () => {
+  it('pages come from listRequest: phone appends only the next page, a remembered page reloads 1..N', () => {
+    const hook = read('sportivi/useAthleteList.ts');
+    expect(hook).toContain('listRequest(wanted, phone, loaded.current)');
+    expect(hook).toContain('req.append ? [...prev, ...p.data] : p.data');
+    expect(hook).toContain('loaded.current = req.loaded;');
+  });
+
+  it('"date lipsă" and the card badge carry the triangle warning icon; the missing list reaches screen readers', () => {
+    expect(read('../ui/icons.tsx')).toMatch(/export const IconWarning[\s\S]*M7 1\.6L12\.6 12\.2H1\.4z/);
+    const table = read('sportivi/AthleteTable.tsx');
+    expect(table).toContain('<IconWarning size={12} />');
+    expect(table).toContain('{tip && <span className="ui-sr">{tip}</span>}');
+    expect(read('sportivi/AthleteCards.tsx')).toContain('<IconWarning size={11} />');
+  });
+
+  it('header and toolbar as spec 5: no Export, no Coloane, sort in the sheet on phones', () => {
+    const list = read('sportivi/SportiviList.tsx');
+    const bar = read('sportivi/ListToolbar.tsx');
+    expect(list).toContain('LIST_COPY.subtitle');
+    expect(bar).toContain('<FilterPanel');
+    expect(bar).toContain('phone ? [...filters, sortSection(state)] : filters');
+    expect(`${list}${bar}`).not.toMatch(/Export|Coloane/);
+  });
+
+  it('rows open the record with the selected season; phone cards load 30 more', () => {
+    expect(read('sportivi/SportiviList.tsx')).toContain('navigate(athleteRecordTo(documentId), { state: { season:');
+    expect(read('sportivi/AthleteCards.tsx')).toContain('LIST_COPY.more');
+    expect(read('sportivi/AthleteTable.tsx')).toContain('withHeaderSort(state, sortKey)');
+  });
+});

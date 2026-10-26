@@ -66,3 +66,14 @@ export const IconInfo = ({ size = 14 }: P) =>
       <rect x="6.25" y="3.5" width="1.5" height="1.5" fill="currentColor" />
     </>,
   );
+
+/** "!" in a triangle (no round shapes). */
+export const IconWarning = ({ size = 14 }: P) =>
+  svg(
+    size,
+    <>
+      <path d="M7 1.6L12.6 12.2H1.4z" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M7 5.2v3.6" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="6.25" y="9.4" width="1.5" height="1.5" fill="currentColor" />
+    </>,
+  );
