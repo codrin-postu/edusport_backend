@@ -47,8 +47,7 @@ export const SPORTIVI_CSS = `
 .ui-root .spv-search{display:flex;flex-direction:column;gap:8px}
 .ui-root .spv-results{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .ui-root .spv-result{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;font:inherit;color:var(--theme-text);background:var(--theme-surface);border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);padding:8px 12px;cursor:pointer}
-.ui-root .spv-result:hover{border-color:var(--theme-primary);background:var(--theme-primary-soft)}
-.ui-root .spv-result:focus-visible{outline:2px solid var(--theme-focus);outline-offset:1px}
+.ui-root .spv-result:hover,.ui-root .spv-result[data-active]{border-color:var(--theme-primary);background:var(--theme-primary-soft)}
 .ui-root .spv-result-sub{font-size:12px;color:var(--theme-text-muted)}
 .ui-root .spv-merge-wrap{overflow-x:auto}
 .ui-root .spv-merge{width:100%;min-width:520px;border-collapse:collapse}

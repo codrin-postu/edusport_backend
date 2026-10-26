@@ -28,3 +28,27 @@ describe('API client and styles (Task 5)', () => {
     expect(s).toContain('showNewRow(result)');
   });
 });
+
+describe('athlete search accessibility (Task 5 review)', () => {
+  const s = read('sportivi/AthleteSearch.tsx');
+
+  it('follows the SearchableSelect combobox pattern', () => {
+    for (const attr of ['role="combobox"', 'aria-expanded={open}', 'aria-controls=', 'aria-activedescendant=', 'role="listbox"', 'role="option"']) {
+      expect(s).toContain(attr);
+    }
+    expect(s).toContain('movedOption(e.key, active, options.length)');
+    expect(s).toMatch(/e\.key === 'Enter'[\s\S]*\.pick\(\)/);
+    expect(s).toMatch(/e\.key === 'Escape'[\s\S]*clear\(\)/);
+  });
+
+  it('"Sportiv nou" is the last option', () => {
+    expect(s).toContain("[...rows, { key: '', name: SEARCH_COPY.newAthlete");
+  });
+
+  it('a hidden live region announces the count, and a failed search shows its own text', () => {
+    expect(s).toContain('<span className="ui-sr" role="status" aria-live="polite">{statusText(search)}</span>');
+    expect(s).toContain('failed ? SEARCH_FAILED : result ? resultsText(result)');
+    expect(s).toContain("{failed && <p className=\"ui-error\">{SEARCH_FAILED}</p>}");
+    expect(s).toContain('.catch(() => { if (!off) setSearch({ result: null, failed: true }); })');
+  });
+});

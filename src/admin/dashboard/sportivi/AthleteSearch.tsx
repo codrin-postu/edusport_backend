@@ -2,59 +2,110 @@ import * as React from 'react';
 import { Input } from '../../ui';
 import type { AthleteCard } from '../../../club/athletes/api-types';
 import {
-  SEARCH_COPY, cardSubline, noResultsText, showNewRow, withoutAthlete, type SearchResult,
+  SEARCH_COPY, SEARCH_FAILED, cardSubline, movedOption, noResultsText, resultsText, showNewRow, withoutAthlete, type SearchResult,
 } from '../../../club/sportivi/search-view';
 import type { SportiviApi } from './api';
 
 type Props = { api: SportiviApi; onPick: (card: AthleteCard) => void; onNew?: (text: string) => void; exclude?: string };
+type Search = { result: SearchResult | null; failed: boolean };
+type Option = { key: string; name: string; sub?: string; pick: () => void };
+
+const IDLE: Search = { result: null, failed: false };
 
 /** Server search 250 ms after the last key; the answer remembers its own text, so a late answer never mislabels. */
-function useAthleteSearch(api: SportiviApi, text: string, exclude: string | undefined): SearchResult | null {
-  const [result, setResult] = React.useState<SearchResult | null>(null);
+function useAthleteSearch(api: SportiviApi, text: string, exclude: string | undefined): Search {
+  const [search, setSearch] = React.useState<Search>(IDLE);
   React.useEffect(() => {
     const q = text.trim();
     if (!q) {
-      setResult(null);
+      setSearch(IDLE);
       return undefined;
     }
     let off = false;
     const t = window.setTimeout(() => {
       api.search(q)
-        .then((cards) => { if (!off) setResult({ q, cards: withoutAthlete(cards, exclude) }); })
-        .catch(() => { if (!off) setResult(null); });
+        .then((cards) => { if (!off) setSearch({ result: { q, cards: withoutAthlete(cards, exclude) }, failed: false }); })
+        .catch(() => { if (!off) setSearch({ result: null, failed: true }); });
     }, 250);
     return () => { off = true; window.clearTimeout(t); };
   }, [api, text, exclude]);
-  return result;
+  return search;
 }
 
-function ResultRow({ name, sub, onClick }: { name: string; sub?: string; onClick: () => void }) {
+/** The found athletes, then "Sportiv nou" as the last option. */
+function optionsOf(result: SearchResult | null, onPick: Props['onPick'], onNew: Props['onNew']): Option[] {
+  if (!result) return [];
+  const rows: Option[] = result.cards.map((c) => ({ key: c.documentId, name: c.name, sub: cardSubline(c), pick: () => onPick(c) }));
+  return onNew && showNewRow(result) ? [...rows, { key: '', name: SEARCH_COPY.newAthlete, pick: () => onNew(result.q) }] : rows;
+}
+
+/** ArrowUp / ArrowDown / Home / End move, Enter picks, Escape drops the typed text (and so closes the list). */
+function useOptionKeys(options: Option[], result: SearchResult | null, clear: () => void) {
+  const [active, setActive] = React.useState(0);
+  React.useEffect(() => setActive(0), [result]);
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const next = movedOption(e.key, active, options.length);
+    if (next !== null) {
+      e.preventDefault();
+      setActive(next);
+    } else if (e.key === 'Enter' && options[active]) {
+      e.preventDefault();
+      options[active].pick();
+    } else if (e.key === 'Escape' && e.currentTarget.value) {
+      e.preventDefault();
+      clear();
+    }
+  };
+  return { active, setActive, onKeyDown };
+}
+
+type ListProps = { id: string; options: Option[]; active: number; onActive: (i: number) => void };
+
+function OptionList({ id, options, active, onActive }: ListProps) {
   return (
-    <button type="button" className="spv-result" onClick={onClick}>
-      <span className="spv-name">{name}</span>
-      {sub ? <span className="spv-result-sub">{sub}</span> : null}
-    </button>
+    <ul className="spv-results" id={id} role="listbox" aria-label={SEARCH_COPY.placeholder}>
+      {options.map((o, i) => (
+        <li
+          key={o.key}
+          id={`${id}-${i}`}
+          role="option"
+          aria-selected={i === active}
+          className="spv-result"
+          data-active={i === active || undefined}
+          onMouseEnter={() => onActive(i)}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={o.pick}
+        >
+          <span className="spv-name">{o.name}</span>
+          {o.sub ? <span className="spv-result-sub">{o.sub}</span> : null}
+        </li>
+      ))}
+    </ul>
   );
 }
 
-/** "Caută alt sportiv" (spec 4.1) for "Adaugă sportiv" (6.7) and the merge (6.6). */
+const statusText = ({ result, failed }: Search): string => (failed ? SEARCH_FAILED : result ? resultsText(result) : '');
+
+/** "Caută alt sportiv" (spec 4.1) for "Adaugă sportiv" (6.7) and the merge (6.6), on the admin combobox pattern. */
 export function AthleteSearch({ api, onPick, onNew, exclude }: Props) {
   const [text, setText] = React.useState('');
-  const result = useAthleteSearch(api, text, exclude);
+  const search = useAthleteSearch(api, text, exclude);
+  const { result, failed } = search;
+  const options = optionsOf(result, onPick, onNew);
+  const { active, setActive, onKeyDown } = useOptionKeys(options, result, () => setText(''));
+  const listId = React.useId().replace(/:/g, '');
+  const open = options.length > 0;
   return (
     <div className="spv-search">
-      <Input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={SEARCH_COPY.placeholder} aria-label={SEARCH_COPY.placeholder} autoFocus />
-      {result && result.cards.length > 0 && (
-        <ul className="spv-results">
-          {result.cards.map((c) => (
-            <li key={c.documentId}>
-              <ResultRow name={c.name} sub={cardSubline(c)} onClick={() => onPick(c)} />
-            </li>
-          ))}
-        </ul>
-      )}
+      <Input
+        type="search" role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={open ? listId : undefined}
+        aria-activedescendant={open ? `${listId}-${active}` : undefined} autoComplete="off" value={text} onKeyDown={onKeyDown}
+        onChange={(e) => setText(e.target.value)} placeholder={SEARCH_COPY.placeholder} aria-label={SEARCH_COPY.placeholder} autoFocus
+      />
+      <span className="ui-sr" role="status" aria-live="polite">{statusText(search)}</span>
+      {failed && <p className="ui-error">{SEARCH_FAILED}</p>}
       {result && result.cards.length === 0 && <p className="spv-muted">{noResultsText(result)}</p>}
-      {onNew && result && showNewRow(result) && <ResultRow name={SEARCH_COPY.newAthlete} onClick={() => onNew(result.q)} />}
+      {open && <OptionList id={listId} options={options} active={active} onActive={setActive} />}
     </div>
   );
 }
