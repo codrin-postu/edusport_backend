@@ -117,10 +117,9 @@ async function migrateAthletes(ctx) {
     linkedProfileIds: linked.map((a) => a.publicProfile?.documentId).filter(Boolean),
   });
   for (const a of athletePlan.create) {
-    log('athlete', `${a.firstName} ${a.lastName}`);
+    log('athlete', a.name);
     await created('api::athlete.athlete', 'athlete', {
-      firstName: a.firstName,
-      lastName: a.lastName,
+      name: a.name,
       dataIncomplete: true,
       publicProfile: a.publicProfileId,
     });

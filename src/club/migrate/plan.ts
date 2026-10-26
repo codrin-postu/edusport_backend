@@ -1,6 +1,7 @@
 import { normalizeSeasonLabel } from '../season';
 import { CANONICAL_GROUPS, CANONICAL_PRICE_LISTS } from './canonical';
-import { nameKey, parsePrice, splitPersonName } from './names';
+import { nameKey, parsePrice } from './names';
+import { collapseSpaces } from '../person-match';
 
 function buildSeasonItem(
   label: string,
@@ -139,6 +140,6 @@ export function planAthletes(input: { sportspeople: { documentId: string; name: 
   const linked = new Set(input.linkedProfileIds);
   const create = input.sportspeople
     .filter((p) => !linked.has(p.documentId))
-    .map((p) => ({ ...splitPersonName(p.name), publicProfileId: p.documentId, dataIncomplete: true as const }));
+    .map((p) => ({ name: collapseSpaces(p.name), publicProfileId: p.documentId, dataIncomplete: true as const }));
   return { create };
 }

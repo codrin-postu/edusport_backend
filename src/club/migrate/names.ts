@@ -16,12 +16,6 @@ export function nameKey(raw: string): string {
     .toLowerCase();
 }
 
-export function splitPersonName(full: string): { firstName: string; lastName: string } {
-  const parts = full.trim().split(/\s+/).filter(Boolean);
-  if (parts.length <= 1) return { firstName: parts[0] ?? '', lastName: '' };
-  return { firstName: parts.slice(0, -1).join(' '), lastName: parts[parts.length - 1] };
-}
-
 export function parsePrice(raw: unknown): number | null {
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
   if (typeof raw !== 'string') return null;
