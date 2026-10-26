@@ -13,7 +13,7 @@ export const REGISTRATION_EDIT_ERROR = 'Valoare invalidă.';
 
 const VALID: Record<(typeof REGISTRATION_EDIT_FIELDS)[number], (v: unknown) => boolean> = {
   relationship: (v) => typeof v === 'string' && isRelationship(v),
-  relationshipOther: (v) => typeof v === 'string',
+  relationshipOther: (v) => v === null || typeof v === 'string',
   membershipAnswer: (v) => typeof v === 'string' && isMembershipAnswer(v),
 };
 

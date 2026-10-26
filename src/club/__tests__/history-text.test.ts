@@ -54,6 +54,16 @@ describe('registration lines (spec 1.6)', () => {
       'Calitatea față de sportiv: "Alta: Bunica" → "Părinte"',
     ]);
   });
+
+  it('source and sourceOther render as one line, "Altele: <text>"', () => {
+    expect(reg(A.updated, { fields: { source: { from: 'Facebook', to: 'Altele' }, sourceOther: { from: null, to: 'Ziar' } } })).toEqual([
+      'De unde ați aflat: "Facebook" → "Altele: Ziar"',
+    ]);
+    expect(reg(A.updated, { fields: { sourceOther: { from: 'Ziar', to: 'Afiș' } } })).toEqual(['De unde ați aflat: "Altele: Ziar" → "Altele: Afiș"']);
+    expect(reg(A.updated, { fields: { source: { from: 'Altele', to: 'Instagram' }, sourceOther: { from: 'Ziar', to: null } } })).toEqual([
+      'De unde ați aflat: "Altele: Ziar" → "Instagram"',
+    ]);
+  });
 });
 
 describe('athlete lines (spec 1.6)', () => {

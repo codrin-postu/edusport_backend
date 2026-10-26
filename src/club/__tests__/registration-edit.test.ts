@@ -13,6 +13,7 @@ it('accepts the stored option values only', () => {
   expect(registrationEditError({ relationship: 'tutore' })).toBeNull();
   expect(registrationEditError({ membershipAnswer: 'nu' })).toBeNull();
   expect(registrationEditError({ relationshipOther: 'Bunică' })).toBeNull();
+  expect(registrationEditError({ relationshipOther: null })).toBeNull();
   expect(registrationEditError({ status: 'Nou' })).toBeNull();
   expect(registrationEditError({ relationship: 'Părinte' })).toBe(REGISTRATION_EDIT_ERROR);
   expect(registrationEditError({ relationship: null })).toBe(REGISTRATION_EDIT_ERROR);
@@ -46,9 +47,8 @@ it('writes "Document refăcut" with the rebuilt documents and the admin', () => 
 });
 
 it('the admin PUT accepts these fields, checks them and records the rebuild', () => {
-  const controller = readFileSync(join(__dirname, '..', '..', 'api/registration-submission/controllers/registration-submission.ts'), 'utf8');
-  expect(controller).toContain('...REGISTRATION_EDIT_FIELDS,');
-  expect(controller).toContain('const editError = registrationEditError(data);');
-  expect(controller).toContain('await recordDocumentRebuilt(documentId, rebuild, ctx.request.header?.authorization);');
-  expect(controller).toContain('if (!rebuild?.ok) return;');
+  const update = readFileSync(join(__dirname, '..', 'registration-update.ts'), 'utf8');
+  expect(update).toContain('...REGISTRATION_EDIT_FIELDS,');
+  expect(update).toContain('return registrationEditError(data);');
+  expect(update).toContain('if (rebuild?.ok) await guarded(');
 });
