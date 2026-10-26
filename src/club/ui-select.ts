@@ -85,3 +85,14 @@ export function scrollTopFor(top: number, height: number, scrollTop: number, vie
   if (top + height > scrollTop + viewHeight) return top + height - viewHeight;
   return scrollTop;
 }
+
+/**
+ * Group header to show before option `i` of a filtered list (SearchableSelect
+ * group pickers: groups under their section name): the option's group when it
+ * differs from the previous option's, else null. Options without a group get none.
+ */
+export function groupHeaderAt(list: ReadonlyArray<{ group?: string }>, i: number): string | null {
+  const group = list[i]?.group;
+  if (!group) return null;
+  return i === 0 || list[i - 1].group !== group ? group : null;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { edgeIndex, foldText, scrollTopFor, selectKeyAction, stepIndex, typeaheadIndex } from '../ui-select';
+import { edgeIndex, foldText, groupHeaderAt, scrollTopFor, selectKeyAction, stepIndex, typeaheadIndex } from '../ui-select';
 
 const rows = [
   { label: 'Primii Pași' },
@@ -82,5 +82,18 @@ describe('scrollTopFor', () => {
     expect(scrollTopFor(0, 30, 60, 280)).toBe(0);
     expect(scrollTopFor(300, 30, 0, 280)).toBe(50);
     expect(scrollTopFor(100, 30, 0, 280)).toBe(0);
+  });
+});
+
+describe('groupHeaderAt', () => {
+  it('puts the section name before the first group of each section', () => {
+    const list = [{ group: 'Școala de patinaj' }, { group: 'Școala de patinaj' }, { group: 'Club' }, { group: 'Club' }];
+    expect(list.map((_, i) => groupHeaderAt(list, i))).toEqual(['Școala de patinaj', null, 'Club', null]);
+  });
+
+  it('shows no header for options without a group, nor past the end', () => {
+    const list = [{}, { group: 'Club' }, {}];
+    expect(list.map((_, i) => groupHeaderAt(list, i))).toEqual([null, 'Club', null]);
+    expect(groupHeaderAt(list, 5)).toBeNull();
   });
 });

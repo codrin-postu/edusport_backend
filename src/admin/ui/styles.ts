@@ -410,6 +410,8 @@ ${R} .ui-opt[aria-disabled="true"]{color:var(--theme-text-disabled);cursor:defau
 ${R} .ui-opt-hint{font-size:var(--ui-fs-caption);font-weight:400;color:var(--theme-text-muted)}
 ${R} .ui-opt--create{flex-direction:row;align-items:center;gap:6px;color:var(--theme-primary);font-weight:600;border-top:1px solid var(--theme-border-subtle)}
 ${R} .ui-list-note{padding:8px 9px;font-size:var(--ui-fs-body-sm);color:var(--theme-text-muted)}
+${R} .ui-opt-group{padding:8px 9px 3px;font-size:var(--ui-fs-label);font-weight:var(--ui-fw-label);letter-spacing:var(--ui-ls-label);text-transform:uppercase;color:var(--theme-text-muted);cursor:default}
+${R} .ui-opt-group:not(:first-child){margin-top:4px;border-top:1px solid var(--theme-border-subtle)}
 
 /* number input (stepper) */
 .ui-root.ui-numin{position:relative;display:inline-flex;width:100%;vertical-align:top}
