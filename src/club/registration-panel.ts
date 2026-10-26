@@ -53,19 +53,19 @@ export function isScriptFormRegistration(r: RegistrationRow): boolean {
   return text(r.relationship) !== '' || text(r.membershipAnswer) !== '';
 }
 
-function relationshipText(r: RegistrationRow): string {
+export function relationshipText(r: RegistrationRow): string {
   if (r.relationship === RELATIONSHIP_OTHER) return text(r.relationshipOther) || 'Alta';
   return RELATIONSHIP_OPTIONS.find((o) => o.value === r.relationship)?.label ?? '';
 }
 
-function subscriptionText(choice: unknown): string {
+export function subscriptionText(choice: unknown): string {
   if (!choice || typeof choice !== 'object') return '';
   const { priceItemName, price } = choice as { priceItemName?: unknown; price?: unknown };
   const name = text(priceItemName);
   return name && typeof price === 'number' ? `${name}, ${price} RON` : name;
 }
 
-function sourceText(r: RegistrationRow): string {
+export function sourceText(r: RegistrationRow): string {
   const source = text(r.source);
   const other = text(r.sourceOther);
   return source === SOURCE_OTHER && other ? `${source}: ${other}` : source;
