@@ -99,7 +99,7 @@ export const INSCRIERI_PENDING_COPY = {
   movedMany: (school: string, n: number | string) => `Mutate la ${school}: ${n}.`,
   notMoved: (n: number | string) => `Nemutate (deja confirmate): ${n}.`,
   loadFailed: 'Nu am putut încărca datele.',
-  noSeason: 'Sezonul nu a fost găsit. Se leagă doar fișa sportivului.',
+  noSeason: 'Se leagă doar fișa sportivului.',
   seasonOnly: (season: string) => `Sezonul ${season}`,
   noDocuments: 'Niciun document încă.',
   backToList: 'Înapoi la listă',

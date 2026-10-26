@@ -149,7 +149,7 @@ describe('season, groups, A.C.S. and intent lines (spec 4.3, 4.4)', () => {
     expect(seasonNote(ctx())).toBeNull();
     const ended = 'Sezonul 2025-2026 s-a încheiat. Se leagă doar fișa sportivului.';
     expect(seasonNote(ctx({ season: { label: '2025-2026', running: false, endedText: ended } }))).toBe(ended);
-    expect(seasonNote(ctx({ season: { label: null, running: false, endedText: null } }))).toBe('Sezonul nu a fost găsit. Se leagă doar fișa sportivului.');
+    expect(seasonNote(ctx({ season: { label: null, running: false, endedText: null } }))).toBe('Se leagă doar fișa sportivului.');
   });
 
   it('season heading with the school, without it, and none without a season', () => {

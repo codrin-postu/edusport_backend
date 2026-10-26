@@ -8,21 +8,21 @@ import { CLUB_URLS } from '../../../../club/inscrieri-panel';
 import { runUndo } from '../undo';
 import { dataOf, useStableClient, type StableClient } from '../useClient';
 
-type ContextState = { data: ConfirmContext | null; loading: boolean; failed: boolean };
+export type ContextState = { data: ConfirmContext | null; loading: boolean; failed: boolean };
 
-/** GET .../confirm-context?athlete= (plan 3-2): reloaded for every chosen athlete; the old answer stays while loading. */
+/** GET .../confirm-context?athlete= (plan 3-2): reloaded for every chosen athlete; the old answer stays while loading and after a failed reload. */
 export function useConfirmContext(registrationId: string, athleteId: string | null): ContextState {
   const { get } = useStableClient();
   const [state, setState] = React.useState<ContextState>({ data: null, loading: true, failed: false });
   React.useEffect(() => {
     let off = false;
-    setState((s) => ({ ...s, loading: true }));
+    setState((s) => ({ ...s, loading: true, failed: false }));
     get(CLUB_URLS.confirmContext(registrationId, athleteId))
       .then((res) => {
         if (!off) setState({ data: dataOf<ConfirmContext>(res), loading: false, failed: false });
       })
       .catch(() => {
-        if (!off) setState({ data: null, loading: false, failed: true });
+        if (!off) setState((s) => ({ data: s.data, loading: false, failed: true }));
       });
     return () => {
       off = true;
@@ -67,14 +67,16 @@ export function useConfirmSubmit(registrationId: string, onClose: () => void, on
     sending.current = true;
     setBusy(true);
     const { succeed, fail } = outcome(registrationId, onClose, onDone);
+    let saved: ConfirmResponse | null = null;
     try {
-      succeed(dataOf<ConfirmResponse>(await post(CLUB_URLS.confirm(registrationId), body)));
+      saved = dataOf<ConfirmResponse>(await post(CLUB_URLS.confirm(registrationId), body));
     } catch (err) {
       fail(err);
     } finally {
       sending.current = false;
       setBusy(false);
     }
+    if (saved) succeed(saved);
   };
   return { busy, run };
 }

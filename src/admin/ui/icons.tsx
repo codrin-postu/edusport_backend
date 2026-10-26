@@ -32,6 +32,9 @@ export const IconCheck = ({ size = 14 }: P) => svg(size, <path d="M3 7.5l2.6 2.6
 
 export const IconArrowRight = ({ size = 14 }: P) => svg(size, <path d="M2.5 7h9M8 3.5L11.5 7 8 10.5" stroke="currentColor" strokeWidth="1.5" />);
 
+/** Magnifier with a square lens (no round shapes). */
+export const IconSearch = ({ size = 14 }: P) => svg(size, <path d="M1.75 1.75h7.5v7.5h-7.5zM9.25 9.25l3.25 3.25" stroke="currentColor" strokeWidth="1.5" />);
+
 /** Six-dot drag grip, drawn as squares. */
 export const IconGrip = ({ size = 14 }: P) =>
   svg(

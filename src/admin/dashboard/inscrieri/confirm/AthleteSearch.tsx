@@ -8,12 +8,14 @@ import { dataOf, useStableClient } from '../useClient';
 
 export type SearchState = { cards: AthleteCard[] | null; failed: boolean };
 
-/** GET /api/club/athletes/search (plan 3-2); without text: the registration's candidates, the proposed one first. */
+/** GET /api/club/athletes/search (plan 3-2); without text: the registration's candidates, the proposed one first.
+ * Loading again from the first key press: no old results, no "Niciun sportiv găsit" for text not searched yet. */
 export function useAthleteSearch(registrationId: string | null, query: string): SearchState {
   const { get } = useStableClient();
   const [state, setState] = React.useState<SearchState>({ cards: null, failed: false });
   React.useEffect(() => {
     let off = false;
+    setState({ cards: null, failed: false });
     const timer = window.setTimeout(() => {
       get(CLUB_URLS.athleteSearch(query.trim(), registrationId))
         .then((res) => {

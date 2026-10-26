@@ -48,6 +48,34 @@ it('groups under their section, main group line and tick, A.C.S. lines, season n
   expect(season).toContain('options={groupChoices(ctx.groups)}');
   expect(season).toContain('placeholder={CONFIRM_COPY.noGroup}');
   expect(season).toContain('label={CONFIRM_COPY.mainTick}');
-  expect(season).toContain('{note ? <p className="ins-note">{note}</p> : <GroupAndAcs state={state} dispatch={dispatch} ctx={ctx} />}');
+  expect(season).toContain('{note ? <p className="ins-note">{note}</p> : <GroupAndAcs state={state} dispatch={dispatch} ctx={ctx} busy={busy} />}');
   expect(season).toContain('<p>{acs.status}</p>');
+});
+
+it('confirm and undo use a client that survives the window; one request per confirm; a saved one never reads as failed', () => {
+  expect(hooks).toContain("import { getFetchClient } from '@strapi/admin/strapi-admin';");
+  expect(hooks).toContain('getFetchClient().post(url, data, config)');
+  expect(hooks).not.toContain('const { post } = useStableClient()');
+  expect(hooks).toContain('if (!body || sending.current) return;');
+  expect(hooks).toContain('sending.current = true;');
+  expect(hooks).toContain('saved = dataOf<ConfirmResponse>(await post(CLUB_URLS.confirm(registrationId), body));');
+  expect(hooks).toContain('if (saved) succeed(saved);');
+  expect(win).toContain('if (ctx.data && !gate.disabled) void submit.run(state, ctx.data);');
+});
+
+it('while busy the body is locked; a stale context hides the comparison; a failed reload keeps the cards', () => {
+  expect(athlete).toContain('disabled={busy} onClick={open}');
+  expect(athlete).toContain('options={choiceOptions(ctx, notAttended)} disabled={busy}');
+  expect(athlete).toContain('const comparable = !stale && ctx.comparison.length > 0;');
+  expect(athlete).toContain('{failed && <Notice tone="danger">{INSCRIERI_PENDING_COPY.loadFailed}</Notice>}');
+  expect(season).toContain('disabled={busy || !state.groupId}');
+  expect(hooks).toContain('setState((s) => ({ data: s.data, loading: false, failed: true }))');
+  expect(win).toContain('const stale = ctx.loading || ctx.failed;');
+  expect(win).toContain('confirmGate(state, ctx.failed ? null : ctx.data, ctx.loading)');
+});
+
+it('a new query shows the loading state, not the old results; prototype v5 icons on the links', () => {
+  expect(search).toContain('setState({ cards: null, failed: false });');
+  expect(athlete).toContain('{open ? <IconChevronUp size={12} /> : <IconChevronDown size={12} />}');
+  expect(athlete).toContain('<IconSearch size={12} />');
 });
