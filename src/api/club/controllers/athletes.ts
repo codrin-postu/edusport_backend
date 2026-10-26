@@ -1,4 +1,5 @@
 import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
+import { addAthlete, setAthleteStatus } from '../../../club/athletes/add-status';
 import { searchAthletes } from '../../../club/athletes/confirm-read';
 import { ADMIN_ERRORS } from '../../../club/athletes/errors';
 import { readHistory } from '../../../club/athletes/history-read';
@@ -48,5 +49,13 @@ export default {
 
   async profileVisibility(ctx: AdminCtx) {
     respond(ctx, await setAthleteProfileVisibility(await serviceContext(strapi, ctx), ctx.params.documentId ?? '', ctx.request.body));
+  },
+
+  async add(ctx: AdminCtx) {
+    respond(ctx, await addAthlete(await serviceContext(strapi, ctx), ctx.request.body));
+  },
+
+  async status(ctx: AdminCtx) {
+    respond(ctx, await setAthleteStatus(await serviceContext(strapi, ctx), ctx.params.documentId ?? '', ctx.request.body));
   },
 };

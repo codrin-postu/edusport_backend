@@ -9,10 +9,12 @@ export default {
     { method: 'GET', path: '/club/athletes', handler: 'athletes.list', config: adminGuard },
     { method: 'GET', path: '/club/athletes/search', handler: 'athletes.search', config: adminGuard },
     { method: 'GET', path: '/club/athletes/by-profile/:profileId', handler: 'athletes.byProfile', config: adminGuard },
+    { method: 'POST', path: '/club/athletes', handler: 'athletes.add', config: adminGuard },
     { method: 'GET', path: '/club/athletes/:documentId/history', handler: 'athletes.history', config: adminGuard },
     { method: 'GET', path: '/club/athletes/:documentId', handler: 'athletes.record', config: adminGuard },
     { method: 'PUT', path: '/club/athletes/:documentId', handler: 'athletes.update', config: adminGuard },
     { method: 'POST', path: '/club/athletes/:documentId/profile', handler: 'athletes.createProfile', config: adminGuard },
     { method: 'PUT', path: '/club/athletes/:documentId/profile/visibility', handler: 'athletes.profileVisibility', config: adminGuard },
+    { method: 'POST', path: '/club/athletes/:documentId/status', handler: 'athletes.status', config: adminGuard },
   ],
 };
