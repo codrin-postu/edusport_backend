@@ -13,7 +13,7 @@ const NO_SECTION_LABEL = 'Fără secțiune';
 export type AthleteListQuery = {
   seasonId: string | null; q: string; status: AthleteStatus[]; sections: string[]; groups: string[]; noGroup: boolean;
   acs: AcsState[]; profile: ('public' | 'ascuns')[]; data: ('complete' | 'incomplete')[]; duplicates: boolean;
-  sort: 'name' | 'age' | 'group'; dir: 'asc' | 'desc'; page: number; pageSize: 30 | 50;
+  sort: 'name' | 'age' | 'group'; dir: 'asc' | 'desc'; page: number; pageSize: number;
 };
 
 const list = (v: unknown): string[] => (typeof v === 'string' ? v.split(',').map((s) => s.trim()).filter(Boolean) : []);
@@ -34,6 +34,18 @@ function readFilters(q: Record<string, unknown>): Omit<AthleteListQuery, 'sort' 
   };
 }
 
+const PAGE_SIZE_STEP = 30;
+const PAGE_SIZE_MAX = 300;
+const DEFAULT_PAGE_SIZE = 50;
+
+/** 50 (desktop), or any multiple of 30 up to 300 (the phone client reloads pages 1..P as `30 * P` in one request). */
+function readPageSize(raw: unknown): number {
+  const n = Number(raw);
+  if (n === DEFAULT_PAGE_SIZE) return DEFAULT_PAGE_SIZE;
+  const validMultiple = Number.isInteger(n) && n >= PAGE_SIZE_STEP && n <= PAGE_SIZE_MAX && n % PAGE_SIZE_STEP === 0;
+  return validMultiple ? n : DEFAULT_PAGE_SIZE;
+}
+
 export function readListQuery(q: Record<string, unknown>): AthleteListQuery {
   const page = Math.floor(Number(q.page));
   return {
@@ -41,7 +53,7 @@ export function readListQuery(q: Record<string, unknown>): AthleteListQuery {
     sort: q.sort === 'age' || q.sort === 'group' ? q.sort : 'name',
     dir: q.dir === 'desc' ? 'desc' : 'asc',
     page: Number.isFinite(page) && page >= 1 ? page : 1,
-    pageSize: Number(q.pageSize) === 30 ? 30 : 50,
+    pageSize: readPageSize(q.pageSize),
   };
 }
 
@@ -131,11 +143,31 @@ const TESTS: Test[] = [
 ];
 
 const byName = (a: Derived, b: Derived) => a.row.name.localeCompare(b.row.name, 'ro');
-const LAST = '￿';
-const SORTS: Record<AthleteListQuery['sort'], (a: Derived, b: Derived) => number> = {
-  name: byName,
-  age: (a, b) => (a.row.age ?? Infinity) - (b.row.age ?? Infinity) || byName(a, b),
-  group: (a, b) => (a.groupName || LAST).localeCompare(b.groupName || LAST, 'ro') || byName(a, b),
+type Dir = 1 | -1;
+type Comparator = (a: Derived, b: Derived) => number;
+
+/** Descending only flips the primary key; a row with no age sorts last in both directions; ties break by name A-Z. */
+function ageCompare(dir: Dir): Comparator {
+  return (a, b) => {
+    const [x, y] = [a.row.age, b.row.age];
+    if (x === null || y === null) return x === y ? byName(a, b) : x === null ? 1 : -1;
+    return dir * (x - y) || byName(a, b);
+  };
+}
+
+/** Same rule for Grupă: no group sorts last in both directions; ties break by name A-Z. */
+function groupCompare(dir: Dir): Comparator {
+  return (a, b) => {
+    const [x, y] = [a.groupName, b.groupName];
+    if (!x || !y) return (!x) === (!y) ? byName(a, b) : !x ? 1 : -1;
+    return dir * x.localeCompare(y, 'ro') || byName(a, b);
+  };
+}
+
+const SORTS: Record<AthleteListQuery['sort'], (dir: Dir) => Comparator> = {
+  name: (dir) => (a, b) => dir * byName(a, b),
+  age: ageCompare,
+  group: groupCompare,
 };
 
 const byOrder = <T extends { order: number | null; name: string }>(rows: T[]): T[] =>
@@ -153,8 +185,8 @@ export function listAthletes(src: ListSource, q: AthleteListQuery): AthleteListP
   const ix = buildIndex(src);
   const all = src.athletes.map((a) => derive(a, ix));
   const listed = all.filter((d) => d.row.status !== 'inactiv');
-  const found = all.filter((d) => TESTS.every((t) => t(d, q))).sort(SORTS[q.sort]);
-  if (q.dir === 'desc') found.reverse();
+  const dir: Dir = q.dir === 'desc' ? -1 : 1;
+  const found = all.filter((d) => TESTS.every((t) => t(d, q))).sort(SORTS[q.sort](dir));
   const start = (q.page - 1) * q.pageSize;
   return {
     data: found.slice(start, start + q.pageSize).map((d) => d.row),

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { NO_SECTION as SERVER_NO_SECTION } from '../../athletes/list';
 import type { AthleteListPage, AthleteListRow } from '../../athletes/api-types';
 import {
   INITIAL_LIST_STATE, LIST_COPY, NO_GROUP, NO_SECTION, ageText, athletesText, cardLine, clearFilters, countLine, filterSections, groupCell, groupHeader,
@@ -14,7 +15,7 @@ const page = (over: Partial<AthleteListPage> = {}): AthleteListPage => ({
   season: { documentId: 's26', label: '2026-2027' },
   seasons: [{ documentId: 's25', label: '2025-2026', isCurrent: false }, { documentId: 's26', label: '2026-2027', isCurrent: true }],
   options: {
-    sections: [{ value: 'afi', label: 'Școala de patinaj' }, { value: 'club', label: 'Club' }],
+    sections: [{ value: 'afi', label: 'Școala de patinaj' }, { value: 'club', label: 'Club' }, { value: NO_SECTION, label: 'Fără secțiune' }],
     groups: [{ value: 'g-pp', label: 'Primii Pași', sectionName: 'Școala de patinaj' }, { value: 'g-pro', label: 'Profesioniști', sectionName: 'Club' }],
   },
   ...over,
@@ -46,6 +47,10 @@ describe('the list request (spec 5)', () => {
     expect(params(listQueryString(s, 50))).toMatchObject({ noGroup: 'true' });
     expect(params(listQueryString(s, 50)).group).toBeUndefined();
     expect(NO_SECTION).toBe('none');
+  });
+
+  it("the client's NO_SECTION value matches the server route's (plan 3-5 parked note)", () => {
+    expect(NO_SECTION).toBe(SERVER_NO_SECTION);
   });
 });
 

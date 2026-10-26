@@ -76,6 +76,29 @@ describe('Sportivi list (spec 5)', () => {
     expect(await ids({ sort: 'name', dir: 'desc' })).toEqual(['a1', 'a4', 'a2']);
   });
 
+  it('descending age/group only flips the primary key: undated/no-group rows stay last, name tie-break stays A-Z (Task 15 pattern)', async () => {
+    expect(await ids({ sort: 'age', dir: 'desc' })).toEqual(['a2', 'a1', 'a4']);
+    expect(await ids({ sort: 'group', dir: 'desc' })).toEqual(['a2', 'a1', 'a4']);
+  });
+
+  it('ties on age or group break by name A-Z in both directions', async () => {
+    const tie = fakeClubStore({
+      athletes: [
+        athleteRow({ id: 't1', name: 'Zoe Ion', birthDate: '2015-01-01' }),
+        athleteRow({ id: 't2', name: 'Ana Pop', birthDate: '2015-06-01' }),
+      ],
+      memberships: [
+        { id: 'm1', athleteId: 't1', groupId: 'g-pp', seasonId: 's26', isMain: true, from: null },
+        { id: 'm2', athleteId: 't2', groupId: 'g-pp', seasonId: 's26', isMain: true, from: null },
+      ],
+    });
+    const tieIds = async (q: Record<string, unknown>) => (await athleteListPage(tie.store, readListQuery(q), TODAY)).data.map((r) => r.documentId);
+    expect(await tieIds({ sort: 'age' })).toEqual(['t2', 't1']);
+    expect(await tieIds({ sort: 'age', dir: 'desc' })).toEqual(['t2', 't1']);
+    expect(await tieIds({ sort: 'group' })).toEqual(['t2', 't1']);
+    expect(await tieIds({ sort: 'group', dir: 'desc' })).toEqual(['t2', 't1']);
+  });
+
   it('the season selector only changes the group and A.C.S. columns (3b s5)', async () => {
     const page = await athleteListPage(fake().store, readListQuery({ season: 's25' }), TODAY);
     expect(page.data.map((r) => [r.documentId, r.mainGroup, r.acs])).toEqual([['a2', null, 'nu'], ['a4', null, 'nu'], ['a1', null, 'nu']]);
@@ -96,5 +119,9 @@ describe('readListQuery', () => {
     expect(readListQuery({ status: 'activ,x', acs: 'da,maybe', profile: 'public,y', data: 'z', sort: 'x', page: '-2', pageSize: '100' })).toMatchObject({
       status: ['activ'], acs: ['da'], profile: ['public'], data: [], sort: 'name', dir: 'asc', page: 1, pageSize: 50,
     });
+  });
+
+  it('pageSize accepts 50 or a multiple of 30 up to 300 (phone reload of pages 1..P); anything else falls back to 50', () => {
+    expect([30, 90, 300, 330, 45].map((pageSize) => readListQuery({ pageSize: String(pageSize) }).pageSize)).toEqual([30, 90, 300, 50, 50]);
   });
 });

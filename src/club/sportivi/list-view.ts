@@ -1,5 +1,6 @@
 import { ACS_WORDS } from '../acs';
 import type { AthleteListPage, AthleteListRow } from '../athletes/api-types';
+import { NO_SECTION } from '../athletes/list';
 import { STATUS_WORDS } from '../history-text';
 
 /**
@@ -23,8 +24,8 @@ export type Choice = { value: string; label: string };
 /** Same shape as plan 3-1 `FilterSection`. */
 export type SectionModel = { key: string; label: string; options: Choice[]; selected: string[]; single?: boolean; allLabel?: string | null };
 
-/** "Fără secțiune" is the route's `section=none`; "Fără grupă" inside Grupa becomes `noGroup=true` (Needs decision 6, option A). */
-export const NO_SECTION = 'none';
+/** "Fără secțiune" is the route's `section=none` (same constant as the server, `NO_SECTION` above); "Fără grupă" inside Grupa becomes `noGroup=true` (Needs decision 6, option A). */
+export { NO_SECTION };
 export const NO_GROUP = 'none';
 export const PAGE_SIZE = { desktop: 50, phone: 30 } as const;
 
@@ -103,10 +104,11 @@ export const seasonValue = (s: ListState, p: AthleteListPage | null): string => 
 
 export function filterSections(s: ListState, p: AthleteListPage | null): SectionModel[] {
   const f = s.filters;
+  // "Fără secțiune" is the server's own option (NO_SECTION), not appended here.
   const sections = p?.options.sections ?? [];
   const groups = (p?.options.groups ?? []).map((g) => ({ value: g.value, label: g.label }));
   return [
-    { key: 'section', label: 'Secțiune', options: [...sections, { value: NO_SECTION, label: 'Fără secțiune' }], selected: f.section },
+    { key: 'section', label: 'Secțiune', options: sections, selected: f.section },
     { key: 'group', label: 'Grupa', options: [...groups, { value: NO_GROUP, label: LIST_COPY.noGroup }], selected: f.group },
     { key: 'acs', label: 'Membru A.C.S.', options: ACS_OPTIONS, selected: f.acs },
     { key: 'profile', label: 'Profil public', options: PROFILE_OPTIONS, selected: f.profile },
