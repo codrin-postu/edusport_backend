@@ -58,7 +58,7 @@ export const INBOX_CSS = `
 .ui-root .inbx-fv--long{white-space:pre-wrap;line-height:1.55}
 .ui-root .inbx-cap{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--theme-text-muted);font-weight:700;margin:13px 0 6px}
 .ui-root .inbx-form{display:flex;flex-direction:column;gap:12px;margin-top:13px}
-.ui-root .inbx-form .ui-field select.ui-input{width:auto;min-width:200px}
+.ui-root .inbx-form .ui-field .ui-sel{width:auto;min-width:200px}
 .ui-root .inbx-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 @media (max-width:640px){.ui-root .inbx-fld{flex-direction:column;gap:2px}.ui-root .inbx-fk{width:auto}}
 `;
