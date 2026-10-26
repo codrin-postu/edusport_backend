@@ -29,6 +29,7 @@ import {
   cx,
 } from '../ui';
 import { IconChevronDown, IconGrip } from '../ui/icons';
+import { fieldsClearedByEdit } from '../../club/registration-edit';
 
 /**
  * EduSport admin — shared submission-results table.
@@ -234,7 +235,7 @@ export interface SubmissionTableCfg {
     searchPlaceholder: string;
     empty: string;
     loadError: string;
-    /** Appended after the "X noi" stat, e.g. ' · exclus arhivate'. */
+    /** Appended after the "X noi" stat, e.g. ', exclus arhivate'. */
     statSuffix: string;
     deleteConfirm: string;
     /**
@@ -255,6 +256,8 @@ export interface SubmissionTableCfg {
   };
   /** Extra CSS appended after the shared stylesheet (screen-specific bits, tokens only). */
   extraCss?: string;
+  /** Page-specific buttons at the start of the header actions (Înscrieri: "Formulare goale"). */
+  headerActions?: React.ReactNode;
 }
 
 // Map a custom question type to a display column type.
@@ -528,8 +531,8 @@ export function DetailFooter({ children }: { children: React.ReactNode }) {
   return <div className="sbt-pa">{children}</div>;
 }
 
-/** A toolbar dropdown button with its own anchored Popover. */
-function MenuButton({
+/** A toolbar dropdown button with its own anchored Popover. Exported for page-specific header menus. */
+export function MenuButton({
   label,
   active,
   open,
@@ -571,6 +574,20 @@ function MenuButton({
       </Popover>
     </>
   );
+}
+
+/** "Salvat", or a warning when the field saved but the PDFs could not be rebuilt (the PUT's `rebuild`, plan 2D). */
+function toastFieldSaved(body: unknown): void {
+  const rebuild = (body as { rebuild?: { ok?: unknown } } | null)?.rebuild;
+  if (rebuild?.ok === false) adminToast.warning('Salvat. Documentul PDF nu a putut fi refăcut.');
+  else toastAutosaved();
+}
+
+/** The first list query from the page URL: `?q=` (search) and `?season=` (a season label or `all`). */
+function initialQuery(): { q: string; season: string } {
+  if (typeof window === 'undefined') return { q: '', season: '' };
+  const params = new URLSearchParams(window.location.search);
+  return { q: (params.get('q') ?? '').trim(), season: (params.get('season') ?? '').trim() };
 }
 
 export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }) {
@@ -620,10 +637,12 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
 
   const [view, setView] = React.useState<'compact' | 'full'>('compact');
 
-  // --- server query state
-  const [season, setSeason] = React.useState<string>(''); // '' => server default (active)
-  const [searchInput, setSearchInput] = React.useState('');
-  const [search, setSearch] = React.useState('');
+  // --- server query state; `?q=` and `?season=` in the page URL set the first query (the
+  // Google Sheet's Document link opens one registration this way, see src/sheets/admin-link.ts)
+  const [initial] = React.useState(initialQuery);
+  const [season, setSeason] = React.useState<string>(initial.season); // '' => server default (active)
+  const [searchInput, setSearchInput] = React.useState(initial.q);
+  const [search, setSearch] = React.useState(initial.q);
   const [filters, setFilters] = React.useState<ActiveFilter[]>([]);
   const [sort, setSort] = React.useState<'newest' | 'oldest' | 'name'>('newest');
   const [page, setPage] = React.useState(1);
@@ -834,6 +853,12 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
   // collapse the page to a single line and expand it again.
   const firstLoad = loading && rows.length === 0;
 
+  const patchRow = React.useCallback(
+    (documentId: string, patch: Record<string, unknown>) =>
+      setRows((cur) => cur.map((r) => (r.documentId === documentId ? { ...r, ...patch } : r))),
+    [],
+  );
+
   // --- persist a single field (optimistic)
   const saveField = React.useCallback(
     async (documentId: string, key: string, value: unknown) => {
@@ -846,8 +871,10 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
         }),
       );
       try {
-        await put(`${cfg.api}/${documentId}`, { [key]: value });
-        toastAutosaved();
+        const res = await put(`${cfg.api}/${documentId}`, { [key]: value });
+        toastFieldSaved(res.data);
+        const cleared = fieldsClearedByEdit(key, value);
+        if (cleared) patchRow(documentId, cleared);
         // A season change moves the row out of the current view, so the list
         // must be refetched. A status change only moves the counters, unless a
         // status filter is active, in which case the row may now be excluded.
@@ -857,11 +884,11 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
           if (filters.some((f) => f.col === 'status')) refetch();
         }
       } catch {
-        setRows((cur) => cur.map((r) => (r.documentId === documentId ? { ...r, [key]: prev } : r)));
+        patchRow(documentId, { [key]: prev });
         adminToast.error(cfg.texts.saveError);
       }
     },
-    [put, refetch, refetchStat, filters, cfg],
+    [put, refetch, refetchStat, filters, cfg, patchRow],
   );
 
   // Destructive actions go through the shared ConfirmDialog. `removeRow` keeps
@@ -1381,6 +1408,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
 
   const statActions = (
     <>
+      {cfg.headerActions}
       {cfg.seasons && (
         <div className="sbt-season">
           <span className="sbt-lbl">Sezon</span>

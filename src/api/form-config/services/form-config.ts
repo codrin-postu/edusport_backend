@@ -34,6 +34,7 @@ import {
   isCardIcon,
   isDisplayMode,
 } from '../registry';
+import { withoutCustomQuestions } from '../custom-policy';
 
 const UID = 'api::form-config.form-config' as const;
 
@@ -632,7 +633,7 @@ export default factories.createCoreService(UID, ({ strapi }) => ({
 
   async publicConfig(type: FormType) {
     const overlay = await this.loadOverlay(type);
-    return mergePublicModel(REGISTRY[type], overlay);
+    return mergePublicModel(REGISTRY[type], withoutCustomQuestions(type, overlay));
   },
 
   async editConfig(type: FormType) {

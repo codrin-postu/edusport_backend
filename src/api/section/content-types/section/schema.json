@@ -11,6 +11,7 @@
     "publicPage": { "type": "boolean", "default": false },
     "registrationsOpen": { "type": "boolean", "default": false },
     "order": { "type": "integer" },
-    "location": { "type": "relation", "relation": "manyToOne", "target": "api::location.location" }
+    "location": { "type": "relation", "relation": "manyToOne", "target": "api::location.location" },
+    "priceNotes": { "type": "json" }
   }
 }

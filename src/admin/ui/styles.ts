@@ -375,7 +375,7 @@ ${R} .ui-row-move{display:none;align-items:center;gap:2px}
 
 /* editor card (field editors) */
 .ui-root.ui-ecard{border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);background:var(--theme-surface);width:100%}
-${R} .ui-ecard-h{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--ui-space-3);padding:12px 14px;background:var(--theme-surface-subtle);border-bottom:1px solid var(--theme-border);box-shadow:inset 3px 0 0 var(--theme-primary);border-top-left-radius:var(--ui-radius-sm);border-top-right-radius:var(--ui-radius-sm)}
+${R} .ui-ecard-h{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--ui-space-3);padding:12px 14px;background:var(--theme-surface-subtle);border-bottom:1px solid var(--theme-border);border-top-left-radius:var(--ui-radius-sm);border-top-right-radius:var(--ui-radius-sm)}
 ${R} .ui-ecard-titles{min-width:0;display:flex;flex-direction:column;gap:2px}
 ${R} .ui-ecard-title{margin:0;font-size:var(--ui-fs-body);font-weight:700;line-height:1.35;color:var(--theme-text)}
 ${R} .ui-ecard-desc{margin:0;font-size:var(--ui-fs-caption);line-height:var(--ui-lh-caption);color:var(--theme-text-muted)}

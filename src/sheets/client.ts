@@ -66,14 +66,31 @@ export interface DateCell {
   readonly text: string;
 }
 
-/** One cell heading for the API: plain text, or a real date. */
-export type Cell = string | DateCell;
+/**
+ * A cell whose text links somewhere. The values API can only write `text`
+ * (writes are RAW, so a HYPERLINK formula would stay text); the address is
+ * attached afterwards as a rich-text link through `spreadsheets.batchUpdate`
+ * (`format.ts` `linkRequests`). A read returns `text`, the diffable form.
+ */
+export interface LinkCell {
+  readonly kind: 'link';
+  readonly text: string;
+  readonly url: string;
+}
+
+/** One cell heading for the API: plain text, a real date, or a link. */
+export type Cell = string | DateCell | LinkCell;
+
+export const isLinkCell = (c: Cell): c is LinkCell => typeof c !== 'string' && c.kind === 'link';
 
 /** What the sheet will show for a cell — the diffable form. */
 export const cellText = (c: Cell): string => (typeof c === 'string' ? c : c.text);
 
 /** What the API is given for a cell. */
-export const cellApi = (c: Cell): string | number => (typeof c === 'string' ? c : c.serial);
+export const cellApi = (c: Cell): string | number => {
+  if (typeof c === 'string') return c;
+  return c.kind === 'date' ? c.serial : c.text;
+};
 
 /** Values as the API wants them: serial numbers for dates, strings otherwise. */
 const apiValues = (values: Cell[][]): (string | number)[][] =>
@@ -167,6 +184,8 @@ const dryStore = new Map<string, string[][]>();
  */
 const dryRules = new Map<string, any[]>();
 const dryFrozen = new Set<string>();
+/** Dry-run rich-text links per tab: `${row}:${col}` (0-based) -> address. */
+const dryLinkStore = new Map<string, Map<string, string>>();
 
 const dryKey = (id: string, tab: string) => `${id}::${tab}`;
 
@@ -184,7 +203,24 @@ export function _dryResetAll(): void {
   dryStore.clear();
   dryRules.clear();
   dryFrozen.clear();
+  dryLinkStore.clear();
 }
+
+/** Dry-run links of one tab, keyed by A1 cell (e.g. `X2`). For tests and the dry-run log. */
+export function _dryLinks(spreadsheetId: string, tab: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [at, uri] of dryLinkStore.get(dryKey(spreadsheetId, tab)) ?? []) {
+    const [row, col] = at.split(':').map(Number);
+    out[`${colLetter(col)}${row + 1}`] = uri;
+  }
+  return out;
+}
+
+const dryLinksOf = (id: string, tab: string): Map<string, string> => {
+  const key = dryKey(id, tab);
+  if (!dryLinkStore.has(key)) dryLinkStore.set(key, new Map());
+  return dryLinkStore.get(key)!;
+};
 
 interface ParsedRange {
   tab: string;
@@ -228,21 +264,27 @@ function rowsDetail(values: string[][]): Record<string, unknown> {
 function dryWrite(spreadsheetId: string, range: string, values: string[][]): void {
   const { tab, startCol, startRow } = parseRange(range);
   const grid = dryGrid(spreadsheetId, tab);
+  // Writing a value through the values API leaves plain text: a link on that
+  // cell is gone until it is set again.
+  const links = dryLinksOf(spreadsheetId, tab);
   values.forEach((row, r) => {
     const target = startRow + r;
     while (grid.length <= target) grid.push([]);
     const line = grid[target];
     row.forEach((cell, c) => {
       line[startCol + c] = cell;
+      links.delete(`${target}:${startCol + c}`);
     });
   });
 }
 
+/** Append rows; returns the 1-based sheet row of the first one. */
 function dryAppend(spreadsheetId: string, range: string, values: string[][]): number {
   const { tab } = parseRange(range);
   const grid = dryGrid(spreadsheetId, tab);
+  const first = grid.length + 1;
   for (const row of values) grid.push([...row]);
-  return grid.length;
+  return first;
 }
 
 function dryRead(spreadsheetId: string, range: string): string[][] {
@@ -282,10 +324,41 @@ function dryRead(spreadsheetId: string, range: string): string[][] {
 function dryDelete(spreadsheetId: string, tab: string, rows: number[]): void {
   const grid = dryGrid(spreadsheetId, tab);
   for (const r of [...rows].sort((a, b) => b - a)) grid.splice(r, 1);
+  // Links move with their rows, like any cell format.
+  const links = dryLinksOf(spreadsheetId, tab);
+  const moved = [...links].flatMap(([at, uri]) => {
+    const [row, col] = at.split(':').map(Number);
+    if (rows.includes(row)) return [];
+    return [[`${row - rows.filter((d) => d < row).length}:${col}`, uri] as [string, string]];
+  });
+  dryLinkStore.set(dryKey(spreadsheetId, tab), new Map(moved));
 }
 
 function dryClear(spreadsheetId: string, tab: string): void {
   dryStore.set(dryKey(spreadsheetId, tab), []);
+  dryLinkStore.delete(dryKey(spreadsheetId, tab));
+}
+
+/** The tab a dry-run sheetId belongs to (sheetIds are given in creation order). */
+function dryTabOf(spreadsheetId: string, sheetId: number): string | null {
+  const keys = [...dryStore.keys()].filter((k) => k.startsWith(`${spreadsheetId}::`));
+  return keys[sheetId]?.split('::')[1] ?? null;
+}
+
+type DryLinkRequest = {
+  updateCells?: {
+    range?: { sheetId?: number; startRowIndex?: number; startColumnIndex?: number };
+    rows?: { values?: { textFormatRuns?: { format?: { link?: { uri?: string } } }[] }[] }[];
+  };
+};
+
+/** Record the rich-text links an `updateCells` request sets. */
+function dryApplyLink(spreadsheetId: string, request: DryLinkRequest): void {
+  const range = request.updateCells?.range;
+  const uri = request.updateCells?.rows?.[0]?.values?.[0]?.textFormatRuns?.[0]?.format?.link?.uri;
+  const tab = range ? dryTabOf(spreadsheetId, range.sheetId ?? -1) : null;
+  if (!range || !uri || tab === null) return;
+  dryLinksOf(spreadsheetId, tab).set(`${range.startRowIndex}:${range.startColumnIndex}`, uri);
 }
 
 /* ------------------------------------------------------------------ client */
@@ -443,30 +516,39 @@ export async function updateValues(
 }
 
 /** Append rows to the end of the tab. */
+/** The 1-based first row of an A1 range such as `'2026-2027'!A5:X6`, or null. */
+export function firstRowOf(range: unknown): number | null {
+  const m = /!\$?[A-Z]*\$?(\d+)/i.exec(String(range ?? ''));
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * Append rows to the end of the tab. `startRow` is the 1-based sheet row the
+ * first one landed on (from the API's `updatedRange`), or null if unknown.
+ */
 export async function appendValues(
   spreadsheetId: string,
   range: string,
   values: Cell[][],
-): Promise<OpResult<{ appended: number }>> {
+): Promise<OpResult<{ appended: number; startRow: number | null }>> {
   if (!isConfigured()) return fail('not_configured');
-  if (values.length === 0) return done({ appended: 0 });
+  if (values.length === 0) return done({ appended: 0, startRow: null });
   if (isDryRun()) {
-    const shown = dryValues(values);
-    const total = dryAppend(spreadsheetId, range, shown);
-    dryLog('values.append', { spreadsheetId, range, ...rowsDetail(shown), sheetRows: total });
-    return done({ appended: values.length });
+    const startRow = dryAppend(spreadsheetId, range, dryValues(values));
+    dryLog('values.append', { spreadsheetId, range, ...rowsDetail(dryValues(values)), startRow });
+    return done({ appended: values.length, startRow });
   }
   const c = await clients();
   if (!c) return fail('client_unavailable', 'Nu am putut autentifica contul de serviciu.');
   try {
-    await c.sheets.spreadsheets.values.append({
+    const res = await c.sheets.spreadsheets.values.append({
       spreadsheetId,
       range,
       valueInputOption: 'RAW',
       insertDataOption: 'INSERT_ROWS',
       requestBody: { values: apiValues(values) },
     });
-    return done({ appended: values.length });
+    return done({ appended: values.length, startRow: firstRowOf(res?.data?.updates?.updatedRange) });
   } catch (err) {
     const { reason, message } = classify(err, 'append_failed');
     strapi?.log?.warn?.(`[sheets] append failed (${reason}): ${message}`);
@@ -589,6 +671,7 @@ export async function batchUpdateSheet(
   if (!isConfigured()) return fail('not_configured');
   if (requests.length === 0) return done(true as const);
   if (isDryRun()) {
+    for (const r of requests) if (r.updateCells) dryApplyLink(spreadsheetId, r);
     const key = dryKey(spreadsheetId, tab);
     const rules = [...(dryRules.get(key) ?? [])];
     for (const r of requests) {

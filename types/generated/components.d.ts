@@ -72,6 +72,7 @@ export interface ClubPriceItem extends Struct.ComponentSchema {
     name: Schema.Attribute.String & Schema.Attribute.Required;
     nonMemberPrice: Schema.Attribute.Decimal;
     sessions: Schema.Attribute.Integer;
+    tooltip: Schema.Attribute.Text;
   };
 }
 

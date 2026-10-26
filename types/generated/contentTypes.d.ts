@@ -991,6 +991,61 @@ export interface ApiDisciplineDiscipline extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiEmailJobEmailJob extends Struct.CollectionTypeSchema {
+  collectionName: 'email_jobs';
+  info: {
+    displayName: 'Club / E-mail';
+    pluralName: 'email-jobs';
+    singularName: 'email-job';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    attempts: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    kind: Schema.Attribute.Enumeration<['registration']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'registration'>;
+    lastError: Schema.Attribute.Text;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::email-job.email-job'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    recipient: Schema.Attribute.String & Schema.Attribute.Required;
+    registration: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::registration-submission.registration-submission'
+    >;
+    sentAt: Schema.Attribute.DateTime;
+    status: Schema.Attribute.Enumeration<['queued', 'sent', 'failed']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'queued'>;
+    subject: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiFormConfigFormConfig extends Struct.CollectionTypeSchema {
   collectionName: 'form_configs';
   info: {
@@ -1493,7 +1548,6 @@ export interface ApiPricingPricing extends Struct.SingleTypeSchema {
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     tiers: Schema.Attribute.JSON &
-      Schema.Attribute.CustomField<'plugin::component-preview.pricing-tiers'> &
       Schema.Attribute.SetPluginOptions<{
         'content-manager': {
           displayOrder: 1;
@@ -1640,16 +1694,23 @@ export interface ApiRegistrationSubmissionRegistrationSubmission
     archived: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
     childBirthDate: Schema.Attribute.String & Schema.Attribute.Required;
+    childHeight: Schema.Attribute.Integer;
     childName: Schema.Attribute.String & Schema.Attribute.Required;
     clubInterest: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     email: Schema.Attribute.String & Schema.Attribute.Required;
+    emailJobs: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::email-job.email-job'
+    >;
     expectations: Schema.Attribute.Text;
     extra: Schema.Attribute.JSON;
-    howHeard: Schema.Attribute.String & Schema.Attribute.Required;
+    gdprConsent: Schema.Attribute.Boolean;
+    howHeard: Schema.Attribute.String;
     internalNote: Schema.Attribute.Text;
+    lastSeason: Schema.Attribute.String;
     level: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -1657,26 +1718,33 @@ export interface ApiRegistrationSubmissionRegistrationSubmission
       'api::registration-submission.registration-submission'
     > &
       Schema.Attribute.Private;
+    membershipAnswer: Schema.Attribute.Enumeration<['da', 'nu']>;
     parentName: Schema.Attribute.String & Schema.Attribute.Required;
     phone: Schema.Attribute.String & Schema.Attribute.Required;
     priorExperience: Schema.Attribute.Text;
     privacyConsent: Schema.Attribute.Boolean &
-      Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<false>;
     publishedAt: Schema.Attribute.DateTime;
     registrationNumber: Schema.Attribute.String & Schema.Attribute.Unique;
     regulationsAgreement: Schema.Attribute.Boolean &
       Schema.Attribute.DefaultTo<false>;
+    regulationsConsent: Schema.Attribute.Boolean;
+    relationship: Schema.Attribute.Enumeration<['parinte', 'tutore', 'alta']>;
+    relationshipOther: Schema.Attribute.String;
     season: Schema.Attribute.String;
     seasonRef: Schema.Attribute.Relation<'manyToOne', 'api::season.season'>;
     section: Schema.Attribute.Relation<'manyToOne', 'api::section.section'>;
     shirtSize: Schema.Attribute.String & Schema.Attribute.Required;
+    source: Schema.Attribute.String;
+    sourceOther: Schema.Attribute.String;
     status: Schema.Attribute.Enumeration<
       ['Nou', 'Contactat', 'Confirmat', 'Respins']
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'Nou'>;
+    submissionKey: Schema.Attribute.String & Schema.Attribute.Private;
     submittedAt: Schema.Attribute.DateTime;
+    subscriptionChoice: Schema.Attribute.JSON;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1753,6 +1821,7 @@ export interface ApiSectionSection extends Struct.CollectionTypeSchema {
     location: Schema.Attribute.Relation<'manyToOne', 'api::location.location'>;
     name: Schema.Attribute.String & Schema.Attribute.Required;
     order: Schema.Attribute.Integer;
+    priceNotes: Schema.Attribute.JSON;
     publicPage: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     publishedAt: Schema.Attribute.DateTime;
     registrationsOpen: Schema.Attribute.Boolean &
@@ -2690,6 +2759,7 @@ declare module '@strapi/strapi' {
       'api::course-regulations.course-regulations': ApiCourseRegulationsCourseRegulations;
       'api::cursuri-page.cursuri-page': ApiCursuriPageCursuriPage;
       'api::discipline.discipline': ApiDisciplineDiscipline;
+      'api::email-job.email-job': ApiEmailJobEmailJob;
       'api::form-config.form-config': ApiFormConfigFormConfig;
       'api::group-membership.group-membership': ApiGroupMembershipGroupMembership;
       'api::group.group': ApiGroupGroup;

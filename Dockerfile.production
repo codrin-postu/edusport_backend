@@ -73,7 +73,8 @@ COPY --from=builder  --chown=strapi:strapi /opt/out ./
 # its ownership. Without this directory present and owned by strapi, a freshly
 # created uploads volume lands as root:root and every upload fails with EACCES
 # (the container drops ALL capabilities, so it cannot chown its way out).
-RUN mkdir -p ./public/uploads && chown -R strapi:strapi ./public
+# Same for the private documents volume (registration PDFs, plan 2D).
+RUN mkdir -p ./public/uploads ./private/documents && chown -R strapi:strapi ./public ./private
 
 USER strapi
 

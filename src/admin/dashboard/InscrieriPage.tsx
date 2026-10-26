@@ -12,6 +12,11 @@ import SubmissionTablePage, {
   type SubmissionTableCfg,
   type TableApi,
 } from './SubmissionTable';
+import { isScriptFormRegistration, registrationPanelRows } from '../../club/registration-panel';
+import { BlankFormsMenu } from './inscrieri/BlankFormsMenu';
+import { EditableAnswer } from './inscrieri/EditableAnswer';
+import { RegistrationDocuments } from './inscrieri/RegistrationDocuments';
+import { RegistrationEmail } from './inscrieri/RegistrationEmail';
 
 /**
  * EduSport admin — "Înscrieri" results page.
@@ -22,6 +27,13 @@ import SubmissionTablePage, {
  * screen: endpoints, statuses, built-in columns, filterable columns, the
  * compact-list cells and the read-only detail panel. Seasons, the archived view,
  * bulk actions and the Google Sheets connection are enabled here.
+ *
+ * Phase 2: the panel shows the script form's answers for new registrations
+ * (src/club/registration-panel.ts), their PDFs (plan 2D routes) and the e-mail
+ * status with "Retrimite e-mailul" (plan 2F routes). The header has "Formulare
+ * goale" (blank PDFs). Calitate and Membru A.C.S. are edited in place: they are
+ * printed on the PDFs, so saving one rebuilds them (plan 2D) and writes "Document
+ * refăcut" to the history; no e-mail is sent.
  *
  * Endpoints (admin-guarded, server-side filtering/sorting/pagination):
  *   GET    /api/forms/inscrieri
@@ -126,46 +138,50 @@ const renderCells = (r: Row, api: TableApi) => {
   );
 };
 
+/** Answers as label/value rows (src/club/registration-panel.ts), the long texts after a gap. Calitate and Membru A.C.S. are edited in place. */
+function PanelAnswers({ row, save }: { row: Row; save: TableApi['saveField'] }) {
+  const { rows, longRows } = registrationPanelRows(row);
+  return (
+    <>
+      {rows.map((r) =>
+        r.edit ? (
+          <EditableAnswer key={r.label} row={row} edit={r.edit} save={save} />
+        ) : (
+          <DetailField key={r.label} label={r.label}>{r.value}</DetailField>
+        ),
+      )}
+      {longRows.map((r, i) => (
+        <DetailField key={r.label} label={r.label} style={i === 0 ? { marginTop: 11 } : undefined}>
+          {r.value}
+        </DetailField>
+      ))}
+    </>
+  );
+}
+
 const renderDetail = (row: Row, api: TableApi) => {
   const selected = row as Submission;
-  const { removeRow, statusTag, statusBox, seasonField, customFields, internalNoteField } = api;
+  const scriptForm = isScriptFormRegistration(selected);
   return (
     <>
       <DetailHeader>
         <b>{selected.childName}</b>
-        {statusTag(selected)}
+        {api.statusTag(selected)}
       </DetailHeader>
       <DetailBody>
-        {statusBox(selected)}
+        {api.statusBox(selected)}
         <DetailField label="Trimis la">{fmtDateTime(selected.submittedAt)}</DetailField>
         <DetailField label="Arhivare">{selected.archived ? 'Arhivat' : 'Activ'}</DetailField>
-        {seasonField(selected)}
-        {(
-          [
-            ['childBirthDate', 'Data nașterii'],
-            ['parentName', 'Nume părinte'],
-            ['email', 'Email'],
-            ['phone', 'Telefon'],
-            ['shirtSize', 'Mărime tricou'],
-            ['howHeard', 'Cum a aflat'],
-            ['level', 'Nivel'],
-          ] as Array<[string, string]>
-        ).map(([key, label]) => (
-          <DetailField key={key} label={label}>{String(selected[key] ?? '') || '—'}</DetailField>
-        ))}
-        <DetailField label="Interes club">{selected.clubInterest ? 'Da' : 'Nu'}</DetailField>
-        <DetailField label="Acord regulament">{selected.regulationsAgreement ? 'Da' : 'Nu'}</DetailField>
-        <DetailField label="Acord confidențialitate">{selected.privacyConsent ? 'Da' : 'Nu'}</DetailField>
-        <DetailField style={{ marginTop: 11 }} label="Experiență anterioară">
-          {String(selected.priorExperience ?? '') || '—'}
-        </DetailField>
-        <DetailField label="Așteptări">{String(selected.expectations ?? '') || '—'}</DetailField>
-        {customFields(selected)}
-        {internalNoteField(selected)}
+        {api.seasonField(selected)}
+        <PanelAnswers row={selected} save={api.saveField} />
+        {scriptForm && <RegistrationDocuments row={selected} />}
+        {scriptForm && <RegistrationEmail row={selected} />}
+        {api.customFields(selected)}
+        {api.internalNoteField(selected)}
       </DetailBody>
       <DetailFooter>
         <span />
-        <Button size="sm" variant="danger" onClick={() => removeRow(selected.documentId)}>
+        <Button size="sm" variant="danger" onClick={() => api.removeRow(selected.documentId)}>
           Șterge înscrierea
         </Button>
       </DetailFooter>
@@ -195,15 +211,16 @@ const CFG: SubmissionTableCfg = {
   archive: true,
   sheetsForm: 'inscrieri',
   bulk: true,
+  headerActions: <BlankFormsMenu />,
   texts: {
     title: 'Înscrieri',
     subtitle: 'Cererile trimise prin formularul public de înscriere.',
-    // The server's quick `q` searches childName/parentName/email/phone only.
-    searchPlaceholder: 'Caută după nume, părinte, email sau telefon...',
+    // The server's quick `q` searches childName/parentName/email/phone and, after plan 2E, the registration number.
+    searchPlaceholder: 'Caută după nume, număr, părinte, e-mail sau telefon...',
     empty: 'Nicio înscriere pentru filtrul curent.',
     loadError: 'Nu am putut încărca înscrierile.',
-    statSuffix: ' · exclus arhivate',
-    deleteConfirm: 'Ștergi definitiv această înscriere? Acțiunea nu poate fi anulată.',
+    statSuffix: ', exclus arhivate',
+    deleteConfirm: 'Ștergi definitiv această înscriere și documentele ei? Acțiunea nu poate fi anulată.',
     bulkDeleteNoun: 'înscrieri',
     deleteError: 'Nu am putut șterge înscrierea.',
     saveError: 'Nu am putut salva modificarea.',

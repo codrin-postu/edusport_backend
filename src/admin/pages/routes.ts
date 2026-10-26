@@ -23,6 +23,7 @@ export const DISCIPLINE_TO = '/plugins/edusport-discipline';
 export const MOMENTE_ISTORIC_TO = '/plugins/edusport-momente-istoric';
 export const CURSURI_TO = '/plugins/edusport-cursuri';
 export const PRETURI_TO = '/plugins/edusport-preturi';
+export const SEZOANE_TO = '/plugins/edusport-sezoane';
 export const REGULAMENT_TO = '/plugins/edusport-regulament';
 export const PAGINA_PROGRAM_TO = '/plugins/edusport-pagina-program';
 export const REALIZARI_TO = '/plugins/edusport-realizari';
@@ -44,6 +45,7 @@ export const UID = {
   historyMilestone: 'api::history-milestone.history-milestone',
   cursuriPage: 'api::cursuri-page.cursuri-page',
   pricing: 'api::pricing.pricing',
+  season: 'api::season.season',
   courseRegulations: 'api::course-regulations.course-regulations',
   programPage: 'api::program-page.program-page',
   realizariPage: 'api::realizari-page.realizari-page',
@@ -90,7 +92,10 @@ export const CUSTOM_PAGES: CustomPageRoute[] = [
   { to: DISCIPLINE_TO, uid: UID.discipline, kind: 'collection', role: 'main', redirect: true, load: () => import('./DisciplinePage') },
   { to: MOMENTE_ISTORIC_TO, uid: UID.historyMilestone, kind: 'collection', role: 'main', redirect: true, load: () => import('./MomenteIstoricPage') },
   { to: CURSURI_TO, uid: UID.cursuriPage, kind: 'single', role: 'main', redirect: true, load: () => import('./CursuriPage') },
+  // Edits the club price lists now; old content-manager URLs of `pricing` still land here.
   { to: PRETURI_TO, uid: UID.pricing, kind: 'single', role: 'main', redirect: true, load: () => import('./PreturiPage') },
+  // The season type is hidden from the content manager, so there is nothing to redirect.
+  { to: SEZOANE_TO, uid: UID.season, kind: 'collection', role: 'main', redirect: false, load: () => import('./SezoanePage') },
   { to: REGULAMENT_TO, uid: UID.courseRegulations, kind: 'single', role: 'main', redirect: true, load: () => import('./RegulamentPage') },
   { to: PAGINA_PROGRAM_TO, uid: UID.programPage, kind: 'single', role: 'main', redirect: true, load: () => import('./PaginaProgramPage') },
   { to: REALIZARI_TO, uid: UID.realizariPage, kind: 'single', role: 'main', redirect: true, load: () => import('./RealizariPage') },

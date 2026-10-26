@@ -56,8 +56,14 @@
  * stack a duplicate on every run — so the caller passes the rules currently on
  * the sheet and this module emits the matching `deleteConditionalFormatRule`s
  * first. Re-running a sync therefore leaves the rule count unchanged.
+ *
+ * Our rules are found by WHAT they are (a TEXT_EQ on one of the form's status
+ * values), not by the column they sit on: when a tab changes column set (an
+ * Înscrieri season tab switching to the new form's columns), `Stare` moves, and
+ * the rules left on its old column are removed instead of lingering there.
  */
-import type { Cell } from './client';
+import { cellText, isLinkCell } from './client';
+import type { Cell, LinkCell } from './client';
 import type { ColumnType } from './matrix';
 import type { FormKey } from './registry';
 
@@ -290,32 +296,87 @@ export function parseDateCell(raw: string, kind: 'date' | 'datetime'): ParsedDat
 const dateKind = (t: ColumnType): 'date' | 'datetime' | null =>
   t === 'date' ? 'date' : t === 'datetime' ? 'datetime' : null;
 
+/** The text a link cell shows (the Înscrieri "Document" column); its address is the rich-text link. */
+export const LINK_TEXT = 'Deschide documentul';
+
+/** One rendered value -> the cell the API is given. */
+function toCell(type: ColumnType, value: string): Cell {
+  if (type === 'link') return value ? { kind: 'link', text: LINK_TEXT, url: value } : '';
+  const kind = dateKind(type);
+  if (!kind) return value;
+  const parsed = parseDateCell(value, kind);
+  return parsed ? { kind: 'date', serial: parsed.serial, text: parsed.text } : value;
+}
+
 /**
  * A rendered row -> the cells the API is given. Date columns become tagged
- * date cells (serial + the text they will display); everything else stays the
- * exact string `matrix.ts` produced, because the write is still RAW.
+ * date cells (serial + the text they will display), a link column a link cell
+ * (its text, its address); everything else stays the exact string `matrix.ts`
+ * produced, because the write is still RAW.
  */
 export function toCells(types: ColumnType[], row: string[]): Cell[] {
-  return row.map((value, i) => {
-    const kind = dateKind(types[i]);
-    if (!kind) return value;
-    const parsed = parseDateCell(value, kind);
-    return parsed ? { kind: 'date' as const, serial: parsed.serial, text: parsed.text } : value;
-  });
+  return row.map((value, i) => toCell(types[i], value));
 }
 
 /**
  * The same row as the SHEET WILL SHOW IT. `values.get` returns formatted
  * values, so this is what a reconcile compares against — not the raw ISO
- * string, which the sheet no longer contains.
+ * string, nor a link's address, neither of which the sheet shows.
  */
 export function toDisplay(types: ColumnType[], row: string[]): string[] {
-  return row.map((value, i) => {
-    const kind = dateKind(types[i]);
-    if (!kind) return value;
-    const parsed = parseDateCell(value, kind);
-    return parsed ? parsed.text : value;
-  });
+  return toCells(types, row).map(cellText);
+}
+
+/* ------------------------------------------------------------- link cells */
+
+/** A cell's text with one rich-text run linking all of it. */
+type LinkValue = {
+  userEnteredValue: { stringValue: string };
+  textFormatRuns: { startIndex: number; format: { link: { uri: string } } }[];
+};
+
+/** One `spreadsheets.batchUpdate` request that turns a cell's text into a link. */
+export type LinkRequest = {
+  updateCells: {
+    range: {
+      sheetId: number;
+      startRowIndex: number;
+      endRowIndex: number;
+      startColumnIndex: number;
+      endColumnIndex: number;
+    };
+    rows: { values: LinkValue[] }[];
+    fields: string;
+  };
+};
+
+function linkRequest(sheetId: number, row: number, col: number, cell: LinkCell): LinkRequest {
+  const value: LinkValue = {
+    userEnteredValue: { stringValue: cell.text },
+    textFormatRuns: [{ startIndex: 0, format: { link: { uri: cell.url } } }],
+  };
+  return {
+    updateCells: {
+      range: { sheetId, startRowIndex: row, endRowIndex: row + 1, startColumnIndex: col, endColumnIndex: col + 1 },
+      rows: [{ values: [value] }],
+      fields: 'userEnteredValue,textFormatRuns',
+    },
+  };
+}
+
+/**
+ * The rich-text link requests for the link cells of `rows`, written from the
+ * 0-based sheet row `startRow`. A values write leaves plain text, so these go
+ * out after every write of such rows.
+ */
+export function linkRequests(sheetId: number, startRow: number, rows: Cell[][]): LinkRequest[] {
+  const out: LinkRequest[] = [];
+  rows.forEach((row, r) =>
+    row.forEach((cell, c) => {
+      if (isLinkCell(cell)) out.push(linkRequest(sheetId, startRow + r, c, cell));
+    }),
+  );
+  return out;
 }
 
 /* ------------------------------------------------------------ column widths */
@@ -336,6 +397,7 @@ const WIDTH: Record<ColumnType, number> = {
   bool: 110,
   list: 200,
   id: 190,
+  link: 160,
 };
 
 export const widthFor = (t: ColumnType): number => WIDTH[t] ?? WIDTH.text;
@@ -358,12 +420,17 @@ const ruleColumn = (rule: any): number | null => {
 const ruleValue = (rule: any): string =>
   String(rule?.booleanRule?.condition?.values?.[0]?.userEnteredValue ?? '');
 
-/** Indices (ascending) of the rules currently sitting on the status column. */
-function statusRuleIndices(state: TabState | undefined, statusIndex: number): number[] {
-  if (!state || statusIndex < 0) return [];
+/** The condition type of a rule as read back from `spreadsheets.get` (e.g. 'TEXT_EQ'). */
+const ruleKind = (rule: { booleanRule?: { condition?: { type?: string } } }): string =>
+  String(rule?.booleanRule?.condition?.type ?? '');
+
+/** Indices (ascending) of the status-colour rules this module adds for `form`, on any column. */
+function ownRuleIndices(state: TabState | undefined, form: FormKey): number[] {
+  if (!state) return [];
+  const values = new Set(STATUS_STYLES[form].map((s) => s.value));
   const out: number[] = [];
   state.conditionalFormats.forEach((rule, i) => {
-    if (ruleColumn(rule) === statusIndex) out.push(i);
+    if (ruleKind(rule) === 'TEXT_EQ' && values.has(ruleValue(rule))) out.push(i);
   });
   return out;
 }
@@ -382,7 +449,9 @@ export function formatIsCurrent(
   if (!state) return false;
   if (state.frozenRowCount !== 1) return false;
   const want = statusIndex < 0 ? [] : STATUS_STYLES[form].map((s) => s.value);
-  const have = statusRuleIndices(state, statusIndex).map((i) => ruleValue(state.conditionalFormats[i]));
+  const own = ownRuleIndices(state, form).map((i) => state.conditionalFormats[i]);
+  if (!own.every((rule) => ruleColumn(rule) === statusIndex)) return false;
+  const have = own.map(ruleValue);
   return have.length === want.length && want.every((v, i) => have[i] === v);
 }
 
@@ -498,7 +567,7 @@ export function formatRequests(spec: FormatSpec): any[] {
     // Drop what is already there FIRST, descending so earlier deletes cannot
     // shift the index of a later one. This is the whole idempotency story:
     // without it every sync would stack another copy of all four rules.
-    const existing = statusRuleIndices(state, statusIndex);
+    const existing = ownRuleIndices(state, form);
     for (const index of [...existing].sort((a, b) => b - a)) {
       requests.push({ deleteConditionalFormatRule: { sheetId, index } });
     }

@@ -12,10 +12,15 @@
  * every custom answer key present in the data) and caches it briefly; `toRow()`
  * renders against that cached plan. Always `await buildHeader()` (directly or
  * via `sync.ensureHeader`) before calling `toRow()` — `sync.ts` does.
+ *
+ * A partitioned form can pick its columns per tab (`tabPlans`); `sync.ts` asks
+ * for those with `resolveTabPlans()`. Without `tabPlans`, every tab gets the
+ * form's one plan.
  */
+import type { UID } from '@strapi/strapi';
 import { sanitizeTabName } from './client';
-import type { ColumnPlan, RowLike } from './matrix';
-import { contactPlan, inscrieriPlan, parteneriPlan, voluntariPlan } from './matrix';
+import type { ColumnPlan, RowLike, TabPlans } from './matrix';
+import { contactPlan, inscrieriPlan, inscrieriTabPlans, parteneriPlan, voluntariPlan, singlePlan } from './matrix';
 
 export type FormKey = 'inscrieri' | 'voluntari' | 'parteneri' | 'contact';
 
@@ -50,6 +55,10 @@ export interface FormDescriptor {
   readonly partition?: Partition;
   /** Every row in the database, oldest first (the order they are written in). */
   fetchAll(): Promise<RowLike[]>;
+  /** These documents, with the same relations as `fetchAll`. */
+  fetchByIds(ids: string[]): Promise<RowLike[]>;
+  /** Resolve + cache the column plan of every tab (partitioned forms). */
+  resolveTabPlans(rows?: RowLike[]): Promise<TabPlans>;
   /** Resolve + cache the current column plan, returning its header. */
   buildHeader(): Promise<string[]>;
   /** Render one document against the cached plan. */
@@ -82,10 +91,14 @@ function byField(field: string, fallbackTab: string): Partition {
 
 interface Spec {
   key: FormKey;
-  uid: string;
+  uid: UID.ContentType;
   label: string;
   plan: (rows: RowLike[]) => Promise<ColumnPlan>;
   partition?: Partition;
+  /** Columns chosen per tab, from the rows that tab holds (partitioned forms only). */
+  tabPlans?: (rows: RowLike[], tabFor: (doc: RowLike) => string) => Promise<TabPlans>;
+  /** Relations a row needs for its cells. */
+  populate?: Record<string, { fields: string[] }>;
 }
 
 const SPECS: Spec[] = [
@@ -97,6 +110,10 @@ const SPECS: Spec[] = [
     // One tab per season: "2025-2026", "2024-2025", … and `fara-sezon` for the
     // rows that have none. Every other form stays single-tab.
     partition: byField('season', INSCRIERI_FALLBACK_TAB),
+    // A season tab filled by the new registration form gets its own columns.
+    tabPlans: inscrieriTabPlans,
+    // The "Școală" column prints the section's name; "E-mail" the newest e-mail job (plan 2F).
+    populate: { section: { fields: ['name'] }, emailJobs: { fields: ['status', 'sentAt', 'createdAt'] } },
   },
   {
     key: 'voluntari',
@@ -120,6 +137,7 @@ const SPECS: Spec[] = [
 
 class Descriptor implements FormDescriptor {
   private cached: { plan: ColumnPlan; at: number } | null = null;
+  private cachedTabs: { plans: TabPlans; at: number } | null = null;
 
   constructor(private readonly spec: Spec) {}
 
@@ -127,7 +145,7 @@ class Descriptor implements FormDescriptor {
     return this.spec.key;
   }
 
-  get uid(): string {
+  get uid(): UID.ContentType {
     return this.spec.uid;
   }
 
@@ -145,16 +163,31 @@ class Descriptor implements FormDescriptor {
   }
 
   async fetchAll(): Promise<RowLike[]> {
-    const docs = await strapi.documents(this.spec.uid as any).findMany({
+    const docs = await strapi.documents(this.spec.uid).findMany({
       sort: { submittedAt: 'asc' } as any,
       limit: ROW_LIMIT,
+      ...this.populateArg(),
     });
     return (docs ?? []) as unknown as RowLike[];
   }
 
+  async fetchByIds(ids: string[]): Promise<RowLike[]> {
+    if (!ids.length) return [];
+    const docs = await strapi.documents(this.spec.uid).findMany({
+      filters: { documentId: { $in: ids } },
+      limit: ids.length,
+      ...this.populateArg(),
+    });
+    return (docs ?? []) as unknown as RowLike[];
+  }
+
+  private populateArg(): { populate?: Record<string, { fields: string[] }> } {
+    return this.spec.populate ? { populate: this.spec.populate } : {};
+  }
+
   async count(): Promise<number> {
     try {
-      return await strapi.documents(this.spec.uid as any).count({});
+      return await strapi.documents(this.spec.uid).count({});
     } catch {
       return 0;
     }
@@ -167,6 +200,17 @@ class Descriptor implements FormDescriptor {
     const plan = await this.spec.plan(source);
     this.cached = { plan, at: Date.now() };
     return plan;
+  }
+
+  /** Resolve the column plan of every tab, over every row currently in the database. */
+  async resolveTabPlans(rows?: RowLike[]): Promise<TabPlans> {
+    const fresh = this.cachedTabs && Date.now() - this.cachedTabs.at < PLAN_TTL_MS;
+    if (!rows && fresh) return this.cachedTabs.plans;
+    const source = rows ?? (await this.fetchAll());
+    const { tabPlans, partition } = this.spec;
+    const plans = tabPlans && partition ? await tabPlans(source, partition.tabFor) : singlePlan(await this.spec.plan(source));
+    this.cachedTabs = { plans, at: Date.now() };
+    return plans;
   }
 
   async buildHeader(): Promise<string[]> {
@@ -182,6 +226,7 @@ class Descriptor implements FormDescriptor {
 
   invalidate(): void {
     this.cached = null;
+    this.cachedTabs = null;
   }
 }
 

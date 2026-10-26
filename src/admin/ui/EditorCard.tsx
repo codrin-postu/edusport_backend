@@ -15,8 +15,8 @@ export interface EditorCardProps {
 }
 
 /**
- * Card for a field editor: header (accent bar on the left, title, optional
- * description and action) over a raised body. Carries `.ui-root` itself, so
+ * Card for a field editor: header (title, optional description and action)
+ * over a raised body. Carries `.ui-root` itself, so
  * it renders the same inside a content-manager custom field (no AdminPage
  * around it) and on dashboard pages. Port of the plugin's
  * components/EditorCard, on tokens.

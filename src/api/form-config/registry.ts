@@ -19,6 +19,15 @@
  * the frontend's concern. The registry describes how the question RENDERS.
  */
 
+import {
+  LAST_SEASON_OPTIONS,
+  MEMBERSHIP_OPTIONS,
+  RELATIONSHIP_OPTIONS,
+  RELATIONSHIP_OTHER_LABEL,
+  SOURCE_OPTIONS,
+  SOURCE_OTHER_LABEL,
+} from '../../club/registration-form-options';
+
 export type FormType = 'inscriere' | 'contact' | 'voluntariat' | 'parteneri';
 
 export type QuestionType =
@@ -52,6 +61,8 @@ export const SENSITIVE_BUILTIN_KEYS = new Set<string>([
   'email',
   'privacyConsent',
   'regulationsAgreement',
+  'gdprConsent',
+  'regulationsConsent',
 ]);
 
 /**
@@ -133,15 +144,6 @@ export interface RegistryForm {
   steps: RegistryStep[];
 }
 
-const LEVEL_VALUES = [
-  'Nu a mai patinat',
-  'A mai patinat in alta parte',
-  'Incepatori',
-  'Intermediari',
-  'Avansati',
-  'Performanta',
-] as const;
-
 const VOLUNTEER_OCCUPATIONS = ['Elev', 'Student', 'Angajat', 'Altele'] as const;
 
 const VOLUNTEER_HELP_AREAS = [
@@ -176,173 +178,81 @@ const CONTACT_REASONS: RegistryOption[] = [
   { value: 'altele', label: 'Altele' },
 ];
 
+/** Option lists from the constants module, as registry options. */
+const sameValueOptions = (values: readonly string[]): RegistryOption[] => values.map((v) => ({ value: v, label: v }));
+const pairOptions = (list: readonly { value: string; label: string }[]): RegistryOption[] =>
+  list.map((o) => ({ value: o.value, label: o.label }));
+
+/**
+ * The club's script form, 3 steps (form-3steps-v1 option B). Labels are from the approved mockup
+ * (mockups/gen_steps.py); option lists from src/club/registration-form-options.ts.
+ * `subscriptionChoice` has no registry options: they come from the public price lists.
+ */
 const inscriere: RegistryForm = {
   type: 'inscriere',
   steps: [
     {
-      key: 'personal',
-      title: 'Date personale',
+      key: 'date',
+      title: 'Date înscriere',
       questions: [
-        {
-          key: 'email',
-          type: 'email',
-          defaultLabel: 'Email',
-          defaultHelp: 'Adresa la care vă putem contacta.',
-          required: true,
-          lockedRequired: true,
-          canHide: false,
-          optionSource: 'none',
-        },
-        {
-          key: 'phone',
-          type: 'tel',
-          defaultLabel: 'Telefon',
-          required: true,
-          canHide: false,
-          optionSource: 'none',
-        },
-        {
-          key: 'childName',
-          type: 'text',
-          defaultLabel: 'Numele copilului',
-          required: true,
-          lockedRequired: true,
-          canHide: false,
-          optionSource: 'none',
-        },
-        {
-          key: 'childBirthDate',
-          type: 'text',
-          defaultLabel: 'Data nașterii copilului',
-          required: true,
-          canHide: false,
-          optionSource: 'none',
-        },
-        {
-          key: 'parentName',
-          type: 'text',
-          defaultLabel: 'Numele părintelui',
-          required: true,
-          canHide: false,
-          optionSource: 'none',
-        },
-        {
-          key: 'shirtSize',
-          type: 'text',
-          defaultLabel: 'Mărime tricou',
-          required: true,
-          canHide: false,
-          optionSource: 'none',
-        },
-      ],
-    },
-    {
-      key: 'experienta',
-      title: 'Experiență',
-      questions: [
-        {
-          key: 'howHeard',
-          type: 'text',
-          defaultLabel: 'Cum ați aflat despre noi',
-          required: true,
-          canHide: false,
-          optionSource: 'none',
-        },
-        {
-          key: 'level',
-          type: 'select',
-          defaultLabel: 'Nivel de experiență',
-          required: true,
-          canHide: false,
-          // Backed by a plain-string column, so the option list is fully dynamic:
-          // the editor may add / rename / reorder / disable values.
-          optionSource: 'freetext',
-          options: LEVEL_VALUES.map((v) => ({ value: v, label: v })),
-        },
+        { key: 'email', type: 'email', defaultLabel: 'Adresă de e-mail', required: true, lockedRequired: true, canHide: false, optionSource: 'none' },
+        { key: 'parentName', type: 'text', defaultLabel: 'Numele și prenumele persoanei care completează formularul', required: true, canHide: false, optionSource: 'none' },
+        { key: 'relationship', type: 'select', defaultLabel: 'Calitatea față de sportiv:', required: true, lockedRequired: true, canHide: false, optionSource: 'enum', options: pairOptions(RELATIONSHIP_OPTIONS) },
+        { key: 'relationshipOther', type: 'text', defaultLabel: RELATIONSHIP_OTHER_LABEL, required: false, canHide: false, optionSource: 'none' },
+        { key: 'phone', type: 'tel', defaultLabel: 'Telefon de contact', required: true, canHide: false, optionSource: 'none' },
+        { key: 'childName', type: 'text', defaultLabel: 'Numele și prenumele copilului', required: true, lockedRequired: true, canHide: false, optionSource: 'none' },
+        { key: 'childBirthDate', type: 'text', defaultLabel: 'Data nașterii copilului', required: true, canHide: false, optionSource: 'none' },
+        { key: 'childHeight', type: 'text', defaultLabel: 'Înălțimea copilului (cm)', required: true, canHide: false, optionSource: 'none' },
+        { key: 'shirtSize', type: 'text', defaultLabel: 'Măsura bluză', required: true, canHide: false, optionSource: 'none' },
+        { key: 'lastSeason', type: 'select', defaultLabel: 'Sezonul trecut fiul/fiica dvs. a participat la cursurile ACS EduSport?', required: true, canHide: false, optionSource: 'enum', options: sameValueOptions(LAST_SEASON_OPTIONS) },
         {
           key: 'priorExperience',
           type: 'longtext',
-          defaultLabel: 'Experiență anterioară',
+          defaultLabel: 'Nivel de experiență / Elemente cunoscute',
+          defaultHelp:
+            "Dacă este prima participare, menționați dacă a mai luat lecții. Dacă a mai fost înscris la ACS EduSport, completați cu 'Nu este cazul'.",
           required: true,
           canHide: false,
           optionSource: 'none',
         },
-        {
-          key: 'expectations',
-          type: 'longtext',
-          defaultLabel: 'Așteptări',
-          required: true,
-          canHide: false,
-          optionSource: 'none',
-        },
+        { key: 'expectations', type: 'longtext', defaultLabel: 'Așteptări de la cursurile de patinaj', required: true, canHide: false, optionSource: 'none' },
       ],
     },
     {
-      key: 'confirmare',
-      title: 'Confirmare',
+      key: 'abonament',
+      title: 'Abonament',
       questions: [
+        { key: 'membershipAnswer', type: 'select', defaultLabel: 'Doriți înscrierea ca membru A.C.S. EduSport pentru tarife preferențiale?', required: true, lockedRequired: true, canHide: false, optionSource: 'enum', options: pairOptions(MEMBERSHIP_OPTIONS) },
+        { key: 'subscriptionChoice', type: 'select', defaultLabel: 'La primul modul doriți să achiziționați:', required: true, lockedRequired: true, canHide: false, optionSource: 'none', options: [] },
+      ],
+    },
+    {
+      key: 'finalizare',
+      title: 'Finalizare înscriere',
+      questions: [
+        { key: 'source', type: 'select', defaultLabel: 'De unde ați aflat de cursurile noastre?', required: true, canHide: false, optionSource: 'enum', options: sameValueOptions(SOURCE_OPTIONS) },
+        { key: 'sourceOther', type: 'text', defaultLabel: SOURCE_OTHER_LABEL, required: false, canHide: false, optionSource: 'none' },
         {
-          key: 'infoBlock',
-          type: 'info',
-          defaultLabel:
-            'Prin trimiterea formularului confirmați că datele furnizate sunt corecte. Vă vom contacta pentru pașii următori.',
-          canHide: true,
-          required: false,
-          defaultLinkUrl: '',
-          defaultLinkLabel: '',
-        },
-        {
-          key: 'programCard',
-          type: 'info',
-          defaultDisplay: 'card',
-          // Renders as a link card because it carries a title, icon and link.
-          defaultLabel: 'Consultă orarul și perioadele de desfășurare',
-          defaultTitle: 'Programul Cursurilor',
-          defaultIcon: 'calendar',
-          defaultLinkUrl: '/cursuri/program',
-          defaultLinkLabel: 'Vezi programul',
-          canHide: true,
-          required: false,
-        },
-        {
-          key: 'privacyConsent',
+          key: 'gdprConsent',
           type: 'checkbox',
-          defaultDisplay: 'card',
-          defaultLabel: 'Am citit și sunt de acord',
-          defaultTitle: 'Protecția Datelor Personale',
-          defaultHelp:
-            'Politica de confidențialitate privind prelucrarea datelor cu caracter personal conform GDPR.',
-          defaultIcon: 'shield',
+          defaultDisplay: 'plain',
+          defaultTitle: 'Consimțământ GDPR',
+          defaultLabel: 'Confirm citirea documentului Politica de Confidențialitate și sunt de acord cu prelucrarea datelor.',
           defaultLinkUrl: '/protectia-datelor',
-          defaultLinkLabel: 'Citește politica de confidențialitate',
+          defaultLinkLabel: 'Politica de Confidențialitate',
           required: true,
           lockedRequired: true,
           canHide: false,
           optionSource: 'none',
         },
         {
-          key: 'clubInterest',
-          type: 'select',
-          defaultLabel: 'Sunteți interesat de activitatea clubului?',
-          required: true,
-          canHide: false,
-          optionSource: 'enum',
-          options: [
-            { value: 'Da', label: 'Da' },
-            { value: 'Nu', label: 'Nu' },
-          ],
-        },
-        {
-          key: 'regulationsAgreement',
+          key: 'regulationsConsent',
           type: 'checkbox',
-          defaultDisplay: 'card',
-          defaultLabel: 'Am citit și sunt de acord cu regulamentul',
-          defaultTitle: 'Regulamentul Cursurilor',
-          defaultHelp:
-            'Condițiile de participare, regulile de conduită pe gheață și informațiile esențiale pentru o experiență sigură.',
-          defaultIcon: 'book',
+          defaultDisplay: 'plain',
+          defaultTitle: 'Acord Regulament',
+          defaultLabel: 'Confirm că am citit, înțeles și acceptat condițiile prezentate în Regulamentul Școlii de Patinaj.',
           defaultLinkUrl: '/cursuri/regulament',
-          defaultLinkLabel: 'Citește regulamentul',
+          defaultLinkLabel: 'Regulamentul Școlii de Patinaj',
           required: true,
           lockedRequired: true,
           canHide: false,

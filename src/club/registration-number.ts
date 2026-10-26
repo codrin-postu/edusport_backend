@@ -15,6 +15,16 @@ export function parseRegistrationNumber(
   return { startYear: Number(m[1]), seq: Number(m[2]) };
 }
 
+/** Highest sequence already used for `startYear` in any of `numbers` (any season), plus one. */
+export function nextRegistrationNumber(numbers: (string | null | undefined)[], startYear: number): string {
+  let max = 0;
+  for (const value of numbers) {
+    const parsed = parseRegistrationNumber(value);
+    if (parsed && parsed.startYear === startYear) max = Math.max(max, parsed.seq);
+  }
+  return formatRegistrationNumber(startYear, max + 1);
+}
+
 export interface BackfillRow {
   documentId: string;
   season: string | null;

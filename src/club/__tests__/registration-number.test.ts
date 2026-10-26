@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatRegistrationNumber,
+  nextRegistrationNumber,
   parseRegistrationNumber,
   planRegistrationBackfill,
 } from '../registration-number';
@@ -20,6 +21,15 @@ describe('parseRegistrationNumber', () => {
     expect(parseRegistrationNumber('2026-142')).toBeNull();
     expect(parseRegistrationNumber(null)).toBeNull();
   });
+});
+
+describe('nextRegistrationNumber', () => {
+  it('continues after the highest number of that start year, whatever the season', () =>
+    expect(nextRegistrationNumber(['2026-0007', '2025-0100', '2026-0003', null, 'junk'], 2026)).toBe('2026-0008'));
+  it('starts at 0001 for a year with no numbers', () =>
+    expect(nextRegistrationNumber(['2025-0100'], 2026)).toBe('2026-0001'));
+  it('refuses to go past 9999', () =>
+    expect(() => nextRegistrationNumber(['2026-9999'], 2026)).toThrow(RangeError));
 });
 
 describe('planRegistrationBackfill', () => {
