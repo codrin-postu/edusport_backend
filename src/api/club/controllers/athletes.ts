@@ -1,9 +1,10 @@
-import { refuseWith, type AdminCtx } from '../../../club/admin-http';
+import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
 import { searchAthletes } from '../../../club/athletes/confirm-read';
 import { ADMIN_ERRORS } from '../../../club/athletes/errors';
 import { readHistory } from '../../../club/athletes/history-read';
-import { clubStore, queryText } from '../../../club/athletes/http';
+import { clubStore, queryText, serviceContext } from '../../../club/athletes/http';
 import { athleteListPage, readListQuery } from '../../../club/athletes/list';
+import { dismissDuplicate, mergeAthletes, mergePreview, readMergeRequest } from '../../../club/athletes/merge';
 import { todayInBucharest } from '../../../club/birth-date';
 import { SUBJECT } from '../../../club/history-text';
 
@@ -22,5 +23,19 @@ export default {
     const id = ctx.params.documentId ?? '';
     if (!(await store.athlete(id))) return refuseWith(ctx, 404, ADMIN_ERRORS.notFound);
     ctx.body = { data: await readHistory(store, SUBJECT.athlete, id) };
+  },
+
+  async mergePreview(ctx: AdminCtx) {
+    respond(ctx, await mergePreview(clubStore(strapi), queryText(ctx.query.kept), queryText(ctx.query.removed)));
+  },
+
+  async merge(ctx: AdminCtx) {
+    const request = readMergeRequest(ctx.request.body);
+    if (!request) return refuseWith(ctx, 400, ADMIN_ERRORS.invalid);
+    respond(ctx, await mergeAthletes(await serviceContext(strapi, ctx), request));
+  },
+
+  async dismissDuplicate(ctx: AdminCtx) {
+    respond(ctx, await dismissDuplicate(await serviceContext(strapi, ctx), ctx.params.pairId ?? ''));
   },
 };

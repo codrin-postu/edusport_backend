@@ -8,6 +8,9 @@ export default {
   routes: [
     { method: 'GET', path: '/club/athletes', handler: 'athletes.list', config: adminGuard },
     { method: 'GET', path: '/club/athletes/search', handler: 'athletes.search', config: adminGuard },
+    { method: 'GET', path: '/club/athletes/merge-preview', handler: 'athletes.mergePreview', config: adminGuard },
+    { method: 'POST', path: '/club/athletes/merge', handler: 'athletes.merge', config: adminGuard },
+    { method: 'POST', path: '/club/athlete-duplicates/:pairId/dismiss', handler: 'athletes.dismissDuplicate', config: adminGuard },
     { method: 'GET', path: '/club/athletes/:documentId/history', handler: 'athletes.history', config: adminGuard },
   ],
 };
