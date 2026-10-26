@@ -7,5 +7,7 @@ const adminGuard = { auth: false, policies: ['global::is-admin'], middlewares: [
 export default {
   routes: [
     { method: 'GET', path: '/club/registrations/:documentId/history', handler: 'registrations.history', config: adminGuard },
+    { method: 'GET', path: '/club/registrations/:documentId/match', handler: 'registrations.match', config: adminGuard },
+    { method: 'GET', path: '/club/registrations/:documentId/confirm-context', handler: 'registrations.confirmContext', config: adminGuard },
   ],
 };

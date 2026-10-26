@@ -6,6 +6,7 @@ const adminGuard = { auth: false, policies: ['global::is-admin'], middlewares: [
 
 export default {
   routes: [
+    { method: 'GET', path: '/club/athletes/search', handler: 'athletes.search', config: adminGuard },
     { method: 'GET', path: '/club/athletes/:documentId/history', handler: 'athletes.history', config: adminGuard },
   ],
 };
