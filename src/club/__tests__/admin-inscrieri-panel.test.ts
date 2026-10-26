@@ -76,7 +76,7 @@ it('fix round 1: match and history load apart; a failed or malformed history sho
   expect(data).not.toContain('Promise.all');
   expect(data).toContain('const isHistory = (v: unknown): v is HistoryLine[] => Array.isArray(v);');
   expect(data).toContain('setState(valid(value) ? { value, failed: false } : { value: null, failed: true })');
-  expect(data).toContain('return { match: match.value, history: history.value, failed: history.failed };');
+  expect(data).toContain('return { match: match.value, history: history.value, failed: history.failed, matchFailed: match.failed };');
   expect(tabs).toContain('if (data.failed) return <p className="ins-empty">{INSCRIERI_PENDING_COPY.loadFailed}</p>;');
 });
 

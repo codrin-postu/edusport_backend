@@ -3,8 +3,8 @@ import type { HistoryLine, RegistrationMatchView } from '../../../club/athletes/
 import { CLUB_URLS } from '../../../club/inscrieri-panel';
 import { dataOf, useStableClient } from './useClient';
 
-/** `failed`: the Istoric lines could not load (a failed match leaves `match` null: no card). */
-export type PanelData = { match: RegistrationMatchView | null; history: HistoryLine[] | null; failed: boolean };
+/** `failed`: the Istoric lines could not load; `matchFailed`: the match card could not load (both leave their value null). */
+export type PanelData = { match: RegistrationMatchView | null; history: HistoryLine[] | null; failed: boolean; matchFailed: boolean };
 
 type Loaded<T> = { value: T | null; failed: boolean };
 
@@ -36,5 +36,5 @@ function useLoad<T>(url: string, version: string, valid: (v: unknown) => v is T)
 export function usePanelData(documentId: string, version: string): PanelData {
   const match = useLoad(CLUB_URLS.match(documentId), version, isMatch);
   const history = useLoad(CLUB_URLS.history(documentId), version, isHistory);
-  return { match: match.value, history: history.value, failed: history.failed };
+  return { match: match.value, history: history.value, failed: history.failed, matchFailed: match.failed };
 }
