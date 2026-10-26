@@ -16,5 +16,6 @@ export default {
     { method: 'POST', path: '/club/athletes/:documentId/profile', handler: 'athletes.createProfile', config: adminGuard },
     { method: 'PUT', path: '/club/athletes/:documentId/profile/visibility', handler: 'athletes.profileVisibility', config: adminGuard },
     { method: 'POST', path: '/club/athletes/:documentId/status', handler: 'athletes.status', config: adminGuard },
+    { method: 'DELETE', path: '/club/athletes/:documentId', handler: 'athletes.remove', config: adminGuard },
   ],
 };

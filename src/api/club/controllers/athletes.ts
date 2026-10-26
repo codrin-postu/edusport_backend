@@ -1,5 +1,6 @@
 import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
 import { addAthlete, setAthleteStatus } from '../../../club/athletes/add-status';
+import { deleteAthlete } from '../../../club/athletes/delete';
 import { searchAthletes } from '../../../club/athletes/confirm-read';
 import { ADMIN_ERRORS } from '../../../club/athletes/errors';
 import { readHistory } from '../../../club/athletes/history-read';
@@ -57,5 +58,9 @@ export default {
 
   async status(ctx: AdminCtx) {
     respond(ctx, await setAthleteStatus(await serviceContext(strapi, ctx), ctx.params.documentId ?? '', ctx.request.body));
+  },
+
+  async remove(ctx: AdminCtx) {
+    respond(ctx, await deleteAthlete(await serviceContext(strapi, ctx), ctx.params.documentId ?? ''));
   },
 };
