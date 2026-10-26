@@ -57,6 +57,8 @@ describe('list screens (Task 6)', () => {
   it('pages come from listRequest: phone appends only the next page, a remembered page reloads 1..N', () => {
     const hook = read('sportivi/useAthleteList.ts');
     expect(hook).toContain('listRequest(wanted, phone, loaded.current)');
+    expect(hook).toContain('if (req.loaded.page !== wanted.page) {');
+    expect(hook).toContain('const restart = React.useCallback(() => setState(withPage(remembered, 1)), [setState]);');
     expect(hook).toContain('req.append ? [...prev, ...p.data] : p.data');
     expect(hook).toContain('loaded.current = req.loaded;');
   });

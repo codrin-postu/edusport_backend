@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { listRequest } from '../list-pages';
+import { PHONE_RELOAD_MAX_PAGES, listRequest } from '../list-pages';
 import { INITIAL_LIST_STATE, withPage, withSearch } from '../list-view';
 
 const params = (query: string) => Object.fromEntries(new URLSearchParams(query));
@@ -37,5 +37,26 @@ describe('listRequest', () => {
     const r = listRequest(withPage(withSearch(INITIAL_LIST_STATE, 'ana'), 2), true, first.loaded);
     expect(params(r.query)).toMatchObject({ q: 'ana', page: '1', pageSize: '60' });
     expect(r.append).toBe(false);
+  });
+
+  it('a phone reload brings at most 40 pages, the server maximum of 1200 rows', () => {
+    expect(PHONE_RELOAD_MAX_PAGES).toBe(40);
+    const r = listRequest(withPage(INITIAL_LIST_STATE, 40), true, null);
+    expect(params(r.query)).toMatchObject({ page: '1', pageSize: '1200' });
+    expect(r.loaded.page).toBe(40);
+  });
+
+  it('past 40 pages a phone reload starts again at page 1', () => {
+    const r = listRequest(withPage(INITIAL_LIST_STATE, 41), true, null);
+    expect(params(r.query)).toMatchObject({ page: '1', pageSize: '30' });
+    expect(r.append).toBe(false);
+    expect(r.loaded.page).toBe(1);
+  });
+
+  it('pressing "Încarcă încă 30" past page 40 still appends one page', () => {
+    const loaded = { view: listRequest(INITIAL_LIST_STATE, true, null).loaded.view, page: 40 };
+    const r = listRequest(withPage(INITIAL_LIST_STATE, 41), true, loaded);
+    expect(params(r.query)).toMatchObject({ page: '41', pageSize: '30' });
+    expect(r.append).toBe(true);
   });
 });
