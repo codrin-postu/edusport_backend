@@ -34,12 +34,18 @@ function AddForm({ form, errors, onChange }: FormProps) {
   );
 }
 
+function addFooter(withSubmit: boolean, busy: boolean, onClose: () => void, submit: () => void) {
+  const cancel = <Button variant="secondary" onClick={onClose} disabled={busy}>{ADD_COPY.cancel}</Button>;
+  return withSubmit ? <>{cancel}<Button onClick={submit} loading={busy}>{ADD_COPY.submit}</Button></> : cancel;
+}
+
 /** "Adaugă sportiv" (spec 6.7): search first; the "Sportiv nou" form only when nothing is found. */
 export function AddAthleteDialog({ api, onClose }: { api: SportiviApi; onClose: () => void }) {
   const navigate = useNavigate();
   const [form, setForm] = React.useState<EditDraft | null>(null);
   const [errors, setErrors] = React.useState<DraftErrors>({});
   const [busy, setBusy] = React.useState(false);
+  const searchRef = React.useRef<HTMLInputElement>(null);
   const open = (documentId: string) => navigate(athleteRecordTo(documentId));
   const submit = async () => {
     if (!form) return;
@@ -53,14 +59,13 @@ export function AddAthleteDialog({ api, onClose }: { api: SportiviApi; onClose: 
       setBusy(false);
     }
   };
-  const cancel = <Button variant="secondary" onClick={onClose} disabled={busy}>{ADD_COPY.cancel}</Button>;
-  const footer = form ? <>{cancel}<Button onClick={() => void submit()} loading={busy}>{ADD_COPY.submit}</Button></> : cancel;
   return (
-    <BottomSheet open onClose={onClose} title={ADD_COPY.title} desktop="modal" modalSize="md" fullHeight dismissable={!busy} footer={footer}>
+    <BottomSheet open onClose={onClose} title={ADD_COPY.title} desktop="modal" modalSize="md" fullHeight dismissable={!busy}
+      initialFocusRef={form ? undefined : searchRef} footer={addFooter(form !== null, busy, onClose, () => void submit())}>
       {form ? (
         <AddForm form={form} errors={errors} onChange={setForm} />
       ) : (
-        <AthleteSearch api={api} onPick={(c) => open(c.documentId)} onNew={(text) => setForm(newAthleteDraft(text))} />
+        <AthleteSearch api={api} inputRef={searchRef} onPick={(c) => open(c.documentId)} onNew={(text) => setForm(newAthleteDraft(text))} />
       )}
     </BottomSheet>
   );

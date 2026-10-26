@@ -159,6 +159,8 @@ describe('Adaugă sportiv (Task 11)', () => {
     expect(add).toContain('checkDraft(form, true)');
     expect(add).toContain('hint={ADD_COPY.optional}');
     expect(add).toContain('desktop="modal" modalSize="md" fullHeight');
+    expect(add).toContain('initialFocusRef={form ? undefined : searchRef}');
+    expect(add).toContain('inputRef={searchRef}');
   });
 
   it('opened from the list header and from the dashboard', () => {
