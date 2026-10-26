@@ -127,7 +127,7 @@ export function AthleteRecordPage({ documentId }: { documentId: string }) {
   const merged = (keptId: string) => {
     setMerge(null);
     if (keptId === documentId) void loaded.reload();
-    else navigate(athleteRecordTo(keptId), { replace: true });
+    else navigate(athleteRecordTo(keptId), { replace: true, state: { season: seasonFromState(state) } });
   };
   const actions = record ? <HeaderActions record={record} api={api} loaded={loaded} onMerge={() => setMerge({ otherId: null })} /> : null;
   const head = phone && record ? <div className="spv-phone-head"><span className="spv-sub2">{recordSubline(record)}</span>{actions}</div> : null;

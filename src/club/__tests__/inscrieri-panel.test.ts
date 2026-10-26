@@ -31,6 +31,7 @@ import {
   statusMenuValues,
   wishText,
 } from '../inscrieri-panel';
+import { athleteRecordTo } from '../sportivi/routes';
 
 const script = {
   documentId: 'r1', registrationNumber: '2026-0142', status: 'Nou', archived: false, athleteId: null, canUndo: false,
@@ -213,6 +214,7 @@ describe('match card, search rows, history and links (spec 3.3, 4.1, 1.6)', () =
 
   it('links and routes', () => {
     expect(athleteRecordPath('a 1')).toBe('/plugins/edusport-sportivi/a%201');
+    expect(athleteRecordPath).toBe(athleteRecordTo);
     expect(inscrieriOpenPath('r 1')).toBe('/plugins/edusport-inscrieri?open=r%201');
     expect(CLUB_URLS.confirmContext('r1', null)).toBe('/api/club/registrations/r1/confirm-context');
     expect(CLUB_URLS.confirmContext('r1', 'a1')).toBe('/api/club/registrations/r1/confirm-context?athlete=a1');

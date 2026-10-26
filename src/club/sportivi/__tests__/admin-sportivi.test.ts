@@ -41,6 +41,10 @@ describe('athlete search accessibility (Task 5 review)', () => {
     expect(s).toMatch(/e\.key === 'Escape'[\s\S]*clear\(\)/);
   });
 
+  it('Enter picks only from the answer to the text in the box, never from the previous one', () => {
+    expect(s).toContain("e.key === 'Enter' && options[active] && result?.q === e.currentTarget.value.trim()");
+  });
+
   it('"Sportiv nou" is the last option', () => {
     expect(s).toContain("[...rows, { key: '', name: SEARCH_COPY.newAthlete");
   });
@@ -57,6 +61,8 @@ describe('list screens (Task 6)', () => {
   it('pages come from listRequest: phone appends only the next page, a remembered page reloads 1..N', () => {
     const hook = read('sportivi/useAthleteList.ts');
     expect(hook).toContain('listRequest(wanted, phone, loaded.current)');
+    expect(hook).toContain('if (req.loaded.page !== wanted.page) {');
+    expect(hook).toContain('const restart = React.useCallback(() => setState(withPage(remembered, 1)), [setState]);');
     expect(hook).toContain('req.append ? [...prev, ...p.data] : p.data');
     expect(hook).toContain('loaded.current = req.loaded;');
   });
@@ -79,7 +85,9 @@ describe('list screens (Task 6)', () => {
   });
 
   it('rows open the record with the selected season; phone cards load 30 more', () => {
-    expect(read('sportivi/SportiviList.tsx')).toContain('navigate(athleteRecordTo(documentId), { state: { season:');
+    const list = read('sportivi/SportiviList.tsx');
+    expect(list).toContain('const season = seasonValue(list.state, list.page) || null;');
+    expect(list).toContain('navigate(athleteRecordTo(documentId), { state: { season } })');
     expect(read('sportivi/AthleteCards.tsx')).toContain('LIST_COPY.more');
     expect(read('sportivi/AthleteTable.tsx')).toContain('withHeaderSort(state, sortKey)');
   });
@@ -91,6 +99,12 @@ describe('merge window (Task 9)', () => {
   it('search first when no other record is given, then the comparison', () => {
     expect(merge).toContain('<AthleteSearch api={api} exclude={record.documentId}');
     expect(merge).toContain('api.mergePreview(keptId, otherId)');
+  });
+
+  it('keeping the other record opens it in the season the record was showing', () => {
+    expect(read('sportivi/AthleteRecordPage.tsx')).toContain(
+      'navigate(athleteRecordTo(keptId), { replace: true, state: { season: seasonFromState(state) } })',
+    );
   });
 
   it('kept record and per-field choice, confirmation naming the kept record', () => {
@@ -168,6 +182,11 @@ describe('Adaugă sportiv (Task 11)', () => {
     const dash = read('DashboardPage.tsx');
     expect(dash).toContain("{ label: 'Adaugă sportiv', to: addAthleteTo, ic: 'S' },");
     expect(dash).not.toContain('SPORTIV_EDIT_TO');
+  });
+
+  it('a found athlete opens in the season chosen in the list', () => {
+    expect(read('sportivi/SportiviList.tsx')).toContain('<AddAthleteDialog api={api} season={season} onClose={closeAdd} />');
+    expect(read('sportivi/AddAthleteDialog.tsx')).toContain('onPick={(c) => navigate(athleteRecordTo(c.documentId), { state: { season } })}');
   });
 });
 

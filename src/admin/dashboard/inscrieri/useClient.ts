@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useFetchClient } from '@strapi/admin/strapi-admin';
+import { getFetchClient, useFetchClient } from '@strapi/admin/strapi-admin';
 
 type Client = ReturnType<typeof useFetchClient>;
 type Answer = Promise<{ data: unknown }>;
@@ -29,6 +29,15 @@ export function useStableClient(): StableClient {
     [],
   );
 }
+
+/**
+ * Writes not tied to a component's life: Strapi's useFetchClient aborts its requests on unmount, so a row
+ * switch or a closed window would report a write the server made as failed and skip the list reload.
+ */
+export const detachedClient: Pick<StableClient, 'post' | 'put'> = {
+  post: (url, data, config) => getFetchClient().post(url, data, config),
+  put: (url, data, config) => getFetchClient().put(url, data, config),
+};
 
 /** `data` of a `{ data }` answer (plan 3-2 conventions). */
 export const dataOf = <T>(res: { data: unknown }): T => (res.data as { data: T }).data;

@@ -7,7 +7,7 @@ import { CLUB_URLS } from '../../../club/inscrieri-panel';
 import { requestErrorText } from '../../../club/registration-panel';
 import { RULE_ERRORS } from '../../../club/registration-input';
 import { BIRTH_DATE_ERROR } from '../../../club/ui-birth-date';
-import { useStableClient } from './useClient';
+import { detachedClient } from './useClient';
 
 type SetDraft = React.Dispatch<React.SetStateAction<EditDraft>>;
 type ControlProps = { field: EditField; draft: EditDraft; setDraft: SetDraft };
@@ -62,9 +62,12 @@ function FieldList({ fields, draft, setDraft, error }: { fields: readonly EditFi
   );
 }
 
-/** One PUT with the changed answers (spec 3.4): the server rebuilds the PDFs and writes old → new; no e-mail. */
+/**
+ * One PUT with the changed answers (spec 3.4): the server rebuilds the PDFs and writes old → new; no e-mail.
+ * Detached: switching rows unmounts the panel mid-save, and the list still reloads after it.
+ */
 function useEditSave(row: Row, api: TableApi, onDone: () => void) {
-  const { put } = useStableClient();
+  const { put } = detachedClient;
   const [busy, setBusy] = React.useState(false);
   const run = async (patch: Record<string, unknown>) => {
     setBusy(true);

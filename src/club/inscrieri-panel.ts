@@ -4,6 +4,7 @@ import { REGISTRATION_FIELD_LABELS } from './history-text';
 import { INSCRIERI_PENDING_COPY, LIST_COPY, MATCH_COPY, PANEL_COPY } from './inscrieri-copy';
 import { MEMBERSHIP_OPTIONS } from './registration-form-options';
 import { isScriptFormRegistration, registrationDocumentKinds, relationshipText, sourceText } from './registration-panel';
+import { athleteRecordTo } from './sportivi/routes';
 
 /**
  * The Înscrieri list and panel (spec 3.1 to 3.6) as data: cells, tabs, rows, footer, menu, links and route urls.
@@ -222,7 +223,7 @@ export const historyHead = (line: HistoryLine, formatDate: (iso: string) => stri
 // --- links and routes (plan 3-2 "Interfaces for other plans")
 
 /** The athlete record page (plan 3-5), same tab. */
-export const athleteRecordPath = (documentId: string): string => `/plugins/edusport-sportivi/${encodeURIComponent(documentId)}`;
+export const athleteRecordPath = athleteRecordTo;
 
 /** Opens Înscrieri on one registration's panel (the athlete record's "Înscrieri" block, plan 3-5). */
 export const inscrieriOpenPath = (registrationId: string): string => `/plugins/edusport-inscrieri?open=${encodeURIComponent(registrationId)}`;

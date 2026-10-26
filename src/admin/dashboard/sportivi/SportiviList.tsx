@@ -20,8 +20,8 @@ export function SportiviList() {
   const { search } = useLocation();
   const list = useAthleteList(api, phone);
   const [adding, setAdding] = React.useState(() => wantsAddAthlete(search));
-  const open = (documentId: string) =>
-    navigate(athleteRecordTo(documentId), { state: { season: seasonValue(list.state, list.page) || null } });
+  const season = seasonValue(list.state, list.page) || null;
+  const open = (documentId: string) => navigate(athleteRecordTo(documentId), { state: { season } });
   const closeAdd = () => {
     setAdding(false);
     if (wantsAddAthlete(search)) navigate(SPORTIVI_PATH, { replace: true });
@@ -36,7 +36,7 @@ export function SportiviList() {
         <IncompleteBanner list={list} />
         {phone ? <AthleteCards list={list} onOpen={open} /> : <AthleteTable list={list} onOpen={open} />}
       </Window>
-      {adding && <AddAthleteDialog api={api} onClose={closeAdd} />}
+      {adding && <AddAthleteDialog api={api} season={season} onClose={closeAdd} />}
     </AdminPage>
   );
 }
