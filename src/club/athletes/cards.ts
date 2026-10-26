@@ -20,16 +20,17 @@ function pastSeasons(entries: HistoryRow[]): Map<string, string[]> {
   const out = new Map<string, string[]>();
   for (const e of entries) {
     const regs = Array.isArray(e.changes.registrations) ? (e.changes.registrations as { season?: unknown }[]) : [];
-    out.set(e.subjectId, regs.map((r) => (typeof r.season === 'string' ? r.season : '')).filter(Boolean));
+    const seasons = regs.map((r) => (typeof r.season === 'string' ? r.season : '')).filter(Boolean);
+    out.set(e.subjectId, [...(out.get(e.subjectId) ?? []), ...seasons]);
   }
   return out;
 }
 
 const newest = (labels: (string | null)[]): string | null => labels.filter((l): l is string => !!l).sort().pop() ?? null;
 
-export async function cardMaker(store: ClubStore): Promise<(a: AthleteRow) => AthleteCard> {
+export async function cardMaker(store: ClubStore, loadedRegistrations?: RegistrationRow[]): Promise<(a: AthleteRow) => AthleteCard> {
   const [memberships, groups, seasons, registrations, made] = await Promise.all([
-    store.memberships(), store.groups(), store.seasons(), store.registrations(), store.historyByAction(HISTORY_ACTIONS.createdFromRegistrations),
+    store.memberships(), store.groups(), store.seasons(), loadedRegistrations ?? store.registrations(), store.historyByAction(HISTORY_ACTIONS.createdFromRegistrations),
   ]);
   const groupName = new Map(groups.map((g) => [g.id, g.name]));
   const seasonLabel = new Map(seasons.map((s) => [s.id, s.label]));

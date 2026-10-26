@@ -14,4 +14,11 @@ describe('search (spec 5, 4.1: diacritics, word order and one typo ignored, serv
   );
 
   it.each(['ioana', 'xy', '0733', '15.03.2016', 'mar ioan'])('does not find "%s"', (q) => expect(matchesQuery(subject, q)).toBe(false));
+
+  it('a diacritics query finds a plain name and the reverse', () => {
+    const withDiacritics: SearchSubject = { names: ['Ștefan Popescu'], phone: null, texts: [], birthDate: null };
+    const plain: SearchSubject = { names: ['Stefan Popescu'], phone: null, texts: [], birthDate: null };
+    expect(matchesQuery(withDiacritics, 'stefan')).toBe(true);
+    expect(matchesQuery(plain, 'Ștefan')).toBe(true);
+  });
 });

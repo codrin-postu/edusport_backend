@@ -72,13 +72,20 @@ const intentOf = (choice: unknown): string | null => {
   return typeof name === 'string' && name ? name : null;
 };
 
+/** Spec 4.3 (gaps #31): no matching Sezon is treated as an ended season, link only, labelled with the registration's own text. */
+function seasonView(reg: RegistrationRow, season: SeasonFacts | null, running: boolean): ConfirmContext['season'] {
+  if (season) return { label: season.label, running, endedText: running ? null : seasonEndedText(season.label) };
+  const label = reg.season;
+  return { label, running: false, endedText: label ? seasonEndedText(label) : 'Se leagă doar fișa sportivului.' };
+}
+
 function buildContext(reg: RegistrationRow, season: SeasonFacts | null, running: boolean, state: SeasonState, athlete: AthleteRow | null): Omit<ConfirmContext, 'groups'> {
   const birth = parseBirthDate(reg.childBirthDate);
   const rows = athlete ? comparisonRows(pickAthleteValues(athlete), reg) : [];
   return {
     registrationNumber: reg.number,
     newAthlete: { name: registrationValues(reg).name ?? '', birthDate: birth ? roDate(birth) : null },
-    season: { label: season?.label ?? null, running, endedText: season && !running ? seasonEndedText(season.label) : null },
+    season: seasonView(reg, season, running),
     mainGroupNow: state.mainGroupNow,
     acs: { seasonLabel: season?.label ?? null, current: state.current, next: nextAcs(reg, running, state.current), wish: reg.membershipAnswer },
     subscriptionIntent: intentOf(reg.subscriptionChoice),
@@ -99,7 +106,7 @@ export async function confirmContext(store: ClubStore, registrationId: string, a
   const season = registrationSeason(reg, seasons);
   const running = seasonRunning(season, today);
   const state = athlete && season && running ? await athleteSeasonState(store, athlete.id, season, groups, sections) : NO_STATE;
-  return { ok: true, data: { ...buildContext(reg, season, running, state, athlete), groups: groupOptions(reg.sectionId, sections, groups) } };
+  return { ok: true, data: { ...buildContext(reg, season, running, state, athlete), groups: running ? groupOptions(reg.sectionId, sections, groups) : [] } };
 }
 
 const rankedFirst = (ranked: string[]) => (a: AthleteRow, b: AthleteRow) => {
@@ -110,7 +117,8 @@ const rankedFirst = (ranked: string[]) => (a: AthleteRow, b: AthleteRow) => {
 
 /** "Caută alt sportiv" and "Adaugă sportiv" (spec 4.1, 6.7, P13). Without text: the registration's candidates. */
 export async function searchAthletes(store: ClubStore, query: string, registrationId: string | null): Promise<AthleteCard[]> {
-  const [athletes, registrations, card] = await Promise.all([store.athletes(), store.registrations(), cardMaker(store)]);
+  const [athletes, registrations] = await Promise.all([store.athletes(), store.registrations()]);
+  const card = await cardMaker(store, registrations);
   const reg = registrationId ? registrations.find((r) => r.id === registrationId) ?? null : null;
   const ranked = reg ? candidatesFor(reg, athletes).map((c) => c.athleteId) : [];
   const subjects = searchSubjects(athletes, registrations);

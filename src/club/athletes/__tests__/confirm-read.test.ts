@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupOptions } from '../cards';
+import { cardMaker, groupOptions } from '../cards';
 import { confirmContext, registrationMatchView, searchAthletes } from '../confirm-read';
 import { athleteRow, fakeClubStore, GROUPS, registrationRow, SECTIONS } from './fake-store';
 
@@ -62,11 +62,46 @@ describe('confirm window context (spec 4.3, 4.4)', () => {
     ]);
   });
 
-  it('season ended: the line, no A.C.S. change', async () => {
+  it('season ended: the line, no A.C.S. change, no group picker', async () => {
     const fake = fakeClubStore({ ...seed(), registrations: [registrationRow({ id: 'r1', seasonId: 's25', season: '2025-2026' })] });
     const result = await confirmContext(fake.store, 'r1', null, TODAY);
     expect(result.ok && result.data.season).toEqual({ label: '2025-2026', running: false, endedText: 'Sezonul 2025-2026 s-a încheiat. Se leagă doar fișa sportivului.' });
     expect(result.ok && result.data.acs.next).toBeNull();
+    expect(result.ok && result.data.groups).toEqual([]);
+  });
+
+  it('no matching Sezon (gaps #31): ended, link only, labelled with the registration own season text', async () => {
+    const fake = fakeClubStore({ ...seed(), registrations: [registrationRow({ id: 'r1', seasonId: null, season: '2030-2031' })] });
+    const result = await confirmContext(fake.store, 'r1', null, TODAY);
+    expect(result.ok && result.data.season).toEqual({ label: '2030-2031', running: false, endedText: 'Sezonul 2030-2031 s-a încheiat. Se leagă doar fișa sportivului.' });
+    expect(result.ok && result.data.groups).toEqual([]);
+  });
+
+  it('no matching Sezon and no season text: link only, no label', async () => {
+    const fake = fakeClubStore({ ...seed(), registrations: [registrationRow({ id: 'r1', seasonId: null, season: null })] });
+    const result = await confirmContext(fake.store, 'r1', null, TODAY);
+    expect(result.ok && result.data.season).toEqual({ label: null, running: false, endedText: 'Se leagă doar fișa sportivului.' });
+  });
+
+  it('A.C.S. already "da" is never lowered', async () => {
+    const fake = fakeClubStore({
+      ...seed(),
+      registrations: [registrationRow({ id: 'r1' })],
+      memberships: [{ id: 'm2', athleteId: 'a1', groupId: 'g-pro', seasonId: 's26', isMain: true, from: '2026-10-01' }],
+      acs: [{ id: 'acs1', athleteId: 'a1', seasonId: 's26', state: 'da' }],
+    });
+    const result = await confirmContext(fake.store, 'r1', 'a1', TODAY);
+    expect(result.ok && result.data.acs).toMatchObject({ current: 'da', next: null, wish: 'da' });
+  });
+
+  it('wish "nu": no A.C.S. change proposed', async () => {
+    const fake = fakeClubStore({
+      ...seed(),
+      registrations: [registrationRow({ id: 'r1', membershipAnswer: 'nu' })],
+      memberships: [{ id: 'm2', athleteId: 'a1', groupId: 'g-pro', seasonId: 's26', isMain: true, from: '2026-10-01' }],
+    });
+    const result = await confirmContext(fake.store, 'r1', 'a1', TODAY);
+    expect(result.ok && result.data.acs).toMatchObject({ current: null, next: null, wish: 'nu' });
   });
 
   it('blocks an unreadable birth date, Respins and a confirmed registration', async () => {
@@ -93,5 +128,39 @@ describe('Caută alt sportiv / Adaugă sportiv search (spec 4.1, 6.7)', () => {
     const fake = fakeClubStore({ ...seed(), athletes: [...seed().athletes, athleteRow({ id: 'a4', name: 'Maria Ionescu', status: 'inactiv' })] });
     expect((await searchAthletes(fake.store, 'maria', 'r1')).map((c) => c.documentId)).toEqual(['a1', 'a2', 'a4']);
     expect((await searchAthletes(fake.store, 'maria', null)).map((c) => c.documentId)).toEqual(['a4', 'a1', 'a2']);
+  });
+
+  it('a parent name of a linked registration finds the athlete (searchSubjects)', async () => {
+    const fake = fakeClubStore({
+      athletes: [athleteRow({ id: 'a9', name: 'Sportiv Necunoscut' })],
+      registrations: [registrationRow({ id: 'r9', athleteId: 'a9', parentName: 'Georgescu Elena' })],
+    });
+    expect((await searchAthletes(fake.store, 'Georgescu', null)).map((c) => c.documentId)).toEqual(['a9']);
+  });
+});
+
+describe('card: "Ultima înscriere" (gaps #5)', () => {
+  it('lastRegistrationSeason: the newest across a linked registration and deploy history', async () => {
+    const fake = fakeClubStore({
+      athletes: [athleteRow({ id: 'a1', name: 'Maria Pop' })],
+      registrations: [registrationRow({ id: 'r9', athleteId: 'a1', seasonId: 's25', season: '2025-2026' })],
+      history: [
+        { seq: 1, subjectType: 'athlete', subjectId: 'a1', action: 'created-from-registrations', changes: { registrations: [{ season: '2021-2022' }] }, actor: 'system', at: '2026-01-01T00:00:00.000Z' },
+      ],
+    });
+    const card = await cardMaker(fake.store);
+    expect(card(fake.state.athletes[0]).lastRegistrationSeason).toBe('2025-2026');
+  });
+
+  it('an athlete with no memberships and two history rows shows the newest season (merge, not overwrite)', async () => {
+    const fake = fakeClubStore({
+      athletes: [athleteRow({ id: 'a1', name: 'Maria Pop' })],
+      history: [
+        { seq: 1, subjectType: 'athlete', subjectId: 'a1', action: 'created-from-registrations', changes: { registrations: [{ season: '2023-2024' }] }, actor: 'system', at: '2026-01-01T00:00:00.000Z' },
+        { seq: 2, subjectType: 'athlete', subjectId: 'a1', action: 'created-from-registrations', changes: { registrations: [{ season: '2025-2026' }] }, actor: 'system', at: '2026-01-02T00:00:00.000Z' },
+      ],
+    });
+    const card = await cardMaker(fake.store);
+    expect(card(fake.state.athletes[0]).lastRegistrationSeason).toBe('2025-2026');
   });
 });
