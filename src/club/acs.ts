@@ -25,3 +25,6 @@ export const isAcsState = (v: unknown): v is AcsState => v === 'da' || v === 'nu
 export function acsWord(state: unknown): string {
   return isAcsState(state) ? ACS_WORDS[state] : ACS_WORDS.nu;
 }
+
+/** Da > În așteptare > Nu (spec 6.6); a confirmation never lowers a status (spec 1.4). */
+export const ACS_RANK: Record<AcsState, number> = { nu: 0, in_asteptare: 1, da: 2 };
