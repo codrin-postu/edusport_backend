@@ -1,12 +1,6 @@
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
-import { Button } from '../ui';
 import SubmissionTablePage, {
-  DetailBody,
-  DetailField,
-  DetailFooter,
-  DetailHeader,
-  fmtDateTime,
   fmtDateShort,
   type ColumnDef,
   type Row,
@@ -14,7 +8,6 @@ import SubmissionTablePage, {
   type SubmissionTableExtras,
   type TableApi,
 } from './SubmissionTable';
-import { isScriptFormRegistration, registrationPanelRows } from '../../club/registration-panel';
 import { LIST_COPY } from '../../club/inscrieri-copy';
 import {
   ALL_SCHOOLS,
@@ -32,10 +25,8 @@ import {
   type ListMeta,
 } from '../../club/inscrieri-panel';
 import { BlankFormsMenu } from './inscrieri/BlankFormsMenu';
-import { EditableAnswer } from './inscrieri/EditableAnswer';
-import { BulkMoveSchool, ExistingFilter, SchoolTabs } from './inscrieri/ListControls';
-import { RegistrationDocuments } from './inscrieri/RegistrationDocuments';
-import { RegistrationEmail } from './inscrieri/RegistrationEmail';
+import { BackToList, BulkMoveSchool, ExistingFilter, SchoolTabs } from './inscrieri/ListControls';
+import { RegistrationPanel } from './inscrieri/RegistrationPanel';
 import { IconUser } from './inscrieri/icons';
 import { INSCRIERI_CSS } from './inscrieri/styles';
 
@@ -134,55 +125,8 @@ const renderCells = (r: Row, api: TableApi) => {
   );
 };
 
-/** Answers as label/value rows (src/club/registration-panel.ts), the long texts after a gap. Replaced by the tabs in Task 6. */
-function PanelAnswers({ row, save }: { row: Row; save: TableApi['saveField'] }) {
-  const { rows, longRows } = registrationPanelRows(row);
-  return (
-    <>
-      {rows.map((r) =>
-        r.edit ? (
-          <EditableAnswer key={r.label} row={row} edit={r.edit} save={save} />
-        ) : (
-          <DetailField key={r.label} label={r.label}>{r.value}</DetailField>
-        ),
-      )}
-      {longRows.map((r, i) => (
-        <DetailField key={r.label} label={r.label} style={i === 0 ? { marginTop: 11 } : undefined}>
-          {r.value}
-        </DetailField>
-      ))}
-    </>
-  );
-}
-
-const renderDetail = (row: Row, api: TableApi) => {
-  const scriptForm = isScriptFormRegistration(row);
-  return (
-    <>
-      <DetailHeader>
-        <b>{cellText(row.childName)}</b>
-        {api.statusTag(row)}
-      </DetailHeader>
-      <DetailBody>
-        {api.statusBox(row)}
-        <DetailField label="Trimis la">{fmtDateTime(row.submittedAt)}</DetailField>
-        <DetailField label="Arhivare">{row.archived ? 'Arhivat' : 'Activ'}</DetailField>
-        {api.seasonField(row)}
-        <PanelAnswers row={row} save={api.saveField} />
-        {scriptForm && <RegistrationDocuments row={row} />}
-        {scriptForm && <RegistrationEmail row={row} />}
-        {api.customFields(row)}
-        {api.internalNoteField(row)}
-      </DetailBody>
-      <DetailFooter>
-        <span />
-        <Button size="sm" variant="danger" onClick={() => api.removeRow(row.documentId)}>
-          Șterge înscrierea
-        </Button>
-      </DetailFooter>
-    </>
-  );
-};
+/** The panel (spec 3.3): header, match card, tabs, footer, confirm window. Keyed so its state resets per registration. */
+const renderDetail = (row: Row, api: TableApi) => <RegistrationPanel key={row.documentId} row={row} api={api} />;
 
 const CFG: SubmissionTableCfg = {
   api: '/api/forms/inscrieri',
@@ -239,7 +183,12 @@ export default function InscrieriPage() {
     params: open ? openListParams(open) : listParams(existing, school, meta),
     onMeta,
     toolbar: <ExistingFilter value={existing} onChange={setExisting} />,
-    aboveList: <SchoolTabs meta={meta} value={school} onChange={setSchool} />,
+    aboveList: (
+      <>
+        {open && <BackToList />}
+        <SchoolTabs meta={meta} value={school} onChange={setSchool} />
+      </>
+    ),
     bulkActions: meta.multipleSchools ? (ids, done) => <BulkMoveSchool ids={ids} meta={meta} done={done} /> : undefined,
   };
   return <SubmissionTablePage cfg={CFG} extras={extras} />;

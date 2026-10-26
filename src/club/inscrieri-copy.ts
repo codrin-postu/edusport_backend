@@ -27,6 +27,7 @@ export const PANEL_COPY = {
   confirm: 'Confirmă înscrierea',
   openAthlete: 'Deschide fișa sportivului',
   more: '...',
+  moreLabel: 'Mai multe acțiuni',
   undo: 'Anulează confirmarea',
   moveSchool: 'Mută la altă școală',
   delete: 'Șterge înscrierea',
@@ -101,4 +102,5 @@ export const INSCRIERI_PENDING_COPY = {
   noSeason: 'Sezonul nu a fost găsit. Se leagă doar fișa sportivului.',
   seasonOnly: (season: string) => `Sezonul ${season}`,
   noDocuments: 'Niciun document încă.',
+  backToList: 'Înapoi la listă',
 } as const;

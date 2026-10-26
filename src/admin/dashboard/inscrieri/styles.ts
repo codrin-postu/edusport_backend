@@ -10,7 +10,8 @@ const LIST_CSS =
   '.ui-root .ins-name b{display:block}' +
   '.ui-root .ins-ex{display:flex;align-items:center;gap:5px;margin-top:1px;min-height:14px;font-size:11.5px;font-weight:600;color:var(--theme-info)}' +
   '.ui-root .ins-exf{display:inline-flex;align-items:center;gap:6px}' +
-  '.ui-root .ins-schools{padding:0 18px;border-bottom:1px solid var(--theme-border)}';
+  '.ui-root .ins-schools{padding:0 18px;border-bottom:1px solid var(--theme-border)}' +
+  '.ui-root .ins-back{padding:4px 18px 10px}';
 
 const PANEL_CSS =
   '.ui-root .ins-panel{display:flex;flex-direction:column;min-width:0}' +

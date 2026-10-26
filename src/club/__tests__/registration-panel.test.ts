@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  MEMBERSHIP_EDIT_OPTIONS,
-  MISSING,
   RELATIONSHIP_EDIT_OPTIONS,
   emailPanelState,
   emailStatusText,
@@ -10,10 +8,12 @@ import {
   readEmailStatus,
   registrationDocumentKinds,
   failedEmailError,
-  registrationPanelRows,
+  relationshipText,
   requestErrorText,
   resendTarget,
   resendToast,
+  sourceText,
+  subscriptionText,
   type EmailStatus,
 } from '../registration-panel';
 
@@ -39,54 +39,21 @@ const scriptForm = {
   expectations: '',
 };
 
-const value = (rows: { label: string; value: string }[], label: string) => rows.find((r) => r.label === label)?.value;
-
-describe('registrationPanelRows', () => {
-  it('shows the script form answers of a new registration, read-only', () => {
-    const { rows, longRows } = registrationPanelRows(scriptForm);
-    expect(rows[0]).toEqual({ label: 'Nr. înscriere', value: '2026-0142' });
-    expect(value(rows, 'Calitate')).toBe('Bunică');
-    expect(value(rows, 'Înălțime')).toBe('128 cm');
-    expect(value(rows, 'Membru A.C.S.')).toBe('Da');
-    expect(value(rows, 'Abonament')).toBe('Abonament 8 ședințe grup, 590 RON');
-    expect(value(rows, 'Cum a aflat')).toBe('Altele: Ziar');
-    expect(value(rows, 'Acord GDPR')).toBe('Da');
-    expect(value(rows, 'Nivel')).toBeUndefined();
-    expect(rows.filter((r) => r.edit).map((r) => [r.label, r.edit])).toEqual([
-      ['Calitate', 'relationship'],
-      ['Membru A.C.S.', 'membershipAnswer'],
-    ]);
-    expect(longRows).toEqual([
-      { label: 'Experiență anterioară', value: 'Nu este cazul' },
-      { label: 'Așteptări', value: MISSING },
-    ]);
+describe('answer texts (shared by the panel tabs, the Sheet and the history)', () => {
+  it('Calitate, the subscription choice and the source as the panel shows them', () => {
+    expect(relationshipText(scriptForm)).toBe('Bunică');
+    expect(relationshipText({ ...scriptForm, relationship: 'tutore' })).toBe('Tutore Legal');
+    expect(relationshipText({})).toBe('');
+    expect(subscriptionText(scriptForm.subscriptionChoice)).toBe('Abonament 8 ședințe grup, 590 RON');
+    expect(sourceText(scriptForm)).toBe('Altele: Ziar');
   });
 
-  it('edits Calitate and Membru A.C.S. with the stored values', () => {
+  it('Calitate options of "Editează"', () => {
     expect(RELATIONSHIP_EDIT_OPTIONS).toEqual([
       { value: 'parinte', label: 'Părinte' },
       { value: 'tutore', label: 'Tutore Legal' },
       { value: 'alta', label: 'Alta' },
     ]);
-    expect(MEMBERSHIP_EDIT_OPTIONS).toEqual([
-      { value: 'da', label: 'Da' },
-      { value: 'nu', label: 'Nu' },
-    ]);
-  });
-
-  it('uses the option label for Părinte / Tutore Legal', () => {
-    expect(value(registrationPanelRows({ ...scriptForm, relationship: 'tutore' }).rows, 'Calitate')).toBe('Tutore Legal');
-  });
-
-  it('keeps the old fields for registrations sent before phase 2', () => {
-    const { rows } = registrationPanelRows({ childName: 'Ion', level: 'Avansati', howHeard: 'Facebook', clubInterest: true });
-    expect(rows.map((r) => r.label)).toEqual([
-      'Data nașterii', 'Nume părinte', 'Email', 'Telefon', 'Mărime tricou', 'Cum a aflat', 'Nivel',
-      'Interes club', 'Acord regulament', 'Acord confidențialitate',
-    ]);
-    expect(value(rows, 'Nivel')).toBe('Avansati');
-    expect(value(rows, 'Email')).toBe(MISSING);
-    expect(rows.some((r) => r.edit)).toBe(false);
   });
 });
 
