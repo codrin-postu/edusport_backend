@@ -15,7 +15,7 @@ Tracks the phases of `10-spec.md` section 7. Update the status line of a phase w
 
 ## Phase 2 go-live
 
-- [ ] Club: Brevo account and API key
+- [ ] Brevo (user's account): test key on codrin.space now; at go-live a separate production key only in the VM .env.production, the test key deleted, and Security > Authorized IPs turned on with the VM address only (178.105.192.111, confirm the outgoing address with `curl ifconfig.me` on the VM first)
 - [ ] Club: DNS records for scoaladepatinaj.com (SPF include, DKIM, DMARC); mail-tester 9/10 or better
 - [ ] Club: confirm the legal numbers in `src/club/documents/association.ts` (C.I.F., C.I.S., registry no., IBAN, bank branch)
 - [ ] Club: WhatsApp channel link (Setări site, Contact)
