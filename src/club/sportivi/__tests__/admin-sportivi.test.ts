@@ -52,3 +52,26 @@ describe('athlete search accessibility (Task 5 review)', () => {
     expect(s).toContain('.catch(() => { if (!off) setSearch({ result: null, failed: true }); })');
   });
 });
+
+describe('list screens (Task 6)', () => {
+  it('desktop 50 rows, phone 30 appended only after page 1', () => {
+    const hook = read('sportivi/useAthleteList.ts');
+    expect(hook).toContain('phone ? PAGE_SIZE.phone : PAGE_SIZE.desktop');
+    expect(hook).toContain('const append = phone && state.page > 1;');
+  });
+
+  it('header and toolbar as spec 5: no Export, no Coloane, sort in the sheet on phones', () => {
+    const list = read('sportivi/SportiviList.tsx');
+    const bar = read('sportivi/ListToolbar.tsx');
+    expect(list).toContain('LIST_COPY.subtitle');
+    expect(bar).toContain('<FilterPanel');
+    expect(bar).toContain('phone ? [...filters, sortSection(state)] : filters');
+    expect(`${list}${bar}`).not.toMatch(/Export|Coloane/);
+  });
+
+  it('rows open the record with the selected season; phone cards load 30 more', () => {
+    expect(read('sportivi/SportiviList.tsx')).toContain('navigate(athleteRecordTo(documentId), { state: { season:');
+    expect(read('sportivi/AthleteCards.tsx')).toContain('LIST_COPY.more');
+    expect(read('sportivi/AthleteTable.tsx')).toContain('withHeaderSort(state, sortKey)');
+  });
+});
