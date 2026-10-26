@@ -1,7 +1,7 @@
 /** Answer of an admin action: the fresh data, or a refusal whose `status` becomes the HTTP status. */
-export type AdminResult<T> = { ok: true; data: T } | { ok: false; status: 400 | 404 | 409; error: string };
+export type AdminResult<T> = { ok: true; data: T } | { ok: false; status: 400 | 404 | 409 | 500; error: string };
 
-export const refuse = (status: 400 | 404 | 409, error: string): AdminResult<never> => ({ ok: false, status, error });
+export const refuse = (status: 400 | 404 | 409 | 500, error: string): AdminResult<never> => ({ ok: false, status, error });
 
 /** One edited field in a history entry: old value -> new value. */
 export type FieldChange = { from: unknown; to: unknown };

@@ -6,6 +6,7 @@
   "pluginOptions": { "content-manager": { "visible": false } },
   "attributes": {
     "first": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete" },
-    "second": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete" }
+    "second": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete" },
+    "dismissed": { "type": "boolean", "default": false }
   }
 }
