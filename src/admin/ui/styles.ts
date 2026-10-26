@@ -563,6 +563,9 @@ ${R} .ui-stat--neutral{border-left-color:var(--theme-neutral)}
 ${R} .ui-stat-label{font-size:var(--ui-fs-label);font-weight:var(--ui-fw-label);letter-spacing:var(--ui-ls-label);text-transform:uppercase;color:var(--theme-text-muted)}
 ${R} .ui-stat-value{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin-top:4px;color:var(--theme-text);font-variant-numeric:tabular-nums}
 ${R} .ui-stat-caption{font-size:var(--ui-fs-caption);color:var(--theme-text-secondary);margin-top:2px}
+
+/* birth date picker: three selects zi / lună / an */
+${R} .ui-bdate{display:grid;grid-template-columns:minmax(64px,1fr) minmax(120px,2fr) minmax(84px,1.3fr);gap:var(--ui-space-2)}
 `;
 
 const STYLE_ID = 'ui-styles';

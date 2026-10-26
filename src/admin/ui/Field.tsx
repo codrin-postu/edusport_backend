@@ -41,6 +41,14 @@ export function useFieldControl<P extends { id?: string; required?: boolean; 'ar
   };
 }
 
+/**
+ * Renders its children outside any enclosing Field, so a compound control
+ * (BirthDatePicker) can hand the Field's id to one inner control only.
+ */
+export function NoFieldContext({ children }: { children: React.ReactNode }) {
+  return <FieldContext.Provider value={null}>{children}</FieldContext.Provider>;
+}
+
 export interface FieldProps {
   label: React.ReactNode;
   /** Shown under the control, muted. */
