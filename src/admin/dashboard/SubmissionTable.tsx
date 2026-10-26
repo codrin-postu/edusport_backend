@@ -28,8 +28,9 @@ import {
   toastAutosaved,
   cx,
 } from '../ui';
-import { IconChevronDown, IconGrip } from '../ui/icons';
+import { IconChevronDown, IconChevronUp, IconGrip } from '../ui/icons';
 import { fieldsClearedByEdit } from '../../club/registration-edit';
+import { SEASON_EMPTY_LABEL, headerLabel, headerSortDir, listMeta, nextHeaderSort, type CompactHeader } from '../../club/ui-table';
 
 /**
  * EduSport admin — shared submission-results table.
@@ -173,6 +174,10 @@ export interface TableApi {
   /** Custom-question answers read out of `row.extra`; null when there are none. */
   customFields: (r: Row) => React.ReactNode;
   internalNoteField: (r: Row) => React.ReactNode;
+  /** The list answer's other keys (Înscrieri: schools, multipleSchools, allSchoolsTotal). */
+  pageMeta: Record<string, unknown>;
+  /** Reload the list; the rows stay on screen, dimmed. */
+  refetch: () => void;
 }
 
 export interface SubmissionTableCfg {
@@ -210,6 +215,10 @@ export interface SubmissionTableCfg {
   quickFilterCols?: readonly string[];
   /** Fallback value lists for select-driven filter columns (when formMeta has none). */
   filterSelectFallback?: Record<string, string[]>;
+  /** Status values offered for one row (panel and cell Select); [] shows the badge only. Default: every status. */
+  statusMenu?: (row: Row) => readonly string[];
+  /** Options of the "Sortare" Select. Default: Cele mai noi, Cele mai vechi, Nume A-Z. */
+  sortOptions?: { value: string; label: string }[];
   /** Feature gates. */
   /** Season bar, per-row season select, bulk "move to season", move-whole-season. */
   seasons?: boolean;
@@ -247,8 +256,8 @@ export interface SubmissionTableCfg {
     saveError: string;
   };
   compact: {
-    /** Column headers of the compact list (between the checkbox and actions). */
-    headers: string[];
+    /** Column headers of the compact list (between the checkbox and actions); an object header sorts by its pair. */
+    headers: CompactHeader[] | ((api: TableApi) => CompactHeader[]);
     /** The compact list row cells (the <td>s matching `headers`). */
     renderCells: (row: Row, api: TableApi) => React.ReactNode;
     /** The detail panel content (header + body + footer) for the selected row. */
@@ -258,6 +267,20 @@ export interface SubmissionTableCfg {
   extraCss?: string;
   /** Page-specific buttons at the start of the header actions (Înscrieri: "Formulare goale"). */
   headerActions?: React.ReactNode;
+}
+
+/** Page state the table does not own (Înscrieri: "Sportiv existent", school tabs, school move). */
+export interface SubmissionTableExtras {
+  /** Added to the list and export queries; a change goes back to page 1. */
+  params?: Record<string, string>;
+  /** The list answer's other keys, after every load. */
+  onMeta?: (meta: Record<string, unknown>) => void;
+  /** After the quick filters in toolbar B. */
+  toolbar?: React.ReactNode;
+  /** Between the toolbars and the list. */
+  aboveList?: React.ReactNode;
+  /** In the bulk bar, before "Arhivează"; `done` clears the selection and reloads. */
+  bulkActions?: (ids: string[], done: () => void) => React.ReactNode;
 }
 
 // Map a custom question type to a display column type.
@@ -335,7 +358,7 @@ export function fmtDateShort(iso: string | null): string {
 
 /** Human text for an arbitrary custom-answer value (detail panel + cells). */
 export function extraValueText(v: unknown): string {
-  if (v == null || v === '') return '—';
+  if (v == null || v === '') return '';
   if (typeof v === 'boolean') return v ? 'Da' : 'Nu';
   if (Array.isArray(v)) return v.map((x) => String(x)).join(', ');
   if (typeof v === 'object') return JSON.stringify(v);
@@ -383,7 +406,7 @@ export function SeasonSelect({
       style={style}
       aria-label={ariaLabel}
       onChange={(v) => onChange(v)}
-      placeholder={emptyLabel ?? '— fără sezon —'}
+      placeholder={emptyLabel ?? SEASON_EMPTY_LABEL}
       options={options.map((s) => ({ value: s, label: `${s}${s === activeSeason ? ' (activ)' : ''}` }))}
     />
   );
@@ -435,6 +458,8 @@ const TABLE_CSS = `
 .ui-root .sbt-tbB .ui-input{width:auto}
 .ui-root .sbt-grow{flex:1}
 .ui-root .ui-btn.sbt-qf-on{border-color:var(--theme-primary);color:var(--theme-primary);background:var(--theme-primary-soft)}
+.ui-root .sbt-sorth{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:none;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}
+.ui-root .sbt-sorth:focus-visible{outline:2px solid var(--theme-focus);outline-offset:2px}
 .ui-root .sbt-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 18px 12px;border-bottom:1px solid var(--theme-border)}
 .ui-root .sbt-listbody{transition:opacity .12s ease}
 .ui-root .sbt-listbody[data-busy="true"]{opacity:.5;pointer-events:none;transition-delay:.3s}
@@ -576,6 +601,27 @@ export function MenuButton({
   );
 }
 
+const DEFAULT_SORT_OPTIONS = [
+  { value: 'newest', label: 'Cele mai noi' },
+  { value: 'oldest', label: 'Cele mai vechi' },
+  { value: 'name', label: 'Nume A-Z' },
+];
+
+/** A compact-list header; an object header is a button that toggles its two sort values. */
+function CompactTh({ header, sort, onSort }: { header: CompactHeader; sort: string; onSort: (value: string) => void }) {
+  if (typeof header === 'string') return <th>{header}</th>;
+  const dir = headerSortDir(sort, header.sort);
+  return (
+    <th aria-sort={dir}>
+      <button type="button" className="sbt-sorth" onClick={() => onSort(nextHeaderSort(sort, header.sort))}>
+        {header.label}
+        {dir === 'ascending' && <IconChevronUp size={11} />}
+        {dir === 'descending' && <IconChevronDown size={11} />}
+      </button>
+    </th>
+  );
+}
+
 /** "Salvat", or a warning when the field saved but the PDFs could not be rebuilt (the PUT's `rebuild`, plan 2D). */
 function toastFieldSaved(body: unknown): void {
   const rebuild = (body as { rebuild?: { ok?: unknown } } | null)?.rebuild;
@@ -590,7 +636,7 @@ function initialQuery(): { q: string; season: string } {
   return { q: (params.get('q') ?? '').trim(), season: (params.get('season') ?? '').trim() };
 }
 
-export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }) {
+export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTableCfg; extras?: SubmissionTableExtras }) {
   // useFetchClient returns fresh function identities on every render, and the
   // list effect depends on `get`. Without this, an optimistic row edit
   // re-rendered the component and refetched the whole list as a side effect.
@@ -620,6 +666,16 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     [cfg],
   );
   const fullCss = React.useMemo(() => `${TABLE_CSS}\n${cfg.extraCss ?? ''}`, [cfg]);
+  // Page extras: the params travel as one string so a new object with the same values does not refetch.
+  const extraKey = JSON.stringify(extras?.params ?? {});
+  const onMetaRef = React.useRef(extras?.onMeta);
+  onMetaRef.current = extras?.onMeta;
+  const [pageMeta, setPageMeta] = React.useState<Record<string, unknown>>({});
+  const statusOptions = React.useCallback(
+    (r: Row): readonly string[] => cfg.statusMenu?.(r) ?? cfg.statuses.map((s) => s.value),
+    [cfg],
+  );
+  const sortOptions = cfg.sortOptions ?? DEFAULT_SORT_OPTIONS;
 
   const [userKey, setUserKey] = React.useState<string>('anon');
   const [rows, setRows] = React.useState<Row[]>([]);
@@ -644,7 +700,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
   const [searchInput, setSearchInput] = React.useState(initial.q);
   const [search, setSearch] = React.useState(initial.q);
   const [filters, setFilters] = React.useState<ActiveFilter[]>([]);
-  const [sort, setSort] = React.useState<'newest' | 'oldest' | 'name'>('newest');
+  const [sort, setSort] = React.useState<string>('newest');
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(25);
   const [reloadTick, setReloadTick] = React.useState(0);
@@ -777,6 +833,9 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  // A new "Sportiv existent" value or school tab starts on page 1.
+  React.useEffect(() => setPage(1), [extraKey]);
+
   // --- main list fetch
   React.useEffect(() => {
     let off = false;
@@ -788,6 +847,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     if (cfg.seasons && season) params.season = season;
     if (search) params.q = search;
     if (serverFilters.length) params.filters = serverFiltersKey;
+    Object.assign(params, JSON.parse(extraKey) as Record<string, string>);
     get(cfg.api, { params })
       .then((r: any) => {
         if (off) return;
@@ -805,6 +865,9 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
             extraKeys: Array.isArray(fm.extraKeys) ? fm.extraKeys : [],
           });
         }
+        const meta = listMeta(body);
+        setPageMeta(meta);
+        onMetaRef.current?.(meta);
       })
       .catch(() => {
         if (!off) setError(true);
@@ -815,7 +878,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     return () => {
       off = true;
     };
-  }, [get, cfg, page, pageSize, sort, season, search, archivedParam, serverFiltersKey, serverFilters.length, reloadTick]);
+  }, [get, cfg, page, pageSize, sort, season, search, archivedParam, serverFiltersKey, serverFilters.length, reloadTick, extraKey]);
 
   // --- overview stat (current season, non-archived): total + noi
   React.useEffect(() => {
@@ -1001,8 +1064,9 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     if (cfg.seasons && season) p.season = season;
     if (search) p.q = search;
     if (serverFilters.length) p.filters = serverFiltersKey;
+    Object.assign(p, JSON.parse(extraKey) as Record<string, string>);
     return p;
-  }, [sort, archivedParam, season, search, serverFilters.length, serverFiltersKey, cfg]);
+  }, [sort, archivedParam, season, search, serverFilters.length, serverFiltersKey, cfg, extraKey]);
 
   const exportCsv = React.useCallback(async () => {
     setExportOpen(false);
@@ -1249,6 +1313,8 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
 
   /** Status Select tinted with the status colours (panel and spreadsheet cell). */
   const statusSelect = (r: Row, key: string, className: string, label: string) => {
+    const options = statusOptions(r);
+    if (options.length === 0) return statusTag(r);
     const value = String(r[key] ?? cfg.statuses[0].value);
     const s = statusOf(value);
     return (
@@ -1258,21 +1324,22 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
         style={{ color: s.color, background: s.soft, borderColor: s.border }}
         value={value}
         onChange={(v) => saveField(r.documentId, key, v)}
-        options={cfg.statuses.map((o) => ({ value: o.value, label: o.value }))}
+        options={options.map((v) => ({ value: v, label: v }))}
       />
     );
   };
 
   // --- shared detail-panel blocks (identical on every screen)
   const statusBox = React.useCallback(
-    (r: Row) => (
-      <div className="sbt-statusbox">
-        <Field label="Status">{statusSelect(r, 'status', 'sbt-status-sel', 'Status')}</Field>
-      </div>
-    ),
-    // statusSelect only reads cfg, statusOf and saveField.
+    (r: Row) =>
+      statusOptions(r).length === 0 ? null : (
+        <div className="sbt-statusbox">
+          <Field label="Status">{statusSelect(r, 'status', 'sbt-status-sel', 'Status')}</Field>
+        </div>
+      ),
+    // statusSelect only reads cfg, statusOf, statusOptions, statusTag and saveField.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [cfg, statusOf, saveField],
+    [cfg, statusOf, statusOptions, statusTag, saveField],
   );
 
   const seasonField = React.useCallback(
@@ -1346,6 +1413,13 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
     seasonField,
     customFields,
     internalNoteField,
+    pageMeta,
+    refetch,
+  };
+  const headerSpecs = typeof cfg.compact.headers === 'function' ? cfg.compact.headers(api) : cfg.compact.headers;
+  const sortBy = (value: string) => {
+    setSort(value);
+    setPage(1);
   };
 
   const renderCellInput = (row: Row, col: ColumnDef) => {
@@ -1430,7 +1504,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
         </div>
       )}
       <div className="sbt-stat">
-        <b className="ui-num">{seasonStat.total ?? '—'}</b> în total
+        <b className="ui-num">{seasonStat.total ?? ''}</b> în total
         <br />
         <span className="sbt-noi ui-num">{seasonStat.noi ?? 0} noi</span>
         {cfg.texts.statSuffix}
@@ -1659,6 +1733,10 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
           </Button>
         </>
       )}
+      {extras?.bulkActions?.([...selectedIds], () => {
+        clearSelection();
+        refetch();
+      })}
       {cfg.archive && (
         <Button size="sm" variant="secondary" onClick={bulkArchive} disabled={busy}>
           Arhivează
@@ -1699,8 +1777,8 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
                     />
                   </th>
                 )}
-                {cfg.compact.headers.map((h) => (
-                  <th key={h}>{h}</th>
+                {headerSpecs.map((h) => (
+                  <CompactTh key={headerLabel(h)} header={h} sort={sort} onSort={sortBy} />
                 ))}
                 <th>
                   <span className="ui-sr">Acțiuni</span>
@@ -1831,22 +1909,21 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
         <div className="sbt-tbB">
           {quickMenus}
           {advMenu}
+          {extras?.toolbar}
           <span className="sbt-grow" />
           <span className="sbt-lbl">Sortare:</span>
           <Select
             aria-label="Sortare"
-            value={sort}
+            value={sortOptions.some((o) => o.value === sort) ? sort : ''}
             onChange={(v) => {
-              setSort(v as 'newest' | 'oldest' | 'name');
+              setSort(v);
               setPage(1);
             }}
-            options={[
-              { value: 'newest', label: 'Cele mai noi' },
-              { value: 'oldest', label: 'Cele mai vechi' },
-              { value: 'name', label: 'Nume A-Z' },
-            ]}
+            options={sortOptions}
           />
         </div>
+
+        {extras?.aboveList}
 
         {/* active filter chips */}
         {filters.length > 0 && (
@@ -1931,7 +2008,7 @@ export default function SubmissionTablePage({ cfg }: { cfg: SubmissionTableCfg }
         >
           <div className="sbt-mws">
             <Field label="Din sezonul">
-              <Input readOnly value={season || activeSeason || '—'} />
+              <Input readOnly value={season || activeSeason || ''} />
             </Field>
             <Field label="În sezonul">
               <SeasonSelect
