@@ -2,8 +2,19 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Tabs } from '../../ui';
 import { DetailBody, DetailFooter, type Row, type TableApi } from '../SubmissionTable';
-import { PANEL_COPY } from '../../../club/inscrieri-copy';
-import { athleteRecordPath, cellText, footerActions, isPanelTab, linkedAthleteId, panelTabs, panelVersion, type PanelTab } from '../../../club/inscrieri-panel';
+import { INSCRIERI_PENDING_COPY, PANEL_COPY } from '../../../club/inscrieri-copy';
+import {
+  athleteRecordPath,
+  cellText,
+  footerActions,
+  isPanelTab,
+  linkedAthleteId,
+  panelTabs,
+  panelVersion,
+  showMatchCard,
+  type PanelTab,
+} from '../../../club/inscrieri-panel';
+import { MatchCard } from './MatchCard';
 import { PanelHeader } from './PanelHeader';
 import { PanelBody } from './PanelTabs';
 import { usePanelData } from './usePanelData';
@@ -64,6 +75,8 @@ export function RegistrationPanel({ row, api }: { row: Row; api: TableApi }) {
   return (
     <div className="ins-panel" ref={ref}>
       <PanelHeader row={row} api={api} />
+      {showMatchCard(data.match) && data.match && <MatchCard view={data.match} />}
+      {!linkedAthleteId(row) && data.matchFailed && <p className="ins-empty">{INSCRIERI_PENDING_COPY.loadFailed}</p>}
       <Tabs
         className="ins-tabs"
         items={panelTabs(row, data.history ? data.history.length : null)}
