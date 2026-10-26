@@ -1,11 +1,14 @@
 import { factories } from '@strapi/strapi';
+import type { Modules } from '@strapi/strapi';
 // Column logic lives in src/sheets/matrix.ts so the CSV export and the Google
 // Sheets sync can never drift apart — they build the same header from it.
 import { buildInscrieriMatrix } from '../../../sheets/matrix';
 import type { RowLike as SubmissionLike } from '../../../sheets/matrix';
 import { resyncForm } from '../../../sheets/sync';
 import { buildColClause, parseColFilters } from '../../../utils/submission-filters';
-import { quickSearchClause } from '../list-search';
+import { ageSortedPage, isAgeSort, listSort, phase3Clauses, quickSearchClause, type PageQuery } from '../list-search';
+import { todayInBucharest } from '../../../club/birth-date';
+import { publicListRow, registrationSchools } from '../../../club/registration-list';
 import { findCurrentSeason } from '../../../club/current-season';
 import { submitRegistration } from '../../../club/registration-submit';
 import { buildSubmitDeps } from '../submit-deps';
@@ -103,6 +106,7 @@ function buildListFilters(query: Record<string, any>, activeSeason: string | nul
   // --- quick search across name/parent/email/phone/registration number
   const search = quickSearchClause(trimOrEmpty(query.q));
   if (search) and.push(search);
+  and.push(...phase3Clauses(query));
 
   // --- generic column filters
   for (const f of parseColFilters(query.filters)) {
@@ -111,18 +115,6 @@ function buildListFilters(query: Record<string, any>, activeSeason: string | nul
   }
 
   return and.length ? { $and: and } : {};
-}
-
-function buildSort(v: unknown): Record<string, 'asc' | 'desc'> {
-  switch (trimOrEmpty(v)) {
-    case 'oldest':
-      return { submittedAt: 'asc' };
-    case 'name':
-      return { childName: 'asc' };
-    case 'newest':
-    default:
-      return { submittedAt: 'desc' };
-  }
 }
 
 function clampPageSize(v: unknown): number {
@@ -135,14 +127,20 @@ function clampPage(v: unknown): number {
   return Number.isFinite(n) && n >= 1 ? n : 1;
 }
 
+/** One page in the chosen order; under "Vârstă" the rows without a parsed birth date come last (ageSortedPage). */
+async function findPage(filters: Record<string, unknown>, sortParam: unknown, start: number, limit: number, withRelations = false) {
+  const relations: Modules.Documents.Params.Populate.Any<typeof UID> = { athlete: { fields: ['documentId', 'name'] }, section: { fields: ['documentId', 'name'] } };
+  const populate = withRelations ? relations : undefined;
+  const find = (q: PageQuery) => strapi.documents(UID).findMany({ ...q, populate });
+  const q = { filters, sort: listSort(sortParam), start, limit };
+  if (!isAgeSort(sortParam)) return find(q);
+  return ageSortedPage({ count: (f) => strapi.documents(UID).count({ filters: f }), find }, q);
+}
+
 /** Fetch every row matching the current season/archived/filter query (for export). */
 async function fetchFiltered(query: Record<string, any>): Promise<SubmissionLike[]> {
   const activeSeason = await getActiveSeason();
-  const docs = await strapi.documents(UID).findMany({
-    filters: buildListFilters(query, activeSeason),
-    sort: buildSort(query.sort),
-    limit: 5000,
-  });
+  const docs = await findPage(buildListFilters(query, activeSeason), query.sort, 0, 5000);
   return docs as unknown as SubmissionLike[];
 }
 
@@ -176,6 +174,20 @@ async function collectExtraKeys(): Promise<string[]> {
   return Array.from(set);
 }
 
+/**
+ * Results-table column metadata: removed built-ins, active custom questions, enabled built-in select options
+ * (for filters), and every custom key that has data anywhere (so removed-but-with-data columns still surface).
+ */
+async function loadFormMeta(): Promise<Record<string, unknown>> {
+  try {
+    const meta = await strapi.service(FORM_CONFIG_UID).adminFormMeta('inscriere');
+    const extraKeys = await collectExtraKeys();
+    return { ...meta, extraKeys };
+  } catch {
+    return { removedBuiltins: [], customs: [], selectOptions: {}, extraKeys: [] };
+  }
+}
+
 /** A deleted registration takes its PDFs with it; a failure is logged, the delete still succeeds. */
 async function removeDocuments(documentId: string): Promise<void> {
   try {
@@ -183,6 +195,15 @@ async function removeDocuments(documentId: string): Promise<void> {
   } catch (err) {
     strapi.log.error(`[inscrieri] deleting documents of ${documentId} failed: ${err instanceof Error ? err.message : String(err)}`);
   }
+}
+
+/** Tabs "Toate (n)", "<școală> (n)" (spec 3.6): counts under the current filters, without the school filter. */
+async function schoolTabsFor(query: Record<string, unknown>, activeSeason: string | null) {
+  const schools = registrationSchools((await strapi.documents('api::section.section').findMany({ limit: 100 })) as unknown as Record<string, unknown>[]);
+  const base = buildListFilters({ ...query, school: '' }, activeSeason);
+  const count = (filters: Record<string, unknown>) => strapi.documents(UID).count({ filters });
+  const counts = await Promise.all(schools.map((s) => count({ $and: [base, { section: { documentId: s.documentId } }] })));
+  return { schools: schools.map((s, i) => ({ ...s, count: counts[i] })), multipleSchools: schools.length >= 2, allSchoolsTotal: await count(base) };
 }
 
 export default factories.createCoreController(UID, ({ strapi }) => ({
@@ -226,44 +247,39 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
    *   archived  "false" (default, exclude archived) | "only" | "all"
    *   q         quick search across name/parent/email/phone
    *   filters   JSON array of {col, op, val}; op in contains/equals/startsWith/between
-   *   sort      newest (default) | oldest | name
+   *   existing  "da" | "nu": "Sportiv existent" (a saved match, no athlete linked)
+   *   school    section documentId: one school tab
+   *   sort      newest (default) | oldest | name | age-asc | age-desc
    *   page      1-based page (default 1)
    *   pageSize  25 (default) | 50 | 100
-   * Returns { data, pagination:{page,pageSize,total,pageCount}, seasons, activeSeason }.
+   * Returns { data, pagination:{page,pageSize,total,pageCount}, seasons, activeSeason, formMeta,
+   * schools:[{documentId,name,count}], multipleSchools, allSchoolsTotal }; each row carries the
+   * RegistrationListExtras (src/club/registration-list.ts) and never its internal fields.
    */
   async list(ctx) {
     const query = ctx.query as Record<string, any>;
     const activeSeason = await getActiveSeason();
     const filters = buildListFilters(query, activeSeason);
-    const sort = buildSort(query.sort);
     const pageSize = clampPageSize(query.pageSize);
     const page = clampPage(query.page);
     const start = (page - 1) * pageSize;
+    const today = todayInBucharest();
 
-    const [data, total] = await Promise.all([
-      strapi.documents(UID).findMany({ filters, sort, start, limit: pageSize }),
+    const [data, total, tabs] = await Promise.all([
+      findPage(filters, query.sort, start, pageSize, true),
       strapi.documents(UID).count({ filters }),
+      schoolTabsFor(query, activeSeason),
     ]);
     const seasons = await listSeasons(activeSeason);
-
-    // Results-table column metadata: removed built-ins, active custom questions,
-    // enabled built-in select options (for filters), and every custom key that
-    // has data anywhere (so removed-but-with-data columns still surface).
-    let formMeta: Record<string, unknown> = { removedBuiltins: [], customs: [], selectOptions: {}, extraKeys: [] };
-    try {
-      const meta = await strapi.service(FORM_CONFIG_UID).adminFormMeta('inscriere');
-      const extraKeys = await collectExtraKeys();
-      formMeta = { ...meta, extraKeys };
-    } catch {
-      /* leave defaults */
-    }
+    const formMeta = await loadFormMeta();
 
     ctx.body = {
-      data,
+      data: data.map((row) => publicListRow(row as unknown as Record<string, unknown>, today)),
       pagination: { page, pageSize, total, pageCount: Math.max(1, Math.ceil(total / pageSize)) },
       seasons,
       activeSeason,
       formMeta,
+      ...tabs,
     };
   },
 
