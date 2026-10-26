@@ -4,7 +4,7 @@ import type { RebuildResult } from './documents';
 import type { HistoryInput } from './history';
 import { HISTORY_ACTIONS, SUBJECT } from './history-text';
 import { REGISTRATION_EDIT_ERROR, REGISTRATION_EDIT_FIELDS, documentRebuiltEntry, normalizeRegistrationEdit, registrationEditError } from './registration-edit';
-import { LAST_SEASON_OPTIONS, SOURCE_OPTIONS, SOURCE_OTHER } from './registration-form-options';
+import { LAST_SEASON_OPTIONS, RELATIONSHIP_OTHER, SOURCE_OPTIONS, SOURCE_OTHER } from './registration-form-options';
 import { parseChildHeight } from './registration-input';
 
 /**
@@ -63,18 +63,32 @@ export function editError(data: Record<string, unknown>): string | null {
   return registrationEditError(data);
 }
 
-/** The text after "Altele" is trimmed, and cleared when the source moves off "Altele" (as with "Alta"). */
-function normalizeSource(out: Record<string, unknown>): void {
-  if (typeof out.sourceOther === 'string') out.sourceOther = out.sourceOther.trim() || null;
-  if ('source' in out && out.source !== SOURCE_OTHER) out.sourceOther = null;
+const OTHER_TEXTS = [
+  ['relationship', 'relationshipOther', RELATIONSHIP_OTHER],
+  ['source', 'sourceOther', SOURCE_OTHER],
+] as const;
+
+/** An "other" text is kept only while its answer (sent, else stored) is "Alta" / "Altele". */
+function clearOtherTexts(out: Record<string, unknown>, before: Record<string, unknown>): void {
+  for (const [main, other, otherValue] of OTHER_TEXTS) {
+    if (!(main in out) && !(other in out)) continue;
+    const answer = main in out ? out[main] : before[main];
+    if (answer !== otherValue) out[other] = null;
+  }
 }
 
-function normalizeEdit(data: Record<string, unknown>): Record<string, unknown> {
+function normalizeEdit(data: Record<string, unknown>, before: Record<string, unknown>): Record<string, unknown> {
   const out = normalizeRegistrationEdit(data);
   if ('childHeight' in out) out.childHeight = out.childHeight === null || out.childHeight === '' ? null : Number(String(out.childHeight).trim());
   if ('lastSeason' in out) out.lastSeason = trimOrEmpty(out.lastSeason) || null;
-  normalizeSource(out);
+  if (typeof out.sourceOther === 'string') out.sourceOther = out.sourceOther.trim() || null;
+  clearOtherTexts(out, before);
   return out;
+}
+
+/** Only values that change are checked: an old answer outside today's options passes while it stays as stored. */
+function changedOnly(before: Record<string, unknown>, picked: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(picked).filter(([key, value]) => blankToNull(before[key]) !== blankToNull(value)));
 }
 
 export function editChanges(before: Record<string, unknown>, data: Record<string, unknown>): Record<string, FieldChange> {
@@ -113,12 +127,12 @@ async function saveChanges(deps: RegistrationEditDeps, id: string, changes: Reco
 }
 
 export async function updateRegistration(deps: RegistrationEditDeps, id: string, raw: Record<string, unknown>, actor: string): Promise<RegistrationEditResult> {
-  const picked = pickEditable(raw);
-  const error = editError(picked);
-  if (error) return { ok: false, status: 400, error };
   const before = await deps.find(id);
   if (!before) return NOT_FOUND;
-  const changes = editChanges(before, normalizeEdit(picked));
+  const sent = changedOnly(before, pickEditable(raw));
+  const error = editError(sent);
+  if (error) return { ok: false, status: 400, error };
+  const changes = editChanges(before, normalizeEdit(sent, before));
   if (Object.keys(changes).length === 0) return { ok: true, data: before, rebuild: null, changed: [] };
   return saveChanges(deps, id, changes, actor);
 }

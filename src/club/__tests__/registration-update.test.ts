@@ -101,4 +101,35 @@ describe('"De unde ați aflat" and "Calitatea față de sportiv" in Editează (p
     const [updated] = t.history;
     expect(historyTexts(updated.action, updated.changes, updated.subjectType)).toEqual(['Calitatea față de sportiv: "Părinte" → "Alta: Bunic"']);
   });
+
+  it('writes a source change as one Istoric line', async () => {
+    const t = deps({ ...BASE, source: 'Facebook', sourceOther: null });
+    await updateRegistration(t.d, 'r1', { source: 'Altele', sourceOther: 'Ziar' }, 'ana');
+    const [updated] = t.history;
+    expect(historyTexts(updated.action, updated.changes, updated.subjectType)).toEqual(['De unde ați aflat: "Facebook" → "Altele: Ziar"']);
+  });
+
+  it('keeps an old answer outside today\'s options while it is sent back unchanged', async () => {
+    const old = { ...BASE, source: 'Ziar local', lastSeason: 'Da' };
+    const t = deps(old);
+    expect(await updateRegistration(t.d, 'r1', { source: 'Ziar local', lastSeason: 'Da', phone: '0733' }, 'ana')).toMatchObject({ ok: true, changed: ['phone'] });
+    expect(t.saved).toEqual([{ phone: '0733' }]);
+    expect(await updateRegistration(deps(old).d, 'r1', { source: 'Radio' }, 'ana')).toEqual({ ok: false, status: 400, error: REGISTRATION_EDIT_ERROR });
+    expect(await updateRegistration(deps(old).d, 'r1', { lastSeason: 'Poate' }, 'ana')).toEqual({ ok: false, status: 400, error: REGISTRATION_EDIT_ERROR });
+  });
+
+  it('keeps an "other" text sent alone only when the stored answer is "Altele" / "Alta"', async () => {
+    const altele = deps({ ...BASE, source: 'Altele', sourceOther: 'Ziar', relationship: 'alta', relationshipOther: 'Bunica' });
+    await updateRegistration(altele.d, 'r1', { sourceOther: 'Afiș', relationshipOther: 'Bunic' }, 'ana');
+    expect(altele.saved).toEqual([{ sourceOther: 'Afiș', relationshipOther: 'Bunic' }]);
+    const plain = deps({ ...BASE, source: 'Facebook', sourceOther: null, relationship: 'parinte', relationshipOther: null });
+    expect(await updateRegistration(plain.d, 'r1', { sourceOther: 'Afiș', relationshipOther: 'Bunic' }, 'ana')).toMatchObject({ ok: true, changed: [] });
+    expect(plain.saved).toEqual([]);
+  });
+
+  it('clears a stored "other" text when the effective answer is not "Altele" / "Alta"', async () => {
+    const t = deps({ ...BASE, source: 'Facebook', sourceOther: 'Ziar', relationship: 'parinte', relationshipOther: 'Bunica' });
+    await updateRegistration(t.d, 'r1', { sourceOther: 'Afiș', relationshipOther: 'Bunic' }, 'ana');
+    expect(t.saved).toEqual([{ sourceOther: null, relationshipOther: null }]);
+  });
 });

@@ -1,7 +1,7 @@
 import { acsWord } from './acs';
 import { ATHLETE_FIELD_LABELS, athleteValueText, isAthleteField, type AthleteStatus } from './athlete-data';
 import { RELATIONSHIP_EDIT_OPTIONS } from './registration-panel';
-import { RELATIONSHIP_OTHER } from './registration-form-options';
+import { RELATIONSHIP_OTHER, SOURCE_OTHER } from './registration-form-options';
 
 /** Istoric lines (spec 1.6): one line per change, old → new, newest first. Pure; the history read renders with it. */
 export const SUBJECT = { registration: 'registration-submission', athlete: 'athlete' } as const;
@@ -59,6 +59,8 @@ export const REGISTRATION_FIELD_LABELS: Readonly<Record<string, string>> = {
   priorExperience: 'Nivel de experiență / Elemente cunoscute',
   expectations: 'Așteptări de la cursurile de patinaj',
   membershipAnswer: 'Dorește să fie membru',
+  source: 'De unde ați aflat',
+  sourceOther: 'De unde ați aflat',
   level: 'Nivel',
   howHeard: 'Cum a aflat',
   clubInterest: 'Interes club',
@@ -99,35 +101,47 @@ function valueText(subjectType: string, key: string, value: unknown): string {
   return registrationValueText(key, value);
 }
 
-/** "Alta" with its free text, else the option's label; `relationship` falls back to "Alta" when only `relationshipOther` changed. */
-function relationshipSide(relationship: { from: unknown; to: unknown } | null, other: { from: unknown; to: unknown } | null, side: 'from' | 'to'): string {
-  const value = relationship ? relationship[side] : RELATIONSHIP_OTHER;
-  if (value !== RELATIONSHIP_OTHER) return registrationValueText('relationship', value);
+/** An answer with an "other" free text: `relationship` + "Alta", `source` + "Altele". */
+type OtherPair = { main: string; other: string; otherValue: string; otherWord: string };
+const OTHER_PAIRS: readonly OtherPair[] = [
+  { main: 'relationship', other: 'relationshipOther', otherValue: RELATIONSHIP_OTHER, otherWord: 'Alta' },
+  { main: 'source', other: 'sourceOther', otherValue: SOURCE_OTHER, otherWord: SOURCE_OTHER },
+];
+type Change = { from: unknown; to: unknown };
+const asChange = (v: unknown): Change | null => (isChange(v) ? v : null);
+
+/** "Alta" / "Altele" with its free text, else the answer's text; the answer falls back to the "other" one when only its text changed. */
+function otherSide(pair: OtherPair, main: Change | null, other: Change | null, side: 'from' | 'to'): string {
+  const value = main ? main[side] : pair.otherValue;
+  if (value !== pair.otherValue) return registrationValueText(pair.main, value);
   const otherValue = other ? other[side] : null;
   const otherText = typeof otherValue === 'string' ? otherValue.trim() : '';
-  return otherText ? `Alta: ${otherText}` : 'Alta';
+  return otherText ? `${pair.otherWord}: ${otherText}` : pair.otherWord;
 }
 
-/** `relationship` and `relationshipOther` share one label (spec): a change to either renders ONE line, not two. */
-function relationshipLine(fields: Changes): string | null {
-  const relationship = isChange(fields.relationship) ? fields.relationship : null;
-  const other = isChange(fields.relationshipOther) ? fields.relationshipOther : null;
-  if (!relationship && !other) return null;
-  return quotedChange(REGISTRATION_FIELD_LABELS.relationship, relationshipSide(relationship, other, 'from'), relationshipSide(relationship, other, 'to'));
+/** The answer and its free text share one label (spec): a change to either renders ONE line, not two. */
+function mergedLine(fields: Changes, pair: OtherPair): string | null {
+  const main = asChange(fields[pair.main]);
+  const other = asChange(fields[pair.other]);
+  if (!main && !other) return null;
+  return quotedChange(REGISTRATION_FIELD_LABELS[pair.main], otherSide(pair, main, other, 'from'), otherSide(pair, main, other, 'to'));
+}
+
+function pairLines(fields: Changes, pair: OtherPair, used: Set<OtherPair>, suffix: string): string[] {
+  const line = mergedLine(fields, pair);
+  if (!line || used.has(pair)) return [];
+  used.add(pair);
+  return [line + suffix];
 }
 
 function fieldLines(c: Changes, subjectType: string): string[] {
   const fields = isRecord(c.fields) ? c.fields : c;
   const fromRegistration = subjectType === SUBJECT.athlete && typeof c.registrationNumber === 'string';
   const suffix = fromRegistration ? ` (din înscrierea ${c.registrationNumber})` : '';
-  const merged = subjectType === SUBJECT.registration ? relationshipLine(fields) : null;
-  let mergedUsed = false;
+  const used = new Set<OtherPair>();
   return Object.entries(fields).flatMap(([key, change]) => {
-    if (key === 'relationship' || key === 'relationshipOther') {
-      if (!merged || mergedUsed) return [];
-      mergedUsed = true;
-      return [merged + suffix];
-    }
+    const pair = OTHER_PAIRS.find((p) => p.main === key || p.other === key);
+    if (pair) return subjectType === SUBJECT.registration ? pairLines(fields, pair, used, suffix) : [];
     const label = fieldLabel(subjectType, key);
     if (!label || !isChange(change)) return [];
     return [quotedChange(label, valueText(subjectType, key, change.from), valueText(subjectType, key, change.to)) + suffix];
