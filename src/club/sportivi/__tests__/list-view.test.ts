@@ -117,9 +117,9 @@ describe('filters-v3 sections (spec 5)', () => {
     expect(filterSections(INITIAL_LIST_STATE, null)[1].options).toEqual([{ value: NO_GROUP, label: 'Fără grupă' }]);
   });
 
-  it('sort is one more single section on phones', () => {
+  it('sort is one more single section on phones, with no "Toate" clearing row', () => {
     expect(sortSection(INITIAL_LIST_STATE)).toEqual({
-      key: 'sort', label: 'Sortare', single: true, selected: ['name'],
+      key: 'sort', label: 'Sortare', single: true, selected: ['name'], allLabel: null,
       options: [{ value: 'name', label: 'Nume A-Z' }, { value: 'age', label: 'Vârstă' }, { value: 'group', label: 'Grupă' }],
     });
   });

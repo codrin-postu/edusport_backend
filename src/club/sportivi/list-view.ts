@@ -21,7 +21,7 @@ export type FilterKey = keyof ListFilters;
 export type ListState = { season: string; q: string; filters: ListFilters; sort: SortKey; dir: 'asc' | 'desc'; page: number };
 export type Choice = { value: string; label: string };
 /** Same shape as plan 3-1 `FilterSection`. */
-export type SectionModel = { key: string; label: string; options: Choice[]; selected: string[]; single?: boolean };
+export type SectionModel = { key: string; label: string; options: Choice[]; selected: string[]; single?: boolean; allLabel?: string | null };
 
 /** "Fără secțiune" is the route's `section=none`; "Fără grupă" inside Grupa becomes `noGroup=true` (Needs decision 6, option A). */
 export const NO_SECTION = 'none';
@@ -116,7 +116,10 @@ export function filterSections(s: ListState, p: AthleteListPage | null): Section
   ];
 }
 
-export const sortSection = (s: ListState): SectionModel => ({ key: 'sort', label: LIST_COPY.sort, options: SORT_OPTIONS, selected: [s.sort], single: true });
+/** No "Toate" clearing row: a sort always has a value (plan 3-1 Task 9, `allLabel: null`). */
+export const sortSection = (s: ListState): SectionModel => ({
+  key: 'sort', label: LIST_COPY.sort, options: SORT_OPTIONS, selected: [s.sort], single: true, allLabel: null,
+});
 
 const isFilterKey = (key: string): key is FilterKey => (FILTER_KEYS as readonly string[]).includes(key);
 const toSort = (v: string | undefined): SortKey => (v === 'age' || v === 'group' ? v : 'name');
