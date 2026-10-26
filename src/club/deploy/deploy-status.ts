@@ -8,6 +8,7 @@ import type { StoredMatchLevel } from '../matching';
  */
 export type StatusAthlete = { id: string; status: AthleteStatus; profileId: string | null };
 export type CurrentRegistration = { status: string; athleteId: string | null; matchAthleteId: string | null; matchLevel: StoredMatchLevel | null };
+export type StatusChange = { id: string; from: AthleteStatus; to: AthleteStatus };
 
 function registeredThisSeason(registrations: CurrentRegistration[]): Set<string> {
   const ids = new Set<string>();
@@ -23,7 +24,7 @@ export function planDeployStatus(
   athletes: StatusAthlete[],
   currentRegistrations: CurrentRegistration[],
   publicProfileIds: ReadonlySet<string>,
-): { id: string; from: AthleteStatus; to: AthleteStatus }[] {
+): StatusChange[] {
   const registered = registeredThisSeason(currentRegistrations);
   return athletes.flatMap((a) => {
     const active = registered.has(a.id) || (a.profileId !== null && publicProfileIds.has(a.profileId));

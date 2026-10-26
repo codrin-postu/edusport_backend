@@ -23,6 +23,7 @@
     "seed:navigation": "docker exec strapi_app node scripts/seed-navigation.js",
     "migrate:club": "node scripts/migrate-club-foundation.js",
     "migrate:registration": "node scripts/migrate-registration-data.js",
+    "migrate:athletes": "node scripts/migrate-athletes-registrations.js",
     "start": "strapi start",
     "strapi": "strapi",
     "test": "vitest run",
