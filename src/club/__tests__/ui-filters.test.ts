@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { activeSections, matchOptions, needsSearch, sectionSummary, toggleChoice } from '../ui-filters';
+import {
+  activeSections,
+  CLEAR_VALUE,
+  matchOptions,
+  needsSearch,
+  sectionSummary,
+  singleRows,
+  singleSelection,
+  toggleChoice,
+} from '../ui-filters';
 
 const grupa = {
   options: [
@@ -19,6 +28,11 @@ describe('sectionSummary', () => {
     expect(sectionSummary({ ...grupa, selected: ['ab', 'pp'] })).toBe('Primii Pași, Avansați Bronze');
   });
 
+  it('shows the section own "nothing chosen" label when empty', () => {
+    expect(sectionSummary({ ...grupa, allLabel: 'Oricând' })).toBe('Oricând');
+    expect(sectionSummary({ ...grupa, allLabel: null })).toBe('Toate');
+  });
+
   it('uses the section own summary when given', () => {
     expect(sectionSummary({ ...grupa, selected: ['ab'], summary: 'Avansați' })).toBe('Avansați');
   });
@@ -33,6 +47,27 @@ describe('toggleChoice', () => {
   it('keeps one value in a single section', () => {
     expect(toggleChoice({ selected: ['pp'], single: true }, 'inc')).toEqual(['inc']);
     expect(toggleChoice({ selected: ['pp'], single: true }, 'pp')).toEqual(['pp']);
+  });
+});
+
+describe('single sections', () => {
+  it('start with a clearing row, "Toate" by default, the section label when given', () => {
+    expect(singleRows({}, grupa.options)[0]).toEqual({ value: CLEAR_VALUE, label: 'Toate' });
+    expect(singleRows({ allLabel: 'Oricând' }, grupa.options).map((o) => o.label)).toEqual([
+      'Oricând',
+      'Primii Pași',
+      'Începători',
+      'Avansați Bronze',
+    ]);
+  });
+
+  it('have no clearing row when the section opts out', () => {
+    expect(singleRows({ allLabel: null }, grupa.options)).toEqual(grupa.options);
+  });
+
+  it('the clearing row empties the section, any other row is the only value', () => {
+    expect(singleSelection(CLEAR_VALUE)).toEqual([]);
+    expect(singleSelection('inc')).toEqual(['inc']);
   });
 });
 

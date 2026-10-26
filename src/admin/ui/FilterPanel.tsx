@@ -3,15 +3,18 @@ import { cx } from './cx';
 import { Button } from './Button';
 import { Checkbox } from './Checkbox';
 import { Input } from './Input';
-import { Radio } from './Radio';
+import { RadioGroup } from './Radio';
 import { BottomSheet } from './BottomSheet';
 import { useIsPhone } from './useMediaQuery';
 import { IconChevronLeft, IconChevronRight } from './icons';
 import {
   activeSections,
+  CLEAR_VALUE,
   matchOptions,
   needsSearch,
   sectionSummary,
+  singleRows,
+  singleSelection,
   toggleChoice,
   type FilterChoice,
 } from '../../club/ui-filters';
@@ -21,12 +24,14 @@ export interface FilterSection {
   key: string;
   label: string;
   options: FilterChoice[];
-  /** Chosen values; empty = "Toate". */
+  /** Chosen values, each one present in `options`; empty = "Toate". */
   selected: string[];
   /** One value at a time (radio rows). Default: several (checkbox rows). */
   single?: boolean;
-  /** Text under the section name; default "Toate" or the chosen labels. */
+  /** Text under the section name; default the `allLabel` or the chosen labels. */
   summary?: string;
+  /** Text for nothing chosen; in a single section also its first row, which clears it. Default "Toate" (e.g. "Oricând"); null = no such row (e.g. sort). */
+  allLabel?: string | null;
 }
 
 export interface FilterPanelProps {
@@ -52,11 +57,40 @@ const DROPDOWN_WIDTH = 540;
 
 type OnChange = FilterPanelProps['onChange'];
 
-/** The options of one section: 36px rows, checkbox or radio; a search box above 8 options. */
-function FilterOptions({ section, onChange }: { section: FilterSection; onChange: OnChange }) {
-  const [query, setQuery] = React.useState('');
-  const name = React.useId();
+interface OptionsProps {
+  section: FilterSection;
+  /** Id of the section name: labels the group of options. */
+  labelId: string;
+  onChange: OnChange;
+}
+
+/** The option rows of one section, a group named by the section: radios (first row clears) or checkboxes. */
+function OptionRows({ section, labelId, onChange, shown }: OptionsProps & { shown: FilterChoice[] }) {
+  if (section.single) {
+    return (
+      <RadioGroup
+        direction="column"
+        aria-labelledby={labelId}
+        value={section.selected[0] ?? CLEAR_VALUE}
+        options={singleRows(section, shown)}
+        onChange={(v) => onChange(section.key, singleSelection(v))}
+      />
+    );
+  }
   const pick = (value: string) => onChange(section.key, toggleChoice(section, value));
+  return (
+    <div role="group" aria-labelledby={labelId}>
+      {shown.map((o) => (
+        <Checkbox key={o.value} checked={section.selected.includes(o.value)} onChange={() => pick(o.value)} label={o.label} />
+      ))}
+    </div>
+  );
+}
+
+/** The options of one section: 36px rows, checkbox or radio; a search box above 8 options. */
+function FilterOptions(props: OptionsProps) {
+  const { section } = props;
+  const [query, setQuery] = React.useState('');
   return (
     <div className="ui-fopts">
       {needsSearch(section.options.length) && (
@@ -68,14 +102,7 @@ function FilterOptions({ section, onChange }: { section: FilterSection; onChange
           onChange={(e) => setQuery(e.target.value)}
         />
       )}
-      {matchOptions(section.options, query).map((o) => {
-        const on = section.selected.includes(o.value);
-        return section.single ? (
-          <Radio key={o.value} name={name} value={o.value} checked={on} onChange={() => pick(o.value)} label={o.label} />
-        ) : (
-          <Checkbox key={o.value} checked={on} onChange={() => pick(o.value)} label={o.label} />
-        );
-      })}
+      <OptionRows {...props} shown={matchOptions(section.options, query)} />
     </div>
   );
 }
@@ -90,6 +117,7 @@ interface BodyProps {
 /** Desktop: sections on the left with their value, the open section's options on the right. */
 function DesktopBody({ sections, current, onPick, onChange }: BodyProps) {
   const section = sections.find((s) => s.key === current) ?? sections[0];
+  const base = React.useId();
   return (
     <div className="ui-fdesk">
       <div className="ui-fnav">
@@ -102,31 +130,58 @@ function DesktopBody({ sections, current, onPick, onChange }: BodyProps) {
             data-set={s.selected.length > 0 || undefined}
             onClick={() => onPick(s.key)}
           >
-            <b>{s.label}</b>
+            <b id={`${base}-${s.key}`}>{s.label}</b>
             <span>{sectionSummary(s)}</span>
           </button>
         ))}
       </div>
-      <div className="ui-fpane">{section && <FilterOptions key={section.key} section={section} onChange={onChange} />}</div>
+      <div className="ui-fpane">
+        {section && <FilterOptions key={section.key} section={section} labelId={`${base}-${section.key}`} onChange={onChange} />}
+      </div>
     </div>
   );
+}
+
+/** Phone drill-in focus: the section title on entering a section, the row just left on going back. */
+function useDrillFocus(key: string | null) {
+  const titleRef = React.useRef<HTMLElement | null>(null);
+  const rows = React.useRef(new Map<string, HTMLButtonElement>());
+  const left = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (key !== null) {
+      left.current = key;
+      titleRef.current?.focus();
+      return;
+    }
+    if (left.current !== null) rows.current.get(left.current)?.focus();
+    left.current = null;
+  }, [key]);
+  const rowRef = (k: string) => (el: HTMLButtonElement | null) => {
+    if (el) rows.current.set(k, el);
+    else rows.current.delete(k);
+  };
+  return { titleRef, rowRef };
 }
 
 /** Phone: the list of sections with their value and a chevron; a tap drills into the options. */
 function PhoneBody({ sections, current, onPick, onChange }: BodyProps) {
   const section = sections.find((s) => s.key === current);
+  const base = React.useId();
+  const { titleRef, rowRef } = useDrillFocus(section?.key ?? null);
   if (section) {
     return (
       <>
-        <b className="ui-fm-title">{section.label}</b>
-        <FilterOptions key={section.key} section={section} onChange={onChange} />
+        <b className="ui-fm-title" id={`${base}-${section.key}`} tabIndex={-1} ref={titleRef}>
+          {section.label}
+        </b>
+        <FilterOptions key={section.key} section={section} labelId={`${base}-${section.key}`} onChange={onChange} />
       </>
     );
   }
   return (
     <div className="ui-fm-list">
       {sections.map((s) => (
-        <button key={s.key} type="button" className="ui-fm-row" onClick={() => onPick(s.key)}>
+        <button key={s.key} ref={rowRef(s.key)} type="button" className="ui-fm-row" onClick={() => onPick(s.key)}>
           <span>
             <b>{s.label}</b>
             <small data-set={s.selected.length > 0 || undefined}>{sectionSummary(s)}</small>
@@ -166,12 +221,32 @@ interface FooterProps {
   close: () => void;
 }
 
-/** Desktop: live total, "Șterge tot", "Gata". Phone: "Șterge tot" / "Șterge" (one section) and "Arată N ...". */
+/** Phone: "Șterge tot" / "Șterge" (one section) and "Arată N ..."; the total is announced, not shown. */
+function PhoneFooter({ section, props, close }: Omit<FooterProps, 'phone'>) {
+  const clear = () => (section ? props.onChange(section.key, []) : props.onClearAll());
+  return (
+    <>
+      <span className="ui-sr" role="status" aria-live="polite">
+        {props.totalLabel}
+      </span>
+      <Button variant="secondary" onClick={clear}>
+        {section ? 'Șterge' : 'Șterge tot'}
+      </Button>
+      <Button className="ui-ff-show" onClick={close}>
+        {props.showLabel}
+      </Button>
+    </>
+  );
+}
+
+/** Desktop: live total (announced), "Șterge tot", "Gata". Phone: PhoneFooter. */
 function FilterFooter({ phone, section, props, close }: FooterProps) {
   if (!phone) {
     return (
       <>
-        <span className="ui-ff-total">{props.totalLabel}</span>
+        <span className="ui-ff-total" role="status" aria-live="polite">
+          {props.totalLabel}
+        </span>
         <span className="ui-ff-grow" />
         <Button variant="ghost" size="sm" onClick={props.onClearAll}>
           Șterge tot
@@ -182,17 +257,7 @@ function FilterFooter({ phone, section, props, close }: FooterProps) {
       </>
     );
   }
-  const clear = () => (section ? props.onChange(section.key, []) : props.onClearAll());
-  return (
-    <>
-      <Button variant="secondary" onClick={clear}>
-        {section ? 'Șterge' : 'Șterge tot'}
-      </Button>
-      <Button className="ui-ff-show" onClick={close}>
-        {props.showLabel}
-      </Button>
-    </>
-  );
+  return <PhoneFooter section={section} props={props} close={close} />;
 }
 
 /**
