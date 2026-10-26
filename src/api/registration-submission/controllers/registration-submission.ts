@@ -291,9 +291,9 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     const raw = ((ctx.request.body as Record<string, unknown>)?.data ?? ctx.request.body ?? {}) as Record<string, unknown>;
     const actor = await adminActor(ctx.request.header?.authorization, strapi);
     const result = await updateRegistration(registrationEditDeps(strapi), ctx.params.documentId, raw, actor);
-    if (result.ok === false && result.status === 409) {
-      ctx.status = 409;
-      ctx.body = { data: null, error: { status: 409, name: 'ClubAdminError', message: result.error } };
+    if (result.ok === false && (result.status === 409 || result.status === 500)) {
+      ctx.status = result.status;
+      ctx.body = { data: null, error: { status: result.status, name: 'ClubAdminError', message: result.error } };
       return;
     }
     if (result.ok === false) return result.status === 404 ? ctx.notFound() : ctx.badRequest(result.error);

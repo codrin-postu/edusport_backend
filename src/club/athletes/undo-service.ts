@@ -1,4 +1,4 @@
-import { refuse, type AdminResult } from '../admin-result';
+import { guarded, refuse, type AdminResult } from '../admin-result';
 import type { ConfirmationRecord } from '../confirm/plan';
 import { registrationSeason } from '../confirm/season';
 import { planUndo, undoAllowed, undoSeasonId, type UndoFacts, type UndoPlan } from '../confirm/undo-plan';
@@ -63,13 +63,7 @@ async function undoLocked(ctx: ServiceContext, id: string): Promise<Result> {
 
 /** "Anulează confirmarea" (spec 4.6, gaps #32): one transaction on the locked registration row. */
 export async function undoConfirmation(ctx: ServiceContext, registrationId: string): Promise<Result> {
-  let result: Result;
-  try {
-    result = await ctx.store.transaction(() => undoLocked(ctx, registrationId));
-  } catch (err) {
-    ctx.log(`[undo] ${registrationId} failed: ${err instanceof Error ? err.message : String(err)}`);
-    return refuse(500, ADMIN_ERRORS.failed);
-  }
+  const result = await guarded(ctx.log, `[undo] ${registrationId}`, () => ctx.store.transaction(() => undoLocked(ctx, registrationId)));
   if (result.ok === true) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after an undo');
   return result;
 }
