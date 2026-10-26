@@ -49,6 +49,7 @@ export {
   mountToastViewport,
   type ToastTone,
   type ToastOptions,
+  type ToastAction,
 } from './Toast';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { StatTile, type StatTileProps } from './StatTile';
