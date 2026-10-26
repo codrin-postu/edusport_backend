@@ -283,9 +283,16 @@ export default function DashboardPage() {
         return { total: data.length, byType };
       } catch { return null; }
     };
+    const activeAthletes = async (): Promise<number | null> => {
+      try {
+        const r = (await get('/api/club/summary')) as { data?: { data?: { activeAthletes?: unknown } } };
+        const v = r?.data?.data?.activeAthletes;
+        return typeof v === 'number' ? v : null;
+      } catch { return null; }
+    };
 
     Promise.all([
-      count('api::sportsperson.sportsperson'),
+      activeAthletes(),
       count('api::team-member.team-member'),
       count('api::competition.competition', {
         'filters[date][$gte]': `${year}-01-01`,
