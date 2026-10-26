@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { NO_SECTION as SERVER_NO_SECTION } from '../../athletes/list';
 import type { AthleteListPage, AthleteListRow } from '../../athletes/api-types';
 import {
-  INITIAL_LIST_STATE, LIST_COPY, NO_GROUP, NO_SECTION, ageText, athletesText, cardLine, clearFilters, countLine, filterSections, groupCell, groupHeader,
-  incompleteBanner, listQueryString, missingTip, acsCell, profileCell, seasonOptions, seasonValue, showIncomplete, showLabel, sortSection,
-  withHeaderSort, withPage, withSearch, withSeason, withSection, type ListState,
+  INITIAL_LIST_STATE, LIST_COPY, NO_GROUP, NO_SECTION, activeChips, ageText, athletesText, clearFilters, filterSections, groupCell, groupHeader,
+  incompleteBanner, incompleteShown, listQueryString, loadedRange, matchingText, missingTip, acsCell, pageRange, profileCell, seasonOptions, seasonValue,
+  showIncomplete, showLabel, sortSection, withHeaderSort, withPage, withSearch, withSeason, withSection, withoutChip, type ListState,
 } from '../list-view';
 
 const page = (over: Partial<AthleteListPage> = {}): AthleteListPage => ({
@@ -67,8 +67,12 @@ describe('counts and plurals (Needs decision 7, option A)', () => {
     expect(incompleteBanner(25)).toBe('25 de sportivi au date incomplete.');
     expect(showLabel(1)).toBe('Arată 1 sportiv');
     expect(showLabel(218)).toBe('Arată 218 sportivi');
-    expect(countLine(page())).toBe('218 din 240 de sportivi');
-    expect(countLine(page({ pagination: { page: 1, pageSize: 50, total: 3, pageCount: 1 }, unfiltered: 16 }))).toBe('3 din 16 sportivi');
+    const rows = (n: number) => Array.from({ length: n }, (_, i) => row({ documentId: `a${i}` }));
+    expect(pageRange(page({ data: rows(50) }))).toBe('1-50 din 218');
+    expect(pageRange(page({ data: rows(18), pagination: { page: 5, pageSize: 50, total: 218, pageCount: 5 } }))).toBe('201-218 din 218');
+    expect(pageRange(page({ data: rows(1), pagination: { page: 1, pageSize: 50, total: 1, pageCount: 1 } }))).toBe('1 din 1');
+    expect(loadedRange(page(), 60)).toBe('1-60 din 218');
+    expect([matchingText(1), matchingText(218), matchingText(220)]).toEqual(['1 sportiv corespunde', '218 sportivi corespund', '220 de sportivi corespund']);
     expect([ageText(null), ageText(10), ageText(38)]).toEqual(['', '10 ani', '38 de ani']);
   });
 });
@@ -81,8 +85,6 @@ describe('cells (spec 5)', () => {
     expect([profileCell(row({ publicProfile: 'public' })), profileCell(row())]).toEqual(['Public', 'Ascuns']);
     expect(missingTip(row({ dataIncomplete: true, missing: ['data nașterii', 'e-mail'] }))).toBe('Lipsesc: data nașterii, e-mail');
     expect(missingTip(row({ dataIncomplete: true, missing: [] }))).toBeNull();
-    expect(cardLine(row({ mainGroup: { documentId: 'g-pp', name: 'Primii Pași' } }))).toBe('10 ani, Primii Pași');
-    expect(cardLine(row({ age: null }))).toBe('Fără grupă');
   });
 
   it('season header, selector options and value', () => {
@@ -154,5 +156,15 @@ describe('state changes', () => {
     const busy = withSearch(withSection(withSeason(INITIAL_LIST_STATE, 's25'), 'acs', ['da']), 'ana');
     expect(clearFilters(busy)).toMatchObject({ season: 's25', q: 'ana', filters: { acs: [] }, page: 1 });
     expect(showIncomplete(INITIAL_LIST_STATE).filters.data).toEqual(['incomplete']);
+    expect([incompleteShown(INITIAL_LIST_STATE), incompleteShown(showIncomplete(INITIAL_LIST_STATE))]).toEqual([false, true]);
+  });
+
+  it('active-filter chips: one per chosen value, "<secțiune>: <valoare>"; x drops that value only (filters-v3)', () => {
+    const s = withSection(withSection(withPage(INITIAL_LIST_STATE, 3), 'group', ['g-pro', NO_GROUP]), 'acs', ['da']);
+    const chips = activeChips(s, page());
+    expect(chips.map((c) => c.label)).toEqual(['Grupa: Profesioniști', 'Grupa: Fără grupă', 'Membru A.C.S.: Da']);
+    expect(activeChips(INITIAL_LIST_STATE, page())).toEqual([]);
+    expect(withoutChip(s, chips[1])).toMatchObject({ page: 1, filters: { group: ['g-pro'], acs: ['da'] } });
+    expect(withoutChip(s, { key: 'sort', value: 'name', label: '' })).toBe(s);
   });
 });

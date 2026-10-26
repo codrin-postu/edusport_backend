@@ -8,7 +8,7 @@ import { AddAthleteDialog } from './AddAthleteDialog';
 import { useSportiviApi } from './api';
 import { AthleteCards } from './AthleteCards';
 import { AthleteTable } from './AthleteTable';
-import { IncompleteBanner, ListToolbar } from './ListToolbar';
+import { ActiveFilters, IncompleteBanner, ListToolbar } from './ListToolbar';
 import { SPORTIVI_CSS } from './styles';
 import { useAthleteList } from './useAthleteList';
 
@@ -33,6 +33,7 @@ export function SportiviList() {
       <Window>
         <PageHeader title={LIST_COPY.title} subtitle={LIST_COPY.subtitle} actions={add} />
         <ListToolbar list={list} phone={phone} />
+        <ActiveFilters list={list} phone={phone} />
         <IncompleteBanner list={list} />
         {phone ? <AthleteCards list={list} onOpen={open} /> : <AthleteTable list={list} onOpen={open} />}
       </Window>

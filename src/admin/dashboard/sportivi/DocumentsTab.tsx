@@ -11,13 +11,20 @@ type Get = ReturnType<typeof useFetchClient>['get'];
 
 const failed = () => adminToast.error(RECORD_COPY.documentFailed);
 
+/** "Acord 2026-2027 (înscrierea 2026-0142)": the bracket never breaks inside the number. */
+function DocumentName({ label }: { label: string }) {
+  const at = label.lastIndexOf(' (');
+  if (at < 0) return <span>{label}</span>;
+  return <span>{label.slice(0, at)} <span className="spv-nowrap">{label.slice(at + 1)}</span></span>;
+}
+
 /** One PDF with "Vezi" / "Descarcă"; the document name, visually hidden, makes each button's name unique. */
 function DocumentRow({ d, get }: { d: Doc; get: Get }) {
   const url = registrationDocumentUrl(d.registrationDocumentId, d.kind);
   const hidden = <span className="ui-sr"> {d.label}</span>;
   return (
     <li className="spv-doc">
-      <span>{d.label}</span>
+      <DocumentName label={d.label} />
       <span className="spv-doc-acts">
         <Button size="sm" variant="ghost" onClick={() => void viewPdf(get, url).catch(failed)}>{RECORD_COPY.view}{hidden}</Button>
         <Button size="sm" variant="ghost" onClick={() => void downloadPdf(get, url, `${d.kind}.pdf`).catch(failed)}>{RECORD_COPY.download}{hidden}</Button>

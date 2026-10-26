@@ -8,7 +8,6 @@ import {
   Input,
   Textarea,
   Select,
-  DateInput,
   TagsInput,
   RelationMultiSelect,
   SegmentedControl,
@@ -29,6 +28,7 @@ import { PROGRAM_TYPES } from '../constants';
 import type { AthleteRecord } from '../../../club/athletes/api-types';
 import { RECORD_COPY } from '../../../club/sportivi/record-view';
 import type { SportiviApi } from './api';
+import { ActiveSinceField } from './ActiveSinceField';
 import { useRecordFooter, type FooterAction } from './recordFooter';
 
 /**
@@ -528,7 +528,7 @@ export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord
   const buttons: FooterAction[] | null =
     ready && form.dirty
       ? [
-          { label: 'Renunță', variant: 'secondary', onClick: discard, disabled: save.saving },
+          { label: RECORD_COPY.cancel, variant: 'secondary', onClick: discard, disabled: save.saving },
           { label: 'Salvează', onClick: onSave, loading: save.saving },
         ]
       : null;
@@ -546,11 +546,9 @@ export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord
         />
       </Field>
       <Field label="Slug">
-        <Input value={v.slug} readOnly />
+        <Input value={v.slug} readOnly disabled />
       </Field>
-      <Field label="Activ din">
-        <DateInput value={v.activeSince || null} onChange={(d) => upd({ activeSince: d ?? '' })} />
-      </Field>
+      <ActiveSinceField value={v.activeSince} onChange={(activeSince) => upd({ activeSince })} />
       <div className="ui-field">
         <span className="ui-label" id="sp-vis-label">
           Vizibilitate pe site
@@ -579,7 +577,7 @@ export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord
             <Section title="Identitate">
               <div className="ui-stack">
                 <Field label="Nume" hint={RECORD_COPY.profile.nameHint}>
-                  <Input value={athleteName} readOnly />
+                  <Input value={athleteName} readOnly disabled />
                 </Field>
                 <Field label="Descriere scurtă">
                   <Textarea rows={2} value={v.description} onChange={(e) => upd({ description: e.target.value })} />
@@ -794,7 +792,7 @@ export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord
           </TwoColumn>
         )}
 
-        {ready && active && !inFooter && <SaveBar {...save.bar} onSave={onSave} onDiscard={discard} />}
+        {ready && active && !inFooter && <SaveBar {...save.bar} onSave={onSave} onDiscard={discard} discardLabel={RECORD_COPY.cancel} />}
       <UnsavedGuard when={form.dirty} />
     </>
   );

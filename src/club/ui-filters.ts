@@ -72,7 +72,7 @@ export function matchOptions(options: FilterChoice[], query: string): FilterChoi
   return q ? options.filter((o) => foldText(o.label).includes(q)) : options;
 }
 
-/** Sections with something chosen: the number on the "Filtre" button. */
-export function activeSections(sections: ReadonlyArray<Pick<FilterSectionState, 'selected'>>): number {
-  return sections.filter((s) => s.selected.length > 0).length;
+/** Sections with something chosen: the number on the "Filtre" button. A section that is never empty (`allLabel: null`, e.g. sort) is not a filter. */
+export function activeSections(sections: ReadonlyArray<Pick<FilterSectionState, 'selected' | 'allLabel'>>): number {
+  return sections.filter((s) => s.selected.length > 0 && s.allLabel !== null).length;
 }

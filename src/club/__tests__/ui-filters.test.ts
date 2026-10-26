@@ -85,4 +85,8 @@ describe('search and count', () => {
   it('activeSections counts the sections with something chosen', () => {
     expect(activeSections([{ selected: [] }, { selected: ['a'] }, { selected: ['b', 'c'] }])).toBe(2);
   });
+
+  it('activeSections leaves out a section that always has a value (sort, allLabel null)', () => {
+    expect(activeSections([{ selected: ['a'] }, { selected: ['name'], allLabel: null }, { selected: ['x'], allLabel: 'Oricând' }])).toBe(2);
+  });
 });

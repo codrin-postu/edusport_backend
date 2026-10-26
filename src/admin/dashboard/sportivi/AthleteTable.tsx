@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { EmptyState, Loading, Pager } from '../../ui';
-import { IconWarning } from '../../ui/icons';
 import type { AthleteListRow } from '../../../club/athletes/api-types';
 import {
-  LIST_COPY, acsCell, ageText, countLine, groupCell, groupHeader, missingTip, profileCell, withHeaderSort, withPage, type SortKey,
+  LIST_COPY, acsCell, ageText, groupCell, groupHeader, pageRange, profileCell, withHeaderSort, withPage, type SortKey,
 } from '../../../club/sportivi/list-view';
 import { athleteRecordTo } from '../../../club/sportivi/routes';
+import { MissingMarker } from './MissingMarker';
 import type { AthleteList } from './useAthleteList';
 
 type Open = (documentId: string) => void;
@@ -23,17 +23,6 @@ function SortHeader({ list, sortKey, children }: { list: AthleteList; sortKey: S
         <span className={dir ? 'ui-table-sort' : 'ui-table-sort spv-unsorted'} aria-hidden="true">{dir ? SORT_MARK[dir] : '↕'}</span>
       </button>
     </th>
-  );
-}
-
-function MissingMarker({ row }: { row: AthleteListRow }) {
-  const tip = missingTip(row);
-  return (
-    <span className="spv-miss" title={tip ?? undefined}>
-      <IconWarning size={12} />
-      {LIST_COPY.incompleteMarker}
-      {tip && <span className="ui-sr">{tip}</span>}
-    </span>
   );
 }
 
@@ -86,7 +75,7 @@ export function AthleteTable({ list, onOpen }: { list: AthleteList; onOpen: Open
         </table>
       </div>
       <div className="spv-foot">
-        <span>{countLine(page)}</span>
+        <span>{pageRange(page)}</span>
         {page.pagination.pageCount > 1 && <Pager page={state.page} pageCount={page.pagination.pageCount} onChange={(p) => setState(withPage(state, p))} />}
       </div>
     </>

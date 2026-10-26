@@ -1,27 +1,38 @@
 import * as React from 'react';
-import { Button, FilterPanel, Input, Notice, Select } from '../../ui';
+import { Button, Chip, FilterPanel, Input, Notice, Select } from '../../ui';
+import { IconSearch } from '../../ui/icons';
 import {
-  LIST_COPY, SORT_OPTIONS, athletesText, clearFilters, filterSections, incompleteBanner, seasonOptions, seasonValue, showIncomplete, showLabel,
-  sortSection, withSearch, withSeason, withSection,
+  LIST_COPY, SORT_OPTIONS, activeChips, athletesText, clearFilters, filterSections, incompleteBanner, incompleteShown, matchingText, seasonOptions,
+  seasonValue, showIncomplete, showLabel, sortSection, withSearch, withSeason, withSection, withoutChip,
 } from '../../../club/sportivi/list-view';
 import type { AthleteList } from './useAthleteList';
 
-/** Search, season, filters-v3 and sort (spec 5). On phones the sort is one more section of the filter sheet. */
+/** Search field with the magnifier of filters-v3. */
+function SearchBox({ list }: { list: AthleteList }) {
+  const { state, setState } = list;
+  return (
+    <span className="spv-q">
+      <IconSearch />
+      <Input
+        type="search"
+        value={state.q}
+        onChange={(e) => setState(withSearch(state, e.target.value))}
+        placeholder={LIST_COPY.search}
+        aria-label={LIST_COPY.search}
+      />
+    </span>
+  );
+}
+
+/** Search, season and filters-v3 on one row, sort at its end (spec 5). On phones the sort is one more section of the filter sheet. */
 export function ListToolbar({ list, phone }: { list: AthleteList; phone: boolean }) {
   const { state, setState, page } = list;
   const filters = filterSections(state, page);
   const total = page?.pagination.total ?? 0;
   return (
     <div className="spv-toolbar">
-      <Input
-        type="search"
-        className="spv-q"
-        value={state.q}
-        onChange={(e) => setState(withSearch(state, e.target.value))}
-        placeholder={LIST_COPY.search}
-        aria-label={LIST_COPY.search}
-      />
-      <Select aria-label={LIST_COPY.season} value={seasonValue(state, page)} options={seasonOptions(page)} onChange={(v) => setState(withSeason(state, v))} />
+      <SearchBox list={list} />
+      <Select className="spv-season" aria-label={LIST_COPY.season} value={seasonValue(state, page)} options={seasonOptions(page)} onChange={(v) => setState(withSeason(state, v))} />
       <FilterPanel
         sections={phone ? [...filters, sortSection(state)] : filters}
         onChange={(key, selected) => setState(withSection(state, key, selected))}
@@ -39,10 +50,27 @@ export function ListToolbar({ list, phone }: { list: AthleteList; phone: boolean
   );
 }
 
-/** "N sportivi au date incomplete." + "Arată-i" (3b Q21, gaps #10). */
+/** The chosen filter values as removable chips, and on desktop how many athletes match (filters-v3). */
+export function ActiveFilters({ list, phone }: { list: AthleteList; phone: boolean }) {
+  const { state, setState, page } = list;
+  const chips = activeChips(state, page);
+  if (chips.length === 0) return null;
+  return (
+    <div className="spv-chips">
+      {chips.map((chip) => (
+        <Chip key={`${chip.key}-${chip.value}`} onRemove={() => setState(withoutChip(state, chip))}>
+          {chip.label}
+        </Chip>
+      ))}
+      {!phone && page && <span className="spv-chips-n">{matchingText(page.pagination.total)}</span>}
+    </div>
+  );
+}
+
+/** "N sportivi au date incomplete." + "Arată-i" (3b Q21, gaps #10); gone once the list already shows them. */
 export function IncompleteBanner({ list }: { list: AthleteList }) {
   const n = list.page?.incomplete ?? 0;
-  if (n === 0) return null;
+  if (n === 0 || incompleteShown(list.state)) return null;
   const action = (
     <Button size="sm" variant="secondary" onClick={() => list.setState(showIncomplete(list.state))}>
       {LIST_COPY.showThem}

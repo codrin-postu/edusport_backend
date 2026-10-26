@@ -82,8 +82,10 @@ function MergeTable({ preview, state, onChange, boxRef }: TableProps & { boxRef:
             <td />
             {SIDES.map((side) => (
               <th key={side} scope="col">
-                <span className="spv-name">{v[side].name}</span>
-                <Radio name="spv-kept" value={side} checked={state.kept === side} onChange={() => onChange(withKept(side))} label={MERGE_COPY.kept} />
+                <span className="spv-merge-head">
+                  <span className="spv-name">{v[side].name}</span>
+                  <Radio name="spv-kept" value={side} checked={state.kept === side} onChange={() => onChange(withKept(side))} label={MERGE_COPY.kept} />
+                </span>
               </th>
             ))}
           </tr>

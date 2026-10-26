@@ -130,6 +130,14 @@ describe('Caută alt sportiv / Adaugă sportiv search (spec 4.1, 6.7)', () => {
     expect((await searchAthletes(fake.store, 'maria', null)).map((c) => c.documentId)).toEqual(['a4', 'a1', 'a2']);
   });
 
+  it('an exact or prefix name comes before a one-letter typo (Maria before Daria)', async () => {
+    const fake = fakeClubStore({
+      athletes: [athleteRow({ id: 'd1', name: 'Daria Ionescu' }), athleteRow({ id: 'd2', name: 'Daria Pop' }), athleteRow({ id: 'm1', name: 'Maria Stan' }), athleteRow({ id: 'm2', name: 'Mariana Radu' })],
+      registrations: [],
+    });
+    expect((await searchAthletes(fake.store, 'Maria', null)).map((c) => c.documentId)).toEqual(['m1', 'm2', 'd1', 'd2']);
+  });
+
   it('a parent name of a linked registration finds the athlete (searchSubjects)', async () => {
     const fake = fakeClubStore({
       athletes: [athleteRow({ id: 'a9', name: 'Sportiv Necunoscut' })],

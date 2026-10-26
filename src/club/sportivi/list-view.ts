@@ -41,7 +41,6 @@ export const LIST_COPY = {
   showThem: 'Arată-i',
   more: 'Încarcă încă 30',
   incompleteMarker: 'date lipsă',
-  incompleteBadge: 'Date incomplete',
   noGroup: 'Fără grupă',
   columns: { name: 'Sportiv', age: 'Vârstă', contact: 'Contact', acs: 'Membru A.C.S.', profile: 'Profil public' },
 } as const;
@@ -87,7 +86,18 @@ export const countWords = (n: number, one: string, many: string): string => (n =
 export const athletesText = (n: number): string => countWords(n, 'sportiv', 'sportivi');
 export const ageText = (age: number | null): string => (age === null ? '' : countWords(age, 'an', 'ani'));
 export const showLabel = (n: number): string => `Arată ${athletesText(n)}`;
-export const countLine = (p: AthleteListPage): string => `${p.pagination.total} din ${athletesText(p.unfiltered)}`;
+/** "1-50 din 218" (filters-v3): the rows shown, out of the rows that match. */
+export const rangeLine = (first: number, last: number, total: number): string =>
+  `${first === last ? last : `${first}-${last}`} din ${total}`;
+/** Desktop: the rows of the current page. */
+export function pageRange(p: AthleteListPage): string {
+  const first = (p.pagination.page - 1) * p.pagination.pageSize + 1;
+  return rangeLine(first, first + p.data.length - 1, p.pagination.total);
+}
+/** Phone: every card loaded so far. */
+export const loadedRange = (p: AthleteListPage, shown: number): string => rangeLine(1, shown, p.pagination.total);
+/** Beside the active-filter chips: "218 sportivi corespund" (filters-v3 "218 documente corespund"). */
+export const matchingText = (n: number): string => (n === 1 ? '1 sportiv corespunde' : `${athletesText(n)} corespund`);
 export const incompleteBanner = (n: number): string => (n === 1 ? '1 sportiv are date incomplete.' : `${athletesText(n)} au date incomplete.`);
 
 export const groupCell = (r: AthleteListRow): string => r.mainGroup?.name ?? LIST_COPY.noGroup;
@@ -95,7 +105,6 @@ export const acsCell = (r: AthleteListRow): string => ACS_WORDS[r.acs];
 export const profileCell = (r: AthleteListRow): string => (r.publicProfile === 'public' ? 'Public' : 'Ascuns');
 /** Tooltip of "date lipsă"; none when a deploy-marked record names no field (plan 3-2 note). */
 export const missingTip = (r: AthleteListRow): string | null => (r.missing.length ? `Lipsesc: ${r.missing.join(', ')}` : null);
-export const cardLine = (r: AthleteListRow): string => [ageText(r.age), groupCell(r)].filter(Boolean).join(', ');
 export const groupHeader = (season: AthleteListPage['season']): string => (season ? `Grupa ${season.label}` : 'Grupa');
 
 export const seasonOptions = (p: AthleteListPage | null): Choice[] =>
@@ -140,3 +149,18 @@ export const withHeaderSort = (s: ListState, key: SortKey): ListState => ({
   ...s, sort: key, dir: s.sort === key && s.dir === 'asc' ? 'desc' : 'asc', page: 1,
 });
 export const showIncomplete = (s: ListState): ListState => withSection(s, 'data', ['incomplete']);
+/** The banner's "Arată-i" has nothing left to do once Date: Incomplete is chosen. */
+export const incompleteShown = (s: ListState): boolean => s.filters.data.includes('incomplete');
+
+/** One chip per chosen value, "<secțiune>: <valoare>" (filters-v3 active-filter row). */
+export type FilterChip = { key: string; value: string; label: string };
+export function activeChips(s: ListState, p: AthleteListPage | null): FilterChip[] {
+  return filterSections(s, p).flatMap((section) =>
+    section.selected.map((value) => {
+      const option = section.options.find((o) => o.value === value);
+      return { key: section.key, value, label: `${section.label}: ${option?.label ?? value}` };
+    }),
+  );
+}
+export const withoutChip = (s: ListState, chip: FilterChip): ListState =>
+  isFilterKey(chip.key) ? withSection(s, chip.key, s.filters[chip.key].filter((v) => v !== chip.value)) : s;

@@ -5,7 +5,7 @@ import { parseBirthDate, roDate, type DateParts } from '../birth-date';
 import { comparisonRows, defaultUpdateFields, registrationValues } from '../confirm/compare';
 import { canConfirm, canUndo } from '../confirm/plan';
 import { registrationSeason, seasonEndedText, seasonRunning, type SeasonFacts } from '../confirm/season';
-import { matchesQuery, searchSubjects } from './search';
+import { matchesQuery, queryRank, searchSubjects, type SearchSubject } from './search';
 import { rankCandidates, registrationFacts, type Candidate } from '../matching';
 import { LAST_SEASON_OPTIONS } from '../registration-form-options';
 import type { AthleteCard, ConfirmContext, RegistrationMatchView } from './api-types';
@@ -109,10 +109,15 @@ export async function confirmContext(store: ClubStore, registrationId: string, a
   return { ok: true, data: { ...buildContext(reg, season, running, state, athlete), groups: running ? groupOptions(reg.sectionId, sections, groups) : [] } };
 }
 
-const rankedFirst = (ranked: string[]) => (a: AthleteRow, b: AthleteRow) => {
+const rankOf = (subject: SearchSubject | undefined, query: string): number => (subject ? queryRank(subject, query) : 2);
+
+/** The registration's candidates first, then exact and prefix name matches before typo matches, then A-Z. */
+const searchOrder = (ranked: string[], byQuery: Map<string, number>) => (a: AthleteRow, b: AthleteRow) => {
   const ia = ranked.indexOf(a.id);
   const ib = ranked.indexOf(b.id);
-  return (ia < 0 ? Infinity : ia) - (ib < 0 ? Infinity : ib) || (a.name ?? '').localeCompare(b.name ?? '', 'ro');
+  return (ia < 0 ? Infinity : ia) - (ib < 0 ? Infinity : ib)
+    || (byQuery.get(a.id) ?? 0) - (byQuery.get(b.id) ?? 0)
+    || (a.name ?? '').localeCompare(b.name ?? '', 'ro');
 };
 
 /** "Caută alt sportiv" and "Adaugă sportiv" (spec 4.1, 6.7, P13). Without text: the registration's candidates. */
@@ -126,5 +131,6 @@ export async function searchAthletes(store: ClubStore, query: string, registrati
     const subject = subjects.get(a.id);
     return query.trim() ? subject !== undefined && matchesQuery(subject, query) : ranked.includes(a.id);
   });
-  return hits.sort(rankedFirst(ranked)).slice(0, SEARCH_LIMIT).map(card);
+  const byQuery = new Map(hits.map((a) => [a.id, rankOf(subjects.get(a.id), query)]));
+  return hits.sort(searchOrder(ranked, byQuery)).slice(0, SEARCH_LIMIT).map(card);
 }
