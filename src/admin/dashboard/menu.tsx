@@ -9,6 +9,7 @@ import {
   MOMENTE_ISTORIC_TO, CURSURI_TO, PRETURI_TO, SEZOANE_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
   REALIZARI_TO, EVENIMENTE_COLABORARE_TO, UID,
 } from '../pages/routes';
+import { OLD_EDITOR_PATH, SPORTIVI_PATH } from '../../club/sportivi/routes';
 
 // Route constants of the custom pages (src/admin/pages), re-exported so every
 // *_TO lives behind one import. Defined in ../pages/routes (see there).
@@ -33,7 +34,7 @@ export {
  * app.router.addRoute, route only, since the EduSport sidebar is their nav.
  */
 
-export type Group = 'forms' | 'program' | 'team' | 'pages' | 'content' | 'system';
+export type Group = 'forms' | 'program' | 'club' | 'team' | 'pages' | 'content' | 'system';
 
 export interface EdusportLink {
   to: string;
@@ -47,13 +48,14 @@ export interface EdusportLink {
 export const GROUP_LABEL: Record<Group, string> = {
   forms: 'Formulare',
   program: 'Program și calendar',
+  club: 'Club și școală',
   team: 'Sportivi și echipă',
   pages: 'Pagini site',
   content: 'Articole și media',
   system: 'Sistem',
 };
 
-export const GROUP_ORDER: Group[] = ['forms', 'program', 'team', 'pages', 'content', 'system'];
+export const GROUP_ORDER: Group[] = ['forms', 'program', 'club', 'team', 'pages', 'content', 'system'];
 
 // Admin route for the custom dashboard page (basename is /admin at runtime).
 export const DASHBOARD_TO = '/plugins/edusport-dashboard';
@@ -76,9 +78,10 @@ export const PARTENERI_REZULTATE_TO = '/plugins/edusport-parteneri-rezultate';
 // Admin route for the custom "Editor formular" page (?type=inscriere|contact).
 export const FORM_EDITOR_TO = '/plugins/edusport-form-editor';
 
-// Admin routes for the custom Sportivi (sportsperson) list + edit pages.
-export const SPORTIVI_TO = '/plugins/edusport-sportivi';
-export const SPORTIV_EDIT_TO = '/plugins/edusport-sportiv-edit';
+// Sportivi: the private athlete list, and under /<documentId> the athlete record.
+// The old profile editor address only redirects to the record (spec 7).
+export const SPORTIVI_TO = SPORTIVI_PATH;
+export const SPORTIV_EDIT_TO = OLD_EDITOR_PATH;
 
 // Admin route for the custom "Pagina principală" single-type editor.
 export const HOMEPAGE_EDIT_TO = '/plugins/edusport-homepage';
@@ -133,8 +136,10 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   // Program și calendar
   { to: PROGRAM_EDIT_TO, label: 'Calendar și serii', icon: Calendar, group: 'program', featured: true },
 
+  // Club și școală (Grupe and Prezență join in phase 4)
+  { to: SPORTIVI_TO, label: 'Sportivi', icon: User, group: 'club', featured: true },
+
   // Sportivi și echipă
-  { to: SPORTIVI_TO, label: 'Sportivi', icon: User, group: 'team', featured: true },
   // Re-pointed from collection('api::team-member.team-member'): team members are
   // now edited on the custom Membri echipă page.
   { to: MEMBRI_TO, label: 'Membri echipă', icon: GridFour, group: 'team', featured: true },
@@ -272,13 +277,13 @@ export function registerEdusportMenu(app: StrapiApp) {
     position: 6,
   });
 
-  app.addMenuLink({
-    to: SPORTIV_EDIT_TO,
-    icon: Pencil,
-    intlLabel: { id: 'edusport.menu.sportivEdit', defaultMessage: 'Editor sportiv' },
-    Component: () => import('./SportivEditPage'),
-    permissions: [],
-    position: 7,
+  // The old profile editor: route only, it redirects to the athlete record (spec 7).
+  app.router.addRoute({
+    path: `${SPORTIV_EDIT_TO.slice(1)}/*`,
+    lazy: async () => {
+      const mod = await import('./SportivEditPage');
+      return { Component: mod.default };
+    },
   });
 
   app.addMenuLink({
