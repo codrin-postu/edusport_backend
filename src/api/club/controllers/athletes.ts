@@ -3,10 +3,16 @@ import { searchAthletes } from '../../../club/athletes/confirm-read';
 import { ADMIN_ERRORS } from '../../../club/athletes/errors';
 import { readHistory } from '../../../club/athletes/history-read';
 import { clubStore, queryText } from '../../../club/athletes/http';
+import { athleteListPage, readListQuery } from '../../../club/athletes/list';
+import { todayInBucharest } from '../../../club/birth-date';
 import { SUBJECT } from '../../../club/history-text';
 
 /** Admin API of Sportivi (routes/05-athletes.ts, all `global::is-admin`). A deleted athlete is not found (gaps #40). */
 export default {
+  async list(ctx: AdminCtx) {
+    ctx.body = await athleteListPage(clubStore(strapi), readListQuery(ctx.query), todayInBucharest());
+  },
+
   async search(ctx: AdminCtx) {
     ctx.body = { data: await searchAthletes(clubStore(strapi), queryText(ctx.query.q), queryText(ctx.query.registration) || null) };
   },
