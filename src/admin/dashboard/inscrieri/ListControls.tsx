@@ -4,7 +4,7 @@ import { Button, Select, Tabs } from '../../ui';
 import { INSCRIERI_PENDING_COPY, LIST_COPY } from '../../../club/inscrieri-copy';
 import { CLUB_URLS, moveTargets, schoolTabs, type ListMeta } from '../../../club/inscrieri-panel';
 import { moveSchool } from './moves';
-import { useStableClient } from './useClient';
+import { detachedClient } from './useClient';
 
 const EXISTING_OPTIONS = [
   { value: 'da', label: LIST_COPY.yes },
@@ -39,16 +39,18 @@ export function SchoolTabs({ meta, value, onChange }: { meta: ListMeta; value: s
   return <Tabs className="ins-schools" label={LIST_COPY.school} items={schoolTabs(meta)} value={value} onChange={onChange} />;
 }
 
-/** Bulk "Mută la altă școală" with a school picker (spec 3.1, 3.6); confirmed rows are left out by the server. */
+/**
+ * Bulk "Mută la altă școală" with a school picker (spec 3.1, 3.6); confirmed rows are left out by the server.
+ * Detached: unticking rows mid-move unmounts the bar, and the list still reloads after it.
+ */
 export function BulkMoveSchool({ ids, meta, done }: { ids: string[]; meta: ListMeta; done: () => void }) {
-  const { post } = useStableClient();
   const [target, setTarget] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const school = meta.schools.find((s) => s.documentId === target);
   const move = async () => {
     if (!school) return;
     setBusy(true);
-    const ok = await moveSchool(post, CLUB_URLS.moveSchoolBulk, { documentIds: ids, sectionId: school.documentId }, school.name, false);
+    const ok = await moveSchool(detachedClient.post, CLUB_URLS.moveSchoolBulk, { documentIds: ids, sectionId: school.documentId }, school.name, false);
     setBusy(false);
     if (ok) done();
   };

@@ -53,8 +53,10 @@ it('groups under their section, main group line and tick, A.C.S. lines, season n
 });
 
 it('confirm and undo use a client that survives the window; one request per confirm; a saved one never reads as failed', () => {
-  expect(hooks).toContain("import { getFetchClient } from '@strapi/admin/strapi-admin';");
-  expect(hooks).toContain('getFetchClient().post(url, data, config)');
+  const client = read('useClient.ts');
+  expect(client).toContain("import { getFetchClient, useFetchClient } from '@strapi/admin/strapi-admin';");
+  expect(client).toContain('post: (url, data, config) => getFetchClient().post(url, data, config),');
+  expect(hooks).toContain('const { post } = detachedClient;');
   expect(hooks).not.toContain('const { post } = useStableClient()');
   expect(hooks).toContain('if (!body || sending.current) return;');
   expect(hooks).toContain('sending.current = true;');

@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { getFetchClient } from '@strapi/admin/strapi-admin';
 import { adminToast } from '../../../ui';
 import type { ConfirmContext, ConfirmResponse } from '../../../../club/athletes/api-types';
 import { CONFIRM_COPY } from '../../../../club/inscrieri-copy';
 import { CONFIRM_TOAST_MS, confirmBody, confirmFailure, type WindowState } from '../../../../club/inscrieri-confirm';
 import { CLUB_URLS } from '../../../../club/inscrieri-panel';
 import { runUndo } from '../undo';
-import { dataOf, useStableClient, type StableClient } from '../useClient';
+import { dataOf, detachedClient, useStableClient } from '../useClient';
 
 export type ContextState = { data: ConfirmContext | null; loading: boolean; failed: boolean };
 
@@ -35,7 +34,7 @@ export function useConfirmContext(registrationId: string, athleteId: string | nu
  * Not tied to the window's life: Strapi's useFetchClient aborts its requests on unmount, and the window
  * closes before the toast's "Anulează" can be clicked (and may close while the confirm request runs).
  */
-const post: StableClient['post'] = (url, data, config) => getFetchClient().post(url, data, config);
+const { post } = detachedClient;
 
 type Outcome = { succeed: (res: ConfirmResponse) => void; fail: (err: unknown) => void };
 

@@ -28,3 +28,10 @@ it('saves the changed answers in one PUT, toasts from the answer, reloads; never
   expect(form).toContain('api.refetch();');
   expect(form).not.toMatch(/resend|Retrimite/);
 });
+
+it('the save outlives the panel: a row switch mid-save neither aborts it nor skips the list reload', () => {
+  const client = readFileSync(join(dir, 'useClient.ts'), 'utf8');
+  expect(client).toContain('put: (url, data, config) => getFetchClient().put(url, data, config),');
+  expect(form).toContain('const { put } = detachedClient;');
+  expect(form).not.toContain('useStableClient');
+});

@@ -41,6 +41,12 @@ it('passes the filter, the school tabs and the bulk move as table extras', () =>
   expect(controls).toContain('placeholder={LIST_COPY.all}');
 });
 
+it('the bulk move outlives the bar: unticking rows mid-move neither aborts it nor skips the list reload', () => {
+  expect(controls).toContain('await moveSchool(detachedClient.post, CLUB_URLS.moveSchoolBulk');
+  expect(controls).not.toContain('useStableClient');
+  expect(page).toContain('(ids, done) => <BulkMoveSchool ids={ids} meta={meta} done={done} />');
+});
+
 it('keeps rows one height and colours on tokens; the inscrieri folder is held to the colour rule', () => {
   expect(css).toContain('.ui-root .sbt-clist td{height:50px;padding-top:0;padding-bottom:0}');
   expect(css).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(|dashed|dotted|border-radius:(?!var\(--ui-radius-)/i);
