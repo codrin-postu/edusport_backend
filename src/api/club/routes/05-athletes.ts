@@ -8,5 +8,6 @@ export default {
   routes: [
     { method: 'GET', path: '/club/athletes/search', handler: 'athletes.search', config: adminGuard },
     { method: 'GET', path: '/club/athletes/:documentId/history', handler: 'athletes.history', config: adminGuard },
+    { method: 'DELETE', path: '/club/athletes/:documentId', handler: 'athletes.remove', config: adminGuard },
   ],
 };
