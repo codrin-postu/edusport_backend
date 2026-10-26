@@ -81,6 +81,11 @@
       "type": "component",
       "repeatable": true,
       "component": "sportsperson.program-season"
+    },
+    "previousSlugs": {
+      "type": "json",
+      "private": true,
+      "visible": false
     }
   }
 }

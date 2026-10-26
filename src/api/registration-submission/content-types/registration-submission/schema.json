@@ -101,6 +101,10 @@
     "sourceOther": { "type": "string" },
     "gdprConsent": { "type": "boolean" },
     "regulationsConsent": { "type": "boolean" },
-    "submissionKey": { "type": "string", "private": true, "visible": false }
+    "submissionKey": { "type": "string", "private": true, "visible": false },
+    "matchAthlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete" },
+    "matchLevel": { "type": "enumeration", "enum": ["sigur", "probabil"] },
+    "childBirthDateParsed": { "type": "date" },
+    "confirmation": { "type": "json", "private": true, "visible": false }
   }
 }

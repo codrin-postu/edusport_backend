@@ -576,6 +576,41 @@ export interface ApiArticleArticle extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiAthleteDuplicateAthleteDuplicate
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'athlete_duplicates';
+  info: {
+    displayName: 'Club / Posibil\u0103 dublur\u0103';
+    pluralName: 'athlete-duplicates';
+    singularName: 'athlete-duplicate';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    first: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::athlete-duplicate.athlete-duplicate'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    second: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiAthleteAthlete extends Struct.CollectionTypeSchema {
   collectionName: 'athletes';
   info: {
@@ -599,8 +634,8 @@ export interface ApiAthleteAthlete extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     dataIncomplete: Schema.Attribute.Boolean &
       Schema.Attribute.DefaultTo<false>;
-    email: Schema.Attribute.Email;
-    firstName: Schema.Attribute.String & Schema.Attribute.Required;
+    email: Schema.Attribute.String;
+    firstName: Schema.Attribute.String;
     lastName: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -608,6 +643,7 @@ export interface ApiAthleteAthlete extends Struct.CollectionTypeSchema {
       'api::athlete.athlete'
     > &
       Schema.Attribute.Private;
+    name: Schema.Attribute.String;
     notes: Schema.Attribute.Text;
     phone: Schema.Attribute.String;
     publicProfile: Schema.Attribute.Relation<
@@ -1694,9 +1730,11 @@ export interface ApiRegistrationSubmissionRegistrationSubmission
     archived: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
     childBirthDate: Schema.Attribute.String & Schema.Attribute.Required;
+    childBirthDateParsed: Schema.Attribute.Date;
     childHeight: Schema.Attribute.Integer;
     childName: Schema.Attribute.String & Schema.Attribute.Required;
     clubInterest: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    confirmation: Schema.Attribute.JSON & Schema.Attribute.Private;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1718,6 +1756,11 @@ export interface ApiRegistrationSubmissionRegistrationSubmission
       'api::registration-submission.registration-submission'
     > &
       Schema.Attribute.Private;
+    matchAthlete: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::athlete.athlete'
+    >;
+    matchLevel: Schema.Attribute.Enumeration<['sigur', 'probabil']>;
     membershipAnswer: Schema.Attribute.Enumeration<['da', 'nu']>;
     parentName: Schema.Attribute.String & Schema.Attribute.Required;
     phone: Schema.Attribute.String & Schema.Attribute.Required;
@@ -2044,6 +2087,7 @@ export interface ApiSportspersonSportsperson
       Schema.Attribute.Private;
     name: Schema.Attribute.String & Schema.Attribute.Required;
     photo: Schema.Attribute.Media<'images'>;
+    previousSlugs: Schema.Attribute.JSON & Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     seasons: Schema.Attribute.Component<'sportsperson.program-season', true>;
     showPublicPage: Schema.Attribute.Boolean &
@@ -2749,6 +2793,7 @@ declare module '@strapi/strapi' {
       'api::acs-membership.acs-membership': ApiAcsMembershipAcsMembership;
       'api::announcement.announcement': ApiAnnouncementAnnouncement;
       'api::article.article': ApiArticleArticle;
+      'api::athlete-duplicate.athlete-duplicate': ApiAthleteDuplicateAthleteDuplicate;
       'api::athlete.athlete': ApiAthleteAthlete;
       'api::calendar-blackout.calendar-blackout': ApiCalendarBlackoutCalendarBlackout;
       'api::calendar-event.calendar-event': ApiCalendarEventCalendarEvent;
