@@ -84,6 +84,54 @@ describe('Sportiv existent (spec 4.5)', () => {
     const plan = planConfirmation(facts({ athlete: existing(), seasonMemberships: [{ id: 'm1', groupId: 'g-pp', isMain: true }], seasonAcs: { id: 'x', state: 'in_asteptare' } }));
     expect([plan.membership, plan.demoteMainId, plan.acs, plan.groupName]).toEqual([null, null, null, 'Primii Pași']);
   });
+
+  it('a new group becomes main when the athlete has groups this season but none is main (invariant)', () => {
+    const plan = planConfirmation(facts({ athlete: existing(), seasonMemberships: [{ id: 'm1', groupId: 'g-pro', isMain: false }] }));
+    expect(plan.membership).toMatchObject({ groupId: 'g-pp', isMain: true });
+    expect(plan.demoteMainId).toBeNull();
+  });
+
+  it('promotes an already-present group to main when "Grupă principală" is ticked', () => {
+    const plan = planConfirmation(
+      facts({
+        athlete: existing(),
+        seasonMemberships: [
+          { id: 'm1', groupId: 'g-pro', isMain: true },
+          { id: 'm2', groupId: 'g-pp', isMain: false },
+        ],
+        makeMain: true,
+      }),
+    );
+    expect(plan.membership).toBeNull();
+    expect(plan.promoteMembershipId).toBe('m2');
+    expect(plan.demoteMainId).toBe('m1');
+  });
+
+  it('leaves an already-present non-main group alone when the tick is off', () => {
+    const plan = planConfirmation(
+      facts({
+        athlete: existing(),
+        seasonMemberships: [
+          { id: 'm1', groupId: 'g-pro', isMain: true },
+          { id: 'm2', groupId: 'g-pp', isMain: false },
+        ],
+      }),
+    );
+    expect([plan.membership, plan.demoteMainId, plan.promoteMembershipId]).toEqual([null, null, null]);
+  });
+
+  it('a hand-ticked field that only differs from the athlete in format is not written or logged', () => {
+    const plan = planConfirmation(
+      facts({
+        athlete: existing({ phone: '0722111222', email: 'Ana@Example.com ' }),
+        updateFields: ['phone', 'email'],
+        registration: { ...facts().registration, values: values({ phone: '0722 111 222', email: 'ana@example.com' }) },
+      }),
+    );
+    expect(plan.fieldChanges).toEqual({});
+    expect(plan.athleteUpdate).not.toHaveProperty('phone');
+    expect(plan.athleteUpdate).not.toHaveProperty('email');
+  });
 });
 
 describe('A.C.S. (spec 1.4, gaps #30, N8)', () => {
@@ -111,9 +159,25 @@ describe('what the undo needs', () => {
       fieldsAfter: { phone: '0722111222' },
       membershipId: 'm9',
       demotedMainId: 'm0',
+      promotedMainId: null,
       acs: { id: 'c9', previous: null },
       at: '2026-10-26T10:00:00.000Z',
     });
+  });
+
+  it('records which membership was promoted to main, for the undo to demote it back', () => {
+    const f = facts({
+      athlete: existing(),
+      seasonMemberships: [
+        { id: 'm1', groupId: 'g-pro', isMain: true },
+        { id: 'm2', groupId: 'g-pp', isMain: false },
+      ],
+      makeMain: true,
+    });
+    const plan = planConfirmation(f);
+    const record = confirmationRecord({ plan, facts: f, athleteId: 'a1', membershipId: null, acsId: null, at: '2026-10-26T10:00:00.000Z' });
+    expect(record.promotedMainId).toBe('m2');
+    expect(record.demotedMainId).toBe('m1');
   });
 });
 
