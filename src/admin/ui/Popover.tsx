@@ -39,6 +39,15 @@ export interface PopoverProps {
   /** Extra props on the popover element (mouse handlers, aria). */
   popoverProps?: React.HTMLAttributes<HTMLDivElement>;
   popoverRef?: React.Ref<HTMLDivElement>;
+  /**
+   * Read live at the moment of Escape or an outside pointer down, not baked in
+   * at render time: false skips the dismiss (no `stopPropagation` either), so
+   * a dialog opened from inside this popover, now covering it, gets the event
+   * undisturbed instead of the popover closing under it (the desktop
+   * BottomSheet dropdown's own layer-stack token; `isTopLayer` from
+   * `./layerStack`). Omit it to dismiss unconditionally, as every other caller does.
+   */
+  dismissable?: () => boolean;
 }
 
 interface Pos {
@@ -120,15 +129,24 @@ function usePlacement(open: boolean, ref: React.RefObject<HTMLDivElement | null>
 }
 
 /** Outside pointer down and Escape call onClose; nested popovers keep their parents open. */
-function useDismiss(open: boolean, ref: React.RefObject<HTMLDivElement | null>, anchorRef: PopoverProps['anchorRef'], onClose?: () => void) {
+function useDismiss(
+  open: boolean,
+  ref: React.RefObject<HTMLDivElement | null>,
+  anchorRef: PopoverProps['anchorRef'],
+  onClose?: () => void,
+  dismissable?: () => boolean,
+) {
   const closeRef = React.useRef(onClose);
   closeRef.current = onClose;
+  const dismissableRef = React.useRef(dismissable);
+  dismissableRef.current = dismissable;
   React.useEffect(() => {
     if (!open) return undefined;
     const seq = ++lastSeq;
     openPopovers.push(seq);
     if (ref.current) ref.current.dataset.popSeq = String(seq);
     const onDown = (e: PointerEvent) => {
+      if (dismissableRef.current && !dismissableRef.current()) return;
       const t = e.target as Node;
       if (anchorRef.current?.contains(t) || ref.current?.contains(t)) return;
       if (!isInsideNewerPopover(seq, popoverSeqOf(e.target))) closeRef.current?.();
@@ -136,6 +154,10 @@ function useDismiss(open: boolean, ref: React.RefObject<HTMLDivElement | null>, 
     const onKey = (e: KeyboardEvent) => {
       // Keep an enclosing Modal, Drawer, BottomSheet or older popover open: only the newest popover closes.
       if (e.key !== 'Escape' || !closeRef.current || !isNewestPopover(openPopovers, seq)) return;
+      // Read live, at the moment of the key press: a dialog opened from inside
+      // this popover and now covering it (e.g. the BottomSheet dropdown's own
+      // layer token no longer on top) keeps the event undisturbed instead.
+      if (dismissableRef.current && !dismissableRef.current()) return;
       e.stopPropagation();
       closeRef.current();
     };
@@ -163,10 +185,11 @@ export function Popover({
   role,
   popoverProps,
   popoverRef,
+  dismissable,
 }: PopoverProps) {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const pos = usePlacement(open, ref, { anchorRef, placement, offset, matchWidth });
-  useDismiss(open, ref, anchorRef, onClose);
+  useDismiss(open, ref, anchorRef, onClose, dismissable);
   if (!open || typeof document === 'undefined') return null;
   const arrowVar = arrow ? ({ '--ui-pop-arrow-x': `${pos.arrowX}px` } as React.CSSProperties) : undefined;
   return createPortal(

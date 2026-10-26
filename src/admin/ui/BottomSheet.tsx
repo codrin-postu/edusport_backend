@@ -210,7 +210,11 @@ function useDropdownFocus(open: boolean, anchorRef: Ref<HTMLElement>, panelRef: 
 /**
  * Same layer stack as Modal and Drawer: pushed while open, so a dialog
  * opened from the dropdown becomes the newer, topmost layer and this one
- * stops being `isTopLayer`.
+ * stops being `isTopLayer`. The reverse case (the dropdown opened from
+ * inside a Modal or Drawer) needs no extra code: Modal and Drawer already
+ * read `isTopLayer(their own token)` live inside their own keydown listener
+ * (`Modal.tsx`, `Drawer.tsx`), so once this token is pushed on top their Tab
+ * trap already yields Tab to the dropdown by itself.
  */
 function useDropdownLayer(open: boolean, token: symbol): void {
   React.useEffect(() => {
@@ -226,17 +230,17 @@ function SheetDropdown(p: SheetProps & { anchorRef: Ref<HTMLElement> }) {
   useDropdownFocus(p.open, p.anchorRef, panelRef, p.initialFocusRef);
   useDropdownLayer(p.open, token);
   const label = p.ariaLabel ?? (typeof p.title === 'string' ? p.title : undefined);
-  // Only the top layer closes on Escape or an outside click; while open but not
-  // top, onClose is undefined so Popover neither swallows nor acts on them,
-  // leaving them for the dialog now covering it. dismissable=false still
-  // swallows (a defined, no-op handler) instead of leaking to an enclosing
-  // Modal or Drawer.
-  const onClose = isTopLayer(token) ? () => p.dismissable && p.onClose() : undefined;
+  // dismissable is read live, at the moment of Escape or an outside pointer
+  // down (not baked in at render time, which can go stale across the opening
+  // of a covering dialog): while this token is not the top layer, Popover
+  // neither swallows nor acts on them, leaving them for the dialog. Once it
+  // acts, the BottomSheet's own dismissable prop still gates the real close.
   return (
     <Popover
       open={p.open}
       anchorRef={p.anchorRef}
-      onClose={onClose}
+      onClose={() => p.dismissable && p.onClose()}
+      dismissable={() => isTopLayer(token)}
       arrow
       offset={10}
       role="dialog"
