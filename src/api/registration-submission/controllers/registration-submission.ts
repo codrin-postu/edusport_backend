@@ -1,11 +1,12 @@
 import { factories } from '@strapi/strapi';
+import type { Modules } from '@strapi/strapi';
 // Column logic lives in src/sheets/matrix.ts so the CSV export and the Google
 // Sheets sync can never drift apart — they build the same header from it.
 import { buildInscrieriMatrix } from '../../../sheets/matrix';
 import type { RowLike as SubmissionLike } from '../../../sheets/matrix';
 import { resyncForm } from '../../../sheets/sync';
 import { buildColClause, parseColFilters } from '../../../utils/submission-filters';
-import { listSort, phase3Clauses, quickSearchClause } from '../list-search';
+import { ageSortedPage, isAgeSort, listSort, phase3Clauses, quickSearchClause, type PageQuery } from '../list-search';
 import { todayInBucharest } from '../../../club/birth-date';
 import { publicListRow, registrationSchools } from '../../../club/registration-list';
 import { findCurrentSeason } from '../../../club/current-season';
@@ -126,14 +127,20 @@ function clampPage(v: unknown): number {
   return Number.isFinite(n) && n >= 1 ? n : 1;
 }
 
+/** One page in the chosen order; under "Vârstă" the rows without a parsed birth date come last (ageSortedPage). */
+async function findPage(filters: Record<string, unknown>, sortParam: unknown, start: number, limit: number, withRelations = false) {
+  const relations: Modules.Documents.Params.Populate.Any<typeof UID> = { athlete: { fields: ['documentId', 'name'] }, section: { fields: ['documentId', 'name'] } };
+  const populate = withRelations ? relations : undefined;
+  const find = (q: PageQuery) => strapi.documents(UID).findMany({ ...q, populate });
+  const q = { filters, sort: listSort(sortParam), start, limit };
+  if (!isAgeSort(sortParam)) return find(q);
+  return ageSortedPage({ count: (f) => strapi.documents(UID).count({ filters: f }), find }, q);
+}
+
 /** Fetch every row matching the current season/archived/filter query (for export). */
 async function fetchFiltered(query: Record<string, any>): Promise<SubmissionLike[]> {
   const activeSeason = await getActiveSeason();
-  const docs = await strapi.documents(UID).findMany({
-    filters: buildListFilters(query, activeSeason),
-    sort: listSort(query.sort),
-    limit: 5000,
-  });
+  const docs = await findPage(buildListFilters(query, activeSeason), query.sort, 0, 5000);
   return docs as unknown as SubmissionLike[];
 }
 
@@ -253,17 +260,13 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     const query = ctx.query as Record<string, any>;
     const activeSeason = await getActiveSeason();
     const filters = buildListFilters(query, activeSeason);
-    const sort = listSort(query.sort);
     const pageSize = clampPageSize(query.pageSize);
     const page = clampPage(query.page);
     const start = (page - 1) * pageSize;
     const today = todayInBucharest();
 
     const [data, total, tabs] = await Promise.all([
-      strapi.documents(UID).findMany({
-        filters, sort, start, limit: pageSize,
-        populate: { athlete: { fields: ['documentId', 'name'] }, section: { fields: ['documentId', 'name'] } },
-      }),
+      findPage(filters, query.sort, start, pageSize, true),
       strapi.documents(UID).count({ filters }),
       schoolTabsFor(query, activeSeason),
     ]);

@@ -46,3 +46,31 @@ export function schoolClause(v: unknown): Record<string, unknown> | null {
 export function phase3Clauses(query: Record<string, unknown>): Record<string, unknown>[] {
   return [existingClause(query.existing), schoolClause(query.school)].filter((c): c is Record<string, unknown> => c !== null);
 }
+
+export const isAgeSort = (v: unknown): boolean => text(v) === 'age-asc' || text(v) === 'age-desc';
+
+export type PageSlice = { start: number; limit: number };
+
+/** Which part of the dated and of the undated rows one page holds, the undated after every dated row. */
+export function agePageSlices(datedTotal: number, start: number, limit: number): { dated: PageSlice | null; undated: PageSlice | null } {
+  const datedLimit = Math.max(0, Math.min(limit, datedTotal - start));
+  const undatedLimit = limit - datedLimit;
+  return {
+    dated: datedLimit > 0 ? { start, limit: datedLimit } : null,
+    undated: undatedLimit > 0 ? { start: Math.max(0, start - datedTotal), limit: undatedLimit } : null,
+  };
+}
+
+type Filters = Record<string, unknown>;
+export type PageQuery = { filters: Filters; sort: Record<string, 'asc' | 'desc'>; start: number; limit: number };
+export type AgePageDeps<T> = { count: (filters: Filters) => Promise<number>; find: (q: PageQuery) => Promise<T[]> };
+
+/** "Vârstă" in either direction: rows without a parsed birth date (no age) come last, newest first. */
+export async function ageSortedPage<T>(deps: AgePageDeps<T>, q: PageQuery): Promise<T[]> {
+  const dated = { $and: [q.filters, { childBirthDateParsed: { $notNull: true } }] };
+  const undated = { $and: [q.filters, { childBirthDateParsed: { $null: true } }] };
+  const slices = agePageSlices(await deps.count(dated), q.start, q.limit);
+  const head = slices.dated ? await deps.find({ filters: dated, sort: q.sort, ...slices.dated }) : [];
+  const tail = slices.undated ? await deps.find({ filters: undated, sort: { submittedAt: 'desc' }, ...slices.undated }) : [];
+  return [...head, ...tail];
+}
