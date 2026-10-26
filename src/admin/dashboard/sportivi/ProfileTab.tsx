@@ -9,7 +9,7 @@ import { ProfileEditor } from './ProfileEditor';
 
 type Props = { record: AthleteRecord; api: SportiviApi; onRecord: (record: AthleteRecord) => void; active: boolean };
 
-/** Profil public (spec 6.3): today's whole profile editor, or "Creează profil public" (page off, 3b Q3). */
+/** Profil public (spec 6.3): today's whole profile editor, or "Creează profil public" (page off, 3b Q3); the note under it as in prototype v5. */
 export function ProfileTab({ record, api, onRecord, active }: Props) {
   const [busy, setBusy] = React.useState(false);
   const create = async () => {
@@ -24,14 +24,13 @@ export function ProfileTab({ record, api, onRecord, active }: Props) {
   };
   return (
     <>
-      <div className="ui-body">
-        <p className="ui-hint">{RECORD_COPY.profile.note}</p>
-        {!record.profile && (
+      {!record.profile && (
+        <div className="ui-body">
           <div>
             <Button onClick={() => void create()} loading={busy}>{RECORD_COPY.profile.create}</Button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
       {record.profile && (
         <ProfileEditor
           key={record.profile.documentId}
@@ -43,6 +42,9 @@ export function ProfileTab({ record, api, onRecord, active }: Props) {
           active={active}
         />
       )}
+      <div className="ui-body">
+        <p className="ui-hint">{RECORD_COPY.profile.note}</p>
+      </div>
     </>
   );
 }

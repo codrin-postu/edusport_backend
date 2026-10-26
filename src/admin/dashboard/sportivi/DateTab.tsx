@@ -85,8 +85,7 @@ function DateView({ record, onEdit }: { record: AthleteRecord; onEdit: () => voi
             <span>{row.label}</span>
             {i === 0 && <button type="button" id={EDIT_ID} className="spv-link" onClick={onEdit}>{RECORD_COPY.edit}</button>}
           </dt>
-          {row.missing && <dd className="spv-missing">{RECORD_COPY.missing}</dd>}
-          <dd className="spv-value">{row.value}</dd>
+          <dd className="spv-value">{row.missing && <span className="spv-missing">{RECORD_COPY.missing}</span>}{row.value}</dd>
         </div>
       ))}
     </dl>

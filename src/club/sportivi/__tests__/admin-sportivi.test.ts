@@ -67,12 +67,23 @@ describe('list screens (Task 6)', () => {
     expect(hook).toContain('loaded.current = req.loaded;');
   });
 
-  it('"date lipsă" and the card badge carry the triangle warning icon; the missing list reaches screen readers', () => {
+  it('"date lipsă" with the triangle warning icon, the same marker on rows and phone cards; the missing list reaches screen readers', () => {
     expect(read('../ui/icons.tsx')).toMatch(/export const IconWarning[\s\S]*M7 1\.6L12\.6 12\.2H1\.4z/);
-    const table = read('sportivi/AthleteTable.tsx');
-    expect(table).toContain('<IconWarning size={12} />');
-    expect(table).toContain('{tip && <span className="ui-sr">{tip}</span>}');
-    expect(read('sportivi/AthleteCards.tsx')).toContain('<IconWarning size={11} />');
+    const marker = read('sportivi/MissingMarker.tsx');
+    expect(marker).toContain('<IconWarning size={12} />');
+    expect(marker).toContain('LIST_COPY.incompleteMarker');
+    expect(marker).toContain('{tip && <span className="ui-sr">{tip}</span>}');
+    expect(read('sportivi/AthleteTable.tsx')).toContain('<MissingMarker row={row} />');
+    expect(read('sportivi/AthleteCards.tsx')).toContain('<MissingMarker row={r} />');
+  });
+
+  it('toolbar on one row with the search magnifier; chips of the chosen filters with the match count (filters-v3)', () => {
+    const bar = read('sportivi/ListToolbar.tsx');
+    expect(bar).toContain('<IconSearch />');
+    expect(bar).toContain('withoutChip(state, chip)');
+    expect(bar).toContain('matchingText(page.pagination.total)');
+    expect(bar).toContain('incompleteShown(list.state)');
+    expect(read('sportivi/SportiviList.tsx')).toContain('<ActiveFilters list={list} phone={phone} />');
   });
 
   it('header and toolbar as spec 5: no Export, no Coloane, sort in the sheet on phones', () => {
@@ -194,9 +205,9 @@ describe('Profil public (Task 8)', () => {
   const editor = read('sportivi/ProfileEditor.tsx');
 
   it('name read-only from the athlete, slug read-only, nothing of them saved', () => {
-    expect(editor).toContain('<Input value={athleteName} readOnly />');
+    expect(editor).toContain('<Input value={athleteName} readOnly disabled />');
     expect(editor).toContain('hint={RECORD_COPY.profile.nameHint}');
-    expect(editor).toContain('<Input value={v.slug} readOnly />');
+    expect(editor).toContain('<Input value={v.slug} readOnly disabled />');
     const body = editor.slice(editor.indexOf('function buildBody'), editor.indexOf('// ---- skate-results'));
     expect(body).toContain('skateResultsSlug');
     expect(body).not.toMatch(/\bname:|\bslug:|showPublicPage:/);
@@ -209,9 +220,19 @@ describe('Profil public (Task 8)', () => {
   });
 
   it('every section of today stays', () => {
-    for (const s of ['Identitate', 'Poveste', 'Echipă și discipline', 'Mișcări și hobby-uri', 'Obiectiv de carieră', 'Rezultate competiții', 'Galerie', 'Programe pe sezon', 'Fotografie', 'Activ din', 'Vizibilitate pe site']) {
+    for (const s of ['Identitate', 'Poveste', 'Echipă și discipline', 'Mișcări și hobby-uri', 'Obiectiv de carieră', 'Rezultate competiții', 'Galerie', 'Programe pe sezon', 'Fotografie', '<ActiveSinceField', 'Vizibilitate pe site']) {
       expect(editor).toContain(s);
     }
+  });
+
+  it('"Activ din" with the zi / lună / an selects, never the native date input; cancel reads "Anulează" as in Date', () => {
+    const field = read('sportivi/ActiveSinceField.tsx');
+    expect(field).toContain("const LABEL = 'Activ din';");
+    expect(field).toContain('<BirthDatePicker');
+    expect(editor).not.toContain('DateInput');
+    expect(editor).toContain('discardLabel={RECORD_COPY.cancel}');
+    expect(editor).toContain("{ label: RECORD_COPY.cancel, variant: 'secondary'");
+    expect(editor).not.toContain('Renunță');
   });
 
   it('skate-results lines joined by commas, no middle dot', () => {

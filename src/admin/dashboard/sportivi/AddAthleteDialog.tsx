@@ -15,10 +15,10 @@ function AddForm({ form, errors, onChange }: FormProps) {
   const set = (patch: Partial<EditDraft>) => onChange({ ...form, ...patch });
   return (
     <div className="spv-form">
-      <Field label={ADD_COPY.name} required error={errors.name}>
+      <Field label={ADD_COPY.name} required error={errors.name} className="spv-wide">
         <Input value={form.name} onChange={(e) => set({ name: e.target.value })} />
       </Field>
-      <Field label={ADD_COPY.birth} required error={errors.birthDate}>
+      <Field label={ADD_COPY.birth} required error={errors.birthDate} className="spv-wide">
         <BirthDatePicker value={form.birth} onChange={(birth) => set({ birth })} />
       </Field>
       <Field label={ADD_COPY.contact} hint={ADD_COPY.optional}>
