@@ -102,6 +102,19 @@ function RecordState({ failed }: { failed: boolean }) {
 
 type MergeTarget = { otherId: string | null };
 
+type ShellProps = { phone: boolean; title: string; record: AthleteRecord | null; actions: React.ReactNode; body: React.ReactNode; onClose: () => void };
+
+/** Desktop window with back link, or a full-height bottom sheet on phones (3b Q7). */
+function RecordShell({ phone, title, record, actions, body, onClose }: ShellProps) {
+  if (phone) return <PhoneShell title={title} onClose={onClose}>{body}</PhoneShell>;
+  return (
+    <Window>
+      <PageHeader back={{ to: SPORTIVI_PATH, label: RECORD_COPY.back }} title={title} subtitle={record ? recordSubline(record) : undefined} actions={actions} />
+      {body}
+    </Window>
+  );
+}
+
 /** The athlete record (spec 6): a full page on desktop, a full-height bottom sheet on phones (3b Q7). */
 export function AthleteRecordPage({ documentId }: { documentId: string }) {
   const api = useSportiviApi();
@@ -121,18 +134,10 @@ export function AthleteRecordPage({ documentId }: { documentId: string }) {
   const body = record
     ? <RecordContent record={record} api={api} loaded={loaded} head={head} onMerge={(otherId) => setMerge({ otherId })} />
     : <RecordState failed={loaded.failed} />;
-  const title = record?.fields.name ?? '';
   return (
     <AdminPage>
       <style>{SPORTIVI_CSS}</style>
-      {phone ? (
-        <PhoneShell title={title} onClose={() => navigate(SPORTIVI_PATH)}>{body}</PhoneShell>
-      ) : (
-        <Window>
-          <PageHeader back={{ to: SPORTIVI_PATH, label: RECORD_COPY.back }} title={title} subtitle={record ? recordSubline(record) : undefined} actions={actions} />
-          {body}
-        </Window>
-      )}
+      <RecordShell phone={phone} title={record?.fields.name ?? ''} record={record} actions={actions} body={body} onClose={() => navigate(SPORTIVI_PATH)} />
       {record && merge && <MergeDialog record={record} otherId={merge.otherId} api={api} onClose={() => setMerge(null)} onMerged={merged} />}
     </AdminPage>
   );
