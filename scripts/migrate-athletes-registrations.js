@@ -162,6 +162,13 @@ async function requirePreviousSteps(ctx) {
   if (blocked) throw new StepRefused(`--step=${blocked.step} still has ${blocked.left} item(s) to write: run it with --apply first, then this step`);
 }
 
+/** Strapi's post-commit events still read through the pool; destroying it under them exits 1 after a success. */
+async function shutDown(app) {
+  const idle = await lib('deploy/pool-idle').waitForIdlePool(app.db.connection.client.pool);
+  if (!idle) console.error('database connections still busy after 5 s; shutting down anyway');
+  await app.destroy();
+}
+
 const STEPS = {
   'athlete-name': stepAthleteName,
   'profile-athletes': stepProfileAthletes,
@@ -185,10 +192,10 @@ async function main() {
     await step(ctx);
   } catch (e) {
     console.error(e instanceof StepRefused ? `refused, nothing written: ${e.message}` : e);
-    await app.destroy();
+    await shutDown(app);
     process.exit(1);
   }
-  await app.destroy();
+  await shutDown(app);
   process.exit(0);
 }
 
