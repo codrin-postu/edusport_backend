@@ -126,7 +126,7 @@ describe('panel (spec 3.3, 3.5)', () => {
   it('Abonament tab: the wish in the form words, read-only rows', () => {
     expect(values(abonamentTabRows(script))).toEqual([
       ['Dorește să fie membru', 'Da, doresc să devin membru'],
-      ['La primul modul', 'Abonament 8 ședințe grup, 590 RON'],
+      ['La primul modul', 'Abonament 8 ședințe grup'],
       ['De unde ați aflat', 'Recomandare'],
       ['Acord GDPR', 'Da'],
       ['Acord Regulament', 'Da'],

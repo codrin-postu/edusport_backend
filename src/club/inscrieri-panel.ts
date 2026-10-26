@@ -3,7 +3,7 @@ import { canConfirm, type RegistrationStatus } from './confirm/plan';
 import { REGISTRATION_FIELD_LABELS } from './history-text';
 import { INSCRIERI_PENDING_COPY, LIST_COPY, MATCH_COPY, PANEL_COPY } from './inscrieri-copy';
 import { MEMBERSHIP_OPTIONS } from './registration-form-options';
-import { isScriptFormRegistration, registrationDocumentKinds, relationshipText, sourceText, subscriptionText } from './registration-panel';
+import { isScriptFormRegistration, registrationDocumentKinds, relationshipText, sourceText } from './registration-panel';
 
 /**
  * The Înscrieri list and panel (spec 3.1 to 3.6) as data: cells, tabs, rows, footer, menu, links and route urls.
@@ -170,13 +170,20 @@ export function dateTabRows(row: InscriereRow): TabRow[] {
   return SCRIPT_DATE_KEYS.map((key) => scriptRow(row, key));
 }
 
+/** "La primul modul" (Abonament tab): the subscription choice's name only (Needs decision 4, option B). */
+function subscriptionNameText(choice: unknown): string {
+  if (!choice || typeof choice !== 'object') return '';
+  const { priceItemName } = choice as { priceItemName?: unknown };
+  return typeof priceItemName === 'string' ? priceItemName.trim() : '';
+}
+
 /** Abonament tab (spec 3.3), read-only. */
 export function abonamentTabRows(row: InscriereRow): TabRow[] {
   if (!isScriptFormRegistration(row)) return LEGACY_ABONAMENT_KEYS.map((key) => legacyRow(row, key));
   const a = PANEL_COPY.abonament;
   return [
     { key: 'membershipAnswer', label: REGISTRATION_FIELD_LABELS.membershipAnswer, value: wishLabel(row.membershipAnswer) },
-    { key: 'subscriptionChoice', label: a.firstModule, value: subscriptionText(row.subscriptionChoice) },
+    { key: 'subscriptionChoice', label: a.firstModule, value: subscriptionNameText(row.subscriptionChoice) },
     { key: 'source', label: a.source, value: sourceText(row) },
     { key: 'gdprConsent', label: a.gdpr, value: yesNo(row.gdprConsent) },
     { key: 'regulationsConsent', label: a.regulations, value: yesNo(row.regulationsConsent) },
