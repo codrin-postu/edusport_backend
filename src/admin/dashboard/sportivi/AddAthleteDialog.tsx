@@ -39,8 +39,10 @@ function addFooter(withSubmit: boolean, busy: boolean, onClose: () => void, subm
   return withSubmit ? <>{cancel}<Button onClick={submit} loading={busy}>{ADD_COPY.submit}</Button></> : cancel;
 }
 
-/** "Adaugă sportiv" (spec 6.7): search first; the "Sportiv nou" form only when nothing is found. */
-export function AddAthleteDialog({ api, onClose }: { api: SportiviApi; onClose: () => void }) {
+type AddProps = { api: SportiviApi; season: string | null; onClose: () => void };
+
+/** "Adaugă sportiv" (spec 6.7): search first; the "Sportiv nou" form only when nothing is found. A found athlete opens in the list's season. */
+export function AddAthleteDialog({ api, season, onClose }: AddProps) {
   const navigate = useNavigate();
   const [form, setForm] = React.useState<EditDraft | null>(null);
   const [errors, setErrors] = React.useState<DraftErrors>({});
@@ -65,7 +67,7 @@ export function AddAthleteDialog({ api, onClose }: { api: SportiviApi; onClose: 
       {form ? (
         <AddForm form={form} errors={errors} onChange={setForm} />
       ) : (
-        <AthleteSearch api={api} inputRef={searchRef} onPick={(c) => open(c.documentId)} onNew={(text) => setForm(newAthleteDraft(text))} />
+        <AthleteSearch api={api} inputRef={searchRef} onPick={(c) => navigate(athleteRecordTo(c.documentId), { state: { season } })} onNew={(text) => setForm(newAthleteDraft(text))} />
       )}
     </BottomSheet>
   );
