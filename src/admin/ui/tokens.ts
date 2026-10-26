@@ -534,6 +534,8 @@ export const radius = {
   lg: '8px',
   sheet: '10px 10px 0 0',
   handle: '2px',
+  /** Radio mark (plan 3-1, Needs decision 1: RESOLVED, square, same as Checkbox). */
+  radio: '4px',
 } as const;
 
 /**
