@@ -9,6 +9,7 @@ import { useSportiviApi, type SportiviApi } from './api';
 import { DateTab } from './DateTab';
 import { DocumentsTab } from './DocumentsTab';
 import { HistoryTab } from './HistoryTab';
+import { ProfileTab } from './ProfileTab';
 import { FooterButtons, RecordFooterContext, type FooterAction } from './recordFooter';
 import { SPORTIVI_CSS } from './styles';
 
@@ -45,15 +46,26 @@ type ContentProps = { record: AthleteRecord; api: SportiviApi; loaded: Loaded; h
 
 function RecordContent({ record, api, loaded, head }: ContentProps) {
   const [tab, setTab] = React.useState<RecordTab>('date');
+  const [seen, setSeen] = React.useState<RecordTab[]>(['date']);
   const tabs = recordTabs(record);
+  const show = (id: string) => {
+    const next = id as RecordTab;
+    setTab(next);
+    setSeen((s) => (s.includes(next) ? s : [...s, next]));
+  };
   return (
     <>
       {head}
-      <Tabs items={tabs} value={tab} onChange={(t) => setTab(t as RecordTab)} label={RECORD_COPY.tabsLabel} panelId="spv-panel" />
+      <Tabs items={tabs} value={tab} onChange={show} label={RECORD_COPY.tabsLabel} panelId="spv-panel" />
       <div role="tabpanel" id="spv-panel" aria-label={tabs.find((t) => t.id === tab)?.label}>
         <div hidden={tab !== 'date'}>
           <DateTab record={record} api={api} onSaved={loaded.reload} active={tab === 'date'} />
         </div>
+        {seen.includes('profil') && (
+          <div hidden={tab !== 'profil'}>
+            <ProfileTab record={record} api={api} onRecord={() => void loaded.reload()} active={tab === 'profil'} />
+          </div>
+        )}
         {tab === 'documente' && <DocumentsTab record={record} />}
         {tab === 'istoric' && <HistoryTab api={api} documentId={record.documentId} />}
       </div>
