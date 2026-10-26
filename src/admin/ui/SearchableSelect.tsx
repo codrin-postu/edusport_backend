@@ -4,6 +4,7 @@ import { useFieldControl, type FieldAria } from './Field';
 import { Popover } from './Popover';
 import { Spinner } from './Spinner';
 import { IconChevronDown, IconClose, IconPlus } from './icons';
+import { groupHeaderAt } from '../../club/ui-select';
 
 export interface ComboOption {
   value: string;
@@ -11,6 +12,12 @@ export interface ComboOption {
   /** Second, muted line (club, year, email). */
   hint?: string;
   disabled?: boolean;
+  /**
+   * Header the option is listed under (e.g. the section name of a group:
+   * "Școala de patinaj", then "Club"). Options of one group must be next to
+   * each other; a header shows before the first option of each group.
+   */
+  group?: string;
 }
 
 export interface SearchableSelectProps {
@@ -245,20 +252,26 @@ export function SearchableSelect({
       </span>
       <Popover open={open && !disabled} anchorRef={wrapRef} onClose={close} matchWidth className="ui-list" id={listId} role="listbox" popoverProps={{ onMouseDown: (e) => e.preventDefault() }}>
         {shown.map((o, i) => (
-          <div
-            key={o.value}
-            id={`${listId}-${i}`}
-            role="option"
-            aria-selected={o.value === value}
-            aria-disabled={o.disabled || undefined}
-            className="ui-opt"
-            data-active={i === active || undefined}
-            onMouseEnter={() => setActive(i)}
-            onClick={() => choose(o)}
-          >
-            <span>{o.label}</span>
-            {o.hint && <span className="ui-opt-hint">{o.hint}</span>}
-          </div>
+          <React.Fragment key={o.value}>
+            {groupHeaderAt(shown, i) !== null && (
+              <div className="ui-opt-group" role="presentation">
+                {o.group}
+              </div>
+            )}
+            <div
+              id={`${listId}-${i}`}
+              role="option"
+              aria-selected={o.value === value}
+              aria-disabled={o.disabled || undefined}
+              className="ui-opt"
+              data-active={i === active || undefined}
+              onMouseEnter={() => setActive(i)}
+              onClick={() => choose(o)}
+            >
+              <span>{o.label}</span>
+              {o.hint && <span className="ui-opt-hint">{o.hint}</span>}
+            </div>
+          </React.Fragment>
         ))}
         {canCreate && (
           <div
