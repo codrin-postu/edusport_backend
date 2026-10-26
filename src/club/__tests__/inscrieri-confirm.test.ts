@@ -8,8 +8,9 @@ import {
   contextAthleteId,
   errorStatus,
   groupChoices,
+  highlightParts,
   initialWindow,
-  intentLine,
+  intentParts,
   mainNowLine,
   newAthleteHint,
   seasonHeading,
@@ -135,12 +136,13 @@ describe('gate and blocked states (spec 4.7)', () => {
     expect(confirmGate(s, ctx({ blocked: 'not-confirmable' }), false).notice).toBe('Datele s-au schimbat. Reîncarcă pagina.');
   });
 
-  it('disabled while loading, without a context or while searching', () => {
+  it('disabled while loading or without a context; the search keeps the chosen athlete (proto v5)', () => {
     const s = initialWindow(view());
     expect(confirmGate(s, ctx(), false).disabled).toBe(false);
     expect(confirmGate(s, ctx(), true).disabled).toBe(true);
     expect(confirmGate(s, null, false).disabled).toBe(true);
-    expect(confirmGate(run(s, { type: 'openSearch' }), ctx(), false).disabled).toBe(true);
+    expect(confirmGate(run(s, { type: 'openSearch' }), ctx(), false).disabled).toBe(false);
+    expect(confirmGate(run(initialWindow(view({ preselect: null })), { type: 'openSearch' }), ctx(), false).disabled).toBe(true);
   });
 });
 
@@ -158,8 +160,9 @@ describe('season, groups, A.C.S. and intent lines (spec 4.3, 4.4)', () => {
     expect(seasonHeading(ctx({ season: { label: null, running: false, endedText: null } }), 'X')).toBeNull();
   });
 
-  it('groups: the school first, then Club, each option under its section', () => {
+  it('groups: "Fără grupă deocamdată" first, then the school, then Club, each option under its section', () => {
     expect(groupChoices(ctx().groups)).toEqual([
+      { value: '', label: 'Fără grupă deocamdată' },
       { value: 'g-pp', label: 'Primii Pași', group: 'Școala de Patinaj - AFI Cotroceni' },
       { value: 'g-in', label: 'Începători', group: 'Școala de Patinaj - AFI Cotroceni' },
       { value: 'g-pro', label: 'Profesioniști', group: 'Club' },
@@ -178,10 +181,23 @@ describe('season, groups, A.C.S. and intent lines (spec 4.3, 4.4)', () => {
   it('main group now, intent, new athlete hint', () => {
     expect(mainNowLine(ctx())).toBeNull();
     expect(mainNowLine(ctx({ mainGroupNow: { name: 'Profesioniști', sectionName: 'Club' } }))).toBe('Grupă principală acum: Profesioniști (Club)');
-    expect(intentLine(ctx())).toBe('Abonament 8 ședințe grup, doar intenția părintelui; abonamentul se adaugă când e cumpărat');
-    expect(intentLine(ctx({ subscriptionIntent: null }))).toBeNull();
+    expect(intentParts(ctx())).toEqual({ item: 'Abonament 8 ședințe grup', note: ', doar intenția părintelui; abonamentul se adaugă când e cumpărat' });
+    expect(intentParts(ctx({ subscriptionIntent: null }))).toBeNull();
     expect(newAthleteHint(ctx(), true)).toBe('Se creează o fișă nouă: Maria Dumitrescu, 14.03.2014');
     expect(newAthleteHint(ctx(), false)).toBe('Se creează o fișă nouă: Maria Dumitrescu');
+  });
+});
+
+describe('search rows mark the typed text (proto v5)', () => {
+  it('ignores case and diacritics and keeps the name as written', () => {
+    expect(highlightParts('Maria Dumitrescu', 'dumit')).toEqual({ before: 'Maria ', match: 'Dumit', after: 'rescu' });
+    expect(highlightParts('Ștefan Tănase', 'stefan t')).toEqual({ before: '', match: 'Ștefan T', after: 'ănase' });
+    expect(highlightParts('Ana Ilie', ' ilie ')).toEqual({ before: 'Ana ', match: 'Ilie', after: '' });
+  });
+
+  it('nothing to mark without text or without a match', () => {
+    expect(highlightParts('Maria Dumitrescu', '  ')).toBeNull();
+    expect(highlightParts('Maria Dumitrescu', '0722')).toBeNull();
   });
 });
 

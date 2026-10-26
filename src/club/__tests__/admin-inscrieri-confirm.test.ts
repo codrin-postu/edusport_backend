@@ -15,7 +15,8 @@ const season = read('confirm', 'SeasonPart.tsx');
 it('the panel opens the window once the match data is in', () => {
   expect(panel).toContain('onConfirm={data.match ? () => setConfirming(true) : undefined}');
   expect(panel).toContain('{confirming && data.match && (');
-  expect(panel).toContain('onDone={api.refetch}');
+  expect(panel).toContain('onDone={afterConfirm}');
+  expect(panel).toMatch(/const afterConfirm = \(\) => \{\s+setTab\('istoric'\);\s+api\.refetch\(\);/);
 });
 
 it('a Modal on desktop, a full-height bottom sheet on phones (spec 4.8)', () => {
@@ -42,10 +43,13 @@ it('choice cards, compare with ticks, search in place, "Vezi fișa" in the same 
   expect(search).toContain('placeholder={CONFIRM_COPY.searchPlaceholder}');
   expect(search).toContain('{CONFIRM_COPY.noResults(text)}');
   expect(search).toContain('{cardDetailLine(card)}');
+  expect(search).toContain('<mark className="ins-mark">{parts.match}</mark>');
+  expect(win).not.toContain("s.mode === 'search'");
 });
 
 it('groups under their section, main group line and tick, A.C.S. lines, season note, intent (spec 4.3, 4.4)', () => {
   expect(season).toContain('options={groupChoices(ctx.groups)}');
+  expect(season).toContain("onChange={(groupId) => dispatch({ type: 'group', groupId: groupId || null })}");
   expect(season).toContain('placeholder={CONFIRM_COPY.noGroup}');
   expect(season).toContain('label={CONFIRM_COPY.mainTick}');
   expect(season).toContain('{note ? <p className="ins-note">{note}</p> : <GroupAndAcs state={state} dispatch={dispatch} ctx={ctx} busy={busy} />}');

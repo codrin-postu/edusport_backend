@@ -34,7 +34,9 @@ export type WindowAction =
   | { type: 'main'; on: boolean };
 export type Gate = { disabled: boolean; hint: string | null; notice: string | null };
 export type ConfirmBody = { choice: Choice; athleteId: string | null; groupId: string | null; makeMain: boolean; updateFields: AthleteField[] };
-export type GroupChoice = { value: string; label: string; group: string };
+export type GroupChoice = { value: string; label: string; group?: string };
+export type IntentParts = { item: string; note: string };
+export type HighlightParts = { before: string; match: string; after: string };
 export type Failure = { text: string; close: boolean };
 
 export const CONFIRM_TOAST_MS = 8000;
@@ -84,7 +86,7 @@ const BLOCKED_TEXT: Record<NonNullable<ConfirmContext['blocked']>, string> = {
 export function confirmGate(s: WindowState, ctx: ConfirmContext | null, loading: boolean): Gate {
   if (ctx?.blocked) return { disabled: true, hint: null, notice: BLOCKED_TEXT[ctx.blocked] };
   if (s.choice === null) return { disabled: true, hint: CONFIRM_COPY.pickHint, notice: null };
-  return { disabled: loading || !ctx || s.mode === 'search', hint: null, notice: null };
+  return { disabled: loading || !ctx, hint: null, notice: null };
 }
 
 /** POST .../confirm body (plan 3-2 ConfirmRequest). An ended season sends no group (r3b c9). The
@@ -125,16 +127,45 @@ export function acsLines(ctx: ConfirmContext): { status: string; wish: string } 
   return { status: `${CONFIRM_COPY.acs(label)}: ${state}`, wish: `${CONFIRM_COPY.wish}: ${wishWord(ctx.acs.wish)}`.trimEnd() };
 }
 
-export const intentLine = (ctx: ConfirmContext): string | null => (ctx.subscriptionIntent ? CONFIRM_COPY.intent(ctx.subscriptionIntent) : null);
+/** The form's abonament, then the muted note after it (proto v5: item, grey hint). */
+export const intentParts = (ctx: ConfirmContext): IntentParts | null =>
+  ctx.subscriptionIntent ? { item: ctx.subscriptionIntent, note: CONFIRM_COPY.intent('') } : null;
 
 /** "Grupă principală acum: <grupă> (<secțiune>)", the athlete's current main group line, shown
  * only when there is one; the admin UI uses its presence to decide whether to offer the tick. */
 export const mainNowLine = (ctx: ConfirmContext): string | null =>
   ctx.mainGroupNow ? CONFIRM_COPY.mainNow(ctx.mainGroupNow.name, ctx.mainGroupNow.sectionName) : null;
 
-/** SearchableSelect options with section headers (plan 3-1 `ComboOption.group`), in the server's order. */
-export const groupChoices = (groups: GroupSection[]): GroupChoice[] =>
-  groups.flatMap((s) => s.groups.map((g) => ({ value: g.documentId, label: g.name, group: s.sectionName })));
+/** The "no group" option's value; the picker hands it back as null. */
+export const NO_GROUP = '';
+
+/** SearchableSelect options: "Fără grupă deocamdată" (proto v5 lists it), then the groups under their section
+ * headers (plan 3-1 `ComboOption.group`), in the server's order. */
+export const groupChoices = (groups: GroupSection[]): GroupChoice[] => [
+  { value: NO_GROUP, label: CONFIRM_COPY.noGroup },
+  ...groups.flatMap((s) => s.groups.map((g) => ({ value: g.documentId, label: g.name, group: s.sectionName }))),
+];
+
+const fold = (text: string): string => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+/** The text around the first match of the typed query, diacritics and case ignored (proto v5 search rows). */
+export function highlightParts(text: string, query: string): HighlightParts | null {
+  const wanted = fold(query.trim());
+  if (!wanted) return null;
+  const chars = [...text.normalize('NFC')];
+  const starts: number[] = [];
+  let folded = '';
+  for (const c of chars) {
+    starts.push(folded.length);
+    folded += fold(c);
+  }
+  starts.push(folded.length);
+  const at = folded.indexOf(wanted);
+  const from = at < 0 ? -1 : starts.indexOf(at);
+  const to = from < 0 ? -1 : starts.indexOf(at + wanted.length, from);
+  if (to < 0) return null;
+  return { before: chars.slice(0, from).join(''), match: chars.slice(from, to).join(''), after: chars.slice(to).join('') };
+}
 
 export function newAthleteHint(ctx: ConfirmContext, withBirthDate: boolean): string {
   const { name, birthDate } = ctx.newAthlete;

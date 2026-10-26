@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { Input, Loading } from '../../../ui';
+import { IconSearch } from '../../../ui/icons';
 import type { AthleteCard } from '../../../../club/athletes/api-types';
 import { CONFIRM_COPY, INSCRIERI_PENDING_COPY } from '../../../../club/inscrieri-copy';
-import { SEARCH_DEBOUNCE_MS, type WindowAction } from '../../../../club/inscrieri-confirm';
+import { SEARCH_DEBOUNCE_MS, highlightParts, type WindowAction } from '../../../../club/inscrieri-confirm';
 import { CLUB_URLS, cardDetailLine, initials } from '../../../../club/inscrieri-panel';
 import { dataOf, useStableClient } from '../useClient';
 
@@ -35,13 +36,26 @@ export function useAthleteSearch(registrationId: string | null, query: string): 
 
 type ListProps = { search: SearchState; query: string; onPick: (card: AthleteCard) => void; onNew: () => void };
 
-function ResultRow({ card, onPick }: { card: AthleteCard; onPick: (card: AthleteCard) => void }) {
+/** The name with the typed text marked (proto v5). */
+function MarkedName({ name, query }: { name: string; query: string }) {
+  const parts = highlightParts(name, query);
+  if (!parts) return <b>{name}</b>;
+  return (
+    <b>
+      {parts.before}
+      <mark className="ins-mark">{parts.match}</mark>
+      {parts.after}
+    </b>
+  );
+}
+
+function ResultRow({ card, query, onPick }: { card: AthleteCard; query: string; onPick: (card: AthleteCard) => void }) {
   return (
     <li>
       <button type="button" onClick={() => onPick(card)}>
         <span className="ins-av">{initials(card.name)}</span>
         <span className="ins-res-t">
-          <b>{card.name}</b>
+          <MarkedName name={card.name} query={query} />
           <span>{cardDetailLine(card)}</span>
         </span>
       </button>
@@ -59,7 +73,7 @@ export function AthleteResultList({ search, query, onPick, onNew }: ListProps) {
   return (
     <ul className="ins-res">
       {search.cards.map((card) => (
-        <ResultRow key={card.documentId} card={card} onPick={onPick} />
+        <ResultRow key={card.documentId} card={card} query={text} onPick={onPick} />
       ))}
       {none && <li className="ins-res-none">{CONFIRM_COPY.noResults(text)}</li>}
       {none && (
@@ -81,6 +95,7 @@ export function AthleteSearch({ registrationId, query, dispatch }: { registratio
   return (
     <div className="ins-search">
       <div className="ins-search-bar">
+        <IconSearch size={14} />
         <Input
           type="search"
           aria-label={CONFIRM_COPY.searchPlaceholder}

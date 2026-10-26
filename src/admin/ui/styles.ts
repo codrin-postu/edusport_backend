@@ -60,8 +60,8 @@ ${R} .ui-win{background:var(--theme-surface);border:1px solid var(--theme-border
 
 /* page header */
 ${R} .ui-ph{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--ui-space-4);padding:var(--ui-space-4) 18px;border-bottom:1px solid var(--theme-border)}
-${R} .ui-ph-back{display:inline-flex;align-items:center;gap:var(--ui-space-1);font-size:var(--ui-fs-caption);font-weight:600;color:var(--theme-text-muted);margin-bottom:var(--ui-space-1);background:none;border:none;padding:0;cursor:pointer;font-family:inherit}
-${R} .ui-ph-back:hover{color:var(--theme-primary);text-decoration:none}
+${R} .ui-ph-back{display:inline-flex;align-items:center;gap:var(--ui-space-1);font-size:var(--ui-fs-body);font-weight:600;color:var(--theme-primary);margin-bottom:6px;background:none;border:none;padding:0;cursor:pointer;font-family:inherit}
+${R} .ui-ph-back:hover{color:var(--theme-primary-hover);text-decoration:none}
 ${R} .ui-ph-title{margin:0;font-size:var(--ui-fs-page-title);font-weight:var(--ui-fw-page-title);line-height:var(--ui-lh-page-title);letter-spacing:var(--ui-ls-page-title);color:var(--theme-text)}
 ${R} .ui-ph-sub{margin:3px 0 0;font-size:var(--ui-fs-body-sm);color:var(--theme-text-muted)}
 ${R} .ui-ph-actions{display:flex;align-items:center;gap:var(--ui-space-2);flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
@@ -134,7 +134,7 @@ ${R} .ui-radios--card.ui-radios--column{grid-template-columns:minmax(0,1fr)}
 @media (max-width:640px){${R} .ui-radios--card{grid-template-columns:minmax(0,1fr)}}
 ${R} .ui-radio{display:inline-flex;align-items:flex-start;gap:8px;font-size:var(--ui-fs-body);color:var(--theme-text);cursor:pointer;user-select:none}
 ${R} .ui-radio input{appearance:none;-webkit-appearance:none;margin:2px 0 0;flex-shrink:0;width:16px;height:16px;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-radio);background:var(--theme-surface);display:inline-grid;place-content:center;cursor:pointer;transition:border-color var(--ui-motion-fast) var(--ui-easing)}
-${R} .ui-radio input::before{content:"";width:8px;height:8px;border-radius:var(--ui-radius-radio);background:var(--theme-primary);opacity:0}
+${R} .ui-radio input::before{content:"";width:8px;height:8px;border-radius:var(--ui-radius-none);background:var(--theme-primary);opacity:0}
 ${R} .ui-radio input:checked{border-color:var(--theme-primary)}
 ${R} .ui-radio input:checked::before{opacity:1}
 ${R} .ui-radio-text{display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -181,9 +181,9 @@ ${R} .ui-body{padding:var(--ui-space-4) 18px;display:flex;flex-direction:column;
    and the round status dot are the approved exception to the square rule. */
 ${SB}{position:fixed;z-index:9999;left:50%;bottom:16px;display:flex;align-items:center;gap:14px;padding:10px 12px 10px 16px;min-width:360px;max-width:720px;box-sizing:border-box;background:var(--theme-savebar-surface);color:var(--theme-savebar-text);border:1px solid var(--theme-savebar-line);border-radius:var(--ui-radius-savebar);box-shadow:var(--theme-savebar-shadow);font-family:var(--ui-font);font-size:14px;transform:translate(-50%,110%);opacity:0;transition:transform 140ms ease-in,opacity 140ms ease-in}
 ${SB}[data-visible="true"]{transform:translate(-50%,0);opacity:1;transition:transform 180ms cubic-bezier(0.2,0.8,0.2,1),opacity 180ms ease-out}
-${SB} .ui-savebar-icon{width:18px;height:18px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-radius:var(--ui-radius-savebar-dot);background:var(--theme-savebar-warning);color:var(--theme-savebar-on-icon);font-size:12px;font-weight:700;line-height:1}
-${SB} .ui-savebar-icon[data-tone="success"]{background:var(--theme-savebar-success)}
-${SB} .ui-savebar-icon[data-tone="danger"]{background:var(--theme-savebar-danger)}
+${SB} .ui-savebar-icon{width:18px;height:18px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;color:var(--theme-savebar-warning);line-height:1}
+${SB} .ui-savebar-icon[data-tone="success"]{color:var(--theme-savebar-success)}
+${SB} .ui-savebar-icon[data-tone="danger"]{color:var(--theme-savebar-danger)}
 ${SB} .ui-savebar-label{flex:1;min-width:0;color:var(--theme-savebar-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 ${SB} .ui-savebar-extra{display:flex;align-items:center;gap:8px;flex-shrink:0}
 ${SB} .ui-savebar-btn{display:inline-flex;align-items:center;gap:8px;flex-shrink:0;padding:6px 12px;border:1px solid var(--theme-savebar-line);border-radius:var(--ui-radius-md);background:transparent;color:var(--theme-savebar-text);font-family:inherit;font-size:13px;font-weight:500;line-height:normal;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s}
@@ -317,7 +317,7 @@ ${R} .ui-confirm-typed .ui-label{text-transform:none;letter-spacing:0;font-size:
 /* data table */
 ${R} .ui-table-bar{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--theme-border);flex-wrap:wrap}
 ${R} .ui-table-search{flex:1;min-width:200px;max-width:420px}
-${R} .ui-table-wrap{overflow-x:auto}
+${R} .ui-table-wrap{position:relative;overflow-x:auto}
 ${R} .ui-table{border-collapse:collapse;width:100%;font-size:var(--ui-fs-body)}
 ${R} .ui-table th{text-align:left;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--theme-text-muted);font-weight:700;padding:10px 14px;border-bottom:1px solid var(--theme-border);white-space:nowrap}
 ${R} .ui-table th button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
@@ -596,8 +596,8 @@ ${R} .ui-fnav-item b{display:block;font-size:var(--ui-fs-body);font-weight:700}
 ${R} .ui-fnav-item span{display:block;margin-top:1px;font-size:12px;color:var(--theme-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 ${R} .ui-fnav-item[data-set] span{color:var(--theme-primary);font-weight:600}
 ${R} .ui-fnav-item:hover{background:var(--theme-surface)}
-${R} .ui-fnav-item[aria-current="true"]{background:var(--theme-primary);color:var(--theme-on-primary)}
-${R} .ui-fnav-item[aria-current="true"] span{color:var(--theme-on-primary)}
+${R} .ui-fnav-item[aria-current="true"]{background:var(--theme-surface);box-shadow:0 0 0 1px var(--theme-border),inset 3px 0 0 var(--theme-primary)}
+${R} .ui-fnav-item[aria-current="true"] b{color:var(--theme-primary)}
 ${R} .ui-fpane{min-width:0;padding:10px 12px}
 ${R} .ui-fopts{display:flex;flex-direction:column}
 ${R} .ui-fopts .ui-check,${R} .ui-fopts .ui-radio{display:flex;align-items:center;height:36px;padding:0 8px;border-radius:var(--ui-radius-sm)}

@@ -344,10 +344,8 @@ export interface AdminTheme {
     successHover: string;
     onSuccess: string;
     danger: string;
-    /** status dot, "unsaved" state */
+    /** warning mark (triangle), "unsaved" state */
     warning: string;
-    /** "!" and the spinner inside the status dot */
-    onIcon: string;
     shadow: string;
   };
   /** Calendar categories: --theme-cat-<name>, -fg, -soft and -soft-fg. */
@@ -410,7 +408,6 @@ export const light: AdminTheme = {
     onSuccess: P.grey[0],
     danger: P.red[500],
     warning: P.amber[500],
-    onIcon: P.grey[0],
     shadow: `0 10px 32px ${alpha(P.grey[800], 0.32)}, 0 4px 12px ${alpha(P.grey[800], 0.16)}`,
   },
   category: {
@@ -489,7 +486,6 @@ export const dark: AdminTheme = {
     onSuccess: P.grey[950],
     danger: P.red[400],
     warning: P.amber[400],
-    onIcon: P.grey[0],
     shadow: `0 10px 32px ${alpha(P.grey[1000], 0.6)}, 0 4px 12px ${alpha(P.grey[1000], 0.4)}`,
   },
   // Navy, burgundy and rust are lifted so the fill still separates from the
@@ -541,7 +537,8 @@ export const radius = {
 /**
  * The save bar's own corners: the one approved exception to the square rule
  * (see docs/admin-ui/PLAN.md). It matches Strapi's floating bar: 8px bar,
- * 12px top corners as a phone bottom sheet, a round status dot and spinner.
+ * 12px top corners as a phone bottom sheet, a round spinner (the status mark
+ * is a triangle, IconWarning).
  * Use nowhere else.
  */
 export const savebarRadius = {

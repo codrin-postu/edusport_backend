@@ -116,7 +116,7 @@ const renderCells = (r: Row, api: TableApi) => {
           )}
         </span>
       </td>
-      {multiple && <td>{cellText(r.schoolName)}</td>}
+      {multiple && <td className="ins-school">{cellText(r.schoolName)}</td>}
       <td className="ui-num">{ageText(r.age)}</td>
       <td>{api.statusTag(r)}</td>
       <td>{cellText(r.parentName)}</td>

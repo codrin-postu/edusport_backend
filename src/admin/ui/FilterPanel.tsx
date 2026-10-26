@@ -57,6 +57,9 @@ const DROPDOWN_WIDTH = 540;
 
 type OnChange = FilterPanelProps['onChange'];
 
+/** A chosen value shows in the primary colour; a section without an "all" row (the sort) never does. */
+const isSet = (s: FilterSection): boolean => s.selected.length > 0 && s.allLabel !== null;
+
 interface OptionsProps {
   section: FilterSection;
   /** Id of the section name: labels the group of options. */
@@ -127,7 +130,7 @@ function DesktopBody({ sections, current, onPick, onChange }: BodyProps) {
             type="button"
             className="ui-fnav-item"
             aria-current={s.key === section?.key || undefined}
-            data-set={s.selected.length > 0 || undefined}
+            data-set={isSet(s) || undefined}
             onClick={() => onPick(s.key)}
           >
             <b id={`${base}-${s.key}`}>{s.label}</b>
@@ -184,7 +187,7 @@ function PhoneBody({ sections, current, onPick, onChange }: BodyProps) {
         <button key={s.key} ref={rowRef(s.key)} type="button" className="ui-fm-row" onClick={() => onPick(s.key)}>
           <span>
             <b>{s.label}</b>
-            <small data-set={s.selected.length > 0 || undefined}>{sectionSummary(s)}</small>
+            <small data-set={isSet(s) || undefined}>{sectionSummary(s)}</small>
           </span>
           <IconChevronRight />
         </button>

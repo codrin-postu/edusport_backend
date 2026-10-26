@@ -146,6 +146,11 @@ interface HeadProps {
   drag: React.HTMLAttributes<HTMLElement>;
 }
 
+/** The X of the sheet header and of the desktop Modal (proto v5 window header). */
+function CloseButton({ dismissable, onClose }: { dismissable: boolean; onClose: () => void }) {
+  return <Button variant="ghost" size="sm" iconOnly icon={<IconClose />} aria-label="Închide" disabled={!dismissable} onClick={onClose} />;
+}
+
 /** Grab handle, title and X; the whole header is the drag area (buttons excepted). */
 function SheetHead({ titleId, title, dismissable, onClose, drag }: HeadProps) {
   return (
@@ -155,7 +160,7 @@ function SheetHead({ titleId, title, dismissable, onClose, drag }: HeadProps) {
         <h2 className="ui-sheet-title" id={titleId}>
           {title}
         </h2>
-        <Button variant="ghost" size="sm" iconOnly icon={<IconClose />} aria-label="Închide" disabled={!dismissable} onClick={onClose} />
+        <CloseButton dismissable={dismissable} onClose={onClose} />
       </div>
     </div>
   );
@@ -264,6 +269,7 @@ export function BottomSheet({ desktop = 'dropdown', dismissable = true, ...props
       open={props.open}
       onClose={props.onClose}
       title={props.title}
+      headerExtra={<CloseButton dismissable={dismissable} onClose={props.onClose} />}
       footer={props.footer}
       size={props.modalSize}
       dismissable={dismissable}

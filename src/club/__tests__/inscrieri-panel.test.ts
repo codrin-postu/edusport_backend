@@ -104,7 +104,8 @@ describe('panel (spec 3.3, 3.5)', () => {
       { id: 'istoric', label: 'Istoric', count: 3 },
     ]);
     expect(panelTabs({ ...script, membershipAnswer: 'nu' }, null)[2].count).toBe(1);
-    expect(panelTabs(legacy, null).map((t) => t.count)).toEqual([undefined, undefined, 0, null]);
+    expect(panelTabs(legacy, null).map((t) => t.count)).toEqual([undefined, undefined, null, null]);
+    expect(panelTabs(legacy, 0)[3].count).toBeNull();
   });
 
   it('Date tab: the form wording, in form order, blank empties', () => {

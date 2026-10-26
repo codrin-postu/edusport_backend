@@ -76,7 +76,7 @@ export function PanelMenu({ row, api }: { row: Row; api: TableApi }) {
   };
   return (
     <>
-      <MenuButton label={MENU_BUTTON} open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="sbt-menu" role="menu" chevron={false}>
+      <MenuButton label={MENU_BUTTON} open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="sbt-menu" role="menu" chevron={false} placement="bottom-end">
         {menuItems(row, meta.multipleSchools).map((item) => (
           <button key={item} type="button" role="menuitem" className={item === 'delete' ? 'ins-danger' : undefined} onClick={() => pick(item)}>
             {MENU_LABELS[item]}
