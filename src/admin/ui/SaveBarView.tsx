@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { cx } from './cx';
+import { IconWarning } from './icons';
 import type { ThemeName } from './tokens';
 
 /**
@@ -148,7 +149,7 @@ export function SaveBarView({
       aria-live="polite"
     >
       <span className="ui-savebar-icon" data-tone={dot} aria-hidden="true">
-        {isSaving ? <Spin /> : '!'}
+        {isSaving ? <Spin /> : <IconWarning size={16} />}
       </span>
       <span className="ui-savebar-label">{label}</span>
       {extra && <span className="ui-savebar-extra">{extra}</span>}

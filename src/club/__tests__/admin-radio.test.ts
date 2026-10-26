@@ -17,6 +17,15 @@ it('the mark uses the radio radius token, with the decided shape (square, same a
   expect(radius.radio).toBe('4px');
 });
 
+it('the checked mark is a filled square inside the box, never a round dot (no circles except the spinner)', () => {
+  const css = source('admin/ui/styles.ts');
+  const mark = css.match(/\.ui-radio input::before\{([^}]*)\}/);
+  expect(mark?.[1]).toContain('width:8px;height:8px;border-radius:var(--ui-radius-none);background:var(--theme-primary)');
+  expect(mark?.[1]).not.toContain('50%');
+  expect(radius.none).toBe('0');
+  expect(css).toContain('.ui-radio input:checked::before{opacity:1}');
+});
+
 it('choice cards sit side by side and stack on phones', () => {
   const css = source('admin/ui/styles.ts');
   expect(css).toContain('.ui-radios--card{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))');

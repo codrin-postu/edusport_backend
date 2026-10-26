@@ -30,3 +30,15 @@ it('phone drill-in moves focus to the section title and back to the row just lef
 it('the phone row cuts a long value with an ellipsis', () => {
   expect(source('admin/ui/styles.ts')).toMatch(/\.ui-fm-row small\{[^}]*text-overflow:ellipsis/);
 });
+
+it('the open section is a light outlined block with a primary bar and title (filters-v3), not a solid fill', () => {
+  const css = source('admin/ui/styles.ts');
+  expect(css).toContain('.ui-fnav-item[aria-current="true"]{background:var(--theme-surface);box-shadow:0 0 0 1px var(--theme-border),inset 3px 0 0 var(--theme-primary)}');
+  expect(css).toContain('.ui-fnav-item[aria-current="true"] b{color:var(--theme-primary)}');
+  expect(css).not.toContain('.ui-fnav-item[aria-current="true"]{background:var(--theme-primary)');
+});
+
+it('a section without an "all" row (the sort) never shows its value as chosen', () => {
+  expect(panel).toContain('const isSet = (s: FilterSection): boolean => s.selected.length > 0 && s.allLabel !== null;');
+  expect(panel.match(/data-set=\{isSet\(s\) \|\| undefined\}/g)).toHaveLength(2);
+});
