@@ -68,6 +68,8 @@ export { Spinner, Loading, type SpinnerProps } from './Spinner';
 export { Modal, type ModalProps } from './Modal';
 export { Drawer, DrawerSection, type DrawerProps, type DrawerSectionProps } from './Drawer';
 export { BottomSheet, type BottomSheetProps } from './BottomSheet';
+export { FilterPanel, type FilterPanelProps, type FilterSection } from './FilterPanel';
+export { sectionSummary, activeSections, ALL_LABEL, type FilterChoice } from '../../club/ui-filters';
 export { Tabs, type TabsProps, type TabItem } from './Tabs';
 export { Pager, pageList, type PagerProps } from './Pager';
 export { DataTable, type DataTableProps, type DataColumn, type SortDir } from './DataTable';
