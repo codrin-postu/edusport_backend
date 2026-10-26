@@ -26,6 +26,13 @@ export type UndoPlan = AthleteRevert & {
   deleteAthlete: boolean;
 };
 
+/** The season whose main group the undo restores: the stored one, else that of a membership the record names. */
+export function undoSeasonId(record: ConfirmationRecord, memberships: { id: string; seasonId: string }[], registrationSeasonId: string | null): string | null {
+  if (record.seasonId !== undefined) return record.seasonId;
+  const named = [record.membershipId, record.promotedMainId, record.demotedMainId];
+  return memberships.find((m) => named.includes(m.id))?.seasonId ?? registrationSeasonId;
+}
+
 export function undoAllowed(record: ConfirmationRecord, linkedAthleteId: string | null, athleteId: string | null): boolean {
   return athleteId !== null && linkedAthleteId === record.athleteId && athleteId === record.athleteId;
 }

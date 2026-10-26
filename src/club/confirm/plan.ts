@@ -31,6 +31,8 @@ export type ConfirmationRecord = {
   demotedMainId: string | null;
   promotedMainId: string | null;
   acs: { id: string; previous: AcsState | null } | null;
+  /** The season whose group the confirmation wrote to; null when it wrote none; absent on older records. */
+  seasonId?: string | null;
   at: string;
 };
 
@@ -171,6 +173,7 @@ export function confirmationRecord({ plan, facts, athleteId, membershipId, acsId
     demotedMainId: plan.demoteMainId,
     promotedMainId: plan.promoteMembershipId,
     acs: plan.acs && acsId ? { id: acsId, previous: plan.acs.from } : null,
+    seasonId: facts.running && facts.season && facts.group ? facts.season.id : null,
     at,
   };
 }

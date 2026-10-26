@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ConfirmationRecord } from '../plan';
-import { planUndo, undoAllowed, type UndoFacts } from '../undo-plan';
+import { planUndo, undoAllowed, undoSeasonId, type UndoFacts } from '../undo-plan';
 
 const record = (over: Partial<ConfirmationRecord> = {}): ConfirmationRecord => ({
   athleteId: 'a1',
@@ -129,5 +129,19 @@ describe('undoAllowed', () => {
     expect(undoAllowed(record(), 'a1', 'a1')).toBe(true);
     expect(undoAllowed(record(), 'a2', 'a2')).toBe(false);
     expect(undoAllowed(record(), 'a1', null)).toBe(false);
+  });
+});
+
+describe('undoSeasonId (final review I1)', () => {
+  const rows = [{ id: 'm0', seasonId: 's25' }, { id: 'm9', seasonId: 's26' }];
+
+  it('uses the season stored at confirm time, also when it is null', () => {
+    expect(undoSeasonId(record({ seasonId: 's26' }), rows, 's27')).toBe('s26');
+    expect(undoSeasonId(record({ seasonId: null }), rows, 's27')).toBeNull();
+  });
+
+  it('an older record without it: the season of a membership it names, else the registration season', () => {
+    expect(undoSeasonId(record({ membershipId: null, demotedMainId: 'm0' }), rows, 's27')).toBe('s25');
+    expect(undoSeasonId(record({ membershipId: 'gone', demotedMainId: null }), rows, 's27')).toBe('s27');
   });
 });
