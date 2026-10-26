@@ -93,6 +93,11 @@ describe('choices, search and ticks (spec 4.1, 4.2)', () => {
     const s = run(initialWindow(view()), { type: 'group', groupId: 'g-pp' }, { type: 'main', on: true }, { type: 'group', groupId: null });
     expect([s.groupId, s.makeMain]).toEqual([null, false]);
   });
+
+  it('switching to "Sportiv nou" clears the main group tick', () => {
+    const s = run(initialWindow(view()), { type: 'group', groupId: 'g-pp' }, { type: 'main', on: true }, { type: 'choose', choice: 'new' });
+    expect([s.groupId, s.makeMain]).toEqual(['g-pp', false]);
+  });
 });
 
 describe('request body (spec 4.3, 4.5)', () => {
@@ -194,8 +199,9 @@ describe('failures (spec 4.7)', () => {
     expect(confirmFailure(fetchError(409)).text).toBe('Înscrierea a fost deja confirmată de alt administrator.');
   });
 
-  it('anything else: "nothing was saved", the window stays', () => {
+  it('anything else: "nothing was saved", the window stays, never the raw server text', () => {
     expect(confirmFailure(fetchError(500))).toEqual({ text: 'Confirmarea nu a reușit. Nimic nu a fost salvat.', close: false });
     expect(confirmFailure(new Error('network'))).toEqual({ text: 'Confirmarea nu a reușit. Nimic nu a fost salvat.', close: false });
+    expect(confirmFailure(fetchError(500, 'Internal Server Error'))).toEqual({ text: 'Confirmarea nu a reușit. Nimic nu a fost salvat.', close: false });
   });
 });

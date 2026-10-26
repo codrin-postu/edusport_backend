@@ -55,7 +55,7 @@ const withTick = (list: AthleteField[], field: AthleteField, on: boolean): Athle
 type Handlers = { [K in WindowAction['type']]: (s: WindowState, a: Extract<WindowAction, { type: K }>) => WindowState };
 
 const HANDLERS: Handlers = {
-  choose: (s, a) => ({ ...s, choice: a.choice }),
+  choose: (s, a) => ({ ...s, choice: a.choice, makeMain: a.choice === 'new' ? false : s.makeMain }),
   toggleCompare: (s) => ({ ...s, compareOpen: !s.compareOpen }),
   tick: (s, a) => ({ ...s, ticks: withTick(s.ticks ?? a.defaults, a.field, a.on) }),
   openSearch: (s) => ({ ...s, mode: 'search', query: '' }),
@@ -127,7 +127,7 @@ export function acsLines(ctx: ConfirmContext): { status: string; wish: string } 
 
 export const intentLine = (ctx: ConfirmContext): string | null => (ctx.subscriptionIntent ? CONFIRM_COPY.intent(ctx.subscriptionIntent) : null);
 
-/** "Grupă principală acum: <grupă> (<secțiune>)" — the athlete's current main group line, shown
+/** "Grupă principală acum: <grupă> (<secțiune>)", the athlete's current main group line, shown
  * only when there is one; the admin UI uses its presence to decide whether to offer the tick. */
 export const mainNowLine = (ctx: ConfirmContext): string | null =>
   ctx.mainGroupNow ? CONFIRM_COPY.mainNow(ctx.mainGroupNow.name, ctx.mainGroupNow.sectionName) : null;
@@ -150,8 +150,9 @@ export function errorStatus(err: unknown): number | null {
   return typeof status === 'number' ? status : null;
 }
 
-/** 409: another admin confirmed it; close and refresh (r4 e8). Anything else: nothing saved, stay (r4 e9). */
+/** 409: another admin confirmed it; close and refresh (r4 e8), with the server's own wording.
+ * Anything else: nothing saved, stay (r4 e9), always the decided text, never the raw server message. */
 export function confirmFailure(err: unknown): Failure {
   if (errorStatus(err) === 409) return { text: requestErrorText(err, CONFIRM_ERRORS.taken), close: true };
-  return { text: requestErrorText(err, CONFIRM_ERRORS.failed), close: false };
+  return { text: CONFIRM_ERRORS.failed, close: false };
 }
