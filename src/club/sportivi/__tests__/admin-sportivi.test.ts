@@ -52,3 +52,34 @@ describe('athlete search accessibility (Task 5 review)', () => {
     expect(s).toContain('.catch(() => { if (!off) setSearch({ result: null, failed: true }); })');
   });
 });
+
+describe('athlete record (Task 7)', () => {
+  it('one route: the splat after /plugins/edusport-sportivi/ is the record id', () => {
+    const page = read('SportiviPage.tsx');
+    expect(page).toContain("recordIdFromSplat(useParams()['*'])");
+    expect(page).toContain('<AthleteRecordPage key={id} documentId={id} />');
+    expect(page).not.toContain('content-manager');
+  });
+
+  it('desktop page with back link; phone full-height sheet with a footer for the tab buttons', () => {
+    const rec = read('sportivi/AthleteRecordPage.tsx');
+    expect(rec).toContain('back={{ to: SPORTIVI_PATH, label: RECORD_COPY.back }}');
+    expect(rec).toContain('fullHeight');
+    expect(rec).toContain('<RecordFooterContext.Provider value={setFooter}>');
+    expect(rec).toContain("hidden={tab !== 'date'}");
+    expect(rec).toContain("active={tab === 'date'}");
+    expect(rec).toContain("{record.status === 'inactiv' && <StatusBadge tone=\"neutral\">{STATUS_WORDS.inactiv}</StatusBadge>}");
+  });
+
+  it('Date tab: Editează, picker, draft check, footer only while visible', () => {
+    const date = read('sportivi/DateTab.tsx');
+    for (const s of ['RECORD_COPY.edit', '<BirthDatePicker', 'checkDraft(draft, false)', 'useRecordFooter(props.active ? buttons : null)', 'registrationPanelTo(']) {
+      expect(date).toContain(s);
+    }
+  });
+
+  it('Documente through the admin-guarded routes; Istoric with the shared time format', () => {
+    expect(read('sportivi/DocumentsTab.tsx')).toContain('registrationDocumentUrl(d.registrationDocumentId, d.kind)');
+    expect(read('sportivi/HistoryTab.tsx')).toContain('historyWhen(l.at)');
+  });
+});
