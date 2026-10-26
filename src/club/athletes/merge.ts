@@ -1,4 +1,4 @@
-import { refuse, type AdminResult } from '../admin-result';
+import { guarded, refuse, type AdminResult } from '../admin-result';
 import { ATHLETE_FIELDS, athleteValueText, isAthleteField, pickAthleteValues, type AthleteField } from '../athlete-data';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import type { MergePreview, MergeSideView } from './api-types';
@@ -12,7 +12,6 @@ export type MergeRequest = { keptId: string; removedId: string; take: AthleteFie
 type Result = AdminResult<{ documentId: string }>;
 
 const idOf = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
-const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 export function readMergeRequest(body: unknown): MergeRequest | null {
   const b = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
@@ -141,13 +140,8 @@ async function mergeInTransaction(ctx: ServiceContext, request: MergeRequest): P
 }
 
 export async function mergeAthletes(ctx: ServiceContext, request: MergeRequest): Promise<Result> {
-  let result: Result;
-  try {
-    result = await ctx.store.transaction(() => mergeInTransaction(ctx, request));
-  } catch (err) {
-    ctx.log(`[athletes] merging ${request.removedId} into ${request.keptId} failed: ${errorText(err)}`);
-    return refuse(500, ADMIN_ERRORS.failed);
-  }
+  const tag = `[athletes] merging ${request.removedId} into ${request.keptId}`;
+  const result = await guarded(ctx.log, tag, () => ctx.store.transaction(() => mergeInTransaction(ctx, request)));
   if (result.ok === true) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after a merge');
   return result;
 }
@@ -166,10 +160,5 @@ async function dismissInTransaction(ctx: ServiceContext, pairId: string): Promis
 
 /** "Nu e același copil": the flag is dismissed for good, the row kept so it is never flagged again (d12); both records note it (N2 b). */
 export async function dismissDuplicate(ctx: ServiceContext, pairId: string): Promise<AdminResult<{ pairId: string }>> {
-  try {
-    return await ctx.store.transaction(() => dismissInTransaction(ctx, pairId));
-  } catch (err) {
-    ctx.log(`[athletes] dismissing duplicate ${pairId} failed: ${errorText(err)}`);
-    return refuse(500, ADMIN_ERRORS.failed);
-  }
+  return guarded(ctx.log, `[athletes] dismissing duplicate ${pairId}`, () => ctx.store.transaction(() => dismissInTransaction(ctx, pairId)));
 }

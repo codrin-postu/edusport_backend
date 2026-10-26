@@ -1,7 +1,7 @@
 import type { AcsState } from '../acs';
 import { changedFields, type FieldChange } from '../admin-result';
 import { ATHLETE_FIELDS, isAthleteField, isDataIncomplete, pickAthleteValues, type AthleteStatus, type AthleteValues } from '../athlete-data';
-import type { ConfirmationRecord, RegistrationStatus } from './plan';
+import { changedOnly, type ConfirmationRecord, type RegistrationStatus } from './plan';
 
 /** "Anulează confirmarea" (spec 4.6): revert exactly what the confirmation wrote, never a later change. */
 export type UndoFacts = {
@@ -26,6 +26,13 @@ export type UndoPlan = AthleteRevert & {
   deleteAthlete: boolean;
 };
 
+/** The season whose main group the undo restores: the stored one, else that of a membership the record names. */
+export function undoSeasonId(record: ConfirmationRecord, memberships: { id: string; seasonId: string }[], registrationSeasonId: string | null): string | null {
+  if (record.seasonId !== undefined) return record.seasonId;
+  const named = [record.membershipId, record.promotedMainId, record.demotedMainId];
+  return memberships.find((m) => named.includes(m.id))?.seasonId ?? registrationSeasonId;
+}
+
 export function undoAllowed(record: ConfirmationRecord, linkedAthleteId: string | null, athleteId: string | null): boolean {
   return athleteId !== null && linkedAthleteId === record.athleteId && athleteId === record.athleteId;
 }
@@ -49,12 +56,6 @@ function revertedStatus(before: AthleteStatus | null, now: AthleteStatus): Athle
   return before !== null && before !== 'activ' && now === 'activ' ? before : null;
 }
 
-function valuesOf(changes: Record<string, FieldChange>, values: AthleteValues): Partial<AthleteValues> {
-  const out: Partial<AthleteValues> = {};
-  for (const key of Object.keys(changes)) if (isAthleteField(key)) out[key] = values[key];
-  return out;
-}
-
 function planAthleteRevert(f: UndoFacts): AthleteRevert {
   const current = pickAthleteValues(f.athlete);
   const next = { ...current };
@@ -64,7 +65,7 @@ function planAthleteRevert(f: UndoFacts): AthleteRevert {
   const revertedFields = changedFields(ATHLETE_FIELDS, current, next);
   const status = revertedStatus(f.record.athleteStatusBefore, f.athlete.status);
   const changed = Object.keys(revertedFields).length > 0 || status !== null;
-  const athleteUpdate = changed ? { ...valuesOf(revertedFields, next), ...(status ? { status } : {}), dataIncomplete: isDataIncomplete(next) } : null;
+  const athleteUpdate = changed ? { ...changedOnly(revertedFields, next), ...(status ? { status } : {}), dataIncomplete: isDataIncomplete(next) } : null;
   return { athleteUpdate, revertedFields, renameProfile: 'name' in revertedFields && f.athlete.profileId ? next.name : null };
 }
 

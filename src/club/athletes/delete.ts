@@ -1,4 +1,4 @@
-import { refuse, type AdminResult } from '../admin-result';
+import { guarded, refuse, type AdminResult } from '../admin-result';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import { ADMIN_ERRORS } from './errors';
 import { refreshAllMatches, safely } from './matches';
@@ -29,13 +29,7 @@ async function deleteInTransaction(ctx: ServiceContext, id: string): Promise<Res
 }
 
 export async function deleteAthlete(ctx: ServiceContext, id: string): Promise<Result> {
-  let result: Result;
-  try {
-    result = await ctx.store.transaction(() => deleteInTransaction(ctx, id));
-  } catch (err) {
-    ctx.log(`[athletes] deleting ${id} failed: ${err instanceof Error ? err.message : String(err)}`);
-    return refuse(500, ADMIN_ERRORS.failed);
-  }
+  const result = await guarded(ctx.log, `[athletes] deleting ${id}`, () => ctx.store.transaction(() => deleteInTransaction(ctx, id)));
   if (result.ok === true) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after a delete');
   return result;
 }

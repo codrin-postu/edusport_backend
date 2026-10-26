@@ -1,4 +1,4 @@
-import type { FieldChange } from './admin-result';
+import { guardedWrite, type FieldChange } from './admin-result';
 import { ADMIN_ERRORS } from './athletes/errors';
 import { birthDateSortKey } from './birth-date';
 import type { RebuildResult } from './documents';
@@ -39,7 +39,7 @@ export type RegistrationEditDeps = {
 };
 export type RegistrationEditResult =
   | { ok: true; data: Record<string, unknown>; rebuild: RebuildResult | null; changed: string[] }
-  | { ok: false; status: 400 | 404 | 409; error: string };
+  | { ok: false; status: 400 | 404 | 409 | 500; error: string };
 type Refusal = Extract<RegistrationEditResult, { ok: false }>;
 type Written = { saved: Record<string, unknown>; changes: Record<string, FieldChange>; data: Record<string, unknown> };
 type CheckedSave = Refusal | { ok: true; before: Record<string, unknown>; written: Written | null };
@@ -160,7 +160,9 @@ async function afterSave(deps: RegistrationEditDeps, id: string, written: Writte
 }
 
 export async function updateRegistration(deps: RegistrationEditDeps, id: string, raw: Record<string, unknown>, actor: string): Promise<RegistrationEditResult> {
-  const result = await deps.exclusive(id, () => checkAndSave(deps, id, raw));
+  const checked = await guardedWrite(deps.log, `[inscrieri] saving ${id}`, () => deps.exclusive(id, () => checkAndSave(deps, id, raw)));
+  if (checked.ok === false) return checked;
+  const result = checked.data;
   if (result.ok === false) return result;
   if (!result.written) return { ok: true, data: result.before, rebuild: null, changed: [] };
   return afterSave(deps, id, result.written, actor);

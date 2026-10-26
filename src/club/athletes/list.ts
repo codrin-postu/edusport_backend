@@ -35,10 +35,10 @@ function readFilters(q: Record<string, unknown>): Omit<AthleteListQuery, 'sort' 
 }
 
 const PAGE_SIZE_STEP = 30;
-const PAGE_SIZE_MAX = 300;
+const PAGE_SIZE_MAX = 1200;
 const DEFAULT_PAGE_SIZE = 50;
 
-/** 50 (desktop), or any multiple of 30 up to 300 (the phone client reloads pages 1..P as `30 * P` in one request). */
+/** 50 (desktop), or any multiple of 30 up to 1200 (the phone client reloads pages 1..P as `30 * P` in one request). */
 function readPageSize(raw: unknown): number {
   const n = Number(raw);
   if (n === DEFAULT_PAGE_SIZE) return DEFAULT_PAGE_SIZE;
@@ -109,7 +109,7 @@ function publicRow(a: AthleteRow, ix: Index, group: GroupRow | null): AthleteLis
   const missing = missingFields(pickAthleteValues(a));
   return {
     documentId: a.id, name: a.name ?? '', age: ageFromIso(a.birthDate, ix.today), birthDate: birthDateForPicker(a.birthDate),
-    status: a.status, dataIncomplete: missing.length > 0, missing: missing.map((f) => MISSING_FIELD_WORDS[f]),
+    status: a.status, dataIncomplete: a.dataIncomplete || missing.length > 0, missing: missing.map((f) => MISSING_FIELD_WORDS[f]),
     mainGroup: group ? { documentId: group.id, name: group.name } : null, contactName: a.contactName, phone: a.phone,
     acs: ix.acs.get(a.id) ?? 'nu', publicProfile: a.profileId !== null && ix.publicProfiles.has(a.profileId) ? 'public' : 'ascuns',
     possibleDuplicate: ix.duplicateIds.has(a.id),

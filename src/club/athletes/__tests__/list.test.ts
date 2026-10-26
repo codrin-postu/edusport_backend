@@ -42,6 +42,14 @@ describe('Sportivi list (spec 5)', () => {
     expect(page.data.find((r) => r.documentId === 'a4')).toMatchObject({ age: null, mainGroup: null, acs: 'nu', publicProfile: 'ascuns', missing: ['data nașterii', 'persoana de contact', 'telefon', 'e-mail'] });
   });
 
+  it('a deploy-marked record stays "Date incomplete" with no field missing: row, count and Date filter (task 27 F2)', async () => {
+    const store = fakeClubStore({ athletes: [athleteRow({ id: 'a1', name: 'Luca Stoica', birthDate: '2015-01-01', ...full, dataIncomplete: true })] }).store;
+    const page = await athleteListPage(store, readListQuery({}), TODAY);
+    expect([page.data[0].dataIncomplete, page.data[0].missing, page.incomplete]).toEqual([true, [], 1]);
+    expect((await athleteListPage(store, readListQuery({ data: 'incomplete' }), TODAY)).data.map((r) => r.documentId)).toEqual(['a1']);
+    expect((await athleteListPage(store, readListQuery({ data: 'complete' }), TODAY)).data).toEqual([]);
+  });
+
   it('Secțiune: groups of the season, else registrations of the season, else "Fără secțiune" (gaps #35)', async () => {
     expect(await ids({ section: 'afi' })).toEqual(['a4', 'a1']);
     expect(await ids({ section: 'club' })).toEqual(['a2']);
@@ -121,7 +129,8 @@ describe('readListQuery', () => {
     });
   });
 
-  it('pageSize accepts 50 or a multiple of 30 up to 300 (phone reload of pages 1..P); anything else falls back to 50', () => {
-    expect([30, 90, 300, 330, 45].map((pageSize) => readListQuery({ pageSize: String(pageSize) }).pageSize)).toEqual([30, 90, 300, 50, 50]);
+  it('pageSize accepts 50 or a multiple of 30 up to 1200 (phone reload of pages 1..P); anything else falls back to 50', () => {
+    const sizes = [30, 90, 300, 330, 1200, 1230, 45, 0, 20];
+    expect(sizes.map((pageSize) => readListQuery({ pageSize: String(pageSize) }).pageSize)).toEqual([30, 90, 300, 330, 1200, 50, 50, 50, 50]);
   });
 });

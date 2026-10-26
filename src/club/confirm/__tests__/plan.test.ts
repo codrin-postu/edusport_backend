@@ -161,8 +161,14 @@ describe('what the undo needs', () => {
       demotedMainId: 'm0',
       promotedMainId: null,
       acs: { id: 'c9', previous: null },
+      seasonId: 's26',
       at: '2026-10-26T10:00:00.000Z',
     });
+  });
+
+  it('records the season of the group written, null when no group or the season ended (final review I1)', () => {
+    const recordOf = (f: ConfirmFacts) => confirmationRecord({ plan: planConfirmation(f), facts: f, athleteId: 'a1', membershipId: null, acsId: null, at: 'x' });
+    expect([facts(), facts({ group: null }), facts({ running: false })].map((f) => recordOf(f).seasonId)).toEqual(['s26', null, null]);
   });
 
   it('records which membership was promoted to main, for the undo to demote it back', () => {

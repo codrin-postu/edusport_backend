@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { HistoryInput } from '../history';
 import { historyTexts } from '../history-text';
+import { ADMIN_ERRORS } from '../athletes/errors';
 import { REGISTRATION_EDIT_ERROR } from '../registration-edit';
 import { LINKED_STATUS_ERROR, STATUS_ERROR, updateRegistration, type RegistrationEditDeps } from '../registration-update';
 
@@ -70,6 +71,16 @@ describe('PUT /api/forms/inscrieri/:documentId (spec 3.2, 3.4)', () => {
 
   it('is a 404 for an unknown registration', async () => {
     expect(await updateRegistration(deps(null).d, 'x', { phone: '1' }, 'ana')).toMatchObject({ ok: false, status: 404 });
+  });
+
+  it('a save that throws answers 500 with the shared "nothing saved" copy and logs once (final review I2)', async () => {
+    const t = deps();
+    t.d.save = async () => {
+      throw new Error('db');
+    };
+    expect(await updateRegistration(t.d, 'r1', { phone: '0733' }, 'ana')).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
+    expect(t.logs).toEqual(['[inscrieri] saving r1 failed: db']);
+    expect(t.history).toEqual([]);
   });
 
   it('keeps a saved edit when its history fails, and logs it', async () => {

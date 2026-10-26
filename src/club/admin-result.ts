@@ -1,7 +1,23 @@
+import { ADMIN_ERRORS } from './athletes/errors';
+
 /** Answer of an admin action: the fresh data, or a refusal whose `status` becomes the HTTP status. */
 export type AdminResult<T> = { ok: true; data: T } | { ok: false; status: 400 | 404 | 409 | 500; error: string };
 
 export const refuse = (status: 400 | 404 | 409 | 500, error: string): AdminResult<never> => ({ ok: false, status, error });
+
+/** A throw inside `work` is logged once as "<tag> failed: ..." and answered 500 with the shared "nothing saved" copy. */
+export async function guarded<T>(log: (message: string) => void, tag: string, work: () => Promise<AdminResult<T>>): Promise<AdminResult<T>> {
+  try {
+    return await work();
+  } catch (err) {
+    log(`${tag} failed: ${err instanceof Error ? err.message : String(err)}`);
+    return refuse(500, ADMIN_ERRORS.failed);
+  }
+}
+
+/** `guarded` for a write that answers nothing itself. */
+export const guardedWrite = <T>(log: (message: string) => void, tag: string, work: () => Promise<T>): Promise<AdminResult<T>> =>
+  guarded(log, tag, async () => ({ ok: true, data: await work() }));
 
 /** One edited field in a history entry: old value -> new value. */
 export type FieldChange = { from: unknown; to: unknown };

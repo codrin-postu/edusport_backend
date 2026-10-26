@@ -1,4 +1,4 @@
-import { refuse, type AdminResult } from '../admin-result';
+import { guardedWrite, refuse, type AdminResult } from '../admin-result';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import { slugify, uniqueSlug } from '../profile-slug';
 import type { AthleteRecord } from './api-types';
@@ -18,12 +18,12 @@ export async function createAthleteProfile(ctx: ServiceContext, id: string): Pro
   if (athlete.profileId) return refuse(409, ADMIN_ERRORS.stale);
   const taken = new Set((await ctx.store.profiles()).flatMap((p) => [p.slug, ...p.previousSlugs]));
   const name = athlete.name ?? '';
-  await ctx.store.transaction(async () => {
+  const written = await guardedWrite(ctx.log, `[athletes] creating the profile of ${id}`, () => ctx.store.transaction(async () => {
     const profileId = await ctx.store.createProfile(name, uniqueSlug(slugify(name), taken));
     await ctx.store.updateAthlete(id, { profileId });
     await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.profileCreated, actor: ctx.actor });
-  });
-  return recordResult(ctx.store, id);
+  }));
+  return written.ok === false ? written : recordResult(ctx.store, id);
 }
 
 /** "Pagina publică pornită / oprită": only showPublicPage, as today (3b Q3). */
@@ -34,13 +34,12 @@ export async function setAthleteProfileVisibility(ctx: ServiceContext, id: strin
   if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
   const profile = (await ctx.store.profiles()).find((p) => p.id === athlete.profileId);
   if (!profile) return refuse(409, ADMIN_ERRORS.stale);
-  if (profile.showPublicPage !== on) {
-    await ctx.store.transaction(async () => {
-      await ctx.store.setProfileVisibility(profile.id, on);
-      await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.profilePage, changes: { on }, actor: ctx.actor });
-    });
-  }
-  return recordResult(ctx.store, id);
+  if (profile.showPublicPage === on) return recordResult(ctx.store, id);
+  const written = await guardedWrite(ctx.log, `[athletes] switching the page of ${id}`, () => ctx.store.transaction(async () => {
+    await ctx.store.setProfileVisibility(profile.id, on);
+    await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.profilePage, changes: { on }, actor: ctx.actor });
+  }));
+  return written.ok === false ? written : recordResult(ctx.store, id);
 }
 
 export async function athleteIdForProfile(store: ClubStore, profileId: string): Promise<string | null> {

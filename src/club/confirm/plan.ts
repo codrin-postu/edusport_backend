@@ -31,6 +31,8 @@ export type ConfirmationRecord = {
   demotedMainId: string | null;
   promotedMainId: string | null;
   acs: { id: string; previous: AcsState | null } | null;
+  /** The season whose group the confirmation wrote to; null when it wrote none; absent on older records. */
+  seasonId?: string | null;
   at: string;
 };
 
@@ -90,7 +92,8 @@ function planNew(values: AthleteValues): AthletePlan {
   return { newAthlete: { ...values, status: 'activ', dataIncomplete: isDataIncomplete(values) }, athleteUpdate: null, fieldChanges: {}, statusChange: null, renameProfile: null };
 }
 
-function changedOnly(changes: Record<string, FieldChange>, values: AthleteValues): Partial<AthleteValues> {
+/** The new values of the changed fields only (also what the undo writes back). */
+export function changedOnly(changes: Record<string, FieldChange>, values: AthleteValues): Partial<AthleteValues> {
   const out: Partial<AthleteValues> = {};
   for (const key of Object.keys(changes)) if (isAthleteField(key)) out[key] = values[key];
   return out;
@@ -171,6 +174,7 @@ export function confirmationRecord({ plan, facts, athleteId, membershipId, acsId
     demotedMainId: plan.demoteMainId,
     promotedMainId: plan.promoteMembershipId,
     acs: plan.acs && acsId ? { id: acsId, previous: plan.acs.from } : null,
+    seasonId: facts.running && facts.season && facts.group ? facts.season.id : null,
     at,
   };
 }

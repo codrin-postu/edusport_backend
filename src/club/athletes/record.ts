@@ -1,4 +1,4 @@
-import { refuse, type AdminResult, type FieldChange } from '../admin-result';
+import { guardedWrite, refuse, type AdminResult, type FieldChange } from '../admin-result';
 import {
   athleteChanges, birthDateForPicker, isAthleteField, isDataIncomplete, missingFields, pickAthleteValues, readAthleteInput, type AthleteValues,
 } from '../athlete-data';
@@ -58,7 +58,7 @@ function assemble(a: AthleteRow, src: RecordSource): AthleteRecord {
     fields: { ...values, birthDate: birthDateForPicker(a.birthDate) },
     missing: missingFields(values),
     status: a.status,
-    dataIncomplete: isDataIncomplete(values),
+    dataIncomplete: a.dataIncomplete || isDataIncomplete(values),
     header: { birthDate: birthDateForPicker(a.birthDate), mainGroup: mainGroupName(src) },
     season: src.season ? { documentId: src.season.id, label: src.season.label } : null,
     acs: { seasonLabel: src.season?.label ?? null, state: src.acs.find((r) => r.seasonId === src.season?.id)?.state ?? 'nu' },
@@ -103,7 +103,8 @@ export async function updateAthlete(ctx: ServiceContext, id: string, body: unkno
   const athlete = await ctx.store.athlete(id);
   if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
   const changes = athleteChanges(pickAthleteValues(athlete), input.values);
-  await saveEdit(ctx, athlete, input.values, changes);
+  const saved = await guardedWrite(ctx.log, `[athletes] editing ${id}`, () => saveEdit(ctx, athlete, input.values, changes));
+  if (saved.ok === false) return saved;
   const record = await readAthleteRecord(ctx.store, id, null);
   return record ? { ok: true, data: { record, changed: Object.keys(changes).filter(isAthleteField) } } : refuse(404, ADMIN_ERRORS.notFound);
 }

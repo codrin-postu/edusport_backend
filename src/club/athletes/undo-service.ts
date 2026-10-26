@@ -1,7 +1,7 @@
-import { refuse, type AdminResult } from '../admin-result';
+import { guarded, refuse, type AdminResult } from '../admin-result';
 import type { ConfirmationRecord } from '../confirm/plan';
 import { registrationSeason } from '../confirm/season';
-import { planUndo, undoAllowed, type UndoFacts, type UndoPlan } from '../confirm/undo-plan';
+import { planUndo, undoAllowed, undoSeasonId, type UndoFacts, type UndoPlan } from '../confirm/undo-plan';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import type { UndoResponse } from './api-types';
 import { ADMIN_ERRORS } from './errors';
@@ -16,9 +16,8 @@ async function loadFacts(store: ClubStore, reg: RegistrationRow, record: Confirm
   const [memberships, acs, linked, seasons] = await Promise.all([
     store.memberships(athlete.id), store.acsRows(athlete.id), store.registrations({ athleteId: athlete.id }), store.seasons(),
   ]);
-  // "Main" is per season (confirm-service only ever demotes/promotes within one season): scope to the
-  // confirmation's own season, never a main membership left over from an earlier or later season.
-  const seasonId = registrationSeason(reg, seasons)?.id ?? null;
+  // "Main" is per season: scope to the season the confirmation wrote to, even if the registration moved since.
+  const seasonId = undoSeasonId(record, memberships, registrationSeason(reg, seasons)?.id ?? null);
   return {
     record, linkedAthleteId: reg.athleteId, athlete,
     membershipIds: memberships.map((m) => m.id),
@@ -64,13 +63,7 @@ async function undoLocked(ctx: ServiceContext, id: string): Promise<Result> {
 
 /** "Anulează confirmarea" (spec 4.6, gaps #32): one transaction on the locked registration row. */
 export async function undoConfirmation(ctx: ServiceContext, registrationId: string): Promise<Result> {
-  let result: Result;
-  try {
-    result = await ctx.store.transaction(() => undoLocked(ctx, registrationId));
-  } catch (err) {
-    ctx.log(`[undo] ${registrationId} failed: ${err instanceof Error ? err.message : String(err)}`);
-    return refuse(500, ADMIN_ERRORS.failed);
-  }
+  const result = await guarded(ctx.log, `[undo] ${registrationId}`, () => ctx.store.transaction(() => undoLocked(ctx, registrationId)));
   if (result.ok === true) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after an undo');
   return result;
 }

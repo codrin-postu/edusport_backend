@@ -119,4 +119,42 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     expect(s26Mains).toEqual(['m0']);
     expect(fake.state.memberships.find((m) => m.id === 'm-old')).toMatchObject({ seasonId: 's25', isMain: true });
   });
+  describe('after the registration moved to another season (final review I1)', () => {
+    const maria = athleteRow({ id: 'a1', name: 'Maria Pop', birthDate: '2016-03-14', phone: '0722111222', contactName: 'Ana Pop', email: 'ana@example.com', status: 'activ' });
+    const D = { id: 'm-d', athleteId: 'a1', groupId: 'g-ib', seasonId: 's26', isMain: true, from: '2026-10-01' };
+    const X = { id: 'm-x', athleteId: 'a1', groupId: 'g-pp', seasonId: 's26', isMain: false, from: '2026-10-01' };
+    const Z = { id: 'm-z', athleteId: 'a1', groupId: 'g-pro', seasonId: 's25', isMain: true, from: '2025-10-01' };
+    const mains = (fake: Fake, seasonId: string) => fake.state.memberships.filter((m) => m.seasonId === seasonId && m.isMain).map((m) => m.id);
+    const moveTo25 = (fake: Fake) => Object.assign(fake.state.registrations[0], { seasonId: 's25', season: '2025-2026' });
+    const confirmIn26 = (fake: Fake) => confirmRegistration(ctx(fake), 'r1', { choice: 'existing', athleteId: 'a1', groupId: 'g-pp', makeMain: true, updateFields: [] });
+    const registration = registrationRow({ id: 'r1', status: 'Contactat', membershipAnswer: 'nu' });
+
+    it('a promotion is undone in its own season: one main again, the old one; the other season untouched', async () => {
+      const fake = fakeClubStore({ athletes: [maria], registrations: [registration], memberships: [D, X, Z] });
+      await confirmIn26(fake);
+      moveTo25(fake);
+      expect(await undoConfirmation(ctx(fake), 'r1')).toMatchObject({ ok: true });
+      expect(mains(fake, 's26')).toEqual(['m-d']);
+      expect(fake.state.memberships.find((m) => m.id === 'm-z')).toEqual(Z);
+    });
+
+    it('a new main is undone in its own season: the old main restored; the other season main left alone', async () => {
+      const fake = fakeClubStore({ athletes: [maria], registrations: [registration], memberships: [D, Z] });
+      await confirmIn26(fake);
+      moveTo25(fake);
+      expect(await undoConfirmation(ctx(fake), 'r1')).toMatchObject({ ok: true });
+      expect(fake.state.memberships.filter((m) => m.seasonId === 's26')).toEqual([D]);
+      expect(fake.state.memberships.find((m) => m.id === 'm-z')).toEqual(Z);
+    });
+
+    it('a record written before the season was stored falls back to the season of the rows it names', async () => {
+      const fake = fakeClubStore({ athletes: [maria], registrations: [registration], memberships: [D, Z] });
+      await confirmIn26(fake);
+      delete fake.state.registrations[0].confirmation?.seasonId;
+      moveTo25(fake);
+      await undoConfirmation(ctx(fake), 'r1');
+      expect(fake.state.memberships.filter((m) => m.seasonId === 's26')).toEqual([D]);
+      expect(mains(fake, 's25')).toEqual(['m-z']);
+    });
+  });
 });
