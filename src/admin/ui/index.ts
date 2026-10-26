@@ -20,6 +20,7 @@ export { Chip, ChipList, type ChipProps } from './Chip';
 export { RelationMultiSelect, type RelationMultiSelectProps, type RelationOption } from './RelationMultiSelect';
 export { Switch, type SwitchProps } from './Switch';
 export { Checkbox, type CheckboxProps } from './Checkbox';
+export { Radio, RadioGroup, type RadioProps, type RadioGroupProps, type RadioOption } from './Radio';
 
 export { Field, FieldRow, useFieldControl, type FieldProps, type FieldAria } from './Field';
 export { Input, type InputProps } from './Input';

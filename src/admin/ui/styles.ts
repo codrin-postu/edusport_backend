@@ -126,6 +126,26 @@ ${R} .ui-check input:indeterminate::before{opacity:1;border-left:none;transform:
 ${R} .ui-check input:disabled{opacity:.55;cursor:default}
 ${R} .ui-check--disabled{cursor:default;color:var(--theme-text-disabled)}
 
+/* radio (open-questions-v2 Q8, Needs decision 1 RESOLVED: square, same size/radius as Checkbox, no circles); card = the choice cards of the confirm window (prototype v5) */
+${R} .ui-radios{display:flex;flex-wrap:wrap;gap:var(--ui-space-2) var(--ui-space-4)}
+${R} .ui-radios--column{flex-direction:column;gap:var(--ui-space-2)}
+${R} .ui-radios--card{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+${R} .ui-radios--card.ui-radios--column{grid-template-columns:minmax(0,1fr)}
+@media (max-width:640px){${R} .ui-radios--card{grid-template-columns:minmax(0,1fr)}}
+${R} .ui-radio{display:inline-flex;align-items:flex-start;gap:8px;font-size:var(--ui-fs-body);color:var(--theme-text);cursor:pointer;user-select:none}
+${R} .ui-radio input{appearance:none;-webkit-appearance:none;margin:2px 0 0;flex-shrink:0;width:16px;height:16px;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-radio);background:var(--theme-surface);display:inline-grid;place-content:center;cursor:pointer;transition:border-color var(--ui-motion-fast) var(--ui-easing)}
+${R} .ui-radio input::before{content:"";width:8px;height:8px;border-radius:var(--ui-radius-radio);background:var(--theme-primary);opacity:0}
+${R} .ui-radio input:checked{border-color:var(--theme-primary)}
+${R} .ui-radio input:checked::before{opacity:1}
+${R} .ui-radio-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+${R} .ui-radio-hint{font-size:var(--ui-fs-body-sm);color:var(--theme-text-muted)}
+${R} .ui-radio--card{display:flex;padding:10px 12px;border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);background:var(--theme-surface)}
+${R} .ui-radio--card:hover{border-color:var(--theme-border-strong)}
+${R} .ui-radio--card[data-checked]{border-color:var(--theme-primary);background:var(--theme-primary-soft);box-shadow:0 0 0 2px var(--theme-primary-soft-line)}
+${R} .ui-radio--card .ui-radio-label{font-weight:700}
+${R} .ui-radio--disabled{cursor:default;color:var(--theme-text-disabled)}
+${R} .ui-radio--disabled input{opacity:.55;cursor:default}
+
 /* fields */
 ${R} .ui-field{display:flex;flex-direction:column;gap:4px;min-width:0}
 ${R} .ui-label{font-size:var(--ui-fs-label);font-weight:var(--ui-fw-label);letter-spacing:var(--ui-ls-label);text-transform:uppercase;color:var(--theme-text-muted)}
