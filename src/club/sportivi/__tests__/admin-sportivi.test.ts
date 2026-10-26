@@ -68,18 +68,26 @@ describe('athlete record (Task 7)', () => {
     expect(rec).toContain('<RecordFooterContext.Provider value={setFooter}>');
     expect(rec).toContain("hidden={tab !== 'date'}");
     expect(rec).toContain("active={tab === 'date'}");
+    expect(rec).toContain('onSaved={loaded.reload}');
+    expect(rec).toContain('aria-label={tabs.find((t) => t.id === tab)?.label}');
     expect(rec).toContain("{record.status === 'inactiv' && <StatusBadge tone=\"neutral\">{STATUS_WORDS.inactiv}</StatusBadge>}");
   });
 
   it('Date tab: Editează, picker, draft check, footer only while visible', () => {
     const date = read('sportivi/DateTab.tsx');
-    for (const s of ['RECORD_COPY.edit', '<BirthDatePicker', 'checkDraft(draft, false)', 'useRecordFooter(props.active ? buttons : null)', 'registrationPanelTo(']) {
+    for (const s of [
+      'RECORD_COPY.edit', '<BirthDatePicker', 'checkDraft(draft, false)', 'useRecordFooter(props.active ? buttons : null)', 'registrationPanelTo(',
+      'await onSaved();', "focusId(editing ? fieldId('name') : EDIT_ID)", 'focusId(fieldId(check.field))', "required id={fieldId('name')}",
+    ]) {
       expect(date).toContain(s);
     }
   });
 
   it('Documente through the admin-guarded routes; Istoric with the shared time format', () => {
     expect(read('sportivi/DocumentsTab.tsx')).toContain('registrationDocumentUrl(d.registrationDocumentId, d.kind)');
+    expect(read('sportivi/DocumentsTab.tsx')).toContain('<span className="ui-sr"> {d.label}</span>');
+    expect(read('sportivi/openPdf.ts')).toContain("if (!tab) throw new Error('popup blocked');");
+    expect(read('sportivi/openPdf.ts')).not.toContain('window.location');
     expect(read('sportivi/HistoryTab.tsx')).toContain('historyWhen(l.at)');
   });
 });

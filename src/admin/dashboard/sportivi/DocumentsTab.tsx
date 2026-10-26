@@ -6,10 +6,29 @@ import { RECORD_COPY } from '../../../club/sportivi/record-view';
 import { downloadPdf, registrationDocumentUrl } from '../inscrieri/downloadPdf';
 import { viewPdf } from './openPdf';
 
+type Doc = AthleteRecord['documents'][number];
+type Get = ReturnType<typeof useFetchClient>['get'];
+
+const failed = () => adminToast.error(RECORD_COPY.documentFailed);
+
+/** One PDF with "Vezi" / "Descarcă"; the document name, visually hidden, makes each button's name unique. */
+function DocumentRow({ d, get }: { d: Doc; get: Get }) {
+  const url = registrationDocumentUrl(d.registrationDocumentId, d.kind);
+  const hidden = <span className="ui-sr"> {d.label}</span>;
+  return (
+    <li className="spv-doc">
+      <span>{d.label}</span>
+      <span className="spv-doc-acts">
+        <Button size="sm" variant="ghost" onClick={() => void viewPdf(get, url).catch(failed)}>{RECORD_COPY.view}{hidden}</Button>
+        <Button size="sm" variant="ghost" onClick={() => void downloadPdf(get, url, `${d.kind}.pdf`).catch(failed)}>{RECORD_COPY.download}{hidden}</Button>
+      </span>
+    </li>
+  );
+}
+
 /** Documente (spec 6.4): the PDFs of the athlete's registrations, through the admin-guarded routes. */
 export function DocumentsTab({ record }: { record: AthleteRecord }) {
   const { get } = useFetchClient();
-  const failed = () => adminToast.error(RECORD_COPY.documentFailed);
   if (record.documents.length === 0) {
     return (
       <div className="ui-body">
@@ -20,18 +39,7 @@ export function DocumentsTab({ record }: { record: AthleteRecord }) {
   return (
     <div className="ui-body">
       <ul className="spv-docs">
-        {record.documents.map((d) => {
-          const url = registrationDocumentUrl(d.registrationDocumentId, d.kind);
-          return (
-            <li key={url} className="spv-doc">
-              <span>{d.label}</span>
-              <span className="spv-doc-acts">
-                <Button size="sm" variant="ghost" onClick={() => void viewPdf(get, url).catch(failed)}>{RECORD_COPY.view}</Button>
-                <Button size="sm" variant="ghost" onClick={() => void downloadPdf(get, url, `${d.kind}.pdf`).catch(failed)}>{RECORD_COPY.download}</Button>
-              </span>
-            </li>
-          );
-        })}
+        {record.documents.map((d) => <DocumentRow key={`${d.registrationDocumentId}-${d.kind}`} d={d} get={get} />)}
       </ul>
     </div>
   );

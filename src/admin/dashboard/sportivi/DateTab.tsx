@@ -6,31 +6,37 @@ import type { AthleteRecord } from '../../../club/athletes/api-types';
 import { ADMIN_ERRORS } from '../../../club/athletes/errors';
 import { requestErrorText } from '../../../club/registration-panel';
 import {
-  RECORD_COPY, acsLine, checkDraft, editDraft, fieldRows, registrationLine, saveToast, type DraftErrors, type EditDraft,
+  RECORD_COPY, acsLine, checkDraft, editDraft, fieldRows, registrationLine, saveToast, type DraftErrors, type EditBody, type EditDraft,
 } from '../../../club/sportivi/record-view';
 import { registrationPanelTo } from '../../../club/sportivi/routes';
 import type { SportiviApi } from './api';
 import { FooterButtons, useRecordFooter, type FooterAction } from './recordFooter';
 
-type Props = { record: AthleteRecord; api: SportiviApi; onSaved: (record: AthleteRecord) => void; active: boolean };
+type Props = { record: AthleteRecord; api: SportiviApi; onSaved: () => Promise<void>; active: boolean };
 
-function useDateEdit({ record, api, onSaved }: Props) {
-  const [draft, setDraft] = React.useState<EditDraft | null>(null);
-  const [errors, setErrors] = React.useState<DraftErrors>({});
+const EDIT_ID = 'spv-edit';
+const fieldId = (field: 'name' | 'birthDate'): string => `spv-f-${field}`;
+const focusId = (id: string) => document.getElementById(id)?.focus();
+
+/** "Editează" moves focus to the name; leaving the form (save or cancel) brings it back to "Editează". */
+function useEditFocus(editing: boolean) {
+  const was = React.useRef(editing);
+  React.useEffect(() => {
+    if (was.current === editing) return;
+    was.current = editing;
+    focusId(editing ? fieldId('name') : EDIT_ID);
+  }, [editing]);
+}
+
+/** Sends the edit, then re-reads the record with the page's season (the PUT answer is the current season's). */
+function useSend({ record, api, onSaved }: Props, done: () => void) {
   const [saving, setSaving] = React.useState(false);
-  const cancel = () => {
-    setDraft(null);
-    setErrors({});
-  };
-  const save = async () => {
-    if (!draft) return;
-    const check = checkDraft(draft, false);
-    if (!check.ok) return setErrors({ [check.field]: check.error });
+  const send = async (body: EditBody) => {
     setSaving(true);
     try {
-      const res = await api.update(record.documentId, check.body);
-      onSaved(res.record);
-      cancel();
+      const res = await api.update(record.documentId, body);
+      await onSaved();
+      done();
       if (res.changed.length) adminToast.success(saveToast(res));
       else adminToast.info(saveToast(res));
     } catch (err) {
@@ -39,7 +45,26 @@ function useDateEdit({ record, api, onSaved }: Props) {
       setSaving(false);
     }
   };
-  return { draft, setDraft, errors, saving, cancel, save, start: () => setDraft(editDraft(record)) };
+  return { saving, send };
+}
+
+function useDateEdit(props: Props) {
+  const [draft, setDraft] = React.useState<EditDraft | null>(null);
+  const [errors, setErrors] = React.useState<DraftErrors>({});
+  useEditFocus(draft !== null);
+  const cancel = () => {
+    setDraft(null);
+    setErrors({});
+  };
+  const { saving, send } = useSend(props, cancel);
+  const save = async () => {
+    if (!draft) return;
+    const check = checkDraft(draft, false);
+    if (check.ok) return send(check.body);
+    setErrors({ [check.field]: check.error });
+    focusId(fieldId(check.field));
+  };
+  return { draft, setDraft, errors, saving, cancel, save, start: () => setDraft(editDraft(props.record)) };
 }
 
 function FieldLabel({ record, field }: { record: AthleteRecord; field: AthleteField }) {
@@ -58,7 +83,7 @@ function DateView({ record, onEdit }: { record: AthleteRecord; onEdit: () => voi
         <div key={row.field} className="spv-field">
           <dt className="spv-label">
             <span>{row.label}</span>
-            {i === 0 && <button type="button" className="spv-link" onClick={onEdit}>{RECORD_COPY.edit}</button>}
+            {i === 0 && <button type="button" id={EDIT_ID} className="spv-link" onClick={onEdit}>{RECORD_COPY.edit}</button>}
           </dt>
           {row.missing && <dd className="spv-missing">{RECORD_COPY.missing}</dd>}
           <dd className="spv-value">{row.value}</dd>
@@ -75,10 +100,10 @@ function DateForm({ record, draft, errors, onChange }: FormProps) {
   const label = (field: AthleteField) => <FieldLabel record={record} field={field} />;
   return (
     <div className="spv-form">
-      <Field label={label('name')} error={errors.name}>
+      <Field label={label('name')} error={errors.name} required id={fieldId('name')}>
         <Input value={draft.name} onChange={(e) => set({ name: e.target.value })} />
       </Field>
-      <Field label={label('birthDate')} error={errors.birthDate}>
+      <Field label={label('birthDate')} error={errors.birthDate} id={fieldId('birthDate')}>
         <BirthDatePicker value={draft.birth} onChange={(birth) => set({ birth })} />
       </Field>
       <Field label={label('contactName')}>

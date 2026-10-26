@@ -45,13 +45,14 @@ type ContentProps = { record: AthleteRecord; api: SportiviApi; loaded: Loaded; h
 
 function RecordContent({ record, api, loaded, head }: ContentProps) {
   const [tab, setTab] = React.useState<RecordTab>('date');
+  const tabs = recordTabs(record);
   return (
     <>
       {head}
-      <Tabs items={recordTabs(record)} value={tab} onChange={(t) => setTab(t as RecordTab)} label={RECORD_COPY.tabsLabel} panelId="spv-panel" />
-      <div role="tabpanel" id="spv-panel">
+      <Tabs items={tabs} value={tab} onChange={(t) => setTab(t as RecordTab)} label={RECORD_COPY.tabsLabel} panelId="spv-panel" />
+      <div role="tabpanel" id="spv-panel" aria-label={tabs.find((t) => t.id === tab)?.label}>
         <div hidden={tab !== 'date'}>
-          <DateTab record={record} api={api} onSaved={loaded.setRecord} active={tab === 'date'} />
+          <DateTab record={record} api={api} onSaved={loaded.reload} active={tab === 'date'} />
         </div>
         {tab === 'documente' && <DocumentsTab record={record} />}
         {tab === 'istoric' && <HistoryTab api={api} documentId={record.documentId} />}
