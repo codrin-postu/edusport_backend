@@ -9,8 +9,8 @@ const card = (over: Partial<AthleteCard> = {}): AthleteCard => ({
 });
 
 describe('search rows (spec 4.1, 6.7)', () => {
-  it('two lines: the name, then birth date, last group and parent with commas', () => {
-    expect(cardSubline(card())).toBe('14.03.2016, Primii Pași, Ana Pop');
+  it('two lines: the name, then birth date, last group with its season, and parent with commas', () => {
+    expect(cardSubline(card())).toBe('14.03.2016, Primii Pași 2025-2026, Ana Pop');
     expect(cardSubline(card({ birthDate: null, lastGroup: null }))).toBe('Ana Pop');
     expect(cardSubline(card({ birthDate: null, lastGroup: null, contactName: null }))).toBe('');
   });

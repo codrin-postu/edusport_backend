@@ -20,8 +20,14 @@ export type SearchResult = { q: string; cards: AthleteCard[] };
 
 export const searchUrl = (q: string): string => `/api/club/athletes/search?q=${encodeURIComponent(q.trim())}`;
 
-/** Second line of a result row: birth date, last group, parent, separated by commas (gaps #1). */
-export const cardSubline = (c: AthleteCard): string => [c.birthDate, c.lastGroup?.name, c.contactName].filter(Boolean).join(', ');
+/**
+ * Second line of a result row: birth date, last group with its season, parent, separated by commas (gaps #1).
+ * Same format as the confirm window's `cardDetailLine` (`src/club/inscrieri-panel.ts`, merged on `feat/athletes`
+ * after this branch's base `fe6ab36`): "<name> <season>". Built directly here, not imported, since the base lacks that file.
+ */
+const groupLine = (g: AthleteCard['lastGroup']): string | null => (g ? `${g.name} ${g.season}` : null);
+
+export const cardSubline = (c: AthleteCard): string => [c.birthDate, groupLine(c.lastGroup), c.contactName].filter(Boolean).join(', ');
 
 export const withoutAthlete = (cards: AthleteCard[], id: string | undefined): AthleteCard[] => (id ? cards.filter((c) => c.documentId !== id) : cards);
 
