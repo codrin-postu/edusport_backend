@@ -4,12 +4,15 @@ import { AdminPage, BottomSheet, Loading, Notice, PageHeader, StatusBadge, Tabs,
 import type { AthleteRecord } from '../../../club/athletes/api-types';
 import { STATUS_WORDS } from '../../../club/history-text';
 import { RECORD_COPY, recordSubline, recordTabs, seasonFromState, type RecordTab } from '../../../club/sportivi/record-view';
-import { SPORTIVI_PATH } from '../../../club/sportivi/routes';
+import { athleteRecordTo, SPORTIVI_PATH } from '../../../club/sportivi/routes';
 import { useSportiviApi, type SportiviApi } from './api';
 import { DateTab } from './DateTab';
 import { DocumentsTab } from './DocumentsTab';
+import { DuplicateLines } from './DuplicateLines';
 import { HistoryTab } from './HistoryTab';
+import { MergeDialog } from './MergeDialog';
 import { ProfileTab } from './ProfileTab';
+import { RecordMenu } from './RecordMenu';
 import { FooterButtons, RecordFooterContext, type FooterAction } from './recordFooter';
 import { SPORTIVI_CSS } from './styles';
 
@@ -32,19 +35,22 @@ function useAthleteRecord(api: SportiviApi, id: string, season: string | null): 
   return { record, failed, reload, setRecord };
 }
 
-/** Badges (and, from Task 10, the "..." menu) beside the name. Needs decision 12, option B: "Inactiv" while inactive. */
-function HeaderActions({ record }: { record: AthleteRecord }) {
+type HeaderProps = { record: AthleteRecord; api: SportiviApi; loaded: Loaded; onMerge: () => void };
+
+/** Badges and the "..." menu beside the name. Needs decision 12, option B: "Inactiv" while inactive. */
+function HeaderActions({ record, api, loaded, onMerge }: HeaderProps) {
   return (
     <div className="spv-head-acts">
       {record.dataIncomplete && <StatusBadge tone="warning">{RECORD_COPY.incomplete}</StatusBadge>}
       {record.status === 'inactiv' && <StatusBadge tone="neutral">{STATUS_WORDS.inactiv}</StatusBadge>}
+      <RecordMenu record={record} api={api} reload={loaded.reload} onMerge={onMerge} />
     </div>
   );
 }
 
-type ContentProps = { record: AthleteRecord; api: SportiviApi; loaded: Loaded; head: React.ReactNode };
+type ContentProps = { record: AthleteRecord; api: SportiviApi; loaded: Loaded; head: React.ReactNode; onMerge: (otherId: string) => void };
 
-function RecordContent({ record, api, loaded, head }: ContentProps) {
+function RecordContent({ record, api, loaded, head, onMerge }: ContentProps) {
   const [tab, setTab] = React.useState<RecordTab>('date');
   const [seen, setSeen] = React.useState<RecordTab[]>(['date']);
   const tabs = recordTabs(record);
@@ -56,6 +62,7 @@ function RecordContent({ record, api, loaded, head }: ContentProps) {
   return (
     <>
       {head}
+      <DuplicateLines record={record} api={api} reload={loaded.reload} onMerge={onMerge} />
       <Tabs items={tabs} value={tab} onChange={show} label={RECORD_COPY.tabsLabel} panelId="spv-panel" />
       <div role="tabpanel" id="spv-panel" aria-label={tabs.find((t) => t.id === tab)?.label}>
         <div hidden={tab !== 'date'}>
@@ -93,6 +100,8 @@ function RecordState({ failed }: { failed: boolean }) {
   );
 }
 
+type MergeTarget = { otherId: string | null };
+
 /** The athlete record (spec 6): a full page on desktop, a full-height bottom sheet on phones (3b Q7). */
 export function AthleteRecordPage({ documentId }: { documentId: string }) {
   const api = useSportiviApi();
@@ -100,10 +109,18 @@ export function AthleteRecordPage({ documentId }: { documentId: string }) {
   const navigate = useNavigate();
   const { state } = useLocation();
   const loaded = useAthleteRecord(api, documentId, seasonFromState(state));
+  const [merge, setMerge] = React.useState<MergeTarget | null>(null);
   const { record } = loaded;
-  const actions = record ? <HeaderActions record={record} /> : null;
+  const merged = (keptId: string) => {
+    setMerge(null);
+    if (keptId === documentId) void loaded.reload();
+    else navigate(athleteRecordTo(keptId), { replace: true });
+  };
+  const actions = record ? <HeaderActions record={record} api={api} loaded={loaded} onMerge={() => setMerge({ otherId: null })} /> : null;
   const head = phone && record ? <div className="spv-phone-head"><span className="spv-sub2">{recordSubline(record)}</span>{actions}</div> : null;
-  const body = record ? <RecordContent record={record} api={api} loaded={loaded} head={head} /> : <RecordState failed={loaded.failed} />;
+  const body = record
+    ? <RecordContent record={record} api={api} loaded={loaded} head={head} onMerge={(otherId) => setMerge({ otherId })} />
+    : <RecordState failed={loaded.failed} />;
   const title = record?.fields.name ?? '';
   return (
     <AdminPage>
@@ -116,6 +133,7 @@ export function AthleteRecordPage({ documentId }: { documentId: string }) {
           {body}
         </Window>
       )}
+      {record && merge && <MergeDialog record={record} otherId={merge.otherId} api={api} onClose={() => setMerge(null)} onMerged={merged} />}
     </AdminPage>
   );
 }

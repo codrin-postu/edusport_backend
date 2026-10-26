@@ -206,3 +206,27 @@ describe('Profil public (Task 8)', () => {
     expect(read('sportivi/AthleteRecordPage.tsx')).toContain("seen.includes('profil') && (");
   });
 });
+
+describe('menu, duplicates, merge wiring (Task 10)', () => {
+  it('"..." menu with the spec dialogs', () => {
+    const menu = read('sportivi/RecordMenu.tsx');
+    for (const s of ['menuItems(record.status)', 'RECORD_COPY.menu.button', 'RECORD_COPY.inactiveDialog.title', 'RECORD_COPY.deleteDialog.message(', "api.setStatus(record.documentId, 'inactiv')", 'navigate(SPORTIVI_PATH, { replace: true })']) {
+      expect(menu).toContain(s);
+    }
+  });
+
+  it('duplicate line: Unește with the other record, Nu e același copil', () => {
+    const dups = read('sportivi/DuplicateLines.tsx');
+    expect(dups).toContain('onMerge(d.documentId)');
+    expect(dups).toContain('api.dismissDuplicate(pairId)');
+    expect(dups).toContain('RECORD_COPY.duplicate.line(d.name)');
+  });
+
+  it('the record mounts the menu, the lines and the merge window', () => {
+    const rec = read('sportivi/AthleteRecordPage.tsx');
+    expect(rec).toContain('<RecordMenu');
+    expect(rec).toContain('<DuplicateLines');
+    expect(rec).toContain('<MergeDialog');
+    expect(rec).toContain('if (keptId === documentId) void loaded.reload();');
+  });
+});
