@@ -1,5 +1,5 @@
 import { isoDate, parseBirthDate } from './birth-date';
-import { normalizeEmail, normalizePhone, sameName, shareNameWord } from './person-match';
+import { nameWords, normalizeEmail, normalizePhone, sameName, shareNameWord } from './person-match';
 
 /**
  * Is this child already in the club (spec 2.1)? Levels are never shown as words; Sigur and Probabil show
@@ -25,9 +25,21 @@ function sharesContact(a: PersonFacts, b: PersonFacts): boolean {
   return (phone !== '' && phone === normalizePhone(b.phone)) || (email !== '' && email === normalizeEmail(b.email));
 }
 
-/** Same birth date: Sigur with the same name, Probabil with a shared contact and a common name word. */
+/**
+ * Same normalized name: diacritics, case and word order ignored, no typo allowed. The only rule Sigur
+ * and the deploy grouping (plan Task 10) may use for "same child"; a typo match is at most Probabil.
+ */
+export function sameNameExact(a: unknown, b: unknown): boolean {
+  const left = [...nameWords(a)].sort();
+  const right = [...nameWords(b)].sort();
+  return left.length > 0 && left.length === right.length && left.every((word, i) => word === right[i]);
+}
+
+/** Same birth date: Sigur needs the exact name; a typo match, or a shared contact and a common name
+ * word, is Probabil. */
 function sameDateLevel(child: PersonFacts, athlete: PersonFacts): MatchLevel | null {
-  if (sameName(child.name, athlete.name)) return 'sigur';
+  if (sameNameExact(child.name, athlete.name)) return 'sigur';
+  if (sameName(child.name, athlete.name)) return 'probabil';
   return sharesContact(child, athlete) && shareNameWord(child.name, athlete.name) ? 'probabil' : null;
 }
 

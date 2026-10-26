@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bestMatch, duplicateLevel, matchLevel, rankCandidates, registrationFacts, type AthleteFacts, type PersonFacts } from '../matching';
+import { bestMatch, duplicateLevel, matchLevel, rankCandidates, registrationFacts, sameNameExact, type AthleteFacts, type PersonFacts } from '../matching';
 
 const child: PersonFacts = { name: 'Maria Dumitrescu', birthDate: '2016-03-14', phone: '0722 111 222', email: 'ana@example.com' };
 const athlete = (over: Partial<AthleteFacts> = {}): AthleteFacts => ({
@@ -7,8 +7,8 @@ const athlete = (over: Partial<AthleteFacts> = {}): AthleteFacts => ({
 });
 
 describe('levels (spec 2.1)', () => {
-  it('Sigur: same name and same birth date, any order, one typo per word', () => {
-    expect(matchLevel(child, athlete({ name: 'Dumitresu Maria' }))).toBe('sigur');
+  it('Sigur: same name and same birth date, any order, no typo', () => {
+    expect(matchLevel(child, athlete({ name: 'Dumitrescu Maria' }))).toBe('sigur');
   });
 
   it('Probabil: same birth date, same phone or e-mail, one name word in common', () => {
@@ -34,6 +34,35 @@ describe('levels (spec 2.1)', () => {
 
   it('an unreadable registration date is never Sigur', () => {
     expect(matchLevel({ ...child, birthDate: null }, athlete())).toBeNull();
+  });
+});
+
+describe('a typo match is at most Probabil (fix round 1)', () => {
+  const sameDate = '2016-03-14';
+  const facts = (name: string): PersonFacts => ({ name, birthDate: sameDate, phone: null, email: null });
+
+  it('twins: a typo-shaped name difference is Probabil, not Sigur', () => {
+    expect(matchLevel(facts('Daniel Pop'), facts('Daniela Pop'))).toBe('probabil');
+  });
+
+  it('two unrelated children with every word one letter apart are Probabil at most', () => {
+    expect(matchLevel(facts('Ana Pop'), facts('Ina Pip'))).toBe('probabil');
+  });
+
+  it('same name, any order, no typo: Sigur', () => {
+    expect(matchLevel(facts('Maria Dumitrescu'), facts('Dumitrescu Maria'))).toBe('sigur');
+  });
+
+  it('same name with one typo: Probabil', () => {
+    expect(matchLevel(facts('Maria Dumitrescu'), facts('Maria Dumitresu'))).toBe('probabil');
+  });
+});
+
+describe('sameNameExact', () => {
+  it('ignores diacritics, case and word order, but not a typo', () => {
+    expect(sameNameExact('Ștefan Pop', 'stefan pop')).toBe(true);
+    expect(sameNameExact('Maria Dumitrescu', 'Dumitrescu Maria')).toBe(true);
+    expect(sameNameExact('Maria Dumitrescu', 'Maria Dumitresu')).toBe(false);
   });
 });
 
