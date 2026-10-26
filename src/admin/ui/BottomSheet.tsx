@@ -20,9 +20,17 @@ import { closesOnRelease, dragOffset } from '../../club/ui-sheet';
  * - wider screens: `desktop="dropdown"` (default) shows the same content as a
  *   rich dropdown under `anchorRef` (arrow, soft shadow, 8px corners, no
  *   overlay; closes on outside click and Escape, focus back to the button);
- *   `desktop="modal"`, or no `anchorRef`, uses the existing Modal.
+ *   `desktop="modal"`, or no `anchorRef`, uses the existing Modal. It pushes
+ *   its own layer token: a dialog opened from it (e.g. a row's confirm
+ *   window) becomes the newer, topmost layer, so the dropdown stops reacting
+ *   to Escape and outside clicks until that dialog closes.
  *
  * Portals carry `.ui-root`, so the SaveBar tagger skips their buttons.
+ *
+ * A phone sheet opened from a Modal would render under it (`--ui-z-sheet` is
+ * below `--ui-z-modal`); no current caller nests one inside the other.
+ * A caller passing a non-text `title` should also pass `ariaLabel`, and give
+ * the anchor button `aria-haspopup="dialog"` and `aria-expanded`.
  */
 export interface BottomSheetProps {
   open: boolean;
@@ -104,7 +112,7 @@ function useScrollLock(open: boolean): void {
 }
 
 /** Swipe down on the header to close; the sheet follows the finger while dragging. */
-function useSwipeDown(boxRef: Ref<HTMLElement>, onRelease: () => void) {
+function useSwipeDown(boxRef: Ref<HTMLElement>, onRelease: () => void, dismissable: boolean) {
   const [dy, setDy] = React.useState(0);
   const start = React.useRef<{ y: number; at: number } | null>(null);
   const reset = () => {
@@ -113,7 +121,7 @@ function useSwipeDown(boxRef: Ref<HTMLElement>, onRelease: () => void) {
   };
   const handlers = {
     onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
-      if ((e.target as Element).closest('button')) return;
+      if (!dismissable || (e.target as Element).closest('button')) return;
       start.current = { y: e.clientY, at: Date.now() };
       e.currentTarget.setPointerCapture(e.pointerId);
     },
@@ -162,7 +170,7 @@ function PhoneSheet(p: SheetProps) {
   useLayerFocus(p.open, token, boxRef, p.initialFocusRef);
   useLayerKeys(p.open, token, boxRef, p.onClose, p.dismissable);
   useScrollLock(p.open);
-  const swipe = useSwipeDown(boxRef, requestClose);
+  const swipe = useSwipeDown(boxRef, requestClose, p.dismissable);
   if (!p.open || typeof document === 'undefined') return null;
   return createPortal(
     <div className="ui-root ui-sheet-layer" onMouseDown={(e) => e.target === e.currentTarget && requestClose()}>
@@ -199,16 +207,36 @@ function useDropdownFocus(open: boolean, anchorRef: Ref<HTMLElement>, panelRef: 
   }, [open]);
 }
 
+/**
+ * Same layer stack as Modal and Drawer: pushed while open, so a dialog
+ * opened from the dropdown becomes the newer, topmost layer and this one
+ * stops being `isTopLayer`.
+ */
+function useDropdownLayer(open: boolean, token: symbol): void {
+  React.useEffect(() => {
+    if (!open) return undefined;
+    return pushLayer(token);
+  }, [open, token]);
+}
+
 /** The desktop dropdown: a Popover with an arrow, no overlay. */
 function SheetDropdown(p: SheetProps & { anchorRef: Ref<HTMLElement> }) {
   const panelRef = React.useRef<HTMLDivElement | null>(null);
+  const token = React.useMemo(() => Symbol('ui-sheetdd'), []);
   useDropdownFocus(p.open, p.anchorRef, panelRef, p.initialFocusRef);
+  useDropdownLayer(p.open, token);
   const label = p.ariaLabel ?? (typeof p.title === 'string' ? p.title : undefined);
+  // Only the top layer closes on Escape or an outside click; while open but not
+  // top, onClose is undefined so Popover neither swallows nor acts on them,
+  // leaving them for the dialog now covering it. dismissable=false still
+  // swallows (a defined, no-op handler) instead of leaking to an enclosing
+  // Modal or Drawer.
+  const onClose = isTopLayer(token) ? () => p.dismissable && p.onClose() : undefined;
   return (
     <Popover
       open={p.open}
       anchorRef={p.anchorRef}
-      onClose={p.dismissable ? p.onClose : undefined}
+      onClose={onClose}
       arrow
       offset={10}
       role="dialog"

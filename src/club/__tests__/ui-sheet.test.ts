@@ -43,4 +43,26 @@ describe('BottomSheet wiring', () => {
     expect(css).toContain('.ui-sheet--full{height:100dvh;max-height:100dvh}');
     expect(css).toContain('env(safe-area-inset-bottom)');
   });
+
+  it('pads the last body block for the safe area too, when there is no footer', () => {
+    const css = source('admin/ui/styles.ts');
+    expect(css).toContain('.ui-sheet-b:last-child{padding-bottom:max(12px, env(safe-area-inset-bottom))}');
+  });
+});
+
+describe('desktop dropdown layer stack', () => {
+  // isTopLayer/pushLayer live in src/admin/ui/layerStack.ts (shared with Modal
+  // and Drawer since Task 1), not in src/club: it is DOM-adjacent admin-bundle
+  // wiring, not pure swipe/close logic, so it is pinned here by source-reading
+  // the component instead of a pure unit test.
+  it('pushes a layer token while open, so a dialog opened from it becomes the newer layer', () => {
+    const sheet = source('admin/ui/BottomSheet.tsx');
+    expect(sheet).toContain('function useDropdownLayer(open: boolean, token: symbol): void {');
+    expect(sheet).toContain('useDropdownLayer(p.open, token)');
+  });
+
+  it('passes onClose to Popover only while it is the top layer, still gated by dismissable', () => {
+    const sheet = source('admin/ui/BottomSheet.tsx');
+    expect(sheet).toContain('const onClose = isTopLayer(token) ? () => p.dismissable && p.onClose() : undefined;');
+  });
 });
