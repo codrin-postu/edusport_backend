@@ -11,6 +11,7 @@ const record = (over: Partial<ConfirmationRecord> = {}): ConfirmationRecord => (
   fieldsAfter: { phone: '0722111222' },
   membershipId: 'm9',
   demotedMainId: 'm0',
+  promotedMainId: null,
   acs: { id: 'c9', previous: null },
   at: '2026-10-26T10:00:00.000Z',
   ...over,
@@ -20,6 +21,7 @@ const facts = (over: Partial<UndoFacts> = {}): UndoFacts => ({
   linkedAthleteId: 'a1',
   athlete: { id: 'a1', status: 'activ', profileId: null, name: 'Maria Pop', birthDate: '2016-03-14', contactName: 'Ana Pop', phone: '0722111222', email: null },
   membershipIds: ['m0', 'm9'],
+  mainMembershipId: 'm9',
   acsRows: [{ id: 'c9', state: 'in_asteptare' }],
   otherRegistrations: 0,
   ...over,
@@ -31,6 +33,7 @@ describe('undo reverts what the confirmation wrote (spec 4.6, gaps #32)', () => 
       registration: { status: 'Contactat' },
       deleteMembershipId: 'm9',
       restoreMainId: 'm0',
+      demoteMembershipId: null,
       acs: { op: 'delete', id: 'c9' },
       athleteUpdate: { phone: '0711000000', status: 'inactiv', dataIncomplete: true },
       revertedFields: { phone: { from: '0722111222', to: '0711000000' } },
@@ -62,6 +65,36 @@ describe('undo reverts what the confirmation wrote (spec 4.6, gaps #32)', () => 
     const plan = planUndo(facts({ record: record({ membershipId: null, demotedMainId: 'm0' }) }));
     expect(plan.deleteMembershipId).toBeNull();
     expect(plan.restoreMainId).toBe('m0');
+  });
+
+  it('demotes a promoted existing group and restores the previous main (fix/p3-2-g3, with a previous main)', () => {
+    const plan = planUndo(facts({
+      record: record({ membershipId: null, demotedMainId: 'm0', promotedMainId: 'm9' }),
+      membershipIds: ['m0', 'm9'],
+      mainMembershipId: 'm9',
+    }));
+    expect(plan.deleteMembershipId).toBeNull();
+    expect(plan.demoteMembershipId).toBe('m9');
+    expect(plan.restoreMainId).toBe('m0');
+  });
+
+  it('demotes a promoted existing group with no previous main to restore (fix/p3-2-g3, without a previous main)', () => {
+    const plan = planUndo(facts({
+      record: record({ membershipId: null, demotedMainId: null, promotedMainId: 'm9' }),
+      membershipIds: ['m9'],
+      mainMembershipId: 'm9',
+    }));
+    expect(plan.deleteMembershipId).toBeNull();
+    expect(plan.demoteMembershipId).toBe('m9');
+    expect(plan.restoreMainId).toBeNull();
+  });
+
+  it('never demotes a group that a later admin action already changed', () => {
+    const stillMain = planUndo(facts({ record: record({ membershipId: null, promotedMainId: 'm9' }), mainMembershipId: 'm0' }));
+    expect(stillMain.demoteMembershipId).toBeNull();
+
+    const gone = planUndo(facts({ record: record({ membershipId: null, promotedMainId: 'm9' }), membershipIds: ['m0'], mainMembershipId: null }));
+    expect(gone.demoteMembershipId).toBeNull();
   });
 });
 
