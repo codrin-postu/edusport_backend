@@ -36,7 +36,7 @@ const oneOf = <T extends string>(values: readonly T[], v: unknown, fallback: T):
 export function toAthleteRow(r: Raw): AthleteRow {
   return {
     id: text(r.documentId), name: str(r.name), birthDate: str(r.birthDate), contactName: str(r.contactName), phone: str(r.phone), email: str(r.email),
-    status: oneOf(ATHLETE_STATUSES, r.status, 'activ'), dataIncomplete: r.dataIncomplete === true, profileId: linkId(r.publicProfile), updatedAt: iso(r.updatedAt) ?? '',
+    status: oneOf(ATHLETE_STATUSES, r.status, 'activ'), dataIncomplete: r.dataIncomplete === true, profileId: linkId(r.publicProfile), notes: str(r.notes), updatedAt: iso(r.updatedAt) ?? '',
   };
 }
 

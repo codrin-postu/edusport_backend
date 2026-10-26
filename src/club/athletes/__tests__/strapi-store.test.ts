@@ -5,10 +5,10 @@ describe('Strapi rows -> store rows', () => {
   it('reads an athlete with its profile link', () => {
     expect(toAthleteRow({
       documentId: 'a1', name: 'Maria Pop', birthDate: '2016-03-14', contactName: null, phone: '07', email: null,
-      status: 'inactiv', dataIncomplete: true, publicProfile: { documentId: 'sp1' }, updatedAt: new Date('2026-10-01T10:00:00.000Z'),
+      status: 'inactiv', dataIncomplete: true, publicProfile: { documentId: 'sp1' }, notes: 'Alergie la arahide', updatedAt: new Date('2026-10-01T10:00:00.000Z'),
     })).toEqual({
       id: 'a1', name: 'Maria Pop', birthDate: '2016-03-14', contactName: null, phone: '07', email: null,
-      status: 'inactiv', dataIncomplete: true, profileId: 'sp1', updatedAt: '2026-10-01T10:00:00.000Z',
+      status: 'inactiv', dataIncomplete: true, profileId: 'sp1', notes: 'Alergie la arahide', updatedAt: '2026-10-01T10:00:00.000Z',
     });
   });
 

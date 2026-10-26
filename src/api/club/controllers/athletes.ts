@@ -8,6 +8,7 @@ import { clubStore, queryText, serviceContext } from '../../../club/athletes/htt
 import { athleteListPage, readListQuery } from '../../../club/athletes/list';
 import { createAthleteProfile, setAthleteProfileVisibility, athleteIdForProfile } from '../../../club/athletes/profile';
 import { readAthleteRecord, updateAthlete } from '../../../club/athletes/record';
+import { dismissDuplicate, mergeAthletes, mergePreview, readMergeRequest } from '../../../club/athletes/merge';
 import { todayInBucharest } from '../../../club/birth-date';
 import { SUBJECT } from '../../../club/history-text';
 
@@ -62,5 +63,19 @@ export default {
 
   async remove(ctx: AdminCtx) {
     respond(ctx, await deleteAthlete(await serviceContext(strapi, ctx), ctx.params.documentId ?? ''));
+  },
+
+  async mergePreview(ctx: AdminCtx) {
+    respond(ctx, await mergePreview(clubStore(strapi), queryText(ctx.query.kept), queryText(ctx.query.removed)));
+  },
+
+  async merge(ctx: AdminCtx) {
+    const request = readMergeRequest(ctx.request.body);
+    if (!request) return refuseWith(ctx, 400, ADMIN_ERRORS.invalid);
+    respond(ctx, await mergeAthletes(await serviceContext(strapi, ctx), request));
+  },
+
+  async dismissDuplicate(ctx: AdminCtx) {
+    respond(ctx, await dismissDuplicate(await serviceContext(strapi, ctx), ctx.params.pairId ?? ''));
   },
 };

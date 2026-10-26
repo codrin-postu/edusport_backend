@@ -28,7 +28,7 @@ export const GROUPS: GroupRow[] = [
 const defined = <T extends object>(o: T): Partial<T> => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
 
 export function athleteRow(over: Partial<AthleteRow> & { id: string }): AthleteRow {
-  const base: AthleteRow = { id: over.id, name: null, birthDate: null, contactName: null, phone: null, email: null, status: 'activ', dataIncomplete: false, profileId: null, updatedAt: '2026-10-01T10:00:00.000Z' };
+  const base: AthleteRow = { id: over.id, name: null, birthDate: null, contactName: null, phone: null, email: null, status: 'activ', dataIncomplete: false, profileId: null, notes: null, updatedAt: '2026-10-01T10:00:00.000Z' };
   return { ...base, ...defined(over) };
 }
 

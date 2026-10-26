@@ -1,8 +1,25 @@
 import { factories } from '@strapi/strapi';
+import { previousSlugOwner, previousSlugQuery } from '../../../club/profile-slug';
 
 const UID = 'api::sportsperson.sportsperson';
 
 export default factories.createCoreController(UID, ({ strapi }) => ({
+  /**
+   * GET /api/sportspeople. `filters[previousSlugs][$contains]=<slug>` (the website, for an address removed by a merge,
+   * d39) answers the published profile with its page on that remembers the slug. `previousSlugs` is private: matched here, never output.
+   */
+  async find(ctx) {
+    const wanted = previousSlugQuery((ctx.query ?? {}) as Record<string, unknown>);
+    if (!wanted) return super.find(ctx);
+    const rows = await strapi.db.query(UID).findMany({
+      select: ['documentId', 'previousSlugs', 'showPublicPage'], where: { publishedAt: { $notNull: true }, showPublicPage: true }, limit: 5000,
+    });
+    const documentId = previousSlugOwner(rows, wanted.slug);
+    if (!documentId) return { data: [], meta: { pagination: { page: 1, pageSize: 25, pageCount: 0, total: 0 } } };
+    ctx.query = { ...wanted.rest, filters: { documentId } };
+    return super.find(ctx);
+  },
+
   /**
    * Publish a sportsperson via the document service. The content-manager
    * `actions/publish` endpoint re-validates the submitted body and 400s on the
