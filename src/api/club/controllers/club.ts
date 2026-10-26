@@ -5,15 +5,16 @@ export default {
   async summary(ctx) {
     const count = (uid: UID.ContentType, filters?: Record<string, unknown>) =>
       strapi.documents(uid).count(filters ? { filters } : {});
-    const [seasons, sections, groups, athletes, priceLists, numberedRegistrations] = await Promise.all([
+    const [seasons, sections, groups, athletes, activeAthletes, priceLists, numberedRegistrations] = await Promise.all([
       count('api::season.season'),
       count('api::section.section'),
       count('api::group.group'),
       count('api::athlete.athlete'),
+      count('api::athlete.athlete', { status: 'activ' }),
       count('api::price-list.price-list'),
       count('api::registration-submission.registration-submission', { registrationNumber: { $notNull: true } }),
     ]);
-    ctx.body = { data: { seasons, sections, groups, athletes, priceLists, numberedRegistrations } };
+    ctx.body = { data: { seasons, sections, groups, athletes, activeAthletes, priceLists, numberedRegistrations } };
   },
 
   /** GET /api/club/public (no auth): see src/club/public-info.ts for exactly what is returned. */
