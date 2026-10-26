@@ -92,7 +92,8 @@ function planNew(values: AthleteValues): AthletePlan {
   return { newAthlete: { ...values, status: 'activ', dataIncomplete: isDataIncomplete(values) }, athleteUpdate: null, fieldChanges: {}, statusChange: null, renameProfile: null };
 }
 
-function changedOnly(changes: Record<string, FieldChange>, values: AthleteValues): Partial<AthleteValues> {
+/** The new values of the changed fields only (also what the undo writes back). */
+export function changedOnly(changes: Record<string, FieldChange>, values: AthleteValues): Partial<AthleteValues> {
   const out: Partial<AthleteValues> = {};
   for (const key of Object.keys(changes)) if (isAthleteField(key)) out[key] = values[key];
   return out;
