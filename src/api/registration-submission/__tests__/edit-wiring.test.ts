@@ -16,9 +16,11 @@ it('a delete notes it on the athlete before the row goes', () => {
   expect(method('deleteArchivedSeason', 'moveSeason')).toContain('beforeRegistrationDeleted(');
 });
 
-it('the edit holds the row as the confirmation does, and a status change on a linked one is a 409', () => {
+it('the edit holds the row as the confirmation does; a 409 (linked status) and a 500 (failed save) keep their message', () => {
   const deps = readFileSync(join(__dirname, '..', 'edit-deps.ts'), 'utf8');
   expect(deps).toContain('await store.lockRegistration(id);');
   expect(deps).toContain("populate: ['athlete', 'matchAthlete']");
-  expect(method('updateSubmission', 'deleteSubmission')).toContain('ctx.status = 409;');
+  const put = method('updateSubmission', 'deleteSubmission');
+  expect(put).toContain('result.status === 409 || result.status === 500');
+  expect(put).toContain("ctx.body = { data: null, error: { status: result.status, name: 'ClubAdminError', message: result.error } };");
 });
