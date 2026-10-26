@@ -25,8 +25,16 @@ describe('a merged-away address (d39, plan 3-3 Task 6)', () => {
   });
 
   it('finds the profile that remembers exactly that address', () => {
-    const rows = [{ documentId: 'a', previousSlugs: ['maria-pop-22'] }, { documentId: 'b', previousSlugs: ['maria-pop-2'] }, { documentId: 'c', previousSlugs: null }];
+    const rows = [
+      { documentId: 'a', previousSlugs: ['maria-pop-22'], showPublicPage: true },
+      { documentId: 'b', previousSlugs: ['maria-pop-2'], showPublicPage: true },
+      { documentId: 'c', previousSlugs: null, showPublicPage: true },
+    ];
     expect(previousSlugOwner(rows, 'maria-pop-2')).toBe('b');
     expect(previousSlugOwner(rows, 'maria')).toBeNull();
+  });
+
+  it('never resolves an address of a profile whose page is off', () => {
+    expect(previousSlugOwner([{ documentId: 'h', previousSlugs: ['ana-ion'], showPublicPage: false }], 'ana-ion')).toBeNull();
   });
 });

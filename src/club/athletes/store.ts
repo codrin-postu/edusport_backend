@@ -6,7 +6,7 @@ import type { HistoryInput } from '../history';
 import type { StoredMatchLevel } from '../matching';
 
 /** Club data as the 3A+3B services see it. Ids are Strapi documentIds. `strapiClubStore` is the real one. */
-export type AthleteRow = AthleteValues & { id: string; status: AthleteStatus; dataIncomplete: boolean; profileId: string | null; updatedAt: string };
+export type AthleteRow = AthleteValues & { id: string; status: AthleteStatus; dataIncomplete: boolean; profileId: string | null; notes: string | null; updatedAt: string };
 export type RegistrationRow = {
   id: string; number: string | null; childName: string; childBirthDate: string; parentName: string; phone: string; email: string;
   status: RegistrationStatus; archived: boolean; season: string | null; seasonId: string | null; sectionId: string | null;
@@ -28,7 +28,7 @@ export type RegistrationPatch = Partial<{
   athleteId: string | null; matchAthleteId: string | null; matchLevel: StoredMatchLevel | null; childBirthDateParsed: string | null;
   status: RegistrationStatus; sectionId: string; confirmation: ConfirmationRecord | null;
 }>;
-export type AthleteWrite = Partial<AthleteValues & { status: AthleteStatus; dataIncomplete: boolean; profileId: string | null }>;
+export type AthleteWrite = Partial<AthleteValues & { status: AthleteStatus; dataIncomplete: boolean; profileId: string | null; notes: string | null }>;
 
 export interface ClubStore {
   /** All writes inside `work` are saved together or not at all. */

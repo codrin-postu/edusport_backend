@@ -30,8 +30,8 @@ export function previousSlugQuery(query: Record<string, unknown>): { slug: strin
   return { slug, rest };
 }
 
-/** Exact match on one remembered address (never a substring of another). */
-export function previousSlugOwner(rows: { documentId?: unknown; previousSlugs?: unknown }[], slug: string): string | null {
-  const hit = rows.find((r) => Array.isArray(r.previousSlugs) && r.previousSlugs.includes(slug));
+/** Exact match on one remembered address (never a substring of another), of a profile whose page is on. */
+export function previousSlugOwner(rows: { documentId?: unknown; previousSlugs?: unknown; showPublicPage?: unknown }[], slug: string): string | null {
+  const hit = rows.find((r) => r.showPublicPage === true && Array.isArray(r.previousSlugs) && r.previousSlugs.includes(slug));
   return hit && typeof hit.documentId === 'string' ? hit.documentId : null;
 }

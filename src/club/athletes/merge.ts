@@ -5,13 +5,14 @@ import type { MergePreview, MergeSideView } from './api-types';
 import { ADMIN_ERRORS } from './errors';
 import { refreshAllMatches, safely } from './matches';
 import { mergeDiffering, planMerge, type MergePlan, type MergeSide } from './merge-plan';
-import type { AthleteRow, ClubStore, DuplicateRow, ProfileRow, RegistrationRow, ServiceContext } from './store';
+import type { AthleteRow, ClubStore, DuplicateRow, ProfileRow, ServiceContext } from './store';
 
 /** "Unește cu alt sportiv" (spec 6.6, d39) and "Nu e același copil" (d12). No undo. */
 export type MergeRequest = { keptId: string; removedId: string; take: AthleteField[] };
 type Result = AdminResult<{ documentId: string }>;
 
 const idOf = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 export function readMergeRequest(body: unknown): MergeRequest | null {
   const b = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
@@ -21,27 +22,35 @@ export function readMergeRequest(body: unknown): MergeRequest | null {
   return keptId && removedId && keptId !== removedId ? { keptId, removedId, take } : null;
 }
 
-function sideView(a: AthleteRow, profiles: ProfileRow[], registrations: RegistrationRow[]): MergeSideView {
+async function sideView(store: ClubStore, a: AthleteRow, profiles: ProfileRow[]): Promise<MergeSideView> {
   const fields = Object.fromEntries(ATHLETE_FIELDS.map((f) => [f, athleteValueText(f, a[f])])) as Record<AthleteField, string>;
   const profileSlug = profiles.find((p) => p.id === a.profileId)?.slug ?? null;
-  return { documentId: a.id, name: a.name ?? '', fields, status: a.status, profileSlug, registrations: registrations.filter((r) => r.athleteId === a.id).length };
+  const registrations = (await store.registrations({ athleteId: a.id })).length;
+  return { documentId: a.id, name: a.name ?? '', fields, status: a.status, profileSlug, registrations };
 }
 
 export async function mergePreview(store: ClubStore, keptId: string, removedId: string): Promise<AdminResult<MergePreview>> {
-  if (!keptId || keptId === removedId) return refuse(400, ADMIN_ERRORS.invalid);
-  const [kept, removed, profiles, registrations] = await Promise.all([store.athlete(keptId), store.athlete(removedId), store.profiles(), store.registrations()]);
+  if (!keptId || !removedId || keptId === removedId) return refuse(400, ADMIN_ERRORS.invalid);
+  const [kept, removed, profiles] = await Promise.all([store.athlete(keptId), store.athlete(removedId), store.profiles()]);
   if (!kept || !removed) return refuse(404, ADMIN_ERRORS.notFound);
   const differing = mergeDiffering(pickAthleteValues(kept), pickAthleteValues(removed));
-  return { ok: true, data: { kept: sideView(kept, profiles, registrations), removed: sideView(removed, profiles, registrations), differing } };
+  const [keptView, removedView] = await Promise.all([sideView(store, kept, profiles), sideView(store, removed, profiles)]);
+  return { ok: true, data: { kept: keptView, removed: removedView, differing } };
 }
 
-async function loadSide(store: ClubStore, athleteId: string, profiles: ProfileRow[]): Promise<MergeSide | null> {
+/** A merge side plus the athlete's free-text notes, which no field choice covers. */
+type MergeSource = MergeSide & { notes: string | null };
+
+/** Nothing of the removed record's notes is lost: appended after a blank line, or moved when the kept record has none. */
+const mergedNotes = (kept: string | null, removed: string | null): string | null => (kept && removed ? `${kept}\n\n${removed}` : kept ?? removed);
+
+async function loadSide(store: ClubStore, athleteId: string, profiles: ProfileRow[]): Promise<MergeSource | null> {
   const athlete = await store.athlete(athleteId);
   if (!athlete) return null;
   const [memberships, acs] = await Promise.all([store.memberships(athleteId), store.acsRows(athleteId)]);
   const profile = profiles.find((p) => p.id === athlete.profileId);
   return {
-    id: athlete.id, name: athlete.name ?? '', values: pickAthleteValues(athlete), status: athlete.status,
+    id: athlete.id, name: athlete.name ?? '', values: pickAthleteValues(athlete), status: athlete.status, notes: athlete.notes,
     profile: profile ? { id: profile.id, slug: profile.slug, previousSlugs: profile.previousSlugs } : null,
     memberships: memberships.map(({ id: mId, groupId, seasonId, isMain }) => ({ id: mId, groupId, seasonId, isMain })),
     acs: acs.map(({ id: aId, seasonId, state }) => ({ id: aId, seasonId, state })),
@@ -110,11 +119,11 @@ async function applyProfile(store: ClubStore, plan: MergePlan, keptId: string, r
   if (p.finalId && plan.values.name) await store.renameProfile(p.finalId, plan.values.name);
 }
 
-async function applyMerge(ctx: ServiceContext, kept: MergeSide, removed: MergeSide, plan: MergePlan): Promise<void> {
+async function applyMerge(ctx: ServiceContext, kept: MergeSource, removed: MergeSource, plan: MergePlan): Promise<void> {
   await applyRows(ctx.store, plan, kept.id, removed.id);
   await repointDuplicates(ctx.store, removed.id, kept.id);
   await applyProfile(ctx.store, plan, kept.id, removed.id);
-  await ctx.store.updateAthlete(kept.id, { ...plan.values, dataIncomplete: plan.dataIncomplete });
+  await ctx.store.updateAthlete(kept.id, { ...plan.values, dataIncomplete: plan.dataIncomplete, notes: mergedNotes(kept.notes, removed.notes) });
   await ctx.store.moveHistory(removed.id, kept.id);
   await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: kept.id, action: HISTORY_ACTIONS.merged, changes: { name: removed.name }, actor: ctx.actor });
   if (Object.keys(plan.fieldChanges).length) {
@@ -136,7 +145,7 @@ export async function mergeAthletes(ctx: ServiceContext, request: MergeRequest):
   try {
     result = await ctx.store.transaction(() => mergeInTransaction(ctx, request));
   } catch (err) {
-    ctx.log(`[athletes] merging ${request.removedId} into ${request.keptId} failed: ${err instanceof Error ? err.message : String(err)}`);
+    ctx.log(`[athletes] merging ${request.removedId} into ${request.keptId} failed: ${errorText(err)}`);
     return refuse(500, ADMIN_ERRORS.failed);
   }
   if (result.ok === true) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after a merge');
@@ -156,6 +165,11 @@ async function dismissInTransaction(ctx: ServiceContext, pairId: string): Promis
 }
 
 /** "Nu e același copil": the flag is dismissed for good, the row kept so it is never flagged again (d12); both records note it (N2 b). */
-export function dismissDuplicate(ctx: ServiceContext, pairId: string): Promise<AdminResult<{ pairId: string }>> {
-  return ctx.store.transaction(() => dismissInTransaction(ctx, pairId));
+export async function dismissDuplicate(ctx: ServiceContext, pairId: string): Promise<AdminResult<{ pairId: string }>> {
+  try {
+    return await ctx.store.transaction(() => dismissInTransaction(ctx, pairId));
+  } catch (err) {
+    ctx.log(`[athletes] dismissing duplicate ${pairId} failed: ${errorText(err)}`);
+    return refuse(500, ADMIN_ERRORS.failed);
+  }
 }

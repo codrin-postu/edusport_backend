@@ -32,9 +32,18 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
     expect(result.ok && [result.data.kept.profileSlug, result.data.removed.registrations]).toEqual(['maria-pop', 1]);
   });
 
+  it('preview: counts only the two athletes\' registrations, never loads them all', async () => {
+    const store = fakeClubStore(seed()).store;
+    const spy = vi.spyOn(store, 'registrations');
+    const result = await mergePreview(store, 'k', 'r');
+    expect(result.ok && [result.data.kept.registrations, result.data.removed.registrations]).toEqual([0, 1]);
+    expect(spy.mock.calls).toEqual([[{ athleteId: 'k' }], [{ athleteId: 'r' }]]);
+  });
+
   it('preview: refuses the same record twice and unknown records', async () => {
     const store = fakeClubStore(seed()).store;
     expect(await mergePreview(store, 'k', 'k')).toEqual({ ok: false, status: 400, error: ADMIN_ERRORS.invalid });
+    expect(await mergePreview(store, 'k', '')).toEqual({ ok: false, status: 400, error: ADMIN_ERRORS.invalid });
     expect(await mergePreview(store, 'k', 'zz')).toEqual({ ok: false, status: 404, error: ADMIN_ERRORS.notFound });
   });
 
@@ -46,6 +55,24 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
     expect(fake.state.registrations[0]).toMatchObject({ athleteId: 'k', confirmation: null });
     expect(fake.state.memberships.map((m) => [m.id, m.athleteId, m.isMain])).toEqual([['mk', 'k', true], ['mr2', 'k', true]]);
     expect(fake.state.acs.map((a) => [a.id, a.athleteId, a.state])).toEqual([['ck', 'k', 'da']]);
+  });
+
+  it('notes: both kept with a blank line between; the removed record\'s alone move over', async () => {
+    const both = fakeClubStore(seed());
+    await both.store.updateAthlete('k', { notes: 'Alergie la arahide' });
+    await both.store.updateAthlete('r', { notes: 'Vine cu bunica' });
+    await mergeAthletes(ctx(both), { keptId: 'k', removedId: 'r', take: [] });
+    expect(both.state.athletes[0].notes).toBe('Alergie la arahide\n\nVine cu bunica');
+
+    const onlyRemoved = fakeClubStore(seed());
+    await onlyRemoved.store.updateAthlete('r', { notes: 'Vine cu bunica' });
+    await mergeAthletes(ctx(onlyRemoved), { keptId: 'k', removedId: 'r', take: [] });
+    expect(onlyRemoved.state.athletes[0].notes).toBe('Vine cu bunica');
+
+    const onlyKept = fakeClubStore(seed());
+    await onlyKept.store.updateAthlete('k', { notes: 'Alergie la arahide' });
+    await mergeAthletes(ctx(onlyKept), { keptId: 'k', removedId: 'r', take: [] });
+    expect(onlyKept.state.athletes[0].notes).toBe('Alergie la arahide');
   });
 
   it('a relinked registration keeps Confirmat but can no longer be undone', async () => {
@@ -188,5 +215,14 @@ describe('Nu e același copil (d12)', () => {
     expect(await dismissDuplicate(ctx(fake), 'd1')).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
     expect(await dismissDuplicate(ctx(fake), 'zz')).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
     expect(fake.state.history).toHaveLength(2);
+  });
+
+  it('a failure saves nothing and answers the usual refusal', async () => {
+    const fake = fakeClubStore(seed());
+    fake.failOn('record');
+    const c = ctx(fake);
+    expect(await dismissDuplicate(c, 'd1')).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
+    expect(fake.state.duplicates.map((d) => d.dismissed)).toEqual([false, false]);
+    expect(c.log).toHaveBeenCalledOnce();
   });
 });
