@@ -182,3 +182,17 @@ Checker after phase 1b: src/admin/ui at 0 outside tokens.ts, total unchanged (27
 - [x] Calendar editor (ProgramOverviewEditor) on `--theme-cat-*` and the shared components; `.pce` no longer used by it (root is `.ui-root .cal`).
 - [x] Calendar redesign (2026-10-01, branch calendar, docs/admin-ui/CALENDAR-BRIEF.md): toolbar with Azi and Lună / Listă, four colour filter chips above the grid (behind "Filtre" on phones), soft-tint event chips (`--theme-cat-<name>-soft` / `-soft-fg`), today and weekends marked, a compact grid with colour marks on phones (Listă by default there). The editor is a `Drawer` (side panel) with Evenimentul / Când / fold-out Excepții or Datele seriei / Conținut opțional, Anulează with the "Da, renunță" confirm. Code split into component-preview `calendar/` (model.ts, CalendarView.tsx, EventDrawer.tsx, styles.ts); same data, same API.
 - CalendarEventsEditor left as is: still registered (`calendar-events` custom field) but no edit layout shows it.
+
+## Phase 3 shared pieces (plan 3-1, 2026-10-26)
+
+Built for Înscrieri (3A) and Sportivi (3B); all on the reference page (/admin/plugins/edusport-ui, "Componente faza 3").
+- [x] `Select` {value, onChange(value), options?, placeholder?, disabled?, className?, style?, aria-label?}: rewritten as a combobox button with a chevron and the shared list (Popover + ui-opt, selected option ticked); keyboard as a select-only combobox, type-ahead without diacritics. Same props as before, so every page switched at once; no native `<select>` left in src/admin (checked by `src/club/__tests__/admin-select-migration.test.ts`).
+- [x] `SearchableSelect`: `ComboOption.group` puts options under a header (group pickers: section name, school first, then Club).
+- [x] `Radio` / `RadioGroup` {value | null, onChange, options [{value, label, hint?}], variant plain | card, direction}: native radios with the admin mark; card = the confirm window's choice cards.
+- [x] `adminToast.*(text, { action: { label, onClick } })`: one action button (e.g. "Anulează"); runs once, closes the toast; the countdown waits while pointer or focus is on it.
+- [x] `BottomSheet`: phone panel from the bottom (85% or `fullHeight`), swipe down / X / overlay / Escape, same layer stack and focus trap as Modal / Drawer, z-index token `sheet` between Drawer and Modal; on wider screens a dropdown under `anchorRef` (arrow, 8px corners) or the Modal (`desktop="modal"`).
+- [x] `FilterPanel` (filters-v3): "Filtre" button with the active count; desktop dropdown with sections left and options right (36px rows, search above 8 options, live total, "Șterge tot", "Gata"); phone drill-in sheet ("‹ Filtre", "Arată N ...").
+- [x] `BirthDatePicker` {value: DateParts, onChange}: three Selects zi / lună / an, years 25 to 2 years ago plus a stored year outside; helpers partsFrom/ToDisplay (ZZ.LL.AAAA) and partsFrom/ToIso.
+- [x] Selected style E (selected-state-v2) on `.ui-inbox-item[aria-current="true"]` and the filter section nav.
+- [x] Popover: `arrow` option; nested popovers (a Select inside "Alte filtre" or a filter dropdown) no longer close their parent; Escape closes the newest only.
+- [x] New radius tokens `lg` (8px dropdowns), `sheet` (phone sheet top corners), `handle`, `radio`, allowed by `scripts/admin-ui-check.mjs`.
