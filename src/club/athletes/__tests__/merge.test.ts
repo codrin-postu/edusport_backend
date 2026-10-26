@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ADMIN_ERRORS } from '../errors';
 import { dismissDuplicate, mergeAthletes, mergePreview, readMergeRequest } from '../merge';
+import { undoConfirmation } from '../undo-service';
 import { athleteRow, fakeClubStore, registrationRow, type Fake } from './fake-store';
 import { canUndo, type ConfirmationRecord } from '../../confirm/plan';
 
@@ -52,6 +53,21 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
     await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] });
     expect(fake.state.registrations[0].status).toBe('Confirmat');
     expect(canUndo(fake.state.registrations[0])).toBe(false);
+  });
+
+  it('after a merge no confirmation of either record can be undone (controller ruling, option B)', async () => {
+    const record: ConfirmationRecord = {
+      athleteId: 'k', createdAthlete: true, previousStatus: 'Nou', athleteStatusBefore: null, fieldsBefore: {}, fieldsAfter: {},
+      membershipId: 'mk', demotedMainId: null, promotedMainId: null, acs: null, at: '2026-10-20T10:00:00.000Z',
+    };
+    const regk = registrationRow({ id: 'regk', athleteId: 'k', status: 'Confirmat', confirmation: record });
+    const fake = fakeClubStore({ ...seed(), registrations: [regk], memberships: [{ id: 'mk', athleteId: 'k', groupId: 'g-pp', seasonId: 's26', isMain: true, from: null }] });
+    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] });
+    expect(fake.state.registrations[0]).toMatchObject({ id: 'regk', athleteId: 'k', status: 'Confirmat', confirmation: null });
+    const before = structuredClone(fake.state);
+    expect(await undoConfirmation(ctx(fake), 'regk')).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect({ ...fake.state, locks: [] }).toEqual({ ...before, locks: [] });
+    expect(fake.state.athletes.map((a) => a.id)).toEqual(['k', 't']);
   });
 
   it('one main group per season: the kept one stays main, the other is demoted', async () => {

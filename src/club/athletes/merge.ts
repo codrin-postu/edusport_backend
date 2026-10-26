@@ -48,9 +48,14 @@ async function loadSide(store: ClubStore, athleteId: string, profiles: ProfileRo
   };
 }
 
-/** A relinked registration loses its confirmation record: the rows it names may be gone, so it can no longer be undone. */
-async function applyRows(store: ClubStore, plan: MergePlan, keptId: string, removedId: string): Promise<void> {
+/** After a merge no confirmation of either record can be undone: the rows its record names may be gone or shared. */
+async function relinkRegistrations(store: ClubStore, keptId: string, removedId: string): Promise<void> {
   for (const r of await store.registrations({ athleteId: removedId })) await store.updateRegistration(r.id, { athleteId: keptId, confirmation: null });
+  for (const r of await store.registrations({ athleteId: keptId })) if (r.confirmation) await store.updateRegistration(r.id, { confirmation: null });
+}
+
+async function applyRows(store: ClubStore, plan: MergePlan, keptId: string, removedId: string): Promise<void> {
+  await relinkRegistrations(store, keptId, removedId);
   for (const m of plan.memberships.move) await store.updateMembership(m.id, { athleteId: keptId, isMain: m.isMain });
   for (const mId of plan.memberships.remove) await store.deleteMembership(mId);
   for (const aId of plan.acs.move) await store.updateAcs(aId, { athleteId: keptId });
