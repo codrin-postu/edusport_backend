@@ -63,7 +63,7 @@ function RecordContent({ record, api, loaded, head, onMerge }: ContentProps) {
     <>
       {head}
       <DuplicateLines record={record} api={api} reload={loaded.reload} onMerge={onMerge} />
-      <Tabs items={tabs} value={tab} onChange={show} label={RECORD_COPY.tabsLabel} panelId="spv-panel" />
+      <Tabs items={tabs} value={tab} onChange={show} label={RECORD_COPY.tabsLabel} panelId="spv-panel" className="spv-tabs" />
       <div role="tabpanel" id="spv-panel" aria-label={tabs.find((t) => t.id === tab)?.label}>
         <div hidden={tab !== 'date'}>
           <DateTab record={record} api={api} onSaved={loaded.reload} active={tab === 'date'} />

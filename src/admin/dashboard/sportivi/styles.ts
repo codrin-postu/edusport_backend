@@ -70,6 +70,7 @@ export const SPORTIVI_CSS = `
 .ui-root .spv-merge th[scope=row],.ui-root .spv-merge thead td{position:sticky;left:0;z-index:1;background:var(--theme-surface)}
 .ui-root .spv-merge th[scope=row]{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--theme-text-secondary);white-space:nowrap}
 .ui-root .spv-merge td.spv-diff{background:var(--theme-warning-bg)}
+.ui-root .ui-tabs.spv-tabs{padding:0 18px}
 .ui-root.ui-pop.spv-menu{width:240px;padding:5px}
 .ui-root.spv-menu button{display:block;width:100%;text-align:left;font:inherit;font-size:12.5px;color:var(--theme-text);background:none;border:none;padding:8px 10px;border-radius:var(--ui-radius-sm);cursor:pointer}
 .ui-root.spv-menu button:hover,.ui-root.spv-menu button:focus-visible{background:var(--theme-surface-subtle);outline:none}
