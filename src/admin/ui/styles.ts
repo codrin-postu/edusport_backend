@@ -306,7 +306,12 @@ ${R} .ui-inbox-list{border-right:1px solid var(--theme-border);display:flex;flex
 ${R} .ui-inbox-items{flex:1;overflow-y:auto}
 ${R} .ui-inbox-item{display:block;width:100%;text-align:left;font-family:inherit;font-size:var(--ui-fs-body-sm);color:var(--theme-text);background:none;border:none;border-bottom:1px solid var(--theme-border-subtle);padding:10px 14px;cursor:pointer}
 ${R} .ui-inbox-item:hover{background:var(--theme-surface-subtle)}
-${R} .ui-inbox-item[aria-current="true"]{background:var(--theme-primary-soft);box-shadow:inset 3px 0 0 var(--theme-primary)}
+/* selected item, style E (selected-state-v2): solid primary, white text, 6px corners, 4px inset, no bar, no outline */
+${R} .ui-inbox-item{position:relative}
+${R} .ui-inbox-item > *{position:relative}
+${R} .ui-inbox-item[aria-current="true"]{background:none;color:var(--theme-on-primary)}
+${R} .ui-inbox-item[aria-current="true"]::before{content:"";position:absolute;inset:4px;background:var(--theme-primary);border-radius:var(--ui-radius-md)}
+${R} .ui-inbox-item[aria-current="true"] .ui-inbox-time,${R} .ui-inbox-item[aria-current="true"] .ui-inbox-snip{color:var(--theme-on-primary)}
 ${R} .ui-inbox-reader{min-width:0;padding:var(--ui-space-4) 18px}
 ${R} .ui-inbox-back{display:none}
 ${R} .ui-inbox-group{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--theme-text-muted);padding:10px 14px 6px;background:var(--theme-surface-subtle);border-bottom:1px solid var(--theme-border-subtle)}
