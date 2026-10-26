@@ -101,7 +101,7 @@ export function footerActions(row: InscriereRow): FooterActions {
   if (linkedAthleteId(row)) return { contactat: false, confirm: false, openAthlete: true };
   const status = registrationStatus(row);
   const confirm = canConfirm({ athleteId: null, status, archived: row.archived === true });
-  return { contactat: status !== 'Contactat', confirm, openAthlete: false };
+  return { contactat: status !== 'Contactat' && status !== 'Confirmat', confirm, openAthlete: false };
 }
 
 export function menuItems(row: InscriereRow, multipleSchools: boolean): MenuItem[] {

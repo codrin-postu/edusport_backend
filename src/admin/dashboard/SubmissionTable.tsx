@@ -26,6 +26,7 @@ import {
   moveItem,
   adminToast,
   toastAutosaved,
+  useMenuFocus,
   cx,
 } from '../ui';
 import { IconChevronDown, IconChevronUp, IconGrip } from '../ui/icons';
@@ -556,7 +557,10 @@ export function DetailFooter({ children }: { children: React.ReactNode }) {
   return <div className="sbt-pa">{children}</div>;
 }
 
-/** A toolbar dropdown button with its own anchored Popover. Exported for page-specific header menus. */
+/**
+ * A toolbar dropdown button with its own anchored Popover. Exported for page-specific header menus. With
+ * `role="menuitem"` items it follows the menu button pattern (useMenuFocus); `chevron={false}` drops the arrow.
+ */
 export function MenuButton({
   label,
   active,
@@ -566,6 +570,7 @@ export function MenuButton({
   disabled,
   popClassName,
   role,
+  chevron = true,
   children,
 }: {
   label: React.ReactNode;
@@ -576,9 +581,11 @@ export function MenuButton({
   disabled?: boolean;
   popClassName: string;
   role?: string;
+  chevron?: boolean;
   children: React.ReactNode;
 }) {
   const ref = React.useRef<HTMLButtonElement>(null);
+  const menu = useMenuFocus(open, ref, onClose);
   return (
     <>
       <Button
@@ -592,9 +599,17 @@ export function MenuButton({
         onClick={onToggle}
       >
         {label}
-        <IconChevronDown size={12} />
+        {chevron && <IconChevronDown size={12} />}
       </Button>
-      <Popover open={open} anchorRef={ref} onClose={onClose} className={popClassName} role={role}>
+      <Popover
+        open={open}
+        anchorRef={ref}
+        onClose={menu.close}
+        className={popClassName}
+        role={role}
+        popoverRef={menu.popoverRef}
+        popoverProps={menu.popoverProps}
+      >
         {children}
       </Popover>
     </>

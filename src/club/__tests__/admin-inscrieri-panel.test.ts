@@ -31,7 +31,8 @@ it('fixed header: name, badge, "..." menu, Nr., Trimis, the status menu (Needs d
 it('tabs Date | Abonament | Documente (n) | Istoric (n), reloaded when the row changes', () => {
   expect(panel).toContain('items={panelTabs(row, data.history ? data.history.length : null)}');
   expect(panel).toContain('usePanelData(row.documentId, panelVersion(row))');
-  expect(data).toContain('Promise.all([get(CLUB_URLS.match(documentId)), get(CLUB_URLS.history(documentId))])');
+  expect(data).toContain('useLoad(CLUB_URLS.match(documentId), version, isMatch)');
+  expect(data).toContain('useLoad(CLUB_URLS.history(documentId), version, isHistory)');
   expect(tabs).toContain('<RegistrationDocuments row={row} />');
   expect(tabs).toContain('<RegistrationEmail row={row} />');
   expect(tabs).toContain('historyHead(line, fmtDateTime)');
@@ -58,4 +59,30 @@ it('?open= mode shows a way back to the full list; the "..." button is named for
   expect(controls).toContain("navigate({ search: '' })");
   expect(controls).toContain('{INSCRIERI_PENDING_COPY.backToList}');
   expect(menu).toContain('<span className="ui-sr">{PANEL_COPY.moreLabel}</span>');
+});
+
+it('fix round 1: undo busy label, plain "..." trigger, named tabs, focus after Contactat', () => {
+  expect(menu).toContain('busy={busy} busyLabel={c.confirm}');
+  expect(menu).toContain('popClassName="sbt-menu" role="menu" chevron={false}>');
+  expect(panel).toContain('label={cellText(row.childName)}');
+  expect(panel).toContain('panelId={PANEL_BODY_ID}');
+  expect(panel).toContain('<div role="tabpanel" id={PANEL_BODY_ID} aria-label={PANEL_COPY.tabs[tab]}>');
+  expect(panel).toContain('onContacted={() => focusAfterContactat(ref.current)}');
+  expect(panel).toContain(".querySelector<HTMLElement>('.sbt-statusbox [role=\"combobox\"]') ?? panel?.querySelector<HTMLElement>('.ins-ph-name')");
+  expect(header).toContain('<b className="ins-ph-name" tabIndex={-1}>');
+});
+
+it('fix round 1: match and history load apart; a failed or malformed history shows the load error', () => {
+  expect(data).not.toContain('Promise.all');
+  expect(data).toContain('const isHistory = (v: unknown): v is HistoryLine[] => Array.isArray(v);');
+  expect(data).toContain('setState(valid(value) ? { value, failed: false } : { value: null, failed: true })');
+  expect(data).toContain('return { match: match.value, history: history.value, failed: history.failed };');
+  expect(tabs).toContain('if (data.failed) return <p className="ins-empty">{INSCRIERI_PENDING_COPY.loadFailed}</p>;');
+});
+
+it('fix round 1: Istoric as v5, bold head in the text colour, solid dividers', () => {
+  const css = read('inscrieri', 'styles.ts');
+  expect(css).toContain("'.ui-root .ins-his li + li{border-top:1px solid var(--theme-border)}'");
+  expect(css).toContain("'.ui-root .ins-his-h{font-size:12.5px;font-weight:700;color:var(--theme-text)}'");
+  expect(css).not.toMatch(/dashed|dotted/);
 });

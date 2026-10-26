@@ -25,9 +25,11 @@ const PANEL_CSS =
   '.ui-root .ins-panel .sbt-pb{max-height:calc(100vh - 420px);min-height:240px}' +
   '.ui-root .ins-extra{margin-top:16px;padding-top:12px;border-top:1px solid var(--theme-border)}' +
   '.ui-root .ins-empty{margin:0;font-size:13px;color:var(--theme-text-muted)}' +
-  '.ui-root .ins-his{display:flex;flex-direction:column;gap:12px;margin:0;padding:0;list-style:none}' +
-  '.ui-root .ins-his li{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--theme-text)}' +
-  '.ui-root .ins-his-h{font-size:12px;font-weight:600;color:var(--theme-text-secondary)}' +
+  '.ui-root .ins-his{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}' +
+  '.ui-root .ins-his li{display:flex;flex-direction:column;gap:2px;padding:8px 0;font-size:13px;color:var(--theme-text)}' +
+  '.ui-root .ins-his li:first-child{padding-top:0}' +
+  '.ui-root .ins-his li + li{border-top:1px solid var(--theme-border)}' +
+  '.ui-root .ins-his-h{font-size:12.5px;font-weight:700;color:var(--theme-text)}' +
   '.ui-root .ins-foot{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}' +
   '.ui-root .ins-link{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--theme-primary);cursor:pointer}' +
   '.ui-root .ins-link:focus-visible{outline:2px solid var(--theme-focus);outline-offset:2px}' +

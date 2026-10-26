@@ -3,26 +3,44 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Tabs } from '../../ui';
 import { DetailBody, DetailFooter, type Row, type TableApi } from '../SubmissionTable';
 import { PANEL_COPY } from '../../../club/inscrieri-copy';
-import { athleteRecordPath, footerActions, isPanelTab, linkedAthleteId, panelTabs, panelVersion, type PanelTab } from '../../../club/inscrieri-panel';
+import { athleteRecordPath, cellText, footerActions, isPanelTab, linkedAthleteId, panelTabs, panelVersion, type PanelTab } from '../../../club/inscrieri-panel';
 import { PanelHeader } from './PanelHeader';
 import { PanelBody } from './PanelTabs';
 import { usePanelData } from './usePanelData';
 
-type FooterProps = { row: Row; api: TableApi; onConfirm?: () => void };
+type FooterProps = { row: Row; api: TableApi; onConfirm?: () => void; onContacted?: () => void };
+
+const PANEL_BODY_ID = 'ins-tabpanel';
+
+/** "Contactat" hides itself once used: focus moves to the status menu, else to the panel heading. */
+function focusAfterContactat(panel: HTMLElement | null) {
+  requestAnimationFrame(() => {
+    const target = panel?.querySelector<HTMLElement>('.sbt-statusbox [role="combobox"]') ?? panel?.querySelector<HTMLElement>('.ins-ph-name');
+    target?.focus();
+  });
+}
+
+function ContactatButton({ row, api, onContacted }: FooterProps) {
+  const click = () => {
+    api.saveField(row.documentId, 'status', 'Contactat');
+    onContacted?.();
+  };
+  return (
+    <Button size="sm" variant="secondary" onClick={click}>
+      {PANEL_COPY.contactat}
+    </Button>
+  );
+}
 
 /** Fixed footer (spec 3.3): "Contactat" and "Confirmă înscrierea" before confirmation, "Deschide fișa sportivului" after. */
-function PanelFooter({ row, api, onConfirm }: FooterProps) {
+function PanelFooter({ row, api, onConfirm, onContacted }: FooterProps) {
   const navigate = useNavigate();
   const actions = footerActions(row);
   const athleteId = linkedAthleteId(row);
   return (
     <DetailFooter>
       <span className="ins-foot">
-        {actions.contactat && (
-          <Button size="sm" variant="secondary" onClick={() => api.saveField(row.documentId, 'status', 'Contactat')}>
-            {PANEL_COPY.contactat}
-          </Button>
-        )}
+        {actions.contactat && <ContactatButton row={row} api={api} onContacted={onContacted} />}
         {actions.confirm && (
           <Button size="sm" onClick={onConfirm} disabled={!onConfirm}>
             {PANEL_COPY.confirm}
@@ -42,19 +60,24 @@ function PanelFooter({ row, api, onConfirm }: FooterProps) {
 export function RegistrationPanel({ row, api }: { row: Row; api: TableApi }) {
   const [tab, setTab] = React.useState<PanelTab>('date');
   const data = usePanelData(row.documentId, panelVersion(row));
+  const ref = React.useRef<HTMLDivElement>(null);
   return (
-    <div className="ins-panel">
+    <div className="ins-panel" ref={ref}>
       <PanelHeader row={row} api={api} />
       <Tabs
         className="ins-tabs"
         items={panelTabs(row, data.history ? data.history.length : null)}
         value={tab}
         onChange={(id) => isPanelTab(id) && setTab(id)}
+        label={cellText(row.childName)}
+        panelId={PANEL_BODY_ID}
       />
       <DetailBody>
-        <PanelBody tab={tab} row={row} api={api} data={data} />
+        <div role="tabpanel" id={PANEL_BODY_ID} aria-label={PANEL_COPY.tabs[tab]}>
+          <PanelBody tab={tab} row={row} api={api} data={data} />
+        </div>
       </DetailBody>
-      <PanelFooter row={row} api={api} />
+      <PanelFooter row={row} api={api} onContacted={() => focusAfterContactat(ref.current)} />
     </div>
   );
 }

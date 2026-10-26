@@ -31,7 +31,7 @@ function UndoDialog({ row, api, onClose }: DialogProps) {
     onClose();
     api.refetch();
   };
-  return <ConfirmDialog open title={c.title} message={c.message} confirmLabel={c.confirm} tone="danger" busy={busy} onConfirm={() => void confirm()} onCancel={onClose} />;
+  return <ConfirmDialog open title={c.title} message={c.message} confirmLabel={c.confirm} tone="danger" busy={busy} busyLabel={c.confirm} onConfirm={() => void confirm()} onCancel={onClose} />;
 }
 
 /** "Mută la altă școală" for one registration (spec 3.6); the server keeps the number, the PDFs and the subscription choice. */
@@ -76,7 +76,7 @@ export function PanelMenu({ row, api }: { row: Row; api: TableApi }) {
   };
   return (
     <>
-      <MenuButton label={MENU_BUTTON} open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="sbt-menu" role="menu">
+      <MenuButton label={MENU_BUTTON} open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="sbt-menu" role="menu" chevron={false}>
         {menuItems(row, meta.multipleSchools).map((item) => (
           <button key={item} type="button" role="menuitem" className={item === 'delete' ? 'ins-danger' : undefined} onClick={() => pick(item)}>
             {MENU_LABELS[item]}

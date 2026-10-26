@@ -13,7 +13,7 @@ export function PanelHeader({ row, api }: { row: Row; api: TableApi }) {
   return (
     <div className="ins-ph">
       <div className="ins-ph-top">
-        <b className="ins-ph-name">{cellText(row.childName)}</b>
+        <b className="ins-ph-name" tabIndex={-1}>{cellText(row.childName)}</b>
         {api.statusTag(row)}
         <PanelMenu row={row} api={api} />
       </div>
