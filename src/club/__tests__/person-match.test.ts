@@ -9,6 +9,13 @@ describe('contact normalising (spec 2.1, gaps #14)', () => {
     expect(normalizePhone(null)).toBe('');
   });
 
+  it('collapses a redundant 0 right after the +40 / 0040 country code', () => {
+    expect(normalizePhone('+40 0722 111 222')).toBe('0722111222');
+    expect(normalizePhone('+400722111222')).toBe('0722111222');
+    expect(normalizePhone('0040722111222')).toBe('0722111222');
+    expect(normalizePhone('0722111222')).toBe('0722111222');
+  });
+
   it('trims and lowercases the e-mail', () => {
     expect(normalizeEmail('  Ana.Pop@Example.RO ')).toBe('ana.pop@example.ro');
   });
@@ -43,5 +50,16 @@ describe('name rule (spec 2.1)', () => {
   it('finds one name word in common for Probabil', () => {
     expect(shareNameWord('Maria Pop', 'Pop Ioana')).toBe(true);
     expect(shareNameWord('Maria Pop', 'Ioana Popa')).toBe(false);
+  });
+
+  it('matches long, ambiguous names fast (polynomial pairing, not backtracking)', () => {
+    const words = Array.from({ length: 15 }, (_, i) => `aa${String.fromCharCode(97 + i)}`);
+    const left = words.join(' ');
+    const right = [...words].reverse().join(' ');
+    const start = Date.now();
+    const result = sameName(left, right);
+    const duration = Date.now() - start;
+    expect(result).toBe(true);
+    expect(duration).toBeLessThan(200);
   });
 });
