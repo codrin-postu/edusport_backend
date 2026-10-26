@@ -521,11 +521,19 @@ export const THEME_NAMES = Object.keys(THEMES) as ThemeName[];
 
 /* ---- theme-independent scales ------------------------------------------ */
 
-/** Square corners. sm is the default everywhere, md is for windows and modals. No pill radius. */
+/**
+ * Square corners. sm is the default everywhere, md is for windows, modals and
+ * the selected style E. lg (8px) only for rich dropdowns (BottomSheet on
+ * desktop), sheet only for the phone BottomSheet's top corners, handle only
+ * for its grab handle (DECISIONS 2026-10-06 bottom-sheet-v1/v2). No pill radius.
+ */
 export const radius = {
   none: '0',
   sm: '4px',
   md: '6px',
+  lg: '8px',
+  sheet: '10px 10px 0 0',
+  handle: '2px',
 } as const;
 
 /**
@@ -594,6 +602,8 @@ export const motion = {
  */
 export const zIndex = {
   drawer: 100100,
+  /** Phone BottomSheet: above a Drawer, under a Modal / ConfirmDialog opened from it and under a Popover (Select lists). */
+  sheet: 100150,
   modal: 100200,
   popover: 100250,
   toast: 100300,

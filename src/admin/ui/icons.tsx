@@ -24,6 +24,12 @@ export const IconChevronDown = ({ size = 14 }: P) => svg(size, <path d="M3.5 5.5
 
 export const IconChevronUp = ({ size = 14 }: P) => svg(size, <path d="M3.5 8.5L7 5l3.5 3.5" stroke="currentColor" strokeWidth="1.6" />);
 
+export const IconChevronLeft = ({ size = 14 }: P) => svg(size, <path d="M8.5 3.5L5 7l3.5 3.5" stroke="currentColor" strokeWidth="1.6" />);
+
+export const IconChevronRight = ({ size = 14 }: P) => svg(size, <path d="M5.5 3.5L9 7l-3.5 3.5" stroke="currentColor" strokeWidth="1.6" />);
+
+export const IconCheck = ({ size = 14 }: P) => svg(size, <path d="M3 7.5l2.6 2.6L11 4.5" stroke="currentColor" strokeWidth="1.6" />);
+
 export const IconArrowRight = ({ size = 14 }: P) => svg(size, <path d="M2.5 7h9M8 3.5L11.5 7 8 10.5" stroke="currentColor" strokeWidth="1.5" />);
 
 /** Six-dot drag grip, drawn as squares. */
