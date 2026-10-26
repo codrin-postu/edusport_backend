@@ -9,6 +9,7 @@ export type UndoFacts = {
   linkedAthleteId: string | null;
   athlete: AthleteValues & { id: string; status: AthleteStatus; profileId: string | null };
   membershipIds: string[];
+  mainMembershipId: string | null;
   acsRows: { id: string; state: AcsState }[];
   otherRegistrations: number;
 };
@@ -20,6 +21,7 @@ export type UndoPlan = AthleteRevert & {
   registration: { status: RegistrationStatus };
   deleteMembershipId: string | null;
   restoreMainId: string | null;
+  demoteMembershipId: string | null;
   acs: AcsUndo;
   deleteAthlete: boolean;
 };
@@ -66,6 +68,12 @@ function planAthleteRevert(f: UndoFacts): AthleteRevert {
   return { athleteUpdate, revertedFields, renameProfile: 'name' in revertedFields && f.athlete.profileId ? next.name : null };
 }
 
+/** fix/p3-2-g3: an existing membership the confirmation promoted to main, demoted on undo (never deleted). */
+function planDemote(f: UndoFacts): string | null {
+  const promoted = f.record.promotedMainId;
+  return promoted && f.membershipIds.includes(promoted) && f.mainMembershipId === promoted ? promoted : null;
+}
+
 export function planUndo(f: UndoFacts): UndoPlan {
   const acs = planAcsUndo(f);
   const own = f.record.membershipId;
@@ -77,6 +85,7 @@ export function planUndo(f: UndoFacts): UndoPlan {
     registration: { status: f.record.previousStatus },
     deleteMembershipId,
     restoreMainId: demoted && f.membershipIds.includes(demoted) ? demoted : null,
+    demoteMembershipId: planDemote(f),
     acs,
     ...athlete,
     deleteAthlete,
