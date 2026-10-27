@@ -84,6 +84,11 @@ export function withPart(p: DateParts, key: keyof DateParts, value: number | nul
   return { ...p, [key]: value };
 }
 
+/** Parts after one select changes; with `clearable` (Activ din, polish 9) the empty first row of any select empties the whole date. */
+export function pickPart(p: DateParts, key: keyof DateParts, value: number | null, clearable: boolean): DateParts {
+  return clearable && value === null ? EMPTY_DATE : withPart(p, key, value);
+}
+
 /** Day rows: all 31 days, always, zero-padded (Needs decision 2a, 2d). The month and year are not used to filter the list. */
 export function dayChoices(_p: DateParts): PartChoice[] {
   return Array.from({ length: 31 }, (_, i) => ({ value: i + 1, label: pad2(i + 1) }));

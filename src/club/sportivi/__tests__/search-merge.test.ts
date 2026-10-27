@@ -103,7 +103,7 @@ describe('merge (spec 6.6)', () => {
 
   it('confirmation copy (spec Open 3)', () => {
     expect(MERGE_COPY.confirmTitle).toBe('Unești cele două fișe?');
-    expect(MERGE_COPY.confirmMessage('Sara Ilie')).toBe('Rămâne fișa „Sara Ilie”. Cealaltă se șterge. Acțiunea nu poate fi anulată.');
+    expect(MERGE_COPY.confirmMessage('Sara Ilie')).toBe('Rămâne fișa "Sara Ilie". Cealaltă se șterge. Acțiunea nu poate fi anulată.');
     expect([MERGE_COPY.confirmLabel, MERGE_COPY.title, MERGE_COPY.kept]).toEqual(['Unește', 'Unește cu alt sportiv', 'Rămâne']);
   });
 });

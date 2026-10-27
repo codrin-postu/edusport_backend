@@ -23,7 +23,22 @@ describe('Șterge sportivul (spec 6.6, 3b s9)', () => {
     expect([fake.state.memberships, fake.state.acs, fake.state.duplicates, fake.state.profiles]).toEqual([[], [], [], []]);
     expect(fake.state.removedParticipations).toEqual(['sp1']);
     expect(fake.state.athletes.map((a) => a.id)).toEqual(['a2']);
-    expect(fake.state.history.map((h) => [h.subjectId, h.action, h.changes])).toEqual([['a1', 'deleted', { name: 'Maria Pop' }]]);
+    expect(fake.state.history.map((h) => [h.subjectId, h.action, h.changes])).toEqual([
+      ['r1', 'athlete-unlinked', { name: 'Maria Pop' }],
+      ['a1', 'deleted', { name: 'Maria Pop' }],
+    ]);
+    expect(fake.state.locks).toEqual(['r1', 'athlete:a1']);
+  });
+
+  it('every unlinked registration notes it in its own Istoric (polish 11)', async () => {
+    const second = registrationRow({ id: 'r2', number: '2025-0007', athleteId: 'a1', status: 'Confirmat' });
+    const fake = fakeClubStore({ ...seed(), registrations: [...seed().registrations, second] });
+    await deleteAthlete(ctx(fake), 'a1');
+    const lines = fake.state.history.filter((h) => h.subjectType === 'registration-submission');
+    expect(lines.map((h) => [h.subjectId, h.action, h.changes, h.actor])).toEqual([
+      ['r1', 'athlete-unlinked', { name: 'Maria Pop' }, 'ana@club.ro'],
+      ['r2', 'athlete-unlinked', { name: 'Maria Pop' }, 'ana@club.ro'],
+    ]);
   });
 
   it('the unlinked registration is matched again', async () => {
@@ -38,5 +53,6 @@ describe('Șterge sportivul (spec 6.6, 3b s9)', () => {
     fake.failOn('deleteProfile');
     expect(await deleteAthlete(ctx(fake), 'a1')).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
     expect([fake.state.athletes.length, fake.state.memberships.length, fake.state.registrations[0].athleteId]).toEqual([2, 1, 'a1']);
+    expect(fake.state.history).toEqual([]);
   });
 });

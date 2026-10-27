@@ -390,7 +390,7 @@ export default function FormEditorPage() {
                           detail:
                             'Un câmp încorporat își păstrează coloana și datele deja trimise în tabelul de rezultate și poate fi readus din lista câmpurilor scoase.',
                         }}
-                        itemLabel={(q) => `${q.sensitive ? 'câmpul sensibil ' : 'întrebarea '}„${questionLabel(q)}”`}
+                        itemLabel={(q) => `${q.sensitive ? 'câmpul sensibil ' : 'întrebarea '}"${questionLabel(q)}"`}
                         renderSummary={(q) => <QuestionSummary q={q} />}
                         renderRow={(q) => renderQuestion(step.key, q)}
                         onAdd={!customQuestionsAllowed || addOpen[step.key] ? undefined : () => openAdd(step.key)}
@@ -456,7 +456,7 @@ export default function FormEditorPage() {
                   ))}
                 </div>
                 <div className="ui-hint">
-                  Coloanele și datele deja trimise rămân în tabelul de rezultate, marcate „(eliminată)". Anulează pentru a
+                  Coloanele și datele deja trimise rămân în tabelul de rezultate, marcate "(eliminată)". Anulează pentru a
                   readuce câmpul în formular la următoarea salvare.
                 </div>
               </Section>

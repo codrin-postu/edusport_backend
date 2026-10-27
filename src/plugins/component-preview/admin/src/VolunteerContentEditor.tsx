@@ -52,7 +52,7 @@ export default function VolunteerContentEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Voluntariat - Text pagină"
-        description="Titlul din antet și textul introductiv „De ce voluntariat”."
+        description='Titlul din antet și textul introductiv "De ce voluntariat".'
       >
         <Box padding={4}>
           <Section title="Antet (hero)" first>

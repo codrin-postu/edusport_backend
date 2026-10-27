@@ -34,9 +34,9 @@ describe('tokens for the phase 3 layers', () => {
     expect(zIndex.sheet).toBeLessThan(zIndex.popover);
   });
 
-  it('dropdowns have 8px corners, the phone sheet rounded top corners', () => {
+  it('dropdowns have 8px corners, the phone sheet rounded top corners, its grab handle square (polish 1)', () => {
     expect(radius.lg).toBe('8px');
     expect(radius.sheet).toBe('10px 10px 0 0');
-    expect(radius.handle).toBe('2px');
+    expect(radius).not.toHaveProperty('handle');
   });
 });

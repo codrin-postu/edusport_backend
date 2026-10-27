@@ -12,7 +12,8 @@ import type { AthleteRow, ClubStore, RegistrationRow, ServiceContext } from './s
 
 /**
  * "Confirmă înscrierea" (spec 4.5 to 4.7): one transaction holding the registration row, so a second admin waits
- * and then gets 409; any failure rolls everything back.
+ * and then gets 409, then the existing athlete's row, so confirmations of one child and merges run one after the
+ * other; any failure rolls everything back.
  */
 type Result = AdminResult<ConfirmResponse>;
 type Loaded = { facts: ConfirmFacts; athlete: AthleteRow | null };
@@ -76,15 +77,25 @@ async function writeAcs(store: ClubStore, plan: ConfirmPlan, athleteId: string):
   return plan.acs.existingId;
 }
 
+/** The group whose main place the confirmation takes, read before anything is written. */
+async function previousMainGroup(store: ClubStore, facts: ConfirmFacts, plan: ConfirmPlan): Promise<string | null> {
+  const old = facts.seasonMemberships.find((m) => m.id === plan.demoteMainId);
+  if (!old) return null;
+  return (await store.groups()).find((g) => g.id === old.groupId)?.name ?? null;
+}
+
 async function apply(ctx: ServiceContext, reg: RegistrationRow, { facts, athlete }: Loaded): Promise<Result> {
   const plan = planConfirmation(facts);
+  const previousMain = await previousMainGroup(ctx.store, facts, plan);
   const athleteId = await writeAthlete(ctx.store, plan, athlete);
   const membershipId = await writeMembership(ctx.store, plan, athleteId);
   const acsId = await writeAcs(ctx.store, plan, athleteId);
   const confirmation = confirmationRecord({ plan, facts, athleteId, membershipId, acsId, at: new Date().toISOString() });
   await ctx.store.updateRegistration(reg.id, { athleteId, status: 'Confirmat', confirmation, matchAthleteId: null, matchLevel: null });
   const athleteName = plan.newAthlete?.name ?? plan.renameProfile ?? athlete?.name ?? '';
-  const entries = confirmationHistory({ plan, registrationId: reg.id, registrationNumber: reg.number ?? '', athleteId, athleteName, actor: ctx.actor });
+  const entries = confirmationHistory({
+    plan, registrationId: reg.id, registrationNumber: reg.number ?? '', athleteId, athleteName, actor: ctx.actor, previousMainGroup: previousMain,
+  });
   for (const entry of entries) await ctx.store.record(entry);
   return { ok: true, data: { athleteId, athleteName, registrationId: reg.id } };
 }
@@ -95,6 +106,8 @@ async function confirmLocked(ctx: ServiceContext, id: string, request: ConfirmRe
   if (!reg) return refuse(404, ADMIN_ERRORS.notFound);
   const refusal = confirmRefusal(reg, request);
   if (refusal) return refuse(refusal.status, refusal.error);
+  // Polish 12: a second confirmation of the same child, or a merge of this athlete, waits here.
+  if (request.athleteId) await ctx.store.lockAthlete(request.athleteId);
   const loaded = await loadFacts(ctx, reg, request);
   return loaded.ok === true ? apply(ctx, reg, loaded.data) : loaded;
 }

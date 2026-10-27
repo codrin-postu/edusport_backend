@@ -467,7 +467,7 @@ export default function SponsoriPage() {
       <ConfirmDialog
         open={target !== null}
         title="Ștergi sponsorul?"
-        message={`„${target?.name ?? ''}" se șterge definitiv și dispare din banda de sponsori de pe pagina Parteneri. Acțiunea nu poate fi anulată.`}
+        message={`"${target?.name ?? ''}" se șterge definitiv și dispare din banda de sponsori de pe pagina Parteneri. Acțiunea nu poate fi anulată.`}
         detail="Logo-ul rămâne în biblioteca media."
         busy={deleting}
         error={delError}

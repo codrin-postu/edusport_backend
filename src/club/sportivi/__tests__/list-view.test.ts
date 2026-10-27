@@ -101,6 +101,7 @@ describe('cells (spec 5)', () => {
     expect(LIST_COPY.search).toBe('Caută după nume, părinte, telefon, e-mail sau nr. înscriere...');
     expect(LIST_COPY.empty).toBe('Niciun sportiv nu corespunde filtrelor.');
     expect(LIST_COPY.more).toBe('Încarcă încă 30');
+    expect([LIST_COPY.incompleteMarker, LIST_COPY.cardIncompleteMarker]).toEqual(['date lipsă', 'Date incomplete']);
   });
 });
 

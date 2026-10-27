@@ -24,6 +24,28 @@ describe('Sportiv existent (spec 4.5)', () => {
     expect(fake.state.memberships).toEqual([{ id: expect.any(String), athleteId: 'a1', groupId: 'g-pp', seasonId: 's26', isMain: true, from: '2026-10-26' }]);
     expect(fake.state.acs).toEqual([{ id: expect.any(String), athleteId: 'a1', seasonId: 's26', state: 'in_asteptare' }]);
     expect(fake.state.history.map((h) => h.action)).toEqual(['confirmed', 'registration-confirmed', 'updated', 'group-added', 'acs-changed', 'reactivated']);
+    expect(fake.state.locks).toEqual(['r1', 'athlete:a1']);
+  });
+
+  it('a new main group replacing the old one is noted on the athlete (polish 10)', async () => {
+    const memberships = [{ id: 'm0', athleteId: 'a1', groupId: 'g-pro', seasonId: 's26', isMain: true, from: '2026-10-01' }];
+    const fake = fakeClubStore({ ...seed(), memberships });
+    await confirmRegistration(ctx(fake), 'r1', existing({ makeMain: true }));
+    const line = fake.state.history.filter((h) => h.action === 'main-group-changed');
+    expect(line.map((h) => [h.subjectId, h.changes])).toEqual([['a1', { from: 'Profesioniști', to: 'Primii Pași' }]]);
+  });
+
+  it('no main group line for the first main group or a group added beside the main one', async () => {
+    const first = fakeClubStore(seed());
+    await confirmRegistration(ctx(first), 'r1', existing({ makeMain: true }));
+    const beside = fakeClubStore({ ...seed(), memberships: [{ id: 'm0', athleteId: 'a1', groupId: 'g-pro', seasonId: 's26', isMain: true, from: null }] });
+    await confirmRegistration(ctx(beside), 'r1', existing());
+    expect([...first.state.history, ...beside.state.history].map((h) => h.action)).not.toContain('main-group-changed');
+  });
+
+  it('"Sportiv nou" locks only the registration (no athlete row yet)', async () => {
+    const fake = fakeClubStore(seed());
+    await confirmRegistration(ctx(fake), 'r1', { choice: 'new', athleteId: null, groupId: null, makeMain: false, updateFields: null });
     expect(fake.state.locks).toEqual(['r1']);
   });
 
@@ -38,6 +60,24 @@ describe('Sportiv existent (spec 4.5)', () => {
     await confirmRegistration(ctx(fake), 'r1', existing());
     await confirmRegistration(ctx(fake), 'r2', existing());
     expect([fake.state.memberships.length, fake.state.acs.length]).toEqual([1, 1]);
+    expect(fake.state.locks).toEqual(['r1', 'athlete:a1', 'r2', 'athlete:a1']);
+  });
+
+  it('the athlete row is locked before the athlete, its groups and A.C.S. are read (polish 12)', async () => {
+    const fake = fakeClubStore(seed());
+    const order: string[] = [];
+    const athlete = fake.store.athlete.bind(fake.store);
+    const lockAthlete = fake.store.lockAthlete.bind(fake.store);
+    fake.store.athlete = async (id: string) => {
+      order.push(`read:${id}`);
+      return athlete(id);
+    };
+    fake.store.lockAthlete = async (id: string) => {
+      order.push(`lock:${id}`);
+      await lockAthlete(id);
+    };
+    await confirmRegistration(ctx(fake), 'r1', existing());
+    expect(order.slice(0, 2)).toEqual(['lock:a1', 'read:a1']);
   });
 });
 

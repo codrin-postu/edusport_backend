@@ -28,6 +28,32 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     expect(fake.state.history.filter((h) => h.action === 'confirmation-undone').map((h) => h.subjectId)).toEqual(['r1', 'a1']);
   });
 
+  it('the main group given back is noted in reverse: "<new> → <old>" (polish 10)', async () => {
+    const fake = fakeClubStore(seed());
+    await confirmed(fake);
+    await undoConfirmation(ctx(fake), 'r1');
+    const lines = fake.state.history.filter((h) => h.action === 'main-group-changed');
+    expect(lines.map((h) => [h.subjectId, h.changes])).toEqual([
+      ['a1', { from: 'Profesioniști', to: 'Primii Pași' }],
+      ['a1', { from: 'Primii Pași', to: 'Profesioniști' }],
+    ]);
+  });
+
+  it('no reverse line when the undo gives no main group back', async () => {
+    const fake = fakeClubStore({ ...seed(), memberships: [] });
+    await confirmed(fake);
+    await undoConfirmation(ctx(fake), 'r1');
+    expect(fake.state.history.map((h) => h.action)).not.toContain('main-group-changed');
+  });
+
+  it('locks the registration, then the confirmation\'s athlete (polish 12)', async () => {
+    const fake = fakeClubStore(seed());
+    await confirmed(fake);
+    fake.state.locks = [];
+    await undoConfirmation(ctx(fake), 'r1');
+    expect(fake.state.locks).toEqual(['r1', 'athlete:a1']);
+  });
+
   it('keeps an edit made after the confirmation', async () => {
     const fake = fakeClubStore(seed());
     await confirmed(fake);

@@ -49,7 +49,7 @@ it('"..." menu: undo asks first, move picks a school, delete uses the table dial
   expect(menu).toContain('menuItems(row, meta.multipleSchools)');
   expect(menu).toMatch(/<ConfirmDialog\s+open\s+title=\{c\.title\}\s+message=\{c\.message\}\s+confirmLabel=\{c\.confirm\}/);
   expect(menu).toContain("if (item === 'delete') api.removeRow(row.documentId);");
-  expect(menu).toContain('moveTargets(meta, row.schoolId)');
+  expect(menu).toContain('placeholder={LIST_COPY.pickSchool} options={moveTargets(meta, row.schoolId)}');
   expect(undo).toContain('await post(CLUB_URLS.undo(registrationId));');
   expect(undo).toContain('adminToast.success(INSCRIERI_PENDING_COPY.undone);');
 });

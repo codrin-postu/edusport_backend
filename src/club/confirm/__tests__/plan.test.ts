@@ -190,7 +190,7 @@ describe('what the undo needs', () => {
 describe('history on both records (spec 1.6)', () => {
   it('writes the confirmation, the field updates, the group, A.C.S. and the reactivation', () => {
     const plan = planConfirmation(facts({ athlete: existing({ status: 'inactiv' }), updateFields: ['phone'] }));
-    const entries = confirmationHistory({ plan, registrationId: 'r1', registrationNumber: '2026-0142', athleteId: 'a1', athleteName: 'Maria Pop', actor: 'ana@club.ro' });
+    const entries = confirmationHistory({ plan, registrationId: 'r1', registrationNumber: '2026-0142', athleteId: 'a1', athleteName: 'Maria Pop', actor: 'ana@club.ro', previousMainGroup: null });
     expect(entries.map((e) => [e.subjectType, e.action])).toEqual([
       ['registration-submission', 'confirmed'],
       ['athlete', 'registration-confirmed'],
@@ -205,8 +205,23 @@ describe('history on both records (spec 1.6)', () => {
 
   it('a "nou" athlete gets a status line instead of "Reactivat"', () => {
     const plan = planConfirmation(facts({ athlete: existing({ status: 'nou' }), running: false }));
-    const entries = confirmationHistory({ plan, registrationId: 'r1', registrationNumber: '2026-0142', athleteId: 'a1', athleteName: 'Maria Pop', actor: 'a' });
+    const entries = confirmationHistory({ plan, registrationId: 'r1', registrationNumber: '2026-0142', athleteId: 'a1', athleteName: 'Maria Pop', actor: 'a', previousMainGroup: null });
     expect(entries.map((e) => e.action)).toEqual(['confirmed', 'registration-confirmed', 'status-changed']);
+  });
+
+  it('a group taking the place of the main one writes "Grupa principală schimbată" (polish 10)', () => {
+    const history = (f: ConfirmFacts, previousMainGroup: string | null) =>
+      confirmationHistory({ plan: planConfirmation(f), registrationId: 'r1', registrationNumber: '2026-0142', athleteId: 'a1', athleteName: 'Maria Pop', actor: 'a', previousMainGroup });
+    const main = { id: 'm1', groupId: 'g-pro', isMain: true };
+    const added = history(facts({ athlete: existing(), seasonMemberships: [main], makeMain: true }), 'Profesioniști');
+    expect(added.map((e) => e.action)).toEqual(['confirmed', 'registration-confirmed', 'group-added', 'main-group-changed', 'acs-changed']);
+    expect(added[3].changes).toEqual({ from: 'Profesioniști', to: 'Primii Pași' });
+    const promoted = history(facts({ athlete: existing(), seasonMemberships: [main, { id: 'm2', groupId: 'g-pp', isMain: false }], makeMain: true }), 'Profesioniști');
+    expect(promoted.filter((e) => e.action === 'main-group-changed').map((e) => e.changes)).toEqual([{ from: 'Profesioniști', to: 'Primii Pași' }]);
+    const first = history(facts({ athlete: existing() }), null);
+    expect(first.map((e) => e.action)).not.toContain('main-group-changed');
+    const notMain = history(facts({ athlete: existing(), seasonMemberships: [main], makeMain: false }), 'Profesioniști');
+    expect(notMain.map((e) => e.action)).not.toContain('main-group-changed');
   });
 });
 

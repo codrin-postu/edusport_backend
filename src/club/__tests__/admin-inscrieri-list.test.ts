@@ -45,6 +45,7 @@ it('the bulk move outlives the bar: unticking rows mid-move neither aborts it no
   expect(controls).toContain('await moveSchool(detachedClient.post, CLUB_URLS.moveSchoolBulk');
   expect(controls).not.toContain('useStableClient');
   expect(page).toContain('(ids, done) => <BulkMoveSchool ids={ids} meta={meta} done={done} />');
+  expect(controls).toContain('placeholder={LIST_COPY.pickSchool} options={moveTargets(meta, null)}');
 });
 
 it('keeps rows one height and colours on tokens; the inscrieri folder is held to the colour rule', () => {

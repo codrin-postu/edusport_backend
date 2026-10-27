@@ -177,7 +177,7 @@ const EvenimentColaborareEditPage: React.FC = () => {
       <ConfirmDialog
         open={asking}
         title="Ștergi evenimentul?"
-        message={`„${heading}” va fi șters definitiv și dispare de pe pagina /parteneri.`}
+        message={`"${heading}" va fi șters definitiv și dispare de pe pagina /parteneri.`}
         busy={deleting}
         onCancel={() => setAsking(false)}
         onConfirm={() => void confirmDelete()}

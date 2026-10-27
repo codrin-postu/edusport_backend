@@ -119,7 +119,7 @@ function RulesTable({ rules, onChange }: { rules: Rule[]; onChange: (next: Rule[
         reorder
         expandable
         confirmDelete="Regula dispare din listă după ce salvezi pagina."
-        itemLabel={(r, i) => (r.label ? `regula „${r.label}”` : `regula ${i + 1}`)}
+        itemLabel={(r, i) => (r.label ? `regula "${r.label}"` : `regula ${i + 1}`)}
         renderSummary={(r, i) => (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
             <span className="ui-muted">{i + 1}.</span>
@@ -218,7 +218,7 @@ const RegulamentPage: React.FC = () => {
                 reorder
                 expandable
                 confirmDelete="Categoria și toate regulile ei dispar după ce salvezi pagina."
-                itemLabel={(c, i) => (c.title ? `categoria „${c.title}”` : `categoria ${i + 1}`)}
+                itemLabel={(c, i) => (c.title ? `categoria "${c.title}"` : `categoria ${i + 1}`)}
                 renderSummary={(c) => {
                   const n = ruleList(c.rules).length;
                   return (

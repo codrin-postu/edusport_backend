@@ -3,6 +3,7 @@ import { ATHLETE_FIELDS, athleteValueText, isAthleteField, pickAthleteValues, ty
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import type { MergePreview, MergeSideView } from './api-types';
 import { ADMIN_ERRORS } from './errors';
+import { lockAthletesWithRegistrations } from './locks';
 import { refreshAllMatches, safely } from './matches';
 import { mergeDiffering, planMerge, type MergePlan, type MergeSide } from './merge-plan';
 import type { AthleteRow, ClubStore, DuplicateRow, ProfileRow, ServiceContext } from './store';
@@ -132,6 +133,7 @@ async function applyMerge(ctx: ServiceContext, kept: MergeSource, removed: Merge
 }
 
 async function mergeInTransaction(ctx: ServiceContext, request: MergeRequest): Promise<Result> {
+  await lockAthletesWithRegistrations(ctx.store, [request.keptId, request.removedId]);
   const profiles = await ctx.store.profiles();
   const [kept, removed] = await Promise.all([loadSide(ctx.store, request.keptId, profiles), loadSide(ctx.store, request.removedId, profiles)]);
   if (!kept || !removed) return refuse(404, ADMIN_ERRORS.notFound);

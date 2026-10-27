@@ -1,5 +1,46 @@
+import type { Core } from '@strapi/strapi';
 import { describe, expect, it } from 'vitest';
-import { toAthleteRow, toDuplicateRow, toProfileRows, toRegistrationRow } from '../strapi-store';
+import { strapiClubStore, toAthleteRow, toDuplicateRow, toProfileRows, toRegistrationRow } from '../strapi-store';
+
+/** Records the knex chain of a row lock; `transaction` hands out one fake trx. */
+function lockingStrapi(calls: string[]): Core.Strapi {
+  const chain = (table: string) => {
+    const step = (text: string) => {
+      calls.push(`${table} ${text}`);
+      return q;
+    };
+    const q = {
+      transacting: (trx: string) => step(`in ${trx}`),
+      forUpdate: () => step('for update'),
+      where: (col: string, id: string) => step(`${col}=${id}`),
+      select: async () => [],
+    };
+    return q;
+  };
+  const db = { getConnection: chain, transaction: async (work: (a: { trx: string }) => Promise<unknown>) => work({ trx: 'trx' }) };
+  return { db } as unknown as Core.Strapi;
+}
+
+describe('row locks (spec 4.7, polish 12)', () => {
+  it('locks the athlete row by documentId inside the transaction, like the registration row', async () => {
+    const calls: string[] = [];
+    const store = strapiClubStore(lockingStrapi(calls));
+    await store.transaction(async () => {
+      await store.lockRegistration('r1');
+      await store.lockAthlete('a1');
+    });
+    expect(calls).toEqual([
+      'registration_submissions in trx', 'registration_submissions for update', 'registration_submissions document_id=r1',
+      'athletes in trx', 'athletes for update', 'athletes document_id=a1',
+    ]);
+  });
+
+  it('outside a transaction a lock does nothing', async () => {
+    const calls: string[] = [];
+    await strapiClubStore(lockingStrapi(calls)).lockAthlete('a1');
+    expect(calls).toEqual([]);
+  });
+});
 
 describe('Strapi rows -> store rows', () => {
   it('reads an athlete with its profile link', () => {

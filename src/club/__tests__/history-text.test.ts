@@ -34,6 +34,10 @@ describe('registration lines (spec 1.6)', () => {
     expect(reg(A.schoolMoved, { schoolName: 'Patinoar 2' })).toEqual(['Mutată la Patinoar 2']);
   });
 
+  it('a registration unlinked by deleting its athlete (polish 11)', () => {
+    expect(reg(A.athleteUnlinked, { name: 'Maria Pop' })).toEqual(['Legătură ștearsă: sportivul Maria Pop a fost șters']);
+  });
+
   it('archive uses the pending label (N2 c)', () => {
     expect(reg(A.updated, { fields: { archived: { from: false, to: true } } })).toEqual([`${PENDING_COPY.archivedLabel}: "Nu" → "Da"`]);
   });
@@ -81,6 +85,7 @@ describe('athlete lines (spec 1.6)', () => {
       'Telefon: "0722 111 22" → "0722 111 222" (din înscrierea 2026-0142)',
     ]);
     expect(ath(A.groupAdded, { groupName: 'Primii Pași' })).toEqual(['Adăugat în grupa Primii Pași']);
+    expect(ath(A.mainGroupChanged, { from: 'Profesioniști', to: 'Primii Pași' })).toEqual(['Grupa principală schimbată: Profesioniști → Primii Pași']);
     expect(ath(A.acsChanged, { season: '2026-2027', from: null, to: 'in_asteptare' })).toEqual(['Membru A.C.S. 2026-2027: Nu → În așteptare']);
     expect(ath(A.reactivated)).toEqual(['Reactivat']);
   });

@@ -3,13 +3,13 @@ import { IconWarning } from '../../ui/icons';
 import type { AthleteListRow } from '../../../club/athletes/api-types';
 import { LIST_COPY, missingTip } from '../../../club/sportivi/list-view';
 
-/** "date lipsă" under the name, the missing fields in its tooltip and for screen readers (table rows and phone cards). */
-export function MissingMarker({ row }: { row: AthleteListRow }) {
+/** "date lipsă" under the name (rows; `card`: "Date incomplete"), the missing fields in its tooltip and for screen readers. */
+export function MissingMarker({ row, card = false }: { row: AthleteListRow; card?: boolean }) {
   const tip = missingTip(row);
   return (
     <span className="spv-miss" title={tip ?? undefined}>
       <IconWarning size={12} />
-      {LIST_COPY.incompleteMarker}
+      {card ? LIST_COPY.cardIncompleteMarker : LIST_COPY.incompleteMarker}
       {tip && <span className="ui-sr">{tip}</span>}
     </span>
   );

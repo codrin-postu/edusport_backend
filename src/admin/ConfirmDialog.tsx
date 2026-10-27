@@ -124,7 +124,7 @@ export function ConfirmDialog({
       )}
 
       {needsTyping && (
-        <Field label={typedPrompt ?? `Scrie „${expected}" pentru confirmare:`} className="ui-confirm-typed">
+        <Field label={typedPrompt ?? `Scrie "${expected}" pentru confirmare:`} className="ui-confirm-typed">
           <Input
             ref={inputRef}
             value={typed}

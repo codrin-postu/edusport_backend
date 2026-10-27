@@ -18,7 +18,7 @@ export const MERGE_COPY = {
   profile: 'Profil public',
   registrations: 'Înscrieri',
   confirmTitle: 'Unești cele două fișe?',
-  confirmMessage: (name: string) => `Rămâne fișa „${name}”. Cealaltă se șterge. Acțiunea nu poate fi anulată.`,
+  confirmMessage: (name: string) => `Rămâne fișa "${name}". Cealaltă se șterge. Acțiunea nu poate fi anulată.`,
   confirmLabel: 'Unește',
 } as const;
 

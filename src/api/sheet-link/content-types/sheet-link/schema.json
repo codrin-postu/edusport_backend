@@ -31,7 +31,7 @@
     "tab": {
       "type": "string",
       "default": "Date",
-      "description": "Numele filei țintă. IGNORAT pentru formularul „inscrieri\": acolo fila este dedusă din sezonul fiecărei înscrieri (o filă pe sezon, ex. „2025-2026\"), iar rândurile fără sezon merg în fila fixă „fara-sezon\". GET /api/sheets/status întoarce partitioned=true și fallbackTab pentru formularele cu file pe sezon — UI-ul trebuie să ascundă câmpul „filă\" (și POST /sheets/:form/tab) pentru ele."
+      "description": "Numele filei țintă. IGNORAT pentru formularul \"inscrieri\": acolo fila este dedusă din sezonul fiecărei înscrieri (o filă pe sezon, ex. \"2025-2026\"), iar rândurile fără sezon merg în fila fixă \"fara-sezon\". GET /api/sheets/status întoarce partitioned=true și fallbackTab pentru formularele cu file pe sezon — UI-ul trebuie să ascundă câmpul \"filă\" (și POST /sheets/:form/tab) pentru ele."
     },
     "enabled": {
       "type": "boolean",

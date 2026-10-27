@@ -119,7 +119,7 @@ export function PriceItemDrawer({ target, mutate, onClose }: PriceItemDrawerProp
       <ConfirmDialog
         open={confirming}
         title="Ștergi prețul?"
-        message={`„${item?.name ?? ''}” dispare din listă, de pe site și din formular.`}
+        message={`"${item?.name ?? ''}" dispare din listă, de pe site și din formular.`}
         confirmLabel="Șterge"
         busy={state.saving}
         onCancel={() => setConfirming(false)}

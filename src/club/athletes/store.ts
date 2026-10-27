@@ -35,8 +35,11 @@ export interface ClubStore {
   transaction<T>(work: () => Promise<T>): Promise<T>;
   /** Inside a transaction: holds the registration row until the transaction ends (concurrent confirm, spec 4.7). */
   lockRegistration(id: string): Promise<void>;
+  /** Inside a transaction: holds the athlete row until the transaction ends (two confirmations of one child, a merge, polish 12). */
+  lockAthlete(id: string): Promise<void>;
   registration(id: string): Promise<RegistrationRow | null>;
-  registrations(where?: { athleteId?: string }): Promise<RegistrationRow[]>;
+  /** Linked to (`athleteId`) or matched with (`matchAthleteId`) one athlete; both given: both must hold. */
+  registrations(where?: { athleteId?: string; matchAthleteId?: string }): Promise<RegistrationRow[]>;
   athlete(id: string): Promise<AthleteRow | null>;
   athletes(): Promise<AthleteRow[]>;
   seasons(): Promise<SeasonRow[]>;

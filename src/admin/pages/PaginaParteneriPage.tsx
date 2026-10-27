@@ -68,7 +68,7 @@ const PaginaParteneriPage: React.FC = () => {
         <PageHeader
           back={{ to: DASHBOARD_TO }}
           title="Pagina Parteneri"
-          subtitle="Textele de antet, „De ce parteneriat” și secțiunea de colaborare de pe pagina /parteneri"
+          subtitle='Textele de antet, "De ce parteneriat" și secțiunea de colaborare de pe pagina /parteneri'
         />
 
         {page.loading ? (

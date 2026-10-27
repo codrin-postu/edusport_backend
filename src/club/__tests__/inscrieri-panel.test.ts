@@ -234,14 +234,15 @@ describe('copy (spec copy rules)', () => {
   };
   const all = [LIST_COPY, PANEL_COPY, MATCH_COPY, EDIT_TOASTS, CONFIRM_COPY, INSCRIERI_PENDING_COPY].flatMap(strings);
 
-  it('has no em dash, no middle dot and the comma-below letters', () => {
+  it('has no em dash, no middle dot, straight quotes only (polish 3) and the comma-below letters', () => {
     expect(all.length).toBeGreaterThan(60);
-    expect(all.filter((s) => /[—·şţŞŢ]/.test(s))).toEqual([]);
+    expect(all.filter((s) => /[—·\u201E\u201D\u201CşţŞŢ]/.test(s))).toEqual([]);
   });
 
   it('quotes the spec word for word where it gives the text', () => {
     expect(LIST_COPY.searchPlaceholder).toBe('Caută după nr. înscriere, nume, părinte, email sau telefon...');
     expect(CONFIRM_COPY.pickHint).toBe('Alege "Sportiv existent" sau "Sportiv nou"');
+    expect(LIST_COPY.pickSchool).toBe('Alege școala');
     expect(CONFIRM_COPY.intent('1 ședință grup')).toBe('1 ședință grup, doar intenția părintelui; abonamentul se adaugă când e cumpărat');
     expect(PANEL_COPY.undoDialog).toEqual({
       title: 'Anulezi confirmarea?',

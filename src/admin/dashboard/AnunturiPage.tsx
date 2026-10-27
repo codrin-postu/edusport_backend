@@ -244,7 +244,7 @@ function AnuntRow({
         <button
           type="button"
           className="anun-grab"
-          aria-label={`Reordonează „${a.title ?? ''}". Trage, sau folosește săgețile sus și jos.`}
+          aria-label={`Reordonează "${a.title ?? ''}". Trage, sau folosește săgețile sus și jos.`}
           title="Trage ca să schimbi ordinea (sau săgeți sus/jos)"
           onMouseDown={onGrabDown}
           onMouseUp={onGrabUp}
@@ -385,7 +385,7 @@ export default function AnunturiPage() {
       const renumbered = next.map((r, i) => ({ ...r, priority: i + 1 }));
 
       setRows([...renumbered, ...scheduled, ...past]);
-      setStatus(`„${moved.title ?? ''}" mutat pe poziția ${to + 1} din ${next.length}.`);
+      setStatus(`"${moved.title ?? ''}" mutat pe poziția ${to + 1} din ${next.length}.`);
       setReordering(true);
       try {
         const res: any = await put(`${ANUNT_API}/reorder`, {
@@ -450,9 +450,9 @@ export default function AnunturiPage() {
 
   const umamiNote =
     umami === 'not_configured'
-      ? 'Umami nu este configurat, așa că nu avem de unde citi cifrele. Coloana de statistici arată „—", nu zero — anunțurile pot fi văzute și apăsate fără ca noi să știm.'
+      ? 'Umami nu este configurat, așa că nu avem de unde citi cifrele. Coloana de statistici arată "—", nu zero — anunțurile pot fi văzute și apăsate fără ca noi să știm.'
       : umami === 'error'
-        ? 'Nu am putut citi statisticile din Umami. Coloana arată „—" până când conexiunea revine; restul paginii funcționează normal.'
+        ? 'Nu am putut citi statisticile din Umami. Coloana arată "—" până când conexiunea revine; restul paginii funcționează normal.'
         : null;
 
   return (
@@ -471,7 +471,7 @@ export default function AnunturiPage() {
         ) : error ? (
           <EmptyState>Nu am putut încărca anunțurile.</EmptyState>
         ) : rows.length === 0 ? (
-          <EmptyState>Niciun anunț încă. Apasă „+ Anunț nou" ca să creezi primul.</EmptyState>
+          <EmptyState>Niciun anunț încă. Apasă "+ Anunț nou" ca să creezi primul.</EmptyState>
         ) : (
           <>
             {umamiNote && <Notice tone="info">{umamiNote}</Notice>}
@@ -617,7 +617,7 @@ export default function AnunturiPage() {
       <ConfirmDialog
         open={target !== null}
         title="Ștergi anunțul?"
-        message={`„${target?.title ?? ''}" se șterge definitiv. Acțiunea nu poate fi anulată.`}
+        message={`"${target?.title ?? ''}" se șterge definitiv. Acțiunea nu poate fi anulată.`}
         detail="Dacă vrei doar să nu mai apară pe site, treci-l pe Inactiv din editor — rămâne în listă cu statisticile lui."
         busy={deleting}
         error={delError}

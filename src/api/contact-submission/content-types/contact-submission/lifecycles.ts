@@ -51,7 +51,7 @@ export default {
       const oldVal = (existing as Record<string, unknown>)[key];
       if (newVal !== oldVal) {
         throw new Error(
-          `Câmpul „${key}" nu poate fi modificat după trimiterea mesajului. Doar starea (triageStatus) poate fi actualizată.`,
+          `Câmpul "${key}" nu poate fi modificat după trimiterea mesajului. Doar starea (triageStatus) poate fi actualizată.`,
         );
       }
     }

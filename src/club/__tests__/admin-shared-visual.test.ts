@@ -17,6 +17,12 @@ it('the desktop window of a BottomSheet has the same X as the phone sheet (proto
   expect(sheet).toContain('<CloseButton dismissable={dismissable} onClose={onClose} />');
 });
 
+it('the phone sheet grab handle is a square bar of the same size, no rounded ends (polish 1)', () => {
+  const grab = css.match(/\.ui-sheet-grab\{([^}]*)\}/);
+  expect(grab?.[1]).toContain('width:40px;height:4px;');
+  expect(grab?.[1]).toContain('border-radius:var(--ui-radius-none)');
+});
+
 it('the save bar mark is the warning triangle, not a round "!" (no circles except the spinner)', () => {
   expect(source('admin/ui/SaveBarView.tsx')).toContain('{isSaving ? <Spin /> : <IconWarning size={16} />}');
   const icon = css.match(/\.ui-savebar-icon\{([^}]*)\}/);

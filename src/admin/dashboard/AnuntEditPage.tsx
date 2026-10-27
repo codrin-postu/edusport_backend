@@ -485,7 +485,7 @@ export default function AnuntEditPage() {
                   <Field
                     label="Zile până reapare după ce e închis"
                     error={errFor('days')}
-                    hint={`${dismissHint(v.dismissDays)} Maxim 365. Scrie 0 pentru „niciodată".`}
+                    hint={`${dismissHint(v.dismissDays)} Maxim 365. Scrie 0 pentru "niciodată".`}
                   >
                     <NumberInput
                       className="anun-days"
@@ -508,7 +508,7 @@ export default function AnuntEditPage() {
       <ConfirmDialog
         open={confirming}
         title="Ștergi anunțul?"
-        message={`„${loaded.title || 'Anunțul'}" se șterge definitiv. Acțiunea nu poate fi anulată.`}
+        message={`"${loaded.title || 'Anunțul'}" se șterge definitiv. Acțiunea nu poate fi anulată.`}
         detail="Dacă vrei doar să nu mai apară pe site, treci-l pe Inactiv: rămâne în listă cu statisticile lui."
         busy={deleting}
         error={delError}

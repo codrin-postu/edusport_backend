@@ -279,7 +279,7 @@ const MomenteIstoricPage: React.FC = () => {
       <ConfirmDialog
         open={target !== null}
         title="Ștergi momentul?"
-        message={`„${target?.title ?? ''}" (${target?.year ?? ''}) se șterge definitiv.`}
+        message={`"${target?.title ?? ''}" (${target?.year ?? ''}) se șterge definitiv.`}
         busy={deleting}
         onCancel={() => !deleting && setTarget(null)}
         onConfirm={() => void confirmRemove()}

@@ -45,7 +45,7 @@ export const PRICE_ERRORS = {
   notes: 'Notițele nu sunt valide.',
 } as const;
 
-export const duplicateNameError = (name: string) => `Numele „${name}” este deja folosit în această secțiune.`;
+export const duplicateNameError = (name: string) => `Numele "${name}" este deja folosit în această secțiune.`;
 
 const FIELDS = ['name', 'kind', 'sessions', 'memberPrice', 'nonMemberPrice', 'tooltip'] as const;
 

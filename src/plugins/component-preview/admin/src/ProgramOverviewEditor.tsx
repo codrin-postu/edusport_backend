@@ -294,8 +294,8 @@ export default function ProgramOverviewEditor(_props: Props) {
           !form
             ? ''
             : form.freq !== 'none'
-              ? `Ștergi seria „${form.title || 'fără titlu'}"? Toate aparițiile din calendar dispar definitiv. Acțiunea nu poate fi anulată.`
-              : `Ștergi evenimentul „${form.title || 'fără titlu'}"${form.singleDate ? ` din ${fmtRoDate(form.singleDate)}` : ''}? Acțiunea nu poate fi anulată.`
+              ? `Ștergi seria "${form.title || 'fără titlu'}"? Toate aparițiile din calendar dispar definitiv. Acțiunea nu poate fi anulată.`
+              : `Ștergi evenimentul "${form.title || 'fără titlu'}"${form.singleDate ? ` din ${fmtRoDate(form.singleDate)}` : ''}? Acțiunea nu poate fi anulată.`
         }
         busy={saving}
         error={delError}
