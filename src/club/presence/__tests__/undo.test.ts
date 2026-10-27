@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { attendanceRow, lessonRow, paymentRow, subscriptionRow } from './fake-store';
-import { attendanceStamp, lessonStamp, paymentStamp, presenceLockTargets, readPresenceRecord, subscriptionStamp } from '../undo';
+import { acsGuardId, acsStamp, attendanceStamp, lessonStamp, paymentStamp, presenceLockTargets, readPresenceRecord, subscriptionStamp } from '../undo';
 
 describe('presence undo records', () => {
   it('stamps change when a guarded field changes, and are null for a missing row (decided 5)', () => {
@@ -17,7 +17,17 @@ describe('presence undo records', () => {
   it('locks athletes, lessons, subscriptions, payments, each sorted (7.1)', () => {
     expect(presenceLockTargets({ kind: 'presence', subjects: [], athletes: ['a2', 'a1'], guards: [{ type: 'payment', id: 'p2', stamp: null }, { type: 'subscription', id: 's1', stamp: null }],
       steps: [{ op: 'deletePayment', id: 'p1' }, { op: 'deleteLesson', id: 'l1' }, { op: 'setAcs', athleteId: 'a3', seasonId: 's26', state: null }] }))
-      .toEqual({ athletes: ['a1', 'a2', 'a3'], lessons: ['l1'], subscriptions: ['s1'], payments: ['p1', 'p2'] });
+      .toEqual({ athletes: ['a1', 'a2', 'a3'], lessons: ['l1'], attendances: [], subscriptions: ['s1'], payments: ['p1', 'p2'] });
+  });
+  it('locks attendance rows (steps and guards) and the athlete of an A.C.S. guard', () => {
+    expect(presenceLockTargets({ kind: 'presence', subjects: [], athletes: [], guards: [{ type: 'attendance', id: 't3', stamp: null }, { type: 'acs', id: acsGuardId('a9', 's26'), stamp: null }],
+      steps: [{ op: 'setAttendanceSlot', id: 't2', subscriptionId: null, billing: 'fara_abonament' }, { op: 'setAttendanceSlot', id: 't1', subscriptionId: null, billing: 'fara_abonament' }] }))
+      .toEqual({ athletes: ['a9'], lessons: [], attendances: ['t1', 't2', 't3'], subscriptions: [], payments: [] });
+  });
+  it('an A.C.S. stamp follows the state, and no row has none', () => {
+    expect(acsStamp('a1', 's26', 'da')).not.toBe(acsStamp('a1', 's26', 'nu'));
+    expect(acsStamp('a1', 's26', 'da')).not.toBe(acsStamp('a1', 's25', 'da'));
+    expect(acsStamp('a1', 's26', null)).toBeNull();
   });
   it('reads only presence records', () => {
     expect(readPresenceRecord({ kind: 'group', steps: [], subjects: [] })).toBeNull();

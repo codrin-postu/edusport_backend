@@ -197,7 +197,7 @@ export function fakePresenceStore(seed: FakePresenceSeed = {}): FakePresence {
         depth -= 1;
       }
     },
-    lockSession: lock('session'), lockLesson: lock('lesson'), lockSubscription: lock('subscription'), lockPayment: lock('payment'),
+    lockSession: lock('session'), lockLesson: lock('lesson'), lockAttendance: lock('attendance'), lockSubscription: lock('subscription'), lockPayment: lock('payment'),
     ...fakeReads(state), ...fakeSessionAndAttendanceWrites(state, next), ...fakeMoneyWrites(state, next), ...fakePaymentJobs(state, next),
   };
   const failing = new Set<string>();

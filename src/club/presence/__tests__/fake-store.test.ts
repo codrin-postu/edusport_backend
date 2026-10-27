@@ -55,8 +55,9 @@ describe('fake presence store', () => {
   it('locks only inside a transaction and records their order', async () => {
     const { store, group } = fakePresenceStore();
     await expect(store.lockPayment('p1')).rejects.toThrow('outside a transaction');
-    await store.transaction(async () => { await store.lockAthlete('a1'); await store.lockSubscription('sub1'); await store.lockPayment('p1'); });
-    expect(group.locks).toEqual(['athlete:a1', 'subscription:sub1', 'payment:p1']);
+    await expect(store.lockAttendance('t1')).rejects.toThrow('outside a transaction');
+    await store.transaction(async () => { await store.lockAthlete('a1'); await store.lockAttendance('t1'); await store.lockSubscription('sub1'); await store.lockPayment('p1'); });
+    expect(group.locks).toEqual(['athlete:a1', 'attendance:t1', 'subscription:sub1', 'payment:p1']);
   });
   it('writes to a missing row throw', async () => {
     const { store } = fakePresenceStore();

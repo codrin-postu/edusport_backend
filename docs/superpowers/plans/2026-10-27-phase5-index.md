@@ -154,9 +154,9 @@ Reused P3 lines: "Membru A.C.S. <sezon>: <vechi> -> <nou>" (`HISTORY_ACTIONS` of
 |---|---|---|
 | Add abonament (5-3) | `deleteSubscription`, `setAttendanceSlot` per covered row (back to `fara_abonament`), `deletePayment`, `cancelPaymentEmail` | subscription (incl. used count), payment |
 | Extend (5-3) | `setSubscription` per row (old `extendedWeeks`, `validUntil`) | each subscription |
-| Record payment (5-3) | `deletePayment`, `setAcs` (state before, null = no row), `cancelPaymentEmail` | payment |
-| Edit payment (5-3) | `setPayment` (old values), `setAcs` when re-purposed | payment |
-| Anulează plata (5-3) | `setPayment` (not cancelled), `setAcs` when it reverted | payment |
+| Record payment (5-3) | `deletePayment`, `setAcs` (state before, null = no row), `cancelPaymentEmail` | payment, `acs` (`guardOf(store, 'acs', acsGuardId(athleteId, seasonId))` after the write) |
+| Edit payment (5-3) | `setPayment` (old values), `setAcs` when re-purposed | payment, one `acs` per season set |
+| Anulează plata (5-3) | `setPayment` (not cancelled), `setAcs` when it reverted | payment, `acs` when reverted |
 | Anulează abonamentul (5-3) | `setSubscription` (not cancelled), `setAttendanceSlot` per freed row | subscription, each freed attendance |
 | Create lesson (5-2) | `deleteLesson` | lesson (incl. paid count) |
 | Delete lesson (5-2) | `createLesson` | none |

@@ -17,7 +17,7 @@ export type PresenceUndoStep =
   | { op: 'cancelPaymentEmail'; paymentId: string }
   | { op: 'deleteLesson'; id: string }
   | { op: 'createLesson'; row: LessonWrite };
-export type GuardType = 'subscription' | 'payment' | 'lesson' | 'attendance';
+export type GuardType = 'subscription' | 'payment' | 'lesson' | 'attendance' | 'acs';
 export type PresenceGuard = { type: GuardType; id: string; stamp: string | null };
 export type PresenceUndoRecord = { kind: 'presence'; steps: PresenceUndoStep[]; subjects: Subject[]; athletes: string[]; guards: PresenceGuard[] };
 
@@ -37,7 +37,14 @@ export const lessonStamp = (row: LessonRow | null, paid: number): string | null 
 export const attendanceStamp = (row: Pick<AttendanceRow, 'subscriptionId' | 'billing' | 'grup' | 'uscat'> | null): string | null =>
   stamp(row, (r) => [r.subscriptionId, r.billing, r.grup, r.uscat]);
 
-const GUARD_TYPES: readonly string[] = ['subscription', 'payment', 'lesson', 'attendance'];
+/** An A.C.S. row is identified by its athlete and season, not by a row id: the guard id is `<athleteId>:<seasonId>`. */
+export const acsGuardId = (athleteId: string, seasonId: string): string => `${athleteId}:${seasonId}`;
+const acsGuardAthlete = (id: string): string => id.split(':')[0];
+
+/** null state = no row. */
+export const acsStamp = (athleteId: string, seasonId: string, state: AcsState | null): string | null => stamp(state, (s) => [athleteId, seasonId, s]);
+
+const GUARD_TYPES: readonly string[] = ['subscription', 'payment', 'lesson', 'attendance', 'acs'];
 const isGuard = (g: unknown): boolean => isRecord(g) && GUARD_TYPES.includes(String(g.type)) && typeof g.id === 'string' && (g.stamp === null || typeof g.stamp === 'string');
 
 export function readPresenceRecord(v: unknown): PresenceUndoRecord | null {
@@ -46,7 +53,7 @@ export function readPresenceRecord(v: unknown): PresenceUndoRecord | null {
   return ok ? (v as unknown as PresenceUndoRecord) : null;
 }
 
-type Targets = { athletes: string[]; lessons: string[]; subscriptions: string[]; payments: string[] };
+type Targets = { athletes: string[]; lessons: string[]; attendances: string[]; subscriptions: string[]; payments: string[] };
 const sorted = (ids: string[]): string[] => [...new Set(ids)].sort();
 
 function stepTargets(step: PresenceUndoStep): Partial<Targets> {
@@ -57,16 +64,17 @@ function stepTargets(step: PresenceUndoStep): Partial<Targets> {
     case 'deleteLesson': return { lessons: [step.id] };
     case 'createLesson': return { athletes: [step.row.athleteId] };
     case 'setAcs': return { athletes: [step.athleteId] };
-    case 'setAttendanceSlot': return {};
+    case 'setAttendanceSlot': return { attendances: [step.id] };
   }
 }
 
-const guardKey: Partial<Record<GuardType, keyof Targets>> = { subscription: 'subscriptions', payment: 'payments', lesson: 'lessons' };
+const guardKey: Partial<Record<GuardType, keyof Targets>> = { subscription: 'subscriptions', payment: 'payments', lesson: 'lessons', attendance: 'attendances' };
 
-/** Lock order of 7.1: athletes, lessons, subscriptions, payments; each sorted and unique. */
+/** Lock order of 7.1: athletes (an A.C.S. row is guarded by its athlete's lock), lessons, attendances, subscriptions, payments; each sorted and unique. */
 export function presenceLockTargets(r: PresenceUndoRecord): Targets {
   const all = r.steps.map(stepTargets);
   const pick = (k: keyof Targets, extra: string[] = []): string[] => sorted([...all.flatMap((t) => t[k] ?? []), ...extra]);
   const guarded = (k: keyof Targets): string[] => r.guards.filter((g) => guardKey[g.type] === k).map((g) => g.id);
-  return { athletes: pick('athletes', r.athletes), lessons: pick('lessons', guarded('lessons')), subscriptions: pick('subscriptions', guarded('subscriptions')), payments: pick('payments', guarded('payments')) };
+  const acsAthletes = r.guards.filter((g) => g.type === 'acs').map((g) => acsGuardAthlete(g.id));
+  return { athletes: pick('athletes', [...r.athletes, ...acsAthletes]), lessons: pick('lessons', guarded('lessons')), attendances: pick('attendances', guarded('attendances')), subscriptions: pick('subscriptions', guarded('subscriptions')), payments: pick('payments', guarded('payments')) };
 }
