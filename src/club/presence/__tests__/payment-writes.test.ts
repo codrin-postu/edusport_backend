@@ -231,3 +231,18 @@ describe('cancel a payment', () => {
     expect(await cancelPayment(f.ctx, 'nope')).toEqual({ ok: false, status: 404, error: 'Nu a fost găsit.' });
   });
 });
+
+describe('the athlete is read again after the lock (final review M3)', () => {
+  const merged = (f: FakePresenceContext) => ({
+    ...f.ctx,
+    store: { ...f.ctx.store, lockPayment: async (id: string) => { await f.ctx.store.lockPayment(id); f.state.payments[0].athleteId = 'a2'; } },
+  });
+  it('edit and cancel refuse 409 when the payment moved to another athlete meanwhile', async () => {
+    const fresh = () => fakePresenceContext(seed({ payments: [paymentRow({ id: 'p1', athleteId: 'a1', amount: 300 })] }));
+    const stale = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' };
+    const [e, c] = [fresh(), fresh()];
+    expect(await editPayment(merged(e), 'p1', editBody({ amount: 100 }))).toEqual(stale);
+    expect(await cancelPayment(merged(c), 'p1')).toEqual(stale);
+    expect([e.state.payments[0].amount, c.state.payments[0].cancelled]).toEqual([300, false]);
+  });
+});

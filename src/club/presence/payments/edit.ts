@@ -44,7 +44,7 @@ async function loadLocked(ctx: PresenceContext, id: string, input: PaymentInput)
   await ctx.store.lockPayment(id);
   const p = await ctx.store.payment(id);
   if (!p) return refuse(404, PRESENCE_ERRORS.notFound);
-  const stale = p.cancelled || !sameLink(p, first) || (!sameLink(p, f.fields) && !(await linkIsValid(ctx.store, p.athleteId, f.fields)));
+  const stale = p.cancelled || p.athleteId !== first.athleteId || !sameLink(p, first) || (!sameLink(p, f.fields) && !(await linkIsValid(ctx.store, p.athleteId, f.fields)));
   return stale ? refuse(409, PRESENCE_ERRORS.stale) : { ok: true, data: { p, f } };
 }
 

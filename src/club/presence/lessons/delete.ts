@@ -19,6 +19,7 @@ async function deleteLocked(ctx: PresenceContext, id: string): Promise<ActionRes
   await ctx.store.lockLesson(id);
   const l = await ctx.store.lesson(id);
   if (!l) return refuse(404, PRESENCE_ERRORS.notFound);
+  if (l.athleteId !== first.athleteId) return refuse(409, PRESENCE_ERRORS.stale);
   if (!(await isDeletable(ctx.store, id))) return refuse(409, PRESENCE_ERRORS.stale);
   await ctx.store.deleteLesson(id);
   const actionId = await recordPresenceAction(ctx.store, ctx.actor, [{ subjectType: SUBJECT.lesson, subjectId: id, action: P5_ACTIONS.lessonDeleted }], {
