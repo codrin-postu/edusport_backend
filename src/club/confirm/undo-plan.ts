@@ -18,6 +18,8 @@ export type UndoFacts = {
   mainMembershipId: string | null;
   acsRows: { id: string; state: AcsState }[];
   otherRegistrations: number;
+  /** Payments plus abonamente of the athlete, cancelled ones too: any of them counts as use (C37). */
+  presenceRecords: number;
 };
 
 type AcsUndo = { op: 'delete'; id: string } | { op: 'set'; id: string; state: AcsState } | null;
@@ -56,7 +58,7 @@ function planAcsUndo(f: UndoFacts): AcsUndo {
 function isUnused(f: UndoFacts, ownMembership: string | null, ownAcs: string | null): boolean {
   const otherMemberships = f.membershipIds.filter((id) => id !== ownMembership);
   const otherAcs = f.acsRows.filter((r) => r.id !== ownAcs);
-  return f.otherRegistrations === 0 && otherMemberships.length === 0 && otherAcs.length === 0 && f.athlete.profileId === null;
+  return f.otherRegistrations === 0 && f.presenceRecords === 0 && otherMemberships.length === 0 && otherAcs.length === 0 && f.athlete.profileId === null;
 }
 
 function revertedStatus(before: AthleteStatus | null, now: AthleteStatus): AthleteStatus | null {

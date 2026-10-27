@@ -174,6 +174,7 @@ describe('fix round 1: review findings', () => {
       mainMembershipId: fake.state.memberships.find((m) => m.isMain)?.id ?? null,
       acsRows: fake.state.acs.map(({ id, state }) => ({ id, state })),
       otherRegistrations: 0,
+      presenceRecords: 0,
     });
     expect([undo.demoteMembershipId, undo.restoreMainId]).toEqual(['m9', 'm0']);
   });

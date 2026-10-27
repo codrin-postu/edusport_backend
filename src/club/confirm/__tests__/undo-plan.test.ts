@@ -34,6 +34,7 @@ const facts = (over: Partial<UndoFacts> = {}): UndoFacts => ({
   mainMembershipId: 'm9',
   acsRows: [{ id: 'c9', state: 'in_asteptare' }],
   otherRegistrations: 0,
+  presenceRecords: 0,
   ...over,
 });
 
@@ -197,5 +198,15 @@ describe('undoSeasonId (final review I1)', () => {
   it('an older record without it: the season of a membership it names, else the registration season', () => {
     expect(undoSeasonId(record({ membershipId: null, demotedMainId: 'm0' }), rows, 's27')).toBe('s25');
     expect(undoSeasonId(record({ membershipId: 'gone', demotedMainId: null }), rows, 's27')).toBe('s27');
+  });
+});
+
+describe('payments and abonamente count as use (5-4 ruling, C37)', () => {
+  const created = { record: record({ createdAthlete: true, membershipId: null, demotedMainId: null, acs: null }), membershipIds: [], currentRows: [], acsRows: [], mainMembershipId: null };
+  it('a created athlete with nothing else is deleted', () => {
+    expect(planUndo(facts(created)).deleteAthlete).toBe(true);
+  });
+  it('a created athlete with any payment or abonament is never deleted', () => {
+    expect(planUndo(facts({ ...created, presenceRecords: 1 })).deleteAthlete).toBe(false);
   });
 });

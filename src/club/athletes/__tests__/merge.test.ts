@@ -4,6 +4,7 @@ import { dismissDuplicate, mergeAthletes, mergePreview, readMergeRequest } from 
 import { undoConfirmation } from '../undo-service';
 import { athleteRow, fakeClubStore, registrationRow, type Fake } from './fake-store';
 import { canUndo, type ConfirmationRecord } from '../../confirm/plan';
+import { fakePresenceStore } from '../../presence/__tests__/fake-store';
 
 const ctx = (fake: Fake) => ({ store: fake.store, actor: 'ana@club.ro', today: { year: 2026, month: 10, day: 26 }, log: vi.fn() });
 const profile = (id: string, slug: string, previousSlugs: string[] = []) => ({ id, name: 'x', slug, previousSlugs, showPublicPage: true, published: true });
@@ -100,7 +101,7 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
     await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] });
     expect(fake.state.registrations[0]).toMatchObject({ id: 'regk', athleteId: 'k', status: 'Confirmat', confirmation: null });
     const before = structuredClone(fake.state);
-    expect(await undoConfirmation(ctx(fake), 'regk')).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect(await undoConfirmation(ctx(fake), 'regk', fakePresenceStore().store)).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
     expect({ ...fake.state, locks: [] }).toEqual({ ...before, locks: [] });
     expect(fake.state.athletes.map((a) => a.id)).toEqual(['k', 't']);
   });

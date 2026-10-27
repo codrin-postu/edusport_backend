@@ -1,3 +1,4 @@
+import { countWords } from '../../ro-count';
 import { longDate } from '../dates';
 import { ron } from '../money';
 import type { PaymentMethod, SubscriptionState } from '../types';
@@ -44,3 +45,16 @@ export const paymentLine = (r: PaymentLine): string =>
     longDate(r.paidOn), ron(r.amount), METHOD_WORDS[r.method], r.purposeText, r.collectedAtRink && WORDS.atRink,
     r.note !== null && `${WORDS.note}: ${r.note}`, r.cancelled && PRESENCE_WORDS.cancelledPayment,
   ]);
+
+export const LIFECYCLE_DELETE = {
+  title: (name: string) => `Șterge ${name}`,
+  anonymizeInstead: 'Poți anonimiza sportivul în schimb: numele și datele personale se șterg, sumele plăților rămân.',
+  cancel: 'Renunță',
+  anonymize: 'Anonimizează',
+} as const;
+
+/** "Sportivul are 2 plăți și 1 abonament. ..." (5.14): a part with 0 is dropped. */
+export function deleteBlockedText(payments: number, subscriptions: number): string {
+  const parts = [payments > 0 && countWords(payments, 'plată', 'plăți'), subscriptions > 0 && countWords(subscriptions, 'abonament', 'abonamente')].filter(Boolean);
+  return `Sportivul are ${parts.join(' și ')}. Ștergerea este blocată cât timp există plăți sau abonamente.`;
+}
