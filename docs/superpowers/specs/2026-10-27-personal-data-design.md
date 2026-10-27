@@ -1,6 +1,6 @@
 # Phase 3C: personal data (export, anonymize, yearly list)
 
-Status: v1, written from the approved design (2026-10-27). For the user to review before the plan.
+Status: v1.1, approved by the user (2026-10-27): default 5 years, never automatic, a dashboard notification.
 Parent: `docs/architecture/10-spec.md` 3.3 and `13-roadmap.md` (phase 3, part C). Builds on `2026-10-26-athletes-registrations-design.md` (3A/3B).
 Precedence: a dated entry in `edusport_frontend/docs/portal/DECISIONS.md` wins over this file.
 Decisions behind this spec: DEC 2026-10-19 admin-q2-data; DEC 2026-10-27 "phase 3C personal data" (1 to 7 and the Claude low-impact line).
@@ -19,7 +19,7 @@ Out of scope: automatic deletion; anonymizing registrations that never became an
 ## 2. Data
 
 - `athlete.status` gains `anonimizat` (enum `nou | activ | inactiv | anonimizat`); new field `anonymizedAt` (datetime, null otherwise).
-- `site-settings` gains `personalData` (json): `{ retentionYears: number (default 3, min 1, max 20), reviewHiddenUntilSeason: string | null }`. Edited in Setări site as "Ani până la anonimizare" (number). The admin may change it when the lawyer or accountant answers (09-open-items).
+- `site-settings` gains `personalData` (json): `{ retentionYears: number (default 5, min 1, max 20), reviewHiddenUntilSeason: string | null }`. Edited in Setări site as "Ani până la anonimizare" (number). The admin may change it when the lawyer or accountant answers (09-open-items).
 - History actions: `data-exported` ("Date exportate"), `data-anonymized` ("Date anonimizate"). Neither line holds personal data; `actor` and `at` as usual.
 - No schema change on registrations, e-mail jobs, history entries: anonymization writes null / fixed placeholders into existing fields.
 
@@ -79,5 +79,5 @@ Out of scope: automatic deletion; anonymizing registrations that never became an
 
 ## 9. Open with the club
 
-- The retention period itself (09-open-items): the setting makes the number changeable; the default stays 3 until the lawyer or accountant answers.
+- The retention period itself (09-open-items): the setting makes the number changeable; the default is 5 (user, 2026-10-27) until the lawyer or accountant answers.
 - The public privacy page (`/protectia-datelor`) says nothing about a number of years; aligning it is a copy change for the club, not part of this phase.
