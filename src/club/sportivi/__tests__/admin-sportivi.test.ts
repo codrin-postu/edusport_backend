@@ -67,14 +67,14 @@ describe('list screens (Task 6)', () => {
     expect(hook).toContain('loaded.current = req.loaded;');
   });
 
-  it('"date lipsă" with the triangle warning icon, the same marker on rows and phone cards; the missing list reaches screen readers', () => {
+  it('the triangle warning marker: "date lipsă" on rows, "Date incomplete" on phone cards (polish 5); the missing list reaches screen readers', () => {
     expect(read('../ui/icons.tsx')).toMatch(/export const IconWarning[\s\S]*M7 1\.6L12\.6 12\.2H1\.4z/);
     const marker = read('sportivi/MissingMarker.tsx');
     expect(marker).toContain('<IconWarning size={12} />');
-    expect(marker).toContain('LIST_COPY.incompleteMarker');
+    expect(marker).toContain('{card ? LIST_COPY.cardIncompleteMarker : LIST_COPY.incompleteMarker}');
     expect(marker).toContain('{tip && <span className="ui-sr">{tip}</span>}');
     expect(read('sportivi/AthleteTable.tsx')).toContain('<MissingMarker row={row} />');
-    expect(read('sportivi/AthleteCards.tsx')).toContain('<MissingMarker row={r} />');
+    expect(read('sportivi/AthleteCards.tsx')).toContain('<MissingMarker row={r} card />');
   });
 
   it('toolbar on one row with the search magnifier; chips of the chosen filters with the match count (filters-v3)', () => {

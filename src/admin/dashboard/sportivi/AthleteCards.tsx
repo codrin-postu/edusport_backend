@@ -31,7 +31,7 @@ export function AthleteCards({ list, onOpen }: { list: AthleteList; onOpen: (doc
           <li key={r.documentId}>
             <button type="button" className="spv-card" onClick={() => onOpen(r.documentId)}>
               <span className="spv-name">{r.name}</span>
-              {r.dataIncomplete && <MissingMarker row={r} />}
+              {r.dataIncomplete && <MissingMarker row={r} card />}
               <CardLine row={r} />
             </button>
           </li>

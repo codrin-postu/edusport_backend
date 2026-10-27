@@ -41,6 +41,8 @@ export const LIST_COPY = {
   showThem: 'Arată-i',
   more: 'Încarcă încă 30',
   incompleteMarker: 'date lipsă',
+  /** Phone cards (polish 5); desktop rows keep `incompleteMarker`. */
+  cardIncompleteMarker: 'Date incomplete',
   noGroup: 'Fără grupă',
   columns: { name: 'Sportiv', age: 'Vârstă', contact: 'Contact', acs: 'Membru A.C.S.', profile: 'Profil public' },
 } as const;
@@ -103,7 +105,7 @@ export const incompleteBanner = (n: number): string => (n === 1 ? '1 sportiv are
 export const groupCell = (r: AthleteListRow): string => r.mainGroup?.name ?? LIST_COPY.noGroup;
 export const acsCell = (r: AthleteListRow): string => ACS_WORDS[r.acs];
 export const profileCell = (r: AthleteListRow): string => (r.publicProfile === 'public' ? 'Public' : 'Ascuns');
-/** Tooltip of "date lipsă"; none when a deploy-marked record names no field (plan 3-2 note). */
+/** Tooltip of the incomplete marker; none when a deploy-marked record names no field (plan 3-2 note). */
 export const missingTip = (r: AthleteListRow): string | null => (r.missing.length ? `Lipsesc: ${r.missing.join(', ')}` : null);
 export const groupHeader = (season: AthleteListPage['season']): string => (season ? `Grupa ${season.label}` : 'Grupa');
 
