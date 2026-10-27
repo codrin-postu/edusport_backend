@@ -62,3 +62,10 @@ export function childMain(child: StartAthlete, groupId: string, mains: Record<st
   if (m.kept) return { main: m.groupName, note: m.groupId === groupId ? null : NEW_SEASON_COPY.childKept(current) };
   return { main: m.groupName, note: m.previousName ? NEW_SEASON_COPY.childChanged(current, m.previousName) : null };
 }
+
+/** Phone card line (10.2): "<n> sportivi în 2026-2027[, <k> inactiv], <program>". */
+export const phoneLine = (g: StartGroup, current: string, next: string): string =>
+  `${NEW_SEASON_COPY.phoneCard(g.members, current)}${g.inactive ? NEW_SEASON_COPY.inactiveSuffix(g.inactive) : ''}, ${programCell(g, next)}`;
+
+/** Phone: "Principală: <grupă>" under a child, or the inactive note. */
+export const childPhoneLine = (m: { main: string; note: string | null }): string => (m.main ? NEW_SEASON_COPY.childMainShort(m.main) : m.note ?? '');

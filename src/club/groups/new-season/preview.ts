@@ -1,4 +1,4 @@
-import { ARROW, NEW_SEASON_COPY, startToast, summaryText } from '../copy';
+import { ARROW, NEW_SEASON_COPY, startToast, summaryParts, summaryText, type SummaryCounts, type SummaryPart } from '../copy';
 import { shortDate } from '../dates';
 import { sectionLabel } from '../sections';
 import { seriesStart, targetSeriesOf, type StartFacts } from './facts';
@@ -8,7 +8,7 @@ import type { MainOutcome, StartPlan } from './plan';
 export type Tile = { label: string; value: string; hint: string };
 export type PreviewLine = { bold: string; rest: string };
 export type ChildMain = { groupId: string; groupName: string; previousName: string | null; kept: boolean };
-export type StartPreview = { summary: string; tiles: Tile[]; lines: PreviewLine[]; warning: string | null; mains: Record<string, ChildMain> };
+export type StartPreview = { summary: string; summaryParts: SummaryPart[]; tiles: Tile[]; lines: PreviewLine[]; warning: string | null; mains: Record<string, ChildMain> };
 export type StartResult = { season: string; copied: { athletes: number; groups: number; series: number }; unassigned: number; toast: string };
 
 const C = NEW_SEASON_COPY;
@@ -63,8 +63,9 @@ const childMains = (f: StartFacts, mains: MainOutcome[]): Record<string, ChildMa
 }]));
 
 export function startPreview(f: StartFacts, plan: StartPlan): StartPreview {
+  const counts: SummaryCounts = { athletes: copiedAthletes(plan), groups: copiedGroupIds(plan).length, programGroups: programGroups(plan), unassigned: plan.unassignedAfter, inactive: plan.inactive.length };
   return {
-    summary: summaryText({ athletes: copiedAthletes(plan), groups: copiedGroupIds(plan).length, programGroups: programGroups(plan), unassigned: plan.unassignedAfter, inactive: plan.inactive.length }),
+    summary: summaryText(counts), summaryParts: summaryParts(counts),
     tiles: tiles(f, plan), lines: [...mainLines(f, plan.mains), ...otherLines(f, plan)], warning: schoolWarning(f, plan), mains: childMains(f, plan.mains),
   };
 }

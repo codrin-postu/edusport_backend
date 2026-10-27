@@ -29,6 +29,23 @@ export const GRUPE_CSS = `
 .ui-root .grp-danger-link{font:inherit;font-size:13px;font-weight:600;color:var(--theme-danger);background:none;border:none;padding:0;cursor:pointer;align-self:flex-start}
 .ui-root .grp-cal-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0}
 .ui-root .grp-cal-bar .cal-sp{flex:1}
+.ui-root .grp-sec{margin:14px 0 6px}
+.ui-root .grp-sec:first-child{margin-top:0}
+.ui-root .grp-aside{margin:4px 0 10px;font-size:12px;font-weight:600}
+.ui-root .grp-kv--rows{grid-template-columns:150px minmax(0,1fr);gap:0 14px;align-items:start}
+.ui-root .grp-kv--rows dt,.ui-root .grp-kv--rows dd{padding:8px 0;border-bottom:1px solid var(--theme-border-subtle)}
+.ui-root .grp-tbl{border:1px solid var(--theme-border)}
+.ui-root .grp-tbl .ui-table th,.ui-root .grp-tbl .ui-table td{padding:8px 12px;vertical-align:middle}
+.ui-root .grp-see{margin-left:8px}
+.ui-root .grp-kids td{background:var(--theme-surface-subtle)}
+.ui-root .grp-kid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--theme-border-subtle)}
+.ui-root .grp-kid:last-child{border-bottom:none}
+.ui-root .grp-kidh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--theme-text-muted);border-bottom:1px solid var(--theme-border)}
+.ui-root .grp-kid small{display:block}
+.ui-root .grp-card{border:1px solid var(--theme-border);background:var(--theme-surface);padding:10px 12px;margin-bottom:8px}
+.ui-root .grp-card .ui-check{display:flex;margin-top:6px}
+.ui-root .grp-kidcard{display:flex;flex-direction:column;padding:6px 0;border-top:1px solid var(--theme-border-subtle)}
+.ui-root .grp-acts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
 @media (max-width:640px){
 .ui-root .grp-ua-row{grid-template-columns:minmax(0,1fr) auto}
 .ui-root .grp-ua-row>div:first-child{grid-column:1 / -1;grid-row:1}

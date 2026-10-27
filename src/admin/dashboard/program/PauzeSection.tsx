@@ -48,6 +48,7 @@ function useRemove(breaks: Breaks, done: () => void) {
   const [error, setError] = React.useState<string | null>(null);
   const run = async (b: BreakRecord) => {
     setBusy(true);
+    setError(null);
     try {
       await breaks.remove(b.id);
       adminToast.success(SCHEDULE_TOASTS.breakDeleted);
@@ -58,7 +59,7 @@ function useRemove(breaks: Breaks, done: () => void) {
       setBusy(false);
     }
   };
-  return { busy, error, run };
+  return { busy, error, run, clear: () => setError(null) };
 }
 
 /** "Pauze" at the top of "Calendar și serii" (7.1, mock pauze-a A1). */
@@ -67,14 +68,14 @@ export function PauzeSection() {
   const [edit, setEdit] = React.useState<{ target: BreakRecord | null } | null>(null);
   const [del, setDel] = React.useState<BreakRecord | null>(null);
   const remove = useRemove(breaks, () => setDel(null));
-  const onPick: Pick = (b, what) => (what === 'edit' ? setEdit({ target: b }) : setDel(b));
+  const onPick: Pick = (b, what) => (what === 'edit' ? setEdit({ target: b }) : (remove.clear(), setDel(b)));
   const add = <Button variant="secondary" size="sm" icon={<IconPlus />} onClick={() => setEdit({ target: null })}>{PAUZE_COPY.add}</Button>;
   const body = breaks.failed ? <Notice tone="danger">{GROUP_ERRORS.loadFailed}</Notice> : breaks.list ? <BreakList rows={breakRows(breaks.list)} onPick={onPick} /> : <Loading />;
   return (
     <Section title={PAUZE_COPY.section} aside={add}>
       {body}
       {edit && <BreakDialog target={edit.target} breaks={breaks} onClose={() => setEdit(null)} />}
-      <ConfirmDialog open={!!del} title={PAUZE_COPY.remove} message={PAUZE_COPY.removeConfirm(del?.label ?? '')} tone="danger" confirmLabel={PAUZE_COPY.remove} busy={remove.busy} error={remove.error} onCancel={() => setDel(null)} onConfirm={() => del && void remove.run(del)} />
+      <ConfirmDialog open={!!del} title={PAUZE_COPY.remove} message={PAUZE_COPY.removeConfirm(del?.label ?? '')} tone="danger" confirmLabel={PAUZE_COPY.remove} busy={remove.busy} error={remove.error} onCancel={() => { remove.clear(); setDel(null); }} onConfirm={() => del && void remove.run(del)} />
     </Section>
   );
 }

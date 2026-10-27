@@ -84,19 +84,27 @@ export function step1Rows(current: string, next: string, fee: number | null): St
 
 export type SummaryCounts = { athletes: number; groups: number; programGroups: number; unassigned: number; inactive: number };
 
-function copiedSentence(c: SummaryCounts): string {
-  const parts = [c.athletes > 0 ? `${athletesText(c.athletes)} în ${groupsText(c.groups)}` : '', c.programGroups > 0 ? `programul a ${groupsText(c.programGroups)}` : ''].filter(Boolean);
-  return parts.length ? `Se copiază ${parts.join(' și ')}.` : 'Nu se copiază nimic.';
+export type SummaryPart = { text: string; bold?: boolean };
+
+function copiedParts(c: SummaryCounts): SummaryPart[] {
+  const groups: SummaryPart[][] = [];
+  if (c.athletes > 0) groups.push([{ text: athletesText(c.athletes), bold: true }, { text: ` în ${groupsText(c.groups)}` }]);
+  if (c.programGroups > 0) groups.push([{ text: `programul a ${groupsText(c.programGroups)}`, bold: true }]);
+  if (!groups.length) return [{ text: 'Nu se copiază nimic.' }];
+  return [{ text: 'Se copiază ' }, ...groups.flatMap((g, i) => (i ? [{ text: ' și ' }, ...g] : g)), { text: '.' }];
 }
 
-/** The summary box under the tables (10.2, decided 2). */
-export function summaryText(c: SummaryCounts): string {
+/** The summary box under the tables (10.2, decided 2), in parts so the counts can be bold. */
+export function summaryParts(c: SummaryCounts): SummaryPart[] {
   const rest = [
     c.unassigned === 1 ? '1 sportiv rămâne fără grupă' : c.unassigned > 0 ? `${athletesText(c.unassigned)} rămân fără grupă` : '',
     c.inactive === 1 ? '1 inactiv nu se copiază' : c.inactive > 0 ? `${countWords(c.inactive, 'inactiv', 'inactivi')} nu se copiază` : '',
   ].filter(Boolean);
-  return rest.length ? `${copiedSentence(c)} ${rest.join(', ')}.` : copiedSentence(c);
+  const copied = copiedParts(c);
+  return rest.length ? [...copied, { text: ` ${rest.join(', ')}.` }] : copied;
 }
+
+export const summaryText = (c: SummaryCounts): string => summaryParts(c).map((p) => p.text).join('');
 
 /** The toast after applying (10.5, W29, decided 1). */
 export function startToast(next: string, athletes: number, series: number): string {

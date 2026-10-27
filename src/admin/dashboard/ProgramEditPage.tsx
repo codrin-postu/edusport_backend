@@ -4,6 +4,7 @@ import { DASHBOARD_TO } from './menu';
 import ProgramOverviewEditor from '../../plugins/component-preview/admin/src/ProgramOverviewEditor';
 import { PAUZE_COPY } from '../../club/groups/copy';
 import { SPORTIVI_CSS } from './sportivi/styles';
+import { GRUPE_CSS } from './grupe/styles';
 import { PauzeSection } from './program/PauzeSection';
 
 /**
@@ -13,7 +14,7 @@ import { PauzeSection } from './program/PauzeSection';
  */
 const ProgramEditPage: React.FC = () => (
   <AdminPage>
-    <style>{SPORTIVI_CSS}</style>
+    <style>{SPORTIVI_CSS + GRUPE_CSS}</style>
     <Window>
       <PageHeader back={{ to: DASHBOARD_TO }} title="Program" subtitle="Calendarul sezonului și seriile de cursuri" />
       <div className="ui-body">

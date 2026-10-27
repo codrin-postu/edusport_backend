@@ -24,7 +24,7 @@ function StartButton({ s, onStart }: { s: AdminSeason; onStart: (s: AdminSeason)
 
 /** "Începe sezonul <next>" shows on the next season only (10.1); on phones it sits under the label. */
 const columns = (startable: string | null, phone: boolean, onStart: (s: AdminSeason) => void): DataColumn<AdminSeason>[] => [
-  { key: 'label', header: 'Sezon', render: (s) => (phone && s.label === startable ? <><div>{s.label}</div><StartButton s={s} onStart={onStart} /></> : s.label) },
+  { key: 'label', header: 'Sezon', render: (s) => (phone && s.label === startable ? <><div><span className="spv-name">{s.label}</span></div><StartButton s={s} onStart={onStart} /></> : <span className="spv-name">{s.label}</span>) },
   { key: 'period', header: 'Perioadă', render: (s) => formatPeriod(s.startMonth, s.endMonth) },
   { key: 'membershipFee', header: 'Taxă de membru', render: (s) => (s.membershipFee === null ? '-' : `${s.membershipFee} RON`) },
   { key: 'isCurrent', header: 'Curent', render: (s) => (s.isCurrent ? <StatusBadge tone="success">Curent</StatusBadge> : null) },

@@ -11,6 +11,8 @@ import { undoToast } from '../../dashboard/grupe/undo';
 import { StepOne, StepThree, StepTwo } from './NewSeasonSteps';
 import { useNewSeason } from './useNewSeason';
 
+const noop = (): void => undefined;
+
 type Props = { season: { documentId: string; label: string }; onClose: () => void };
 
 /** The toast shows what the apply wrote (it plans again at apply time), not the preview's counts. */
@@ -24,7 +26,7 @@ function useApply(ns: ReturnType<typeof useNewSeason>, ticks: Ticks | null) {
     setBusy(true);
     try {
       const res = await ns.apply(ns.data, ticks);
-      navigate(grupeListTo(res.data.season, null));
+      navigate(grupeListTo(null, null));
       undoToast(res.data.toast, res.undo?.actionId ?? null, grupe);
     } catch (err) {
       setError(requestErrorText(err, GROUP_ERRORS.failed));
@@ -51,7 +53,7 @@ function StepBody({ step, ns, ticks, setTicks }: BodyProps) {
   if (!ns.data || !ticks) return <Loading />;
   if (step === 1) return <StepOne data={ns.data} />;
   if (step === 2) return <StepTwo data={ns.data} ticks={ticks} setTicks={setTicks} preview={ns.preview} />;
-  return ns.preview ? <StepThree preview={ns.preview} /> : <Loading />;
+  return ns.preview && !ns.pending ? <StepThree preview={ns.preview} /> : <Loading />;
 }
 
 /** "Începe sezonul <next>" (10.2): three steps; nothing is written before the last button (W24). */
@@ -70,9 +72,9 @@ export function NewSeasonDialog({ season, onClose }: Props) {
   const setTicks = (t: Ticks) => { setTicksState(t); if (data) refresh(data, t); };
   const act = useApply(ns, ticks);
   const failed = ns.failed ? requestErrorText(ns.failed, GROUP_ERRORS.loadFailed) : null;
-  const footer = <DialogFooter step={step} setStep={setStep} onClose={onClose} busy={act.busy} ready={!!data} previewReady={!!ns.preview} apply={() => void act.run()} label={season.label} />;
+  const footer = <DialogFooter step={step} setStep={setStep} onClose={onClose} busy={act.busy} ready={!!data} previewReady={!!ns.preview && !ns.pending} apply={() => void act.run()} label={season.label} />;
   return (
-    <WindowShell title={<>{NEW_SEASON_COPY.title(season.label)} <span className="spv-muted">{NEW_SEASON_COPY.stepOf(step)}</span></>} onClose={onClose} footer={footer} size="lg">
+    <WindowShell title={NEW_SEASON_COPY.title(season.label)} aside={<span className="spv-muted">{NEW_SEASON_COPY.stepOf(step)}</span>} onClose={act.busy ? noop : onClose} footer={footer} size="lg">
       {(act.error || failed) && <Notice tone="danger">{act.error ?? failed}</Notice>}
       <StepBody step={step} ns={ns} ticks={ticks} setTicks={setTicks} />
     </WindowShell>

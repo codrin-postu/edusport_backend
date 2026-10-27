@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import type { BreakDraft } from '../../../club/calendar/pauze-view';
 import type { BreakRecord } from '../../../club/groups/types';
+import { grupeChanged } from '../grupe/undo';
 
 const BASE = '/api/club/breaks';
 
@@ -15,6 +16,7 @@ export function useBreaks() {
   const reload = React.useCallback(async () => {
     try {
       setList(((await ref.current.get(BASE)) as { data: { data: BreakRecord[] } }).data.data);
+      setFailed(false);
     } catch {
       setFailed(true);
     }
@@ -25,10 +27,12 @@ export function useBreaks() {
   const save = async (id: string | null, d: BreakDraft) => {
     await (id ? ref.current.put(`${BASE}/${encodeURIComponent(id)}`, d) : ref.current.post(BASE, d));
     await reload();
+    grupeChanged();
   };
   const remove = async (id: string) => {
     await ref.current.del(`${BASE}/${encodeURIComponent(id)}`);
     await reload();
+    grupeChanged();
   };
   return { list, failed, save, remove };
 }

@@ -82,13 +82,13 @@ function CopyMembers({ page, api }: { page: GroupPage; api: GrupeApi }) {
       setBusy(false);
     }
   };
-  const action = <Button variant="secondary" size="sm" loading={busy} onClick={() => void run()}>{NEW_SEASON_COPY.copyMembers(from.season)}</Button>;
-  return (
-    <EmptyState action={action}>
-      {NEW_SEASON_COPY.emptyMembers(page.season.label)}
+  const action = (
+    <>
+      <Button variant="secondary" size="sm" loading={busy} onClick={() => void run()}>{NEW_SEASON_COPY.copyMembers(from.season)}</Button>
       <span className="spv-sub2">{NEW_SEASON_COPY.copyMembersHint(from.members, from.season, from.inactive)}</span>
-    </EmptyState>
+    </>
   );
+  return <EmptyState action={action}>{NEW_SEASON_COPY.emptyMembers(page.season.label)}</EmptyState>;
 }
 
 /** Sportivi tab (6.2): the bar, the roster, the row menu and its windows. */

@@ -3,24 +3,25 @@ import { Button, Notice, SegmentedControl, useIsPhone } from '../../ui';
 import type { Occurrence } from '../../../api/calendar-event/services/expand';
 import { GROUP_ERRORS, GRUPE_COPY } from '../../../club/groups/copy';
 import { groupChip, weekTitle } from '../../../club/grupe/program-view';
+import { calendarOpenDate, inSeasonWindow, type SeasonWindow } from '../../../club/grupe/season-window';
 import { AgendaList, CompactMonth, MonthGrid, type CalView } from '../../../plugins/component-preview/admin/src/calendar/CalendarView';
 import { RO_MONTHS, ymd, type Occurrence as CalOccurrence } from '../../../plugins/component-preview/admin/src/calendar/model';
 import { CAL_CSS } from '../../../plugins/component-preview/admin/src/calendar/styles';
 import type { GrupeApi } from './api';
 
-type Props = { groupId: string; api: GrupeApi; reloadKey: number; onOpen: (o: Occurrence) => void };
+type Props = { groupId: string; api: GrupeApi; reloadKey: number; onOpen: (o: Occurrence) => void; season: SeasonWindow | null };
 type Ym = { y: number; m: number };
 
-function useMonth(api: GrupeApi, groupId: string, ym: Ym, reloadKey: number): { list: Occurrence[]; failed: boolean } {
+function useMonth(api: GrupeApi, groupId: string, ym: Ym, reloadKey: number, season: SeasonWindow | null): { list: Occurrence[]; failed: boolean } {
   const [list, setList] = React.useState<Occurrence[]>([]);
   const [failed, setFailed] = React.useState(false);
   React.useEffect(() => {
     let off = false;
     api.occurrences(groupId, ymd(new Date(ym.y, ym.m, 1)), ymd(new Date(ym.y, ym.m + 1, 0)))
-      .then((l) => { if (!off) { setList(l); setFailed(false); } })
+      .then((l) => { if (!off) { setList(l.filter((o) => inSeasonWindow(o.date, season))); setFailed(false); } })
       .catch(() => { if (!off) { setList([]); setFailed(true); } });
     return () => { off = true; };
-  }, [api, groupId, ym, reloadKey]);
+  }, [api, groupId, ym, reloadKey, season]);
   return { list, failed };
 }
 
@@ -46,14 +47,19 @@ function Bar({ ym, view, narrow, go, today, setView }: BarProps) {
   );
 }
 
-/** The group's dates (6.3): Listă / Lună, any month, "Azi"; chips as `groupChip` writes them; no add buttons (decided 8). */
-export function GroupCalendar({ groupId, api, reloadKey, onOpen }: Props) {
+/** The group's dates of one season (6.3): opens on today, or the nearest end of the season; Listă / Lună, any month, "Azi"; chips as `groupChip` writes them; no add buttons (decided 8). */
+const openYm = (season: SeasonWindow | null): Ym => {
+  const d = calendarOpenDate(ymd(new Date()), season);
+  return { y: Number(d.slice(0, 4)), m: Number(d.slice(5, 7)) - 1 };
+};
+
+export function GroupCalendar({ groupId, api, reloadKey, onOpen, season }: Props) {
   const narrow = useIsPhone();
   const now = new Date();
-  const [ym, setYm] = React.useState<Ym>({ y: now.getFullYear(), m: now.getMonth() });
+  const [ym, setYm] = React.useState<Ym>(() => openYm(season));
   const [view, setView] = React.useState<CalView>('list');
   const [selected, setSelected] = React.useState<string | null>(ymd(now));
-  const { list, failed } = useMonth(api, groupId, ym, reloadKey);
+  const { list, failed } = useMonth(api, groupId, ym, reloadKey, season);
   const grid = { y: ym.y, m: ym.m, byDate: byDate(list), todayKey: ymd(now), onEvent: (o: CalOccurrence) => onOpen(o as Occurrence), view: groupChip };
   const go = (delta: number) => setYm(({ y, m }) => ({ y: new Date(y, m + delta, 1).getFullYear(), m: new Date(y, m + delta, 1).getMonth() }));
   const body = view === 'list' ? <AgendaList {...grid} focusDate={null} weekTitle={weekTitle} />
@@ -61,7 +67,7 @@ export function GroupCalendar({ groupId, api, reloadKey, onOpen }: Props) {
   return (
     <div className="ui-root cal">
       <style>{CAL_CSS}</style>
-      <Bar ym={ym} view={view} narrow={narrow} go={go} today={() => setYm({ y: now.getFullYear(), m: now.getMonth() })} setView={setView} />
+      <Bar ym={ym} view={view} narrow={narrow} go={go} today={() => setYm(openYm(season))} setView={setView} />
       <div className="cal-frame">{failed ? <Notice tone="danger">{GROUP_ERRORS.loadFailed}</Notice> : body}</div>
     </div>
   );
