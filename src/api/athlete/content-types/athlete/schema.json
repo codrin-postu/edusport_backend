@@ -12,8 +12,9 @@
     "contactName": { "type": "string" },
     "phone": { "type": "string" },
     "email": { "type": "string" },
-    "status": { "type": "enumeration", "enum": ["nou", "activ", "inactiv"], "default": "activ", "required": true },
+    "status": { "type": "enumeration", "enum": ["nou", "activ", "inactiv", "anonimizat"], "default": "activ", "required": true },
     "dataIncomplete": { "type": "boolean", "default": false },
+    "anonymizedAt": { "type": "datetime" },
     "notes": { "type": "text" },
     "publicProfile": { "type": "relation", "relation": "oneToOne", "target": "api::sportsperson.sportsperson" }
   }

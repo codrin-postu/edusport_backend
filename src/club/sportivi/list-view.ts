@@ -2,6 +2,9 @@ import { ACS_WORDS } from '../acs';
 import type { AthleteListPage, AthleteListRow } from '../athletes/api-types';
 import { NO_SECTION } from '../athletes/list';
 import { STATUS_WORDS } from '../history-text';
+import { countWords } from '../ro-count';
+
+export { countWords };
 
 /**
  * Rules of the Sportivi list (spec 5): the query of GET /api/club/athletes (plan 3-2), the
@@ -82,9 +85,6 @@ export function listQueryString(s: ListState, pageSize: number): string {
   return p.toString();
 }
 
-/** Romanian "de" after 20, 100, 120, ... but not after 101 to 119 (Needs decision 7, option A). */
-const needsDe = (n: number): boolean => n >= 20 && (n % 100 === 0 || n % 100 >= 20);
-export const countWords = (n: number, one: string, many: string): string => (n === 1 ? `1 ${one}` : `${n} ${needsDe(n) ? 'de ' : ''}${many}`);
 export const athletesText = (n: number): string => countWords(n, 'sportiv', 'sportivi');
 export const ageText = (age: number | null): string => (age === null ? '' : countWords(age, 'an', 'ani'));
 export const showLabel = (n: number): string => `Arată ${athletesText(n)}`;

@@ -7,7 +7,7 @@ import type { EmailJobStore } from './email-jobs';
 
 type JobForCell = { status?: unknown; sentAt?: unknown; createdAt?: unknown };
 
-const STATUS_TEXT: Record<string, string> = { queued: 'Urmează să fie trimis', failed: 'Netrimis' };
+const STATUS_TEXT: Record<string, string> = { queued: 'Urmează să fie trimis', failed: 'Netrimis', cancelled: 'Netrimis' };
 
 const time = (value: unknown): number => {
   const t = value instanceof Date ? value.getTime() : typeof value === 'string' ? Date.parse(value) : NaN;

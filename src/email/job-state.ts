@@ -11,7 +11,7 @@
 export const MAX_ATTEMPTS = 5;
 const MAX_ERROR = 500;
 
-export type EmailJobStatus = 'queued' | 'sent' | 'failed';
+export type EmailJobStatus = 'queued' | 'sent' | 'failed' | 'cancelled';
 export type AttemptOutcome = { ok: true } | { ok: false; error: string };
 export type JobState = { status: EmailJobStatus; attempts: number; lastError: string | null; sentAt: string | null };
 export type Transition = JobState & { alert: boolean };
