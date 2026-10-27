@@ -262,6 +262,7 @@ export function strapiPresenceStore(strapi: Core.Strapi): PresenceStore {
     lockHistoryEntry: (id) => scope.lockRow('history_entries', id),
     lockSession: (id) => scope.lockRow('club_sessions', id),
     lockLesson: (id) => scope.lockRow('club_individual_lessons', id),
+    lockAttendance: (id) => scope.lockRow('club_attendances', id),
     lockSubscription: (id) => scope.lockRow('club_subscriptions', id),
     lockPayment: (id) => scope.lockRow('club_payments', id),
     ...lookups(strapi), ...sessionRows(strapi), ...attendanceRows(strapi), ...lessonRows(strapi), ...subscriptionRows(strapi), ...paymentRows(strapi), ...jobs(strapi),

@@ -108,15 +108,16 @@ describe('strapiPresenceStore', () => {
       await store.lockEvent('ev1');
       await store.lockSession('s1');
       await store.lockLesson('l1');
+      await store.lockAttendance('t1');
       await store.lockSubscription('sub1');
       await store.lockPayment('p1');
       await store.lockHistoryEntry('h1');
     });
     const tables = calls.filter((c) => c.includes('document_id=')).map((c) => c.split(' document_id=').join(':'));
     expect(tables).toEqual([
-      'seasons:se1', 'athletes:a1', 'club_groups:g1', 'calendar_events:ev1', 'club_sessions:s1', 'club_individual_lessons:l1', 'club_subscriptions:sub1', 'club_payments:p1', 'history_entries:h1',
+      'seasons:se1', 'athletes:a1', 'club_groups:g1', 'calendar_events:ev1', 'club_sessions:s1', 'club_individual_lessons:l1', 'club_attendances:t1', 'club_subscriptions:sub1', 'club_payments:p1', 'history_entries:h1',
     ]);
-    expect(calls.filter((c) => c.endsWith('in trx'))).toHaveLength(9);
+    expect(calls.filter((c) => c.endsWith('in trx'))).toHaveLength(10);
   });
 
   it('the fake refuses season, group and event locks outside a transaction too', async () => {
@@ -127,6 +128,7 @@ describe('strapiPresenceStore', () => {
   it('a lock outside a transaction throws', async () => {
     const calls: string[] = [];
     await expect(strapiPresenceStore(lockingStrapi(calls)).lockPayment('p1')).rejects.toThrow('outside a transaction');
+    await expect(strapiPresenceStore(lockingStrapi(calls)).lockAttendance('t1')).rejects.toThrow('outside a transaction');
     expect(calls).toEqual([]);
   });
 });

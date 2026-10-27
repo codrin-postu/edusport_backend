@@ -21,6 +21,7 @@ export class UniqueKeyError extends Error {}
 export interface PresenceStore extends PresenceGroupReads {
   lockSession(id: string): Promise<void>;
   lockLesson(id: string): Promise<void>;
+  lockAttendance(id: string): Promise<void>;
   lockSubscription(id: string): Promise<void>;
   lockPayment(id: string): Promise<void>;
   priceListRecords(): Promise<PriceListRecord[]>;

@@ -45,6 +45,7 @@ async function lockAll(store: PresenceStore, record: PresenceUndoRecord, actionI
   const t = presenceLockTargets(record);
   for (const id of t.athletes) await store.lockAthlete(id);
   for (const id of t.lessons) await store.lockLesson(id);
+  for (const id of t.attendances) await store.lockAttendance(id);
   for (const id of t.subscriptions) await store.lockSubscription(id);
   for (const id of t.payments) await store.lockPayment(id);
   await store.lockHistoryEntry(actionId);
