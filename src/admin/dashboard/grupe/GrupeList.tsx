@@ -9,6 +9,7 @@ import { groupPageTo, grupeListTo, readGrupeQuery } from '../../../club/grupe/ro
 import { SPORTIVI_CSS } from '../sportivi/styles';
 import { useGrupeApi, type GrupeApi } from './api';
 import { GroupDialog } from './GroupDialog';
+import { UnassignedButton } from './UnassignedButton';
 import { GRUPE_CSS } from './styles';
 import { useGrupeRefresh } from './undo';
 
@@ -80,11 +81,12 @@ function ListBody({ page, phone, onSeason, onTab, onOpen }: BodyProps) {
   );
 }
 
-/** "Fără grupă" joins these actions in Task 4. A past season writes nothing (W5). */
-function HeaderActions({ page, onNew }: { page: GroupListPage; onNew: () => void }) {
-  if (!writable(page)) return null;
+/** A past season writes nothing (W5). */
+function HeaderActions({ page, api, onNew }: { page: GroupListPage; api: GrupeApi; onNew: () => void }) {
+  if (!writable(page) || !page.season) return null;
   return (
     <div className="grp-head-acts">
+      <UnassignedButton api={api} season={page.season.label} count={page.unassigned} />
       <Button size="sm" icon={<IconPlus />} onClick={onNew}>{GRUPE_COPY.newGroup}</Button>
     </div>
   );
@@ -106,7 +108,7 @@ export function GrupeList() {
     <AdminPage>
       <style>{SPORTIVI_CSS + GRUPE_CSS}</style>
       <Window>
-        <PageHeader title={GRUPE_COPY.title} actions={page ? <HeaderActions page={page} onNew={() => setCreating(true)} /> : null} />
+        <PageHeader title={GRUPE_COPY.title} actions={page ? <HeaderActions page={page} api={api} onNew={() => setCreating(true)} /> : null} />
         {body ?? (failed ? <div className="ui-body"><Notice tone="danger">{GROUP_ERRORS.loadFailed}</Notice></div> : <Loading />)}
       </Window>
       {creating && tab && (
