@@ -13,6 +13,7 @@ import {
   compactHeaders,
   dateTabRows,
   footerActions,
+  isAnonymizedRow,
   historyHead,
   initials,
   inscrieriOpenPath,
@@ -167,6 +168,14 @@ describe('panel (spec 3.3, 3.5)', () => {
     expect(statusMenuValues(script)).toEqual(['Nou', 'Contactat', 'Respins']);
     expect(statusMenuValues({ ...script, status: 'Confirmat' })).toEqual([]);
     expect(statusMenuValues({ ...script, status: 'ciudat' })).toEqual(['Nou', 'Contactat', 'Respins']);
+  });
+
+  it('an anonymized athlete\'s registration: no "..." items and no status menu (3C spec 4)', () => {
+    const anon = { ...script, status: 'Contactat', athleteId: 'a1', canUndo: true, athleteAnonymized: true };
+    expect(isAnonymizedRow(anon)).toBe(true);
+    expect(isAnonymizedRow(script)).toBe(false);
+    expect(menuItems(anon, true)).toEqual([]);
+    expect(statusMenuValues(anon)).toEqual([]);
   });
 
   it('reloads the panel data when the status, the link or the save time change', () => {

@@ -9,6 +9,12 @@ describe('list row extras (spec 3.1)', () => {
     expect(listRowExtras({ childBirthDate: 'ieri', matchLevel: 'sigur', athlete: { documentId: 'a1', name: 'Maria' } }, TODAY)).toMatchObject({ age: null, existingAthlete: false, athleteId: 'a1', athleteName: 'Maria' });
   });
 
+  it('flags a registration whose linked athlete is anonymized (3C spec 4)', () => {
+    expect(listRowExtras({ athlete: { documentId: 'a1', name: 'Sportiv anonimizat', status: 'anonimizat' } }, TODAY).athleteAnonymized).toBe(true);
+    expect(listRowExtras({ athlete: { documentId: 'a1', name: 'Maria', status: 'activ' } }, TODAY).athleteAnonymized).toBe(false);
+    expect(listRowExtras({ athlete: null }, TODAY).athleteAnonymized).toBe(false);
+  });
+
   it('offers the undo only when the confirmation record names the linked athlete', () => {
     expect(listRowExtras({ athlete: { documentId: 'a1' }, confirmation: { athleteId: 'a1' } }, TODAY).canUndo).toBe(true);
     expect(listRowExtras({ athlete: { documentId: 'a1' }, confirmation: null }, TODAY).canUndo).toBe(false);
@@ -16,7 +22,7 @@ describe('list row extras (spec 3.1)', () => {
 
   it('never sends the internal fields', () => {
     const row = publicListRow({ documentId: 'r1', childName: 'Maria', confirmation: { athleteId: 'a1' }, matchAthlete: { documentId: 'a1' }, matchLevel: 'sigur', submissionKey: 'k', section: { documentId: 'afi', name: 'AFI' }, childBirthDateParsed: '2016-03-14' }, TODAY);
-    expect(Object.keys(row).sort()).toEqual(['age', 'athleteId', 'athleteName', 'canUndo', 'childName', 'documentId', 'existingAthlete', 'schoolId', 'schoolName']);
+    expect(Object.keys(row).sort()).toEqual(['age', 'athleteAnonymized', 'athleteId', 'athleteName', 'canUndo', 'childName', 'documentId', 'existingAthlete', 'schoolId', 'schoolName']);
     expect(row.schoolName).toBe('AFI');
   });
 });

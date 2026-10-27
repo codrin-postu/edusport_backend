@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { AthleteRecord } from '../../athletes/api-types';
+import { PERSONAL_DATA_COPY } from '../../personal-data/copy';
 import { EXPORT_FALLBACK_NAME, anonymizeErrorText, anonymizeLines, exportUrl, recordMenuItems } from '../personal-data-view';
 import { isReadOnlyRecord, recordSubline, recordTabs } from '../record-view';
 import { inactiveListTo, wantsInactiveList } from '../routes';
@@ -59,10 +60,18 @@ describe('record wiring (source, 3C spec 8)', () => {
     const menu = read('sportivi/RecordMenu.tsx');
     for (const s of [
       'recordMenuItems(record.status, superAdmin)', 'downloadPdf(getFetchClient().get, exportUrl(id), EXPORT_FALLBACK_NAME)', 'PERSONAL_DATA_COPY.exported',
-      'adminToast.error(ADMIN_ERRORS.failed)', '<AnonymizeDialog', 'await api.anonymize(record.documentId)', 'PERSONAL_DATA_COPY.done(1)',
+      'adminToast.error(PERSONAL_DATA_COPY.exportFailed)', '<AnonymizeDialog', 'await api.anonymize(record.documentId)', 'PERSONAL_DATA_COPY.done(1)',
       'RECORD_COPY.menu.button', 'RECORD_COPY.inactiveDialog.title', 'RECORD_COPY.deleteDialog.message(', "api.setStatus(record.documentId, 'inactiv')",
       'navigate(SPORTIVI_PATH, { replace: true })',
     ]) expect(menu, s).toContain(s);
+  });
+
+  it('a failed export has its own text; after anonymizing, focus moves to the record heading', () => {
+    expect(PERSONAL_DATA_COPY.exportFailed).toBe('Datele nu au putut fi exportate.');
+    const menu = read('sportivi/RecordMenu.tsx');
+    expect(menu).toContain("const RECORD_HEADING = '.ui-ph-title, .ui-sheet-title';");
+    expect(menu).toMatch(/await reload\(\);\s+focusRecordHeading\(\);/);
+    expect(menu).toMatch(/requestAnimationFrame\(\(\) => \{\s+const heading = document\.querySelector<HTMLElement>\(RECORD_HEADING\);\s+if \(!heading\) return;\s+heading\.tabIndex = -1;\s+heading\.focus\(\);/);
   });
 
   it('the confirmation copy comes from the copy module', () => {

@@ -64,20 +64,22 @@ function MoveSchoolDialog({ row, api, meta, onClose }: DialogProps & { meta: Lis
   );
 }
 
-/** The panel "..." menu (spec 3.3): "Anulează confirmarea", "Mută la altă școală", "Șterge înscrierea". */
+/** The panel "..." menu (spec 3.3): "Anulează confirmarea", "Mută la altă școală", "Șterge înscrierea"; none when nothing applies (anonymized athlete). */
 export function PanelMenu({ row, api }: { row: Row; api: TableApi }) {
   const [open, setOpen] = React.useState(false);
   const [dialog, setDialog] = React.useState<'undo' | 'move' | null>(null);
   const meta = readListMeta(api.pageMeta);
+  const items = menuItems(row, meta.multipleSchools);
   const pick = (item: MenuItem) => {
     setOpen(false);
     if (item === 'delete') api.removeRow(row.documentId);
     else setDialog(item);
   };
+  if (items.length === 0) return null;
   return (
     <>
       <MenuButton label={MENU_BUTTON} open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="sbt-menu" role="menu" chevron={false} placement="bottom-end">
-        {menuItems(row, meta.multipleSchools).map((item) => (
+        {items.map((item) => (
           <button key={item} type="button" role="menuitem" className={item === 'delete' ? 'ins-danger' : undefined} onClick={() => pick(item)}>
             {MENU_LABELS[item]}
           </button>

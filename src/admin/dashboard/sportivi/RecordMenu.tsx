@@ -20,6 +20,8 @@ import type { SportiviApi } from './api';
 type Props = { record: AthleteRecord; api: SportiviApi; reload: () => Promise<void>; onMerge: () => void; superAdmin: boolean };
 type Dialog = 'inactive' | 'delete' | 'anonymize' | null;
 type SetBusy = (b: boolean) => void;
+/** The athlete name: the page title on desktop, the bottom sheet title on phones. */
+const RECORD_HEADING = '.ui-ph-title, .ui-sheet-title';
 
 /** "Marchează activ": applied at once, no dialog; `setBusy` keeps the trigger disabled for the round trip. */
 async function activate(api: SportiviApi, id: string, reload: () => Promise<void>, setBusy: SetBusy): Promise<void> {
@@ -41,7 +43,7 @@ async function exportData(id: string, setBusy: SetBusy): Promise<void> {
     await downloadPdf(getFetchClient().get, exportUrl(id), EXPORT_FALLBACK_NAME);
     adminToast.success(PERSONAL_DATA_COPY.exported);
   } catch {
-    adminToast.error(ADMIN_ERRORS.failed);
+    adminToast.error(PERSONAL_DATA_COPY.exportFailed);
   } finally {
     setBusy(false);
   }
@@ -54,6 +56,16 @@ function MenuLabel() {
       <span className="ui-sr">{RECORD_COPY.menu.button}</span>
     </>
   );
+}
+
+/** After anonymizing, the "..." menu is gone with the dialog: focus moves to the record heading (like "Contactat" in Înscrieri). */
+function focusRecordHeading() {
+  requestAnimationFrame(() => {
+    const heading = document.querySelector<HTMLElement>(RECORD_HEADING);
+    if (!heading) return;
+    heading.tabIndex = -1;
+    heading.focus();
+  });
 }
 
 const isDanger = (key: RecordMenuKey): boolean => key === 'delete' || key === 'anonymize';
@@ -127,6 +139,7 @@ function RecordDialogs({ record, api, reload, dialog, onClose }: DialogsProps) {
     await api.anonymize(record.documentId);
     adminToast.success(PERSONAL_DATA_COPY.done(1));
     await reload();
+    focusRecordHeading();
   };
   return (
     <>
