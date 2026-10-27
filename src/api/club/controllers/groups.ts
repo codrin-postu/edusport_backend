@@ -10,6 +10,8 @@ import { allocateAll, joinGroup, moveMembership, removeMembership } from '../../
 import { strapiGroupStore } from '../../../club/groups/strapi-store';
 import { readUnassigned } from '../../../club/groups/unassigned';
 import { undoAction } from '../../../club/groups/undo-service';
+import { presenceContext } from '../../../club/presence/context';
+import { undoKindOf, undoPresenceAction } from '../../../club/presence/undo-service';
 
 const store = () => strapiGroupStore(strapi);
 const id = (ctx: AdminCtx): string => ctx.params.documentId ?? '';
@@ -68,6 +70,8 @@ export default {
   },
 
   async undo(ctx: AdminCtx) {
-    respond(ctx, await undoAction(await groupContext(strapi, ctx), ctx.request.body));
+    const body = ctx.request.body;
+    if ((await undoKindOf(store(), body)) === 'presence') return respond(ctx, await undoPresenceAction(await presenceContext(strapi, ctx), body));
+    respond(ctx, await undoAction(await groupContext(strapi, ctx), body));
   },
 };
