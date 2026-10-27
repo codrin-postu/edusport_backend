@@ -1,4 +1,5 @@
 import { sumMoney } from './money';
+import { usedSlots } from './subscriptions';
 import { attendanceStamp, lessonStamp, paymentStamp, subscriptionStamp, type GuardType, type PresenceGuard, type PresenceUndoRecord } from './undo';
 import { subjectsOf, type Line } from '../groups/action-log';
 import type { PresenceStore } from './store';
@@ -18,7 +19,8 @@ export async function recordPresenceLines(store: PresenceStore, actor: string, l
 }
 
 /** Slots an abonament has used: the attendance rows that point at it. */
-const usedOf = async (store: PresenceStore, subscriptionId: string): Promise<number> => (await store.attendances({ subscriptionIds: [subscriptionId] })).length;
+const usedOf = async (store: PresenceStore, subscriptionId: string): Promise<number> =>
+  usedSlots(await store.attendances({ subscriptionIds: [subscriptionId] })).get(subscriptionId) ?? 0;
 
 async function stampOf(store: PresenceStore, type: GuardType, id: string): Promise<string | null> {
   switch (type) {
