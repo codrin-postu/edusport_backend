@@ -1,6 +1,6 @@
 # Phase 3C: personal data (export, anonymize, yearly list)
 
-Status: v1.1, approved by the user (2026-10-27): default 5 years, never automatic, a dashboard notification.
+Status: v1.2 (media rule added 2026-10-27), approved by the user (2026-10-27): default 5 years, never automatic, a dashboard notification.
 Parent: `docs/architecture/10-spec.md` 3.3 and `13-roadmap.md` (phase 3, part C). Builds on `2026-10-26-athletes-registrations-design.md` (3A/3B).
 Precedence: a dated entry in `edusport_frontend/docs/portal/DECISIONS.md` wins over this file.
 Decisions behind this spec: DEC 2026-10-19 admin-q2-data; DEC 2026-10-27 "phase 3C personal data" (1 to 7 and the Claude low-impact line).
@@ -46,6 +46,7 @@ Out of scope: automatic deletion; anonymizing registrations that never became an
   - E-mail jobs of those registrations: `recipient` null; jobs not yet sent set to `cancelled` (new status value if missing).
   - History entries whose subject is the athlete or one of its registrations: inside `changes`, every value under a personal key (the athlete and registration personal fields above, plus `name`, `contactName`, `childName`, `parentName`) replaced by null; other keys, `action`, `actor`, `at` kept. Same for personal values inside each registration's `confirmation` record.
   - Public profile: deleted with both draft and published rows, through the existing delete path; its slug is not added to anyone's `previousSlugs` (the address shows "not found").
+  - Media of that public profile (photo, gallery): after the commit, every file referenced only by the deleted profile is deleted from the Media Library (file row and stored file); files also used by any other content stay [DEC 2026-10-27 3C photos].
   - Possible-duplicate rows involving the athlete: removed.
   - Kept: group memberships, A.C.S. rows, counts; from phase 5, payment totals.
   - History line `data-anonymized` on the athlete.
