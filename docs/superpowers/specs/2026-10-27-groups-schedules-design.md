@@ -1,6 +1,6 @@
 # Phase 4: groups and schedules (design)
 
-Status: v1, for the user to review.
+Status: v1.1, approved by the user (2026-10-27): W1-W21, parent e-mail texts, new season.
 
 Parent docs: `docs/architecture/10-spec.md` 3.5 Groups and 3.6 Schedules (3.7 lists what stays for phase 5), `13-roadmap.md` (phase 4), diagrams `03a`, `03b`, `02f`. Builds on `2026-10-26-athletes-registrations-design.md` (P3) and `2026-10-27-personal-data-design.md` (P3C). Production facts: `.superpowers/phase4/research.md` (read-only production read, 2026-10-27).
 
@@ -9,12 +9,14 @@ Precedence: a dated entry in `edusport_frontend/docs/portal/DECISIONS.md` wins o
 Citation keys:
 - `[m4 n]`: DECISIONS 2026-10-27 "phase 4 mockups", item n (1 to 12).
 - `[p4 scope]`, `[p4 design]`: DECISIONS 2026-10-27 "phase 4 scope" and "phase 4 design".
+- `[DEC 2026-10-27 phase 4 spec review]`: W1-W21 approved, parent e-mail texts approved, new season designed in phase 4, proposed group = last season's main group.
+- `[DEC 2026-10-27 phase 4 new season n]`: DECISIONS 2026-10-27 "phase 4 new season", item n (1 to 6).
 - `[DEC <date> <id>]`: older DECISIONS entries, by date and screen or id.
-- `[mock <file> <state>]`: approved phase 4 mockups in `edusport_frontend/docs/portal/mockups/screens/phase4/` (copy from `gen_phase4.py`): grupe-list, grupa-a (chosen), pauze-a (chosen), program-site (A chosen), migrare-grupe.
+- `[mock <file> <state>]`: approved phase 4 mockups in `edusport_frontend/docs/portal/mockups/screens/phase4/` (copy from `gen_phase4.py` and `gen_sezon_nou.py`): grupe-list, grupa-a (chosen), pauze-a (chosen), program-site (A chosen), migrare-grupe, sezon-nou-a (chosen; sezon-nou-b not chosen).
 - `[old mock <file>]`: older approved mockups in `mockups/screens/` (move-modal-final, aloca-v2, pending-groups-v1, main-group-v1) and the coach-schedule-app-v3 behaviour in `mockups/coach-mobile.html` / `coach-desktop.html`.
 - `[prod]`: the production read in `research.md`. `[code]`: current code, file named.
 - `[SPEC x.y]`: `10-spec.md`. `[P3 x.y]`, `[P3C x]`: the phase 3 specs.
-- `[W n]`: decided while writing this file, listed in section 14 for the user to overrule.
+- `[W n]`: decided while writing this file, listed in section 15 (W1-W21 approved; later ones for the user to overrule).
 
 Copy convention (as P3): quoted copy is the exact UI text; "->" in quoted copy is the arrow "→" the UI shows; `<name>` marks a value. Romanian, terse, no em dash, no middle dot, straight quotes "..." [DEC 2026-10-27 phase 3 polish 3; DEC 2026-10-26 gaps #1].
 
@@ -28,6 +30,7 @@ Success:
 - A date cancelled or moved on a group's Program shows the same way in the admin, on the website calendar (when the group is public) and, if ticked, in an e-mail to that group's parents [DEC 2026-10-19 notif-q1-emails; m4 9].
 - /cursuri/program shows the same notebook as today, built from the Școala groups, and the "Serii de cursuri" editor is gone [m4 7, 8; p4 design].
 - The production migration runs dry first, applies idempotently, and leaves the website looking as it does today [DEC 2026-10-19 build-q3-final-review (1)].
+- "Începe sezonul <next>" on Sezoane makes the next season current and prepares its groups in one window, with a preview and an 8 s undo; children not copied wait in "Fără grupă" with last season's group proposed [DEC 2026-10-27 phase 4 new season 1-6].
 
 ## 2. Scope
 
@@ -36,13 +39,13 @@ In scope [p4 scope; p4 design]:
 - Migration of production data (4).
 - Admin: Grupe list, "Fără grupă", group page with tabs Sportivi / Program / Istoric, move window, "Adaugă și în grupă", "Scoate din grupă", "+ Grupă nouă", Pauze section in "Calendar și serii", removal of "Serii de cursuri" (5, 6).
 - Routes and public reads (8); website /cursuri/program notebook and calendar (9).
+- New season: "Începe sezonul <next>" on Sezoane (makes the season current, copies members and programs per group), and the later per-group "Copiază sportivii / programul din <sezon>" (10) [DEC 2026-10-27 phase 4 spec review; DEC 2026-10-27 phase 4 new season 1-6].
 
 Out of scope:
 - Coaches editing their Club groups' schedules: phase 6, with coach login [p4 scope; DEC 2026-10-19 user (Skating School schedule admin-only)].
 - Attendance, the group tab "Prezență", sessions, "În afara programului", subscriptions and the abonament bar in the move window: phase 5 [m4 2; SPEC 3.7, 3.8]. In phase 4 no athlete has a subscription, so the move window's abonament section is always hidden, as decided for "no abonament" [DEC 2026-10-10 user (move-modal-final)].
 - Athlete record tab "Grupe și abonament": phase 5 with subscriptions; in phase 4 the record header line and the Sportivi "Grupa" column read the real memberships [P3 6.1, 5].
-- New season flow (copy members per group): not in the phase 4 scope entry; Open 1.
-- Proposed groups from the registration answers: Open 2.
+- Proposed groups from the registration answers: Open 1.
 - Membri echipă "Predă la" text and the Echipa page: unchanged [W19].
 
 ## 3. Data model changes
@@ -84,7 +87,7 @@ Out of scope:
 ### 3.6 E-mail job (`api::email-job.email-job`)
 - `kind` enum gains `schedule-change` [DEC 2026-10-19 notif-q1-emails].
 - New `group`: relation manyToOne group, set for `schedule-change` jobs.
-- New `payload`: json `{ groupName: string, date: string (YYYY-MM-DD), mode: "cancel" | "move", newDate: string | null, newStartTime: string | null (HH:mm), reason: string | null }`.
+- New `payload`: json `{ groupName: string, date: string (YYYY-MM-DD), startTime: string (HH:mm), mode: "cancel" | "move", newDate: string | null, newStartTime: string | null (HH:mm), nextDate: string | null, nextStartTime: string | null, reason: string | null }`; `startTime` is the time of the changed date, `nextDate` / `nextStartTime` the group's next class for the cancel text (6.5).
 - New `changeKey`: string, the id of the schedule change (the history entry documentId), so undo can cancel every job of one change.
 - New `notBefore`: datetime; the first attempt and the cron retry skip a job until then.
 - `registration` stays optional (null for `schedule-change`). The existing `cancelled` status is used for undo [code].
@@ -96,6 +99,7 @@ Every write in this phase writes a history entry (who, what, when, old and new) 
 - Group program [mock grupa-a A10]: "Program adăugat: Sâ și Du, 11:00, 50 min, din 4 oct 2026." / "Program schimbat din <data>: <vechi> -> <nou>." / "Program șters din <data>: <program>." / "Ședință unică adăugată: <zi>, <data>, <ora>, <durată>." / "Ședința din 14 noiembrie anulată: Competiție la Brașov. Părinții anunțați pe e-mail." (reason and the last sentence only when present) / "Ședința din <data> mutată: <data nouă>, <ora>." / "Ședința din <data> se ține."
 - Athlete (existing P3 lines reused): "Adăugat în grupa <grupă>", "Grupa principală schimbată: <veche> -> <nouă>" [P3 1.6; DEC 2026-10-27 phase 3 polish 10]; new: "Mutat din <din> în <în>", "Scos din grupa <grupă>", "Reactivat" (P3 line, when adding an inactive athlete) [DEC 2026-10-18 states-v2].
 - Break: "Pauză adăugată: <nume>, <de la> - <până la>." / field changes / "Pauză ștearsă: <nume>."
+- New season and per-group copies: lines of 10.8 (subject types `season`, `group`, `athlete`).
 - Undo: "Anulat: <the undone line>" on every subject the action wrote to [W15; P3 pattern "Confirmare anulată"].
 - Migration rows: actor "migrare", shown as "Migrare" [DEC 2026-10-26 3b Q23].
 
@@ -152,8 +156,8 @@ Deploy order (each step needs the previous one; phase 4 deploys after phase 2 + 
 ### 5.3 "Fără grupă" [mock grupe-list 3, 4, 5; old mock aloca-v2; DEC 2026-10-10 pending-groups-v1 Q1 A, aloca-v1 A]
 - Button "Fără grupă" with an orange count (admin "eveniment" orange tokens, as drawn), next to "Grupă nouă"; it belongs to the whole club and shows on both tabs; it disappears at 0 [DEC 2026-10-10 pending-groups-v1 Q1 A; m4 1].
 - Who: athletes with status Nou or Activ and no current membership in the selected season ("Fără grupă" = zero groups) [DEC 2026-10-10 user (Fără grupă = zero groups); W6].
-- Desktop: dropdown under the button, header "<n> sportivi fără grupă"; one row per athlete: name (bold), source line "Înscriere Școală, 12 ani" (a registration of that season is linked) or "Adăugat în Sportivi, 13 ani" (otherwise), age left out when unknown; a `SearchableSelect` with placeholder "Alege grupa" preselected with the proposed group; button "Alocă"; footer "Alocă toți în grupele propuse" (ghost) [mock grupe-list 3; W6].
-- Proposed group: the athlete's main group of the previous season when that group is still active; otherwise none [W6; Open 2].
+- Desktop: dropdown under the button, header "<n> sportivi fără grupă"; one row per athlete: name (bold), source line, first that applies: "Înscriere Școală, 12 ani" (a registration of that season is linked), "Din 2026-2027, 12 ani" (a membership in the previous season), "Adăugat în Sportivi, 13 ani" (otherwise); age left out when unknown; a `SearchableSelect` with placeholder "Alege grupa" preselected with the proposed group; button "Alocă"; footer "Alocă toți în grupele propuse" (ghost) [mock grupe-list 3; mock sezon-nou-a A8; DEC 2026-10-27 phase 4 new season 4; W6; W30].
+- Proposed group: the athlete's main group of the previous season when that group is still active; otherwise none [W6; DEC 2026-10-27 phase 4 spec review; Open 1].
 - Group options: every active group, school groups first then Club, in their order, the section name as the option hint ("Școala de patinaj" / "Club") [mock grupe-list 4; DEC 2026-10-10 user (SearchableSelect)].
 - "Alocă": the row's group, straight away, no navigation; the row disappears, the count drops [DEC 2026-10-10 aloca-v1 A]. The membership is main (the athlete had none) [3.2].
 - "Alocă toți în grupele propuse": every row with a group chosen (proposed or changed); rows without a group stay [W6].
@@ -232,7 +236,23 @@ Deploy order (each step needs the previous one; phase 4 deploys after phase 2 + 
 - Recipients: the contact e-mail of every athlete with a current membership in the group, in the season that contains the date; athletes Inactiv or anonymized and empty e-mails are left out; addresses trimmed, lower case, each address once (siblings get one e-mail) [P3 2.1 normalising; W7].
 - One `email-job` per address, `kind` `schedule-change`, `changeKey` = the change's history entry, `notBefore` = now + 15 seconds; the existing Brevo queue sends it (first attempt after `notBefore`, then the hourly cron retries, 5 tries, GlitchTip alert, outside production every e-mail goes to the one test address) [DEC 2026-10-03 flow-after-submit-v2; DEC 2026-10-19 phase 2 sections 1-4; code src/email].
 - The toast's "Anulează" within the window sets every job of that `changeKey` still queued to `cancelled` [W7].
-- Text and layout in our code, Brevo only sends; "letter" layout E1 like the registration e-mail; subject and body in Open 3 [DEC 2026-10-19 phase2-q1-technical; DEC 2026-10-05 email-e-v2].
+- Text and layout in our code, Brevo only sends; "letter" layout E1 like the registration e-mail [DEC 2026-10-19 phase2-q1-technical; DEC 2026-10-05 email-e-v2].
+- Texts, approved [DEC 2026-10-27 phase 4 spec review; companion phase4-spec-review 3]. `<zi>` is the weekday in lower case ("sâmbătă"), `<data>` as "14 noiembrie", `<ora>` "10:00":
+  - Subject, cancelled: "<grupă>: ședința de <zi>, <data>, se anulează" ("Primii Pași: ședința de sâmbătă, 14 noiembrie, se anulează").
+  - Subject, moved: "<grupă>: ședința de <zi>, <data>, se mută" ("Primii Pași: ședința de sâmbătă, 14 noiembrie, se mută").
+  - Body, cancelled (paragraphs in order):
+    - "Bună ziua,"
+    - "Ședința grupei <grupă> de <zi>, <data>, ora <ora>, se anulează." and, on the next line of the same paragraph, "Motiv: <motiv>."
+    - "Următoarea ședință: <zi>, <data>, ora <ora>."
+    - "Echipa EduSport"
+    - Example: "Ședința grupei Primii Pași de sâmbătă, 14 noiembrie, ora 10:00, se anulează." / "Motiv: Competiție la Brașov." / "Următoarea ședință: duminică, 15 noiembrie, ora 10:00."
+  - Body, moved (paragraphs in order):
+    - "Bună ziua,"
+    - "Ședința grupei <grupă> de <zi>, <data>, ora <ora>, se mută <zi nouă>, <data nouă>, ora <ora nouă>." and, on the next line of the same paragraph, "Motiv: <motiv>."
+    - "Echipa EduSport"
+    - Example: "Ședința grupei Primii Pași de sâmbătă, 14 noiembrie, ora 10:00, se mută duminică, 15 noiembrie, ora 12:00." / "Motiv: Patinoarul este închis."
+  - The "Motiv" line only when a reason is written; a reason that already ends in ".", "!" or "?" gets no second period [W33].
+  - "Următoarea ședință": the group's first class after the cancelled date that is held (series, one class or a moved date at its new date) in the same season; the line is left out when there is none [W33].
 - History line ends with "Părinții anunțați pe e-mail." and stores the number of addresses.
 
 ## 7. Admin: "Calendar și serii" [m4 5, 7; mock pauze-a]
@@ -278,6 +298,7 @@ All under `src/api/club/routes/06-groups.ts` and `07-schedule.ts`, config `{ aut
 - `GET /club/calendar/occurrences?from&to[&group=<documentId>]`: all occurrences incl. non-public groups, with `groupId`, `groupName`, `originalDate`, `originalStartTime` for overrides; same 92-day cap.
 - `GET /club/breaks`, `POST /club/breaks`, `PUT /club/breaks/:documentId`, `DELETE /club/breaks/:documentId`.
 - Every write route answers `{ data, undo: { actionId } }` where undo applies.
+- New-season and per-group copy routes: 10.9.
 - Each write that changes the public calendar or notebook calls `pingRevalidate()` after commit (fire and forget) [DEC "Decided" (pingRevalidate later); code utils/revalidate.ts].
 
 ### 8.3 Public reads
@@ -298,35 +319,176 @@ All under `src/api/club/routes/06-groups.ts` and `07-schedule.ts`, config `{ aut
 - Club group dates stay one tile each, as "Antrenament: Avansati" does today, titled with the group name; cancelled ones are not shown (as today) [code occurrences-to-calendar.ts; W9].
 
 ### 9.3 Caching
-- /cursuri/program keeps `revalidate = 300`; the occurrences fetch keeps 300 s; the schedule fetch 60 s; admin writes ping `/api/revalidate` (no tag: all default paths incl. /cursuri/program, /inscrieri) when `REVALIDATE_FRONTEND_URL` and `REVALIDATE_SECRET` are set on the VM (Open 4) [DEC "Decided" (revalidate 300 s, pingRevalidate later); code].
+- /cursuri/program keeps `revalidate = 300`; the occurrences fetch keeps 300 s; the schedule fetch 60 s; admin writes ping `/api/revalidate` (no tag: all default paths incl. /cursuri/program, /inscrieri) when `REVALIDATE_FRONTEND_URL` and `REVALIDATE_SECRET` are set on the VM (Open 2) [DEC "Decided" (revalidate 300 s, pingRevalidate later); code].
 
-## 10. Errors and copy rules
+## 10. New season [DEC 2026-10-27 phase 4 spec review; DEC 2026-10-27 phase 4 new season 1-6; mock sezon-nou-a]
+
+Groups carry over; memberships and series are per season (3.1). Examples below use 2026-2027 as the current season (`<curent>`) and 2027-2028 as the next one (`<next>`).
+
+### 10.1 Start point [DEC 2026-10-27 phase 4 new season 1; mock sezon-nou-a A1, A7]
+- Sezoane (`SezoanePage.tsx`) gets a row button "Începe sezonul 2027-2028" (secondary, small) in a last, untitled column; on phones it sits under the season name. The click does not open the row's edit panel.
+- Shown only on the season right after the current one: the season whose label start year is the current season's start year + 1. It exists once created with "Sezon nou" (still created not current [code season-admin-service.ts]). No current season, or no next season: no button [W23].
+- Any admin may use it (`global::is-admin`, like every Sezoane route); no decision limits it to Super Admin [code 03-admin-prices-seasons.ts; W22].
+- Allowed at any time, before or after the next season's start month [W23].
+- After applying, the new season shows "Curent" and no row shows the button (until the season after it is created) [mock sezon-nou-a A7].
+
+### 10.2 The window [mock sezon-nou-a A2 to A4]
+Modal (size lg; full-height sheet on phones), title "Începe sezonul 2027-2028", next to the title "Pasul <n> din 3". Nothing is written before the last button.
+
+Step 1, what changes [mock sezon-nou-a A2]:
+- Lead "2027-2028 devine sezonul curent. Se aplică abia la ultimul pas."
+- Header "Pe site", label/value rows:
+  - "Înscrieri": "Formularul trece pe 2027-2028, taxa de membru 200 RON. Deschis sau închis din Setări site, ca acum." (the fee is the next season's `membershipFee`; the part ", taxa de membru <n> RON" is left out without a fee [W29]);
+  - "Formular pe hârtie": "Sezonul 2027-2028.";
+  - "Program": "Orarul Școlii se ia din programul grupelor în 2027-2028.";
+  - "Calendar": "Nu se schimbă. Arată fiecare dată din programul grupelor, din ambele sezoane."
+- Header "În panou":
+  - "Grupe, Sportivi": "Se deschid pe 2027-2028.";
+  - "2026-2027": "Rămâne de citit în Grupe, nu se mai modifică." [W5];
+  - "Membru A.C.S.": "Pe sezon, nu se copiază. În 2027-2028 toți pornesc de la Nu."
+- Buttons "Anulează" (ghost) / "Continuă".
+
+Step 2, the groups [mock sezon-nou-a A3; DEC 2026-10-27 phase 4 new season 2, 3]:
+- Lead "Toate grupele trec în 2027-2028. Alege ce copiezi din 2026-2027."
+- One table per section, section header above it ("Școala de patinaj", "Club"; section names with 2+ schools as W16), active groups only, in their order. Columns "Grupă" | "În 2026-2027" | "Copiază sportivii" | "Copiază programul"; the two last headers are checkboxes that tick or untick every row of that section and show the mixed state when rows differ [DEC 2026-10-27 phase 4 new season 2].
+- Row: group name; "<n> sportivi" (current memberships in 2026-2027), plus ", <k> inactiv" / ", <k> inactivi" when some are Inactiv, and the link "Vezi sportivii" ("Ascunde" when open; no link at 0); a checkbox; a checkbox followed by the muted program text in the list format of 5.2, several series joined by ", " ("Lu, Mi 17:00, Sâ 09:00").
+- Defaults: "Copiază sportivii" off for school groups, on for Club groups; "Copiază programul" on for every group [DEC 2026-10-27 phase 4 new season 2].
+- Disabled boxes [W26]: "Copiază sportivii" with 0 sportivi; "Copiază programul" when the group has no series running on the last day of 2026-2027 (text "Fără program") or already has a weekly series in 2027-2028 (off, text "Are program în 2027-2028").
+- "Vezi sportivii" opens a row under the group: header "Sportiv" | "Grupa principală în 2027-2028"; one line per athlete, sorted by name: checkbox "<nume>, <n> ani" (age left out when unknown), then the main group they will have in 2027-2028 if everything ticked is applied, with a muted second line when useful: "ca în 2026-2027" (main kept in another copied group), "în 2026-2027: <grupă>, care nu se copiază" (main changes) [mock sezon-nou-a A3].
+  - Untick a child who left: that child is not copied into this group (other groups are not affected) [DEC 2026-10-27 phase 4 new season 3; W26].
+  - Inactiv athletes: checkbox off and disabled, "Inactiv, nu se copiază"; they are never copied; anonymized athletes are not listed [DEC 2026-10-27 phase 4 new season 3].
+  - The child checkboxes are enabled only while the group's "Copiază sportivii" is ticked; ticking the group ticks every active child again.
+- Under the tables, muted: "Grupa principală rămâne aceeași dacă se copiază și ea. Altfel devine principală grupa copiată."
+- Summary box: "Se copiază <n> sportivi în <k> grupe și programul a <m> grupe. <x> sportivi rămân fără grupă, <y> inactivi nu se copiază." (n distinct athletes; x = the "Fără grupă" count 5.3 will show in 2027-2028 after applying; number forms as 5.2: "1 sportiv", "1 grupă", "20 de sportivi"; the "<y> inactivi" part left out at 0, "1 inactiv nu se copiază" for one) [mock sezon-nou-a A3; W29].
+- Phone: per section the two ticks "Sportivii, toate" and "Programul, toate", then one card per group: name; "<n> sportivi în 2026-2027[, <k> inactiv], <program>"; checkboxes "Copiază sportivii" and "Copiază programul"; link "Vezi sportivii" / "Ascunde sportivii"; child lines "<nume>, <n> ani" with "Principală: <grupă>" under [mock sezon-nou-a A3 phone].
+- Buttons "Înapoi" / "Continuă".
+
+Step 3, preview [mock sezon-nou-a A4; DEC 2026-10-27 phase 4 new season 5]:
+- Four StatTiles: "Grupe" <n> "toate trec în 2027-2028"; "Sportivi copiați" <n> "în <k> grupe" (followed by the section name when all are in one section: "în 2 grupe Club"); "Programe copiate" <n series> "din 1 oct 2027"; "Fără grupă" <n> "grupa din 2026-2027 propusă".
+- Lines, the bold part first, a line left out when its count is 0 [W29]:
+  - "**Grupa principală se schimbă pentru <n> sportivi.** Filip Radu: Intermediari Bronze -> Profesioniști. Luca Mihai: Avansați Gold -> Avansați." (every athlete listed);
+  - "**Rămâne aceeași pentru <n> sportivi**, de exemplu Ioana Marin: Profesioniști.";
+  - "**<n> sportivi inactivi nu se copiază:** Tudor Matei, Mihnea Sava.";
+  - "**<n> de sportivi intră la Fără grupă** în 2027-2028, cu grupa principală din 2026-2027 propusă.";
+  - "**Programul se repetă** din 1 oct 2027 până pe 31 mai 2028. Pauzele nu se copiază: adaugă vacanțele în Calendar și serii." (only when a program is copied);
+  - "**Membru A.C.S. nu se copiază.** În 2027-2028 toți pornesc de la Nu." (always);
+  - when no school group gets a program: Notice (warning) "Grupele Școlii nu au program în 2027-2028: pagina Program arată textul vechi până îl adaugi." [9.1 fallback; text from mock sezon-nou-b B7; W29].
+- The counts come from the server, computed by the same planner that applies (10.9), so the preview and the result match.
+- Buttons "Înapoi" / "Începe sezonul 2027-2028" (primary).
+
+### 10.3 What is copied [DEC 2026-10-27 phase 4 new season 2-4]
+Members, per group with "Copiază sportivii" ticked:
+- Source: the group's current memberships (`to` null) in 2026-2027.
+- Never copied: athletes Inactiv or anonymized; children unticked in "Vezi sportivii" (for that group).
+- Each copied athlete gets a membership in 2027-2028: `from` = the later of the season start and today (`membershipFrom`, 3.2), `to` null. A group the athlete already has in 2027-2028 is not written twice [P3 1.4 "nothing written twice"; W25].
+- Main group carried over [mock sezon-nou-a A3 rule line; W25]:
+  - the athlete already has a main group in 2027-2028 (added earlier on that season): it stays, copies are not main;
+  - otherwise, when the 2026-2027 main group is copied for the athlete, it is main again;
+  - otherwise the copied group with the earliest `from` in 2026-2027 becomes main (then the group order); this is the "Grupa principală se schimbă" line of the preview.
+- One main membership per athlete per season holds after the copy (8.1).
+- Status is not changed (no "Reactivat"): only Nou and Activ athletes are copied.
+
+Children not copied [DEC 2026-10-27 phase 4 new season 4; mock sezon-nou-a A8]:
+- Nothing is written for them. Nou and Activ athletes without a membership in 2027-2028 are the "Fără grupă" of 2027-2028 by the 5.3 rule, with the 2026-2027 main group proposed (when still active) and the source line "Din 2026-2027, <n> ani"; new registrations of 2027-2028 join the same list with "Înscriere Școală" [W6; W30].
+- A leaver who stays in "Fără grupă" leaves the list when set to Inactiv in Sportivi [P3 statuses].
+
+A.C.S. [DEC 2026-10-27 phase 4 new season 4]:
+- Nothing is copied or written: no `acs-membership` row is created for 2027-2028. "Nu" is the absence of a row for that athlete and season, as already shown in Sportivi [P3 5 "no value shown as Nu"]. The 2026-2027 rows stay as they are. A confirmed 2027-2028 registration with the wish "Da" writes "În așteptare" as in P3 1.4.
+
+Program, per group with "Copiază programul" ticked [DEC 2026-10-27 phase 4 new season 2, 6; W27]:
+- Source: the group's series (`freq` weekly, biweekly or monthly) still running on the last day of 2026-2027, i.e. the "Program obișnuit" rows at the season's end. Series ended earlier ("Schimbă", "Șterge programul") are not copied.
+- Each becomes a new calendar event: same `freq`, weekdays, `weekOfMonth`, `startTime`, `endTime`, `type`; `group` set; `title` = the group's current name; `seasonStart` = the later of the first day of 2027-2028 and today; `seasonEnd` = the last day of 2027-2028 ("din 1 oct 2027 până pe 31 mai 2028"). A biweekly series counts its weeks from the new `seasonStart`.
+- Not copied: per-date exceptions (Anulează, Mută, Ține), one-off classes, the event description. Pauze are not copied either: breaks are dated, so the next season's holidays are added in "Calendar și serii" [DEC 2026-10-27 phase 4 new season 6].
+- Groups themselves (name, section, price list, coaches, "Program public", order) are not written: they carry over.
+
+### 10.4 Making the season current [DEC 2026-10-27 phase 4 new season 1; mock sezon-nou-a A2]
+- In the same transaction as the copies: 2027-2028 `isCurrent` = true; every other season `isCurrent` = false.
+- Website, through every reader of the current season (`findCurrentSeason`, `src/club/current-season.ts`):
+  - `/api/club/public`: season label and membership fee, so /inscrieri shows 2027-2028 and its fee; new registrations are filed under 2027-2028 (`registration-submit.ts`); open or closed stays in Setări site [code public-info-loader.ts, registration-submit.ts];
+  - the paper form PDF prints 2027-2028 [code documents/service.ts];
+  - /cursuri/program notebook: `/api/club/schedule` reads the 2027-2028 series (8.3), with the 9.1 fallback when the school groups have none;
+  - calendar (/cursuri/program, /inscrieri): unchanged; occurrences are read by date, so dates of both seasons show.
+- Panel: Grupe and Sportivi open on 2027-2028; 2026-2027 becomes a past season, read-only (W5).
+- `pingRevalidate()` after commit and after an undo (8.2).
+
+### 10.5 Applying, toast and undo [DEC 2026-10-27 phase 4 new season 5; mock sezon-nou-a A5]
+- One transaction for everything (season flags, every membership, every series, every history line), not one per group [W24]. Why: the window promises a season that is current and prepared together; per-group transactions could fail half way and leave 2027-2028 current with some groups copied and others not, which is the half-done state option A was chosen to avoid. The size is small (production: under 100 memberships and about 10 series), so one transaction holds its locks briefly.
+- Locks in order: the two season rows, then the copied athletes sorted by id (`lockAthlete`); no registration lock, so the 8.1 order holds.
+- Before writing, inside the transaction, the planner runs again on fresh rows; when 2026-2027 is no longer the current season or 2027-2028 is already current: 409 "Sezonul curent s-a schimbat. Reîncarcă pagina." [W28]. Failure: "Acțiunea nu a reușit. Nimic nu a fost salvat." (8.1).
+- After success: Grupe opens on 2027-2028, toast "2027-2028 este sezonul curent. 14 sportivi și 10 programe copiate." with "Anulează", 8 seconds, no X [DEC 2026-10-10 aloca-v2 (a)]. Forms: "1 sportiv", "1 program", "20 de sportivi"; a part with 0 is left out ("2027-2028 este sezonul curent. 10 programe copiate."); nothing copied: "2027-2028 este sezonul curent." [W29].
+- "Anulează" (`POST /club/undo`, 8.2) reverts in one transaction: `isCurrent` back to 2026-2027, every membership and series the action created deleted, "Anulat: <linia>" on every subject it wrote to (3.7, W15); then `pingRevalidate()`.
+- Limits, as W15: refused when anything changed since: a membership or group event of 2027-2028 written after the action, either season edited, or a registration filed under 2027-2028 after the action. Text "Nu se mai poate anula. Sezonul s-a schimbat între timp." [W15; W28]. Then corrections are made group by group.
+
+### 10.6 Later, per group [DEC 2026-10-27 phase 4 new season 6; mock sezon-nou-a A9, A10]
+On the group page (6), for a season that is not past (W5), with the previous season (label start year - 1) as `<anterior>`:
+- Sportivi tab with 0 memberships in the season, and the group has members in `<anterior>`: empty state "Niciun sportiv în 2027-2028.", button "Copiază sportivii din 2026-2027" (secondary), hint "11 sportivi în 2026-2027, 1 inactiv nu se copiază." (the inactive part only when > 0; "2 inactivi nu se copiază"). "Adaugă sportivi" stays in the bar.
+- Program tab with no series in the season, and the group has a series running on the last day of `<anterior>`: under "Program obișnuit" the empty state "Niciun program în 2027-2028.", buttons "Copiază programul din 2026-2027" and "Adaugă program" (both secondary), hint "În 2026-2027: Sâ și Du, 11:00, 50 min. Se repetă din 1 oct 2027." (program text as 6.3, several series joined by "; "; the date is the `seasonStart` 10.3 would use).
+- No window: the click copies straight away, with the rules of 10.3 for this group, except the main flag: main only when the athlete has no group in the season yet (as "Adaugă sportivi", 6.2) [W31]. Every active member is copied (no unticking; "Scoate din grupă" after).
+- Toasts with "Anulează", 8 s: "<n> sportivi copiați din 2026-2027." ("1 sportiv copiat din 2026-2027.") / "Program copiat din 2026-2027." Undo and its refusal as W15 (text "Nu se mai poate anula. Grupa s-a schimbat între timp.").
+- Not offered when the source has nothing to copy (0 active members, no running series): the tab shows its normal empty state.
+
+### 10.7 Rules
+- Only the next season can be started (10.1), only from the current one; the season the copy reads from is always the current season at the moment of applying.
+- Memberships written here follow 3.2 and 8.1 (one main per season, current rows only, locks).
+- Series written here follow 3.3 (bounds inside one season, 366-day cap).
+- No e-mail is sent by the new season or the per-group copies.
+
+### 10.8 History lines [W32]
+- Season 2027-2028: `Curent: "Nu" -> "Da"`, then "Copiat din 2026-2027: 14 sportivi în 2 grupe, 10 programe." Season 2026-2027: `Curent: "Da" -> "Nu"` [P3 1.6 field-change pattern].
+- Group, per group with copied members: "Sportivi copiați din 2026-2027: <n>."; per copied series: "Program copiat din 2026-2027: Sâ și Du, 11:00, 50 min, din 1 oct 2027." (program text as 3.7).
+- Athlete, per copied athlete: "Copiat în 2027-2028: Avansați (principală), Profesioniști." (the main group marked as in 6.2).
+- Per-group copies (10.6) write the same group and athlete lines.
+- Undo: "Anulat: <linia>" on every subject above (3.7).
+- Actor: the admin who applied.
+
+### 10.9 Routes (new file `src/api/club/routes/08-new-season.ts`)
+Config `{ auth: false, policies: ['global::is-admin'], middlewares: [] }` on every route, like 8.2. Static paths are declared before parameter paths in each routes file (`/club/groups/unassigned` before `/club/groups/:documentId`, `/club/seasons/:documentId/start/preview` before `/club/seasons/:documentId/start`), and a source-reading test checks that order.
+- `GET /club/seasons/:documentId/start`: step 2 data for the target season: current and target labels, target fee, per section the active groups with member counts, inactive counts, program texts, disabled reasons, and per group the athletes (name, age, status, 2026-2027 main group). 409 when the target is not the season right after the current one.
+- `POST /club/seasons/:documentId/start/preview` body `{ groups: [{ groupId, copyMembers, excludeAthleteIds, copyProgram }] }`: step 3 counts and lines, computed by the apply planner without writing.
+- `POST /club/seasons/:documentId/start` same body: applies (10.5); answers `{ data: { season, copied: { athletes, groups, series }, unassigned }, undo: { actionId } }`.
+- `POST /club/groups/:documentId/copy-members` body `{ season }` and `POST /club/groups/:documentId/copy-program` body `{ season }`: 10.6; answer `{ data, undo: { actionId } }`. 409 when the tab is no longer empty.
+- `GET /club/groups/:documentId?season=` (8.2) gains `copyFrom: { season, members, inactive, program: string[] } | null` for the empty states.
+- Undo through `POST /club/undo` (8.2).
+- Planners are pure functions in `src/club/groups/new-season/*`; the strings live in `src/club/groups/copy.ts` (11).
+
+### 10.10 Tests and proof
+- Unit (pure): next-season detection (label + 1, no current, no next); default ticks per section and the header tick with the mixed state; disabled boxes; child list main-group text ("ca în", "care nu se copiază"); Inactiv and anonymized never copied; unticked child per group; main rule (kept when copied, earliest `from` then order, existing 2027-2028 main kept, nothing twice); `from` and series bounds (later of season start and today, season end); only series running on the old season's last day; exceptions, one-off classes and Pauze not copied; title = current name; "Fără grupă" projection count and the source line order ("Înscriere Școală", "Din <sezon>", "Adăugat în Sportivi"); no `acs-membership` written; summary, tiles, preview lines and toast with number forms and parts left out at 0; the school-program warning; undo plan and every refusal (later membership, later group event, season edited, registration filed); per-group copies (empty-tab condition, main only without a group, toasts); history lines of 10.8.
+- Store parity: the fake and Strapi stores implement the new-season reads and writes identically [P3 12].
+- Routes: source-reading test for the admin guard on the five new routes and the static-before-parameter order.
+- UI source-reading: the Sezoane button only on the next season's row and its click not opening the panel, the three steps and their buttons, step 1 rows, default ticks, "Vezi sportivii" rows, the preview lines, the toast with "Anulează", the two empty states with their buttons; copy module strings without em dash or middle dot.
+- Boot check on a throwaway Postgres (with the 12 boot check data): add synthetic 2026-2027 memberships (one athlete in both sections, one Inactiv) and create 2027-2028 through `POST /club/seasons`; then:
+  - `GET .../start` and `.../start/preview` match the planner;
+  - apply with Club members and every program: exactly one season `isCurrent` (2027-2028); `/api/club/public` returns 2027-2028 and its fee; `/api/club/schedule` returns the copied school slots; public occurrences show dates of both seasons; no `acs-membership` row for 2027-2028; Inactiv athlete not copied; `GET /club/groups/unassigned?season=2027-2028` lists the school children with their 2026-2027 group proposed and "Din 2026-2027";
+  - undo right away restores 2026-2027 as current and removes every new row; apply again, add a membership in 2027-2028, then undo: 409 with the refusal text;
+  - per-group "copy-members" and "copy-program" on an empty group, and their undo.
+- Diagrams: 02f gains the new-season flow; 03a notes that `Season.isCurrent` is switched here.
+
+## 11. Errors and copy rules
 - Romanian, terse, one line; no em dash; no middle dot (rows, columns, commas instead); straight quotes; empty values blank except where a mockup shows a word ("Fără antrenor", "Niciuna", "Fără program") [DEC 2026-10-26 gaps #1, #2; DEC 2026-10-27 phase 3 polish 3; m4 1; W16].
 - No pills, no circles (count badges and day toggles square), no dashed or dotted lines; only the spinner is round [user rules for EduSport UI (no rounded shapes, no dashed lines); mock grupa-a day toggles].
 - Shared failure text "Acțiunea nu a reușit. Nimic nu a fost salvat."; load failure "Nu am putut încărca datele." [P3C 7; DEC 2026-10-26 plan 3-4].
-- Specific: "Există deja o grupă cu acest nume.", "Alege grupa." (Alocă or Mută without a group), "Alege cel puțin o zi." (series without days), "Data de sfârșit trebuie să fie după data de început.", "Nu se mai poate anula. Grupa s-a schimbat între timp.", "Evenimentul aparține grupei <grupă>. Se schimbă din pagina grupei." [W17].
+- Specific: "Există deja o grupă cu acest nume.", "Alege grupa." (Alocă or Mută without a group), "Alege cel puțin o zi." (series without days), "Data de sfârșit trebuie să fie după data de început.", "Nu se mai poate anula. Grupa s-a schimbat între timp.", "Evenimentul aparține grupei <grupă>. Se schimbă din pagina grupei." [W17]; new season: "Sezonul curent s-a schimbat. Reîncarcă pagina.", "Nu se mai poate anula. Sezonul s-a schimbat între timp." [W28].
 - Every phase 4 string lives in one copy module (`src/club/groups/copy.ts`), as P3C [P3C 7].
 
-## 11. Tests and proof
+## 12. Tests and proof
 - Unit (pure): main group (first group main, Mută carries the flag, non-main Mută, add, remove and promotion, one main per season on current rows only), membership `from` / `to` and delete-instead-of-end, distinct counts, "Fără grupă" eligibility and proposal, program summary texts (list column, "Program obișnuit", history), series from the form (start + duration, Se aplică din, season end, 366-day cap), Schimbă split and exceptions carried, Șterge programul, date modes to exceptions (Ține removes, Anulează, Mută keeps duration), break scope (group and old scoala only, single classes too, override wins), occurrence notes, public filter, e-mail recipients (season, current members, dedupe, inactive and anonymized out), `notBefore` and undo cancel, undo planners for every action and the refusal, history lines of 3.7, gender-neutral copy.
 - Website (frontend unit): one Școala tile per day with the state rule, time span and note; Club tiles; /inscrieri weekends unchanged for single-event data; notebook slots and the fallback.
 - Migration planners on the production shape of `research.md`: cedilla rename, coach links (Club Avansați vs Școala Avansați *), series per group with 50 min and Sat + Sun, exceptions copied from the old scoala event, "Antrenament: Avansati" link, skipped names listed; a second apply writes nothing.
 - Store parity: the fake and Strapi stores implement the new group, membership, schedule and break methods identically (P3 pattern) [P3 12].
 - Routes: source-reading test that every new admin route uses `{ auth: false, policies: ['global::is-admin'] }` and the two public ones `auth: false` with no private fields; Public role 403 on the core routers (8.3).
 - UI source-reading tests: menu entry, tabs and columns, "Fără grupă" hidden at 0, row menu items, move window without the abonament section, date panel fields and the unticked e-mail box, Pauze section, "Serii de cursuri" gone, copy module strings (no em dash, no middle dot).
+- New season: unit, store, route, UI and boot-check proof in 10.10.
 - Boot check on a throwaway Postgres: start the backend, load a copy of the production shape (the rows of `research.md`), run every migration step dry then `--apply` twice, then: Grupe totals, a group's Program dates, a cancelled date with an e-mail job queued to the test address, the undo cancelling it, public occurrences without a non-public group, `/api/club/schedule` matching today's notebook.
-- Renders after implementation (no pre-build approvals): Grupe, "Fără grupă", group tabs, move window, Program panels, Pauze, /cursuri/program, desktop and phone [DEC 2026-10-26 phase3ab (no pre-build renders)].
+- Renders after implementation (no pre-build approvals): Grupe, "Fără grupă", group tabs, move window, Program panels, Pauze, the "Începe sezonul" window (3 steps), the empty-tab copy states, /cursuri/program, desktop and phone [DEC 2026-10-26 phase3ab (no pre-build renders)].
 - Diagrams: 03a (Group.programPublic), 03b (exception `reason`, break scope, e-mail job), 02f (Pauze, Fără grupă) updated with the build.
 
-## 12. Open items (for the user)
-1. New season: copying last season's members per group [DEC 2026-10-18 states-v2] and carrying a group's program into the next season have no mockup; P3 put "making a season current" in phase 4, the phase 4 scope entry does not list it. Proposal: a button on an empty Sportivi tab "Copiază sportivii din <sezon>", and "Adaugă program" for the new season; screen before build.
-2. Proposed group for new registrations: only last season's main group is used (W6). A rule from the form ("Sezonul trecut", age) needs the club's mapping.
-3. Parent e-mail text (draft, for a rendered approval): subject "<Grupă>: ședința din <data> este anulată" / "<Grupă>: ședința din <data> se mută"; title the same; one line "Motiv: <motiv>." when given; for a move "Noua dată: <zi>, <data>, <ora>."; button "Vezi programul"; sign-off as the registration e-mail. COPY NEEDED if the club wants other words.
-4. VM env: `REVALIDATE_FRONTEND_URL` / `REVALIDATE_SECRET` set on the VM? Without them the website updates within 5 minutes.
-5. The notebook subtitle and the TEST tile "Weekend curs" keep an existing middle dot (CMS text); changing them is a separate copy decision [mockups README].
-6. Membri echipă "Predă la" text now duplicates group coaches (W19); moving the Echipa page to the group coaches is a later change.
+## 13. Open items (for the user)
+1. Proposed group for a child with no group (5.3, 10.3): last season's main group for now (W6) [DEC 2026-10-27 phase 4 spec review]; the club is asked later for a better rule from the form answers ("Sezonul trecut", age, level, school).
+2. VM env: `REVALIDATE_FRONTEND_URL` / `REVALIDATE_SECRET` set on the VM? Without them the website updates within 5 minutes.
+3. The notebook subtitle and the TEST tile "Weekend curs" keep an existing middle dot (CMS text); changing them is a separate copy decision [mockups README].
+4. Membri echipă "Predă la" text now duplicates group coaches (W19); moving the Echipa page to the group coaches is a later change.
 
-## 13. Conflicts between decisions (resolved here, flagged for the user)
+## 14. Conflicts between decisions (resolved here, flagged for the user)
 - mock program-site A draws a Club notebook; m4 8 (same day, item list) shows the recurring schedule only for Școala: no Club notebook.
 - DEC 2026-10-19 coach-schedule-app-v3 "Se repetă ... De la / Până la" vs the approved grupa-a form ("Se aplică din", no end date, m4 2): series end at the season end (W10).
 - mock grupa-a A7 shows "Anunță părinții pe e-mail" ticked; DEC 2026-10-19 notif-q1-emails sends only when ticked per change: off by default.
@@ -334,10 +496,14 @@ All under `src/api/club/routes/06-groups.ts` and `07-schedule.ts`, config `{ aut
 - DEC 2026-10-26 gaps #2 (empty values blank) vs the approved "Fără antrenor" / "Niciuna" (m4 1, 2): the mockup words are used in those cells.
 - mock grupa-a Istoric shows the actor "migrare"; DEC 2026-10-26 3b Q23 shows "Migrare": kept "Migrare".
 - mock pauze-a caption "nothing on the website calendar" vs DEC 2026-10-03 (free and cancelled weekends shown): group dates in a break are not shown, the Școala day tile shows "liber" with the break name, as today.
-- The P3 spec lists "making a season current" for phase 4; the 2026-10-27 phase 4 scope entry does not: left as Open 1.
+- The P3 spec lists "making a season current" for phase 4; the 2026-10-27 phase 4 scope entry does not: resolved by DEC 2026-10-27 phase 4 spec review (designed now) and phase 4 new season 1 (section 10).
+- mock sezon-nou-a A4 tile "Programe copiate ... din 1 oct 2027" assumes the season has not started; a season started mid-way copies from today, as every membership `from` (3.2): W27.
 - Mockup toasts and history are feminine ("alocată", "mutată") for synthetic names; no gender is stored: neutral forms (W1). The older aloca-v2 toast "... a intrat în grupa ..." is replaced by the newer grupe-list wording.
 
-## 14. Decided while writing (for the user to overrule)
+## 15. Decided while writing
+
+W1-W21 are approved [DEC 2026-10-27 phase 4 spec review]. W22 onward are for the user to overrule.
+
 - W1 Gender-neutral copy: "Sportiv alocat în <grupă>: <nume>.", "Sportiv mutat în ...", "Mutat în <grupă>: <nume>." instead of the mockups' feminine forms.
 - W2 "Mută" carries the row's main flag: from the main row the new group becomes main, from another row the main group stays.
 - W3 "Adaugă și în grupă" is a window like the move window; "Adaugă sportivi" uses the athlete search, starts on "Fără grupă", tick several.
@@ -354,8 +520,20 @@ All under `src/api/club/routes/06-groups.ts` and `07-schedule.ts`, config `{ aut
 - W14 Migration copies the old Școala series' days and Liber / Anulat dates to every school group series, then deletes the old series in a separate last step.
 - W15 Undo only from the 8 s toast; writes "Anulat: <linia>"; refused after a later change to the same rows.
 - W16 School tab label "Școala de patinaj" while one school, section names with 2+; "Fără program" in the Program column.
-- W17 Group names unique per section ignoring case and diacritics; short error texts of section 10.
+- W17 Group names unique per section ignoring case and diacritics; short error texts of section 11.
 - W18 The general calendar opens group events in the group panel and stops offering "Școala de patinaj" for new events; old calendar routes refuse group events; `program.scheduleGroups` kept as the notebook fallback and rollback source.
 - W19 Membri echipă "Predă la" text unchanged; group coaches are edited on the group.
 - W20 Notebook from public, active Școala groups, slots by start and end, groups in their order; days not printed; new public route `/api/club/schedule`.
 - W21 Website Școala tile per day: "curs" if any public school group holds class, else "anulat" if any is anulat, else "liber"; title "Școala de patinaj".
+- W22 "Începe sezonul" is open to any admin (`global::is-admin`, like the other Sezoane routes); no decision limits it to Super Admin.
+- W23 The button shows only with a current season and a season labelled one year after it; it can be used at any time, before or after the new season's start month.
+- W24 The new season is applied in one transaction (flags, memberships, series, history), not per group, so it never stays half done; undo is one transaction too.
+- W25 Main group in the copy: an existing 2027-2028 main group stays; else last season's main group if copied; else the copied group with the earliest `from`, then the group order. A group the athlete already has in the new season is not written twice.
+- W26 Unticking a child in "Vezi sportivii" applies to that group only; child boxes are enabled only while the group's "Copiază sportivii" is ticked; "Copiază sportivii" disabled at 0 children; "Copiază programul" disabled with "Fără program" or "Are program în <next>".
+- W27 Program copy: only series running on the old season's last day; new series from the later of the new season start and today to its end; title = current group name; exceptions, one-off classes, descriptions and Pauze not copied; biweekly weeks counted from the new start.
+- W28 Apply refused with 409 "Sezonul curent s-a schimbat. Reîncarcă pagina." when the current season changed; undo refused with "Nu se mai poate anula. Sezonul s-a schimbat între timp.", also when a registration was filed under the new season after the action.
+- W29 Preview and toast: lines and toast parts with 0 left out; number forms as 5.2; the fee part of step 1 left out without a fee; a warning when no school group gets a program (text from mock sezon-nou-b B7).
+- W30 "Fără grupă" source line order: "Înscriere Școală" (registration of the season), then "Din <sezon>" (membership in the previous season), then "Adăugat în Sportivi".
+- W31 Per-group "Copiază sportivii / programul din <sezon>": no window, copies at once with a toast and "Anulează"; every active member copied; main only when the athlete has no group in the season yet.
+- W32 History lines of 10.8: season `Curent: "Nu" -> "Da"` / `"Da" -> "Nu"` and "Copiat din <sezon>: ..."; group "Sportivi copiați din <sezon>: <n>." and "Program copiat din <sezon>: ..."; athlete "Copiat în <sezon>: <grupe>".
+- W33 Parent e-mail: "Următoarea ședință" is the group's next held class in the same season, left out when none; the "Motiv" line gets no second period; the payload carries the original start time and the next class.
