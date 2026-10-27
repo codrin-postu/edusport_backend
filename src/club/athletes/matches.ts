@@ -1,5 +1,6 @@
 import { birthDateSortKey } from '../birth-date';
 import { bestMatch, registrationFacts, type AthleteFacts } from '../matching';
+import { isAnonymized } from '../personal-data/anonymize-plan';
 import type { AthleteRow, ClubStore, RegistrationPatch, RegistrationRow } from './store';
 
 /** The saved match of every registration (spec 2.2): at submit, on edit, after any athlete change, at deploy. */
@@ -16,7 +17,7 @@ function matchPatch(r: RegistrationRow, facts: AthleteFacts[]): RegistrationPatc
 }
 
 export function planMatchUpdates(registrations: RegistrationRow[], athletes: AthleteRow[]): MatchUpdate[] {
-  const facts = athletes.map(athleteFacts);
+  const facts = athletes.filter((a) => !isAnonymized(a)).map(athleteFacts);
   return registrations.flatMap((r) => {
     const patch = matchPatch(r, facts);
     return patch ? [{ registrationId: r.id, patch }] : [];

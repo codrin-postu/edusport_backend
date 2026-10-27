@@ -55,6 +55,13 @@ export const scrubbedJobStatus = (status: string): string => (status === 'queued
 
 export const isAnonymized = (a: { status: string } | null | undefined): boolean => a?.status === 'anonimizat';
 
+/** `isAnonymized` for a populated relation (an `athlete` field read off some other row, typed `unknown`). */
+export function isAnonymizedRelation(athlete: unknown): boolean {
+  if (!athlete || typeof athlete !== 'object') return false;
+  const status = (athlete as { status?: unknown }).status;
+  return typeof status === 'string' && isAnonymized({ status });
+}
+
 /** POST /api/club/athletes/anonymize body `{ documentIds }`: 1 to 200 non-empty ids, repeats dropped; anything else null (400). */
 export function readAnonymizeIds(body: unknown): string[] | null {
   const raw = isPlainObject(body) ? body.documentIds : null;
