@@ -183,6 +183,7 @@ export function paymentFieldChanges(before: PaymentRow, after: PaymentWrite, tex
   for (const key of TRACKED) {
     if (before[key] !== after[key]) changes[key] = { from: before[key], to: after[key] };
   }
-  if (texts.before !== texts.after) changes.purposeText = { from: texts.before, to: texts.after };
+  const relinked = before.subscriptionId !== after.subscriptionId || before.lessonId !== after.lessonId;
+  if (texts.before !== texts.after || relinked) changes.purposeText = { from: texts.before, to: texts.after };
   return changes;
 }

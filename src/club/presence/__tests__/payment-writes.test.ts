@@ -188,6 +188,14 @@ describe('edit a payment', () => {
     expect(historyTextsOf(f, 'payment', 'p1')).toEqual(['Pentru: "Abonament 8 ședințe (activ din 27 oct)" → "Abonament 8 ședințe (activ din 3 noi)"']);
   });
 
+  it('a move between two abonamente with the same name and start date still writes a non-empty line (final review M1)', async () => {
+    const subs = [subscriptionRow({ id: 'sub1', athleteId: 'a1' }), subscriptionRow({ id: 'sub2', athleteId: 'a1' })];
+    const f = fakePresenceContext(seed({ subscriptions: subs, payments: [paymentRow({ id: 'p1', athleteId: 'a1', amount: 300, purpose: 'abonament', subscriptionId: 'sub1' })] }));
+    await editPayment(f.ctx, 'p1', editBody({ amount: 300, for: { kind: 'abonament', subscriptionId: 'sub2' } }));
+    expect(historyTextsOf(f, 'payment', 'p1')).toHaveLength(1);
+    expect(f.state.payments[0].subscriptionId).toBe('sub2');
+  });
+
   it('locks athlete, the new abonament, then the payment (7.1)', async () => {
     const f = fakePresenceContext(seed({ payments: [paymentRow({ id: 'p1', athleteId: 'a1' })] }));
     await editPayment(f.ctx, 'p1', editBody({ for: { kind: 'abonament', subscriptionId: 'sub1' } }));
