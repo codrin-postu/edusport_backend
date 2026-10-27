@@ -70,11 +70,25 @@ describe('design rules', () => {
 });
 
 describe('"Fără grupă" (5.3)', () => {
+  it('is the approved orange: orange outline and ink text, dark orange count, tokens only, flat', () => {
+    const css = grupe('styles.ts');
+    const rule = (sel: string) => css.split('\n').filter((l) => l.includes(sel)).join('\n');
+    const btn = rule('.ui-btn.grp-unassigned');
+    expect(btn).toContain('border-color:var(--theme-cat-eveniment)');
+    expect(btn).toContain('color:var(--theme-cat-eveniment-soft-fg)');
+    expect(btn).toContain(':hover:not(:disabled)');
+    const count = rule('.grp-count{');
+    expect(count).toContain('background:var(--theme-cat-eveniment-soft-fg)');
+    expect(count).toContain('color:var(--theme-cat-eveniment-soft)');
+    for (const r of [btn, count]) expect(r).not.toMatch(/#[0-9a-f]{3,8}\b|box-shadow|border-radius:(?!var\(--ui-radius-sm\))/i);
+  });
+
   const button = grupe('UnassignedButton.tsx');
 
   it('is hidden at 0, shows the orange count, opens a dropdown or a sheet with the rows', () => {
     expect(button).toContain('count === 0');
     expect(button).toContain('grp-count');
+    expect(button).toContain('grp-unassigned');
     expect(button).toContain('desktop="dropdown"');
     expect(button).toContain('GRUPE_COPY.unassignedHeader');
   });

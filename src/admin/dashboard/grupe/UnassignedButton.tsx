@@ -98,7 +98,7 @@ export function UnassignedButton({ api, season, count }: Props) {
   if (count === 0) return null;
   return (
     <>
-      <Button ref={anchor} variant="secondary" size="sm" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+      <Button ref={anchor} variant="secondary" size="sm" className="grp-unassigned" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         {GRUPE_COPY.unassigned}
         <span className="grp-count">{count}</span>
       </Button>
