@@ -4303,10 +4303,12 @@ const { createStrapi, compileStrapi } = require('@strapi/strapi');
     fs.writeFileSync(filepath, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64'));
     return (await app.plugin('upload').service('upload').upload({ data: {}, files: { filepath, originalFilename: `${n}.png`, mimetype: 'image/png', size: fs.statSync(filepath).size } }))[0];
   };
-  const own = await upload('own-photo'); const shared = await upload('shared-photo');
-  Object.assign(ids, { ownFile: String(own.id), ownUrl: own.url, sharedFile: String(shared.id), sharedUrl: shared.url });
+  const own = await upload('own-photo'); const shared = await upload('shared-photo'); const inBody = await upload('body-photo');
+  Object.assign(ids, { ownFile: String(own.id), ownUrl: own.url, sharedFile: String(shared.id), sharedUrl: shared.url, bodyFile: String(inBody.id), bodyUrl: inBody.url });
   await d('api::team-member.team-member').create({ data: { name: 'Antrenor Test', photo: shared.id } });
-  ids.profile = (await d('api::sportsperson.sportsperson').create({ data: { name: 'Ilinca Zamfirescu', slug: 'ilinca-zamfirescu', showPublicPage: true, photo: own.id, gallery: [shared.id] }, status: 'published' })).documentId;
+  const image = { url: inBody.url, hash: inBody.hash, name: inBody.name, ext: inBody.ext, mime: inBody.mime, width: 1, height: 1, alternativeText: null };
+  await d('api::article.article').create({ data: { title: 'Gala de iarnă', slug: 'gala-de-iarna', category: 'general', date: `${y}-12-20`, body: [{ type: 'image', image, children: [{ type: 'text', text: '' }] }] }, status: 'published' });
+  ids.profile = (await d('api::sportsperson.sportsperson').create({ data: { name: 'Ilinca Zamfirescu', slug: 'ilinca-zamfirescu', showPublicPage: true, photo: own.id, gallery: [shared.id, inBody.id] }, status: 'published' })).documentId;
   ids.ilinca = await athlete({ name: 'Ilinca Zamfirescu', birthDate: '2013-04-27', contactName: 'Dana Zamfirescu', phone: '0799 000 111', email: 'dana.zamfirescu@example.com', notes: 'Alergie la polen', publicProfile: ids.profile });
   await member(ids.ilinca, g.inc, cur);
   await d('api::acs-membership.acs-membership').create({ data: { athlete: ids.ilinca, season: cur.documentId, state: 'da' } });
@@ -4569,13 +4571,13 @@ q "$COUNTS" | diff - "$T/counts-before" && echo 'counts unchanged'
 q "$PER_GROUP" | diff - "$T/per-group-before" && echo 'per group and season unchanged'
 q "select status, recipient is null, subject is null from email_jobs"
 q "select count(*) from sportspeople"
-q "select id from files where id in ($(idof ownFile), $(idof sharedFile)) order by id"
-for f in ownUrl sharedUrl; do test -f "public$(idof $f)" && echo "$f on disk" || echo "$f gone"; done
+q "select id from files where id in ($(idof ownFile), $(idof sharedFile), $(idof bodyFile)) order by id"
+for f in ownUrl sharedUrl bodyUrl; do test -f "public$(idof $f)" && echo "$f on disk" || echo "$f gone"; done
 q "select name, status, anonymized_at is not null from athletes where document_id = '$ILINCA'"
 q "select child_name, email is null, phone is null, registration_number, status from registration_submissions where document_id = '$REG'"
 ```
 
-Expected: `200`, `409`; `search` prints nothing (if a hit is in `strapi_history_versions`, stop: Needs decision N2); `PDF folder gone`; `404`; `PDF not rebuilt`; `counts unchanged`; `per group and season unchanged`; `cancelled|t|t`; `0`; only the shared photo's id (the profile's own photo row is deleted, the photo the team member also uses stays); `ownUrl gone`, `sharedUrl on disk`; `Sportiv anonimizat|anonimizat|t`; `Anonimizat|t|t|<NUMBER>|Confirmat`.
+Expected: `200`, `409`; `search` prints nothing (if a hit is in `strapi_history_versions`, stop: Needs decision N2); `PDF folder gone`; `404`; `PDF not rebuilt`; `counts unchanged`; `per group and season unchanged`; `cancelled|t|t`; `0`; the ids of the shared photo and the body photo only (the profile's own photo row is deleted; the photo the team member also uses and the one the article body embeds stay); `ownUrl gone`, `sharedUrl on disk`, `bodyUrl on disk`; `Sportiv anonimizat|anonimizat|t`; `Anonimizat|t|t|<NUMBER>|Confirmat`.
 
 - [ ] **Step 10: Bulk anonymize and the review**
 
@@ -4630,6 +4632,7 @@ Open `phase3-renders/3c-*.png`: record menu (Super Admin, editor), confirmation,
 ```bash
 kill "$(cat "$T/pid")"
 docker rm -f es3c-pg
+for f in ownUrl sharedUrl bodyUrl; do rm -f "public$(idof $f)"; done
 rm -rf "$T"
 ```
 
