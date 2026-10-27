@@ -77,3 +77,7 @@ Resolved since parking: athlete row lock and merge/delete locks (polish 12), mai
 ## Local environment (2026-10-27)
 
 One local EduSport only: Strapi 1340 + website 3010 + `edusport-test-pg`, worktrees `test-main`, running feat/athletes at 1610d22 (phase 3 complete, 3C included) with synthetic data. Login admin@example.invalid / Throwaway1! (Super Admin). DB backups before each update in the session scratchpad (`test-pg-before-*.dump`). The old `strapi_app` / `strapi_db` (1337 / 5432) is stopped, data kept in its volume.
+
+## Models (user, 2026-10-27)
+
+Implementers: Sonnet for every task. Opus only for specs and plans, reviews of high-risk tasks (data loss, privacy, security, locking), the final whole-branch review, and a task still failing after two Sonnet fix rounds. Routine reviews, re-reviews, renders and research: Sonnet. Pass the model explicitly on every dispatch.
