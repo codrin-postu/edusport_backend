@@ -10,7 +10,7 @@ One page to start the next session. Rules and commands: `CLAUDE.md`. Decisions: 
 | 2 Registration rebuild | Merged to main 2026-10-26 (be 9f869cf, fe e35e41a). Not deployed |
 | 3A + 3B Înscrieri, Sportivi, confirmation, matching, merge, delete | Built and reviewed on `feat/athletes`, polish merged. Not on main, not deployed |
 | 3C Personal data (export, anonymize, inactivity list, Super Admin) | Built and reviewed on `feat/athletes` (final review fixes merged, 1610d22); boot check proved no personal data left; running on the local environment |
-| 4 Groups and schedules | Spec v1.1 approved; 7 plans (46 tasks) committed (backend ea88c92, website plan in p3fe ba2b51b). Build next |
+| 4 Groups and schedules | 4-1 merged on `feat/athletes` (1e14598, final review clean); 4-7 website in p3fe in progress; 4-2 next, then 4-3/4-4/4-5, then 4-6. Ledgers: `.superpowers/sdd/` (done ones in `.superpowers/sdd-archive/phase4/`) |
 | 5-8 | Not started (`docs/architecture/13-roadmap.md`) |
 
 Deploy: ONE window for phase 2 + 3 together (DECISIONS 2026-10-26 d19), only with the user's approval, backup first, per `docs/architecture/12-phase2-deploy-runbook.md`, then `npm run migrate:athletes` steps. Merging `feat/athletes` into main also waits for that window.
@@ -76,7 +76,11 @@ Resolved since parking: athlete row lock and merge/delete locks (polish 12), mai
 
 ## Local environment (2026-10-27)
 
-One local EduSport only: Strapi 1340 + website 3010 + `edusport-test-pg`, worktrees `test-main`, running feat/athletes at 1610d22 (phase 3 complete, 3C included) with synthetic data. Login admin@example.invalid / Throwaway1! (Super Admin). DB backups before each update in the session scratchpad (`test-pg-before-*.dump`). The old `strapi_app` / `strapi_db` (1337 / 5432) is stopped, data kept in its volume.
+One local EduSport only: Strapi 1340 + website 3010 + `edusport-test-pg`, worktrees `test-main`, running feat/athletes at 8ca0e4a (phase 3 + 4-1 backend + user UI fixes 2026-10-27) with synthetic data. Login admin@example.invalid / Throwaway1! (Super Admin). DB backups before each update in the session scratchpad (`test-pg-before-*.dump`). The old `strapi_app` / `strapi_db` (1337 / 5432) is stopped, data kept in its volume.
+
+## Review load (user, 2026-10-27)
+
+Per-task review only for high-risk tasks (data loss, locks, undo, security, migrations); no pre-flight scans; one final Opus review per plan; nothing waits on a review.
 
 ## Models (user, 2026-10-27)
 
