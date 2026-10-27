@@ -27,7 +27,7 @@ describe('Șterge sportivul (spec 6.6, 3b s9)', () => {
       ['r1', 'athlete-unlinked', { name: 'Maria Pop' }],
       ['a1', 'deleted', { name: 'Maria Pop' }],
     ]);
-    expect(fake.state.locks).toEqual(['athlete:a1']);
+    expect(fake.state.locks).toEqual(['r1', 'athlete:a1']);
   });
 
   it('every unlinked registration notes it in its own Istoric (polish 11)', async () => {

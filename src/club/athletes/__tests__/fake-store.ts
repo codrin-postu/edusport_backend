@@ -53,7 +53,8 @@ function fakeReads(s: FakeState): Pick<ClubStore, Reads> {
   const copy = <T>(v: T): T => structuredClone(v);
   return {
     registration: async (id) => copy(s.registrations.find((r) => r.id === id) ?? null),
-    registrations: async (where = {}) => copy(s.registrations.filter((r) => !where.athleteId || r.athleteId === where.athleteId)),
+    registrations: async (where = {}) =>
+      copy(s.registrations.filter((r) => (!where.athleteId || r.athleteId === where.athleteId) && (!where.matchAthleteId || r.matchAthleteId === where.matchAthleteId))),
     athlete: async (id) => copy(s.athletes.find((a) => a.id === id) ?? null),
     athletes: async () => copy(s.athletes),
     seasons: async () => copy(s.seasons),

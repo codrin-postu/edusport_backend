@@ -1,6 +1,7 @@
 import { guarded, refuse, type AdminResult } from '../admin-result';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import { ADMIN_ERRORS } from './errors';
+import { lockAthletesWithRegistrations } from './locks';
 import { refreshAllMatches, safely } from './matches';
 import type { AthleteRow, ClubStore, ServiceContext } from './store';
 
@@ -27,7 +28,7 @@ async function removeOwnRows(store: ClubStore, id: string): Promise<void> {
 }
 
 async function deleteInTransaction(ctx: ServiceContext, id: string): Promise<Result> {
-  await ctx.store.lockAthlete(id);
+  await lockAthletesWithRegistrations(ctx.store, [id]);
   const athlete = await ctx.store.athlete(id);
   if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
   await unlinkRegistrations(ctx, athlete);

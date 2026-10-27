@@ -100,7 +100,10 @@ function registrationReads(strapi: Core.Strapi): Pick<ClubStore, 'registration' 
       return r ? toRegistrationRow(r as unknown as Raw) : null;
     },
     registrations: async (where = {}) => {
-      const filters = where.athleteId ? { athlete: { documentId: where.athleteId } } : {};
+      const filters = {
+        ...(where.athleteId ? { athlete: { documentId: where.athleteId } } : {}),
+        ...(where.matchAthleteId ? { matchAthlete: { documentId: where.matchAthleteId } } : {}),
+      };
       return raws(await regs().findMany({ filters, populate: REGISTRATION_POPULATE, sort: BY_ID, limit: MAX })).map(toRegistrationRow);
     },
   };

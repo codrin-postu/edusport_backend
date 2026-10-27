@@ -57,12 +57,12 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
     expect(fake.state.acs.map((a) => [a.id, a.athleteId, a.state])).toEqual([['ck', 'k', 'da']]);
   });
 
-  it('locks both athlete rows by id, whichever is kept, before reading them (polish 12)', async () => {
+  it('locks the registrations it may write, then both athlete rows by id, whichever is kept (polish 12)', async () => {
     const one = fakeClubStore(seed());
     await mergeAthletes(ctx(one), { keptId: 'r', removedId: 'k', take: [] });
     const other = fakeClubStore(seed());
     await mergeAthletes(ctx(other), { keptId: 'k', removedId: 'r', take: [] });
-    expect([one.state.locks, other.state.locks]).toEqual([['athlete:k', 'athlete:r'], ['athlete:k', 'athlete:r']]);
+    expect([one.state.locks, other.state.locks]).toEqual([['reg', 'athlete:k', 'athlete:r'], ['reg', 'athlete:k', 'athlete:r']]);
   });
 
   it('notes: both kept with a blank line between; the removed record\'s alone move over', async () => {
