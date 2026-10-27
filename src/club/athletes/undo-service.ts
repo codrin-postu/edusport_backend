@@ -41,8 +41,19 @@ async function revertAthlete(store: ClubStore, athlete: UndoFacts['athlete'], pl
   if (plan.renameProfile && athlete.profileId) await store.renameProfile(athlete.profileId, plan.renameProfile);
 }
 
+/** Polish 10: the main group the undo gives back, as "<removed main> → <restored main>"; null when it restores none. */
+async function restoredMain(store: ClubStore, facts: UndoFacts, plan: UndoPlan): Promise<{ from: string; to: string } | null> {
+  if (!plan.restoreMainId || !facts.mainMembershipId) return null;
+  const [memberships, groups] = await Promise.all([store.memberships(facts.athlete.id), store.groups()]);
+  const nameOf = (membershipId: string) => groups.find((g) => g.id === memberships.find((m) => m.id === membershipId)?.groupId)?.name;
+  const from = nameOf(facts.mainMembershipId);
+  const to = nameOf(plan.restoreMainId);
+  return from && to ? { from, to } : null;
+}
+
 async function applyUndo(ctx: ServiceContext, reg: RegistrationRow, facts: UndoFacts): Promise<Result> {
   const plan = planUndo(facts);
+  const mainChange = await restoredMain(ctx.store, facts, plan);
   await revertRows(ctx.store, plan);
   await ctx.store.updateRegistration(reg.id, { athleteId: null, status: plan.registration.status, confirmation: null });
   await revertAthlete(ctx.store, facts.athlete, plan);
@@ -50,6 +61,7 @@ async function applyUndo(ctx: ServiceContext, reg: RegistrationRow, facts: UndoF
   await ctx.store.record({ subjectType: SUBJECT.registration, subjectId: reg.id, ...undone });
   // No athlete-subject row when the athlete itself was just deleted: nothing left to show it on.
   if (!plan.deleteAthlete) await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: facts.athlete.id, ...undone });
+  if (mainChange) await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: facts.athlete.id, action: HISTORY_ACTIONS.mainGroupChanged, changes: mainChange, actor: ctx.actor });
   return { ok: true, data: { status: plan.registration.status, athleteDeleted: plan.deleteAthlete } };
 }
 
@@ -57,6 +69,7 @@ async function undoLocked(ctx: ServiceContext, id: string): Promise<Result> {
   await ctx.store.lockRegistration(id);
   const reg = await ctx.store.registration(id);
   if (!reg) return refuse(404, ADMIN_ERRORS.notFound);
+  if (reg.confirmation) await ctx.store.lockAthlete(reg.confirmation.athleteId);
   const facts = reg.confirmation ? await loadFacts(ctx.store, reg, reg.confirmation) : null;
   return facts ? applyUndo(ctx, reg, facts) : refuse(409, ADMIN_ERRORS.stale);
 }

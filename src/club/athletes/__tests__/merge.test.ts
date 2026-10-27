@@ -57,6 +57,14 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
     expect(fake.state.acs.map((a) => [a.id, a.athleteId, a.state])).toEqual([['ck', 'k', 'da']]);
   });
 
+  it('locks both athlete rows by id, whichever is kept, before reading them (polish 12)', async () => {
+    const one = fakeClubStore(seed());
+    await mergeAthletes(ctx(one), { keptId: 'r', removedId: 'k', take: [] });
+    const other = fakeClubStore(seed());
+    await mergeAthletes(ctx(other), { keptId: 'k', removedId: 'r', take: [] });
+    expect([one.state.locks, other.state.locks]).toEqual([['athlete:k', 'athlete:r'], ['athlete:k', 'athlete:r']]);
+  });
+
   it('notes: both kept with a blank line between; the removed record\'s alone move over', async () => {
     const both = fakeClubStore(seed());
     await both.store.updateAthlete('k', { notes: 'Alergie la arahide' });

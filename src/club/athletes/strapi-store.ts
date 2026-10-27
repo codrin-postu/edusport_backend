@@ -239,8 +239,11 @@ function profileWrites(strapi: Core.Strapi): Pick<ClubStore, 'createProfile' | '
 }
 
 /** A nested `transaction` reuses the outer one (Strapi), so `active` is restored, not cleared, when it ends. */
-function transactions(strapi: Core.Strapi): Pick<ClubStore, 'transaction' | 'lockRegistration'> {
+function transactions(strapi: Core.Strapi): Pick<ClubStore, 'transaction' | 'lockRegistration' | 'lockAthlete'> {
   let active: Knex.Transaction | null = null;
+  const lockRow = async (table: string, id: string) => {
+    if (active) await strapi.db.getConnection(table).transacting(active).forUpdate().where('document_id', id).select('id');
+  };
   return {
     async transaction<T>(work: () => Promise<T>): Promise<T> {
       return await strapi.db.transaction(async ({ trx }: { trx: Knex.Transaction }) => {
@@ -253,9 +256,8 @@ function transactions(strapi: Core.Strapi): Pick<ClubStore, 'transaction' | 'loc
         }
       });
     },
-    lockRegistration: async (id) => {
-      if (active) await strapi.db.getConnection('registration_submissions').transacting(active).forUpdate().where('document_id', id).select('id');
-    },
+    lockRegistration: (id) => lockRow('registration_submissions', id),
+    lockAthlete: (id) => lockRow('athletes', id),
   };
 }
 

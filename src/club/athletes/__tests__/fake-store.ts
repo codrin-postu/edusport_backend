@@ -196,6 +196,9 @@ export function fakeClubStore(seed: Partial<FakeState> = {}): Fake {
     lockRegistration: async (id) => {
       state.locks.push(id);
     },
+    lockAthlete: async (id) => {
+      state.locks.push(`athlete:${id}`);
+    },
     ...fakeReads(state), ...fakeAthleteWrites(state, next, tick), ...fakeRowWrites(state, next), ...fakeProfileWrites(state, next), ...fakeHistory(state, tick),
   };
   return { store: withFailures(base, failing), state, failOn: (method) => failing.add(method) };

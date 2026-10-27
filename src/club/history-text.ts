@@ -23,6 +23,7 @@ export const HISTORY_ACTIONS = {
   createdFromRegistrations: 'created-from-registrations',
   registrationConfirmed: 'registration-confirmed',
   groupAdded: 'group-added',
+  mainGroupChanged: 'main-group-changed',
   acsChanged: 'acs-changed',
   reactivated: 'reactivated',
   statusChanged: 'status-changed',
@@ -31,6 +32,7 @@ export const HISTORY_ACTIONS = {
   profilePage: 'profile-page',
   merged: 'merged',
   deleted: 'deleted',
+  athleteUnlinked: 'athlete-unlinked',
   duplicateDismissed: 'duplicate-dismissed',
 } as const;
 
@@ -173,6 +175,7 @@ const RENDER: Readonly<Record<string, Render>> = {
   [HISTORY_ACTIONS.createdFromRegistrations]: () => ['Fișă creată din înscrierile anterioare'],
   [HISTORY_ACTIONS.registrationConfirmed]: (c) => [confirmedOnAthlete(c)],
   [HISTORY_ACTIONS.groupAdded]: (c) => [`Adăugat în grupa ${text(c.groupName)}`],
+  [HISTORY_ACTIONS.mainGroupChanged]: (c) => [`Grupa principală schimbată: ${text(c.from)} ${ARROW} ${text(c.to)}`],
   [HISTORY_ACTIONS.acsChanged]: (c) => [`Membru A.C.S. ${text(c.season)}: ${acsWord(c.from)} ${ARROW} ${acsWord(c.to)}`],
   [HISTORY_ACTIONS.reactivated]: () => ['Reactivat'],
   [HISTORY_ACTIONS.statusChanged]: (c) => [`Status: ${statusWord(c.from)} ${ARROW} ${statusWord(c.to)}`],
@@ -181,6 +184,7 @@ const RENDER: Readonly<Record<string, Render>> = {
   [HISTORY_ACTIONS.profilePage]: (c) => [c.on === true ? 'Pagina publică pornită' : 'Pagina publică oprită'],
   [HISTORY_ACTIONS.merged]: (c) => [`Unit cu ${text(c.name)}`],
   [HISTORY_ACTIONS.deleted]: (c) => [`Sportiv șters: ${text(c.name)}`],
+  [HISTORY_ACTIONS.athleteUnlinked]: (c) => [`Legătură ștearsă: sportivul ${text(c.name)} a fost șters`],
   [HISTORY_ACTIONS.duplicateDismissed]: (c) => [PENDING_COPY.duplicateDismissed(text(c.name))],
 };
 
