@@ -10,8 +10,8 @@ One page to start the next session. Rules and commands: `CLAUDE.md`. Decisions: 
 | 2 Registration rebuild | Merged to main 2026-10-26 (be 9f869cf, fe e35e41a). Not deployed |
 | 3A + 3B Înscrieri, Sportivi, confirmation, matching, merge, delete | Built and reviewed on `feat/athletes`, polish merged. Not on main, not deployed |
 | 3C Personal data (export, anonymize, inactivity list, Super Admin) | Built and reviewed on `feat/athletes` (final review fixes merged, 1610d22); boot check proved no personal data left; running on the local environment |
-| 4 Groups and schedules | 4-1, 4-2, 4-3, 4-4, 4-5 merged on `feat/athletes` (8849250) with final reviews; 4-7 merged on frontend `feat/athletes` (f2c4e0d). 4-6 built, final review + one fix round left. Then local env update + click-through. Ledgers: `.superpowers/sdd/` (done in `sdd-archive/phase4/`) |
-| 5 Attendance, abonamente, payments | Research + 42 companion answers in `edusport_backend/.superpowers/phase5/` (answers.md); spec draft `docs/superpowers/specs/2026-10-27-attendance-payments-design.md` (uncommitted until approved); copy screen (87 lines) pending |
+| 4 Groups and schedules | Complete on `feat/athletes` (9fd7947): 7 plans, per-plan and whole-branch reviews closed, user rulings applied; frontend 4-7 on frontend `feat/athletes` (f2c4e0d). Not deployed: one window for 2+3+4, `docs/architecture/15-deploy-window-2-3-4.md` |
+| 5 Attendance, abonamente, payments | Spec approved (e85bfc4); 6 plans written (`2026-10-27-phase5-*.md`, index first); rulings for execution in `.superpowers/sdd/2026-10-27-phase5/rulings.md`. Build next, from 5-1 |
 | 6-8 | Not started (`docs/architecture/13-roadmap.md`) |
 
 Deploy: ONE window for phases 2, 3 and 4 (user, 2026-10-27), order in `docs/architecture/15-deploy-window-2-3-4.md`. Earlier note: ONE window for phase 2 + 3 together (DECISIONS 2026-10-26 d19), only with the user's approval, backup first, per `docs/architecture/12-phase2-deploy-runbook.md`, then `npm run migrate:athletes` steps. Merging `feat/athletes` into main also waits for that window.
