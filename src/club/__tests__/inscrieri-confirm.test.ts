@@ -181,7 +181,7 @@ describe('season, groups, A.C.S. and intent lines (spec 4.3, 4.4)', () => {
   it('main group now, intent, new athlete hint', () => {
     expect(mainNowLine(ctx())).toBeNull();
     expect(mainNowLine(ctx({ mainGroupNow: { name: 'Profesioniști', sectionName: 'Club' } }))).toBe('Grupă principală acum: Profesioniști (Club)');
-    expect(intentParts(ctx())).toEqual({ item: 'Abonament 8 ședințe grup', note: ', doar intenția părintelui; abonamentul se adaugă când e cumpărat' });
+    expect(intentParts(ctx())).toBe('Abonament 8 ședințe grup');
     expect(intentParts(ctx({ subscriptionIntent: null }))).toBeNull();
     expect(newAthleteHint(ctx(), true)).toBe('Se creează o fișă nouă: Maria Dumitrescu, 14.03.2014');
     expect(newAthleteHint(ctx(), false)).toBe('Se creează o fișă nouă: Maria Dumitrescu');

@@ -46,10 +46,7 @@ export function SeasonPart({ state, dispatch, ctx, busy, schoolName }: Props & {
       {intent && (
         <>
           <div className="ins-sec-h">{CONFIRM_COPY.intentHeading}</div>
-          <p className="ins-intent">
-            {intent.item}
-            <span className="ins-intent-note">{intent.note}</span>
-          </p>
+          <p className="ins-intent">{intent}</p>
         </>
       )}
     </section>

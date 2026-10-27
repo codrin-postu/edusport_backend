@@ -35,7 +35,6 @@ export type WindowAction =
 export type Gate = { disabled: boolean; hint: string | null; notice: string | null };
 export type ConfirmBody = { choice: Choice; athleteId: string | null; groupId: string | null; makeMain: boolean; updateFields: AthleteField[] };
 export type GroupChoice = { value: string; label: string; group?: string };
-export type IntentParts = { item: string; note: string };
 export type HighlightParts = { before: string; match: string; after: string };
 export type Failure = { text: string; close: boolean };
 
@@ -127,9 +126,8 @@ export function acsLines(ctx: ConfirmContext): { status: string; wish: string } 
   return { status: `${CONFIRM_COPY.acs(label)}: ${state}`, wish: `${CONFIRM_COPY.wish}: ${wishWord(ctx.acs.wish)}`.trimEnd() };
 }
 
-/** The form's abonament, then the muted note after it (proto v5: item, grey hint). */
-export const intentParts = (ctx: ConfirmContext): IntentParts | null =>
-  ctx.subscriptionIntent ? { item: ctx.subscriptionIntent, note: CONFIRM_COPY.intent('') } : null;
+/** The abonament the parent chose in the form, shown under the intent heading. */
+export const intentParts = (ctx: ConfirmContext): string | null => ctx.subscriptionIntent ?? null;
 
 /** "Grupă principală acum: <grupă> (<secțiune>)", the athlete's current main group line, shown
  * only when there is one; the admin UI uses its presence to decide whether to offer the tick. */

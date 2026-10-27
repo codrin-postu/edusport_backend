@@ -85,3 +85,8 @@ it('a new query shows the loading state, not the old results; prototype v5 icons
   expect(athlete).toContain('{open ? <IconChevronUp size={12} /> : <IconChevronDown size={12} />}');
   expect(athlete).toContain('<IconSearch size={12} />');
 });
+
+it('the confirm window shows the abonament without the parent-intent note', () => {
+  expect(season).not.toContain('intenția părintelui');
+  expect(season).not.toContain('ins-intent-note');
+});
