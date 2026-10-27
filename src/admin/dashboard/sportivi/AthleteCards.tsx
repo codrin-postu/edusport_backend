@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { Button, Checkbox, EmptyState, Loading } from '../../ui';
 import type { AthleteListRow } from '../../../club/athletes/api-types';
+import { PERSONAL_DATA_COPY } from '../../../club/personal-data/copy';
 import { LIST_COPY, ageText, groupCell, loadedRange, withPage } from '../../../club/sportivi/list-view';
+import { allSelected } from '../../../club/sportivi/personal-data-view';
 import { MissingMarker } from './MissingMarker';
 import type { AthleteList } from './useAthleteList';
 import type { Selection } from './useSelection';
@@ -14,6 +16,16 @@ function CardLine({ row }: { row: AthleteListRow }) {
       {age && `${age}, `}
       <span className={row.mainGroup ? undefined : 'spv-muted'}>{groupCell(row)}</span>
     </span>
+  );
+}
+
+/** "Selectează tot" over the cards loaded so far, as the desktop header box does over its page. */
+function SelectAll({ rows, selection }: { rows: AthleteListRow[]; selection: Selection }) {
+  const ids = rows.map((r) => r.documentId);
+  return (
+    <div className="spv-select-all">
+      <Checkbox checked={allSelected(selection.ids, ids)} onChange={() => selection.toggleAll(ids)} label={PERSONAL_DATA_COPY.selectAll} />
+    </div>
   );
 }
 
@@ -40,6 +52,7 @@ export function AthleteCards({ list, onOpen, selection }: { list: AthleteList; o
   return (
     <>
       <p className="spv-count">{loadedRange(page, rows.length)}</p>
+      {selection && <SelectAll rows={rows} selection={selection} />}
       <ul className="spv-cards">
         {rows.map((r) => <Card key={r.documentId} r={r} onOpen={onOpen} selection={selection} />)}
       </ul>

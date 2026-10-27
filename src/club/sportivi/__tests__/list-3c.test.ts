@@ -3,7 +3,10 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { AthleteListPage } from '../../athletes/api-types';
 import { INACTIVE, INITIAL_LIST_STATE, filterSections, inactiveShown, listQueryString, showInactive, withSection } from '../list-view';
-import { addResults, allSelected, bulkToast, chunks, selectionOn, toggled, toggledAll } from '../personal-data-view';
+import type { BulkAnonymizeResult } from '../../personal-data/anonymize-plan';
+import {
+  addResults, allSelected, anonymizeInTurns, bulkToast, chunks, runToast, selectionOn, toggled, toggledAll, withoutIds,
+} from '../personal-data-view';
 
 const read = (p: string) => readFileSync(join(__dirname, '..', '..', '..', 'admin', 'dashboard', p), 'utf8');
 const page = (retentionYears: number) => ({ retentionYears, options: { sections: [], groups: [] } }) as unknown as AthleteListPage;
@@ -83,7 +86,7 @@ describe('list wiring (source, 3C spec 8)', () => {
 
   it('the bar: "Anonimizează (k)", the shared confirmation with k, chunks of 200, one toast', () => {
     const bar = read('sportivi/BulkAnonymizeBar.tsx');
-    for (const s of ['PERSONAL_DATA_COPY.bulkButton(ids.length)', '<AnonymizeDialog', 'count={ids.length}', 'chunks(ids)', 'bulkToast(result)', 'api.anonymizeMany(part)']) {
+    for (const s of ['PERSONAL_DATA_COPY.bulkButton(ids.length)', '<AnonymizeDialog', 'count={ids.length}', 'anonymizeInTurns(', 'runToast(run)', 'api.anonymizeMany(part)', 'done(run.doneIds)']) {
       expect(bar, s).toContain(s);
     }
   });
@@ -95,5 +98,60 @@ describe('list wiring (source, 3C spec 8)', () => {
     }
     const cards = read('sportivi/AthleteCards.tsx');
     for (const s of ['<Checkbox', 'selection.toggle(r.documentId)', '<MissingMarker row={r} card />', 'LIST_COPY.more']) expect(cards, s).toContain(s);
+  });
+});
+
+describe('fix round 1 (controller rulings)', () => {
+  const ids = Array.from({ length: 450 }, (_, i) => `id${i}`);
+  const fakeApi = (fail: unknown) => {
+    const calls: string[][] = [];
+    const send = async (part: string[]): Promise<BulkAnonymizeResult> => {
+      calls.push(part);
+      if (calls.length === 2) throw fail;
+      return { anonymized: part.length - 1, skipped: 1, failed: 0 };
+    };
+    return { calls, send };
+  };
+
+  it('a later chunk failing stops the run and keeps what the earlier ones did', async () => {
+    const api = fakeApi({ response: { status: 500, data: { error: { status: 500, message: 'Internal Server Error' } } } });
+    const run = await anonymizeInTurns(api.send, ids);
+    expect(api.calls.map((c) => c.length)).toEqual([200, 200]);
+    expect(run.stopped).toBe(true);
+    expect(run.doneIds).toEqual(ids.slice(0, 200));
+    expect(run.result).toEqual({ anonymized: 199, skipped: 1, failed: 0 });
+    expect(runToast(run)).toEqual({ warning: true, text: 'Oprit după 199 de sportivi anonimizați. Sărite: 1.' });
+    expect([...withoutIds(new Set(ids), run.doneIds)]).toEqual(ids.slice(200));
+  });
+
+  it('a 409 adds the server text; the first chunk failing does nothing', async () => {
+    const stale = { response: { status: 409, data: { error: { status: 409, message: 'Datele s-au schimbat.' } } } };
+    const run = await anonymizeInTurns(fakeApi(stale).send, ids);
+    expect(runToast(run).text).toBe('Oprit după 199 de sportivi anonimizați. Sărite: 1. Datele s-au schimbat.');
+    const none = await anonymizeInTurns(async () => { throw stale; }, ids);
+    expect(none.doneIds).toEqual([]);
+    expect(none.stopped).toBe(true);
+  });
+
+  it('a full run: one toast, warning only when some failed', async () => {
+    const run = await anonymizeInTurns(async (part) => ({ anonymized: part.length, skipped: 0, failed: 0 }), ids.slice(0, 3));
+    expect(run).toMatchObject({ stopped: false, doneIds: ids.slice(0, 3) });
+    expect(runToast(run)).toEqual({ warning: false, text: '3 sportivi anonimizați.' });
+    expect(runToast({ ...run, result: { anonymized: 1, skipped: 0, failed: 2 } }).warning).toBe(true);
+  });
+
+  it('the bar closes on a partial run, the selection drops only the done ids', () => {
+    const bar = read('sportivi/BulkAnonymizeBar.tsx');
+    expect(bar).toContain('if (run.doneIds.length === 0) {');
+    expect(read('sportivi/useSelection.ts')).toContain('setIds((s) => withoutIds(s, doneIds));');
+  });
+
+  it('phone: "Selectează tot" over the loaded cards; the bar pads 16px like the other phone bars', () => {
+    const cards = read('sportivi/AthleteCards.tsx');
+    for (const s of ['label={PERSONAL_DATA_COPY.selectAll}', 'selection.toggleAll(ids)', 'allSelected(selection.ids, ids)', '{selection && <SelectAll rows={rows} selection={selection} />}']) {
+      expect(cards, s).toContain(s);
+    }
+    const css = read('sportivi/styles.ts');
+    expect(css.slice(css.indexOf('@media (max-width: 640px)'))).toContain('.ui-root .spv-bulk{padding:10px 16px}');
   });
 });

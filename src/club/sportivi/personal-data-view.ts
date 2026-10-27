@@ -57,6 +57,42 @@ export const addResults = (a: BulkAnonymizeResult, b: BulkAnonymizeResult): Bulk
   anonymized: a.anonymized + b.anonymized, skipped: a.skipped + b.skipped, failed: a.failed + b.failed,
 });
 
+const countParts = (r: BulkAnonymizeResult): string[] => [r.skipped ? C.skipped(r.skipped) : '', r.failed ? C.failed(r.failed) : ''];
+
 /** "k sportivi anonimizați." plus "Sărite: n." / "Nereușite: n." when not zero (spec 5). */
-export const bulkToast = (r: BulkAnonymizeResult): string =>
-  [C.done(r.anonymized), r.skipped ? C.skipped(r.skipped) : '', r.failed ? C.failed(r.failed) : ''].filter(Boolean).join(' ');
+export const bulkToast = (r: BulkAnonymizeResult): string => [C.done(r.anonymized), ...countParts(r)].filter(Boolean).join(' ');
+
+/** What a bulk run did: the ids of the requests that answered, and whether a later request failed. */
+export type BulkRun = { result: BulkAnonymizeResult; doneIds: string[]; stopped: boolean; error: unknown };
+
+/** The chunks in turn; the first failed request stops the run and keeps what the earlier ones did. */
+export async function anonymizeInTurns(send: (ids: string[]) => Promise<BulkAnonymizeResult>, ids: string[]): Promise<BulkRun> {
+  let result: BulkAnonymizeResult = { anonymized: 0, skipped: 0, failed: 0 };
+  const doneIds: string[] = [];
+  for (const part of chunks(ids)) {
+    try {
+      result = addResults(result, await send(part));
+    } catch (error) {
+      return { result, doneIds, stopped: true, error };
+    }
+    doneIds.push(...part);
+  }
+  return { result, doneIds, stopped: false, error: null };
+}
+
+/**
+ * "Oprit după k sportivi anonimizați." plus the counts; the generic error text says nothing was saved,
+ * so only a 409's own text is added.
+ */
+export const stoppedToast = (run: BulkRun): string =>
+  [C.stopped(run.result.anonymized), ...countParts(run.result), errorStatus(run.error) === 409 ? anonymizeErrorText(run.error) : '']
+    .filter(Boolean).join(' ');
+
+/** The one toast after a run that did something: a warning when a request stopped or some ids failed. */
+export function runToast(run: BulkRun): { warning: boolean; text: string } {
+  if (run.stopped) return { warning: true, text: stoppedToast(run) };
+  return { warning: run.result.failed > 0, text: bulkToast(run.result) };
+}
+
+/** The ticked ids left after a run: the ones whose request never answered. */
+export const withoutIds = (ids: ReadonlySet<string>, doneIds: string[]): Set<string> => new Set([...ids].filter((id) => !doneIds.includes(id)));

@@ -1,18 +1,11 @@
 import * as React from 'react';
 import { Button, adminToast } from '../../ui';
-import type { BulkAnonymizeResult } from '../../../club/personal-data/anonymize-plan';
 import { PERSONAL_DATA_COPY } from '../../../club/personal-data/copy';
-import { addResults, anonymizeErrorText, bulkToast, chunks } from '../../../club/sportivi/personal-data-view';
+import { anonymizeErrorText, anonymizeInTurns, runToast } from '../../../club/sportivi/personal-data-view';
 import { AnonymizeDialog } from './AnonymizeDialog';
 import type { SportiviApi } from './api';
 
-type Props = { ids: string[]; api: SportiviApi; done: () => void };
-
-async function anonymizeAll(api: SportiviApi, ids: string[]): Promise<BulkAnonymizeResult> {
-  let total: BulkAnonymizeResult = { anonymized: 0, skipped: 0, failed: 0 };
-  for (const part of chunks(ids)) total = addResults(total, await api.anonymizeMany(part));
-  return total;
-}
+type Props = { ids: string[]; api: SportiviApi; done: (doneIds: string[]) => void };
 
 function useBulkRun({ ids, api, done }: Props) {
   const [open, setOpen] = React.useState(false);
@@ -21,16 +14,16 @@ function useBulkRun({ ids, api, done }: Props) {
   const confirm = async () => {
     setBusy(true);
     setError(null);
-    try {
-      const result = await anonymizeAll(api, ids);
-      (result.failed ? adminToast.warning : adminToast.success)(bulkToast(result));
-      setOpen(false);
-      done();
-    } catch (err) {
-      setError(anonymizeErrorText(err));
-    } finally {
-      setBusy(false);
+    const run = await anonymizeInTurns((part) => api.anonymizeMany(part), ids);
+    setBusy(false);
+    if (run.doneIds.length === 0) {
+      setError(anonymizeErrorText(run.error));
+      return;
     }
+    const toast = runToast(run);
+    (toast.warning ? adminToast.warning : adminToast.success)(toast.text);
+    setOpen(false);
+    done(run.doneIds);
   };
   const cancel = () => (busy ? undefined : setOpen(false));
   const start = () => {
@@ -40,7 +33,10 @@ function useBulkRun({ ids, api, done }: Props) {
   return { open, busy, error, start, confirm, cancel };
 }
 
-/** "Anonimizează (k)" over the inactivity list (3C spec 5), Super Admin only; one confirmation, one toast with the counts. */
+/**
+ * "Anonimizează (k)" over the inactivity list (3C spec 5), Super Admin only; one confirmation, one toast with the counts.
+ * A request failing after earlier ones answered closes the dialog: the done ids leave the selection, the rest stay ticked.
+ */
 export function BulkAnonymizeBar(props: Props) {
   const run = useBulkRun(props);
   const { ids } = props;
