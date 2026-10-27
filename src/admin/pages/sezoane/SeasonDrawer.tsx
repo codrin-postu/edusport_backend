@@ -5,11 +5,11 @@ import { monthOptions, type AdminSeason, type SeasonFields } from '../../../club
 /** The drawer edits an existing season, or a new one prefilled by `nextSeasonDraft`. */
 export type SeasonTarget = { season: AdminSeason | null; draft: SeasonFields };
 
-function SeasonFieldsForm({ draft, locked, set }: { draft: SeasonFields; locked: boolean; set: (p: Partial<SeasonFields>) => void }) {
+function SeasonFieldsForm({ draft, locked, hinted, set }: { draft: SeasonFields; locked: boolean; hinted: boolean; set: (p: Partial<SeasonFields>) => void }) {
   const options = monthOptions(draft.label, [draft.startMonth, draft.endMonth]);
   return (
     <>
-      <Field label="Sezon" hint={locked ? 'Sezonul are înscrieri.' : undefined}>
+      <Field label="Sezon" hint={hinted ? 'Sezonul are înscrieri.' : undefined}>
         <Input value={draft.label} disabled={locked} onChange={(e) => set({ label: e.target.value })} />
       </Field>
       <FieldRow>
@@ -56,7 +56,7 @@ export function SeasonDrawer({ target, onSave, onClose }: SeasonDrawerProps) {
   return (
     <Drawer open={target !== null} onClose={onClose} title={season ? `Sezon ${season.label}` : 'Sezon nou'} dismissable={!state.saving} footer={footer}>
       <DrawerSection>
-        {draft && <SeasonFieldsForm draft={draft} locked={(season?.registrations ?? 0) > 0} set={(p) => setDraft({ ...draft, ...p })} />}
+        {draft && <SeasonFieldsForm draft={draft} locked={(season?.registrations ?? 0) > 0 || season?.inUse === true} hinted={(season?.registrations ?? 0) > 0} set={(p) => setDraft({ ...draft, ...p })} />}
       </DrawerSection>
     </Drawer>
   );

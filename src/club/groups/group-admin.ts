@@ -5,6 +5,7 @@ import { recordLines } from './action-log';
 import type { NamedRef } from './api-types';
 import type { GroupContext } from './context';
 import { GROUP_ERRORS } from './copy';
+import { neverUsed } from './group-history';
 import { GROUP_SUBJECT, P4_ACTIONS } from './history-lines';
 import type { GroupRecord, GroupStore, NamedRow, PriceListRow } from './types';
 
@@ -97,8 +98,8 @@ async function deleteInTransaction(ctx: GroupContext, id: string): Promise<Admin
   await ctx.store.lockGroup(id);
   const group = await ctx.store.group(id);
   if (!group) return refuse(404, GROUP_ERRORS.notFound);
-  const [memberships, events] = await Promise.all([ctx.store.memberships({ groupId: id }), ctx.store.events({ groupId: id })]);
-  if (memberships.length || events.length) return refuse(409, GROUP_ERRORS.stale);
+  const [memberships, events, history] = await Promise.all([ctx.store.memberships({ groupId: id }), ctx.store.events({ groupId: id }), ctx.store.history(GROUP_SUBJECT, id)]);
+  if (!neverUsed(memberships, events, history)) return refuse(409, GROUP_ERRORS.stale);
   await ctx.store.deleteGroup(id);
   await recordLines(ctx.store, ctx.actor, [{ subjectType: GROUP_SUBJECT, subjectId: id, action: P4_ACTIONS.groupDeleted, changes: { name: group.name } }]);
   return { ok: true, data: { name: group.name } };

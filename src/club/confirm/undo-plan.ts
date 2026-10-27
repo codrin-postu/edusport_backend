@@ -10,9 +10,9 @@ export type UndoFacts = {
   record: ConfirmationRecord;
   linkedAthleteId: string | null;
   athlete: AthleteValues & { id: string; status: AthleteStatus; profileId: string | null };
-  /** Every row of the athlete, ended ones included: they count as use and the confirmation's own row is deleted among them. */
+  /** Every row of the athlete, ended ones included: they count as use. */
   membershipIds: string[];
-  /** Rows that have not ended: only these can be demoted, given the main flag back or promoted. */
+  /** Rows that have not ended: only these can be deleted (the confirmation's own), demoted, given the main flag back or promoted. */
   currentRows: MembershipRow[];
   seasonId: string | null;
   mainMembershipId: string | null;
@@ -100,7 +100,8 @@ function planHeir(f: UndoFacts, gone: string[]): string | null {
 export function planUndo(f: UndoFacts): UndoPlan {
   const acs = planAcsUndo(f);
   const own = f.record.membershipId;
-  const deleteMembershipId = own && f.membershipIds.includes(own) ? own : null;
+  // A later "Mută" ended the row: it is history now and stays (decided: only a still-current row is deleted).
+  const deleteMembershipId = own && isCurrent(f, own) ? own : null;
   const demoted = f.record.demotedMainId;
   const restorable = demoted !== null && demoted !== undefined && isCurrent(f, demoted);
   const demoteMembershipId = restorable ? planDemote(f) : null;

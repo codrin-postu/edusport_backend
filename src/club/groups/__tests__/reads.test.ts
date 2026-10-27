@@ -95,6 +95,14 @@ describe('group page (6.1, 6.2)', () => {
     expect(await readGroupPage(seed().store, 'nope', null, TODAY)).toBeNull();
   });
 
+  it('a group with a program or member line in its Istoric is not deletable, though no row is left', async () => {
+    const fake = seed();
+    await fake.store.record({ subjectType: 'group', subjectId: 'g-is', action: 'group-created', actor: 'a@b.ro' });
+    expect((await readGroupPage(fake.store, 'g-is', null, TODAY))?.deletable).toBe(true);
+    await fake.store.record({ subjectType: 'group', subjectId: 'g-is', action: 'class-deleted', actor: 'a@b.ro' });
+    expect((await readGroupPage(fake.store, 'g-is', null, TODAY))?.deletable).toBe(false);
+  });
+
   it('options carry price lists with their section and the coaches', async () => {
     const options = await readGroupOptions(seed().store);
     expect(options.priceLists).toEqual([{ documentId: 'pl-std', name: 'Standard', sectionId: 'afi' }, { documentId: 'pl-club', name: 'Club', sectionId: 'club' }]);

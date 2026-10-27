@@ -52,6 +52,24 @@ describe('the season keeps one main (spec 2 rule 2)', () => {
   });
 });
 
+describe('the confirmation\'s own row after a later "Mută"', () => {
+  const rows = (ids: string[], main: string) => ids.map((id) => ({ id, athleteId: 'a1', groupId: `g-${id}`, seasonId: 's26', isMain: id === main, from: '2026-10-01' }));
+
+  it('is deleted while current', () => {
+    expect(planUndo(facts()).deleteMembershipId).toBe('m9');
+  });
+
+  it('ended: kept as history (no delete), the one-main rules still hold on the current rows', () => {
+    const plan = planUndo(facts({ currentRows: rows(['m0', 'x1'], 'm0'), membershipIds: ['m0', 'm9', 'x1'], mainMembershipId: 'm0', record: record({ demotedMainId: null }) }));
+    expect(plan.deleteMembershipId).toBeNull();
+  });
+
+  it('ended and the athlete was created by the confirmation: the row counts as use, the athlete is kept', () => {
+    const plan = planUndo(facts({ currentRows: [], membershipIds: ['m9'], mainMembershipId: null, record: record({ createdAthlete: true, demotedMainId: null }) }));
+    expect([plan.deleteMembershipId, plan.deleteAthlete]).toEqual([null, false]);
+  });
+});
+
 describe('undo reverts what the confirmation wrote (spec 4.6, gaps #32)', () => {
   it('link, status, group, main group, A.C.S., fields and reactivation', () => {
     expect(planUndo(facts())).toEqual({

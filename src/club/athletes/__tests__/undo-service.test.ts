@@ -69,6 +69,16 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     expect(last?.changes).toEqual({ from: 'Primii Pași', to: 'Intermediari Bronze' });
   });
 
+  it('the confirmation\'s own row ended by a later "Mută": kept as history, the athlete is kept too', async () => {
+    const fake = fakeClubStore({ ...seed(), athletes: [], memberships: [] });
+    await confirmed(fake, 'new');
+    const own = fake.state.memberships[0];
+    own.to = '2026-11-19';
+    expect(await undoConfirmation(ctx(fake), 'r1')).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: false } });
+    expect(fake.state.memberships.map((m) => [m.id, m.to])).toEqual([[own.id, '2026-11-19']]);
+    expect(fake.state.athletes).toHaveLength(1);
+  });
+
   it('no reverse line when the undo gives no main group back', async () => {
     const fake = fakeClubStore({ ...seed(), memberships: [] });
     await confirmed(fake);
