@@ -70,3 +70,18 @@ it('runs no delete for an empty id list', async () => {
   await expect(deleteRegistrationEmailJobs(strapi, [])).resolves.toBe(0);
   expect(calls).toEqual([]);
 });
+
+it('every job status write through updateMany bumps updatedAt (the object payload does not get it from Strapi)', async () => {
+  const writes: { where: unknown; data: Record<string, unknown> }[] = [];
+  const strapi = {
+    db: { query: () => ({ updateMany: async (params: { where: unknown; data: Record<string, unknown> }) => { writes.push(params); return { count: 1 }; } }) },
+    documents: () => ({ findOne: async () => ({ documentId: 'j1' }) }),
+  } as unknown as Core.Strapi;
+  const { jobStore } = await import('../strapi-email');
+  const store = jobStore(strapi);
+  await store.claim('j1');
+  await store.finish('j1', { status: 'sent', attempts: 1, lastError: null, sentAt: null });
+  await store.failStuck(new Date(), 'x');
+  expect(writes).toHaveLength(3);
+  for (const w of writes) expect(w.data.updatedAt).toBeInstanceOf(Date);
+});
