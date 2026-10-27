@@ -1,6 +1,6 @@
 import { nameKey } from './migrate/names';
 
-export const PRICE_ITEM_KINDS = ['subscription', 'session', 'individual'] as const;
+export const PRICE_ITEM_KINDS = ['subscription', 'session', 'individual', 'uscat'] as const;
 export type PriceItemKind = (typeof PRICE_ITEM_KINDS)[number];
 export type Audience = 'member' | 'nonMember';
 export type PriceItemPrices = { memberPrice?: number | null; nonMemberPrice?: number | null };

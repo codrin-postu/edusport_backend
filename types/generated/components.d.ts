@@ -69,7 +69,7 @@ export interface ClubPriceItem extends Struct.ComponentSchema {
   attributes: {
     included: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     kind: Schema.Attribute.Enumeration<
-      ['subscription', 'session', 'individual']
+      ['subscription', 'session', 'individual', 'uscat']
     > &
       Schema.Attribute.Required;
     memberPrice: Schema.Attribute.Decimal;
