@@ -82,6 +82,21 @@ export function withSaved14(f: FakePresenceContext): FakePresenceContext {
   return f;
 }
 
+/** Adds a saved Club session s13 on 2026-11-13 at 17:00: a5 on the list and ticked, a7 a visitor, saved by Ana Admin with its Istoric line. */
+export function withSavedClub(f: FakePresenceContext): FakePresenceContext {
+  f.state.sessions.push(sessionRow({
+    id: 's13', groupId: 'g-club', date: '2026-11-13', startTime: '17:00', durationMin: 90, source: 'schedule', eventId: 'ev-club',
+    occurrenceKey: 'ev-club|2026-11-13|17:00', coachIds: ['tm-andreea'], savedAt: '2026-11-13T16:05:00.000Z', firstSavedAt: '2026-11-13T16:05:00.000Z',
+  }));
+  f.state.attendances.push(attendanceRow({ id: 't13a', sessionId: 's13', athleteId: 'a5', uniqueKey: 's13|a5', grup: true, uscat: true }));
+  f.state.attendances.push(attendanceRow({ id: 't13b', sessionId: 's13', athleteId: 'a7', uniqueKey: 's13|a7', grup: true, visitor: true }));
+  f.group.history.push({
+    id: 'h13', seq: 1, subjectType: 'session', subjectId: 's13', action: 'session-saved', changes: { present: 2, listed: 2, coachIds: ['tm-andreea'] },
+    actor: 'admin@example.com', at: '2026-11-13T16:05:00.000Z',
+  });
+  return f;
+}
+
 /** Cancels one date of a schedule event (a cancel exception). */
 export function cancelDate(f: FakePresenceContext, eventId: string, date: string): void {
   const event = f.state.calendar.events.find((e) => e.documentId === eventId);
