@@ -6,7 +6,7 @@ import { anonymizeAthlete, anonymizeAthletes } from '../../../club/personal-data
 import { exportAthleteData } from '../../../club/personal-data/export-service';
 import { zipHeaders } from '../../../club/personal-data/export-zip';
 import { anonymizeContext, exportContext } from '../../../club/personal-data/http';
-import { hideInactiveReview, inactiveSummary } from '../../../club/personal-data/review';
+import { hideInactiveReview, readInactiveSummary } from '../../../club/personal-data/review';
 
 type FileCtx = AdminCtx & { set(headers: Record<string, string>): void };
 
@@ -30,7 +30,7 @@ export default {
   },
 
   async inactiveSummary(ctx: AdminCtx) {
-    ctx.body = { data: await inactiveSummary(clubStore(strapi), new Date()) };
+    respond(ctx, await readInactiveSummary(clubStore(strapi), (message) => strapi.log.error(message), new Date()));
   },
 
   async hideReview(ctx: AdminCtx) {

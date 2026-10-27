@@ -48,3 +48,36 @@ export function adminSessions(secret: string) {
   const expire = (sessionId: string) => rows.filter((r) => r.sessionId === sessionId).forEach((r) => { r.expiresAt = new Date(0); });
   return { sessionManager: manager as unknown as TokenStrapi['sessionManager'], login, logout, expire };
 }
+
+type RouteCtx = {
+  request: { header: { authorization?: string } };
+  response: { _explicitStatus: boolean };
+  status: number;
+  body: unknown;
+  notFound: () => void;
+};
+type Middleware = (ctx: RouteCtx, next: () => Promise<void>) => Promise<void>;
+type PolicyHandler = (context: never, config: never, deps: never) => Promise<boolean>;
+type PolicyRoute = { config: { policies: string[] }; info: Record<string, never> };
+
+const coreDir = dirname(requireCjs.resolve('@strapi/core'));
+const { createPolicicesMiddleware } = requireCjs(join(coreDir, 'services', 'server', 'policy.js')) as {
+  createPolicicesMiddleware: (route: PolicyRoute, strapi: unknown) => Middleware;
+};
+const { errors: errorMiddleware } = requireCjs(join(coreDir, 'middlewares', 'errors.js')) as { errors: () => Middleware };
+
+/** Status and body a route guarded by `policy` answers, through Strapi 5.52.1's real policy and error middlewares. */
+export async function routeAnswer(policy: PolicyHandler, authorization: string | undefined, strapi: object) {
+  const withPolicy = { ...strapi, get: () => ({ resolve: () => [{ handler: policy, config: {} }] }) };
+  const policies = createPolicicesMiddleware({ config: { policies: ['guard'] }, info: {} }, withPolicy);
+  const ctx: RouteCtx = {
+    request: { header: { authorization } },
+    response: { _explicitStatus: false },
+    status: 404,
+    body: null,
+    notFound: () => { ctx.status = 404; },
+  };
+  const handler = async () => { ctx.status = 200; ctx.response._explicitStatus = true; };
+  await errorMiddleware()(ctx, () => policies(ctx, handler));
+  return { status: ctx.status, body: ctx.body };
+}

@@ -1,4 +1,4 @@
-import { guardedWrite, refuse, type AdminResult } from '../admin-result';
+import { guarded, refuse, type AdminResult } from '../admin-result';
 import { ADMIN_ERRORS } from '../athletes/errors';
 import type { ClubStore, ServiceContext } from '../athletes/store';
 import { inactiveAthleteIds } from './inactivity';
@@ -15,13 +15,17 @@ export async function inactiveSummary(store: ClubStore, now: Date): Promise<Inac
   return { retentionYears: settings.retentionYears, count, seasonLabel, shown: reviewNoticeShown(settings, count, seasonLabel) };
 }
 
+/** The dashboard notice for the route: a failure is logged once and answered with the shared copy. */
+export const readInactiveSummary = (store: ClubStore, log: (message: string) => void, now: Date): Promise<AdminResult<InactiveSummary>> =>
+  guarded(log, '[personal-data] reading the yearly review', async () => ({ ok: true, data: await inactiveSummary(store, now) }));
+
 /** "Ascunde până la sezonul următor" (Super Admin): stores the current season label. */
-export async function hideInactiveReview(ctx: ServiceContext, now: Date): Promise<AdminResult<InactiveSummary>> {
-  const seasonLabel = (await ctx.store.seasons()).find((s) => s.isCurrent)?.label ?? null;
-  if (!seasonLabel) return refuse(409, ADMIN_ERRORS.stale);
-  const saved = await guardedWrite(ctx.log, '[personal-data] hiding the yearly review', async () => {
+export function hideInactiveReview(ctx: ServiceContext, now: Date): Promise<AdminResult<InactiveSummary>> {
+  return guarded(ctx.log, '[personal-data] hiding the yearly review', async () => {
+    const seasonLabel = (await ctx.store.seasons()).find((s) => s.isCurrent)?.label ?? null;
+    if (!seasonLabel) return refuse(409, ADMIN_ERRORS.stale);
     const settings = readPersonalDataSettings(await ctx.store.personalDataSettings());
     await ctx.store.savePersonalDataSettings(hiddenUntil(settings, seasonLabel));
+    return { ok: true, data: await inactiveSummary(ctx.store, now) };
   });
-  return saved.ok === false ? saved : { ok: true, data: await inactiveSummary(ctx.store, now) };
 }

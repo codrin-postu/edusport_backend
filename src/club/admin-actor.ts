@@ -1,3 +1,4 @@
+import { errors } from '@strapi/utils';
 import jwt from 'jsonwebtoken';
 
 /** The parts of Strapi the actor lookup needs; `Core.Strapi` satisfies it. */
@@ -70,6 +71,16 @@ export async function verifiedAdminId(authorization: string | undefined, strapi:
   } catch {
     return null;
   }
+}
+
+/**
+ * For the admin policies: no access token of an active admin session is a 401 (Strapi's own UnauthorizedError and
+ * message), so the admin fetch client refreshes the access token and retries once.
+ */
+export async function requireAdminId(authorization: string | undefined, strapi: TokenStrapi): Promise<string | number> {
+  const id = await verifiedAdminId(authorization, strapi);
+  if (id === null) throw new errors.UnauthorizedError('Missing or invalid credentials');
+  return id;
 }
 
 /**

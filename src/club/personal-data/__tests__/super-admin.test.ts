@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Core } from '@strapi/strapi';
+import { errors } from '@strapi/utils';
 import jwt from 'jsonwebtoken';
 import { describe, expect, it } from 'vitest';
 import policy from '../../../policies/is-super-admin';
-import { adminSessions } from '../../__tests__/admin-sessions';
+import { adminSessions, routeAnswer } from '../../__tests__/admin-sessions';
 import { hasSuperAdminRole, superAdminFromMe } from '../roles';
 import { isSuperAdminRequest, type RoleStrapi } from '../super-admin';
 
@@ -32,13 +33,16 @@ describe('global::is-super-admin (3C spec 6)', () => {
     expect(asked.at(-1)).toEqual({ where: { id: 1 }, populate: ['roles'] });
   });
 
-  it('refuses a normal admin, an unknown admin, a wrong signature and no token', async () => {
-    const { sessionId } = await sessions.login(1);
-    const otherSecret = `Bearer ${jwt.sign({ userId: '1', sessionId, type: 'access' }, 'other')}`;
+  it('refuses (403) a normal admin and an unknown admin with a valid session', async () => {
     expect(await isSuperAdminRequest(await accessOf(2), strapi)).toBe(false);
     expect(await isSuperAdminRequest(await accessOf(9), strapi)).toBe(false);
-    expect(await isSuperAdminRequest(otherSecret, strapi)).toBe(false);
-    expect(await isSuperAdminRequest(undefined, strapi)).toBe(false);
+  });
+
+  it('a wrong signature or no token is unauthenticated (401), not forbidden', async () => {
+    const { sessionId } = await sessions.login(1);
+    const otherSecret = `Bearer ${jwt.sign({ userId: '1', sessionId, type: 'access' }, 'other')}`;
+    await expect(isSuperAdminRequest(otherSecret, strapi)).rejects.toBeInstanceOf(errors.UnauthorizedError);
+    await expect(isSuperAdminRequest(undefined, strapi)).rejects.toBeInstanceOf(errors.UnauthorizedError);
   });
 
   it('refuses a Super Admin who is inactive, blocked or not marked active', async () => {
@@ -47,11 +51,11 @@ describe('global::is-super-admin (3C spec 6)', () => {
     expect(await isSuperAdminRequest(await accessOf(5), strapi)).toBe(false);
   });
 
-  it("refuses a Super Admin's refresh token and the access token of an ended session", async () => {
+  it("a Super Admin's refresh token or the access token of an ended session is 401", async () => {
     const live = await sessions.login(1);
-    expect(await isSuperAdminRequest(live.refresh, strapi)).toBe(false);
+    await expect(isSuperAdminRequest(live.refresh, strapi)).rejects.toBeInstanceOf(errors.UnauthorizedError);
     sessions.expire(live.sessionId);
-    expect(await isSuperAdminRequest(live.access, strapi)).toBe(false);
+    await expect(isSuperAdminRequest(live.access, strapi)).rejects.toBeInstanceOf(errors.UnauthorizedError);
   });
 
   it('ignores a role claim in the token: the roles come from the database', async () => {
@@ -60,12 +64,13 @@ describe('global::is-super-admin (3C spec 6)', () => {
     expect(await isSuperAdminRequest(forged, strapi)).toBe(false);
   });
 
-  it('the policy reads the Authorization header', async () => {
-    const ctx = (authorization?: string) => ({ request: { header: { authorization } } });
+  it('through Strapi: a Super Admin passes, a normal admin gets 403, no token 401', async () => {
+    const statusOf = async (authorization?: string) => (await routeAnswer(policy, authorization, strapi)).status;
+    expect(await statusOf(await accessOf(1))).toBe(200);
+    expect(await statusOf(await accessOf(2))).toBe(403);
+    expect(await statusOf()).toBe(401);
     const core = strapi as unknown as Core.Strapi;
-    expect(await policy(ctx(await accessOf(1)), {}, { strapi: core })).toBe(true);
-    expect(await policy(ctx(await accessOf(2)), {}, { strapi: core })).toBe(false);
-    expect(await policy(ctx(), {}, { strapi: core })).toBe(false);
+    expect(await policy({ request: { header: { authorization: await accessOf(1) } } }, {}, { strapi: core })).toBe(true);
   });
 
   it('the admin UI reads the role from /admin/users/me', () => {
