@@ -27,6 +27,7 @@ it('maps a stored job, with the registration documentId and ISO dates', () => {
     updatedAt: '2026-10-20T09:00:01.000Z',
     kind: 'registration',
     payload: null,
+    paymentDocumentId: null,
     notBefore: null,
   });
 });

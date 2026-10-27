@@ -5,10 +5,12 @@
  */
 import type { StoredDocument } from '../club/documents';
 import type { ScheduleChangePayload } from '../club/groups/types';
+import type { PaymentEmailPayload } from '../club/presence/types';
 import type { Attachment, OutgoingEmail, SendResult } from './brevo';
 import { blockedReason, deliveryTarget, type BlockedReason, type EmailConfig } from './config';
 import { isDue, nextJobState, type AttemptOutcome, type EmailJobStatus, type JobState } from './job-state';
 import { registrationSubject, renderRegistrationEmail, type EmailLinks } from './registration-template';
+import { isPaymentPayload, renderPaymentEmail } from './payment-email';
 import { isSchedulePayload, renderScheduleEmail } from './schedule-change-template';
 
 /** A job is not retried by the cron until it has been left alone this long (a first attempt may be running). */
@@ -21,7 +23,7 @@ export const RESEND_ACTION = 'email-resent';
 export const RECIPIENT_DAILY_CAP = 3;
 const DAY_MS = 24 * 60 * 60_000;
 
-export type EmailJobKind = 'registration' | 'schedule-change';
+export type EmailJobKind = 'registration' | 'schedule-change' | 'payment';
 export type EmailJobRow = {
   documentId: string;
   recipient: string;
@@ -33,7 +35,8 @@ export type EmailJobRow = {
   sentAt: string | null;
   updatedAt: string | null;
   kind?: EmailJobKind;
-  payload?: ScheduleChangePayload | null;
+  payload?: ScheduleChangePayload | PaymentEmailPayload | null;
+  paymentDocumentId?: string | null;
   notBefore?: string | null;
 };
 export type NewEmailJob = { recipient: string; subject: string; registrationDocumentId: string };
@@ -72,6 +75,8 @@ export interface EmailDeps {
   log(level: 'info' | 'warn' | 'error', message: string): void;
   defer(task: () => Promise<void>): void;
   now(): Date;
+  /** Called once after a job is written `sent`; a throw is logged and never fails the attempt. */
+  onSent?(job: EmailJobRow): Promise<void>;
 }
 
 export type RegistrationEmailStatus = {
@@ -132,12 +137,18 @@ async function compose(deps: EmailDeps, registrationDocumentId: string, to: stri
 
 type Compose = (to: string) => Promise<OutgoingEmail>;
 
-function scheduleComposer(deps: EmailDeps, payload: ScheduleChangePayload | null): Compose | null {
+function scheduleComposer(deps: EmailDeps, payload: EmailJobRow['payload']): Compose | null {
   if (!isSchedulePayload(payload)) return null;
   return async (to) => ({ to, ...renderScheduleEmail({ payload, links: await deps.loadLinks() }), attachments: [] });
 }
 
+function paymentComposer(deps: EmailDeps, payload: EmailJobRow['payload']): Compose | null {
+  if (!isPaymentPayload(payload)) return null;
+  return async (to) => ({ to, ...renderPaymentEmail({ payload, links: await deps.loadLinks() }), attachments: [] });
+}
+
 function composerFor(deps: EmailDeps, job: EmailJobRow): Compose | null {
+  if (job.kind === 'payment') return paymentComposer(deps, job.payload ?? null);
   if (job.kind === 'schedule-change') return scheduleComposer(deps, job.payload ?? null);
   const registrationId = job.registrationDocumentId;
   return registrationId ? (to) => compose(deps, registrationId, to) : null;
@@ -153,14 +164,28 @@ async function tryOnce(deps: EmailDeps, composer: Compose, to: string): Promise<
 }
 
 const held = (job: EmailJobRow, now: Date): boolean => !!job.notBefore && Date.parse(job.notBefore) > now.getTime();
-const missingSource = (job: EmailJobRow): string => (job.kind === 'schedule-change' ? 'schedule change without payload' : 'registration deleted');
+const MISSING_SOURCE: Record<EmailJobKind, string> = {
+  registration: 'registration deleted', 'schedule-change': 'schedule change without payload', payment: 'payment without payload',
+};
+const missingSource = (job: EmailJobRow): string => MISSING_SOURCE[job.kind ?? 'registration'];
 
 /** The final write, only while the job is still `sending`; a job the cron already failed is left as it is. */
 async function finishJob(deps: EmailDeps, job: EmailJobRow, state: JobUpdate): Promise<EmailJobRow> {
   const written = await deps.jobs.finish(job.documentId, state);
-  if (written) return written;
-  deps.log('warn', `[email-job] job ${job.documentId} was no longer sending when its result was written`);
-  return { ...job, ...state };
+  if (!written) {
+    deps.log('warn', `[email-job] job ${job.documentId} was no longer sending when its result was written`);
+    return { ...job, ...state };
+  }
+  if (written.status === 'sent') await notifySent(deps, written);
+  return written;
+}
+
+async function notifySent(deps: EmailDeps, job: EmailJobRow): Promise<void> {
+  try {
+    await deps.onSent?.(job);
+  } catch (err) {
+    deps.log('warn', `[email-job] onSent of job ${job.documentId} failed: ${message(err)}`);
+  }
 }
 
 /**
