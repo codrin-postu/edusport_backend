@@ -4,9 +4,13 @@ import type { DateParts } from '../birth-date';
 import type { ConfirmationRecord, RegistrationStatus } from '../confirm/plan';
 import type { HistoryInput } from '../history';
 import type { StoredMatchLevel } from '../matching';
+import type { PersonalDataSettings } from '../personal-data/settings';
+import type { RegistrationScrub } from '../personal-data/anonymize-plan';
 
 /** Club data as the 3A+3B services see it. Ids are Strapi documentIds. `strapiClubStore` is the real one. */
-export type AthleteRow = AthleteValues & { id: string; status: AthleteStatus; dataIncomplete: boolean; profileId: string | null; notes: string | null; updatedAt: string };
+export type AthleteRow = AthleteValues & {
+  id: string; status: AthleteStatus; dataIncomplete: boolean; profileId: string | null; notes: string | null; updatedAt: string; createdAt: string; anonymizedAt: string | null;
+};
 export type RegistrationRow = {
   id: string; number: string | null; childName: string; childBirthDate: string; parentName: string; phone: string; email: string;
   status: RegistrationStatus; archived: boolean; season: string | null; seasonId: string | null; sectionId: string | null;
@@ -28,7 +32,11 @@ export type RegistrationPatch = Partial<{
   athleteId: string | null; matchAthleteId: string | null; matchLevel: StoredMatchLevel | null; childBirthDateParsed: string | null;
   status: RegistrationStatus; sectionId: string; confirmation: ConfirmationRecord | null;
 }>;
-export type AthleteWrite = Partial<AthleteValues & { status: AthleteStatus; dataIncomplete: boolean; profileId: string | null; notes: string | null }>;
+export type AthleteWrite = Partial<AthleteValues & {
+  status: AthleteStatus; dataIncomplete: boolean; profileId: string | null; notes: string | null; firstName: null; lastName: null; anonymizedAt: string | null;
+}>;
+/** One e-mail job as the 3C tests see it (fake state); the services only call `scrubEmailJobs`. */
+export type ClubEmailJob = { id: string; registrationId: string | null; recipient: string | null; subject: string | null; status: string; lastError: string | null };
 
 export interface ClubStore {
   /** All writes inside `work` are saved together or not at all. */
@@ -76,6 +84,19 @@ export interface ClubStore {
   deleteProfile(id: string): Promise<void>;
   moveHistory(fromAthleteId: string, toAthleteId: string): Promise<void>;
   record(entry: HistoryInput): Promise<void>;
+  /** Raw registration rows of one athlete (every attribute), for the export summary (3C spec 3). */
+  registrationRecords(athleteId: string): Promise<Record<string, unknown>[]>;
+  /** Registrations linked to an anonymized athlete: the startup sweep of their PDF folders (3C spec 4). */
+  anonymizedRegistrationIds(): Promise<string[]>;
+  /** Replaces one history row's `changes` (3C scrubbing); `seq` is HistoryRow.seq. */
+  setHistoryChanges(seq: number, changes: Record<string, unknown>): Promise<void>;
+  /** Writes the 3C scrub on a registration, required form fields included; lifecycles (Sheet row) still run. */
+  scrubRegistration(id: string, data: RegistrationScrub): Promise<void>;
+  /** E-mail jobs of these registrations: recipient, subject and lastError cleared, a queued job cancelled. */
+  scrubEmailJobs(registrationIds: string[]): Promise<void>;
+  /** site-settings.personalData as stored (read it with `readPersonalDataSettings`). */
+  personalDataSettings(): Promise<unknown>;
+  savePersonalDataSettings(value: PersonalDataSettings): Promise<void>;
 }
 
 /** What every 3A+3B service gets from its controller. */

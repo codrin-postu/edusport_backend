@@ -1,6 +1,7 @@
 import type { HistoryInput } from '../../history';
+import { scrubbedJobStatus, type RegistrationScrub } from '../../personal-data/anonymize-plan';
 import type {
-  AcsRow, AthleteRow, ClubStore, DuplicateRow, GroupRow, HistoryRow, MembershipRow, ProfileRow, RegistrationRow, SeasonRow, SectionRow,
+  AcsRow, AthleteRow, ClubEmailJob, ClubStore, DuplicateRow, GroupRow, HistoryRow, MembershipRow, ProfileRow, RegistrationRow, SeasonRow, SectionRow,
 } from '../store';
 
 /** In-memory ClubStore for the service tests. A transaction restores a snapshot when its work throws. */
@@ -8,6 +9,8 @@ export type FakeState = {
   athletes: AthleteRow[]; registrations: RegistrationRow[]; seasons: SeasonRow[]; sections: SectionRow[]; groups: GroupRow[];
   memberships: MembershipRow[]; acs: AcsRow[]; duplicates: DuplicateRow[]; profiles: ProfileRow[]; history: HistoryRow[];
   removedParticipations: string[]; locks: string[]; admins: Record<string, string>;
+  /** Extra raw attributes per registration id (shirtSize, consents, ...), merged over the row by `registrationRecords`. */
+  registrationRecords: Record<string, Record<string, unknown>>; emailJobs: ClubEmailJob[]; settings: unknown;
 };
 export type Fake = { store: ClubStore; state: FakeState; failOn(method: keyof ClubStore): void };
 
@@ -28,7 +31,10 @@ export const GROUPS: GroupRow[] = [
 const defined = <T extends object>(o: T): Partial<T> => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
 
 export function athleteRow(over: Partial<AthleteRow> & { id: string }): AthleteRow {
-  const base: AthleteRow = { id: over.id, name: null, birthDate: null, contactName: null, phone: null, email: null, status: 'activ', dataIncomplete: false, profileId: null, notes: null, updatedAt: '2026-10-01T10:00:00.000Z' };
+  const base: AthleteRow = {
+    id: over.id, name: null, birthDate: null, contactName: null, phone: null, email: null, status: 'activ', dataIncomplete: false, profileId: null, notes: null,
+    updatedAt: '2026-10-01T10:00:00.000Z', createdAt: '2026-10-01T10:00:00.000Z', anonymizedAt: null,
+  };
   return { ...base, ...defined(over) };
 }
 
@@ -79,7 +85,8 @@ function fakeAthleteWrites(s: FakeState, next: Next, tick: () => string): Pick<C
     },
     createAthlete: async (data) => {
       const id = next('ath');
-      s.athletes.push(athleteRow({ ...data, id, updatedAt: tick() }));
+      const at = tick();
+      s.athletes.push(athleteRow({ ...data, id, updatedAt: at, createdAt: at }));
       return id;
     },
     updateAthlete: async (id, data) => {
@@ -165,6 +172,49 @@ function fakeHistory(s: FakeState, tick: () => string): Pick<ClubStore, 'moveHis
   };
 }
 
+/** The raw attributes the Strapi store would read for a registration row. */
+const rawOf = (r: RegistrationRow): Record<string, unknown> => ({
+  documentId: r.id, registrationNumber: r.number, childName: r.childName, childBirthDate: r.childBirthDate, parentName: r.parentName, phone: r.phone,
+  email: r.email, status: r.status, archived: r.archived, season: r.season, membershipAnswer: r.membershipAnswer, lastSeason: r.lastSeason,
+  subscriptionChoice: r.subscriptionChoice, submittedAt: r.submittedAt,
+});
+
+/** After a scrub the Strapi store reads null text fields as '' (toRegistrationRow), so the fake row does the same. */
+function scrubRow(row: RegistrationRow, data: RegistrationScrub): void {
+  Object.assign(row, { childName: data.childName, childBirthDate: '', parentName: '', phone: '', email: '', childBirthDateParsed: null, lastSeason: null, confirmation: data.confirmation });
+}
+
+type PersonalData = 'registrationRecords' | 'anonymizedRegistrationIds' | 'setHistoryChanges' | 'scrubRegistration' | 'scrubEmailJobs' | 'personalDataSettings' | 'savePersonalDataSettings';
+
+function fakePersonalData(s: FakeState): Pick<ClubStore, PersonalData> {
+  return {
+    registrationRecords: async (athleteId) =>
+      structuredClone(s.registrations.filter((r) => r.athleteId === athleteId).map((r) => ({ ...rawOf(r), ...s.registrationRecords[r.id] }))),
+    anonymizedRegistrationIds: async () => {
+      const anonymized = new Set(s.athletes.filter((a) => a.status === 'anonimizat').map((a) => a.id));
+      return s.registrations.filter((r) => r.athleteId !== null && anonymized.has(r.athleteId)).map((r) => r.id);
+    },
+    setHistoryChanges: async (seq, changes) => {
+      const row = s.history.find((h) => h.seq === seq);
+      if (!row) throw new Error(`fake: no history row ${seq}`);
+      row.changes = structuredClone(changes);
+    },
+    scrubRegistration: async (id, data) => {
+      scrubRow(must(s.registrations, id), data);
+      s.registrationRecords[id] = { ...s.registrationRecords[id], ...structuredClone(data) };
+    },
+    scrubEmailJobs: async (ids) => {
+      for (const j of s.emailJobs) {
+        if (j.registrationId && ids.includes(j.registrationId)) Object.assign(j, { recipient: null, subject: null, lastError: null, status: scrubbedJobStatus(j.status) });
+      }
+    },
+    personalDataSettings: async () => structuredClone(s.settings),
+    savePersonalDataSettings: async (value) => {
+      s.settings = structuredClone(value);
+    },
+  };
+}
+
 function withFailures(store: ClubStore, failing: Set<string>): ClubStore {
   const wrapped: Record<string, unknown> = {};
   for (const [key, fn] of Object.entries(store) as [string, (...args: unknown[]) => Promise<unknown>][]) {
@@ -175,7 +225,7 @@ function withFailures(store: ClubStore, failing: Set<string>): ClubStore {
 
 const EMPTY: FakeState = {
   athletes: [], registrations: [], seasons: SEASONS, sections: SECTIONS, groups: GROUPS, memberships: [], acs: [], duplicates: [],
-  profiles: [], history: [], removedParticipations: [], locks: [], admins: {},
+  profiles: [], history: [], removedParticipations: [], locks: [], admins: {}, registrationRecords: {}, emailJobs: [], settings: null,
 };
 
 export function fakeClubStore(seed: Partial<FakeState> = {}): Fake {
@@ -201,6 +251,7 @@ export function fakeClubStore(seed: Partial<FakeState> = {}): Fake {
       state.locks.push(`athlete:${id}`);
     },
     ...fakeReads(state), ...fakeAthleteWrites(state, next, tick), ...fakeRowWrites(state, next), ...fakeProfileWrites(state, next), ...fakeHistory(state, tick),
+    ...fakePersonalData(state),
   };
   return { store: withFailures(base, failing), state, failOn: (method) => failing.add(method) };
 }

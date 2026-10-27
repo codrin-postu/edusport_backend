@@ -24,6 +24,7 @@ describe('registration scrub (spec 4)', () => {
     const s = registrationScrub(null);
     for (const key of REGISTRATION_NULLED_KEYS) expect(s[key], key).toBeNull();
     expect(s.childName).toBe('Anonimizat');
+    expect(s.howHeard).toBeNull();
     expect(s.confirmation).toBeNull();
     for (const key of REGISTRATION_KEPT_KEYS) expect(Object.keys(s), key).not.toContain(key);
   });
@@ -47,6 +48,17 @@ describe('history scrubbing (spec 4)', () => {
     expect(scrubChanges({ registrationNumber: '2026-0142', schoolName: 'AFI' })).toEqual({ registrationNumber: '2026-0142', schoolName: 'AFI' });
     expect(scrubChanges({ fields: { childName: { from: '', to: 'Ilinca' }, parentName: { from: 'Ana', to: 'Dana' }, contactName: { from: null, to: 'Dana' } } }))
       .toEqual({ fields: { childName: { from: null, to: null }, parentName: { from: null, to: null }, contactName: { from: null, to: null } } });
+  });
+
+  it('walks arrays and nested objects at any depth', () => {
+    const changes = {
+      registrations: [{ documentId: 'r1', season: '2025-2026', email: 'a@x.ro' }, [{ info: { name: 'X', groupName: 'G' } }], 'r2'],
+      deep: { list: [{ inner: { fields: { phone: { from: '0722', to: '0733' } } } }] },
+    };
+    expect(scrubChanges(changes)).toEqual({
+      registrations: [{ documentId: 'r1', season: '2025-2026', email: null }, [{ info: { name: null, groupName: 'G' } }], 'r2'],
+      deep: { list: [{ inner: { fields: { phone: { from: null, to: null } } } }] },
+    });
   });
 
   it('is stable: scrubbing twice changes nothing more', () => {

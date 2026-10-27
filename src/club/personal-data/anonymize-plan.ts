@@ -5,10 +5,10 @@ import { PERSONAL_DATA_COPY } from './copy';
 export const ATHLETE_PERSONAL_KEYS = ['name', 'firstName', 'lastName', 'birthDate', 'contactName', 'phone', 'email', 'notes'] as const;
 export const REGISTRATION_NULLED_KEYS = [
   'parentName', 'email', 'phone', 'childBirthDate', 'childBirthDateParsed', 'childHeight', 'shirtSize', 'priorExperience', 'expectations',
-  'relationshipOther', 'sourceOther', 'internalNote', 'lastSeason', 'extra', 'submissionKey',
+  'relationshipOther', 'sourceOther', 'internalNote', 'lastSeason', 'extra', 'submissionKey', 'howHeard',
 ] as const;
 export const REGISTRATION_KEPT_KEYS = [
-  'registrationNumber', 'season', 'seasonRef', 'section', 'status', 'archived', 'submittedAt', 'level', 'relationship', 'howHeard', 'source',
+  'registrationNumber', 'season', 'seasonRef', 'section', 'status', 'archived', 'submittedAt', 'level', 'relationship', 'source',
   'membershipAnswer', 'subscriptionChoice', 'gdprConsent', 'regulationsConsent', 'clubInterest', 'regulationsAgreement', 'privacyConsent', 'athlete',
 ] as const;
 
@@ -37,12 +37,11 @@ type Changes = Record<string, unknown>;
 const isPlainObject = (v: unknown): v is Changes => !!v && typeof v === 'object' && !Array.isArray(v);
 const isPair = (v: unknown): v is Changes => isPlainObject(v) && 'from' in v && 'to' in v;
 const scrubValue = (v: unknown): unknown => (isPair(v) ? { ...v, from: null, to: null } : null);
+const walk = (v: unknown): unknown => (Array.isArray(v) ? v.map(walk) : isPlainObject(v) ? scrubChanges(v) : v);
 
-/** Every value under a personal key becomes null (a pair keeps its shape); other keys kept; nested objects walked. */
+/** Every value under a personal key becomes null (a pair keeps its shape); other keys kept; nested objects and arrays walked. */
 export function scrubChanges(changes: Changes): Changes {
-  return Object.fromEntries(
-    Object.entries(changes).map(([key, v]) => [key, HISTORY_PERSONAL_KEYS.has(key) ? scrubValue(v) : isPlainObject(v) ? scrubChanges(v) : v]),
-  );
+  return Object.fromEntries(Object.entries(changes).map(([key, v]) => [key, HISTORY_PERSONAL_KEYS.has(key) ? scrubValue(v) : walk(v)]));
 }
 
 export function registrationScrub(confirmation: ConfirmationRecord | null): RegistrationScrub {
