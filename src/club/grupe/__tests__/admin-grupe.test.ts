@@ -68,3 +68,28 @@ describe('design rules', () => {
     expect(existsSync(join(SRC, 'admin/dashboard/grupe/PanelShell.tsx'))).toBe(true);
   });
 });
+
+describe('"Fără grupă" (5.3)', () => {
+  const button = grupe('UnassignedButton.tsx');
+
+  it('is hidden at 0, shows the orange count, opens a dropdown or a sheet with the rows', () => {
+    expect(button).toContain('count === 0');
+    expect(button).toContain('grp-count');
+    expect(button).toContain('desktop="dropdown"');
+    expect(button).toContain('GRUPE_COPY.unassignedHeader');
+  });
+
+  it('preselects the proposal, allocates one or all, toasts with undo', () => {
+    for (const s of ['initialPicks', 'GRUPE_COPY.pickGroup', 'GRUPE_COPY.allocate', 'GRUPE_COPY.allocateAll', 'allocateItems', "mode: 'allocate'", 'GROUP_TOASTS.allocated', 'GROUP_TOASTS.allocatedAll', 'undoToast']) {
+      expect(button, s).toContain(s);
+    }
+  });
+
+  it('keeps a button busy until the answer', () => {
+    expect(button).toContain('loading=');
+  });
+
+  it('the list page shows it next to "Grupă nouă" on a writable season', () => {
+    expect(grupe('GrupeList.tsx')).toContain('<UnassignedButton');
+  });
+});
