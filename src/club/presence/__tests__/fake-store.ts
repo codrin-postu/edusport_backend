@@ -4,6 +4,7 @@ import type { CalendarWindow } from '../../groups/occurrences';
 import type {
   AttendanceRow, AttendanceWrite, LessonRow, PaymentEmailJob, PaymentRow, PriceItemRow, PriceListRecord, SessionRow, SubscriptionRow,
 } from '../types';
+import type { PresenceContext } from '../context';
 import type { PresenceStore } from '../store';
 import { UniqueKeyError } from '../store';
 
@@ -15,8 +16,6 @@ export type FakePresenceState = {
 };
 export type FakePresenceSeed = { group?: Partial<FakeGroupState> } & Partial<FakePresenceState>;
 export type FakePresence = { store: PresenceStore; state: FakePresenceState; group: FakeGroupState; failOn(method: keyof PresenceStore): void };
-/** Shape of Task 6's PresenceContext; swap for the type import when that file lands. */
-export type PresenceContext = { store: PresenceStore; actor: string; today: string; now: () => Date; log: (m: string) => void };
 
 const item = (name: string, kind: PriceItemRow['kind'], sessions: number | null, memberPrice: number, nonMemberPrice: number, included = false): PriceItemRow =>
   ({ name, kind, sessions, memberPrice, nonMemberPrice, included });
