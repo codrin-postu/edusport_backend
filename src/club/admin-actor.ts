@@ -9,7 +9,7 @@ export type ActorStrapi = {
 /** Written on history entries when the admin cannot be identified (the route policy already checked the token). */
 export const UNKNOWN_ACTOR = 'admin';
 
-function adminIdFrom(authorization: string | undefined, secret: unknown): unknown {
+export function adminIdFrom(authorization: string | undefined, secret: unknown): unknown {
   if (!authorization?.startsWith('Bearer ') || typeof secret !== 'string' || !secret) return null;
   const payload = jwt.verify(authorization.slice(7), secret);
   if (!payload || typeof payload !== 'object') return null;

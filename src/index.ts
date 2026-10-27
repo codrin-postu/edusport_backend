@@ -4,6 +4,7 @@ import { registerRecurrenceValidation } from './api/calendar-event/services/vali
 import { registerAnnouncementValidation } from './api/announcement/services/validate-announcement';
 import { seedLegacyLink } from './sheets/store';
 import { normalizeNavigationPages } from './api/navigation/services/pages';
+import { startPersonalDataSweep } from './club/personal-data/http';
 
 // Admin layout overrides - applied on every bootstrap so they survive DB resets.
 // Each key is the strapi_core_store_settings key for that component/content-type.
@@ -407,6 +408,9 @@ export default {
     // (docs/admin-ui/PAGES-TOGGLE.md): add missing keys as enabled, drop
     // unknown ones, never flip an existing value.
     await normalizeNavigationPages(strapi);
+
+    // 3C: PDF folders of anonymized athletes' registrations that could not be deleted at the time.
+    startPersonalDataSweep(strapi);
 
     // Confirm the scheduled jobs actually registered — a cron block that is
     // silently ignored (wrong config key, disabled) is otherwise invisible.
