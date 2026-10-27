@@ -1,0 +1,24 @@
+{
+  "kind": "collectionType",
+  "collectionName": "club_individual_lessons",
+  "info": { "singularName": "individual-lesson", "pluralName": "individual-lessons", "displayName": "Club / Lecție individuală" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete", "required": true },
+    "date": { "type": "date", "required": true },
+    "startTime": { "type": "string", "required": true },
+    "durationMin": { "type": "integer", "required": true, "default": 50, "min": 5, "max": 600 },
+    "coaches": { "type": "relation", "relation": "manyToMany", "target": "api::team-member.team-member" },
+    "state": { "type": "enumeration", "enum": ["planned", "saved"], "required": true, "default": "planned" },
+    "present": { "type": "boolean" },
+    "priceList": { "type": "relation", "relation": "manyToOne", "target": "api::price-list.price-list" },
+    "itemName": { "type": "string" },
+    "price": { "type": "decimal" },
+    "audience": { "type": "enumeration", "enum": ["member", "nonMember"] },
+    "amount": { "type": "decimal", "default": 0 },
+    "createdBy": { "type": "string" },
+    "savedBy": { "type": "string" },
+    "savedAt": { "type": "datetime" }
+  }
+}

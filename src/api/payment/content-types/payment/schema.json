@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "club_payments",
+  "info": { "singularName": "payment", "pluralName": "payments", "displayName": "Club / Plată" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete", "required": true },
+    "amount": { "type": "decimal", "required": true, "min": 0.01 },
+    "method": { "type": "enumeration", "enum": ["numerar", "card", "transfer"], "required": true },
+    "paidOn": { "type": "date", "required": true },
+    "purpose": { "type": "enumeration", "enum": ["abonament", "cotizatie", "club_luna", "lectie", "altceva"], "required": true },
+    "subscription": { "type": "relation", "relation": "manyToOne", "target": "api::subscription.subscription" },
+    "lesson": { "type": "relation", "relation": "manyToOne", "target": "api::individual-lesson.individual-lesson" },
+    "clubMonth": { "type": "string", "regex": "^\\d{4}-\\d{2}$" },
+    "season": { "type": "relation", "relation": "manyToOne", "target": "api::season.season", "required": true },
+    "collectedAtRink": { "type": "boolean", "default": false },
+    "note": { "type": "text" },
+    "sendEmail": { "type": "boolean", "default": false },
+    "emailJob": { "type": "relation", "relation": "manyToOne", "target": "api::email-job.email-job" },
+    "acsBefore": { "type": "enumeration", "enum": ["da", "nu", "in_asteptare"] },
+    "recordedBy": { "type": "string" },
+    "recordedAt": { "type": "datetime" },
+    "cancelled": { "type": "boolean", "default": false },
+    "cancelledAt": { "type": "datetime" },
+    "cancelledBy": { "type": "string" }
+  }
+}

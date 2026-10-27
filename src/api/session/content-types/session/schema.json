@@ -1,0 +1,22 @@
+{
+  "kind": "collectionType",
+  "collectionName": "club_sessions",
+  "info": { "singularName": "session", "pluralName": "sessions", "displayName": "Club / Ședință" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "group": { "type": "relation", "relation": "manyToOne", "target": "api::group.group", "required": true },
+    "season": { "type": "relation", "relation": "manyToOne", "target": "api::season.season", "required": true },
+    "date": { "type": "date", "required": true },
+    "startTime": { "type": "string", "required": true },
+    "durationMin": { "type": "integer", "required": true, "min": 5, "max": 600 },
+    "source": { "type": "enumeration", "enum": ["schedule", "added"], "required": true },
+    "event": { "type": "relation", "relation": "manyToOne", "target": "api::calendar-event.calendar-event" },
+    "occurrenceKey": { "type": "string", "unique": true },
+    "outsideSchedule": { "type": "boolean", "default": false },
+    "coaches": { "type": "relation", "relation": "manyToMany", "target": "api::team-member.team-member" },
+    "savedBy": { "type": "string" },
+    "savedAt": { "type": "datetime" },
+    "firstSavedAt": { "type": "datetime" }
+  }
+}

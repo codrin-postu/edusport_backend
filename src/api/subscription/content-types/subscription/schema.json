@@ -1,0 +1,25 @@
+{
+  "kind": "collectionType",
+  "collectionName": "club_subscriptions",
+  "info": { "singularName": "subscription", "pluralName": "subscriptions", "displayName": "Club / Abonament" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete", "required": true },
+    "season": { "type": "relation", "relation": "manyToOne", "target": "api::season.season", "required": true },
+    "priceList": { "type": "relation", "relation": "manyToOne", "target": "api::price-list.price-list", "required": true },
+    "validIn": { "type": "relation", "relation": "manyToMany", "target": "api::price-list.price-list" },
+    "itemName": { "type": "string", "required": true },
+    "price": { "type": "decimal" },
+    "audience": { "type": "enumeration", "enum": ["member", "nonMember"] },
+    "slots": { "type": "integer", "required": true, "min": 1 },
+    "startsOn": { "type": "date", "required": true },
+    "validUntil": { "type": "date", "required": true },
+    "extendedWeeks": { "type": "integer", "default": 0, "min": 0 },
+    "cancelled": { "type": "boolean", "default": false },
+    "cancelledAt": { "type": "datetime" },
+    "cancelledBy": { "type": "string" },
+    "purchasedAt": { "type": "datetime" },
+    "recordedBy": { "type": "string" }
+  }
+}

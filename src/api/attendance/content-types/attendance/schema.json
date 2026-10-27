@@ -1,0 +1,20 @@
+{
+  "kind": "collectionType",
+  "collectionName": "club_attendances",
+  "info": { "singularName": "attendance", "pluralName": "attendances", "displayName": "Club / Prezență" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "session": { "type": "relation", "relation": "manyToOne", "target": "api::session.session", "required": true },
+    "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete", "required": true },
+    "uniqueKey": { "type": "string", "unique": true },
+    "grup": { "type": "boolean" },
+    "uscat": { "type": "boolean" },
+    "visitor": { "type": "boolean" },
+    "subscription": { "type": "relation", "relation": "manyToOne", "target": "api::subscription.subscription" },
+    "billing": { "type": "enumeration", "enum": ["slot", "fara_abonament", "club", "inclus", "fara_pret"], "required": true },
+    "charges": { "type": "json" },
+    "amount": { "type": "decimal", "default": 0 },
+    "audience": { "type": "enumeration", "enum": ["member", "nonMember"] }
+  }
+}

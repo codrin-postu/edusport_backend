@@ -7,7 +7,7 @@
   "attributes": {
     "recipient": { "type": "string", "required": true },
     "subject": { "type": "string", "required": true },
-    "kind": { "type": "enumeration", "enum": ["registration", "schedule-change"], "required": true, "default": "registration" },
+    "kind": { "type": "enumeration", "enum": ["registration", "schedule-change", "payment"], "required": true, "default": "registration" },
     "registration": { "type": "relation", "relation": "manyToOne", "target": "api::registration-submission.registration-submission", "inversedBy": "emailJobs" },
     "status": { "type": "enumeration", "enum": ["queued", "sending", "sent", "failed", "cancelled"], "required": true, "default": "queued" },
     "attempts": { "type": "integer", "required": true, "default": 0, "min": 0 },
@@ -16,6 +16,7 @@
     "group": { "type": "relation", "relation": "manyToOne", "target": "api::group.group" },
     "payload": { "type": "json" },
     "changeKey": { "type": "string" },
-    "notBefore": { "type": "datetime" }
+    "notBefore": { "type": "datetime" },
+    "payment": { "type": "relation", "relation": "manyToOne", "target": "api::payment.payment" }
   }
 }
