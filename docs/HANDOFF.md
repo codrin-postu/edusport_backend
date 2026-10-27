@@ -9,8 +9,8 @@ One page to start the next session. Rules and commands: `CLAUDE.md`. Decisions: 
 | 1 Data foundation | Live (deployed, migrated) |
 | 2 Registration rebuild | Merged to main 2026-10-26 (be 9f869cf, fe e35e41a). Not deployed |
 | 3A + 3B Înscrieri, Sportivi, confirmation, matching, merge, delete | Built and reviewed on `feat/athletes`, polish merged. Not on main, not deployed |
-| 3C Personal data (export, anonymize, inactivity list, Super Admin) | Built on `feat/athletes`; final review fixes (I1-I3) on `fix/p3c-final`, being merged into `feat/athletes` |
-| 4 Groups and schedules | Spec approved, plans being written (see below). Build next |
+| 3C Personal data (export, anonymize, inactivity list, Super Admin) | Built and reviewed on `feat/athletes` (final review fixes merged, 1610d22); boot check proved no personal data left; running on the local environment |
+| 4 Groups and schedules | Spec v1.1 approved; 7 plans (46 tasks) committed (backend ea88c92, website plan in p3fe ba2b51b). Build next |
 | 5-8 | Not started (`docs/architecture/13-roadmap.md`) |
 
 Deploy: ONE window for phase 2 + 3 together (DECISIONS 2026-10-26 d19), only with the user's approval, backup first, per `docs/architecture/12-phase2-deploy-runbook.md`, then `npm run migrate:athletes` steps. Merging `feat/athletes` into main also waits for that window.
@@ -28,7 +28,7 @@ Backend `/Users/codrin/Documents/Programming/edusport_backend`, frontend `/Users
 ## Where things live
 
 - Specs: `docs/superpowers/specs/` (P3 `2026-10-26-athletes-registrations-design.md`, 3C `2026-10-27-personal-data-design.md`, P4 `2026-10-27-groups-schedules-design.md` v1.1 approved).
-- Plans: `docs/superpowers/plans/`. Phase 4: `2026-10-27-phase4-*.md` with the order and dependencies in `2026-10-27-phase4-index.md` (4-1 groups and memberships, 4-2 schedules, 4-3 new season, 4-4 migration, 4-5 Grupe admin UI; 4-6 admin Calendar și serii / Sezoane and 4-7 website are referenced by them). Still uncommitted while being written.
+- Plans: `docs/superpowers/plans/`. Phase 4: `2026-10-27-phase4-*.md` with the order and dependencies in `2026-10-27-phase4-index.md` (4-1 groups and memberships, 4-2 schedules, 4-3 new season, 4-4 migration, 4-5 Grupe admin UI, 4-6 admin Calendar și serii / Sezoane, 4-7 website in edusport_frontend/.claude/worktrees/p3fe/docs/superpowers/plans/). Order: 4-1, 4-2, then 4-3 / 4-4 / 4-5 / 4-7 in parallel, then 4-6.
 - Research notes (production read-only facts): `edusport_backend/.superpowers/phase4/research.md`, `.superpowers/phase3c/research.md` (main checkout).
 - Ledgers: phase 4 goes in `p3be/.superpowers/sdd/<date>-phase4-*/progress.md`. Phase 3 archived in `p3be/.superpowers/sdd-archive/phase3/` (per plan ledgers, task briefs, reports, reviews; `final/` holds the whole-branch reviews, `review-3c.md`, polish and TEST env reports). Phase 2 in the main checkout's `.superpowers/sdd-archive/phase2/`. Agent rules and the shared progress board: main checkout `.superpowers/phase3-shared/` (`agent-rules.md`, `progress-board.md`, UTC times).
 - Mockups and renders: frontend `docs/portal/mockups/screens/` (phase 4 in `phase4/`, generators `gen_phase4.py`, `gen_sezon_nou.py`; phase 3 renders in `phase3-renders/`; prototype `prototype-registrations-v5.html`). Admin CSS extracts `mockups/admin-ui-extract.css`, `admin-calendar-extract.css`.
