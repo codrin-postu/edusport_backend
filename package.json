@@ -24,6 +24,7 @@
     "migrate:club": "node scripts/migrate-club-foundation.js",
     "migrate:registration": "node scripts/migrate-registration-data.js",
     "migrate:athletes": "node scripts/migrate-athletes-registrations.js",
+    "migrate:groups": "node scripts/migrate-groups-schedules.js",
     "start": "strapi start",
     "strapi": "strapi",
     "test": "vitest run",
