@@ -133,3 +133,39 @@ describe('group page (6.1, 6.2, 6.4)', () => {
     expect(grupe('GroupHistoryTab.tsx')).toContain('historyWhen');
   });
 });
+
+describe('Program tab (6.3)', () => {
+  const tab = grupe('ProgramTab.tsx');
+  const drawer = grupe('ProgramDrawer.tsx');
+  const panel = grupe('DatePanel.tsx');
+  const cal = grupe('GroupCalendar.tsx');
+  const view = source('plugins/component-preview/admin/src/calendar/CalendarView.tsx');
+
+  it('Program obișnuit rows with Schimbă, and Adaugă program, on a writable season', () => {
+    for (const s of ['GRUPE_COPY.usual', 'GRUPE_COPY.change', 'GRUPE_COPY.addProgram', 'GRUPE_COPY.fromDate', 'writable(page)']) expect(tab, s).toContain(s);
+  });
+
+  it('the calendar: Listă / Lună, month navigation, Azi, group chips, week titles, no add buttons', () => {
+    for (const s of ['GRUPE_COPY.viewList', 'GRUPE_COPY.viewMonth', 'GRUPE_COPY.today', 'groupChip', 'weekTitle', 'api.occurrences']) expect(cal, s).toContain(s);
+    expect(cal).not.toContain('onAddOn=');
+    expect(view).toContain('view = occView');
+    expect(view).toContain('weekTitle = weekLabel');
+  });
+
+  it('Program nou: Se repetă, Cât de des, Săptămâna din lună for Lunar, square day toggles, De la, Durată, Se aplică din; off: Data, Notă', () => {
+    for (const s of ['GRUPE_COPY.repeat', 'GRUPE_COPY.howOften', 'GRUPE_COPY.weekOfMonth', 'DAY_TOGGLES', 'aria-pressed', 'GRUPE_COPY.startAt', 'GRUPE_COPY.duration', 'GRUPE_COPY.appliesFrom', 'GRUPE_COPY.date', 'GRUPE_COPY.note', 'durationOptions']) expect(drawer, s).toContain(s);
+  });
+
+  it('Schimbă programul: no Se repetă, a red Șterge programul with its confirmation', () => {
+    for (const s of ['GRUPE_COPY.drawerChange', 'GRUPE_COPY.endProgram', 'GRUPE_COPY.endConfirm', 'grp-danger-link', 'SCHEDULE_TOASTS.programChanged', 'SCHEDULE_TOASTS.programEnded']) expect(drawer, s).toContain(s);
+  });
+
+  it('the date panel: Ține / Anulează / Mută, Data nouă and De la for Mută, Motiv, the e-mail box, Șterge ședința for one class, read-only on a break', () => {
+    for (const s of ['GRUPE_COPY.thisDate', 'GRUPE_COPY.keep', 'GRUPE_COPY.cancelDate', 'GRUPE_COPY.moveDate', 'GRUPE_COPY.newDate', 'GRUPE_COPY.reason', 'GRUPE_COPY.notify', 'GRUPE_COPY.deleteClass', 'GRUPE_COPY.breakNotice', 'isBreak', 'dateKey', 'dateToast', 'panelTitle']) expect(panel, s).toContain(s);
+    expect(panel).toContain('maxLength={120}');
+  });
+
+  it('the group page shows the Program tab', () => {
+    expect(grupe('GroupPage.tsx')).toContain('<ProgramTab');
+  });
+});

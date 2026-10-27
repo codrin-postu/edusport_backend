@@ -93,6 +93,11 @@ export interface Occurrence {
   state?: string | null;
   /** Per-occurrence note (reason for Liber / Anulat). */
   note?: string | null;
+  /** Phase 4: the group of a group event (admin occurrences route), and where a moved date came from. */
+  groupId?: string | null;
+  groupName?: string | null;
+  originalDate?: string | null;
+  originalStartTime?: string | null;
 }
 export interface Exception { date: string; kind: 'cancel' | 'override' | 'liber' | 'anulat'; newStartTime?: string | null; newEndTime?: string | null; newTitle?: string | null; newDate?: string | null; }
 export interface FormState {

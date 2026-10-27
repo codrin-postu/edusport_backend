@@ -10,6 +10,7 @@ import { SPORTIVI_CSS } from '../sportivi/styles';
 import { useGrupeApi, type GrupeApi } from './api';
 import { GroupHistoryTab } from './GroupHistoryTab';
 import { GroupMenu } from './GroupMenu';
+import { ProgramTab } from './ProgramTab';
 import { RosterTab } from './RosterTab';
 import { GRUPE_CSS } from './styles';
 import { useGrupeRefresh } from './undo';
@@ -34,8 +35,7 @@ function useGroupPage(api: GrupeApi, id: string, season: string | null): Loaded 
   return { page, failed, reload };
 }
 
-/** Task 6 adds the Program tab and its panel. */
-const SHOWN: readonly GroupTab[] = ['sportivi', 'istoric'];
+const SHOWN: readonly GroupTab[] = ['sportivi', 'program', 'istoric'];
 
 function GroupBody({ page, api, tab, onTab }: { page: GroupPageData; api: GrupeApi; tab: GroupTab; onTab: (t: GroupTab) => void }) {
   const tabs = groupTabs(page).filter((t) => SHOWN.includes(t.id));
@@ -44,6 +44,7 @@ function GroupBody({ page, api, tab, onTab }: { page: GroupPageData; api: GrupeA
       <Tabs items={tabs} value={tab} onChange={(id) => onTab(id as GroupTab)} label={GRUPE_COPY.title} panelId="grp-panel" className="spv-tabs" />
       <div role="tabpanel" id="grp-panel">
         {tab === 'sportivi' && <RosterTab page={page} api={api} />}
+        {tab === 'program' && <ProgramTab page={page} api={api} />}
         {tab === 'istoric' && <GroupHistoryTab api={api} documentId={page.documentId} />}
       </div>
     </>
