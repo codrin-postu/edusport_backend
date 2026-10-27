@@ -1,6 +1,7 @@
 import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
 import { ADMIN_ERRORS } from '../../../club/athletes/errors';
 import { clubStore, serviceContext } from '../../../club/athletes/http';
+import { strapiPresenceStore } from '../../../club/presence/strapi-store';
 import { readAnonymizeIds } from '../../../club/personal-data/anonymize-plan';
 import { anonymizeAthlete, anonymizeAthletes } from '../../../club/personal-data/anonymize-service';
 import { exportAthleteData } from '../../../club/personal-data/export-service';
@@ -30,10 +31,10 @@ export default {
   },
 
   async inactiveSummary(ctx: AdminCtx) {
-    respond(ctx, await readInactiveSummary(clubStore(strapi), (message) => strapi.log.error(message), new Date()));
+    respond(ctx, await readInactiveSummary(clubStore(strapi), strapiPresenceStore(strapi), (message) => strapi.log.error(message), new Date()));
   },
 
   async hideReview(ctx: AdminCtx) {
-    respond(ctx, await hideInactiveReview(await serviceContext(strapi, ctx), new Date()));
+    respond(ctx, await hideInactiveReview(await serviceContext(strapi, ctx), strapiPresenceStore(strapi), new Date()));
   },
 };
