@@ -113,7 +113,8 @@ const rethrown = async <T>(work: () => Promise<T>): Promise<T> => {
 type Keys<K extends keyof PresenceStore> = Pick<PresenceStore, K>;
 type Where = Record<string, unknown>;
 const eq = (key: string, id: string | undefined): Where => (id ? { [key]: { documentId: id } } : {});
-const span = (w: { from?: string; to?: string }): Where => ({ $gte: w.from, $lte: w.to });
+/** Only the bounds that are set: Postgres rejects an undefined bound as an InvalidDateFormat. */
+const span = (w: { from?: string; to?: string }): Where => ({ ...(w.from ? { $gte: w.from } : {}), ...(w.to ? { $lte: w.to } : {}) });
 const dated = (key: string, w: { from?: string; to?: string }): Where => (w.from || w.to ? { [key]: span(w) } : {});
 const docIds = (list: string[] | undefined): Where => (list ? { documentId: { $in: list } } : {});
 
