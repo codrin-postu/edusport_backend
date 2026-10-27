@@ -1,13 +1,14 @@
 import { isAcsState, type AcsState } from '../acs';
 import { ATHLETE_STATUSES, MISSING_FIELD_WORDS, birthDateForPicker, missingFields, pickAthleteValues, type AthleteStatus } from '../athlete-data';
 import { ageFromIso, type DateParts } from '../birth-date';
-import { inactiveAthleteIds } from '../personal-data/inactivity';
+import { inactiveAthleteIds, type InactivityInput } from '../personal-data/inactivity';
 import { DEFAULT_RETENTION_YEARS, readPersonalDataSettings } from '../personal-data/settings';
 import type { AthleteListPage, AthleteListRow } from './api-types';
 import { registrationSeasonLabel } from './cards';
 import { matchesQuery, searchSubjects, type SearchSubject } from './search';
 import type { AcsRow, AthleteRow, ClubStore, DuplicateRow, GroupRow, MembershipRow, ProfileRow, RegistrationRow, SeasonRow, SectionRow } from './store';
 import { isCurrentMembership } from '../group-membership';
+import { abonamentCellText, type AbonamentBar } from '../presence/subscriptions/rules';
 
 /** "Sportivi" (spec 5): every athlete, filtered, searched, sorted and paged on the server. */
 export const NO_SECTION = 'none';
@@ -15,7 +16,7 @@ const NO_SECTION_LABEL = 'Fără secțiune';
 
 export type AthleteListQuery = {
   seasonId: string | null; q: string; status: AthleteStatus[]; sections: string[]; groups: string[]; noGroup: boolean;
-  acs: AcsState[]; profile: ('public' | 'ascuns')[]; data: ('complete' | 'incomplete')[]; duplicates: boolean; inactive: boolean;
+  acs: AcsState[]; abonament: 'activ' | 'fara' | null; profile: ('public' | 'ascuns')[]; data: ('complete' | 'incomplete')[]; duplicates: boolean; inactive: boolean;
   sort: 'name' | 'age' | 'group'; dir: 'asc' | 'desc'; page: number; pageSize: number;
 };
 
@@ -31,6 +32,7 @@ function readFilters(q: Record<string, unknown>): Omit<AthleteListQuery, 'sort' 
     groups: list(q.group),
     noGroup: q.noGroup === 'true',
     acs: list(q.acs).filter(isAcsState),
+    abonament: q.abonament === 'activ' || q.abonament === 'fara' ? q.abonament : null,
     profile: list(q.profile).filter(among(['public', 'ascuns'] as const)),
     data: list(q.data).filter(among(['complete', 'incomplete'] as const)),
     duplicates: q.duplicates === 'true',
@@ -64,13 +66,15 @@ export function readListQuery(q: Record<string, unknown>): AthleteListQuery {
 export type ListSource = {
   athletes: AthleteRow[]; registrations: RegistrationRow[]; memberships: MembershipRow[]; acs: AcsRow[]; groups: GroupRow[];
   sections: SectionRow[]; profiles: ProfileRow[]; duplicates: DuplicateRow[]; seasons: SeasonRow[]; season: SeasonRow | null; today: DateParts;
-  inactiveIds?: ReadonlySet<string>; retentionYears?: number;
+  inactiveIds?: ReadonlySet<string>; retentionYears?: number; abonamente?: ReadonlyMap<string, AbonamentBar>;
 };
+/** What the presence store adds to the list: the abonament each athlete would use today (5.13), and the activity that keeps a record out of "Inactivi" (4.20). */
+export type ListPresence = { abonamente?: ReadonlyMap<string, AbonamentBar>; activity?: InactivityInput['activity'] };
 type Derived = { row: AthleteListRow; sectionIds: string[]; groupIds: string[]; search: SearchSubject; groupName: string; inactive: boolean };
 type Index = {
   memberships: Map<string, MembershipRow[]>; acs: Map<string, AcsState>; seasonRegistrations: Map<string, RegistrationRow[]>;
   groups: Map<string, GroupRow>; publicProfiles: Set<string>; duplicateIds: Set<string>; subjects: Map<string, SearchSubject>; today: DateParts;
-  inactiveIds: ReadonlySet<string>;
+  inactiveIds: ReadonlySet<string>; abonamente: ReadonlyMap<string, AbonamentBar>;
 };
 
 function groupBy<T>(rows: T[], key: (row: T) => string | null): Map<string, T[]> {
@@ -96,6 +100,7 @@ function buildIndex(src: ListSource): Index {
     subjects: searchSubjects(src.athletes, src.registrations),
     today: src.today,
     inactiveIds: src.inactiveIds ?? new Set<string>(),
+    abonamente: src.abonamente ?? new Map<string, AbonamentBar>(),
   };
 }
 
@@ -112,6 +117,8 @@ function mainGroupOf(memberships: MembershipRow[], groups: Map<string, GroupRow>
   return (main && groups.get(main.groupId)) || null;
 }
 
+const abonamentOf = (bar: AbonamentBar | undefined): string | null => (bar ? abonamentCellText(bar) : null);
+
 function publicRow(a: AthleteRow, ix: Index, group: GroupRow | null): AthleteListRow {
   const missing = a.status === 'anonimizat' ? [] : missingFields(pickAthleteValues(a));
   return {
@@ -120,6 +127,7 @@ function publicRow(a: AthleteRow, ix: Index, group: GroupRow | null): AthleteLis
     mainGroup: group ? { documentId: group.id, name: group.name } : null, contactName: a.contactName, phone: a.phone,
     acs: ix.acs.get(a.id) ?? 'nu', publicProfile: a.profileId !== null && ix.publicProfiles.has(a.profileId) ? 'public' : 'ascuns',
     possibleDuplicate: ix.duplicateIds.has(a.id),
+    abonament: abonamentOf(ix.abonamente.get(a.id)),
   };
 }
 
@@ -150,6 +158,7 @@ const TESTS: Test[] = [
   (d, q) => q.sections.length === 0 || d.sectionIds.some((id) => q.sections.includes(id)),
   (d, q) => (q.groups.length === 0 && !q.noGroup) || q.groups.some((g) => d.groupIds.includes(g)) || (q.noGroup && d.groupIds.length === 0),
   (d, q) => q.acs.length === 0 || q.acs.includes(d.row.acs),
+  (d, q) => q.abonament === null || (q.abonament === 'activ') === (d.row.abonament !== null),
   (d, q) => q.profile.length === 0 || q.profile.includes(d.row.publicProfile),
   (d, q) => q.data.length === 0 || q.data.includes(d.row.dataIncomplete ? 'incomplete' : 'complete'),
   (d, q) => !q.duplicates || d.row.possibleDuplicate,
@@ -215,13 +224,13 @@ export function listAthletes(src: ListSource, q: AthleteListQuery): AthleteListP
   };
 }
 
-export async function athleteListPage(store: ClubStore, q: AthleteListQuery, today: DateParts, now: Date = new Date()): Promise<AthleteListPage> {
+export async function athleteListPage(store: ClubStore, q: AthleteListQuery, today: DateParts, now: Date = new Date(), presence: ListPresence = {}): Promise<AthleteListPage> {
   const [athletes, registrations, memberships, acs, groups, sections, profiles, duplicates, seasons, rawSettings] = await Promise.all([
     store.athletes(), store.registrations(), store.memberships(), store.acsRows(), store.groups(), store.sections(), store.profiles(), store.duplicates(), store.seasons(),
     store.personalDataSettings(),
   ]);
   const season = seasons.find((s) => s.id === q.seasonId) ?? seasons.find((s) => s.isCurrent) ?? null;
   const { retentionYears } = readPersonalDataSettings(rawSettings);
-  const inactiveIds = inactiveAthleteIds({ athletes, memberships, registrations, seasons, retentionYears, now });
-  return listAthletes({ athletes, registrations, memberships, acs, groups, sections, profiles, duplicates, seasons, season, today, inactiveIds, retentionYears }, q);
+  const inactiveIds = inactiveAthleteIds({ athletes, memberships, registrations, seasons, retentionYears, now, activity: presence.activity });
+  return listAthletes({ athletes, registrations, memberships, acs, groups, sections, profiles, duplicates, seasons, season, today, inactiveIds, retentionYears, abonamente: presence.abonamente }, q);
 }

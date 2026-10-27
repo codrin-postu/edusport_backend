@@ -19,7 +19,18 @@ export type UndoStep =
   | { op: 'setEvent'; id: string; recurrence: Recurrence; exceptions: ExceptionRow[] }
   | { op: 'createEvent'; event: EventWrite }
   | { op: 'cancelEmails' }
-  | { op: 'setCurrentSeason'; id: string; otherId: string };
+  | { op: 'setCurrentSeason'; id: string; otherId: string }
+  | { op: 'uncarry'; subscriptionId: string; priceListId: string; athleteId: string };
+/** What the move undo needs from the presence store: take a carried list off an abonament, and say whether the carry was used since (7.3). */
+export type CarryPorts = {
+  lockSubscription(subscriptionId: string): Promise<void>; subscriptionExists(subscriptionId: string): Promise<boolean>; uncarry(subscriptionId: string, priceListId: string): Promise<void>; carryUsed(subscriptionId: string, priceListId: string): Promise<boolean>;
+};
+export const NO_CARRY_PORTS: CarryPorts = {
+  lockSubscription: () => Promise.reject(new Error('carry undo needs the presence store')),
+  subscriptionExists: () => Promise.reject(new Error('carry undo needs the presence store')),
+  uncarry: () => Promise.reject(new Error('carry undo needs the presence store')),
+  carryUsed: async () => false,
+};
 export type UndoKind = 'group' | 'season';
 export type UndoRecord = {
   kind: UndoKind; steps: UndoStep[]; subjects: Subject[]; revalidate: boolean;
@@ -57,7 +68,7 @@ export function undoRefusal(entry: HistoryEntryRow | null, later: HistoryEntryRo
   return later.some((h) => h.id !== entry.id && h.changes.actionId !== entry.id) ? 'changed' : null;
 }
 
-export type LockTargets = { seasons: string[]; athletes: string[]; groups: string[]; events: string[] };
+export type LockTargets = { seasons: string[]; athletes: string[]; groups: string[]; events: string[]; subscriptions: string[] };
 const sorted = (ids: string[]): string[] => [...new Set(ids)].sort();
 
 function targetsOf(step: UndoStep): Partial<Record<keyof LockTargets, string[]>> {
@@ -67,6 +78,7 @@ function targetsOf(step: UndoStep): Partial<Record<keyof LockTargets, string[]>>
     case 'deleteEvent': case 'setEvent': return { events: [step.id] };
     case 'createEvent': return step.event.groupId ? { groups: [step.event.groupId] } : {};
     case 'setCurrentSeason': return { seasons: [step.id, step.otherId] };
+    case 'uncarry': return { athletes: [step.athleteId], subscriptions: [step.subscriptionId] };
     default: return {};
   }
 }
@@ -80,5 +92,5 @@ export function undoLockTargets(steps: UndoStep[], subjects: Subject[] = [], kin
   const onEvents = steps.some((s) => s.op === 'deleteEvent' || s.op === 'setEvent' || s.op === 'createEvent');
   const ofSubjects = onEvents || kind === 'season' ? subjects.filter((x) => x.type === GROUP_SUBJECT).map((x) => x.id) : [];
   const pick = (k: keyof LockTargets) => sorted(all.flatMap((t) => t[k] ?? []));
-  return { seasons: pick('seasons'), athletes: pick('athletes'), groups: sorted([...pick('groups'), ...ofSubjects]), events: pick('events') };
+  return { seasons: pick('seasons'), athletes: pick('athletes'), groups: sorted([...pick('groups'), ...ofSubjects]), events: pick('events'), subscriptions: pick('subscriptions') };
 }

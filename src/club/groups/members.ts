@@ -152,6 +152,12 @@ export async function allocateAll(ctx: GroupContext, body: unknown): Promise<Act
   return guarded(ctx.log, '[groups] allocating all', () => ctx.store.transaction(() => allocateLocked(ctx, req)));
 }
 
+export type CarryInput = { athleteId: string; fromGroupId: string; toGroupId: string; today: string };
+export type CarryOutcome = { lines: Line[]; steps: UndoStep[]; carried: number };
+/** The 4.11 carry of a move; the presence store provides it (`presenceCarry`). */
+export type MoveCarry = (i: CarryInput) => Promise<CarryOutcome>;
+export const NO_CARRY: MoveCarry = async () => ({ lines: [], steps: [], carried: 0 });
+
 type Located = { row: MembershipRow; season: SeasonRecord; athlete: AthleteRow; from: GroupRecord };
 
 /** The current row, its season (not past), athlete and group, read again under the locks. */
@@ -178,7 +184,7 @@ function moveLines(l: Located, to: GroupRecord, main: { from: string; to: string
   return main ? [...lines, { subjectType: ATHLETE_SUBJECT, subjectId: a, action: HISTORY_ACTIONS.mainGroupChanged, changes: main }] : lines;
 }
 
-async function moveLocked(ctx: GroupContext, membershipId: string, toGroupId: string): Promise<ActionResult<MoveResult>> {
+async function moveLocked(ctx: GroupContext, membershipId: string, toGroupId: string, carry: MoveCarry): Promise<ActionResult<MoveResult & { carried: number }>> {
   const found = await locate(ctx, membershipId, toGroupId);
   if (found.ok === false) return found;
   const l = found.data;
@@ -188,15 +194,16 @@ async function moveLocked(ctx: GroupContext, membershipId: string, toGroupId: st
   const plan = planMove(rows, l.row, to.id, { athleteId: l.athlete.id, seasonId: l.season.id, from: startDateFor(l.season, ctx.today) }, ctx.today);
   const steps = await applyPlan(ctx.store, plan, rows, l.athlete.id, l.season.id);
   const main = plan.main ? { from: l.from.name, to: to.name } : null;
-  const actionId = await recordAction(ctx.store, ctx.actor, moveLines(l, to, main), { kind: 'group', steps, revalidate: false });
-  return done({ athleteName: l.athlete.name ?? '', groupName: to.name }, actionId);
+  const carried = await carry({ athleteId: l.athlete.id, fromGroupId: l.from.id, toGroupId: to.id, today: ctx.today });
+  const actionId = await recordAction(ctx.store, ctx.actor, [...moveLines(l, to, main), ...carried.lines], { kind: 'group', steps: [...steps, ...carried.steps], revalidate: false });
+  return done({ athleteName: l.athlete.name ?? '', groupName: to.name, carried: carried.carried }, actionId);
 }
 
 /** POST /club/memberships/:id/move body `{ toGroupId }`: the one move window (6.2, W2). */
-export async function moveMembership(ctx: GroupContext, membershipId: string, body: unknown): Promise<ActionResult<MoveResult>> {
+export async function moveMembership(ctx: GroupContext, membershipId: string, body: unknown, carry: MoveCarry = NO_CARRY): Promise<ActionResult<MoveResult & { carried: number }>> {
   const toGroupId = isRecord(body) && typeof body.toGroupId === 'string' && body.toGroupId ? body.toGroupId : null;
   if (!toGroupId) return refuse(400, GROUP_ERRORS.pickGroup);
-  return guarded(ctx.log, `[groups] moving ${membershipId}`, () => ctx.store.transaction(() => moveLocked(ctx, membershipId, toGroupId)));
+  return guarded(ctx.log, `[groups] moving ${membershipId}`, () => ctx.store.transaction(() => moveLocked(ctx, membershipId, toGroupId, carry)));
 }
 
 async function removeLocked(ctx: GroupContext, membershipId: string): Promise<ActionResult<MoveResult>> {

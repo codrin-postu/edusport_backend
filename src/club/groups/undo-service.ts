@@ -7,10 +7,10 @@ import { P4_ACTIONS } from './history-lines';
 import { seasonOf } from './program-plan';
 import { isPastSeason } from './season-pick';
 import type { GroupStore, HistoryEntryRow } from './types';
-import { readUndoRecord, undoLockTargets, undoRefusal, type LockTargets, type UndoKind, type UndoRecord, type UndoStep } from './undo';
+import { NO_CARRY_PORTS, readUndoRecord, undoLockTargets, undoRefusal, type CarryPorts, type LockTargets, type UndoKind, type UndoRecord, type UndoStep } from './undo';
 
 /** POST /club/undo body `{ actionId }`: the toast's "Anulează" for every phase 4 action (spec 8.1, 8.2, W15). */
-type Run<K extends UndoStep['op']> = (store: GroupStore, step: Extract<UndoStep, { op: K }>, actionId: string) => Promise<void>;
+type Run<K extends UndoStep['op']> = (store: GroupStore, step: Extract<UndoStep, { op: K }>, actionId: string, ports: CarryPorts) => Promise<void>;
 type Runners = { [K in UndoStep['op']]: Run<K> };
 
 const RUN: Runners = {
@@ -34,29 +34,32 @@ const RUN: Runners = {
     await s.setSeasonCurrent(st.otherId, false);
     await s.setSeasonCurrent(st.id, true);
   },
+  uncarry: (_s, st, _id, p) => p.uncarry(st.subscriptionId, st.priceListId),
 };
 
-const runStep = (store: GroupStore, step: UndoStep, actionId: string): Promise<void> =>
-  (RUN[step.op] as (s: GroupStore, st: UndoStep, id: string) => Promise<void>)(store, step, actionId);
+const runStep = (store: GroupStore, step: UndoStep, actionId: string, ports: CarryPorts): Promise<void> =>
+  (RUN[step.op] as (s: GroupStore, st: UndoStep, id: string, p: CarryPorts) => Promise<void>)(store, step, actionId, ports);
 
 export function readActionId(body: unknown): string | null {
   const v = isRecord(body) ? body.actionId : null;
   return typeof v === 'string' && v ? v : null;
 }
 
-async function lockTargets(store: GroupStore, t: LockTargets): Promise<void> {
+async function lockTargets(store: GroupStore, t: LockTargets, ports: CarryPorts): Promise<void> {
   for (const id of t.seasons) await store.lockSeason(id);
   for (const id of t.athletes) await store.lockAthlete(id);
   for (const id of t.groups) await store.lockGroup(id);
   for (const id of t.events) await store.lockEvent(id);
+  for (const id of t.subscriptions) await ports.lockSubscription(id);
 }
 
 /**
  * Every athlete, membership and event the steps refer to must still exist (a merge deletes an athlete; an undone remove or "Schimbă"
  * re-creates its row under a new id): no write is safe on a missing row. Read after the locks.
  */
-async function targetsExist(store: GroupStore, t: LockTargets, steps: UndoStep[]): Promise<boolean> {
+async function targetsExist(store: GroupStore, t: LockTargets, steps: UndoStep[], ports: CarryPorts): Promise<boolean> {
   for (const id of t.athletes) if (!(await store.athlete(id))) return false;
+  for (const id of t.subscriptions) if (!(await ports.subscriptionExists(id))) return false;
   for (const step of steps) {
     if ((step.op === 'deleteMembership' || step.op === 'setMembership') && !(await store.membership(step.id))) return false;
     if ((step.op === 'deleteEvent' || step.op === 'setEvent') && !(await store.event(step.id))) return false;
@@ -135,6 +138,12 @@ async function mailSent(store: GroupStore, record: UndoRecord, actionId: string)
   return record.steps.some((s) => s.op === 'cancelEmails') && (await store.sentEmailJobs(actionId)) > 0;
 }
 
+/** A carried list that an attendance used since cannot be taken back (7.3). */
+async function carryTaken(ports: CarryPorts, record: UndoRecord): Promise<boolean> {
+  for (const step of record.steps) if (step.op === 'uncarry' && (await ports.carryUsed(step.subscriptionId, step.priceListId))) return true;
+  return false;
+}
+
 async function filedAfter(store: GroupStore, record: UndoRecord): Promise<boolean> {
   const guard = record.registrationsAfter;
   return !!guard && (await store.registrationsFiledAfter(guard.seasonId, guard.at)) > 0;
@@ -150,7 +159,7 @@ async function writeUndone(ctx: GroupContext, entry: HistoryEntryRow, own: Histo
   await ctx.store.setHistoryChanges(entry.id, { ...entry.changes, undone: true });
 }
 
-async function undoLocked(ctx: GroupContext, actionId: string): Promise<AdminResult<{ revalidate: boolean }>> {
+async function undoLocked(ctx: GroupContext, actionId: string, ports: CarryPorts): Promise<AdminResult<{ revalidate: boolean }>> {
   const first = await ctx.store.historyEntry(actionId);
   if (!first) return refuse(404, GROUP_ERRORS.notFound);
   const record = readUndoRecord(first.changes.undo);
@@ -159,24 +168,24 @@ async function undoLocked(ctx: GroupContext, actionId: string): Promise<AdminRes
   // A group action takes the season lock of its own season first (seasons > athletes > groups > events > the entry).
   const groupSeasons = record.kind === 'group' ? [...new Set(await groupSeasonIds(ctx.store, record.steps))].sort() : [];
   const targets: LockTargets = { ...base, seasons: [...new Set([...base.seasons, ...groupSeasons])].sort() };
-  await lockTargets(ctx.store, targets);
+  await lockTargets(ctx.store, targets, ports);
   if (record.kind === 'group' && (await inPastSeason(ctx.store, groupSeasons))) return refuse(409, GROUP_ERRORS.stale);
-  if (!(await targetsExist(ctx.store, targets, record.steps))) return refuse(409, refusalText(record.kind));
+  if (!(await targetsExist(ctx.store, targets, record.steps, ports))) return refuse(409, refusalText(record.kind));
   await ctx.store.lockHistoryEntry(actionId);
   const entry = await ctx.store.historyEntry(actionId);
   if (!entry) return refuse(404, GROUP_ERRORS.notFound);
   const { own, later } = await linesAfter(ctx.store, entry, record);
-  if (undoRefusal(entry, later) || (await filedAfter(ctx.store, record)) || (await mailSent(ctx.store, record, actionId))) return refuse(409, refusalText(record.kind));
-  for (const step of [...record.steps].reverse()) await runStep(ctx.store, step, actionId);
+  if (undoRefusal(entry, later) || (await filedAfter(ctx.store, record)) || (await mailSent(ctx.store, record, actionId)) || (await carryTaken(ports, record))) return refuse(409, refusalText(record.kind));
+  for (const step of [...record.steps].reverse()) await runStep(ctx.store, step, actionId, ports);
   await assertOneMain(ctx.store, targets.athletes);
   await writeUndone(ctx, entry, own);
   return { ok: true, data: { revalidate: record.revalidate } };
 }
 
-export async function undoAction(ctx: GroupContext, body: unknown): Promise<AdminResult<{ undone: true }>> {
+export async function undoAction(ctx: GroupContext, body: unknown, ports: CarryPorts = NO_CARRY_PORTS): Promise<AdminResult<{ undone: true }>> {
   const actionId = readActionId(body);
   if (!actionId) return refuse(400, GROUP_ERRORS.invalid);
-  const res = await guarded(ctx.log, `[group-undo] ${actionId}`, () => ctx.store.transaction(() => undoLocked(ctx, actionId)));
+  const res = await guarded(ctx.log, `[group-undo] ${actionId}`, () => ctx.store.transaction(() => undoLocked(ctx, actionId, ports)));
   if (res.ok === false) return res;
   if (res.data.revalidate) ctx.revalidate();
   return { ok: true, data: { undone: true } };
