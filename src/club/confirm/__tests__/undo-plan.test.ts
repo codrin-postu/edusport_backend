@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ConfirmationRecord } from '../plan';
-import { planUndo, undoAllowed, undoSeasonId, type UndoFacts } from '../undo-plan';
+import { planUndo as planUndoRaw, undoAllowed, undoSeasonId, type UndoFacts } from '../undo-plan';
 
 const record = (over: Partial<ConfirmationRecord> = {}): ConfirmationRecord => ({
   athleteId: 'a1',
@@ -16,8 +16,16 @@ const record = (over: Partial<ConfirmationRecord> = {}): ConfirmationRecord => (
   at: '2026-10-26T10:00:00.000Z',
   ...over,
 });
+/** Spec 2 rule 2: whenever current rows remain after an undo, exactly one of them is main. */
+function planUndo(f: UndoFacts): ReturnType<typeof planUndoRaw> {
+  const plan = planUndoRaw(f);
+  const left = f.currentRows.filter((r) => r.seasonId === f.seasonId && r.id !== plan.deleteMembershipId);
+  const isMain = (r: { id: string; isMain: boolean }) => (r.isMain || r.id === plan.restoreMainId || r.id === plan.promoteMainId) && r.id !== plan.demoteMembershipId;
+  if (left.length > 0) expect(left.filter(isMain)).toHaveLength(1);
+  return plan;
+}
 const facts = (over: Partial<UndoFacts> = {}): UndoFacts => ({
-  currentRows: (over.membershipIds ?? ['m0', 'm9']).map((id) => ({ id, athleteId: 'a1', groupId: `g-${id}`, seasonId: 's26', isMain: false, from: '2026-10-01' })),
+  currentRows: (over.membershipIds ?? ['m0', 'm9']).map((id) => ({ id, athleteId: 'a1', groupId: `g-${id}`, seasonId: 's26', isMain: id === (over.mainMembershipId === undefined ? 'm9' : over.mainMembershipId), from: '2026-10-01' })),
   seasonId: 's26',
   record: record(),
   linkedAthleteId: 'a1',
@@ -106,15 +114,25 @@ describe('undo reverts what the confirmation wrote (spec 4.6, gaps #32)', () => 
     expect(plan.restoreMainId).toBe('m0');
   });
 
-  it('demotes a promoted existing group with no previous main to restore (fix/p3-2-g3, without a previous main)', () => {
+  it('keeps a promoted existing group main when there is no previous main to restore (fix/p3-2-g3, without a previous main)', () => {
     const plan = planUndo(facts({
       record: record({ membershipId: null, demotedMainId: null, promotedMainId: 'm9' }),
       membershipIds: ['m9'],
       mainMembershipId: 'm9',
     }));
     expect(plan.deleteMembershipId).toBeNull();
-    expect(plan.demoteMembershipId).toBe('m9');
+    expect(plan.demoteMembershipId).toBeNull();
     expect(plan.restoreMainId).toBeNull();
+  });
+
+  it('the demoted main ended since: the promoted row is not demoted and stays the season\'s main', () => {
+    const plan = planUndo(facts({
+      record: record({ membershipId: null, demotedMainId: 'm0', promotedMainId: 'm9' }),
+      membershipIds: ['m0', 'm9'],
+      currentRows: [{ id: 'm9', athleteId: 'a1', groupId: 'g-m9', seasonId: 's26', isMain: true, from: '2026-10-01' }],
+      mainMembershipId: 'm9',
+    }));
+    expect([plan.demoteMembershipId, plan.restoreMainId, plan.promoteMainId]).toEqual([null, null, null]);
   });
 
   it('never demotes a group that a later admin action already changed', () => {

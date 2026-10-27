@@ -78,7 +78,8 @@ function planAthleteRevert(f: UndoFacts): AthleteRevert {
 
 const isCurrent = (f: UndoFacts, id: string): boolean => f.currentRows.some((r) => r.id === id);
 
-/** fix/p3-2-g3: an existing membership the confirmation promoted to main, demoted on undo (never deleted). */
+/** fix/p3-2-g3: an existing membership the confirmation promoted to main, demoted on undo (never deleted),
+ * but only when the main it replaced can be given back: otherwise it stays main so the season keeps one. */
 function planDemote(f: UndoFacts): string | null {
   const promoted = f.record.promotedMainId;
   return promoted && isCurrent(f, promoted) && f.mainMembershipId === promoted ? promoted : null;
@@ -100,9 +101,10 @@ export function planUndo(f: UndoFacts): UndoPlan {
   const acs = planAcsUndo(f);
   const own = f.record.membershipId;
   const deleteMembershipId = own && f.membershipIds.includes(own) ? own : null;
-  const demoteMembershipId = planDemote(f);
   const demoted = f.record.demotedMainId;
-  const canRestore = demoted && isCurrent(f, demoted) && seasonMainGone(f, deleteMembershipId, demoteMembershipId);
+  const restorable = demoted !== null && demoted !== undefined && isCurrent(f, demoted);
+  const demoteMembershipId = restorable ? planDemote(f) : null;
+  const canRestore = restorable && seasonMainGone(f, deleteMembershipId, demoteMembershipId);
   const deleteAthlete = f.record.createdAthlete && isUnused(f, deleteMembershipId, acs?.op === 'delete' ? acs.id : null);
   const gone = [deleteMembershipId, demoteMembershipId].filter((id): id is string => id !== null);
   const promoteMainId = canRestore || !seasonMainGone(f, deleteMembershipId, demoteMembershipId) ? null : planHeir(f, gone);
