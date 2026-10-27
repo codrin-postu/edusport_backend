@@ -4,6 +4,9 @@ import { registrationSeason } from '../confirm/season';
 import { planUndo, undoAllowed, undoSeasonId, type UndoFacts, type UndoPlan } from '../confirm/undo-plan';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import { isAnonymized } from '../personal-data/anonymize-plan';
+import { deleteBlockOf } from '../presence/lifecycle/delete-guard';
+import { inBothTransactions } from '../presence/lifecycle/transaction';
+import type { PresenceStore } from '../presence/store';
 import type { UndoResponse } from './api-types';
 import { ADMIN_ERRORS } from './errors';
 import { refreshAllMatches, safely } from './matches';
@@ -12,11 +15,11 @@ import { isCurrentMembership } from '../group-membership';
 
 type Result = AdminResult<UndoResponse>;
 
-async function loadFacts(store: ClubStore, reg: RegistrationRow, record: ConfirmationRecord): Promise<UndoFacts | null> {
+async function loadFacts(store: ClubStore, presence: PresenceStore, reg: RegistrationRow, record: ConfirmationRecord): Promise<UndoFacts | null> {
   const athlete = await store.athlete(record.athleteId);
   if (!athlete || !undoAllowed(record, reg.athleteId, athlete.id)) return null;
-  const [memberships, acs, linked, seasons] = await Promise.all([
-    store.memberships(athlete.id), store.acsRows(athlete.id), store.registrations({ athleteId: athlete.id }), store.seasons(),
+  const [memberships, acs, linked, seasons, block] = await Promise.all([
+    store.memberships(athlete.id), store.acsRows(athlete.id), store.registrations({ athleteId: athlete.id }), store.seasons(), deleteBlockOf(presence, athlete.id),
   ]);
   // "Main" is per season: scope to the season the confirmation wrote to, even if the registration moved since.
   const seasonId = undoSeasonId(record, memberships, registrationSeason(reg, seasons)?.id ?? null);
@@ -28,6 +31,7 @@ async function loadFacts(store: ClubStore, reg: RegistrationRow, record: Confirm
     mainMembershipId: memberships.find((m) => m.isMain && m.seasonId === seasonId && isCurrentMembership(m))?.id ?? null,
     acsRows: acs.map(({ id, state }) => ({ id, state })),
     otherRegistrations: linked.filter((r) => r.id !== reg.id).length,
+    presenceRecords: block ? block.payments + block.subscriptions : 0,
   };
 }
 
@@ -71,18 +75,18 @@ async function applyUndo(ctx: ServiceContext, reg: RegistrationRow, facts: UndoF
   return { ok: true, data: { status: plan.registration.status, athleteDeleted: plan.deleteAthlete } };
 }
 
-async function undoLocked(ctx: ServiceContext, id: string): Promise<Result> {
+async function undoLocked(ctx: ServiceContext, presence: PresenceStore, id: string): Promise<Result> {
   await ctx.store.lockRegistration(id);
   const reg = await ctx.store.registration(id);
   if (!reg) return refuse(404, ADMIN_ERRORS.notFound);
   if (reg.confirmation) await ctx.store.lockAthlete(reg.confirmation.athleteId);
-  const facts = reg.confirmation ? await loadFacts(ctx.store, reg, reg.confirmation) : null;
+  const facts = reg.confirmation ? await loadFacts(ctx.store, presence, reg, reg.confirmation) : null;
   return facts && !isAnonymized(facts.athlete) ? applyUndo(ctx, reg, facts) : refuse(409, ADMIN_ERRORS.stale);
 }
 
 /** "Anulează confirmarea" (spec 4.6, gaps #32): one transaction on the locked registration row. */
-export async function undoConfirmation(ctx: ServiceContext, registrationId: string): Promise<Result> {
-  const result = await guarded(ctx.log, `[confirm-undo] ${registrationId}`, () => ctx.store.transaction(() => undoLocked(ctx, registrationId)));
+export async function undoConfirmation(ctx: ServiceContext, registrationId: string, presence: PresenceStore): Promise<Result> {
+  const result = await guarded(ctx.log, `[confirm-undo] ${registrationId}`, () => inBothTransactions(ctx.store, presence, () => undoLocked(ctx, presence, registrationId)));
   if (result.ok === true) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after an undo');
   return result;
 }

@@ -16,6 +16,7 @@ import type { ServiceContext } from '../../athletes/store';
 import { undoConfirmation } from '../../athletes/undo-service';
 import { athleteRow, fakeClubStore, registrationRow } from '../../athletes/__tests__/fake-store';
 import { RegistrationNotFoundError, buildRegistrationDocuments } from '../../documents/service';
+import { fakePresenceStore } from '../../presence/__tests__/fake-store';
 
 const ANON = athleteRow({ id: 'a9', name: 'Maria Pop', birthDate: '2016-03-14', status: 'anonimizat', profileId: 'sp9' });
 const LIVE = athleteRow({ id: 'a1', name: 'Ana Ionescu', birthDate: '2015-01-01' });
@@ -67,7 +68,7 @@ describe('an anonymized record is read-only (spec 4)', () => {
     expect(await setAthleteProfileVisibility(ctx, 'a9', { on: true })).toEqual(STALE);
     expect(await mergePreview(fake.store, 'a1', 'a9')).toEqual(STALE);
     expect(await mergeAthletes(ctx, { keptId: 'a1', removedId: 'a9', take: [] })).toEqual(STALE);
-    expect(await deleteAthlete(ctx, 'a9')).toEqual(STALE);
+    expect(await deleteAthlete(ctx, 'a9', fakePresenceStore().store)).toEqual(STALE);
     expect(fake.state.athletes).toEqual(before.athletes);
     expect(fake.state.history).toEqual([]);
   });
@@ -76,7 +77,7 @@ describe('an anonymized record is read-only (spec 4)', () => {
     const { fake, ctx } = setup();
     const request = { choice: 'existing' as const, athleteId: 'a9', groupId: null, makeMain: false, updateFields: null };
     expect(await confirmRegistration(ctx, 'r1', request)).toEqual({ ok: false, status: 400, error: CONFIRM_ERRORS.failed });
-    expect(await undoConfirmation(ctx, 'r5')).toEqual(STALE);
+    expect(await undoConfirmation(ctx, 'r5', fakePresenceStore().store)).toEqual(STALE);
     expect(fake.state.registrations.find((r) => r.id === 'r5')?.athleteId).toBe('a9');
   });
 

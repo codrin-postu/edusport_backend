@@ -7,6 +7,7 @@ import { ADMIN_ERRORS, CONFIRM_ERRORS } from '../../../club/athletes/errors';
 import { readHistory } from '../../../club/athletes/history-read';
 import { clubStore, queryText, serviceContext } from '../../../club/athletes/http';
 import { moveToSchool, readMoveSchool } from '../../../club/athletes/school-move';
+import { strapiPresenceStore } from '../../../club/presence/strapi-store';
 import { undoConfirmation } from '../../../club/athletes/undo-service';
 import { todayInBucharest } from '../../../club/birth-date';
 import { readConfirmRequest } from '../../../club/confirm/plan';
@@ -44,7 +45,7 @@ export default {
   },
 
   async undo(ctx: AdminCtx) {
-    respond(ctx, await undoConfirmation(await serviceContext(strapi, ctx), ctx.params.documentId ?? ''));
+    respond(ctx, await undoConfirmation(await serviceContext(strapi, ctx), ctx.params.documentId ?? '', strapiPresenceStore(strapi)));
   },
 
   async moveSchool(ctx: AdminCtx) {

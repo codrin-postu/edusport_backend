@@ -3,6 +3,7 @@ import { confirmRegistration } from '../confirm-service';
 import { ADMIN_ERRORS } from '../errors';
 import { undoConfirmation } from '../undo-service';
 import { athleteRow, fakeClubStore, registrationRow, type Fake } from './fake-store';
+import { fakePresenceStore, paymentRow, subscriptionRow } from '../../presence/__tests__/fake-store';
 
 const ctx = (fake: Fake) => ({ store: fake.store, actor: 'ana@club.ro', today: { year: 2026, month: 10, day: 26 }, log: vi.fn() });
 const seed = () => ({
@@ -20,7 +21,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
   it('reverts the link, status, group, main group, A.C.S., fields and reactivation; logs on both records', async () => {
     const fake = fakeClubStore(seed());
     await confirmed(fake);
-    expect(await undoConfirmation(ctx(fake), 'r1')).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: false } });
+    expect(await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store)).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: false } });
     expect(fake.state.registrations[0]).toMatchObject({ athleteId: null, status: 'Contactat', confirmation: null, matchAthleteId: 'a1', matchLevel: 'sigur' });
     expect(fake.state.athletes[0]).toMatchObject({ phone: '0711', contactName: null, status: 'inactiv' });
     expect(fake.state.memberships).toEqual([{ id: 'm0', athleteId: 'a1', groupId: 'g-pro', seasonId: 's26', isMain: true, from: '2026-10-01' }]);
@@ -31,7 +32,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
   it('the main group given back is noted in reverse: "<new> → <old>" (polish 10)', async () => {
     const fake = fakeClubStore(seed());
     await confirmed(fake);
-    await undoConfirmation(ctx(fake), 'r1');
+    await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store);
     const lines = fake.state.history.filter((h) => h.action === 'main-group-changed');
     expect(lines.map((h) => [h.subjectId, h.changes])).toEqual([
       ['a1', { from: 'Profesioniști', to: 'Primii Pași' }],
@@ -43,7 +44,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     const ended = { id: 'm-end', athleteId: 'a1', groupId: 'g-ib', seasonId: 's26', isMain: true, from: '2026-09-01', to: '2026-09-30' };
     const fake = fakeClubStore({ ...seed(), memberships: [ended, ...seed().memberships] });
     await confirmed(fake);
-    await undoConfirmation(ctx(fake), 'r1');
+    await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store);
     expect(fake.state.memberships.filter((m) => m.isMain && !m.to).map((m) => m.id)).toEqual(['m0']);
   });
 
@@ -53,7 +54,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     const m0 = fake.state.memberships.find((m) => m.id === 'm0')!;
     m0.to = '2026-11-19';
     const before = fake.state.history.length;
-    await undoConfirmation(ctx(fake), 'r1');
+    await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store);
     expect(fake.state.memberships.map((m) => [m.id, m.isMain])).toEqual([['m0', false]]);
     expect(fake.state.history.slice(before).map((h) => h.action)).not.toContain('main-group-changed');
   });
@@ -63,7 +64,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     const fake = fakeClubStore({ ...seed(), memberships: [...seed().memberships, extra] });
     await confirmed(fake);
     fake.state.memberships.find((m) => m.id === 'm0')!.to = '2026-11-19';
-    await undoConfirmation(ctx(fake), 'r1');
+    await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store);
     expect(fake.state.memberships.map((m) => [m.id, m.isMain])).toEqual([['m0', false], ['m-x', true]]);
     const last = fake.state.history.filter((h) => h.action === 'main-group-changed').pop();
     expect(last?.changes).toEqual({ from: 'Primii Pași', to: 'Intermediari Bronze' });
@@ -74,7 +75,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     await confirmed(fake, 'new');
     const own = fake.state.memberships[0];
     own.to = '2026-11-19';
-    expect(await undoConfirmation(ctx(fake), 'r1')).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: false } });
+    expect(await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store)).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: false } });
     expect(fake.state.memberships.map((m) => [m.id, m.to])).toEqual([[own.id, '2026-11-19']]);
     expect(fake.state.athletes).toHaveLength(1);
   });
@@ -82,7 +83,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
   it('no reverse line when the undo gives no main group back', async () => {
     const fake = fakeClubStore({ ...seed(), memberships: [] });
     await confirmed(fake);
-    await undoConfirmation(ctx(fake), 'r1');
+    await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store);
     expect(fake.state.history.map((h) => h.action)).not.toContain('main-group-changed');
   });
 
@@ -90,7 +91,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     const fake = fakeClubStore(seed());
     await confirmed(fake);
     fake.state.locks = [];
-    await undoConfirmation(ctx(fake), 'r1');
+    await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store);
     expect(fake.state.locks).toEqual(['r1', 'athlete:a1']);
   });
 
@@ -98,7 +99,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     const fake = fakeClubStore(seed());
     await confirmed(fake);
     await fake.store.updateAthlete('a1', { phone: '0799' });
-    await undoConfirmation(ctx(fake), 'r1');
+    await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store);
     expect(fake.state.athletes[0].phone).toBe('0799');
   });
 
@@ -106,9 +107,21 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     const fake = fakeClubStore(seed());
     await confirmed(fake, 'new');
     expect(fake.state.athletes).toHaveLength(2);
-    expect(await undoConfirmation(ctx(fake), 'r1')).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: true } });
+    expect(await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store)).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: true } });
     expect(fake.state.athletes.map((a) => a.id)).toEqual(['a1']);
     expect(fake.state.history.filter((h) => h.action === 'confirmation-undone').map((h) => h.subjectId)).toEqual(['r1']);
+  });
+
+  it.each([
+    ['a payment', { payments: [paymentRow({ id: 'p1', athleteId: 'a-new', cancelled: true })] }],
+    ['an abonament', { subscriptions: [subscriptionRow({ id: 'sub1', athleteId: 'a-new', cancelled: true })] }],
+  ])('keeps a new athlete that has %s, cancelled or not (C37)', async (_name, over) => {
+    const fake = fakeClubStore(seed());
+    await confirmed(fake, 'new');
+    const created = fake.state.athletes[1];
+    const presence = fakePresenceStore(JSON.parse(JSON.stringify(over).replaceAll('a-new', created.id)));
+    expect(await undoConfirmation(ctx(fake), 'r1', presence.store)).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: false } });
+    expect(fake.state.athletes.map((a) => a.id)).toContain(created.id);
   });
 
   it('keeps a new athlete that already has another linked registration (Minor 1)', async () => {
@@ -116,7 +129,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     await confirmed(fake, 'new');
     const created = fake.state.athletes[1];
     await fake.store.updateRegistration('r2', { athleteId: created.id });
-    expect(await undoConfirmation(ctx(fake), 'r1')).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: false } });
+    expect(await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store)).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: false } });
     expect(fake.state.athletes.map((a) => a.id)).toContain(created.id);
   });
 
@@ -124,27 +137,27 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     const fake = fakeClubStore(seed());
     await confirmed(fake);
     await fake.store.updateRegistration('r1', { athleteId: 'a2' });
-    expect(await undoConfirmation(ctx(fake), 'r1')).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect(await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store)).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
   });
 
   it('sets a raised A.C.S. back to what it was before the confirmation (Minor 1)', async () => {
     const fake = fakeClubStore({ ...seed(), acs: [{ id: 'c1', athleteId: 'a1', seasonId: 's26', state: 'nu' }] });
     await confirmed(fake);
     expect(fake.state.acs).toEqual([{ id: 'c1', athleteId: 'a1', seasonId: 's26', state: 'in_asteptare' }]);
-    await undoConfirmation(ctx(fake), 'r1');
+    await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store);
     expect(fake.state.acs).toEqual([{ id: 'c1', athleteId: 'a1', seasonId: 's26', state: 'nu' }]);
   });
 
   it('refuses a registration not confirmed through the window', async () => {
     const fake = fakeClubStore({ ...seed(), registrations: [registrationRow({ id: 'r1', status: 'Confirmat' })] });
-    expect(await undoConfirmation(ctx(fake), 'r1')).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect(await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store)).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
   });
 
   it('rolls back on a failure', async () => {
     const fake = fakeClubStore(seed());
     await confirmed(fake);
     fake.failOn('updateAthlete');
-    expect(await undoConfirmation(ctx(fake), 'r1')).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
+    expect(await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store)).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
     expect(fake.state.registrations[0]).toMatchObject({ athleteId: 'a1', status: 'Confirmat' });
   });
 
@@ -161,7 +174,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     expect(fake.state.memberships.find((m) => m.id === 'm0')?.isMain).toBe(false);
     expect(fake.state.memberships.find((m) => m.id === 'm9')?.isMain).toBe(true);
 
-    expect(await undoConfirmation(ctx(fake), 'r1')).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: false } });
+    expect(await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store)).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: false } });
     expect(fake.state.memberships).toEqual([
       { id: 'm0', athleteId: 'a1', groupId: 'g-ib', seasonId: 's26', isMain: true, from: '2026-10-01' },
       { id: 'm9', athleteId: 'a1', groupId: 'g-pp', seasonId: 's26', isMain: false, from: '2026-10-01' },
@@ -180,7 +193,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     });
     await confirmRegistration(ctx(fake), 'r1', { choice: 'existing', athleteId: 'a1', groupId: 'g-pp', makeMain: true, updateFields: [] });
 
-    expect(await undoConfirmation(ctx(fake), 'r1')).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: false } });
+    expect(await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store)).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: false } });
     const s26Mains = fake.state.memberships.filter((m) => m.seasonId === 's26' && m.isMain).map((m) => m.id);
     expect(s26Mains).toEqual(['m0']);
     expect(fake.state.memberships.find((m) => m.id === 'm-old')).toMatchObject({ seasonId: 's25', isMain: true });
@@ -199,7 +212,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
       const fake = fakeClubStore({ athletes: [maria], registrations: [registration], memberships: [D, X, Z] });
       await confirmIn26(fake);
       moveTo25(fake);
-      expect(await undoConfirmation(ctx(fake), 'r1')).toMatchObject({ ok: true });
+      expect(await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store)).toMatchObject({ ok: true });
       expect(mains(fake, 's26')).toEqual(['m-d']);
       expect(fake.state.memberships.find((m) => m.id === 'm-z')).toEqual(Z);
     });
@@ -208,7 +221,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
       const fake = fakeClubStore({ athletes: [maria], registrations: [registration], memberships: [D, Z] });
       await confirmIn26(fake);
       moveTo25(fake);
-      expect(await undoConfirmation(ctx(fake), 'r1')).toMatchObject({ ok: true });
+      expect(await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store)).toMatchObject({ ok: true });
       expect(fake.state.memberships.filter((m) => m.seasonId === 's26')).toEqual([D]);
       expect(fake.state.memberships.find((m) => m.id === 'm-z')).toEqual(Z);
     });
@@ -218,7 +231,7 @@ describe('Anulează confirmarea (spec 4.6)', () => {
       await confirmIn26(fake);
       delete fake.state.registrations[0].confirmation?.seasonId;
       moveTo25(fake);
-      await undoConfirmation(ctx(fake), 'r1');
+      await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store);
       expect(fake.state.memberships.filter((m) => m.seasonId === 's26')).toEqual([D]);
       expect(mains(fake, 's25')).toEqual(['m-z']);
     });

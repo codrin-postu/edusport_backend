@@ -9,6 +9,8 @@ import { athleteListPage, readListQuery } from '../../../club/athletes/list';
 import { createAthleteProfile, setAthleteProfileVisibility, athleteIdForProfile } from '../../../club/athletes/profile';
 import { readAthleteRecord, updateAthlete } from '../../../club/athletes/record';
 import { dismissDuplicate, mergeAthletes, mergePreview, readMergeRequest } from '../../../club/athletes/merge';
+import { respondDelete } from '../../../club/presence/lifecycle/http';
+import { strapiPresenceStore } from '../../../club/presence/strapi-store';
 import { todayInBucharest } from '../../../club/birth-date';
 import { SUBJECT } from '../../../club/history-text';
 
@@ -62,7 +64,7 @@ export default {
   },
 
   async remove(ctx: AdminCtx) {
-    respond(ctx, await deleteAthlete(await serviceContext(strapi, ctx), ctx.params.documentId ?? ''));
+    respondDelete(ctx, await deleteAthlete(await serviceContext(strapi, ctx), ctx.params.documentId ?? '', strapiPresenceStore(strapi)));
   },
 
   async mergePreview(ctx: AdminCtx) {

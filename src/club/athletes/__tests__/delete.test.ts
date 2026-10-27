@@ -3,6 +3,7 @@ import { deleteAthlete } from '../delete';
 import { ADMIN_ERRORS } from '../errors';
 import { athleteRow, fakeClubStore, registrationRow, type Fake } from './fake-store';
 import type { ConfirmationRecord } from '../../confirm/plan';
+import { fakePresenceStore } from '../../presence/__tests__/fake-store';
 
 const ctx = (fake: Fake) => ({ store: fake.store, actor: 'ana@club.ro', today: { year: 2026, month: 10, day: 26 }, log: vi.fn() });
 const record = { athleteId: 'a1' } as ConfirmationRecord;
@@ -18,7 +19,7 @@ const seed = () => ({
 describe('Șterge sportivul (spec 6.6, 3b s9)', () => {
   it('unlinks registrations, removes groups, A.C.S., flags and the profile with its results; keeps history for audit', async () => {
     const fake = fakeClubStore(seed());
-    expect(await deleteAthlete(ctx(fake), 'a1')).toEqual({ ok: true, data: { documentId: 'a1' } });
+    expect(await deleteAthlete(ctx(fake), 'a1', fakePresenceStore().store)).toEqual({ ok: true, data: { deleted: true, documentId: 'a1' } });
     expect(fake.state.registrations[0]).toMatchObject({ athleteId: null, confirmation: null, status: 'Confirmat' });
     expect([fake.state.memberships, fake.state.acs, fake.state.duplicates, fake.state.profiles]).toEqual([[], [], [], []]);
     expect(fake.state.removedParticipations).toEqual(['sp1']);
@@ -33,7 +34,7 @@ describe('Șterge sportivul (spec 6.6, 3b s9)', () => {
   it('every unlinked registration notes it in its own Istoric (polish 11)', async () => {
     const second = registrationRow({ id: 'r2', number: '2025-0007', athleteId: 'a1', status: 'Confirmat' });
     const fake = fakeClubStore({ ...seed(), registrations: [...seed().registrations, second] });
-    await deleteAthlete(ctx(fake), 'a1');
+    await deleteAthlete(ctx(fake), 'a1', fakePresenceStore().store);
     const lines = fake.state.history.filter((h) => h.subjectType === 'registration-submission');
     expect(lines.map((h) => [h.subjectId, h.action, h.changes, h.actor])).toEqual([
       ['r1', 'athlete-unlinked', { name: 'Maria Pop' }, 'ana@club.ro'],
@@ -43,15 +44,15 @@ describe('Șterge sportivul (spec 6.6, 3b s9)', () => {
 
   it('the unlinked registration is matched again', async () => {
     const fake = fakeClubStore({ ...seed(), athletes: [...seed().athletes, athleteRow({ id: 'a3', name: 'Maria Pop', birthDate: '2016-03-14' })] });
-    await deleteAthlete(ctx(fake), 'a1');
+    await deleteAthlete(ctx(fake), 'a1', fakePresenceStore().store);
     expect(fake.state.registrations[0]).toMatchObject({ matchAthleteId: 'a3', matchLevel: 'sigur' });
   });
 
   it('is a 404 for an unknown athlete and rolls back on a failure', async () => {
-    expect(await deleteAthlete(ctx(fakeClubStore()), 'x')).toEqual({ ok: false, status: 404, error: ADMIN_ERRORS.notFound });
+    expect(await deleteAthlete(ctx(fakeClubStore()), 'x', fakePresenceStore().store)).toEqual({ ok: false, status: 404, error: ADMIN_ERRORS.notFound });
     const fake = fakeClubStore(seed());
     fake.failOn('deleteProfile');
-    expect(await deleteAthlete(ctx(fake), 'a1')).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
+    expect(await deleteAthlete(ctx(fake), 'a1', fakePresenceStore().store)).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
     expect([fake.state.athletes.length, fake.state.memberships.length, fake.state.registrations[0].athleteId]).toEqual([2, 1, 'a1']);
     expect(fake.state.history).toEqual([]);
   });
