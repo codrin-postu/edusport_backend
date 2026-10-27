@@ -664,6 +664,57 @@ export interface ApiAthleteAthlete extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiAttendanceAttendance extends Struct.CollectionTypeSchema {
+  collectionName: 'club_attendances';
+  info: {
+    displayName: 'Club / Prezen\u021B\u0103';
+    pluralName: 'attendances';
+    singularName: 'attendance';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    amount: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
+    athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'> &
+      Schema.Attribute.Required;
+    audience: Schema.Attribute.Enumeration<['member', 'nonMember']>;
+    billing: Schema.Attribute.Enumeration<
+      ['slot', 'fara_abonament', 'club', 'inclus', 'fara_pret']
+    > &
+      Schema.Attribute.Required;
+    charges: Schema.Attribute.JSON;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    grup: Schema.Attribute.Boolean;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::attendance.attendance'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    session: Schema.Attribute.Relation<'manyToOne', 'api::session.session'> &
+      Schema.Attribute.Required;
+    subscription: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::subscription.subscription'
+    >;
+    uniqueKey: Schema.Attribute.String & Schema.Attribute.Unique;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    uscat: Schema.Attribute.Boolean;
+    visitor: Schema.Attribute.Boolean;
+  };
+}
+
 export interface ApiCalendarBlackoutCalendarBlackout
   extends Struct.CollectionTypeSchema {
   collectionName: 'calendar_blackouts';
@@ -1061,7 +1112,9 @@ export interface ApiEmailJobEmailJob extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     group: Schema.Attribute.Relation<'manyToOne', 'api::group.group'>;
-    kind: Schema.Attribute.Enumeration<['registration', 'schedule-change']> &
+    kind: Schema.Attribute.Enumeration<
+      ['registration', 'schedule-change', 'payment']
+    > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'registration'>;
     lastError: Schema.Attribute.Text;
@@ -1073,6 +1126,7 @@ export interface ApiEmailJobEmailJob extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     notBefore: Schema.Attribute.DateTime;
     payload: Schema.Attribute.JSON;
+    payment: Schema.Attribute.Relation<'manyToOne', 'api::payment.payment'>;
     publishedAt: Schema.Attribute.DateTime;
     recipient: Schema.Attribute.String & Schema.Attribute.Required;
     registration: Schema.Attribute.Relation<
@@ -1364,6 +1418,71 @@ export interface ApiHomepageHomepage extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiIndividualLessonIndividualLesson
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'club_individual_lessons';
+  info: {
+    displayName: 'Club / Lec\u021Bie individual\u0103';
+    pluralName: 'individual-lessons';
+    singularName: 'individual-lesson';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    amount: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
+    athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'> &
+      Schema.Attribute.Required;
+    audience: Schema.Attribute.Enumeration<['member', 'nonMember']>;
+    coaches: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::team-member.team-member'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    date: Schema.Attribute.Date & Schema.Attribute.Required;
+    durationMin: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 600;
+          min: 5;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<50>;
+    itemName: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::individual-lesson.individual-lesson'
+    > &
+      Schema.Attribute.Private;
+    present: Schema.Attribute.Boolean;
+    price: Schema.Attribute.Decimal;
+    priceList: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::price-list.price-list'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    savedAt: Schema.Attribute.DateTime;
+    savedBy: Schema.Attribute.String;
+    startTime: Schema.Attribute.String & Schema.Attribute.Required;
+    state: Schema.Attribute.Enumeration<['planned', 'saved']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'planned'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiLocationLocation extends Struct.CollectionTypeSchema {
   collectionName: 'locations';
   info: {
@@ -1517,6 +1636,80 @@ export interface ApiPartnersPagePartnersPage extends Struct.SingleTypeSchema {
     > &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiPaymentPayment extends Struct.CollectionTypeSchema {
+  collectionName: 'club_payments';
+  info: {
+    displayName: 'Club / Plat\u0103';
+    pluralName: 'payments';
+    singularName: 'payment';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    acsBefore: Schema.Attribute.Enumeration<['da', 'nu', 'in_asteptare']>;
+    amount: Schema.Attribute.Decimal &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0.01;
+        },
+        number
+      >;
+    athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'> &
+      Schema.Attribute.Required;
+    cancelled: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    cancelledAt: Schema.Attribute.DateTime;
+    cancelledBy: Schema.Attribute.String;
+    clubMonth: Schema.Attribute.String;
+    collectedAtRink: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    emailJob: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::email-job.email-job'
+    >;
+    lesson: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::individual-lesson.individual-lesson'
+    >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::payment.payment'
+    > &
+      Schema.Attribute.Private;
+    method: Schema.Attribute.Enumeration<['numerar', 'card', 'transfer']> &
+      Schema.Attribute.Required;
+    note: Schema.Attribute.Text;
+    paidOn: Schema.Attribute.Date & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    purpose: Schema.Attribute.Enumeration<
+      ['abonament', 'cotizatie', 'club_luna', 'lectie', 'altceva']
+    > &
+      Schema.Attribute.Required;
+    recordedAt: Schema.Attribute.DateTime;
+    recordedBy: Schema.Attribute.String;
+    season: Schema.Attribute.Relation<'manyToOne', 'api::season.season'> &
+      Schema.Attribute.Required;
+    sendEmail: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    subscription: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::subscription.subscription'
+    >;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1887,6 +2080,69 @@ export interface ApiSectionSection extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiSessionSession extends Struct.CollectionTypeSchema {
+  collectionName: 'club_sessions';
+  info: {
+    displayName: 'Club / \u0218edin\u021B\u0103';
+    pluralName: 'sessions';
+    singularName: 'session';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    coaches: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::team-member.team-member'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    date: Schema.Attribute.Date & Schema.Attribute.Required;
+    durationMin: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 600;
+          min: 5;
+        },
+        number
+      >;
+    event: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::calendar-event.calendar-event'
+    >;
+    firstSavedAt: Schema.Attribute.DateTime;
+    group: Schema.Attribute.Relation<'manyToOne', 'api::group.group'> &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::session.session'
+    > &
+      Schema.Attribute.Private;
+    occurrenceKey: Schema.Attribute.String & Schema.Attribute.Unique;
+    outsideSchedule: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    publishedAt: Schema.Attribute.DateTime;
+    savedAt: Schema.Attribute.DateTime;
+    savedBy: Schema.Attribute.String;
+    season: Schema.Attribute.Relation<'manyToOne', 'api::season.season'> &
+      Schema.Attribute.Required;
+    source: Schema.Attribute.Enumeration<['schedule', 'added']> &
+      Schema.Attribute.Required;
+    startTime: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiSheetLinkSheetLink extends Struct.CollectionTypeSchema {
   collectionName: 'sheet_links';
   info: {
@@ -1999,6 +2255,7 @@ export interface ApiSiteSettingsSiteSettings extends Struct.SingleTypeSchema {
     };
   };
   attributes: {
+    attendanceStartDate: Schema.Attribute.Date;
     contact: Schema.Attribute.JSON &
       Schema.Attribute.CustomField<'plugin::component-preview.site-settings-contact'>;
     createdAt: Schema.Attribute.DateTime;
@@ -2111,6 +2368,78 @@ export interface ApiSportspersonSportsperson
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+  };
+}
+
+export interface ApiSubscriptionSubscription
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'club_subscriptions';
+  info: {
+    displayName: 'Club / Abonament';
+    pluralName: 'subscriptions';
+    singularName: 'subscription';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'> &
+      Schema.Attribute.Required;
+    audience: Schema.Attribute.Enumeration<['member', 'nonMember']>;
+    cancelled: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    cancelledAt: Schema.Attribute.DateTime;
+    cancelledBy: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    extendedWeeks: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
+    itemName: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::subscription.subscription'
+    > &
+      Schema.Attribute.Private;
+    price: Schema.Attribute.Decimal;
+    priceList: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::price-list.price-list'
+    > &
+      Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    purchasedAt: Schema.Attribute.DateTime;
+    recordedBy: Schema.Attribute.String;
+    season: Schema.Attribute.Relation<'manyToOne', 'api::season.season'> &
+      Schema.Attribute.Required;
+    slots: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 1;
+        },
+        number
+      >;
+    startsOn: Schema.Attribute.Date & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    validIn: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::price-list.price-list'
+    >;
+    validUntil: Schema.Attribute.Date & Schema.Attribute.Required;
   };
 }
 
@@ -2807,6 +3136,7 @@ declare module '@strapi/strapi' {
       'api::article.article': ApiArticleArticle;
       'api::athlete-duplicate.athlete-duplicate': ApiAthleteDuplicateAthleteDuplicate;
       'api::athlete.athlete': ApiAthleteAthlete;
+      'api::attendance.attendance': ApiAttendanceAttendance;
       'api::calendar-blackout.calendar-blackout': ApiCalendarBlackoutCalendarBlackout;
       'api::calendar-event.calendar-event': ApiCalendarEventCalendarEvent;
       'api::club-figures.club-figures': ApiClubFiguresClubFigures;
@@ -2824,10 +3154,12 @@ declare module '@strapi/strapi' {
       'api::history-entry.history-entry': ApiHistoryEntryHistoryEntry;
       'api::history-milestone.history-milestone': ApiHistoryMilestoneHistoryMilestone;
       'api::homepage.homepage': ApiHomepageHomepage;
+      'api::individual-lesson.individual-lesson': ApiIndividualLessonIndividualLesson;
       'api::location.location': ApiLocationLocation;
       'api::navigation.navigation': ApiNavigationNavigation;
       'api::partner-submission.partner-submission': ApiPartnerSubmissionPartnerSubmission;
       'api::partners-page.partners-page': ApiPartnersPagePartnersPage;
+      'api::payment.payment': ApiPaymentPayment;
       'api::price-list.price-list': ApiPriceListPriceList;
       'api::pricing.pricing': ApiPricingPricing;
       'api::program-page.program-page': ApiProgramPageProgramPage;
@@ -2836,11 +3168,13 @@ declare module '@strapi/strapi' {
       'api::registration-submission.registration-submission': ApiRegistrationSubmissionRegistrationSubmission;
       'api::season.season': ApiSeasonSeason;
       'api::section.section': ApiSectionSection;
+      'api::session.session': ApiSessionSession;
       'api::sheet-link.sheet-link': ApiSheetLinkSheetLink;
       'api::sheet-sync-log.sheet-sync-log': ApiSheetSyncLogSheetSyncLog;
       'api::site-settings.site-settings': ApiSiteSettingsSiteSettings;
       'api::sponsor.sponsor': ApiSponsorSponsor;
       'api::sportsperson.sportsperson': ApiSportspersonSportsperson;
+      'api::subscription.subscription': ApiSubscriptionSubscription;
       'api::team-member.team-member': ApiTeamMemberTeamMember;
       'api::team-page.team-page': ApiTeamPageTeamPage;
       'api::volunteer-page.volunteer-page': ApiVolunteerPageVolunteerPage;

@@ -17,7 +17,7 @@ describe('phase 4 schema', () => {
 
   it('e-mail jobs know schedule changes: group, payload, change key and a not-before time (3.6)', () => {
     const a = json('api/email-job/content-types/email-job/schema.json').attributes;
-    expect(a.kind).toEqual({ type: 'enumeration', enum: ['registration', 'schedule-change'], required: true, default: 'registration' });
+    expect(a.kind).toEqual({ type: 'enumeration', enum: ['registration', 'schedule-change', 'payment'], required: true, default: 'registration' });
     expect(a.group).toEqual({ type: 'relation', relation: 'manyToOne', target: 'api::group.group' });
     expect(a.payload).toEqual({ type: 'json' });
     expect(a.changeKey).toEqual({ type: 'string' });

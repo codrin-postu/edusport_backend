@@ -26,6 +26,9 @@
     },
     "personalData": {
       "type": "json"
+    },
+    "attendanceStartDate": {
+      "type": "date"
     }
   }
 }
