@@ -25,7 +25,7 @@ export function startPersonalDataSweep(strapi: Core.Strapi): void {
   const log = (message: string) => strapi.log.error(message);
   void sweepAnonymizedFolders(clubStore(strapi), (id) => deleteRegistrationDocuments(strapi, id), log)
     .then((n) => {
-      if (n) strapi.log.info(`[personal-data] startup sweep: ${n} registration folder(s) of anonymized athletes checked`);
+      if (n) strapi.log.debug(`[personal-data] startup sweep: ${n} registration folder(s) of anonymized athletes checked`);
     })
     .catch((err) => log(`[personal-data] startup sweep failed: ${err instanceof Error ? err.message : String(err)}`));
 }

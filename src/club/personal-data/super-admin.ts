@@ -1,27 +1,23 @@
-import { adminIdFrom } from '../admin-actor';
-import { hasSuperAdminRole } from './roles';
+import { verifiedAdminId, type TokenStrapi } from '../admin-actor';
+import { hasSuperAdminRole, isRaw } from './roles';
 
 /** The parts of Strapi the check needs; `Core.Strapi` satisfies it. */
-export type RoleStrapi = {
-  config: { get: (key: string) => unknown };
+export type RoleStrapi = TokenStrapi & {
   db: { query: (uid: 'admin::user') => { findOne: (args: { where: { id: unknown }; populate: string[] }) => Promise<unknown> } };
 };
 
-/** Same rule as Strapi's admin login: only an active, unblocked admin counts. */
-function isActiveAdmin(user: unknown): boolean {
-  if (!user || typeof user !== 'object') return false;
-  const { isActive, blocked } = user as { isActive?: unknown; blocked?: unknown };
-  return isActive === true && blocked !== true;
-}
+/** Same rule as Strapi's admin login, plus not blocked: only an active, unblocked admin counts. */
+const isActiveAdmin = (user: unknown): boolean => isRaw(user) && user.isActive === true && user.blocked !== true;
 
 /**
- * Same JWT check as `global::is-admin`, then the admin user loaded with roles from the database (never a claim in
- * the token) must be active, unblocked and hold `strapi-super-admin`. Never throws.
+ * Same token check as `global::is-admin` (an access token of an active admin session), then the admin user loaded
+ * with roles from the database (never a claim in the token) must be active, unblocked and hold `strapi-super-admin`.
+ * Never throws.
  */
 export async function isSuperAdminRequest(authorization: string | undefined, strapi: RoleStrapi): Promise<boolean> {
   try {
-    const id = adminIdFrom(authorization, strapi.config.get('admin.auth.secret'));
-    if (id === null || id === undefined) return false;
+    const id = await verifiedAdminId(authorization, strapi);
+    if (id === null) return false;
     const user = await strapi.db.query('admin::user').findOne({ where: { id }, populate: ['roles'] });
     return isActiveAdmin(user) && hasSuperAdminRole(user);
   } catch {

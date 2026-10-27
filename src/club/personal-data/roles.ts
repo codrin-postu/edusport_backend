@@ -2,7 +2,7 @@
 export const SUPER_ADMIN_CODE = 'strapi-super-admin';
 
 type Raw = Record<string, unknown>;
-const isRaw = (v: unknown): v is Raw => !!v && typeof v === 'object';
+export const isRaw = (v: unknown): v is Raw => !!v && typeof v === 'object';
 
 export function hasSuperAdminRole(user: unknown): boolean {
   const roles = isRaw(user) ? user.roles : null;
