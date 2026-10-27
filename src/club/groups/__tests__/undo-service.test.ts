@@ -1,0 +1,103 @@
+import { describe, expect, it } from 'vitest';
+import { joinGroup, moveMembership, removeMembership } from '../members';
+import { undoAction } from '../undo-service';
+import { athleteRow, fakeContext, member } from './fake-group-store';
+
+const seed = () => fakeContext({
+  athletes: [athleteRow({ id: 'a1', name: 'Ana Ionescu' }), athleteRow({ id: 'a2', name: 'Daria Stan' }), athleteRow({ id: 'a3', name: 'Tudor Matei', status: 'inactiv' })],
+  memberships: [member({ id: 'm1', athleteId: 'a1', groupId: 'g-ib' }), member({ id: 'm2', athleteId: 'a2', groupId: 'g-ib' })],
+});
+const actionOf = (res: { ok: boolean; data?: { actionId: string | null } }): string => (res.ok && res.data?.actionId) || '';
+const STALE = { ok: false, status: 409, error: 'Nu se mai poate anula. Grupa s-a schimbat între timp.' };
+
+describe('"Anulează" from the toast (8.1, W15)', () => {
+  it('takes back a move exactly and writes "Anulat" on every subject', async () => {
+    const { ctx, state } = seed();
+    const before = structuredClone(state.memberships);
+    const actionId = actionOf(await moveMembership(ctx, 'm1', { toGroupId: 'g-is' }));
+    expect(await undoAction(ctx, { actionId })).toEqual({ ok: true, data: { undone: true } });
+    expect(state.memberships).toEqual(before);
+    const undone = state.history.filter((h) => h.action === 'undone');
+    expect(undone.map((h) => h.subjectId)).toEqual(['g-ib', 'g-is', 'a1', 'a1']);
+    expect(undone[0].changes).toEqual({ undoneAction: 'member-moved-out', undoneChanges: { athleteId: 'a1', toGroup: 'Intermediari Silver', main: { from: 'Intermediari Bronze', to: 'Intermediari Silver' } } });
+  });
+
+  it('deletes the row an add created and turns a reactivated athlete inactive again', async () => {
+    const { ctx, state } = seed();
+    const added = actionOf(await joinGroup(ctx, 'g-pro', { season: '2026-2027', athleteIds: ['a3'], mode: 'add' }));
+    expect(state.athletes.find((a) => a.id === 'a3')?.status).toBe('activ');
+    expect(await undoAction(ctx, { actionId: added })).toEqual({ ok: true, data: { undone: true } });
+    expect(state.athletes.find((a) => a.id === 'a3')?.status).toBe('inactiv');
+    expect(state.memberships.filter((m) => m.athleteId === 'a3')).toEqual([]);
+  });
+
+  it('re-creates an identical row after a remove that deleted it (it started today)', async () => {
+    const { ctx, state } = fakeContext({
+      athletes: [athleteRow({ id: 'a1', name: 'Ana Ionescu' })],
+      memberships: [member({ id: 'm1', athleteId: 'a1', groupId: 'g-ib', from: '2026-11-20' })],
+    });
+    const gone = actionOf(await removeMembership(ctx, 'm1'));
+    expect(state.memberships).toEqual([]);
+    expect(await undoAction(ctx, { actionId: gone })).toEqual({ ok: true, data: { undone: true } });
+    expect(state.memberships).toHaveLength(1);
+    const { id, ...row } = state.memberships[0];
+    expect(id).not.toBe('');
+    expect(row).toEqual({ athleteId: 'a1', groupId: 'g-ib', seasonId: 's26', isMain: true, from: '2026-11-20', to: null });
+  });
+
+  it('reopens an ended row: a remove that ended it is taken back to an open row', async () => {
+    const { ctx, state } = seed();
+    const ended = actionOf(await removeMembership(ctx, 'm1'));
+    expect(state.memberships.find((m) => m.id === 'm1')?.to).not.toBeNull();
+    expect((await undoAction(ctx, { actionId: ended })).ok).toBe(true);
+    expect(state.memberships.find((m) => m.id === 'm1')?.to).toBeNull();
+  });
+
+  it('refuses an undo after another change on the group, and writes nothing', async () => {
+    const { ctx, state } = seed();
+    const first = actionOf(await removeMembership(ctx, 'm1'));
+    await removeMembership(ctx, 'm2');
+    const rows = structuredClone(state.memberships);
+    const lines = state.history.length;
+    expect(await undoAction(ctx, { actionId: first })).toEqual(STALE);
+    expect(state.memberships).toEqual(rows);
+    expect(state.history).toHaveLength(lines);
+  });
+
+  it('refuses a second undo of the same action', async () => {
+    const { ctx, state } = seed();
+    const again = actionOf(await removeMembership(ctx, 'm1'));
+    expect((await undoAction(ctx, { actionId: again })).ok).toBe(true);
+    expect(state.history.find((h) => h.id === again)?.changes.undone).toBe(true);
+    const rows = structuredClone(state.memberships);
+    expect(await undoAction(ctx, { actionId: again })).toEqual(STALE);
+    expect(state.memberships).toEqual(rows);
+  });
+
+  it('answers 404 for an unknown action, 400 without one; the season text for a season action', async () => {
+    const { ctx, state } = seed();
+    expect(await undoAction(ctx, { actionId: 'nope' })).toEqual({ ok: false, status: 404, error: 'Nu a fost găsit.' });
+    expect((await undoAction(ctx, {})).ok).toBe(false);
+    await ctx.store.recordAction({ subjectType: 'season', subjectId: 's27', action: 'current-changed', changes: { from: false, to: true, undo: { kind: 'season', steps: [], subjects: [{ type: 'season', id: 's27' }], revalidate: true, registrationsAfter: { seasonId: 's27', at: '2026-11-20T10:00:00.000Z' } } }, actor: 'x' });
+    state.filedAfter = 1;
+    expect(await undoAction(ctx, { actionId: 'h1' })).toEqual({ ok: false, status: 409, error: 'Nu se mai poate anula. Sezonul s-a schimbat între timp.' });
+  });
+
+  it('pings revalidate once after a record that asks for it, not otherwise', async () => {
+    const { ctx, revalidated } = seed();
+    await ctx.store.recordAction({ subjectType: 'season', subjectId: 's27', action: 'current-changed', changes: { undo: { kind: 'season', steps: [], subjects: [{ type: 'season', id: 's27' }], revalidate: true } }, actor: 'x' });
+    expect((await undoAction(ctx, { actionId: 'h1' })).ok).toBe(true);
+    expect(revalidated()).toBe(1);
+    const plain = actionOf(await removeMembership(ctx, 'm1'));
+    await undoAction(ctx, { actionId: plain });
+    expect(revalidated()).toBe(1);
+  });
+
+  it('locks the rows before checking, in the binding order', async () => {
+    const { ctx, state } = seed();
+    const actionId = actionOf(await moveMembership(ctx, 'm1', { toGroupId: 'g-is' }));
+    state.locks = [];
+    await undoAction(ctx, { actionId });
+    expect(state.locks).toEqual(['athlete:a1']);
+  });
+});
