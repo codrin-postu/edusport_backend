@@ -10,6 +10,7 @@ import {
   REALIZARI_TO, EVENIMENTE_COLABORARE_TO, UID,
 } from '../pages/routes';
 import { OLD_EDITOR_PATH, SPORTIVI_PATH } from '../../club/sportivi/routes';
+import { GRUPE_PATH } from '../../club/grupe/routes';
 
 // Route constants of the custom pages (src/admin/pages), re-exported so every
 // *_TO lives behind one import. Defined in ../pages/routes (see there).
@@ -78,6 +79,9 @@ export const PARTENERI_REZULTATE_TO = '/plugins/edusport-parteneri-rezultate';
 // Admin route for the custom "Editor formular" page (?type=inscriere|contact).
 export const FORM_EDITOR_TO = '/plugins/edusport-form-editor';
 
+// Grupe: the group list, and under /<documentId> the group page (phase 4).
+export const GRUPE_TO = GRUPE_PATH;
+
 // Sportivi: the private athlete list, and under /<documentId> the athlete record.
 // The old profile editor address only redirects to the record (spec 7).
 export const SPORTIVI_TO = SPORTIVI_PATH;
@@ -136,7 +140,8 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   // Program și calendar
   { to: PROGRAM_EDIT_TO, label: 'Calendar și serii', icon: Calendar, group: 'program', featured: true },
 
-  // Club și școală (Grupe and Prezență join in phase 4)
+  // Club și școală (Prezență joins in phase 5)
+  { to: GRUPE_TO, label: 'Grupe', icon: GridFour, group: 'club', featured: true },
   { to: SPORTIVI_TO, label: 'Sportivi', icon: User, group: 'club', featured: true },
 
   // Sportivi și echipă
@@ -266,6 +271,15 @@ export function registerEdusportMenu(app: StrapiApp) {
     Component: () => import('./FormEditorPage'),
     permissions: [],
     position: 5,
+  });
+
+  app.addMenuLink({
+    to: GRUPE_TO,
+    icon: GridFour,
+    intlLabel: { id: 'edusport.menu.grupe', defaultMessage: 'Grupe' },
+    Component: () => import('./GrupePage'),
+    permissions: [],
+    position: 6,
   });
 
   app.addMenuLink({

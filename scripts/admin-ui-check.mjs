@@ -43,7 +43,7 @@ const ADMIN = join(ROOT, 'src', 'admin');
 const TOKENS = join(ADMIN, 'ui', 'tokens.ts');
 const UI_DIR = join(ADMIN, 'ui') + sep;
 /** Custom pages and their data helpers: born on src/admin/ui, held to the colour rule like it. */
-const RULED_DIRS = [UI_DIR, join(ADMIN, 'pages') + sep, join(ADMIN, 'lib') + sep, join(ADMIN, 'dashboard', 'sportivi') + sep, join(ADMIN, 'dashboard', 'inscrieri') + sep];
+const RULED_DIRS = [UI_DIR, join(ADMIN, 'pages') + sep, join(ADMIN, 'lib') + sep, join(ADMIN, 'dashboard', 'sportivi') + sep, join(ADMIN, 'dashboard', 'inscrieri') + sep, join(ADMIN, 'dashboard', 'grupe') + sep];
 
 /**
  * Files already on src/admin/ui: held to the colour rule like src/admin/ui itself.
