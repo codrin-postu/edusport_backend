@@ -257,30 +257,39 @@ function profileMediaIds(strapi: Core.Strapi): ClubStore['profileMediaIds'] {
   };
 }
 
-type RichColumn = { table: string; column: string };
-const RICH_TYPES: ReadonlySet<string> = new Set(['blocks', 'richtext']);
-const columnOf = (attribute: unknown, name: string): string => str((attribute as Raw | undefined)?.columnName) ?? name;
+type TextColumn = { table: string; column: string };
+/** Custom fields are already resolved to their stored type here (Strapi converts them at load). */
+const TEXT_TYPES: ReadonlySet<string> = new Set(['blocks', 'richtext', 'json', 'string', 'text']);
+/** The file's own rows hold its hash and url and would always match; admin and users-permissions rows hold no content. */
+const notScanned = (uid: string): boolean => uid === FILE || uid === 'plugin::upload.folder' || uid.startsWith('admin::') || uid.startsWith('plugin::users-permissions.');
 
-/** Every blocks and richtext column of every content type and component, read from the registry so a rich field added later is covered. */
-export function richColumns(strapi: Core.Strapi): RichColumn[] {
+/**
+ * Every text-bearing column of every content type and component, from the registry so a field added later is covered: a blocks
+ * image or an `imageUrl` string or markdown inside json can point at a file without a files_related_mph row.
+ */
+export function textColumns(strapi: Core.Strapi): TextColumn[] {
   const schemas: [string, { attributes: Record<string, { type: string }> }][] = [...Object.entries(strapi.contentTypes), ...Object.entries(strapi.components)];
-  return schemas.flatMap(([uid, schema]) => {
-    const names = Object.entries(schema.attributes).filter(([, a]) => RICH_TYPES.has(a.type)).map(([name]) => name);
-    if (!names.length) return [];
+  return schemas.filter(([uid]) => !notScanned(uid)).flatMap(([uid, schema]) => {
     const meta = strapi.db.metadata.get(uid);
-    return names.map((name) => ({ table: meta.tableName, column: columnOf(meta.attributes[name], name) }));
+    if (!meta) return [];
+    return Object.entries(schema.attributes)
+      .filter(([, a]) => TEXT_TYPES.has(a.type))
+      .flatMap(([name]) => {
+        const column = str((meta.attributes[name] as Raw | undefined)?.columnName);
+        return column ? [{ table: meta.tableName, column }] : [];
+      });
   });
 }
 
 const MATCH = "CAST(?? AS TEXT) LIKE '%' || ? || '%'";
 
-/** A blocks image stores the file's url and hash, markdown its url; neither leaves a files_related_mph row. */
-async function usedInRichText(strapi: Core.Strapi, file: Raw): Promise<boolean> {
+/** One query per column, matching the file's hash (blocks images, format urls) or url (markdown, url strings). */
+async function usedInText(strapi: Core.Strapi, file: Raw): Promise<boolean> {
   const needles = [str(file.hash), str(file.url)].filter((n): n is string => n !== null);
   if (!needles.length) return false;
-  for (const { table, column } of richColumns(strapi)) {
-    const sql = needles.map(() => MATCH).join(' OR ');
-    if (await strapi.db.connection(table).whereRaw(sql, needles.flatMap((n) => [column, n])).first('id')) return true;
+  const sql = needles.map(() => MATCH).join(' OR ');
+  for (const { table, column } of textColumns(strapi)) {
+    if (await strapi.db.getConnection(table).whereRaw(sql, needles.flatMap((n) => [column, n])).first('id')) return true;
   }
   return false;
 }
@@ -290,7 +299,7 @@ function deleteMediaIfUnused(strapi: Core.Strapi): ClubStore['deleteMediaIfUnuse
   return async (fileId) => {
     const file = (await strapi.db.query(FILE).findOne({ where: { id: fileId }, populate: { related: { select: ['id'] } } })) as Raw | null;
     if (!file || raws(file.related).length > 0) return false;
-    if (await usedInRichText(strapi, file)) return false;
+    if (await usedInText(strapi, file)) return false;
     await strapi.plugin('upload').service('upload').remove(file);
     return true;
   };
