@@ -14,7 +14,7 @@ import { isCurrentMembership } from '../group-membership';
 
 /**
  * "Confirmă înscrierea" (spec 4.5 to 4.7): one transaction holding the registration row, so a second admin waits
- * and then gets 409, then the existing athlete's row, so confirmations of one child and merges run one after the
+ * and then gets 409, then its season's row, then the existing athlete's row, so confirmations of one child and merges run one after the
  * other; any failure rolls everything back.
  */
 type Result = AdminResult<ConfirmResponse>;
@@ -116,6 +116,10 @@ async function confirmLocked(ctx: ServiceContext, id: string, request: ConfirmRe
   if (!reg) return refuse(404, ADMIN_ERRORS.notFound);
   const refusal = confirmRefusal(reg, request);
   if (refusal) return refuse(refusal.status, refusal.error);
+  // Lock order registrations > seasons > athletes: the membership and A.C.S. inserts key-share the season row, which
+  // phase 4 writers lock before their athletes. Whether a confirmation into a just-past season is refused is open.
+  const season = registrationSeason(reg, await ctx.store.seasons());
+  if (season) await ctx.store.lockSeason(season.id);
   // Polish 12: a second confirmation of the same child, or a merge of this athlete, waits here.
   if (request.athleteId) await ctx.store.lockAthlete(request.athleteId);
   const loaded = await loadFacts(ctx, reg, request);
