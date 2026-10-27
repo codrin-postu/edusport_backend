@@ -20,7 +20,7 @@ describe('individual lessons', () => {
     const f = attendanceSeed();
     const r = await createLesson(f.ctx, body());
     expect(r).toEqual({ ok: true, data: { value: { lessonId: expect.any(String), changed: true, toast: 'Salvat.' }, actionId: expect.any(String) } });
-    expect(f.state.lessons[0]).toMatchObject({ state: 'planned', present: null, price: null, amount: 0, createdBy: 'Ana Admin', durationMin: 50 });
+    expect(f.state.lessons[0]).toMatchObject({ state: 'planned', present: null, price: null, amount: 0, createdByName: 'Ana Admin', durationMin: 50 });
     expect(lessonLines(f)).toEqual(['Lecție programată: 25 noi 2026, 18:00, 50 min.']);
     expect(ok(await undoPresenceAction(f.ctx, { actionId: ok(r).actionId }))).toEqual({ undone: true });
     expect(f.state.lessons).toEqual([]);

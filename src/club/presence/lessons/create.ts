@@ -30,7 +30,7 @@ export async function lessonSnapshot(store: PresenceStore, athleteId: string, da
   return price === null ? { ...NO_PRICE, priceListId: list.id } : { priceListId: list.id, itemName, price, audience };
 }
 
-/** The admin's name for savedBy and createdBy; the sign-in when no name is known. */
+/** The admin's name for savedBy and createdByName; the sign-in when no name is known. */
 export async function actorName(ctx: PresenceContext): Promise<string> {
   return (await ctx.store.adminNames([ctx.actor]))[ctx.actor] ?? ctx.actor;
 }
@@ -47,7 +47,7 @@ async function newLesson(ctx: PresenceContext, b: LessonBody): Promise<LessonWri
   const snap = held ? await lessonSnapshot(ctx.store, b.athleteId, b.date) : NO_PRICE;
   return {
     ...b, state: held ? 'saved' : 'planned', present: held ? true : null, ...snap, amount: snap.price ?? 0,
-    createdBy: name, savedBy: held ? name : null, savedAt: held ? ctx.now().toISOString() : null,
+    createdByName: name, savedBy: held ? name : null, savedAt: held ? ctx.now().toISOString() : null,
   };
 }
 

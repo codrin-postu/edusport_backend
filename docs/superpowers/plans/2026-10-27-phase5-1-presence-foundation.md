@@ -320,7 +320,7 @@ export type LessonState = 'planned' | 'saved';
 export type LessonWrite = {
   athleteId: string; date: string; startTime: string; durationMin: number; coachIds: string[]; state: LessonState; present: boolean | null;
   priceListId: string | null; itemName: string | null; price: number | null; audience: Audience | null; amount: number;
-  createdBy: string; savedBy: string | null; savedAt: string | null;
+  createdByName: string; savedBy: string | null; savedAt: string | null;
 };
 export type LessonRow = LessonWrite & { id: string };
 export type SubscriptionWrite = {

@@ -96,7 +96,7 @@ A one-to-one lesson, coach and one athlete; it carries its own presence (no atte
 - `state`: enumeration `planned | saved`, required. `present`: boolean, null while planned.
 - `priceList` (manyToOne price-list: the current list of the athlete's main group on the lesson date, null when none), `itemName` (string), `price` (decimal, null when no price), `audience` (`member | nonMember`), a snapshot taken at the first save with `present` true [p5 Q27; C73].
 - `amount`: decimal, `price` when present and priced, else 0.
-- `createdBy`, `savedBy` (strings), `savedAt` (datetime).
+- `createdByName`, `savedBy` (strings), `savedAt` (datetime).
 
 ### 3.4 Subscription (`api::subscription.subscription`, table `club_subscriptions`) [R D23-D35; SPEC 2 rule 7]
 A Școala abonament bought by an athlete.
