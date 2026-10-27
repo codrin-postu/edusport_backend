@@ -2,13 +2,18 @@ export interface SeasonMembership {
   groupId: string;
   seasonId: string;
   isMain: boolean;
+  to?: string | null;
 }
 
+/** A membership is current until it gets its `to` date (spec 3.2). */
+export const isCurrentMembership = (m: { to?: string | null }): boolean => !m.to;
+
+/** Exactly one current main membership per athlete per season, whenever there is any current one (SPEC 2 rule 2). */
 export function checkMainGroup(
   list: SeasonMembership[],
   seasonId: string,
 ): { ok: true } | { ok: false; reason: 'none' | 'many' } {
-  const inSeason = list.filter((m) => m.seasonId === seasonId);
+  const inSeason = list.filter((m) => m.seasonId === seasonId && isCurrentMembership(m));
   if (inSeason.length === 0) return { ok: true };
   const mains = inSeason.filter((m) => m.isMain).length;
   if (mains === 1) return { ok: true };

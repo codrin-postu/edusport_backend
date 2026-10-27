@@ -39,6 +39,36 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     ]);
   });
 
+  it('an ended main row is not the season\'s main: the undo still gives the current main back', async () => {
+    const ended = { id: 'm-end', athleteId: 'a1', groupId: 'g-ib', seasonId: 's26', isMain: true, from: '2026-09-01', to: '2026-09-30' };
+    const fake = fakeClubStore({ ...seed(), memberships: [ended, ...seed().memberships] });
+    await confirmed(fake);
+    await undoConfirmation(ctx(fake), 'r1');
+    expect(fake.state.memberships.filter((m) => m.isMain && !m.to).map((m) => m.id)).toEqual(['m0']);
+  });
+
+  it('a demoted main row that ended since is not given the main flag back, and no Istoric line names it', async () => {
+    const fake = fakeClubStore(seed());
+    await confirmed(fake);
+    const m0 = fake.state.memberships.find((m) => m.id === 'm0')!;
+    m0.to = '2026-11-19';
+    const before = fake.state.history.length;
+    await undoConfirmation(ctx(fake), 'r1');
+    expect(fake.state.memberships.map((m) => [m.id, m.isMain])).toEqual([['m0', false]]);
+    expect(fake.state.history.slice(before).map((h) => h.action)).not.toContain('main-group-changed');
+  });
+
+  it('a demoted main that ended: the earliest remaining current row becomes main and the change is noted', async () => {
+    const extra = { id: 'm-x', athleteId: 'a1', groupId: 'g-ib', seasonId: 's26', isMain: false, from: '2026-10-10' };
+    const fake = fakeClubStore({ ...seed(), memberships: [...seed().memberships, extra] });
+    await confirmed(fake);
+    fake.state.memberships.find((m) => m.id === 'm0')!.to = '2026-11-19';
+    await undoConfirmation(ctx(fake), 'r1');
+    expect(fake.state.memberships.map((m) => [m.id, m.isMain])).toEqual([['m0', false], ['m-x', true]]);
+    const last = fake.state.history.filter((h) => h.action === 'main-group-changed').pop();
+    expect(last?.changes).toEqual({ from: 'Primii Pași', to: 'Intermediari Bronze' });
+  });
+
   it('no reverse line when the undo gives no main group back', async () => {
     const fake = fakeClubStore({ ...seed(), memberships: [] });
     await confirmed(fake);

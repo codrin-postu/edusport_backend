@@ -8,6 +8,7 @@ import type { UndoResponse } from './api-types';
 import { ADMIN_ERRORS } from './errors';
 import { refreshAllMatches, safely } from './matches';
 import type { ClubStore, RegistrationRow, ServiceContext } from './store';
+import { isCurrentMembership } from '../group-membership';
 
 type Result = AdminResult<UndoResponse>;
 
@@ -22,7 +23,9 @@ async function loadFacts(store: ClubStore, reg: RegistrationRow, record: Confirm
   return {
     record, linkedAthleteId: reg.athleteId, athlete,
     membershipIds: memberships.map((m) => m.id),
-    mainMembershipId: memberships.find((m) => m.isMain && m.seasonId === seasonId)?.id ?? null,
+    currentRows: memberships.filter(isCurrentMembership),
+    seasonId,
+    mainMembershipId: memberships.find((m) => m.isMain && m.seasonId === seasonId && isCurrentMembership(m))?.id ?? null,
     acsRows: acs.map(({ id, state }) => ({ id, state })),
     otherRegistrations: linked.filter((r) => r.id !== reg.id).length,
   };
@@ -30,7 +33,8 @@ async function loadFacts(store: ClubStore, reg: RegistrationRow, record: Confirm
 
 async function revertRows(store: ClubStore, plan: UndoPlan): Promise<void> {
   if (plan.deleteMembershipId) await store.deleteMembership(plan.deleteMembershipId);
-  if (plan.restoreMainId) await store.updateMembership(plan.restoreMainId, { isMain: true });
+  const main = plan.restoreMainId ?? plan.promoteMainId;
+  if (main) await store.updateMembership(main, { isMain: true });
   if (plan.demoteMembershipId) await store.updateMembership(plan.demoteMembershipId, { isMain: false });
   if (plan.acs?.op === 'delete') await store.deleteAcs(plan.acs.id);
   if (plan.acs?.op === 'set') await store.updateAcs(plan.acs.id, { state: plan.acs.state });
@@ -44,11 +48,12 @@ async function revertAthlete(store: ClubStore, athlete: UndoFacts['athlete'], pl
 
 /** Polish 10: the main group the undo gives back, as "<removed main> → <restored main>"; null when it restores none. */
 async function restoredMain(store: ClubStore, facts: UndoFacts, plan: UndoPlan): Promise<{ from: string; to: string } | null> {
-  if (!plan.restoreMainId || !facts.mainMembershipId) return null;
+  const heirId = plan.restoreMainId ?? plan.promoteMainId;
+  if (!heirId || !facts.mainMembershipId) return null;
   const [memberships, groups] = await Promise.all([store.memberships(facts.athlete.id), store.groups()]);
   const nameOf = (membershipId: string) => groups.find((g) => g.id === memberships.find((m) => m.id === membershipId)?.groupId)?.name;
   const from = nameOf(facts.mainMembershipId);
-  const to = nameOf(plan.restoreMainId);
+  const to = nameOf(heirId);
   return from && to ? { from, to } : null;
 }
 

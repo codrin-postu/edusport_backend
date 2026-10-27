@@ -1,5 +1,6 @@
 import { ACS_RANK, type AcsState } from '../acs';
 import type { FieldChange } from '../admin-result';
+import { isCurrentMembership } from '../group-membership';
 import { ATHLETE_FIELDS, athleteChanges, isDataIncomplete, type AthleteField, type AthleteStatus, type AthleteValues } from '../athlete-data';
 
 /** "Unește cu alt sportiv" (spec 6.6, d39): everything moves to the kept record; no undo. */
@@ -9,7 +10,7 @@ export type MergeSide = {
   values: AthleteValues;
   status: AthleteStatus;
   profile: { id: string; slug: string; previousSlugs: string[] } | null;
-  memberships: { id: string; groupId: string; seasonId: string; isMain: boolean }[];
+  memberships: { id: string; groupId: string; seasonId: string; isMain: boolean; to?: string | null }[];
   acs: { id: string; seasonId: string; state: AcsState }[];
 };
 
@@ -29,7 +30,11 @@ export function mergeDiffering(kept: AthleteValues, removed: AthleteValues): Ath
 function planMemberships(kept: MergeSide, removed: MergeSide): MergePlan['memberships'] {
   const plan: MergePlan['memberships'] = { move: [], remove: [] };
   for (const m of removed.memberships) {
-    const sameSeason = kept.memberships.filter((k) => k.seasonId === m.seasonId);
+    if (!isCurrentMembership(m)) {
+      plan.move.push({ id: m.id, isMain: m.isMain });
+      continue;
+    }
+    const sameSeason = kept.memberships.filter((k) => k.seasonId === m.seasonId && isCurrentMembership(k));
     if (sameSeason.some((k) => k.groupId === m.groupId)) plan.remove.push(m.id);
     else plan.move.push({ id: m.id, isMain: sameSeason.length === 0 ? m.isMain : false });
   }

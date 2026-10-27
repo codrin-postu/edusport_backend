@@ -40,6 +40,14 @@ describe('groups (d39)', () => {
   });
 });
 
+describe('groups, ended rows (spec 3.2)', () => {
+  it('an ended row of the other record moves as history; the kept current main stays the only main', () => {
+    const kept = side({ memberships: [{ id: 'k1', groupId: 'g1', seasonId: 's26', isMain: true, to: null }] });
+    const removed = side({ id: 'r', memberships: [{ id: 'r1', groupId: 'g1', seasonId: 's26', isMain: true, to: '2026-10-31' }] });
+    expect(planMerge(kept, removed, []).memberships).toEqual({ move: [{ id: 'r1', isMain: true }], remove: [] });
+  });
+});
+
 describe('A.C.S. (d39)', () => {
   it('same season: the higher state stays (Da > În așteptare > Nu); other seasons move', () => {
     const kept = side({ acs: [{ id: 'k1', seasonId: 's26', state: 'in_asteptare' }, { id: 'k2', seasonId: 's24', state: 'da' }] });

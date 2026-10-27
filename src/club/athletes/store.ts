@@ -20,7 +20,8 @@ export type RegistrationRow = {
 export type SeasonRow = { id: string; label: string; startMonth: string; endMonth: string; isCurrent: boolean };
 export type SectionRow = { id: string; name: string; kind: 'school' | 'club'; publicPage: boolean; order: number | null };
 export type GroupRow = { id: string; name: string; sectionId: string | null; order: number | null; active: boolean };
-export type MembershipRow = { id: string; athleteId: string; groupId: string; seasonId: string; isMain: boolean; from: string | null };
+/** `to` is the last day of an ended membership; null (or absent in old test seeds) while current (spec 3.2). */
+export type MembershipRow = { id: string; athleteId: string; groupId: string; seasonId: string; isMain: boolean; from: string | null; to?: string | null };
 export type AcsRow = { id: string; athleteId: string; seasonId: string; state: AcsState };
 /** A possible-duplicate pair; `dismissed` after "Nu e același copil", kept so the pair is never flagged again. */
 export type DuplicateRow = { id: string; firstId: string; secondId: string; dismissed: boolean };
@@ -65,7 +66,7 @@ export interface ClubStore {
   createAthlete(data: AthleteWrite): Promise<string>;
   updateAthlete(id: string, data: AthleteWrite): Promise<void>;
   deleteAthlete(id: string): Promise<void>;
-  createMembership(data: Omit<MembershipRow, 'id'>): Promise<string>;
+  createMembership(data: Omit<MembershipRow, 'id' | 'to'>): Promise<string>;
   updateMembership(id: string, data: Partial<Pick<MembershipRow, 'athleteId' | 'isMain'>>): Promise<void>;
   deleteMembership(id: string): Promise<void>;
   createAcs(data: Omit<AcsRow, 'id'>): Promise<string>;

@@ -14,6 +14,7 @@ import { ADMIN_ERRORS } from './errors';
 import { athleteFacts } from './matches';
 import { isAnonymized } from '../personal-data/anonymize-plan';
 import type { AthleteRow, ClubStore, GroupRow, RegistrationRow, SectionRow } from './store';
+import { isCurrentMembership } from '../group-membership';
 
 const SEARCH_LIMIT = 20;
 
@@ -51,7 +52,7 @@ type SeasonState = { mainGroupNow: ConfirmContext['mainGroupNow']; current: AcsS
 
 async function athleteSeasonState(store: ClubStore, athleteId: string, season: SeasonFacts, groups: GroupRow[], sections: SectionRow[]): Promise<SeasonState> {
   const [memberships, acs] = await Promise.all([store.memberships(athleteId), store.acsRows(athleteId)]);
-  const main = memberships.find((m) => m.seasonId === season.id && m.isMain);
+  const main = memberships.find((m) => m.seasonId === season.id && m.isMain && isCurrentMembership(m));
   const group = main ? groups.find((g) => g.id === main.groupId) : undefined;
   const sectionName = sections.find((s) => s.id === group?.sectionId)?.name ?? '';
   return { mainGroupNow: group ? { name: group.name, sectionName } : null, current: acs.find((r) => r.seasonId === season.id)?.state ?? null };

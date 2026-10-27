@@ -109,7 +109,7 @@ function fakeRowWrites(s: FakeState, next: Next): Pick<ClubStore, 'createMembers
   return {
     createMembership: async (data) => {
       const id = next('gm');
-      s.memberships.push({ ...data, id });
+      s.memberships.push({ ...data, id, to: null });
       return id;
     },
     updateMembership: async (id, data) => {

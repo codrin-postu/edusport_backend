@@ -15,6 +15,10 @@ describe('checkMainGroup', () => {
         S,
       ),
     ).toEqual({ ok: true }));
+  it('ignores ended rows: a past main plus a current main is fine', () =>
+    expect(checkMainGroup([{ groupId: 'g1', seasonId: S, isMain: true, to: '2026-10-31' }, { groupId: 'g2', seasonId: S, isMain: true, to: null }], S)).toEqual({ ok: true }));
+  it('ended rows alone count as no group', () =>
+    expect(checkMainGroup([{ groupId: 'g1', seasonId: S, isMain: false, to: '2026-10-31' }], S)).toEqual({ ok: true }));
   it('fails with lists but no main', () =>
     expect(checkMainGroup([{ groupId: 'g1', seasonId: S, isMain: false }], S)).toEqual({ ok: false, reason: 'none' }));
   it('fails with two mains', () =>

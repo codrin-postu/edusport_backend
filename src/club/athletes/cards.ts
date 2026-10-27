@@ -3,6 +3,7 @@ import { HISTORY_ACTIONS } from '../history-text';
 import { normalizeSeasonLabel } from '../season';
 import type { AthleteCard, GroupSection } from './api-types';
 import type { AthleteRow, ClubStore, GroupRow, HistoryRow, MembershipRow, RegistrationRow, SeasonRow, SectionRow } from './store';
+import { isCurrentMembership } from '../group-membership';
 
 /** The season label of a registration: its Sezon link, else its season text. */
 export function registrationSeasonLabel(r: RegistrationRow, seasons: SeasonRow[]): string | null {
@@ -39,7 +40,7 @@ export async function cardMaker(store: ClubStore, loadedRegistrations?: Registra
     documentId: a.id,
     name: a.name ?? '',
     birthDate: birthDateForPicker(a.birthDate),
-    lastGroup: lastGroup(memberships.filter((m) => m.athleteId === a.id), groupName, seasonLabel),
+    lastGroup: lastGroup(memberships.filter((m) => m.athleteId === a.id && isCurrentMembership(m)), groupName, seasonLabel),
     lastRegistrationSeason: newest([...registrations.filter((r) => r.athleteId === a.id).map((r) => registrationSeasonLabel(r, seasons)), ...(past.get(a.id) ?? [])]),
     contactName: a.contactName,
     status: a.status,

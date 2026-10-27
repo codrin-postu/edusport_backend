@@ -7,6 +7,7 @@ import type { AthleteListPage, AthleteListRow } from './api-types';
 import { registrationSeasonLabel } from './cards';
 import { matchesQuery, searchSubjects, type SearchSubject } from './search';
 import type { AcsRow, AthleteRow, ClubStore, DuplicateRow, GroupRow, MembershipRow, ProfileRow, RegistrationRow, SeasonRow, SectionRow } from './store';
+import { isCurrentMembership } from '../group-membership';
 
 /** "Sportivi" (spec 5): every athlete, filtered, searched, sorted and paged on the server. */
 export const NO_SECTION = 'none';
@@ -85,7 +86,7 @@ function buildIndex(src: ListSource): Index {
   const seasonId = src.season?.id ?? null;
   const inSeason = (r: RegistrationRow) => src.season !== null && registrationSeasonLabel(r, src.seasons) === src.season.label;
   return {
-    memberships: groupBy(src.memberships.filter((m) => m.seasonId === seasonId), (m) => m.athleteId),
+    memberships: groupBy(src.memberships.filter((m) => m.seasonId === seasonId && isCurrentMembership(m)), (m) => m.athleteId),
     acs: new Map(src.acs.filter((r) => r.seasonId === seasonId).map((r) => [r.athleteId, r.state])),
     seasonRegistrations: groupBy(src.registrations.filter(inSeason), (r) => r.athleteId),
     groups: new Map(src.groups.map((g) => [g.id, g])),
