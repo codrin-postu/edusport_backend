@@ -86,13 +86,15 @@ async function membersLocked(ctx: GroupContext, groupId: string, label: unknown)
   const from = copyFromFor(f);
   if (!ids.length || !from) return refuse(409, GROUP_ERRORS.stale);
   const steps: UndoStep[] = [];
-  const lines: Line[] = [{ subjectType: GROUP_SUBJECT, subjectId: groupId, action: P4_ACTIONS.membersCopied, changes: { from: from.season, count: ids.length } }];
+  const lines: Line[] = [];
   for (const id of ids) {
     const joined = await joinCopied(ctx, f, id);
     if (!joined) continue;
     steps.push(...joined.steps);
     lines.push({ subjectType: ATHLETE_SUBJECT, subjectId: id, action: P4_ACTIONS.athleteCopied, changes: { season: f.season.label, groups: [{ name: f.group.name, main: joined.main }] } });
   }
+  // The history line counts the rows actually written, as the toast does.
+  lines.unshift({ subjectType: GROUP_SUBJECT, subjectId: groupId, action: P4_ACTIONS.membersCopied, changes: { from: from.season, count: steps.length } });
   const actionId = await recordAction(ctx.store, ctx.actor, lines, { kind: 'group', steps, revalidate: false });
   return done({ copied: steps.length, from: from.season }, actionId);
 }

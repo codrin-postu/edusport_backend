@@ -123,7 +123,8 @@ describe('locks and undo order (F1)', () => {
     const res = await changeProgram(ctx, 'e1', { ...SERIES, from: '2026-11-28' });
     state.locks.length = 0;
     await undoAction(ctx, { actionId: actionOf(res) });
-    expect(state.locks.filter((l) => l !== 'history:' + actionOf(res))[0]).toBe('group:g-ib');
+    expect(state.locks.filter((l) => l !== 'history:' + actionOf(res))[0]).toBe('season:s26');
+    expect(state.locks.filter((l) => l !== 'history:' + actionOf(res))[1]).toBe('group:g-ib');
     expect(state.locks.findIndex((l) => l.startsWith('group:'))).toBeLessThan(state.locks.findIndex((l) => l.startsWith('event:')));
   });
 

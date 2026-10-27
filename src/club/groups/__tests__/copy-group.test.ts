@@ -41,6 +41,19 @@ describe('"Copiază sportivii din <sezon>" (W31)', () => {
     expect(state.memberships.filter((m) => m.seasonId === 's27' && m.groupId === 'g-ib')).toEqual([]);
   });
 
+  it('counts the rows actually written in the history line, as the toast does', async () => {
+    const { ctx } = seed();
+    const read = ctx.store.memberships;
+    // Bia already sits in the group when her own rows are read under the locks: no row is written for her.
+    ctx.store.memberships = async (where) => (where?.athleteId === 'a2'
+      ? [...(await read(where)), member({ id: 'mx', athleteId: 'a2', groupId: 'g-ib', seasonId: 's27', from: '2027-10-01' })]
+      : read(where));
+    const res = await copyMembers(ctx, 'g-ib', { season: '2027-2028' });
+    expect(res).toMatchObject({ ok: true, data: { value: { copied: 1 } } });
+    const line = (await ctx.store.historyAfter(0, null)).find((h) => h.action === 'members-copied');
+    expect(line?.changes.count).toBe(1);
+  });
+
   it('refuses once the tab is not empty', async () => {
     const { ctx } = seed();
     await copyMembers(ctx, 'g-ib', { season: '2027-2028' });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { copyMembers, copyProgram } from '../new-season/copy-group';
+import { changeProgram } from '../program';
 import { joinGroup, moveMembership, removeMembership } from '../members';
 import { undoAction } from '../undo-service';
 import { athleteRow, event, fakeContext, member } from './fake-group-store';
@@ -99,7 +100,7 @@ describe('"Anulează" from the toast (8.1, W15)', () => {
     const actionId = actionOf(await moveMembership(ctx, 'm1', { toGroupId: 'g-is' }));
     state.locks = [];
     await undoAction(ctx, { actionId });
-    expect(state.locks).toEqual(['athlete:a1', `history:${actionId}`]);
+    expect(state.locks).toEqual(['season:s26', 'athlete:a1', `history:${actionId}`]);
   });
 
   it('refuses after a merge removed an athlete of the record, and leaves one main on the kept athlete', async () => {
@@ -175,5 +176,53 @@ describe('an undone action no longer blocks an earlier undo (4-3)', () => {
     await undoAction(ctx, { actionId: b });
     await removeMembership(ctx, state.memberships.find((m) => m.seasonId === 's27')?.id ?? '');
     expect(await undoAction(ctx, { actionId: a })).toEqual(STALE);
+  });
+
+  it('refuses A with 409 and writes nothing when an undone remove re-created a copied row under a new id', async () => {
+    const { ctx, state } = copySeed();
+    const a = idOf(await copyMembers(ctx, 'g-ib', { season: '2027-2028' }));
+    const copied = state.memberships.find((m) => m.seasonId === 's27' && m.athleteId === 'a1');
+    const removed = idOf(await removeMembership(ctx, copied?.id ?? ''));
+    expect(state.memberships.some((m) => m.id === copied?.id)).toBe(false);
+    expect(await undoAction(ctx, { actionId: removed })).toEqual({ ok: true, data: { undone: true } });
+    const rows = structuredClone(state.memberships);
+    const lines = state.history.length;
+    expect(await undoAction(ctx, { actionId: a })).toEqual(STALE);
+    expect(state.memberships).toEqual(rows);
+    expect(state.history).toHaveLength(lines);
+  });
+
+  it('refuses the copy-program undo when an undone "Schimbă" re-created the series under a new id', async () => {
+    const { ctx, state } = copySeed();
+    const a = idOf(await copyProgram(ctx, 'g-ib', { season: '2027-2028' }));
+    const series = state.events.find((e) => e.recurrence.seasonStart === '2027-10-10');
+    const changed = idOf(await changeProgram(ctx, series?.id ?? '', { repeat: true, freq: 'weekly', days: ['sat'], startTime: '12:00', durationMin: 50, weekOfMonth: null, from: '2027-10-10' }));
+    expect(changed).toBeTruthy();
+    expect(state.events.some((e) => e.id === series?.id)).toBe(false);
+    expect(await undoAction(ctx, { actionId: changed })).toEqual({ ok: true, data: { undone: true } });
+    const events = structuredClone(state.events);
+    const lines = state.history.length;
+    expect(await undoAction(ctx, { actionId: a })).toEqual(STALE);
+    expect(state.events).toEqual(events);
+    expect(state.history).toHaveLength(lines);
+  });
+});
+
+describe('a group action undo takes the season lock first (4-3 final)', () => {
+  it('locks the season before the athlete', async () => {
+    const { ctx, state } = fakeContext({ athletes: [athleteRow({ id: 'a1', name: 'Ana' })], memberships: [] });
+    const joined = actionOf(await joinGroup(ctx, 'g-ib', { season: '2026-2027', athleteIds: ['a1'], mode: 'add' }));
+    state.locks = [];
+    expect((await undoAction(ctx, { actionId: joined })).ok).toBe(true);
+    expect(state.locks).toEqual(['season:s26', 'athlete:a1', `history:${joined}`]);
+  });
+
+  it('refuses a season that became past after the action, and writes nothing', async () => {
+    const { ctx, state } = fakeContext({ athletes: [athleteRow({ id: 'a1', name: 'Ana' })], memberships: [] });
+    const joined = actionOf(await joinGroup(ctx, 'g-ib', { season: '2026-2027', athleteIds: ['a1'], mode: 'add' }));
+    for (const s of state.seasons) s.isCurrent = s.id === 's27';
+    const rows = structuredClone(state.memberships);
+    expect(await undoAction(ctx, { actionId: joined })).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+    expect(state.memberships).toEqual(rows);
   });
 });
