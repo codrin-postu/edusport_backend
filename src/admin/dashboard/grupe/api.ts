@@ -43,6 +43,8 @@ export function useGrupeApi() {
       allocate: (body: Body) => action<AllocateResult>(ref.current.post(`${BASE}/memberships/allocate`, body)),
       move: (membershipId: string, toGroupId: string) => action<MoveResult>(ref.current.post(`${BASE}/memberships/${enc(membershipId)}/move`, { toGroupId })),
       removeMember: (membershipId: string) => action<MoveResult>(ref.current.del(`${BASE}/memberships/${enc(membershipId)}`)),
+      copyMembers: (id: string, season: string) => action<{ copied: number; from: string }>(ref.current.post(`${g(id)}/copy-members`, { season })),
+      copyProgram: (id: string, season: string) => action<{ series: number; from: string }>(ref.current.post(`${g(id)}/copy-program`, { season })),
       undo: (actionId: string) => data<{ undone: true }>(getFetchClient().post(`${BASE}/undo`, { actionId })),
       program: (id: string, season: string | null) => get<GroupProgram>(`${g(id)}/program${query({ season })}`),
       occurrences: (id: string, from: string, to: string) => get<Occurrence[]>(`${BASE}/calendar/occurrences${query({ from, to, group: id })}`),
