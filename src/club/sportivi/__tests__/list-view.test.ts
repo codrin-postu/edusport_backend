@@ -34,7 +34,7 @@ describe('the list request (spec 5)', () => {
   it('sends every filter as the plan 3-2 list route reads it', () => {
     const s: ListState = {
       season: 's25', q: '  maria ', sort: 'age', dir: 'desc', page: 2,
-      filters: { section: [NO_SECTION], group: ['g-pp', NO_GROUP], acs: ['in_asteptare'], profile: ['public'], data: ['incomplete'], status: ['activ', 'inactiv'], duplicates: ['da'] },
+      filters: { section: [NO_SECTION], group: ['g-pp', NO_GROUP], acs: ['in_asteptare'], profile: ['public'], data: ['incomplete'], status: ['activ', 'inactiv'], duplicates: ['da'], personal: [] },
     };
     expect(params(listQueryString(s, 30))).toEqual({
       season: 's25', q: 'maria', section: 'none', group: 'g-pp', noGroup: 'true', acs: 'in_asteptare', profile: 'public', data: 'incomplete',
@@ -109,14 +109,14 @@ describe('filters-v3 sections (spec 5)', () => {
   it('sections in the spec order, with their options and the chosen values', () => {
     const s = withSection(INITIAL_LIST_STATE, 'acs', ['da']);
     const sections = filterSections(s, page());
-    expect(sections.map((x) => x.label)).toEqual(['Secțiune', 'Grupa', 'Membru A.C.S.', 'Profil public', 'Date', 'Status', 'Posibile dubluri']);
+    expect(sections.map((x) => x.label)).toEqual(['Secțiune', 'Grupa', 'Membru A.C.S.', 'Profil public', 'Date', 'Status', 'Posibile dubluri', 'Date personale']);
     const labels = (key: string) => sections.find((x) => x.key === key)?.options.map((o) => o.label);
     expect(labels('section')).toEqual(['Școala de patinaj', 'Club', 'Fără secțiune']);
     expect(labels('group')).toEqual(['Primii Pași', 'Profesioniști', 'Fără grupă']);
     expect(labels('acs')).toEqual(['Da', 'Nu', 'În așteptare']);
     expect(labels('profile')).toEqual(['Public', 'Ascuns']);
     expect(labels('data')).toEqual(['Complete', 'Incomplete']);
-    expect(labels('status')).toEqual(['Nou', 'Activ', 'Inactiv']);
+    expect(labels('status')).toEqual(['Nou', 'Activ', 'Inactiv', 'Anonimizat']);
     expect(labels('duplicates')).toEqual(['Da']);
     expect(sections.find((x) => x.key === 'acs')?.selected).toEqual(['da']);
   });

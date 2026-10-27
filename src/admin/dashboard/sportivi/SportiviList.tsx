@@ -8,25 +8,37 @@ import { AddAthleteDialog } from './AddAthleteDialog';
 import { useSportiviApi } from './api';
 import { AthleteCards } from './AthleteCards';
 import { AthleteTable } from './AthleteTable';
+import { BulkAnonymizeBar } from './BulkAnonymizeBar';
 import { ActiveFilters, IncompleteBanner, ListToolbar } from './ListToolbar';
 import { SPORTIVI_CSS } from './styles';
 import { useAthleteList } from './useAthleteList';
+import { useInactiveLink, useSelection } from './useSelection';
+import { useIsSuperAdmin } from './useSuperAdmin';
 
-/** The private list of every athlete (spec 5), replacing today's public-profile list. */
+/** "Adaugă sportiv" open from the button or from the dashboard shortcut (`?adauga=1`). */
+function useAddAthlete(search: string) {
+  const navigate = useNavigate();
+  const [adding, setAdding] = React.useState(() => wantsAddAthlete(search));
+  const closeAdd = () => {
+    setAdding(false);
+    if (wantsAddAthlete(search)) navigate(SPORTIVI_PATH, { replace: true });
+  };
+  return { adding, startAdd: () => setAdding(true), closeAdd };
+}
+
+/** The private list of every athlete (spec 5), replacing today's public-profile list; 3C: the inactivity list and its bulk bar. */
 export function SportiviList() {
   const api = useSportiviApi();
   const phone = useIsPhone();
   const navigate = useNavigate();
   const { search } = useLocation();
   const list = useAthleteList(api, phone);
-  const [adding, setAdding] = React.useState(() => wantsAddAthlete(search));
+  const selection = useSelection(list, useIsSuperAdmin());
+  useInactiveLink(list, search);
+  const { adding, startAdd, closeAdd } = useAddAthlete(search);
   const season = seasonValue(list.state, list.page) || null;
   const open = (documentId: string) => navigate(athleteRecordTo(documentId), { state: { season } });
-  const closeAdd = () => {
-    setAdding(false);
-    if (wantsAddAthlete(search)) navigate(SPORTIVI_PATH, { replace: true });
-  };
-  const add = <Button icon={<IconPlus />} onClick={() => setAdding(true)}>{LIST_COPY.add}</Button>;
+  const add = <Button icon={<IconPlus />} onClick={startAdd}>{LIST_COPY.add}</Button>;
   return (
     <AdminPage fit>
       <style>{SPORTIVI_CSS}</style>
@@ -35,7 +47,8 @@ export function SportiviList() {
         <ListToolbar list={list} phone={phone} />
         <ActiveFilters list={list} phone={phone} />
         <IncompleteBanner list={list} />
-        {phone ? <AthleteCards list={list} onOpen={open} /> : <AthleteTable list={list} onOpen={open} />}
+        {selection && selection.ids.size > 0 && <BulkAnonymizeBar ids={[...selection.ids]} api={api} done={selection.done} />}
+        {phone ? <AthleteCards list={list} onOpen={open} selection={selection} /> : <AthleteTable list={list} onOpen={open} selection={selection} />}
       </Window>
       {adding && <AddAthleteDialog api={api} season={season} onClose={closeAdd} />}
     </AdminPage>

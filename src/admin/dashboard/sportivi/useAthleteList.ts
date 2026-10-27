@@ -15,6 +15,7 @@ export type AthleteList = {
   rows: AthleteListRow[];
   loading: boolean;
   failed: boolean;
+  reload: () => void;
 };
 
 function useDebounced(value: string, ms: number): string {
@@ -33,7 +34,7 @@ type Loaded = Pick<AthleteList, 'page' | 'rows' | 'loading' | 'failed'>;
  * When `listRequest` starts a reload again at page 1, the state moves there first (no request), so
  * "Încarcă încă 30" follows on from it.
  */
-function useListLoad(api: SportiviApi, wanted: ListState, phone: boolean, restart: () => void): Loaded {
+function useListLoad(api: SportiviApi, wanted: ListState, phone: boolean, restart: () => void, version: number): Loaded {
   const [page, setPage] = React.useState<AthleteListPage | null>(null);
   const [rows, setRows] = React.useState<AthleteListRow[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -59,7 +60,7 @@ function useListLoad(api: SportiviApi, wanted: ListState, phone: boolean, restar
       .catch(() => { if (!off) setFailed(true); })
       .finally(() => { if (!off) setLoading(false); });
     return () => { off = true; };
-  }, [api, phone, key, restart]); // `key` stands for `wanted`, a new object on every render
+  }, [api, phone, key, restart, version]); // `key` stands for `wanted`, a new object on every render
   return { page, rows, loading, failed };
 }
 
@@ -71,6 +72,8 @@ export function useAthleteList(api: SportiviApi, phone: boolean): AthleteList {
     setRaw(next);
   }, []);
   const restart = React.useCallback(() => setState(withPage(remembered, 1)), [setState]);
-  const loadedList = useListLoad(api, { ...state, q }, phone, restart);
-  return { state, setState, ...loadedList };
+  const [version, setVersion] = React.useState(0);
+  const reload = React.useCallback(() => setVersion((v) => v + 1), []);
+  const loadedList = useListLoad(api, { ...state, q }, phone, restart, version);
+  return { state, setState, reload, ...loadedList };
 }

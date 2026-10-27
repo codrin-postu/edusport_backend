@@ -24,6 +24,7 @@ export const PERSONAL_DATA_COPY = {
   done: (k: number) => (k === 1 ? '1 sportiv anonimizat.' : `${athletes(k)} anonimizați.`),
   skipped: (n: number) => `Sărite: ${n}.`,
   failed: (n: number) => `Nereușite: ${n}.`,
+  stopped: (k: number) => `Oprit după ${k === 1 ? '1 sportiv anonimizat' : `${athletes(k)} anonimizați`}.`,
   selectAll: 'Selectează tot',
   filterSection: 'Date personale',
   inactiveOption: (n: number) => `Inactivi de peste ${years(n)}`,

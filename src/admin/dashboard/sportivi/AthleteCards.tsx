@@ -1,9 +1,12 @@
 import * as React from 'react';
-import { Button, EmptyState, Loading } from '../../ui';
+import { Button, Checkbox, EmptyState, Loading } from '../../ui';
 import type { AthleteListRow } from '../../../club/athletes/api-types';
+import { PERSONAL_DATA_COPY } from '../../../club/personal-data/copy';
 import { LIST_COPY, ageText, groupCell, loadedRange, withPage } from '../../../club/sportivi/list-view';
+import { allSelected } from '../../../club/sportivi/personal-data-view';
 import { MissingMarker } from './MissingMarker';
 import type { AthleteList } from './useAthleteList';
+import type { Selection } from './useSelection';
 
 /** "<vârstă>, <grupă>"; "Fără grupă" muted as in the table. */
 function CardLine({ row }: { row: AthleteListRow }) {
@@ -16,8 +19,31 @@ function CardLine({ row }: { row: AthleteListRow }) {
   );
 }
 
-/** Phone Sportivi: cards, 30 at a time (3b Q30, gaps #37); the same "date lipsă" marker as the table. */
-export function AthleteCards({ list, onOpen }: { list: AthleteList; onOpen: (documentId: string) => void }) {
+/** "Selectează tot" over the cards loaded so far, as the desktop header box does over its page. */
+function SelectAll({ rows, selection }: { rows: AthleteListRow[]; selection: Selection }) {
+  const ids = rows.map((r) => r.documentId);
+  return (
+    <div className="spv-select-all">
+      <Checkbox checked={allSelected(selection.ids, ids)} onChange={() => selection.toggleAll(ids)} label={PERSONAL_DATA_COPY.selectAll} />
+    </div>
+  );
+}
+
+function Card({ r, onOpen, selection }: { r: AthleteListRow; onOpen: (documentId: string) => void; selection: Selection | null }) {
+  return (
+    <li className={selection ? 'spv-card-row' : undefined}>
+      {selection && <Checkbox checked={selection.ids.has(r.documentId)} onChange={() => selection.toggle(r.documentId)} aria-label={r.name} />}
+      <button type="button" className="spv-card" onClick={() => onOpen(r.documentId)}>
+        <span className="spv-name">{r.name}</span>
+        {r.dataIncomplete && <MissingMarker row={r} card />}
+        <CardLine row={r} />
+      </button>
+    </li>
+  );
+}
+
+/** Phone Sportivi: cards, 30 at a time (3b Q30, gaps #37); the same "date lipsă" marker as the table; 3C: a checkbox on the inactivity list. */
+export function AthleteCards({ list, onOpen, selection }: { list: AthleteList; onOpen: (documentId: string) => void; selection: Selection | null }) {
   const { page, rows, state, setState, loading, failed } = list;
   if (failed) return <EmptyState>{LIST_COPY.loadFailed}</EmptyState>;
   if (!page) return <Loading />;
@@ -26,16 +52,9 @@ export function AthleteCards({ list, onOpen }: { list: AthleteList; onOpen: (doc
   return (
     <>
       <p className="spv-count">{loadedRange(page, rows.length)}</p>
+      {selection && <SelectAll rows={rows} selection={selection} />}
       <ul className="spv-cards">
-        {rows.map((r) => (
-          <li key={r.documentId}>
-            <button type="button" className="spv-card" onClick={() => onOpen(r.documentId)}>
-              <span className="spv-name">{r.name}</span>
-              {r.dataIncomplete && <MissingMarker row={r} card />}
-              <CardLine row={r} />
-            </button>
-          </li>
-        ))}
+        {rows.map((r) => <Card key={r.documentId} r={r} onOpen={onOpen} selection={selection} />)}
       </ul>
       {more && (
         <div className="spv-more">
