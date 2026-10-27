@@ -5,6 +5,7 @@ import {
   LIST_COPY, SORT_OPTIONS, activeChips, athletesText, clearFilters, filterSections, incompleteBanner, incompleteShown, matchingText, seasonOptions,
   seasonValue, showIncomplete, showLabel, sortSection, withSearch, withSeason, withSection, withoutChip,
 } from '../../../club/sportivi/list-view';
+import { INCOMPLETE_HIDDEN_KEY, incompleteHidden } from '../../../club/sportivi/incomplete-banner';
 import type { AthleteList } from './useAthleteList';
 
 /** Search field with the magnifier of filters-v3. */
@@ -70,7 +71,22 @@ export function ActiveFilters({ list, phone }: { list: AthleteList; phone: boole
 /** "N sportivi au date incomplete." + "Arată-i" (3b Q21, gaps #10); gone once the list already shows them. */
 export function IncompleteBanner({ list }: { list: AthleteList }) {
   const n = list.page?.incomplete ?? 0;
-  if (n === 0 || incompleteShown(list.state)) return null;
+  const [closed, setClosed] = React.useState(() => {
+    try {
+      return incompleteHidden(window.sessionStorage.getItem(INCOMPLETE_HIDDEN_KEY), Date.now());
+    } catch {
+      return false;
+    }
+  });
+  if (n === 0 || incompleteShown(list.state) || closed) return null;
+  const dismiss = () => {
+    setClosed(true);
+    try {
+      window.sessionStorage.setItem(INCOMPLETE_HIDDEN_KEY, String(Date.now()));
+    } catch {
+      /* storage unavailable: hidden for this page view only */
+    }
+  };
   const action = (
     <Button size="sm" variant="secondary" onClick={() => list.setState(showIncomplete(list.state))}>
       {LIST_COPY.showThem}
@@ -78,7 +94,7 @@ export function IncompleteBanner({ list }: { list: AthleteList }) {
   );
   return (
     <div className="spv-banner">
-      <Notice tone="warning" action={action}>
+      <Notice tone="warning" action={action} onDismiss={dismiss}>
         {incompleteBanner(n)}
       </Notice>
     </div>
