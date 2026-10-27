@@ -30,7 +30,7 @@ const ascending = (x: string, y: string): number => {
 };
 
 /** Expiring first, then earlier start, then earlier purchase; the id keeps the pick the same for any read order. */
-const byUseOrder = (a: SubscriptionRow, b: SubscriptionRow): number =>
+export const byUseOrder = (a: SubscriptionRow, b: SubscriptionRow): number =>
   ascending(a.validUntil, b.validUntil) || ascending(a.startsOn, b.startsOn) || ascending(a.purchasedAt, b.purchasedAt) || ascending(a.id, b.id);
 
 /** The abonamente a Școala attendance on this date may use, in the order they are used (4.10). */
