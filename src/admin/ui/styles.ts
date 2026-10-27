@@ -228,12 +228,14 @@ ${R} .ui-notice-text{flex:1;line-height:1.45;min-width:0}
 ${R} .ui-notice-title{display:block;font-weight:700;color:var(--ui-notice-fg);margin-bottom:1px}
 ${R} .ui-notice-body{color:var(--theme-text-secondary)}
 ${R} .ui-notice-action{flex-shrink:0;align-self:center}
+${R} .ui-notice-close{flex-shrink:0;align-self:center}
+${R} .ui-notice--plain{align-items:center}
 ${R} .ui-notice--success{--ui-notice-fg:var(--theme-success);--ui-notice-bg:var(--theme-success-bg);--ui-notice-border:var(--theme-success-border)}
 ${R} .ui-notice--warning{--ui-notice-fg:var(--theme-warning);--ui-notice-bg:var(--theme-warning-bg);--ui-notice-border:var(--theme-warning-border)}
 ${R} .ui-notice--danger{--ui-notice-fg:var(--theme-danger);--ui-notice-bg:var(--theme-danger-bg);--ui-notice-border:var(--theme-danger-border)}
 ${R} .ui-notice--info{--ui-notice-fg:var(--theme-info);--ui-notice-bg:var(--theme-info-bg);--ui-notice-border:var(--theme-info-border)}
 /* ui-notice--stack-phone: on phone, the action row drops below the text (full width) instead of squeezing it */
-@media (max-width:640px){${R} .ui-notice--stack-phone{flex-direction:column;align-items:stretch}${R} .ui-notice--stack-phone .ui-notice-action{align-self:stretch;display:flex;flex-wrap:wrap;gap:var(--ui-space-2)}}
+@media (max-width:640px){${R} .ui-notice--stack-phone{flex-direction:column;align-items:stretch}${R} .ui-notice--stack-phone .ui-notice-action{align-self:stretch;display:flex;flex-wrap:wrap;gap:var(--ui-space-2)}${R} .ui-notice--stack-phone .ui-notice-close{align-self:flex-end}}
 
 /* empty state + spinner */
 ${R} .ui-empty{display:flex;flex-direction:column;align-items:center;gap:var(--ui-space-3);padding:44px var(--ui-space-4);text-align:center;color:var(--theme-text-muted);font-size:var(--ui-fs-body)}
