@@ -7,7 +7,7 @@ import type {
 } from '../types';
 
 export { athleteRow, registrationRow };
-export type FakeJob = ScheduleEmailJob & { id: string; status: 'queued' | 'cancelled' | 'sent' };
+export type FakeJob = ScheduleEmailJob & { id: string; status: 'queued' | 'sending' | 'cancelled' | 'sent' };
 export type FakeGroupState = {
   seasons: SeasonRecord[]; sections: SectionRecord[]; groups: GroupRecord[]; teamMembers: NamedRow[]; priceLists: PriceListRow[]; athletes: AthleteRow[];
   memberships: MembershipRow[]; registrations: RegistrationRow[]; events: EventRecord[]; breaks: BreakRecord[]; history: HistoryEntryRow[]; jobs: FakeJob[];
@@ -168,7 +168,7 @@ function fakeJobsAndHistory(s: FakeGroupState, next: Next, tick: () => string): 
       for (const j of queued) j.status = 'cancelled';
       return queued.length;
     },
-    sentEmailJobs: async (changeKey) => s.jobs.filter((j) => j.changeKey === changeKey && j.status === 'sent').length,
+    sentEmailJobs: async (changeKey) => s.jobs.filter((j) => j.changeKey === changeKey && (j.status === 'sent' || j.status === 'sending')).length,
     recordAction: async (entry) => push(entry),
     record: async (entry) => {
       push(entry);

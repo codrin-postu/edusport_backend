@@ -234,7 +234,7 @@ function jobAndHistoryWrites(strapi: Core.Strapi): Keys<'createEmailJobs' | 'can
       return jobs.length;
     },
     cancelEmailJobs: async (changeKey) => (await strapi.db.query(JOB).updateMany({ where: { changeKey, status: 'queued' }, data: { status: 'cancelled' } })).count,
-    sentEmailJobs: (changeKey) => strapi.db.query(JOB).count({ where: { changeKey, status: 'sent' } }),
+    sentEmailJobs: (changeKey) => strapi.db.query(JOB).count({ where: { changeKey, status: { $in: ['sending', 'sent'] } } }),
     recordAction: async (entry) => {
       const row = await strapi.documents(HISTORY).create({ data: buildHistoryEntry(entry) as never });
       return { id: row.documentId, seq: Number(row.id) };

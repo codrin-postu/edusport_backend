@@ -73,7 +73,20 @@ describe('refusals', () => {
   it('locks the group, then the event (lock order)', async () => {
     const { ctx, state } = seed();
     await setDate(ctx, 'e1', '2026-11-14', { mode: 'cancel' });
-    expect(state.locks).toEqual(['group:g-ib', 'event:e1']);
+    expect(state.locks).toEqual(['season:s26', 'group:g-ib', 'event:e1']);
+  });
+
+  it('refuses a season that became past while the season lock was awaited (season switch race)', async () => {
+    const { ctx, state, emailed } = seed();
+    const lock = ctx.store.lockSeason;
+    ctx.store.lockSeason = async (id) => {
+      await lock(id);
+      state.seasons.find((s) => s.id === 's26')!.isCurrent = false;
+      state.seasons.find((s) => s.id === 's27')!.isCurrent = true;
+    };
+    const res = await setDate(ctx, 'e1', '2026-11-14', { mode: 'cancel', notifyParents: true });
+    expect(res).toMatchObject({ ok: false, status: 409 });
+    expect([state.events[0].exceptions, state.history, state.jobs, emailed, state.locks]).toEqual([[], [], [], [], ['season:s26']]);
   });
 });
 describe('e-mail rules (F2, undo after send, commit order)', () => {
@@ -91,6 +104,28 @@ describe('e-mail rules (F2, undo after send, commit order)', () => {
     expect([res.ok, emailed, state.jobs]).toEqual([false, [], []]);
   });
 
+  it.each(['createEmailJobs', 'recordAction'] as const)('no e-mail is announced and nothing is kept when %s throws', async (method) => {
+    const { ctx, state, emailed } = seed();
+    ctx.store[method] = async () => {
+      throw new Error('boom');
+    };
+    const res = await setDate(ctx, 'e1', '2026-11-14', { mode: 'cancel', notifyParents: true });
+    expect(res.ok).toBe(false);
+    expect([emailed, state.jobs, state.history]).toEqual([[], [], []]);
+    expect(state.events[0].exceptions).toEqual([]);
+  });
+
+  it('re-saving an unchanged cancel on a date whose row is no longer last writes no line and sends no e-mail', async () => {
+    const { ctx, state, emailed } = seed();
+    await setDate(ctx, 'e1', '2026-11-14', { mode: 'cancel', reason: 'Competiție' });
+    await setDate(ctx, 'e1', '2026-11-21', { mode: 'cancel', reason: 'Altceva' });
+    state.events[0].exceptions.reverse();
+    const lines = state.history.length;
+    const again = await setDate(ctx, 'e1', '2026-11-14', { mode: 'cancel', reason: 'Competiție', notifyParents: true });
+    expect(again).toMatchObject({ ok: true, data: { actionId: null, value: { emails: 0 } } });
+    expect([state.history.length, state.jobs, emailed]).toEqual([lines, [], []]);
+  });
+
   it('the undo is refused once any e-mail of the change was sent, and nothing is touched', async () => {
     const { ctx, state } = seed();
     const res = await setDate(ctx, 'e1', '2026-11-14', { mode: 'cancel', notifyParents: true });
@@ -99,5 +134,26 @@ describe('e-mail rules (F2, undo after send, commit order)', () => {
     expect(undone).toMatchObject({ ok: false, status: 409 });
     expect(state.events[0].exceptions).toHaveLength(1);
     expect(state.jobs.map((j) => j.status)).toEqual(['sent', 'queued']);
+  });
+
+  it('the undo is refused while one e-mail of the change is being sent (sending counts)', async () => {
+    const { ctx, state } = seed();
+    const res = await setDate(ctx, 'e1', '2026-11-14', { mode: 'cancel', notifyParents: true });
+    state.jobs[0].status = 'sending';
+    expect(await undoAction(ctx, { actionId: actionOf(res) })).toMatchObject({ ok: false, status: 409 });
+    expect(state.events[0].exceptions).toHaveLength(1);
+    expect(state.jobs.map((j) => j.status)).toEqual(['sending', 'queued']);
+  });
+
+  it('a sender that claims a job after the undo checked it rolls the undo back', async () => {
+    const { ctx, state } = seed();
+    const res = await setDate(ctx, 'e1', '2026-11-14', { mode: 'cancel', notifyParents: true });
+    const cancel = ctx.store.cancelEmailJobs;
+    ctx.store.cancelEmailJobs = async (key) => {
+      state.jobs[0].status = 'sending';
+      return cancel(key);
+    };
+    expect((await undoAction(ctx, { actionId: actionOf(res) })).ok).toBe(false);
+    expect(state.events[0].exceptions).toHaveLength(1);
   });
 });

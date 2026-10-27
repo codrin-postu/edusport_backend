@@ -22,7 +22,7 @@ describe('3C data (spec 2)', () => {
 
   it('site settings hold personalData; an e-mail job can be cancelled', () => {
     expect(schema('site-settings').attributes.personalData).toEqual({ type: 'json' });
-    expect(schema('email-job').attributes.status.enum).toEqual(['queued', 'sent', 'failed', 'cancelled']);
+    expect(schema('email-job').attributes.status.enum).toEqual(['queued', 'sending', 'sent', 'failed', 'cancelled']);
   });
 
   it('registrations and history entries keep their schema', () => {

@@ -13,6 +13,9 @@ import { isSchedulePayload, renderScheduleEmail } from './schedule-change-templa
 
 /** A job is not retried by the cron until it has been left alone this long (a first attempt may be running). */
 export const QUIET_MS = 5 * 60_000;
+/** A job left in `sending` this long was cut short (a crash): the cron fails it and never sends it again. */
+export const STUCK_SENDING_MS = 10 * 60_000;
+export const STUCK_SENDING_ERROR = 'sending was interrupted';
 export const RESEND_ACTION = 'email-resent';
 /** Registration e-mails per recipient address per 24 h from the public submit; a resend is not capped (user, 2026-10-24). */
 export const RECIPIENT_DAILY_CAP = 3;
@@ -42,8 +45,14 @@ export type HistoryNote = { subjectId: string; action: string; actor: string; ch
 export interface EmailJobStore {
   create(job: NewEmailJob): Promise<EmailJobRow>;
   update(documentId: string, data: JobUpdate): Promise<EmailJobRow>;
-  /** The stored job, read again just before a send; optional so a store without it keeps working. */
+  /** The stored job, read again after a refused claim so the caller reports what is stored; optional. */
   findById?(documentId: string): Promise<EmailJobRow | null>;
+  /** One conditional write queued -> sending; true only for the caller that made it (a cancel or another sender got there first otherwise). */
+  claim(documentId: string): Promise<boolean>;
+  /** Writes the final state only where the status is still `sending`; null when it no longer is. */
+  finish(documentId: string, data: JobUpdate): Promise<EmailJobRow | null>;
+  /** Jobs left in `sending` since before `before` become failed (never resent); the count. */
+  failStuck(before: Date, error: string): Promise<number>;
   findQueued(limit: number): Promise<EmailJobRow[]>;
   findLatest(registrationDocumentId: string): Promise<EmailJobRow | null>;
   countForRecipientSince(recipient: string, since: Date): Promise<number>;
@@ -66,7 +75,7 @@ export interface EmailDeps {
 }
 
 export type RegistrationEmailStatus = {
-  status: EmailJobStatus | 'none';
+  status: Exclude<EmailJobStatus, 'sending'> | 'none';
   recipient: string;
   attempts: number;
   lastError: string | null;
@@ -134,17 +143,9 @@ function composerFor(deps: EmailDeps, job: EmailJobRow): Compose | null {
   return registrationId ? (to) => compose(deps, registrationId, to) : null;
 }
 
-/** A cancel that landed after the caller's snapshot must win: the stored status is read again right before the send. */
-async function stillQueued(deps: EmailDeps, job: EmailJobRow): Promise<boolean> {
-  const fresh = deps.jobs.findById ? await deps.jobs.findById(job.documentId) : job;
-  return !fresh || fresh.status === 'queued';
-}
-
-async function tryOnce(deps: EmailDeps, job: EmailJobRow, composer: Compose, to: string): Promise<AttemptOutcome | 'cancelled'> {
+async function tryOnce(deps: EmailDeps, composer: Compose, to: string): Promise<AttemptOutcome> {
   try {
-    const mail = await composer(to);
-    if (!(await stillQueued(deps, job))) return 'cancelled';
-    const result = await deps.send(mail);
+    const result = await deps.send(await composer(to));
     return result.ok === true ? { ok: true } : { ok: false, error: result.error };
   } catch (err) {
     return { ok: false, error: message(err) };
@@ -154,26 +155,38 @@ async function tryOnce(deps: EmailDeps, job: EmailJobRow, composer: Compose, to:
 const held = (job: EmailJobRow, now: Date): boolean => !!job.notBefore && Date.parse(job.notBefore) > now.getTime();
 const missingSource = (job: EmailJobRow): string => (job.kind === 'schedule-change' ? 'schedule change without payload' : 'registration deleted');
 
+/** The final write, only while the job is still `sending`; a job the cron already failed is left as it is. */
+async function finishJob(deps: EmailDeps, job: EmailJobRow, state: JobUpdate): Promise<EmailJobRow> {
+  const written = await deps.jobs.finish(job.documentId, state);
+  if (written) return written;
+  deps.log('warn', `[email-job] job ${job.documentId} was no longer sending when its result was written`);
+  return { ...job, ...state };
+}
+
 /**
  * One delivery attempt for a queued job. Skipped (job unchanged) while it is held (`notBefore`) or while e-mail
- * cannot be sent here; a job whose registration (or payload) is gone fails at once without an alert.
+ * cannot be sent here. The job is claimed (queued -> sending, one conditional write) before anything is composed or
+ * sent: a cancel (undo) that landed first wins and nothing is sent; a claimed job is refused by the undo. A job whose
+ * registration (or payload) is gone fails at once without an alert.
  */
 export async function attemptJob(deps: EmailDeps, job: EmailJobRow): Promise<EmailJobRow> {
   if (job.status !== 'queued' || held(job, deps.now())) return job;
   const composer = composerFor(deps, job);
-  if (!composer) return deps.jobs.update(job.documentId, { status: 'failed', attempts: job.attempts, lastError: missingSource(job), sentAt: null });
-  const target = deliveryTarget(deps.config, job.recipient);
-  if (target.ok === false) {
+  const target = composer ? deliveryTarget(deps.config, job.recipient) : null;
+  if (target && target.ok === false) {
     deps.log('info', `[email-job] job ${job.documentId} stays queued: ${target.reason}`);
     return job;
   }
-  const outcome = await tryOnce(deps, job, composer, target.to);
-  if (outcome === 'cancelled') {
+  if (!(await deps.jobs.claim(job.documentId))) {
     deps.log('info', `[email-job] job ${job.documentId} is no longer queued, not sent`);
-    return { ...job, status: 'cancelled' };
+    return (deps.jobs.findById ? await deps.jobs.findById(job.documentId) : null) ?? { ...job, status: 'cancelled' };
   }
+  if (!composer || !target || target.ok === false) {
+    return finishJob(deps, job, { status: 'failed', attempts: job.attempts, lastError: missingSource(job), sentAt: null });
+  }
+  const outcome = await tryOnce(deps, composer, target.to);
   const { alert, ...state } = nextJobState(job, outcome, deps.now());
-  const updated = await deps.jobs.update(job.documentId, state);
+  const updated = await finishJob(deps, job, state);
   deps.log(state.status === 'sent' ? 'info' : 'warn', `[email-job] job ${job.documentId}: ${state.status} after attempt ${state.attempts}`);
   if (alert) deps.alert(`[email-job] ${job.kind ?? 'registration'} e-mail failed after ${state.attempts} attempts (job ${job.documentId}): ${state.lastError}`);
   return updated;
@@ -220,6 +233,8 @@ async function retryJob(deps: EmailDeps, job: EmailJobRow): Promise<void> {
 
 /** Hourly cron: one more attempt for every queued job left alone for QUIET_MS. Nothing happens while e-mail cannot be sent. */
 export async function retryDueJobs(deps: EmailDeps): Promise<RetrySummary> {
+  const stuck = await deps.jobs.failStuck(new Date(deps.now().getTime() - STUCK_SENDING_MS), STUCK_SENDING_ERROR);
+  if (stuck) deps.log('warn', `[email-job] ${stuck} job(s) left in sending were marked failed, not resent`);
   const skipped = blockedReason(deps.config);
   if (skipped) return { attempted: 0, skipped };
   const now = deps.now();
@@ -230,7 +245,7 @@ export async function retryDueJobs(deps: EmailDeps): Promise<RetrySummary> {
 
 function toStatus(registration: RegistrationForEmail, job: EmailJobRow | null, documents: StoredDocument[]): RegistrationEmailStatus {
   return {
-    status: job ? job.status : 'none',
+    status: job ? (job.status === 'sending' ? 'queued' : job.status) : 'none',
     recipient: registration.email,
     attempts: job?.attempts ?? 0,
     lastError: job?.lastError ?? null,

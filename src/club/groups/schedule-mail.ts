@@ -19,7 +19,7 @@ export function recipients(athletes: AthleteRow[], memberships: MembershipRow[],
   return [...new Set(emails)].sort();
 }
 
-/** The group's first held class after `after`, up to `until` (the season's last day): series, one class or a moved date at its new date. */
+/** The group's first held class (`after` is the series date of the changed class) after `after`, up to `until` (the season's last day): series, one class or a moved date at its new date. */
 export function nextClass(events: EventRecord[], breaks: BreakRecord[], groupId: string, after: string, until: string): Held | null {
   const from = addDays(after, 1);
   if (from > until) return null;
@@ -29,16 +29,20 @@ export function nextClass(events: EventRecord[], breaks: BreakRecord[], groupId:
   return held?.startTime ? { date: held.date, startTime: held.startTime } : null;
 }
 
-/** Decided 3: the time the date had before this change. */
-export function changedStartTime(e: EventRecord, date: string): string {
+/** The day and time the parents were last told for the series date: the override's, else the series'. */
+export function toldSlot(e: EventRecord, date: string): { date: string; startTime: string } {
   const moved = e.exceptions.find((x) => x.date === date && x.kind === 'override');
-  return moved?.newStartTime ?? e.recurrence.startTime ?? '';
+  return { date: moved?.newDate ?? date, startTime: moved?.newStartTime ?? e.recurrence.startTime ?? '' };
 }
+
+/** Decided 3: the time the date had before this change. */
+export const changedStartTime = (e: EventRecord, date: string): string => toldSlot(e, date).startTime;
 
 export function schedulePayload(groupName: string, e: EventRecord, date: string, change: Change, next: Held | null): ScheduleChangePayload {
   const move = change.mode === 'move' ? change : null;
+  const told = toldSlot(e, date);
   return {
-    groupName, date, startTime: changedStartTime(e, date), mode: move ? 'move' : 'cancel', newDate: move?.newDate ?? null, newStartTime: move?.newStartTime ?? null,
+    groupName, date: told.date, startTime: told.startTime, mode: move ? 'move' : 'cancel', newDate: move?.newDate ?? null, newStartTime: move?.newStartTime ?? null,
     nextDate: move ? null : next?.date ?? null, nextStartTime: move ? null : next?.startTime ?? null, reason: change.reason,
   };
 }

@@ -28,6 +28,16 @@ describe('next class (W33)', () => {
     expect(nextClass([e], [{ id: 'b', label: 'Pauză', startDate: '2026-11-21', endDate: '2026-11-22' }], 'g-ib', '2026-11-14', '2027-05-31')).toEqual({ date: '2026-11-28', startTime: '11:00' });
   });
 
+  it('a later date moved before the cancelled one is not the next class; one moved in from before the window is', () => {
+    const row = (date: string, newDate: string) => ({ date, kind: 'override' as const, newDate, newStartTime: '09:00', newEndTime: '09:50', newTitle: null, reason: null });
+    const earlier = event({ id: 'e2', exceptions: [row('2026-11-21', '2026-11-13')] });
+    expect(nextClass([earlier], [], 'g-ib', '2026-11-14', '2027-05-31')).toEqual({ date: '2026-11-15', startTime: '11:00' });
+    const movedIn = event({ id: 'e3', exceptions: [row('2026-11-07', '2026-11-16')] });
+    expect(nextClass([movedIn], [], 'g-ib', '2026-11-14', '2027-05-31')).toEqual({ date: '2026-11-15', startTime: '11:00' });
+    const movedInLate = event({ id: 'e4', exceptions: [row('2026-11-08', '2026-11-14')] });
+    expect(nextClass([movedInLate], [], 'g-ib', '2026-11-13', '2027-05-31')).toEqual({ date: '2026-11-14', startTime: '09:00' });
+  });
+
   it('is null after the season\'s last class', () => {
     expect(nextClass([e], [], 'g-ib', '2027-05-31', '2027-05-31')).toBeNull();
   });
@@ -39,6 +49,13 @@ describe('payload and jobs', () => {
   it('the changed date keeps the time it had (decided 3)', () => {
     expect(changedStartTime(e, '2026-11-21')).toBe('12:00');
     expect(changedStartTime(e, '2026-11-14')).toBe('11:00');
+  });
+
+  it('a date already moved names the day and time the parents were last told (I4)', () => {
+    const moved = { mode: 'move' as const, newDate: '2026-11-29', newStartTime: '13:00', reason: null };
+    expect(schedulePayload('Intermediari Bronze', e, '2026-11-21', { mode: 'cancel', reason: null }, null)).toMatchObject({ date: '2026-11-22', startTime: '12:00' });
+    expect(schedulePayload('Intermediari Bronze', e, '2026-11-21', moved, null)).toMatchObject({ mode: 'move', date: '2026-11-22', startTime: '12:00', newDate: '2026-11-29' });
+    expect(schedulePayload('Intermediari Bronze', e, '2026-11-14', moved, null)).toMatchObject({ date: '2026-11-14', startTime: '11:00' });
   });
 
   it('a cancel carries the next class, a move does not', () => {

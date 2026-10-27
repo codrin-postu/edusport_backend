@@ -345,7 +345,7 @@ const scrubbedJob = (status: unknown): Raw => ({ recipient: null, subject: null,
  * 3C reads and writes. Registration and e-mail job scrubs go through `db.query`: the document service refuses null on a
  * `required` attribute, the query engine does not, and the database lifecycles (the Înscrieri Sheet row) still run.
  */
-function personalDataStore(strapi: Core.Strapi): Pick<ClubStore, 'registrationRecords' | 'anonymizedRegistrationIds' | 'setHistoryChanges' | 'scrubRegistration' | 'scrubEmailJobs'> {
+function personalDataStore(strapi: Core.Strapi): Pick<ClubStore, 'registrationRecords' | 'anonymizedRegistrationIds' | 'setHistoryChanges' | 'scrubRegistration' | 'scrubEmailJobs' | 'scrubScheduleEmailJobs'> {
   const query = (uid: typeof REGISTRATION | typeof JOB | typeof HISTORY) => strapi.db.query(uid);
   return {
     registrationRecords: async (athleteId) => raws(await query(REGISTRATION).findMany({ where: { athlete: { documentId: athleteId } }, orderBy: { id: 'asc' }, limit: MAX })),
@@ -360,6 +360,12 @@ function personalDataStore(strapi: Core.Strapi): Pick<ClubStore, 'registrationRe
     scrubEmailJobs: async (registrationIds) => {
       if (!registrationIds.length) return;
       const jobs = raws(await query(JOB).findMany({ where: { registration: { documentId: { $in: registrationIds } } }, select: ['id', 'status'], limit: MAX }));
+      for (const j of jobs) await query(JOB).update({ where: { id: j.id }, data: scrubbedJob(j.status) });
+    },
+    scrubScheduleEmailJobs: async (addresses) => {
+      if (!addresses.length) return;
+      const where = { kind: 'schedule-change', $or: addresses.map((a) => ({ recipient: { $eqi: a } })) };
+      const jobs = raws(await query(JOB).findMany({ where, select: ['id', 'status'], limit: MAX }));
       for (const j of jobs) await query(JOB).update({ where: { id: j.id }, data: scrubbedJob(j.status) });
     },
   };

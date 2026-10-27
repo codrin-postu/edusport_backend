@@ -25,6 +25,8 @@ const RUN: Runners = {
   },
   cancelEmails: async (s, _st, actionId) => {
     await s.cancelEmailJobs(actionId);
+    // A sender that claimed a job after the up-front check: the cancel could not stop it, so the undo rolls back.
+    if ((await s.sentEmailJobs(actionId)) > 0) throw new Error('an e-mail of this change is already being sent');
   },
   setCurrentSeason: async (s, st) => {
     await s.setSeasonCurrent(st.otherId, false);

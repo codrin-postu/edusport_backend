@@ -12,7 +12,7 @@ if (process.env.ES_THROWAWAY_DB !== '1' || !process.env.IDS_FILE) {
   process.exit(2);
 }
 
-const THROWAWAY_PORTS = [55441, 55442, 55443, 55444, 55445, 55446];
+const THROWAWAY_PORTS = [55441, 55443, 55444, 55445, 55446, 55447, 55448, 55449];
 
 /** Where Strapi will connect, from DATABASE_URL or DATABASE_HOST / DATABASE_PORT (config/database.ts). */
 function dbTarget() {
@@ -29,7 +29,7 @@ function dbTarget() {
 
 const target = dbTarget();
 if (!['127.0.0.1', 'localhost'].includes(target.host) || !THROWAWAY_PORTS.includes(target.port)) {
-  console.error(`refused: database ${target.host}:${target.port} is not a throwaway (host 127.0.0.1 or localhost, port ${THROWAWAY_PORTS[0]}-${THROWAWAY_PORTS.at(-1)})`);
+  console.error(`refused: database ${target.host}:${target.port} is not a throwaway (host 127.0.0.1 or localhost, port one of ${THROWAWAY_PORTS.join(', ')})`);
   process.exit(2);
 }
 

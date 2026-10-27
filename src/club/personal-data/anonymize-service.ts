@@ -35,8 +35,13 @@ async function scrubHistory(store: ClubStore, athlete: AthleteRow, registrations
   await scrubRows(store, dismissals.filter(dismissalAbout(athlete.id, names)));
 }
 
-async function scrubRegistrations(store: ClubStore, registrations: RegistrationRow[]): Promise<void> {
+/** The addresses the child's parents gave (athlete and registrations), trimmed, lower case, each once. */
+const contactAddresses = (athlete: AthleteRow, registrations: RegistrationRow[]): string[] =>
+  [...new Set([athlete.email, ...registrations.map((r) => r.email)].map((e) => (e ?? '').trim().toLowerCase()).filter(Boolean))];
+
+async function scrubRegistrations(store: ClubStore, athlete: AthleteRow, registrations: RegistrationRow[]): Promise<void> {
   await store.scrubEmailJobs(registrations.map((r) => r.id));
+  await store.scrubScheduleEmailJobs(contactAddresses(athlete, registrations));
   for (const r of registrations) await store.scrubRegistration(r.id, registrationScrub(r.confirmation));
 }
 
@@ -56,7 +61,7 @@ async function anonymizeInTransaction(ctx: AnonymizeContext, id: string): Promis
   const registrations = await ctx.store.registrations({ athleteId: id });
   const pairs = (await ctx.store.duplicates()).filter((d) => d.firstId === id || d.secondId === id);
   await scrubHistory(ctx.store, athlete, registrations);
-  await scrubRegistrations(ctx.store, registrations);
+  await scrubRegistrations(ctx.store, athlete, registrations);
   for (const d of pairs) await ctx.store.deleteDuplicate(d.id);
   const mediaIds = await deleteProfileOf(ctx.store, athlete.profileId);
   await ctx.store.updateAthlete(id, athleteScrub(ctx.now().toISOString()));

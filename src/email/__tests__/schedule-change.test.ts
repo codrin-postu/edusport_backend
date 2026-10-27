@@ -46,17 +46,41 @@ const job = (over: Partial<EmailJobRow> = {}): EmailJobRow => ({
   updatedAt: '2026-11-20T10:00:00.000Z', kind: 'schedule-change', payload: CANCEL, notBefore: '2026-11-20T10:00:15.000Z', ...over,
 });
 
-function deps(now: string, sent: string[]): EmailDeps {
+type Stored = { row: EmailJobRow };
+
+/** One stored job behind the whole store contract (claim, finish, stuck), like the real store. */
+function deps(now: string, sent: string[], stored: Stored = { row: job() }): EmailDeps {
   const config = { live: false, apiKey: 'k', sender: { email: 'scoala@example.com', name: 'Școala' }, replyTo: null, testRecipient: 'test@example.com', siteUrl: 'https://scoaladepatinaj.ro' };
   return {
     config: config as EmailDeps['config'],
-    jobs: { create: async () => job(), update: async (_id, data) => job(data), findQueued: async () => [], findLatest: async () => null, countForRecipientSince: async () => 0 },
+    jobs: {
+      create: async () => job(),
+      update: async (_id, data) => (stored.row = { ...stored.row, ...data }),
+      findById: async () => stored.row,
+      claim: async () => {
+        if (stored.row.status !== 'queued') return false;
+        stored.row = { ...stored.row, status: 'sending' };
+        return true;
+      },
+      finish: async (_id, data) => (stored.row.status === 'sending' ? (stored.row = { ...stored.row, ...data }) : null),
+      failStuck: async () => 0,
+      findQueued: async () => [],
+      findLatest: async () => null,
+      countForRecipientSince: async () => 0,
+    },
     loadRegistration: async () => null, listDocuments: async () => [], buildDocuments: async () => [], readDocument: async () => Buffer.from(''),
     loadLinks: async () => LINKS,
     send: async (m) => { sent.push(`${m.to}|${m.subject}`); return { ok: true, messageId: null }; },
     recordHistory: async () => undefined, alert: () => undefined, log: () => undefined, defer: () => undefined, now: () => new Date(now),
   };
 }
+
+/** The undo's cancel: only a queued job can be cancelled (strapi-store cancelEmailJobs). */
+const cancelQueued = (stored: Stored): number => {
+  if (stored.row.status !== 'queued') return 0;
+  stored.row = { ...stored.row, status: 'cancelled' };
+  return 1;
+};
 
 describe('queue (3.6, W7)', () => {
   it('waits until notBefore, then sends to the test address outside production', async () => {
@@ -76,10 +100,55 @@ describe('queue (3.6, W7)', () => {
 
   it('a cancel that landed after the snapshot wins: nothing is sent', async () => {
     const sent: string[] = [];
-    const d = deps('2026-11-20T10:00:16.000Z', sent);
-    d.jobs.findById = async () => job({ status: 'cancelled' });
-    expect((await attemptJob(d, job())).status).toBe('cancelled');
+    const stored = { row: job({ status: 'cancelled' }) };
+    expect((await attemptJob(deps('2026-11-20T10:00:16.000Z', sent, stored), job())).status).toBe('cancelled');
     expect(sent).toEqual([]);
+    expect(stored.row.status).toBe('cancelled');
+  });
+
+  it('a cancel that lands between the claim and the send cannot overwrite: the job is sent and ends sent', async () => {
+    const stored = { row: job() };
+    const d = deps('2026-11-20T10:00:16.000Z', [], stored);
+    let cancelled = -1;
+    let statusDuringSend = '';
+    d.send = async () => {
+      statusDuringSend = stored.row.status;
+      cancelled = cancelQueued(stored);
+      return { ok: true, messageId: null };
+    };
+    expect((await attemptJob(d, job())).status).toBe('sent');
+    expect(statusDuringSend).toBe('sending');
+    expect(cancelled).toBe(0);
+    expect(stored.row.status).toBe('sent');
+  });
+
+  it('a cancel before the claim wins over a second sender holding the same snapshot', async () => {
+    const sent: string[] = [];
+    const stored = { row: job() };
+    const d = deps('2026-11-20T10:00:16.000Z', sent, stored);
+    expect(cancelQueued(stored)).toBe(1);
+    await attemptJob(d, job());
+    expect(sent).toEqual([]);
+    expect(stored.row.status).toBe('cancelled');
+  });
+
+  it('two senders on one job send once', async () => {
+    const sent: string[] = [];
+    const stored = { row: job() };
+    const d = deps('2026-11-20T10:00:16.000Z', sent, stored);
+    await Promise.all([attemptJob(d, job()), attemptJob(d, job())]);
+    expect(sent).toHaveLength(1);
+  });
+
+  it('a result is not written over a job the cron already failed', async () => {
+    const stored = { row: job() };
+    const d = deps('2026-11-20T10:00:16.000Z', [], stored);
+    d.send = async () => {
+      stored.row = { ...stored.row, status: 'failed', lastError: 'sending was interrupted' };
+      return { ok: true, messageId: null };
+    };
+    await attemptJob(d, job());
+    expect(stored.row).toMatchObject({ status: 'failed', lastError: 'sending was interrupted' });
   });
 
   it('no start time, or a move without its new time, fails at once instead of a broken sentence', async () => {
