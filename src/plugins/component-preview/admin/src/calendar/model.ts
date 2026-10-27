@@ -35,6 +35,8 @@ export const CATEGORIES = [
 ] as const;
 export const CAT_OF: Record<string, CalendarCategory> = Object.fromEntries(CATEGORIES.map((c) => [c.key, c.cat]));
 export const CATEGORY_OPTIONS = CATEGORIES.map((c) => ({ value: c.key, label: c.label }));
+/** New events (W18): group programs are written on the group page, so "Școala de patinaj" is not offered. */
+export const NEW_EVENT_CATEGORY_OPTIONS = CATEGORY_OPTIONS.filter((c) => c.value !== 'scoala');
 
 /**
  * The category filters above the calendar: one chip per colour. A chip hides
@@ -374,6 +376,12 @@ export interface OccView {
  * the website ignores it and the admin has no input for it.
  */
 export function occView(o: Occurrence): OccView {
+  if (o.groupName) {
+    const cancelled = o.status === 'cancelled';
+    const cat: CalendarCategory = cancelled ? (o.cancelReason === 'blackout' ? 'liber' : 'anulat') : o.type === 'scoala' ? 'scoala' : 'antrenament';
+    const time = hhmm(o.startTime);
+    return { cat, time, text: o.groupName, struck: cancelled, title: `${time} ${o.groupName}`.trim() };
+  }
   const isScoala = o.type === 'scoala';
   const state = o.state ?? undefined;
   const cancelled = o.status === 'cancelled' || state === 'anulat' || state === 'liber';

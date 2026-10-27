@@ -2,16 +2,16 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Checkbox, DateInput, Field, Input, Notice, SegmentedControl, TimeInput } from '../../ui';
 import { ConfirmDialog } from '../../ConfirmDialog';
-import type { Occurrence } from '../../../api/calendar-event/services/expand';
 import { GROUP_ERRORS, GRUPE_COPY, SCHEDULE_TOASTS } from '../../../club/groups/copy';
 import { dayMonth } from '../../../club/groups/dates';
-import { dateBody, dateFormOf, dateKey, dateToast, isBreak, panelTitle, type DateForm, type DateMode } from '../../../club/grupe/program-view';
+import { dateBody, dateFormOf, dateKey, dateToast, isBreak, panelTitle, type ChipSource, type DateForm, type DateMode } from '../../../club/grupe/program-view';
 import { requestErrorText } from '../../../club/registration-panel';
 import type { GrupeApi } from './api';
 import { PanelShell } from './PanelShell';
 import { undoToast } from './undo';
 
-export type DatePanelProps = { occurrence: Occurrence; isClass: boolean; readOnly: boolean; api: GrupeApi; onClose: () => void; groupLink?: string | null };
+export type PanelOccurrence = ChipSource & { documentId?: string };
+export type DatePanelProps = { occurrence: PanelOccurrence; isClass: boolean; readOnly: boolean; api: GrupeApi; onClose: () => void; groupLink?: string | null };
 
 const MODES: { value: DateMode; label: string }[] = [
   { value: 'keep', label: GRUPE_COPY.keep }, { value: 'cancel', label: GRUPE_COPY.cancelDate }, { value: 'move', label: GRUPE_COPY.moveDate },

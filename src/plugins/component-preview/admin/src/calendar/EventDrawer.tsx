@@ -20,6 +20,7 @@ import {
 import {
   CAT_OF,
   CATEGORY_OPTIONS,
+  NEW_EVENT_CATEGORY_OPTIONS,
   EX_KIND_OPTIONS,
   FREQ_OPTIONS,
   OCC_MODE_OPTIONS,
@@ -192,7 +193,7 @@ function SeriesFields(p: WithForm) {
           <Field label="Categorie">
             <div className="cal-catsel" data-calcat={cat}>
               <span className="cal-sw" aria-hidden="true" />
-              <Select value={form.type} options={CATEGORY_OPTIONS} onChange={(v) => upd({ type: v })} />
+              <Select value={form.type} options={form.documentId ? CATEGORY_OPTIONS : NEW_EVENT_CATEGORY_OPTIONS} onChange={(v) => upd({ type: v })} />
             </div>
           </Field>
           <Field label="Etichetă (ex. Grupa A)">

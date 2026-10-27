@@ -38,3 +38,26 @@ describe('empty group tabs (10.6, W31)', () => {
     for (const s of ['page.copyFrom', 'NEW_SEASON_COPY.emptyProgram', 'NEW_SEASON_COPY.copyProgram', 'NEW_SEASON_COPY.copyProgramHint', 'NEW_SEASON_COPY.programCopiedToast', 'api.copyProgram']) expect(program, s).toContain(s);
   });
 });
+
+describe('the general calendar (7.2, W18)', () => {
+  const editor = source('plugins/component-preview/admin/src/ProgramOverviewEditor.tsx');
+  const model = source('plugins/component-preview/admin/src/calendar/model.ts');
+  const drawer = source('plugins/component-preview/admin/src/calendar/EventDrawer.tsx');
+
+  it('reads the admin occurrences route, so non-public groups show too', () => {
+    expect(editor).toContain('/api/club/calendar/occurrences');
+    expect(editor).not.toContain("fetch(`/api/calendar/occurrences");
+  });
+
+  it('group events read "<ora> <grupă>" and open the group date panel with "Deschide grupa"', () => {
+    expect(model).toContain('o.groupName');
+    expect(editor).toContain('<DatePanel');
+    expect(editor).toContain('groupPageTo');
+    expect(editor).toContain('o.groupId');
+  });
+
+  it('new events no longer offer "Școala de patinaj"', () => {
+    expect(model).toContain('NEW_EVENT_CATEGORY_OPTIONS');
+    expect(drawer).toContain('NEW_EVENT_CATEGORY_OPTIONS');
+  });
+});
