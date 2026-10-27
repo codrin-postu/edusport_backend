@@ -89,12 +89,15 @@ export function purposeFields(f: PaymentFor, collectedAtRink: boolean, seasonOfP
   }
 }
 
-export type PurposeNames = { itemName?: string | null; seasonLabel?: string | null };
+export type PurposeNames = { itemName?: string | null; startsOn?: string | null; seasonLabel?: string | null };
+
+const abonamentText = (names: PurposeNames): string =>
+  names.itemName && names.startsOn ? PAYMENT_COPY.optAbonament(names.itemName, startText(names.startsOn)) : (names.itemName ?? PURPOSE_WORDS.abonament);
 
 /** "Pentru" as shown in a payment's own lines (5.10). */
 export function purposeText(p: Pick<PaymentRow, 'purpose' | 'clubMonth'>, names: PurposeNames): string {
   switch (p.purpose) {
-    case 'abonament': return names.itemName ?? PURPOSE_WORDS.abonament;
+    case 'abonament': return abonamentText(names);
     case 'cotizatie': return names.seasonLabel ? PAYMENT_COPY.optFee(names.seasonLabel) : PURPOSE_WORDS.cotizatie;
     case 'club_luna': return p.clubMonth ? PAYMENT_COPY.optMonth(p.clubMonth) : PURPOSE_WORDS.club_luna;
     default: return PURPOSE_WORDS[p.purpose];

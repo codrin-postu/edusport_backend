@@ -47,6 +47,7 @@ describe('purpose', () => {
   });
   it('"Pentru" texts (5.10, C61, decided 17)', () => {
     expect(purposeText({ purpose: 'abonament', clubMonth: null }, { itemName: 'Abonament 8 ședințe' })).toBe('Abonament 8 ședințe');
+    expect(purposeText({ purpose: 'abonament', clubMonth: null }, { itemName: 'Abonament 8 ședințe', startsOn: '2026-11-03' })).toBe('Abonament 8 ședințe (activ din 3 noi)');
     expect(purposeText({ purpose: 'club_luna', clubMonth: '2026-09' }, {})).toBe('Club, septembrie');
     expect(purposeText({ purpose: 'cotizatie', clubMonth: null }, { seasonLabel: '2026-2027' })).toBe('Cotizație membru 2026-2027');
     expect(purposeText({ purpose: 'lectie', clubMonth: null }, {})).toBe('Lecție individuală');

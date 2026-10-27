@@ -114,7 +114,7 @@ describe('money reads', () => {
     const f = fakePresenceContext(listSeed());
     const list = await listPayments(f.store, readPaymentQuery({ month: '2026-10' }, '2026-11-20'), '2026-11-20');
     expect(list.rows.map((r) => [r.paidOn, r.purposeText, r.cancelled])).toEqual([
-      ['2026-10-27', 'Abonament 8 ședințe', false], ['2026-10-26', 'Club, septembrie', false], ['2026-10-22', 'Lecție individuală', true]]);
+      ['2026-10-27', 'Abonament 8 ședințe (activ din 27 oct)', false], ['2026-10-26', 'Club, septembrie', false], ['2026-10-22', 'Lecție individuală', true]]);
     expect(list.total).toBe(660);
     expect((await listPayments(f.store, readPaymentQuery({ month: '2026-10', method: 'transfer' }, '2026-11-20'), '2026-11-20')).rows).toHaveLength(1);
     expect((await listPayments(f.store, readPaymentQuery({ month: '2026-10', purpose: 'club_luna' }, '2026-11-20'), '2026-11-20')).total).toBe(340);

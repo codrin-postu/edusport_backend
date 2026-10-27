@@ -181,6 +181,13 @@ describe('edit a payment', () => {
     expect(await editPayment(f.ctx, 'p1', editBody())).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
   });
 
+  it('moving a payment between two abonamente with the same item name writes a Pentru line with the start dates (final review M1)', async () => {
+    const subs = [subscriptionRow({ id: 'sub1', athleteId: 'a1', startsOn: '2026-10-27' }), subscriptionRow({ id: 'sub2', athleteId: 'a1', startsOn: '2026-11-03' })];
+    const f = fakePresenceContext(seed({ subscriptions: subs, payments: [paymentRow({ id: 'p1', athleteId: 'a1', amount: 300, purpose: 'abonament', subscriptionId: 'sub1' })] }));
+    await editPayment(f.ctx, 'p1', editBody({ amount: 300, for: { kind: 'abonament', subscriptionId: 'sub2' } }));
+    expect(historyTextsOf(f, 'payment', 'p1')).toEqual(['Pentru: "Abonament 8 ședințe (activ din 27 oct)" → "Abonament 8 ședințe (activ din 3 noi)"']);
+  });
+
   it('locks athlete, the new abonament, then the payment (7.1)', async () => {
     const f = fakePresenceContext(seed({ payments: [paymentRow({ id: 'p1', athleteId: 'a1' })] }));
     await editPayment(f.ctx, 'p1', editBody({ for: { kind: 'abonament', subscriptionId: 'sub1' } }));
