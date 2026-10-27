@@ -13,7 +13,9 @@ it('keeps email-job private: hidden in the Content Manager, no generated routes'
 
 it('stores recipient, subject, kind, registration, status, attempts, lastError and sentAt', () => {
   const { attributes } = JSON.parse(readFileSync(join(SRC, 'api/email-job/content-types/email-job/schema.json'), 'utf8'));
-  expect(Object.keys(attributes)).toEqual(['recipient', 'subject', 'kind', 'registration', 'status', 'attempts', 'lastError', 'sentAt']);
+  expect(Object.keys(attributes)).toEqual([
+    'recipient', 'subject', 'kind', 'registration', 'status', 'attempts', 'lastError', 'sentAt', 'group', 'payload', 'changeKey', 'notBefore',
+  ]);
   expect(attributes.status).toEqual({ type: 'enumeration', enum: ['queued', 'sent', 'failed', 'cancelled'], required: true, default: 'queued' });
   expect(attributes.attempts).toEqual({ type: 'integer', required: true, default: 0, min: 0 });
   expect(attributes.registration).toEqual({

@@ -21,6 +21,10 @@ export interface CalendarException extends Struct.ComponentSchema {
     newEndTime: Schema.Attribute.Time;
     newStartTime: Schema.Attribute.Time;
     newTitle: Schema.Attribute.String;
+    reason: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 120;
+      }>;
   };
 }
 

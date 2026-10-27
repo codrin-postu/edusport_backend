@@ -19,6 +19,7 @@
     "newStartTime": { "type": "time" },
     "newEndTime": { "type": "time" },
     "newTitle": { "type": "string" },
-    "newDate": { "type": "date" }
+    "newDate": { "type": "date" },
+    "reason": { "type": "string", "maxLength": 120 }
   }
 }
