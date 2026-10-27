@@ -1,7 +1,7 @@
 /**
  * "Inactivi de peste N ani" (spec 5): not anonymized, and the last active season at least N seasons before the current
- * one; the last active season is the latest of the group seasons and the linked registration seasons (phase 5 adds
- * attendance and payment seasons in `lastActiveYears`, the one place to extend). No activity at all: the record is at
+ * one; the last active season is the latest of the group seasons, the linked registration seasons and the phase 5
+ * activity seasons (attendance, present lessons, live payments, abonamente; `lastActiveYears`, the one place to extend). No activity at all: the record is at
  * least N years old. Pure.
  */
 export type InactivityInput = {
@@ -9,6 +9,8 @@ export type InactivityInput = {
   memberships: { athleteId: string; seasonId: string }[];
   registrations: { athleteId: string | null; seasonId: string | null; season: string | null }[];
   seasons: { id: string; label: string; isCurrent: boolean }[];
+  /** Phase 5: one row per athlete and season with attendance, a present lesson, a live payment or an abonament. */
+  activity?: readonly { athleteId: string; seasonId: string }[];
   retentionYears: number;
   now: Date;
 };
@@ -19,7 +21,7 @@ export function seasonStartYear(label: string | null): number | null {
   return m ? Number(m[1]) : null;
 }
 
-export function lastActiveYears(input: Pick<InactivityInput, 'memberships' | 'registrations' | 'seasons'>): Map<string, number> {
+export function lastActiveYears(input: Pick<InactivityInput, 'memberships' | 'registrations' | 'seasons' | 'activity'>): Map<string, number> {
   const labels = new Map(input.seasons.map((s) => [s.id, s.label]));
   const years = new Map<string, number>();
   const note = (athleteId: string | null, label: string | null | undefined) => {
@@ -28,6 +30,7 @@ export function lastActiveYears(input: Pick<InactivityInput, 'memberships' | 're
   };
   for (const m of input.memberships) note(m.athleteId, labels.get(m.seasonId));
   for (const r of input.registrations) note(r.athleteId, (r.seasonId && labels.get(r.seasonId)) || r.season);
+  for (const a of input.activity ?? []) note(a.athleteId, labels.get(a.seasonId));
   return years;
 }
 

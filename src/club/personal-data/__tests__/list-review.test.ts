@@ -3,6 +3,7 @@ import { athleteListPage, readListQuery } from '../../athletes/list';
 import type { SeasonRow, ServiceContext } from '../../athletes/store';
 import { ADMIN_ERRORS } from '../../athletes/errors';
 import { SEASONS, athleteRow, fakeClubStore } from '../../athletes/__tests__/fake-store';
+import { fakePresenceStore } from '../../presence/__tests__/fake-store';
 import { hideInactiveReview, inactiveSummary, readInactiveSummary } from '../review';
 
 const OLD_SEASONS: SeasonRow[] = [
@@ -54,24 +55,24 @@ describe('Sportivi list, 3C (spec 4, 5)', () => {
 
 describe('yearly review (spec 5)', () => {
   it('counts the inactive athletes and shows the notice', async () => {
-    expect(await inactiveSummary(setup().store, NOW)).toEqual({ retentionYears: 5, count: 2, seasonLabel: '2026-2027', shown: true });
+    expect(await inactiveSummary(setup().store, fakePresenceStore().store, NOW)).toEqual({ retentionYears: 5, count: 2, seasonLabel: '2026-2027', shown: true });
   });
 
   it('"Ascunde până la sezonul următor" hides it for the current season only', async () => {
     const fake = setup({ retentionYears: 6 });
     const ctx: ServiceContext = { store: fake.store, actor: 'super@example.com', today: TODAY, log: () => undefined };
-    expect(await hideInactiveReview(ctx, NOW)).toEqual({ ok: true, data: { retentionYears: 6, count: 1, seasonLabel: '2026-2027', shown: false } });
+    expect(await hideInactiveReview(ctx, fakePresenceStore().store, NOW)).toEqual({ ok: true, data: { retentionYears: 6, count: 1, seasonLabel: '2026-2027', shown: false } });
     expect(fake.state.settings).toEqual({ retentionYears: 6, reviewHiddenUntilSeason: '2026-2027' });
   });
 
   it('without a current season there is nothing to hide', async () => {
     const fake = setup(null, OLD_SEASONS.map((s) => ({ ...s, isCurrent: false })));
     const ctx: ServiceContext = { store: fake.store, actor: 'super@example.com', today: TODAY, log: () => undefined };
-    expect(await hideInactiveReview(ctx, NOW)).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect(await hideInactiveReview(ctx, fakePresenceStore().store, NOW)).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
   });
 
   it('the route read answers { data } like before', async () => {
-    expect(await readInactiveSummary(setup().store, () => undefined, NOW)).toEqual({ ok: true, data: { retentionYears: 5, count: 2, seasonLabel: '2026-2027', shown: true } });
+    expect(await readInactiveSummary(setup().store, fakePresenceStore().store, () => undefined, NOW)).toEqual({ ok: true, data: { retentionYears: 5, count: 2, seasonLabel: '2026-2027', shown: true } });
   });
 
   it('a failure in either answers the shared copy, logged once each', async () => {
@@ -79,11 +80,11 @@ describe('yearly review (spec 5)', () => {
     const log = (message: string) => logs.push(message);
     const read = setup();
     read.failOn('seasons');
-    expect(await readInactiveSummary(read.store, log, NOW)).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
+    expect(await readInactiveSummary(read.store, fakePresenceStore().store, log, NOW)).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
     const hide = setup();
     hide.failOn('seasons');
     const ctx: ServiceContext = { store: hide.store, actor: 'super@example.com', today: TODAY, log };
-    expect(await hideInactiveReview(ctx, NOW)).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
+    expect(await hideInactiveReview(ctx, fakePresenceStore().store, NOW)).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
     expect(hide.state.settings).toBeNull();
     expect(logs).toEqual([
       '[personal-data] reading the yearly review failed: fake failure in seasons',

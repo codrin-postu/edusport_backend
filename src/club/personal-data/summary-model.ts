@@ -1,6 +1,7 @@
 import { ACS_WORDS, type AcsState } from '../acs';
 import { ATHLETE_FIELD_LABELS, birthDateForPicker, type AthleteStatus } from '../athlete-data';
 import type { DocumentKind } from '../documents/types';
+import { LIFECYCLE_PDF } from '../presence/copy/lifecycle';
 import { HISTORY_ACTIONS, STATUS_WORDS } from '../history-text';
 import { abonamentTabRows, dateTabRows } from '../inscrieri-panel';
 import { DOCUMENT_LABELS, formatEmailSentAt } from '../registration-panel';
@@ -17,12 +18,15 @@ export type SummaryModel = { title: string; name: string; sections: SummarySecti
 export type SummaryRegistration = { number: string; record: Record<string, unknown>; seasonLabel: string | null; sectionName: string | null; missingDocuments: DocumentKind[] };
 /** One Istoric line; `action` and `changes` are the stored row's, read only to leave lines out. */
 export type SummaryHistoryLine = { at: string; actor: string; text: string; subject: string; action: string; changes: Record<string, unknown> };
+/** Phase 5 lines (attendance, lessons, abonamente, payments), one text per row, newest first. */
+export type SummaryPresence = { attendance: string[]; lessons: string[]; subscriptions: string[]; payments: string[] };
 export type SummaryInput = {
   athlete: { name: string | null; birthDate: string | null; contactName: string | null; phone: string | null; email: string | null; status: AthleteStatus; notes: string | null };
   groups: { season: string; group: string; main: boolean }[];
   acs: { season: string; state: AcsState }[];
   registrations: SummaryRegistration[];
   history: SummaryHistoryLine[];
+  presence: SummaryPresence;
   /** Every name the child has carried, as `nameKey` normalizes it. */
   childNames: ReadonlySet<string>;
   generatedAt: Date;
@@ -78,6 +82,12 @@ function aboutAnotherChild(line: SummaryHistoryLine, childNames: ReadonlySet<str
 const historyRow = (l: SummaryHistoryLine): SummaryRow =>
   row([historyWhen(l.at), l.actor].filter(Boolean).join(', '), l.subject ? `${P.registration} ${l.subject}: ${l.text}` : l.text);
 
+const lines = (title: string, list: string[]): SummarySection => single(title, list.map((l) => row('', l)));
+
+const presenceSections = (p: SummaryPresence): SummarySection[] => [
+  lines(LIFECYCLE_PDF.attendance, p.attendance), lines(LIFECYCLE_PDF.lessons, p.lessons), lines(LIFECYCLE_PDF.subscriptions, p.subscriptions), lines(LIFECYCLE_PDF.payments, p.payments),
+];
+
 export function buildSummaryModel(input: SummaryInput): SummaryModel {
   return {
     title: P.title,
@@ -88,6 +98,7 @@ export function buildSummaryModel(input: SummaryInput): SummaryModel {
       single(P.acs, input.acs.map((a) => row(a.season, ACS_WORDS[a.state]))),
       registrationsSection(input.registrations),
       single(P.history, input.history.filter((l) => !aboutAnotherChild(l, input.childNames)).map(historyRow)),
+      ...presenceSections(input.presence),
     ],
     footer: P.generated(formatEmailSentAt(input.generatedAt.toISOString()), input.generatedBy),
   };
