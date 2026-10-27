@@ -1,3 +1,5 @@
+import { FIT_PAGE_MEDIA } from '../../ui';
+
 /**
  * Înscrieri page CSS (cfg.extraCss: one global style tag, so the portaled confirm window gets it too).
  * Tokens only; every class ins- prefixed under .ui-root; written in plain strings (a backtick inside a
@@ -42,6 +44,27 @@ const PANEL_CSS =
   '.ui-root .ins-label-row{display:flex;align-items:center;justify-content:space-between;gap:8px}' +
   '.ui-root .ins-label-row .ins-link{text-transform:none;letter-spacing:0}' +
   '.ui-root.sbt-menu button.ins-danger{color:var(--theme-danger)}';
+
+/**
+ * Fit page (cfg.fitPage): header, match card, tabs and footer stay; only the body scrolls.
+ * In a short window the panel scrolls as one between its sticky header and sticky footer.
+ */
+const FIT_CSS =
+  FIT_PAGE_MEDIA + '{' +
+  '.ui-root.ui-page--fit .sbt-panel > .ins-panel{flex:1 1 auto;min-height:0}' +
+  '.ui-root.ui-page--fit .ins-panel > *{flex:none}' +
+  '.ui-root.ui-page--fit .ins-panel > .sbt-pb{flex:1 1 auto}}' +
+  FIT_PAGE_MEDIA + ' and (max-height:860px){' +
+  '.ui-root.ui-page--fit .sbt-panel > .ins-panel{overflow:auto;scroll-padding-top:var(--ins-ph-h,0px);scroll-padding-bottom:var(--ins-pa-h,0px)}' +
+  '.ui-root.ui-page--fit .ins-panel > .sbt-pb{flex:1 0 auto;overflow:visible}' +
+  '.ui-root.ui-page--fit .ins-panel > .ins-ph{position:sticky;top:0;z-index:3;padding-bottom:10px;border-bottom:1px solid var(--theme-border);background:var(--theme-surface-subtle)}' +
+  '.ui-root.ui-page--fit .ins-panel > .sbt-pa{position:sticky;bottom:0;z-index:3;background:var(--theme-surface-subtle)}}';
+
+const DOCS_CSS =
+  '.ui-root .ins-docs{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}' +
+  '.ui-root .ins-doc{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--theme-border)}' +
+  '.ui-root .ins-doc-acts{display:flex;gap:4px}' +
+  '.ui-root .ins-doc-acts .ui-btn{color:var(--theme-primary)}';
 
 const MATCH_CSS =
   '.ui-root .ins-mcard{margin:10px 15px 0;border:1px solid var(--theme-border);border-radius:var(--ui-radius-md);background:var(--theme-surface)}' +
@@ -96,4 +119,4 @@ const CONFIRM_CSS =
   '.ui-root .ins-res-none{padding:10px 12px;font-size:13px;color:var(--theme-text-muted)}' +
   '.ui-root .ins-foot-hint{flex:1;align-self:center;font-size:12.5px;color:var(--theme-text-muted)}';
 
-export const INSCRIERI_CSS = [LIST_CSS, PANEL_CSS, MATCH_CSS, EDIT_CSS, CONFIRM_CSS].join('\n');
+export const INSCRIERI_CSS = [LIST_CSS, PANEL_CSS, FIT_CSS, DOCS_CSS, MATCH_CSS, EDIT_CSS, CONFIRM_CSS].join('\n');

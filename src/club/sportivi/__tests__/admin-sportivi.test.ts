@@ -171,9 +171,22 @@ describe('athlete record (Task 7)', () => {
   it('Documente through the admin-guarded routes; Istoric with the shared time format', () => {
     expect(read('sportivi/DocumentsTab.tsx')).toContain('registrationDocumentUrl(d.registrationDocumentId, d.kind)');
     expect(read('sportivi/DocumentsTab.tsx')).toContain('<span className="ui-sr"> {d.label}</span>');
-    expect(read('sportivi/openPdf.ts')).toContain("if (!tab) throw new Error('popup blocked');");
-    expect(read('sportivi/openPdf.ts')).not.toContain('window.location');
+    expect(read('sportivi/DocumentsTab.tsx')).toContain("import { downloadPdf, registrationDocumentUrl, viewPdf } from '../inscrieri/downloadPdf';");
+    expect(read('inscrieri/downloadPdf.ts')).toContain("if (!tab) throw new Error('popup blocked');");
+    expect(read('inscrieri/downloadPdf.ts')).not.toContain('window.location');
     expect(read('sportivi/HistoryTab.tsx')).toContain('historyWhen(l.at)');
+  });
+});
+
+describe('desktop layout (user, 2026-10-27)', () => {
+  it('the list page fits the window; the table scrolls under sticky headers, the footer stays', () => {
+    const list = read('sportivi/SportiviList.tsx');
+    expect(list).toContain('<AdminPage fit>');
+    expect(list).toContain('{phone ? <AthleteCards list={list} onOpen={open} /> : <AthleteTable list={list} onOpen={open} />}');
+    const table = read('sportivi/AthleteTable.tsx');
+    expect(table).toContain('<div className="ui-table-wrap">');
+    expect(table).toContain('<div className="spv-foot">');
+    expect(read('sportivi/AthleteRecordPage.tsx')).not.toMatch(/<AdminPage fit/);
   });
 });
 

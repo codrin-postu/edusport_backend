@@ -3,24 +3,39 @@ import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { Button, adminToast } from '../../ui';
 import { DetailField, type Row } from '../SubmissionTable';
 import { DOCUMENT_LABELS, registrationDocumentKinds, type PanelDocumentKind } from '../../../club/registration-panel';
-import { downloadPdf, registrationDocumentUrl } from './downloadPdf';
+import { RECORD_COPY } from '../../../club/sportivi/record-view';
+import { downloadPdf, registrationDocumentUrl, viewPdf } from './downloadPdf';
 
-/** The registration's PDFs (Acord, plus the Cerere de adeziune for a member), one button each. */
+type Get = ReturnType<typeof useFetchClient>['get'];
+
+const failed = () => adminToast.error(RECORD_COPY.documentFailed);
+
+/** One PDF with "Vezi" / "Descarcă", as on the Sportivi record; the hidden name makes each button's name unique. */
+function DocumentRow({ documentId, kind, get }: { documentId: string; kind: PanelDocumentKind; get: Get }) {
+  const url = registrationDocumentUrl(documentId, kind);
+  const label = DOCUMENT_LABELS[kind];
+  const hidden = <span className="ui-sr"> {label}</span>;
+  return (
+    <li className="ins-doc">
+      <span>{label}</span>
+      <span className="ins-doc-acts">
+        <Button size="sm" variant="ghost" onClick={() => void viewPdf(get, url).catch(failed)}>{RECORD_COPY.view}{hidden}</Button>
+        <Button size="sm" variant="ghost" onClick={() => void downloadPdf(get, url, `${kind}.pdf`).catch(failed)}>{RECORD_COPY.download}{hidden}</Button>
+      </span>
+    </li>
+  );
+}
+
+/** The registration's PDFs (Acord, plus the Cerere de adeziune for a member), one row each. */
 export function RegistrationDocuments({ row }: { row: Row }) {
   const { get } = useFetchClient();
-  const download = (kind: PanelDocumentKind) =>
-    downloadPdf(get, registrationDocumentUrl(row.documentId, kind), `${kind}.pdf`).catch(() =>
-      adminToast.error('Documentul nu a putut fi descărcat.'),
-    );
   return (
     <DetailField label="Documente">
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <ul className="ins-docs">
         {registrationDocumentKinds(row).map((kind) => (
-          <Button key={kind} size="sm" variant="secondary" onClick={() => void download(kind)}>
-            {DOCUMENT_LABELS[kind]}
-          </Button>
+          <DocumentRow key={kind} documentId={row.documentId} kind={kind} get={get} />
         ))}
-      </div>
+      </ul>
     </DetailField>
   );
 }

@@ -4,6 +4,7 @@ import { ConfirmDialog } from '../ConfirmDialog';
 import { SheetsDialog, type SheetsForm } from './SheetsDialog';
 import {
   AdminPage,
+  FIT_PAGE_MEDIA,
   Window,
   PageHeader,
   Button,
@@ -269,6 +270,8 @@ export interface SubmissionTableCfg {
   extraCss?: string;
   /** Page-specific buttons at the start of the header actions (Înscrieri: "Formulare goale"). */
   headerActions?: React.ReactNode;
+  /** Desktop: the page fits the window, the list and the panel body scroll inside (AdminPage `fit`). */
+  fitPage?: boolean;
 }
 
 /** Page state the table does not own (Înscrieri: "Sportiv existent", school tabs, school move). */
@@ -536,6 +539,16 @@ const TABLE_CSS = `
 .ui-root.sbt-menu .sbt-sep{height:1px;background:var(--theme-border);margin:4px 0}
 .ui-root.sbt-menu .sbt-grp{padding:8px 10px 3px;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--theme-text-muted)}
 .ui-root .sbt-mws{display:flex;flex-direction:column;gap:12px}
+${FIT_PAGE_MEDIA}{
+.ui-root.ui-page--fit .ui-win > .sbt-listbody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.ui-root.ui-page--fit .sbt-listbody > *{flex:none}
+.ui-root.ui-page--fit .sbt-listbody > .sbt-split,.ui-root.ui-page--fit .sbt-listbody > .sbt-sheetwrap{flex:1 1 auto;min-height:0}
+.ui-root.ui-page--fit .sbt-split{grid-template-rows:minmax(0,1fr)}
+.ui-root.ui-page--fit .sbt-split > .ui-table-wrap,.ui-root.ui-page--fit .sbt-sheetwrap{overflow:auto}
+.ui-root.ui-page--fit .sbt-panel{display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+.ui-root.ui-page--fit .sbt-panel > *{flex:none}
+.ui-root.ui-page--fit .sbt-panel .sbt-pb{flex:1 1 auto;max-height:none;min-height:0}
+}
 `;
 
 /** Read-only label + value block of the detail panel. */
@@ -1898,7 +1911,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
   );
 
   return (
-    <AdminPage>
+    <AdminPage fit={cfg.fitPage}>
       <style>{fullCss}</style>
 
       <Window>
