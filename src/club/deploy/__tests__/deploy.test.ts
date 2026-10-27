@@ -4,6 +4,9 @@ import { planDeployStatus } from '../deploy-status';
 import { planDuplicateFlags } from '../duplicate-flags';
 import { planNameMigration } from '../name-migration';
 import { planPastRegistrationAthletes, type PastRegistration } from '../past-registrations';
+import { PERSONAL_DATA_COPY } from '../../personal-data/copy';
+
+const LIVE = 'activ' as const;
 
 describe('step 7: one name (spec 1.1)', () => {
   it('joins first and last, collapses spaces, skips named rows, reports empty rows and profile mismatches (N7)', () => {
@@ -16,6 +19,11 @@ describe('step 7: one name (spec 1.1)', () => {
     expect(plan.updates).toEqual([{ id: 'a1', name: 'Ana Maria Pop' }, { id: 'a4', name: 'Luca Stoica' }]);
     expect(plan.empty).toEqual(['a3']);
     expect(plan.profileMismatches).toEqual([{ id: 'a4', name: 'Luca Stoica', profileName: 'Luca Andrei Stoica' }]);
+  });
+
+  it('never writes an anonymized athlete: its name is set, its first and last name are cleared', () => {
+    const plan = planNameMigration([{ id: 'a9', name: PERSONAL_DATA_COPY.anonymizedName, firstName: null, lastName: null, profileName: null }]);
+    expect(plan).toEqual({ updates: [], empty: [], profileMismatches: [] });
   });
 });
 
@@ -55,7 +63,7 @@ describe('step 9: athletes from past registrations (d17, Open #1)', () => {
       ['Daniel Pop', ['r1', 'r3']],
       ['Daniela Pop', ['r2', 'r4']],
     ]);
-    const athletes = plan.create.map((a, i) => ({ id: `a${i}`, name: a.values.name ?? '', birthDate: a.values.birthDate, phone: a.values.phone, email: a.values.email }));
+    const athletes = plan.create.map((a, i) => ({ id: `a${i}`, name: a.values.name ?? '', birthDate: a.values.birthDate, phone: a.values.phone, email: a.values.email, status: LIVE }));
     expect(planDuplicateFlags(athletes, [])).toEqual([{ firstId: 'a0', secondId: 'a1', level: 'probabil' }]);
   });
 
@@ -94,13 +102,21 @@ describe('step 9: athletes from past registrations (d17, Open #1)', () => {
   });
 });
 
+describe('step 9 and anonymized athletes (3C)', () => {
+  it('an anonymized athlete\'s registrations stay linked, so no athlete is created from them', () => {
+    const plan = planPastRegistrationAthletes([past({ id: 'r9', athleteId: 'a9', childName: PERSONAL_DATA_COPY.anonymizedChild, childBirthDate: '' })], '2026-2027', new Set());
+    expect(plan.create).toEqual([]);
+    expect(plan.skipped.linked).toBe(1);
+  });
+});
+
 describe('step 11: possible duplicates (spec 2.3)', () => {
   it('flags each pair once and skips pairs already flagged, in either order', () => {
     const athletes = [
-      { id: 'a', name: 'Maria Pop', birthDate: null, phone: null, email: null },
-      { id: 'b', name: 'Pop Maria', birthDate: '2016-03-14', phone: null, email: null },
-      { id: 'c', name: 'Maria Pop', birthDate: '2016-03-14', phone: null, email: null },
-      { id: 'd', name: 'Ion Ilie', birthDate: '2016-03-14', phone: null, email: null },
+      { id: 'a', name: 'Maria Pop', birthDate: null, phone: null, email: null, status: LIVE },
+      { id: 'b', name: 'Pop Maria', birthDate: '2016-03-14', phone: null, email: null, status: LIVE },
+      { id: 'c', name: 'Maria Pop', birthDate: '2016-03-14', phone: null, email: null, status: LIVE },
+      { id: 'd', name: 'Ion Ilie', birthDate: '2016-03-14', phone: null, email: null, status: LIVE },
     ];
     expect(planDuplicateFlags(athletes, [{ firstId: 'c', secondId: 'a' }])).toEqual([
       { firstId: 'a', secondId: 'b', level: 'probabil' },
@@ -108,10 +124,16 @@ describe('step 11: possible duplicates (spec 2.3)', () => {
     ]);
   });
 
+  it('never flags an anonymized athlete (all are "Sportiv anonimizat" without a birth date)', () => {
+    const anonymized = (id: string) => ({ id, name: 'Sportiv anonimizat', birthDate: null, phone: null, email: null, status: 'anonimizat' as const });
+    const live = { id: 'l', name: 'Sportiv anonimizat', birthDate: null, phone: null, email: null, status: LIVE };
+    expect(planDuplicateFlags([anonymized('x'), anonymized('y'), anonymized('z'), live], [])).toEqual([]);
+  });
+
   it('never flags again a pair the admin dismissed with "Nu e același copil"', () => {
     const athletes = [
-      { id: 'a', name: 'Maria Pop', birthDate: '2016-03-14', phone: null, email: null },
-      { id: 'b', name: 'Maria Pop', birthDate: '2016-03-14', phone: null, email: null },
+      { id: 'a', name: 'Maria Pop', birthDate: '2016-03-14', phone: null, email: null, status: LIVE },
+      { id: 'b', name: 'Maria Pop', birthDate: '2016-03-14', phone: null, email: null, status: LIVE },
     ];
     expect(planDuplicateFlags(athletes, [])).toHaveLength(1);
     expect(planDuplicateFlags(athletes, [{ firstId: 'b', secondId: 'a' }])).toEqual([]);
@@ -120,8 +142,8 @@ describe('step 11: possible duplicates (spec 2.3)', () => {
   it('a public-profile athlete and a past-registration athlete with the same name are flagged, never merged', () => {
     const [profile] = planAthletes({ sportspeople: [{ documentId: 'p1', name: 'Luca Stoica' }], linkedProfileIds: [] }).create;
     const [fromPast] = planPastRegistrationAthletes([past({ id: 'r1' })], '2026-2027', new Set()).create;
-    const profileFacts = { id: 'prof', name: profile.name, birthDate: null, phone: null, email: null };
-    const pastFacts = { id: 'past', name: fromPast.values.name ?? '', birthDate: fromPast.values.birthDate, phone: fromPast.values.phone, email: fromPast.values.email };
+    const profileFacts = { id: 'prof', name: profile.name, birthDate: null, phone: null, email: null, status: LIVE };
+    const pastFacts = { id: 'past', name: fromPast.values.name ?? '', birthDate: fromPast.values.birthDate, phone: fromPast.values.phone, email: fromPast.values.email, status: LIVE };
     expect(planDuplicateFlags([profileFacts, pastFacts], [])).toEqual([{ firstId: 'prof', secondId: 'past', level: 'probabil' }]);
     expect(planDuplicateFlags([pastFacts, profileFacts], [])).toEqual([{ firstId: 'past', secondId: 'prof', level: 'probabil' }]);
   });

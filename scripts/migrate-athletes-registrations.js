@@ -128,7 +128,7 @@ async function stepDuplicates({ store }) {
   const [athletes, existing] = await Promise.all([store.athletes(), store.duplicates()]);
   const names = new Map(athletes.map((a) => [a.id, a.name]));
   const nameOf = (id) => names.get(id) || noName(id);
-  const facts = athletes.map((a) => ({ id: a.id, name: a.name || '', birthDate: a.birthDate, phone: a.phone, email: a.email }));
+  const facts = athletes.map((a) => ({ id: a.id, name: a.name || '', birthDate: a.birthDate, phone: a.phone, email: a.email, status: a.status }));
   const pairs = planDuplicateFlags(facts, existing);
   log('pairs already stored:', existing.length, 'dismissed:', existing.filter((p) => p.dismissed).length);
   log('possible duplicate pairs to flag:', pairs.length);
