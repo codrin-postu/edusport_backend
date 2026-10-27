@@ -13,6 +13,13 @@ export const seasonOptions = (p: GroupListPage): { value: string; label: string 
 export const groupOptions = (groups: GroupChoice[], exceptId: string | null): { value: string; label: string; hint: string }[] =>
   groups.filter((g) => g.documentId !== exceptId).map((g) => ({ value: g.documentId, label: g.name, hint: g.sectionName }));
 
+/** The "În" list of "Adaugă și în grupă": this group and the groups the athlete is already in are left out (a group is told by its name here, the row carries names). */
+export const joinableGroups = (groups: GroupChoice[], exceptId: string, alreadyIn: { name: string }[]): GroupChoice[] =>
+  groups.filter((g) => g.documentId !== exceptId && !alreadyIn.some((o) => o.name === g.name));
+
+/** A join or an allocation that wrote nothing (the athlete got a group meanwhile, or was in it already) is a stale page, not a success. */
+export const wroteNothing = (answer: { added: number }): boolean => answer.added === 0;
+
 export type Picks = Record<string, string | null>;
 export const initialPicks = (rows: UnassignedRow[]): Picks => Object.fromEntries(rows.map((r) => [r.athleteId, r.proposedGroupId]));
 

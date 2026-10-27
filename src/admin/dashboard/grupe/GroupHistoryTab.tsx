@@ -4,16 +4,17 @@ import type { HistoryLine } from '../../../club/athletes/api-types';
 import { GROUP_ERRORS } from '../../../club/groups/copy';
 import { historyWhen } from '../../../club/sportivi/record-view';
 import type { GrupeApi } from './api';
+import { useGrupeRefresh } from './undo';
 
 /** Istoric (6.4): newest first, the date bold, the actor muted ("Migrare" for migration rows), the line under it. */
 export function GroupHistoryTab({ api, documentId }: { api: GrupeApi; documentId: string }) {
   const [lines, setLines] = React.useState<HistoryLine[] | null>(null);
   const [failed, setFailed] = React.useState(false);
-  React.useEffect(() => {
-    let off = false;
-    api.history(documentId).then((l) => { if (!off) setLines(l); }).catch(() => { if (!off) setFailed(true); });
-    return () => { off = true; };
+  const load = React.useCallback(() => {
+    api.history(documentId).then((l) => { setLines(l); setFailed(false); }).catch(() => setFailed(true));
   }, [api, documentId]);
+  React.useEffect(() => load(), [load]);
+  useGrupeRefresh(load);
   if (failed) return <div className="ui-body"><Notice tone="danger">{GROUP_ERRORS.loadFailed}</Notice></div>;
   if (!lines) return <Loading />;
   return (

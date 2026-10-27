@@ -14,5 +14,5 @@ export function WindowShell({ title, footer, onClose, children, size = 'md' }: S
 export function PanelShell({ title, footer, onClose, children }: ShellProps) {
   const phone = useIsPhone();
   if (phone) return <BottomSheet open fullHeight title={title} onClose={onClose} footer={footer}>{children}</BottomSheet>;
-  return <Drawer open title={title} onClose={onClose} footer={footer}>{children}</Drawer>;
+  return <Drawer open title={title} onClose={onClose} footer={footer} bodyClassName="ui-body">{children}</Drawer>;
 }

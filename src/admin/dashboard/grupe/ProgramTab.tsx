@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { Button, Loading, Section } from '../../ui';
+import { Button, Loading, Notice, Section } from '../../ui';
 import { IconPlus } from '../../ui/icons';
 import type { Occurrence } from '../../../api/calendar-event/services/expand';
 import type { GroupPage } from '../../../club/groups/api-types';
-import { GRUPE_COPY, NEW_SEASON_COPY } from '../../../club/groups/copy';
+import { GROUP_ERRORS, GRUPE_COPY, NEW_SEASON_COPY } from '../../../club/groups/copy';
 import type { GroupProgram, ProgramRow } from '../../../club/groups/program-read';
+import { isOneOffClass } from '../../../club/grupe/program-view';
 import { writable } from '../../../club/grupe/list-view';
 import { todayIso } from '../../../club/groups/http';
 import type { GrupeApi } from './api';
@@ -15,16 +16,23 @@ import { failToast, undoToast, useGrupeRefresh } from './undo';
 
 type Drawer = { mode: 'new'; row: null } | { mode: 'change'; row: ProgramRow };
 
-function useProgram(api: GrupeApi, page: GroupPage): { program: GroupProgram | null; reloadKey: number } {
+type Loaded = { program: GroupProgram | null; failed: boolean; reloadKey: number };
+
+/** The program loads on mount and when the season changes; an action's reload (and the calendar's) comes from `grupeChanged`. */
+function useProgram(api: GrupeApi, page: GroupPage): Loaded {
   const [program, setProgram] = React.useState<GroupProgram | null>(null);
+  const [failed, setFailed] = React.useState(false);
   const [reloadKey, setReloadKey] = React.useState(0);
-  const reload = React.useCallback(() => {
-    api.program(page.documentId, page.season?.label ?? null).then(setProgram).catch(() => setProgram({ season: page.season, series: [] }));
+  const season = page.season?.label ?? null;
+  const load = React.useCallback(() => {
+    api.program(page.documentId, season).then((p) => { setProgram(p); setFailed(false); }).catch(() => setFailed(true));
+  }, [api, page.documentId, season]);
+  React.useEffect(() => load(), [load]);
+  useGrupeRefresh(() => {
+    load();
     setReloadKey((k) => k + 1);
-  }, [api, page.documentId, page.season]);
-  React.useEffect(() => reload(), [reload]);
-  useGrupeRefresh(reload);
-  return { program, reloadKey };
+  });
+  return { program, failed, reloadKey };
 }
 
 function CopyProgram({ page, api }: { page: GroupPage; api: GrupeApi }) {
@@ -72,17 +80,17 @@ function Usual({ page, api, program, can, onChange, onAdd }: { page: GroupPage; 
 /** Program tab (6.3): the usual program, every date, the program drawer and the date panel. */
 export function ProgramTab({ page, api }: { page: GroupPage; api: GrupeApi }) {
   const can = writable(page);
-  const { program, reloadKey } = useProgram(api, page);
+  const { program, failed, reloadKey } = useProgram(api, page);
   const [drawer, setDrawer] = React.useState<Drawer | null>(null);
   const [date, setDate] = React.useState<Occurrence | null>(null);
+  if (failed) return <div className="ui-body"><Notice tone="danger">{GROUP_ERRORS.loadFailed}</Notice></div>;
   if (!program) return <Loading />;
-  const isClass = (o: Occurrence) => !program.series.some((s) => s.eventId === o.documentId);
   return (
     <div className="ui-body">
       <Usual page={page} api={api} program={program} can={can} onChange={(row) => setDrawer({ mode: 'change', row })} onAdd={() => setDrawer({ mode: 'new', row: null })} />
       <GroupCalendar groupId={page.documentId} api={api} reloadKey={reloadKey} onOpen={setDate} />
       {drawer && <ProgramDrawer mode={drawer.mode} row={drawer.row} groupId={page.documentId} api={api} today={todayIso()} onClose={() => setDrawer(null)} />}
-      {date && <DatePanel occurrence={date} isClass={isClass(date)} readOnly={!can} api={api} onClose={() => setDate(null)} />}
+      {date && <DatePanel occurrence={date} isClass={isOneOffClass(date)} readOnly={!can} api={api} onClose={() => setDate(null)} />}
     </div>
   );
 }

@@ -2,20 +2,21 @@ import * as React from 'react';
 import { Button, Notice, SearchableSelect } from '../../ui';
 import type { GroupChoice, GroupPage, MemberRow } from '../../../club/groups/api-types';
 import { GROUP_ERRORS, GROUP_TOASTS, GRUPE_COPY } from '../../../club/groups/copy';
-import { groupOptions } from '../../../club/grupe/list-view';
+import { groupOptions, joinableGroups, wroteNothing } from '../../../club/grupe/list-view';
 import { requestErrorText } from '../../../club/registration-panel';
 import type { GrupeApi } from './api';
 import { WindowShell } from './PanelShell';
-import { undoToast } from './undo';
+import { staleToast, undoToast } from './undo';
 
 type Props = { mode: 'move' | 'addAlso'; member: MemberRow; page: GroupPage; api: GrupeApi; onClose: () => void };
 
-function useGroups(api: GrupeApi): GroupChoice[] {
+function useGroups(api: GrupeApi): { groups: GroupChoice[]; failed: boolean } {
   const [groups, setGroups] = React.useState<GroupChoice[]>([]);
+  const [failed, setFailed] = React.useState(false);
   React.useEffect(() => {
-    api.options().then((o) => setGroups(o.groups)).catch(() => setGroups([]));
+    api.options().then((o) => setGroups(o.groups)).catch(() => setFailed(true));
   }, [api]);
-  return groups;
+  return { groups, failed };
 }
 
 async function apply(p: Props, to: string, groups: GroupChoice[]): Promise<void> {
@@ -26,12 +27,13 @@ async function apply(p: Props, to: string, groups: GroupChoice[]): Promise<void>
     return;
   }
   const res = await p.api.join(to, { season: p.page.season?.label ?? '', athleteIds: [p.member.athleteId], mode: 'add' });
+  if (wroteNothing(res.data)) return staleToast();
   undoToast(GROUP_TOASTS.addedAlso(name, p.member.name), res.undo?.actionId ?? null, p.api);
 }
 
 /** The one move window (move-modal-final) and "Adaugă și în grupă" (6.2, W2, W3). */
 export function MoveDialog(p: Props) {
-  const groups = useGroups(p.api);
+  const { groups, failed } = useGroups(p.api);
   const [to, setTo] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -47,15 +49,15 @@ export function MoveDialog(p: Props) {
       setBusy(false);
     }
   };
-  const footer = <><Button variant="ghost" onClick={p.onClose} disabled={busy}>{GRUPE_COPY.cancel}</Button><Button loading={busy} onClick={() => void submit()}>{p.mode === 'move' ? GRUPE_COPY.move : GRUPE_COPY.add}</Button></>;
+  const footer = <><Button variant="ghost" onClick={p.onClose} disabled={busy}>{GRUPE_COPY.cancel}</Button><Button loading={busy} disabled={failed} onClick={() => void submit()}>{p.mode === 'move' ? GRUPE_COPY.move : GRUPE_COPY.add}</Button></>;
   return (
     <WindowShell title={p.mode === 'move' ? GRUPE_COPY.moveTitle : GRUPE_COPY.addAlsoTitle} onClose={p.onClose} footer={footer}>
-      {error && <Notice tone="danger">{error}</Notice>}
+      {(failed || error) && <Notice tone="danger">{failed ? GROUP_ERRORS.loadFailed : error}</Notice>}
       <dl className="grp-kv">
         <dt>{GRUPE_COPY.fieldAthlete}</dt><dd>{p.member.name}</dd>
         {p.mode === 'move' && <><dt>{GRUPE_COPY.fieldFrom}</dt><dd>{p.page.name}</dd></>}
         <dt>{GRUPE_COPY.fieldTo}</dt>
-        <dd><SearchableSelect value={to} options={groupOptions(groups, p.page.documentId)} placeholder={GRUPE_COPY.pickGroup} onChange={(v) => { setTo(v); setError(null); }} /></dd>
+        <dd><SearchableSelect value={to} options={groupOptions(p.mode === 'move' ? groups : joinableGroups(groups, p.page.documentId, p.member.others), p.page.documentId)} aria-label={GRUPE_COPY.fieldTo} placeholder={GRUPE_COPY.pickGroup} onChange={(v) => { setTo(v); setError(null); }} /></dd>
       </dl>
     </WindowShell>
   );

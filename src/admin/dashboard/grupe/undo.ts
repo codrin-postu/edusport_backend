@@ -29,6 +29,12 @@ export const failToast = (err: unknown): void => {
   adminToast.error(requestErrorText(err, GROUP_ERRORS.failed));
 };
 
+/** A write that changed nothing because the page was out of date: the stale text as an error, and every screen reloads. */
+export function staleToast(): void {
+  adminToast.error(GROUP_ERRORS.stale);
+  grupeChanged();
+}
+
 async function runUndo(api: GrupeApi, actionId: string): Promise<void> {
   try {
     await api.undo(actionId);
