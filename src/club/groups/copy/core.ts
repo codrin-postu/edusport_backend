@@ -103,3 +103,6 @@ export const SEASON_LINES = {
   athleteCopied: (season: string, groups: string) => `Copiat în ${season}: ${groups}.`,
   mainMark: ' (principală)',
 } as const;
+
+/** The school tab and hint while the club has one school (5.2, W16). */
+export const SECTION_LABELS = { school: 'Școala de patinaj' } as const;
