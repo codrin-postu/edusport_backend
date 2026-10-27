@@ -9,7 +9,7 @@
  *     in CSS strings (border-radius: 6px) and in React styles (borderRadius: 6).
  *     0 / none / inherit are allowed, and the save bar's own
  *     var(--ui-radius-savebar[-sheet|-dot]) (the approved exception);
- *     phase 3 adds lg / sheet / handle / radio (BottomSheet, dropdowns, Radio).
+ *     phase 3 adds lg / sheet / radio (BottomSheet, dropdowns, Radio).
  * These three make up the total, comparable with the baseline.
  *
  * Two more rules, reported separately (not part of the total):
@@ -149,7 +149,7 @@ const RGB = /\b(?:rgba?|hsla?)\(/g;
 // CSS: border-radius / border-top-left-radius etc.  JS: borderRadius / borderTopLeftRadius.
 const RADIUS_CSS = /border(?:-(?:top|bottom)-(?:left|right))?-radius\s*:\s*([^;}"'`\n]+)/g;
 const RADIUS_JS = /\bborder(?:(?:Top|Bottom)(?:Left|Right))?Radius\s*:\s*([^,\n]+)/g;
-const RADIUS_OK = /^\s*(?:0(?:px)?|none|inherit|var\(--ui-radius-(?:none|sm|md|lg|sheet|handle|radio|savebar(?:-sheet|-dot)?)\))\s*(?:!important)?\s*$/;
+const RADIUS_OK = /^\s*(?:0(?:px)?|none|inherit|var\(--ui-radius-(?:none|sm|md|lg|sheet|radio|savebar(?:-sheet|-dot)?)\))\s*(?:!important)?\s*$/;
 
 // Colour properties. CSS: color, background(-color), border(-side)(-color), outline(-color), fill, stroke,
 // box-shadow, caret/accent/text-decoration-color. JS: the camelCase forms.

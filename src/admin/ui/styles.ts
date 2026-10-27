@@ -296,7 +296,7 @@ ${R} .ui-sheet--full{height:100vh;max-height:100vh}
 ${R} .ui-sheet--full{height:100dvh;max-height:100dvh}
 ${R} .ui-sheet--full .ui-sheet-h{padding-top:max(8px, env(safe-area-inset-top))}
 ${R} .ui-sheet-h{flex-shrink:0;padding:8px 16px 6px;touch-action:none;cursor:grab}
-${R} .ui-sheet-grab{display:block;width:40px;height:4px;margin:0 auto 10px;background:var(--theme-border-strong);border-radius:var(--ui-radius-handle)}
+${R} .ui-sheet-grab{display:block;width:40px;height:4px;margin:0 auto 10px;background:var(--theme-border-strong);border-radius:var(--ui-radius-none)}
 ${R} .ui-sheet-hrow{display:flex;align-items:center;justify-content:space-between;gap:var(--ui-space-2)}
 ${R} .ui-sheet-title{margin:0;min-width:0;font-size:15px;font-weight:700;color:var(--theme-text)}
 ${R} .ui-sheet-b{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:4px 16px 12px}
