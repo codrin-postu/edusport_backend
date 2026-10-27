@@ -16,6 +16,7 @@ export default {
     { method: 'DELETE', path: '/club/groups/:documentId', handler: 'groups.destroy', config: adminGuard },
     { method: 'POST', path: '/club/groups/:documentId/members', handler: 'groups.join', config: adminGuard },
     { method: 'POST', path: '/club/memberships/allocate', handler: 'groups.allocate', config: adminGuard },
+    { method: 'GET', path: '/club/memberships/:documentId/move-preview', handler: 'groups.movePreview', config: adminGuard },
     { method: 'POST', path: '/club/memberships/:documentId/move', handler: 'groups.move', config: adminGuard },
     { method: 'DELETE', path: '/club/memberships/:documentId', handler: 'groups.remove', config: adminGuard },
     { method: 'POST', path: '/club/undo', handler: 'groups.undo', config: adminGuard },
