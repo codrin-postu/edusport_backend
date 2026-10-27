@@ -24,16 +24,18 @@ const running = (f: CopyFacts, prev: SeasonRecord): SeriesView[] => groupSeries(
 
 export function copyFromFor(f: CopyFacts): CopyFrom | null {
   const prev = previousSeason(f.season, f.seasons);
-  if (!prev || isPastSeason(f.season, f.seasons)) return null;
+  if (!f.group.active || !prev || isPastSeason(f.season, f.seasons)) return null;
   const old = membersIn(f, prev.id).filter((m) => statusOf(f, m.athleteId) !== 'anonimizat');
+  // An empty tab means no CURRENT membership, as the tab shows.
   const emptyRoster = membersIn(f, f.season.id).length === 0;
-  const emptyProgram = groupSeries(f.events, f.group.id, f.season).length === 0;
+  const start = startDateFor(f.season, f.today);
+  const emptyProgram = start <= seasonBounds(f.season).end && groupSeries(f.events, f.group.id, f.season).length === 0;
   const members = emptyRoster ? old.filter((m) => COPYABLE.has(statusOf(f, m.athleteId))).length : 0;
   const program = emptyProgram ? running(f, prev).map((s) => programLine(seriesText(s))) : [];
   if (!members && !program.length) return null;
   return {
     season: prev.label, members, inactive: emptyRoster ? old.filter((m) => statusOf(f, m.athleteId) === 'inactiv').length : 0, program,
-    programFrom: program.length ? shortDate(startDateFor(f.season, f.today)) : null,
+    programFrom: program.length ? shortDate(start) : null,
   };
 }
 
@@ -51,7 +53,7 @@ function copyIds(f: CopyFacts): string[] {
   const prev = previousSeason(f.season, f.seasons);
   const from = copyFromFor(f);
   if (!prev || !from || !from.members) return [];
-  return membersIn(f, prev.id).map((m) => m.athleteId).filter((id) => COPYABLE.has(statusOf(f, id))).sort();
+  return [...new Set(membersIn(f, prev.id).map((m) => m.athleteId).filter((id) => COPYABLE.has(statusOf(f, id))))].sort();
 }
 
 /** Season, then athletes (sorted), then the group; the facts are read again under the locks (a past season is refused after the lock). */

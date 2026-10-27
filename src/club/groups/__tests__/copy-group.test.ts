@@ -4,7 +4,7 @@ import { copyMembers, copyProgram } from '../new-season/copy-group';
 import { undoAction } from '../undo-service';
 import { athleteRow, event, fakeContext, member } from './fake-group-store';
 
-const seed = () => fakeContext({
+const seedState = () => ({
   seasons: [
     { id: 's26', label: '2026-2027', startMonth: '2026-10-01', endMonth: '2027-05-31', isCurrent: false, membershipFee: 270 },
     { id: 's27', label: '2027-2028', startMonth: '2027-10-01', endMonth: '2028-05-31', isCurrent: true, membershipFee: 200 },
@@ -15,7 +15,8 @@ const seed = () => fakeContext({
     member({ id: 'm4', athleteId: 'a2', groupId: 'g-pro', seasonId: 's27', from: '2027-10-01' }),
   ],
   events: [event({ id: 'e1' })],
-}, '2027-10-10');
+});
+const seed = () => fakeContext(seedState(), '2027-10-10');
 
 describe('copyFrom on the group page (10.6, 10.9)', () => {
   it('offers members and program while both tabs are empty', async () => {
@@ -63,5 +64,16 @@ describe('"Copiază programul din <sezon>"', () => {
     expect(state.history[0]).toMatchObject({ action: 'program-copied', changes: { from: '2026-2027' } });
     expect(revalidated()).toBe(1);
     expect((await copyProgram(ctx, 'g-ib', { season: '2027-2028' })).ok).toBe(false);
+  });
+});
+
+describe('a season that has ended', () => {
+  it('offers no program and writes nothing', async () => {
+    const { ctx, state, store } = fakeContext({ ...seedState() }, '2028-06-15');
+    const page = await readGroupPage(store, 'g-ib', '2027-2028', '2028-06-15');
+    expect(page?.copyFrom?.program ?? []).toEqual([]);
+    expect(await copyProgram(ctx, 'g-ib', { season: '2027-2028' })).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+    expect(state.events).toHaveLength(1);
+    expect(state.history).toEqual([]);
   });
 });
