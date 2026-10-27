@@ -212,8 +212,8 @@ describe('Nu e același copil (d12)', () => {
     expect(await dismissDuplicate(ctx(fake), 'd1')).toEqual({ ok: true, data: { pairId: 'd1' } });
     expect(fake.state.duplicates.map((d) => [d.id, d.dismissed])).toEqual([['d1', true], ['d2', false]]);
     expect(fake.state.history.map((h) => [h.subjectId, h.action, h.changes])).toEqual([
-      ['k', 'duplicate-dismissed', { name: 'Pop Maria' }],
-      ['r', 'duplicate-dismissed', { name: 'Maria Pop' }],
+      ['k', 'duplicate-dismissed', { name: 'Pop Maria', otherAthleteId: 'r' }],
+      ['r', 'duplicate-dismissed', { name: 'Maria Pop', otherAthleteId: 'k' }],
     ]);
   });
 

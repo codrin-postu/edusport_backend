@@ -152,11 +152,11 @@ async function dismissInTransaction(ctx: ServiceContext, pairId: string): Promis
   const pair = (await ctx.store.duplicates()).find((d) => d.id === pairId);
   if (!pair || pair.dismissed) return refuse(409, ADMIN_ERRORS.stale);
   const [first, second] = await Promise.all([ctx.store.athlete(pair.firstId), ctx.store.athlete(pair.secondId)]);
-  const note = (subjectId: string, name: string | null | undefined) =>
-    ctx.store.record({ subjectType: SUBJECT.athlete, subjectId, action: HISTORY_ACTIONS.duplicateDismissed, changes: { name: name ?? '' }, actor: ctx.actor });
+  const note = (subjectId: string, otherAthleteId: string, name: string | null | undefined) =>
+    ctx.store.record({ subjectType: SUBJECT.athlete, subjectId, action: HISTORY_ACTIONS.duplicateDismissed, changes: { name: name ?? '', otherAthleteId }, actor: ctx.actor });
   await ctx.store.dismissDuplicate(pair.id);
-  await note(pair.firstId, second?.name);
-  await note(pair.secondId, first?.name);
+  await note(pair.firstId, pair.secondId, second?.name);
+  await note(pair.secondId, pair.firstId, first?.name);
   return { ok: true, data: { pairId } };
 }
 
