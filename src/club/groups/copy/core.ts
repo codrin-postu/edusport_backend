@@ -1,5 +1,5 @@
 import { ADMIN_ERRORS } from '../../athletes/errors';
-import { ARROW } from '../../history-text';
+import { ARROW, quotedChange } from '../../history-text';
 import { countWords } from '../../ro-count';
 
 /** The arrow the spec writes as "->": the one of the phase 3 history lines. */
@@ -47,6 +47,7 @@ export const GROUP_LINES = {
   athleteMoved: (from: string, to: string) => `Mutat din ${from} în ${to}`,
   athleteRemoved: (group: string) => `Scos din grupa ${group}`,
   undone: (line: string) => `Anulat: ${line}`,
+  deletedAthlete: 'Sportiv șters',
   yes: 'Da',
   no: 'Nu',
 } as const;
@@ -70,3 +71,35 @@ export function sourceLine(kind: SourceKind, previousSeason: string | null, age:
   const lead = kind === 'registration' ? 'Înscriere Școală' : kind === 'previous' ? `Din ${previousSeason ?? ''}` : 'Adăugat în Sportivi';
   return [lead, ageText(age)].filter(Boolean).join(', ');
 }
+
+/** "Motiv" and line endings: a text that already ends in ".", "!" or "?" gets no second period (W33, decided 12). */
+export const withPeriod = (text: string): string => (/[.!?]$/.test(text) ? text : `${text}.`);
+/** `<Câmp>: "<vechi>" -> "<nou>"`: the P3 `quotedChange`. */
+/** Wrapped, not aliased: history-text and this file import each other, so the binding is read at call time. */
+export const fieldLine = (label: string, from: string, to: string): string => quotedChange(label, from, to);
+
+export const PROGRAM_LINES = {
+  added: (program: string) => `Program adăugat: ${program}.`,
+  changed: (from: string, before: string, after: string) => `Program schimbat din ${from}: ${before} ${ARROW} ${after}.`,
+  ended: (from: string, program: string) => `Program șters din ${from}: ${program}.`,
+  classAdded: (day: string, date: string, time: string, minutes: number) => `Ședință unică adăugată: ${day}, ${date}, ${time}, ${minutes} min.`,
+  classDeleted: (day: string, date: string, time: string) => `Ședință unică ștearsă: ${day}, ${date}, ${time}.`,
+  cancelled: (date: string, reason: string | null) => (reason ? `Ședința din ${date} anulată: ${withPeriod(reason)}` : `Ședința din ${date} anulată.`),
+  moved: (date: string, newDate: string, time: string) => `Ședința din ${date} mutată: ${newDate}, ${time}.`,
+  kept: (date: string) => `Ședința din ${date} se ține.`,
+  parentsTold: ' Părinții anunțați pe e-mail.',
+  copied: (season: string, program: string) => `Program copiat din ${season}: ${program}.`,
+} as const;
+
+export const BREAK_LINES = {
+  added: (label: string, from: string, to: string) => `Pauză adăugată: ${label}, ${from} - ${to}.`,
+  deleted: (label: string) => `Pauză ștearsă: ${label}.`,
+} as const;
+
+export const SEASON_LINES = {
+  copied: (from: string, parts: string[]) => `Copiat din ${from}: ${parts.join(', ')}.`,
+  membersPart: (athletes: number, groups: number) => `${athletesText(athletes)} în ${groupsText(groups)}`,
+  membersCopied: (from: string, count: number) => `Sportivi copiați din ${from}: ${count}.`,
+  athleteCopied: (season: string, groups: string) => `Copiat în ${season}: ${groups}.`,
+  mainMark: ' (principală)',
+} as const;

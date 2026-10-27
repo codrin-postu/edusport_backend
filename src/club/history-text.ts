@@ -1,11 +1,14 @@
 import { acsWord } from './acs';
 import { ATHLETE_FIELD_LABELS, athleteValueText, isAthleteField, type AthleteStatus } from './athlete-data';
+import { GROUP_LINES } from './groups/copy';
+import { P4_ACTIONS, phase4Lines } from './groups/history-lines';
 import { isRecord } from './narrow';
+import { SUBJECT } from './subjects';
 import { RELATIONSHIP_EDIT_OPTIONS } from './registration-panel';
 import { RELATIONSHIP_OTHER, SOURCE_OTHER } from './registration-form-options';
 
 /** Istoric lines (spec 1.6): one line per change, old → new, newest first. Pure; the history read renders with it. */
-export const SUBJECT = { registration: 'registration-submission', athlete: 'athlete' } as const;
+export { SUBJECT };
 export const MIGRATION_ACTOR = 'migrare';
 export const FORM_ACTOR = 'formular';
 export const ARROW = '→';
@@ -192,9 +195,13 @@ const RENDER: Readonly<Record<string, Render>> = {
   [HISTORY_ACTIONS.dataAnonymized]: () => ['Date anonimizate'],
 };
 
+/** P3 lines first; then phase 4 lines (athlete subject: moves, removals, copies); "Anulat: " before an undone line. */
 export function historyTexts(action: string, changes: unknown, subjectType: string): string[] {
+  const c = isRecord(changes) ? changes : {};
   const render = RENDER[action];
-  return render ? render(isRecord(changes) ? changes : {}, subjectType) : [];
+  if (render) return render(c, subjectType);
+  if (action === P4_ACTIONS.undone) return historyTexts(text(c.undoneAction), c.undoneChanges, subjectType).map(GROUP_LINES.undone);
+  return phase4Lines(action, c, {}) ?? [];
 }
 
 /** Who, as Istoric shows it: the admin's name, else the e-mail; "Migrare" for migration rows (3b Q23). */
