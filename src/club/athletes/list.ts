@@ -137,12 +137,15 @@ function derive(a: AthleteRow, ix: Index): Derived {
   };
 }
 
-/** No Status filter: the list hides inactive and anonymized athletes (spec 5, 3C spec 4). */
-const shownByDefault = (status: AthleteStatus): boolean => status !== 'inactiv' && status !== 'anonimizat';
+/**
+ * No Status filter: the list hides anonymized athletes always, and hides `inactiv` too unless this is the
+ * "Inactivi de peste N ani" view (spec 5, 3C spec 4) — that view must show its own `inactiv` athletes.
+ */
+const shownByDefault = (status: AthleteStatus, inactiveView: boolean): boolean => status !== 'anonimizat' && (inactiveView || status !== 'inactiv');
 
 type Test = (d: Derived, q: AthleteListQuery) => boolean;
 const TESTS: Test[] = [
-  (d, q) => (q.status.length ? q.status.includes(d.row.status) : shownByDefault(d.row.status)),
+  (d, q) => (q.status.length ? q.status.includes(d.row.status) : shownByDefault(d.row.status, q.inactive)),
   (d, q) => q.sections.length === 0 || d.sectionIds.some((id) => q.sections.includes(id)),
   (d, q) => (q.groups.length === 0 && !q.noGroup) || q.groups.some((g) => d.groupIds.includes(g)) || (q.noGroup && d.groupIds.length === 0),
   (d, q) => q.acs.length === 0 || q.acs.includes(d.row.acs),
@@ -195,7 +198,7 @@ function listOptions(src: ListSource): AthleteListPage['options'] {
 export function listAthletes(src: ListSource, q: AthleteListQuery): AthleteListPage {
   const ix = buildIndex(src);
   const all = src.athletes.map((a) => derive(a, ix));
-  const listed = all.filter((d) => shownByDefault(d.row.status));
+  const listed = all.filter((d) => shownByDefault(d.row.status, q.inactive) && (!q.inactive || d.inactive));
   const dir: Dir = q.dir === 'desc' ? -1 : 1;
   const found = all.filter((d) => TESTS.every((t) => t(d, q))).sort(SORTS[q.sort](dir));
   const start = (q.page - 1) * q.pageSize;

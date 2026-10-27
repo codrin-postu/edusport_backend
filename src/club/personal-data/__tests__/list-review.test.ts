@@ -70,3 +70,37 @@ describe('yearly review (spec 5)', () => {
     expect(await hideInactiveReview(ctx, NOW)).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
   });
 });
+
+describe('the inactivity view shows its own "inactiv" athletes, never anonymized ones (bug fix)', () => {
+  function setupMarked() {
+    return fakeClubStore({
+      seasons: OLD_SEASONS,
+      settings: null,
+      athletes: [
+        athleteRow({ id: 'marked', name: 'Marcat Inactiv', status: 'inactiv', createdAt: '2019-01-01T00:00:00.000Z' }),
+        athleteRow({ id: 'markedAnon', name: 'Marcat Anonimizat', status: 'anonimizat', createdAt: '2019-01-01T00:00:00.000Z' }),
+      ],
+      memberships: [],
+    });
+  }
+
+  it('an athlete with status inactiv and a last season 6+ years ago is listed only with the inactivity filter on', async () => {
+    const { store } = setupMarked();
+    const inactiveView = await page(store, { inactive: 'true' });
+    expect(names(inactiveView)).toEqual(['Marcat Inactiv']);
+    expect(inactiveView.unfiltered).toBe(1);
+  });
+
+  it('the same athlete is hidden in the default list', async () => {
+    const { store } = setupMarked();
+    const defaultView = await page(store, {});
+    expect(names(defaultView)).toEqual([]);
+    expect(defaultView.unfiltered).toBe(0);
+  });
+
+  it('an anonymized athlete never appears, even with the inactivity filter on', async () => {
+    const { store } = setupMarked();
+    const inactiveView = await page(store, { inactive: 'true' });
+    expect(names(inactiveView)).not.toContain('Marcat Anonimizat');
+  });
+});
