@@ -84,8 +84,9 @@ export const toDuplicateRow = (r: Raw): DuplicateRow => ({
   id: text(r.documentId), firstId: linkId(r.first) ?? '', secondId: linkId(r.second) ?? '', dismissed: r.dismissed === true,
 });
 
-const toMembership = (r: Raw): MembershipRow => ({
-  id: text(r.documentId), athleteId: linkId(r.athlete) ?? '', groupId: linkId(r.group) ?? '', seasonId: linkId(r.season) ?? '', isMain: r.isMain === true, from: str(r.from),
+export const toMembership = (r: Raw): MembershipRow => ({
+  id: text(r.documentId), athleteId: linkId(r.athlete) ?? '', groupId: linkId(r.group) ?? '', seasonId: linkId(r.season) ?? '', isMain: r.isMain === true,
+  from: str(r.from), to: str(r.to),
 });
 const toAcs = (r: Raw): AcsRow => ({ id: text(r.documentId), athleteId: linkId(r.athlete) ?? '', seasonId: linkId(r.season) ?? '', state: oneOf(ACS_STATES, r.state, 'nu') });
 const toHistory = (r: Raw): HistoryRow => ({

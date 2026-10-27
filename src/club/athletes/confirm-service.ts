@@ -10,6 +10,7 @@ import { groupOptions } from './cards';
 import { ADMIN_ERRORS, CONFIRM_ERRORS } from './errors';
 import { refreshAllMatches, safely } from './matches';
 import type { AthleteRow, ClubStore, RegistrationRow, ServiceContext } from './store';
+import { isCurrentMembership } from '../group-membership';
 
 /**
  * "Confirmă înscrierea" (spec 4.5 to 4.7): one transaction holding the registration row, so a second admin waits
@@ -23,7 +24,7 @@ async function seasonRows(store: ClubStore, athleteId: string, seasonId: string)
   const [memberships, acs] = await Promise.all([store.memberships(athleteId), store.acsRows(athleteId)]);
   const own = acs.find((r) => r.seasonId === seasonId);
   return {
-    seasonMemberships: memberships.filter((m) => m.seasonId === seasonId).map(({ id, groupId, isMain }) => ({ id, groupId, isMain })),
+    seasonMemberships: memberships.filter((m) => m.seasonId === seasonId && isCurrentMembership(m)).map(({ id, groupId, isMain }) => ({ id, groupId, isMain })),
     seasonAcs: own ? { id: own.id, state: own.state } : null,
   };
 }

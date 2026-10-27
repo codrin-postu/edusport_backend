@@ -11,6 +11,7 @@ import { ADMIN_ERRORS } from './errors';
 import { readHistory } from './history-read';
 import { refreshAllMatches, safely } from './matches';
 import type { AcsRow, AthleteRow, ClubStore, DuplicateRow, GroupRow, MembershipRow, ProfileRow, RegistrationRow, SeasonRow, ServiceContext } from './store';
+import { isCurrentMembership } from '../group-membership';
 
 /** The athlete record (spec 6): Date | Profil public | Documente | Istoric, read in one call. */
 type RecordSource = {
@@ -19,7 +20,7 @@ type RecordSource = {
 };
 
 function mainGroupName(src: RecordSource): string | null {
-  const main = src.memberships.find((m) => m.seasonId === src.season?.id && m.isMain);
+  const main = src.memberships.find((m) => m.seasonId === src.season?.id && m.isMain && isCurrentMembership(m));
   return src.groups.find((g) => g.id === main?.groupId)?.name ?? null;
 }
 

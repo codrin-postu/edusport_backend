@@ -54,7 +54,7 @@ async function loadSide(store: ClubStore, athleteId: string, profiles: ProfileRo
   return {
     id: athlete.id, name: athlete.name ?? '', values: pickAthleteValues(athlete), status: athlete.status, notes: athlete.notes,
     profile: profile ? { id: profile.id, slug: profile.slug, previousSlugs: profile.previousSlugs } : null,
-    memberships: memberships.map(({ id: mId, groupId, seasonId, isMain }) => ({ id: mId, groupId, seasonId, isMain })),
+    memberships: memberships.map(({ id: mId, groupId, seasonId, isMain, to }) => ({ id: mId, groupId, seasonId, isMain, to })),
     acs: acs.map(({ id: aId, seasonId, state }) => ({ id: aId, seasonId, state })),
   };
 }

@@ -115,6 +115,16 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
     expect(fake.state.memberships).toEqual([memberships[0], { ...memberships[1], athleteId: 'k', isMain: false }]);
   });
 
+  it('an ended main row never counts: the other record\'s current main stays the only current main', async () => {
+    const memberships = [
+      { id: 'mk', athleteId: 'k', groupId: 'g-pp', seasonId: 's26', isMain: true, from: '2026-10-01', to: '2026-10-31' },
+      { id: 'mr', athleteId: 'r', groupId: 'g-ib', seasonId: 's26', isMain: true, from: '2026-11-01', to: null },
+    ];
+    const fake = fakeClubStore({ ...seed(), memberships });
+    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] });
+    expect(fake.state.memberships).toEqual([memberships[0], { ...memberships[1], athleteId: 'k' }]);
+  });
+
   it('A.C.S.: the higher state stays, never lowered; a season only the other record has moves', async () => {
     const acs = [
       { id: 'ck', athleteId: 'k', seasonId: 's26', state: 'da' as const },

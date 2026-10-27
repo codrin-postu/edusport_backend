@@ -39,6 +39,14 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     ]);
   });
 
+  it('an ended main row is not the season\'s main: the undo still gives the current main back', async () => {
+    const ended = { id: 'm-end', athleteId: 'a1', groupId: 'g-ib', seasonId: 's26', isMain: true, from: '2026-09-01', to: '2026-09-30' };
+    const fake = fakeClubStore({ ...seed(), memberships: [ended, ...seed().memberships] });
+    await confirmed(fake);
+    await undoConfirmation(ctx(fake), 'r1');
+    expect(fake.state.memberships.filter((m) => m.isMain && !m.to).map((m) => m.id)).toEqual(['m0']);
+  });
+
   it('no reverse line when the undo gives no main group back', async () => {
     const fake = fakeClubStore({ ...seed(), memberships: [] });
     await confirmed(fake);

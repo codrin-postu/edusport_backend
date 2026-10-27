@@ -21,7 +21,7 @@ describe('Sportiv existent (spec 4.5)', () => {
     const reg = fake.state.registrations[0];
     expect([reg.athleteId, reg.status, reg.matchAthleteId, reg.confirmation?.previousStatus]).toEqual(['a1', 'Confirmat', null, 'Contactat']);
     expect(fake.state.athletes[0]).toMatchObject({ phone: '0722111222', contactName: 'Ana Pop', email: 'ana@example.com', status: 'activ', dataIncomplete: false });
-    expect(fake.state.memberships).toEqual([{ id: expect.any(String), athleteId: 'a1', groupId: 'g-pp', seasonId: 's26', isMain: true, from: '2026-10-26' }]);
+    expect(fake.state.memberships).toEqual([{ id: expect.any(String), athleteId: 'a1', groupId: 'g-pp', seasonId: 's26', isMain: true, from: '2026-10-26', to: null }]);
     expect(fake.state.acs).toEqual([{ id: expect.any(String), athleteId: 'a1', seasonId: 's26', state: 'in_asteptare' }]);
     expect(fake.state.history.map((h) => h.action)).toEqual(['confirmed', 'registration-confirmed', 'updated', 'group-added', 'acs-changed', 'reactivated']);
     expect(fake.state.locks).toEqual(['r1', 'athlete:a1']);

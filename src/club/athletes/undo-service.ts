@@ -8,6 +8,7 @@ import type { UndoResponse } from './api-types';
 import { ADMIN_ERRORS } from './errors';
 import { refreshAllMatches, safely } from './matches';
 import type { ClubStore, RegistrationRow, ServiceContext } from './store';
+import { isCurrentMembership } from '../group-membership';
 
 type Result = AdminResult<UndoResponse>;
 
@@ -22,7 +23,7 @@ async function loadFacts(store: ClubStore, reg: RegistrationRow, record: Confirm
   return {
     record, linkedAthleteId: reg.athleteId, athlete,
     membershipIds: memberships.map((m) => m.id),
-    mainMembershipId: memberships.find((m) => m.isMain && m.seasonId === seasonId)?.id ?? null,
+    mainMembershipId: memberships.find((m) => m.isMain && m.seasonId === seasonId && isCurrentMembership(m))?.id ?? null,
     acsRows: acs.map(({ id, state }) => ({ id, state })),
     otherRegistrations: linked.filter((r) => r.id !== reg.id).length,
   };
