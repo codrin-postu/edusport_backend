@@ -83,11 +83,11 @@ const toHistoryEntry = (r: Raw): HistoryEntryRow => ({
 const toBreak = (b: Raw): BreakRecord => ({ id: text(b.documentId), label: text(b.label), startDate: text(b.startDate), endDate: text(b.endDate) });
 
 /** A document-service write on a missing row answers null (update) or no entries (delete) and no error; the action must not commit around it. */
-const found = <T>(row: T | null | undefined, what: string): T => {
+export const found = <T>(row: T | null | undefined, what: string): T => {
   if (row === null || row === undefined) throw new Error(`${what}: the row does not exist`);
   return row;
 };
-const deleted = (res: { entries?: unknown[] } | null | undefined, what: string): void => {
+export const deleted = (res: { entries?: unknown[] } | null | undefined, what: string): void => {
   if (!res || !res.entries?.length) throw new Error(`${what}: the row does not exist`);
 };
 

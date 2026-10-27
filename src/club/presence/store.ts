@@ -7,7 +7,7 @@ import type {
   SubscriptionRow, SubscriptionWrite,
 } from './types';
 
-export type PresenceGroupReads = Pick<GroupStore, 'transaction' | 'lockAthlete' | 'lockHistoryEntry' | 'seasons' | 'sections' | 'groups' | 'group'
+export type PresenceGroupReads = Pick<GroupStore, 'transaction' | 'lockSeason' | 'lockAthlete' | 'lockGroup' | 'lockEvent' | 'lockHistoryEntry' | 'seasons' | 'sections' | 'groups' | 'group'
   | 'teamMembers' | 'athletes' | 'athlete' | 'memberships' | 'history' | 'historyEntry' | 'historyAfter' | 'adminNames' | 'setAthleteStatus'
   | 'recordAction' | 'record' | 'setHistoryChanges'>;
 export type Range = { from?: string; to?: string };
