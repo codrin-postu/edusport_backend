@@ -98,6 +98,42 @@ describe('"Anulează" from the toast (8.1, W15)', () => {
     const actionId = actionOf(await moveMembership(ctx, 'm1', { toGroupId: 'g-is' }));
     state.locks = [];
     await undoAction(ctx, { actionId });
-    expect(state.locks).toEqual(['athlete:a1']);
+    expect(state.locks).toEqual(['athlete:a1', `history:${actionId}`]);
+  });
+
+  it('refuses after a merge removed an athlete of the record, and leaves one main on the kept athlete', async () => {
+    const { ctx, state } = fakeContext({
+      athletes: [athleteRow({ id: 'a1', name: 'Ana Ionescu' }), athleteRow({ id: 'a2', name: 'Ana I.' })],
+      memberships: [member({ id: 'm1', athleteId: 'a1', groupId: 'g-ib' }), member({ id: 'm2', athleteId: 'a2', groupId: 'g-ib' })],
+    });
+    const moved = actionOf(await moveMembership(ctx, 'm2', { toGroupId: 'g-is' }));
+    state.athletes = state.athletes.filter((a) => a.id !== 'a2');
+    state.memberships = state.memberships.map((m) => (m.athleteId === 'a2' ? { ...m, athleteId: 'a1', isMain: false } : m));
+    const rows = structuredClone(state.memberships);
+    const lines = state.history.length;
+    expect(await undoAction(ctx, { actionId: moved })).toEqual(STALE);
+    expect(state.memberships).toEqual(rows);
+    expect(state.history).toHaveLength(lines);
+    expect(state.memberships.filter((m) => m.athleteId === 'a1' && m.isMain)).toHaveLength(1);
+  });
+
+  it('rolls the undo back when it would leave an athlete without exactly one main', async () => {
+    const { ctx, state, logs } = seed();
+    const moved = actionOf(await moveMembership(ctx, 'm1', { toGroupId: 'g-is' }));
+    state.memberships = state.memberships.map((m) => (m.athleteId === 'a1' ? { ...m, isMain: true } : m)).concat(member({ id: 'm9', athleteId: 'a1', groupId: 'g-pro' }));
+    const rows = structuredClone(state.memberships);
+    const res = await undoAction(ctx, { actionId: moved });
+    expect(res.ok).toBe(false);
+    expect(state.memberships).toEqual(rows);
+    expect(logs).toHaveLength(1);
+  });
+
+  it('locks the record itself last and refuses a second undo of a record without steps', async () => {
+    const { ctx, state } = seed();
+    await ctx.store.recordAction({ subjectType: 'season', subjectId: 's27', action: 'current-changed', changes: { undo: { kind: 'season', steps: [], subjects: [{ type: 'season', id: 's27' }], revalidate: false } }, actor: 'x' });
+    state.locks = [];
+    expect((await undoAction(ctx, { actionId: 'h1' })).ok).toBe(true);
+    expect(state.locks).toEqual(['history:h1']);
+    expect(await undoAction(ctx, { actionId: 'h1' })).toEqual({ ok: false, status: 409, error: 'Nu se mai poate anula. Sezonul s-a schimbat între timp.' });
   });
 });

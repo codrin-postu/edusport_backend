@@ -78,8 +78,9 @@ describe('the rest of the in-memory store', () => {
       await store.lockAthlete('a1');
       await store.lockGroup('g-ib');
       await store.lockEvent('ev1');
+      await store.lockHistoryEntry('h1');
     });
-    expect(state.locks).toEqual(['season:s26', 'athlete:a1', 'group:g-ib', 'event:ev1']);
+    expect(state.locks).toEqual(['season:s26', 'athlete:a1', 'group:g-ib', 'event:ev1', 'history:h1']);
   });
 
   it('creates, updates and deletes groups', async () => {
@@ -151,6 +152,7 @@ describe('locks and writes to a missing row', () => {
   it('refuses a lock outside a transaction', async () => {
     const { store } = fakeGroupStore();
     await expect(store.lockGroup('g-ib')).rejects.toThrow('outside a transaction');
+    await expect(store.lockHistoryEntry('h1')).rejects.toThrow('outside a transaction');
   });
 
   const calls: [string, (s: GroupStore) => Promise<unknown>][] = [

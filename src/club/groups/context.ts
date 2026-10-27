@@ -2,7 +2,7 @@ import type { Core } from '@strapi/strapi';
 import { pingRevalidate } from '../../utils/revalidate';
 import { adminActor } from '../admin-actor';
 import type { AdminCtx } from '../admin-http';
-import { isoDate, todayInBucharest } from '../birth-date';
+import { todayIso } from './http';
 import { strapiGroupStore } from './strapi-store';
 import type { GroupStore } from './types';
 
@@ -13,7 +13,7 @@ export async function groupContext(strapi: Core.Strapi, ctx: AdminCtx): Promise<
   return {
     store: strapiGroupStore(strapi),
     actor: await adminActor(ctx.request.header.authorization, strapi),
-    today: isoDate(todayInBucharest()),
+    today: todayIso(),
     log: (message) => strapi.log.error(message),
     revalidate: () => {
       void pingRevalidate();

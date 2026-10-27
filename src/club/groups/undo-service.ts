@@ -1,3 +1,4 @@
+import { checkMainGroup } from '../group-membership';
 import { guarded, refuse, type AdminResult } from '../admin-result';
 import { isRecord } from '../narrow';
 import type { GroupContext } from './context';
@@ -46,6 +47,22 @@ async function lockTargets(store: GroupStore, t: LockTargets): Promise<void> {
   for (const id of t.events) await store.lockEvent(id);
 }
 
+/** Every athlete the steps touch must still exist (a merge deletes one): no write is safe on a missing row. */
+async function targetsExist(store: GroupStore, t: LockTargets): Promise<boolean> {
+  for (const id of t.athletes) if (!(await store.athlete(id))) return false;
+  return true;
+}
+
+/** After the steps: one main per athlete and season (spec 8.1). Throws, so the transaction rolls back. */
+async function assertOneMain(store: GroupStore, athleteIds: string[]): Promise<void> {
+  for (const athleteId of athleteIds) {
+    const rows = await store.memberships({ athleteId });
+    for (const seasonId of new Set(rows.map((m) => m.seasonId))) {
+      if (checkMainGroup(rows, seasonId).ok === false) throw new Error(`main group rule broken for ${athleteId}`);
+    }
+  }
+}
+
 const refusalText = (kind: UndoKind): string => (kind === 'season' ? GROUP_ERRORS.undoSeason : GROUP_ERRORS.undoGroup);
 /** A season action is refused after ANY later group, athlete or season line (10.5: "anything changed since"); a group action, after one on its own subjects. */
 const SEASON_WATCH: ReadonlySet<string> = new Set(['group', 'athlete', 'season']);
@@ -79,12 +96,16 @@ async function undoLocked(ctx: GroupContext, actionId: string): Promise<AdminRes
   if (!first) return refuse(404, GROUP_ERRORS.notFound);
   const record = readUndoRecord(first.changes.undo);
   if (!record) return refuse(409, GROUP_ERRORS.undoGroup);
-  await lockTargets(ctx.store, undoLockTargets(record.steps));
+  const targets = undoLockTargets(record.steps);
+  await lockTargets(ctx.store, targets);
+  if (!(await targetsExist(ctx.store, targets))) return refuse(409, refusalText(record.kind));
+  await ctx.store.lockHistoryEntry(actionId);
   const entry = await ctx.store.historyEntry(actionId);
   if (!entry) return refuse(404, GROUP_ERRORS.notFound);
   const { own, later } = await linesAfter(ctx.store, entry, record);
   if (undoRefusal(entry, later) || (await filedAfter(ctx.store, record))) return refuse(409, refusalText(record.kind));
   for (const step of [...record.steps].reverse()) await runStep(ctx.store, step, actionId);
+  await assertOneMain(ctx.store, targets.athletes);
   await writeUndone(ctx, entry, own);
   return { ok: true, data: { revalidate: record.revalidate } };
 }

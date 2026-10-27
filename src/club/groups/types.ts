@@ -45,6 +45,8 @@ export interface GroupStore {
   lockAthlete(id: string): Promise<void>;
   lockGroup(id: string): Promise<void>;
   lockEvent(id: string): Promise<void>;
+  /** Taken last: serializes two undos of the same Istoric action even when its steps lock nothing. */
+  lockHistoryEntry(id: string): Promise<void>;
   seasons(): Promise<SeasonRecord[]>;
   sections(): Promise<SectionRecord[]>;
   groups(): Promise<GroupRecord[]>;

@@ -12,6 +12,27 @@ if (process.env.ES_THROWAWAY_DB !== '1' || !process.env.IDS_FILE) {
   process.exit(2);
 }
 
+const THROWAWAY_PORTS = [55441, 55442, 55443, 55444, 55445, 55446];
+
+/** Where Strapi will connect, from DATABASE_URL or DATABASE_HOST / DATABASE_PORT (config/database.ts). */
+function dbTarget() {
+  if (process.env.DATABASE_URL) {
+    try {
+      const u = new URL(process.env.DATABASE_URL);
+      return { host: u.hostname, port: Number(u.port || 5432) };
+    } catch {
+      return { host: '', port: 0 };
+    }
+  }
+  return { host: process.env.DATABASE_HOST || 'localhost', port: Number(process.env.DATABASE_PORT || 5432) };
+}
+
+const target = dbTarget();
+if (!['127.0.0.1', 'localhost'].includes(target.host) || !THROWAWAY_PORTS.includes(target.port)) {
+  console.error(`refused: database ${target.host}:${target.port} is not a throwaway (host 127.0.0.1 or localhost, port ${THROWAWAY_PORTS[0]}-${THROWAWAY_PORTS.at(-1)})`);
+  process.exit(2);
+}
+
 const ids = { seasons: {}, sections: {}, groups: {}, athletes: {}, events: {}, team: {} };
 const rec = (o) => ({ freq: 'weekly', mon: false, tue: false, wed: false, thu: false, fri: false, sat: false, sun: false, endsNextDay: false, ...o });
 const time = (t) => `${t}:00.000`;
