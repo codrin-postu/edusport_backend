@@ -1,5 +1,6 @@
 import type { Core } from '@strapi/strapi';
 import { describe, expect, it } from 'vitest';
+import type { GroupStore } from '../types';
 import { exceptionData, recurrenceData, strapiGroupStore, toEventRecord, toGroupRecord, toRecurrence } from '../strapi-store';
 import { athleteRow, event, fakeContext, fakeGroupStore, member, registrationRow } from './fake-group-store';
 
@@ -72,10 +73,12 @@ describe('the rest of the in-memory store', () => {
 
   it('records the locks taken, in call order', async () => {
     const { store, state } = fakeGroupStore();
-    await store.lockSeason('s26');
-    await store.lockAthlete('a1');
-    await store.lockGroup('g-ib');
-    await store.lockEvent('ev1');
+    await store.transaction(async () => {
+      await store.lockSeason('s26');
+      await store.lockAthlete('a1');
+      await store.lockGroup('g-ib');
+      await store.lockEvent('ev1');
+    });
     expect(state.locks).toEqual(['season:s26', 'athlete:a1', 'group:g-ib', 'event:ev1']);
   });
 
@@ -141,6 +144,41 @@ describe('the rest of the in-memory store', () => {
     expect(await store.historyEntry('nope')).toBeNull();
     expect((await store.historyAfter(0, null)).length).toBe(2);
     expect(await store.historyAfter(0, [])).toEqual([]);
+  });
+});
+
+describe('locks and writes to a missing row', () => {
+  it('refuses a lock outside a transaction', async () => {
+    const { store } = fakeGroupStore();
+    await expect(store.lockGroup('g-ib')).rejects.toThrow('outside a transaction');
+  });
+
+  const calls: [string, (s: GroupStore) => Promise<unknown>][] = [
+    ['updateGroup', (s) => s.updateGroup('nope', { name: 'x' })],
+    ['deleteGroup', (s) => s.deleteGroup('nope')],
+    ['setAthleteStatus', (s) => s.setAthleteStatus('nope', 'inactiv')],
+    ['setSeasonCurrent', (s) => s.setSeasonCurrent('nope', true)],
+    ['updateMembership', (s) => s.updateMembership('nope', { isMain: false })],
+    ['deleteMembership', (s) => s.deleteMembership('nope')],
+    ['updateEvent', (s) => s.updateEvent('nope', { title: 'x' })],
+    ['deleteEvent', (s) => s.deleteEvent('nope')],
+    ['updateBreak', (s) => s.updateBreak('nope', { label: 'x', startDate: '2026-12-01', endDate: '2026-12-02' })],
+    ['deleteBreak', (s) => s.deleteBreak('nope')],
+    ['setHistoryChanges', (s) => s.setHistoryChanges('nope', {})],
+  ];
+
+  it.each(calls)('the fake %s throws for a missing id', async (_name, call) => {
+    await expect(call(fakeGroupStore().store)).rejects.toThrow();
+  });
+
+  const empty = { update: async () => null, delete: async () => ({ documentId: 'x', entries: [] }) };
+  const strapiOfMissing = {
+    documents: () => empty,
+    db: { query: () => ({ update: async () => null }) },
+  } as unknown as Core.Strapi;
+
+  it.each(calls)('the Strapi %s throws for a missing id', async (_name, call) => {
+    await expect(call(strapiGroupStore(strapiOfMissing))).rejects.toThrow('the row does not exist');
   });
 });
 

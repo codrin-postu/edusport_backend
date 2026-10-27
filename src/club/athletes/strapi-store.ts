@@ -309,7 +309,7 @@ function deleteMediaIfUnused(strapi: Core.Strapi): ClubStore['deleteMediaIfUnuse
 type Scope = { transaction: ClubStore['transaction']; lockRow: (table: string, id: string) => Promise<void> };
 
 /**
- * One transaction scope and the row locks taken inside it. A nested `transaction` reuses the outer one (Strapi), so
+ * One transaction scope and the row locks taken inside it (a lock outside a transaction throws). A nested `transaction` reuses the outer one (Strapi), so
  * `active` is restored, not cleared, when it ends. The group store (src/club/groups/strapi-store.ts) builds its own scope with this.
  */
 export function transactionScope(strapi: Core.Strapi): Scope {
@@ -327,7 +327,8 @@ export function transactionScope(strapi: Core.Strapi): Scope {
       });
     },
     lockRow: async (table, id) => {
-      if (active) await strapi.db.getConnection(table).transacting(active).forUpdate().where('document_id', id).select('id');
+      if (!active) throw new Error(`lock on ${table} taken outside a transaction`);
+      await strapi.db.getConnection(table).transacting(active).forUpdate().where('document_id', id).select('id');
     },
   };
 }

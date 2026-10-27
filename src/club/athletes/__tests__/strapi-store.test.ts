@@ -35,9 +35,9 @@ describe('row locks (spec 4.7, polish 12)', () => {
     ]);
   });
 
-  it('outside a transaction a lock does nothing', async () => {
+  it('outside a transaction a lock throws and queries nothing', async () => {
     const calls: string[] = [];
-    await strapiClubStore(lockingStrapi(calls)).lockAthlete('a1');
+    await expect(strapiClubStore(lockingStrapi(calls)).lockAthlete('a1')).rejects.toThrow('outside a transaction');
     expect(calls).toEqual([]);
   });
 });

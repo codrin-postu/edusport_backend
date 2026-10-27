@@ -93,6 +93,7 @@ function fakeGroupWrites(s: FakeGroupState, next: Next): K<'createGroup' | 'upda
       Object.assign(must(s.groups, id), Object.fromEntries(Object.entries(d).filter(([, v]) => v !== undefined)));
     },
     deleteGroup: async (id) => {
+      must(s.groups, id);
       s.groups = s.groups.filter((g) => g.id !== id);
     },
     setAthleteStatus: async (id, status) => {
@@ -144,6 +145,7 @@ function fakeCalendarWrites(s: FakeGroupState, next: Next): K<'createEvent' | 'u
       Object.assign(must(s.breaks, id), d);
     },
     deleteBreak: async (id) => {
+      must(s.breaks, id);
       s.breaks = s.breaks.filter((b) => b.id !== id);
     },
   };
@@ -196,17 +198,22 @@ export function fakeGroupStore(seed: Partial<FakeGroupState> = {}): FakeGroup {
   let n = 0;
   const next: Next = (prefix) => `${prefix}-${(n += 1)}`;
   const tick = () => new Date(Date.UTC(2026, 10, 20, 10, 0, 0) + (n += 1) * 1000).toISOString();
+  let depth = 0;
   const lock = (kind: string) => async (id: string) => {
+    if (depth === 0) throw new Error(`fake: lock on ${kind}:${id} outside a transaction`);
     state.locks.push(`${kind}:${id}`);
   };
   const base: GroupStore = {
     async transaction<T>(work: () => Promise<T>): Promise<T> {
       const snapshot = structuredClone(state);
+      depth += 1;
       try {
         return await work();
       } catch (err) {
         Object.assign(state, snapshot);
         throw err;
+      } finally {
+        depth -= 1;
       }
     },
     lockSeason: lock('season'), lockAthlete: lock('athlete'), lockGroup: lock('group'), lockEvent: lock('event'),

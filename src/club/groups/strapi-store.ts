@@ -82,6 +82,15 @@ const toHistoryEntry = (r: Raw): HistoryEntryRow => ({
 });
 const toBreak = (b: Raw): BreakRecord => ({ id: text(b.documentId), label: text(b.label), startDate: text(b.startDate), endDate: text(b.endDate) });
 
+/** A document-service write on a missing row answers null (update) or no entries (delete) and no error; the action must not commit around it. */
+const found = <T>(row: T | null | undefined, what: string): T => {
+  if (row === null || row === undefined) throw new Error(`${what}: the row does not exist`);
+  return row;
+};
+const deleted = (res: { entries?: unknown[] } | null | undefined, what: string): void => {
+  if (!res || !res.entries?.length) throw new Error(`${what}: the row does not exist`);
+};
+
 type Keys<K extends keyof GroupStore> = Pick<GroupStore, K>;
 
 function lookups(strapi: Core.Strapi): Keys<'seasons' | 'sections' | 'groups' | 'group' | 'teamMembers' | 'priceLists'> {
@@ -162,16 +171,16 @@ function groupWrites(strapi: Core.Strapi): Keys<'createGroup' | 'updateGroup' | 
   return {
     createGroup: async (d) => (await groups().create({ data: { name: d.name, order: d.order, active: true, programPublic: d.programPublic, ...relations(d) } })).documentId,
     updateGroup: async (id, d) => {
-      await groups().update({ documentId: id, data: { ...(d.name === undefined ? {} : { name: d.name }), ...(d.programPublic === undefined ? {} : { programPublic: d.programPublic }), ...relations(d) } });
+      found(await groups().update({ documentId: id, data: { ...(d.name === undefined ? {} : { name: d.name }), ...(d.programPublic === undefined ? {} : { programPublic: d.programPublic }), ...relations(d) } }), 'updateGroup');
     },
     deleteGroup: async (id) => {
-      await groups().delete({ documentId: id });
+      deleted(await groups().delete({ documentId: id }), 'deleteGroup');
     },
     setAthleteStatus: async (id, status) => {
-      await strapi.documents(ATHLETE).update({ documentId: id, data: { status } });
+      found(await strapi.documents(ATHLETE).update({ documentId: id, data: { status } }), 'setAthleteStatus');
     },
     setSeasonCurrent: async (id, isCurrent) => {
-      await strapi.documents(SEASON).update({ documentId: id, data: { isCurrent } });
+      found(await strapi.documents(SEASON).update({ documentId: id, data: { isCurrent } }), 'setSeasonCurrent');
     },
   };
 }
@@ -182,10 +191,10 @@ function membershipWrites(strapi: Core.Strapi): Keys<'createMembership' | 'updat
     createMembership: async (d) =>
       (await rows().create({ data: { athlete: d.athleteId, group: d.groupId, season: d.seasonId, isMain: d.isMain, from: d.from, to: d.to ?? null } })).documentId,
     updateMembership: async (id, d) => {
-      await rows().update({ documentId: id, data: { ...(d.isMain === undefined ? {} : { isMain: d.isMain }), ...(d.to === undefined ? {} : { to: d.to }) } });
+      found(await rows().update({ documentId: id, data: { ...(d.isMain === undefined ? {} : { isMain: d.isMain }), ...(d.to === undefined ? {} : { to: d.to }) } }), 'updateMembership');
     },
     deleteMembership: async (id) => {
-      await rows().delete({ documentId: id });
+      deleted(await rows().delete({ documentId: id }), 'deleteMembership');
     },
   };
 }
@@ -199,17 +208,17 @@ function calendarWrites(strapi: Core.Strapi): Keys<'createEvent' | 'updateEvent'
     })).documentId,
     updateEvent: async (id, d) => {
       const data = { ...(d.title === undefined ? {} : { title: d.title }), ...(d.recurrence ? { recurrence: recurrenceData(d.recurrence) } : {}), ...(d.exceptions ? { exceptions: d.exceptions.map(exceptionData) } : {}) };
-      await events().update({ documentId: id, data: data as never });
+      found(await events().update({ documentId: id, data: data as never }), 'updateEvent');
     },
     deleteEvent: async (id) => {
-      await events().delete({ documentId: id });
+      deleted(await events().delete({ documentId: id }), 'deleteEvent');
     },
     createBreak: async (d) => (await blackouts().create({ data: d })).documentId,
     updateBreak: async (id, d) => {
-      await blackouts().update({ documentId: id, data: d });
+      found(await blackouts().update({ documentId: id, data: d }), 'updateBreak');
     },
     deleteBreak: async (id) => {
-      await blackouts().delete({ documentId: id });
+      deleted(await blackouts().delete({ documentId: id }), 'deleteBreak');
     },
   };
 }
@@ -233,7 +242,7 @@ function jobAndHistoryWrites(strapi: Core.Strapi): Keys<'createEmailJobs' | 'can
       await strapi.documents(HISTORY).create({ data: buildHistoryEntry(entry) as never });
     },
     setHistoryChanges: async (id, changes) => {
-      await strapi.db.query(HISTORY).update({ where: { documentId: id }, data: { changes } });
+      found(await strapi.db.query(HISTORY).update({ where: { documentId: id }, data: { changes } }), 'setHistoryChanges');
     },
   };
 }
