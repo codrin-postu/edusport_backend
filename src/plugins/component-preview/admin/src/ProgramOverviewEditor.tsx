@@ -24,6 +24,9 @@ import {
 import { DatePanel } from '../../../../admin/dashboard/grupe/DatePanel';
 import { useGrupeApi } from '../../../../admin/dashboard/grupe/api';
 import { groupPageTo } from '../../../../club/grupe/routes';
+import { isPastSeasonDate, seasonLabelOf } from '../../../../club/grupe/season-window';
+import { breakDaysIn, withoutBlackoutSessions, type BreakWindow } from '../../../../club/calendar/break-days';
+import { useGrupeRefresh } from '../../../../admin/dashboard/grupe/undo';
 import { AgendaList, CalendarToolbar, CompactMonth, MonthGrid, type CalView } from './calendar/CalendarView';
 import { EventDrawer } from './calendar/EventDrawer';
 import { CAL_CSS } from './calendar/styles';
@@ -79,10 +82,15 @@ export default function ProgramOverviewEditor(_props: Props) {
   const [mediaOpen, setMediaOpen] = React.useState(false);
   const [reloadKey, setReloadKey] = React.useState(0);
   const grupeApi = useGrupeApi();
-  const [groupDate, setGroupDate] = React.useState<{ o: Occurrence; isClass: boolean } | null>(null);
+  const [blackouts, setBlackouts] = React.useState<BreakWindow[]>([]);
+  // An undo from a toast (or any Grupe change) reloads the calendar too.
+  useGrupeRefresh(() => setReloadKey((k) => k + 1));
+  const [groupDate, setGroupDate] = React.useState<{ o: Occurrence; isClass: boolean; readOnly: boolean } | null>(null);
   const openGroupDate = async (o: Occurrence) => {
+    // A failed read leaves isClass false: the panel opens without "Șterge ședința" rather than not at all.
     const res = (await get(`${CM_EVENT}/${o.documentId}`).catch(() => null)) as { data?: { data?: { recurrence?: { freq?: string } } } } | null;
-    setGroupDate({ o, isClass: res?.data?.data?.recurrence?.freq === 'none' });
+    const current = await grupeApi.list(null, null).then((p) => p.season?.label ?? null).catch(() => null);
+    setGroupDate({ o, isClass: res?.data?.data?.recurrence?.freq === 'none', readOnly: isPastSeasonDate(o.originalDate ?? o.date, current) });
   };
   // For an occurrence of a series: edit just this date's state, or the whole series.
   const [scoalaView, setScoalaView] = React.useState<'date' | 'series'>('date');
@@ -96,15 +104,24 @@ export default function ProgramOverviewEditor(_props: Props) {
     let cancelled = false;
     setLoading(true);
     get(`/api/club/calendar/occurrences?from=${ymd(first)}&to=${ymd(last)}`)
-      .then((r) => { const body = r.data as { data?: unknown } | undefined; if (!cancelled) setOccurrences(Array.isArray(body?.data) ? (body.data as Occurrence[]) : []); })
-      .catch(() => { if (!cancelled) setOccurrences([]); })
+      .then((r) => {
+        const body = r.data as { data?: unknown; blackouts?: unknown } | undefined;
+        if (cancelled) return;
+        setOccurrences(Array.isArray(body?.data) ? withoutBlackoutSessions(body.data as Occurrence[]) : []);
+        setBlackouts(Array.isArray(body?.blackouts) ? (body.blackouts as BreakWindow[]) : []);
+      })
+      .catch(() => { if (!cancelled) { setOccurrences([]); setBlackouts([]); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [ym, reloadKey]);
 
   const byDate = React.useMemo(() => {
     const map = new Map<string, Occurrence[]>();
-    for (const o of occurrences) {
+    // One "liber" chip per break day with the break's name; it opens nothing (no document id, no group).
+    const breakChips = breakDaysIn(blackouts, ymd(new Date(ym.y, ym.m, 1)), ymd(new Date(ym.y, ym.m + 1, 0))).map((d): Occurrence => ({
+      eventId: -1, title: d.label, type: 'vacanta', label: d.label, color: null, date: d.date, startTime: null, endTime: null, status: 'scheduled', cancelReason: null,
+    }));
+    for (const o of [...breakChips, ...occurrences]) {
       const cat = filterCatOf(o);
       if (cat && hidden.has(cat)) continue;
       const arr = map.get(o.date) ?? [];
@@ -112,7 +129,7 @@ export default function ProgramOverviewEditor(_props: Props) {
       map.set(o.date, arr);
     }
     return map;
-  }, [occurrences, hidden]);
+  }, [occurrences, blackouts, ym, hidden]);
 
   const goMonth = (delta: number) => {
     setYm(({ y, m }) => {
@@ -283,7 +300,8 @@ export default function ProgramOverviewEditor(_props: Props) {
       />
 
       {groupDate && (
-        <DatePanel occurrence={groupDate.o} isClass={groupDate.isClass} readOnly={false} api={grupeApi} groupLink={groupPageTo(groupDate.o.groupId ?? '', null)}
+        <DatePanel occurrence={groupDate.o} isClass={groupDate.isClass} readOnly={groupDate.readOnly} api={grupeApi} groupName={groupDate.o.groupName ?? null}
+          groupLink={groupPageTo(groupDate.o.groupId ?? '', seasonLabelOf(groupDate.o.originalDate ?? groupDate.o.date), 'program')}
           onClose={() => { setGroupDate(null); setReloadKey((k) => k + 1); }} />
       )}
 

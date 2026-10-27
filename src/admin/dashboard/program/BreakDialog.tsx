@@ -31,6 +31,7 @@ export function BreakDialog({ target, breaks, onClose }: Props) {
   const footer = <><Button variant="ghost" onClick={onClose} disabled={busy}>{PAUZE_COPY.cancel}</Button><Button loading={busy} onClick={() => void submit()}>{PAUZE_COPY.save}</Button></>;
   return (
     <WindowShell title={target ? PAUZE_COPY.windowEdit : PAUZE_COPY.windowNew} onClose={onClose} footer={footer} size="sm">
+      <div className="grp-form">
       {error && <Notice tone="danger">{error}</Notice>}
       <Field label={PAUZE_COPY.colName}><Input value={draft.label} maxLength={120} onChange={(e) => setDraft({ ...draft, label: e.target.value })} /></Field>
       <FieldRow>
@@ -38,6 +39,7 @@ export function BreakDialog({ target, breaks, onClose }: Props) {
         <Field label={PAUZE_COPY.colTo}><DateInput value={draft.endDate || null} onChange={(v) => setDraft({ ...draft, endDate: v ?? '' })} /></Field>
       </FieldRow>
       <p className="ui-hint">{PAUZE_COPY.hint}</p>
+      </div>
     </WindowShell>
   );
 }

@@ -11,7 +11,7 @@ import { PanelShell } from './PanelShell';
 import { undoToast } from './undo';
 
 export type PanelOccurrence = ChipSource & { documentId?: string };
-export type DatePanelProps = { occurrence: PanelOccurrence; isClass: boolean; readOnly: boolean; api: GrupeApi; onClose: () => void; groupLink?: string | null };
+export type DatePanelProps = { occurrence: PanelOccurrence; isClass: boolean; readOnly: boolean; api: GrupeApi; onClose: () => void; groupLink?: string | null; groupName?: string | null };
 
 const MODES: { value: DateMode; label: string }[] = [
   { value: 'keep', label: GRUPE_COPY.keep }, { value: 'cancel', label: GRUPE_COPY.cancelDate }, { value: 'move', label: GRUPE_COPY.moveDate },
@@ -86,6 +86,7 @@ export function DatePanel(p: DatePanelProps) {
   const title = panelTitle(dateKey(o), o.originalStartTime ?? o.startTime);
   return (
     <PanelShell title={title} onClose={p.onClose} footer={<PanelFooter locked={locked} busy={act.busy} onClose={p.onClose} onSave={() => void act.save()} />}>
+      {p.groupName && <p className="spv-name">{p.groupName}</p>}
       {act.error && <Notice tone="danger">{act.error}</Notice>}
       {isBreak(o) ? <Notice tone="info">{GRUPE_COPY.breakNotice(o.note ?? '')}</Notice> : <DateFields form={form} set={setForm} readOnly={locked} />}
       {p.isClass && !locked && <button type="button" className="grp-danger-link" onClick={() => setConfirm(true)}>{GRUPE_COPY.deleteClass}</button>}
