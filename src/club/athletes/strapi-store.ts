@@ -26,12 +26,12 @@ const FILE = 'plugin::upload.file' as const;
 const MAX = 100000;
 const BY_ID = 'id:asc' as const;
 
-type Raw = Record<string, unknown>;
-const raws = (v: unknown): Raw[] => (Array.isArray(v) ? (v as Raw[]) : []);
-const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
-const text = (v: unknown): string => (typeof v === 'string' ? v : '');
-const iso = (v: unknown): string | null => (v instanceof Date ? v.toISOString() : str(v));
-const linkId = (v: unknown): string | null => (v && typeof v === 'object' ? str((v as Raw).documentId) : null);
+export type Raw = Record<string, unknown>;
+export const raws = (v: unknown): Raw[] => (Array.isArray(v) ? (v as Raw[]) : []);
+export const str = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
+export const text = (v: unknown): string => (typeof v === 'string' ? v : '');
+export const iso = (v: unknown): string | null => (v instanceof Date ? v.toISOString() : str(v));
+export const linkId = (v: unknown): string | null => (v && typeof v === 'object' ? str((v as Raw).documentId) : null);
 const STATUSES: readonly RegistrationStatus[] = ['Nou', 'Contactat', 'Confirmat', 'Respins'];
 const ACS_STATES: readonly AcsState[] = ['da', 'nu', 'in_asteptare'];
 const oneOf = <T extends string>(values: readonly T[], v: unknown, fallback: T): T => values.find((x) => x === v) ?? fallback;
@@ -306,12 +306,14 @@ function deleteMediaIfUnused(strapi: Core.Strapi): ClubStore['deleteMediaIfUnuse
   };
 }
 
-/** A nested `transaction` reuses the outer one (Strapi), so `active` is restored, not cleared, when it ends. */
-function transactions(strapi: Core.Strapi): Pick<ClubStore, 'transaction' | 'lockRegistration' | 'lockAthlete'> {
+type Scope = { transaction: ClubStore['transaction']; lockRow: (table: string, id: string) => Promise<void> };
+
+/**
+ * One transaction scope and the row locks taken inside it (a lock outside a transaction throws). A nested `transaction` reuses the outer one (Strapi), so
+ * `active` is restored, not cleared, when it ends. The group store (src/club/groups/strapi-store.ts) builds its own scope with this.
+ */
+export function transactionScope(strapi: Core.Strapi): Scope {
   let active: Knex.Transaction | null = null;
-  const lockRow = async (table: string, id: string) => {
-    if (active) await strapi.db.getConnection(table).transacting(active).forUpdate().where('document_id', id).select('id');
-  };
   return {
     async transaction<T>(work: () => Promise<T>): Promise<T> {
       return await strapi.db.transaction(async ({ trx }: { trx: Knex.Transaction }) => {
@@ -324,9 +326,16 @@ function transactions(strapi: Core.Strapi): Pick<ClubStore, 'transaction' | 'loc
         }
       });
     },
-    lockRegistration: (id) => lockRow('registration_submissions', id),
-    lockAthlete: (id) => lockRow('athletes', id),
+    lockRow: async (table, id) => {
+      if (!active) throw new Error(`lock on ${table} taken outside a transaction`);
+      await strapi.db.getConnection(table).transacting(active).forUpdate().where('document_id', id).select('id');
+    },
   };
+}
+
+function transactions(strapi: Core.Strapi): Pick<ClubStore, 'transaction' | 'lockRegistration' | 'lockAthlete'> {
+  const scope = transactionScope(strapi);
+  return { transaction: scope.transaction, lockRegistration: (id) => scope.lockRow('registration_submissions', id), lockAthlete: (id) => scope.lockRow('athletes', id) };
 }
 
 /** `recipient` and `subject` name the parent and the child; `lastError` can echo the parent's e-mail (Brevo error body). */
