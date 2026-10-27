@@ -5,6 +5,7 @@ export const SCHEDULE_ERRORS = {
   noDays: 'Alege cel puțin o zi.',
   endBeforeStart: 'Data de sfârșit trebuie să fie după data de început.',
   groupEvent: (group: string) => `Evenimentul aparține grupei ${group}. Se schimbă din pagina grupei.`,
+  groupKey: 'Grupa unui eveniment se schimbă din pagina grupei.',
 } as const;
 
 export const SCHEDULE_TOASTS = {
