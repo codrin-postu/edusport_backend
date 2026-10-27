@@ -75,7 +75,20 @@ async function linesAfter(store: GroupStore, entry: HistoryEntryRow, record: Und
     ? await store.historyAfter(entry.seq, record.subjects)
     : (await store.historyAfter(entry.seq, null)).filter((h) => SEASON_WATCH.has(h.subjectType));
   const own = after.filter((h) => h.changes.actionId === entry.id);
-  return { own, later: after.filter((h) => h.id !== entry.id && h.changes.actionId !== entry.id) };
+  const undone = await undoneActions(store, after);
+  const belongsToUndone = (h: HistoryEntryRow): boolean => undone.has(h.id) || undone.has(String(h.changes.actionId)) || undone.has(String(h.changes.undoneOf));
+  return { own, later: after.filter((h) => h.id !== entry.id && h.changes.actionId !== entry.id && !belongsToUndone(h)) };
+}
+
+/** Ids of the already undone actions that `lines` belong to (their own lines, or the "Anulat" lines their undo wrote): a net zero change. */
+async function undoneActions(store: GroupStore, lines: HistoryEntryRow[]): Promise<Set<string>> {
+  const ids = new Set<string>();
+  for (const h of lines) {
+    for (const v of [h.id, h.changes.actionId, h.changes.undoneOf]) if (typeof v === 'string' && v) ids.add(v);
+  }
+  const undone = new Set<string>();
+  for (const id of ids) if ((await store.historyEntry(id))?.changes.undone === true) undone.add(id);
+  return undone;
 }
 
 /** A change's e-mail that already went out cannot be taken back: its undo is refused. */
@@ -93,7 +106,7 @@ const stripMeta = (changes: Record<string, unknown>): Record<string, unknown> =>
 /** "Anulat: <line>" on every subject the action wrote to (3.7), then the action is marked undone (same transaction: a second undo is refused). */
 async function writeUndone(ctx: GroupContext, entry: HistoryEntryRow, own: HistoryEntryRow[]): Promise<void> {
   for (const line of [entry, ...own]) {
-    await ctx.store.record({ subjectType: line.subjectType, subjectId: line.subjectId, action: P4_ACTIONS.undone, changes: { undoneAction: line.action, undoneChanges: stripMeta(line.changes) }, actor: ctx.actor });
+    await ctx.store.record({ subjectType: line.subjectType, subjectId: line.subjectId, action: P4_ACTIONS.undone, changes: { undoneAction: line.action, undoneChanges: stripMeta(line.changes), undoneOf: entry.id }, actor: ctx.actor });
   }
   await ctx.store.setHistoryChanges(entry.id, { ...entry.changes, undone: true });
 }

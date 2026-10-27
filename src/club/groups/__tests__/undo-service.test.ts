@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { copyMembers, copyProgram } from '../new-season/copy-group';
 import { joinGroup, moveMembership, removeMembership } from '../members';
 import { undoAction } from '../undo-service';
-import { athleteRow, fakeContext, member } from './fake-group-store';
+import { athleteRow, event, fakeContext, member } from './fake-group-store';
 
 const seed = () => fakeContext({
   athletes: [athleteRow({ id: 'a1', name: 'Ana Ionescu' }), athleteRow({ id: 'a2', name: 'Daria Stan' }), athleteRow({ id: 'a3', name: 'Tudor Matei', status: 'inactiv' })],
@@ -19,7 +20,7 @@ describe('"Anulează" from the toast (8.1, W15)', () => {
     expect(state.memberships).toEqual(before);
     const undone = state.history.filter((h) => h.action === 'undone');
     expect(undone.map((h) => h.subjectId)).toEqual(['g-ib', 'g-is', 'a1', 'a1']);
-    expect(undone[0].changes).toEqual({ undoneAction: 'member-moved-out', undoneChanges: { athleteId: 'a1', toGroup: 'Intermediari Silver', main: { from: 'Intermediari Bronze', to: 'Intermediari Silver' } } });
+    expect(undone[0].changes).toEqual({ undoneAction: 'member-moved-out', undoneChanges: { athleteId: 'a1', toGroup: 'Intermediari Silver', main: { from: 'Intermediari Bronze', to: 'Intermediari Silver' } }, undoneOf: actionId });
   });
 
   it('deletes the row an add created and turns a reactivated athlete inactive again', async () => {
@@ -135,5 +136,44 @@ describe('"Anulează" from the toast (8.1, W15)', () => {
     expect((await undoAction(ctx, { actionId: 'h1' })).ok).toBe(true);
     expect(state.locks).toEqual(['history:h1']);
     expect(await undoAction(ctx, { actionId: 'h1' })).toEqual({ ok: false, status: 409, error: 'Nu se mai poate anula. Sezonul s-a schimbat între timp.' });
+  });
+});
+
+describe('an undone action no longer blocks an earlier undo (4-3)', () => {
+  const copySeed = () => fakeContext({
+    seasons: [
+      { id: 's26', label: '2026-2027', startMonth: '2026-10-01', endMonth: '2027-05-31', isCurrent: false, membershipFee: 270 },
+      { id: 's27', label: '2027-2028', startMonth: '2027-10-01', endMonth: '2028-05-31', isCurrent: true, membershipFee: 200 },
+    ],
+    athletes: [athleteRow({ id: 'a1', name: 'Ana' }), athleteRow({ id: 'a2', name: 'Bia' })],
+    memberships: [member({ id: 'm1', athleteId: 'a1', groupId: 'g-ib' }), member({ id: 'm2', athleteId: 'a2', groupId: 'g-ib' })],
+    events: [event({ id: 'e1' })],
+  }, '2027-10-10');
+  const idOf = (res: { ok: boolean; data?: { actionId?: string | null } }): string => (res.ok && res.data?.actionId) || '';
+
+  it('undoes A after B (a later action) was undone', async () => {
+    const { ctx, state } = copySeed();
+    const a = idOf(await copyMembers(ctx, 'g-ib', { season: '2027-2028' }));
+    const b = idOf(await copyProgram(ctx, 'g-ib', { season: '2027-2028' }));
+    expect(a && b).toBeTruthy();
+    expect(await undoAction(ctx, { actionId: b })).toEqual({ ok: true, data: { undone: true } });
+    expect(await undoAction(ctx, { actionId: a })).toEqual({ ok: true, data: { undone: true } });
+    expect(state.memberships.filter((m) => m.seasonId === 's27')).toEqual([]);
+  });
+
+  it('still refuses A while B is not undone', async () => {
+    const { ctx } = copySeed();
+    const a = idOf(await copyMembers(ctx, 'g-ib', { season: '2027-2028' }));
+    await copyProgram(ctx, 'g-ib', { season: '2027-2028' });
+    expect(await undoAction(ctx, { actionId: a })).toEqual(STALE);
+  });
+
+  it('refuses A when a live action C came after the undone B', async () => {
+    const { ctx, state } = copySeed();
+    const a = idOf(await copyMembers(ctx, 'g-ib', { season: '2027-2028' }));
+    const b = idOf(await copyProgram(ctx, 'g-ib', { season: '2027-2028' }));
+    await undoAction(ctx, { actionId: b });
+    await removeMembership(ctx, state.memberships.find((m) => m.seasonId === 's27')?.id ?? '');
+    expect(await undoAction(ctx, { actionId: a })).toEqual(STALE);
   });
 });
