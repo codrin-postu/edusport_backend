@@ -3,6 +3,7 @@ import type { ConfirmationRecord } from '../confirm/plan';
 import { registrationSeason } from '../confirm/season';
 import { planUndo, undoAllowed, undoSeasonId, type UndoFacts, type UndoPlan } from '../confirm/undo-plan';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
+import { isAnonymized } from '../personal-data/anonymize-plan';
 import type { UndoResponse } from './api-types';
 import { ADMIN_ERRORS } from './errors';
 import { refreshAllMatches, safely } from './matches';
@@ -71,7 +72,7 @@ async function undoLocked(ctx: ServiceContext, id: string): Promise<Result> {
   if (!reg) return refuse(404, ADMIN_ERRORS.notFound);
   if (reg.confirmation) await ctx.store.lockAthlete(reg.confirmation.athleteId);
   const facts = reg.confirmation ? await loadFacts(ctx.store, reg, reg.confirmation) : null;
-  return facts ? applyUndo(ctx, reg, facts) : refuse(409, ADMIN_ERRORS.stale);
+  return facts && !isAnonymized(facts.athlete) ? applyUndo(ctx, reg, facts) : refuse(409, ADMIN_ERRORS.stale);
 }
 
 /** "Anulează confirmarea" (spec 4.6, gaps #32): one transaction on the locked registration row. */

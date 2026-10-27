@@ -12,6 +12,7 @@ import type { AthleteCard, ConfirmContext, RegistrationMatchView } from './api-t
 import { cardMaker, groupOptions } from './cards';
 import { ADMIN_ERRORS } from './errors';
 import { athleteFacts } from './matches';
+import { isAnonymized } from '../personal-data/anonymize-plan';
 import type { AthleteRow, ClubStore, GroupRow, RegistrationRow, SectionRow } from './store';
 
 const SEARCH_LIMIT = 20;
@@ -122,7 +123,8 @@ const searchOrder = (ranked: string[], byQuery: Map<string, number>) => (a: Athl
 
 /** "Caută alt sportiv" and "Adaugă sportiv" (spec 4.1, 6.7, P13). Without text: the registration's candidates. */
 export async function searchAthletes(store: ClubStore, query: string, registrationId: string | null): Promise<AthleteCard[]> {
-  const [athletes, registrations] = await Promise.all([store.athletes(), store.registrations()]);
+  const [all, registrations] = await Promise.all([store.athletes(), store.registrations()]);
+  const athletes = all.filter((a) => !isAnonymized(a));
   const card = await cardMaker(store, registrations);
   const reg = registrationId ? registrations.find((r) => r.id === registrationId) ?? null : null;
   const ranked = reg ? candidatesFor(reg, athletes).map((c) => c.athleteId) : [];

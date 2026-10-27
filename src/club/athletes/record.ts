@@ -3,6 +3,7 @@ import {
   athleteChanges, birthDateForPicker, isAthleteField, isDataIncomplete, missingFields, pickAthleteValues, readAthleteInput, type AthleteValues,
 } from '../athlete-data';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
+import { isAnonymized } from '../personal-data/anonymize-plan';
 import { DOCUMENT_LABELS, registrationDocumentKinds } from '../registration-panel';
 import type { AthleteEditResponse, AthleteRecord } from './api-types';
 import { registrationSeasonLabel } from './cards';
@@ -53,17 +54,18 @@ function duplicateRows(athleteId: string, src: RecordSource): AthleteRecord['dup
 function assemble(a: AthleteRow, src: RecordSource): AthleteRecord {
   const profile = src.profiles.find((p) => p.id === a.profileId);
   const values = pickAthleteValues(a);
+  const anonymized = isAnonymized(a);
   return {
     documentId: a.id,
     fields: { ...values, birthDate: birthDateForPicker(a.birthDate) },
-    missing: missingFields(values),
+    missing: anonymized ? [] : missingFields(values),
     status: a.status,
-    dataIncomplete: a.dataIncomplete || isDataIncomplete(values),
+    dataIncomplete: !anonymized && (a.dataIncomplete || isDataIncomplete(values)),
     header: { birthDate: birthDateForPicker(a.birthDate), mainGroup: mainGroupName(src) },
     season: src.season ? { documentId: src.season.id, label: src.season.label } : null,
     acs: { seasonLabel: src.season?.label ?? null, state: src.acs.find((r) => r.seasonId === src.season?.id)?.state ?? 'nu' },
     registrations: registrationRows(src),
-    documents: documentRows(src),
+    documents: anonymized ? [] : documentRows(src),
     profile: profile ? { documentId: profile.id, slug: profile.slug, showPublicPage: profile.showPublicPage } : null,
     duplicates: duplicateRows(a.id, src),
     historyCount: src.historyCount,
@@ -102,6 +104,7 @@ export async function updateAthlete(ctx: ServiceContext, id: string, body: unkno
   if (input.ok === false) return refuse(400, input.error);
   const athlete = await ctx.store.athlete(id);
   if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
+  if (isAnonymized(athlete)) return refuse(409, ADMIN_ERRORS.stale);
   const changes = athleteChanges(pickAthleteValues(athlete), input.values);
   const saved = await guardedWrite(ctx.log, `[athletes] editing ${id}`, () => saveEdit(ctx, athlete, input.values, changes));
   if (saved.ok === false) return saved;

@@ -4,6 +4,7 @@ import { comparisonRows, defaultUpdateFields, registrationValues } from '../conf
 import { confirmationHistory } from '../confirm/history';
 import { confirmRefusal, confirmationRecord, planConfirmation, type ConfirmFacts, type ConfirmPlan, type ConfirmRequest } from '../confirm/plan';
 import { registrationSeason, seasonRunning, type SeasonFacts } from '../confirm/season';
+import { isAnonymized } from '../personal-data/anonymize-plan';
 import type { ConfirmResponse } from './api-types';
 import { groupOptions } from './cards';
 import { ADMIN_ERRORS, CONFIRM_ERRORS } from './errors';
@@ -41,7 +42,7 @@ async function pickGroup(store: ClubStore, reg: RegistrationRow, groupId: string
 
 async function loadFacts(ctx: ServiceContext, reg: RegistrationRow, request: ConfirmRequest): Promise<AdminResult<Loaded>> {
   const athlete = request.athleteId ? await ctx.store.athlete(request.athleteId) : null;
-  if (request.choice === 'existing' && !athlete) return refuse(400, CONFIRM_ERRORS.failed);
+  if (request.choice === 'existing' && (!athlete || isAnonymized(athlete))) return refuse(400, CONFIRM_ERRORS.failed);
   const season: SeasonFacts | null = registrationSeason(reg, await ctx.store.seasons());
   const running = seasonRunning(season, ctx.today);
   // The season's end (task 16/gaps #31): an ended or unmatched season ignores any groupId, never errors on it.

@@ -1,5 +1,6 @@
 import { guardedWrite, refuse, type AdminResult } from '../admin-result';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
+import { isAnonymized } from '../personal-data/anonymize-plan';
 import { slugify, uniqueSlug } from '../profile-slug';
 import type { AthleteRecord } from './api-types';
 import { ADMIN_ERRORS } from './errors';
@@ -15,6 +16,7 @@ async function recordResult(store: ClubStore, id: string): Promise<AdminResult<A
 export async function createAthleteProfile(ctx: ServiceContext, id: string): Promise<AdminResult<AthleteRecord>> {
   const athlete = await ctx.store.athlete(id);
   if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
+  if (isAnonymized(athlete)) return refuse(409, ADMIN_ERRORS.stale);
   if (athlete.profileId) return refuse(409, ADMIN_ERRORS.stale);
   const taken = new Set((await ctx.store.profiles()).flatMap((p) => [p.slug, ...p.previousSlugs]));
   const name = athlete.name ?? '';
@@ -32,6 +34,7 @@ export async function setAthleteProfileVisibility(ctx: ServiceContext, id: strin
   if (typeof on !== 'boolean') return refuse(400, ADMIN_ERRORS.invalid);
   const athlete = await ctx.store.athlete(id);
   if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
+  if (isAnonymized(athlete)) return refuse(409, ADMIN_ERRORS.stale);
   const profile = (await ctx.store.profiles()).find((p) => p.id === athlete.profileId);
   if (!profile) return refuse(409, ADMIN_ERRORS.stale);
   if (profile.showPublicPage === on) return recordResult(ctx.store, id);

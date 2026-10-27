@@ -1,6 +1,7 @@
 import { guardedWrite, refuse, type AdminResult } from '../admin-result';
 import { athleteChanges, isDataIncomplete, readAthleteInput, type AthleteStatus, type AthleteValues } from '../athlete-data';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
+import { isAnonymized } from '../personal-data/anonymize-plan';
 import { ADMIN_ERRORS } from './errors';
 import { refreshAllMatches, safely } from './matches';
 import type { ServiceContext } from './store';
@@ -28,6 +29,7 @@ export async function setAthleteStatus(ctx: ServiceContext, id: string, body: un
   if (to !== 'activ' && to !== 'inactiv') return refuse(400, ADMIN_ERRORS.invalid);
   const athlete = await ctx.store.athlete(id);
   if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
+  if (isAnonymized(athlete)) return refuse(409, ADMIN_ERRORS.stale);
   const written = athlete.status === to ? null : await guardedWrite(ctx.log, `[athletes] status of ${id}`, () => ctx.store.transaction(async () => {
     await ctx.store.updateAthlete(id, { status: to });
     await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.statusChanged, changes: { from: athlete.status, to }, actor: ctx.actor });

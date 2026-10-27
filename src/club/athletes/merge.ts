@@ -6,6 +6,7 @@ import { ADMIN_ERRORS } from './errors';
 import { lockAthletesWithRegistrations } from './locks';
 import { refreshAllMatches, safely } from './matches';
 import { mergeDiffering, planMerge, type MergePlan, type MergeSide } from './merge-plan';
+import { isAnonymized } from '../personal-data/anonymize-plan';
 import type { AthleteRow, ClubStore, DuplicateRow, ProfileRow, ServiceContext } from './store';
 
 /** "Unește cu alt sportiv" (spec 6.6, d39) and "Nu e același copil" (d12). No undo. */
@@ -33,6 +34,7 @@ export async function mergePreview(store: ClubStore, keptId: string, removedId: 
   if (!keptId || !removedId || keptId === removedId) return refuse(400, ADMIN_ERRORS.invalid);
   const [kept, removed, profiles] = await Promise.all([store.athlete(keptId), store.athlete(removedId), store.profiles()]);
   if (!kept || !removed) return refuse(404, ADMIN_ERRORS.notFound);
+  if (isAnonymized(kept) || isAnonymized(removed)) return refuse(409, ADMIN_ERRORS.stale);
   const differing = mergeDiffering(pickAthleteValues(kept), pickAthleteValues(removed));
   const [keptView, removedView] = await Promise.all([sideView(store, kept, profiles), sideView(store, removed, profiles)]);
   return { ok: true, data: { kept: keptView, removed: removedView, differing } };
@@ -137,6 +139,7 @@ async function mergeInTransaction(ctx: ServiceContext, request: MergeRequest): P
   const profiles = await ctx.store.profiles();
   const [kept, removed] = await Promise.all([loadSide(ctx.store, request.keptId, profiles), loadSide(ctx.store, request.removedId, profiles)]);
   if (!kept || !removed) return refuse(404, ADMIN_ERRORS.notFound);
+  if (isAnonymized(kept) || isAnonymized(removed)) return refuse(409, ADMIN_ERRORS.stale);
   await applyMerge(ctx, kept, removed, planMerge(kept, removed, request.take));
   return { ok: true, data: { documentId: kept.id } };
 }

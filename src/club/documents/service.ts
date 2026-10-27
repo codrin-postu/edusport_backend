@@ -35,9 +35,12 @@ async function seasonOf(strapi: Core.Strapi, seasonRef: unknown, label: unknown)
   return toDocumentSeason(await strapi.documents('api::season.season').findFirst({ filters: { label: asText(label) } }));
 }
 
+/** A registration of an anonymized athlete has no documents any more (3C spec 4): never rebuilt from its scrubbed row. */
+const anonymizedLink = (athlete: unknown): boolean => !!athlete && typeof athlete === 'object' && (athlete as { status?: unknown }).status === 'anonimizat';
+
 async function loadRegistration(strapi: Core.Strapi, documentId: string) {
-  const doc = await strapi.documents(UID).findOne({ documentId, populate: { seasonRef: true } });
-  if (!doc) throw new RegistrationNotFoundError(documentId);
+  const doc = await strapi.documents(UID).findOne({ documentId, populate: { seasonRef: true, athlete: { fields: ['status'] } } });
+  if (!doc || anonymizedLink((doc as { athlete?: unknown }).athlete)) throw new RegistrationNotFoundError(documentId);
   const row = doc as unknown as RegistrationRow & { seasonRef?: unknown };
   return { row, season: await seasonOf(strapi, row.seasonRef, row.season) };
 }

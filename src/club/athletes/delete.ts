@@ -3,6 +3,7 @@ import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import { ADMIN_ERRORS } from './errors';
 import { lockAthletesWithRegistrations } from './locks';
 import { refreshAllMatches, safely } from './matches';
+import { isAnonymized } from '../personal-data/anonymize-plan';
 import type { AthleteRow, ClubStore, ServiceContext } from './store';
 
 /**
@@ -31,6 +32,7 @@ async function deleteInTransaction(ctx: ServiceContext, id: string): Promise<Res
   await lockAthletesWithRegistrations(ctx.store, [id]);
   const athlete = await ctx.store.athlete(id);
   if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
+  if (isAnonymized(athlete)) return refuse(409, ADMIN_ERRORS.stale);
   await unlinkRegistrations(ctx, athlete);
   await removeOwnRows(ctx.store, id);
   if (athlete.profileId) await ctx.store.deleteProfile(athlete.profileId);
