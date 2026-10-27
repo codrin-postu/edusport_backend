@@ -11,7 +11,12 @@ export type FakeState = {
   removedParticipations: string[]; locks: string[]; admins: Record<string, string>;
   /** Extra raw attributes per registration id (shirtSize, consents, ...), merged over the row by `registrationRecords`. */
   registrationRecords: Record<string, Record<string, unknown>>; emailJobs: ClubEmailJob[]; settings: unknown;
+  /** Media Library files; `usedBy` holds the ids of the profiles using a file plus labels for any other content. */
+  files: FakeFile[];
+  /** Every text value of any content (blocks, markdown, json, url strings); a file whose hash or url appears in one is in use. */
+  texts: string[];
 };
+export type FakeFile = { id: number; hash: string; url: string; usedBy: string[] };
 export type Fake = { store: ClubStore; state: FakeState; failOn(method: keyof ClubStore): void };
 
 export const SEASONS: SeasonRow[] = [
@@ -155,7 +160,20 @@ function fakeProfileWrites(s: FakeState, next: Next): Pick<ClubStore, 'createPro
     deleteProfile: async (id) => {
       s.profiles = s.profiles.filter((p) => p.id !== id);
       for (const a of s.athletes) if (a.profileId === id) a.profileId = null;
+      for (const f of s.files) f.usedBy = f.usedBy.filter((u) => u !== id);
       s.removedParticipations.push(id);
+    },
+  };
+}
+
+function fakeMedia(s: FakeState): Pick<ClubStore, 'profileMediaIds' | 'deleteMediaIfUnused'> {
+  return {
+    profileMediaIds: async (profileId) => s.files.filter((f) => f.usedBy.includes(profileId)).map((f) => f.id),
+    deleteMediaIfUnused: async (fileId) => {
+      const file = s.files.find((f) => f.id === fileId);
+      if (!file || file.usedBy.length > 0 || s.texts.some((t) => t.includes(file.hash) || t.includes(file.url))) return false;
+      s.files = s.files.filter((f) => f.id !== fileId);
+      return true;
     },
   };
 }
@@ -225,7 +243,7 @@ function withFailures(store: ClubStore, failing: Set<string>): ClubStore {
 
 const EMPTY: FakeState = {
   athletes: [], registrations: [], seasons: SEASONS, sections: SECTIONS, groups: GROUPS, memberships: [], acs: [], duplicates: [],
-  profiles: [], history: [], removedParticipations: [], locks: [], admins: {}, registrationRecords: {}, emailJobs: [], settings: null,
+  profiles: [], history: [], removedParticipations: [], locks: [], admins: {}, registrationRecords: {}, emailJobs: [], settings: null, files: [], texts: [],
 };
 
 export function fakeClubStore(seed: Partial<FakeState> = {}): Fake {
@@ -251,7 +269,7 @@ export function fakeClubStore(seed: Partial<FakeState> = {}): Fake {
       state.locks.push(`athlete:${id}`);
     },
     ...fakeReads(state), ...fakeAthleteWrites(state, next, tick), ...fakeRowWrites(state, next), ...fakeProfileWrites(state, next), ...fakeHistory(state, tick),
-    ...fakePersonalData(state),
+    ...fakePersonalData(state), ...fakeMedia(state),
   };
   return { store: withFailures(base, failing), state, failOn: (method) => failing.add(method) };
 }

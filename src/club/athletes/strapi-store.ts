@@ -22,6 +22,7 @@ const COMPETITION = 'api::competition.competition' as const;
 const HISTORY = 'api::history-entry.history-entry' as const;
 const JOB = 'api::email-job.email-job' as const;
 const SETTINGS = 'api::site-settings.site-settings' as const;
+const FILE = 'plugin::upload.file' as const;
 const MAX = 100000;
 const BY_ID = 'id:asc' as const;
 
@@ -244,6 +245,66 @@ function profileWrites(strapi: Core.Strapi): Pick<ClubStore, 'createProfile' | '
   };
 }
 
+const fileIdsOf = (v: unknown): number[] => (Array.isArray(v) ? v : [v]).map((f) => (f && typeof f === 'object' ? Number((f as Raw).id) : NaN)).filter(Number.isInteger);
+
+/** The media attributes come from the profile schema, so a media field added later is covered too; its components hold no media. */
+function profileMediaIds(strapi: Core.Strapi): ClubStore['profileMediaIds'] {
+  return async (profileId) => {
+    const fields = Object.entries(strapi.contentType(PROFILE).attributes).filter(([, a]) => a.type === 'media').map(([name]) => name);
+    const populate = Object.fromEntries(fields.map((f) => [f, { select: ['id'] }]));
+    const rows = raws(await strapi.db.query(PROFILE).findMany({ where: { documentId: profileId }, select: ['id'], populate }));
+    return [...new Set(rows.flatMap((r) => fields.flatMap((f) => fileIdsOf(r[f]))))];
+  };
+}
+
+type TextColumn = { table: string; column: string };
+/** Custom fields are already resolved to their stored type here (Strapi converts them at load). */
+const TEXT_TYPES: ReadonlySet<string> = new Set(['blocks', 'richtext', 'json', 'string', 'text']);
+/** The file's own rows hold its hash and url and would always match; admin and users-permissions rows hold no content. */
+const notScanned = (uid: string): boolean => uid === FILE || uid === 'plugin::upload.folder' || uid.startsWith('admin::') || uid.startsWith('plugin::users-permissions.');
+
+/**
+ * Every text-bearing column of every content type and component, from the registry so a field added later is covered: a blocks
+ * image or an `imageUrl` string or markdown inside json can point at a file without a files_related_mph row.
+ */
+export function textColumns(strapi: Core.Strapi): TextColumn[] {
+  const schemas: [string, { attributes: Record<string, { type: string }> }][] = [...Object.entries(strapi.contentTypes), ...Object.entries(strapi.components)];
+  return schemas.filter(([uid]) => !notScanned(uid)).flatMap(([uid, schema]) => {
+    const meta = strapi.db.metadata.get(uid);
+    if (!meta) return [];
+    return Object.entries(schema.attributes)
+      .filter(([, a]) => TEXT_TYPES.has(a.type))
+      .flatMap(([name]) => {
+        const column = str((meta.attributes[name] as Raw | undefined)?.columnName);
+        return column ? [{ table: meta.tableName, column }] : [];
+      });
+  });
+}
+
+const MATCH = "CAST(?? AS TEXT) LIKE '%' || ? || '%'";
+
+/** One query per column, matching the file's hash (blocks images, format urls) or url (markdown, url strings). */
+async function usedInText(strapi: Core.Strapi, file: Raw): Promise<boolean> {
+  const needles = [str(file.hash), str(file.url)].filter((n): n is string => n !== null);
+  if (!needles.length) return false;
+  const sql = needles.map(() => MATCH).join(' OR ');
+  for (const { table, column } of textColumns(strapi)) {
+    if (await strapi.db.getConnection(table).whereRaw(sql, needles.flatMap((n) => [column, n])).first('id')) return true;
+  }
+  return false;
+}
+
+/** `related` is the upload plugin's morph relation (files_related_mph); populating it skips rows of deleted entries. */
+function deleteMediaIfUnused(strapi: Core.Strapi): ClubStore['deleteMediaIfUnused'] {
+  return async (fileId) => {
+    const file = (await strapi.db.query(FILE).findOne({ where: { id: fileId }, populate: { related: { select: ['id'] } } })) as Raw | null;
+    if (!file || raws(file.related).length > 0) return false;
+    if (await usedInText(strapi, file)) return false;
+    await strapi.plugin('upload').service('upload').remove(file);
+    return true;
+  };
+}
+
 /** A nested `transaction` reuses the outer one (Strapi), so `active` is restored, not cleared, when it ends. */
 function transactions(strapi: Core.Strapi): Pick<ClubStore, 'transaction' | 'lockRegistration' | 'lockAthlete'> {
   let active: Knex.Transaction | null = null;
@@ -319,6 +380,8 @@ export function strapiClubStore(strapi: Core.Strapi): ClubStore {
     ...profileWrites(strapi),
     ...personalDataStore(strapi),
     ...settingsStore(strapi),
+    profileMediaIds: profileMediaIds(strapi),
+    deleteMediaIfUnused: deleteMediaIfUnused(strapi),
     moveHistory: async (from, to) => {
       await strapi.db.query(HISTORY).updateMany({ where: { subjectType: 'athlete', subjectId: from }, data: { subjectId: to } });
     },

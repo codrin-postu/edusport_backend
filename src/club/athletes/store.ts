@@ -82,6 +82,10 @@ export interface ClubStore {
   setPreviousSlugs(id: string, slugs: string[]): Promise<void>;
   /** The profile with its competition participations (spec 6.6). */
   deleteProfile(id: string): Promise<void>;
+  /** Media Library file ids in the profile's media fields, draft and published rows (3C spec 4). */
+  profileMediaIds(profileId: string): Promise<number[]>;
+  /** Deletes the file (row, stored file and formats) when no content uses it any more; false when it is kept or gone. */
+  deleteMediaIfUnused(fileId: number): Promise<boolean>;
   moveHistory(fromAthleteId: string, toAthleteId: string): Promise<void>;
   record(entry: HistoryInput): Promise<void>;
   /** Raw registration rows of one athlete (every attribute), for the export summary (3C spec 3). */

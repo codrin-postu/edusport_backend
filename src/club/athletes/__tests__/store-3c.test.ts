@@ -1,7 +1,7 @@
 import type { Core } from '@strapi/strapi';
 import { describe, expect, it } from 'vitest';
 import { registrationScrub } from '../../personal-data/anonymize-plan';
-import { strapiClubStore, toAthleteRow } from '../strapi-store';
+import { strapiClubStore, textColumns, toAthleteRow } from '../strapi-store';
 import { athleteRow, fakeClubStore, registrationRow } from './fake-store';
 
 type Call = [string, string, unknown];
@@ -90,6 +90,103 @@ describe('Strapi store, 3C writes', () => {
   });
 });
 
+const PROFILE = 'api::sportsperson.sportsperson';
+const FILE = 'plugin::upload.file';
+
+type Attributes = Record<string, { type: string }>;
+const CONTENT_TYPES: Record<string, { attributes: Attributes }> = {
+  [PROFILE]: { attributes: { name: { type: 'string' }, photo: { type: 'media' }, gallery: { type: 'media' }, story: { type: 'blocks' }, activeSince: { type: 'date' } } },
+  'api::calendar-event.calendar-event': { attributes: { imageUrl: { type: 'string' }, order: { type: 'integer' } } },
+  'api::program.program': { attributes: { calendarEvents: { type: 'json' } } },
+  [FILE]: { attributes: { hash: { type: 'string' }, url: { type: 'string' }, formats: { type: 'json' } } },
+  'plugin::upload.folder': { attributes: { name: { type: 'string' } } },
+  'admin::user': { attributes: { email: { type: 'email' }, firstname: { type: 'string' } } },
+  'plugin::users-permissions.user': { attributes: { username: { type: 'string' } } },
+};
+const COMPONENTS: Record<string, { attributes: Attributes }> = {
+  'shared.rich-text': { attributes: { body: { type: 'richtext' } } },
+  'shared.seo': { attributes: { metaDescription: { type: 'text' }, shareImage: { type: 'media' } } },
+};
+const TABLES: Record<string, string> = {
+  [PROFILE]: 'sportspeople', 'api::calendar-event.calendar-event': 'calendar_events', 'api::program.program': 'programs',
+  'shared.rich-text': 'components_shared_rich_texts', 'shared.seo': 'components_shared_seos',
+};
+const snake = (name: string) => name.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+/** Like Strapi's metadata: every scalar attribute carries its column name; `shared.seo` is not registered, so it is skipped. */
+const REGISTRY_METADATA = {
+  get: (uid: string) => {
+    const schema = CONTENT_TYPES[uid] ?? (uid === 'shared.seo' ? undefined : COMPONENTS[uid]);
+    if (!schema) return undefined;
+    return { tableName: TABLES[uid], attributes: Object.fromEntries(Object.keys(schema.attributes).map((n) => [n, { columnName: snake(n) }])) };
+  },
+};
+
+type MediaSeed = { profileRows?: unknown[]; files?: Record<number, unknown>; textHits?: Record<string, string> };
+
+/** Profile rows, files with their `related` entries, the registry above, and `textHits`: the needle a `table.column` holds. */
+function mediaStrapi(calls: Call[], seed: MediaSeed = {}): Core.Strapi {
+  const query = (uid: string) => ({
+    findMany: async (args: unknown) => { calls.push([uid, 'findMany', args]); return seed.profileRows ?? []; },
+    findOne: async (args: { where: { id: number } }) => { calls.push([uid, 'findOne', args]); return seed.files?.[args.where.id] ?? null; },
+  });
+  const getConnection = (table: string) => ({
+    whereRaw: (sql: string, bindings: string[]) => ({
+      first: async () => {
+        calls.push([table, sql, bindings]);
+        const needle = seed.textHits?.[`${table}.${bindings[0]}`];
+        return needle && bindings.includes(needle) ? { id: 1 } : undefined;
+      },
+    }),
+  });
+  const upload = { remove: async (file: unknown) => { calls.push([FILE, 'remove', file]); } };
+  return {
+    db: { query, getConnection, metadata: REGISTRY_METADATA }, contentType: () => CONTENT_TYPES[PROFILE], contentTypes: CONTENT_TYPES, components: COMPONENTS,
+    plugin: () => ({ service: () => upload }),
+  } as unknown as Core.Strapi;
+}
+
+describe('Strapi store, media of a profile (3C spec 4)', () => {
+  it('reads the file ids of every media field on the draft and published rows, once each', async () => {
+    const calls: Call[] = [];
+    const profileRows = [{ id: 10, photo: { id: 1 }, gallery: [{ id: 2 }, { id: 3 }] }, { id: 11, photo: null, gallery: [{ id: 2 }, { id: 1 }] }];
+    expect(await strapiClubStore(mediaStrapi(calls, { profileRows })).profileMediaIds('sp1')).toEqual([1, 2, 3]);
+    expect(calls).toEqual([[PROFILE, 'findMany', {
+      where: { documentId: 'sp1' }, select: ['id'], populate: { photo: { select: ['id'] }, gallery: { select: ['id'] } },
+    }]]);
+  });
+
+  it('lists every text-bearing column of the content types and components; upload, admin and users-permissions rows are not scanned', () => {
+    expect(textColumns(mediaStrapi([]))).toEqual([
+      { table: 'sportspeople', column: 'name' }, { table: 'sportspeople', column: 'story' },
+      { table: 'calendar_events', column: 'image_url' }, { table: 'programs', column: 'calendar_events' },
+      { table: 'components_shared_rich_texts', column: 'body' },
+    ]);
+  });
+
+  it('removes an unused file through the upload service; kept: related, in rich text, in program.calendarEvents json, in calendar-event.imageUrl, missing', async () => {
+    const calls: Call[] = [];
+    const own = { id: 1, hash: 'own_1', url: '/uploads/own_1.jpg', related: [] };
+    const files = {
+      1: own,
+      2: { id: 2, hash: 'cover_2', url: '/uploads/cover_2.jpg', related: [{ id: 5, __type: 'api::article.article' }] },
+      3: { id: 3, hash: 'body_3', url: '/uploads/body_3.jpg', related: [] },
+      4: { id: 4, hash: 'md_4', url: '/uploads/md_4.jpg', related: [] },
+      5: { id: 5, hash: 'event_5', url: '/uploads/event_5.jpg', related: [] },
+    };
+    const textHits = {
+      'components_shared_rich_texts.body': 'body_3', 'programs.calendar_events': '/uploads/md_4.jpg', 'calendar_events.image_url': '/uploads/event_5.jpg',
+    };
+    const store = strapiClubStore(mediaStrapi(calls, { files, textHits }));
+    const results = [];
+    for (const id of [1, 2, 3, 4, 5, 9]) results.push(await store.deleteMediaIfUnused(id));
+    expect(results).toEqual([true, false, false, false, false, false]);
+    expect(calls[0]).toEqual([FILE, 'findOne', { where: { id: 1 }, populate: { related: { select: ['id'] } } }]);
+    const match = "CAST(?? AS TEXT) LIKE '%' || ? || '%' OR CAST(?? AS TEXT) LIKE '%' || ? || '%'";
+    expect(calls.slice(1, 6)).toEqual(textColumns(mediaStrapi([])).map((c) => [c.table, match, [c.column, 'own_1', c.column, '/uploads/own_1.jpg']]));
+    expect(calls.filter((c) => c[1] === 'remove')).toEqual([[FILE, 'remove', own]]);
+  });
+});
+
 describe('fake store, same behaviour', () => {
   it('scrubs a registration: the row reads like the Strapi row would, the raw record holds nulls', async () => {
     const fake = fakeClubStore({
@@ -125,6 +222,22 @@ describe('fake store, same behaviour', () => {
     expect(await fake.store.personalDataSettings()).toBeNull();
     await fake.store.savePersonalDataSettings({ retentionYears: 7, reviewHiddenUntilSeason: null });
     expect(await fake.store.personalDataSettings()).toEqual({ retentionYears: 7, reviewHiddenUntilSeason: null });
+  });
+
+  const file = (id: number, usedBy: string[]) => ({ id, hash: `f_${id}`, url: `/uploads/f_${id}.jpg`, usedBy });
+
+  it('media: a deleted profile no longer uses its files; a related or embedded file stays, only an unused one is removed', async () => {
+    const fake = fakeClubStore({
+      profiles: [{ id: 'sp1', name: 'X', slug: 'x', previousSlugs: [], showPublicPage: false, published: true }],
+      files: [file(1, ['sp1']), file(2, ['sp1', 'article:a9']), file(3, ['article:a9']), file(4, ['sp1']), file(5, ['sp1'])],
+      texts: ['[{"type":"image","image":{"hash":"f_4"}}]', '![](/uploads/f_5.jpg)'],
+    });
+    expect(await fake.store.profileMediaIds('sp1')).toEqual([1, 2, 4, 5]);
+    await fake.store.deleteProfile('sp1');
+    const results = [];
+    for (const id of [1, 2, 4, 5, 9]) results.push(await fake.store.deleteMediaIfUnused(id));
+    expect(results).toEqual([true, false, false, false, false]);
+    expect(fake.state.files.map((f) => f.id)).toEqual([2, 3, 4, 5]);
   });
 
   it('a created athlete carries its creation time', async () => {
