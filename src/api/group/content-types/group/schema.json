@@ -10,6 +10,7 @@
     "order": { "type": "integer" },
     "section": { "type": "relation", "relation": "manyToOne", "target": "api::section.section" },
     "priceList": { "type": "relation", "relation": "manyToOne", "target": "api::price-list.price-list" },
-    "coaches": { "type": "relation", "relation": "manyToMany", "target": "api::team-member.team-member" }
+    "coaches": { "type": "relation", "relation": "manyToMany", "target": "api::team-member.team-member" },
+    "programPublic": { "type": "boolean", "default": true }
   }
 }

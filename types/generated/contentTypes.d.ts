@@ -1056,10 +1056,12 @@ export interface ApiEmailJobEmailJob extends Struct.CollectionTypeSchema {
         number
       > &
       Schema.Attribute.DefaultTo<0>;
+    changeKey: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    kind: Schema.Attribute.Enumeration<['registration']> &
+    group: Schema.Attribute.Relation<'manyToOne', 'api::group.group'>;
+    kind: Schema.Attribute.Enumeration<['registration', 'schedule-change']> &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'registration'>;
     lastError: Schema.Attribute.Text;
@@ -1069,6 +1071,8 @@ export interface ApiEmailJobEmailJob extends Struct.CollectionTypeSchema {
       'api::email-job.email-job'
     > &
       Schema.Attribute.Private;
+    notBefore: Schema.Attribute.DateTime;
+    payload: Schema.Attribute.JSON;
     publishedAt: Schema.Attribute.DateTime;
     recipient: Schema.Attribute.String & Schema.Attribute.Required;
     registration: Schema.Attribute.Relation<
@@ -1197,6 +1201,7 @@ export interface ApiGroupGroup extends Struct.CollectionTypeSchema {
       'manyToOne',
       'api::price-list.price-list'
     >;
+    programPublic: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
     publishedAt: Schema.Attribute.DateTime;
     section: Schema.Attribute.Relation<'manyToOne', 'api::section.section'>;
     updatedAt: Schema.Attribute.DateTime;
