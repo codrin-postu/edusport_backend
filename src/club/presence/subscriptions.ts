@@ -24,8 +24,14 @@ export function isValidForList(sub: SubscriptionRow, priceListId: string): boole
   return sub.priceListId === priceListId || sub.validIn.includes(priceListId);
 }
 
+const ascending = (x: string, y: string): number => {
+  if (x === y) return 0;
+  return x < y ? -1 : 1;
+};
+
+/** Expiring first, then earlier start, then earlier purchase; the id keeps the pick the same for any read order. */
 const byUseOrder = (a: SubscriptionRow, b: SubscriptionRow): number =>
-  a.validUntil.localeCompare(b.validUntil) || a.startsOn.localeCompare(b.startsOn) || a.purchasedAt.localeCompare(b.purchasedAt);
+  ascending(a.validUntil, b.validUntil) || ascending(a.startsOn, b.startsOn) || ascending(a.purchasedAt, b.purchasedAt) || ascending(a.id, b.id);
 
 /** The abonamente a Școala attendance on this date may use, in the order they are used (4.10). */
 export function slotCandidates(subs: SubscriptionRow[], used: Map<string, number>, priceListId: string, date: string): SubscriptionRow[] {

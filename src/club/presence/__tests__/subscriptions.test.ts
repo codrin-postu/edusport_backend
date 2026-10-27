@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { SubscriptionRow } from '../types';
-import { abonamentStatusText, pickSubscription, remainingOf, subscriptionState, usedSlots } from '../subscriptions';
-
-const subscriptionRow = (over: Partial<SubscriptionRow> = {}): SubscriptionRow => ({
-  id: 'sub', athleteId: 'a1', seasonId: 's26', priceListId: 'pl-std', validIn: [], itemName: 'Abonament 8 ședințe', price: 320,
-  audience: 'member', slots: 8, startsOn: '2026-10-27', validUntil: '2026-11-23', extendedWeeks: 0, cancelled: false, cancelledAt: null,
-  cancelledBy: null, purchasedAt: '2026-10-27T09:00:00.000Z', recordedBy: 'tm-andreea', ...over,
-});
+import { subscriptionRow } from './fake-store';
+import { abonamentStatusText, pickSubscription, remainingOf, slotCandidates, subscriptionState, usedSlots } from '../subscriptions';
 
 const a = subscriptionRow({ id: 'a', startsOn: '2026-10-27', validUntil: '2026-11-23', purchasedAt: '2026-10-27T09:00:00.000Z' });
 const b = subscriptionRow({ id: 'b', startsOn: '2026-11-01', validUntil: '2026-11-28', purchasedAt: '2026-11-01T09:00:00.000Z' });
@@ -41,6 +35,24 @@ describe('abonament state and slot choice', () => {
   it('used slots are counted from attendance rows (C7)', () => {
     expect([...usedSlots([{ subscriptionId: 'a' }, { subscriptionId: 'a' }, { subscriptionId: null }])]).toEqual([['a', 2]]);
     expect(remainingOf(a, new Map([['a', 3]]))).toBe(5);
+  });
+  it('same validUntil: the earlier start is used before the later one (4.10, second tier)', () => {
+    const early = subscriptionRow({ id: 'e', startsOn: '2026-10-27', validUntil: '2026-11-23', purchasedAt: '2026-11-05T09:00:00.000Z' });
+    const late = subscriptionRow({ id: 'l', startsOn: '2026-11-02', validUntil: '2026-11-23', purchasedAt: '2026-10-01T09:00:00.000Z' });
+    expect(pickSubscription([late, early], none, 'pl-std', '2026-11-05')?.id).toBe('e');
+  });
+  it('identical dates and purchase time: the id decides, whatever the read order (4.10, final tie-break)', () => {
+    const x = subscriptionRow({ id: 'x1', purchasedAt: '2026-10-27T09:00:00.000Z' });
+    const y = subscriptionRow({ id: 'x2', purchasedAt: '2026-10-27T09:00:00.000Z' });
+    expect(pickSubscription([y, x], none, 'pl-std', '2026-11-05')?.id).toBe('x1');
+    expect(pickSubscription([x, y], none, 'pl-std', '2026-11-05')?.id).toBe('x1');
+  });
+  it('a carried Standard used up hands the slot to the Gold abonament (4.11)', () => {
+    expect(pickSubscription([gold, carried], new Map([['c', 8]]), 'pl-gold', '2026-11-05')?.id).toBe('g');
+  });
+  it('slotCandidates drops exhausted and out-of-window abonamente and keeps the order', () => {
+    const full = subscriptionRow({ id: 'f', validUntil: '2026-11-10' });
+    expect(slotCandidates([a, b, full], new Map([['f', 8]]), 'pl-std', '2026-11-05').map((s) => s.id)).toEqual(['a', 'b']);
   });
   it('status under a name (4.10)', () => {
     expect([abonamentStatusText(7), abonamentStatusText(1), abonamentStatusText(null)]).toEqual(['7 ședințe rămase', '1 ședință rămasă', 'Fără abonament']);

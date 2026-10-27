@@ -24,8 +24,8 @@ function chargeFor(list: PriceListRecord, type: PresenceType, audience: Audience
 }
 
 function billingOf(charges: Charge[], billed: Billed[]): ClubBilling {
-  if (charges.length > 0 && charges.every((c) => c.included)) return 'inclus';
-  return billed.length > 0 ? 'club' : 'fara_pret';
+  if (billed.length > 0) return 'club';
+  return charges.some((c) => c.included) ? 'inclus' : 'fara_pret';
 }
 
 export function clubCharges(
