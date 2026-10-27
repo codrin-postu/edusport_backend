@@ -23,9 +23,10 @@ export function nextJobState(job: { attempts: number }, outcome: AttemptOutcome,
   return { status: failed ? 'failed' : 'queued', attempts, lastError: outcome.error.slice(0, MAX_ERROR), sentAt: null, alert: failed };
 }
 
-/** A job the cron may try now: still queued and untouched for `quietMs` (so a running first attempt is not doubled). */
-export function isDue(job: { status: EmailJobStatus; updatedAt: string | null }, now: Date, quietMs: number): boolean {
+/** A job the cron may try now: queued, past its `notBefore` (a schedule change's hold), untouched for `quietMs`. */
+export function isDue(job: { status: EmailJobStatus; updatedAt: string | null; notBefore?: string | null }, now: Date, quietMs: number): boolean {
   if (job.status !== 'queued') return false;
+  if (job.notBefore && Date.parse(job.notBefore) > now.getTime()) return false;
   const updated = job.updatedAt ? Date.parse(job.updatedAt) : 0;
   return now.getTime() - updated >= quietMs;
 }

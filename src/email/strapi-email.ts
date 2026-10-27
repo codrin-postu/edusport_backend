@@ -5,11 +5,16 @@
 import { readFile } from 'node:fs/promises';
 import type { Core } from '@strapi/strapi';
 import { buildRegistrationDocuments, listRegistrationDocuments } from '../club/documents';
+import { isIsoDate } from '../club/groups/dates';
+import { SCHEDULE_HOLD_MS } from '../club/groups/schedule-mail';
+import type { ScheduleChangePayload } from '../club/groups/types';
 import { recordHistory } from '../club/history';
+import { isRecord } from '../club/narrow';
 import { captureMessage } from '../sentry';
 import { sendWithBrevo } from './brevo';
 import { readEmailConfig, type EmailConfig } from './config';
 import {
+  attemptJob,
   queueRegistrationEmail,
   retryDueJobs,
   type EmailDeps,
@@ -38,10 +43,17 @@ type RawJob = {
   sentAt?: unknown;
   updatedAt?: unknown;
   registration?: { documentId?: string } | null;
+  kind?: string | null;
+  payload?: unknown;
+  notBefore?: unknown;
 };
 
 const iso = (value: unknown): string | null =>
   value instanceof Date ? value.toISOString() : typeof value === 'string' && value ? value : null;
+
+/** The stored payload when it has the shape the template needs, else null (the job then fails at once). */
+const payloadOf = (v: unknown): ScheduleChangePayload | null =>
+  isRecord(v) && typeof v.groupName === 'string' && isIsoDate(v.date) && typeof v.startTime === 'string' && (v.mode === 'cancel' || v.mode === 'move') ? (v as ScheduleChangePayload) : null;
 
 export function toJobRow(raw: RawJob): EmailJobRow {
   return {
@@ -54,6 +66,9 @@ export function toJobRow(raw: RawJob): EmailJobRow {
     lastError: raw.lastError ?? null,
     sentAt: iso(raw.sentAt),
     updatedAt: iso(raw.updatedAt),
+    kind: raw.kind === 'schedule-change' ? 'schedule-change' : 'registration',
+    payload: payloadOf(raw.payload),
+    notBefore: iso(raw.notBefore),
   };
 }
 
@@ -131,4 +146,17 @@ export async function deleteRegistrationEmailJobs(strapi: Core.Strapi, registrat
 /** Hourly cron entry (config/cron-tasks.ts). */
 export function retryRegistrationEmails(strapi: Core.Strapi): Promise<RetrySummary> {
   return retryDueJobs(buildEmailDeps(strapi));
+}
+
+async function attemptChange(strapi: Core.Strapi, changeKey: string): Promise<void> {
+  const deps = buildEmailDeps(strapi);
+  const rows = await strapi.documents(JOB_UID).findMany({ filters: { changeKey, status: 'queued' }, populate: POPULATE, limit: 1000 });
+  for (const raw of rows) await attemptJob(deps, toJobRow(raw as unknown as RawJob));
+}
+
+/** The first attempt of a schedule change's e-mails once the hold is over (spec 6.5); the hourly cron retries. */
+export function attemptScheduleChangeJobs(strapi: Core.Strapi, changeKey: string, delayMs = SCHEDULE_HOLD_MS + 1000): void {
+  setTimeout(() => {
+    attemptChange(strapi, changeKey).catch((err) => strapi.log.error(`[email-job] schedule change ${changeKey} crashed: ${err instanceof Error ? err.message : String(err)}`));
+  }, delayMs);
 }

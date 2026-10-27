@@ -80,7 +80,7 @@ function contactLines(links: EmailLinks): string[] {
 }
 
 /** The CLUBUL SPORTIV / EDUSPORT image; as text when no image address is configured (CMS_PUBLIC_URL unset). */
-function brandHtml(headerImage: string | null): string {
+export function brandHtml(headerImage: string | null): string {
   if (headerImage) {
     return `<img src="${escapeHtml(headerImage)}" width="176" height="32" alt="Clubul Sportiv EduSport" style="display:block;border:0;outline:none;text-decoration:none;">`;
   }
@@ -174,25 +174,25 @@ const HEAD =
   '.es-gap{display:block!important;width:100%!important;height:10px!important}}' +
   '</style></head>';
 
-function letterHtml(input: RegistrationEmailInput): string {
-  return (
-    `<tr><td width="6" bgcolor="${NAVY}" style="width:6px;background:${NAVY};font-size:0;line-height:0;">&nbsp;</td>` +
-    `<td class="es-pad" style="padding:36px;font-family:${FONT};font-size:14px;line-height:1.5;color:#1b1d22;">` +
-    headerHtml(input) + introHtml(input) + stepsHtml(input.documents) + buttonsHtml(input.links) + signOffHtml() +
-    '</td></tr>'
-  );
-}
-
-export function registrationHtml(input: RegistrationEmailInput): string {
+/** The E1 letter around `bodyHtml`: navy left bar, white letter, the contact footer (registration and schedule e-mails). */
+export function emailPage(bodyHtml: string, links: EmailLinks): string {
   return (
     `<!DOCTYPE html><html lang="ro">${HEAD}<body style="margin:0;padding:0;background:#f3f4f6;">` +
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f4f6"><tr><td align="center" style="padding:24px 12px;">' +
     '<table role="presentation" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width:100%;max-width:600px;background:#ffffff;">' +
-    letterHtml(input) +
-    `<tr>${footerHtml(input.links)}</tr>` +
+    `<tr><td width="6" bgcolor="${NAVY}" style="width:6px;background:${NAVY};font-size:0;line-height:0;">&nbsp;</td>` +
+    `<td class="es-pad" style="padding:36px;font-family:${FONT};font-size:14px;line-height:1.5;color:#1b1d22;">${bodyHtml}</td></tr>` +
+    `<tr>${footerHtml(links)}</tr>` +
     '</table></td></tr></table></body></html>'
   );
 }
+
+export function registrationHtml(input: RegistrationEmailInput): string {
+  return emailPage(headerHtml(input) + introHtml(input) + stepsHtml(input.documents) + buttonsHtml(input.links) + signOffHtml(), input.links);
+}
+
+/** The footer as plain text: contact lines, then the privacy notice. */
+export const footerText = (links: EmailLinks): string[] => [contactLines(links).join('\n'), `${NOTICE_START}${displayUrl(links.site)}${NOTICE_END}${PRIVACY}: ${links.privacy}`];
 
 export function registrationText(input: RegistrationEmailInput): string {
   const steps = nextSteps(input.documents).map((s, i) => `${i + 1}. ${s.title}\n   ${s.text}`);
@@ -205,8 +205,7 @@ export function registrationText(input: RegistrationEmailInput): string {
     ['Ce urmează', ...steps].join('\n'),
     buttons.filter(Boolean).join('\n'),
     SIGN_OFF.join('\n'),
-    contactLines(input.links).join('\n'),
-    `${NOTICE_START}${displayUrl(input.links.site)}${NOTICE_END}${PRIVACY}: ${input.links.privacy}`,
+    ...footerText(input.links),
   ].join('\n\n') + '\n';
 }
 

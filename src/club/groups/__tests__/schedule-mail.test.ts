@@ -1,0 +1,59 @@
+import { describe, expect, it } from 'vitest';
+import { changedStartTime, nextClass, recipients, schedulePayload, scheduleJobs } from '../schedule-mail';
+import { athleteRow, event, member } from './fake-group-store';
+
+const ATHLETES = [
+  athleteRow({ id: 'a1', email: ' Parinte.Ionescu@Example.com ' }), athleteRow({ id: 'a2', email: 'parinte.ionescu@example.com' }),
+  athleteRow({ id: 'a3', email: 'stan@example.com', status: 'inactiv' }), athleteRow({ id: 'a4', email: 'anon@example.com', status: 'anonimizat' }),
+  athleteRow({ id: 'a5', email: 'ended@example.com' }), athleteRow({ id: 'a6', email: '' }), athleteRow({ id: 'a7', email: 'other@example.com' }),
+];
+const ROWS = [
+  member({ id: 'm1', athleteId: 'a1', groupId: 'g-ib' }), member({ id: 'm2', athleteId: 'a2', groupId: 'g-ib', isMain: false }),
+  member({ id: 'm3', athleteId: 'a3', groupId: 'g-ib' }), member({ id: 'm4', athleteId: 'a4', groupId: 'g-ib' }),
+  member({ id: 'm5', athleteId: 'a5', groupId: 'g-ib', to: '2026-10-31' }), member({ id: 'm6', athleteId: 'a6', groupId: 'g-ib' }),
+  member({ id: 'm7', athleteId: 'a7', groupId: 'g-ib', seasonId: 's25' }),
+];
+
+describe('recipients (6.5, W7)', () => {
+  it('current members of the season, Nou and Activ, trimmed, lower case, each address once', () => {
+    expect(recipients(ATHLETES, ROWS, 'g-ib', 's26')).toEqual(['parinte.ionescu@example.com']);
+  });
+});
+
+describe('next class (W33)', () => {
+  const e = event({ id: 'e1', exceptions: [{ date: '2026-11-15', kind: 'anulat', newDate: null, newStartTime: null, newEndTime: null, newTitle: null, reason: null }] });
+
+  it('is the first held class after the date, skipping cancelled dates and breaks', () => {
+    expect(nextClass([e], [], 'g-ib', '2026-11-14', '2027-05-31')).toEqual({ date: '2026-11-21', startTime: '11:00' });
+    expect(nextClass([e], [{ id: 'b', label: 'Pauză', startDate: '2026-11-21', endDate: '2026-11-22' }], 'g-ib', '2026-11-14', '2027-05-31')).toEqual({ date: '2026-11-28', startTime: '11:00' });
+  });
+
+  it('is null after the season\'s last class', () => {
+    expect(nextClass([e], [], 'g-ib', '2027-05-31', '2027-05-31')).toBeNull();
+  });
+});
+
+describe('payload and jobs', () => {
+  const e = event({ id: 'e1', exceptions: [{ date: '2026-11-21', kind: 'override', newDate: '2026-11-22', newStartTime: '12:00', newEndTime: '12:50', newTitle: null, reason: null }] });
+
+  it('the changed date keeps the time it had (decided 3)', () => {
+    expect(changedStartTime(e, '2026-11-21')).toBe('12:00');
+    expect(changedStartTime(e, '2026-11-14')).toBe('11:00');
+  });
+
+  it('a cancel carries the next class, a move does not', () => {
+    expect(schedulePayload('Intermediari Bronze', e, '2026-11-14', { mode: 'cancel', reason: null }, { date: '2026-11-15', startTime: '11:00' })).toEqual({
+      groupName: 'Intermediari Bronze', date: '2026-11-14', startTime: '11:00', mode: 'cancel', newDate: null, newStartTime: null, nextDate: '2026-11-15', nextStartTime: '11:00', reason: null,
+    });
+    expect(schedulePayload('Intermediari Bronze', e, '2026-11-14', { mode: 'move', newDate: '2026-11-15', newStartTime: '12:00', reason: 'Gheață' }, null))
+      .toMatchObject({ mode: 'move', newDate: '2026-11-15', newStartTime: '12:00', nextDate: null, reason: 'Gheață' });
+  });
+
+  it('one job per address, held 15 seconds, keyed by the change', () => {
+    const payload = schedulePayload('Intermediari Bronze', e, '2026-11-14', { mode: 'cancel', reason: null }, null);
+    expect(scheduleJobs(['a@example.com', 'b@example.com'], payload, 'g-ib', 'h7', new Date('2026-11-20T10:00:00.000Z'))).toEqual([
+      { recipient: 'a@example.com', subject: 'Intermediari Bronze: ședința de sâmbătă, 14 noiembrie, se anulează', groupId: 'g-ib', changeKey: 'h7', notBefore: '2026-11-20T10:00:15.000Z', payload },
+      { recipient: 'b@example.com', subject: 'Intermediari Bronze: ședința de sâmbătă, 14 noiembrie, se anulează', groupId: 'g-ib', changeKey: 'h7', notBefore: '2026-11-20T10:00:15.000Z', payload },
+    ]);
+  });
+});
