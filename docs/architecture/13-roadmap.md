@@ -24,6 +24,10 @@ Tracks the phases of `10-spec.md` section 7. Update the status line of a phase w
 - [ ] Deploy window per runbook (user approves each step)
 - [ ] Visual snapshots: review changed crops of /, /cursuri, /inscrieri, then re-record
 
+## Phase 4 go-live
+
+- [ ] Deploy and migration per `14-phase4-deploy-runbook.md` (after the phase 2 + 3 window; step 0 SQL on a production copy first)
+
 ## Small open items
 
 - [x] Admin stat tiles keep the left band (decided 2026-10-26)
