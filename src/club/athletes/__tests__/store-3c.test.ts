@@ -67,6 +67,20 @@ describe('Strapi store, 3C writes', () => {
     expect(none).toEqual([]);
   });
 
+  it('clears the schedule-change jobs of the given addresses (case-insensitive, kind-bound); a queued job is cancelled', async () => {
+    const calls: Call[] = [];
+    const strapi = recordingStrapi(calls, { [JOB]: [{ id: 7, status: 'queued' }, { id: 8, status: 'sent' }] });
+    await strapiClubStore(strapi).scrubScheduleEmailJobs(['dana@example.com', 'x@example.com']);
+    expect(calls).toEqual([
+      [JOB, 'findMany', { where: { kind: 'schedule-change', $or: [{ recipient: { $eqi: 'dana@example.com' } }, { recipient: { $eqi: 'x@example.com' } }] }, select: ['id', 'status'], limit: 100000 }],
+      [JOB, 'update', { where: { id: 7 }, data: { recipient: null, subject: null, lastError: null, status: 'cancelled' } }],
+      [JOB, 'update', { where: { id: 8 }, data: { recipient: null, subject: null, lastError: null, status: 'sent' } }],
+    ]);
+    const none: Call[] = [];
+    await strapiClubStore(recordingStrapi(none)).scrubScheduleEmailJobs([]);
+    expect(none).toEqual([]);
+  });
+
   it('lists the registrations of anonymized athletes and the raw rows of one athlete', async () => {
     const calls: Call[] = [];
     const strapi = recordingStrapi(calls, { [REG]: [{ documentId: 'r1', childName: 'Anonimizat' }] });

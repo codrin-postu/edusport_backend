@@ -7,7 +7,7 @@ import type { EmailJobStore } from './email-jobs';
 
 type JobForCell = { status?: unknown; sentAt?: unknown; createdAt?: unknown };
 
-const STATUS_TEXT: Record<string, string> = { queued: 'Urmează să fie trimis', failed: 'Netrimis', cancelled: 'Netrimis' };
+const STATUS_TEXT: Record<string, string> = { queued: 'Urmează să fie trimis', sending: 'Urmează să fie trimis', failed: 'Netrimis', cancelled: 'Netrimis' };
 
 const time = (value: unknown): number => {
   const t = value instanceof Date ? value.getTime() : typeof value === 'string' ? Date.parse(value) : NaN;
@@ -48,6 +48,12 @@ export function sheetSyncedStore(store: EmailJobStore, refreshRow: (registration
   return {
     create: async (job) => notify(await store.create(job)),
     update: async (documentId, data) => notify(await store.update(documentId, data)),
+    claim: (documentId) => store.claim(documentId),
+    finish: async (documentId, data) => {
+      const row = await store.finish(documentId, data);
+      return row ? notify(row) : null;
+    },
+    failStuck: (before, error) => store.failStuck(before, error),
     findById: store.findById ? (documentId) => store.findById!(documentId) : undefined,
     findQueued: (limit) => store.findQueued(limit),
     findLatest: (registrationDocumentId) => store.findLatest(registrationDocumentId),

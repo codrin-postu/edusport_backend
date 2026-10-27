@@ -39,6 +39,24 @@ describe('groups (3.3)', () => {
     ]);
   });
 
+  it('a date moved INTO the window from before it shows; one moved OUT past the end never appears (I3)', () => {
+    const moved = ev({ group: GROUP, exceptions: [
+      { date: '2026-10-31', kind: 'override', newDate: '2026-11-03', newStartTime: '12:00:00.000', newEndTime: '12:50:00.000' },
+      { date: '2026-11-14', kind: 'override', newDate: '2026-11-18', newStartTime: '12:00:00.000', newEndTime: '12:50:00.000' },
+    ] });
+    const nov = expandOccurrences([moved], [], '2026-11-01', '2026-11-15');
+    expect(nov.map((o) => [o.date, o.status, o.originalDate])).toEqual([
+      ['2026-11-01', 'scheduled', null], ['2026-11-03', 'override', '2026-10-31'], ['2026-11-07', 'scheduled', null], ['2026-11-08', 'scheduled', null], ['2026-11-15', 'scheduled', null],
+    ]);
+    expect(nov.every((o) => o.date >= '2026-11-01' && o.date <= '2026-11-15')).toBe(true);
+    expect(expandOccurrences([moved], [], '2026-10-31', '2026-10-31')).toEqual([]);
+  });
+
+  it('a moved date whose original is not a class date of the series is not invented', () => {
+    const odd = ev({ group: GROUP, exceptions: [{ date: '2026-10-28', kind: 'override', newDate: '2026-11-03', newStartTime: '12:00:00.000', newEndTime: '12:50:00.000' }] });
+    expect(expandOccurrences([odd], [], '2026-11-02', '2026-11-04')).toEqual([]);
+  });
+
   it('a cancelled date notes its reason, old notes still read (3.4, W12)', () => {
     const cancelled = ev({ exceptions: [{ date: '2026-11-14', kind: 'anulat', reason: 'Competiție la Brașov' }, { date: '2026-11-15', kind: 'liber', newTitle: 'Vechi' }] });
     const list = expandOccurrences([cancelled], [], '2026-11-14', '2026-11-15');

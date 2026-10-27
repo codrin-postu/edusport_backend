@@ -7,6 +7,8 @@ import {
   RECIPIENT_DAILY_CAP,
   RESEND_ACTION,
   RESEND_ERRORS,
+  STUCK_SENDING_ERROR,
+  STUCK_SENDING_MS,
   attemptJob,
   queueRegistrationEmail,
   registrationEmailStatus,
@@ -74,6 +76,18 @@ function fakeDeps(options: Options = {}) {
         return row;
       },
       update: async (id: string, data: JobUpdate) => save({ ...jobs.get(id)!, ...data, updatedAt: NOW.toISOString() }),
+      claim: async (id: string) => {
+        const row = jobs.get(id);
+        if (row?.status !== 'queued') return false;
+        save({ ...row, status: 'sending', updatedAt: NOW.toISOString() });
+        return true;
+      },
+      finish: async (id: string, data: JobUpdate) => (jobs.get(id)?.status === 'sending' ? save({ ...jobs.get(id)!, ...data, updatedAt: NOW.toISOString() }) : null),
+      failStuck: async (before: Date, error: string) => {
+        const stuck = [...jobs.values()].filter((j) => j.status === 'sending' && Date.parse(j.updatedAt!) < before.getTime());
+        for (const j of stuck) save({ ...j, status: 'failed', lastError: error });
+        return stuck.length;
+      },
       findQueued: async () => [...jobs.values()].filter((j) => j.status === 'queued'),
       findLatest: async (regId: string) => [...jobs.values()].filter((j) => j.registrationDocumentId === regId).pop() ?? null,
       countForRecipientSince: async (recipient: string, since: Date) =>
@@ -283,14 +297,14 @@ describe('retries', () => {
     age(first!.documentId);
     age(second!.documentId);
     const logs: string[] = [];
-    const update = deps.jobs.update;
+    const finish = deps.jobs.finish;
     const flaky: EmailDeps = {
       ...deps,
       jobs: {
         ...deps.jobs,
-        update: async (id, data) => {
+        finish: async (id, data) => {
           if (id === first!.documentId) throw new Error('row gone');
-          return update(id, data);
+          return finish(id, data);
         },
       },
       log: (level, m) => {
@@ -305,9 +319,27 @@ describe('retries', () => {
   it('fails a job whose registration was deleted, without an alert', async () => {
     const { deps, alerts } = fakeDeps();
     const row: EmailJobRow = { documentId: 'job-x', recipient: 'p@example.ro', subject: 's', registrationDocumentId: null, status: 'queued', attempts: 2, lastError: null, sentAt: null, updatedAt: LONG_AGO };
-    const updated = await attemptJob({ ...deps, jobs: { ...deps.jobs, update: async (_id, data) => ({ ...row, ...data }) } }, row);
+    const updated = await attemptJob({ ...deps, jobs: { ...deps.jobs, claim: async () => true, finish: async (_id, data) => ({ ...row, ...data }) } }, row);
     expect(updated).toMatchObject({ status: 'failed', attempts: 2, lastError: 'registration deleted' });
     expect(alerts).toEqual([]);
+  });
+
+  it('the cron fails a job stuck in sending for over 10 minutes and never resends it', async () => {
+    const { deps, jobs, sent } = fakeDeps();
+    const job = await deps.jobs.create({ recipient: 'p@example.ro', subject: 's', registrationDocumentId: 'reg-1' });
+    await deps.jobs.claim(job.documentId);
+    jobs.set(job.documentId, { ...jobs.get(job.documentId)!, updatedAt: new Date(NOW.getTime() - STUCK_SENDING_MS - 1000).toISOString() });
+    await retryDueJobs(deps);
+    expect(jobs.get(job.documentId)).toMatchObject({ status: 'failed', lastError: STUCK_SENDING_ERROR });
+    expect(sent).toEqual([]);
+  });
+
+  it('the cron leaves a job that started sending a moment ago alone', async () => {
+    const { deps, jobs } = fakeDeps();
+    const job = await deps.jobs.create({ recipient: 'p@example.ro', subject: 's', registrationDocumentId: 'reg-1' });
+    await deps.jobs.claim(job.documentId);
+    await retryDueJobs(deps);
+    expect(jobs.get(job.documentId)!.status).toBe('sending');
   });
 
   it('leaves sent and failed jobs alone', async () => {

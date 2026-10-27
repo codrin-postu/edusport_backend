@@ -117,6 +117,24 @@ describe('anonymize one athlete (spec 4)', () => {
     ]);
   });
 
+  it('clears the schedule-change e-mail jobs addressed to the athlete\'s contact e-mails (any case), and only those', async () => {
+    const jobs = [
+      { id: 's1', registrationId: null, recipient: 'dana@example.com', subject: 'Primii Pași: ședința de sâmbătă, se anulează', status: 'sent', lastError: null, kind: 'schedule-change' as const },
+      { id: 's2', registrationId: null, recipient: 'Dana@Example.com', subject: 'Primii Pași: ședința de sâmbătă, se mută', status: 'queued', lastError: null, kind: 'schedule-change' as const },
+      { id: 's3', registrationId: null, recipient: 'dana@example.com', subject: 'x', status: 'failed', lastError: 'Brevo 400: invalid dana@example.com', kind: 'schedule-change' as const },
+      { id: 's4', registrationId: null, recipient: 'irina@example.com', subject: 'x', status: 'queued', lastError: null, kind: 'schedule-change' as const },
+    ];
+    const { fake, ctx, logs } = setup({ ...seed(), emailJobs: [...seed().emailJobs!, ...jobs] });
+    await anonymizeAthlete(ctx, 'a1');
+    expect(fake.state.emailJobs.filter((j) => j.kind === 'schedule-change')).toEqual([
+      { ...jobs[0], recipient: null, subject: null },
+      { ...jobs[1], recipient: null, subject: null, status: 'cancelled' },
+      { ...jobs[2], recipient: null, subject: null, lastError: null },
+      jobs[3],
+    ]);
+    expect(logs.join('\n')).not.toContain('dana@example.com');
+  });
+
   it('locks registrations (linked and matched) before the athlete, then removes the PDF folders after the commit', async () => {
     const { fake, ctx, removed } = setup();
     await anonymizeAthlete(ctx, 'a1');

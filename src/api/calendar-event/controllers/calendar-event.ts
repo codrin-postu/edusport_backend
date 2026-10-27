@@ -1,20 +1,12 @@
 import { factories } from '@strapi/strapi';
 import { SCHEDULE_ERRORS } from '../../../club/groups/copy';
-import { calendarRows, eventGroupName, groupNameOf, publicWindow, readRange } from '../../../club/groups/occurrences';
-import { isRecord } from '../../../club/narrow';
+import { calendarRows, eventGroupName, publicWindow, readRange, refuseGroupKey } from '../../../club/groups/occurrences';
 import { validateRecurrence } from '../services/validate-recurrence';
 
 /** A group event is changed from the group page only (phase 4 spec W18): the 409 message when the event belongs to a group. */
 async function refuseGroupEvent(documentId: string): Promise<string | null> {
   const owner = await eventGroupName(strapi, documentId);
   return owner ? SCHEDULE_ERRORS.groupEvent(owner) : null;
-}
-
-/** These routes never set or change an event's group, whatever the shape of the `group` key (F6): the 409 message when it is there. */
-async function refuseGroupKey(data: unknown): Promise<string | null> {
-  if (!isRecord(data) || !('group' in data)) return null;
-  const owner = typeof data.group === 'string' ? await groupNameOf(strapi, data.group) : null;
-  return owner ? SCHEDULE_ERRORS.groupEvent(owner) : SCHEDULE_ERRORS.groupKey;
 }
 
 export default factories.createCoreController('api::calendar-event.calendar-event', ({ strapi }) => ({
@@ -51,7 +43,7 @@ export default factories.createCoreController('api::calendar-event.calendar-even
 
   async createEvent(ctx) {
     const data = (ctx.request.body as any)?.data ?? ctx.request.body;
-    const keyRefusal = await refuseGroupKey(data);
+    const keyRefusal = await refuseGroupKey(strapi, data);
     if (keyRefusal) return ctx.conflict(keyRefusal);
     // Validated here as well as in the model lifecycle: this is the route the
     // Program editor actually posts to, so a clear 400 gets back to the form
@@ -71,7 +63,7 @@ export default factories.createCoreController('api::calendar-event.calendar-even
   async updateEvent(ctx) {
     const { documentId } = ctx.params;
     const data = (ctx.request.body as any)?.data ?? ctx.request.body;
-    const eventRefusal = (await refuseGroupEvent(documentId)) ?? (await refuseGroupKey(data));
+    const eventRefusal = (await refuseGroupEvent(documentId)) ?? (await refuseGroupKey(strapi, data));
     if (eventRefusal) return ctx.conflict(eventRefusal);
     if (data && 'recurrence' in data) {
       try {

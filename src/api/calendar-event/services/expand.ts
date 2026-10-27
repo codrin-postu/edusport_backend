@@ -231,14 +231,31 @@ function toOccurrence(ev: CalendarEventRow, s: Slot): Occurrence {
 type Break = { label: string; start: Date; end: Date };
 const breakAt = (breaks: Break[], d: Date): string | null => breaks.find((b) => d >= b.start && d <= b.end)?.label ?? null;
 
+const inRange = (day: string, range: Range): boolean => day >= ymd(range.start) && day <= ymd(range.end);
+
+/** Series dates inside the range, plus the dates of a series class moved INTO the range from outside it (kept only if the original is a class date). */
+function sourceDates(ev: CalendarEventRow, range: Range): Date[] {
+  const recurrence = ev.recurrence as Recurrence;
+  const dates = datesOf(recurrence, range);
+  const have = new Set(dates.map(ymd));
+  const movedIn = (ev.exceptions ?? []).filter((x) => x.kind === 'override' && x.newDate && inRange(x.newDate, range) && !have.has(x.date));
+  for (const x of movedIn) {
+    const own = parseYMD(x.date);
+    if (datesOf(recurrence, { start: own, end: own }).length) dates.push(own);
+  }
+  return dates;
+}
+
 function eventOccurrences(ev: CalendarEventRow, breaks: Break[], range: Range): Occurrence[] {
   if (!ev.recurrence) return [];
   const byDate = new Map((ev.exceptions ?? []).map((x) => [x.date, x]));
   const applies = breakApplies(ev);
-  return datesOf(ev.recurrence, range).map((d) => {
-    const slot = applyException(baseSlot(ev, ymd(d)), byDate.get(ymd(d)));
-    return toOccurrence(ev, applyBreak(slot, applies ? breakAt(breaks, d) : null));
-  });
+  return sourceDates(ev, range)
+    .map((d) => {
+      const slot = applyException(baseSlot(ev, ymd(d)), byDate.get(ymd(d)));
+      return toOccurrence(ev, applyBreak(slot, applies ? breakAt(breaks, d) : null));
+    })
+    .filter((o) => inRange(o.date, range));
 }
 
 const byDateThenTime = (a: Occurrence, b: Occurrence): number =>

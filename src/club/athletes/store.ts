@@ -37,7 +37,7 @@ export type AthleteWrite = Partial<AthleteValues & {
   status: AthleteStatus; dataIncomplete: boolean; profileId: string | null; notes: string | null; firstName: null; lastName: null; anonymizedAt: string | null;
 }>;
 /** One e-mail job as the 3C tests see it (fake state); the services only call `scrubEmailJobs`. */
-export type ClubEmailJob = { id: string; registrationId: string | null; recipient: string | null; subject: string | null; status: string; lastError: string | null };
+export type ClubEmailJob = { id: string; registrationId: string | null; recipient: string | null; subject: string | null; status: string; lastError: string | null; kind?: 'registration' | 'schedule-change' };
 
 export interface ClubStore {
   /** All writes inside `work` are saved together or not at all. */
@@ -99,6 +99,8 @@ export interface ClubStore {
   scrubRegistration(id: string, data: RegistrationScrub): Promise<void>;
   /** E-mail jobs of these registrations: recipient, subject and lastError cleared, a queued job cancelled. */
   scrubEmailJobs(registrationIds: string[]): Promise<void>;
+  /** Schedule-change e-mail jobs (no registration link) whose recipient is one of these addresses, compared without case: same scrub as `scrubEmailJobs`. */
+  scrubScheduleEmailJobs(addresses: string[]): Promise<void>;
   /** site-settings.personalData as stored (read it with `readPersonalDataSettings`). */
   personalDataSettings(): Promise<unknown>;
   savePersonalDataSettings(value: PersonalDataSettings): Promise<void>;

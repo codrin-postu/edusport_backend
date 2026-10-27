@@ -1,5 +1,7 @@
 import type { Core } from '@strapi/strapi';
 import { expandOccurrences, publicEvents, type BlackoutRow, type CalendarEventRow, type Occurrence } from '../../api/calendar-event/services/expand';
+import { isRecord } from '../narrow';
+import { SCHEDULE_ERRORS } from './copy';
 import { isIsoDate } from './dates';
 
 /** Occurrence reads (spec 8.2, 8.3): rows from Strapi, the expansion, then the public or the admin view. */
@@ -49,4 +51,11 @@ export async function eventGroupName(strapi: Core.Strapi, documentId: string): P
 export async function groupNameOf(strapi: Core.Strapi, groupDocumentId: string): Promise<string | null> {
   const g = await strapi.documents(GROUP).findOne({ documentId: groupDocumentId, fields: ['name'] });
   return g ? String(g.name) : null;
+}
+
+/** The old calendar routes never set or change an event's group, whatever the shape of the `group` key (F6): the 409 message when it is there. */
+export async function refuseGroupKey(strapi: Core.Strapi, data: unknown): Promise<string | null> {
+  if (!isRecord(data) || !('group' in data)) return null;
+  const owner = typeof data.group === 'string' ? await groupNameOf(strapi, data.group) : null;
+  return owner ? SCHEDULE_ERRORS.groupEvent(owner) : SCHEDULE_ERRORS.groupKey;
 }

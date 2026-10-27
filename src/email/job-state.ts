@@ -1,9 +1,11 @@
 /**
  * E-mail job state machine.
  *
- *   queued --attempt ok--------------------------------> sent
- *   queued --attempt failed, attempts < MAX_ATTEMPTS---> queued (retried by the hourly cron)
- *   queued --attempt failed, attempts = MAX_ATTEMPTS---> failed (+ GlitchTip alert)
+ *   queued --claimed by the sender---------------------> sending (one conditional write; a cancel or a second sender then finds it taken)
+ *   sending --attempt ok--------------------------------> sent
+ *   sending --attempt failed, attempts < MAX_ATTEMPTS---> queued (retried by the hourly cron)
+ *   sending --attempt failed, attempts = MAX_ATTEMPTS---> failed (+ GlitchTip alert)
+ *   sending for longer than STUCK_SENDING_MS (a crash)--> failed (the cron; never sent again, the first send may have gone out)
  *
  * A skipped attempt (no Brevo key, no sender, no test address) is not an attempt:
  * the job stays queued with its counter unchanged, so nothing is lost.
@@ -11,7 +13,7 @@
 export const MAX_ATTEMPTS = 5;
 const MAX_ERROR = 500;
 
-export type EmailJobStatus = 'queued' | 'sent' | 'failed' | 'cancelled';
+export type EmailJobStatus = 'queued' | 'sending' | 'sent' | 'failed' | 'cancelled';
 export type AttemptOutcome = { ok: true } | { ok: false; error: string };
 export type JobState = { status: EmailJobStatus; attempts: number; lastError: string | null; sentAt: string | null };
 export type Transition = JobState & { alert: boolean };

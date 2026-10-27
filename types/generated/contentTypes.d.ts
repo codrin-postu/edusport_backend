@@ -1081,7 +1081,7 @@ export interface ApiEmailJobEmailJob extends Struct.CollectionTypeSchema {
     >;
     sentAt: Schema.Attribute.DateTime;
     status: Schema.Attribute.Enumeration<
-      ['queued', 'sent', 'failed', 'cancelled']
+      ['queued', 'sending', 'sent', 'failed', 'cancelled']
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'queued'>;

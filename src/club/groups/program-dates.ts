@@ -18,13 +18,22 @@ type Spot = { e: EventRecord; group: GroupRecord; season: SeasonRecord };
 
 const inBreak = (store: GroupStore, date: string): Promise<boolean> => store.breaks().then((list) => list.some((b) => b.startDate <= date && date <= b.endDate));
 
-/** The locked event (group first), its group and the (not past) season of the date; the date must be a class date outside a Pauză. */
-async function spotOf(store: GroupStore, eventId: string, date: string): Promise<AdminResult<Spot>> {
-  const e = await lockedEvent(store, eventId);
-  const group = e?.groupId ? await store.group(e.groupId) : null;
+/** The season of the date locked first (a concurrent season switch waits), then read again: it must still be a season that is not past. */
+async function lockedSeason(store: GroupStore, date: string): Promise<SeasonRecord | null> {
+  const first = seasonOf(await store.seasons(), date);
+  if (!first) return null;
+  await store.lockSeason(first.id);
   const seasons = await store.seasons();
   const season = seasonOf(seasons, date);
-  if (!e || !group || !season || isPastSeason(season, seasons)) return refuse(409, GROUP_ERRORS.stale);
+  return season && season.id === first.id && !isPastSeason(season, seasons) ? season : null;
+}
+
+/** The locked season, then the event (group first), its group; the date must be a class date outside a Pauză. */
+async function spotOf(store: GroupStore, eventId: string, date: string): Promise<AdminResult<Spot>> {
+  const season = await lockedSeason(store, date);
+  const e = season ? await lockedEvent(store, eventId) : null;
+  const group = e?.groupId ? await store.group(e.groupId) : null;
+  if (!e || !group || !season) return refuse(409, GROUP_ERRORS.stale);
   if (!isClassDate(e, date) || (await inBreak(store, date))) return refuse(400, GROUP_ERRORS.invalid);
   return { ok: true, data: { e, group, season } };
 }
@@ -36,7 +45,9 @@ function dateLine(groupId: string, date: string, m: DateMode, emails: number): L
   return { ...base, action: P4_ACTIONS.dateMoved, changes: { date, newDate: m.newDate, newStartTime: m.newStartTime, reason: m.reason, emails } };
 }
 
-const same = (a: ExceptionRow[], b: ExceptionRow[]): boolean => JSON.stringify(a) === JSON.stringify(b);
+const canonical = (rows: ExceptionRow[]): string[] => rows.map((r) => JSON.stringify(r, Object.keys(r).sort())).sort();
+/** The same exceptions whatever their order: re-saving an unchanged state is a no-op. */
+const same = (a: ExceptionRow[], b: ExceptionRow[]): boolean => JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
 
 async function addressesOf(store: GroupStore, spot: Spot): Promise<string[]> {
   const [athletes, memberships] = await Promise.all([store.athletes(), store.memberships({ groupId: spot.group.id, seasonId: spot.season.id })]);

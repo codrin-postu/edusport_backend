@@ -70,7 +70,7 @@ export function toJobRow(raw: RawJob): EmailJobRow {
   };
 }
 
-function jobStore(strapi: Core.Strapi): EmailJobStore {
+export function jobStore(strapi: Core.Strapi): EmailJobStore {
   const jobs = () => strapi.documents(JOB_UID);
   return {
     create: async (job) =>
@@ -85,6 +85,15 @@ function jobStore(strapi: Core.Strapi): EmailJobStore {
       const raw = await jobs().findOne({ documentId, populate: POPULATE });
       return raw ? toJobRow(raw) : null;
     },
+    claim: async (documentId) => (await strapi.db.query(JOB_UID).updateMany({ where: { documentId, status: 'queued' }, data: { status: 'sending', updatedAt: new Date() } })).count === 1,
+    finish: async (documentId, data) => {
+      const { count } = await strapi.db.query(JOB_UID).updateMany({ where: { documentId, status: 'sending' }, data: { ...data, updatedAt: new Date() } });
+      if (count !== 1) return null;
+      const raw = await jobs().findOne({ documentId, populate: POPULATE });
+      return raw ? toJobRow(raw) : null;
+    },
+    failStuck: async (before, error) =>
+      (await strapi.db.query(JOB_UID).updateMany({ where: { status: 'sending', updatedAt: { $lt: before.toISOString() } }, data: { status: 'failed', lastError: error, updatedAt: new Date() } })).count,
     findQueued: async (limit) =>
       (await jobs().findMany({ filters: { status: 'queued' }, sort: 'updatedAt:asc', limit, populate: POPULATE })).map(toJobRow),
     findLatest: async (registrationDocumentId) => {
