@@ -53,6 +53,7 @@ Never 55442, 1337, 1340, 3010, 5432, `strapi_app`, `strapi_db`, `edusport-test-p
 6. Abonamente running on paper: added with "Adaugă abonament" and their real start date.
 7. Production checks: Prezență today, one group tab, Abonamente, Plăți, De încasat, Pe antrenori; nothing on the public website changes.
 8. Diagrams updated: 03b, 03c, 04c, 04d, 05c, 02f, 02g.
+9. After deploy, check the six phase 5 indexes exist (`\di club_*`) because bootstrap only logs a failure.
 
 No data migration script (spec 2.2, p5 Q31).
 
@@ -78,14 +79,15 @@ Indexes (5-1, `src/club/presence/indexes.ts`, run from bootstrap): unique `club_
 
 ### Store
 
-- `PresenceStore` (`src/club/presence/store.ts`), a separate interface (spec 11.2) that `extends PresenceGroupReads = Pick<GroupStore, 'transaction' | 'lockAthlete' | 'lockHistoryEntry' | 'seasons' | 'sections' | 'groups' | 'group' | 'teamMembers' | 'athletes' | 'athlete' | 'memberships' | 'history' | 'historyEntry' | 'historyAfter' | 'adminNames' | 'setAthleteStatus' | 'recordAction' | 'record' | 'setHistoryChanges'>`. Real: `strapiPresenceStore(strapi)` (`strapi-store.ts`); fake: `fakePresenceStore(seed)` and `fakePresenceContext(seed, today)` (`__tests__/fake-store.ts`).
-- Locks (order of spec 7.1): `lockAthlete` (inherited), `lockSession`, `lockLesson`, `lockSubscription`, `lockPayment`; each list sorted by id. Never outside `store.transaction`.
+- `PresenceStore` (`src/club/presence/store.ts`), a separate interface (spec 11.2) that `extends PresenceGroupReads = Pick<GroupStore, 'transaction' | 'lockSeason' | 'lockAthlete' | 'lockGroup' | 'lockEvent' | 'lockHistoryEntry' | 'seasons' | 'sections' | 'groups' | 'group' | 'teamMembers' | 'athletes' | 'athlete' | 'memberships' | 'history' | 'historyEntry' | 'historyAfter' | 'adminNames' | 'setAthleteStatus' | 'recordAction' | 'record' | 'setHistoryChanges'>`. Real: `strapiPresenceStore(strapi)` (`strapi-store.ts`); fake: `fakePresenceStore(seed)` and `fakePresenceContext(seed, today)` (`__tests__/fake-store.ts`).
+- Locks: `lockSeason`, `lockGroup`, `lockEvent` (the group store's, bound to the presence scope), `lockAthlete` (inherited), `lockSession`, `lockLesson`, `lockAttendance`, `lockSubscription`, `lockPayment`, `lockHistoryEntry` (the undo entry); each list sorted by id. Never outside `store.transaction`.
+- Lock order (spec 7.1): registrations > seasons > session > athletes > groups > events > lessons > attendances > subscriptions > payments > undo entry. Never lock a session after an athlete.
 - Cross-store: a presence write called inside a `GroupStore` or `ClubStore` transaction wraps its work in `presence.transaction(...)` (Strapi reuses the outer transaction; the presence scope then holds it for its locks).
 - `PresenceContext` (`context.ts`): `{ store: PresenceStore; actor: string; today: string; now: () => Date; log: (m: string) => void }`; `presenceContext(strapi, ctx)`. Plan 5-3 adds `paymentEmails: (paymentId: string) => void`.
 
 ### Row types (`src/club/presence/types.ts`)
 
-`PresenceType`, `Billing`, `Charge`, `SessionSource`, `SessionRow` / `SessionWrite`, `AttendanceRow` / `AttendanceWrite`, `LessonState`, `LessonRow` / `LessonWrite`, `SubscriptionRow` / `SubscriptionWrite`, `PaymentMethod`, `PaymentPurpose`, `PaymentRow` / `PaymentWrite`, `PriceItemRow`, `PriceListRecord`, `PaymentEmailPayload`, `PaymentEmailJob`, `SubscriptionState`, `SessionState`, `HeldOccurrence`, `PresenceGuard`. `Audience` and `AcsState`, `AcsRow` are reused from `src/club/price-item.ts`, `src/club/acs.ts`, `src/club/athletes/store.ts`.
+`PresenceType`, `Billing`, `Charge`, `SessionSource`, `SessionRow` / `SessionWrite`, `AttendanceRow` / `AttendanceWrite`, `LessonState`, `LessonRow` / `LessonWrite`, `SubscriptionRow` / `SubscriptionWrite`, `PaymentMethod`, `PaymentPurpose`, `PaymentRow` / `PaymentWrite`, `PriceItemRow`, `PriceListRecord`, `PaymentEmailPayload`, `PaymentEmailJob`, `SubscriptionState`, `SessionState`, `HeldOccurrence`. `PresenceGuard` and `GuardType` live in `src/club/presence/undo.ts`, not here. `Audience` and `AcsState`, `AcsRow` are reused from `src/club/price-item.ts`, `src/club/acs.ts`, `src/club/athletes/store.ts`.
 
 ### Pure helpers (5-1)
 
@@ -148,7 +150,7 @@ Reused P3 lines: "Membru A.C.S. <sezon>: <vechi> -> <nou>" (`HISTORY_ACTIONS` of
 
 ### Undo
 
-`PresenceUndoRecord` (`src/club/presence/undo.ts`): `{ kind: 'presence'; steps: PresenceUndoStep[]; subjects: Subject[]; athletes: string[]; guards: PresenceGuard[] }`, stored as `changes.undo` on the action's first line by `recordPresenceAction(store, actor, lines, undo)` (`action-log.ts`). Steps (`op`): `deleteSubscription`, `setSubscription`, `setAttendanceSlot`, `deletePayment`, `setPayment`, `setAcs`, `cancelPaymentEmail`, `deleteLesson`, `createLesson`. A guard holds a row's stamp at the time of the action; undo is refused with "Nu se mai poate anula. Datele s-au schimbat între timp." when any current stamp differs (spec 7.3 refusal column).
+`PresenceUndoRecord` (`src/club/presence/undo.ts`): `{ kind: 'presence'; steps: PresenceUndoStep[]; subjects: Subject[]; athletes: string[]; guards: PresenceGuard[] }`, stored as `changes.undo` on the action's first line by `recordPresenceAction(store, actor, lines, undo)` (`action-log.ts`). Steps (`op`): `deleteSubscription`, `setSubscription`, `setAttendanceSlot`, `deletePayment`, `setPayment`, `setAcs`, `cancelPaymentEmail`, `deleteLesson`, `createLesson`. A guard holds a row's stamp at the time of the action; undo is refused with "Nu se mai poate anula. Datele s-au schimbat între timp." when any current stamp differs (spec 7.3 refusal column). Rule for every writer: list every athlete it touches in `record.athletes`; the subscription, payment, lesson, attendance and acs stamps omit `athleteId`, so a merge that reassigns an athlete is caught only through that list.
 
 | Action (plan) | Steps | Guards |
 |---|---|---|

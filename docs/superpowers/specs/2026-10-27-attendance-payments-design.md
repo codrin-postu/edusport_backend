@@ -83,8 +83,8 @@ One row per athlete present at a session. No row = not present; there is no "Abs
   - `slot`: Școala, a subscription slot is used;
   - `fara_abonament`: Școala, no valid subscription ("Fără abonament"); can be covered later (4.9);
   - `club`: Club, at least one ticked type has a price;
-  - `inclus`: Club, the ticked types are all "inclus" items;
-  - `fara_pret`: Club, the group has no price list, or the item or the audience price is missing (4.12).
+  - `inclus`: Club, at least one line is "inclus" and none is billed; an included line keeps its price [5-1 decided 9];
+  - `fara_pret`: Club, the group has no price list (4.12), or nothing is billed and nothing is included [5-1 decided 9].
 - `charges`: json, frozen at save, `[{ type: "grup" | "uscat", itemName: string, price: number | null, included: boolean }]`; empty for Școala [R D37; C5].
 - `amount`: decimal, the sum of `charges[].price` that are not included and not null; 0 otherwise.
 - `audience`: enumeration `member | nonMember`, frozen at save (A.C.S. of the session's season, 4.13).
@@ -232,8 +232,9 @@ On save, for each Școala attendance without a slot yet, the candidates are the 
 - Price = member price with A.C.S. "Da" for the session's season, else non-member price (4.13). Both ticked = both charged [C28].
 - Not billed, presence still recorded [p5 Q15, Q17; DEC undated "Proposed price lists"]:
   - group without a price list: `fara_pret`;
-  - item missing, or its price for the audience missing: that line `price` null; all lines null -> `fara_pret`;
-  - item marked "inclus": line `included` true, shown "inclus", not billed.
+  - item missing, or its price for the audience missing: that line `price` null;
+  - item marked "inclus": line `included` true, shown "inclus", price kept on the line, not billed;
+  - billing word [5-1 decided 9]: `inclus` when at least one line is included and none is billed; an included line keeps its price; `fara_pret` (shown "fără preț") when nothing is billed and nothing is included.
 - Frozen: a later price list change or A.C.S. change does not re-price saved attendances; a membership fee paid mid-month leaves the month's saved sessions at the non-member price, member price from the next saved session on [p5 Q41]; a correction (4.18) prices only rows it adds or whose ticks it changes [R D37; C29].
 - Price source (attendance, lesson, abonament alike): the group's price list as it is at the moment of saving (`group.priceList` has no history); each row stores the price it was billed at (snapshot). A row saved later for a past date (back-fill, coverage, a past lesson) uses the current list too; there is no price-list history [C73].
 - Notice while any active group of the current season has no price list: "<n> grupe fără listă de prețuri: prezența se înregistrează, nimic nu se calculează." ("1 grupă fără listă de prețuri: ...") on "De încasat" and on the Prezență page [p5 scr 3 Q15; C30].
@@ -477,11 +478,11 @@ Changed: `POST /club/memberships/:documentId/move` (P4) also returns and applies
 ## 7. Locks, transactions, undo
 
 ### 7.1 Lock order
-Registrations, then athletes (sorted by id), then sessions / lessons, then subscriptions (sorted by id), then payments; every writer takes only the suffix it needs, in this order, and re-reads after locking [code locks.ts; P4 8.1; C68]:
+Order: registrations > seasons > session > athletes > groups > events > lessons > attendances > subscriptions > payments > undo entry. Never lock a session after an athlete. Each list is sorted by id; every writer takes only the suffix it needs, in this order, and re-reads after locking [code locks.ts; strapi-store.ts; undo-service.ts; P4 8.1; C68]:
 - Session save: the session row when it exists (else the unique `occurrenceKey` insert guards the race), then every athlete ticked before or now, then their candidate subscriptions.
 - Add subscription: the athlete only; the covered attendance rows are updated by id under that lock (their sessions are not locked).
 - Extend: the subscription rows only (sorted); a concurrent session save waits on the subscription row it uses; no cycle because extend never takes an athlete lock.
-- Payment write: the athlete, then the linked subscription or lesson, then the payment.
+- Payment write: the athlete, then the linked lesson or subscription, then the payment.
 - Move with carry: the P4 athlete lock, then the athlete's subscriptions.
 - Delete / merge (P3): registrations, athletes, then their sessions' attendance rows, subscriptions, payments.
 

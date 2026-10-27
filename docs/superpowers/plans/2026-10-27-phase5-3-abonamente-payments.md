@@ -1216,6 +1216,10 @@ Expected: `select state from acs_memberships ...` = `da` for C and that season. 
 
 `GET /api/club/memberships/<A's membership>/move-preview?to=<Avansați Gold group>`: Expected `bar` of A's abonament, `carries: true`. `POST /api/club/memberships/<id>/move` `{ toGroupId: <Gold> }`: Expected `carried: 1`, the join table of `valid_in` holds the Gold list, a history line `subscription-carried`. `POST /api/club/undo` with its `actionId`: Expected undone, the carry gone.
 
+- [ ] **Step 5b: Move with carry inside a group transaction commits and rolls back together**
+
+A temporary `$TMP/carry.js` (same guard and `createStrapi(...).load()` pattern as `attendance.js`) calls the Task 8 move-with-carry service inside a `GroupStore` transaction (the presence transaction nests in it), then throws once the move has returned, so the outer transaction rolls back. Expected after the throw: `psql` shows A's membership still in the old group, A's subscription `valid_in` without the Gold list, and no `subscription-carried` line. Then the same call without the throw. Expected: commit, membership moved, `valid_in` holds the Gold list, the `subscription-carried` line written.
+
 - [ ] **Step 6: Sportivi and guards**
 
 `GET /api/club/athletes?abonament=activ`: Expected rows with `abonament` "<used>/<slots>, <date>". `curl -s -o /dev/null -w "%{http_code}"` on `/api/club/payments` and `/api/club/subscriptions` without the admin cookie: Expected 401 or 403, never 200.
