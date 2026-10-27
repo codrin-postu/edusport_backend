@@ -3,7 +3,7 @@ import { confirmRegistration } from '../confirm-service';
 import { ADMIN_ERRORS } from '../errors';
 import { undoConfirmation } from '../undo-service';
 import { athleteRow, fakeClubStore, registrationRow, type Fake } from './fake-store';
-import { fakePresenceStore, paymentRow, subscriptionRow } from '../../presence/__tests__/fake-store';
+import { attendanceRow, fakePresenceStore, lessonRow, paymentRow, sessionRow, subscriptionRow } from '../../presence/__tests__/fake-store';
 
 const ctx = (fake: Fake) => ({ store: fake.store, actor: 'ana@club.ro', today: { year: 2026, month: 10, day: 26 }, log: vi.fn() });
 const seed = () => ({
@@ -115,7 +115,9 @@ describe('Anulează confirmarea (spec 4.6)', () => {
   it.each([
     ['a payment', { payments: [paymentRow({ id: 'p1', athleteId: 'a-new', cancelled: true })] }],
     ['an abonament', { subscriptions: [subscriptionRow({ id: 'sub1', athleteId: 'a-new', cancelled: true })] }],
-  ])('keeps a new athlete that has %s, cancelled or not (C37)', async (_name, over) => {
+    ['an attendance', { sessions: [sessionRow()], attendances: [attendanceRow({ id: 'at1', athleteId: 'a-new', uniqueKey: 's1|a-new' })] }],
+    ['a lesson', { lessons: [lessonRow({ id: 'l1', athleteId: 'a-new' })] }],
+  ])('keeps a new athlete that has %s, cancelled or not (C37, final review I2)', async (_name, over) => {
     const fake = fakeClubStore(seed());
     await confirmed(fake, 'new');
     const created = fake.state.athletes[1];
