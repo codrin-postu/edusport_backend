@@ -1,3 +1,5 @@
+import { FIT_PAGE_MEDIA } from '../../ui';
+
 /**
  * Înscrieri page CSS (cfg.extraCss: one global style tag, so the portaled confirm window gets it too).
  * Tokens only; every class ins- prefixed under .ui-root; written in plain strings (a backtick inside a
@@ -42,6 +44,13 @@ const PANEL_CSS =
   '.ui-root .ins-label-row{display:flex;align-items:center;justify-content:space-between;gap:8px}' +
   '.ui-root .ins-label-row .ins-link{text-transform:none;letter-spacing:0}' +
   '.ui-root.sbt-menu button.ins-danger{color:var(--theme-danger)}';
+
+/** Fit page (cfg.fitPage): header, match card, tabs and footer stay; only the body scrolls. */
+const FIT_CSS =
+  FIT_PAGE_MEDIA + '{' +
+  '.ui-root.ui-page--fit .sbt-panel > .ins-panel{flex:1 1 auto;min-height:0}' +
+  '.ui-root.ui-page--fit .ins-panel > *{flex:none}' +
+  '.ui-root.ui-page--fit .ins-panel > .sbt-pb{flex:1 1 auto}}';
 
 const MATCH_CSS =
   '.ui-root .ins-mcard{margin:10px 15px 0;border:1px solid var(--theme-border);border-radius:var(--ui-radius-md);background:var(--theme-surface)}' +
@@ -96,4 +105,4 @@ const CONFIRM_CSS =
   '.ui-root .ins-res-none{padding:10px 12px;font-size:13px;color:var(--theme-text-muted)}' +
   '.ui-root .ins-foot-hint{flex:1;align-self:center;font-size:12.5px;color:var(--theme-text-muted)}';
 
-export const INSCRIERI_CSS = [LIST_CSS, PANEL_CSS, MATCH_CSS, EDIT_CSS, CONFIRM_CSS].join('\n');
+export const INSCRIERI_CSS = [LIST_CSS, PANEL_CSS, FIT_CSS, MATCH_CSS, EDIT_CSS, CONFIRM_CSS].join('\n');

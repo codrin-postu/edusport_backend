@@ -28,6 +28,10 @@ import { startAdminThemeSync } from './useAdminTheme';
 const R = '.ui-root';
 const SB = '.ui-root.ui-savebar';
 
+/** Desktop window where a fit page (AdminPage `fit`) fills Strapi's scroll box; below it the page scrolls as usual. */
+export const FIT_PAGE_MEDIA = '@media (min-width:1100px) and (min-height:700px)';
+const FP = '.ui-root.ui-page--fit';
+
 /** Phone bottom-sheet layout of the save bar, under `wrap` (a media query) or bare. */
 function sheet(sel: string, wrap: string): string {
   const rules =
@@ -57,6 +61,17 @@ ${R} .ui-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflo
 
 /* window */
 ${R} .ui-win{background:var(--theme-surface);border:1px solid var(--theme-border);border-radius:var(--ui-radius-md);box-shadow:var(--theme-shadow-sm);overflow:clip}
+
+/* fit page: the window takes the height left under the page padding; its parts stay,
+   a table directly in it takes the rest and scrolls under sticky column headers.
+   height:100% of Strapi's scroll box, not 100vh, so nothing above it can overflow. */
+${FIT_PAGE_MEDIA}{
+${FP}{height:100%;box-sizing:border-box}
+${FP} > .ui-win{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+${FP} > .ui-win > *{flex:none}
+${FP} .ui-win > .ui-table-wrap{flex:1 1 auto;min-height:0;overflow:auto}
+${FP} .ui-table-wrap thead th{position:sticky;top:0;z-index:2;background:var(--theme-surface);border-bottom:0;box-shadow:inset 0 -1px 0 var(--theme-border)}
+}
 
 /* page header */
 ${R} .ui-ph{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--ui-space-4);padding:var(--ui-space-4) 18px;border-bottom:1px solid var(--theme-border)}

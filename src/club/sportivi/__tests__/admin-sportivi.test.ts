@@ -177,6 +177,18 @@ describe('athlete record (Task 7)', () => {
   });
 });
 
+describe('desktop layout (user, 2026-10-27)', () => {
+  it('the list page fits the window; the table scrolls under sticky headers, the footer stays', () => {
+    const list = read('sportivi/SportiviList.tsx');
+    expect(list).toContain('<AdminPage fit>');
+    expect(list).toContain('{phone ? <AthleteCards list={list} onOpen={open} /> : <AthleteTable list={list} onOpen={open} />}');
+    const table = read('sportivi/AthleteTable.tsx');
+    expect(table).toContain('<div className="ui-table-wrap">');
+    expect(table).toContain('<div className="spv-foot">');
+    expect(read('sportivi/AthleteRecordPage.tsx')).not.toMatch(/<AdminPage fit/);
+  });
+});
+
 describe('Adaugă sportiv (Task 11)', () => {
   it('search first, "Sportiv nou" form, birth date required', () => {
     const add = read('sportivi/AddAthleteDialog.tsx');

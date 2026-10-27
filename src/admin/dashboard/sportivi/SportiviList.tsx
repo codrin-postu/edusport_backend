@@ -28,7 +28,7 @@ export function SportiviList() {
   };
   const add = <Button icon={<IconPlus />} onClick={() => setAdding(true)}>{LIST_COPY.add}</Button>;
   return (
-    <AdminPage>
+    <AdminPage fit>
       <style>{SPORTIVI_CSS}</style>
       <Window>
         <PageHeader title={LIST_COPY.title} subtitle={LIST_COPY.subtitle} actions={add} />

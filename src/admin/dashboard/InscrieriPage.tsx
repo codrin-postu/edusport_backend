@@ -154,6 +154,7 @@ const CFG: SubmissionTableCfg = {
   bulk: true,
   headerActions: <BlankFormsMenu />,
   extraCss: INSCRIERI_CSS,
+  fitPage: true,
   texts: {
     title: 'Înscrieri',
     subtitle: 'Cererile trimise prin formularul public de înscriere.',

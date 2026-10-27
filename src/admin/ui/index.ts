@@ -5,7 +5,7 @@
  */
 export * from './tokens';
 export { useAdminTheme, getAdminTheme, subscribeAdminTheme, startAdminThemeSync } from './useAdminTheme';
-export { UI_CSS, ensureAdminUi } from './styles';
+export { UI_CSS, FIT_PAGE_MEDIA, ensureAdminUi } from './styles';
 export { cx } from './cx';
 
 export { AdminPage, type AdminPageProps } from './AdminPage';
