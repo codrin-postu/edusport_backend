@@ -45,12 +45,20 @@ const PANEL_CSS =
   '.ui-root .ins-label-row .ins-link{text-transform:none;letter-spacing:0}' +
   '.ui-root.sbt-menu button.ins-danger{color:var(--theme-danger)}';
 
-/** Fit page (cfg.fitPage): header, match card, tabs and footer stay; only the body scrolls. */
+/**
+ * Fit page (cfg.fitPage): header, match card, tabs and footer stay; only the body scrolls.
+ * In a short window the panel scrolls as one between its sticky header and sticky footer.
+ */
 const FIT_CSS =
   FIT_PAGE_MEDIA + '{' +
   '.ui-root.ui-page--fit .sbt-panel > .ins-panel{flex:1 1 auto;min-height:0}' +
   '.ui-root.ui-page--fit .ins-panel > *{flex:none}' +
-  '.ui-root.ui-page--fit .ins-panel > .sbt-pb{flex:1 1 auto}}';
+  '.ui-root.ui-page--fit .ins-panel > .sbt-pb{flex:1 1 auto}}' +
+  FIT_PAGE_MEDIA + ' and (max-height:860px){' +
+  '.ui-root.ui-page--fit .sbt-panel > .ins-panel{overflow:auto}' +
+  '.ui-root.ui-page--fit .ins-panel > .sbt-pb{flex:1 0 auto;overflow:visible}' +
+  '.ui-root.ui-page--fit .ins-panel > .ins-ph{position:sticky;top:0;z-index:3;padding-bottom:10px;border-bottom:1px solid var(--theme-border);background:var(--theme-surface-subtle)}' +
+  '.ui-root.ui-page--fit .ins-panel > .sbt-pa{position:sticky;bottom:0;z-index:3;background:var(--theme-surface-subtle)}}';
 
 const DOCS_CSS =
   '.ui-root .ins-docs{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}' +

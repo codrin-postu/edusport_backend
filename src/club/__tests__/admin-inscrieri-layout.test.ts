@@ -50,6 +50,16 @@ it('Înscrieri: the list box scrolls, the pager stays, the panel body scrolls be
   expect(insCss).toContain('FIT_CSS, DOCS_CSS');
 });
 
+it('Înscrieri, short desktop window: the panel scrolls as one, header and footer sticky', () => {
+  expect(insCss).toContain("FIT_PAGE_MEDIA + ' and (max-height:860px){' +");
+  for (const rule of [
+    '.ui-root.ui-page--fit .sbt-panel > .ins-panel{overflow:auto}',
+    '.ui-root.ui-page--fit .ins-panel > .sbt-pb{flex:1 0 auto;overflow:visible}',
+    '.ui-root.ui-page--fit .ins-panel > .ins-ph{position:sticky;top:0;z-index:3;padding-bottom:10px;border-bottom:1px solid var(--theme-border);background:var(--theme-surface-subtle)}',
+    '.ui-root.ui-page--fit .ins-panel > .sbt-pa{position:sticky;bottom:0;z-index:3;background:var(--theme-surface-subtle)}}',
+  ]) expect(insCss).toContain(rule);
+});
+
 it('Documente: each PDF a row with "Vezi" and "Descarcă", names unique, one shared viewPdf', () => {
   expect(docs).toContain("import { downloadPdf, registrationDocumentUrl, viewPdf } from './downloadPdf';");
   expect(docs).toContain('const failed = () => adminToast.error(RECORD_COPY.documentFailed);');
