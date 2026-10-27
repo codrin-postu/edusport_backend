@@ -80,26 +80,38 @@ function startLines(f: StartFacts, plan: StartPlan): Line[] {
   ];
 }
 
-/** Two season rows, the athletes, then the groups the first plan copies (series are only created, so no event lock); the facts are read again and the plan made again under the locks (decided 7). */
-async function lockedFacts(ctx: GroupContext, targetId: string, req: StartRequest): Promise<AdminResult<StartFacts>> {
+/** The ids a plan writes to. */
+const touched = (plan: StartPlan) => ({
+  athletes: [...new Set(plan.members.map((m) => m.athleteId))].sort(),
+  groups: [...new Set([...plan.members.map((m) => m.groupId), ...plan.series.map((s) => s.groupId)])].sort(),
+});
+
+/** Two season rows, the athletes, then the groups the first plan copies (series are only created, so no event lock); the facts are read again under the locks (decided 7). */
+async function lockedFacts(ctx: GroupContext, targetId: string, req: StartRequest): Promise<AdminResult<{ facts: StartFacts; plan: StartPlan }>> {
   const first = await loadStartFacts(ctx.store, targetId, ctx.today);
   if (first.ok === false) return first;
   for (const id of [first.data.current.id, targetId].sort()) await ctx.store.lockSeason(id);
-  const plan = planStart(first.data, req);
-  for (const id of [...new Set(plan.members.map((m) => m.athleteId))].sort()) await ctx.store.lockAthlete(id);
-  for (const id of [...new Set([...plan.members.map((m) => m.groupId), ...plan.series.map((s) => s.groupId)])].sort()) await ctx.store.lockGroup(id);
-  return loadStartFacts(ctx.store, targetId, ctx.today);
+  const locked = touched(planStart(first.data, req));
+  for (const id of locked.athletes) await ctx.store.lockAthlete(id);
+  for (const id of locked.groups) await ctx.store.lockGroup(id);
+  const again = await loadStartFacts(ctx.store, targetId, ctx.today);
+  if (again.ok === false) return again;
+  const plan = planStart(again.data, req);
+  const now = touched(plan);
+  // The data moved while waiting for the locks and the plan now writes rows nobody locked: start over from the page.
+  if (!now.athletes.every((id) => locked.athletes.includes(id)) || !now.groups.every((id) => locked.groups.includes(id))) return changed();
+  return { ok: true, data: { facts: again.data, plan } };
 }
 
 async function applyLocked(ctx: GroupContext, targetId: string, req: StartRequest): Promise<ActionResult<StartResult>> {
-  const f = await lockedFacts(ctx, targetId, req);
-  if (f.ok === false) return f;
-  const plan = planStart(f.data, req);
-  const steps = await writeStart(ctx.store, f.data, plan);
-  const actionId = await recordAction(ctx.store, ctx.actor, startLines(f.data, plan), {
+  const locked = await lockedFacts(ctx, targetId, req);
+  if (locked.ok === false) return locked;
+  const { facts: f, plan } = locked.data;
+  const steps = await writeStart(ctx.store, f, plan);
+  const actionId = await recordAction(ctx.store, ctx.actor, startLines(f, plan), {
     kind: 'season', steps, revalidate: true, registrationsAfter: { seasonId: targetId, at: ctx.now().toISOString() },
   });
-  return done(startResult(f.data, plan), actionId);
+  return done(startResult(f, plan), actionId);
 }
 
 /** POST /club/seasons/:id/start: one transaction for everything (W24); a website ping after commit. */

@@ -54,6 +54,18 @@ describe('applying (10.4, 10.5, W24)', () => {
     expect(state.memberships.filter((m) => m.seasonId === 's27').map((m) => m.athleteId)).toEqual(['a1']);
   });
 
+  it('refuses and writes nothing when the re-plan under the locks needs an athlete the first plan did not lock', async () => {
+    const { ctx, state } = seed();
+    const lock = ctx.store.lockSeason;
+    ctx.store.lockSeason = async (id) => {
+      await lock(id);
+      state.athletes.find((a) => a.id === 'a3')!.status = 'activ';
+    };
+    const before = structuredClone({ seasons: state.seasons, memberships: state.memberships, events: state.events, history: state.history });
+    expect(await applyStart(ctx, 's27', BODY)).toEqual({ ok: false, status: 409, error: 'Sezonul curent s-a schimbat. Reîncarcă pagina.' });
+    expect({ seasons: state.seasons, memberships: state.memberships, events: state.events, history: state.history }).toEqual(before);
+  });
+
   it('undo right away restores the old season and removes every row (W15)', async () => {
     const { ctx, state } = seed();
     const before = structuredClone({ seasons: state.seasons, memberships: state.memberships, events: state.events });

@@ -28,6 +28,12 @@ async function placeOn(store: GroupStore, groupId: string, date: string): Promis
   return { ok: true, data: { group, section, season } };
 }
 
+/** The season that contains `date` is locked first (seasons before groups before events); placeOn then reads it again and refuses a past one. */
+async function lockSeasonOn(store: GroupStore, date: string): Promise<void> {
+  const season = seasonOf(await store.seasons(), date);
+  if (season) await store.lockSeason(season.id);
+}
+
 function addedLine(groupId: string, input: ProgramInput): Line {
   if (input.repeat === true) return { subjectType: GROUP_SUBJECT, subjectId: groupId, action: P4_ACTIONS.programAdded, changes: { series: inputText(input.series) } };
   const { date, startTime, durationMin } = input.one;
@@ -35,8 +41,10 @@ function addedLine(groupId: string, input: ProgramInput): Line {
 }
 
 async function addLocked(ctx: GroupContext, groupId: string, input: ProgramInput): Promise<ActionResult<{ eventId: string; date: string | null }>> {
+  const date = input.repeat === true ? input.series.from : input.one.date;
+  await lockSeasonOn(ctx.store, date);
   await ctx.store.lockGroup(groupId);
-  const placed = await placeOn(ctx.store, groupId, input.repeat === true ? input.series.from : input.one.date);
+  const placed = await placeOn(ctx.store, groupId, date);
   if (placed.ok === false) return placed;
   const { group, section, season } = placed.data;
   const type = eventType(section.kind);
@@ -72,6 +80,7 @@ export async function lockedEvent(store: GroupStore, eventId: string): Promise<E
 
 /** The series locked and read again; `from` must fall inside it and in a season that is not past. */
 async function lockedSeries(store: GroupStore, eventId: string, from: string): Promise<AdminResult<LockedSeries>> {
+  await lockSeasonOn(store, from);
   const e = await lockedEvent(store, eventId);
   const series = e ? seriesView(e) : null;
   if (!e || !series || !e.groupId) return refuse(409, GROUP_ERRORS.stale);
@@ -127,6 +136,8 @@ export async function endProgram(ctx: GroupContext, eventId: string, body: unkno
 }
 
 async function deleteLocked(ctx: GroupContext, eventId: string): Promise<ActionResult<{ date: string }>> {
+  const seen = await ctx.store.event(eventId);
+  if (seen?.recurrence.freq === 'none' && seen.recurrence.singleDate) await lockSeasonOn(ctx.store, seen.recurrence.singleDate);
   const e = await lockedEvent(ctx.store, eventId);
   const date = e?.recurrence.freq === 'none' ? e.recurrence.singleDate : null;
   if (!e || !date || !e.groupId) return refuse(409, GROUP_ERRORS.stale);

@@ -72,6 +72,7 @@ describe('locks an undo takes', () => {
     const subjects = [{ type: 'group', id: 'g1' }, { type: 'athlete', id: 'a9' }];
     expect(undoLockTargets([{ op: 'deleteEvent', id: 'e1' }], subjects)).toEqual({ seasons: [], athletes: [], groups: ['g1'], events: ['e1'] });
     expect(undoLockTargets([{ op: 'cancelEmails' }], subjects).groups).toEqual([]);
+    expect(undoLockTargets([{ op: 'deleteMembership', id: 'm1', athleteId: 'a1' }], subjects, 'season')).toEqual({ seasons: [], athletes: ['a1'], groups: ['g1'], events: [] });
     const event = { title: 't', type: 'scoala', description: null, groupId: 'g2', exceptions: [], recurrence: { freq: 'none' as const, days: [], weekOfMonth: null, startTime: null, endTime: null, singleDate: null, seasonStart: null, seasonEnd: null } };
     expect(undoLockTargets([{ op: 'createEvent', event }]).groups).toEqual(['g2']);
   });
