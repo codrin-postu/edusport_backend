@@ -8,6 +8,9 @@ import { buildRegistrationDocuments, listRegistrationDocuments } from '../club/d
 import { SCHEDULE_HOLD_MS } from '../club/groups/schedule-mail';
 import type { ScheduleChangePayload } from '../club/groups/types';
 import { recordHistory } from '../club/history';
+import { P5_ACTIONS } from '../club/presence/history-lines';
+import type { PaymentEmailPayload } from '../club/presence/types';
+import { SUBJECT } from '../club/subjects';
 import { captureMessage } from '../sentry';
 import { sendWithBrevo } from './brevo';
 import { readEmailConfig, type EmailConfig } from './config';
@@ -16,6 +19,7 @@ import {
   queueRegistrationEmail,
   retryDueJobs,
   type EmailDeps,
+  type EmailJobKind,
   type EmailJobRow,
   type EmailJobStore,
   type RegistrationForEmail,
@@ -23,6 +27,7 @@ import {
 } from './email-jobs';
 import type { EmailJobStatus } from './job-state';
 import { buildEmailLinks } from './links';
+import { isPaymentPayload, PAYMENT_HOLD_MS } from './payment-email';
 import { isSchedulePayload } from './schedule-change-template';
 import { sheetSyncedStore } from './sheet-status';
 import { queueUpsert } from '../sheets/queue';
@@ -30,7 +35,8 @@ import { queueUpsert } from '../sheets/queue';
 const JOB_UID = 'api::email-job.email-job' as const;
 const REGISTRATION_UID = 'api::registration-submission.registration-submission' as const;
 const SETTINGS_UID = 'api::site-settings.site-settings' as const;
-const POPULATE: 'registration'[] = ['registration'];
+const PAYMENT_UID = 'api::payment.payment' as const;
+const POPULATE: ('registration' | 'payment')[] = ['registration', 'payment'];
 
 type RawJob = {
   documentId: string;
@@ -42,6 +48,7 @@ type RawJob = {
   sentAt?: unknown;
   updatedAt?: unknown;
   registration?: { documentId?: string } | null;
+  payment?: { documentId?: string } | null;
   kind?: string | null;
   payload?: unknown;
   notBefore?: unknown;
@@ -50,10 +57,16 @@ type RawJob = {
 const iso = (value: unknown): string | null =>
   value instanceof Date ? value.toISOString() : typeof value === 'string' && value ? value : null;
 
-/** The stored payload when it has the shape the template needs, else null (the job then fails at once). */
-const payloadOf = (v: unknown): ScheduleChangePayload | null => (isSchedulePayload(v) ? v : null);
+const KINDS: Record<string, EmailJobKind> = { 'schedule-change': 'schedule-change', payment: 'payment' };
+
+/** The stored payload when it has the shape the template of its kind needs, else null (the job then fails at once). */
+function payloadOf(kind: EmailJobKind, v: unknown): ScheduleChangePayload | PaymentEmailPayload | null {
+  if (kind === 'schedule-change') return isSchedulePayload(v) ? v : null;
+  return kind === 'payment' && isPaymentPayload(v) ? v : null;
+}
 
 export function toJobRow(raw: RawJob): EmailJobRow {
+  const kind = KINDS[raw.kind ?? ''] ?? 'registration';
   return {
     documentId: raw.documentId,
     recipient: raw.recipient ?? '',
@@ -64,8 +77,9 @@ export function toJobRow(raw: RawJob): EmailJobRow {
     lastError: raw.lastError ?? null,
     sentAt: iso(raw.sentAt),
     updatedAt: iso(raw.updatedAt),
-    kind: raw.kind === 'schedule-change' ? 'schedule-change' : 'registration',
-    payload: payloadOf(raw.payload),
+    kind,
+    payload: payloadOf(kind, raw.payload),
+    paymentDocumentId: raw.payment?.documentId ?? null,
     notBefore: iso(raw.notBefore),
   };
 }
@@ -139,6 +153,7 @@ export function buildEmailDeps(strapi: Core.Strapi, config: EmailConfig = readEm
       setImmediate(() => task().catch((err) => strapi.log.error(`[email-job] attempt crashed: ${err instanceof Error ? err.message : String(err)}`)));
     },
     now: () => new Date(),
+    onSent: (job) => onPaymentSent(strapi, job),
   };
 }
 
@@ -169,5 +184,26 @@ async function attemptChange(strapi: Core.Strapi, changeKey: string): Promise<vo
 export function attemptScheduleChangeJobs(strapi: Core.Strapi, changeKey: string, delayMs = SCHEDULE_HOLD_MS + 1000): void {
   setTimeout(() => {
     attemptChange(strapi, changeKey).catch((err) => strapi.log.error(`[email-job] schedule change ${changeKey} crashed: ${err instanceof Error ? err.message : String(err)}`));
+  }, delayMs);
+}
+
+/** The `payment-email-sent` line once a payment e-mail is sent, by the payment's recorder (decided 13). */
+async function onPaymentSent(strapi: Core.Strapi, job: EmailJobRow): Promise<void> {
+  if (job.kind !== 'payment' || !job.paymentDocumentId) return;
+  const payment = await strapi.documents(PAYMENT_UID).findOne({ documentId: job.paymentDocumentId, fields: ['recordedBy'] });
+  if (!payment?.recordedBy) return;
+  await recordHistory(strapi, { subjectType: SUBJECT.payment, subjectId: job.paymentDocumentId, action: P5_ACTIONS.paymentEmailSent, actor: payment.recordedBy, changes: { recipient: job.recipient } });
+}
+
+async function attemptPayment(strapi: Core.Strapi, paymentId: string): Promise<void> {
+  const deps = buildEmailDeps(strapi);
+  const rows = await strapi.documents(JOB_UID).findMany({ filters: { payment: { documentId: paymentId }, status: 'queued' }, populate: POPULATE, limit: 1000 });
+  for (const raw of rows) await attemptJob(deps, toJobRow(raw as unknown as RawJob));
+}
+
+/** The first attempt of a payment's e-mail once the hold is over (3.7); the hourly cron retries. */
+export function attemptPaymentEmails(strapi: Core.Strapi, paymentId: string, delayMs = PAYMENT_HOLD_MS + 1000): void {
+  setTimeout(() => {
+    attemptPayment(strapi, paymentId).catch((err) => strapi.log.error(`[email-job] payment ${paymentId} e-mail crashed: ${err instanceof Error ? err.message : String(err)}`));
   }, delayMs);
 }
