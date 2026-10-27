@@ -257,11 +257,40 @@ function profileMediaIds(strapi: Core.Strapi): ClubStore['profileMediaIds'] {
   };
 }
 
+type RichColumn = { table: string; column: string };
+const RICH_TYPES: ReadonlySet<string> = new Set(['blocks', 'richtext']);
+const columnOf = (attribute: unknown, name: string): string => str((attribute as Raw | undefined)?.columnName) ?? name;
+
+/** Every blocks and richtext column of every content type and component, read from the registry so a rich field added later is covered. */
+export function richColumns(strapi: Core.Strapi): RichColumn[] {
+  const schemas: [string, { attributes: Record<string, { type: string }> }][] = [...Object.entries(strapi.contentTypes), ...Object.entries(strapi.components)];
+  return schemas.flatMap(([uid, schema]) => {
+    const names = Object.entries(schema.attributes).filter(([, a]) => RICH_TYPES.has(a.type)).map(([name]) => name);
+    if (!names.length) return [];
+    const meta = strapi.db.metadata.get(uid);
+    return names.map((name) => ({ table: meta.tableName, column: columnOf(meta.attributes[name], name) }));
+  });
+}
+
+const MATCH = "CAST(?? AS TEXT) LIKE '%' || ? || '%'";
+
+/** A blocks image stores the file's url and hash, markdown its url; neither leaves a files_related_mph row. */
+async function usedInRichText(strapi: Core.Strapi, file: Raw): Promise<boolean> {
+  const needles = [str(file.hash), str(file.url)].filter((n): n is string => n !== null);
+  if (!needles.length) return false;
+  for (const { table, column } of richColumns(strapi)) {
+    const sql = needles.map(() => MATCH).join(' OR ');
+    if (await strapi.db.connection(table).whereRaw(sql, needles.flatMap((n) => [column, n])).first('id')) return true;
+  }
+  return false;
+}
+
 /** `related` is the upload plugin's morph relation (files_related_mph); populating it skips rows of deleted entries. */
 function deleteMediaIfUnused(strapi: Core.Strapi): ClubStore['deleteMediaIfUnused'] {
   return async (fileId) => {
     const file = (await strapi.db.query(FILE).findOne({ where: { id: fileId }, populate: { related: { select: ['id'] } } })) as Raw | null;
     if (!file || raws(file.related).length > 0) return false;
+    if (await usedInRichText(strapi, file)) return false;
     await strapi.plugin('upload').service('upload').remove(file);
     return true;
   };

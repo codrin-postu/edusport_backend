@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ConfirmationRecord } from '../../confirm/plan';
-import { athleteRow, fakeClubStore, registrationRow, type FakeState } from '../../athletes/__tests__/fake-store';
+import { athleteRow, fakeClubStore, registrationRow, type FakeFile, type FakeState } from '../../athletes/__tests__/fake-store';
 import { ADMIN_ERRORS } from '../../athletes/errors';
 import { dismissDuplicate } from '../../athletes/merge';
 import { HISTORY_ACTIONS, SUBJECT } from '../../history-text';
@@ -150,21 +150,26 @@ describe('anonymize one athlete (spec 4)', () => {
 });
 
 describe('media of the deleted profile (spec 4, DEC 2026-10-27 3C photos)', () => {
-  /** Photo 1 and gallery image 3 belong to the profile only; gallery image 2 is also in an article; 4 is another profile's. */
-  const withFiles = (): Partial<FakeState> => ({
+  const file = (id: number, usedBy: string[]): FakeFile => ({ id, hash: `img_${id}_4f2a`, url: `/uploads/img_${id}_4f2a.jpg`, usedBy });
+  /** Photo 1 and gallery image 3 belong to the profile only; gallery image 2 is also an article's cover; 4 is another profile's. */
+  const withFiles = (richTexts: string[] = []): Partial<FakeState> => ({
     ...seed(),
-    files: [
-      { id: 1, usedBy: ['sp1'] },
-      { id: 2, usedBy: ['sp1', 'article:a9'] },
-      { id: 3, usedBy: ['sp1'] },
-      { id: 4, usedBy: ['sp2'] },
-    ],
+    files: [file(1, ['sp1']), file(2, ['sp1', 'article:a9']), file(3, ['sp1']), file(4, ['sp2'])],
+    richTexts,
   });
 
   it('deletes the files only that profile used; a shared file and other files stay', async () => {
     const { fake, ctx } = setup(withFiles());
     expect((await anonymizeAthlete(ctx, 'a1')).ok).toBe(true);
-    expect(fake.state.files).toEqual([{ id: 2, usedBy: ['article:a9'] }, { id: 4, usedBy: ['sp2'] }]);
+    expect(fake.state.files).toEqual([file(2, ['article:a9']), file(4, ['sp2'])]);
+  });
+
+  it('keeps a file an article body (blocks) or a markdown text embeds; deletes the unused one', async () => {
+    const blocks = JSON.stringify([{ type: 'image', image: { url: '/uploads/img_1_4f2a.jpg', hash: 'img_1_4f2a' }, children: [{ type: 'text', text: '' }] }]);
+    const markdown = 'Poza de la gală: ![](/uploads/img_3_4f2a.jpg)';
+    const { fake, ctx } = setup({ ...withFiles([blocks, markdown]), files: [file(1, ['sp1']), file(3, ['sp1']), file(5, ['sp1'])] });
+    await anonymizeAthlete(ctx, 'a1');
+    expect(fake.state.files.map((f) => f.id)).toEqual([1, 3]);
   });
 
   it('a file that cannot be deleted is logged by id and error code only; the others go on and the anonymization stands', async () => {
