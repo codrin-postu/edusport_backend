@@ -76,6 +76,11 @@ async function linesAfter(store: GroupStore, entry: HistoryEntryRow, record: Und
   return { own, later: after.filter((h) => h.id !== entry.id && h.changes.actionId !== entry.id) };
 }
 
+/** A change's e-mail that already went out cannot be taken back: its undo is refused. */
+async function mailSent(store: GroupStore, record: UndoRecord, actionId: string): Promise<boolean> {
+  return record.steps.some((s) => s.op === 'cancelEmails') && (await store.sentEmailJobs(actionId)) > 0;
+}
+
 async function filedAfter(store: GroupStore, record: UndoRecord): Promise<boolean> {
   const guard = record.registrationsAfter;
   return !!guard && (await store.registrationsFiledAfter(guard.seasonId, guard.at)) > 0;
@@ -103,7 +108,7 @@ async function undoLocked(ctx: GroupContext, actionId: string): Promise<AdminRes
   const entry = await ctx.store.historyEntry(actionId);
   if (!entry) return refuse(404, GROUP_ERRORS.notFound);
   const { own, later } = await linesAfter(ctx.store, entry, record);
-  if (undoRefusal(entry, later) || (await filedAfter(ctx.store, record))) return refuse(409, refusalText(record.kind));
+  if (undoRefusal(entry, later) || (await filedAfter(ctx.store, record)) || (await mailSent(ctx.store, record, actionId))) return refuse(409, refusalText(record.kind));
   for (const step of [...record.steps].reverse()) await runStep(ctx.store, step, actionId);
   await assertOneMain(ctx.store, targets.athletes);
   await writeUndone(ctx, entry, own);

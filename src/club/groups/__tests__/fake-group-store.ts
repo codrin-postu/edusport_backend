@@ -151,7 +151,7 @@ function fakeCalendarWrites(s: FakeGroupState, next: Next): K<'createEvent' | 'u
   };
 }
 
-function fakeJobsAndHistory(s: FakeGroupState, next: Next, tick: () => string): K<'createEmailJobs' | 'cancelEmailJobs' | 'recordAction' | 'record' | 'setHistoryChanges'> {
+function fakeJobsAndHistory(s: FakeGroupState, next: Next, tick: () => string): K<'createEmailJobs' | 'cancelEmailJobs' | 'sentEmailJobs' | 'recordAction' | 'record' | 'setHistoryChanges'> {
   const push = (entry: HistoryInput) => {
     const seq = s.history.reduce((max, h) => Math.max(max, h.seq), 0) + 1;
     const row: HistoryEntryRow = { id: `h${seq}`, seq, subjectType: entry.subjectType, subjectId: entry.subjectId, action: entry.action, changes: copy(entry.changes ?? {}), actor: entry.actor, at: tick() };
@@ -168,6 +168,7 @@ function fakeJobsAndHistory(s: FakeGroupState, next: Next, tick: () => string): 
       for (const j of queued) j.status = 'cancelled';
       return queued.length;
     },
+    sentEmailJobs: async (changeKey) => s.jobs.filter((j) => j.changeKey === changeKey && j.status === 'sent').length,
     recordAction: async (entry) => push(entry),
     record: async (entry) => {
       push(entry);

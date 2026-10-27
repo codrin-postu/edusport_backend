@@ -61,7 +61,7 @@ export async function addProgram(ctx: GroupContext, groupId: string, body: unkno
 type LockedSeries = { e: EventRecord; series: SeriesView; group: GroupRecord };
 
 /** The event read, its group locked, then the event, then both read again (lock order: groups before events). Null: gone or moved. */
-async function lockedEvent(store: GroupStore, eventId: string): Promise<EventRecord | null> {
+export async function lockedEvent(store: GroupStore, eventId: string): Promise<EventRecord | null> {
   const first = await store.event(eventId);
   if (!first?.groupId) return null;
   await store.lockGroup(first.groupId);
