@@ -44,7 +44,7 @@ describe('"Schimbă" and "Șterge programul" (W10)', () => {
     const res = await changeProgram(ctx, 'e1', { ...SERIES, days: ['sat'], startTime: '12:00', from: '2026-11-28' });
     expect(state.events.map((e) => [e.id, e.recurrence.seasonStart, e.recurrence.seasonEnd, e.exceptions.length])).toEqual([['e1', '2026-10-04', '2026-11-27', 0], [expect.any(String), '2026-11-28', '2027-05-31', 1]]);
     expect(state.history[0]).toMatchObject({ action: 'program-changed', changes: { from: '2026-11-28', before: { startTime: '11:00' }, after: { startTime: '12:00' } } });
-    expect(state.locks).toEqual(['group:g-ib', 'event:e1']);
+    expect(state.locks).toEqual(['season:s26', 'group:g-ib', 'event:e1']);
     await undoAction(ctx, { actionId: actionOf(res) });
     expect(state.events).toEqual(before);
   });
@@ -82,18 +82,40 @@ describe('"Șterge ședința"', () => {
   });
 });
 
+describe('a season that turns past while the writer waits for its lock', () => {
+  const one = event({ id: 'c1', recurrence: { freq: 'none', days: [], weekOfMonth: null, startTime: '18:00', endTime: '19:00', singleDate: '2026-11-20', seasonStart: null, seasonEnd: null } });
+  const run: [string, (c: ReturnType<typeof fakeContext>) => Promise<{ ok: boolean }>][] = [
+    ['addProgram', (c) => addProgram(c.ctx, 'g-ib', SERIES)],
+    ['changeProgram', (c) => changeProgram(c.ctx, 'e1', { ...SERIES, from: '2026-11-28' })],
+    ['endProgram', (c) => endProgram(c.ctx, 'e1', { from: '2027-03-01' })],
+    ['deleteClass', (c) => deleteClass(c.ctx, 'c1')],
+  ];
+  it.each(run)('%s refuses and writes nothing', async (_name, go) => {
+    const c = fakeContext({ events: [event({ id: 'e1' }), one] });
+    const lock = c.ctx.store.lockSeason;
+    c.ctx.store.lockSeason = async (id) => {
+      await lock(id);
+      c.state.seasons.forEach((x) => { x.isCurrent = x.id === 's27'; });
+    };
+    const before = structuredClone(c.state.events);
+    expect(await go(c)).toMatchObject({ ok: false, status: 409 });
+    expect(c.state.events).toEqual(before);
+    expect(c.state.history).toEqual([]);
+  });
+});
+
 describe('locks and undo order (F1)', () => {
   it('every write on an event locks its group before the event; an add locks the group', async () => {
     const one = event({ id: 'c1', recurrence: { freq: 'none', days: [], weekOfMonth: null, startTime: '18:00', endTime: '19:00', singleDate: '2026-11-20', seasonStart: null, seasonEnd: null } });
     const a = fakeContext({ events: [event({ id: 'e1' })] });
     await endProgram(a.ctx, 'e1', { from: '2027-03-01' });
-    expect(a.state.locks).toEqual(['group:g-ib', 'event:e1']);
+    expect(a.state.locks).toEqual(['season:s26', 'group:g-ib', 'event:e1']);
     const b = fakeContext({ events: [one] });
     await deleteClass(b.ctx, 'c1');
-    expect(b.state.locks).toEqual(['group:g-ib', 'event:c1']);
+    expect(b.state.locks).toEqual(['season:s26', 'group:g-ib', 'event:c1']);
     const c = fakeContext();
     await addProgram(c.ctx, 'g-ib', SERIES);
-    expect(c.state.locks).toEqual(['group:g-ib']);
+    expect(c.state.locks).toEqual(['season:s26', 'group:g-ib']);
   });
 
   it('an undo of a program write locks the group subject before the events', async () => {

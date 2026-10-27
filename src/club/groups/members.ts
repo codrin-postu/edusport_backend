@@ -36,10 +36,13 @@ export function readAllocateBody(body: unknown): AllocateBody | null {
   return items.length === body.items.length ? { season: body.season, items } : null;
 }
 
-/** A season that exists and is not past (W5, decided 7). */
+/** A season that exists and is not past (W5, decided 7): locked first (before athletes and groups), then read again, so a season switch cannot slip in between. */
 async function writableSeason(store: GroupStore, match: (s: SeasonRecord) => boolean): Promise<AdminResult<SeasonRecord>> {
+  const first = (await store.seasons()).find(match);
+  if (!first) return refuse(400, GROUP_ERRORS.invalid);
+  await store.lockSeason(first.id);
   const seasons = await store.seasons();
-  const season = seasons.find(match);
+  const season = seasons.find((s) => s.id === first.id);
   if (!season) return refuse(400, GROUP_ERRORS.invalid);
   return isPastSeason(season, seasons) ? refuse(409, GROUP_ERRORS.stale) : { ok: true, data: season };
 }

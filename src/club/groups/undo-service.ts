@@ -101,7 +101,7 @@ async function undoLocked(ctx: GroupContext, actionId: string): Promise<AdminRes
   if (!first) return refuse(404, GROUP_ERRORS.notFound);
   const record = readUndoRecord(first.changes.undo);
   if (!record) return refuse(409, GROUP_ERRORS.undoGroup);
-  const targets = undoLockTargets(record.steps, record.subjects);
+  const targets = undoLockTargets(record.steps, record.subjects, record.kind);
   await lockTargets(ctx.store, targets);
   if (!(await targetsExist(ctx.store, targets))) return refuse(409, refusalText(record.kind));
   await ctx.store.lockHistoryEntry(actionId);

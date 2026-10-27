@@ -45,7 +45,33 @@ describe('"Alocă" (5.3)', () => {
   it('locks athletes sorted by id, then the group', async () => {
     const { ctx, state } = seed();
     await joinGroup(ctx, 'g-ib', { season: '2026-2027', athleteIds: ['a3', 'a2'], mode: 'add' });
-    expect(state.locks).toEqual(['athlete:a2', 'athlete:a3', 'group:g-ib']);
+    expect(state.locks).toEqual(['season:s26', 'athlete:a2', 'athlete:a3', 'group:g-ib']);
+  });
+});
+
+/** The season is switched right after the writer locked it: the writer must read it again and refuse (season lock before athletes and groups). */
+describe('a season that turns past while the writer waits for its lock', () => {
+  const STALE = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' };
+  const switchOnLock = (c: ReturnType<typeof seed>) => {
+    const lock = c.ctx.store.lockSeason;
+    c.ctx.store.lockSeason = async (id) => {
+      await lock(id);
+      c.state.seasons.forEach((x) => { x.isCurrent = x.id === 's27'; });
+    };
+    return c;
+  };
+  const writers: [string, (c: ReturnType<typeof seed>) => Promise<unknown>][] = [
+    ['joinGroup', (c) => joinGroup(c.ctx, 'g-pp', { season: '2026-2027', athleteIds: ['a3'], mode: 'allocate' })],
+    ['allocateAll', (c) => allocateAll(c.ctx, { season: '2026-2027', items: [{ athleteId: 'a3', groupId: 'g-pp' }] })],
+    ['moveMembership', (c) => moveMembership(c.ctx, 'm1', { toGroupId: 'g-pp' })],
+    ['removeMembership', (c) => removeMembership(c.ctx, 'm1')],
+  ];
+  it.each(writers)('%s refuses and writes nothing', async (_name, run) => {
+    const c = switchOnLock(seed());
+    const before = structuredClone(c.state.memberships);
+    expect(await run(c)).toEqual(STALE);
+    expect(c.state.memberships).toEqual(before);
+    expect(c.state.locks.filter((l) => !l.startsWith('season:'))).toEqual([]);
   });
 });
 

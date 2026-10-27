@@ -73,12 +73,12 @@ function targetsOf(step: UndoStep): Partial<Record<keyof LockTargets, string[]>>
 
 /**
  * Rows the undo locks, in the binding order of the Global Constraints (seasons, athletes, groups, events).
- * An event step also locks the action's group subjects first, as the writes that made the record did (group before event).
+ * An event step, or a season action, also locks the action's group subjects first, as the writes that made the record did (group before event).
  */
-export function undoLockTargets(steps: UndoStep[], subjects: Subject[] = []): LockTargets {
+export function undoLockTargets(steps: UndoStep[], subjects: Subject[] = [], kind: UndoKind = 'group'): LockTargets {
   const all = steps.map(targetsOf);
   const onEvents = steps.some((s) => s.op === 'deleteEvent' || s.op === 'setEvent' || s.op === 'createEvent');
-  const ofSubjects = onEvents ? subjects.filter((x) => x.type === GROUP_SUBJECT).map((x) => x.id) : [];
+  const ofSubjects = onEvents || kind === 'season' ? subjects.filter((x) => x.type === GROUP_SUBJECT).map((x) => x.id) : [];
   const pick = (k: keyof LockTargets) => sorted(all.flatMap((t) => t[k] ?? []));
   return { seasons: pick('seasons'), athletes: pick('athletes'), groups: sorted([...pick('groups'), ...ofSubjects]), events: pick('events') };
 }
