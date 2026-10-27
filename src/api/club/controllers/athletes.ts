@@ -74,7 +74,7 @@ export default {
   async merge(ctx: AdminCtx) {
     const request = readMergeRequest(ctx.request.body);
     if (!request) return refuseWith(ctx, 400, ADMIN_ERRORS.invalid);
-    respond(ctx, await mergeAthletes(await serviceContext(strapi, ctx), request));
+    respond(ctx, await mergeAthletes(await serviceContext(strapi, ctx), request, strapiPresenceStore(strapi)));
   },
 
   async dismissDuplicate(ctx: AdminCtx) {

@@ -67,7 +67,7 @@ describe('an anonymized record is read-only (spec 4)', () => {
     expect(await createAthleteProfile(ctx, 'a9')).toEqual(STALE);
     expect(await setAthleteProfileVisibility(ctx, 'a9', { on: true })).toEqual(STALE);
     expect(await mergePreview(fake.store, 'a1', 'a9')).toEqual(STALE);
-    expect(await mergeAthletes(ctx, { keptId: 'a1', removedId: 'a9', take: [] })).toEqual(STALE);
+    expect(await mergeAthletes(ctx, { keptId: 'a1', removedId: 'a9', take: [] }, fakePresenceStore().store)).toEqual(STALE);
     expect(await deleteAthlete(ctx, 'a9', fakePresenceStore().store)).toEqual(STALE);
     expect(fake.state.athletes).toEqual(before.athletes);
     expect(fake.state.history).toEqual([]);

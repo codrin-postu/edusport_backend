@@ -7,6 +7,9 @@ import { lockAthletesWithRegistrations } from './locks';
 import { refreshAllMatches, safely } from './matches';
 import { mergeDiffering, planMerge, type MergePlan, type MergeSide } from './merge-plan';
 import { isAnonymized } from '../personal-data/anonymize-plan';
+import { mergePresenceRows } from '../presence/lifecycle/merge-rows';
+import { inBothTransactions } from '../presence/lifecycle/transaction';
+import type { PresenceStore } from '../presence/store';
 import type { AthleteRow, ClubStore, DuplicateRow, ProfileRow, ServiceContext } from './store';
 
 /** "Unește cu alt sportiv" (spec 6.6, d39) and "Nu e același copil" (d12). No undo. */
@@ -121,7 +124,8 @@ async function applyProfile(store: ClubStore, plan: MergePlan, keptId: string, r
   if (p.finalId && plan.values.name) await store.renameProfile(p.finalId, plan.values.name);
 }
 
-async function applyMerge(ctx: ServiceContext, kept: MergeSource, removed: MergeSource, plan: MergePlan): Promise<void> {
+async function applyMerge(ctx: ServiceContext, presence: PresenceStore, kept: MergeSource, removed: MergeSource, plan: MergePlan): Promise<void> {
+  await mergePresenceRows(presence, kept.id, removed.id);
   await applyRows(ctx.store, plan, kept.id, removed.id);
   await repointDuplicates(ctx.store, removed.id, kept.id);
   await applyProfile(ctx.store, plan, kept.id, removed.id);
@@ -134,19 +138,19 @@ async function applyMerge(ctx: ServiceContext, kept: MergeSource, removed: Merge
   await ctx.store.deleteAthlete(removed.id);
 }
 
-async function mergeInTransaction(ctx: ServiceContext, request: MergeRequest): Promise<Result> {
+async function mergeInTransaction(ctx: ServiceContext, presence: PresenceStore, request: MergeRequest): Promise<Result> {
   await lockAthletesWithRegistrations(ctx.store, [request.keptId, request.removedId]);
   const profiles = await ctx.store.profiles();
   const [kept, removed] = await Promise.all([loadSide(ctx.store, request.keptId, profiles), loadSide(ctx.store, request.removedId, profiles)]);
   if (!kept || !removed) return refuse(404, ADMIN_ERRORS.notFound);
   if (isAnonymized(kept) || isAnonymized(removed)) return refuse(409, ADMIN_ERRORS.stale);
-  await applyMerge(ctx, kept, removed, planMerge(kept, removed, request.take));
+  await applyMerge(ctx, presence, kept, removed, planMerge(kept, removed, request.take));
   return { ok: true, data: { documentId: kept.id } };
 }
 
-export async function mergeAthletes(ctx: ServiceContext, request: MergeRequest): Promise<Result> {
+export async function mergeAthletes(ctx: ServiceContext, request: MergeRequest, presence: PresenceStore): Promise<Result> {
   const tag = `[athletes] merging ${request.removedId} into ${request.keptId}`;
-  const result = await guarded(ctx.log, tag, () => ctx.store.transaction(() => mergeInTransaction(ctx, request)));
+  const result = await guarded(ctx.log, tag, () => inBothTransactions(ctx.store, presence, () => mergeInTransaction(ctx, presence, request)));
   if (result.ok === true) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after a merge');
   return result;
 }
