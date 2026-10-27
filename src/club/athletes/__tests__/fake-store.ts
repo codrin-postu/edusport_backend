@@ -202,7 +202,7 @@ function scrubRow(row: RegistrationRow, data: RegistrationScrub): void {
   Object.assign(row, { childName: data.childName, childBirthDate: '', parentName: '', phone: '', email: '', childBirthDateParsed: null, lastSeason: null, confirmation: data.confirmation });
 }
 
-type PersonalData = 'registrationRecords' | 'anonymizedRegistrationIds' | 'setHistoryChanges' | 'scrubRegistration' | 'scrubEmailJobs' | 'scrubScheduleEmailJobs' | 'personalDataSettings' | 'savePersonalDataSettings';
+type PersonalData = 'registrationRecords' | 'anonymizedRegistrationIds' | 'setHistoryChanges' | 'scrubRegistration' | 'scrubEmailJobs' | 'scrubScheduleEmailJobs' | 'scrubPaymentEmailJobs' | 'personalDataSettings' | 'savePersonalDataSettings';
 
 function fakePersonalData(s: FakeState): Pick<ClubStore, PersonalData> {
   return {
@@ -230,6 +230,11 @@ function fakePersonalData(s: FakeState): Pick<ClubStore, PersonalData> {
       const wanted = new Set(addresses.map((a) => a.toLowerCase()));
       for (const j of s.emailJobs) {
         if (j.kind === 'schedule-change' && j.recipient && wanted.has(j.recipient.toLowerCase())) Object.assign(j, { recipient: null, subject: null, lastError: null, status: scrubbedJobStatus(j.status) });
+      }
+    },
+    scrubPaymentEmailJobs: async (paymentIds) => {
+      for (const j of s.emailJobs) {
+        if (j.kind === 'payment' && j.paymentId && paymentIds.includes(j.paymentId)) Object.assign(j, { recipient: null, subject: null, lastError: null, payload: null, status: scrubbedJobStatus(j.status) });
       }
     },
     personalDataSettings: async () => structuredClone(s.settings),

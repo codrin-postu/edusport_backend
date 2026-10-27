@@ -14,7 +14,7 @@ async function storedDocuments(strapi: Core.Strapi, registrationId: string): Pro
 }
 
 export async function anonymizeContext(strapi: Core.Strapi, ctx: AdminCtx): Promise<AnonymizeContext> {
-  return { ...(await serviceContext(strapi, ctx)), removeFiles: (id) => deleteRegistrationDocuments(strapi, id), now: () => new Date() };
+  return { ...(await serviceContext(strapi, ctx)), removeFiles: (id) => deleteRegistrationDocuments(strapi, id), now: () => new Date(), presence: strapiPresenceStore(strapi) };
 }
 
 export async function exportContext(strapi: Core.Strapi, ctx: AdminCtx): Promise<ExportContext> {

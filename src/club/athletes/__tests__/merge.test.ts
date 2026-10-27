@@ -50,7 +50,7 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
 
   it('moves everything to the kept record with the picked fields', async () => {
     const fake = fakeClubStore(seed());
-    expect(await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: ['email'] })).toEqual({ ok: true, data: { documentId: 'k' } });
+    expect(await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: ['email'] }, fakePresenceStore().store)).toEqual({ ok: true, data: { documentId: 'k' } });
     expect(fake.state.athletes.map((a) => a.id)).toEqual(['k', 't']);
     expect(fake.state.athletes[0]).toMatchObject({ name: 'Maria Pop', phone: '0722', email: 'ana@example.com' });
     expect(fake.state.registrations[0]).toMatchObject({ athleteId: 'k', confirmation: null });
@@ -60,9 +60,9 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
 
   it('locks the registrations it may write, then both athlete rows by id, whichever is kept (polish 12)', async () => {
     const one = fakeClubStore(seed());
-    await mergeAthletes(ctx(one), { keptId: 'r', removedId: 'k', take: [] });
+    await mergeAthletes(ctx(one), { keptId: 'r', removedId: 'k', take: [] }, fakePresenceStore().store);
     const other = fakeClubStore(seed());
-    await mergeAthletes(ctx(other), { keptId: 'k', removedId: 'r', take: [] });
+    await mergeAthletes(ctx(other), { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store);
     expect([one.state.locks, other.state.locks]).toEqual([['reg', 'athlete:k', 'athlete:r'], ['reg', 'athlete:k', 'athlete:r']]);
   });
 
@@ -70,23 +70,23 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
     const both = fakeClubStore(seed());
     await both.store.updateAthlete('k', { notes: 'Alergie la arahide' });
     await both.store.updateAthlete('r', { notes: 'Vine cu bunica' });
-    await mergeAthletes(ctx(both), { keptId: 'k', removedId: 'r', take: [] });
+    await mergeAthletes(ctx(both), { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store);
     expect(both.state.athletes[0].notes).toBe('Alergie la arahide\n\nVine cu bunica');
 
     const onlyRemoved = fakeClubStore(seed());
     await onlyRemoved.store.updateAthlete('r', { notes: 'Vine cu bunica' });
-    await mergeAthletes(ctx(onlyRemoved), { keptId: 'k', removedId: 'r', take: [] });
+    await mergeAthletes(ctx(onlyRemoved), { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store);
     expect(onlyRemoved.state.athletes[0].notes).toBe('Vine cu bunica');
 
     const onlyKept = fakeClubStore(seed());
     await onlyKept.store.updateAthlete('k', { notes: 'Alergie la arahide' });
-    await mergeAthletes(ctx(onlyKept), { keptId: 'k', removedId: 'r', take: [] });
+    await mergeAthletes(ctx(onlyKept), { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store);
     expect(onlyKept.state.athletes[0].notes).toBe('Alergie la arahide');
   });
 
   it('a relinked registration keeps Confirmat but can no longer be undone', async () => {
     const fake = fakeClubStore(seed());
-    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] });
+    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store);
     expect(fake.state.registrations[0].status).toBe('Confirmat');
     expect(canUndo(fake.state.registrations[0])).toBe(false);
   });
@@ -98,7 +98,7 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
     };
     const regk = registrationRow({ id: 'regk', athleteId: 'k', status: 'Confirmat', confirmation: record });
     const fake = fakeClubStore({ ...seed(), registrations: [regk], memberships: [{ id: 'mk', athleteId: 'k', groupId: 'g-pp', seasonId: 's26', isMain: true, from: null }] });
-    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] });
+    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store);
     expect(fake.state.registrations[0]).toMatchObject({ id: 'regk', athleteId: 'k', status: 'Confirmat', confirmation: null });
     const before = structuredClone(fake.state);
     expect(await undoConfirmation(ctx(fake), 'regk', fakePresenceStore().store)).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
@@ -112,7 +112,7 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
       { id: 'mr', athleteId: 'r', groupId: 'g-ib', seasonId: 's26', isMain: true, from: '2026-10-05' },
     ];
     const fake = fakeClubStore({ ...seed(), memberships });
-    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] });
+    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store);
     expect(fake.state.memberships).toEqual([memberships[0], { ...memberships[1], athleteId: 'k', isMain: false }]);
   });
 
@@ -122,7 +122,7 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
       { id: 'mr', athleteId: 'r', groupId: 'g-ib', seasonId: 's26', isMain: true, from: '2026-11-01', to: null },
     ];
     const fake = fakeClubStore({ ...seed(), memberships });
-    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] });
+    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store);
     expect(fake.state.memberships).toEqual([memberships[0], { ...memberships[1], athleteId: 'k' }]);
   });
 
@@ -133,27 +133,27 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
       { id: 'cr2', athleteId: 'r', seasonId: 's25', state: 'in_asteptare' as const },
     ];
     const fake = fakeClubStore({ ...seed(), acs });
-    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] });
+    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store);
     expect(fake.state.acs.map((a) => [a.id, a.athleteId, a.seasonId, a.state])).toEqual([['ck', 'k', 's26', 'da'], ['cr2', 'k', 's25', 'in_asteptare']]);
   });
 
   it('keeps the kept profile, deletes the other and remembers its addresses (d39)', async () => {
     const fake = fakeClubStore(seed());
-    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] });
+    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store);
     expect(fake.state.profiles).toEqual([{ ...profile('sp-k', 'maria-pop', ['maria-pop-2', 'm-pop']), name: 'Maria Pop' }]);
     expect(fake.state.removedParticipations).toEqual(['sp-r']);
   });
 
   it('the other record\'s name picked: the kept profile is renamed, its address stays', async () => {
     const fake = fakeClubStore(seed());
-    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: ['name'] });
+    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: ['name'] }, fakePresenceStore().store);
     expect(fake.state.athletes[0].name).toBe('Pop Maria');
     expect(fake.state.profiles).toEqual([{ ...profile('sp-k', 'maria-pop', ['maria-pop-2', 'm-pop']), name: 'Pop Maria' }]);
   });
 
   it('only the other record has a profile: it moves to the kept record and follows its name', async () => {
     const fake = fakeClubStore({ ...seed(), athletes: [athleteRow({ id: 'k', name: 'Maria Pop' }), athleteRow({ id: 'r', name: 'Pop Maria', profileId: 'sp-r' })] });
-    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] });
+    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store);
     expect(fake.state.athletes[0].profileId).toBe('sp-r');
     expect(fake.state.profiles.find((p) => p.id === 'sp-r')).toMatchObject({ name: 'Maria Pop', slug: 'maria-pop-2', previousSlugs: ['m-pop'] });
     expect(fake.state.removedParticipations).toEqual([]);
@@ -161,7 +161,7 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
 
   it('flags: the pair goes, a flag with a third athlete moves to the kept record (N5)', async () => {
     const fake = fakeClubStore(seed());
-    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] });
+    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store);
     expect(fake.state.duplicates.map((d) => [d.firstId, d.secondId, d.dismissed])).toEqual([['k', 't', false]]);
   });
 
@@ -173,7 +173,7 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
       dup('d7', 'r', 'w'), dup('d8', 'w', 'r', true),
     ];
     const fake = fakeClubStore({ ...seed(), duplicates });
-    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] });
+    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store);
     const pairs = fake.state.duplicates.map((d) => [d.firstId, d.secondId, d.dismissed]);
     expect(pairs).toEqual([['k', 'u', true], ['k', 'v', true], ['t', 'k', true], ['k', 'w', true]]);
   });
@@ -181,7 +181,7 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
   it('history moves to the kept record, then "Unit cu <nume>"', async () => {
     const fake = fakeClubStore(seed());
     await fake.store.record({ subjectType: 'athlete', subjectId: 'r', action: 'created-from-registrations', actor: 'migrare' });
-    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: ['email'] });
+    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: ['email'] }, fakePresenceStore().store);
     expect(fake.state.history.map((h) => [h.subjectId, h.action])).toEqual([['k', 'created-from-registrations'], ['k', 'merged'], ['k', 'updated']]);
     expect(fake.state.history[1].changes).toEqual({ name: 'Pop Maria' });
   });
@@ -190,7 +190,7 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
     expect(readMergeRequest({ keptId: 'k', removedId: 'r', take: ['email', 'x'] })).toEqual({ keptId: 'k', removedId: 'r', take: ['email'] });
     expect(readMergeRequest({ keptId: 'k', removedId: 'k' })).toBeNull();
     expect(readMergeRequest(null)).toBeNull();
-    expect(await mergeAthletes(ctx(fakeClubStore(seed())), { keptId: 'k', removedId: 'zz', take: [] })).toEqual({ ok: false, status: 404, error: ADMIN_ERRORS.notFound });
+    expect(await mergeAthletes(ctx(fakeClubStore(seed())), { keptId: 'k', removedId: 'zz', take: [] }, fakePresenceStore().store)).toEqual({ ok: false, status: 404, error: ADMIN_ERRORS.notFound });
   });
 
   it('all or nothing: a failure saves nothing', async () => {
@@ -198,7 +198,7 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
     const before = structuredClone(fake.state);
     fake.failOn('deleteAthlete');
     const c = ctx(fake);
-    expect(await mergeAthletes(c, { keptId: 'k', removedId: 'r', take: ['email'] })).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
+    expect(await mergeAthletes(c, { keptId: 'k', removedId: 'r', take: ['email'] }, fakePresenceStore().store)).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
     expect(fake.state).toEqual(before);
     expect(c.log).toHaveBeenCalledOnce();
   });
@@ -206,13 +206,13 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
   it('matches are refreshed after the commit; a refresh failure is only logged', async () => {
     const unlinked = registrationRow({ id: 'new', childName: 'Pop Maria', phone: '0733', email: 'ana@example.com', matchAthleteId: 'r', matchLevel: 'sigur' });
     const fake = fakeClubStore({ ...seed(), registrations: [unlinked] });
-    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] });
+    await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store);
     expect(fake.state.registrations[0].matchAthleteId).toBe('k');
 
     const failing = fakeClubStore({ ...seed(), registrations: [unlinked] });
     failing.failOn('updateRegistration');
     const c = ctx(failing);
-    expect(await mergeAthletes(c, { keptId: 'k', removedId: 'r', take: [] })).toEqual({ ok: true, data: { documentId: 'k' } });
+    expect(await mergeAthletes(c, { keptId: 'k', removedId: 'r', take: [] }, fakePresenceStore().store)).toEqual({ ok: true, data: { documentId: 'k' } });
     expect(c.log).toHaveBeenCalledOnce();
   });
 });

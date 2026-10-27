@@ -6,16 +6,19 @@ import type { AthleteRow, ClubStore, HistoryRow, RegistrationRow, ServiceContext
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import { athleteScrub, registrationScrub, scrubChanges, type BulkAnonymizeResult } from './anonymize-plan';
 import { carriedNames, nameKey } from './carried-names';
+import { clearPaymentNotes, scrubPaymentChanges } from '../presence/lifecycle/anonymize-rows';
+import { inBothTransactions } from '../presence/lifecycle/transaction';
+import type { PresenceStore } from '../presence/store';
 
 /** Removes one registration's PDF folder; the files live outside the database, so this runs after the commit. */
 export type RemoveFiles = (registrationId: string) => Promise<void>;
-export type AnonymizeContext = ServiceContext & { removeFiles: RemoveFiles; now: () => Date };
+export type AnonymizeContext = ServiceContext & { removeFiles: RemoveFiles; now: () => Date; presence: PresenceStore };
 
 type Done = { documentId: string; registrationIds: string[]; mediaIds: number[] };
 
-async function scrubRows(store: ClubStore, rows: HistoryRow[]): Promise<void> {
+async function scrubRows(store: ClubStore, rows: HistoryRow[], scrub: (changes: Record<string, unknown>) => Record<string, unknown> = scrubChanges): Promise<void> {
   for (const row of rows) {
-    const next = scrubChanges(row.changes);
+    const next = scrub(row.changes);
     if (JSON.stringify(next) !== JSON.stringify(row.changes)) await store.setHistoryChanges(row.seq, next);
   }
 }
@@ -46,6 +49,13 @@ async function scrubRegistrations(store: ClubStore, athlete: AthleteRow, registr
 }
 
 /** The media ids are read before the profile goes; which of them other content still uses is known only after the commit. */
+/** Payments stay with amount, date, method, season and links; only the note and the e-mail traces go (4.21, decided 7, 8). */
+async function scrubPayments(ctx: AnonymizeContext, athleteId: string): Promise<void> {
+  const paymentIds = await clearPaymentNotes(ctx.presence, athleteId);
+  await ctx.store.scrubPaymentEmailJobs(paymentIds);
+  for (const id of paymentIds) await scrubRows(ctx.store, await ctx.store.history(SUBJECT.payment, id), scrubPaymentChanges);
+}
+
 async function deleteProfileOf(store: ClubStore, profileId: string | null): Promise<number[]> {
   if (!profileId) return [];
   const mediaIds = await store.profileMediaIds(profileId);
@@ -62,6 +72,7 @@ async function anonymizeInTransaction(ctx: AnonymizeContext, id: string): Promis
   const pairs = (await ctx.store.duplicates()).filter((d) => d.firstId === id || d.secondId === id);
   await scrubHistory(ctx.store, athlete, registrations);
   await scrubRegistrations(ctx.store, athlete, registrations);
+  await scrubPayments(ctx, id);
   for (const d of pairs) await ctx.store.deleteDuplicate(d.id);
   const mediaIds = await deleteProfileOf(ctx.store, athlete.profileId);
   await ctx.store.updateAthlete(id, athleteScrub(ctx.now().toISOString()));
@@ -100,7 +111,7 @@ async function afterCommit(ctx: AnonymizeContext, done: Done): Promise<void> {
 }
 
 async function anonymizeOne(ctx: AnonymizeContext, id: string): Promise<AdminResult<Done>> {
-  const result = await guarded(ctx.log, `[personal-data] anonymizing ${id}`, () => ctx.store.transaction(() => anonymizeInTransaction(ctx, id)));
+  const result = await guarded(ctx.log, `[personal-data] anonymizing ${id}`, () => inBothTransactions(ctx.store, ctx.presence, () => anonymizeInTransaction(ctx, id)));
   if (result.ok === false) return result;
   await afterCommit(ctx, result.data);
   return result;
