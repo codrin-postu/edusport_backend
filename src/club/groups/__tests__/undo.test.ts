@@ -67,4 +67,12 @@ describe('locks an undo takes', () => {
       { op: 'cancelEmails' },
     ])).toEqual({ seasons: ['s26', 's27'], athletes: ['a', 'b'], groups: ['g2'], events: ['e1', 'e2'] });
   });
+
+  it('adds the action\'s group subjects before its events, and the group of a re-created event', () => {
+    const subjects = [{ type: 'group', id: 'g1' }, { type: 'athlete', id: 'a9' }];
+    expect(undoLockTargets([{ op: 'deleteEvent', id: 'e1' }], subjects)).toEqual({ seasons: [], athletes: [], groups: ['g1'], events: ['e1'] });
+    expect(undoLockTargets([{ op: 'cancelEmails' }], subjects).groups).toEqual([]);
+    const event = { title: 't', type: 'scoala', description: null, groupId: 'g2', exceptions: [], recurrence: { freq: 'none' as const, days: [], weekOfMonth: null, startTime: null, endTime: null, singleDate: null, seasonStart: null, seasonEnd: null } };
+    expect(undoLockTargets([{ op: 'createEvent', event }]).groups).toEqual(['g2']);
+  });
 });

@@ -1,6 +1,7 @@
 import type { AthleteStatus } from '../athlete-data';
 import type { MembershipRow } from '../athletes/store';
 import { isRecord } from '../narrow';
+import { GROUP_SUBJECT } from './history-lines';
 import type { MembershipWrite } from './membership-plan';
 import type { EventWrite, ExceptionRow, HistoryEntryRow, Recurrence, Subject } from './types';
 
@@ -64,14 +65,20 @@ function targetsOf(step: UndoStep): Partial<Record<keyof LockTargets, string[]>>
     case 'deleteMembership': case 'setMembership': case 'setStatus': return { athletes: [step.athleteId] };
     case 'createMembership': return { athletes: [step.row.athleteId], groups: [step.row.groupId] };
     case 'deleteEvent': case 'setEvent': return { events: [step.id] };
+    case 'createEvent': return step.event.groupId ? { groups: [step.event.groupId] } : {};
     case 'setCurrentSeason': return { seasons: [step.id, step.otherId] };
     default: return {};
   }
 }
 
-/** Rows the undo locks, in the binding order of the Global Constraints (seasons, athletes, groups, events). */
-export function undoLockTargets(steps: UndoStep[]): LockTargets {
+/**
+ * Rows the undo locks, in the binding order of the Global Constraints (seasons, athletes, groups, events).
+ * An event step also locks the action's group subjects first, as the writes that made the record did (group before event).
+ */
+export function undoLockTargets(steps: UndoStep[], subjects: Subject[] = []): LockTargets {
   const all = steps.map(targetsOf);
+  const onEvents = steps.some((s) => s.op === 'deleteEvent' || s.op === 'setEvent' || s.op === 'createEvent');
+  const ofSubjects = onEvents ? subjects.filter((x) => x.type === GROUP_SUBJECT).map((x) => x.id) : [];
   const pick = (k: keyof LockTargets) => sorted(all.flatMap((t) => t[k] ?? []));
-  return { seasons: pick('seasons'), athletes: pick('athletes'), groups: pick('groups'), events: pick('events') };
+  return { seasons: pick('seasons'), athletes: pick('athletes'), groups: sorted([...pick('groups'), ...ofSubjects]), events: pick('events') };
 }
