@@ -30,24 +30,43 @@ function store(initial: string[] = [], staleReads = false) {
 }
 
 describe('allocateRegistrationNumber', () => {
+  it('does not go back below a clashing 4-digit number', async () => {
+    const taken = new Set(['26-998', '26-999', '26-1000']);
+    const calls: string[] = [];
+    const deps = {
+      readNumbers: async () => ['26-998'],
+      create: async (n: string) => {
+        calls.push(n);
+        if (taken.has(n)) throw pgClash();
+        return { documentId: n };
+      },
+    };
+    await expect(allocateRegistrationNumber(2026, deps)).resolves.toMatchObject({ registrationNumber: '26-1001' });
+    expect(calls).toEqual(['26-999', '26-1000', '26-1001']);
+  });
+
+  it('continues after an old-form number', async () => {
+    await expect(allocateRegistrationNumber(2026, store(['2026-0007']))).resolves.toMatchObject({ registrationNumber: '26-008' });
+  });
+
   it('uses the next number after the highest of that start year', async () => {
-    await expect(allocateRegistrationNumber(2026, store(['2026-0007', '2025-0100']))).resolves.toEqual({
-      registrationNumber: '2026-0008',
-      result: { documentId: 'doc-2026-0008' },
+    await expect(allocateRegistrationNumber(2026, store(['2026-0007', '25-100']))).resolves.toEqual({
+      registrationNumber: '26-008',
+      result: { documentId: 'doc-26-008' },
     });
   });
 
   it('gives two submits at the same moment two different numbers', async () => {
-    const s = store(['2026-0007']);
+    const s = store(['26-007']);
     const [a, b] = await Promise.all([allocateRegistrationNumber(2026, s), allocateRegistrationNumber(2026, s)]);
-    expect([a.registrationNumber, b.registrationNumber].sort()).toEqual(['2026-0008', '2026-0009']);
-    expect(s.calls).toEqual(['2026-0008', '2026-0008', '2026-0009']);
+    expect([a.registrationNumber, b.registrationNumber].sort()).toEqual(['26-008', '26-009']);
+    expect(s.calls).toEqual(['26-008', '26-008', '26-009']);
   });
 
   it('moves past a clashing number even when the read is stale', async () => {
-    const s = store(['2026-0001'], true);
-    await expect(allocateRegistrationNumber(2026, s)).resolves.toMatchObject({ registrationNumber: '2026-0002' });
-    expect(s.calls).toEqual(['2026-0001', '2026-0002']);
+    const s = store(['26-001'], true);
+    await expect(allocateRegistrationNumber(2026, s)).resolves.toMatchObject({ registrationNumber: '26-002' });
+    expect(s.calls).toEqual(['26-001', '26-002']);
   });
 
   it('gives up after 1 attempt plus 5 retries', async () => {

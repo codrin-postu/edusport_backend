@@ -4,7 +4,7 @@ title Class diagram: registrations, documents, accounts
 hide circle
 
 class "RegistrationSubmission" as Reg <<changed>> {
-  registrationNumber : string  // 2026-0142
+  registrationNumber : string  // 26-142
   season, status, answers
   athlete : Athlete [0..1]  // set on confirm, cleared by undo, delete or a merge
   matchAthlete : Athlete [0..1] <<new>>  // saved match (2.1, 2.2); only while athlete is unset

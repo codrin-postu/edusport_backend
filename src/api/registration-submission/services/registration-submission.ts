@@ -18,7 +18,12 @@ export default factories.createCoreService(UID, ({ strapi }) => ({
       readNumbers: async (year) => {
         const rows: { registrationNumber?: string | null }[] = await strapi.db.query(UID).findMany({
           select: ['registrationNumber'],
-          where: { registrationNumber: { $startsWith: `${year}-` } },
+          where: {
+            $or: [
+              { registrationNumber: { $startsWith: `${String(year % 100).padStart(2, '0')}-` } },
+              { registrationNumber: { $startsWith: `${year}-` } },
+            ],
+          },
         });
         return rows.map((r) => r.registrationNumber ?? null);
       },

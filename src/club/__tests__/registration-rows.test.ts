@@ -60,8 +60,8 @@ describe('planRegistrationNumbering', () => {
       'school1',
     );
     expect(plan.number).toEqual([
-      { documentId: 'r3', data: { registrationNumber: '2026-0005', seasonRef: 'season2026', section: 'school1' } },
-      { documentId: 'r2', data: { registrationNumber: '2026-0006', seasonRef: 'season2026', section: 'school1' } },
+      { documentId: 'r3', data: { registrationNumber: '26-005', seasonRef: 'season2026', section: 'school1' } },
+      { documentId: 'r2', data: { registrationNumber: '26-006', seasonRef: 'season2026', section: 'school1' } },
     ]);
     expect(plan.link).toEqual([]);
     expect(plan.skipped).toEqual([]);
@@ -78,8 +78,8 @@ describe('planRegistrationNumbering', () => {
       null,
     );
     expect(plan.number).toEqual([
-      { documentId: 'r1', data: { registrationNumber: '2026-0001' } },
-      { documentId: 'r2', data: { registrationNumber: '2030-0001' } },
+      { documentId: 'r1', data: { registrationNumber: '26-001' } },
+      { documentId: 'r2', data: { registrationNumber: '30-001' } },
     ]);
     expect(plan.skipped).toEqual(['r3']);
   });

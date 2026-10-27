@@ -11,7 +11,7 @@ participant "Brevo" as B
 participant "Google Sheets" as G
 Parent -> W : fill 3-step form, submit
 W -> S : POST /api/forms/inscriere
-S -> DB : save registration\nnumber = next for season (2026-0142)
+S -> DB : save registration\nnumber = next for season (26-142)
 S -> PDF : build Acord (+ Adeziune if member)
 PDF --> S : PDF files
 S -> DB : save documents

@@ -98,7 +98,7 @@ Out of scope:
   - e-mail resent (exists) [DEC 2026-10-05];
   - confirmation, on the registration: "Confirmat. Fișa existentă folosită (<nume>); grupa <grupă>." / "Confirmat. Sportiv nou creat; fără grupă." [proto v5];
   - confirmation, on the athlete: "Înscriere confirmată: <nr>, grupa <grupă>" [DEC 2026-10-26 gaps #3, decided by Claude]; without a group: "Înscriere confirmată: <nr>" [pattern, decided by Claude];
-  - athlete field updated from a registration: `Telefon: "<vechi>" -> "<nou>" (din înscrierea 2026-0142)` [DEC 2026-10-06 open-questions-v1 Q1];
+  - athlete field updated from a registration: `Telefon: "<vechi>" -> "<nou>" (din înscrierea 26-142)` [DEC 2026-10-06 open-questions-v1 Q1];
   - group added: "Adăugat în grupa <grupă>"; A.C.S. status written: "Membru A.C.S. <sezon>: <vechi> -> <nou>"; reactivation: "Reactivat" [DEC 2026-10-26 gaps #4, decided by Claude];
   - undo of a confirmation: "Confirmare anulată", on the registration and on the athlete (both records the confirmation wrote to) [r4 e1; DEC 2026-10-26 gaps #4, decided by Claude; pattern, decided by Claude];
   - confirmed registration deleted, on the athlete: "Înscriere ștearsă: <nr>" [r4 e3; DEC 2026-10-26 gaps #4, decided by Claude];
@@ -160,7 +160,7 @@ Out of scope:
 - "Confirmat" cannot be set from a cell or menu [r2 l6].
 
 ### 3.3 Panel
-- Header (fixed): name, status badge, "Nr. 2026-0142", "Trimis 3 oct 2026, 14:22" [DEC 2026-10-05 registration-tabs-v2; proto v5].
+- Header (fixed): name, status badge, "Nr. 26-142", "Trimis 3 oct 2026, 14:22" [DEC 2026-10-05 registration-tabs-v2; proto v5].
 - Status menu keeps "Nou", "Contactat", "Respins" (no "Confirmat") [DEC 2026-10-26 gaps #20, decided by Claude; r2 l6].
 - "..." menu: "Anulează confirmarea" (only on a registration confirmed through the window; asks to confirm), "Mută la altă școală" (3.6), "Șterge înscrierea" (moved here from the footer) [DEC 2026-10-26 gaps #8, #21, decided by Claude].
 - Match card (above the tabs, only while unconfirmed): initials, "Sportiv existent", the last group, or "Ultima înscriere: <sezon>" when the athlete has no group; the line "În formular: nu a participat sezonul trecut." when the form says so [r1 q10; DEC 2026-10-26 gaps #5, decided by Claude]. "Compară" / "Ascunde" opens an in-place table with columns "În fișă" / "În înscriere" and rows "Nume", "Data nașterii", "Părinte", "Telefon", "E-mail"; differences highlighted with a light background only, no count text, no last-season answer, no ticks; empty cells blank; link "Deschide fișa completă" opens the record in the same tab [DEC 2026-10-06 pending-decisions-v2; proto v5; DEC 2026-10-26 gaps #2, #33, decided by Claude].

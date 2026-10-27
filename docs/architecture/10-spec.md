@@ -46,7 +46,7 @@ Rules that must always hold:
 - Form mirrors the club's current form exactly (questions, wording, options, conditional fields). 3 steps: "Date înscriere", "Abonament", "Finalizare înscriere". One field per row.
 - Prices, membership fee, season and period are read from the admin data, never typed into templates. Non-member upsell computed from the prices. Next weekends of the school shown on step 2.
 - School: the school page's "Înscrie-te" preselects it; the general link asks "Alege școala" only when 2+ schools are open; the school stays at the top of every step with "Schimbă". Registrations open or close per school.
-- On submit: registration number `<season start year>-<4-digit sequence>` (one numbering across schools, unique, server-assigned); PDFs built (Acord always, Cerere de adeziune only if membership = Da); e-mail queued (Brevo, retry, style E1); row synced to the season's Google Sheet tab; matching to existing athletes runs.
+- On submit: registration number `<last two digits of the season start year>-<sequence, at least 3 digits> (e.g. 26-001)` (one numbering across schools, unique, server-assigned); PDFs built (Acord always, Cerere de adeziune only if membership = Da); e-mail queued (Brevo, retry, style E1); row synced to the season's Google Sheet tab; matching to existing athletes runs.
 - Success screen with number, PDF download, WhatsApp channel link. Copy: "Documentele vor fi semnate la prima ședință de curs."
 - Consents stored as two Da/Nu values (GDPR, Regulament) with the submission time.
 
