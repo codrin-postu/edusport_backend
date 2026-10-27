@@ -22,6 +22,7 @@ const COMPETITION = 'api::competition.competition' as const;
 const HISTORY = 'api::history-entry.history-entry' as const;
 const JOB = 'api::email-job.email-job' as const;
 const SETTINGS = 'api::site-settings.site-settings' as const;
+const FILE = 'plugin::upload.file' as const;
 const MAX = 100000;
 const BY_ID = 'id:asc' as const;
 
@@ -244,6 +245,28 @@ function profileWrites(strapi: Core.Strapi): Pick<ClubStore, 'createProfile' | '
   };
 }
 
+const fileIdsOf = (v: unknown): number[] => (Array.isArray(v) ? v : [v]).map((f) => (f && typeof f === 'object' ? Number((f as Raw).id) : NaN)).filter(Number.isInteger);
+
+/** The media attributes come from the profile schema, so a media field added later is covered too; its components hold no media. */
+function profileMediaIds(strapi: Core.Strapi): ClubStore['profileMediaIds'] {
+  return async (profileId) => {
+    const fields = Object.entries(strapi.contentType(PROFILE).attributes).filter(([, a]) => a.type === 'media').map(([name]) => name);
+    const populate = Object.fromEntries(fields.map((f) => [f, { select: ['id'] }]));
+    const rows = raws(await strapi.db.query(PROFILE).findMany({ where: { documentId: profileId }, select: ['id'], populate }));
+    return [...new Set(rows.flatMap((r) => fields.flatMap((f) => fileIdsOf(r[f]))))];
+  };
+}
+
+/** `related` is the upload plugin's morph relation (files_related_mph); populating it skips rows of deleted entries. */
+function deleteMediaIfUnused(strapi: Core.Strapi): ClubStore['deleteMediaIfUnused'] {
+  return async (fileId) => {
+    const file = (await strapi.db.query(FILE).findOne({ where: { id: fileId }, populate: { related: { select: ['id'] } } })) as Raw | null;
+    if (!file || raws(file.related).length > 0) return false;
+    await strapi.plugin('upload').service('upload').remove(file);
+    return true;
+  };
+}
+
 /** A nested `transaction` reuses the outer one (Strapi), so `active` is restored, not cleared, when it ends. */
 function transactions(strapi: Core.Strapi): Pick<ClubStore, 'transaction' | 'lockRegistration' | 'lockAthlete'> {
   let active: Knex.Transaction | null = null;
@@ -319,6 +342,8 @@ export function strapiClubStore(strapi: Core.Strapi): ClubStore {
     ...profileWrites(strapi),
     ...personalDataStore(strapi),
     ...settingsStore(strapi),
+    profileMediaIds: profileMediaIds(strapi),
+    deleteMediaIfUnused: deleteMediaIfUnused(strapi),
     moveHistory: async (from, to) => {
       await strapi.db.query(HISTORY).updateMany({ where: { subjectType: 'athlete', subjectId: from }, data: { subjectId: to } });
     },

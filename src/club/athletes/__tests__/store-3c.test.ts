@@ -90,6 +90,41 @@ describe('Strapi store, 3C writes', () => {
   });
 });
 
+const PROFILE = 'api::sportsperson.sportsperson';
+const FILE = 'plugin::upload.file';
+
+/** Profile rows (draft and published) and files with their `related` entries; `remove` is the upload plugin service. */
+function mediaStrapi(calls: Call[], profileRows: unknown[], files: Record<number, unknown>): Core.Strapi {
+  const query = (uid: string) => ({
+    findMany: async (args: unknown) => { calls.push([uid, 'findMany', args]); return profileRows; },
+    findOne: async (args: { where: { id: number } }) => { calls.push([uid, 'findOne', args]); return files[args.where.id] ?? null; },
+  });
+  const attributes = { name: { type: 'string' }, photo: { type: 'media' }, gallery: { type: 'media' }, seasons: { type: 'component' } };
+  const upload = { remove: async (file: unknown) => { calls.push([FILE, 'remove', file]); } };
+  return { db: { query }, contentType: () => ({ attributes }), plugin: () => ({ service: () => upload }) } as unknown as Core.Strapi;
+}
+
+describe('Strapi store, media of a profile (3C spec 4)', () => {
+  it('reads the file ids of every media field on the draft and published rows, once each', async () => {
+    const calls: Call[] = [];
+    const rows = [{ id: 10, photo: { id: 1 }, gallery: [{ id: 2 }, { id: 3 }] }, { id: 11, photo: null, gallery: [{ id: 2 }, { id: 1 }] }];
+    expect(await strapiClubStore(mediaStrapi(calls, rows, {})).profileMediaIds('sp1')).toEqual([1, 2, 3]);
+    expect(calls).toEqual([[PROFILE, 'findMany', {
+      where: { documentId: 'sp1' }, select: ['id'], populate: { photo: { select: ['id'] }, gallery: { select: ['id'] } },
+    }]]);
+  });
+
+  it('removes a file no content uses through the upload service; a used or missing file stays', async () => {
+    const calls: Call[] = [];
+    const own = { id: 1, hash: 'x', related: [] };
+    const files = { 1: own, 2: { id: 2, related: [{ id: 5, __type: 'api::article.article' }] } };
+    const store = strapiClubStore(mediaStrapi(calls, [], files));
+    expect([await store.deleteMediaIfUnused(1), await store.deleteMediaIfUnused(2), await store.deleteMediaIfUnused(3)]).toEqual([true, false, false]);
+    expect(calls[0]).toEqual([FILE, 'findOne', { where: { id: 1 }, populate: { related: { select: ['id'] } } }]);
+    expect(calls.filter((c) => c[1] === 'remove')).toEqual([[FILE, 'remove', own]]);
+  });
+});
+
 describe('fake store, same behaviour', () => {
   it('scrubs a registration: the row reads like the Strapi row would, the raw record holds nulls', async () => {
     const fake = fakeClubStore({
@@ -125,6 +160,17 @@ describe('fake store, same behaviour', () => {
     expect(await fake.store.personalDataSettings()).toBeNull();
     await fake.store.savePersonalDataSettings({ retentionYears: 7, reviewHiddenUntilSeason: null });
     expect(await fake.store.personalDataSettings()).toEqual({ retentionYears: 7, reviewHiddenUntilSeason: null });
+  });
+
+  it('media: a deleted profile no longer uses its files; only an unused file is removed', async () => {
+    const fake = fakeClubStore({
+      profiles: [{ id: 'sp1', name: 'X', slug: 'x', previousSlugs: [], showPublicPage: false, published: true }],
+      files: [{ id: 1, usedBy: ['sp1'] }, { id: 2, usedBy: ['sp1', 'article:a9'] }, { id: 3, usedBy: ['article:a9'] }],
+    });
+    expect(await fake.store.profileMediaIds('sp1')).toEqual([1, 2]);
+    await fake.store.deleteProfile('sp1');
+    expect([await fake.store.deleteMediaIfUnused(1), await fake.store.deleteMediaIfUnused(2), await fake.store.deleteMediaIfUnused(9)]).toEqual([true, false, false]);
+    expect(fake.state.files).toEqual([{ id: 2, usedBy: ['article:a9'] }, { id: 3, usedBy: ['article:a9'] }]);
   });
 
   it('a created athlete carries its creation time', async () => {

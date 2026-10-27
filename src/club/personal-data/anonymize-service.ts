@@ -11,7 +11,7 @@ import { carriedNames, nameKey } from './carried-names';
 export type RemoveFiles = (registrationId: string) => Promise<void>;
 export type AnonymizeContext = ServiceContext & { removeFiles: RemoveFiles; now: () => Date };
 
-type Done = { documentId: string; registrationIds: string[] };
+type Done = { documentId: string; registrationIds: string[]; mediaIds: number[] };
 
 async function scrubRows(store: ClubStore, rows: HistoryRow[]): Promise<void> {
   for (const row of rows) {
@@ -40,6 +40,14 @@ async function scrubRegistrations(store: ClubStore, registrations: RegistrationR
   for (const r of registrations) await store.scrubRegistration(r.id, registrationScrub(r.confirmation));
 }
 
+/** The media ids are read before the profile goes; which of them other content still uses is known only after the commit. */
+async function deleteProfileOf(store: ClubStore, profileId: string | null): Promise<number[]> {
+  if (!profileId) return [];
+  const mediaIds = await store.profileMediaIds(profileId);
+  await store.deleteProfile(profileId);
+  return mediaIds;
+}
+
 async function anonymizeInTransaction(ctx: AnonymizeContext, id: string): Promise<AdminResult<Done>> {
   await lockAthletesWithRegistrations(ctx.store, [id]);
   const athlete = await ctx.store.athlete(id);
@@ -50,18 +58,37 @@ async function anonymizeInTransaction(ctx: AnonymizeContext, id: string): Promis
   await scrubHistory(ctx.store, athlete, registrations);
   await scrubRegistrations(ctx.store, registrations);
   for (const d of pairs) await ctx.store.deleteDuplicate(d.id);
-  if (athlete.profileId) await ctx.store.deleteProfile(athlete.profileId);
+  const mediaIds = await deleteProfileOf(ctx.store, athlete.profileId);
   await ctx.store.updateAthlete(id, athleteScrub(ctx.now().toISOString()));
   await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.dataAnonymized, actor: ctx.actor });
-  return { ok: true, data: { documentId: id, registrationIds: registrations.map((r) => r.id) } };
+  return { ok: true, data: { documentId: id, registrationIds: registrations.map((r) => r.id), mediaIds } };
+}
+
+/** The error's code only: a stored file's path carries its original name, which can be the child's. */
+const errorCode = (err: unknown): string => {
+  const code = err && typeof err === 'object' ? (err as { code?: unknown }).code : undefined;
+  return typeof code === 'string' ? code : 'unknown error';
+};
+
+async function removeMedia(ctx: AnonymizeContext, fileId: number): Promise<void> {
+  try {
+    await ctx.store.deleteMediaIfUnused(fileId);
+  } catch (err) {
+    ctx.log(`[personal-data] media file ${fileId} of an anonymized profile was not deleted: ${errorCode(err)}`);
+  }
+}
+
+async function afterCommit(ctx: AnonymizeContext, done: Done): Promise<void> {
+  for (const registrationId of done.registrationIds) {
+    await safely(() => ctx.removeFiles(registrationId), ctx.log, `PDF folder of ${registrationId} (the startup sweep retries)`);
+  }
+  for (const fileId of done.mediaIds) await removeMedia(ctx, fileId);
 }
 
 async function anonymizeOne(ctx: AnonymizeContext, id: string): Promise<AdminResult<Done>> {
   const result = await guarded(ctx.log, `[personal-data] anonymizing ${id}`, () => ctx.store.transaction(() => anonymizeInTransaction(ctx, id)));
   if (result.ok === false) return result;
-  for (const registrationId of result.data.registrationIds) {
-    await safely(() => ctx.removeFiles(registrationId), ctx.log, `PDF folder of ${registrationId} (the startup sweep retries)`);
-  }
+  await afterCommit(ctx, result.data);
   return result;
 }
 

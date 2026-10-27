@@ -149,6 +149,53 @@ describe('anonymize one athlete (spec 4)', () => {
   });
 });
 
+describe('media of the deleted profile (spec 4, DEC 2026-10-27 3C photos)', () => {
+  /** Photo 1 and gallery image 3 belong to the profile only; gallery image 2 is also in an article; 4 is another profile's. */
+  const withFiles = (): Partial<FakeState> => ({
+    ...seed(),
+    files: [
+      { id: 1, usedBy: ['sp1'] },
+      { id: 2, usedBy: ['sp1', 'article:a9'] },
+      { id: 3, usedBy: ['sp1'] },
+      { id: 4, usedBy: ['sp2'] },
+    ],
+  });
+
+  it('deletes the files only that profile used; a shared file and other files stay', async () => {
+    const { fake, ctx } = setup(withFiles());
+    expect((await anonymizeAthlete(ctx, 'a1')).ok).toBe(true);
+    expect(fake.state.files).toEqual([{ id: 2, usedBy: ['article:a9'] }, { id: 4, usedBy: ['sp2'] }]);
+  });
+
+  it('a file that cannot be deleted is logged by id and error code only; the others go on and the anonymization stands', async () => {
+    const { fake, ctx, logs } = setup(withFiles());
+    const deleteMedia = fake.store.deleteMediaIfUnused.bind(fake.store);
+    fake.store.deleteMediaIfUnused = async (fileId) => {
+      if (fileId === 1) throw Object.assign(new Error("EACCES: permission denied, unlink 'public/uploads/ilinca_zamfirescu_4f2a.jpg'"), { code: 'EACCES' });
+      return deleteMedia(fileId);
+    };
+    expect(await anonymizeAthlete(ctx, 'a1')).toEqual({ ok: true, data: { documentId: 'a1' } });
+    expect(fake.state.athletes.find((a) => a.id === 'a1')?.status).toBe('anonimizat');
+    expect(fake.state.files.map((f) => f.id)).toEqual([1, 2, 4]);
+    expect(logs).toContain('[personal-data] media file 1 of an anonymized profile was not deleted: EACCES');
+    expect(logs.join('\n').toLowerCase()).not.toMatch(/ilinca|zamfirescu|uploads/);
+  });
+
+  it('a failure in the transaction deletes no file and keeps the profile', async () => {
+    const { fake, ctx } = setup(withFiles());
+    fake.failOn('updateAthlete');
+    expect((await anonymizeAthlete(ctx, 'a1')).ok).toBe(false);
+    expect(fake.state.files).toEqual(withFiles().files);
+    expect(fake.state.profiles.map((p) => p.id)).toEqual(['sp1']);
+  });
+
+  it('an athlete without a public profile touches no file', async () => {
+    const { fake, ctx } = setup(withFiles());
+    await anonymizeAthlete(ctx, 'a2');
+    expect(fake.state.files).toEqual(withFiles().files);
+  });
+});
+
 describe('"Nu e același copil" lines about the child, on any record (review fix 1)', () => {
   const dismissal = (seq: number, subjectId: string, changes: Record<string, unknown>) => ({
     seq, subjectType: SUBJECT.athlete, subjectId, action: HISTORY_ACTIONS.duplicateDismissed, changes, actor: 'ana@example.com', at: AT,
