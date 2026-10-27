@@ -1,5 +1,5 @@
 import { ADMIN_ERRORS } from '../../athletes/errors';
-import { ARROW, quotedChange } from '../../history-text';
+import { ARROW, quotedChange } from '../../text-leaf';
 import { countWords } from '../../ro-count';
 
 /** The arrow the spec writes as "->": the one of the phase 3 history lines. */
@@ -75,8 +75,7 @@ export function sourceLine(kind: SourceKind, previousSeason: string | null, age:
 /** "Motiv" and line endings: a text that already ends in ".", "!" or "?" gets no second period (W33, decided 12). */
 export const withPeriod = (text: string): string => (/[.!?]$/.test(text) ? text : `${text}.`);
 /** `<Câmp>: "<vechi>" -> "<nou>"`: the P3 `quotedChange`. */
-/** Wrapped, not aliased: history-text and this file import each other, so the binding is read at call time. */
-export const fieldLine = (label: string, from: string, to: string): string => quotedChange(label, from, to);
+export const fieldLine = quotedChange;
 
 export const PROGRAM_LINES = {
   added: (program: string) => `Program adăugat: ${program}.`,

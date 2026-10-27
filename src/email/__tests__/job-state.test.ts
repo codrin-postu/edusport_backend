@@ -55,4 +55,8 @@ describe('isDue', () => {
     expect(isDue({ status: 'sent', updatedAt: '2026-10-19T08:00:00.000Z' }, NOW, quiet)).toBe(false);
     expect(isDue({ status: 'failed', updatedAt: '2026-10-19T08:00:00.000Z' }, NOW, quiet)).toBe(false);
   });
+  it('waits for notBefore', () => {
+    expect(isDue({ status: 'queued', updatedAt: null, notBefore: '2026-10-20T09:00:01.000Z' }, NOW, quiet)).toBe(false);
+    expect(isDue({ status: 'queued', updatedAt: null, notBefore: '2026-10-20T08:00:00.000Z' }, NOW, quiet)).toBe(true);
+  });
 });

@@ -4,10 +4,12 @@
  * unit tested with fakes (src/email/__tests__/email-jobs.test.ts). Wiring: ./strapi-email.ts.
  */
 import type { StoredDocument } from '../club/documents';
+import type { ScheduleChangePayload } from '../club/groups/types';
 import type { Attachment, OutgoingEmail, SendResult } from './brevo';
 import { blockedReason, deliveryTarget, type BlockedReason, type EmailConfig } from './config';
 import { isDue, nextJobState, type AttemptOutcome, type EmailJobStatus, type JobState } from './job-state';
 import { registrationSubject, renderRegistrationEmail, type EmailLinks } from './registration-template';
+import { isSchedulePayload, renderScheduleEmail } from './schedule-change-template';
 
 /** A job is not retried by the cron until it has been left alone this long (a first attempt may be running). */
 export const QUIET_MS = 5 * 60_000;
@@ -16,6 +18,7 @@ export const RESEND_ACTION = 'email-resent';
 export const RECIPIENT_DAILY_CAP = 3;
 const DAY_MS = 24 * 60 * 60_000;
 
+export type EmailJobKind = 'registration' | 'schedule-change';
 export type EmailJobRow = {
   documentId: string;
   recipient: string;
@@ -26,6 +29,9 @@ export type EmailJobRow = {
   lastError: string | null;
   sentAt: string | null;
   updatedAt: string | null;
+  kind?: EmailJobKind;
+  payload?: ScheduleChangePayload | null;
+  notBefore?: string | null;
 };
 export type NewEmailJob = { recipient: string; subject: string; registrationDocumentId: string };
 export type RegistrationForEmail = { email: string; childName: string; registrationNumber: string; seasonLabel: string };
@@ -36,6 +42,8 @@ export type HistoryNote = { subjectId: string; action: string; actor: string; ch
 export interface EmailJobStore {
   create(job: NewEmailJob): Promise<EmailJobRow>;
   update(documentId: string, data: JobUpdate): Promise<EmailJobRow>;
+  /** The stored job, read again just before a send; optional so a store without it keeps working. */
+  findById?(documentId: string): Promise<EmailJobRow | null>;
   findQueued(limit: number): Promise<EmailJobRow[]>;
   findLatest(registrationDocumentId: string): Promise<EmailJobRow | null>;
   countForRecipientSince(recipient: string, since: Date): Promise<number>;
@@ -113,34 +121,61 @@ async function compose(deps: EmailDeps, registrationDocumentId: string, to: stri
   return { to, ...rendered, attachments: await attachmentsFor(deps, documents) };
 }
 
-async function tryOnce(deps: EmailDeps, registrationDocumentId: string, to: string): Promise<AttemptOutcome> {
+type Compose = (to: string) => Promise<OutgoingEmail>;
+
+function scheduleComposer(deps: EmailDeps, payload: ScheduleChangePayload | null): Compose | null {
+  if (!isSchedulePayload(payload)) return null;
+  return async (to) => ({ to, ...renderScheduleEmail({ payload, links: await deps.loadLinks() }), attachments: [] });
+}
+
+function composerFor(deps: EmailDeps, job: EmailJobRow): Compose | null {
+  if (job.kind === 'schedule-change') return scheduleComposer(deps, job.payload ?? null);
+  const registrationId = job.registrationDocumentId;
+  return registrationId ? (to) => compose(deps, registrationId, to) : null;
+}
+
+/** A cancel that landed after the caller's snapshot must win: the stored status is read again right before the send. */
+async function stillQueued(deps: EmailDeps, job: EmailJobRow): Promise<boolean> {
+  const fresh = deps.jobs.findById ? await deps.jobs.findById(job.documentId) : job;
+  return !fresh || fresh.status === 'queued';
+}
+
+async function tryOnce(deps: EmailDeps, job: EmailJobRow, composer: Compose, to: string): Promise<AttemptOutcome | 'cancelled'> {
   try {
-    const result = await deps.send(await compose(deps, registrationDocumentId, to));
+    const mail = await composer(to);
+    if (!(await stillQueued(deps, job))) return 'cancelled';
+    const result = await deps.send(mail);
     return result.ok === true ? { ok: true } : { ok: false, error: result.error };
   } catch (err) {
     return { ok: false, error: message(err) };
   }
 }
 
+const held = (job: EmailJobRow, now: Date): boolean => !!job.notBefore && Date.parse(job.notBefore) > now.getTime();
+const missingSource = (job: EmailJobRow): string => (job.kind === 'schedule-change' ? 'schedule change without payload' : 'registration deleted');
+
 /**
- * One delivery attempt for a queued job. Skipped (job unchanged) while e-mail cannot be sent here;
- * a job whose registration was deleted fails at once without an alert.
+ * One delivery attempt for a queued job. Skipped (job unchanged) while it is held (`notBefore`) or while e-mail
+ * cannot be sent here; a job whose registration (or payload) is gone fails at once without an alert.
  */
 export async function attemptJob(deps: EmailDeps, job: EmailJobRow): Promise<EmailJobRow> {
-  if (job.status !== 'queued') return job;
-  if (!job.registrationDocumentId) {
-    return deps.jobs.update(job.documentId, { status: 'failed', attempts: job.attempts, lastError: 'registration deleted', sentAt: null });
-  }
+  if (job.status !== 'queued' || held(job, deps.now())) return job;
+  const composer = composerFor(deps, job);
+  if (!composer) return deps.jobs.update(job.documentId, { status: 'failed', attempts: job.attempts, lastError: missingSource(job), sentAt: null });
   const target = deliveryTarget(deps.config, job.recipient);
   if (target.ok === false) {
     deps.log('info', `[email-job] job ${job.documentId} stays queued: ${target.reason}`);
     return job;
   }
-  const outcome = await tryOnce(deps, job.registrationDocumentId, target.to);
+  const outcome = await tryOnce(deps, job, composer, target.to);
+  if (outcome === 'cancelled') {
+    deps.log('info', `[email-job] job ${job.documentId} is no longer queued, not sent`);
+    return { ...job, status: 'cancelled' };
+  }
   const { alert, ...state } = nextJobState(job, outcome, deps.now());
   const updated = await deps.jobs.update(job.documentId, state);
   deps.log(state.status === 'sent' ? 'info' : 'warn', `[email-job] job ${job.documentId}: ${state.status} after attempt ${state.attempts}`);
-  if (alert) deps.alert(`[email-job] registration e-mail failed after ${state.attempts} attempts (job ${job.documentId}): ${state.lastError}`);
+  if (alert) deps.alert(`[email-job] ${job.kind ?? 'registration'} e-mail failed after ${state.attempts} attempts (job ${job.documentId}): ${state.lastError}`);
   return updated;
 }
 
