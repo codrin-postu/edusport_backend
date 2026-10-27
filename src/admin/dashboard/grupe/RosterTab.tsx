@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { EmptyState, useIsPhone } from '../../ui';
+import { Button, EmptyState, useIsPhone } from '../../ui';
 import type { GroupPage, MemberRow } from '../../../club/groups/api-types';
-import { GROUP_TOASTS, GRUPE_COPY, athletesText } from '../../../club/groups/copy';
+import { GROUP_TOASTS, GRUPE_COPY, NEW_SEASON_COPY, athletesText } from '../../../club/groups/copy';
 import { ageText, mainText, othersText, phoneMemberLine, type MemberAction } from '../../../club/grupe/group-view';
 import { writable } from '../../../club/grupe/list-view';
 import { athleteRecordTo } from '../../../club/sportivi/routes';
@@ -67,6 +67,30 @@ function useRemove(page: GroupPage, api: GrupeApi) {
   return { busy, remove };
 }
 
+function CopyMembers({ page, api }: { page: GroupPage; api: GrupeApi }) {
+  const [busy, setBusy] = React.useState(false);
+  const from = page.copyFrom;
+  if (!from || !from.members || !page.season || !writable(page)) return <EmptyState>{athletesText(0)}</EmptyState>;
+  const run = async () => {
+    setBusy(true);
+    try {
+      const res = await api.copyMembers(page.documentId, page.season?.label ?? '');
+      undoToast(NEW_SEASON_COPY.membersCopiedToast(res.data.copied, res.data.from), res.undo?.actionId ?? null, api);
+    } catch (err) {
+      failToast(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const action = <Button variant="secondary" size="sm" loading={busy} onClick={() => void run()}>{NEW_SEASON_COPY.copyMembers(from.season)}</Button>;
+  return (
+    <EmptyState action={action}>
+      {NEW_SEASON_COPY.emptyMembers(page.season.label)}
+      <span className="spv-sub2">{NEW_SEASON_COPY.copyMembersHint(from.members, from.season, from.inactive)}</span>
+    </EmptyState>
+  );
+}
+
 /** Sportivi tab (6.2): the bar, the roster, the row menu and its windows. */
 export function RosterTab({ page, api }: { page: GroupPage; api: GrupeApi }) {
   const phone = useIsPhone();
@@ -78,7 +102,7 @@ export function RosterTab({ page, api }: { page: GroupPage; api: GrupeApi }) {
   return (
     <div className="ui-body">
       <div className="grp-bar"><span>{athletesText(page.members.length)}</span>{can && <AddMembers page={page} api={api} />}</div>
-      {page.members.length ? list : <EmptyState>{athletesText(0)}</EmptyState>}
+      {page.members.length ? list : <CopyMembers page={page} api={api} />}
       {dialog && <MoveDialog mode={dialog.mode} member={dialog.member} page={page} api={api} onClose={() => setDialog(null)} />}
     </div>
   );
