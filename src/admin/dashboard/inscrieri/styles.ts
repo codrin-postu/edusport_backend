@@ -97,7 +97,6 @@ const CONFIRM_CSS =
   '.ui-root .ins-acard--new{background:var(--theme-surface-subtle)}' +
   '.ui-root .ins-acard--new .ins-av{background:var(--theme-neutral-bg);color:var(--theme-text-secondary)}' +
   '.ui-root .ins-fl .ui-label{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--theme-text-secondary)}' +
-  '.ui-root .ins-intent-note{color:var(--theme-text-muted)}' +
   '.ui-root .ins-hint2{display:block;margin-top:4px}' +
   '.ui-root .ins-links{display:flex;flex-wrap:wrap;gap:16px}' +
   '.ui-root .ins-win .ins-cmp{min-width:520px}' +

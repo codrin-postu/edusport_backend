@@ -231,7 +231,7 @@ Out of scope:
 - Confirming with wish "Da" sets the status "În așteptare" until the fee is paid; the status line shows the change in the style "Nu -> În așteptare", read-only [r1 q1b; cs phase3a-r1b 5A; DEC 2026-10-26 gaps #7, decided by Claude].
 - Wish "Nu" writes nothing; an existing status for the season is never lowered [DEC 2026-10-26 gaps #30, decided by Claude].
 - No prices or membership fee in the window [DEC 2026-10-05].
-- The form's abonament is shown as the parent's intent under "Abonament dorit (din formular)": "<abonament>, doar intenția părintelui; abonamentul se adaugă când e cumpărat" [proto v5; DEC 2026-10-05; DEC 2026-10-26 gaps #1, decided by Claude; pattern, decided by Claude].
+- The form's abonament is shown as the parent's intent under "Abonament dorit (din formular)": "<abonament>" only (note removed, user 2026-10-27) [proto v5; DEC 2026-10-05; DEC 2026-10-26 gaps #1, decided by Claude; pattern, decided by Claude].
 
 ### 4.5 What confirming writes
 - Sportiv existent: links the registration; applies the ticked fields; reactivates an inactive athlete; a "nou" athlete becomes "activ"; recomputes "Date incomplete" [SPEC 3.2; r4 e7; DEC 2026-10-18 states-v2].

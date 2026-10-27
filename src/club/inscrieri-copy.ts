@@ -89,7 +89,6 @@ export const CONFIRM_COPY = {
   acs: (season: string) => `Membru A.C.S. ${season}`,
   wish: 'Dorește să fie membru (formular)',
   intentHeading: 'Abonament dorit (din formular)',
-  intent: (name: string) => `${name}, doar intenția părintelui; abonamentul se adaugă când e cumpărat`,
   confirmed: (name: string) => `Înscriere confirmată: ${name}`,
   undo: 'Anulează',
 } as const;
