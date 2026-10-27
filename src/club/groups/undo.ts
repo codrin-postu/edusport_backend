@@ -19,7 +19,14 @@ export type UndoStep =
   | { op: 'setEvent'; id: string; recurrence: Recurrence; exceptions: ExceptionRow[] }
   | { op: 'createEvent'; event: EventWrite }
   | { op: 'cancelEmails' }
-  | { op: 'setCurrentSeason'; id: string; otherId: string };
+  | { op: 'setCurrentSeason'; id: string; otherId: string }
+  | { op: 'uncarry'; subscriptionId: string; priceListId: string };
+/** What the move undo needs from the presence store: take a carried list off an abonament, and say whether the carry was used since (7.3). */
+export type CarryPorts = { uncarry(subscriptionId: string, priceListId: string): Promise<void>; carryUsed(subscriptionId: string, priceListId: string): Promise<boolean> };
+export const NO_CARRY_PORTS: CarryPorts = {
+  uncarry: () => Promise.reject(new Error('carry undo needs the presence store')),
+  carryUsed: async () => false,
+};
 export type UndoKind = 'group' | 'season';
 export type UndoRecord = {
   kind: UndoKind; steps: UndoStep[]; subjects: Subject[]; revalidate: boolean;

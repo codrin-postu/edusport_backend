@@ -105,7 +105,7 @@ describe('"Mută" (W2)', () => {
   it('ends the row yesterday, the new group becomes main, four lines', async () => {
     const { ctx, state } = seed();
     const res = await moveMembership(ctx, 'm1', { toGroupId: 'g-is' });
-    expect(res).toEqual({ ok: true, data: { value: { athleteName: 'Ana Ionescu', groupName: 'Intermediari Silver' }, actionId: 'h1' } });
+    expect(res).toEqual({ ok: true, data: { value: { athleteName: 'Ana Ionescu', groupName: 'Intermediari Silver', carried: 0 }, actionId: 'h1' } });
     expect(state.memberships.find((m) => m.id === 'm1')?.to).toBe('2026-11-19');
     expect(current(state, 'a1')).toMatchObject([{ groupId: 'g-is', isMain: true }]);
     expect(state.history.map((h) => [h.subjectId, h.action])).toEqual([
