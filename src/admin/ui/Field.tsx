@@ -12,8 +12,6 @@ import { cx } from './cx';
 
 export interface FieldContextValue {
   id: string;
-  /** Id of the Field's own <label>, for a compound control that names a wrapping group. */
-  labelId: string;
   describedBy: string | undefined;
   invalid: boolean;
   required: boolean;
@@ -43,20 +41,6 @@ export function useFieldControl<P extends { id?: string; required?: boolean; 'ar
   };
 }
 
-/**
- * Renders its children outside any enclosing Field, so a compound control
- * (BirthDatePicker) can hand the Field's id to one inner control only.
- */
-export function NoFieldContext({ children }: { children: React.ReactNode }) {
-  return <FieldContext.Provider value={null}>{children}</FieldContext.Provider>;
-}
-
-/** Id of the enclosing Field's <label>, for a compound control (BirthDatePicker) that
- * names its own wrapping group with aria-labelledby. Undefined outside a Field. */
-export function useFieldLabelId(): string | undefined {
-  return React.useContext(FieldContext)?.labelId;
-}
-
 export interface FieldProps {
   label: React.ReactNode;
   /** Shown under the control, muted. */
@@ -81,12 +65,11 @@ export function Field({ label, hint, error, required = false, id, hideLabel, cla
   const ctx = React.useMemo<FieldContextValue>(
     () => ({
       id: controlId,
-      labelId,
       describedBy: [errId, hintId].filter(Boolean).join(' ') || undefined,
       invalid: Boolean(error),
       required,
     }),
-    [controlId, labelId, errId, hintId, error, required],
+    [controlId, errId, hintId, error, required],
   );
   return (
     <div className={cx('ui-field', className)}>

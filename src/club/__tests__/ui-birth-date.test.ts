@@ -2,17 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   BIRTH_DATE_ERROR,
   EMPTY_DATE,
-  birthYears,
-  dayChoices,
+  birthDateRange,
+  pickedDate,
   daysInMonth,
   isFullDate,
-  monthChoices,
   partsFromDisplay,
   partsFromIso,
   partsToDisplay,
   partsToIso,
-  pickPart,
-  withPart,
 } from '../ui-birth-date';
 
 describe('daysInMonth', () => {
@@ -31,59 +28,19 @@ describe('daysInMonth', () => {
   });
 });
 
-describe('years', () => {
-  it('run from 2 to 25 years ago, oldest first', () => {
-    const years = birthYears(2026, null);
-    expect(years[0]).toBe(2001);
-    expect(years[years.length - 1]).toBe(2024);
-    expect(years).toHaveLength(24);
+describe('birthDateRange', () => {
+  it('is 1 Jan 25 years ago to 31 Dec 2 years ago', () => {
+    expect(birthDateRange(2026)).toEqual({ min: '2001-01-01', max: '2024-12-31' });
   });
 
-  it('keep a stored year outside the range selectable, once', () => {
-    expect(birthYears(2026, 1998)).toHaveLength(25);
-    expect(birthYears(2026, 1998)[0]).toBe(1998);
-    expect(birthYears(2026, 2025)[24]).toBe(2025);
-    expect(birthYears(2026, 2010)).toHaveLength(24);
-  });
-});
-
-describe('day and month rows', () => {
-  it('always lists all 31 days, regardless of month and year', () => {
-    expect(dayChoices({ day: null, month: 2, year: 2015 })).toHaveLength(31);
-    expect(dayChoices(EMPTY_DATE)).toHaveLength(31);
-    expect(dayChoices(EMPTY_DATE)[0]).toEqual({ value: 1, label: '01' });
+  it('widens to keep a stored date outside the range', () => {
+    expect(birthDateRange(2026, { day: 14, month: 3, year: 1998 })).toEqual({ min: '1998-03-14', max: '2024-12-31' });
+    expect(birthDateRange(2026, { day: 5, month: 6, year: 2025 })).toEqual({ min: '2001-01-01', max: '2025-06-05' });
   });
 
-  it('months are listed by name', () => {
-    expect(monthChoices()).toHaveLength(12);
-    expect(monthChoices()[0]).toEqual({ value: 1, label: 'ianuarie' });
-    expect(monthChoices()[2]).toEqual({ value: 3, label: 'martie' });
-  });
-});
-
-describe('withPart', () => {
-  it('never clears a day on its own; an impossible result is caught by isFullDate instead', () => {
-    expect(withPart({ day: 31, month: 1, year: 2016 }, 'month', 4)).toEqual({ day: 31, month: 4, year: 2016 });
-    expect(isFullDate(withPart({ day: 31, month: 1, year: 2016 }, 'month', 4))).toBe(false);
-    expect(withPart({ day: 29, month: 2, year: 2016 }, 'year', 2015)).toEqual({ day: 29, month: 2, year: 2015 });
-    expect(isFullDate(withPart({ day: 29, month: 2, year: 2016 }, 'year', 2015))).toBe(false);
-  });
-
-  it('keeps a day that still fits', () => {
-    expect(withPart({ day: 14, month: 3, year: null }, 'year', 2016)).toEqual({ day: 14, month: 3, year: 2016 });
-    expect(withPart({ day: 14, month: 3, year: 2016 }, 'month', null)).toEqual({ day: 14, month: null, year: 2016 });
-  });
-});
-
-describe('pickPart (polish 9)', () => {
-  const date = { day: 14, month: 3, year: 2016 };
-  it('clearable: the empty row of any select empties the whole date; a value still sets one part', () => {
-    for (const key of ['day', 'month', 'year'] as const) expect(pickPart(date, key, null, true)).toEqual(EMPTY_DATE);
-    expect(pickPart(date, 'month', 4, true)).toEqual({ day: 14, month: 4, year: 2016 });
-  });
-
-  it('by default (the required birth date) only that part is emptied, as before', () => {
-    expect(pickPart(date, 'month', null, false)).toEqual({ day: 14, month: null, year: 2016 });
+  it('ignores a stored date inside the range or an incomplete one', () => {
+    expect(birthDateRange(2026, { day: 14, month: 3, year: 2016 })).toEqual({ min: '2001-01-01', max: '2024-12-31' });
+    expect(birthDateRange(2026, { day: 14, month: null, year: 1990 })).toEqual({ min: '2001-01-01', max: '2024-12-31' });
   });
 });
 
@@ -109,7 +66,37 @@ describe('stored formats', () => {
     expect(partsToIso({ day: 4, month: 3, year: 2016 })).toBe('2016-03-04');
   });
 
+  it('keeps a year typed digit by digit: 4-digit padding, round trip unchanged', () => {
+    expect(partsFromIso('0002-03-14')).toEqual({ day: 14, month: 3, year: 2 });
+    expect(partsToIso({ day: 14, month: 3, year: 2 })).toBe('0002-03-14');
+    for (const iso of ['0002-03-14', '0201-03-14', '2019-03-14']) expect(partsToIso(partsFromIso(iso)!)).toBe(iso);
+    expect(partsToDisplay({ day: 14, month: 3, year: 2 })).toBe('14.03.0002');
+  });
+
   it('pins the decided error copy, same string as the website module', () => {
     expect(BIRTH_DATE_ERROR).toBe('Alegeți data nașterii.');
+  });
+});
+
+describe('pickedDate', () => {
+  const range = birthDateRange(2026);
+  it('passes a real date inside the range', () => {
+    expect(pickedDate('2016-03-14', range)).toEqual({ day: 14, month: 3, year: 2016 });
+    expect(pickedDate('2001-01-01', range)).toEqual({ day: 1, month: 1, year: 2001 });
+    expect(pickedDate('2024-12-31', range)).toEqual({ day: 31, month: 12, year: 2024 });
+  });
+
+  it('treats a date outside the range as not a full date, but not blank', () => {
+    for (const iso of ['0002-03-14', '2000-12-31', '2025-01-01']) {
+      const p = pickedDate(iso, range);
+      expect(isFullDate(p)).toBe(false);
+      expect(partsToIso(p)).toBeNull();
+      expect(p).not.toEqual(EMPTY_DATE);
+    }
+  });
+
+  it('gives blank parts for empty or unreadable input', () => {
+    expect(pickedDate(null, range)).toEqual(EMPTY_DATE);
+    expect(pickedDate('', range)).toEqual(EMPTY_DATE);
   });
 });
