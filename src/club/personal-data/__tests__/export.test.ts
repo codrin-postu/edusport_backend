@@ -95,6 +95,22 @@ describe('export service (spec 3)', () => {
     expect(logs.join('\n')).toContain('export history of a1');
   });
 
+  it('rezumat.pdf never names another child: a dismissed pair and a link to another child\'s record are left out', async () => {
+    const { fake, ctx } = setup();
+    const at = '2026-10-20T10:00:00.000Z';
+    fake.state.history.push(
+      { seq: 1, subjectType: 'athlete', subjectId: 'a1', action: HISTORY_ACTIONS.duplicateDismissed, changes: { name: 'Maria Ionescu', otherAthleteId: 'a2' }, actor: 'ana@example.com', at },
+      { seq: 2, subjectType: 'athlete', subjectId: 'a1', action: HISTORY_ACTIONS.merged, changes: { name: 'Ilinca Zamfirescu' }, actor: 'ana@example.com', at },
+      { seq: 3, subjectType: 'registration-submission', subjectId: 'r1', action: HISTORY_ACTIONS.confirmed, changes: { athleteName: 'Ana Popescu', createdAthlete: false }, actor: 'ana@example.com', at },
+      { seq: 4, subjectType: 'registration-submission', subjectId: 'r1', action: HISTORY_ACTIONS.athleteUnlinked, changes: { name: 'Ana Popescu' }, actor: 'ana@example.com', at },
+    );
+    const result = await exportAthleteData(ctx, 'a1');
+    if (result.ok !== true) throw new Error('export refused');
+    const { text } = await pdfText(Buffer.from(files(result.data.data)['rezumat.pdf']));
+    for (const s of ['Maria', 'Ionescu', 'Popescu', 'Nu e același copil']) expect(text, s).not.toContain(s);
+    expect(text).toContain('Unit cu Ilinca Zamfirescu');
+  });
+
   it('unknown or anonymized: 404; a build failure: the shared text and no history line', async () => {
     const { fake, ctx } = setup();
     expect(await exportAthleteData(ctx, 'ghost')).toEqual({ ok: false, status: 404, error: ADMIN_ERRORS.notFound });

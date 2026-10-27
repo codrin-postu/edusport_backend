@@ -1,13 +1,14 @@
 import { guarded, refuse, type AdminResult } from '../admin-result';
 import { registrationSeasonLabel } from '../athletes/cards';
 import { ADMIN_ERRORS } from '../athletes/errors';
-import { readHistory } from '../athletes/history-read';
+import { readHistoryEntries } from '../athletes/history-read';
 import { safely } from '../athletes/matches';
 import type { AcsRow, AthleteRow, ClubStore, GroupRow, MembershipRow, RegistrationRow, SeasonRow, SectionRow, ServiceContext } from '../athletes/store';
 import type { DocumentKind } from '../documents/types';
 import { HISTORY_ACTIONS, SUBJECT, actorLabel } from '../history-text';
 import { isScriptFormRegistration, registrationDocumentKinds } from '../registration-panel';
 import { isAnonymized } from './anonymize-plan';
+import { carriedNames } from './carried-names';
 import { exportFileName, zipExport, type ZipEntry } from './export-zip';
 import { buildSummaryModel, type SummaryInput, type SummaryRegistration } from './summary-model';
 import { renderSummaryPdf } from './summary-pdf';
@@ -55,9 +56,9 @@ async function loadRegistrations(ctx: ExportContext, f: Facts): Promise<Loaded> 
 }
 
 async function historyLines(store: ClubStore, athleteId: string, registrations: RegistrationRow[]): Promise<SummaryInput['history']> {
-  const own = (await readHistory(store, SUBJECT.athlete, athleteId)).map((l) => ({ ...l, subject: '' }));
+  const own = (await readHistoryEntries(store, SUBJECT.athlete, athleteId)).map((l) => ({ ...l, subject: '' }));
   const regs = await Promise.all(registrations.map(async (r) =>
-    (await readHistory(store, SUBJECT.registration, r.id, r.submittedAt)).map((l) => ({ ...l, subject: r.number ?? '' }))));
+    (await readHistoryEntries(store, SUBJECT.registration, r.id, r.submittedAt)).map((l) => ({ ...l, subject: r.number ?? '' }))));
   return [...own, ...regs.flat()].sort((a, b) => b.at.localeCompare(a.at));
 }
 
@@ -68,7 +69,8 @@ async function buildExport(ctx: ExportContext, athlete: AthleteRow): Promise<Adm
   const now = ctx.now();
   const model = buildSummaryModel({
     athlete, groups: groupLines(facts), acs: acsLines(facts), registrations: loaded.registrations,
-    history: await historyLines(ctx.store, athlete.id, facts.registrations), generatedAt: now, generatedBy: actorLabel(ctx.actor, names),
+    history: await historyLines(ctx.store, athlete.id, facts.registrations), childNames: await carriedNames(ctx.store, athlete, facts.registrations),
+    generatedAt: now, generatedBy: actorLabel(ctx.actor, names),
   });
   const summary = await renderSummaryPdf(model);
   return { ok: true, data: { fileName: exportFileName(athlete.name, now), data: zipExport(summary, loaded.entries) } };
