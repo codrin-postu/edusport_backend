@@ -1,19 +1,35 @@
 import * as React from 'react';
 import { DetailField, type Row, type TableApi } from '../SubmissionTable';
 import { PANEL_COPY } from '../../../club/inscrieri-copy';
-import { dateTabRows } from '../../../club/inscrieri-panel';
+import { REGISTRATION_FIELD_LABELS } from '../../../club/history-text';
+import { cellText, dateTabRows, isAnonymizedRow } from '../../../club/inscrieri-panel';
 import { EditForm } from './EditForm';
 import { IconEdit } from './icons';
 
-/** "Sezon", "Arhivare", custom answers and "Notă internă", after the answers (Needs decision 1, option A). */
+/** "Sezon", "Arhivare", custom answers and "Notă internă", after the answers (Needs decision 1, option A); as text when read-only. */
 export function PanelExtras({ row, api }: { row: Row; api: TableApi }) {
+  const readOnly = isAnonymizedRow(row);
   return (
     <div className="ins-extra">
-      {api.seasonField(row)}
+      {readOnly ? <DetailField label={REGISTRATION_FIELD_LABELS.season}>{cellText(row.season)}</DetailField> : api.seasonField(row)}
       <DetailField label={PANEL_COPY.archiveField}>{row.archived ? PANEL_COPY.archived : PANEL_COPY.active}</DetailField>
       {api.customFields(row)}
-      {api.internalNoteField(row)}
+      {readOnly ? <DetailField label={REGISTRATION_FIELD_LABELS.internalNote}>{cellText(row.internalNote)}</DetailField> : api.internalNoteField(row)}
     </div>
+  );
+}
+
+/** A registration of an anonymized athlete (3C spec 4): the answers as stored (blanked), no "Editează". */
+function ReadOnlyDate({ row, api }: { row: Row; api: TableApi }) {
+  return (
+    <>
+      {dateTabRows(row).map((r) => (
+        <DetailField key={r.key} label={r.label}>
+          {r.value}
+        </DetailField>
+      ))}
+      <PanelExtras row={row} api={api} />
+    </>
   );
 }
 
@@ -49,6 +65,7 @@ export function DateTab({ row, api }: { row: Row; api: TableApi }) {
   const [editing, setEditing] = React.useState(false);
   useReturnFocusOnClose(editing);
   if (editing) return <EditForm row={row} api={api} onDone={() => setEditing(false)} />;
+  if (isAnonymizedRow(row)) return <ReadOnlyDate row={row} api={api} />;
   return (
     <>
       {dateTabRows(row).map((r, i) => (

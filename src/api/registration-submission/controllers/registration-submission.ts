@@ -129,7 +129,7 @@ function clampPage(v: unknown): number {
 
 /** One page in the chosen order; under "Vârstă" the rows without a parsed birth date come last (ageSortedPage). */
 async function findPage(filters: Record<string, unknown>, sortParam: unknown, start: number, limit: number, withRelations = false) {
-  const relations: Modules.Documents.Params.Populate.Any<typeof UID> = { athlete: { fields: ['documentId', 'name'] }, section: { fields: ['documentId', 'name'] } };
+  const relations: Modules.Documents.Params.Populate.Any<typeof UID> = { athlete: { fields: ['documentId', 'name', 'status'] }, section: { fields: ['documentId', 'name'] } };
   const populate = withRelations ? relations : undefined;
   const find = (q: PageQuery) => strapi.documents(UID).findMany({ ...q, populate });
   const q = { filters, sort: listSort(sortParam), start, limit };

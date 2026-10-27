@@ -44,18 +44,23 @@ export const RECORD_COPY = {
   },
 } as const;
 
-/** "<data nașterii>, <grupa principală>", or "data nașterii lipsește" (spec 6.1; no middle dot, gaps #1). */
+/** An anonymized record is read-only (3C spec 4): no "Editează", no "..." menu, only Date and Istoric. */
+export const isReadOnlyRecord = (r: Pick<AthleteRecord, 'status'>): boolean => r.status === 'anonimizat';
+
+/** "<data nașterii>, <grupa principală>", or "data nașterii lipsește" (spec 6.1; no middle dot, gaps #1); an anonymized record: the group only. */
 export function recordSubline(r: AthleteRecord): string {
+  if (isReadOnlyRecord(r)) return r.header.mainGroup ?? '';
   return [r.header.birthDate ?? RECORD_COPY.noBirthDate, r.header.mainGroup].filter(Boolean).join(', ');
 }
 
 export function recordTabs(r: AthleteRecord): { id: RecordTab; label: string; count?: number }[] {
-  return [
+  const tabs: { id: RecordTab; label: string; count?: number }[] = [
     { id: 'date', label: RECORD_COPY.tabs.date },
     { id: 'profil', label: RECORD_COPY.tabs.profil },
     { id: 'documente', label: RECORD_COPY.tabs.documente },
     { id: 'istoric', label: RECORD_COPY.tabs.istoric, count: r.historyCount },
   ];
+  return isReadOnlyRecord(r) ? tabs.filter((t) => t.id === 'date' || t.id === 'istoric') : tabs;
 }
 
 export type FieldRowView = { field: AthleteField; label: string; value: string; missing: boolean };

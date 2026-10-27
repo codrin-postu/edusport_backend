@@ -98,6 +98,9 @@ export function moveToasts(res: MoveSchoolResponse, schoolName: string, single: 
 export const registrationStatus = (row: InscriereRow): RegistrationStatus => STATUSES.find((s) => s === row.status) ?? 'Nou';
 export const linkedAthleteId = (row: InscriereRow): string | null => cellText(row.athleteId) || null;
 
+/** The linked athlete is anonymized (3C spec 4): read-only, the server refuses every write with 409. */
+export const isAnonymizedRow = (row: InscriereRow): boolean => row.athleteAnonymized === true;
+
 export function footerActions(row: InscriereRow): FooterActions {
   if (linkedAthleteId(row)) return { contactat: false, confirm: false, openAthlete: true };
   const status = registrationStatus(row);
@@ -106,14 +109,16 @@ export function footerActions(row: InscriereRow): FooterActions {
 }
 
 export function menuItems(row: InscriereRow, multipleSchools: boolean): MenuItem[] {
+  if (isAnonymizedRow(row)) return [];
   const items: MenuItem[] = [];
   if (row.canUndo === true) items.push('undo');
   if (multipleSchools && !linkedAthleteId(row)) items.push('move');
   return [...items, 'delete'];
 }
 
-/** Values of the status menu (panel and full table cell); none on a "Confirmat" row (Needs decision 2, option A). */
-export const statusMenuValues = (row: InscriereRow): readonly string[] => (registrationStatus(row) === 'Confirmat' ? [] : PANEL_STATUSES);
+/** Values of the status menu (panel and full table cell); none on a "Confirmat" row (Needs decision 2, option A) or an anonymized one. */
+export const statusMenuValues = (row: InscriereRow): readonly string[] =>
+  registrationStatus(row) === 'Confirmat' || isAnonymizedRow(row) ? [] : PANEL_STATUSES;
 
 export const documentCount = (row: InscriereRow): number => (isScriptFormRegistration(row) ? registrationDocumentKinds(row).length : 0);
 

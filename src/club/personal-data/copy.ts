@@ -9,6 +9,7 @@ export const PERSONAL_DATA_COPY = {
   anonymizedChild: 'Anonimizat',
   menu: { export: 'Exportă datele', anonymize: 'Anonimizează' },
   exported: 'Datele au fost exportate.',
+  exportFailed: 'Datele nu au putut fi exportate.',
   dialog: {
     title: 'Anonimizezi datele sportivului?',
     removed:

@@ -75,6 +75,8 @@ export const SPORTIVI_CSS = `
 .ui-root.spv-menu button{display:block;width:100%;text-align:left;font:inherit;font-size:12.5px;color:var(--theme-text);background:none;border:none;padding:8px 10px;border-radius:var(--ui-radius-sm);cursor:pointer}
 .ui-root.spv-menu button:hover,.ui-root.spv-menu button:focus-visible{background:var(--theme-surface-subtle);outline:none}
 .ui-root.spv-menu button.spv-danger{color:var(--theme-danger)}
+.ui-root .spv-lines span{display:block}
+.ui-root .spv-lines span+span{margin-top:6px}
 @media (max-width: 640px){
 .ui-root .spv-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:10px 16px}
 .ui-root .spv-q{grid-column:1/-1;min-width:0}

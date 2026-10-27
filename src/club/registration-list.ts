@@ -6,6 +6,8 @@ export type RegistrationListExtras = {
   existingAthlete: boolean;
   athleteId: string | null;
   athleteName: string | null;
+  /** The linked athlete is anonymized (3C spec 4): the Înscrieri panel shows the registration read-only. */
+  athleteAnonymized: boolean;
   canUndo: boolean;
   schoolId: string | null;
   schoolName: string | null;
@@ -26,6 +28,7 @@ export function listRowExtras(row: Record<string, unknown>, today: DateParts): R
     existingAthlete: athleteId === null && (row.matchLevel === 'sigur' || row.matchLevel === 'probabil'),
     athleteId,
     athleteName: relText(row.athlete, 'name'),
+    athleteAnonymized: relText(row.athlete, 'status') === 'anonimizat',
     canUndo: athleteId !== null && relText(row.confirmation, 'athleteId') === athleteId,
     schoolId: relText(row.section, 'documentId'),
     schoolName: relText(row.section, 'name'),

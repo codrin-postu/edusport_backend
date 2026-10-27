@@ -36,7 +36,7 @@ it('tabs Date | Abonament | Documente (n) | Istoric (n), reloaded when the row c
   expect(tabs).toContain('<RegistrationDocuments row={row} />');
   expect(tabs).toContain('<RegistrationEmail row={row} />');
   expect(tabs).toContain('historyHead(line, fmtDateTime)');
-  expect(dateTab).toContain('{api.internalNoteField(row)}');
+  expect(dateTab).toContain(': api.internalNoteField(row)}');
 });
 
 it('footer: Contactat sets the status, Confirmă waits for the window, the record opens in the same tab', () => {
@@ -85,4 +85,14 @@ it('fix round 1: Istoric as v5, bold head in the text colour, solid dividers', (
   expect(css).toContain("'.ui-root .ins-his li + li{border-top:1px solid var(--theme-border)}'");
   expect(css).toContain("'.ui-root .ins-his-h{font-size:12.5px;font-weight:700;color:var(--theme-text)}'");
   expect(css).not.toMatch(/dashed|dotted/);
+});
+
+it('a registration of an anonymized athlete is read-only: no "Editează", no editable extras, no "..." (3C spec 4)', () => {
+  expect(dateTab).toContain('if (isAnonymizedRow(row)) return <ReadOnlyDate row={row} api={api} />;');
+  expect(dateTab).toContain('{readOnly ? <DetailField label={REGISTRATION_FIELD_LABELS.season}>{cellText(row.season)}</DetailField> : api.seasonField(row)}');
+  expect(dateTab).toContain('{readOnly ? <DetailField label={REGISTRATION_FIELD_LABELS.internalNote}>{cellText(row.internalNote)}</DetailField> : api.internalNoteField(row)}');
+  expect(dateTab.split('function ReadOnlyDate')[1].split('\n}')[0]).not.toContain('EditLabel');
+  expect(menu).toContain('if (items.length === 0) return null;');
+  const controller = readFileSync(join(__dirname, '..', '..', 'api', 'registration-submission', 'controllers', 'registration-submission.ts'), 'utf8');
+  expect(controller).toContain("athlete: { fields: ['documentId', 'name', 'status'] }");
 });
