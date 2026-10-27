@@ -34,7 +34,7 @@ Strapi 5.52.1 (TypeScript) on PostgreSQL for the EduSport skating club and schoo
 - Admin UI tokens: `node scripts/admin-ui-check.mjs --strict` (`--list` for line numbers)
 - Build: `npm run build` (needed before any `migrate:*` script; they load `dist/`)
 - Phase 3 deploy data: `npm run migrate:athletes -- --step=<step> [--apply]`, steps in order `athlete-name`, `profile-athletes`, `past-registrations`, `match-backfill`, `duplicates`, `status`. Dry run by default, one step per run, idempotent, no big transaction, actor `migrare`.
-- Dev: `npm run develop`. Local docker `strapi_app` / `strapi_db` on 1337 / 5432 belong to the user; the TEST env (1340 / 3010, container `edusport-test-pg`) too: do not touch them. Boot checks use a throwaway Postgres.
+- Local environment (one only): Strapi on 1340 and the website on 3010, database container `edusport-test-pg` (127.0.0.1:55442), run from the worktrees `test-main` in both repos; admin login in `docs/HANDOFF.md`. The old `strapi_app` / `strapi_db` (1337 / 5432) is stopped, its data kept in its volume. Agents never modify the local environment except to update it on request; destructive checks use a throwaway Postgres they remove afterwards.
 
 ## Docs
 

@@ -72,3 +72,8 @@ Resolved since parking: athlete row lock and merge/delete locks (polish 12), mai
 - 3C T4: summary PDF header offsets not shared with `documents/pdf/frame.ts`.
 - 3C T13: Setări save may overwrite `reviewHiddenUntilSeason` set in another tab.
 - Final reviews: minors in `final/review-area1-data.md`, `review-area2-inscrieri.md` (M1-M11), `review-area3-sportivi-web.md` (M1-M14), and 3C `review-3c.md` M1-M7 (not covered by the I1-I3 fixes). Some were fixed in the visual and polish rounds; check before scheduling.
+
+
+## Local environment (2026-10-27)
+
+One local EduSport only: Strapi 1340 + website 3010 + `edusport-test-pg`, worktrees `test-main`, running feat/athletes at 1610d22 (phase 3 complete, 3C included) with synthetic data. Login admin@example.invalid / Throwaway1! (Super Admin). DB backups before each update in the session scratchpad (`test-pg-before-*.dump`). The old `strapi_app` / `strapi_db` (1337 / 5432) is stopped, data kept in its volume.
