@@ -77,6 +77,7 @@ export type AthleteListPage = {
   season: { documentId: string; label: string } | null;
   seasons: { documentId: string; label: string; isCurrent: boolean }[];
   options: { sections: { value: string; label: string }[]; groups: { value: string; label: string; sectionName: string }[] };
+  retentionYears: number;
 };
 
 export type AthleteRecord = {
