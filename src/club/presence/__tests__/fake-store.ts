@@ -43,7 +43,7 @@ export const lessonRow = (over: Partial<LessonRow> = {}): LessonRow => ({
   itemName: null, price: null, audience: null, amount: 0, createdBy: 'admin@example.com', savedBy: null, savedAt: null, ...over,
 });
 export const subscriptionRow = (over: Partial<SubscriptionRow> = {}): SubscriptionRow => ({
-  id: 'sub1', athleteId: 'a1', seasonId: 's26', priceListId: 'pl-std', validIn: ['g-ib'], itemName: 'Abonament 8 ședințe', price: 320, audience: 'member', slots: 8,
+  id: 'sub1', athleteId: 'a1', seasonId: 's26', priceListId: 'pl-std', validIn: [], itemName: 'Abonament 8 ședințe', price: 320, audience: 'member', slots: 8,
   startsOn: '2026-10-27', validUntil: '2026-11-23', extendedWeeks: 0, cancelled: false, cancelledAt: null, cancelledBy: null,
   purchasedAt: '2026-10-27T10:00:00.000Z', recordedBy: 'admin@example.com', ...over,
 });
