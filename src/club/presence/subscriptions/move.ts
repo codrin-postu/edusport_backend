@@ -7,6 +7,7 @@ import { P5_ACTIONS } from '../history-lines';
 import type { PresenceStore } from '../store';
 import type { PriceListRecord, SubscriptionRow } from '../types';
 import { carryList } from './carry';
+import { byUseOrder } from '../subscriptions';
 import { usedOf } from './used';
 import { athleteListIdsToday, barOf, currentSubscription, schoolListIds, type AbonamentBar } from './rules';
 
@@ -71,15 +72,15 @@ export function presenceCarry(store: PresenceStore): { carry: MoveCarry; ports: 
   };
 }
 
-/** The abonament the move window shows (decided 9) and whether the move carries it (5.12). */
+/** The abonament the move window shows (decided 9: the current one, else a not started one the move carries) and whether the move carries it (5.12). */
 export async function movePreview(store: PresenceStore, i: { athleteId: string; fromGroupId: string; toGroupId: string | null }, today: string): Promise<MovePreview> {
   const [subs, memberships, groups, lists, sections, seasons] = await Promise.all([
     store.subscriptions({ athleteId: i.athleteId }), store.memberships({ athleteId: i.athleteId }), store.groups(), store.priceListRecords(), store.sections(), store.seasons(),
   ]);
   const used = await usedOf(store, subs);
   const listIds = athleteListIdsToday(memberships, groups, schoolListIds(lists, sections), seasonOfDate(seasons, today)?.id ?? null, i.athleteId);
-  const current = currentSubscription(subs, used, listIds, today);
-  if (!current) return { bar: null, carries: false };
   const moved = await listsOfMove(store, i.fromGroupId, i.toGroupId);
-  return { bar: barOf(current, used), carries: !!moved && carryList({ subs, used, ...moved, today }).some((s) => s.id === current.id) };
+  const carried = moved ? carryList({ subs, used, ...moved, today }).sort(byUseOrder) : [];
+  const shown = currentSubscription(subs, used, listIds, today) ?? carried[0] ?? null;
+  return shown ? { bar: barOf(shown, used), carries: carried.some((s) => s.id === shown.id) } : { bar: null, carries: false };
 }

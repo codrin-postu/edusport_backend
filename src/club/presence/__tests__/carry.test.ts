@@ -63,6 +63,19 @@ describe('presence carry port and move preview (5.12)', () => {
     expect((await movePreview(g.store, { athleteId: 'a1', fromGroupId: 'g-ib', toGroupId: null }, '2026-11-20')).carries).toBe(false);
   });
 
+  it('an abonament that has not started yet: the preview shows its bar and carries, the carry takes it (final review I1)', async () => {
+    const future = { startsOn: '2026-11-25', validUntil: '2026-12-02' };
+    const f = fakePresenceContext(moveSeed(future));
+    const preview = await movePreview(f.store, { athleteId: 'a1', fromGroupId: 'g-ib', toGroupId: 'g-gold' }, '2026-11-20');
+    expect(preview).toEqual({ bar: { subscriptionId: 'std', itemName: 'Abonament 8 ședințe', slots: 8, used: 0, validUntil: '2026-12-02' }, carries: true });
+    let out!: CarryOutcome;
+    await f.store.transaction(async () => {
+      await f.store.lockAthlete('a1');
+      out = await presenceCarry(f.store).carry({ athleteId: 'a1', fromGroupId: 'g-ib', toGroupId: 'g-gold', today: '2026-11-20' });
+    });
+    expect(out.carried > 0).toBe(preview.carries);
+  });
+
   it('Club moves and same-list moves carry nothing', async () => {
     const f = fakePresenceContext(moveSeed());
     const { carry } = presenceCarry(f.store);
