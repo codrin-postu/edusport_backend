@@ -2,6 +2,7 @@ import type { AthleteRow, MembershipRow } from '../athletes/store';
 import { isCurrentMembership } from '../group-membership';
 import type { GroupOptions, GroupPage, MemberRow } from './api-types';
 import { readGroupHistory } from './group-history';
+import { copyFromFor } from './new-season/copy-group';
 import { ageOnIso, pickSeason, seasonRef } from './season-pick';
 import { groupChoices, sectionLabel } from './sections';
 import type { GroupRecord, GroupStore } from './types';
@@ -21,20 +22,19 @@ function memberRows(r: Roster): MemberRow[] {
   return r.current.filter((m) => m.groupId === r.group.id).map((m) => memberRow(m, r, people, groupName)).sort((a, b) => a.name.localeCompare(b.name, 'ro'));
 }
 
-async function neverUsed(store: GroupStore, id: string): Promise<boolean> {
-  const [memberships, events] = await Promise.all([store.memberships({ groupId: id }), store.events({ groupId: id })]);
-  return memberships.length === 0 && events.length === 0;
-}
+const pageReads = (store: GroupStore, id: string) => Promise.all([store.memberships({ groupId: id }), store.events({ groupId: id })]);
 
 /** The group page header and roster (6.1, 6.2) for the season in the URL, else the current one; null for an unknown group. */
 export async function readGroupPage(store: GroupStore, id: string, label: string | null, today: string): Promise<GroupPage | null> {
   const group = await store.group(id);
   if (!group) return null;
-  const [seasons, sections, team, priceLists, athletes, groups, history, deletable] = await Promise.all([
-    store.seasons(), store.sections(), store.teamMembers(), store.priceLists(), store.athletes(), store.groups(), readGroupHistory(store, id), neverUsed(store, id),
+  const [seasons, sections, team, priceLists, athletes, groups, history, [allRows, groupEvents]] = await Promise.all([
+    store.seasons(), store.sections(), store.teamMembers(), store.priceLists(), store.athletes(), store.groups(), readGroupHistory(store, id), pageReads(store, id),
   ]);
   const season = pickSeason(seasons, label);
   const current = season ? (await store.memberships({ seasonId: season.id })).filter(isCurrentMembership) : [];
+  const deletable = allRows.length === 0 && groupEvents.length === 0;
+  const copyFrom = season ? copyFromFor({ group, season, seasons, memberships: allRows, athletes, events: groupEvents, today }) : null;
   const section = sections.find((s) => s.id === group.sectionId);
   const priceList = priceLists.find((p) => p.id === group.priceListId);
   return {
@@ -42,7 +42,7 @@ export async function readGroupPage(store: GroupStore, id: string, label: string
     priceList: priceList ? { documentId: priceList.id, name: priceList.name } : null,
     coaches: team.filter((t) => group.coachIds.includes(t.id)).map((t) => ({ documentId: t.id, name: t.name })),
     programPublic: group.programPublic, season: season ? seasonRef(season, seasons) : null,
-    members: memberRows({ group, current, athletes, groups, today }), historyCount: history.length, deletable,
+    members: memberRows({ group, current, athletes, groups, today }), historyCount: history.length, deletable, copyFrom,
   };
 }
 
