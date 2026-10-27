@@ -119,6 +119,11 @@ describe('strapiPresenceStore', () => {
     expect(calls.filter((c) => c.endsWith('in trx'))).toHaveLength(9);
   });
 
+  it('the fake refuses season, group and event locks outside a transaction too', async () => {
+    const { store } = fakePresenceStore();
+    for (const lock of [store.lockSeason, store.lockGroup, store.lockEvent]) await expect(lock('x')).rejects.toThrow();
+  });
+
   it('a lock outside a transaction throws', async () => {
     const calls: string[] = [];
     await expect(strapiPresenceStore(lockingStrapi(calls)).lockPayment('p1')).rejects.toThrow('outside a transaction');
