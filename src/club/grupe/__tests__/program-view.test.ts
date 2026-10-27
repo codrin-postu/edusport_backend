@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { Occurrence } from '../../../api/calendar-event/services/expand';
 import type { ProgramRow } from '../../groups/program-read';
 import {
-  changeBody, dateBody, dateFormOf, dateKey, dateToast, durationOptions, formFromRow, groupChip, isBreak, newProgramForm, panelTitle, programBody, programFormError, weekTitle,
+  changeBody, dateBody, dateFormOf, dateKey, dateToast, durationOptions, formFromRow, groupChip, isBreak, isOneOffClass, newProgramForm, panelTitle, programBody, programFormError, weekTitle,
 } from '../program-view';
 
 const occ = (over: Partial<Occurrence>): Occurrence => ({
   eventId: 1, documentId: 'e1', title: 'Intermediari Bronze', type: 'scoala', label: null, color: null, order: 0, date: '2026-11-14', startTime: '11:00', endTime: '11:50',
-  endsNextDay: false, endDate: '2026-11-14', status: 'scheduled', cancelReason: null, state: 'curs', note: null, groupId: 'g-ib', groupName: 'Intermediari Bronze', originalDate: null, originalStartTime: null, ...over,
+  endsNextDay: false, endDate: '2026-11-14', status: 'scheduled', cancelReason: null, state: 'curs', note: null, groupId: 'g-ib', groupName: 'Intermediari Bronze', oneOff: false, originalDate: null, originalStartTime: null, ...over,
 });
 
 describe('chips of the group calendar (6.3, W12)', () => {
@@ -77,5 +77,13 @@ describe('the date panel (6.3, decided 4)', () => {
     expect([dateToast('cancel', '2026-11-14'), dateToast('move', '2026-11-21'), dateToast('keep', '2026-11-14')]).toEqual([
       'Ședința din 14 noiembrie a fost anulată.', 'Ședința din 21 noiembrie a fost mutată.', 'Ședința din 14 noiembrie se ține.',
     ]);
+  });
+});
+
+describe('"Șterge ședința" (final review)', () => {
+  it('only a one-off class offers it, never a date of an ended or split series', () => {
+    expect(isOneOffClass(occ({ oneOff: true }))).toBe(true);
+    expect(isOneOffClass(occ({ oneOff: false }))).toBe(false);
+    expect(isOneOffClass({})).toBe(false);
   });
 });

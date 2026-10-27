@@ -15,6 +15,8 @@ export type DateMode = 'keep' | 'cancel' | 'move';
 export type DateForm = { mode: DateMode; newDate: string; newStartTime: string; reason: string; notify: boolean };
 
 export const isBreak = (o: ChipSource): boolean => o.status === 'cancelled' && o.cancelReason === 'blackout';
+/** "Șterge ședința" is for a one-off class only, read from the event of the date (a date of an ended or split series is never one). */
+export const isOneOffClass = (o: { oneOff?: boolean }): boolean => o.oneOff === true;
 /** The server addresses a moved date by the series date it came from. */
 export const dateKey = (o: ChipSource): string => o.originalDate ?? o.date;
 

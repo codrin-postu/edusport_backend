@@ -183,3 +183,47 @@ describe('Program tab (6.3)', () => {
     expect(grupe('GroupPage.tsx')).toContain('<ProgramTab');
   });
 });
+
+describe('final review fixes (4-5 final)', () => {
+  it('1: the desktop drawer body is padded by the shared body class', () => {
+    expect(grupe('PanelShell.tsx')).toContain('bodyClassName="ui-body"');
+  });
+
+  it('2: "Șterge ședința" follows the event of the date, not the running series', () => {
+    const tab = grupe('ProgramTab.tsx');
+    expect(tab).toContain('isOneOffClass(date)');
+    expect(tab).not.toContain('program.series.some');
+    expect(source('api/calendar-event/services/expand.ts')).toContain("oneOff: ev.recurrence.freq === 'none'");
+  });
+
+  it('3: the phone rule targets the real select root and lays name / select + button', () => {
+    const css = grupe('styles.ts');
+    expect(css).toContain('.grp-ua-row .ui-cbx');
+    expect(css).not.toContain('.ui-combo');
+    expect(css).toContain('.grp-ua-row .ui-btn{grid-column:2;grid-row:2}');
+  });
+
+  it('4: load failures show the existing text; a failed program never offers "Adaugă program"', () => {
+    for (const f of ['ProgramTab.tsx', 'GroupCalendar.tsx', 'GroupDialog.tsx', 'MoveDialog.tsx', 'AddMembers.tsx']) expect(grupe(f), f).toContain('GROUP_ERRORS.loadFailed');
+    const tab = grupe('ProgramTab.tsx');
+    expect(tab.indexOf('if (failed)')).toBeGreaterThan(-1);
+    expect(tab.indexOf('if (failed)')).toBeLessThan(tab.indexOf('<Usual'));
+    expect(tab).not.toContain('series: []');
+  });
+
+  it('5: nothing written shows the stale error, never the success toast; the "În" list skips own groups', () => {
+    expect(grupe('undo.ts')).toContain('GROUP_ERRORS.stale');
+    expect(grupe('UnassignedButton.tsx')).toMatch(/wroteNothing\(res\.data\)\) return staleToast\(\);\s*undoToast\(GROUP_TOASTS\.allocated\(/);
+    expect(grupe('MoveDialog.tsx')).toMatch(/wroteNothing\(res\.data\)\) return staleToast\(\);\s*undoToast\(GROUP_TOASTS\.addedAlso/);
+    expect(grupe('MoveDialog.tsx')).toContain('joinableGroups(groups, p.page.documentId, p.member.others)');
+  });
+
+  it('minors: no self-reopening dropdown, Istoric refreshes, one fetch per action, labelled selects', () => {
+    expect(grupe('UnassignedButton.tsx')).toMatch(/if \(count === 0\) setOpen\(false\)/);
+    expect(grupe('GroupHistoryTab.tsx')).toContain('useGrupeRefresh(load)');
+    expect(grupe('ProgramTab.tsx')).toContain("const season = page.season?.label ?? null;");
+    expect(grupe('ProgramTab.tsx')).not.toMatch(/\[api, page\.documentId, page\.season\]/);
+    expect(grupe('UnassignedButton.tsx')).toContain('aria-label={`${GRUPE_COPY.pickGroup}: ${row.name}`}');
+    expect(grupe('MoveDialog.tsx')).toContain('aria-label={GRUPE_COPY.fieldTo}');
+  });
+});

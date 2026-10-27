@@ -31,7 +31,9 @@ export const GRUPE_CSS = `
 .ui-root .grp-cal-bar .cal-sp{flex:1}
 @media (max-width:640px){
 .ui-root .grp-ua-row{grid-template-columns:minmax(0,1fr) auto}
-.ui-root .grp-ua-row .ui-combo{grid-column:1 / -1;grid-row:2}
+.ui-root .grp-ua-row>div:first-child{grid-column:1 / -1;grid-row:1}
+.ui-root .grp-ua-row .ui-cbx{grid-column:1;grid-row:2}
+.ui-root .grp-ua-row .ui-btn{grid-column:2;grid-row:2}
 .ui-root .grp-kv{grid-template-columns:minmax(0,1fr)}
 }
 `;

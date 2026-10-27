@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GroupListPage, GroupPage, MemberRow } from '../../groups/api-types';
 import { addCandidates, groupTabs, mainText, memberMenuItems, othersText, phoneMemberLine, subtitle } from '../group-view';
-import { allocateItems, coachesText, countLine, groupOptions, initialPicks, phoneSummary, seasonOptions, tabItems, writable } from '../list-view';
+import { allocateItems, coachesText, countLine, groupOptions, initialPicks, joinableGroups, phoneSummary, seasonOptions, tabItems, wroteNothing, writable } from '../list-view';
 import { groupIdFromSplat, groupPageTo, grupeListTo, readGrupeQuery } from '../routes';
 
 const LIST: GroupListPage = {
@@ -75,5 +75,16 @@ describe('group page (6.1, 6.2)', () => {
   it('row menu and add candidates', () => {
     expect(memberMenuItems().map((i) => [i.key, i.label, i.danger])).toEqual([['move', 'Mută', false], ['addAlso', 'Adaugă și în grupă', false], ['remove', 'Scoate din grupă', true]]);
     expect(addCandidates([{ athleteId: 'a0', name: 'X' }, { athleteId: 'zz', name: 'Y' }], PAGE.members).map((r) => r.athleteId)).toEqual(['zz']);
+  });
+});
+
+describe('join rules (final review)', () => {
+  const groups = [{ documentId: 'g1', name: 'Mici', sectionName: 'Club' }, { documentId: 'g2', name: 'Avansați', sectionName: 'Club' }, { documentId: 'g3', name: 'Seniori', sectionName: 'Club' }];
+  it('the "În" list leaves out this group and the groups the athlete is in', () => {
+    expect(joinableGroups(groups, 'g1', [{ name: 'Avansați' }]).map((g) => g.documentId)).toEqual(['g3']);
+  });
+  it('a join that added nobody wrote nothing', () => {
+    expect(wroteNothing({ added: 0 })).toBe(true);
+    expect(wroteNothing({ added: 1 })).toBe(false);
   });
 });

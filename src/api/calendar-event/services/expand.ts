@@ -86,6 +86,8 @@ export interface Occurrence {
   linkLabel?: string | null;
   groupId: string | null;
   groupName: string | null;
+  /** True for the dates of a one-off class (`freq: 'none'`), never for a series date. */
+  oneOff: boolean;
   /** A moved date: the series date and start time it came from. */
   originalDate: string | null;
   originalStartTime: string | null;
@@ -224,7 +226,7 @@ function toOccurrence(ev: CalendarEventRow, s: Slot): Occurrence {
     date: s.date, startTime: s.startTime, endTime: s.endTime, ...endDay(s),
     status: s.status, cancelReason: s.cancelReason, state: s.state, note: s.note, description: ev.description ?? null, imageUrl: ev.imageUrl ?? null,
     linkUrl: ev.linkUrl ?? null, linkLabel: ev.linkLabel ?? null, groupId: ev.group?.documentId ?? null, groupName: ev.group?.name ?? null,
-    originalDate: s.originalDate, originalStartTime: s.originalStartTime,
+    oneOff: ev.recurrence.freq === 'none', originalDate: s.originalDate, originalStartTime: s.originalStartTime,
   };
 }
 

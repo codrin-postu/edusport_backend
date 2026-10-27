@@ -2,9 +2,9 @@ import * as React from 'react';
 import { BottomSheet, Button, Loading, Notice, SearchableSelect, useIsPhone } from '../../ui';
 import type { UnassignedPage, UnassignedRow } from '../../../club/groups/api-types';
 import { GROUP_ERRORS, GROUP_TOASTS, GRUPE_COPY } from '../../../club/groups/copy';
-import { allocateItems, groupOptions, initialPicks, type Picks } from '../../../club/grupe/list-view';
+import { allocateItems, groupOptions, initialPicks, wroteNothing, type Picks } from '../../../club/grupe/list-view';
 import type { GrupeApi } from './api';
-import { failToast, undoToast, useGrupeRefresh } from './undo';
+import { failToast, staleToast, undoToast, useGrupeRefresh } from './undo';
 
 type Props = { api: GrupeApi; season: string; count: number };
 type Loaded = { page: UnassignedPage | null; failed: boolean; picks: Picks; setPicks: (p: Picks) => void; reload: () => Promise<void> };
@@ -18,6 +18,7 @@ function useUnassigned(api: GrupeApi, season: string): Loaded {
       const next = await api.unassigned(season);
       setPage(next);
       setPicks((old) => ({ ...initialPicks(next.rows), ...old }));
+      setFailed(false);
     } catch {
       setFailed(true);
     }
@@ -40,7 +41,7 @@ function Row({ row, data, busy, onAllocate }: RowProps) {
         <span className="spv-name">{row.name}</span>
         <span className="grp-ua-src">{row.source}</span>
       </div>
-      <SearchableSelect value={pick} options={options} placeholder={GRUPE_COPY.pickGroup} onChange={(v) => data.setPicks({ ...data.picks, [row.athleteId]: v })} />
+      <SearchableSelect value={pick} options={options} aria-label={`${GRUPE_COPY.pickGroup}: ${row.name}`} placeholder={GRUPE_COPY.pickGroup} onChange={(v) => data.setPicks({ ...data.picks, [row.athleteId]: v })} />
       <Button size="sm" variant="secondary" loading={busy} disabled={!pick} onClick={() => onAllocate(row)}>{GRUPE_COPY.allocate}</Button>
     </div>
   );
@@ -62,6 +63,7 @@ function useAllocate(api: GrupeApi, season: string, data: Loaded) {
   const one = (row: UnassignedRow) => void run(row.athleteId, async () => {
     const groupId = data.picks[row.athleteId] as string;
     const res = await api.join(groupId, { season, athleteIds: [row.athleteId], mode: 'allocate' });
+    if (wroteNothing(res.data)) return staleToast();
     undoToast(GROUP_TOASTS.allocated(groupName(groupId), row.name), res.undo?.actionId ?? null, api);
   });
   const all = () => void run('all', async () => {
@@ -95,6 +97,9 @@ function UnassignedSheet({ api, season, anchorRef, onClose }: SheetProps) {
 export function UnassignedButton({ api, season, count }: Props) {
   const anchor = React.useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = React.useState(false);
+  React.useEffect(() => {
+    if (count === 0) setOpen(false);
+  }, [count]);
   if (count === 0) return null;
   return (
     <>
