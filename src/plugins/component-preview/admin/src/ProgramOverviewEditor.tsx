@@ -21,6 +21,9 @@ import {
   type FormState,
   type Occurrence,
 } from './calendar/model';
+import { DatePanel } from '../../../../admin/dashboard/grupe/DatePanel';
+import { useGrupeApi } from '../../../../admin/dashboard/grupe/api';
+import { groupPageTo } from '../../../../club/grupe/routes';
 import { AgendaList, CalendarToolbar, CompactMonth, MonthGrid, type CalView } from './calendar/CalendarView';
 import { EventDrawer } from './calendar/EventDrawer';
 import { CAL_CSS } from './calendar/styles';
@@ -75,6 +78,12 @@ export default function ProgramOverviewEditor(_props: Props) {
   const [dirty, setDirty] = React.useState(false);
   const [mediaOpen, setMediaOpen] = React.useState(false);
   const [reloadKey, setReloadKey] = React.useState(0);
+  const grupeApi = useGrupeApi();
+  const [groupDate, setGroupDate] = React.useState<{ o: Occurrence; isClass: boolean } | null>(null);
+  const openGroupDate = async (o: Occurrence) => {
+    const res = (await get(`${CM_EVENT}/${o.documentId}`).catch(() => null)) as { data?: { data?: { recurrence?: { freq?: string } } } } | null;
+    setGroupDate({ o, isClass: res?.data?.data?.recurrence?.freq === 'none' });
+  };
   // For an occurrence of a series: edit just this date's state, or the whole series.
   const [scoalaView, setScoalaView] = React.useState<'date' | 'series'>('date');
   const [confirmDel, setConfirmDel] = React.useState(false);
@@ -86,9 +95,8 @@ export default function ProgramOverviewEditor(_props: Props) {
     const last = new Date(ym.y, ym.m + 1, 0);
     let cancelled = false;
     setLoading(true);
-    fetch(`/api/calendar/occurrences?from=${ymd(first)}&to=${ymd(last)}`)
-      .then((r) => (r.ok ? r.json() : { data: [] }))
-      .then((j) => { if (!cancelled) setOccurrences(Array.isArray(j?.data) ? j.data : []); })
+    get(`/api/club/calendar/occurrences?from=${ymd(first)}&to=${ymd(last)}`)
+      .then((r) => { const body = r.data as { data?: unknown } | undefined; if (!cancelled) setOccurrences(Array.isArray(body?.data) ? (body.data as Occurrence[]) : []); })
       .catch(() => { if (!cancelled) setOccurrences([]); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
@@ -220,7 +228,7 @@ export default function ProgramOverviewEditor(_props: Props) {
     m: ym.m,
     byDate,
     todayKey,
-    onEvent: (o: Occurrence, date: string) => void openEdit(o.documentId, date),
+    onEvent: (o: Occurrence, date: string) => void (o.groupId ? openGroupDate(o) : openEdit(o.documentId, date)),
     onAddOn: (date: string) => openCreate(date),
   };
 
@@ -273,6 +281,11 @@ export default function ProgramOverviewEditor(_props: Props) {
         onDelete={remove}
         onPickImage={() => setMediaOpen(true)}
       />
+
+      {groupDate && (
+        <DatePanel occurrence={groupDate.o} isClass={groupDate.isClass} readOnly={false} api={grupeApi} groupLink={groupPageTo(groupDate.o.groupId ?? '', null)}
+          onClose={() => { setGroupDate(null); setReloadKey((k) => k + 1); }} />
+      )}
 
       <ConfirmDialog
         open={confirmDiscard}
