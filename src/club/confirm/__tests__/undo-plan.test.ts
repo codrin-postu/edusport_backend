@@ -17,7 +17,8 @@ const record = (over: Partial<ConfirmationRecord> = {}): ConfirmationRecord => (
   ...over,
 });
 const facts = (over: Partial<UndoFacts> = {}): UndoFacts => ({
-  currentMembershipIds: over.membershipIds ?? ['m0', 'm9'],
+  currentRows: (over.membershipIds ?? ['m0', 'm9']).map((id) => ({ id, athleteId: 'a1', groupId: `g-${id}`, seasonId: 's26', isMain: false, from: '2026-10-01' })),
+  seasonId: 's26',
   record: record(),
   linkedAthleteId: 'a1',
   athlete: { id: 'a1', status: 'activ', profileId: null, name: 'Maria Pop', birthDate: '2016-03-14', contactName: 'Ana Pop', phone: '0722111222', email: null },
@@ -28,12 +29,28 @@ const facts = (over: Partial<UndoFacts> = {}): UndoFacts => ({
   ...over,
 });
 
+describe('the season keeps one main (spec 2 rule 2)', () => {
+  const row = (id: string, from: string | null) => ({ id, athleteId: 'a1', groupId: `g-${id}`, seasonId: 's26', isMain: false, from });
+  const ended = (over: Partial<UndoFacts> = {}) => facts({ record: record({ demotedMainId: 'm0' }), membershipIds: ['m0', 'm9', 'x1', 'x2'], ...over });
+
+  it('the demoted row ended: the earliest remaining current row becomes main', () => {
+    const plan = planUndo(ended({ currentRows: [row('m9', '2026-10-26'), row('x1', '2026-11-05'), row('x2', '2026-11-01')] }));
+    expect([plan.restoreMainId, plan.promoteMainId]).toEqual([null, 'x2']);
+  });
+
+  it('no current row left: no main', () => {
+    const plan = planUndo(ended({ currentRows: [row('m9', '2026-10-26')] }));
+    expect([plan.restoreMainId, plan.promoteMainId]).toEqual([null, null]);
+  });
+});
+
 describe('undo reverts what the confirmation wrote (spec 4.6, gaps #32)', () => {
   it('link, status, group, main group, A.C.S., fields and reactivation', () => {
     expect(planUndo(facts())).toEqual({
       registration: { status: 'Contactat' },
       deleteMembershipId: 'm9',
       restoreMainId: 'm0',
+      promoteMainId: null,
       demoteMembershipId: null,
       acs: { op: 'delete', id: 'c9' },
       athleteUpdate: { phone: '0711000000', status: 'inactiv', dataIncomplete: true },

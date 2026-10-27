@@ -58,6 +58,17 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     expect(fake.state.history.slice(before).map((h) => h.action)).not.toContain('main-group-changed');
   });
 
+  it('a demoted main that ended: the earliest remaining current row becomes main and the change is noted', async () => {
+    const extra = { id: 'm-x', athleteId: 'a1', groupId: 'g-ib', seasonId: 's26', isMain: false, from: '2026-10-10' };
+    const fake = fakeClubStore({ ...seed(), memberships: [...seed().memberships, extra] });
+    await confirmed(fake);
+    fake.state.memberships.find((m) => m.id === 'm0')!.to = '2026-11-19';
+    await undoConfirmation(ctx(fake), 'r1');
+    expect(fake.state.memberships.map((m) => [m.id, m.isMain])).toEqual([['m0', false], ['m-x', true]]);
+    const last = fake.state.history.filter((h) => h.action === 'main-group-changed').pop();
+    expect(last?.changes).toEqual({ from: 'Primii Pași', to: 'Intermediari Bronze' });
+  });
+
   it('no reverse line when the undo gives no main group back', async () => {
     const fake = fakeClubStore({ ...seed(), memberships: [] });
     await confirmed(fake);
