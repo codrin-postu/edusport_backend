@@ -13,9 +13,11 @@ export type GroupChoice = { documentId: string; name: string; sectionName: strin
 export type UnassignedRow = { athleteId: string; name: string; source: string; proposedGroupId: string | null };
 export type UnassignedPage = { season: SeasonRef | null; rows: UnassignedRow[]; groups: GroupChoice[] };
 export type MemberRow = { membershipId: string; athleteId: string; name: string; age: number | null; isMain: boolean; others: { name: string; isMain: boolean }[] };
+/** Empty-tab copies (10.6, 10.9): `members` and `program` are what the tab can copy from `season`; `programFrom` the "Se repetă din" date. */
+export type CopyFrom = { season: string; members: number; inactive: number; program: string[]; programFrom: string | null };
 export type GroupPage = {
   documentId: string; name: string; section: (NamedRef & { kind: 'school' | 'club' }) | null; priceList: NamedRef | null; coaches: NamedRef[];
-  programPublic: boolean; season: SeasonRef | null; members: MemberRow[]; historyCount: number; deletable: boolean;
+  programPublic: boolean; season: SeasonRef | null; members: MemberRow[]; historyCount: number; deletable: boolean; copyFrom?: CopyFrom | null;
 };
 export type GroupOptions = { groups: GroupChoice[]; coaches: NamedRef[]; priceLists: (NamedRef & { sectionId: string | null })[] };
 export type JoinResult = { added: number; athleteNames: string[]; groupName: string };
