@@ -34,6 +34,8 @@ export const HISTORY_ACTIONS = {
   deleted: 'deleted',
   athleteUnlinked: 'athlete-unlinked',
   duplicateDismissed: 'duplicate-dismissed',
+  dataExported: 'data-exported',
+  dataAnonymized: 'data-anonymized',
 } as const;
 
 /** Copy the spec does not give (plan item N2, option A until the user answers). */
@@ -44,7 +46,7 @@ export const PENDING_COPY = {
   formActor: '',
 } as const;
 
-export const STATUS_WORDS: Record<AthleteStatus, string> = { nou: 'Nou', activ: 'Activ', inactiv: 'Inactiv' };
+export const STATUS_WORDS: Record<AthleteStatus, string> = { nou: 'Nou', activ: 'Activ', inactiv: 'Inactiv', anonimizat: 'Anonimizat' };
 
 /** Registration field labels: the form's wording (spec 3.3), the full table's for the other columns. */
 export const REGISTRATION_FIELD_LABELS: Readonly<Record<string, string>> = {
@@ -186,6 +188,8 @@ const RENDER: Readonly<Record<string, Render>> = {
   [HISTORY_ACTIONS.deleted]: (c) => [`Sportiv șters: ${text(c.name)}`],
   [HISTORY_ACTIONS.athleteUnlinked]: (c) => [`Legătură ștearsă: sportivul ${text(c.name)} a fost șters`],
   [HISTORY_ACTIONS.duplicateDismissed]: (c) => [PENDING_COPY.duplicateDismissed(text(c.name))],
+  [HISTORY_ACTIONS.dataExported]: () => ['Date exportate'],
+  [HISTORY_ACTIONS.dataAnonymized]: () => ['Date anonimizate'],
 };
 
 export function historyTexts(action: string, changes: unknown, subjectType: string): string[] {

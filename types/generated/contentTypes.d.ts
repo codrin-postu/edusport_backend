@@ -485,7 +485,7 @@ export interface ApiAnnouncementAnnouncement
   extends Struct.CollectionTypeSchema {
   collectionName: 'announcements';
   info: {
-    description: 'Anun\u021Buri programate afi\u0219ate pe site. Se administreaz\u0103 din pagina dedicat\u0103 \u201EAnun\u021Buri\u201D, nu din Content Manager.';
+    description: 'Anun\u021Buri programate afi\u0219ate pe site. Se administreaz\u0103 din pagina dedicat\u0103 "Anun\u021Buri", nu din Content Manager.';
     displayName: 'Anun\u021B';
     pluralName: 'announcements';
     singularName: 'announcement';
@@ -628,6 +628,7 @@ export interface ApiAthleteAthlete extends Struct.CollectionTypeSchema {
     };
   };
   attributes: {
+    anonymizedAt: Schema.Attribute.DateTime;
     birthDate: Schema.Attribute.Date;
     contactName: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
@@ -652,7 +653,9 @@ export interface ApiAthleteAthlete extends Struct.CollectionTypeSchema {
       'api::sportsperson.sportsperson'
     >;
     publishedAt: Schema.Attribute.DateTime;
-    status: Schema.Attribute.Enumeration<['nou', 'activ', 'inactiv']> &
+    status: Schema.Attribute.Enumeration<
+      ['nou', 'activ', 'inactiv', 'anonimizat']
+    > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'activ'>;
     updatedAt: Schema.Attribute.DateTime;
@@ -1073,7 +1076,9 @@ export interface ApiEmailJobEmailJob extends Struct.CollectionTypeSchema {
       'api::registration-submission.registration-submission'
     >;
     sentAt: Schema.Attribute.DateTime;
-    status: Schema.Attribute.Enumeration<['queued', 'sent', 'failed']> &
+    status: Schema.Attribute.Enumeration<
+      ['queued', 'sent', 'failed', 'cancelled']
+    > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'queued'>;
     subject: Schema.Attribute.String & Schema.Attribute.Required;
@@ -2000,6 +2005,7 @@ export interface ApiSiteSettingsSiteSettings extends Struct.SingleTypeSchema {
       'api::site-settings.site-settings'
     > &
       Schema.Attribute.Private;
+    personalData: Schema.Attribute.JSON;
     publishedAt: Schema.Attribute.DateTime;
     registration: Schema.Attribute.JSON &
       Schema.Attribute.CustomField<'plugin::component-preview.site-settings-registration'>;

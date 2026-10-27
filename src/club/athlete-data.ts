@@ -4,8 +4,8 @@ import { isoDate, partsFromIso, readPickedDate, roDate } from './birth-date';
 import { collapseSpaces } from './person-match';
 
 /** The athlete's private data (spec 1.1, 6.2). One full name; birth date as ISO; empty = null. */
-export type AthleteStatus = 'nou' | 'activ' | 'inactiv';
-export const ATHLETE_STATUSES: readonly AthleteStatus[] = ['nou', 'activ', 'inactiv'];
+export type AthleteStatus = 'nou' | 'activ' | 'inactiv' | 'anonimizat';
+export const ATHLETE_STATUSES: readonly AthleteStatus[] = ['nou', 'activ', 'inactiv', 'anonimizat'];
 export const ATHLETE_FIELDS = ['name', 'birthDate', 'contactName', 'phone', 'email'] as const;
 export type AthleteField = (typeof ATHLETE_FIELDS)[number];
 export type AthleteValues = { [K in AthleteField]: string | null };

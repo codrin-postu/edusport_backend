@@ -23,6 +23,9 @@
     "contact": {
       "type": "json",
       "customField": "plugin::component-preview.site-settings-contact"
+    },
+    "personalData": {
+      "type": "json"
     }
   }
 }

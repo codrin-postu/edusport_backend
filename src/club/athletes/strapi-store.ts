@@ -1,6 +1,6 @@
 import type { Core } from '@strapi/strapi';
 import type { Knex } from 'knex';
-import type { AthleteStatus } from '../athlete-data';
+import { ATHLETE_STATUSES } from '../athlete-data';
 import type { ConfirmationRecord, RegistrationStatus } from '../confirm/plan';
 import { recordHistory } from '../history';
 import type { AcsState } from '../acs';
@@ -29,7 +29,6 @@ const text = (v: unknown): string => (typeof v === 'string' ? v : '');
 const iso = (v: unknown): string | null => (v instanceof Date ? v.toISOString() : str(v));
 const linkId = (v: unknown): string | null => (v && typeof v === 'object' ? str((v as Raw).documentId) : null);
 const STATUSES: readonly RegistrationStatus[] = ['Nou', 'Contactat', 'Confirmat', 'Respins'];
-const ATHLETE_STATUSES: readonly AthleteStatus[] = ['nou', 'activ', 'inactiv'];
 const ACS_STATES: readonly AcsState[] = ['da', 'nu', 'in_asteptare'];
 const oneOf = <T extends string>(values: readonly T[], v: unknown, fallback: T): T => values.find((x) => x === v) ?? fallback;
 

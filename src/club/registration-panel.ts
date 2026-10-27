@@ -16,7 +16,7 @@ export type RegistrationRow = Record<string, unknown>;
  * names it would carry.
  */
 export type EmailStatus = {
-  status: 'queued' | 'sent' | 'failed' | 'none';
+  status: 'queued' | 'sent' | 'failed' | 'cancelled' | 'none';
   recipient: string;
   attempts: number;
   lastError: string | null;
@@ -63,7 +63,7 @@ export function registrationDocumentKinds(r: RegistrationRow): PanelDocumentKind
   return r.membershipAnswer === MEMBERSHIP_YES ? ['acord', 'adeziune'] : ['acord'];
 }
 
-const STATUSES = ['queued', 'sent', 'failed', 'none'] as const;
+const STATUSES = ['queued', 'sent', 'failed', 'cancelled', 'none'] as const;
 const isStatus = (v: unknown): v is EmailStatus['status'] => (STATUSES as readonly unknown[]).includes(v);
 const textOrNull = (v: unknown) => text(v) || null;
 
