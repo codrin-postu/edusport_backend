@@ -1,4 +1,5 @@
 import type { Core } from '@strapi/strapi';
+import { isAnonymizedRelation } from '../personal-data/anonymize-plan';
 import { rebuildDocuments, seasonIdForLabel, type RebuildResult } from './service';
 
 const UID = 'api::registration-submission.registration-submission' as const;
@@ -8,11 +9,22 @@ export interface SeasonMoveDeps {
   /** Sets the season text and its Sezon link; false when the registration does not exist. Never the number. */
   setSeason(registrationDocumentId: string, label: string, seasonRef: string | null): Promise<boolean>;
   rebuild(registrationDocumentId: string): Promise<RebuildResult>;
+  /** True when the registration is linked to an anonymized athlete (read-only, 3C). */
+  isAnonymized(registrationDocumentId: string): Promise<boolean>;
   logError(message: string): void;
 }
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const yieldToEventLoop = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+/** Registrations of anonymized athletes stay where they are; how many were skipped is logged. */
+async function movable(ids: string[], label: string, deps: SeasonMoveDeps): Promise<string[]> {
+  const out: string[] = [];
+  for (const id of ids) if (!(await deps.isAnonymized(id))) out.push(id);
+  const skipped = ids.length - out.length;
+  if (skipped > 0) deps.logError(`[inscrieri] ${skipped} registration(s) of anonymized athletes not moved to ${label}`);
+  return out;
+}
 
 async function moveOne(id: string, label: string, seasonRef: string | null, deps: SeasonMoveDeps): Promise<boolean> {
   try {
@@ -29,12 +41,12 @@ async function moveOne(id: string, label: string, seasonRef: string | null, deps
  * Moves registrations to the season `label`: the season text and `seasonRef` change together, then each
  * registration's PDFs are rebuilt (new files first). One failure is logged and the loop goes on. With no
  * Sezon of that label, `seasonRef` becomes null and the rebuild is skipped with a logged reason.
- * The registration number never changes (D2). Returns how many registrations were moved.
+ * The registration number never changes (D2). Registrations of anonymized athletes are skipped. Returns how many were moved.
  */
 export async function moveRegistrationsToSeason(ids: string[], label: string, deps: SeasonMoveDeps): Promise<number> {
   const seasonRef = await deps.seasonIdFor(label);
   let moved = 0;
-  for (const id of ids) if (await moveOne(id, label, seasonRef, deps)) moved += 1;
+  for (const id of await movable(ids, label, deps)) if (await moveOne(id, label, seasonRef, deps)) moved += 1;
   if (!seasonRef && moved > 0) deps.logError(`[inscrieri] no Sezon is labelled "${label}": documents of ${moved} moved registration(s) not rebuilt`);
   return moved;
 }
@@ -80,7 +92,7 @@ async function rebuildMoved(moved: string[], label: string, seasonRef: string | 
  */
 export async function moveRegistrationsToSeasonInBackground(ids: string[], label: string, deps: SeasonMoveDeps): Promise<{ moved: number; rebuilt: Promise<void> }> {
   const seasonRef = await deps.seasonIdFor(label);
-  const moved = await moveRowsOnly(ids, label, seasonRef, deps);
+  const moved = await moveRowsOnly(await movable(ids, label, deps), label, seasonRef, deps);
   const rebuilt = new Promise<void>((resolve) => {
     setImmediate(() => {
       rebuildMoved(moved, label, seasonRef, deps)
@@ -99,6 +111,10 @@ export function seasonMoveDeps(strapi: Core.Strapi): SeasonMoveDeps {
     setSeason: async (documentId, label, seasonRef) =>
       Boolean(await strapi.documents(UID).update({ documentId, data: { season: label, seasonRef } })),
     rebuild: (documentId) => rebuildDocuments(strapi, documentId),
+    isAnonymized: async (documentId) => {
+      const doc = await strapi.documents(UID).findOne({ documentId, fields: ['documentId'], populate: { athlete: { fields: ['status'] } } });
+      return isAnonymizedRelation((doc as { athlete?: unknown } | null)?.athlete);
+    },
     logError: (msg) => strapi.log.error(msg),
   };
 }
