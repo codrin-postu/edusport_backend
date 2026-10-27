@@ -4,8 +4,8 @@ import { planGroupNames } from '../migrate/group-names';
 import { planMainsViolations } from '../migrate/mains';
 import { linkLine, planEventLinks } from '../migrate/link-events';
 import { planProgramPublic } from '../migrate/program-public';
-import { planRetire } from '../migrate/retire';
-import { planSchoolSeries, slotStart } from '../migrate/school-series';
+import { planRetire, retiredChanges, scoalaGroupsWithoutSeries } from '../migrate/retire';
+import { describeSeries, planSchoolSeries, slotStart } from '../migrate/school-series';
 import type { EventRecord, GroupRecord, Recurrence, SectionRecord } from '../types';
 import { G_SEASONS } from './fake-group-store';
 
@@ -94,6 +94,17 @@ describe('step 4 school-series (W14, decided 5 to 7)', () => {
     expect(plan.create[0].text).toEqual({ freq: 'weekly', days: ['sat', 'sun'], startTime: '09:00', durationMin: 50, from: '2026-10-03' });
   });
 
+  it('copies old moved (override) dates like cancelled ones, and describes every old exception', () => {
+    const moved = { date: '2026-12-05', kind: 'override' as const, newDate: '2026-12-06', newStartTime: '11:00', newEndTime: '13:50', newTitle: null, reason: 'Gală' };
+    const events = EVENTS.map((e) => (e.id === 'e-now' ? { ...e, exceptions: [...e.exceptions, moved] } : e));
+    const plan = planSchoolSeries({ slots: SLOTS, groups: GROUPS, sections: SECTIONS, events, season: SEASON });
+    expect(plan.create[0].write.exceptions).toContainEqual(moved);
+    expect(plan.old.map((e) => e.id)).toEqual(['e-now']);
+    const lines = describeSeries(events[3]).join('\n');
+    expect(lines).toContain('"Școala de patinaj" weekly sat,sun 10:00-12:50, 2026-10-03 -> 2027-05-30');
+    for (const x of ['2026-10-31 liber (Vacanța de toamnă)', '2026-11-14 anulat (Patinoar închis)', '2026-11-21 cancel', '2026-12-05 override moved to 2026-12-06 11:00-13:50 (Gală)']) expect(lines).toContain(x);
+  });
+
   it('lists unknown courses and unreadable slots; skips a group that already has a series; Sat + Sun without an old series', () => {
     const slots = [...SLOTS, { timeSlot: 'dimineața', courses: ['Începători'] }, { timeSlot: '12:00', courses: ['Grupa nouă'] }];
     const events = [...EVENTS.filter((e) => e.id !== 'e-now'), ev('g1', 'Primii Pași', 'scoala', rec({ startTime: '10:00', endTime: '10:50' }), { groupId: 'pp' })];
@@ -108,10 +119,15 @@ describe('step 4 school-series (W14, decided 5 to 7)', () => {
 
 describe('step 5 link-events', () => {
   it('links "Antrenament: Avansati" to Club Avansați; leaves "Titlu", test names and other types alone', () => {
-    const plan = planEventLinks(EVENTS, GROUPS);
+    const plan = planEventLinks(EVENTS, GROUPS, SECTIONS);
     expect(plan.link).toEqual([{ eventId: 'e-av', title: 'Antrenament: Avansati', groupId: 'av', groupName: 'Avansați' }]);
     expect(plan.skipped).toEqual(['Curs Grupa A']);
     expect(plan.unmatched).toEqual(['Titlu']);
+  });
+
+  it('never links a curs event to a Școala group', () => {
+    const plan = planEventLinks([ev('x', 'Curs Primii Pași', 'curs', rec({}))], GROUPS, SECTIONS);
+    expect([plan.link, plan.unmatched]).toEqual([[], ['Curs Primii Pași']]);
   });
 
   it('writes the line the group page would write (decided 1)', () => {
@@ -125,7 +141,22 @@ describe('step 6 retire-old-series', () => {
     expect(planRetire(EVENTS, SEASON)).toEqual([{
       eventId: 'e-now', title: 'Școala de patinaj', from: '2026-10-03', to: '2027-05-30',
       exceptions: [{ date: '2026-10-31', kind: 'liber', note: 'Vacanța de toamnă' }, { date: '2026-11-14', kind: 'anulat', note: 'Patinoar închis' }, { date: '2026-11-21', kind: 'cancel', note: null }],
+      recurrence: EVENTS[3].recurrence, exceptionRows: EVENTS[3].exceptions,
     }]);
+  });
+
+  it('the Istoric changes hold the full recurrence and every exception row, so the series can be rebuilt by hand', () => {
+    const [r] = planRetire(EVENTS, SEASON);
+    expect(retiredChanges(r)).toEqual({ title: 'Școala de patinaj', recurrence: EVENTS[3].recurrence, exceptions: EVENTS[3].exceptions });
+  });
+
+  it('refuses (lists every Școala group) when step 4 matched nothing; passes once each has a linked series', () => {
+    const none = planSchoolSeries({ slots: [{ timeSlot: '09:00', courses: ['Nimic'] }], groups: GROUPS, sections: SECTIONS, events: EVENTS, season: SEASON });
+    expect(none.create).toEqual([]);
+    expect(scoalaGroupsWithoutSeries(GROUPS, SECTIONS, EVENTS, SEASON).map((g) => g.id)).toEqual(['gold', 'pp', 'inc', 'is', 'ib', 'as', 'ab']);
+    const plan = planSchoolSeries({ slots: SLOTS, groups: GROUPS, sections: SECTIONS, events: EVENTS, season: SEASON });
+    const done = [...EVENTS, ...plan.create.map((c, i) => ({ id: `n${i}`, ...c.write }))];
+    expect(scoalaGroupsWithoutSeries(GROUPS, SECTIONS, done, SEASON)).toEqual([]);
   });
 });
 
@@ -143,7 +174,7 @@ describe('idempotency and the mains guard', () => {
     expect(again.create).toEqual([]);
     expect(again.skipped).toHaveLength(7);
     const linked = EVENTS.map((e) => (e.id === 'e-av' ? { ...e, groupId: 'av' } : e));
-    expect(planEventLinks(linked, GROUPS).link).toEqual([]);
+    expect(planEventLinks(linked, GROUPS, SECTIONS).link).toEqual([]);
   });
 
   it('mains: the steps write no memberships; the guard lists any athlete without exactly one current main in the season', () => {

@@ -11,7 +11,7 @@ export type SchoolSeriesInput = { slots: unknown; groups: GroupRecord[]; section
 export type PlannedSchoolSeries = { groupId: string; groupName: string; write: EventWrite; text: SeriesText };
 export type SchoolSeriesPlan = {
   create: PlannedSchoolSeries[]; unmatched: string[]; unreadSlots: string[]; skipped: string[]; days: DayKey[]; from: string; to: string;
-  exceptions: ExceptionRow[]; leftCancels: string[];
+  exceptions: ExceptionRow[]; leftCancels: string[]; old: EventRecord[];
 };
 
 const MINUTES = 50;
@@ -39,14 +39,27 @@ function windowOf(old: EventRecord[], season: SeasonRecord): { from: string; to:
   return { from: earliest > b.start ? earliest : b.start, to: b.end };
 }
 
-/** W14: the Liber and Anulat dates of the old series inside the window, the note as `reason`; `cancel` left (decided 7). */
+/** W14: the Liber, Anulat and moved (`override`) dates of the old series inside the window, copied; `cancel` left (decided 7). */
 function copiedExceptions(old: EventRecord[], from: string, to: string): { exceptions: ExceptionRow[]; leftCancels: string[] } {
   const inside = old.flatMap((e) => e.exceptions).filter((x) => x.date >= from && x.date <= to);
   const exceptions = inside
-    .filter((x) => x.kind === 'liber' || x.kind === 'anulat')
+    .filter((x) => x.kind !== 'cancel')
     .filter((x, i, all) => all.findIndex((y) => y.date === x.date) === i)
-    .map((x): ExceptionRow => ({ date: x.date, kind: x.kind, newDate: null, newStartTime: null, newEndTime: null, newTitle: null, reason: x.reason ?? x.newTitle }));
+    .map((x): ExceptionRow => (x.kind === 'override'
+      ? { ...x }
+      : { date: x.date, kind: x.kind, newDate: null, newStartTime: null, newEndTime: null, newTitle: null, reason: x.reason ?? x.newTitle }));
   return { exceptions, leftCancels: inside.filter((x) => x.kind === 'cancel').map((x) => x.date) };
+}
+
+/** One old series as dry-run lines: title, days, time, window, then every exception with its type and note. */
+export function describeSeries(e: EventRecord): string[] {
+  const r = e.recurrence;
+  const head = `"${e.title}" ${r.freq} ${r.days.join(',') || 'no days'} ${r.startTime ?? '?'}-${r.endTime ?? '?'}, ${r.seasonStart ?? '?'} -> ${r.seasonEnd ?? '?'}`;
+  const rows = e.exceptions.map((x) => {
+    const moved = x.kind === 'override' ? ` moved to ${x.newDate ?? x.date} ${x.newStartTime ?? ''}-${x.newEndTime ?? ''}` : '';
+    return `    ${x.date} ${x.kind}${moved}${x.reason ?? x.newTitle ? ` (${x.reason ?? x.newTitle})` : ''}`;
+  });
+  return [head, ...(rows.length ? rows : ['    no exceptions'])];
 }
 
 type Context = { schoolGroups: GroupRecord[]; events: EventRecord[]; season: SeasonRecord; days: DayKey[]; from: string; to: string; exceptions: ExceptionRow[] };
@@ -83,7 +96,7 @@ export function planSchoolSeries(input: SchoolSeriesInput): SchoolSeriesPlan {
   const c: Context = {
     schoolGroups: input.groups.filter((g) => schools.has(g.sectionId ?? '')), events: input.events, season: input.season, days: days.length ? days : WEEKEND, from, to, exceptions,
   };
-  const plan: SchoolSeriesPlan = { create: [], unmatched: [], unreadSlots: [], skipped: [], days: c.days, from, to, exceptions, leftCancels };
+  const plan: SchoolSeriesPlan = { create: [], unmatched: [], unreadSlots: [], skipped: [], days: c.days, from, to, exceptions, leftCancels, old };
   const planned = new Set<string>();
   for (const slot of readSlots(input.slots)) slotPlan(c, slot, plan, planned);
   return plan;
