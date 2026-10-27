@@ -2,9 +2,10 @@ import { guarded, refuse, type AdminResult } from '../admin-result';
 import { ADMIN_ERRORS } from '../athletes/errors';
 import { lockAthletesWithRegistrations } from '../athletes/locks';
 import { refreshAllMatches, safely } from '../athletes/matches';
-import type { AthleteRow, ClubStore, DuplicateRow, HistoryRow, RegistrationRow, ServiceContext } from '../athletes/store';
+import type { AthleteRow, ClubStore, HistoryRow, RegistrationRow, ServiceContext } from '../athletes/store';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import { athleteScrub, registrationScrub, scrubChanges, type BulkAnonymizeResult } from './anonymize-plan';
+import { carriedNames, nameKey } from './carried-names';
 
 /** Removes one registration's PDF folder; the files live outside the database, so this runs after the commit. */
 export type RemoveFiles = (registrationId: string) => Promise<void>;
@@ -19,22 +20,25 @@ async function scrubRows(store: ClubStore, rows: HistoryRow[]): Promise<void> {
   }
 }
 
-/** Istoric of the athlete and its registrations, plus the "Nu e același copil" lines on paired records that name the child. */
-async function scrubHistory(store: ClubStore, athlete: AthleteRow, registrations: RegistrationRow[], pairedIds: string[]): Promise<void> {
+/** A "Nu e același copil" line about this child: by the partner id it stores, or, on lines written before it did, by a name the child carried. */
+const dismissalAbout = (id: string, names: Set<string>) => (h: HistoryRow): boolean => {
+  const other = h.changes.otherAthleteId;
+  return typeof other === 'string' ? other === id : names.has(nameKey(h.changes.name));
+};
+
+/** Istoric of the athlete and its registrations, plus every "Nu e același copil" line about the child, on any record. */
+async function scrubHistory(store: ClubStore, athlete: AthleteRow, registrations: RegistrationRow[]): Promise<void> {
+  const names = await carriedNames(store, athlete, registrations);
   await scrubRows(store, await store.history(SUBJECT.athlete, athlete.id));
   for (const r of registrations) await scrubRows(store, await store.history(SUBJECT.registration, r.id));
-  for (const otherId of pairedIds) {
-    const rows = await store.history(SUBJECT.athlete, otherId);
-    await scrubRows(store, rows.filter((h) => h.action === HISTORY_ACTIONS.duplicateDismissed && h.changes.name === athlete.name));
-  }
+  const dismissals = await store.historyByAction(HISTORY_ACTIONS.duplicateDismissed);
+  await scrubRows(store, dismissals.filter(dismissalAbout(athlete.id, names)));
 }
 
 async function scrubRegistrations(store: ClubStore, registrations: RegistrationRow[]): Promise<void> {
   await store.scrubEmailJobs(registrations.map((r) => r.id));
   for (const r of registrations) await store.scrubRegistration(r.id, registrationScrub(r.confirmation));
 }
-
-const otherOf = (pair: DuplicateRow, id: string): string => (pair.firstId === id ? pair.secondId : pair.firstId);
 
 async function anonymizeInTransaction(ctx: AnonymizeContext, id: string): Promise<AdminResult<Done>> {
   await lockAthletesWithRegistrations(ctx.store, [id]);
@@ -43,7 +47,7 @@ async function anonymizeInTransaction(ctx: AnonymizeContext, id: string): Promis
   if (athlete.status === 'anonimizat') return refuse(409, ADMIN_ERRORS.stale);
   const registrations = await ctx.store.registrations({ athleteId: id });
   const pairs = (await ctx.store.duplicates()).filter((d) => d.firstId === id || d.secondId === id);
-  await scrubHistory(ctx.store, athlete, registrations, pairs.map((d) => otherOf(d, id)));
+  await scrubHistory(ctx.store, athlete, registrations);
   await scrubRegistrations(ctx.store, registrations);
   for (const d of pairs) await ctx.store.deleteDuplicate(d.id);
   if (athlete.profileId) await ctx.store.deleteProfile(athlete.profileId);

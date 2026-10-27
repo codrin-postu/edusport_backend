@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ConfirmationRecord } from '../../confirm/plan';
 import { athleteRow, fakeClubStore, registrationRow, type FakeState } from '../../athletes/__tests__/fake-store';
 import { ADMIN_ERRORS } from '../../athletes/errors';
+import { dismissDuplicate } from '../../athletes/merge';
 import { HISTORY_ACTIONS, SUBJECT } from '../../history-text';
 import { REGISTRATION_NULLED_KEYS } from '../anonymize-plan';
 import { anonymizeAthlete, anonymizeAthletes, type AnonymizeContext } from '../anonymize-service';
@@ -145,6 +146,88 @@ describe('anonymize one athlete (spec 4)', () => {
     expect((await anonymizeAthlete(ctx, 'a1')).ok).toBe(true);
     expect(fake.state.athletes.find((a) => a.id === 'a1')?.status).toBe('anonimizat');
     expect(logs.join('\n')).toContain('PDF folder of r1');
+  });
+});
+
+describe('"Nu e același copil" lines about the child, on any record (review fix 1)', () => {
+  const dismissal = (seq: number, subjectId: string, changes: Record<string, unknown>) => ({
+    seq, subjectType: SUBJECT.athlete, subjectId, action: HISTORY_ACTIONS.duplicateDismissed, changes, actor: 'ana@example.com', at: AT,
+  });
+  const ownLine = (seq: number, action: string, changes: Record<string, unknown>) => ({ seq, subjectType: SUBJECT.athlete, subjectId: 'a1', action, changes, actor: 'ana@example.com', at: AT });
+
+  function withLines(): Partial<FakeState> {
+    const base = seed();
+    return {
+      ...base,
+      duplicates: [],
+      history: [
+        ownLine(11, HISTORY_ACTIONS.updated, { fields: { name: { from: 'Ilinca Zamfiresku', to: 'Ilinca Zamfirescu' } } }),
+        ownLine(12, HISTORY_ACTIONS.merged, { name: 'Ilinca Z. Zamfirescu' }),
+        dismissal(21, 'a2', { name: 'ZAMFIRESKU Ilincă' }),
+        dismissal(22, 'a9deleted', { name: 'Ilinca Zamfirescu' }),
+        dismissal(23, 'a2', { name: 'Ilinca Z. Zamfirescu' }),
+        dismissal(24, 'a2', { name: 'Ilinca Zamfiresc' }),
+        dismissal(25, 'a2', { name: 'Ilinca Zamfirescu', otherAthleteId: 'a7' }),
+      ],
+    };
+  }
+  const changesOf = (fake: ReturnType<typeof fakeClubStore>, seq: number) => fake.state.history.find((x) => x.seq === seq)?.changes;
+
+  it('scrubs a line written before a rename and one naming a merged-in spelling', async () => {
+    const { fake, ctx } = setup(withLines());
+    await anonymizeAthlete(ctx, 'a1');
+    expect(changesOf(fake, 21)).toEqual({ name: null });
+    expect(changesOf(fake, 23)).toEqual({ name: null });
+  });
+
+  it('scrubs a line on a partner whose pair row was deleted', async () => {
+    const { fake, ctx } = setup(withLines());
+    await anonymizeAthlete(ctx, 'a1');
+    expect(changesOf(fake, 22)).toEqual({ name: null });
+  });
+
+  it('keeps a line about another child: a similar but not equal name, or a partner id that is not this child', async () => {
+    const { fake, ctx } = setup(withLines());
+    await anonymizeAthlete(ctx, 'a1');
+    expect(changesOf(fake, 24)).toEqual({ name: 'Ilinca Zamfiresc' });
+    expect(changesOf(fake, 25)).toEqual({ name: 'Ilinca Zamfirescu', otherAthleteId: 'a7' });
+  });
+
+  it('also counts names from its registrations, their confirmation records and Istoric, and the created-from-registrations line', async () => {
+    const base = seed();
+    const confirmation = { ...CONFIRMATION, fieldsBefore: { ...CONFIRMATION.fieldsBefore, name: 'Ilinca Maria Zamfirescu' } };
+    const { fake, ctx } = setup({
+      ...base,
+      duplicates: [],
+      registrations: [
+        registrationRow({ id: 'r1', childName: 'Ilinca Zamfirescu', athleteId: 'a1', confirmation }),
+        registrationRow({ id: 'r8', number: '2024-0007', childName: 'Ilinca Zamfirescu-Old' }),
+      ],
+      history: [
+        ownLine(31, HISTORY_ACTIONS.createdFromRegistrations, { registrations: [{ documentId: 'r8', season: '2024-2025', number: '2024-0007' }] }),
+        { seq: 32, subjectType: SUBJECT.registration, subjectId: 'r1', action: HISTORY_ACTIONS.updated, changes: { fields: { childName: { from: 'Ilinca Zamfirescuu', to: 'Ilinca Zamfirescu' } } }, actor: 'ana@example.com', at: AT },
+        dismissal(41, 'a2', { name: 'Ilinca Maria Zamfirescu' }),
+        dismissal(42, 'a2', { name: 'Ilinca Zamfirescu-Old' }),
+        dismissal(43, 'a2', { name: 'Ilinca Zamfirescuu' }),
+      ],
+    });
+    await anonymizeAthlete(ctx, 'a1');
+    for (const seq of [41, 42, 43]) expect(changesOf(fake, seq), String(seq)).toEqual({ name: null });
+  });
+
+  it('a new dismiss line carries the partner id and is scrubbed by it', async () => {
+    const { fake, ctx } = setup({
+      ...seed(),
+      athletes: [...(seed().athletes ?? []), athleteRow({ id: 'a3', name: 'Ilinca Pop' })],
+      duplicates: [{ id: 'd3', firstId: 'a1', secondId: 'a3', dismissed: false }],
+      history: [],
+    });
+    await dismissDuplicate(ctx, 'd3');
+    const line = fake.state.history.find((x) => x.subjectId === 'a3');
+    expect(line?.changes).toEqual({ name: 'Ilinca Zamfirescu', otherAthleteId: 'a1' });
+    if (line) line.changes.name = 'Nume fără legătură';
+    await anonymizeAthlete(ctx, 'a1');
+    expect(fake.state.history.find((x) => x.seq === line?.seq)?.changes).toEqual({ name: null, otherAthleteId: 'a1' });
   });
 });
 
