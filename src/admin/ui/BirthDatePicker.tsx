@@ -11,8 +11,6 @@ export interface BirthDatePickerProps extends FieldAria {
   /** Anchor of the year range (25 to 2 years ago). Default: today. */
   today?: Date;
   disabled?: boolean;
-  /** Optional dates (Activ din). The native input can always be emptied; kept so callers state intent. Default false. */
-  clearable?: boolean;
   className?: string;
 }
 
@@ -23,7 +21,7 @@ export interface BirthDatePickerProps extends FieldAria {
  * The range is the website's (25 to 2 years ago), widened to keep a stored
  * date outside it selectable.
  */
-export function BirthDatePicker({ value, onChange, today, disabled, clearable: _clearable, className, ...rest }: BirthDatePickerProps) {
+export function BirthDatePicker({ value, onChange, today, disabled, className, ...rest }: BirthDatePickerProps) {
   const { min, max } = birthDateRange((today ?? new Date()).getFullYear(), value);
   return (
     <DateInput

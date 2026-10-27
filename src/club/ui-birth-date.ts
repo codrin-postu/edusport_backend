@@ -29,6 +29,7 @@ export const BIRTH_YEARS_AGO = { oldest: 25, newest: 2 } as const;
 const THIRTY_DAYS = [4, 6, 9, 11];
 const isLeap = (y: number): boolean => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
 const pad2 = (n: number): string => String(n).padStart(2, '0');
+const pad4 = (n: number): string => String(n).padStart(4, '0');
 
 /** Days in a month; 31 while the month is unknown, 29 for February while the year is unknown. */
 export function daysInMonth(month: number | null, year: number | null): number {
@@ -59,7 +60,7 @@ export function partsFromDisplay(text: string | null | undefined): DateParts | n
 
 /** Parts -> "14.03.2016" (how registrations store it); null until the date is complete and real. */
 export function partsToDisplay(p: DateParts): string | null {
-  return isFullDate(p) ? `${pad2(p.day)}.${pad2(p.month)}.${p.year}` : null;
+  return isFullDate(p) ? `${pad2(p.day)}.${pad2(p.month)}.${pad4(p.year)}` : null;
 }
 
 /** "2016-03-14" -> parts; null for anything else or an impossible date. */
@@ -70,7 +71,7 @@ export function partsFromIso(iso: string | null | undefined): DateParts | null {
 
 /** Parts -> "2016-03-14" (athlete.birthDate); null until the date is complete and real. */
 export function partsToIso(p: DateParts): string | null {
-  return isFullDate(p) ? `${p.year}-${pad2(p.month)}-${pad2(p.day)}` : null;
+  return isFullDate(p) ? `${pad4(p.year)}-${pad2(p.month)}-${pad2(p.day)}` : null;
 }
 
 /** Min and max of the date input: 1 Jan, 25 years ago to 31 Dec, 2 years ago (website range), widened to include a stored date outside it. */

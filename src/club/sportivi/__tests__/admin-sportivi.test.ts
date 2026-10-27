@@ -242,7 +242,7 @@ describe('Profil public (Task 8)', () => {
   it('"Activ din" with the admin date picker, the editor never uses DateInput itself; cancel reads "Anulează" as in Date', () => {
     const field = read('sportivi/ActiveSinceField.tsx');
     expect(field).toContain("const LABEL = 'Activ din';");
-    expect(field).toContain('<BirthDatePicker value={parts} onChange={change} today={anchor()} clearable />');
+    expect(field).toContain('<BirthDatePicker value={parts} onChange={change} today={anchor()} />');
     expect(field).toContain("if (iso !== null || isEmpty(next)) onChange(iso ?? '');");
     expect(editor).toContain('activeSince: form.activeSince || null,');
     expect(editor).not.toContain('DateInput');

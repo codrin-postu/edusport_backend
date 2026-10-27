@@ -23,7 +23,7 @@ export function ActiveSinceField({ value, onChange }: { value: string; onChange:
   };
   return (
     <Field label={LABEL}>
-      <BirthDatePicker value={parts} onChange={change} today={anchor()} clearable />
+      <BirthDatePicker value={parts} onChange={change} today={anchor()} />
     </Field>
   );
 }

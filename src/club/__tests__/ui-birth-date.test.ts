@@ -65,6 +65,13 @@ describe('stored formats', () => {
     expect(partsToIso({ day: 4, month: 3, year: 2016 })).toBe('2016-03-04');
   });
 
+  it('keeps a year typed digit by digit: 4-digit padding, round trip unchanged', () => {
+    expect(partsFromIso('0002-03-14')).toEqual({ day: 14, month: 3, year: 2 });
+    expect(partsToIso({ day: 14, month: 3, year: 2 })).toBe('0002-03-14');
+    for (const iso of ['0002-03-14', '0201-03-14', '2019-03-14']) expect(partsToIso(partsFromIso(iso)!)).toBe(iso);
+    expect(partsToDisplay({ day: 14, month: 3, year: 2 })).toBe('14.03.0002');
+  });
+
   it('pins the decided error copy, same string as the website module', () => {
     expect(BIRTH_DATE_ERROR).toBe('Alegeți data nașterii.');
   });
