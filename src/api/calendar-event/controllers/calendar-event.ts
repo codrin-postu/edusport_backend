@@ -1,12 +1,20 @@
 import { factories } from '@strapi/strapi';
-import { expandOccurrences, publicEvents } from '../services/expand';
-import type { CalendarEventRow, BlackoutRow } from '../services/expand';
+import { SCHEDULE_ERRORS } from '../../../club/groups/copy';
+import { calendarRows, eventGroupName, groupNameOf, publicWindow, readRange } from '../../../club/groups/occurrences';
+import { isRecord } from '../../../club/narrow';
 import { validateRecurrence } from '../services/validate-recurrence';
 
-const DAY = 86_400_000;
+/** A group event is changed from the group page only (phase 4 spec W18): the 409 message when the event belongs to a group. */
+async function refuseGroupEvent(documentId: string): Promise<string | null> {
+  const owner = await eventGroupName(strapi, documentId);
+  return owner ? SCHEDULE_ERRORS.groupEvent(owner) : null;
+}
 
-function isYMD(s: unknown): s is string {
-  return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
+/** These routes never set or change an event's group, whatever the shape of the `group` key (F6): the 409 message when it is there. */
+async function refuseGroupKey(data: unknown): Promise<string | null> {
+  if (!isRecord(data) || !('group' in data)) return null;
+  const owner = typeof data.group === 'string' ? await groupNameOf(strapi, data.group) : null;
+  return owner ? SCHEDULE_ERRORS.groupEvent(owner) : SCHEDULE_ERRORS.groupKey;
 }
 
 export default factories.createCoreController('api::calendar-event.calendar-event', ({ strapi }) => ({
@@ -18,29 +26,9 @@ export default factories.createCoreController('api::calendar-event.calendar-even
    * public info); capped at a 92-day window.
    */
   async occurrences(ctx) {
-    const { from, to } = ctx.query as { from?: string; to?: string };
-    if (!isYMD(from) || !isYMD(to)) {
-      return ctx.badRequest('from and to must be YYYY-MM-DD');
-    }
-    if (new Date(to).getTime() - new Date(from).getTime() > 92 * DAY) {
-      return ctx.badRequest('range too large (max 92 days)');
-    }
-
-    const events = (await strapi.documents('api::calendar-event.calendar-event').findMany({
-      populate: ['recurrence', 'exceptions', 'group'],
-      limit: 500,
-    })) as unknown as CalendarEventRow[];
-
-    const blackouts = (await strapi.documents('api::calendar-blackout.calendar-blackout').findMany({
-      limit: 500,
-    })) as unknown as BlackoutRow[];
-
-    const data = expandOccurrences(publicEvents(events), blackouts, from, to);
-
-    ctx.body = {
-      data,
-      blackouts: blackouts.map((b) => ({ label: b.label, startDate: b.startDate, endDate: b.endDate })),
-    };
+    const range = readRange(ctx.query);
+    if (range.ok === false) return ctx.badRequest(range.error);
+    ctx.body = publicWindow(await calendarRows(strapi), range.value);
   },
 
   /**
@@ -63,6 +51,8 @@ export default factories.createCoreController('api::calendar-event.calendar-even
 
   async createEvent(ctx) {
     const data = (ctx.request.body as any)?.data ?? ctx.request.body;
+    const keyRefusal = await refuseGroupKey(data);
+    if (keyRefusal) return ctx.conflict(keyRefusal);
     // Validated here as well as in the model lifecycle: this is the route the
     // Program editor actually posts to, so a clear 400 gets back to the form
     // even if a future Strapi version changes how components reach lifecycles.
@@ -81,6 +71,8 @@ export default factories.createCoreController('api::calendar-event.calendar-even
   async updateEvent(ctx) {
     const { documentId } = ctx.params;
     const data = (ctx.request.body as any)?.data ?? ctx.request.body;
+    const eventRefusal = (await refuseGroupEvent(documentId)) ?? (await refuseGroupKey(data));
+    if (eventRefusal) return ctx.conflict(eventRefusal);
     if (data && 'recurrence' in data) {
       try {
         validateRecurrence(data.recurrence);
@@ -98,6 +90,8 @@ export default factories.createCoreController('api::calendar-event.calendar-even
 
   async deleteEvent(ctx) {
     const { documentId } = ctx.params;
+    const eventRefusal = await refuseGroupEvent(documentId);
+    if (eventRefusal) return ctx.conflict(eventRefusal);
     await strapi.documents('api::calendar-event.calendar-event').delete({ documentId });
     ctx.body = { data: { documentId } };
   },
