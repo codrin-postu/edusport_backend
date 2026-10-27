@@ -44,7 +44,6 @@ export const SPORTIVI_CSS = `
 .ui-root .spv-value .spv-missing{display:inline;margin:0 6px 0 0}
 .ui-root .spv-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 24px}
 .ui-root .spv-form .spv-wide{grid-column:1/-1}
-.ui-root .spv-since .ui-bdate{grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:6px}
 .ui-root .spv-actions{display:flex;justify-content:flex-end;gap:8px}
 .ui-root .spv-line{margin:0;color:var(--theme-text)}
 .ui-root .spv-h{margin:0;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--theme-text-secondary)}

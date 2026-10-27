@@ -182,7 +182,7 @@ function BirthDemo() {
         <Field label="Data nașterii">
           <BirthDatePicker value={date} onChange={setDate} />
         </Field>
-        <Field label="Data nașterii (an în afara listei)">
+        <Field label="Data nașterii (în afara intervalului)">
           <BirthDatePicker value={old} onChange={setOld} />
         </Field>
       </FieldRow>

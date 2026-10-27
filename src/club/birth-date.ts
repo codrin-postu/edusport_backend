@@ -50,7 +50,7 @@ export function parseBirthDate(raw: unknown): DateParts | null {
   return null;
 }
 
-/** What the zi / lună / an picker sends (admin edits): ZZ.LL.AAAA only. */
+/** What the admin date picker sends (admin edits): ZZ.LL.AAAA only. */
 export function readPickedDate(raw: unknown): DateParts | null {
   const m = typeof raw === 'string' ? /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(raw.trim()) : null;
   if (!m) return null;

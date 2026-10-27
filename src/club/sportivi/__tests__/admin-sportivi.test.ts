@@ -239,7 +239,7 @@ describe('Profil public (Task 8)', () => {
     }
   });
 
-  it('"Activ din" with the zi / lună / an selects, never the native date input; cancel reads "Anulează" as in Date', () => {
+  it('"Activ din" with the admin date picker, the editor never uses DateInput itself; cancel reads "Anulează" as in Date', () => {
     const field = read('sportivi/ActiveSinceField.tsx');
     expect(field).toContain("const LABEL = 'Activ din';");
     expect(field).toContain('<BirthDatePicker value={parts} onChange={change} today={anchor()} clearable />');
