@@ -85,4 +85,4 @@ Per-task review only for high-risk tasks (data loss, locks, undo, security, migr
 
 ## Models (user, 2026-10-27)
 
-Implementers: Sonnet for every task. Opus only for specs and plans, reviews of high-risk tasks (data loss, privacy, security, locking), the final whole-branch review, and a task still failing after two Sonnet fix rounds. Routine reviews, re-reviews, renders and research: Sonnet. Pass the model explicitly on every dispatch.
+Implementers: Haiku where the plan carries the code or the work is mechanical (renders, docs, single-file fixes); Sonnet for tasks needing judgment; Opus only for specs, plans, high-risk and final reviews. Save tokens: short prompts, batched agents.
