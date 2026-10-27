@@ -1,7 +1,9 @@
 import { adminActor } from '../../../club/admin-actor';
+import { metaOf } from '../../../club/admin-result';
 import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
 import { readSeasonInput } from '../../../club/season-admin';
 import { createSeason, listAdminSeasons, updateSeason } from '../../../club/season-admin-service';
+import { pingRevalidate } from '../../../utils/revalidate';
 import { strapiSeasonStore } from '../../../club/season-admin-store';
 
 /** Admin API of the Sezoane page (routes/03-admin-prices-seasons.ts, all `global::is-admin`). */
@@ -22,6 +24,8 @@ export default {
   async update(ctx: AdminCtx) {
     const input = readSeasonInput(ctx.request.body);
     if (input.ok === false) return refuseWith(ctx, 400, input.error);
-    respond(ctx, await updateSeason(store(), ctx.params.documentId ?? '', input.season, await actor(ctx)));
+    const result = await updateSeason(store(), ctx.params.documentId ?? '', input.season, await actor(ctx));
+    if (metaOf(result)?.moved) void pingRevalidate();
+    respond(ctx, result);
   },
 };

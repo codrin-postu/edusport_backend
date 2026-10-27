@@ -1,4 +1,4 @@
-import type { AdminResult } from './admin-result';
+import { metaOf, type AdminResultWithMeta } from './admin-result';
 
 /** The part of Strapi's Koa context the club admin controllers use. */
 export type AdminCtx = {
@@ -10,9 +10,9 @@ export type AdminCtx = {
 };
 
 /** 200 `{ data }`, or the refusal in Strapi's error shape, which the admin fetch client turns into the message. */
-export function respond<T>(ctx: AdminCtx, result: AdminResult<T>): void {
+export function respond<T>(ctx: AdminCtx, result: AdminResultWithMeta<T>): void {
   if (result.ok === true) {
-    ctx.body = { data: result.data };
+    ctx.body = metaOf(result) ? { data: result.data, meta: metaOf(result) } : { data: result.data };
     return;
   }
   refuseWith(ctx, result.status, result.error);

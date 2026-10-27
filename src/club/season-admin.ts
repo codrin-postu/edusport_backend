@@ -3,8 +3,8 @@ import { normalizeSeasonLabel } from './season';
 
 /** A season as the Sezoane drawer edits it. Months are 'YYYY-MM'. */
 export type SeasonFields = { label: string; startMonth: string; endMonth: string; membershipFee: number | null };
-/** A row of the Sezoane table. `registrations` > 0 locks the label. */
-export type AdminSeason = SeasonFields & { documentId: string; isCurrent: boolean; registrations: number };
+/** A row of the Sezoane table. `registrations` > 0 or `inUse` (a group membership or a group class) locks the label. */
+export type AdminSeason = SeasonFields & { documentId: string; isCurrent: boolean; registrations: number; inUse: boolean };
 export type RawAdminSeason = { documentId?: unknown; label?: unknown; startMonth?: unknown; endMonth?: unknown; membershipFee?: unknown; isCurrent?: unknown };
 /** What is written to `api::season.season`: dates, never months. */
 export type SeasonWriteData = { label: string; startMonth: string; endMonth: string; membershipFee: number | null };
@@ -74,9 +74,9 @@ export function toSeasonFields(raw: RawAdminSeason): SeasonFields {
   return { label: text(raw.label), startMonth: monthOf(raw.startMonth), endMonth: monthOf(raw.endMonth), membershipFee };
 }
 
-export function toAdminSeason(raw: RawAdminSeason, registrations: number): AdminSeason | null {
+export function toAdminSeason(raw: RawAdminSeason, registrations: number, inUse = false): AdminSeason | null {
   if (typeof raw.documentId !== 'string' || !text(raw.label)) return null;
-  return { ...toSeasonFields(raw), documentId: raw.documentId, isCurrent: raw.isCurrent === true, registrations };
+  return { ...toSeasonFields(raw), documentId: raw.documentId, isCurrent: raw.isCurrent === true, registrations, inUse };
 }
 
 /** Newest season first. */

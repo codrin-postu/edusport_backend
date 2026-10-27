@@ -76,7 +76,7 @@ describe('seasonChanges and toAdminSeason', () => {
 
   it('builds a table row from a stored season', () => {
     const raw = { documentId: 'd1', label: '2026-2027', startMonth: '2026-10-01', endMonth: '2027-05-31', membershipFee: 270, isCurrent: true };
-    expect(toAdminSeason(raw, 12)).toEqual({ ...fields, documentId: 'd1', isCurrent: true, registrations: 12 });
+    expect(toAdminSeason(raw, 12)).toEqual({ ...fields, documentId: 'd1', isCurrent: true, registrations: 12, inUse: false });
     expect(toAdminSeason({ label: 'x' }, 0)).toBeNull();
   });
 });
