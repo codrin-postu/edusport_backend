@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Loading, Notice } from '../../ui';
+import { EmptyState, Loading, Notice } from '../../ui';
 import type { HistoryLine } from '../../../club/athletes/api-types';
-import { GROUP_ERRORS } from '../../../club/groups/copy';
+import { GROUP_ERRORS, GRUPE_COPY } from '../../../club/groups/copy';
 import { historyWhen } from '../../../club/sportivi/record-view';
 import type { GrupeApi } from './api';
 import { useGrupeRefresh } from './undo';
@@ -17,6 +17,7 @@ export function GroupHistoryTab({ api, documentId }: { api: GrupeApi; documentId
   useGrupeRefresh(load);
   if (failed) return <div className="ui-body"><Notice tone="danger">{GROUP_ERRORS.loadFailed}</Notice></div>;
   if (!lines) return <Loading />;
+  if (lines.length === 0) return <EmptyState>{GRUPE_COPY.emptyHistory}</EmptyState>;
   return (
     <div className="ui-body">
       <ol className="spv-hist">

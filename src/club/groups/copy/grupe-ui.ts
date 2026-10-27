@@ -99,6 +99,7 @@ export const GRUPE_COPY = {
   movedFrom: (what: string) => `Mutată de la ${what}`,
   openGroup: 'Deschide grupa',
   nothingThisMonth: 'Nimic programat în această lună.',
+  emptyHistory: 'Niciun rând în istoric.',
 } as const;
 
 export const FREQ_LABELS = { weekly: 'Săptămânal', biweekly: 'La 2 săptămâni', monthly: 'Lunar' } as const;
