@@ -118,7 +118,7 @@ const SetariSitePage: React.FC = () => {
               value={contact}
               onFieldChange={(key, v) => form.set('contact', { ...contact, [key]: v })}
               fields={[
-                { key: 'phone', label: 'Număr telefon', hint: 'Cu sau fără spații - link-ul tel: se generează automat', placeholder: 'ex: 0723 623 712' },
+                { key: 'phone', label: 'Număr telefon', hint: 'Cu sau fără spații, link-ul tel: se generează automat', placeholder: 'ex: 0723 623 712' },
                 { key: 'email', label: 'Adresă email', type: 'text', placeholder: 'ex: scoala.de.patinaj@gmail.com' },
                 { key: 'facebookUrl1', label: 'Facebook', placeholder: 'ex: https://facebook.com/edusport', span: 2 },
                 { key: 'instagramUrl', label: 'Instagram', placeholder: 'ex: https://instagram.com/edusport', span: 2 },

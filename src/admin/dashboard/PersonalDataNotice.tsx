@@ -46,5 +46,9 @@ export function PersonalDataNotice() {
       {superAdmin && <Button size="sm" variant="ghost" loading={busy} onClick={() => void hide()}>{PERSONAL_DATA_COPY.noticeHide}</Button>}
     </>
   );
-  return <Notice tone="info" action={actions}>{PERSONAL_DATA_COPY.notice(summary.count, summary.retentionYears)}</Notice>;
+  return (
+    <Notice tone="info" action={actions} className="ui-notice--stack-phone">
+      {PERSONAL_DATA_COPY.notice(summary.count, summary.retentionYears)}
+    </Notice>
+  );
 }
