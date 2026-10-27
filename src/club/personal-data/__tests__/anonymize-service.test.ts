@@ -47,6 +47,9 @@ function seed(): Partial<FakeState> {
   };
 }
 
+const pathError = (code: string) =>
+  Object.assign(new Error(`${code}: permission denied, unlink '/srv/private/registrations/r1/Ilinca_Zamfirescu_Acord_2026-2027.pdf'`), { code });
+
 function setup(state: Partial<FakeState> = seed()) {
   const fake = fakeClubStore(state);
   const removed: string[] = [];
@@ -140,12 +143,14 @@ describe('anonymize one athlete (spec 4)', () => {
     expect(logs.join('\n')).toContain('[personal-data] anonymizing a1 failed');
   });
 
-  it('a folder that cannot be deleted is logged; the anonymization stands', async () => {
+  it('a folder that cannot be deleted is logged by its error code only; the anonymization stands', async () => {
     const { fake, ctx, logs } = setup();
-    ctx.removeFiles = async () => { throw new Error('EACCES'); };
+    ctx.removeFiles = async () => { throw pathError('EACCES'); };
     expect((await anonymizeAthlete(ctx, 'a1')).ok).toBe(true);
     expect(fake.state.athletes.find((a) => a.id === 'a1')?.status).toBe('anonimizat');
-    expect(logs.join('\n')).toContain('PDF folder of r1');
+    const line = logs.find((l) => l.includes('PDF folder of r1'));
+    expect(line).toBe('[personal-data] PDF folder of r1 (the startup sweep retries) failed: EACCES');
+    expect(logs.join('\n')).not.toMatch(/Ilinca|Zamfirescu|\/srv\/|\.pdf/);
   });
 });
 
@@ -314,11 +319,11 @@ describe('startup sweep (spec 4)', () => {
     const removed: string[] = [];
     const logs: string[] = [];
     const remove = async (id: string) => {
-      if (id === 'r1') throw new Error('EBUSY');
+      if (id === 'r1') throw pathError('EBUSY');
       removed.push(id);
     };
     expect(await sweepAnonymizedFolders(fake.store, remove, (m) => logs.push(m))).toBe(2);
     expect(removed).toEqual(['r2']);
-    expect(logs.join('\n')).toContain('r1');
+    expect(logs).toEqual(['[personal-data] sweeping the PDF folder of r1 failed: EBUSY']);
   });
 });
