@@ -3,7 +3,7 @@ import { athleteListPage, readListQuery } from '../../athletes/list';
 import type { SeasonRow, ServiceContext } from '../../athletes/store';
 import { ADMIN_ERRORS } from '../../athletes/errors';
 import { SEASONS, athleteRow, fakeClubStore } from '../../athletes/__tests__/fake-store';
-import { hideInactiveReview, inactiveSummary } from '../review';
+import { hideInactiveReview, inactiveSummary, readInactiveSummary } from '../review';
 
 const OLD_SEASONS: SeasonRow[] = [
   { id: 's21', label: '2021-2022', startMonth: '2021-10-01', endMonth: '2022-05-31', isCurrent: false },
@@ -68,6 +68,27 @@ describe('yearly review (spec 5)', () => {
     const fake = setup(null, OLD_SEASONS.map((s) => ({ ...s, isCurrent: false })));
     const ctx: ServiceContext = { store: fake.store, actor: 'super@example.com', today: TODAY, log: () => undefined };
     expect(await hideInactiveReview(ctx, NOW)).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+  });
+
+  it('the route read answers { data } like before', async () => {
+    expect(await readInactiveSummary(setup().store, () => undefined, NOW)).toEqual({ ok: true, data: { retentionYears: 5, count: 2, seasonLabel: '2026-2027', shown: true } });
+  });
+
+  it('a failure in either answers the shared copy, logged once each', async () => {
+    const logs: string[] = [];
+    const log = (message: string) => logs.push(message);
+    const read = setup();
+    read.failOn('seasons');
+    expect(await readInactiveSummary(read.store, log, NOW)).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
+    const hide = setup();
+    hide.failOn('seasons');
+    const ctx: ServiceContext = { store: hide.store, actor: 'super@example.com', today: TODAY, log };
+    expect(await hideInactiveReview(ctx, NOW)).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
+    expect(hide.state.settings).toBeNull();
+    expect(logs).toEqual([
+      '[personal-data] reading the yearly review failed: fake failure in seasons',
+      '[personal-data] hiding the yearly review failed: fake failure in seasons',
+    ]);
   });
 });
 

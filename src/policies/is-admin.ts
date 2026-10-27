@@ -1,26 +1,20 @@
+import type { Core } from '@strapi/strapi';
+import { requireAdminUser } from '../club/admin-auth';
+
+type PolicyContext = { request?: { header?: { authorization?: string } } };
+
 /**
  * Global policy `global::is-admin`.
  *
- * Allows a request only when it carries a valid **admin** JWT (the token the
- * CMS admin panel stores after login and that `useFetchClient` attaches as a
- * Bearer header). Used to protect custom content-api routes that must be usable
- * from the admin UI but never from the public API, without granting
- * content-manager RBAC on a hidden collection.
- *
- * Strapi v5 admin access tokens are signed with `admin.auth.secret` and carry a
- * `userId` claim (not `id`).
+ * Allows a request only when it carries a valid admin ACCESS token of an active admin session whose admin exists and
+ * is active, checked the way Strapi's own admin auth strategy does (`sessionManager('admin').validateAccessToken`,
+ * `isSessionActive`, then `admin::user` with `isActive === true`). That is the Bearer token the CMS admin panel's
+ * `useFetchClient` attaches. Anything else throws Strapi's UnauthorizedError (401), so the admin client refreshes and
+ * retries once.
+ * Protects custom content-api routes that must be usable from the admin UI but never from the public API, without
+ * granting content-manager RBAC on a hidden collection.
  */
-export default async (policyContext: any, _config: any, { strapi }: { strapi: any }) => {
-  const authHeader = policyContext.request?.header?.authorization as string | undefined;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return false;
-  const token = authHeader.slice(7);
-  try {
-    const jwt = require('jsonwebtoken');
-    const secret = strapi.config.get('admin.auth.secret');
-    if (!secret) return false;
-    const payload = jwt.verify(token, secret) as any;
-    return Boolean(payload && (payload.userId ?? payload.id ?? payload.sub));
-  } catch {
-    return false;
-  }
+export default async (policyContext: PolicyContext, _config: unknown, { strapi }: { strapi: Core.Strapi }): Promise<boolean> => {
+  await requireAdminUser(policyContext.request?.header?.authorization, strapi);
+  return true;
 };
