@@ -47,4 +47,20 @@ describe('step 12 on the store: guard and re-run', () => {
     const plan = await planStatusStep(fakeClubStore(data).store);
     expect(plan?.pendingSigur).toEqual(['r2']);
   });
+
+  it('never plans a change for an anonymized athlete, old or current activity, and stays empty on a second apply', async () => {
+    const data = seed();
+    data.athletes.push(
+      athleteRow({ id: 'anon-old', name: 'Veche Anonimizata', status: 'anonimizat', updatedAt: '2020-01-01T10:00:00.000Z' }),
+      athleteRow({ id: 'anon-current', name: 'Curenta Anonimizata', status: 'anonimizat' }),
+    );
+    data.registrations.push(registrationRow({ id: 'r3', childName: 'Curenta Anonimizata', athleteId: 'anon-current' }));
+    const { store, state } = fakeClubStore(data);
+    const first = await runStep(store);
+    expect(first.changes.some((c) => c.id === 'anon-old' || c.id === 'anon-current')).toBe(false);
+    expect(state.athletes.find((a) => a.id === 'anon-old')?.status).toBe('anonimizat');
+    expect(state.athletes.find((a) => a.id === 'anon-current')?.status).toBe('anonimizat');
+    const second = await runStep(store);
+    expect(second.changes).toEqual([]);
+  });
 });

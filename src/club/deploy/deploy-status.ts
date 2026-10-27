@@ -4,7 +4,7 @@ import type { StoredMatchLevel } from '../matching';
 /**
  * Deploy step 12 (spec 1.5, gaps #18, P9): "Activ" if a current-season registration, not "Respins", is linked to
  * the athlete or matched "Sigur" to it, or its public page is on; every other athlete "Inactiv". Rows already right
- * are left out.
+ * are left out. An "anonimizat" athlete is never planned: its status is final (3C).
  */
 export type StatusAthlete = { id: string; status: AthleteStatus; profileId: string | null };
 export type CurrentRegistration = { status: string; athleteId: string | null; matchAthleteId: string | null; matchLevel: StoredMatchLevel | null };
@@ -27,6 +27,7 @@ export function planDeployStatus(
 ): StatusChange[] {
   const registered = registeredThisSeason(currentRegistrations);
   return athletes.flatMap((a) => {
+    if (a.status === 'anonimizat') return [];
     const active = registered.has(a.id) || (a.profileId !== null && publicProfileIds.has(a.profileId));
     const to: AthleteStatus = active ? 'activ' : 'inactiv';
     return a.status === to ? [] : [{ id: a.id, from: a.status, to }];
