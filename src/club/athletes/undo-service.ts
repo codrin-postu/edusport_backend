@@ -23,6 +23,7 @@ async function loadFacts(store: ClubStore, reg: RegistrationRow, record: Confirm
   return {
     record, linkedAthleteId: reg.athleteId, athlete,
     membershipIds: memberships.map((m) => m.id),
+    currentMembershipIds: memberships.filter(isCurrentMembership).map((m) => m.id),
     mainMembershipId: memberships.find((m) => m.isMain && m.seasonId === seasonId && isCurrentMembership(m))?.id ?? null,
     acsRows: acs.map(({ id, state }) => ({ id, state })),
     otherRegistrations: linked.filter((r) => r.id !== reg.id).length,

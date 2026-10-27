@@ -8,7 +8,10 @@ export type UndoFacts = {
   record: ConfirmationRecord;
   linkedAthleteId: string | null;
   athlete: AthleteValues & { id: string; status: AthleteStatus; profileId: string | null };
+  /** Every row of the athlete, ended ones included: they count as use and the confirmation's own row is deleted among them. */
   membershipIds: string[];
+  /** Rows that have not ended: only these can be demoted or given the main flag back. */
+  currentMembershipIds: string[];
   mainMembershipId: string | null;
   acsRows: { id: string; state: AcsState }[];
   otherRegistrations: number;
@@ -72,7 +75,7 @@ function planAthleteRevert(f: UndoFacts): AthleteRevert {
 /** fix/p3-2-g3: an existing membership the confirmation promoted to main, demoted on undo (never deleted). */
 function planDemote(f: UndoFacts): string | null {
   const promoted = f.record.promotedMainId;
-  return promoted && f.membershipIds.includes(promoted) && f.mainMembershipId === promoted ? promoted : null;
+  return promoted && f.currentMembershipIds.includes(promoted) && f.mainMembershipId === promoted ? promoted : null;
 }
 
 /** Whether, once `deleteMembershipId` and `demoteMembershipId` are applied, the season keeps no main at all
@@ -87,7 +90,7 @@ export function planUndo(f: UndoFacts): UndoPlan {
   const deleteMembershipId = own && f.membershipIds.includes(own) ? own : null;
   const demoteMembershipId = planDemote(f);
   const demoted = f.record.demotedMainId;
-  const canRestore = demoted && f.membershipIds.includes(demoted) && seasonMainGone(f, deleteMembershipId, demoteMembershipId);
+  const canRestore = demoted && f.currentMembershipIds.includes(demoted) && seasonMainGone(f, deleteMembershipId, demoteMembershipId);
   const deleteAthlete = f.record.createdAthlete && isUnused(f, deleteMembershipId, acs?.op === 'delete' ? acs.id : null);
   const athlete = deleteAthlete ? { athleteUpdate: null, revertedFields: {}, renameProfile: null } : planAthleteRevert(f);
   return {

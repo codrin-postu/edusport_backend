@@ -155,6 +155,7 @@ describe('fix round 1: review findings', () => {
       linkedAthleteId: 'a1',
       athlete: { id: 'a1', status: 'activ', profileId: null, ...fake.state.athletes[0] },
       membershipIds: fake.state.memberships.map((m) => m.id),
+      currentMembershipIds: fake.state.memberships.map((m) => m.id),
       mainMembershipId: fake.state.memberships.find((m) => m.isMain)?.id ?? null,
       acsRows: fake.state.acs.map(({ id, state }) => ({ id, state })),
       otherRegistrations: 0,

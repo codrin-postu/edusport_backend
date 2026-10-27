@@ -47,6 +47,17 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     expect(fake.state.memberships.filter((m) => m.isMain && !m.to).map((m) => m.id)).toEqual(['m0']);
   });
 
+  it('a demoted main row that ended since is not given the main flag back, and no Istoric line names it', async () => {
+    const fake = fakeClubStore(seed());
+    await confirmed(fake);
+    const m0 = fake.state.memberships.find((m) => m.id === 'm0')!;
+    m0.to = '2026-11-19';
+    const before = fake.state.history.length;
+    await undoConfirmation(ctx(fake), 'r1');
+    expect(fake.state.memberships.map((m) => [m.id, m.isMain])).toEqual([['m0', false]]);
+    expect(fake.state.history.slice(before).map((h) => h.action)).not.toContain('main-group-changed');
+  });
+
   it('no reverse line when the undo gives no main group back', async () => {
     const fake = fakeClubStore({ ...seed(), memberships: [] });
     await confirmed(fake);

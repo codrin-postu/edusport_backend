@@ -17,6 +17,7 @@ const record = (over: Partial<ConfirmationRecord> = {}): ConfirmationRecord => (
   ...over,
 });
 const facts = (over: Partial<UndoFacts> = {}): UndoFacts => ({
+  currentMembershipIds: over.membershipIds ?? ['m0', 'm9'],
   record: record(),
   linkedAthleteId: 'a1',
   athlete: { id: 'a1', status: 'activ', profileId: null, name: 'Maria Pop', birthDate: '2016-03-14', contactName: 'Ana Pop', phone: '0722111222', email: null },
