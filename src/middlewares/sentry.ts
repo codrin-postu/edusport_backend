@@ -14,9 +14,14 @@
  * bound. Rate limits and validation failures are the same shape: expected
  * outcomes of a bad request, already visible in the access log.
  *
- * Anything without a status, and anything 5xx, is still reported: that is the
+ * The admin policies' answers are the same kind: Strapi's UnauthorizedError (401: no valid admin session, the admin
+ * client refreshes and retries) and ForbiddenError / PolicyError (403: not allowed) carry no `status`, so they are
+ * matched by class.
+ *
+ * Anything else without a status, and anything 5xx, is still reported: that is the
  * server failing, which is what this exists to catch.
  */
+import { errors } from '@strapi/utils';
 import { captureException, sentryEnabled } from '../sentry';
 
 /** True for an error the client caused, which we answer but do not report. */
@@ -26,11 +31,14 @@ function isClientError(err: unknown): boolean {
   return typeof status === 'number' && status >= 400 && status < 500;
 }
 
+/** 401 and 403 from Strapi's error classes: expected outcomes of an admin policy, not faults. */
+const isAuthOutcome = (err: unknown): boolean => err instanceof errors.UnauthorizedError || err instanceof errors.ForbiddenError;
+
 export default () => async (ctx: any, next: () => Promise<void>) => {
   try {
     await next();
   } catch (err) {
-    if (sentryEnabled() && !isClientError(err)) captureException(err);
+    if (sentryEnabled() && !isClientError(err) && !isAuthOutcome(err)) captureException(err);
     throw err;
   }
 };

@@ -1,29 +1,45 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { Core } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
 import jwt from 'jsonwebtoken';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { adminSessions, routeAnswer } from '../../club/__tests__/admin-sessions';
-import { verifiedAdminId, type TokenStrapi } from '../../club/admin-actor';
+import { verifiedAdminId, warnIfNoAdminSessions, type AdminUserStrapi } from '../../club/admin-auth';
 import isAdmin from '../is-admin';
 
 const SECRET = 'test-secret';
-const config = { get: (key: string) => (key === 'admin.auth.secret' ? SECRET : undefined) };
+const USERS: Record<number, unknown> = {
+  7: { id: 7, isActive: true, roles: [] },
+  8: { id: 8, isActive: true, roles: [] },
+  9: { id: 9, isActive: true, roles: [] },
+  10: { id: 10, isActive: false, roles: [] },
+  12: { id: 12, roles: [] },
+};
 const sessions = adminSessions(SECRET);
-const strapi: TokenStrapi = { config, sessionManager: sessions.sessionManager };
+const findOne = vi.fn(async (args: { where: { id: unknown } }) => USERS[Number(args.where.id)] ?? null);
+const strapi: AdminUserStrapi = { sessionManager: sessions.sessionManager, db: { query: () => ({ findOne }) } };
 const statusOf = async (authorization: string | undefined) => (await routeAnswer(isAdmin, authorization, strapi)).status;
-const UNAUTHORIZED = { data: null, error: { status: 401, name: 'UnauthorizedError', message: 'Missing or invalid credentials' } };
+const UNAUTHORIZED = { data: null, error: { status: 401, name: 'UnauthorizedError', message: 'Missing or invalid credentials', details: {} } };
 
-describe('global::is-admin: an access token of an active admin session, as Strapi checks it', () => {
-  it('accepts a valid access token and reads the admin id as a number', async () => {
+describe('global::is-admin: as Strapi admin auth, an access token of an active session of an active admin', () => {
+  it('accepts an active admin with a valid access token, reading the admin once', async () => {
     const { access } = await sessions.login(7);
+    findOne.mockClear();
     expect(await statusOf(access)).toBe(200);
+    expect(findOne).toHaveBeenCalledTimes(1);
+    expect(findOne).toHaveBeenCalledWith({ where: { id: 7 }, populate: ['roles'] });
     expect(await isAdmin({ request: { header: { authorization: access } } }, {}, { strapi: strapi as unknown as Core.Strapi })).toBe(true);
-    expect(await verifiedAdminId(access, strapi)).toBe(7);
+  });
+
+  it('answers 401 for a deactivated, not-marked-active or unknown admin with a valid session', async () => {
+    expect(await statusOf((await sessions.login(10)).access)).toBe(401);
+    expect(await statusOf((await sessions.login(12)).access)).toBe(401);
+    expect(await statusOf((await sessions.login(11)).access)).toBe(401);
   });
 
   it("answers 401 in Strapi's error shape, so the admin client refreshes the token and retries", async () => {
-    const answer = await routeAnswer(isAdmin, undefined, strapi);
-    expect(answer).toEqual({ status: 401, body: { ...UNAUTHORIZED, error: { ...UNAUTHORIZED.error, details: {} } } });
+    expect(await routeAnswer(isAdmin, undefined, strapi)).toEqual({ status: 401, body: UNAUTHORIZED });
     const call = isAdmin({ request: { header: {} } }, {}, { strapi: strapi as unknown as Core.Strapi });
     await expect(call).rejects.toBeInstanceOf(errors.UnauthorizedError);
   });
@@ -52,16 +68,28 @@ describe('global::is-admin: an access token of an active admin session, as Strap
   });
 });
 
-describe('verifiedAdminId without a session manager (fallback)', () => {
-  const bare: TokenStrapi = { config };
-  const bearer = (payload: object, options: jwt.SignOptions = {}) => `Bearer ${jwt.sign(payload, SECRET, options)}`;
+describe('without a session manager every token is refused', () => {
+  it('a valid access token of a live session gives no admin and 401', async () => {
+    const { access } = await sessions.login(7);
+    const bare: AdminUserStrapi = { db: strapi.db };
+    expect(await verifiedAdminId(access, bare)).toBeNull();
+    expect(await routeAnswer(isAdmin, access, bare)).toEqual({ status: 401, body: UNAUTHORIZED });
+  });
 
-  it('accepts only an HS256 access token with a scalar userId', async () => {
-    expect(await verifiedAdminId(bearer({ userId: '3', sessionId: 's', type: 'access' }), bare)).toBe(3);
-    expect(await verifiedAdminId(bearer({ userId: '3', sessionId: 's', type: 'refresh' }), bare)).toBeNull();
-    expect(await verifiedAdminId(bearer({ userId: '3' }), bare)).toBeNull();
-    expect(await verifiedAdminId(bearer({ id: 3, type: 'access' }), bare)).toBeNull();
-    expect(await verifiedAdminId(bearer({ userId: { $ne: null }, type: 'access' }), bare)).toBeNull();
-    expect(await verifiedAdminId(bearer({ userId: '3', type: 'access' }, { algorithm: 'HS512' }), bare)).toBeNull();
+  it('startup logs it once when the session manager is missing or its getter throws, never when present', () => {
+    const error = vi.fn();
+    const present = { log: { error }, sessionManager: sessions.sessionManager };
+    warnIfNoAdminSessions(present);
+    expect(error).not.toHaveBeenCalled();
+    warnIfNoAdminSessions({ log: { error } });
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(error.mock.calls[0][0]).toContain('no admin session manager');
+    const throwing = { log: { error }, get sessionManager(): never { throw new Error('no such service'); } };
+    warnIfNoAdminSessions(throwing);
+    expect(error).toHaveBeenCalledTimes(2);
+  });
+
+  it('bootstrap runs the startup check', () => {
+    expect(readFileSync(join(__dirname, '..', '..', 'index.ts'), 'utf8')).toMatch(/^\s+warnIfNoAdminSessions\(strapi\);$/m);
   });
 });

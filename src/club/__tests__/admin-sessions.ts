@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import type { TokenStrapi } from '../admin-actor';
+import type { TokenStrapi } from '../admin-auth';
 
 /** Strapi 5.52.1's real admin session manager (not exported by @strapi/core), over an in-memory `admin::session` table. */
 type Row = Record<string, unknown>;

@@ -21,7 +21,6 @@ const USERS: Record<number, unknown> = {
 const sessions = adminSessions(SECRET);
 const asked: unknown[] = [];
 const strapi: RoleStrapi = {
-  config: { get: (key: string) => (key === 'admin.auth.secret' ? SECRET : undefined) },
   sessionManager: sessions.sessionManager,
   db: { query: () => ({ findOne: async (args) => { asked.push(args); return USERS[Number(args.where.id)] ?? null; } }) },
 };
@@ -33,9 +32,9 @@ describe('global::is-super-admin (3C spec 6)', () => {
     expect(asked.at(-1)).toEqual({ where: { id: 1 }, populate: ['roles'] });
   });
 
-  it('refuses (403) a normal admin and an unknown admin with a valid session', async () => {
+  it('refuses (403) a normal admin and a blocked Super Admin', async () => {
     expect(await isSuperAdminRequest(await accessOf(2), strapi)).toBe(false);
-    expect(await isSuperAdminRequest(await accessOf(9), strapi)).toBe(false);
+    expect(await isSuperAdminRequest(await accessOf(4), strapi)).toBe(false);
   });
 
   it('a wrong signature or no token is unauthenticated (401), not forbidden', async () => {
@@ -45,10 +44,10 @@ describe('global::is-super-admin (3C spec 6)', () => {
     await expect(isSuperAdminRequest(undefined, strapi)).rejects.toBeInstanceOf(errors.UnauthorizedError);
   });
 
-  it('refuses a Super Admin who is inactive, blocked or not marked active', async () => {
-    expect(await isSuperAdminRequest(await accessOf(3), strapi)).toBe(false);
-    expect(await isSuperAdminRequest(await accessOf(4), strapi)).toBe(false);
-    expect(await isSuperAdminRequest(await accessOf(5), strapi)).toBe(false);
+  it('an unknown admin, or a Super Admin inactive or not marked active, is 401 as in Strapi', async () => {
+    await expect(isSuperAdminRequest(await accessOf(9), strapi)).rejects.toBeInstanceOf(errors.UnauthorizedError);
+    await expect(isSuperAdminRequest(await accessOf(3), strapi)).rejects.toBeInstanceOf(errors.UnauthorizedError);
+    await expect(isSuperAdminRequest(await accessOf(5), strapi)).rejects.toBeInstanceOf(errors.UnauthorizedError);
   });
 
   it("a Super Admin's refresh token or the access token of an ended session is 401", async () => {
@@ -68,6 +67,8 @@ describe('global::is-super-admin (3C spec 6)', () => {
     const statusOf = async (authorization?: string) => (await routeAnswer(policy, authorization, strapi)).status;
     expect(await statusOf(await accessOf(1))).toBe(200);
     expect(await statusOf(await accessOf(2))).toBe(403);
+    expect(await statusOf(await accessOf(4))).toBe(403);
+    expect(await statusOf(await accessOf(3))).toBe(401);
     expect(await statusOf()).toBe(401);
     const core = strapi as unknown as Core.Strapi;
     expect(await policy({ request: { header: { authorization: await accessOf(1) } } }, {}, { strapi: core })).toBe(true);
