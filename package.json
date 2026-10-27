@@ -39,6 +39,7 @@
     "@strapi/plugin-cloud": "5.52.1",
     "@strapi/plugin-users-permissions": "5.52.1",
     "@strapi/strapi": "5.52.1",
+    "fflate": "^0.8.3",
     "fs-extra": "^10.0.0",
     "googleapis": "^144.0.0",
     "mime-types": "^2.1.27",
