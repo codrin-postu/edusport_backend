@@ -216,7 +216,7 @@ export function fakeGroupStore(seed: Partial<FakeGroupState> = {}): FakeGroup {
         depth -= 1;
       }
     },
-    lockSeason: lock('season'), lockAthlete: lock('athlete'), lockGroup: lock('group'), lockEvent: lock('event'),
+    lockSeason: lock('season'), lockAthlete: lock('athlete'), lockGroup: lock('group'), lockEvent: lock('event'), lockHistoryEntry: lock('history'),
     ...fakeLookups(state), ...fakeRows(state), ...fakeGroupWrites(state, next), ...fakeMembershipWrites(state, next),
     ...fakeCalendarWrites(state, next), ...fakeJobsAndHistory(state, next, tick),
   };

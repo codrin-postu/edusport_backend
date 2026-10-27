@@ -256,6 +256,7 @@ export function strapiGroupStore(strapi: Core.Strapi): GroupStore {
     lockAthlete: (id) => scope.lockRow('athletes', id),
     lockGroup: (id) => scope.lockRow('club_groups', id),
     lockEvent: (id) => scope.lockRow('calendar_events', id),
+    lockHistoryEntry: (id) => scope.lockRow('history_entries', id),
     ...lookups(strapi), ...peopleReads(strapi), ...calendarReads(strapi), ...historyReads(strapi),
     ...groupWrites(strapi), ...membershipWrites(strapi), ...calendarWrites(strapi), ...jobAndHistoryWrites(strapi),
   };
