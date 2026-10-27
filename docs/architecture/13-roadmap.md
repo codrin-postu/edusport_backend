@@ -6,8 +6,8 @@ Tracks the phases of `10-spec.md` section 7. Update the status line of a phase w
 |---|---|---|
 | 1 | Data foundation | Live (deployed, migrated) |
 | 2 | Registration rebuild | Merged to main 2026-10-26 (be 9f869cf, fe e35e41a). Not deployed: waits on the club items below, then `12-phase2-deploy-runbook.md` |
-| 3 | Admin Înscrieri + Sportivi, confirmation and matching | 3A + 3B built and reviewed on feat/athletes (2026-10-27), not merged to main, not deployed; 3C personal data next |
-| 4 | Groups and schedules | Not started |
+| 3 | Admin Înscrieri + Sportivi, confirmation and matching | 3A, 3B, 3C (personal data) built and reviewed on feat/athletes (2026-10-27); not merged to main, not deployed. TEST env runs 3A/3B |
+| 4 | Groups and schedules | Spec v1.1 approved (2026-10-27, specs/2026-10-27-groups-schedules-design.md), admin-only; plans being written; coach schedule editing moved to phase 6 |
 | 5 | Attendance, subscriptions and payments | Not started |
 | 6 | Login and the coach portal | Not started |
 | 7 | Parent portal | Not started |
