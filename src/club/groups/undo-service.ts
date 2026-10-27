@@ -45,19 +45,21 @@ export function readActionId(body: unknown): string | null {
   return typeof v === 'string' && v ? v : null;
 }
 
-async function lockTargets(store: GroupStore, t: LockTargets): Promise<void> {
+async function lockTargets(store: GroupStore, t: LockTargets, ports: CarryPorts): Promise<void> {
   for (const id of t.seasons) await store.lockSeason(id);
   for (const id of t.athletes) await store.lockAthlete(id);
   for (const id of t.groups) await store.lockGroup(id);
   for (const id of t.events) await store.lockEvent(id);
+  for (const id of t.subscriptions) await ports.lockSubscription(id);
 }
 
 /**
  * Every athlete, membership and event the steps refer to must still exist (a merge deletes an athlete; an undone remove or "Schimbă"
  * re-creates its row under a new id): no write is safe on a missing row. Read after the locks.
  */
-async function targetsExist(store: GroupStore, t: LockTargets, steps: UndoStep[]): Promise<boolean> {
+async function targetsExist(store: GroupStore, t: LockTargets, steps: UndoStep[], ports: CarryPorts): Promise<boolean> {
   for (const id of t.athletes) if (!(await store.athlete(id))) return false;
+  for (const id of t.subscriptions) if (!(await ports.subscriptionExists(id))) return false;
   for (const step of steps) {
     if ((step.op === 'deleteMembership' || step.op === 'setMembership') && !(await store.membership(step.id))) return false;
     if ((step.op === 'deleteEvent' || step.op === 'setEvent') && !(await store.event(step.id))) return false;
@@ -166,9 +168,9 @@ async function undoLocked(ctx: GroupContext, actionId: string, ports: CarryPorts
   // A group action takes the season lock of its own season first (seasons > athletes > groups > events > the entry).
   const groupSeasons = record.kind === 'group' ? [...new Set(await groupSeasonIds(ctx.store, record.steps))].sort() : [];
   const targets: LockTargets = { ...base, seasons: [...new Set([...base.seasons, ...groupSeasons])].sort() };
-  await lockTargets(ctx.store, targets);
+  await lockTargets(ctx.store, targets, ports);
   if (record.kind === 'group' && (await inPastSeason(ctx.store, groupSeasons))) return refuse(409, GROUP_ERRORS.stale);
-  if (!(await targetsExist(ctx.store, targets, record.steps))) return refuse(409, refusalText(record.kind));
+  if (!(await targetsExist(ctx.store, targets, record.steps, ports))) return refuse(409, refusalText(record.kind));
   await ctx.store.lockHistoryEntry(actionId);
   const entry = await ctx.store.historyEntry(actionId);
   if (!entry) return refuse(404, GROUP_ERRORS.notFound);

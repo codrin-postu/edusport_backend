@@ -42,13 +42,12 @@ async function carryLocked(store: PresenceStore, i: CarryInput): Promise<CarryOu
   for (const s of subs) await store.updateSubscription(s.id, { validIn: [...s.validIn, lists.to.id] });
   return {
     lines: subs.map((s) => lineOf(s, lists.to.name)),
-    steps: subs.map((s) => ({ op: 'uncarry', subscriptionId: s.id, priceListId: lists.to.id })),
+    steps: subs.map((s) => ({ op: 'uncarry', subscriptionId: s.id, priceListId: lists.to.id, athleteId: i.athleteId })),
     carried: subs.length,
   };
 }
 
 async function uncarry(store: PresenceStore, subscriptionId: string, priceListId: string): Promise<void> {
-  await store.lockSubscription(subscriptionId);
   const sub = await store.subscription(subscriptionId);
   if (!sub) throw new Error(`no abonament ${subscriptionId} to take the carry off`);
   await store.updateSubscription(subscriptionId, { validIn: sub.validIn.filter((id) => id !== priceListId) });
@@ -64,6 +63,8 @@ export function presenceCarry(store: PresenceStore): { carry: MoveCarry; ports: 
   return {
     carry: (i) => store.transaction(() => carryLocked(store, i)),
     ports: {
+      lockSubscription: (subscriptionId) => store.transaction(() => store.lockSubscription(subscriptionId)),
+      subscriptionExists: async (subscriptionId) => (await store.subscription(subscriptionId)) !== null,
       uncarry: (subscriptionId, priceListId) => store.transaction(() => uncarry(store, subscriptionId, priceListId)),
       carryUsed: (subscriptionId, priceListId) => carryUsed(store, subscriptionId, priceListId),
     },

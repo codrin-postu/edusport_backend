@@ -51,7 +51,7 @@ describe('presence carry port and move preview (5.12)', () => {
       out = await carry({ athleteId: 'a1', fromGroupId: 'g-ib', toGroupId: 'g-gold', today: '2026-11-20' });
     });
     expect(out.carried).toBe(1);
-    expect(out.steps).toEqual([{ op: 'uncarry', subscriptionId: 'std', priceListId: 'pl-gold' }]);
+    expect(out.steps).toEqual([{ op: 'uncarry', subscriptionId: 'std', priceListId: 'pl-gold', athleteId: 'a1' }]);
     expect(out.lines).toEqual([{ subjectType: 'subscription', subjectId: 'std', action: 'subscription-carried', changes: { listName: 'Avansați Gold' } }]);
     expect(f.state.subscriptions[0].validIn).toEqual(['pl-gold']);
     expect(f.group.locks).toEqual(['athlete:a1', 'subscription:std']);
