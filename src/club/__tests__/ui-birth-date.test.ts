@@ -11,6 +11,7 @@ import {
   partsFromIso,
   partsToDisplay,
   partsToIso,
+  pickPart,
   withPart,
 } from '../ui-birth-date';
 
@@ -71,6 +72,18 @@ describe('withPart', () => {
   it('keeps a day that still fits', () => {
     expect(withPart({ day: 14, month: 3, year: null }, 'year', 2016)).toEqual({ day: 14, month: 3, year: 2016 });
     expect(withPart({ day: 14, month: 3, year: 2016 }, 'month', null)).toEqual({ day: 14, month: null, year: 2016 });
+  });
+});
+
+describe('pickPart (polish 9)', () => {
+  const date = { day: 14, month: 3, year: 2016 };
+  it('clearable: the empty row of any select empties the whole date; a value still sets one part', () => {
+    for (const key of ['day', 'month', 'year'] as const) expect(pickPart(date, key, null, true)).toEqual(EMPTY_DATE);
+    expect(pickPart(date, 'month', 4, true)).toEqual({ day: 14, month: 4, year: 2016 });
+  });
+
+  it('by default (the required birth date) only that part is emptied, as before', () => {
+    expect(pickPart(date, 'month', null, false)).toEqual({ day: 14, month: null, year: 2016 });
   });
 });
 

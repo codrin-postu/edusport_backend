@@ -7,7 +7,7 @@ import {
   PART_PLACEHOLDERS,
   dayChoices,
   monthChoices,
-  withPart,
+  pickPart,
   yearChoices,
   type DateParts,
   type PartChoice,
@@ -21,6 +21,8 @@ export interface BirthDatePickerProps extends FieldAria {
   /** Anchor of the year range (25 to 2 years ago). Default: today. */
   today?: Date;
   disabled?: boolean;
+  /** Optional dates (Activ din): the empty first row "Zi" / "Lună" / "An" of any select clears the whole date. Default false. */
+  clearable?: boolean;
   className?: string;
 }
 
@@ -39,13 +41,13 @@ const asOptions = (list: PartChoice[]): SelectOption[] => list.map((c) => ({ val
  * name. Outside a Field (no enclosing label to reference) each select falls
  * back to its bare part name. Hint and error (from the Field) go to all three.
  */
-export function BirthDatePicker({ value, onChange, today, disabled, className, ...rest }: BirthDatePickerProps) {
+export function BirthDatePicker({ value, onChange, today, disabled, clearable = false, className, ...rest }: BirthDatePickerProps) {
   const field = useFieldControl<FieldAria>(rest);
   const labelId = useFieldLabelId();
   const auto = React.useId().replace(/:/g, '');
   const baseId = field.id ?? `ui-bdate${auto}`;
   const year = (today ?? new Date()).getFullYear();
-  const set = (key: keyof DateParts) => (v: string) => onChange(withPart(value, key, asNumber(v)));
+  const set = (key: keyof DateParts) => (v: string) => onChange(pickPart(value, key, asNumber(v), clearable));
   const shared = { disabled, 'aria-describedby': field['aria-describedby'], 'aria-invalid': field['aria-invalid'], required: field.required };
   const partAria = (part: 'day' | 'month' | 'year'): { 'aria-labelledby': string } | { 'aria-label': string } =>
     labelId ? { 'aria-labelledby': `${labelId} ${baseId}-${part}-txt` } : { 'aria-label': PART_LABELS[part] };

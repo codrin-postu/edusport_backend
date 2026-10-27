@@ -241,7 +241,9 @@ describe('Profil public (Task 8)', () => {
   it('"Activ din" with the zi / lună / an selects, never the native date input; cancel reads "Anulează" as in Date', () => {
     const field = read('sportivi/ActiveSinceField.tsx');
     expect(field).toContain("const LABEL = 'Activ din';");
-    expect(field).toContain('<BirthDatePicker');
+    expect(field).toContain('<BirthDatePicker value={parts} onChange={change} today={anchor()} clearable />');
+    expect(field).toContain("if (iso !== null || isEmpty(next)) onChange(iso ?? '');");
+    expect(editor).toContain('activeSince: form.activeSince || null,');
     expect(editor).not.toContain('DateInput');
     expect(editor).toContain('discardLabel={RECORD_COPY.cancel}');
     expect(editor).toContain("{ label: RECORD_COPY.cancel, variant: 'secondary'");
