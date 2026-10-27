@@ -2,3 +2,4 @@
 export * from './copy/core';
 export * from './copy/schedule';
 export * from './copy/email';
+export * from './copy/grupe-ui';
