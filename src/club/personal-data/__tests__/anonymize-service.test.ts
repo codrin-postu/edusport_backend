@@ -6,6 +6,7 @@ import { dismissDuplicate } from '../../athletes/merge';
 import { HISTORY_ACTIONS, SUBJECT } from '../../history-text';
 import { REGISTRATION_NULLED_KEYS } from '../anonymize-plan';
 import { anonymizeAthlete, anonymizeAthletes, type AnonymizeContext } from '../anonymize-service';
+import { fakePresenceStore } from '../../presence/__tests__/fake-store';
 import { sweepAnonymizedFolders } from '../sweep';
 
 const NOW = new Date('2026-10-27T09:00:00.000Z');
@@ -56,7 +57,7 @@ function setup(state: Partial<FakeState> = seed()) {
   const logs: string[] = [];
   const ctx: AnonymizeContext = {
     store: fake.store, actor: 'super@example.com', today: { year: 2026, month: 10, day: 27 }, log: (m) => logs.push(m),
-    removeFiles: async (id) => { removed.push(id); }, now: () => NOW,
+    removeFiles: async (id) => { removed.push(id); }, now: () => NOW, presence: fakePresenceStore().store,
   };
   return { fake, ctx, removed, logs };
 }

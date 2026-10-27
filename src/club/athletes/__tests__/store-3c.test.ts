@@ -81,6 +81,27 @@ describe('Strapi store, 3C writes', () => {
     expect(none).toEqual([]);
   });
 
+  it('clears the payment e-mail jobs of the payments (payload too); a queued job is cancelled', async () => {
+    const calls: Call[] = [];
+    const strapi = recordingStrapi(calls, { [JOB]: [{ id: 7, status: 'queued' }, { id: 8, status: 'sent' }] });
+    await strapiClubStore(strapi).scrubPaymentEmailJobs(['p1']);
+    expect(calls).toEqual([
+      [JOB, 'findMany', { where: { kind: 'payment', payment: { documentId: { $in: ['p1'] } } }, select: ['id', 'status'], limit: 100000 }],
+      [JOB, 'update', { where: { id: 7 }, data: { recipient: null, subject: null, lastError: null, status: 'cancelled', payload: null } }],
+      [JOB, 'update', { where: { id: 8 }, data: { recipient: null, subject: null, lastError: null, status: 'sent', payload: null } }],
+    ]);
+    const none: Call[] = [];
+    await strapiClubStore(recordingStrapi(none)).scrubPaymentEmailJobs([]);
+    expect(none).toEqual([]);
+  });
+
+  it('the fake clears linked payment jobs only', async () => {
+    const job = (id: string, paymentId: string, status: string) => ({ id, registrationId: null, kind: 'payment' as const, paymentId, recipient: 'x@example.com', subject: 's', status, lastError: 'e', payload: { a: 1 } });
+    const fake = fakeClubStore({ emailJobs: [job('j1', 'p1', 'queued'), job('j2', 'p9', 'queued')] });
+    await fake.store.scrubPaymentEmailJobs(['p1']);
+    expect(fake.state.emailJobs.map((j) => [j.id, j.status, j.recipient, j.payload])).toEqual([['j1', 'cancelled', null, null], ['j2', 'queued', 'x@example.com', { a: 1 }]]);
+  });
+
   it('lists the registrations of anonymized athletes and the raw rows of one athlete', async () => {
     const calls: Call[] = [];
     const strapi = recordingStrapi(calls, { [REG]: [{ documentId: 'r1', childName: 'Anonimizat' }] });
