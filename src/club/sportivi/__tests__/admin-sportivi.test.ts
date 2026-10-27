@@ -171,8 +171,9 @@ describe('athlete record (Task 7)', () => {
   it('Documente through the admin-guarded routes; Istoric with the shared time format', () => {
     expect(read('sportivi/DocumentsTab.tsx')).toContain('registrationDocumentUrl(d.registrationDocumentId, d.kind)');
     expect(read('sportivi/DocumentsTab.tsx')).toContain('<span className="ui-sr"> {d.label}</span>');
-    expect(read('sportivi/openPdf.ts')).toContain("if (!tab) throw new Error('popup blocked');");
-    expect(read('sportivi/openPdf.ts')).not.toContain('window.location');
+    expect(read('sportivi/DocumentsTab.tsx')).toContain("import { downloadPdf, registrationDocumentUrl, viewPdf } from '../inscrieri/downloadPdf';");
+    expect(read('inscrieri/downloadPdf.ts')).toContain("if (!tab) throw new Error('popup blocked');");
+    expect(read('inscrieri/downloadPdf.ts')).not.toContain('window.location');
     expect(read('sportivi/HistoryTab.tsx')).toContain('historyWhen(l.at)');
   });
 });

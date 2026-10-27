@@ -3,8 +3,7 @@ import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { Button, adminToast } from '../../ui';
 import type { AthleteRecord } from '../../../club/athletes/api-types';
 import { RECORD_COPY } from '../../../club/sportivi/record-view';
-import { downloadPdf, registrationDocumentUrl } from '../inscrieri/downloadPdf';
-import { viewPdf } from './openPdf';
+import { downloadPdf, registrationDocumentUrl, viewPdf } from '../inscrieri/downloadPdf';
 
 type Doc = AthleteRecord['documents'][number];
 type Get = ReturnType<typeof useFetchClient>['get'];

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
 
@@ -8,6 +8,8 @@ const read = (...p: string[]) => readFileSync(join(admin, ...p), 'utf8');
 const ui = read('ui', 'styles.ts');
 const table = read('dashboard', 'SubmissionTable.tsx');
 const insCss = read('dashboard', 'inscrieri', 'styles.ts');
+const docs = read('dashboard', 'inscrieri', 'RegistrationDocuments.tsx');
+const pdf = read('dashboard', 'inscrieri', 'downloadPdf.ts');
 
 it('fit page: desktop only, height of the Strapi scroll box, the window fills the rest', () => {
   expect(ui).toContain("export const FIT_PAGE_MEDIA = '@media (min-width:1100px) and (min-height:700px)';");
@@ -45,5 +47,18 @@ it('Înscrieri: the list box scrolls, the pager stays, the panel body scrolls be
   expect(insCss).toContain("FIT_PAGE_MEDIA + '{' +");
   expect(insCss).toContain('.ui-root.ui-page--fit .sbt-panel > .ins-panel{flex:1 1 auto;min-height:0}');
   expect(insCss).toContain('.ui-root.ui-page--fit .ins-panel > .sbt-pb{flex:1 1 auto}}');
-  expect(insCss).toContain('PANEL_CSS, FIT_CSS, MATCH_CSS');
+  expect(insCss).toContain('FIT_CSS, DOCS_CSS');
+});
+
+it('Documente: each PDF a row with "Vezi" and "Descarcă", names unique, one shared viewPdf', () => {
+  expect(docs).toContain("import { downloadPdf, registrationDocumentUrl, viewPdf } from './downloadPdf';");
+  expect(docs).toContain('const failed = () => adminToast.error(RECORD_COPY.documentFailed);');
+  expect(docs).toContain('<span className="ui-sr"> {label}</span>');
+  expect(docs).toContain('onClick={() => void viewPdf(get, url).catch(failed)}>{RECORD_COPY.view}{hidden}</Button>');
+  expect(docs).toContain('onClick={() => void downloadPdf(get, url, `${kind}.pdf`).catch(failed)}>{RECORD_COPY.download}{hidden}</Button>');
+  expect(docs).toContain('<DocumentRow key={kind} documentId={row.documentId} kind={kind} get={get} />');
+  expect(insCss).toContain('.ui-root .ins-doc{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--theme-border)}');
+  expect(pdf).toContain('export async function viewPdf(get: Get, url: string): Promise<void> {');
+  expect(pdf).toContain("if (!tab) throw new Error('popup blocked');");
+  expect(existsSync(join(admin, 'dashboard', 'sportivi', 'openPdf.ts'))).toBe(false);
 });
