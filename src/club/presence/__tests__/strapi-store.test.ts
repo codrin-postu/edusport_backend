@@ -85,10 +85,10 @@ describe('strapiPresenceStore', () => {
     expect(toSubscriptionRow({ documentId: 'sub2', validIn: [] }).validIn).toEqual([]);
     expect(toLessonRow({
       documentId: 'l1', athlete: { documentId: 'a1' }, date: '2026-11-10', startTime: '17:00:00.000', durationMin: 50, coaches: [{ documentId: 'tm-andreea' }], state: 'saved', present: true,
-      priceList: { documentId: 'pl-club' }, itemName: 'Lecție individuală', price: '80.00', audience: 'member', amount: '80.00', createdBy: 'Ana', savedBy: 'Ana', savedAt: '2026-11-10T18:00:00.000Z',
+      priceList: { documentId: 'pl-club' }, itemName: 'Lecție individuală', price: '80.00', audience: 'member', amount: '80.00', createdByName: 'Ana', savedBy: 'Ana', savedAt: '2026-11-10T18:00:00.000Z',
     })).toEqual({
       id: 'l1', athleteId: 'a1', date: '2026-11-10', startTime: '17:00', durationMin: 50, coachIds: ['tm-andreea'], state: 'saved', present: true, priceListId: 'pl-club',
-      itemName: 'Lecție individuală', price: 80, audience: 'member', amount: 80, createdBy: 'Ana', savedBy: 'Ana', savedAt: '2026-11-10T18:00:00.000Z',
+      itemName: 'Lecție individuală', price: 80, audience: 'member', amount: 80, createdByName: 'Ana', savedBy: 'Ana', savedAt: '2026-11-10T18:00:00.000Z',
     });
     expect(toLessonRow({ documentId: 'l2', state: 'planned', present: null })).toMatchObject({ present: null, priceListId: null, price: null, amount: 0, savedAt: null });
     expect(toPriceListRecord({
@@ -108,6 +108,18 @@ describe('strapiPresenceStore', () => {
     expect(asUniqueKeyError({ cause: { code: '23505' } })).toBeInstanceOf(UniqueKeyError);
     expect(asUniqueKeyError(Object.assign(new Error('This attribute must be unique'), { name: 'ValidationError' }))).toBeInstanceOf(UniqueKeyError);
     expect(asUniqueKeyError(new Error('connection lost'))).toBeNull();
+  });
+
+  it('never sends Strapi\'s reserved createdBy in a lesson create payload', async () => {
+    const created: Array<{ data: Record<string, unknown> }> = [];
+    const strapi = { documents: () => ({ create: async (args: { data: Record<string, unknown> }) => { created.push(args); return { documentId: 'l1' }; } }) } as unknown as Core.Strapi;
+    await strapiPresenceStore(strapi).createLesson({
+      athleteId: 'a1', date: '2026-11-10', startTime: '17:00', durationMin: 50, coachIds: [], state: 'planned', present: null, priceListId: null, itemName: null, price: null,
+      audience: null, amount: 0, createdByName: 'Ana', savedBy: null, savedAt: null,
+    } as never);
+    expect(created).toHaveLength(1);
+    expect(created[0].data).toHaveProperty('createdByName', 'Ana');
+    expect(Object.keys(created[0].data)).not.toContain('createdBy');
   });
 
   it('takes every lock inside one transaction scope', async () => {
