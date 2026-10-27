@@ -13,6 +13,7 @@ import {
   occView,
   weekLabel,
   ymd,
+  type OccView,
   type Occurrence,
 } from './model';
 
@@ -134,12 +135,13 @@ interface EventChipProps {
   range?: boolean;
   /** Clamp to two lines (month grid). */
   clamp?: boolean;
+  view?: (o: Occurrence) => OccView;
   onOpen: () => void;
 }
 
 /** Soft category tint, 3px category edge, dark text; the time in bold first. */
-export function EventChip({ o, range = false, clamp = false, onOpen }: EventChipProps) {
-  const v = occView(o);
+export function EventChip({ o, range = false, clamp = false, view = occView, onOpen }: EventChipProps) {
+  const v = view(o);
   const end = hhmm(o.endTime);
   const time = range && v.time && end ? `${v.time} - ${end}` : v.time;
   return (
@@ -171,7 +173,9 @@ export interface GridProps {
   todayKey: string;
   onEvent: (o: Occurrence, date: string) => void;
   /** An empty spot of a day: add an event on that date. */
-  onAddOn: (date: string) => void;
+  onAddOn?: (date: string) => void;
+  /** How an occurrence shows; the general calendar's by default. */
+  view?: (o: Occurrence) => OccView;
 }
 
 function dayClass(d: Date, m: number, key: string, todayKey: string, extra = ''): string {
@@ -188,7 +192,7 @@ function dayClass(d: Date, m: number, key: string, todayKey: string, extra = '')
 }
 
 /** Full month grid (desktop and tablet). */
-export function MonthGrid({ y, m, byDate, todayKey, onEvent, onAddOn, onMore }: GridProps & { onMore: (date: string) => void }) {
+export function MonthGrid({ y, m, byDate, todayKey, onEvent, onAddOn, view, onMore }: GridProps & { onMore: (date: string) => void }) {
   const weeks = React.useMemo(() => monthWeeks(y, m), [y, m]);
   return (
     <div className="cal-month">
@@ -203,20 +207,24 @@ export function MonthGrid({ y, m, byDate, todayKey, onEvent, onAddOn, onMore }: 
           const items = byDate.get(key) ?? [];
           const rest = items.length - MAX_PER_DAY;
           return (
-            <div key={key} className={dayClass(d, m, key, todayKey)} onClick={() => onAddOn(key)}>
-              <button
-                type="button"
-                className="cal-num"
-                aria-label={`Adaugă eveniment, ${fmtRoLong(key)}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAddOn(key);
-                }}
-              >
-                {d.getDate()}
-              </button>
+            <div key={key} className={dayClass(d, m, key, todayKey)} onClick={onAddOn ? () => onAddOn(key) : undefined}>
+              {onAddOn ? (
+                <button
+                  type="button"
+                  className="cal-num"
+                  aria-label={`Adaugă eveniment, ${fmtRoLong(key)}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddOn(key);
+                  }}
+                >
+                  {d.getDate()}
+                </button>
+              ) : (
+                <span className="cal-num">{d.getDate()}</span>
+              )}
               {items.slice(0, MAX_PER_DAY).map((o, i) => (
-                <EventChip key={i} o={o} clamp onOpen={() => onEvent(o, key)} />
+                <EventChip key={i} o={o} clamp view={view} onOpen={() => onEvent(o, key)} />
               ))}
               {rest > 0 && (
                 <button
@@ -246,6 +254,7 @@ export function CompactMonth({
   todayKey,
   onEvent,
   onAddOn,
+  view,
   selected,
   onSelect,
 }: GridProps & { selected: string | null; onSelect: (date: string) => void }) {
@@ -262,7 +271,7 @@ export function CompactMonth({
         {weeks.flat().map((d) => {
           const key = ymd(d);
           const items = byDate.get(key) ?? [];
-          const cats = Array.from(new Set(items.map((o) => occView(o).cat))).slice(0, 4);
+          const cats = Array.from(new Set(items.map((o) => (view ?? occView)(o).cat))).slice(0, 4);
           return (
             <button
               key={key}
@@ -290,11 +299,13 @@ export function CompactMonth({
           {dayItems.length === 0 ? (
             <div className="cal-muted">Nimic programat</div>
           ) : (
-            dayItems.map((o, i) => <EventChip key={i} o={o} range onOpen={() => onEvent(o, selected)} />)
+            dayItems.map((o, i) => <EventChip key={i} o={o} range view={view} onOpen={() => onEvent(o, selected)} />)
           )}
-          <Button variant="secondary" size="sm" icon={<IconPlus />} onClick={() => onAddOn(selected)}>
-            Adaugă în această zi
-          </Button>
+          {onAddOn && (
+            <Button variant="secondary" size="sm" icon={<IconPlus />} onClick={() => onAddOn(selected)}>
+              Adaugă în această zi
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -307,7 +318,7 @@ export function CompactMonth({
  * Every event of the month by day, grouped by week. Days without events are
  * left out (a week with none is left out entirely).
  */
-export function AgendaList({ y, m, byDate, todayKey, onEvent, onAddOn, focusDate }: GridProps & { focusDate: string | null }) {
+export function AgendaList({ y, m, byDate, todayKey, onEvent, onAddOn, view, focusDate, weekTitle = weekLabel }: GridProps & { focusDate: string | null; weekTitle?: (monday: Date) => string }) {
   const boxRef = React.useRef<HTMLDivElement>(null);
   const weeks = React.useMemo(
     () =>
@@ -328,9 +339,11 @@ export function AgendaList({ y, m, byDate, todayKey, onEvent, onAddOn, focusDate
       <div className="cal-list">
         <EmptyState
           action={
-            <Button variant="secondary" size="sm" icon={<IconPlus />} onClick={() => onAddOn(ymd(new Date(y, m, 1)))}>
-              Adaugă
-            </Button>
+            onAddOn ? (
+              <Button variant="secondary" size="sm" icon={<IconPlus />} onClick={() => onAddOn(ymd(new Date(y, m, 1)))}>
+                Adaugă
+              </Button>
+            ) : undefined
           }
         >
           Nimic programat în {RO_MONTHS[m].toLowerCase()} {y}.
@@ -342,19 +355,26 @@ export function AgendaList({ y, m, byDate, todayKey, onEvent, onAddOn, focusDate
   return (
     <div className="cal-list" ref={boxRef}>
       {weeks.map((w) => (
-        <section key={ymd(w.monday)} aria-label={weekLabel(w.monday)}>
-          <div className="cal-wk">{weekLabel(w.monday)}</div>
+        <section key={ymd(w.monday)} aria-label={weekTitle(w.monday)}>
+          <div className="cal-wk">{weekTitle(w.monday)}</div>
           {w.days.map((d) => {
             const key = ymd(d);
             return (
               <div key={key} className={`cal-ag${key === todayKey ? ' cal-ag--today' : ''}`} data-date={key}>
-                <button type="button" className="cal-ag-dd" aria-label={`Adaugă eveniment, ${fmtRoLong(key)}`} onClick={() => onAddOn(key)}>
-                  <small>{RO_DOW[(d.getDay() + 6) % 7]}</small>
-                  <span className="cal-ag-n">{d.getDate()}</span>
-                </button>
+                {onAddOn ? (
+                  <button type="button" className="cal-ag-dd" aria-label={`Adaugă eveniment, ${fmtRoLong(key)}`} onClick={() => onAddOn(key)}>
+                    <small>{RO_DOW[(d.getDay() + 6) % 7]}</small>
+                    <span className="cal-ag-n">{d.getDate()}</span>
+                  </button>
+                ) : (
+                  <div className="cal-ag-dd">
+                    <small>{RO_DOW[(d.getDay() + 6) % 7]}</small>
+                    <span className="cal-ag-n">{d.getDate()}</span>
+                  </div>
+                )}
                 <div className="cal-ag-l">
                   {(byDate.get(key) ?? []).map((o, i) => (
-                    <EventChip key={i} o={o} range onOpen={() => onEvent(o, key)} />
+                    <EventChip key={i} o={o} range view={view} onOpen={() => onEvent(o, key)} />
                   ))}
                 </div>
               </div>
