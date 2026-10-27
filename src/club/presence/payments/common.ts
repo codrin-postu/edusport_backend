@@ -9,7 +9,7 @@ import { seasonOfDate } from '../dates';
 import type { PresenceStore } from '../store';
 import type { PaymentRow, PaymentWrite } from '../types';
 import { acsRevert, purposeFields, purposeText, type PaymentFor, type PurposeFields } from './rules';
-import { acsGuardId, type PresenceUndoStep } from '../undo';
+import { acsGuardId, type PresenceGuard, type PresenceUndoStep } from '../undo';
 
 type Link = Pick<PurposeFields, 'subscriptionId' | 'lessonId'>;
 export type Fields = { fields: PurposeFields; season: SeasonRecord };
@@ -77,9 +77,13 @@ export async function revertFee(store: PresenceStore, p: PaymentRow): Promise<Ac
 export const paymentLine = (paymentId: string, action: string, changes: Record<string, unknown>): Line => ({ subjectType: SUBJECT.payment, subjectId: paymentId, action, changes });
 export const athleteLine = (athleteId: string, action: string, changes: Record<string, unknown>): Line => ({ subjectType: SUBJECT.athlete, subjectId: athleteId, action, changes });
 
-/** Records the action: the payment is guarded, and so is every A.C.S. row a step touches (7.3). */
+/** The payment is guarded, and so is every A.C.S. row a step touches (7.3). */
+export async function paymentGuards(store: PresenceStore, paymentId: string, steps: readonly PresenceUndoStep[]): Promise<PresenceGuard[]> {
+  const guards = [await guardOf(store, 'payment', paymentId)];
+  for (const step of steps) if (step.op === 'setAcs') guards.push(await guardOf(store, 'acs', acsGuardId(step.athleteId, step.seasonId)));
+  return guards;
+}
+
 export async function recordPaymentAction(ctx: PresenceContext, athleteId: string, paymentId: string, lines: Line[], steps: PresenceUndoStep[]): Promise<string> {
-  const guards = [await guardOf(ctx.store, 'payment', paymentId)];
-  for (const step of steps) if (step.op === 'setAcs') guards.push(await guardOf(ctx.store, 'acs', acsGuardId(step.athleteId, step.seasonId)));
-  return recordPresenceAction(ctx.store, ctx.actor, lines, { steps, athletes: [athleteId], guards });
+  return recordPresenceAction(ctx.store, ctx.actor, lines, { steps, athletes: [athleteId], guards: await paymentGuards(ctx.store, paymentId, steps) });
 }
