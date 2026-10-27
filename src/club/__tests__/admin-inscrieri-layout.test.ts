@@ -53,11 +53,18 @@ it('Înscrieri: the list box scrolls, the pager stays, the panel body scrolls be
 it('Înscrieri, short desktop window: the panel scrolls as one, header and footer sticky', () => {
   expect(insCss).toContain("FIT_PAGE_MEDIA + ' and (max-height:860px){' +");
   for (const rule of [
-    '.ui-root.ui-page--fit .sbt-panel > .ins-panel{overflow:auto}',
+    '.ui-root.ui-page--fit .sbt-panel > .ins-panel{overflow:auto;scroll-padding-top:var(--ins-ph-h,0px);scroll-padding-bottom:var(--ins-pa-h,0px)}',
     '.ui-root.ui-page--fit .ins-panel > .sbt-pb{flex:1 0 auto;overflow:visible}',
     '.ui-root.ui-page--fit .ins-panel > .ins-ph{position:sticky;top:0;z-index:3;padding-bottom:10px;border-bottom:1px solid var(--theme-border);background:var(--theme-surface-subtle)}',
     '.ui-root.ui-page--fit .ins-panel > .sbt-pa{position:sticky;bottom:0;z-index:3;background:var(--theme-surface-subtle)}}',
   ]) expect(insCss).toContain(rule);
+  const insets = read('dashboard', 'inscrieri', 'useStickyInsets.ts');
+  expect(insets).toContain("[':scope > .ins-ph', '--ins-ph-h']");
+  expect(insets).toContain("[':scope > .sbt-pa', '--ins-pa-h']");
+  expect(insets).toContain('const observer = new ResizeObserver(sync);');
+  expect(insets).toContain('Math.ceil(el.getBoundingClientRect().height)');
+  expect(insets).toContain('return () => observer.disconnect();');
+  expect(read('dashboard', 'inscrieri', 'RegistrationPanel.tsx')).toContain('  useStickyInsets(ref);\n');
 });
 
 it('Documente: each PDF a row with "Vezi" and "Descarcă", names unique, one shared viewPdf', () => {

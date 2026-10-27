@@ -55,7 +55,7 @@ const FIT_CSS =
   '.ui-root.ui-page--fit .ins-panel > *{flex:none}' +
   '.ui-root.ui-page--fit .ins-panel > .sbt-pb{flex:1 1 auto}}' +
   FIT_PAGE_MEDIA + ' and (max-height:860px){' +
-  '.ui-root.ui-page--fit .sbt-panel > .ins-panel{overflow:auto}' +
+  '.ui-root.ui-page--fit .sbt-panel > .ins-panel{overflow:auto;scroll-padding-top:var(--ins-ph-h,0px);scroll-padding-bottom:var(--ins-pa-h,0px)}' +
   '.ui-root.ui-page--fit .ins-panel > .sbt-pb{flex:1 0 auto;overflow:visible}' +
   '.ui-root.ui-page--fit .ins-panel > .ins-ph{position:sticky;top:0;z-index:3;padding-bottom:10px;border-bottom:1px solid var(--theme-border);background:var(--theme-surface-subtle)}' +
   '.ui-root.ui-page--fit .ins-panel > .sbt-pa{position:sticky;bottom:0;z-index:3;background:var(--theme-surface-subtle)}}';

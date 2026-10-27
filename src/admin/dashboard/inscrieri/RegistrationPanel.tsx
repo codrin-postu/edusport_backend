@@ -19,6 +19,7 @@ import { MatchCard } from './MatchCard';
 import { PanelHeader } from './PanelHeader';
 import { PanelBody } from './PanelTabs';
 import { usePanelData } from './usePanelData';
+import { useStickyInsets } from './useStickyInsets';
 
 type FooterProps = { row: Row; api: TableApi; onConfirm?: () => void; onContacted?: () => void };
 
@@ -75,6 +76,7 @@ export function RegistrationPanel({ row, api }: { row: Row; api: TableApi }) {
   const [confirming, setConfirming] = React.useState(false);
   const data = usePanelData(row.documentId, panelVersion(row));
   const ref = React.useRef<HTMLDivElement>(null);
+  useStickyInsets(ref);
   const afterConfirm = () => {
     setTab('istoric');
     api.refetch();
