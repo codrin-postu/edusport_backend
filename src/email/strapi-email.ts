@@ -5,11 +5,9 @@
 import { readFile } from 'node:fs/promises';
 import type { Core } from '@strapi/strapi';
 import { buildRegistrationDocuments, listRegistrationDocuments } from '../club/documents';
-import { isIsoDate } from '../club/groups/dates';
 import { SCHEDULE_HOLD_MS } from '../club/groups/schedule-mail';
 import type { ScheduleChangePayload } from '../club/groups/types';
 import { recordHistory } from '../club/history';
-import { isRecord } from '../club/narrow';
 import { captureMessage } from '../sentry';
 import { sendWithBrevo } from './brevo';
 import { readEmailConfig, type EmailConfig } from './config';
@@ -25,6 +23,7 @@ import {
 } from './email-jobs';
 import type { EmailJobStatus } from './job-state';
 import { buildEmailLinks } from './links';
+import { isSchedulePayload } from './schedule-change-template';
 import { sheetSyncedStore } from './sheet-status';
 import { queueUpsert } from '../sheets/queue';
 
@@ -52,8 +51,7 @@ const iso = (value: unknown): string | null =>
   value instanceof Date ? value.toISOString() : typeof value === 'string' && value ? value : null;
 
 /** The stored payload when it has the shape the template needs, else null (the job then fails at once). */
-const payloadOf = (v: unknown): ScheduleChangePayload | null =>
-  isRecord(v) && typeof v.groupName === 'string' && isIsoDate(v.date) && typeof v.startTime === 'string' && (v.mode === 'cancel' || v.mode === 'move') ? (v as ScheduleChangePayload) : null;
+const payloadOf = (v: unknown): ScheduleChangePayload | null => (isSchedulePayload(v) ? v : null);
 
 export function toJobRow(raw: RawJob): EmailJobRow {
   return {
@@ -83,6 +81,10 @@ function jobStore(strapi: Core.Strapi): EmailJobStore {
         }),
       ),
     update: async (documentId, data) => toJobRow(await jobs().update({ documentId, data, populate: POPULATE })),
+    findById: async (documentId) => {
+      const raw = await jobs().findOne({ documentId, populate: POPULATE });
+      return raw ? toJobRow(raw) : null;
+    },
     findQueued: async (limit) =>
       (await jobs().findMany({ filters: { status: 'queued' }, sort: 'updatedAt:asc', limit, populate: POPULATE })).map(toJobRow),
     findLatest: async (registrationDocumentId) => {

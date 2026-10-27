@@ -1,10 +1,9 @@
 import { expandOccurrences } from '../../api/calendar-event/services/expand';
+import { scheduleSubject } from '../../email/schedule-change-template';
 import type { AthleteRow, MembershipRow } from '../athletes/store';
 import { isCurrentMembership } from '../group-membership';
 import { addDays } from './dates';
 import { asCalendarRow, type DateMode } from './program-plan';
-// Keep after './program-plan': the copy modules import each other in a cycle that only resolves when program-plan loads first.
-import { scheduleSubject } from '../../email/schedule-change-template';
 import type { BreakRecord, EventRecord, ScheduleChangePayload, ScheduleEmailJob } from './types';
 
 /** Parent e-mail on a schedule change (spec 6.5, W7, W33). Pure. */

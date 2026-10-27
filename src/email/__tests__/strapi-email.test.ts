@@ -31,6 +31,13 @@ it('maps a stored job, with the registration documentId and ISO dates', () => {
   });
 });
 
+it('a malformed stored schedule payload reads as none', () => {
+  const base = { groupName: 'G', date: '2026-11-14', startTime: '10:00', mode: 'move', newDate: '2026-11-15', newStartTime: '12:00', nextDate: null, nextStartTime: null, reason: null };
+  expect(toJobRow({ documentId: 'j', kind: 'schedule-change', payload: base }).payload).toEqual(base);
+  expect(toJobRow({ documentId: 'j', kind: 'schedule-change', payload: { ...base, newDate: null } }).payload).toBeNull();
+  expect(toJobRow({ documentId: 'j', kind: 'schedule-change', payload: { ...base, startTime: '' } }).payload).toBeNull();
+});
+
 it('reads a job whose registration was deleted as having none', () => {
   expect(toJobRow({ documentId: 'job-2', registration: null })).toMatchObject({ registrationDocumentId: null, status: 'queued', attempts: 0, recipient: '' });
 });

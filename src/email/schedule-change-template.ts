@@ -1,10 +1,17 @@
 import { EMAIL_COPY } from '../club/groups/copy/email';
-import { dayMonth, weekdayName } from '../club/groups/dates';
+import { dayMonth, isIsoDate, isTime, weekdayName } from '../club/groups/dates';
+import { isRecord } from '../club/narrow';
 import type { ScheduleChangePayload } from '../club/groups/types';
 import { brandHtml, emailPage, escapeHtml, footerText, type EmailLinks, type RenderedEmail } from './registration-template';
 
 /** Parent e-mail on a schedule change (spec 6.5): approved texts in the E1 letter (decided 2). Pure. */
 export type ScheduleEmailInput = { payload: ScheduleChangePayload; links: EmailLinks };
+
+/** A payload the letter can be built from: a date, a start time, and for a move the new date and time; never a broken sentence. */
+export function isSchedulePayload(v: unknown): v is ScheduleChangePayload {
+  if (!isRecord(v) || typeof v.groupName !== 'string' || !isIsoDate(v.date) || !isTime(v.startTime)) return false;
+  return v.mode === 'cancel' || (v.mode === 'move' && isIsoDate(v.newDate) && isTime(v.newStartTime));
+}
 
 const when = (date: string) => ({ day: weekdayName(date), date: dayMonth(date) });
 

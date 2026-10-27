@@ -3,6 +3,7 @@ import { ATHLETE_FIELD_LABELS, athleteValueText, isAthleteField, type AthleteSta
 import { GROUP_LINES } from './groups/copy';
 import { P4_ACTIONS, phase4Lines } from './groups/history-lines';
 import { isRecord } from './narrow';
+import { ARROW, quotedChange } from './text-leaf';
 import { SUBJECT } from './subjects';
 import { RELATIONSHIP_EDIT_OPTIONS } from './registration-panel';
 import { RELATIONSHIP_OTHER, SOURCE_OTHER } from './registration-form-options';
@@ -11,7 +12,7 @@ import { RELATIONSHIP_OTHER, SOURCE_OTHER } from './registration-form-options';
 export { SUBJECT };
 export const MIGRATION_ACTOR = 'migrare';
 export const FORM_ACTOR = 'formular';
-export const ARROW = '→';
+export { ARROW, quotedChange };
 
 export const HISTORY_ACTIONS = {
   submitted: 'submitted',
@@ -87,8 +88,6 @@ type Render = (c: Changes, subjectType: string) => string[];
 const text = (v: unknown) => (typeof v === 'string' ? v : '');
 const isChange = (v: unknown): v is { from: unknown; to: unknown } => isRecord(v) && 'from' in v && 'to' in v;
 const statusWord = (v: unknown) => (typeof v === 'string' && v in STATUS_WORDS ? STATUS_WORDS[v as AthleteStatus] : '');
-
-export const quotedChange = (label: string, from: string, to: string): string => `${label}: "${from}" ${ARROW} "${to}"`;
 
 export function registrationValueText(key: string, value: unknown): string {
   if (value === null || value === undefined) return '';

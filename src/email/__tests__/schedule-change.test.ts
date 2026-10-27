@@ -74,6 +74,22 @@ describe('queue (3.6, W7)', () => {
     expect(isDue({ status: 'queued', updatedAt: '2026-11-20T09:00:00.000Z', notBefore: '2026-11-20T12:00:00.000Z' }, new Date('2026-11-20T11:00:00.000Z'), 0)).toBe(false);
   });
 
+  it('a cancel that landed after the snapshot wins: nothing is sent', async () => {
+    const sent: string[] = [];
+    const d = deps('2026-11-20T10:00:16.000Z', sent);
+    d.jobs.findById = async () => job({ status: 'cancelled' });
+    expect((await attemptJob(d, job())).status).toBe('cancelled');
+    expect(sent).toEqual([]);
+  });
+
+  it('no start time, or a move without its new time, fails at once instead of a broken sentence', async () => {
+    const sent: string[] = [];
+    const late = deps('2026-11-20T11:00:00.000Z', sent);
+    expect((await attemptJob(late, job({ payload: { ...CANCEL, startTime: '' } }))).status).toBe('failed');
+    expect((await attemptJob(late, job({ payload: { ...MOVE, newStartTime: null } }))).status).toBe('failed');
+    expect(sent).toEqual([]);
+  });
+
   it('a schedule change without a payload fails at once', async () => {
     expect((await attemptJob(deps('2026-11-20T11:00:00.000Z', []), job({ payload: null }))).status).toBe('failed');
   });
