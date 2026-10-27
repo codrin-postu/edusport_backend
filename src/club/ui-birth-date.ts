@@ -83,3 +83,16 @@ export function birthDateRange(todayYear: number, stored: DateParts = EMPTY_DATE
   if (iso !== null && iso > max) max = iso;
   return { min, max };
 }
+
+/**
+ * Parts for a date the native input reports (ISO, null when empty). A real date inside
+ * min..max is returned as is; one outside it counts as not a full date (the day is
+ * dropped, so isFullDate and partsToIso refuse it but it is not blank either: callers keep
+ * showing BIRTH_DATE_ERROR / keep a stored value instead of clearing).
+ */
+export function pickedDate(iso: string | null, range: { min: string; max: string }): DateParts {
+  const parts = partsFromIso(iso);
+  if (parts === null) return { ...EMPTY_DATE };
+  const picked = partsToIso(parts) as string;
+  return picked >= range.min && picked <= range.max ? parts : { ...parts, day: null };
+}

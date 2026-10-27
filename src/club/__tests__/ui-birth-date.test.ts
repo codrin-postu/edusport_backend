@@ -3,6 +3,7 @@ import {
   BIRTH_DATE_ERROR,
   EMPTY_DATE,
   birthDateRange,
+  pickedDate,
   daysInMonth,
   isFullDate,
   partsFromDisplay,
@@ -74,5 +75,28 @@ describe('stored formats', () => {
 
   it('pins the decided error copy, same string as the website module', () => {
     expect(BIRTH_DATE_ERROR).toBe('Alegeți data nașterii.');
+  });
+});
+
+describe('pickedDate', () => {
+  const range = birthDateRange(2026);
+  it('passes a real date inside the range', () => {
+    expect(pickedDate('2016-03-14', range)).toEqual({ day: 14, month: 3, year: 2016 });
+    expect(pickedDate('2001-01-01', range)).toEqual({ day: 1, month: 1, year: 2001 });
+    expect(pickedDate('2024-12-31', range)).toEqual({ day: 31, month: 12, year: 2024 });
+  });
+
+  it('treats a date outside the range as not a full date, but not blank', () => {
+    for (const iso of ['0002-03-14', '2000-12-31', '2025-01-01']) {
+      const p = pickedDate(iso, range);
+      expect(isFullDate(p)).toBe(false);
+      expect(partsToIso(p)).toBeNull();
+      expect(p).not.toEqual(EMPTY_DATE);
+    }
+  });
+
+  it('gives blank parts for empty or unreadable input', () => {
+    expect(pickedDate(null, range)).toEqual(EMPTY_DATE);
+    expect(pickedDate('', range)).toEqual(EMPTY_DATE);
   });
 });

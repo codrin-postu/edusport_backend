@@ -11,13 +11,18 @@ it('renders one DateInput and no Select', () => {
 });
 
 it('maps parts to and from the ISO value and limits the range', () => {
-  expect(picker).toContain('value={partsToIso(value)}');
-  expect(picker).toContain('onChange(partsFromIso(iso) ?? EMPTY_DATE)');
+  expect(picker).toContain('value={text || null}');
+  expect(picker).toContain('pickedDate(iso, range)');
   expect(picker).toContain('birthDateRange(');
-  expect(picker).toContain('min={min}');
-  expect(picker).toContain('max={max}');
+  expect(picker).toContain('min={range.min}');
+  expect(picker).toContain('max={range.max}');
 });
 
 it('needs no group workaround: the Field hands its id to the one input', () => {
   expect(picker).not.toMatch(/role="group"|aria-labelledby|NoFieldContext|useFieldLabelId/);
+});
+
+it('does not call onChange while the input holds a half-typed date (badInput)', () => {
+  expect(picker).toContain('if (iso === null && input.current?.validity.badInput) return;');
+  expect(picker.indexOf('validity.badInput')).toBeLessThan(picker.indexOf('onChange(next)'));
 });
