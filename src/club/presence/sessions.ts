@@ -1,5 +1,5 @@
 import { expandOccurrences, type Occurrence } from '../../api/calendar-event/services/expand';
-import { isIsoDate, isTime, minutesBetween } from '../groups/dates';
+import { hhmm, isIsoDate, isTime, minutesBetween } from '../groups/dates';
 import type { CalendarWindow } from '../groups/occurrences';
 import type { GroupRecord } from '../groups/types';
 import type { HeldOccurrence, SessionState } from './types';
@@ -9,7 +9,7 @@ const DEFAULT_DURATION_MIN = 50;
 const DAY_MIN = 1440;
 
 /** The occurrence key of a schedule session: the event and the date and time it takes place (C72). */
-export const occurrenceKey = (eventId: string, date: string, startTime: string): string => `${eventId}|${date}|${startTime}`;
+export const occurrenceKey = (eventId: string, date: string, startTime: string): string => `${eventId}|${date}|${hhmm(startTime) ?? startTime}`;
 
 export const attendanceKey = (sessionId: string, athleteId: string): string => `${sessionId}|${athleteId}`;
 
@@ -55,5 +55,6 @@ export function sessionState(i: { saved: boolean; date: string; today: string; s
 
 /** A saved session whose date and time no longer hold for its group (cancelled or moved on the Program tab). */
 export function isOutsideSchedule(s: { groupId: string; date: string; startTime: string }, held: HeldOccurrence[]): boolean {
-  return !held.some((h) => h.groupId === s.groupId && h.date === s.date && h.startTime === s.startTime);
+  const startTime = hhmm(s.startTime);
+  return !held.some((h) => h.groupId === s.groupId && h.date === s.date && hhmm(h.startTime) === startTime);
 }

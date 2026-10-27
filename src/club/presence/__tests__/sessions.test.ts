@@ -60,6 +60,12 @@ describe('session keys', () => {
     expect(isOutsideSchedule({ groupId: 'g-ib', date: '2026-11-14', startTime: '11:00' }, held)).toBe(false);
   });
 
+  it('accepts Strapi times ("HH:mm:ss.SSS") as they are stored', () => {
+    const held = heldOccurrences(calendar, P_GROUPS_WITH_OLD, '2026-11-07', '2026-11-15');
+    expect(isOutsideSchedule({ groupId: 'g-ib', date: '2026-11-10', startTime: '17:00:00.000' }, held)).toBe(false);
+    expect(occurrenceKey('ev-ib', '2026-11-10', '17:00:00.000')).toBe('ev-ib|2026-11-10|17:00');
+  });
+
   it('duration from the occurrence, 50 without an end time', () => {
     expect(durationOf({ startTime: '17:00', endTime: '18:30', endsNextDay: false })).toBe(90);
     expect(durationOf({ startTime: '17:00', endTime: null, endsNextDay: false })).toBe(50);
