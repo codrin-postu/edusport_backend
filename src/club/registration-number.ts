@@ -1,18 +1,22 @@
 import { normalizeSeasonLabel, seasonStartYear } from './season';
 
+/** `<last two digits of the start year>-<sequence, at least 3 digits>`, e.g. `26-001`, `26-1000`. */
 export function formatRegistrationNumber(startYear: number, seq: number): string {
-  if (!Number.isInteger(seq) || seq < 1 || seq > 9999) {
+  if (!Number.isInteger(seq) || seq < 1) {
     throw new RangeError(`Registration sequence out of range: ${seq}`);
   }
-  return `${startYear}-${String(seq).padStart(4, '0')}`;
+  return `${String(startYear % 100).padStart(2, '0')}-${String(seq).padStart(3, '0')}`;
 }
 
+/** Reads the current form (`26-001`) and the old one (`2026-0001`, never rewritten, still counted). */
 export function parseRegistrationNumber(
   value: string | null | undefined,
 ): { startYear: number; seq: number } | null {
-  const m = /^(\d{4})-(\d{4})$/.exec(value ?? '');
-  if (!m) return null;
-  return { startYear: Number(m[1]), seq: Number(m[2]) };
+  const current = /^(\d{2})-(\d{3,})$/.exec(value ?? '');
+  if (current) return { startYear: 2000 + Number(current[1]), seq: Number(current[2]) };
+  const old = /^(\d{4})-(\d{4})$/.exec(value ?? '');
+  if (old) return { startYear: Number(old[1]), seq: Number(old[2]) };
+  return null;
 }
 
 /** Highest sequence already used for `startYear` in any of `numbers` (any season), plus one. */

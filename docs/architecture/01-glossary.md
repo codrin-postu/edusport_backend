@@ -23,7 +23,7 @@ One term per concept, used in all diagrams and code. UI copy stays Romanian.
 | Subscription slot | Căsuță | One session in a subscription. Each attendance at a Skating School session uses one. |
 | Amount due | De achitat | What a club-group athlete owes for sessions done (billed after training). |
 | Payment | Plată | Money received: cash, POS at the rink, or bank transfer. |
-| Registration | Înscriere | The website form submission, with a registration number (e.g. 2026-0142). |
+| Registration | Înscriere | The website form submission, with a registration number (e.g. 26-142). |
 | Confirmation | Confirmare | Admin turns a registration into an athlete (new or matched existing). |
 | Document | Document | A generated PDF (Acord, Cerere de adeziune) or an uploaded file, for an athlete or the club. |
 | Document type | Tip de document | Defines how a document appears (generated or uploaded), when, and if it has a blank form. |

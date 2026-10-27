@@ -11,7 +11,7 @@ export class RegistrationNumberClashError extends Error {
 }
 
 export type AllocatorDeps<T> = {
-  /** Every registration number already starting with `<startYear>-`, in any season. */
+  /** Every registration number already starting with `<yy>-` or `<startYear>-`, in any season. */
   readNumbers: (startYear: number) => Promise<(string | null)[]>;
   /** Insert the registration with this number; must let the database or Strapi error through on a clash. */
   create: (registrationNumber: string) => Promise<T>;
@@ -50,8 +50,9 @@ function nextCandidate(numbers: (string | null)[], startYear: number, lastTried:
   const fromRead = nextRegistrationNumber(numbers, startYear);
   const last = parseRegistrationNumber(lastTried);
   if (!last) return fromRead;
-  const afterLast = formatRegistrationNumber(startYear, last.seq + 1);
-  return afterLast > fromRead ? afterLast : fromRead;
+  const afterLast = last.seq + 1;
+  const fromReadSeq = parseRegistrationNumber(fromRead)!.seq;
+  return afterLast > fromReadSeq ? formatRegistrationNumber(startYear, afterLast) : fromRead;
 }
 
 /** Create a record under the next free number for `startYear`, retrying on a clash. */
