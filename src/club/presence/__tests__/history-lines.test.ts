@@ -19,6 +19,12 @@ describe('phase 5 Istoric lines', () => {
     expect(sessionHistoryTexts('session-corrected', { added: ['gone'], removed: [], uscat: [] }, names)).toEqual([`Prezență corectată. Sportiv adăugat: ${GROUP_LINES.deletedAthlete}.`]);
   });
 
+  it('an unknown coach reads "Antrenor șters", never "Sportiv șters" (ruling 5-2)', () => {
+    expect(sessionHistoryTexts('session-saved', { present: 1, listed: 2, coachIds: ['tm-gone'] }, names)).toEqual(['Prezență salvată: 1 din 2, antrenor Antrenor șters.']);
+    expect(sessionHistoryTexts('session-coaches', { from: ['tm-virgil'], to: ['tm-virgil', 'tm-gone'] }, names)).toEqual(['Antrenori: "Virgil Pascu" → "Virgil Pascu, Antrenor șters"']);
+    expect(lines('lesson-edited', { fields: { coaches: { from: ['tm-gone'], to: ['tm-andreea'] } } }, 'lesson')).toEqual(['Antrenor: "Antrenor șters" → "Andreea Pascu"']);
+  });
+
   it('athlete and subscription lines (8)', () => {
     expect(lines('visitor-present', { groupName: 'Intermediari Bronze', date: '2026-10-27' })).toEqual(['Prezent la Intermediari Bronze, 27 oct 2026, doar la ședința asta.']);
     expect(lines('subscription-added', { itemName: 'Abonament 8 ședințe', startsOn: '2026-10-27', validUntil: '2026-11-23', covered: 2 }))

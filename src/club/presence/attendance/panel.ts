@@ -93,7 +93,7 @@ async function buildPanel(store: PresenceStore, ctx: RowContext, t: Target, grou
   };
 }
 
-async function kindOf(store: PresenceStore, sectionId: string | null): Promise<SectionKind> {
+export async function kindOf(store: PresenceStore, sectionId: string | null): Promise<SectionKind> {
   const section = (await store.sections()).find((s) => s.id === sectionId);
   return section?.kind ?? 'school';
 }
