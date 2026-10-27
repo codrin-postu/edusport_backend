@@ -1,26 +1,47 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getFetchClient } from '@strapi/admin/strapi-admin';
 import { adminToast } from '../../ui';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import { MenuButton } from '../SubmissionTable';
+import { downloadPdf } from '../inscrieri/downloadPdf';
 import type { AthleteRecord } from '../../../club/athletes/api-types';
 import { ADMIN_ERRORS } from '../../../club/athletes/errors';
+import { PERSONAL_DATA_COPY } from '../../../club/personal-data/copy';
 import { requestErrorText } from '../../../club/registration-panel';
-import { RECORD_COPY, menuItems, type MenuKey } from '../../../club/sportivi/record-view';
+import {
+  EXPORT_FALLBACK_NAME, anonymizeErrorText, exportUrl, recordMenuItems, type RecordMenuItem, type RecordMenuKey,
+} from '../../../club/sportivi/personal-data-view';
+import { RECORD_COPY } from '../../../club/sportivi/record-view';
 import { SPORTIVI_PATH } from '../../../club/sportivi/routes';
+import { AnonymizeDialog } from './AnonymizeDialog';
 import type { SportiviApi } from './api';
 
-type Props = { record: AthleteRecord; api: SportiviApi; reload: () => Promise<void>; onMerge: () => void };
-type Dialog = 'inactive' | 'delete' | null;
+type Props = { record: AthleteRecord; api: SportiviApi; reload: () => Promise<void>; onMerge: () => void; superAdmin: boolean };
+type Dialog = 'inactive' | 'delete' | 'anonymize' | null;
+type SetBusy = (b: boolean) => void;
 
 /** "Marchează activ": applied at once, no dialog; `setBusy` keeps the trigger disabled for the round trip. */
-async function activate(api: SportiviApi, id: string, reload: () => Promise<void>, setBusy: (b: boolean) => void): Promise<void> {
+async function activate(api: SportiviApi, id: string, reload: () => Promise<void>, setBusy: SetBusy): Promise<void> {
   setBusy(true);
   try {
     await api.setStatus(id, 'activ');
     await reload();
   } catch (err) {
     adminToast.error(requestErrorText(err, ADMIN_ERRORS.failed));
+  } finally {
+    setBusy(false);
+  }
+}
+
+/** "Exportă datele" (3C spec 3): the detached client, so closing the menu never cancels the download. */
+async function exportData(id: string, setBusy: SetBusy): Promise<void> {
+  setBusy(true);
+  try {
+    await downloadPdf(getFetchClient().get, exportUrl(id), EXPORT_FALLBACK_NAME);
+    adminToast.success(PERSONAL_DATA_COPY.exported);
+  } catch {
+    adminToast.error(ADMIN_ERRORS.failed);
   } finally {
     setBusy(false);
   }
@@ -35,11 +56,13 @@ function MenuLabel() {
   );
 }
 
-function MenuItems({ record, onPick }: { record: AthleteRecord; onPick: (key: MenuKey) => void }) {
+const isDanger = (key: RecordMenuKey): boolean => key === 'delete' || key === 'anonymize';
+
+function MenuItems({ items, onPick }: { items: RecordMenuItem[]; onPick: (key: RecordMenuKey) => void }) {
   return (
     <>
-      {menuItems(record.status).map((item) => (
-        <button key={item.key} type="button" role="menuitem" className={item.key === 'delete' ? 'spv-danger' : undefined} onClick={() => onPick(item.key)}>
+      {items.map((item) => (
+        <button key={item.key} type="button" role="menuitem" className={isDanger(item.key) ? 'spv-danger' : undefined} onClick={() => onPick(item.key)}>
           {item.label}
         </button>
       ))}
@@ -47,21 +70,22 @@ function MenuItems({ record, onPick }: { record: AthleteRecord; onPick: (key: Me
   );
 }
 
-type DialogsProps = Omit<Props, 'onMerge'> & { dialog: Dialog; onClose: () => void };
+type DialogsProps = Omit<Props, 'onMerge' | 'superAdmin'> & { dialog: Dialog; onClose: () => void };
 type ConfirmState = { open: boolean; busy: boolean; error: string | null; onCancel: () => void; onConfirm: () => void };
+const failedText = (err: unknown): string => requestErrorText(err, ADMIN_ERRORS.failed);
 
-/** Busy/error/cancel shared by whichever of the two confirmations is open (only one at a time). */
+/** Busy/error/cancel shared by whichever confirmation is open (only one at a time). */
 function useConfirmRunner(onClose: () => void) {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const run = async (work: () => Promise<void>) => {
+  const run = async (work: () => Promise<void>, toText: (err: unknown) => string = failedText) => {
     setBusy(true);
     setError(null);
     try {
       await work();
       onClose();
     } catch (err) {
-      setError(requestErrorText(err, ADMIN_ERRORS.failed));
+      setError(toText(err));
     } finally {
       setBusy(false);
     }
@@ -95,10 +119,15 @@ function DeleteDialog({ open, busy, error, onCancel, onConfirm, name }: ConfirmS
   );
 }
 
-/** "Marchează inactiv" and "Șterge sportivul" confirmations (spec Open 3, 6.6). */
+/** "Marchează inactiv", "Șterge sportivul" (spec Open 3, 6.6) and "Anonimizează" (3C spec 4) confirmations. */
 function RecordDialogs({ record, api, reload, dialog, onClose }: DialogsProps) {
   const navigate = useNavigate();
   const { busy, error, run, cancel } = useConfirmRunner(onClose);
+  const anonymize = async () => {
+    await api.anonymize(record.documentId);
+    adminToast.success(PERSONAL_DATA_COPY.done(1));
+    await reload();
+  };
   return (
     <>
       <InactiveDialog
@@ -109,27 +138,29 @@ function RecordDialogs({ record, api, reload, dialog, onClose }: DialogsProps) {
         open={dialog === 'delete'} busy={busy} error={error} onCancel={cancel} name={record.fields.name ?? ''}
         onConfirm={() => void run(async () => { await api.remove(record.documentId); navigate(SPORTIVI_PATH, { replace: true }); })}
       />
+      <AnonymizeDialog open={dialog === 'anonymize'} count={null} busy={busy} error={error} onCancel={cancel} onConfirm={() => void run(anonymize, anonymizeErrorText)} />
     </>
   );
 }
 
-/** Header "..." menu (spec 6.1, gaps #8). */
-export function RecordMenu({ record, api, reload, onMerge }: Props) {
+/** Header "..." menu (spec 6.1, gaps #8, 3C spec 3, 4). */
+export function RecordMenu({ record, api, reload, onMerge, superAdmin }: Props) {
   const [open, setOpen] = React.useState(false);
   const [dialog, setDialog] = React.useState<Dialog>(null);
   const [busy, setBusy] = React.useState(false);
-  const pick = (key: MenuKey) => {
+  const pick = (key: RecordMenuKey) => {
     if (busy) return;
     setOpen(false);
     if (key === 'merge') onMerge();
-    else if (key === 'delete') setDialog('delete');
+    else if (key === 'export') void exportData(record.documentId, setBusy);
+    else if (key === 'delete' || key === 'anonymize') setDialog(key);
     else if (record.status === 'inactiv') void activate(api, record.documentId, reload, setBusy);
     else setDialog('inactive');
   };
   return (
     <>
       <MenuButton label={<MenuLabel />} open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="spv-menu" placement="bottom-end" role="menu" chevron={false} disabled={busy}>
-        <MenuItems record={record} onPick={pick} />
+        <MenuItems items={recordMenuItems(record.status, superAdmin)} onPick={pick} />
       </MenuButton>
       <RecordDialogs record={record} api={api} reload={reload} dialog={dialog} onClose={() => setDialog(null)} />
     </>

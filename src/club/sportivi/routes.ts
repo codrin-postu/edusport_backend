@@ -17,6 +17,13 @@ export const addAthleteTo = `${SPORTIVI_PATH}?${ADD_PARAM}=1`;
 
 export const wantsAddAthlete = (search: string): boolean => new URLSearchParams(search).get(ADD_PARAM) === '1';
 
+export const INACTIVE_PARAM = 'inactivi';
+
+/** The Sportivi list with "Inactivi de peste N ani" on (dashboard notice "Vezi lista", 3C spec 5). */
+export const inactiveListTo = `${SPORTIVI_PATH}?${INACTIVE_PARAM}=1`;
+
+export const wantsInactiveList = (search: string): boolean => new URLSearchParams(search).get(INACTIVE_PARAM) === '1';
+
 /** One registration's Înscrieri panel, from the record's "Înscrieri" block (spec 6.2; Needs decision 9, option A). */
 export const registrationPanelTo = (documentId: string): string => `${INSCRIERI_PATH}?open=${encodeURIComponent(documentId)}`;
 

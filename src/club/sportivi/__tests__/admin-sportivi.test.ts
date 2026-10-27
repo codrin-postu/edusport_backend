@@ -155,7 +155,8 @@ describe('athlete record (Task 7)', () => {
     expect(rec).toContain("active={tab === 'date'}");
     expect(rec).toContain('onSaved={loaded.reload}');
     expect(rec).toContain('aria-label={tabs.find((t) => t.id === tab)?.label}');
-    expect(rec).toContain("{record.status === 'inactiv' && <StatusBadge tone=\"neutral\">{STATUS_WORDS.inactiv}</StatusBadge>}");
+    expect(rec).toContain("const badge = record.status === 'inactiv' || record.status === 'anonimizat';");
+    expect(rec).toContain('{badge && <StatusBadge tone="neutral">{STATUS_WORDS[record.status]}</StatusBadge>}');
   });
 
   it('Date tab: Editează, picker, draft check, footer only while visible', () => {
@@ -265,7 +266,7 @@ describe('Profil public (Task 8)', () => {
 describe('menu, duplicates, merge wiring (Task 10)', () => {
   it('"..." menu with the spec dialogs', () => {
     const menu = read('sportivi/RecordMenu.tsx');
-    for (const s of ['menuItems(record.status)', 'RECORD_COPY.menu.button', 'RECORD_COPY.inactiveDialog.title', 'RECORD_COPY.deleteDialog.message(', "api.setStatus(record.documentId, 'inactiv')", 'navigate(SPORTIVI_PATH, { replace: true })']) {
+    for (const s of ['recordMenuItems(record.status, superAdmin)', 'RECORD_COPY.menu.button', 'RECORD_COPY.inactiveDialog.title', 'RECORD_COPY.deleteDialog.message(', "api.setStatus(record.documentId, 'inactiv')", 'navigate(SPORTIVI_PATH, { replace: true })']) {
       expect(menu).toContain(s);
     }
   });

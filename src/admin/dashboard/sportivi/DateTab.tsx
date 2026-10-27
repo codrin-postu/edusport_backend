@@ -6,7 +6,7 @@ import type { AthleteRecord } from '../../../club/athletes/api-types';
 import { ADMIN_ERRORS } from '../../../club/athletes/errors';
 import { requestErrorText } from '../../../club/registration-panel';
 import {
-  RECORD_COPY, acsLine, checkDraft, editDraft, fieldRows, registrationLine, saveToast, type DraftErrors, type EditBody, type EditDraft,
+  RECORD_COPY, acsLine, checkDraft, editDraft, fieldRows, isReadOnlyRecord, registrationLine, saveToast, type DraftErrors, type EditBody, type EditDraft,
 } from '../../../club/sportivi/record-view';
 import { registrationPanelTo } from '../../../club/sportivi/routes';
 import type { SportiviApi } from './api';
@@ -76,14 +76,14 @@ function FieldLabel({ record, field }: { record: AthleteRecord; field: AthleteFi
   );
 }
 
-function DateView({ record, onEdit }: { record: AthleteRecord; onEdit: () => void }) {
+function DateView({ record, onEdit }: { record: AthleteRecord; onEdit: (() => void) | null }) {
   return (
     <dl className="spv-fields">
       {fieldRows(record).map((row, i) => (
         <div key={row.field} className="spv-field">
           <dt className="spv-label">
             <span>{row.label}</span>
-            {i === 0 && <button type="button" id={EDIT_ID} className="spv-link" onClick={onEdit}>{RECORD_COPY.edit}</button>}
+            {i === 0 && onEdit && <button type="button" id={EDIT_ID} className="spv-link" onClick={onEdit}>{RECORD_COPY.edit}</button>}
           </dt>
           <dd className="spv-value">{row.missing && <span className="spv-missing">{RECORD_COPY.missing}</span>}{row.value}</dd>
         </div>
@@ -143,6 +143,7 @@ function RecordFacts({ record }: { record: AthleteRecord }) {
 /** Date (spec 6.2): "Editează" like the Înscrieri panel; "Date incomplete" is recomputed by the server on every save. */
 export function DateTab(props: Props) {
   const edit = useDateEdit(props);
+  const readOnly = isReadOnlyRecord(props.record);
   const buttons: FooterAction[] | null = edit.draft
     ? [
         { label: RECORD_COPY.cancel, variant: 'secondary', onClick: edit.cancel, disabled: edit.saving },
@@ -155,9 +156,9 @@ export function DateTab(props: Props) {
       {edit.draft ? (
         <DateForm record={props.record} draft={edit.draft} errors={edit.errors} onChange={edit.setDraft} />
       ) : (
-        <DateView record={props.record} onEdit={edit.start} />
+        <DateView record={props.record} onEdit={readOnly ? null : edit.start} />
       )}
-      <p className="ui-hint">{RECORD_COPY.requiredHint}</p>
+      {!readOnly && <p className="ui-hint">{RECORD_COPY.requiredHint}</p>}
       {buttons && !inFooter && (
         <div className="spv-actions">
           <FooterButtons actions={buttons} />

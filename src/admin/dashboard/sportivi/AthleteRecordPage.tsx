@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AdminPage, BottomSheet, Loading, Notice, PageHeader, StatusBadge, Tabs, Window, useIsPhone } from '../../ui';
 import type { AthleteRecord } from '../../../club/athletes/api-types';
 import { STATUS_WORDS } from '../../../club/history-text';
-import { RECORD_COPY, recordSubline, recordTabs, seasonFromState, type RecordTab } from '../../../club/sportivi/record-view';
+import { RECORD_COPY, isReadOnlyRecord, recordSubline, recordTabs, seasonFromState, type RecordTab } from '../../../club/sportivi/record-view';
 import { athleteRecordTo, SPORTIVI_PATH } from '../../../club/sportivi/routes';
 import { useSportiviApi, type SportiviApi } from './api';
 import { DateTab } from './DateTab';
@@ -15,6 +15,7 @@ import { ProfileTab } from './ProfileTab';
 import { RecordMenu } from './RecordMenu';
 import { FooterButtons, RecordFooterContext, type FooterAction } from './recordFooter';
 import { SPORTIVI_CSS } from './styles';
+import { useIsSuperAdmin } from './useSuperAdmin';
 
 type Loaded = { record: AthleteRecord | null; failed: boolean; reload: () => Promise<void>; setRecord: (r: AthleteRecord) => void };
 
@@ -35,30 +36,38 @@ function useAthleteRecord(api: SportiviApi, id: string, season: string | null): 
   return { record, failed, reload, setRecord };
 }
 
-type HeaderProps = { record: AthleteRecord; api: SportiviApi; loaded: Loaded; onMerge: () => void };
+type HeaderProps = { record: AthleteRecord; api: SportiviApi; loaded: Loaded; onMerge: () => void; superAdmin: boolean };
 
-/** Badges and the "..." menu beside the name. Needs decision 12, option B: "Inactiv" while inactive. */
-function HeaderActions({ record, api, loaded, onMerge }: HeaderProps) {
+/** Badges and the "..." menu beside the name. Needs decision 12, option B: "Inactiv" while inactive; 3C: "Anonimizat", read-only, no menu. */
+function HeaderActions({ record, api, loaded, onMerge, superAdmin }: HeaderProps) {
+  const badge = record.status === 'inactiv' || record.status === 'anonimizat';
   return (
     <div className="spv-head-acts">
       {record.dataIncomplete && <StatusBadge tone="warning">{RECORD_COPY.incomplete}</StatusBadge>}
-      {record.status === 'inactiv' && <StatusBadge tone="neutral">{STATUS_WORDS.inactiv}</StatusBadge>}
-      <RecordMenu record={record} api={api} reload={loaded.reload} onMerge={onMerge} />
+      {badge && <StatusBadge tone="neutral">{STATUS_WORDS[record.status]}</StatusBadge>}
+      {!isReadOnlyRecord(record) && <RecordMenu record={record} api={api} reload={loaded.reload} onMerge={onMerge} superAdmin={superAdmin} />}
     </div>
   );
 }
 
 type ContentProps = { record: AthleteRecord; api: SportiviApi; loaded: Loaded; head: React.ReactNode; onMerge: (otherId: string) => void };
 
-function RecordContent({ record, api, loaded, head, onMerge }: ContentProps) {
-  const [tab, setTab] = React.useState<RecordTab>('date');
+/** The open tab and the tabs opened once; Date when the record loses the open one (anonymized: Date and Istoric only). */
+function useRecordTab(record: AthleteRecord) {
+  const [picked, setTab] = React.useState<RecordTab>('date');
   const [seen, setSeen] = React.useState<RecordTab[]>(['date']);
   const tabs = recordTabs(record);
+  const tab = tabs.some((t) => t.id === picked) ? picked : 'date';
   const show = (id: string) => {
     const next = id as RecordTab;
     setTab(next);
     setSeen((s) => (s.includes(next) ? s : [...s, next]));
   };
+  return { tabs, tab, seen, show };
+}
+
+function RecordContent({ record, api, loaded, head, onMerge }: ContentProps) {
+  const { tabs, tab, seen, show } = useRecordTab(record);
   return (
     <>
       {head}
@@ -119,6 +128,7 @@ function RecordShell({ phone, title, record, actions, body, onClose }: ShellProp
 export function AthleteRecordPage({ documentId }: { documentId: string }) {
   const api = useSportiviApi();
   const phone = useIsPhone();
+  const superAdmin = useIsSuperAdmin();
   const navigate = useNavigate();
   const { state } = useLocation();
   const loaded = useAthleteRecord(api, documentId, seasonFromState(state));
@@ -129,7 +139,7 @@ export function AthleteRecordPage({ documentId }: { documentId: string }) {
     if (keptId === documentId) void loaded.reload();
     else navigate(athleteRecordTo(keptId), { replace: true, state: { season: seasonFromState(state) } });
   };
-  const actions = record ? <HeaderActions record={record} api={api} loaded={loaded} onMerge={() => setMerge({ otherId: null })} /> : null;
+  const actions = record ? <HeaderActions record={record} api={api} loaded={loaded} onMerge={() => setMerge({ otherId: null })} superAdmin={superAdmin} /> : null;
   const head = phone && record ? <div className="spv-phone-head"><span className="spv-sub2">{recordSubline(record)}</span>{actions}</div> : null;
   const body = record
     ? <RecordContent record={record} api={api} loaded={loaded} head={head} onMerge={(otherId) => setMerge({ otherId })} />
