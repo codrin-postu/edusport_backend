@@ -18,6 +18,7 @@ import {
 import { FORMULARE_TO, PROGRAM_EDIT_TO } from './menu';
 import { FORM_DEFS, fetchNewCount, tileStyle } from './formDefs';
 import { addAthleteTo } from '../../club/sportivi/routes';
+import { PersonalDataNotice } from './PersonalDataNotice';
 
 /**
  * EduSport admin dashboard page (Direction A).
@@ -454,6 +455,9 @@ export default function DashboardPage() {
           ))}
         </div>
       )}
+
+      {/* 3C: athletes past the retention period (spec 5) */}
+      <PersonalDataNotice />
 
       {/* CE E NOU feed */}
       <Section

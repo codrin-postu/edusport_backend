@@ -12,11 +12,14 @@ import {
   Switch,
   Field,
   HelpTip,
+  NumberInput,
   normalizeObject,
 } from '../ui';
 import { useSingleType, usePageForm } from '../lib';
 import { DASHBOARD_TO } from '../dashboard/menu';
 import { UID } from './routes';
+import { PERSONAL_DATA_COPY } from '../../club/personal-data/copy';
+import { DEFAULT_RETENTION_YEARS, RETENTION_BOUNDS, retentionYearsOf, type PersonalDataSettings } from '../../club/personal-data/settings';
 
 /**
  * Setări site (/plugins/edusport-setari): the site-settings single type.
@@ -32,7 +35,8 @@ import { UID } from './routes';
  *   contact:      { phone, email, facebookUrl1, instagramUrl,
  *                   whatsappChannelUrl, addressDisplay, addressMapsUrl }
  * Keys the editors did not know are kept (the objects are merged, not
- * rebuilt). These are the only two attributes on the schema.
+ * rebuilt). Plus `personalData` (3C): `{ retentionYears, reviewHiddenUntilSeason }`,
+ * the number edited here, the season written by the dashboard notice.
  */
 
 /** Only `open` is edited; the stored season keys ride along untouched (normalizeObject keeps them). */
@@ -53,6 +57,7 @@ interface Contact {
 interface SiteSettings {
   registration: Registration | null;
   contact: Contact | null;
+  personalData: PersonalDataSettings | null;
 }
 
 const EMPTY_REGISTRATION: Registration = { open: false };
@@ -67,12 +72,15 @@ const EMPTY_CONTACT: Contact = {
   addressMapsUrl: '',
 };
 
+const EMPTY_PERSONAL_DATA: PersonalDataSettings = { retentionYears: DEFAULT_RETENTION_YEARS, reviewHiddenUntilSeason: null };
+
 const SetariSitePage: React.FC = () => {
   const page = useSingleType<SiteSettings>(UID.siteSettings);
   const form = usePageForm<SiteSettings>(page.data, page.saveState);
 
   const registration = normalizeObject<Registration>(form.value.registration, EMPTY_REGISTRATION);
   const contact = normalizeObject<Contact>(form.value.contact, EMPTY_CONTACT);
+  const personalData = normalizeObject<PersonalDataSettings>(form.value.personalData, EMPTY_PERSONAL_DATA);
 
   const setRegistration = (patch: Partial<Registration>) =>
     form.set('registration', { ...registration, ...patch });
@@ -125,6 +133,19 @@ const SetariSitePage: React.FC = () => {
                 },
               ]}
             />
+
+            <EditorCard title={PERSONAL_DATA_COPY.settingsCard}>
+              <Field label={PERSONAL_DATA_COPY.settingsField}>
+                <NumberInput
+                  value={personalData.retentionYears}
+                  min={RETENTION_BOUNDS.min}
+                  max={RETENTION_BOUNDS.max}
+                  allowEmpty={false}
+                  label={PERSONAL_DATA_COPY.settingsField}
+                  onChange={(next) => form.set('personalData', { ...personalData, retentionYears: retentionYearsOf(next) })}
+                />
+              </Field>
+            </EditorCard>
           </div>
         )}
 
