@@ -77,7 +77,7 @@ Resolved since parking: athlete row lock and merge/delete locks (polish 12), mai
 
 ## Local environment (2026-10-27)
 
-One local EduSport only: Strapi 1340 + website 3010 + `edusport-test-pg`, worktrees `test-main`, running feat/athletes at 8ca0e4a (phase 3 + 4-1 backend + user UI fixes 2026-10-27) with synthetic data. Login admin@example.invalid / Throwaway1! (Super Admin). DB backups before each update in the session scratchpad (`test-pg-before-*.dump`). The old `strapi_app` / `strapi_db` (1337 / 5432) is stopped, data kept in its volume.
+One local EduSport only: Strapi 1340 + website 3010 + `edusport-test-pg`, worktrees `test-main`, running feat/athletes at 0c74c53 (all of phase 4 + user UI fixes), frontend f2c4e0d (4-7); groups migration steps 1-5 applied (backup test-pg-before-phase4.dump) with synthetic data. Login admin@example.invalid / Throwaway1! (Super Admin). DB backups before each update in the session scratchpad (`test-pg-before-*.dump`). The old `strapi_app` / `strapi_db` (1337 / 5432) is stopped, data kept in its volume.
 
 ## Review load (user, 2026-10-27)
 
