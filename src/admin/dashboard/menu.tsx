@@ -11,6 +11,7 @@ import {
 } from '../pages/routes';
 import { OLD_EDITOR_PATH, SPORTIVI_PATH } from '../../club/sportivi/routes';
 import { GRUPE_PATH } from '../../club/grupe/routes';
+import { PREZENTA_PATH, ABONAMENTE_PATH, PLATI_PATH, DE_INCASAT_PATH } from '../../club/prezenta/routes';
 
 // Route constants of the custom pages (src/admin/pages), re-exported so every
 // *_TO lives behind one import. Defined in ../pages/routes (see there).
@@ -140,9 +141,13 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   // Program și calendar
   { to: PROGRAM_EDIT_TO, label: 'Calendar și serii', icon: Calendar, group: 'program', featured: true },
 
-  // Club și școală (Prezență joins in phase 5)
+  // Club și școală
   { to: GRUPE_TO, label: 'Grupe', icon: GridFour, group: 'club', featured: true },
   { to: SPORTIVI_TO, label: 'Sportivi', icon: User, group: 'club', featured: true },
+  { to: PREZENTA_PATH, label: 'Prezență', icon: Clock, group: 'club' },
+  { to: ABONAMENTE_PATH, label: 'Abonamente', icon: Book, group: 'club' },
+  { to: PLATI_PATH, label: 'Plăți', icon: ChartCircle, group: 'club' },
+  { to: DE_INCASAT_PATH, label: 'De încasat', icon: Bell, group: 'club' },
 
   // Sportivi și echipă
   // Re-pointed from collection('api::team-member.team-member'): team members are
@@ -289,6 +294,43 @@ export function registerEdusportMenu(app: StrapiApp) {
     Component: () => import('./SportiviPage'),
     permissions: [],
     position: 6,
+  });
+
+  // Club și școală, after Sportivi (ties keep registration order).
+  app.addMenuLink({
+    to: PREZENTA_PATH,
+    icon: Clock,
+    intlLabel: { id: 'edusport.menu.prezenta', defaultMessage: 'Prezență' },
+    Component: () => import('./PrezentaPage'),
+    permissions: [],
+    position: 7,
+  });
+
+  app.addMenuLink({
+    to: ABONAMENTE_PATH,
+    icon: Book,
+    intlLabel: { id: 'edusport.menu.abonamente', defaultMessage: 'Abonamente' },
+    Component: () => import('./AbonamentePage'),
+    permissions: [],
+    position: 7,
+  });
+
+  app.addMenuLink({
+    to: PLATI_PATH,
+    icon: ChartCircle,
+    intlLabel: { id: 'edusport.menu.plati', defaultMessage: 'Plăți' },
+    Component: () => import('./PlatiPage'),
+    permissions: [],
+    position: 7,
+  });
+
+  app.addMenuLink({
+    to: DE_INCASAT_PATH,
+    icon: Bell,
+    intlLabel: { id: 'edusport.menu.deIncasat', defaultMessage: 'De încasat' },
+    Component: () => import('./DeIncasatPage'),
+    permissions: [],
+    position: 7,
   });
 
   // The old profile editor: route only, it redirects to the athlete record (spec 7).
