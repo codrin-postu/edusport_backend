@@ -450,7 +450,7 @@ export default function AnunturiPage() {
 
   const umamiNote =
     umami === 'not_configured'
-      ? 'Umami nu este configurat, așa că nu avem de unde citi cifrele. Coloana de statistici arată "—", nu zero — anunțurile pot fi văzute și apăsate fără ca noi să știm.'
+      ? 'Umami nu este configurat, așa că nu avem de unde citi cifrele. Coloana de statistici arată "—", nu zero. Anunțurile pot fi văzute și apăsate fără ca noi să știm.'
       : umami === 'error'
         ? 'Nu am putut citi statisticile din Umami. Coloana arată "—" până când conexiunea revine; restul paginii funcționează normal.'
         : null;
