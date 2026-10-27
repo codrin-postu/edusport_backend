@@ -168,11 +168,19 @@ export function acsOnFee(current: AcsState | null): { set: boolean; acsBefore: A
   return { set: current !== 'da', acsBefore: current };
 }
 
-/** Back to the state before only when no other live fee of the season remains and A.C.S. is still "Da" (4.17, C9). */
+/** The state before the first fee of the season, cancelled ones too: the same whichever fee is cancelled first. */
+function acsBaseline(payment: PaymentRow, others: readonly PaymentRow[]): AcsState | null {
+  const fees = [payment, ...others.filter((o) => o.id !== payment.id && o.purpose === 'cotizatie' && o.seasonId === payment.seasonId)];
+  const first = fees.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt) || a.id.localeCompare(b.id))[0];
+  return first.acsBefore;
+}
+
+/** Back to the state before the first fee of the season, only when no other live fee remains and A.C.S. is still "Da" (4.17, C9, final review M4). */
 export function acsRevert(payment: PaymentRow, others: readonly PaymentRow[], current: AcsState | null): { revert: boolean; to: AcsState | null } {
   const otherFee = others.some((o) => o.id !== payment.id && !o.cancelled && o.purpose === 'cotizatie' && o.seasonId === payment.seasonId);
-  const revert = payment.purpose === 'cotizatie' && !otherFee && current === 'da' && payment.acsBefore !== 'da';
-  return { revert, to: revert ? payment.acsBefore : current };
+  const to = acsBaseline(payment, others);
+  const revert = payment.purpose === 'cotizatie' && !otherFee && current === 'da' && to !== 'da';
+  return { revert, to: revert ? to : current };
 }
 
 const TRACKED = ['amount', 'paidOn', 'method', 'collectedAtRink', 'note'] as const;

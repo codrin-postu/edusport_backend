@@ -91,6 +91,13 @@ describe('A.C.S. effect and history', () => {
     expect(acsRevert({ ...fee, acsBefore: 'da' }, [], 'da').revert).toBe(false);
     expect(acsRevert(paymentRow({ id: 'x', purpose: 'altceva' }), [], 'da').revert).toBe(false);
   });
+  it('two fees of one season: the order of the cancels does not matter (final review M4)', () => {
+    const first = paymentRow({ id: 'f1', purpose: 'cotizatie', seasonId: 's26', acsBefore: 'nu', recordedAt: '2026-10-01T10:00:00.000Z' });
+    const second = paymentRow({ id: 'f2', purpose: 'cotizatie', seasonId: 's26', acsBefore: 'da', recordedAt: '2026-10-02T10:00:00.000Z' });
+    expect(acsRevert({ ...first, cancelled: true }, [{ ...second }], 'da').revert).toBe(false);
+    expect(acsRevert({ ...second, cancelled: true }, [{ ...first, cancelled: true }], 'da')).toEqual({ revert: true, to: 'nu' });
+    expect(acsRevert({ ...first, cancelled: true }, [{ ...second, cancelled: true }], 'da')).toEqual({ revert: true, to: 'nu' });
+  });
   it('field changes for history, purpose as text (4.17, 8)', () => {
     const before = paymentRow({ id: 'p', amount: 300, method: 'numerar', note: null });
     expect(paymentFieldChanges(before, { ...before, amount: 320, method: 'card' }, { before: 'Altceva', after: 'Altceva' }))
