@@ -93,3 +93,43 @@ describe('"Fără grupă" (5.3)', () => {
     expect(grupe('GrupeList.tsx')).toContain('<UnassignedButton');
   });
 });
+
+describe('group page (6.1, 6.2, 6.4)', () => {
+  const page = grupe('GroupPage.tsx');
+  const roster = grupe('RosterTab.tsx');
+  const move = grupe('MoveDialog.tsx');
+  const add = grupe('AddMembers.tsx');
+  const menu = grupe('GroupMenu.tsx');
+
+  it('header: back to Grupe, subtitle, "..." with Editează / Șterge grupa, read-only on a past season', () => {
+    expect(page).toContain('GRUPE_COPY.back');
+    expect(page).toContain('subtitle(page)');
+    expect(page).toContain('writable(page)');
+    for (const s of ['GRUPE_COPY.edit', 'GRUPE_COPY.remove', 'GRUPE_COPY.removeConfirm', 'page.deletable', 'GROUP_TOASTS.deleted']) expect(menu, s).toContain(s);
+  });
+
+  it('roster: the four columns, the athlete opens in the same tab, cards on phones, "..." per row', () => {
+    for (const s of ['GRUPE_COPY.colAthlete', 'GRUPE_COPY.colAge', 'GRUPE_COPY.colMain', 'GRUPE_COPY.colOthers', 'GRUPE_COPY.none', 'athleteRecordTo', 'phoneMemberLine', '<MemberMenu']) expect(roster, s).toContain(s);
+    expect(roster).not.toContain('target="_blank"');
+    expect(grupe('MemberMenu.tsx')).toContain('memberMenuItems');
+  });
+
+  it('the move window: Sportiv, Din, În with "Alege grupa", no abonament in phase 4', () => {
+    for (const s of ['GRUPE_COPY.moveTitle', 'GRUPE_COPY.addAlsoTitle', 'GRUPE_COPY.fieldAthlete', 'GRUPE_COPY.fieldFrom', 'GRUPE_COPY.fieldTo', 'GRUPE_COPY.pickGroup', 'GROUP_TOASTS.moved', 'GROUP_TOASTS.addedAlso', 'undoToast']) expect(move, s).toContain(s);
+    expect(move).not.toMatch(/[Aa]bonament/);
+  });
+
+  it('"Scoate din grupă" has no window and toasts with undo', () => {
+    expect(roster).toContain('GROUP_TOASTS.removed');
+    expect(roster).toContain('api.removeMember');
+  });
+
+  it('"Adaugă sportivi": Fără grupă first, all athletes on the switch, members hidden, several ticked', () => {
+    for (const s of ['GRUPE_COPY.addMembers', 'GRUPE_COPY.allAthletes', 'GRUPE_COPY.addToGroup', 'addCandidates', 'api.unassigned', 'api.searchAthletes', "mode: 'add'", 'GROUP_TOASTS.added']) expect(add, s).toContain(s);
+  });
+
+  it('Istoric reads the group history, newest first', () => {
+    expect(grupe('GroupHistoryTab.tsx')).toContain('api.history');
+    expect(grupe('GroupHistoryTab.tsx')).toContain('historyWhen');
+  });
+});
