@@ -1,3 +1,5 @@
+import { isRecord } from '../narrow';
+
 /** "Ani până la anonimizare" and the yearly review notice (spec 2, 5). Pure: the admin bundle imports it too. */
 export const DEFAULT_RETENTION_YEARS = 5;
 export const RETENTION_BOUNDS = { min: 1, max: 20 } as const;
@@ -8,7 +10,7 @@ export type PersonalDataSettings = { retentionYears: number; reviewHiddenUntilSe
 /** GET /api/club/athletes/inactive-summary: what the dashboard notice needs. */
 export type InactiveSummary = { retentionYears: number; count: number; seasonLabel: string | null; shown: boolean };
 
-const record = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+const record = (v: unknown): Record<string, unknown> => (isRecord(v) ? v : {});
 
 /** A whole number is kept between 1 and 20; anything else is the default (decided while planning, item 8). */
 export function retentionYearsOf(v: unknown): number {

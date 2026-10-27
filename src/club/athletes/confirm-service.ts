@@ -40,9 +40,17 @@ async function pickGroup(store: ClubStore, reg: RegistrationRow, groupId: string
   return hit ? { id: hit.documentId, name: hit.name } : undefined;
 }
 
-async function loadFacts(ctx: ServiceContext, reg: RegistrationRow, request: ConfirmRequest): Promise<AdminResult<Loaded>> {
-  const athlete = request.athleteId ? await ctx.store.athlete(request.athleteId) : null;
+/** The athlete the request names; "existing" refused when it is gone or anonymized. */
+async function chosenAthlete(store: ClubStore, request: ConfirmRequest): Promise<AdminResult<AthleteRow | null>> {
+  const athlete = request.athleteId ? await store.athlete(request.athleteId) : null;
   if (request.choice === 'existing' && (!athlete || isAnonymized(athlete))) return refuse(400, CONFIRM_ERRORS.failed);
+  return { ok: true, data: athlete };
+}
+
+async function loadFacts(ctx: ServiceContext, reg: RegistrationRow, request: ConfirmRequest): Promise<AdminResult<Loaded>> {
+  const chosen = await chosenAthlete(ctx.store, request);
+  if (chosen.ok === false) return chosen;
+  const athlete = chosen.data;
   const season: SeasonFacts | null = registrationSeason(reg, await ctx.store.seasons());
   const running = seasonRunning(season, ctx.today);
   // The season's end (task 16/gaps #31): an ended or unmatched season ignores any groupId, never errors on it.

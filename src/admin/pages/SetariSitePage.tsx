@@ -14,8 +14,9 @@ import {
   HelpTip,
   NumberInput,
   normalizeObject,
+  type ObjectFieldConfig,
 } from '../ui';
-import { useSingleType, usePageForm } from '../lib';
+import { useSingleType, usePageForm, type PageForm } from '../lib';
 import { DASHBOARD_TO } from '../dashboard/menu';
 import { UID } from './routes';
 import { PERSONAL_DATA_COPY } from '../../club/personal-data/copy';
@@ -74,86 +75,97 @@ const EMPTY_CONTACT: Contact = {
 
 const EMPTY_PERSONAL_DATA: PersonalDataSettings = { retentionYears: DEFAULT_RETENTION_YEARS, reviewHiddenUntilSeason: null };
 
+const CONTACT_FIELDS: ObjectFieldConfig<Contact>[] = [
+  { key: 'phone', label: 'Număr telefon', hint: 'Cu sau fără spații, link-ul tel: se generează automat', placeholder: 'ex: 0723 623 712' },
+  { key: 'email', label: 'Adresă email', type: 'text', placeholder: 'ex: scoala.de.patinaj@gmail.com' },
+  { key: 'facebookUrl1', label: 'Facebook', placeholder: 'ex: https://facebook.com/edusport', span: 2 },
+  { key: 'instagramUrl', label: 'Instagram', placeholder: 'ex: https://instagram.com/edusport', span: 2 },
+  { key: 'whatsappChannelUrl', label: 'Canal WhatsApp', hint: 'Link către canalul de WhatsApp', placeholder: 'ex: https://whatsapp.com/channel/...', span: 2 },
+  { key: 'addressDisplay', label: 'Adresă afișată', hint: 'Textul adresei care apare pe site', placeholder: 'ex: Patinoarul AFI Cotroceni, București', span: 2 },
+  {
+    key: 'addressMapsUrl',
+    label: 'Link hartă (opțional)',
+    hint: 'Lasă gol și adresa duce automat la o căutare Google Maps. Completează doar dacă vrei un loc anume: deschide locația în Google Maps, apasă Partajează, copiază linkul.',
+    placeholder: 'ex: https://maps.app.goo.gl/...',
+    span: 2,
+  },
+];
+
+type FormProps = { form: PageForm<SiteSettings> };
+
+const RegistrationCard: React.FC<FormProps> = ({ form }) => {
+  const registration = normalizeObject<Registration>(form.value.registration, EMPTY_REGISTRATION);
+  return (
+    <EditorCard title="Înscrieri">
+      <Field label="Înscrieri deschise" hint="Când este activ, pe site se afișează secțiunea de înscrieri. Când este inactiv, apare mesajul că înscrierile sunt închise.">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-3)' }}>
+          <Switch
+            checked={registration.open}
+            onChange={(next) => form.set('registration', { ...registration, open: next })}
+            aria-label="Înscrieri deschise"
+          />
+          <span className="ui-hint">{registration.open ? 'Vizibile pe site' : 'Închise'}</span>
+          <HelpTip label="Comută starea de înscrieri afișată public pe site." />
+        </div>
+      </Field>
+    </EditorCard>
+  );
+};
+
+const ContactCard: React.FC<FormProps> = ({ form }) => {
+  const contact = normalizeObject<Contact>(form.value.contact, EMPTY_CONTACT);
+  return (
+    <ObjectFieldCard<Contact>
+      title="Date de contact & rețele sociale"
+      description="Informații afișate în footer-ul site-ului și pe paginile de contact. Modificările se reflectă pe tot site-ul."
+      value={contact}
+      onFieldChange={(key, v) => form.set('contact', { ...contact, [key]: v })}
+      fields={CONTACT_FIELDS}
+    />
+  );
+};
+
+const PersonalDataCard: React.FC<FormProps> = ({ form }) => {
+  const personalData = normalizeObject<PersonalDataSettings>(form.value.personalData, EMPTY_PERSONAL_DATA);
+  return (
+    <EditorCard title={PERSONAL_DATA_COPY.settingsCard}>
+      <Field label={PERSONAL_DATA_COPY.settingsField}>
+        <NumberInput
+          value={personalData.retentionYears}
+          min={RETENTION_BOUNDS.min}
+          max={RETENTION_BOUNDS.max}
+          allowEmpty={false}
+          label={PERSONAL_DATA_COPY.settingsField}
+          onChange={(next) => form.set('personalData', { ...personalData, retentionYears: retentionYearsOf(next) })}
+        />
+      </Field>
+    </EditorCard>
+  );
+};
+
 const SetariSitePage: React.FC = () => {
   const page = useSingleType<SiteSettings>(UID.siteSettings);
   const form = usePageForm<SiteSettings>(page.data, page.saveState);
-
-  const registration = normalizeObject<Registration>(form.value.registration, EMPTY_REGISTRATION);
-  const contact = normalizeObject<Contact>(form.value.contact, EMPTY_CONTACT);
-  const personalData = normalizeObject<PersonalDataSettings>(form.value.personalData, EMPTY_PERSONAL_DATA);
-
-  const setRegistration = (patch: Partial<Registration>) =>
-    form.set('registration', { ...registration, ...patch });
-
+  const ready = !page.loading && !page.error;
   return (
     <AdminPage>
       <Window>
         <PageHeader back={{ to: DASHBOARD_TO }} title="Setări site" subtitle="Înscrieri și date de contact, folosite pe tot site-ul." />
-
-        {page.loading ? (
-          <Loading />
-        ) : page.error ? (
+        {page.loading && <Loading />}
+        {!page.loading && page.error ? (
           <div className="ui-body">
             <Notice tone="danger">Nu am putut încărca setările site-ului.</Notice>
           </div>
-        ) : (
+        ) : null}
+        {ready && (
           <div className="ui-body">
-            <EditorCard title="Înscrieri">
-              <Field label="Înscrieri deschise" hint="Când este activ, pe site se afișează secțiunea de înscrieri. Când este inactiv, apare mesajul că înscrierile sunt închise.">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-3)' }}>
-                  <Switch
-                    checked={registration.open}
-                    onChange={(next) => setRegistration({ open: next })}
-                    aria-label="Înscrieri deschise"
-                  />
-                  <span className="ui-hint">{registration.open ? 'Vizibile pe site' : 'Închise'}</span>
-                  <HelpTip label="Comută starea de înscrieri afișată public pe site." />
-                </div>
-              </Field>
-            </EditorCard>
-
-            <ObjectFieldCard<Contact>
-              title="Date de contact & rețele sociale"
-              description="Informații afișate în footer-ul site-ului și pe paginile de contact. Modificările se reflectă pe tot site-ul."
-              value={contact}
-              onFieldChange={(key, v) => form.set('contact', { ...contact, [key]: v })}
-              fields={[
-                { key: 'phone', label: 'Număr telefon', hint: 'Cu sau fără spații, link-ul tel: se generează automat', placeholder: 'ex: 0723 623 712' },
-                { key: 'email', label: 'Adresă email', type: 'text', placeholder: 'ex: scoala.de.patinaj@gmail.com' },
-                { key: 'facebookUrl1', label: 'Facebook', placeholder: 'ex: https://facebook.com/edusport', span: 2 },
-                { key: 'instagramUrl', label: 'Instagram', placeholder: 'ex: https://instagram.com/edusport', span: 2 },
-                { key: 'whatsappChannelUrl', label: 'Canal WhatsApp', hint: 'Link către canalul de WhatsApp', placeholder: 'ex: https://whatsapp.com/channel/...', span: 2 },
-                { key: 'addressDisplay', label: 'Adresă afișată', hint: 'Textul adresei care apare pe site', placeholder: 'ex: Patinoarul AFI Cotroceni, București', span: 2 },
-                {
-                  key: 'addressMapsUrl',
-                  label: 'Link hartă (opțional)',
-                  hint: 'Lasă gol și adresa duce automat la o căutare Google Maps. Completează doar dacă vrei un loc anume: deschide locația în Google Maps, apasă Partajează, copiază linkul.',
-                  placeholder: 'ex: https://maps.app.goo.gl/...',
-                  span: 2,
-                },
-              ]}
-            />
-
-            <EditorCard title={PERSONAL_DATA_COPY.settingsCard}>
-              <Field label={PERSONAL_DATA_COPY.settingsField}>
-                <NumberInput
-                  value={personalData.retentionYears}
-                  min={RETENTION_BOUNDS.min}
-                  max={RETENTION_BOUNDS.max}
-                  allowEmpty={false}
-                  label={PERSONAL_DATA_COPY.settingsField}
-                  onChange={(next) => form.set('personalData', { ...personalData, retentionYears: retentionYearsOf(next) })}
-                />
-              </Field>
-            </EditorCard>
+            <RegistrationCard form={form} />
+            <ContactCard form={form} />
+            <PersonalDataCard form={form} />
           </div>
         )}
-
-        {!page.loading && !page.error && (
-          <SaveBar {...page.saveState.bar} onSave={() => void page.save(form.value)} onDiscard={form.reset} />
-        )}
+        {ready && <SaveBar {...page.saveState.bar} onSave={() => void page.save(form.value)} onDiscard={form.reset} />}
       </Window>
-
       <UnsavedGuard when={form.dirty} />
     </AdminPage>
   );

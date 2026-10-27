@@ -1,10 +1,9 @@
 import type { AthleteRow, ClubStore, HistoryRow, RegistrationRow } from '../athletes/store';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
+import { isRecord } from '../narrow';
 import { nameWords } from '../person-match';
 
-type Changes = Record<string, unknown>;
-const isObject = (v: unknown): v is Changes => !!v && typeof v === 'object' && !Array.isArray(v);
-const sides = (v: unknown): unknown[] => (isObject(v) && 'from' in v ? [v.from, v.to] : [v]);
+const sides = (v: unknown): unknown[] => (isRecord(v) && 'from' in v ? [v.from, v.to] : [v]);
 
 /** A name as matching compares it: case, diacritics and word order ignored; '' when there is none. */
 export const nameKey = (raw: unknown): string => [...nameWords(raw)].sort().join(' ');
@@ -12,7 +11,7 @@ export const nameKey = (raw: unknown): string => [...nameWords(raw)].sort().join
 /** Every value stored under `key` at any depth, both sides of an old/new pair. */
 export function valuesUnder(value: unknown, key: string): unknown[] {
   if (Array.isArray(value)) return value.flatMap((v) => valuesUnder(v, key));
-  if (!isObject(value)) return [];
+  if (!isRecord(value)) return [];
   return Object.entries(value).flatMap(([k, v]) => (k === key ? sides(v) : valuesUnder(v, key)));
 }
 

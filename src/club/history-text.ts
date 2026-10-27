@@ -1,5 +1,6 @@
 import { acsWord } from './acs';
 import { ATHLETE_FIELD_LABELS, athleteValueText, isAthleteField, type AthleteStatus } from './athlete-data';
+import { isRecord } from './narrow';
 import { RELATIONSHIP_EDIT_OPTIONS } from './registration-panel';
 import { RELATIONSHIP_OTHER, SOURCE_OTHER } from './registration-form-options';
 
@@ -81,7 +82,6 @@ type Changes = Record<string, unknown>;
 type Render = (c: Changes, subjectType: string) => string[];
 
 const text = (v: unknown) => (typeof v === 'string' ? v : '');
-const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const isChange = (v: unknown): v is { from: unknown; to: unknown } => isRecord(v) && 'from' in v && 'to' in v;
 const statusWord = (v: unknown) => (typeof v === 'string' && v in STATUS_WORDS ? STATUS_WORDS[v as AthleteStatus] : '');
 

@@ -1,4 +1,5 @@
 import type { ConfirmationRecord } from '../confirm/plan';
+import { isRecord } from '../narrow';
 import { PERSONAL_DATA_COPY } from './copy';
 
 /** What "Anonimizează" writes (spec 4). Pure: the services apply it inside one transaction per athlete. */
@@ -34,10 +35,9 @@ type Nulled = { [K in (typeof REGISTRATION_NULLED_KEYS)[number]]: null };
 export type RegistrationScrub = Nulled & { childName: string; confirmation: ConfirmationRecord | null };
 
 type Changes = Record<string, unknown>;
-const isPlainObject = (v: unknown): v is Changes => !!v && typeof v === 'object' && !Array.isArray(v);
-const isPair = (v: unknown): v is Changes => isPlainObject(v) && 'from' in v && 'to' in v;
+const isPair = (v: unknown): v is Changes => isRecord(v) && 'from' in v && 'to' in v;
 const scrubValue = (v: unknown): unknown => (isPair(v) ? { ...v, from: null, to: null } : null);
-const walk = (v: unknown): unknown => (Array.isArray(v) ? v.map(walk) : isPlainObject(v) ? scrubChanges(v) : v);
+const walk = (v: unknown): unknown => (Array.isArray(v) ? v.map(walk) : isRecord(v) ? scrubChanges(v) : v);
 
 /** Every value under a personal key becomes null (a pair keeps its shape); other keys kept; nested objects and arrays walked. */
 export function scrubChanges(changes: Changes): Changes {
@@ -64,7 +64,7 @@ export function isAnonymizedRelation(athlete: unknown): boolean {
 
 /** POST /api/club/athletes/anonymize body `{ documentIds }`: 1 to 200 non-empty ids, repeats dropped; anything else null (400). */
 export function readAnonymizeIds(body: unknown): string[] | null {
-  const raw = isPlainObject(body) ? body.documentIds : null;
+  const raw = isRecord(body) ? body.documentIds : null;
   if (!Array.isArray(raw) || raw.length === 0 || raw.length > MAX_BULK) return null;
   if (!raw.every((id) => typeof id === 'string' && id.trim() !== '')) return null;
   return [...new Set(raw as string[])];

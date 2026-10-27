@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest';
 import policy from '../../../policies/is-super-admin';
 import { adminSessions, routeAnswer } from '../../__tests__/admin-sessions';
 import { hasSuperAdminRole, superAdminFromMe } from '../roles';
-import { isSuperAdminRequest, type RoleStrapi } from '../super-admin';
+import type { AdminUserStrapi } from '../../admin-auth';
+import { isSuperAdminRequest } from '../super-admin';
 
 const SECRET = 'test-secret';
 const SUPER = [{ code: 'strapi-super-admin' }];
@@ -20,7 +21,7 @@ const USERS: Record<number, unknown> = {
 };
 const sessions = adminSessions(SECRET);
 const asked: unknown[] = [];
-const strapi: RoleStrapi = {
+const strapi: AdminUserStrapi = {
   sessionManager: sessions.sessionManager,
   db: { query: () => ({ findOne: async (args) => { asked.push(args); return USERS[Number(args.where.id)] ?? null; } }) },
 };
