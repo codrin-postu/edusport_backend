@@ -56,7 +56,7 @@ export function BulkMoveSchool({ ids, meta, done }: { ids: string[]; meta: ListM
   };
   return (
     <>
-      <Select aria-label={LIST_COPY.school} value={target} onChange={setTarget} options={moveTargets(meta, null)} />
+      <Select aria-label={LIST_COPY.school} value={target} onChange={setTarget} placeholder={LIST_COPY.pickSchool} options={moveTargets(meta, null)} />
       <Button size="sm" onClick={() => void move()} loading={busy} disabled={!school}>
         {LIST_COPY.moveSchool}
       </Button>

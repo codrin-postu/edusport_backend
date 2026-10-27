@@ -58,7 +58,7 @@ function MoveSchoolDialog({ row, api, meta, onClose }: DialogProps & { meta: Lis
   return (
     <Modal open onClose={onClose} dismissable={!busy} title={PANEL_COPY.moveSchool} footer={footer}>
       <Field label={PANEL_COPY.schoolField}>
-        <Select value={target} onChange={setTarget} options={moveTargets(meta, row.schoolId)} />
+        <Select value={target} onChange={setTarget} placeholder={LIST_COPY.pickSchool} options={moveTargets(meta, row.schoolId)} />
       </Field>
     </Modal>
   );

@@ -12,6 +12,8 @@ export const LIST_COPY = {
   no: 'Nu',
   moveSchool: 'Mută la altă școală',
   move: 'Mută',
+  /** Empty first row of the school picker in both moves (polish 7). */
+  pickSchool: 'Alege școala',
 } as const;
 
 export const PANEL_COPY = {
