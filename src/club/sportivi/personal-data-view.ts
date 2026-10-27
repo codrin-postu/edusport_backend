@@ -1,6 +1,7 @@
 import type { AthleteStatus } from '../athlete-data';
 import { ADMIN_ERRORS } from '../athletes/errors';
 import { errorStatus } from '../inscrieri-confirm';
+import { MAX_BULK, type BulkAnonymizeResult } from '../personal-data/anonymize-plan';
 import { PERSONAL_DATA_COPY as C } from '../personal-data/copy';
 import { requestErrorText } from '../registration-panel';
 import { menuItems, type MenuKey } from './record-view';
@@ -26,3 +27,36 @@ export const anonymizeErrorText = (err: unknown): string => (errorStatus(err) ==
 
 export const EXPORT_FALLBACK_NAME = 'date.zip';
 export const exportUrl = (documentId: string): string => `/api/club/athletes/${encodeURIComponent(documentId)}/export`;
+
+/** Checkboxes and the bulk bar: only a Super Admin, only on the inactivity list (3C spec 5). */
+export const selectionOn = (inactiveFilterOn: boolean, superAdmin: boolean): boolean => inactiveFilterOn && superAdmin;
+
+export function toggled(ids: ReadonlySet<string>, id: string): Set<string> {
+  const next = new Set(ids);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  return next;
+}
+
+export const allSelected = (ids: ReadonlySet<string>, rowIds: string[]): boolean => rowIds.length > 0 && rowIds.every((id) => ids.has(id));
+
+/** "Selectează tot": ticks every row shown, or unticks them when all are ticked. */
+export function toggledAll(ids: ReadonlySet<string>, rowIds: string[]): Set<string> {
+  if (allSelected(ids, rowIds)) return new Set([...ids].filter((id) => !rowIds.includes(id)));
+  return new Set([...ids, ...rowIds]);
+}
+
+/** The route takes at most 200 ids; a bigger selection goes in turns (decided while planning, item 10). */
+export function chunks(ids: string[], size: number = MAX_BULK): string[][] {
+  const out: string[][] = [];
+  for (let i = 0; i < ids.length; i += size) out.push(ids.slice(i, i + size));
+  return out;
+}
+
+export const addResults = (a: BulkAnonymizeResult, b: BulkAnonymizeResult): BulkAnonymizeResult => ({
+  anonymized: a.anonymized + b.anonymized, skipped: a.skipped + b.skipped, failed: a.failed + b.failed,
+});
+
+/** "k sportivi anonimizați." plus "Sărite: n." / "Nereușite: n." when not zero (spec 5). */
+export const bulkToast = (r: BulkAnonymizeResult): string =>
+  [C.done(r.anonymized), r.skipped ? C.skipped(r.skipped) : '', r.failed ? C.failed(r.failed) : ''].filter(Boolean).join(' ');

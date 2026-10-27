@@ -77,6 +77,10 @@ export const SPORTIVI_CSS = `
 .ui-root.spv-menu button.spv-danger{color:var(--theme-danger)}
 .ui-root .spv-lines span{display:block}
 .ui-root .spv-lines span+span{margin-top:6px}
+.ui-root .spv-bulk{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--theme-border);background:var(--theme-primary-soft)}
+.ui-root .spv-check{width:40px}
+.ui-root .spv-card-row{display:flex;align-items:center;gap:10px}
+.ui-root .spv-card-row .spv-card{flex:1;min-width:0}
 @media (max-width: 640px){
 .ui-root .spv-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:10px 16px}
 .ui-root .spv-q{grid-column:1/-1;min-width:0}

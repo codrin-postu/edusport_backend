@@ -2,6 +2,8 @@ import { ACS_WORDS } from '../acs';
 import type { AthleteListPage, AthleteListRow } from '../athletes/api-types';
 import { NO_SECTION } from '../athletes/list';
 import { STATUS_WORDS } from '../history-text';
+import { PERSONAL_DATA_COPY } from '../personal-data/copy';
+import { DEFAULT_RETENTION_YEARS } from '../personal-data/settings';
 import { countWords } from '../ro-count';
 
 export { countWords };
@@ -20,6 +22,7 @@ export type ListFilters = {
   data: string[];
   status: string[];
   duplicates: string[];
+  personal: string[];
 };
 export type FilterKey = keyof ListFilters;
 export type ListState = { season: string; q: string; filters: ListFilters; sort: SortKey; dir: 'asc' | 'desc'; page: number };
@@ -50,8 +53,8 @@ export const LIST_COPY = {
   columns: { name: 'Sportiv', age: 'Vârstă', contact: 'Contact', acs: 'Membru A.C.S.', profile: 'Profil public' },
 } as const;
 
-const FILTER_KEYS: readonly FilterKey[] = ['section', 'group', 'acs', 'profile', 'data', 'status', 'duplicates'];
-export const EMPTY_FILTERS: ListFilters = { section: [], group: [], acs: [], profile: [], data: [], status: [], duplicates: [] };
+const FILTER_KEYS: readonly FilterKey[] = ['section', 'group', 'acs', 'profile', 'data', 'status', 'duplicates', 'personal'];
+export const EMPTY_FILTERS: ListFilters = { section: [], group: [], acs: [], profile: [], data: [], status: [], duplicates: [], personal: [] };
 export const INITIAL_LIST_STATE: ListState = { season: '', q: '', filters: EMPTY_FILTERS, sort: 'name', dir: 'asc', page: 1 };
 
 export const SORT_OPTIONS: Choice[] = [
@@ -60,7 +63,9 @@ export const SORT_OPTIONS: Choice[] = [
   { value: 'group', label: 'Grupă' },
 ];
 const ACS_OPTIONS: Choice[] = (['da', 'nu', 'in_asteptare'] as const).map((value) => ({ value, label: ACS_WORDS[value] }));
-const STATUS_OPTIONS: Choice[] = (['nou', 'activ', 'inactiv'] as const).map((value) => ({ value, label: STATUS_WORDS[value] }));
+const STATUS_OPTIONS: Choice[] = (['nou', 'activ', 'inactiv', 'anonimizat'] as const).map((value) => ({ value, label: STATUS_WORDS[value] }));
+/** "Inactivi de peste N ani" (3C spec 5): the server's `inactive=true`. */
+export const INACTIVE = 'inactive';
 const PROFILE_OPTIONS: Choice[] = [{ value: 'public', label: 'Public' }, { value: 'ascuns', label: 'Ascuns' }];
 const DATA_OPTIONS: Choice[] = [{ value: 'complete', label: 'Complete' }, { value: 'incomplete', label: 'Incomplete' }];
 const DUPLICATE_OPTIONS: Choice[] = [{ value: 'da', label: 'Da' }];
@@ -78,6 +83,7 @@ export function listQueryString(s: ListState, pageSize: number): string {
   for (const [key, values] of lists) if (values.length) p.set(key, values.join(','));
   if (f.group.includes(NO_GROUP)) p.set('noGroup', 'true');
   if (f.duplicates.length) p.set('duplicates', 'true');
+  if (f.personal.includes(INACTIVE)) p.set('inactive', 'true');
   p.set('sort', s.sort);
   p.set('dir', s.dir);
   p.set('page', String(s.page));
@@ -126,6 +132,10 @@ export function filterSections(s: ListState, p: AthleteListPage | null): Section
     { key: 'data', label: 'Date', options: DATA_OPTIONS, selected: f.data },
     { key: 'status', label: 'Status', options: STATUS_OPTIONS, selected: f.status },
     { key: 'duplicates', label: 'Posibile dubluri', options: DUPLICATE_OPTIONS, selected: f.duplicates },
+    {
+      key: 'personal', label: PERSONAL_DATA_COPY.filterSection, selected: f.personal,
+      options: [{ value: INACTIVE, label: PERSONAL_DATA_COPY.inactiveOption(p?.retentionYears ?? DEFAULT_RETENTION_YEARS) }],
+    },
   ];
 }
 
@@ -153,6 +163,10 @@ export const withHeaderSort = (s: ListState, key: SortKey): ListState => ({
 export const showIncomplete = (s: ListState): ListState => withSection(s, 'data', ['incomplete']);
 /** The banner's "Arată-i" has nothing left to do once Date: Incomplete is chosen. */
 export const incompleteShown = (s: ListState): boolean => s.filters.data.includes('incomplete');
+/** The bulk bar needs the inactivity list on screen (3C spec 5). */
+export const inactiveShown = (s: ListState): boolean => s.filters.personal.includes(INACTIVE);
+/** Dashboard "Vezi lista": only "Inactivi de peste N ani". */
+export const showInactive = (s: ListState): ListState => withSection(clearFilters(s), 'personal', [INACTIVE]);
 
 /** One chip per chosen value, "<secțiune>: <valoare>" (filters-v3 active-filter row). */
 export type FilterChip = { key: string; value: string; label: string };
