@@ -2,6 +2,7 @@ import { countWords } from '../../ro-count';
 
 /** Istoric copy of phase 5 (spec 8). Templates take values already formatted by history-lines.ts. */
 export const PRESENCE_LINES = {
+  deletedCoach: 'Antrenor șters',
   sessionSaved: (present: number, listed: number, coaches: string): string => `Prezență salvată: ${present} din ${listed}${coaches ? `, antrenor ${coaches}` : ''}.`,
   sessionCorrected: (parts: { added: string[]; removed: string[]; uscat: string[] }): string => {
     const { added, removed, uscat } = parts;

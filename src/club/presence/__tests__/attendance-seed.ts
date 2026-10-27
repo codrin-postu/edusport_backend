@@ -1,4 +1,6 @@
 import type { AdminResult } from '../../admin-result';
+import type { AdminCtx } from '../../admin-http';
+import { historyTexts } from '../../history-text';
 import type { MembershipRow } from '../../athletes/store';
 import { athleteRow, member } from '../../groups/__tests__/fake-group-store';
 import type { GroupRecord } from '../../groups/types';
@@ -118,4 +120,26 @@ export function cancelDate(f: FakePresenceContext, eventId: string, date: string
   const event = f.state.calendar.events.find((e) => e.documentId === eventId);
   if (!event) throw new Error(`fixture: no event ${eventId}`);
   event.exceptions = [...(event.exceptions ?? []), { date, kind: 'cancel' }];
+}
+
+const teamNames = (f: FakePresenceContext): Record<string, string> =>
+  Object.fromEntries([...f.group.teamMembers.map((t) => [t.id, t.name]), ...f.group.athletes.map((a) => [a.id, a.name ?? ''])]);
+
+/** The Istoric texts of every session, in the order they were written. */
+export function sessionLines(f: FakePresenceContext): string[] {
+  const names = teamNames(f);
+  return [...f.group.history].filter((h) => h.subjectType === 'session').sort((a, b) => a.seq - b.seq)
+    .flatMap((h) => phase5Lines(h.action, h.changes, h.subjectType, names) ?? []);
+}
+
+/** The Istoric texts of one athlete (phase 5 and phase 3 lines), in the order they were written. */
+export function athleteLines(f: FakePresenceContext, athleteId: string): string[] {
+  const names = teamNames(f);
+  return [...f.group.history].filter((h) => h.subjectType === 'athlete' && h.subjectId === athleteId).sort((a, b) => a.seq - b.seq)
+    .flatMap((h) => phase5Lines(h.action, h.changes, h.subjectType, names) ?? historyTexts(h.action, h.changes, h.subjectType));
+}
+
+/** A bare admin context that records the answer. */
+export function fakeCtx(): AdminCtx {
+  return { params: {}, query: {}, request: { header: {} }, status: 200, body: null };
 }

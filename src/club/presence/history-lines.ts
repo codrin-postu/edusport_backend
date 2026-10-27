@@ -8,7 +8,7 @@ import { METHOD_WORDS } from './copy/core';
 import { longDate } from './dates';
 import { ron } from './money';
 
-/** Istoric lines of phase 5 (spec 8). Pure; names of athletes and coaches come in by id (unknown id: "Sportiv șters"). */
+/** Istoric lines of phase 5 (spec 8). Pure; names of athletes and coaches come in by id (unknown athlete: "Sportiv șters", unknown coach: "Antrenor șters"). */
 export const P5_ACTIONS = {
   sessionSaved: 'session-saved',
   sessionCorrected: 'session-corrected',
@@ -40,6 +40,7 @@ const dateText = (v: unknown): string => (typeof v === 'string' && isIsoDate(v) 
 const yesNo = (v: unknown): string => (v === true ? 'Da' : v === false ? 'Nu' : '');
 const namesOf = (ids: unknown, names: Names): string[] => strs(ids).map((id) => (has(names, id) ? names[id] : GROUP_LINES.deletedAthlete));
 const nameList = (ids: unknown, names: Names): string => namesOf(ids, names).join(', ');
+const coachList = (ids: unknown, names: Names): string => strs(ids).map((id) => (has(names, id) ? names[id] : PRESENCE_LINES.deletedCoach)).join(', ');
 
 function sessionCorrected(c: Changes, _s: string, names: Names): string[] {
   return [PRESENCE_LINES.sessionCorrected({ added: namesOf(c.added, names), removed: namesOf(c.removed, names), uscat: namesOf(c.uscat, names) })];
@@ -82,14 +83,14 @@ function paymentValue(key: string, v: unknown): string {
 const lessonValue = (names: Names) => (key: string, v: unknown): string => {
   if (key === 'date') return dateText(v);
   if (key === 'durationMin') return typeof v === 'number' ? `${v} min` : '';
-  if (key === 'coaches') return nameList(v, names);
+  if (key === 'coaches') return coachList(v, names);
   return text(v);
 };
 
 const RENDER: Readonly<Record<string, Render>> = {
-  [P5_ACTIONS.sessionSaved]: (c, _s, names) => [PRESENCE_LINES.sessionSaved(num(c.present), num(c.listed), nameList(c.coachIds, names))],
+  [P5_ACTIONS.sessionSaved]: (c, _s, names) => [PRESENCE_LINES.sessionSaved(num(c.present), num(c.listed), coachList(c.coachIds, names))],
   [P5_ACTIONS.sessionCorrected]: sessionCorrected,
-  [P5_ACTIONS.sessionCoaches]: (c, _s, names) => [PRESENCE_LINES.sessionCoaches(nameList(c.from, names), nameList(c.to, names))],
+  [P5_ACTIONS.sessionCoaches]: (c, _s, names) => [PRESENCE_LINES.sessionCoaches(coachList(c.from, names), coachList(c.to, names))],
   [P5_ACTIONS.visitorPresent]: (c) => [PRESENCE_LINES.visitorPresent(text(c.groupName), dateText(c.date))],
   [P5_ACTIONS.subscriptionAdded]: (c) => PRESENCE_LINES.subscriptionAdded(text(c.itemName), dateText(c.startsOn), dateText(c.validUntil), num(c.covered)),
   [P5_ACTIONS.subscriptionExtended]: subscriptionExtended,
