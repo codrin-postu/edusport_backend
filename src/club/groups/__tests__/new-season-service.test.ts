@@ -41,7 +41,17 @@ describe('applying (10.4, 10.5, W24)', () => {
     ]);
     expect(state.history[1].changes).toMatchObject({ from: '2026-2027', athletes: 2, groups: 1, series: 2 });
     expect(state.locks.slice(0, 2)).toEqual(['season:s26', 'season:s27']);
+    expect(state.locks.slice(2, 6)).toEqual(['athlete:a1', 'athlete:a2', 'group:g-ib', 'group:g-pro']);
     expect(revalidated()).toBe(1);
+  });
+
+  it('reports what was applied when the data changed after the preview', async () => {
+    const { ctx, state } = seed();
+    await previewStart(ctx.store, 's27', BODY, '2027-09-15');
+    state.athletes.find((a) => a.id === 'a2')!.status = 'inactiv';
+    const res = await applyStart(ctx, 's27', BODY);
+    expect(res).toMatchObject({ ok: true, data: { value: { copied: { athletes: 1 } } } });
+    expect(state.memberships.filter((m) => m.seasonId === 's27').map((m) => m.athleteId)).toEqual(['a1']);
   });
 
   it('undo right away restores the old season and removes every row (W15)', async () => {

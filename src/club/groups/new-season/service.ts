@@ -80,12 +80,14 @@ function startLines(f: StartFacts, plan: StartPlan): Line[] {
   ];
 }
 
-/** Two season rows, then the athletes the first plan copies; the facts are read again and the plan made again under the locks (decided 7). */
+/** Two season rows, the athletes, then the groups the first plan copies (series are only created, so no event lock); the facts are read again and the plan made again under the locks (decided 7). */
 async function lockedFacts(ctx: GroupContext, targetId: string, req: StartRequest): Promise<AdminResult<StartFacts>> {
   const first = await loadStartFacts(ctx.store, targetId, ctx.today);
   if (first.ok === false) return first;
   for (const id of [first.data.current.id, targetId].sort()) await ctx.store.lockSeason(id);
-  for (const id of [...new Set(planStart(first.data, req).members.map((m) => m.athleteId))].sort()) await ctx.store.lockAthlete(id);
+  const plan = planStart(first.data, req);
+  for (const id of [...new Set(plan.members.map((m) => m.athleteId))].sort()) await ctx.store.lockAthlete(id);
+  for (const id of [...new Set([...plan.members.map((m) => m.groupId), ...plan.series.map((s) => s.groupId)])].sort()) await ctx.store.lockGroup(id);
   return loadStartFacts(ctx.store, targetId, ctx.today);
 }
 
