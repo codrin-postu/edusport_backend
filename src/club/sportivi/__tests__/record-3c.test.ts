@@ -70,8 +70,15 @@ describe('record wiring (source, 3C spec 8)', () => {
     expect(PERSONAL_DATA_COPY.exportFailed).toBe('Datele nu au putut fi exportate.');
     const menu = read('sportivi/RecordMenu.tsx');
     expect(menu).toContain("const RECORD_HEADING = '.ui-ph-title, .ui-sheet-title';");
-    expect(menu).toMatch(/await reload\(\);\s+focusRecordHeading\(\);/);
+    expect(menu).toContain('await reload().then(focusRecordHeading, () => undefined);');
     expect(menu).toMatch(/requestAnimationFrame\(\(\) => \{\s+const heading = document\.querySelector<HTMLElement>\(RECORD_HEADING\);\s+if \(!heading\) return;\s+heading\.tabIndex = -1;\s+heading\.focus\(\);/);
+  });
+
+  it('a reload failing after a saved anonymization never reaches the dialog as an error', () => {
+    const menu = read('sportivi/RecordMenu.tsx');
+    const body = menu.slice(menu.indexOf('const anonymize = async'), menu.indexOf('return (', menu.indexOf('const anonymize = async')));
+    expect(body).toContain('() => undefined');
+    expect(body).not.toMatch(/await reload\(\);/);
   });
 
   it('the confirmation copy comes from the copy module', () => {

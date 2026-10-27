@@ -1,3 +1,6 @@
+/** A plain object (not null, not an array), its keys readable. */
+export const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+
 /** Trimmed text, or '' for anything that is not a string. */
 export function asText(v: unknown): string {
   return typeof v === 'string' ? v.trim() : '';

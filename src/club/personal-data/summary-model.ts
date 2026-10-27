@@ -1,10 +1,11 @@
 import { ACS_WORDS, type AcsState } from '../acs';
 import { ATHLETE_FIELD_LABELS, birthDateForPicker, type AthleteStatus } from '../athlete-data';
 import type { DocumentKind } from '../documents/types';
-import { STATUS_WORDS } from '../history-text';
+import { HISTORY_ACTIONS, STATUS_WORDS } from '../history-text';
 import { abonamentTabRows, dateTabRows } from '../inscrieri-panel';
 import { DOCUMENT_LABELS, formatEmailSentAt } from '../registration-panel';
 import { historyWhen } from '../sportivi/record-view';
+import { nameKey } from './carried-names';
 import { PERSONAL_DATA_COPY } from './copy';
 
 /** "rezumat.pdf" of "Exportă datele" (spec 3) as rows; the PDF only draws them. Pure. */
@@ -14,12 +15,16 @@ export type SummarySection = { title: string; blocks: SummaryBlock[] };
 export type SummaryModel = { title: string; name: string; sections: SummarySection[]; footer: string };
 
 export type SummaryRegistration = { number: string; record: Record<string, unknown>; seasonLabel: string | null; sectionName: string | null; missingDocuments: DocumentKind[] };
+/** One Istoric line; `action` and `changes` are the stored row's, read only to leave lines out. */
+export type SummaryHistoryLine = { at: string; actor: string; text: string; subject: string; action: string; changes: Record<string, unknown> };
 export type SummaryInput = {
   athlete: { name: string | null; birthDate: string | null; contactName: string | null; phone: string | null; email: string | null; status: AthleteStatus; notes: string | null };
   groups: { season: string; group: string; main: boolean }[];
   acs: { season: string; state: AcsState }[];
   registrations: SummaryRegistration[];
-  history: { at: string; actor: string; text: string; subject: string }[];
+  history: SummaryHistoryLine[];
+  /** Every name the child has carried, as `nameKey` normalizes it. */
+  childNames: ReadonlySet<string>;
   generatedAt: Date;
   generatedBy: string;
 };
@@ -56,7 +61,21 @@ function registrationsSection(list: SummaryRegistration[]): SummarySection {
   return list.length ? { title: P.registrations, blocks: list.map(registrationBlock) } : single(P.registrations, []);
 }
 
-const historyRow = (l: SummaryInput['history'][number]): SummaryRow =>
+/** Lines naming the record they link to; a merge's "Unit cu" names the removed record of the same child and is kept. */
+const NAMED_RECORD: Readonly<Record<string, string>> = { [HISTORY_ACTIONS.athleteUnlinked]: 'name', [HISTORY_ACTIONS.confirmed]: 'athleteName' };
+
+/**
+ * A line only about another child never reaches the parent (user ruling, 2026-10-27): a dismissed duplicate pair,
+ * or a link to a record under a name this child never carried.
+ */
+function aboutAnotherChild(line: SummaryHistoryLine, childNames: ReadonlySet<string>): boolean {
+  if (line.action === HISTORY_ACTIONS.duplicateDismissed) return true;
+  const key = NAMED_RECORD[line.action];
+  const named = key ? nameKey(line.changes[key]) : '';
+  return named !== '' && !childNames.has(named);
+}
+
+const historyRow = (l: SummaryHistoryLine): SummaryRow =>
   row([historyWhen(l.at), l.actor].filter(Boolean).join(', '), l.subject ? `${P.registration} ${l.subject}: ${l.text}` : l.text);
 
 export function buildSummaryModel(input: SummaryInput): SummaryModel {
@@ -68,7 +87,7 @@ export function buildSummaryModel(input: SummaryInput): SummaryModel {
       single(P.groups, input.groups.map((g) => row(g.season, g.main ? `${g.group}, ${P.mainGroup}` : g.group))),
       single(P.acs, input.acs.map((a) => row(a.season, ACS_WORDS[a.state]))),
       registrationsSection(input.registrations),
-      single(P.history, input.history.map(historyRow)),
+      single(P.history, input.history.filter((l) => !aboutAnotherChild(l, input.childNames)).map(historyRow)),
     ],
     footer: P.generated(formatEmailSentAt(input.generatedAt.toISOString()), input.generatedBy),
   };

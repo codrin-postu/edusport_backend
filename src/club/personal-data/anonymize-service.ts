@@ -70,6 +70,15 @@ const errorCode = (err: unknown): string => {
   return typeof code === 'string' ? code : 'unknown error';
 };
 
+/** Removes one PDF folder; a failure is logged by its code only, never its message or path. */
+export async function removeFilesSafely(removeFiles: RemoveFiles, registrationId: string, log: (message: string) => void, what: string): Promise<void> {
+  try {
+    await removeFiles(registrationId);
+  } catch (err) {
+    log(`[personal-data] ${what} failed: ${errorCode(err)}`);
+  }
+}
+
 async function removeMedia(ctx: AnonymizeContext, fileId: number): Promise<void> {
   try {
     await ctx.store.deleteMediaIfUnused(fileId);
@@ -80,7 +89,7 @@ async function removeMedia(ctx: AnonymizeContext, fileId: number): Promise<void>
 
 async function afterCommit(ctx: AnonymizeContext, done: Done): Promise<void> {
   for (const registrationId of done.registrationIds) {
-    await safely(() => ctx.removeFiles(registrationId), ctx.log, `PDF folder of ${registrationId} (the startup sweep retries)`);
+    await removeFilesSafely(ctx.removeFiles, registrationId, ctx.log, `PDF folder of ${registrationId} (the startup sweep retries)`);
   }
   for (const fileId of done.mediaIds) await removeMedia(ctx, fileId);
 }

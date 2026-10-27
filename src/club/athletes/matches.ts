@@ -16,9 +16,12 @@ function matchPatch(r: RegistrationRow, facts: AthleteFacts[]): RegistrationPatc
   return same ? null : next;
 }
 
+/** An anonymized athlete is never a candidate, and its registrations are read-only: never patched (3C, review I2). */
 export function planMatchUpdates(registrations: RegistrationRow[], athletes: AthleteRow[]): MatchUpdate[] {
-  const facts = athletes.filter((a) => !isAnonymized(a)).map(athleteFacts);
+  const anonymized = new Set(athletes.filter((a) => isAnonymized(a)).map((a) => a.id));
+  const facts = athletes.filter((a) => !anonymized.has(a.id)).map(athleteFacts);
   return registrations.flatMap((r) => {
+    if (r.athleteId && anonymized.has(r.athleteId)) return [];
     const patch = matchPatch(r, facts);
     return patch ? [{ registrationId: r.id, patch }] : [];
   });

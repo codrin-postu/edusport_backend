@@ -135,11 +135,11 @@ function DeleteDialog({ open, busy, error, onCancel, onConfirm, name }: ConfirmS
 function RecordDialogs({ record, api, reload, dialog, onClose }: DialogsProps) {
   const navigate = useNavigate();
   const { busy, error, run, cancel } = useConfirmRunner(onClose);
+  /** The anonymization is saved once `api.anonymize` answers: a failed reload after it is not shown as a failed action. */
   const anonymize = async () => {
     await api.anonymize(record.documentId);
     adminToast.success(PERSONAL_DATA_COPY.done(1));
-    await reload();
-    focusRecordHeading();
+    await reload().then(focusRecordHeading, () => undefined);
   };
   return (
     <>

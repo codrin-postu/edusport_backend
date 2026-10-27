@@ -44,6 +44,12 @@ describe('matching and search skip an anonymized athlete (spec 4)', () => {
     expect(planMatchUpdates([reg], [{ ...ANON, status: 'activ' }])[0].patch.matchAthleteId).toBe('a9');
   });
 
+  it('never patches a registration linked to an anonymized athlete, even a stale one (deploy match-backfill)', () => {
+    const stale = registrationRow({ id: 'r5', athleteId: 'a9', matchAthleteId: 'a1', matchLevel: 'probabil', childBirthDateParsed: null });
+    expect(planMatchUpdates([stale], [ANON, LIVE])).toEqual([]);
+    expect(planMatchUpdates([{ ...stale, athleteId: 'a1' }], [ANON, LIVE])).toHaveLength(1);
+  });
+
   it('never shows in the confirm window search or in "Adaugă sportiv"', async () => {
     const { fake } = setup();
     expect((await searchAthletes(fake.store, 'Maria', null)).map((c) => c.documentId)).toEqual([]);

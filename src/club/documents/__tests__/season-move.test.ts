@@ -4,6 +4,7 @@ import { moveRegistrationsToSeason, moveRegistrationsToSeasonInBackground, type 
 const A = 'reg0000000000000000000001';
 const B = 'reg0000000000000000000002';
 const C = 'reg0000000000000000000003';
+const ANON = 'reg0000000000000000000009';
 
 function fake(over: Partial<SeasonMoveDeps> = {}) {
   const calls: string[] = [];
@@ -18,6 +19,7 @@ function fake(over: Partial<SeasonMoveDeps> = {}) {
       calls.push(`rebuild ${id}`);
       return { ok: true, documents: ['acord'] };
     },
+    isAnonymized: async (id) => id === ANON,
     logError: (m) => {
       errors.push(m);
     },
@@ -52,6 +54,23 @@ describe('moveRegistrationsToSeason', () => {
     await expect(moveRegistrationsToSeason([A, C, B], '2027-2028', deps)).resolves.toBe(1);
     expect(calls).toEqual([`set ${A} 2027-2028 season2027`, `set ${C} 2027-2028 season2027`, `set ${B} 2027-2028 season2027`, `rebuild ${B}`]);
     expect(errors).toEqual([`[inscrieri] moving ${A} to 2027-2028 failed: database down`]);
+  });
+});
+
+describe('registrations of anonymized athletes (3C)', () => {
+  it('are never moved or rebuilt; the skipped count is logged', async () => {
+    const { deps, calls, errors } = fake();
+    await expect(moveRegistrationsToSeason([ANON, A], '2027-2028', deps)).resolves.toBe(1);
+    expect(calls).toEqual([`set ${A} 2027-2028 season2027`, `rebuild ${A}`]);
+    expect(errors).toEqual(['[inscrieri] 1 registration(s) of anonymized athletes not moved to 2027-2028']);
+  });
+
+  it('a whole-season move skips them too', async () => {
+    const { deps, calls } = fake();
+    const { moved, rebuilt } = await moveRegistrationsToSeasonInBackground([A, ANON, B], '2027-2028', deps);
+    await rebuilt;
+    expect(moved).toBe(2);
+    expect(calls.some((c) => c.includes(ANON))).toBe(false);
   });
 });
 
