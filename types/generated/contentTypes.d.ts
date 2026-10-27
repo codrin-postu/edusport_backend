@@ -1446,6 +1446,7 @@ export interface ApiIndividualLessonIndividualLesson
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    createdByName: Schema.Attribute.String;
     date: Schema.Attribute.Date & Schema.Attribute.Required;
     durationMin: Schema.Attribute.Integer &
       Schema.Attribute.Required &

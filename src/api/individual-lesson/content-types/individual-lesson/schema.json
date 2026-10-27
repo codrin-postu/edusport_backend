@@ -17,7 +17,7 @@
     "price": { "type": "decimal" },
     "audience": { "type": "enumeration", "enum": ["member", "nonMember"] },
     "amount": { "type": "decimal", "default": 0 },
-    "createdBy": { "type": "string" },
+    "createdByName": { "type": "string" },
     "savedBy": { "type": "string" },
     "savedAt": { "type": "datetime" }
   }
