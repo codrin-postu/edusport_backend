@@ -1,8 +1,9 @@
+import type { AdminResult } from '../../admin-result';
 import type { MembershipRow } from '../../athletes/store';
 import { athleteRow, member } from '../../groups/__tests__/fake-group-store';
 import type { GroupRecord } from '../../groups/types';
 import type { CalendarEventRow } from '../../../api/calendar-event/services/expand';
-import { fakePresenceContext, type FakePresenceContext, type FakePresenceSeed, subscriptionRow } from './fake-store';
+import { attendanceRow, fakePresenceContext, type FakePresenceContext, type FakePresenceSeed, sessionRow, subscriptionRow } from './fake-store';
 
 const ATTENDANCE_GROUPS: GroupRecord[] = [
   { id: 'g-ib', name: 'Intermediari Bronze', sectionId: 'afi', order: 2, active: true, priceListId: 'pl-std', coachIds: ['tm-virgil'], programPublic: true },
@@ -62,4 +63,28 @@ const ATTENDANCE_BASE: FakePresenceSeed = {
 /** Shared attendance fixture (5-2): groups, athletes, memberships, subscriptions and calendar of the plan's seed. */
 export function attendanceSeed(today = '2026-11-20', over: FakePresenceSeed = {}): FakePresenceContext {
   return fakePresenceContext({ ...ATTENDANCE_BASE, ...over, group: { ...ATTENDANCE_BASE.group, ...over.group } }, today);
+}
+
+/** The data of an AdminResult success. */
+export function ok<T>(result: AdminResult<T>): T {
+  if (result.ok === false) throw new Error(`expected ok, got ${result.status} ${result.error}`);
+  return result.data;
+}
+
+/** Adds a saved Școala session s14 on 2026-11-14 at 11:00 (a1 present, a7 a visitor). */
+export function withSaved14(f: FakePresenceContext): FakePresenceContext {
+  f.state.sessions.push(sessionRow({
+    id: 's14', groupId: 'g-ib', date: '2026-11-14', startTime: '11:00', durationMin: 50, source: 'schedule', eventId: 'ev-ib',
+    occurrenceKey: 'ev-ib|2026-11-14|11:00', coachIds: ['tm-virgil'],
+  }));
+  f.state.attendances.push(attendanceRow({ id: 't14a', sessionId: 's14', athleteId: 'a1', uniqueKey: 's14|a1', grup: true, billing: 'slot', subscriptionId: 'sub-a1' }));
+  f.state.attendances.push(attendanceRow({ id: 't14b', sessionId: 's14', athleteId: 'a7', uniqueKey: 's14|a7', grup: true, visitor: true, billing: 'fara_pret' }));
+  return f;
+}
+
+/** Cancels one date of a schedule event (a cancel exception). */
+export function cancelDate(f: FakePresenceContext, eventId: string, date: string): void {
+  const event = f.state.calendar.events.find((e) => e.documentId === eventId);
+  if (!event) throw new Error(`fixture: no event ${eventId}`);
+  event.exceptions = [...(event.exceptions ?? []), { date, kind: 'cancel' }];
 }
