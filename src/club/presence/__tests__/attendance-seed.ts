@@ -1,10 +1,11 @@
+import type { AdminResult } from '../../admin-result';
 import type { MembershipRow } from '../../athletes/store';
 import { athleteRow, member } from '../../groups/__tests__/fake-group-store';
 import type { GroupRecord } from '../../groups/types';
 import { phase5Lines } from '../history-lines';
 import type { PriceItemRow } from '../types';
 import type { CalendarEventRow } from '../../../api/calendar-event/services/expand';
-import { fakePresenceContext, type FakePresenceContext, type FakePresenceSeed, subscriptionRow } from './fake-store';
+import { attendanceRow, fakePresenceContext, type FakePresenceContext, type FakePresenceSeed, sessionRow, subscriptionRow } from './fake-store';
 
 const ATTENDANCE_GROUPS: GroupRecord[] = [
   { id: 'g-ib', name: 'Intermediari Bronze', sectionId: 'afi', order: 2, active: true, priceListId: 'pl-std', coachIds: ['tm-virgil'], programPublic: true },
@@ -78,4 +79,43 @@ export function lessonLines(f: FakePresenceContext): string[] {
   const names = Object.fromEntries(f.group.teamMembers.map((t) => [t.id, t.name]));
   return [...f.group.history].filter((h) => h.subjectType === 'lesson').sort((a, b) => a.seq - b.seq)
     .flatMap((h) => phase5Lines(h.action, h.changes, h.subjectType, names) ?? []);
+}
+
+/** The data of an AdminResult success. */
+export function ok<T>(result: AdminResult<T>): T {
+  if (result.ok === false) throw new Error(`expected ok, got ${result.status} ${result.error}`);
+  return result.data;
+}
+
+/** Adds a saved Școala session s14 on 2026-11-14 at 11:00 (a1 present, a7 a visitor). */
+export function withSaved14(f: FakePresenceContext): FakePresenceContext {
+  f.state.sessions.push(sessionRow({
+    id: 's14', groupId: 'g-ib', date: '2026-11-14', startTime: '11:00', durationMin: 50, source: 'schedule', eventId: 'ev-ib',
+    occurrenceKey: 'ev-ib|2026-11-14|11:00', coachIds: ['tm-virgil'],
+  }));
+  f.state.attendances.push(attendanceRow({ id: 't14a', sessionId: 's14', athleteId: 'a1', uniqueKey: 's14|a1', grup: true, billing: 'slot', subscriptionId: 'sub-a1' }));
+  f.state.attendances.push(attendanceRow({ id: 't14b', sessionId: 's14', athleteId: 'a7', uniqueKey: 's14|a7', grup: true, visitor: true, billing: 'fara_pret' }));
+  return f;
+}
+
+/** Adds a saved Club session s13 on 2026-11-13 at 17:00: a5 on the list and ticked, a7 a visitor, saved by Ana Admin with its Istoric line. */
+export function withSavedClub(f: FakePresenceContext): FakePresenceContext {
+  f.state.sessions.push(sessionRow({
+    id: 's13', groupId: 'g-club', date: '2026-11-13', startTime: '17:00', durationMin: 90, source: 'schedule', eventId: 'ev-club',
+    occurrenceKey: 'ev-club|2026-11-13|17:00', coachIds: ['tm-andreea'], savedAt: '2026-11-13T16:05:00.000Z', firstSavedAt: '2026-11-13T16:05:00.000Z',
+  }));
+  f.state.attendances.push(attendanceRow({ id: 't13a', sessionId: 's13', athleteId: 'a5', uniqueKey: 's13|a5', grup: true, uscat: true }));
+  f.state.attendances.push(attendanceRow({ id: 't13b', sessionId: 's13', athleteId: 'a7', uniqueKey: 's13|a7', grup: true, visitor: true }));
+  f.group.history.push({
+    id: 'h13', seq: 1, subjectType: 'session', subjectId: 's13', action: 'session-saved', changes: { present: 2, listed: 2, coachIds: ['tm-andreea'] },
+    actor: 'admin@example.com', at: '2026-11-13T16:05:00.000Z',
+  });
+  return f;
+}
+
+/** Cancels one date of a schedule event (a cancel exception). */
+export function cancelDate(f: FakePresenceContext, eventId: string, date: string): void {
+  const event = f.state.calendar.events.find((e) => e.documentId === eventId);
+  if (!event) throw new Error(`fixture: no event ${eventId}`);
+  event.exceptions = [...(event.exceptions ?? []), { date, kind: 'cancel' }];
 }
