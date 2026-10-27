@@ -3,6 +3,7 @@ import type { Knex } from 'knex';
 import { ATHLETE_STATUSES } from '../athlete-data';
 import type { ConfirmationRecord, RegistrationStatus } from '../confirm/plan';
 import { recordHistory } from '../history';
+import { scrubbedJobStatus } from '../personal-data/anonymize-plan';
 import type { AcsState } from '../acs';
 import type {
   AcsRow, AthleteRow, AthleteWrite, ClubStore, DuplicateRow, GroupRow, HistoryRow, MembershipRow, ProfileRow, RegistrationPatch, RegistrationRow, SeasonRow, SectionRow,
@@ -19,6 +20,8 @@ const DUPLICATE = 'api::athlete-duplicate.athlete-duplicate' as const;
 const PROFILE = 'api::sportsperson.sportsperson' as const;
 const COMPETITION = 'api::competition.competition' as const;
 const HISTORY = 'api::history-entry.history-entry' as const;
+const JOB = 'api::email-job.email-job' as const;
+const SETTINGS = 'api::site-settings.site-settings' as const;
 const MAX = 100000;
 const BY_ID = 'id:asc' as const;
 
@@ -35,7 +38,8 @@ const oneOf = <T extends string>(values: readonly T[], v: unknown, fallback: T):
 export function toAthleteRow(r: Raw): AthleteRow {
   return {
     id: text(r.documentId), name: str(r.name), birthDate: str(r.birthDate), contactName: str(r.contactName), phone: str(r.phone), email: str(r.email),
-    status: oneOf(ATHLETE_STATUSES, r.status, 'activ'), dataIncomplete: r.dataIncomplete === true, profileId: linkId(r.publicProfile), notes: str(r.notes), updatedAt: iso(r.updatedAt) ?? '',
+    status: oneOf(ATHLETE_STATUSES, r.status, 'activ'), dataIncomplete: r.dataIncomplete === true, profileId: linkId(r.publicProfile), notes: str(r.notes),
+    updatedAt: iso(r.updatedAt) ?? '', createdAt: iso(r.createdAt) ?? '', anonymizedAt: iso(r.anonymizedAt),
   };
 }
 
@@ -263,6 +267,45 @@ function transactions(strapi: Core.Strapi): Pick<ClubStore, 'transaction' | 'loc
   };
 }
 
+/** `recipient` and `subject` name the parent and the child; `lastError` can echo the parent's e-mail (Brevo error body). */
+const scrubbedJob = (status: unknown): Raw => ({ recipient: null, subject: null, lastError: null, status: scrubbedJobStatus(text(status)) });
+
+/**
+ * 3C reads and writes. Registration and e-mail job scrubs go through `db.query`: the document service refuses null on a
+ * `required` attribute, the query engine does not, and the database lifecycles (the Înscrieri Sheet row) still run.
+ */
+function personalDataStore(strapi: Core.Strapi): Pick<ClubStore, 'registrationRecords' | 'anonymizedRegistrationIds' | 'setHistoryChanges' | 'scrubRegistration' | 'scrubEmailJobs'> {
+  const query = (uid: typeof REGISTRATION | typeof JOB | typeof HISTORY) => strapi.db.query(uid);
+  return {
+    registrationRecords: async (athleteId) => raws(await query(REGISTRATION).findMany({ where: { athlete: { documentId: athleteId } }, orderBy: { id: 'asc' }, limit: MAX })),
+    anonymizedRegistrationIds: async () =>
+      raws(await query(REGISTRATION).findMany({ where: { athlete: { status: 'anonimizat' } }, select: ['documentId'], limit: MAX })).map((r) => text(r.documentId)),
+    setHistoryChanges: async (seq, changes) => {
+      await query(HISTORY).update({ where: { id: seq }, data: { changes } });
+    },
+    scrubRegistration: async (id, data) => {
+      await query(REGISTRATION).update({ where: { documentId: id }, data });
+    },
+    scrubEmailJobs: async (registrationIds) => {
+      if (!registrationIds.length) return;
+      const jobs = raws(await query(JOB).findMany({ where: { registration: { documentId: { $in: registrationIds } } }, select: ['id', 'status'], limit: MAX }));
+      for (const j of jobs) await query(JOB).update({ where: { id: j.id }, data: scrubbedJob(j.status) });
+    },
+  };
+}
+
+function settingsStore(strapi: Core.Strapi): Pick<ClubStore, 'personalDataSettings' | 'savePersonalDataSettings'> {
+  const settings = () => strapi.documents(SETTINGS);
+  return {
+    personalDataSettings: async () => ((await settings().findFirst({})) as Raw | null)?.personalData ?? null,
+    savePersonalDataSettings: async (value) => {
+      const current = await settings().findFirst({});
+      if (current) await settings().update({ documentId: current.documentId, data: { personalData: value } });
+      else await settings().create({ data: { personalData: value } });
+    },
+  };
+}
+
 /** ClubStore on Strapi: document service for writes (validation, lifecycles), db queries for bulk reads. */
 export function strapiClubStore(strapi: Core.Strapi): ClubStore {
   return {
@@ -274,6 +317,8 @@ export function strapiClubStore(strapi: Core.Strapi): ClubStore {
     ...athleteWrites(strapi),
     ...rowWrites(strapi),
     ...profileWrites(strapi),
+    ...personalDataStore(strapi),
+    ...settingsStore(strapi),
     moveHistory: async (from, to) => {
       await strapi.db.query(HISTORY).updateMany({ where: { subjectType: 'athlete', subjectId: from }, data: { subjectId: to } });
     },
