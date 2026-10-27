@@ -4,7 +4,9 @@
  */
 export const GRUPE_CSS = `
 .ui-root .grp-head-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.ui-root .grp-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;padding:0 5px;margin-left:6px;font-size:11px;font-weight:700;border-radius:var(--ui-radius-sm);background:var(--theme-cat-eveniment);color:var(--theme-cat-eveniment-fg)}
+.ui-root .ui-btn.grp-unassigned{background:var(--theme-surface);border-color:var(--theme-cat-eveniment);color:var(--theme-cat-eveniment-soft-fg)}
+.ui-root .ui-btn.grp-unassigned:hover:not(:disabled){background:var(--theme-cat-eveniment-soft);border-color:var(--theme-cat-eveniment);color:var(--theme-cat-eveniment-soft-fg)}
+.ui-root .grp-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;padding:0 5px;margin-left:6px;font-size:11px;font-weight:700;border-radius:var(--ui-radius-sm);background:var(--theme-cat-eveniment-soft-fg);color:var(--theme-cat-eveniment-soft)}
 .ui-root .grp-tabs{padding:0 18px}
 .ui-root .grp-lines div+div{margin-top:2px}
 .ui-root .grp-form{display:flex;flex-direction:column;gap:14px}
