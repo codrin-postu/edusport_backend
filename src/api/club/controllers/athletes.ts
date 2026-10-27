@@ -11,13 +11,19 @@ import { readAthleteRecord, updateAthlete } from '../../../club/athletes/record'
 import { dismissDuplicate, mergeAthletes, mergePreview, readMergeRequest } from '../../../club/athletes/merge';
 import { respondDelete } from '../../../club/presence/lifecycle/http';
 import { strapiPresenceStore } from '../../../club/presence/strapi-store';
+import { loadPresenceActivity } from '../../../club/presence/lifecycle/activity';
+import { abonamentCells } from '../../../club/presence/subscriptions/cells';
+import { todayIso } from '../../../club/groups/http';
 import { todayInBucharest } from '../../../club/birth-date';
 import { SUBJECT } from '../../../club/history-text';
 
 /** Admin API of Sportivi (routes/05-athletes.ts, all `global::is-admin`). A deleted athlete is not found (gaps #40). */
 export default {
   async list(ctx: AdminCtx) {
-    ctx.body = await athleteListPage(clubStore(strapi), readListQuery(ctx.query), todayInBucharest());
+    const presence = strapiPresenceStore(strapi);
+    ctx.body = await athleteListPage(clubStore(strapi), readListQuery(ctx.query), todayInBucharest(), new Date(), {
+      abonamente: await abonamentCells(presence, todayIso()), activity: await loadPresenceActivity(presence),
+    });
   },
 
   async search(ctx: AdminCtx) {

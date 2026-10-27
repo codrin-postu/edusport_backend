@@ -11,6 +11,8 @@ import { strapiGroupStore } from '../../../club/groups/strapi-store';
 import { readUnassigned } from '../../../club/groups/unassigned';
 import { undoAction } from '../../../club/groups/undo-service';
 import { presenceContext } from '../../../club/presence/context';
+import { strapiPresenceStore } from '../../../club/presence/strapi-store';
+import { movePreview as presenceMovePreview, presenceCarry } from '../../../club/presence/subscriptions/move';
 import { undoKindOf, undoPresenceAction } from '../../../club/presence/undo-service';
 
 const store = () => strapiGroupStore(strapi);
@@ -61,8 +63,17 @@ export default {
     respondAction(ctx, await allocateAll(await groupContext(strapi, ctx), ctx.request.body));
   },
 
+  async movePreview(ctx: AdminCtx) {
+    const membership = await store().membership(id(ctx));
+    if (!membership) return refuseWith(ctx, 404, GROUP_ERRORS.notFound);
+    const preview = await presenceMovePreview(strapiPresenceStore(strapi), { athleteId: membership.athleteId, fromGroupId: membership.groupId, toGroupId: queryText(ctx.query.to) }, todayIso());
+    ctx.body = { data: preview };
+  },
+
   async move(ctx: AdminCtx) {
-    respondAction(ctx, await moveMembership(await groupContext(strapi, ctx), id(ctx), ctx.request.body));
+    const membershipId = id(ctx);
+    const gctx = await groupContext(strapi, ctx);
+    respondAction(ctx, await moveMembership(gctx, membershipId, ctx.request.body, presenceCarry(strapiPresenceStore(strapi)).carry));
   },
 
   async remove(ctx: AdminCtx) {
@@ -72,6 +83,8 @@ export default {
   async undo(ctx: AdminCtx) {
     const body = ctx.request.body;
     if ((await undoKindOf(store(), body)) === 'presence') return respond(ctx, await undoPresenceAction(await presenceContext(strapi, ctx), body));
-    respond(ctx, await undoAction(await groupContext(strapi, ctx), body));
+    const gctx = await groupContext(strapi, ctx);
+    const { ports } = presenceCarry(strapiPresenceStore(strapi));
+    respond(ctx, await undoAction(gctx, body, ports));
   },
 };

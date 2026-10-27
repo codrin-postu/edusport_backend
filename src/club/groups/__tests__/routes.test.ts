@@ -1,19 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import groups from '../../../api/club/controllers/groups';
 import groupRoutes from '../../../api/club/routes/06-groups';
+import { staticBeforeParams } from './route-order';
 
 const routes = groupRoutes.routes;
 const controllers: Record<string, Record<string, unknown>> = { groups };
-
-/** Within one path prefix, every path after the first parameter path is a parameter path too (spec 10.9 rule). */
-function staticBeforeParams(paths: string[]): boolean {
-  const prefixes = [...new Set(paths.map((p) => p.split('/').slice(0, 3).join('/')))];
-  return prefixes.every((prefix) => {
-    const own = paths.filter((p) => p.startsWith(`${prefix}/`) || p === prefix);
-    const firstParam = own.findIndex((p) => p.includes(':'));
-    return firstParam < 0 || own.slice(firstParam).every((p) => p.includes(':'));
-  });
-}
 
 describe('06-groups routes (8.2)', () => {
   it('are all admin-only', () => {
