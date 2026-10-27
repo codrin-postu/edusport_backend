@@ -2,6 +2,7 @@ import { acsWord } from './acs';
 import { ATHLETE_FIELD_LABELS, athleteValueText, isAthleteField, type AthleteStatus } from './athlete-data';
 import { GROUP_LINES } from './groups/copy';
 import { P4_ACTIONS, phase4Lines } from './groups/history-lines';
+import { phase5Lines } from './presence/history-lines';
 import { isRecord } from './narrow';
 import { ARROW, quotedChange } from './text-leaf';
 import { SUBJECT } from './subjects';
@@ -200,7 +201,7 @@ export function historyTexts(action: string, changes: unknown, subjectType: stri
   const render = RENDER[action];
   if (render) return render(c, subjectType);
   if (action === P4_ACTIONS.undone) return historyTexts(text(c.undoneAction), c.undoneChanges, subjectType).map(GROUP_LINES.undone);
-  return phase4Lines(action, c, {}) ?? [];
+  return phase4Lines(action, c, {}) ?? phase5Lines(action, c, subjectType, {}) ?? [];
 }
 
 /** Who, as Istoric shows it: the admin's name, else the e-mail; "Migrare" for migration rows (3b Q23). */
