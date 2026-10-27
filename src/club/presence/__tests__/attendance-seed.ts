@@ -1,6 +1,8 @@
 import type { MembershipRow } from '../../athletes/store';
 import { athleteRow, member } from '../../groups/__tests__/fake-group-store';
 import type { GroupRecord } from '../../groups/types';
+import { phase5Lines } from '../history-lines';
+import type { PriceItemRow } from '../types';
 import type { CalendarEventRow } from '../../../api/calendar-event/services/expand';
 import { fakePresenceContext, type FakePresenceContext, type FakePresenceSeed, subscriptionRow } from './fake-store';
 
@@ -62,4 +64,18 @@ const ATTENDANCE_BASE: FakePresenceSeed = {
 /** Shared attendance fixture (5-2): groups, athletes, memberships, subscriptions and calendar of the plan's seed. */
 export function attendanceSeed(today = '2026-11-20', over: FakePresenceSeed = {}): FakePresenceContext {
   return fakePresenceContext({ ...ATTENDANCE_BASE, ...over, group: { ...ATTENDANCE_BASE.group, ...over.group } }, today);
+}
+
+/** Changes one item of a price list in the fixture. */
+export function setPrice(f: FakePresenceContext, listId: string, itemName: string, values: Partial<Pick<PriceItemRow, 'memberPrice' | 'nonMemberPrice'>>): void {
+  const item = f.state.priceLists.find((l) => l.id === listId)?.items.find((i) => i.name === itemName);
+  if (!item) throw new Error(`fixture: no item ${itemName} in ${listId}`);
+  Object.assign(item, values);
+}
+
+/** The Istoric texts of the lessons, in the order they were written. */
+export function lessonLines(f: FakePresenceContext): string[] {
+  const names = Object.fromEntries(f.group.teamMembers.map((t) => [t.id, t.name]));
+  return [...f.group.history].filter((h) => h.subjectType === 'lesson').sort((a, b) => a.seq - b.seq)
+    .flatMap((h) => phase5Lines(h.action, h.changes, h.subjectType, names) ?? []);
 }
