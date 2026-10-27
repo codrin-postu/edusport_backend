@@ -208,15 +208,16 @@ export function fakePresenceStore(seed: FakePresenceSeed = {}): FakePresence {
   };
 }
 
-export type FakePresenceContext = FakePresence & { ctx: PresenceContext; logs: string[]; emailsAfter: string[] };
+export type FakePresenceContext = FakePresence & { ctx: PresenceContext; logs: string[]; emailsAfter: string[]; advance(ms: number): void };
 
 /** A PresenceContext over the fake store; today 20 November 2026, now 10:00 UTC, unless given. */
 export function fakePresenceContext(seed: FakePresenceSeed = {}, today = '2026-11-20'): FakePresenceContext {
   const fake = fakePresenceStore(seed);
   const logs: string[] = [];
   const emailsAfter: string[] = [];
+  let elapsedMs = 0;
   const ctx: PresenceContext = {
-    store: fake.store, actor: 'admin@example.com', today, now: () => new Date(`${today}T10:00:00.000Z`), log: (m) => logs.push(m), paymentEmails: (id) => emailsAfter.push(id),
+    store: fake.store, actor: 'admin@example.com', today, now: () => new Date(Date.parse(`${today}T10:00:00.000Z`) + elapsedMs), log: (m) => logs.push(m), paymentEmails: (id) => emailsAfter.push(id),
   };
-  return { ...fake, ctx, logs, emailsAfter };
+  return { ...fake, ctx, logs, emailsAfter, advance: (ms) => { elapsedMs += ms; } };
 }
