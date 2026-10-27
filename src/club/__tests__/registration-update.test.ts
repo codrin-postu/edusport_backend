@@ -182,6 +182,22 @@ describe('a registration with an athlete linked keeps "Confirmat" (only "Anuleaz
   });
 });
 
+describe('a registration linked to an anonymized athlete (fix round 1, critical)', () => {
+  const ANON_LINKED = { ...BASE, athlete: { documentId: 'a9', status: 'anonimizat' } };
+
+  it('refuses childName / phone edits with 409 stale, saves nothing', async () => {
+    const t = deps({ ...ANON_LINKED });
+    expect(await updateRegistration(t.d, 'r1', { childName: 'Alt Nume' }, 'ana')).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect(await updateRegistration(t.d, 'r1', { phone: '0733' }, 'ana')).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect([t.saved, t.history]).toEqual([[], []]);
+  });
+
+  it('still saves a registration of a normal (non-anonymized) athlete', async () => {
+    const t = deps({ ...BASE, athlete: { documentId: 'a1', status: 'activ' } });
+    expect(await updateRegistration(t.d, 'r1', { phone: '0733' }, 'ana')).toMatchObject({ ok: true, changed: ['phone'] });
+  });
+});
+
 describe('the answer and the "Alta" text', () => {
   it('a null "Alta" text clears it', async () => {
     const t = deps({ ...BASE, relationship: 'alta', relationshipOther: 'Bunica' });

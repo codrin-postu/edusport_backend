@@ -33,4 +33,45 @@ describe('Profil public (spec 6.3)', () => {
     const fake = fakeClubStore({ athletes: [athleteRow({ id: 'a1', profileId: 'sp1' })] });
     expect([await athleteIdForProfile(fake.store, 'sp1'), await athleteIdForProfile(fake.store, 'x')]).toEqual(['a1', null]);
   });
+
+  it('locks before re-reading, refusing a profile create anonymized in the gap (fix round 1, important #2)', async () => {
+    const fake = fakeClubStore({ athletes: [athleteRow({ id: 'a1', name: 'Maria Pop' })] });
+    const order: string[] = [];
+    const baseLock = fake.store.lockAthlete;
+    const baseAthlete = fake.store.athlete;
+    fake.store.lockAthlete = async (id) => {
+      order.push('lock');
+      await baseLock(id);
+      fake.state.athletes[0].status = 'anonimizat';
+    };
+    fake.store.athlete = async (id) => {
+      order.push('read');
+      return baseAthlete(id);
+    };
+    expect(await createAthleteProfile(ctx(fake), 'a1')).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect(order).toEqual(['lock', 'read']);
+    expect(fake.state.profiles).toEqual([]);
+  });
+
+  it('locks before re-reading, refusing a page toggle anonymized in the gap (fix round 1, important #2)', async () => {
+    const fake = fakeClubStore({
+      athletes: [athleteRow({ id: 'a1', name: 'Maria', profileId: 'sp1' })],
+      profiles: [{ id: 'sp1', name: 'Maria', slug: 'maria', previousSlugs: [], showPublicPage: false, published: true }],
+    });
+    const order: string[] = [];
+    const baseLock = fake.store.lockAthlete;
+    const baseAthlete = fake.store.athlete;
+    fake.store.lockAthlete = async (id) => {
+      order.push('lock');
+      await baseLock(id);
+      fake.state.athletes[0].status = 'anonimizat';
+    };
+    fake.store.athlete = async (id) => {
+      order.push('read');
+      return baseAthlete(id);
+    };
+    expect(await setAthleteProfileVisibility(ctx(fake), 'a1', { on: true })).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect(order).toEqual(['lock', 'read']);
+    expect(fake.state.profiles[0].showPublicPage).toBe(false);
+  });
 });

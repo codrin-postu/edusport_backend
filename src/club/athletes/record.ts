@@ -1,6 +1,6 @@
-import { guardedWrite, refuse, type AdminResult, type FieldChange } from '../admin-result';
+import { guarded, refuse, type AdminResult, type FieldChange } from '../admin-result';
 import {
-  athleteChanges, birthDateForPicker, isAthleteField, isDataIncomplete, missingFields, pickAthleteValues, readAthleteInput, type AthleteValues,
+  athleteChanges, birthDateForPicker, isAthleteField, isDataIncomplete, missingFields, pickAthleteValues, readAthleteInput, type AthleteField, type AthleteValues,
 } from '../athlete-data';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import { isAnonymized } from '../personal-data/anonymize-plan';
@@ -83,31 +83,36 @@ export async function readAthleteRecord(store: ClubStore, id: string, seasonId: 
   return assemble(athlete, { seasons, groups, memberships, acs, registrations, profiles, duplicates, athletes, historyCount: history.length, season });
 }
 
-/** "Date incomplete" is recomputed on every save (3b Q20), even when no field changed. */
+/** "Date incomplete" is recomputed on every save (3b Q20), even when no field changed. Runs inside the caller's lock. */
 async function saveEdit(ctx: ServiceContext, athlete: AthleteRow, values: AthleteValues, changes: Record<string, FieldChange>): Promise<void> {
   const dataIncomplete = isDataIncomplete(values);
   if (Object.keys(changes).length === 0) {
     if (athlete.dataIncomplete !== dataIncomplete) await ctx.store.updateAthlete(athlete.id, { dataIncomplete });
     return;
   }
-  await ctx.store.transaction(async () => {
-    await ctx.store.updateAthlete(athlete.id, { ...values, dataIncomplete });
-    if ('name' in changes && athlete.profileId && values.name) await ctx.store.renameProfile(athlete.profileId, values.name);
-    await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: athlete.id, action: HISTORY_ACTIONS.updated, changes: { fields: changes }, actor: ctx.actor });
-  });
-  await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after an athlete edit');
+  await ctx.store.updateAthlete(athlete.id, { ...values, dataIncomplete });
+  if ('name' in changes && athlete.profileId && values.name) await ctx.store.renameProfile(athlete.profileId, values.name);
+  await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: athlete.id, action: HISTORY_ACTIONS.updated, changes: { fields: changes }, actor: ctx.actor });
+}
+
+/** Locked and re-read inside the transaction, so a concurrent anonymize is seen (fix round 1, important #2). */
+async function updateInTransaction(ctx: ServiceContext, id: string, values: AthleteValues): Promise<AdminResult<{ changed: AthleteField[] }>> {
+  await ctx.store.lockAthlete(id);
+  const athlete = await ctx.store.athlete(id);
+  if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
+  if (isAnonymized(athlete)) return refuse(409, ADMIN_ERRORS.stale);
+  const changes = athleteChanges(pickAthleteValues(athlete), values);
+  await saveEdit(ctx, athlete, values, changes);
+  return { ok: true, data: { changed: Object.keys(changes).filter(isAthleteField) } };
 }
 
 /** PUT /api/club/athletes/:documentId ("Editează" on Date, spec 6.2). A name change renames the profile (3b s2). */
 export async function updateAthlete(ctx: ServiceContext, id: string, body: unknown): Promise<AdminResult<AthleteEditResponse>> {
   const input = readAthleteInput(body, 'edit');
   if (input.ok === false) return refuse(400, input.error);
-  const athlete = await ctx.store.athlete(id);
-  if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
-  if (isAnonymized(athlete)) return refuse(409, ADMIN_ERRORS.stale);
-  const changes = athleteChanges(pickAthleteValues(athlete), input.values);
-  const saved = await guardedWrite(ctx.log, `[athletes] editing ${id}`, () => saveEdit(ctx, athlete, input.values, changes));
-  if (saved.ok === false) return saved;
+  const written = await guarded(ctx.log, `[athletes] editing ${id}`, () => ctx.store.transaction(() => updateInTransaction(ctx, id, input.values)));
+  if (written.ok === false) return written;
+  if (written.data.changed.length > 0) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after an athlete edit');
   const record = await readAthleteRecord(ctx.store, id, null);
-  return record ? { ok: true, data: { record, changed: Object.keys(changes).filter(isAthleteField) } } : refuse(404, ADMIN_ERRORS.notFound);
+  return record ? { ok: true, data: { record, changed: written.data.changed } } : refuse(404, ADMIN_ERRORS.notFound);
 }

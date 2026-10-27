@@ -85,4 +85,24 @@ describe('Editează on Date (spec 6.2, 3b s2)', () => {
     await updateAthlete(ctx(fake), 'a1', { name: 'Maria Pop', birthDate: '14.03.2016' });
     expect(fake.state.registrations[0]).toMatchObject({ matchAthleteId: 'a1', matchLevel: 'sigur' });
   });
+
+  it('locks before re-reading, refusing an edit anonymized in the gap (fix round 1, important #2)', async () => {
+    const fake = fakeClubStore({ athletes: [athleteRow({ id: 'a1', name: 'Maria Pop', birthDate: '2016-03-14' })] });
+    const order: string[] = [];
+    const baseLock = fake.store.lockAthlete;
+    const baseAthlete = fake.store.athlete;
+    fake.store.lockAthlete = async (id) => {
+      order.push('lock');
+      await baseLock(id);
+      fake.state.athletes[0].status = 'anonimizat';
+    };
+    fake.store.athlete = async (id) => {
+      order.push('read');
+      return baseAthlete(id);
+    };
+    const result = await updateAthlete(ctx(fake), 'a1', { name: 'X', birthDate: '', contactName: '', phone: '', email: '' });
+    expect(result).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect(order).toEqual(['lock', 'read']);
+    expect(fake.state.athletes[0].name).toBe('Maria Pop');
+  });
 });

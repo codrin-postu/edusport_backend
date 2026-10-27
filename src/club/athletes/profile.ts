@@ -1,4 +1,4 @@
-import { guardedWrite, refuse, type AdminResult } from '../admin-result';
+import { guarded, refuse, type AdminResult } from '../admin-result';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import { isAnonymized } from '../personal-data/anonymize-plan';
 import { slugify, uniqueSlug } from '../profile-slug';
@@ -13,35 +13,46 @@ async function recordResult(store: ClubStore, id: string): Promise<AdminResult<A
   return record ? { ok: true, data: record } : refuse(404, ADMIN_ERRORS.notFound);
 }
 
-export async function createAthleteProfile(ctx: ServiceContext, id: string): Promise<AdminResult<AthleteRecord>> {
+/** Locked and re-read inside the transaction, so a concurrent anonymize is seen (fix round 1, important #2). */
+async function createProfileInTransaction(ctx: ServiceContext, id: string): Promise<AdminResult<null>> {
+  await ctx.store.lockAthlete(id);
   const athlete = await ctx.store.athlete(id);
   if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
   if (isAnonymized(athlete)) return refuse(409, ADMIN_ERRORS.stale);
   if (athlete.profileId) return refuse(409, ADMIN_ERRORS.stale);
   const taken = new Set((await ctx.store.profiles()).flatMap((p) => [p.slug, ...p.previousSlugs]));
   const name = athlete.name ?? '';
-  const written = await guardedWrite(ctx.log, `[athletes] creating the profile of ${id}`, () => ctx.store.transaction(async () => {
-    const profileId = await ctx.store.createProfile(name, uniqueSlug(slugify(name), taken));
-    await ctx.store.updateAthlete(id, { profileId });
-    await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.profileCreated, actor: ctx.actor });
-  }));
+  const profileId = await ctx.store.createProfile(name, uniqueSlug(slugify(name), taken));
+  await ctx.store.updateAthlete(id, { profileId });
+  await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.profileCreated, actor: ctx.actor });
+  return { ok: true, data: null };
+}
+
+export async function createAthleteProfile(ctx: ServiceContext, id: string): Promise<AdminResult<AthleteRecord>> {
+  const written = await guarded(ctx.log, `[athletes] creating the profile of ${id}`, () => ctx.store.transaction(() => createProfileInTransaction(ctx, id)));
   return written.ok === false ? written : recordResult(ctx.store, id);
+}
+
+/** Locked and re-read inside the transaction, so a concurrent anonymize is seen (fix round 1, important #2). */
+async function visibilityInTransaction(ctx: ServiceContext, id: string, on: boolean): Promise<AdminResult<null>> {
+  await ctx.store.lockAthlete(id);
+  const athlete = await ctx.store.athlete(id);
+  if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
+  if (isAnonymized(athlete)) return refuse(409, ADMIN_ERRORS.stale);
+  const profile = (await ctx.store.profiles()).find((p) => p.id === athlete.profileId);
+  if (!profile) return refuse(409, ADMIN_ERRORS.stale);
+  if (profile.showPublicPage !== on) {
+    await ctx.store.setProfileVisibility(profile.id, on);
+    await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.profilePage, changes: { on }, actor: ctx.actor });
+  }
+  return { ok: true, data: null };
 }
 
 /** "Pagina publică pornită / oprită": only showPublicPage, as today (3b Q3). */
 export async function setAthleteProfileVisibility(ctx: ServiceContext, id: string, body: unknown): Promise<AdminResult<AthleteRecord>> {
   const on = body && typeof body === 'object' ? (body as Record<string, unknown>).on : undefined;
   if (typeof on !== 'boolean') return refuse(400, ADMIN_ERRORS.invalid);
-  const athlete = await ctx.store.athlete(id);
-  if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
-  if (isAnonymized(athlete)) return refuse(409, ADMIN_ERRORS.stale);
-  const profile = (await ctx.store.profiles()).find((p) => p.id === athlete.profileId);
-  if (!profile) return refuse(409, ADMIN_ERRORS.stale);
-  if (profile.showPublicPage === on) return recordResult(ctx.store, id);
-  const written = await guardedWrite(ctx.log, `[athletes] switching the page of ${id}`, () => ctx.store.transaction(async () => {
-    await ctx.store.setProfileVisibility(profile.id, on);
-    await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.profilePage, changes: { on }, actor: ctx.actor });
-  }));
+  const written = await guarded(ctx.log, `[athletes] switching the page of ${id}`, () => ctx.store.transaction(() => visibilityInTransaction(ctx, id, on)));
   return written.ok === false ? written : recordResult(ctx.store, id);
 }
 

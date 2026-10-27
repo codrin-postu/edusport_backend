@@ -36,4 +36,23 @@ describe('Marchează inactiv / activ (spec 6.6)', () => {
     expect(await setAthleteStatus(ctx(fake), 'a1', { status: 'nou' })).toEqual({ ok: false, status: 400, error: ADMIN_ERRORS.invalid });
     expect(await setAthleteStatus(ctx(fake), 'x', { status: 'activ' })).toEqual({ ok: false, status: 404, error: ADMIN_ERRORS.notFound });
   });
+
+  it('locks before re-reading, refusing a status change anonymized in the gap (fix round 1, important #2)', async () => {
+    const fake = fakeClubStore({ athletes: [athleteRow({ id: 'a1', status: 'activ' })] });
+    const order: string[] = [];
+    const baseLock = fake.store.lockAthlete;
+    const baseAthlete = fake.store.athlete;
+    fake.store.lockAthlete = async (id) => {
+      order.push('lock');
+      await baseLock(id);
+      fake.state.athletes[0].status = 'anonimizat';
+    };
+    fake.store.athlete = async (id) => {
+      order.push('read');
+      return baseAthlete(id);
+    };
+    expect(await setAthleteStatus(ctx(fake), 'a1', { status: 'inactiv' })).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect(order).toEqual(['lock', 'read']);
+    expect(fake.state.history).toEqual([]);
+  });
 });

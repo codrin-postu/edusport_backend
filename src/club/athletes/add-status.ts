@@ -1,4 +1,4 @@
-import { guardedWrite, refuse, type AdminResult } from '../admin-result';
+import { guarded, guardedWrite, refuse, type AdminResult } from '../admin-result';
 import { athleteChanges, isDataIncomplete, readAthleteInput, type AthleteStatus, type AthleteValues } from '../athlete-data';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import { isAnonymized } from '../personal-data/anonymize-plan';
@@ -23,18 +23,24 @@ export async function addAthlete(ctx: ServiceContext, body: unknown): Promise<Ad
   return { ok: true, data: { documentId: created.data } };
 }
 
+/** Locked and re-read inside the transaction, so a concurrent anonymize is seen (fix round 1, important #2). */
+async function statusInTransaction(ctx: ServiceContext, id: string, to: AthleteStatus): Promise<AdminResult<null>> {
+  await ctx.store.lockAthlete(id);
+  const athlete = await ctx.store.athlete(id);
+  if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
+  if (isAnonymized(athlete)) return refuse(409, ADMIN_ERRORS.stale);
+  if (athlete.status === to) return { ok: true, data: null };
+  await ctx.store.updateAthlete(id, { status: to });
+  await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.statusChanged, changes: { from: athlete.status, to }, actor: ctx.actor });
+  return { ok: true, data: null };
+}
+
 /** "Marchează inactiv" / "Marchează activ" (spec 6.6, gaps #36). */
 export async function setAthleteStatus(ctx: ServiceContext, id: string, body: unknown): Promise<AdminResult<{ status: AthleteStatus }>> {
   const to = body && typeof body === 'object' ? (body as Record<string, unknown>).status : undefined;
   if (to !== 'activ' && to !== 'inactiv') return refuse(400, ADMIN_ERRORS.invalid);
-  const athlete = await ctx.store.athlete(id);
-  if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
-  if (isAnonymized(athlete)) return refuse(409, ADMIN_ERRORS.stale);
-  const written = athlete.status === to ? null : await guardedWrite(ctx.log, `[athletes] status of ${id}`, () => ctx.store.transaction(async () => {
-    await ctx.store.updateAthlete(id, { status: to });
-    await ctx.store.record({ subjectType: SUBJECT.athlete, subjectId: id, action: HISTORY_ACTIONS.statusChanged, changes: { from: athlete.status, to }, actor: ctx.actor });
-  }));
-  if (written?.ok === false) return written;
+  const written = await guarded(ctx.log, `[athletes] status of ${id}`, () => ctx.store.transaction(() => statusInTransaction(ctx, id, to)));
+  if (written.ok === false) return written;
   await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after changing an athlete status');
   return { ok: true, data: { status: to } };
 }

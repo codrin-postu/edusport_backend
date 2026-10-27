@@ -4,6 +4,7 @@ import { birthDateSortKey } from './birth-date';
 import type { RebuildResult } from './documents';
 import type { HistoryInput } from './history';
 import { HISTORY_ACTIONS, SUBJECT } from './history-text';
+import { isAnonymizedRelation } from './personal-data/anonymize-plan';
 import { REGISTRATION_EDIT_ERROR, REGISTRATION_EDIT_FIELDS, documentRebuiltEntry, normalizeRegistrationEdit, registrationEditError } from './registration-edit';
 import { LAST_SEASON_OPTIONS, RELATIONSHIP_OTHER, SOURCE_OPTIONS, SOURCE_OTHER } from './registration-form-options';
 import { parseChildHeight } from './registration-input';
@@ -129,6 +130,7 @@ async function guarded(deps: RegistrationEditDeps, what: string, work: () => Pro
 async function checkAndSave(deps: RegistrationEditDeps, id: string, raw: Record<string, unknown>): Promise<CheckedSave> {
   const before = await deps.find(id);
   if (!before) return NOT_FOUND;
+  if (isAnonymizedRelation(before.athlete)) return { ok: false, status: 409, error: ADMIN_ERRORS.stale };
   const sent = changedOnly(before, pickEditable(raw));
   if ('status' in sent && isLinked(before)) return { ok: false, status: 409, error: LINKED_STATUS_ERROR };
   const error = editError(sent);
