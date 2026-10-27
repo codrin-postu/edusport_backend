@@ -6,6 +6,18 @@ import {
 } from '../strapi-store';
 import { fakePresenceStore } from './fake-store';
 
+function queryingStrapi(seen: { table: string; where: unknown }[]): Core.Strapi {
+  const db = {
+    query: (table: string) => ({
+      findMany: async (args: { where: unknown }) => {
+        seen.push({ table, where: args.where });
+        return [];
+      },
+    }),
+  };
+  return { db } as unknown as Core.Strapi;
+}
+
 function lockingStrapi(calls: string[]): Core.Strapi {
   const chain = (table: string) => {
     const step = (text: string) => {
@@ -130,5 +142,30 @@ describe('strapiPresenceStore', () => {
     await expect(strapiPresenceStore(lockingStrapi(calls)).lockPayment('p1')).rejects.toThrow('outside a transaction');
     await expect(strapiPresenceStore(lockingStrapi(calls)).lockAttendance('t1')).rejects.toThrow('outside a transaction');
     expect(calls).toEqual([]);
+  });
+
+  describe('open-ended date ranges (Postgres rejects undefined bounds)', () => {
+    const ranges = [
+      { name: 'from only', w: { from: '2026-11-01' }, filter: { $gte: '2026-11-01' } },
+      { name: 'to only', w: { to: '2026-11-30' }, filter: { $lte: '2026-11-30' } },
+      { name: 'both', w: { from: '2026-11-01', to: '2026-11-30' }, filter: { $gte: '2026-11-01', $lte: '2026-11-30' } },
+      { name: 'neither', w: {}, filter: undefined },
+    ];
+    const reads = [
+      { name: 'sessions', run: (s: ReturnType<typeof strapiPresenceStore>, w: { from?: string; to?: string }) => s.sessions(w), where: (f: unknown) => (f ? { date: f } : {}) },
+      { name: 'attendances', run: (s: ReturnType<typeof strapiPresenceStore>, w: { from?: string; to?: string }) => s.attendances(w), where: (f: unknown) => (f ? { session: { date: f } } : {}) },
+      { name: 'lessons', run: (s: ReturnType<typeof strapiPresenceStore>, w: { from?: string; to?: string }) => s.lessons(w), where: (f: unknown) => (f ? { date: f } : {}) },
+      { name: 'payments', run: (s: ReturnType<typeof strapiPresenceStore>, w: { from?: string; to?: string }) => s.payments(w), where: (f: unknown) => (f ? { paidOn: f } : {}) },
+    ];
+    for (const read of reads) {
+      for (const range of ranges) {
+        it(`${read.name}: ${range.name} builds exactly the bound(s) that are set`, async () => {
+          const seen: { table: string; where: unknown }[] = [];
+          await read.run(strapiPresenceStore(queryingStrapi(seen)), range.w);
+          expect(seen).toHaveLength(1);
+          expect(seen[0].where).toStrictEqual(read.where(range.filter));
+        });
+      }
+    }
   });
 });
