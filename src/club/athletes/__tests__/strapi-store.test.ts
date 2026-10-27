@@ -27,10 +27,12 @@ describe('row locks (spec 4.7, polish 12)', () => {
     const store = strapiClubStore(lockingStrapi(calls));
     await store.transaction(async () => {
       await store.lockRegistration('r1');
+      await store.lockSeason('s1');
       await store.lockAthlete('a1');
     });
     expect(calls).toEqual([
       'registration_submissions in trx', 'registration_submissions for update', 'registration_submissions document_id=r1',
+      'seasons in trx', 'seasons for update', 'seasons document_id=s1',
       'athletes in trx', 'athletes for update', 'athletes document_id=a1',
     ]);
   });
@@ -38,6 +40,7 @@ describe('row locks (spec 4.7, polish 12)', () => {
   it('outside a transaction a lock throws and queries nothing', async () => {
     const calls: string[] = [];
     await expect(strapiClubStore(lockingStrapi(calls)).lockAthlete('a1')).rejects.toThrow('outside a transaction');
+    await expect(strapiClubStore(lockingStrapi(calls)).lockSeason('s1')).rejects.toThrow('outside a transaction');
     expect(calls).toEqual([]);
   });
 });

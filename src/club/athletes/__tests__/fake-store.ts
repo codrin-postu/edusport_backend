@@ -271,6 +271,9 @@ export function fakeClubStore(seed: Partial<FakeState> = {}): Fake {
     lockRegistration: async (id) => {
       state.locks.push(id);
     },
+    lockSeason: async (id) => {
+      state.locks.push(`season:${id}`);
+    },
     lockAthlete: async (id) => {
       state.locks.push(`athlete:${id}`);
     },

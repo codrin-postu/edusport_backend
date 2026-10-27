@@ -82,7 +82,7 @@ async function undoLocked(ctx: ServiceContext, id: string): Promise<Result> {
 
 /** "Anulează confirmarea" (spec 4.6, gaps #32): one transaction on the locked registration row. */
 export async function undoConfirmation(ctx: ServiceContext, registrationId: string): Promise<Result> {
-  const result = await guarded(ctx.log, `[undo] ${registrationId}`, () => ctx.store.transaction(() => undoLocked(ctx, registrationId)));
+  const result = await guarded(ctx.log, `[confirm-undo] ${registrationId}`, () => ctx.store.transaction(() => undoLocked(ctx, registrationId)));
   if (result.ok === true) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after an undo');
   return result;
 }

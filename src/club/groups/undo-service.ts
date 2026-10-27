@@ -176,7 +176,7 @@ async function undoLocked(ctx: GroupContext, actionId: string): Promise<AdminRes
 export async function undoAction(ctx: GroupContext, body: unknown): Promise<AdminResult<{ undone: true }>> {
   const actionId = readActionId(body);
   if (!actionId) return refuse(400, GROUP_ERRORS.invalid);
-  const res = await guarded(ctx.log, `[undo] ${actionId}`, () => ctx.store.transaction(() => undoLocked(ctx, actionId)));
+  const res = await guarded(ctx.log, `[group-undo] ${actionId}`, () => ctx.store.transaction(() => undoLocked(ctx, actionId)));
   if (res.ok === false) return res;
   if (res.data.revalidate) ctx.revalidate();
   return { ok: true, data: { undone: true } };

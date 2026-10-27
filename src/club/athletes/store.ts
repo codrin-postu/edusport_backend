@@ -46,6 +46,8 @@ export interface ClubStore {
   lockRegistration(id: string): Promise<void>;
   /** Inside a transaction: holds the athlete row until the transaction ends (two confirmations of one child, a merge, polish 12). */
   lockAthlete(id: string): Promise<void>;
+  /** Season row lock, taken after the registration and before any athlete (membership and A.C.S. inserts key-share it). */
+  lockSeason(id: string): Promise<void>;
   registration(id: string): Promise<RegistrationRow | null>;
   /** Linked to (`athleteId`) or matched with (`matchAthleteId`) one athlete; both given: both must hold. */
   registrations(where?: { athleteId?: string; matchAthleteId?: string }): Promise<RegistrationRow[]>;

@@ -333,9 +333,9 @@ export function transactionScope(strapi: Core.Strapi): Scope {
   };
 }
 
-function transactions(strapi: Core.Strapi): Pick<ClubStore, 'transaction' | 'lockRegistration' | 'lockAthlete'> {
+function transactions(strapi: Core.Strapi): Pick<ClubStore, 'transaction' | 'lockRegistration' | 'lockAthlete' | 'lockSeason'> {
   const scope = transactionScope(strapi);
-  return { transaction: scope.transaction, lockRegistration: (id) => scope.lockRow('registration_submissions', id), lockAthlete: (id) => scope.lockRow('athletes', id) };
+  return { transaction: scope.transaction, lockRegistration: (id) => scope.lockRow('registration_submissions', id), lockSeason: (id) => scope.lockRow('seasons', id), lockAthlete: (id) => scope.lockRow('athletes', id) };
 }
 
 /** `recipient` and `subject` name the parent and the child; `lastError` can echo the parent's e-mail (Brevo error body). */

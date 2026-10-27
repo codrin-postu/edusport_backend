@@ -16,7 +16,7 @@ Strapi 5.52.1 (TypeScript) on PostgreSQL for the EduSport skating club and schoo
 ## Store pattern
 
 - Services take a store interface, never Strapi directly. `ClubStore` (`src/club/athletes/store.ts`) has the real `strapiClubStore` (`strapi-store.ts`) and the in-memory `__tests__/fake-store.ts`. Keep both in parity: every store method gets a fake implementation and a test (`fake-store.test.ts`, `strapi-store.test.ts`). Phase 4 follows the same pattern with `GroupStore`.
-- Writes run inside `store.transaction(...)` (nested calls reuse the outer transaction). Row locks: always registrations first, then athletes, each set sorted by id (`lockAthletesWithRegistrations`, `src/club/athletes/locks.ts`); re-read rows after taking the lock.
+- Writes run inside `store.transaction(...)` (nested calls reuse the outer transaction). Row locks: always registrations > seasons > athletes > groups > events > undo entry, each set sorted by id (`lockAthletesWithRegistrations`, `src/club/athletes/locks.ts`); re-read rows after taking the lock.
 - Work after the commit that must never fail the request (match refresh, history convenience, file and media cleanup) goes through `safely(work, log, what)` (`src/club/athletes/matches.ts`): logged, never thrown. Log no personal data (error codes, not file paths).
 
 ## Code rules (checked in review on every task)
