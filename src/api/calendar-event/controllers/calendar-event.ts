@@ -1,5 +1,5 @@
 import { factories } from '@strapi/strapi';
-import { expandOccurrences } from '../services/expand';
+import { expandOccurrences, publicEvents } from '../services/expand';
 import type { CalendarEventRow, BlackoutRow } from '../services/expand';
 import { validateRecurrence } from '../services/validate-recurrence';
 
@@ -27,7 +27,7 @@ export default factories.createCoreController('api::calendar-event.calendar-even
     }
 
     const events = (await strapi.documents('api::calendar-event.calendar-event').findMany({
-      populate: ['recurrence', 'exceptions'],
+      populate: ['recurrence', 'exceptions', 'group'],
       limit: 500,
     })) as unknown as CalendarEventRow[];
 
@@ -35,7 +35,7 @@ export default factories.createCoreController('api::calendar-event.calendar-even
       limit: 500,
     })) as unknown as BlackoutRow[];
 
-    const data = expandOccurrences(events, blackouts, from, to);
+    const data = expandOccurrences(publicEvents(events), blackouts, from, to);
 
     ctx.body = {
       data,
