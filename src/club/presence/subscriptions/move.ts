@@ -5,9 +5,9 @@ import { SUBJECT } from '../../subjects';
 import { seasonOfDate } from '../dates';
 import { P5_ACTIONS } from '../history-lines';
 import type { PresenceStore } from '../store';
-import { usedSlots } from '../subscriptions';
 import type { PriceListRecord, SubscriptionRow } from '../types';
 import { carryList } from './carry';
+import { usedOf } from './used';
 import { athleteListIdsToday, barOf, currentSubscription, schoolListIds, type AbonamentBar } from './rules';
 
 export type MovePreview = { bar: AbonamentBar | null; carries: boolean };
@@ -22,10 +22,6 @@ async function listsOfMove(store: PresenceStore, fromGroupId: string, toGroupId:
   if (fromListId === null || toListId === null || fromListId === toListId || !school.has(fromListId) || !school.has(toListId)) return null;
   const target = lists.find((l) => l.id === toListId);
   return target ? { fromListId, to: target } : null;
-}
-
-async function usedOf(store: PresenceStore, subs: readonly SubscriptionRow[]): Promise<Map<string, number>> {
-  return subs.length > 0 ? usedSlots(await store.attendances({ subscriptionIds: subs.map((s) => s.id) })) : new Map();
 }
 
 async function carryable(store: PresenceStore, athleteId: string, lists: Lists, today: string): Promise<SubscriptionRow[]> {

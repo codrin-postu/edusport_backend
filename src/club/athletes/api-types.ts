@@ -67,6 +67,7 @@ export type AthleteListRow = {
   acs: AcsState;
   publicProfile: 'public' | 'ascuns';
   possibleDuplicate: boolean;
+  abonament: string | null;
 };
 
 export type AthleteListPage = {

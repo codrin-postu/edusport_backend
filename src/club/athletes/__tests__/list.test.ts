@@ -37,7 +37,7 @@ describe('Sportivi list (spec 5)', () => {
     const page = await athleteListPage(fake().store, readListQuery({}), TODAY);
     expect(page.data.find((r) => r.documentId === 'a1')).toEqual({
       documentId: 'a1', name: 'Maria Pop', age: 10, birthDate: '14.03.2016', status: 'activ', dataIncomplete: false, missing: [],
-      mainGroup: { documentId: 'g-pp', name: 'Primii Pași' }, contactName: 'Ana', phone: '07', acs: 'in_asteptare', publicProfile: 'public', possibleDuplicate: true,
+      mainGroup: { documentId: 'g-pp', name: 'Primii Pași' }, contactName: 'Ana', phone: '07', acs: 'in_asteptare', publicProfile: 'public', possibleDuplicate: true, abonament: null,
     });
     expect(page.data.find((r) => r.documentId === 'a4')).toMatchObject({ age: null, mainGroup: null, acs: 'nu', publicProfile: 'ascuns', missing: ['data nașterii', 'persoana de contact', 'telefon', 'e-mail'] });
   });
