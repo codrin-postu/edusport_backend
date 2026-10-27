@@ -6,6 +6,7 @@ import { seedLegacyLink } from './sheets/store';
 import { normalizeNavigationPages } from './api/navigation/services/pages';
 import { warnIfNoAdminSessions } from './club/admin-auth';
 import { startPersonalDataSweep } from './club/personal-data/http';
+import { ensurePresenceIndexes } from './club/presence/indexes';
 
 // Admin layout overrides - applied on every bootstrap so they survive DB resets.
 // Each key is the strapi_core_store_settings key for that component/content-type.
@@ -415,6 +416,13 @@ export default {
 
     // Custom admin routes check tokens against Strapi's admin sessions; without them every one answers 401.
     warnIfNoAdminSessions(strapi);
+
+    // Phase 5: unique keys and date indexes for presence and payments tables (no-op where a table is missing).
+    try {
+      await ensurePresenceIndexes(strapi.db.connection);
+    } catch (e) {
+      strapi.log.error(`[presence] indexes: ${(e as { code?: string })?.code ?? 'unknown'}`);
+    }
 
     // Confirm the scheduled jobs actually registered — a cron block that is
     // silently ignored (wrong config key, disabled) is otherwise invisible.
