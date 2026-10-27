@@ -86,6 +86,8 @@ export interface GroupStore {
   createEmailJobs(jobs: ScheduleEmailJob[]): Promise<number>;
   /** Every job of the change still queued becomes `cancelled`; answers how many. */
   cancelEmailJobs(changeKey: string): Promise<number>;
+  /** How many jobs of the change were already sent (a sent e-mail cannot be taken back). */
+  sentEmailJobs(changeKey: string): Promise<number>;
   setSeasonCurrent(id: string, isCurrent: boolean): Promise<void>;
   /** Writes one Istoric line and answers its documentId and order (the undo `actionId`). */
   recordAction(entry: HistoryInput): Promise<ActionRef>;
