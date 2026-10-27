@@ -1,7 +1,7 @@
 import { nameKey } from '../../migrate/names';
 import { P4_ACTIONS } from '../history-lines';
 import { classView, seriesText, seriesView } from '../series';
-import type { EventRecord, GroupRecord } from '../types';
+import type { EventRecord, GroupRecord, SectionRecord } from '../types';
 import { matchOne } from './coaches';
 
 /** Step 5 (spec 4): unlinked `curs` events whose title, without "Antrenament:" or "Curs", names ONE group get `group` set. Pure. */
@@ -13,7 +13,10 @@ const PREFIX = /^\s*(antrenament\s*:|curs\b)\s*/i;
 const SKIP: ReadonlySet<string> = new Set(SKIP_NAMES.map(nameKey));
 export const bareTitle = (title: string): string => title.replace(PREFIX, '').trim();
 
-export function planEventLinks(events: EventRecord[], groups: GroupRecord[]): LinkPlan {
+/** Never links to a Școala group: school events are `scoala` (W9), so a `curs` naming one stays unmatched. */
+export function planEventLinks(events: EventRecord[], allGroups: GroupRecord[], sections: SectionRecord[]): LinkPlan {
+  const schools = new Set(sections.filter((s) => s.kind === 'school').map((s) => s.id));
+  const groups = allGroups.filter((g) => !schools.has(g.sectionId ?? ''));
   const plan: LinkPlan = { link: [], skipped: [], unmatched: [] };
   for (const e of events.filter((x) => !x.groupId && x.type === 'curs')) {
     const name = bareTitle(e.title);

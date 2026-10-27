@@ -25,6 +25,19 @@ describe('migrate-groups-schedules.js (spec 4)', () => {
   it('reports the one-main-per-season violators read-only, ids only, in every dry run', () => {
     expect(SCRIPT).toContain('planMainsViolations');
     expect(SCRIPT).toContain('if (!APPLY) await reportMains(ctx)');
-    expect(SCRIPT).not.toMatch(/log\([^\n]*teamMemberName[^\n]*\)/);
+    const mains = SCRIPT.slice(SCRIPT.indexOf('async function reportMains'), SCRIPT.indexOf('/** Strapi'));
+    expect(mains).toContain('v.athleteId');
+    expect(mains).not.toMatch(/name/i);
+  });
+
+  it('prints team member names (public staff) in the coaches plan and unmatched lines', () => {
+    expect(SCRIPT).toMatch(/log\([^\n]*l\.teamMemberName/);
+    expect(SCRIPT).toMatch(/log\([^\n]*u\.teamMemberName/);
+    expect(SCRIPT).not.toMatch(/log\([^\n]*teamMemberId/);
+  });
+
+  it('loads the store inside the try and reminds the operator after an apply', () => {
+    expect(SCRIPT.indexOf("lib('strapi-store')")).toBeGreaterThan(SCRIPT.indexOf('try {'));
+    expect(SCRIPT).toContain('if (APPLY) log(');
   });
 });

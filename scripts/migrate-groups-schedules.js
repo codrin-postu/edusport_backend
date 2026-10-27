@@ -71,8 +71,8 @@ async function stepCoaches(ctx) {
   const { plan, team } = await coachPlan(ctx);
   const nameOf = (ids) => team.filter((t) => ids.includes(t.id)).map((t) => t.name).join(', ');
   log('coach links to add:', plan.add.length, 'unmatched texts:', plan.unmatched.length);
-  plan.add.forEach((l) => log(`  team member ${l.teamMemberId} -> ${l.groupName}`));
-  plan.unmatched.forEach((u) => log(`  group text matches no group, skipped: "${u.text}"`));
+  plan.add.forEach((l) => log(`  team member ${l.teamMemberName} -> ${l.groupName}`));
+  plan.unmatched.forEach((u) => log(`  ${u.teamMemberName}: group text matches no group, skipped: "${u.text}"`));
   if (!APPLY) return;
   await writeEach(byGroup(plan.add), ([groupId]) => `coaches of ${groupId}`, ([groupId, links]) => ctx.store.transaction(async () => {
     const group = await ctx.store.group(groupId);
@@ -108,6 +108,8 @@ async function stepSchoolSeries(ctx) {
   plan.unmatched.forEach((t) => log(`  course text matches no Școala group, skipped: "${t}"`));
   plan.unreadSlots.forEach((t) => log(`  slot without a time, skipped: "${t}"`));
   plan.leftCancels.forEach((d) => log(`  old "cancel" date not copied: ${d}`));
+  log('old series (read, to compare with the new ones):', plan.old.length);
+  plan.old.forEach((e) => lib('migrate/school-series').describeSeries(e).forEach((line) => log(`  ${line}`)));
   if (!APPLY) return;
   await writeEach(plan.create, (c) => `series of ${c.groupName}`, (c) => ctx.store.transaction(async () => {
     await ctx.store.createEvent(c.write);
@@ -116,7 +118,7 @@ async function stepSchoolSeries(ctx) {
 }
 
 async function linkPlan({ store }) {
-  return lib('migrate/link-events').planEventLinks(await store.events(), await store.groups());
+  return lib('migrate/link-events').planEventLinks(await store.events(), await store.groups(), await store.sections());
 }
 
 async function stepLinkEvents(ctx) {
@@ -136,13 +138,18 @@ async function stepLinkEvents(ctx) {
 }
 
 async function stepRetire(ctx) {
-  const plan = lib('migrate/retire').planRetire(await ctx.store.events(), await currentSeasonOf(ctx));
+  const { planRetire, scoalaGroupsWithoutSeries, retiredChanges } = lib('migrate/retire');
+  const season = await currentSeasonOf(ctx);
+  const [events, groups, sections] = await Promise.all([ctx.store.events(), ctx.store.groups(), ctx.store.sections()]);
+  const missing = scoalaGroupsWithoutSeries(groups, sections, events, season);
+  if (missing.length) throw new StepRefused(`${missing.length} Școala group(s) have no linked series in the current Sezon (${missing.map((g) => g.name).join(', ')}): finish --step=school-series first`);
+  const plan = planRetire(events, season);
   log('old Școala series to delete:', plan.length);
   plan.forEach((r) => log(`  "${r.title}" ${r.from} -> ${r.to}; exceptions: ${r.exceptions.map((x) => `${x.date} ${x.kind}${x.note ? ` (${x.note})` : ''}`).join(', ') || 'none'}`));
   if (!APPLY) return;
   await writeEach(plan, (r) => `event ${r.eventId}`, (r) => ctx.store.transaction(async () => {
     await ctx.store.deleteEvent(r.eventId);
-    await ctx.store.record({ subjectType: 'calendar-event', subjectId: r.eventId, action: 'event-retired', changes: { title: r.title }, actor: ACTOR });
+    await ctx.store.record({ subjectType: 'calendar-event', subjectId: r.eventId, action: 'event-retired', changes: retiredChanges(r), actor: ACTOR });
   }));
 }
 
@@ -193,11 +200,13 @@ async function main() {
   }
   const app = await createStrapi(await compileStrapi()).load();
   app.log.level = 'error';
-  const ctx = { app, store: lib('strapi-store').strapiGroupStore(app) };
+  const ctx = { app, store: null };
   try {
+    ctx.store = lib('strapi-store').strapiGroupStore(app);
     await requirePreviousSteps(ctx);
     await step(ctx);
     if (!APPLY) await reportMains(ctx);
+    if (APPLY) log('Public pages cache up to 5 minutes: wait that long before checking the website.');
   } catch (e) {
     console.error(e instanceof StepRefused ? `refused, nothing written: ${e.message}` : e);
     await shutDown(app);
