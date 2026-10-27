@@ -223,11 +223,11 @@ export default function CompetitiiPage() {
       setExpanded(ev.id);
       setMsg({
         kind: 'ok',
-        text: `Actualizat „${ev.name}": ${all.length} rezultate, ${mine.length} de la sportivii clubului.`,
+        text: `Actualizat "${ev.name}": ${all.length} rezultate, ${mine.length} de la sportivii clubului.`,
       });
       loadEvents();
     } catch {
-      setMsg({ kind: 'err', text: `Nu am putut citi rezultatele pentru „${ev.name}".` });
+      setMsg({ kind: 'err', text: `Nu am putut citi rezultatele pentru "${ev.name}".` });
     } finally {
       setReimportingId(null);
     }
@@ -475,7 +475,7 @@ export default function CompetitiiPage() {
       <ConfirmDialog
         open={delTarget !== null}
         title="Ștergi competiția?"
-        message={`Ștergi competiția „${delTarget?.name ?? ''}"? Rezultatele ei din skate-results vor fi eliminate.`}
+        message={`Ștergi competiția "${delTarget?.name ?? ''}"? Rezultatele ei din skate-results vor fi eliminate.`}
         busy={delTarget !== null && deletingId === delTarget.id}
         onCancel={() => setDelTarget(null)}
         onConfirm={() => {

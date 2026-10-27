@@ -106,7 +106,7 @@ describe('Istoric and copy', () => {
     expect(RECORD_COPY.requiredHint).toBe('Obligatorii pentru "complet": nume, data nașterii, persoana de contact, telefon, e-mail.');
     expect(RECORD_COPY.inactiveDialog).toEqual({ title: 'Marchezi sportivul ca inactiv?', message: 'Nu mai apare în liste. Istoricul rămâne.', confirm: 'Marchează inactiv' });
     expect(RECORD_COPY.deleteDialog.message('Ana Pop')).toBe(
-      '„Ana Pop” se șterge definitiv, împreună cu profilul public, rezultatele și sezoanele. Înscrierile rămân, fără legătură. Acțiunea nu poate fi anulată.',
+      '"Ana Pop" se șterge definitiv, împreună cu profilul public, rezultatele și sezoanele. Înscrierile rămân, fără legătură. Acțiunea nu poate fi anulată.',
     );
     expect(RECORD_COPY.duplicate.line('Ana Pop')).toBe('Posibil același copil cu Ana Pop');
     expect([RECORD_COPY.duplicate.merge, RECORD_COPY.duplicate.dismiss]).toEqual(['Unește', 'Nu e același copil']);

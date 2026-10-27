@@ -5,7 +5,7 @@
     "singularName": "announcement",
     "pluralName": "announcements",
     "displayName": "Anunț",
-    "description": "Anunțuri programate afișate pe site. Se administrează din pagina dedicată „Anunțuri”, nu din Content Manager."
+    "description": "Anunțuri programate afișate pe site. Se administrează din pagina dedicată \"Anunțuri\", nu din Content Manager."
   },
   "options": {
     "draftAndPublish": false

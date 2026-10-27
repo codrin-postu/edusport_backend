@@ -187,7 +187,7 @@ function GroupPicker({
     <div className="mem-groups">
       <div className="mem-sublabel">Selectate</div>
       {value.length === 0 ? (
-        <div className="ui-hint">Nicio categorie aleasă. Membrul apare pe site fără lista „Predă la".</div>
+        <div className="ui-hint">Nicio categorie aleasă. Membrul apare pe site fără lista "Predă la".</div>
       ) : (
         <ChipList className="mem-chiprow">
           {value.map((g) => (
@@ -732,7 +732,7 @@ export default function MembriEchipaPage() {
       <ConfirmDialog
         open={target !== null}
         title="Ștergi membrul?"
-        message={`„${target?.name ?? ''}" se șterge definitiv și dispare de pe pagina Echipa. Acțiunea nu poate fi anulată.`}
+        message={`"${target?.name ?? ''}" se șterge definitiv și dispare de pe pagina Echipa. Acțiunea nu poate fi anulată.`}
         detail="Fotografia rămâne în biblioteca media."
         busy={deleting}
         error={delError}

@@ -30,7 +30,7 @@ export interface SearchableSelectProps {
   /** Label of the current value when it is not in the loaded options (async mode). */
   valueLabel?: string;
   placeholder?: string;
-  /** Offer "Adaugă „text”" when nothing matches exactly. */
+  /** Offer Adaugă "text" when nothing matches exactly. */
   creatable?: boolean;
   /** Called for the create row; return the new option (or a promise of it) to select it. Default: the text itself. */
   onCreate?: (text: string) => ComboOption | Promise<ComboOption | null> | null | void;
@@ -284,7 +284,7 @@ export function SearchableSelect({
             onClick={() => void create()}
           >
             {creating ? <Spinner size={12} /> : <IconPlus size={12} />}
-            <span>Adaugă „{query.trim()}”</span>
+            <span>Adaugă "{query.trim()}"</span>
           </div>
         )}
         {rows === 0 && (

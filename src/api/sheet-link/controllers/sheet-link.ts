@@ -44,7 +44,7 @@ function formParam(ctx: any): FormKey | null {
   const raw = trimOrEmpty(ctx.params?.form);
   if (!isFormKey(raw)) {
     ctx.status = 400;
-    ctx.body = { ok: false, reason: 'unknown_form', message: `Formular necunoscut: „${raw}".` };
+    ctx.body = { ok: false, reason: 'unknown_form', message: `Formular necunoscut: "${raw}".` };
     return null;
   }
   return raw;
@@ -54,7 +54,7 @@ function formParam(ctx: any): FormKey | null {
 function noAccessMessage(): string {
   const sa = serviceAccountEmail();
   return sa
-    ? `Foaia există, dar contul de serviciu nu are acces. Dă-i drepturi de editor lui ${sa} din butonul „Distribuie" al foii.`
+    ? `Foaia există, dar contul de serviciu nu are acces. Dă-i drepturi de editor lui ${sa} din butonul "Distribuie" al foii.`
     : 'Contul de serviciu nu are acces la această foaie.';
 }
 
@@ -320,7 +320,7 @@ export default factories.createCoreController('api::sheet-link.sheet-link', () =
       ctx.body = {
         ok: false,
         reason: 'partitioned_form',
-        message: `„${desc.label}" folosește câte o filă pe ${desc.partition.field} (implicit „${desc.partition.fallbackTab}" pentru rândurile fără valoare), deci nu are o filă fixă.`,
+        message: `"${desc.label}" folosește câte o filă pe ${desc.partition.field} (implicit "${desc.partition.fallbackTab}" pentru rândurile fără valoare), deci nu are o filă fixă.`,
         link: await getLink(form),
       };
       return;

@@ -611,7 +611,7 @@ function RepeatableDemo() {
           expandable
           confirmDelete
           defaultExpanded={['r2']}
-          itemLabel={(r, i) => (r.label ? `regula „${r.label}”` : `regula ${i + 1}`)}
+          itemLabel={(r, i) => (r.label ? `regula "${r.label}"` : `regula ${i + 1}`)}
           renderSummary={(r) => (
             <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
               {r.label || 'Regulă nouă'}
@@ -860,7 +860,7 @@ function InputsDemo() {
         <TagsInput value={tags} onChange={setTags} suggestions={['Juniori', 'Seniori', 'Program Scurt', 'Program Liber', 'Național', 'Internațional']} />
       </Field>
       <FieldRow>
-        <Field label="Club" hint="Opțiuni locale, diacriticele nu contează (încearcă „stefanesti”).">
+        <Field label="Club" hint='Opțiuni locale, diacriticele nu contează (încearcă "stefanesti").'>
           <SearchableSelect value={club} onChange={(v) => setClub(v)} options={CLUBS} placeholder="Alege clubul" />
         </Field>
         <Field label="Sportiv" hint="Opțiuni încărcate asincron (500ms).">
@@ -870,7 +870,7 @@ function InputsDemo() {
       <Field label="Sportivi (RelationMultiSelect)" hint="După documentId, nu după nume; încărcare asincronă, cei aleși lipsesc din listă.">
         <RelationMultiSelect value={team} onChange={(ids) => setTeam(ids)} loadOptions={loadAthleteRelations} placeholder="Caută și adaugă sportiv..." />
       </Field>
-      <Field label="Categorie" hint="Creatable: scrie o categorie nouă și alege „Adaugă”.">
+      <Field label="Categorie" hint='Creatable: scrie o categorie nouă și alege "Adaugă".'>
         <SearchableSelect
           value={tag}
           onChange={(v) => setTag(v)}

@@ -217,7 +217,7 @@ export function GalleryGrid(props: GalleryGridProps) {
         <ConfirmDialog
           open={askedImg !== null}
           title="Scoți imaginea?"
-          message={typeof confirmRemove === 'string' ? confirmRemove : `„${askedName}" nu va mai apărea pe site.`}
+          message={typeof confirmRemove === 'string' ? confirmRemove : `"${askedName}" nu va mai apărea pe site.`}
           detail="Fișierul rămâne în biblioteca media. Modificarea se aplică după ce apeși Salvează."
           confirmLabel="Scoate imaginea"
           onCancel={() => setAsking(null)}

@@ -66,7 +66,7 @@ export function validateRecurrence(recurrence: unknown): void {
   const end = toHHMM(r.endTime);
   if (start && end && !r.endsNextDay && end <= start) {
     throw new ValidationError(
-      'Ora de sfârșit trebuie să fie după ora de început. Bifează „Se termină a doua zi" dacă evenimentul trece de miezul nopții.',
+      'Ora de sfârșit trebuie să fie după ora de început. Bifează "Se termină a doua zi" dacă evenimentul trece de miezul nopții.',
     );
   }
 

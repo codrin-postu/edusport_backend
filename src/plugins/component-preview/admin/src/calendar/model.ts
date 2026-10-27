@@ -231,7 +231,7 @@ export function seriesDates(f: FormState): string[] {
  */
 export function validateForm(f: FormState): string | null {
   if (!f.allDay && f.startTime && f.endTime && !f.endsNextDay && f.endTime <= f.startTime) {
-    return 'Ora de sfârșit trebuie să fie după ora de început. Bifează „Se termină a doua zi" dacă evenimentul trece de miezul nopții.';
+    return 'Ora de sfârșit trebuie să fie după ora de început. Bifează "Se termină a doua zi" dacă evenimentul trece de miezul nopții.';
   }
   if (f.freq === 'none') return null;
   if (!f.seasonStart || !f.seasonEnd) {

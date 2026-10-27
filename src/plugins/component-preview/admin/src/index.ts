@@ -40,7 +40,7 @@ export default {
       pluginId: 'component-preview',
       type: 'json',
       intlLabel: { id: 'component-preview.partners-page-content.label', defaultMessage: 'Parteneri - Text pagină' },
-      intlDescription: { id: 'component-preview.partners-page-content.description', defaultMessage: 'Textele din antet, „De ce parteneriat” și secțiunea de colaborare.' },
+      intlDescription: { id: 'component-preview.partners-page-content.description', defaultMessage: 'Textele din antet, "De ce parteneriat" și secțiunea de colaborare.' },
       components: {
         Input: async () => import('./PartnersContentEditor').then(m => ({ default: m.default as any })),
       },

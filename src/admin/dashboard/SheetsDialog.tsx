@@ -454,7 +454,7 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
       </div>
 
       {verify?.kind === 'ok' && (
-        <Notice tone="success" title={<>Conectat la „{verify.spreadsheetName}"</>}>
+        <Notice tone="success" title={<>Conectat la "{verify.spreadsheetName}"</>}>
           {tabText}, {plural(entry?.rowCountDb ?? 0, 'rânduri')} în baza de date
         </Notice>
       )}
@@ -560,7 +560,7 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
         <div className="ui-hint">
           Trimiterile ajung în foaie imediat. Verificarea compară foaia cu baza de date și repară ce a lipsit, dacă
           Google a fost indisponibil.
-          {interval === 0 && ' „Oprit" oprește doar verificarea periodică, nu și trimiterile către foaie.'}
+          {interval === 0 && ' "Oprit" oprește doar verificarea periodică, nu și trimiterile către foaie.'}
         </div>
       </div>
 
@@ -640,7 +640,7 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
       <ConfirmDialog
         open={confirmDisconnect}
         title="Deconectezi foaia?"
-        message={`Nu mai trimitem nimic către „${entry?.spreadsheetName || 'foaia conectată'}". Foaia și datele din ea rămân neatinse.`}
+        message={`Nu mai trimitem nimic către "${entry?.spreadsheetName || 'foaia conectată'}". Foaia și datele din ea rămân neatinse.`}
         confirmLabel="Deconectează"
         busyLabel="Se deconectează..."
         busy={busy}

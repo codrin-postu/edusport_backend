@@ -474,7 +474,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
         if (enabled.size) {
           const bad = areas.find((a) => !enabled.has(a));
           if (bad !== undefined) {
-            return ctx.badRequest(`Opțiunea „${bad}" nu există în lista „Cum ajută".`);
+            return ctx.badRequest(`Opțiunea "${bad}" nu există în lista "Cum ajută".`);
           }
         }
       } catch {
@@ -483,7 +483,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
       data.helpAreas = areas as any;
     }
     if ('extra' in data && data.extra != null && (typeof data.extra !== 'object' || Array.isArray(data.extra))) {
-      return ctx.badRequest('Câmpul „extra" trebuie să fie un obiect.');
+      return ctx.badRequest('Câmpul "extra" trebuie să fie un obiect.');
     }
 
     const doc = await strapi.documents(UID).update({ documentId, data });

@@ -184,7 +184,7 @@ const DisciplinePage: React.FC = () => {
       <ConfirmDialog
         open={target !== null}
         title="Ștergi disciplina?"
-        message={`„${target?.name ?? ''}" se șterge definitiv.`}
+        message={`"${target?.name ?? ''}" se șterge definitiv.`}
         busy={deleting}
         onCancel={() => !deleting && setTarget(null)}
         onConfirm={() => void confirmRemove()}

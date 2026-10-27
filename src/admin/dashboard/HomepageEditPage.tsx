@@ -625,8 +625,8 @@ const HomepageEditPage: React.FC = () => {
                 {registrationOpen === null
                   ? 'Se schimbă din Setări site, nu de aici.'
                   : registrationOpen
-                    ? 'Acum înscrierile sunt deschise, deci site-ul afișează varianta „deschise". Se schimbă din Setări site.'
-                    : 'Acum înscrierile sunt închise, deci site-ul afișează varianta „închise". Se schimbă din Setări site.'}
+                    ? 'Acum înscrierile sunt deschise, deci site-ul afișează varianta "deschise". Se schimbă din Setări site.'
+                    : 'Acum înscrierile sunt închise, deci site-ul afișează varianta "închise". Se schimbă din Setări site.'}
               </Notice>
 
               <Tabs
@@ -842,7 +842,7 @@ const HomepageEditPage: React.FC = () => {
         title="Ștergi cifra?"
         message={
           figureToRemove !== null && figures[figureToRemove]
-            ? `„${figures[figureToRemove].value} ${figures[figureToRemove].label}" dispare din lista comună.`
+            ? `"${figures[figureToRemove].value} ${figures[figureToRemove].label}" dispare din lista comună.`
             : ''
         }
         detail="Se șterge la salvare, pentru toate paginile care o folosesc."

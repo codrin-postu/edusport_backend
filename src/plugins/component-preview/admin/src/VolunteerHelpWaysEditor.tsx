@@ -62,7 +62,7 @@ export default function VolunteerHelpWaysEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Moduri de a ajuta"
-        description="Lista modurilor în care voluntarii pot contribui, afișate în secțiunea „Cum poți ajuta”."
+        description='Lista modurilor în care voluntarii pot contribui, afișate în secțiunea "Cum poți ajuta".'
       >
         <Box padding={4}>
           <Flex direction="column" alignItems="stretch" gap={2}>

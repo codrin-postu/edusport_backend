@@ -1297,7 +1297,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
     if (f.op === 'on') return `${label}: ${f.val}`;
     if (f.op === 'before' || f.op === 'after') return `${label} ${OP_LABEL[f.op]} ${f.val}`;
     if (f.op === 'equals') return `${label}: ${f.val}`;
-    return `${label} ${OP_LABEL[f.op] ?? f.op} „${f.val}"`;
+    return `${label} ${OP_LABEL[f.op] ?? f.op} "${f.val}"`;
   };
 
   // --- column popover (full view)

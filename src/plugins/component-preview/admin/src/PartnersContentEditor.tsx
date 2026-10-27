@@ -88,7 +88,7 @@ export default function PartnersContentEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Parteneri - Text pagină"
-        description="Textele din antet, secțiunea „De ce parteneriat” și secțiunea de colaborare/sponsorizare."
+        description='Textele din antet, secțiunea "De ce parteneriat" și secțiunea de colaborare/sponsorizare.'
       >
         <Box padding={4}>
           <Section title="Antet (hero)" first>
