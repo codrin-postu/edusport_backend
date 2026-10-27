@@ -1,6 +1,6 @@
 /** Dates and times as phase 4 shows them (spec 3.7, 6.3, 6.5). Pure: ISO 'YYYY-MM-DD' and 'HH:mm' in, Romanian text out. */
 export const MONTHS_LONG = ['ianuarie', 'februarie', 'martie', 'aprilie', 'mai', 'iunie', 'iulie', 'august', 'septembrie', 'octombrie', 'noiembrie', 'decembrie'] as const;
-export const MONTHS_SHORT = ['ian', 'feb', 'mar', 'apr', 'mai', 'iun', 'iul', 'aug', 'sep', 'oct', 'noi', 'dec'] as const;
+export const MONTHS_SHORT = ['ian', 'feb', 'mar', 'apr', 'mai', 'iun', 'iul', 'aug', 'sep', 'oct', 'nov', 'dec'] as const;
 /** Indexed like `getUTCDay()`: 0 is Sunday. */
 export const WEEKDAYS = ['duminică', 'luni', 'marți', 'miercuri', 'joi', 'vineri', 'sâmbătă'] as const;
 
