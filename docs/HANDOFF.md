@@ -14,7 +14,7 @@ One page to start the next session. Rules and commands: `CLAUDE.md`. Decisions: 
 | 5 Attendance, abonamente, payments | Research + 42 companion answers in `edusport_backend/.superpowers/phase5/` (answers.md); spec draft `docs/superpowers/specs/2026-10-27-attendance-payments-design.md` (uncommitted until approved); copy screen (87 lines) pending |
 | 6-8 | Not started (`docs/architecture/13-roadmap.md`) |
 
-Deploy: ONE window for phase 2 + 3 together (DECISIONS 2026-10-26 d19), only with the user's approval, backup first, per `docs/architecture/12-phase2-deploy-runbook.md`, then `npm run migrate:athletes` steps. Merging `feat/athletes` into main also waits for that window.
+Deploy: ONE window for phases 2, 3 and 4 (user, 2026-10-27), order in `docs/architecture/15-deploy-window-2-3-4.md`. Earlier note: ONE window for phase 2 + 3 together (DECISIONS 2026-10-26 d19), only with the user's approval, backup first, per `docs/architecture/12-phase2-deploy-runbook.md`, then `npm run migrate:athletes` steps. Merging `feat/athletes` into main also waits for that window.
 
 ## Branches and worktrees
 

@@ -13,6 +13,8 @@ Tracks the phases of `10-spec.md` section 7. Update the status line of a phase w
 | 7 | Parent portal | Not started |
 | 8 | Documents page | Not started |
 
+One deploy window for phases 2, 3 and 4: `15-deploy-window-2-3-4.md`.
+
 ## Phase 2 go-live
 
 - [ ] Brevo (user's account): test key on codrin.space now; at go-live a separate production key only in the VM .env.production, the test key deleted, and Security > Authorized IPs turned on with the VM address only (178.105.192.111, confirm the outgoing address with `curl ifconfig.me` on the VM first)
