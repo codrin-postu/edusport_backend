@@ -66,4 +66,20 @@ describe('"Șterge grupa" (W11)', () => {
     const scheduled = fakeContext({ events: [event({ id: 'e1', groupId: 'g-is' })] });
     expect((await deleteGroup(scheduled.ctx, 'g-is')).ok).toBe(false);
   });
+
+  it('refuses (409) when the Istoric shows a line beyond creation and edit, even with no row left (same-day delete)', async () => {
+    for (const action of ['member-added', 'class-added', 'class-deleted', 'program-added']) {
+      const { ctx, state } = fakeContext();
+      await ctx.store.record({ subjectType: 'group', subjectId: 'g-is', action, actor: 'admin@example.com' });
+      expect(await deleteGroup(ctx, 'g-is'), action).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+      expect(state.groups.some((g) => g.id === 'g-is')).toBe(true);
+    }
+  });
+
+  it('still deletes a group whose Istoric holds only creation and edit lines', async () => {
+    const { ctx } = fakeContext();
+    await ctx.store.record({ subjectType: 'group', subjectId: 'g-is', action: 'group-created', actor: 'a@b.ro' });
+    await ctx.store.record({ subjectType: 'group', subjectId: 'g-is', action: 'group-updated', changes: { fields: {} }, actor: 'a@b.ro' });
+    expect((await deleteGroup(ctx, 'g-is')).ok).toBe(true);
+  });
 });

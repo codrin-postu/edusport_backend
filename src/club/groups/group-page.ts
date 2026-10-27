@@ -1,7 +1,8 @@
 import type { AthleteRow, MembershipRow } from '../athletes/store';
 import { isCurrentMembership } from '../group-membership';
 import type { GroupOptions, GroupPage, MemberRow } from './api-types';
-import { readGroupHistory } from './group-history';
+import { neverUsed, readGroupHistory } from './group-history';
+import { GROUP_SUBJECT } from './history-lines';
 import { copyFromFor } from './new-season/copy-group';
 import { ageOnIso, pickSeason, seasonRef } from './season-pick';
 import { groupChoices, sectionLabel } from './sections';
@@ -28,12 +29,12 @@ const pageReads = (store: GroupStore, id: string) => Promise.all([store.membersh
 export async function readGroupPage(store: GroupStore, id: string, label: string | null, today: string): Promise<GroupPage | null> {
   const group = await store.group(id);
   if (!group) return null;
-  const [seasons, sections, team, priceLists, athletes, groups, history, [allRows, groupEvents]] = await Promise.all([
-    store.seasons(), store.sections(), store.teamMembers(), store.priceLists(), store.athletes(), store.groups(), readGroupHistory(store, id), pageReads(store, id),
+  const [seasons, sections, team, priceLists, athletes, groups, history, [allRows, groupEvents], rawHistory] = await Promise.all([
+    store.seasons(), store.sections(), store.teamMembers(), store.priceLists(), store.athletes(), store.groups(), readGroupHistory(store, id), pageReads(store, id), store.history(GROUP_SUBJECT, id),
   ]);
   const season = pickSeason(seasons, label);
   const current = season ? (await store.memberships({ seasonId: season.id })).filter(isCurrentMembership) : [];
-  const deletable = allRows.length === 0 && groupEvents.length === 0;
+  const deletable = neverUsed(allRows, groupEvents, rawHistory);
   const copyFrom = season ? copyFromFor({ group, season, seasons, memberships: allRows, athletes, events: groupEvents, today }) : null;
   const section = sections.find((s) => s.id === group.sectionId);
   const priceList = priceLists.find((p) => p.id === group.priceListId);
