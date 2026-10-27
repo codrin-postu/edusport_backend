@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyStart, previewStart, readStart } from '../new-season/service';
 import { undoAction } from '../undo-service';
-import { joinGroup } from '../members';
+import { joinGroup, removeMembership } from '../members';
 import { fakeContext } from './fake-group-store';
 import { facts } from './new-season-facts';
 
@@ -83,6 +83,27 @@ describe('applying (10.4, 10.5, W24)', () => {
     const res2 = await applyStart(two.ctx, 's27', BODY);
     two.state.filedAfter = 1;
     expect((await undoAction(two.ctx, { actionId: actionOf(res2) })).ok).toBe(false);
+  });
+
+  it('undo is refused with 409 and writes nothing when an undone remove re-created a copied row', async () => {
+    const { ctx, state } = seed();
+    const start = actionOf(await applyStart(ctx, 's27', BODY));
+    const copied = state.memberships.find((m) => m.seasonId === 's27' && m.athleteId === 'a2');
+    const removed = actionOf(await removeMembership(ctx, copied?.id ?? ''));
+    expect(state.memberships.some((m) => m.id === copied?.id)).toBe(false);
+    expect((await undoAction(ctx, { actionId: removed })).ok).toBe(true);
+    const after = structuredClone({ seasons: state.seasons, memberships: state.memberships, events: state.events, history: state.history });
+    expect(await undoAction(ctx, { actionId: start })).toEqual({ ok: false, status: 409, error: 'Nu se mai poate anula. Sezonul s-a schimbat între timp.' });
+    expect({ seasons: state.seasons, memberships: state.memberships, events: state.events, history: state.history }).toEqual(after);
+  });
+
+  it('undo restores every season that was current before the start', async () => {
+    const { ctx, state } = seed();
+    state.seasons.find((s) => s.id === 's25')!.isCurrent = true;
+    const res = await applyStart(ctx, 's27', BODY);
+    expect(state.seasons.filter((s) => s.isCurrent).map((s) => s.id)).toEqual(['s27']);
+    expect(await undoAction(ctx, { actionId: actionOf(res) })).toEqual({ ok: true, data: { undone: true } });
+    expect(state.seasons.filter((s) => s.isCurrent).map((s) => s.id)).toEqual(['s25', 's26']);
   });
 
   it('a second apply is refused and writes nothing (Review Focus)', async () => {

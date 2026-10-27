@@ -41,7 +41,11 @@ export async function previewStart(store: GroupStore, targetId: string, body: un
 /** Flags, then every membership and series; answers the steps that take them back. */
 async function writeStart(store: GroupStore, f: StartFacts, plan: StartPlan): Promise<UndoStep[]> {
   const steps: UndoStep[] = [{ op: 'setCurrentSeason', id: f.current.id, otherId: f.target.id }];
-  for (const s of await store.seasons()) if (s.isCurrent && s.id !== f.target.id) await store.setSeasonCurrent(s.id, false);
+  for (const s of await store.seasons()) {
+    if (!s.isCurrent || s.id === f.target.id) continue;
+    await store.setSeasonCurrent(s.id, false);
+    if (s.id !== f.current.id) steps.push({ op: 'setCurrentSeason', id: s.id, otherId: f.target.id });
+  }
   await store.setSeasonCurrent(f.target.id, true);
   for (const m of plan.members) {
     const id = await store.createMembership({ athleteId: m.athleteId, groupId: m.groupId, seasonId: f.target.id, isMain: m.isMain, from: m.from });
@@ -90,7 +94,8 @@ const touched = (plan: StartPlan) => ({
 async function lockedFacts(ctx: GroupContext, targetId: string, req: StartRequest): Promise<AdminResult<{ facts: StartFacts; plan: StartPlan }>> {
   const first = await loadStartFacts(ctx.store, targetId, ctx.today);
   if (first.ok === false) return first;
-  for (const id of [first.data.current.id, targetId].sort()) await ctx.store.lockSeason(id);
+  const otherCurrent = (await ctx.store.seasons()).filter((s) => s.isCurrent).map((s) => s.id);
+  for (const id of [...new Set([first.data.current.id, targetId, ...otherCurrent])].sort()) await ctx.store.lockSeason(id);
   const locked = touched(planStart(first.data, req));
   for (const id of locked.athletes) await ctx.store.lockAthlete(id);
   for (const id of locked.groups) await ctx.store.lockGroup(id);
