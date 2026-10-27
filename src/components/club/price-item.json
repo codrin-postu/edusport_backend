@@ -4,7 +4,7 @@
   "options": {},
   "attributes": {
     "name": { "type": "string", "required": true },
-    "kind": { "type": "enumeration", "enum": ["subscription", "session", "individual"], "required": true },
+    "kind": { "type": "enumeration", "enum": ["subscription", "session", "individual", "uscat"], "required": true },
     "sessions": { "type": "integer" },
     "memberPrice": { "type": "decimal" },
     "nonMemberPrice": { "type": "decimal" },

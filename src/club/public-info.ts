@@ -32,7 +32,7 @@ export type RawSection = {
 /** The public view of one price item, or null when it has no usable name, kind or any price. */
 export function toPublicItem(raw: RawPriceItem): PublicPriceItem | null {
   const name = asText(raw.name);
-  if (!name || !isPriceItemKind(raw.kind)) return null;
+  if (!name || !isPriceItemKind(raw.kind) || raw.kind === 'uscat') return null;
   const item: PublicPriceItem = {
     name,
     kind: raw.kind,

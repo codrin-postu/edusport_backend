@@ -5,6 +5,7 @@ export const KIND_LABELS: Record<PriceItemKind, string> = {
   subscription: 'Abonament',
   session: 'Ședință',
   individual: 'Lecție individuală',
+  uscat: 'Uscat',
 };
 
 export const KIND_OPTIONS = (Object.keys(KIND_LABELS) as PriceItemKind[]).map((value) => ({ value, label: KIND_LABELS[value] }));
