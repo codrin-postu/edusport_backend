@@ -40,7 +40,7 @@ describe('program lines (3.7, decided 10 to 12)', () => {
   it('adds, changes and ends a series', () => {
     expect(lines(P4_ACTIONS.programAdded, { series })).toEqual(['Program adăugat: Sâ și Du, 11:00, 50 min, din 4 oct 2026.']);
     expect(lines(P4_ACTIONS.programChanged, { from: '2026-11-21', before: series, after: { ...series, startTime: '12:00' } }))
-      .toEqual(['Program schimbat din 21 nov 2026: Sâ și Du, 11:00, 50 min → Sâ și Du, 12:00, 50 min.']);
+      .toEqual(['Program schimbat din 21 noi 2026: Sâ și Du, 11:00, 50 min → Sâ și Du, 12:00, 50 min.']);
     expect(lines(P4_ACTIONS.programEnded, { from: '2026-12-01', series })).toEqual(['Program șters din 1 dec 2026: Sâ și Du, 11:00, 50 min.']);
   });
 
