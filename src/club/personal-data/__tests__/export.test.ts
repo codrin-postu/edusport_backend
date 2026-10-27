@@ -4,6 +4,7 @@ import { athleteRow, fakeClubStore, registrationRow } from '../../athletes/__tes
 import { ADMIN_ERRORS } from '../../athletes/errors';
 import { pdfText } from '../../documents/__tests__/pdf-text';
 import { HISTORY_ACTIONS } from '../../history-text';
+import { fakePresenceStore, paymentRow, type FakePresenceSeed } from '../../presence/__tests__/fake-store';
 import { exportAthleteData, type ExportContext, type ExportDocument } from '../export-service';
 import { exportFileName, zipExport, zipHeaders } from '../export-zip';
 
@@ -15,6 +16,7 @@ const PDF = new Uint8Array([37, 80, 68, 70, 45, 49]);
 function setup(
   stored: Record<string, ExportDocument[]> = { r1: [{ kind: 'acord', fileName: 'Ilinca-Zamfirescu_Acord_2026-2027.pdf', data: PDF }] },
   registrationRecords: Record<string, Record<string, unknown>> = { r1: { relationship: 'parinte', gdprConsent: true, regulationsConsent: true } },
+  presenceSeed: FakePresenceSeed = {},
 ) {
   const fake = fakeClubStore({
     athletes: [
@@ -33,7 +35,7 @@ function setup(
   const logs: string[] = [];
   const ctx: ExportContext = {
     store: fake.store, actor: 'ana@example.com', today: { year: 2026, month: 10, day: 27 }, log: (m) => logs.push(m),
-    storedDocuments: async (id) => stored[id] ?? [], now: () => NOW,
+    storedDocuments: async (id) => stored[id] ?? [], now: () => NOW, presence: fakePresenceStore(presenceSeed).store,
   };
   return { fake, ctx, logs };
 }
@@ -109,6 +111,18 @@ describe('export service (spec 3)', () => {
     const { text } = await pdfText(Buffer.from(files(result.data.data)['rezumat.pdf']));
     for (const s of ['Maria', 'Ionescu', 'Popescu', 'Nu e același copil']) expect(text, s).not.toContain(s);
     expect(text).toContain('Unit cu Ilinca Zamfirescu');
+  });
+
+  it('the summary carries the child\'s payments, not another child\'s', async () => {
+    const { ctx } = setup(undefined, undefined, { payments: [
+      paymentRow({ id: 'p1', athleteId: 'a1', amount: 320, purpose: 'altceva' }), paymentRow({ id: 'p2', athleteId: 'a2', amount: 777, purpose: 'altceva' }),
+    ] });
+    const result = await exportAthleteData(ctx, 'a1');
+    if (result.ok !== true) throw new Error('export refused');
+    const { text } = await pdfText(Buffer.from(files(result.data.data)['rezumat.pdf']));
+    expect(text).toContain('Plăți');
+    expect(text).toContain('320 RON');
+    expect(text).not.toContain('777');
   });
 
   it('unknown or anonymized: 404; a build failure: the shared text and no history line', async () => {
