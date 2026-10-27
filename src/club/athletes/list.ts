@@ -1,6 +1,8 @@
 import { isAcsState, type AcsState } from '../acs';
 import { ATHLETE_STATUSES, MISSING_FIELD_WORDS, birthDateForPicker, missingFields, pickAthleteValues, type AthleteStatus } from '../athlete-data';
 import { ageFromIso, type DateParts } from '../birth-date';
+import { inactiveAthleteIds } from '../personal-data/inactivity';
+import { DEFAULT_RETENTION_YEARS, readPersonalDataSettings } from '../personal-data/settings';
 import type { AthleteListPage, AthleteListRow } from './api-types';
 import { registrationSeasonLabel } from './cards';
 import { matchesQuery, searchSubjects, type SearchSubject } from './search';
@@ -12,7 +14,7 @@ const NO_SECTION_LABEL = 'Fără secțiune';
 
 export type AthleteListQuery = {
   seasonId: string | null; q: string; status: AthleteStatus[]; sections: string[]; groups: string[]; noGroup: boolean;
-  acs: AcsState[]; profile: ('public' | 'ascuns')[]; data: ('complete' | 'incomplete')[]; duplicates: boolean;
+  acs: AcsState[]; profile: ('public' | 'ascuns')[]; data: ('complete' | 'incomplete')[]; duplicates: boolean; inactive: boolean;
   sort: 'name' | 'age' | 'group'; dir: 'asc' | 'desc'; page: number; pageSize: number;
 };
 
@@ -31,6 +33,7 @@ function readFilters(q: Record<string, unknown>): Omit<AthleteListQuery, 'sort' 
     profile: list(q.profile).filter(among(['public', 'ascuns'] as const)),
     data: list(q.data).filter(among(['complete', 'incomplete'] as const)),
     duplicates: q.duplicates === 'true',
+    inactive: q.inactive === 'true',
   };
 }
 
@@ -60,11 +63,13 @@ export function readListQuery(q: Record<string, unknown>): AthleteListQuery {
 export type ListSource = {
   athletes: AthleteRow[]; registrations: RegistrationRow[]; memberships: MembershipRow[]; acs: AcsRow[]; groups: GroupRow[];
   sections: SectionRow[]; profiles: ProfileRow[]; duplicates: DuplicateRow[]; seasons: SeasonRow[]; season: SeasonRow | null; today: DateParts;
+  inactiveIds?: ReadonlySet<string>; retentionYears?: number;
 };
-type Derived = { row: AthleteListRow; sectionIds: string[]; groupIds: string[]; search: SearchSubject; groupName: string };
+type Derived = { row: AthleteListRow; sectionIds: string[]; groupIds: string[]; search: SearchSubject; groupName: string; inactive: boolean };
 type Index = {
   memberships: Map<string, MembershipRow[]>; acs: Map<string, AcsState>; seasonRegistrations: Map<string, RegistrationRow[]>;
   groups: Map<string, GroupRow>; publicProfiles: Set<string>; duplicateIds: Set<string>; subjects: Map<string, SearchSubject>; today: DateParts;
+  inactiveIds: ReadonlySet<string>;
 };
 
 function groupBy<T>(rows: T[], key: (row: T) => string | null): Map<string, T[]> {
@@ -89,6 +94,7 @@ function buildIndex(src: ListSource): Index {
     duplicateIds: new Set(src.duplicates.filter((d) => !d.dismissed).flatMap((d) => [d.firstId, d.secondId])),
     subjects: searchSubjects(src.athletes, src.registrations),
     today: src.today,
+    inactiveIds: src.inactiveIds ?? new Set<string>(),
   };
 }
 
@@ -106,7 +112,7 @@ function mainGroupOf(memberships: MembershipRow[], groups: Map<string, GroupRow>
 }
 
 function publicRow(a: AthleteRow, ix: Index, group: GroupRow | null): AthleteListRow {
-  const missing = missingFields(pickAthleteValues(a));
+  const missing = a.status === 'anonimizat' ? [] : missingFields(pickAthleteValues(a));
   return {
     documentId: a.id, name: a.name ?? '', age: ageFromIso(a.birthDate, ix.today), birthDate: birthDateForPicker(a.birthDate),
     status: a.status, dataIncomplete: a.dataIncomplete || missing.length > 0, missing: missing.map((f) => MISSING_FIELD_WORDS[f]),
@@ -127,12 +133,19 @@ function derive(a: AthleteRow, ix: Index): Derived {
     groupIds: memberships.map((m) => m.groupId),
     search: ix.subjects.get(a.id) ?? EMPTY_SUBJECT,
     groupName: group?.name ?? '',
+    inactive: ix.inactiveIds.has(a.id),
   };
 }
 
+/**
+ * No Status filter: the list hides anonymized athletes always, and hides `inactiv` too unless this is the
+ * "Inactivi de peste N ani" view (spec 5, 3C spec 4) — that view must show its own `inactiv` athletes.
+ */
+const shownByDefault = (status: AthleteStatus, inactiveView: boolean): boolean => status !== 'anonimizat' && (inactiveView || status !== 'inactiv');
+
 type Test = (d: Derived, q: AthleteListQuery) => boolean;
 const TESTS: Test[] = [
-  (d, q) => (q.status.length ? q.status.includes(d.row.status) : d.row.status !== 'inactiv'),
+  (d, q) => (q.status.length ? q.status.includes(d.row.status) : shownByDefault(d.row.status, q.inactive)),
   (d, q) => q.sections.length === 0 || d.sectionIds.some((id) => q.sections.includes(id)),
   (d, q) => (q.groups.length === 0 && !q.noGroup) || q.groups.some((g) => d.groupIds.includes(g)) || (q.noGroup && d.groupIds.length === 0),
   (d, q) => q.acs.length === 0 || q.acs.includes(d.row.acs),
@@ -140,6 +153,7 @@ const TESTS: Test[] = [
   (d, q) => q.data.length === 0 || q.data.includes(d.row.dataIncomplete ? 'incomplete' : 'complete'),
   (d, q) => !q.duplicates || d.row.possibleDuplicate,
   (d, q) => matchesQuery(d.search, q.q),
+  (d, q) => !q.inactive || d.inactive,
 ];
 
 const byName = (a: Derived, b: Derived) => a.row.name.localeCompare(b.row.name, 'ro');
@@ -184,7 +198,7 @@ function listOptions(src: ListSource): AthleteListPage['options'] {
 export function listAthletes(src: ListSource, q: AthleteListQuery): AthleteListPage {
   const ix = buildIndex(src);
   const all = src.athletes.map((a) => derive(a, ix));
-  const listed = all.filter((d) => d.row.status !== 'inactiv');
+  const listed = all.filter((d) => shownByDefault(d.row.status, q.inactive) && (!q.inactive || d.inactive));
   const dir: Dir = q.dir === 'desc' ? -1 : 1;
   const found = all.filter((d) => TESTS.every((t) => t(d, q))).sort(SORTS[q.sort](dir));
   const start = (q.page - 1) * q.pageSize;
@@ -196,13 +210,17 @@ export function listAthletes(src: ListSource, q: AthleteListQuery): AthleteListP
     season: src.season ? { documentId: src.season.id, label: src.season.label } : null,
     seasons: [...src.seasons].sort((a, b) => b.label.localeCompare(a.label)).map((s) => ({ documentId: s.id, label: s.label, isCurrent: s.isCurrent })),
     options: listOptions(src),
+    retentionYears: src.retentionYears ?? DEFAULT_RETENTION_YEARS,
   };
 }
 
-export async function athleteListPage(store: ClubStore, q: AthleteListQuery, today: DateParts): Promise<AthleteListPage> {
-  const [athletes, registrations, memberships, acs, groups, sections, profiles, duplicates, seasons] = await Promise.all([
+export async function athleteListPage(store: ClubStore, q: AthleteListQuery, today: DateParts, now: Date = new Date()): Promise<AthleteListPage> {
+  const [athletes, registrations, memberships, acs, groups, sections, profiles, duplicates, seasons, rawSettings] = await Promise.all([
     store.athletes(), store.registrations(), store.memberships(), store.acsRows(), store.groups(), store.sections(), store.profiles(), store.duplicates(), store.seasons(),
+    store.personalDataSettings(),
   ]);
   const season = seasons.find((s) => s.id === q.seasonId) ?? seasons.find((s) => s.isCurrent) ?? null;
-  return listAthletes({ athletes, registrations, memberships, acs, groups, sections, profiles, duplicates, seasons, season, today }, q);
+  const { retentionYears } = readPersonalDataSettings(rawSettings);
+  const inactiveIds = inactiveAthleteIds({ athletes, memberships, registrations, seasons, retentionYears, now });
+  return listAthletes({ athletes, registrations, memberships, acs, groups, sections, profiles, duplicates, seasons, season, today, inactiveIds, retentionYears }, q);
 }
