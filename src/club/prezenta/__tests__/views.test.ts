@@ -107,9 +107,12 @@ describe('visitors and the save body (4.7, C45, plan 5-2 decided 2)', () => {
 
 describe('inactive 409 (4.22, decided 4)', () => {
   it('reads the inactive list and collects the answers', () => {
-    const err = { response: { status: 409, data: { error: { details: { inactive: [{ id: 'a3', name: 'Ioana Dinu' }] } } } } };
+    // The Strapi admin FetchError: status at the top level, response = { data } only.
+    const err = { name: 'FetchError', status: 409, response: { data: { error: { details: { inactive: [{ id: 'a3', name: 'Ioana Dinu' }] } } } } };
     expect(readInactive(err)).toEqual([{ id: 'a3', name: 'Ioana Dinu' }]);
-    expect(readInactive({ response: { status: 409, data: { error: { message: 'Prezența s-a schimbat între timp. Reîncarcă.' } } } })).toBeNull();
+    expect(readInactive({ status: 409, response: { data: { error: { message: 'Prezența s-a schimbat între timp. Reîncarcă.' } } } })).toBeNull();
+    expect(readInactive({ status: 500, response: { data: { error: { details: { inactive: [{ id: 'a3', name: 'x' }] } } } } })).toBeNull();
+    expect(readInactive({ status: 409 })).toBeNull();
     expect(answerInactive(answerInactive({ reactivate: [], keepInactive: [] }, 'a3', true), 'a4', false)).toEqual({ reactivate: ['a3'], keepInactive: ['a4'] });
   });
 });

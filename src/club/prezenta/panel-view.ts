@@ -79,11 +79,12 @@ export function saveBody(p: SessionPanel, t: Ticks, coaches: CoachFields, answer
 
 /** The inactive 409 of a save: the athletes to ask about; null for any other error. */
 export function readInactive(err: unknown): InactiveAthlete[] | null {
-  if (!isRecord(err) || !isRecord(err.response)) return null;
-  const body = isRecord(err.response.data) ? err.response.data : {};
+  // The Strapi admin FetchError carries the status at err.status and the body at err.response.data.
+  if (!isRecord(err) || err.status !== 409) return null;
+  const body = isRecord(err.response) && isRecord(err.response.data) ? err.response.data : {};
   const error = isRecord(body.error) ? body.error : {};
   const details = isRecord(error.details) ? error.details : {};
-  return err.response.status === 409 && Array.isArray(details.inactive) ? (details.inactive as InactiveAthlete[]) : null;
+  return Array.isArray(details.inactive) ? (details.inactive as InactiveAthlete[]) : null;
 }
 
 export function answerInactive(answers: InactiveAnswers, athleteId: string, reactivate: boolean): InactiveAnswers {
