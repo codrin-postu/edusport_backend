@@ -13,6 +13,7 @@ Tracks the phases of `10-spec.md` section 7. Update the status line of a phase w
 | 7 | Parent portal | Not started |
 | 8 | Documents page | Not started |
 | 9 | Tracking (after phase 8) | Planned: Umami events on the registration steps + funnel report, UTM codes on club links, Umami version check (Realtime, Sessions, Journeys). Ad pixels (Meta/Google/TikTok) only if the club starts paid ads: then a consent banner, one conversion event without personal data, public pages only (user, 2026-10-28) |
+| 10 | Admin trim (after phase 9) | Planned from the audit `edusport_backend/.superpowers/strapi-trim-audit.md`: Strapi telemetry off on the VM, admin NPS and enterprise promos off, remove @strapi/plugin-cloud and strapi-5-plugin-responsive-backend, optionally disable content-releases and the email plugin, Articole menu to the custom page, a "Staff club" admin role (custom pages only, Settings / Marketplace / Content-Type Builder hidden) tested on every page; finer roles belong to phase 6 (user, 2026-10-28) |
 
 One deploy window for phases 2, 3 and 4: `15-deploy-window-2-3-4.md`.
 
