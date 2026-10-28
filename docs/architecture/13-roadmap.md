@@ -12,6 +12,7 @@ Tracks the phases of `10-spec.md` section 7. Update the status line of a phase w
 | 6 | Login and the coach portal | Not started |
 | 7 | Parent portal | Not started |
 | 8 | Documents page | Not started |
+| 9 | Tracking (after phase 8) | Planned: Umami events on the registration steps + funnel report, UTM codes on club links, Umami version check (Realtime, Sessions, Journeys). Ad pixels (Meta/Google/TikTok) only if the club starts paid ads: then a consent banner, one conversion event without personal data, public pages only (user, 2026-10-28) |
 
 One deploy window for phases 2, 3 and 4: `15-deploy-window-2-3-4.md`.
 
