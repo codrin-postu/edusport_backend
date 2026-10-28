@@ -42,3 +42,27 @@ it('the three shells carry their titles', () => {
 it('prezenta components are held to the colour rule', () => {
   expect(readFileSync(join(ROOT, 'scripts/admin-ui-check.mjs'), 'utf8')).toContain("'dashboard', 'prezenta'");
 });
+
+it('Prezență: three tabs, notices, the day switcher (5.2, C41)', () => {
+  const s = src('dashboard/prezenta/PrezentaScreen.tsx');
+  for (const k of ['tabSessions', 'tabLessons', 'tabCoaches', 'startNotice']) expect(s, k).toContain(`PREZENTA_COPY.${k}`);
+  expect(s).toContain('noPriceListNotice(');
+});
+it('Ședințe: undone section above the day, columns, empty text, phone cards (5.2)', () => {
+  const d = src('dashboard/prezenta/DayTab.tsx');
+  expect(d.indexOf('undoneTitle(')).toBeLessThan(d.indexOf('dayTitle('));
+  for (const k of ['colDate', 'colTime', 'colGroup', 'colCoach', 'colState', 'colPresent', 'emptyDay', 'newSession', 'today', 'prevDay', 'nextDay'])
+    expect(d, k).toContain(`PREZENTA_COPY.${k}`);
+  expect(d).toContain('sessionCard(');
+  expect(d).toContain('PRESENCE_WORDS.outsideSchedule');
+  expect(d).toMatch(/undone\.length > 0/);
+});
+it('Ședință nouă: fields, check and the warning (5.4, 4.5)', () => {
+  const w = src('dashboard/prezenta/NewSessionWindow.tsx');
+  for (const k of ['newSessionTitle', 'colGroup', 'colDate', 'colTime', 'colDuration', 'coach', 'cancel', 'continue']) expect(w, k).toContain(`PREZENTA_COPY.${k}`);
+  expect(w).toContain('api.check(');
+  expect(w).toContain('durationOptions()');
+  const e = src('dashboard/prezenta/ExistingDialog.tsx');
+  for (const k of ['title', 'open', 'addAnother']) expect(e, k).toContain(`EXISTING_SESSION.${k}`);
+  expect(e).toMatch(/!check\.sameTime/);
+});

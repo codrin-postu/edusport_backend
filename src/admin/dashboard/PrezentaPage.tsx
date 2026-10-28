@@ -1,14 +1,13 @@
 import * as React from 'react';
-import { AdminPage, PageHeader, Window } from '../ui';
-import { PREZENTA_COPY } from '../../club/presence/copy/prezenta-ui';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { todayIso } from '../../club/groups/http';
+import { prezentaTo, readPrezentaQuery, type PrezentaQuery } from '../../club/prezenta/routes';
+import { PrezentaScreen } from './prezenta/PrezentaScreen';
 
-/** "Prezență": the screen itself comes with 5-5 T3; until then the page is its header. */
+/** "Prezență": the query in the address carries the tab, the day and the month (decided 2). */
 export default function PrezentaPage() {
-  return (
-    <AdminPage>
-      <Window>
-        <PageHeader title={PREZENTA_COPY.title} />
-      </Window>
-    </AdminPage>
-  );
+  const navigate = useNavigate();
+  const query = readPrezentaQuery(useLocation().search, todayIso());
+  const onQuery = (next: Partial<PrezentaQuery>) => navigate(prezentaTo({ ...query, ...next }), { replace: true });
+  return <PrezentaScreen query={query} onQuery={onQuery} />;
 }

@@ -35,10 +35,9 @@ export const stateWord = (s: SessionState | null): string => (s === null ? '' : 
 
 const joinParts = (parts: string[]): string => parts.filter((p) => p !== '').join(', ');
 
-/** The count is shown only for a saved session; an unsaved one has no present list yet. */
+/** The count is shown for every session, an unsaved one reads "0 din N" (approved mockup, option A). */
 export function sessionCard(r: DayRow): { title: string; line: string } {
-  const count = r.state === 'salvata' ? countText(r.present, r.listed) : '';
-  return { title: `${r.startTime} ${r.groupName}`, line: joinParts([r.coachNames.join(', '), count, stateWord(r.state)]) };
+  return { title: `${r.startTime} ${r.groupName}`, line: joinParts([r.coachNames.join(', '), countText(r.present, r.listed), stateWord(r.state)]) };
 }
 
 export function lessonCard(r: LessonListRow): { title: string; line: string } {
