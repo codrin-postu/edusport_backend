@@ -18,7 +18,7 @@ export type UndoFacts = {
   mainMembershipId: string | null;
   acsRows: { id: string; state: AcsState }[];
   otherRegistrations: number;
-  /** Payments plus abonamente of the athlete, cancelled ones too: any of them counts as use (C37). */
+  /** Payments, abonamente, attendances and lessons of the athlete, cancelled payments and abonamente too: any of them counts as use (C37). */
   presenceRecords: number;
 };
 

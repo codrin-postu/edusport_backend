@@ -47,7 +47,7 @@ async function newLesson(ctx: PresenceContext, b: LessonBody): Promise<LessonWri
   const snap = held ? await lessonSnapshot(ctx.store, b.athleteId, b.date) : NO_PRICE;
   return {
     ...b, state: held ? 'saved' : 'planned', present: held ? true : null, ...snap, amount: snap.price ?? 0,
-    createdByName: name, savedBy: held ? name : null, savedAt: held ? ctx.now().toISOString() : null,
+    createdByName: name, recordedAt: ctx.now().toISOString(), savedBy: held ? name : null, savedAt: held ? ctx.now().toISOString() : null,
   };
 }
 
@@ -56,10 +56,23 @@ const createLines = (id: string, b: LessonBody, held: boolean): Line[] => [
   ...(held ? [{ subjectType: SUBJECT.lesson, subjectId: id, action: P5_ACTIONS.lessonSaved, changes: { present: true } }] : []),
 ];
 
+const DUPLICATE_WINDOW_MS = 10_000;
+
+/** The same lesson created again within 10 s by the same admin (decided 1): a double click. */
+async function findDuplicate(ctx: PresenceContext, b: LessonBody): Promise<string | null> {
+  const nowMs = ctx.now().getTime();
+  const name = await actorName(ctx);
+  const same = (await ctx.store.lessons({ athleteId: b.athleteId })).find((l) =>
+    l.date === b.date && l.startTime === b.startTime && l.createdByName === name && nowMs - Date.parse(l.recordedAt) < DUPLICATE_WINDOW_MS);
+  return same?.id ?? null;
+}
+
 async function createLocked(ctx: PresenceContext, b: LessonBody): Promise<ActionResult<LessonSaved>> {
   await ctx.store.lockAthlete(b.athleteId);
   const athlete = await ctx.store.athlete(b.athleteId);
   if (!athlete || athlete.status === 'anonimizat' || !(await coachesExist(ctx.store, b.coachIds))) return refuse(400, PRESENCE_ERRORS.invalid);
+  const twin = await findDuplicate(ctx, b);
+  if (twin) return done({ lessonId: twin, changed: false, toast: LESSON_COPY.saved }, null);
   const row = await newLesson(ctx, b);
   const id = await ctx.store.createLesson(row);
   const actionId = await recordPresenceAction(ctx.store, ctx.actor, createLines(id, b, row.state === 'saved'), {

@@ -4,7 +4,7 @@ import { registrationSeason } from '../confirm/season';
 import { planUndo, undoAllowed, undoSeasonId, type UndoFacts, type UndoPlan } from '../confirm/undo-plan';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import { isAnonymized } from '../personal-data/anonymize-plan';
-import { deleteBlockOf } from '../presence/lifecycle/delete-guard';
+import { useCountOf } from '../presence/lifecycle/delete-guard';
 import { inBothTransactions } from '../presence/lifecycle/transaction';
 import type { PresenceStore } from '../presence/store';
 import type { UndoResponse } from './api-types';
@@ -18,8 +18,8 @@ type Result = AdminResult<UndoResponse>;
 async function loadFacts(store: ClubStore, presence: PresenceStore, reg: RegistrationRow, record: ConfirmationRecord): Promise<UndoFacts | null> {
   const athlete = await store.athlete(record.athleteId);
   if (!athlete || !undoAllowed(record, reg.athleteId, athlete.id)) return null;
-  const [memberships, acs, linked, seasons, block] = await Promise.all([
-    store.memberships(athlete.id), store.acsRows(athlete.id), store.registrations({ athleteId: athlete.id }), store.seasons(), deleteBlockOf(presence, athlete.id),
+  const [memberships, acs, linked, seasons, used] = await Promise.all([
+    store.memberships(athlete.id), store.acsRows(athlete.id), store.registrations({ athleteId: athlete.id }), store.seasons(), useCountOf(presence, athlete.id),
   ]);
   // "Main" is per season: scope to the season the confirmation wrote to, even if the registration moved since.
   const seasonId = undoSeasonId(record, memberships, registrationSeason(reg, seasons)?.id ?? null);
@@ -31,7 +31,7 @@ async function loadFacts(store: ClubStore, presence: PresenceStore, reg: Registr
     mainMembershipId: memberships.find((m) => m.isMain && m.seasonId === seasonId && isCurrentMembership(m))?.id ?? null,
     acsRows: acs.map(({ id, state }) => ({ id, state })),
     otherRegistrations: linked.filter((r) => r.id !== reg.id).length,
-    presenceRecords: block ? block.payments + block.subscriptions : 0,
+    presenceRecords: used,
   };
 }
 

@@ -17,7 +17,7 @@ async function cancelLocked(ctx: PresenceContext, id: string): Promise<ActionRes
   await ctx.store.lockPayment(id);
   const p = await ctx.store.payment(id);
   if (!p) return refuse(404, PRESENCE_ERRORS.notFound);
-  if (p.cancelled || !sameLink(p, first)) return refuse(409, PRESENCE_ERRORS.stale);
+  if (p.cancelled || p.athleteId !== first.athleteId || !sameLink(p, first)) return refuse(409, PRESENCE_ERRORS.stale);
   const steps: PresenceUndoStep[] = [{ op: 'setPayment', id, values: UNCANCEL }];
   await ctx.store.updatePayment(id, { cancelled: true, cancelledAt: ctx.now().toISOString(), cancelledBy: await actorName(ctx) });
   await ctx.store.cancelPaymentEmailJob(id);

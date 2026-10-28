@@ -18,6 +18,7 @@
     "audience": { "type": "enumeration", "enum": ["member", "nonMember"] },
     "amount": { "type": "decimal", "default": 0 },
     "createdByName": { "type": "string" },
+    "recordedAt": { "type": "datetime" },
     "savedBy": { "type": "string" },
     "savedAt": { "type": "datetime" }
   }

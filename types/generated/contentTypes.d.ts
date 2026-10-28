@@ -1472,6 +1472,7 @@ export interface ApiIndividualLessonIndividualLesson
       'api::price-list.price-list'
     >;
     publishedAt: Schema.Attribute.DateTime;
+    recordedAt: Schema.Attribute.DateTime;
     savedAt: Schema.Attribute.DateTime;
     savedBy: Schema.Attribute.String;
     startTime: Schema.Attribute.String & Schema.Attribute.Required;

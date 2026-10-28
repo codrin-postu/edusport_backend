@@ -61,7 +61,7 @@ export function toAttendanceRow(r: Raw): AttendanceRow {
 export const toLessonRow = (r: Raw): LessonRow => ({
   id: text(r.documentId), athleteId: linkId(r.athlete) ?? '', date: text(r.date), startTime: hhmm(str(r.startTime)) ?? '', durationMin: Number(r.durationMin ?? 0),
   coachIds: ids(r.coaches), state: r.state === 'saved' ? 'saved' : 'planned', present: typeof r.present === 'boolean' ? r.present : null, priceListId: linkId(r.priceList),
-  itemName: str(r.itemName), price: decimal(r.price), audience: audience(r.audience), amount: amountOf(r.amount), createdByName: text(r.createdByName),
+  itemName: str(r.itemName), price: decimal(r.price), audience: audience(r.audience), amount: amountOf(r.amount), createdByName: text(r.createdByName), recordedAt: stamp(r.recordedAt) ?? '',
   savedBy: str(r.savedBy), savedAt: stamp(r.savedAt),
 });
 

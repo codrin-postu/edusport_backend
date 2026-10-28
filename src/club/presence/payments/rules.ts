@@ -89,12 +89,15 @@ export function purposeFields(f: PaymentFor, collectedAtRink: boolean, seasonOfP
   }
 }
 
-export type PurposeNames = { itemName?: string | null; seasonLabel?: string | null };
+export type PurposeNames = { itemName?: string | null; startsOn?: string | null; seasonLabel?: string | null };
+
+const abonamentText = (names: PurposeNames): string =>
+  names.itemName && names.startsOn ? PAYMENT_COPY.optAbonament(names.itemName, startText(names.startsOn)) : (names.itemName ?? PURPOSE_WORDS.abonament);
 
 /** "Pentru" as shown in a payment's own lines (5.10). */
 export function purposeText(p: Pick<PaymentRow, 'purpose' | 'clubMonth'>, names: PurposeNames): string {
   switch (p.purpose) {
-    case 'abonament': return names.itemName ?? PURPOSE_WORDS.abonament;
+    case 'abonament': return abonamentText(names);
     case 'cotizatie': return names.seasonLabel ? PAYMENT_COPY.optFee(names.seasonLabel) : PURPOSE_WORDS.cotizatie;
     case 'club_luna': return p.clubMonth ? PAYMENT_COPY.optMonth(p.clubMonth) : PURPOSE_WORDS.club_luna;
     default: return PURPOSE_WORDS[p.purpose];
@@ -165,11 +168,19 @@ export function acsOnFee(current: AcsState | null): { set: boolean; acsBefore: A
   return { set: current !== 'da', acsBefore: current };
 }
 
-/** Back to the state before only when no other live fee of the season remains and A.C.S. is still "Da" (4.17, C9). */
+/** The state before the first fee of the season, cancelled ones too: the same whichever fee is cancelled first. */
+function acsBaseline(payment: PaymentRow, others: readonly PaymentRow[]): AcsState | null {
+  const fees = [payment, ...others.filter((o) => o.id !== payment.id && o.purpose === 'cotizatie' && o.seasonId === payment.seasonId)];
+  const first = fees.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt) || a.id.localeCompare(b.id))[0];
+  return first.acsBefore;
+}
+
+/** Back to the state before the first fee of the season, only when no other live fee remains and A.C.S. is still "Da" (4.17, C9, final review M4). */
 export function acsRevert(payment: PaymentRow, others: readonly PaymentRow[], current: AcsState | null): { revert: boolean; to: AcsState | null } {
   const otherFee = others.some((o) => o.id !== payment.id && !o.cancelled && o.purpose === 'cotizatie' && o.seasonId === payment.seasonId);
-  const revert = payment.purpose === 'cotizatie' && !otherFee && current === 'da' && payment.acsBefore !== 'da';
-  return { revert, to: revert ? payment.acsBefore : current };
+  const to = acsBaseline(payment, others);
+  const revert = payment.purpose === 'cotizatie' && !otherFee && current === 'da' && to !== 'da';
+  return { revert, to: revert ? to : current };
 }
 
 const TRACKED = ['amount', 'paidOn', 'method', 'collectedAtRink', 'note'] as const;
@@ -180,6 +191,7 @@ export function paymentFieldChanges(before: PaymentRow, after: PaymentWrite, tex
   for (const key of TRACKED) {
     if (before[key] !== after[key]) changes[key] = { from: before[key], to: after[key] };
   }
-  if (texts.before !== texts.after) changes.purposeText = { from: texts.before, to: texts.after };
+  const relinked = before.subscriptionId !== after.subscriptionId || before.lessonId !== after.lessonId;
+  if (texts.before !== texts.after || relinked) changes.purposeText = { from: texts.before, to: texts.after };
   return changes;
 }

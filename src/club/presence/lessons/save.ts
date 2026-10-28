@@ -43,6 +43,7 @@ async function saveLocked(ctx: PresenceContext, id: string, p: LessonPatch): Pro
   await ctx.store.lockLesson(id);
   const l = await ctx.store.lesson(id);
   if (!l) return refuse(404, PRESENCE_ERRORS.notFound);
+  if (l.athleteId !== first.athleteId) return refuse(409, PRESENCE_ERRORS.stale);
   if (!(await coachesExist(ctx.store, p.coachIds))) return refuse(400, PRESENCE_ERRORS.invalid);
   const lines = [...savedLineOf(l, p), ...editedLine(l, p)];
   if (lines.length === 0) return done({ lessonId: id, changed: false, toast: LESSON_COPY.unchanged }, null);

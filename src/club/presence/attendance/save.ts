@@ -14,7 +14,7 @@ import type { InactiveAthlete, SessionSaved, SessionSaveBody } from './api-types
 import { rosterOn } from './roster';
 import { saveLines } from './save-lines';
 import { isTicked, planRows, readSaveBody, type RowPlan } from './save-plan';
-import { resolveScope, type SaveScope } from './save-target';
+import { resolveScope, type SaveScope, type SaveTarget } from './save-target';
 
 export { respondSave } from './http';
 
@@ -44,6 +44,17 @@ async function slotState(ctx: PresenceContext, scope: SaveScope, tickedIds: stri
   const subs = (await ctx.store.subscriptions()).filter((s) => tickedIds.includes(s.athleteId));
   const rows = subs.length > 0 ? await ctx.store.attendances({ subscriptionIds: subs.map((s) => s.id) }) : [];
   return { subs, used: usedSlots(rows) };
+}
+
+const DUPLICATE_WINDOW_MS = 10_000;
+
+/** The same added session saved again within 10 s by the same admin (decided 1): a double click. */
+async function findDuplicate(ctx: PresenceContext, target: SaveTarget): Promise<SessionRow | null> {
+  const nowMs = ctx.now().getTime();
+  const name = await actorName(ctx);
+  const same = (await ctx.store.sessions({ groupId: target.groupId, from: target.date, to: target.date })).filter((s) =>
+    s.source === 'added' && s.startTime === target.startTime && s.savedBy === name && nowMs - Date.parse(s.firstSavedAt) < DUPLICATE_WINDOW_MS);
+  return same[0] ?? null;
 }
 
 async function newSession(ctx: PresenceContext, scope: SaveScope, b: SessionSaveBody): Promise<SessionRow | null> {
@@ -106,6 +117,10 @@ async function planFor(ctx: PresenceContext, scope: SaveScope, b: SessionSaveBod
 }
 
 async function writeSave(ctx: PresenceContext, scope: SaveScope, b: SessionSaveBody, saved: SessionRow | null, people: People, tickedIds: string[]): Promise<SaveOutcome> {
+  if (!saved && scope.target.source === 'added') {
+    const twin = await findDuplicate(ctx, scope.target);
+    if (twin) return done({ sessionId: twin.id, toast: sessionSavedToast(scope.group.name, scope.target.date) }, null);
+  }
   const session = saved ?? (await newSession(ctx, scope, b));
   if (!session) return refuse(409, PRESENCE_ERRORS.conflict);
   const created = saved === null;

@@ -206,7 +206,7 @@ describe('payments and abonamente count as use (5-4 ruling, C37)', () => {
   it('a created athlete with nothing else is deleted', () => {
     expect(planUndo(facts(created)).deleteAthlete).toBe(true);
   });
-  it('a created athlete with any payment or abonament is never deleted', () => {
+  it('a created athlete with any payment, abonament, attendance or lesson is never deleted', () => {
     expect(planUndo(facts({ ...created, presenceRecords: 1 })).deleteAthlete).toBe(false);
   });
 });

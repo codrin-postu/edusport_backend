@@ -98,3 +98,40 @@ describe('individual lessons', () => {
     expect(f.group.locks).toEqual(['athlete:a5', `lesson:${id}`]);
   });
 });
+
+describe('the athlete is read again after the lock (final review M3)', () => {
+  const merged = (f: ReturnType<typeof attendanceSeed>, id: string) => ({
+    ...f.ctx,
+    store: { ...f.ctx.store, lockLesson: async (lockId: string) => { await f.ctx.store.lockLesson(lockId); f.state.lessons.find((l) => l.id === id)!.athleteId = 'a-other'; } },
+  });
+  it('save and delete refuse 409 when the lesson moved to another athlete meanwhile', async () => {
+    const fresh = () => attendanceSeed('2026-11-20', { lessons: [lessonRow({ id: 'l9', athleteId: 'a5' })] });
+    const stale = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' };
+    const [s, d] = [fresh(), fresh()];
+    expect(await saveLesson(merged(s, 'l9'), 'l9', { present: true, durationMin: 50, coachIds: ['tm-virgil'] })).toEqual(stale);
+    expect(await deleteLesson(merged(d, 'l9'), 'l9')).toEqual(stale);
+    expect([s.state.lessons[0].state, d.state.lessons.length]).toEqual(['planned', 1]);
+  });
+});
+
+describe('double-submit guard on lesson create (final review M2)', () => {
+  it('the same lesson by the same admin within 10 s is not written twice; after 10 s it is', async () => {
+    const f = attendanceSeed();
+    const first = ok(await createLesson(f.ctx, body()));
+    const again = ok(await createLesson(f.ctx, body()));
+    expect(again.value.lessonId).toBe(first.value.lessonId);
+    expect(again.actionId).toBeNull();
+    expect(f.state.lessons).toHaveLength(1);
+    await createLesson(f.ctx, body({ startTime: '19:00' }));
+    expect(f.state.lessons).toHaveLength(2);
+    f.advance(11_000);
+    await createLesson(f.ctx, body());
+    expect(f.state.lessons).toHaveLength(3);
+  });
+  it('a held lesson is priced once on a double click', async () => {
+    const f = attendanceSeed();
+    await createLesson(f.ctx, body({ date: '2026-11-20' }));
+    await createLesson(f.ctx, body({ date: '2026-11-20' }));
+    expect(f.state.lessons).toHaveLength(1);
+  });
+});
