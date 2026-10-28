@@ -136,3 +136,10 @@ it('group tab Prezență: between Program and Istoric, month list, read-only pas
   expect(t).toContain('readOnly={!writable(page)}');
   expect(t).toContain('groupId={page.documentId}');
 });
+
+it('phone burger lists every EduSport menu link, not only the Strapi nav links, which can come back empty on phones', () => {
+  const nav = src('MobileNav.tsx');
+  expect(nav).toContain("from './dashboard/menu'");
+  for (const k of ['EDUSPORT_LINKS', 'GROUP_ORDER', 'GROUP_LABEL']) expect(nav, k).toContain(k);
+  expect(nav).toMatch(/'\/admin' \+ to/);
+});
