@@ -99,3 +99,29 @@ it('coach fields (4.2)', () => {
 it('the athlete search can hide anonymized athletes', () => {
   expect(src('dashboard/sportivi/AthleteSearch.tsx')).toMatch(/hideStatus\?: /);
 });
+
+it('Lecții individuale: month line, columns, empty, cards (5.2)', () => {
+  const t = src('dashboard/prezenta/LessonsTab.tsx');
+  for (const k of ['newLesson', 'colDate', 'colTime', 'colAthlete', 'colCoach', 'colDuration', 'colState', 'emptyLessons', 'prevMonth', 'nextMonth'])
+    expect(t, k).toContain(`PREZENTA_COPY.${k}`);
+  expect(t).toContain('monthTitle(');
+  expect(t).toContain('lessonCard(');
+});
+it('Lecție nouă: fields and undo toast (5.5)', () => {
+  const w = src('dashboard/prezenta/NewLessonWindow.tsx');
+  for (const k of ['newLessonTitle', 'colAthlete', 'colDate', 'colTime', 'colDuration', 'coach', 'cancel', 'save']) expect(w, k).toContain(`PREZENTA_COPY.${k}`);
+  expect(w).toContain("hideStatus={['anonimizat']}");
+  expect(w).toContain('undoToast(');
+});
+it('lesson panel: title, tick, delete only when deletable, with confirmation and undo (5.5, C49)', () => {
+  const p = src('dashboard/prezenta/LessonPanel.tsx');
+  expect(p).toContain('lessonTitle(');
+  expect(p).toMatch(/deletable && [\s\S]*LESSON_COPY\.deleteLink/);
+  expect(p).toContain('LESSON_COPY.deleteConfirm(');
+  expect(p).toMatch(/undoToast\([^)]*LESSON_COPY\.deleted/);
+});
+it('Pe antrenori: columns, CSV, empty (5.2, p5 Q24)', () => {
+  const c = src('dashboard/prezenta/CoachesTab.tsx');
+  for (const k of ['exportCsv', 'colCoach', 'colGroupSessions', 'colLessons', 'colHours', 'emptyCoaches']) expect(c, k).toContain(`PREZENTA_COPY.${k}`);
+  expect(c).toContain('api.coachesCsv(');
+});

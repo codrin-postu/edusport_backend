@@ -20,6 +20,9 @@ export const PREZENTA_CSS = `
 .ui-root .pz-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .ui-root .pz-coaches{display:flex;flex-direction:column;gap:8px}
 .ui-root .pz-link{align-self:flex-start;font:inherit;font-size:12.5px;font-weight:600;color:var(--theme-primary);background:none;border:none;padding:0;cursor:pointer}
+.ui-root .pz-link--danger{color:var(--theme-danger)}
+.ui-root .pz-muted{color:var(--theme-text-muted)}
+.ui-root .pz-bar-month{min-width:120px;text-align:center}
 .ui-root .pz-link:disabled{color:var(--theme-text-muted);cursor:default}
 .ui-root .pz-link:focus-visible{outline:2px solid var(--theme-focus);outline-offset:1px}
 .ui-root .pz-sheet-sub{margin:0;font-size:12.5px;color:var(--theme-text-secondary)}
