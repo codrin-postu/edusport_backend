@@ -53,6 +53,21 @@ describe('saveSession', () => {
     expect(f.state.sessions[1]).toMatchObject({ source: 'added', eventId: null, occurrenceKey: null, outsideSchedule: false });
   });
 
+  it('the same added session saved again within 10 s is not created twice (final review M2)', async () => {
+    const f = attendanceSeed();
+    const added = { groupId: 'g-ib', date: '2026-11-14', startTime: '15:00', durationMin: 50 };
+    const first = sessionIdOf(await save(f, { added, ticks: [grup('a1')] }));
+    const again = sessionIdOf(await save(f, { added, ticks: [grup('a1')] }));
+    expect(again).toBe(first);
+    expect(f.state.sessions).toHaveLength(1);
+    expect(f.state.attendances).toHaveLength(1);
+    await save(f, { added: { ...added, startTime: '16:00' }, ticks: [] });
+    expect(f.state.sessions).toHaveLength(2);
+    f.advance(11_000);
+    await save(f, { added, ticks: [] });
+    expect(f.state.sessions).toHaveLength(3);
+  });
+
   it('a visitor: flagged, own abonament only when valid for the list, athlete line (4.7, p5 Q16)', async () => {
     const f = attendanceSeed();
     await save(f, { occurrence: 'ev-ib|2026-11-14|11:00', ticks: [grup('a7')] });
