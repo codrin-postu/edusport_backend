@@ -32,7 +32,10 @@ const groupLine = (g: AthleteCard['lastGroup']): string | null => (g ? `${g.name
 
 export const cardSubline = (c: AthleteCard): string => [c.birthDate, groupLine(c.lastGroup), c.contactName].filter(Boolean).join(', ');
 
-export const withoutAthlete = (cards: AthleteCard[], id: string | undefined): AthleteCard[] => (id ? cards.filter((c) => c.documentId !== id) : cards);
+export const withoutAthlete = (cards: AthleteCard[], ids: string | string[] | undefined): AthleteCard[] => {
+  const out = [ids ?? []].flat();
+  return out.length ? cards.filter((c) => !out.includes(c.documentId)) : cards;
+};
 
 /** "Sportiv nou" always under the results, so a close-name match can still be added (Needs decision 2, RESOLVED option B). */
 export const showNewRow = (result: SearchResult | null): boolean => result !== null;

@@ -47,6 +47,8 @@ describe('phone cards (5.2, decided 12)', () => {
   it('builds the session and lesson card titles and lines', () => {
     expect(sessionCard(dayRow({ startTime: '17:00', groupName: 'Intermediari Bronze', coachNames: ['Virgil Pascu'], present: 6, listed: 9, state: 'salvata' })))
       .toEqual({ title: '17:00 Intermediari Bronze', line: 'Virgil Pascu, 6 din 9, salvată' });
+    expect(sessionCard(dayRow({ startTime: '16:00', groupName: 'Primii Pași', coachNames: ['Elena Marin'], present: 0, listed: 12, state: 'urmeaza' })))
+      .toEqual({ title: '16:00 Primii Pași', line: 'Elena Marin, 0 din 12, urmează' });
     expect(lessonCard(lessonListRow({ startTime: '18:00', athleteName: 'Ana Ionescu', coachNames: ['Virgil Pascu'], durationMin: 50, state: 'salvata' })))
       .toEqual({ title: '18:00 Ana Ionescu', line: 'Virgil Pascu, 50 min, salvată' });
   });
