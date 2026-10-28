@@ -39,9 +39,9 @@ function useDayPage(api: PrezentaApi, date: string, onPage: Props['onPage']): { 
   return { page, failed };
 }
 
-const targetOf = (r: DayRow): SessionTarget | null => (r.sessionId ? { id: r.sessionId } : r.occurrenceKey ? { occurrence: r.occurrenceKey } : null);
+export const targetOf = (r: DayRow): SessionTarget | null => (r.sessionId ? { id: r.sessionId } : r.occurrenceKey ? { occurrence: r.occurrenceKey } : null);
 
-const stateCell = (r: DayRow) => (r.state ? <StatusBadge tone={TONES[r.state]}>{stateWord(r.state)}</StatusBadge> : null);
+export const stateCell = (r: DayRow) => (r.state ? <StatusBadge tone={TONES[r.state]}>{stateWord(r.state)}</StatusBadge> : null);
 
 const groupCell = (r: DayRow) => (
   <>

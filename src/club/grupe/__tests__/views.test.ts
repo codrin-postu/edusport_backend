@@ -59,8 +59,8 @@ describe('group page (6.1, 6.2)', () => {
     expect(subtitle({ ...PAGE, coaches: [], priceList: null })).toBe('Școala de patinaj, Fără antrenor, 11 sportivi');
   });
 
-  it('tabs Sportivi (count), Program, Istoric (count)', () => {
-    expect(groupTabs(PAGE)).toEqual([{ id: 'sportivi', label: 'Sportivi', count: 11 }, { id: 'program', label: 'Program' }, { id: 'istoric', label: 'Istoric', count: 5 }]);
+  it('tabs Sportivi (count), Program, Prezență, Istoric (count)', () => {
+    expect(groupTabs(PAGE)).toEqual([{ id: 'sportivi', label: 'Sportivi', count: 11 }, { id: 'program', label: 'Program' }, { id: 'prezenta', label: 'Prezență' }, { id: 'istoric', label: 'Istoric', count: 5 }]);
   });
 
   it('roster cells and the phone line', () => {

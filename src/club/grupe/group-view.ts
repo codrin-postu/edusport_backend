@@ -1,9 +1,10 @@
 import type { GroupPage, MemberRow } from '../groups/api-types';
 import { GRUPE_COPY, athletesText } from '../groups/copy';
+import { PREZENTA_COPY } from '../presence/copy/prezenta-ui';
 import { countWords } from '../ro-count';
 
 /** The group page (spec 6.1, 6.2). Pure. */
-export type GroupTab = 'sportivi' | 'program' | 'istoric';
+export type GroupTab = 'sportivi' | 'program' | 'prezenta' | 'istoric';
 export type MemberAction = 'move' | 'addAlso' | 'remove';
 
 /** "Școala de patinaj, Virgil Pascu, lista Standard, 11 sportivi"; "Fără antrenor"; no list part without a price list. */
@@ -15,6 +16,7 @@ export function subtitle(p: GroupPage): string {
 export const groupTabs = (p: GroupPage): { id: GroupTab; label: string; count?: number }[] => [
   { id: 'sportivi', label: GRUPE_COPY.tabMembers, count: p.members.length },
   { id: 'program', label: GRUPE_COPY.tabProgram },
+  { id: 'prezenta', label: PREZENTA_COPY.tabGroup },
   { id: 'istoric', label: GRUPE_COPY.tabHistory, count: p.historyCount },
 ];
 

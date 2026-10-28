@@ -125,3 +125,14 @@ it('Pe antrenori: columns, CSV, empty (5.2, p5 Q24)', () => {
   for (const k of ['exportCsv', 'colCoach', 'colGroupSessions', 'colLessons', 'colHours', 'emptyCoaches']) expect(c, k).toContain(`PREZENTA_COPY.${k}`);
   expect(c).toContain('api.coachesCsv(');
 });
+
+it('group tab Prezență: between Program and Istoric, month list, read-only past season (5.6)', () => {
+  const g = src('dashboard/grupe/GroupPage.tsx');
+  expect(g).toMatch(/SHOWN[^\n]*'program', 'prezenta', 'istoric'/);
+  const t = src('dashboard/grupe/PrezentaTab.tsx');
+  for (const k of ['colDate', 'colTime', 'colPresent', 'colCoach', 'colState', 'emptyGroupMonth', 'newSession']) expect(t, k).toContain(`PREZENTA_COPY.${k}`);
+  expect(t).toContain('visitorsText(');
+  expect(t).toMatch(/writable\(page\) && [\s\S]*NewSessionWindow|writable\(page\) \?/);
+  expect(t).toContain('readOnly={!writable(page)}');
+  expect(t).toContain('groupId={page.documentId}');
+});

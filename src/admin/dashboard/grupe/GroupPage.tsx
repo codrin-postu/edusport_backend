@@ -10,6 +10,7 @@ import { SPORTIVI_CSS } from '../sportivi/styles';
 import { useGrupeApi, type GrupeApi } from './api';
 import { GroupHistoryTab } from './GroupHistoryTab';
 import { GroupMenu } from './GroupMenu';
+import { PrezentaTab } from './PrezentaTab';
 import { ProgramTab } from './ProgramTab';
 import { RosterTab } from './RosterTab';
 import { GRUPE_CSS } from './styles';
@@ -35,7 +36,7 @@ function useGroupPage(api: GrupeApi, id: string, season: string | null): Loaded 
   return { page, failed, reload };
 }
 
-const SHOWN: readonly GroupTab[] = ['sportivi', 'program', 'istoric'];
+const SHOWN: readonly GroupTab[] = ['sportivi', 'program', 'prezenta', 'istoric'];
 
 function GroupBody({ page, api, tab, onTab }: { page: GroupPageData; api: GrupeApi; tab: GroupTab; onTab: (t: GroupTab) => void }) {
   const tabs = groupTabs(page).filter((t) => SHOWN.includes(t.id));
@@ -45,6 +46,7 @@ function GroupBody({ page, api, tab, onTab }: { page: GroupPageData; api: GrupeA
       <div role="tabpanel" id="grp-panel">
         {tab === 'sportivi' && <RosterTab page={page} api={api} />}
         {tab === 'program' && <ProgramTab page={page} api={api} />}
+        {tab === 'prezenta' && <PrezentaTab page={page} />}
         {tab === 'istoric' && <GroupHistoryTab api={api} documentId={page.documentId} />}
       </div>
     </>
