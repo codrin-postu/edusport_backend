@@ -6,7 +6,9 @@ import type { DayPage } from '../../../club/presence/attendance/api-types';
 import type { PrezentaQuery, PrezentaTab } from '../../../club/prezenta/routes';
 import { SPORTIVI_CSS } from '../sportivi/styles';
 import { GRUPE_CSS } from '../grupe/styles';
+import { CoachesTab } from './CoachesTab';
 import { DayTab } from './DayTab';
+import { LessonsTab } from './LessonsTab';
 import { PREZENTA_CSS } from './styles';
 
 type Props = { query: PrezentaQuery; onQuery: (q: Partial<PrezentaQuery>) => void };
@@ -27,7 +29,7 @@ function Notices({ page }: { page: DayPage | null }) {
   );
 }
 
-/** "Prezență" (5.2): the notices, the three tabs and the open tab. Lessons and coaches mount their tabs here (plan 5-5 T5). */
+/** "Prezență" (5.2): the notices, the three tabs and the open tab. */
 export function PrezentaScreen({ query, onQuery }: Props) {
   const [page, setPage] = React.useState<DayPage | null>(null);
   return (
@@ -38,6 +40,8 @@ export function PrezentaScreen({ query, onQuery }: Props) {
         <Notices page={page} />
         <Tabs items={TAB_ITEMS} value={query.tab} onChange={(t) => onQuery({ tab: t as PrezentaTab })} label={PREZENTA_COPY.title} className="pz-tabs" />
         {query.tab === 'sedinte' && <DayTab date={query.date} onDate={(date) => onQuery({ date })} onPage={setPage} />}
+        {query.tab === 'lectii' && <LessonsTab month={query.month} onMonth={(month) => onQuery({ month })} />}
+        {query.tab === 'antrenori' && <CoachesTab month={query.month} onMonth={(month) => onQuery({ month })} />}
       </Window>
     </AdminPage>
   );
