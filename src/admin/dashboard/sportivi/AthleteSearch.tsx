@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Input } from '../../ui';
+import type { AthleteStatus } from '../../../club/athlete-data';
 import type { AthleteCard } from '../../../club/athletes/api-types';
 import {
   SEARCH_COPY, SEARCH_FAILED, cardSubline, movedOption, noResultsText, resultsText, showNewRow, withoutAthlete, type SearchResult,
@@ -7,10 +8,13 @@ import {
 import type { SportiviApi } from './api';
 
 type Props = {
-  api: SportiviApi;
+  api: Pick<SportiviApi, 'search'>;
   onPick: (card: AthleteCard) => void;
   onNew?: (text: string) => void;
-  exclude?: string;
+  /** Athlete ids left out of the results. */
+  exclude?: string | string[];
+  /** Results with one of these statuses are left out (default: none). */
+  hideStatus?: AthleteStatus[];
   inputRef?: React.Ref<HTMLInputElement>;
 };
 type Search = { result: SearchResult | null; failed: boolean };
@@ -18,9 +22,14 @@ type Option = { key: string; name: string; sub?: string; pick: () => void };
 
 const IDLE: Search = { result: null, failed: false };
 
+const visible = (cards: AthleteCard[], excludeKey: string, hideKey: string): AthleteCard[] =>
+  withoutAthlete(cards, excludeKey ? excludeKey.split(',') : undefined).filter((c) => !hideKey.split(',').includes(c.status));
+
 /** Server search 250 ms after the last key; the answer remembers its own text, so a late answer never mislabels. */
-function useAthleteSearch(api: SportiviApi, text: string, exclude: string | undefined): Search {
+function useAthleteSearch(api: Props['api'], text: string, exclude: Props['exclude'], hideStatus: Props['hideStatus']): Search {
   const [search, setSearch] = React.useState<Search>(IDLE);
+  const excludeKey = [exclude ?? []].flat().join(',');
+  const hideKey = (hideStatus ?? []).join(',');
   React.useEffect(() => {
     const q = text.trim();
     if (!q) {
@@ -30,11 +39,11 @@ function useAthleteSearch(api: SportiviApi, text: string, exclude: string | unde
     let off = false;
     const t = window.setTimeout(() => {
       api.search(q)
-        .then((cards) => { if (!off) setSearch({ result: { q, cards: withoutAthlete(cards, exclude) }, failed: false }); })
+        .then((cards) => { if (!off) setSearch({ result: { q, cards: visible(cards, excludeKey, hideKey) }, failed: false }); })
         .catch(() => { if (!off) setSearch({ result: null, failed: true }); });
     }, 250);
     return () => { off = true; window.clearTimeout(t); };
-  }, [api, text, exclude]);
+  }, [api, text, excludeKey, hideKey]);
   return search;
 }
 
@@ -93,9 +102,9 @@ function OptionList({ id, options, active, onActive }: ListProps) {
 const statusText = ({ result, failed }: Search): string => (failed ? SEARCH_FAILED : result ? resultsText(result) : '');
 
 /** "Caută alt sportiv" (spec 4.1) for "Adaugă sportiv" (6.7) and the merge (6.6), on the admin combobox pattern. */
-export function AthleteSearch({ api, onPick, onNew, exclude, inputRef }: Props) {
+export function AthleteSearch({ api, onPick, onNew, exclude, hideStatus, inputRef }: Props) {
   const [text, setText] = React.useState('');
-  const search = useAthleteSearch(api, text, exclude);
+  const search = useAthleteSearch(api, text, exclude, hideStatus);
   const { result, failed } = search;
   const options = optionsOf(result, onPick, onNew);
   const { active, setActive, onKeyDown } = useOptionKeys(options, result, () => setText(''));

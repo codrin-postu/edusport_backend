@@ -66,3 +66,36 @@ it('Ședință nouă: fields, check and the warning (5.4, 4.5)', () => {
   for (const k of ['title', 'open', 'addAnother']) expect(e, k).toContain(`EXISTING_SESSION.${k}`);
   expect(e).toMatch(/!check\.sameTime/);
 });
+
+it('panel: title, coaches, table by section, visitor, footer, saved line, Istoric (5.3)', () => {
+  const p = src('dashboard/prezenta/SessionPanel.tsx');
+  for (const f of ['panelTitle(', 'longDayTitle(', 'columnsFor(', 'footerText(', 'savedLine', 'initialTicks(', 'saveBody(']) expect(p, f).toContain(f);
+  for (const k of ['addVisitor', 'close', 'save', 'history']) expect(p, k).toContain(`PREZENTA_COPY.${k}`);
+  expect(p).toContain("hideStatus={['anonimizat']}");
+  expect(p).toContain('PRESENCE_WORDS.outsideSchedule');
+});
+it('panel: closing asks only when dirty; the save toast has no undo (5.3, C46)', () => {
+  const p = src('dashboard/prezenta/SessionPanel.tsx');
+  expect(p).toContain('isDirty(');
+  for (const k of ['closeConfirm', 'stay']) expect(p, k).toContain(`PREZENTA_COPY.${k}`);
+  expect(p).not.toMatch(/onClose=\{onClose\}/);
+  expect(p).toMatch(/adminToast\.success\([^)]*toast\)/);
+  expect(p).not.toMatch(/adminToast\.success\([^)]*toast[^)]*action/);
+});
+it('panel: inactive 409 dialogs, then one more save; read-only hides Salvează (4.22, 5.6)', () => {
+  const p = src('dashboard/prezenta/SessionPanel.tsx');
+  expect(p).toContain('readInactive(');
+  expect(p).toContain('answerInactive(');
+  expect(p).toMatch(/!readOnly && [\s\S]*PREZENTA_COPY\.save/);
+  const d = src('dashboard/prezenta/InactiveDialog.tsx');
+  for (const k of ['title', 'text(', 'keep', 'reactivate']) expect(d, k).toContain(`REACTIVATE_DIALOG.${k}`);
+});
+it('coach fields (4.2)', () => {
+  const c = src('dashboard/prezenta/CoachFields.tsx');
+  expect(c).toContain('PREZENTA_COPY.addCoaches');
+  expect(c).toContain('setCoach(');
+  expect(c).toContain('SearchableSelect');
+});
+it('the athlete search can hide anonymized athletes', () => {
+  expect(src('dashboard/sportivi/AthleteSearch.tsx')).toMatch(/hideStatus\?: /);
+});
