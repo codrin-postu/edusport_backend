@@ -13,6 +13,7 @@ import {
   Field,
   HelpTip,
   NumberInput,
+  DateInput,
   normalizeObject,
   type ObjectFieldConfig,
 } from '../ui';
@@ -21,6 +22,7 @@ import { DASHBOARD_TO } from '../dashboard/menu';
 import { UID } from './routes';
 import { PERSONAL_DATA_COPY } from '../../club/personal-data/copy';
 import { DEFAULT_RETENTION_YEARS, RETENTION_BOUNDS, retentionYearsOf, type PersonalDataSettings } from '../../club/personal-data/settings';
+import { SETARI_COPY } from '../../club/presence/copy/prezenta-ui';
 
 /**
  * Setări site (/plugins/edusport-setari): the site-settings single type.
@@ -59,6 +61,7 @@ interface SiteSettings {
   registration: Registration | null;
   contact: Contact | null;
   personalData: PersonalDataSettings | null;
+  attendanceStartDate: string | null;
 }
 
 const EMPTY_REGISTRATION: Registration = { open: false };
@@ -137,6 +140,13 @@ const PersonalDataCard: React.FC<FormProps> = ({ form }) => {
           allowEmpty={false}
           label={PERSONAL_DATA_COPY.settingsField}
           onChange={(next) => form.set('personalData', { ...personalData, retentionYears: retentionYearsOf(next) })}
+        />
+      </Field>
+      <Field label={SETARI_COPY.attendanceStart} hint={SETARI_COPY.attendanceStartHint}>
+        <DateInput
+          value={form.value.attendanceStartDate ?? null}
+          onChange={(next) => form.set('attendanceStartDate', next)}
+          aria-label={SETARI_COPY.attendanceStart}
         />
       </Field>
     </EditorCard>
