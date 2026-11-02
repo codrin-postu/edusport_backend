@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { activeSections } from '../../ui-filters';
 import type { SubscriptionListRow } from '../../presence/money-api';
 import type { NewSubscriptionForm } from '../../presence/subscriptions/views';
 import { abonamentMenu, abonamenteCells, abonamenteSections, addBody, addDraft, addToast, coverDisabled, extendModel, itemOptions, toggleCover } from '../abonamente-view';
@@ -18,6 +19,12 @@ const formOf = (o: { cover: string[]; items: { itemKey: string; slots: number; p
 });
 
 describe('Abonamente view', () => {
+  it('Grupă counts in the Filtre badge, Stare never does (M1)', () => {
+    const groups = [{ value: 'g-ib', label: 'Intermediari Bronze' }];
+    expect(activeSections(abonamenteSections({ state: 'active', groupId: null }, groups))).toBe(0);
+    expect(activeSections(abonamenteSections({ state: 'expirate', groupId: 'g-ib' }, groups))).toBe(1);
+    expect(abonamenteSections({ state: 'active', groupId: null }, groups)[1].options).toEqual(groups);
+  });
   it('row cells and the red past date; menu hidden with a payment or when anulat (5.9, C75)', () => {
     const r = listRow({ athleteName: 'Ana Ionescu', groupName: 'Intermediari Bronze', slots: 8, used: 5, validUntil: '2026-11-07', state: 'activ', canCancel: true });
     expect(abonamenteCells(r, '2026-11-20')).toEqual({ athlete: 'Ana Ionescu', group: 'Intermediari Bronze', item: '8 ședințe', used: '5/8', expires: '7 noi 2026', expiredRed: true, state: 'activ' });

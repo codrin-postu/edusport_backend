@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PaymentRowView } from '../../presence/money-api';
+import { activeSections } from '../../ui-filters';
 import { platiCells, platiSections, rowMenu, totalLine } from '../plati-view';
 
 const paymentView = (o: Partial<PaymentRowView>): PaymentRowView => ({
@@ -21,8 +22,11 @@ describe('Plăți view', () => {
     expect(s[0].options[0]).toEqual({ value: '2026-11', label: 'Noiembrie 2026' });
     expect(s[0].options).toHaveLength(24);
     expect(s[0].selected).toEqual(['2026-10']);
-    expect(s[1].options.map((o) => o.label)).toEqual(['Toate', 'Numerar', 'Card (POS)', 'Transfer bancar']);
-    expect(s[2].options.map((o) => o.label)).toEqual(['Toate', 'Abonament', 'Cotizație membru', 'Club', 'Lecție individuală', 'Altceva']);
+    expect(s[1].options.map((o) => o.label)).toEqual(['Numerar', 'Card (POS)', 'Transfer bancar']);
+    expect(s[2].options.map((o) => o.label)).toEqual(['Abonament', 'Cotizație membru', 'Club', 'Lecție individuală', 'Altceva']);
+    expect(s.map((x) => x.allLabel)).toEqual([null, undefined, undefined]);   // Toate rows come from the panel
+    expect(activeSections(s)).toBe(0);
+    expect(activeSections(platiSections({ month: '2026-10', method: 'card', purpose: 'club_luna' }, '2026-11-20'))).toBe(2);   // M1: Metodă and Tip count
     expect(totalLine({ rows: [], total: 840 })).toBe('Total: 840 RON');
   });
 });

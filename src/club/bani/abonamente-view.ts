@@ -14,13 +14,12 @@ import type { FilterSection } from './plati-view';
 const copy = MONEY_UI_COPY.abonamente;
 const STATES: SubscriptionStateFilter[] = ['toate', 'active', 'epuizate', 'expirate', 'anulate'];
 
-/** "Stare" starts on "Active"; "Grupă" starts with "Toate". Single choice each. */
+/** "Stare" always has a value ("Active" by default); "Grupă" starts with the panel's own "Toate" row, so it counts in the Filtre badge. Single choice each. */
 export function abonamenteSections(q: { state: SubscriptionStateFilter; groupId: string | null }, groups: { value: string; label: string }[]): FilterSection[] {
   const states = STATES.map((value, i) => ({ value, label: copy.stateOptions[i] }));
-  const groupOptions = [{ value: '', label: copy.all }, ...groups];
   return [
     { key: 'state', label: copy.state, options: states, single: true, allLabel: null, selected: [q.state] },
-    { key: 'groupId', label: copy.group, options: groupOptions, single: true, allLabel: null, selected: groups.some((g) => g.value === q.groupId) && q.groupId ? [q.groupId] : [] },
+    { key: 'groupId', label: copy.group, options: groups, single: true, selected: groups.some((g) => g.value === q.groupId) && q.groupId ? [q.groupId] : [] },
   ];
 }
 

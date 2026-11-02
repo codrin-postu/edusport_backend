@@ -11,26 +11,23 @@ export type FilterSection = { key: string; label: string; options: FilterChoice[
 
 const MONTHS_LISTED = 24;
 const CANCELLED_MARK = 'anulată';
-const ALL = MONEY_UI_COPY.plati.typeOptions[0];
 
 export type PlatiQuery = { month: string; method: string | null; purpose: string | null };
 export type PlatiCells = {
   date: string; athlete: string; purpose: string; method: string; amount: string; recordedBy: string; struck: boolean; mark: string | null;
 };
 
-const choices = (words: Record<string, string>): { value: string; label: string }[] => [
-  { value: '', label: ALL }, ...Object.entries(words).map(([value, label]) => ({ value, label })),
-];
+const choices = (words: Record<string, string>): { value: string; label: string }[] => Object.entries(words).map(([value, label]) => ({ value, label }));
 
-/** "Perioadă": the last 24 months, newest first; "Metodă" and "Tip" start with "Toate" (C60). Single choice each; the "Toate" row clears. */
+/** "Perioadă": the last 24 months, newest first, always one chosen. "Metodă" and "Tip" start with the panel's own "Toate" row, which clears (C60), so they count in the Filtre badge. */
 export function platiSections(q: PlatiQuery, today: string): FilterSection[] {
   const current = monthOf(today);
   const months = Array.from({ length: MONTHS_LISTED }, (_, i) => addMonths(current, -i)).map((value) => ({ value, label: monthTitle(value) }));
-  const one = (key: string, label: string, options: FilterSection['options'], value: string | null): FilterSection => ({
-    key, label, options, single: true, allLabel: null, selected: value !== null && options.some((o) => o.value === value) ? [value] : [],
+  const one = (key: string, label: string, options: FilterSection['options'], value: string | null, allLabel?: null): FilterSection => ({
+    key, label, options, single: true, ...(allLabel === null ? { allLabel } : {}), selected: value !== null && options.some((o) => o.value === value) ? [value] : [],
   });
   return [
-    one('month', MONEY_UI_COPY.plati.period, months, q.month),
+    one('month', MONEY_UI_COPY.plati.period, months, q.month, null),
     one('method', MONEY_UI_COPY.plati.method, choices(METHOD_WORDS), q.method),
     one('purpose', MONEY_UI_COPY.plati.type, choices(PURPOSE_WORDS), q.purpose),
   ];
