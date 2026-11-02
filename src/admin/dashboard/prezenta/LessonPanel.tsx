@@ -11,6 +11,7 @@ import { coachIdsOf, type CoachFields as CoachValue } from '../../../club/prezen
 import { PanelShell } from '../grupe/PanelShell';
 import { usePrezentaApi, type PrezentaApi } from './api';
 import { CoachFields, useCoachOptions } from './CoachFields';
+import { LessonMoneyMenu } from './RowMoneyMenu';
 import { failToast, prezentaChanged, undoToast } from './undo';
 
 type Props = { id: string; onClose: () => void };
@@ -86,7 +87,10 @@ function LessonBody({ lesson, draft, busy, coachError, options, onDraft, onDelet
   return (
     <div className="pz-form">
       <p className="pz-sheet-sub">{longDayTitle(lesson.date)}</p>
-      <Checkbox checked={draft.present} disabled={busy} label={lesson.athleteName} onChange={() => onDraft({ ...draft, present: !draft.present })} />
+      <div className="pz-lesson-row">
+        <Checkbox checked={draft.present} disabled={busy} label={lesson.athleteName} onChange={() => onDraft({ ...draft, present: !draft.present })} />
+        <LessonMoneyMenu lesson={lesson} />
+      </div>
       <CoachFields label={PREZENTA_COPY.coach} value={draft.coaches} options={options} disabled={busy} error={coachError} onChange={(coaches) => onDraft({ ...draft, coaches })} />
       <Field label={PREZENTA_COPY.colDuration}>
         <Select value={draft.duration} options={durationOptions()} disabled={busy} onChange={(duration) => onDraft({ ...draft, duration })} />

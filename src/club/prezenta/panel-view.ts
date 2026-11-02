@@ -3,7 +3,7 @@ import { PREZENTA_COPY } from '../presence/copy/prezenta-ui';
 import { monthOf } from '../presence/dates';
 import type { PaymentFor } from '../presence/payments/rules';
 import type { AthleteCard } from '../athletes/api-types';
-import type { InactiveAthlete, PanelRow, SectionKind, SessionPanel, SessionSaveBody, Tick } from '../presence/attendance/api-types';
+import type { InactiveAthlete, LessonPanel, PanelRow, SectionKind, SessionPanel, SessionSaveBody, Tick } from '../presence/attendance/api-types';
 import { isRecord } from '../narrow';
 
 export type Ticks = Record<string, { grup: boolean; uscat: boolean }>;
@@ -29,6 +29,14 @@ export function payPreselect(kind: SectionKind, date: string, subscriptionId: st
   if (kind === 'club') return { kind: 'club_luna', month: monthOf(date) };
   return subscriptionId ? { kind: 'abonament', subscriptionId } : null;
 }
+
+/** What "+ Plată" of the lesson panel preselects: this lesson once it is saved and the athlete was present; else nothing (the options hold only priced, held lessons). */
+export function lessonPayPreselect(lesson: Pick<LessonPanel, 'lessonId' | 'state' | 'present'>): PaymentFor | null {
+  return lesson.state === 'saved' && lesson.present === true ? { kind: 'lectie', lessonId: lesson.lessonId } : null;
+}
+
+/** The lesson panel's row "...": "+ Plată" only (no abonament for a lesson). */
+export const lessonMenuItems = (): { key: RowMenuKey; text: string }[] => [{ key: 'payment', text: MONEY_UI_COPY.menu.addPayment }];
 
 export function initialTicks(p: SessionPanel): Ticks {
   if (p.sessionId === null) return {};

@@ -58,6 +58,12 @@ describe('money UI source', () => {
     expect(m).toContain('groupOptions(joinableGroups(groups, p.page.documentId, p.member.others), p.page.documentId)');
     expect(m).not.toMatch(/mode === 'move' \? groups/);
   });
+  it('the lesson panel has the row menu with "+ Plată" and the athlete locked (I3)', () => {
+    const l = src('admin/dashboard/prezenta/LessonPanel.tsx');
+    expect(l).toContain('<LessonMoneyMenu lesson={lesson} />');
+    const m = src('admin/dashboard/prezenta/RowMoneyMenu.tsx');
+    for (const name of ['LessonMoneyMenu', 'lessonMenuItems()', 'lessonPayPreselect(lesson)', 'athlete={{ id: lesson.athleteId, name: lesson.athleteName }}']) expect(m).toContain(name);
+  });
   it('strings outside the copy module moved in (M8)', () => {
     for (const f of ['PlatiList', 'AbonamenteList']) expect(src(`admin/dashboard/bani/${f}.tsx`)).not.toContain('`Arată ');
     expect(MONEY_UI_COPY.show('3 plăți')).toBe('Arată 3 plăți');

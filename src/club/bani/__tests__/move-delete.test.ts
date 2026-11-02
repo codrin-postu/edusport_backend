@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AthletePayments, AthleteSubscriptions, PaymentRowView } from '../../presence/money-api';
 import { anonymizeOffered, isBlocked, readRefusal, refusalCounts } from '../delete-refusal';
-import { payPreselect, rowMenuItems } from '../../prezenta/panel-view';
+import { lessonMenuItems, lessonPayPreselect, payPreselect, rowMenuItems } from '../../prezenta/panel-view';
 import { moveBarView } from '../move-bar';
 
 const bar = { subscriptionId: 's', itemName: 'Abonament 8 ședințe', slots: 8, used: 5, validUntil: '2026-11-07' };
@@ -11,6 +11,13 @@ const paymentsOf = (rows: { cancelled: boolean }[]): AthletePayments => ({
 const none: AthleteSubscriptions = { groups: [], bars: [], earlier: [] };
 
 describe('move and delete (5.12, 5.14)', () => {
+  it('lesson panel row menu: "+ Plată" only, this lesson preselected once saved and present (5.5, I3)', () => {
+    expect(lessonMenuItems()).toEqual([{ key: 'payment', text: '+ Plată' }]);
+    expect(lessonPayPreselect({ lessonId: 'l1', state: 'saved', present: true })).toEqual({ kind: 'lectie', lessonId: 'l1' });
+    expect(lessonPayPreselect({ lessonId: 'l1', state: 'saved', present: false })).toBeNull();
+    expect(lessonPayPreselect({ lessonId: 'l1', state: 'planned', present: null })).toBeNull();
+  });
+
   it('the move bar and the Gold line only when the carry happens (5.12)', () => {
     expect(moveBarView({ bar, carries: true })).toEqual({ bar, goldLine: true });
     expect(moveBarView({ bar, carries: false })).toEqual({ bar, goldLine: false });
