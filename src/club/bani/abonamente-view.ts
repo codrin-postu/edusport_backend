@@ -52,6 +52,9 @@ export function addDraft(form: NewSubscriptionForm): AddDraft {
   return list ? withItem(base, form, list.priceListId, list.items[0].itemKey) : { ...base, listId: form.lists[0]?.priceListId ?? null };
 }
 
+/** The form on screen was loaded for the start date now asked for (null: the form's own default); a changed date holds the submit back until its form is in (M2). */
+export const formMatchesStart = (loadedFor: string | null, asked: string | null): boolean => loadedFor === asked;
+
 /** Cover and amount follow the item. */
 export function withItem(d: AddDraft, form: NewSubscriptionForm, listId: string, itemKey: string): AddDraft {
   const item = itemOf(form, listId, itemKey);
