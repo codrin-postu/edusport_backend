@@ -55,6 +55,7 @@ describe('money UI source', () => {
   });
   it('the athlete tabs (5.7)', () => {
     const r = src('admin/dashboard/sportivi/AthleteRecordPage.tsx');
+    expect(r).toContain('seasonId={record.season?.documentId ?? null}');
     for (const name of ['AbonamentTab', 'PlatiTab', 'tabFromSearch', "tab === 'abonament'", "tab === 'plati'"]) expect(r).toContain(name);
     const a = src('admin/dashboard/bani/AbonamentTab.tsx');
     for (const name of ['AbonamentBar', 'AddSubscriptionWindow', 'MONEY_UI_COPY', 'copy.none', 'SessionPanel', 'attendanceLine(']) expect(a).toContain(name);

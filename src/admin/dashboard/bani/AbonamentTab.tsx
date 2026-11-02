@@ -94,9 +94,9 @@ function Subscriptions({ data }: { data: AthleteSubscriptions }) {
 }
 
 /** "Grupe și abonament" (5.7): groups, the abonament bars, earlier abonamente and the month's attendance. */
-export function AbonamentTab({ athlete }: { athlete: Athlete }) {
+export function AbonamentTab({ athlete, seasonId = null }: { athlete: Athlete; seasonId?: string | null }) {
   const api = useMoneyApi();
-  const { data, failed } = useLoad<AthleteSubscriptions>(() => api.athleteSubscriptions(athlete.id, null), athlete.id);
+  const { data, failed } = useLoad<AthleteSubscriptions>(() => api.athleteSubscriptions(athlete.id, seasonId), `${athlete.id}|${seasonId}`);
   const [adding, setAdding] = React.useState(false);
   return (
     <div className="ui-body bn-tab">

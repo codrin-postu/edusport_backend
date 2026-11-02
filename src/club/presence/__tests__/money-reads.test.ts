@@ -110,6 +110,13 @@ describe('money reads', () => {
       earlier: [{ itemName: 'Abonament 8 ședințe', startsOn: '2026-09-29', validUntil: '2026-10-26', used: 8, slots: 8, state: 'epuizat' }] });
   });
 
+  it('athlete abonament tab with no season names the current season groups', async () => {
+    const f = fakePresenceContext(listSeed());
+    const withNull = await athleteSubscriptions(f.store, 'a1', null, '2026-11-20');
+    expect(withNull?.groups).toEqual([{ name: 'Intermediari Bronze', main: true }]);
+    expect(withNull).toEqual(await athleteSubscriptions(f.store, 'a1', 's26', '2026-11-20'));
+  });
+
   it('Plăți list: month, filters, newest first, total without cancelled (5.10, C62)', async () => {
     const f = fakePresenceContext(listSeed());
     const list = await listPayments(f.store, readPaymentQuery({ month: '2026-10' }, '2026-11-20'), '2026-11-20');

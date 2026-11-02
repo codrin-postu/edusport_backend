@@ -80,7 +80,7 @@ function RecordContent({ record, api, loaded, head, onMerge }: ContentProps) {
         <div hidden={tab !== 'date'}>
           <DateTab record={record} api={api} onSaved={loaded.reload} active={tab === 'date'} />
         </div>
-        {tab === 'abonament' && <AbonamentTab athlete={{ id: record.documentId, name: record.fields.name ?? '' }} />}
+        {tab === 'abonament' && <AbonamentTab athlete={{ id: record.documentId, name: record.fields.name ?? '' }} seasonId={record.season?.documentId ?? null} />}
         {tab === 'plati' && <PlatiTab athlete={{ id: record.documentId, name: record.fields.name ?? '' }} />}
         {seen.includes('profil') && (
           <div hidden={tab !== 'profil'}>
