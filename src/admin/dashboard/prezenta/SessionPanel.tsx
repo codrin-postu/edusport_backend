@@ -19,6 +19,7 @@ import { usePrezentaApi, type PrezentaApi, type SessionQuery } from './api';
 import { CoachFields, useCoachOptions } from './CoachFields';
 import { InactiveDialog } from './InactiveDialog';
 import { RowMoneyMenu } from './RowMoneyMenu';
+import { runOnce } from '../bani/useSubmitOnce';
 import { failToast, prezentaChanged } from './undo';
 
 export type SessionTarget = { id: string } | { occurrence: string } | { added: AddedSession };
@@ -116,16 +117,16 @@ const NO_ANSWERS: InactiveAnswers = { reactivate: [], keepInactive: [] };
 /** Save, then the inactive questions of a 409 (decided 4) and one more save with the answers. */
 function useSave(api: PrezentaApi, panel: PanelData | null, draft: Draft | null, onClose: () => void) {
   const [busy, setBusy] = React.useState(false);
+  const inFlight = React.useRef(false);
   const [coachError, setCoachError] = React.useState<string | null>(null);
   const [ask, setAsk] = React.useState<Ask | null>(null);
-  const save = async (answers: InactiveAnswers) => {
+  const save = (answers: InactiveAnswers) => runOnce(inFlight, async () => {
     if (!panel || !draft) return;
     if (coachIdsOf(draft.coaches).length === 0) {
       setCoachError(ATTENDANCE_ERRORS.noCoach);
       return;
     }
     setCoachError(null);
-    setBusy(true);
     try {
       const { data } = await api.save(saveBody({ ...panel, rows: draft.rows }, draft.ticks, draft.coaches, answers));
       adminToast.success(data.toast);
@@ -135,10 +136,8 @@ function useSave(api: PrezentaApi, panel: PanelData | null, draft: Draft | null,
       const inactive = readInactive(err);
       if (inactive) setAsk({ queue: inactive, index: 0, answers: NO_ANSWERS });
       else failToast(err);
-    } finally {
-      setBusy(false);
     }
-  };
+  }, setBusy);
   const answer = (reactivate: boolean) => {
     if (!ask) return;
     const answers = answerInactive(ask.answers, ask.queue[ask.index].id, reactivate);

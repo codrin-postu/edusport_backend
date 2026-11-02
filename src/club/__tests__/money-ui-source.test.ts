@@ -64,6 +64,14 @@ describe('money UI source', () => {
     const m = src('admin/dashboard/prezenta/RowMoneyMenu.tsx');
     for (const name of ['LessonMoneyMenu', 'lessonMenuItems()', 'lessonPayPreselect(lesson)', 'athlete={{ id: lesson.athleteId, name: lesson.athleteName }}']) expect(m).toContain(name);
   });
+  it('every Prezență save and the abonament cancel run behind the in-flight guard; one coach hook (M7, M10)', () => {
+    for (const f of ['SessionPanel', 'LessonPanel', 'NewLessonWindow']) expect(src(`admin/dashboard/prezenta/${f}.tsx`)).toMatch(/runOnce\(inFlight, async/);
+    expect(src('admin/dashboard/bani/AbonamenteList.tsx')).toMatch(/runOnce\(cancelling, \(\) => cancelSubscription\(api, r\)/);
+    const n = src('admin/dashboard/prezenta/NewLessonWindow.tsx');
+    expect(n).toContain("useCoachOptions } from './CoachFields'");
+    expect(n).not.toMatch(/function useCoachOptions/);
+    expect(src('admin/dashboard/prezenta/CoachFields.tsx')).toMatch(/let off = false/);
+  });
   it('strings outside the copy module moved in (M8)', () => {
     for (const f of ['PlatiList', 'AbonamenteList']) expect(src(`admin/dashboard/bani/${f}.tsx`)).not.toContain('`Arată ');
     expect(MONEY_UI_COPY.show('3 plăți')).toBe('Arată 3 plăți');

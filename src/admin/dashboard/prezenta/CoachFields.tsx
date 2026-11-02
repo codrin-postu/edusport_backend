@@ -10,7 +10,11 @@ export type CoachOptions = { coaches: { documentId: string; name: string }[]; fa
 export function useCoachOptions(api: PrezentaApi): CoachOptions {
   const [state, setState] = React.useState<CoachOptions>({ coaches: [], failed: false });
   React.useEffect(() => {
-    api.options().then((o) => setState({ coaches: o.coaches, failed: false })).catch(() => setState({ coaches: [], failed: true }));
+    let off = false;
+    api.options()
+      .then((o) => { if (!off) setState({ coaches: o.coaches, failed: false }); })
+      .catch(() => { if (!off) setState({ coaches: [], failed: true }); });
+    return () => { off = true; };
   }, [api]);
   return state;
 }

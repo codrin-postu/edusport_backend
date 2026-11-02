@@ -19,6 +19,7 @@ import { AddSubscriptionWindow } from './AddSubscriptionWindow';
 import { useMoneyApi, type MoneyApi } from './api';
 import { ExtendModal } from './ExtendModal';
 import { RowMenu } from './RowMenu';
+import { runOnce } from './useSubmitOnce';
 import { MONEY_CSS } from './styles';
 import { moneyUndoToast, useMoneyChanged } from './undo';
 
@@ -124,7 +125,8 @@ export function AbonamenteList() {
     setParams(next, { replace: true });
   };
   const open = (r: SubscriptionListRow) => navigate(athleteTabTo(r.athleteId, 'abonament'));
-  const cancel = (r: SubscriptionListRow) => void cancelSubscription(api, r);
+  const cancelling = React.useRef(false);
+  const cancel = (r: SubscriptionListRow) => void runOnce(cancelling, () => cancelSubscription(api, r), () => undefined);
   const count = page ? countWords(page.rows.length, 'abonament', 'abonamente') : '';
   const actions = (
     <>
