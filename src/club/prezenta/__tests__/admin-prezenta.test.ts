@@ -33,8 +33,8 @@ it('Setări site has "Prezență și plăți din" with its hint (3.8, 5.16)', ()
   expect(page).toContain('attendanceStartDate');
 });
 
-it('the shells carry their titles (Plăți is built since 5-6 T3)', () => {
-  expect(src('dashboard/AbonamentePage.tsx')).toMatch(/SHELL_COPY\.abonamente[\s\S]*SHELL_COPY\.abonamenteSub/);
+it('the shells carry their titles (Plăți is built since 5-6 T3, Abonamente since T4)', () => {
+  expect(src('dashboard/AbonamentePage.tsx')).toContain('AbonamenteList');
   expect(src('dashboard/PlatiPage.tsx')).toContain('PlatiList');
   expect(src('dashboard/DeIncasatPage.tsx')).toContain('SHELL_COPY.deIncasat');
 });

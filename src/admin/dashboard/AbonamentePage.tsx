@@ -1,14 +1,7 @@
 import * as React from 'react';
-import { AdminPage, PageHeader, Window } from '../ui';
-import { SHELL_COPY } from '../../club/presence/copy/prezenta-ui';
+import { AbonamenteList } from './bani/AbonamenteList';
 
-/** "Abonamente": a shell until its phase 5 screen is built. */
+/** "Abonamente" (5.8, 5.9): Școala's abonamente, the add window and the extension. */
 export default function AbonamentePage() {
-  return (
-    <AdminPage>
-      <Window>
-        <PageHeader title={SHELL_COPY.abonamente} subtitle={SHELL_COPY.abonamenteSub} />
-      </Window>
-    </AdminPage>
-  );
+  return <AbonamenteList />;
 }
