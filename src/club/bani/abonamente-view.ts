@@ -8,19 +8,18 @@ import { defaultCover } from '../presence/subscriptions/rules';
 import type { NewSubscriptionForm } from '../presence/subscriptions/views';
 import type { PaymentMethod } from '../presence/types';
 import { isPastDate, slotsText } from './format';
-import { parseAmount } from './payment-window';
+import { amountText, parseAmount } from './payment-window';
 import type { FilterSection } from './plati-view';
 
 const copy = MONEY_UI_COPY.abonamente;
 const STATES: SubscriptionStateFilter[] = ['toate', 'active', 'epuizate', 'expirate', 'anulate'];
 
-/** "Stare" starts on "Active"; "Grupă" starts with "Toate". Single choice each. */
+/** "Stare" always has a value ("Active" by default); "Grupă" starts with the panel's own "Toate" row, so it counts in the Filtre badge. Single choice each. */
 export function abonamenteSections(q: { state: SubscriptionStateFilter; groupId: string | null }, groups: { value: string; label: string }[]): FilterSection[] {
   const states = STATES.map((value, i) => ({ value, label: copy.stateOptions[i] }));
-  const groupOptions = [{ value: '', label: copy.all }, ...groups];
   return [
     { key: 'state', label: copy.state, options: states, single: true, allLabel: null, selected: [q.state] },
-    { key: 'groupId', label: copy.group, options: groupOptions, single: true, allLabel: null, selected: groups.some((g) => g.value === q.groupId) && q.groupId ? [q.groupId] : [] },
+    { key: 'groupId', label: copy.group, options: groups, single: true, selected: groups.some((g) => g.value === q.groupId) && q.groupId ? [q.groupId] : [] },
   ];
 }
 
@@ -53,11 +52,14 @@ export function addDraft(form: NewSubscriptionForm): AddDraft {
   return list ? withItem(base, form, list.priceListId, list.items[0].itemKey) : { ...base, listId: form.lists[0]?.priceListId ?? null };
 }
 
+/** The form on screen was loaded for the start date now asked for (null: the form's own default); a changed date holds the submit back until its form is in (M2). */
+export const formMatchesStart = (loadedFor: string | null, asked: string | null): boolean => loadedFor === asked;
+
 /** Cover and amount follow the item. */
 export function withItem(d: AddDraft, form: NewSubscriptionForm, listId: string, itemKey: string): AddDraft {
   const item = itemOf(form, listId, itemKey);
   if (!item) return d;
-  return { ...d, listId, itemKey, cover: defaultCover(form.cover, listId, item.slots), amount: String(item.price) };
+  return { ...d, listId, itemKey, cover: defaultCover(form.cover, listId, item.slots), amount: amountText(item.price) };
 }
 
 /** The athlete's "Fără abonament" rows on the chosen list. */

@@ -39,7 +39,7 @@ export default {
   },
 
   async options(ctx: AdminCtx) {
-    const options = await athletePaymentOptions(strapiPresenceStore(strapi), id(ctx), todayIso());
+    const options = await athletePaymentOptions(strapiPresenceStore(strapi), id(ctx), todayIso(), queryText(ctx.query.month));
     if (!options) return refuseWith(ctx, 404, PRESENCE_ERRORS.notFound);
     ctx.body = { data: options };
   },

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button } from '../../ui';
 import { Modal } from '../../ui/Modal';
-import type { RefusalCounts } from '../../../club/bani/delete-refusal';
+import { anonymizeOffered, type RefusalCounts } from '../../../club/bani/delete-refusal';
 import { LIFECYCLE_DELETE, deleteBlockedText } from '../../../club/presence/copy/lifecycle';
 
 type Props = { name: string; counts: RefusalCounts; isSuperAdmin: boolean; onCancel: () => void; onAnonymize: () => void };
@@ -17,7 +17,7 @@ export function DeleteRefusalDialog({ name, counts, isSuperAdmin, onCancel, onAn
   return (
     <Modal open onClose={onCancel} title={LIFECYCLE_DELETE.title(name)} role="alertdialog" footer={footer}>
       <p style={{ margin: '0 0 12px' }}>{deleteBlockedText(counts.payments, counts.subscriptions)}</p>
-      <p className="ui-muted" style={{ margin: 0 }}>{LIFECYCLE_DELETE.anonymizeInstead}</p>
+      {anonymizeOffered(isSuperAdmin) && <p className="ui-muted" style={{ margin: 0 }}>{LIFECYCLE_DELETE.anonymizeInstead}</p>}
     </Modal>
   );
 }

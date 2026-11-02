@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import type { PanelRow } from '../../presence/attendance/api-types';
 import type { AthletePayments, AthleteSubscriptions, PaymentRowView } from '../../presence/money-api';
-import { isBlocked, readRefusal, refusalCounts } from '../delete-refusal';
-import { payPreselect, rowMenuItems } from '../../prezenta/panel-view';
+import { anonymizeOffered, isBlocked, readRefusal, refusalCounts } from '../delete-refusal';
+import { lessonMenuItems, lessonPayPreselect, payPreselect, refreshAbonamentLines, rowMenuItems, rowSubLines } from '../../prezenta/panel-view';
 import { moveBarView } from '../move-bar';
 
 const bar = { subscriptionId: 's', itemName: 'Abonament 8 ședințe', slots: 8, used: 5, validUntil: '2026-11-07' };
@@ -11,6 +12,27 @@ const paymentsOf = (rows: { cancelled: boolean }[]): AthletePayments => ({
 const none: AthleteSubscriptions = { groups: [], bars: [], earlier: [] };
 
 describe('move and delete (5.12, 5.14)', () => {
+  it('lesson panel row menu: "+ Plată" only, this lesson preselected once saved and present (5.5, I3)', () => {
+    expect(lessonMenuItems()).toEqual([{ key: 'payment', text: '+ Plată' }]);
+    expect(lessonPayPreselect({ lessonId: 'l1', state: 'saved', present: true })).toEqual({ kind: 'lectie', lessonId: 'l1' });
+    expect(lessonPayPreselect({ lessonId: 'l1', state: 'saved', present: false })).toBeNull();
+    expect(lessonPayPreselect({ lessonId: 'l1', state: 'planned', present: null })).toBeNull();
+  });
+
+  it('after a money write only the abonament lines change; ticks, visitors and added rows stay (I5)', () => {
+    const row = (o: Partial<PanelRow>): PanelRow => ({ athleteId: 'a', name: 'A', visitor: false, inactive: false, mainGroup: null, abonament: null, grup: false, uscat: false, noSubscription: false, ...o });
+    const draft = [row({ athleteId: 'a1', grup: true, noSubscription: true, abonament: 'Fără abonament' }), row({ athleteId: 'v1', visitor: true, grup: true })];
+    const fresh = [row({ athleteId: 'a1', grup: false, abonament: '7 ședințe rămase', noSubscription: false })];
+    expect(refreshAbonamentLines(draft, fresh)).toEqual([row({ athleteId: 'a1', grup: true, abonament: '7 ședințe rămase', noSubscription: false }), draft[1]]);
+  });
+
+  it('"Fără abonament" is shown once under a name', () => {
+    expect(rowSubLines({ abonament: 'Fără abonament', noSubscription: true })).toEqual({ status: null, warn: 'Fără abonament' });
+    expect(rowSubLines({ abonament: '3 ședințe rămase', noSubscription: false })).toEqual({ status: '3 ședințe rămase', warn: null });
+    expect(rowSubLines({ abonament: '3 ședințe rămase', noSubscription: true })).toEqual({ status: '3 ședințe rămase', warn: 'Fără abonament' });
+    expect(rowSubLines({ abonament: null, noSubscription: false })).toEqual({ status: null, warn: null });
+  });
+
   it('the move bar and the Gold line only when the carry happens (5.12)', () => {
     expect(moveBarView({ bar, carries: true })).toEqual({ bar, goldLine: true });
     expect(moveBarView({ bar, carries: false })).toEqual({ bar, goldLine: false });
@@ -22,6 +44,10 @@ describe('move and delete (5.12, 5.14)', () => {
     const c = refusalCounts(paymentsOf([{ cancelled: true }, { cancelled: false }]), { groups: [], bars: [bar], earlier: [] });
     expect(c).toEqual({ payments: 2, subscriptions: 1 });
     expect([isBlocked(c), isBlocked({ payments: 0, subscriptions: 0 })]).toEqual([true, false]);
+  });
+
+  it('a plain admin sees no anonymize hint nor button, a Super Admin does (C67)', () => {
+    expect([anonymizeOffered(true), anonymizeOffered(false)]).toEqual([true, false]);
   });
 
   it('counts are zero while nothing is loaded', () => {

@@ -23,7 +23,7 @@ it('the api reaches every plan 5-2 route', () => {
 it('undo toasts last 8 s with "Anulează" and no X', () => {
   const undo = src('dashboard/prezenta/undo.ts');
   expect(undo).toContain('UNDO_MS = 8000');
-  expect(undo).toMatch(/action: \{ label: 'Anulează'/);
+  expect(undo).toMatch(/duration: UNDO_MS, action: \{ label: MONEY_UI_COPY\.undo\.action/);
 });
 
 it('Setări site has "Prezență și plăți din" with its hint (3.8, 5.16)', () => {

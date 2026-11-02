@@ -10,6 +10,7 @@ import { usePrezentaApi, type PrezentaApi } from './api';
 import { HeaderSlot, Switcher } from './Switcher';
 import { LessonPanel } from './LessonPanel';
 import { NewLessonWindow } from './NewLessonWindow';
+import { useLatest } from '../bani/latest';
 import { usePrezentaRefresh } from './undo';
 
 type Props = { month: string; onMonth: (month: string) => void; host: HTMLElement | null };
@@ -37,14 +38,18 @@ export function useMonthLoad<T>(load: (api: PrezentaApi, month: string) => Promi
   const [failed, setFailed] = React.useState(false);
   const loadRef = React.useRef(load);
   loadRef.current = load;
+  const latest = useLatest();
   const reload = React.useCallback(async () => {
+    const current = latest.next();
     try {
-      setData(await loadRef.current(api, month));
+      const next = await loadRef.current(api, month);
+      if (!current()) return;
+      setData(next);
       setFailed(false);
     } catch {
-      setFailed(true);
+      if (current()) setFailed(true);
     }
-  }, [api, month]);
+  }, [api, latest, month]);
   React.useEffect(() => {
     setData(null);
     void reload();

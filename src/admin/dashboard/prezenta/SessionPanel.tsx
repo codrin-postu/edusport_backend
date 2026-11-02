@@ -8,7 +8,7 @@ import { PRESENCE_ERRORS, PRESENCE_WORDS } from '../../../club/presence/copy/cor
 import { PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
 import { footerText, longDayTitle, panelTitle } from '../../../club/prezenta/day-view';
 import {
-  addVisitor, answerInactive, coachIdsOf, columnsFor, footerCounts, initialTicks, isDirty, readInactive, saveBody, toggleTick,
+  addVisitor, answerInactive, coachIdsOf, columnsFor, footerCounts, initialTicks, isDirty, readInactive, refreshAbonamentLines, rowSubLines, saveBody, toggleTick,
   type CoachFields as CoachValue, type InactiveAnswers, type Ticks,
 } from '../../../club/prezenta/panel-view';
 import { RECORD_COPY } from '../../../club/sportivi/record-view';
@@ -19,6 +19,8 @@ import { usePrezentaApi, type PrezentaApi, type SessionQuery } from './api';
 import { CoachFields, useCoachOptions } from './CoachFields';
 import { InactiveDialog } from './InactiveDialog';
 import { RowMoneyMenu } from './RowMoneyMenu';
+import { useMoneyChanged } from '../bani/undo';
+import { runOnce } from '../bani/useSubmitOnce';
 import { failToast, prezentaChanged } from './undo';
 
 export type SessionTarget = { id: string } | { occurrence: string } | { added: AddedSession };
@@ -40,6 +42,14 @@ function usePanelData(api: PrezentaApi, target: SessionTarget, picked: string[] 
   const [start, setStart] = React.useState<Draft | null>(null);
   const [draft, setDraft] = React.useState<Draft | null>(null);
   const [failed, setFailed] = React.useState(false);
+  const alive = React.useRef(true);
+  React.useEffect(() => () => { alive.current = false; }, []);
+  // A money write (a new abonament, a payment) changes the abonament lines only: the draft's ticks, coaches and visitors stay.
+  useMoneyChanged(() => {
+    api.session(queryOf(target))
+      .then((p) => { if (alive.current) setDraft((d) => (d ? { ...d, rows: refreshAbonamentLines(d.rows, p.rows) } : d)); })
+      .catch(() => undefined);
+  });
   React.useEffect(() => {
     let off = false;
     api.session(queryOf(target))
@@ -61,12 +71,13 @@ const dirtyOf = (a: Draft, b: Draft): boolean =>
   isDirty({ ticks: a.ticks, coaches: a.coaches, visitors: visitorIds(a.rows) }, { ticks: b.ticks, coaches: b.coaches, visitors: visitorIds(b.rows) });
 
 function RowName({ row }: { row: PanelRow }) {
+  const sub = rowSubLines(row);
   return (
     <>
       <span>{row.name}</span>
       {row.visitor && row.mainGroup && <span className="pz-sub">{row.mainGroup}</span>}
-      {row.abonament && <span className="pz-sub">{row.abonament}</span>}
-      {row.noSubscription && <span className="pz-sub pz-warn">{PRESENCE_WORDS.noSubscription}</span>}
+      {sub.status && <span className="pz-sub">{sub.status}</span>}
+      {sub.warn && <span className="pz-sub pz-warn">{sub.warn}</span>}
     </>
   );
 }
@@ -116,16 +127,16 @@ const NO_ANSWERS: InactiveAnswers = { reactivate: [], keepInactive: [] };
 /** Save, then the inactive questions of a 409 (decided 4) and one more save with the answers. */
 function useSave(api: PrezentaApi, panel: PanelData | null, draft: Draft | null, onClose: () => void) {
   const [busy, setBusy] = React.useState(false);
+  const inFlight = React.useRef(false);
   const [coachError, setCoachError] = React.useState<string | null>(null);
   const [ask, setAsk] = React.useState<Ask | null>(null);
-  const save = async (answers: InactiveAnswers) => {
+  const save = (answers: InactiveAnswers) => runOnce(inFlight, async () => {
     if (!panel || !draft) return;
     if (coachIdsOf(draft.coaches).length === 0) {
       setCoachError(ATTENDANCE_ERRORS.noCoach);
       return;
     }
     setCoachError(null);
-    setBusy(true);
     try {
       const { data } = await api.save(saveBody({ ...panel, rows: draft.rows }, draft.ticks, draft.coaches, answers));
       adminToast.success(data.toast);
@@ -135,10 +146,8 @@ function useSave(api: PrezentaApi, panel: PanelData | null, draft: Draft | null,
       const inactive = readInactive(err);
       if (inactive) setAsk({ queue: inactive, index: 0, answers: NO_ANSWERS });
       else failToast(err);
-    } finally {
-      setBusy(false);
     }
-  };
+  }, setBusy);
   const answer = (reactivate: boolean) => {
     if (!ask) return;
     const answers = answerInactive(ask.answers, ask.queue[ask.index].id, reactivate);

@@ -23,6 +23,7 @@ export const PREZENTA_CSS = `
 .ui-root .pz-empty{margin:0;padding:16px 18px;color:var(--theme-text-muted)}
 .ui-root .pz-sub{display:block;font-size:11.5px;color:var(--theme-text-muted)}
 .ui-root .pz-state--nefacuta{color:var(--theme-warning);font-weight:600}
+.ui-root .pz-lesson-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .ui-root .pz-form{display:flex;flex-direction:column;gap:14px}
 .ui-root .pz-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .ui-root .pz-coaches{display:flex;flex-direction:column;gap:8px}

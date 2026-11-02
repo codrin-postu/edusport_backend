@@ -48,5 +48,10 @@ export const MONEY_UI_COPY = {
     monthColumns: ['Luna', 'Ședințe', 'De plătit', 'Plătit', 'Rămas'],
   },
   sportivi: { column: 'Abonament', filter: 'Abonament', filterOptions: ['Toate', 'Activ', 'Fără abonament'] },
+  /** Empty states (rulings, decided by Claude): the Plăți text serves both the page and the athlete tab. */
+  empty: { abonamente: 'Niciun abonament.', plati: 'Nicio plată.', month: 'Nicio prezență în luna aceasta.', earlier: 'Niciun abonament anterior.' },
+  /** The phone filter sheet's button: "Arată 12 plăți". */
+  show: (count: string): string => `Arată ${count}`,
+  undo: { action: 'Anulează', done: 'Anulat.' },
   menu: { addSubscription: 'Adaugă abonament', addPayment: '+ Plată' },
 };

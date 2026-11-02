@@ -1,9 +1,10 @@
+import { PRESENCE_WORDS } from '../presence/copy/core';
 import { MONEY_UI_COPY } from '../presence/copy/money-ui';
 import { PREZENTA_COPY } from '../presence/copy/prezenta-ui';
 import { monthOf } from '../presence/dates';
 import type { PaymentFor } from '../presence/payments/rules';
 import type { AthleteCard } from '../athletes/api-types';
-import type { InactiveAthlete, PanelRow, SectionKind, SessionPanel, SessionSaveBody, Tick } from '../presence/attendance/api-types';
+import type { InactiveAthlete, LessonPanel, PanelRow, SectionKind, SessionPanel, SessionSaveBody, Tick } from '../presence/attendance/api-types';
 import { isRecord } from '../narrow';
 
 export type Ticks = Record<string, { grup: boolean; uscat: boolean }>;
@@ -29,6 +30,14 @@ export function payPreselect(kind: SectionKind, date: string, subscriptionId: st
   if (kind === 'club') return { kind: 'club_luna', month: monthOf(date) };
   return subscriptionId ? { kind: 'abonament', subscriptionId } : null;
 }
+
+/** What "+ Plată" of the lesson panel preselects: this lesson once it is saved and the athlete was present; else nothing (the options hold only priced, held lessons). */
+export function lessonPayPreselect(lesson: Pick<LessonPanel, 'lessonId' | 'state' | 'present'>): PaymentFor | null {
+  return lesson.state === 'saved' && lesson.present === true ? { kind: 'lectie', lessonId: lesson.lessonId } : null;
+}
+
+/** The lesson panel's row "...": "+ Plată" only (no abonament for a lesson). */
+export const lessonMenuItems = (): { key: RowMenuKey; text: string }[] => [{ key: 'payment', text: MONEY_UI_COPY.menu.addPayment }];
 
 export function initialTicks(p: SessionPanel): Ticks {
   if (p.sessionId === null) return {};
@@ -67,6 +76,21 @@ export function setCoach(f: CoachFields, index: number, id: string | null): Coac
 
 export function coachIdsOf(f: CoachFields): string[] {
   return [...new Set(f.filter((c): c is string => !!c))];
+}
+
+/** After a money write: the rows' abonament lines come from the fresh read; ticks, visitors and every row the person added stay as they are. */
+export function refreshAbonamentLines(rows: PanelRow[], fresh: PanelRow[]): PanelRow[] {
+  const byId = new Map(fresh.map((r) => [r.athleteId, r]));
+  return rows.map((r) => {
+    const f = byId.get(r.athleteId);
+    return f ? { ...r, abonament: f.abonament, noSubscription: f.noSubscription } : r;
+  });
+}
+
+/** The two sub-lines under a name: the abonament status, and the amber "Fără abonament" tag unless the status line already says it. */
+export function rowSubLines(r: Pick<PanelRow, 'abonament' | 'noSubscription'>): { status: string | null; warn: string | null } {
+  const warn = r.noSubscription ? PRESENCE_WORDS.noSubscription : null;
+  return { status: r.abonament && r.abonament !== warn ? r.abonament : null, warn };
 }
 
 export function addVisitor(rows: PanelRow[], card: AthleteCard): PanelRow[] {

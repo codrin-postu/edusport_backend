@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { payPreselect, rowMenuItems, type RowMenuKey } from '../../../club/prezenta/panel-view';
-import type { PanelRow, SectionKind } from '../../../club/presence/attendance/api-types';
+import { lessonMenuItems, lessonPayPreselect, payPreselect, rowMenuItems, type RowMenuKey } from '../../../club/prezenta/panel-view';
+import type { LessonPanel, PanelRow, SectionKind } from '../../../club/presence/attendance/api-types';
 import type { PaymentFor } from '../../../club/presence/payments/rules';
 import { AddSubscriptionWindow } from '../bani/AddSubscriptionWindow';
 import { useMoneyApi, type MoneyApi } from '../bani/api';
@@ -34,6 +34,17 @@ export function RowMoneyMenu({ row, kind, date }: Props) {
       <RowMenu name={row.name} items={rowMenuItems(kind)} onPick={(key) => void pick(key)} />
       {opened?.kind === 'subscription' && <AddSubscriptionWindow athlete={athlete} onClose={() => setOpened(null)} />}
       {opened?.kind === 'payment' && <PaymentWindow mode="new" athlete={athlete} preselect={opened.preselect} onClose={() => setOpened(null)} />}
+    </>
+  );
+}
+
+/** The lesson panel's row "...": "+ Plată" with the athlete locked and this lesson preselected once it is saved and present (5.5). */
+export function LessonMoneyMenu({ lesson }: { lesson: LessonPanel }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <>
+      <RowMenu name={lesson.athleteName} items={lessonMenuItems()} onPick={() => setOpen(true)} />
+      {open && <PaymentWindow mode="new" athlete={{ id: lesson.athleteId, name: lesson.athleteName }} preselect={lessonPayPreselect(lesson)} onClose={() => setOpen(false)} />}
     </>
   );
 }

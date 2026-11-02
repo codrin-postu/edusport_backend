@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { adminToast } from '../../ui';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
+import { MONEY_UI_COPY } from '../../../club/presence/copy/money-ui';
 import { requestErrorText } from '../../../club/registration-panel';
 import type { MoneyApi } from './api';
 
 /** The toast's "Anulează" (spec 7.3): 8 seconds, no X; plain async, so it outlives the screen that started it. */
 export const UNDO_MS = 8000;
-const UNDONE = 'Anulat.';
+const UNDONE = MONEY_UI_COPY.undo.done;
 const listeners = new Set<() => void>();
 
 /** Every open money screen reloads after a write. */
@@ -44,5 +45,5 @@ export function moneyUndoToast(text: string, actionId: string | null, api: Money
     adminToast.success(text);
     return;
   }
-  adminToast.success(text, { duration: UNDO_MS, action: { label: 'Anulează', onClick: () => void runUndo(api, actionId) } });
+  adminToast.success(text, { duration: UNDO_MS, action: { label: MONEY_UI_COPY.undo.action, onClick: () => void runUndo(api, actionId) } });
 }

@@ -70,6 +70,14 @@ describe('purpose', () => {
     expect(opts.find((o) => o.isDefault && o.for.kind === 'cotizatie')?.label).toBe('Cotizație membru 2026-2027');
     expect(opts.filter((o) => o.isDefault)).toHaveLength(1);
   });
+  it('an extra month is offered even when nothing is due or it is older than 12 months (I1)', () => {
+    const months = [month('2025-05', { due: 0, paid: 20, left: -20 })];
+    const base = { subs: [], payments: [], seasons: [], months, lessons: [], today };
+    expect(paymentOptions(base).map((o) => o.label)).toEqual(['Club, noiembrie', 'Altceva']);
+    const withExtra = paymentOptions({ ...base, extraMonth: '2025-05' });
+    expect(withExtra.map((o) => [o.label, o.amount])).toEqual([['Club, noiembrie', 0], ['Club, mai', 0], ['Altceva', null]]);
+    expect(paymentOptions({ ...base, extraMonth: 'nope' }).map((o) => o.label)).toEqual(['Club, noiembrie', 'Altceva']);
+  });
   it('a Club month with a balance defaults to it; an overpaid abonament and an absent lesson are not below 0 or listed', () => {
     const sub = subscriptionRow({ id: 'sub1', price: 100 });
     const opts = paymentOptions({ subs: [sub], payments: [paymentRow({ id: 'p1', purpose: 'abonament', subscriptionId: 'sub1', amount: 150 })], seasons: [],

@@ -11,6 +11,8 @@ import { coachIdsOf, type CoachFields as CoachValue } from '../../../club/prezen
 import { PanelShell } from '../grupe/PanelShell';
 import { usePrezentaApi, type PrezentaApi } from './api';
 import { CoachFields, useCoachOptions } from './CoachFields';
+import { LessonMoneyMenu } from './RowMoneyMenu';
+import { runOnce } from '../bani/useSubmitOnce';
 import { failToast, prezentaChanged, undoToast } from './undo';
 
 type Props = { id: string; onClose: () => void };
@@ -44,8 +46,9 @@ type Actions = { busy: boolean; coachError: string | null; save: () => Promise<v
 
 function useActions(api: PrezentaApi, id: string, draft: Draft | null, onClose: () => void): Actions {
   const [busy, setBusy] = React.useState(false);
+  const inFlight = React.useRef(false);
   const [coachError, setCoachError] = React.useState<string | null>(null);
-  const save = async () => {
+  const save = () => runOnce(inFlight, async () => {
     if (!draft) return;
     const coachIds = coachIdsOf(draft.coaches);
     if (coachIds.length === 0) {
@@ -53,7 +56,6 @@ function useActions(api: PrezentaApi, id: string, draft: Draft | null, onClose: 
       return;
     }
     setCoachError(null);
-    setBusy(true);
     try {
       const { data } = await api.saveLesson(id, { present: draft.present, durationMin: Number(draft.duration), coachIds });
       adminToast.success(data.changed ? LESSON_COPY.saved : LESSON_COPY.unchanged);
@@ -61,22 +63,17 @@ function useActions(api: PrezentaApi, id: string, draft: Draft | null, onClose: 
       onClose();
     } catch (err) {
       failToast(err);
-    } finally {
-      setBusy(false);
     }
-  };
-  const remove = async () => {
-    setBusy(true);
+  }, setBusy);
+  const remove = () => runOnce(inFlight, async () => {
     try {
       const { undo } = await api.deleteLesson(id);
       undoToast(api, LESSON_COPY.deleted, undo?.actionId ?? null);
       onClose();
     } catch (err) {
       failToast(err);
-    } finally {
-      setBusy(false);
     }
-  };
+  }, setBusy);
   return { busy, coachError, save, remove };
 }
 
@@ -86,7 +83,10 @@ function LessonBody({ lesson, draft, busy, coachError, options, onDraft, onDelet
   return (
     <div className="pz-form">
       <p className="pz-sheet-sub">{longDayTitle(lesson.date)}</p>
-      <Checkbox checked={draft.present} disabled={busy} label={lesson.athleteName} onChange={() => onDraft({ ...draft, present: !draft.present })} />
+      <div className="pz-lesson-row">
+        <Checkbox checked={draft.present} disabled={busy} label={lesson.athleteName} onChange={() => onDraft({ ...draft, present: !draft.present })} />
+        <LessonMoneyMenu lesson={lesson} />
+      </div>
       <CoachFields label={PREZENTA_COPY.coach} value={draft.coaches} options={options} disabled={busy} error={coachError} onChange={(coaches) => onDraft({ ...draft, coaches })} />
       <Field label={PREZENTA_COPY.colDuration}>
         <Select value={draft.duration} options={durationOptions()} disabled={busy} onChange={(duration) => onDraft({ ...draft, duration })} />

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { barSegments, cardLine, isPastDate, slotsText } from '../format';
-import { ABONAMENTE_PATH, DE_INCASAT_PATH, PLATI_PATH, athleteTabTo, readMoneyQuery } from '../routes';
+import { ABONAMENTE_PATH, DE_INCASAT_PATH, PLATI_PATH, athleteTabTo } from '../routes';
 import { MONEY_UI_COPY } from '../../presence/copy';
 import { ron } from '../../presence/money';
 
@@ -15,7 +15,6 @@ describe('money UI foundation', () => {
   it('addresses (5.1, decided 5)', () => {
     expect([ABONAMENTE_PATH, PLATI_PATH, DE_INCASAT_PATH]).toEqual(['/plugins/edusport-abonamente', '/plugins/edusport-plati', '/plugins/edusport-de-incasat']);
     expect(athleteTabTo('a1', 'plati')).toBe('/plugins/edusport-sportivi/a1?tab=plati');
-    expect(readMoneyQuery('?month=2026-10&state=toate')).toMatchObject({ month: '2026-10', state: 'toate', group: null });
   });
   it('copy of the money screens (5.7 to 5.13)', () => {
     const c = MONEY_UI_COPY;

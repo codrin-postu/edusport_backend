@@ -15,6 +15,7 @@ import { useMoneyApi } from './api';
 import { CancelPaymentDialog } from './CancelPaymentDialog';
 import { PaymentWindow } from './PaymentWindow';
 import { MONEY_CSS } from './styles';
+import { useLatest } from './latest';
 import { useMoneyChanged } from './undo';
 
 type Dialog = { kind: 'new' } | { kind: 'edit'; payment: PaymentRowView } | { kind: 'cancel'; payment: PaymentRowView } | null;
@@ -32,14 +33,18 @@ function usePayments(f: Filters): { list: PaymentList | null; failed: boolean } 
   const [list, setList] = React.useState<PaymentList | null>(null);
   const [failed, setFailed] = React.useState(false);
   const { month, method, purpose } = f;
+  const latest = useLatest();
   const reload = React.useCallback(async () => {
+    const current = latest.next();
     try {
-      setList(await api.payments({ month, method: method as PaymentQuery['method'], purpose: purpose as PaymentQuery['purpose'] }));
+      const page = await api.payments({ month, method: method as PaymentQuery['method'], purpose: purpose as PaymentQuery['purpose'] });
+      if (!current()) return;
+      setList(page);
       setFailed(false);
     } catch {
-      setFailed(true);
+      if (current()) setFailed(true);
     }
-  }, [api, month, method, purpose]);
+  }, [api, latest, month, method, purpose]);
   React.useEffect(() => { setList(null); void reload(); }, [reload]);
   useMoneyChanged(() => void reload());
   return { list, failed };
@@ -83,6 +88,7 @@ function columns(onPick: (r: PaymentRowView, k: 'edit' | 'cancel') => void): Dat
 }
 
 function Cards({ rows, onPick }: { rows: PaymentRowView[]; onPick: (r: PaymentRowView, k: 'edit' | 'cancel') => void }) {
+  if (rows.length === 0) return <p className="spv-muted bn-empty">{MONEY_UI_COPY.empty.plati}</p>;
   return (
     <ul className="spv-cards">
       {rows.map((r) => {
@@ -127,12 +133,12 @@ export function PlatiList() {
         <div className="bn-toolbar">
           <FilterPanel
             sections={platiSections(filters, today)} onChange={change} onClearAll={() => setParams({}, { replace: true })}
-            totalLabel={count} showLabel={`Arată ${count}`}
+            totalLabel={count} showLabel={MONEY_UI_COPY.show(count)}
           />
         </div>
         {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
         {!list && !failed && <Loading />}
-        {list && (phone ? <Cards rows={list.rows} onPick={pick} /> : <DataTable columns={columns(pick)} rows={list.rows} getRowKey={(r) => r.paymentId} pageSize={0} />)}
+        {list && (phone ? <Cards rows={list.rows} onPick={pick} /> : <DataTable columns={columns(pick)} rows={list.rows} getRowKey={(r) => r.paymentId} pageSize={0} empty={MONEY_UI_COPY.empty.plati} />)}
         {list && <p className="bn-total">{totalLine(list)}</p>}
       </Window>
       {dialog?.kind === 'new' && <PaymentWindow mode="new" onClose={() => setDialog(null)} />}

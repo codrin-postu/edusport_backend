@@ -13,7 +13,7 @@ export const seasonOptions = (p: GroupListPage): { value: string; label: string 
 export const groupOptions = (groups: GroupChoice[], exceptId: string | null): { value: string; label: string; hint: string }[] =>
   groups.filter((g) => g.documentId !== exceptId).map((g) => ({ value: g.documentId, label: g.name, hint: g.sectionName }));
 
-/** The "În" list of "Adaugă și în grupă": this group and the groups the athlete is already in are left out (a group is told by its name here, the row carries names). */
+/** The target list of "Mută" and "Adaugă și în grupă": this group and the groups the athlete is already in are left out (a group is told by its name here, the row carries names). */
 export const joinableGroups = (groups: GroupChoice[], exceptId: string, alreadyIn: { name: string }[]): GroupChoice[] =>
   groups.filter((g) => g.documentId !== exceptId && !alreadyIn.some((o) => o.name === g.name));
 

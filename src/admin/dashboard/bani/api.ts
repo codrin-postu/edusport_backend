@@ -42,7 +42,7 @@ export function useMoneyApi() {
       recordPayment: (body: Body) => action<PaymentResult>(ref.current.post(`${BASE}/payments`, body)),
       editPayment: (id: string, body: Body) => action<{ changed: boolean }>(ref.current.put(payment(id), body)),
       cancelPayment: (id: string) => action<{ cancelled: true }>(ref.current.post(`${payment(id)}/cancel`, {})),
-      paymentOptions: (athleteId: string) => get<PaymentOption[]>(`${athlete(athleteId)}/payments/options`),
+      paymentOptions: (athleteId: string, month: string | null = null) => get<PaymentOption[]>(`${athlete(athleteId)}/payments/options${query({ month })}`),
       athletePayments: (athleteId: string) => get<AthletePayments>(`${athlete(athleteId)}/payments`),
       due: (month: string) => get<DuePage>(`${BASE}/due${query({ month })}`),
       athleteAttendance: (athleteId: string, month: string) => get<AthleteMonthRow[]>(`${athlete(athleteId)}/attendance${query({ month })}`),

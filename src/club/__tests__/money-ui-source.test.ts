@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { makeLatest } from '../../admin/dashboard/bani/latest';
+import { runOnce } from '../../admin/dashboard/bani/useSubmitOnce';
+import { MONEY_UI_COPY } from '../presence/copy/money-ui';
 import { KIND_OPTIONS } from '../../admin/pages/preturi/format';
 
 // The admin bundle has no test runner; these read its source.
@@ -13,11 +16,93 @@ describe('money UI source', () => {
     expect(s).toMatch(/SUBSCRIPTION_COPY\.(usedText|leftText)/);
     expect(s).not.toMatch(/border-radius:\s*50%|borderRadius:\s*'50%'|dashed|dotted|#[0-9a-f]{3,6}\b/i);
   });
-  it('one submit per click (decided 1)', () => {
-    expect(src('admin/dashboard/bani/useSubmitOnce.ts')).toMatch(/inFlight\.current/);
+  it('one submit per click (decided 1): a second call while one is in flight does not start the work', async () => {
+    const flag = { current: false };
+    const busy: boolean[] = [];
+    let release: (v: string) => void = () => undefined;
+    let starts = 0;
+    const work = () => { starts += 1; return new Promise<string>((resolve) => { release = resolve; }); };
+    const first = runOnce(flag, work, (b) => busy.push(b));
+    expect(await runOnce(flag, work, (b) => busy.push(b))).toBeUndefined();
+    expect(starts).toBe(1);
+    release('done');
+    expect(await first).toBe('done');
+    expect([flag.current, busy]).toEqual([false, [true, false]]);
+    await expect(runOnce(flag, () => Promise.reject(new Error('x')), () => undefined)).rejects.toThrow('x');
+    expect(flag.current).toBe(false);   // a failure frees the guard
+    expect(src('admin/dashboard/bani/useSubmitOnce.ts')).toMatch(/runOnce\(inFlight/);
   });
-  it('undo toasts use the server action id and 8 s', () => {
-    expect(src('admin/dashboard/bani/undo.ts')).toMatch(/UNDO_MS/);
+  it('undo toasts use the server action id, 8000 ms and the "Anulează" action', () => {
+    const u = src('admin/dashboard/bani/undo.ts');
+    expect(u).toContain('UNDO_MS = 8000');
+    expect(u).toMatch(/duration: UNDO_MS, action: \{ label: MONEY_UI_COPY\.undo\.action, onClick: \(\) => void runUndo\(api, actionId\)/);
+    expect(u).toContain('if (!actionId)');
+  });
+  it('empty states use the ruled texts on every list, card list and athlete block (I4)', () => {
+    const c = MONEY_UI_COPY.empty;
+    expect(c).toEqual({ abonamente: 'Niciun abonament.', plati: 'Nicio plată.', month: 'Nicio prezență în luna aceasta.', earlier: 'Niciun abonament anterior.' });
+    const plati = src('admin/dashboard/bani/PlatiList.tsx');
+    expect(plati).toMatch(/empty=\{MONEY_UI_COPY\.empty\.plati\}/);
+    expect(plati).toMatch(/rows\.length === 0\) return <p[^\n]*empty\.plati/);
+    const ab = src('admin/dashboard/bani/AbonamenteList.tsx');
+    expect(ab).toMatch(/empty=\{MONEY_UI_COPY\.empty\.abonamente\}/);
+    expect(ab).toMatch(/rows\.length === 0\) return <p[^\n]*empty\.abonamente/);
+    const tab = src('admin/dashboard/bani/PlatiTab.tsx');
+    expect(tab).toMatch(/empty=\{MONEY_UI_COPY\.empty\.plati\}/);
+    expect(tab).toMatch(/data\.months\.length > 0 && <MonthRows/);   // a school athlete has no month rows: no bare header
+    const a = src('admin/dashboard/bani/AbonamentTab.tsx');
+    expect(a).toContain('MONEY_UI_COPY.empty.month');
+    expect(a).toContain('MONEY_UI_COPY.empty.earlier');
+  });
+  it('the move window target list leaves out groups the athlete is already in, for move and add-also alike', () => {
+    const m = src('admin/dashboard/grupe/MoveDialog.tsx');
+    expect(m).toContain('groupOptions(joinableGroups(groups, p.page.documentId, p.member.others), p.page.documentId)');
+    expect(m).not.toMatch(/mode === 'move' \? groups/);
+  });
+  it('the lesson panel has the row menu with "+ Plată" and the athlete locked (I3)', () => {
+    const l = src('admin/dashboard/prezenta/LessonPanel.tsx');
+    expect(l).toContain('<LessonMoneyMenu lesson={lesson} />');
+    const m = src('admin/dashboard/prezenta/RowMoneyMenu.tsx');
+    for (const name of ['LessonMoneyMenu', 'lessonMenuItems()', 'lessonPayPreselect(lesson)', 'athlete={{ id: lesson.athleteId, name: lesson.athleteName }}']) expect(m).toContain(name);
+  });
+  it('every Prezență save and the abonament cancel run behind the in-flight guard; one coach hook (M7, M10)', () => {
+    for (const f of ['SessionPanel', 'LessonPanel', 'NewLessonWindow']) expect(src(`admin/dashboard/prezenta/${f}.tsx`)).toMatch(/runOnce\(inFlight, async/);
+    expect(src('admin/dashboard/bani/AbonamenteList.tsx')).toMatch(/runOnce\(cancelling, \(\) => cancelSubscription\(api, r\)/);
+    const n = src('admin/dashboard/prezenta/NewLessonWindow.tsx');
+    expect(n).toContain("useCoachOptions } from './CoachFields'");
+    expect(n).not.toMatch(/function useCoachOptions/);
+    expect(src('admin/dashboard/prezenta/CoachFields.tsx')).toMatch(/let off = false/);
+  });
+  it('a slow older answer is dropped (M5)', () => {
+    const l = makeLatest();
+    const first = l.next();
+    const second = l.next();
+    expect([first(), second()]).toEqual([false, true]);
+    l.cancel();
+    expect(second()).toBe(false);
+    for (const f of ['PlatiList', 'AbonamenteList', 'DeIncasatList', 'PlatiTab', 'AbonamentTab']) expect(src(`admin/dashboard/bani/${f}.tsx`), f).toMatch(/latest\.next\(\)/);
+    expect(src('admin/dashboard/prezenta/LessonsTab.tsx')).toMatch(/latest\.next\(\)/);
+  });
+  it('stale figures: the athlete Plăți tab follows Prezență writes, the session panel follows money writes (I5)', () => {
+    expect(src('admin/dashboard/bani/PlatiTab.tsx')).toContain('usePrezentaRefresh(() => void reload())');
+    const s = src('admin/dashboard/prezenta/SessionPanel.tsx');
+    expect(s).toContain('useMoneyChanged(');
+    expect(s).toContain('refreshAbonamentLines(d.rows, p.rows)');
+  });
+  it('Prezență notices on any tab; a failed move preview is shown (M9, M6)', () => {
+    const s = src('admin/dashboard/prezenta/PrezentaScreen.tsx');
+    expect(s).toContain('useNoticesFromDay(query.tab, query.date, page, setPage)');
+    expect(s).toMatch(/tab === 'sedinte' \|\| page !== null/);
+    const m = src('admin/dashboard/grupe/MoveDialog.tsx');
+    expect(m).not.toMatch(/\.catch\(\(\) => undefined\)/);
+    expect(m).toContain('previewFailed');
+  });
+  it('strings outside the copy module moved in (M8)', () => {
+    for (const f of ['PlatiList', 'AbonamenteList']) expect(src(`admin/dashboard/bani/${f}.tsx`)).not.toContain('`Arată ');
+    expect(MONEY_UI_COPY.show('3 plăți')).toBe('Arată 3 plăți');
+    expect(src('admin/dashboard/bani/DeIncasatList.tsx')).not.toContain('showLabel=""');
+    for (const f of ['bani', 'prezenta']) expect(src(`admin/dashboard/${f}/undo.ts`)).not.toMatch(/'Anulează'|'Anulat\.'/);
+    expect(MONEY_UI_COPY.undo).toEqual({ action: 'Anulează', done: 'Anulat.' });
   });
   it('the payment window and the cancel dialog (5.10)', () => {
     const w = src('admin/dashboard/bani/PaymentWindow.tsx');
@@ -55,6 +140,7 @@ describe('money UI source', () => {
   });
   it('the athlete tabs (5.7)', () => {
     const r = src('admin/dashboard/sportivi/AthleteRecordPage.tsx');
+    expect(r).toContain('seasonId={record.season?.documentId ?? null}');
     for (const name of ['AbonamentTab', 'PlatiTab', 'tabFromSearch', "tab === 'abonament'", "tab === 'plati'"]) expect(r).toContain(name);
     const a = src('admin/dashboard/bani/AbonamentTab.tsx');
     for (const name of ['AbonamentBar', 'AddSubscriptionWindow', 'MONEY_UI_COPY', 'copy.none', 'SessionPanel', 'attendanceLine(']) expect(a).toContain(name);
@@ -87,6 +173,7 @@ describe('money UI source', () => {
     const d = src('admin/dashboard/sportivi/DeleteRefusalDialog.tsx');
     expect(d).toMatch(/isSuperAdmin && <Button[^\n]*LIFECYCLE_DELETE\.anonymize/);
     expect(d).toContain('deleteBlockedText');
+    expect(d).toMatch(/anonymizeOffered\(isSuperAdmin\) && <p[^\n]*anonymizeInstead/);
     expect(d).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
   });
   it('the Sportivi Abonament column after the group, and Prețuri "Uscat" (5.13, 5.15)', () => {

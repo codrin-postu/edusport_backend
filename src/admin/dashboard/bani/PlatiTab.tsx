@@ -6,12 +6,14 @@ import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { MONEY_UI_COPY } from '../../../club/presence/copy/money-ui';
 import { PAYMENT_COPY } from '../../../club/presence/copy/payments';
 import type { AthletePayments, MonthRow, PaymentRowView } from '../../../club/presence/money-api';
+import { usePrezentaRefresh } from '../prezenta/undo';
 import { SPORTIVI_CSS } from '../sportivi/styles';
 import { useMoneyApi } from './api';
 import { CancelPaymentDialog } from './CancelPaymentDialog';
 import { PaymentWindow } from './PaymentWindow';
 import { RowMenu } from './RowMenu';
 import { MONEY_CSS } from './styles';
+import { useLatest } from './latest';
 import { useMoneyChanged } from './undo';
 
 type Athlete = { id: string; name: string };
@@ -23,16 +25,21 @@ function useAthletePayments(athleteId: string): { data: AthletePayments | null; 
   const api = useMoneyApi();
   const [data, setData] = React.useState<AthletePayments | null>(null);
   const [failed, setFailed] = React.useState(false);
+  const latest = useLatest();
   const reload = React.useCallback(async () => {
+    const current = latest.next();
     try {
-      setData(await api.athletePayments(athleteId));
+      const next = await api.athletePayments(athleteId);
+      if (!current()) return;
+      setData(next);
       setFailed(false);
     } catch {
-      setFailed(true);
+      if (current()) setFailed(true);
     }
-  }, [api, athleteId]);
+  }, [api, latest, athleteId]);
   React.useEffect(() => { void reload(); }, [reload]);
   useMoneyChanged(() => void reload());
+  usePrezentaRefresh(() => void reload());   // a saved session or lesson changes "De plătit" and "Rămas" (I5)
   return { data, failed };
 }
 
@@ -89,8 +96,8 @@ export function PlatiTab({ athlete }: { athlete: Athlete }) {
       {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
       {!data && !failed && <Loading />}
       {data && !readOnly && <div><Button onClick={() => setDialog({ kind: 'new' })}>{MONEY_UI_COPY.plati.add}</Button></div>}
-      {data && <MonthRows months={data.months} />}
-      {data && <DataTable columns={columns(readOnly, (payment, kind) => setDialog({ kind, payment }))} rows={data.payments} getRowKey={(r) => r.paymentId} pageSize={0} />}
+      {data && data.months.length > 0 && <MonthRows months={data.months} />}
+      {data && <DataTable columns={columns(readOnly, (payment, kind) => setDialog({ kind, payment }))} rows={data.payments} getRowKey={(r) => r.paymentId} pageSize={0} empty={MONEY_UI_COPY.empty.plati} />}
       {dialog?.kind === 'new' && <PaymentWindow mode="new" athlete={athlete} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'edit' && <PaymentWindow mode="edit" payment={dialog.payment} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'cancel' && <CancelPaymentDialog payment={dialog.payment} onClose={() => setDialog(null)} />}

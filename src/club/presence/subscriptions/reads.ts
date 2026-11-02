@@ -56,11 +56,12 @@ export async function listSubscriptions(store: PresenceStore, q: Record<string, 
   return { rows, groups: groupOptions };
 }
 
-/** The athlete's Abonamente tab: groups of the season, active bars, the rest as earlier (5.7). */
+/** The athlete's Abonamente tab: groups of the season (the current one when none is given), active bars, the rest as earlier (5.7). */
 export async function athleteSubscriptions(store: PresenceStore, athleteId: string, seasonId: string | null, today: string): Promise<AthleteSubscriptions | null> {
   if (!(await store.athlete(athleteId))) return null;
   const subs = await store.subscriptions({ athleteId });
-  const memberships = seasonId === null ? [] : await store.memberships({ athleteId, seasonId });
+  const seasonOf = seasonId ?? currentSeason(await store.seasons())?.id ?? null;
+  const memberships = seasonOf === null ? [] : await store.memberships({ athleteId, seasonId: seasonOf });
   const groups = groupNameMap(await store.groups());
   const used = await usedFor(store, subs);
   const stateOf = (s: SubscriptionRow): SubscriptionState => subscriptionState(s, used.get(s.id) ?? 0, today);

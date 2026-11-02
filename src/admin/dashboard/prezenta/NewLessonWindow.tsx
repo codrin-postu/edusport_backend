@@ -11,23 +11,14 @@ import { WindowShell } from '../grupe/PanelShell';
 import { AthleteSearch } from '../sportivi/AthleteSearch';
 import { useSportiviApi } from '../sportivi/api';
 import { usePrezentaApi, type PrezentaApi } from './api';
-import { CoachFields } from './CoachFields';
+import { CoachFields, useCoachOptions } from './CoachFields';
+import { runOnce } from '../bani/useSubmitOnce';
 import { failToast, undoToast } from './undo';
 
 type Props = { onClose: () => void };
 type Draft = { athlete: AthleteCard | null; date: string; time: string | null; duration: string; coaches: CoachValue };
 
 const DEFAULT_DURATION = '50';
-const NO_COACHES: { documentId: string; name: string }[] = [];
-
-function useCoachOptions(api: PrezentaApi): { options: { documentId: string; name: string }[]; failed: boolean } {
-  const [options, setOptions] = React.useState(NO_COACHES);
-  const [failed, setFailed] = React.useState(false);
-  React.useEffect(() => {
-    api.options().then((o) => setOptions(o.coaches)).catch(() => setFailed(true));
-  }, [api]);
-  return { options, failed };
-}
 
 /** The athlete's usual coach for the date, until the person edits the field. */
 function useDefaultCoach(api: PrezentaApi, draft: Draft, set: React.Dispatch<React.SetStateAction<Draft>>, touched: React.MutableRefObject<boolean>): void {
@@ -49,15 +40,16 @@ function useDefaultCoach(api: PrezentaApi, draft: Draft, set: React.Dispatch<Rea
 export function NewLessonWindow({ onClose }: Props) {
   const api = usePrezentaApi();
   const sportivi = useSportiviApi();
-  const { options, failed } = useCoachOptions(api);
+  const { coaches: options, failed } = useCoachOptions(api);
   const [draft, setDraft] = React.useState<Draft>({ athlete: null, date: todayIso(), time: null, duration: DEFAULT_DURATION, coaches: [null] });
   const [busy, setBusy] = React.useState(false);
+  const inFlight = React.useRef(false);
   const [coachError, setCoachError] = React.useState<string | null>(null);
   const touched = React.useRef(false);
   useDefaultCoach(api, draft, setDraft, touched);
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
   const ready = !!draft.athlete && !!draft.date && !!draft.time;
-  const submit = async () => {
+  const submit = () => runOnce(inFlight, async () => {
     if (!draft.athlete || !draft.time) return;
     const coachIds = coachIdsOf(draft.coaches);
     if (coachIds.length === 0) {
@@ -65,7 +57,6 @@ export function NewLessonWindow({ onClose }: Props) {
       return;
     }
     setCoachError(null);
-    setBusy(true);
     try {
       const body = { athleteId: draft.athlete.documentId, date: draft.date, startTime: draft.time, durationMin: Number(draft.duration), coachIds };
       const { data, undo } = await api.createLesson(body);
@@ -73,10 +64,8 @@ export function NewLessonWindow({ onClose }: Props) {
       onClose();
     } catch (err) {
       failToast(err);
-    } finally {
-      setBusy(false);
     }
-  };
+  }, setBusy);
   const footer = (
     <>
       <Button variant="ghost" disabled={busy} onClick={onClose}>{PREZENTA_COPY.cancel}</Button>

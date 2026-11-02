@@ -21,23 +21,23 @@ import { useSubmitOnce } from './useSubmitOnce';
 
 type Mode = 'new' | 'edit';
 type Props = { mode: Mode; athlete?: { id: string; name: string } | null; preselect?: PaymentFor | null; payment?: PaymentRowView; onClose: () => void };
-type Loaded = { options: PaymentOption[]; hasEmail: boolean; failed: boolean };
+type Loaded = { options: PaymentOption[]; hasEmail: boolean | null; failed: boolean };
 
 const METHOD_OPTIONS = (Object.keys(METHOD_WORDS) as PaymentMethod[]).map((value) => ({ value, label: METHOD_WORDS[value] }));
-const NONE: Loaded = { options: [], hasEmail: false, failed: false };
+const NONE: Loaded = { options: [], hasEmail: null, failed: false };
 
 /** "Pentru" options and the e-mail address flag of the athlete, loaded once the athlete is known. */
-function useOptions(api: MoneyApi, athleteId: string | null, payment: PaymentRowView | undefined): Loaded {
+function useOptions(api: MoneyApi, athleteId: string | null, payment: PaymentRowView | undefined, month: string | null): Loaded {
   const [loaded, setLoaded] = React.useState<Loaded>(NONE);
   React.useEffect(() => {
     setLoaded(NONE);
     if (!athleteId) return undefined;
     let off = false;
-    Promise.all([api.paymentOptions(athleteId), api.athletePayments(athleteId)])
+    Promise.all([api.paymentOptions(athleteId, month), api.athletePayments(athleteId)])
       .then(([options, page]) => { if (!off) setLoaded({ options: payment ? editOptions(options, payment) : options, hasEmail: page.hasEmail, failed: false }); })
       .catch(() => { if (!off) setLoaded({ ...NONE, failed: true }); });
     return () => { off = true; };
-  }, [api, athleteId, payment]);
+  }, [api, athleteId, payment, month]);
   return loaded;
 }
 
@@ -110,7 +110,7 @@ export function PaymentWindow({ mode, athlete = null, preselect = null, payment,
   const [athleteName, setAthleteName] = React.useState<string | null>(athlete?.name ?? payment?.athleteName ?? null);
   const [errors, setErrors] = React.useState<DraftErrors>({});
   const [serverError, setServerError] = React.useState<string | null>(null);
-  const loaded = useOptions(api, draft.athleteId, payment);
+  const loaded = useOptions(api, draft.athleteId, payment, preselect?.kind === 'club_luna' ? preselect.month : null);
   const preselected = React.useRef(false);
   React.useEffect(() => {
     if (mode !== 'new' || preselected.current || loaded.options.length === 0 || !preselect) return;

@@ -5,7 +5,6 @@ import { todayIso } from '../../../club/groups/http';
 import type { AthleteMonthRow } from '../../../club/presence/attendance/api-types';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { MONEY_UI_COPY } from '../../../club/presence/copy/money-ui';
-import { PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
 import { monthOf } from '../../../club/presence/dates';
 import type { AthleteSubscriptions } from '../../../club/presence/money-api';
 import { MonthLine } from '../prezenta/LessonsTab';
@@ -17,6 +16,7 @@ import { useMoneyApi } from './api';
 import { AbonamentBar } from './AbonamentBar';
 import { AddSubscriptionWindow } from './AddSubscriptionWindow';
 import { MONEY_CSS } from './styles';
+import { useLatest } from './latest';
 import { useMoneyChanged } from './undo';
 
 type Athlete = { id: string; name: string };
@@ -28,14 +28,18 @@ function useLoad<T>(load: () => Promise<T>, key: string): { data: T | null; fail
   const [failed, setFailed] = React.useState(false);
   const loadRef = React.useRef(load);
   loadRef.current = load;
+  const latest = useLatest();
   const reload = React.useCallback(async () => {
+    const current = latest.next();
     try {
-      setData(await loadRef.current());
+      const next = await loadRef.current();
+      if (!current()) return;
+      setData(next);
       setFailed(false);
     } catch {
-      setFailed(true);
+      if (current()) setFailed(true);
     }
-  }, [key]);
+  }, [latest, key]);
   React.useEffect(() => {
     setData(null);
     void reload();
@@ -65,7 +69,7 @@ function Attendance({ athlete }: { athlete: Athlete }) {
       <MonthLine month={month} onMonth={setMonth} />
       {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
       {!data && !failed && <Loading />}
-      {data && data.length === 0 && <p className="spv-muted">{PREZENTA_COPY.emptyGroupMonth}</p>}
+      {data && data.length === 0 && <p className="spv-muted">{MONEY_UI_COPY.empty.month}</p>}
       {data?.map((row) => {
         const line = attendanceLine(row);
         return (
@@ -88,15 +92,17 @@ function Subscriptions({ data }: { data: AthleteSubscriptions }) {
       <section className="bn-block">
         {data.bars.length === 0 ? <p className="spv-muted">{copy.none}</p> : data.bars.map((b) => <AbonamentBar key={b.subscriptionId} bar={b} />)}
       </section>
-      {earlier.length > 0 && <Lines title={copy.earlier} lines={earlier} />}
+      {earlier.length > 0
+        ? <Lines title={copy.earlier} lines={earlier} />
+        : <section className="bn-block"><h3 className="spv-h">{copy.earlier}</h3><p className="spv-muted">{MONEY_UI_COPY.empty.earlier}</p></section>}
     </>
   );
 }
 
 /** "Grupe și abonament" (5.7): groups, the abonament bars, earlier abonamente and the month's attendance. */
-export function AbonamentTab({ athlete }: { athlete: Athlete }) {
+export function AbonamentTab({ athlete, seasonId = null }: { athlete: Athlete; seasonId?: string | null }) {
   const api = useMoneyApi();
-  const { data, failed } = useLoad<AthleteSubscriptions>(() => api.athleteSubscriptions(athlete.id, null), athlete.id);
+  const { data, failed } = useLoad<AthleteSubscriptions>(() => api.athleteSubscriptions(athlete.id, seasonId), `${athlete.id}|${seasonId}`);
   const [adding, setAdding] = React.useState(false);
   return (
     <div className="ui-body bn-tab">
