@@ -45,7 +45,7 @@ function useMovePreview(p: Props, to: string | null): { preview: MovePreview | n
     let off = false;
     api.movePreview(member.membershipId, to)
       .then((r) => { if (!off) setState({ preview: r, failed: false }); })
-      .catch(() => { if (!off) setState({ preview: null, failed: true }); });   // shown, so "no bar" never reads as "no abonament"
+      .catch(() => { if (!off) setState({ preview: null, failed: true }); });   // shown, so a missing bar is never mistaken for nothing to carry
     return () => { off = true; };
   }, [api, mode, member.membershipId, to]);
   return state;
