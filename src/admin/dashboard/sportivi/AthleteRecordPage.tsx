@@ -3,8 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AdminPage, BottomSheet, Loading, Notice, PageHeader, StatusBadge, Tabs, Window, useIsPhone } from '../../ui';
 import type { AthleteRecord } from '../../../club/athletes/api-types';
 import { STATUS_WORDS } from '../../../club/history-text';
-import { RECORD_COPY, isReadOnlyRecord, recordSubline, recordTabs, seasonFromState, type RecordTab } from '../../../club/sportivi/record-view';
+import { RECORD_COPY, isReadOnlyRecord, recordSubline, recordTabs, seasonFromState, tabFromSearch, type RecordTab } from '../../../club/sportivi/record-view';
 import { athleteRecordTo, SPORTIVI_PATH } from '../../../club/sportivi/routes';
+import { AbonamentTab } from '../bani/AbonamentTab';
+import { PlatiTab } from '../bani/PlatiTab';
 import { useSportiviApi, type SportiviApi } from './api';
 import { DateTab } from './DateTab';
 import { DocumentsTab } from './DocumentsTab';
@@ -52,10 +54,11 @@ function HeaderActions({ record, api, loaded, onMerge, superAdmin }: HeaderProps
 
 type ContentProps = { record: AthleteRecord; api: SportiviApi; loaded: Loaded; head: React.ReactNode; onMerge: (otherId: string) => void };
 
-/** The open tab and the tabs opened once; Date when the record loses the open one (anonymized: Date and Istoric only). */
+/** The open tab (the address may ask for one, `?tab=`) and the tabs opened once; Date when the record loses the open one (anonymized: Date and Istoric only). */
 function useRecordTab(record: AthleteRecord) {
-  const [picked, setTab] = React.useState<RecordTab>('date');
-  const [seen, setSeen] = React.useState<RecordTab[]>(['date']);
+  const { search } = useLocation();
+  const [picked, setTab] = React.useState<RecordTab>(() => tabFromSearch(search) ?? 'date');
+  const [seen, setSeen] = React.useState<RecordTab[]>(() => Array.from(new Set<RecordTab>(['date', tabFromSearch(search) ?? 'date'])));
   const tabs = recordTabs(record);
   const tab = tabs.some((t) => t.id === picked) ? picked : 'date';
   const show = (id: string) => {
@@ -77,6 +80,8 @@ function RecordContent({ record, api, loaded, head, onMerge }: ContentProps) {
         <div hidden={tab !== 'date'}>
           <DateTab record={record} api={api} onSaved={loaded.reload} active={tab === 'date'} />
         </div>
+        {tab === 'abonament' && <AbonamentTab athlete={{ id: record.documentId, name: record.fields.name ?? '' }} />}
+        {tab === 'plati' && <PlatiTab athlete={{ id: record.documentId, name: record.fields.name ?? '' }} />}
         {seen.includes('profil') && (
           <div hidden={tab !== 'profil'}>
             <ProfileTab record={record} api={api} onRecord={() => void loaded.reload()} active={tab === 'profil'} />

@@ -3,7 +3,7 @@ import { NO_SECTION as SERVER_NO_SECTION } from '../../athletes/list';
 import type { AthleteListPage, AthleteListRow } from '../../athletes/api-types';
 import {
   INITIAL_LIST_STATE, LIST_COPY, NO_GROUP, NO_SECTION, activeChips, ageText, athletesText, clearFilters, filterSections, groupCell, groupHeader,
-  incompleteBanner, incompleteShown, listQueryString, loadedRange, matchingText, missingTip, acsCell, pageRange, profileCell, seasonOptions, seasonValue,
+  abonamentCell, incompleteBanner, incompleteShown, listQueryString, loadedRange, matchingText, missingTip, acsCell, pageRange, profileCell, seasonOptions, seasonValue,
   showIncomplete, showLabel, sortSection, withHeaderSort, withPage, withSearch, withSeason, withSection, withoutChip, type ListState,
 } from '../list-view';
 
@@ -22,7 +22,7 @@ const page = (over: Partial<AthleteListPage> = {}): AthleteListPage => ({
 });
 const row = (over: Partial<AthleteListRow> = {}): AthleteListRow => ({
   documentId: 'a1', name: 'Maria Pop', age: 10, birthDate: '14.03.2016', status: 'activ', dataIncomplete: false, missing: [], mainGroup: null,
-  contactName: null, phone: null, acs: 'nu', publicProfile: 'ascuns', possibleDuplicate: false, ...over,
+  contactName: null, phone: null, acs: 'nu', publicProfile: 'ascuns', possibleDuplicate: false, abonament: null, ...over,
 });
 const params = (qs: string) => Object.fromEntries(new URLSearchParams(qs));
 
@@ -34,11 +34,11 @@ describe('the list request (spec 5)', () => {
   it('sends every filter as the plan 3-2 list route reads it', () => {
     const s: ListState = {
       season: 's25', q: '  maria ', sort: 'age', dir: 'desc', page: 2,
-      filters: { section: [NO_SECTION], group: ['g-pp', NO_GROUP], acs: ['in_asteptare'], profile: ['public'], data: ['incomplete'], status: ['activ', 'inactiv'], duplicates: ['da'], personal: [] },
+      filters: { section: [NO_SECTION], group: ['g-pp', NO_GROUP], acs: ['in_asteptare'], profile: ['public'], data: ['incomplete'], status: ['activ', 'inactiv'], duplicates: ['da'], personal: [], abonament: ['activ'] },
     };
     expect(params(listQueryString(s, 30))).toEqual({
       season: 's25', q: 'maria', section: 'none', group: 'g-pp', noGroup: 'true', acs: 'in_asteptare', profile: 'public', data: 'incomplete',
-      status: 'activ,inactiv', duplicates: 'true', sort: 'age', dir: 'desc', page: '2', pageSize: '30',
+      status: 'activ,inactiv', duplicates: 'true', abonament: 'activ', sort: 'age', dir: 'desc', page: '2', pageSize: '30',
     });
   });
 
@@ -51,6 +51,19 @@ describe('the list request (spec 5)', () => {
 
   it("the client's NO_SECTION value matches the server route's (plan 3-5 parked note)", () => {
     expect(NO_SECTION).toBe(SERVER_NO_SECTION);
+  });
+});
+
+describe('Abonament filter and column (5.13)', () => {
+  it('"Activ" goes into the request as abonament=activ', () => {
+    const s = withSection(INITIAL_LIST_STATE, 'abonament', ['activ']);
+    expect(params(listQueryString(s, 50)).abonament).toBe('activ');
+    expect(withSection(INITIAL_LIST_STATE, 'abonament', ['fara']).filters.abonament).toEqual(['fara']);
+  });
+  it('the cell shows the abonament text, blank when none', () => {
+    expect(abonamentCell(row({ abonament: '5/8, 7 nov 2026' }))).toBe('5/8, 7 nov 2026');
+    expect(abonamentCell(row({ abonament: null }))).toBe('');
+    expect(LIST_COPY.columns.abonament).toBe('Abonament');
   });
 });
 
@@ -109,7 +122,7 @@ describe('filters-v3 sections (spec 5)', () => {
   it('sections in the spec order, with their options and the chosen values', () => {
     const s = withSection(INITIAL_LIST_STATE, 'acs', ['da']);
     const sections = filterSections(s, page());
-    expect(sections.map((x) => x.label)).toEqual(['Secțiune', 'Grupa', 'Membru A.C.S.', 'Profil public', 'Date', 'Status', 'Posibile dubluri', 'Date personale']);
+    expect(sections.map((x) => x.label)).toEqual(['Secțiune', 'Grupa', 'Abonament', 'Membru A.C.S.', 'Profil public', 'Date', 'Status', 'Posibile dubluri', 'Date personale']);
     const labels = (key: string) => sections.find((x) => x.key === key)?.options.map((o) => o.label);
     expect(labels('section')).toEqual(['Școala de patinaj', 'Club', 'Fără secțiune']);
     expect(labels('group')).toEqual(['Primii Pași', 'Profesioniști', 'Fără grupă']);
@@ -118,6 +131,8 @@ describe('filters-v3 sections (spec 5)', () => {
     expect(labels('data')).toEqual(['Complete', 'Incomplete']);
     expect(labels('status')).toEqual(['Nou', 'Activ', 'Inactiv', 'Anonimizat']);
     expect(labels('duplicates')).toEqual(['Da']);
+    expect(labels('abonament')).toEqual(['Activ', 'Fără abonament']);
+    expect(sections.find((x) => x.key === 'abonament')).toMatchObject({ key: 'abonament', label: 'Abonament', single: true, selected: [] });
     expect(sections.find((x) => x.key === 'acs')?.selected).toEqual(['da']);
   });
 

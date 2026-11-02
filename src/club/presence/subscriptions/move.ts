@@ -10,8 +10,10 @@ import { carryList } from './carry';
 import { byUseOrder } from '../subscriptions';
 import { usedOf } from './used';
 import { athleteListIdsToday, barOf, currentSubscription, schoolListIds, type AbonamentBar } from './rules';
+import type { MovePreview } from './views';
 
-export type MovePreview = { bar: AbonamentBar | null; carries: boolean };
+export type { MovePreview };
+
 type Lists = { fromListId: string; to: PriceListRecord };
 
 /** School group to school group on two different lists (5.12): the only move that can carry. */

@@ -2,6 +2,7 @@ import { ACS_WORDS } from '../acs';
 import type { AthleteListPage, AthleteListRow } from '../athletes/api-types';
 import { NO_SECTION } from '../athletes/list';
 import { STATUS_WORDS } from '../history-text';
+import { MONEY_UI_COPY } from '../presence/copy/money-ui';
 import { PERSONAL_DATA_COPY } from '../personal-data/copy';
 import { DEFAULT_RETENTION_YEARS } from '../personal-data/settings';
 import { countWords } from '../ro-count';
@@ -17,6 +18,7 @@ export type SortKey = 'name' | 'age' | 'group';
 export type ListFilters = {
   section: string[];
   group: string[];
+  abonament: string[];
   acs: string[];
   profile: string[];
   data: string[];
@@ -50,11 +52,11 @@ export const LIST_COPY = {
   /** Phone cards (polish 5); desktop rows keep `incompleteMarker`. */
   cardIncompleteMarker: 'Date incomplete',
   noGroup: 'Fără grupă',
-  columns: { name: 'Sportiv', age: 'Vârstă', contact: 'Contact', acs: 'Membru A.C.S.', profile: 'Profil public' },
+  columns: { name: 'Sportiv', age: 'Vârstă', abonament: MONEY_UI_COPY.sportivi.column, contact: 'Contact', acs: 'Membru A.C.S.', profile: 'Profil public' },
 } as const;
 
-const FILTER_KEYS: readonly FilterKey[] = ['section', 'group', 'acs', 'profile', 'data', 'status', 'duplicates', 'personal'];
-export const EMPTY_FILTERS: ListFilters = { section: [], group: [], acs: [], profile: [], data: [], status: [], duplicates: [], personal: [] };
+const FILTER_KEYS: readonly FilterKey[] = ['section', 'group', 'abonament', 'acs', 'profile', 'data', 'status', 'duplicates', 'personal'];
+export const EMPTY_FILTERS: ListFilters = { section: [], group: [], abonament: [], acs: [], profile: [], data: [], status: [], duplicates: [], personal: [] };
 export const INITIAL_LIST_STATE: ListState = { season: '', q: '', filters: EMPTY_FILTERS, sort: 'name', dir: 'asc', page: 1 };
 
 export const SORT_OPTIONS: Choice[] = [
@@ -66,6 +68,8 @@ const ACS_OPTIONS: Choice[] = (['da', 'nu', 'in_asteptare'] as const).map((value
 const STATUS_OPTIONS: Choice[] = (['nou', 'activ', 'inactiv', 'anonimizat'] as const).map((value) => ({ value, label: STATUS_WORDS[value] }));
 /** "Inactivi de peste N ani" (3C spec 5): the server's `inactive=true`. */
 export const INACTIVE = 'inactive';
+const [, ACTIVE_WORD, NONE_WORD] = MONEY_UI_COPY.sportivi.filterOptions;
+const ABONAMENT_OPTIONS: Choice[] = [{ value: 'activ', label: ACTIVE_WORD }, { value: 'fara', label: NONE_WORD }];
 const PROFILE_OPTIONS: Choice[] = [{ value: 'public', label: 'Public' }, { value: 'ascuns', label: 'Ascuns' }];
 const DATA_OPTIONS: Choice[] = [{ value: 'complete', label: 'Complete' }, { value: 'incomplete', label: 'Incomplete' }];
 const DUPLICATE_OPTIONS: Choice[] = [{ value: 'da', label: 'Da' }];
@@ -77,7 +81,7 @@ export function listQueryString(s: ListState, pageSize: number): string {
   if (s.q.trim()) p.set('q', s.q.trim());
   const f = s.filters;
   const lists: [string, string[]][] = [
-    ['section', f.section], ['group', f.group.filter((g) => g !== NO_GROUP)], ['acs', f.acs],
+    ['section', f.section], ['group', f.group.filter((g) => g !== NO_GROUP)], ['abonament', f.abonament], ['acs', f.acs],
     ['profile', f.profile], ['data', f.data], ['status', f.status],
   ];
   for (const [key, values] of lists) if (values.length) p.set(key, values.join(','));
@@ -109,6 +113,8 @@ export const matchingText = (n: number): string => (n === 1 ? '1 sportiv corespu
 export const incompleteBanner = (n: number): string => (n === 1 ? '1 sportiv are date incomplete.' : `${athletesText(n)} au date incomplete.`);
 
 export const groupCell = (r: AthleteListRow): string => r.mainGroup?.name ?? LIST_COPY.noGroup;
+/** The abonament the athlete would use today (5.13), blank when none. */
+export const abonamentCell = (r: AthleteListRow): string => r.abonament ?? '';
 export const acsCell = (r: AthleteListRow): string => ACS_WORDS[r.acs];
 export const profileCell = (r: AthleteListRow): string => (r.publicProfile === 'public' ? 'Public' : 'Ascuns');
 /** Tooltip of the incomplete marker; none when a deploy-marked record names no field (plan 3-2 note). */
@@ -127,6 +133,7 @@ export function filterSections(s: ListState, p: AthleteListPage | null): Section
   return [
     { key: 'section', label: 'Secțiune', options: sections, selected: f.section },
     { key: 'group', label: 'Grupa', options: [...groups, { value: NO_GROUP, label: LIST_COPY.noGroup }], selected: f.group },
+    { key: 'abonament', label: MONEY_UI_COPY.sportivi.filter, options: ABONAMENT_OPTIONS, selected: f.abonament, single: true },
     { key: 'acs', label: 'Membru A.C.S.', options: ACS_OPTIONS, selected: f.acs },
     { key: 'profile', label: 'Profil public', options: PROFILE_OPTIONS, selected: f.profile },
     { key: 'data', label: 'Date', options: DATA_OPTIONS, selected: f.data },

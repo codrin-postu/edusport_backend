@@ -4,7 +4,7 @@ import { Checkbox, EmptyState, Loading, Pager } from '../../ui';
 import type { AthleteListPage, AthleteListRow } from '../../../club/athletes/api-types';
 import { PERSONAL_DATA_COPY } from '../../../club/personal-data/copy';
 import {
-  LIST_COPY, acsCell, ageText, groupCell, groupHeader, pageRange, profileCell, withHeaderSort, withPage, type SortKey,
+  LIST_COPY, abonamentCell, acsCell, ageText, groupCell, groupHeader, pageRange, profileCell, withHeaderSort, withPage, type SortKey,
 } from '../../../club/sportivi/list-view';
 import { allSelected } from '../../../club/sportivi/personal-data-view';
 import { athleteRecordTo } from '../../../club/sportivi/routes';
@@ -54,6 +54,7 @@ function Row({ row, onOpen, selection }: { row: AthleteListRow; onOpen: Open; se
       </td>
       <td>{ageText(row.age)}</td>
       <td className={row.mainGroup ? undefined : 'spv-muted'}>{groupCell(row)}</td>
+      <td>{abonamentCell(row)}</td>
       <td>
         {row.contactName}
         <span className="spv-sub2">{row.phone}</span>
@@ -77,6 +78,7 @@ function TableHead({ list, page, selection }: { list: AthleteList; page: Athlete
         <SortHeader list={list} sortKey="name">{LIST_COPY.columns.name}</SortHeader>
         <SortHeader list={list} sortKey="age">{LIST_COPY.columns.age}</SortHeader>
         <SortHeader list={list} sortKey="group">{groupHeader(page.season)}</SortHeader>
+        <th scope="col">{LIST_COPY.columns.abonament}</th>
         <th scope="col">{LIST_COPY.columns.contact}</th>
         <th scope="col">{LIST_COPY.columns.acs}</th>
         <th scope="col">{LIST_COPY.columns.profile}</th>
