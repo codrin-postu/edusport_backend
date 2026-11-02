@@ -13,7 +13,8 @@ import { paymentEmailJob } from '../../../email/payment-email';
 import { athleteLine, currentAcs, fieldsFor, linkIsValid, lockLinks, moveAcs, paymentLine, purposeTextOf, recordPaymentAction, type Fields } from './common';
 import { acsOnFee, readNewPayment, sameFor, type NewPaymentInput, type PaymentInput, type PurposeFields } from './rules';
 
-export type PaymentResult = { paymentId: string; amount: number; athleteName: string };
+import type { PaymentResult } from './views';
+export type { PaymentResult } from './views';
 export type PaymentDraft = { athlete: AthleteRow; input: PaymentInput; sendEmail: boolean };
 export type PaymentWritten = { paymentId: string; lines: Line[]; steps: PresenceUndoStep[]; emailQueued: boolean; duplicate: boolean };
 

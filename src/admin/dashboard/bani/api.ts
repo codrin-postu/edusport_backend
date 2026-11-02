@@ -6,8 +6,8 @@ import type {
   AthletePayments, AthleteSubscriptions, DuePage, PaymentList, PaymentQuery, SubscriptionListPage, SubscriptionQuery,
 } from '../../../club/presence/money-api';
 import type { PaymentOption } from '../../../club/presence/payments/rules';
-import type { AddSubscriptionResult, NewSubscriptionForm } from '../../../club/presence/subscriptions/add';
-import type { PaymentResult } from '../../../club/presence/payments/record';
+import type { AddSubscriptionResult, NewSubscriptionForm } from '../../../club/presence/subscriptions/views';
+import type { PaymentResult } from '../../../club/presence/payments/views';
 
 const BASE = '/api/club';
 const enc = encodeURIComponent;

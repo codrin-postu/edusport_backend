@@ -27,12 +27,8 @@ import {
   checkCover, coverCandidates, listsForAthlete, offeredSubscriptionItems, schoolListIds, subscriptionWrite, type CoverRow, type OfferedItem,
 } from './rules';
 
-export type NewSubscriptionForm = {
-  athleteName: string; hasEmail: boolean; audience: Audience; startsOn: string; validUntil: string;
-  lists: { priceListId: string; listName: string; items: OfferedItem[] }[];
-  cover: CoverRow[];
-};
-export type AddSubscriptionResult = { subscriptionId: string; athleteName: string; withPayment: boolean };
+import type { AddSubscriptionResult, NewSubscriptionForm } from './views';
+export type { AddSubscriptionResult, NewSubscriptionForm } from './views';
 type PaymentBody = { amount: number; method: PaymentMethod; collectedAtRink: boolean; sendEmail: boolean };
 type AddBody = { itemKey: string; priceListId: string; startsOn: string; cover: string[]; payment: PaymentBody | null };
 type Offer = { season: SeasonRecord; audience: Audience; lists: { list: PriceListRecord; items: OfferedItem[] }[] };
