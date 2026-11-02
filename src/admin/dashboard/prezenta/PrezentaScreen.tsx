@@ -10,6 +10,7 @@ import { GRUPE_CSS } from '../grupe/styles';
 import { CoachesTab } from './CoachesTab';
 import { DayTab } from './DayTab';
 import { LessonsTab } from './LessonsTab';
+import { usePrezentaApi } from './api';
 import { PREZENTA_CSS } from './styles';
 
 type Props = { query: PrezentaQuery; onQuery: (q: Partial<PrezentaQuery>) => void };
@@ -30,9 +31,21 @@ function Notices({ page }: { page: DayPage | null }) {
   );
 }
 
+/** The notices come with the day read; on another tab (opened by address) one read of the day supplies them. */
+function useNoticesFromDay(tab: PrezentaTab, date: string, page: DayPage | null, setPage: (p: DayPage) => void): void {
+  const api = usePrezentaApi();
+  React.useEffect(() => {
+    if (tab === 'sedinte' || page !== null) return undefined;
+    let off = false;
+    api.day(date).then((p) => { if (!off) setPage(p); }).catch(() => undefined);
+    return () => { off = true; };
+  }, [api, tab, date, page, setPage]);
+}
+
 /** "Prezență" (5.2): the notices, the three tabs and the open tab. */
 export function PrezentaScreen({ query, onQuery }: Props) {
   const [page, setPage] = React.useState<DayPage | null>(null);
+  useNoticesFromDay(query.tab, query.date, page, setPage);
   const [host, setHost] = React.useState<HTMLElement | null>(null);
   return (
     <AdminPage>

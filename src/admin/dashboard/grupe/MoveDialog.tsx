@@ -36,17 +36,19 @@ async function apply(p: Props, to: string, groups: GroupChoice[]): Promise<void>
 }
 
 /** The abonament that would follow the athlete to the chosen group (5.12); only when moving, and only once a target is chosen. */
-function useMovePreview(p: Props, to: string | null): MovePreview | null {
-  const [preview, setPreview] = React.useState<MovePreview | null>(null);
+function useMovePreview(p: Props, to: string | null): { preview: MovePreview | null; failed: boolean } {
+  const [state, setState] = React.useState<{ preview: MovePreview | null; failed: boolean }>({ preview: null, failed: false });
   const { api, mode, member } = p;
   React.useEffect(() => {
-    setPreview(null);
+    setState({ preview: null, failed: false });
     if (mode !== 'move' || !to) return undefined;
     let off = false;
-    api.movePreview(member.membershipId, to).then((r) => { if (!off) setPreview(r); }).catch(() => undefined);
+    api.movePreview(member.membershipId, to)
+      .then((r) => { if (!off) setState({ preview: r, failed: false }); })
+      .catch(() => { if (!off) setState({ preview: null, failed: true }); });   // shown, so "no bar" never reads as "no abonament"
     return () => { off = true; };
   }, [api, mode, member.membershipId, to]);
-  return preview;
+  return state;
 }
 
 /** The one move window (move-modal-final) and "Adaugă și în grupă" (6.2, W2, W3). */
@@ -55,7 +57,8 @@ export function MoveDialog(p: Props) {
   const [to, setTo] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const bar = moveBarView(useMovePreview(p, to));
+  const { preview, failed: previewFailed } = useMovePreview(p, to);
+  const bar = moveBarView(preview);
   const submit = async () => {
     if (!to) return setError(GROUP_ERRORS.pickGroup);
     setBusy(true);
@@ -72,7 +75,7 @@ export function MoveDialog(p: Props) {
   return (
     <WindowShell title={p.mode === 'move' ? GRUPE_COPY.moveTitle : GRUPE_COPY.addAlsoTitle} onClose={p.onClose} footer={footer}>
       <style>{MONEY_CSS}</style>
-      {(failed || error) && <Notice tone="danger">{failed ? GROUP_ERRORS.loadFailed : error}</Notice>}
+      {(failed || previewFailed || error) && <Notice tone="danger">{failed || previewFailed ? GROUP_ERRORS.loadFailed : error}</Notice>}
       <dl className="grp-kv">
         <dt>{GRUPE_COPY.fieldAthlete}</dt><dd>{p.member.name}</dd>
         {p.mode === 'move' && <><dt>{GRUPE_COPY.fieldFrom}</dt><dd>{p.page.name}</dd></>}

@@ -89,6 +89,14 @@ describe('money UI source', () => {
     expect(s).toContain('useMoneyChanged(');
     expect(s).toContain('refreshAbonamentLines(d.rows, p.rows)');
   });
+  it('Prezență notices on any tab; a failed move preview is shown (M9, M6)', () => {
+    const s = src('admin/dashboard/prezenta/PrezentaScreen.tsx');
+    expect(s).toContain('useNoticesFromDay(query.tab, query.date, page, setPage)');
+    expect(s).toMatch(/tab === 'sedinte' \|\| page !== null/);
+    const m = src('admin/dashboard/grupe/MoveDialog.tsx');
+    expect(m).not.toMatch(/\.catch\(\(\) => undefined\)/);
+    expect(m).toContain('previewFailed');
+  });
   it('strings outside the copy module moved in (M8)', () => {
     for (const f of ['PlatiList', 'AbonamenteList']) expect(src(`admin/dashboard/bani/${f}.tsx`)).not.toContain('`Arată ');
     expect(MONEY_UI_COPY.show('3 plăți')).toBe('Arată 3 plăți');
