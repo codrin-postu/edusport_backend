@@ -135,12 +135,15 @@ function abonamentOptions(subs: readonly SubscriptionRow[], payments: readonly P
   });
 }
 
-function monthOptions(months: readonly ClubMonth[], today: string): PaymentOption[] {
+/** `extra` is a month the caller preselects (the De încasat filter): offered even when nothing is due or it is older than 12 months. */
+function monthOptions(months: readonly ClubMonth[], today: string, extra: string | null): PaymentOption[] {
   const current = monthOf(today);
   const first = addMonths(current, -11);
   const listed = new Map(months.filter((m) => m.month >= first && m.month <= current && m.due > 0).map((m) => [m.month, m]));
-  const ids = newestFirst([...new Set([current, ...listed.keys()])], (m) => m);
-  return ids.map((m) => option({ kind: 'club_luna', month: m }, PAYMENT_COPY.optMonth(m), notBelowZero(listed.get(m)?.left ?? 0)));
+  const wanted = isMonth(extra) ? [extra] : [];
+  const ids = newestFirst([...new Set([current, ...listed.keys(), ...wanted])], (m) => m);
+  const left = (m: string): number => notBelowZero((listed.get(m) ?? months.find((x) => x.month === m))?.left ?? 0);
+  return ids.map((m) => option({ kind: 'club_luna', month: m }, PAYMENT_COPY.optMonth(m), left(m)));
 }
 
 function lessonOptions(lessons: readonly LessonRow[], payments: readonly PaymentRow[], today: string): PaymentOption[] {
@@ -154,11 +157,11 @@ function lessonOptions(lessons: readonly LessonRow[], payments: readonly Payment
 
 /** "Pentru" options with default amounts (4.15, C33): abonamente, fee per season, Club months, lessons, Altceva. */
 export function paymentOptions(i: {
-  subs: SubscriptionRow[]; payments: PaymentRow[]; seasons: SeasonRecord[]; months: ClubMonth[]; lessons: LessonRow[]; today: string;
+  subs: SubscriptionRow[]; payments: PaymentRow[]; seasons: SeasonRecord[]; months: ClubMonth[]; lessons: LessonRow[]; today: string; extraMonth?: string | null;
 }): PaymentOption[] {
   const fees = newestFirst(i.seasons, (s) => s.startMonth).map((s) => option({ kind: 'cotizatie', seasonId: s.id }, PAYMENT_COPY.optFee(s.label), s.membershipFee, s.isCurrent));
   return [
-    ...abonamentOptions(i.subs, i.payments), ...fees, ...monthOptions(i.months, i.today), ...lessonOptions(i.lessons, i.payments, i.today),
+    ...abonamentOptions(i.subs, i.payments), ...fees, ...monthOptions(i.months, i.today, i.extraMonth ?? null), ...lessonOptions(i.lessons, i.payments, i.today),
     option({ kind: 'altceva' }, PURPOSE_WORDS.altceva, null),
   ];
 }

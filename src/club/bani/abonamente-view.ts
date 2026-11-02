@@ -8,7 +8,7 @@ import { defaultCover } from '../presence/subscriptions/rules';
 import type { NewSubscriptionForm } from '../presence/subscriptions/views';
 import type { PaymentMethod } from '../presence/types';
 import { isPastDate, slotsText } from './format';
-import { parseAmount } from './payment-window';
+import { amountText, parseAmount } from './payment-window';
 import type { FilterSection } from './plati-view';
 
 const copy = MONEY_UI_COPY.abonamente;
@@ -57,7 +57,7 @@ export function addDraft(form: NewSubscriptionForm): AddDraft {
 export function withItem(d: AddDraft, form: NewSubscriptionForm, listId: string, itemKey: string): AddDraft {
   const item = itemOf(form, listId, itemKey);
   if (!item) return d;
-  return { ...d, listId, itemKey, cover: defaultCover(form.cover, listId, item.slots), amount: String(item.price) };
+  return { ...d, listId, itemKey, cover: defaultCover(form.cover, listId, item.slots), amount: amountText(item.price) };
 }
 
 /** The athlete's "Fără abonament" rows on the chosen list. */

@@ -96,8 +96,8 @@ export async function athletePayments(store: PresenceStore, athleteId: string, t
 }
 
 /** "Pentru" options with default amounts for one athlete (4.15, C33). */
-export async function athletePaymentOptions(store: PresenceStore, athleteId: string, today: string): Promise<PaymentOption[] | null> {
+export async function athletePaymentOptions(store: PresenceStore, athleteId: string, today: string, extraMonth: string | null = null): Promise<PaymentOption[] | null> {
   if (!(await store.athlete(athleteId))) return null;
   const ledger = await ledgerOf(store, athleteId);
-  return paymentOptions({ subs: ledger.subs, payments: ledger.payments, seasons: ledger.seasons, months: ledger.months, lessons: ledger.lessons, today });
+  return paymentOptions({ subs: ledger.subs, payments: ledger.payments, seasons: ledger.seasons, months: ledger.months, lessons: ledger.lessons, today, extraMonth });
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PaymentOption } from '../../presence/payments/rules';
 import type { PaymentRowView } from '../../presence/money-api';
-import { cancelText, checkDraft, editDraft, editOptions, emailBox, newDraft, parseAmount, showsRink, toBody, withOption } from '../payment-window';
+import { amountText, cancelText, checkDraft, editDraft, editOptions, emailBox, newDraft, parseAmount, showsRink, toBody, withOption } from '../payment-window';
 
 const paymentView = (o: Partial<PaymentRowView>): PaymentRowView => ({
   paymentId: 'p1', athleteId: 'a1', athleteName: 'Ana Ionescu', paidOn: '2026-10-27', purpose: 'abonament', purposeText: 'Abonament', method: 'numerar',
@@ -30,6 +30,17 @@ describe('payment window rules', () => {
     const e = withOption({ ...d, collectedAtRink: true }, 'altceva', opts);
     expect([e.amount, e.collectedAtRink, showsRink(e)]).toEqual(['', false, false]);
   });
+  it('a preselected key the options do not hold leaves "Pentru" unchosen (I1)', () => {
+    const d = newDraft({ athleteId: 'a1', today: '2026-11-20', preselect: { kind: 'club_luna', month: '2025-01' }, options: opts });
+    expect(d).toMatchObject({ optionKey: null, amount: '' });
+    expect(checkDraft({ ...d, amount: '5' }, '2026-11-20').for).toBe('Alege pentru ce este plata.');
+  });
+  it('a default amount with cents shows a comma and two decimals (M4)', () => {
+    expect([amountText(12.5), amountText(320), amountText(0.05)]).toEqual(['12,50', '320', '0,05']);
+    const o: PaymentOption[] = [{ for: { kind: 'altceva' }, label: 'Altceva', amount: 12.5, isDefault: false }];
+    expect(withOption(newDraft({ athleteId: 'a1', today: '2026-11-20', preselect: null, options: o }), 'altceva', o).amount).toBe('12,50');
+    expect(editDraft(paymentView({ amount: 99.9 })).amount).toBe('99,90');
+  });
   it('errors of 5.10', () => {
     const d = newDraft({ athleteId: 'a1', today: '2026-11-20', preselect: null, options: opts });
     expect(checkDraft(d, '2026-11-20')).toEqual({ amount: 'Suma trebuie să fie mai mare decât 0.', for: 'Alege pentru ce este plata.' });
@@ -46,6 +57,7 @@ describe('payment window rules', () => {
   });
   it('e-mail box disabled without an address; cancel confirmation text (C36, 5.10)', () => {
     expect([emailBox(true), emailBox(false)]).toEqual([{ disabled: false, hint: null }, { disabled: true, hint: 'Sportivul nu are e-mail.' }]);
+    expect(emailBox(null)).toEqual({ disabled: true, hint: null });   // M3: no hint before the answer
     expect(cancelText(paymentView({ amount: 320, paidOn: '2026-10-27' }))).toBe('Anulezi plata de 320 RON din 27 oct 2026? Rândul rămâne, marcat anulată.');
   });
 });

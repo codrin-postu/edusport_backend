@@ -32,12 +32,16 @@ export function parseAmount(text: string): number | null {
   return n > 0 ? n : null;
 }
 
+/** "12,50" for a fraction, "12" for a whole amount (spec format). */
+export const amountText = (n: number): string => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ','));
+
 export const showsRink = (d: PaymentDraft): boolean => d.optionKey !== null && d.optionKey.startsWith('abonament:');
 
-/** The option's default amount (empty when it has none); the rink box only survives for an abonament (C8). */
+/** The option's default amount (empty when it has none); the rink box only survives for an abonament (C8). A key the options do not hold leaves "Pentru" unchosen. */
 export function withOption(d: PaymentDraft, key: string, options: PaymentOption[]): PaymentDraft {
   const found = options.find((o) => optionKey(o.for) === key);
-  const amount = found && found.amount !== null ? String(found.amount) : '';
+  if (!found) return { ...d, optionKey: null, amount: '', collectedAtRink: false };
+  const amount = found.amount !== null ? amountText(found.amount) : '';
   return { ...d, optionKey: key, amount, collectedAtRink: key.startsWith('abonament:') ? d.collectedAtRink : false };
 }
 
@@ -48,7 +52,7 @@ export function newDraft(i: { athleteId: string | null; today: string; preselect
 
 export function editDraft(p: PaymentRowView): PaymentDraft {
   return {
-    athleteId: p.athleteId, amount: String(p.amount), paidOn: p.paidOn, method: p.method, optionKey: optionKey(p.for),
+    athleteId: p.athleteId, amount: amountText(p.amount), paidOn: p.paidOn, method: p.method, optionKey: optionKey(p.for),
     collectedAtRink: p.collectedAtRink, sendEmail: false, note: p.note ?? '',
   };
 }
@@ -85,7 +89,10 @@ export function toEditBody(d: PaymentDraft, options: PaymentOption[]): Record<st
   return rest;
 }
 
-export const emailBox = (hasEmail: boolean): { disabled: boolean; hint: string | null } =>
-  hasEmail ? { disabled: false, hint: null } : { disabled: true, hint: PAYMENT_COPY.noEmail };
+/** `null` while the athlete's answer is not in yet: disabled, no hint (an unknown address is not "no address"). */
+export const emailBox = (hasEmail: boolean | null): { disabled: boolean; hint: string | null } => {
+  if (hasEmail === null) return { disabled: true, hint: null };
+  return hasEmail ? { disabled: false, hint: null } : { disabled: true, hint: PAYMENT_COPY.noEmail };
+};
 
 export const cancelText = (p: PaymentRowView): string => PAYMENT_COPY.cancelConfirm(p.amount, longDate(p.paidOn));
