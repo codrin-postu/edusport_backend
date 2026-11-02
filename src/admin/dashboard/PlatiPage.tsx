@@ -1,14 +1,7 @@
 import * as React from 'react';
-import { AdminPage, PageHeader, Window } from '../ui';
-import { SHELL_COPY } from '../../club/presence/copy/prezenta-ui';
+import { PlatiList } from './bani/PlatiList';
 
-/** "Plăți": a shell until its phase 5 screen is built. */
+/** "Plăți" (5.10): the month's payments, with filters, total and the payment window. */
 export default function PlatiPage() {
-  return (
-    <AdminPage>
-      <Window>
-        <PageHeader title={SHELL_COPY.plati} />
-      </Window>
-    </AdminPage>
-  );
+  return <PlatiList />;
 }

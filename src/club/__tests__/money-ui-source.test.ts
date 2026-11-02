@@ -29,4 +29,11 @@ describe('money UI source', () => {
     expect(c).toMatch(/cancelText\(/);
     expect(c).toMatch(/moneyUndoToast\(/);
   });
+  it('the Plăți list (5.10)', () => {
+    const l = src('admin/dashboard/bani/PlatiList.tsx');
+    for (const name of ['platiCells', 'rowMenu', 'totalLine', 'PaymentWindow', 'CancelPaymentDialog']) expect(l).toContain(name);
+    expect(src('admin/dashboard/bani/styles.ts')).toMatch(/text-decoration:\s*line-through/);
+    expect(l + src('admin/dashboard/bani/styles.ts')).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
+    expect(src('admin/dashboard/PlatiPage.tsx')).toContain('PlatiList');
+  });
 });
