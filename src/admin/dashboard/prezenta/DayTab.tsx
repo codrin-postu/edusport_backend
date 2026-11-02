@@ -1,17 +1,18 @@
 import * as React from 'react';
-import { Button, DataTable, DateInput, Loading, Notice, StatusBadge, useIsPhone, type BadgeTone, type DataColumn } from '../../ui';
+import { Button, DataTable, Loading, Notice, StatusBadge, useIsPhone, type BadgeTone, type DataColumn } from '../../ui';
 import { PRESENCE_ERRORS, PRESENCE_WORDS } from '../../../club/presence/copy/core';
 import { PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
 import { listDate } from '../../../club/presence/dates';
 import type { DayPage, DayRow } from '../../../club/presence/attendance/api-types';
 import type { SessionState } from '../../../club/presence/types';
-import { addDays, countText, dayLine, dayTitle, sessionCard, stateWord, undoneTitle } from '../../../club/prezenta/day-view';
+import { addDays, countText, dayTitle, sessionCard, stateWord, undoneTitle } from '../../../club/prezenta/day-view';
+import { HeaderSlot, Switcher } from './Switcher';
 import { usePrezentaApi, type PrezentaApi } from './api';
 import { NewSessionWindow } from './NewSessionWindow';
 import { SessionPanel, type SessionTarget } from './SessionPanel';
 import { usePrezentaRefresh } from './undo';
 
-type Props = { date: string; onDate: (date: string) => void; onPage?: (page: DayPage) => void };
+type Props = { date: string; onDate: (date: string) => void; onPage?: (page: DayPage) => void; host: HTMLElement | null };
 type Opened = { target: SessionTarget; coachIds?: string[] };
 
 const TONES: Record<SessionState, BadgeTone> = { salvata: 'success', urmeaza: 'neutral', nefacuta: 'warning' };
@@ -97,21 +98,18 @@ function SessionList({ rows, columns, withDate, phone, onOpen }: ListProps) {
   return <DataTable<DayRow> columns={columns} rows={rows} getRowKey={rowKey} onRowClick={onOpen} rowLabel={(r) => `${r.startTime} ${r.groupName}`} pageSize={0} />;
 }
 
-type BarProps = { date: string; today: string | null; onDate: (d: string) => void; onNew: () => void };
+type BarProps = { date: string; today: string | null; host: HTMLElement | null; onDate: (d: string) => void; onNew: () => void };
 
-function DayBar({ date, today, onDate, onNew }: BarProps) {
+function DayBar({ date, today, host, onDate, onNew }: BarProps) {
   return (
-    <div className="pz-bar">
-      <p className="pz-bar-day">{dayLine(date)}</p>
-      <div className="pz-bar-nav">
-        <Button variant="secondary" size="sm" aria-label={PREZENTA_COPY.prevDay} onClick={() => onDate(addDays(date, -1))}>{'<'}</Button>
-        <Button variant="secondary" size="sm" disabled={!today} onClick={() => today && onDate(today)}>{PREZENTA_COPY.today}</Button>
-        <Button variant="secondary" size="sm" aria-label={PREZENTA_COPY.nextDay} onClick={() => onDate(addDays(date, 1))}>{'>'}</Button>
-        <DateInput value={date} aria-label={PREZENTA_COPY.colDate} onChange={(v) => { if (v) onDate(v); }} />
-      </div>
-      <span className="pz-bar-sp" />
+    <HeaderSlot host={host}>
+      <Switcher
+        label={PREZENTA_COPY.colDate} prevLabel={PREZENTA_COPY.prevDay} nextLabel={PREZENTA_COPY.nextDay}
+        onPrev={() => onDate(addDays(date, -1))} onNext={() => onDate(addDays(date, 1))}
+        middle={PREZENTA_COPY.today} onMiddle={() => today && onDate(today)} middleDisabled={!today} middleOn={date === today}
+      />
       <Button onClick={onNew}>{PREZENTA_COPY.newSession}</Button>
-    </div>
+    </HeaderSlot>
   );
 }
 
@@ -132,7 +130,7 @@ function Sections({ page, phone, onOpen }: { page: DayPage; phone: boolean; onOp
 }
 
 /** "Ședințe" (5.2): past undone sessions on top, then the day; a row opens the session panel. */
-export function DayTab({ date, onDate, onPage }: Props) {
+export function DayTab({ date, onDate, onPage, host }: Props) {
   const api = usePrezentaApi();
   const phone = useIsPhone();
   const { page, failed } = useDayPage(api, date, onPage);
@@ -145,7 +143,7 @@ export function DayTab({ date, onDate, onPage }: Props) {
   const body = page ? <Sections page={page} phone={phone} onOpen={open} /> : failed ? <div className="pz-notices"><Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice></div> : <Loading />;
   return (
     <>
-      <DayBar date={date} today={page?.today ?? null} onDate={onDate} onNew={() => setCreating(true)} />
+      <DayBar date={date} today={page?.today ?? null} host={host} onDate={onDate} onNew={() => setCreating(true)} />
       {body}
       {creating && (
         <NewSessionWindow date={date} onClose={() => setCreating(false)} onOpen={(target, coachIds) => { setCreating(false); setOpened({ target, coachIds }); }} />

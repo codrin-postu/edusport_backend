@@ -143,3 +143,46 @@ it('phone burger lists every EduSport menu link, not only the Strapi nav links, 
   for (const k of ['EDUSPORT_LINKS', 'GROUP_ORDER', 'GROUP_LABEL']) expect(nav, k).toContain(k);
   expect(nav).toMatch(/'\/admin' \+ to/);
 });
+
+it('group page tab Prezență loads the Prezență styles (month bar, "pz-sub" lines)', () => {
+  expect(src('dashboard/grupe/GroupPage.tsx')).toMatch(/PREZENTA_CSS/);
+  expect(src('dashboard/grupe/GroupPage.tsx')).toMatch(/<style>\{[^}]*PREZENTA_CSS[^}]*\}<\/style>/);
+  expect(src('dashboard/prezenta/styles.ts')).toContain('.pz-sub{display:block');
+});
+
+it('lesson delete confirmation has no body strip: ConfirmDialog passes no children without a message', () => {
+  const c = src('ConfirmDialog.tsx');
+  expect(c).toContain('hasBody');
+  expect(c).toContain(') : undefined}');
+});
+
+it('option A: day line under the title, one segmented switcher, month and buttons in the page header, no date input', () => {
+  const screen = src('dashboard/prezenta/PrezentaScreen.tsx');
+  expect(screen).toMatch(/subtitle=\{query\.tab === 'sedinte' \? dayLine\(query\.date\)/);
+  expect(screen).toContain('pz-head-slot');
+  const day = src('dashboard/prezenta/DayTab.tsx');
+  expect(day).not.toContain('DateInput');
+  expect(day).toContain('<Switcher');
+  expect(day).toContain('<HeaderSlot');
+  for (const f of ['LessonsTab', 'CoachesTab']) expect(src(`dashboard/prezenta/${f}.tsx`), f).toContain('host={host}');
+  const sw = src('dashboard/prezenta/Switcher.tsx');
+  expect(sw).toContain('createPortal');
+  const styles = src('dashboard/prezenta/styles.ts');
+  expect(styles).not.toMatch(/dashed|dotted|border-radius:\s*(50%|999)/);
+});
+
+it('athlete names are regular weight in the panel and the lessons list', () => {
+  expect(src('dashboard/prezenta/SessionPanel.tsx')).not.toMatch(/spv-name[^\n]*row\.name/);
+  expect(src('dashboard/prezenta/LessonsTab.tsx')).not.toMatch(/spv-name'\}>\{r\.athleteName/);
+  expect(src('dashboard/prezenta/LessonsTab.tsx')).not.toMatch(/'pz-muted' : 'spv-name'/);
+});
+
+it('a coach options load failure shows the load-failed notice in both panels', () => {
+  const hook = src('dashboard/prezenta/CoachFields.tsx');
+  expect(hook).toContain('failed: true');
+  for (const f of ['SessionPanel', 'LessonPanel']) {
+    const p = src(`dashboard/prezenta/${f}.tsx`);
+    expect(p, f).toContain('useCoachOptions');
+    expect(p, f).toMatch(/failed \|\| coachesFailed\) && <Notice tone="danger">\{PRESENCE_ERRORS\.loadFailed\}/);
+  }
+});
