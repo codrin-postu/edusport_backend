@@ -14,6 +14,7 @@ import { PrezentaTab } from './PrezentaTab';
 import { ProgramTab } from './ProgramTab';
 import { RosterTab } from './RosterTab';
 import { GRUPE_CSS } from './styles';
+import { PREZENTA_CSS } from '../prezenta/styles';
 import { useGrupeRefresh } from './undo';
 
 type Loaded = { page: GroupPageData | null; failed: boolean; reload: () => Promise<void> };
@@ -85,7 +86,7 @@ export function GroupPage({ documentId }: { documentId: string }) {
   const state = failed ? <div className="ui-body"><Notice tone="danger">{GROUP_ERRORS.loadFailed}</Notice></div> : <Loading />;
   return (
     <AdminPage>
-      <style>{SPORTIVI_CSS + GRUPE_CSS}</style>
+      <style>{SPORTIVI_CSS + GRUPE_CSS + PREZENTA_CSS}</style>
       <Shell page={page} actions={actions} back={back} body={page ? <GroupBody page={page} api={api} tab={tab} onTab={setTab} /> : state} />
     </AdminPage>
   );

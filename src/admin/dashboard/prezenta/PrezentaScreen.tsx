@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { AdminPage, Notice, PageHeader, Tabs, Window, type TabItem } from '../../ui';
 import { noPriceListNotice } from '../../../club/presence/copy/core';
+import { dayLine } from '../../../club/prezenta/day-view';
 import { PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
 import type { DayPage } from '../../../club/presence/attendance/api-types';
 import type { PrezentaQuery, PrezentaTab } from '../../../club/prezenta/routes';
@@ -32,16 +33,17 @@ function Notices({ page }: { page: DayPage | null }) {
 /** "Prezență" (5.2): the notices, the three tabs and the open tab. */
 export function PrezentaScreen({ query, onQuery }: Props) {
   const [page, setPage] = React.useState<DayPage | null>(null);
+  const [host, setHost] = React.useState<HTMLElement | null>(null);
   return (
     <AdminPage>
       <style>{SPORTIVI_CSS + GRUPE_CSS + PREZENTA_CSS}</style>
       <Window>
-        <PageHeader title={PREZENTA_COPY.title} />
+        <PageHeader title={PREZENTA_COPY.title} subtitle={query.tab === 'sedinte' ? dayLine(query.date) : undefined} actions={<div className="pz-head-slot" ref={setHost} />} />
         <Notices page={page} />
         <Tabs items={TAB_ITEMS} value={query.tab} onChange={(t) => onQuery({ tab: t as PrezentaTab })} label={PREZENTA_COPY.title} className="pz-tabs" />
-        {query.tab === 'sedinte' && <DayTab date={query.date} onDate={(date) => onQuery({ date })} onPage={setPage} />}
-        {query.tab === 'lectii' && <LessonsTab month={query.month} onMonth={(month) => onQuery({ month })} />}
-        {query.tab === 'antrenori' && <CoachesTab month={query.month} onMonth={(month) => onQuery({ month })} />}
+        {query.tab === 'sedinte' && <DayTab date={query.date} onDate={(date) => onQuery({ date })} onPage={setPage} host={host} />}
+        {query.tab === 'lectii' && <LessonsTab month={query.month} onMonth={(month) => onQuery({ month })} host={host} />}
+        {query.tab === 'antrenori' && <CoachesTab month={query.month} onMonth={(month) => onQuery({ month })} host={host} />}
       </Window>
     </AdminPage>
   );

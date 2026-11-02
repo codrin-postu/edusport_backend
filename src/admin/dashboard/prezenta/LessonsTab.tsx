@@ -7,27 +7,26 @@ import type { LessonListRow } from '../../../club/presence/attendance/api-types'
 import type { SessionState } from '../../../club/presence/types';
 import { durationText, lessonCard, stateWord } from '../../../club/prezenta/day-view';
 import { usePrezentaApi, type PrezentaApi } from './api';
+import { HeaderSlot, Switcher } from './Switcher';
 import { LessonPanel } from './LessonPanel';
 import { NewLessonWindow } from './NewLessonWindow';
 import { usePrezentaRefresh } from './undo';
 
-type Props = { month: string; onMonth: (month: string) => void };
-type MonthLineProps = Props & { action?: React.ReactNode };
+type Props = { month: string; onMonth: (month: string) => void; host: HTMLElement | null };
+type MonthLineProps = { month: string; onMonth: (month: string) => void; action?: React.ReactNode; host?: HTMLElement | null };
 
 const TONES: Record<SessionState, BadgeTone> = { salvata: 'success', urmeaza: 'neutral', nefacuta: 'warning' };
 
-/** "<" month ">" and the tab's action (shared by the lessons, coaches and group tabs). */
-export function MonthLine({ month, onMonth, action }: MonthLineProps) {
+/** "<" month ">" and the tab's action: in the page header (host) or, on the group page, in a bar of its own. */
+export function MonthLine({ month, onMonth, action, host }: MonthLineProps) {
   return (
-    <div className="pz-bar">
-      <div className="pz-bar-nav">
-        <Button variant="secondary" size="sm" aria-label={PREZENTA_COPY.prevMonth} onClick={() => onMonth(addMonths(month, -1))}>{'<'}</Button>
-        <p className="pz-bar-day pz-bar-month">{monthTitle(month)}</p>
-        <Button variant="secondary" size="sm" aria-label={PREZENTA_COPY.nextMonth} onClick={() => onMonth(addMonths(month, 1))}>{'>'}</Button>
-      </div>
-      <span className="pz-bar-sp" />
+    <HeaderSlot host={host}>
+      <Switcher
+        label={PREZENTA_COPY.monthLabel} prevLabel={PREZENTA_COPY.prevMonth} nextLabel={PREZENTA_COPY.nextMonth}
+        onPrev={() => onMonth(addMonths(month, -1))} onNext={() => onMonth(addMonths(month, 1))} middle={monthTitle(month)} middleOn
+      />
       {action}
-    </div>
+    </HeaderSlot>
   );
 }
 
@@ -59,7 +58,7 @@ const absent = (r: LessonListRow): boolean => r.state === 'salvata' && r.present
 const COLUMNS: DataColumn<LessonListRow>[] = [
   { key: 'date', header: PREZENTA_COPY.colDate, render: (r) => listDate(r.date) },
   { key: 'time', header: PREZENTA_COPY.colTime, render: (r) => r.startTime },
-  { key: 'athlete', header: PREZENTA_COPY.colAthlete, render: (r) => <span className={absent(r) ? 'pz-muted' : 'spv-name'}>{r.athleteName}</span> },
+  { key: 'athlete', header: PREZENTA_COPY.colAthlete, render: (r) => <span className={absent(r) ? 'pz-muted' : undefined}>{r.athleteName}</span> },
   { key: 'coach', header: PREZENTA_COPY.colCoach, render: (r) => r.coachNames.join(', ') },
   { key: 'duration', header: PREZENTA_COPY.colDuration, render: (r) => durationText(r.durationMin) },
   { key: 'state', header: PREZENTA_COPY.colState, render: (r) => <StatusBadge tone={TONES[r.state]}>{stateWord(r.state)}</StatusBadge> },
@@ -85,7 +84,7 @@ function Cards({ rows, onOpen }: { rows: LessonListRow[]; onOpen: (r: LessonList
 }
 
 /** "Lecții individuale" (5.2, p5 Q26 A): the month's lessons; a row opens the lesson panel. */
-export function LessonsTab({ month, onMonth }: Props) {
+export function LessonsTab({ month, onMonth, host }: Props) {
   const phone = useIsPhone();
   const { data, failed } = useMonthLoad((api, m) => api.lessons(m), month);
   const [creating, setCreating] = React.useState(false);
@@ -104,7 +103,7 @@ export function LessonsTab({ month, onMonth }: Props) {
   }
   return (
     <>
-      <MonthLine month={month} onMonth={onMonth} action={<Button onClick={() => setCreating(true)}>{PREZENTA_COPY.newLesson}</Button>} />
+      <MonthLine month={month} onMonth={onMonth} host={host} action={<Button onClick={() => setCreating(true)}>{PREZENTA_COPY.newLesson}</Button>} />
       {body}
       {creating && <NewLessonWindow onClose={() => setCreating(false)} />}
       {openId && <LessonPanel key={openId} id={openId} onClose={() => setOpenId(null)} />}

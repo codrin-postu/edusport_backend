@@ -70,10 +70,11 @@ describe('panel columns, ticks and footer (5.3, p5 Q3, 4.1)', () => {
     expect(initialTicks(panel({ sessionId: 's1', rows: [row('a1', { grup: true })] }))).toEqual({ a1: { grup: true, uscat: false } });
   });
 
-  it('counts visitors in x only', () => {
+  it('counts a visitor in neither x nor y', () => {
     const rows = [row('a1'), row('a2'), row('a7', { visitor: true })];
-    expect(footerCounts(rows, { a1: { grup: true, uscat: false }, a7: { grup: true, uscat: false } })).toEqual({ present: 2, listed: 2 });
+    expect(footerCounts(rows, { a1: { grup: true, uscat: false }, a7: { grup: true, uscat: false } })).toEqual({ present: 1, listed: 2 });
     expect(footerCounts(rows, toggleTick({}, 'a2', 'uscat'))).toEqual({ present: 1, listed: 2 });
+    expect(footerCounts([row('a7', { visitor: true })], { a7: { grup: true, uscat: false } })).toEqual({ present: 0, listed: 0 });
   });
 });
 
@@ -107,9 +108,12 @@ describe('visitors and the save body (4.7, C45, plan 5-2 decided 2)', () => {
 
 describe('inactive 409 (4.22, decided 4)', () => {
   it('reads the inactive list and collects the answers', () => {
-    const err = { response: { status: 409, data: { error: { details: { inactive: [{ id: 'a3', name: 'Ioana Dinu' }] } } } } };
+    // The Strapi admin FetchError: status at the top level, response = { data } only.
+    const err = { name: 'FetchError', status: 409, response: { data: { error: { details: { inactive: [{ id: 'a3', name: 'Ioana Dinu' }] } } } } };
     expect(readInactive(err)).toEqual([{ id: 'a3', name: 'Ioana Dinu' }]);
-    expect(readInactive({ response: { status: 409, data: { error: { message: 'Prezența s-a schimbat între timp. Reîncarcă.' } } } })).toBeNull();
+    expect(readInactive({ status: 409, response: { data: { error: { message: 'Prezența s-a schimbat între timp. Reîncarcă.' } } } })).toBeNull();
+    expect(readInactive({ status: 500, response: { data: { error: { details: { inactive: [{ id: 'a3', name: 'x' }] } } } } })).toBeNull();
+    expect(readInactive({ status: 409 })).toBeNull();
     expect(answerInactive(answerInactive({ reactivate: [], keepInactive: [] }, 'a3', true), 'a4', false)).toEqual({ reactivate: ['a3'], keepInactive: ['a4'] });
   });
 });

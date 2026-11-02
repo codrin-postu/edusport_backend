@@ -25,11 +25,10 @@ export function toggleTick(t: Ticks, athleteId: string, type: 'grup' | 'uscat'):
 
 const isTicked = (t: Ticks, id: string): boolean => !!t[id] && (t[id].grup || t[id].uscat);
 
+/** "x din y": a visitor is in neither x nor y, as on the day and group lists (C42). */
 export function footerCounts(rows: PanelRow[], t: Ticks): { present: number; listed: number } {
-  return {
-    present: rows.filter((r) => isTicked(t, r.athleteId)).length,
-    listed: rows.filter((r) => !r.visitor).length,
-  };
+  const listed = rows.filter((r) => !r.visitor);
+  return { present: listed.filter((r) => isTicked(t, r.athleteId)).length, listed: listed.length };
 }
 
 const tickKey = (t: Ticks, id: string): string => `${t[id]?.grup ? 1 : 0}${t[id]?.uscat ? 1 : 0}`;
@@ -79,11 +78,12 @@ export function saveBody(p: SessionPanel, t: Ticks, coaches: CoachFields, answer
 
 /** The inactive 409 of a save: the athletes to ask about; null for any other error. */
 export function readInactive(err: unknown): InactiveAthlete[] | null {
-  if (!isRecord(err) || !isRecord(err.response)) return null;
-  const body = isRecord(err.response.data) ? err.response.data : {};
+  // The Strapi admin FetchError carries the status at err.status and the body at err.response.data.
+  if (!isRecord(err) || err.status !== 409) return null;
+  const body = isRecord(err.response) && isRecord(err.response.data) ? err.response.data : {};
   const error = isRecord(body.error) ? body.error : {};
   const details = isRecord(error.details) ? error.details : {};
-  return err.response.status === 409 && Array.isArray(details.inactive) ? (details.inactive as InactiveAthlete[]) : null;
+  return Array.isArray(details.inactive) ? (details.inactive as InactiveAthlete[]) : null;
 }
 
 export function answerInactive(answers: InactiveAnswers, athleteId: string, reactivate: boolean): InactiveAnswers {

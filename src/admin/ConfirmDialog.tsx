@@ -31,7 +31,7 @@ import { Input } from './ui/Input';
 export interface ConfirmDialogProps {
   open: boolean;
   title: React.ReactNode;
-  /** Main body copy. */
+  /** Main body copy. With no message, detail, typed text or error the dialog has no body, only the title and the buttons. */
   message: React.ReactNode;
   /** Optional secondary line under `message` (muted). */
   detail?: React.ReactNode;
@@ -85,6 +85,8 @@ export function ConfirmDialog({
   const needsTyping = expected !== '';
   const matches = !needsTyping || typed.trim().toLowerCase() === expected.toLowerCase();
   const confirmDisabled = !matches || busy;
+  const hasMessage = message !== null && message !== undefined && message !== false;
+  const hasBody = hasMessage || !!detail || needsTyping || !!error;
 
   // Escape, overlay click and Cancel are all blocked while a delete is in flight.
   const dismiss = () => {
@@ -115,34 +117,38 @@ export function ConfirmDialog({
         </>
       }
     >
-      <p style={{ margin: needsTyping || detail ? '0 0 12px' : 0 }}>{message}</p>
+      {hasBody ? (
+        <>
+        {hasMessage && <p style={{ margin: needsTyping || detail ? '0 0 12px' : 0 }}>{message}</p>}
 
-      {detail && (
-        <p className="ui-muted" style={{ margin: needsTyping ? '0 0 12px' : 0 }}>
-          {detail}
-        </p>
-      )}
+        {detail && (
+          <p className="ui-muted" style={{ margin: needsTyping ? '0 0 12px' : 0 }}>
+            {detail}
+          </p>
+        )}
 
-      {needsTyping && (
-        <Field label={typedPrompt ?? `Scrie "${expected}" pentru confirmare:`} className="ui-confirm-typed">
-          <Input
-            ref={inputRef}
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && matches && !busy) onConfirm();
-            }}
-            placeholder={expected}
-            autoComplete="off"
-          />
-        </Field>
-      )}
+        {needsTyping && (
+          <Field label={typedPrompt ?? `Scrie "${expected}" pentru confirmare:`} className="ui-confirm-typed">
+            <Input
+              ref={inputRef}
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && matches && !busy) onConfirm();
+              }}
+              placeholder={expected}
+              autoComplete="off"
+            />
+          </Field>
+        )}
 
-      {error && (
-        <div className="ui-error" role="alert" style={{ marginTop: 10, fontSize: 12.5 }}>
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="ui-error" role="alert" style={{ marginTop: 10, fontSize: 12.5 }}>
+            {error}
+          </div>
+        )}
+        </>
+      ) : undefined}
     </Modal>
   );
 }

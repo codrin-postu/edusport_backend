@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { ensureAdminUi } from './ui/styles';
+import { EDUSPORT_LINKS, GROUP_LABEL, GROUP_ORDER } from './dashboard/menu';
 
 interface NavItem {
   label: string;
@@ -58,12 +59,18 @@ function useIsMobile(query = '(max-width: 640px)'): boolean {
 }
 
 /*
- * The links are read from Strapi's own main nav on purpose, not from
- * menu.tsx EDUSPORT_LINKS: on phones the EduSport sidebar is hidden and this
- * burger stands in for Strapi's main nav (Content Manager, Media Library,
- * Settings, the addMenuLink pages), a different set of entries than
- * EDUSPORT_LINKS. Switching would change what the menu offers.
+ * Two sources. The EduSport links (EDUSPORT_LINKS, the desktop sidebar's list)
+ * come first, by group, so Grupe, Sportivi, Prezență and the rest always show.
+ * Reading them only from Strapi's nav failed on phones: that nav is found by
+ * the sticky-and-tall tagging in app.tsx (display:none here, and only tagged
+ * once laid out), so the lookup came back empty. Strapi's nav still adds what
+ * the EduSport list lacks (Content Manager, Settings, other plugin links) when
+ * it is tagged; entries already covered by an EduSport link are dropped.
  */
+export function eduLinkHref(to: string): string {
+  return '/admin' + to;
+}
+
 function readLinksFromContainer(container: Element | null): NavItem[] {
   if (!container) return [];
   const seen = new Set<string>();
@@ -144,20 +151,22 @@ export function MobileNav() {
   // Tokens + theme sync (idempotent; the bootstrap already ran it).
   React.useInsertionEffect(() => ensureAdminUi(), []);
 
-  // Re-read every time the menu opens so the list reflects the current page
-  // (the SubNav is only present when the user is inside Content Manager /
-  // Settings, so its contents change as they navigate).
+  // Re-read every time the menu opens so the Strapi extras reflect the current page.
   React.useEffect(() => {
     if (!open) return;
 
-    const sidebar = document.querySelector(SIDEBAR_SELECTOR);
-
-    const sidebarLinks = readLinksFromContainer(sidebar);
-
     const next: NavGroup[] = [];
-    if (sidebarLinks.length > 0) {
-      next.push({ title: 'Navigare', items: sidebarLinks });
+    const covered = new Set<string>();
+    for (const group of GROUP_ORDER) {
+      const items = EDUSPORT_LINKS.filter((l) => l.group === group).map((l) => {
+        const href = eduLinkHref(l.to);
+        covered.add(href);
+        return { label: l.label, href };
+      });
+      if (items.length > 0) next.push({ title: GROUP_LABEL[group], items });
     }
+    const extra = readLinksFromContainer(document.querySelector(SIDEBAR_SELECTOR)).filter((l) => !covered.has(l.href ?? ''));
+    if (extra.length > 0) next.push({ title: 'Navigare', items: extra });
     next.push({
       title: 'Cont',
       items: [

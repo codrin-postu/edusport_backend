@@ -1,6 +1,6 @@
 export const PREZENTA_COPY = {
   title: 'Prezență', tabSessions: 'Ședințe', tabLessons: 'Lecții individuale', tabCoaches: 'Pe antrenori',
-  today: 'Azi', prevDay: 'Ziua anterioară', nextDay: 'Ziua următoare', prevMonth: 'Luna anterioară', nextMonth: 'Luna următoare',
+  today: 'Azi', prevDay: 'Ziua anterioară', nextDay: 'Ziua următoare', monthLabel: 'Luna', prevMonth: 'Luna anterioară', nextMonth: 'Luna următoare',
   newSession: '+ Ședință nouă', newLesson: '+ Lecție individuală', exportCsv: 'Export CSV',
   startNotice: 'Setează data de început a prezenței în Setări site.',
   colDate: 'Data', colTime: 'Ora', colGroup: 'Grupă', colCoach: 'Antrenor', colPresent: 'Prezenți', colState: 'Stare',
