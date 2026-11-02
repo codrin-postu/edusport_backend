@@ -10,7 +10,7 @@ import { lessonTitle, longDayTitle } from '../../../club/prezenta/day-view';
 import { coachIdsOf, type CoachFields as CoachValue } from '../../../club/prezenta/panel-view';
 import { PanelShell } from '../grupe/PanelShell';
 import { usePrezentaApi, type PrezentaApi } from './api';
-import { CoachFields } from './CoachFields';
+import { CoachFields, useCoachOptions } from './CoachFields';
 import { failToast, prezentaChanged, undoToast } from './undo';
 
 type Props = { id: string; onClose: () => void };
@@ -38,14 +38,6 @@ function useLesson(api: PrezentaApi, id: string) {
     return () => { off = true; };
   }, [api, id]);
   return { lesson, draft, setDraft, failed };
-}
-
-function useCoachOptions(api: PrezentaApi): { documentId: string; name: string }[] {
-  const [coaches, setCoaches] = React.useState<{ documentId: string; name: string }[]>([]);
-  React.useEffect(() => {
-    api.options().then((o) => setCoaches(o.coaches)).catch(() => undefined);
-  }, [api]);
-  return coaches;
 }
 
 type Actions = { busy: boolean; coachError: string | null; save: () => Promise<void>; remove: () => Promise<void> };
@@ -111,7 +103,7 @@ function LessonBody({ lesson, draft, busy, coachError, options, onDraft, onDelet
 export function LessonPanel({ id, onClose }: Props) {
   const api = usePrezentaApi();
   const { lesson, draft, setDraft, failed } = useLesson(api, id);
-  const options = useCoachOptions(api);
+  const { coaches: options, failed: coachesFailed } = useCoachOptions(api);
   const { busy, coachError, save, remove } = useActions(api, id, draft, onClose);
   const [confirm, setConfirm] = React.useState(false);
   const footer = (
@@ -123,7 +115,7 @@ export function LessonPanel({ id, onClose }: Props) {
   return (
     <>
       <PanelShell title={lesson ? lessonTitle(lesson.startTime) : ''} footer={footer} onClose={() => { if (!busy) onClose(); }}>
-        {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
+        {(failed || coachesFailed) && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
         {!failed && !(lesson && draft) && <Loading />}
         {lesson && draft && (
           <LessonBody lesson={lesson} draft={draft} busy={busy} coachError={coachError} options={options} onDraft={setDraft} onDelete={() => setConfirm(true)} />

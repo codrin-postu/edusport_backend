@@ -1,7 +1,19 @@
 import * as React from 'react';
 import { Field, SearchableSelect } from '../../ui';
 import { PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
+import type { PrezentaApi } from './api';
 import { addCoachField, setCoach, type CoachFields as CoachValue } from '../../../club/prezenta/panel-view';
+
+export type CoachOptions = { coaches: { documentId: string; name: string }[]; failed: boolean };
+
+/** The coach choices; `failed` is set when they could not be loaded, so the panel can say so instead of showing an empty list. */
+export function useCoachOptions(api: PrezentaApi): CoachOptions {
+  const [state, setState] = React.useState<CoachOptions>({ coaches: [], failed: false });
+  React.useEffect(() => {
+    api.options().then((o) => setState({ coaches: o.coaches, failed: false })).catch(() => setState({ coaches: [], failed: true }));
+  }, [api]);
+  return state;
+}
 
 type Props = {
   label: string;

@@ -15,7 +15,7 @@ import { PanelShell } from '../grupe/PanelShell';
 import { AthleteSearch } from '../sportivi/AthleteSearch';
 import { useSportiviApi } from '../sportivi/api';
 import { usePrezentaApi, type PrezentaApi, type SessionQuery } from './api';
-import { CoachFields } from './CoachFields';
+import { CoachFields, useCoachOptions } from './CoachFields';
 import { InactiveDialog } from './InactiveDialog';
 import { failToast, prezentaChanged } from './undo';
 
@@ -58,18 +58,10 @@ function usePanelData(api: PrezentaApi, target: SessionTarget, picked: string[] 
 const dirtyOf = (a: Draft, b: Draft): boolean =>
   isDirty({ ticks: a.ticks, coaches: a.coaches, visitors: visitorIds(a.rows) }, { ticks: b.ticks, coaches: b.coaches, visitors: visitorIds(b.rows) });
 
-function useCoachOptions(api: PrezentaApi): { documentId: string; name: string }[] {
-  const [coaches, setCoaches] = React.useState<{ documentId: string; name: string }[]>([]);
-  React.useEffect(() => {
-    api.options().then((o) => setCoaches(o.coaches)).catch(() => undefined);
-  }, [api]);
-  return coaches;
-}
-
 function RowName({ row }: { row: PanelRow }) {
   return (
     <>
-      <span className="spv-name">{row.name}</span>
+      <span>{row.name}</span>
       {row.visitor && row.mainGroup && <span className="pz-sub">{row.mainGroup}</span>}
       {row.abonament && <span className="pz-sub">{row.abonament}</span>}
       {row.noSubscription && <span className="pz-sub pz-warn">{PRESENCE_WORDS.noSubscription}</span>}
@@ -186,7 +178,7 @@ function PanelBody({ panel, draft, readOnly, locked, coachError, coachOptions, s
 export function SessionPanel({ target, coachIds, readOnly = false, onClose }: Props) {
   const api = usePrezentaApi();
   const { panel, start, draft, setDraft, failed } = usePanelData(api, target, coachIds);
-  const coachOptions = useCoachOptions(api);
+  const { coaches: coachOptions, failed: coachesFailed } = useCoachOptions(api);
   const { busy, coachError, ask, answer, save } = useSave(api, panel, draft, onClose);
   const [confirm, setConfirm] = React.useState(false);
   const locked = readOnly || busy;
@@ -207,7 +199,7 @@ export function SessionPanel({ target, coachIds, readOnly = false, onClose }: Pr
   return (
     <>
       <PanelShell title={title} footer={footer} onClose={requestClose}>
-        {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
+        {(failed || coachesFailed) && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
         {!failed && !(panel && draft) && <Loading />}
         {panel && draft && <PanelBody panel={panel} draft={draft} readOnly={readOnly} locked={locked} coachError={coachError} coachOptions={coachOptions} setDraft={setDraft} />}
       </PanelShell>
