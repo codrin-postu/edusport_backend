@@ -13,7 +13,7 @@ import type { AttendanceRow, SessionRow, SessionWrite, SubscriptionRow } from '.
 import type { InactiveAthlete, SessionSaved, SessionSaveBody } from './api-types';
 import { rosterOn } from './roster';
 import { saveLines } from './save-lines';
-import { isTicked, planRows, readSaveBody, type RowPlan } from './save-plan';
+import { isTicked, planRows, presentAfter, readSaveBody, type RowPlan } from './save-plan';
 import { resolveScope, type SaveScope, type SaveTarget } from './save-target';
 
 export { respondSave } from './http';
@@ -134,7 +134,7 @@ async function writeSave(ctx: PresenceContext, scope: SaveScope, b: SessionSaveB
   if (!created) await ctx.store.updateSession(session.id, { coachIds: coachesChanged ? b.coachIds : session.coachIds, savedBy: await actorName(ctx), savedAt: ctx.now().toISOString() });
   await recordPresenceLines(ctx.store, ctx.actor, saveLines({
     sessionId: session.id, groupName: scope.group.name, date: scope.target.date, created, plan, coachIds: b.coachIds, coachesFrom: coachesChanged ? session.coachIds : null,
-    present: people.rows.length - plan.deletes.length + plan.creates.length, listed: listed.length, reactivated,
+    present: presentAfter(people.rows, plan, listed), listed: listed.length, reactivated,
   }));
   return done({ sessionId: session.id, toast }, null);
 }

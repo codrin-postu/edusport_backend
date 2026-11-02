@@ -45,6 +45,13 @@ function repriced(i: PlanInput, row: Existing, t: Tick, plan: RowPlan): void {
   if (!row.uscat && t.uscat) plan.uscatTicked.push(t.athleteId);
 }
 
+/** "x" of "x din y" after a save: rows of athletes on the list that stay or are added; visitors are in neither x nor y (C42). Pure. */
+export function presentAfter(existing: PlanInput['existing'], plan: RowPlan, listed: string[]): number {
+  const kept = existing.filter((r) => !plan.deletes.includes(r.id)).map((r) => r.athleteId);
+  const added = plan.creates.map((r) => r.athleteId);
+  return [...kept, ...added].filter((id) => listed.includes(id)).length;
+}
+
 /** What a save does to the session's rows (spec 4.8 to 4.13). Pure; the slot map is copied, so two rows never take one last slot. */
 export function planRows(i: PlanInput): RowPlan {
   const plan: RowPlan = { creates: [], updates: [], deletes: [], added: [], removed: [], uscatTicked: [], newVisitors: [] };

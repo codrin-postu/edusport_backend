@@ -70,10 +70,11 @@ describe('panel columns, ticks and footer (5.3, p5 Q3, 4.1)', () => {
     expect(initialTicks(panel({ sessionId: 's1', rows: [row('a1', { grup: true })] }))).toEqual({ a1: { grup: true, uscat: false } });
   });
 
-  it('counts visitors in x only', () => {
+  it('counts a visitor in neither x nor y', () => {
     const rows = [row('a1'), row('a2'), row('a7', { visitor: true })];
-    expect(footerCounts(rows, { a1: { grup: true, uscat: false }, a7: { grup: true, uscat: false } })).toEqual({ present: 2, listed: 2 });
+    expect(footerCounts(rows, { a1: { grup: true, uscat: false }, a7: { grup: true, uscat: false } })).toEqual({ present: 1, listed: 2 });
     expect(footerCounts(rows, toggleTick({}, 'a2', 'uscat'))).toEqual({ present: 1, listed: 2 });
+    expect(footerCounts([row('a7', { visitor: true })], { a7: { grup: true, uscat: false } })).toEqual({ present: 0, listed: 0 });
   });
 });
 

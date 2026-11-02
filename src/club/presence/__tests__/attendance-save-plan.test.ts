@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planRows } from '../attendance/save-plan';
+import { planRows, presentAfter } from '../attendance/save-plan';
 import { readSaveBody } from '../attendance/save-plan';
 import { attendanceRow, P_LISTS, subscriptionRow } from './fake-store';
 
@@ -72,5 +72,16 @@ describe('readSaveBody', () => {
     expect(readSaveBody({ id: 's1', coachIds: [], ticks: [{ athleteId: 'a1', grup: 'da' }] })).toBeNull();
     expect(readSaveBody({ id: 's1', coachIds: [], ticks: [], reactivate: [1] })).toBeNull();
     expect(readSaveBody({ added: { groupId: 'g', date: '2026-11-17', startTime: '11:00', durationMin: 3 }, coachIds: [], ticks: [] })).toBeNull();
+  });
+});
+
+describe('presentAfter', () => {
+  it('counts listed athletes only: a visitor is in neither x nor y', () => {
+    const plan = planRows({ ...base, kind: 'school', list: list('pl-std'), existing: [], subs: [], ticks: [{ athleteId: 'a1', grup: true, uscat: false }, { athleteId: 'a9', grup: true, uscat: false }] });
+    expect(presentAfter([], plan, ['a1', 'a2'])).toBe(1);
+    const kept = attendanceRow({ id: 't1', sessionId: 's1', athleteId: 'a9', visitor: true });
+    const gone = attendanceRow({ id: 't2', sessionId: 's1', athleteId: 'a2' });
+    const next = planRows({ ...base, kind: 'school', list: list('pl-std'), existing: [kept, gone], subs: [], ticks: [{ athleteId: 'a9', grup: true, uscat: false }] });
+    expect(presentAfter([kept, gone], next, ['a1', 'a2'])).toBe(0);
   });
 });

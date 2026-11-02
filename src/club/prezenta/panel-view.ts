@@ -25,11 +25,10 @@ export function toggleTick(t: Ticks, athleteId: string, type: 'grup' | 'uscat'):
 
 const isTicked = (t: Ticks, id: string): boolean => !!t[id] && (t[id].grup || t[id].uscat);
 
+/** "x din y": a visitor is in neither x nor y, as on the day and group lists (C42). */
 export function footerCounts(rows: PanelRow[], t: Ticks): { present: number; listed: number } {
-  return {
-    present: rows.filter((r) => isTicked(t, r.athleteId)).length,
-    listed: rows.filter((r) => !r.visitor).length,
-  };
+  const listed = rows.filter((r) => !r.visitor);
+  return { present: listed.filter((r) => isTicked(t, r.athleteId)).length, listed: listed.length };
 }
 
 const tickKey = (t: Ticks, id: string): string => `${t[id]?.grup ? 1 : 0}${t[id]?.uscat ? 1 : 0}`;
