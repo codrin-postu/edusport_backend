@@ -2,11 +2,12 @@ import { ACS_WORDS } from '../acs';
 import { ATHLETE_FIELDS, ATHLETE_FIELD_LABELS, missingText, type AthleteField, type AthleteStatus } from '../athlete-data';
 import type { AthleteEditResponse, AthleteRecord } from '../athletes/api-types';
 import { ADMIN_ERRORS } from '../athletes/errors';
+import { MONEY_UI_COPY } from '../presence/copy/money-ui';
 import { EMPTY_DATE, partsFromDisplay, partsToDisplay, type DateParts } from '../ui-birth-date';
 
 /** Rules of the athlete record (spec 6): header, Date tab, toasts, Istoric time, "..." menu. Pure. */
 
-export type RecordTab = 'date' | 'profil' | 'documente' | 'istoric';
+export type RecordTab = 'date' | 'abonament' | 'plati' | 'profil' | 'documente' | 'istoric';
 export type MenuKey = 'status' | 'merge' | 'delete';
 
 export const RECORD_COPY = {
@@ -28,7 +29,7 @@ export const RECORD_COPY = {
   documentFailed: 'Documentul nu a putut fi descărcat.',
   loadFailed: 'Nu am putut încărca sportivul.',
   historyFailed: 'Nu am putut încărca istoricul.',
-  tabs: { date: 'Date', profil: 'Profil public', documente: 'Documente', istoric: 'Istoric' },
+  tabs: { date: 'Date', abonament: MONEY_UI_COPY.tabs.abonament, plati: MONEY_UI_COPY.tabs.plati, profil: 'Profil public', documente: 'Documente', istoric: 'Istoric' },
   menu: { button: 'Mai multe acțiuni', inactive: 'Marchează inactiv', active: 'Marchează activ', merge: 'Unește cu alt sportiv', remove: 'Șterge sportivul' },
   inactiveDialog: { title: 'Marchezi sportivul ca inactiv?', message: 'Nu mai apare în liste. Istoricul rămâne.', confirm: 'Marchează inactiv' },
   deleteDialog: {
@@ -53,14 +54,18 @@ export function recordSubline(r: AthleteRecord): string {
   return [r.header.birthDate ?? RECORD_COPY.noBirthDate, r.header.mainGroup].filter(Boolean).join(', ');
 }
 
+const TAB_IDS: readonly RecordTab[] = ['date', 'abonament', 'plati', 'profil', 'documente', 'istoric'];
+const ANONYMIZED_TABS: readonly RecordTab[] = ['date', 'plati', 'istoric'];
+
+/** The tab the address asks for (`?tab=plati`), or null. */
+export function tabFromSearch(search: string): RecordTab | null {
+  const tab = new URLSearchParams(search).get('tab');
+  return TAB_IDS.find((id) => id === tab) ?? null;
+}
+
 export function recordTabs(r: AthleteRecord): { id: RecordTab; label: string; count?: number }[] {
-  const tabs: { id: RecordTab; label: string; count?: number }[] = [
-    { id: 'date', label: RECORD_COPY.tabs.date },
-    { id: 'profil', label: RECORD_COPY.tabs.profil },
-    { id: 'documente', label: RECORD_COPY.tabs.documente },
-    { id: 'istoric', label: RECORD_COPY.tabs.istoric, count: r.historyCount },
-  ];
-  return isReadOnlyRecord(r) ? tabs.filter((t) => t.id === 'date' || t.id === 'istoric') : tabs;
+  const tabs = TAB_IDS.map((id) => (id === 'istoric' ? { id, label: RECORD_COPY.tabs[id], count: r.historyCount } : { id, label: RECORD_COPY.tabs[id] }));
+  return isReadOnlyRecord(r) ? tabs.filter((t) => ANONYMIZED_TABS.includes(t.id)) : tabs;
 }
 
 export type FieldRowView = { field: AthleteField; label: string; value: string; missing: boolean };

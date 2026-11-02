@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AthleteRecord } from '../../athletes/api-types';
 import {
   EMPTY_DRAFT, RECORD_COPY, acsLine, checkDraft, editDraft, fieldRows, historyWhen, menuItems, newAthleteDraft, recordSubline, recordTabs,
-  registrationLine, saveToast, seasonFromState,
+  registrationLine, saveToast, seasonFromState, tabFromSearch,
 } from '../record-view';
 
 const record = (over: Partial<AthleteRecord> = {}): AthleteRecord => ({
@@ -30,9 +30,13 @@ describe('header (spec 6.1)', () => {
     expect(recordSubline(record({ header: { birthDate: null, mainGroup: null } }))).toBe('data nașterii lipsește');
   });
 
-  it('tabs Date | Profil public | Documente | Istoric (n)', () => {
+  it('tabs Date | Grupe și abonament | Plăți | Profil public | Documente | Istoric (n); anonymized keeps Date, Plăți, Istoric (5.7, C51, C52)', () => {
+    expect(recordTabs(record({ status: 'anonimizat' })).map((t) => t.id)).toEqual(['date', 'plati', 'istoric']);
+    expect([tabFromSearch('?tab=plati'), tabFromSearch('?tab=x'), tabFromSearch('')]).toEqual(['plati', null, null]);
     expect(recordTabs(record())).toEqual([
       { id: 'date', label: 'Date' },
+      { id: 'abonament', label: 'Grupe și abonament' },
+      { id: 'plati', label: 'Plăți' },
       { id: 'profil', label: 'Profil public' },
       { id: 'documente', label: 'Documente' },
       { id: 'istoric', label: 'Istoric', count: 4 },

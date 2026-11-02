@@ -52,4 +52,16 @@ describe('money UI source', () => {
     for (const name of ['dueParts', 'schoolCells', 'clubCells', 'payFor', 'noPriceListNotice', 'PaymentWindow', "athleteTabTo(", "'plati'", 'MONEY_UI_COPY.due.empty']) expect(l).toContain(name);
     expect(src('admin/dashboard/DeIncasatPage.tsx')).toContain('DeIncasatList');
   });
+  it('the athlete tabs (5.7)', () => {
+    const r = src('admin/dashboard/sportivi/AthleteRecordPage.tsx');
+    for (const name of ['AbonamentTab', 'PlatiTab', 'tabFromSearch', "tab === 'abonament'", "tab === 'plati'"]) expect(r).toContain(name);
+    const a = src('admin/dashboard/bani/AbonamentTab.tsx');
+    for (const name of ['AbonamentBar', 'AddSubscriptionWindow', 'MONEY_UI_COPY', 'copy.none', 'SessionPanel', 'attendanceLine(']) expect(a).toContain(name);
+    expect(a + src('admin/dashboard/bani/styles.ts')).toMatch(/\.bn-warn\{color:var\(--theme-warning\)\}/);
+    expect(a).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
+    const p = src('admin/dashboard/bani/PlatiTab.tsx');
+    for (const name of ['paymentsReadOnly', 'readOnly', 'ExpandableRow', 'platiCells', 'rowMenu', 'PaymentWindow', 'CancelPaymentDialog']) expect(p).toContain(name);
+    expect(p).toMatch(/!readOnly &&/);
+    expect(p).toMatch(/if \(readOnly\) return cols/);
+  });
 });

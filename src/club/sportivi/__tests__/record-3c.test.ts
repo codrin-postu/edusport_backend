@@ -41,10 +41,10 @@ describe('record menu (3C spec 3, 4, 6)', () => {
     expect(anonymizeErrorText(fail(500, 'Internal Server Error'))).toBe('Acțiunea nu a reușit. Nimic nu a fost salvat.');
   });
 
-  it('an anonymized record: read-only, Date and Istoric only, sub-line without "data nașterii lipsește"', () => {
+  it('an anonymized record: read-only, Date, Plăți and Istoric only, sub-line without "data nașterii lipsește"', () => {
     expect(isReadOnlyRecord(RECORD)).toBe(true);
     expect(isReadOnlyRecord({ status: 'inactiv' })).toBe(false);
-    expect(recordTabs(RECORD).map((t) => t.id)).toEqual(['date', 'istoric']);
+    expect(recordTabs(RECORD).map((t) => t.id)).toEqual(['date', 'plati', 'istoric']);
     expect(recordSubline(RECORD)).toBe('Începători');
   });
 
