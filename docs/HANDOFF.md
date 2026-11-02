@@ -11,7 +11,7 @@ One page to start the next session. Rules and commands: `CLAUDE.md`. Decisions: 
 | 3A + 3B Înscrieri, Sportivi, confirmation, matching, merge, delete | Built and reviewed on `feat/athletes`, polish merged. Not on main, not deployed |
 | 3C Personal data (export, anonymize, inactivity list, Super Admin) | Built and reviewed on `feat/athletes` (final review fixes merged, 1610d22); boot check proved no personal data left; running on the local environment |
 | 4 Groups and schedules | Complete on `feat/athletes` (9fd7947): 7 plans, per-plan and whole-branch reviews closed, user rulings applied; frontend 4-7 on frontend `feat/athletes` (f2c4e0d). Not deployed: one window for 2+3+4, `docs/architecture/15-deploy-window-2-3-4.md` |
-| 5 Attendance, abonamente, payments | PAUSED 2026-10-27. Plans 5-1..5-4 (backend) built and boot-checked on throwaway Postgres; backend final-review fix wave half done in worktree `p5-bfix` (branch fix/p5-backend-final: 6 commits, M2 double-submit guard uncommitted). 5-5 Prezență UI: T1-T2 merged, next T3, T4, T5+T6, T7 (sequential). 5-6 money UI not started. Resume notes: `.superpowers/sdd/2026-10-27-phase5/rulings.md` (last line) and the per-plan ledgers in `.superpowers/sdd/` |
+| 5 Attendance, abonamente, payments | Complete on `feat/athletes` (c6d8610), 2026-11-02: plans 5-1..5-6 built, boot-checked on throwaway Postgres (renders in frontend `docs/portal/mockups/screens/phase5-renders/`), backend final review and one combined final review for 5-5 + 5-6 closed with fix waves. Running on the local environment. Not deployed: deploy steps in `docs/superpowers/plans/2026-10-27-phase5-index.md` (Deploy); open user checks: De încasat lists an expired abonament at full price (spec 4.14), negative "Rămas" shown as "-60,50 RON" (C32) |
 | 6-8 | Not started (`docs/architecture/13-roadmap.md`) |
 
 Deploy: ONE window for phases 2, 3 and 4 (user, 2026-10-27), order in `docs/architecture/15-deploy-window-2-3-4.md`. Earlier note: ONE window for phase 2 + 3 together (DECISIONS 2026-10-26 d19), only with the user's approval, backup first, per `docs/architecture/12-phase2-deploy-runbook.md`, then `npm run migrate:athletes` steps. Merging `feat/athletes` into main also waits for that window.
@@ -75,9 +75,9 @@ Resolved since parking: athlete row lock and merge/delete locks (polish 12), mai
 - Final reviews: minors in `final/review-area1-data.md`, `review-area2-inscrieri.md` (M1-M11), `review-area3-sportivi-web.md` (M1-M14), and 3C `review-3c.md` M1-M7 (not covered by the I1-I3 fixes). Some were fixed in the visual and polish rounds; check before scheduling.
 
 
-## Local environment (2026-10-27)
+## Local environment (2026-11-02)
 
-One local EduSport only: Strapi 1340 + website 3010 + `edusport-test-pg`, worktrees `test-main`, running feat/athletes at 0c74c53 (all of phase 4 + user UI fixes), frontend f2c4e0d (4-7); groups migration steps 1-5 applied (backup test-pg-before-phase4.dump) with synthetic data. Login admin@example.invalid / Throwaway1! (Super Admin). DB backups before each update in the session scratchpad (`test-pg-before-*.dump`). The old `strapi_app` / `strapi_db` (1337 / 5432) is stopped, data kept in its volume.
+One local EduSport only: Strapi 1340 + website 3010 + `edusport-test-pg`, worktrees `test-main`, running feat/athletes at c6d8610 (phases 2-5), frontend f2c4e0d (4-7); groups migration steps 1-5 applied; phase 5 tables and indexes created on restart, "Prezență și plăți din" = 2026-10-01 (backup test-main/.test-private/test-pg-before-phase5.dump) with synthetic data. Login admin@example.invalid / Throwaway1! (Super Admin). DB backups before each update in the session scratchpad (`test-pg-before-*.dump`). The old `strapi_app` / `strapi_db` (1337 / 5432) is stopped, data kept in its volume.
 
 ## Review load (user, 2026-10-27)
 
