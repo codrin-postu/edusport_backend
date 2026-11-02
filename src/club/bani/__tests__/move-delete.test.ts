@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AthletePayments, AthleteSubscriptions, PaymentRowView } from '../../presence/money-api';
-import { isBlocked, readRefusal, refusalCounts } from '../delete-refusal';
+import { anonymizeOffered, isBlocked, readRefusal, refusalCounts } from '../delete-refusal';
 import { payPreselect, rowMenuItems } from '../../prezenta/panel-view';
 import { moveBarView } from '../move-bar';
 
@@ -22,6 +22,10 @@ describe('move and delete (5.12, 5.14)', () => {
     const c = refusalCounts(paymentsOf([{ cancelled: true }, { cancelled: false }]), { groups: [], bars: [bar], earlier: [] });
     expect(c).toEqual({ payments: 2, subscriptions: 1 });
     expect([isBlocked(c), isBlocked({ payments: 0, subscriptions: 0 })]).toEqual([true, false]);
+  });
+
+  it('a plain admin sees no anonymize hint nor button, a Super Admin does (C67)', () => {
+    expect([anonymizeOffered(true), anonymizeOffered(false)]).toEqual([true, false]);
   });
 
   it('counts are zero while nothing is loaded', () => {

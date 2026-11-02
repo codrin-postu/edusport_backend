@@ -87,6 +87,7 @@ describe('money UI source', () => {
     const d = src('admin/dashboard/sportivi/DeleteRefusalDialog.tsx');
     expect(d).toMatch(/isSuperAdmin && <Button[^\n]*LIFECYCLE_DELETE\.anonymize/);
     expect(d).toContain('deleteBlockedText');
+    expect(d).toMatch(/anonymizeOffered\(isSuperAdmin\) && <p[^\n]*anonymizeInstead/);
     expect(d).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
   });
   it('the Sportivi Abonament column after the group, and Prețuri "Uscat" (5.13, 5.15)', () => {

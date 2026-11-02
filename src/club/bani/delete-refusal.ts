@@ -10,6 +10,9 @@ export const refusalCounts = (payments: AthletePayments | null, subs: AthleteSub
 
 export const isBlocked = (c: RefusalCounts): boolean => c.payments > 0 || c.subscriptions > 0;
 
+/** Only a Super Admin may anonymize (route guard, C67): others see neither the button nor the hint about it. */
+export const anonymizeOffered = (isSuperAdmin: boolean): boolean => isSuperAdmin;
+
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 
 /** The counts of a 409 from DELETE (the Strapi admin FetchError: status at `err.status`, body at `err.response.data`), or null for any other failure. */
