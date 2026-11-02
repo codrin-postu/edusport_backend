@@ -347,7 +347,7 @@ Phone: tabs scroll; rows are cards ("17:00 Intermediari Bronze", "Virgil Pascu, 
 - Table "Sportiv" | "Grup" | "Uscat" (Club) or "Sportiv" | "Grup" (Școala); rows = the group's list on that date sorted by name, then visitors. Starts empty for an unsaved session; a saved one shows its ticks [p5 Q3].
 - Under the name: Școala, the abonament status (4.10); visitor, the main group (4.7). Row "..." menu: "Adaugă abonament" (Școala) and "+ Plată" [R D56; p5 Q18; C44].
 - "+ Adaugă doar la ședința asta": the athlete search of "Caută alt sportiv" (P3 4.1), anonymized left out, athletes already in the table left out; the picked athlete joins the table ticked "Grup" [DEC 2026-10-11 prezenta-questions-v1 (2); C45].
-- Footer: "<x> din <y> prezenți" (visitors counted in x only) [p5 scr 1], "Închide" (ghost), "Salvează" (primary).
+- Footer: "<x> din <y> prezenți" (visitors counted in neither, as C42) [p5 scr 1], "Închide" (ghost), "Salvează" (primary).
 - Saved: a muted line "Salvată de <admin>, <data> <ora>" [DEC 2026-10-11 prezenta-tab-v1 ("Salvată de ...")].
 - Toast after save: "Prezență salvată: <grupă>, <data>." ("Prezență salvată: Intermediari Bronze, 27 oct.") [p5 Q42], no "Anulează" (a save is corrected by saving again) [C46].
 - Closing with unsaved ticks: "Închizi fără să salvezi?" with "Rămâi" / "Închide" [p5 Q42].
