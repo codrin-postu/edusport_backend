@@ -1,14 +1,7 @@
 import * as React from 'react';
-import { AdminPage, PageHeader, Window } from '../ui';
-import { SHELL_COPY } from '../../club/presence/copy/prezenta-ui';
+import { DeIncasatList } from './bani/DeIncasatList';
 
-/** "De încasat": a shell until its phase 5 screen is built. */
+/** "De încasat" (5.11): what is still owed for the month. */
 export default function DeIncasatPage() {
-  return (
-    <AdminPage>
-      <Window>
-        <PageHeader title={SHELL_COPY.deIncasat} />
-      </Window>
-    </AdminPage>
-  );
+  return <DeIncasatList />;
 }
