@@ -156,12 +156,15 @@ it('lesson delete confirmation has no body strip: ConfirmDialog passes no childr
   expect(c).toContain(') : undefined}');
 });
 
-it('option A: day line under the title, one segmented switcher, month and buttons in the page header, no date input', () => {
+it('option A: day line under the title, one segmented switcher, month and buttons in the page header, date picker after the switcher', () => {
   const screen = src('dashboard/prezenta/PrezentaScreen.tsx');
   expect(screen).toMatch(/subtitle=\{query\.tab === 'sedinte' \? dayLine\(query\.date\)/);
   expect(screen).toContain('pz-head-slot');
   const day = src('dashboard/prezenta/DayTab.tsx');
-  expect(day).not.toContain('DateInput');
+  expect(day).toContain('<DateInput');
+  expect(day.indexOf('<DateInput')).toBeGreaterThan(day.indexOf('<Switcher'));
+  expect(day.indexOf('<DateInput')).toBeLessThan(day.indexOf('<Button onClick={onNew}'));
+  expect(day).toContain('onDate(v)');
   expect(day).toContain('<Switcher');
   expect(day).toContain('<HeaderSlot');
   for (const f of ['LessonsTab', 'CoachesTab']) expect(src(`dashboard/prezenta/${f}.tsx`), f).toContain('host={host}');

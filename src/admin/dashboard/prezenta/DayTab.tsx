@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, DataTable, Loading, Notice, StatusBadge, useIsPhone, type BadgeTone, type DataColumn } from '../../ui';
+import { Button, DataTable, DateInput, Loading, Notice, StatusBadge, useIsPhone, type BadgeTone, type DataColumn } from '../../ui';
 import { PRESENCE_ERRORS, PRESENCE_WORDS } from '../../../club/presence/copy/core';
 import { PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
 import { listDate } from '../../../club/presence/dates';
@@ -108,6 +108,7 @@ function DayBar({ date, today, host, onDate, onNew }: BarProps) {
         onPrev={() => onDate(addDays(date, -1))} onNext={() => onDate(addDays(date, 1))}
         middle={PREZENTA_COPY.today} onMiddle={() => today && onDate(today)} middleDisabled={!today} middleOn={date === today}
       />
+      <DateInput value={date} lang="ro" aria-label={PREZENTA_COPY.colDate} onChange={(v) => { if (v) onDate(v); }} />
       <Button onClick={onNew}>{PREZENTA_COPY.newSession}</Button>
     </HeaderSlot>
   );
