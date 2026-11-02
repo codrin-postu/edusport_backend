@@ -15,6 +15,7 @@ import { useMoneyApi } from './api';
 import { PaymentWindow } from './PaymentWindow';
 import { RowMenu } from './RowMenu';
 import { MONEY_CSS } from './styles';
+import { useLatest } from './latest';
 import { useMoneyChanged } from './undo';
 
 type DueRow = SchoolDueRow | ClubDueRow;
@@ -26,14 +27,18 @@ function useDue(month: string): { page: DuePage | null; failed: boolean } {
   const api = useMoneyApi();
   const [page, setPage] = React.useState<DuePage | null>(null);
   const [failed, setFailed] = React.useState(false);
+  const latest = useLatest();
   const reload = React.useCallback(async () => {
+    const current = latest.next();
     try {
-      setPage(await api.due(month));
+      const next = await api.due(month);
+      if (!current()) return;
+      setPage(next);
       setFailed(false);
     } catch {
-      setFailed(true);
+      if (current()) setFailed(true);
     }
-  }, [api, month]);
+  }, [api, latest, month]);
   React.useEffect(() => { setPage(null); void reload(); }, [reload]);
   useMoneyChanged(() => void reload());
   return { page, failed };

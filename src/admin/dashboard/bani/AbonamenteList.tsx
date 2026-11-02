@@ -19,6 +19,7 @@ import { AddSubscriptionWindow } from './AddSubscriptionWindow';
 import { useMoneyApi, type MoneyApi } from './api';
 import { ExtendModal } from './ExtendModal';
 import { RowMenu } from './RowMenu';
+import { useLatest } from './latest';
 import { runOnce } from './useSubmitOnce';
 import { MONEY_CSS } from './styles';
 import { moneyUndoToast, useMoneyChanged } from './undo';
@@ -33,14 +34,18 @@ function useSubscriptions(q: SubscriptionQuery): { page: SubscriptionListPage | 
   const [page, setPage] = React.useState<SubscriptionListPage | null>(null);
   const [failed, setFailed] = React.useState(false);
   const { state, groupId } = q;
+  const latest = useLatest();
   const reload = React.useCallback(async () => {
+    const current = latest.next();
     try {
-      setPage(await api.subscriptions({ state, groupId }));
+      const next = await api.subscriptions({ state, groupId });
+      if (!current()) return;
+      setPage(next);
       setFailed(false);
     } catch {
-      setFailed(true);
+      if (current()) setFailed(true);
     }
-  }, [api, state, groupId]);
+  }, [api, latest, state, groupId]);
   React.useEffect(() => { setPage(null); void reload(); }, [reload]);
   useMoneyChanged(() => void reload());
   return { page, failed };

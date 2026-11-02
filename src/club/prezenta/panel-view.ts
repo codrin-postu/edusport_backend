@@ -1,3 +1,4 @@
+import { PRESENCE_WORDS } from '../presence/copy/core';
 import { MONEY_UI_COPY } from '../presence/copy/money-ui';
 import { PREZENTA_COPY } from '../presence/copy/prezenta-ui';
 import { monthOf } from '../presence/dates';
@@ -75,6 +76,21 @@ export function setCoach(f: CoachFields, index: number, id: string | null): Coac
 
 export function coachIdsOf(f: CoachFields): string[] {
   return [...new Set(f.filter((c): c is string => !!c))];
+}
+
+/** After a money write: the rows' abonament lines come from the fresh read; ticks, visitors and every row the person added stay as they are. */
+export function refreshAbonamentLines(rows: PanelRow[], fresh: PanelRow[]): PanelRow[] {
+  const byId = new Map(fresh.map((r) => [r.athleteId, r]));
+  return rows.map((r) => {
+    const f = byId.get(r.athleteId);
+    return f ? { ...r, abonament: f.abonament, noSubscription: f.noSubscription } : r;
+  });
+}
+
+/** The two sub-lines under a name: the abonament status, and the amber "Fără abonament" tag unless the status line already says it. */
+export function rowSubLines(r: Pick<PanelRow, 'abonament' | 'noSubscription'>): { status: string | null; warn: string | null } {
+  const warn = r.noSubscription ? PRESENCE_WORDS.noSubscription : null;
+  return { status: r.abonament && r.abonament !== warn ? r.abonament : null, warn };
 }
 
 export function addVisitor(rows: PanelRow[], card: AthleteCard): PanelRow[] {

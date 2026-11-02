@@ -15,6 +15,7 @@ import { useMoneyApi } from './api';
 import { CancelPaymentDialog } from './CancelPaymentDialog';
 import { PaymentWindow } from './PaymentWindow';
 import { MONEY_CSS } from './styles';
+import { useLatest } from './latest';
 import { useMoneyChanged } from './undo';
 
 type Dialog = { kind: 'new' } | { kind: 'edit'; payment: PaymentRowView } | { kind: 'cancel'; payment: PaymentRowView } | null;
@@ -32,14 +33,18 @@ function usePayments(f: Filters): { list: PaymentList | null; failed: boolean } 
   const [list, setList] = React.useState<PaymentList | null>(null);
   const [failed, setFailed] = React.useState(false);
   const { month, method, purpose } = f;
+  const latest = useLatest();
   const reload = React.useCallback(async () => {
+    const current = latest.next();
     try {
-      setList(await api.payments({ month, method: method as PaymentQuery['method'], purpose: purpose as PaymentQuery['purpose'] }));
+      const page = await api.payments({ month, method: method as PaymentQuery['method'], purpose: purpose as PaymentQuery['purpose'] });
+      if (!current()) return;
+      setList(page);
       setFailed(false);
     } catch {
-      setFailed(true);
+      if (current()) setFailed(true);
     }
-  }, [api, month, method, purpose]);
+  }, [api, latest, month, method, purpose]);
   React.useEffect(() => { setList(null); void reload(); }, [reload]);
   useMoneyChanged(() => void reload());
   return { list, failed };

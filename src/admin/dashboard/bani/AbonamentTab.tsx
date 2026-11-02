@@ -16,6 +16,7 @@ import { useMoneyApi } from './api';
 import { AbonamentBar } from './AbonamentBar';
 import { AddSubscriptionWindow } from './AddSubscriptionWindow';
 import { MONEY_CSS } from './styles';
+import { useLatest } from './latest';
 import { useMoneyChanged } from './undo';
 
 type Athlete = { id: string; name: string };
@@ -27,14 +28,18 @@ function useLoad<T>(load: () => Promise<T>, key: string): { data: T | null; fail
   const [failed, setFailed] = React.useState(false);
   const loadRef = React.useRef(load);
   loadRef.current = load;
+  const latest = useLatest();
   const reload = React.useCallback(async () => {
+    const current = latest.next();
     try {
-      setData(await loadRef.current());
+      const next = await loadRef.current();
+      if (!current()) return;
+      setData(next);
       setFailed(false);
     } catch {
-      setFailed(true);
+      if (current()) setFailed(true);
     }
-  }, [key]);
+  }, [latest, key]);
   React.useEffect(() => {
     setData(null);
     void reload();

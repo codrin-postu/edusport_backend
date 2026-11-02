@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { makeLatest } from '../../admin/dashboard/bani/latest';
 import { runOnce } from '../../admin/dashboard/bani/useSubmitOnce';
 import { MONEY_UI_COPY } from '../presence/copy/money-ui';
 import { KIND_OPTIONS } from '../../admin/pages/preturi/format';
@@ -71,6 +72,22 @@ describe('money UI source', () => {
     expect(n).toContain("useCoachOptions } from './CoachFields'");
     expect(n).not.toMatch(/function useCoachOptions/);
     expect(src('admin/dashboard/prezenta/CoachFields.tsx')).toMatch(/let off = false/);
+  });
+  it('a slow older answer is dropped (M5)', () => {
+    const l = makeLatest();
+    const first = l.next();
+    const second = l.next();
+    expect([first(), second()]).toEqual([false, true]);
+    l.cancel();
+    expect(second()).toBe(false);
+    for (const f of ['PlatiList', 'AbonamenteList', 'DeIncasatList', 'PlatiTab', 'AbonamentTab']) expect(src(`admin/dashboard/bani/${f}.tsx`), f).toMatch(/latest\.next\(\)/);
+    expect(src('admin/dashboard/prezenta/LessonsTab.tsx')).toMatch(/latest\.next\(\)/);
+  });
+  it('stale figures: the athlete Plăți tab follows Prezență writes, the session panel follows money writes (I5)', () => {
+    expect(src('admin/dashboard/bani/PlatiTab.tsx')).toContain('usePrezentaRefresh(() => void reload())');
+    const s = src('admin/dashboard/prezenta/SessionPanel.tsx');
+    expect(s).toContain('useMoneyChanged(');
+    expect(s).toContain('refreshAbonamentLines(d.rows, p.rows)');
   });
   it('strings outside the copy module moved in (M8)', () => {
     for (const f of ['PlatiList', 'AbonamenteList']) expect(src(`admin/dashboard/bani/${f}.tsx`)).not.toContain('`Arată ');
