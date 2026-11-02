@@ -73,6 +73,7 @@ function columns(today: string, onCancel: (r: SubscriptionListRow) => void): Dat
 }
 
 function Cards({ rows, today, onOpen, onCancel }: { rows: SubscriptionListRow[]; today: string; onOpen: (r: SubscriptionListRow) => void; onCancel: (r: SubscriptionListRow) => void }) {
+  if (rows.length === 0) return <p className="spv-muted bn-empty">{MONEY_UI_COPY.empty.abonamente}</p>;
   return (
     <ul className="spv-cards">
       {rows.map((r) => {
@@ -139,14 +140,14 @@ export function AbonamenteList() {
         <div className="bn-toolbar">
           <FilterPanel
             sections={abonamenteSections(query, page?.groups ?? [])} onChange={change} onClearAll={() => setParams({}, { replace: true })}
-            totalLabel={count} showLabel={`Arată ${count}`}
+            totalLabel={count} showLabel={MONEY_UI_COPY.show(count)}
           />
         </div>
         {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
         {!page && !failed && <Loading />}
         {page && (phone
           ? <Cards rows={page.rows} today={today} onOpen={open} onCancel={cancel} />
-          : <DataTable columns={columns(today, cancel)} rows={page.rows} getRowKey={(r) => r.subscriptionId} onRowClick={open} rowLabel={(r) => r.athleteName} pageSize={0} />)}
+          : <DataTable columns={columns(today, cancel)} rows={page.rows} getRowKey={(r) => r.subscriptionId} onRowClick={open} rowLabel={(r) => r.athleteName} pageSize={0} empty={MONEY_UI_COPY.empty.abonamente} />)}
       </Window>
       {dialog?.kind === 'extend' && <ExtendModal onClose={() => setDialog(null)} />}
       {dialog?.kind === 'search' && <AthletePick onPick={(athlete) => setDialog({ kind: 'add', athlete })} onClose={() => setDialog(null)} />}

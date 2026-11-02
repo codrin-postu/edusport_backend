@@ -5,7 +5,6 @@ import { todayIso } from '../../../club/groups/http';
 import type { AthleteMonthRow } from '../../../club/presence/attendance/api-types';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { MONEY_UI_COPY } from '../../../club/presence/copy/money-ui';
-import { PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
 import { monthOf } from '../../../club/presence/dates';
 import type { AthleteSubscriptions } from '../../../club/presence/money-api';
 import { MonthLine } from '../prezenta/LessonsTab';
@@ -65,7 +64,7 @@ function Attendance({ athlete }: { athlete: Athlete }) {
       <MonthLine month={month} onMonth={setMonth} />
       {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
       {!data && !failed && <Loading />}
-      {data && data.length === 0 && <p className="spv-muted">{PREZENTA_COPY.emptyGroupMonth}</p>}
+      {data && data.length === 0 && <p className="spv-muted">{MONEY_UI_COPY.empty.month}</p>}
       {data?.map((row) => {
         const line = attendanceLine(row);
         return (
@@ -88,7 +87,9 @@ function Subscriptions({ data }: { data: AthleteSubscriptions }) {
       <section className="bn-block">
         {data.bars.length === 0 ? <p className="spv-muted">{copy.none}</p> : data.bars.map((b) => <AbonamentBar key={b.subscriptionId} bar={b} />)}
       </section>
-      {earlier.length > 0 && <Lines title={copy.earlier} lines={earlier} />}
+      {earlier.length > 0
+        ? <Lines title={copy.earlier} lines={earlier} />
+        : <section className="bn-block"><h3 className="spv-h">{copy.earlier}</h3><p className="spv-muted">{MONEY_UI_COPY.empty.earlier}</p></section>}
     </>
   );
 }

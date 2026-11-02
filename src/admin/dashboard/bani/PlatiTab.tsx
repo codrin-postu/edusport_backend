@@ -89,8 +89,8 @@ export function PlatiTab({ athlete }: { athlete: Athlete }) {
       {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
       {!data && !failed && <Loading />}
       {data && !readOnly && <div><Button onClick={() => setDialog({ kind: 'new' })}>{MONEY_UI_COPY.plati.add}</Button></div>}
-      {data && <MonthRows months={data.months} />}
-      {data && <DataTable columns={columns(readOnly, (payment, kind) => setDialog({ kind, payment }))} rows={data.payments} getRowKey={(r) => r.paymentId} pageSize={0} />}
+      {data && data.months.length > 0 && <MonthRows months={data.months} />}
+      {data && <DataTable columns={columns(readOnly, (payment, kind) => setDialog({ kind, payment }))} rows={data.payments} getRowKey={(r) => r.paymentId} pageSize={0} empty={MONEY_UI_COPY.empty.plati} />}
       {dialog?.kind === 'new' && <PaymentWindow mode="new" athlete={athlete} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'edit' && <PaymentWindow mode="edit" payment={dialog.payment} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'cancel' && <CancelPaymentDialog payment={dialog.payment} onClose={() => setDialog(null)} />}

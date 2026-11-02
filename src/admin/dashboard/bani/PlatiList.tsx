@@ -83,6 +83,7 @@ function columns(onPick: (r: PaymentRowView, k: 'edit' | 'cancel') => void): Dat
 }
 
 function Cards({ rows, onPick }: { rows: PaymentRowView[]; onPick: (r: PaymentRowView, k: 'edit' | 'cancel') => void }) {
+  if (rows.length === 0) return <p className="spv-muted bn-empty">{MONEY_UI_COPY.empty.plati}</p>;
   return (
     <ul className="spv-cards">
       {rows.map((r) => {
@@ -127,12 +128,12 @@ export function PlatiList() {
         <div className="bn-toolbar">
           <FilterPanel
             sections={platiSections(filters, today)} onChange={change} onClearAll={() => setParams({}, { replace: true })}
-            totalLabel={count} showLabel={`Arată ${count}`}
+            totalLabel={count} showLabel={MONEY_UI_COPY.show(count)}
           />
         </div>
         {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
         {!list && !failed && <Loading />}
-        {list && (phone ? <Cards rows={list.rows} onPick={pick} /> : <DataTable columns={columns(pick)} rows={list.rows} getRowKey={(r) => r.paymentId} pageSize={0} />)}
+        {list && (phone ? <Cards rows={list.rows} onPick={pick} /> : <DataTable columns={columns(pick)} rows={list.rows} getRowKey={(r) => r.paymentId} pageSize={0} empty={MONEY_UI_COPY.empty.plati} />)}
         {list && <p className="bn-total">{totalLine(list)}</p>}
       </Window>
       {dialog?.kind === 'new' && <PaymentWindow mode="new" onClose={() => setDialog(null)} />}

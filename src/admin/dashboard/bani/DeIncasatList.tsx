@@ -151,7 +151,7 @@ export function DeIncasatList() {
       <Window>
         <PageHeader title={copy.title} subtitle={monthTitle(month)} />
         <div className="bn-toolbar">
-          <FilterPanel sections={dueSections(month, today)} onChange={change} onClearAll={() => setParams({}, { replace: true })} totalLabel="" showLabel="" />
+          <FilterPanel sections={dueSections(month, today)} onChange={change} onClearAll={() => setParams({}, { replace: true })} totalLabel="" showLabel={monthTitle(month)} />
         </div>
         {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
         {page && page.groupsWithoutList > 0 && <Notice tone="warning">{noPriceListNotice(page.groupsWithoutList)}</Notice>}
