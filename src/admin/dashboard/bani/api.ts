@@ -31,7 +31,7 @@ export function useMoneyApi() {
     const athlete = (id: string) => `${BASE}/athletes/${enc(id)}`;
     const payment = (id: string) => `${BASE}/payments/${enc(id)}`;
     return {
-      subscriptions: (q: SubscriptionQuery) => get<SubscriptionListPage>(`${BASE}/subscriptions${query({ state: q.state, group: q.groupId })}`),
+      subscriptions: (q: SubscriptionQuery) => get<SubscriptionListPage>(`${BASE}/subscriptions${query({ state: q.state, groupId: q.groupId })}`),
       extendPreview: () => get<{ count: number; key: string }>(`${BASE}/subscriptions/extend/preview`),
       extend: (weeks: number, key: string) => action<{ count: number; weeks: number }>(ref.current.post(`${BASE}/subscriptions/extend`, { weeks, key })),
       cancelSubscription: (id: string) => action<{ cancelled: true }>(ref.current.post(`${BASE}/subscriptions/${enc(id)}/cancel`, {})),
