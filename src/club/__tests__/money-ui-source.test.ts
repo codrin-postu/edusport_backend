@@ -36,4 +36,20 @@ describe('money UI source', () => {
     expect(l + src('admin/dashboard/bani/styles.ts')).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
     expect(src('admin/dashboard/PlatiPage.tsx')).toContain('PlatiList');
   });
+  it('the Abonamente page (5.8, 5.9)', () => {
+    const l = src('admin/dashboard/bani/AbonamenteList.tsx');
+    for (const name of ['abonamenteCells', 'abonamentMenu', 'athleteTabTo', 'ExtendModal', 'AddSubscriptionWindow', 'var(--theme-danger)']) expect(l).toContain(name);
+    expect(src('admin/dashboard/AbonamentePage.tsx')).toContain('AbonamenteList');
+    const e = src('admin/dashboard/bani/ExtendModal.tsx');
+    expect(e).toMatch(/\bkey\b/);
+    expect(e).toContain('useSubmitOnce');
+    const w = src('admin/dashboard/bani/AddSubscriptionWindow.tsx');
+    for (const name of ['addDraft', 'toggleCover', 'coverDisabled', 'addBody', 'useSubmitOnce', 'emailBox']) expect(w).toContain(name);
+    expect(w).not.toMatch(/payNow:\s*true|sendEmail:\s*true/);
+  });
+  it('the De încasat page (5.11)', () => {
+    const l = src('admin/dashboard/bani/DeIncasatList.tsx');
+    for (const name of ['dueParts', 'schoolCells', 'clubCells', 'payFor', 'noPriceListNotice', 'PaymentWindow', "athleteTabTo(", "'plati'", 'MONEY_UI_COPY.due.empty']) expect(l).toContain(name);
+    expect(src('admin/dashboard/DeIncasatPage.tsx')).toContain('DeIncasatList');
+  });
 });
