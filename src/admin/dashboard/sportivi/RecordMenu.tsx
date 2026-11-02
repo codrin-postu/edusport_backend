@@ -7,6 +7,7 @@ import { MenuButton } from '../SubmissionTable';
 import { downloadPdf } from '../inscrieri/downloadPdf';
 import type { AthleteRecord } from '../../../club/athletes/api-types';
 import { ADMIN_ERRORS } from '../../../club/athletes/errors';
+import { isBlocked, readRefusal, refusalCounts, type RefusalCounts } from '../../../club/bani/delete-refusal';
 import { PERSONAL_DATA_COPY } from '../../../club/personal-data/copy';
 import { requestErrorText } from '../../../club/registration-panel';
 import {
@@ -14,8 +15,10 @@ import {
 } from '../../../club/sportivi/personal-data-view';
 import { RECORD_COPY } from '../../../club/sportivi/record-view';
 import { SPORTIVI_PATH } from '../../../club/sportivi/routes';
+import { useMoneyApi, type MoneyApi } from '../bani/api';
 import { AnonymizeDialog } from './AnonymizeDialog';
 import type { SportiviApi } from './api';
+import { DeleteRefusalDialog } from './DeleteRefusalDialog';
 
 type Props = { record: AthleteRecord; api: SportiviApi; reload: () => Promise<void>; onMerge: () => void; superAdmin: boolean };
 type Dialog = 'inactive' | 'delete' | 'anonymize' | null;
@@ -31,6 +34,20 @@ async function activate(api: SportiviApi, id: string, reload: () => Promise<void
     await reload();
   } catch (err) {
     adminToast.error(requestErrorText(err, ADMIN_ERRORS.failed));
+  } finally {
+    setBusy(false);
+  }
+}
+
+/** What blocks the delete, read before the confirmation opens (decided 4); a read that fails shows the failure toast and opens nothing. */
+async function readBlock(money: MoneyApi, id: string, setBusy: SetBusy): Promise<RefusalCounts | null> {
+  setBusy(true);
+  try {
+    const [payments, subs] = await Promise.all([money.athletePayments(id), money.athleteSubscriptions(id, null)]);
+    return refusalCounts(payments, subs);
+  } catch (err) {
+    adminToast.error(requestErrorText(err, ADMIN_ERRORS.failed));
+    return null;
   } finally {
     setBusy(false);
   }
@@ -82,7 +99,7 @@ function MenuItems({ items, onPick }: { items: RecordMenuItem[]; onPick: (key: R
   );
 }
 
-type DialogsProps = Omit<Props, 'onMerge' | 'superAdmin'> & { dialog: Dialog; onClose: () => void };
+type DialogsProps = Omit<Props, 'onMerge' | 'superAdmin'> & { dialog: Dialog; onClose: () => void; onRefused: (counts: RefusalCounts) => void };
 type ConfirmState = { open: boolean; busy: boolean; error: string | null; onCancel: () => void; onConfirm: () => void };
 const failedText = (err: unknown): string => requestErrorText(err, ADMIN_ERRORS.failed);
 
@@ -132,7 +149,7 @@ function DeleteDialog({ open, busy, error, onCancel, onConfirm, name }: ConfirmS
 }
 
 /** "Marchează inactiv", "Șterge sportivul" (spec Open 3, 6.6) and "Anonimizează" (3C spec 4) confirmations. */
-function RecordDialogs({ record, api, reload, dialog, onClose }: DialogsProps) {
+function RecordDialogs({ record, api, reload, dialog, onClose, onRefused }: DialogsProps) {
   const navigate = useNavigate();
   const { busy, error, run, cancel } = useConfirmRunner(onClose);
   /** The anonymization is saved once `api.anonymize` answers: a failed reload after it is not shown as a failed action. */
@@ -140,6 +157,17 @@ function RecordDialogs({ record, api, reload, dialog, onClose }: DialogsProps) {
     await api.anonymize(record.documentId);
     adminToast.success(PERSONAL_DATA_COPY.done(1));
     await reload().then(focusRecordHeading, () => undefined);
+  };
+  /** A 409 with counts (a payment or abonament appeared meanwhile) switches to the refusal (5.14). */
+  const remove = async () => {
+    try {
+      await api.remove(record.documentId);
+      navigate(SPORTIVI_PATH, { replace: true });
+    } catch (err) {
+      const counts = readRefusal(err);
+      if (!counts) throw err;
+      onRefused(counts);
+    }
   };
   return (
     <>
@@ -149,7 +177,7 @@ function RecordDialogs({ record, api, reload, dialog, onClose }: DialogsProps) {
       />
       <DeleteDialog
         open={dialog === 'delete'} busy={busy} error={error} onCancel={cancel} name={record.fields.name ?? ''}
-        onConfirm={() => void run(async () => { await api.remove(record.documentId); navigate(SPORTIVI_PATH, { replace: true }); })}
+        onConfirm={() => void run(remove)}
       />
       <AnonymizeDialog open={dialog === 'anonymize'} count={null} busy={busy} error={error} onCancel={cancel} onConfirm={() => void run(anonymize, anonymizeErrorText)} />
     </>
@@ -160,13 +188,22 @@ function RecordDialogs({ record, api, reload, dialog, onClose }: DialogsProps) {
 export function RecordMenu({ record, api, reload, onMerge, superAdmin }: Props) {
   const [open, setOpen] = React.useState(false);
   const [dialog, setDialog] = React.useState<Dialog>(null);
+  const [refusal, setRefusal] = React.useState<RefusalCounts | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const money = useMoneyApi();
+  const startDelete = async () => {
+    const counts = await readBlock(money, record.documentId, setBusy);
+    if (counts === null) return;
+    if (isBlocked(counts)) setRefusal(counts);
+    else setDialog('delete');
+  };
   const pick = (key: RecordMenuKey) => {
     if (busy) return;
     setOpen(false);
     if (key === 'merge') onMerge();
     else if (key === 'export') void exportData(record.documentId, setBusy);
-    else if (key === 'delete' || key === 'anonymize') setDialog(key);
+    else if (key === 'delete') void startDelete();
+    else if (key === 'anonymize') setDialog(key);
     else if (record.status === 'inactiv') void activate(api, record.documentId, reload, setBusy);
     else setDialog('inactive');
   };
@@ -175,7 +212,13 @@ export function RecordMenu({ record, api, reload, onMerge, superAdmin }: Props) 
       <MenuButton label={<MenuLabel />} open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="spv-menu" placement="bottom-end" role="menu" chevron={false} disabled={busy}>
         <MenuItems items={recordMenuItems(record.status, superAdmin)} onPick={pick} />
       </MenuButton>
-      <RecordDialogs record={record} api={api} reload={reload} dialog={dialog} onClose={() => setDialog(null)} />
+      <RecordDialogs record={record} api={api} reload={reload} dialog={dialog} onClose={() => setDialog(null)} onRefused={setRefusal} />
+      {refusal && (
+        <DeleteRefusalDialog
+          name={record.fields.name ?? ''} counts={refusal} isSuperAdmin={superAdmin} onCancel={() => setRefusal(null)}
+          onAnonymize={() => { setRefusal(null); setDialog('anonymize'); }}
+        />
+      )}
     </>
   );
 }

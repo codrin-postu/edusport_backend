@@ -5,6 +5,7 @@ import type { AthleteCard, HistoryLine } from '../../../club/athletes/api-types'
 import type {
   ActionBody, AllocateResult, GroupListPage, GroupOptions, GroupPage, JoinResult, MoveResult, NamedRef, UnassignedPage,
 } from '../../../club/groups/api-types';
+import type { MovePreview } from '../../../club/presence/subscriptions/views';
 import type { GroupProgram } from '../../../club/groups/program-read';
 import { searchUrl } from '../../../club/sportivi/search-view';
 
@@ -41,6 +42,7 @@ export function useGrupeApi() {
       remove: (id: string) => data<{ name: string }>(ref.current.del(g(id))),
       join: (id: string, body: Body) => action<JoinResult>(ref.current.post(`${g(id)}/members`, body)),
       allocate: (body: Body) => action<AllocateResult>(ref.current.post(`${BASE}/memberships/allocate`, body)),
+      movePreview: (membershipId: string, toGroupId: string) => get<MovePreview>(`${BASE}/memberships/${enc(membershipId)}/move-preview${query({ to: toGroupId })}`),
       move: (membershipId: string, toGroupId: string) => action<MoveResult>(ref.current.post(`${BASE}/memberships/${enc(membershipId)}/move`, { toGroupId })),
       removeMember: (membershipId: string) => action<MoveResult>(ref.current.del(`${BASE}/memberships/${enc(membershipId)}`)),
       copyMembers: (id: string, season: string) => action<{ copied: number; from: string }>(ref.current.post(`${g(id)}/copy-members`, { season })),

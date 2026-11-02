@@ -128,9 +128,9 @@ describe('group page (6.1, 6.2, 6.4)', () => {
     expect(grupe('MemberMenu.tsx')).toContain('memberMenuItems');
   });
 
-  it('the move window: Sportiv, Din, În with "Alege grupa", no abonament in phase 4', () => {
+  it('the move window: Sportiv, Din, În with "Alege grupa", no abonament copy of its own (the bar comes from 5-6)', () => {
     for (const s of ['GRUPE_COPY.moveTitle', 'GRUPE_COPY.addAlsoTitle', 'GRUPE_COPY.fieldAthlete', 'GRUPE_COPY.fieldFrom', 'GRUPE_COPY.fieldTo', 'GRUPE_COPY.pickGroup', 'GROUP_TOASTS.moved', 'GROUP_TOASTS.addedAlso', 'undoToast']) expect(move, s).toContain(s);
-    expect(move).not.toMatch(/[Aa]bonament/);
+    expect(move.split('\n').filter((l) => !l.startsWith('import'))).not.toContainEqual(expect.stringMatching(/['"`][^'"`]*[Aa]bonament/));
   });
 
   it('"Scoate din grupă" has no window and toasts with undo', () => {

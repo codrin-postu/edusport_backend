@@ -11,12 +11,14 @@ import {
   addVisitor, answerInactive, coachIdsOf, columnsFor, footerCounts, initialTicks, isDirty, readInactive, saveBody, toggleTick,
   type CoachFields as CoachValue, type InactiveAnswers, type Ticks,
 } from '../../../club/prezenta/panel-view';
+import { RECORD_COPY } from '../../../club/sportivi/record-view';
 import { PanelShell } from '../grupe/PanelShell';
 import { AthleteSearch } from '../sportivi/AthleteSearch';
 import { useSportiviApi } from '../sportivi/api';
 import { usePrezentaApi, type PrezentaApi, type SessionQuery } from './api';
 import { CoachFields, useCoachOptions } from './CoachFields';
 import { InactiveDialog } from './InactiveDialog';
+import { RowMoneyMenu } from './RowMoneyMenu';
 import { failToast, prezentaChanged } from './undo';
 
 export type SessionTarget = { id: string } | { occurrence: string } | { added: AddedSession };
@@ -86,7 +88,11 @@ function TickTable({ panel, draft, locked, onTick }: TableProps) {
       ),
     })),
   ];
-  return <DataTable<PanelRow> columns={columns} rows={draft.rows} getRowKey={(r) => r.athleteId} pageSize={0} className="pz-ticks" />;
+  const menu: DataColumn<PanelRow> = {
+    key: 'menu', header: <span className="ui-sr">{RECORD_COPY.menu.button}</span>, width: '1%',
+    render: (r) => <RowMoneyMenu row={r} kind={panel.kind} date={panel.date} />,
+  };
+  return <DataTable<PanelRow> columns={[...columns, menu]} rows={draft.rows} getRowKey={(r) => r.athleteId} pageSize={0} className="pz-ticks" />;
 }
 
 type VisitorProps = { rows: PanelRow[]; disabled: boolean; onPick: (card: AthleteCard) => void };

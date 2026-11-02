@@ -1,4 +1,7 @@
+import { MONEY_UI_COPY } from '../presence/copy/money-ui';
 import { PREZENTA_COPY } from '../presence/copy/prezenta-ui';
+import { monthOf } from '../presence/dates';
+import type { PaymentFor } from '../presence/payments/rules';
 import type { AthleteCard } from '../athletes/api-types';
 import type { InactiveAthlete, PanelRow, SectionKind, SessionPanel, SessionSaveBody, Tick } from '../presence/attendance/api-types';
 import { isRecord } from '../narrow';
@@ -11,6 +14,20 @@ type PanelState = { ticks: Ticks; coaches: CoachFields; visitors: string[] };
 export function columnsFor(kind: SectionKind): string[] {
   const base = [PREZENTA_COPY.colAthlete, PREZENTA_COPY.grup];
   return kind === 'school' ? base : [...base, PREZENTA_COPY.uscat];
+}
+
+export type RowMenuKey = 'subscription' | 'payment';
+
+/** The row "..." menu (5.3, C44): "Adaugă abonament" only in a Școala session, "+ Plată" always. */
+export function rowMenuItems(kind: SectionKind): { key: RowMenuKey; text: string }[] {
+  const payment = { key: 'payment' as const, text: MONEY_UI_COPY.menu.addPayment };
+  return kind === 'school' ? [{ key: 'subscription', text: MONEY_UI_COPY.menu.addSubscription }, payment] : [payment];
+}
+
+/** What "+ Plată" preselects: the athlete's abonament for Școala (none when there is no abonament), else the Club month of the session. */
+export function payPreselect(kind: SectionKind, date: string, subscriptionId: string | null): PaymentFor | null {
+  if (kind === 'club') return { kind: 'club_luna', month: monthOf(date) };
+  return subscriptionId ? { kind: 'abonament', subscriptionId } : null;
 }
 
 export function initialTicks(p: SessionPanel): Ticks {

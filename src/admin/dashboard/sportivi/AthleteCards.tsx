@@ -2,19 +2,20 @@ import * as React from 'react';
 import { Button, Checkbox, EmptyState, Loading } from '../../ui';
 import type { AthleteListRow } from '../../../club/athletes/api-types';
 import { PERSONAL_DATA_COPY } from '../../../club/personal-data/copy';
-import { LIST_COPY, ageText, groupCell, loadedRange, withPage } from '../../../club/sportivi/list-view';
+import { LIST_COPY, abonamentCell, ageText, groupCell, loadedRange, withPage } from '../../../club/sportivi/list-view';
 import { allSelected } from '../../../club/sportivi/personal-data-view';
 import { MissingMarker } from './MissingMarker';
 import type { AthleteList } from './useAthleteList';
 import type { Selection } from './useSelection';
 
-/** "<vârstă>, <grupă>"; "Fără grupă" muted as in the table. */
+/** "<vârstă>, <grupă>, <abonament>"; "Fără grupă" muted as in the table. */
 function CardLine({ row }: { row: AthleteListRow }) {
   const age = ageText(row.age);
   return (
     <span className="spv-sub2">
       {age && `${age}, `}
       <span className={row.mainGroup ? undefined : 'spv-muted'}>{groupCell(row)}</span>
+      {row.abonament && `, ${abonamentCell(row)}`}
     </span>
   );
 }
