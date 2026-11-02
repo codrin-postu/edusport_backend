@@ -53,6 +53,11 @@ describe('money UI source', () => {
     expect(a).toContain('MONEY_UI_COPY.empty.month');
     expect(a).toContain('MONEY_UI_COPY.empty.earlier');
   });
+  it('the move window target list leaves out groups the athlete is already in, for move and add-also alike', () => {
+    const m = src('admin/dashboard/grupe/MoveDialog.tsx');
+    expect(m).toContain('groupOptions(joinableGroups(groups, p.page.documentId, p.member.others), p.page.documentId)');
+    expect(m).not.toMatch(/mode === 'move' \? groups/);
+  });
   it('strings outside the copy module moved in (M8)', () => {
     for (const f of ['PlatiList', 'AbonamenteList']) expect(src(`admin/dashboard/bani/${f}.tsx`)).not.toContain('`Arată ');
     expect(MONEY_UI_COPY.show('3 plăți')).toBe('Arată 3 plăți');

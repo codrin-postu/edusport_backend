@@ -77,7 +77,7 @@ export function MoveDialog(p: Props) {
         <dt>{GRUPE_COPY.fieldAthlete}</dt><dd>{p.member.name}</dd>
         {p.mode === 'move' && <><dt>{GRUPE_COPY.fieldFrom}</dt><dd>{p.page.name}</dd></>}
         <dt>{GRUPE_COPY.fieldTo}</dt>
-        <dd><SearchableSelect value={to} options={groupOptions(p.mode === 'move' ? groups : joinableGroups(groups, p.page.documentId, p.member.others), p.page.documentId)} aria-label={GRUPE_COPY.fieldTo} placeholder={GRUPE_COPY.pickGroup} onChange={(v) => { setTo(v); setError(null); }} /></dd>
+        <dd><SearchableSelect value={to} options={groupOptions(joinableGroups(groups, p.page.documentId, p.member.others), p.page.documentId)} aria-label={GRUPE_COPY.fieldTo} placeholder={GRUPE_COPY.pickGroup} onChange={(v) => { setTo(v); setError(null); }} /></dd>
       </dl>
       {bar.bar && <AbonamentBar bar={bar.bar} goldLine={bar.goldLine} />}
     </WindowShell>
