@@ -152,4 +152,27 @@ describe('what is still owed (DEC 2026-11-03)', () => {
     expect(overpayText(0.3, 0.1 + 0.2)).toBeNull();
     expect(overpayText(1e6, null)).toBeNull();
   });
+  it('I2: a lesson counts once: Lecție owes no more than its Club month still owes', () => {
+    const club = { ...attendanceRow({ id: 't1', athleteId: 'a1', billing: 'club', amount: 320 }), sessionDate: '2026-10-06', groupId: 'g', charges: [] };
+    const heldLesson = lessonRow({ id: 'l1', date: '2026-10-28', state: 'saved', present: true, price: 80, amount: 80 });
+    const base = { attendances: [club], lessons: [heldLesson] };
+    const clubPaid = [paymentRow({ id: 'c', purpose: 'club_luna', clubMonth: '2026-10', amount: 400 })];
+    expect(owedFor({ kind: 'club_luna', month: '2026-10' }, src({ ...base, payments: [] }))).toBe(400);
+    expect(owedFor({ kind: 'lectie', lessonId: 'l1' }, src({ ...base, payments: [] }))).toBe(80);
+    expect(owedFor({ kind: 'lectie', lessonId: 'l1' }, src({ ...base, payments: clubPaid }))).toBe(0);
+    const lessonPaid = [paymentRow({ id: 'p', purpose: 'lectie', lessonId: 'l1', amount: 80 })];
+    expect(owedFor({ kind: 'club_luna', month: '2026-10' }, src({ ...base, payments: lessonPaid }))).toBe(320);
+    const months = [month('2026-10', { due: 400, left: 0 })];
+    const opts = paymentOptions({ subs: [], payments: clubPaid, seasons: SEASONS, months, lessons: [heldLesson], today });
+    expect(opts.find((o) => o.for.kind === 'lectie')?.amount).toBe(0);
+  });
+  it('I3: the Cotizație default is the fee minus fees already paid, never below 0', () => {
+    const fee = (payments: ReturnType<typeof paymentRow>[]) =>
+      paymentOptions({ subs: [], payments, seasons: SEASONS, months: [], lessons: [], today }).find((o) => o.for.kind === 'cotizatie' && o.for.seasonId === 's26')?.amount;
+    expect(fee([])).toBe(100);
+    expect(fee([paymentRow({ id: 'f', purpose: 'cotizatie', seasonId: 's26', amount: 40 })])).toBe(60);
+    expect(fee([paymentRow({ id: 'f', purpose: 'cotizatie', seasonId: 's26', amount: 100 })])).toBe(0);
+    expect(fee([paymentRow({ id: 'f', purpose: 'cotizatie', seasonId: 's26', amount: 100, cancelled: true })])).toBe(100);
+  });
 });
+

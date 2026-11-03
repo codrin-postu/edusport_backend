@@ -63,6 +63,14 @@ describe('add an abonament', () => {
     expect(f.state.jobs[0].status).toBe('cancelled');
   });
 
+  it('a payment above the item price is refused 400 with the overpay text before anything is written (no 500)', async () => {
+    const f = fakePresenceContext(seed());
+    const res = await addSubscription(f.ctx, 'a1', add({ payment: { amount: 99999, method: 'numerar', collectedAtRink: false, sendEmail: false } }));
+    expect(res).toMatchObject({ ok: false, status: 400 });
+    expect((res as { error: string }).error).toMatch(/^Suma depășește restul de plată: \d+(,\d\d)? RON\.$/);
+    expect([f.state.subscriptions, f.state.payments]).toEqual([[], []]);
+  });
+
   it('an e-mail asked for an athlete without one writes nothing', async () => {
     const f = fakePresenceContext({ ...seed(), group: { ...seed().group, athletes: [athleteRow({ id: 'a1', name: 'Ana Ionescu', email: null })] } });
     expect((await addSubscription(f.ctx, 'a1', add({ payment: pay }))).ok).toBe(false);
