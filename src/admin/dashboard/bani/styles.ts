@@ -7,6 +7,10 @@ export const MONEY_CSS = `
 .ui-root .bn-bar-segs{display:flex;gap:3px}
 .ui-root .bn-seg{flex:1;height:8px;background:var(--theme-surface-subtle);border:1px solid var(--theme-border-strong)}
 .ui-root .bn-seg--used{background:var(--theme-primary);border-color:var(--theme-primary)}
+.ui-root .bn-bar-segs--compact{display:inline-flex;gap:2px;vertical-align:middle}
+.ui-root .bn-bar-segs--compact .bn-seg{flex:none;width:10px;height:10px}
+.ui-root .bn-used{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.ui-root .bn-card-meta{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
 .ui-root .bn-form{display:flex;flex-direction:column;gap:14px}
 .ui-root .bn-athlete{display:flex;flex-direction:column;gap:6px}
 .ui-root .bn-hint{margin:4px 0 0}

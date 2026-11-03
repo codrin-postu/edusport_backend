@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AdminPage, Button, DataTable, FilterPanel, Loading, Notice, PageHeader, Window, adminToast, useIsPhone, type DataColumn } from '../../ui';
+import { AdminPage, Button, DataTable, FilterPanel, Loading, Notice, PageHeader, StatusBadge, Window, adminToast, useIsPhone, type BadgeTone, type DataColumn } from '../../ui';
 import { abonamenteCells, abonamenteSections, abonamentMenu, stateOf } from '../../../club/bani/abonamente-view';
 import { athleteTabTo } from '../../../club/bani/routes';
 import { todayIso } from '../../../club/groups/http';
@@ -9,12 +9,15 @@ import { MONEY_UI_COPY } from '../../../club/presence/copy/money-ui';
 import { PAYMENT_COPY } from '../../../club/presence/copy/payments';
 import { SUBSCRIPTION_COPY } from '../../../club/presence/copy/subscriptions';
 import type { SubscriptionListPage, SubscriptionListRow, SubscriptionQuery } from '../../../club/presence/money-api';
+import type { AbonamentBar as Bar } from '../../../club/presence/subscriptions/rules';
+import type { SubscriptionState } from '../../../club/presence/types';
 import { countWords } from '../../../club/ro-count';
 import { requestErrorText } from '../../../club/registration-panel';
 import { SPORTIVI_CSS } from '../sportivi/styles';
 import { useSportiviApi } from '../sportivi/api';
 import { AthleteSearch } from '../sportivi/AthleteSearch';
 import { WindowShell } from '../grupe/PanelShell';
+import { AbonamentBar } from './AbonamentBar';
 import { AddSubscriptionWindow } from './AddSubscriptionWindow';
 import { useMoneyApi, type MoneyApi } from './api';
 import { ExtendModal } from './ExtendModal';
@@ -27,6 +30,10 @@ import { moneyUndoToast, useMoneyChanged } from './undo';
 type Dialog = { kind: 'extend' } | { kind: 'search' } | { kind: 'add'; athlete: { id: string; name: string } } | null;
 const copy = MONEY_UI_COPY.abonamente;
 const RED = { color: 'var(--theme-danger)' };
+/** Badge tone per state, as the approved Abonamente list (activ ok, epuizat neutral, anulat danger). */
+export const STATE_TONE: Record<SubscriptionState, BadgeTone> = { activ: 'success', epuizat: 'neutral', expirat: 'warning', anulat: 'danger' };
+/** The row's segments; the bar's title and expiry are not shown in a list row. */
+const segBar = (r: SubscriptionListRow): Bar => ({ subscriptionId: r.subscriptionId, itemName: '', slots: r.slots, used: r.used, validUntil: r.validUntil });
 
 /** Rows of the filtered list, reloaded after every money write. */
 function useSubscriptions(q: SubscriptionQuery): { page: SubscriptionListPage | null; failed: boolean } {
@@ -71,9 +78,9 @@ function columns(today: string, onCancel: (r: SubscriptionListRow) => void): Dat
     { key: 'athlete', header: copy.columns[0], render: cell((c) => c.athlete) },
     { key: 'group', header: copy.columns[1], render: cell((c) => c.group) },
     { key: 'item', header: copy.columns[2], render: cell((c) => c.item) },
-    { key: 'used', header: copy.columns[3], render: cell((c) => c.used) },
+    { key: 'used', header: copy.columns[3], render: (r) => <span className="bn-used"><AbonamentBar bar={segBar(r)} compact />{abonamenteCells(r, today).used}</span> },
     { key: 'expires', header: copy.columns[4], render: (r) => { const c = abonamenteCells(r, today); return <span style={c.expiredRed ? RED : undefined}>{c.expires}</span>; } },
-    { key: 'state', header: copy.columns[5], render: cell((c) => c.state) },
+    { key: 'state', header: copy.columns[5], render: (r) => <StatusBadge tone={STATE_TONE[r.state]}>{abonamenteCells(r, today).state}</StatusBadge> },
     { key: 'menu', header: <span className="ui-sr">{SUBSCRIPTION_COPY.cancelAction}</span>, width: '1%', render: (r) => <Menu row={r} onCancel={onCancel} /> },
   ];
 }
@@ -89,7 +96,11 @@ function Cards({ rows, today, onOpen, onCancel }: { rows: SubscriptionListRow[];
             <button type="button" className="spv-card" onClick={() => onOpen(r)}>
               <span className="spv-name">{c.athlete}</span>
               <span>{[c.group, c.item].filter(Boolean).join(', ')}</span>
-              <span className="spv-muted">{c.used}, <span style={c.expiredRed ? RED : undefined}>{c.expires}</span>, {c.state}</span>
+              <span className="bn-card-meta">
+                <AbonamentBar bar={segBar(r)} compact />
+                <span className="spv-muted">{c.used}, <span style={c.expiredRed ? RED : undefined}>{c.expires}</span></span>
+                <StatusBadge tone={STATE_TONE[r.state]}>{c.state}</StatusBadge>
+              </span>
             </button>
             <Menu row={r} onCancel={onCancel} />
           </li>
