@@ -96,3 +96,6 @@ export const emailBox = (hasEmail: boolean | null): { disabled: boolean; hint: s
 };
 
 export const cancelText = (p: PaymentRowView): string => PAYMENT_COPY.cancelConfirm(p.amount, longDate(p.paidOn));
+
+/** A server refusal that belongs under the amount field (the payment is above what is owed). */
+export const isOverpaid = (text: string): boolean => text.startsWith(PAYMENT_COPY.errors.overpaidPrefix);

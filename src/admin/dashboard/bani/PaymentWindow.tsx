@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, Checkbox, DateInput, Field, Input, Notice, SegmentedControl, Select, Textarea, adminToast } from '../../ui';
 import { todayIso } from '../../../club/groups/http';
 import {
-  checkDraft, editDraft, editOptions, emailBox, newDraft, optionKey, showsRink, toBody, toEditBody, withOption,
+  checkDraft, editDraft, editOptions, emailBox, isOverpaid, newDraft, optionKey, showsRink, toBody, toEditBody, withOption,
   type DraftErrors, type PaymentDraft,
 } from '../../../club/bani/payment-window';
 import { METHOD_WORDS, PRESENCE_ERRORS } from '../../../club/presence/copy/core';
@@ -43,7 +43,7 @@ function useOptions(api: MoneyApi, athleteId: string | null, payment: PaymentRow
 
 type FieldsProps = {
   mode: Mode; draft: PaymentDraft; errors: DraftErrors; loaded: Loaded; busy: boolean; athleteName: string | null; locked: boolean;
-  set: (patch: Partial<PaymentDraft>) => void; pickAthlete: (id: string, name: string) => void; pickOption: (key: string) => void;
+  set: (patch: Partial<PaymentDraft>) => void; clearAmountError: () => void; pickAthlete: (id: string, name: string) => void; pickOption: (key: string) => void;
 };
 
 function AthleteField({ f }: { f: FieldsProps }) {
@@ -82,7 +82,7 @@ function PaymentFields({ f }: { f: FieldsProps }) {
     <div className="bn-form">
       <AthleteField f={f} />
       <Field label={PAYMENT_COPY.amount} required error={errors.amount}>
-        <Input inputMode="decimal" value={draft.amount} disabled={busy} onChange={(e) => set({ amount: e.target.value })} />
+        <Input inputMode="decimal" value={draft.amount} disabled={busy} onChange={(e) => { set({ amount: e.target.value }); f.clearAmountError(); }} />
       </Field>
       <Field label={PAYMENT_COPY.date} required error={errors.paidOn}>
         <DateInput value={draft.paidOn} disabled={busy} onChange={(v) => { if (v) set({ paidOn: v }); }} />
@@ -110,6 +110,7 @@ export function PaymentWindow({ mode, athlete = null, preselect = null, payment,
   const [athleteName, setAthleteName] = React.useState<string | null>(athlete?.name ?? payment?.athleteName ?? null);
   const [errors, setErrors] = React.useState<DraftErrors>({});
   const [serverError, setServerError] = React.useState<string | null>(null);
+  const [amountError, setAmountError] = React.useState<string | null>(null);
   const loaded = useOptions(api, draft.athleteId, payment, preselect?.kind === 'club_luna' ? preselect.month : null);
   const preselected = React.useRef(false);
   React.useEffect(() => {
@@ -123,6 +124,7 @@ export function PaymentWindow({ mode, athlete = null, preselect = null, payment,
     setErrors(found);
     if (Object.keys(found).length > 0) return;
     setServerError(null);
+    setAmountError(null);
     try {
       if (payment) {
         const { data, undo } = await api.editPayment(payment.paymentId, toEditBody(draft, loaded.options));
@@ -134,13 +136,15 @@ export function PaymentWindow({ mode, athlete = null, preselect = null, payment,
       }
       onClose();
     } catch (err) {
-      setServerError(requestErrorText(err, PRESENCE_ERRORS.failed));
+      const text = requestErrorText(err, PRESENCE_ERRORS.failed);
+      if ((err as { status?: number } | null)?.status === 400 && isOverpaid(text)) setAmountError(text);
+      else setServerError(text);
     }
   });
   const fields: FieldsProps = {
-    mode, draft, errors, loaded, busy: submit.busy, athleteName, locked: athlete !== null, set,
+    mode, draft, errors: amountError ? { ...errors, amount: amountError } : errors, loaded, busy: submit.busy, athleteName, locked: athlete !== null, set, clearAmountError: () => setAmountError(null),
     pickAthlete: (id, name) => { setAthleteName(name); setDraft((d) => ({ ...d, athleteId: id, optionKey: null, amount: '', collectedAtRink: false })); },
-    pickOption: (key) => setDraft((d) => withOption(d, key, loaded.options)),
+    pickOption: (key) => { setAmountError(null); setDraft((d) => withOption(d, key, loaded.options)); },
   };
   const footer = (
     <>

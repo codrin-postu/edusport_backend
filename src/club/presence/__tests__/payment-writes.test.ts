@@ -143,7 +143,8 @@ describe('record a payment', () => {
 
 describe('edit a payment', () => {
   it('field lines old -> new, nothing changed answers changed false (4.17)', async () => {
-    const f = fakePresenceContext(seed({ payments: [paymentRow({ id: 'p1', athleteId: 'a1', amount: 300 })] }));
+    const owing = lessonRow({ id: 'l-oct', athleteId: 'a1', date: '2026-10-28', state: 'saved', present: true, price: 400, amount: 400 });
+    const f = fakePresenceContext(seed({ payments: [paymentRow({ id: 'p1', athleteId: 'a1', amount: 300 })], lessons: [owing] }));
     expect(await editPayment(f.ctx, 'p1', editBody())).toEqual({ ok: true, data: { value: { changed: false }, actionId: null } });
     expect(f.group.history).toEqual([]);
     await editPayment(f.ctx, 'p1', editBody({ amount: 320, for: { kind: 'club_luna', month: '2026-10' }, collectedAtRink: true }));
@@ -254,5 +255,60 @@ describe('the athlete is read again after the lock (final review M3)', () => {
     expect(await editPayment(merged(e), 'p1', editBody({ amount: 100 }))).toEqual(stale);
     expect(await cancelPayment(merged(c), 'p1')).toEqual(stale);
     expect([e.state.payments[0].amount, c.state.payments[0].cancelled]).toEqual([300, false]);
+  });
+});
+
+describe('no payment above what is owed (DEC 2026-11-03)', () => {
+  const forSub = { kind: 'abonament', subscriptionId: 'sub1' };
+  const TEXT = (n: string) => ({ ok: false, status: 400, error: `Suma depășește restul de plată: ${n} RON.` });
+
+  it('the second of two payments that together exceed the price is refused; exactly the rest is accepted', async () => {
+    const f = fakePresenceContext(seed());
+    expect((await recordPayment(f.ctx, pay({ amount: 200, for: forSub }))).ok).toBe(true);
+    expect(await recordPayment(f.ctx, pay({ amount: 120.01, for: forSub }))).toEqual(TEXT('120'));
+    expect(f.state.payments).toHaveLength(1);
+    expect((await recordPayment(f.ctx, pay({ amount: 120, for: forSub }))).ok).toBe(true);
+    expect(f.state.payments).toHaveLength(2);
+  });
+
+  it('the check adds no lock: athlete, then abonament, even when it refuses (7.1)', async () => {
+    const f = fakePresenceContext(seed());
+    expect((await recordPayment(f.ctx, pay({ amount: 320.01, for: forSub }))).ok).toBe(false);
+    expect(f.group.locks).toEqual(['athlete:a1', 'subscription:sub1']);
+  });
+
+  it('an identical double click still answers as a duplicate, not as a refusal', async () => {
+    const f = fakePresenceContext(seed());
+    await recordPayment(f.ctx, pay({ amount: 320, for: forSub }));
+    expect(await recordPayment(f.ctx, pay({ amount: 320, for: forSub }))).toMatchObject({ ok: true });
+    expect(f.state.payments).toHaveLength(1);
+  });
+
+  it('Altceva has no limit', async () => {
+    const f = fakePresenceContext(seed());
+    expect((await recordPayment(f.ctx, pay({ amount: 99999 }))).ok).toBe(true);
+  });
+
+  it('an edit counts its own amount as owed, and a changed Pentru uses the new target', async () => {
+    const f = fakePresenceContext(seed({ payments: [paymentRow({ id: 'p1', athleteId: 'a1', amount: 300, purpose: 'abonament', subscriptionId: 'sub1' })] }));
+    expect((await editPayment(f.ctx, 'p1', editBody({ amount: 320, for: forSub }))).ok).toBe(true);
+    expect(await editPayment(f.ctx, 'p1', editBody({ amount: 320.01, for: forSub }))).toEqual(TEXT('320'));
+    expect(f.state.payments[0].amount).toBe(320);
+    f.state.subscriptions.push(subscriptionRow({ id: 'sub2', athleteId: 'a1', price: 100 }));
+    expect(await editPayment(f.ctx, 'p1', editBody({ amount: 320, for: { kind: 'abonament', subscriptionId: 'sub2' } }))).toEqual(TEXT('100'));
+  });
+
+  it('a payment already over (older data) stays editable when the amount does not grow', async () => {
+    const f = fakePresenceContext(seed({ payments: [paymentRow({ id: 'p1', athleteId: 'a1', amount: 500, purpose: 'abonament', subscriptionId: 'sub1' })] }));
+    expect((await editPayment(f.ctx, 'p1', editBody({ amount: 500, note: 'x', for: forSub }))).ok).toBe(true);
+  });
+
+  it('the undo of a cancel is refused when the restored payment would exceed the price', async () => {
+    const f = fakePresenceContext(seed());
+    await recordPayment(f.ctx, pay({ amount: 320, for: forSub }));
+    const cancelled = await cancelPayment(f.ctx, f.state.payments[0].id);
+    await recordPayment(f.ctx, pay({ amount: 100, for: forSub, method: 'card' }));
+    expect(await undoPresenceAction(f.ctx, { actionId: actionIdOf(cancelled) })).toEqual(TEXT('220'));
+    expect(f.state.payments[0].cancelled).toBe(true);
   });
 });

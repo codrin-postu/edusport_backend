@@ -10,7 +10,7 @@ import { sumMoney } from '../money';
 import type { PaymentList, PaymentQuery, PaymentRowView, AthletePayments, MonthRow } from '../money-api';
 import type { PresenceStore } from '../store';
 import type { PaymentMethod, PaymentPurpose, PaymentRow, SubscriptionRow } from '../types';
-import { listPurposeText, paymentOptions, type PaymentFor, type PaymentOption } from './rules';
+import { listPurposeText, paymentForOf, paymentOptions, type PaymentOption } from './rules';
 
 const METHODS = Object.keys(METHOD_WORDS) as PaymentMethod[];
 const PURPOSES = Object.keys(PURPOSE_WORDS) as PaymentPurpose[];
@@ -26,23 +26,13 @@ export function readPaymentQuery(q: Record<string, unknown>, today: string): Pay
 
 type Names = { athletes: Map<string, AthleteRow>; subs: Map<string, SubscriptionRow>; seasons: Map<string, SeasonRecord> };
 
-function forOf(p: PaymentRow): PaymentFor {
-  switch (p.purpose) {
-    case 'abonament': return { kind: 'abonament', subscriptionId: p.subscriptionId ?? '' };
-    case 'cotizatie': return { kind: 'cotizatie', seasonId: p.seasonId };
-    case 'club_luna': return { kind: 'club_luna', month: p.clubMonth ?? '' };
-    case 'lectie': return { kind: 'lectie', lessonId: p.lessonId ?? '' };
-    default: return { kind: 'altceva' };
-  }
-}
-
 /** One row of a Plăți list or athlete tab; "Pentru" as the list shows it (5.10, C61). */
 function viewOf(p: PaymentRow, names: Names): PaymentRowView {
   const sub = p.subscriptionId === null ? undefined : names.subs.get(p.subscriptionId);
   return {
     paymentId: p.id, athleteId: p.athleteId, athleteName: names.athletes.get(p.athleteId)?.name ?? '', paidOn: p.paidOn, purpose: p.purpose,
     purposeText: listPurposeText(p, { itemName: sub?.itemName ?? null, startsOn: sub?.startsOn ?? null, seasonLabel: names.seasons.get(p.seasonId)?.label ?? null }),
-    method: p.method, collectedAtRink: p.collectedAtRink, amount: p.amount, recordedBy: p.recordedBy, cancelled: p.cancelled, for: forOf(p), note: p.note,
+    method: p.method, collectedAtRink: p.collectedAtRink, amount: p.amount, recordedBy: p.recordedBy, cancelled: p.cancelled, for: paymentForOf(p), note: p.note,
   };
 }
 

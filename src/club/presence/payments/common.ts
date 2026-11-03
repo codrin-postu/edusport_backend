@@ -8,7 +8,7 @@ import type { PresenceContext } from '../context';
 import { seasonOfDate } from '../dates';
 import type { PresenceStore } from '../store';
 import type { PaymentRow, PaymentWrite } from '../types';
-import { acsRevert, purposeFields, purposeText, type PaymentFor, type PurposeFields } from './rules';
+import { acsRevert, overpayText, owedFor, purposeFields, purposeText, type PaymentFor, type PurposeFields } from './rules';
 import { acsGuardId, type PresenceGuard, type PresenceUndoStep } from '../undo';
 
 type Link = Pick<PurposeFields, 'subscriptionId' | 'lessonId'>;
@@ -86,4 +86,17 @@ export async function paymentGuards(store: PresenceStore, paymentId: string, ste
 
 export async function recordPaymentAction(ctx: PresenceContext, athleteId: string, paymentId: string, lines: Line[], steps: PresenceUndoStep[]): Promise<string> {
   return recordPresenceAction(ctx.store, ctx.actor, lines, { steps, athletes: [athleteId], guards: await paymentGuards(ctx.store, paymentId, steps) });
+}
+
+/**
+ * A payment can never be larger than what is still owed for its "Pentru" (DEC 2026-11-03 (3)). Read after the caller's locks: every payment write
+ * of an athlete holds that athlete's lock, so two payments cannot both pass. `excludeId` is the payment being edited or restored (its own amount counts as owed).
+ * Answers the refusal text, or null when the amount fits.
+ */
+export async function overpayRefusal(store: PresenceStore, athleteId: string, f: PaymentFor, amount: number, excludeId: string | null): Promise<string | null> {
+  if (f.kind === 'altceva') return null;
+  const [subs, payments, seasons, lessons, attendances, startDate] = await Promise.all([
+    store.subscriptions({ athleteId }), store.payments({ athleteId }), store.seasons(), store.lessons({ athleteId }), store.attendances({ athleteId }), store.attendanceStartDate(),
+  ]);
+  return overpayText(amount, owedFor(f, { subs, payments, seasons, lessons, attendances, startDate }, excludeId));
 }

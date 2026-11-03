@@ -25,6 +25,8 @@ export const PAYMENT_COPY = {
     amount: 'Suma trebuie să fie mai mare decât 0.',
     future: 'Data nu poate fi în viitor.',
     purpose: 'Alege pentru ce este plata.',
+    overpaidPrefix: 'Suma depășește restul de plată:',
+    overpaid: (left: number): string => `${PAYMENT_COPY.errors.overpaidPrefix} ${ron(left)}.`,
   },
   recorded: (sum: number, name: string): string => `Plată înregistrată: ${ron(sum)}, ${name}.`,
   saved: 'Salvat.',
@@ -48,6 +50,7 @@ export const PAYMENT_COPY = {
   },
   lessonLine: (date: string, price: number | null): string =>
     `${listDate(date)}, Lecție individuală ${price === null ? PRESENCE_WORDS.noPrice : ron(price)}`,
+  advance: (sum: number): string => `Avans: ${ron(sum)}`,
   due: 'De încasat',
   dueSchool: 'Școala de patinaj',
   dueClub: 'Club',

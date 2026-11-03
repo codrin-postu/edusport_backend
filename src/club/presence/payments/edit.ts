@@ -6,7 +6,7 @@ import { P5_ACTIONS } from '../history-lines';
 import type { PaymentRow, PaymentWrite } from '../types';
 import type { PresenceUndoStep } from '../undo';
 import {
-  currentAcs, fieldsFor, linkIsValid, lockLinks, moveAcs, paymentLine, purposeTextOf, recordPaymentAction, revertFee, sameLink, writeOf, type AcsMove, type Fields,
+  currentAcs, fieldsFor, overpayRefusal, linkIsValid, lockLinks, moveAcs, paymentLine, purposeTextOf, recordPaymentAction, revertFee, sameLink, writeOf, type AcsMove, type Fields,
 } from './common';
 import { acsOnFee, paymentFieldChanges, readPaymentInput, sameFor, type PaymentInput } from './rules';
 
@@ -52,6 +52,11 @@ async function editLocked(ctx: PresenceContext, id: string, input: PaymentInput)
   const loaded = await loadLocked(ctx, id, input);
   if (loaded.ok === false) return loaded;
   const { p, f } = loaded.data;
+  // Only a higher amount or a new "Pentru" can overpay: a payment already over (older data) stays editable for its note, date and method.
+  if (input.amount > p.amount || !sameFor(p, f.fields)) {
+    const over = await overpayRefusal(ctx.store, p.athleteId, input.for, input.amount, id);
+    if (over !== null) return refuse(400, over);
+  }
   const { moves, acsBefore } = await feeMoves(ctx, p, f);
   const after = afterOf(p, input, f, acsBefore);
   const texts = { before: await purposeTextOf(ctx.store, p), after: await purposeTextOf(ctx.store, after) };

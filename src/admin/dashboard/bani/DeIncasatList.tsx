@@ -56,6 +56,11 @@ const menuColumn = <T extends DueRow>(a: Actions): DataColumn<T> => ({
   key: 'menu', header: <span className="ui-sr">{MONEY_UI_COPY.menu.addPayment}</span>, width: '1%', render: (r) => <Menu row={r} onPay={a.pay} />,
 });
 
+/** "Rămas" never below 0; an advance is a line under it. */
+function LeftCell({ c }: { c: { left: string; advance: string | null } }) {
+  return <>{c.left}{c.advance && <span className="ui-muted bn-mark"><br />{c.advance}</span>}</>;
+}
+
 function schoolColumns(a: Actions): DataColumn<SchoolDueRow>[] {
   const [athlete, group, item, price, paid, left] = copy.schoolColumns;
   return [
@@ -64,7 +69,7 @@ function schoolColumns(a: Actions): DataColumn<SchoolDueRow>[] {
     { key: 'item', header: item, render: (r) => { const c = schoolCells(r); return <>{c.item}<span className="ui-muted bn-mark"> {c.from}</span></>; } },
     { key: 'price', header: price, align: 'right', render: (r) => schoolCells(r).price },
     { key: 'paid', header: paid, align: 'right', render: (r) => schoolCells(r).paid },
-    { key: 'left', header: left, align: 'right', render: (r) => schoolCells(r).left },
+    { key: 'left', header: left, align: 'right', render: (r) => <LeftCell c={schoolCells(r)} /> },
     menuColumn<SchoolDueRow>(a),
   ];
 }
@@ -77,7 +82,7 @@ function clubColumns(a: Actions): DataColumn<ClubDueRow>[] {
     { key: 'sessions', header: sessions, render: (r) => clubCells(r).sessions },
     { key: 'due', header: due, align: 'right', render: (r) => clubCells(r).due },
     { key: 'paid', header: paid, align: 'right', render: (r) => clubCells(r).paid },
-    { key: 'left', header: left, align: 'right', render: (r) => clubCells(r).left },
+    { key: 'left', header: left, align: 'right', render: (r) => <LeftCell c={clubCells(r)} /> },
     menuColumn<ClubDueRow>(a),
   ];
 }
@@ -103,13 +108,13 @@ const labelled = (header: string, value: string): string => `${header} ${value}`
 function schoolLine(r: DueRow): string {
   const c = schoolCells(r as SchoolDueRow);
   const [, , , price, paid, left] = copy.schoolColumns;
-  return cardLine([c.group, `${c.item} ${c.from}`, labelled(price, c.price), labelled(paid, c.paid), labelled(left, c.left)]);
+  return cardLine([c.group, `${c.item} ${c.from}`, labelled(price, c.price), labelled(paid, c.paid), labelled(left, c.left), c.advance]);
 }
 
 function clubLine(r: DueRow): string {
   const c = clubCells(r as ClubDueRow);
   const [, , , due, paid, left] = copy.clubColumns;
-  return cardLine([c.group, c.sessions, labelled(due, c.due), labelled(paid, c.paid), labelled(left, c.left)]);
+  return cardLine([c.group, c.sessions, labelled(due, c.due), labelled(paid, c.paid), labelled(left, c.left), c.advance]);
 }
 
 function Parts({ page, phone, a }: { page: DuePage; phone: boolean; a: Actions }) {

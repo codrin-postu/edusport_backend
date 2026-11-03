@@ -4,10 +4,10 @@ import type { SeasonRecord } from '../../groups/types';
 import { PAYMENT_COPY } from '../copy/payments';
 import { METHOD_WORDS, PRESENCE_ERRORS, PURPOSE_WORDS } from '../copy/core';
 import { addMonths, isMonth, monthOf } from '../dates';
-import type { ClubMonth } from '../due/settlement';
-import { sumMoney } from '../money';
+import { clubMonths, type ClubMonth } from '../due/settlement';
+import { ron, sumMoney } from '../money';
 import { startText } from '../subscriptions/rules';
-import type { LessonRow, PaymentMethod, PaymentRow, PaymentWrite, SubscriptionRow } from '../types';
+import type { AttendanceRow, LessonRow, PaymentMethod, PaymentRow, PaymentWrite, SubscriptionRow } from '../types';
 
 export type PaymentFor =
   | { kind: 'abonament'; subscriptionId: string } | { kind: 'cotizatie'; seasonId: string }
@@ -197,4 +197,45 @@ export function paymentFieldChanges(before: PaymentRow, after: PaymentWrite, tex
   const relinked = before.subscriptionId !== after.subscriptionId || before.lessonId !== after.lessonId;
   if (texts.before !== texts.after || relinked) changes.purposeText = { from: texts.before, to: texts.after };
   return changes;
+}
+
+/** "Pentru" of a stored payment. */
+export function paymentForOf(p: Pick<PaymentRow, 'purpose' | 'subscriptionId' | 'seasonId' | 'clubMonth' | 'lessonId'>): PaymentFor {
+  switch (p.purpose) {
+    case 'abonament': return { kind: 'abonament', subscriptionId: p.subscriptionId ?? '' };
+    case 'cotizatie': return { kind: 'cotizatie', seasonId: p.seasonId };
+    case 'club_luna': return { kind: 'club_luna', month: p.clubMonth ?? '' };
+    case 'lectie': return { kind: 'lectie', lessonId: p.lessonId ?? '' };
+    default: return { kind: 'altceva' };
+  }
+}
+
+export type OwedSources = {
+  subs: readonly SubscriptionRow[]; payments: readonly PaymentRow[]; seasons: readonly SeasonRecord[]; lessons: readonly LessonRow[];
+  attendances: readonly AttendanceRow[]; startDate: string | null;
+};
+
+/**
+ * What is still owed for a "Pentru" (DEC 2026-11-03 (3)): abonament price, season fee, Club month `left` or lesson price, minus the
+ * non-cancelled payments for it, never below 0. null = no limit (Altceva, no price). `excludeId` is a payment being edited: its own amount counts as owed.
+ */
+export function owedFor(f: PaymentFor, src: OwedSources, excludeId: string | null = null): number | null {
+  const payments = src.payments.filter((p) => p.id !== excludeId);
+  const left = (price: number | null, match: (p: PaymentRow) => boolean): number | null =>
+    price === null ? null : notBelowZero(sumMoney([price, -paidFor(payments, match)]));
+  switch (f.kind) {
+    case 'abonament': return left(src.subs.find((s) => s.id === f.subscriptionId)?.price ?? null, (p) => p.purpose === 'abonament' && p.subscriptionId === f.subscriptionId);
+    case 'cotizatie': return left(src.seasons.find((s) => s.id === f.seasonId)?.membershipFee ?? null, (p) => p.purpose === 'cotizatie' && p.seasonId === f.seasonId);
+    case 'lectie': return left(src.lessons.find((l) => l.id === f.lessonId)?.price ?? null, (p) => p.purpose === 'lectie' && p.lessonId === f.lessonId);
+    case 'club_luna': {
+      const months = clubMonths({ attendances: [...src.attendances], lessons: [...src.lessons], payments, groupNames: new Map(), startDate: src.startDate });
+      return notBelowZero(months.find((m) => m.month === f.month)?.left ?? 0);
+    }
+    case 'altceva': return null;
+  }
+}
+
+/** The refusal text when `amount` is above what is still owed (one bani over is refused, exactly the rest is accepted); null when it fits. */
+export function overpayText(amount: number, owed: number | null): string | null {
+  return owed !== null && sumMoney([amount, -owed]) > 0 ? PAYMENT_COPY.errors.overpaid(owed) : null;
 }
