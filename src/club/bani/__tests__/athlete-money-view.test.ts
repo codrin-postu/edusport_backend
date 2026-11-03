@@ -17,7 +17,8 @@ describe('athlete money tabs (5.7)', () => {
 
   it('month table cells', () => {
     expect(monthCells({ month: '2026-10', grup: 6, uscat: 2, lessons: 1, due: 360, paid: 200, left: 160, lines: [] }))
-      .toEqual({ month: 'Octombrie 2026', sessions: '9 (6 grup, 2 uscat, 1 individuală)', due: '360 RON', paid: '200 RON', left: '160 RON' });
+      .toEqual({ month: 'Octombrie 2026', sessions: '9 (6 grup, 2 uscat, 1 individuală)', due: '360 RON', paid: '200 RON', left: '160 RON', advance: null });
+    expect(monthCells({ month: '2026-10', grup: 1, uscat: 0, lessons: 0, due: 40, paid: 100, left: -60, lines: [] })).toMatchObject({ left: '0 RON', advance: 'Avans: 60 RON' });
   });
 
   it('payments are read-only as the server says', () => {

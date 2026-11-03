@@ -19,7 +19,7 @@ import { P5_ACTIONS } from '../history-lines';
 import { actorName } from '../lessons/create';
 import { paymentGuards } from '../payments/common';
 import { writePaymentLocked } from '../payments/record';
-import { readAmount, type Checked } from '../payments/rules';
+import { overpayText, readAmount, type Checked } from '../payments/rules';
 import type { PresenceStore } from '../store';
 import type { AttendanceRow, PaymentMethod, PriceListRecord, SubscriptionRow, SubscriptionWrite } from '../types';
 import type { PresenceUndoStep } from '../undo';
@@ -133,10 +133,11 @@ async function writePayment(ctx: PresenceContext, athlete: AthleteRow, id: strin
 }
 
 /** Everything a refusal can come from is checked before the first write: a refusal after one would still be committed. */
-async function paymentAllowed(ctx: PresenceContext, athlete: AthleteRow, p: PaymentBody | null): Promise<boolean> {
-  if (p === null) return true;
-  if (p.sendEmail && !hasEmail(athlete)) return false;
-  return seasonOfDate(await ctx.store.seasons(), ctx.today) !== null;
+async function paymentRefusal(ctx: PresenceContext, athlete: AthleteRow, p: PaymentBody | null, item: OfferedItem): Promise<string | null> {
+  if (p === null) return null;
+  if (p.sendEmail && !hasEmail(athlete)) return PRESENCE_ERRORS.invalid;
+  if (seasonOfDate(await ctx.store.seasons(), ctx.today) === null) return PRESENCE_ERRORS.invalid;
+  return overpayText(p.amount, item.price);
 }
 
 type Added = { value: AddSubscriptionResult; paymentId: string | null };
@@ -148,7 +149,9 @@ async function addLocked(ctx: PresenceContext, athleteId: string, b: AddBody): P
   if (isAnonymized(athlete)) return refuse(409, PRESENCE_ERRORS.stale);
   const offer = await offerOn(ctx.store, athleteId, b.startsOn);
   const item = offer ? pickItem(offer, b) : null;
-  if (!offer || !item || !(await paymentAllowed(ctx, athlete, b.payment))) return refuse(400, PRESENCE_ERRORS.invalid);
+  if (!offer || !item) return refuse(400, PRESENCE_ERRORS.invalid);
+  const refused = await paymentRefusal(ctx, athlete, b.payment, item);
+  if (refused !== null) return refuse(400, refused);
   const row = subscriptionWrite({ athleteId, seasonId: offer.season.id, item, audience: offer.audience, startsOn: b.startsOn, actor: await actorName(ctx), now: ctx.now().toISOString() });
   const same = await findDuplicate(ctx, row);
   const name = athlete.name ?? '';

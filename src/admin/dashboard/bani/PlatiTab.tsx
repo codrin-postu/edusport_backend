@@ -51,7 +51,7 @@ function MonthRows({ months }: { months: MonthRow[] }) {
       <div className="bn-mrow bn-mhead" aria-hidden="true"><span>{month}</span><span>{sessions}</span><span>{due}</span><span>{paid}</span><span>{left}</span></div>
       {months.map((m) => {
         const c = monthCells(m);
-        const summary = <span className="bn-mrow"><span>{c.month}</span><span>{c.sessions}</span><span>{c.due}</span><span>{c.paid}</span><span>{c.left}</span></span>;
+        const summary = <span className="bn-mrow"><span>{c.month}</span><span>{c.sessions}</span><span>{c.due}</span><span>{c.paid}</span><span>{c.left}{c.advance && <span className="ui-muted bn-mark"><br />{c.advance}</span>}</span></span>;
         return (
           <ExpandableRow key={m.month} summary={summary} toggleLabel={c.month} expanded={open === m.month} onToggle={() => setOpen(open === m.month ? null : m.month)}>
             <ul className="bn-lines">{m.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>

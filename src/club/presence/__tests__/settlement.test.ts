@@ -33,7 +33,7 @@ describe('month settlement', () => {
       payments: [paymentRow({ id: 'p', purpose: 'club_luna', clubMonth: '2026-11', amount: 40 })], groupNames: new Map(), startDate: null });
     expect(months.map((m) => [m.month, m.due, m.paid, m.left])).toEqual([['2026-11', 0, 40, -40], ['2026-09', 40, 0, 40]]);
   });
-  it('negative left, months before the start date hidden, no start date no limit (C32, C13, decided 14)', () => {
+  it('left stays below 0 in the data (shown as Rămas 0 and Avans), months before the start date hidden, no start date no limit (C13, decided 14)', () => {
     const pay = paymentRow({ id: 'p', purpose: 'club_luna', clubMonth: '2026-09', amount: 400 });
     const a = att('t', '2026-09-08', { grup: true, billing: 'club', charges: [grup(40)], amount: 40 });
     expect(clubMonths({ attendances: [a], lessons: [], payments: [pay], groupNames: new Map(), startDate: null })[0]).toMatchObject({ due: 40, paid: 400, left: -360 });

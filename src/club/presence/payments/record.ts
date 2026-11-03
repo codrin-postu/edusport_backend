@@ -10,7 +10,7 @@ import { actorName } from '../lessons/create';
 import type { PresenceUndoStep } from '../undo';
 import type { PaymentRow, PaymentWrite } from '../types';
 import { paymentEmailJob } from '../../../email/payment-email';
-import { athleteLine, currentAcs, fieldsFor, linkIsValid, lockLinks, moveAcs, paymentLine, purposeTextOf, recordPaymentAction, type Fields } from './common';
+import { athleteLine, currentAcs, overpayRefusal, fieldsFor, linkIsValid, lockLinks, moveAcs, paymentLine, purposeTextOf, recordPaymentAction, type Fields } from './common';
 import { acsOnFee, readNewPayment, sameFor, type NewPaymentInput, type PaymentInput, type PurposeFields } from './rules';
 
 import type { PaymentResult } from './views';
@@ -75,6 +75,8 @@ export async function writePaymentLocked(ctx: PresenceContext, d: PaymentDraft):
   const row = await newRow(ctx, d, f);
   const same = await findDuplicate(ctx, row, f.fields);
   if (same) return { ok: true, data: { paymentId: same.id, lines: [], steps: [], emailQueued: false, duplicate: true } };
+  const over = await overpayRefusal(ctx.store, athlete.id, input.for, input.amount, null);
+  if (over !== null) return refuse(400, over);
   const fee = await applyFee(ctx, athlete.id, f);
   const paymentId = await ctx.store.createPayment({ ...row, acsBefore: fee.acsBefore });
   const label = await purposeTextOf(ctx.store, f.fields);

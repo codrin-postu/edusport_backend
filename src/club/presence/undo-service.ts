@@ -5,6 +5,8 @@ import { readActionId } from '../groups/undo-service';
 import type { PresenceContext } from './context';
 import { PRESENCE_ERRORS } from './copy';
 import { guardOf } from './action-log';
+import { overpayRefusal } from './payments/common';
+import { paymentForOf } from './payments/rules';
 import type { PresenceStore } from './store';
 import { presenceLockTargets, readPresenceRecord, type PresenceUndoRecord, type PresenceUndoStep } from './undo';
 
@@ -75,6 +77,21 @@ async function writeUndone(ctx: PresenceContext, entry: HistoryEntryRow, record:
   await ctx.store.setHistoryChanges(entry.id, { ...entry.changes, undone: true });
 }
 
+/** Putting a payment back (a cancelled one live again, a higher amount, another "Pentru") must still fit what is owed (DEC 2026-11-03 (3)); the athletes are locked. */
+async function restoredOverpay(store: PresenceStore, record: PresenceUndoRecord): Promise<string | null> {
+  for (const step of record.steps) {
+    if (step.op !== 'setPayment') continue;
+    const now = await store.payment(step.id);
+    if (!now) continue;
+    const after = { ...now, ...step.values };
+    const growing = now.cancelled || after.amount > now.amount || JSON.stringify(paymentForOf(after)) !== JSON.stringify(paymentForOf(now));
+    if (after.cancelled || !growing) continue;
+    const over = await overpayRefusal(store, now.athleteId, paymentForOf(after), after.amount, step.id);
+    if (over !== null) return over;
+  }
+  return null;
+}
+
 async function undoLocked(ctx: PresenceContext, actionId: string): Promise<AdminResult<{ undone: true }>> {
   const first = await ctx.store.historyEntry(actionId);
   if (!first) return refuse(404, PRESENCE_ERRORS.notFound);
@@ -84,6 +101,8 @@ async function undoLocked(ctx: PresenceContext, actionId: string): Promise<Admin
   const entry = await ctx.store.historyEntry(actionId);
   if (!entry) return refuse(404, PRESENCE_ERRORS.notFound);
   if (isUndone(entry) || !(await athletesExist(ctx.store, record)) || !(await guardsHold(ctx.store, record))) return refuse(409, PRESENCE_ERRORS.undoChanged);
+  const over = await restoredOverpay(ctx.store, record);
+  if (over !== null) return refuse(400, over);
   for (const step of [...record.steps].reverse()) await runStep(ctx.store, step);
   await writeUndone(ctx, entry, record);
   return { ok: true, data: { undone: true } };

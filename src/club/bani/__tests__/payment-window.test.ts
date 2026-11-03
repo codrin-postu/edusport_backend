@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PaymentOption } from '../../presence/payments/rules';
 import type { PaymentRowView } from '../../presence/money-api';
-import { amountText, cancelText, checkDraft, editDraft, editOptions, emailBox, newDraft, parseAmount, showsRink, toBody, withOption } from '../payment-window';
+import { amountText, cancelText, checkDraft, editDraft, editOptions, emailBox, isOverpaid, newDraft, parseAmount, showsRink, toBody, withOption } from '../payment-window';
 
 const paymentView = (o: Partial<PaymentRowView>): PaymentRowView => ({
   paymentId: 'p1', athleteId: 'a1', athleteName: 'Ana Ionescu', paidOn: '2026-10-27', purpose: 'abonament', purposeText: 'Abonament', method: 'numerar',
@@ -59,5 +59,12 @@ describe('payment window rules', () => {
     expect([emailBox(true), emailBox(false)]).toEqual([{ disabled: false, hint: null }, { disabled: true, hint: 'Sportivul nu are e-mail.' }]);
     expect(emailBox(null)).toEqual({ disabled: true, hint: null });   // M3: no hint before the answer
     expect(cancelText(paymentView({ amount: 320, paidOn: '2026-10-27' }))).toBe('Anulezi plata de 320 RON din 27 oct 2026? Rândul rămâne, marcat anulată.');
+  });
+});
+
+describe('server refusal under the amount', () => {
+  it('only the overpay text belongs under the amount field', () => {
+    expect(isOverpaid('Suma depășește restul de plată: 60,50 RON.')).toBe(true);
+    expect(isOverpaid('Cerere invalidă.')).toBe(false);
   });
 });

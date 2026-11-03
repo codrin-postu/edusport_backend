@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { SeasonRecord } from '../../groups/types';
-import { lessonRow, paymentRow, subscriptionRow } from './fake-store';
+import { attendanceRow, lessonRow, paymentRow, subscriptionRow } from './fake-store';
 import type { ClubMonth } from '../due/settlement';
 import {
-  acsOnFee, acsRevert, listPurposeText, paymentFieldChanges, paymentOptions, purposeFields, purposeText, readAmount, readNewPayment, sameFor,
+  acsOnFee, acsRevert, listPurposeText, overpayText, owedFor, paymentFieldChanges, paymentOptions, purposeFields, purposeText, readAmount, readNewPayment, sameFor,
 } from '../payments/rules';
 
 const today = '2026-11-20';
@@ -113,3 +113,66 @@ describe('A.C.S. effect and history', () => {
     expect(paymentFieldChanges(before, { ...before }, { before: 'Altceva', after: 'Club, septembrie' })).toEqual({ purposeText: { from: 'Altceva', to: 'Club, septembrie' } });
   });
 });
+
+describe('what is still owed (DEC 2026-11-03)', () => {
+  const src = (over: object = {}) => ({ subs: [subscriptionRow({ id: 's1', price: 320 })], payments: [], seasons: SEASONS, lessons: [], attendances: [], startDate: null, ...over });
+  const pays = [
+    paymentRow({ id: 'a', purpose: 'abonament', subscriptionId: 's1', amount: 100 }),
+    paymentRow({ id: 'x', purpose: 'abonament', subscriptionId: 's1', amount: 999, cancelled: true }),
+    paymentRow({ id: 'f', purpose: 'cotizatie', seasonId: 's26', amount: 40.5 }),
+    paymentRow({ id: 'l', purpose: 'lectie', lessonId: 'l1', amount: 30 }),
+  ];
+  const lesson = lessonRow({ id: 'l1', date: '2026-10-28', state: 'saved', present: true, price: 80, amount: 80 });
+
+  it('abonament price, fee, lesson price minus live payments; Club month left; never below 0', () => {
+    expect(owedFor({ kind: 'abonament', subscriptionId: 's1' }, src({ payments: pays }))).toBe(220);
+    expect(owedFor({ kind: 'cotizatie', seasonId: 's26' }, src({ payments: pays }))).toBe(59.5);
+    expect(owedFor({ kind: 'lectie', lessonId: 'l1' }, src({ payments: pays, lessons: [lesson] }))).toBe(50);
+    const club = attendanceRow({ id: 't1', athleteId: 'a1', billing: 'club', amount: 100 });
+    const sources = src({ attendances: [{ ...club, sessionDate: '2026-10-06', groupId: 'g', charges: [] }], payments: [paymentRow({ id: 'c', purpose: 'club_luna', clubMonth: '2026-10', amount: 60 })] });
+    expect(owedFor({ kind: 'club_luna', month: '2026-10' }, sources)).toBe(40);
+    expect(owedFor({ kind: 'club_luna', month: '2026-09' }, sources)).toBe(0);
+    expect(owedFor({ kind: 'abonament', subscriptionId: 's1' }, src({ payments: [paymentRow({ id: 'o', purpose: 'abonament', subscriptionId: 's1', amount: 400 })] }))).toBe(0);
+  });
+  it('Altceva and a missing price have no limit', () => {
+    expect(owedFor({ kind: 'altceva' }, src())).toBeNull();
+    expect(owedFor({ kind: 'abonament', subscriptionId: 's1' }, src({ subs: [subscriptionRow({ id: 's1', price: null })] }))).toBeNull();
+    expect(owedFor({ kind: 'lectie', lessonId: 'l1' }, src({ lessons: [{ ...lesson, price: null }] }))).toBeNull();
+    expect(owedFor({ kind: 'cotizatie', seasonId: 's26' }, src({ seasons: [{ ...SEASONS[1], membershipFee: null }] }))).toBeNull();
+  });
+  it('an edited payment counts its own amount as owed', () => {
+    const sources = src({ payments: pays });
+    expect(owedFor({ kind: 'abonament', subscriptionId: 's1' }, sources, 'a')).toBe(320);
+    expect(owedFor({ kind: 'abonament', subscriptionId: 's1' }, sources, 'f')).toBe(220);
+  });
+  it('refuses at due + 0.01, accepts exactly the due, text with RON like other amounts', () => {
+    expect(overpayText(220.01, 220)).toBe('Suma depășește restul de plată: 220 RON.');
+    expect(overpayText(60.51, 60.5)).toBe('Suma depășește restul de plată: 60,50 RON.');
+    expect(overpayText(220, 220)).toBeNull();
+    expect(overpayText(0.3, 0.1 + 0.2)).toBeNull();
+    expect(overpayText(1e6, null)).toBeNull();
+  });
+  it('I2: a lesson counts once: Lecție owes no more than its Club month still owes', () => {
+    const club = { ...attendanceRow({ id: 't1', athleteId: 'a1', billing: 'club', amount: 320 }), sessionDate: '2026-10-06', groupId: 'g', charges: [] };
+    const heldLesson = lessonRow({ id: 'l1', date: '2026-10-28', state: 'saved', present: true, price: 80, amount: 80 });
+    const base = { attendances: [club], lessons: [heldLesson] };
+    const clubPaid = [paymentRow({ id: 'c', purpose: 'club_luna', clubMonth: '2026-10', amount: 400 })];
+    expect(owedFor({ kind: 'club_luna', month: '2026-10' }, src({ ...base, payments: [] }))).toBe(400);
+    expect(owedFor({ kind: 'lectie', lessonId: 'l1' }, src({ ...base, payments: [] }))).toBe(80);
+    expect(owedFor({ kind: 'lectie', lessonId: 'l1' }, src({ ...base, payments: clubPaid }))).toBe(0);
+    const lessonPaid = [paymentRow({ id: 'p', purpose: 'lectie', lessonId: 'l1', amount: 80 })];
+    expect(owedFor({ kind: 'club_luna', month: '2026-10' }, src({ ...base, payments: lessonPaid }))).toBe(320);
+    const months = [month('2026-10', { due: 400, left: 0 })];
+    const opts = paymentOptions({ subs: [], payments: clubPaid, seasons: SEASONS, months, lessons: [heldLesson], today });
+    expect(opts.find((o) => o.for.kind === 'lectie')?.amount).toBe(0);
+  });
+  it('I3: the Cotizație default is the fee minus fees already paid, never below 0', () => {
+    const fee = (payments: ReturnType<typeof paymentRow>[]) =>
+      paymentOptions({ subs: [], payments, seasons: SEASONS, months: [], lessons: [], today }).find((o) => o.for.kind === 'cotizatie' && o.for.seasonId === 's26')?.amount;
+    expect(fee([])).toBe(100);
+    expect(fee([paymentRow({ id: 'f', purpose: 'cotizatie', seasonId: 's26', amount: 40 })])).toBe(60);
+    expect(fee([paymentRow({ id: 'f', purpose: 'cotizatie', seasonId: 's26', amount: 100 })])).toBe(0);
+    expect(fee([paymentRow({ id: 'f', purpose: 'cotizatie', seasonId: 's26', amount: 100, cancelled: true })])).toBe(100);
+  });
+});
+

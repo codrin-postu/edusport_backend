@@ -13,10 +13,11 @@ const duePage = (o: Partial<DuePage>): DuePage => ({ month: '2026-10', school: [
 describe('De încasat view', () => {
   it('Școala and Club cells (5.11, p5 scr 7)', () => {
     expect(schoolCells(schoolRow({ athleteName: 'Ana Ionescu', groupName: 'Intermediari Bronze', itemName: 'Abonament 8 ședințe', startsOn: '2026-10-27', price: 320, paid: 0, left: 320 })))
-      .toEqual({ athlete: 'Ana Ionescu', group: 'Intermediari Bronze', item: 'Abonament 8 ședințe', from: 'din 27 oct', price: '320 RON', paid: '0 RON', left: '320 RON' });
+      .toEqual({ athlete: 'Ana Ionescu', group: 'Intermediari Bronze', item: 'Abonament 8 ședințe', from: 'din 27 oct', price: '320 RON', paid: '0 RON', left: '320 RON', advance: null });
     expect(clubCells(clubRow({ athleteName: 'David Stan', groupNames: 'Avansați', grup: 5, uscat: 2, lessons: 0, due: 260, paid: 100, left: 160 })))
-      .toEqual({ athlete: 'David Stan', group: 'Avansați', sessions: '7 (5 grup, 2 uscat)', due: '260 RON', paid: '100 RON', left: '160 RON' });
-    expect(clubCells(clubRow({ left: -20 })).left).toBe('-20 RON');
+      .toEqual({ athlete: 'David Stan', group: 'Avansați', sessions: '7 (5 grup, 2 uscat)', due: '260 RON', paid: '100 RON', left: '160 RON', advance: null });
+    expect(clubCells(clubRow({ left: -20 }))).toMatchObject({ left: '0 RON', advance: 'Avans: 20 RON' });
+    expect(clubCells(clubRow({ left: 12.5 }))).toMatchObject({ left: '12,50 RON', advance: null });
   });
   it('parts hidden when empty; both empty: the empty text (C76)', () => {
     expect(dueParts(duePage({ school: [], club: [clubRow({})] }))).toEqual({ school: false, club: true, empty: false });

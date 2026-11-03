@@ -4,7 +4,7 @@ import type { AthleteMonthRow } from '../presence/attendance/api-types';
 import { monthTitle } from '../presence/dates';
 import type { AthletePayments, AthleteSubscriptions, MonthRow } from '../presence/money-api';
 import { ron } from '../presence/money';
-import { stateWord } from './format';
+import { leftCells, stateWord } from './format';
 
 const copy = MONEY_UI_COPY.athlete;
 const UNCOVERED = ', Fără abonament';
@@ -21,8 +21,8 @@ export function attendanceLine(row: AthleteMonthRow): { text: string; uncovered:
   return { text, uncovered: row.noSubscription ? UNCOVERED : null };
 }
 
-export const monthCells = (m: MonthRow): { month: string; sessions: string; due: string; paid: string; left: string } => ({
-  month: monthTitle(m.month), sessions: PAYMENT_COPY.sessionsText(m.grup, m.uscat, m.lessons), due: ron(m.due), paid: ron(m.paid), left: ron(m.left),
+export const monthCells = (m: MonthRow): { month: string; sessions: string; due: string; paid: string; left: string; advance: string | null } => ({
+  month: monthTitle(m.month), sessions: PAYMENT_COPY.sessionsText(m.grup, m.uscat, m.lessons), due: ron(m.due), paid: ron(m.paid), ...leftCells(m.left),
 });
 
 /** An anonymized athlete's payments stay visible but cannot change. */
