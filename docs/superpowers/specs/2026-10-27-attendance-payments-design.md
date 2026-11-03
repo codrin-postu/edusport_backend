@@ -247,7 +247,7 @@ Per athlete per calendar month (Club month = month of the session or lesson date
 - Ședințe: count of Club attendances by type (Grup ticks, Uscat ticks) and of present individual lessons.
 - De plătit: sum of `amount` of those Club attendances and lessons.
 - Plătit: sum of non-cancelled payments with purpose `club_luna` and `clubMonth` = that month, plus non-cancelled `lectie` payments of lessons dated in that month [C31].
-- Rămas: De plătit - Plătit (may be negative after an overpayment; shown with "-") [C32].
+- Rămas: De plătit - Plătit, never below 0; when a later correction lowers De plătit under Plătit, "Rămas: 0 RON" and a line "Avans: <sumă> RON" [DEC 2026-11-03 (2)].
 - A payment is for a month and allocated to that month's due; never tied to single sessions [p5 Q14].
 - Months before `attendanceStartDate` are not listed [C13].
 - Școala part [p5 Q34]: every subscription not cancelled whose frozen `price` minus its non-cancelled `abonament` payments is more than 0, whatever month it was bought in; Preț, Plătit, Rămas per subscription. A subscription with no price (`price` null) is not listed [C76].
@@ -261,7 +261,7 @@ Per athlete per calendar month (Club month = month of the session or lesson date
   - lună Club: "Club, <lună>" for the athlete's months with a Club or lesson due in the last 12 months and the current month; amount = Rămas of that month (not below 0);
   - lecție individuală: the athlete's present, priced lessons of the last 12 months, "Lecție individuală, <data>"; amount = price minus paid;
   - altceva: no link; amount empty.
-- The amount can always be changed; a payment may be partial or larger than the due.
+- The amount can always be changed; a payment may be partial but never larger than what is still owed for its "Pentru" (abonament, cotizație, Club month, lecție; on edit the payment's own amount counts as owed); "Altceva" has no limit. Refused with "Suma depășește restul de plată: <sumă> RON." [DEC 2026-11-03 (3)].
 
 ### 4.16 Membership fee sets A.C.S. [p5 Q20; DEC 2026-10-19 money-q1-member]
 - A non-cancelled `cotizatie` payment sets A.C.S. "Da" for its season (creates or updates `acs-membership`), in the same transaction; `acsBefore` keeps the old state; history line "Membru A.C.S. <sezon>: <vechi> -> Da" (existing P3 line) [code history-text.ts].
