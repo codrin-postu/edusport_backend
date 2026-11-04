@@ -38,7 +38,7 @@ Success:
 - Changes to 3C: inactivity input, anonymize, delete, merge and the personal data export (4.20, 4.21, 4.21a).
 
 ### 2.2 Non-goals
-- Coach login and the coach app (Azi, Grupe, Istoric, coach corrections until month end): phase 6 [R D60; DEC 2026-10-18 coach-q1-nav]. Phase 5 only exposes the data the coach screens will read (abonament status per athlete, sessions per coach).
+- Coach login and the coach app (Azi, Grupe, Istoric, coach corrections for 7 days after the session, P6 q22): phase 6 [R D60; DEC 2026-10-18 coach-q1-nav]. Phase 5 only exposes the data the coach screens will read (abonament status per athlete, sessions per coach).
 - Parent login, the digital ticket, the parent's month total: phase 7 [R D74; DEC 2026-10-11 user].
 - Online card payment, provider, "Confirmare de plată": later [DEC 2026-10-19 money-q4-doc, money-q5-online].
 - Invoices, receipts or any generated payment document: payments are only recorded [DEC 2026-10-19 money-q4-doc]. The undated "every payment gets an invoice" block is superseded.
@@ -608,7 +608,7 @@ Answered on 2026-10-27 and moved into the rules: start date [p5 Q38]; e-mail tex
 2. SPEC 2 rule 7 "same price list only" vs DEC 2026-10-10 Gold decision: resolved by p5 Q10 (Standard works in Gold, not the reverse).
 3. Mockups write "lei"; the built Prețuri page writes "RON": resolved by p5 Q37, "RON" everywhere.
 4. p5 scr 5 shows "Pe antrenori" with a month switcher, p5 scr 1 shows "Ședințe" as a day page: the page switches its header per tab (C41).
-5. Research D14 (coach corrections until month end) applies to phase 6; the admin corrects any time.
+5. Coach corrections: 7 days after the session (P6 q22, supersedes research D14 month end), phase 6; the admin corrects any time.
 6. DEC undated "every payment gets an invoice" vs DEC 2026-10-19 money-q4-doc: no document (later date wins).
 7. DEC undated "a group's payment setting is a price list OR Fără plată prin portal" vs p5 Q15 A: no switch; a missing list means nothing billed with the notice.
 8. DEC undated "6 or 8 sessions in 30 days" / "valid 4 school weekends" vs DEC 2026-10-19 user: start + 4 weeks, manual extension.
