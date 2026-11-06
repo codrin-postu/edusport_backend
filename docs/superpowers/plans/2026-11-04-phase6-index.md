@@ -110,7 +110,7 @@ Handler refusals: 403 `"Nu mai ai acces la această grupă."` when the link chec
 | `GET /api/portal/coach/groups/:documentId` | | `CoachGroupPage` |
 | `GET /api/portal/coach/groups/:documentId/saved-days` | `?month=YYYY-MM` | `CoachSavedDays` `{ month, dates: string[] }` (ascending; own group: every saved date; other group: only dates listing the coach; 404 missing or inactive group, 400 bad month; no session ids) |
 | `GET /api/portal/coach/session` | `?occurrence=` or `?id=` or `?group=&date=&time=&duration=` | `CoachSession` |
-| `POST /api/portal/coach/session/check` | `{ groupId, date, startTime }` | `SessionCheck` (phase 5 type) |
+| `POST /api/portal/coach/session/check` | `{ groupId, date, startTime }` | `CoachSessionCheck` (phase 5 `SessionCheck`, but each `saved` row has `listed: boolean`, true when the calling coach is in that session's coaches, in place of the roster count) |
 | `PUT /api/portal/coach/session` | `SessionSaveBody` (phase 5 type) | `SessionSaved`; 409 reactivation body as phase 5 |
 | `GET /api/portal/coach/lessons/:documentId` | | `CoachLesson` |
 | `POST /api/portal/coach/lessons` | `LessonBody` (phase 5) | `LessonSaved` |

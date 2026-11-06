@@ -102,6 +102,16 @@ describe('stand-in on another coach group', () => {
     expect(await checkCoachSession(c, { groupId: 'g-club-a', date: TODAY, startTime: '17:00' })).toMatchObject({ ok: true, data: { kind: 'occurrence' } });
   });
 
+  it('marks each saved row of the day with listed, true only when the coach is in its coaches', async () => {
+    const c = coachCtx(ME);
+    c.fake.state.sessions.push(
+      sessionRow({ id: 's-mine', groupId: 'g-club-a', date: TODAY, startTime: '17:00', coachIds: [ME] }),
+      sessionRow({ id: 's-other', groupId: 'g-club-a', date: TODAY, startTime: '19:00', source: 'added', eventId: null, occurrenceKey: null, coachIds: ['tm-virgil'] }),
+    );
+    const res = await checkCoachSession(c, { groupId: 'g-club-a', date: TODAY, startTime: '17:00' });
+    expect(res).toMatchObject({ ok: true, data: { kind: 'existing', saved: [{ sessionId: 's-mine', listed: true }, { sessionId: 's-other', listed: false }] } });
+  });
+
   it('cannot save a future date', async () => {
     const c = coachCtx(ME);
     expect(await saveCoachSession(c, body({ occurrence: 'ev-g-club-b|2026-11-25|18:00', coachIds: [ME] }))).toEqual(NO_ACCESS);

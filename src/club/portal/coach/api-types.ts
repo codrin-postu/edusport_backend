@@ -1,6 +1,6 @@
 import type { Occurrence } from '../../../api/calendar-event/services/expand';
 import type { GroupProgram } from '../../groups/program-read';
-import type { AddedSession, SectionKind } from '../../presence/attendance/api-types';
+import type { AddedSession, SavedOnDay, SectionKind, SessionCheck } from '../../presence/attendance/api-types';
 import type { LessonState } from '../../presence/types';
 
 export type { SectionKind };
@@ -40,6 +40,9 @@ export type CoachGroupPage = {
 export type CoachPresenceRow = {
   athleteId: string; name: string; age: number | null; inactive: boolean; visitor: boolean; grup: boolean; uscat: boolean; abonament: string | null;
 };
+/** A saved session of the day in the "+ Ședință nouă" answer. `listed` is true when the calling coach is in that session's coaches (replaces the phase 5 roster count, which no coach screen shows). */
+export type CoachSavedOnDay = Omit<SavedOnDay, 'listed'> & { listed: boolean };
+export type CoachSessionCheck = Exclude<SessionCheck, { kind: 'existing' }> | { kind: 'existing'; sameTime: boolean; saved: CoachSavedOnDay[] };
 export type CoachSession = {
   sessionId: string | null; occurrenceKey: string | null; added: AddedSession | null; groupId: string; groupName: string; kind: SectionKind;
   date: string; startTime: string; durationMin: number; outsideSchedule: boolean; coachIds: string[]; coachOptions: { id: string; name: string }[];
