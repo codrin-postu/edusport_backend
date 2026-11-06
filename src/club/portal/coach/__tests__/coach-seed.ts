@@ -1,7 +1,7 @@
 import type { CalendarEventRow } from '../../../../api/calendar-event/services/expand';
 import { fakeClubStore } from '../../../athletes/__tests__/fake-store';
-import { athleteRow, member } from '../../../groups/__tests__/fake-group-store';
-import type { GroupStore, GroupRecord, NamedRow } from '../../../groups/types';
+import { athleteRow, event, member } from '../../../groups/__tests__/fake-group-store';
+import type { DayKey, EventRecord, GroupStore, GroupRecord, NamedRow } from '../../../groups/types';
 import { fakePresenceContext, subscriptionRow, type FakePresenceContext, type FakePresenceSeed } from '../../../presence/__tests__/fake-store';
 import { fakePortalStore, type FakePortal } from '../../__tests__/fake-portal-store';
 import { coachActor, type CoachContexts } from '../context';
@@ -43,11 +43,22 @@ const weekly = (documentId: string, name: string, days: Record<string, boolean>,
 const C_CALENDAR: CalendarEventRow[] = [
   weekly('g-club-a', 'Club A', { fri: true }, '17:00', '18:30', '2026-10-02'),
   weekly('g-scoala-a', 'Școala A', { sat: true, sun: true }, '11:00', '11:50', '2026-10-04'),
-  weekly('g-club-b', 'Club B', { wed: true }, '18:00', '19:30', '2026-10-07'),
+  weekly('g-club-b', 'Club B', { wed: true, fri: true }, '18:00', '19:30', '2026-10-07'),
+];
+
+const series = (groupId: string, title: string, days: DayKey[], startTime: string, endTime: string): EventRecord => event({
+  id: `ev-${groupId}`, title, groupId, type: groupId.startsWith('g-club') ? 'club' : 'scoala',
+  recurrence: { freq: 'weekly', days, weekOfMonth: null, startTime, endTime, singleDate: null, seasonStart: '2026-10-02', seasonEnd: '2027-05-31' },
+});
+
+const C_EVENTS: EventRecord[] = [
+  series('g-club-a', 'Club A', ['fri'], '17:00', '18:30'),
+  series('g-scoala-a', 'Școala A', ['sat', 'sun'], '11:00', '11:50'),
+  series('g-club-b', 'Club B', ['wed', 'fri'], '18:00', '19:30'),
 ];
 
 const C_SEED: FakePresenceSeed = {
-  group: { groups: C_GROUPS, teamMembers: C_TEAM, athletes: C_ATHLETES, memberships: C_MEMBERSHIPS },
+  group: { groups: C_GROUPS, teamMembers: C_TEAM, athletes: C_ATHLETES, memberships: C_MEMBERSHIPS, events: C_EVENTS },
   subscriptions: [
     subscriptionRow({ id: 'sub-s1', athleteId: 'a-scoala-1', priceListId: 'pl-std', price: 320, audience: 'member', slots: 8, startsOn: '2026-11-01', validUntil: '2026-11-28' }),
   ],
