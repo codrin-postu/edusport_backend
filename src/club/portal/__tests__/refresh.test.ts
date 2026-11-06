@@ -75,6 +75,22 @@ describe('refreshSession', () => {
   });
 });
 
+describe('refresh host and device session', () => {
+  it('uses the session host: a host without a coach link may refresh', async () => {
+    const s = await setup();
+    await s.c.store.updateAccount(s.accountId, { teamMemberId: null });
+    s.fake.state.sessions[0].host = 'sportiv';
+    expect(ok(await refreshSession(s.c, { refreshToken: s.session.refreshToken }))).toBe(true);
+  });
+
+  it('never overwrites the device session id with another session', async () => {
+    const s = await setup();
+    s.fake.state.devices[0].sessionId = 'newer-session';
+    expect(ok(await refreshSession(s.c, { refreshToken: s.session.refreshToken }))).toBe(true);
+    expect(s.fake.state.devices[0].sessionId).toBe('newer-session');
+  });
+});
+
 describe('logout', () => {
   it('a logged-out token cannot refresh', async () => {
     const s = await setup();

@@ -4,7 +4,7 @@ import { checkPassword } from '../passwords';
 import type { AccountRow, TokenRow } from '../store';
 import { hashSecret, tokenState } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
-import { canEnter, issueSession, type PortalSession } from './issue';
+import { canEnter, startSession, type PortalSession } from './issue';
 
 export type InviteRead = { state: 'valid'; email: string } | { state: 'expired'; email: null };
 
@@ -79,5 +79,5 @@ export async function acceptInvite(c: PortalAuthContext, body: unknown): Promise
   if (!activated) return expiredInvite;
   const user = await c.store.user(activated.userId);
   if (!canEnter(activated, user, read.host)) return { ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin };
-  return { ok: true, data: await issueSession(c, activated, read.deviceKey, { notifyNewDevice: false }) };
+  return startSession(c, activated, read.deviceKey, { notifyNewDevice: false, host: read.host });
 }

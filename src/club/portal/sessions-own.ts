@@ -7,6 +7,7 @@ const IDLE_MS = 7 * 24 * 3600 * 1000;
 const FAMILY_MS = 30 * 24 * 3600 * 1000;
 export const GRACE_MS = 30 * 1000;
 const TOKEN_BYTES = 32;
+const DEFAULT_HOST = 'antrenor';
 
 const newSecret = (): string => randomBytes(TOKEN_BYTES).toString('base64url');
 export const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
@@ -73,7 +74,7 @@ export function ownSessions(store: PortalStore, now: () => Date): PortalSessions
   };
 
   return {
-    async issue(userId, deviceId) {
+    async issue(userId, deviceId, host = DEFAULT_HOST) {
       const known = await store.accountByUser(userId);
       if (!known) throw new Error('no portal account for user');
       return store.transaction(async () => {
@@ -82,14 +83,14 @@ export function ownSessions(store: PortalStore, now: () => Date): PortalSessions
         const pair = freshPair(now());
         const at = now().toISOString();
         const id = await store.createSession({
-          accountId: known.id, deviceId, refreshHash: pair.refreshHash, accessHash: pair.accessHash, accessExpiresAt: pair.accessExpiresAt, familyStartedAt: at, lastUsedAt: at,
+          accountId: known.id, deviceId, host, refreshHash: pair.refreshHash, accessHash: pair.accessHash, accessExpiresAt: pair.accessExpiresAt, familyStartedAt: at, lastUsedAt: at,
         });
         return tokensOf(pair, id);
       });
     },
     async refresh(refreshToken) {
       const done = await store.transaction(() => rotate(refreshToken));
-      return done ? { ...tokensOf(done.pair, done.row.id), userId: done.userId, deviceId: done.row.deviceId } : null;
+      return done ? { ...tokensOf(done.pair, done.row.id), userId: done.userId, deviceId: done.row.deviceId, host: done.row.host } : null;
     },
     async verifyAccess(accessToken) {
       const row = await store.sessionByAccess(hashToken(accessToken));

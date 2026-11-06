@@ -5,7 +5,7 @@ import { checkPassword } from '../passwords';
 import type { AccountRow, TokenRow } from '../store';
 import { RESET_MAX_TRIES, RESET_TTL_MS, hashSecret, newResetCode, sameHash, tokenState } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
-import { canEnter, issueSession, type PortalSession } from './issue';
+import { canEnter, startSession, type PortalSession } from './issue';
 
 /** No reset request answers sooner than this after it started, so the answer time does not tell a known e-mail from an unknown one. */
 export const RESET_FLOOR_MS = 1500;
@@ -123,5 +123,5 @@ export async function confirmReset(c: PortalAuthContext, body: unknown): Promise
   await c.sessions.revokeAll(checked.account.userId);
   const user = await c.store.user(checked.account.userId);
   if (!canEnter(checked.account, user, read.host)) return { ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin };
-  return { ok: true, data: await issueSession(c, checked.account, read.deviceKey, { notifyNewDevice: true }) };
+  return startSession(c, checked.account, read.deviceKey, { notifyNewDevice: true, host: read.host });
 }

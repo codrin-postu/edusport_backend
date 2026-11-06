@@ -26,6 +26,9 @@
       "type": "string",
       "required": true
     },
+    "host": {
+      "type": "string"
+    },
     "refreshHash": {
       "type": "string",
       "required": true,

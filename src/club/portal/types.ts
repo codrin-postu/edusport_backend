@@ -16,6 +16,6 @@ export type UserAuth = { id: number; email: string; passwordHash: string | null;
 export type UserWrite = { email?: string; passwordHash?: string; blocked?: boolean; confirmed?: boolean };
 export type HistoryLine = { subjectId: string; action: string; changes: Record<string, unknown>; actor: string };
 export type SessionRow = {
-  id: string; accountId: string; deviceId: string; refreshHash: string; previousRefreshHash: string | null; accessHash: string | null;
+  id: string; accountId: string; deviceId: string; host: string; refreshHash: string; previousRefreshHash: string | null; accessHash: string | null;
   accessExpiresAt: string | null; familyStartedAt: string; lastUsedAt: string; revokedAt: string | null;
 };

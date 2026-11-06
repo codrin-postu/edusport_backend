@@ -1,7 +1,8 @@
 import { deviceLabel } from '../devices';
 import { hashSecret, newDeviceKey } from '../tokens';
 import type { AccountRow, DeviceRow, UserAuth } from '../store';
-import type { PortalAuthContext } from './context';
+import { PORTAL_ERRORS } from '../copy';
+import type { PortalAuthContext, PortalResult } from './context';
 
 export type PortalSession = { accessToken: string; refreshToken: string; accessExpiresAt: string; deviceKey: string | null };
 
@@ -36,17 +37,36 @@ async function mailNewDevice(c: PortalAuthContext, account: AccountRow, device: 
   }
 }
 
+/** The account stopped being usable between the caller's check and the session. */
+export class InactiveAccount extends Error {}
+
 export async function issueSession(
-  c: PortalAuthContext, account: AccountRow, deviceKey: string | null, o: { notifyNewDevice: boolean },
+  c: PortalAuthContext, account: AccountRow, deviceKey: string | null, o: { notifyNewDevice: boolean; host: string },
 ): Promise<PortalSession> {
   const { bound, tokens } = await c.store.transaction(async () => {
-    const bound = await bindDevice(c, account, deviceKey);
-    const tokens = await c.sessions.issue(account.userId, bound.device.id);
+    await c.store.lockAccount(account.id);
+    const fresh = await c.store.account(account.id);
+    const user = fresh ? await c.store.user(fresh.userId) : null;
+    if (!fresh || fresh.status !== 'active' || !user || user.blocked) throw new InactiveAccount();
+    const bound = await bindDevice(c, fresh, deviceKey);
+    const tokens = await c.sessions.issue(fresh.userId, bound.device.id, o.host);
     const at = c.now().toISOString();
     await c.store.updateDevice(bound.device.id, { sessionId: tokens.sessionId, lastSeenAt: at });
-    await c.store.updateAccount(account.id, { lastLoginAt: at });
+    await c.store.updateAccount(fresh.id, { lastLoginAt: at });
     return { bound, tokens };
   });
-  if (o.notifyNewDevice && bound.newRow) await mailNewDevice(c, account, bound.device);
+  if (o.notifyNewDevice && bound.newRow) void mailNewDevice(c, account, bound.device);
   return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, accessExpiresAt: tokens.accessExpiresAt, deviceKey: bound.newKey ? bound.key : null };
+}
+
+/** `issueSession` as an answer: an account that was disabled meanwhile gets the wrong-login refusal. */
+export async function startSession(
+  c: PortalAuthContext, account: AccountRow, deviceKey: string | null, o: { notifyNewDevice: boolean; host: string },
+): Promise<PortalResult<PortalSession>> {
+  try {
+    return { ok: true, data: await issueSession(c, account, deviceKey, o) };
+  } catch (err) {
+    if (err instanceof InactiveAccount) return { ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin };
+    throw err;
+  }
 }

@@ -50,7 +50,7 @@ export function toDeviceRow(r: Raw): DeviceRow {
 
 export function toSessionRow(r: Raw): SessionRow {
   return {
-    id: text(r.documentId), accountId: linkId(r.account) ?? '', deviceId: text(r.deviceId), refreshHash: text(r.refreshHash), previousRefreshHash: str(r.previousRefreshHash),
+    id: text(r.documentId), accountId: linkId(r.account) ?? '', deviceId: text(r.deviceId), host: str(r.host) ?? 'antrenor', refreshHash: text(r.refreshHash), previousRefreshHash: str(r.previousRefreshHash),
     accessHash: str(r.accessHash), accessExpiresAt: iso(r.accessExpiresAt), familyStartedAt: iso(r.familyStartedAt) ?? '', lastUsedAt: iso(r.lastUsedAt) ?? '', revokedAt: iso(r.revokedAt),
   };
 }

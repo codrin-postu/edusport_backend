@@ -44,31 +44,33 @@ describe('limiter', () => {
     expect(await lim.ipBlocked('1.1.1.1')).toBe(true);
     expect(await lim.ipBlocked('2.2.2.2')).toBe(false);
   });
-  it('locks an e-mail with no account after 5 failures, firstLock once, for 15 minutes', async () => {
+  it('locks an e-mail with no account at the 5th attempt, firstLock once, for 15 minutes', async () => {
     const { lim, advance } = make();
     const email = 'ghost@example.com';
-    expect(await lim.emailLocked(email)).toBe(false);
-    const locks: boolean[] = [];
-    for (let i = 0; i < 5; i++) locks.push((await lim.emailFailed(email)).firstLock);
-    expect(locks).toEqual([false, false, false, false, true]);
-    expect(await lim.emailLocked(email)).toBe(true);
-    expect((await lim.emailFailed(email)).firstLock).toBe(false);
+    const attempts = [];
+    for (let i = 0; i < 5; i++) attempts.push(await lim.emailAttempt(email));
+    expect(attempts.map((a) => a.refused)).toEqual([false, false, false, false, false]);
+    expect(attempts.map((a) => a.locking)).toEqual([false, false, false, false, true]);
+    expect(attempts.map((a) => a.firstLock)).toEqual([false, false, false, false, true]);
+    expect(await lim.emailAttempt(email)).toEqual({ refused: true, locking: false, firstLock: false });
     advance(14 * 60_000);
-    expect(await lim.emailLocked(email)).toBe(true);
+    expect((await lim.emailAttempt(email)).refused).toBe(true);
     advance(2 * 60_000);
-    expect(await lim.emailLocked(email)).toBe(false);
+    expect((await lim.emailAttempt(email)).refused).toBe(false);
   });
-  it('emailLocked does not count', async () => {
-    const { lim } = make();
-    for (let i = 0; i < 10; i++) await lim.emailLocked('a@b.ro');
-    expect(await lim.emailLocked('a@b.ro')).toBe(false);
+  it('a refused attempt does not count', async () => {
+    const { lim, advance } = make();
+    for (let i = 0; i < 5; i++) await lim.emailAttempt('a@b.ro');
+    for (let i = 0; i < 10; i++) await lim.emailAttempt('a@b.ro');
+    advance(15 * 60_000 + 1);
+    expect((await lim.emailAttempt('a@b.ro')).refused).toBe(false);
   });
   it('emailCleared resets', async () => {
     const { lim } = make();
-    for (let i = 0; i < 5; i++) await lim.emailFailed('a@b.ro');
-    expect(await lim.emailLocked('a@b.ro')).toBe(true);
+    for (let i = 0; i < 5; i++) await lim.emailAttempt('a@b.ro');
+    expect((await lim.emailAttempt('a@b.ro')).refused).toBe(true);
     await lim.emailCleared('a@b.ro');
-    expect(await lim.emailLocked('a@b.ro')).toBe(false);
+    expect((await lim.emailAttempt('a@b.ro')).refused).toBe(false);
   });
   it('allows 5 mails per hour, then again after', async () => {
     const { lim, advance } = make();

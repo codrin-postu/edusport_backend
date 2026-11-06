@@ -115,6 +115,17 @@ describe('login answers', () => {
 });
 
 describe('lockout and limits', () => {
+  it('parallel wrong guesses past 5 are refused without a compare', async () => {
+    const s = setup();
+    await s.addAccount('ana@x.ro', 1);
+    const answers = await Promise.all(Array.from({ length: 12 }, () => s.login({ password: 'wrong' })));
+    expect(s.compare).toHaveBeenCalledTimes(5);
+    expect(answers.filter((r) => !r.ok && r.status === 429)).toHaveLength(8);
+    const right = await Promise.all([s.login(), s.login(), s.login()]);
+    expect(right.every((r) => !r.ok && r.status === 429)).toBe(true);
+    expect(s.compare).toHaveBeenCalledTimes(5);
+  });
+
   it('5 wrong passwords then the right one: paused; after 15 minutes it logs in and clears the counter', async () => {
     const s = setup();
     await s.addAccount('ana@x.ro', 1);
@@ -182,6 +193,45 @@ describe('lockout and limits', () => {
 });
 
 describe('devices and sessions', () => {
+  it('the new-device mail is not awaited', async () => {
+    const s = setup();
+    await s.addAccount('ana@x.ro', 1);
+    s.c.mail = () => new Promise<boolean>(() => undefined);
+    expect((await s.login()).ok).toBe(true);
+  });
+
+  it('the account is locked before the device row is written', async () => {
+    const s = setup();
+    const id = await s.addAccount('ana@x.ro', 1);
+    const seen: boolean[] = [];
+    const create = s.c.store.createDevice;
+    s.c.store.createDevice = async (d) => {
+      seen.push(s.fake.state.locks.includes(`account:${id}`));
+      return create(d);
+    };
+    expect((await s.login()).ok).toBe(true);
+    expect(seen).toEqual([true]);
+  });
+
+  it('an account disabled while the login runs gets the wrong-login answer', async () => {
+    const s = setup();
+    const id = await s.addAccount('ana@x.ro', 1);
+    const accountOf = s.c.store.account;
+    s.c.store.account = async (x) => {
+      const row = await accountOf(x);
+      return row && x === id ? { ...row, status: 'disabled' } : row;
+    };
+    expect(await s.login()).toEqual(WRONG);
+    expect(s.fake.state.sessions).toEqual([]);
+  });
+
+  it('the session keeps its host', async () => {
+    const s = setup();
+    await s.addAccount('ana@x.ro', 1);
+    await s.login();
+    expect(s.fake.state.sessions[0].host).toBe('antrenor');
+  });
+
   it('first login creates a key, one device row and one new-device mail; the same key again does not', async () => {
     const s = setup();
     const id = await s.addAccount('ana@x.ro', 1);
@@ -234,6 +284,7 @@ describe('devices and sessions', () => {
       const s = setup({ mailOk });
       await s.addAccount('ana@x.ro', 1);
       expect((await s.login()).ok).toBe(true);
+      await flush();
       expect(s.logs.some((l) => l.includes('new-device mail'))).toBe(true);
       expect(s.logs.join('\n')).not.toContain('ana@x.ro');
     }
@@ -243,6 +294,7 @@ describe('devices and sessions', () => {
     const s = setup({ mailOk: false });
     await s.addAccount('ana@x.ro', 1);
     for (let i = 0; i < 5; i++) await s.login({ password: 'wrong' });
+    await flush();
     expect(s.logs.join('\n')).not.toMatch(/ana@x\.ro|wrong|right|1\.1\.1\.1/);
   });
 });
@@ -250,6 +302,17 @@ describe('devices and sessions', () => {
 describe('controller', () => {
   const ctx = (headers: Record<string, string>, body: unknown = {}) => ({
     params: {}, query: {}, request: { body, header: {}, headers }, status: 200, body: undefined as unknown,
+  });
+
+  it('an unexpected throw answers a generic 500 and logs no key or e-mail', async () => {
+    process.env.PORTAL_BFF_SECRET = 's'.repeat(40);
+    const lines: string[] = [];
+    (globalThis as Record<string, unknown>).strapi = { log: { error: (m: string) => lines.push(m) }, get dirs() { throw new Error('login:ana@x.ro secret detail'); } };
+    const c = ctx({ 'x-portal-secret': 's'.repeat(40) }, { host: 'antrenor', email: 'ana@x.ro', password: 'p' });
+    await controller.login(c);
+    expect(c.status).toBe(500);
+    expect(c.body).toEqual({ data: null, error: { status: 500, name: 'ClubAdminError', message: PORTAL_ERRORS.failed } });
+    expect(lines).toEqual(['[portal-auth] login failed: Error']);
   });
 
   it('answers 403 without the secret header and touches no store', async () => {

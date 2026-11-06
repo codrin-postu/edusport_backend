@@ -2,7 +2,6 @@ import type { AdminResult } from '../../admin-result';
 import type { PortalAuthContext, PortalResult } from './context';
 import { canEnter, type PortalSession } from './issue';
 
-const HOST = 'antrenor';
 const refused: PortalResult<never> = { ok: false, status: 401, error: '' };
 
 const tokenOf = (body: unknown): string | null => {
@@ -18,11 +17,12 @@ export async function refreshSession(c: PortalAuthContext, body: unknown): Promi
   const account = await c.store.accountByUser(next.userId);
   const user = account ? await c.store.user(account.userId) : null;
   const device = account ? (await c.store.devices(account.id)).find((d) => d.id === next.deviceId) : undefined;
-  if (!canEnter(account, user, HOST) || !device || device.revokedAt !== null) {
+  if (!canEnter(account, user, next.host) || !device || device.revokedAt !== null) {
     await c.sessions.revoke(next.refreshToken);
     return refused;
   }
-  await c.store.updateDevice(device.id, { sessionId: next.sessionId, lastSeenAt: c.now().toISOString() });
+  const seen = c.now().toISOString();
+  await c.store.updateDevice(device.id, device.sessionId === null ? { sessionId: next.sessionId, lastSeenAt: seen } : { lastSeenAt: seen });
   return { ok: true, data: { accessToken: next.accessToken, refreshToken: next.refreshToken, accessExpiresAt: next.accessExpiresAt, deviceKey: null } };
 }
 
