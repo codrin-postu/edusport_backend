@@ -7,6 +7,8 @@ import { RESET_MAX_TRIES, RESET_TTL_MS, hashSecret, newResetCode, sameHash, toke
 import type { PortalAuthContext, PortalResult } from './context';
 import { canEnter, issueSession, type PortalSession } from './issue';
 
+/** No reset request answers sooner than this after it started, so the answer time does not tell a known e-mail from an unknown one. */
+export const RESET_FLOOR_MS = 1500;
 const CODE_MAX = 64;
 const DEVICE_KEY_MAX = 200;
 
@@ -38,8 +40,18 @@ async function sendCode(c: PortalAuthContext, email: string, code: string): Prom
   }
 }
 
-/** The same answer for every e-mail: an unknown or disabled account, or a spent send limit, only skips the token and the mail. */
+const realSleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** The same answer for every e-mail: an unknown or disabled account, or a spent send limit, only skips the token and the mail. Held to RESET_FLOOR_MS. */
 export async function requestReset(c: PortalAuthContext, body: unknown): Promise<PortalResult<{ message: string }>> {
+  const started = c.now().getTime();
+  const result = await resetAnswer(c, body);
+  const wait = RESET_FLOOR_MS - (c.now().getTime() - started);
+  if (wait > 0) await (c.sleep ?? realSleep)(wait);
+  return result;
+}
+
+async function resetAnswer(c: PortalAuthContext, body: unknown): Promise<PortalResult<{ message: string }>> {
   const email = normalizeEmail(typeof body === 'object' && body !== null ? (body as Record<string, unknown>).email : null);
   if (email === null) return refuse(400, PORTAL_ERRORS.invalid);
   if (await c.limits.ipBlocked(c.ip)) return paused;

@@ -22,6 +22,8 @@ export type PortalResult<T> = AdminResult<T> | AuthRefusal;
 export type PortalAuthContext = {
   store: PortalStore; sessions: PortalSessions; limits: Limiter; mail: SendPortalMail; common: ReadonlySet<string>;
   hosts: string[]; ip: string; userAgent: string | null; now: () => Date; log: (m: string) => void;
+  /** Waits; tests inject a fast one. Defaults to a real timer. */
+  sleep?: (ms: number) => Promise<void>;
   hash: (password: string) => Promise<string>; compare: (password: string, hash: string) => Promise<boolean>;
 };
 
@@ -45,6 +47,7 @@ export function portalAuthContext(strapi: Core.Strapi, ctx: PortalCtx): PortalAu
     userAgent: userAgent(ctx.request.headers),
     now,
     log: (m) => strapi.log.error(m),
+    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     hash: (password) => bcrypt.hash(password, COST),
     compare: (password, hash) => bcrypt.compare(password, hash),
   };

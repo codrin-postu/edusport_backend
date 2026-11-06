@@ -27,7 +27,9 @@ function setup(o: { mailOk?: boolean | 'throw' } = {}) {
   };
   const logs: string[] = [];
   const sessions = portalSessions(store, now);
+  const slept: number[] = [];
   const c: PortalAuthContext = {
+    sleep: async (ms) => { slept.push(ms); },
     store, sessions, limits: limiter(store, now), mail, common: new Set(['password123']), hosts: ['antrenor'], ip: '1.1.1.1',
     userAgent: null, now, log: (m) => logs.push(m), hash: async (p) => `hash:${p}`, compare: async (p, h) => h === `hash:${p}`,
   };
@@ -39,7 +41,7 @@ function setup(o: { mailOk?: boolean | 'throw' } = {}) {
   };
   const confirm = (body: Record<string, unknown> = {}) =>
     confirmReset(c, { host: 'antrenor', email: 'ana@x.ro', code: lastCode(), password: NEW_PASSWORD, ...body });
-  return { c, fake, store, mails, logs, addAccount, request, lastCode, confirm, advance: (ms: number) => { clock.t = new Date(clock.t.getTime() + ms); } };
+  return { c, slept, fake, store, mails, logs, addAccount, request, lastCode, confirm, advance: (ms: number) => { clock.t = new Date(clock.t.getTime() + ms); } };
 }
 
 describe('requestReset', () => {
@@ -105,6 +107,32 @@ describe('requestReset', () => {
     const s = setup();
     for (let i = 0; i < 30; i++) await s.request('ghost@x.ro');
     expect(await s.request('ghost@x.ro')).toEqual({ ok: false, status: 429, error: PORTAL_ERRORS.paused });
+  });
+});
+
+describe('reset floor', () => {
+  it('known, unknown, limited and failed sends all wait out the 1500 ms floor', async () => {
+    const s = setup();
+    await s.addAccount();
+    await s.request();
+    await s.request('ghost@x.ro');
+    expect(s.slept).toEqual([1500, 1500]);
+    const f = setup({ mailOk: false });
+    await f.addAccount();
+    expect((await f.request()).ok).toBe(false);
+    expect(f.slept).toEqual([1500]);
+  });
+
+  it('waits only the rest when the work took time, and not at all past the floor', async () => {
+    const s = setup();
+    await s.addAccount();
+    const real = s.c.mail;
+    s.c.mail = async (to, m) => { s.advance(400); return real(to, m); };
+    await s.request();
+    expect(s.slept).toEqual([1100]);
+    s.c.mail = async (to, m) => { s.advance(2000); return real(to, m); };
+    await s.request();
+    expect(s.slept).toEqual([1100]);
   });
 });
 
