@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { ConfirmDialog } from '../ConfirmDialog';
+import { AccountBlock } from './portal/AccountBlock';
 import {
   AdminPage,
   Window,
@@ -337,6 +338,8 @@ function MemberEditor({
           {error}
         </div>
       )}
+
+      {!isNew && draft.documentId && <AccountBlock teamMemberId={draft.documentId} />}
 
       <ImagePicker
         open={pickerOpen}

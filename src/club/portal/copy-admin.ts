@@ -35,3 +35,6 @@ export const ACCOUNT_TOASTS = {
   enabled: 'Cont activat.',
   emailChanged: 'E-mail schimbat.',
 } as const;
+
+/** COPY NEEDED: the text of the "Dezactivează contul" confirmation waits on the companion round; shown as is until then. */
+export const ACCOUNT_DISABLE_CONFIRM_TEXT = 'COPY NEEDED';

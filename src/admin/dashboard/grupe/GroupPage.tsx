@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AdminPage, BottomSheet, Loading, Notice, PageHeader, Tabs, Window, useIsPhone } from '../../ui';
+import { AdminPage, BottomSheet, Button, Loading, Modal, Notice, PageHeader, Tabs, Window, useIsPhone } from '../../ui';
+import { AccountBlock } from '../portal/AccountBlock';
 import type { GroupPage as GroupPageData } from '../../../club/groups/api-types';
 import { GROUP_ERRORS, GRUPE_COPY } from '../../../club/groups/copy';
 import { groupTabs, subtitle, type GroupTab } from '../../../club/grupe/group-view';
@@ -39,10 +40,27 @@ function useGroupPage(api: GrupeApi, id: string, season: string | null): Loaded 
 
 const SHOWN: readonly GroupTab[] = ['sportivi', 'program', 'prezenta', 'istoric'];
 
+/** The coaches line: each name opens the "Cont portal" block of that coach. */
+function CoachAccounts({ coaches }: { coaches: GroupPageData['coaches'] }) {
+  const [open, setOpen] = React.useState<GroupPageData['coaches'][number] | null>(null);
+  if (!coaches.length) return null;
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 12px' }}>
+      {coaches.map((c) => (
+        <Button key={c.documentId} variant="secondary" size="sm" onClick={() => setOpen(c)}>{c.name}</Button>
+      ))}
+      <Modal open={open !== null} onClose={() => setOpen(null)} title={open?.name ?? ''}>
+        {open && <AccountBlock teamMemberId={open.documentId} />}
+      </Modal>
+    </div>
+  );
+}
+
 function GroupBody({ page, api, tab, onTab }: { page: GroupPageData; api: GrupeApi; tab: GroupTab; onTab: (t: GroupTab) => void }) {
   const tabs = groupTabs(page).filter((t) => SHOWN.includes(t.id));
   return (
     <>
+      <CoachAccounts coaches={page.coaches} />
       <Tabs items={tabs} value={tab} onChange={(id) => onTab(id as GroupTab)} label={GRUPE_COPY.title} panelId="grp-panel" className="spv-tabs" />
       <div role="tabpanel" id="grp-panel">
         {tab === 'sportivi' && <RosterTab page={page} api={api} />}
