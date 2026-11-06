@@ -1,0 +1,64 @@
+import type { NamedRow } from '../../groups/types';
+import type { AthleteStatus } from '../../athlete-data';
+import type { MemberRow } from '../../groups/api-types';
+import type { LessonPanel, SessionPanel } from '../../presence/attendance/api-types';
+import type { CoachLesson, CoachMember, CoachPresenceRow, CoachSession, SectionKind } from './api-types';
+import type { Right } from './rules';
+
+/** Keys no coach answer may carry (spec 14.3), the coach's own `email` in `CoachMe` excepted through `allow`. */
+export const FORBIDDEN_KEYS = [
+  'price', 'amount', 'charges', 'birthDate', 'notes', 'address', 'audience', 'itemName', 'priceListId', 'history', 'email', 'registrations', 'documents', 'payments',
+] as const;
+
+/** Every forbidden key found anywhere in `value`, once each. */
+export function forbiddenKeysIn(value: unknown, allow: string[] = []): string[] {
+  const found = new Set<string>();
+  const walk = (v: unknown): void => {
+    if (Array.isArray(v)) return v.forEach(walk);
+    if (typeof v !== 'object' || v === null) return;
+    for (const [key, inner] of Object.entries(v)) {
+      if ((FORBIDDEN_KEYS as readonly string[]).includes(key) && !allow.includes(key)) found.add(key);
+      walk(inner);
+    }
+  };
+  walk(value);
+  return [...found];
+}
+
+/** Club has no subscription text; a Școala child shows used/total or "Fără abonament". */
+export function coachAbonamentText(kind: SectionKind, slots: { used: number; total: number } | null): string | null {
+  if (kind === 'club') return null;
+  return slots ? `${slots.used}/${slots.total}` : 'Fără abonament';
+}
+
+type SessionExtras = {
+  ages: Map<string, number | null>; slots: Map<string, { used: number; total: number } | null>; team: NamedRow[]; right: Right; standIn: boolean;
+};
+
+const options = (team: NamedRow[]): { id: string; name: string }[] => team.map((t) => ({ id: t.id, name: t.name }));
+
+export function toCoachSession(panel: SessionPanel, x: SessionExtras): CoachSession {
+  const rows: CoachPresenceRow[] = panel.rows.map((r) => ({
+    athleteId: r.athleteId, name: r.name, age: x.ages.get(r.athleteId) ?? null, inactive: r.inactive, visitor: r.visitor, grup: r.grup, uscat: r.uscat,
+    abonament: coachAbonamentText(panel.kind, x.slots.get(r.athleteId) ?? null),
+  }));
+  return {
+    sessionId: panel.sessionId, occurrenceKey: panel.occurrenceKey,
+    added: panel.added ? { groupId: panel.added.groupId, date: panel.added.date, startTime: panel.added.startTime, durationMin: panel.added.durationMin } : null,
+    groupId: panel.groupId, groupName: panel.groupName, kind: panel.kind, date: panel.date, startTime: panel.startTime, durationMin: panel.durationMin,
+    outsideSchedule: panel.outsideSchedule, coachIds: [...panel.coachIds], coachOptions: options(x.team), rows, savedLine: panel.savedLine,
+    editable: x.right.write, archived: x.right.archived, standIn: x.standIn,
+  };
+}
+
+export function toCoachLesson(panel: LessonPanel, x: { team: NamedRow[]; right: Right & { delete: boolean }; paid: boolean }): CoachLesson {
+  return {
+    lessonId: panel.lessonId, athleteId: panel.athleteId, athleteName: panel.athleteName, date: panel.date, startTime: panel.startTime, durationMin: panel.durationMin,
+    coachIds: [...panel.coachIds], coachOptions: options(x.team), state: panel.state, present: panel.present, savedLine: panel.savedLine,
+    editable: x.right.write, archived: x.right.archived, deletable: x.right.delete && !x.paid,
+  };
+}
+
+export function toCoachMember(m: MemberRow, status: AthleteStatus): CoachMember {
+  return { athleteId: m.athleteId, name: m.name, age: m.age, isNew: status === 'nou', alsoIn: m.others.map((o) => o.name) };
+}
