@@ -1,4 +1,5 @@
-import { refuse } from '../../admin-result';
+import { refuse, type AdminResult } from '../../admin-result';
+import { isMonth, monthRange } from '../../presence/dates';
 import { isRecord } from '../../narrow';
 import { ageOnIso } from '../../groups/season-pick';
 import type { GroupRecord } from '../../groups/types';
@@ -11,7 +12,7 @@ import { saveSession, type SaveOutcome } from '../../presence/attendance/save';
 import { resolveScope } from '../../presence/attendance/save-target';
 import { PRESENCE_ERRORS } from '../../presence/copy/core';
 import { PORTAL_ERRORS } from '../copy';
-import type { CoachSession } from './api-types';
+import type { CoachSavedDays, CoachSession } from './api-types';
 import { forbidden, type CoachContexts, type CoachResult, type Forbidden } from './context';
 import { groupAccess } from './ownership';
 import { presenceRight, type PresenceFacts, type Right } from './rules';
@@ -54,6 +55,17 @@ export async function checkCoachSession(c: CoachContexts, body: unknown): Promis
   const group = await c.presence.store.group(groupId);
   if (groupAccess(group, c.coach.teamMemberId) !== 'own') return forbidden(PORTAL_ERRORS.noAccess);
   return checkNewSession(c.presence.store, body);
+}
+
+/** Dates of a month with a saved session of the group: all of an own group, only the ones that list the coach on another's. No session ids. */
+export async function readSavedDays(c: CoachContexts, groupId: string, month: unknown): Promise<AdminResult<CoachSavedDays>> {
+  if (!isMonth(month)) return refuse(400, PORTAL_ERRORS.invalid);
+  const store = c.presence.store;
+  const access = groupAccess(await store.group(groupId), c.coach.teamMemberId);
+  if (access === 'none') return refuse(404, PORTAL_ERRORS.notFound);
+  const rows = await store.sessions({ ...monthRange(month), groupId });
+  const mine = rows.filter((s) => access === 'own' || s.coachIds.includes(c.coach.teamMemberId));
+  return { ok: true, data: { month, dates: [...new Set(mine.map((s) => s.date))].sort() } };
 }
 
 const refusalFor = (right: Right): Forbidden => forbidden(right.archived ? PORTAL_ERRORS.archived : PORTAL_ERRORS.noAccess);

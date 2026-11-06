@@ -17,6 +17,7 @@ export default {
     route('GET', '/groups', 'groups'),
     route('GET', '/groups/:documentId', 'group'),
     route('GET', '/groups/:documentId/program', 'program'),
+    route('GET', '/groups/:documentId/saved-days', 'savedDays'),
     route('POST', '/groups/:documentId/program', 'addProgram'),
     route('PUT', '/groups/:documentId/program-public', 'programPublic'),
     route('POST', '/groups/:documentId/members', 'addMembers'),

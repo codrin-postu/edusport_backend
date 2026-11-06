@@ -6,7 +6,15 @@ import type { LessonState } from '../../presence/types';
 export type { SectionKind };
 
 /** JSON shapes of the coach routes (spec 8, 9). Only what the coach screens show: no price, amount, birth date, note, address or registration. */
-export type CoachMe = { name: string; firstName: string; initials: string; email: string; phone: string | null; hasPassword: boolean; google: boolean };
+export type CoachMe = {
+  name: string; firstName: string; initials: string; email: string; phone: string | null; hasPassword: boolean; google: boolean;
+  /** The coach's own team member documentId (a lesson's `coachIds` must contain it). */
+  coachId: string;
+  /** Team members who coach any group: id and name only, for choosing a lesson's coaches. */
+  coachOptions: { id: string; name: string }[];
+};
+/** Dates of one month (`YYYY-MM-DD`, ascending) that have a saved session the coach may read. */
+export type CoachSavedDays = { month: string; dates: string[] };
 export type CoachDevice = { id: string; label: string; lastSeenAt: string; current: boolean };
 export type CoachClassRow = {
   sessionId: string | null; occurrenceKey: string | null; groupId: string; groupName: string; date: string; startTime: string; children: number; done: boolean; standIn: boolean;

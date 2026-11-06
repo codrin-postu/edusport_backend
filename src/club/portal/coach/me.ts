@@ -24,11 +24,14 @@ export async function readMe(c: CoachContexts): Promise<AdminResult<CoachMe>> {
   const user = await c.portal.user(c.coach.userId);
   if (!account || !user) return refuse(404, PORTAL_ERRORS.notFound);
   const name = c.coach.name;
+  const [team, groups] = await Promise.all([c.presence.store.teamMembers(), c.presence.store.groups()]);
+  const coaching = new Set(groups.flatMap((g) => g.coachIds));
   return {
     ok: true,
     data: {
       name, firstName: name.split(/\s+/)[0] ?? name, initials: initialsOf(name), email: account.email, phone: account.phone,
       hasPassword: user.passwordHash !== null, google: account.googleSub !== null,
+      coachId: c.coach.teamMemberId, coachOptions: team.filter((t) => coaching.has(t.id)).map((t) => ({ id: t.id, name: t.name })),
     },
   };
 }

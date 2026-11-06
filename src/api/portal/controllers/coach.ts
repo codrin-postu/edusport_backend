@@ -10,7 +10,7 @@ import { readCoachGroupPage, readGroups } from '../../../club/portal/coach/group
 import { readCoachHistory } from '../../../club/portal/coach/history';
 import { createCoachLesson, deleteCoachLesson, readCoachLesson, saveCoachLesson } from '../../../club/portal/coach/lessons';
 import { changePassword, listDevices, readMe, revokeDevice, saveMe } from '../../../club/portal/coach/me';
-import { checkCoachSession, readCoachSession, saveCoachSession } from '../../../club/portal/coach/presence';
+import { checkCoachSession, readCoachSession, readSavedDays, saveCoachSession } from '../../../club/portal/coach/presence';
 import {
   coachAddProgram, coachChangeProgram, coachDeleteClass, coachEndProgram, coachProgramPublic, coachSetDate, readCoachProgram,
 } from '../../../club/portal/coach/program';
@@ -84,6 +84,7 @@ export default {
   groups: coachOnly('groups', async (c, ctx) => respondData(ctx, await readGroups(c))),
   group: coachOnly('group', async (c, ctx) => respondData(ctx, await readCoachGroupPage(c, param(ctx, 'documentId')))),
   program: coachOnly('program', async (c, ctx) => respondData(ctx, await readCoachProgram(c, param(ctx, 'documentId'), ctx.query.month))),
+  savedDays: coachOnly('savedDays', async (c, ctx) => respondData(ctx, await readSavedDays(c, param(ctx, 'documentId'), ctx.query.month))),
   addProgram: coachOnly('addProgram', async (c, ctx) => respondData(ctx, await coachAddProgram(c, param(ctx, 'documentId'), ctx.request.body))),
   programPublic: coachOnly('programPublic', async (c, ctx) => respondData(ctx, await coachProgramPublic(c, param(ctx, 'documentId'), ctx.request.body))),
   addMembers: coachOnly('addMembers', async (c, ctx) => respondData(ctx, await addMembers(c, param(ctx, 'documentId'), ctx.request.body))),

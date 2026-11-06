@@ -100,7 +100,7 @@ Handler refusals: 403 `"Nu mai ai acces la această grupă."` when the link chec
 
 | Method and path | Query / body | `data` type |
 |---|---|---|
-| `GET /api/portal/coach/me` | | `CoachMe` |
+| `GET /api/portal/coach/me` | | `CoachMe` (includes `coachId`, the coach's team member documentId, and `coachOptions: { id, name }[]`, the team members who coach any group) |
 | `PUT /api/portal/coach/me` | `{ phone: string \| null }` | `{ toast: "Salvat." }` |
 | `POST /api/portal/coach/me/password` | `{ current?: string, password }` | `{ toast: "Salvat." }` |
 | `GET /api/portal/coach/me/devices` | header `x-portal-device` (device key, optional, marks "acesta") | `CoachDevice[]` |
@@ -108,6 +108,7 @@ Handler refusals: 403 `"Nu mai ai acces la această grupă."` when the link chec
 | `GET /api/portal/coach/today` | `?date=` (default today) | `CoachToday` |
 | `GET /api/portal/coach/groups` | | `CoachGroups` |
 | `GET /api/portal/coach/groups/:documentId` | | `CoachGroupPage` |
+| `GET /api/portal/coach/groups/:documentId/saved-days` | `?month=YYYY-MM` | `CoachSavedDays` `{ month, dates: string[] }` (ascending; own group: every saved date; other group: only dates listing the coach; 404 missing or inactive group, 400 bad month; no session ids) |
 | `GET /api/portal/coach/session` | `?occurrence=` or `?id=` or `?group=&date=&time=&duration=` | `CoachSession` |
 | `POST /api/portal/coach/session/check` | `{ groupId, date, startTime }` | `SessionCheck` (phase 5 type) |
 | `PUT /api/portal/coach/session` | `SessionSaveBody` (phase 5 type) | `SessionSaved`; 409 reactivation body as phase 5 |

@@ -89,6 +89,24 @@ describe('ownership matrix (spec 7) through the controller', () => {
     }
   });
 
+  it('saved days: all dates of an own group, only the listed ones on another, 404 on a missing group, 400 on a bad month', async () => {
+    for (const col of COLS) {
+      const c = seeded(col);
+      withSaved(c, col);
+      c.fake.state.sessions.push(sessionRow({ id: 's-x', groupId: GROUP[col], date: '2026-11-03', startTime: '17:00', source: 'added', eventId: null, coachIds: ['tm-virgil'] }));
+      c.fake.state.sessions.push(sessionRow({ id: 's-oct', groupId: GROUP[col], date: '2026-10-30', startTime: '17:00', source: 'added', eventId: null, coachIds: [ME] }));
+      const res = await call(c, 'savedDays', { params: { documentId: GROUP[col] }, query: { month: '2026-11' } });
+      const date = col === 'scoala' ? '2026-11-15' : '2026-11-18';
+      const own = col === 'own' || col === 'scoala';
+      expect(res.status, col).toBe(200);
+      expect(res.body.data, col).toEqual({ month: '2026-11', dates: own ? ['2026-11-03', date] : col === 'removed' ? ['2026-11-18'] : [] });
+    }
+    const c = seeded('own');
+    expect((await call(c, 'savedDays', { params: { documentId: 'g-nope' }, query: { month: '2026-11' } })).status).toBe(404);
+    expect((await call(c, 'savedDays', { params: { documentId: 'g-old' }, query: { month: '2026-11' } })).status).toBe(404);
+    expect((await call(c, 'savedDays', { params: { documentId: 'g-club-a' }, query: { month: '2026-13' } })).status).toBe(400);
+  });
+
   it('presence, first save of a scheduled class: own, Școala own, and as a stand-in (also on the group he was removed from, unsaved and in the window)', async () => {
     const keyOf = (col: Col) => (col === 'scoala' ? 'ev-g-scoala-a|2026-11-15|11:00' : col === 'other' ? `ev-g-club-b|${TODAY}|18:00` : `ev-g-club-a|${TODAY}|17:00`);
     const tickOf = (col: Col) => (col === 'scoala' ? 'a-scoala-1' : col === 'other' ? 'a-b-1' : 'a-club-1');
@@ -174,6 +192,7 @@ describe('ownership matrix (spec 7) through the controller', () => {
       ['me', {}, '/portal/coach/me'], ['today', {}, '/portal/coach/today'], ['groups', {}, '/portal/coach/groups'],
       ['group', { params: { documentId: 'g-club-a' } }, '/g'], ['group', { params: { documentId: 'g-club-b' } }, '/g'],
       ['program', { params: { documentId: 'g-club-a' }, query: { month: '2026-11' } }, '/p'],
+      ['savedDays', { params: { documentId: 'g-club-a' }, query: { month: '2026-11' } }, '/sd'],
       ['session', { query: { id: 's-g' } }, '/s'], ['searchAthletes', { query: { q: 'ana' } }, '/sr'],
       ['athlete', { params: { documentId: 'a-club-1' } }, '/a'], ['history', { query: { month: '2026-11' } }, '/h'], ['devices', {}, '/d'],
     ];

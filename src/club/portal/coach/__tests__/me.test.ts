@@ -42,7 +42,8 @@ async function setup() {
 describe('readMe and saveMe', () => {
   it('reads name parts, e-mail, phone and the two sign-in flags', async () => {
     const t = await setup();
-    expect(await readMe(t.c)).toEqual({ ok: true, data: { name: 'Andreea Pascu', firstName: 'Andreea', initials: 'AP', email: 'andreea@x.ro', phone: '0722 111 222', hasPassword: true, google: false } });
+    expect(await readMe(t.c)).toEqual({ ok: true, data: { name: 'Andreea Pascu', firstName: 'Andreea', initials: 'AP', email: 'andreea@x.ro', phone: '0722 111 222', hasPassword: true, google: false,
+      coachId: 'tm-andreea', coachOptions: [{ id: 'tm-andreea', name: 'Andreea Pascu' }, { id: 'tm-virgil', name: 'Virgil Pascu' }] } });
     const g = await readMe({ ...t.c, coach: { ...t.c.coach, userId: 2, accountId: (await t.store.accountByUser(2))?.id ?? '' } });
     expect(g).toMatchObject({ ok: true, data: { google: true } });
   });
