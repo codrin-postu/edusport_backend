@@ -1,3 +1,6 @@
+import { ownSessions } from './sessions-own';
+import type { PortalStore } from './store';
+
 export type IssuedTokens = { accessToken: string; refreshToken: string; accessExpiresAt: string; sessionId: string };
 export type AccessCheck = { userId: number; sessionId: string } | null;
 
@@ -12,3 +15,6 @@ export interface PortalSessions {
   revokeDevice(userId: number, deviceId: string): Promise<void>;
   revokeAll(userId: number, exceptSessionId?: string): Promise<void>;
 }
+
+/** One instance per request: it shares the store (and its transaction variable) with the caller. */
+export const portalSessions = (store: PortalStore, now: () => Date = () => new Date()): PortalSessions => ownSessions(store, now);

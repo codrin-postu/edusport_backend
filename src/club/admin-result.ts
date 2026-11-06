@@ -3,6 +3,9 @@ import { ADMIN_ERRORS } from './athletes/errors';
 /** Answer of an admin action: the fresh data, or a refusal whose `status` becomes the HTTP status. */
 export type AdminResult<T> = { ok: true; data: T } | { ok: false; status: 400 | 404 | 409 | 500; error: string };
 
+/** Refusals of the portal auth routes: wrong login (401), too many attempts (429). */
+export type AuthRefusal = { ok: false; status: 401 | 429; error: string };
+
 /** An `AdminResult` whose success may carry counts the screen does not show (`meta`), sent next to `data`. */
 export type AdminResultWithMeta<T> = AdminResult<T> | { ok: true; data: T; meta: Record<string, number> };
 
