@@ -1,0 +1,65 @@
+{
+  "kind": "collectionType",
+  "collectionName": "portal_accounts",
+  "info": {
+    "singularName": "portal-account",
+    "pluralName": "portal-accounts",
+    "displayName": "Portal / Cont",
+    "description": "Conturi ale portalului antrenorilor"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "email": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["invited", "active", "disabled"],
+      "required": true
+    },
+    "teamMember": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::team-member.team-member"
+    },
+    "googleSub": {
+      "type": "string",
+      "unique": true
+    },
+    "phone": {
+      "type": "string"
+    },
+    "invitedAt": {
+      "type": "datetime"
+    },
+    "invitedBy": {
+      "type": "string"
+    },
+    "activatedAt": {
+      "type": "datetime"
+    },
+    "disabledAt": {
+      "type": "datetime"
+    },
+    "disabledBy": {
+      "type": "string"
+    },
+    "lastLoginAt": {
+      "type": "datetime"
+    }
+  }
+}

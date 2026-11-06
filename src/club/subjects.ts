@@ -6,4 +6,5 @@ export const SUBJECT = {
   lesson: 'lesson',
   subscription: 'subscription',
   payment: 'payment',
+  portalAccount: 'portal-account',
 } as const;

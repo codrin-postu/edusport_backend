@@ -1,0 +1,46 @@
+{
+  "kind": "collectionType",
+  "collectionName": "portal_tokens",
+  "info": {
+    "singularName": "portal-token",
+    "pluralName": "portal-tokens",
+    "displayName": "Portal / Token",
+    "description": "Invitații și coduri de resetare pentru portal"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "account": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::portal-account.portal-account",
+      "required": true
+    },
+    "kind": {
+      "type": "enumeration",
+      "enum": ["invite", "reset"],
+      "required": true
+    },
+    "secretHash": {
+      "type": "string",
+      "required": true
+    },
+    "expiresAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "usedAt": {
+      "type": "datetime"
+    },
+    "tries": {
+      "type": "integer",
+      "default": 0
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "portal_auth_limits",
+  "info": {
+    "singularName": "portal-auth-limit",
+    "pluralName": "portal-auth-limits",
+    "displayName": "Portal / Limită",
+    "description": "Contorizare încercări de intrare în portal"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "key": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "count": {
+      "type": "integer",
+      "default": 0
+    },
+    "windowStart": {
+      "type": "datetime",
+      "required": true
+    },
+    "lockedUntil": {
+      "type": "datetime"
+    },
+    "notifiedAt": {
+      "type": "datetime"
+    }
+  }
+}
