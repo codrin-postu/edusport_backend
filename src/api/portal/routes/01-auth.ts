@@ -9,5 +9,7 @@ export default {
     { method: 'POST', path: '/portal/auth/login', handler: 'portal-auth.login', config: bffGuard },
     { method: 'POST', path: '/portal/auth/refresh', handler: 'portal-auth.refresh', config: bffGuard },
     { method: 'POST', path: '/portal/auth/logout', handler: 'portal-auth.logout', config: bffGuard },
+    { method: 'POST', path: '/portal/auth/reset/request', handler: 'portal-auth.resetRequest', config: bffGuard },
+    { method: 'POST', path: '/portal/auth/reset/confirm', handler: 'portal-auth.resetConfirm', config: bffGuard },
   ],
 };
