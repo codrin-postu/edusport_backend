@@ -12,9 +12,22 @@ One page to start the next session. Rules and commands: `CLAUDE.md`. Decisions: 
 | 3C Personal data (export, anonymize, inactivity list, Super Admin) | Built and reviewed on `feat/athletes` (final review fixes merged, 1610d22); boot check proved no personal data left; running on the local environment |
 | 4 Groups and schedules | Complete on `feat/athletes` (9fd7947): 7 plans, per-plan and whole-branch reviews closed, user rulings applied; frontend 4-7 on frontend `feat/athletes` (f2c4e0d). Not deployed: one window for 2+3+4, `docs/architecture/15-deploy-window-2-3-4.md` |
 | 5 Attendance, abonamente, payments | Complete on `feat/athletes` (ef2c970, no-overpay rule 2026-11-03), 2026-11-02: plans 5-1..5-6 built, boot-checked on throwaway Postgres (renders in frontend `docs/portal/mockups/screens/phase5-renders/`), backend final review and one combined final review for 5-5 + 5-6 closed with fix waves. Running on the local environment. Not deployed: deploy steps in `docs/superpowers/plans/2026-10-27-phase5-index.md` (Deploy) |
+| 6-2 Coach routes | Built and finally reviewed on `feat/p6-2` (see Phase 6-2 note below). Not deployed |
 | 6-8 | Not started (`docs/architecture/13-roadmap.md`) |
 
 Deploy: ONE window for phases 2, 3 and 4 (user, 2026-10-27), order in `docs/architecture/15-deploy-window-2-3-4.md`. Earlier note: ONE window for phase 2 + 3 together (DECISIONS 2026-10-26 d19), only with the user's approval, backup first, per `docs/architecture/12-phase2-deploy-runbook.md`, then `npm run migrate:athletes` steps. Merging `feat/athletes` into main also waits for that window.
+
+## Phase 6-2 note (coach routes)
+
+Built: 27 routes in `src/api/portal/routes/02-coach.ts` behind `global::is-coach` (BFF secret, live account check); rules in `src/club/portal/coach/` (ownership matrix, presence, lessons, athletes and card, program writes through the phase 4 services, Istoric). No coach answer carries `undo` or an auth session id. Contracts: `docs/superpowers/plans/2026-11-04-phase6-index.md` (Coach routes). Ledger: `.superpowers/sdd/2026-11-04-phase6-2-coach-routes/`.
+
+Carried to the frontend plan:
+- Branch on status and `error.name`, never on the policy message: 401 means refresh then login; a 403 whose name is not `ClubAdminError` means access was cut, go to login; a `ClubAdminError` 403 carries the Romanian text.
+- Copy `src/club/portal/coach/api-types.ts` and the `Occurrence` type it imports. `/program/:eventId` takes the event `documentId`. The "Anunță părinții" flag of the date body is `notifyParents`.
+- The roster lists a child from the day it is added, so the card opens for an own-group child with a future "Din data". Other groups' Program reads carry no class note.
+- Istoric marks a class "înlocuitor" from the group's coach history on the class date (group "coaches" history lines), so it stays "grup" after the coach is moved off.
+- The admin join accepts `from` (bounded by the start date rule and the season end); a schedule-change mail goes once per distinct parent address.
+- Session revocation and the password change share the per-request `PortalStore` (`c.portal`); keep that when wiring auth.
 
 ## Branches and worktrees
 

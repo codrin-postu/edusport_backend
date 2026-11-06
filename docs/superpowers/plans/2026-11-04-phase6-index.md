@@ -91,7 +91,12 @@ Google (BFF side, for the frontend plan): the BFF builds the authorization URL (
 
 ### Coach routes (`src/api/portal/routes/02-coach.ts`, `{ auth: false, policies: ['global::is-coach'] }`)
 
-401 `""` without a valid session (BFF refreshes once, then shows login); 403 `"Nu mai ai acces la această grupă."` when the link check fails; 403 `"Arhivată. Nu mai poate fi modificată."` when the 7-day window is over; 404 `"Nu a fost găsit."` (`ADMIN_ERRORS.notFound`) for an unknown id. Response types are in `src/club/portal/coach/api-types.ts` (plan 6-2 Task 2), which imports no Strapi, Node or React so the frontend plan can copy it verbatim.
+Policy refusals (`global::is-coach`) are Strapi errors, so the body is `{ error: { name, message } }` and the message text is not stable. Read the status and `error.name`, never the message:
+- 401 (any name or message): the access token is missing, expired or revoked. The BFF refreshes once, then goes to login.
+- 403 whose `error.name` is not `ClubAdminError`: the BFF secret was refused or the account can no longer enter (disabled, host, team member unlinked). Access was cut: clear the cookies and go to login. Do not treat it as a group refusal.
+- 403 with `error.name` `ClubAdminError`: a handler refusal that carries the Romanian message to show (below).
+
+Handler refusals: 403 `"Nu mai ai acces la această grupă."` when the link check fails; 403 `"Arhivată. Nu mai poate fi modificată."` when the 7-day window is over; 404 `"Nu a fost găsit."` (`ADMIN_ERRORS.notFound`) for an unknown id. Response types are in `src/club/portal/coach/api-types.ts` (plan 6-2 Task 2), which imports no Strapi, Node or React so the frontend plan can copy it verbatim. Its `Occurrence` type comes from `src/api/calendar-event/services/expand.ts` and goes on the frontend copy list with it. Every `/program/:eventId` route takes the event `documentId` (as on the admin side), not the numeric `Occurrence.eventId`.
 
 | Method and path | Query / body | `data` type |
 |---|---|---|
@@ -121,7 +126,7 @@ Google (BFF side, for the frontend plan): the BFF builds the authorization URL (
 | `PUT /api/portal/coach/program/:eventId` | phase 4 change body | `{ eventId: string }` |
 | `POST /api/portal/coach/program/:eventId/end` | phase 4 end body | `{ eventId: string }` |
 | `DELETE /api/portal/coach/program/:eventId` | | `{ date: string }` |
-| `PUT /api/portal/coach/program/:eventId/dates/:date` | phase 4 date body (`mode`, `notify`) | phase 4 `DateAnswer` |
+| `PUT /api/portal/coach/program/:eventId/dates/:date` | phase 4 date body (`{ mode, newDate?, newStartTime?, reason?, notifyParents? }`; the flag is `notifyParents`, a `notify` key is ignored and no parent is mailed) | phase 4 `DateAnswer` |
 
 No coach answer carries an `undo` object (spec S43).
 
