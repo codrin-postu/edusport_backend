@@ -55,12 +55,15 @@ async function members(c: CoachContexts, groupId: string): Promise<CoachMember[]
 const slotOf = (r: { occurrenceKey: string | null; date: string; startTime: string }): StandInSlot[] =>
   r.occurrenceKey ? [{ occurrenceKey: r.occurrenceKey, date: r.date, startTime: r.startTime }] : [];
 
-/** The group's scheduled classes from today - 7 to today, newest first, and today's one. */
-async function slots(c: CoachContexts, groupId: string): Promise<{ standIn: StandInSlot[]; todayKey: string | null }> {
+/** The group's classes nobody saved yet from today - 7 to today, newest first (a saved class is its owner's), and today's one a stand-in may still take. */
+async function slots(c: CoachContexts, groupId: string, own: boolean): Promise<{ standIn: StandInSlot[]; todayKey: string | null }> {
   const ctx = await loadRowContext(c.presence.store, c.today);
   const rows = (await rowsBetween(c.presence.store, ctx, addDays(c.today, -7), c.today, groupId)).filter((r) => !r.outsideSchedule && r.occurrenceKey !== null);
-  const standIn = rows.flatMap(slotOf).sort((a, b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime));
-  return { standIn, todayKey: rows.find((r) => r.date === c.today)?.occurrenceKey ?? null };
+  const standIn = own ? [] : rows.filter((r) => r.sessionId === null).flatMap(slotOf).sort((a, b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime));
+  const today = rows.find((r) => r.date === c.today);
+  const session = today?.sessionId ? await c.presence.store.session(today.sessionId) : null;
+  const takeable = own || !session || session.coachIds.includes(c.coach.teamMemberId);
+  return { standIn, todayKey: today && takeable ? today.occurrenceKey : null };
 }
 
 /** Group page (spec 9.5): roster only of an own group; another group shows its coaches and the classes a stand-in may take. */
@@ -71,12 +74,12 @@ export async function readCoachGroupPage(c: CoachContexts, groupId: string): Pro
   if (!group || access === 'none') return refuse(404, PORTAL_ERRORS.notFound);
   const own = access === 'own';
   const kind = kindOf(f.sections, group);
-  const { standIn, todayKey } = await slots(c, groupId);
+  const { standIn, todayKey } = await slots(c, groupId, own);
   return {
     ok: true,
     data: {
       groupId, name: group.name, kind, own, coaches: f.team.filter((t) => group.coachIds.includes(t.id)).map((t) => t.name), program: groupListRow(group, f).program,
-      members: own ? await members(c, groupId) : null, standIn: own ? [] : standIn, todayKey, programPublic: own && kind === 'club' ? group.programPublic : null,
+      members: own ? await members(c, groupId) : null, standIn, todayKey, programPublic: own && kind === 'club' ? group.programPublic : null,
     },
   };
 }

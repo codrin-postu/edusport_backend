@@ -4,7 +4,7 @@ import { noticeLockout } from '../auth/login';
 import { PORTAL_ACTIONS, PORTAL_ERRORS, PORTAL_TOASTS } from '../copy';
 import { normalizeEmail } from '../limits';
 import { checkPassword } from '../passwords';
-import type { PortalSessions } from '../sessions';
+import { portalSessions } from '../sessions';
 import { hashSecret } from '../tokens';
 import type { CoachDevice, CoachMe } from './api-types';
 import { coachActor, type CoachContexts } from './context';
@@ -87,7 +87,7 @@ async function storePassword(c: CoachContexts & { auth: PortalAuthContext }, acc
     await c.portal.lockAccount(accountId);
     await c.portal.updateUser(c.coach.userId, { passwordHash });
     await c.portal.record({ subjectId: accountId, action: PORTAL_ACTIONS.passwordChanged, changes: {}, actor: coachActor(c.coach.name) });
-    await c.auth.sessions.revokeAll(c.coach.userId, c.coach.sessionId);
+    await portalSessions(c.portal, c.presence.now).revokeAll(c.coach.userId, c.coach.sessionId);
   });
 }
 
@@ -99,13 +99,13 @@ export async function listDevices(c: CoachContexts, deviceKey: string | null): P
 
 const hashOf = (deviceKey: string | null): string | null => (deviceKey ? hashSecret(deviceKey) : null);
 
-export async function revokeDevice(c: CoachContexts & { sessions: PortalSessions }, deviceId: string): Promise<AdminResult<{ revokedCurrent: boolean }>> {
+export async function revokeDevice(c: CoachContexts, deviceId: string): Promise<AdminResult<{ revokedCurrent: boolean }>> {
   const device = (await c.portal.devices(c.coach.accountId)).find((d) => d.id === deviceId && d.revokedAt === null);
   if (!device) return refuse(404, PORTAL_ERRORS.notFound);
   await c.portal.transaction(async () => {
     await c.portal.lockAccount(c.coach.accountId);
     await c.portal.updateDevice(device.id, { revokedAt: c.presence.now().toISOString() });
-    await c.sessions.revokeDevice(c.coach.userId, device.id);
+    await portalSessions(c.portal, c.presence.now).revokeDevice(c.coach.userId, device.id);
   });
   return { ok: true, data: { revokedCurrent: device.sessionId === c.coach.sessionId } };
 }

@@ -21,6 +21,11 @@ describe('presenceRight', () => {
     expect(presenceRight({ ...base, access: 'other', saved: true, listed: true, today: '2026-10-14' })).toMatchObject({ read: true, write: false, archived: true });
   });
 
+  it('stand-in: a saved session that does not list him cannot be read, an unsaved one in the window can', () => {
+    expect(presenceRight({ ...base, access: 'other', saved: true, listed: false })).toMatchObject({ read: false, write: false });
+    expect(presenceRight({ ...base, access: 'other', saved: false, listed: false })).toMatchObject({ read: true });
+  });
+
   it('stand-in: an added session, an unscheduled one and a future date give nothing to write', () => {
     expect(presenceRight({ ...base, access: 'other', added: true, saved: false })).toMatchObject({ read: false, write: false });
     expect(presenceRight({ ...base, access: 'other', scheduled: false, saved: false })).toMatchObject({ read: false, write: false });

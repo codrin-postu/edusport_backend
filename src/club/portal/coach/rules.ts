@@ -18,7 +18,7 @@ export function presenceRight(f: PresenceFacts): Right {
   if (f.added) return NOTHING;
   const inWindow = f.scheduled && f.date >= addDays(f.today, -7) && open;
   return {
-    read: f.listed || inWindow,
+    read: f.listed || (!f.saved && inWindow),
     write: open && ((!f.saved && inWindow) || (f.saved && f.listed && correctable)),
     archived, mustIncludeMe: true,
   };

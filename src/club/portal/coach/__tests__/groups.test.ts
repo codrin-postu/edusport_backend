@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PORTAL_ERRORS } from '../../copy';
 import { readCoachGroupPage, readGroups } from '../groups';
 import { forbiddenKeysIn } from '../views';
+import { sessionRow } from '../../../presence/__tests__/fake-store';
 import { coachCtx } from './coach-seed';
 
 describe('readGroups', () => {
@@ -74,5 +75,17 @@ describe('readCoachGroupPage', () => {
   it('an unknown or inactive group answers 404', async () => {
     expect(await readCoachGroupPage(coachCtx('tm-andreea'), 'g-old')).toEqual({ ok: false, status: 404, error: PORTAL_ERRORS.notFound });
     expect(await readCoachGroupPage(coachCtx('tm-andreea'), 'nope')).toMatchObject({ status: 404 });
+  });
+
+  it('classes the owner already saved are not offered to a stand-in, today included unless she is listed', async () => {
+    const c = coachCtx('tm-andreea');
+    const saved = (id: string, date: string, coachIds: string[]) => sessionRow({
+      id, groupId: 'g-club-b', date, startTime: '18:00', eventId: 'ev-g-club-b', occurrenceKey: `ev-g-club-b|${date}|18:00`, coachIds,
+    });
+    c.fake.state.sessions.push(saved('s1', '2026-11-18', ['tm-virgil']), saved('s2', '2026-11-20', ['tm-virgil']));
+    const out = await readCoachGroupPage(c, 'g-club-b');
+    expect(out).toMatchObject({ ok: true, data: { todayKey: null, standIn: [{ date: '2026-11-13' }] } });
+    c.fake.state.sessions.find((s) => s.id === 's2')!.coachIds = ['tm-virgil', 'tm-andreea'];
+    expect(await readCoachGroupPage(c, 'g-club-b')).toMatchObject({ data: { todayKey: 'ev-g-club-b|2026-11-20|18:00' } });
   });
 });

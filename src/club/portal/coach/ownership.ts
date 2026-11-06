@@ -1,3 +1,4 @@
+import { onDate } from '../../presence/attendance/roster';
 import type { MembershipRow } from '../../athletes/store';
 import type { GroupRecord } from '../../groups/types';
 
@@ -17,5 +18,5 @@ export function groupAccess(group: GroupRecord | null, teamMemberId: string): Gr
 /** A membership of the season in an own group that runs on `today` (S22). */
 export function ownAthlete(memberships: MembershipRow[], own: Set<string>, athleteId: string, seasonId: string, today: string): boolean {
   return memberships.some((m) =>
-    m.athleteId === athleteId && m.seasonId === seasonId && own.has(m.groupId) && (m.from === null || m.from <= today) && (!m.to || m.to >= today));
+    m.athleteId === athleteId && m.seasonId === seasonId && own.has(m.groupId) && onDate(m, today));
 }

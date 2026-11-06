@@ -94,6 +94,7 @@ describe('stand-in on another coach group', () => {
   it('cannot correct a saved session that does not list her, add a session, or check a new one', async () => {
     const c = coachCtx(ME);
     c.fake.state.sessions.push(sessionRow({ id: 's-b', groupId: 'g-club-b', date: TODAY, startTime: '18:00', eventId: 'ev-g-club-b', occurrenceKey: CLUB_B_KEY, coachIds: ['tm-virgil'] }));
+    expect(await readCoachSession(c, { id: 's-b' })).toEqual(NO_ACCESS);
     expect(await saveCoachSession(c, body({ id: 's-b', ticks: [] }))).toEqual(NO_ACCESS);
     const added = { groupId: 'g-club-b', date: TODAY, startTime: '20:00', durationMin: 50 };
     expect(await saveCoachSession(c, body({ added, ticks: [] }))).toEqual(NO_ACCESS);
