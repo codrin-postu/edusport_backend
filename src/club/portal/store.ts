@@ -14,6 +14,8 @@ export type DeviceWrite = Partial<Pick<DeviceRow, 'sessionId' | 'lastSeenAt' | '
 
 export interface PortalStore {
   transaction<T>(fn: () => Promise<T>): Promise<T>;
+  /** Lock order: team member, account, session, limit row. */
+  lockTeamMember(id: string): Promise<void>;
   lockAccount(id: string): Promise<void>;
   /** Inserts the row when missing (count 0, windowStart now), then takes SELECT ... FOR UPDATE. */
   lockLimit(key: string): Promise<LimitRow>;

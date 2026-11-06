@@ -53,7 +53,7 @@ export function AccountBlock({ teamMemberId }: { teamMemberId: string }) {
 
   return (
     <section aria-label={ACCOUNT_BLOCK.title} style={{ marginTop: 16, borderTop: '1px solid var(--theme-border)', paddingTop: 12 }}>
-      <h3 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px' }}>{ACCOUNT_BLOCK.title}</h3>
+      <h3 style={{ fontSize: 'var(--ui-fs-body-sm)', fontWeight: 700, margin: '0 0 8px' }}>{ACCOUNT_BLOCK.title}</h3>
       {block.state === 'none' && (
         <>
           <Field label={ACCOUNT_BLOCK.emailLabel}>

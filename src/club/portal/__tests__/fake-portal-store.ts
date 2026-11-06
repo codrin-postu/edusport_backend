@@ -34,7 +34,7 @@ function withFailures(store: PortalStore, failing: Set<string>): PortalStore {
   return wrapped as unknown as PortalStore;
 }
 
-function lockers(state: FakePortalState, depth: { n: number }): Pick<PortalStore, 'transaction' | 'lockAccount' | 'lockSession' | 'lockLimit' | 'saveLimit' | 'purgeLimits'> {
+function lockers(state: FakePortalState, depth: { n: number }): Pick<PortalStore, 'transaction' | 'lockTeamMember' | 'lockAccount' | 'lockSession' | 'lockLimit' | 'saveLimit' | 'purgeLimits'> {
   const inTx = (what: string) => {
     if (depth.n === 0) throw new Error(`lock on ${what} taken outside a transaction`);
   };
@@ -51,6 +51,10 @@ function lockers(state: FakePortalState, depth: { n: number }): Pick<PortalStore
       } finally {
         depth.n -= 1;
       }
+    },
+    lockTeamMember: async (id) => {
+      inTx('team_members');
+      state.locks.push(`teamMember:${id}`);
     },
     lockAccount: async (id) => {
       inTx('portal_accounts');

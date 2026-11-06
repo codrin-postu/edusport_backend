@@ -27,11 +27,17 @@ class Document {
 class "PortalAccount" as Acc <<changed>> {
   email : string  // unique, lower case
   status : invited | active | disabled
-  teamMember : TeamMember [0..1]  // unique link
+  teamMember : TeamMember [0..1]  // unique link; cleared when the team member is deleted (account is disabled first)
   user : User  // users-permissions; null password hash until invite accepted
   googleSub, phone, lastLoginAt
   invitedAt, invitedBy, activatedAt, disabledAt, disabledBy
 }
+note right of Acc
+  An invite to the e-mail of an account with no team member
+  re-links it: status invited, password and Google link cleared,
+  devices and sessions ended. An e-mail change also ends
+  every session and device.
+end note
 class "User (users-permissions)" as UP
 class "PortalToken" as Tok <<new>> {
   kind : invite | reset

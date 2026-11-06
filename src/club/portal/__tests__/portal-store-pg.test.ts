@@ -1,12 +1,13 @@
 import { createRequire } from 'node:module';
 import type { Core } from '@strapi/strapi';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { strapiPortalStore } from '../strapi-store';
 import { ownSessions } from '../sessions-own';
 import bcrypt from 'bcryptjs';
 import { portalAuthContext, type PortalCtx } from '../auth/context';
 import { loginWithPassword } from '../auth/login';
 import { ensurePortalIndexes } from '../accounts/team-member-hook';
+import { uniqueViolation } from '../accounts/invite';
 
 /**
  * Runs only with PORTAL_PG_TEST=1 and DATABASE_* pointing at a throwaway Postgres 16 (never a shared database): it boots Strapi,
@@ -65,6 +66,30 @@ describe.skipIf(!enabled)('strapiPortalStore on Postgres', () => {
     };
     await make(1);
     await expect(make(2)).rejects.toThrow(/unique|duplicate/i);
+  });
+
+  it('a duplicate team member link inside a transaction (the invite path) is still reported as a unique violation and logged', async () => {
+    await ensurePortalIndexes(strapi.db.connection);
+    const now = new Date();
+    const member = await strapi.db.query('api::team-member.team-member').create({ data: { documentId: `tm-tx-${Date.now()}`, name: 'PG tx link test', publishedAt: now, createdAt: now, updatedAt: now } });
+    const store = strapiPortalStore(strapi);
+    const stamp = Date.now();
+    const teamMemberId = (member as { documentId: string }).documentId;
+    const make = async (n: number) => {
+      const email = `link-tx-${stamp}-${n}@example.com`;
+      return store.createAccount({ userId: await store.createUser(email, null), email, status: 'invited', teamMemberId });
+    };
+    await make(1);
+    const warn = vi.spyOn(strapi.log, 'warn');
+    const err = await store.transaction(async () => {
+      await store.lockTeamMember(teamMemberId);
+      return make(2).then(() => null, (e: unknown) => e);
+    });
+    expect(err).toMatchObject({ code: '23505', constraint: 'team_member' });
+    expect(uniqueViolation(err)).toMatchObject({ ok: false, status: 409 });
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toContain('25P02');
+    warn.mockRestore();
   });
 
   it('createUser with a null hash stores no password', async () => {

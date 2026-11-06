@@ -51,7 +51,7 @@ describe('inviteAccount', () => {
       try {
         return await original(a);
       } catch {
-        throw Object.assign(new Error('duplicate key value violates unique constraint "portal_accounts_team_member_lnk_uq" (team_member_id)'), { code: '23505' });
+        throw Object.assign(new Error('duplicate key value violates unique constraint "portal_accounts_team_member_lnk_uq" (team_member_id)'), { code: '23505', constraint: 'portal_accounts_team_member_lnk_uq' });
       }
     };
     expect(await inviteAccount(h.c, 'tm1', { email: 'a@b.ro' })).toMatchObject({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
@@ -261,6 +261,8 @@ describe('stale invite jobs and the Google identity', () => {
     expect(uniqueViolation(Object.assign(new Error('x'), { code: '23505' }))).toMatchObject({ status: 409 });
     expect(uniqueViolation(Object.assign(new Error('This attribute must be unique'), { name: 'ValidationError' }))).toMatchObject({ status: 409 });
     expect(uniqueViolation(new Error('something duplicate or unique in the text'))).toBeNull();
+    expect(uniqueViolation(Object.assign(new Error('insert into team_member_x'), { code: '23505', constraint: 'portal_accounts_email_uq' }))).toMatchObject({ error: 'Adresa are deja un cont.' });
+    expect(uniqueViolation(Object.assign(new Error('x'), { code: '23505', constraint: 'portal_accounts_team_member_lnk_team_member_uq' }))).toMatchObject({ status: 409 });
   });
 });
 
@@ -307,12 +309,43 @@ describe('q26: a deleted team member leaves a disabled account that a new invite
     const h = harness();
     await seedAccount(h, 'disabled');
     expect(await inviteAccount(h.c, 'tm2', { email: 'andreea@example.com' })).toMatchObject({ ok: false, status: 409, error: 'Adresa are deja un cont.' });
-    const g = harness();
-    const { id } = await orphan(g);
-    await g.fake.store.updateAccount(id, { status: 'invited' });
-    expect(await inviteAccount(g.c, 'tm2', { email: 'andreea@example.com' })).toMatchObject({ ok: false, status: 409, error: 'Adresa are deja un cont.' });
     expect(h.jobs).toHaveLength(0);
-    expect(g.jobs).toHaveLength(0);
+  });
+  it('M3: an orphan with no team member is re-linked whatever its status', async () => {
+    for (const status of ['invited', 'active'] as const) {
+      const g = harness();
+      const { id } = await orphan(g);
+      await g.fake.store.updateAccount(id, { status });
+      const a = ok(await inviteAccount(g.c, 'tm2', { email: 'andreea@example.com' }));
+      expect(a.account).toMatchObject({ teamMemberId: 'tm2', accountId: id, state: 'invited' });
+      expect(g.fake.state.accounts).toHaveLength(1);
+      expect(g.jobs).toHaveLength(1);
+    }
+  });
+  it('M2: re-link and delete hook take the team member lock before the account lock', async () => {
+    const h = harness();
+    await orphan(h);
+    h.fake.state.locks.length = 0;
+    ok(await inviteAccount(h.c, 'tm2', { email: 'andreea@example.com' }));
+    expect(h.fake.state.locks[0]).toBe('teamMember:tm2');
+    expect(h.fake.state.locks.findIndex((l) => l.startsWith('account:'))).toBeGreaterThan(0);
+    const g = harness();
+    await seedAccount(g, 'active');
+    g.fake.state.locks.length = 0;
+    await disableForTeamMembers(g.c, ['tm1']);
+    expect(g.fake.state.locks[0]).toBe('teamMember:tm1');
+    expect(g.fake.state.locks.findIndex((l) => l.startsWith('account:'))).toBeGreaterThan(0);
+  });
+  it('M1: a new invite locks the team member and answers stale when an account links it meanwhile', async () => {
+    const h = harness();
+    const real = h.fake.store.lockTeamMember;
+    h.c.store.lockTeamMember = async (id) => {
+      await real(id);
+      await seedAccount(h, 'invited', 'other@example.com');
+    };
+    expect(await inviteAccount(h.c, 'tm1', { email: 'nou@example.com' })).toMatchObject({ ok: false, status: 409 });
+    expect(h.fake.state.accounts).toHaveLength(1);
+    expect(h.jobs).toHaveLength(0);
   });
   it('a failure inside the re-link leaves the account disabled and queues nothing after commit', async () => {
     const h = harness({ queueInvite: async () => { throw new Error('boom'); } });

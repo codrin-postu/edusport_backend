@@ -18,7 +18,7 @@ export function uniqueViolation(err: unknown): AdminResult<never> | null {
   const name = (err as { name?: unknown } | null)?.name;
   // Postgres 23505, or Strapi's own pre-check ("This attribute must be unique"); nothing else counts.
   if (!e || (e.code !== '23505' && !(name === 'ValidationError' && /unique/i.test(String(e.message ?? ''))))) return null;
-  return /team_member/i.test(`${String(e.constraint ?? '')} ${String(e.message ?? '')}`) ? stale() : taken();
+  return /team_member/i.test(`${String(e.constraint ?? '')} ${String((e as { column?: unknown }).column ?? '')}`) ? stale() : taken();
 }
 
 export async function guardedWrite<T>(c: AccountContext, tag: string, work: () => Promise<AdminResult<T>>): Promise<AdminResult<T>> {
@@ -73,6 +73,9 @@ export async function inviteAccount(c: AccountContext, teamMemberId: string, bod
     if (holder) return relinkAccount(c, holder, teamMemberId, name);
     const at = c.now().toISOString();
     const made = await c.store.transaction(async () => {
+      // Lock order team member, account: a concurrent invite or re-link for the same team member waits here and then sees the account.
+      await c.store.lockTeamMember(teamMemberId);
+      if (await c.store.accountByTeamMember(teamMemberId)) return null;
       const userId = await c.store.createUser(email, null);
       const id = await c.store.createAccount({ userId, email, status: 'invited', teamMemberId, invitedAt: at, invitedBy: c.actor });
       await c.store.lockAccount(id);
@@ -81,6 +84,7 @@ export async function inviteAccount(c: AccountContext, teamMemberId: string, bod
       await c.store.record({ subjectId: id, action: PORTAL_ACTIONS.inviteSent, changes: { email }, actor: c.actor });
       return { account, jobId };
     });
+    if (!made) return stale();
     c.afterCommit(made.jobId);
     return answer(blockOf(teamMemberId, made.account), ACCOUNT_TOASTS.invited);
   });
@@ -107,13 +111,14 @@ export async function resendInvite(c: AccountContext, accountId: string): Promis
   });
 }
 
-/** q26: a disabled account whose team member is gone is reused for the new team member with this e-mail; any other holder of the address refuses. */
+/** q26: an account with no team member (whatever its status) is reused for the new team member with this e-mail; a holder linked to a team member refuses. */
 async function relinkAccount(c: AccountContext, holder: AccountRow, teamMemberId: string, name: string): Promise<AdminResult<AccountAnswer>> {
-  if (holder.status !== 'disabled' || holder.teamMemberId !== null) return taken();
+  if (holder.teamMemberId !== null) return taken();
   const made = await c.store.transaction(async () => {
+    await c.store.lockTeamMember(teamMemberId);
     await c.store.lockAccount(holder.id);
     const account = await c.store.account(holder.id);
-    if (!account || account.status !== 'disabled' || account.teamMemberId !== null) return null;
+    if (!account || account.teamMemberId !== null || (await c.store.accountByTeamMember(teamMemberId))) return null;
     await useUpTokens(c, account.id, ['invite', 'reset']);
     await revokeAccess(c, account);
     await c.store.updateUser(account.userId, { passwordHash: null, blocked: false });

@@ -25,16 +25,15 @@ rectangle "EduSport" {
 }
 actor "Admin" as A
 rectangle "Admin: Cont portal (team member, group coaches)" {
-  usecase "Invite coach by e-mail" as AInv
+  usecase "Invite coach by e-mail\n(re-links an account with no team member)" as AInv
   usecase "Resend invitation" as ARes
   usecase "Disable / enable account" as ADis
-  usecase "Change account e-mail\n(mail to old and new address)" as AMail
+  usecase "Change account e-mail\n(mail to old and new address,\nends all sessions)" as AMail
 }
 A -- AInv
 A -- ARes
 A -- ADis
 A -- AMail
-AMail ..> Acc : <<include>>
 T -- See
 T -- Att
 T -- Fix

@@ -21,15 +21,20 @@ export async function ensurePortalIndexes(knex: Knex): Promise<void> {
 
 /** Disables the account of every listed team member that has one and is not disabled; a refusal throws (the delete is then refused). */
 export async function disableForTeamMembers(c: AccountContext, teamMemberIds: string[]): Promise<number> {
-  let n = 0;
-  for (const id of teamMemberIds) {
-    const account = await c.store.accountByTeamMember(id);
-    if (!account || account.status === 'disabled') continue;
-    const result = await disableAccount(c, account.id);
-    if (result.ok === false) throw new Error(`portal account of a deleted team member could not be disabled: ${result.error}`);
-    n += 1;
-  }
-  return n;
+  // Lock order team member, then account: the team member rows are locked first (sorted), so an invite or re-link for the same team member waits.
+  return c.store.transaction(async () => {
+    const ids = [...new Set(teamMemberIds)].sort();
+    for (const id of ids) await c.store.lockTeamMember(id);
+    let n = 0;
+    for (const id of ids) {
+      const account = await c.store.accountByTeamMember(id);
+      if (!account || account.status === 'disabled') continue;
+      const result = await disableAccount(c, account.id);
+      if (result.ok === false) throw new Error(`portal account of a deleted team member could not be disabled: ${result.error}`);
+      n += 1;
+    }
+    return n;
+  });
 }
 
 type DeleteEvent = { params?: { where?: unknown; filters?: unknown } };
