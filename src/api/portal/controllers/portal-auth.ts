@@ -3,6 +3,7 @@ import { PORTAL_ERRORS } from '../../../club/portal/copy';
 import { isBffCall } from '../../../club/portal/auth/bff';
 import { portalAuthContext, type PortalCtx } from '../../../club/portal/auth/context';
 import { loginWithPassword } from '../../../club/portal/auth/login';
+import { googleClient, googleConfig, loginWithGoogle } from '../../../club/portal/auth/google';
 import { acceptInvite, readInvite } from '../../../club/portal/auth/invite';
 import { logout, refreshSession } from '../../../club/portal/auth/refresh';
 import { confirmReset, requestReset } from '../../../club/portal/auth/reset';
@@ -29,6 +30,8 @@ export default {
   login: bffOnly('login', async (ctx) => respond(ctx, await loginWithPassword(portalAuthContext(strapi, ctx), ctx.request.body))),
   refresh: bffOnly('refresh', async (ctx) => respond(ctx, await refreshSession(portalAuthContext(strapi, ctx), ctx.request.body))),
   logout: bffOnly('logout', async (ctx) => respond(ctx, await logout(portalAuthContext(strapi, ctx), ctx.request.body))),
+  google: bffOnly('google', async (ctx) => respond(ctx, await loginWithGoogle(portalAuthContext(strapi, ctx), googleClient(), ctx.request.body))),
+  googleConfig: bffOnly('googleConfig', async (ctx) => respond(ctx, googleConfig(googleClient()))),
   inviteRead: bffOnly('inviteRead', async (ctx) => respond(ctx, await readInvite(portalAuthContext(strapi, ctx), String(ctx.params?.secret ?? '')))),
   inviteAccept: bffOnly('inviteAccept', async (ctx) => respond(ctx, await acceptInvite(portalAuthContext(strapi, ctx), ctx.request.body))),
   resetRequest: bffOnly('resetRequest', async (ctx) => respond(ctx, await requestReset(portalAuthContext(strapi, ctx), ctx.request.body))),

@@ -18,7 +18,7 @@ const expiredInvite: AuthRefusal = { ok: false, status: 410, error: PORTAL_ERROR
 type Live = { token: TokenRow; account: AccountRow };
 
 /** The token for the secret when it is an unused, unexpired invite of an `invited` account. */
-async function liveInvite(c: PortalAuthContext, secret: string): Promise<Live | null> {
+export async function liveInvite(c: PortalAuthContext, secret: string): Promise<Live | null> {
   if (secret === '' || secret.length > SECRET_MAX) return null;
   const token = await c.store.tokenByHash(hashSecret(secret));
   if (!token || token.kind !== 'invite' || tokenState(token, c.now()) !== 'valid') return null;
