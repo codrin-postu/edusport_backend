@@ -50,7 +50,7 @@ function CoachAccounts({ coaches }: { coaches: GroupPageData['coaches'] }) {
         <Button key={c.documentId} variant="secondary" size="sm" onClick={() => setOpen(c)}>{c.name}</Button>
       ))}
       <Modal open={open !== null} onClose={() => setOpen(null)} title={open?.name ?? ''}>
-        {open && <AccountBlock teamMemberId={open.documentId} />}
+        {open && <AccountBlock teamMemberId={open.documentId} name={open.name} />}
       </Modal>
     </div>
   );

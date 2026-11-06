@@ -43,7 +43,7 @@ type Changes = Record<string, unknown>;
 const HISTORY_TEXT = new Map<string, (c: Changes) => string>([
   [PORTAL_ACTIONS.inviteSent, (c) => `Invitație trimisă la ${String(c.email)}.`],
   [PORTAL_ACTIONS.inviteResent, () => 'Invitație retrimisă.'],
-  [PORTAL_ACTIONS.relinked, (c) => `Cont legat de un membru nou al echipei, invitație trimisă la ${String(c.email)}.`],
+  [PORTAL_ACTIONS.relinked, (c) => (typeof c.name === 'string' && c.name.trim() !== '' ? `Cont refolosit pentru ${c.name}` : 'Cont refolosit')],
   [PORTAL_ACTIONS.activated, () => 'Cont activat.'],
   [PORTAL_ACTIONS.activatedGoogle, () => 'Cont activat cu Google.'],
   [PORTAL_ACTIONS.passwordChanged, () => 'Parolă schimbată.'],

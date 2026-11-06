@@ -39,8 +39,16 @@ describe('portal copy', () => {
     expect(portalHistoryText(PORTAL_ACTIONS.disabled, {})).toBe('Cont dezactivat.');
     expect(portalHistoryText(PORTAL_ACTIONS.enabled, {})).toBe('Cont activat de administrator.');
     expect(portalHistoryText(PORTAL_ACTIONS.emailChanged, { from: 'a@b.ro', to: 'c@d.ro' })).toBe('E-mail schimbat din a@b.ro în c@d.ro.');
+    expect(portalHistoryText(PORTAL_ACTIONS.relinked, { email: 'a@b.ro', name: 'Ana Pop' })).toBe('Cont refolosit pentru Ana Pop');
+    expect(portalHistoryText(PORTAL_ACTIONS.relinked, { email: 'a@b.ro' })).toBe('Cont refolosit');
     expect(portalHistoryText('other', {})).toBeNull();
     expect(portalHistoryText('constructor', {})).toBeNull();
+  });
+
+  it('disable confirmation names the team member, or falls back without a name', () => {
+    expect(copy.accountDisableConfirmText('Ana Pop')).toBe('Dezactivezi contul lui Ana Pop? Toate dispozitivele vor fi deconectate.');
+    expect(copy.accountDisableConfirmText('')).toBe('Dezactivezi contul? Toate dispozitivele vor fi deconectate.');
+    expect(copy.accountDisableConfirmText('   ')).toBe('Dezactivezi contul? Toate dispozitivele vor fi deconectate.');
   });
 
   it('mail copy', () => {

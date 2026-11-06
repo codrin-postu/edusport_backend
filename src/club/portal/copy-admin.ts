@@ -36,5 +36,8 @@ export const ACCOUNT_TOASTS = {
   emailChanged: 'E-mail schimbat.',
 } as const;
 
-/** COPY NEEDED: the text of the "Dezactivează contul" confirmation waits on the companion round; shown as is until then. */
-export const ACCOUNT_DISABLE_CONFIRM_TEXT = 'COPY NEEDED';
+/** The "Dezactivează contul" confirmation; the name is the team member's (empty when unknown). */
+export function accountDisableConfirmText(name: string): string {
+  const who = name.trim();
+  return who === '' ? 'Dezactivezi contul? Toate dispozitivele vor fi deconectate.' : `Dezactivezi contul lui ${who}? Toate dispozitivele vor fi deconectate.`;
+}

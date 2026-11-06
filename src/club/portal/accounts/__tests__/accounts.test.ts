@@ -303,7 +303,8 @@ describe('q26: a deleted team member leaves a disabled account that a new invite
     expect(h.fake.state.history).toHaveLength(1);
     const line = h.fake.state.history[0];
     expect(line).toMatchObject({ action: 'portal-relinked', actor: 'admin@edusport.ro' });
-    expect(portalHistoryText(line.action, line.changes)).toBe('Cont legat de un membru nou al echipei, invitație trimisă la andreea@example.com.');
+    expect(line.changes).toMatchObject({ email: 'andreea@example.com', name: 'Virgil Ion' });
+    expect(portalHistoryText(line.action, line.changes)).toBe('Cont refolosit pentru Virgil Ion');
   });
   it('an account linked to another existing team member, or not disabled, still answers "Adresa are deja un cont."', async () => {
     const h = harness();

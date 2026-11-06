@@ -21,9 +21,10 @@ it('uses every ACCOUNT_BLOCK key', () => {
   for (const key of Object.keys(ACCOUNT_BLOCK)) expect(block, key).toContain(`ACCOUNT_BLOCK.${key}`);
 });
 
-it('the disable confirmation text is a marked placeholder, not invented copy', () => {
-  expect(source('club/portal/copy-admin.ts')).toMatch(/COPY NEEDED/);
-  expect(block).toContain('ACCOUNT_DISABLE_CONFIRM_TEXT');
+it('the disable confirmation takes the team member name, no placeholder left', () => {
+  expect(source('club/portal/copy-admin.ts')).not.toMatch(/COPY NEEDED/);
+  expect(block).toContain('accountDisableConfirmText(name)');
+  expect(block).toContain('name: string');
 });
 
 it('the member editor and the group page render the block', () => {

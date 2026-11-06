@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import { Button, Field, Input, Loading, Modal, adminToast } from '../../ui';
 import type { AccountAnswer, AccountBlock as AccountBlockData } from '../../../club/portal/accounts/api-types';
-import { ACCOUNT_BLOCK, ACCOUNT_DISABLE_CONFIRM_TEXT } from '../../../club/portal/copy-admin';
+import { ACCOUNT_BLOCK, accountDisableConfirmText } from '../../../club/portal/copy-admin';
 import { accountDate, accountErrorText, usePortalAccountApi } from './api';
 
 const FAILED = 'Acțiunea nu a reușit.';
@@ -12,7 +12,7 @@ const FAILED = 'Acțiunea nu a reușit.';
  * It sits in the "Membri echipă" editor and in the coach window of the group page (ruling 22: the team member
  * editor is the custom page, not the Content Manager).
  */
-export function AccountBlock({ teamMemberId }: { teamMemberId: string }) {
+export function AccountBlock({ teamMemberId, name }: { teamMemberId: string; name: string }) {
   const api = usePortalAccountApi();
   const [block, setBlock] = React.useState<AccountBlockData | null>(null);
   const [email, setEmail] = React.useState('');
@@ -85,7 +85,7 @@ export function AccountBlock({ teamMemberId }: { teamMemberId: string }) {
       <ConfirmDialog
         open={confirm}
         title={ACCOUNT_BLOCK.disable}
-        message={ACCOUNT_DISABLE_CONFIRM_TEXT}
+        message={accountDisableConfirmText(name)}
         confirmLabel={ACCOUNT_BLOCK.disable}
         busyLabel={ACCOUNT_BLOCK.disable}
         busy={busy}

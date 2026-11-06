@@ -339,7 +339,7 @@ function MemberEditor({
         </div>
       )}
 
-      {!isNew && draft.documentId && <AccountBlock teamMemberId={draft.documentId} />}
+      {!isNew && draft.documentId && <AccountBlock teamMemberId={draft.documentId} name={draft.name} />}
 
       <ImagePicker
         open={pickerOpen}

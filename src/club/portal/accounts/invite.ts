@@ -128,7 +128,7 @@ async function relinkAccount(c: AccountContext, holder: AccountRow, teamMemberId
     });
     const fresh = (await c.store.account(account.id)) as AccountRow;
     const jobId = await queueFreshInvite(c, fresh, name, fresh.email);
-    await c.store.record({ subjectId: account.id, action: PORTAL_ACTIONS.relinked, changes: { email: fresh.email }, actor: c.actor });
+    await c.store.record({ subjectId: account.id, action: PORTAL_ACTIONS.relinked, changes: { email: fresh.email, name }, actor: c.actor });
     return { account: fresh, jobId };
   });
   if (!made) return stale();
