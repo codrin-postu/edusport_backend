@@ -39,6 +39,12 @@ describe('PortalStore cases (fake)', () => {
     expect(await store.user(999)).toBeNull();
   });
 
+  it('createUser accepts a null hash (an invited coach): hasPassword false until one is set', async () => {
+    const { store } = make();
+    const id = await store.createUser('nou@example.com', null);
+    expect((await store.user(id))?.passwordHash).toBeNull();
+  });
+
   it('reads a token by hash and lists by kind', async () => {
     const { store } = make();
     const t = await store.createToken({ accountId: 'acc1', kind: 'invite', secretHash: 'h1', expiresAt: '2026-11-13T10:00:00.000Z' });

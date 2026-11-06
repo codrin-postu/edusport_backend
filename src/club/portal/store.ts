@@ -27,8 +27,8 @@ export interface PortalStore {
   createAccount(a: NewAccount): Promise<string>;
   updateAccount(id: string, a: AccountWrite): Promise<void>;
   user(id: number): Promise<UserAuth | null>;
-  /** username = email, provider 'local', role Authenticated, confirmed false; the hash is stored verbatim. */
-  createUser(email: string, passwordHash: string): Promise<number>;
+  /** username = email, provider 'local', role Authenticated, confirmed false; the hash is stored verbatim; null for an invited coach who has not chosen a password. */
+  createUser(email: string, passwordHash: string | null): Promise<number>;
   updateUser(id: number, u: UserWrite): Promise<void>;
   tokens(accountId: string, kind: TokenKind): Promise<TokenRow[]>;
   tokenByHash(hash: string): Promise<TokenRow | null>;

@@ -51,6 +51,12 @@ describe.skipIf(!enabled)('strapiPortalStore on Postgres', () => {
     expect(Number(n[0].c)).toBe(1);
   });
 
+  it('createUser with a null hash stores no password', async () => {
+    const store = strapiPortalStore(strapi);
+    const id = await store.createUser(`invited-${Date.now()}@example.com`, null);
+    expect((await store.user(id))?.passwordHash).toBeNull();
+  });
+
   it('a session rotates and a reused token revokes it', async () => {
     const store = strapiPortalStore(strapi);
     const email = `coach-${Date.now()}@example.com`;
