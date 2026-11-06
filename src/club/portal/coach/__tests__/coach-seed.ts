@@ -66,7 +66,7 @@ const C_SEED: FakePresenceSeed = {
   startDate: '2026-10-01',
 };
 
-export type CoachSeed = CoachContexts & { fake: FakePresenceContext; portal: FakePortal['store']; portalFake: FakePortal };
+export type CoachSeed = CoachContexts & { fake: FakePresenceContext; portal: FakePortal['store']; portalFake: FakePortal; clubFake: ReturnType<typeof fakeClubStore> };
 
 /** Contexts of one coach over the fakes: the phase 5 context carries the phase 4 and 5 state, the actor is "Antrenor <nume>". */
 export function coachCtx(teamMemberId: string, today = '2026-11-20', over: FakePresenceSeed = {}): CoachSeed {
@@ -78,6 +78,12 @@ export function coachCtx(teamMemberId: string, today = '2026-11-20', over: FakeP
     athletes: structuredClone(fake.group.athletes), memberships: structuredClone(fake.group.memberships),
     groups: fake.group.groups.map((g) => ({ id: g.id, name: g.name, sectionId: g.sectionId, order: g.order, active: g.active })),
   });
+  const createAthlete = club.store.createAthlete;
+  club.store.createAthlete = async (data) => {
+    const id = await createAthlete(data);
+    fake.group.athletes.push(athleteRow({ ...data, id }));
+    return id;
+  };
   const [year, month, day] = today.split('-').map(Number);
   return {
     coach: { accountId: 'acc-1', userId: 1, sessionId: 'ses-1', teamMemberId, name },
@@ -87,6 +93,6 @@ export function coachCtx(teamMemberId: string, today = '2026-11-20', over: FakeP
       store: fake.store as unknown as GroupStore, actor, today, log: fake.ctx.log, revalidate: () => undefined, emails: () => undefined, now: fake.ctx.now,
     },
     club: { store: club.store, actor, today: { year, month, day }, log: fake.ctx.log },
-    portal: portalFake.store, portalFake, fake,
+    portal: portalFake.store, portalFake, fake, clubFake: club,
   };
 }
