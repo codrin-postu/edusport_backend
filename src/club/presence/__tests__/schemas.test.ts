@@ -68,7 +68,7 @@ describe('phase 5 schemas', () => {
 
   it('e-mail jobs know payments; settings know the start date (3.7, 3.8)', () => {
     const j = json('api/email-job/content-types/email-job/schema.json').attributes;
-    expect(j.kind.enum).toEqual(['registration', 'schedule-change', 'payment']);
+    expect(j.kind.enum).toEqual(['registration', 'schedule-change', 'payment', 'portal-invite']);
     expect(j.payment).toEqual({ type: 'relation', relation: 'manyToOne', target: 'api::payment.payment' });
     expect(json('api/site-settings/content-types/site-settings/schema.json').attributes.attendanceStartDate).toEqual({ type: 'date' });
   });

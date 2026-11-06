@@ -218,6 +218,19 @@ describe('strapiPortalStore', () => {
     });
   });
 
+  it('purgeDevices, purgeTokens and purgeSessions delete by the instants', async () => {
+    const calls: Call[] = [];
+    const store = strapiPortalStore(recordingStrapi(calls));
+    const before = new Date('2026-10-07T10:00:00.000Z');
+    expect(await store.purgeDevices(before)).toBe(2);
+    expect(await store.purgeTokens(before)).toBe(2);
+    expect(await store.purgeSessions(before)).toBe(2);
+    expect(calls.map((c) => c.table)).toEqual(['api::portal-device.portal-device', 'api::portal-token.portal-token', 'api::portal-session.portal-session']);
+    expect(calls[0].arg).toEqual({ where: { revokedAt: { $lt: '2026-10-07T10:00:00.000Z' } } });
+    expect(calls[1].arg).toEqual({ where: { $or: [{ usedAt: { $lt: '2026-10-07T10:00:00.000Z' } }, { expiresAt: { $lt: '2026-10-07T10:00:00.000Z' } }] } });
+    expect(JSON.stringify(calls[2].arg)).toContain('"lastUsedAt":{"$lt":"2026-09-30T10:00:00.000Z"}');
+  });
+
   it('record writes a history entry with subject portal-account', async () => {
     const calls: Call[] = [];
     await strapiPortalStore(recordingStrapi(calls)).record({ subjectId: 'acc1', action: 'portal.invite', changes: { a: 1 }, actor: 'Ana' });

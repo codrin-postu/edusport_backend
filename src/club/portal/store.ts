@@ -19,6 +19,12 @@ export interface PortalStore {
   lockLimit(key: string): Promise<LimitRow>;
   saveLimit(id: string, s: LimitState): Promise<void>;
   purgeLimits(olderThan: Date, now: Date): Promise<number>;
+  /** Device rows revoked before the instant. */
+  purgeDevices(revokedBefore: Date): Promise<number>;
+  /** Tokens used before the instant or expired before it; an unused valid token stays. */
+  purgeTokens(before: Date): Promise<number>;
+  /** Sessions revoked before the instant, or whose end (idle 7 days, family 30 days) fell before it; a live one stays. */
+  purgeSessions(before: Date): Promise<number>;
   account(id: string): Promise<AccountRow | null>;
   accountByEmail(email: string): Promise<AccountRow | null>;
   accountByGoogleSub(sub: string): Promise<AccountRow | null>;

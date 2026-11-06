@@ -19,6 +19,8 @@
  */
 import type { Core } from '@strapi/strapi';
 import { retryRegistrationEmails } from '../src/email/strapi-email';
+import { purgePortal } from '../src/club/portal/purge';
+import { strapiPortalStore } from '../src/club/portal/strapi-store';
 import { allForms } from '../src/sheets/registry';
 import { isConfigured } from '../src/sheets/client';
 import { getLink, isConnected, isReconcileDue, stampReconcile } from '../src/sheets/store';
@@ -74,5 +76,17 @@ export default {
       rule: '30 * * * *',
       tz: 'Europe/Bucharest',
     },
+  },
+  portalPurge: {
+    task: async ({ strapi }: { strapi: Core.Strapi }) => {
+      try {
+        const n = await purgePortal(strapiPortalStore(strapi), new Date());
+        strapi.log.info(`[portal][cron] purged ${n.limits} limit row(s), ${n.devices} device(s), ${n.tokens} token(s), ${n.sessions} session(s)`);
+      } catch (err) {
+        strapi.log.warn(`[portal][cron] purge failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    },
+    // Object form (node-schedule reads `tz` from the top level of the options, not from inside `rule`).
+    options: { hour: 3, minute: 30, tz: 'Europe/Bucharest' },
   },
 };

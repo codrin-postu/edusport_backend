@@ -3,6 +3,7 @@ import { createId } from '@paralleldrive/cuid2';
 import { transactionScope, type Scope, raws, str, text, iso, linkId, type Raw } from '../athletes/strapi-store';
 import { recordHistory } from '../history';
 import { SUBJECT } from '../subjects';
+import { SESSION_FAMILY_MS, SESSION_IDLE_MS } from './sessions-own';
 import type { AccountRow, AccountStatus, DeviceRow, LimitRow, PortalStore, SessionRow, TokenRow, UserAuth } from './store';
 
 const ACCOUNT = 'api::portal-account.portal-account' as const;
@@ -83,6 +84,20 @@ function limits(strapi: Core.Strapi, scope: Scope): Pick<PortalStore, 'lockLimit
       const { count } = await strapi.db.query(LIMIT).deleteMany({ where });
       return count;
     },
+  };
+}
+
+function purges(strapi: Core.Strapi): Pick<PortalStore, 'purgeDevices' | 'purgeTokens' | 'purgeSessions'> {
+  const iso = (d: Date): string => d.toISOString();
+  const ago = (d: Date, ms: number): string => iso(new Date(d.getTime() - ms));
+  return {
+    purgeDevices: async (before) => (await strapi.db.query(DEVICE).deleteMany({ where: { revokedAt: { $lt: iso(before) } } })).count,
+    purgeTokens: async (before) =>
+      (await strapi.db.query(TOKEN).deleteMany({ where: { $or: [{ usedAt: { $lt: iso(before) } }, { expiresAt: { $lt: iso(before) } }] } })).count,
+    purgeSessions: async (before) =>
+      (await strapi.db.query(SESSION).deleteMany({
+        where: { $or: [{ revokedAt: { $lt: iso(before) } }, { lastUsedAt: { $lt: ago(before, SESSION_IDLE_MS) } }, { familyStartedAt: { $lt: ago(before, SESSION_FAMILY_MS) } }] },
+      })).count,
   };
 }
 
@@ -210,7 +225,7 @@ export function strapiPortalStore(strapi: Core.Strapi): PortalStore {
     transaction: scope.transaction,
     lockAccount: (id) => scope.lockRow(ACCOUNT_TABLE, id),
     lockSession: (id) => scope.lockRow(SESSION_TABLE, id),
-    ...limits(strapi, scope), ...accounts(strapi), ...users(strapi), ...tokens(strapi), ...devices(strapi), ...sessions(strapi),
+    ...limits(strapi, scope), ...purges(strapi), ...accounts(strapi), ...users(strapi), ...tokens(strapi), ...devices(strapi), ...sessions(strapi),
     teamMemberName: async (id) => {
       const row = await strapi.documents(TEAM_MEMBER).findOne({ documentId: id, fields: ['name'] });
       return str((row as Raw | null)?.name);

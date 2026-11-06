@@ -8,6 +8,7 @@ import { warnIfNoAdminSessions } from './club/admin-auth';
 import { startPersonalDataSweep } from './club/personal-data/http';
 import { ensurePresenceIndexes } from './club/presence/indexes';
 import { checkUpSettings } from './club/portal/up-settings';
+import { ensurePortalIndexes, subscribeTeamMemberHook } from './club/portal/accounts/team-member-hook';
 
 // Admin layout overrides - applied on every bootstrap so they survive DB resets.
 // Each key is the strapi_core_store_settings key for that component/content-type.
@@ -427,6 +428,14 @@ export default {
     } catch (e) {
       strapi.log.error(`[presence] indexes: ${(e as { code?: string })?.code ?? 'unknown'}`);
     }
+
+    // Phase 6-3: one portal account per team member (unique link), and a team member delete disables its account first.
+    try {
+      await ensurePortalIndexes(strapi.db.connection);
+    } catch (e) {
+      strapi.log.error(`[portal] indexes: ${(e as { code?: string })?.code ?? 'unknown'}`);
+    }
+    subscribeTeamMemberHook(strapi);
 
     // Confirm the scheduled jobs actually registered — a cron block that is
     // silently ignored (wrong config key, disabled) is otherwise invisible.
