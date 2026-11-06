@@ -53,6 +53,13 @@ export async function queueFreshInvite(c: AccountContext, account: AccountRow, n
   return c.queueInvite(portalInviteJob({ recipient: email, accountId: account.id, payload: { name, link, host } }, c.now()));
 }
 
+/** Inside a transaction with the account locked: every device is revoked and every session of the user ends (lock order account, session). */
+export async function revokeAccess(c: AccountContext, account: AccountRow): Promise<void> {
+  const at = c.now().toISOString();
+  for (const d of await c.store.devices(account.id)) if (d.revokedAt === null) await c.store.updateDevice(d.id, { revokedAt: at });
+  await c.sessions.revokeAll(account.userId);
+}
+
 export const answer = (block: AccountBlock, toast: string): AdminResult<AccountAnswer> => ({ ok: true, data: { account: block, toast } });
 
 export async function inviteAccount(c: AccountContext, teamMemberId: string, body: unknown): Promise<AdminResult<AccountAnswer>> {
@@ -62,7 +69,8 @@ export async function inviteAccount(c: AccountContext, teamMemberId: string, bod
     if (await c.store.accountByTeamMember(teamMemberId)) return stale();
     const email = emailOf(body);
     if (email === null) return refuse(400, PORTAL_ERRORS.invalid);
-    if (await c.store.accountByEmail(email)) return taken();
+    const holder = await c.store.accountByEmail(email);
+    if (holder) return relinkAccount(c, holder, teamMemberId, name);
     const at = c.now().toISOString();
     const made = await c.store.transaction(async () => {
       const userId = await c.store.createUser(email, null);
@@ -97,4 +105,28 @@ export async function resendInvite(c: AccountContext, accountId: string): Promis
     c.afterCommit(done.jobId);
     return answer(blockOf(done.account.teamMemberId ?? '', done.account), ACCOUNT_TOASTS.invited);
   });
+}
+
+/** q26: a disabled account whose team member is gone is reused for the new team member with this e-mail; any other holder of the address refuses. */
+async function relinkAccount(c: AccountContext, holder: AccountRow, teamMemberId: string, name: string): Promise<AdminResult<AccountAnswer>> {
+  if (holder.status !== 'disabled' || holder.teamMemberId !== null) return taken();
+  const made = await c.store.transaction(async () => {
+    await c.store.lockAccount(holder.id);
+    const account = await c.store.account(holder.id);
+    if (!account || account.status !== 'disabled' || account.teamMemberId !== null) return null;
+    await useUpTokens(c, account.id, ['invite', 'reset']);
+    await revokeAccess(c, account);
+    await c.store.updateUser(account.userId, { passwordHash: null, blocked: false });
+    await c.store.updateAccount(account.id, {
+      status: 'invited', teamMemberId, googleSub: null, activatedAt: null, disabledAt: null, disabledBy: null,
+      invitedAt: c.now().toISOString(), invitedBy: c.actor,
+    });
+    const fresh = (await c.store.account(account.id)) as AccountRow;
+    const jobId = await queueFreshInvite(c, fresh, name, fresh.email);
+    await c.store.record({ subjectId: account.id, action: PORTAL_ACTIONS.relinked, changes: { email: fresh.email }, actor: c.actor });
+    return { account: fresh, jobId };
+  });
+  if (!made) return stale();
+  c.afterCommit(made.jobId);
+  return answer(blockOf(teamMemberId, made.account), ACCOUNT_TOASTS.invited);
 }

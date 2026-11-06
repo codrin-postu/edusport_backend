@@ -3,7 +3,7 @@ import { PORTAL_ACTIONS, PORTAL_ERRORS } from '../copy';
 import { ACCOUNT_TOASTS } from '../copy-admin';
 import type { AccountRow } from '../store';
 import type { AccountAnswer } from './api-types';
-import { answer, emailOf, guardedWrite, queueFreshInvite, useUpTokens } from './invite';
+import { answer, emailOf, guardedWrite, queueFreshInvite, revokeAccess, useUpTokens } from './invite';
 import { blockOf, type AccountContext } from './read';
 
 type Changed = { before: AccountRow; after: AccountRow; jobId: string | null };
@@ -19,7 +19,7 @@ async function notify(c: AccountContext, from: string, to: string): Promise<void
   }
 }
 
-/** 10.1: the new address on the account and the user, open reset codes used up, an invited account gets a new invite. */
+/** 10.1 and q27: the new address on the account and the user, every session and device revoked, open reset codes used up, an invited account gets a new invite. */
 export async function changeEmail(c: AccountContext, accountId: string, body: unknown): Promise<AdminResult<AccountAnswer>> {
   return guardedWrite(c, 'portal account e-mail change', async () => {
     const email = emailOf(body);
@@ -35,6 +35,7 @@ export async function changeEmail(c: AccountContext, accountId: string, body: un
       if (before.email === email) return { before, after: before, jobId: null };
       await c.store.updateAccount(accountId, { email, googleSub: null });
       await c.store.updateUser(before.userId, { email });
+      await revokeAccess(c, before);
       await useUpTokens(c, accountId, before.status === 'invited' ? ['reset', 'invite'] : ['reset']);
       let jobId: string | null = null;
       if (before.status === 'invited') {

@@ -4,6 +4,7 @@ import { hashSecret } from '../../tokens';
 import { changeEmail } from '../email';
 import { disableAccount, enableAccount } from '../status';
 import { inviteAccount, resendInvite } from '../invite';
+import { disableForTeamMembers } from '../team-member-hook';
 import { readAccount } from '../read';
 import { harness, seedAccount } from './harness';
 import { uniqueViolation } from '../invite';
@@ -260,5 +261,91 @@ describe('stale invite jobs and the Google identity', () => {
     expect(uniqueViolation(Object.assign(new Error('x'), { code: '23505' }))).toMatchObject({ status: 409 });
     expect(uniqueViolation(Object.assign(new Error('This attribute must be unique'), { name: 'ValidationError' }))).toMatchObject({ status: 409 });
     expect(uniqueViolation(new Error('something duplicate or unique in the text'))).toBeNull();
+  });
+});
+
+describe('q26: a deleted team member leaves a disabled account that a new invite reuses', () => {
+  /** The account of tm1 is disabled by the delete hook, then the team member link goes with the team member. */
+  async function orphan(h: ReturnType<typeof harness>) {
+    const seeded = await seedAccount(h, 'active');
+    expect((await disableForTeamMembers(h.c, ['tm1'])) as number).toBe(1);
+    await h.fake.store.updateAccount(seeded.id, { teamMemberId: null, googleSub: 'g-sub' });
+    return seeded;
+  }
+  it('the delete keeps the account disabled with its sessions and devices revoked', async () => {
+    const h = harness();
+    const { id } = await seedAccount(h, 'active');
+    await disableForTeamMembers(h.c, ['tm1']);
+    expect(h.fake.state.accounts.find((a) => a.id === id)).toMatchObject({ status: 'disabled' });
+    expect(h.fake.state.sessions.every((s) => s.revokedAt !== null)).toBe(true);
+    expect(h.fake.state.devices.every((d) => d.revokedAt !== null)).toBe(true);
+  });
+  it('an invite with the same e-mail reuses and re-links it: invited, new token and job, old access cleared, hash null, history line', async () => {
+    const h = harness();
+    const { id, userId } = await orphan(h);
+    h.fake.state.history.length = 0;
+    const a = ok(await inviteAccount(h.c, 'tm2', { email: 'Andreea@example.com' }));
+    expect(a.account).toMatchObject({ teamMemberId: 'tm2', accountId: id, state: 'invited', google: false });
+    expect(h.fake.state.accounts).toHaveLength(1);
+    expect(h.fake.state.accounts[0]).toMatchObject({ status: 'invited', teamMemberId: 'tm2', googleSub: null, activatedAt: null, disabledAt: null, disabledBy: null, invitedBy: 'admin@edusport.ro' });
+    expect(h.fake.state.users).toHaveLength(1);
+    expect(h.fake.state.users.find((u) => u.id === userId)).toMatchObject({ passwordHash: null, blocked: false });
+    expect(h.fake.state.devices.every((d) => d.revokedAt !== null)).toBe(true);
+    expect(h.fake.state.sessions.every((s) => s.revokedAt !== null)).toBe(true);
+    const live = h.fake.state.tokens.filter((t) => t.kind === 'invite' && t.usedAt === null);
+    expect(live).toHaveLength(1);
+    expect(live[0].secretHash).toBe(hashSecret(h.jobs[0].payload.link.split('/invitatie/')[1]));
+    expect(h.jobs[0]).toMatchObject({ recipient: 'andreea@example.com', accountId: id, payload: { name: 'Virgil Ion' } });
+    expect(h.after).toEqual(['job1']);
+    expect(h.cancelled).toContain(id);
+    expect(h.fake.state.history).toHaveLength(1);
+    const line = h.fake.state.history[0];
+    expect(line).toMatchObject({ action: 'portal-relinked', actor: 'admin@edusport.ro' });
+    expect(portalHistoryText(line.action, line.changes)).toBe('Cont legat de un membru nou al echipei, invitație trimisă la andreea@example.com.');
+  });
+  it('an account linked to another existing team member, or not disabled, still answers "Adresa are deja un cont."', async () => {
+    const h = harness();
+    await seedAccount(h, 'disabled');
+    expect(await inviteAccount(h.c, 'tm2', { email: 'andreea@example.com' })).toMatchObject({ ok: false, status: 409, error: 'Adresa are deja un cont.' });
+    const g = harness();
+    const { id } = await orphan(g);
+    await g.fake.store.updateAccount(id, { status: 'invited' });
+    expect(await inviteAccount(g.c, 'tm2', { email: 'andreea@example.com' })).toMatchObject({ ok: false, status: 409, error: 'Adresa are deja un cont.' });
+    expect(h.jobs).toHaveLength(0);
+    expect(g.jobs).toHaveLength(0);
+  });
+  it('a failure inside the re-link leaves the account disabled and queues nothing after commit', async () => {
+    const h = harness({ queueInvite: async () => { throw new Error('boom'); } });
+    const { id } = await orphan(h);
+    await expect(inviteAccount(h.c, 'tm2', { email: 'andreea@example.com' })).resolves.toMatchObject({ ok: false });
+    expect(h.fake.state.accounts.find((a) => a.id === id)).toMatchObject({ status: 'disabled', teamMemberId: null });
+    expect(h.after).toEqual([]);
+  });
+});
+
+describe('q27: an e-mail change ends every session', () => {
+  it('revokes every session and device, clears googleSub, in the same transaction', async () => {
+    const h = harness();
+    const { id } = await seedAccount(h, 'active');
+    await h.fake.store.updateAccount(id, { googleSub: 'g-sub' });
+    const a = ok(await changeEmail(h.c, id, { email: 'nou@example.com' }));
+    expect(a.account.google).toBe(false);
+    expect(h.fake.state.sessions.length).toBeGreaterThan(0);
+    expect(h.fake.state.sessions.every((s) => s.revokedAt !== null)).toBe(true);
+    expect(h.fake.state.devices.every((d) => d.revokedAt !== null)).toBe(true);
+  });
+  it('a revokeAll that throws rolls the e-mail change back', async () => {
+    const h = harness();
+    const { id, userId } = await seedAccount(h, 'active');
+    h.c.sessions.revokeAll = async () => { throw new Error('boom'); };
+    await expect(changeEmail(h.c, id, { email: 'nou@example.com' })).resolves.toMatchObject({ ok: false });
+    expect((await h.fake.store.account(id))?.email).toBe('andreea@example.com');
+    expect((await h.fake.store.user(userId))?.email).toBe('andreea@example.com');
+  });
+  it('the same address changes no session', async () => {
+    const h = harness();
+    const { id } = await seedAccount(h, 'active');
+    await changeEmail(h.c, id, { email: 'ANDREEA@example.com' });
+    expect(h.fake.state.sessions.every((s) => s.revokedAt === null)).toBe(true);
   });
 });
