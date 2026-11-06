@@ -129,15 +129,26 @@ function mainGroupName(ctx: RowContext, athleteId: string, seasonId: string | nu
   return ctx.groups.find((g) => g.id === groupId)?.name ?? null;
 }
 
-/** Abonament status per listed athlete: the subscription the session would use on the date (4.10). Empty at Club. */
-async function abonamentStatuses(store: PresenceStore, listed: string[], priceListId: string | null, date: string): Promise<Map<string, string>> {
-  if (!priceListId || listed.length === 0) return new Map();
+type Pick1 = { sub: SubscriptionRow | null; used: Map<string, number> };
+
+/** The subscription each athlete's session would use on the date, with the slots used (4.10). Empty at Club. */
+async function subscriptionPicks(store: PresenceStore, athleteIds: string[], priceListId: string | null, date: string): Promise<Map<string, Pick1>> {
+  if (!priceListId || athleteIds.length === 0) return new Map();
   const subs: SubscriptionRow[] = await store.subscriptions();
   const used = usedSlots(subs.length > 0 ? await store.attendances({ subscriptionIds: subs.map((s) => s.id) }) : []);
-  return new Map(listed.map((id) => {
-    const sub = pickSubscription(subs.filter((s) => s.athleteId === id), used, priceListId, date);
-    return [id, abonamentStatusText(sub ? remainingOf(sub, used) : null)];
-  }));
+  return new Map(athleteIds.map((id) => [id, { sub: pickSubscription(subs.filter((s) => s.athleteId === id), used, priceListId, date), used }]));
+}
+
+/** Abonament status per listed athlete (4.10). Empty at Club. */
+async function abonamentStatuses(store: PresenceStore, listed: string[], priceListId: string | null, date: string): Promise<Map<string, string>> {
+  const picks = await subscriptionPicks(store, listed, priceListId, date);
+  return new Map([...picks].map(([id, p]) => [id, abonamentStatusText(p.sub ? remainingOf(p.sub, p.used) : null)]));
+}
+
+/** Slots used and total of the abonament each athlete would use on the date; null without one. Empty at Club. */
+export async function abonamentSlots(store: PresenceStore, athleteIds: string[], priceListId: string | null, date: string): Promise<Map<string, { used: number; total: number } | null>> {
+  const picks = await subscriptionPicks(store, athleteIds, priceListId, date);
+  return new Map([...picks].map(([id, p]) => [id, p.sub ? { used: p.used.get(p.sub.id) ?? 0, total: p.sub.slots } : null]));
 }
 
 async function savedLineOf(store: PresenceStore, s: SessionRow | null): Promise<string | null> {

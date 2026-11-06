@@ -9,6 +9,7 @@ import { todayIso } from '../../groups/http';
 import { strapiGroupStore } from '../../groups/strapi-store';
 import type { PresenceContext } from '../../presence/context';
 import { strapiPresenceStore } from '../../presence/strapi-store';
+import type { AdminResult } from '../../admin-result';
 import type { PortalStore } from '../store';
 import { strapiPortalStore } from '../strapi-store';
 
@@ -18,6 +19,11 @@ export type CoachState = { accountId: string; userId: number; sessionId: string;
 export type CoachContexts = {
   coach: CoachState; today: string; presence: PresenceContext; groups: GroupContext; club: ServiceContext; portal: PortalStore;
 };
+
+/** A coach refusal the admin result has no status for: no right on the group. */
+export type Forbidden = { ok: false; status: 403; error: string };
+export type CoachResult<T> = AdminResult<T> | Forbidden;
+export const forbidden = (error: string): Forbidden => ({ ok: false, status: 403, error });
 
 /** Written on every history line a coach causes. */
 export const coachActor = (name: string): string => `Antrenor ${name}`;

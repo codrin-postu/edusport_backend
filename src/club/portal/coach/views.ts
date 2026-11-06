@@ -40,7 +40,7 @@ const options = (team: NamedRow[]): { id: string; name: string }[] => team.map((
 export function toCoachSession(panel: SessionPanel, x: SessionExtras): CoachSession {
   const rows: CoachPresenceRow[] = panel.rows.map((r) => ({
     athleteId: r.athleteId, name: r.name, age: x.ages.get(r.athleteId) ?? null, inactive: r.inactive, visitor: r.visitor, grup: r.grup, uscat: r.uscat,
-    abonament: coachAbonamentText(panel.kind, x.slots.get(r.athleteId) ?? null),
+    abonament: r.visitor ? null : coachAbonamentText(panel.kind, x.slots.get(r.athleteId) ?? null),
   }));
   return {
     sessionId: panel.sessionId, occurrenceKey: panel.occurrenceKey,
