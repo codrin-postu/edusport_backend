@@ -7,5 +7,7 @@ const bffGuard = { auth: false, policies: [], middlewares: [] };
 export default {
   routes: [
     { method: 'POST', path: '/portal/auth/login', handler: 'portal-auth.login', config: bffGuard },
+    { method: 'POST', path: '/portal/auth/refresh', handler: 'portal-auth.refresh', config: bffGuard },
+    { method: 'POST', path: '/portal/auth/logout', handler: 'portal-auth.logout', config: bffGuard },
   ],
 };
