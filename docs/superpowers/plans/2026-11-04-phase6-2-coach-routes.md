@@ -1,5 +1,7 @@
 # Phase 6-2: Coach Routes and Permissions Implementation Plan
 
+> **Build a `PortalStore` per request (never share one across requests). A session id never goes in an answer or a log.**
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Every coach route of spec 6.2 behind `global::is-coach`: profile, password change and devices, Azi, Grupe, group page, presence (own group and stand-in, 7-day window), individual lessons, athlete search, "Adaugă sportiv", "Sportiv nou", athlete card, Istoric month, Program tab and "Program public", each answering only the fields the coach screen shows.
@@ -87,7 +89,7 @@ src/api/portal/routes/02-coach.ts, controllers/coach.ts (T10)
 - Test: `src/policies/__tests__/is-coach.test.ts`, `src/club/portal/coach/__tests__/ownership.test.ts`
 
 **Interfaces:**
-- Consumes: 6-1 `isBffCall`, `portalSessions(strapi)`, `strapiPortalStore`, `canEnter`; phase 5 `presenceContext` shape, phase 4 `groupContext` shape, `strapiPresenceStore`, `strapiGroupStore`, `strapiClubStore`; `pingRevalidate`, `attemptScheduleChangeJobs`, `attemptPaymentEmails` (not used by coach writes; pass a no-op for `paymentEmails`).
+- Consumes: 6-1 `isBffCall`, `portalSessions(store, now)`, `strapiPortalStore`, `canEnter`; phase 5 `presenceContext` shape, phase 4 `groupContext` shape, `strapiPresenceStore`, `strapiGroupStore`, `strapiClubStore`; `pingRevalidate`, `attemptScheduleChangeJobs`, `attemptPaymentEmails` (not used by coach writes; pass a no-op for `paymentEmails`).
 - Produces:
 
 ```ts
@@ -230,7 +232,7 @@ export async function revokeDevice(c: CoachContexts & { sessions: PortalSessions
 ```
 - `readMe`: `firstName` = the first word of the team member name, `initials` = first letters of the first and last word, upper case; `hasPassword` = user has a hash; `google` = `googleSub` set.
 - `saveMe` body `{ phone: string | null }`: trimmed, empty -> null, at most 30 characters of digits, spaces, `+`, `.`, `(`, `)`; else 400 `invalid`. Answer toast `"Salvat."`.
-- `changePassword` body `{ current, password }`: no stored hash or no `current` -> 400 `invalid` (a Google-only account sets a password by reset, S18); `emailLocked` -> 429 `paused`; wrong `current` -> `emailFailed` (lockout mail and line on first lock as login), 400 `currentWrong` (429 `paused` if this failure locked); rules -> 400 rule text; then hash, history `passwordChanged` (actor `"Antrenor <nume>"`), `revokeAll(userId, coach.sessionId)` (S11), toast `"Salvat."`.
+- `changePassword` body `{ current, password }`: no stored hash or no `current` -> 400 `invalid` (a Google-only account sets a password by reset, S18); order as login (R2 I1, count before compare): `limits.emailAttempt(email)` first, `refused` -> 429 `paused`; then compare `current`; wrong `current` -> 400 `currentWrong` (429 `paused` when `locking`), and on `firstLock` call the exported `noticeLockout(c, account)` from `auth/login.ts` (lockout mail and line, not awaited); right `current` -> `limits.emailCleared(email)`; rules -> 400 rule text; then hash, history `passwordChanged` (actor `"Antrenor <nume>"`), `revokeAll(userId, coach.sessionId)` (S11), toast `"Salvat."`.
 - `listDevices`: not revoked, `lastSeenAt` newest first, `current` when `hashSecret(deviceKey)` equals the row's hash.
 - `revokeDevice`: a device of another account -> 404; sets `revokedAt`, `sessions.revokeDevice(userId, id)`; `revokedCurrent` when the row's `sessionId` equals `coach.sessionId`.
 - [ ] **Step 1: Failing tests**: each rule above; `changePassword` ends the other sessions and keeps the current (`verifyAccess` of the current token still works, another device's token answers null); 5 wrong `current` lock the e-mail (login then answers 429); revoking another coach's device 404.

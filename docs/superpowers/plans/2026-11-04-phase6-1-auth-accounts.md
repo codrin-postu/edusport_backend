@@ -678,7 +678,7 @@ git commit -m "test(portal): auth route order, phase 6 fixture"
 
 ## Interfaces for other plans
 
-- **Store and sessions.** `PortalStore`, `strapiPortalStore`, `fakePortalStore`; `PortalSessions` (`issue`, `refresh`, `verifyAccess`, `revoke`, `revokeDevice`, `revokeAll`); the factory the controllers use is `portalSessions(strapi)` in `sessions.ts` (returns 5A or 5B).
+- **Store and sessions.** `PortalStore`, `strapiPortalStore`, `fakePortalStore`; `PortalSessions` (`issue`, `refresh`, `verifyAccess`, `revoke`, `revokeDevice`, `revokeAll`); the factory the controllers use is `portalSessions(store, now)` in `sessions.ts` (one `PortalStore` per request; the lockout notice is exported from `auth/login.ts` as `noticeLockout(c, account)` for 6-2 `changePassword`).
 - **Auth helpers.** `isBffCall`, `clientIp`, `userAgent`, `BFF_HEADERS`; `limiter`; `issueSession`, `canEnter`; `activateInvited`; `checkPassword`; `hashSecret`, `newInviteSecret`, `INVITE_TTL_MS`.
 - **Rules.** `canCoachCorrect`, `correctionDeadline` (`window.ts`), `normalizeEmail`.
 - **Copy.** `PORTAL_ERRORS`, `PORTAL_TOASTS`, `PORTAL_ACTIONS`, `portalHistoryText`, `MAIL_COPY`; 6-3 adds `copy-admin.ts` with one `export *` line.
