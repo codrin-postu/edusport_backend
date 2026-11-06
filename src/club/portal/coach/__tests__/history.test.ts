@@ -41,6 +41,25 @@ describe('readCoachHistory', () => {
     expect(r.data.rows[1]).toMatchObject({ durationMin: 50, lessonId: 'l-done', sessionId: null });
   });
 
+  it('labels by the coaches of the group on the class date, not by today link', async () => {
+    const c = coachCtx(ME);
+    // Andreea coached Club B in October, was removed on 2026-11-02; Club A she joins on 2026-11-10.
+    c.fake.group.history.push(
+      { id: 'h1', seq: 1, subjectType: 'group', subjectId: 'g-club-b', action: 'group-updated', changes: { fields: { coaches: { from: 'Andreea Pascu, Virgil Pascu', to: 'Virgil Pascu' } } }, actor: 'x', at: '2026-11-02T09:00:00.000Z' },
+      { id: 'h2', seq: 2, subjectType: 'group', subjectId: 'g-club-a', action: 'group-updated', changes: { fields: { coaches: { from: 'Virgil Pascu', to: 'Andreea Pascu' } } }, actor: 'x', at: '2026-11-10T09:00:00.000Z' },
+    );
+    c.fake.state.sessions.push(
+      sessionRow({ id: 'b-oct', groupId: 'g-club-b', date: '2026-11-01', startTime: '18:00', coachIds: [ME] }),
+      sessionRow({ id: 'b-nov', groupId: 'g-club-b', date: '2026-11-13', startTime: '18:00', coachIds: [ME] }),
+      sessionRow({ id: 'a-early', groupId: 'g-club-a', date: '2026-11-06', startTime: '17:00', coachIds: [ME] }),
+      sessionRow({ id: 'a-late', groupId: 'g-club-a', date: '2026-11-13', startTime: '17:00', coachIds: [ME] }),
+    );
+    const r = await readCoachHistory(c, '2026-11');
+    if (!r.ok) throw new Error('refused');
+    const kind = (id: string) => r.data.rows.find((x) => x.sessionId === id)?.kind;
+    expect([kind('b-oct'), kind('b-nov'), kind('a-early'), kind('a-late')]).toEqual(['grup', 'inlocuitor', 'inlocuitor', 'grup']);
+  });
+
   it('summary equals the admin "Pe antrenori" row of the same coach and month', async () => {
     const c = seeded();
     const admin = await readCoachMonth(c.fake.ctx.store, '2026-11');

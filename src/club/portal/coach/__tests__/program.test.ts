@@ -28,6 +28,19 @@ describe('reading', () => {
     expect(forbiddenKeysIn(club)).toEqual([]);
   });
 
+  it('keeps the internal class note for an own group and drops it for another coach group', async () => {
+    const { c } = ctx();
+    for (const e of c.fake.state.calendar.events) e.description = `Nota ${e.group?.documentId}`;
+    const own = await readCoachProgram(c, 'g-club-a', '2026-11');
+    const other = await readCoachProgram(c, 'g-club-b', '2026-11');
+    if (!own.ok || !other.ok) throw new Error('read refused');
+    expect(own.data.occurrences.length).toBeGreaterThan(0);
+    expect(other.data.occurrences.length).toBeGreaterThan(0);
+    expect(own.data.occurrences.every((o) => o.description === 'Nota g-club-a')).toBe(true);
+    expect(other.data.occurrences.every((o) => !o.description)).toBe(true);
+    expect(JSON.stringify(other)).not.toContain('Nota');
+  });
+
   it('answers 404 for an unknown or inactive group and 400 for a bad month', async () => {
     const { c } = ctx();
     expect(await readCoachProgram(c, 'nope', '2026-11')).toMatchObject({ ok: false, status: 404 });

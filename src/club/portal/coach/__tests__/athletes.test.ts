@@ -108,6 +108,12 @@ describe('readCard', () => {
     expect(await readCard(c, 'a-free')).toEqual(NO_ACCESS);
   });
 
+  it('a child added to an own group with a future "Din data" opens, as the roster already lists it', async () => {
+    const c = coachCtx(ME);
+    c.fake.group.memberships.push(member({ id: 'gm-fut', athleteId: 'a-free', groupId: 'g-club-a', from: '2026-11-30' }));
+    expect(await readCard(c, 'a-free')).toMatchObject({ ok: true, data: { name: 'Fără Grupă', contact: { phone: '0722000111' } } });
+  });
+
   it('a membership that ended yesterday gives no own right', async () => {
     const c = coachCtx(ME);
     c.fake.group.memberships.push(member({ id: 'gm-old', athleteId: 'a-free', groupId: 'g-club-a', to: '2026-11-19' }));

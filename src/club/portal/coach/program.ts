@@ -49,7 +49,8 @@ export async function readCoachProgram(c: CoachContexts, groupId: string, month:
   if (!g || !g.right.read) return refuse(404, PORTAL_ERRORS.notFound);
   const [program, window] = await Promise.all([readGroupProgram(c.groups.store, groupId, null, c.today), c.presence.store.calendarWindow()]);
   if (!program) return refuse(404, PORTAL_ERRORS.notFound);
-  const { data } = adminWindow(window, monthRange(month), groupId);
+  const { data: all } = adminWindow(window, monthRange(month), groupId);
+  const data = g.own ? all : all.map((o) => ({ ...o, description: null }));
   return { ok: true, data: { kind: g.kind, editable: g.right.write, programPublic: g.own && g.kind === 'club' ? g.programPublic : null, program, occurrences: data } };
 }
 

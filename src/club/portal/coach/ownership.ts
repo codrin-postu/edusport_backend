@@ -1,4 +1,3 @@
-import { onDate } from '../../presence/attendance/roster';
 import type { MembershipRow } from '../../athletes/store';
 import type { GroupRecord } from '../../groups/types';
 
@@ -15,8 +14,8 @@ export function groupAccess(group: GroupRecord | null, teamMemberId: string): Gr
   return group.coachIds.includes(teamMemberId) ? 'own' : 'other';
 }
 
-/** A membership of the season in an own group that runs on `today` (S22). */
+/** A current-season membership in an own group that has not ended. A future "Din data" counts: the roster lists the child from the day it is added. */
 export function ownAthlete(memberships: MembershipRow[], own: Set<string>, athleteId: string, seasonId: string, today: string): boolean {
   return memberships.some((m) =>
-    m.athleteId === athleteId && m.seasonId === seasonId && own.has(m.groupId) && onDate(m, today));
+    m.athleteId === athleteId && m.seasonId === seasonId && own.has(m.groupId) && (!m.to || m.to >= today));
 }
