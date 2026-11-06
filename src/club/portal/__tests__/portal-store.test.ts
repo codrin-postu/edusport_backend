@@ -1,7 +1,7 @@
 import type { Core } from '@strapi/strapi';
 import { describe, expect, it } from 'vitest';
 import type { PortalStore } from '../store';
-import { strapiPortalStore, toAccountRow, toDeviceRow, toLimitRow, toTokenRow } from '../strapi-store';
+import { strapiPortalStore, toAccountRow, toDeviceRow, toLimitRow, toSessionRow, toTokenRow } from '../strapi-store';
 import { fakePortalStore } from './fake-portal-store';
 
 const NOW = new Date('2026-11-06T10:00:00.000Z');
@@ -57,6 +57,22 @@ describe('PortalStore cases (fake)', () => {
     expect(await store.deviceByKey('acc2', 'k1')).toBeNull();
     await store.updateDevice(id, { revokedAt: NOW.toISOString(), sessionId: 's1' });
     expect((await store.devices('acc1'))[0]).toMatchObject({ revokedAt: NOW.toISOString(), sessionId: 's1' });
+  });
+
+  it('sessions: found by current and previous refresh hash, by access hash; active list skips revoked', async () => {
+    const { store } = make();
+    const base = { accountId: 'acc1', deviceId: 'd1', refreshHash: 'r1', accessHash: 'a1', accessExpiresAt: NOW.toISOString(), familyStartedAt: NOW.toISOString(), lastUsedAt: NOW.toISOString() };
+    const id = await store.createSession(base);
+    const other = await store.createSession({ ...base, refreshHash: 'r9', accessHash: 'a9' });
+    await store.updateSession(id, { previousRefreshHash: 'r1', refreshHash: 'r2', accessHash: 'a2' });
+    expect(await store.sessionByRefresh('r1')).toMatchObject({ id, refreshHash: 'r2', previousRefreshHash: 'r1' });
+    expect((await store.sessionByRefresh('r2'))?.id).toBe(id);
+    expect((await store.sessionByAccess('a2'))?.id).toBe(id);
+    expect(await store.sessionByAccess('a1')).toBeNull();
+    await store.updateSession(other, { revokedAt: NOW.toISOString() });
+    expect((await store.activeSessions('acc1')).map((s) => s.id)).toEqual([id]);
+    expect(await store.session('missing')).toBeNull();
+    await expect(store.lockSession(id)).rejects.toThrow('outside a transaction');
   });
 
   it('lockLimit creates once and returns the same id', async () => {
@@ -163,6 +179,8 @@ describe('strapiPortalStore', () => {
     })).toMatchObject({ id: 'a1', userId: 7, email: 'a@b.ro', status: 'active', teamMemberId: 'tm1', googleSub: 'g', invitedAt: '2026-11-01T00:00:00.000Z', lastLoginAt: null });
     expect(toLimitRow({ documentId: 'l1', key: 'k', count: null, windowStart: '2026-11-06T10:00:00.000Z' })).toMatchObject({ id: 'l1', count: 0, lockedUntil: null });
     expect(toTokenRow({ documentId: 't1', account: { documentId: 'a1' }, kind: 'reset', secretHash: 'h', expiresAt: 'x', tries: 1, createdAt: 'c' })).toMatchObject({ accountId: 'a1', kind: 'reset', tries: 1 });
+    expect(toSessionRow({ documentId: 's1', account: { documentId: 'a1' }, deviceId: 'd', refreshHash: 'r', familyStartedAt: 'f', lastUsedAt: 'l' }))
+      .toMatchObject({ id: 's1', accountId: 'a1', previousRefreshHash: null, accessHash: null, revokedAt: null });
     expect(toDeviceRow({ documentId: 'd1', account: { documentId: 'a1' }, deviceKeyHash: 'k', label: 'L', lastSeenAt: 'x' })).toMatchObject({ accountId: 'a1', sessionId: null, revokedAt: null });
   });
 

@@ -1,17 +1,17 @@
 import { SUBJECT } from '../../subjects';
 import type { LimitState } from '../limits';
-import type { AccountRow, DeviceRow, LimitRow, PortalStore, TokenRow, UserAuth } from '../store';
+import type { AccountRow, DeviceRow, LimitRow, PortalStore, SessionRow, TokenRow, UserAuth } from '../store';
 
 export type FakeUser = UserAuth & { username: string; provider: string; role: string; };
 export type FakePortalState = {
-  accounts: AccountRow[]; users: FakeUser[]; tokens: TokenRow[]; limits: LimitRow[]; devices: DeviceRow[];
+  accounts: AccountRow[]; users: FakeUser[]; tokens: TokenRow[]; limits: LimitRow[]; devices: DeviceRow[]; sessions: SessionRow[];
   teamMembers: Record<string, string>; history: { subjectType: string; subjectId: string; action: string; changes: Record<string, unknown>; actor: string }[];
   locks: string[]; now: () => Date; nextId: number;
 };
 export type FakePortal = { store: PortalStore; state: FakePortalState; failOn(method: keyof PortalStore): void };
 
 const EMPTY = (): FakePortalState => ({
-  accounts: [], users: [], tokens: [], limits: [], devices: [], teamMembers: {}, history: [], locks: [], now: () => new Date(), nextId: 1,
+  accounts: [], users: [], tokens: [], limits: [], devices: [], sessions: [], teamMembers: {}, history: [], locks: [], now: () => new Date(), nextId: 1,
 });
 
 const copy = <T>(v: T): T => structuredClone(v);
@@ -23,7 +23,7 @@ function must<T extends { id: string }>(rows: T[], id: string): T {
   return row;
 }
 
-const SNAPSHOT_KEYS = ['accounts', 'users', 'tokens', 'limits', 'devices', 'history'] as const;
+const SNAPSHOT_KEYS = ['accounts', 'users', 'tokens', 'limits', 'devices', 'sessions', 'history'] as const;
 
 function withFailures(store: PortalStore, failing: Set<string>): PortalStore {
   const wrapped: Record<string, unknown> = {};
@@ -33,7 +33,7 @@ function withFailures(store: PortalStore, failing: Set<string>): PortalStore {
   return wrapped as unknown as PortalStore;
 }
 
-function lockers(state: FakePortalState, depth: { n: number }): Pick<PortalStore, 'transaction' | 'lockAccount' | 'lockLimit' | 'saveLimit' | 'purgeLimits'> {
+function lockers(state: FakePortalState, depth: { n: number }): Pick<PortalStore, 'transaction' | 'lockAccount' | 'lockSession' | 'lockLimit' | 'saveLimit' | 'purgeLimits'> {
   const inTx = (what: string) => {
     if (depth.n === 0) throw new Error(`lock on ${what} taken outside a transaction`);
   };
@@ -54,6 +54,10 @@ function lockers(state: FakePortalState, depth: { n: number }): Pick<PortalStore
     lockAccount: async (id) => {
       inTx('portal_accounts');
       state.locks.push(`account:${id}`);
+    },
+    lockSession: async (id) => {
+      inTx('portal_sessions');
+      state.locks.push(`session:${id}`);
     },
     lockLimit: async (key) => {
       inTx('portal_auth_limits');
@@ -157,11 +161,32 @@ function devices(state: FakePortalState): Pick<PortalStore, 'devices' | 'deviceB
   };
 }
 
+function sessions(state: FakePortalState): Pick<PortalStore, 'session' | 'sessionByRefresh' | 'sessionByAccess' | 'activeSessions' | 'createSession' | 'updateSession'> {
+  const find = (p: (x: SessionRow) => boolean) => async () => {
+    const row = state.sessions.find(p);
+    return row ? copy(row) : null;
+  };
+  return {
+    session: (id) => find((x) => x.id === id)(),
+    sessionByRefresh: (hash) => find((x) => x.refreshHash === hash || x.previousRefreshHash === hash)(),
+    sessionByAccess: (hash) => find((x) => x.accessHash === hash)(),
+    activeSessions: async (accountId) => copy(state.sessions.filter((x) => x.accountId === accountId && x.revokedAt === null)),
+    createSession: async (n) => {
+      const id = `ses${state.nextId++}`;
+      state.sessions.push({ ...n, id, previousRefreshHash: null, revokedAt: null });
+      return id;
+    },
+    updateSession: async (id, w) => {
+      Object.assign(must(state.sessions, id), defined(w));
+    },
+  };
+}
+
 export function fakePortalStore(seed: Partial<FakePortalState> = {}): FakePortal {
   const state: FakePortalState = { ...EMPTY(), ...copy({ ...seed, now: undefined }), now: seed.now ?? EMPTY().now };
   const failing = new Set<string>();
   const base: PortalStore = {
-    ...lockers(state, { n: 0 }), ...accounts(state), ...users(state), ...tokens(state), ...devices(state),
+    ...lockers(state, { n: 0 }), ...accounts(state), ...users(state), ...tokens(state), ...devices(state), ...sessions(state),
     teamMemberName: async (id) => state.teamMembers[id] ?? null,
     record: async (line) => {
       state.history.push({ subjectType: SUBJECT.portalAccount, ...copy(line) });

@@ -1859,6 +1859,55 @@ export interface ApiPortalDevicePortalDevice
   };
 }
 
+export interface ApiPortalSessionPortalSession
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'portal_sessions';
+  info: {
+    description: 'Sesiuni ale portalului antrenorilor (doar hash-uri)';
+    displayName: 'Portal / Sesiune';
+    pluralName: 'portal-sessions';
+    singularName: 'portal-session';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    accessExpiresAt: Schema.Attribute.DateTime;
+    accessHash: Schema.Attribute.String & Schema.Attribute.Unique;
+    account: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::portal-account.portal-account'
+    > &
+      Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    deviceId: Schema.Attribute.String & Schema.Attribute.Required;
+    familyStartedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    lastUsedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::portal-session.portal-session'
+    > &
+      Schema.Attribute.Private;
+    previousRefreshHash: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    refreshHash: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    revokedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiPortalTokenPortalToken extends Struct.CollectionTypeSchema {
   collectionName: 'portal_tokens';
   info: {
@@ -3350,6 +3399,7 @@ declare module '@strapi/strapi' {
       'api::portal-account.portal-account': ApiPortalAccountPortalAccount;
       'api::portal-auth-limit.portal-auth-limit': ApiPortalAuthLimitPortalAuthLimit;
       'api::portal-device.portal-device': ApiPortalDevicePortalDevice;
+      'api::portal-session.portal-session': ApiPortalSessionPortalSession;
       'api::portal-token.portal-token': ApiPortalTokenPortalToken;
       'api::price-list.price-list': ApiPriceListPriceList;
       'api::pricing.pricing': ApiPricingPricing;

@@ -3,16 +3,18 @@ import { createId } from '@paralleldrive/cuid2';
 import { transactionScope, type Scope, raws, str, text, iso, linkId, type Raw } from '../athletes/strapi-store';
 import { recordHistory } from '../history';
 import { SUBJECT } from '../subjects';
-import type { AccountRow, AccountStatus, DeviceRow, LimitRow, PortalStore, TokenRow, UserAuth } from './store';
+import type { AccountRow, AccountStatus, DeviceRow, LimitRow, PortalStore, SessionRow, TokenRow, UserAuth } from './store';
 
 const ACCOUNT = 'api::portal-account.portal-account' as const;
 const TOKEN = 'api::portal-token.portal-token' as const;
 const LIMIT = 'api::portal-auth-limit.portal-auth-limit' as const;
 const DEVICE = 'api::portal-device.portal-device' as const;
+const SESSION = 'api::portal-session.portal-session' as const;
 const TEAM_MEMBER = 'api::team-member.team-member' as const;
 const USER = 'plugin::users-permissions.user' as const;
 const ROLE = 'plugin::users-permissions.role' as const;
 const LIMIT_TABLE = 'portal_auth_limits';
+const SESSION_TABLE = 'portal_sessions';
 const ACCOUNT_TABLE = 'portal_accounts';
 const MAX = 100000;
 const STATUSES: readonly AccountStatus[] = ['invited', 'active', 'disabled'];
@@ -42,6 +44,13 @@ export function toDeviceRow(r: Raw): DeviceRow {
   return {
     id: text(r.documentId), accountId: linkId(r.account) ?? '', deviceKeyHash: text(r.deviceKeyHash), sessionId: str(r.sessionId), label: text(r.label),
     firstSeenAt: iso(r.firstSeenAt) ?? '', lastSeenAt: iso(r.lastSeenAt) ?? '', revokedAt: iso(r.revokedAt),
+  };
+}
+
+export function toSessionRow(r: Raw): SessionRow {
+  return {
+    id: text(r.documentId), accountId: linkId(r.account) ?? '', deviceId: text(r.deviceId), refreshHash: text(r.refreshHash), previousRefreshHash: str(r.previousRefreshHash),
+    accessHash: str(r.accessHash), accessExpiresAt: iso(r.accessExpiresAt), familyStartedAt: iso(r.familyStartedAt) ?? '', lastUsedAt: iso(r.lastUsedAt) ?? '', revokedAt: iso(r.revokedAt),
   };
 }
 
@@ -170,12 +179,37 @@ function devices(strapi: Core.Strapi): Pick<PortalStore, 'devices' | 'deviceByKe
   };
 }
 
+function sessions(strapi: Core.Strapi): Pick<PortalStore, 'session' | 'sessionByRefresh' | 'sessionByAccess' | 'activeSessions' | 'createSession' | 'updateSession'> {
+  const docs = () => strapi.documents(SESSION);
+  const populate = { account: true };
+  const one = async (filters: Record<string, unknown>) => {
+    const rows = raws(await docs().findMany({ filters, populate, limit: 1 }));
+    return rows[0] ? toSessionRow(rows[0]) : null;
+  };
+  return {
+    session: (id) => one({ documentId: id }),
+    sessionByRefresh: (hash) => one({ $or: [{ refreshHash: hash }, { previousRefreshHash: hash }] }),
+    sessionByAccess: (hash) => one({ accessHash: hash }),
+    activeSessions: async (accountId) =>
+      raws(await docs().findMany({ filters: { account: { documentId: accountId }, revokedAt: { $null: true } }, populate, sort: 'createdAt:asc', limit: MAX })).map(toSessionRow),
+    createSession: async (n) => {
+      const { accountId, ...rest } = n;
+      const created = await docs().create({ data: { ...rest, account: accountId } as never });
+      return text((created as Raw).documentId);
+    },
+    updateSession: async (id, w) => {
+      await docs().update({ documentId: id, data: defined(w) as never });
+    },
+  };
+}
+
 export function strapiPortalStore(strapi: Core.Strapi): PortalStore {
   const scope = transactionScope(strapi);
   return {
     transaction: scope.transaction,
     lockAccount: (id) => scope.lockRow(ACCOUNT_TABLE, id),
-    ...limits(strapi, scope), ...accounts(strapi), ...users(strapi), ...tokens(strapi), ...devices(strapi),
+    lockSession: (id) => scope.lockRow(SESSION_TABLE, id),
+    ...limits(strapi, scope), ...accounts(strapi), ...users(strapi), ...tokens(strapi), ...devices(strapi), ...sessions(strapi),
     teamMemberName: async (id) => {
       const row = await strapi.documents(TEAM_MEMBER).findOne({ documentId: id, fields: ['name'] });
       return str((row as Raw | null)?.name);

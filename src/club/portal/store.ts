@@ -1,13 +1,15 @@
 import type { LimitState } from './limits';
 import type {
-  AccountRow, AccountStatus, AccountWrite, DeviceRow, HistoryLine, LimitRow, TokenKind, TokenRow, UserAuth, UserWrite,
+  AccountRow, AccountStatus, AccountWrite, DeviceRow, HistoryLine, LimitRow, SessionRow, TokenKind, TokenRow, UserAuth, UserWrite,
 } from './types';
 
-export type { AccountRow, AccountStatus, AccountWrite, DeviceRow, HistoryLine, LimitRow, TokenKind, TokenRow, UserAuth, UserWrite } from './types';
+export type { AccountRow, AccountStatus, AccountWrite, DeviceRow, HistoryLine, LimitRow, SessionRow, TokenKind, TokenRow, UserAuth, UserWrite } from './types';
 
 export type NewAccount = AccountWrite & { userId: number; email: string; status: AccountStatus };
 export type NewToken = Omit<TokenRow, 'id' | 'createdAt' | 'usedAt' | 'tries'>;
 export type NewDevice = Omit<DeviceRow, 'id' | 'revokedAt'>;
+export type NewSession = Omit<SessionRow, 'id' | 'revokedAt' | 'previousRefreshHash'>;
+export type SessionWrite = Partial<Omit<SessionRow, 'id' | 'accountId' | 'deviceId' | 'familyStartedAt'>>;
 export type DeviceWrite = Partial<Pick<DeviceRow, 'sessionId' | 'lastSeenAt' | 'revokedAt' | 'label'>>;
 
 export interface PortalStore {
@@ -36,6 +38,15 @@ export interface PortalStore {
   deviceByKey(accountId: string, keyHash: string): Promise<DeviceRow | null>;
   createDevice(d: NewDevice): Promise<string>;
   updateDevice(id: string, d: DeviceWrite): Promise<void>;
+  lockSession(id: string): Promise<void>;
+  session(id: string): Promise<SessionRow | null>;
+  /** The session whose current or previous refresh hash is `hash`. */
+  sessionByRefresh(hash: string): Promise<SessionRow | null>;
+  sessionByAccess(hash: string): Promise<SessionRow | null>;
+  /** Sessions of the account that are not revoked. */
+  activeSessions(accountId: string): Promise<SessionRow[]>;
+  createSession(s: NewSession): Promise<string>;
+  updateSession(id: string, s: SessionWrite): Promise<void>;
   teamMemberName(id: string): Promise<string | null>;
   record(line: HistoryLine): Promise<void>;
 }
