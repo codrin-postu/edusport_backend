@@ -12,12 +12,12 @@ import type { EventRecord, GroupRecord, GroupStore, NamedRow, SeasonRecord, Sect
 export type ListQuery = { season: string | null; section: string | null };
 export const readListQuery = (q: Record<string, unknown>): ListQuery => ({ season: queryText(q.season), section: queryText(q.section) });
 
-type ListFacts = { season: SeasonRecord | null; sections: SectionRecord[]; groups: GroupRecord[]; current: MembershipRow[]; events: EventRecord[]; team: NamedRow[]; today: string };
+export type ListFacts = { season: SeasonRecord | null; sections: SectionRecord[]; groups: GroupRecord[]; current: MembershipRow[]; events: EventRecord[]; team: NamedRow[]; today: string };
 
 const tabsOf = (sections: SectionRecord[], groups: GroupRecord[]): SectionTab[] =>
   orderedSections(sections).map((s) => ({ documentId: s.id, slug: s.slug, label: sectionLabel(s, sections), count: groups.filter((g) => g.active && g.sectionId === s.id).length }));
 
-function rowOf(g: GroupRecord, f: ListFacts): GroupListRow {
+export function groupListRow(g: GroupRecord, f: ListFacts): GroupListRow {
   const program = f.season ? currentSeries(f.events, g.id, f.season, f.today).map((s) => listLine(seriesText(s))) : [];
   const coaches = f.team.filter((t) => g.coachIds.includes(t.id)).map((t) => t.name);
   return { documentId: g.id, name: g.name, program, coaches, members: f.current.filter((m) => m.groupId === g.id).length };
@@ -26,7 +26,7 @@ function rowOf(g: GroupRecord, f: ListFacts): GroupListRow {
 function tabRows(f: ListFacts, sectionId: string | undefined): { rows: GroupListRow[]; athletes: number } {
   const groups = f.groups.filter((g) => g.active && g.sectionId === sectionId).sort(byGroupOrder);
   const ids = new Set(groups.map((g) => g.id));
-  return { rows: groups.map((g) => rowOf(g, f)), athletes: new Set(f.current.filter((m) => ids.has(m.groupId)).map((m) => m.athleteId)).size };
+  return { rows: groups.map((g) => groupListRow(g, f)), athletes: new Set(f.current.filter((m) => ids.has(m.groupId)).map((m) => m.athleteId)).size };
 }
 
 /** Grupe (5.2): tabs, the open tab's groups (inactive left out) and the distinct-athletes line, for one season. */

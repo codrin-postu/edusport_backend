@@ -153,3 +153,22 @@ describe('"Scoate din grupă" (W4)', () => {
     expect(current(state, 'a1').map((m) => m.athleteId)).toHaveLength(2);
   });
 });
+
+describe('join with an explicit start date', () => {
+  it('without `from` the start is unchanged, with `from` the membership starts then', async () => {
+    const a = seed();
+    await joinGroup(a.ctx, 'g-ib', { season: '2026-2027', athleteIds: ['a3'], mode: 'add' });
+    expect(a.state.memberships.find((m) => m.athleteId === 'a3')?.from).toBe('2026-11-20');
+    const b = seed();
+    await joinGroup(b.ctx, 'g-ib', { season: '2026-2027', athleteIds: ['a3'], mode: 'add', from: '2026-11-27' });
+    expect(b.state.memberships.find((m) => m.athleteId === 'a3')?.from).toBe('2026-11-27');
+  });
+
+  it('a `from` before the start, after the season end or not a date answers 400 and writes nothing', async () => {
+    for (const from of ['2026-11-19', '2027-06-01', 'maine']) {
+      const { ctx, state } = seed();
+      expect(await joinGroup(ctx, 'g-ib', { season: '2026-2027', athleteIds: ['a3'], mode: 'add', from })).toMatchObject({ ok: false, status: 400 });
+      expect(state.memberships.some((m) => m.athleteId === 'a3')).toBe(false);
+    }
+  });
+});

@@ -10,13 +10,15 @@ import type { GroupContext } from './context';
 import { GROUP_ERRORS } from './copy';
 import { ATHLETE_SUBJECT, GROUP_SUBJECT, P4_ACTIONS } from './history-lines';
 import { currentRows, planJoin, planMove, planRemove, type MembershipPlan, type MembershipWrite } from './membership-plan';
+import { isIsoDate } from './dates';
 import { isPastSeason, startDateFor } from './season-pick';
+import { seasonBounds } from './series';
 import type { GroupRecord, GroupStore, SeasonRecord } from './types';
 import { membershipUndo, type UndoStep } from './undo';
 
 /** The group roster actions (spec 5.3, 6.2, 8.1): one transaction each, athletes locked by id then the groups. */
 export type JoinMode = 'allocate' | 'add';
-export type JoinBody = { season: string; athleteIds: string[]; mode: JoinMode };
+export type JoinBody = { season: string; athleteIds: string[]; mode: JoinMode; from?: string };
 export type AllocateBody = { season: string; items: { athleteId: string; groupId: string }[] };
 type Outcome = { joined: boolean; lines: Line[]; steps: UndoStep[]; name: string };
 const MAX_ITEMS = 200;
@@ -27,7 +29,8 @@ export function readJoinBody(body: unknown): JoinBody | null {
   if (!isRecord(body) || typeof body.season !== 'string') return null;
   const athleteIds = ids(body.athleteIds);
   const mode = body.mode === 'allocate' || body.mode === 'add' ? body.mode : null;
-  return athleteIds && mode ? { season: body.season, athleteIds, mode } : null;
+  if (!athleteIds || !mode || (body.from !== undefined && !isIsoDate(body.from))) return null;
+  return { season: body.season, athleteIds, mode, ...(typeof body.from === 'string' ? { from: body.from } : {}) };
 }
 
 export function readAllocateBody(body: unknown): AllocateBody | null {
@@ -80,11 +83,12 @@ function joinLines(a: AthleteRow, g: GroupRecord, mode: JoinMode, reactivated: b
   return reactivated ? [...lines, { subjectType: ATHLETE_SUBJECT, subjectId: a.id, action: HISTORY_ACTIONS.reactivated }] : lines;
 }
 
-async function joinOne(ctx: GroupContext, a: AthleteRow, g: GroupRecord, season: SeasonRecord, mode: JoinMode): Promise<Outcome> {
+async function joinOne(ctx: GroupContext, a: AthleteRow, g: GroupRecord, season: SeasonRecord, req: Pick<JoinBody, 'mode' | 'from'>): Promise<Outcome> {
+  const { mode } = req;
   const rows = await currentOf(ctx.store, a.id, season.id);
   const skip = { joined: false, lines: [], steps: [], name: a.name ?? '' };
   if (mode === 'allocate' && rows.length) return skip;
-  const plan = planJoin(rows, g.id, { athleteId: a.id, seasonId: season.id, from: startDateFor(season, ctx.today) });
+  const plan = planJoin(rows, g.id, { athleteId: a.id, seasonId: season.id, from: req.from ?? startDateFor(season, ctx.today) });
   if (!plan.writes.length) return skip;
   const reactivated = mode === 'add' && a.status === 'inactiv';
   const steps = await applyPlan(ctx.store, plan, rows, a.id, season.id);
@@ -114,13 +118,14 @@ async function finish(ctx: GroupContext, outcomes: Outcome[]): Promise<string | 
 async function joinLocked(ctx: GroupContext, groupId: string, req: JoinBody): Promise<ActionResult<JoinResult>> {
   const season = await writableSeason(ctx.store, (s) => s.label === req.season);
   if (season.ok === false) return season;
+  if (req.from !== undefined && (req.from < startDateFor(season.data, ctx.today) || req.from > seasonBounds(season.data).end)) return refuse(400, GROUP_ERRORS.invalid);
   await lockAll(ctx.store, req.athleteIds, [groupId]);
   const group = await activeGroup(ctx.store, groupId);
   const people = await loadPeople(ctx.store, req.athleteIds);
   if (!group) return refuse(409, GROUP_ERRORS.stale);
   if (!people) return refuse(400, GROUP_ERRORS.invalid);
   const outcomes: Outcome[] = [];
-  for (const a of people) outcomes.push(await joinOne(ctx, a, group, season.data, req.mode));
+  for (const a of people) outcomes.push(await joinOne(ctx, a, group, season.data, req));
   const joined = outcomes.filter((o) => o.joined);
   return done({ added: joined.length, athleteNames: joined.map((o) => o.name), groupName: group.name }, await finish(ctx, outcomes));
 }
@@ -141,7 +146,7 @@ async function allocateLocked(ctx: GroupContext, req: AllocateBody): Promise<Act
   const groups = await Promise.all(items.map((i) => activeGroup(ctx.store, i.groupId)));
   if (!people || groups.some((g) => g === null)) return refuse(409, GROUP_ERRORS.stale);
   const outcomes: Outcome[] = [];
-  for (let i = 0; i < items.length; i += 1) outcomes.push(await joinOne(ctx, people[i], groups[i] as GroupRecord, season.data, 'allocate'));
+  for (let i = 0; i < items.length; i += 1) outcomes.push(await joinOne(ctx, people[i], groups[i] as GroupRecord, season.data, { mode: 'allocate' }));
   return done({ allocated: outcomes.filter((o) => o.joined).length }, await finish(ctx, outcomes));
 }
 

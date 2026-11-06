@@ -108,3 +108,22 @@ async function deleteInTransaction(ctx: GroupContext, id: string): Promise<Admin
 /** "Șterge grupa": only a group that never had a membership or an event (W11). */
 export const deleteGroup = (ctx: GroupContext, id: string): Promise<AdminResult<{ name: string }>> =>
   guarded(ctx.log, `[groups] deleting ${id}`, () => ctx.store.transaction(() => deleteInTransaction(ctx, id)));
+
+async function publicLocked(ctx: GroupContext, id: string, value: boolean): Promise<AdminResult<{ changed: boolean }>> {
+  await ctx.store.lockGroup(id);
+  const group = await ctx.store.group(id);
+  if (!group) return refuse(404, GROUP_ERRORS.notFound);
+  if (group.programPublic === value) return { ok: true, data: { changed: false } };
+  await ctx.store.updateGroup(id, { programPublic: value });
+  const fields = { programPublic: { from: group.programPublic, to: value } };
+  await recordLines(ctx.store, ctx.actor, [{ subjectType: GROUP_SUBJECT, subjectId: id, action: P4_ACTIONS.groupUpdated, changes: { fields } }]);
+  return { ok: true, data: { changed: true } };
+}
+
+/** The narrow "Program public" switch (a coach's): only this field, the same history line as `updateGroup`, a website ping when it changed. */
+export async function setProgramPublic(ctx: GroupContext, groupId: string, value: unknown): Promise<AdminResult<{ changed: boolean }>> {
+  if (typeof value !== 'boolean') return refuse(400, GROUP_ERRORS.invalid);
+  const res = await guarded(ctx.log, `[groups] program public of ${groupId}`, () => ctx.store.transaction(() => publicLocked(ctx, groupId, value)));
+  if (res.ok === true && res.data.changed) ctx.revalidate();
+  return res;
+}
