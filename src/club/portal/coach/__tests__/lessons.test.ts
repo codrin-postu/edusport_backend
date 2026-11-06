@@ -23,6 +23,14 @@ describe('create and read', () => {
     expect(c.fake.state.lessons).toEqual([]);
   });
 
+  it('refuses a date older than 7 days like presence, allows exactly 7 days back and the future', async () => {
+    const c = coachCtx(ME);
+    expect(await createCoachLesson(c, newBody({ date: '2026-11-12' }))).toEqual(ARCHIVED);
+    expect(c.fake.state.lessons).toEqual([]);
+    expect(await createCoachLesson(c, newBody({ date: '2026-11-13' }))).toMatchObject({ ok: true });
+    expect(await createCoachLesson(c, newBody({ date: '2027-01-10' }))).toMatchObject({ ok: true });
+  });
+
   it('creates with the coach name, answers without undo, and reads back without money keys', async () => {
     const c = coachCtx(ME);
     const made = await createCoachLesson(c, newBody());

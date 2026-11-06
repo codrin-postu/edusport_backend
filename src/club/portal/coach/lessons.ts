@@ -10,6 +10,7 @@ import type { LessonSaved } from '../../presence/attendance/api-types';
 import { PORTAL_ERRORS } from '../copy';
 import type { CoachLesson } from './api-types';
 import { forbidden, type CoachContexts, type CoachResult } from './context';
+import { canCoachCorrect } from '../window';
 import { lessonRight, type Right } from './rules';
 import { toCoachLesson } from './views';
 
@@ -40,6 +41,7 @@ export async function createCoachLesson(c: CoachContexts, body: unknown): Promis
   if (!b) return refuse(400, PORTAL_ERRORS.invalid);
   if (b.coachIds.length === 0) return refuse(400, ATTENDANCE_ERRORS.noCoach);
   if (!b.coachIds.includes(c.coach.teamMemberId)) return forbidden(PORTAL_ERRORS.noAccess);
+  if (!canCoachCorrect(b.date, c.today)) return forbidden(PORTAL_ERRORS.archived);
   const athlete = await c.presence.store.athlete(b.athleteId);
   if (!athlete || (athlete.status !== 'nou' && athlete.status !== 'activ')) return refuse(400, PORTAL_ERRORS.invalid);
   return plain(await createLesson(c.presence, body));
