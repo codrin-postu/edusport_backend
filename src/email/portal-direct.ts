@@ -6,7 +6,7 @@ import type { Core } from '@strapi/strapi';
 import { MAIL_COPY } from '../club/portal/copy';
 import { longDate } from '../club/presence/dates';
 import { captureMessage } from '../sentry';
-import { sendNow } from './brevo';
+import { failureStatus, sendNow } from './brevo';
 import { deliveryTarget, readEmailConfig } from './config';
 import { buildEmailLinks } from './links';
 import { brandHtml, emailPage, escapeHtml, footerText, type EmailLinks, type RenderedEmail } from './registration-template';
@@ -70,6 +70,6 @@ export function portalMailSender(strapi: Core.Strapi): SendPortalMail {
       { apiKey: config.apiKey, sender: config.sender, replyTo: config.replyTo },
     );
     if (result.ok === true) return true;
-    return failed(strapi, mail.kind, result.error);
+    return failed(strapi, mail.kind, failureStatus(result.error));
   };
 }

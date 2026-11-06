@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hashToken, ownSessions } from '../sessions-own';
+import { GRACE_MS, hashToken, ownSessions } from '../sessions-own';
 import { fakePortalStore } from './fake-portal-store';
 
 const DAY = 24 * 3600 * 1000;
@@ -8,6 +8,7 @@ async function setup() {
   const clock = { t: new Date('2026-11-06T10:00:00.000Z') };
   const fake = fakePortalStore({ now: () => clock.t });
   const now = () => clock.t;
+  for (const id of [7, 8]) fake.state.users.push({ id, email: `u${id}@x.ro`, passwordHash: 'h', blocked: false, confirmed: true, username: `u${id}`, provider: 'local', role: 'authenticated' });
   const a = await fake.store.createAccount({ userId: 7, email: 'a@b.ro', status: 'active' });
   const b = await fake.store.createAccount({ userId: 8, email: 'c@d.ro', status: 'active' });
   return { ...fake, sessions: ownSessions(fake.store, now), clock, a, b, advance: (ms: number) => { clock.t = new Date(clock.t.getTime() + ms); } };
@@ -21,7 +22,8 @@ describe('ownSessions', () => {
     expect(t.accessExpiresAt).toBe('2026-11-06T10:10:00.000Z');
     const row = state.sessions[0];
     expect(row.id).toBe(t.sessionId);
-    expect(row.refreshHash).toBe(hashToken(t.refreshToken));
+    expect(t.refreshToken.startsWith(`${t.sessionId}.`)).toBe(true);
+    expect(row.refreshHash).toBe(hashToken(t.refreshToken.split('.')[1]));
     expect(JSON.stringify(state.sessions)).not.toContain(t.refreshToken);
     expect(JSON.stringify(state.sessions)).not.toContain(t.accessToken);
     expect(await sessions.verifyAccess('garbage')).toBeNull();
@@ -56,13 +58,83 @@ describe('ownSessions', () => {
     expect(await sessions.refresh('nope')).toBeNull();
   });
 
-  it('a reused refresh token answers null and revokes the family', async () => {
-    const { sessions } = await setup();
+  it('a token reused after the grace window revokes the session', async () => {
+    const { sessions, advance } = await setup();
     const t = await sessions.issue(7, 'dev-1');
     const r = await sessions.refresh(t.refreshToken);
+    advance(GRACE_MS);
     expect(await sessions.refresh(t.refreshToken)).toBeNull();
     expect(await sessions.verifyAccess(r!.accessToken)).toBeNull();
     expect(await sessions.refresh(r!.refreshToken)).toBeNull();
+  });
+
+  it('the previous token inside the grace window is refused without revoking', async () => {
+    const { sessions, advance } = await setup();
+    const t = await sessions.issue(7, 'dev-1');
+    const r = await sessions.refresh(t.refreshToken);
+    advance(GRACE_MS - 1);
+    expect(await sessions.refresh(t.refreshToken)).toBeNull();
+    expect(await sessions.verifyAccess(r!.accessToken)).not.toBeNull();
+    expect(await sessions.refresh(r!.refreshToken)).not.toBeNull();
+  });
+
+  it('a token two generations old revokes the session (theft detected at any depth)', async () => {
+    const { sessions, advance } = await setup();
+    const t1 = await sessions.issue(7, 'dev-1');
+    const t2 = await sessions.refresh(t1.refreshToken);
+    advance(60_000);
+    const t3 = await sessions.refresh(t2!.refreshToken);
+    advance(60_000);
+    expect(await sessions.refresh(t1.refreshToken)).toBeNull();
+    expect(await sessions.verifyAccess(t3!.accessToken)).toBeNull();
+  });
+
+  it('a wrong secret for a live session revokes it; malformed and unknown tokens do nothing', async () => {
+    const { sessions } = await setup();
+    const t = await sessions.issue(7, 'dev-1');
+    expect(await sessions.refresh('no-dot')).toBeNull();
+    expect(await sessions.refresh('ghost.secret')).toBeNull();
+    expect(await sessions.verifyAccess(t.accessToken)).not.toBeNull();
+    expect(await sessions.refresh(`${t.sessionId}.wrong`)).toBeNull();
+    expect(await sessions.verifyAccess(t.accessToken)).toBeNull();
+  });
+
+  it('refresh ends the session when the account is disabled or the user blocked', async () => {
+    const { sessions, store, a } = await setup();
+    const t = await sessions.issue(7, 'dev-1');
+    await store.updateAccount(a, { status: 'disabled' });
+    expect(await sessions.refresh(t.refreshToken)).toBeNull();
+    await store.updateAccount(a, { status: 'active' });
+    expect(await sessions.refresh(t.refreshToken)).toBeNull();
+    const u = await sessions.issue(7, 'dev-2');
+    await store.updateUser(7, { blocked: true });
+    expect(await sessions.refresh(u.refreshToken)).toBeNull();
+  });
+
+  it('issue refuses an account that is not active and takes the account lock', async () => {
+    const { sessions, store, a, state } = await setup();
+    await sessions.issue(7, 'dev-1');
+    expect(state.locks).toContain(`account:${a}`);
+    await store.updateAccount(a, { status: 'disabled' });
+    await expect(sessions.issue(7, 'dev-1')).rejects.toThrow('not active');
+    state.locks.length = 0;
+    await sessions.revokeAll(7);
+    expect(state.locks).toContain(`account:${a}`);
+  });
+
+  it('an expired session is marked revoked, so it drops out of the active list', async () => {
+    const { sessions, store, a, advance } = await setup();
+    const t = await sessions.issue(7, 'dev-1');
+    advance(7 * DAY + 1);
+    expect(await sessions.refresh(t.refreshToken)).toBeNull();
+    expect(await store.activeSessions(a)).toEqual([]);
+  });
+
+  it('logout needs the matching secret', async () => {
+    const { sessions } = await setup();
+    const t = await sessions.issue(7, 'dev-1');
+    await sessions.revoke(`${t.sessionId}.guess`);
+    expect(await sessions.verifyAccess(t.accessToken)).not.toBeNull();
   });
 
   it('idle for more than 7 days answers null, exactly 7 days still rotates', async () => {

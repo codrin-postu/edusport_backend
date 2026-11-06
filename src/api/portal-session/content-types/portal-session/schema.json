@@ -29,14 +29,20 @@
     "refreshHash": {
       "type": "string",
       "required": true,
-      "unique": true
+      "unique": true,
+      "column": {
+        "unique": true
+      }
     },
     "previousRefreshHash": {
       "type": "string"
     },
     "accessHash": {
       "type": "string",
-      "unique": true
+      "unique": true,
+      "column": {
+        "unique": true
+      }
     },
     "accessExpiresAt": {
       "type": "datetime"

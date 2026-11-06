@@ -90,4 +90,23 @@ describe('portalMailSender', () => {
     const body = JSON.parse(String((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body));
     expect(body.to).toEqual([{ email: 'test@codrin.space' }]);
   });
+
+  it('logs only the status code of a failed send, never the Brevo text or the address', async () => {
+    vi.useFakeTimers();
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('EMAIL_LIVE', 'true');
+    vi.stubEnv('BREVO_API_KEY', 'k');
+    vi.stubEnv('EMAIL_FROM_ADDRESS', SENDER.email);
+    vi.stubEnv('EMAIL_TEST_RECIPIENT', 'test@codrin.space');
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"message":"invalid email parinte@example.com"}', { status: 400 })));
+    const error = vi.fn();
+    const quiet = { documents: () => ({ findFirst: async () => null }), log: { error, warn: vi.fn(), info: vi.fn() } } as unknown as Core.Strapi;
+
+    const pending = portalMailSender(quiet)('parinte@example.com', { kind: 'lockout' });
+    await vi.runAllTimersAsync();
+
+    expect(await pending).toBe(false);
+    expect(error).toHaveBeenCalledWith('[portal-mail] lockout not sent: Brevo 400');
+    vi.useRealTimers();
+  });
 });

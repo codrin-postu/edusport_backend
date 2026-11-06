@@ -38,6 +38,12 @@ export function brevoBody(message: OutgoingEmail, sender: Sender, replyTo: strin
   return body;
 }
 
+/** The status code of a failure, for logs: the error text can echo the address or the request. */
+export function failureStatus(error: string): string {
+  const code = /^Brevo (\d{3})/.exec(error);
+  return code ? `Brevo ${code[1]}` : 'request failed';
+}
+
 async function readError(res: Response): Promise<string> {
   const raw = await res.text().catch(() => '');
   return `Brevo ${res.status}: ${raw.trim()}`.slice(0, MAX_ERROR);

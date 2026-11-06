@@ -161,14 +161,13 @@ function devices(state: FakePortalState): Pick<PortalStore, 'devices' | 'deviceB
   };
 }
 
-function sessions(state: FakePortalState): Pick<PortalStore, 'session' | 'sessionByRefresh' | 'sessionByAccess' | 'activeSessions' | 'createSession' | 'updateSession'> {
+function sessions(state: FakePortalState): Pick<PortalStore, 'session' | 'sessionByAccess' | 'activeSessions' | 'createSession' | 'updateSession'> {
   const find = (p: (x: SessionRow) => boolean) => async () => {
     const row = state.sessions.find(p);
     return row ? copy(row) : null;
   };
   return {
     session: (id) => find((x) => x.id === id)(),
-    sessionByRefresh: (hash) => find((x) => x.refreshHash === hash || x.previousRefreshHash === hash)(),
     sessionByAccess: (hash) => find((x) => x.accessHash === hash)(),
     activeSessions: async (accountId) => copy(state.sessions.filter((x) => x.accountId === accountId && x.revokedAt === null)),
     createSession: async (n) => {

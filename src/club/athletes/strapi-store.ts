@@ -309,7 +309,7 @@ function deleteMediaIfUnused(strapi: Core.Strapi): ClubStore['deleteMediaIfUnuse
 export type Scope = {
   transaction: ClubStore['transaction'];
   lockRow: (table: string, id: string) => Promise<void>;
-  /** The open transaction, for raw knex statements that must join it (`getConnection` does not). */
+  /** The open transaction, for raw knex statements that must join it (`getConnection` does not). One scope per store instance: build the store per request, never share it between concurrent transactions. */
   current: () => Knex.Transaction | null;
 };
 

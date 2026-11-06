@@ -40,8 +40,6 @@ export interface PortalStore {
   updateDevice(id: string, d: DeviceWrite): Promise<void>;
   lockSession(id: string): Promise<void>;
   session(id: string): Promise<SessionRow | null>;
-  /** The session whose current or previous refresh hash is `hash`. */
-  sessionByRefresh(hash: string): Promise<SessionRow | null>;
   sessionByAccess(hash: string): Promise<SessionRow | null>;
   /** Sessions of the account that are not revoked. */
   activeSessions(accountId: string): Promise<SessionRow[]>;

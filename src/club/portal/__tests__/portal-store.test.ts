@@ -59,14 +59,13 @@ describe('PortalStore cases (fake)', () => {
     expect((await store.devices('acc1'))[0]).toMatchObject({ revokedAt: NOW.toISOString(), sessionId: 's1' });
   });
 
-  it('sessions: found by current and previous refresh hash, by access hash; active list skips revoked', async () => {
+  it('sessions: found by id and by access hash; active list skips revoked', async () => {
     const { store } = make();
     const base = { accountId: 'acc1', deviceId: 'd1', refreshHash: 'r1', accessHash: 'a1', accessExpiresAt: NOW.toISOString(), familyStartedAt: NOW.toISOString(), lastUsedAt: NOW.toISOString() };
     const id = await store.createSession(base);
     const other = await store.createSession({ ...base, refreshHash: 'r9', accessHash: 'a9' });
     await store.updateSession(id, { previousRefreshHash: 'r1', refreshHash: 'r2', accessHash: 'a2' });
-    expect(await store.sessionByRefresh('r1')).toMatchObject({ id, refreshHash: 'r2', previousRefreshHash: 'r1' });
-    expect((await store.sessionByRefresh('r2'))?.id).toBe(id);
+    expect(await store.session(id)).toMatchObject({ id, refreshHash: 'r2', previousRefreshHash: 'r1' });
     expect((await store.sessionByAccess('a2'))?.id).toBe(id);
     expect(await store.sessionByAccess('a1')).toBeNull();
     await store.updateSession(other, { revokedAt: NOW.toISOString() });

@@ -22,8 +22,9 @@ const ACCOUNT_POPULATE = { user: { fields: ['documentId' as const] }, teamMember
 
 export function toAccountRow(r: Raw): AccountRow {
   const user = r.user && typeof r.user === 'object' ? (r.user as Raw) : null;
+  if (!user) throw new Error('portal account without a user link');
   return {
-    id: text(r.documentId), userId: Number(user?.id ?? 0), email: text(r.email), status: STATUSES.find((s) => s === r.status) ?? 'invited',
+    id: text(r.documentId), userId: Number(user.id), email: text(r.email), status: STATUSES.find((s) => s === r.status) ?? 'invited',
     teamMemberId: linkId(r.teamMember), phone: str(r.phone), googleSub: str(r.googleSub), invitedAt: iso(r.invitedAt), invitedBy: str(r.invitedBy),
     activatedAt: iso(r.activatedAt), disabledAt: iso(r.disabledAt), disabledBy: str(r.disabledBy), lastLoginAt: iso(r.lastLoginAt),
   };
@@ -122,10 +123,11 @@ function users(strapi: Core.Strapi): Pick<PortalStore, 'user' | 'createUser' | '
     },
     createUser: async (email, passwordHash) => {
       const role = await strapi.db.query(ROLE).findOne({ where: { type: 'authenticated' }, select: ['id'] });
+      if (!role) throw new Error('Authenticated role missing');
       const now = new Date();
       const created = await query().create({
         data: {
-          documentId: createId(), username: email, email, password: passwordHash, provider: 'local', confirmed: false, blocked: false, role: role?.id,
+          documentId: createId(), username: email, email, password: passwordHash, provider: 'local', confirmed: false, blocked: false, role: role.id,
           createdAt: now, updatedAt: now, publishedAt: now,
         },
       });
@@ -179,7 +181,7 @@ function devices(strapi: Core.Strapi): Pick<PortalStore, 'devices' | 'deviceByKe
   };
 }
 
-function sessions(strapi: Core.Strapi): Pick<PortalStore, 'session' | 'sessionByRefresh' | 'sessionByAccess' | 'activeSessions' | 'createSession' | 'updateSession'> {
+function sessions(strapi: Core.Strapi): Pick<PortalStore, 'session' | 'sessionByAccess' | 'activeSessions' | 'createSession' | 'updateSession'> {
   const docs = () => strapi.documents(SESSION);
   const populate = { account: true };
   const one = async (filters: Record<string, unknown>) => {
@@ -188,7 +190,6 @@ function sessions(strapi: Core.Strapi): Pick<PortalStore, 'session' | 'sessionBy
   };
   return {
     session: (id) => one({ documentId: id }),
-    sessionByRefresh: (hash) => one({ $or: [{ refreshHash: hash }, { previousRefreshHash: hash }] }),
     sessionByAccess: (hash) => one({ accessHash: hash }),
     activeSessions: async (accountId) =>
       raws(await docs().findMany({ filters: { account: { documentId: accountId }, revokedAt: { $null: true } }, populate, sort: 'createdAt:asc', limit: MAX })).map(toSessionRow),

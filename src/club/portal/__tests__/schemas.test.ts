@@ -98,3 +98,12 @@ describe('portal-session (5B, spike fallback)', () => {
     expect(Object.keys(s.attributes).some((k) => /token|secret/i.test(k) && !/hash/i.test(k))).toBe(false);
   });
 });
+
+describe('portal unique columns (a content-type "unique" alone creates no database index)', () => {
+  it.each([['portal-auth-limit', 'key'], ['portal-session', 'refreshHash'], ['portal-session', 'accessHash'], ['portal-account', 'email'], ['portal-account', 'googleSub']])(
+    '%s.%s has a database unique index',
+    (name, key) => {
+      expect(schema(name).attributes[key]).toMatchObject({ unique: true, column: { unique: true } });
+    },
+  );
+});

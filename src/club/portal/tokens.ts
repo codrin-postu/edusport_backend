@@ -21,6 +21,7 @@ export function tokenState(
 }
 
 export const sameHash = (a: string, b: string): boolean => {
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
+  const x = Buffer.from(a);
+  const y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
 };
