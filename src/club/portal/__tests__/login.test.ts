@@ -5,7 +5,7 @@ import controller from '../../../api/portal/controllers/portal-auth';
 import { PORTAL_ACTIONS, PORTAL_ERRORS } from '../copy';
 import { limiter } from '../auth/limit';
 import type { PortalAuthContext } from '../auth/context';
-import { loginWithPassword, readLoginBody } from '../auth/login';
+import { loginWithPassword, noticeLockout, readLoginBody } from '../auth/login';
 import { canEnter } from '../auth/issue';
 import { portalSessions } from '../sessions';
 import type { AccountRow, PortalStore } from '../store';
@@ -147,6 +147,14 @@ describe('lockout and limits', () => {
     await flush();
     expect(s.mails).toEqual([{ to: 'ana@x.ro', mail: { kind: 'lockout' } }]);
     expect(s.fake.state.history).toEqual([{ subjectType: expect.any(String), subjectId: id, action: PORTAL_ACTIONS.locked, changes: {}, actor: 'sistem' }]);
+  });
+
+  it('noticeLockout is exported and sends the mail and the "sistem" line', async () => {
+    const s = setup();
+    const id = await s.addAccount('ana@x.ro', 1);
+    await noticeLockout(s.c, (await s.store.account(id))!);
+    expect(s.mails).toEqual([{ to: 'ana@x.ro', mail: { kind: 'lockout' } }]);
+    expect(s.fake.state.history).toMatchObject([{ subjectId: id, action: PORTAL_ACTIONS.locked, actor: 'sistem' }]);
   });
 
   it('the locking attempt does not wait for the lockout mail or the history line', async () => {

@@ -154,6 +154,15 @@ describe('confirmReset', () => {
     expect(s.mails.filter((m) => m.mail.kind === 'new-device')).toHaveLength(1);
   });
 
+  it('writes the history line as "Antrenor <name>", not the e-mail', async () => {
+    const s = setup();
+    s.fake.state.teamMembers.tm1 = 'Ana Pop';
+    await s.addAccount();
+    await s.request();
+    await s.confirm();
+    expect(s.fake.state.history[0]).toMatchObject({ action: PORTAL_ACTIONS.passwordReset, actor: 'Antrenor Ana Pop' });
+  });
+
   it('M5: when revoking the other sessions fails, nothing is changed', async () => {
     const s = setup();
     await s.addAccount();

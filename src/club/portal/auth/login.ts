@@ -30,7 +30,7 @@ export function readLoginBody(body: unknown, hosts: string[]): LoginBody | null 
 }
 
 /** Runs after the limiter's transaction and is not awaited, so the locking attempt takes as long as any other. */
-async function notifyLock(c: PortalAuthContext, account: AccountRow): Promise<void> {
+export async function noticeLockout(c: PortalAuthContext, account: AccountRow): Promise<void> {
   try {
     if (!(await c.mail(account.email, { kind: 'lockout' }))) c.log('[portal-login] lockout mail not sent');
     await c.store.record({ subjectId: account.id, action: PORTAL_ACTIONS.locked, changes: {}, actor: 'sistem' });
@@ -40,7 +40,7 @@ async function notifyLock(c: PortalAuthContext, account: AccountRow): Promise<vo
 }
 
 function refuseLogin(c: PortalAuthContext, attempt: Attempt, account: AccountRow | null): PortalResult<PortalSession> {
-  if (attempt.firstLock && account) void notifyLock(c, account);
+  if (attempt.firstLock && account) void noticeLockout(c, account);
   return attempt.locking ? paused : { ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin };
 }
 
