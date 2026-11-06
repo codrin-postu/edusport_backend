@@ -160,7 +160,7 @@ describe('acceptInvite', () => {
 
 describe('controller', () => {
   it('has the invite handlers and answers 403 without the secret', async () => {
-    const ctx = { request: { headers: {}, body: {} }, params: { secret: 's' }, status: 0, body: null as unknown };
+    const ctx = { request: { headers: {}, body: { secret: 's' } }, params: {}, status: 0, body: null as unknown };
     for (const name of ['inviteRead', 'inviteAccept'] as const) {
       await (controller as Record<string, (c: unknown) => Promise<void>>)[name](ctx);
       expect(ctx.status).toBe(403);

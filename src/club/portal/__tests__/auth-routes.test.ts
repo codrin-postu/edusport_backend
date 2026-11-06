@@ -12,7 +12,7 @@ const EXPECTED = [
   'POST /portal/auth/reset/request',
   'POST /portal/auth/reset/confirm',
   'POST /portal/auth/invite/accept',
-  'GET /portal/auth/invite/:secret',
+  'POST /portal/auth/invite/read',
 ];
 
 const listed = routes.routes.map((r) => `${r.method} ${r.path}`);
@@ -25,7 +25,11 @@ describe('portal auth routes', () => {
   it('keep fixed paths before parameter paths', () => {
     expect(staticBeforeParams(routes.routes.map((r) => r.path))).toBe(true);
     const firstParam = routes.routes.findIndex((r) => r.path.includes(':'));
-    expect(routes.routes.slice(firstParam).every((r) => r.path.includes(':'))).toBe(true);
+    if (firstParam >= 0) expect(routes.routes.slice(firstParam).every((r) => r.path.includes(':'))).toBe(true);
+  });
+
+  it('keep the invite secret out of every path', () => {
+    expect(listed.filter((l) => l.includes(':'))).toEqual([]);
   });
 
   it('turn off Strapi auth, policies and middlewares', () => {

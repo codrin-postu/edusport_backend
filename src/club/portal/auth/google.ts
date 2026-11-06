@@ -19,6 +19,7 @@ const KEYS_MAX_AGE_S = 24 * 3600;
 const FIELD_MAX = 2048;
 const DEVICE_KEY_MAX = 200;
 const SECRET_MAX = 200;
+const CALL_TIMEOUT_MS = 10_000;
 
 export function googleClient(env: NodeJS.ProcessEnv = process.env): GoogleClient | null {
   const clientId = env.PORTAL_GOOGLE_CLIENT_ID;
@@ -34,6 +35,7 @@ export async function exchangeCode(g: GoogleClient, i: { code: string; codeVerif
   const res = await g.fetchFn(TOKEN_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
     body: new URLSearchParams({
       grant_type: 'authorization_code', code: i.code, code_verifier: i.codeVerifier, redirect_uri: i.redirectUri, client_id: g.clientId, client_secret: g.clientSecret,
     }).toString(),
@@ -46,18 +48,21 @@ export async function exchangeCode(g: GoogleClient, i: { code: string; codeVerif
 
 type Jwk = Record<string, unknown> & { kid?: string };
 type KeyCache = { keys: Map<string, Jwk>; expiresAt: number };
-const caches = new WeakMap<GoogleClient, KeyCache>();
+/** Shared by every request: the controller builds a client per request, so the cache cannot live on it. */
+const caches = new Map<string, KeyCache>();
+
+export const clearGoogleKeyCache = (): void => caches.clear();
 
 async function keyFor(g: GoogleClient, kid: string): Promise<Jwk | null> {
-  const cached = caches.get(g);
+  const cached = caches.get(CERTS_URL);
   if (cached && cached.expiresAt > g.now().getTime() && cached.keys.has(kid)) return cached.keys.get(kid) ?? null;
-  const res = await g.fetchFn(CERTS_URL);
+  const res = await g.fetchFn(CERTS_URL, { signal: AbortSignal.timeout(CALL_TIMEOUT_MS) });
   if (!res.ok) throw new Error('google keys unavailable');
   const maxAge = Number(/max-age=(\d+)/.exec(res.headers.get('cache-control') ?? '')?.[1] ?? 0);
   const body = (await res.json()) as { keys?: Jwk[] };
   const keys = new Map<string, Jwk>();
   for (const k of body.keys ?? []) if (typeof k.kid === 'string') keys.set(k.kid, k);
-  caches.set(g, { keys, expiresAt: g.now().getTime() + Math.min(maxAge, KEYS_MAX_AGE_S) * 1000 });
+  caches.set(CERTS_URL, { keys, expiresAt: g.now().getTime() + Math.min(maxAge, KEYS_MAX_AGE_S) * 1000 });
   return keys.get(kid) ?? null;
 }
 
@@ -119,11 +124,12 @@ async function acceptWithGoogle(c: PortalAuthContext, accountId: string, tokenId
 }
 
 /** The first Google login of an active account that has no sub yet; false when it got one meanwhile. */
-async function bindSub(c: PortalAuthContext, accountId: string, sub: string): Promise<AccountRow | null> {
+async function bindSub(c: PortalAuthContext, accountId: string, sub: string, host: string): Promise<AccountRow | null> {
   return c.store.transaction(async () => {
     await c.store.lockAccount(accountId);
     const account = await c.store.account(accountId);
     if (!account || account.status !== 'active' || account.googleSub !== null) return null;
+    if (!canEnter(account, await c.store.user(account.userId), host)) return null;
     await c.store.updateAccount(accountId, { googleSub: sub });
     return { ...account, googleSub: sub };
   });
@@ -156,7 +162,7 @@ export async function loginWithGoogle(c: PortalAuthContext, g: GoogleClient | nu
   const enter = async (account: AccountRow | null): Promise<PortalResult<PortalSession>> => {
     if (!account) return noAccount;
     const user = await c.store.user(account.userId);
-    return canEnter(account, user, read.host) ? session(account, false) : { ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin };
+    return canEnter(account, user, read.host) ? session(account, false) : noAccount;
   };
 
   const owner = await c.store.accountByGoogleSub(who.sub);
@@ -180,7 +186,6 @@ export async function loginWithGoogle(c: PortalAuthContext, g: GoogleClient | nu
     const done = await acceptWithGoogle(c, byEmail.id, tokenId, who.sub);
     return done ? enter(done) : expiredInvite;
   }
-  const bound = await bindSub(c, byEmail.id, who.sub);
-  const user = bound ? await c.store.user(bound.userId) : null;
-  return bound && canEnter(bound, user, read.host) ? session(bound, true) : noAccount;
+  const bound = await bindSub(c, byEmail.id, who.sub, read.host);
+  return bound ? session(bound, true) : noAccount;
 }

@@ -25,6 +25,11 @@ const bffOnly = (tag: string, handler: Handler): Handler => async (ctx) => {
   }
 };
 
+const secretOf = (body: unknown): string => {
+  const raw = typeof body === 'object' && body !== null ? (body as Record<string, unknown>).secret : null;
+  return typeof raw === 'string' ? raw : '';
+};
+
 /** Portal auth API (routes/01-auth.ts). */
 export default {
   login: bffOnly('login', async (ctx) => respond(ctx, await loginWithPassword(portalAuthContext(strapi, ctx), ctx.request.body))),
@@ -32,7 +37,7 @@ export default {
   logout: bffOnly('logout', async (ctx) => respond(ctx, await logout(portalAuthContext(strapi, ctx), ctx.request.body))),
   google: bffOnly('google', async (ctx) => respond(ctx, await loginWithGoogle(portalAuthContext(strapi, ctx), googleClient(), ctx.request.body))),
   googleConfig: bffOnly('googleConfig', async (ctx) => respond(ctx, googleConfig(googleClient()))),
-  inviteRead: bffOnly('inviteRead', async (ctx) => respond(ctx, await readInvite(portalAuthContext(strapi, ctx), String(ctx.params?.secret ?? '')))),
+  inviteRead: bffOnly('inviteRead', async (ctx) => respond(ctx, await readInvite(portalAuthContext(strapi, ctx), secretOf(ctx.request.body)))),
   inviteAccept: bffOnly('inviteAccept', async (ctx) => respond(ctx, await acceptInvite(portalAuthContext(strapi, ctx), ctx.request.body))),
   resetRequest: bffOnly('resetRequest', async (ctx) => respond(ctx, await requestReset(portalAuthContext(strapi, ctx), ctx.request.body))),
   resetConfirm: bffOnly('resetConfirm', async (ctx) => respond(ctx, await confirmReset(portalAuthContext(strapi, ctx), ctx.request.body))),

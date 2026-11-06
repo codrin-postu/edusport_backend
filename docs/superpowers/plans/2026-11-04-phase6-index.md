@@ -80,7 +80,7 @@ type PortalSession = { accessToken: string; refreshToken: string; accessExpiresA
 | `POST /api/portal/auth/logout` | `{ refreshToken }` | `{ ok: true }` (always, also for an unknown token) | none |
 | `POST /api/portal/auth/reset/request` | `{ email }` | `{ message: "Dacă adresa are cont, am trimis un cod." }` | 400; 429; 503 `"Nu am putut trimite e-mailul. Încearcă din nou."` |
 | `POST /api/portal/auth/reset/confirm` | `{ host, email, code, password, deviceKey? }` | `PortalSession` | 400 `"Codul nu este corect sau a expirat."`; 400 password rule texts; 429 |
-| `GET /api/portal/auth/invite/:secret` | none | `{ state: 'valid'; email: string } \| { state: 'expired'; email: null }` | 429 |
+| `POST /api/portal/auth/invite/read` | `{ secret }` | `{ state: 'valid'; email: string } \| { state: 'expired'; email: null }` | 429 |
 | `POST /api/portal/auth/invite/accept` | `{ secret, password, deviceKey? }` | `PortalSession` | 400 password rule texts; 410 invite expired text; 429 |
 
 Password rule texts (400): `"Parola trebuie să aibă cel puțin 10 caractere."`, `"Parola este prea ușor de ghicit. Alege alta."`, `"Parola poate avea cel mult 128 de caractere."` (plan ruling 1, companion round).

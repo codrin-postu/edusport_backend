@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { describe, expect, it, vi } from 'vitest';
 import controller from '../../../api/portal/controllers/portal-auth';
 import type { PortalMail, SendPortalMail } from '../../../email/portal-direct';
-import { exchangeCode, googleClient, googleConfig, loginWithGoogle, verifyIdToken, type GoogleClient } from '../auth/google';
+import { clearGoogleKeyCache, exchangeCode, googleClient, googleConfig, loginWithGoogle, verifyIdToken, type GoogleClient } from '../auth/google';
 import { limiter } from '../auth/limit';
 import type { PortalAuthContext } from '../auth/context';
 import { PORTAL_ACTIONS, PORTAL_ERRORS } from '../copy';
@@ -28,9 +28,12 @@ const sign = (claims: Claims = {}, o: { key?: typeof pair; kid?: string } = {}) 
   );
 
 function setup(o: { idToken?: () => string; tokenStatus?: number; certsFail?: boolean } = {}) {
+  clearGoogleKeyCache();
   const calls: string[] = [];
-  const fetchFn = vi.fn(async (url: unknown) => {
+  const signals: (AbortSignal | null | undefined)[] = [];
+  const fetchFn = vi.fn(async (url: unknown, init?: RequestInit) => {
     calls.push(String(url));
+    signals.push(init?.signal);
     if (String(url).startsWith('https://oauth2.googleapis.com/token')) {
       const status = o.tokenStatus ?? 200;
       return new Response(JSON.stringify(status === 200 ? { id_token: (o.idToken ?? (() => sign()))() } : { error: 'bad' }), { status });
@@ -55,7 +58,7 @@ function setup(o: { idToken?: () => string; tokenStatus?: number; certsFail?: bo
   const addAccount = (extra: Record<string, unknown> = {}) => store.createAccount({ userId: 1, email: 'ana@x.ro', status: 'active', teamMemberId: 'tm1', ...extra });
   const invite = (secret: string, accountId: string) =>
     store.createToken({ accountId, kind: 'invite', secretHash: hashSecret(secret), expiresAt: new Date(NOW.getTime() + INVITE_TTL_MS).toISOString() });
-  return { c, g, fake, store, mails, logs, calls, fetchFn, login, addAccount, invite };
+  return { c, g, fake, store, mails, logs, calls, signals, fetchFn, login, addAccount, invite };
 }
 
 describe('loginWithGoogle', () => {
@@ -195,6 +198,49 @@ describe('Google accept', () => {
     await s.invite('s1', id);
     await s.store.createAccount({ userId: 2, email: 'b@x.ro', status: 'active', teamMemberId: null, googleSub: 'sub-1' });
     expect(await s.login({ invite: 's1' })).toEqual(NO_ACCOUNT);
+  });
+});
+
+describe('R3 fixes', () => {
+  it('M1: two clients built per request share the keys', async () => {
+    const s = setup();
+    const env = { PORTAL_GOOGLE_CLIENT_ID: CLIENT_ID, PORTAL_GOOGLE_CLIENT_SECRET: 'x' };
+    const a = { ...googleClient(env)!, fetchFn: s.fetchFn, now: () => NOW };
+    const b = { ...googleClient(env)!, fetchFn: s.fetchFn, now: () => NOW };
+    expect(await verifyIdToken(a, sign(), 'n1')).not.toBeNull();
+    expect(await verifyIdToken(b, sign(), 'n1')).not.toBeNull();
+    expect(s.calls.filter((u) => u.includes('certs'))).toHaveLength(1);
+  });
+
+  it('M2: a Google accept that cannot enter answers the no-account text', async () => {
+    const s = setup();
+    const id = await s.addAccount({ status: 'invited', teamMemberId: null });
+    await s.invite('s1', id);
+    expect(await s.login({ invite: 's1' })).toEqual(NO_ACCOUNT);
+  });
+
+  it('M3: every Google call carries a timeout signal, and a hung call answers 502', async () => {
+    const s = setup();
+    await s.addAccount();
+    await s.login();
+    expect(s.signals).toHaveLength(2);
+    expect(s.signals.every((x) => x instanceof AbortSignal)).toBe(true);
+    const hung = setup();
+    await hung.addAccount();
+    hung.g.fetchFn = (async () => { throw new DOMException('timed out', 'TimeoutError'); }) as unknown as typeof fetch;
+    expect(await loginWithGoogle(hung.c, hung.g, { host: 'antrenor', code: 'c', codeVerifier: 'v', redirectUri: 'r', nonce: 'n1' })).toEqual({ ok: false, status: 502, error: PORTAL_ERRORS.loadFailed });
+  });
+
+  it('M4: no sub is stored for an account that cannot enter', async () => {
+    const a = setup();
+    await a.addAccount({ teamMemberId: null });
+    expect(await a.login()).toEqual(NO_ACCOUNT);
+    expect(a.fake.state.accounts[0].googleSub).toBeNull();
+    const b = setup();
+    await b.addAccount();
+    b.fake.state.users[0].blocked = true;
+    expect(await b.login()).toEqual(NO_ACCOUNT);
+    expect(b.fake.state.accounts[0].googleSub).toBeNull();
   });
 });
 

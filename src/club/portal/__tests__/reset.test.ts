@@ -154,6 +154,17 @@ describe('confirmReset', () => {
     expect(s.mails.filter((m) => m.mail.kind === 'new-device')).toHaveLength(1);
   });
 
+  it('M5: when revoking the other sessions fails, nothing is changed', async () => {
+    const s = setup();
+    await s.addAccount();
+    await s.request();
+    vi.spyOn(s.c.sessions, 'revokeAll').mockRejectedValueOnce(new Error('db down'));
+    await expect(s.confirm()).rejects.toThrow('db down');
+    expect(s.fake.state.users[0].passwordHash).toBe('hash:old');
+    expect(s.fake.state.tokens.filter((t) => t.usedAt === null)).toHaveLength(1);
+    expect((await s.confirm()).ok).toBe(true);
+  });
+
   it('a Google-only account without a hash can set a password; an invited one becomes active', async () => {
     const s = setup();
     s.fake.state.users[0].passwordHash = null;

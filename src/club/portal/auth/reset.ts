@@ -103,6 +103,7 @@ async function checkCode(c: PortalAuthContext, accountId: string, code: string, 
     await useUpOpen(c, accountId, token.id);
     await c.store.updateUser(account.userId, { passwordHash, confirmed: true });
     if (account.status === 'invited') await c.store.updateAccount(accountId, { status: 'active', activatedAt: at });
+    await c.sessions.revokeAll(account.userId);
     await c.store.record({ subjectId: accountId, action: PORTAL_ACTIONS.passwordReset, changes: {}, actor: account.email });
     return { right: true, account: { ...account, status: account.status === 'invited' ? 'active' : account.status } };
   });
@@ -120,7 +121,6 @@ export async function confirmReset(c: PortalAuthContext, body: unknown): Promise
   if (!account) return badCode;
   const checked = await checkCode(c, account.id, read.code, passwordHash);
   if (!checked.right) return badCode;
-  await c.sessions.revokeAll(checked.account.userId);
   const user = await c.store.user(checked.account.userId);
   if (!canEnter(checked.account, user, read.host)) return { ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin };
   return startSession(c, checked.account, read.deviceKey, { notifyNewDevice: true, host: read.host });
