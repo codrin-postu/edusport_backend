@@ -2,6 +2,7 @@ import { refuseWith, respond } from '../../../club/admin-http';
 import { isBffCall } from '../../../club/portal/auth/bff';
 import { portalAuthContext, type PortalCtx } from '../../../club/portal/auth/context';
 import { loginWithPassword } from '../../../club/portal/auth/login';
+import { acceptInvite, readInvite } from '../../../club/portal/auth/invite';
 import { logout, refreshSession } from '../../../club/portal/auth/refresh';
 import { confirmReset, requestReset } from '../../../club/portal/auth/reset';
 
@@ -18,6 +19,8 @@ export default {
   login: bffOnly(async (ctx) => respond(ctx, await loginWithPassword(portalAuthContext(strapi, ctx), ctx.request.body))),
   refresh: bffOnly(async (ctx) => respond(ctx, await refreshSession(portalAuthContext(strapi, ctx), ctx.request.body))),
   logout: bffOnly(async (ctx) => respond(ctx, await logout(portalAuthContext(strapi, ctx), ctx.request.body))),
+  inviteRead: bffOnly(async (ctx) => respond(ctx, await readInvite(portalAuthContext(strapi, ctx), String(ctx.params?.secret ?? '')))),
+  inviteAccept: bffOnly(async (ctx) => respond(ctx, await acceptInvite(portalAuthContext(strapi, ctx), ctx.request.body))),
   resetRequest: bffOnly(async (ctx) => respond(ctx, await requestReset(portalAuthContext(strapi, ctx), ctx.request.body))),
   resetConfirm: bffOnly(async (ctx) => respond(ctx, await confirmReset(portalAuthContext(strapi, ctx), ctx.request.body))),
 };

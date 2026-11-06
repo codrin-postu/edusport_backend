@@ -11,5 +11,7 @@ export default {
     { method: 'POST', path: '/portal/auth/logout', handler: 'portal-auth.logout', config: bffGuard },
     { method: 'POST', path: '/portal/auth/reset/request', handler: 'portal-auth.resetRequest', config: bffGuard },
     { method: 'POST', path: '/portal/auth/reset/confirm', handler: 'portal-auth.resetConfirm', config: bffGuard },
+    { method: 'GET', path: '/portal/auth/invite/:secret', handler: 'portal-auth.inviteRead', config: bffGuard },
+    { method: 'POST', path: '/portal/auth/invite/accept', handler: 'portal-auth.inviteAccept', config: bffGuard },
   ],
 };
