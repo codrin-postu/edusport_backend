@@ -306,7 +306,12 @@ function deleteMediaIfUnused(strapi: Core.Strapi): ClubStore['deleteMediaIfUnuse
   };
 }
 
-type Scope = { transaction: ClubStore['transaction']; lockRow: (table: string, id: string) => Promise<void> };
+export type Scope = {
+  transaction: ClubStore['transaction'];
+  lockRow: (table: string, id: string) => Promise<void>;
+  /** The open transaction, for raw knex statements that must join it (`getConnection` does not). */
+  current: () => Knex.Transaction | null;
+};
 
 /**
  * One transaction scope and the row locks taken inside it (a lock outside a transaction throws). A nested `transaction` reuses the outer one (Strapi), so
@@ -315,6 +320,7 @@ type Scope = { transaction: ClubStore['transaction']; lockRow: (table: string, i
 export function transactionScope(strapi: Core.Strapi): Scope {
   let active: Knex.Transaction | null = null;
   return {
+    current: () => active,
     async transaction<T>(work: () => Promise<T>): Promise<T> {
       return await strapi.db.transaction(async ({ trx }: { trx: Knex.Transaction }) => {
         const outer = active;
