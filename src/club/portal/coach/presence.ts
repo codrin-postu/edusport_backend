@@ -1,9 +1,10 @@
 import { refuse, type AdminResult } from '../../admin-result';
+import { isIsoDate, addDays } from '../../groups/dates';
+import { heldOccurrences } from '../../presence/sessions';
 import { isMonth, monthRange } from '../../presence/dates';
 import { isRecord } from '../../narrow';
 import { ageOnIso } from '../../groups/season-pick';
 import type { GroupRecord } from '../../groups/types';
-import type { SessionCheck } from '../../presence/attendance/api-types';
 import { checkNewSession } from '../../presence/attendance/check';
 import { abonamentSlots, readPanelQuery, readSessionPanel } from '../../presence/attendance/panel';
 import { rosterOn } from '../../presence/attendance/roster';
@@ -12,7 +13,7 @@ import { saveSession, type SaveOutcome } from '../../presence/attendance/save';
 import { resolveScope } from '../../presence/attendance/save-target';
 import { PRESENCE_ERRORS } from '../../presence/copy/core';
 import { PORTAL_ERRORS } from '../copy';
-import type { CoachSavedDays, CoachSession } from './api-types';
+import type { CoachSavedDays, CoachSession, CoachSessionCheck } from './api-types';
 import { forbidden, type CoachContexts, type CoachResult, type Forbidden } from './context';
 import { groupAccess } from './ownership';
 import { presenceRight, type PresenceFacts, type Right } from './rules';
@@ -48,13 +49,28 @@ export async function readCoachSession(c: CoachContexts, q: Record<string, unkno
   return { ok: true, data: toCoachSession(shown, { ages, slots, team: await store.teamMembers(), right, standIn: facts.access === 'other' }) };
 }
 
-/** "+ Ședință nouă" check: own groups only, so another coach's group never gets an "În afara programului" session (ruling 7). */
-export async function checkCoachSession(c: CoachContexts, body: unknown): Promise<CoachResult<SessionCheck>> {
+/** Another coach's group: only a scheduled class of it inside the stand-in window (today - 7 to today), as the stand-in read of spec 8.2 allows. */
+async function standInDate(c: CoachContexts, groupId: string, date: unknown): Promise<boolean> {
+  if (typeof date !== 'string' || !isIsoDate(date) || date > c.today || date < addDays(c.today, -7)) return false;
+  const store = c.presence.store;
+  return heldOccurrences(await store.calendarWindow(), await store.groups(), date, date).some((h) => h.groupId === groupId);
+}
+
+/** "+ Ședință nouă" check: own groups, or a stand-in's scheduled class of another group; never an "În afara programului" session there (ruling 7). */
+export async function checkCoachSession(c: CoachContexts, body: unknown): Promise<CoachResult<CoachSessionCheck>> {
   const groupId = isRecord(body) && typeof body.groupId === 'string' ? body.groupId : null;
   if (groupId === null) return refuse(400, PORTAL_ERRORS.invalid);
   const group = await c.presence.store.group(groupId);
-  if (groupAccess(group, c.coach.teamMemberId) !== 'own') return forbidden(PORTAL_ERRORS.noAccess);
-  return checkNewSession(c.presence.store, body);
+  const access = groupAccess(group, c.coach.teamMemberId);
+  if (access === 'none') return forbidden(PORTAL_ERRORS.noAccess);
+  if (access === 'other' && !(await standInDate(c, groupId, (body as { date?: unknown }).date))) return forbidden(PORTAL_ERRORS.noAccess);
+  const res = await checkNewSession(c.presence.store, body);
+  if (!res.ok || res.data.kind !== 'existing') return res as AdminResult<Exclude<CoachSessionCheck, { kind: 'existing' }>>;
+  const { date } = body as { date: string };
+  const rows = await c.presence.store.sessions({ groupId, from: date, to: date });
+  const mine = c.coach.teamMemberId;
+  const saved = res.data.saved.map(({ listed: _count, ...s }) => ({ ...s, listed: rows.find((r) => r.id === s.sessionId)?.coachIds.includes(mine) === true }));
+  return { ok: true, data: { ...res.data, saved } };
 }
 
 /** Dates of a month with a saved session of the group: all of an own group, only the ones that list the coach on another's. No session ids. */
