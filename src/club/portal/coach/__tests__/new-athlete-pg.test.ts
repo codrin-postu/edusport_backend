@@ -43,7 +43,7 @@ describe.skipIf(!enabled)('"Sportiv nou" on Postgres', () => {
     const before = Number((await strapi.db.connection('group_memberships').count('* as c'))[0].c);
     const c = coachOf();
     c.groups.store.createMembership = async () => { throw new Error('forced failure on the second write'); };
-    await expect(addNewAthlete(c, { groupId: ids.groups['Profesioniști'], name })).rejects.toThrow();
+    expect(await addNewAthlete(c, { groupId: ids.groups['Profesioniști'], name })).toMatchObject({ ok: false, status: 500 });
     expect(await athletesNamed(name)).toHaveLength(0);
     expect(Number((await strapi.db.connection('group_memberships').count('* as c'))[0].c)).toBe(before);
   });
