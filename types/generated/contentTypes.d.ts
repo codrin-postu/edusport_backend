@@ -1735,6 +1735,7 @@ export interface ApiPortalAccountPortalAccount extends Struct.CollectionTypeSche
     };
   };
   attributes: {
+    activatedAt: Schema.Attribute.DateTime;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1889,6 +1890,7 @@ export interface ApiPortalSessionPortalSession
       Schema.Attribute.Private;
     deviceId: Schema.Attribute.String & Schema.Attribute.Required;
     familyStartedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    host: Schema.Attribute.String;
     lastUsedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<

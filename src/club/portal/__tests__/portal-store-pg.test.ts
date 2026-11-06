@@ -3,6 +3,9 @@ import type { Core } from '@strapi/strapi';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { strapiPortalStore } from '../strapi-store';
 import { ownSessions } from '../sessions-own';
+import bcrypt from 'bcryptjs';
+import { portalAuthContext, type PortalCtx } from '../auth/context';
+import { loginWithPassword } from '../auth/login';
 
 /**
  * Runs only with PORTAL_PG_TEST=1 and DATABASE_* pointing at a throwaway Postgres 16 (never a shared database): it boots Strapi,
@@ -63,4 +66,26 @@ describe.skipIf(!enabled)('strapiPortalStore on Postgres', () => {
     expect(await sessions.refresh(t.refreshToken)).toBeNull();
     expect(await sessions.verifyAccess(r!.accessToken)).toBeNull();
   });
+
+  it('two parallel first logins of one account (no device cookie) both finish: no deadlock, two sessions', async () => {
+    const store = strapiPortalStore(strapi);
+    const email = `parallel-${Date.now()}@example.com`;
+    const password = 'Throwaway-Parallel-1';
+    const userId = await store.createUser(email, await bcrypt.hash(password, 10));
+    await store.updateUser(userId, { confirmed: true });
+    const member = await strapi.documents('api::team-member.team-member').create({ data: { name: 'Parallel Test', role: 'Antrenor', order: 99 } as never });
+    await store.createAccount({ userId, email, status: 'active', teamMemberId: member.documentId });
+    const ctx = { request: { headers: { 'x-portal-client-ip': '10.9.9.9', 'x-portal-user-agent': 'Mozilla/5.0 (Macintosh)' } } } as unknown as PortalCtx;
+    const login = () => loginWithPassword(portalAuthContext(strapi, ctx), { host: 'antrenor', email, password });
+    const both = await Promise.race([
+      Promise.all([login(), login()]),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('login deadlocked')), 60_000)),
+    ]);
+    for (const r of both) expect(r.ok).toBe(true);
+    const account = await store.accountByEmail(email);
+    const live = await strapi.documents('api::portal-session.portal-session').findMany({
+      filters: { account: { documentId: account!.id }, revokedAt: { $null: true } },
+    });
+    expect(live).toHaveLength(2);
+  }, 90_000);
 });
