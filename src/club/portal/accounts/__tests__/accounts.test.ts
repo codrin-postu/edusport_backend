@@ -6,6 +6,7 @@ import { disableAccount, enableAccount } from '../status';
 import { inviteAccount, resendInvite } from '../invite';
 import { readAccount } from '../read';
 import { harness, seedAccount } from './harness';
+import { uniqueViolation } from '../invite';
 
 const ok = <T>(r: { ok: boolean; data?: T }): T => {
   expect(r.ok).toBe(true);
@@ -223,5 +224,41 @@ describe('readAccount', () => {
       await g.fake.store.updateAccount(id, { googleSub: status === 'active' ? 'g1' : null });
       expect(ok(await readAccount(g.c, 'tm1'))).toEqual({ teamMemberId: 'tm1', accountId: id, state: status, email: 'andreea@example.com', since: '2026-11-06', google: status === 'active' });
     }
+  });
+});
+
+describe('stale invite jobs and the Google identity', () => {
+  it('resend, e-mail change of an invited account and disable cancel the queued invite jobs', async () => {
+    const a = harness();
+    const ia = await seedAccount(a, 'invited');
+    ok(await resendInvite(a.c, ia.id));
+    expect(a.cancelled).toEqual([ia.id]);
+    const b = harness();
+    const ib = await seedAccount(b, 'invited');
+    ok(await changeEmail(b.c, ib.id, { email: 'nou@example.com' }));
+    expect(b.cancelled).toEqual([ib.id]);
+    const c = harness();
+    const ic = await seedAccount(c, 'active');
+    ok(await disableAccount(c.c, ic.id));
+    expect(c.cancelled).toEqual([ic.id]);
+  });
+  it('an e-mail change of an active account leaves no invite job alone and cancels none', async () => {
+    const h = harness();
+    const { id } = await seedAccount(h, 'active');
+    ok(await changeEmail(h.c, id, { email: 'nou@example.com' }));
+    expect(h.cancelled).toEqual([]);
+  });
+  it('an e-mail change clears googleSub, and the answer says google false', async () => {
+    const h = harness();
+    const { id } = await seedAccount(h, 'active');
+    await h.fake.store.updateAccount(id, { googleSub: 'g-1' });
+    const a = ok(await changeEmail(h.c, id, { email: 'nou@example.com' }));
+    expect(a.account.google).toBe(false);
+    expect((await h.fake.store.account(id))?.googleSub).toBeNull();
+  });
+  it('only a Postgres unique violation or Strapi unique check counts as a unique violation', () => {
+    expect(uniqueViolation(Object.assign(new Error('x'), { code: '23505' }))).toMatchObject({ status: 409 });
+    expect(uniqueViolation(Object.assign(new Error('This attribute must be unique'), { name: 'ValidationError' }))).toMatchObject({ status: 409 });
+    expect(uniqueViolation(new Error('something duplicate or unique in the text'))).toBeNull();
   });
 });

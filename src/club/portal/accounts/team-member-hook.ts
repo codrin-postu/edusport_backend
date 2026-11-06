@@ -32,22 +32,22 @@ export async function disableForTeamMembers(c: AccountContext, teamMemberIds: st
   return n;
 }
 
-type DeleteEvent = { params?: { where?: unknown } };
+type DeleteEvent = { params?: { where?: unknown; filters?: unknown } };
 
 /** The documentIds a delete is about to remove, from the `where` the query engine received. */
-async function idsBeingDeleted(strapi: Core.Strapi, event: DeleteEvent): Promise<string[]> {
-  const where = event.params?.where;
+async function idsBeingDeleted(strapi: Core.Strapi, event: DeleteEvent, many: boolean): Promise<string[]> {
+  const where = event.params?.where ?? event.params?.filters ?? (many ? {} : null);
   if (!where) return [];
   const rows = (await strapi.db.query(TEAM_MEMBER).findMany({ where, select: ['documentId'] })) as { documentId?: unknown }[];
   return rows.map((r) => r.documentId).filter((v): v is string => typeof v === 'string');
 }
 
 export function teamMemberHandlers(strapi: Core.Strapi, context: () => AccountContext) {
-  const run = async (event: DeleteEvent): Promise<void> => {
-    const ids = await idsBeingDeleted(strapi, event);
+  const run = (many: boolean) => async (event: DeleteEvent): Promise<void> => {
+    const ids = await idsBeingDeleted(strapi, event, many);
     if (ids.length) await disableForTeamMembers(context(), ids);
   };
-  return { beforeDelete: run, beforeDeleteMany: run };
+  return { beforeDelete: run(false), beforeDeleteMany: run(true) };
 }
 
 /** Deleting a team member disables its portal account first; the account keeps its rows (spec S8). */

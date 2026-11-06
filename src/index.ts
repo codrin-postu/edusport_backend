@@ -1,5 +1,5 @@
 import type { Core } from '@strapi/strapi';
-import { initSentry } from './sentry';
+import { captureMessage, initSentry } from './sentry';
 import { registerRecurrenceValidation } from './api/calendar-event/services/validate-recurrence';
 import { registerAnnouncementValidation } from './api/announcement/services/validate-announcement';
 import { seedLegacyLink } from './sheets/store';
@@ -433,7 +433,9 @@ export default {
     try {
       await ensurePortalIndexes(strapi.db.connection);
     } catch (e) {
-      strapi.log.error(`[portal] indexes: ${(e as { code?: string })?.code ?? 'unknown'}`);
+      const message = `[portal] indexes: ${(e as { code?: string })?.code ?? 'unknown'}`;
+      strapi.log.error(message);
+      captureMessage(message);
     }
     subscribeTeamMemberHook(strapi);
 

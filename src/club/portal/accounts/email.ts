@@ -8,13 +8,13 @@ import { blockOf, type AccountContext } from './read';
 
 type Changed = { before: AccountRow; after: AccountRow; jobId: string | null };
 
-/** The notice goes to the old and the new address after commit; a failure is logged (never the address) and changes nothing. */
+/** The notice goes to the old and the new address after commit; a failure is logged as a fixed text (an error message can echo the address) and changes nothing. */
 async function notify(c: AccountContext, from: string, to: string): Promise<void> {
   for (const address of [from, to]) {
     try {
       if (!(await c.mail(address, { kind: 'email-changed', newEmail: to }))) c.log('[portal] the e-mail change notice was not sent');
     } catch (err) {
-      c.log(`[portal] the e-mail change notice failed: ${err instanceof Error ? err.message : String(err)}`);
+      c.log('[portal] the e-mail change notice failed');
     }
   }
 }
@@ -33,7 +33,7 @@ export async function changeEmail(c: AccountContext, accountId: string, body: un
       const before = await c.store.account(accountId);
       if (!before) return null;
       if (before.email === email) return { before, after: before, jobId: null };
-      await c.store.updateAccount(accountId, { email });
+      await c.store.updateAccount(accountId, { email, googleSub: null });
       await c.store.updateUser(before.userId, { email });
       await useUpTokens(c, accountId, before.status === 'invited' ? ['reset', 'invite'] : ['reset']);
       let jobId: string | null = null;

@@ -8,7 +8,7 @@ export const NOW = new Date('2026-11-06T10:00:00.000Z');
 export const HASH = '$2a$10$abcdefghijklmnopqrstuuAbCdEfGhIjKlMnOpQrStUvWxYz012345';
 
 export type Harness = {
-  fake: FakePortal; c: AccountContext; jobs: NewPortalInviteJob[]; after: string[]; mails: { to: string; mail: PortalMail }[]; logs: string[];
+  fake: FakePortal; c: AccountContext; cancelled: string[]; jobs: NewPortalInviteJob[]; after: string[]; mails: { to: string; mail: PortalMail }[]; logs: string[];
 };
 
 export function harness(over: Partial<AccountContext> = {}, mailOk = true): Harness {
@@ -17,6 +17,7 @@ export function harness(over: Partial<AccountContext> = {}, mailOk = true): Harn
   const after: string[] = [];
   const mails: Harness['mails'] = [];
   const logs: string[] = [];
+  const cancelled: string[] = [];
   const sessions: PortalSessions = portalSessions(fake.store, () => NOW);
   const c: AccountContext = {
     store: fake.store, sessions, actor: 'admin@edusport.ro', now: () => NOW, log: (m) => logs.push(m),
@@ -25,6 +26,9 @@ export function harness(over: Partial<AccountContext> = {}, mailOk = true): Harn
       return `job${jobs.length}`;
     },
     afterCommit: (id) => after.push(id),
+    cancelInvites: async (accountId) => {
+      cancelled.push(accountId);
+    },
     mail: async (to, mail) => {
       mails.push({ to, mail });
       return mailOk;
@@ -33,7 +37,7 @@ export function harness(over: Partial<AccountContext> = {}, mailOk = true): Harn
     siteUrl: 'https://scoaladepatinaj.com',
     ...over,
   };
-  return { fake, c, jobs, after, mails, logs };
+  return { fake, c, cancelled, jobs, after, mails, logs };
 }
 
 /** An account of tm1 in the given status, with a user, an invite token, a reset token, a device and a session. */

@@ -54,6 +54,8 @@ export default ({ env }) => {
     connection: {
       client,
       ...connections[client],
+      // Keep bound values (e-mails, invite links) out of database error messages and so out of logs.
+      compileSqlOnError: false,
       acquireConnectionTimeout: env.int('DATABASE_CONNECTION_TIMEOUT', 60000),
     },
   };

@@ -86,6 +86,23 @@ export function toJobRow(raw: RawJob): EmailJobRow {
   };
 }
 
+async function blankInviteLink(strapi: Core.Strapi, id: number, payload: unknown): Promise<void> {
+  if (payload && typeof payload === 'object') await strapi.db.query(JOB_UID).update({ where: { id }, data: { payload: { ...(payload as object), link: '' } } });
+}
+
+/**
+ * The still-queued invite jobs of an account are cancelled and their links blanked: called wherever its invite tokens are
+ * used up (resend, e-mail change, disable, accept), so no stale mail goes out and no live secret stays in the row.
+ */
+export async function cancelQueuedInvites(strapi: Core.Strapi, accountId: string): Promise<number> {
+  const rows = (await strapi.db.query(JOB_UID).findMany({ where: { kind: 'portal-invite', changeKey: accountId, status: 'queued' }, select: ['id', 'payload'] })) as { id: number; payload: unknown }[];
+  for (const j of rows) {
+    const payload = j.payload && typeof j.payload === 'object' ? { ...(j.payload as object), link: '' } : j.payload;
+    await strapi.db.query(JOB_UID).update({ where: { id: j.id, status: 'queued' }, data: { status: 'cancelled', payload, updatedAt: new Date() } });
+  }
+  return rows.length;
+}
+
 export function jobStore(strapi: Core.Strapi): EmailJobStore {
   const jobs = () => strapi.documents(JOB_UID);
   return {
@@ -108,8 +125,13 @@ export function jobStore(strapi: Core.Strapi): EmailJobStore {
       const raw = await jobs().findOne({ documentId, populate: POPULATE });
       return raw ? toJobRow(raw) : null;
     },
-    failStuck: async (before, error) =>
-      (await strapi.db.query(JOB_UID).updateMany({ where: { status: 'sending', updatedAt: { $lt: before.toISOString() } }, data: { status: 'failed', lastError: error, updatedAt: new Date() } })).count,
+    failStuck: async (before, error) => {
+      const where = { status: 'sending', updatedAt: { $lt: before.toISOString() } };
+      const invites = await strapi.db.query(JOB_UID).findMany({ where: { ...where, kind: 'portal-invite' }, select: ['id', 'payload'] });
+      const { count } = await strapi.db.query(JOB_UID).updateMany({ where, data: { status: 'failed', lastError: error, updatedAt: new Date() } });
+      for (const j of invites as { id: number; payload: unknown }[]) await blankInviteLink(strapi, j.id, j.payload);
+      return count;
+    },
     findQueued: async (limit) =>
       (await jobs().findMany({ filters: { status: 'queued' }, sort: 'updatedAt:asc', limit, populate: POPULATE })).map(toJobRow),
     findLatest: async (registrationDocumentId) => {

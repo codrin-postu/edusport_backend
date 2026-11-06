@@ -75,7 +75,7 @@ it('runs no delete for an empty id list', async () => {
 it('every job status write through updateMany bumps updatedAt (the object payload does not get it from Strapi)', async () => {
   const writes: { where: unknown; data: Record<string, unknown> }[] = [];
   const strapi = {
-    db: { query: () => ({ updateMany: async (params: { where: unknown; data: Record<string, unknown> }) => { writes.push(params); return { count: 1 }; } }) },
+    db: { query: () => ({ findMany: async () => [], updateMany: async (params: { where: unknown; data: Record<string, unknown> }) => { writes.push(params); return { count: 1 }; } }) },
     documents: () => ({ findOne: async () => ({ documentId: 'j1' }) }),
   } as unknown as Core.Strapi;
   const { jobStore } = await import('../strapi-email');

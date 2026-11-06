@@ -6,6 +6,7 @@ import { ownSessions } from '../sessions-own';
 import bcrypt from 'bcryptjs';
 import { portalAuthContext, type PortalCtx } from '../auth/context';
 import { loginWithPassword } from '../auth/login';
+import { ensurePortalIndexes } from '../accounts/team-member-hook';
 
 /**
  * Runs only with PORTAL_PG_TEST=1 and DATABASE_* pointing at a throwaway Postgres 16 (never a shared database): it boots Strapi,
@@ -49,6 +50,21 @@ describe.skipIf(!enabled)('strapiPortalStore on Postgres', () => {
     expect(final.count).toBe(2);
     const n = await strapi.db.connection('portal_auth_limits').where('key', key).count('* as c');
     expect(Number(n[0].c)).toBe(1);
+  });
+
+  it('one team member cannot get two accounts: the unique link index refuses a second link row, and creating it twice is fine', async () => {
+    await ensurePortalIndexes(strapi.db.connection);
+    await ensurePortalIndexes(strapi.db.connection);
+    const now = new Date();
+    const member = await strapi.db.query('api::team-member.team-member').create({ data: { documentId: `tm-${Date.now()}`, name: 'PG link test', publishedAt: now, createdAt: now, updatedAt: now } });
+    const store = strapiPortalStore(strapi);
+    const stamp = Date.now();
+    const make = async (n: number) => {
+      const email = `link-${stamp}-${n}@example.com`;
+      return store.createAccount({ userId: await store.createUser(email, null), email, status: 'invited', teamMemberId: (member as { documentId: string }).documentId });
+    };
+    await make(1);
+    await expect(make(2)).rejects.toThrow(/unique|duplicate/i);
   });
 
   it('createUser with a null hash stores no password', async () => {

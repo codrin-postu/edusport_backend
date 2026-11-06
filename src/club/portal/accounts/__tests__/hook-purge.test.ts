@@ -47,6 +47,15 @@ describe('team member delete hook', () => {
     expect(h2.fake.state.accounts[0].status).toBe('disabled');
     await handlers.beforeDeleteMany({ params: {} });
   });
+  it('reads filters when there is no where, and a deleteMany without criteria means every team member', async () => {
+    const seen: unknown[] = [];
+    const strapi = { db: { query: () => ({ findMany: async (a: { where: unknown }) => { seen.push(a.where); return []; } }) } } as unknown as Core.Strapi;
+    const handlers = teamMemberHandlers(strapi, () => harness().c);
+    await handlers.beforeDeleteMany({ params: { filters: { id: 3 } } });
+    await handlers.beforeDeleteMany({ params: {} });
+    await handlers.beforeDelete({ params: {} });
+    expect(seen).toEqual([{ id: 3 }, {}]);
+  });
 });
 
 describe('unique link index', () => {

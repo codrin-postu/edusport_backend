@@ -3,6 +3,7 @@ import type { Core } from '@strapi/strapi';
 import bcrypt from 'bcryptjs';
 import type { AdminCtx } from '../../admin-http';
 import type { AdminResult, AuthRefusal } from '../../admin-result';
+import { cancelQueuedInvites } from '../../../email/strapi-email';
 import { portalMailSender, type SendPortalMail } from '../../../email/portal-direct';
 import { loadCommonPasswords } from '../passwords';
 import { portalSessions, type PortalSessions } from '../sessions';
@@ -24,6 +25,8 @@ export type PortalAuthContext = {
   hosts: string[]; ip: string; userAgent: string | null; now: () => Date; log: (m: string) => void;
   /** Waits; tests inject a fast one. Defaults to a real timer. */
   sleep?: (ms: number) => Promise<void>;
+  /** Inside a transaction: queued invite jobs of the account are cancelled and their links blanked (optional in tests). */
+  cancelInvites?: (accountId: string) => Promise<void>;
   hash: (password: string) => Promise<string>; compare: (password: string, hash: string) => Promise<boolean>;
 };
 
@@ -47,6 +50,9 @@ export function portalAuthContext(strapi: Core.Strapi, ctx: PortalCtx): PortalAu
     userAgent: userAgent(ctx.request.headers),
     now,
     log: (m) => strapi.log.error(m),
+    cancelInvites: async (accountId) => {
+      await cancelQueuedInvites(strapi, accountId);
+    },
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     hash: (password) => bcrypt.hash(password, COST),
     compare: (password, hash) => bcrypt.compare(password, hash),

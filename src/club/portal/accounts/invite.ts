@@ -15,7 +15,9 @@ const taken = (): AdminResult<never> => refuse(409, PORTAL_ERRORS.emailTaken);
 /** A Postgres unique violation; on the team member link it is a lost race for one team member, else for one e-mail. */
 export function uniqueViolation(err: unknown): AdminResult<never> | null {
   const e = err as { code?: unknown; message?: unknown; constraint?: unknown } | null;
-  if (!e || (e.code !== '23505' && !/unique|duplicate/i.test(String(e.message ?? '')))) return null;
+  const name = (err as { name?: unknown } | null)?.name;
+  // Postgres 23505, or Strapi's own pre-check ("This attribute must be unique"); nothing else counts.
+  if (!e || (e.code !== '23505' && !(name === 'ValidationError' && /unique/i.test(String(e.message ?? ''))))) return null;
   return /team_member/i.test(`${String(e.constraint ?? '')} ${String(e.message ?? '')}`) ? stale() : taken();
 }
 
@@ -34,10 +36,11 @@ export async function guardedWrite<T>(c: AccountContext, tag: string, work: () =
 export const emailOf = (body: unknown): string | null =>
   typeof body === 'object' && body !== null ? normalizeEmail((body as Record<string, unknown>).email) : null;
 
-/** Inside a transaction: older unused tokens of the kind are used up. */
+/** Inside a transaction: older unused tokens of the kinds are used up; using up invites also cancels their queued mail jobs. */
 export async function useUpTokens(c: AccountContext, accountId: string, kinds: ('invite' | 'reset')[]): Promise<void> {
   const at = c.now().toISOString();
   for (const kind of kinds) for (const t of await c.store.tokens(accountId, kind)) if (t.usedAt === null) await c.store.updateToken(t.id, { usedAt: at });
+  if (kinds.includes('invite')) await c.cancelInvites(accountId);
 }
 
 /** Inside a transaction with the account locked: a new invite token and its queued mail job; the id of the job. */

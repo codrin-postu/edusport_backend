@@ -6,7 +6,7 @@ import { guarded, refuse, type AdminResult } from '../../admin-result';
 import { isoDate, todayInBucharest } from '../../birth-date';
 import { captureMessage } from '../../../sentry';
 import { publicSiteUrl } from '../../../email/config';
-import { attemptPortalInvite } from '../../../email/strapi-email';
+import { attemptPortalInvite, cancelQueuedInvites } from '../../../email/strapi-email';
 import { portalMailSender, type SendPortalMail } from '../../../email/portal-direct';
 import type { NewPortalInviteJob } from '../../../email/portal-email';
 import { PORTAL_ERRORS } from '../copy';
@@ -21,6 +21,8 @@ export type AccountContext = {
   queueInvite: (job: NewPortalInviteJob) => Promise<string>;
   /** After commit: the first attempt of the invite job. */
   afterCommit: (jobId: string) => void;
+  /** Inside a transaction: the account's queued invite jobs are cancelled and their links blanked. */
+  cancelInvites: (accountId: string) => Promise<void>;
   mail: SendPortalMail;
   hash: (p: string) => Promise<string>;
   /** The public site address the portal host and the invite link derive from; '' when none is configured. */
@@ -51,6 +53,9 @@ export function baseContext(strapi: Core.Strapi, actor: string): AccountContext 
         data: { kind: 'portal-invite', subject: job.subject, recipient: job.recipient, payload: job.payload, changeKey: job.accountId, status: 'queued', attempts: 0 } as never,
       })).documentId,
     afterCommit: (jobId) => attemptPortalInvite(strapi, jobId),
+    cancelInvites: async (accountId) => {
+      await cancelQueuedInvites(strapi, accountId);
+    },
     mail: portalMailSender(strapi),
     hash: (p) => bcrypt.hash(p, 10),
     siteUrl: publicSiteUrl() ?? '',

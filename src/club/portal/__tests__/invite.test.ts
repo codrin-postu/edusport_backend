@@ -84,6 +84,14 @@ describe('readInvite', () => {
 });
 
 describe('acceptInvite', () => {
+  it('cancels the account queued invite jobs when it activates', async () => {
+    const s = await setup();
+    const cancelled: string[] = [];
+    s.c.cancelInvites = async (id) => { cancelled.push(id); };
+    expect((await s.accept()).ok).toBe(true);
+    expect(cancelled).toEqual([s.accountId]);
+  });
+
   it('sets the password, activates, logs in with no new-device mail, and writes the history line', async () => {
     const s = await setup();
     const res = await s.accept();
