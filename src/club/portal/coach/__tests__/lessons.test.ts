@@ -53,6 +53,14 @@ describe('window and ownership', () => {
     return c;
   };
 
+  it('a planned lesson dated after today cannot be recorded, the row stays unchanged', async () => {
+    const c = seeded(TODAY, '2026-11-21', { state: 'planned', present: null, savedBy: null, savedAt: null });
+    expect(await saveCoachLesson(c, 'l1', patch())).toEqual(NO_ACCESS);
+    expect(c.fake.state.lessons[0]).toMatchObject({ state: 'planned', present: null });
+    const today = seeded(TODAY, TODAY, { state: 'planned', present: null, savedBy: null, savedAt: null });
+    expect(await saveCoachLesson(today, 'l1', patch())).toMatchObject({ ok: true });
+  });
+
   it('a planned lesson is deleted any time', async () => {
     const c = seeded(TODAY, '2026-09-01', { state: 'planned', present: null, savedBy: null, savedAt: null });
     expect(await deleteCoachLesson(c, 'l1')).toMatchObject({ ok: true, data: { deleted: true } });

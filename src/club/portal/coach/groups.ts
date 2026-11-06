@@ -60,10 +60,12 @@ async function slots(c: CoachContexts, groupId: string, own: boolean): Promise<{
   const ctx = await loadRowContext(c.presence.store, c.today);
   const rows = (await rowsBetween(c.presence.store, ctx, addDays(c.today, -7), c.today, groupId)).filter((r) => !r.outsideSchedule && r.occurrenceKey !== null);
   const standIn = own ? [] : rows.filter((r) => r.sessionId === null).flatMap(slotOf).sort((a, b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime));
-  const today = rows.find((r) => r.date === c.today);
-  const session = today?.sessionId ? await c.presence.store.session(today.sessionId) : null;
-  const takeable = own || !session || session.coachIds.includes(c.coach.teamMemberId);
-  return { standIn, todayKey: today && takeable ? today.occurrenceKey : null };
+  let todayKey: string | null = null;
+  for (const row of rows.filter((r) => r.date === c.today)) {
+    const session = row.sessionId ? await c.presence.store.session(row.sessionId) : null;
+    if (own || !session || session.coachIds.includes(c.coach.teamMemberId)) { todayKey = row.occurrenceKey; break; }
+  }
+  return { standIn, todayKey };
 }
 
 /** Group page (spec 9.5): roster only of an own group; another group shows its coaches and the classes a stand-in may take. */

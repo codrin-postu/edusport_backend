@@ -26,6 +26,13 @@ describe('presenceRight', () => {
     expect(presenceRight({ ...base, access: 'other', saved: false, listed: false })).toMatchObject({ read: true });
   });
 
+  it('a coach listed on an added session keeps read and correction in the window after his link is removed, not an unlisted one', () => {
+    const f = { ...base, access: 'other' as const, added: true, scheduled: false, saved: true };
+    expect(presenceRight({ ...f, listed: true })).toMatchObject({ read: true, write: true });
+    expect(presenceRight({ ...f, listed: true, date: '2026-10-01' })).toMatchObject({ read: true, write: false, archived: true });
+    expect(presenceRight({ ...f, listed: false })).toMatchObject({ read: false, write: false });
+  });
+
   it('stand-in: an added session, an unscheduled one and a future date give nothing to write', () => {
     expect(presenceRight({ ...base, access: 'other', added: true, saved: false })).toMatchObject({ read: false, write: false });
     expect(presenceRight({ ...base, access: 'other', scheduled: false, saved: false })).toMatchObject({ read: false, write: false });

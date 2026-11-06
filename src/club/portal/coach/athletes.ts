@@ -34,7 +34,9 @@ export async function searchAthletes(c: CoachContexts, q: Record<string, unknown
   const text = typeof q.q === 'string' ? q.q.trim() : '';
   if ([...text].length < SEARCH_MIN) return { ok: true, data: [] };
   const store = c.presence.store;
-  const groupId = typeof q.group === 'string' ? q.group : null;
+  const asked = typeof q.group === 'string' ? q.group : null;
+  /** The filter is for the coach's own groups only: another group's id is ignored, so the answer shows nothing of its roster. */
+  const groupId = asked !== null && groupAccess(await store.group(asked), c.coach.teamMemberId) === 'own' ? asked : null;
   const members = groupId ? new Set((await store.memberships({ groupId })).filter(isCurrentMembership).map((m) => m.athleteId)) : new Set<string>();
   const hits = (await store.athletes()).filter((a) => joinable(a) && !members.has(a.id) && matchesQuery(subjectOf(a), text));
   const ranked = hits.map((a) => ({ a, rank: queryRank(subjectOf(a), text) })).sort((x, y) => x.rank - y.rank || (x.a.name ?? '').localeCompare(y.a.name ?? '', 'ro'));

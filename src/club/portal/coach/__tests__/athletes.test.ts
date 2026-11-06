@@ -26,6 +26,15 @@ describe('searchAthletes', () => {
     expect(forbiddenKeysIn(all)).toEqual([]);
   });
 
+  it('a group of another coach, an inactive one or an unknown one filters nothing and reveals no roster', async () => {
+    const c = coachCtx(ME, '2026-11-20', { group: { athletes: [extra(1), athleteRow({ id: 'a-free', name: 'Ana Libera' })] } });
+    const plain = await searchAthletes(c, { q: 'ana' });
+    expect(plain.ok && plain.data.map((r) => r.name)).toContain('Ana Libera');
+    for (const group of ['g-club-b', 'g-old', 'nope']) expect(await searchAthletes(c, { q: 'ana', group })).toEqual(plain);
+    const other = await searchAthletes(c, { q: 'eva', group: 'g-club-b' });
+    expect(other).toEqual(await searchAthletes(c, { q: 'eva' }));
+  });
+
   it('does not match a phone number', async () => {
     const c = coachCtx(ME, '2026-11-20', { group: { athletes: [extra(1)] } });
     expect(await searchAthletes(c, { q: '0721' })).toEqual({ ok: true, data: [] });

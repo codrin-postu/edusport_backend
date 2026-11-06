@@ -15,7 +15,7 @@ export function presenceRight(f: PresenceFacts): Right {
   const open = f.date <= f.today;
   const archived = f.saved && !correctable;
   if (f.access === 'own') return { read: true, write: open && (!f.saved || correctable), archived, mustIncludeMe: false };
-  if (f.added) return NOTHING;
+  if (f.added && !f.listed) return NOTHING;
   const inWindow = f.scheduled && f.date >= addDays(f.today, -7) && open;
   return {
     read: f.listed || (!f.saved && inWindow),

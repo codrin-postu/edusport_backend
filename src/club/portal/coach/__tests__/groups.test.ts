@@ -5,6 +5,8 @@ import { forbiddenKeysIn } from '../views';
 import { sessionRow } from '../../../presence/__tests__/fake-store';
 import { coachCtx } from './coach-seed';
 
+const TODAY = '2026-11-20';
+
 describe('readGroups', () => {
   it('own groups with program and children, the others with coach names only', async () => {
     const out = await readGroups(coachCtx('tm-andreea'));
@@ -87,5 +89,15 @@ describe('readCoachGroupPage', () => {
     expect(out).toMatchObject({ ok: true, data: { todayKey: null, standIn: [{ date: '2026-11-13' }] } });
     c.fake.state.sessions.find((s) => s.id === 's2')!.coachIds = ['tm-virgil', 'tm-andreea'];
     expect(await readCoachGroupPage(c, 'g-club-b')).toMatchObject({ data: { todayKey: 'ev-g-club-b|2026-11-20|18:00' } });
+  });
+
+  it('todayKey looks at every class of today, not only the first', async () => {
+    const c = coachCtx('tm-andreea');
+    const early = c.fake.state.calendar.events.find((e) => e.documentId === 'ev-g-club-b')!;
+    c.fake.state.calendar.events.push({ ...early, id: 99, documentId: 'ev-g-club-b-late', recurrence: { ...early.recurrence, startTime: '20:00', endTime: '21:00' } } as typeof early);
+    c.fake.state.sessions.push(sessionRow({
+      id: 's-early', groupId: 'g-club-b', date: TODAY, startTime: '18:00', eventId: 'ev-g-club-b', occurrenceKey: `ev-g-club-b|${TODAY}|18:00`, coachIds: ['tm-virgil'],
+    }));
+    expect(await readCoachGroupPage(c, 'g-club-b')).toMatchObject({ data: { todayKey: `ev-g-club-b-late|${TODAY}|20:00` } });
   });
 });

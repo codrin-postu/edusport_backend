@@ -52,6 +52,7 @@ export async function saveCoachLesson(c: CoachContexts, id: string, body: unknow
   if (!l) return notFound();
   const right = rightOf(c, l);
   if (!right.write) return refusalFor(right);
+  if (l.date > c.today) return forbidden(PORTAL_ERRORS.noAccess);
   const patch = readLessonPatch(body);
   if (!patch) return refuse(400, PORTAL_ERRORS.invalid);
   if (!patch.coachIds.includes(c.coach.teamMemberId)) return forbidden(PORTAL_ERRORS.noAccess);

@@ -104,6 +104,13 @@ describe('ownership matrix (spec 7) through the controller', () => {
     });
   });
 
+  it('a presence save answers { data } with no undo or action id, and the 409 keeps its details', async () => {
+    const own = await call(seeded('own'), 'saveSession', { body: { occurrence: `ev-g-club-a|${TODAY}|17:00`, coachIds: [ME], ticks: [tick('a-club-1')], reactivate: [], keepInactive: [] } });
+    expect(own.status).toBe(200);
+    expect(Object.keys(own.body)).toEqual(['data']);
+    expect(JSON.stringify(own.body)).not.toMatch(/undo|actionId/);
+  });
+
   it('add athlete to a group: own groups only', async () => {
     await expectRow({ own: 200, other: 403, scoala: 200, removed: 403 }, (col) =>
       call(seeded(col), 'addMembers', { params: { documentId: GROUP[col] }, body: { athleteIds: ['a-free'] } }));
