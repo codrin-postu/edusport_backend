@@ -16,12 +16,15 @@ type Bound = { device: DeviceRow; key: string; newRow: boolean; newKey: boolean 
 
 async function bindDevice(c: PortalAuthContext, account: AccountRow, given: string | null): Promise<Bound> {
   const found = given ? await c.store.deviceByKey(account.id, hashSecret(given)) : null;
-  if (found && found.revokedAt === null) return { device: found, key: given ?? '', newRow: false, newKey: false };
-  const key = given ?? newDeviceKey();
+  if (found && found.revokedAt === null) {
+    await c.sessions.revokeDevice(account.userId, found.id);
+    return { device: found, key: given ?? '', newRow: false, newKey: false };
+  }
+  const key = newDeviceKey();
   const at = c.now().toISOString();
   const row = { accountId: account.id, deviceKeyHash: hashSecret(key), sessionId: null, label: deviceLabel(c.userAgent), firstSeenAt: at, lastSeenAt: at };
   const id = await c.store.createDevice(row);
-  return { device: { ...row, id, revokedAt: null }, key, newRow: true, newKey: given === null };
+  return { device: { ...row, id, revokedAt: null }, key, newRow: true, newKey: true };
 }
 
 async function mailNewDevice(c: PortalAuthContext, account: AccountRow, device: DeviceRow): Promise<void> {

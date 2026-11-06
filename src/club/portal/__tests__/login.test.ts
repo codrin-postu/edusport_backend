@@ -12,6 +12,7 @@ import type { AccountRow, PortalStore } from '../store';
 import { hashSecret } from '../tokens';
 import { fakePortalStore } from './fake-portal-store';
 
+const flush = () => new Promise((r) => setTimeout(r, 0));
 const WRONG = { ok: false, status: 401, error: 'E-mailul sau parola nu sunt corecte.' };
 const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) Mobile Safari/604.1';
 
@@ -132,8 +133,24 @@ describe('lockout and limits', () => {
     const s = setup();
     const id = await s.addAccount('ana@x.ro', 1);
     for (let i = 0; i < 6; i++) await s.login({ password: 'wrong' });
+    await flush();
     expect(s.mails).toEqual([{ to: 'ana@x.ro', mail: { kind: 'lockout' } }]);
     expect(s.fake.state.history).toEqual([{ subjectType: expect.any(String), subjectId: id, action: PORTAL_ACTIONS.locked, changes: {}, actor: 'sistem' }]);
+  });
+
+  it('the locking attempt does not wait for the lockout mail or the history line', async () => {
+    const s = setup();
+    await s.addAccount('ana@x.ro', 1);
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((r) => { release = r; });
+    s.c.mail = async (to, m) => { s.mails.push({ to, mail: m }); await held; return true; };
+    for (let i = 0; i < 4; i++) await s.login({ password: 'wrong' });
+    expect(await s.login({ password: 'wrong' })).toEqual({ ok: false, status: 429, error: PORTAL_ERRORS.paused });
+    expect(s.mails).toHaveLength(1);
+    expect(s.fake.state.history).toEqual([]);
+    release();
+    await flush();
+    expect(s.fake.state.history).toHaveLength(1);
   });
 
   it('parallel fifth failures lock once and mail once', async () => {
@@ -142,6 +159,7 @@ describe('lockout and limits', () => {
     for (let i = 0; i < 3; i++) await s.login({ password: 'wrong' });
     const both = await Promise.all([s.login({ password: 'wrong' }), s.login({ password: 'wrong' })]);
     expect(both.map((r) => (r.ok ? 0 : r.status)).sort()).toEqual([401, 429]);
+    await flush();
     expect(s.mails.filter((m) => m.mail.kind === 'lockout')).toHaveLength(1);
     expect(s.fake.state.history.filter((h) => h.action === PORTAL_ACTIONS.locked)).toHaveLength(1);
   });
@@ -186,14 +204,29 @@ describe('devices and sessions', () => {
     expect(s.fake.state.devices[0].sessionId).toBe(s.fake.state.sessions[1].id);
   });
 
-  it('a key unknown to the account is reused as is for a new row, with the mail', async () => {
+  it('a key unknown to the account gets a new key, returned, with a new row and the mail', async () => {
     const s = setup();
     await s.addAccount('ana@x.ro', 1);
     const r = await s.login({ deviceKey: 'cookie-from-elsewhere' });
     if (!r.ok) throw new Error('login failed');
-    expect(r.data.deviceKey).toBeNull();
-    expect(s.fake.state.devices[0].deviceKeyHash).toBe(hashSecret('cookie-from-elsewhere'));
+    expect(r.data.deviceKey).toEqual(expect.any(String));
+    expect(r.data.deviceKey).not.toBe('cookie-from-elsewhere');
+    expect(s.fake.state.devices).toHaveLength(1);
+    expect(s.fake.state.devices[0].deviceKeyHash).toBe(hashSecret(r.data.deviceKey ?? ''));
     expect(s.mails).toHaveLength(1);
+  });
+
+  it('a re-login on a known device revokes that device\'s previous live session', async () => {
+    const s = setup();
+    await s.addAccount('ana@x.ro', 1);
+    const first = await s.login();
+    const other = await s.login();
+    if (!first.ok || !other.ok) throw new Error('login failed');
+    const again = await s.login({ deviceKey: first.data.deviceKey });
+    if (!again.ok) throw new Error('login failed');
+    expect(await s.c.sessions.verifyAccess(first.data.accessToken)).toBeNull();
+    expect(await s.c.sessions.verifyAccess(again.data.accessToken)).toMatchObject({ userId: 1 });
+    expect(await s.c.sessions.verifyAccess(other.data.accessToken)).toMatchObject({ userId: 1 });
   });
 
   it('a mail failure on a new device does not fail the login and is logged', async () => {
