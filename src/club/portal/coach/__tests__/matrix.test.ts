@@ -167,6 +167,13 @@ describe('ownership matrix (spec 7) through the controller', () => {
       call(seeded(col), 'programPublic', { params: { documentId: GROUP[col] }, body: { value: false } }));
   });
 
+  it('session check: own always, another group only on a scheduled class of the last 7 days, else 403', async () => {
+    await expectRow({ own: 200, other: 403, scoala: 200, removed: 403 }, (col) =>
+      call(seeded(col), 'sessionCheck', { body: { groupId: GROUP[col], date: '2026-11-19', startTime: '19:00' } }));
+    const stand = await call(seeded('removed'), 'sessionCheck', { body: { groupId: 'g-club-a', date: TODAY, startTime: '17:00' } });
+    expect(stand.status).toBe(200);
+  });
+
   it('removed link answers 403 on every group write route', async () => {
     const c = seeded('removed');
     const weekly = { freq: 'weekly', days: ['fri'], startTime: '16:00', durationMin: 60, from: '2026-11-27' };
@@ -174,7 +181,7 @@ describe('ownership matrix (spec 7) through the controller', () => {
       await call(c, 'addProgram', { params: { documentId: 'g-club-a' }, body: weekly }),
       await call(c, 'programPublic', { params: { documentId: 'g-club-a' }, body: { value: false } }),
       await call(c, 'addMembers', { params: { documentId: 'g-club-a' }, body: { athleteIds: ['a-free'] } }),
-      await call(c, 'sessionCheck', { body: { groupId: 'g-club-a', date: TODAY, startTime: '19:00' } }),
+      await call(c, 'sessionCheck', { body: { groupId: 'g-club-a', date: '2026-11-19', startTime: '19:00' } }),
       await call(c, 'changeProgram', { params: { eventId: 'ev-g-club-a' }, body: weekly }),
       await call(c, 'endProgram', { params: { eventId: 'ev-g-club-a' }, body: { from: '2026-11-27' } }),
       await call(c, 'deleteClass', { params: { eventId: 'ev-g-club-a' } }),

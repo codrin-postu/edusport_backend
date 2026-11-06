@@ -98,7 +98,11 @@ describe('stand-in on another coach group', () => {
     expect(await saveCoachSession(c, body({ id: 's-b', ticks: [] }))).toEqual(NO_ACCESS);
     const added = { groupId: 'g-club-b', date: TODAY, startTime: '20:00', durationMin: 50 };
     expect(await saveCoachSession(c, body({ added, ticks: [] }))).toEqual(NO_ACCESS);
-    expect(await checkCoachSession(c, { groupId: 'g-club-b', date: TODAY, startTime: '20:00' })).toEqual(NO_ACCESS);
+    expect(await checkCoachSession(c, { groupId: 'g-club-b', date: '2026-11-19', startTime: '18:00' })).toEqual(NO_ACCESS); // no class that day
+    expect(await checkCoachSession(c, { groupId: 'g-club-b', date: '2026-11-11', startTime: '18:00' })).toEqual(NO_ACCESS); // class, but past the 7 days
+    expect(await checkCoachSession(c, { groupId: 'g-club-b', date: '2026-11-25', startTime: '18:00' })).toEqual(NO_ACCESS); // class, but in the future
+    expect(await checkCoachSession(c, { groupId: 'g-old', date: TODAY, startTime: '18:00' })).toEqual(NO_ACCESS);
+    expect(await checkCoachSession(c, { groupId: 'g-club-b', date: TODAY, startTime: '18:00' })).toMatchObject({ ok: true, data: { kind: 'existing' } }); // stand-in rule, a saved row of the day
     expect(await checkCoachSession(c, { groupId: 'g-club-a', date: TODAY, startTime: '17:00' })).toMatchObject({ ok: true, data: { kind: 'occurrence' } });
   });
 
@@ -110,6 +114,16 @@ describe('stand-in on another coach group', () => {
     );
     const res = await checkCoachSession(c, { groupId: 'g-club-a', date: TODAY, startTime: '17:00' });
     expect(res).toMatchObject({ ok: true, data: { kind: 'existing', saved: [{ sessionId: 's-mine', listed: true }, { sessionId: 's-other', listed: false }] } });
+  });
+
+  it('a stand-in check of a scheduled class lists saved rows with listed, true only where the coach is listed', async () => {
+    const c = coachCtx(ME);
+    c.fake.state.sessions.push(
+      sessionRow({ id: 's-b', groupId: 'g-club-b', date: TODAY, startTime: '18:00', eventId: 'ev-g-club-b', occurrenceKey: CLUB_B_KEY, coachIds: ['tm-virgil'] }),
+      sessionRow({ id: 's-b2', groupId: 'g-club-b', date: TODAY, startTime: '19:00', source: 'added', eventId: null, occurrenceKey: null, coachIds: ['tm-virgil', ME] }),
+    );
+    const res = await checkCoachSession(c, { groupId: 'g-club-b', date: TODAY, startTime: '18:00' });
+    expect(res).toMatchObject({ ok: true, data: { kind: 'existing', saved: [{ sessionId: 's-b', listed: false }, { sessionId: 's-b2', listed: true }] } });
   });
 
   it('cannot save a future date', async () => {
