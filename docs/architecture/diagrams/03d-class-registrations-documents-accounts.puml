@@ -24,10 +24,30 @@ class Document {
   version : int
   createdAt : datetime
 }
-class "PortalAccount" as Acc {
-  email : string
-  role : coach | parent
+class "PortalAccount" as Acc <<changed>> {
+  email : string  // unique, lower case
   status : invited | active | disabled
+  teamMember : TeamMember [0..1]  // unique link
+  user : User  // users-permissions; null password hash until invite accepted
+  googleSub, phone, lastLoginAt
+  invitedAt, invitedBy, activatedAt, disabledAt, disabledBy
+}
+class "User (users-permissions)" as UP
+class "PortalToken" as Tok <<new>> {
+  kind : invite | reset
+  secretHash, expiresAt, usedAt, tries
+}
+class "PortalDevice" as Dev <<new>> {
+  deviceKeyHash, label
+  firstSeenAt, lastSeenAt, revokedAt
+}
+class "PortalSession" as Ses <<new>> {
+  refreshHash, previousRefreshHash, accessHash
+  accessExpiresAt, familyStartedAt, lastUsedAt, revokedAt
+}
+class "PortalAuthLimit" as Lim <<new>> {
+  key : string  // typed e-mail or IP, not an account
+  count, windowStart, lockedUntil, notifiedAt
 }
 class "ParentAccess" as PA {
   status : invited | active
@@ -43,7 +63,12 @@ Document "0..*" -- "0..1" Athlete
 Document "0..*" -- "0..1" Reg : generated from >
 Acc "1" -- "0..*" PA
 PA "0..*" -- "1" Athlete
-Coach "1" -- "0..1" Acc : can log in >
+Coach "0..1" -- "0..1" Acc : can log in >
+Acc "1" -- "1" UP : signs in as >
+Acc "1" -- "0..*" Tok
+Acc "1" -- "0..*" Dev
+Acc "1" -- "0..*" Ses
+Dev "1" -- "0..*" Ses : opened from >
 
 note bottom of Hist
   Every edit, correction and move

@@ -12,10 +12,29 @@ rectangle "EduSport" {
   usecase "Individual lesson" as Ind
   usecase "Add a new athlete\n(flagged «new»)" as NewA
   usecase "View groups\n(others' marked)" as See
-  usecase "Accept invitation,\nset password" as Inv
-  usecase "Edit own account" as Acc
+  usecase "Accept invitation,\nset password or Google" as Inv
+  usecase "Log in, reset password" as Login
+  usecase "Today (Azi): own classes,\nlessons, to do" as Azi
+  usecase "Groups (Grupe), own and others'" as Grp
+  usecase "Add athlete to a group\nor «Sportiv nou»" as AddA
+  usecase "History (Istoric)" as Ist
+  usecase "Program tab (Club groups)" as Prog
+  usecase "Profile: account settings,\nphone, change password" as Acc
+  usecase "Security: list and sign out devices" as Sec
   usecase "Update own Club group schedule\n(Skating School: admin only)" as Sch
 }
+actor "Admin" as A
+rectangle "Admin: Cont portal (team member, group coaches)" {
+  usecase "Invite coach by e-mail" as AInv
+  usecase "Resend invitation" as ARes
+  usecase "Disable / enable account" as ADis
+  usecase "Change account e-mail\n(mail to old and new address)" as AMail
+}
+A -- AInv
+A -- ARes
+A -- ADis
+A -- AMail
+AMail ..> Acc : <<include>>
 T -- See
 T -- Att
 T -- Fix
@@ -23,7 +42,14 @@ T -- NewS
 T -- Ind
 T -- NewA
 T -- Inv
+T -- Login
+T -- Azi
+T -- Grp
+T -- AddA
+T -- Ist
+T -- Prog
 T -- Acc
+T -- Sec
 T -- Sch
 Att ..> Box : <<include>>
 Sub .> Att : <<extend>>
