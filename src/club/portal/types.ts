@@ -13,7 +13,7 @@ export type DeviceRow = {
   id: string; accountId: string; deviceKeyHash: string; sessionId: string | null; label: string; firstSeenAt: string; lastSeenAt: string; revokedAt: string | null;
 };
 export type UserAuth = { id: number; email: string; passwordHash: string | null; blocked: boolean; confirmed: boolean };
-export type UserWrite = { email?: string; passwordHash?: string; blocked?: boolean; confirmed?: boolean };
+export type UserWrite = { email?: string; passwordHash?: string | null; blocked?: boolean; confirmed?: boolean };
 export type HistoryLine = { subjectId: string; action: string; changes: Record<string, unknown>; actor: string };
 export type SessionRow = {
   id: string; accountId: string; deviceId: string; host: string; refreshHash: string; previousRefreshHash: string | null; accessHash: string | null;

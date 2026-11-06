@@ -39,6 +39,12 @@ describe('PortalStore cases (fake)', () => {
     expect(await store.user(999)).toBeNull();
   });
 
+  it('createUser accepts a null hash (an invited coach): hasPassword false until one is set', async () => {
+    const { store } = make();
+    const id = await store.createUser('nou@example.com', null);
+    expect((await store.user(id))?.passwordHash).toBeNull();
+  });
+
   it('reads a token by hash and lists by kind', async () => {
     const { store } = make();
     const t = await store.createToken({ accountId: 'acc1', kind: 'invite', secretHash: 'h1', expiresAt: '2026-11-13T10:00:00.000Z' });
@@ -210,6 +216,19 @@ describe('strapiPortalStore', () => {
     expect(calls[0].arg).toEqual({
       where: { windowStart: { $lt: '2026-11-05T10:00:00.000Z' }, $or: [{ lockedUntil: { $null: true } }, { lockedUntil: { $lte: NOW.toISOString() } }] },
     });
+  });
+
+  it('purgeDevices, purgeTokens and purgeSessions delete by the instants', async () => {
+    const calls: Call[] = [];
+    const store = strapiPortalStore(recordingStrapi(calls));
+    const before = new Date('2026-10-07T10:00:00.000Z');
+    expect(await store.purgeDevices(before)).toBe(2);
+    expect(await store.purgeTokens(before)).toBe(2);
+    expect(await store.purgeSessions(before)).toBe(2);
+    expect(calls.map((c) => c.table)).toEqual(['api::portal-device.portal-device', 'api::portal-token.portal-token', 'api::portal-session.portal-session']);
+    expect(calls[0].arg).toEqual({ where: { revokedAt: { $lt: '2026-10-07T10:00:00.000Z' } } });
+    expect(calls[1].arg).toEqual({ where: { $or: [{ usedAt: { $lt: '2026-10-07T10:00:00.000Z' } }, { expiresAt: { $lt: '2026-10-07T10:00:00.000Z' } }] } });
+    expect(JSON.stringify(calls[2].arg)).toContain('"lastUsedAt":{"$lt":"2026-09-30T10:00:00.000Z"}');
   });
 
   it('record writes a history entry with subject portal-account', async () => {

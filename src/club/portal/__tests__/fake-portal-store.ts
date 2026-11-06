@@ -1,4 +1,5 @@
 import { SUBJECT } from '../../subjects';
+import { SESSION_FAMILY_MS, SESSION_IDLE_MS } from '../sessions-own';
 import type { LimitState } from '../limits';
 import type { AccountRow, DeviceRow, LimitRow, PortalStore, SessionRow, TokenRow, UserAuth } from '../store';
 
@@ -33,7 +34,7 @@ function withFailures(store: PortalStore, failing: Set<string>): PortalStore {
   return wrapped as unknown as PortalStore;
 }
 
-function lockers(state: FakePortalState, depth: { n: number }): Pick<PortalStore, 'transaction' | 'lockAccount' | 'lockSession' | 'lockLimit' | 'saveLimit' | 'purgeLimits'> {
+function lockers(state: FakePortalState, depth: { n: number }): Pick<PortalStore, 'transaction' | 'lockTeamMember' | 'lockAccount' | 'lockSession' | 'lockLimit' | 'saveLimit' | 'purgeLimits'> {
   const inTx = (what: string) => {
     if (depth.n === 0) throw new Error(`lock on ${what} taken outside a transaction`);
   };
@@ -50,6 +51,10 @@ function lockers(state: FakePortalState, depth: { n: number }): Pick<PortalStore
       } finally {
         depth.n -= 1;
       }
+    },
+    lockTeamMember: async (id) => {
+      inTx('team_members');
+      state.locks.push(`teamMember:${id}`);
     },
     lockAccount: async (id) => {
       inTx('portal_accounts');
@@ -77,6 +82,32 @@ function lockers(state: FakePortalState, depth: { n: number }): Pick<PortalStore
       const before = state.limits.length;
       state.limits = state.limits.filter(keep);
       return before - state.limits.length;
+    },
+  };
+}
+
+function purges(state: FakePortalState): Pick<PortalStore, 'purgeDevices' | 'purgeTokens' | 'purgeSessions'> {
+  const t = (v: string | null): number => (v === null ? Number.POSITIVE_INFINITY : Date.parse(v));
+  const drop = <T>(rows: T[], gone: (r: T) => boolean): [T[], number] => {
+    const kept = rows.filter((r) => !gone(r));
+    return [kept, rows.length - kept.length];
+  };
+  return {
+    purgeDevices: async (before) => {
+      const [kept, n] = drop(state.devices, (d) => d.revokedAt !== null && t(d.revokedAt) < before.getTime());
+      state.devices = kept;
+      return n;
+    },
+    purgeTokens: async (before) => {
+      const [kept, n] = drop(state.tokens, (k) => (k.usedAt !== null && t(k.usedAt) < before.getTime()) || t(k.expiresAt) < before.getTime());
+      state.tokens = kept;
+      return n;
+    },
+    purgeSessions: async (before) => {
+      const b = before.getTime();
+      const [kept, n] = drop(state.sessions, (s) => (s.revokedAt !== null && t(s.revokedAt) < b) || t(s.lastUsedAt) < b - SESSION_IDLE_MS || t(s.familyStartedAt) < b - SESSION_FAMILY_MS);
+      state.sessions = kept;
+      return n;
     },
   };
 }
@@ -185,7 +216,7 @@ export function fakePortalStore(seed: Partial<FakePortalState> = {}): FakePortal
   const state: FakePortalState = { ...EMPTY(), ...copy({ ...seed, now: undefined }), now: seed.now ?? EMPTY().now };
   const failing = new Set<string>();
   const base: PortalStore = {
-    ...lockers(state, { n: 0 }), ...accounts(state), ...users(state), ...tokens(state), ...devices(state), ...sessions(state),
+    ...lockers(state, { n: 0 }), ...purges(state), ...accounts(state), ...users(state), ...tokens(state), ...devices(state), ...sessions(state),
     teamMemberName: async (id) => state.teamMembers[id] ?? null,
     record: async (line) => {
       state.history.push({ subjectType: SUBJECT.portalAccount, ...copy(line) });

@@ -1,5 +1,5 @@
 import type { Core } from '@strapi/strapi';
-import { initSentry } from './sentry';
+import { captureMessage, initSentry } from './sentry';
 import { registerRecurrenceValidation } from './api/calendar-event/services/validate-recurrence';
 import { registerAnnouncementValidation } from './api/announcement/services/validate-announcement';
 import { seedLegacyLink } from './sheets/store';
@@ -8,6 +8,7 @@ import { warnIfNoAdminSessions } from './club/admin-auth';
 import { startPersonalDataSweep } from './club/personal-data/http';
 import { ensurePresenceIndexes } from './club/presence/indexes';
 import { checkUpSettings } from './club/portal/up-settings';
+import { ensurePortalIndexes, subscribeTeamMemberHook } from './club/portal/accounts/team-member-hook';
 
 // Admin layout overrides - applied on every bootstrap so they survive DB resets.
 // Each key is the strapi_core_store_settings key for that component/content-type.
@@ -427,6 +428,16 @@ export default {
     } catch (e) {
       strapi.log.error(`[presence] indexes: ${(e as { code?: string })?.code ?? 'unknown'}`);
     }
+
+    // Phase 6-3: one portal account per team member (unique link), and a team member delete disables its account first.
+    try {
+      await ensurePortalIndexes(strapi.db.connection);
+    } catch (e) {
+      const message = `[portal] indexes: ${(e as { code?: string })?.code ?? 'unknown'}`;
+      strapi.log.error(message);
+      captureMessage(message);
+    }
+    subscribeTeamMemberHook(strapi);
 
     // Confirm the scheduled jobs actually registered — a cron block that is
     // silently ignored (wrong config key, disabled) is otherwise invisible.

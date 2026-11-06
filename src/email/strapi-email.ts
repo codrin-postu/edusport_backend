@@ -28,6 +28,7 @@ import {
 import type { EmailJobStatus } from './job-state';
 import { buildEmailLinks } from './links';
 import { isPaymentPayload, PAYMENT_HOLD_MS } from './payment-email';
+import { isPortalInvitePayload, type PortalInvitePayload } from './portal-email';
 import { isSchedulePayload } from './schedule-change-template';
 import { sheetSyncedStore } from './sheet-status';
 import { queueUpsert } from '../sheets/queue';
@@ -57,10 +58,11 @@ type RawJob = {
 const iso = (value: unknown): string | null =>
   value instanceof Date ? value.toISOString() : typeof value === 'string' && value ? value : null;
 
-const KINDS: Record<string, EmailJobKind> = { 'schedule-change': 'schedule-change', payment: 'payment' };
+const KINDS: Record<string, EmailJobKind> = { 'schedule-change': 'schedule-change', payment: 'payment', 'portal-invite': 'portal-invite' };
 
 /** The stored payload when it has the shape the template of its kind needs, else null (the job then fails at once). */
-function payloadOf(kind: EmailJobKind, v: unknown): ScheduleChangePayload | PaymentEmailPayload | null {
+function payloadOf(kind: EmailJobKind, v: unknown): ScheduleChangePayload | PaymentEmailPayload | PortalInvitePayload | null {
+  if (kind === 'portal-invite') return isPortalInvitePayload(v) ? v : null;
   if (kind === 'schedule-change') return isSchedulePayload(v) ? v : null;
   return kind === 'payment' && isPaymentPayload(v) ? v : null;
 }
@@ -82,6 +84,23 @@ export function toJobRow(raw: RawJob): EmailJobRow {
     paymentDocumentId: raw.payment?.documentId ?? null,
     notBefore: iso(raw.notBefore),
   };
+}
+
+async function blankInviteLink(strapi: Core.Strapi, id: number, payload: unknown): Promise<void> {
+  if (payload && typeof payload === 'object') await strapi.db.query(JOB_UID).update({ where: { id }, data: { payload: { ...(payload as object), link: '' } } });
+}
+
+/**
+ * The still-queued invite jobs of an account are cancelled and their links blanked: called wherever its invite tokens are
+ * used up (resend, e-mail change, disable, accept), so no stale mail goes out and no live secret stays in the row.
+ */
+export async function cancelQueuedInvites(strapi: Core.Strapi, accountId: string): Promise<number> {
+  const rows = (await strapi.db.query(JOB_UID).findMany({ where: { kind: 'portal-invite', changeKey: accountId, status: 'queued' }, select: ['id', 'payload'] })) as { id: number; payload: unknown }[];
+  for (const j of rows) {
+    const payload = j.payload && typeof j.payload === 'object' ? { ...(j.payload as object), link: '' } : j.payload;
+    await strapi.db.query(JOB_UID).update({ where: { id: j.id, status: 'queued' }, data: { status: 'cancelled', payload, updatedAt: new Date() } });
+  }
+  return rows.length;
 }
 
 export function jobStore(strapi: Core.Strapi): EmailJobStore {
@@ -106,8 +125,13 @@ export function jobStore(strapi: Core.Strapi): EmailJobStore {
       const raw = await jobs().findOne({ documentId, populate: POPULATE });
       return raw ? toJobRow(raw) : null;
     },
-    failStuck: async (before, error) =>
-      (await strapi.db.query(JOB_UID).updateMany({ where: { status: 'sending', updatedAt: { $lt: before.toISOString() } }, data: { status: 'failed', lastError: error, updatedAt: new Date() } })).count,
+    failStuck: async (before, error) => {
+      const where = { status: 'sending', updatedAt: { $lt: before.toISOString() } };
+      const invites = await strapi.db.query(JOB_UID).findMany({ where: { ...where, kind: 'portal-invite' }, select: ['id', 'payload'] });
+      const { count } = await strapi.db.query(JOB_UID).updateMany({ where, data: { status: 'failed', lastError: error, updatedAt: new Date() } });
+      for (const j of invites as { id: number; payload: unknown }[]) await blankInviteLink(strapi, j.id, j.payload);
+      return count;
+    },
     findQueued: async (limit) =>
       (await jobs().findMany({ filters: { status: 'queued' }, sort: 'updatedAt:asc', limit, populate: POPULATE })).map(toJobRow),
     findLatest: async (registrationDocumentId) => {
@@ -206,4 +230,14 @@ export function attemptPaymentEmails(strapi: Core.Strapi, paymentId: string, del
   setTimeout(() => {
     attemptPayment(strapi, paymentId).catch((err) => strapi.log.error(`[email-job] payment ${paymentId} e-mail crashed: ${err instanceof Error ? err.message : String(err)}`));
   }, delayMs);
+}
+
+/** The first attempt of a queued `portal-invite` job, right after its transaction commits (no hold); the hourly cron retries. */
+export function attemptPortalInvite(strapi: Core.Strapi, jobId: string): void {
+  setImmediate(() => {
+    (async () => {
+      const raw = await strapi.documents(JOB_UID).findOne({ documentId: jobId, populate: POPULATE });
+      if (raw) await attemptJob(buildEmailDeps(strapi), toJobRow(raw as unknown as RawJob));
+    })().catch((err) => strapi.log.error(`[email-job] portal invite ${jobId} crashed: ${err instanceof Error ? err.message : String(err)}`));
+  });
 }

@@ -27,6 +27,7 @@ export const PORTAL_TOASTS = { saved: 'Salvat.' } as const;
 export const PORTAL_ACTIONS = {
   inviteSent: 'portal-invite-sent',
   inviteResent: 'portal-invite-resent',
+  relinked: 'portal-relinked',
   activated: 'portal-activated',
   activatedGoogle: 'portal-activated-google',
   passwordChanged: 'portal-password-changed',
@@ -42,6 +43,7 @@ type Changes = Record<string, unknown>;
 const HISTORY_TEXT = new Map<string, (c: Changes) => string>([
   [PORTAL_ACTIONS.inviteSent, (c) => `Invitație trimisă la ${String(c.email)}.`],
   [PORTAL_ACTIONS.inviteResent, () => 'Invitație retrimisă.'],
+  [PORTAL_ACTIONS.relinked, (c) => `Cont legat de un membru nou al echipei, invitație trimisă la ${String(c.email)}.`],
   [PORTAL_ACTIONS.activated, () => 'Cont activat.'],
   [PORTAL_ACTIONS.activatedGoogle, () => 'Cont activat cu Google.'],
   [PORTAL_ACTIONS.passwordChanged, () => 'Parolă schimbată.'],
@@ -83,3 +85,5 @@ export const DEVICE_WORDS = {
   computer: 'Calculator',
   unknown: 'Dispozitiv necunoscut',
 } as const;
+
+export * from './copy-admin';

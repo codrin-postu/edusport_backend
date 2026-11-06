@@ -37,6 +37,7 @@ export async function activateInvited(c: PortalAuthContext, account: AccountRow,
   const at = c.now().toISOString();
   const name = account.teamMemberId ? await c.store.teamMemberName(account.teamMemberId) : null;
   await c.store.updateToken(token.id, { usedAt: at });
+  await c.cancelInvites?.(account.id);
   await c.store.updateAccount(account.id, { status: 'active', activatedAt: at });
   await c.store.updateUser(account.userId, { confirmed: true });
   await c.store.record({

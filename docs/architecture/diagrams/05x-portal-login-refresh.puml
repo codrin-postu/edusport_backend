@@ -1,0 +1,60 @@
+@startuml
+!include _style.iuml
+title Sequence: coach portal login, refresh, request and logout
+actor Coach
+participant "Browser" as B
+participant "BFF\n(portal host)" as F
+participant "Strapi auth routes\n(portal-auth)" as S
+participant "Session manager\n(PortalSessions)" as M
+database "Postgres" as DB
+
+== Login ==
+Coach -> B : e-mail, password
+B -> F : POST /login
+F -> S : login (client IP, device key)
+S -> DB : lock limit rows (e-mail, IP)
+S -> DB : account, user (blocked? status active?)
+alt wrong password, unknown e-mail, disabled
+  S --> F : 401 (same answer for each)
+else 5 wrong attempts
+  S --> F : 429, lockout mail once
+else correct
+  S -> DB : find or create device row
+  S -> M : issue(userId, deviceId)
+  M -> DB : lock account, insert session\n(refresh and access hashes)
+  S --> F : access token, refresh token
+  F --> B : set httpOnly cookies
+end
+
+== Coach request ==
+B -> F : request with cookie
+F -> S : API call, access token
+S -> M : verifyAccess(token)
+M -> DB : session by access hash\n(not revoked, not expired)
+S -> S : is-coach policy:\naccount active, team member linked
+S --> F : data
+F --> B : data
+
+== Refresh rotation ==
+B -> F : request, access token expired
+F -> S : refresh (refresh token)
+S -> M : refresh(token)
+M -> DB : lock session
+alt old token reused after the 30 s grace
+  M -> DB : revoke session
+  S --> F : 401
+  F --> B : clear cookies, back to login
+else valid
+  M -> DB : new refresh and access hashes,\nkeep previous refresh hash
+  S --> F : new tokens
+  F --> B : new cookies
+end
+
+== Logout ==
+Coach -> B : Ieși din cont
+B -> F : POST /logout
+F -> S : logout (refresh token)
+S -> M : revoke(token)
+M -> DB : session revoked
+F --> B : clear cookies
+@enduml

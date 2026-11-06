@@ -3,6 +3,7 @@ import { createId } from '@paralleldrive/cuid2';
 import { transactionScope, type Scope, raws, str, text, iso, linkId, type Raw } from '../athletes/strapi-store';
 import { recordHistory } from '../history';
 import { SUBJECT } from '../subjects';
+import { SESSION_FAMILY_MS, SESSION_IDLE_MS } from './sessions-own';
 import type { AccountRow, AccountStatus, DeviceRow, LimitRow, PortalStore, SessionRow, TokenRow, UserAuth } from './store';
 
 const ACCOUNT = 'api::portal-account.portal-account' as const;
@@ -16,6 +17,7 @@ const ROLE = 'plugin::users-permissions.role' as const;
 const LIMIT_TABLE = 'portal_auth_limits';
 const SESSION_TABLE = 'portal_sessions';
 const ACCOUNT_TABLE = 'portal_accounts';
+const TEAM_MEMBER_TABLE = 'team_members';
 const MAX = 100000;
 const STATUSES: readonly AccountStatus[] = ['invited', 'active', 'disabled'];
 const ACCOUNT_POPULATE = { user: { fields: ['documentId' as const] }, teamMember: true };
@@ -86,6 +88,20 @@ function limits(strapi: Core.Strapi, scope: Scope): Pick<PortalStore, 'lockLimit
   };
 }
 
+function purges(strapi: Core.Strapi): Pick<PortalStore, 'purgeDevices' | 'purgeTokens' | 'purgeSessions'> {
+  const iso = (d: Date): string => d.toISOString();
+  const ago = (d: Date, ms: number): string => iso(new Date(d.getTime() - ms));
+  return {
+    purgeDevices: async (before) => (await strapi.db.query(DEVICE).deleteMany({ where: { revokedAt: { $lt: iso(before) } } })).count,
+    purgeTokens: async (before) =>
+      (await strapi.db.query(TOKEN).deleteMany({ where: { $or: [{ usedAt: { $lt: iso(before) } }, { expiresAt: { $lt: iso(before) } }] } })).count,
+    purgeSessions: async (before) =>
+      (await strapi.db.query(SESSION).deleteMany({
+        where: { $or: [{ revokedAt: { $lt: iso(before) } }, { lastUsedAt: { $lt: ago(before, SESSION_IDLE_MS) } }, { familyStartedAt: { $lt: ago(before, SESSION_FAMILY_MS) } }] },
+      })).count,
+  };
+}
+
 function accounts(strapi: Core.Strapi): Pick<PortalStore, 'account' | 'accountByEmail' | 'accountByGoogleSub' | 'accountByTeamMember' | 'accountByUser' | 'createAccount' | 'updateAccount'> {
   const docs = () => strapi.documents(ACCOUNT);
   const one = async (filters: Record<string, unknown>) => {
@@ -105,8 +121,19 @@ function accounts(strapi: Core.Strapi): Pick<PortalStore, 'account' | 'accountBy
     accountByTeamMember: (id) => one({ teamMember: { documentId: id } }),
     accountByUser: (userId) => one({ user: { id: userId } }),
     createAccount: async (a) => {
-      const created = await docs().create({ data: { ...fields(a), ...(await links(a)) } as never });
-      return text((created as Raw).documentId);
+      try {
+        const created = await docs().create({ data: { ...fields(a), ...(await links(a)) } as never });
+        return text((created as Raw).documentId);
+      } catch (err) {
+        // Strapi creates the row, then its link rows; when the link insert fails, its cleanup delete runs in the aborted transaction and
+        // hides the original error behind 25P02 (seen on Postgres 16). Callers lock the team member and re-check first, so the unique
+        // index is a last resort; any other link failure is masked the same way, hence the log line (code only).
+        if ((err as { code?: unknown } | null)?.code === '25P02' && a.teamMemberId) {
+          strapi.log.warn('portal account link insert aborted the transaction (25P02), reported as a unique violation');
+          throw Object.assign(new Error('duplicate key: team_member link is unique'), { code: '23505', constraint: 'team_member' });
+        }
+        throw err;
+      }
     },
     updateAccount: async (id, a) => {
       await docs().update({ documentId: id, data: { ...fields(a), ...(await links(a)) } as never });
@@ -208,9 +235,10 @@ export function strapiPortalStore(strapi: Core.Strapi): PortalStore {
   const scope = transactionScope(strapi);
   return {
     transaction: scope.transaction,
+    lockTeamMember: (id) => scope.lockRow(TEAM_MEMBER_TABLE, id),
     lockAccount: (id) => scope.lockRow(ACCOUNT_TABLE, id),
     lockSession: (id) => scope.lockRow(SESSION_TABLE, id),
-    ...limits(strapi, scope), ...accounts(strapi), ...users(strapi), ...tokens(strapi), ...devices(strapi), ...sessions(strapi),
+    ...limits(strapi, scope), ...purges(strapi), ...accounts(strapi), ...users(strapi), ...tokens(strapi), ...devices(strapi), ...sessions(strapi),
     teamMemberName: async (id) => {
       const row = await strapi.documents(TEAM_MEMBER).findOne({ documentId: id, fields: ['name'] });
       return str((row as Raw | null)?.name);

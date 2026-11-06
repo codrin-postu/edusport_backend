@@ -130,7 +130,7 @@ function stepsHtml(documents: DocumentKind[]): string {
   );
 }
 
-function buttonHtml(label: string, href: string, primary: boolean): string {
+export function buttonHtml(label: string, href: string, primary: boolean): string {
   const cell = primary ? 'background:#000000;' : 'background:#ffffff;';
   const link =
     `display:block;padding:${primary ? '14px 22px' : '12px 20px'};font-family:${FONT};font-size:13px;font-weight:600;` +

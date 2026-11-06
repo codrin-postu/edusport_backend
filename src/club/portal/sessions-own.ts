@@ -6,6 +6,8 @@ const ACCESS_MS = 10 * 60 * 1000;
 const IDLE_MS = 7 * 24 * 3600 * 1000;
 const FAMILY_MS = 30 * 24 * 3600 * 1000;
 export const GRACE_MS = 30 * 1000;
+export const SESSION_IDLE_MS = IDLE_MS;
+export const SESSION_FAMILY_MS = FAMILY_MS;
 const TOKEN_BYTES = 32;
 const DEFAULT_HOST = 'antrenor';
 
