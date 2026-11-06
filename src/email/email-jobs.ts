@@ -11,6 +11,7 @@ import { blockedReason, deliveryTarget, type BlockedReason, type EmailConfig } f
 import { isDue, nextJobState, type AttemptOutcome, type EmailJobStatus, type JobState } from './job-state';
 import { registrationSubject, renderRegistrationEmail, type EmailLinks } from './registration-template';
 import { isPaymentPayload, renderPaymentEmail } from './payment-email';
+import { isPortalInvitePayload, renderPortalInvite, type PortalInvitePayload } from './portal-email';
 import { isSchedulePayload, renderScheduleEmail } from './schedule-change-template';
 
 /** A job is not retried by the cron until it has been left alone this long (a first attempt may be running). */
@@ -23,7 +24,7 @@ export const RESEND_ACTION = 'email-resent';
 export const RECIPIENT_DAILY_CAP = 3;
 const DAY_MS = 24 * 60 * 60_000;
 
-export type EmailJobKind = 'registration' | 'schedule-change' | 'payment';
+export type EmailJobKind = 'registration' | 'schedule-change' | 'payment' | 'portal-invite';
 export type EmailJobRow = {
   documentId: string;
   recipient: string;
@@ -35,7 +36,7 @@ export type EmailJobRow = {
   sentAt: string | null;
   updatedAt: string | null;
   kind?: EmailJobKind;
-  payload?: ScheduleChangePayload | PaymentEmailPayload | null;
+  payload?: ScheduleChangePayload | PaymentEmailPayload | PortalInvitePayload | null;
   paymentDocumentId?: string | null;
   notBefore?: string | null;
 };
@@ -147,7 +148,13 @@ function paymentComposer(deps: EmailDeps, payload: EmailJobRow['payload']): Comp
   return async (to) => ({ to, ...renderPaymentEmail({ payload, links: await deps.loadLinks() }), attachments: [] });
 }
 
+function inviteComposer(deps: EmailDeps, payload: EmailJobRow['payload']): Compose | null {
+  if (!isPortalInvitePayload(payload)) return null;
+  return async (to) => ({ to, ...renderPortalInvite({ payload, links: await deps.loadLinks() }), attachments: [] });
+}
+
 function composerFor(deps: EmailDeps, job: EmailJobRow): Compose | null {
+  if (job.kind === 'portal-invite') return inviteComposer(deps, job.payload ?? null);
   if (job.kind === 'payment') return paymentComposer(deps, job.payload ?? null);
   if (job.kind === 'schedule-change') return scheduleComposer(deps, job.payload ?? null);
   const registrationId = job.registrationDocumentId;
@@ -165,7 +172,7 @@ async function tryOnce(deps: EmailDeps, composer: Compose, to: string): Promise<
 
 const held = (job: EmailJobRow, now: Date): boolean => !!job.notBefore && Date.parse(job.notBefore) > now.getTime();
 const MISSING_SOURCE: Record<EmailJobKind, string> = {
-  registration: 'registration deleted', 'schedule-change': 'schedule change without payload', payment: 'payment without payload',
+  registration: 'registration deleted', 'schedule-change': 'schedule change without payload', payment: 'payment without payload', 'portal-invite': 'invite without payload',
 };
 const missingSource = (job: EmailJobRow): string => MISSING_SOURCE[job.kind ?? 'registration'];
 

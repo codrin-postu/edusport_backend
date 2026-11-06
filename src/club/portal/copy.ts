@@ -83,3 +83,5 @@ export const DEVICE_WORDS = {
   computer: 'Calculator',
   unknown: 'Dispozitiv necunoscut',
 } as const;
+
+export * from './copy-admin';

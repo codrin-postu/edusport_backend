@@ -28,6 +28,7 @@ import {
 import type { EmailJobStatus } from './job-state';
 import { buildEmailLinks } from './links';
 import { isPaymentPayload, PAYMENT_HOLD_MS } from './payment-email';
+import { isPortalInvitePayload, type PortalInvitePayload } from './portal-email';
 import { isSchedulePayload } from './schedule-change-template';
 import { sheetSyncedStore } from './sheet-status';
 import { queueUpsert } from '../sheets/queue';
@@ -57,10 +58,11 @@ type RawJob = {
 const iso = (value: unknown): string | null =>
   value instanceof Date ? value.toISOString() : typeof value === 'string' && value ? value : null;
 
-const KINDS: Record<string, EmailJobKind> = { 'schedule-change': 'schedule-change', payment: 'payment' };
+const KINDS: Record<string, EmailJobKind> = { 'schedule-change': 'schedule-change', payment: 'payment', 'portal-invite': 'portal-invite' };
 
 /** The stored payload when it has the shape the template of its kind needs, else null (the job then fails at once). */
-function payloadOf(kind: EmailJobKind, v: unknown): ScheduleChangePayload | PaymentEmailPayload | null {
+function payloadOf(kind: EmailJobKind, v: unknown): ScheduleChangePayload | PaymentEmailPayload | PortalInvitePayload | null {
+  if (kind === 'portal-invite') return isPortalInvitePayload(v) ? v : null;
   if (kind === 'schedule-change') return isSchedulePayload(v) ? v : null;
   return kind === 'payment' && isPaymentPayload(v) ? v : null;
 }
@@ -206,4 +208,14 @@ export function attemptPaymentEmails(strapi: Core.Strapi, paymentId: string, del
   setTimeout(() => {
     attemptPayment(strapi, paymentId).catch((err) => strapi.log.error(`[email-job] payment ${paymentId} e-mail crashed: ${err instanceof Error ? err.message : String(err)}`));
   }, delayMs);
+}
+
+/** The first attempt of a queued `portal-invite` job, right after its transaction commits (no hold); the hourly cron retries. */
+export function attemptPortalInvite(strapi: Core.Strapi, jobId: string): void {
+  setImmediate(() => {
+    (async () => {
+      const raw = await strapi.documents(JOB_UID).findOne({ documentId: jobId, populate: POPULATE });
+      if (raw) await attemptJob(buildEmailDeps(strapi), toJobRow(raw as unknown as RawJob));
+    })().catch((err) => strapi.log.error(`[email-job] portal invite ${jobId} crashed: ${err instanceof Error ? err.message : String(err)}`));
+  });
 }

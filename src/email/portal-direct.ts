@@ -4,6 +4,7 @@
  */
 import type { Core } from '@strapi/strapi';
 import { MAIL_COPY } from '../club/portal/copy';
+import { EMAIL_CHANGED_MAIL } from '../club/portal/copy-admin';
 import { longDate } from '../club/presence/dates';
 import { captureMessage } from '../sentry';
 import { failureStatus, sendNow } from './brevo';
@@ -14,7 +15,8 @@ import { brandHtml, emailPage, escapeHtml, footerText, type EmailLinks, type Ren
 export type PortalMail =
   | { kind: 'reset'; code: string }
   | { kind: 'lockout' }
-  | { kind: 'new-device'; device: string; at: Date };
+  | { kind: 'new-device'; device: string; at: Date }
+  | { kind: 'email-changed'; newEmail: string };
 
 export type SendPortalMail = (to: string, mail: PortalMail) => Promise<boolean>;
 
@@ -33,6 +35,9 @@ function letter(mail: PortalMail): { subject: string; paragraphs: string[][] } {
   }
   if (mail.kind === 'lockout') {
     return { subject: MAIL_COPY.lockout.subject, paragraphs: [[MAIL_COPY.lockout.text], [MAIL_COPY.lockout.advice], signature] };
+  }
+  if (mail.kind === 'email-changed') {
+    return { subject: EMAIL_CHANGED_MAIL.subject, paragraphs: [[EMAIL_CHANGED_MAIL.line(mail.newEmail)], [EMAIL_CHANGED_MAIL.advice], signature] };
   }
   const line = MAIL_COPY.newDevice.line(mail.device, longDate(dayPart.format(mail.at)), timePart.format(mail.at));
   return { subject: MAIL_COPY.newDevice.subject, paragraphs: [[line], [MAIL_COPY.newDevice.advice], signature] };
