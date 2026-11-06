@@ -13,7 +13,7 @@ import type { EventRecord, ExceptionRow, GroupRecord, GroupStore, SeasonRecord }
 import type { UndoStep } from './undo';
 
 /** Per date "Ține / Anulează / Mută" (spec 6.3, 6.5, W7, W12, W13). */
-type DateAnswer = { mode: DateMode['mode']; date: string; emails: number };
+export type DateAnswer = { mode: DateMode['mode']; date: string; emails: number };
 type Spot = { e: EventRecord; group: GroupRecord; season: SeasonRecord };
 
 const inBreak = (store: GroupStore, date: string): Promise<boolean> => store.breaks().then((list) => list.some((b) => b.startDate <= date && date <= b.endDate));

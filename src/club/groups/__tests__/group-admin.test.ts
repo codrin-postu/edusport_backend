@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createGroup, deleteGroup, readGroupInput, updateGroup } from '../group-admin';
+import { createGroup, deleteGroup, readGroupInput, setProgramPublic, updateGroup } from '../group-admin';
 import { event, fakeContext, member } from './fake-group-store';
 
 const body = (over: Record<string, unknown> = {}) => ({ section: 'scoala-afi', name: 'Începători', priceListId: 'pl-std', coachIds: ['tm-virgil'], programPublic: true, ...over });
@@ -50,6 +50,25 @@ describe('"Editează grupa"', () => {
     const { ctx, state } = fakeContext();
     expect(await updateGroup(ctx, 'g-ib', { name: 'Intermediari Bronze', priceListId: 'pl-std', coachIds: ['tm-virgil'], programPublic: true })).toEqual({ ok: true, data: { changed: false } });
     expect(state.history).toEqual([]);
+  });
+});
+
+describe('"Program public" switch', () => {
+  it('writes the same field line as "Editează grupa", pings once, and does nothing for the same value', async () => {
+    const { ctx, state, revalidated } = fakeContext();
+    expect(await setProgramPublic(ctx, 'g-ib', false)).toEqual({ ok: true, data: { changed: true } });
+    expect(state.history.map((h) => [h.action, h.changes])).toEqual([['group-updated', { fields: { programPublic: { from: true, to: false } } }]]);
+    expect(state.groups.find((g) => g.id === 'g-ib')?.programPublic).toBe(false);
+    expect(revalidated()).toBe(1);
+    expect(await setProgramPublic(ctx, 'g-ib', false)).toEqual({ ok: true, data: { changed: false } });
+    expect(state.history).toHaveLength(1);
+    expect(revalidated()).toBe(1);
+  });
+
+  it('refuses a value that is not a boolean and an unknown group', async () => {
+    const { ctx } = fakeContext();
+    expect(await setProgramPublic(ctx, 'g-ib', 'nu')).toMatchObject({ ok: false, status: 400 });
+    expect(await setProgramPublic(ctx, 'nope', true)).toMatchObject({ ok: false, status: 404 });
   });
 });
 
