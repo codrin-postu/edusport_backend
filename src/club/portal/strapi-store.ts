@@ -120,8 +120,17 @@ function accounts(strapi: Core.Strapi): Pick<PortalStore, 'account' | 'accountBy
     accountByTeamMember: (id) => one({ teamMember: { documentId: id } }),
     accountByUser: (userId) => one({ user: { id: userId } }),
     createAccount: async (a) => {
-      const created = await docs().create({ data: { ...fields(a), ...(await links(a)) } as never });
-      return text((created as Raw).documentId);
+      try {
+        const created = await docs().create({ data: { ...fields(a), ...(await links(a)) } as never });
+        return text((created as Raw).documentId);
+      } catch (err) {
+        // Strapi creates the row, then its link rows; when the unique team member link refuses, its cleanup delete runs in the aborted
+        // transaction and hides the 23505 behind 25P02 (seen on Postgres 16). Only that cleanup raises it here, so it is that violation.
+        if ((err as { code?: unknown } | null)?.code === '25P02' && a.teamMemberId) {
+          throw Object.assign(new Error('duplicate key: team_member link is unique'), { code: '23505', constraint: 'team_member' });
+        }
+        throw err;
+      }
     },
     updateAccount: async (id, a) => {
       await docs().update({ documentId: id, data: { ...fields(a), ...(await links(a)) } as never });
