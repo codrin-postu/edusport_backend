@@ -7,6 +7,7 @@ import type { Sender } from './config';
 
 export const BREVO_URL = 'https://api.brevo.com/v3/smtp/email';
 const TIMEOUT_MS = 20_000;
+const RETRY_MS = 2000;
 const MAX_ERROR = 500;
 
 export type Attachment = { name: string; content: string };
@@ -37,6 +38,12 @@ export function brevoBody(message: OutgoingEmail, sender: Sender, replyTo: strin
   return body;
 }
 
+/** The status code of a failure, for logs: the error text can echo the address or the request. */
+export function failureStatus(error: string): string {
+  const code = /^Brevo (\d{3})/.exec(error);
+  return code ? `Brevo ${code[1]}` : 'request failed';
+}
+
 async function readError(res: Response): Promise<string> {
   const raw = await res.text().catch(() => '');
   return `Brevo ${res.status}: ${raw.trim()}`.slice(0, MAX_ERROR);
@@ -57,4 +64,14 @@ export async function sendWithBrevo(message: OutgoingEmail, options: BrevoOption
   } catch (err) {
     return { ok: false, error: `Brevo request failed: ${err instanceof Error ? err.message : String(err)}`.slice(0, MAX_ERROR) };
   }
+}
+
+const pause = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Sent at once (portal mails): one try, one retry after 2 s. */
+export async function sendNow(message: OutgoingEmail, options: BrevoOptions, wait: (ms: number) => Promise<void> = pause): Promise<SendResult> {
+  const first = await sendWithBrevo(message, options);
+  if (first.ok) return first;
+  await wait(RETRY_MS);
+  return sendWithBrevo(message, options);
 }

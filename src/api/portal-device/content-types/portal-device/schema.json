@@ -1,0 +1,47 @@
+{
+  "kind": "collectionType",
+  "collectionName": "portal_devices",
+  "info": {
+    "singularName": "portal-device",
+    "pluralName": "portal-devices",
+    "displayName": "Portal / Dispozitiv",
+    "description": "Dispozitive de pe care s-a intrat în portal"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "account": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::portal-account.portal-account",
+      "required": true
+    },
+    "deviceKeyHash": {
+      "type": "string",
+      "required": true
+    },
+    "sessionId": {
+      "type": "string"
+    },
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "firstSeenAt": {
+      "type": "datetime"
+    },
+    "lastSeenAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "revokedAt": {
+      "type": "datetime"
+    }
+  }
+}

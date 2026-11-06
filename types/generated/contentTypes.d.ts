@@ -1718,6 +1718,242 @@ export interface ApiPaymentPayment extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiPortalAccountPortalAccount extends Struct.CollectionTypeSchema {
+  collectionName: 'portal_accounts';
+  info: {
+    description: 'Conturi ale portalului antrenorilor';
+    displayName: 'Portal / Cont';
+    pluralName: 'portal-accounts';
+    singularName: 'portal-account';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    activatedAt: Schema.Attribute.DateTime;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    disabledAt: Schema.Attribute.DateTime;
+    disabledBy: Schema.Attribute.String;
+    email: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    googleSub: Schema.Attribute.String & Schema.Attribute.Unique;
+    invitedAt: Schema.Attribute.DateTime;
+    invitedBy: Schema.Attribute.String;
+    lastLoginAt: Schema.Attribute.DateTime;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::portal-account.portal-account'
+    > &
+      Schema.Attribute.Private;
+    phone: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    status: Schema.Attribute.Enumeration<
+      ['invited', 'active', 'disabled']
+    > &
+      Schema.Attribute.Required;
+    teamMember: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::team-member.team-member'
+    >;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    user: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+  };
+}
+
+export interface ApiPortalAuthLimitPortalAuthLimit
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'portal_auth_limits';
+  info: {
+    description: 'Contorizare încercări de intrare în portal';
+    displayName: 'Portal / Limită';
+    pluralName: 'portal-auth-limits';
+    singularName: 'portal-auth-limit';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    count: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    key: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::portal-auth-limit.portal-auth-limit'
+    > &
+      Schema.Attribute.Private;
+    lockedUntil: Schema.Attribute.DateTime;
+    notifiedAt: Schema.Attribute.DateTime;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    windowStart: Schema.Attribute.DateTime & Schema.Attribute.Required;
+  };
+}
+
+export interface ApiPortalDevicePortalDevice
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'portal_devices';
+  info: {
+    description: 'Dispozitive de pe care s-a intrat în portal';
+    displayName: 'Portal / Dispozitiv';
+    pluralName: 'portal-devices';
+    singularName: 'portal-device';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    account: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::portal-account.portal-account'
+    > &
+      Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    deviceKeyHash: Schema.Attribute.String & Schema.Attribute.Required;
+    firstSeenAt: Schema.Attribute.DateTime;
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    lastSeenAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::portal-device.portal-device'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    revokedAt: Schema.Attribute.DateTime;
+    sessionId: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiPortalSessionPortalSession
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'portal_sessions';
+  info: {
+    description: 'Sesiuni ale portalului antrenorilor (doar hash-uri)';
+    displayName: 'Portal / Sesiune';
+    pluralName: 'portal-sessions';
+    singularName: 'portal-session';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    accessExpiresAt: Schema.Attribute.DateTime;
+    accessHash: Schema.Attribute.String & Schema.Attribute.Unique;
+    account: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::portal-account.portal-account'
+    > &
+      Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    deviceId: Schema.Attribute.String & Schema.Attribute.Required;
+    familyStartedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    host: Schema.Attribute.String;
+    lastUsedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::portal-session.portal-session'
+    > &
+      Schema.Attribute.Private;
+    previousRefreshHash: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    refreshHash: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    revokedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiPortalTokenPortalToken extends Struct.CollectionTypeSchema {
+  collectionName: 'portal_tokens';
+  info: {
+    description: 'Invitații și coduri de resetare pentru portal';
+    displayName: 'Portal / Token';
+    pluralName: 'portal-tokens';
+    singularName: 'portal-token';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    account: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::portal-account.portal-account'
+    > &
+      Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    expiresAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    kind: Schema.Attribute.Enumeration<['invite', 'reset']> &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::portal-token.portal-token'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    secretHash: Schema.Attribute.String & Schema.Attribute.Required;
+    tries: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    usedAt: Schema.Attribute.DateTime;
+  };
+}
+
 export interface ApiPriceListPriceList extends Struct.CollectionTypeSchema {
   collectionName: 'price_lists';
   info: {
@@ -3162,6 +3398,11 @@ declare module '@strapi/strapi' {
       'api::partner-submission.partner-submission': ApiPartnerSubmissionPartnerSubmission;
       'api::partners-page.partners-page': ApiPartnersPagePartnersPage;
       'api::payment.payment': ApiPaymentPayment;
+      'api::portal-account.portal-account': ApiPortalAccountPortalAccount;
+      'api::portal-auth-limit.portal-auth-limit': ApiPortalAuthLimitPortalAuthLimit;
+      'api::portal-device.portal-device': ApiPortalDevicePortalDevice;
+      'api::portal-session.portal-session': ApiPortalSessionPortalSession;
+      'api::portal-token.portal-token': ApiPortalTokenPortalToken;
       'api::price-list.price-list': ApiPriceListPriceList;
       'api::pricing.pricing': ApiPricingPricing;
       'api::program-page.program-page': ApiProgramPageProgramPage;

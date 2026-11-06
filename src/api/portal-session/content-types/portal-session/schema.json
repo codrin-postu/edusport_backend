@@ -1,0 +1,65 @@
+{
+  "kind": "collectionType",
+  "collectionName": "portal_sessions",
+  "info": {
+    "singularName": "portal-session",
+    "pluralName": "portal-sessions",
+    "displayName": "Portal / Sesiune",
+    "description": "Sesiuni ale portalului antrenorilor (doar hash-uri)"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "account": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::portal-account.portal-account",
+      "required": true
+    },
+    "deviceId": {
+      "type": "string",
+      "required": true
+    },
+    "host": {
+      "type": "string"
+    },
+    "refreshHash": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "column": {
+        "unique": true
+      }
+    },
+    "previousRefreshHash": {
+      "type": "string"
+    },
+    "accessHash": {
+      "type": "string",
+      "unique": true,
+      "column": {
+        "unique": true
+      }
+    },
+    "accessExpiresAt": {
+      "type": "datetime"
+    },
+    "familyStartedAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "lastUsedAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "revokedAt": {
+      "type": "datetime"
+    }
+  }
+}

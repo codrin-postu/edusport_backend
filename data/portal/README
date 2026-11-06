@@ -1,0 +1,8 @@
+Common passwords for the coach portal (src/club/portal/passwords.ts).
+
+File: common-passwords.txt
+Source: https://github.com/danielmiessler/SecLists/blob/c205c36a445bff37f8e58a9ec829105cd4975c58/Passwords/Common-Credentials/xato-net-10-million-passwords-100000.txt
+Commit: c205c36a445bff37f8e58a9ec829105cd4975c58
+Original name in the brief: 10-million-password-list-top-100000.txt (no longer in SecLists under that name).
+Processing: lower case, unique, one per line, empty lines removed.
+License: MIT License, Daniel Miessler (SecLists).
