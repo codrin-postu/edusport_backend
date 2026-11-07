@@ -30,7 +30,7 @@ describe('Pe antrenori: hours and CSV', () => {
   it('CSV with BOM, ";" and the screen headers (C43)', () => {
     expect(coachesCsv(rows)).toBe('﻿Antrenor;Ședințe grup;Lecții individuale;Ore\r\nAndreea Pascu;1;0;1,5\r\nVirgil Pascu;2;1;3,2\r\n');
     expect(coachesCsv([{ ...rows[0], name: 'Pop; "Junior"' }])).toContain('"Pop; ""Junior""";1;0;1,5');
-    expect(coachesCsvName('2026-11')).toBe('pe-antrenori-2026-11.csv');
+    expect(coachesCsvName('2026-11-01', '2026-11-30')).toBe('pe-antrenori-2026-11-01-2026-11-30.csv');
   });
 
   it('reads the month from saved rows only', async () => {

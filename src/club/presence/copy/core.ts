@@ -9,6 +9,8 @@ export const PRESENCE_ERRORS = {
   conflict: 'Prezența s-a schimbat între timp. Reîncarcă.',
   undoChanged: 'Nu se mai poate anula. Datele s-au schimbat între timp.',
   loadFailed: 'Nu am putut încărca datele.',
+  periodTooLong: 'Perioada e prea lungă.',
+  downloadFailed: 'Descărcarea nu a reușit.',
 };
 
 export const PRESENCE_WORDS = {

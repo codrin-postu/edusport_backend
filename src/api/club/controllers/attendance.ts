@@ -10,6 +10,7 @@ import { readPanelQuery, readSessionPanel } from '../../../club/presence/attenda
 import { respondSave, saveSession } from '../../../club/presence/attendance/save';
 import { coachesCsv, coachesCsvName } from '../../../club/presence/coaches/csv';
 import { readCoachMonth } from '../../../club/presence/coaches/report';
+import { monthRange } from '../../../club/presence/dates';
 import { createLesson } from '../../../club/presence/lessons/create';
 import { deleteLesson } from '../../../club/presence/lessons/delete';
 import { listLessons, newLessonDefaults, readLesson } from '../../../club/presence/lessons/read';
@@ -52,7 +53,7 @@ export default {
     const result = await readCoachMonth(store(), ctx.query.month);
     if (result.ok === false) return refuseWith(ctx, result.status, result.error);
     ctx.set('Content-Type', 'text/csv; charset=utf-8');
-    ctx.set('Content-Disposition', `attachment; filename="${coachesCsvName(String(ctx.query.month))}"`);
+    ctx.set('Content-Disposition', `attachment; filename="${coachesCsvName(monthRange(String(ctx.query.month)).from, monthRange(String(ctx.query.month)).to)}"`);
     ctx.body = coachesCsv(result.data);
   },
 

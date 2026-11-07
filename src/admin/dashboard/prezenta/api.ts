@@ -6,6 +6,7 @@ import type {
   SessionPanel, SessionSaveBody, SessionSaved,
 } from '../../../club/presence/attendance/api-types';
 import { coachesCsvName } from '../../../club/presence/coaches/csv';
+import { monthRange } from '../../../club/presence/dates';
 import { searchUrl } from '../../../club/sportivi/search-view';
 import { downloadPdf } from '../inscrieri/downloadPdf';
 
@@ -54,7 +55,7 @@ export function usePrezentaApi() {
       deleteLesson: (id: string) => action<{ deleted: true; toast: string }>(ref.current.del(`${BASE}/lessons/${enc(id)}`)),
       coaches: (month: string) => get<CoachRow[]>(`${BASE}/attendance/coaches${query({ month })}`),
       coachesCsv: (month: string) =>
-        downloadPdf(ref.current.get, `${BASE}/attendance/coaches.csv${query({ month })}`, coachesCsvName(month)),
+        downloadPdf(ref.current.get, `${BASE}/attendance/coaches.csv${query({ month })}`, coachesCsvName(monthRange(month).from, monthRange(month).to)),
       options: () => get<GroupOptions>(`${BASE}/groups/options`),
       undo: (actionId: string) => data<{ undone: true }>(getFetchClient().post(`${BASE}/undo`, { actionId })),
       search: searchUrl,

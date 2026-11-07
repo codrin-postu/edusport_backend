@@ -9,8 +9,15 @@ export function toMoney(v: unknown): number | null {
 /** Sums in whole bani, so 0.1 + 0.2 is 0.3. */
 export const sumMoney = (values: readonly number[]): number => values.reduce((bani, v) => bani + Math.round(v * 100), 0) / 100;
 
-/** "320 RON", "12,50 RON". */
+/** 5000 -> "5.000": whole number with "." between thousands. */
+export function groupedInt(n: number): string {
+  const digits = String(Math.abs(Math.trunc(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return n < 0 ? `-${digits}` : digits;
+}
+
+/** "18.640 RON", "1.200,50 RON", "320 RON", "-20 RON". */
 export function ron(n: number): string {
-  const amount = Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ',');
-  return `${amount} RON`;
+  if (Number.isInteger(n)) return `${groupedInt(n)} RON`;
+  const [whole, cents] = Math.abs(n).toFixed(2).split('.');
+  return `${n < 0 ? '-' : ''}${groupedInt(Number(whole))},${cents} RON`;
 }
