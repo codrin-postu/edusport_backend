@@ -85,7 +85,7 @@ describe('loadKeys', () => {
     });
 
     it('refuses a key with under 16 distinct bytes', () => {
-      const weak = Buffer.concat([nodeCrypto.randomBytes(15), Buffer.alloc(17, 1)]).toString('base64');
+      const weak = Buffer.concat([nodeCrypto.randomBytes(10), Buffer.alloc(22, 1)]).toString('base64');
       expect(loadKeys({ ...random(), AUTH_CODE_KEY: weak })).toBeNull();
     });
 
