@@ -481,6 +481,97 @@ export interface ApiAcsMembershipAcsMembership
   };
 }
 
+export interface ApiAdminAccountAdminAccount
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'admin_accounts';
+  info: {
+    displayName: 'Admin / Cont';
+    pluralName: 'admin-accounts';
+    singularName: 'admin-account';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    adminUserId: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    googleSub: Schema.Attribute.String & Schema.Attribute.Unique;
+    lastMethod: Schema.Attribute.Enumeration<['totp', 'email', 'backup']>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::admin-account.admin-account'
+    > &
+      Schema.Attribute.Private;
+    passkeyOfferedAt: Schema.Attribute.DateTime;
+    publishedAt: Schema.Attribute.DateTime;
+    securityNotes: Schema.Attribute.JSON;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    webauthnUserId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+  };
+}
+
+export interface ApiAdminDeviceAdminDevice extends Struct.CollectionTypeSchema {
+  collectionName: 'admin_devices';
+  info: {
+    displayName: 'Admin / Dispozitiv';
+    pluralName: 'admin-devices';
+    singularName: 'admin-device';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    adminUserId: Schema.Attribute.Integer & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    deviceKeyHash: Schema.Attribute.String & Schema.Attribute.Required;
+    firstSeenAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    label: Schema.Attribute.String & Schema.Attribute.Required;
+    lastSeenAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::admin-device.admin-device'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    revokedAt: Schema.Attribute.DateTime;
+    strapiDeviceId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    twoFactorUntil: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiAnnouncementAnnouncement
   extends Struct.CollectionTypeSchema {
   collectionName: 'announcements';
@@ -712,6 +803,201 @@ export interface ApiAttendanceAttendance extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     uscat: Schema.Attribute.Boolean;
     visitor: Schema.Attribute.Boolean;
+  };
+}
+
+export interface ApiAuthBackupCodeAuthBackupCode
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'auth_backup_codes';
+  info: {
+    displayName: 'Securitate / Cod de rezerv\u0103';
+    pluralName: 'auth-backup-codes';
+    singularName: 'auth-backup-code';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    batch: Schema.Attribute.String & Schema.Attribute.Required;
+    codeMac: Schema.Attribute.String & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    keyId: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::auth-backup-code.auth-backup-code'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    subjectId: Schema.Attribute.String & Schema.Attribute.Required;
+    subjectType: Schema.Attribute.Enumeration<['portal', 'admin']> &
+      Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    usedAt: Schema.Attribute.DateTime;
+  };
+}
+
+export interface ApiAuthChallengeAuthChallenge
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'auth_challenges';
+  info: {
+    displayName: 'Securitate / Provocare';
+    pluralName: 'auth-challenges';
+    singularName: 'auth-challenge';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    data: Schema.Attribute.JSON;
+    expiresAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::auth-challenge.auth-challenge'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    purpose: Schema.Attribute.Enumeration<
+      [
+        'pending-login',
+        'email-code',
+        'reset-code',
+        'passkey-register',
+        'passkey-login',
+      ]
+    > &
+      Schema.Attribute.Required;
+    secretMac: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    subjectId: Schema.Attribute.String;
+    subjectType: Schema.Attribute.Enumeration<['portal', 'admin']>;
+    tries: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    usedAt: Schema.Attribute.DateTime;
+  };
+}
+
+export interface ApiAuthFactorAuthFactor extends Struct.CollectionTypeSchema {
+  collectionName: 'auth_factors';
+  info: {
+    displayName: 'Securitate / Factor 2FA';
+    pluralName: 'auth-factors';
+    singularName: 'auth-factor';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    confirmedAt: Schema.Attribute.DateTime;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    kind: Schema.Attribute.Enumeration<['totp', 'email']> &
+      Schema.Attribute.Required;
+    lastStep: Schema.Attribute.BigInteger;
+    lastUsedAt: Schema.Attribute.DateTime;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::auth-factor.auth-factor'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    secretBox: Schema.Attribute.Text;
+    subjectId: Schema.Attribute.String & Schema.Attribute.Required;
+    subjectType: Schema.Attribute.Enumeration<['portal', 'admin']> &
+      Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiAuthPasskeyAuthPasskey extends Struct.CollectionTypeSchema {
+  collectionName: 'auth_passkeys';
+  info: {
+    displayName: 'Securitate / Cheie de acces';
+    pluralName: 'auth-passkeys';
+    singularName: 'auth-passkey';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    backedUp: Schema.Attribute.Boolean;
+    counter: Schema.Attribute.BigInteger & Schema.Attribute.DefaultTo<0>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    credentialId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    deviceType: Schema.Attribute.Enumeration<['singleDevice', 'multiDevice']>;
+    lastUsedAt: Schema.Attribute.DateTime;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::auth-passkey.auth-passkey'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 60;
+      }>;
+    publicKey: Schema.Attribute.Text & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    rpId: Schema.Attribute.String & Schema.Attribute.Required;
+    subjectId: Schema.Attribute.String & Schema.Attribute.Required;
+    subjectType: Schema.Attribute.Enumeration<['portal', 'admin']> &
+      Schema.Attribute.Required;
+    transports: Schema.Attribute.JSON;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -1113,7 +1399,7 @@ export interface ApiEmailJobEmailJob extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     group: Schema.Attribute.Relation<'manyToOne', 'api::group.group'>;
     kind: Schema.Attribute.Enumeration<
-      ['registration', 'schedule-change', 'payment']
+      ['registration', 'schedule-change', 'payment', 'portal-invite']
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'registration'>;
@@ -1718,7 +2004,8 @@ export interface ApiPaymentPayment extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface ApiPortalAccountPortalAccount extends Struct.CollectionTypeSchema {
+export interface ApiPortalAccountPortalAccount
+  extends Struct.CollectionTypeSchema {
   collectionName: 'portal_accounts';
   info: {
     description: 'Conturi ale portalului antrenorilor';
@@ -1748,17 +2035,18 @@ export interface ApiPortalAccountPortalAccount extends Struct.CollectionTypeSche
     invitedAt: Schema.Attribute.DateTime;
     invitedBy: Schema.Attribute.String;
     lastLoginAt: Schema.Attribute.DateTime;
+    lastMethod: Schema.Attribute.Enumeration<['totp', 'email', 'backup']>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::portal-account.portal-account'
     > &
       Schema.Attribute.Private;
+    passkeyOfferedAt: Schema.Attribute.DateTime;
     phone: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
-    status: Schema.Attribute.Enumeration<
-      ['invited', 'active', 'disabled']
-    > &
+    securityNotes: Schema.Attribute.JSON;
+    status: Schema.Attribute.Enumeration<['invited', 'active', 'disabled']> &
       Schema.Attribute.Required;
     teamMember: Schema.Attribute.Relation<
       'oneToOne',
@@ -1771,6 +2059,7 @@ export interface ApiPortalAccountPortalAccount extends Struct.CollectionTypeSche
       'oneToOne',
       'plugin::users-permissions.user'
     >;
+    webauthnUserId: Schema.Attribute.String & Schema.Attribute.Unique;
   };
 }
 
@@ -1778,8 +2067,8 @@ export interface ApiPortalAuthLimitPortalAuthLimit
   extends Struct.CollectionTypeSchema {
   collectionName: 'portal_auth_limits';
   info: {
-    description: 'Contorizare încercări de intrare în portal';
-    displayName: 'Portal / Limită';
+    description: 'Contorizare \u00EEncerc\u0103ri de intrare \u00EEn portal';
+    displayName: 'Portal / Limit\u0103';
     pluralName: 'portal-auth-limits';
     singularName: 'portal-auth-limit';
   };
@@ -1819,7 +2108,7 @@ export interface ApiPortalDevicePortalDevice
   extends Struct.CollectionTypeSchema {
   collectionName: 'portal_devices';
   info: {
-    description: 'Dispozitive de pe care s-a intrat în portal';
+    description: 'Dispozitive de pe care s-a intrat \u00EEn portal';
     displayName: 'Portal / Dispozitiv';
     pluralName: 'portal-devices';
     singularName: 'portal-device';
@@ -1854,6 +2143,7 @@ export interface ApiPortalDevicePortalDevice
     publishedAt: Schema.Attribute.DateTime;
     revokedAt: Schema.Attribute.DateTime;
     sessionId: Schema.Attribute.String;
+    twoFactorUntil: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1913,7 +2203,7 @@ export interface ApiPortalSessionPortalSession
 export interface ApiPortalTokenPortalToken extends Struct.CollectionTypeSchema {
   collectionName: 'portal_tokens';
   info: {
-    description: 'Invitații și coduri de resetare pentru portal';
+    description: 'Invita\u021Bii \u0219i coduri de resetare pentru portal';
     displayName: 'Portal / Token';
     pluralName: 'portal-tokens';
     singularName: 'portal-token';
@@ -3370,11 +3660,17 @@ declare module '@strapi/strapi' {
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
       'api::acs-membership.acs-membership': ApiAcsMembershipAcsMembership;
+      'api::admin-account.admin-account': ApiAdminAccountAdminAccount;
+      'api::admin-device.admin-device': ApiAdminDeviceAdminDevice;
       'api::announcement.announcement': ApiAnnouncementAnnouncement;
       'api::article.article': ApiArticleArticle;
       'api::athlete-duplicate.athlete-duplicate': ApiAthleteDuplicateAthleteDuplicate;
       'api::athlete.athlete': ApiAthleteAthlete;
       'api::attendance.attendance': ApiAttendanceAttendance;
+      'api::auth-backup-code.auth-backup-code': ApiAuthBackupCodeAuthBackupCode;
+      'api::auth-challenge.auth-challenge': ApiAuthChallengeAuthChallenge;
+      'api::auth-factor.auth-factor': ApiAuthFactorAuthFactor;
+      'api::auth-passkey.auth-passkey': ApiAuthPasskeyAuthPasskey;
       'api::calendar-blackout.calendar-blackout': ApiCalendarBlackoutCalendarBlackout;
       'api::calendar-event.calendar-event': ApiCalendarEventCalendarEvent;
       'api::club-figures.club-figures': ApiClubFiguresClubFigures;
