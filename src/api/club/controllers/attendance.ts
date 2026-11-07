@@ -11,6 +11,7 @@ import { respondSave, saveSession } from '../../../club/presence/attendance/save
 import { coachesCsv, coachesCsvName } from '../../../club/presence/coaches/csv';
 import { readCoachMonth } from '../../../club/presence/coaches/report';
 import { monthRange } from '../../../club/presence/dates';
+import { bucharestNow } from '../../../club/presence/period';
 import { createLesson } from '../../../club/presence/lessons/create';
 import { deleteLesson } from '../../../club/presence/lessons/delete';
 import { listLessons, newLessonDefaults, readLesson } from '../../../club/presence/lessons/read';
@@ -82,7 +83,7 @@ export default {
   },
 
   async groupMonth(ctx: AdminCtx) {
-    respond(ctx, await readGroupMonth(store(), param(ctx, 'documentId'), ctx.query.month, todayIso()));
+    respond(ctx, await readGroupMonth(store(), param(ctx, 'documentId'), ctx.query.month, bucharestNow(new Date())));
   },
 
   async athleteMonth(ctx: AdminCtx) {
