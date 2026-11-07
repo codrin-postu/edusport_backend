@@ -7,6 +7,7 @@ import { normalizeNavigationPages } from './api/navigation/services/pages';
 import { warnIfNoAdminSessions } from './club/admin-auth';
 import { startPersonalDataSweep } from './club/personal-data/http';
 import { ensurePresenceIndexes } from './club/presence/indexes';
+import { assertKeysForBoot } from './club/security/keys';
 import { ensureSecurityIndexes } from './club/security/indexes';
 import { checkUpSettings } from './club/portal/up-settings';
 import { ensurePortalIndexes, subscribeTeamMemberHook } from './club/portal/accounts/team-member-hook';
@@ -405,6 +406,8 @@ export default {
     });
   },
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
+    // 2FA keys (spec 5.1): production refuses to start without them; elsewhere 2FA routes answer 503.
+    if (!assertKeysForBoot()) strapi.log.warn('[security] AUTH_SECRET_KEY / AUTH_CODE_KEY not usable: 2FA is unavailable');
     // Google Sheets back-compat: migrate the legacy SHEETS_SPREADSHEET_ID env
     // into the per-form sheet-link record, once, if none exists yet.
     await seedLegacyLink();
