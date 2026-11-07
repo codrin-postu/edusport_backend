@@ -19,8 +19,17 @@ export function unpackMac(packed: string): StoredMac | null {
   return match ? { keyId: match[1], mac: match[2] } : null;
 }
 
+/** Injective MAC input: every field is written as `<length>:<field>`, so no field can borrow characters from its neighbour. */
+const encodeFields = (fields: string[]): string => fields.map((f) => `${f.length}:${f}`).join('');
+
 const macWith = (key: Key, purpose: CodePurpose, subjectType: string, subjectId: string, code: string): Buffer =>
-  crypto.createHmac('sha256', key.bytes).update(`${purpose}:${subjectType}:${subjectId}:${normalizeCode(code)}`).digest();
+  crypto.createHmac('sha256', key.bytes).update(encodeFields([purpose, subjectType, subjectId, normalizeCode(code)])).digest();
+
+/** MAC of a high-entropy random token (a pending-login secret): no normalization, its own domain. */
+export const tokenMac = (key: Key, token: string): StoredMac => ({
+  mac: crypto.createHmac('sha256', key.bytes).update(encodeFields(['token', token])).digest('hex'),
+  keyId: key.id,
+});
 
 export function codeMac(
   k: Keys,

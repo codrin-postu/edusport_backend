@@ -1,6 +1,6 @@
 import nodeCrypto from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { codeMac, macMatchesAny, normalizeCode, packMac, unpackMac } from '../code-mac';
+import { codeMac, macMatchesAny, normalizeCode, packMac, tokenMac, unpackMac } from '../code-mac';
 import { assertKeysForBoot, KeysMissing, keyId, loadKeys, requireKeys } from '../keys';
 import { open, seal, totpAad } from '../secret-box';
 import { OTHER_ENV, OTHER_KEYS, ROTATED_KEYS, TEST_ENV, TEST_KEYS } from './keys';
@@ -46,9 +46,55 @@ describe('loadKeys', () => {
 
   it('production refuses to boot without keys, other environments do not', () => {
     expect(() => assertKeysForBoot({ NODE_ENV: 'production' })).toThrow(KeysMissing);
-    expect(assertKeysForBoot({ NODE_ENV: 'production', ...TEST_ENV })).not.toBeNull();
+    expect(() => assertKeysForBoot({ NODE_ENV: 'production', ...TEST_ENV })).toThrow(KeysMissing);
+    const real = { NODE_ENV: 'production', AUTH_SECRET_KEY: nodeCrypto.randomBytes(32).toString('base64'), AUTH_CODE_KEY: nodeCrypto.randomBytes(32).toString('base64') };
+    expect(assertKeysForBoot(real)).not.toBeNull();
     expect(assertKeysForBoot({ NODE_ENV: 'development' })).toBeNull();
     expect(assertKeysForBoot({})).toBeNull();
+  });
+
+  it('a key shared across the four slots is refused, old keys included', () => {
+    const o = OTHER_ENV;
+    expect(loadKeys({ ...TEST_ENV, AUTH_CODE_KEY_OLD: TEST_ENV.AUTH_SECRET_KEY })).toBeNull();
+    expect(loadKeys({ ...TEST_ENV, AUTH_SECRET_KEY_OLD: TEST_ENV.AUTH_CODE_KEY })).toBeNull();
+    expect(loadKeys({ ...TEST_ENV, AUTH_SECRET_KEY_OLD: TEST_ENV.AUTH_SECRET_KEY })).toBeNull();
+    expect(loadKeys({ ...TEST_ENV, AUTH_SECRET_KEY_OLD: o.AUTH_SECRET_KEY, AUTH_CODE_KEY_OLD: o.AUTH_SECRET_KEY })).toBeNull();
+    expect(loadKeys({ ...TEST_ENV, AUTH_SECRET_KEY_OLD: o.AUTH_SECRET_KEY, AUTH_CODE_KEY_OLD: o.AUTH_CODE_KEY })).not.toBeNull();
+  });
+
+  it.each(['ADMIN_JWT_SECRET', 'JWT_SECRET', 'API_TOKEN_SALT', 'TRANSFER_TOKEN_SALT'])('%s reused as a key is refused', (name) => {
+    expect(loadKeys({ ...TEST_ENV, [name]: TEST_ENV.AUTH_CODE_KEY })).toBeNull();
+    expect(loadKeys({ ...TEST_ENV, AUTH_CODE_KEY_OLD: OTHER_ENV.AUTH_CODE_KEY, [name]: OTHER_ENV.AUTH_CODE_KEY })).toBeNull();
+  });
+
+  describe('production strictness', () => {
+    const random = (): NodeJS.ProcessEnv => ({
+      NODE_ENV: 'production',
+      AUTH_SECRET_KEY: nodeCrypto.randomBytes(32).toString('base64'),
+      AUTH_CODE_KEY: nodeCrypto.randomBytes(32).toString('base64'),
+    });
+
+    it('accepts random keys', () => {
+      expect(loadKeys(random())).not.toBeNull();
+    });
+
+    it('refuses a key of one repeated byte (the fixture form), outside production it loads', () => {
+      expect(loadKeys({ ...TEST_ENV, NODE_ENV: 'production' })).toBeNull();
+      expect(loadKeys({ ...random(), AUTH_SECRET_KEY_OLD: TEST_ENV.AUTH_SECRET_KEY })).toBeNull();
+      expect(loadKeys(TEST_ENV)).not.toBeNull();
+    });
+
+    it('refuses a key with under 16 distinct bytes', () => {
+      const weak = Buffer.concat([nodeCrypto.randomBytes(15), Buffer.alloc(17, 1)]).toString('base64');
+      expect(loadKeys({ ...random(), AUTH_CODE_KEY: weak })).toBeNull();
+    });
+
+    it('refuses loose base64: stray characters, whitespace inside, base64url, missing padding', () => {
+      const good = nodeCrypto.randomBytes(32).toString('base64');
+      for (const bad of [`${good.slice(0, 10)}!${good.slice(10)}`, `${good.slice(0, 10)} ${good.slice(10)}`, good.replace(/\+/g, '-').replace(/\//g, '_') + 'x', good.slice(0, -1)]) {
+        expect(loadKeys({ ...random(), AUTH_SECRET_KEY: bad })).toBeNull();
+      }
+    });
   });
 
   it('the error message carries no key material', () => {
@@ -158,6 +204,21 @@ describe('codeMac', () => {
     const old = codeMac(ROTATED_KEYS, 'backup', 'admin', '7', 'ABCDEFGHJK', 'old');
     expect(old).toEqual(base());
     expect(() => codeMac(TEST_KEYS, 'backup', 'admin', '7', 'x', 'old')).toThrow();
+  });
+
+  it('the MAC input is injective: a colon cannot move between subject id and code', () => {
+    const a = codeMac(TEST_KEYS, 'backup', 'admin', '1:X', 'Y').mac;
+    const b = codeMac(TEST_KEYS, 'backup', 'admin', '1', 'X:Y').mac;
+    expect(a).not.toBe(b);
+    expect(codeMac(TEST_KEYS, 'backup', 'admin', '1', 'X').mac).not.toBe(codeMac(TEST_KEYS, 'backup', 'admi', 'n1', 'X').mac);
+  });
+
+  it('tokenMac is its own domain, keeps case, and differs by key', () => {
+    const t = tokenMac(TEST_KEYS.code, 'AbCd');
+    expect(t.mac).toMatch(/^[0-9a-f]{64}$/);
+    expect(t.mac).not.toBe(tokenMac(TEST_KEYS.code, 'abcd').mac);
+    expect(t.mac).not.toBe(tokenMac(OTHER_KEYS.code, 'AbCd').mac);
+    expect(t.mac).not.toBe(codeMac(TEST_KEYS, 'pending-login', 'token', '', 'AbCd').mac);
   });
 
   it('packs and unpacks the m1 column form, and refuses an old SHA-256 hex', () => {

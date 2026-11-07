@@ -124,7 +124,7 @@ describe('security content types', () => {
 
   it('auth_factors has a unique index on subject and kind, created at bootstrap', () => {
     const index = readFileSync(join(__dirname, '../../../index.ts'), 'utf8');
-    expect(index).toContain('ensureSecurityIndexes(strapi.db.connection)');
+    expect(index).toContain('ensureSecurityIndexesAtBoot(strapi.db.connection, process.env');
     const source = readFileSync(join(__dirname, '../indexes.ts'), 'utf8');
     expect(source).toContain('auth_factors_subject_kind_uq');
     expect(source).toMatch(/create unique index if not exists[^\n]*"subject_type", "subject_id", "kind"/);

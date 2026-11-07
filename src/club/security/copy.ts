@@ -109,7 +109,11 @@ export const SECURITY_COPY = {
     download: 'Descarcă',
     copy: 'Copiază',
     done: 'Gata',
-    backupLeft: (n: number): string => `Mai ai ${n} coduri de rezervă.`,
+    backupLeft: (n: number): string => {
+      if (n === 1) return 'Mai ai 1 cod de rezervă.';
+      const de = n % 100 === 0 || n % 100 >= 20 ? 'de ' : '';
+      return `Mai ai ${n} ${de}coduri de rezervă.`;
+    },
   },
   passkeys: {
     title: 'Chei de acces',

@@ -14,35 +14,52 @@ const KEY_BYTES = 32;
 
 export const keyId = (bytes: Buffer): string => createHash('sha256').update(bytes).digest('hex').slice(0, 8);
 
-/** A key from base64 text: exactly 32 bytes, else null (an unset or malformed variable). */
-function readKey(value: string | undefined): Key | null {
-  if (!value) return null;
-  const bytes = Buffer.from(value.trim(), 'base64');
-  return bytes.length === KEY_BYTES ? { id: keyId(bytes), bytes } : null;
+const STRICT_BASE64 = /^[A-Za-z0-9+/]{43}=$/;
+const MIN_DISTINCT_BYTES = 16;
+const STRAPI_SECRETS = ['ENCRYPTION_KEY', 'ADMIN_JWT_SECRET', 'JWT_SECRET', 'API_TOKEN_SALT', 'TRANSFER_TOKEN_SALT'] as const;
+
+/** A key from base64 text: exactly 32 bytes, else null. In production the text must be strict base64 and the bytes not a fixture-like repeat. */
+function readKey(value: string | undefined, production: boolean): Key | null {
+  const text = value?.trim();
+  if (!text) return null;
+  if (production && !STRICT_BASE64.test(text)) return null;
+  const bytes = Buffer.from(text, 'base64');
+  if (bytes.length !== KEY_BYTES) return null;
+  if (production && new Set(bytes).size < MIN_DISTINCT_BYTES) return null;
+  return { id: keyId(bytes), bytes };
 }
 
 /** An optional old key: unset is fine, set but malformed refuses the whole set (rows sealed under it would silently stop opening). */
-function readOldKey(value: string | undefined): { ok: boolean; key: Key | null } {
+function readOldKey(value: string | undefined, production: boolean): { ok: boolean; key: Key | null } {
   if (!value || value.trim() === '') return { ok: true, key: null };
-  const key = readKey(value);
+  const key = readKey(value, production);
   return { ok: key !== null, key };
 }
 
 /** Strapi's own secrets are never reused: a rotation of one must not break the other. */
 function reusesStrapiSecret(env: NodeJS.ProcessEnv, values: (string | undefined)[]): boolean {
-  const strapi = [env.ENCRYPTION_KEY, ...(env.APP_KEYS ?? '').split(',')].map((v) => v?.trim()).filter((v): v is string => Boolean(v));
+  const strapi = [...STRAPI_SECRETS.map((name) => env[name]), ...(env.APP_KEYS ?? '').split(',')]
+    .map((v) => v?.trim())
+    .filter((v): v is string => Boolean(v));
   return values.some((v) => v !== undefined && strapi.includes(v.trim()));
 }
 
-/** Null when either current key is missing or not 32 bytes, when they are the same key, or when a key is a Strapi secret. Logs nothing. */
+/**
+ * Null when either current key is missing or not 32 bytes, when any two of the four slots hold the same key
+ * (so no key serves both AES and HMAC), when a key is a Strapi secret, or, in production, when a key is loose
+ * base64 or has under 16 distinct bytes. Logs nothing.
+ */
 export function loadKeys(env: NodeJS.ProcessEnv = process.env): Keys | null {
-  const secret = readKey(env.AUTH_SECRET_KEY);
-  const code = readKey(env.AUTH_CODE_KEY);
-  if (!secret || !code || secret.id === code.id) return null;
+  const production = env.NODE_ENV === 'production';
+  const secret = readKey(env.AUTH_SECRET_KEY, production);
+  const code = readKey(env.AUTH_CODE_KEY, production);
+  if (!secret || !code) return null;
   if (reusesStrapiSecret(env, [env.AUTH_SECRET_KEY, env.AUTH_CODE_KEY, env.AUTH_SECRET_KEY_OLD, env.AUTH_CODE_KEY_OLD])) return null;
-  const secretOld = readOldKey(env.AUTH_SECRET_KEY_OLD);
-  const codeOld = readOldKey(env.AUTH_CODE_KEY_OLD);
+  const secretOld = readOldKey(env.AUTH_SECRET_KEY_OLD, production);
+  const codeOld = readOldKey(env.AUTH_CODE_KEY_OLD, production);
   if (!secretOld.ok || !codeOld.ok) return null;
+  const ids = [secret, secretOld.key, code, codeOld.key].filter((k): k is Key => k !== null).map((k) => k.id);
+  if (new Set(ids).size !== ids.length) return null;
   return { secret, secretOld: secretOld.key, code, codeOld: codeOld.key };
 }
 

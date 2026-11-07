@@ -87,7 +87,9 @@ describe('security copy', () => {
       'Descarcă', 'Copiază', 'Gata',
     ]);
     expect(b.left(7)).toBe('7 rămase');
-    expect(b.backupLeft(3)).toBe('Mai ai 3 coduri de rezervă.');
+    expect(b.backupLeft(1)).toBe('Mai ai 1 cod de rezervă.');
+    for (const n of [2, 3, 10, 19, 101, 119]) expect(b.backupLeft(n)).toBe(`Mai ai ${n} coduri de rezervă.`);
+    for (const n of [0, 20, 21, 99, 100, 120]) expect(b.backupLeft(n)).toBe(`Mai ai ${n} de coduri de rezervă.`);
     const p = SECURITY_COPY.passkeys;
     expect([p.title, p.rename, p.nameField, p.delete, p.create, p.old]).toEqual([
       'Chei de acces', 'Redenumește', 'Nume', 'Șterge', 'Creează o cheie de acces', 'Cheie veche, nu mai merge. Creează una nouă.',

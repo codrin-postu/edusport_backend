@@ -67,7 +67,8 @@ Never 55442, 1337, 1340, 3010, 5432, `strapi_app`, `strapi_db`, `edusport-test-p
 3. Restart; restart once more if a new attribute is not saved. Check the six new tables and `POST /admin/login` answering 404.
 4. Role assignment: the bootstrap log lists every admin without an EduSport role; a Super Admin assigns "Administrator club" or "Editor site" to each before `HAS_ROLE_ENFORCED=true` is set (ruling 14). Until then `has-role` checks only `any` and logs the area it would refuse.
 5. At least two Super Admins sign in on `/intrare` before the gate goes live in production (`ADMIN_GATE=on`, ruling 15).
-6. Cutover note: pending portal reset codes are invalid after deploy; existing admin sessions keep working until they expire; the first `/intrare` login creates the device row.
+6. Key rotation: keep `AUTH_CODE_KEY_OLD` until every backup-code batch MACed under the old key id has been regenerated; a MAC cannot be re-keyed, so removing it early silently locks out users whose only recovery is their backup codes. Sealed TOTP secrets re-seal themselves at next use.
+7. Cutover note: pending portal reset codes are invalid after deploy; existing admin sessions keep working until they expire; the first `/intrare` login creates the device row.
 
 ## HTTP contracts
 

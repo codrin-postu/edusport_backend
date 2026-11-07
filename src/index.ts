@@ -8,7 +8,7 @@ import { warnIfNoAdminSessions } from './club/admin-auth';
 import { startPersonalDataSweep } from './club/personal-data/http';
 import { ensurePresenceIndexes } from './club/presence/indexes';
 import { assertKeysForBoot } from './club/security/keys';
-import { ensureSecurityIndexes } from './club/security/indexes';
+import { ensureSecurityIndexesAtBoot } from './club/security/indexes';
 import { checkUpSettings } from './club/portal/up-settings';
 import { ensurePortalIndexes, subscribeTeamMemberHook } from './club/portal/accounts/team-member-hook';
 
@@ -441,14 +441,11 @@ export default {
       strapi.log.error(message);
       captureMessage(message);
     }
-    // Phase 6b: one 2FA factor row per subject and kind.
-    try {
-      await ensureSecurityIndexes(strapi.db.connection);
-    } catch (e) {
-      const message = `[security] indexes: ${(e as { code?: string })?.code ?? 'unknown'}`;
+    // Phase 6b: one 2FA factor row per subject and kind; a failure refuses the start in production.
+    await ensureSecurityIndexesAtBoot(strapi.db.connection, process.env, (message) => {
       strapi.log.error(message);
       captureMessage(message);
-    }
+    });
     subscribeTeamMemberHook(strapi);
 
     // Confirm the scheduled jobs actually registered — a cron block that is
