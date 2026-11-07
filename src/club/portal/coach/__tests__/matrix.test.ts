@@ -239,7 +239,7 @@ describe('admin routes against a portal session', () => {
     const strapiLike: AdminUserStrapi = { sessionManager: admin.sessionManager, db: { query: () => ({ findOne: async () => ({ id: 1, isActive: true, roles: [] }) }) } };
     let checked = 0;
     for (const file of readdirSync(dir).filter((f) => f.endsWith('.ts'))) {
-      const mod = (await import(join(dir, file))).default as { routes: { method: string; path: string; config: { policies: string[] } }[] };
+      const mod = (await import(join(dir, file))).default as { routes: { method: string; path: string; config: { policies: (string | { name: string })[] } }[] };
       for (const r of mod.routes) {
         const policies = r.config.policies;
         if (policies.length === 0) {
@@ -248,7 +248,9 @@ describe('admin routes against a portal session', () => {
           continue;
         }
         expect(policies.length, `${file} ${r.path}`).toBe(1);
-        expect(['global::is-admin', 'global::is-super-admin']).toContain(policies[0]);
+        // a policy is a name, or { name, config } (`adminRoute(area)`)
+        const policy = typeof policies[0] === 'string' ? policies[0] : policies[0].name;
+        expect(['global::is-admin', 'global::is-super-admin']).toContain(policy);
         checked += 1;
       }
     }

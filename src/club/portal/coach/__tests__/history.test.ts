@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { attendanceRow, lessonRow, sessionRow } from '../../../presence/__tests__/fake-store';
-import { readCoachMonth } from '../../../presence/coaches/report';
+import { readCoachPeriod } from '../../../presence/coaches/report';
 import { PORTAL_ERRORS } from '../../copy';
 import { readCoachHistory } from '../history';
 import { coachCtx } from './coach-seed';
@@ -62,7 +62,7 @@ describe('readCoachHistory', () => {
 
   it('summary equals the admin "Pe antrenori" row of the same coach and month', async () => {
     const c = seeded();
-    const admin = await readCoachMonth(c.fake.ctx.store, '2026-11');
+    const admin = await readCoachPeriod(c.fake.ctx.store, { month: '2026-11' });
     const row = admin.ok ? admin.data.find((x) => x.coachId === ME) : undefined;
     const r = await readCoachHistory(c, '2026-11');
     expect(row).toBeDefined();

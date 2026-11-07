@@ -85,6 +85,7 @@ Resolved since parking: athlete row lock and merge/delete locks (polish 12), mai
 - 3-5 T11: AthleteSearch Escape may double-fire with the dialog Escape. 3-5 T8: indentation.
 - 3C T4: summary PDF header offsets not shared with `documents/pdf/frame.ts`.
 - 3C T13: Setări save may overwrite `reviewHiddenUntilSeason` set in another tab.
+- Phase 11: the `month` query of `/club/lessons` and `/club/attendance/coaches(.csv)` is an alias kept one release; remove it in the release after phase 11.
 - Final reviews: minors in `final/review-area1-data.md`, `review-area2-inscrieri.md` (M1-M11), `review-area3-sportivi-web.md` (M1-M14), and 3C `review-3c.md` M1-M7 (not covered by the I1-I3 fixes). Some were fixed in the visual and polish rounds; check before scheduling.
 
 

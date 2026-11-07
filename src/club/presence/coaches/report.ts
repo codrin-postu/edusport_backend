@@ -22,6 +22,3 @@ export async function readCoachPeriod(store: PresenceStore, query: Record<string
   const names = Object.fromEntries(team.map((t) => [t.id, t.name]));
   return { ok: true, data: coachRows({ sessions, presentBySession, lessons, names }) };
 }
-
-/** Month wrapper kept until the routes read periods (11-1 T5 removes it). */
-export const readCoachMonth = (store: PresenceStore, month: unknown): Promise<AdminResult<CoachRow[]>> => readCoachPeriod(store, { month });

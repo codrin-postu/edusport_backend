@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { coachesCsv, coachesCsvName } from '../coaches/csv';
 import { coachRows, hoursText } from '../coaches/hours';
-import { readCoachMonth, readCoachPeriod } from '../coaches/report';
+import { readCoachPeriod } from '../coaches/report';
 import { attendanceSeed, ok, withSavedClub } from './attendance-seed';
 
 const names = { 'tm-virgil': 'Virgil Pascu', 'tm-andreea': 'Andreea Pascu', 'tm-dan': 'Dan Toma' };
@@ -44,8 +44,8 @@ describe('Pe antrenori: hours and CSV', () => {
 
   it('reads the month from saved rows only', async () => {
     const f = withSavedClub(attendanceSeed());
-    expect(ok(await readCoachMonth(f.store, '2026-11'))).toEqual([{ coachId: 'tm-andreea', name: 'Andreea Pascu', sessions: 1, lessons: 0, minutes: 90, hours: '1,5' }]);
-    expect(ok(await readCoachMonth(f.store, '2026-10'))).toEqual([]);
-    expect((await readCoachMonth(f.store, 'x')).ok).toBe(false);
+    expect(ok(await readCoachPeriod(f.store, { month: '2026-11' }))).toEqual([{ coachId: 'tm-andreea', name: 'Andreea Pascu', sessions: 1, lessons: 0, minutes: 90, hours: '1,5' }]);
+    expect(ok(await readCoachPeriod(f.store, { month: '2026-10' }))).toEqual([]);
+    expect((await readCoachPeriod(f.store, { month: 'x' })).ok).toBe(false);
   });
 });
