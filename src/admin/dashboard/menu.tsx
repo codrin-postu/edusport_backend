@@ -10,6 +10,7 @@ import {
   REALIZARI_TO, EVENIMENTE_COLABORARE_TO, UID,
 } from '../pages/routes';
 import { OLD_EDITOR_PATH, SPORTIVI_PATH } from '../../club/sportivi/routes';
+import type { AdminArea } from '../../club/admin-area';
 import { GRUPE_PATH } from '../../club/grupe/routes';
 import { PREZENTA_PATH, ABONAMENTE_PATH, PLATI_PATH, DE_INCASAT_PATH } from '../../club/prezenta/routes';
 
@@ -45,6 +46,7 @@ export interface EdusportLink {
   group: Group;
   featured?: boolean; // shown in the dashboard "Scurtături" grid
   pinned?: boolean;   // shown at the top of the sidebar, next to Acasă
+  area?: AdminArea;   // role area; the shell ignores it until 6b
 }
 
 export const GROUP_LABEL: Record<Group, string> = {
