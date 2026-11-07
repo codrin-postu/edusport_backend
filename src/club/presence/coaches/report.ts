@@ -1,16 +1,16 @@
 import type { AdminResult } from '../../admin-result';
-import { PRESENCE_ERRORS } from '../copy/core';
-import { isMonth, monthRange } from '../dates';
+import { readPeriodQuery } from '../period';
 import type { PresenceStore } from '../store';
 import type { CoachRow } from '../attendance/api-types';
 import { rosterOn } from '../attendance/roster';
 import { presentCounts } from '../attendance/view';
 import { coachRows } from './hours';
 
-/** "Pe antrenori" of a month, from saved sessions and present lessons (4.3). */
-export async function readCoachMonth(store: PresenceStore, month: unknown): Promise<AdminResult<CoachRow[]>> {
-  if (!isMonth(month)) return { ok: false, status: 400, error: PRESENCE_ERRORS.invalid };
-  const { from, to } = monthRange(month);
+/** "Pe antrenori" of a period (`from` / `to` or `month`), from saved sessions and present lessons (4.3, P5 counting). */
+export async function readCoachPeriod(store: PresenceStore, query: Record<string, unknown>): Promise<AdminResult<CoachRow[]>> {
+  const period = readPeriodQuery(query);
+  if (period.ok === false) return period;
+  const { from, to } = period.value;
   const [sessions, lessons, team, memberships] = await Promise.all([
     store.sessions({ from, to }), store.lessons({ from, to }), store.teamMembers(), store.memberships(),
   ]);
@@ -22,3 +22,6 @@ export async function readCoachMonth(store: PresenceStore, month: unknown): Prom
   const names = Object.fromEntries(team.map((t) => [t.id, t.name]));
   return { ok: true, data: coachRows({ sessions, presentBySession, lessons, names }) };
 }
+
+/** Month wrapper kept until the routes read periods (11-1 T5 removes it). */
+export const readCoachMonth = (store: PresenceStore, month: unknown): Promise<AdminResult<CoachRow[]>> => readCoachPeriod(store, { month });

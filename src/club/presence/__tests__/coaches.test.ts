@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { coachesCsv, coachesCsvName } from '../coaches/csv';
 import { coachRows, hoursText } from '../coaches/hours';
-import { readCoachMonth } from '../coaches/report';
+import { readCoachMonth, readCoachPeriod } from '../coaches/report';
 import { attendanceSeed, ok, withSavedClub } from './attendance-seed';
 
 const names = { 'tm-virgil': 'Virgil Pascu', 'tm-andreea': 'Andreea Pascu', 'tm-dan': 'Dan Toma' };
@@ -31,6 +31,15 @@ describe('Pe antrenori: hours and CSV', () => {
     expect(coachesCsv(rows)).toBe('﻿Antrenor;Ședințe grup;Lecții individuale;Ore\r\nAndreea Pascu;1;0;1,5\r\nVirgil Pascu;2;1;3,2\r\n');
     expect(coachesCsv([{ ...rows[0], name: 'Pop; "Junior"' }])).toContain('"Pop; ""Junior""";1;0;1,5');
     expect(coachesCsvName('2026-11-01', '2026-11-30')).toBe('pe-antrenori-2026-11-01-2026-11-30.csv');
+  });
+
+  it('reads any period from saved rows; one day counts only that day; over 42 days is refused', async () => {
+    const f = withSavedClub(attendanceSeed());
+    const club = [{ coachId: 'tm-andreea', name: 'Andreea Pascu', sessions: 1, lessons: 0, minutes: 90, hours: '1,5' }];
+    expect(ok(await readCoachPeriod(f.store, { from: '2026-11-13', to: '2026-11-13' }))).toEqual(club);
+    expect(ok(await readCoachPeriod(f.store, { from: '2026-11-14', to: '2026-11-14' }))).toEqual([]);
+    expect(ok(await readCoachPeriod(f.store, { month: '2026-11' }))).toEqual(club);
+    expect(await readCoachPeriod(f.store, { from: '2026-11-01', to: '2026-12-31' })).toEqual({ ok: false, status: 400, error: 'Perioada e prea lungă.' });
   });
 
   it('reads the month from saved rows only', async () => {

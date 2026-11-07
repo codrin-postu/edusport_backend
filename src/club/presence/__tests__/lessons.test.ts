@@ -78,10 +78,24 @@ describe('individual lessons', () => {
     f.state.lessons.push(lessonRow({ id: 'l1', athleteId: 'a1', date: '2026-11-18', startTime: '18:00', state: 'planned' }),
       lessonRow({ id: 'l2', athleteId: 'a5', date: '2026-11-25', startTime: '09:00', state: 'planned' }),
       lessonRow({ id: 'l0', athleteId: 'a6', date: '2026-11-18', startTime: '10:00', state: 'saved', present: true, savedBy: 'Ana Admin', savedAt: '2026-11-18T09:00:00.000Z' }));
-    expect(ok(await listLessons(f.store, '2026-11', '2026-11-20')).map((l) => [l.lessonId, l.state])).toEqual([['l0', 'salvata'], ['l1', 'nefacuta'], ['l2', 'urmeaza']]);
+    expect(ok(await listLessons(f.store, { month: '2026-11' }, { date: '2026-11-20', time: '12:00' })).map((l) => [l.lessonId, l.state])).toEqual([['l0', 'salvata'], ['l1', 'nefacuta'], ['l2', 'urmeaza']]);
     expect(ok(await readLesson(f.store, 'l0'))).toMatchObject({ athleteName: 'Luca Marin', savedLine: 'Salvată de Ana Admin, 18 noi 2026 11:00', deletable: true });
     expect(ok(await newLessonDefaults(f.store, { athlete: 'a5', date: '2026-11-25' }))).toEqual({ coachIds: ['tm-andreea'] });
     expect(ok(await newLessonDefaults(f.store, { athlete: 'a9', date: '2026-11-25' }))).toEqual({ coachIds: [] });
+  });
+  it('lists a range with admin words; month is an alias (4.4)', async () => {
+    const f = attendanceSeed();
+    f.state.lessons.push(lessonRow({ id: 'l3', athleteId: 'a1', date: '2026-11-20', startTime: '18:00', state: 'planned' }),
+      lessonRow({ id: 'l4', athleteId: 'a5', date: '2026-11-25', startTime: '09:00', state: 'planned' }),
+      lessonRow({ id: 'l5', athleteId: 'a6', date: '2026-11-18', startTime: '10:00', state: 'saved', present: true }));
+    const week = ok(await listLessons(f.store, { from: '2026-11-16', to: '2026-11-22' }, { date: '2026-11-20', time: '19:00' }));
+    expect(week.map((l) => [l.lessonId, l.adminState])).toEqual([['l5', 'completat'], ['l3', 'necompletat']]);
+    expect(week[0].present).toBe(true);
+    const early = ok(await listLessons(f.store, { from: '2026-11-20', to: '2026-11-20' }, { date: '2026-11-20', time: '17:59' }));
+    expect(early.map((l) => l.adminState)).toEqual(['urmeaza']);
+    expect(ok(await listLessons(f.store, { month: '2026-11' }, { date: '2026-11-20', time: '19:00' })))
+      .toEqual(ok(await listLessons(f.store, { from: '2026-11-01', to: '2026-11-30' }, { date: '2026-11-20', time: '19:00' })));
+    expect(await listLessons(f.store, { from: '2026-11-01', to: '2026-12-31' }, { date: '2026-11-20', time: '19:00' })).toEqual({ ok: false, status: 400, error: 'Perioada e prea lungă.' });
   });
   it('refuses a bad lesson (5.5, decided 14)', async () => {
     const f = attendanceSeed();

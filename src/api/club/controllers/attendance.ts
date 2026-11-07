@@ -59,7 +59,7 @@ export default {
   },
 
   async lessons(ctx: AdminCtx) {
-    respond(ctx, await listLessons(store(), ctx.query.month, todayIso()));
+    respond(ctx, await listLessons(store(), ctx.query, bucharestNow(new Date())));
   },
 
   async lessonNew(ctx: AdminCtx) {
