@@ -1,0 +1,56 @@
+{
+  "kind": "collectionType",
+  "collectionName": "admin_devices",
+  "info": {
+    "singularName": "admin-device",
+    "pluralName": "admin-devices",
+    "displayName": "Admin / Dispozitiv"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    },
+    "content-type-builder": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "adminUserId": {
+      "type": "integer",
+      "required": true
+    },
+    "deviceKeyHash": {
+      "type": "string",
+      "required": true
+    },
+    "strapiDeviceId": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "column": {
+        "unique": true
+      }
+    },
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "firstSeenAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "lastSeenAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "twoFactorUntil": {
+      "type": "datetime"
+    },
+    "revokedAt": {
+      "type": "datetime"
+    }
+  }
+}

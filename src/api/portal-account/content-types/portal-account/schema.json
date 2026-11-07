@@ -66,6 +66,27 @@
     },
     "lastLoginAt": {
       "type": "datetime"
+    },
+    "webauthnUserId": {
+      "type": "string",
+      "unique": true,
+      "column": {
+        "unique": true
+      }
+    },
+    "lastMethod": {
+      "type": "enumeration",
+      "enum": [
+        "totp",
+        "email",
+        "backup"
+      ]
+    },
+    "passkeyOfferedAt": {
+      "type": "datetime"
+    },
+    "securityNotes": {
+      "type": "json"
     }
   }
 }

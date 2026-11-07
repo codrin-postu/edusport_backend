@@ -7,6 +7,7 @@ import { normalizeNavigationPages } from './api/navigation/services/pages';
 import { warnIfNoAdminSessions } from './club/admin-auth';
 import { startPersonalDataSweep } from './club/personal-data/http';
 import { ensurePresenceIndexes } from './club/presence/indexes';
+import { ensureSecurityIndexes } from './club/security/indexes';
 import { checkUpSettings } from './club/portal/up-settings';
 import { ensurePortalIndexes, subscribeTeamMemberHook } from './club/portal/accounts/team-member-hook';
 
@@ -434,6 +435,14 @@ export default {
       await ensurePortalIndexes(strapi.db.connection);
     } catch (e) {
       const message = `[portal] indexes: ${(e as { code?: string })?.code ?? 'unknown'}`;
+      strapi.log.error(message);
+      captureMessage(message);
+    }
+    // Phase 6b: one 2FA factor row per subject and kind.
+    try {
+      await ensureSecurityIndexes(strapi.db.connection);
+    } catch (e) {
+      const message = `[security] indexes: ${(e as { code?: string })?.code ?? 'unknown'}`;
       strapi.log.error(message);
       captureMessage(message);
     }

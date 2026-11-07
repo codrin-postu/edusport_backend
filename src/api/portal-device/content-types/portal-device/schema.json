@@ -42,6 +42,9 @@
     },
     "revokedAt": {
       "type": "datetime"
+    },
+    "twoFactorUntil": {
+      "type": "datetime"
     }
   }
 }

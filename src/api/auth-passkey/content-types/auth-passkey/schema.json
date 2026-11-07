@@ -1,0 +1,75 @@
+{
+  "kind": "collectionType",
+  "collectionName": "auth_passkeys",
+  "info": {
+    "singularName": "auth-passkey",
+    "pluralName": "auth-passkeys",
+    "displayName": "Securitate / Cheie de acces"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    },
+    "content-type-builder": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "subjectType": {
+      "type": "enumeration",
+      "enum": [
+        "portal",
+        "admin"
+      ],
+      "required": true
+    },
+    "subjectId": {
+      "type": "string",
+      "required": true
+    },
+    "credentialId": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "column": {
+        "unique": true
+      }
+    },
+    "publicKey": {
+      "type": "text",
+      "required": true
+    },
+    "counter": {
+      "type": "biginteger",
+      "default": 0
+    },
+    "transports": {
+      "type": "json"
+    },
+    "deviceType": {
+      "type": "enumeration",
+      "enum": [
+        "singleDevice",
+        "multiDevice"
+      ]
+    },
+    "backedUp": {
+      "type": "boolean"
+    },
+    "rpId": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 60,
+      "required": true
+    },
+    "lastUsedAt": {
+      "type": "datetime"
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "kind": "collectionType",
+  "collectionName": "auth_challenges",
+  "info": {
+    "singularName": "auth-challenge",
+    "pluralName": "auth-challenges",
+    "displayName": "Securitate / Provocare"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    },
+    "content-type-builder": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "purpose": {
+      "type": "enumeration",
+      "enum": [
+        "pending-login",
+        "email-code",
+        "reset-code",
+        "passkey-register",
+        "passkey-login"
+      ],
+      "required": true
+    },
+    "subjectType": {
+      "type": "enumeration",
+      "enum": [
+        "portal",
+        "admin"
+      ]
+    },
+    "subjectId": {
+      "type": "string"
+    },
+    "secretMac": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "column": {
+        "unique": true
+      }
+    },
+    "data": {
+      "type": "json"
+    },
+    "expiresAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "usedAt": {
+      "type": "datetime"
+    },
+    "tries": {
+      "type": "integer",
+      "default": 0
+    }
+  }
+}
