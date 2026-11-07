@@ -6,7 +6,6 @@ import { presenceContext } from '../../../club/presence/context';
 import { respondAction, todayIso } from '../../../club/groups/http';
 import { readAthleteMonth } from '../../../club/presence/attendance/athlete-month';
 import { checkNewSession, sessionDefaults } from '../../../club/presence/attendance/check';
-import { readDay } from '../../../club/presence/attendance/day';
 import { readGrid } from '../../../club/presence/attendance/grid';
 import { readPeriod } from '../../../club/presence/attendance/period';
 import { readGroupMonth } from '../../../club/presence/attendance/group-month';
@@ -27,10 +26,6 @@ const store = () => strapiPresenceStore(strapi);
 
 /** Attendance, lessons, coach hours and the group and athlete tabs (routes/09-attendance.ts). */
 export default {
-  async day(ctx: AdminCtx) {
-    respond(ctx, await readDay(store(), ctx.query.date, todayIso()));
-  },
-
   async defaults(ctx: AdminCtx) {
     respond(ctx, await sessionDefaults(store(), ctx.query));
   },

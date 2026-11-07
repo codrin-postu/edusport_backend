@@ -45,7 +45,7 @@ describe('09-attendance routes (6)', () => {
 
   it('are exactly the attendance routes', () => {
     expect(routes.map((r) => `${r.method} ${r.path}`)).toEqual([
-      'GET /club/attendance/day', 'GET /club/attendance/period', 'GET /club/attendance/grid', 'GET /club/attendance/session/defaults', 'POST /club/attendance/session/check', 'GET /club/attendance/session',
+      'GET /club/attendance/period', 'GET /club/attendance/grid', 'GET /club/attendance/session/defaults', 'POST /club/attendance/session/check', 'GET /club/attendance/session',
       'PUT /club/attendance/session', 'GET /club/attendance/coaches', 'GET /club/attendance/coaches.csv', 'GET /club/lessons', 'GET /club/lessons/new',
       'POST /club/lessons', 'GET /club/lessons/:documentId', 'PUT /club/lessons/:documentId', 'DELETE /club/lessons/:documentId',
       'GET /club/groups/:documentId/attendance', 'GET /club/athletes/:documentId/attendance']);

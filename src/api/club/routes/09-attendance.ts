@@ -8,7 +8,6 @@ const adminGuard = { auth: false, policies: ['global::is-admin'], middlewares: [
 
 export default {
   routes: [
-    { method: 'GET', path: '/club/attendance/day', handler: 'attendance.day', config: adminGuard },
     { method: 'GET', path: '/club/attendance/period', handler: 'attendance.period', config: adminRoute('club') },
     { method: 'GET', path: '/club/attendance/grid', handler: 'attendance.grid', config: adminRoute('club') },
     { method: 'GET', path: '/club/attendance/session/defaults', handler: 'attendance.defaults', config: adminGuard },
