@@ -63,3 +63,18 @@ export const HISTORY_DETAIL = {
   noSubscription: 'Fără abonament.',
   with: (names: string): string => `Cu ${names}`,
 } as const;
+
+/** "Abonament curent" and "Alte abonamente" cards on the athlete record (5.4.1). */
+export const CARD_COPY = {
+  current: 'Abonament curent', others: 'Alte abonamente', none: 'Fără abonament.', showDays: 'Vezi zilele', hideDays: 'Ascunde zilele',
+  unit: (n: number): string => `Ședința ${n}`,
+  states: { activ: 'Activ', epuizat: 'Epuizat', expirat: 'Expirat', anulat: 'Anulat' },
+} as const;
+
+/** "Prezențe" on the athlete record (5.4.2). */
+export const HISTORY_COPY = {
+  title: 'Prezențe', cols: ['Data', 'Grupă', 'Tip', 'Plată'], grup: 'Grup', individual: 'Individual', paid: 'Plătit', unpaid: 'Neplătit',
+  openSession: 'Deschide ședința', openLesson: 'Deschide lecția',
+  with: HISTORY_DETAIL.with,
+  empty: (season: string): string => `Nicio prezență în sezonul ${season}.`,
+} as const;
