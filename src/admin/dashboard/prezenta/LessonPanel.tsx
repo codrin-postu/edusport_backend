@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
 import { Button, Checkbox, Field, Loading, Notice, Select, adminToast } from '../../ui';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import type { LessonPanel as LessonData } from '../../../club/presence/attendance/api-types';
@@ -12,7 +11,7 @@ import { coachIdsOf, type CoachFields as CoachValue } from '../../../club/prezen
 import { PanelShell } from '../grupe/PanelShell';
 import { usePrezentaApi, type PrezentaApi } from './api';
 import { CoachFields, useCoachOptions } from './CoachFields';
-import { AthleteLink, CoachLinks } from './PanelLinks';
+import { AthleteLink, CoachLinks, useFollow, type Follow } from './PanelLinks';
 import { LessonMoneyMenu } from './RowMoneyMenu';
 import { runOnce } from '../bani/useSubmitOnce';
 import { failToast, prezentaChanged, undoToast } from './undo';
@@ -79,9 +78,9 @@ function useActions(api: PrezentaApi, id: string, draft: Draft | null, onClose: 
   return { busy, coachError, save, remove };
 }
 
-type BodyProps = { lesson: LessonData; draft: Draft; busy: boolean; from: string; coachError: string | null; options: { documentId: string; name: string }[]; onDraft: (d: Draft) => void; onDelete: () => void };
+type BodyProps = { lesson: LessonData; draft: Draft; busy: boolean; follow: Follow; coachError: string | null; options: { documentId: string; name: string }[]; onDraft: (d: Draft) => void; onDelete: () => void };
 
-function LessonBody({ lesson, draft, busy, from, coachError, options, onDraft, onDelete }: BodyProps) {
+function LessonBody({ lesson, draft, busy, follow, coachError, options, onDraft, onDelete }: BodyProps) {
   return (
     <div className="pz-form">
       <p className="pz-sheet-sub">{longDayTitle(lesson.date)}</p>
@@ -89,7 +88,7 @@ function LessonBody({ lesson, draft, busy, from, coachError, options, onDraft, o
         <Checkbox checked={draft.present} disabled={busy} label={<AthleteLink id={lesson.athleteId} name={lesson.athleteName} />} onChange={() => onDraft({ ...draft, present: !draft.present })} />
         <LessonMoneyMenu lesson={lesson} />
       </div>
-      <CoachLinks coaches={lesson.coachIds.flatMap((id) => options.filter((o) => o.documentId === id).map((o) => ({ id, name: o.name })))} date={lesson.date} from={from} />
+      <CoachLinks coaches={lesson.coachIds.flatMap((id) => options.filter((o) => o.documentId === id).map((o) => ({ id, name: o.name })))} date={lesson.date} follow={follow} />
       <CoachFields label={PREZENTA_COPY.coach} value={draft.coaches} options={options} disabled={busy} error={coachError} onChange={(coaches) => onDraft({ ...draft, coaches })} />
       <Field label={PREZENTA_COPY.colDuration}>
         <Select value={draft.duration} options={durationOptions()} disabled={busy} onChange={(duration) => onDraft({ ...draft, duration })} />
@@ -105,11 +104,12 @@ function LessonBody({ lesson, draft, busy, from, coachError, options, onDraft, o
 /** The lesson panel (5.5): the athlete's tick, coach, duration; delete only when allowed, with a confirmation and an undo. */
 export function LessonPanel({ id, onClose }: Props) {
   const api = usePrezentaApi();
-  const location = useLocation();
   const { lesson, draft, setDraft, failed } = useLesson(api, id);
   const { coaches: options, failed: coachesFailed } = useCoachOptions(api);
   const { busy, coachError, save, remove } = useActions(api, id, draft, onClose);
   const [confirm, setConfirm] = React.useState(false);
+  const dirty = !!(lesson && draft && JSON.stringify(startOf(lesson)) !== JSON.stringify(draft));
+  const { follow, dialog: followDialog } = useFollow(dirty, busy, onClose);
   const footer = (
     <div className="pz-foot">
       <Button variant="ghost" disabled={busy} onClick={onClose}>{PREZENTA_COPY.close}</Button>
@@ -122,9 +122,10 @@ export function LessonPanel({ id, onClose }: Props) {
         {(failed || coachesFailed) && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
         {!failed && !(lesson && draft) && <Loading />}
         {lesson && draft && (
-          <LessonBody lesson={lesson} draft={draft} busy={busy} from={`${location.pathname}${location.search}`} coachError={coachError} options={options} onDraft={setDraft} onDelete={() => setConfirm(true)} />
+          <LessonBody lesson={lesson} draft={draft} busy={busy} follow={follow} coachError={coachError} options={options} onDraft={setDraft} onDelete={() => setConfirm(true)} />
         )}
       </PanelShell>
+      {followDialog}
       {lesson && (
         <ConfirmDialog
           open={confirm} title={LESSON_COPY.deleteConfirm(lesson.date)} message={null} confirmLabel={LESSON_COPY.deleteLink} cancelLabel={PREZENTA_COPY.giveUp}

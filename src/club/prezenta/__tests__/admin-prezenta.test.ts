@@ -98,7 +98,7 @@ it('Ședință nouă: fields, check and the warning (5.4, 4.5)', () => {
 
 it('panel: title, coaches, table by section, visitor, footer, saved line, Istoric (5.3)', () => {
   const p = src('dashboard/prezenta/SessionPanel.tsx');
-  for (const f of ['panelTitle(', 'longDayTitle(', 'columnsFor(', 'footerText(', 'savedLine', 'initialTicks(', 'saveBody(']) expect(p, f).toContain(f);
+  for (const f of ['panelTitleSuffix(', 'longDayTitle(', 'columnsFor(', 'footerText(', 'savedLine', 'initialTicks(', 'saveBody(']) expect(p, f).toContain(f);
   for (const k of ['addVisitor', 'close', 'save', 'history']) expect(p, k).toContain(`PREZENTA_COPY.${k}`);
   expect(p).toContain("hideStatus={['anonimizat']}");
   expect(p).toContain('PRESENCE_WORDS.outsideSchedule');
@@ -232,10 +232,25 @@ it('the panels link coaches, the group and athletes (11-2 T4, S36, S43, S44)', (
   expect(athleteLink).toContain('rel="noopener"');
   expect(coachLinks).not.toMatch(/target=|rel=/);
   expect(coachLinks).toContain('coachPageTo(');
-  expect(coachLinks).toContain('state={{ from }}');
+  expect(coachLinks).toContain('<FollowLink');
   expect(links).toContain('PANEL_LINKS.coaches');
   expect(src('dashboard/prezenta/api.ts')).toMatch(/athlete/);
   for (const f of ['SessionPanel.tsx', 'LessonPanel.tsx', 'PanelLinks.tsx', 'styles.ts']) expect(src(`dashboard/prezenta/${f}`), f).not.toMatch(/dashed|dotted/);
+});
+
+it('same-tab panel links go through the unsaved-changes guard (11-2 final F1, F2)', () => {
+  const links = src('dashboard/prezenta/PanelLinks.tsx');
+  expect(links).toContain('e.preventDefault()');
+  expect(links).toContain('if (dirty) setPending(to)');
+  expect(links).toContain('location.state');
+  for (const f of ['SessionPanel.tsx', 'LessonPanel.tsx']) {
+    const p = src(`dashboard/prezenta/${f}`);
+    expect(p, f).toContain('useFollow(dirty');
+    expect(p, f).toContain('{followDialog}');
+    expect(p, f).not.toMatch(/<Link\b/);
+  }
+  expect(src('dashboard/prezenta/SessionPanel.tsx')).toContain('<FollowLink className="pz-link"');
+  expect(src('dashboard/prezenta/CoachPage.tsx')).toMatch(/\{!error && \(\s*<div className="pz-bar">/);
 });
 
 it('the coach page (11-2 T5, 5.3): segmented picker, tiles, header, CSV, back, no tabs', () => {
