@@ -250,7 +250,7 @@ function jobs(strapi: Core.Strapi): Keys<'createPaymentEmailJob' | 'cancelPaymen
 }
 
 /** One upsert per number: the `ON CONFLICT DO UPDATE` row lock is the only serialisation between concurrent creates (as the portal `lockLimit`). */
-function counters(strapi: Core.Strapi, scope: Scope): Keys<'nextCounter' | 'raiseCounter' | 'counterValue'> {
+export function strapiCounters(strapi: Core.Strapi, scope: Scope): Keys<'nextCounter' | 'raiseCounter' | 'counterValue'> {
   const upsert = async (key: string, initial: number, merged: Knex.Raw): Promise<number> => {
     const trx = scope.current();
     if (!trx) throw new Error('counter taken outside a transaction');
@@ -296,6 +296,6 @@ export function strapiPresenceStore(strapi: Core.Strapi): PresenceStore {
     lockSubscription: (id) => scope.lockRow('club_subscriptions', id),
     lockPayment: (id) => scope.lockRow('club_payments', id),
     ...lookups(strapi), ...sessionRows(strapi), ...attendanceRows(strapi), ...lessonRows(strapi), ...subscriptionRows(strapi), ...paymentRows(strapi), ...jobs(strapi),
-    ...counters(strapi, scope),
+    ...strapiCounters(strapi, scope),
   };
 }
