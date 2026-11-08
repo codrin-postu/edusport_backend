@@ -22,4 +22,4 @@ export const READY_MADE: SavedViewRow[] = [
 
 /** The ready-made views for a real season id. */
 export const readyMadeFor = (seasonId: string): SavedViewRow[] =>
-  READY_MADE.map((v) => ({ ...v, definition: { ...v.definition, scope: { ...v.definition.scope, seasonId } } }));
+  READY_MADE.map((v) => (v.definition ? { ...v, definition: { ...v.definition, scope: { ...v.definition.scope, seasonId } } } : v));

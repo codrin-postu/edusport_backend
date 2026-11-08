@@ -1,15 +1,16 @@
 import type { useFetchClient } from '@strapi/admin/strapi-admin';
-import { fileNameFrom } from '../../../club/registration-panel';
+import { fileNameFrom, requestErrorText } from '../../../club/registration-panel';
 
 type Get = ReturnType<typeof useFetchClient>['get'];
+type Post = ReturnType<typeof useFetchClient>['post'];
+type Saved = { data: Blob; headers?: { get(name: string): string | null } | null };
 
 /** Admin PDF routes of plan 2D. */
 export const registrationDocumentUrl = (documentId: string, kind: string) => `/api/club/registrations/${documentId}/documents/${kind}`;
 export const blankFormUrl = (kind: string) => `/api/club/documents/blank/${kind}`;
 
-/** Fetches a PDF with the admin token and saves it under the server's file name. */
-export async function downloadPdf(get: Get, url: string, fallbackName: string): Promise<void> {
-  const r = await get(url, { responseType: 'blob' });
+/** Saves a fetched blob under the server's file name. */
+function saveBlob(r: Saved, fallbackName: string): void {
   const a = document.createElement('a');
   const href = URL.createObjectURL(r.data);
   a.href = href;
@@ -19,6 +20,27 @@ export async function downloadPdf(get: Get, url: string, fallbackName: string): 
   a.remove();
   // Revoked on the next tick: some Safari and Firefox versions cancel a download whose URL is revoked at once.
   setTimeout(() => URL.revokeObjectURL(href), 0);
+}
+
+/** Fetches a PDF with the admin token and saves it under the server's file name. */
+export async function downloadPdf(get: Get, url: string, fallbackName: string): Promise<void> {
+  saveBlob(await get(url, { responseType: 'blob' }), fallbackName);
+}
+
+/** A file made from a request body (the tables' .xlsx and .csv): POST with the admin token, saved under the server's file name. */
+export async function downloadPost(post: Post, url: string, body: unknown, fallbackName: string): Promise<void> {
+  saveBlob(await post(url, body, { responseType: 'blob' }), fallbackName);
+}
+
+/** The server's message of a failed blob request: its error body is a blob too, read as JSON; the fallback when it has none. */
+export async function blobErrorText(err: unknown, fallback: string): Promise<string> {
+  const data = (err as { response?: { data?: unknown } } | null)?.response?.data;
+  if (!(typeof Blob !== 'undefined' && data instanceof Blob)) return requestErrorText(err, fallback);
+  try {
+    return requestErrorText({ response: { data: JSON.parse(await data.text()) } }, fallback);
+  } catch {
+    return fallback;
+  }
 }
 
 /**

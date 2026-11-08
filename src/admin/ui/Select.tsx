@@ -3,12 +3,16 @@ import { cx } from './cx';
 import { useFieldControl, type FieldAria } from './Field';
 import { Popover } from './Popover';
 import { IconCheck, IconChevronDown } from './icons';
-import { edgeIndex, scrollTopFor, selectKeyAction, typeaheadIndex } from '../../club/ui-select';
+import { edgeIndex, groupHeaderAt, scrollTopFor, selectKeyAction, typeaheadIndex } from '../../club/ui-select';
 
 export interface SelectOption {
   value: string;
   label: string;
   disabled?: boolean;
+  /** Heading shown above the first option of each run of options with the same group (like SearchableSelect). */
+  group?: string;
+  /** Muted text at the end of the row in the open list (an author, a kind); the button shows only the label. */
+  hint?: string;
 }
 
 export interface SelectProps extends FieldAria {
@@ -176,22 +180,29 @@ function SelectList({ rows, value, list, listId, anchorRef, disabled }: ListProp
       popoverProps={{ onMouseDown: (e) => e.preventDefault() }}
     >
       {rows.map((r, i) => (
-        <div
-          key={`${i}-${r.value}`}
-          id={`${listId}-${i}`}
-          role="option"
-          aria-selected={r.value === value}
-          aria-disabled={r.disabled || undefined}
-          className="ui-opt ui-sel-opt"
-          data-active={i === list.active || undefined}
-          onMouseEnter={() => list.setActive(i)}
-          onClick={() => list.choose(i)}
-        >
-          <span className="ui-sel-tick" aria-hidden="true">
-            {r.value === value && <IconCheck size={12} />}
-          </span>
-          <span>{r.label}</span>
-        </div>
+        <React.Fragment key={`${i}-${r.value}`}>
+          {groupHeaderAt(rows, i) !== null && (
+            <div className="ui-opt-group" role="presentation">
+              {r.group}
+            </div>
+          )}
+          <div
+            id={`${listId}-${i}`}
+            role="option"
+            aria-selected={r.value === value}
+            aria-disabled={r.disabled || undefined}
+            className="ui-opt ui-sel-opt"
+            data-active={i === list.active || undefined}
+            onMouseEnter={() => list.setActive(i)}
+            onClick={() => list.choose(i)}
+          >
+            <span className="ui-sel-tick" aria-hidden="true">
+              {r.value === value && <IconCheck size={12} />}
+            </span>
+            <span>{r.label}</span>
+            {r.hint && <span className="ui-sel-hint">{r.hint}</span>}
+          </div>
+        </React.Fragment>
       ))}
     </Popover>
   );

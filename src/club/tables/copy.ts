@@ -57,6 +57,21 @@ export const TABLES_COPY = {
   deleted: VIEWS.deleted,
   undo: 'Anulează',
   empty: 'Niciun rând pentru alegerile astea.',
+  /** Shown for a saved view whose stored definition cannot be repaired. It can only be deleted. */
+  brokenView: `${COPY_NEEDED} (broken view)`,
+  /** Accessible names of the column reorder controls (same wording as the other reorderable lists). */
+  move: (n: string): string => `Mută ${n}`,
+  moveUp: (n: string): string => `Mută ${n} mai sus`,
+  moveDown: (n: string): string => `Mută ${n} mai jos`,
+  /** Names of the filter operators in the builder. */
+  ops: {
+    eq: '=',
+    gt: '>',
+    lt: '<',
+    in: `${COPY_NEEDED} (op in)`,
+    empty: `${COPY_NEEDED} (op empty)`,
+    notEmpty: `${COPY_NEEDED} (op not empty)`,
+  },
   errors: {
     tooMany: 'Tabelul are peste 5.000 de rânduri. Restrânge sfera sau filtrele.',
     tooSlow: 'Tabelul durează prea mult. Restrânge sfera.',

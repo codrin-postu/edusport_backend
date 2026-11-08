@@ -4,7 +4,8 @@ import { byGroupOrder, orderedSections, sectionLabel } from '../groups/sections'
 import type { SeasonRecord } from '../groups/types';
 import { PRESENCE_ERRORS } from '../presence/copy/core';
 import type { PresenceStore } from '../presence/store';
-import { CATALOG, GROUP_LABELS, type CatalogSubject } from './catalog';
+import type { CatalogAnswer } from './catalog-api';
+import { CATALOG, GROUP_LABELS } from './catalog';
 import { TABLES_COPY } from './copy';
 import { readDefinition, repairDefinition } from './definition';
 import type { Budget } from './limit';
@@ -16,7 +17,7 @@ import { platiRows } from './rows-plati';
 import { prezentaRows } from './rows-prezenta';
 import { sportiviRows } from './rows-sportivi';
 import { loadSources } from './sources';
-import type { SavedViewRow, Subject, TableDefinition, TableResult, TableRow } from './types';
+import type { TableDefinition, TableResult, TableRow } from './types';
 
 /** Until the xlsx writer lands (Task 2) a .xlsx download answers 501 with this text. COPY NEEDED: the user gives the copy. */
 export const TABLES_NO_XLSX = TABLES_COPY.errors.xlsxUnavailable;
@@ -83,18 +84,6 @@ export function readExportRequest(body: unknown): AdminResult<ExportRequest> {
   if (keys.some((k) => k !== 'definition' && k !== 'format') || (body.format !== 'xlsx' && body.format !== 'csv') || !readDefinition(body).ok) return invalid;
   return { ok: true, data: { definition: body.definition, format: body.format } };
 }
-
-export type CatalogAnswer = {
-  subjects: Record<Subject, CatalogSubject>;
-  groupLabels: typeof GROUP_LABELS;
-  seasons: { id: string; label: string; startMonth: string; endMonth: string; isCurrent: boolean }[];
-  sections: { id: string; name: string }[];
-  groups: { id: string; name: string; sectionId: string | null; active: boolean }[];
-  readyMade: SavedViewRow[];
-  defaultViewId: string;
-  today: string;
-  maxRows: number;
-};
 
 /** What the builder offers: the catalog, the scope choices and the ready-made views for the current season. */
 export async function readCatalog(store: PresenceStore, today: string): Promise<CatalogAnswer> {
