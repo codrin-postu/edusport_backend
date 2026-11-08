@@ -48,6 +48,30 @@ export type AdminUserService = {
 
 export const adminUserService = (strapi: Core.Strapi): AdminUserService => (strapi as unknown as { service: (uid: string) => AdminUserService }).service(USER);
 
+export type InviteRow = { id: number; email: string; firstname: string | null; lastname: string | null; blocked: boolean | null; createdAt: number | null };
+
+/** The not yet accepted invite of a registration token, read from the table (Strapi's `findRegistrationInfo` drops `createdAt` and `blocked`). */
+export async function inviteByToken(strapi: Core.Strapi, registrationToken: string): Promise<InviteRow | null> {
+  const raw = (await strapi.db.query(USER).findOne({ where: { registrationToken } })) as Raw | null;
+  if (!raw) return null;
+  const created = raw.createdAt === undefined || raw.createdAt === null ? NaN : new Date(raw.createdAt as string | Date).getTime();
+  return {
+    id: Number(raw.id), email: String(raw.email), firstname: text(raw.firstname), lastname: text(raw.lastname),
+    blocked: typeof raw.blocked === 'boolean' ? raw.blocked : null, createdAt: Number.isNaN(created) ? null : created,
+  };
+}
+
+/** Claims an invite token: clears it only while it still holds `registrationToken`, and tells whether this call did (row count 1). */
+export async function claimInviteToken(strapi: Core.Strapi, id: number, registrationToken: string): Promise<boolean> {
+  const out = (await strapi.db.query(USER).updateMany({ where: { id, registrationToken }, data: { registrationToken: null } })) as { count?: number };
+  return out.count === 1;
+}
+
+/** Puts a claimed token back (only when the registration that followed the claim failed). */
+export async function restoreInviteToken(strapi: Core.Strapi, id: number, registrationToken: string): Promise<void> {
+  await strapi.db.query(USER).updateMany({ where: { id, registrationToken: null }, data: { registrationToken } });
+}
+
 /** Every admin, oldest first (the Administratori list). */
 export async function allAdmins(strapi: Core.Strapi): Promise<AdminRow[]> {
   const rows = (await strapi.db.query(USER).findMany({ orderBy: { id: 'asc' }, populate: ['roles'] })) as Raw[];

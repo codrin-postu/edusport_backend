@@ -4,7 +4,8 @@ import type { PortalResult } from '../portal/auth/context';
 import { PORTAL_ERRORS } from '../portal/copy';
 import { checkPassword } from '../portal/passwords';
 import type { AdminHandoff } from '../security/api-types';
-import { adminById, adminUserService, canEnterAdmin, type AdminRow } from './admins';
+import { INVITE_TTL_MS } from '../portal/tokens';
+import { adminById, canEnterAdmin, claimInviteToken, adminUserService, inviteByToken, restoreInviteToken, type AdminRow, type InviteRow } from './admins';
 import type { AdminLoginContext } from './context';
 import { finishAdminLogin } from './login';
 
@@ -21,32 +22,42 @@ const tokenOf = (body: unknown): string | null => {
   return typeof t === 'string' && t !== '' && t.length <= TOKEN_MAX ? t : null;
 };
 
-/** The e-mail an invite is for (Strapi's own registration info, read only), or `expired` for an unknown or used token. Counts on the IP rule. */
+/**
+ * The invite of a token while it can still be accepted: it exists, it is younger than `INVITE_TTL_MS` (from the user row's `createdAt`,
+ * decided by Claude: Strapi's token has no lifetime) and the user was not blocked before accepting. Null otherwise.
+ */
+export async function openInvite(c: AdminLoginContext, token: string): Promise<InviteRow | null> {
+  const row = await inviteByToken(c.strapi, token);
+  if (!row || row.blocked === true || row.createdAt === null) return null;
+  return c.now().getTime() - row.createdAt > INVITE_TTL_MS ? null : row;
+}
+
+/** The e-mail an invite is for, or `expired` for an unknown, used, stale or blocked one. Counts on the IP rule. */
 export async function readAdminInvite(c: AdminLoginContext, body: unknown): Promise<PortalResult<InviteRead>> {
   const token = tokenOf(body);
   if (token === null) return refuse(400, PORTAL_ERRORS.invalid);
   if (await c.limits.ipBlocked(c.ip)) return paused;
-  const info = await adminUserService(c.strapi).findRegistrationInfo(token);
+  const info = await openInvite(c, token);
   return { ok: true, data: info ? { state: 'valid', email: info.email } : { state: 'expired', email: null } };
 }
 
-const isValidationError = (err: unknown): boolean => err instanceof Error && err.name === 'ValidationError';
-
 /**
- * Registers the invited admin through Strapi's `admin::user` service (it hashes the password and clears the token). A used or unknown token
- * is null, also when a parallel accept won; any other failure is thrown.
+ * Registers the invited admin. The token is claimed first with a conditional update (row count 1), so of parallel accepts exactly one goes
+ * on; then the `admin::user` service writes the password (it hashes), the names and `isActive`, as its own `register` does. A used, unknown,
+ * stale or blocked invite is null, also when a parallel accept won; any other failure is thrown and gives the token back.
  */
 export async function registerInvited(c: AdminLoginContext, registrationToken: string, password: string): Promise<AdminRow | null> {
-  const service = adminUserService(c.strapi);
-  const info = await service.findRegistrationInfo(registrationToken);
-  if (!info) return null;
+  const info = await openInvite(c, registrationToken);
+  if (!info || !(await claimInviteToken(c.strapi, info.id, registrationToken))) return null;
   try {
-    const user = await service.register({ registrationToken, userInfo: { firstname: info.firstname, lastname: info.lastname, password } });
-    return await adminById(c.strapi, user.id);
+    await adminUserService(c.strapi).updateById(info.id, {
+      password, ...(info.firstname !== null ? { firstname: info.firstname } : {}), ...(info.lastname !== null ? { lastname: info.lastname } : {}), isActive: true,
+    });
   } catch (err) {
-    if (isValidationError(err)) return null;
+    await restoreInviteToken(c.strapi, info.id, registrationToken);
     throw err;
   }
+  return adminById(c.strapi, info.id);
 }
 
 /** A random 64-character password for a Google accept; the admin can replace it by a reset. */
@@ -63,7 +74,7 @@ export async function acceptAdminInvite(c: AdminLoginContext, body: unknown): Pr
   if (await c.limits.ipBlocked(c.ip)) return paused;
   const early = checkPassword(password, '', c.common);
   if (early !== null) return refuse(400, early);
-  const info = await adminUserService(c.strapi).findRegistrationInfo(token);
+  const info = await openInvite(c, token);
   if (!info) return expired;
   const rule = checkPassword(password, info.email, c.common);
   if (rule !== null) return refuse(400, rule);

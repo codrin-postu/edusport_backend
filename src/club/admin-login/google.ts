@@ -2,9 +2,9 @@ import { createHash, randomBytes } from 'node:crypto';
 import { exchangeCode, googleClient, verifyIdToken, type GoogleClient, type GoogleIdentity } from '../portal/auth/google';
 import { hashSecret, sameHash } from '../portal/tokens';
 import { SECURITY_ACTIONS } from '../security/copy';
-import { adminByEmail, adminById, adminUserService, canEnterAdmin, type AdminRow } from './admins';
+import { adminByEmail, adminById, adminName, canEnterAdmin, type AdminRow } from './admins';
 import { adminOrigin, type AdminLoginContext } from './context';
-import { randomPassword, registerInvited } from './invite';
+import { openInvite, randomPassword, registerInvited } from './invite';
 import { finishAdminLogin } from './login';
 
 /** Spec 4.6: the 10-minute cookie with state, nonce and PKCE verifier; its path is the callback's, so no other request carries it. */
@@ -17,6 +17,8 @@ const FAILED = '/intrare?eroare=google';
 const FAILED_INVITE = '/intrare/invitatie?eroare=google';
 /** Strapi's own name for the access-token cookie (not HttpOnly: the page script moves it, as Strapi's SSO page does). */
 const JWT_COOKIE = 'jwtToken';
+/** The page script (T16) reads the cookie and deletes it at once; whatever it leaves behind is gone after a minute. */
+const JWT_COOKIE_MS = 60_000;
 
 type Flow = { state: string; nonce: string; verifier: string; remember: boolean; registrationToken: string | null };
 type Query = Record<string, unknown>;
@@ -57,7 +59,7 @@ const sameEmail = (a: string, b: string): boolean => a.trim().toLowerCase() === 
 async function linkSub(c: AdminLoginContext, admin: AdminRow, sub: string): Promise<void> {
   const account = await c.store.ensureAdminAccount(admin.id);
   await c.store.updateAdminAccount(account.id, { googleSub: sub });
-  await c.store.record({ subjectType: 'admin', subjectId: String(admin.id), action: SECURITY_ACTIONS.googleLinked, changes: {}, actor: 'sistem' });
+  await c.store.record({ subjectType: 'admin', subjectId: String(admin.id), action: SECURITY_ACTIONS.googleLinked, changes: {}, actor: adminName(admin) });
 }
 
 /** The admin of a Google identity: the account that holds the sub, or the one of the same e-mail that holds none (then the sub is stored). Never creates one. */
@@ -75,7 +77,7 @@ async function adminOfGoogle(c: AdminLoginContext, who: GoogleIdentity): Promise
 
 /** An invite accepted with Google: the Google e-mail must be the invited one, the sub must be free; the admin is registered with a random password. */
 async function adminOfInvite(c: AdminLoginContext, who: GoogleIdentity, registrationToken: string): Promise<AdminRow | null> {
-  const info = await adminUserService(c.strapi).findRegistrationInfo(registrationToken);
+  const info = await openInvite(c, registrationToken);
   if (!info || !sameEmail(info.email, who.email) || (await c.store.adminAccountByGoogleSub(who.sub))) return null;
   const admin = await registerInvited(c, registrationToken, randomPassword());
   if (!canEnterAdmin(admin)) return null;
@@ -109,7 +111,7 @@ export async function adminGoogleCallback(c: AdminLoginContext, query: Query, g:
     const admin = await enter(c, flow, g, code);
     if (!admin) return failure(flow);
     const handoff = await finishAdminLogin(c, admin, flow.remember, { newDeviceMail: true, passkey: true });
-    c.koa.cookies.set(JWT_COOKIE, handoff.accessToken, { httpOnly: false, sameSite: 'lax', secure: c.secure, path: '/', overwrite: true });
+    c.koa.cookies.set(JWT_COOKIE, handoff.accessToken, { httpOnly: false, sameSite: 'lax', secure: c.secure, path: '/', overwrite: true, maxAge: JWT_COOKIE_MS });
     return { redirect: `/intrare/gata?remember=${flow.remember ? '1' : '0'}` };
   } catch (err) {
     c.log(`[admin-google] failed: ${err instanceof Error ? err.name : 'error'}`);

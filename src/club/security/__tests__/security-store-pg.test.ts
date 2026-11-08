@@ -3,6 +3,7 @@ import type { Core } from '@strapi/strapi';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { adminLimits, type AdminLoginContext } from '../../admin-login/context';
 import { loginAdmin } from '../../admin-login/login';
+import { registerInvited } from '../../admin-login/invite';
 import { limiter } from '../../portal/auth/limit';
 import { strapiPortalStore } from '../../portal/strapi-store';
 import type { SecurityContext } from '../context';
@@ -148,6 +149,24 @@ describe.skipIf(!url)('strapiSecurityStore on Postgres', () => {
       expect(results.filter((r) => r.ok === false && r.status === 401)).toHaveLength(4);
       expect(results.filter((r) => r.ok === false && r.status === 429)).toHaveLength(4);
       expect(mails.filter((k) => k === 'lockout')).toHaveLength(1);
+    });
+  });
+
+  describe('invite accept (B4 M2)', () => {
+    it('10 parallel accepts of one registration token: exactly one wins, the token is cleared, one password is stored', async () => {
+      const token = `inv-${run}-${Math.random().toString(36).slice(2)}`;
+      const users = strapi.db.query('admin::user');
+      const row = (await users.create({ data: { email: `inv-${run}@x.ro`, firstname: 'Nou', lastname: 'Venit', isActive: false, registrationToken: token, blocked: false } })) as { id: number };
+      const c = { strapi, now: () => new Date() } as unknown as AdminLoginContext;
+      try {
+        const out = await Promise.all(Array.from({ length: 10 }, (_, i) => registerInvited(c, token, `Parola-Lunga-${i}-2026`)));
+        expect(out.filter((r) => r !== null)).toHaveLength(1);
+        const after = (await users.findOne({ where: { id: row.id } })) as { registrationToken: string | null; isActive: boolean; password: string };
+        expect(after).toMatchObject({ registrationToken: null, isActive: true });
+        expect(after.password).toMatch(/^\$2[aby]\$/);
+      } finally {
+        await users.delete({ where: { id: row.id } });
+      }
     });
   });
 });

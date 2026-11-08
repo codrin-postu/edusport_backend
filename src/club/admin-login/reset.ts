@@ -104,11 +104,10 @@ export async function confirmAdminReset(c: AdminLoginContext, body: unknown): Pr
   if (rule !== null) return refuse(400, rule);
   const gate = keysOrRefusal(c);
   if ('refusal' in gate) return gate.refusal;
+  // One bcrypt compare on every path (M1), so the time does not tell a known e-mail from an unknown one.
+  await c.compare(read.password, DUMMY_HASH);
   const admin = await adminByEmail(c.strapi, read.email);
-  if (!canEnterAdmin(admin)) {
-    await c.compare(read.password, DUMMY_HASH);
-    return badCode;
-  }
+  if (!canEnterAdmin(admin)) return badCode;
   const s = subjectOf(admin.id);
   if (!(await codeIsRight(c, gate.keys, s, read.code))) return badCode;
   await adminUserService(c.strapi).updateById(admin.id, { password: read.password });

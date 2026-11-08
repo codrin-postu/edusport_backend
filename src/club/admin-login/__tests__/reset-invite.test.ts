@@ -149,12 +149,16 @@ describe('confirmAdminReset', () => {
     expect(await env.confirm(code, { email: 'ana@x.ro', password: 'ANA@X.RO'.padEnd(10, 'x') })).toMatchObject({ ok: true });
   });
 
-  it('an unknown, inactive or blocked e-mail is the bad code answer, after one compare', async () => {
+  it('the compare count is the same on every path: unknown, inactive, blocked and known with a wrong code (M1)', async () => {
     const env = resetEnv();
-    for (const [i, email] of ['nobody@x.ro', 'off@x.ro', 'blocked@x.ro'].entries()) {
-      expect(await env.confirm('123456', { email })).toEqual(BAD_CODE);
-      expect(env.compare).toHaveBeenCalledTimes(i + 1);
+    await env.request();
+    const counts: number[] = [];
+    for (const email of ['nobody@x.ro', 'off@x.ro', 'blocked@x.ro', EMAIL]) {
+      const before = env.compare.mock.calls.length;
+      expect(await env.confirm(wrongCodeOf(env.lastCode()), { email })).toEqual(BAD_CODE);
+      counts.push(env.compare.mock.calls.length - before);
     }
+    expect(counts).toEqual([1, 1, 1, 1]);
   });
 
   it('an admin blocked after the code was sent cannot use it', async () => {
@@ -213,10 +217,12 @@ describe('invite', () => {
 
   it('accept: registers with the names the invite holds, logs in, sends no new-device mail; the second accept is 410', async () => {
     const env = inviteEnv();
-    const spy = vi.spyOn(env.userService, 'register');
+    const spy = vi.spyOn(env.userService, 'updateById');
+    const register = vi.spyOn(env.userService, 'register');
     const out = await env.accept('tok-1');
     expect(out).toEqual({ ok: true, data: { accessToken: expect.any(String), remember: false, offerPasskey: false } });
-    expect(spy).toHaveBeenCalledWith({ registrationToken: 'tok-1', userInfo: { firstname: 'Nou', lastname: 'Venit', password: NEW_PASSWORD } });
+    expect(spy).toHaveBeenCalledWith(20, { password: NEW_PASSWORD, firstname: 'Nou', lastname: 'Venit', isActive: true });
+    expect(register).not.toHaveBeenCalled();
     expect(env.admins[0]).toMatchObject({ isActive: true, registrationToken: null, password: `hash:${NEW_PASSWORD}` });
     await env.flush();
     expect(env.portalMails).toEqual([]);
@@ -226,8 +232,8 @@ describe('invite', () => {
 
   it('accept: the password rules answer first, before the token is read or used', async () => {
     const env = inviteEnv();
-    const spy = vi.spyOn(env.userService, 'register');
-    const info = vi.spyOn(env.userService, 'findRegistrationInfo');
+    const spy = vi.spyOn(env.userService, 'updateById');
+    const info = vi.spyOn(env.strapi.db, 'query');
     expect(await env.accept('unknown', 'short')).toEqual({ ok: false, status: 400, error: PORTAL_ERRORS.passwordShort });
     expect(await env.accept('tok-1', COMMON)).toEqual({ ok: false, status: 400, error: PORTAL_ERRORS.passwordWeak });
     expect(info).not.toHaveBeenCalled();
@@ -238,7 +244,7 @@ describe('invite', () => {
   it('accept: a password equal to the invited e-mail is refused once the e-mail is known, and the token stays valid', async () => {
     const env = inviteEnv();
     env.admins[0].email = 'nou-nou-nou@x.ro';
-    const spy = vi.spyOn(env.userService, 'register');
+    const spy = vi.spyOn(env.userService, 'updateById');
     expect(await env.accept('tok-1', 'nou-nou-nou@x.ro')).toEqual({ ok: false, status: 400, error: PORTAL_ERRORS.passwordWeak });
     expect(spy).not.toHaveBeenCalled();
     expect((await env.accept('tok-1')).ok).toBe(true);
@@ -254,7 +260,36 @@ describe('invite', () => {
 
   it('accept: an unexpected failure of the service is thrown, not turned into 410', async () => {
     const env = inviteEnv();
-    vi.spyOn(env.userService, 'register').mockRejectedValueOnce(new Error('db down'));
+    vi.spyOn(env.userService, 'updateById').mockRejectedValueOnce(new Error('db down'));
     await expect(env.accept('tok-1')).rejects.toThrow('db down');
+  });
+
+  it('M3: an invite older than 7 days (createdAt) is 410 on read and accept, and nothing is registered', async () => {
+    const env = inviteEnv();
+    const spy = vi.spyOn(env.userService, 'updateById');
+    env.advance(7 * 24 * 3600_000);
+    expect(await env.read('tok-1')).toMatchObject({ ok: true, data: { state: 'valid' } });
+    env.advance(1000);
+    expect(await env.read('tok-1')).toEqual({ ok: true, data: { state: 'expired', email: null } });
+    expect(await env.accept('tok-1')).toEqual({ ok: false, status: 410, error: PORTAL_ERRORS.inviteExpired });
+    expect(spy).not.toHaveBeenCalled();
+    expect(env.admins[0]).toMatchObject({ registrationToken: 'tok-1', isActive: false, password: null });
+  });
+
+  it('L8: a user blocked before accepting is 410, the token is kept and no password is set', async () => {
+    const env = inviteEnv();
+    env.admins[0].blocked = true;
+    const spy = vi.spyOn(env.userService, 'updateById');
+    expect(await env.accept('tok-1')).toEqual({ ok: false, status: 410, error: PORTAL_ERRORS.inviteExpired });
+    expect(spy).not.toHaveBeenCalled();
+    expect(env.admins[0]).toMatchObject({ registrationToken: 'tok-1', isActive: false, password: null });
+  });
+
+  it('M2: the token is claimed with a conditional update before the password is written (a lost claim writes nothing)', async () => {
+    const env = inviteEnv();
+    const spy = vi.spyOn(env.userService, 'updateById');
+    const results = await Promise.all(Array.from({ length: 10 }, (_, i) => registerInvited(env.c, 'tok-1', `${i}`.repeat(64))));
+    expect(results.filter((r) => r !== null)).toHaveLength(1);
+    expect(spy).toHaveBeenCalledTimes(1);
   });
 });

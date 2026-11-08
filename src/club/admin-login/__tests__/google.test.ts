@@ -88,7 +88,7 @@ describe('adminGoogleCallback', () => {
     expect(out).toEqual({ redirect: '/intrare/gata?remember=1' });
     const jwtSet = env.sets.find((s) => s.name === 'jwtToken');
     expect(jwtSet?.value).toEqual(expect.any(String));
-    expect(jwtSet?.options).toMatchObject({ httpOnly: false, path: '/', sameSite: 'lax' });
+    expect(jwtSet?.options).toMatchObject({ httpOnly: false, path: '/', sameSite: 'lax', maxAge: 60_000 });
     expect(env.sets.find((s) => s.name === 'strapi_admin_refresh')).toBeDefined();
     expect(env.sessions.rows[0].type).toBe('refresh');
     await env.flush();
@@ -153,6 +153,12 @@ describe('adminGoogleCallback', () => {
     expect(await adminGoogleCallback(env.c, { code: 'c1', state }, env.g)).toEqual({ redirect: FAILED });
   });
 
+  it('L2: the Google link line names the person as actor', async () => {
+    const env = googleEnv();
+    await env.run();
+    expect(env.mem.history.find((h) => h.action === SECURITY_ACTIONS.googleLinked)).toMatchObject({ actor: 'Ana Pop' });
+  });
+
   it('a token with a wrong nonce or an unverified e-mail is refused', async () => {
     const env = googleEnv();
     expect(await env.run({ nonce: 'other' })).toEqual({ redirect: FAILED });
@@ -195,9 +201,9 @@ describe('invite with Google', () => {
 
   it('the same e-mail registers with a random 64-character password, links the sub and logs in', async () => {
     const env = inviteEnv();
-    const spy = vi.spyOn(env.userService, 'register');
+    const spy = vi.spyOn(env.userService, 'updateById');
     expect(await env.run({ email: 'nou@x.ro', sub: 'sub-20' }, { query })).toEqual({ redirect: '/intrare/gata?remember=0' });
-    const given = spy.mock.calls[0][0].userInfo.password;
+    const given = String(spy.mock.calls[0][1].password);
     expect(given).toHaveLength(64);
     expect(env.admins[1]).toMatchObject({ isActive: true, registrationToken: null });
     expect((await env.c.store.adminAccount(20))?.googleSub).toBe('sub-20');
@@ -223,5 +229,16 @@ describe('invite with Google', () => {
     await env.c.store.updateAdminAccount((await env.c.store.ensureAdminAccount(7)).id, { googleSub: 'sub-20' });
     expect(await env.run({ email: 'nou@x.ro', sub: 'sub-20' }, { query })).toEqual({ redirect: FAILED_INVITE });
     expect(env.admins[1].registrationToken).toBe('tok-1');
+  });
+
+  it('M3 and L8: an invite older than 7 days, or of a blocked user, is refused to the invite page and stays unregistered', async () => {
+    const stale = inviteEnv();
+    stale.advance(7 * 24 * 3600_000 + 1000);
+    expect(await stale.run({ email: 'nou@x.ro', sub: 'sub-20' }, { query })).toEqual({ redirect: FAILED_INVITE });
+    expect(stale.admins[1]).toMatchObject({ registrationToken: 'tok-1', isActive: false });
+    const blocked = inviteEnv();
+    blocked.admins[1].blocked = true;
+    expect(await blocked.run({ email: 'nou@x.ro', sub: 'sub-20' }, { query })).toEqual({ redirect: FAILED_INVITE });
+    expect(blocked.admins[1]).toMatchObject({ registrationToken: 'tok-1', isActive: false });
   });
 });

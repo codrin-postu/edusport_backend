@@ -4,7 +4,7 @@ import { setup } from '../../security/__tests__/security-helpers';
 import type { AdminSessionManager, KoaContext } from '../session';
 
 export type FakeAdmin = {
-  id: number; email: string; firstname: string | null; lastname: string | null; isActive: boolean; blocked: boolean | null; password: string | null; roles: { code: string }[]; registrationToken?: string | null;
+  id: number; email: string; firstname: string | null; lastname: string | null; isActive: boolean; blocked: boolean | null; password: string | null; roles: { code: string }[]; registrationToken?: string | null; createdAt?: string;
 };
 export type SetCookie = { name: string; value: string; options: Record<string, unknown> };
 
@@ -31,10 +31,20 @@ export function adminEnv(o: Parameters<typeof setup>[0] = {}) {
     log: { error: () => undefined, warn: () => undefined },
     db: {
       query: (uid: string) => ({
-        findOne: async ({ where }: { where: { id?: number; email?: { $eqi: string } } }) => {
+        findOne: async ({ where }: { where: { id?: number; email?: { $eqi: string }; registrationToken?: string } }) => {
           if (uid !== 'admin::user') return null;
-          const hit = where.id !== undefined ? admins.find((a) => a.id === where.id) : admins.find((a) => a.email.toLowerCase() === where.email?.$eqi.toLowerCase());
+          const hit = where.id !== undefined
+            ? admins.find((a) => a.id === where.id)
+            : where.registrationToken !== undefined
+              ? admins.find((a) => a.registrationToken === where.registrationToken)
+              : admins.find((a) => a.email.toLowerCase() === where.email?.$eqi.toLowerCase());
           return hit ? structuredClone(hit) : null;
+        },
+        /** `UPDATE ... WHERE id = ? AND registration_token = ?`: the row count is what a claim reads. */
+        updateMany: async ({ where, data }: { where: { id: number; registrationToken: string }; data: Record<string, unknown> }) => {
+          const hit = uid === 'admin::user' ? admins.find((a) => a.id === where.id && a.registrationToken === where.registrationToken) : undefined;
+          if (hit) Object.assign(hit, data);
+          return { count: hit ? 1 : 0 };
         },
         findMany: async () => (uid === 'admin::user' ? structuredClone(admins) : []),
         count: async () => (uid === 'admin::user' ? admins.length : 0),
@@ -66,7 +76,7 @@ export function adminEnv(o: Parameters<typeof setup>[0] = {}) {
     },
   };
   const addAdmin = (a: Partial<FakeAdmin> & { id: number; email: string }): FakeAdmin => {
-    const row: FakeAdmin = { firstname: null, lastname: null, isActive: true, blocked: false, password: null, roles: [], ...a };
+    const row: FakeAdmin = { firstname: null, lastname: null, isActive: true, blocked: false, password: null, roles: [], createdAt: env.c.now().toISOString(), ...a };
     admins.push(row);
     return row;
   };
