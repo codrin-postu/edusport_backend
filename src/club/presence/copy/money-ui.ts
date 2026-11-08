@@ -49,3 +49,29 @@ export const MONEY_UI_COPY = {
   undo: { action: 'Anulează', done: 'Anulat.' },
   menu: { addSubscription: 'Adaugă abonament', addPayment: '+ Plată' },
 };
+
+/** Texts of the "Bani" page (plan 11-5, spec 5.6). */
+export const BANI_COPY = {
+  title: 'Bani',
+  menu: 'Bani',
+  views: { prezentare: 'Prezentare', contabilitate: 'Contabilitate' },
+  cards: { collected: 'Încasat', left: 'De încasat', active: 'Abonamente active', expiring: 'Expiră în 14 zile', unpaid: 'Neachitați' },
+  dueOf: (s: string): string => `din ${s} datorat`,
+  athletesOf: (n: number): string => `din ${n} sportivi`,
+  unpaidLine: 'sportivi cu rămas de plată',
+  breakdown: 'Pe secțiune și grupă',
+  switch: { sectiune: 'Secțiune și grupă', metoda: 'Metodă', scop: 'Scop' },
+  cols: { group: 'Grupă', due: 'Datorat', paid: 'Încasat', left: 'Rămas', percent: 'Încasat %', method: 'Metodă', purpose: 'Scop', count: 'Plăți' },
+  total: 'Total',
+  note: 'Încasat aici: plătit din ce s-a datorat în luna asta.',
+  exportBtn: 'Export contabil',
+  xlsx: '.xlsx',
+  csv: '.csv',
+  figures: { numerar: 'Numerar', card: 'Card (POS)', transfer: 'Transfer bancar', cancelled: 'Anulate' },
+  listTitle: 'Plăți din lună',
+  listCols: ['Data', 'Nr. chitanță', 'Sportiv', 'Pentru', 'Metodă', 'Sumă'],
+  cancelledMark: 'anulată',
+  empty: 'Nicio plată în luna asta.',
+  receipt: 'Nr. chitanță',
+  expiringFilter: 'Expiră în 14 zile',
+};

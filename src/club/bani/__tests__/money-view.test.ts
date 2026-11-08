@@ -1,0 +1,34 @@
+import { describe, expect, it } from 'vitest';
+import { BANI_COPY } from '../../presence/copy/money-ui';
+import { accountingDate, expiringLine, nextMonthAllowed, percentText, trendText } from '../money-view';
+import { BANI_PATH, abonamenteStateTo, baniTo, deIncasatMonthTo, platiMonthTo, readBaniQuery } from '../routes';
+
+describe('Bani copy, address and figure texts', () => {
+  it('copy as the plan gives it', () => {
+    expect([BANI_COPY.title, BANI_COPY.menu, BANI_COPY.views.contabilitate, BANI_COPY.cards.expiring, BANI_COPY.exportBtn]).toEqual(['Bani', 'Bani', 'Contabilitate', 'Expiră în 14 zile', 'Export contabil']);
+    expect([BANI_COPY.dueOf('18.640 RON'), BANI_COPY.athletesOf(42)]).toEqual(['din 18.640 RON datorat', 'din 42 sportivi']);
+    expect(BANI_COPY.listCols).toEqual(['Data', 'Nr. chitanță', 'Sportiv', 'Pentru', 'Metodă', 'Sumă']);
+    expect(BANI_COPY.figures.cancelled).toBe('Anulate');
+  });
+  it('address', () => {
+    expect(BANI_PATH).toBe('/plugins/edusport-bani');
+    expect(readBaniQuery('', '2026-11-08')).toEqual({ view: 'prezentare', month: '2026-11' });
+    expect(readBaniQuery('?view=contabilitate&month=2026-10', '2026-11-08')).toEqual({ view: 'contabilitate', month: '2026-10' });
+    expect(readBaniQuery('?month=2026-12', '2026-11-08').month).toBe('2026-11');
+    expect(readBaniQuery('?view=x&month=zz', '2026-11-08')).toEqual({ view: 'prezentare', month: '2026-11' });
+    expect(baniTo({ view: 'contabilitate', month: '2026-10' })).toBe('/plugins/edusport-bani?view=contabilitate&month=2026-10');
+    expect(baniTo({})).toBe(BANI_PATH);
+    expect(platiMonthTo('2026-11')).toBe('/plugins/edusport-plati?month=2026-11');
+    expect(deIncasatMonthTo('2026-11')).toBe('/plugins/edusport-de-incasat?month=2026-11');
+    expect([abonamenteStateTo('active'), abonamenteStateTo('expira14')]).toEqual(['/plugins/edusport-abonamente?state=active', '/plugins/edusport-abonamente?state=expira14']);
+  });
+  it('figure texts', () => {
+    expect(trendText(18640, 17585, '2026-10')).toBe('+6% față de oct');
+    expect(trendText(16880, 17585, '2026-10')).toBe('-4% față de oct');
+    expect(trendText(100, 0, '2026-10')).toBeNull();
+    expect([expiringLine(5), expiringLine(1)]).toEqual(['abonamente', '1 abonament']);
+    expect([percentText(75), percentText(null)]).toEqual(['75%', '-']);
+    expect(accountingDate('2026-11-04')).toBe('04.11');
+    expect([nextMonthAllowed('2026-10', '2026-11-08'), nextMonthAllowed('2026-11', '2026-11-08')]).toEqual([true, false]);
+  });
+});
