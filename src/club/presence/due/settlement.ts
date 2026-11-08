@@ -9,7 +9,7 @@ export type ClubLine = { date: string; groupName: string | null; charges: Charge
 export type ClubMonth = {
   month: string; grup: number; uscat: number; lessons: number; due: number; paid: number; left: number; groupIds: string[]; lines: ClubLine[];
 };
-export type SchoolDue = { subscriptionId: string; athleteId: string; itemName: string; startsOn: string; price: number; paid: number; left: number };
+export type SchoolDue = { subscriptionId: string; athleteId: string; code: string | null; itemName: string; startsOn: string; price: number; paid: number; left: number };
 
 export const isClubAttendance = (a: Pick<AttendanceRow, 'billing'>): boolean => a.billing === 'club' || a.billing === 'inclus' || a.billing === 'fara_pret';
 
@@ -71,7 +71,7 @@ export function schoolDue(subs: readonly SubscriptionRow[], payments: readonly P
     if (s.cancelled || s.price === null) continue;
     const paid = sumMoney(live(payments).filter((p) => p.purpose === 'abonament' && p.subscriptionId === s.id).map((p) => p.amount));
     const left = sumMoney([s.price, -paid]);
-    if (left > 0) rows.push({ subscriptionId: s.id, athleteId: s.athleteId, itemName: s.itemName, startsOn: s.startsOn, price: s.price, paid, left });
+    if (left > 0) rows.push({ subscriptionId: s.id, athleteId: s.athleteId, code: s.code, itemName: s.itemName, startsOn: s.startsOn, price: s.price, paid, left });
   }
   return rows.sort((a, b) => a.startsOn.localeCompare(b.startsOn) || a.subscriptionId.localeCompare(b.subscriptionId));
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { G_SEASONS, G_SECTIONS } from '../../groups/__tests__/fake-group-store';
 import { readDue } from '../due/reads';
-import { athletePayments, listPayments, readPaymentQuery } from '../payments/reads';
+import { athletePaymentOptions, athletePayments, listPayments, readPaymentQuery } from '../payments/reads';
 import type { AttendanceWrite, LessonRow, SessionRow } from '../types';
 import { listSubscriptions, readSubscriptionQuery } from '../subscriptions/reads';
 import { athleteRow, attendanceRow, fakePresenceContext, lessonRow, member, paymentRow, sessionRow, subscriptionRow, type FakePresenceSeed } from './fake-store';
@@ -129,5 +129,39 @@ describe('money reads', () => {
     expect(tab?.months[0].lines[0]).toBe('Mar 6 oct, Avansați, Grup 40 RON, Uscat inclus');
     expect((await athletePayments(f.store, 'a9', '2026-11-20'))?.readOnly).toBe(true);
     expect(await athletePayments(f.store, 'missing', '2026-11-20')).toBeNull();
+  });
+
+  it('Abonamente: expira14 keeps the active ones ending from today to today + 13 (S22)', async () => {
+    const seed = listSeed();
+    seed.subscriptions = [
+      ...(seed.subscriptions ?? []),
+      subscriptionRow({ id: 's-edge', athleteId: 'a5', startsOn: '2026-11-06', validUntil: '2026-12-03' }),
+      subscriptionRow({ id: 's-far', athleteId: 'a2', startsOn: '2026-11-06', validUntil: '2026-12-04' }),
+    ];
+    const f = fakePresenceContext(seed);
+    expect(readSubscriptionQuery({ state: 'expira14' }).state).toBe('expira14');
+    const soon = await listSubscriptions(f.store, readSubscriptionQuery({ state: 'expira14' }), '2026-11-20');
+    expect(soon.rows.map((r) => [r.athleteName, r.validUntil])).toEqual([['Sofia Dinu', '2026-11-21'], ['Ana Ionescu', '2026-11-23'], ['Ioana Dinu', '2026-12-03']]);
+    expect(soon.rows.every((r) => r.state === 'activ')).toBe(true);
+    const active = await listSubscriptions(f.store, readSubscriptionQuery({ state: 'active' }), '2026-11-20');
+    expect(active.rows).toHaveLength(4);
+  });
+
+  it('rows carry the abonament code and the receipt number (5.7, S23)', async () => {
+    const seed = listSeed();
+    seed.subscriptions = (seed.subscriptions ?? []).map((s) => (s.id === 'sa' ? { ...s, code: 'A-0124' } : s.id === 'sb' ? { ...s, code: 'A-0125' } : s));
+    seed.payments = (seed.payments ?? []).map((p) => (p.id === 'p-1' ? { ...p, receiptNo: '2026-0412' } : p));
+    const f = fakePresenceContext(seed);
+    const subs = await listSubscriptions(f.store, readSubscriptionQuery({}), '2026-11-20');
+    expect(subs.rows.map((r) => r.code)).toEqual(['A-0125', 'A-0124']);
+    const list = await listPayments(f.store, readPaymentQuery({ month: '2026-10' }, '2026-11-20'), '2026-11-20');
+    expect(list.rows.map((r) => [r.paymentId, r.receiptNo, r.purposeText])).toEqual([
+      ['p-1', '2026-0412', 'Abonament A-0124'], ['p-2', null, 'Club, septembrie'], ['p-3', null, 'Lecție individuală']]);
+    const tab = await athletePayments(f.store, 'a1', '2026-11-20');
+    expect(tab?.payments.find((p) => p.paymentId === 'p-1')?.receiptNo).toBe('2026-0412');
+    const due = await readDue(f.store, '2026-10', '2026-11-20');
+    expect(due.school[0]).toMatchObject({ athleteName: 'Sofia Dinu', code: 'A-0125' });
+    const options = await athletePaymentOptions(f.store, 'a1', '2026-11-20');
+    expect(options?.some((o) => o.label.startsWith('A-0124, Abonament 8 ședințe (activ din'))).toBe(true);
   });
 });

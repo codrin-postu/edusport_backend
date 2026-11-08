@@ -1,6 +1,7 @@
 import type { MembershipRow } from '../athletes/store';
 import { byGroupOrder, orderedSections, sectionLabel } from '../groups/sections';
 import { METHOD_WORDS, PURPOSE_WORDS } from '../presence/copy/core';
+import { addDays } from '../groups/dates';
 import { addMonths, monthOf, monthRange } from '../presence/dates';
 import { clubMonths, isClubAttendance, schoolDue, type ClubMonth } from '../presence/due/settlement';
 import { sumMoney } from '../presence/money';
@@ -15,11 +16,6 @@ const inMonth = (date: string, month: string): boolean => monthOf(date) === mont
 
 /** Today for the current month, the month's last day for any other (S26). */
 export const referenceDay = (month: string, today: string): string => (month === monthOf(today) ? today : monthRange(month).to);
-
-function plusDays(date: string, n: number): string {
-  const [y, m, d] = date.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
-}
 
 function groupedBy<T>(rows: readonly T[], key: (r: T) => string): Map<string, T[]> {
   const map = new Map<string, T[]>();
@@ -160,7 +156,7 @@ export function moneyOverview(src: MoneySources, month: string, today: string): 
     cards: {
       collected: collectedIn(src.payments, month), collectedPrev: collectedIn(src.payments, addMonths(month, -1)), ...dueFigures(src, blocks),
       activeSubscriptions: active.length, schoolAthletes: schoolAthletesOn(src, day),
-      expiring: active.filter((s) => s.validUntil >= day && s.validUntil <= plusDays(day, EXPIRING_DAYS)).length,
+      expiring: active.filter((s) => s.validUntil >= day && s.validUntil <= addDays(day, EXPIRING_DAYS)).length,
     },
     bySection: sectionBlocks(src, totals),
     byMethod: tally<PaymentMethod>(paid, METHOD_WORDS, (p) => p.method),
