@@ -118,6 +118,7 @@ The daily portal purge [code src/club/portal/purge.ts] also removes: unconfirmed
 - The access token reaches the SPA the way Strapi's own SSO handoff does: with "Ține-mă minte" in `localStorage` `jwtToken` plus `isLoggedIn`; without it in the `jwtToken` cookie the SPA reads [strapi admin/src/reducer.mjs, utils/getFetchClient.mjs, shared/utils/auth-cookie-name.js]. Then `location.assign('/admin')`.
 - Lifetimes stay Strapi's default numbers: "Ține-mă minte" 14 days idle, 30 days max; otherwise 2 hours idle, 1 day max. They are set explicitly in `config/admin.ts` (`admin.auth.sessions`), because without `maxSessionLifespan` Strapi's bootstrap falls back to the 30 day `expiresIn` for a session that is not remembered (spike, 14.2) [P6b q14].
 - `deviceId` = the `strapiDeviceId` of the admin device row (3.6), so one device has one Strapi session family [S9].
+- Refresh reuse: a rotated refresh token whose child is older than 60 seconds ends the device's sessions and revokes its admin device. A rotation whose response is lost (network drop, closed tab) counts as reuse too: the next refresh, more than 60 seconds later, logs the admin out and the next login sends a new-device mail and asks for 2FA again (accepted, B3 L4; this is the answer to a support report "I was logged out and got a new-device mail").
 - The spike (14.2) proves this before anything else is built; its fallback is written there.
 
 ### 4.3 Routes (`src/api/admin-auth/routes/01-login.ts`, `{ auth: false }`, Origin check and our limiter in the controller)
@@ -132,7 +133,7 @@ The daily portal purge [code src/club/portal/purge.ts] also removes: unconfirmed
 ### 4.4 Closing Strapi's session issuers [P6b q4; R6b 3.1, P4]
 - A global middleware `global::admin-auth-gate` (`src/middlewares/admin-auth-gate.ts`, placed after `strapi::body` in `config/middlewares.ts`) answers 404 to `POST /admin/login`, `POST /admin/register`, `POST /admin/register-admin`, `POST /admin/reset-password` and `POST /admin/forgot-password` [strapi server/src/routes/authentication.js].
 - `POST /admin/access-token` (refresh rotation) and `POST /admin/logout` stay Strapi's.
-- `PUT /admin/users/me` with a `password`, `currentPassword` or `email` key answers 403: the password changes only in our Securitate (rules of P6 5.5), the e-mail only by a Super Admin [S10]. `PUT /admin/users/:id` with a `password` key answers 403 [S10].
+- `PUT /admin/users/me` with a `password` or `currentPassword` key answers 403: the password changes only in our Securitate (rules of P6 5.5). With an `email` key it answers 403 unless the e-mail equals the signed-in admin's (compared ignoring case; the bearer token is read by the gate itself, and a missing or bad token is 403), because Strapi's profile page sends the e-mail on every save; the e-mail changes only by a Super Admin [S10]. `PUT /admin/users/:id` with a `password` key answers 403 [S10].
 - A first admin on an empty database comes from `npx strapi admin:create-user` on the server; `register-admin` stays closed [S11].
 - Every Strapi upgrade re-runs the gate tests and the spike checks; the version stays pinned at 5.52.1 [R6b 14; DEC 2026-10-18 auth-levels-v1].
 
@@ -230,7 +231,7 @@ Codes and secrets never reach a log: the request bodies of `/api/admin-auth/*` a
 - The page offers the last used method (`lastMethod`) with "Altă metodă" listing the others the subject has [DEC 2026-10-18 twofactor-v2].
 - "Cod pe e-mail" sends the code when chosen (or when it is the last method), "Trimite din nou" sends a new one within the mail limit [P6 5.4].
 - Tick "Ține minte dispozitivul 30 de zile", on by default [P6b q5; S28].
-- A right code ends the pending login, saves `lastMethod`, sets `twoFactorUntil` = now + 30 days on the device when ticked, and issues the session (4.2 for the admin, `startSession` for the portal [code src/club/portal/auth/issue.ts]).
+- A right code ends the pending login, saves `lastMethod` (not for a backup code, so the next login does not offer "Cod de rezervă" first: decided by Claude, low impact), sets `twoFactorUntil` = now + 30 days on the device when ticked, and issues the session (4.2 for the admin, `startSession` for the portal [code src/club/portal/auth/issue.ts]).
 - A backup code used at login writes a history line and leaves "Mai ai <n> coduri de rezervă." on the next Securitate visit [S29].
 
 ### 6.4 Remembered devices [P6b q5]

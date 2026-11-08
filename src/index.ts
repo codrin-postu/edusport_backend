@@ -6,6 +6,7 @@ import { seedLegacyLink } from './sheets/store';
 import { normalizeNavigationPages } from './api/navigation/services/pages';
 import { warnIfNoAdminSessions } from './club/admin-auth';
 import { subscribeAdminEmailChange } from './club/admin-login/email-change';
+import { warnGateOff } from './club/admin-login/gate-warning';
 import { startPersonalDataSweep } from './club/personal-data/http';
 import { ensurePresenceIndexes } from './club/presence/indexes';
 import { assertKeysForBoot } from './club/security/keys';
@@ -450,6 +451,7 @@ export default {
     subscribeTeamMemberHook(strapi);
     // Phase 6b: a changed admin e-mail ends that admin's sessions and clears the Google link (spec 4.8).
     subscribeAdminEmailChange(strapi);
+    warnGateOff(strapi);
 
     // Confirm the scheduled jobs actually registered — a cron block that is
     // silently ignored (wrong config key, disabled) is otherwise invisible.

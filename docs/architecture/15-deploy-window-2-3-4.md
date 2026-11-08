@@ -98,3 +98,16 @@ Watch:
 - Hourly crons (parent schedule e-mails, Sheets sync): no errors; the Sheet moves en-dash season rows to the `2026-2027` tab, then delete the empty en-dash tab.
 
 Can follow later: items 4 to 9 of section 1, the roadmap item "visual snapshots: review changed crops of /, /cursuri, /inscrieri, then re-record", removal of the local branches and worktrees, and the parked technical items in `HANDOFF.md`.
+
+## 6. 6b deploy (admin login page, gate, 2FA)
+
+Spec: `docs/superpowers/specs/2026-11-07-admin-auth-roles-design.md` 4.4 and 14.5. Write steps still run only with the user's yes, one by one.
+
+1. Env in `.env.production` first: `AUTH_SECRET_KEY`, `AUTH_CODE_KEY`, `WEBAUTHN_RP_ID`, `WEBAUTHN_ORIGINS`, `ADMIN_HOST`, and the gate line below.
+2. Gate line, exact value: `ADMIN_GATE=off` (lowercase, no quotes, no spaces). Only the exact value `off` opens the gate; any other value, a typo or no line at all means on. This is the setting for the first deploy, so that the Super Admins can still sign in through Strapi until `/intrare` works for them.
+3. While it is `off`, Strapi's own `/admin/login` issues password-only sessions: no 2FA, no lockout, and a password change through Strapi's profile page does not end other sessions. Production logs `[security] ADMIN_GATE=off in production` at every boot and sends one GlitchTip message, so the window cannot be forgotten. Keep it short.
+4. Before the window opens: the decision on Strapi admin tokens (review B3 M4: `POST /admin/admin-tokens` mints a bearer that no session control reaches) is applied, and any existing admin token is revoked.
+5. Each non-super admin has an EduSport role (the bootstrap log lists the admins without one).
+6. Deploy and restart the backend (twice if a new attribute is not saved). Check the boot log for the `ADMIN_GATE=off` warning, which is the expected one.
+7. Switch the gate on: after two Super Admins have signed in on `/intrare`, delete the `ADMIN_GATE=off` line from `.env.production` (or set `ADMIN_GATE=on`) and restart the backend. Check that the warning is gone from the boot log, that `POST /admin/login` answers 404 and that `/admin/auth/login` redirects to `/intrare`.
+8. Sessions opened through Strapi during the window have no device row; they keep working until they expire, and the first `/intrare` login creates the row.
