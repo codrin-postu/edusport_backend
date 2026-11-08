@@ -245,4 +245,26 @@ describe('strapiPresenceStore', () => {
       }
     }
   });
+
+  it('history pages are one count and one limited query each, ordered through the session (11.3)', async () => {
+    const seen: { table: string; op: string; args: Record<string, unknown> }[] = [];
+    const db = {
+      query: (table: string) => ({
+        findMany: async (args: Record<string, unknown>) => { seen.push({ table, op: 'findMany', args }); return []; },
+        count: async (args: Record<string, unknown>) => { seen.push({ table, op: 'count', args }); return 0; },
+      }),
+    };
+    const store = strapiPresenceStore({ db } as unknown as Core.Strapi);
+    await store.athleteAttendancePage('a1', '2026-10-01', '2027-05-31', 20);
+    await store.athleteLessonPage('a1', '2026-10-01', '2027-05-31', 20);
+    const where = { athlete: { documentId: 'a1' }, session: { date: { $gte: '2026-10-01', $lte: '2027-05-31' } } };
+    const lessonWhere = { athlete: { documentId: 'a1' }, present: true, date: { $gte: '2026-10-01', $lte: '2027-05-31' } };
+    expect(seen.map((c) => [c.table, c.op])).toEqual([
+      ['api::attendance.attendance', 'findMany'], ['api::attendance.attendance', 'count'], ['api::individual-lesson.individual-lesson', 'findMany'], ['api::individual-lesson.individual-lesson', 'count'],
+    ]);
+    expect(seen[0].args).toMatchObject({ where, limit: 20, orderBy: [{ session: { date: 'desc' } }, { session: { startTime: 'desc' } }, { id: 'desc' }] });
+    expect(seen[1].args).toStrictEqual({ where });
+    expect(seen[2].args).toMatchObject({ where: lessonWhere, limit: 20, orderBy: [{ date: 'desc' }, { startTime: 'desc' }, { id: 'desc' }] });
+    expect(seen[3].args).toStrictEqual({ where: lessonWhere });
+  });
 });

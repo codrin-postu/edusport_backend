@@ -61,6 +61,10 @@ export function toAttendanceRow(r: Raw): AttendanceRow {
   };
 }
 
+const withStartTime = (r: Raw): AttendanceRow & { startTime: string } => ({
+  ...toAttendanceRow(r), startTime: hhmm(str((isRecord(r.session) ? r.session : {}).startTime)) ?? '',
+});
+
 export const toLessonRow = (r: Raw): LessonRow => ({
   id: text(r.documentId), athleteId: linkId(r.athlete) ?? '', date: text(r.date), startTime: hhmm(str(r.startTime)) ?? '', durationMin: Number(r.durationMin ?? 0),
   coachIds: ids(r.coaches), state: r.state === 'saved' ? 'saved' : 'planned', present: typeof r.present === 'boolean' ? r.present : null, priceListId: linkId(r.priceList),
@@ -152,6 +156,27 @@ function sessionRows(strapi: Core.Strapi): Keys<'sessions' | 'session' | 'sessio
     createSession: (d) => rethrown(async () => (await strapi.documents(SESSION).create({ data: dataOf(d) })).documentId),
     updateSession: async (id, d) => {
       found(await strapi.documents(SESSION).update({ documentId: id, data: dataOf(d) }), 'updateSession');
+    },
+  };
+}
+
+/** The athlete's history pages: one count and one limited query each; the order joins the session through the query builder. */
+function historyPages(strapi: Core.Strapi): Keys<'athleteAttendancePage' | 'athleteLessonPage'> {
+  return {
+    athleteAttendancePage: async (athleteId, from, to, take) => {
+      const where = { ...eq('athlete', athleteId), session: { date: span({ from, to }) } };
+      const rows = await strapi.db.query(ATTENDANCE).findMany({
+        where, populate: { session: { populate: ['group'] }, athlete: true, subscription: true },
+        orderBy: [{ session: { date: 'desc' } }, { session: { startTime: 'desc' } }, { id: 'desc' }], limit: take,
+      });
+      return { total: await strapi.db.query(ATTENDANCE).count({ where }), rows: raws(rows).map(withStartTime) };
+    },
+    athleteLessonPage: async (athleteId, from, to, take) => {
+      const where = { ...eq('athlete', athleteId), present: true, date: span({ from, to }) };
+      const rows = await strapi.db.query(LESSON).findMany({
+        where, populate: ['athlete', 'coaches', 'priceList'], orderBy: [{ date: 'desc' }, { startTime: 'desc' }, { id: 'desc' }], limit: take,
+      });
+      return { total: await strapi.db.query(LESSON).count({ where }), rows: raws(rows).map(toLessonRow) };
     },
   };
 }
@@ -295,7 +320,7 @@ export function strapiPresenceStore(strapi: Core.Strapi): PresenceStore {
     lockAttendance: (id) => scope.lockRow('club_attendances', id),
     lockSubscription: (id) => scope.lockRow('club_subscriptions', id),
     lockPayment: (id) => scope.lockRow('club_payments', id),
-    ...lookups(strapi), ...sessionRows(strapi), ...attendanceRows(strapi), ...lessonRows(strapi), ...subscriptionRows(strapi), ...paymentRows(strapi), ...jobs(strapi),
+    ...lookups(strapi), ...sessionRows(strapi), ...attendanceRows(strapi), ...historyPages(strapi), ...lessonRows(strapi), ...subscriptionRows(strapi), ...paymentRows(strapi), ...jobs(strapi),
     ...strapiCounters(strapi, scope),
   };
 }

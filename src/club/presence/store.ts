@@ -16,6 +16,9 @@ export type AttendanceWhere = Range & { ids?: string[]; sessionIds?: string[]; a
 export type LessonWhere = Range & { ids?: string[]; athleteId?: string };
 export type SubscriptionWhere = { ids?: string[]; athleteId?: string };
 export type PaymentWhere = Range & { ids?: string[]; athleteId?: string; subscriptionId?: string; lessonId?: string }; // from/to on paidOn
+/** Rows of the athlete history, newest first by session or lesson date, start time, then id; `total` counts every row in range, `rows` holds the first `take`. */
+export type AttendancePage = { total: number; rows: (AttendanceRow & { startTime: string })[] };
+export type LessonPage = { total: number; rows: LessonRow[] };
 export class UniqueKeyError extends Error {}
 
 export interface PresenceStore extends PresenceGroupReads {
@@ -37,6 +40,10 @@ export interface PresenceStore extends PresenceGroupReads {
   createSession(data: SessionWrite): Promise<string>;
   updateSession(id: string, data: Partial<SessionWrite>): Promise<void>;
   attendances(where?: AttendanceWhere): Promise<AttendanceRow[]>;
+  /** Session date in range, newest first (session date, start time, id desc), `take` rows. */
+  athleteAttendancePage(athleteId: string, from: string, to: string, take: number): Promise<AttendancePage>;
+  /** Present lessons in range, newest first (date, start time, id desc), `take` rows. */
+  athleteLessonPage(athleteId: string, from: string, to: string, take: number): Promise<LessonPage>;
   /** Throws UniqueKeyError on a second uniqueKey. */
   createAttendance(data: AttendanceWrite): Promise<string>;
   updateAttendance(id: string, data: Partial<AttendanceWrite>): Promise<void>;

@@ -89,6 +89,24 @@ function fakeReads(s: FakePresenceState): K<'priceListRecords' | 'acsRows' | 'ca
   };
 }
 
+const newestFirst = (a: { date: string; startTime: string; id: string }, b: { date: string; startTime: string; id: string }): number =>
+  b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime) || b.id.localeCompare(a.id);
+
+function fakeHistoryPages(s: FakePresenceState): K<'athleteAttendancePage' | 'athleteLessonPage'> {
+  return {
+    athleteAttendancePage: async (athleteId, from, to, take) => {
+      const all = joined(s).filter((r) => r.athleteId === athleteId && inRange({ from, to }, r.sessionDate))
+        .map((r) => ({ ...r, startTime: must(s.sessions, r.sessionId, 'session').startTime }));
+      const sorted = all.sort((a, b) => newestFirst({ ...a, date: a.sessionDate }, { ...b, date: b.sessionDate }));
+      return copy({ total: all.length, rows: sorted.slice(0, take) });
+    },
+    athleteLessonPage: async (athleteId, from, to, take) => {
+      const all = s.lessons.filter((r) => r.athleteId === athleteId && r.present === true && inRange({ from, to }, r.date)).sort(newestFirst);
+      return copy({ total: all.length, rows: all.slice(0, take) });
+    },
+  };
+}
+
 function joined(s: FakePresenceState): AttendanceRow[] {
   return s.attendances.map((a) => {
     const session = must(s.sessions, a.sessionId, 'session');
@@ -216,7 +234,7 @@ export function fakePresenceStore(seed: FakePresenceSeed = {}): FakePresence {
       }
     },
     lockSession: lock('session'), lockLesson: lock('lesson'), lockAttendance: lock('attendance'), lockSubscription: lock('subscription'), lockPayment: lock('payment'),
-    ...fakeReads(state), ...fakeSessionAndAttendanceWrites(state, next), ...fakeMoneyWrites(state, next), ...fakePaymentJobs(state, next),
+    ...fakeReads(state), ...fakeHistoryPages(state), ...fakeSessionAndAttendanceWrites(state, next), ...fakeMoneyWrites(state, next), ...fakePaymentJobs(state, next),
     ...fakeCounters(state, () => depth > 0),
   };
   const failing = new Set<string>();
