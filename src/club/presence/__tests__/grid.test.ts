@@ -32,9 +32,16 @@ describe('group grid', () => {
     expect(grid.rows[0].cells[1].state).toBe('necompletat');
   });
 
+  it('a day with one held and one coming session is completat, not planned (L3)', () => {
+    const rows = [row({ date: '2026-11-03', present: 8, listed: 9, adminState: 'completat' }), row({ date: '2026-11-03', adminState: 'urmeaza' })];
+    const grid = gridCells(rows, [group('g1', 'A')], { from: '2026-11-02', to: '2026-11-08' });
+    expect(grid.rows[0].cells[1]).toMatchObject({ state: 'completat', present: 8, listed: 9, sessions: 2 });
+  });
+
   it('readGrid builds the grid of the seed week', async () => {
     const f = attendanceSeed();
     const grid = ok(await readGrid(f.store, { from: '2026-11-16', to: '2026-11-22' }, { date: '2026-11-20', time: '17:30' }));
+    expect([grid.startDate, grid.groupsWithoutList]).toEqual(['2026-11-01', expect.any(Number)]);
     expect(grid.rows.map((r) => r.groupName)).toEqual(['Intermediari Bronze', 'Profesioniști']);
     expect(grid.rows[1].cells[4]).toMatchObject({ date: '2026-11-20', state: 'necompletat', sessions: 1 });
   });

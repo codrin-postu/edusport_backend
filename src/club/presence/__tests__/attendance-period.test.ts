@@ -32,6 +32,16 @@ describe('attendance by period', () => {
     expect(page.undone.every((r) => r.date <= '2026-11-20')).toBe(true);
   });
 
+  it('a future period ends the undone list at yesterday: today\'s unsaved past session is not in it (M1)', async () => {
+    const f = attendanceSeed();
+    const now = { date: '2026-11-20', time: '18:00' };
+    const own = ok(await readPeriod(f.store, { from: '2026-11-16', to: '2026-11-22' }, now));
+    expect(own.days[0].rows[0]).toMatchObject({ date: '2026-11-20', adminState: 'necompletat' });
+    const future = ok(await readPeriod(f.store, { from: '2026-12-07', to: '2026-12-13' }, now));
+    expect(future.undone.length).toBeGreaterThan(0);
+    expect(future.undone.every((r) => r.date < '2026-11-20')).toBe(true);
+  });
+
   it('no start date: no undone list and no necompletat words', async () => {
     const f = attendanceSeed('2026-11-20', { startDate: null });
     const page = ok(await readPeriod(f.store, { from: '2026-11-16', to: '2026-11-22' }, { date: '2026-11-20', time: '18:00' }));

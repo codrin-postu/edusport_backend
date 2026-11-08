@@ -3,6 +3,7 @@ import { addDays } from '../../groups/dates';
 import type { GroupRecord } from '../../groups/types';
 import type { AdminState, Period } from '../period';
 import type { PresenceStore } from '../store';
+import { groupsWithoutPriceList } from '../billing';
 import { loadRowContext } from './day';
 import { periodRows } from './period';
 import type { GridCell, GridPage, PeriodRow } from './api-types';
@@ -13,16 +14,16 @@ function datesOf(period: Period): string[] {
   return out;
 }
 
-/** necompletat if any session is, else urmeaza if any is, else completat. */
+/** necompletat if any session is, else completat if any is (a held session is already a number), else urmeaza. */
 function stateOf(rows: PeriodRow[]): AdminState {
   const states = rows.map((r) => r.adminState);
   if (states.includes('necompletat')) return 'necompletat';
-  if (states.includes('urmeaza')) return 'urmeaza';
-  return 'completat';
+  if (states.includes('completat')) return 'completat';
+  return 'urmeaza';
 }
 
 /** The group grid (S14): groups with a row in the period in Program order; a day's sessions of one group add up. */
-export function gridCells(rows: PeriodRow[], groups: GroupRecord[], period: Period): GridPage {
+export function gridCells(rows: PeriodRow[], groups: GroupRecord[], period: Period): Pick<GridPage, 'from' | 'to' | 'dates' | 'rows'> {
   const dates = datesOf(period);
   const withRows = new Set(rows.map((r) => r.groupId));
   const ordered = groups.filter((g) => withRows.has(g.id)).sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity) || a.name.localeCompare(b.name));
@@ -44,5 +45,5 @@ export function gridCells(rows: PeriodRow[], groups: GroupRecord[], period: Peri
 export async function readGrid(store: PresenceStore, period: Period, now: { date: string; time: string }): Promise<AdminResult<GridPage>> {
   const ctx = await loadRowContext(store, now.date);
   const rows = await periodRows(store, ctx, period.from, period.to, now);
-  return { ok: true, data: gridCells(rows, ctx.groups, period) };
+  return { ok: true, data: { ...gridCells(rows, ctx.groups, period), startDate: ctx.startDate, groupsWithoutList: groupsWithoutPriceList(ctx.groups) } };
 }

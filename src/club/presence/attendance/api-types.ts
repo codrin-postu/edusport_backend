@@ -34,7 +34,9 @@ export type PeriodPage = {
   undone: PeriodRow[]; days: { date: string; rows: PeriodRow[] }[];
 };
 export type GridCell = { date: string; state: AdminState; present: number; listed: number; sessions: number };
-export type GridPage = { from: string; to: string; dates: string[]; rows: { groupId: string; groupName: string; cells: GridCell[] }[] };
+export type GridPage = {
+  from: string; to: string; startDate: string | null; groupsWithoutList: number; dates: string[]; rows: { groupId: string; groupName: string; cells: GridCell[] }[];
+};
 export type GroupMonth = { month: string; rows: PeriodRow[] };
 export type LessonListRow = {
   lessonId: string; date: string; startTime: string; athleteId: string; athleteName: string; coachNames: string[]; durationMin: number;

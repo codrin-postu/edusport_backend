@@ -22,7 +22,9 @@ type Props = { query: PrezentaQuery; onQuery: (q: Partial<PrezentaQuery>) => voi
 const SHOW_OPTIONS = (['grupe', 'lectii', 'antrenori'] as const).map((v) => ({ value: v, label: PERIOD_COPY.show[v] }));
 const LAYOUT_OPTIONS = (['lista', 'grila'] as const).map((v) => ({ value: v, label: PERIOD_COPY.layout[v] }));
 
-function Notices({ page }: { page: PeriodPage | null }) {
+type NoticeData = Pick<PeriodPage, 'startDate' | 'groupsWithoutList'>;
+
+function Notices({ page }: { page: NoticeData | null }) {
   if (!page || (page.startDate !== null && page.groupsWithoutList === 0)) return null;
   return (
     <div className="pz-notices">
@@ -32,22 +34,22 @@ function Notices({ page }: { page: PeriodPage | null }) {
   );
 }
 
-/** The notices come with the period read of the list; the grid, lessons and coaches get them from one read of the period. */
-function useNotices(query: PrezentaQuery, page: PeriodPage | null, setPage: (p: PeriodPage) => void): void {
+/** The notices come with the read of the group list and of the grid; lessons and coaches get them from a read of one day. */
+function useNotices(query: PrezentaQuery, page: NoticeData | null, setPage: (p: NoticeData) => void): void {
   const api = usePrezentaApi();
-  const listed = query.show === 'grupe' && query.layout === 'lista';
-  const { from, to } = periodOf(query.view, query.date);
+  const carried = query.show === 'grupe';
+  const { from } = periodOf(query.view, query.date);
   React.useEffect(() => {
-    if (listed || page !== null) return undefined;
+    if (carried || page !== null) return undefined;
     let off = false;
-    api.period(from, to).then((p) => { if (!off) setPage(p); }).catch(() => undefined);
+    api.period(from, from).then((p) => { if (!off) setPage({ startDate: p.startDate, groupsWithoutList: p.groupsWithoutList }); }).catch(() => undefined);
     return () => { off = true; };
-  }, [api, listed, page, from, to, setPage]);
+  }, [api, carried, page, from, setPage]);
 }
 
 /** "Prezență" (5.1): view, period, picker (Grupe, Lecții individuale, Antrenori), Listă or Grilă, and the open list. */
 export function PrezentaScreen({ query, onQuery }: Props) {
-  const [page, setPage] = React.useState<PeriodPage | null>(null);
+  const [page, setPage] = React.useState<NoticeData | null>(null);
   useNotices(query, page, setPage);
   const [host, setHost] = React.useState<HTMLElement | null>(null);
   const today = todayIso();
@@ -67,7 +69,7 @@ export function PrezentaScreen({ query, onQuery }: Props) {
           {gridOn && <SegmentedControl<PrezentaLayout> size="sm" options={LAYOUT_OPTIONS} value={query.layout} onChange={(layout) => onQuery({ layout })} aria-label={PERIOD_COPY.layout.lista} />}
         </div>
         {query.show === 'grupe' && query.layout === 'lista' && <GroupsList {...common} onPage={setPage} />}
-        {query.show === 'grupe' && query.layout === 'grila' && <GroupsGrid {...common} onQuery={onQuery} />}
+        {query.show === 'grupe' && query.layout === 'grila' && <GroupsGrid {...common} onQuery={onQuery} onPage={setPage} />}
         {query.show === 'lectii' && <LessonsList {...common} />}
         {query.show === 'antrenori' && <CoachesList {...common} />}
       </Window>

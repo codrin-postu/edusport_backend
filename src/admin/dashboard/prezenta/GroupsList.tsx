@@ -42,13 +42,17 @@ const DAY_COLUMNS: PeriodColumn<PeriodRow>[] = [
   { key: 'state', header: PREZENTA_COPY.colState, render: (r) => stateLabel(r.adminState) },
 ];
 
-const UNDONE_COLUMNS: PeriodColumn<PeriodRow>[] = [{ key: 'date', header: PREZENTA_COPY.colDate, render: (r) => listDate(r.date) }, ...DAY_COLUMNS];
+/** Data, Ora, Grupă, Antrenor, Stare (5.1): no Prezenți, the rows are unsaved. */
+const UNDONE_COLUMNS: PeriodColumn<PeriodRow>[] = [
+  { key: 'date', header: PREZENTA_COPY.colDate, render: (r) => listDate(r.date) },
+  ...DAY_COLUMNS.filter((c) => c.key !== 'present'),
+];
 
 function card(r: PeriodRow, withDate: boolean) {
   return (
     <>
       <span className="spv-name">{`${r.startTime} ${r.groupName}`}</span>
-      <span>{[r.coachNames.join(', '), count(r)].filter((p) => p !== '').join(', ')}</span>
+      <span>{[r.coachNames.join(', '), ...(withDate ? [] : [count(r)])].filter((p) => p !== '').join(', ')}</span>
       <span>{stateLabel(r.adminState)}</span>
       {withDate && <span className="spv-muted">{listDate(r.date)}</span>}
       {r.outsideSchedule && <span className="spv-muted">{PERIOD_COPY.outside}</span>}
@@ -61,10 +65,15 @@ function dayGroups(page: PeriodPage, view: PeriodView): PeriodGroup<PeriodRow>[]
   return page.days.map((d) => ({ key: d.date, header: view === 'zi' ? null : dayHeader(d.date, page.today), today: d.date === page.today, rows: d.rows }));
 }
 
-/** Month list: scroll to today (or the first day shown) once the rows are in. */
+/** Month list: scroll to today (or the first day shown) once the rows are in, once per period (a reload after a save keeps the place). */
 function useScrollToToday(page: PeriodPage | null, view: PeriodView, today: string, period: { from: string; to: string }): void {
+  const scrolled = React.useRef<string | null>(null);
   React.useEffect(() => {
+    if (view !== 'luna') scrolled.current = null;
     if (!page || view !== 'luna' || page.days.length === 0) return;
+    const key = `${period.from}|${period.to}`;
+    if (scrolled.current === key) return;
+    scrolled.current = key;
     const wanted = scrollTarget(page.days, today, period);
     const day = page.days.find((d) => d.date >= wanted) ?? page.days[page.days.length - 1];
     document.getElementById(`pz-day-${day.date}`)?.scrollIntoView({ block: 'start' });

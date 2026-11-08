@@ -50,11 +50,13 @@ function savedRow(s: SessionRow, atts: AttendanceRow[], ctx: RowContext, held: H
   };
 }
 
-/** Rows of the held occurrences and saved sessions from `from` to `to`, optionally of one group, with the coach ids behind the names. */
-export async function rowsWithCoachIds(store: PresenceStore, ctx: RowContext, from: string, to: string, groupId?: string): Promise<DayRowWithCoaches[]> {
+/** Rows of the held occurrences and saved sessions from `from` to `to`, optionally of one group, with the coach ids behind the names. `withAttendances: false` skips the attendance read (counts stay 0). */
+export async function rowsWithCoachIds(
+  store: PresenceStore, ctx: RowContext, from: string, to: string, groupId?: string, opts: { withAttendances?: boolean } = {},
+): Promise<DayRowWithCoaches[]> {
   const held = heldOccurrences(await store.calendarWindow(), ctx.groups, from, to).filter((h) => !groupId || h.groupId === groupId);
   const sessions = await store.sessions({ from, to, ...(groupId ? { groupId } : {}) });
-  const atts = sessions.length > 0 ? await store.attendances({ sessionIds: sessions.map((s) => s.id) }) : [];
+  const atts = sessions.length > 0 && opts.withAttendances !== false ? await store.attendances({ sessionIds: sessions.map((s) => s.id) }) : [];
   const attsOf = (id: string): AttendanceRow[] => atts.filter((a) => a.sessionId === id);
   const byKey = new Map(sessions.flatMap((s) => (s.occurrenceKey ? [[s.occurrenceKey, s] as const] : [])));
   const heldKeys = new Set(held.map((h) => h.key));

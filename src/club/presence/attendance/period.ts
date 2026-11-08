@@ -9,8 +9,10 @@ import type { PeriodPage, PeriodRow } from './api-types';
 type Now = { date: string; time: string };
 
 /** Rows of a range with their admin words; rows without a word (before the start date, not saved) are left out. */
-export async function periodRows(store: PresenceStore, ctx: RowContext, from: string, to: string, now: Now, groupId?: string): Promise<PeriodRow[]> {
-  const rows = await rowsWithCoachIds(store, ctx, from, to, groupId);
+export async function periodRows(
+  store: PresenceStore, ctx: RowContext, from: string, to: string, now: Now, groupId?: string, opts?: { withAttendances?: boolean },
+): Promise<PeriodRow[]> {
+  const rows = await rowsWithCoachIds(store, ctx, from, to, groupId, opts);
   return rows.flatMap((r: DayRowWithCoaches) => {
     const state = adminState({ saved: r.sessionId !== null, date: r.date, startTime: r.startTime, startDate: ctx.startDate, now });
     return state === null ? [] : [{ ...r, adminState: state }];
@@ -33,9 +35,10 @@ export async function readPeriod(store: PresenceStore, period: Period, now: Now)
     if (last && last.date === row.date) last.rows.push(row);
     else days.push({ date: row.date, rows: [row] });
   }
-  const before = addDays(period.from, -1);
+  // The undone list ends before the period and no later than yesterday; it only needs unsaved rows, so no attendances are read (M1).
+  const before = [addDays(period.from, -1), addDays(now.date, -1)].sort()[0];
   const undone = ctx.startDate && ctx.startDate <= before
-    ? (await periodRows(store, ctx, ctx.startDate, before, now)).filter((r) => r.sessionId === null && r.adminState === 'necompletat').sort(byUndoneOrder)
+    ? (await periodRows(store, ctx, ctx.startDate, before, now, undefined, { withAttendances: false })).filter((r) => r.sessionId === null && r.adminState === 'necompletat').sort(byUndoneOrder)
     : [];
   return { ok: true, data: { from: period.from, to: period.to, today: now.date, startDate: ctx.startDate, groupsWithoutList: groupsWithoutPriceList(ctx.groups), undone, days } };
 }

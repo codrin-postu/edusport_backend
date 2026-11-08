@@ -10,7 +10,9 @@ import { usePeriodLoad } from './MonthLine';
 import { NewSessionWindow } from './NewSessionWindow';
 import { SessionPanel, type SessionTarget } from './SessionPanel';
 
-type Props = { view: PeriodView; date: string; today: string; host: HTMLElement | null; onQuery: (q: Partial<PrezentaQuery>) => void };
+type Props = { view: PeriodView; date: string; today: string; host: HTMLElement | null; onQuery: (q: Partial<PrezentaQuery>) => void;
+  onPage?: (page: { startDate: string | null; groupsWithoutList: number }) => void;
+};
 type Opened = { target: SessionTarget; coachIds?: string[] };
 
 const STEP_LABEL: Record<CellStep, string> = {
@@ -18,9 +20,12 @@ const STEP_LABEL: Record<CellStep, string> = {
 };
 
 /** "Grupe", Grilă (5.1, S14): groups by days; a cell is the day's present from listed; a click opens that day. */
-export function GroupsGrid({ view, date, today, host, onQuery }: Props) {
+export function GroupsGrid({ view, date, today, host, onQuery, onPage }: Props) {
   const period = periodOf(view, date);
   const { data, failed } = usePeriodLoad((api, from, to) => api.grid(from, to), period);
+  const onPageRef = React.useRef(onPage);
+  onPageRef.current = onPage;
+  React.useEffect(() => { if (data) onPageRef.current?.({ startDate: data.startDate, groupsWithoutList: data.groupsWithoutList }); }, [data]);
   const [creating, setCreating] = React.useState(false);
   const [opened, setOpened] = React.useState<Opened | null>(null);
   let body: React.ReactNode = <Loading />;
