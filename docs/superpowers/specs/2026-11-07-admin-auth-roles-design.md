@@ -156,6 +156,10 @@ The daily portal purge [code src/club/portal/purge.ts] also removes: unconfirmed
 - The page shows the e-mail read only, "Parolă nouă" + "Salvează parola", or "sau" + "Continuă cu Google" (same verified e-mail only). Accept registers through Strapi's `admin::user` service with our password rules (P6 5.5); a Google accept registers with a random 64-character password the admin can replace by reset [P6 4.2 pattern; S16].
 - "Am uitat parola": e-mail -> "Trimite codul" -> "Dacă adresa are cont, am trimis un cod." -> "Cod din e-mail" + "Parolă nouă" + "Salvează parola"; 6 digits, 10 minutes, 5 tries, single use, keyed MAC (5.4) [P6 5.6; S16].
 - A reset ends every session and remembered device of the admin; if 2FA is on, the second step follows before the session [S17].
+- An admin invite expires 7 days after the `admin::user` row's `createdAt` (`INVITE_TTL_MS`, as the portal's), in the read, the accept and the Google accept; it answers 410 with the expired-invite copy. A user blocked before accepting is refused the same way, before anything is registered. The accept claims the token with a conditional update (row count 1) before it writes the password, so of parallel accepts exactly one wins. Strapi cannot resend an invite: the Super Admin deletes the user and invites again (decided by Claude).
+- Reset confirm runs one bcrypt compare on every path, so its time does not tell a known e-mail from an unknown one.
+- Accepted as portal parity (decided by Claude, low impact): a failed mail send answers 503 "Nu am putut trimite" only for a known, active admin, and a send slower than the 1500 ms floor answers later for a known e-mail.
+- Accepted as portal rules (review B4 L7): anyone who knows an admin's e-mail can use up the 5 reset mails an hour (`mail:admin:<e-mail>`) and burn a live code with 5 wrong tries; five wrong logins at `/intrare` lock `admin:login:<e-mail>`, which also refuses the signed-in admin's password change for 15 minutes. A support report of "no code arrives" or "password change refused" can come from this.
 - History line and mail as 13 and 12.
 
 ### 4.8 Devices and new-device mail [P6b q15]
