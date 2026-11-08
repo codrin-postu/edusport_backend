@@ -19,6 +19,7 @@ export const MONEY_CSS = `
 .ui-root .bn-empty{margin:0;padding:12px 16px}
 .ui-root .bn-total{margin:0;padding:12px 16px;font-weight:600;color:var(--theme-text)}
 .ui-root .bn-mark{font-size:12px}
+.ui-root .bn-code{font-size:12px}
 .ui-root .bn-tab{display:flex;flex-direction:column;gap:20px}
 .ui-root .bn-block{display:flex;flex-direction:column;gap:8px}
 .ui-root .bn-lines{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}

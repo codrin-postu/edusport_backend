@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ClubDueRow, DuePage, SchoolDueRow } from '../../presence/money-api';
-import { clubCells, dueParts, dueSections, payFor, schoolCells } from '../due-view';
+import { schoolCode, clubCells, dueParts, dueSections, payFor, schoolCells } from '../due-view';
 
 const schoolRow = (o: Partial<SchoolDueRow>): SchoolDueRow => ({
   subscriptionId: 's1', athleteId: 'a1', itemName: 'Abonament', startsOn: '2026-10-01', price: 0, paid: 0, left: 0, athleteName: 'Ana Ionescu', groupName: null, ...o,
@@ -30,5 +30,12 @@ describe('De încasat view', () => {
   it('the "Luna" filter lists the Plăți months (5.11)', () => {
     const [m] = dueSections('2026-10', '2026-11-20');
     expect([m.label, m.options[0].value, m.selected]).toEqual(['Luna', '2026-11', ['2026-10']]);
+  });
+});
+
+describe('De încasat Școala code (11-5 5.7)', () => {
+  it('the code goes before the item name; none when the abonament has none', () => {
+    expect(schoolCode(schoolRow({ code: 'A-0124' }))).toBe('A-0124');
+    expect(schoolCode(schoolRow({ code: null }))).toBeNull();
   });
 });

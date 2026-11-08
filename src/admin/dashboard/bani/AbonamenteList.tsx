@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AdminPage, Button, DataTable, FilterPanel, Loading, Notice, PageHeader, StatusBadge, Window, adminToast, useIsPhone, type BadgeTone, type DataColumn } from '../../ui';
-import { abonamenteCells, abonamenteSections, abonamentMenu, stateOf } from '../../../club/bani/abonamente-view';
+import { abonamentCell, abonamenteCells, abonamenteSections, abonamentMenu, stateOf } from '../../../club/bani/abonamente-view';
 import { athleteTabTo } from '../../../club/bani/routes';
 import { todayIso } from '../../../club/groups/http';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
@@ -72,12 +72,18 @@ function Menu({ row, onCancel }: { row: SubscriptionListRow; onCancel: (r: Subsc
   return <RowMenu name={row.athleteName} items={items} onPick={() => onCancel(row)} />;
 }
 
+/** "<code> 8 ședințe", the code muted. */
+function Item({ r }: { r: SubscriptionListRow }) {
+  const c = abonamentCell(r);
+  return <>{c.code && <span className="ui-muted bn-code">{c.code} </span>}{c.text}</>;
+}
+
 function columns(today: string, onCancel: (r: SubscriptionListRow) => void): DataColumn<SubscriptionListRow>[] {
   const cell = (pick: (c: ReturnType<typeof abonamenteCells>) => string) => (r: SubscriptionListRow) => pick(abonamenteCells(r, today));
   return [
     { key: 'athlete', header: copy.columns[0], render: cell((c) => c.athlete) },
     { key: 'group', header: copy.columns[1], render: cell((c) => c.group) },
-    { key: 'item', header: copy.columns[2], render: cell((c) => c.item) },
+    { key: 'item', header: copy.columns[2], render: (r) => <Item r={r} /> },
     { key: 'used', header: copy.columns[3], render: (r) => <span className="bn-used"><AbonamentBar bar={segBar(r)} compact />{abonamenteCells(r, today).used}</span> },
     { key: 'expires', header: copy.columns[4], render: (r) => { const c = abonamenteCells(r, today); return <span style={c.expiredRed ? RED : undefined}>{c.expires}</span>; } },
     { key: 'state', header: copy.columns[5], render: (r) => <StatusBadge tone={STATE_TONE[r.state]}>{abonamenteCells(r, today).state}</StatusBadge> },
@@ -95,7 +101,7 @@ function Cards({ rows, today, onOpen, onCancel }: { rows: SubscriptionListRow[];
           <li key={r.subscriptionId} className="spv-card-row">
             <button type="button" className="spv-card" onClick={() => onOpen(r)}>
               <span className="spv-name">{c.athlete}</span>
-              <span>{[c.group, c.item].filter(Boolean).join(', ')}</span>
+              <span>{c.group && `${c.group}, `}<Item r={r} /></span>
               <span className="bn-card-meta">
                 <AbonamentBar bar={segBar(r)} compact />
                 <span className="spv-muted">{c.used}, <span style={c.expiredRed ? RED : undefined}>{c.expires}</span></span>

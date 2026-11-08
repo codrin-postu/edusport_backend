@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AdminPage, DataTable, FilterPanel, Loading, Notice, PageHeader, Section, Window, useIsPhone, type DataColumn } from '../../ui';
 import { cardLine } from '../../../club/bani/format';
-import { clubCells, dueParts, dueSections, payFor, schoolCells } from '../../../club/bani/due-view';
+import { clubCells, dueParts, dueSections, payFor, schoolCells, schoolCode } from '../../../club/bani/due-view';
 import { athleteTabTo } from '../../../club/bani/routes';
 import { todayIso } from '../../../club/groups/http';
 import { PRESENCE_ERRORS, noPriceListNotice } from '../../../club/presence/copy/core';
@@ -66,7 +66,7 @@ function schoolColumns(a: Actions): DataColumn<SchoolDueRow>[] {
   return [
     { key: 'athlete', header: athlete, render: (r) => schoolCells(r).athlete },
     { key: 'group', header: group, render: (r) => schoolCells(r).group },
-    { key: 'item', header: item, render: (r) => { const c = schoolCells(r); return <>{c.item}<span className="ui-muted bn-mark"> {c.from}</span></>; } },
+    { key: 'item', header: item, render: (r) => { const c = schoolCells(r); const code = schoolCode(r); return <>{code && <span className="ui-muted bn-code">{code} </span>}{c.item}<span className="ui-muted bn-mark"> {c.from}</span></>; } },
     { key: 'price', header: price, align: 'right', render: (r) => schoolCells(r).price },
     { key: 'paid', header: paid, align: 'right', render: (r) => schoolCells(r).paid },
     { key: 'left', header: left, align: 'right', render: (r) => <LeftCell c={schoolCells(r)} /> },
@@ -108,7 +108,7 @@ const labelled = (header: string, value: string): string => `${header} ${value}`
 function schoolLine(r: DueRow): string {
   const c = schoolCells(r as SchoolDueRow);
   const [, , , price, paid, left] = copy.schoolColumns;
-  return cardLine([c.group, `${c.item} ${c.from}`, labelled(price, c.price), labelled(paid, c.paid), labelled(left, c.left), c.advance]);
+  return cardLine([c.group, `${[schoolCode(r as SchoolDueRow), c.item].filter(Boolean).join(' ')} ${c.from}`, labelled(price, c.price), labelled(paid, c.paid), labelled(left, c.left), c.advance]);
 }
 
 function clubLine(r: DueRow): string {

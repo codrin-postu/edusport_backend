@@ -12,7 +12,7 @@ import { amountText, parseAmount } from './payment-window';
 import type { FilterSection } from './plati-view';
 
 const copy = MONEY_UI_COPY.abonamente;
-const STATES: SubscriptionStateFilter[] = ['toate', 'active', 'epuizate', 'expirate', 'anulate'];
+const STATES: SubscriptionStateFilter[] = ['toate', 'active', 'epuizate', 'expirate', 'anulate', 'expira14'];
 
 /** "Stare" always has a value ("Active" by default); "Grupă" starts with the panel's own "Toate" row, so it counts in the Filtre badge. Single choice each. */
 export function abonamenteSections(q: { state: SubscriptionStateFilter; groupId: string | null }, groups: { value: string; label: string }[]): FilterSection[] {
@@ -31,6 +31,9 @@ export function abonamenteCells(r: SubscriptionListRow, today: string): Abonamen
     expires: longDate(r.validUntil), expiredRed: isPastDate(r.validUntil, today), state: SUBSCRIPTION_STATE_WORDS[r.state],
   };
 }
+
+/** The "Abonament" cell: the code (muted) and "8 ședințe". */
+export const abonamentCell = (r: { code: string | null; slots: number }): { code: string | null; text: string } => ({ code: r.code, text: slotsText(r.slots) });
 
 /** Only an abonament without a payment and not yet anulat can be cancelled (5.9, C75). */
 export const abonamentMenu = (r: SubscriptionListRow): 'cancel'[] => (r.canCancel ? ['cancel'] : []);

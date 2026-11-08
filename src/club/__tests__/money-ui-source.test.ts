@@ -232,4 +232,10 @@ describe('money UI source', () => {
     expect(hist).not.toMatch(/subscription.*state|bn-pay--\$\{/);
     for (const f of ['AbonamentTab', 'AbonamentCard', 'PresenceHistory', 'styles']) expect(src(`admin/dashboard/bani/${f}.${f === 'styles' ? 'ts' : 'tsx'}`), f).not.toMatch(/dashed|dotted|border-radius:\s*50%|#[0-9a-f]{3,6}\b|rgb\(/i);
   });
+  it('the receipt number column is on Plăți and on the athlete table; codes show in Abonamente and De încasat (11-5)', () => {
+    expect(src('admin/dashboard/bani/PlatiList.tsx')).toMatch(/key: 'receipt'/);
+    expect(src('admin/dashboard/bani/PlatiTab.tsx')).toMatch(/key: 'receipt'/);
+    expect(src('admin/dashboard/bani/AbonamenteList.tsx')).toMatch(/abonamentCell\(/);
+    expect(src('admin/dashboard/bani/DeIncasatList.tsx')).toMatch(/schoolCode\(/);
+  });
 });

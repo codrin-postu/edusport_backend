@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { activeSections } from '../../ui-filters';
 import type { SubscriptionListRow } from '../../presence/money-api';
 import type { NewSubscriptionForm } from '../../presence/subscriptions/views';
-import { abonamentMenu, abonamenteCells, abonamenteSections, addBody, addDraft, addToast, coverDisabled, extendModel, formMatchesStart, itemOptions, toggleCover } from '../abonamente-view';
+import { abonamentCell, abonamentMenu, abonamenteCells, abonamenteSections, addBody, addDraft, addToast, coverDisabled, extendModel, formMatchesStart, itemOptions, stateOf, toggleCover } from '../abonamente-view';
 
 const listRow = (o: Partial<SubscriptionListRow>): SubscriptionListRow => ({
   subscriptionId: 's1', athleteId: 'a1', athleteName: 'Ana Ionescu', groupName: 'Intermediari Bronze', slots: 8, used: 0, validUntil: '2026-12-01',
@@ -62,5 +62,18 @@ describe('Abonamente view', () => {
     expect(extendModel({ count: 14 }, 2)).toEqual({ text: 'Se prelungesc 14 abonamente active cu 2 săptămâni. Noua dată de expirare se calculează pentru fiecare.', button: 'Prelungește 14 abonamente', disabled: false });
     expect(extendModel({ count: 0 }, 1).disabled).toBe(true);
     expect(extendModel(null, 1).disabled).toBe(true);
+  });
+});
+
+describe('Abonament code and the 14 day filter (11-5 5.7)', () => {
+  it('cell: code muted before "8 ședințe"; no code: empty', () => {
+    expect(abonamentCell({ code: 'A-0124', slots: 8 })).toEqual({ code: 'A-0124', text: '8 ședințe' });
+    expect(abonamentCell({ code: null, slots: 1 })).toEqual({ code: null, text: '1 ședință' });
+  });
+  it('"Stare" ends with "Expiră în 14 zile" (expira14)', () => {
+    const [state] = abonamenteSections({ state: 'expira14', groupId: null }, []);
+    expect(state.options.at(-1)).toEqual({ value: 'expira14', label: 'Expiră în 14 zile' });
+    expect(state.selected).toEqual(['expira14']);
+    expect(stateOf('expira14')).toBe('expira14');
   });
 });
