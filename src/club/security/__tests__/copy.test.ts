@@ -166,6 +166,7 @@ describe('history lines (13)', () => {
     ['reset', { by: 'Ana Pop' }, '2FA resetat de Ana Pop.'],
     ['reset', { by: 'server' }, '2FA resetat de pe server.'],
     ['locked', {}, 'Blocat 15 minute după 5 coduri greșite.'],
+    ['passwordLocked', {}, 'Blocat 15 minute după 5 parole greșite.'],
     ['passwordChanged', {}, 'Parolă schimbată.'],
     ['passwordReset', {}, 'Parolă resetată.'],
     ['googleLinked', {}, 'Google conectat.'],
