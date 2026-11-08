@@ -9,7 +9,7 @@ const USER = 'admin::user' as const;
 const SYSTEM_ACTOR = 'sistem';
 
 /**
- * An admin's e-mail changed (a Super Admin in Settings, Users; spec 4.8): the Google link goes (it was proven for the old address), every
+ * An admin's e-mail changed (a Super Admin in Settings, Users; spec 4.8): the Google link goes and a pending Google link ends (both were proven for the old address), every
  * session ends and every remembered device is forgotten. The store is new for each call (its transaction pointer is per instance).
  */
 export async function onAdminEmailChange(strapi: Core.Strapi, adminId: number, store: SecurityStore = strapiSecurityStore(strapi)): Promise<void> {
@@ -17,6 +17,11 @@ export async function onAdminEmailChange(strapi: Core.Strapi, adminId: number, s
   if (account?.googleSub) {
     await store.updateAdminAccount(account.id, { googleSub: null });
     await store.record({ subjectType: 'admin', subjectId: String(adminId), action: SECURITY_ACTIONS.googleUnlinked, changes: {}, actor: SYSTEM_ACTOR });
+  }
+  // A first-link Google login waiting for its 2FA code was proven for the old address: end it (B4 H1 review L2).
+  const subject = { type: 'admin' as const, id: String(adminId) };
+  for (const row of await store.openChallenges(subject, 'pending-login')) {
+    if (typeof row.data.googleSub === 'string') await store.consumeOnce('challenge', row.id, new Date().toISOString());
   }
   await endAdminSessions({ strapi, store }, adminId, {});
 }

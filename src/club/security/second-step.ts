@@ -18,7 +18,8 @@ import { checkTotp } from './totp';
 export const PENDING_TTL_MS = 600_000;
 export const PENDING_MAX_WRONG = 5;
 
-export type PendingData = { method: TwoFactorMethod; rememberMe: boolean; host: string; deviceKeyHash: string | null };
+/** `googleSub`: set only by a first Google link of an admin with 2FA; it is stored after a right code (spec 4.6), never before. */
+export type PendingData = { method: TwoFactorMethod; rememberMe: boolean; host: string; deviceKeyHash: string | null; googleSub?: string };
 /** What the pending challenge row keeps: the offer, and the address the code goes to (purged with the row, never a password or code). */
 type PendingRow = PendingData & { email: string };
 

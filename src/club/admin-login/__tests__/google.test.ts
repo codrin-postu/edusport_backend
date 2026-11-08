@@ -3,7 +3,10 @@ import jwt from 'jsonwebtoken';
 import { describe, expect, it, vi } from 'vitest';
 import { clearGoogleKeyCache, type GoogleClient } from '../../portal/auth/google';
 import { SECURITY_ACTIONS } from '../../security/copy';
+import { totpAt } from '../../security/totp';
 import { ADMIN_GOOGLE_COOKIE, ADMIN_GOOGLE_PATH, adminGoogleCallback, startAdminGoogle } from '../google';
+import { secondStepAdmin } from '../login';
+import { unlinkAdminGoogle } from '../security';
 import { loginEnv } from './login-env';
 
 const CLIENT_ID = 'client-1.apps.googleusercontent.com';
@@ -166,10 +169,11 @@ describe('adminGoogleCallback', () => {
     expect(env.sessions.rows).toHaveLength(0);
   });
 
-  it('2FA on is skipped: a session at once', async () => {
+  it('a sub already linked skips 2FA: a session at once (user decision, unchanged)', async () => {
     const env = googleEnv();
     await env.turnOnTotp();
-    expect(await env.run()).toEqual({ redirect: '/intrare/gata?remember=1' });
+    await env.c.store.updateAdminAccount((await env.c.store.ensureAdminAccount(7)).id, { googleSub: 'sub-1' });
+    expect(await env.run({ email: 'other@x.ro' })).toEqual({ redirect: '/intrare/gata?remember=1' });
     expect(env.sessions.rows).toHaveLength(1);
     expect(env.sets.find((s) => s.name === 'es_adm_2fa')).toBeUndefined();
   });
@@ -188,6 +192,119 @@ describe('adminGoogleCallback', () => {
     const broken = { ...env.g, fetchFn: (async () => { throw new TypeError('boom'); }) as unknown as typeof fetch };
     expect(await adminGoogleCallback(env.c, { code: 'c', state: env.flowOf().state }, broken)).toEqual({ redirect: FAILED });
     expect(env.logs).toContain('[admin-google] failed: TypeError');
+  });
+});
+
+describe('first link by e-mail on an admin with 2FA (B4 H1)', () => {
+  const TOTP = Buffer.from('12345678901234567890');
+  const code = (env: ReturnType<typeof googleEnv>) => totpAt(TOTP, Math.floor(env.clock.t.getTime() / 30_000));
+
+  it('opens the second step: no session, no jwtToken cookie, no stored sub, no history line; the sub waits in the pending data', async () => {
+    const env = googleEnv();
+    await env.turnOnTotp();
+    const out = await env.run({ email: 'ana@x.ro' });
+    expect(out.redirect).toMatch(/^\/intrare\/2fa\?/);
+    expect(new URL(out.redirect, 'http://h').searchParams.get('methods')).toBe('totp');
+    expect(env.sessions.rows).toHaveLength(0);
+    expect(env.sets.find((x) => x.name === 'jwtToken')).toBeUndefined();
+    expect(env.sets.find((x) => x.name === 'strapi_admin_refresh')).toBeUndefined();
+    expect(env.sets.find((x) => x.name.endsWith('es_adm_2fa'))).toMatchObject({ options: { httpOnly: true } });
+    expect((await env.c.store.adminAccount(7))?.googleSub ?? null).toBeNull();
+    expect(await env.c.store.adminAccountByGoogleSub('sub-1')).toBeNull();
+    expect(env.mem.history).toEqual([]);
+    expect(JSON.stringify(env.logs)).not.toContain('sub-1');
+  });
+
+  it('a right code stores the sub, writes "Google conectat." and hands over the session; remember carries through', async () => {
+    const env = googleEnv();
+    await env.turnOnTotp();
+    await env.run({ email: 'ana@x.ro' }, { query: { remember: '0' } });
+    env.sync();
+    const out = await secondStepAdmin(env.c, { method: 'totp', code: code(env), remember: false });
+    expect(out).toMatchObject({ ok: true, data: { remember: false } });
+    expect((await env.c.store.adminAccount(7))?.googleSub).toBe('sub-1');
+    expect(env.mem.history.map((h) => h.action)).toEqual([SECURITY_ACTIONS.googleLinked]);
+    expect(env.sessions.rows).toHaveLength(1);
+    expect(env.sessions.rows[0].type).toBe('session');
+  });
+
+  it('a wrong code stores nothing and gives no session', async () => {
+    const env = googleEnv();
+    await env.turnOnTotp();
+    await env.run({ email: 'ana@x.ro' });
+    env.sync();
+    expect(await secondStepAdmin(env.c, { method: 'totp', code: '000000', remember: false })).toMatchObject({ ok: false, status: 400 });
+    expect(await env.c.store.adminAccountByGoogleSub('sub-1')).toBeNull();
+    expect(env.sessions.rows).toHaveLength(0);
+  });
+
+  it('it is asked again on a later first link even from a device that remembers 2FA', async () => {
+    const env = googleEnv();
+    await env.turnOnTotp();
+    await env.run({ email: 'ana@x.ro' });
+    env.sync();
+    await secondStepAdmin(env.c, { method: 'totp', code: code(env), remember: true });
+    await env.c.store.updateAdminAccount((await env.c.store.adminAccount(7))!.id, { googleSub: null });
+    const again = await env.run({ email: 'ana@x.ro' });
+    expect(again.redirect).toMatch(/^\/intrare\/2fa/);
+    expect(env.sessions.rows).toHaveLength(1);
+  });
+
+  it('refused when the link was removed or taken before the code is typed', async () => {
+    for (const patch of [{ googleUnlinkedAt: '2026-01-01T00:00:00.000Z' }, { googleSub: 'sub-other' }]) {
+      const env = googleEnv();
+      await env.turnOnTotp();
+      await env.run({ email: 'ana@x.ro' });
+      env.sync();
+      await env.c.store.updateAdminAccount((await env.c.store.ensureAdminAccount(7)).id, patch);
+      expect(await secondStepAdmin(env.c, { method: 'totp', code: code(env), remember: false })).toMatchObject({ ok: false });
+      expect(env.sessions.rows).toHaveLength(0);
+      expect((await env.c.store.adminAccount(7))?.googleSub ?? null).toBe(patch.googleSub ?? null);
+    }
+  });
+
+  it('refused when another admin holds the sub by the time the code is typed', async () => {
+    const env = googleEnv();
+    env.addAdmin({ id: 8, email: 'b@x.ro', firstname: 'B', lastname: 'B', password: 'hash:p' });
+    await env.turnOnTotp();
+    await env.run({ email: 'ana@x.ro' });
+    env.sync();
+    await env.c.store.updateAdminAccount((await env.c.store.ensureAdminAccount(8)).id, { googleSub: 'sub-1' });
+    expect(await secondStepAdmin(env.c, { method: 'totp', code: code(env), remember: false })).toMatchObject({ ok: false });
+    expect(env.sessions.rows).toHaveLength(0);
+    expect((await env.c.store.adminAccount(7))?.googleSub ?? null).toBeNull();
+  });
+
+  it('without 2FA nothing changes: linked and signed in at once', async () => {
+    const env = googleEnv();
+    expect(await env.run({ email: 'ana@x.ro' })).toEqual({ redirect: '/intrare/gata?remember=1' });
+    expect((await env.c.store.adminAccount(7))?.googleSub).toBe('sub-1');
+    expect(env.sets.find((x) => x.name.endsWith('es_adm_2fa'))).toBeUndefined();
+  });
+});
+
+describe('after "Elimină legătura" (B4 H1)', () => {
+  const unlinkedEnv = async (twoFactor: boolean) => {
+    const env = googleEnv();
+    if (twoFactor) await env.turnOnTotp();
+    await env.c.store.updateAdminAccount((await env.c.store.ensureAdminAccount(7)).id, { googleSub: 'sub-1' });
+    const me = await (await import('../admins')).adminById(env.c.strapi, 7);
+    expect(await unlinkAdminGoogle(env.c, me!)).toMatchObject({ ok: true });
+    return env;
+  };
+
+  it('records the removal, and a Google login with the same e-mail is the no-account answer, with or without 2FA', async () => {
+    for (const twoFactor of [false, true]) {
+      const env = await unlinkedEnv(twoFactor);
+      const account = await env.c.store.adminAccount(7);
+      expect(account?.googleSub).toBeNull();
+      expect(account?.googleUnlinkedAt).toEqual(expect.any(String));
+      expect(await env.run({ email: 'ana@x.ro' })).toEqual({ redirect: FAILED });
+      expect(await env.run({ email: 'ANA@x.ro', sub: 'sub-2' })).toEqual({ redirect: FAILED });
+      expect(env.sessions.rows).toHaveLength(0);
+      expect(env.sets.find((x) => x.name.endsWith('es_adm_2fa'))).toBeUndefined();
+      expect((await env.c.store.adminAccount(7))?.googleSub).toBeNull();
+    }
   });
 });
 

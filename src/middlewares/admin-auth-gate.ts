@@ -7,6 +7,8 @@ export type GateDecision = 'pass' | 'notFound' | 'forbidden' | 'profileEmail' | 
 
 /** Strapi's own session issuers, closed (spec 4.4): sessions start only through `/api/admin-auth/*`. */
 const CLOSED_POSTS = new Set(['/admin/login', '/admin/register', '/admin/register-admin', '/admin/reset-password', '/admin/forgot-password']);
+/** Admin API tokens authenticate as an admin with no 2FA and outlive every session control, so minting one is closed too (B3 M4, spec 4.4). */
+const ADMIN_TOKEN_POST = /^\/admin\/admin-tokens(\/[^/]+\/regenerate)?$/;
 const PASSWORD_KEYS = ['password', 'currentPassword'] as const;
 const KEEP_QUERY = ['registrationToken', 'code'] as const;
 
@@ -34,7 +36,7 @@ export function gateDecision(method: string, path: string, body: unknown, enable
   const [rawPath, ...queryParts] = path.split('?');
   const pathname = normalizeAdminPath(rawPath);
   const verb = method.toUpperCase();
-  if (verb === 'POST' && CLOSED_POSTS.has(pathname)) return 'notFound';
+  if (verb === 'POST' && (CLOSED_POSTS.has(pathname) || ADMIN_TOKEN_POST.test(pathname))) return 'notFound';
   if (verb === 'PUT' && pathname === '/admin/users/me') {
     if (PASSWORD_KEYS.some((k) => hasKey(body, k))) return 'forbidden';
     return hasKey(body, 'email') ? 'profileEmail' : 'pass';

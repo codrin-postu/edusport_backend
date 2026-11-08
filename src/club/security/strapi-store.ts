@@ -46,7 +46,7 @@ const toPasskey = (r: Raw): PasskeyRow => ({
   name: text(r.name), createdAt: iso(r.createdAt) ?? '', lastUsedAt: iso(r.lastUsedAt),
 });
 const toAdminAccount = (r: Raw): AdminAccountRow => ({
-  id: text(r.documentId), adminUserId: Number(r.adminUserId), googleSub: str(r.googleSub), webauthnUserId: text(r.webauthnUserId), lastMethod: method(r.lastMethod),
+  id: text(r.documentId), adminUserId: Number(r.adminUserId), googleSub: str(r.googleSub), googleUnlinkedAt: iso(r.googleUnlinkedAt), webauthnUserId: text(r.webauthnUserId), lastMethod: method(r.lastMethod),
   passkeyOfferedAt: iso(r.passkeyOfferedAt),
 });
 const toAdminDevice = (r: Raw): AdminDeviceRow => ({

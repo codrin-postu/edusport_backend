@@ -170,7 +170,7 @@ export function memorySecurityStore(now: () => Date = () => new Date()): MemoryS
     async ensureAdminAccount(uid) {
       let row = adminAccounts.find((a) => a.adminUserId === uid);
       if (!row) {
-        row = { id: id('adm'), adminUserId: uid, googleSub: null, webauthnUserId: randomBytes(32).toString('base64url'), lastMethod: null, passkeyOfferedAt: null };
+        row = { id: id('adm'), adminUserId: uid, googleSub: null, googleUnlinkedAt: null, webauthnUserId: randomBytes(32).toString('base64url'), lastMethod: null, passkeyOfferedAt: null };
         adminAccounts.push(row);
       }
       return copy(row);

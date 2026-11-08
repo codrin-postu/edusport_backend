@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import adminConfig from '../../../../config/admin';
+import serverConfig from '../../../../config/server';
 
 const env = Object.assign((key: string) => `v:${key}`, { bool: (_k: string, d: boolean) => d });
 const DAY = 24 * 3600;
@@ -16,6 +17,14 @@ describe('config/admin.ts session lifetimes (P6b q14 A)', () => {
       idleSessionLifespan: 2 * 3600,
       maxSessionLifespan: DAY,
     });
+  });
+
+  it('remote data transfer is off, so /admin/transfer/tokens cannot mint tokens (the key Strapi reads: server.transfer.remote.enabled)', () => {
+    const e = Object.assign((_k: string, d?: unknown) => d, { int: (_k: string, d: number) => d, array: () => ['k'] });
+    const cfg = (serverConfig as (a: { env: typeof e }) => { transfer?: { remote?: { enabled?: boolean } } })({ env: e });
+    expect(cfg.transfer?.remote?.enabled).toBe(false);
+    const reader = readFileSync(join(__dirname, '../../../../node_modules/@strapi/admin/dist/server/server/src/middlewares/data-transfer.js'), 'utf8');
+    expect(reader).toContain("server.transfer.remote.enabled");
   });
 
   it('the spec says so (4.2) instead of "not configured"', () => {

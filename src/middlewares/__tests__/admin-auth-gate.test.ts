@@ -18,6 +18,17 @@ describe('gateDecision, gate on', () => {
     expect(gateDecision('GET', '/admin/registration-info', {}, true)).toBe('pass');
   });
 
+  it('admin API tokens cannot be minted or regenerated: POST /admin/admin-tokens and /:id/regenerate answer 404 (B3 M4)', () => {
+    for (const path of ['/admin/admin-tokens', '/admin/admin-tokens/', '/ADMIN/Admin-Tokens', '/admin/admin-tokens?x=1', '/admin/admin%2Dtokens', '/admin/admin-tokens/3/regenerate', '/Admin/ADMIN-TOKENS/12/Regenerate/', '/admin/admin-tokens/3/regenerate?x=1', '/admin/admin-tokens/%33/regenerate']) {
+      expect(gateDecision('POST', path, {}, true)).toBe('notFound');
+      expect(gateDecision('post', path, {}, true)).toBe('notFound');
+    }
+    expect(gateDecision('GET', '/admin/admin-tokens', undefined, true)).toBe('pass');
+    expect(gateDecision('DELETE', '/admin/admin-tokens/3', undefined, true)).toBe('pass');
+    expect(gateDecision('POST', '/admin/admin-tokens/3/other', {}, true)).toBe('pass');
+    expect(gateDecision('POST', '/admin/admin-tokens', {}, false)).toBe('pass');
+  });
+
   it('disabled: everything passes', () => {
     for (const path of CLOSED) expect(gateDecision('POST', path, {}, false)).toBe('pass');
     expect(gateDecision('PUT', '/admin/users/me', { password: 'x' }, false)).toBe('pass');
