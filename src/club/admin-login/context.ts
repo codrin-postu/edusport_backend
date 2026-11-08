@@ -88,3 +88,17 @@ export function adminLoginContext(strapi: Core.Strapi, koa: KoaContext): AdminLo
   };
   return c;
 }
+
+/** The security context of the server script (`npm run admin:reset-2fa`): no request, so no cookies, IP or device. */
+export function serverSecurityContext(strapi: Core.Strapi): SecurityContext {
+  const store = strapiSecurityStore(strapi);
+  const now = (): Date => new Date();
+  const sendSecurity = securityMailSender(strapi);
+  const c: SecurityContext = {
+    store, now, keys: loadKeys(), log: (m) => strapi.log.error(m), mail: (to, kind, data) => sendSecurity(to, { kind, data } as SecurityMail),
+    limits: adminLimits(limiter(strapiPortalStore(strapi), now)), ip: 'server', userAgent: null, actor: 'sistem',
+    endSessions: (s, o) => endAdminSessions({ strapi, store }, Number(s.id), o),
+    forgetDevices: (s, o) => forgetDevices(store, s, o),
+  };
+  return c;
+}

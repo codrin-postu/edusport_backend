@@ -47,3 +47,9 @@ export type AdminUserService = {
 };
 
 export const adminUserService = (strapi: Core.Strapi): AdminUserService => (strapi as unknown as { service: (uid: string) => AdminUserService }).service(USER);
+
+/** Every admin, oldest first (the Administratori list). */
+export async function allAdmins(strapi: Core.Strapi): Promise<AdminRow[]> {
+  const rows = (await strapi.db.query(USER).findMany({ orderBy: { id: 'asc' }, populate: ['roles'] })) as Raw[];
+  return rows.map((r) => toAdmin(r)).filter((a): a is AdminRow => a !== null);
+}
