@@ -35,12 +35,15 @@ function Cells({ row }: { row: HistoryRow }) {
 
 /** "Prezențe" of the athlete in the season: count, 10 rows a page, a unit row opens its session, a Club or lesson row opens its detail line (5.4.2). */
 export function PresenceHistory({ athlete, seasonId }: { athlete: Athlete; seasonId: string | null }) {
+  return <PresenceHistoryBody key={`${athlete.id}|${seasonId}`} athlete={athlete} seasonId={seasonId} />;
+}
+
+function PresenceHistoryBody({ athlete, seasonId }: { athlete: Athlete; seasonId: string | null }) {
   const api = useMoneyApi();
   const [page, setPage] = React.useState(1);
   const [expanded, setExpanded] = React.useState<string | null>(null);
   const [opened, setOpened] = React.useState<Opened>(null);
-  React.useEffect(() => { setPage(1); setExpanded(null); }, [athlete.id, seasonId]);
-  const { data, failed } = useLoad(() => api.athletePresence(athlete.id, seasonId, page), `${athlete.id}|${seasonId}|${page}`);
+  const { data, failed } = useLoad(() => api.athletePresence(athlete.id, seasonId, page), `${athlete.id}|${seasonId}|${page}`, `${athlete.id}|${seasonId}`);
   const rowKey = (row: HistoryRow, i: number): string => `${row.sessionId ?? row.lessonId ?? 'x'}-${i}`;
   return (
     <section className="bn-block">

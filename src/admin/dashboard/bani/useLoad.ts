@@ -3,10 +3,14 @@ import { usePrezentaRefresh } from '../prezenta/undo';
 import { useLatest } from './latest';
 import { useMoneyChanged } from './undo';
 
-/** Loads on mount, when `key` changes, and again after any money or Prezență write; a slow older answer is dropped. */
-export function useLoad<T>(load: () => Promise<T>, key: string): { data: T | null; failed: boolean } {
+/**
+ * Loads on mount, when `key` changes, and again after any money or Prezență write; a slow older answer is dropped.
+ * The last data stays while a new key loads, and is cleared only when `group` changes (default: the key itself).
+ */
+export function useLoad<T>(load: () => Promise<T>, key: string, group: string = key): { data: T | null; failed: boolean } {
   const [data, setData] = React.useState<T | null>(null);
   const [failed, setFailed] = React.useState(false);
+  const groupRef = React.useRef(group);
   const loadRef = React.useRef(load);
   loadRef.current = load;
   const latest = useLatest();
@@ -22,7 +26,10 @@ export function useLoad<T>(load: () => Promise<T>, key: string): { data: T | nul
     }
   }, [latest, key]);
   React.useEffect(() => {
-    setData(null);
+    if (groupRef.current !== group) {
+      groupRef.current = group;
+      setData(null);
+    }
     void reload();
   }, [reload]);
   useMoneyChanged(() => void reload());

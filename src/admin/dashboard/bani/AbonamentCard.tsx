@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { StatusBadge, type BadgeTone } from '../../ui';
-import { IconChevronRight } from '../../ui/icons';
+import { IconChevronDown, IconChevronRight, IconChevronUp } from '../../ui/icons';
 import { cardCount, cardName, cardPeriod, segments, useRow as rowOf } from '../../../club/bani/athlete-cards-view';
 import { todayIso } from '../../../club/groups/http';
 import { CARD_COPY } from '../../../club/presence/copy/prezenta-ui';
@@ -30,6 +30,7 @@ export function AbonamentCard({ card, athleteId }: { card: SubscriptionCard; ath
         {card.used > 0 && (
           <button type="button" className="bn-days-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
             {open ? CARD_COPY.hideDays : CARD_COPY.showDays}
+            <span className="bn-days-chev" aria-hidden="true">{open ? <IconChevronUp /> : <IconChevronDown />}</span>
           </button>
         )}
       </div>
