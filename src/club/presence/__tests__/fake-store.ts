@@ -45,12 +45,12 @@ export const lessonRow = (over: Partial<LessonRow> = {}): LessonRow => ({
 export const subscriptionRow = (over: Partial<SubscriptionRow> = {}): SubscriptionRow => ({
   id: 'sub1', athleteId: 'a1', seasonId: 's26', priceListId: 'pl-std', validIn: [], itemName: 'Abonament 8 ședințe', price: 320, audience: 'member', slots: 8,
   startsOn: '2026-10-27', validUntil: '2026-11-23', extendedWeeks: 0, cancelled: false, cancelledAt: null, cancelledBy: null,
-  purchasedAt: '2026-10-27T10:00:00.000Z', recordedBy: 'admin@example.com', ...over,
+  purchasedAt: '2026-10-27T10:00:00.000Z', recordedBy: 'admin@example.com', code: null, ...over,
 });
 export const paymentRow = (over: Partial<PaymentRow> = {}): PaymentRow => ({
   id: 'p1', athleteId: 'a1', amount: 320, method: 'numerar', paidOn: '2026-10-27', purpose: 'altceva', subscriptionId: null, lessonId: null, clubMonth: null,
   seasonId: 's26', collectedAtRink: false, note: null, sendEmail: false, emailJobId: null, acsBefore: null, recordedBy: 'admin@example.com',
-  recordedAt: '2026-10-27T10:00:00.000Z', cancelled: false, cancelledAt: null, cancelledBy: null, ...over,
+  recordedAt: '2026-10-27T10:00:00.000Z', cancelled: false, cancelledAt: null, cancelledBy: null, receiptNo: null, ...over,
 });
 
 const copy = <T>(v: T): T => structuredClone(v);
@@ -134,10 +134,10 @@ function fakeMoneyWrites(s: FakePresenceState, next: Next): K<'createLesson' | '
     createLesson: async (d) => { const id = next('l'); s.lessons.push({ ...copy(d), id }); return id; },
     updateLesson: async (id, d) => { Object.assign(must(s.lessons, id, 'lesson'), copy(defined(d))); },
     deleteLesson: async (id) => { must(s.lessons, id, 'lesson'); s.lessons = s.lessons.filter((r) => r.id !== id); },
-    createSubscription: async (d) => { const id = next('sub'); s.subscriptions.push({ ...copy(d), id }); return id; },
+    createSubscription: async (d, code) => { const id = next('sub'); s.subscriptions.push({ ...copy(d), id, code }); return id; },
     updateSubscription: async (id, d) => { Object.assign(must(s.subscriptions, id, 'subscription'), copy(defined(d))); },
     deleteSubscription: async (id) => { must(s.subscriptions, id, 'subscription'); s.subscriptions = s.subscriptions.filter((r) => r.id !== id); },
-    createPayment: async (d) => { const id = next('p'); s.payments.push({ ...copy(d), id }); return id; },
+    createPayment: async (d, receiptNo) => { const id = next('p'); s.payments.push({ ...copy(d), id, receiptNo }); return id; },
     updatePayment: async (id, d) => { Object.assign(must(s.payments, id, 'payment'), copy(defined(d))); },
     deletePayment: async (id) => { must(s.payments, id, 'payment'); s.payments = s.payments.filter((r) => r.id !== id); },
   };

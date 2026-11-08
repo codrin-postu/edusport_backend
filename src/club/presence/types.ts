@@ -28,7 +28,7 @@ export type SubscriptionWrite = {
   startsOn: string; validUntil: string; extendedWeeks: number; cancelled: boolean; cancelledAt: string | null; cancelledBy: string | null;
   purchasedAt: string; recordedBy: string;
 };
-export type SubscriptionRow = SubscriptionWrite & { id: string };
+export type SubscriptionRow = SubscriptionWrite & { id: string; code: string | null };
 export type SubscriptionState = 'activ' | 'epuizat' | 'expirat' | 'anulat';
 export type PaymentMethod = 'numerar' | 'card' | 'transfer';
 export type PaymentPurpose = 'abonament' | 'cotizatie' | 'club_luna' | 'lectie' | 'altceva';
@@ -37,7 +37,7 @@ export type PaymentWrite = {
   clubMonth: string | null; seasonId: string; collectedAtRink: boolean; note: string | null; sendEmail: boolean; emailJobId: string | null;
   acsBefore: AcsState | null; recordedBy: string; recordedAt: string; cancelled: boolean; cancelledAt: string | null; cancelledBy: string | null;
 };
-export type PaymentRow = PaymentWrite & { id: string };
+export type PaymentRow = PaymentWrite & { id: string; receiptNo: string | null };
 export type PriceItemRow = { name: string; kind: PriceItemKind; sessions: number | null; memberPrice: number | null; nonMemberPrice: number | null; included: boolean };
 export type PriceListRecord = PriceListRow & { items: PriceItemRow[] };
 export type PaymentEmailPayload = { athleteName: string; amount: number; method: PaymentMethod; paidOn: string; purposeText: string };

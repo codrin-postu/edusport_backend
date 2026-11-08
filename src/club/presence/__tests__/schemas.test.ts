@@ -82,4 +82,9 @@ describe('phase 5 schemas', () => {
     expect(s.attributes.value).toEqual({ type: 'integer', required: true, min: 0 });
     expect(source('api/club-counter/routes/club-counter.ts')).toContain('{ only: [] }');
   });
+
+  it('code and receiptNo are unique strings; their database indexes are made at boot like the other presence keys (11-3 T3)', () => {
+    expect(json('api/subscription/content-types/subscription/schema.json').attributes.code).toEqual({ type: 'string', unique: true });
+    expect(json('api/payment/content-types/payment/schema.json').attributes.receiptNo).toEqual({ type: 'string', unique: true });
+  });
 });

@@ -13,7 +13,7 @@ describe('fake presence store', () => {
     const { store, state, group, failOn } = fakePresenceStore({ group: { athletes: [athleteRow({ id: 'a1' })] } });
     failOn('record');
     await expect(store.transaction(async () => {
-      await store.createPayment(paymentRow({ athleteId: 'a1' }));
+      await store.createPayment(paymentRow({ athleteId: 'a1' }), '2026-0001');
       await store.setAthleteStatus('a1', 'inactiv');
       await store.record({ subjectType: 'payment', subjectId: 'p', action: 'payment-recorded', actor: 'x' });
     })).rejects.toThrow('fake failure in record');

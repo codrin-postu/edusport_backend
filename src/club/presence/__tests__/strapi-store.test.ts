@@ -115,22 +115,23 @@ describe('strapiPresenceStore', () => {
   it('maps payments, subscriptions (validIn ids), lessons and price lists (items with included)', () => {
     expect(toPaymentRow({
       documentId: 'p1', athlete: { documentId: 'a1' }, amount: '320.00', method: 'card', paidOn: '2026-10-27', purpose: 'abonament', subscription: { documentId: 'sub1' }, lesson: null,
-      clubMonth: null, season: { documentId: 's26' }, collectedAtRink: true, note: 'x', sendEmail: true, emailJob: { documentId: 'j1' }, acsBefore: 'nu', recordedBy: 'Ana',
+      clubMonth: null, season: { documentId: 's26' }, collectedAtRink: true, note: 'x', sendEmail: true, emailJob: { documentId: 'j1' }, receiptNo: '2026-0412', acsBefore: 'nu', recordedBy: 'Ana',
       recordedAt: '2026-10-27T10:00:00.000Z', cancelled: null, cancelledAt: null, cancelledBy: null,
     })).toEqual({
-      id: 'p1', athleteId: 'a1', amount: 320, method: 'card', paidOn: '2026-10-27', purpose: 'abonament', subscriptionId: 'sub1', lessonId: null, clubMonth: null, seasonId: 's26',
+      id: 'p1', receiptNo: '2026-0412', athleteId: 'a1', amount: 320, method: 'card', paidOn: '2026-10-27', purpose: 'abonament', subscriptionId: 'sub1', lessonId: null, clubMonth: null, seasonId: 's26',
       collectedAtRink: true, note: 'x', sendEmail: true, emailJobId: 'j1', acsBefore: 'nu', recordedBy: 'Ana', recordedAt: '2026-10-27T10:00:00.000Z', cancelled: false, cancelledAt: null, cancelledBy: null,
     });
     expect(toSubscriptionRow({
       documentId: 'sub1', athlete: { documentId: 'a1' }, season: { documentId: 's26' }, priceList: { documentId: 'pl-std' }, validIn: [{ documentId: 'pl-std' }, { documentId: 'pl-gold' }],
       itemName: 'Abonament 8 ședințe', price: '320.00', audience: 'nonMember', slots: 8, startsOn: '2026-10-27', validUntil: '2026-11-23', extendedWeeks: 1, cancelled: true,
-      cancelledAt: '2026-11-01T10:00:00.000Z', cancelledBy: 'Ana', purchasedAt: '2026-10-27T10:00:00.000Z', recordedBy: 'Ana',
+      cancelledAt: '2026-11-01T10:00:00.000Z', cancelledBy: 'Ana', purchasedAt: '2026-10-27T10:00:00.000Z', recordedBy: 'Ana', code: 'A-0124',
     })).toEqual({
-      id: 'sub1', athleteId: 'a1', seasonId: 's26', priceListId: 'pl-std', validIn: ['pl-std', 'pl-gold'], itemName: 'Abonament 8 ședințe', price: 320, audience: 'nonMember', slots: 8,
+      id: 'sub1', code: 'A-0124', athleteId: 'a1', seasonId: 's26', priceListId: 'pl-std', validIn: ['pl-std', 'pl-gold'], itemName: 'Abonament 8 ședințe', price: 320, audience: 'nonMember', slots: 8,
       startsOn: '2026-10-27', validUntil: '2026-11-23', extendedWeeks: 1, cancelled: true, cancelledAt: '2026-11-01T10:00:00.000Z', cancelledBy: 'Ana',
       purchasedAt: '2026-10-27T10:00:00.000Z', recordedBy: 'Ana',
     });
-    expect(toSubscriptionRow({ documentId: 'sub2', validIn: [] }).validIn).toEqual([]);
+    expect(toSubscriptionRow({ documentId: 'sub2', validIn: [] })).toMatchObject({ validIn: [], code: null });
+    expect(toPaymentRow({ documentId: 'p2' }).receiptNo).toBeNull();
     expect(toLessonRow({
       documentId: 'l1', athlete: { documentId: 'a1' }, date: '2026-11-10', startTime: '17:00:00.000', durationMin: 50, coaches: [{ documentId: 'tm-andreea' }], state: 'saved', present: true,
       priceList: { documentId: 'pl-club' }, itemName: 'Lecție individuală', price: '80.00', audience: 'member', amount: '80.00', createdByName: 'Ana', recordedAt: '2026-11-10T17:30:00.000Z', savedBy: 'Ana', savedAt: '2026-11-10T18:00:00.000Z',
@@ -156,6 +157,22 @@ describe('strapiPresenceStore', () => {
     expect(asUniqueKeyError({ cause: { code: '23505' } })).toBeInstanceOf(UniqueKeyError);
     expect(asUniqueKeyError(Object.assign(new Error('This attribute must be unique'), { name: 'ValidationError' }))).toBeInstanceOf(UniqueKeyError);
     expect(asUniqueKeyError(new Error('connection lost'))).toBeNull();
+  });
+
+  it('a create carries the code or the number, an update never does', async () => {
+    const created: Array<Record<string, unknown>> = [];
+    const updated: Array<Record<string, unknown>> = [];
+    const strapi = { documents: () => ({
+      create: async (args: { data: Record<string, unknown> }) => { created.push(args.data); return { documentId: 'x1' }; },
+      update: async (args: { data: Record<string, unknown> }) => { updated.push(args.data); return { documentId: 'x1' }; },
+    }) } as unknown as Core.Strapi;
+    const store = strapiPresenceStore(strapi);
+    await store.createSubscription({ athleteId: 'a1', itemName: 'x' } as never, 'A-0124');
+    await store.createPayment({ athleteId: 'a1', amount: 1 } as never, '2026-0412');
+    await store.updateSubscription('x1', { cancelled: true });
+    await store.updatePayment('x1', { note: 'n' });
+    expect(created).toEqual([{ athlete: 'a1', itemName: 'x', code: 'A-0124' }, { athlete: 'a1', amount: 1, receiptNo: '2026-0412' }]);
+    expect(updated.every((d) => !('code' in d) && !('receiptNo' in d))).toBe(true);
   });
 
   it('never sends Strapi\'s reserved createdBy in a lesson create payload', async () => {

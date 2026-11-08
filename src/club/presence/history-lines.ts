@@ -55,7 +55,7 @@ function subscriptionExtended(c: Changes, subjectType: string): string[] {
 function paymentRecorded(c: Changes, subjectType: string): string[] {
   if (subjectType === SUBJECT.payment) return [PRESENCE_LINES.paymentRecordedShort];
   const method = typeof c.method === 'string' && has(METHOD_WORDS, c.method) ? METHOD_WORDS[c.method as keyof typeof METHOD_WORDS] : '';
-  return [PRESENCE_LINES.paymentRecorded(ron(num(c.amount)), method, text(c.purposeText))];
+  return [PRESENCE_LINES.paymentRecorded(ron(num(c.amount)), method, text(c.purposeText), text(c.receiptNo) || null)];
 }
 
 function paymentCancelled(c: Changes, subjectType: string): string[] {
@@ -92,7 +92,7 @@ const RENDER: Readonly<Record<string, Render>> = {
   [P5_ACTIONS.sessionCorrected]: sessionCorrected,
   [P5_ACTIONS.sessionCoaches]: (c, _s, names) => [PRESENCE_LINES.sessionCoaches(coachList(c.from, names), coachList(c.to, names))],
   [P5_ACTIONS.visitorPresent]: (c) => [PRESENCE_LINES.visitorPresent(text(c.groupName), dateText(c.date))],
-  [P5_ACTIONS.subscriptionAdded]: (c) => PRESENCE_LINES.subscriptionAdded(text(c.itemName), dateText(c.startsOn), dateText(c.validUntil), num(c.covered)),
+  [P5_ACTIONS.subscriptionAdded]: (c) => PRESENCE_LINES.subscriptionAdded(text(c.itemName), dateText(c.startsOn), dateText(c.validUntil), num(c.covered), text(c.code) || null),
   [P5_ACTIONS.subscriptionExtended]: subscriptionExtended,
   [P5_ACTIONS.subscriptionCarried]: (c) => [PRESENCE_LINES.subscriptionCarried(text(c.listName))],
   [P5_ACTIONS.subscriptionCancelled]: () => [PRESENCE_LINES.subscriptionCancelled],

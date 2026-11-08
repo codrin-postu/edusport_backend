@@ -36,6 +36,19 @@ describe('phase 5 Istoric lines', () => {
     expect(lines('subscription-cancelled', {}, 'subscription')).toEqual(['Abonament anulat.']);
   });
 
+  it('history lines end with the code and the number, old lines read as before (S11)', () => {
+    const added = { itemName: 'Abonament 8 ședințe', startsOn: '2026-11-01', validUntil: '2026-11-30', covered: 0 };
+    expect(lines('subscription-added', { ...added, code: 'A-0124' })).toEqual(['Abonament adăugat: Abonament 8 ședințe, din 1 noi 2026, expiră pe 30 noi 2026 (A-0124)']);
+    expect(lines('subscription-added', { ...added, covered: 2, code: 'A-0124' })).toEqual([
+      'Abonament adăugat: Abonament 8 ședințe, din 1 noi 2026, expiră pe 30 noi 2026 (A-0124)', 'Acoperă 2 prezențe fără abonament.',
+    ]);
+    expect(lines('subscription-added', added)).toEqual(['Abonament adăugat: Abonament 8 ședințe, din 1 noi 2026, expiră pe 30 noi 2026.']);
+    const paid = { amount: 320, method: 'numerar', purposeText: 'Abonament' };
+    expect(lines('payment-recorded', { ...paid, receiptNo: '2026-0412' })?.[0]).toMatch(/\(nr\. 2026-0412\)$/);
+    expect(lines('payment-recorded', { ...paid, receiptNo: '2026-0412' })).toEqual(['Plată înregistrată: 320 RON, Numerar, Abonament (nr. 2026-0412)']);
+    expect(lines('payment-recorded', paid)).toEqual(['Plată înregistrată: 320 RON, Numerar, Abonament.']);
+  });
+
   it('payment lines (8)', () => {
     expect(lines('payment-recorded', { amount: 320, method: 'numerar', purposeText: 'Abonament 8 ședințe' })).toEqual(['Plată înregistrată: 320 RON, Numerar, Abonament 8 ședințe.']);
     expect(lines('payment-recorded', { amount: 320, method: 'numerar', purposeText: 'x' }, 'payment')).toEqual(['Plată înregistrată.']);

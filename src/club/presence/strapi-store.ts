@@ -72,7 +72,7 @@ export const toSubscriptionRow = (r: Raw): SubscriptionRow => ({
   id: text(r.documentId), athleteId: linkId(r.athlete) ?? '', seasonId: linkId(r.season) ?? '', priceListId: linkId(r.priceList) ?? '', validIn: ids(r.validIn),
   itemName: text(r.itemName), price: decimal(r.price), audience: audience(r.audience) ?? 'member', slots: Number(r.slots ?? 0), startsOn: text(r.startsOn),
   validUntil: text(r.validUntil), extendedWeeks: Number(r.extendedWeeks ?? 0), cancelled: r.cancelled === true, cancelledAt: stamp(r.cancelledAt), cancelledBy: str(r.cancelledBy),
-  purchasedAt: stamp(r.purchasedAt) ?? '', recordedBy: text(r.recordedBy),
+  purchasedAt: stamp(r.purchasedAt) ?? '', recordedBy: text(r.recordedBy), code: str(r.code),
 });
 
 export const toPaymentRow = (r: Raw): PaymentRow => ({
@@ -80,7 +80,7 @@ export const toPaymentRow = (r: Raw): PaymentRow => ({
   purpose: among(PURPOSES, r.purpose, 'altceva'), subscriptionId: linkId(r.subscription), lessonId: linkId(r.lesson), clubMonth: str(r.clubMonth),
   seasonId: linkId(r.season) ?? '', collectedAtRink: r.collectedAtRink === true, note: str(r.note), sendEmail: r.sendEmail === true, emailJobId: linkId(r.emailJob),
   acsBefore: ACS_STATES.find((s) => s === r.acsBefore) ?? null, recordedBy: text(r.recordedBy), recordedAt: stamp(r.recordedAt) ?? '', cancelled: r.cancelled === true,
-  cancelledAt: stamp(r.cancelledAt), cancelledBy: str(r.cancelledBy),
+  cancelledAt: stamp(r.cancelledAt), cancelledBy: str(r.cancelledBy), receiptNo: str(r.receiptNo),
 });
 
 const toPriceItem = (i: Raw): PriceItemRow => ({
@@ -203,7 +203,7 @@ function subscriptionRows(strapi: Core.Strapi): Keys<'subscriptions' | 'subscrip
       const [row] = raws(await query({ documentId: id }));
       return row ? toSubscriptionRow(row) : null;
     },
-    createSubscription: async (d) => (await strapi.documents(SUBSCRIPTION).create({ data: dataOf(d) })).documentId,
+    createSubscription: async (d, code) => (await strapi.documents(SUBSCRIPTION).create({ data: dataOf({ ...d, code }) })).documentId,
     updateSubscription: async (id, d) => {
       found(await strapi.documents(SUBSCRIPTION).update({ documentId: id, data: dataOf(d) }), 'updateSubscription');
     },
@@ -223,7 +223,7 @@ function paymentRows(strapi: Core.Strapi): Keys<'payments' | 'payment' | 'create
       const [row] = raws(await query({ documentId: id }));
       return row ? toPaymentRow(row) : null;
     },
-    createPayment: async (d) => (await strapi.documents(PAYMENT).create({ data: dataOf(d) })).documentId,
+    createPayment: async (d, receiptNo) => (await strapi.documents(PAYMENT).create({ data: dataOf({ ...d, receiptNo }) })).documentId,
     updatePayment: async (id, d) => {
       found(await strapi.documents(PAYMENT).update({ documentId: id, data: dataOf(d) }), 'updatePayment');
     },

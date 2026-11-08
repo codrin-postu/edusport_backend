@@ -40,6 +40,39 @@ const historyTextsOf = (f: FakePresenceContext, type: string, id: string): strin
   f.group.history.filter((h) => h.subjectType === type && h.subjectId === id).flatMap((h) => historyTexts(h.action, h.changes, h.subjectType));
 const acsOf = async (f: FakePresenceContext, seasonId = 's26') => (await f.store.acsRows({ athleteId: 'a1', seasonId })).map((r) => r.state);
 
+describe('receipt numbers (11-3 T3)', () => {
+  it('numbers payments per year of paidOn and never changes them', async () => {
+    const ctx = fakePresenceContext(seed());
+    const p = valueOf(await recordPayment(ctx.ctx, pay({ paidOn: '2025-12-31' })));
+    expect((await ctx.store.payment(p.paymentId))?.receiptNo).toBe('2025-0001');
+    valueOf(await editPayment(ctx.ctx, p.paymentId, editBody({ paidOn: '2026-01-02' })));
+    expect((await ctx.store.payment(p.paymentId))?.paidOn).toBe('2026-01-02');
+    expect((await cancelPayment(ctx.ctx, p.paymentId)).ok).toBe(true);
+    expect((await ctx.store.payment(p.paymentId))?.receiptNo).toBe('2025-0001');
+    const q = valueOf(await recordPayment(ctx.ctx, pay({ paidOn: '2026-01-02' })));
+    expect((await ctx.store.payment(q.paymentId))?.receiptNo).toBe('2026-0001');
+    const r = valueOf(await recordPayment(ctx.ctx, pay({ paidOn: '2026-01-05', amount: 100 })));
+    expect((await ctx.store.payment(r.paymentId))?.receiptNo).toBe('2026-0002');
+  });
+
+  it('a double click and a refused payment take no number', async () => {
+    const ctx = fakePresenceContext(seed());
+    await recordPayment(ctx.ctx, pay());
+    await recordPayment(ctx.ctx, pay());
+    expect((await recordPayment(ctx.ctx, pay({ athleteId: 'a9' }))).ok).toBe(false);
+    expect((await recordPayment(ctx.ctx, pay({ for: { kind: 'abonament', subscriptionId: 'sub1' }, amount: 99999, paidOn: '2026-11-21' }))).ok).toBe(false);
+    expect(ctx.state.counters).toEqual({ 'receipt:2026': 1 });
+  });
+
+  it('an undone payment leaves the gap, the next one takes the next number (S4)', async () => {
+    const ctx = fakePresenceContext(seed());
+    const first = await recordPayment(ctx.ctx, pay());
+    expect((await undoPresenceAction(ctx.ctx, { actionId: actionIdOf(first) })).ok).toBe(true);
+    const second = valueOf(await recordPayment(ctx.ctx, pay()));
+    expect((await ctx.store.payment(second.paymentId))?.receiptNo).toBe('2026-0002');
+  });
+});
+
 describe('record a payment', () => {
   it('records a payment with lines and an undo (4.15, 8)', async () => {
     const f = fakePresenceContext(seed());
@@ -47,7 +80,7 @@ describe('record a payment', () => {
     expect(res).toMatchObject({ ok: true, data: { value: { amount: 320, athleteName: 'Ana Ionescu' } } });
     expect(f.state.payments).toHaveLength(1);
     expect(f.state.payments[0]).toMatchObject({ purpose: 'altceva', seasonId: 's26', recordedBy: 'Admin Test', sendEmail: false, emailJobId: null, cancelled: false });
-    expect(historyTextsOf(f, 'athlete', 'a1')).toEqual(['Plată înregistrată: 320 RON, Numerar, Altceva.']);
+    expect(historyTextsOf(f, 'athlete', 'a1')).toEqual(['Plată înregistrată: 320 RON, Numerar, Altceva (nr. 2026-0001)']);
     expect(f.state.jobs).toEqual([]);
     expect(f.emailsAfter).toEqual([]);
   });
@@ -75,7 +108,7 @@ describe('record a payment', () => {
     const f = fakePresenceContext(seed({ acs: [acsRow('a1', 's26', 'da')] }));
     await recordPayment(f.ctx, pay({ amount: 100, for: { kind: 'cotizatie', seasonId: 's26' } }));
     expect(f.state.payments[0].acsBefore).toBe('da');
-    expect(historyTextsOf(f, 'athlete', 'a1')).toEqual(['Plată înregistrată: 100 RON, Numerar, Cotizație membru 2026-2027.']);
+    expect(historyTextsOf(f, 'athlete', 'a1')).toEqual(['Plată înregistrată: 100 RON, Numerar, Cotizație membru 2026-2027 (nr. 2026-0001)']);
   });
 
   it('the ticked e-mail is queued 15 s and attempted after commit; never without the tick (4.19, 2.3)', async () => {

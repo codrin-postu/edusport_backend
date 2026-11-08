@@ -7,10 +7,12 @@ import { PRESENCE_INDEXES, ensurePresenceIndexes } from '../indexes';
 const SRC = join(__dirname, '..', '..', '..');
 
 describe('presence indexes', () => {
-  it('names every index of 3.10 and the two unique keys (decided 1)', () => {
+  it('names every index of 3.10, the two unique keys (decided 1) and the abonament code and receipt number keys (11-3)', () => {
     expect(PRESENCE_INDEXES).toEqual([
       { name: 'club_sessions_occurrence_key_uq', table: 'club_sessions', column: 'occurrence_key', unique: true },
       { name: 'club_attendances_unique_key_uq', table: 'club_attendances', column: 'unique_key', unique: true },
+      { name: 'club_subscriptions_code_uq', table: 'club_subscriptions', column: 'code', unique: true },
+      { name: 'club_payments_receipt_no_uq', table: 'club_payments', column: 'receipt_no', unique: true },
       { name: 'club_sessions_date_idx', table: 'club_sessions', column: 'date', unique: false },
       { name: 'club_individual_lessons_date_idx', table: 'club_individual_lessons', column: 'date', unique: false },
       { name: 'club_payments_paid_on_idx', table: 'club_payments', column: 'paid_on', unique: false },

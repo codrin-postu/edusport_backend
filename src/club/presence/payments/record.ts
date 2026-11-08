@@ -2,6 +2,7 @@ import { guarded, refuse, type AdminResult } from '../../admin-result';
 import { done, type ActionResult, type Line } from '../../groups/action-log';
 import { safely } from '../../athletes/matches';
 import type { AthleteRow } from '../../athletes/store';
+import { RECEIPT_KEY, formatReceiptNo } from '../../codes';
 import { isAnonymized } from '../../personal-data/anonymize-plan';
 import { P5_ACTIONS } from '../history-lines';
 import type { PresenceContext } from '../context';
@@ -50,8 +51,8 @@ async function queueEmail(ctx: PresenceContext, d: PaymentDraft, paymentId: stri
   await ctx.store.updatePayment(paymentId, { emailJobId: jobId });
 }
 
-const recordedLines = (athleteId: string, paymentId: string, row: PaymentWrite, purposeLabel: string, fee: Line[]): Line[] => {
-  const changes = { amount: row.amount, method: row.method, purposeText: purposeLabel };
+const recordedLines = (athleteId: string, paymentId: string, row: PaymentWrite, purposeLabel: string, fee: Line[], receiptNo: string): Line[] => {
+  const changes = { amount: row.amount, method: row.method, purposeText: purposeLabel, receiptNo };
   return [...fee, athleteLine(athleteId, P5_ACTIONS.paymentRecorded, changes), paymentLine(paymentId, P5_ACTIONS.paymentRecorded, changes)];
 };
 
@@ -78,11 +79,13 @@ export async function writePaymentLocked(ctx: PresenceContext, d: PaymentDraft):
   const over = await overpayRefusal(ctx.store, athlete.id, input.for, input.amount, null);
   if (over !== null) return refuse(400, over);
   const fee = await applyFee(ctx, athlete.id, f);
-  const paymentId = await ctx.store.createPayment({ ...row, acsBefore: fee.acsBefore });
+  const year = Number(input.paidOn.slice(0, 4));
+  const receiptNo = formatReceiptNo(year, await ctx.store.nextCounter(RECEIPT_KEY(year)));
+  const paymentId = await ctx.store.createPayment({ ...row, acsBefore: fee.acsBefore }, receiptNo);
   const label = await purposeTextOf(ctx.store, f.fields);
   if (d.sendEmail) await queueEmail(ctx, d, paymentId, row, label);
   const steps: PresenceUndoStep[] = [{ op: 'deletePayment', id: paymentId }, ...fee.steps, ...(d.sendEmail ? [{ op: 'cancelPaymentEmail' as const, paymentId }] : [])];
-  return { ok: true, data: { paymentId, lines: recordedLines(athlete.id, paymentId, row, label, fee.lines), steps, emailQueued: d.sendEmail, duplicate: false } };
+  return { ok: true, data: { paymentId, lines: recordedLines(athlete.id, paymentId, row, label, fee.lines, receiptNo), steps, emailQueued: d.sendEmail, duplicate: false } };
 }
 
 async function recordLocked(ctx: PresenceContext, body: NewPaymentInput, queued: { id: string | null }): Promise<ActionResult<PaymentResult>> {

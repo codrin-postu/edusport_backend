@@ -23,6 +23,7 @@
     "recordedAt": { "type": "datetime" },
     "cancelled": { "type": "boolean", "default": false },
     "cancelledAt": { "type": "datetime" },
-    "cancelledBy": { "type": "string" }
+    "cancelledBy": { "type": "string" },
+    "receiptNo": { "type": "string", "unique": true }
   }
 }

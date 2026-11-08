@@ -48,12 +48,14 @@ export interface PresenceStore extends PresenceGroupReads {
   deleteLesson(id: string): Promise<void>;
   subscriptions(where?: SubscriptionWhere): Promise<SubscriptionRow[]>;
   subscription(id: string): Promise<SubscriptionRow | null>;
-  createSubscription(data: SubscriptionWrite): Promise<string>;
+  /** The code is taken from the counter right before; it is never written again (an update cannot hold it). */
+  createSubscription(data: SubscriptionWrite, code: string): Promise<string>;
   updateSubscription(id: string, data: Partial<SubscriptionWrite>): Promise<void>;
   deleteSubscription(id: string): Promise<void>;
   payments(where?: PaymentWhere): Promise<PaymentRow[]>;
   payment(id: string): Promise<PaymentRow | null>;
-  createPayment(data: PaymentWrite): Promise<string>;
+  /** The receipt number is taken from the counter right before; it is never written again. */
+  createPayment(data: PaymentWrite, receiptNo: string): Promise<string>;
   updatePayment(id: string, data: Partial<PaymentWrite>): Promise<void>;
   deletePayment(id: string): Promise<void>;
   /** Queued, kind `payment`, linked to the payment. */
