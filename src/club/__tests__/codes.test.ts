@@ -53,4 +53,10 @@ describe('codes', () => {
     expect(planCodeBackfill([], 0)).toEqual({ assign: [], counterAtLeast: 0 });
     expect(planCodeBackfill([], 4)).toEqual({ assign: [], counterAtLeast: 4 });
   });
+
+  it('plans over hundreds of thousands of rows without spreading them as arguments', () => {
+    const rows = Array.from({ length: 300000 }, (_, i) => r(`s${i}`, '2026-10-01', formatSubscriptionCode(i + 1), { numericId: i }));
+    rows.push(r('new', '2026-10-02', null, { numericId: 300001 }));
+    expect(planCodeBackfill(rows, 0)).toEqual({ assign: [{ id: 'new', code: 'A-300001' }], counterAtLeast: 300001 });
+  });
 });

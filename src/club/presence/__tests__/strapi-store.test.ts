@@ -262,9 +262,9 @@ describe('strapiPresenceStore', () => {
     expect(seen.map((c) => [c.table, c.op])).toEqual([
       ['api::attendance.attendance', 'findMany'], ['api::attendance.attendance', 'count'], ['api::individual-lesson.individual-lesson', 'findMany'], ['api::individual-lesson.individual-lesson', 'count'],
     ]);
-    expect(seen[0].args).toMatchObject({ where, limit: 20, orderBy: [{ session: { date: 'desc' } }, { session: { startTime: 'desc' } }, { id: 'desc' }] });
+    expect(seen[0].args).toMatchObject({ where, limit: 20, orderBy: [{ session: { date: 'desc' } }, { session: { startTime: 'desc' } }, { documentId: 'desc' }] });
     expect(seen[1].args).toStrictEqual({ where });
-    expect(seen[2].args).toMatchObject({ where: lessonWhere, limit: 20, orderBy: [{ date: 'desc' }, { startTime: 'desc' }, { id: 'desc' }] });
+    expect(seen[2].args).toMatchObject({ where: lessonWhere, limit: 20, orderBy: [{ date: 'desc' }, { startTime: 'desc' }, { documentId: 'desc' }] });
     expect(seen[3].args).toStrictEqual({ where: lessonWhere });
   });
 });

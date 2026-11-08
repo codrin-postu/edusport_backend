@@ -160,21 +160,21 @@ function sessionRows(strapi: Core.Strapi): Keys<'sessions' | 'session' | 'sessio
   };
 }
 
-/** The athlete's history pages: one count and one limited query each; the order joins the session through the query builder. */
+/** The athlete's history pages: one count and one limited query each; the order joins the session through the query builder, ties after date and start time go by documentId. */
 function historyPages(strapi: Core.Strapi): Keys<'athleteAttendancePage' | 'athleteLessonPage'> {
   return {
     athleteAttendancePage: async (athleteId, from, to, take) => {
       const where = { ...eq('athlete', athleteId), session: { date: span({ from, to }) } };
       const rows = await strapi.db.query(ATTENDANCE).findMany({
         where, populate: { session: { populate: ['group'] }, athlete: true, subscription: true },
-        orderBy: [{ session: { date: 'desc' } }, { session: { startTime: 'desc' } }, { id: 'desc' }], limit: take,
+        orderBy: [{ session: { date: 'desc' } }, { session: { startTime: 'desc' } }, { documentId: 'desc' }], limit: take,
       });
       return { total: await strapi.db.query(ATTENDANCE).count({ where }), rows: raws(rows).map(withStartTime) };
     },
     athleteLessonPage: async (athleteId, from, to, take) => {
       const where = { ...eq('athlete', athleteId), present: true, date: span({ from, to }) };
       const rows = await strapi.db.query(LESSON).findMany({
-        where, populate: ['athlete', 'coaches', 'priceList'], orderBy: [{ date: 'desc' }, { startTime: 'desc' }, { id: 'desc' }], limit: take,
+        where, populate: ['athlete', 'coaches', 'priceList'], orderBy: [{ date: 'desc' }, { startTime: 'desc' }, { documentId: 'desc' }], limit: take,
       });
       return { total: await strapi.db.query(LESSON).count({ where }), rows: raws(rows).map(toLessonRow) };
     },

@@ -1747,6 +1747,7 @@ export interface ApiPaymentPayment extends Struct.CollectionTypeSchema {
       ['abonament', 'cotizatie', 'club_luna', 'lectie', 'altceva']
     > &
       Schema.Attribute.Required;
+    receiptNo: Schema.Attribute.String & Schema.Attribute.Unique;
     recordedAt: Schema.Attribute.DateTime;
     recordedBy: Schema.Attribute.String;
     season: Schema.Attribute.Relation<'manyToOne', 'api::season.season'> &
@@ -2676,6 +2677,7 @@ export interface ApiSubscriptionSubscription
     cancelled: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     cancelledAt: Schema.Attribute.DateTime;
     cancelledBy: Schema.Attribute.String;
+    code: Schema.Attribute.String & Schema.Attribute.Unique;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

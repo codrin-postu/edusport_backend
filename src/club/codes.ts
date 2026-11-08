@@ -44,7 +44,7 @@ function inPurchaseOrder(a: BackfillInput, b: BackfillInput): number {
 
 /** Rows without a code, oldest purchase first (nulls last), numbered after the highest of the counter and every code in use. */
 export function planCodeBackfill(rows: BackfillInput[], counter: number): { assign: { id: string; code: string }[]; counterAtLeast: number } {
-  const highest = Math.max(counter, ...rows.map((r) => parseSubscriptionCode(r.code) ?? 0));
+  const highest = rows.reduce((m, r) => Math.max(m, parseSubscriptionCode(r.code) ?? 0), counter);
   const assign = rows.filter((r) => !r.code).sort(inPurchaseOrder).map((r, i) => ({ id: r.id, code: formatSubscriptionCode(highest + i + 1) }));
   return { assign, counterAtLeast: highest + assign.length };
 }

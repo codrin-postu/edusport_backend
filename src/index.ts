@@ -1,4 +1,5 @@
 import type { Core } from '@strapi/strapi';
+import { bootErrorText } from './club/boot-error';
 import { captureMessage, initSentry } from './sentry';
 import { registerRecurrenceValidation } from './api/calendar-event/services/validate-recurrence';
 import { registerAnnouncementValidation } from './api/announcement/services/validate-announcement';
@@ -427,14 +428,18 @@ export default {
     try {
       await ensurePresenceIndexes(strapi.db.connection);
     } catch (e) {
-      strapi.log.error(`[presence] indexes: ${(e as { code?: string })?.code ?? 'unknown'}`);
+      const message = `[presence] indexes: ${bootErrorText(e)}`;
+      strapi.log.error(message);
+      captureMessage(message);
     }
 
     // Phase 11-3: every abonament without a code gets one, once (a second boot assigns nothing).
     try {
       await runCodesBackfill(codesBackfillPorts(strapi), (message) => strapi.log.info(message));
     } catch (e) {
-      strapi.log.error(`[codes] backfill: ${(e as { code?: string })?.code ?? 'unknown'}`);
+      const message = `[codes] backfill: ${bootErrorText(e)}`;
+      strapi.log.error(message);
+      captureMessage(message);
     }
 
     // Phase 6-3: one portal account per team member (unique link), and a team member delete disables its account first.

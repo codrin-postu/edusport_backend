@@ -101,4 +101,18 @@ describe('athlete presence history', () => {
     const empty = ok(await readPresenceHistory(f.store, ATH, 's27', 1));
     expect([empty.total, empty.rows]).toEqual([0, []]);
   });
+
+  it('rows with the same date and start time keep one order: newest document id first, across sources', async () => {
+    const tie = fakePresenceContext({
+      group: { seasons: G_SEASONS, sections: G_SECTIONS, athletes: [athleteRow({ id: ATH, name: 'Ana Ionescu' })], memberships: [member({ id: 'm1', athleteId: ATH, groupId: 'g-ib' })] },
+      sessions: [sessionRow({ id: 'ss-1', groupId: 'g-ib', date: '2026-11-03', startTime: '17:00' }), sessionRow({ id: 'ss-2', groupId: 'g-av', date: '2026-11-03', startTime: '17:00' })],
+      attendances: [
+        attendanceRow({ id: 'att-b', sessionId: 'ss-2', athleteId: ATH, uniqueKey: 'k2', billing: 'fara_abonament' }),
+        attendanceRow({ id: 'att-a', sessionId: 'ss-1', athleteId: ATH, uniqueKey: 'k1', billing: 'fara_abonament' }),
+      ],
+      lessons: [lessonRow({ id: 'att-c', date: '2026-11-03', startTime: '17:00', state: 'saved', present: true, price: 150, amount: 150 })],
+    });
+    const rows = ok(await readPresenceHistory(tie.store, ATH, SEASON, 1)).rows;
+    expect(rows.map((r) => r.sessionId ?? r.lessonId)).toEqual(['att-c', 'ss-2', 'ss-1']);
+  });
 });

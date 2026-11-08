@@ -47,7 +47,7 @@ export function codesBackfillPorts(strapi: Core.Strapi): CodesBackfillPorts {
   return {
     transaction: scope.transaction,
     lockAll: async () => {
-      await strapi.db.getConnection(TABLE).transacting(trx()).forUpdate().whereNull('code').select('id');
+      await strapi.db.getConnection(TABLE).transacting(trx()).whereNull('code').orderBy('id').forUpdate().select('id');
     },
     rows: async () => {
       const found: Record<string, unknown>[] = await strapi.db.getConnection(TABLE).transacting(trx()).select('document_id', 'id', 'purchased_at', 'created_at', 'code');
