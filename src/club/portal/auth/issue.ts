@@ -15,17 +15,23 @@ export function canEnter(account: AccountRow | null, user: UserAuth | null, host
 
 type Bound = { device: DeviceRow; key: string; newRow: boolean; newKey: boolean };
 
+/** A device row for a browser that has none yet (or whose row was revoked), with the key the browser keeps. The session is bound to it later. */
+export async function createDeviceRow(c: PortalAuthContext, account: AccountRow): Promise<{ device: DeviceRow; key: string }> {
+  const key = newDeviceKey();
+  const at = c.now().toISOString();
+  const row = { accountId: account.id, deviceKeyHash: hashSecret(key), sessionId: null, label: deviceLabel(c.userAgent), firstSeenAt: at, lastSeenAt: at };
+  const id = await c.store.createDevice(row);
+  return { device: { ...row, id, revokedAt: null, twoFactorUntil: null }, key };
+}
+
 async function bindDevice(c: PortalAuthContext, account: AccountRow, given: string | null): Promise<Bound> {
   const found = given ? await c.store.deviceByKey(account.id, hashSecret(given)) : null;
   if (found && found.revokedAt === null) {
     await c.sessions.revokeDevice(account.userId, found.id);
     return { device: found, key: given ?? '', newRow: false, newKey: false };
   }
-  const key = newDeviceKey();
-  const at = c.now().toISOString();
-  const row = { accountId: account.id, deviceKeyHash: hashSecret(key), sessionId: null, label: deviceLabel(c.userAgent), firstSeenAt: at, lastSeenAt: at };
-  const id = await c.store.createDevice(row);
-  return { device: { ...row, id, revokedAt: null, twoFactorUntil: null }, key, newRow: true, newKey: true };
+  const made = await createDeviceRow(c, account);
+  return { device: made.device, key: made.key, newRow: true, newKey: true };
 }
 
 export async function mailNewDevice(c: PortalAuthContext, account: AccountRow, label: string): Promise<void> {

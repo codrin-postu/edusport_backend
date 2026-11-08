@@ -37,7 +37,7 @@ export async function issueBackupBatch(c: SecurityContext, keys: Keys, s: Subjec
 }
 
 /** The signed-in subject's settings; the backup notice is read once and cleared. */
-export async function securityView(c: SecurityContext, s: Subject, email: string): Promise<SecurityView> {
+export async function securityView(c: SecurityContext, s: Subject, email: string, rpId: string | null = null): Promise<SecurityView> {
   const [factors, backup, notes, passkeys] = await Promise.all([c.store.factors(s), c.store.unusedBackup(s), c.store.securityNotes(s), c.store.passkeys(s)]);
   const confirmed = confirmedOf(factors);
   const notice = typeof notes.backupNotice === 'number' ? notes.backupNotice : null;
@@ -48,8 +48,9 @@ export async function securityView(c: SecurityContext, s: Subject, email: string
     emailCode: confirmed.some((f) => f.kind === 'email'),
     backupLeft: backup.length,
     backupNotice: notice,
-    // `old` (a passkey of another rpId) is filled in by the passkey task.
-    passkeys: passkeys.map((p) => ({ id: p.id, name: p.name, createdAt: p.createdAt, lastUsedAt: p.lastUsedAt, old: false })),
+    // `old`: a key made on another rpId (it no longer signs in); newest first.
+    passkeys: [...passkeys].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+      .map((p) => ({ id: p.id, name: p.name, createdAt: p.createdAt, lastUsedAt: p.lastUsedAt, old: rpId !== null && p.rpId !== rpId })),
     passkeyLimit: 10,
   };
 }

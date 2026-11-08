@@ -13,6 +13,7 @@ import { staticBeforeParams } from '../../groups/__tests__/route-order';
 const EXPECTED = [
   'GET /portal/me/security', 'POST /portal/me/2fa/totp', 'POST /portal/me/2fa/totp/confirm', 'DELETE /portal/me/2fa/totp',
   'POST /portal/me/2fa/email', 'POST /portal/me/2fa/email/confirm', 'DELETE /portal/me/2fa/email', 'POST /portal/me/backup-codes',
+  'POST /portal/me/passkeys/options', 'POST /portal/me/passkeys', 'POST /portal/me/passkey-offer/dismiss', 'PUT /portal/me/passkeys/:id', 'DELETE /portal/me/passkeys/:id',
 ];
 
 describe('portal Securitate routes', () => {

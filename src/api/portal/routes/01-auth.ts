@@ -9,6 +9,8 @@ export default {
     { method: 'POST', path: '/portal/auth/login', handler: 'portal-auth.login', config: bffGuard },
     { method: 'POST', path: '/portal/auth/2fa', handler: 'portal-auth.secondStep', config: bffGuard },
     { method: 'POST', path: '/portal/auth/2fa/email', handler: 'portal-auth.sendCode', config: bffGuard },
+    { method: 'POST', path: '/portal/auth/passkey/options', handler: 'portal-auth.passkeyOptions', config: bffGuard },
+    { method: 'POST', path: '/portal/auth/passkey/verify', handler: 'portal-auth.passkeyVerify', config: bffGuard },
     { method: 'GET', path: '/portal/auth/google/config', handler: 'portal-auth.googleConfig', config: bffGuard },
     { method: 'POST', path: '/portal/auth/google', handler: 'portal-auth.google', config: bffGuard },
     { method: 'POST', path: '/portal/auth/refresh', handler: 'portal-auth.refresh', config: bffGuard },

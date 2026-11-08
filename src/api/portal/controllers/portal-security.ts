@@ -36,4 +36,9 @@ export default {
   emailConfirm: coachOnly('emailConfirm', (s, ctx) => s.emailConfirm(ctx.request.body)),
   emailOff: coachOnly('emailOff', (s) => s.emailOff()),
   backupCodes: coachOnly('backupCodes', (s) => s.backupCodes()),
+  passkeyStart: coachOnly('passkeyStart', (s) => s.passkeyStart()),
+  passkeyAdd: coachOnly('passkeyAdd', (s, ctx) => s.passkeyAdd(ctx.request.body)),
+  passkeyDismiss: coachOnly('passkeyDismiss', (s) => s.passkeyDismiss()),
+  passkeyRename: coachOnly('passkeyRename', (s, ctx) => s.passkeyRename(String(ctx.params.id), ctx.request.body)),
+  passkeyDelete: coachOnly('passkeyDelete', (s, ctx) => s.passkeyDelete(String(ctx.params.id))),
 };

@@ -2,6 +2,8 @@ import type { SecurityMail } from '../../email/security-mail';
 import type { SecurityView } from '../security/api-types';
 import { confirmEmail, confirmTotp, newBatch, securityView, sendEnrolCode, startTotp, turnOff } from '../security/factors';
 import type { SecurityContext } from '../security/context';
+import { addPasskey, dismissOffer, removeKey, renameKey, startPasskey } from '../security/passkey-actions';
+import { rpConfig } from '../security/passkeys';
 import type { Keys } from '../security/keys';
 import { forgetDevices } from '../security/remembered';
 import type { SecurityStore, Subject } from '../security/store';
@@ -55,7 +57,7 @@ export function portalSecurity(c: PortalAuthContext, coach: Coach) {
     return run(account.email);
   };
   return {
-    read: () => as(async (email): Promise<PortalResult<SecurityView>> => ({ ok: true, data: await securityView(security, subject, email) }), { change: false }),
+    read: () => as(async (email): Promise<PortalResult<SecurityView>> => ({ ok: true, data: await securityView(security, subject, email, rpConfig()?.rpId ?? null) }), { change: false }),
     totpStart: () => as((email) => startTotp(security, subject, email), { change: true }),
     totpConfirm: (body: unknown) => as(() => confirmTotp(security, subject, bodyCode(body)), { change: true }),
     totpOff: () => as((email) => turnOff(security, subject, email, 'totp'), { change: true }),
@@ -63,5 +65,11 @@ export function portalSecurity(c: PortalAuthContext, coach: Coach) {
     emailConfirm: (body: unknown) => as(() => confirmEmail(security, subject, bodyCode(body)), { change: true }),
     emailOff: () => as((email) => turnOff(security, subject, email, 'email'), { change: true }),
     backupCodes: () => as(() => newBatch(security, subject), { change: true }),
+    // The IP rule counts inside the passkey actions (every POST but the dismiss), so these run without the generic `change` count.
+    passkeyStart: () => as((email) => startPasskey(security, { subject, email }), { change: false }),
+    passkeyAdd: (body: unknown) => as((email) => addPasskey(security, { subject, email }, body), { change: false }),
+    passkeyRename: (id: string, body: unknown) => as((email) => renameKey(security, { subject, email }, id, body), { change: false }),
+    passkeyDelete: (id: string) => as((email) => removeKey(security, { subject, email }, id), { change: false }),
+    passkeyDismiss: () => as((email) => dismissOffer(security, { subject, email }), { change: false }),
   };
 }

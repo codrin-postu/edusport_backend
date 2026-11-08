@@ -9,6 +9,8 @@ export default {
     { method: 'POST', path: '/admin-auth/login', handler: 'admin-auth.login', config: open },
     { method: 'POST', path: '/admin-auth/2fa', handler: 'admin-auth.twoFactor', config: open },
     { method: 'POST', path: '/admin-auth/2fa/email', handler: 'admin-auth.twoFactorEmail', config: open },
+    { method: 'POST', path: '/admin-auth/passkey/options', handler: 'admin-auth.passkeyOptions', config: open },
+    { method: 'POST', path: '/admin-auth/passkey/verify', handler: 'admin-auth.passkeyVerify', config: open },
     { method: 'POST', path: '/admin-auth/reset/request', handler: 'admin-auth.resetRequest', config: open },
     { method: 'POST', path: '/admin-auth/reset/confirm', handler: 'admin-auth.resetConfirm', config: open },
     { method: 'POST', path: '/admin-auth/invite/read', handler: 'admin-auth.inviteRead', config: open },

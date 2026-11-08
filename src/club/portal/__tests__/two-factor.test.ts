@@ -15,8 +15,17 @@ const pendingOf = (r: Awaited<ReturnType<typeof login>>): string => {
   return r.data.pending;
 };
 
+const keyOf = (r: Awaited<ReturnType<typeof login>>): string | null => (r.ok && 'deviceKey' in r.data ? r.data.deviceKey : null);
+/** The body of the second step for a pending answer: the secret and the device key the browser was given. */
+const next = (r: Awaited<ReturnType<typeof login>>, more: Record<string, unknown>) => ({ pending: pendingOf(r), deviceKey: keyOf(r) ?? undefined, ...more });
+const passkeysOn = (): void => {
+  process.env.WEBAUTHN_RP_ID = 'edusport.test';
+  process.env.WEBAUTHN_ORIGINS = 'https://edusport.test';
+};
+
 afterEach(() => {
   delete process.env.WEBAUTHN_RP_ID;
+  delete process.env.WEBAUTHN_ORIGINS;
 });
 
 describe('password login with 2FA', () => {
@@ -25,9 +34,8 @@ describe('password login with 2FA', () => {
     const id = await s.addAccount();
     await s.enrol(id);
     const r = await login(s);
-    const pending = pendingOf(r);
     expect(s.mails.filter((m) => m.mail.kind === 'new-device')).toHaveLength(1);
-    expect(await portalSecondStep(s.c, { pending, method: 'totp', code: s.totp(), remember: false })).toMatchObject({ ok: true });
+    expect(await portalSecondStep(s.c, next(r, { method: 'totp', code: s.totp(), remember: false }))).toMatchObject({ ok: true });
     expect(s.mails.filter((m) => m.mail.kind === 'new-device')).toHaveLength(1);
   });
 
@@ -47,8 +55,7 @@ describe('password login with 2FA', () => {
     const id = await s.addAccount();
     s.fake.state.teamMembers.tm1 = 'Ana Pop';
     const [backup] = await s.enrol(id, { backup: true });
-    const pending = pendingOf(await login(s));
-    await portalSecondStep(s.c, { pending, method: 'backup', code: backup, remember: false });
+    await portalSecondStep(s.c, next(await login(s), { method: 'backup', code: backup, remember: false }));
     expect(s.mem.history.find((h) => h.action === 'backupUsed')).toMatchObject({ subjectType: 'portal', subjectId: id, actor: 'Antrenor Ana Pop' });
   });
 
@@ -63,7 +70,7 @@ describe('password login with 2FA', () => {
   });
 
   it('without 2FA the session comes as before, with offerPasskey', async () => {
-    process.env.WEBAUTHN_RP_ID = 'edusport.test';
+    passkeysOn();
     const s = setup2fa();
     await s.addAccount();
     const r = await login(s);
@@ -81,28 +88,29 @@ describe('password login with 2FA', () => {
 
 describe('portalSecondStep', () => {
   it('a right TOTP gives a session and the offer; remember sets 30 days and the next login skips the step', async () => {
-    process.env.WEBAUTHN_RP_ID = 'edusport.test';
+    passkeysOn();
     const s = setup2fa();
     const id = await s.addAccount();
     await s.enrol(id);
-    const pending = pendingOf(await login(s, { deviceKey: undefined }));
-    const done = await portalSecondStep(s.c, { pending, method: 'totp', code: s.totp(), remember: true });
-    expect(done).toMatchObject({ ok: true, data: { accessToken: expect.any(String), deviceKey: expect.any(String), offerPasskey: true } });
-    if (!done.ok) throw new Error();
-    const key = (done.data as { deviceKey: string }).deviceKey;
+    const first = await login(s, { deviceKey: undefined });
+    const key = keyOf(first);
+    expect(key).toEqual(expect.any(String));
+    expect(await s.store.deviceByKey(id, hashSecret(key as string))).toMatchObject({ twoFactorUntil: null });
+    const done = await portalSecondStep(s.c, next(first, { method: 'totp', code: s.totp(), remember: true }));
+    expect(done).toMatchObject({ ok: true, data: { accessToken: expect.any(String), deviceKey: null, offerPasskey: true } });
     const device = await s.store.deviceByKey(id, hashSecret(key));
     expect(device?.twoFactorUntil).toBe(new Date(s.clock.t.getTime() + REMEMBER_MS).toISOString());
     expect(await s.secStore.portalAccountExtra(id)).toMatchObject({ lastMethod: 'totp' });
-    const next = await login(s, { deviceKey: key });
-    expect(next).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
+    expect(await login(s, { deviceKey: key as string })).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
   });
 
   it('not remembered: the next login with that device key asks again; after 30 days too', async () => {
     const s = setup2fa();
     const id = await s.addAccount();
     await s.enrol(id);
-    const first = await portalSecondStep(s.c, { pending: pendingOf(await login(s)), method: 'totp', code: s.totp(), remember: false });
-    const key = (first as { data: { deviceKey: string } }).data.deviceKey;
+    const pending = await login(s);
+    const key = keyOf(pending) as string;
+    expect(await portalSecondStep(s.c, next(pending, { method: 'totp', code: s.totp(), remember: false }))).toMatchObject({ ok: true });
     expect(await login(s, { deviceKey: key })).toMatchObject({ ok: true, data: { step: '2fa' } });
     s.advance(60_000);
     const again = await portalSecondStep(s.c, { pending: pendingOf(await login(s, { deviceKey: key })), method: 'totp', code: s.totp(), remember: true, deviceKey: key });
@@ -115,6 +123,7 @@ describe('portalSecondStep', () => {
     const s = setup2fa();
     const id = await s.addAccount();
     await s.enrol(id);
+    await s.store.createDevice({ accountId: id, deviceKeyHash: hashSecret('key-one'), sessionId: null, label: 'T', firstSeenAt: s.clock.t.toISOString(), lastSeenAt: s.clock.t.toISOString() });
     const pending = pendingOf(await login(s, { deviceKey: 'key-one' }));
     expect(await portalSecondStep(s.c, { pending, method: 'totp', code: s.totp(), remember: false, deviceKey: 'key-two' })).toEqual(EXPIRED);
     s.advance(90_000);
@@ -129,11 +138,11 @@ describe('portalSecondStep', () => {
     const s = setup2fa();
     const id = await s.addAccount();
     const [backup] = await s.enrol(id, { backup: true });
-    const pending = pendingOf(await login(s));
-    expect(await portalSecondStep(s.c, { pending, method: 'totp', code: s.totp(5), remember: false })).toEqual({ ok: false, status: 400, error: SECURITY_ERRORS.badCode });
-    expect(await portalSecondStep(s.c, { pending, method: 'x', code: '1' })).toMatchObject({ ok: false, status: 400 });
+    const pending = await login(s);
+    expect(await portalSecondStep(s.c, next(pending, { method: 'totp', code: s.totp(5), remember: false }))).toEqual({ ok: false, status: 400, error: SECURITY_ERRORS.badCode });
+    expect(await portalSecondStep(s.c, next(pending, { method: 'x', code: '1' }))).toMatchObject({ ok: false, status: 400 });
     expect(await portalSecondStep(s.c, null)).toMatchObject({ ok: false, status: 400 });
-    expect(await portalSecondStep(s.c, { pending, method: 'backup', code: backup, remember: false })).toMatchObject({ ok: true });
+    expect(await portalSecondStep(s.c, next(pending, { method: 'backup', code: backup, remember: false }))).toMatchObject({ ok: true });
     expect((await s.secStore.portalAccountExtra(id)).lastMethod).toBeNull();
   });
 
@@ -141,17 +150,17 @@ describe('portalSecondStep', () => {
     const s = setup2fa();
     const id = await s.addAccount();
     await s.enrol(id);
-    const pending = pendingOf(await login(s));
+    const pending = await login(s);
     await s.store.updateAccount(id, { status: 'disabled' });
-    expect(await portalSecondStep(s.c, { pending, method: 'totp', code: s.totp(), remember: false })).toMatchObject({ ok: false, status: 401 });
+    expect(await portalSecondStep(s.c, next(pending, { method: 'totp', code: s.totp(), remember: false }))).toMatchObject({ ok: false, status: 401 });
   });
 
   it('parallel use of one right code opens one session', async () => {
     const s = setup2fa();
     const id = await s.addAccount();
     await s.enrol(id);
-    const pending = pendingOf(await login(s));
-    const out = await Promise.all(Array.from({ length: 6 }, () => portalSecondStep(s.c, { pending, method: 'totp', code: s.totp(), remember: false })));
+    const pending = await login(s);
+    const out = await Promise.all(Array.from({ length: 6 }, () => portalSecondStep(s.c, next(pending, { method: 'totp', code: s.totp(), remember: false }))));
     expect(out.filter((r) => r.ok)).toHaveLength(1);
     expect(s.fake.state.sessions.filter((x) => x.revokedAt === null)).toHaveLength(1);
   });

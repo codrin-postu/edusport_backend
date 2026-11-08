@@ -7,6 +7,7 @@ import type { AdminHandoff, CodeSent, SecondStep, TwoFactorMethod } from '../sec
 import { keysOrRefusal } from '../security/context';
 import { SECURITY_ACTIONS, SECURITY_ERRORS } from '../security/copy';
 import { KeysMissing } from '../security/keys';
+import { rpConfig } from '../security/passkeys';
 import { PENDING_TTL_MS, hasTwoFactor, openPending, sendLoginCode, verifySecondStep } from '../security/second-step';
 import type { Subject } from '../security/store';
 import { adminById, adminByEmail, adminName, canEnterAdmin, type AdminRow } from './admins';
@@ -77,7 +78,7 @@ async function bindDevice(c: AdminLoginContext, admin: AdminRow, o: { newDeviceM
 
 /** The one-time offer: no passkey on this rpId yet, never offered, and passkeys configured at all (`WEBAUTHN_RP_ID`). */
 async function passkeyOffer(c: AdminLoginContext, admin: AdminRow): Promise<boolean> {
-  const rpId = process.env.WEBAUTHN_RP_ID?.trim();
+  const rpId = rpConfig()?.rpId;
   if (!rpId) return false;
   const account = await c.store.adminAccount(admin.id);
   if (account?.passkeyOfferedAt) return false;

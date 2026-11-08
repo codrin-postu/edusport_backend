@@ -9,6 +9,7 @@ import { hashSecret } from '../portal/tokens';
 import type { SecurityView } from '../security/api-types';
 import { SECURITY_ACTIONS, SECURITY_ERRORS, SECURITY_TOASTS } from '../security/copy';
 import { securityView } from '../security/factors';
+import { rpConfig } from '../security/passkeys';
 import { resetTwoFactor } from '../security/reset';
 import { hasTwoFactor } from '../security/second-step';
 import type { Subject } from '../security/store';
@@ -33,7 +34,7 @@ export async function currentAdmin(strapi: Core.Strapi, authorization: string | 
 }
 
 export async function readSecurity(c: AdminLoginContext, admin: AdminRow): Promise<AdminResult<SecurityView>> {
-  return { ok: true, data: await securityView(c, adminSubject(admin), admin.email) };
+  return { ok: true, data: await securityView(c, adminSubject(admin), admin.email, rpConfig()?.rpId ?? null) };
 }
 
 function readPasswordBody(body: unknown): { current: string; password: string } | null {

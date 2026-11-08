@@ -157,7 +157,9 @@ describe('password login: the session', () => {
   it('the passkey offer shows when passkeys are configured, none is on this rpId and it was never offered', async () => {
     const env = loginEnv();
     const saved = process.env.WEBAUTHN_RP_ID;
+    const savedOrigins = process.env.WEBAUTHN_ORIGINS;
     process.env.WEBAUTHN_RP_ID = 'localhost';
+    process.env.WEBAUTHN_ORIGINS = 'http://localhost:1337';
     try {
       const sub = { type: 'admin' as const, id: '7' };
       const offered = async () => (await finishAdminLogin(env.c, env.ana as never, false, { newDeviceMail: false, passkey: false })).offerPasskey;
@@ -171,6 +173,8 @@ describe('password login: the session', () => {
     } finally {
       if (saved === undefined) delete process.env.WEBAUTHN_RP_ID;
       else process.env.WEBAUTHN_RP_ID = saved;
+      if (savedOrigins === undefined) delete process.env.WEBAUTHN_ORIGINS;
+      else process.env.WEBAUTHN_ORIGINS = savedOrigins;
     }
   });
 });

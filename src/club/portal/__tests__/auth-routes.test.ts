@@ -7,6 +7,8 @@ const EXPECTED = [
   'POST /portal/auth/login',
   'POST /portal/auth/2fa',
   'POST /portal/auth/2fa/email',
+  'POST /portal/auth/passkey/options',
+  'POST /portal/auth/passkey/verify',
   'GET /portal/auth/google/config',
   'POST /portal/auth/google',
   'POST /portal/auth/refresh',
@@ -20,7 +22,7 @@ const EXPECTED = [
 const listed = routes.routes.map((r) => `${r.method} ${r.path}`);
 
 describe('portal auth routes', () => {
-  it('are exactly the eleven, in this order', () => {
+  it('are exactly the thirteen, in this order', () => {
     expect(listed).toEqual(EXPECTED);
   });
 

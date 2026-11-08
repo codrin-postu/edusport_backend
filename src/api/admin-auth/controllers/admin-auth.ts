@@ -3,6 +3,7 @@ import type { AdminRow } from '../../../club/admin-login/admins';
 import { adminLoginContext, adminOrigin, originAllowed, type AdminLoginContext } from '../../../club/admin-login/context';
 import { ADMIN_DEVICE_COOKIE, disconnectAdminDevice, listAdminDevices } from '../../../club/admin-login/devices';
 import { adminGoogleCallback, startAdminGoogle } from '../../../club/admin-login/google';
+import { adminPasskeyOptions, adminPasskeyVerify } from '../../../club/admin-login/passkey';
 import { acceptAdminInvite, readAdminInvite } from '../../../club/admin-login/invite';
 import { loginAdmin, secondStepAdmin, sendAdminLoginCode } from '../../../club/admin-login/login';
 import { confirmAdminReset, requestAdminReset } from '../../../club/admin-login/reset';
@@ -13,6 +14,7 @@ import type { KoaContext } from '../../../club/admin-login/session';
 import { PORTAL_ERRORS } from '../../../club/portal/copy';
 import { SECURITY_ERRORS } from '../../../club/security/copy';
 import { confirmEmail, confirmTotp, newBatch, sendEnrolCode, startTotp, turnOff } from '../../../club/security/factors';
+import { addPasskey, dismissOffer, removeKey, renameKey, startPasskey } from '../../../club/security/passkey-actions';
 import { KeysMissing } from '../../../club/security/keys';
 
 type Ctx = AdminCtx & KoaContext & { request: { headers: Record<string, string | string[] | undefined> }; redirect: (url: string) => void };
@@ -80,6 +82,8 @@ export default {
   login: sameOrigin('login', async (ctx) => respond(ctx, await loginAdmin(adminLoginContext(strapi, ctx), ctx.request.body))),
   twoFactor: sameOrigin('twoFactor', async (ctx) => respond(ctx, await secondStepAdmin(adminLoginContext(strapi, ctx), ctx.request.body))),
   twoFactorEmail: sameOrigin('twoFactorEmail', async (ctx) => respond(ctx, await sendAdminLoginCode(adminLoginContext(strapi, ctx)))),
+  passkeyOptions: sameOrigin('passkeyOptions', async (ctx) => respond(ctx, await adminPasskeyOptions(adminLoginContext(strapi, ctx)))),
+  passkeyVerify: sameOrigin('passkeyVerify', async (ctx) => respond(ctx, await adminPasskeyVerify(adminLoginContext(strapi, ctx), ctx.request.body))),
   resetRequest: sameOrigin('resetRequest', async (ctx) => respond(ctx, await requestAdminReset(adminLoginContext(strapi, ctx), ctx.request.body))),
   resetConfirm: sameOrigin('resetConfirm', async (ctx) => respond(ctx, await confirmAdminReset(adminLoginContext(strapi, ctx), ctx.request.body))),
   inviteRead: sameOrigin('inviteRead', async (ctx) => respond(ctx, await readAdminInvite(adminLoginContext(strapi, ctx), ctx.request.body))),
@@ -96,6 +100,11 @@ export default {
   emailConfirm: change('emailConfirm', (c, a, ctx) => confirmEmail(c, adminSubject(a), bodyCode(ctx))),
   emailOff: change('emailOff', (c, a) => turnOff(c, adminSubject(a), a.email, 'email')),
   backupCodes: change('backupCodes', (c, a) => newBatch(c, adminSubject(a))),
+  passkeyStart: change('passkeyStart', (c, a) => startPasskey(c, { subject: adminSubject(a), email: a.email })),
+  passkeyAdd: change('passkeyAdd', (c, a, ctx) => addPasskey(c, { subject: adminSubject(a), email: a.email }, ctx.request.body)),
+  passkeyDismiss: change('passkeyDismiss', (c, a) => dismissOffer(c, { subject: adminSubject(a), email: a.email })),
+  passkeyRename: change('passkeyRename', (c, a, ctx) => renameKey(c, { subject: adminSubject(a), email: a.email }, String(ctx.params.id), ctx.request.body)),
+  passkeyDelete: change('passkeyDelete', (c, a, ctx) => removeKey(c, { subject: adminSubject(a), email: a.email }, String(ctx.params.id))),
   devices: read('devices', async (c, a) => ({ ok: true, data: await listAdminDevices(c.store, a.id, deviceCookie(c), c.now()) })),
   deviceDisconnect: change('deviceDisconnect', (c, a, ctx) => disconnectAdminDevice(c, a.id, String(ctx.params.id), deviceCookie(c))),
   password: change('password', (c, a, ctx) => changeAdminPassword(c, a, ctx.request.body, deviceCookie(c))),

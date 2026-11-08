@@ -27,7 +27,9 @@ describe('routes', () => {
     expect(mine.map((r) => `${r.method} ${r.path}`)).toEqual([
       'GET /admin-auth/me/security', 'POST /admin-auth/me/2fa/totp', 'POST /admin-auth/me/2fa/totp/confirm', 'DELETE /admin-auth/me/2fa/totp',
       'POST /admin-auth/me/2fa/email', 'POST /admin-auth/me/2fa/email/confirm', 'DELETE /admin-auth/me/2fa/email', 'POST /admin-auth/me/backup-codes',
+      'POST /admin-auth/me/passkeys/options', 'POST /admin-auth/me/passkeys', 'POST /admin-auth/me/passkey-offer/dismiss',
       'GET /admin-auth/me/devices', 'POST /admin-auth/me/password', 'GET /admin-auth/me/google', 'DELETE /admin-auth/me/google', 'DELETE /admin-auth/me/devices/:id',
+      'PUT /admin-auth/me/passkeys/:id', 'DELETE /admin-auth/me/passkeys/:id',
     ]);
     for (const r of mine) expect(r.config).toEqual({ auth: false, policies: ['global::is-admin'], middlewares: [] });
   });

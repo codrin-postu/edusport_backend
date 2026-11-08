@@ -20,7 +20,7 @@ const all = routes.routes as Route[];
 describe('routes (spec 4.3)', () => {
   it('login, 2fa, 2fa/email, reset and invite exist as POST, each open to Strapi auth with no policies or middlewares', () => {
     expect(all.map((r) => `${r.method} ${r.path}`)).toEqual([
-      'POST /admin-auth/login', 'POST /admin-auth/2fa', 'POST /admin-auth/2fa/email', 'POST /admin-auth/reset/request', 'POST /admin-auth/reset/confirm',
+      'POST /admin-auth/login', 'POST /admin-auth/2fa', 'POST /admin-auth/2fa/email', 'POST /admin-auth/passkey/options', 'POST /admin-auth/passkey/verify', 'POST /admin-auth/reset/request', 'POST /admin-auth/reset/confirm',
       'POST /admin-auth/invite/read', 'GET /admin-auth/google/start', 'GET /admin-auth/google/callback', 'GET /admin-auth/invite/google', 'POST /admin-auth/invite/accept',
     ]);
     for (const r of all) expect(r.config).toEqual({ auth: false, policies: [], middlewares: [] });

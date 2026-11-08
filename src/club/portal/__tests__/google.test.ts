@@ -76,6 +76,7 @@ describe('loginWithGoogle', () => {
 
   it('an account with 2FA on gets the session without the second step, and the passkey offer', async () => {
     process.env.WEBAUTHN_RP_ID = 'edusport.test';
+    process.env.WEBAUTHN_ORIGINS = 'https://edusport.test';
     try {
       const s = setup();
       const id = await s.addAccount({ googleSub: 'sub-1' });
@@ -84,6 +85,7 @@ describe('loginWithGoogle', () => {
       expect(await s.login()).toMatchObject({ ok: true, data: { accessToken: expect.any(String), offerPasskey: true } });
     } finally {
       delete process.env.WEBAUTHN_RP_ID;
+      delete process.env.WEBAUTHN_ORIGINS;
     }
   });
 

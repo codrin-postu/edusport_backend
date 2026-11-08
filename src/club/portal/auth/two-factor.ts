@@ -3,6 +3,7 @@ import type { CodeSent, SecondStep, TwoFactorMethod } from '../../security/api-t
 import { keysOrRefusal } from '../../security/context';
 import { SECURITY_ERRORS } from '../../security/copy';
 import { KeysMissing } from '../../security/keys';
+import { rpConfig } from '../../security/passkeys';
 import { isRemembered, rememberUntil } from '../../security/remembered';
 import { hasTwoFactor, openPending, sendLoginCode, verifySecondStep } from '../../security/second-step';
 import type { Subject } from '../../security/store';
@@ -10,11 +11,11 @@ import { PORTAL_ERRORS } from '../copy';
 import type { AccountRow } from '../store';
 import { hashSecret, sameHash } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
-import { deviceLabel } from '../devices';
 import { coachActor } from '../coach/context';
-import { canEnter, mailNewDevice, startSession, type PortalSession } from './issue';
+import { canEnter, createDeviceRow, mailNewDevice, startSession, type PortalSession } from './issue';
 
-export type PortalPending = SecondStep & { pending: string };
+/** `deviceKey`: the key of a device row made for this browser at the password step; the browser keeps it and sends it back with the code. */
+export type PortalPending = SecondStep & { pending: string; deviceKey: string | null };
 export type SessionWithOffer = PortalSession & { offerPasskey: boolean };
 
 const CODE_MAX = 64;
@@ -30,7 +31,7 @@ export const portalSubject = (account: AccountRow): Subject => ({ type: 'portal'
 
 /** The one-time offer: passkeys configured (`WEBAUTHN_RP_ID`), no key on this rpId and never offered. */
 export async function offerPasskeyFor(c: PortalAuthContext, account: AccountRow): Promise<boolean> {
-  const rpId = process.env.WEBAUTHN_RP_ID?.trim();
+  const rpId = rpConfig()?.rpId;
   if (!rpId) return false;
   const extra = await c.security.store.portalAccountExtra(account.id);
   if (extra.passkeyOfferedAt) return false;
@@ -56,11 +57,15 @@ export async function afterPassword(
   const gate = keysOrRefusal(c.security);
   if ('refusal' in gate) return gate.refusal;
   // An unknown browser is mailed now (as the admin login does), so a password alone shows up before any code is tried.
-  if (!device || device.revokedAt !== null) await mailNewDevice(c, account, deviceLabel(c.userAgent));
+  const known = device !== null && device.revokedAt === null;
+  // The device row exists before the second step (as the admin login does), so "remember" and the bound key have a row; its key goes back with the pending answer.
+  const made = known ? null : await createDeviceRow(c, account);
+  if (made) await mailNewDevice(c, account, made.device.label);
+  const boundKey = made ? made.key : deviceKey;
   const last = (await c.security.store.portalAccountExtra(account.id)).lastMethod;
   try {
-    const { secret, step } = await openPending(c.security, subject, account.email, { rememberMe: false, host, deviceKeyHash: deviceKey ? hashSecret(deviceKey) : null }, last);
-    return { ok: true, data: { ...step, pending: secret } };
+    const { secret, step } = await openPending(c.security, subject, account.email, { rememberMe: false, host, deviceKeyHash: boundKey ? hashSecret(boundKey) : null }, last);
+    return { ok: true, data: { ...step, pending: secret, deviceKey: made ? made.key : null } };
   } catch (err) {
     if (err instanceof KeysMissing) return { ok: false, status: 503, error: SECURITY_ERRORS.unavailable };
     throw err;
