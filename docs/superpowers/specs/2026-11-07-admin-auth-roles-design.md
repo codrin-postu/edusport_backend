@@ -76,7 +76,7 @@ New collection types follow P6 3: `draftAndPublish: false`, hidden from the Cont
 ### 3.3 Challenge (`api::auth-challenge.auth-challenge`, table `auth_challenges`)
 - `purpose`: enumeration `pending-login | email-code | reset-code | passkey-register | passkey-login`.
 - `subjectType`, `subjectId` (nullable for `passkey-login`, where the key names the subject), `secretMac` (HMAC of the secret the browser or mail holds; for passkey purposes the WebAuthn challenge itself, which is single use and useless without the private key) [S3].
-- `data`: json (pending login: method offered, `rememberMe`, host, device key hash; never a password or code).
+- `data`: json (pending login: method offered, `rememberMe`, host, device key hash, and the e-mail address the codes and the lockout mail go to, which is purged with the row and never returned; never a password or code).
 - `expiresAt` (pending login and codes 10 minutes, passkey 5 minutes), `usedAt`, `tries` (default 0).
 - The admin password reset code lives here (`reset-code`, subject admin); the portal keeps `portal_tokens` for its reset and invite [P6 3.3].
 
@@ -96,6 +96,7 @@ New collection types follow P6 3: `draftAndPublish: false`, hidden from the Cont
 - `portal_accounts` gains `webauthnUserId`, `lastMethod`, `passkeyOfferedAt` (as 3.5) [S4].
 - `portal_devices` gains `twoFactorUntil` (nullable) [P6b q5].
 - `portal_auth_limits` is reused for the admin and for 2FA with new key prefixes: `admin:login:<e-mail>`, `admin:ip:<address>`, `admin:mail:<e-mail>`, `2fa:<subjectType>:<subjectId>` [P6b q13; R6b P13].
+- The mails that carry 2FA codes (login and enrolment) count under their own key `2fa:mail:<subjectType>:<subjectId>`, 5 per hour (decided by Claude, low impact: the spec gave no number), apart from the reset request's `mail:<e-mail>`, so a public reset request cannot silence a person's login codes. A mail over the limit answers as if sent.
 - The portal reset code moves from plain SHA-256 to the keyed MAC of 5.4 (a 6-digit code under plain SHA-256 is reversed from a dump in milliseconds) [P6b user note; S5]. Invite secrets and session tokens keep SHA-256 (32 random bytes cannot be guessed back) [code src/club/portal/tokens.ts, sessions-own.ts].
 - Cutover (decided by Claude, low impact): pending portal reset codes stored as SHA-256 are invalid after deploy, because the check moves to the keyed MAC above; the user requests another (10 minute lifetime). No compatibility shim.
 
@@ -185,13 +186,14 @@ The daily portal purge [code src/club/portal/purge.ts] also removes: unconfirmed
 ### 5.4 Backup codes and e-mail codes
 - Backup code: 10 characters from Crockford base32 (no I, L, O, U), each character from `crypto.randomInt`, 50 bits, shown once grouped "XXXXX XXXXX" [P6b q6; P6b user note; S22].
 - E-mail code and reset code: 6 digits from `crypto.randomInt` [P6 3.3].
-- Stored only as `HMAC-SHA-256(AUTH_CODE_KEY, "<purpose>:<subjectType>:<subjectId>:<normalized code>")`, hex, with `keyId`. Normalized = upper case, spaces and hyphens removed, O read as 0 and I or L as 1 [P6b user note; S22].
+- Stored only as `HMAC-SHA-256(AUTH_CODE_KEY, input)`, hex, with `keyId`, where `input` is the length-prefixed concatenation of `purpose`, `subjectType`, `subjectId` and the normalized code, each written as `<length>:<field>` (for example `6:backup6:portal6:acct-110:ABCDEFGHJK`), so no field can borrow characters from its neighbour (`src/club/security/code-mac.ts`, `encodeFields`). Normalized = upper case, spaces and hyphens removed, O read as 0 and I or L as 1 [P6b user note; S22].
 - Check: compute the MAC of the typed code once, compare it with `crypto.timingSafeEqual` against every unused code of the subject, with no early exit; mark the match used in the same transaction under a row lock (`usedAt` must still be null), so one code opens once even under parallel requests [P6b user note].
 - Single-use check by compare-and-set, not a row lock (decided by Claude, low impact; replaces the row lock named above): `store.ts` exposes `consumeOnce(...)`, implemented in `strapi-store.ts` as one guarded `UPDATE ... SET usedAt WHERE id = ? AND usedAt IS NULL` that returns the row count; 0 is a refusal. No explicit `SELECT ... FOR UPDATE` is needed, since the document service has none. The in-memory store mirrors it, and the race tests of 14.4 run against both.
 - Single use: a used backup code never opens again; an e-mail code is used on success or after 5 wrong tries; a new e-mail code makes the older ones used [P6 3.3; P6b user note].
 - Server-keyed MAC instead of a slow hash: with 50-bit random codes a keyed MAC is as strong offline while the key is safe, and checking ten codes per attempt with bcrypt would cost a second per try [P6b user note allows either; S22].
 
 ### 5.5 Attempt limits [P6b user note; P6b q13]
+- Every attempt counts before the code is compared, in one locked step per subject and one guarded update per pending login, so a parallel burst gets no more than 5 compares.
 - Per subject (`2fa:<subjectType>:<subjectId>`): 5 wrong codes of any kind (app, e-mail, backup) in 15 minutes -> the pending login ends and the second step pauses for 15 minutes with "Prea multe încercări. Încearcă din nou peste 15 minute.", plus one lockout mail per window (12) [P6 5.4 rules; S23].
 - Per pending login: 5 wrong codes end it; the person starts again from the password [S23].
 - Per IP: the 30 per 15 minutes rule counts second-step attempts too [P6 5.4].
