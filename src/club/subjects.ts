@@ -7,4 +7,5 @@ export const SUBJECT = {
   subscription: 'subscription',
   payment: 'payment',
   portalAccount: 'portal-account',
+  tableView: 'table-view',
 } as const;

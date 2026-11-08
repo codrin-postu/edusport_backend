@@ -11,6 +11,14 @@ export const TABLES_COPY = {
     seasonMissing: `${COPY_NEEDED} (season)`,
     periodReset: `${COPY_NEEDED} (period)`,
   },
+  views: {
+    duplicate: 'Există deja o vizualizare cu numele ăsta.',
+    tooMany: 'Prea multe vizualizări salvate. Șterge una.',
+    notAuthor: 'Doar autorul poate modifica vizualizarea.',
+    saved: 'Vizualizare salvată.',
+    updated: 'Salvat.',
+    deleted: 'Vizualizare ștearsă.',
+  },
   readyMade: {
     platiGrupa: 'Plăți pe grupă luna aceasta',
     prezentaGrupa: 'Prezență pe grupă',

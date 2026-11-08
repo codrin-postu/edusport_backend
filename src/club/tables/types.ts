@@ -25,6 +25,8 @@ export type TableRow = {
 export type SavedViewRow = {
   id: string; name: string; subject: Subject; definition: TableDefinition;
   authorId: string | null; authorName: string; mine: boolean; canDelete: boolean; readyMade: boolean;
+  /** Set when a stored view had to be repaired on load (a column the catalog no longer has); the screen shows them. */
+  notices?: string[];
 };
 export type TableTotals = Record<string, CellValue>;
 export type TableGroup = { key: string; label: string; count: number; subtotal: Record<string, CellValue>; rows: TableRow[] };

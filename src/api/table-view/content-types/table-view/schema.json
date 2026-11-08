@@ -1,0 +1,15 @@
+{
+  "kind": "collectionType",
+  "collectionName": "club_table_views",
+  "info": { "singularName": "table-view", "pluralName": "table-views", "displayName": "Club / Vizualizare tabel" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "name": { "type": "string", "required": true, "minLength": 1, "maxLength": 80 },
+    "subject": { "type": "enumeration", "enum": ["sportivi", "plati", "abonamente", "prezenta"], "required": true },
+    "definition": { "type": "json", "required": true },
+    "authorId": { "type": "integer", "required": true },
+    "authorName": { "type": "string" },
+    "deletedAt": { "type": "datetime" }
+  }
+}
