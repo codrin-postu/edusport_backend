@@ -1,5 +1,6 @@
 import type { Core } from '@strapi/strapi';
 import jwt from 'jsonwebtoken';
+import { normalizeAdminPath } from './admin-path';
 import { strapiSecurityStore } from '../security/strapi-store';
 import { adminSessionManager, clearRefreshCookie, strapiSessionAuth, type KoaContext } from './session';
 
@@ -70,7 +71,7 @@ type Ctx = KoaContext & { method: string; path: string; status: number; body: un
 /** The Koa middleware: only `POST /admin/access-token` with a refresh cookie is looked at; a reuse answers 401 and clears the cookie. */
 export function refreshReuseMiddleware(build: (strapi: Core.Strapi) => ReuseDeps) {
   return (strapi: Core.Strapi) => async (ctx: Ctx, next: () => Promise<void>): Promise<void> => {
-    if (ctx.method !== 'POST' || ctx.path !== '/admin/access-token') return next();
+    if (ctx.method !== 'POST' || normalizeAdminPath(ctx.path) !== '/admin/access-token') return next();
     const token = ctx.cookies.get(strapiSessionAuth().REFRESH_COOKIE_NAME);
     if (!token || !(await refreshReuse(build(strapi), token))) return next();
     clearRefreshCookie(ctx);

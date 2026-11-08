@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { REUSE_GRACE_MS, refreshReuse, refreshReuseMiddleware, verifyRefreshToken, type ReuseDeps, type SessionRecord } from '../refresh-reuse';
 import { bindAdminDevice } from '../devices';
 import { issueAdminSession } from '../session';
+import { normalizeAdminPath } from '../admin-path';
 import { adminEnv } from './admin-env';
 
 const SECRET = 'admin-test-secret';
@@ -142,6 +143,21 @@ describe('the middleware', () => {
       expect(next).toHaveBeenCalledOnce();
       expect(ctx.status).toBe(404);
     }
+  });
+
+  it.each(['/admin/Access-Token', '/admin/access-token/', '/ADMIN/ACCESS-TOKEN/', '/admin/access%2Dtoken'])('a case, trailing-slash or encoded variant is checked too: POST %s (B3 H1)', async (path) => {
+    adminEnv();
+    const { ctx, next } = await run(true, path);
+    expect(next).not.toHaveBeenCalled();
+    expect(ctx.status).toBe(401);
+  });
+
+  it('the shared normaliser lowercases, strips one trailing slash and decodes once (B3 H1)', () => {
+    expect(normalizeAdminPath('/Admin/Access-Token/')).toBe('/admin/access-token');
+    expect(normalizeAdminPath('/admin/access%2Dtoken')).toBe('/admin/access-token');
+    expect(normalizeAdminPath('/admin/%2561')).toBe('/admin/%61');
+    expect(normalizeAdminPath('/')).toBe('/');
+    expect(normalizeAdminPath('/admin/%E0%A4%A')).toBe('/admin/%e0%a4%a');
   });
 
   it('is registered in config/middlewares.ts and builds its store inside the request, not at module load', () => {

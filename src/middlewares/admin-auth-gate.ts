@@ -1,3 +1,5 @@
+import { normalizeAdminPath } from '../club/admin-login/admin-path';
+
 export type GateDecision = 'pass' | 'notFound' | 'forbidden' | { redirect: string };
 
 /** Strapi's own session issuers, closed (spec 4.4): sessions start only through `/api/admin-auth/*`. */
@@ -13,18 +15,6 @@ const ADMIN_AUTH_TARGET: Record<string, string> = {
 
 const hasKey = (body: unknown, key: string): boolean => typeof body === 'object' && body !== null && Object.prototype.hasOwnProperty.call(body, key);
 
-/** Koa's router ignores case and a trailing slash, so the gate does too. */
-function normalize(path: string): string {
-  let p = path;
-  try {
-    p = decodeURIComponent(p);
-  } catch {
-    /* an undecodable path is matched as it is */
-  }
-  p = p.toLowerCase();
-  return p.length > 1 && p.endsWith('/') ? p.slice(0, -1) : p;
-}
-
 function redirectFor(pathname: string, query: string): GateDecision {
   const target = ADMIN_AUTH_TARGET[pathname.slice('/admin/auth/'.length)] ?? '/intrare';
   const from = new URLSearchParams(query);
@@ -39,7 +29,7 @@ function redirectFor(pathname: string, query: string): GateDecision {
 export function gateDecision(method: string, path: string, body: unknown, enabled: boolean): GateDecision {
   if (!enabled) return 'pass';
   const [rawPath, ...queryParts] = path.split('?');
-  const pathname = normalize(rawPath);
+  const pathname = normalizeAdminPath(rawPath);
   const verb = method.toUpperCase();
   if (verb === 'POST' && CLOSED_POSTS.has(pathname)) return 'notFound';
   if (verb === 'PUT' && pathname === '/admin/users/me') return PROFILE_KEYS.some((k) => hasKey(body, k)) ? 'forbidden' : 'pass';
@@ -48,13 +38,13 @@ export function gateDecision(method: string, path: string, body: unknown, enable
   return 'pass';
 }
 
-type GateCtx = { method: string; url: string; status: number; body: unknown; request: { body?: unknown }; redirect: (to: string) => void };
+type GateCtx = { method: string; path: string; querystring: string; status: number; body: unknown; request: { body?: unknown }; redirect: (to: string) => void };
 
 const FORBIDDEN = 'Parola și e-mailul se schimbă din Securitate.';
 
 /** Global middleware, right after `strapi::body` so the profile body is parsed (`ADMIN_GATE=off` opens the five routes again). */
 export default () => async (ctx: GateCtx, next: () => Promise<void>): Promise<void> => {
-  const decision = gateDecision(ctx.method, ctx.url, ctx.request.body, process.env.ADMIN_GATE !== 'off');
+  const decision = gateDecision(ctx.method, ctx.querystring ? `${ctx.path}?${ctx.querystring}` : ctx.path, ctx.request.body, process.env.ADMIN_GATE !== 'off');
   if (decision === 'pass') return next();
   if (typeof decision === 'object') return ctx.redirect(decision.redirect);
   ctx.status = decision === 'notFound' ? 404 : 403;

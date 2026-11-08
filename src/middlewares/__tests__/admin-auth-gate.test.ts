@@ -57,7 +57,7 @@ describe('gateDecision, gate on', () => {
 });
 
 describe('the middleware', () => {
-  const ctxOf = (method: string, url: string, body?: unknown) => ({ method, url, path: url.split('?')[0], status: 200, body: null as unknown, request: { body }, redirect: vi.fn(function (this: { status: number }, to: string) { this.status = 302; (this as unknown as { to: string }).to = to; }) });
+  const ctxOf = (method: string, url: string, body?: unknown) => ({ method, url, path: url.split('?')[0], querystring: url.split('?').slice(1).join('?'), status: 200, body: null as unknown, request: { body }, redirect: vi.fn(function (this: { status: number }, to: string) { this.status = 302; (this as unknown as { to: string }).to = to; }) });
   const run = async (method: string, url: string, body?: unknown, gate = 'on') => {
     const saved = process.env.ADMIN_GATE;
     process.env.ADMIN_GATE = gate;
@@ -84,6 +84,23 @@ describe('the middleware', () => {
     expect(moved.ctx.redirect).toHaveBeenCalledWith('/intrare/invitatie?registrationToken=abc');
     const through = await run('POST', '/admin/access-token');
     expect(through.next).toHaveBeenCalledOnce();
+  });
+
+  it('decides on ctx.path, not on an absolute-form ctx.url (B3 M1)', async () => {
+    const saved = process.env.ADMIN_GATE;
+    delete process.env.ADMIN_GATE;
+    try {
+      const ctx = { ...ctxOf('POST', '/admin/login'), url: 'http://h/admin/login', path: '/admin/login' };
+      const next = vi.fn(async () => undefined);
+      await adminAuthGate()(ctx as never, next);
+      expect(next).not.toHaveBeenCalled();
+      expect(ctx.status).toBe(404);
+      const moved = { ...ctxOf('GET', '/admin/auth/register'), url: 'http://h/admin/auth/register?registrationToken=abc&x=1', path: '/admin/auth/register', querystring: 'registrationToken=abc&x=1' };
+      await adminAuthGate()(moved as never, next);
+      expect(moved.redirect).toHaveBeenCalledWith('/intrare/invitatie?registrationToken=abc');
+    } finally {
+      if (saved !== undefined) process.env.ADMIN_GATE = saved;
+    }
   });
 
   it('ADMIN_GATE=off lets everything through; unset counts as on', async () => {
