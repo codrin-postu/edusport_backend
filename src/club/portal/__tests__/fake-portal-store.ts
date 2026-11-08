@@ -183,7 +183,7 @@ function devices(state: FakePortalState): Pick<PortalStore, 'devices' | 'deviceB
     },
     createDevice: async (d) => {
       const id = `dev${state.nextId++}`;
-      state.devices.push({ ...d, id, revokedAt: null });
+      state.devices.push({ ...d, id, revokedAt: null, twoFactorUntil: null });
       return id;
     },
     updateDevice: async (id, d) => {

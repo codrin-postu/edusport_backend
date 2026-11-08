@@ -11,6 +11,7 @@ import { portalSessions } from '../sessions';
 import type { AccountRow, PortalStore } from '../store';
 import { hashSecret } from '../tokens';
 import { fakePortalStore } from './fake-portal-store';
+import { securityFor } from './portal-2fa';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 const WRONG = { ok: false, status: 401, error: 'E-mailul sau parola nu sunt corecte.' };
@@ -45,7 +46,7 @@ function setup(o: { mailOk?: boolean | 'throw'; ip?: string } = {}) {
   };
   const logs: string[] = [];
   const compare = vi.fn(async (p: string, h: string) => h === `hash:${p}`);
-  const c: PortalAuthContext = {
+  const c: PortalAuthContext = { security: securityFor(fake, store, now).security,
     store, sessions: portalSessions(store, now), limits: limiter(store, now), mail, common: new Set(), hosts: ['antrenor'], ip: o.ip ?? '1.1.1.1',
     userAgent: UA, now, log: (m) => logs.push(m), hash: async (p) => `hash:${p}`, compare,
   };

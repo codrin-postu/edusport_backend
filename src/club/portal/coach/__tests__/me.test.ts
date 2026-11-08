@@ -7,6 +7,7 @@ import { portalSessions } from '../../sessions';
 import { hashSecret } from '../../tokens';
 import { changePassword, listDevices, readMe, revokeDevice, saveMe } from '../me';
 import { coachCtx } from './coach-seed';
+import { securityFor } from '../../__tests__/portal-2fa';
 
 const OK = { ok: true, data: { toast: 'Salvat.' } };
 const user = (id: number, email: string, hash: string | null) => ({ id, email, passwordHash: hash, blocked: false, confirmed: true, username: email, provider: 'local', role: 'authenticated' });
@@ -25,6 +26,7 @@ async function setup() {
     store, sessions, limits: limiter(store, now), mail: async (to, m) => { mailed.push(`${to}:${m.kind}`); return true; }, common: new Set(['parola-comuna-1']),
     hosts: ['antrenor'], ip: '1.1.1.1', userAgent: null, now, log: (m) => logs.push(m),
     hash: async (p) => `hash:${p}`, compare: vi.fn(async (p: string, h: string) => h === `hash:${p}`),
+    security: securityFor(s.portalFake, store, now).security,
   };
   const device = async (acc: string, userId: number, key: string, last: string) => {
     const deviceId = await store.createDevice({ accountId: acc, deviceKeyHash: hashSecret(key), sessionId: null, label: `Telefon ${key}`, firstSeenAt: last, lastSeenAt: last });

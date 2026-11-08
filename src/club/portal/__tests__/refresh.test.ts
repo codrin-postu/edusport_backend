@@ -5,6 +5,7 @@ import { logout, refreshSession } from '../auth/refresh';
 import { limiter } from '../auth/limit';
 import { portalSessions } from '../sessions';
 import { fakePortalStore } from './fake-portal-store';
+import { securityFor } from './portal-2fa';
 
 async function setup() {
   const clock = { t: new Date('2026-11-06T10:00:00.000Z') };
@@ -13,7 +14,7 @@ async function setup() {
   const { store } = fake;
   fake.state.users.push({ id: 1, email: 'ana@x.ro', passwordHash: 'hash:right', blocked: false, confirmed: true, username: 'ana@x.ro', provider: 'local', role: 'authenticated' });
   const accountId = await store.createAccount({ userId: 1, email: 'ana@x.ro', status: 'active', teamMemberId: 'tm1' });
-  const c: PortalAuthContext = {
+  const c: PortalAuthContext = { security: securityFor(fake, store, now).security,
     store, sessions: portalSessions(store, now), limits: limiter(store, now), mail: async () => true, common: new Set(), hosts: ['antrenor'], ip: '1.1.1.1',
     userAgent: null, now, log: () => undefined, hash: async (p) => `hash:${p}`, compare: vi.fn(async (p: string, h: string) => h === `hash:${p}`),
   };

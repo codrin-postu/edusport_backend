@@ -7,7 +7,7 @@ export type { AccountRow, AccountStatus, AccountWrite, DeviceRow, HistoryLine, L
 
 export type NewAccount = AccountWrite & { userId: number; email: string; status: AccountStatus };
 export type NewToken = Omit<TokenRow, 'id' | 'createdAt' | 'usedAt' | 'tries'>;
-export type NewDevice = Omit<DeviceRow, 'id' | 'revokedAt'>;
+export type NewDevice = Omit<DeviceRow, 'id' | 'revokedAt' | 'twoFactorUntil'>;
 export type NewSession = Omit<SessionRow, 'id' | 'revokedAt' | 'previousRefreshHash'>;
 export type SessionWrite = Partial<Omit<SessionRow, 'id' | 'accountId' | 'deviceId' | 'host' | 'familyStartedAt'>>;
 export type DeviceWrite = Partial<Pick<DeviceRow, 'sessionId' | 'lastSeenAt' | 'revokedAt' | 'label'>>;

@@ -7,7 +7,8 @@ import type { AccountRow } from '../store';
 import { tokenState } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
 import { activateInvited, liveInvite } from './invite';
-import { canEnter, startSession, type PortalSession } from './issue';
+import { canEnter, startSession } from './issue';
+import { withOffer, type SessionWithOffer } from './two-factor';
 
 export type GoogleClient = { clientId: string; clientSecret: string; fetchFn: typeof fetch; now: () => Date };
 export type GoogleIdentity = { sub: string; email: string };
@@ -145,7 +146,7 @@ async function identify(g: GoogleClient, read: GoogleBody): Promise<GoogleIdenti
   return idToken ? verifyIdToken(g, idToken, read.nonce) : null;
 }
 
-export async function loginWithGoogle(c: PortalAuthContext, g: GoogleClient | null, body: unknown): Promise<PortalResult<PortalSession>> {
+export async function loginWithGoogle(c: PortalAuthContext, g: GoogleClient | null, body: unknown): Promise<PortalResult<SessionWithOffer>> {
   const read = readBody(body, c.hosts);
   if (!read) return refuse(400, PORTAL_ERRORS.invalid);
   if (await c.limits.ipBlocked(c.ip)) return paused;
@@ -158,8 +159,8 @@ export async function loginWithGoogle(c: PortalAuthContext, g: GoogleClient | nu
     return unreachable;
   }
   if (!who) return noAccount;
-  const session = (account: AccountRow, notifyNewDevice: boolean) => startSession(c, account, read.deviceKey, { notifyNewDevice, host: read.host });
-  const enter = async (account: AccountRow | null): Promise<PortalResult<PortalSession>> => {
+  const session = async (account: AccountRow, notifyNewDevice: boolean) => withOffer(c, account, await startSession(c, account, read.deviceKey, { notifyNewDevice, host: read.host }));
+  const enter = async (account: AccountRow | null): Promise<PortalResult<SessionWithOffer>> => {
     if (!account) return noAccount;
     const user = await c.store.user(account.userId);
     return canEnter(account, user, read.host) ? session(account, false) : noAccount;

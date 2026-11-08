@@ -10,6 +10,7 @@ import { PORTAL_ACTIONS, PORTAL_ERRORS } from '../copy';
 import { portalSessions } from '../sessions';
 import { INVITE_TTL_MS, hashSecret } from '../tokens';
 import { fakePortalStore } from './fake-portal-store';
+import { securityFor } from './portal-2fa';
 
 const CLIENT_ID = 'client-1.apps.googleusercontent.com';
 const NOW = new Date('2026-11-06T10:00:00.000Z');
@@ -50,7 +51,7 @@ function setup(o: { idToken?: () => string; tokenStatus?: number; certsFail?: bo
   const mail: SendPortalMail = async (to, m) => { mails.push({ to, mail: m }); return true; };
   const logs: string[] = [];
   const c: PortalAuthContext = {
-    store, sessions: portalSessions(store, () => NOW), limits: limiter(store, () => NOW), mail, common: new Set(), hosts: ['antrenor'], ip: '1.1.1.1',
+    security: securityFor(fake, store, () => NOW).security, store, sessions: portalSessions(store, () => NOW), limits: limiter(store, () => NOW), mail, common: new Set(), hosts: ['antrenor'], ip: '1.1.1.1',
     userAgent: null, now: () => NOW, log: (m) => logs.push(m), hash: async (p) => p, compare: async () => false,
   };
   const body = (extra: Claims = {}) => ({ host: 'antrenor', code: 'c', codeVerifier: 'v', redirectUri: 'https://a/cb', nonce: 'n1', ...extra });
@@ -71,6 +72,19 @@ describe('loginWithGoogle', () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(s.mails.filter((m) => m.mail.kind === 'new-device')).toHaveLength(1);
     expect(s.fake.state.limits.filter((l) => l.key.startsWith('login:'))).toEqual([]);
+  });
+
+  it('an account with 2FA on gets the session without the second step, and the passkey offer', async () => {
+    process.env.WEBAUTHN_RP_ID = 'edusport.test';
+    try {
+      const s = setup();
+      const id = await s.addAccount({ googleSub: 'sub-1' });
+      const sec = s.c.security.store;
+      await sec.confirmFactor(await sec.upsertFactor({ type: 'portal', id }, 'email', { secretBox: null }), NOW.toISOString());
+      expect(await s.login()).toMatchObject({ ok: true, data: { accessToken: expect.any(String), offerPasskey: true } });
+    } finally {
+      delete process.env.WEBAUTHN_RP_ID;
+    }
   });
 
   it('refuses wrong audience, issuer, expiry, nonce, signature and unverified e-mail with the no-account answer', async () => {

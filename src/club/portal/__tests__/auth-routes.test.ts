@@ -5,6 +5,8 @@ import { staticBeforeParams } from '../../groups/__tests__/route-order';
 
 const EXPECTED = [
   'POST /portal/auth/login',
+  'POST /portal/auth/2fa',
+  'POST /portal/auth/2fa/email',
   'GET /portal/auth/google/config',
   'POST /portal/auth/google',
   'POST /portal/auth/refresh',
@@ -18,7 +20,7 @@ const EXPECTED = [
 const listed = routes.routes.map((r) => `${r.method} ${r.path}`);
 
 describe('portal auth routes', () => {
-  it('are exactly the nine, in this order', () => {
+  it('are exactly the eleven, in this order', () => {
     expect(listed).toEqual(EXPECTED);
   });
 

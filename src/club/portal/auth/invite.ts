@@ -4,7 +4,8 @@ import { checkPassword } from '../passwords';
 import type { AccountRow, TokenRow } from '../store';
 import { hashSecret, tokenState } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
-import { canEnter, startSession, type PortalSession } from './issue';
+import { canEnter, startSession } from './issue';
+import { withOffer, type SessionWithOffer } from './two-factor';
 
 export type InviteRead = { state: 'valid'; email: string } | { state: 'expired'; email: null };
 
@@ -60,7 +61,7 @@ function readAcceptBody(body: unknown, hosts: string[]): AcceptBody | null {
   return { secret, password, host: chosen, deviceKey: key };
 }
 
-export async function acceptInvite(c: PortalAuthContext, body: unknown): Promise<PortalResult<PortalSession>> {
+export async function acceptInvite(c: PortalAuthContext, body: unknown): Promise<PortalResult<SessionWithOffer>> {
   const read = readAcceptBody(body, c.hosts);
   if (!read) return refuse(400, PORTAL_ERRORS.invalid);
   if (await c.limits.ipBlocked(c.ip)) return paused;
@@ -80,5 +81,5 @@ export async function acceptInvite(c: PortalAuthContext, body: unknown): Promise
   if (!activated) return expiredInvite;
   const user = await c.store.user(activated.userId);
   if (!canEnter(activated, user, read.host)) return { ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin };
-  return startSession(c, activated, read.deviceKey, { notifyNewDevice: false, host: read.host });
+  return withOffer(c, activated, await startSession(c, activated, read.deviceKey, { notifyNewDevice: false, host: read.host }));
 }

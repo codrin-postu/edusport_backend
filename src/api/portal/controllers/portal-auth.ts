@@ -7,6 +7,7 @@ import { googleClient, googleConfig, loginWithGoogle } from '../../../club/porta
 import { acceptInvite, readInvite } from '../../../club/portal/auth/invite';
 import { logout, refreshSession } from '../../../club/portal/auth/refresh';
 import { confirmReset, requestReset } from '../../../club/portal/auth/reset';
+import { portalSecondStep, portalSendCode } from '../../../club/portal/auth/two-factor';
 
 type Handler = (ctx: PortalCtx) => Promise<void>;
 
@@ -33,6 +34,8 @@ const secretOf = (body: unknown): string => {
 /** Portal auth API (routes/01-auth.ts). */
 export default {
   login: bffOnly('login', async (ctx) => respond(ctx, await loginWithPassword(portalAuthContext(strapi, ctx), ctx.request.body))),
+  secondStep: bffOnly('secondStep', async (ctx) => respond(ctx, await portalSecondStep(portalAuthContext(strapi, ctx), ctx.request.body))),
+  sendCode: bffOnly('sendCode', async (ctx) => respond(ctx, await portalSendCode(portalAuthContext(strapi, ctx), ctx.request.body))),
   refresh: bffOnly('refresh', async (ctx) => respond(ctx, await refreshSession(portalAuthContext(strapi, ctx), ctx.request.body))),
   logout: bffOnly('logout', async (ctx) => respond(ctx, await logout(portalAuthContext(strapi, ctx), ctx.request.body))),
   google: bffOnly('google', async (ctx) => respond(ctx, await loginWithGoogle(portalAuthContext(strapi, ctx), googleClient(), ctx.request.body))),

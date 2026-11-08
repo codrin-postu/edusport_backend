@@ -11,6 +11,8 @@ export type TokenRow = { id: string; accountId: string; kind: TokenKind; secretH
 export type LimitRow = LimitState & { id: string; key: string };
 export type DeviceRow = {
   id: string; accountId: string; deviceKeyHash: string; sessionId: string | null; label: string; firstSeenAt: string; lastSeenAt: string; revokedAt: string | null;
+  /** The end of the remembered-device 2FA skip (6b); null when this device must answer the second step. */
+  twoFactorUntil: string | null;
 };
 export type UserAuth = { id: number; email: string; passwordHash: string | null; blocked: boolean; confirmed: boolean };
 export type UserWrite = { email?: string; passwordHash?: string | null; blocked?: boolean; confirmed?: boolean };

@@ -3,9 +3,13 @@ import { PORTAL_ACTIONS, PORTAL_ERRORS, RESET_SENT } from '../copy';
 import { normalizeEmail } from '../limits';
 import { checkPassword } from '../passwords';
 import type { AccountRow, TokenRow } from '../store';
-import { RESET_MAX_TRIES, RESET_TTL_MS, hashSecret, newResetCode, sameHash, tokenState } from '../tokens';
+import { codeMac, macMatchesAny, packMac, unpackMac } from '../../security/code-mac';
+import { keysOrRefusal } from '../../security/context';
+import type { Keys } from '../../security/keys';
+import { RESET_MAX_TRIES, RESET_TTL_MS, newResetCode, tokenState } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
-import { canEnter, startSession, type PortalSession } from './issue';
+import { canEnter } from './issue';
+import { afterPassword, type PortalPending, type SessionWithOffer } from './two-factor';
 
 /** No reset request answers sooner than this after it started, so the answer time does not tell a known e-mail from an unknown one. */
 export const RESET_FLOOR_MS = 1500;
@@ -55,6 +59,9 @@ async function resetAnswer(c: PortalAuthContext, body: unknown): Promise<PortalR
   const email = normalizeEmail(typeof body === 'object' && body !== null ? (body as Record<string, unknown>).email : null);
   if (email === null) return refuse(400, PORTAL_ERRORS.invalid);
   if (await c.limits.ipBlocked(c.ip)) return paused;
+  // Spec 5.1: without the code key the same 503 answers every e-mail, so nothing tells a known one.
+  const gate = keysOrRefusal(c.security);
+  if ('refusal' in gate) return gate.refusal;
   const account = await c.store.accountByEmail(email);
   const allowed = await c.limits.mailAllowed(email);
   if (!account || account.status === 'disabled' || !allowed) return sent;
@@ -62,7 +69,7 @@ async function resetAnswer(c: PortalAuthContext, body: unknown): Promise<PortalR
   const tokenId = await c.store.transaction(async () => {
     await c.store.lockAccount(account.id);
     await useUpOpen(c, account.id);
-    return c.store.createToken({ accountId: account.id, kind: 'reset', secretHash: hashSecret(code), expiresAt: new Date(c.now().getTime() + RESET_TTL_MS).toISOString() });
+    return c.store.createToken({ accountId: account.id, kind: 'reset', secretHash: packMac(codeMac(gate.keys, 'reset-code', 'portal', account.id, code)), expiresAt: new Date(c.now().getTime() + RESET_TTL_MS).toISOString() });
   });
   if (!(await sendCode(c, email, code))) {
     await failSend(c, account.id, tokenId);
@@ -86,14 +93,16 @@ function readConfirmBody(body: unknown, hosts: string[]): ConfirmBody | null {
 type Checked = { right: false } | { right: true; account: AccountRow };
 
 /** One transaction under the account lock: a wrong code spends a try (committed), the right one sets the password. */
-async function checkCode(c: PortalAuthContext, accountId: string, code: string, passwordHash: string): Promise<Checked> {
+async function checkCode(c: PortalAuthContext, keys: Keys, accountId: string, code: string, passwordHash: string): Promise<Checked> {
   return c.store.transaction(async () => {
     await c.store.lockAccount(accountId);
     const account = await c.store.account(accountId);
     const open = (await c.store.tokens(accountId, 'reset')).filter((t: TokenRow) => t.usedAt === null);
     const token = open[open.length - 1];
     if (!account || account.status === 'disabled' || !token || tokenState(token, c.now()) !== 'valid') return { right: false };
-    if (!sameHash(hashSecret(code), token.secretHash)) {
+    const mac = unpackMac(token.secretHash);
+    const rows = mac ? [{ id: token.id, ...mac }] : [];
+    if (macMatchesAny(keys, 'reset-code', 'portal', accountId, code, rows) === null) {
       const tries = token.tries + 1;
       await c.store.updateToken(token.id, tries >= RESET_MAX_TRIES ? { tries, usedAt: c.now().toISOString() } : { tries });
       return { right: false };
@@ -110,19 +119,21 @@ async function checkCode(c: PortalAuthContext, accountId: string, code: string, 
   });
 }
 
-export async function confirmReset(c: PortalAuthContext, body: unknown): Promise<PortalResult<PortalSession>> {
+export async function confirmReset(c: PortalAuthContext, body: unknown): Promise<PortalResult<SessionWithOffer | PortalPending>> {
   const read = readConfirmBody(body, c.hosts);
   if (!read) return refuse(400, PORTAL_ERRORS.invalid);
   if (await c.limits.ipBlocked(c.ip)) return paused;
+  const gate = keysOrRefusal(c.security);
+  if ('refusal' in gate) return gate.refusal;
   const rule = checkPassword(read.password, read.email, c.common);
   if (rule !== null) return refuse(400, rule);
   const account = await c.store.accountByEmail(read.email);
   // Hashed also for an unknown e-mail, so the answer takes as long.
   const passwordHash = await c.hash(read.password);
   if (!account) return badCode;
-  const checked = await checkCode(c, account.id, read.code, passwordHash);
+  const checked = await checkCode(c, gate.keys, account.id, read.code, passwordHash);
   if (!checked.right) return badCode;
   const user = await c.store.user(checked.account.userId);
   if (!canEnter(checked.account, user, read.host)) return { ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin };
-  return startSession(c, checked.account, read.deviceKey, { notifyNewDevice: true, host: read.host });
+  return afterPassword(c, checked.account, read.deviceKey, read.host);
 }

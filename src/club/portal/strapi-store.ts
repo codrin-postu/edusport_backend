@@ -47,6 +47,7 @@ export function toDeviceRow(r: Raw): DeviceRow {
   return {
     id: text(r.documentId), accountId: linkId(r.account) ?? '', deviceKeyHash: text(r.deviceKeyHash), sessionId: str(r.sessionId), label: text(r.label),
     firstSeenAt: iso(r.firstSeenAt) ?? '', lastSeenAt: iso(r.lastSeenAt) ?? '', revokedAt: iso(r.revokedAt),
+    twoFactorUntil: iso(r.twoFactorUntil),
   };
 }
 

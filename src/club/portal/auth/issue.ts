@@ -25,7 +25,7 @@ async function bindDevice(c: PortalAuthContext, account: AccountRow, given: stri
   const at = c.now().toISOString();
   const row = { accountId: account.id, deviceKeyHash: hashSecret(key), sessionId: null, label: deviceLabel(c.userAgent), firstSeenAt: at, lastSeenAt: at };
   const id = await c.store.createDevice(row);
-  return { device: { ...row, id, revokedAt: null }, key, newRow: true, newKey: true };
+  return { device: { ...row, id, revokedAt: null, twoFactorUntil: null }, key, newRow: true, newKey: true };
 }
 
 async function mailNewDevice(c: PortalAuthContext, account: AccountRow, device: DeviceRow): Promise<void> {
