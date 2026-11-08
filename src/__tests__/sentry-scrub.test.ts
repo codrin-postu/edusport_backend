@@ -17,6 +17,9 @@ describe('scrubAuthEvent', () => {
   it.each([
     'https://api.x.ro/api/admin-auth/2fa',
     'https://api.x.ro/api/admin-auth/login?code=123456',
+    'https://api.x.ro/api/Admin-Auth/reset/confirm',
+    'https://cms.x.ro/Admin/Auth/google/callback?code=123456',
+    'https://api.x.ro/api/admin-auth/reset/confirm/',
     'https://api.x.ro/api/portal/auth/2fa',
     'https://api.x.ro/api/portal/me/2fa/totp/confirm',
     'https://cms.x.ro/intrare/2fa?token=abc123',

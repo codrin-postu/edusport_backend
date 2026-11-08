@@ -53,7 +53,11 @@ function pathOf(url: string | undefined): string {
 export function scrubAuthEvent<E extends ScrubbableEvent>(event: E): E {
   const request = event.request;
   const path = request ? pathOf(request.url) : '';
-  const isAuth = (p: string): boolean => AUTH_PATH_PREFIXES.some((prefix) => p.startsWith(prefix));
+  // The router matches paths without regard to case and with a trailing slash, so the match does the same.
+  const isAuth = (p: string): boolean => {
+    const path = p.toLowerCase();
+    return AUTH_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
+  };
   const requestAuth = request !== undefined && isAuth(path);
   const transactionAuth = isAuth(transactionPath(event.transaction));
   if (!requestAuth && !transactionAuth) return event;

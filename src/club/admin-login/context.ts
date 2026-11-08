@@ -96,7 +96,7 @@ export function serverSecurityContext(strapi: Core.Strapi): SecurityContext {
   const sendSecurity = securityMailSender(strapi);
   const c: SecurityContext = {
     store, now, keys: loadKeys(), log: (m) => strapi.log.error(m), mail: (to, kind, data) => sendSecurity(to, { kind, data } as SecurityMail),
-    limits: adminLimits(limiter(strapiPortalStore(strapi), now)), ip: 'server', userAgent: null, actor: 'sistem',
+    limits: adminLimits(limiter(strapiPortalStore(strapi), now)), ip: 'server', userAgent: null, actor: 'server',
     endSessions: (s, o) => endAdminSessions({ strapi, store }, Number(s.id), o),
     forgetDevices: (s, o) => forgetDevices(store, s, o),
   };

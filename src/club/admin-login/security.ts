@@ -15,7 +15,7 @@ import type { Subject } from '../security/store';
 import { adminById, adminName, adminUserService, allAdmins, canEnterAdmin, type AdminRow } from './admins';
 import type { AdminLoginContext } from './context';
 import { noticeLockout } from './login';
-import { endAdminSessions } from './session';
+import { clearRefreshCookie, endAdminSessions } from './session';
 
 const PASSWORD_MAX = 256;
 
@@ -54,7 +54,7 @@ async function currentDeviceId(c: AdminLoginContext, admin: AdminRow, deviceCook
  * Spec 4.8: the current password is counted on `admin:login:<e-mail>` before it is compared (5 wrong pause the e-mail), then the portal rules,
  * then the password, the history line, and every other session ends and every other device forgets its 2FA (this one stays when its device is known).
  */
-export async function changeAdminPassword(c: AdminLoginContext, admin: AdminRow, body: unknown, deviceCookie: string | null): Promise<PortalResult<{ toast: string }>> {
+export async function changeAdminPassword(c: AdminLoginContext, admin: AdminRow, body: unknown, deviceCookie: string | null): Promise<PortalResult<{ toast: string; signedOut: boolean }>> {
   const read = readPasswordBody(body);
   if (!read) return refuse(400, PORTAL_ERRORS.invalid);
   const attempt = await c.limits.emailAttempt(admin.email);
@@ -68,8 +68,12 @@ export async function changeAdminPassword(c: AdminLoginContext, admin: AdminRow,
   if (rule !== null) return refuse(400, rule);
   await adminUserService(c.strapi).updateById(admin.id, { password: read.password });
   await c.store.record({ subjectType: 'admin', subjectId: String(admin.id), action: SECURITY_ACTIONS.passwordChanged, changes: {}, actor: adminName(admin) });
-  await endAdminSessions(c, admin.id, { exceptDevice: await currentDeviceId(c, admin, deviceCookie) });
-  return { ok: true, data: { toast: SECURITY_TOASTS.passwordChanged } };
+  const exceptDevice = await currentDeviceId(c, admin, deviceCookie);
+  await endAdminSessions(c, admin.id, { exceptDevice });
+  // Without a live device row nothing tells this session from the others, so it ended too: say so and drop the refresh cookie.
+  const signedOut = exceptDevice === undefined;
+  if (signedOut) clearRefreshCookie(c.koa);
+  return { ok: true, data: { toast: SECURITY_TOASTS.passwordChanged, signedOut } };
 }
 
 /** The e-mail the Google link was proven for (the admin's own), or null. */

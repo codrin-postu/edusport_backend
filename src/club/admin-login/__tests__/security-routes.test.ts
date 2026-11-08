@@ -128,7 +128,7 @@ describe('changeAdminPassword', () => {
     const env = secEnv();
     const { current, other } = await twoDevices(env);
     const out = await changeAdminPassword(env.c, await env.admin(), body(), 'key-a');
-    expect(out).toEqual({ ok: true, data: { toast: SECURITY_TOASTS.passwordChanged } });
+    expect(out).toEqual({ ok: true, data: { toast: SECURITY_TOASTS.passwordChanged, signedOut: false } });
     expect(env.admins[0].password).toBe(`hash:${NEW_PASSWORD}`);
     expect(env.sessions.rows.map((r) => r.deviceId)).toEqual(['dev-a']);
     const devices = await env.c.store.adminDevices(7);
@@ -144,6 +144,15 @@ describe('changeAdminPassword', () => {
     await twoDevices(env);
     await changeAdminPassword(env.c, await env.admin(), body(), 'unknown-key');
     expect(env.sessions.rows).toEqual([]);
+  });
+
+  it('L1: when the change ends the caller\'s own session the answer says signedOut and the refresh cookie is cleared', async () => {
+    const env = secEnv();
+    await twoDevices(env);
+    env.sets.length = 0;
+    const out = await changeAdminPassword(env.c, await env.admin(), body(), null);
+    expect(out).toEqual({ ok: true, data: { toast: SECURITY_TOASTS.passwordChanged, signedOut: true } });
+    expect(env.sets.find((x) => x.name === 'strapi_admin_refresh')).toMatchObject({ value: '' });
   });
 
   it('the rules answer 400 with their text and change nothing', async () => {
@@ -236,5 +245,13 @@ describe('the reset script', () => {
     expect(src).toContain('No admin: ');
     expect(src).toMatch(/exit\(1\)|exitCode = 1/);
     expect(JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts['admin:reset-2fa']).toContain('admin-reset-2fa');
+  });
+});
+
+describe('serverSecurityContext (L2)', () => {
+  it('writes the history of the script under the actor "server"', async () => {
+    const { serverSecurityContext } = await import('../context');
+    const c = serverSecurityContext({ db: { query: () => ({}) }, log: { error: () => undefined } } as never);
+    expect(c.actor).toBe('server');
   });
 });
