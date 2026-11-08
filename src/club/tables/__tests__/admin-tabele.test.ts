@@ -47,7 +47,7 @@ describe('Tabele screen files', () => {
     expect(src).toContain('downloadPost(');
     expect(src).toContain('effectiveDefinition(');
     expect(src).toMatch(/tables\/export/);
-    expect(read('inscrieri/downloadPdf.ts')).toMatch(/export async function downloadPost\(token: string \| null, url: string, body: unknown, fallbackName: string\)/);
+    expect(read('inscrieri/downloadPdf.ts')).toMatch(/export async function downloadPost\(token: string \| null, url: string, body: unknown, fallbackName: string, opts: PostOptions = \{\}\)/);
   });
 
   it('the result table windows large results and opens athletes in a new tab', () => {
@@ -112,5 +112,18 @@ describe('Tabele screen files', () => {
 
   it('no forbidden characters in the screen sources', () => {
     expect(tabeleSource()).not.toMatch(/[—–·„”“]/);
+  });
+
+  it('closes the quick filters at 10 builder filters, sends the view name with a download, wraps the subject control on phones and marks sort only on the sorted column', () => {
+    const page = read('sportivi/tabele/TabelePage.tsx');
+    expect(page).toContain('quickFiltersOpen(');
+    expect(page).toMatch(/disabled=\{!open\}/);
+    expect(page).toMatch(/api\.download\(format, effective, current\.name,/);
+    expect(read('sportivi/tabele/api.ts')).toMatch(/\{ definition, format, name \}/);
+    expect(read('sportivi/tabele/api.ts')).toContain('attemptTokenRefresh');
+    expect(read('sportivi/tabele/api.ts')).toContain('backendURL');
+    expect(read('sportivi/tabele/Builder.tsx')).toContain('tbl-subject');
+    expect(read('sportivi/tabele/styles.ts')).toMatch(/\.tbl-subject\.ui-seg\{display:grid;grid-template-columns:repeat\(2,/);
+    expect(read('sportivi/tabele/ResultTable.tsx')).toMatch(/\{dir &&[^\n]*ui-table-sort/);
   });
 });

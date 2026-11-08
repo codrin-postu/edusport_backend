@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getFetchClient, useAuth, useFetchClient } from '@strapi/admin/strapi-admin';
+import { attemptTokenRefresh, getFetchClient, useAuth, useFetchClient } from '@strapi/admin/strapi-admin';
 import type { CatalogAnswer } from '../../../../club/tables/catalog-api';
 import type { SavedViewRow, TableDefinition, TableResult } from '../../../../club/tables/types';
 import { downloadPost } from '../../inscrieri/downloadPdf';
@@ -36,8 +36,12 @@ export function useTablesApi() {
       },
       /** The toast's "Anulează": it outlives the screen, so it uses the plain client. */
       undo: async (actionId: string) => ((await getFetchClient().post(`${BASE}/undo`, { actionId })) as Wrapped<{ undone: true }>).data.data,
-      download: (format: Format, definition: TableDefinition, fallbackName: string) =>
-        downloadPost(tokenRef.current, `${BASE}/tables/export`, { definition, format }, fallbackName),
+      /** `name` is the view's name (it names the file and the sheet); an unsaved definition sends none. */
+      download: (format: Format, definition: TableDefinition, name: string | null, fallbackName: string) =>
+        downloadPost(tokenRef.current, `${BASE}/tables/export`, name ? { definition, format, name } : { definition, format }, fallbackName, {
+          backendURL: (window as unknown as { strapi?: { backendURL?: string } }).strapi?.backendURL ?? '',
+          refresh: attemptTokenRefresh,
+        }),
     };
   }, []);
 }

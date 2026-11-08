@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AdminPage, BottomSheet, Button, EmptyState, Loading, Notice, PageHeader, Select, Window, adminToast, useIsPhone, type SelectOption } from '../../../ui';
 import { ConfirmDialog } from '../../../ConfirmDialog';
-import { effectiveDefinition, NO_QUICK, type Quick } from '../../../../club/tables/builder-state';
+import { effectiveDefinition, NO_QUICK, quickFiltersOpen, type Quick } from '../../../../club/tables/builder-state';
 import type { CatalogAnswer } from '../../../../club/tables/catalog-api';
 import { TABLES_COPY, TABLES_COUNT_WORDS } from '../../../../club/tables/copy';
 import { readTablesQuery, tablesTo } from '../../../../club/tables/routes';
@@ -70,18 +70,19 @@ function QuickFilters({ catalog, definition, quick, onChange }: { catalog: Catal
   const hasGroup = columns.some((c) => c.key === 'grupa');
   if (!stare && !hasGroup) return null;
   const all: SelectOption = { value: '', label: TABLES_COPY.all };
+  const open = quickFiltersOpen(definition);
   return (
     <div className="tbl-quick">
       {stare && (
         <div className="tbl-quick-item">
           <span className="tbl-label">{stare.label}</span>
-          <Select value={quick.stare ?? ''} aria-label={stare.label} options={[all, ...(stare.values ?? []).map((v) => ({ value: v, label: v }))]} onChange={(v) => onChange({ ...quick, stare: v || null })} />
+          <Select value={quick.stare ?? ''} aria-label={stare.label} disabled={!open} options={[all, ...(stare.values ?? []).map((v) => ({ value: v, label: v }))]} onChange={(v) => onChange({ ...quick, stare: v || null })} />
         </div>
       )}
       {hasGroup && (
         <div className="tbl-quick-item">
           <span className="tbl-label">{TABLES_COPY.group}</span>
-          <Select value={quick.grupa ?? ''} aria-label={TABLES_COPY.group} options={[all, ...catalog.groups.filter((g) => g.active).map((g) => ({ value: g.name, label: g.name }))]} onChange={(v) => onChange({ ...quick, grupa: v || null })} />
+          <Select value={quick.grupa ?? ''} aria-label={TABLES_COPY.group} disabled={!open} options={[all, ...catalog.groups.filter((g) => g.active).map((g) => ({ value: g.name, label: g.name }))]} onChange={(v) => onChange({ ...quick, grupa: v || null })} />
         </div>
       )}
     </div>
@@ -108,6 +109,8 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
   React.useEffect(() => { setDraft(saved); setQuick(NO_QUICK); setCollapsed(new Set()); }, [current.id, savedKey]);
 
   const columns = draft ? catalog.subjects[draft.subject].columns : [];
+  // At 10 builder filters there is no room for a quick one: it is closed, and one already chosen is dropped.
+  React.useEffect(() => { if (draft && !quickFiltersOpen(draft)) setQuick(NO_QUICK); }, [draft]);
   const effective = draft ? effectiveDefinition(draft, quick, columns) : null;
   const { result, error, loading } = useResult(api, effective);
   const dirty = saved !== null && draft !== null && isDirty(saved, draft);
@@ -124,7 +127,7 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
     if (!effective) return;
     setDownloading(format);
     try {
-      await api.download(format, effective, `tabel-${effective.subject}.${format}`);
+      await api.download(format, effective, current.name, `tabel-${effective.subject}.${format}`);
     } catch (err) {
       adminToast.error(await blobErrorText(err, TABLES_COPY.errors.download));
     } finally {

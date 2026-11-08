@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOG } from '../catalog';
 import {
-  canAddFilter, cellText, OPS_BY_TYPE, checklistOrder, DEFAULT_COLUMNS, effectiveDefinition, filterText, linesOf, moveColumn, newFilter, NO_QUICK, parseFilterText, refilter, toggleColumn,
+  canAddFilter, cellText, OPS_BY_TYPE, checklistOrder, DEFAULT_COLUMNS, effectiveDefinition, filterText, linesOf, moveColumn, newFilter, NO_QUICK, parseFilterText, quickFiltersOpen, refilter, toggleColumn,
   windowOf, withSubject,
 } from '../builder-state';
 import { checkFilter, readDefinition } from '../definition';
@@ -80,6 +80,11 @@ describe('filters', () => {
   it('the filter cap closes the add button at 10', () => {
     expect(canAddFilter(def)).toBe(true);
     expect(canAddFilter({ ...def, filters: Array(10).fill(newFilter(plati)) })).toBe(false);
+  });
+  it('the quick filters close when the builder already holds 10 filters', () => {
+    expect(quickFiltersOpen(def)).toBe(true);
+    expect(quickFiltersOpen({ ...def, filters: Array(9).fill(newFilter(plati)) })).toBe(true);
+    expect(quickFiltersOpen({ ...def, filters: Array(10).fill(newFilter(plati)) })).toBe(false);
   });
   it('quick filters add equality filters for the screen and the download, never past the cap, and not for a column the subject lacks', () => {
     const q = effectiveDefinition(def, { stare: 'anulată', grupa: 'Avansați' }, plati);

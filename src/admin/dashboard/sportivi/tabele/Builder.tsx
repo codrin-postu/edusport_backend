@@ -73,7 +73,7 @@ export function Builder({ definition, catalog, onChange }: Props) {
       <div className="tbl-sec tbl-wide">
         <span className="tbl-label" id="tbl-subject">{TABLES_COPY.subject}</span>
         <SegmentedControl
-          aria-labelledby="tbl-subject" value={definition.subject} block
+          aria-labelledby="tbl-subject" value={definition.subject} block className="tbl-subject"
           options={SUBJECTS.map((s) => ({ value: s, label: catalog.subjects[s].label }))}
           onChange={(s) => s !== definition.subject && onChange(withSubject(definition, s))}
         />

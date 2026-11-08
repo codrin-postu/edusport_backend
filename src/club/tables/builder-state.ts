@@ -46,6 +46,8 @@ export function checklistOrder(d: TableDefinition, catalog: CatalogColumn[]): { 
 
 /** A filter that is valid as it stands: "completat" on the first column; the admin then picks column, op and value. */
 export const newFilter = (catalog: CatalogColumn[]): TableFilter => ({ column: catalog[0].key, op: 'notEmpty' });
+/** The quick filters "Stare" and "Grupă" are extra filters: they close with the builder's own at the cap. */
+export const quickFiltersOpen = (d: TableDefinition): boolean => d.filters.length < MAX_FILTERS;
 export const canAddFilter = (d: TableDefinition): boolean => d.filters.length < MAX_FILTERS;
 
 /** The value a filter starts with when its op needs one. */

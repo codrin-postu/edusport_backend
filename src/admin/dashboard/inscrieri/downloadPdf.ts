@@ -29,14 +29,20 @@ export async function downloadPdf(get: Get, url: string, fallbackName: string): 
 /**
  * A file made from a request body (the tables' .xlsx and .csv): POST with the admin token, saved under the server's file name.
  * Strapi's fetch client ignores `responseType` on POST (it always reads JSON), so this uses fetch with the Bearer token.
+ * The backend URL is prefixed and a 401 renews the token once (`opts.refresh`) and retries once.
  * A failed request throws an error whose `response.data` is the body blob, the shape `blobErrorText` reads.
  */
-export async function downloadPost(token: string | null, url: string, body: unknown, fallbackName: string): Promise<void> {
-  const res = await fetch(url, {
+export type PostOptions = { backendURL?: string; refresh?: () => Promise<string> };
+
+export async function downloadPost(token: string | null, url: string, body: unknown, fallbackName: string, opts: PostOptions = {}): Promise<void> {
+  const send = (bearer: string | null) => fetch(`${opts.backendURL ?? ''}${url}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: { 'Content-Type': 'application/json', ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}) },
     body: JSON.stringify(body),
   });
+  let res = await send(token);
+  // An expired access token: renew it the way the Strapi client does, then ask once more.
+  if (res.status === 401 && opts.refresh) res = await send(await opts.refresh());
   if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { response: { data: await res.blob() } });
   saveBlob({ data: await res.blob(), headers: res.headers }, fallbackName);
 }

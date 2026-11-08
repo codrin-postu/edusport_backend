@@ -60,6 +60,7 @@ export const TABELE_CSS = `
 .ui-root .tbl-acts-end{margin-left:0}
 .ui-root .tbl-quick{padding:10px 16px}
 .ui-root .tbl-scope{grid-template-columns:minmax(0,1fr)}
+.ui-root.tbl-subject.ui-seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 .ui-root .tbl-table th:first-child,.ui-root .tbl-table td:first-child{position:sticky;left:0;z-index:1;box-shadow:1px 0 0 var(--theme-border)}
 .ui-root .tbl-table th:first-child{z-index:2}
 .ui-root .tbl-table tr.tbl-group td:first-child{position:static;box-shadow:none}

@@ -25,7 +25,7 @@ function Head({ columns, sort, onSort }: { columns: CatalogColumn[]; sort: Props
             <th key={c.key} scope="col" className={isNum(c) ? 'tbl-num' : undefined} aria-sort={dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : 'none'}>
               <button type="button" onClick={() => onSort(c.key)}>
                 {c.label}
-                <span className="ui-table-sort" aria-hidden="true">{dir ? SORT_MARK[dir] : ''}</span>
+                {dir && <span className="ui-table-sort" aria-hidden="true">{SORT_MARK[dir]}</span>}
               </button>
             </th>
           );

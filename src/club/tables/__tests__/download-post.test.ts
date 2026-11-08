@@ -31,4 +31,31 @@ describe('downloadPost', () => {
     const err = await downloadPost('tok', '/x', {}, 'f.csv').catch((e: unknown) => e);
     expect(await blobErrorText(err, 'fallback')).toBe('Tabelul are peste 5.000 de rânduri.');
   });
+
+  it('prefixes the backend URL', async () => {
+    const { fetchMock } = browser(new Response('a', { status: 200 }));
+    await downloadPost('tok', '/api/club/tables/export', {}, 'f.csv', { backendURL: 'https://admin.example.ro' });
+    expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe('https://admin.example.ro/api/club/tables/export');
+  });
+
+  it('on 401 refreshes the token once and retries with the new one', async () => {
+    const answers = [new Response('{}', { status: 401 }), new Response('a;b', { status: 200 })];
+    const { fetchMock, link } = browser(answers[1]);
+    fetchMock.mockImplementation(async () => answers.shift() as Response);
+    const refresh = vi.fn(async () => 'fresh');
+    await downloadPost('old', '/x', {}, 'f.csv', { refresh });
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const auth = (i: number) => ((fetchMock.mock.calls[i] as unknown as [string, RequestInit])[1].headers as Record<string, string>).Authorization;
+    expect([auth(0), auth(1)]).toEqual(['Bearer old', 'Bearer fresh']);
+    expect(link.click).toHaveBeenCalled();
+  });
+
+  it('does not retry twice: a second 401 is the error', async () => {
+    const { fetchMock } = browser(new Response('{}', { status: 401 }));
+    fetchMock.mockImplementation(async () => new Response('{}', { status: 401 }));
+    const err = await downloadPost('old', '/x', {}, 'f.csv', { refresh: async () => 'fresh' }).catch((e: unknown) => e);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect((err as Error).message).toBe('HTTP 401');
+  });
 });
