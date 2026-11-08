@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { athleteRow, member } from '../../../groups/__tests__/fake-group-store';
-import { attendanceRow, sessionRow } from '../../../presence/__tests__/fake-store';
+import { attendanceRow, lessonRow, sessionRow } from '../../../presence/__tests__/fake-store';
 import { PORTAL_ERRORS } from '../../copy';
 import { addMembers, addNewAthlete, readCard, searchAthletes } from '../athletes';
 import { forbiddenKeysIn } from '../views';
@@ -92,7 +92,7 @@ describe('readCard', () => {
   it('an own child has the contact, the Școala one its abonament text', async () => {
     const c = coachCtx(ME);
     const club = await readCard(c, 'a-club-1');
-    expect(club).toEqual({ ok: true, data: { athleteId: 'a-club-1', name: 'Ana Club', age: 14, groups: ['Club A'], school: null, contact: { name: 'Părinte Secret', phone: '0722000111' } } });
+    expect(club).toMatchObject({ ok: true, data: { athleteId: 'a-club-1', name: 'Ana Club', age: 14, groups: ['Club A'], school: null, contact: { name: 'Părinte Secret', phone: '0722000111' }, abonament: null } });
     expect(await readCard(c, 'a-scoala-1')).toMatchObject({ data: { school: '0/8', contact: { phone: '0722000111' } } });
     expect(forbiddenKeysIn(club)).toEqual([]);
   });
@@ -119,5 +119,46 @@ describe('readCard', () => {
     c.fake.group.memberships.push(member({ id: 'gm-old', athleteId: 'a-free', groupId: 'g-club-a', to: '2026-11-19' }));
     expect(await readCard(c, 'a-free')).toEqual(NO_ACCESS);
     expect(await readCard(c, 'nope')).toMatchObject({ status: 404 });
+  });
+});
+
+describe('readCard additions', () => {
+  const seedPresence = (c: ReturnType<typeof coachCtx>) => {
+    for (const [id, date] of [['s-1', '2026-11-07'], ['s-2', '2026-11-08'], ['s-3', '2026-11-14']]) {
+      c.fake.state.sessions.push(sessionRow({ id, groupId: 'g-scoala-a', date, startTime: '11:00', coachIds: [ME] }));
+      c.fake.state.attendances.push(attendanceRow({ id: `t-${id}`, sessionId: id, athleteId: 'a-scoala-1', uniqueKey: `${id}|a-scoala-1`, subscriptionId: 'sub-s1' }));
+    }
+    c.fake.state.sessions.push(sessionRow({ id: 's-4', groupId: 'g-scoala-a', date: '2026-11-15', startTime: '11:00', coachIds: [ME] }));
+    c.fake.state.lessons.push(lessonRow({ id: 'l-1', athleteId: 'a-scoala-1', date: '2026-11-10', state: 'saved', present: true }));
+  };
+
+  it('an own child has presence numbers, abonament, groups and section', async () => {
+    const c = coachCtx(ME);
+    seedPresence(c);
+    const out = await readCard(c, 'a-scoala-1');
+    expect(out).toMatchObject({ ok: true, data: {
+      presence: { season: 4, lessons: 1, last: '2026-11-14', missedThisMonth: 1 },
+      abonament: { code: null, next: 4, slots: 8, validUntil: '2026-11-28', location: null },
+      groupRows: [{ groupId: 'g-scoala-a', name: 'Școala A' }], sectionName: 'Școala de Patinaj - AFI Cotroceni', competitions: { available: false },
+    } });
+    expect(Array.isArray(out.ok && out.data.groupRows[0].program)).toBe(true);
+    expect(forbiddenKeysIn(out)).toEqual([]);
+    expect(JSON.stringify(out)).not.toMatch(/Alergie|copil@example/);
+  });
+
+  it('a stand-in child has presence only: no contact, no abonament', async () => {
+    const c = coachCtx(ME);
+    c.fake.state.sessions.push(sessionRow({ id: 's-b', groupId: 'g-club-b', date: '2026-11-17', startTime: '18:00', coachIds: [ME, 'tm-virgil'] }));
+    c.fake.state.attendances.push(attendanceRow({ id: 't-b', sessionId: 's-b', athleteId: 'a-b-1', uniqueKey: 's-b|a-b-1' }));
+    const out = await readCard(c, 'a-b-1');
+    expect(out).toMatchObject({ ok: true, data: { contact: null, abonament: null, presence: { season: 1, lessons: 0, last: '2026-11-17' }, competitions: { available: false } } });
+    expect(JSON.stringify(out)).not.toMatch(/0722000111/);
+    expect(forbiddenKeysIn(out)).toEqual([]);
+  });
+
+  it('an anonymized child is not found', async () => {
+    const c = coachCtx(ME);
+    c.fake.group.athletes.find((a) => a.id === 'a-scoala-1')!.status = 'anonimizat';
+    expect(await readCard(c, 'a-scoala-1')).toMatchObject({ ok: false, status: 404 });
   });
 });

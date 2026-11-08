@@ -54,8 +54,21 @@ export type CoachLesson = {
 };
 export type CoachSearchRow = { athleteId: string; name: string; age: number | null };
 export type CoachNewAthleteBody = { groupId: string; name: string; birthDate?: string | null; contactName?: string | null; phone?: string | null; email?: string | null };
+/** Competitions of one athlete; `{ available: false }` until a real source exists (plan Task 7 and 8). */
+export type CoachAthleteCompetitions =
+  | { available: false }
+  | { available: true; category: string | null; season: string; count: number; podiums: number;
+      recent: { eventName: string; date: string | null; location: string | null; placement: number | null; total: number | null }[] };
 export type CoachAthleteCard = {
   athleteId: string; name: string; age: number | null; groups: string[]; school: string | null; contact: { name: string | null; phone: string | null } | null;
+  /** Section of the main group today, e.g. "Școala de patinaj". */
+  sectionName: string | null;
+  /** Current groups, main first. */
+  groupRows: { groupId: string; name: string; program: string[] }[];
+  presence: { season: number; lessons: number; last: string | null; missedThisMonth: number };
+  /** Own children only. */
+  abonament: { code: string | null; next: number; slots: number; validUntil: string; location: string | null } | null;
+  competitions: CoachAthleteCompetitions;
 };
 export type CoachMemberChange = { athleteName: string; groupName: string; from: string; toast: string };
 export type CoachHistoryRow = {

@@ -14,7 +14,7 @@ import type { CoachContexts } from './context';
 import { groupAccess } from './ownership';
 import { toCoachMember } from './views';
 
-async function listFacts(c: CoachContexts): Promise<ListFacts & { memberships: MembershipRow[] }> {
+export async function listFacts(c: CoachContexts): Promise<ListFacts & { memberships: MembershipRow[] }> {
   const store = c.presence.store;
   const [seasons, sections, groups, events, team] = await Promise.all([store.seasons(), store.sections(), store.groups(), c.groups.store.events(), store.teamMembers()]);
   const season = currentSeason(seasons);
