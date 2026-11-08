@@ -10,6 +10,11 @@ import { KIND_OPTIONS } from '../../admin/pages/preturi/format';
 const src = (p: string) => readFileSync(join(__dirname, '..', '..', p), 'utf8');
 
 describe('money UI source', () => {
+  it('the export popover styles target the portaled popover itself (it carries ui-root, so no ancestor has it)', () => {
+    const s = src('admin/dashboard/bani/styles.ts');
+    expect(s).toMatch(/\.ui-root\.bn-pop\{/);
+    expect(s).not.toMatch(/\.ui-root \.bn-pop/);
+  });
   it('the breakdown draws group rows through visibleGroups, so Fără grupă is one row', () => {
     expect(src('admin/dashboard/bani/BaniBreakdown.tsx')).toMatch(/visibleGroups\(b\)\.map\(/);
   });

@@ -78,8 +78,8 @@ export const MONEY_CSS = `
 .ui-root .bn-table .bn-tot td{font-weight:700}
 .ui-root .bn-figures{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:0 16px}
 .ui-root .bn-acc-cards{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.ui-root .bn-pop{padding:5px;min-width:120px}
-.ui-root .bn-pop button{display:block;width:100%;text-align:left;font:inherit;font-size:12.5px;color:var(--theme-text);background:none;border:none;padding:8px 10px;cursor:pointer}
-.ui-root .bn-pop button:hover,.ui-root .bn-pop button:focus-visible{background:var(--theme-surface-subtle);outline:none}
+.ui-root.bn-pop{padding:5px;min-width:120px}
+.ui-root.bn-pop button{display:block;width:100%;text-align:left;font:inherit;font-size:12.5px;color:var(--theme-text);background:none;border:none;padding:8px 10px;cursor:pointer}
+.ui-root.bn-pop button:hover,.ui-root.bn-pop button:focus-visible{background:var(--theme-surface-subtle);outline:none}
 @media (max-width:900px){.ui-root .bn-sq-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ui-root .bn-sq-grid .bn-sq:last-child:nth-child(odd){grid-column:1 / -1;aspect-ratio:2 / 1}.ui-root .bn-figures{grid-template-columns:repeat(2,minmax(0,1fr))}}
 `;
