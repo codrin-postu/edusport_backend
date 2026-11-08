@@ -2,7 +2,6 @@ import type { useFetchClient } from '@strapi/admin/strapi-admin';
 import { fileNameFrom, requestErrorText } from '../../../club/registration-panel';
 
 type Get = ReturnType<typeof useFetchClient>['get'];
-type Post = ReturnType<typeof useFetchClient>['post'];
 type Saved = { data: Blob; headers?: { get(name: string): string | null } | null };
 
 /** Admin PDF routes of plan 2D. */
@@ -27,9 +26,19 @@ export async function downloadPdf(get: Get, url: string, fallbackName: string): 
   saveBlob(await get(url, { responseType: 'blob' }), fallbackName);
 }
 
-/** A file made from a request body (the tables' .xlsx and .csv): POST with the admin token, saved under the server's file name. */
-export async function downloadPost(post: Post, url: string, body: unknown, fallbackName: string): Promise<void> {
-  saveBlob(await post(url, body, { responseType: 'blob' }), fallbackName);
+/**
+ * A file made from a request body (the tables' .xlsx and .csv): POST with the admin token, saved under the server's file name.
+ * Strapi's fetch client ignores `responseType` on POST (it always reads JSON), so this uses fetch with the Bearer token.
+ * A failed request throws an error whose `response.data` is the body blob, the shape `blobErrorText` reads.
+ */
+export async function downloadPost(token: string | null, url: string, body: unknown, fallbackName: string): Promise<void> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { response: { data: await res.blob() } });
+  saveBlob({ data: await res.blob(), headers: res.headers }, fallbackName);
 }
 
 /** The server's message of a failed blob request: its error body is a blob too, read as JSON; the fallback when it has none. */

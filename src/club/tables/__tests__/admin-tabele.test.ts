@@ -47,7 +47,7 @@ describe('Tabele screen files', () => {
     expect(src).toContain('downloadPost(');
     expect(src).toContain('effectiveDefinition(');
     expect(src).toMatch(/tables\/export/);
-    expect(read('inscrieri/downloadPdf.ts')).toMatch(/export async function downloadPost\(post: Post, url: string, body: unknown, fallbackName: string\)/);
+    expect(read('inscrieri/downloadPdf.ts')).toMatch(/export async function downloadPost\(token: string \| null, url: string, body: unknown, fallbackName: string\)/);
   });
 
   it('the result table windows large results and opens athletes in a new tab', () => {

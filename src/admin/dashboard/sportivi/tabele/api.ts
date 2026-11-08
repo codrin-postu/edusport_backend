@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getFetchClient, useFetchClient } from '@strapi/admin/strapi-admin';
+import { getFetchClient, useAuth, useFetchClient } from '@strapi/admin/strapi-admin';
 import type { CatalogAnswer } from '../../../../club/tables/catalog-api';
 import type { SavedViewRow, TableDefinition, TableResult } from '../../../../club/tables/types';
 import { downloadPost } from '../../inscrieri/downloadPdf';
@@ -16,6 +16,9 @@ export function useTablesApi() {
   const client = useFetchClient();
   const ref = React.useRef(client);
   ref.current = client;
+  const token = useAuth('TablesDownload', (state) => state.token) ?? null;
+  const tokenRef = React.useRef(token);
+  tokenRef.current = token;
   return React.useMemo(() => {
     const view = (id: string) => `${BASE}/table-views/${encodeURIComponent(id)}`;
     return {
@@ -34,7 +37,7 @@ export function useTablesApi() {
       /** The toast's "Anulează": it outlives the screen, so it uses the plain client. */
       undo: async (actionId: string) => ((await getFetchClient().post(`${BASE}/undo`, { actionId })) as Wrapped<{ undone: true }>).data.data,
       download: (format: Format, definition: TableDefinition, fallbackName: string) =>
-        downloadPost(ref.current.post, `${BASE}/tables/export`, { definition, format }, fallbackName),
+        downloadPost(tokenRef.current, `${BASE}/tables/export`, { definition, format }, fallbackName),
     };
   }, []);
 }
