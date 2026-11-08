@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** The coach API the rebuilt coach screens need and that does not exist yet: move a child to another own group from a date, remove a child from an own group from a date, a month calendar, the next class date on the group list, the group's location, richer athlete detail (presence numbers, abonament, competitions summary, groups), not-done classes in Istoric, and a club competitions list.
+**Goal:** The coach API the rebuilt coach screens need and that does not exist yet: move a child to another own group from a date, remove a child from an own group from a date (with the scheduled date on the member list), a month calendar, the next class date on the group list, the group's location, richer athlete detail (presence numbers, abonament, competitions summary, groups), not-done classes in Istoric, and a club competitions list.
 
 **Architecture:** Additions to `src/club/portal/coach/` on top of the phase 4 group service (`src/club/groups/members.ts`, `membership-plan.ts`), the phase 5 day rows (`src/club/presence/attendance/day.ts`) and phase 6 ownership rules (`ownership.ts`, `rules.ts`). Competitions come through a small `CoachCompetitionSource` interface with a null implementation now and a real one after phase 7-3 merges. Routes in `src/api/portal/routes/02-coach.ts`, guarded by `global::is-coach`; every new route joins the phase 6 matrix test.
 
@@ -17,7 +17,7 @@
 | 1 Dated move and remove in the group service | high (data loss, history) | Sonnet | A |
 | 2 Coach move and remove routes | high (permissions) | Sonnet | A |
 | 3 Coach calendar month and class location | low | Sonnet | |
-| 4 Group list next date, other groups, group location | low | Haiku | |
+| 4 Group list next date, other groups, group location, member leave date | low | Haiku | |
 | 5 Athlete detail additions | high (data exposure) | Sonnet | A |
 | 6 Istoric with not-done classes | low | Sonnet | |
 | 7 Coach competitions with the null source | high (data exposure) | Sonnet | B |
@@ -31,7 +31,7 @@ Order: Tasks 1 to 7 and 9 need only `feat/athletes`; Task 2 needs Task 1; Task 6
 ## Global Constraints
 
 - Everything in the phase 6 plans' constraints: answers built field by field in views (no store row spread), `forbiddenKeysIn` on every new answer (`src/club/portal/coach/views.ts`), today is Bucharest's (`c.today`), current season through `currentSeason`, Istoric lines with actor `Antrenor <nume>` (`coachActor`), writes inside `store.transaction` with the row locks the group service already takes.
-- Permissions: a coach writes only on own groups (`groupAccess(...) === 'own'`); a move needs both the source and the target group own and active. Contacts stay visible only for own children (ruling 21). Stand-in reads keep the phase 6 rules (`cardRight`).
+- Permissions: a coach writes only on own groups (`groupAccess(...) === 'own'`); a move needs both the source and the target group own and active (user 2026-11-09). Competitions: every coach sees all club athletes (`scope=all`), `scope=mine` filters (user 2026-11-09). Contacts stay visible only for own children (ruling 21). Stand-in reads keep the phase 6 rules (`cardRight`).
 - Dates: `from` is `YYYY-MM-DD`, not before today and not after the current season's end (`seasonBounds(season).end`); anything else 400 `"Cerere invalidă."`.
 - Copy: refusals reuse `PORTAL_ERRORS` and `GROUP_ERRORS` texts exactly; the only success toast is `PORTAL_TOASTS.saved` ("Salvat."). Romanian, straight quotes, no em or en dash, no middle dot.
 - Competitions: no other skater's name, id or score leaves Strapi; only athletes of the club matched through `athlete.publicProfile.skateResultsSlug` (phase 7-3 rule); names come from Strapi, not from skate-results.
@@ -44,7 +44,7 @@ Order: Tasks 1 to 7 and 9 need only `feat/athletes`; Task 2 needs Task 1; Task 6
 - **A future-dated move**: Ana moves from Intermediari Bronze to Intermediari Silver from 2026-11-12, today 2026-11-09. Until 11 November she is on the Bronze roster and Bronze presence; from 12 November on Silver. Her Bronze row ends 2026-11-11 (not deleted), the Silver row starts 2026-11-12. Pinned by Task 1.
 - **A move from today on a row that started today** (added by mistake this morning): the row is deleted, not ended, as W4 says. Pinned by Task 1.
 - **The main group leaves**: the main flag travels with the moved row (W2) or passes to the earliest remaining row on remove (W4), with the "main group changed" line. Pinned by Task 1.
-- **A coach targets another coach's group**: move to it or remove from it answers 403 `"Nu mai ai acces la această grupă."` and writes nothing. Pinned by Task 2 and the matrix (Task 9).
+- **A coach targets another coach's group** (user 2026-11-09: Mută only into own groups): move to it or remove from it answers 403 `"Nu mai ai acces la această grupă."` and writes nothing. Pinned by Task 2 and the matrix (Task 9).
 - **Contact on a stand-in read**: the athlete detail of a child the coach only saw as a stand-in has `contact: null` and no abonament code; presence numbers only. Pinned by Task 5.
 - **skate-results down**: competitions answer `{ available: false }` within the 7-3 timeout; Azi, Grupe and the athlete page still answer. Pinned by Task 7 (null source) and Task 8.
 
@@ -70,6 +70,8 @@ export type CoachClassRow = { /* existing fields */ location: string | null };
 export type CoachGroupRow = { /* existing fields */ next: NextClass | null };
 export type OtherGroupRow = { groupId: string; name: string; coaches: string[]; program: string[]; children: number; next: NextClass | null };
 export type CoachGroupPage = { /* existing fields */ location: string | null };
+/** `leavesOn`: the date a scheduled move or removal takes effect (the membership's `to` + 1 day), null when none; the member is listed until `to` (user 2026-11-09). */
+export type CoachMember = { /* existing fields */ leavesOn: string | null };
 export type CoachHistoryRow = { /* existing fields */ done: boolean; occurrenceKey: string | null };
 export type CoachAthleteCard = {
   /* existing fields: athleteId, name, age, groups, school, contact */
@@ -176,7 +178,7 @@ export async function locationOfGroup(c: CoachContexts, group: GroupRecord): Pro
 - [ ] **Step 4: Run** the same command. Expected: PASS.
 - [ ] **Step 5: Commit** `git add src/club && git add src/api/portal && git commit -m "feat(portal): coach month calendar and class location"`
 
-### Task 4: Group list next date, other groups, group location (low, Haiku)
+### Task 4: Group list next date, other groups, group location, member leave date (low, Haiku)
 
 **Files:**
 - Modify: `src/club/portal/coach/{api-types,groups}.ts`
@@ -184,13 +186,13 @@ export async function locationOfGroup(c: CoachContexts, group: GroupRecord): Pro
 
 **Interfaces:**
 - Consumes: `ownClassesBetween` is not needed; `next` is the first scheduled, not cancelled occurrence of the group from now on (date today with a start time later than now counts; read the occurrence expansion used by `groupListRow`), searched up to 60 days ahead, else null.
-- Produces: `CoachGroupRow.next`, `OtherGroupRow.program`, `OtherGroupRow.children` (count only, no names), `OtherGroupRow.next`, `CoachGroupPage.location` (through `locationOfGroup` of Task 3; if Task 3 is not merged yet, implement `locationOfGroup` here and Task 3 reuses it).
+- Produces: `CoachMember.leavesOn` on `CoachGroupPage.members`: the member list keeps a current-season membership of the group while `to` is null or on or after today (as `ownAthlete` already counts it) and sets `leavesOn` to `to` + 1 day when `to` is set, else null (user 2026-11-09: the row shows "până pe <d mmm>"). `CoachGroupRow.next`, `OtherGroupRow.program`, `OtherGroupRow.children` (count only, no names), `OtherGroupRow.next`, `CoachGroupPage.location` (through `locationOfGroup` of Task 3; if Task 3 is not merged yet, implement `locationOfGroup` here and Task 3 reuses it).
 
-- [ ] **Step 1: Failing tests:** on Tuesday `2026-11-10` at 12:00 a group with classes Tue and Thu 17:30 -> `next: { date: '2026-11-10', startTime: '17:30' }`; at 18:00 the same day -> `'2026-11-12'`; a group with no class in 60 days -> `null`; `others[0]` has `program`, `children`, `next` and no member names anywhere in the answer; `readCoachGroupPage` has `location` equal to the section's location name, `null` without one.
+- [ ] **Step 1: Failing tests:** on Tuesday `2026-11-10` at 12:00 a group with classes Tue and Thu 17:30 -> `next: { date: '2026-11-10', startTime: '17:30' }`; at 18:00 the same day -> `'2026-11-12'`; a group with no class in 60 days -> `null`; `others[0]` has `program`, `children`, `next` and no member names anywhere in the answer; `readCoachGroupPage` has `location` equal to the section's location name, `null` without one; after `removeMembershipFrom(..., '2026-11-20')` on today `2026-11-09` the child is still in `members` with `leavesOn: '2026-11-20'`, on `2026-11-20` it is gone; a child without a scheduled change has `leavesOn: null`.
 - [ ] **Step 2: Run** `npx vitest run src/club/portal/coach/__tests__/groups.test.ts`. Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run** the same command. Expected: PASS.
-- [ ] **Step 5: Commit** `git add src/club/portal/coach && git commit -m "feat(portal): next class date and location on coach groups"`
+- [ ] **Step 5: Commit** `git add src/club/portal/coach && git commit -m "feat(portal): next class date, location and leave date on coach groups"`
 
 ### Task 5: Athlete detail additions (high, Sonnet)
 
@@ -277,5 +279,5 @@ export async function readCoachCompetitions(c: CoachContexts, q: Record<string, 
 
 - [ ] **Step 1: Failing matrix rows:** every new route without a session -> 401; with a session of a disabled account -> 403 (policy); `move` and `remove` on another coach's group -> 403 `ClubAdminError` "Nu mai ai acces la această grupă."; `GET /calendar` and `/competitions` with a stand-in coach show no other group's unsaved classes and no contact field.
 - [ ] **Step 2: Run** `npx vitest run src/club/portal/coach/__tests__/matrix.test.ts src/club/portal/coach/__tests__/coach-routes.test.ts`. Expected: FAIL, then implement the missing route config until PASS.
-- [ ] **Step 3: Boot check** on `es-cr-pg` (55469) and Strapi 1389 with the fixtures listed in Global Constraints plus `coach-additions.js`; restart Strapi once; run the click-through: login as `antrenor1@example.invalid` (`Throwaway-Coach-1`) through the BFF secret, `GET /calendar?month=<this month>` 200, move Ana to Silver from tomorrow 200, the Bronze group page still lists her today, `GET /history` 200 with a `done` field on every row, `GET /competitions?scope=mine` 200 `{ available: false }` (closed skate port). Remove the container.
+- [ ] **Step 3: Boot check** on `es-cr-pg` (55469) and Strapi 1389 with the fixtures listed in Global Constraints plus `coach-additions.js`; restart Strapi once; run the click-through: login as `antrenor1@example.invalid` (`Throwaway-Coach-1`) through the BFF secret, `GET /calendar?month=<this month>` 200, move Ana to Silver from tomorrow 200, the Bronze group page still lists her today with `leavesOn` = tomorrow, `GET /history` 200 with a `done` field on every row, `GET /competitions?scope=mine` 200 `{ available: false }` (closed skate port). Remove the container.
 - [ ] **Step 4: Commit** `git add src/club/portal/coach scripts && git commit -m "test(portal): coach additions matrix and boot check"`
