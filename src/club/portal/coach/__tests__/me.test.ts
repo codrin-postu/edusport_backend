@@ -116,10 +116,11 @@ describe('changePassword', () => {
 describe('devices', () => {
   it('lists not revoked devices, newest first, the current one marked by its key', async () => {
     const t = await setup();
+    t.s.portalFake.state.devices.find((d) => d.id === t.first.deviceId)!.twoFactorUntil = '2026-12-01T10:00:00.000Z';
     const out = await listDevices(t.c, 'k1');
     expect(out).toEqual({ ok: true, data: [
-      { id: t.second.deviceId, label: 'Telefon k2', lastSeenAt: '2026-11-05T10:00:00.000Z', current: false },
-      { id: t.first.deviceId, label: 'Telefon k1', lastSeenAt: '2026-11-01T10:00:00.000Z', current: true },
+      { id: t.second.deviceId, label: 'Telefon k2', lastSeenAt: '2026-11-05T10:00:00.000Z', current: false, twoFactorUntil: null },
+      { id: t.first.deviceId, label: 'Telefon k1', lastSeenAt: '2026-11-01T10:00:00.000Z', current: true, twoFactorUntil: '2026-12-01T10:00:00.000Z' },
     ] });
     expect(JSON.stringify(out)).not.toContain(t.first.sessionId);
     expect(await listDevices(t.c, null)).toMatchObject({ data: [{ current: false }, { current: false }] });

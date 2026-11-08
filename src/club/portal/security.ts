@@ -1,9 +1,14 @@
 import type { SecurityMail } from '../../email/security-mail';
+import type { SecurityView } from '../security/api-types';
+import { confirmEmail, confirmTotp, newBatch, securityView, sendEnrolCode, startTotp, turnOff } from '../security/factors';
 import type { SecurityContext } from '../security/context';
 import type { Keys } from '../security/keys';
 import { forgetDevices } from '../security/remembered';
 import type { SecurityStore, Subject } from '../security/store';
+import type { PortalAuthContext, PortalResult } from './auth/context';
 import type { Limiter } from './auth/limit';
+import { coachActor } from './coach/context';
+import { PORTAL_ERRORS } from './copy';
 import type { PortalSessions } from './sessions';
 import type { PortalStore } from './store';
 
@@ -26,5 +31,37 @@ export function portalSecurityContext(p: PortalSecurityParts): SecurityContext {
     mail: (to, kind, data) => p.sendSecurity(to, { kind, data } as SecurityMail),
     endSessions: (s) => endPortalSessions(p.store, p.sessions, s),
     forgetDevices: (s, o) => forgetDevices(p.security, s, o),
+  };
+}
+
+type Coach = { accountId: string; name: string };
+const unauthorized: PortalResult<never> = { ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin };
+const bodyCode = (body: unknown): string => {
+  const code = typeof body === 'object' && body !== null ? (body as Record<string, unknown>).code : null;
+  return typeof code === 'string' ? code : '';
+};
+
+/**
+ * The coach's own Securitate (index "Portal Securitate"): the shared factor services on the portal subject, with the coach's name on the
+ * history lines. Every POST and DELETE counts the IP rule first (429); a read does not. The account is read again on each call (401 when gone).
+ */
+export function portalSecurity(c: PortalAuthContext, coach: Coach) {
+  const security = { ...c.security, actor: coachActor(coach.name) };
+  const subject: Subject = { type: 'portal', id: coach.accountId };
+  const as = async <T>(run: (email: string) => Promise<PortalResult<T>>, o: { change: boolean }): Promise<PortalResult<T>> => {
+    const account = await c.store.account(coach.accountId);
+    if (!account || account.status !== 'active') return unauthorized;
+    if (o.change && (await c.limits.ipBlocked(c.ip))) return { ok: false, status: 429, error: PORTAL_ERRORS.paused };
+    return run(account.email);
+  };
+  return {
+    read: () => as(async (email): Promise<PortalResult<SecurityView>> => ({ ok: true, data: await securityView(security, subject, email) }), { change: false }),
+    totpStart: () => as((email) => startTotp(security, subject, email), { change: true }),
+    totpConfirm: (body: unknown) => as(() => confirmTotp(security, subject, bodyCode(body)), { change: true }),
+    totpOff: () => as((email) => turnOff(security, subject, email, 'totp'), { change: true }),
+    emailStart: () => as((email) => sendEnrolCode(security, subject, email), { change: true }),
+    emailConfirm: (body: unknown) => as(() => confirmEmail(security, subject, bodyCode(body)), { change: true }),
+    emailOff: () => as((email) => turnOff(security, subject, email, 'email'), { change: true }),
+    backupCodes: () => as(() => newBatch(security, subject), { change: true }),
   };
 }

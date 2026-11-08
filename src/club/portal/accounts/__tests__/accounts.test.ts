@@ -217,13 +217,14 @@ describe('changeEmail', () => {
 describe('readAccount', () => {
   it('none, invited, active, disabled', async () => {
     const h = harness();
-    expect(ok(await readAccount(h.c, 'tm1'))).toEqual({ teamMemberId: 'tm1', accountId: null, state: 'none', email: null, since: null, google: false });
+    expect(ok(await readAccount(h.c, 'tm1'))).toEqual({ teamMemberId: 'tm1', accountId: null, state: 'none', email: null, since: null, google: false, twoFactor: false });
     expect(await readAccount(h.c, 'nope')).toMatchObject({ ok: false, status: 404 });
     for (const status of ['invited', 'active', 'disabled'] as const) {
       const g = harness();
       const { id } = await seedAccount(g, status);
       await g.fake.store.updateAccount(id, { googleSub: status === 'active' ? 'g1' : null });
-      expect(ok(await readAccount(g.c, 'tm1'))).toEqual({ teamMemberId: 'tm1', accountId: id, state: status, email: 'andreea@example.com', since: '2026-11-06', google: status === 'active' });
+      expect(ok(await readAccount(g.c, 'tm1'))).toEqual({ teamMemberId: 'tm1', accountId: id, state: status, email: 'andreea@example.com', since: '2026-11-06', google: status === 'active', twoFactor: false });
+      expect(ok(await readAccount({ ...g.c, twoFactorOn: async () => true }, 'tm1'))).toMatchObject({ twoFactor: true });
     }
   });
 });

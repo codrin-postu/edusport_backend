@@ -5,13 +5,14 @@ import { codeMac, packMac } from '../../security/code-mac';
 import { ensureSecurityIndexes } from '../../security/indexes';
 import { loadKeys } from '../../security/keys';
 import { openPending } from '../../security/second-step';
-import { seal, totpAad } from '../../security/secret-box';
+import { open, seal, totpAad } from '../../security/secret-box';
 import { strapiSecurityStore } from '../../security/strapi-store';
 import { totpAt } from '../../security/totp';
 import { TEST_ENV } from '../../security/__tests__/keys';
 import { portalAuthContext, type PortalAuthContext, type PortalCtx } from '../auth/context';
 import { confirmReset } from '../auth/reset';
 import { portalSecondStep } from '../auth/two-factor';
+import { portalSecurity } from '../security';
 import { strapiPortalStore } from '../strapi-store';
 
 /**
@@ -82,5 +83,20 @@ describe.skipIf(!url)('portal 2FA single-use paths on Postgres', () => {
     expect(out.filter((r) => r.ok)).toHaveLength(1);
     const sessions = await strapiPortalStore(strapi).activeSessions(id);
     expect(sessions).toHaveLength(1);
+  }, 60_000);
+
+  it('6 parallel Activează confirms with one right code: exactly one turns the app on and gets the 10 codes', async () => {
+    const { id } = await makeAccount();
+    const coach = { accountId: id, userId: 1, sessionId: 's', teamMemberId: 'tm', name: 'Ana' };
+    const started = await portalSecurity(request(), coach).totpStart();
+    expect(started.ok).toBe(true);
+    const factor = (await strapiSecurityStore(strapi).factors({ type: 'portal', id }))[0];
+    const plain = open(keys(), factor.secretBox!, totpAad('portal', id))!.plain;
+    const code = totpAt(plain, Math.floor(Date.now() / 30_000));
+    const out = await Promise.all(Array.from({ length: 6 }, () => portalSecurity(request(), coach).totpConfirm({ code })));
+    const winners = out.filter((r) => r.ok);
+    expect(winners).toHaveLength(1);
+    expect((winners[0] as { data: { backupCodes: string[] } }).data.backupCodes).toHaveLength(10);
+    expect(await strapiSecurityStore(strapi).unusedBackup({ type: 'portal', id })).toHaveLength(10);
   }, 60_000);
 });

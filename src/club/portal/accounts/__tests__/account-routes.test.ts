@@ -11,6 +11,7 @@ describe('portal account routes (spec 4)', () => {
       'GET /club/team-members/:documentId/account', 'POST /club/team-members/:documentId/account/invite',
       'POST /club/portal-accounts/:documentId/resend', 'POST /club/portal-accounts/:documentId/disable',
       'POST /club/portal-accounts/:documentId/enable', 'POST /club/portal-accounts/:documentId/email',
+      'POST /club/portal-accounts/:documentId/reset-2fa',
     ]);
     for (const r of routes.routes) expect(r.config, r.path).toEqual({ auth: false, policies: ['global::is-admin'], middlewares: [] });
   });

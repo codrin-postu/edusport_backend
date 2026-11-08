@@ -5,9 +5,10 @@ import { ACCOUNT_TOASTS } from '../copy-admin';
 import type { AccountRow } from '../store';
 import type { AccountAnswer } from './api-types';
 import { answer, guardedWrite, useUpTokens } from './invite';
-import { blockOf, type AccountContext } from './read';
+import { blockFor, type AccountContext } from './read';
 
-const blockAnswer = (account: AccountRow, toast: string): AdminResult<AccountAnswer> => answer(blockOf(account.teamMemberId ?? '', account), toast);
+const blockAnswer = async (c: AccountContext, account: AccountRow, toast: string): Promise<AdminResult<AccountAnswer>> =>
+  answer(await blockFor(c, account.teamMemberId ?? '', account), toast);
 
 /**
  * Disables an invited or active account (4.3): one transaction, account lock first. The sessions are revoked inside it
@@ -30,7 +31,7 @@ export async function disableAccount(c: AccountContext, accountId: string): Prom
       await c.store.record({ subjectId: accountId, action: PORTAL_ACTIONS.disabled, changes: {}, actor: c.actor });
       return (await c.store.account(accountId)) as AccountRow;
     });
-    return done ? blockAnswer(done, ACCOUNT_TOASTS.disabled) : refuse(404, PORTAL_ERRORS.notFound);
+    return done ? blockAnswer(c, done, ACCOUNT_TOASTS.disabled) : refuse(404, PORTAL_ERRORS.notFound);
   });
 }
 
@@ -47,6 +48,6 @@ export async function enableAccount(c: AccountContext, accountId: string): Promi
       await c.store.record({ subjectId: accountId, action: PORTAL_ACTIONS.enabled, changes: {}, actor: c.actor });
       return (await c.store.account(accountId)) as AccountRow;
     });
-    return done ? blockAnswer(done, ACCOUNT_TOASTS.enabled) : refuse(409, ADMIN_ERRORS.stale);
+    return done ? blockAnswer(c, done, ACCOUNT_TOASTS.enabled) : refuse(409, ADMIN_ERRORS.stale);
   });
 }

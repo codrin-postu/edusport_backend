@@ -97,7 +97,7 @@ async function storePassword(c: CoachContexts & { auth: PortalAuthContext }, acc
 export async function listDevices(c: CoachContexts, deviceKey: string | null): Promise<AdminResult<CoachDevice[]>> {
   const mine = hashOf(deviceKey);
   const rows = (await c.portal.devices(c.coach.accountId)).filter((d) => d.revokedAt === null).sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt));
-  return { ok: true, data: rows.map((d) => ({ id: d.id, label: d.label, lastSeenAt: d.lastSeenAt, current: mine !== null && mine === d.deviceKeyHash })) };
+  return { ok: true, data: rows.map((d) => ({ id: d.id, label: d.label, lastSeenAt: d.lastSeenAt, current: mine !== null && mine === d.deviceKeyHash, twoFactorUntil: d.twoFactorUntil })) };
 }
 
 const hashOf = (deviceKey: string | null): string | null => (deviceKey ? hashSecret(deviceKey) : null);

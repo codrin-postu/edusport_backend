@@ -4,7 +4,7 @@ import { ACCOUNT_TOASTS } from '../copy-admin';
 import type { AccountRow } from '../store';
 import type { AccountAnswer } from './api-types';
 import { answer, emailOf, guardedWrite, queueFreshInvite, revokeAccess, useUpTokens } from './invite';
-import { blockOf, type AccountContext } from './read';
+import { blockFor, type AccountContext } from './read';
 
 type Changed = { before: AccountRow; after: AccountRow; jobId: string | null };
 
@@ -50,6 +50,6 @@ export async function changeEmail(c: AccountContext, accountId: string, body: un
       if (changed.jobId) c.afterCommit(changed.jobId);
       await notify(c, changed.before.email, changed.after.email);
     }
-    return answer(blockOf(changed.after.teamMemberId ?? '', changed.after), ACCOUNT_TOASTS.emailChanged);
+    return answer(await blockFor(c, changed.after.teamMemberId ?? '', changed.after), ACCOUNT_TOASTS.emailChanged);
   });
 }
