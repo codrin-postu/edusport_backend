@@ -74,7 +74,7 @@ export async function issueAdminSession(c: AdminSessionCtx, adminId: number, dev
  * Ends the admin's Strapi sessions: every device's, or with `exceptDevice` (a device row id) every other one, then forgets the 2FA of the
  * devices it ended (password change, e-mail change, reset: spec 4.8, 6.4). Sessions without a device row (opened before the deploy) end too.
  */
-export async function endAdminSessions(c: AdminSessionCtx, adminId: number, o: { exceptDevice?: string }): Promise<void> {
+export async function endAdminSessions(c: Pick<AdminSessionCtx, 'strapi' | 'store'>, adminId: number, o: { exceptDevice?: string }): Promise<void> {
   const sessions = adminSessionManager(c.strapi);
   const userId = String(adminId);
   if (o.exceptDevice === undefined) {

@@ -37,6 +37,8 @@ export default [
   'strapi::poweredBy',
   'strapi::query',
   'strapi::body',
+  // Closes Strapi's own session issuers and sends /admin/auth/* to /intrare (6b-1 spec 4.4).
+  'global::admin-auth-gate',
   // Ends the sessions of a device whose copied refresh cookie is replayed (6b-1 B1 H1).
   'global::admin-refresh-reuse',
   'strapi::session',
