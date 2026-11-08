@@ -37,6 +37,8 @@ export default [
   'strapi::poweredBy',
   'strapi::query',
   'strapi::body',
+  // Ends the sessions of a device whose copied refresh cookie is replayed (6b-1 B1 H1).
+  'global::admin-refresh-reuse',
   'strapi::session',
   'strapi::favicon',
   'strapi::public',

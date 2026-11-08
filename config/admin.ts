@@ -1,6 +1,15 @@
 export default ({ env }) => ({
   auth: {
     secret: env('ADMIN_JWT_SECRET'),
+    // Strapi's own default numbers, set explicitly: without them the session maximum falls back to the
+    // 30 d `expiresIn` (6b-1 spike). "Ține-mă minte": 14 d idle, 30 d max; otherwise 2 h idle, 1 d max.
+    sessions: {
+      accessTokenLifespan: 30 * 60,
+      idleRefreshTokenLifespan: 14 * 24 * 3600,
+      maxRefreshTokenLifespan: 30 * 24 * 3600,
+      idleSessionLifespan: 2 * 3600,
+      maxSessionLifespan: 24 * 3600,
+    },
   },
   apiToken: {
     salt: env('API_TOKEN_SALT'),

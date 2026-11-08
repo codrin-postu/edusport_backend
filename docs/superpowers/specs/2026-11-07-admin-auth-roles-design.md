@@ -116,7 +116,7 @@ The daily portal purge [code src/club/portal/purge.ts] also removes: unconfirmed
 ### 4.2 Session handoff [P6b q3, q14; R6b 3.1]
 - The last step (password without 2FA, second step, Google, passkey, invite accept, reset) calls Strapi's own session manager: `sessionManager('admin').generateRefreshToken(userId, deviceId, { type: rememberMe ? 'refresh' : 'session' })`, sets `strapi_admin_refresh` with Strapi's cookie options (`HttpOnly`, `SameSite` lax, Strapi's path and domain config), then `generateAccessToken` [strapi shared/utils/session-auth.js, server/src/controllers/authentication.js].
 - The access token reaches the SPA the way Strapi's own SSO handoff does: with "Ține-mă minte" in `localStorage` `jwtToken` plus `isLoggedIn`; without it in the `jwtToken` cookie the SPA reads [strapi admin/src/reducer.mjs, utils/getFetchClient.mjs, shared/utils/auth-cookie-name.js]. Then `location.assign('/admin')`.
-- Lifetimes stay Strapi's defaults: "Ține-mă minte" 14 days idle, 30 days max; otherwise 2 hours idle, 1 day max. `admin.auth.sessions` is not configured [P6b q14].
+- Lifetimes stay Strapi's default numbers: "Ține-mă minte" 14 days idle, 30 days max; otherwise 2 hours idle, 1 day max. They are set explicitly in `config/admin.ts` (`admin.auth.sessions`), because without `maxSessionLifespan` Strapi's bootstrap falls back to the 30 day `expiresIn` for a session that is not remembered (spike, 14.2) [P6b q14].
 - `deviceId` = the `strapiDeviceId` of the admin device row (3.6), so one device has one Strapi session family [S9].
 - The spike (14.2) proves this before anything else is built; its fallback is written there.
 

@@ -13,3 +13,6 @@ export type CodeSent = { sentTo: string };
 // WebAuthn JSON shapes are @simplewebauthn/server 14.0.3 types, passed through unchanged:
 export type PasskeyRegisterOptions = { options: unknown };
 export type PasskeyLoginOptions = { options: unknown };
+/** The answer of every admin login step that ends in a session; the refresh cookie travels in `Set-Cookie`. */
+export type AdminHandoff = { accessToken: string; remember: boolean; offerPasskey: boolean };
+export type AdminDeviceView = { id: string; label: string; lastSeenAt: string; current: boolean; twoFactorUntil: string | null };
