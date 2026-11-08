@@ -7,7 +7,7 @@ import { formatBackupCode, newBackupCodes } from './backup-codes';
 import { checkRowCode } from './code-check';
 import { newCodeChallenge } from './challenge';
 import { codeMac, packMac } from './code-mac';
-import { keysOrRefusal, type SecurityContext } from './context';
+import { keysOrRefusal, mailCounterKey, type SecurityContext } from './context';
 import { SECURITY_ACTIONS, SECURITY_ERRORS, SECURITY_TOASTS } from './copy';
 import { EMAIL_CODE_TTL_MS, newEmailCode } from './email-code';
 import type { Keys } from './keys';
@@ -23,13 +23,16 @@ const historyLine = (c: SecurityContext, s: Subject, action: string, changes: Re
   c.store.record({ subjectType: s.type, subjectId: s.id, action, changes, actor: c.actor });
 
 /** The 10 new codes: older unused rows go used and the new MACs go in within one store transaction; the codes are returned once, never stored or logged. */
-export async function issueBackupBatch(c: SecurityContext, keys: Keys, s: Subject): Promise<string[]> {
+export async function issueBackupBatch(c: SecurityContext, keys: Keys, s: Subject): Promise<string[]>;
+/** With `onlyIfNone`: null when the subject already has unused codes (decided under the subject lock, so parallel first enrolments yield one batch). */
+export async function issueBackupBatch(c: SecurityContext, keys: Keys, s: Subject, onlyIfNone: true): Promise<string[] | null>;
+export async function issueBackupBatch(c: SecurityContext, keys: Keys, s: Subject, onlyIfNone = false): Promise<string[] | null> {
   const codes = newBackupCodes(10);
   const rows = codes.map((code) => {
     const m = codeMac(keys, 'backup', s.type, s.id, code);
     return { codeMac: packMac(m), keyId: m.keyId };
   });
-  await c.store.insertBackupBatch(s, randomUUID(), rows, c.now().toISOString());
+  if (!(await c.store.insertBackupBatch(s, randomUUID(), rows, c.now().toISOString(), onlyIfNone))) return null;
   return codes.map(formatBackupCode);
 }
 
@@ -57,13 +60,20 @@ export async function startTotp(c: SecurityContext, s: Subject, email: string): 
   const taken = refuse(409, SECURITY_ERRORS.appAlreadyOn);
   if (confirmedOf(await c.store.factors(s)).some((f) => f.kind === 'totp')) return taken;
   const secret = newTotpSecret();
+  const save = (plain: Buffer) => c.store.upsertFactor(s, 'totp', { secretBox: seal(gate.keys, plain, totpAad(s.type, s.id)) });
+  let shown = secret;
   try {
-    await c.store.upsertFactor(s, 'totp', { secretBox: seal(gate.keys, secret, totpAad(s.type, s.id)) });
-  } catch (err) {
-    if (confirmedOf(await c.store.factors(s)).some((f) => f.kind === 'totp')) return taken;
-    throw err;
+    await save(secret);
+  } catch {
+    // A parallel "Activează" won the unique index. Show its pending secret so both tabs hold the same QR; retry once when none is left.
+    const rows = await c.store.factors(s);
+    if (confirmedOf(rows).some((f) => f.kind === 'totp')) return taken;
+    const pending = rows.find((f) => f.kind === 'totp');
+    const theirs = pending?.secretBox ? open(gate.keys, pending.secretBox, totpAad(s.type, s.id)) : null;
+    if (theirs) shown = theirs.plain;
+    else await save(secret);
   }
-  return { ok: true, data: { qrSvg: await qrSvg(otpauthUrl(email, secret)), key: groupedKey(secret) } };
+  return { ok: true, data: { qrSvg: await qrSvg(otpauthUrl(email, shown)), key: groupedKey(shown) } };
 }
 
 export async function confirmTotp(c: SecurityContext, s: Subject, code: string): Promise<PortalResult<MethodOn>> {
@@ -81,17 +91,16 @@ export async function confirmTotp(c: SecurityContext, s: Subject, code: string):
   });
 }
 
-/** After a method is confirmed: the first method on gets the first batch of codes. */
+/** After a method is confirmed: a batch of codes goes out when the subject has no unused code (the first method on, or all used up). */
 async function methodOn(c: SecurityContext, keys: Keys, s: Subject): Promise<MethodOn> {
-  const first = confirmedOf(await c.store.factors(s)).length === 1;
-  return { toast: SECURITY_TOASTS.twoFactorOn, backupCodes: first ? await issueBackupBatch(c, keys, s) : null };
+  return { toast: SECURITY_TOASTS.twoFactorOn, backupCodes: await issueBackupBatch(c, keys, s, true) };
 }
 
 export async function sendEnrolCode(c: SecurityContext, s: Subject, email: string): Promise<PortalResult<CodeSent>> {
   const gate = keysOrRefusal(c);
   if ('refusal' in gate) return gate.refusal;
   const sent: PortalResult<CodeSent> = { ok: true, data: { sentTo: email } };
-  if (!(await c.limits.mailAllowed(email))) return sent;
+  if (!(await c.limits.keyMailAllowed(mailCounterKey(s)))) return sent;
   const code = newEmailCode();
   const expires = new Date(c.now().getTime() + EMAIL_CODE_TTL_MS);
   const row = newCodeChallenge(gate.keys, 'email-code', s, randomBytes(24).toString('base64url'), code, expires);

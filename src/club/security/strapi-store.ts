@@ -91,14 +91,22 @@ function factorStore(strapi: Core.Strapi, write: Write): Pick<SecurityStore, 'fa
   };
 }
 
-function backupStore(strapi: Core.Strapi, scope: Scope, write: Write): Pick<SecurityStore, 'unusedBackup' | 'insertBackupBatch' | 'deleteBackup'> {
+function backupStore(strapi: Core.Strapi, scope: Scope, query: Query, write: Write): Pick<SecurityStore, 'unusedBackup' | 'insertBackupBatch' | 'deleteBackup'> {
   const docs = () => strapi.documents(BACKUP);
   return {
     unusedBackup: async (s) => raws(await docs().findMany({ filters: { ...where(s), usedAt: { $null: true } }, sort: 'createdAt:asc', limit: MAX })).map(toBackup),
-    insertBackupBatch: (s, batch, rows, at) =>
+    insertBackupBatch: (s, batch, rows, at, onlyIfNone = false) =>
       scope.transaction(async () => {
+        // One writer per subject at a time: under READ COMMITTED two batches would not see each other's uncommitted rows.
+        const trx = scope.current();
+        if (trx && strapi.db.dialect.client === 'postgres') await trx.raw('select pg_advisory_xact_lock(hashtext(?))', [`2fa-backup:${s.type}:${s.id}`]);
+        if (onlyIfNone) {
+          const [open] = (await query(TABLE.backup).where({ subject_type: s.type, subject_id: s.id }).whereNull('used_at').count({ c: '*' })) as { c: unknown }[];
+          if (Number(open?.c ?? 0) > 0) return false;
+        }
         await write(TABLE.backup, (q) => q.where({ subject_type: s.type, subject_id: s.id }).whereNull('used_at').update({ used_at: new Date(at) }));
         for (const r of rows) await docs().create({ data: { subjectType: s.type, subjectId: s.id, batch, codeMac: r.codeMac, keyId: r.keyId } as never });
+        return true;
       }),
     deleteBackup: async (s) => (await strapi.db.query(BACKUP).deleteMany({ where: where(s) })).count,
   };
@@ -262,7 +270,7 @@ export function strapiSecurityStore(strapi: Core.Strapi): SecurityStore {
   const admin = adminStore(strapi);
   return {
     transaction: scope.transaction,
-    ...factorStore(strapi, write), ...backupStore(strapi, scope, write), ...challengeStore(strapi, query, write), ...passkeyStore(strapi),
+    ...factorStore(strapi, write), ...backupStore(strapi, scope, query, write), ...challengeStore(strapi, query, write), ...passkeyStore(strapi),
     ...admin, ...portalStore(strapi), ...notesStore(strapi, admin.ensureAdminAccount), ...purgeStore(strapi),
   };
 }

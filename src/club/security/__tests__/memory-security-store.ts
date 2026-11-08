@@ -102,10 +102,12 @@ export function memorySecurityStore(now: () => Date = () => new Date()): MemoryS
       return n;
     },
     unusedBackup: async (s) => copy(backups.filter((b) => same(b.subject, s) && b.usedAt === null)),
-    async insertBackupBatch(s, batch, rows, at) {
-      await store.transaction(async () => {
+    async insertBackupBatch(s, batch, rows, at, onlyIfNone = false) {
+      return store.transaction(async () => {
+        if (onlyIfNone && backups.some((b) => same(b.subject, s) && b.usedAt === null)) return false;
         for (const b of backups) if (same(b.subject, s) && b.usedAt === null) b.usedAt = at;
         for (const r of rows) backups.push({ id: id('bak'), subject: copy(s), batch, codeMac: r.codeMac, keyId: r.keyId, usedAt: null, createdAt: at });
+        return true;
       });
     },
     async deleteBackup(s) {

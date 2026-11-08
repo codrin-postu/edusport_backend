@@ -50,6 +50,16 @@ export function storeContract(make: () => Promise<StoreHarness>): void {
     expect(new Set(unused.map((r) => r.batch))).toEqual(new Set(['b2']));
   });
 
+  it('insertBackupBatch with onlyIfNone inserts only when no unused code exists', async () => {
+    const { store, fresh } = await make();
+    const s = fresh();
+    expect(await store.insertBackupBatch(s, 'b1', batchRows(s, newBackupCodes(10)), iso(new Date()), true)).toBe(true);
+    expect(await store.insertBackupBatch(s, 'b2', batchRows(s, newBackupCodes(10)), iso(new Date()), true)).toBe(false);
+    expect(new Set((await store.unusedBackup(s)).map((r) => r.batch))).toEqual(new Set(['b1']));
+    for (const r of await store.unusedBackup(s)) await store.consumeOnce('backup', r.id, iso(new Date()));
+    expect(await store.insertBackupBatch(s, 'b3', batchRows(s, newBackupCodes(10)), iso(new Date()), true)).toBe(true);
+  });
+
   it('insertBackupBatch is one transaction: a failing insert keeps the old codes unused', async () => {
     const { store, fresh } = await make();
     const s = fresh();

@@ -35,3 +35,6 @@ export function keysOrRefusal(c: SecurityContext): { keys: Keys } | { refusal: P
 export const subjectKey = (s: Subject): string => s.id;
 
 export const counterKey = (s: Subject): string => `2fa:${s.type}:${s.id}`;
+
+/** The send limit of the 2FA code mails of one subject; not the reset request's `mail:<email>`, so a public reset request cannot silence login codes. */
+export const mailCounterKey = (s: Subject): string => `2fa:mail:${s.type}:${s.id}`;

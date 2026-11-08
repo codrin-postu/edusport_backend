@@ -22,8 +22,11 @@ export interface SecurityStore {
   acceptStep(id: string, step: number): Promise<boolean>;
   deleteFactors(s: Subject, kind?: 'totp' | 'email'): Promise<number>;
   unusedBackup(s: Subject): Promise<BackupRow[]>;
-  /** One transaction: every older unused row of the subject is marked used, then the new rows go in. */
-  insertBackupBatch(s: Subject, batch: string, rows: { codeMac: string; keyId: string }[], at: string): Promise<void>;
+  /**
+   * One transaction, serialized per subject: every older unused row of the subject is marked used, then the new rows go in.
+   * With `onlyIfNone` nothing is written when an unused row exists (the first-method batch); answers whether rows went in.
+   */
+  insertBackupBatch(s: Subject, batch: string, rows: { codeMac: string; keyId: string }[], at: string, onlyIfNone?: boolean): Promise<boolean>;
   deleteBackup(s: Subject): Promise<number>;
   createChallenge(c: Omit<ChallengeRow, 'id' | 'usedAt' | 'tries'>): Promise<string>;
   challengeByMac(mac: string): Promise<ChallengeRow | null>;

@@ -1,6 +1,13 @@
 import { createRequire } from 'node:module';
 import type { Core } from '@strapi/strapi';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { limiter } from '../../portal/auth/limit';
+import { strapiPortalStore } from '../../portal/strapi-store';
+import type { SecurityContext } from '../context';
+import { seal, totpAad } from '../secret-box';
+import { checkTotp } from '../totp';
+import { TEST_KEYS } from './keys';
+import { parallelGuessRace } from './race-contract';
 import { ensureSecurityIndexes } from '../indexes';
 import { strapiSecurityStore } from '../strapi-store';
 import { storeContract, type StoreHarness } from './store-contract';
@@ -11,6 +18,11 @@ import { storeContract, type StoreHarness } from './store-contract';
  */
 const { compileStrapi, createStrapi } = createRequire(__filename)('@strapi/strapi') as typeof import('@strapi/strapi');
 const url = process.env.SECURITY_PG_URL;
+
+vi.mock('../totp', async (orig) => {
+  const m = await orig<typeof import('../totp')>();
+  return { ...m, checkTotp: vi.fn(m.checkTotp) };
+});
 
 describe.skipIf(!url)('strapiSecurityStore on Postgres', () => {
   let strapi: Core.Strapi;
@@ -60,5 +72,53 @@ describe.skipIf(!url)('strapiSecurityStore on Postgres', () => {
       throw new Error('stop');
     })).rejects.toThrow('stop');
     expect(await store.acceptStep(id, 5)).toBe(true);
+  });
+
+  it('parallel batches of one subject serialize: exactly 10 unused rows stay, whichever batch won', async () => {
+    const s = { type: 'portal' as const, id: `pg-batch-${run}` };
+    const rows = (n: number) => Array.from({ length: 10 }, (_, i) => ({ codeMac: `m1:aaaaaaaa:${`${n}-${i}`.padEnd(64, '0')}`, keyId: 'aaaaaaaa' }));
+    await Promise.all([1, 2, 3, 4, 5, 6].map((n) => strapiSecurityStore(strapi).insertBackupBatch(s, `b${n}`, rows(n), new Date().toISOString())));
+    const unused = await strapiSecurityStore(strapi).unusedBackup(s);
+    expect(unused).toHaveLength(10);
+    expect(new Set(unused.map((r) => r.batch)).size).toBe(1);
+  });
+
+  it('parallel first-batch requests: only one inserts', async () => {
+    const s = { type: 'portal' as const, id: `pg-first-${run}` };
+    const rows = (n: number) => Array.from({ length: 10 }, (_, i) => ({ codeMac: `m1:aaaaaaaa:${`f${n}-${i}`.padEnd(64, '0')}`, keyId: 'aaaaaaaa' }));
+    const done = await Promise.all([1, 2, 3, 4].map((n) => strapiSecurityStore(strapi).insertBackupBatch(s, `f${n}`, rows(n), new Date().toISOString(), true)));
+    expect(done.filter(Boolean)).toHaveLength(1);
+    expect(await strapiSecurityStore(strapi).unusedBackup(s)).toHaveLength(10);
+  });
+
+  describe('parallel wrong codes', () => {
+    const mails: string[] = [];
+    const secret = Buffer.from('12345678901234567890');
+    parallelGuessRace(() => ({
+      ctx: (n) => {
+        const now = () => new Date();
+        const c: SecurityContext = {
+          store: strapiSecurityStore(strapi), keys: TEST_KEYS, now, log: () => undefined,
+          mail: async (_to, kind) => {
+            mails.push(kind);
+            return true;
+          },
+          limits: limiter(strapiPortalStore(strapi), now), ip: `ip-${run}-${n}`, userAgent: null, actor: 'Ana',
+          endSessions: async () => undefined, forgetDevices: async () => undefined,
+        };
+        return c;
+      },
+      subject: async () => {
+        const store = strapiSecurityStore(strapi);
+        const s = { type: 'portal' as const, id: `pg-race-${run}-${(n += 1)}` };
+        await store.confirmFactor(await store.upsertFactor(s, 'totp', { secretBox: seal(TEST_KEYS, secret, totpAad(s.type, s.id)) }), new Date().toISOString());
+        mails.length = 0;
+        return s;
+      },
+      secret,
+      totpChecks: () => vi.mocked(checkTotp).mock.calls.length,
+      reset: () => vi.mocked(checkTotp).mockClear(),
+      lockoutMails: () => mails.filter((k) => k === 'lockout2fa').length,
+    }));
   });
 });

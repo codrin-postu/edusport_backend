@@ -1,14 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { TwoFactorMethod } from '../api-types';
+import { PORTAL_ERRORS } from '../../portal/copy';
 import { SECURITY_ERRORS, securityHistoryText } from '../copy';
 import { issueBackupBatch } from '../factors';
 import { REMEMBER_MS, forgetDevices, isRemembered, rememberUntil } from '../remembered';
 import { hasTwoFactor, openPending, sendLoginCode, verifySecondStep } from '../second-step';
 import { seal, totpAad } from '../secret-box';
 import type { Subject } from '../store';
-import { totpAt } from '../totp';
+import { checkTotp, totpAt } from '../totp';
+import { parallelGuessRace } from './race-contract';
 import { ROTATED_KEYS, TEST_KEYS } from './keys';
 import { ADMIN_SUBJECT, EMAIL, PORTAL_SUBJECT as S, setup } from './security-helpers';
+
+vi.mock('../totp', async (orig) => {
+  const m = await orig<typeof import('../totp')>();
+  return { ...m, checkTotp: vi.fn(m.checkTotp) };
+});
 
 type Env = ReturnType<typeof setup>;
 const SECRET = Buffer.from('12345678901234567890');
@@ -199,6 +206,42 @@ describe('e-mail method', () => {
     expect(env.mails).toHaveLength(5);
   });
 
+  it('five public reset requests for the address do not stop a login code mail (own limit key)', async () => {
+    const env = setup();
+    await enrol(env, S, { email: true });
+    for (let i = 0; i < 5; i += 1) expect(await env.c.limits.mailAllowed(EMAIL)).toBe(true);
+    expect(await env.c.limits.mailAllowed(EMAIL)).toBe(false);
+    await openPending(env.c, S, EMAIL, D, 'email');
+    expect(env.mails).toHaveLength(1);
+    expect(env.mails[0]).toMatchObject({ to: EMAIL, kind: 'code' });
+  });
+
+  it('the login code limit is per subject: another subject is not affected', async () => {
+    const env = setup();
+    await enrol(env, S, { email: true });
+    await enrol(env, ADMIN_SUBJECT, { email: true });
+    const secret = await pending(env, S, 'email');
+    for (let i = 0; i < 6; i += 1) await sendLoginCode(env.c, secret);
+    expect(env.mails).toHaveLength(5);
+    await openPending(env.c, ADMIN_SUBJECT, EMAIL, D, 'email');
+    expect(env.mails).toHaveLength(6);
+  });
+
+  it('sendLoginCode for a subject without the e-mail method answers the same and sends nothing', async () => {
+    const env = setup();
+    await enrol(env, S, { totp: true });
+    expect(await sendLoginCode(env.c, await pending(env))).toEqual({ ok: true, data: { sentTo: EMAIL } });
+    expect(env.mails).toEqual([]);
+    expect(await env.mem.store.openChallenges(S, 'email-code')).toEqual([]);
+  });
+
+  it('a failed mail on sendLoginCode answers 503 sendFailed', async () => {
+    const env = setup({ mailOk: false });
+    await enrol(env, S, { email: true });
+    const secret = await pending(env, S, 'totp');
+    expect(await sendLoginCode(env.c, secret)).toEqual({ ok: false, status: 503, error: PORTAL_ERRORS.sendFailed });
+  });
+
   it('sendLoginCode on a dead pending is 401', async () => {
     const env = setup();
     expect(await sendLoginCode(env.c, 'nope')).toEqual(EXPIRED);
@@ -244,5 +287,22 @@ describe('remembered devices', () => {
     env.mem.portalDevices.set('acct-1', ['d1', 'd2']);
     await forgetDevices(env.mem.store, S, { exceptDevice: 'd2' });
     expect([...env.mem.portalDeviceUntil]).toEqual([['d1', null]]);
+  });
+});
+
+describe('parallel wrong codes (memory store)', () => {
+  parallelGuessRace(() => {
+    const env = setup();
+    return {
+      ctx: (n) => ({ ...env.c, ip: `10.0.0.${n % 250}-${n}` }),
+      subject: async () => {
+        await enrol(env, S, { totp: true });
+        return S;
+      },
+      secret: SECRET,
+      totpChecks: () => vi.mocked(checkTotp).mock.calls.length,
+      reset: () => vi.mocked(checkTotp).mockClear(),
+      lockoutMails: () => env.mails.filter((m) => m.kind === 'lockout2fa').length,
+    };
   });
 });

@@ -2,10 +2,11 @@ import { randomBytes } from 'node:crypto';
 import type { AuthRefusal } from '../admin-result';
 import type { PortalResult } from '../portal/auth/context';
 import type { CodeSent, SecondStep, TwoFactorMethod } from './api-types';
+import { PORTAL_ERRORS } from '../portal/copy';
 import { checkRowCode } from './code-check';
 import { newCodeChallenge } from './challenge';
 import { macMatchesAny, packMac, tokenMac, unpackMac } from './code-mac';
-import { counterKey, keysOrRefusal, type SecurityContext } from './context';
+import { counterKey, keysOrRefusal, mailCounterKey, type SecurityContext } from './context';
 import { SECURITY_ACTIONS, SECURITY_ERRORS } from './copy';
 import { EMAIL_CODE_TTL_MS, newEmailCode } from './email-code';
 import { safeMail } from './factors';
@@ -76,7 +77,7 @@ export async function openPending(
 
 /** A fresh e-mail code for one pending login: older open codes of that pending are used up. Within the mail limit only; else "as if sent". */
 async function mailLoginCode(c: SecurityContext, keys: Keys, s: Subject, email: string, pendingId: string): Promise<boolean> {
-  if (!(await c.limits.mailAllowed(email))) return true;
+  if (!(await c.limits.keyMailAllowed(mailCounterKey(s)))) return true;
   const code = newEmailCode();
   const expires = new Date(c.now().getTime() + EMAIL_CODE_TTL_MS);
   const row = newCodeChallenge(keys, 'email-code', s, randomBytes(24).toString('base64url'), code, expires);
@@ -98,8 +99,10 @@ export async function sendLoginCode(c: SecurityContext, secret: string): Promise
   const subject = row.subject as Subject;
   if (await c.limits.keyLocked(counterKey(subject))) return paused;
   const { email } = pendingOf(row);
-  if (!(await mailLoginCode(c, gate.keys, subject, email, row.id))) return { ok: false, status: 503, error: SECURITY_ERRORS.unavailable };
-  return { ok: true, data: { sentTo: email } };
+  const sent: PortalResult<CodeSent> = { ok: true, data: { sentTo: email } };
+  if (!(await hasTwoFactor(c, subject)).includes('email')) return sent;
+  if (!(await mailLoginCode(c, gate.keys, subject, email, row.id))) return { ok: false, status: 503, error: PORTAL_ERRORS.sendFailed };
+  return sent;
 }
 
 type Check = { right: boolean; backupLeft: number | null };
@@ -134,8 +137,8 @@ async function checkBackupCode(c: SecurityContext, keys: Keys, s: Subject, code:
 }
 
 /**
- * One typed code against a pending login. Order: keys, IP limit, the pending row, the subject's 2FA counter, the check by method.
- * A wrong code counts against the subject (5 in 15 minutes lock it) and against the pending login (5 end it); a right one ends
+ * One typed code against a pending login. Order: keys, IP limit, the pending row, the pending's tries, the subject's 2FA counter, the check by method.
+ * Every attempt counts before the compare against the pending login (5 end it) and the subject (5 in 15 minutes lock it); a right code clears the subject and ends
  * the pending login once. The caller saves `lastMethod`, sets `twoFactorUntil` when asked and issues the session.
  */
 export async function verifySecondStep(c: SecurityContext, secret: string, method: TwoFactorMethod, code: string): Promise<PortalResult<Verified>> {
@@ -147,7 +150,13 @@ export async function verifySecondStep(c: SecurityContext, secret: string, metho
   const subject = row.subject as Subject;
   const key = counterKey(subject);
   const end = () => c.store.consumeOnce('challenge', row.id, c.now().toISOString());
-  if (await c.limits.keyLocked(key)) {
+  // Both counters go up before the compare, each by one guarded step, so a parallel burst cannot buy more than 5 guesses.
+  if (!(await c.store.bumpTries(row.id, c.now(), PENDING_MAX_WRONG))) {
+    await end();
+    return expired;
+  }
+  const attempt = await c.limits.keyAttempt(key);
+  if (attempt.refused) {
     await end();
     return paused;
   }
@@ -156,7 +165,7 @@ export async function verifySecondStep(c: SecurityContext, secret: string, metho
     : method === 'totp' ? await checkTotpCode(c, gate.keys, subject, code)
     : method === 'email' ? await checkEmailCode(c, gate.keys, subject, row.id, code)
     : await checkBackupCode(c, gate.keys, subject, code);
-  if (!check.right) return wrongCode(c, row, subject, end);
+  if (!check.right) return wrongCode(c, row, subject, attempt, end);
   if (!(await end())) return expired;
   await c.limits.keyCleared(key);
   if (check.backupLeft !== null) {
@@ -167,13 +176,13 @@ export async function verifySecondStep(c: SecurityContext, secret: string, metho
   return { ok: true, data: { subject, data, method, backupLeft: check.backupLeft } };
 }
 
-async function wrongCode(c: SecurityContext, row: ChallengeRow, subject: Subject, end: () => Promise<boolean>): Promise<PortalResult<never>> {
-  const hit = await c.limits.keyHit(counterKey(subject));
-  if (hit.firstLock) {
+async function wrongCode(
+  c: SecurityContext, row: ChallengeRow, subject: Subject, attempt: { locking: boolean; firstLock: boolean }, end: () => Promise<boolean>,
+): Promise<PortalResult<never>> {
+  if (attempt.firstLock) {
     await c.store.record({ subjectType: subject.type, subjectId: subject.id, action: SECURITY_ACTIONS.locked, changes: {}, actor: c.actor });
     await safeMail(c, pendingOf(row).email, 'lockout2fa', {});
   }
-  const tries = await c.store.addTry(row.id);
-  if (hit.locking || tries >= PENDING_MAX_WRONG) await end();
-  return hit.locking ? paused : badCode;
+  if (attempt.locking) await end();
+  return attempt.locking ? paused : badCode;
 }

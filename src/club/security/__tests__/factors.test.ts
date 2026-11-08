@@ -77,6 +77,58 @@ describe('app (TOTP) enrolment', () => {
   });
 });
 
+describe('parallel and repeated starts (L1, L2)', () => {
+  it('a second method after all codes are used up gets a new batch; with unused codes it gets none', async () => {
+    const env = setup();
+    const { secret } = await enrolTotp(env);
+    await confirmTotp(env.c, S, totpAt(secret, step(env.clock.t)));
+    for (const r of await env.mem.store.unusedBackup(S)) await env.mem.store.consumeOnce('backup', r.id, env.clock.t.toISOString());
+    await sendEnrolCode(env.c, S, EMAIL);
+    const done = await confirmEmail(env.c, S, String(env.mails[0].data.code));
+    expect(done.ok && done.data.backupCodes).toHaveLength(10);
+    expect(await env.mem.store.unusedBackup(S)).toHaveLength(10);
+  });
+
+  it('a double Activeaza: the loser of the unique index gets the winner pending secret, no 500', async () => {
+    const env = setup();
+    const real = env.c.store.upsertFactor.bind(env.c.store);
+    let raced = false;
+    env.c.store = {
+      ...env.c.store,
+      upsertFactor: async (...a) => {
+        if (!raced) {
+          raced = true;
+          await real(...a);
+          throw new Error('duplicate key value violates unique constraint');
+        }
+        return real(...a);
+      },
+    };
+    const out = await startTotp(env.c, S, EMAIL);
+    expect(out.ok).toBe(true);
+    const row = (await env.mem.store.factors(S))[0];
+    const secret = open(TEST_KEYS, row.secretBox!, totpAad(S.type, S.id))!.plain;
+    expect(out.ok && out.data.key.replace(/ /g, '')).toBe(base32(secret));
+    expect(await env.mem.store.factors(S)).toHaveLength(1);
+  });
+
+  it('a unique violation with no row left is retried once', async () => {
+    const env = setup();
+    const real = env.c.store.upsertFactor.bind(env.c.store);
+    let calls = 0;
+    env.c.store = {
+      ...env.c.store,
+      upsertFactor: async (...a) => {
+        calls += 1;
+        if (calls === 1) throw new Error('duplicate key value violates unique constraint');
+        return real(...a);
+      },
+    };
+    expect((await startTotp(env.c, S, EMAIL)).ok).toBe(true);
+    expect(calls).toBe(2);
+  });
+});
+
 describe('e-mail enrolment', () => {
   it('a code is mailed; the right code turns the method on; a second method gives no new codes', async () => {
     const env = setup();
@@ -123,6 +175,14 @@ describe('e-mail enrolment', () => {
     await sendEnrolCode(env.c, S, EMAIL);
     env.advance(10 * 60_000);
     expect(await confirmEmail(env.c, S, String(env.mails[0].data.code))).toMatchObject({ ok: false, status: 400 });
+  });
+
+  it('five public reset requests for the address do not stop the enrolment code (own limit key)', async () => {
+    const env = setup();
+    for (let i = 0; i < 5; i += 1) expect(await env.c.limits.mailAllowed(EMAIL)).toBe(true);
+    expect(await env.c.limits.mailAllowed(EMAIL)).toBe(false);
+    await sendEnrolCode(env.c, S, EMAIL);
+    expect(env.mails).toHaveLength(1);
   });
 
   it('a failed mail answers 503 sendFailed', async () => {
