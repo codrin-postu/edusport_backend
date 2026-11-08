@@ -89,6 +89,6 @@ describe('undoPresenceAction', () => {
     const f = await recordedPayment();
     expect(await undoKindOf(f.store, { actionId: f.actionId })).toBe('presence');
     expect(await undoKindOf(f.store, { actionId: 'missing' })).toBe('other');
-    expect(readFileSync(join(SRC, 'api/club/controllers/groups.ts'), 'utf8')).toMatch(/undoKindOf\(.*\) === 'presence'/);
+    expect(readFileSync(join(SRC, 'api/club/controllers/groups.ts'), 'utf8')).toMatch(/kind === 'presence'/);
   });
 });

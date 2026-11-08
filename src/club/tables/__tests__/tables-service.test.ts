@@ -79,6 +79,15 @@ describe('readExportRequest', () => {
     }
   });
 
+  it('takes an optional view name of 1 to 80 characters, trimmed', () => {
+    const d = body().definition;
+    expect(readExportRequest({ ...body(), format: 'csv', name: '  Plăți pe grupă ' })).toEqual({ ok: true, data: { definition: d, format: 'csv', name: 'Plăți pe grupă' } });
+    expect(readExportRequest({ ...body(), format: 'csv', name: 'x'.repeat(80) })).toMatchObject({ ok: true });
+    for (const name of ['', '   ', 'x'.repeat(81), 5, null, ['a']]) {
+      expect(readExportRequest({ ...body(), format: 'csv', name }), String(name).slice(0, 10)).toEqual({ ok: false, status: 400, error: 'Cerere invalidă.' });
+    }
+  });
+
   it('the xlsx gate is closed and its text is a COPY NEEDED placeholder (Task 2 flips both)', () => {
     expect(XLSX_READY).toBe(false);
     expect(TABLES_NO_XLSX).toContain('COPY NEEDED');

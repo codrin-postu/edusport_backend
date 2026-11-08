@@ -75,14 +75,18 @@ export async function runTable(store: PresenceStore, body: unknown, opts: Opts):
   return runQuery(build.data, d, columns, opts.budget, { notices, today: opts.today, groupOrder, maxRows: opts.maxRows });
 }
 
-export type ExportRequest = { definition: unknown; format: 'xlsx' | 'csv' };
+export type ExportRequest = { definition: unknown; format: 'xlsx' | 'csv'; name?: string };
+const MAX_NAME = 80;
 
-/** `{ definition, format }` and nothing else. */
+/** `{ definition, format }` and an optional view `name` (1 to 80 characters, trimmed), nothing else. */
 export function readExportRequest(body: unknown): AdminResult<ExportRequest> {
   if (!isRecord(body)) return invalid;
   const keys = Object.keys(body);
-  if (keys.some((k) => k !== 'definition' && k !== 'format') || (body.format !== 'xlsx' && body.format !== 'csv') || !readDefinition(body).ok) return invalid;
-  return { ok: true, data: { definition: body.definition, format: body.format } };
+  if (keys.some((k) => k !== 'definition' && k !== 'format' && k !== 'name') || (body.format !== 'xlsx' && body.format !== 'csv') || !readDefinition(body).ok) return invalid;
+  if (!('name' in body)) return { ok: true, data: { definition: body.definition, format: body.format } };
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  if (name.length < 1 || name.length > MAX_NAME) return invalid;
+  return { ok: true, data: { definition: body.definition, format: body.format, name } };
 }
 
 /** What the builder offers: the catalog, the scope choices and the ready-made views for the current season. */

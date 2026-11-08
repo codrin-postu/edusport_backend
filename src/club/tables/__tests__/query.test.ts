@@ -120,6 +120,13 @@ describe('runQuery', () => {
     expect(r.ok && r.data).toMatchObject({ subject: 'plati', groupBy: null, groups: null, count: 2, total: { suma: 14 }, notices: ['n'], columns: c });
     expect(r.ok && r.data.rows.map((x) => x.cells)).toEqual([{ sportiv: 'B', suma: 9 }, { sportiv: 'A', suma: 5 }]);
   });
+  it('rows carry only the active group-by key, and none without a group-by', async () => {
+    const keys: TableRow['groupKeys'] = { grupa: [{ key: 'g', label: 'G' }], antrenor: [{ key: 'k1', label: 'Ana' }], luna: [{ key: '2026-11', label: 'Noiembrie 2026' }] };
+    const plain = await runQuery(async () => [row({ suma: 1 }, keys)], def('plati', ['suma']), cols, noBudget);
+    expect(plain.ok && plain.data.rows[0].groupKeys).toEqual({});
+    const grouped = await runQuery(async () => [row({ suma: 1 }, keys)], def('plati', ['suma'], { groupBy: 'antrenor' }), cols, noBudget);
+    expect(grouped.ok && grouped.data.rows[0].groupKeys).toEqual({ antrenor: keys.antrenor });
+  });
   it('checks the budget after the read, the rows and the grouping', async () => {
     let n = 0;
     await runQuery(async () => many(2), def('plati', ['suma'], { groupBy: 'antrenor' }), cols, { check: () => { n += 1; } });

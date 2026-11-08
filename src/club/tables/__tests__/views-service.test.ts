@@ -65,6 +65,14 @@ describe('create and list', () => {
   });
 });
 
+describe('list order', () => {
+  it('lists the newest view first', async () => {
+    const db = fakeViewsDb();
+    for (const n of ['Zeta', 'Alfa', 'Mij']) await createView(db.store(), ana, body(n));
+    expect((await listViews(db.store(), ana)).map((v) => v.name)).toEqual(['Mij', 'Alfa', 'Zeta']);
+  });
+});
+
 describe('a definition always goes through the validator', () => {
   const hostile: unknown[] = [
     { ...def, columns: ['data', 'athlete.email'] }, { ...def, subject: 'users' }, { ...def, extra: 1 }, { ...def, filters: [{ column: 'suma', op: 'gt', value: 'drop table' }] },
@@ -114,7 +122,7 @@ describe('a definition always goes through the validator', () => {
     const junk: unknown[] = [null, 'x', 5, [], {}, { subject: 'users', columns: ['a'] }, { ...def, columns: ['nope'] }, { subject: 'plati', columns: ['data'], scope: null }, { ...def, sql: 'drop table x', __proto__: { admin: true } }];
     const views = junk.map((definition, i) => viewRow({ id: `j${i}`, name: `J${i}`, definition }));
     const listed = await listViews(fakeViewsDb({ views }).store(), bob);
-    expect(listed.map((v) => v.name)).toEqual(['J0', 'J1', 'J2', 'J3', 'J4', 'J5', 'J6', 'J7', 'J8']);
+    expect(listed.map((v) => v.name)).toEqual(['J8', 'J7', 'J6', 'J5', 'J4', 'J3', 'J2', 'J1', 'J0']);
     for (const v of listed.filter((x) => x.name !== 'J8')) expect(v, v.name).toMatchObject({ broken: true, definition: null });
     for (const v of listed) {
       if (v.broken) continue;

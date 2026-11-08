@@ -161,7 +161,7 @@ describe('the table-view content type', () => {
 describe('wiring', () => {
   it('the subject constant and the undo dispatch are in place', () => {
     expect(source('club/subjects.ts')).toContain("tableView: 'table-view'");
-    expect(source('api/club/controllers/groups.ts')).toMatch(/undoKindOf\(.*\) === 'table-view'/);
+    expect(source('api/club/controllers/groups.ts')).toMatch(/kind === 'table-view'/);
     expect(source('api/club/controllers/groups.ts')).toContain('undoViewDelete(');
     expect(source('club/presence/undo-service.ts')).toContain("'table-view'");
   });

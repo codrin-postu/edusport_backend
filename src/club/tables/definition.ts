@@ -103,7 +103,7 @@ function build(catalog: Record<Subject, CatalogSubject>, d: Record<string, unkno
   return { subject, scope, columns, filters, groupBy, sort };
 }
 
-const tooBig = (v: unknown): boolean => JSON.stringify(v).length > MAX_BYTES;
+const tooBig = (v: unknown): boolean => new TextEncoder().encode(JSON.stringify(v)).length > MAX_BYTES;
 
 /** `{ definition }` of a request body, or null (never throws on hostile input). The size is checked first, then the shape and every key against the catalog. */
 export function readDefinition(body: unknown, catalog: Record<Subject, CatalogSubject> = CATALOG): Checked<TableDefinition> {

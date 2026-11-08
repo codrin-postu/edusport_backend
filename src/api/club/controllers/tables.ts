@@ -58,13 +58,13 @@ export default {
     strapi.log.info(downloadLogLine({ adminId, kind: format === 'xlsx' ? 'tables-xlsx' : 'tables-csv', rows: table.count }));
     if (format === 'csv') {
       ctx.set('Content-Type', 'text/csv; charset=utf-8');
-      ctx.set('Content-Disposition', `attachment; filename="${csvName(table.subject, today)}"`);
+      ctx.set('Content-Disposition', `attachment; filename="${csvName(table.subject, today, request.data.name)}"`);
       ctx.body = tableCsv(table);
       return;
     }
     ctx.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    ctx.set('Content-Disposition', `attachment; filename="${xlsxName(table.subject, today)}"`);
-    ctx.body = await tableXlsx(table, CATALOG[table.subject].label);
+    ctx.set('Content-Disposition', `attachment; filename="${xlsxName(table.subject, today, request.data.name)}"`);
+    ctx.body = await tableXlsx(table, request.data.name ?? CATALOG[table.subject].label);
   },
 
   async views(ctx: AdminCtx) {

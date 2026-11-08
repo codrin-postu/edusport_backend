@@ -116,6 +116,18 @@ describe('readDefinition', () => {
   });
 });
 
+describe('the 16 KB cap counts UTF-8 bytes', () => {
+  it('refuses a definition of diacritics that is under 16 K characters but over 16 KB', () => {
+    const filters = Array.from({ length: 10 }, () => ({ column: 'nota', op: 'in', value: Array.from({ length: 50 }, () => 'ă'.repeat(28)) }));
+    const d = { ...base, filters };
+    expect(JSON.stringify(d).length).toBeLessThan(16 * 1024);
+    expect(new TextEncoder().encode(JSON.stringify(d)).length).toBeGreaterThan(16 * 1024);
+    expect(bad(d)).toBe(false);
+    const ascii = { ...base, filters: filters.map((f) => ({ ...f, value: f.value.map((v) => 'a'.repeat(v.length)) })) };
+    expect(bad(ascii)).toBe(true);
+  });
+});
+
 describe('repairDefinition', () => {
   const known = { seasons: ['s1'], sections: [], groups: [] };
   it('repairs a stale saved view with notices, never blocks', () => {

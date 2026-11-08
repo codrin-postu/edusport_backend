@@ -85,8 +85,9 @@ export default {
 
   async undo(ctx: AdminCtx) {
     const body = ctx.request.body;
-    if ((await undoKindOf(store(), body)) === 'presence') return respond(ctx, await undoPresenceAction(await presenceContext(strapi, ctx), body));
-    if ((await undoKindOf(store(), body)) === 'table-view') return respond(ctx, await undoViewDelete(strapiTableViewStore(strapi), await callerOf(ctx.request.header.authorization, strapi), readActionId(body) ?? '', { log: (m) => strapi.log.error(m) }));
+    const kind = await undoKindOf(store(), body);
+    if (kind === 'presence') return respond(ctx, await undoPresenceAction(await presenceContext(strapi, ctx), body));
+    if (kind === 'table-view') return respond(ctx, await undoViewDelete(strapiTableViewStore(strapi), await callerOf(ctx.request.header.authorization, strapi), readActionId(body) ?? '', { log: (m) => strapi.log.error(m) }));
     const gctx = await groupContext(strapi, ctx);
     const { ports } = presenceCarry(strapiPresenceStore(strapi));
     respond(ctx, await undoAction(gctx, body, ports));

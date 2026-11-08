@@ -66,6 +66,12 @@ describe('the tables controller (source)', () => {
     expect(source).toContain('callerOf(');
   });
 
+  it('names the files and the xlsx sheet after the view name from the body', () => {
+    expect(source).toMatch(/csvName\(table\.subject, today, request\.data\.name\)/);
+    expect(source).toMatch(/xlsxName\(table\.subject, today, request\.data\.name\)/);
+    expect(source).toMatch(/tableXlsx\(table, request\.data\.name \?\? CATALOG\[table\.subject\]\.label\)/);
+  });
+
   it('the download log line carries no names and no file names', () => {
     const lines = source.split('\n').filter((l) => l.includes('downloadLogLine('));
     expect(lines.length).toBeGreaterThan(0);

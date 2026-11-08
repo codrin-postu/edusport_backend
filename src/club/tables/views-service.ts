@@ -62,8 +62,8 @@ function toSavedRow(row: ViewRow, caller: Caller): SavedViewRow {
 }
 
 export async function listViews(store: TableViewStore, caller: Caller): Promise<SavedViewRow[]> {
-  const rows = (await store.views()).map((r) => toSavedRow(r, caller));
-  return rows.sort((a, b) => a.name.localeCompare(b.name, 'ro') || a.id.localeCompare(b.id));
+  // The store lists oldest first (id ascending); the contract says newest first.
+  return (await store.views()).map((r) => toSavedRow(r, caller)).reverse();
 }
 
 type Body = { name?: string; definition?: TableDefinition };
