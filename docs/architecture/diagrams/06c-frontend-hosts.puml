@@ -1,0 +1,91 @@
+@startuml
+!include _style.iuml
+title Next.js app: one server, three sites by host name
+skinparam ComponentBackgroundColor #eef7f0
+skinparam ComponentBorderColor #1d6b3a
+skinparam ComponentBackgroundColor<<built>> #eef2ff
+skinparam ComponentBorderColor<<built>> #3b4a9a
+skinparam ComponentBackgroundColor<<planned>> #fffbea
+skinparam ComponentBorderColor<<planned>> #8a6d00
+
+actor Visitor
+actor Coach
+actor Parent
+
+node "Browser host" as Hosts {
+  rectangle "www.<domain>" as HSite
+  rectangle "antrenor.<domain>\n(dev: antrenor.localhost:3010)" as HCoach
+  rectangle "sportiv.<domain>\n(dev: sportiv.localhost)" as HSportiv
+}
+
+Visitor --> HSite
+Coach --> HCoach
+Parent --> HSportiv
+
+package "edusport_frontend: one Next.js standalone server (one Node process)" {
+  component "src/middleware.ts\nsiteForHost() + routeRequest()\n(src/lib/portal/host.ts)" as MW
+
+  package "src/app/(site)/  own root layout" as GSite {
+    component "Public pages\n/ cursuri inscrieri noutati\ndespre-noi contact parteneri ..." as Site
+    note bottom of Site
+      Mostly pre-rendered and cached
+      (revalidate from Strapi).
+      /antrenor/* and /api/portal/* are 404 here.
+    end note
+  }
+
+  package "src/app/(antrenor)/antrenor/  own root layout" as GCoach {
+    component "Sign-in screens\nintrare  am-uitat-parola  invitatie\n(AuthFrame, entry transition)" as CAuth <<built>>
+    component "(app)/  behind login\nAzi  grupe/[id]  prezenta  istoric\nlectie/[id]  sportiv/[id]  profil" as CApp <<built>>
+    component "api/portal/*  BFF\nauth/login logout reset invite\ngoogle/start callback\ncoach/[...path] -> Strapi" as CBff <<built>>
+    component "_ui/  _lib/\ncoach components and helpers" as CUi <<built>>
+  }
+
+  package "src/app/(sportiv)/sportiv/  own root layout (phase 7)" as GSportiv {
+    component "Sign-in screens\n(same frame, 'Portal sportiv')" as SAuth <<planned>>
+    component "(app)/  behind login\nAcasa Istoric Calendar Parcurs\nConcursuri Abonament Setari" as SApp <<planned>>
+    component "api/portal/*  BFF\nauth + sportiv/[...path] only" as SBff <<planned>>
+  }
+
+  component "src/app/_portal/  (phase 7)\nshared sign-in frame, forms, sheets" as Shared <<planned>>
+  component "src/lib/portal/\nhost rules, copy, cookies, Google" as Lib
+}
+
+HSite --> MW
+HCoach --> MW
+HSportiv --> MW
+
+MW --> Site : "site: pass through"
+MW --> CAuth : "antrenor: /x rewritten\nto /antrenor/x"
+MW --> CApp
+MW --> SApp : "sportiv: /x rewritten\nto /sportiv/x"
+MW --> SAuth
+
+CApp --> CBff : "fetch, httpOnly cookies\n(coach host only)"
+SApp --> SBff : "fetch, httpOnly cookies\n(sportiv host only)"
+CAuth --> CBff
+SAuth --> SBff
+
+CAuth ..> Shared : "moves here in phase 7"
+SAuth ..> Shared
+
+package "edusport_backend (Strapi 5)" {
+  component "Content API (public)" as Pub
+  component "Portal API\n/portal/coach/*  /portal/sportiv/*" as PApi
+}
+database "Postgres" as DB
+
+Site --> Pub
+CBff --> PApi : "server to server\nBFF secret + session"
+SBff --> PApi
+Pub --> DB
+PApi --> DB
+
+legend right
+  green: public site (live)
+  blue: coach portal (built, not deployed)
+  yellow: student portal (phase 7, planned)
+  Each root layout ships only its own JS and CSS.
+  Browsers never call Strapi directly from the portals.
+endlegend
+@enduml
