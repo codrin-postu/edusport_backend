@@ -4,8 +4,6 @@ import { describe, expect, it } from 'vitest';
 import payments from '../../../api/club/controllers/payments';
 import paymentRoutes from '../../../api/club/routes/11-payments';
 import { areaOfRoute } from '../../admin-area';
-import { monthOf } from '../../presence/dates';
-import { todayIso } from '../../groups/http';
 import { readAccounting, readAccountingData, readMoneyMonth } from '../service';
 import { moneySeed } from './money-seed';
 
@@ -52,11 +50,8 @@ describe('the payments controller (source)', () => {
     expect(source).toContain('verifiedAdminId(');
   });
 
-  it('the xlsx route answers 501 with the COPY NEEDED text before any read (flip with 11-4 Task 2)', async () => {
-    const ctx = ctxOf({ month: monthOf(todayIso()) });
-    await call('accountingXlsx', ctx);
-    expect(ctx.status).toBe(501);
-    expect((ctx.body as { error: { message: string } }).error.message).toContain('COPY NEEDED');
+  it('has no xlsx gate: the xlsx file is always served', () => {
+    expect(source).not.toMatch(/XLSX_READY|TABLES_NO_XLSX|501/);
   });
 
   it('every route refuses a missing, malformed or later month with 400, before any read', async () => {

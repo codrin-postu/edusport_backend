@@ -7,7 +7,7 @@ import { TABLES_COPY } from '../../../club/tables/copy';
 import { tableCsv, tableXlsx } from '../../../club/tables/export';
 import { csvName, xlsxName } from '../../../club/tables/file-names';
 import { BudgetError, exportLimit, startBudget } from '../../../club/tables/limit';
-import { readCatalog, readExportRequest, runTable, TABLES_NO_XLSX, XLSX_READY } from '../../../club/tables/service';
+import { readCatalog, readExportRequest, runTable } from '../../../club/tables/service';
 import { CATALOG } from '../../../club/tables/catalog';
 import { callerOf } from '../../../club/tables/views-caller';
 import { createView, deleteView, listViews, updateView } from '../../../club/tables/views-service';
@@ -48,7 +48,6 @@ export default {
     const request = readExportRequest(ctx.request.body);
     if (request.ok === false) return refuseWith(ctx, request.status, request.error);
     const { format } = request.data;
-    if (format === 'xlsx' && !XLSX_READY) return refuseWith(ctx, 501, TABLES_NO_XLSX);
     const today = todayIso();
     const result = await limited(ctx, { definition: request.data.definition }, today);
     if (!result) return;

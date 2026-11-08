@@ -4,8 +4,8 @@ import { SPORTIVI_PATH } from '../../sportivi/routes';
 import { TABLES_COPY as C } from '../copy';
 import { READY_MADE } from '../ready-made';
 import { TABLES_AREA, readTablesQuery, tablesTo } from '../routes';
-import type { SavedViewRow, TableDefinition } from '../types';
-import { actionsFor, groupHeader, isDirty, windowed } from '../view-state';
+import type { SavedViewRow, TableDefinition, TableResult } from '../types';
+import { actionsFor, groupHeader, isDirty, noPaymentsThisMonth, windowed } from '../view-state';
 
 const def: TableDefinition = { subject: 'plati', scope: { seasonId: 's1', sectionId: null, groupId: null, period: { kind: 'current' } }, columns: ['data', 'suma'], filters: [{ column: 'suma', op: 'gt', value: 10 }], groupBy: 'grupa', sort: null };
 const saved = (over: Partial<SavedViewRow> = {}): SavedViewRow => ({ id: 'v1', name: 'A', subject: 'plati', definition: def, authorId: '1', authorName: 'Ana', mine: true, canDelete: true, readyMade: false, ...over });
@@ -25,7 +25,7 @@ describe('Tabele copy', () => {
     expect(C.errors).toEqual({
       tooMany: 'Tabelul are peste 5.000 de rânduri. Restrânge sfera sau filtrele.', tooSlow: 'Tabelul durează prea mult. Restrânge sfera.',
       nameTaken: 'Există deja o vizualizare cu numele ăsta.', notAuthor: 'Doar autorul poate modifica vizualizarea.',
-      tooManyViews: 'Prea multe vizualizări salvate. Șterge una.', download: 'Descărcarea nu a reușit.', xlsxUnavailable: C.errors.xlsxUnavailable,
+      tooManyViews: 'Prea multe vizualizări salvate. Șterge una.', download: 'Descărcarea nu a reușit.',
     });
   });
 
@@ -40,16 +40,28 @@ describe('Tabele copy', () => {
     expect(READY_MADE.map((v) => v.name)).toEqual(['Plăți pe grupă luna aceasta', 'Prezență pe grupă', 'Sportivi activi', 'Rămas de plată', 'Abonamente care expiră', 'Sportivi pe grupă, cu plăți']);
   });
 
-  it('every COPY NEEDED value is one of the known gaps, and nothing else is missing copy', () => {
+  it('has no COPY NEEDED placeholder left and pins the decided texts', () => {
     const found: string[] = [];
     const walk = (v: unknown, path: string): void => {
       if (typeof v === 'string' && v.includes('COPY NEEDED')) found.push(path);
       else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, `${path}.${k}`);
     };
     walk(C, 'TABLES_COPY');
-    expect(found).toEqual([
-      'TABLES_COPY.brokenView', 'TABLES_COPY.ops.in', 'TABLES_COPY.ops.empty', 'TABLES_COPY.ops.notEmpty', 'TABLES_COPY.errors.xlsxUnavailable', 'TABLES_COPY.notices.columnDropped', 'TABLES_COPY.notices.filterDropped', 'TABLES_COPY.notices.groupByDropped', 'TABLES_COPY.notices.sectionMissing',
-      'TABLES_COPY.notices.groupMissing', 'TABLES_COPY.notices.seasonMissing', 'TABLES_COPY.notices.periodReset']);
+    expect(found).toEqual([]);
+    expect([C.brokenView, C.ops.in, C.ops.empty, C.ops.notEmpty]).toEqual(['Vizualizarea nu mai poate fi deschisă.', 'este unul din', 'este gol', 'nu este gol']);
+    expect(C.notices).toEqual({
+      columnDropped: 'O coloană nu mai există și a fost scoasă.', filterDropped: 'Un filtru nu mai există și a fost scos.', groupByDropped: 'Gruparea nu mai există și a fost scoasă.',
+      sectionMissing: 'Secțiunea nu mai există.', groupMissing: 'Grupa nu mai există.', seasonMissing: 'Sezonul nu mai există.', periodReset: 'Perioada a fost resetată.',
+    });
+    expect(C.noPaymentsMonth).toBe('Nicio plată luna aceasta.');
+  });
+
+  it('shows the one line only for the ready-made Plăți view with nothing paid', () => {
+    const result = (platit: number | undefined) => ({ total: platit === undefined ? {} : { platit } }) as TableResult;
+    expect(noPaymentsThisMonth('rm-plati-grupa', result(0))).toBe(true);
+    expect(noPaymentsThisMonth('rm-plati-grupa', result(undefined))).toBe(true);
+    expect(noPaymentsThisMonth('rm-plati-grupa', result(120))).toBe(false);
+    expect(noPaymentsThisMonth('rm-ramas', result(0))).toBe(false);
   });
 
   it('the source has no forbidden characters', () => {

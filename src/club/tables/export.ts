@@ -1,4 +1,5 @@
 import type { XlsxCell, XlsxColumn, XlsxSheet } from '../files/xlsx-types';
+import { writeXlsx } from '../files/xlsx';
 import { csvDate, csvNumber, toCsv } from '../csv';
 import { countWords } from '../ro-count';
 import { GROUP_LABELS, NO_GROUP_LABEL } from './catalog';
@@ -67,9 +68,4 @@ export function tableSheet(result: TableResult, name: string): XlsxSheet {
 }
 
 /** The .xlsx bytes of a result. */
-export async function tableXlsx(result: TableResult, name: string): Promise<Buffer> {
-  const sheet = tableSheet(result, name);
-  // TODO(T2): return writeXlsx([sheet]) from src/club/files/xlsx.ts once the library is chosen.
-  void sheet;
-  throw new Error('xlsx writer is not available yet (Task 2)');
-}
+export const tableXlsx = (result: TableResult, name: string): Promise<Buffer> => writeXlsx([tableSheet(result, name)]);

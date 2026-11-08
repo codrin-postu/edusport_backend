@@ -1,5 +1,3 @@
-/** COPY NEEDED: the texts are not given yet; the suffix tells them apart. The user supplies them. */
-const COPY_NEEDED = 'COPY NEEDED';
 
 const VIEWS = {
   duplicate: 'Există deja o vizualizare cu numele ăsta.',
@@ -57,8 +55,10 @@ export const TABLES_COPY = {
   deleted: VIEWS.deleted,
   undo: 'Anulează',
   empty: 'Niciun rând pentru alegerile astea.',
+  /** The ready-made "Plăți pe grupă luna aceasta" when nothing was paid: one line instead of rows of zeros. */
+  noPaymentsMonth: 'Nicio plată luna aceasta.',
   /** Shown for a saved view whose stored definition cannot be repaired. It can only be deleted. */
-  brokenView: `${COPY_NEEDED} (broken view)`,
+  brokenView: 'Vizualizarea nu mai poate fi deschisă.',
   /** Accessible names of the column reorder controls (same wording as the other reorderable lists). */
   move: (n: string): string => `Mută ${n}`,
   moveUp: (n: string): string => `Mută ${n} mai sus`,
@@ -68,9 +68,9 @@ export const TABLES_COPY = {
     eq: '=',
     gt: '>',
     lt: '<',
-    in: `${COPY_NEEDED} (op in)`,
-    empty: `${COPY_NEEDED} (op empty)`,
-    notEmpty: `${COPY_NEEDED} (op not empty)`,
+    in: 'este unul din',
+    empty: 'este gol',
+    notEmpty: 'nu este gol',
   },
   errors: {
     tooMany: 'Tabelul are peste 5.000 de rânduri. Restrânge sfera sau filtrele.',
@@ -79,17 +79,16 @@ export const TABLES_COPY = {
     notAuthor: VIEWS.notAuthor,
     tooManyViews: VIEWS.tooMany,
     download: 'Descărcarea nu a reușit.',
-    xlsxUnavailable: `${COPY_NEEDED} (xlsx not available yet)`,
   },
   /** Notices of a view opened after the catalog or the data changed (repairDefinition). One per kind of change. */
   notices: {
-    columnDropped: `${COPY_NEEDED} (column)`,
-    filterDropped: `${COPY_NEEDED} (filter)`,
-    groupByDropped: `${COPY_NEEDED} (group by)`,
-    sectionMissing: `${COPY_NEEDED} (section)`,
-    groupMissing: `${COPY_NEEDED} (group)`,
-    seasonMissing: `${COPY_NEEDED} (season)`,
-    periodReset: `${COPY_NEEDED} (period)`,
+    columnDropped: 'O coloană nu mai există și a fost scoasă.',
+    filterDropped: 'Un filtru nu mai există și a fost scos.',
+    groupByDropped: 'Gruparea nu mai există și a fost scoasă.',
+    sectionMissing: 'Secțiunea nu mai există.',
+    groupMissing: 'Grupa nu mai există.',
+    seasonMissing: 'Sezonul nu mai există.',
+    periodReset: 'Perioada a fost resetată.',
   },
   views: VIEWS,
   readyMade: {

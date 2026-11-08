@@ -19,11 +19,6 @@ import { sportiviRows } from './rows-sportivi';
 import { loadSources } from './sources';
 import type { TableDefinition, TableResult, TableRow } from './types';
 
-/** Until the xlsx writer lands (Task 2) a .xlsx download answers 501 with this text. COPY NEEDED: the user gives the copy. */
-export const TABLES_NO_XLSX = TABLES_COPY.errors.xlsxUnavailable;
-/** Flip to true when `tableXlsx` writes real files (Task 2); the controller then sends the file instead of 501. */
-export const XLSX_READY = false;
-
 export type TableFailure = { ok: false; status: 400 | 403 | 404 | 409 | 422 | 500 | 501; error: string };
 type Opts = { today: string; budget: Budget; maxRows?: number };
 

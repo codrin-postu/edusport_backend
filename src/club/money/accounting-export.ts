@@ -1,4 +1,5 @@
 import type { XlsxCell, XlsxColumn, XlsxSheet } from '../files/xlsx-types';
+import { writeXlsx } from '../files/xlsx';
 import { csvDate, csvNumber, toCsv } from '../csv';
 import { METHOD_WORDS } from '../presence/copy/core';
 import { sumMoney } from '../presence/money';
@@ -50,12 +51,13 @@ function methodSheet(overview: MoneyOverview): XlsxSheet {
 
 const moneyCells = (t: Money4): XlsxCell[] => [t.due, t.paid, t.left, t.percent];
 
-/** "Pe grupă": the "Secțiune și grupă" table of the screen (5.6.2): section rows (bold) with their subtotal, groups under them, "Total". "Încasat %" is empty where Datorat is 0. */
+/** "Pe grupă": the "Secțiune și grupă" table of the screen (5.6.2): a bold section row, its groups, "Subtotal <secțiune>" (the phone screen shows no subtotals, the file does), then "Total". "Încasat %" is empty where Datorat is 0. */
 function groupSheet(overview: MoneyOverview): XlsxSheet {
   const sections = overview.bySection;
   const rows: Body = sections.flatMap((s) => [
-    { style: 'group' as const, cells: [s.sectionName, ...moneyCells(s.totals)] },
+    { style: 'group' as const, cells: [s.sectionName, null, null, null, null] },
     ...s.groups.map((g) => ({ style: 'body' as const, cells: [g.groupName, ...moneyCells(g.totals)] })),
+    { style: 'subtotal' as const, cells: [`Subtotal ${s.sectionName}`, ...moneyCells(s.totals)] },
   ]);
   const due = sumMoney(sections.map((s) => s.totals.due));
   const paid = sumMoney(sections.map((s) => s.totals.paid));
@@ -84,9 +86,4 @@ export function accountingCsv(acc: Accounting, extra: AccountingExtra): string {
 export const accountingName = (month: string, ext: 'xlsx' | 'csv'): string => `contabil-${month}.${ext}`;
 
 /** The .xlsx bytes of "Export contabil". */
-export async function accountingXlsx(acc: Accounting, overview: MoneyOverview, extra: AccountingExtra): Promise<Buffer> {
-  const sheets = accountingSheets(acc, overview, extra);
-  // TODO(11-4 T2): return writeXlsx(sheets) from src/club/files/xlsx.ts once the library is chosen; XLSX_READY in tables/service.ts is the gate.
-  void sheets;
-  throw new Error('xlsx writer is not available yet (11-4 Task 2)');
-}
+export const accountingXlsx = (acc: Accounting, overview: MoneyOverview, extra: AccountingExtra): Promise<Buffer> => writeXlsx(accountingSheets(acc, overview, extra));

@@ -7,7 +7,7 @@ import type { CatalogAnswer } from '../../../../club/tables/catalog-api';
 import { TABLES_COPY, TABLES_COUNT_WORDS } from '../../../../club/tables/copy';
 import { readTablesQuery, tablesTo } from '../../../../club/tables/routes';
 import type { SavedViewRow, TableDefinition, TableResult } from '../../../../club/tables/types';
-import { isDirty } from '../../../../club/tables/view-state';
+import { isDirty, noPaymentsThisMonth } from '../../../../club/tables/view-state';
 import { MONEY_UI_COPY } from '../../../../club/presence/copy/money-ui';
 import { PRESENCE_ERRORS } from '../../../../club/presence/copy/core';
 import { LIST_COPY } from '../../../../club/sportivi/list-view';
@@ -220,7 +220,8 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
         {error && <div className="tbl-notices"><Notice tone="danger">{error}</Notice></div>}
         {result && !error && <p className="tbl-count">{countWords(result.count, one, many)}</p>}
         {loading && !result && !error && <div className="tbl-loading"><Loading /></div>}
-        {result && !error && (
+        {result && !error && noPaymentsThisMonth(current.id, result) && <EmptyState>{TABLES_COPY.noPaymentsMonth}</EmptyState>}
+        {result && !error && !noPaymentsThisMonth(current.id, result) && (
           <ResultTable
             result={result} sort={draft?.sort ?? null} onSort={onSort} collapsed={collapsed}
             onToggle={(k) => setCollapsed((c) => { const n = new Set(c); if (n.has(k)) n.delete(k); else n.add(k); return n; })}

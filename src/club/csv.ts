@@ -6,9 +6,12 @@ const FORMULA_START = /^[=+\-@\t\r]/;
 /** `csvNumber` output such as "-1,50" is a number, not a formula. */
 const PLAIN_NUMBER = /^-\d+(,\d+)?$/;
 
+/** A text cell that Excel would run as a formula gets a leading apostrophe; shared by the .csv and .xlsx writers. */
+export const guardFormula = (v: string): string => (FORMULA_START.test(v) && !PLAIN_NUMBER.test(v) ? `'${v}` : v);
+
 const cell = (v: string | number | null): string => {
   if (v === null) return '';
-  const s = typeof v === 'string' && FORMULA_START.test(v) && !PLAIN_NUMBER.test(v) ? `'${v}` : String(v);
+  const s = typeof v === 'string' ? guardFormula(v) : String(v);
   return /[;"\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
