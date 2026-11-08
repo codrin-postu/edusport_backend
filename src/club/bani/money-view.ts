@@ -29,3 +29,8 @@ export function totalOf(blocks: { totals: Money4 }[]): Money4 {
   const paid = sum((m) => m.paid);
   return { due, paid, left: sum((m) => m.left), percent: due === 0 ? null : Math.round((paid / due) * 100) };
 }
+
+/** The group rows under a section row: none when the only group repeats the section's own label (the "Fără grupă" block shows one row). */
+export function visibleGroups<G extends { groupName: string }>(block: { sectionName: string; groups: G[] }): G[] {
+  return block.groups.length === 1 && block.groups[0].groupName === block.sectionName ? [] : block.groups;
+}

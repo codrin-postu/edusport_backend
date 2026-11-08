@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BANI_COPY } from '../../presence/copy/money-ui';
 import { ron } from '../../presence/money';
-import { accountingDate, totalOf, expiringLine, nextMonthAllowed, percentText, trendText } from '../money-view';
+import { accountingDate, totalOf, visibleGroups, expiringLine, nextMonthAllowed, percentText, trendText } from '../money-view';
 import { BANI_PATH, abonamenteStateTo, baniTo, deIncasatMonthTo, platiMonthTo, readBaniQuery } from '../routes';
 
 describe('Bani copy, address and figure texts', () => {
@@ -42,5 +42,16 @@ describe('Bani copy, address and figure texts', () => {
     expect([ron(-50), percentText(112)]).toEqual(['-50 RON', '112%']);
     const t = totalOf([{ sectionId: 's', sectionName: 'S', totals: { due: 400, paid: 450, left: -50, percent: 113 }, groups: [] }]);
     expect(t).toEqual({ due: 400, paid: 450, left: -50, percent: 113 });
+  });
+});
+
+describe('visibleGroups: the Fără grupă block shows one row', () => {
+  const m = { due: 0, paid: 0, left: 0, percent: null };
+  it('hides the group row that repeats the section label', () => {
+    expect(visibleGroups({ sectionName: 'Fără grupă', groups: [{ groupId: 'x', groupName: 'Fără grupă', totals: m }] })).toEqual([]);
+  });
+  it('keeps the groups of a real section, even a single one', () => {
+    const g = [{ groupId: 'a', groupName: 'Avansați', totals: m }];
+    expect(visibleGroups({ sectionName: 'Club', groups: g })).toEqual(g);
   });
 });

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { SegmentedControl } from '../../ui';
-import { percentText, totalOf } from '../../../club/bani/money-view';
+import { percentText, totalOf, visibleGroups } from '../../../club/bani/money-view';
 import { BANI_COPY } from '../../../club/presence/copy/money-ui';
 import { ron } from '../../../club/presence/money';
 import type { Money4, MoneyOverview, TallyRow } from '../../../club/money/types';
@@ -27,7 +27,7 @@ function Sections({ blocks }: { blocks: MoneyOverview['bySection'] }) {
             {blocks.map((b) => (
               <React.Fragment key={b.sectionId}>
                 <tr className="bn-sec"><td>{b.sectionName}</td><MoneyCells m={b.totals} /></tr>
-                {b.groups.map((g) => <tr key={g.groupId} className="bn-grp"><td>{g.groupName}</td><MoneyCells m={g.totals} /></tr>)}
+                {visibleGroups(b).map((g) => <tr key={g.groupId} className="bn-grp"><td>{g.groupName}</td><MoneyCells m={g.totals} /></tr>)}
               </React.Fragment>
             ))}
             <tr className="bn-tot"><td>{BANI_COPY.total}</td><MoneyCells m={total} /></tr>

@@ -10,6 +10,9 @@ import { KIND_OPTIONS } from '../../admin/pages/preturi/format';
 const src = (p: string) => readFileSync(join(__dirname, '..', '..', p), 'utf8');
 
 describe('money UI source', () => {
+  it('the breakdown draws group rows through visibleGroups, so Fără grupă is one row', () => {
+    expect(src('admin/dashboard/bani/BaniBreakdown.tsx')).toMatch(/visibleGroups\(b\)\.map\(/);
+  });
   it('the bar draws square segments with tokens, no circle (decided 8)', () => {
     const s = src('admin/dashboard/bani/AbonamentBar.tsx') + src('admin/dashboard/bani/styles.ts');
     expect(s).toMatch(/barSegments\(/);
