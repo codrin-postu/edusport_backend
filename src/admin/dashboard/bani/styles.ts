@@ -33,7 +33,6 @@ export const MONEY_CSS = `
 .ui-root .bn-card-code{font-size:12px;color:var(--theme-text-muted)}
 .ui-root .bn-card-name{font-size:14px;font-weight:600;color:var(--theme-text)}
 .ui-root .bn-card-period,.ui-root .bn-card-count{font-size:13px;color:var(--theme-text-secondary)}
-.ui-root .bn-state{padding:1px 8px;font-size:12px;font-weight:600;color:var(--theme-text);border:1px solid var(--theme-border-strong)}
 .ui-root .bn-days-toggle{margin-left:auto;padding:2px 0;font:inherit;font-size:13px;color:var(--theme-primary);background:none;border:none;cursor:pointer}
 .ui-root .bn-days{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .ui-root .bn-day{display:grid;grid-template-columns:90px 1fr 1fr 20px;gap:8px;align-items:center;width:100%;padding:8px 0;font:inherit;font-size:13px;text-align:left;color:var(--theme-text);background:none;border:none;border-top:1px solid var(--theme-border);cursor:pointer}

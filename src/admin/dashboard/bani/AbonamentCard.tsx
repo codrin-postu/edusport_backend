@@ -1,10 +1,13 @@
 import * as React from 'react';
+import { StatusBadge, type BadgeTone } from '../../ui';
 import { IconChevronRight } from '../../ui/icons';
 import { cardCount, cardName, cardPeriod, segments, useRow as rowOf } from '../../../club/bani/athlete-cards-view';
 import { todayIso } from '../../../club/groups/http';
 import { CARD_COPY } from '../../../club/presence/copy/prezenta-ui';
 import type { SubscriptionCard } from '../../../club/presence/money-api';
 import { SessionPanel } from '../prezenta/SessionPanel';
+
+const STATE_TONE: Record<SubscriptionCard['state'], BadgeTone> = { activ: 'success', epuizat: 'neutral', expirat: 'warning', anulat: 'neutral' };
 
 /** One abonament: code, name, period and state, the square segments with "3/8", and its dated days behind "Vezi zilele" (5.4.1). */
 export function AbonamentCard({ card, athleteId }: { card: SubscriptionCard; athleteId: string }) {
@@ -17,7 +20,7 @@ export function AbonamentCard({ card, athleteId }: { card: SubscriptionCard; ath
         {card.code && <span className="bn-card-code">{card.code}</span>}
         <span className="bn-card-name">{cardName(card.startsOn)}</span>
         <span className="bn-card-period">{cardPeriod(card.startsOn, card.validUntil, today)}</span>
-        <span className="bn-state">{CARD_COPY.states[card.state]}</span>
+        <StatusBadge tone={STATE_TONE[card.state]}>{CARD_COPY.states[card.state]}</StatusBadge>
       </div>
       <div className="bn-card-l2">
         <div className="bn-bar-segs bn-bar-segs--compact" aria-hidden="true">

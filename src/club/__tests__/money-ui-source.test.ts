@@ -228,6 +228,7 @@ describe('money UI source', () => {
     expect(hist).toContain('HISTORY_COPY.empty(');
     expect(hist.match(/<ExpandableRow/g)).toHaveLength(1);
     expect(hist.match(/bn-pay--unit/g)).toHaveLength(1);
+    expect(hist.match(/<StatusBadge/g)).toHaveLength(2);
     expect(hist).not.toMatch(/subscription.*state|bn-pay--\$\{/);
     for (const f of ['AbonamentTab', 'AbonamentCard', 'PresenceHistory', 'styles']) expect(src(`admin/dashboard/bani/${f}.${f === 'styles' ? 'ts' : 'tsx'}`), f).not.toMatch(/dashed|dotted|border-radius:\s*50%|#[0-9a-f]{3,6}\b|rgb\(/i);
   });

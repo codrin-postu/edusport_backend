@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, ExpandableRow, Loading, Notice, Pager } from '../../ui';
+import { Button, ExpandableRow, Loading, Notice, Pager, StatusBadge } from '../../ui';
 import { historyCount, historyDate, payView } from '../../../club/bani/history-view';
 import { todayIso } from '../../../club/groups/http';
 import type { HistoryRow } from '../../../club/presence/attendance/api-types';
@@ -24,9 +24,9 @@ function Cells({ row }: { row: HistoryRow }) {
     <span className="bn-hist-cells">
       <span className="bn-hist-date">{historyDate(row.date, row.startTime, todayIso())}</span>
       <span className="bn-hist-place">{placeText(row)}</span>
-      <span className="bn-hist-tip">{tipText(row)}</span>
-      <span className={view.tone === 'unit' ? 'bn-pay bn-pay--unit' : view.tone === 'paid' ? 'bn-pay bn-pay--paid' : 'bn-pay bn-warn'}>
-        {view.label}
+      <span className="bn-hist-tip"><StatusBadge tone={row.kind === 'grup' ? 'info' : 'neutral'}>{tipText(row)}</StatusBadge></span>
+      <span className="bn-pay">
+        <StatusBadge tone={view.tone === 'unit' ? 'info' : view.tone === 'paid' ? 'success' : 'warning'} className={view.tone === 'unit' ? 'bn-pay--unit' : undefined}>{view.label}</StatusBadge>
         {view.code && <span className="bn-hist-code">{view.code}</span>}
       </span>
     </span>
