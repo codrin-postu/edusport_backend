@@ -52,6 +52,8 @@ export interface SecurityStore {
   updateAdminDevice(id: string, d: Partial<Pick<AdminDeviceRow, 'lastSeenAt' | 'twoFactorUntil' | 'revokedAt' | 'label'>>): Promise<void>;
   portalAccountExtra(accountId: string): Promise<PortalAccountExtra>;
   updatePortalAccountExtra(accountId: string, a: Partial<{ webauthnUserId: string; lastMethod: TwoFactorMethod; passkeyOfferedAt: string | null }>): Promise<void>;
+  /** Document ids of the devices of a portal account. */
+  portalDeviceIds(accountId: string): Promise<string[]>;
   setPortalDeviceTwoFactor(deviceId: string, until: string | null): Promise<void>;
   securityNotes(s: Subject): Promise<SecurityNotes>;
   setSecurityNotes(s: Subject, n: SecurityNotes): Promise<void>;

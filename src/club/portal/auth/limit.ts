@@ -13,6 +13,12 @@ export type Limiter = {
   emailCleared(email: string): Promise<void>;
   /** Counts a send. */
   mailAllowed(email: string): Promise<boolean>;
+  /** The 2FA counters (`2fa:<type>:<id>`): whether the key is locked now, without counting. */
+  keyLocked(key: string): Promise<boolean>;
+  /** Counts one wrong attempt under the login rule (5 in 15 minutes lock for 15 minutes). */
+  keyHit(key: string): Promise<{ locking: boolean; firstLock: boolean }>;
+  /** A right answer clears the count. */
+  keyCleared(key: string): Promise<void>;
 };
 
 export function limiter(store: PortalStore, now: () => Date): Limiter {
@@ -40,5 +46,15 @@ export function limiter(store: PortalStore, now: () => Date): Limiter {
         await store.saveLimit(row.id, afterSuccess(now()));
       }),
     mailAllowed: async (email) => !(await hit(mailKey(email), MAIL_RULE)).blocked,
+    keyLocked: (key) => store.transaction(async () => isLocked(await store.lockLimit(key), LOGIN_RULE, now())),
+    keyHit: async (key) => {
+      const out = await hit(key, LOGIN_RULE);
+      return { locking: out.blocked, firstLock: out.firstLock };
+    },
+    keyCleared: (key) =>
+      store.transaction(async () => {
+        const row = await store.lockLimit(key);
+        await store.saveLimit(row.id, afterSuccess(now()));
+      }),
   };
 }

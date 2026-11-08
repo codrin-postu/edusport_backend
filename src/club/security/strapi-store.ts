@@ -199,7 +199,7 @@ function adminStore(strapi: Core.Strapi): Pick<SecurityStore, 'adminAccount' | '
   };
 }
 
-function portalStore(strapi: Core.Strapi): Pick<SecurityStore, 'portalAccountExtra' | 'updatePortalAccountExtra' | 'setPortalDeviceTwoFactor'> {
+function portalStore(strapi: Core.Strapi): Pick<SecurityStore, 'portalAccountExtra' | 'updatePortalAccountExtra' | 'portalDeviceIds' | 'setPortalDeviceTwoFactor'> {
   return {
     portalAccountExtra: async (accountId) => {
       const r = (await strapi.documents(PORTAL_ACCOUNT).findOne({ documentId: accountId, fields: ['webauthnUserId', 'lastMethod', 'passkeyOfferedAt'] })) as Raw | null;
@@ -208,6 +208,8 @@ function portalStore(strapi: Core.Strapi): Pick<SecurityStore, 'portalAccountExt
     updatePortalAccountExtra: async (accountId, a) => {
       await strapi.documents(PORTAL_ACCOUNT).update({ documentId: accountId, data: defined(a) as never });
     },
+    portalDeviceIds: async (accountId) =>
+      raws(await strapi.documents(PORTAL_DEVICE).findMany({ filters: { account: { documentId: accountId } }, fields: ['documentId'], limit: MAX })).map((r) => text(r.documentId)),
     setPortalDeviceTwoFactor: async (deviceId, until) => {
       await strapi.documents(PORTAL_DEVICE).update({ documentId: deviceId, data: { twoFactorUntil: until } as never });
     },

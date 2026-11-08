@@ -11,6 +11,8 @@ export type MemorySecurity = {
   dump(): unknown;
   history: SecurityHistoryLine[];
   portalDeviceUntil: Map<string, string | null>;
+  /** Devices a portal account owns, by account id (the portal store is a different one in tests). */
+  portalDevices: Map<string, string[]>;
 };
 
 const same = (a: Subject, b: Subject): boolean => a.type === b.type && a.id === b.id;
@@ -30,6 +32,7 @@ export function memorySecurityStore(now: () => Date = () => new Date()): MemoryS
   const portalExtra = new Map<string, PortalAccountExtra>();
   const history: SecurityHistoryLine[] = [];
   const portalDeviceUntil = new Map<string, string | null>();
+  const portalDevices = new Map<string, string[]>();
   let seq = 0;
   const id = (p: string): string => `${p}${(seq += 1)}`;
   const stamp = (): string => now().toISOString();
@@ -196,6 +199,7 @@ export function memorySecurityStore(now: () => Date = () => new Date()): MemoryS
         passkeyOfferedAt: a.passkeyOfferedAt === undefined ? cur.passkeyOfferedAt : a.passkeyOfferedAt,
       });
     },
+    portalDeviceIds: async (aid) => [...(portalDevices.get(aid) ?? [])],
     async setPortalDeviceTwoFactor(did, until) {
       portalDeviceUntil.set(did, until);
     },
@@ -231,6 +235,7 @@ export function memorySecurityStore(now: () => Date = () => new Date()): MemoryS
     store,
     history,
     portalDeviceUntil,
+    portalDevices,
     dump: () => copy({ ...tables(), notes: [...notes], portalExtra: [...portalExtra], history }),
   };
 }
