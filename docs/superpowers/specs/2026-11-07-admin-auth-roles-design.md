@@ -252,6 +252,7 @@ Codes and secrets never reach a log: the request bodies of `/api/admin-auth/*` a
 - Admin: a Super Admin resets another admin's 2FA in the admin Securitate section "Administratori" (10.4), same effects, history line, mail. A Super Admin cannot reset his own [P6b q7; S31].
 - Last resort: `npm run admin:reset-2fa -- <e-mail>` on the server (`scripts/admin-reset-2fa.ts`), same effects, actor "server" [R6b P7; S31].
 - Passkeys stay after a reset; the owner deletes a lost one in Securitate after signing in [S31].
+- A reset on an account without 2FA still ends every session, writes the history line and sends the mail; it is not refused as stale (decided by Claude, low impact: the button shows only when a method is on, and a repeated reset is harmless).
 
 ## 7. Portal 2FA (6b-2)
 

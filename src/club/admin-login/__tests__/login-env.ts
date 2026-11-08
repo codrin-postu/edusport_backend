@@ -18,7 +18,7 @@ export function loginEnv(o: Parameters<typeof adminEnv>[0] = {}) {
   const compare = vi.fn(async (p: string, h: string) => h === `hash:${p}`);
   const sleep = vi.fn(async () => undefined);
   const c: AdminLoginContext = {
-    ...env.c, ...env.ctx, limits: adminLimits(env.c.limits), compare, secure: false, portalMail, common: new Set([COMMON]), sleep, ...cookieHelpers(env.koa, false),
+    ...env.c, ...env.ctx, actor: 'sistem', limits: adminLimits(env.c.limits), compare, secure: false, portalMail, common: new Set([COMMON]), sleep, ...cookieHelpers(env.koa, false),
     endSessions: (s, opts) => endAdminSessions(c, Number(s.id), opts),
   };
   const flush = () => new Promise((resolve) => setImmediate(resolve));

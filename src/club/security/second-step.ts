@@ -139,9 +139,11 @@ async function checkBackupCode(c: SecurityContext, keys: Keys, s: Subject, code:
 /**
  * One typed code against a pending login. Order: keys, IP limit, the pending row, the pending's tries, the subject's 2FA counter, the check by method.
  * Every attempt counts before the compare against the pending login (5 end it) and the subject (5 in 15 minutes lock it); a right code clears the subject and ends
- * the pending login once. The caller saves `lastMethod`, sets `twoFactorUntil` when asked and issues the session.
+ * the pending login once. `personName` names the person on the "backup code used" line (spec 13), else `c.actor`. The caller saves `lastMethod`, sets `twoFactorUntil` when asked and issues the session.
  */
-export async function verifySecondStep(c: SecurityContext, secret: string, method: TwoFactorMethod, code: string): Promise<PortalResult<Verified>> {
+export async function verifySecondStep(
+  c: SecurityContext, secret: string, method: TwoFactorMethod, code: string, personName?: (s: Subject) => Promise<string | null>,
+): Promise<PortalResult<Verified>> {
   const gate = keysOrRefusal(c);
   if ('refusal' in gate) return gate.refusal;
   if (await c.limits.ipBlocked(c.ip)) return paused;
@@ -169,7 +171,7 @@ export async function verifySecondStep(c: SecurityContext, secret: string, metho
   if (!(await end())) return expired;
   await c.limits.keyCleared(key);
   if (check.backupLeft !== null) {
-    await c.store.record({ subjectType: subject.type, subjectId: subject.id, action: SECURITY_ACTIONS.backupUsed, changes: { left: check.backupLeft }, actor: c.actor });
+    await c.store.record({ subjectType: subject.type, subjectId: subject.id, action: SECURITY_ACTIONS.backupUsed, changes: { left: check.backupLeft }, actor: (await personName?.(subject)) ?? c.actor });
     await c.store.setSecurityNotes(subject, { backupNotice: check.backupLeft });
   }
   const { email: _email, ...data } = pendingOf(row);

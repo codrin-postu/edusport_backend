@@ -91,6 +91,9 @@ async function storePassword(c: CoachContexts & { auth: PortalAuthContext }, acc
     await c.portal.updateUser(c.coach.userId, { passwordHash });
     await c.portal.record({ subjectId: accountId, action: PORTAL_ACTIONS.passwordChanged, changes: {}, actor: coachActor(c.coach.name) });
     await portalSessions(c.portal, c.presence.now).revokeAll(c.coach.userId, c.coach.sessionId);
+    // Spec 6.4: remembered devices are forgotten, except the one making the change.
+    const mine = (await c.portal.devices(accountId)).find((d) => d.revokedAt === null && d.sessionId === c.coach.sessionId);
+    await c.auth.security.forgetDevices({ type: 'portal', id: accountId }, { exceptDevice: mine?.id });
   });
 }
 

@@ -28,9 +28,9 @@ async function bindDevice(c: PortalAuthContext, account: AccountRow, given: stri
   return { device: { ...row, id, revokedAt: null, twoFactorUntil: null }, key, newRow: true, newKey: true };
 }
 
-async function mailNewDevice(c: PortalAuthContext, account: AccountRow, device: DeviceRow): Promise<void> {
+export async function mailNewDevice(c: PortalAuthContext, account: AccountRow, label: string): Promise<void> {
   try {
-    const sent = await c.mail(account.email, { kind: 'new-device', device: device.label, at: c.now() });
+    const sent = await c.mail(account.email, { kind: 'new-device', device: label, at: c.now() });
     if (!sent) c.log('[portal-login] new-device mail not sent');
   } catch (err) {
     c.log(`[portal-login] new-device mail failed: ${err instanceof Error ? err.name : 'error'}`);
@@ -55,7 +55,7 @@ export async function issueSession(
     await c.store.updateAccount(fresh.id, { lastLoginAt: at });
     return { bound, tokens };
   });
-  if (o.notifyNewDevice && bound.newRow) void mailNewDevice(c, account, bound.device);
+  if (o.notifyNewDevice && bound.newRow) void mailNewDevice(c, account, bound.device.label);
   return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, accessExpiresAt: tokens.accessExpiresAt, deviceKey: bound.newKey ? bound.key : null };
 }
 

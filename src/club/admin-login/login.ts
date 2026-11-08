@@ -9,7 +9,7 @@ import { SECURITY_ACTIONS, SECURITY_ERRORS } from '../security/copy';
 import { KeysMissing } from '../security/keys';
 import { PENDING_TTL_MS, hasTwoFactor, openPending, sendLoginCode, verifySecondStep } from '../security/second-step';
 import type { Subject } from '../security/store';
-import { adminById, adminByEmail, canEnterAdmin, type AdminRow } from './admins';
+import { adminById, adminByEmail, adminName, canEnterAdmin, type AdminRow } from './admins';
 import { ADMIN_PENDING_COOKIE, type AdminLoginContext } from './context';
 import { ADMIN_DEVICE_COOKIE, ADMIN_DEVICE_COOKIE_MS, bindAdminDevice, rememberDevice, rememberedDevice } from './devices';
 import { issueAdminSession } from './session';
@@ -139,7 +139,10 @@ export async function secondStepAdmin(c: AdminLoginContext, body: unknown): Prom
   const pendingName = ADMIN_PENDING_COOKIE(c.secure);
   const secret = c.cookie(pendingName);
   if (!secret) return pendingExpired;
-  const verified = await verifySecondStep(c, secret, read.method, read.code);
+  const verified = await verifySecondStep(c, secret, read.method, read.code, async (s) => {
+    const who = await adminById(c.strapi, adminSubjectId(s));
+    return who ? adminName(who) : null;
+  });
   if (verified.ok === false) {
     if (verified.status === 401) c.clearCookie(pendingName);
     return verified;

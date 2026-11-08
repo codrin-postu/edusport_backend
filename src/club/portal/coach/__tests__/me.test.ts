@@ -100,6 +100,18 @@ describe('changePassword', () => {
     expect(t.s.portalFake.state.history).toEqual([{ subjectType: expect.any(String), subjectId: t.accountId, action: 'portal-password-changed', changes: {}, actor: 'Antrenor Andreea Pascu' }]);
   });
 
+  it('forgets the remembered devices except the current one', async () => {
+    const t = await setup();
+    const until = '2099-01-01T00:00:00.000Z';
+    const sec = securityFor(t.s.portalFake, t.store, () => new Date()).secStore;
+    await sec.setPortalDeviceTwoFactor(t.first.deviceId, until);
+    await sec.setPortalDeviceTwoFactor(t.second.deviceId, until);
+    expect(await changePassword(t.c, good)).toEqual(OK);
+    const rows = await t.store.devices(t.accountId);
+    expect(rows.find((d) => d.id === t.first.deviceId)?.twoFactorUntil).toBe(until);
+    expect(rows.find((d) => d.id === t.second.deviceId)?.twoFactorUntil).toBeNull();
+  });
+
   it('5 wrong current passwords lock the e-mail: the 5th answers 429, mails the notice, and login answers 429', async () => {
     const t = await setup();
     const answers = [];

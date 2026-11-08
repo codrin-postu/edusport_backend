@@ -113,6 +113,8 @@ async function checkCode(c: PortalAuthContext, keys: Keys, accountId: string, co
     await c.store.updateUser(account.userId, { passwordHash, confirmed: true });
     if (account.status === 'invited') await c.store.updateAccount(accountId, { status: 'active', activatedAt: at });
     await c.sessions.revokeAll(account.userId);
+    // Spec 6.4: a reset forgets every remembered device, the one that did the reset included.
+    await c.security.forgetDevices({ type: 'portal', id: accountId }, {});
     const name = account.teamMemberId ? await c.store.teamMemberName(account.teamMemberId) : null;
     await c.store.record({ subjectId: accountId, action: PORTAL_ACTIONS.passwordReset, changes: {}, actor: name ? `Antrenor ${name}` : 'Antrenor' });
     return { right: true, account: { ...account, status: account.status === 'invited' ? 'active' : account.status } };

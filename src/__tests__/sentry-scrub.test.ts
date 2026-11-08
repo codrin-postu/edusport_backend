@@ -40,6 +40,16 @@ describe('scrubAuthEvent', () => {
     expect(out.message).toBe('boom');
   });
 
+  it('drops the BFF secret and device key headers on portal paths', () => {
+    const e = event('https://api.x.ro/api/portal/auth/login');
+    (e.request.headers as Record<string, string>)['x-portal-secret'] = 'bff-secret-value';
+    (e.request.headers as Record<string, string>)['X-Portal-Device'] = 'device-key-value';
+    const out = scrubAuthEvent(e);
+    expect(JSON.stringify(out)).not.toContain('bff-secret-value');
+    expect(JSON.stringify(out)).not.toContain('device-key-value');
+    expect(out.request?.headers).toEqual({ 'user-agent': 'UA', 'content-type': 'application/json' });
+  });
+
   it('keeps an event for another route as it is', () => {
     const e = event('https://api.x.ro/api/club/summary?season=1', { note: 'kept' });
     expect(scrubAuthEvent(e)).toEqual(e);

@@ -30,7 +30,7 @@ function loginEnv(o: Parameters<typeof adminEnv>[0] = {}) {
   };
   const compare = vi.fn(async (p: string, h: string) => h === `hash:${p}`);
   const c: AdminLoginContext = {
-    ...env.c, ...env.ctx, limits: adminLimits(env.c.limits), compare, secure: false, portalMail, ...cookieHelpers(env.koa, false),
+    ...env.c, ...env.ctx, actor: 'sistem', limits: adminLimits(env.c.limits), compare, secure: false, portalMail, ...cookieHelpers(env.koa, false),
   };
   const ana = env.addAdmin({ id: 7, email: EMAIL, firstname: 'Ana', lastname: 'Pop', password: `hash:${PASSWORD}` });
   const body = (o: Record<string, unknown> = {}) => ({ email: EMAIL, password: PASSWORD, rememberMe: true, ...o });
@@ -285,6 +285,17 @@ describe('password login: the second step', () => {
     expect(await secondStepAdmin(env.c, { method: 'totp', code: '000000', remember: false })).toEqual({ ok: false, status: 400, error: SECURITY_ERRORS.badCode });
     expect((await secondStepAdmin(env.c, { method: 'backup', code: backup, remember: false })).ok).toBe(true);
     expect((await env.c.store.adminAccount(7))?.lastMethod ?? null).toBeNull();
+  });
+
+  it('a backup code at login writes the history line with the admin as the actor', async () => {
+    const env = loginEnv();
+    await env.turnOnTotp();
+    const [backup] = await issueBackupBatch(env.c, env.c.keys!, { type: 'admin', id: '7' });
+    await env.login();
+    env.browser();
+    await secondStepAdmin(env.c, { method: 'backup', code: backup, remember: false });
+    const line = env.mem.history.find((h) => h.action === 'backupUsed');
+    expect(line?.actor).toBe('Ana Pop');
   });
 
   it('no pending cookie is 401 expired; a bad body is 400', async () => {

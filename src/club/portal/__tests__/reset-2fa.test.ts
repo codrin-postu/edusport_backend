@@ -80,3 +80,20 @@ describe('reset then 2FA', () => {
     expect(await confirm(s)).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
   });
 });
+
+describe('reset forgets remembered devices (spec 6.4)', () => {
+  it('a reset on an account with 2FA answers a pending login even with a remembered device key, and clears twoFactorUntil on every device', async () => {
+    const s = setup2fa();
+    const id = await s.addAccount();
+    await s.enrol(id);
+    const until = new Date(s.clock.t.getTime() + 86_400_000).toISOString();
+    for (const key of ['k-one', 'k-two']) {
+      const d = await s.store.createDevice({ accountId: id, deviceKeyHash: hashSecret(key), sessionId: null, label: 'Telefon', firstSeenAt: s.clock.t.toISOString(), lastSeenAt: s.clock.t.toISOString() });
+      await s.secStore.setPortalDeviceTwoFactor(d, until);
+    }
+    await requestReset(s.c, { email: 'ana@x.ro' });
+    const r = await confirm(s, { deviceKey: 'k-one' });
+    expect(r).toMatchObject({ ok: true, data: { step: '2fa', pending: expect.any(String) } });
+    expect((await s.store.devices(id)).map((d) => d.twoFactorUntil)).toEqual([null, null]);
+  });
+});

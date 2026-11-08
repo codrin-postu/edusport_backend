@@ -49,7 +49,7 @@ export function memorySecurityStore(now: () => Date = () => new Date()): MemoryS
 
   const store: SecurityStore = {
     async transaction(fn) {
-      const snap = depth === 0 ? copy({ f: factors, b: backups, c: challenges, p: passkeys, a: adminAccounts, d: adminDevices }) : null;
+      const snap = depth === 0 ? copy({ f: factors, b: backups, c: challenges, p: passkeys, a: adminAccounts, d: adminDevices, h: history }) : null;
       depth += 1;
       try {
         return await fn();
@@ -61,6 +61,7 @@ export function memorySecurityStore(now: () => Date = () => new Date()): MemoryS
           passkeys.splice(0, passkeys.length, ...snap.p);
           adminAccounts.splice(0, adminAccounts.length, ...snap.a);
           adminDevices.splice(0, adminDevices.length, ...snap.d);
+          history.splice(0, history.length, ...snap.h);
         }
         throw e;
       } finally {

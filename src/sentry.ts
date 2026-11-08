@@ -64,7 +64,7 @@ export function scrubAuthEvent<E extends ScrubbableEvent>(event: E): E {
   const out = { ...event };
   if (request && requestAuth) {
     const headers = request.headers
-      ? Object.fromEntries(Object.entries(request.headers).filter(([name]) => !['cookie', 'authorization', 'set-cookie'].includes(name.toLowerCase())))
+      ? Object.fromEntries(Object.entries(request.headers).filter(([name]) => !['cookie', 'authorization', 'set-cookie', 'x-portal-secret', 'x-portal-device'].includes(name.toLowerCase())))
       : request.headers;
     const { data: _data, cookies: _cookies, query_string: _query, ...rest } = request;
     out.request = { ...rest, ...(request.url ? { url: withoutQuery(request.url) } : {}), ...(headers ? { headers } : {}) };

@@ -20,6 +20,38 @@ afterEach(() => {
 });
 
 describe('password login with 2FA', () => {
+  it('sends the new-device mail after the right password, before the second step, and not again after the code', async () => {
+    const s = setup2fa();
+    const id = await s.addAccount();
+    await s.enrol(id);
+    const r = await login(s);
+    const pending = pendingOf(r);
+    expect(s.mails.filter((m) => m.mail.kind === 'new-device')).toHaveLength(1);
+    expect(await portalSecondStep(s.c, { pending, method: 'totp', code: s.totp(), remember: false })).toMatchObject({ ok: true });
+    expect(s.mails.filter((m) => m.mail.kind === 'new-device')).toHaveLength(1);
+  });
+
+  it('a wrong password sends no new-device mail; a known device key sends none', async () => {
+    const s = setup2fa();
+    const id = await s.addAccount();
+    await s.enrol(id);
+    await login(s, { password: 'wrong' });
+    expect(s.mails).toEqual([]);
+    await s.store.createDevice({ accountId: id, deviceKeyHash: hashSecret('known'), sessionId: null, label: 'T', firstSeenAt: s.clock.t.toISOString(), lastSeenAt: s.clock.t.toISOString() });
+    await login(s, { deviceKey: 'known' });
+    expect(s.mails).toEqual([]);
+  });
+
+  it('a backup code at login writes the history line with the coach as the actor', async () => {
+    const s = setup2fa();
+    const id = await s.addAccount();
+    s.fake.state.teamMembers.tm1 = 'Ana Pop';
+    const [backup] = await s.enrol(id, { backup: true });
+    const pending = pendingOf(await login(s));
+    await portalSecondStep(s.c, { pending, method: 'backup', code: backup, remember: false });
+    expect(s.mem.history.find((h) => h.action === 'backupUsed')).toMatchObject({ subjectType: 'portal', subjectId: id, actor: 'Antrenor Ana Pop' });
+  });
+
   it('answers a pending login, creates no session row', async () => {
     const s = setup2fa();
     const id = await s.addAccount();

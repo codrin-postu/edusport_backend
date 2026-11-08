@@ -44,6 +44,18 @@ describe('Resetează 2FA on a portal account', () => {
     expect(await resetPortalTwoFactor({ store: s.store, security: s.c.security }, id, 'Eva')).toMatchObject({ ok: true });
   });
 
+  it('an unexpected throw is logged with fixed text, answers 500 and changes nothing (one transaction)', async () => {
+    const s = await seeded();
+    s.c.security.endSessions = async () => { throw new Error('secret@x.ro boom'); };
+    const out = await s.run();
+    expect(out).toMatchObject({ ok: false, status: 500 });
+    expect(s.logs.some((l) => l.startsWith('portal 2fa reset failed'))).toBe(true);
+    expect(await s.secStore.factors({ type: 'portal', id: s.id })).toHaveLength(1);
+    expect((await s.store.devices(s.id))[0].twoFactorUntil).not.toBeNull();
+    expect(s.mem.history.find((h) => h.action === SECURITY_ACTIONS.reset)).toBeUndefined();
+    expect(s.secMails).toEqual([]);
+  });
+
   it('an unknown account is 404', async () => {
     const s = await seeded();
     expect(await resetPortalTwoFactor({ store: s.store, security: s.c.security }, 'nope', 'Eva')).toEqual({ ok: false, status: 404, error: PORTAL_ERRORS.notFound });

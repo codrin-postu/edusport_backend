@@ -10,7 +10,9 @@ import { PORTAL_ERRORS } from '../copy';
 import type { AccountRow } from '../store';
 import { hashSecret, sameHash } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
-import { canEnter, startSession, type PortalSession } from './issue';
+import { deviceLabel } from '../devices';
+import { coachActor } from '../coach/context';
+import { canEnter, mailNewDevice, startSession, type PortalSession } from './issue';
 
 export type PortalPending = SecondStep & { pending: string };
 export type SessionWithOffer = PortalSession & { offerPasskey: boolean };
@@ -53,6 +55,8 @@ export async function afterPassword(
   }
   const gate = keysOrRefusal(c.security);
   if ('refusal' in gate) return gate.refusal;
+  // An unknown browser is mailed now (as the admin login does), so a password alone shows up before any code is tried.
+  if (!device || device.revokedAt !== null) await mailNewDevice(c, account, deviceLabel(c.userAgent));
   const last = (await c.security.store.portalAccountExtra(account.id)).lastMethod;
   try {
     const { secret, step } = await openPending(c.security, subject, account.email, { rememberMe: false, host, deviceKeyHash: deviceKey ? hashSecret(deviceKey) : null }, last);
@@ -84,7 +88,12 @@ const sameBrowser = (bound: string | null, deviceKey: string | null): boolean =>
 export async function portalSecondStep(c: PortalAuthContext, body: unknown): Promise<PortalResult<SessionWithOffer>> {
   const read = readSecond(body);
   if (!read) return invalid;
-  const verified = await verifySecondStep(c.security, read.pending, read.method, read.code);
+  const personName = async (s: Subject): Promise<string | null> => {
+    const a = await c.store.account(s.id);
+    const name = a?.teamMemberId ? await c.store.teamMemberName(a.teamMemberId) : null;
+    return coachActor(name ?? '').trim();
+  };
+  const verified = await verifySecondStep(c.security, read.pending, read.method, read.code, personName);
   if (verified.ok === false) return verified;
   const { subject, data } = verified.data;
   if (!sameBrowser(data.deviceKeyHash, read.deviceKey)) return pendingExpired;
@@ -92,7 +101,8 @@ export async function portalSecondStep(c: PortalAuthContext, body: unknown): Pro
   const user = account ? await c.store.user(account.userId) : null;
   if (!account || !canEnter(account, user, data.host)) return wrongLogin;
   if (read.method !== 'backup') await c.security.store.updatePortalAccountExtra(account.id, { lastMethod: read.method });
-  const session = await startSession(c, account, read.deviceKey, { notifyNewDevice: true, host: data.host });
+  // The new-device mail went out after the password.
+  const session = await startSession(c, account, read.deviceKey, { notifyNewDevice: false, host: data.host });
   if (session.ok === false) return session;
   if (read.remember) {
     const key = session.data.deviceKey ?? read.deviceKey;
