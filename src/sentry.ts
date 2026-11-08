@@ -12,6 +12,8 @@ const AUTH_PATH_PREFIXES = [
   '/api/admin-auth/', '/api/portal/auth/', '/api/portal/me/', '/intrare',
   // Strapi's own admin auth: the login redirects carry `registrationToken` and `code` in the query, the token routes carry the refresh cookie.
   '/admin/auth/', '/admin/access-token', '/admin/renew-token', '/admin/logout',
+  // Disabled by the gate (404) but a stray request can still carry a password.
+  '/admin/login', '/admin/register', '/admin/forgot-password', '/admin/reset-password',
 ] as const;
 
 type SpanData = Record<string, unknown>;
