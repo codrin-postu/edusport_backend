@@ -67,7 +67,7 @@ describe('abonament codes (11-3 T3)', () => {
     expect(ctx.state.payments[0].receiptNo).toBe('2026-0001');
     expect(historyOf(ctx, 'athlete', 'a1')).toEqual([
       'Abonament adăugat: Abonament 8 ședințe, din 27 oct 2026, expiră pe 23 noi 2026 (A-0001)',
-      'Plată înregistrată: 360 RON, Numerar, Abonament 8 ședințe (activ din 27 oct) (nr. 2026-0001)',
+      'Plată înregistrată: 360 RON, Numerar, Abonament A-0001 (nr. 2026-0001)',
     ]);
     expect((await cancelPayment(ctx.ctx, ctx.state.payments[0].id)).ok).toBe(true);
     expect(ctx.state.payments[0].receiptNo).toBe('2026-0001');

@@ -8,6 +8,7 @@ import { guardOf } from './action-log';
 import { overpayRefusal } from './payments/common';
 import { paymentForOf } from './payments/rules';
 import type { PresenceStore } from './store';
+import { readViewUndo } from '../tables/views-undo';
 import { presenceLockTargets, readPresenceRecord, type PresenceUndoRecord, type PresenceUndoStep } from './undo';
 
 /** POST /club/undo body `{ actionId }` for a presence action: the toast's "Anulează" (spec 7.3). */
@@ -34,11 +35,13 @@ const RUN: Runners = {
 
 const runStep = (store: PresenceStore, step: PresenceUndoStep): Promise<void> => (RUN[step.op] as (s: PresenceStore, st: PresenceUndoStep) => Promise<void>)(store, step);
 
-/** 'presence' when the entry carries a presence undo record; anything else (or no entry) is left to the phase 4 undo. */
-export async function undoKindOf(store: Pick<PresenceStore, 'historyEntry'>, body: unknown): Promise<'presence' | 'other'> {
+/** 'presence' or 'table-view' when the entry carries that undo record; anything else (or no entry) is left to the phase 4 undo. */
+export async function undoKindOf(store: Pick<PresenceStore, 'historyEntry'>, body: unknown): Promise<'presence' | 'table-view' | 'other'> {
   const id = readActionId(body);
   const entry = id ? await store.historyEntry(id) : null;
-  return entry && readPresenceRecord(entry.changes.undo) ? 'presence' : 'other';
+  if (!entry) return 'other';
+  if (readPresenceRecord(entry.changes.undo)) return 'presence';
+  return readViewUndo(entry.changes.undo) ? 'table-view' : 'other';
 }
 
 const isUndone = (entry: HistoryEntryRow | null): boolean => entry?.changes.undone === true;

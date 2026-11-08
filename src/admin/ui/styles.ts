@@ -529,6 +529,7 @@ ${R} .ui-sel[aria-expanded="true"] .ui-sel-chev{transform:rotate(180deg)}
 ${R} .ui-sel-opt{flex-direction:row;align-items:center;gap:8px}
 ${R} .ui-sel-opt[aria-selected="true"]{color:var(--theme-primary)}
 ${R} .ui-sel-tick{display:inline-flex;width:12px;flex-shrink:0}
+${R} .ui-sel-hint{margin-left:auto;padding-left:12px;font-size:12px;color:var(--theme-text-muted);white-space:nowrap}
 @media (prefers-reduced-motion:reduce){${R} .ui-sel-chev{transition:none}}
 
 /* segmented control */

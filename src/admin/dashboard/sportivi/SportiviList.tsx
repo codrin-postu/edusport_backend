@@ -27,7 +27,7 @@ function useAddAthlete(search: string) {
 }
 
 /** The private list of every athlete (spec 5), replacing today's public-profile list; 3C: the inactivity list and its bulk bar. */
-export function SportiviList() {
+export function SportiviList({ tabs }: { tabs?: React.ReactNode }) {
   const api = useSportiviApi();
   const phone = useIsPhone();
   const navigate = useNavigate();
@@ -42,6 +42,7 @@ export function SportiviList() {
   return (
     <AdminPage fit>
       <style>{SPORTIVI_CSS}</style>
+      {tabs}
       <Window>
         <PageHeader title={LIST_COPY.title} subtitle={LIST_COPY.subtitle} actions={add} />
         <ListToolbar list={list} phone={phone} />

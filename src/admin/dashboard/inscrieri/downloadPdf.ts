@@ -1,15 +1,15 @@
 import type { useFetchClient } from '@strapi/admin/strapi-admin';
-import { fileNameFrom } from '../../../club/registration-panel';
+import { fileNameFrom, requestErrorText } from '../../../club/registration-panel';
 
 type Get = ReturnType<typeof useFetchClient>['get'];
+type Saved = { data: Blob; headers?: { get(name: string): string | null } | null };
 
 /** Admin PDF routes of plan 2D. */
 export const registrationDocumentUrl = (documentId: string, kind: string) => `/api/club/registrations/${documentId}/documents/${kind}`;
 export const blankFormUrl = (kind: string) => `/api/club/documents/blank/${kind}`;
 
-/** Fetches a PDF with the admin token and saves it under the server's file name. */
-export async function downloadPdf(get: Get, url: string, fallbackName: string): Promise<void> {
-  const r = await get(url, { responseType: 'blob' });
+/** Saves a fetched blob under the server's file name. */
+function saveBlob(r: Saved, fallbackName: string): void {
   const a = document.createElement('a');
   const href = URL.createObjectURL(r.data);
   a.href = href;
@@ -19,6 +19,43 @@ export async function downloadPdf(get: Get, url: string, fallbackName: string): 
   a.remove();
   // Revoked on the next tick: some Safari and Firefox versions cancel a download whose URL is revoked at once.
   setTimeout(() => URL.revokeObjectURL(href), 0);
+}
+
+/** Fetches a PDF with the admin token and saves it under the server's file name. */
+export async function downloadPdf(get: Get, url: string, fallbackName: string): Promise<void> {
+  saveBlob(await get(url, { responseType: 'blob' }), fallbackName);
+}
+
+/**
+ * A file made from a request body (the tables' .xlsx and .csv): POST with the admin token, saved under the server's file name.
+ * Strapi's fetch client ignores `responseType` on POST (it always reads JSON), so this uses fetch with the Bearer token.
+ * The backend URL is prefixed and a 401 renews the token once (`opts.refresh`) and retries once.
+ * A failed request throws an error whose `response.data` is the body blob, the shape `blobErrorText` reads.
+ */
+export type PostOptions = { backendURL?: string; refresh?: () => Promise<string> };
+
+export async function downloadPost(token: string | null, url: string, body: unknown, fallbackName: string, opts: PostOptions = {}): Promise<void> {
+  const send = (bearer: string | null) => fetch(`${opts.backendURL ?? ''}${url}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}) },
+    body: JSON.stringify(body),
+  });
+  let res = await send(token);
+  // An expired access token: renew it the way the Strapi client does, then ask once more.
+  if (res.status === 401 && opts.refresh) res = await send(await opts.refresh());
+  if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { response: { data: await res.blob() } });
+  saveBlob({ data: await res.blob(), headers: res.headers }, fallbackName);
+}
+
+/** The server's message of a failed blob request: its error body is a blob too, read as JSON; the fallback when it has none. */
+export async function blobErrorText(err: unknown, fallback: string): Promise<string> {
+  const data = (err as { response?: { data?: unknown } } | null)?.response?.data;
+  if (!(typeof Blob !== 'undefined' && data instanceof Blob)) return requestErrorText(err, fallback);
+  try {
+    return requestErrorText({ response: { data: JSON.parse(await data.text()) } }, fallback);
+  } catch {
+    return fallback;
+  }
 }
 
 /**

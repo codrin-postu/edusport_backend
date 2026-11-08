@@ -2727,6 +2727,52 @@ export interface ApiSubscriptionSubscription
   };
 }
 
+export interface ApiTableViewTableView extends Struct.CollectionTypeSchema {
+  collectionName: 'club_table_views';
+  info: {
+    displayName: 'Club / Vizualizare tabel';
+    pluralName: 'table-views';
+    singularName: 'table-view';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    authorId: Schema.Attribute.Integer & Schema.Attribute.Required;
+    authorName: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    definition: Schema.Attribute.JSON & Schema.Attribute.Required;
+    deletedAt: Schema.Attribute.DateTime;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::table-view.table-view'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 80;
+        minLength: 1;
+      }>;
+    publishedAt: Schema.Attribute.DateTime;
+    subject: Schema.Attribute.Enumeration<
+      ['sportivi', 'plati', 'abonamente', 'prezenta']
+    > &
+      Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiTeamMemberTeamMember extends Struct.CollectionTypeSchema {
   collectionName: 'team_members';
   info: {
@@ -3465,6 +3511,7 @@ declare module '@strapi/strapi' {
       'api::sponsor.sponsor': ApiSponsorSponsor;
       'api::sportsperson.sportsperson': ApiSportspersonSportsperson;
       'api::subscription.subscription': ApiSubscriptionSubscription;
+      'api::table-view.table-view': ApiTableViewTableView;
       'api::team-member.team-member': ApiTeamMemberTeamMember;
       'api::team-page.team-page': ApiTeamPageTeamPage;
       'api::volunteer-page.volunteer-page': ApiVolunteerPageVolunteerPage;

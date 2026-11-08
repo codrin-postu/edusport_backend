@@ -1,4 +1,4 @@
-import { guardedWrite, type FieldChange } from './admin-result';
+import { guardedWrite, type AdminStatus, type FieldChange } from './admin-result';
 import { ADMIN_ERRORS } from './athletes/errors';
 import { birthDateSortKey } from './birth-date';
 import type { RebuildResult } from './documents';
@@ -40,7 +40,7 @@ export type RegistrationEditDeps = {
 };
 export type RegistrationEditResult =
   | { ok: true; data: Record<string, unknown>; rebuild: RebuildResult | null; changed: string[] }
-  | { ok: false; status: 400 | 404 | 409 | 500; error: string };
+  | { ok: false; status: AdminStatus; error: string };
 type Refusal = Extract<RegistrationEditResult, { ok: false }>;
 type Written = { saved: Record<string, unknown>; changes: Record<string, FieldChange>; data: Record<string, unknown> };
 type CheckedSave = Refusal | { ok: true; before: Record<string, unknown>; written: Written | null };

@@ -176,3 +176,17 @@ describe('what is still owed (DEC 2026-11-03)', () => {
   });
 });
 
+describe('abonament codes in "Pentru" (11-4, spec 5.7)', () => {
+  it('a code gives "Abonament A-0124" in the list text and the option label', () => {
+    const names = { itemName: 'Abonament 8 ședințe', startsOn: '2026-11-01', code: 'A-0124' };
+    expect(purposeText({ purpose: 'abonament', clubMonth: null }, names)).toBe('Abonament A-0124');
+    expect(listPurposeText({ purpose: 'abonament', clubMonth: null, note: null }, names)).toBe('Abonament A-0124');
+    const opts = paymentOptions({ subs: [subscriptionRow({ id: 'sub1', startsOn: '2026-11-01', code: 'A-0124' })], payments: [], seasons: SEASONS, months: [], lessons: [], today });
+    expect(opts[0].label).toBe('A-0124, Abonament 8 ședințe (activ din 1 noi)');
+  });
+  it('without a code the P5 texts stay', () => {
+    expect(purposeText({ purpose: 'abonament', clubMonth: null }, { itemName: 'Abonament 8 ședințe', startsOn: '2026-11-03', code: null })).toBe('Abonament 8 ședințe (activ din 3 noi)');
+    expect(purposeText({ purpose: 'abonament', clubMonth: null }, { code: 'A-0124' })).toBe('Abonament A-0124');
+    expect(purposeText({ purpose: 'abonament', clubMonth: null }, {})).toBe('Abonament');
+  });
+});

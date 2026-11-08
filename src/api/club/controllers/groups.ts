@@ -9,11 +9,14 @@ import { readGroupList, readListQuery } from '../../../club/groups/list';
 import { allocateAll, joinGroup, moveMembership, removeMembership } from '../../../club/groups/members';
 import { strapiGroupStore } from '../../../club/groups/strapi-store';
 import { readUnassigned } from '../../../club/groups/unassigned';
-import { undoAction } from '../../../club/groups/undo-service';
+import { readActionId, undoAction } from '../../../club/groups/undo-service';
 import { presenceContext } from '../../../club/presence/context';
 import { strapiPresenceStore } from '../../../club/presence/strapi-store';
 import { movePreview as presenceMovePreview, presenceCarry } from '../../../club/presence/subscriptions/move';
 import { undoKindOf, undoPresenceAction } from '../../../club/presence/undo-service';
+import { callerOf } from '../../../club/tables/views-caller';
+import { strapiTableViewStore } from '../../../club/tables/views-store';
+import { undoViewDelete } from '../../../club/tables/views-service';
 
 const store = () => strapiGroupStore(strapi);
 const id = (ctx: AdminCtx): string => ctx.params.documentId ?? '';
@@ -82,7 +85,9 @@ export default {
 
   async undo(ctx: AdminCtx) {
     const body = ctx.request.body;
-    if ((await undoKindOf(store(), body)) === 'presence') return respond(ctx, await undoPresenceAction(await presenceContext(strapi, ctx), body));
+    const kind = await undoKindOf(store(), body);
+    if (kind === 'presence') return respond(ctx, await undoPresenceAction(await presenceContext(strapi, ctx), body));
+    if (kind === 'table-view') return respond(ctx, await undoViewDelete(strapiTableViewStore(strapi), await callerOf(ctx.request.header.authorization, strapi), readActionId(body) ?? '', { log: (m) => strapi.log.error(m) }));
     const gctx = await groupContext(strapi, ctx);
     const { ports } = presenceCarry(strapiPresenceStore(strapi));
     respond(ctx, await undoAction(gctx, body, ports));
