@@ -38,3 +38,13 @@ export const GRID_COPY = {
   legendWeek: 'Prezenți din listați', legendMonth: 'Prezenți din listați, % în celule',
   steps: ['0%', '1-59%', '60-79%', '80-94%', '95-100%'], planned: 'planificat', none: 'fără ședință',
 } as const;
+
+export const COACH_COPY = {
+  subtitle: 'Antrenor', back: 'Înapoi',
+  tiles: { sessions: 'Ședințe grup', lessons: 'Lecții individuale', hours: 'Ore' },
+  picker: { ore: 'Ore', sedinte: 'Ședințe', lectii: 'Lecții individuale' },
+  total: 'Total',
+  emptySessions: 'Nicio ședință în perioada asta.', emptyLessons: 'Nicio lecție individuală în perioada asta.', emptyHours: 'Nicio oră în perioada asta.',
+} as const;
+
+export const PANEL_LINKS = { coaches: 'Antrenori: ', openGroup: 'Deschide grupa' } as const;
