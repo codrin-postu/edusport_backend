@@ -18,6 +18,7 @@ export type CoachSavedDays = { month: string; dates: string[] };
 export type CoachDevice = { id: string; label: string; lastSeenAt: string; current: boolean };
 export type CoachClassRow = {
   sessionId: string | null; occurrenceKey: string | null; groupId: string; groupName: string; date: string; startTime: string; children: number; done: boolean; standIn: boolean;
+  location: string | null;
 };
 export type CoachLessonRow = { lessonId: string; athleteName: string; date: string; startTime: string; durationMin: number; done: boolean };
 export type CoachToday = { date: string; today: string; groups: CoachClassRow[]; lessons: CoachLessonRow[]; todo: CoachClassRow[] };
@@ -70,6 +71,12 @@ export type CoachAthleteCard = {
   abonament: { code: string | null; next: number; slots: number; validUntil: string; location: string | null } | null;
   competitions: CoachAthleteCompetitions;
 };
+export type CoachCalendarItem = {
+  kind: 'grup' | 'individual'; cancelled: boolean; date: string; startTime: string; durationMin: number | null; title: string;
+  children: number | null; location: string | null; done: boolean; standIn: boolean;
+  sessionId: string | null; occurrenceKey: string | null; lessonId: string | null;
+};
+export type CoachCalendar = { month: string; today: string; days: { date: string; items: CoachCalendarItem[] }[] };
 export type CoachMemberChange = { athleteName: string; groupName: string; from: string; toast: string };
 export type CoachHistoryRow = {
   kind: 'grup' | 'inlocuitor' | 'individuala'; date: string; name: string; present: number | null; durationMin: number | null; sessionId: string | null; lessonId: string | null;

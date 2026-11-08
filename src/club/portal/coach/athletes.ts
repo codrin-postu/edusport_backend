@@ -19,6 +19,7 @@ import { HISTORY_ACTIONS, SUBJECT } from '../../history-text';
 import { isAnonymized } from '../../personal-data/anonymize-plan';
 import { PORTAL_ERRORS, PORTAL_TOASTS } from '../copy';
 import type { CoachAthleteCard, CoachSearchRow } from './api-types';
+import { locationOfGroup } from './calendar';
 import { listFacts } from './groups';
 import { forbidden, type CoachContexts, type CoachResult } from './context';
 import { groupAccess, ownAthlete, ownGroupIds } from './ownership';
@@ -139,8 +140,7 @@ async function abonamentOf(c: CoachContexts, athleteId: string, groups: GroupRec
   const subs = await store.subscriptions({ athleteId });
   const used = usedSlots(subs.length > 0 ? await store.attendances({ subscriptionIds: subs.map((s) => s.id) }) : []);
   const sub = pickSubscription(subs, used, school.priceListId, c.today);
-  // The group's location name arrives with the section location reader of the calendar task (locationOfGroup).
-  return sub ? { code: sub.code, next: (used.get(sub.id) ?? 0) + 1, slots: sub.slots, validUntil: sub.validUntil, location: null } : null;
+  return sub ? { code: sub.code, next: (used.get(sub.id) ?? 0) + 1, slots: sub.slots, validUntil: sub.validUntil, location: await locationOfGroup(c, school) } : null;
 }
 
 /** Athlete card (8.7, ruling 21): own children with the contact and abonament, a stand-in's listed children without them, nobody else. */

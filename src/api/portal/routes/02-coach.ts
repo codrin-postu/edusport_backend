@@ -14,6 +14,7 @@ export default {
     route('GET', '/me/devices', 'devices'),
     route('DELETE', '/me/devices/:id', 'revokeDevice'),
     route('GET', '/today', 'today'),
+    route('GET', '/calendar', 'calendar'),
     route('GET', '/groups', 'groups'),
     route('GET', '/groups/:documentId', 'group'),
     route('GET', '/groups/:documentId/program', 'program'),

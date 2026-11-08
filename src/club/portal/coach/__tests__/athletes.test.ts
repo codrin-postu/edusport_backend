@@ -146,6 +146,12 @@ describe('readCard additions', () => {
     expect(JSON.stringify(out)).not.toMatch(/Alergie|copil@example/);
   });
 
+  it('the abonament location is the section location of its group', async () => {
+    const c = coachCtx(ME);
+    c.fake.group.sections.find((x) => x.id === 'afi')!.locationName = 'AFI Cotroceni';
+    expect(await readCard(c, 'a-scoala-1')).toMatchObject({ data: { abonament: { location: 'AFI Cotroceni' } } });
+  });
+
   it('a stand-in child has presence only: no contact, no abonament', async () => {
     const c = coachCtx(ME);
     c.fake.state.sessions.push(sessionRow({ id: 's-b', groupId: 'g-club-b', date: '2026-11-17', startTime: '18:00', coachIds: [ME, 'tm-virgil'] }));

@@ -5,11 +5,14 @@ import type { SessionRow } from '../../presence/types';
 import { PORTAL_ERRORS } from '../copy';
 import type { CoachClassRow, CoachLessonRow, CoachToday } from './api-types';
 import type { CoachContexts } from './context';
+import { locationOfGroup } from './calendar';
 import { ownGroupIds } from './ownership';
 
-const classRow = (r: DayRow, standIn: boolean): CoachClassRow => ({
+type Located = (groupId: string) => string | null;
+
+const classRow = (r: DayRow, standIn: boolean, location: Located): CoachClassRow => ({
   sessionId: r.sessionId, occurrenceKey: r.occurrenceKey, groupId: r.groupId, groupName: r.groupName, date: r.date, startTime: r.startTime,
-  children: r.listed, done: r.state === 'salvata', standIn,
+  children: r.listed, done: r.state === 'salvata', standIn, location: location(r.groupId),
 });
 
 /** Saved sessions of other groups that list the coach (S31). */
@@ -32,16 +35,20 @@ export async function readToday(c: CoachContexts, date: unknown): Promise<AdminR
   const wanted = date === undefined || date === '' ? c.today : date;
   const day = await readDay(c.presence.store, wanted, c.today);
   if (!day.ok) return refuse(400, PORTAL_ERRORS.invalid);
-  const own = ownGroupIds(await c.presence.store.groups(), c.coach.teamMemberId);
+  const groups = await c.presence.store.groups();
+  const own = ownGroupIds(groups, c.coach.teamMemberId);
+  const places = new Map<string, string | null>();
+  for (const g of groups) places.set(g.id, await locationOfGroup(c, g));
+  const where: Located = (id) => places.get(id) ?? null;
   const ownRows = day.data.day.filter((r) => own.has(r.groupId));
   const standIn = await standInRows(c, day.data.day.filter((r) => !own.has(r.groupId)));
   return {
     ok: true,
     data: {
       date: day.data.date, today: c.today,
-      groups: [...ownRows.map((r) => classRow(r, false)), ...standIn.map((r) => classRow(r, true))].sort((a, b) => a.startTime.localeCompare(b.startTime)),
+      groups: [...ownRows.map((r) => classRow(r, false, where)), ...standIn.map((r) => classRow(r, true, where))].sort((a, b) => a.startTime.localeCompare(b.startTime)),
       lessons: await lessonsOf(c, day.data.date),
-      todo: day.data.undone.filter((r) => own.has(r.groupId)).map((r) => classRow(r, false)),
+      todo: day.data.undone.filter((r) => own.has(r.groupId)).map((r) => classRow(r, false, where)),
     },
   };
 }

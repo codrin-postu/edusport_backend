@@ -82,3 +82,13 @@ describe('readToday', () => {
     expect(await readToday(coachCtx('tm-andreea'), 5)).toMatchObject({ ok: false, status: 400 });
   });
 });
+
+describe('readToday location', () => {
+  it('rows carry the section location', async () => {
+    const c = coachCtx('tm-andreea');
+    c.fake.group.sections.find((x) => x.id === 'club')!.locationName = 'Patinoar Club';
+    const out = await read(c);
+    expect(out.groups[0].location).toBe('Patinoar Club');
+    expect((await read(coachCtx('tm-andreea'))).groups[0].location).toBeNull();
+  });
+});
