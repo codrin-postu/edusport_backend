@@ -21,6 +21,7 @@ import type { Core } from '@strapi/strapi';
 import { retryRegistrationEmails } from '../src/email/strapi-email';
 import { purgePortal } from '../src/club/portal/purge';
 import { strapiPortalStore } from '../src/club/portal/strapi-store';
+import { strapiSecurityStore } from '../src/club/security/strapi-store';
 import { allForms } from '../src/sheets/registry';
 import { isConfigured } from '../src/sheets/client';
 import { getLink, isConnected, isReconcileDue, stampReconcile } from '../src/sheets/store';
@@ -80,8 +81,12 @@ export default {
   portalPurge: {
     task: async ({ strapi }: { strapi: Core.Strapi }) => {
       try {
-        const n = await purgePortal(strapiPortalStore(strapi), new Date());
-        strapi.log.info(`[portal][cron] purged ${n.limits} limit row(s), ${n.devices} device(s), ${n.tokens} token(s), ${n.sessions} session(s)`);
+        // One daily pass also clears the 2FA rows (unconfirmed factors, spent challenges and backup codes, revoked admin devices).
+        const n = await purgePortal(strapiPortalStore(strapi), new Date(), strapiSecurityStore(strapi));
+        strapi.log.info(
+          `[portal][cron] purged ${n.limits} limit row(s), ${n.devices} device(s), ${n.tokens} token(s), ${n.sessions} session(s), ` +
+            `${n.factors ?? 0} factor(s), ${n.challenges ?? 0} challenge(s), ${n.backupCodes ?? 0} backup code(s), ${n.adminDevices ?? 0} admin device(s)`,
+        );
       } catch (err) {
         strapi.log.warn(`[portal][cron] purge failed: ${err instanceof Error ? err.message : String(err)}`);
       }
