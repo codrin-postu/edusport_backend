@@ -55,4 +55,12 @@ describe('session panel, new session check and defaults', () => {
     expect(readPanelQuery({ group: 'g-ib', date: '2026-11-17', time: '18:00', duration: '52' })).toBeNull();
     expect(readPanelQuery({})).toBeNull();
   });
+
+  it('marks the athlete to highlight only when on the session (4.4)', async () => {
+    const f = withSaved14(attendanceSeed());
+    expect(ok(await readSessionPanel(f.store, { id: 's14', athlete: 'a1' }, '2026-11-20')).highlightAthleteId).toBe('a1');
+    expect(ok(await readSessionPanel(f.store, { id: 's14', athlete: 'other' }, '2026-11-20')).highlightAthleteId).toBeNull();
+    expect(ok(await readSessionPanel(f.store, { id: 's14' }, '2026-11-20')).highlightAthleteId).toBeNull();
+    expect(readPanelQuery({ id: 's14', athlete: 'a1' })).toEqual({ id: 's14', athlete: 'a1' });
+  });
 });

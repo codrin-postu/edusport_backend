@@ -11,7 +11,9 @@ import { readPeriod } from '../../../club/presence/attendance/period';
 import { readGroupMonth } from '../../../club/presence/attendance/group-month';
 import { readPanelQuery, readSessionPanel } from '../../../club/presence/attendance/panel';
 import { respondSave, saveSession } from '../../../club/presence/attendance/save';
+import { coachCsv, coachCsvName } from '../../../club/presence/coaches/coach-csv';
 import { coachesCsv, coachesCsvName } from '../../../club/presence/coaches/csv';
+import { readCoachPage } from '../../../club/presence/coaches/page';
 import { readCoachPeriod } from '../../../club/presence/coaches/report';
 import { bucharestNow, readPeriodQuery } from '../../../club/presence/period';
 import { createLesson } from '../../../club/presence/lessons/create';
@@ -71,6 +73,26 @@ export default {
     ctx.set('Content-Type', 'text/csv; charset=utf-8');
     ctx.set('Content-Disposition', `attachment; filename="${coachesCsvName(period.from, period.to)}"`);
     ctx.body = coachesCsv(result.data);
+  },
+
+  async coachPage(ctx: AdminCtx) {
+    const period = readPeriodQuery(ctx.query);
+    if (period.ok === false) return refuseWith(ctx, period.status, period.error);
+    respond(ctx, await readCoachPage(store(), param(ctx, 'documentId'), period.value, bucharestNow(new Date())));
+  },
+
+  async coachCsv(ctx: FileCtx) {
+    const checked = readPeriodQuery(ctx.query);
+    if (checked.ok === false) return refuseWith(ctx, checked.status, checked.error);
+    const period = checked.value;
+    const result = await readCoachPage(store(), param(ctx, 'documentId'), period, bucharestNow(new Date()));
+    if (result.ok === false) return refuseWith(ctx, result.status, result.error);
+    const page = result.data;
+    const adminId = await verifiedAdminId(ctx.request.header.authorization, strapi);
+    strapi.log.info(downloadLogLine({ adminId, kind: 'coach-csv', rows: page.totals.sessions + page.totals.lessons }));
+    ctx.set('Content-Type', 'text/csv; charset=utf-8');
+    ctx.set('Content-Disposition', `attachment; filename="${coachCsvName(page.name, period)}"`);
+    ctx.body = coachCsv(page);
   },
 
   async lessons(ctx: AdminCtx) {

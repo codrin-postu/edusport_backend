@@ -1,7 +1,7 @@
 import type { AdminResult } from '../../admin-result';
 import { loadRowContext } from '../attendance/day';
 import { periodRows } from '../attendance/period';
-import type { CoachDay, CoachPage, PeriodLessonRow, PeriodRow } from '../attendance/api-types';
+import type { CoachDay, CoachPage, CoachSessionRow, PeriodLessonRow, PeriodRow } from '../attendance/api-types';
 import { PRESENCE_ERRORS } from '../copy/core';
 import { byDateTime, lessonListRow } from '../lessons/read';
 import type { Period } from '../period';
@@ -33,11 +33,12 @@ export async function readCoachPage(store: PresenceStore, coachId: string, perio
   const [rows, lessons, athletes, savedSessions] = await Promise.all([
     periodRows(store, ctx, period.from, period.to, now), store.lessons(period), store.athletes(), store.sessions(period),
   ]);
-  const sessions = rows.filter((r) => r.coachIds.includes(coachId)).sort(newestFirst);
   const minutesOf = new Map(savedSessions.map((s) => [s.id, s.durationMin]));
+  const sessions: CoachSessionRow[] = rows.filter((r) => r.coachIds.includes(coachId)).sort(newestFirst)
+    .map((r) => ({ ...r, durationMin: r.sessionId === null ? null : minutesOf.get(r.sessionId) ?? null }));
   const mine = lessons.filter((l) => l.coachIds.includes(coachId));
   const counted: Counted[] = [
-    ...sessions.flatMap((r) => (r.sessionId !== null && r.present > 0 ? [{ date: r.date, kind: 'sessions' as const, minutes: minutesOf.get(r.sessionId) ?? 0 }] : [])),
+    ...sessions.flatMap((r) => (r.sessionId !== null && r.present > 0 ? [{ date: r.date, kind: 'sessions' as const, minutes: r.durationMin ?? 0 }] : [])),
     ...mine.filter((l) => l.present === true).map((l) => ({ date: l.date, kind: 'lessons' as const, minutes: l.durationMin })),
   ];
   const names = { athletes: new Map(athletes.map((a) => [a.id, a.name])), coaches: ctx.teamNames, now };

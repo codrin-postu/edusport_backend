@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { coachCsv, coachCsvName } from '../coaches/coach-csv';
 import { readCoachPage } from '../coaches/page';
+import type { CoachPage } from '../attendance/api-types';
 import { attendanceRow, lessonRow, sessionRow, type FakePresenceContext } from './fake-store';
 import { attendanceSeed, cancelDate, ok } from './attendance-seed';
 
@@ -55,5 +57,35 @@ describe('coach page read (5.2, 4.3)', () => {
   it('answers 404 for an unknown coach', async () => {
     const f = coachFixture();
     expect(await readCoachPage(f.store, 'nope', P, NOW)).toEqual({ ok: false, status: 404, error: 'Antrenorul nu există.' });
+  });
+});
+
+type Item = { kind: 'grup' | 'individual'; date: string; name: string; time: string; min: number };
+
+const pageWith = (items: Item[]): CoachPage => ({
+  name: 'Virgil Pascu', totals: { sessions: 0, lessons: 0, hours: '0,0' }, days: [],
+  sessions: items.filter((i) => i.kind === 'grup').map((i, n) => ({
+    sessionId: `s${n}`, occurrenceKey: null, groupId: 'g', groupName: i.name, date: i.date, startTime: i.time, coachNames: [], coachIds: [VIRGIL], present: 2, listed: 2,
+    visitors: 0, state: 'salvata', outsideSchedule: false, adminState: 'completat', durationMin: i.min,
+  })),
+  lessons: items.filter((i) => i.kind === 'individual').map((i, n) => ({
+    lessonId: `l${n}`, date: i.date, startTime: i.time, athleteId: 'a1', athleteName: i.name, coachNames: [], durationMin: i.min, state: 'salvata', present: true, adminState: 'completat',
+  })),
+});
+
+describe('coach CSV (4.2)', () => {
+  it('writes one line per counted item, oldest first', () => {
+    const csv = coachCsv(pageWith([
+      { kind: 'individual', date: '2026-11-18', name: 'Ana Ionescu', time: '18:00', min: 50 },
+      { kind: 'grup', date: '2026-11-14', name: 'Grupa "A"; seara', time: '17:00', min: 60 },
+    ]));
+    expect(csv).toBe('\uFEFFData;Tip;Grupă sau sportiv;Ora;Durată;Ore\r\n14.11.2026;Grup;"Grupa ""A""; seara";17:00;60 min;1,0\r\n18.11.2026;Individual;Ana Ionescu;18:00;50 min;0,8\r\n');
+    expect(coachCsvName('Andrei Popă', { from: '2026-11-01', to: '2026-11-30' })).toBe('antrenor-andrei-popa-2026-11-01-2026-11-30.csv');
+  });
+
+  it('leaves out unsaved sessions and absent lessons', async () => {
+    const page = ok(await readCoachPage(coachFixture().store, VIRGIL, P, NOW));
+    expect(coachCsv(page).split('\r\n')).toEqual([
+      '\uFEFFData;Tip;Grupă sau sportiv;Ora;Durată;Ore', '14.11.2026;Grup;Intermediari Bronze;11:00;60 min;1,0', '18.11.2026;Individual;Ana Ionescu;17:00;50 min;0,8', '']);
   });
 });
