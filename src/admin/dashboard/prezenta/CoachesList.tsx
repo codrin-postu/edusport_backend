@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Button, Loading, Notice, useIsPhone } from '../../ui';
+import { Button, Loading, Notice, adminToast, useIsPhone } from '../../ui';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { PERIOD_COPY, PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
 import type { CoachRow } from '../../../club/presence/attendance/api-types';
@@ -10,7 +10,7 @@ import { usePrezentaApi } from './api';
 import { usePeriodLoad } from './MonthLine';
 import { PeriodTable, type PeriodColumn } from './PeriodTable';
 import { HeaderSlot } from './Switcher';
-import { failToast } from './undo';
+import { blobErrorText } from '../inscrieri/downloadPdf';
 
 type Props = { view: PeriodView; date: string; today: string; host: HTMLElement | null };
 
@@ -47,7 +47,7 @@ export function CoachesList({ view, date, host }: Props) {
     try {
       await api.coachesCsv(period.from, period.to);
     } catch (err) {
-      failToast(err);
+      adminToast.error(await blobErrorText(err, PRESENCE_ERRORS.failed));
     } finally {
       setBusy(false);
     }

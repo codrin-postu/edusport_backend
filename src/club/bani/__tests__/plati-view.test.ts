@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import type { PaymentRowView } from '../../presence/money-api';
 import { activeSections } from '../../ui-filters';
-import { platiCells, platiSections, rowMenu, totalLine } from '../plati-view';
+import { platiCells, platiColumns, platiSections, rowMenu, totalLine } from '../plati-view';
 
 const paymentView = (o: Partial<PaymentRowView>): PaymentRowView => ({
   paymentId: 'p1', athleteId: 'a1', athleteName: 'Ana Ionescu', paidOn: '2026-10-27', purpose: 'abonament', purposeText: 'Abonament', method: 'numerar',
-  collectedAtRink: false, amount: 100, recordedBy: 'Admin 1', cancelled: false, for: { kind: 'altceva' }, note: null, ...o,
+  collectedAtRink: false, receiptNo: null, amount: 100, recordedBy: 'Admin 1', cancelled: false, for: { kind: 'altceva' }, note: null, ...o,
 });
 
 describe('Plăți view', () => {
   it('cells: rink after the method, cancelled struck with "anulată" (5.10, p5 Q23)', () => {
     expect(platiCells(paymentView({ paidOn: '2026-10-27', athleteName: 'Ana Ionescu', purposeText: 'Abonament 8 ședințe', method: 'numerar', collectedAtRink: true, amount: 320, recordedBy: 'Admin 1' })))
-      .toEqual({ date: 'Mar 27 oct', athlete: 'Ana Ionescu', purpose: 'Abonament 8 ședințe', method: 'Numerar, la patinoar', amount: '320 RON', recordedBy: 'Admin 1', struck: false, mark: null });
+      .toEqual({ date: 'Mar 27 oct', receipt: '', athlete: 'Ana Ionescu', purpose: 'Abonament 8 ședințe', method: 'Numerar, la patinoar', amount: '320 RON', recordedBy: 'Admin 1', struck: false, mark: null });
     const c = paymentView({ cancelled: true, method: 'card', amount: 80 });
     expect([platiCells(c).struck, platiCells(c).mark, platiCells(c).method, rowMenu(c)]).toEqual([true, 'anulată', 'Card (POS)', []]);
     expect(rowMenu(paymentView({}))).toEqual(['edit', 'cancel']);
@@ -28,5 +28,13 @@ describe('Plăți view', () => {
     expect(activeSections(s)).toBe(0);
     expect(activeSections(platiSections({ month: '2026-10', method: 'card', purpose: 'club_luna' }, '2026-11-20'))).toBe(2);   // M1: Metodă and Tip count
     expect(totalLine({ rows: [], total: 840 })).toBe('Total: 840 RON');
+  });
+});
+
+describe('Receipt number column (11-5 5.7)', () => {
+  it('"Nr. chitanță" follows "Data"; empty for an older payment', () => {
+    expect(platiColumns()).toEqual(['Data', 'Nr. chitanță', 'Sportiv', 'Pentru', 'Metodă', 'Sumă', 'Înregistrat de']);
+    expect(platiCells(paymentView({ receiptNo: '2026-0042' })).receipt).toBe('2026-0042');
+    expect(platiCells(paymentView({ purposeText: 'Abonament A-0124' })).purpose).toBe('Abonament A-0124');
   });
 });

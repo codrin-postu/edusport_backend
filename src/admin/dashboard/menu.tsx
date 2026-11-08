@@ -1,7 +1,7 @@
 import type { StrapiApp } from '@strapi/strapi/admin';
 import {
   House, Book, Cursor, Feather, Calendar, User, Star, GridFour,
-  Clock, Bell, Duplicate, Pencil, ChartCircle, Mail,
+  Clock, Bell, Duplicate, Pencil, ChartCircle, Mail, ChartPie,
 } from '@strapi/icons';
 import {
   CUSTOM_PAGES,
@@ -9,6 +9,7 @@ import {
   MOMENTE_ISTORIC_TO, CURSURI_TO, PRETURI_TO, SEZOANE_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
   REALIZARI_TO, EVENIMENTE_COLABORARE_TO, UID,
 } from '../pages/routes';
+import { BANI_PATH } from '../../club/bani/routes';
 import { OLD_EDITOR_PATH, SPORTIVI_PATH } from '../../club/sportivi/routes';
 import type { AdminArea } from '../../club/admin-area';
 import { GRUPE_PATH } from '../../club/grupe/routes';
@@ -150,6 +151,7 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: ABONAMENTE_PATH, label: 'Abonamente', icon: Book, group: 'club' },
   { to: PLATI_PATH, label: 'Plăți', icon: ChartCircle, group: 'club' },
   { to: DE_INCASAT_PATH, label: 'De încasat', icon: Bell, group: 'club' },
+  { to: BANI_PATH, label: 'Bani', icon: ChartPie, group: 'club', area: 'money' },
 
   // Sportivi și echipă
   // Re-pointed from collection('api::team-member.team-member'): team members are
@@ -331,6 +333,15 @@ export function registerEdusportMenu(app: StrapiApp) {
     icon: Bell,
     intlLabel: { id: 'edusport.menu.deIncasat', defaultMessage: 'De încasat' },
     Component: () => import('./DeIncasatPage'),
+    permissions: [],
+    position: 7,
+  });
+
+  app.addMenuLink({
+    to: BANI_PATH,
+    icon: ChartPie,
+    intlLabel: { id: 'edusport.menu.bani', defaultMessage: 'Bani' },
+    Component: () => import('./BaniPage'),
     permissions: [],
     position: 7,
   });

@@ -1,4 +1,9 @@
-import { refuseWith, type AdminCtx } from '../../../club/admin-http';
+import { verifiedAdminId } from '../../../club/admin-auth';
+import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
+import { downloadLogLine } from '../../../club/download-log';
+import { accountingCsv, accountingName, accountingXlsx } from '../../../club/money/accounting-export';
+import { readAccounting, readAccountingData, readMoneyMonth, readOverview } from '../../../club/money/service';
+import type { MoneyOverview } from '../../../club/money/types';
 import { monthOf, isMonth } from '../../../club/presence/dates';
 import { presenceContext } from '../../../club/presence/context';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
@@ -9,14 +14,65 @@ import { athletePaymentOptions, athletePayments, listPayments, readPaymentQuery 
 import { recordPayment } from '../../../club/presence/payments/record';
 import { strapiPresenceStore } from '../../../club/presence/strapi-store';
 import { queryText, respondAction, todayIso } from '../../../club/groups/http';
+import { exportLimit } from '../../../club/tables/limit';
+import { TABLES_NO_XLSX, XLSX_READY } from '../../../club/tables/service';
 
+type FileCtx = AdminCtx & { set: (field: string, value: string) => void };
 const id = (ctx: AdminCtx): string => ctx.params.documentId ?? '';
+/** One store per request. */
+const store = () => strapiPresenceStore(strapi);
+
+/** The `month` query, or null after the 400 has been sent. */
+function moneyMonth(ctx: AdminCtx, today: string): string | null {
+  const month = readMoneyMonth(ctx.query.month, today);
+  if (month === null) refuseWith(ctx, 400, PRESENCE_ERRORS.invalid);
+  return month;
+}
+
+/** The accounting file: month checked, the xlsx gate before any read, the read through the export limiter, one log line (no names, S62). */
+async function accountingFile(ctx: FileCtx, format: 'xlsx' | 'csv'): Promise<void> {
+  const today = todayIso();
+  const month = moneyMonth(ctx, today);
+  if (month === null) return;
+  if (format === 'xlsx' && !XLSX_READY) return refuseWith(ctx, 501, TABLES_NO_XLSX);
+  const data = await exportLimit(() => readAccountingData(store(), month, today, format));
+  const adminId = await verifiedAdminId(ctx.request.header.authorization, strapi);
+  strapi.log.info(downloadLogLine({ adminId, kind: format === 'xlsx' ? 'accounting-xlsx' : 'accounting-csv', rows: data.accounting.payments.length }));
+  ctx.set('Content-Disposition', `attachment; filename="${accountingName(month, format)}"`);
+  if (format === 'csv') {
+    ctx.set('Content-Type', 'text/csv; charset=utf-8');
+    ctx.body = accountingCsv(data.accounting, data.extra);
+    return;
+  }
+  ctx.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  ctx.body = await accountingXlsx(data.accounting, data.overview as MoneyOverview, data.extra);
+}
 
 /** Admin API of Plăți and De încasat (routes/11-payments.ts, all `global::is-admin`). */
 export default {
   async list(ctx: AdminCtx) {
     const today = todayIso();
     ctx.body = { data: await listPayments(strapiPresenceStore(strapi), readPaymentQuery(ctx.query, today), today) };
+  },
+
+  async moneyOverview(ctx: AdminCtx) {
+    const today = todayIso();
+    const month = moneyMonth(ctx, today);
+    if (month !== null) respond(ctx, { ok: true, data: await readOverview(store(), month, today) });
+  },
+
+  async accounting(ctx: AdminCtx) {
+    const today = todayIso();
+    const month = moneyMonth(ctx, today);
+    if (month !== null) respond(ctx, { ok: true, data: await readAccounting(store(), month) });
+  },
+
+  async accountingXlsx(ctx: FileCtx) {
+    await accountingFile(ctx, 'xlsx');
+  },
+
+  async accountingCsv(ctx: FileCtx) {
+    await accountingFile(ctx, 'csv');
   },
 
   async create(ctx: AdminCtx) {

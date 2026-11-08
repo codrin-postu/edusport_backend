@@ -14,7 +14,7 @@ const CANCELLED_MARK = 'anulată';
 
 export type PlatiQuery = { month: string; method: string | null; purpose: string | null };
 export type PlatiCells = {
-  date: string; athlete: string; purpose: string; method: string; amount: string; recordedBy: string; struck: boolean; mark: string | null;
+  date: string; receipt: string; athlete: string; purpose: string; method: string; amount: string; recordedBy: string; struck: boolean; mark: string | null;
 };
 
 const choices = (words: Record<string, string>): { value: string; label: string }[] => Object.entries(words).map(([value, label]) => ({ value, label }));
@@ -33,9 +33,12 @@ export function platiSections(q: PlatiQuery, today: string): FilterSection[] {
   ];
 }
 
+/** Column headers of the Plăți list; the athlete's own table leaves out "Sportiv". */
+export const platiColumns = (): string[] => [...MONEY_UI_COPY.plati.columns];
+
 export function platiCells(r: PaymentRowView): PlatiCells {
   return {
-    date: listDate(r.paidOn), athlete: r.athleteName, purpose: r.purposeText,
+    date: listDate(r.paidOn), receipt: r.receiptNo ?? '', athlete: r.athleteName, purpose: r.purposeText,
     method: `${METHOD_WORDS[r.method]}${r.collectedAtRink ? PAYMENT_COPY.rink : ''}`,
     amount: ron(r.amount), recordedBy: r.recordedBy, struck: r.cancelled, mark: r.cancelled ? CANCELLED_MARK : null,
   };

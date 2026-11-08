@@ -19,7 +19,7 @@ describe('money UI foundation', () => {
   it('copy of the money screens (5.7 to 5.13)', () => {
     const c = MONEY_UI_COPY;
     expect([c.abonamente.title, c.abonamente.subtitle, c.abonamente.extend, c.abonamente.add]).toEqual(['Abonamente', 'Școala de patinaj', 'Prelungește abonamentele', '+ Abonament']);
-    expect(c.abonamente.stateOptions).toEqual(['Toate', 'Active', 'Epuizate', 'Expirate', 'Anulate']);
+    expect(c.abonamente.stateOptions).toEqual(['Toate', 'Active', 'Epuizate', 'Expirate', 'Anulate', 'Expiră în 14 zile']);
     expect(c.plati.total(ron(840))).toBe('Total: 840 RON');
     expect(c.athlete.mainGroup('Intermediari Bronze')).toBe('Intermediari Bronze, principală');
     expect(c.due.empty).toBe('Nimic de încasat în luna asta.');

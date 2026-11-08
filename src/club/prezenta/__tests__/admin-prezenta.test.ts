@@ -260,7 +260,7 @@ it('the coach page (11-2 T5, 5.3): segmented picker, tiles, header, CSV, back, n
     expect(page, k).toContain(k);
   }
   const api = src('dashboard/prezenta/api.ts');
-  expect(api).toMatch(/downloadPdf\([\s\S]*?presence\.csv/);
+  expect(api).toMatch(/downloadGet\([\s\S]*?presence\.csv/);
   expect(api).toContain('coachCsv:');
   expect(src('dashboard/PrezentaPage.tsx')).toMatch(/coachIdFromSplat\(/);
   expect(src('dashboard/PrezentaPage.tsx')).toContain('<CoachPage');

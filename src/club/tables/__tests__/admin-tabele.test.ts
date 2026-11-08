@@ -47,7 +47,7 @@ describe('Tabele screen files', () => {
     expect(src).toContain('downloadPost(');
     expect(src).toContain('effectiveDefinition(');
     expect(src).toMatch(/tables\/export/);
-    expect(read('inscrieri/downloadPdf.ts')).toMatch(/export async function downloadPost\(token: string \| null, url: string, body: unknown, fallbackName: string, opts: PostOptions = \{\}\)/);
+    expect(read('inscrieri/downloadPdf.ts')).toMatch(/export const downloadPost = \(token: string \| null, url: string, body: unknown, fallbackName: string, opts: PostOptions = \{\}\)/);
   });
 
   it('the result table windows large results and opens athletes in a new tab', () => {
@@ -120,8 +120,8 @@ describe('Tabele screen files', () => {
     expect(page).toMatch(/disabled=\{!open\}/);
     expect(page).toMatch(/api\.download\(format, effective, current\.name,/);
     expect(read('sportivi/tabele/api.ts')).toMatch(/\{ definition, format, name \}/);
-    expect(read('sportivi/tabele/api.ts')).toContain('attemptTokenRefresh');
-    expect(read('sportivi/tabele/api.ts')).toContain('backendURL');
+    expect(read('inscrieri/strapiDownload.ts')).toContain('attemptTokenRefresh');
+    expect(read('inscrieri/strapiDownload.ts')).toContain('backendURL');
     expect(read('sportivi/tabele/Builder.tsx')).toContain('tbl-subject');
     expect(read('sportivi/tabele/styles.ts')).toMatch(/\.tbl-subject\.ui-seg\{display:grid;grid-template-columns:repeat\(2,/);
     expect(read('sportivi/tabele/ResultTable.tsx')).toMatch(/\{dir &&[^\n]*ui-table-sort/);

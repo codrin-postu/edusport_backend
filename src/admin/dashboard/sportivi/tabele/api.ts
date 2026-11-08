@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { attemptTokenRefresh, getFetchClient, useAuth, useFetchClient } from '@strapi/admin/strapi-admin';
+import { getFetchClient, useAuth, useFetchClient } from '@strapi/admin/strapi-admin';
 import type { CatalogAnswer } from '../../../../club/tables/catalog-api';
 import type { SavedViewRow, TableDefinition, TableResult } from '../../../../club/tables/types';
 import { downloadPost } from '../../inscrieri/downloadPdf';
+import { strapiDownload } from '../../inscrieri/strapiDownload';
 
 const BASE = '/api/club';
 type Wrapped<T> = { data: { data: T; undo?: { actionId: string } | null } };
@@ -38,10 +39,7 @@ export function useTablesApi() {
       undo: async (actionId: string) => ((await getFetchClient().post(`${BASE}/undo`, { actionId })) as Wrapped<{ undone: true }>).data.data,
       /** `name` is the view's name (it names the file and the sheet); an unsaved definition sends none. */
       download: (format: Format, definition: TableDefinition, name: string | null, fallbackName: string) =>
-        downloadPost(tokenRef.current, `${BASE}/tables/export`, name ? { definition, format, name } : { definition, format }, fallbackName, {
-          backendURL: (window as unknown as { strapi?: { backendURL?: string } }).strapi?.backendURL ?? '',
-          refresh: attemptTokenRefresh,
-        }),
+        downloadPost(tokenRef.current, `${BASE}/tables/export`, name ? { definition, format, name } : { definition, format }, fallbackName, strapiDownload()),
     };
   }, []);
 }

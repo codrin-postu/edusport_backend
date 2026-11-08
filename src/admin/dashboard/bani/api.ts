@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { getFetchClient, useFetchClient } from '@strapi/admin/strapi-admin';
+import type { MoneyOverview } from '../../../club/money/types';
+import type { Accounting } from '../../../club/money/accounting';
 import type { ActionBody } from '../../../club/groups/api-types';
 import type { PresenceHistory } from '../../../club/presence/attendance/api-types';
 import type {
@@ -44,6 +46,8 @@ export function useMoneyApi() {
       cancelPayment: (id: string) => action<{ cancelled: true }>(ref.current.post(`${payment(id)}/cancel`, {})),
       paymentOptions: (athleteId: string, month: string | null = null) => get<PaymentOption[]>(`${athlete(athleteId)}/payments/options${query({ month })}`),
       athletePayments: (athleteId: string) => get<AthletePayments>(`${athlete(athleteId)}/payments`),
+      overview: (month: string) => get<MoneyOverview>(`${BASE}/money/overview${query({ month })}`),
+      accounting: (month: string) => get<Accounting>(`${BASE}/money/accounting${query({ month })}`),
       due: (month: string) => get<DuePage>(`${BASE}/due${query({ month })}`),
       athletePresence: (athleteId: string, season: string | null, page: number) => get<PresenceHistory>(`${athlete(athleteId)}/presence${query({ season, page: String(page) })}`),
       remove: async (athleteId: string) => { await ref.current.del(athlete(athleteId)); },

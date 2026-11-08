@@ -1,4 +1,4 @@
-import { isCurrentMembership } from '../../group-membership';
+import { addDays } from '../../groups/dates';
 import { currentSeason } from '../../groups/season-pick';
 import type { SubscriptionStateFilter, SubscriptionQuery, SubscriptionListPage, SubscriptionListRow } from '../money-api';
 import { byId, groupNameMap } from '../due/reads';
@@ -8,8 +8,17 @@ import { byUseOrder, subscriptionState, usedSlots } from '../subscriptions';
 import type { SubscriptionRow, SubscriptionState } from '../types';
 import { barOf } from './rules';
 
-const FILTERS: readonly SubscriptionStateFilter[] = ['toate', 'active', 'epuizate', 'expirate', 'anulate'];
-const STATE_OF: Record<Exclude<SubscriptionStateFilter, 'toate'>, SubscriptionState> = { active: 'activ', epuizate: 'epuizat', expirate: 'expirat', anulate: 'anulat' };
+const FILTERS: readonly SubscriptionStateFilter[] = ['toate', 'active', 'expira14', 'epuizate', 'expirate', 'anulate'];
+const STATE_OF: Record<Exclude<SubscriptionStateFilter, 'toate'>, SubscriptionState> = { active: 'activ', expira14: 'activ', epuizate: 'epuizat', expirate: 'expirat', anulate: 'anulat' };
+/** "Expiră în 14 zile": active, `validUntil` from today to today + 13 (S22). */
+const EXPIRING_DAYS = 13;
+
+/** The rows a list filter keeps: the state, and for "Expiră în 14 zile" an expiry from `today` to today + 13. The Bani cards count with this too (F3). */
+export function matchesSubscriptionFilter(filter: SubscriptionStateFilter, state: SubscriptionState, validUntil: string, today: string): boolean {
+  if (filter === 'toate') return true;
+  if (state !== STATE_OF[filter]) return false;
+  return filter !== 'expira14' || (validUntil >= today && validUntil <= addDays(today, EXPIRING_DAYS));
+}
 
 /** Abonamente list query: state defaults to Active, group is the main group today (5.9). */
 export function readSubscriptionQuery(q: Record<string, unknown>): SubscriptionQuery {
@@ -38,16 +47,15 @@ export async function listSubscriptions(store: PresenceStore, q: Record<string, 
   const mains = mainGroupToday(memberships, groups, seasonId);
   const athleteOf = byId(athletes);
   const paidPoints = new Set(payments.filter((p) => !p.cancelled && p.subscriptionId !== null).map((p) => p.subscriptionId));
-  const want = query.state === 'toate' ? null : STATE_OF[query.state];
   const rows: SubscriptionListRow[] = current
     .map((s) => {
       const count = used.get(s.id) ?? 0;
       return { s, count, state: subscriptionState(s, count, today), main: mains.get(s.athleteId) ?? null };
     })
-    .filter((r) => (want === null || r.state === want) && (query.groupId === null || r.main?.id === query.groupId))
+    .filter((r) => matchesSubscriptionFilter(query.state, r.state, r.s.validUntil, today) && (query.groupId === null || r.main?.id === query.groupId))
     .sort((a, b) => a.s.validUntil.localeCompare(b.s.validUntil) || a.s.id.localeCompare(b.s.id))
     .map((r) => ({
-      subscriptionId: r.s.id, athleteId: r.s.athleteId, athleteName: athleteOf.get(r.s.athleteId)?.name ?? '', groupName: r.main?.name ?? null,
+      subscriptionId: r.s.id, athleteId: r.s.athleteId, athleteName: athleteOf.get(r.s.athleteId)?.name ?? '', groupName: r.main?.name ?? null, code: r.s.code,
       slots: r.s.slots, used: r.count, validUntil: r.s.validUntil, expired: today > r.s.validUntil, state: r.state,
       canCancel: r.state !== 'anulat' && !paidPoints.has(r.s.id),
     }));

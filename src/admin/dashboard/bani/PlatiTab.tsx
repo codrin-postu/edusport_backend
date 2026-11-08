@@ -69,13 +69,14 @@ function columns(readOnly: boolean, onPick: Pick): DataColumn<PaymentRowView>[] 
   const head = MONEY_UI_COPY.plati.columns;
   const cols: DataColumn<PaymentRowView>[] = [
     { key: 'date', header: head[0], render: cell((c) => c.date) },
+    { key: 'receipt', header: head[1], render: cell((c) => c.receipt) },
     {
-      key: 'purpose', header: head[2],
+      key: 'purpose', header: head[3],
       render: (r) => { const c = platiCells(r); return <>{struck(c.struck, c.purpose)}{c.mark && <span className="ui-muted bn-mark"> {c.mark}</span>}</>; },
     },
-    { key: 'method', header: head[3], render: cell((c) => c.method) },
-    { key: 'amount', header: head[4], align: 'right', render: cell((c) => c.amount) },
-    { key: 'recordedBy', header: head[5], render: cell((c) => c.recordedBy) },
+    { key: 'method', header: head[4], render: cell((c) => c.method) },
+    { key: 'amount', header: head[5], align: 'right', render: cell((c) => c.amount) },
+    { key: 'recordedBy', header: head[6], render: cell((c) => c.recordedBy) },
   ];
   if (readOnly) return cols;
   const items = (r: PaymentRowView) => rowMenu(r).map((k) => ({ key: k, text: k === 'edit' ? MONEY_UI_COPY.plati.edit : PAYMENT_COPY.cancelAction, danger: k === 'cancel' }));

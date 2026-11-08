@@ -75,14 +75,15 @@ function columns(onPick: (r: PaymentRowView, k: 'edit' | 'cancel') => void): Dat
   const cell = (pick: (c: PlatiCells) => string) => (r: PaymentRowView) => struck(platiCells(r), pick(platiCells(r)));
   return [
     { key: 'date', header: copy.columns[0], render: cell((c) => c.date) },
-    { key: 'athlete', header: copy.columns[1], render: cell((c) => c.athlete) },
+    { key: 'receipt', header: copy.columns[1], render: cell((c) => c.receipt) },
+    { key: 'athlete', header: copy.columns[2], render: cell((c) => c.athlete) },
     {
-      key: 'purpose', header: copy.columns[2],
+      key: 'purpose', header: copy.columns[3],
       render: (r) => { const c = platiCells(r); return <>{struck(c, c.purpose)}{c.mark && <span className="ui-muted bn-mark"> {c.mark}</span>}</>; },
     },
-    { key: 'method', header: copy.columns[3], render: cell((c) => c.method) },
-    { key: 'amount', header: copy.columns[4], align: 'right', render: cell((c) => c.amount) },
-    { key: 'recordedBy', header: copy.columns[5], render: cell((c) => c.recordedBy) },
+    { key: 'method', header: copy.columns[4], render: cell((c) => c.method) },
+    { key: 'amount', header: copy.columns[5], align: 'right', render: cell((c) => c.amount) },
+    { key: 'recordedBy', header: copy.columns[6], render: cell((c) => c.recordedBy) },
     { key: 'menu', header: <span className="ui-sr">{copy.edit}</span>, width: '1%', render: (r) => <RowMenu row={r} onPick={(k) => onPick(r, k)} /> },
   ];
 }
@@ -99,7 +100,7 @@ function Cards({ rows, onPick }: { rows: PaymentRowView[]; onPick: (r: PaymentRo
               <span className="spv-name">{struck(c, c.athlete)}</span>
               <span>{struck(c, c.purpose)}{c.mark && <span className="ui-muted bn-mark"> {c.mark}</span>}</span>
               <span>{struck(c, `${c.amount}, ${c.method}`)}</span>
-              <span className="spv-muted">{c.date}, {c.recordedBy}</span>
+              <span className="spv-muted">{[c.date, c.receipt, c.recordedBy].filter(Boolean).join(', ')}</span>
             </div>
             <RowMenu row={r} onPick={(k) => onPick(r, k)} />
           </li>

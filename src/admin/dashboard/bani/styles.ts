@@ -19,6 +19,7 @@ export const MONEY_CSS = `
 .ui-root .bn-empty{margin:0;padding:12px 16px}
 .ui-root .bn-total{margin:0;padding:12px 16px;font-weight:600;color:var(--theme-text)}
 .ui-root .bn-mark{font-size:12px}
+.ui-root .bn-code{font-size:12px}
 .ui-root .bn-tab{display:flex;flex-direction:column;gap:20px}
 .ui-root .bn-block{display:flex;flex-direction:column;gap:8px}
 .ui-root .bn-lines{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
@@ -58,4 +59,33 @@ export const MONEY_CSS = `
 .ui-root .bn-day-chev{grid-column:2;grid-row:1 / span 3}
 }
 @media (max-width:640px){.ui-root .bn-mrow{grid-template-columns:1fr 1fr}.ui-root .bn-mhead{display:none}}
+.ui-root .bn-sq-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;padding:12px 16px}
+.ui-root .bn-sq{display:block;aspect-ratio:1 / 1;color:inherit;text-decoration:none}
+.ui-root .bn-sq .ui-stat{height:100%;display:flex;flex-direction:column;justify-content:flex-start}
+.ui-root .bn-sq .ui-stat-caption{margin-top:auto}
+.ui-root a.bn-sq:hover .ui-stat{background:var(--theme-surface-subtle)}
+.ui-root a.bn-sq:focus-visible{outline:2px solid var(--theme-focus);outline-offset:2px}
+.ui-root .bn-trend{display:block}
+.ui-root .bn-sechead{margin:8px 0 0;padding:3px 12px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--theme-text-secondary);background:var(--theme-surface-subtle);border:1px solid var(--theme-border)}
+.ui-root .bn-bcard{display:flex;flex-direction:column;gap:2px;padding:10px 12px;font-size:13px;border:1px solid var(--theme-border);margin-top:-1px;background:var(--theme-surface);color:var(--theme-text)}
+.ui-root .bn-bcards{gap:0}
+.ui-root .bn-bcard-name{font-weight:600}
+.ui-root .bn-bcard-tot{font-weight:700}
+.ui-root .bn-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px}
+.ui-root .bn-month{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--theme-text)}
+.ui-root .bn-section{display:flex;flex-direction:column;gap:8px;padding:12px 16px}
+.ui-root .bn-scroll{overflow-x:auto;max-width:100%;border:1px solid var(--theme-border)}
+.ui-root .bn-table{width:100%;border-collapse:collapse;font-size:13px}
+.ui-root .bn-table th,.ui-root .bn-table td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--theme-border);white-space:nowrap}
+.ui-root .bn-table th:first-child,.ui-root .bn-table td:first-child{text-align:left;position:sticky;left:0;background:var(--theme-surface)}
+.ui-root .bn-table th{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--theme-text-secondary)}
+.ui-root .bn-table .bn-sec td{font-weight:700;background:var(--theme-surface-subtle)}
+.ui-root .bn-table .bn-grp td:first-child{padding-left:24px}
+.ui-root .bn-table .bn-tot td{font-weight:700}
+.ui-root .bn-figures{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:0 16px}
+.ui-root .bn-acc-cards{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ui-root.bn-pop{padding:5px;min-width:120px}
+.ui-root.bn-pop button{display:block;width:100%;text-align:left;font:inherit;font-size:12.5px;color:var(--theme-text);background:none;border:none;padding:8px 10px;cursor:pointer}
+.ui-root.bn-pop button:hover,.ui-root.bn-pop button:focus-visible{background:var(--theme-surface-subtle);outline:none}
+@media (max-width:900px){.ui-root .bn-sq-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ui-root .bn-sq-grid .bn-sq:last-child:nth-child(odd){grid-column:1 / -1;aspect-ratio:2 / 1}.ui-root .bn-figures{grid-template-columns:repeat(2,minmax(0,1fr))}}
 `;

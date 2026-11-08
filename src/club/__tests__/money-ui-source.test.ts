@@ -10,6 +10,14 @@ import { KIND_OPTIONS } from '../../admin/pages/preturi/format';
 const src = (p: string) => readFileSync(join(__dirname, '..', '..', p), 'utf8');
 
 describe('money UI source', () => {
+  it('the export popover styles target the portaled popover itself (it carries ui-root, so no ancestor has it)', () => {
+    const s = src('admin/dashboard/bani/styles.ts');
+    expect(s).toMatch(/\.ui-root\.bn-pop\{/);
+    expect(s).not.toMatch(/\.ui-root \.bn-pop/);
+  });
+  it('the breakdown draws group rows through visibleGroups, so Fără grupă is one row', () => {
+    expect(src('admin/dashboard/bani/BaniBreakdown.tsx')).toMatch(/visibleGroups\(b\)\.map\(/);
+  });
   it('the bar draws square segments with tokens, no circle (decided 8)', () => {
     const s = src('admin/dashboard/bani/AbonamentBar.tsx') + src('admin/dashboard/bani/styles.ts');
     expect(s).toMatch(/barSegments\(/);
@@ -231,5 +239,40 @@ describe('money UI source', () => {
     expect(hist.match(/<StatusBadge/g)).toHaveLength(2);
     expect(hist).not.toMatch(/subscription.*state|bn-pay--\$\{/);
     for (const f of ['AbonamentTab', 'AbonamentCard', 'PresenceHistory', 'styles']) expect(src(`admin/dashboard/bani/${f}.${f === 'styles' ? 'ts' : 'tsx'}`), f).not.toMatch(/dashed|dotted|border-radius:\s*50%|#[0-9a-f]{3,6}\b|rgb\(/i);
+  });
+  it('the receipt number column is on Plăți and on the athlete table; codes show in Abonamente and De încasat (11-5)', () => {
+    expect(src('admin/dashboard/bani/PlatiList.tsx')).toMatch(/key: 'receipt'/);
+    expect(src('admin/dashboard/bani/PlatiTab.tsx')).toMatch(/key: 'receipt'/);
+    expect(src('admin/dashboard/bani/AbonamenteList.tsx')).toMatch(/abonamentCell\(/);
+    expect(src('admin/dashboard/bani/DeIncasatList.tsx')).toMatch(/schoolCode\(/);
+  });
+  it('the Bani page (11-5 Task 6): no tabs, two SegmentedControls, five card links, accounting export, no round or dashed', () => {
+    const page = src('admin/dashboard/BaniPage.tsx');
+    const cards = src('admin/dashboard/bani/BaniCards.tsx');
+    const breakdown = src('admin/dashboard/bani/BaniBreakdown.tsx');
+    const acc = src('admin/dashboard/bani/BaniAccounting.tsx');
+    expect(page).not.toMatch(/\bTabs\b/);
+    expect(page).toMatch(/SegmentedControl/);
+    expect(breakdown).toMatch(/SegmentedControl/);
+    expect(cards).toMatch(/StatTile/);
+    expect(cards).toMatch(/platiMonthTo\(/);
+    expect(cards).toMatch(/deIncasatMonthTo\(/);
+    expect(cards).toMatch(/abonamenteStateTo\('active'\)/);
+    expect(cards).toMatch(/abonamenteStateTo\('expira14'\)/);
+    expect(acc).toMatch(/<Popover/);
+    expect(acc.match(/downloadGet\(/g)?.length ?? 0).toBeGreaterThanOrEqual(1);
+    expect(acc).toMatch(/BANI_COPY\.xlsx/);
+    expect(acc).toMatch(/BANI_COPY\.csv/);
+    expect(acc).toMatch(/blobErrorText\(/);
+    expect(acc).toMatch(/AthleteLink/);
+    expect(acc).toMatch(/className=\{[^}]*bn-struck/);
+    const all = page + cards + breakdown + acc + src('admin/dashboard/bani/styles.ts');
+    expect(all).not.toMatch(/dashed|dotted|border-radius:\s*50%|borderRadius:\s*'50%'/i);
+    expect(acc).not.toMatch(/textDecoration|text-decoration/);
+  });
+  it('the menu has "Bani" right after "De încasat" with area money, its own icon and position 7', () => {
+    const m = src('admin/dashboard/menu.tsx');
+    expect(m).toMatch(/label: 'De încasat'[^\n]*\n\s*\{ to: BANI_PATH, label: 'Bani', icon: \w+, group: 'club', area: 'money' \}/);
+    expect(m).toMatch(/to: BANI_PATH,\n\s*icon: \w+,\n\s*intlLabel: \{ id: 'edusport.menu.bani', defaultMessage: 'Bani' \},\n\s*Component: \(\) => import\('\.\/BaniPage'\),\n\s*permissions: \[\],\n\s*position: 7,/);
   });
 });

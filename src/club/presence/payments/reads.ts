@@ -30,7 +30,7 @@ type Names = { athletes: Map<string, AthleteRow>; subs: Map<string, Subscription
 function viewOf(p: PaymentRow, names: Names): PaymentRowView {
   const sub = p.subscriptionId === null ? undefined : names.subs.get(p.subscriptionId);
   return {
-    paymentId: p.id, athleteId: p.athleteId, athleteName: names.athletes.get(p.athleteId)?.name ?? '', paidOn: p.paidOn, purpose: p.purpose,
+    paymentId: p.id, athleteId: p.athleteId, athleteName: names.athletes.get(p.athleteId)?.name ?? '', paidOn: p.paidOn, receiptNo: p.receiptNo, purpose: p.purpose,
     purposeText: listPurposeText(p, { itemName: sub?.itemName ?? null, startsOn: sub?.startsOn ?? null, code: sub?.code ?? null, seasonLabel: names.seasons.get(p.seasonId)?.label ?? null }),
     method: p.method, collectedAtRink: p.collectedAtRink, amount: p.amount, recordedBy: p.recordedBy, cancelled: p.cancelled, for: paymentForOf(p), note: p.note,
   };

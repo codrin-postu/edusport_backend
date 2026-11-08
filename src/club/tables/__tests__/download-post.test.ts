@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { blobErrorText, downloadPost } from '../../../admin/dashboard/inscrieri/downloadPdf';
+import { blobErrorText, downloadGet, downloadPost } from '../../../admin/dashboard/inscrieri/downloadPdf';
 
 /** The Strapi fetch client reads every POST answer as JSON, so a csv answer failed to parse: downloads use fetch with the token. */
 describe('downloadPost', () => {
@@ -57,5 +57,15 @@ describe('downloadPost', () => {
     const err = await downloadPost('old', '/x', {}, 'f.csv', { refresh: async () => 'fresh' }).catch((e: unknown) => e);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect((err as Error).message).toBe('HTTP 401');
+  });
+
+  it('downloadGet sends a GET with the token and hands the refusal text on (the accounting .xlsx answers 501)', async () => {
+    const { fetchMock } = browser(new Response(JSON.stringify({ error: { message: 'xlsx nu e disponibil' } }), { status: 501 }));
+    const err = await downloadGet('tok', '/api/club/money/accounting.xlsx?month=2026-11', 'f.xlsx').catch((e: unknown) => e);
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(init.method).toBe('GET');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer tok');
+    expect(init.body).toBeUndefined();
+    expect(await blobErrorText(err, 'fallback')).toBe('xlsx nu e disponibil');
   });
 });

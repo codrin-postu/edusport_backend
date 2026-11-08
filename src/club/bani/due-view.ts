@@ -15,6 +15,9 @@ export const schoolCells = (r: SchoolDueRow): SchoolCells => ({
   price: ron(r.price), paid: ron(r.paid), ...leftCells(r.left),
 });
 
+/** The abonament code shown before the item name (null when it has none). */
+export const schoolCode = (r: SchoolDueRow): string | null => r.code ?? null;
+
 export const clubCells = (r: ClubDueRow): ClubCells => ({
   athlete: r.athleteName, group: r.groupNames, sessions: PAYMENT_COPY.sessionsText(r.grup, r.uscat, r.lessons),
   due: ron(r.due), paid: ron(r.paid), ...leftCells(r.left),
