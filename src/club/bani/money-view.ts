@@ -1,5 +1,6 @@
 import { MONTHS_SHORT } from '../groups/dates';
 import { addMonths, monthOf } from '../presence/dates';
+import { NO_GROUP } from '../money/types';
 
 /** "+6% față de oct"; null when the month before had nothing (no base to compare). */
 export function trendText(now: number, prev: number, prevMonth: string): string | null {
@@ -30,7 +31,18 @@ export function totalOf(blocks: { totals: Money4 }[]): Money4 {
   return { due, paid, left: sum((m) => m.left), percent: due === 0 ? null : Math.round((paid / due) * 100) };
 }
 
-/** The group rows under a section row: none when the only group repeats the section's own label (the "Fără grupă" block shows one row). */
-export function visibleGroups<G extends { groupName: string }>(block: { sectionName: string; groups: G[] }): G[] {
-  return block.groups.length === 1 && block.groups[0].groupName === block.sectionName ? [] : block.groups;
+/** The group rows under a section row: none for the "Fără grupă" block (matched by its key), which shows one row. */
+export function visibleGroups<G>(block: { sectionId: string; groups: G[] }): G[] {
+  return block.sectionId === NO_GROUP ? [] : block.groups;
+}
+
+export type BreakdownCard = { key: string; header: string | null; rows: { key: string; name: string; totals: Money4 }[] };
+
+/** The phone breakdown: one card per group row under its section header; the "Fără grupă" block is one card with no header. */
+export function breakdownCards(blocks: { sectionId: string; sectionName: string; totals: Money4; groups: { groupId: string; groupName: string; totals: Money4 }[] }[]): BreakdownCard[] {
+  return blocks.map((b) => {
+    const groups = visibleGroups(b);
+    if (groups.length === 0) return { key: b.sectionId, header: null, rows: [{ key: b.sectionId, name: b.sectionName, totals: b.totals }] };
+    return { key: b.sectionId, header: b.sectionName, rows: groups.map((g) => ({ key: g.groupId, name: g.groupName, totals: g.totals })) };
+  });
 }

@@ -1,3 +1,6 @@
+/** Section id of the "Fără grupă" block: the money of athletes with no group. */
+export const NO_GROUP = '';
+
 /** Datorat, Încasat, Rămas and the rounded percent; `percent` is null when Datorat is 0 (S56). */
 export type Money4 = { due: number; paid: number; left: number; percent: number | null };
 export type SectionBlock = {

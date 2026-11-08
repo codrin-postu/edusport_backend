@@ -47,11 +47,11 @@ describe('Bani copy, address and figure texts', () => {
 
 describe('visibleGroups: the Fără grupă block shows one row', () => {
   const m = { due: 0, paid: 0, left: 0, percent: null };
-  it('hides the group row that repeats the section label', () => {
-    expect(visibleGroups({ sectionName: 'Fără grupă', groups: [{ groupId: 'x', groupName: 'Fără grupă', totals: m }] })).toEqual([]);
+  it('hides the group row of the Fără grupă block (by its key)', () => {
+    expect(visibleGroups({ sectionId: '', sectionName: 'Fără grupă', groups: [{ groupId: 'x', groupName: 'Fără grupă', totals: m }] })).toEqual([]);
   });
   it('keeps the groups of a real section, even a single one', () => {
     const g = [{ groupId: 'a', groupName: 'Avansați', totals: m }];
-    expect(visibleGroups({ sectionName: 'Club', groups: g })).toEqual(g);
+    expect(visibleGroups({ sectionId: 's1', sectionName: 'Club', groups: g })).toEqual(g);
   });
 });

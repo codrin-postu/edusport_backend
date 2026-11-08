@@ -61,10 +61,16 @@ export const MONEY_CSS = `
 @media (max-width:640px){.ui-root .bn-mrow{grid-template-columns:1fr 1fr}.ui-root .bn-mhead{display:none}}
 .ui-root .bn-sq-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;padding:12px 16px}
 .ui-root .bn-sq{display:block;aspect-ratio:1 / 1;color:inherit;text-decoration:none}
-.ui-root .bn-sq .ui-stat{height:100%;display:flex;flex-direction:column;justify-content:space-between}
-.ui-root .bn-sq:hover .ui-stat{background:var(--theme-surface-subtle)}
-.ui-root .bn-sq:focus-visible{outline:2px solid var(--theme-focus);outline-offset:2px}
+.ui-root .bn-sq .ui-stat{height:100%;display:flex;flex-direction:column;justify-content:flex-start}
+.ui-root .bn-sq .ui-stat-caption{margin-top:auto}
+.ui-root a.bn-sq:hover .ui-stat{background:var(--theme-surface-subtle)}
+.ui-root a.bn-sq:focus-visible{outline:2px solid var(--theme-focus);outline-offset:2px}
 .ui-root .bn-trend{display:block}
+.ui-root .bn-sechead{margin:8px 0 0;padding:3px 12px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--theme-text-secondary);background:var(--theme-surface-subtle);border:1px solid var(--theme-border)}
+.ui-root .bn-bcard{display:flex;flex-direction:column;gap:2px;padding:10px 12px;font-size:13px;border:1px solid var(--theme-border);margin-top:-1px;background:var(--theme-surface);color:var(--theme-text)}
+.ui-root .bn-bcards{gap:0}
+.ui-root .bn-bcard-name{font-weight:600}
+.ui-root .bn-bcard-tot{font-weight:700}
 .ui-root .bn-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 16px}
 .ui-root .bn-month{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--theme-text)}
 .ui-root .bn-section{display:flex;flex-direction:column;gap:8px;padding:12px 16px}

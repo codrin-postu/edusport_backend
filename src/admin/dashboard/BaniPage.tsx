@@ -6,7 +6,7 @@ import { baniTo, readBaniQuery, type BaniView } from '../../club/bani/routes';
 import { todayIso } from '../../club/groups/http';
 import { PRESENCE_ERRORS } from '../../club/presence/copy/core';
 import { BANI_COPY } from '../../club/presence/copy/money-ui';
-import { addMonths, monthTitle } from '../../club/presence/dates';
+import { addMonths, monthOf, monthTitle } from '../../club/presence/dates';
 import type { Accounting } from '../../club/money/accounting';
 import type { MoneyOverview } from '../../club/money/types';
 import { SPORTIVI_CSS } from './sportivi/styles';
@@ -63,7 +63,7 @@ export default function BaniPage() {
         {!current.data && !current.failed && <Loading />}
         {query.view === 'prezentare' && overview.data && (
           <>
-            <BaniCards cards={overview.data.cards} month={query.month} />
+            <BaniCards cards={overview.data.cards} month={query.month} current={query.month === monthOf(today)} />
             <BaniBreakdown overview={overview.data} />
           </>
         )}

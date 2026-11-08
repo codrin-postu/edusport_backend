@@ -10,10 +10,9 @@ import { matchesSubscriptionFilter } from '../presence/subscriptions/reads';
 import { BANI_COPY } from '../presence/copy/money-ui';
 import type { AttendanceRow, LessonRow, PaymentMethod, PaymentPurpose, PaymentRow } from '../presence/types';
 import type { MoneySources } from './sources';
-import type { Money4, MoneyCards, MoneyOverview, SectionBlock, TallyRow } from './types';
+import { NO_GROUP, type Money4, type MoneyCards, type MoneyOverview, type SectionBlock, type TallyRow } from './types';
 
 /** Money with no main group, or in a group with no section (F1). */
-const NO_GROUP = '';
 const bucharestDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest', year: 'numeric', month: '2-digit', day: '2-digit' });
 const live = (payments: readonly PaymentRow[]): PaymentRow[] => payments.filter((p) => !p.cancelled);
 const inMonth = (date: string, month: string): boolean => monthOf(date) === month;
