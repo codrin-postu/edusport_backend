@@ -12,6 +12,10 @@ describe('presence copy', () => {
     }
   });
 
+  it('the Tabele copy has none of them either', () => {
+    expect(readFileSync(new URL('../../tables/copy.ts', import.meta.url), 'utf8')).not.toMatch(FORBIDDEN);
+  });
+
   it('copy.ts re-exports every copy module, one line each', () => {
     const barrel = readFileSync(new URL('../copy.ts', import.meta.url), 'utf8');
     const exported = barrel.split('\n').filter((l) => l.startsWith('export * from'));

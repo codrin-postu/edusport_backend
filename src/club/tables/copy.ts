@@ -1,7 +1,72 @@
-/** COPY NEEDED: the notice texts are not given yet; the suffix tells them apart. */
+/** COPY NEEDED: the texts are not given yet; the suffix tells them apart. The user supplies them. */
 const COPY_NEEDED = 'COPY NEEDED';
 
+const VIEWS = {
+  duplicate: 'Există deja o vizualizare cu numele ăsta.',
+  tooMany: 'Prea multe vizualizări salvate. Șterge una.',
+  notAuthor: 'Doar autorul poate modifica vizualizarea.',
+  saved: 'Vizualizare salvată.',
+  updated: 'Salvat.',
+  deleted: 'Vizualizare ștearsă.',
+};
+
+/** Singular and plural of what a table of each subject counts (group headers: "12 sportivi", "1 plată", "40 de prezențe"). */
+export const TABLES_COUNT_WORDS = {
+  sportivi: ['sportiv', 'sportivi'],
+  plati: ['plată', 'plăți'],
+  abonamente: ['abonament', 'abonamente'],
+  prezenta: ['prezență', 'prezențe'],
+} as const;
+
 export const TABLES_COPY = {
+  tabs: { lista: 'Listă', tabele: 'Tabele' },
+  view: 'Vizualizare',
+  readyGroup: 'Gata făcute',
+  savedGroup: 'Salvate',
+  readyHint: 'Gata făcută',
+  save: 'Salvează',
+  saveAsNew: 'Salvează ca nouă',
+  duplicate: 'Duplică',
+  remove: 'Șterge',
+  xlsx: 'Descarcă .xlsx',
+  csv: 'Descarcă .csv',
+  editMobile: 'Editează tabelul',
+  subject: 'Subiect',
+  scope: 'Sfera',
+  season: 'Sezon',
+  section: 'Secțiune',
+  group: 'Grupă',
+  all: 'Toate',
+  period: 'Perioada',
+  wholeSeason: 'Tot sezonul',
+  columns: 'Coloane, în ordine',
+  filters: 'Filtre',
+  addFilter: '+ filtru',
+  groupBy: 'Grupează după',
+  none: 'Fără',
+  sort: 'Sortare',
+  subtotal: (g: string): string => `Subtotal ${g}`,
+  total: 'Total',
+  newTitle: 'Vizualizare nouă',
+  name: 'Nume',
+  copyOf: (n: string): string => `${n} (copie)`,
+  giveUp: 'Renunță',
+  saved: VIEWS.saved,
+  savedShort: VIEWS.updated,
+  confirmDelete: (n: string): string => `Ștergi vizualizarea "${n}"?`,
+  deleted: VIEWS.deleted,
+  undo: 'Anulează',
+  empty: 'Niciun rând pentru alegerile astea.',
+  errors: {
+    tooMany: 'Tabelul are peste 5.000 de rânduri. Restrânge sfera sau filtrele.',
+    tooSlow: 'Tabelul durează prea mult. Restrânge sfera.',
+    nameTaken: VIEWS.duplicate,
+    notAuthor: VIEWS.notAuthor,
+    tooManyViews: VIEWS.tooMany,
+    download: 'Descărcarea nu a reușit.',
+    xlsxUnavailable: `${COPY_NEEDED} (xlsx not available yet)`,
+  },
+  /** Notices of a view opened after the catalog or the data changed (repairDefinition). One per kind of change. */
   notices: {
     columnDropped: `${COPY_NEEDED} (column)`,
     filterDropped: `${COPY_NEEDED} (filter)`,
@@ -11,18 +76,7 @@ export const TABLES_COPY = {
     seasonMissing: `${COPY_NEEDED} (season)`,
     periodReset: `${COPY_NEEDED} (period)`,
   },
-  errors: {
-    tooSlow: 'Tabelul durează prea mult. Restrânge sfera.',
-    xlsxUnavailable: `${COPY_NEEDED} (xlsx not available yet)`,
-  },
-  views: {
-    duplicate: 'Există deja o vizualizare cu numele ăsta.',
-    tooMany: 'Prea multe vizualizări salvate. Șterge una.',
-    notAuthor: 'Doar autorul poate modifica vizualizarea.',
-    saved: 'Vizualizare salvată.',
-    updated: 'Salvat.',
-    deleted: 'Vizualizare ștearsă.',
-  },
+  views: VIEWS,
   readyMade: {
     platiGrupa: 'Plăți pe grupă luna aceasta',
     prezentaGrupa: 'Prezență pe grupă',

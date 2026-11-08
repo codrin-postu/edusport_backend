@@ -2,11 +2,11 @@ import type { XlsxCell, XlsxColumn, XlsxSheet } from '../files/xlsx-types';
 import { csvDate, csvNumber, toCsv } from '../csv';
 import { countWords } from '../ro-count';
 import { GROUP_LABELS, NO_GROUP_LABEL } from './catalog';
+import { TABLES_COUNT_WORDS } from './copy';
 import type { CatalogColumn, CellValue, Subject, TableResult, TableRow } from './types';
 
 const MIN_WIDTH = 8;
 const MAX_WIDTH = 60;
-const NOUNS: Record<Subject, [string, string]> = { sportivi: ['sportiv', 'sportivi'], plati: ['plată', 'plăți'], abonamente: ['abonament', 'abonamente'], prezenta: ['prezență', 'prezențe'] };
 
 function csvCell(c: CatalogColumn, v: CellValue | undefined): string | null {
   if (v === null || v === undefined) return null;
@@ -54,7 +54,7 @@ function sumRow(result: TableResult, sums: Record<string, CellValue>, label: str
 /** Group header ("<grupă>, <n> sportivi"), body rows, "Subtotal <grupă>" and "Total"; without group-by the body and, when something is summed, "Total". Text stays a plain string: the writer never makes it a formula. */
 export function tableSheet(result: TableResult, name: string): XlsxSheet {
   const body = (r: TableRow): { cells: XlsxCell[]; style: 'body' } => ({ style: 'body', cells: result.columns.map((c) => xlsxCell(c, r.cells[c.key])) });
-  const [one, many] = NOUNS[result.subject];
+  const [one, many] = TABLES_COUNT_WORDS[result.subject];
   const rows: XlsxSheet['rows'] = [];
   for (const g of result.groups ?? []) {
     rows.push({ style: 'group', cells: [`${g.label}, ${countWords(g.count, one, many)}`, ...result.columns.slice(1).map(() => null)] });
