@@ -1,6 +1,5 @@
 import type { PaymentFor } from './payments/rules';
 import type { SchoolDue } from './due/settlement';
-import type { AbonamentBar } from './subscriptions/rules';
 import type { PaymentMethod, PaymentPurpose, SubscriptionState } from './types';
 
 export type SubscriptionStateFilter = 'toate' | 'active' | 'epuizate' | 'expirate' | 'anulate';
@@ -10,11 +9,6 @@ export type SubscriptionListRow = {
   validUntil: string; expired: boolean; state: SubscriptionState; canCancel: boolean;
 };
 export type SubscriptionListPage = { rows: SubscriptionListRow[]; groups: { value: string; label: string }[] };
-export type AthleteSubscriptions = {
-  groups: { name: string; main: boolean }[];
-  bars: AbonamentBar[];
-  earlier: { itemName: string; startsOn: string; validUntil: string; used: number; slots: number; state: SubscriptionState }[];
-};
 export type SubscriptionUse = { unit: number; sessionId: string; date: string; startTime: string; groupName: string };
 export type SubscriptionCard = {
   id: string; code: string | null; label: string; startsOn: string; validUntil: string; state: SubscriptionState; used: number; slots: number; uses: SubscriptionUse[];

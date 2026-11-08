@@ -23,7 +23,6 @@ export default {
     { method: 'PUT', path: '/club/lessons/:documentId', handler: 'attendance.saveLesson', config: adminGuard },
     { method: 'DELETE', path: '/club/lessons/:documentId', handler: 'attendance.deleteLesson', config: adminGuard },
     { method: 'GET', path: '/club/groups/:documentId/attendance', handler: 'attendance.groupMonth', config: adminGuard },
-    { method: 'GET', path: '/club/athletes/:documentId/attendance', handler: 'attendance.athleteMonth', config: adminGuard },
     { method: 'GET', path: '/club/athletes/:documentId/presence', handler: 'attendance.athletePresence', config: adminRoute('club') },
     { method: 'GET', path: '/club/coaches/:documentId/presence.csv', handler: 'attendance.coachCsv', config: adminRoute('money') },
     { method: 'GET', path: '/club/coaches/:documentId/presence', handler: 'attendance.coachPage', config: adminRoute('club') },

@@ -57,7 +57,7 @@ describe('09-attendance routes (6)', () => {
       'GET /club/attendance/period', 'GET /club/attendance/grid', 'GET /club/attendance/session/defaults', 'POST /club/attendance/session/check', 'GET /club/attendance/session',
       'PUT /club/attendance/session', 'GET /club/attendance/coaches', 'GET /club/attendance/coaches.csv', 'GET /club/lessons', 'GET /club/lessons/new',
       'POST /club/lessons', 'GET /club/lessons/:documentId', 'PUT /club/lessons/:documentId', 'DELETE /club/lessons/:documentId',
-      'GET /club/groups/:documentId/attendance', 'GET /club/athletes/:documentId/attendance', 'GET /club/athletes/:documentId/presence',
+      'GET /club/groups/:documentId/attendance', 'GET /club/athletes/:documentId/presence',
       'GET /club/coaches/:documentId/presence.csv', 'GET /club/coaches/:documentId/presence']);
   });
 

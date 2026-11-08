@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PanelRow } from '../../presence/attendance/api-types';
-import type { AthletePayments, AthleteSubscriptions, PaymentRowView } from '../../presence/money-api';
+import type { AthletePayments, AthleteSubscriptionCards, PaymentRowView } from '../../presence/money-api';
 import { anonymizeOffered, isBlocked, readRefusal, refusalCounts } from '../delete-refusal';
 import { lessonMenuItems, lessonPayPreselect, payPreselect, refreshAbonamentLines, rowMenuItems, rowSubLines } from '../../prezenta/panel-view';
 import { moveBarView } from '../move-bar';
@@ -9,7 +9,8 @@ const bar = { subscriptionId: 's', itemName: 'Abonament 8 ședințe', slots: 8, 
 const paymentsOf = (rows: { cancelled: boolean }[]): AthletePayments => ({
   months: [], payments: rows.map((r) => ({ ...r }) as PaymentRowView), hasEmail: false, readOnly: false,
 });
-const none: AthleteSubscriptions = { groups: [], bars: [], earlier: [] };
+const none: AthleteSubscriptionCards = { groups: [], current: [], others: [] };
+const card = { id: 's', code: 'A-0001', label: 'Abonament 8 ședințe', startsOn: '2026-10-10', validUntil: '2026-11-07', state: 'activ' as const, used: 5, slots: 8, uses: [] };
 
 describe('move and delete (5.12, 5.14)', () => {
   it('lesson panel row menu: "+ Plată" only, this lesson preselected once saved and present (5.5, I3)', () => {
@@ -41,7 +42,7 @@ describe('move and delete (5.12, 5.14)', () => {
   });
 
   it('delete refusal counts: cancelled payments and every abonament count (5.14, C37)', () => {
-    const c = refusalCounts(paymentsOf([{ cancelled: true }, { cancelled: false }]), { groups: [], bars: [bar], earlier: [] });
+    const c = refusalCounts(paymentsOf([{ cancelled: true }, { cancelled: false }]), { groups: [], current: [card], others: [] });
     expect(c).toEqual({ payments: 2, subscriptions: 1 });
     expect([isBlocked(c), isBlocked({ payments: 0, subscriptions: 0 })]).toEqual([true, false]);
   });

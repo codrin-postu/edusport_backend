@@ -44,4 +44,10 @@ describe('money routes (spec 6, 11.3)', () => {
     expect(athletesSrc).toMatch(/abonamentCells\(/);
     expect(athletesSrc).toMatch(/activity: await loadPresenceActivity\(/);
   });
+
+  it('the athlete abonamente route answers with the dated cards, through the shared responder', () => {
+    const src = readFileSync(join(SRC, 'api/club/controllers/subscriptions.ts'), 'utf8');
+    expect(src).toMatch(/respond\(ctx, await readAthleteSubscriptionCards\(strapiPresenceStore\(strapi\), id\(ctx\), queryText\(ctx\.query\.season\), todayIso\(\)\)\)/);
+    expect(src).not.toContain('athleteSubscriptions');
+  });
 });

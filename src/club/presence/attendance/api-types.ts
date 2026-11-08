@@ -57,7 +57,6 @@ export type CoachDay = { date: string; sessions: number; lessons: number; hours:
 export type CoachPage = {
   name: string; totals: { sessions: number; lessons: number; hours: string }; days: CoachDay[]; sessions: CoachSessionRow[]; lessons: PeriodLessonRow[];
 };
-export type AthleteMonthRow = { sessionId: string; date: string; groupName: string; types: string; noSubscription: boolean };
 
 /** Re-exported for panels that carry held occurrences. */
 export type { HeldOccurrence };
