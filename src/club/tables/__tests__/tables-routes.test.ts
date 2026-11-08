@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import tables from '../../../api/club/controllers/tables';
 import tableRoutes from '../../../api/club/routes/13-tables';
 import { areaOfRoute } from '../../admin-area';
-import { definition } from './tables-seed';
 
 const SRC = join(__dirname, '../../..');
 const routes = tableRoutes.routes;
@@ -78,11 +77,7 @@ describe('the tables controller (source)', () => {
     for (const l of lines) expect(l).not.toMatch(/name|filename|email/i);
   });
 
-  it('xlsx is refused with 501 before anything is read (flip with Task 2)', async () => {
-    const body = { format: 'xlsx', definition: definition({ subject: 'plati', columns: ['data'] }) };
-    const ctx = { params: {}, query: {}, request: { body, header: {} }, status: 200, body: null as unknown, set: () => undefined };
-    await (tables as unknown as { export: (c: typeof ctx) => Promise<void> }).export(ctx);
-    expect(ctx.status).toBe(501);
-    expect((ctx.body as { error: { message: string } }).error.message).toContain('COPY NEEDED');
+  it('has no xlsx gate: the xlsx download is always served', () => {
+    expect(source).not.toMatch(/XLSX_READY|TABLES_NO_XLSX|501/);
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BudgetError, startBudget } from '../limit';
 import { tableCsv } from '../export';
-import { readCatalog, readExportRequest, runTable, TABLES_NO_XLSX, XLSX_READY } from '../service';
+import { readCatalog, readExportRequest, runTable } from '../service';
 import { definition, TODAY, tablesSeed } from './tables-seed';
 
 const noBudget = { check: () => undefined };
@@ -86,11 +86,6 @@ describe('readExportRequest', () => {
     for (const name of ['', '   ', 'x'.repeat(81), 5, null, ['a']]) {
       expect(readExportRequest({ ...body(), format: 'csv', name }), String(name).slice(0, 10)).toEqual({ ok: false, status: 400, error: 'Cerere invalidă.' });
     }
-  });
-
-  it('the xlsx gate is closed and its text is a COPY NEEDED placeholder (Task 2 flips both)', () => {
-    expect(XLSX_READY).toBe(false);
-    expect(TABLES_NO_XLSX).toContain('COPY NEEDED');
   });
 
   it('the CSV of a result is the screen result, one line per record', async () => {

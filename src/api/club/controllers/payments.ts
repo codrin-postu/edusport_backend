@@ -15,7 +15,6 @@ import { recordPayment } from '../../../club/presence/payments/record';
 import { strapiPresenceStore } from '../../../club/presence/strapi-store';
 import { queryText, respondAction, todayIso } from '../../../club/groups/http';
 import { exportLimit } from '../../../club/tables/limit';
-import { TABLES_NO_XLSX, XLSX_READY } from '../../../club/tables/service';
 
 type FileCtx = AdminCtx & { set: (field: string, value: string) => void };
 const id = (ctx: AdminCtx): string => ctx.params.documentId ?? '';
@@ -29,12 +28,11 @@ function moneyMonth(ctx: AdminCtx, today: string): string | null {
   return month;
 }
 
-/** The accounting file: month checked, the xlsx gate before any read, the read through the export limiter, one log line (no names, S62). */
+/** The accounting file: month checked, the read through the export limiter, one log line (no names, S62). */
 async function accountingFile(ctx: FileCtx, format: 'xlsx' | 'csv'): Promise<void> {
   const today = todayIso();
   const month = moneyMonth(ctx, today);
   if (month === null) return;
-  if (format === 'xlsx' && !XLSX_READY) return refuseWith(ctx, 501, TABLES_NO_XLSX);
   const data = await exportLimit(() => readAccountingData(store(), month, today, format));
   const adminId = await verifiedAdminId(ctx.request.header.authorization, strapi);
   strapi.log.info(downloadLogLine({ adminId, kind: format === 'xlsx' ? 'accounting-xlsx' : 'accounting-csv', rows: data.accounting.payments.length }));

@@ -79,7 +79,6 @@ export const TABLES_COPY = {
     notAuthor: VIEWS.notAuthor,
     tooManyViews: VIEWS.tooMany,
     download: 'Descărcarea nu a reușit.',
-    xlsxUnavailable: `${COPY_NEEDED} (xlsx not available yet)`,
   },
   /** Notices of a view opened after the catalog or the data changed (repairDefinition). One per kind of change. */
   notices: {

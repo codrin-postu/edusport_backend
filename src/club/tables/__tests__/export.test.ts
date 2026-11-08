@@ -1,3 +1,4 @@
+import { strFromU8, unzipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 import { CATALOG } from '../catalog';
 import { tableCsv, tableSheet, tableXlsx } from '../export';
@@ -93,8 +94,29 @@ describe('tableSheet', () => {
   });
 });
 
+const sheet1 = async (r: TableResult, name = 'P'): Promise<{ xml: string; strings: string }> => {
+  const zip = unzipSync(new Uint8Array(await tableXlsx(r, name)));
+  return { xml: strFromU8(zip['xl/worksheets/sheet1.xml']), strings: strFromU8(zip['xl/sharedStrings.xml']) };
+};
+
 describe('tableXlsx', () => {
-  it('waits for the Task 2 writer', async () => {
-    await expect(tableXlsx(grouped, 'P')).rejects.toThrow('xlsx writer');
+  it('is a zip whose first sheet has the header row, numbers as numeric cells and dates as Excel dates', async () => {
+    const r = resultOf('plati', ['data', 'sportiv', 'suma'], [row({ data: '2026-11-06', sportiv: 'Ana', suma: 1200.5 })]);
+    const { xml, strings } = await sheet1(r);
+    for (const h of ['Data', 'Sportiv', 'Sumă']) expect(strings).toContain(`<t>${h}</t>`);
+    expect(xml).toMatch(/<c r="A2"[^>]*><v>46332<\/v><\/c>/);
+    expect(xml).toMatch(/<c r="C2"(?![^>]*t=)[^>]*><v>1200.5<\/v><\/c>/);
+    expect(xml).toMatch(/<pane[^>]*ySplit="1"/);
+  });
+  it('guards text starting with = + - @ like the CSV and keeps a negative number numeric', async () => {
+    const r = resultOf('plati', ['sportiv', 'nota', 'suma'], [row({ sportiv: '=1+1', nota: '@x', suma: -1.5 }), row({ sportiv: '+1', nota: '-2+3', suma: null })]);
+    const { xml, strings } = await sheet1(r);
+    for (const t of ["'=1+1", "'@x", "'+1", "'-2+3"]) expect(strings).toContain(`<t>${t}</t>`);
+    expect(xml).not.toContain('<f>');
+    expect(xml).toMatch(/<c r="C2"[^>]*><v>-1.5<\/v><\/c>/);
+  });
+  it('writes group headers, subtotals and the total like the sheet', async () => {
+    const { strings } = await sheet1(grouped);
+    for (const t of ['Avansați, 2 plăți', 'Subtotal Avansați', 'Total']) expect(strings).toContain(`<t>${t}</t>`);
   });
 });

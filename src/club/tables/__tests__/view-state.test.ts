@@ -25,7 +25,7 @@ describe('Tabele copy', () => {
     expect(C.errors).toEqual({
       tooMany: 'Tabelul are peste 5.000 de rânduri. Restrânge sfera sau filtrele.', tooSlow: 'Tabelul durează prea mult. Restrânge sfera.',
       nameTaken: 'Există deja o vizualizare cu numele ăsta.', notAuthor: 'Doar autorul poate modifica vizualizarea.',
-      tooManyViews: 'Prea multe vizualizări salvate. Șterge una.', download: 'Descărcarea nu a reușit.', xlsxUnavailable: C.errors.xlsxUnavailable,
+      tooManyViews: 'Prea multe vizualizări salvate. Șterge una.', download: 'Descărcarea nu a reușit.',
     });
   });
 
@@ -48,7 +48,7 @@ describe('Tabele copy', () => {
     };
     walk(C, 'TABLES_COPY');
     expect(found).toEqual([
-      'TABLES_COPY.brokenView', 'TABLES_COPY.ops.in', 'TABLES_COPY.ops.empty', 'TABLES_COPY.ops.notEmpty', 'TABLES_COPY.errors.xlsxUnavailable', 'TABLES_COPY.notices.columnDropped', 'TABLES_COPY.notices.filterDropped', 'TABLES_COPY.notices.groupByDropped', 'TABLES_COPY.notices.sectionMissing',
+      'TABLES_COPY.brokenView', 'TABLES_COPY.ops.in', 'TABLES_COPY.ops.empty', 'TABLES_COPY.ops.notEmpty', 'TABLES_COPY.notices.columnDropped', 'TABLES_COPY.notices.filterDropped', 'TABLES_COPY.notices.groupByDropped', 'TABLES_COPY.notices.sectionMissing',
       'TABLES_COPY.notices.groupMissing', 'TABLES_COPY.notices.seasonMissing', 'TABLES_COPY.notices.periodReset']);
   });
 

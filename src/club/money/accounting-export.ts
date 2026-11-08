@@ -1,4 +1,5 @@
 import type { XlsxCell, XlsxColumn, XlsxSheet } from '../files/xlsx-types';
+import { writeXlsx } from '../files/xlsx';
 import { csvDate, csvNumber, toCsv } from '../csv';
 import { METHOD_WORDS } from '../presence/copy/core';
 import { sumMoney } from '../presence/money';
@@ -84,9 +85,4 @@ export function accountingCsv(acc: Accounting, extra: AccountingExtra): string {
 export const accountingName = (month: string, ext: 'xlsx' | 'csv'): string => `contabil-${month}.${ext}`;
 
 /** The .xlsx bytes of "Export contabil". */
-export async function accountingXlsx(acc: Accounting, overview: MoneyOverview, extra: AccountingExtra): Promise<Buffer> {
-  const sheets = accountingSheets(acc, overview, extra);
-  // TODO(11-4 T2): return writeXlsx(sheets) from src/club/files/xlsx.ts once the library is chosen; XLSX_READY in tables/service.ts is the gate.
-  void sheets;
-  throw new Error('xlsx writer is not available yet (11-4 Task 2)');
-}
+export const accountingXlsx = (acc: Accounting, overview: MoneyOverview, extra: AccountingExtra): Promise<Buffer> => writeXlsx(accountingSheets(acc, overview, extra));
