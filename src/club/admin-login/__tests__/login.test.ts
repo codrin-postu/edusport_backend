@@ -91,7 +91,7 @@ describe('password login: answers and limits', () => {
     expect(ok.ok).toBe(true);
   });
 
-  it('parallel failures around the fifth send one lockout mail', async () => {
+  it('parallel failures around the fifth send one lockout mail (memory store only: JS ordering makes it trivial here; the Postgres run is in security/__tests__/security-store-pg.test.ts)', async () => {
     const env = loginEnv();
     const results = await Promise.all(Array.from({ length: 8 }, () => env.login({ password: 'nope' })));
     await flush();
@@ -305,6 +305,23 @@ describe('password login: the second step', () => {
     expect(env.sessions.rows).toHaveLength(0);
   });
 
+  it('a code sent from another browser (no or another device cookie) is 401: no session, no new device row (B3 M3)', async () => {
+    for (const other of [null, 'another-browsers-device-key']) {
+      const env = loginEnv();
+      await env.turnOnTotp();
+      await env.login();
+      env.browser();
+      if (other === null) env.jar.delete(DEVICE);
+      else env.jar.set(DEVICE, other);
+      expect(await secondStepAdmin(env.c, { method: 'totp', code: env.code(), remember: false })).toEqual({ ok: false, status: 401, error: SECURITY_ERRORS.pendingExpired });
+      expect(env.sessions.rows).toHaveLength(0);
+      expect(await env.c.store.adminDevices(7)).toHaveLength(1);
+      expect(env.names()).toContain(PENDING);
+      expect(env.sets.find((x) => x.name === PENDING)?.value).toBe('');
+      expect(refreshSet(env)).toBeUndefined();
+    }
+  });
+
   it('"Trimite din nou" sends an e-mail code for the pending login', async () => {
     const env = loginEnv();
     const s = { type: 'admin' as const, id: '7' };
@@ -325,6 +342,11 @@ describe('password login: the second step', () => {
     expect(keyed.sessions.rows).toHaveLength(0);
     expect(keyed.names()).not.toContain(PENDING);
     expect(keyed.names()).not.toContain('strapi_admin_refresh');
+    // the guard runs before the device bind: no device cookie, no row, no new-device mail (B3 L1)
+    expect(keyed.names()).not.toContain(DEVICE);
+    expect(await keyed.c.store.adminDevices(7)).toEqual([]);
+    await flush();
+    expect(keyed.portalMails).toEqual([]);
   });
 
   it('keys missing and no 2FA: the login still works', async () => {

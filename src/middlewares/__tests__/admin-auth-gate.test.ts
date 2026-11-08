@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { adminEnv } from '../../club/admin-login/__tests__/admin-env';
 import adminAuthGate, { gateDecision } from '../admin-auth-gate';
 
 const CLOSED = ['/admin/login', '/admin/register', '/admin/register-admin', '/admin/reset-password', '/admin/forgot-password'];
@@ -23,11 +24,13 @@ describe('gateDecision, gate on', () => {
     expect(gateDecision('GET', '/admin/auth/login', undefined, false)).toBe('pass');
   });
 
-  it('profile PUT: firstname passes, password, currentPassword or email is 403', () => {
+  it('profile PUT: firstname passes, password or currentPassword is 403, an email key is checked against the signed-in admin (profileEmail)', () => {
     expect(gateDecision('PUT', '/admin/users/me', { firstname: 'Ana' }, true)).toBe('pass');
     expect(gateDecision('PUT', '/admin/users/me', { password: 'x' }, true)).toBe('forbidden');
     expect(gateDecision('PUT', '/admin/users/me', { currentPassword: 'x' }, true)).toBe('forbidden');
-    expect(gateDecision('PUT', '/admin/users/me', { email: 'a@b.ro' }, true)).toBe('forbidden');
+    expect(gateDecision('PUT', '/admin/users/me', { email: 'a@b.ro' }, true)).toBe('profileEmail');
+    expect(gateDecision('PUT', '/admin/users/me', { email: 'a@b.ro', password: 'x' }, true)).toBe('forbidden');
+    expect(gateDecision('PUT', '/admin/users/me', { email: 'a@b.ro', currentPassword: 'x' }, true)).toBe('forbidden');
     expect(gateDecision('PUT', '/admin/users/me', undefined, true)).toBe('pass');
     expect(gateDecision('PUT', '/admin/users/me', 'text', true)).toBe('pass');
   });
@@ -119,5 +122,61 @@ describe('the middleware', () => {
   it('config/middlewares.ts lists global::admin-auth-gate immediately after strapi::body', () => {
     const list = readFileSync(join(__dirname, '../../../config/middlewares.ts'), 'utf8').match(/'(?:strapi|global)::[a-z-]+'/g) ?? [];
     expect(list[list.indexOf("'strapi::body'") + 1]).toBe("'global::admin-auth-gate'");
+  });
+});
+
+describe('profile e-mail check (B3 M2)', () => {
+  async function scene() {
+    const env = adminEnv();
+    env.addAdmin({ id: 7, email: 'Ana@X.ro', firstname: 'Ana' });
+    const refresh = await env.admin().generateRefreshToken('7', 'dev', { type: 'refresh' });
+    const access = (await env.admin().generateAccessToken(refresh.token)).token as string;
+    const put = async (body: unknown, authorization?: string) => {
+      const ctx = { method: 'PUT', path: '/admin/users/me', querystring: '', status: 200, body: null as unknown, request: { body }, headers: { authorization }, redirect: vi.fn() };
+      const next = vi.fn(async () => undefined);
+      await adminAuthGate({}, { strapi: env.strapi as never })(ctx as never, next);
+      return { ctx, next };
+    };
+    return { put, access };
+  }
+
+  it('the same e-mail passes, also with another case or spaces; the name can be saved', async () => {
+    const { put, access } = await scene();
+    for (const email of ['Ana@X.ro', 'ana@x.RO', ' ana@x.ro ']) {
+      const r = await put({ email, firstname: 'Ana' }, `Bearer ${access}`);
+      expect(r.next).toHaveBeenCalledOnce();
+    }
+  });
+
+  it('a different e-mail is 403', async () => {
+    const { put, access } = await scene();
+    const r = await put({ email: 'other@x.ro' }, `Bearer ${access}`);
+    expect(r.next).not.toHaveBeenCalled();
+    expect(r.ctx.status).toBe(403);
+  });
+
+  it('no token, a bad token and a refresh token are 403', async () => {
+    const { put } = await scene();
+    for (const header of [undefined, '', 'Bearer ', 'Bearer garbage', 'Basic abc']) {
+      const r = await put({ email: 'ana@x.ro' }, header);
+      expect(r.next).not.toHaveBeenCalled();
+      expect(r.ctx.status).toBe(403);
+    }
+  });
+
+  it('a throw while checking answers 403', async () => {
+    const { access } = await scene();
+    const ctx = { method: 'PUT', path: '/admin/users/me', querystring: '', status: 200, body: null as unknown, request: { body: { email: 'ana@x.ro' } }, headers: { authorization: `Bearer ${access}` }, redirect: vi.fn() };
+    const next = vi.fn(async () => undefined);
+    await adminAuthGate({}, { strapi: {} as never })(ctx as never, next);
+    expect(next).not.toHaveBeenCalled();
+    expect(ctx.status).toBe(403);
+  });
+
+  it('a password with the same e-mail is still 403 and an e-mail is not looked up', async () => {
+    const { put, access } = await scene();
+    const r = await put({ email: 'ana@x.ro', password: 'x' }, `Bearer ${access}`);
+    expect(r.next).not.toHaveBeenCalled();
+    expect(r.ctx.status).toBe(403);
   });
 });

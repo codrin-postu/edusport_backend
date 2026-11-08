@@ -2,6 +2,7 @@ import { refuse, type AuthRefusal } from '../admin-result';
 import { DUMMY_HASH, type PortalResult } from '../portal/auth/context';
 import { PORTAL_ERRORS } from '../portal/copy';
 import { normalizeEmail } from '../portal/limits';
+import { hashSecret, sameHash } from '../portal/tokens';
 import type { AdminHandoff, CodeSent, SecondStep, TwoFactorMethod } from '../security/api-types';
 import { keysOrRefusal } from '../security/context';
 import { SECURITY_ACTIONS, SECURITY_ERRORS } from '../security/copy';
@@ -144,6 +145,12 @@ export async function secondStepAdmin(c: AdminLoginContext, body: unknown): Prom
     return verified;
   }
   const { subject, data } = verified.data;
+  // The pending login belongs to the browser that gave the password: its device key must come back with the code (B3 M3).
+  const deviceCookie = c.cookie(ADMIN_DEVICE_COOKIE(c.secure));
+  if (!deviceCookie || data.deviceKeyHash === null || !sameHash(hashSecret(deviceCookie), data.deviceKeyHash)) {
+    c.clearCookie(pendingName);
+    return pendingExpired;
+  }
   const admin = await adminById(c.strapi, adminSubjectId(subject));
   if (!canEnterAdmin(admin)) {
     c.clearCookie(pendingName);
@@ -153,9 +160,9 @@ export async function secondStepAdmin(c: AdminLoginContext, body: unknown): Prom
     const account = await c.store.ensureAdminAccount(admin.id);
     await c.store.updateAdminAccount(account.id, { lastMethod: read.method });
   }
-  if (read.remember) await rememberDevice(c.store, admin.id, data.deviceKeyHash, c.cookie(ADMIN_DEVICE_COOKIE(c.secure)), c.now());
+  if (read.remember) await rememberDevice(c.store, admin.id, data.deviceKeyHash, deviceCookie, c.now());
   c.clearCookie(pendingName);
-  return { ok: true, data: await finishAdminLogin(c, admin, data.rememberMe, { newDeviceMail: false, passkey: false }) };
+  return { ok: true, data: await finishAdminLogin(c, admin, data.rememberMe, { newDeviceMail: true, passkey: false }) };
 }
 
 /** "Trimite din nou" and the choice of the e-mail method. */

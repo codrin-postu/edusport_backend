@@ -1,6 +1,8 @@
 import { createRequire } from 'node:module';
 import type { Core } from '@strapi/strapi';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { adminLimits, type AdminLoginContext } from '../../admin-login/context';
+import { loginAdmin } from '../../admin-login/login';
 import { limiter } from '../../portal/auth/limit';
 import { strapiPortalStore } from '../../portal/strapi-store';
 import type { SecurityContext } from '../context';
@@ -120,5 +122,32 @@ describe.skipIf(!url)('strapiSecurityStore on Postgres', () => {
       reset: () => vi.mocked(checkTotp).mockClear(),
       lockoutMails: () => mails.filter((k) => k === 'lockout2fa').length,
     }));
+  });
+  describe('admin login lockout (B3 L2)', () => {
+    it('8 parallel wrong passwords for one admin: 4 are 401, 4 are 429, one lockout mail', async () => {
+      const email = `lock-${run}@x.ro`;
+      const adminId = 900_000_000 + (run % 90_000_000);
+      const ana = { id: adminId, email, firstname: 'Ana', lastname: null, isActive: true, blocked: false, password: 'hash:right', roles: [] };
+      const fake = { db: { query: () => ({ findOne: async () => structuredClone(ana) }) } };
+      const mails: string[] = [];
+      const now = (): Date => new Date();
+      const request = (n: number): AdminLoginContext => ({
+        strapi: fake as never, koa: {} as never, store: strapiSecurityStore(strapi), now, secure: false, keys: TEST_KEYS, log: () => undefined,
+        mail: async () => true,
+        portalMail: async (_to, mail) => {
+          mails.push(mail.kind);
+          return true;
+        },
+        limits: adminLimits(limiter(strapiPortalStore(strapi), now)), ip: `ip-lock-${run}-${n}`, userAgent: null, actor: 'sistem',
+        endSessions: async () => undefined, forgetDevices: async () => undefined,
+        compare: async (p, h) => h === `hash:${p}`,
+        cookie: () => null, setCookie: () => undefined, clearCookie: () => undefined,
+      });
+      const results = await Promise.all(Array.from({ length: 8 }, (_, n) => loginAdmin(request(n), { email, password: 'nope', rememberMe: false })));
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect(results.filter((r) => r.ok === false && r.status === 401)).toHaveLength(4);
+      expect(results.filter((r) => r.ok === false && r.status === 429)).toHaveLength(4);
+      expect(mails.filter((k) => k === 'lockout')).toHaveLength(1);
+    });
   });
 });

@@ -192,6 +192,19 @@ describe('endAdminSessions', () => {
   });
 });
 
+describe('endAdminSessions, sessions without any device id (B3 L2)', () => {
+  it('exceptDevice revokes a session whose deviceId is empty, by its session id', async () => {
+    const env = adminEnv();
+    const a = await bind(env, 7, null);
+    await issueAdminSession(env.ctx, 7, a.device, true);
+    await env.sessions.login(7, '');
+    await env.sessions.login(8, '');
+    expect(env.sessions.rows).toHaveLength(3);
+    await endAdminSessions(env.ctx, 7, { exceptDevice: a.device.id });
+    expect(env.sessions.rows.map((r) => `${r.userId}:${r.deviceId}`).sort()).toEqual([`7:${a.device.strapiDeviceId}`, '8:undefined'].sort());
+  });
+});
+
 describe('admins', () => {
   const row = (o: Partial<AdminRow> = {}): AdminRow => ({ id: 1, email: 'a@x.ro', firstname: null, lastname: null, isActive: true, blocked: false, passwordHash: 'h', roleCodes: [], ...o });
 

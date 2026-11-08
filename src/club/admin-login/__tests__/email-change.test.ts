@@ -1,4 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { captureMessage } from '../../../sentry';
 import { SECURITY_ACTIONS } from '../../security/copy';
 import { emailChangeHandlers, onAdminEmailChange } from '../email-change';
 import { bindAdminDevice } from '../devices';
@@ -39,35 +42,42 @@ describe('onAdminEmailChange', () => {
   });
 });
 
-describe('the admin::user lifecycle', () => {
-  const strapiOf = (before: Record<string, unknown> | null) => ({ db: { query: () => ({ findOne: async () => before }) }, log: { error: vi.fn() } }) as never;
-  const run = async (before: Record<string, unknown> | null, data: Record<string, unknown>, result: Record<string, unknown>) => {
+vi.mock('../../../sentry', () => ({ captureMessage: vi.fn() }));
+
+describe('the admin::user lifecycle (B3 L3: the cleanup runs before the save)', () => {
+  const strapiOf = (before: Record<string, unknown> | null, log = vi.fn()) => ({ db: { query: () => ({ findOne: async () => before }) }, log: { error: log } }) as never;
+  const run = async (before: Record<string, unknown> | null, data: Record<string, unknown>) => {
     const onChange = vi.fn(async () => undefined);
     const h = emailChangeHandlers(strapiOf(before), onChange);
-    const event = { params: { data, where: { id: 7 } }, state: {} as Record<string, unknown>, result };
-    await h.beforeUpdate(event);
-    await h.afterUpdate(event);
+    await h.beforeUpdate({ params: { data, where: { id: 7 } } });
     return onChange;
   };
 
-  it('an update that changes email calls onAdminEmailChange with the admin id', async () => {
-    const onChange = await run({ id: 7, email: 'old@x.ro' }, { email: 'new@x.ro' }, { id: 7, email: 'new@x.ro' });
+  it('has no afterUpdate: nothing runs once the new e-mail is written', () => {
+    expect(Object.keys(emailChangeHandlers(strapiOf(null), vi.fn()))).toEqual(['beforeUpdate']);
+  });
+
+  it('an update that changes email calls onAdminEmailChange with the admin id, inside beforeUpdate', async () => {
+    const onChange = await run({ id: 7, email: 'old@x.ro' }, { email: 'new@x.ro' });
     expect(onChange).toHaveBeenCalledWith(expect.anything(), 7);
   });
 
   it('an update without email, with the same email or only a case change does not', async () => {
-    expect(await run({ id: 7, email: 'a@x.ro' }, { firstname: 'Ana' }, { id: 7, email: 'a@x.ro' })).not.toHaveBeenCalled();
-    expect(await run({ id: 7, email: 'a@x.ro' }, { email: 'a@x.ro' }, { id: 7, email: 'a@x.ro' })).not.toHaveBeenCalled();
-    expect(await run({ id: 7, email: 'a@x.ro' }, { email: 'A@x.ro' }, { id: 7, email: 'A@x.ro' })).not.toHaveBeenCalled();
+    expect(await run({ id: 7, email: 'a@x.ro' }, { firstname: 'Ana' })).not.toHaveBeenCalled();
+    expect(await run({ id: 7, email: 'a@x.ro' }, { email: 'a@x.ro' })).not.toHaveBeenCalled();
+    expect(await run({ id: 7, email: 'a@x.ro' }, { email: 'A@x.ro' })).not.toHaveBeenCalled();
+    expect(await run(null, { email: 'A@x.ro' })).not.toHaveBeenCalled();
   });
 
-  it('a failing change is logged and thrown', async () => {
+  it('a failing cleanup is logged, sent to Sentry and thrown from beforeUpdate, so the save does not happen', async () => {
     const log = vi.fn();
-    const strapi = { db: { query: () => ({ findOne: async () => ({ id: 7, email: 'a@x.ro' }) }) }, log: { error: log } } as never;
-    const h = emailChangeHandlers(strapi, async () => { throw new Error('boom'); });
-    const event = { params: { data: { email: 'b@x.ro' }, where: { id: 7 } }, state: {} as Record<string, unknown>, result: { id: 7, email: 'b@x.ro' } };
-    await h.beforeUpdate(event);
-    await expect(h.afterUpdate(event)).rejects.toThrow('boom');
+    const h = emailChangeHandlers(strapiOf({ id: 7, email: 'a@x.ro' }, log), async () => { throw new Error('boom'); });
+    await expect(h.beforeUpdate({ params: { data: { email: 'b@x.ro' }, where: { id: 7 } } })).rejects.toThrow('boom');
     expect(log).toHaveBeenCalledWith(expect.stringContaining('admin e-mail change'));
+    expect(vi.mocked(captureMessage)).toHaveBeenCalledWith(expect.stringContaining('admin e-mail change'));
+  });
+
+  it('bootstrap subscribes the handlers (B3 L2)', () => {
+    expect(readFileSync(join(__dirname, '../../../index.ts'), 'utf8')).toMatch(/^\s*subscribeAdminEmailChange\(strapi\);/m);
   });
 });

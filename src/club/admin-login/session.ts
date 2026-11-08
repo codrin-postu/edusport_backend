@@ -22,6 +22,7 @@ export type AdminSessionManager = {
   invalidateRefreshToken: (userId: string, deviceId?: string) => Promise<void>;
   revokeSessionById: (userId: string, sessionId: string) => Promise<boolean>;
   listSessions: (userId: string) => Promise<SessionRow[]>;
+  validateAccessToken: (token: string) => { isValid: boolean; payload?: { userId?: string; sessionId?: string } } | Promise<{ isValid: boolean; payload?: { userId?: string; sessionId?: string } }>;
 };
 
 type SessionAuth = {
