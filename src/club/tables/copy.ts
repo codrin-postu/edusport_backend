@@ -11,6 +11,10 @@ export const TABLES_COPY = {
     seasonMissing: `${COPY_NEEDED} (season)`,
     periodReset: `${COPY_NEEDED} (period)`,
   },
+  errors: {
+    tooSlow: 'Tabelul durează prea mult. Restrânge sfera.',
+    xlsxUnavailable: `${COPY_NEEDED} (xlsx not available yet)`,
+  },
   views: {
     duplicate: 'Există deja o vizualizare cu numele ăsta.',
     tooMany: 'Prea multe vizualizări salvate. Șterge una.',

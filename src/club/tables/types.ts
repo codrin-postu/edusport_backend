@@ -23,7 +23,11 @@ export type TableRow = {
   cells: Record<string, CellValue>;
 };
 export type SavedViewRow = {
-  id: string; name: string; subject: Subject; definition: TableDefinition;
+  id: string; name: string; subject: Subject;
+  /** null only for a `broken` view: a stored definition that cannot be repaired. It is listed (so it can be deleted) and cannot be opened. */
+  definition: TableDefinition | null;
+  /** Set on a stored view whose definition cannot be repaired. */
+  broken?: true;
   authorId: string | null; authorName: string; mine: boolean; canDelete: boolean; readyMade: boolean;
   /** Set when a stored view had to be repaired on load (a column the catalog no longer has); the screen shows them. */
   notices?: string[];

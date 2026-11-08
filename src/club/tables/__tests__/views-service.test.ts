@@ -105,20 +105,42 @@ describe('a definition always goes through the validator', () => {
   it('on load: a column the catalog dropped is removed with one notice, the view still opens', async () => {
     const db = fakeViewsDb({ views: [viewRow({ id: 'b', name: 'B', definition: { ...def, columns: ['data', 'gone'], filters: [{ column: 'gone', op: 'eq', value: 'x' }] } })] });
     const [v] = await listViews(db.store(), bob);
-    expect(v.definition.columns).toEqual(['data']);
-    expect(v.definition.filters).toEqual([]);
+    expect(v.definition?.columns).toEqual(['data']);
+    expect(v.definition?.filters).toEqual([]);
     expect(v.notices).toEqual([TABLES_COPY.notices.columnDropped, TABLES_COPY.notices.filterDropped]);
   });
 
-  it('on load: stored junk never reaches the screen as it is', async () => {
+  it('on load: stored junk never reaches the screen as it is; an unrepairable view is listed as broken, with no definition', async () => {
     const junk: unknown[] = [null, 'x', 5, [], {}, { subject: 'users', columns: ['a'] }, { ...def, columns: ['nope'] }, { subject: 'plati', columns: ['data'], scope: null }, { ...def, sql: 'drop table x', __proto__: { admin: true } }];
     const views = junk.map((definition, i) => viewRow({ id: `j${i}`, name: `J${i}`, definition }));
     const listed = await listViews(fakeViewsDb({ views }).store(), bob);
+    expect(listed.map((v) => v.name)).toEqual(['J0', 'J1', 'J2', 'J3', 'J4', 'J5', 'J6', 'J7', 'J8']);
+    for (const v of listed.filter((x) => x.name !== 'J8')) expect(v, v.name).toMatchObject({ broken: true, definition: null });
     for (const v of listed) {
+      if (v.broken) continue;
       expect(readDefinition({ definition: v.definition }).ok).toBe(true);
-      expect(Object.keys(v.definition).sort()).toEqual(['columns', 'filters', 'groupBy', 'scope', 'sort', 'subject']);
+      expect(Object.keys(v.definition ?? {}).sort()).toEqual(['columns', 'filters', 'groupBy', 'scope', 'sort', 'subject']);
     }
-    expect(listed.map((v) => v.name)).toEqual(['J8']);
+  });
+
+  it('a broken view counts for the author and canDelete, can be deleted by them, and is gone from the list afterwards', async () => {
+    const db = fakeViewsDb({ views: [viewRow({ id: 'b1', name: 'Veche', definition: { subject: 'plati' }, authorId: 1 })] });
+    const [forAna] = await listViews(db.store(), ana);
+    expect(forAna).toMatchObject({ broken: true, mine: true, canDelete: true, readyMade: false, definition: null });
+    expect((await listViews(db.store(), bob))[0]).toMatchObject({ broken: true, mine: false, canDelete: false });
+    expect((await listViews(db.store(), root))[0]).toMatchObject({ canDelete: true });
+    expect(await deleteView(db.store(), bob, 'b1')).toMatchObject({ ok: false, status: 403 });
+    expect((await deleteView(db.store(), ana, 'b1')).ok).toBe(true);
+    expect(await listViews(db.store(), ana)).toEqual([]);
+  });
+
+  it('the author can fix a broken view by saving a definition; a name-only edit keeps it broken and does not fail', async () => {
+    const db = fakeViewsDb({ views: [viewRow({ id: 'b1', name: 'Veche', definition: { subject: 'plati' }, authorId: 1 })] });
+    expect(await updateView(db.store(), ana, 'b1', { name: 'Nou' })).toMatchObject({ ok: true, data: { value: { view: { name: 'Nou', broken: true } } } });
+    const fixed = await updateView(db.store(), ana, 'b1', { definition: def });
+    expect(fixed).toMatchObject({ ok: true });
+    expect((await listViews(db.store(), ana))[0]).toMatchObject({ definition: def });
+    expect((await listViews(db.store(), ana))[0].broken).toBeUndefined();
   });
 });
 

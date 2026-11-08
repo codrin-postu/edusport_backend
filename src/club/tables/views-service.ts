@@ -36,28 +36,33 @@ function ownIds(raw: unknown): KnownIds {
   return { seasons: one(scope.seasonId), sections: one(scope.sectionId), groups: one(scope.groupId) };
 }
 
-/** A stored row for the screen. The definition is checked again here, on every load: valid as it is, or repaired against the catalog with notices, or the view is dropped. */
-function toSavedRow(row: ViewRow, caller: Caller): SavedViewRow | null {
+/**
+ * A stored row for the screen. The definition is checked again here, on every load: valid as it is, or repaired against the catalog with notices,
+ * or, when nothing usable is left, the view is still listed as `broken` (no definition, cannot be opened) so its author can delete it.
+ */
+function toSavedRow(row: ViewRow, caller: Caller): SavedViewRow {
   const checked = readDefinition({ definition: row.definition });
-  let definition: TableDefinition;
+  let definition: TableDefinition | null = null;
   let notices: string[] | undefined;
   if (checked.ok) definition = checked.value;
   else {
     const repaired = repairDefinition(row.definition, ownIds(row.definition));
     const again = repaired.definition ? readDefinition({ definition: repaired.definition }) : null;
-    if (!again || !again.ok) return null;
-    definition = again.value;
-    notices = repaired.notices;
+    if (again && again.ok) {
+      definition = again.value;
+      notices = repaired.notices;
+    }
   }
   const mine = row.authorId === caller.adminId;
   return {
-    id: row.id, name: row.name, subject: definition.subject, definition, authorId: String(row.authorId), authorName: row.authorName,
-    mine, canDelete: mine || caller.superAdmin, readyMade: false, ...(notices && notices.length > 0 ? { notices } : {}),
+    id: row.id, name: row.name, subject: definition?.subject ?? row.subject, definition, authorId: String(row.authorId), authorName: row.authorName,
+    mine, canDelete: mine || caller.superAdmin, readyMade: false,
+    ...(definition === null ? { broken: true as const } : {}), ...(notices && notices.length > 0 ? { notices } : {}),
   };
 }
 
 export async function listViews(store: TableViewStore, caller: Caller): Promise<SavedViewRow[]> {
-  const rows = (await store.views()).flatMap((r) => toSavedRow(r, caller) ?? []);
+  const rows = (await store.views()).map((r) => toSavedRow(r, caller));
   return rows.sort((a, b) => a.name.localeCompare(b.name, 'ro') || a.id.localeCompare(b.id));
 }
 
@@ -85,9 +90,7 @@ function readBody(body: unknown, needed: ('name' | 'definition')[]): Body | null
 type SavedAction = ActionResult<{ view: SavedViewRow; toast: string }>;
 
 function saved(row: ViewRow, caller: Caller, toast: string): AdminResult<{ value: { view: SavedViewRow; toast: string }; actionId: null }> {
-  const view = toSavedRow(row, caller);
-  if (!view) throw new Error('a view just saved does not validate');
-  return done({ view, toast }, null) as AdminResult<{ value: { view: SavedViewRow; toast: string }; actionId: null }>;
+  return done({ view: toSavedRow(row, caller), toast }, null) as AdminResult<{ value: { view: SavedViewRow; toast: string }; actionId: null }>;
 }
 
 export async function createView(store: TableViewStore, caller: Caller, body: unknown, opts: Opts = {}): Promise<SavedAction> {

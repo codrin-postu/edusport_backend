@@ -8,7 +8,7 @@ import type { CatalogColumn, TableDefinition, TableResult, TableRow } from './ty
 export const MAX_ROWS = 5000;
 export const TOO_MANY_ROWS = 'Tabelul are peste 5.000 de rânduri. Restrânge sfera sau filtrele.';
 
-type Options = { notices?: string[]; today?: string; groupOrder?: ReadonlyMap<string, number> };
+type Options = { notices?: string[]; today?: string; groupOrder?: ReadonlyMap<string, number>; maxRows?: number };
 
 /** The chosen cells only: the row builders fill every column so filters can use hidden ones. */
 const pick = (r: TableRow, keys: string[]): TableRow => ({ ...r, cells: Object.fromEntries(keys.map((k) => [k, r.cells[k] ?? null])) });
@@ -18,7 +18,7 @@ export async function runQuery(rowsOf: () => Promise<TableRow[]>, d: TableDefini
   const read = await rowsOf();
   budget.check();
   const kept = applyFilters(read, d, opts.today);
-  if (kept.length > MAX_ROWS) return refuse(422, TOO_MANY_ROWS);
+  if (kept.length > (opts.maxRows ?? MAX_ROWS)) return refuse(422, TOO_MANY_ROWS);
   const rows = sortRows(kept, d.sort, columns).map((r) => pick(r, d.columns));
   budget.check();
   const { groups, total } = groupRows(rows, d, columns, opts.groupOrder);
