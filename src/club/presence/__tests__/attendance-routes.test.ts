@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import attendance from '../../../api/club/controllers/attendance';
+import { areaOfRoute } from '../../admin-area';
 import attendanceRoutes from '../../../api/club/routes/09-attendance';
 
 const SRC = join(__dirname, '../../..');
@@ -20,10 +21,21 @@ function staticBeforeParams(paths: string[]): boolean {
 describe('09-attendance routes (6)', () => {
   it('are all admin-only and point at handlers that exist (6, 11.3)', () => {
     for (const r of routes) {
-      expect(r.config, r.path).toEqual({ auth: false, policies: ['global::is-admin'], middlewares: [] });
       expect(typeof (attendance as Record<string, unknown>)[r.handler.split('.')[1]], r.handler).toBe('function');
       expect(r.handler.startsWith('attendance.')).toBe(true);
     }
+  });
+
+  it('new phase 11 routes name their area; the others keep the phase 5 guard', () => {
+    const areas = Object.fromEntries(routes.filter((r) => areaOfRoute(r.config) !== null).map((r) => [`${r.method} ${r.path}`, areaOfRoute(r.config)]));
+    expect(areas).toEqual({ 'GET /club/attendance/period': 'club', 'GET /club/attendance/grid': 'club' });
+    for (const r of routes.filter((x) => areaOfRoute(x.config) === null)) expect(r.config).toEqual({ auth: false, policies: ['global::is-admin'], middlewares: [] });
+  });
+
+  it('the coaches CSV is named by period and logged without personal data', () => {
+    const src = readFileSync(join(SRC, 'api/club/controllers/attendance.ts'), 'utf8');
+    expect(src).toMatch(/coachesCsvName\(period\.from, period\.to\)/);
+    expect(src).toContain('downloadLogLine(');
   });
 
   it('declare fixed paths before parameter paths', () => {
@@ -33,7 +45,7 @@ describe('09-attendance routes (6)', () => {
 
   it('are exactly the attendance routes', () => {
     expect(routes.map((r) => `${r.method} ${r.path}`)).toEqual([
-      'GET /club/attendance/day', 'GET /club/attendance/session/defaults', 'POST /club/attendance/session/check', 'GET /club/attendance/session',
+      'GET /club/attendance/period', 'GET /club/attendance/grid', 'GET /club/attendance/session/defaults', 'POST /club/attendance/session/check', 'GET /club/attendance/session',
       'PUT /club/attendance/session', 'GET /club/attendance/coaches', 'GET /club/attendance/coaches.csv', 'GET /club/lessons', 'GET /club/lessons/new',
       'POST /club/lessons', 'GET /club/lessons/:documentId', 'PUT /club/lessons/:documentId', 'DELETE /club/lessons/:documentId',
       'GET /club/groups/:documentId/attendance', 'GET /club/athletes/:documentId/attendance']);

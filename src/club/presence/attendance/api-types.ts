@@ -1,3 +1,4 @@
+import type { AdminState } from '../period';
 import type { HeldOccurrence, LessonState, SessionState } from '../types';
 
 export type SectionKind = 'school' | 'club';
@@ -27,11 +28,21 @@ export type SessionSaveBody = {
 };
 export type InactiveAthlete = { id: string; name: string };
 export type SessionSaved = { sessionId: string; toast: string };
-export type GroupMonth = { month: string; rows: DayRow[] };
+export type PeriodRow = DayRow & { coachIds: string[]; adminState: AdminState };
+export type PeriodPage = {
+  from: string; to: string; today: string; startDate: string | null; groupsWithoutList: number;
+  undone: PeriodRow[]; days: { date: string; rows: PeriodRow[] }[];
+};
+export type GridCell = { date: string; state: AdminState; present: number; listed: number; sessions: number };
+export type GridPage = {
+  from: string; to: string; startDate: string | null; groupsWithoutList: number; dates: string[]; rows: { groupId: string; groupName: string; cells: GridCell[] }[];
+};
+export type GroupMonth = { month: string; rows: PeriodRow[] };
 export type LessonListRow = {
   lessonId: string; date: string; startTime: string; athleteId: string; athleteName: string; coachNames: string[]; durationMin: number;
   state: SessionState; present: boolean | null;
 };
+export type PeriodLessonRow = LessonListRow & { adminState: AdminState };
 export type LessonPanel = {
   lessonId: string; athleteId: string; athleteName: string; date: string; startTime: string; durationMin: number; coachIds: string[];
   state: LessonState; present: boolean | null; savedLine: string | null; deletable: boolean;

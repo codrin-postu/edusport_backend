@@ -56,9 +56,8 @@ describe('phone cards (5.2, decided 12)', () => {
 
 describe('address (decided 2)', () => {
   it('reads and writes the Prezență query and the module paths', () => {
-    expect(readPrezentaQuery('?tab=lectii&month=2026-10', '2026-10-27')).toEqual({ tab: 'lectii', date: '2026-10-27', month: '2026-10' });
-    expect(readPrezentaQuery('?tab=x&date=2026-13-01&month=2026-1', '2026-10-27')).toEqual({ tab: 'sedinte', date: '2026-10-27', month: '2026-10' });
-    expect(prezentaTo({ tab: 'sedinte', date: '2026-10-26' })).toBe('/plugins/edusport-prezenta?tab=sedinte&date=2026-10-26');
+    expect(readPrezentaQuery('?tab=lectii&month=2026-10', '2026-10-27')).toEqual({ view: 'luna', date: '2026-10-01', show: 'lectii', layout: 'lista' });
+    expect(prezentaTo({ view: 'zi', date: '2026-10-26' })).toBe('/plugins/edusport-prezenta?view=zi&date=2026-10-26');
     expect([PREZENTA_PATH, ABONAMENTE_PATH, PLATI_PATH, DE_INCASAT_PATH]).toEqual(['/plugins/edusport-prezenta', '/plugins/edusport-abonamente', '/plugins/edusport-plati', '/plugins/edusport-de-incasat']);
   });
 });

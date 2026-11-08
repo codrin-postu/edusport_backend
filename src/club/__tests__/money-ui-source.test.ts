@@ -81,7 +81,7 @@ describe('money UI source', () => {
     l.cancel();
     expect(second()).toBe(false);
     for (const f of ['PlatiList', 'AbonamenteList', 'DeIncasatList', 'PlatiTab', 'AbonamentTab']) expect(src(`admin/dashboard/bani/${f}.tsx`), f).toMatch(/latest\.next\(\)/);
-    expect(src('admin/dashboard/prezenta/LessonsTab.tsx')).toMatch(/latest\.next\(\)/);
+    expect(src('admin/dashboard/prezenta/MonthLine.tsx')).toMatch(/latest\.next\(\)/);
   });
   it('stale figures: the athlete Plăți tab follows Prezență writes, the session panel follows money writes (I5)', () => {
     expect(src('admin/dashboard/bani/PlatiTab.tsx')).toContain('usePrezentaRefresh(() => void reload())');
@@ -91,11 +91,20 @@ describe('money UI source', () => {
   });
   it('Prezență notices on any tab; a failed move preview is shown (M9, M6)', () => {
     const s = src('admin/dashboard/prezenta/PrezentaScreen.tsx');
-    expect(s).toContain('useNoticesFromDay(query.tab, query.date, page, setPage)');
-    expect(s).toMatch(/tab === 'sedinte' \|\| page !== null/);
+    expect(s).toContain('useNotices(query, page, setPage)');
+    expect(s).toMatch(/carried \|\| page !== null/);
     const m = src('admin/dashboard/grupe/MoveDialog.tsx');
     expect(m).not.toMatch(/\.catch\(\(\) => undefined\)/);
     expect(m).toContain('previewFailed');
+  });
+  it('Prezență polish: coaches as cards on a phone, undone without Prezenți, month scroll once per period (L5, L2, L7)', () => {
+    const c = src('admin/dashboard/prezenta/CoachesList.tsx');
+    expect(c).toContain('useIsPhone()');
+    expect(c).toContain('<PeriodTable<CoachRow>');
+    expect(c).toContain('PREZENTA_COPY.colHours');
+    const g = src('admin/dashboard/prezenta/GroupsList.tsx');
+    expect(g).toContain("DAY_COLUMNS.filter((c) => c.key !== 'present')");
+    expect(g).toContain('scrolled.current === key');
   });
   it('strings outside the copy module moved in (M8)', () => {
     for (const f of ['PlatiList', 'AbonamenteList']) expect(src(`admin/dashboard/bani/${f}.tsx`)).not.toContain('`Arată ');

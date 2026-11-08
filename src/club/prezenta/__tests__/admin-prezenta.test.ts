@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
 
@@ -16,8 +16,9 @@ it('menu: Grupe, Sportivi, Prezență, Abonamente, Plăți, De încasat in Club 
 
 it('the api reaches every plan 5-2 route', () => {
   const api = src('dashboard/prezenta/api.ts');
-  for (const p of ['/attendance/day', '/attendance/session/defaults', '/attendance/session/check', '/attendance/session', '/attendance/coaches', 'coaches.csv',
+  for (const p of ['/attendance/period', '/attendance/grid', '/attendance/session/defaults', '/attendance/session/check', '/attendance/session', '/attendance/coaches', 'coaches.csv',
     '/lessons/new', '/lessons', '/attendance', '/groups/options', '/undo']) expect(api, p).toContain(p);
+  expect(api).not.toContain('/attendance/day');
 });
 
 it('undo toasts last 8 s with "Anulează" and no X', () => {
@@ -43,19 +44,47 @@ it('prezenta components are held to the colour rule', () => {
   expect(readFileSync(join(ROOT, 'scripts/admin-ui-check.mjs'), 'utf8')).toContain("'dashboard', 'prezenta'");
 });
 
-it('Prezență: three tabs, notices, the day switcher (5.2, C41)', () => {
+it('Prezență: no tabs, view and picker, Listă / Grilă only for Grupe outside Zi, notices (5.1, S37)', () => {
   const s = src('dashboard/prezenta/PrezentaScreen.tsx');
-  for (const k of ['tabSessions', 'tabLessons', 'tabCoaches', 'startNotice']) expect(s, k).toContain(`PREZENTA_COPY.${k}`);
+  expect(s).not.toMatch(/\bTabs\b/);
+  expect(s).toContain('SegmentedControl');
+  expect(s).toContain('PERIOD_COPY.show[v]');
+  expect(s).toMatch(/query\.show === 'grupe' && query\.view !== 'zi'/);
+  expect(s).toMatch(/\{gridOn && <SegmentedControl/);
+  expect(s).toContain('PeriodHeader');
+  expect(s).toContain('startNotice');
   expect(s).toContain('noPriceListNotice(');
+  const h = src('dashboard/prezenta/PeriodHeader.tsx');
+  expect(h).toContain('<Select');
+  expect(h).toContain('type="date"');
+  expect(h.indexOf('<Select')).toBeLessThan(h.indexOf('<Switcher'));
+  expect(h.indexOf('<Switcher')).toBeLessThan(h.indexOf('PERIOD_COPY.today'));
 });
-it('Ședințe: undone section above the day, columns, empty text, phone cards (5.2)', () => {
-  const d = src('dashboard/prezenta/DayTab.tsx');
-  expect(d.indexOf('undoneTitle(')).toBeLessThan(d.indexOf('dayTitle('));
-  for (const k of ['colDate', 'colTime', 'colGroup', 'colCoach', 'colState', 'colPresent', 'emptyDay', 'newSession', 'today', 'prevDay', 'nextDay'])
-    expect(d, k).toContain(`PREZENTA_COPY.${k}`);
-  expect(d).toContain('sessionCard(');
-  expect(d).toContain('PRESENCE_WORDS.outsideSchedule');
-  expect(d).toMatch(/undone\.length > 0/);
+it('Grupe, Listă: undone section above the days, day headers, states, month scroll, phone cards (5.1)', () => {
+  const d = src('dashboard/prezenta/GroupsList.tsx');
+  expect(d.indexOf('PERIOD_COPY.undoneTitle(')).toBeLessThan(d.indexOf('groups={dayGroups(page'));
+  for (const f of ['dayHeader(', 'STATE_COPY', 'PERIOD_COPY.undoneTitle(', 'scrollTarget(', 'PERIOD_COPY.outside', 'PERIOD_COPY.newSession']) expect(d, f).toContain(f);
+  for (const k of ['colDate', 'colTime', 'colGroup', 'colCoach', 'colState', 'colPresent']) expect(d, k).toContain(`PREZENTA_COPY.${k}`);
+  expect(d).toMatch(/page\.undone\.length > 0/);
+  expect(d).toContain("view === 'zi' ? null");
+  const t = src('dashboard/prezenta/PeriodTable.tsx');
+  expect(t).toContain('spv-cards');
+  expect(t).toContain('pz-dayrow');
+});
+it('Grupe, Grilă: five steps, sticky group column, a cell opens that day (5.1, S42)', () => {
+  const g = src('dashboard/prezenta/GroupsGrid.tsx');
+  for (const f of ['cellStep(', 'cellText(', 'GRID_COPY.legendWeek', 'GRID_COPY.legendMonth']) expect(g, f).toContain(f);
+  expect(g).toContain("onQuery({ view: 'zi', date: c.date, show: 'grupe' })");
+  expect(src('dashboard/prezenta/styles.ts')).toMatch(/\.pz-grid th\.pz-grid-group\{position:sticky/);
+  expect(src('dashboard/prezenta/styles.ts').match(/border-radius:[^;}]*/g)?.every((r) => /var\(--ui-radius-/.test(r))).toBe(true);
+});
+it('no dashed, dotted or round shapes under dashboard/prezenta', () => {
+  const dir = join(ADMIN, 'dashboard', 'prezenta');
+  for (const f of readdirSync(dir)) expect(readFileSync(join(dir, f), 'utf8'), f).not.toMatch(/dashed|dotted|border-radius:\s*50%/);
+});
+it('the page reads the new address; the coach rows open the coach page', () => {
+  expect(src('dashboard/PrezentaPage.tsx')).toContain('readPrezentaQuery');
+  expect(src('dashboard/prezenta/CoachesList.tsx')).toContain('coachPageTo(');
 });
 it('Ședință nouă: fields, check and the warning (5.4, 4.5)', () => {
   const w = src('dashboard/prezenta/NewSessionWindow.tsx');
@@ -100,12 +129,12 @@ it('the athlete search can hide anonymized athletes', () => {
   expect(src('dashboard/sportivi/AthleteSearch.tsx')).toMatch(/hideStatus\?: /);
 });
 
-it('Lecții individuale: month line, columns, empty, cards (5.2)', () => {
-  const t = src('dashboard/prezenta/LessonsTab.tsx');
-  for (const k of ['newLesson', 'colDate', 'colTime', 'colAthlete', 'colCoach', 'colDuration', 'colState', 'emptyLessons', 'prevMonth', 'nextMonth'])
-    expect(t, k).toContain(`PREZENTA_COPY.${k}`);
-  expect(t).toContain('monthTitle(');
-  expect(t).toContain('lessonCard(');
+it('Lecții individuale: day headers, columns, empty, cards (5.1)', () => {
+  const t = src('dashboard/prezenta/LessonsList.tsx');
+  for (const k of ['colTime', 'colAthlete', 'colCoach', 'colState']) expect(t, k).toContain(`PREZENTA_COPY.${k}`);
+  for (const k of ['newLesson', 'emptyLessons']) expect(t, k).toContain(`PERIOD_COPY.${k}`);
+  expect(t).toContain('dayHeader(');
+  expect(t).toContain('present === false');
 });
 it('Lecție nouă: fields and undo toast (5.5)', () => {
   const w = src('dashboard/prezenta/NewLessonWindow.tsx');
@@ -120,10 +149,11 @@ it('lesson panel: title, tick, delete only when deletable, with confirmation and
   expect(p).toContain('LESSON_COPY.deleteConfirm(');
   expect(p).toMatch(/undoToast\([^)]*LESSON_COPY\.deleted/);
 });
-it('Pe antrenori: columns, CSV, empty (5.2, p5 Q24)', () => {
-  const c = src('dashboard/prezenta/CoachesTab.tsx');
-  for (const k of ['exportCsv', 'colCoach', 'colGroupSessions', 'colLessons', 'colHours', 'emptyCoaches']) expect(c, k).toContain(`PREZENTA_COPY.${k}`);
-  expect(c).toContain('api.coachesCsv(');
+it('Antrenori: columns, CSV by period, empty (5.1)', () => {
+  const c = src('dashboard/prezenta/CoachesList.tsx');
+  for (const k of ['colCoach', 'colGroupSessions', 'colLessons', 'colHours']) expect(c, k).toContain(`PREZENTA_COPY.${k}`);
+  for (const k of ['exportCsv', 'emptyCoaches']) expect(c, k).toContain(`PERIOD_COPY.${k}`);
+  expect(c).toContain('api.coachesCsv(period.from, period.to)');
 });
 
 it('group tab Prezență: between Program and Istoric, month list, read-only past season (5.6)', () => {
@@ -156,18 +186,11 @@ it('lesson delete confirmation has no body strip: ConfirmDialog passes no childr
   expect(c).toContain(') : undefined}');
 });
 
-it('option A: day line under the title, one segmented switcher, month and buttons in the page header, date picker after the switcher', () => {
+it('the period header sits in the bar; the action goes to the page header slot', () => {
   const screen = src('dashboard/prezenta/PrezentaScreen.tsx');
-  expect(screen).toMatch(/subtitle=\{query\.tab === 'sedinte' \? dayLine\(query\.date\)/);
+  expect(screen).toContain('periodLabel(');
   expect(screen).toContain('pz-head-slot');
-  const day = src('dashboard/prezenta/DayTab.tsx');
-  expect(day).toContain('<DateInput');
-  expect(day.indexOf('<DateInput')).toBeGreaterThan(day.indexOf('<Switcher'));
-  expect(day.indexOf('<DateInput')).toBeLessThan(day.indexOf('<Button onClick={onNew}'));
-  expect(day).toContain('onDate(v)');
-  expect(day).toContain('<Switcher');
-  expect(day).toContain('<HeaderSlot');
-  for (const f of ['LessonsTab', 'CoachesTab']) expect(src(`dashboard/prezenta/${f}.tsx`), f).toContain('host={host}');
+  for (const f of ['GroupsList', 'GroupsGrid', 'LessonsList', 'CoachesList']) expect(src(`dashboard/prezenta/${f}.tsx`), f).toContain('<HeaderSlot host={host}>');
   const sw = src('dashboard/prezenta/Switcher.tsx');
   expect(sw).toContain('createPortal');
   const styles = src('dashboard/prezenta/styles.ts');
@@ -176,8 +199,8 @@ it('option A: day line under the title, one segmented switcher, month and button
 
 it('athlete names are regular weight in the panel and the lessons list', () => {
   expect(src('dashboard/prezenta/SessionPanel.tsx')).not.toMatch(/spv-name[^\n]*row\.name/);
-  expect(src('dashboard/prezenta/LessonsTab.tsx')).not.toMatch(/spv-name'\}>\{r\.athleteName/);
-  expect(src('dashboard/prezenta/LessonsTab.tsx')).not.toMatch(/'pz-muted' : 'spv-name'/);
+  expect(src('dashboard/prezenta/LessonsList.tsx')).not.toMatch(/spv-name'\}>\{r\.athleteName/);
+  expect(src('dashboard/prezenta/LessonsList.tsx')).not.toMatch(/'pz-muted' : 'spv-name'/);
 });
 
 it('a coach options load failure shows the load-failed notice in both panels', () => {

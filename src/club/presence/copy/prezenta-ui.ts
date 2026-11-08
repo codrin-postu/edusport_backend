@@ -14,3 +14,27 @@ export const PREZENTA_COPY = {
 } as const;
 export const SETARI_COPY = { attendanceStart: 'Prezență și plăți din', attendanceStartHint: 'Ședințele dinainte nu apar ca nefăcute.' } as const;
 export const SHELL_COPY = { abonamente: 'Abonamente', abonamenteSub: 'Școala de patinaj', plati: 'Plăți', deIncasat: 'De încasat' } as const;
+
+export const PERIOD_COPY = {
+  views: { zi: 'Zi', saptamana: 'Săptămână', luna: 'Lună' },
+  today: 'Azi',
+  show: { grupe: 'Grupe', lectii: 'Lecții individuale', antrenori: 'Antrenori' },
+  layout: { lista: 'Listă', grila: 'Grilă' },
+  newSession: '+ Ședință nouă', newLesson: '+ Lecție individuală', exportCsv: 'Export CSV',
+  undoneTitle: (n: number): string => `Necompletate din zilele trecute (${n})`,
+  outside: 'În afara programului',
+  todaySuffix: ' (azi)',
+  emptyGroups: 'Nicio ședință în perioada asta.',
+  emptyLessons: 'Nicio lecție individuală în perioada asta.',
+  emptyCoaches: 'Nicio ședință completată în perioada asta.',
+  /** Hidden labels of the arrows. COPY NEEDED for Săptămână (asked of the user). */
+  prev: { zi: 'Ziua anterioară', saptamana: 'COPY NEEDED', luna: 'Luna anterioară' },
+  next: { zi: 'Ziua următoare', saptamana: 'COPY NEEDED', luna: 'Luna următoare' },
+} as const;
+
+export const STATE_COPY = { completat: 'Completat', necompletat: 'Necompletat', urmeaza: 'Urmează' } as const;
+
+export const GRID_COPY = {
+  legendWeek: 'Prezenți din listați', legendMonth: 'Prezenți din listați, % în celule',
+  steps: ['0%', '1-59%', '60-79%', '80-94%', '95-100%'], planned: 'planificat', none: 'fără ședință',
+} as const;

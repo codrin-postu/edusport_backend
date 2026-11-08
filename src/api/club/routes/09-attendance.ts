@@ -2,11 +2,14 @@
  * Attendance, individual lessons, coach hours and the group and athlete attendance tabs (spec 6).
  * Admin routes: auth off, `global::is-admin`. Fixed paths before parameter paths.
  */
+import { adminRoute } from '../../../club/admin-area';
+
 const adminGuard = { auth: false, policies: ['global::is-admin'], middlewares: [] };
 
 export default {
   routes: [
-    { method: 'GET', path: '/club/attendance/day', handler: 'attendance.day', config: adminGuard },
+    { method: 'GET', path: '/club/attendance/period', handler: 'attendance.period', config: adminRoute('club') },
+    { method: 'GET', path: '/club/attendance/grid', handler: 'attendance.grid', config: adminRoute('club') },
     { method: 'GET', path: '/club/attendance/session/defaults', handler: 'attendance.defaults', config: adminGuard },
     { method: 'POST', path: '/club/attendance/session/check', handler: 'attendance.check', config: adminGuard },
     { method: 'GET', path: '/club/attendance/session', handler: 'attendance.session', config: adminGuard },

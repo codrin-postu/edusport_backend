@@ -7,7 +7,7 @@ import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { MONEY_UI_COPY } from '../../../club/presence/copy/money-ui';
 import { monthOf } from '../../../club/presence/dates';
 import type { AthleteSubscriptions } from '../../../club/presence/money-api';
-import { MonthLine } from '../prezenta/LessonsTab';
+import { MonthLine } from '../prezenta/MonthLine';
 import { SessionPanel } from '../prezenta/SessionPanel';
 import { PREZENTA_CSS } from '../prezenta/styles';
 import { usePrezentaRefresh } from '../prezenta/undo';

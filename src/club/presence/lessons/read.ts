@@ -1,11 +1,12 @@
 import { refuse, type AdminResult } from '../../admin-result';
 import { GROUP_LINES } from '../../groups/copy';
-import { isIsoDate } from '../../groups/dates';
+import { hhmm, isIsoDate } from '../../groups/dates';
 import { mainGroupOn } from '../attendance/roster';
-import type { LessonListRow, LessonPanel } from '../attendance/api-types';
+import type { LessonPanel, PeriodLessonRow } from '../attendance/api-types';
 import { savedLine } from '../attendance/view';
 import { PRESENCE_ERRORS } from '../copy';
-import { isMonth, monthRange, seasonOfDate } from '../dates';
+import { seasonOfDate } from '../dates';
+import { adminState, readPeriodQuery } from '../period';
 import type { PresenceStore } from '../store';
 import type { LessonRow, SessionState } from '../types';
 
@@ -18,10 +19,13 @@ export function lessonListState(l: LessonRow, today: string): SessionState {
 const namesOf = (rows: { id: string; name: string }[]): Map<string, string> => new Map(rows.map((r) => [r.id, r.name]));
 const coachNames = (ids: string[], coaches: Map<string, string>): string[] => ids.flatMap((id) => coaches.get(id) ?? []);
 
-/** The month's lessons, by date then time. */
-export async function listLessons(store: PresenceStore, month: unknown, today: string): Promise<AdminResult<LessonListRow[]>> {
-  if (!isMonth(month)) return refuse(400, PRESENCE_ERRORS.invalid);
-  const [lessons, athletes, team] = await Promise.all([store.lessons(monthRange(month)), store.athletes(), store.teamMembers()]);
+/** Lessons of a period (`from` / `to` or `month`), by date then time. A lesson exists once created, so a planned one whose time passed is "necompletat". */
+export async function listLessons(
+  store: PresenceStore, query: Record<string, unknown>, now: { date: string; time: string },
+): Promise<AdminResult<PeriodLessonRow[]>> {
+  const period = readPeriodQuery(query);
+  if (period.ok === false) return refuse(period.status, period.error);
+  const [lessons, athletes, team] = await Promise.all([store.lessons(period.value), store.athletes(), store.teamMembers()]);
   const athleteNames = namesOf(athletes);
   const coaches = namesOf(team);
   const rows = [...lessons].sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime) || a.id.localeCompare(b.id));
@@ -29,7 +33,8 @@ export async function listLessons(store: PresenceStore, month: unknown, today: s
     ok: true,
     data: rows.map((l) => ({
       lessonId: l.id, date: l.date, startTime: l.startTime, athleteId: l.athleteId, athleteName: athleteNames.get(l.athleteId) ?? GROUP_LINES.deletedAthlete,
-      coachNames: coachNames(l.coachIds, coaches), durationMin: l.durationMin, state: lessonListState(l, today), present: l.present,
+      coachNames: coachNames(l.coachIds, coaches), durationMin: l.durationMin, state: lessonListState(l, now.date), present: l.present,
+      adminState: adminState({ saved: l.state === 'saved', date: l.date, startTime: hhmm(l.startTime) ?? l.startTime, startDate: l.date, now }),
     })),
   };
 }

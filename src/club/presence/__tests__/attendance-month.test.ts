@@ -17,7 +17,7 @@ function withBronzeTicks(f: ReturnType<typeof attendanceSeed>): ReturnType<typeo
 describe('group tab month and athlete month', () => {
   it('the group tab lists the month newest first with counts and visitors (5.6)', async () => {
     const f = withSaved14(attendanceSeed());
-    const m = ok(await readGroupMonth(f.store, 'g-ib', '2026-11', '2026-11-20'));
+    const m = ok(await readGroupMonth(f.store, 'g-ib', '2026-11', { date: '2026-11-20', time: '12:00' }));
     expect(m.rows.map((r) => [r.date, r.state])).toEqual([
       ['2026-11-29', 'urmeaza'], ['2026-11-28', 'urmeaza'], ['2026-11-22', 'urmeaza'], ['2026-11-21', 'urmeaza'], ['2026-11-15', 'nefacuta'],
       ['2026-11-14', 'salvata'], ['2026-11-08', 'nefacuta'], ['2026-11-07', 'nefacuta'], ['2026-11-01', 'nefacuta']]);
@@ -26,16 +26,16 @@ describe('group tab month and athlete month', () => {
   });
 
   it('dates before the start date are listed without a state (decided 10)', async () => {
-    const m = ok(await readGroupMonth(attendanceSeed().store, 'g-ib', '2026-10', '2026-11-20'));
+    const m = ok(await readGroupMonth(attendanceSeed().store, 'g-ib', '2026-10', { date: '2026-11-20', time: '12:00' }));
     expect(m.rows.map((r) => r.date)).toEqual(['2026-10-31', '2026-10-25', '2026-10-24', '2026-10-18', '2026-10-17', '2026-10-11', '2026-10-10', '2026-10-04']);
     expect(m.rows.every((r) => r.state === null)).toBe(true);
   });
 
   it('an empty month, a bad month, an unknown group', async () => {
     const f = attendanceSeed();
-    expect(ok(await readGroupMonth(f.store, 'g-ib', '2026-09', '2026-11-20')).rows).toEqual([]);
-    expect((await readGroupMonth(f.store, 'g-ib', '2026-9', '2026-11-20')).ok).toBe(false);
-    expect(await readGroupMonth(f.store, 'nope', '2026-11', '2026-11-20')).toEqual({ ok: false, status: 404, error: 'Nu a fost găsit.' });
+    expect(ok(await readGroupMonth(f.store, 'g-ib', '2026-09', { date: '2026-11-20', time: '12:00' })).rows).toEqual([]);
+    expect((await readGroupMonth(f.store, 'g-ib', '2026-9', { date: '2026-11-20', time: '12:00' })).ok).toBe(false);
+    expect(await readGroupMonth(f.store, 'nope', '2026-11', { date: '2026-11-20', time: '12:00' })).toEqual({ ok: false, status: 404, error: 'Nu a fost găsit.' });
   });
 
   it("the athlete's month: newest first, types, uncovered Școala rows (5.7, C54)", async () => {

@@ -1,15 +1,19 @@
+import { verifiedAdminId } from '../../../club/admin-auth';
 import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
+import { downloadLogLine } from '../../../club/download-log';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { presenceContext } from '../../../club/presence/context';
 import { respondAction, todayIso } from '../../../club/groups/http';
 import { readAthleteMonth } from '../../../club/presence/attendance/athlete-month';
 import { checkNewSession, sessionDefaults } from '../../../club/presence/attendance/check';
-import { readDay } from '../../../club/presence/attendance/day';
+import { readGrid } from '../../../club/presence/attendance/grid';
+import { readPeriod } from '../../../club/presence/attendance/period';
 import { readGroupMonth } from '../../../club/presence/attendance/group-month';
 import { readPanelQuery, readSessionPanel } from '../../../club/presence/attendance/panel';
 import { respondSave, saveSession } from '../../../club/presence/attendance/save';
 import { coachesCsv, coachesCsvName } from '../../../club/presence/coaches/csv';
-import { readCoachMonth } from '../../../club/presence/coaches/report';
+import { readCoachPeriod } from '../../../club/presence/coaches/report';
+import { bucharestNow, readPeriodQuery } from '../../../club/presence/period';
 import { createLesson } from '../../../club/presence/lessons/create';
 import { deleteLesson } from '../../../club/presence/lessons/delete';
 import { listLessons, newLessonDefaults, readLesson } from '../../../club/presence/lessons/read';
@@ -22,10 +26,6 @@ const store = () => strapiPresenceStore(strapi);
 
 /** Attendance, lessons, coach hours and the group and athlete tabs (routes/09-attendance.ts). */
 export default {
-  async day(ctx: AdminCtx) {
-    respond(ctx, await readDay(store(), ctx.query.date, todayIso()));
-  },
-
   async defaults(ctx: AdminCtx) {
     respond(ctx, await sessionDefaults(store(), ctx.query));
   },
@@ -44,20 +44,37 @@ export default {
     respondSave(ctx, await saveSession(await presenceContext(strapi, ctx), ctx.request.body));
   },
 
+  async period(ctx: AdminCtx) {
+    const period = readPeriodQuery(ctx.query);
+    if (period.ok === false) return refuseWith(ctx, period.status, period.error);
+    respond(ctx, await readPeriod(store(), period.value, bucharestNow(new Date())));
+  },
+
+  async grid(ctx: AdminCtx) {
+    const period = readPeriodQuery(ctx.query);
+    if (period.ok === false) return refuseWith(ctx, period.status, period.error);
+    respond(ctx, await readGrid(store(), period.value, bucharestNow(new Date())));
+  },
+
   async coaches(ctx: AdminCtx) {
-    respond(ctx, await readCoachMonth(store(), ctx.query.month));
+    respond(ctx, await readCoachPeriod(store(), ctx.query));
   },
 
   async coachesCsv(ctx: FileCtx) {
-    const result = await readCoachMonth(store(), ctx.query.month);
+    const checked = readPeriodQuery(ctx.query);
+    if (checked.ok === false) return refuseWith(ctx, checked.status, checked.error);
+    const period = checked.value;
+    const result = await readCoachPeriod(store(), { from: period.from, to: period.to });
     if (result.ok === false) return refuseWith(ctx, result.status, result.error);
+    const adminId = await verifiedAdminId(ctx.request.header.authorization, strapi);
+    strapi.log.info(downloadLogLine({ adminId, kind: 'coaches-csv', rows: result.data.length }));
     ctx.set('Content-Type', 'text/csv; charset=utf-8');
-    ctx.set('Content-Disposition', `attachment; filename="${coachesCsvName(String(ctx.query.month))}"`);
+    ctx.set('Content-Disposition', `attachment; filename="${coachesCsvName(period.from, period.to)}"`);
     ctx.body = coachesCsv(result.data);
   },
 
   async lessons(ctx: AdminCtx) {
-    respond(ctx, await listLessons(store(), ctx.query.month, todayIso()));
+    respond(ctx, await listLessons(store(), ctx.query, bucharestNow(new Date())));
   },
 
   async lessonNew(ctx: AdminCtx) {
@@ -81,7 +98,7 @@ export default {
   },
 
   async groupMonth(ctx: AdminCtx) {
-    respond(ctx, await readGroupMonth(store(), param(ctx, 'documentId'), ctx.query.month, todayIso()));
+    respond(ctx, await readGroupMonth(store(), param(ctx, 'documentId'), ctx.query.month, bucharestNow(new Date())));
   },
 
   async athleteMonth(ctx: AdminCtx) {

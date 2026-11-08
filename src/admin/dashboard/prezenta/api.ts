@@ -2,7 +2,7 @@ import * as React from 'react';
 import { getFetchClient, useFetchClient } from '@strapi/admin/strapi-admin';
 import type { ActionBody, GroupOptions } from '../../../club/groups/api-types';
 import type {
-  AddedSession, CoachRow, DayPage, GroupMonth, LessonListRow, LessonPanel, LessonSaved, SessionCheck, SessionDefaults,
+  AddedSession, CoachRow, GridPage, GroupMonth, LessonPanel, LessonSaved, PeriodLessonRow, PeriodPage, SessionCheck, SessionDefaults,
   SessionPanel, SessionSaveBody, SessionSaved,
 } from '../../../club/presence/attendance/api-types';
 import { coachesCsvName } from '../../../club/presence/coaches/csv';
@@ -40,21 +40,22 @@ export function usePrezentaApi() {
     const action = async <T>(p: Promise<unknown>): Promise<ActionBody<T>> => ((await p) as { data: ActionBody<T> }).data;
     const get = <T>(url: string) => data<T>(ref.current.get(url));
     return {
-      day: (date: string) => get<DayPage>(`${BASE}/attendance/day${query({ date })}`),
+      period: (from: string, to: string) => get<PeriodPage>(`${BASE}/attendance/period${query({ from, to })}`),
+      grid: (from: string, to: string) => get<GridPage>(`${BASE}/attendance/grid${query({ from, to })}`),
       session: (q: SessionQuery) => get<SessionPanel>(`${BASE}/attendance/session${sessionQuery(q)}`),
       defaults: (groupId: string, date: string) => get<SessionDefaults>(`${BASE}/attendance/session/defaults${query({ group: groupId, date })}`),
       check: (body: NewSessionBody) => data<SessionCheck>(ref.current.post(`${BASE}/attendance/session/check`, body as Body)),
       save: (body: SessionSaveBody) => action<SessionSaved>(ref.current.put(`${BASE}/attendance/session`, body as unknown as Body)),
       groupMonth: (groupId: string, month: string) => get<GroupMonth>(`${BASE}/groups/${enc(groupId)}/attendance${query({ month })}`),
-      lessons: (month: string) => get<LessonListRow[]>(`${BASE}/lessons${query({ month })}`),
+      lessons: (from: string, to: string) => get<PeriodLessonRow[]>(`${BASE}/lessons${query({ from, to })}`),
       lesson: (id: string) => get<LessonPanel>(`${BASE}/lessons/${enc(id)}`),
       lessonNew: (athleteId: string, date: string) => get<{ coachIds: string[] }>(`${BASE}/lessons/new${query({ athlete: athleteId, date })}`),
       createLesson: (body: Body) => action<LessonSaved>(ref.current.post(`${BASE}/lessons`, body)),
       saveLesson: (id: string, body: Body) => action<LessonSaved>(ref.current.put(`${BASE}/lessons/${enc(id)}`, body)),
       deleteLesson: (id: string) => action<{ deleted: true; toast: string }>(ref.current.del(`${BASE}/lessons/${enc(id)}`)),
-      coaches: (month: string) => get<CoachRow[]>(`${BASE}/attendance/coaches${query({ month })}`),
-      coachesCsv: (month: string) =>
-        downloadPdf(ref.current.get, `${BASE}/attendance/coaches.csv${query({ month })}`, coachesCsvName(month)),
+      coaches: (from: string, to: string) => get<CoachRow[]>(`${BASE}/attendance/coaches${query({ from, to })}`),
+      coachesCsv: (from: string, to: string) =>
+        downloadPdf(ref.current.get, `${BASE}/attendance/coaches.csv${query({ from, to })}`, coachesCsvName(from, to)),
       options: () => get<GroupOptions>(`${BASE}/groups/options`),
       undo: (actionId: string) => data<{ undone: true }>(getFetchClient().post(`${BASE}/undo`, { actionId })),
       search: searchUrl,

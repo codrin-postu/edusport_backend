@@ -6,18 +6,18 @@ import { writable } from '../../../club/grupe/list-view';
 import { PRESENCE_ERRORS, PRESENCE_WORDS } from '../../../club/presence/copy/core';
 import { PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
 import { listDate, monthOf } from '../../../club/presence/dates';
-import type { DayRow } from '../../../club/presence/attendance/api-types';
+import type { PeriodRow } from '../../../club/presence/attendance/api-types';
 import { countText, sessionCard, visitorsText } from '../../../club/prezenta/day-view';
-import { stateCell, targetOf } from '../prezenta/DayTab';
-import { MonthLine, useMonthLoad } from '../prezenta/LessonsTab';
+import { stateLabel, targetOf } from '../prezenta/GroupsList';
+import { MonthLine, useMonthLoad } from '../prezenta/MonthLine';
 import { NewSessionWindow } from '../prezenta/NewSessionWindow';
 import { SessionPanel, type SessionTarget } from '../prezenta/SessionPanel';
 
 type Opened = { target: SessionTarget; coachIds?: string[] };
 
-const rowKey = (r: DayRow): string => r.sessionId ?? r.occurrenceKey ?? `${r.date}-${r.startTime}`;
+const rowKey = (r: PeriodRow): string => r.sessionId ?? r.occurrenceKey ?? `${r.date}-${r.startTime}`;
 
-const COLUMNS: DataColumn<DayRow>[] = [
+const COLUMNS: DataColumn<PeriodRow>[] = [
   {
     key: 'date', header: PREZENTA_COPY.colDate,
     render: (r) => (
@@ -38,10 +38,10 @@ const COLUMNS: DataColumn<DayRow>[] = [
     ),
   },
   { key: 'coach', header: PREZENTA_COPY.colCoach, render: (r) => r.coachNames.join(', ') },
-  { key: 'state', header: PREZENTA_COPY.colState, render: stateCell },
+  { key: 'state', header: PREZENTA_COPY.colState, render: (r) => stateLabel(r.adminState) },
 ];
 
-function Cards({ rows, onOpen }: { rows: DayRow[]; onOpen: (r: DayRow) => void }) {
+function Cards({ rows, onOpen }: { rows: PeriodRow[]; onOpen: (r: PeriodRow) => void }) {
   return (
     <ul className="spv-cards">
       {rows.map((r) => {
@@ -69,7 +69,7 @@ export function PrezentaTab({ page }: { page: GroupPage }) {
   const { data, failed } = useMonthLoad((api, m) => api.groupMonth(page.documentId, m), month);
   const [creating, setCreating] = React.useState(false);
   const [opened, setOpened] = React.useState<Opened | null>(null);
-  const open = (r: DayRow) => {
+  const open = (r: PeriodRow) => {
     const target = targetOf(r);
     if (target) setOpened({ target });
   };
@@ -79,7 +79,7 @@ export function PrezentaTab({ page }: { page: GroupPage }) {
   else if (data && rows.length === 0) body = <p className="pz-empty">{PREZENTA_COPY.emptyGroupMonth}</p>;
   else if (data && phone) body = <Cards rows={rows} onOpen={open} />;
   else if (data) {
-    body = <DataTable<DayRow> columns={COLUMNS} rows={rows} getRowKey={rowKey} onRowClick={open} rowLabel={(r) => `${listDate(r.date)} ${r.startTime}`} pageSize={0} />;
+    body = <DataTable<PeriodRow> columns={COLUMNS} rows={rows} getRowKey={rowKey} onRowClick={open} rowLabel={(r) => `${listDate(r.date)} ${r.startTime}`} pageSize={0} />;
   }
   const action = writable(page) ? <Button onClick={() => setCreating(true)}>{PREZENTA_COPY.newSession}</Button> : null;
   return (
