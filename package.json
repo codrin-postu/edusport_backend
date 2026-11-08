@@ -41,10 +41,10 @@
     "@strapi/plugin-users-permissions": "5.52.1",
     "@strapi/strapi": "5.52.1",
     "bcryptjs": "2.4.3",
-    "jsonwebtoken": "9.0.3",
     "fflate": "^0.8.3",
     "fs-extra": "^10.0.0",
     "googleapis": "^144.0.0",
+    "jsonwebtoken": "9.0.3",
     "mime-types": "^2.1.27",
     "pdfkit": "^0.20.2",
     "pg": "8.8.0",
@@ -52,7 +52,8 @@
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.0.0",
     "strapi-5-plugin-responsive-backend": "^0.0.4",
-    "styled-components": "^6.0.0"
+    "styled-components": "^6.0.0",
+    "write-excel-file": "4.1.1"
   },
   "devDependencies": {
     "@types/node": "^20",
