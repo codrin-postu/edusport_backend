@@ -49,7 +49,7 @@ function readSecond(body: unknown): SecondBody | null {
 }
 
 /** Runs after the limiter's transaction and is not awaited, so the locking attempt takes as long as any other. */
-async function noticeLockout(c: AdminLoginContext, admin: AdminRow): Promise<void> {
+export async function noticeLockout(c: AdminLoginContext, admin: AdminRow): Promise<void> {
   try {
     if (!(await c.portalMail(admin.email, { kind: 'lockout' }))) c.log('[admin-login] lockout mail not sent');
     await c.store.record({ subjectType: 'admin', subjectId: String(admin.id), action: SECURITY_ACTIONS.passwordLocked, changes: {}, actor: 'sistem' });
@@ -99,7 +99,7 @@ function refuseLogin(c: AdminLoginContext, attempt: { locking: boolean; firstLoc
 }
 
 /** The second step of a right password: the device is bound first (so "remember" has a row), then the pending login opens (6.3). */
-async function startSecondStep(c: AdminLoginContext, admin: AdminRow, rememberMe: boolean): Promise<PortalResult<SecondStep>> {
+export async function startSecondStep(c: AdminLoginContext, admin: AdminRow, rememberMe: boolean): Promise<PortalResult<SecondStep>> {
   const gate = keysOrRefusal(c);
   if ('refusal' in gate) return gate.refusal;
   const { device } = await bindDevice(c, admin, { newDeviceMail: true });

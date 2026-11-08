@@ -6,6 +6,8 @@ import { adminLoginContext, adminOrigin, originAllowed } from '../context';
 
 const login = vi.hoisted(() => ({ loginAdmin: vi.fn(), secondStepAdmin: vi.fn(), sendAdminLoginCode: vi.fn() }));
 vi.mock('../login', () => login);
+vi.mock('../reset', () => ({ requestAdminReset: vi.fn(), confirmAdminReset: vi.fn() }));
+vi.mock('../invite', () => ({ readAdminInvite: vi.fn(), acceptAdminInvite: vi.fn() }));
 
 import controller from '../../../api/admin-auth/controllers/admin-auth';
 import routes from '../../../api/admin-auth/routes/01-login';
@@ -15,8 +17,11 @@ type Route = { method: string; path: string; handler: string; config: { auth: bo
 const all = routes.routes as Route[];
 
 describe('routes (spec 4.3)', () => {
-  it('login, 2fa and 2fa/email exist as POST, each open to Strapi auth with no policies or middlewares', () => {
-    expect(all.map((r) => `${r.method} ${r.path}`)).toEqual(['POST /admin-auth/login', 'POST /admin-auth/2fa', 'POST /admin-auth/2fa/email']);
+  it('login, 2fa, 2fa/email, reset and invite exist as POST, each open to Strapi auth with no policies or middlewares', () => {
+    expect(all.map((r) => `${r.method} ${r.path}`)).toEqual([
+      'POST /admin-auth/login', 'POST /admin-auth/2fa', 'POST /admin-auth/2fa/email', 'POST /admin-auth/reset/request', 'POST /admin-auth/reset/confirm',
+      'POST /admin-auth/invite/read', 'POST /admin-auth/invite/accept',
+    ]);
     for (const r of all) expect(r.config).toEqual({ auth: false, policies: [], middlewares: [] });
   });
 
@@ -70,13 +75,13 @@ describe('the controller', () => {
   });
   const install = (log = vi.fn()) => {
     process.env.ADMIN_ORIGIN = 'https://cms.x.ro';
-    (globalThis as { strapi?: unknown }).strapi = { log: { error: log } };
+    (globalThis as { strapi?: unknown }).strapi = { log: { error: log }, dirs: { app: { root: process.cwd() } } };
   };
 
   it('a POST with a foreign Origin is 403 "Forbidden" and builds no context, so no store is touched', async () => {
     (globalThis as { strapi?: unknown }).strapi = strapiStub;
     process.env.ADMIN_ORIGIN = 'https://cms.x.ro';
-    for (const handler of [controller.login, controller.twoFactor, controller.twoFactorEmail]) {
+    for (const handler of [controller.login, controller.twoFactor, controller.twoFactorEmail, controller.resetRequest, controller.resetConfirm, controller.inviteRead, controller.inviteAccept]) {
       for (const origin of ['https://evil.example', undefined, 'https://cms.x.ro.evil.example']) {
         const ctx = ctxOf(origin);
         await handler(ctx as never);
@@ -109,7 +114,7 @@ describe('the controller', () => {
 });
 
 describe('a store for each request (B2 L8)', () => {
-  const strapi = { log: { error: () => undefined }, db: {} } as never;
+  const strapi = { log: { error: () => undefined }, db: {}, dirs: { app: { root: process.cwd() } } } as never;
   const koa = { request: { secure: false, ip: '1.1.1.1', headers: {} }, cookies: { get: () => undefined, set: () => undefined } };
 
   it('every context has its own security store and limiter', () => {

@@ -38,3 +38,12 @@ export const canEnterAdmin = (a: AdminRow | null): a is AdminRow => a !== null &
 
 /** "<firstname> <lastname>" trimmed, else the e-mail. */
 export const adminName = (a: AdminRow): string => [a.firstname, a.lastname].filter((p): p is string => p !== null).map((p) => p.trim()).filter(Boolean).join(' ') || a.email;
+
+/** The part of Strapi's `admin::user` service the reset, the invite and the password change use (it hashes the password itself). */
+export type AdminUserService = {
+  updateById: (id: number, attributes: Record<string, unknown>) => Promise<{ id: number } | null>;
+  findRegistrationInfo: (registrationToken: string) => Promise<{ email: string; firstname?: string | null; lastname?: string | null } | undefined>;
+  register: (args: { registrationToken: string; userInfo: { firstname?: string | null; lastname?: string | null; password: string } }) => Promise<{ id: number }>;
+};
+
+export const adminUserService = (strapi: Core.Strapi): AdminUserService => (strapi as unknown as { service: (uid: string) => AdminUserService }).service(USER);

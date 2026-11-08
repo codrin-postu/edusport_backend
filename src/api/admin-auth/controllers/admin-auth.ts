@@ -1,5 +1,7 @@
 import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
 import { adminLoginContext, adminOrigin, originAllowed } from '../../../club/admin-login/context';
+import { acceptAdminInvite, readAdminInvite } from '../../../club/admin-login/invite';
+import { confirmAdminReset, requestAdminReset } from '../../../club/admin-login/reset';
 import { loginAdmin, secondStepAdmin, sendAdminLoginCode } from '../../../club/admin-login/login';
 import type { KoaContext } from '../../../club/admin-login/session';
 import { PORTAL_ERRORS } from '../../../club/portal/copy';
@@ -32,4 +34,8 @@ export default {
   login: sameOrigin('login', async (ctx) => respond(ctx, await loginAdmin(adminLoginContext(strapi, ctx), ctx.request.body))),
   twoFactor: sameOrigin('twoFactor', async (ctx) => respond(ctx, await secondStepAdmin(adminLoginContext(strapi, ctx), ctx.request.body))),
   twoFactorEmail: sameOrigin('twoFactorEmail', async (ctx) => respond(ctx, await sendAdminLoginCode(adminLoginContext(strapi, ctx)))),
+  resetRequest: sameOrigin('resetRequest', async (ctx) => respond(ctx, await requestAdminReset(adminLoginContext(strapi, ctx), ctx.request.body))),
+  resetConfirm: sameOrigin('resetConfirm', async (ctx) => respond(ctx, await confirmAdminReset(adminLoginContext(strapi, ctx), ctx.request.body))),
+  inviteRead: sameOrigin('inviteRead', async (ctx) => respond(ctx, await readAdminInvite(adminLoginContext(strapi, ctx), ctx.request.body))),
+  inviteAccept: sameOrigin('inviteAccept', async (ctx) => respond(ctx, await acceptAdminInvite(adminLoginContext(strapi, ctx), ctx.request.body))),
 };

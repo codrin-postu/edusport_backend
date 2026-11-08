@@ -4,6 +4,7 @@ import { portalMailSender, type SendPortalMail } from '../../email/portal-direct
 import { securityMailSender, type SecurityMail } from '../../email/security-mail';
 import { clientIp, userAgent } from '../portal/auth/bff';
 import { limiter, type Limiter } from '../portal/auth/limit';
+import { loadCommonPasswords } from '../portal/passwords';
 import { strapiPortalStore } from '../portal/strapi-store';
 import type { SecurityContext } from '../security/context';
 import { loadKeys } from '../security/keys';
@@ -14,6 +15,10 @@ import { endAdminSessions, type AdminSessionCtx, type KoaContext } from './sessi
 export type AdminLoginContext = SecurityContext & AdminSessionCtx & {
   compare: (p: string, h: string) => Promise<boolean>;
   secure: boolean;
+  /** The common-password list of the portal rules (reset, invite, password change). */
+  common: ReadonlySet<string>;
+  /** Waits; the reset request holds its answer to a floor with it. */
+  sleep: (ms: number) => Promise<void>;
   /** The portal mails (lockout, new device) that the login sends. */
   portalMail: SendPortalMail;
   cookie: (name: string) => string | null;
@@ -77,6 +82,8 @@ export function adminLoginContext(strapi: Core.Strapi, koa: KoaContext): AdminLo
     endSessions: (s, o) => endAdminSessions(c, Number(s.id), o),
     forgetDevices: (s, o) => forgetDevices(store, s, o),
     compare: (p, h) => bcrypt.compare(p, h),
+    common: loadCommonPasswords(strapi.dirs.app.root),
+    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     ...cookieHelpers(koa, secure),
   };
   return c;
