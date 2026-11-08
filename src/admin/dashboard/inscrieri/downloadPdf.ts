@@ -34,11 +34,11 @@ export async function downloadPdf(get: Get, url: string, fallbackName: string): 
  */
 export type PostOptions = { backendURL?: string; refresh?: () => Promise<string> };
 
-export async function downloadPost(token: string | null, url: string, body: unknown, fallbackName: string, opts: PostOptions = {}): Promise<void> {
+async function downloadWith(method: 'GET' | 'POST', token: string | null, url: string, body: unknown, fallbackName: string, opts: PostOptions): Promise<void> {
   const send = (bearer: string | null) => fetch(`${opts.backendURL ?? ''}${url}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}) },
-    body: JSON.stringify(body),
+    method,
+    headers: { ...(method === 'POST' ? { 'Content-Type': 'application/json' } : {}), ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}) },
+    ...(method === 'POST' ? { body: JSON.stringify(body) } : {}),
   });
   let res = await send(token);
   // An expired access token: renew it the way the Strapi client does, then ask once more.
@@ -46,6 +46,16 @@ export async function downloadPost(token: string | null, url: string, body: unkn
   if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { response: { data: await res.blob() } });
   saveBlob({ data: await res.blob(), headers: res.headers }, fallbackName);
 }
+
+export const downloadPost = (token: string | null, url: string, body: unknown, fallbackName: string, opts: PostOptions = {}): Promise<void> =>
+  downloadWith('POST', token, url, body, fallbackName, opts);
+
+/**
+ * A file from a GET whose refusal text must reach the screen: Strapi's client throws a bodiless "Server Error" for a failed blob GET
+ * (the Bani accounting .xlsx answers 501 with its own message), so this uses fetch like downloadPost.
+ */
+export const downloadGet = (token: string | null, url: string, fallbackName: string, opts: PostOptions = {}): Promise<void> =>
+  downloadWith('GET', token, url, null, fallbackName, opts);
 
 /** The server's message of a failed blob request: its error body is a blob too, read as JSON; the fallback when it has none. */
 export async function blobErrorText(err: unknown, fallback: string): Promise<string> {

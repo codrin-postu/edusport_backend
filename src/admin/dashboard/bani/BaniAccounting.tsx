@@ -7,8 +7,8 @@ import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { ron } from '../../../club/presence/money';
 import type { Accounting, AccountingPayment } from '../../../club/money/accounting';
 import { useMenuFocus } from '../../ui';
-import { blobErrorText, downloadPdf } from '../inscrieri/downloadPdf';
-import { useFetchClient } from '@strapi/admin/strapi-admin';
+import { blobErrorText, downloadGet } from '../inscrieri/downloadPdf';
+import { attemptTokenRefresh, useAuth } from '@strapi/admin/strapi-admin';
 import { AthleteLink } from '../prezenta/PanelLinks';
 
 type Format = 'xlsx' | 'csv';
@@ -16,7 +16,7 @@ const FORMATS: { value: Format; label: string }[] = [{ value: 'xlsx', label: BAN
 
 /** "Export contabil": .xlsx or .csv of the month. A refusal (the .xlsx answer 501 until the library lands) shows the server's message as a toast. */
 function ExportMenu({ month }: { month: string }) {
-  const client = useFetchClient();
+  const token = useAuth('BaniDownload', (state) => state.token) ?? null;
   const ref = React.useRef<HTMLButtonElement>(null);
   const [open, setOpen] = React.useState(false);
   const menu = useMenuFocus(open, ref, () => setOpen(false));
@@ -25,7 +25,9 @@ function ExportMenu({ month }: { month: string }) {
     setOpen(false);
     setBusy(true);
     try {
-      await downloadPdf(client.get, `/api/club/money/accounting.${format}?month=${month}`, `contabilitate-${month}.${format}`);
+      await downloadGet(token, `/api/club/money/accounting.${format}?month=${month}`, `contabilitate-${month}.${format}`, {
+        backendURL: (window as unknown as { strapi?: { backendURL?: string } }).strapi?.backendURL ?? '', refresh: attemptTokenRefresh,
+      });
     } catch (err) {
       adminToast.error(await blobErrorText(err, PRESENCE_ERRORS.failed));
     } finally {

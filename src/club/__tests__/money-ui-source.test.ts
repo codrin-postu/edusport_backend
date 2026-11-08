@@ -260,7 +260,7 @@ describe('money UI source', () => {
     expect(cards).toMatch(/abonamenteStateTo\('active'\)/);
     expect(cards).toMatch(/abonamenteStateTo\('expira14'\)/);
     expect(acc).toMatch(/<Popover/);
-    expect(acc.match(/downloadPdf\(/g)?.length ?? 0).toBeGreaterThanOrEqual(1);
+    expect(acc.match(/downloadGet\(/g)?.length ?? 0).toBeGreaterThanOrEqual(1);
     expect(acc).toMatch(/BANI_COPY\.xlsx/);
     expect(acc).toMatch(/BANI_COPY\.csv/);
     expect(acc).toMatch(/blobErrorText\(/);
