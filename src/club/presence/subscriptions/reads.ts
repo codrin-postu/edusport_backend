@@ -52,7 +52,6 @@ export async function listSubscriptions(store: PresenceStore, q: Record<string, 
       const count = used.get(s.id) ?? 0;
       return { s, count, state: subscriptionState(s, count, today), main: mains.get(s.athleteId) ?? null };
     })
-    
     .filter((r) => matchesSubscriptionFilter(query.state, r.state, r.s.validUntil, today) && (query.groupId === null || r.main?.id === query.groupId))
     .sort((a, b) => a.s.validUntil.localeCompare(b.s.validUntil) || a.s.id.localeCompare(b.s.id))
     .map((r) => ({

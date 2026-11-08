@@ -8,7 +8,8 @@ import { ron } from '../../../club/presence/money';
 import type { Accounting, AccountingPayment } from '../../../club/money/accounting';
 import { useMenuFocus } from '../../ui';
 import { blobErrorText, downloadGet } from '../inscrieri/downloadPdf';
-import { attemptTokenRefresh, useAuth } from '@strapi/admin/strapi-admin';
+import { useAuth } from '@strapi/admin/strapi-admin';
+import { strapiDownload } from '../inscrieri/strapiDownload';
 import { AthleteLink } from '../prezenta/PanelLinks';
 
 type Format = 'xlsx' | 'csv';
@@ -25,9 +26,7 @@ function ExportMenu({ month }: { month: string }) {
     setOpen(false);
     setBusy(true);
     try {
-      await downloadGet(token, `/api/club/money/accounting.${format}?month=${month}`, `contabilitate-${month}.${format}`, {
-        backendURL: (window as unknown as { strapi?: { backendURL?: string } }).strapi?.backendURL ?? '', refresh: attemptTokenRefresh,
-      });
+      await downloadGet(token, `/api/club/money/accounting.${format}?month=${month}`, `contabil-${month}.${format}`, strapiDownload());
     } catch (err) {
       adminToast.error(await blobErrorText(err, PRESENCE_ERRORS.failed));
     } finally {

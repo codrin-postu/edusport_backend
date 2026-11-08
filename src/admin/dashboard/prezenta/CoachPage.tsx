@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { AdminPage, Button, Loading, Notice, PageHeader, SegmentedControl, StatTile, Window, useIsPhone } from '../../ui';
+import { AdminPage, Button, Loading, Notice, PageHeader, SegmentedControl, StatTile, Window, adminToast, useIsPhone } from '../../ui';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { COACH_COPY, PERIOD_COPY, PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
 import type { CoachDay, CoachPage as CoachData, CoachSessionRow, PeriodLessonRow } from '../../../club/presence/attendance/api-types';
@@ -9,6 +9,7 @@ import { groupPageTo } from '../../../club/grupe/routes';
 import { todayIso } from '../../../club/groups/http';
 import { backTarget, coachPageAddress, coachRowDate, durationText, readCoachQuery, type CoachShow } from '../../../club/prezenta/coach-view';
 import { requestErrorText } from '../../../club/registration-panel';
+import { blobErrorText } from '../inscrieri/downloadPdf';
 import { SPORTIVI_CSS } from '../sportivi/styles';
 import { GRUPE_CSS } from '../grupe/styles';
 import { usePrezentaApi } from './api';
@@ -19,7 +20,7 @@ import { PeriodHeader } from './PeriodHeader';
 import { PeriodTable, type PeriodColumn } from './PeriodTable';
 import { SessionPanel, type SessionTarget } from './SessionPanel';
 import { PREZENTA_CSS } from './styles';
-import { failToast, usePrezentaRefresh } from './undo';
+import { usePrezentaRefresh } from './undo';
 
 type Props = { coachId: string };
 type Loaded = { data: CoachData | null; error: string | null };
@@ -171,7 +172,7 @@ function CsvButton({ coachId, period }: { coachId: string; period: { from: strin
     try {
       await api.coachCsv(coachId, period.from, period.to);
     } catch (err) {
-      failToast(err);
+      adminToast.error(await blobErrorText(err, PRESENCE_ERRORS.failed));
     } finally {
       setBusy(false);
     }

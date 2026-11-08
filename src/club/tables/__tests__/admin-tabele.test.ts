@@ -120,8 +120,8 @@ describe('Tabele screen files', () => {
     expect(page).toMatch(/disabled=\{!open\}/);
     expect(page).toMatch(/api\.download\(format, effective, current\.name,/);
     expect(read('sportivi/tabele/api.ts')).toMatch(/\{ definition, format, name \}/);
-    expect(read('sportivi/tabele/api.ts')).toContain('attemptTokenRefresh');
-    expect(read('sportivi/tabele/api.ts')).toContain('backendURL');
+    expect(read('inscrieri/strapiDownload.ts')).toContain('attemptTokenRefresh');
+    expect(read('inscrieri/strapiDownload.ts')).toContain('backendURL');
     expect(read('sportivi/tabele/Builder.tsx')).toContain('tbl-subject');
     expect(read('sportivi/tabele/styles.ts')).toMatch(/\.tbl-subject\.ui-seg\{display:grid;grid-template-columns:repeat\(2,/);
     expect(read('sportivi/tabele/ResultTable.tsx')).toMatch(/\{dir &&[^\n]*ui-table-sort/);

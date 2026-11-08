@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { getFetchClient, useFetchClient } from '@strapi/admin/strapi-admin';
+import { getFetchClient, useAuth, useFetchClient } from '@strapi/admin/strapi-admin';
 import type { ActionBody, GroupOptions } from '../../../club/groups/api-types';
 import type {
   AddedSession, CoachPage, CoachRow, GridPage, GroupMonth, LessonPanel, LessonSaved, PeriodLessonRow, PeriodPage, SessionCheck, SessionDefaults,
@@ -7,7 +7,8 @@ import type {
 } from '../../../club/presence/attendance/api-types';
 import { coachesCsvName } from '../../../club/presence/coaches/csv';
 import { searchUrl } from '../../../club/sportivi/search-view';
-import { downloadPdf } from '../inscrieri/downloadPdf';
+import { downloadGet } from '../inscrieri/downloadPdf';
+import { strapiDownload } from '../inscrieri/strapiDownload';
 
 const BASE = '/api/club';
 const enc = encodeURIComponent;
@@ -36,6 +37,9 @@ export function usePrezentaApi() {
   const client = useFetchClient();
   const ref = React.useRef(client);
   ref.current = client;
+  const token = useAuth('PrezentaDownload', (state) => state.token) ?? null;
+  const tokenRef = React.useRef(token);
+  tokenRef.current = token;
   return React.useMemo(() => {
     const data = async <T>(p: Promise<unknown>): Promise<T> => ((await p) as Wrapped<T>).data.data;
     const action = async <T>(p: Promise<unknown>): Promise<ActionBody<T>> => ((await p) as { data: ActionBody<T> }).data;
@@ -56,10 +60,10 @@ export function usePrezentaApi() {
       deleteLesson: (id: string) => action<{ deleted: true; toast: string }>(ref.current.del(`${BASE}/lessons/${enc(id)}`)),
       coaches: (from: string, to: string) => get<CoachRow[]>(`${BASE}/attendance/coaches${query({ from, to })}`),
       coachesCsv: (from: string, to: string) =>
-        downloadPdf(ref.current.get, `${BASE}/attendance/coaches.csv${query({ from, to })}`, coachesCsvName(from, to)),
+        downloadGet(tokenRef.current, `${BASE}/attendance/coaches.csv${query({ from, to })}`, coachesCsvName(from, to), strapiDownload()),
       coachPage: (id: string, from: string, to: string) => get<CoachPage>(`${BASE}/coaches/${enc(id)}/presence${query({ from, to })}`),
       coachCsv: (id: string, from: string, to: string) =>
-        downloadPdf(ref.current.get, `${BASE}/coaches/${enc(id)}/presence.csv${query({ from, to })}`, `antrenor-${from}-${to}.csv`),
+        downloadGet(tokenRef.current, `${BASE}/coaches/${enc(id)}/presence.csv${query({ from, to })}`, `antrenor-${from}-${to}.csv`, strapiDownload()),
       options: () => get<GroupOptions>(`${BASE}/groups/options`),
       undo: (actionId: string) => data<{ undone: true }>(getFetchClient().post(`${BASE}/undo`, { actionId })),
       search: searchUrl,
