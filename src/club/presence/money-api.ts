@@ -15,6 +15,11 @@ export type AthleteSubscriptions = {
   bars: AbonamentBar[];
   earlier: { itemName: string; startsOn: string; validUntil: string; used: number; slots: number; state: SubscriptionState }[];
 };
+export type SubscriptionUse = { unit: number; sessionId: string; date: string; startTime: string; groupName: string };
+export type SubscriptionCard = {
+  id: string; code: string | null; label: string; startsOn: string; validUntil: string; state: SubscriptionState; used: number; slots: number; uses: SubscriptionUse[];
+};
+export type AthleteSubscriptionCards = { groups: { name: string; main: boolean }[]; current: SubscriptionCard[]; others: SubscriptionCard[] };
 export type MonthRow = { month: string; grup: number; uscat: number; lessons: number; due: number; paid: number; left: number; lines: string[] };
 export type PaymentRowView = {
   paymentId: string; athleteId: string; athleteName: string; paidOn: string; purpose: PaymentPurpose; purposeText: string; method: PaymentMethod;
