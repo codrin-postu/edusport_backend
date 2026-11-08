@@ -11,6 +11,13 @@ describe('csv', () => {
     expect(csvDate('2026-11-06')).toBe('06.11.2026');
     expect(downloadLogLine({ adminId: 3, kind: 'tables-xlsx', rows: 120 })).toBe('[download] admin=3 kind=tables-xlsx rows=120');
   });
+  it('neutralises formulas in text cells only (L4)', () => {
+    for (const c of ['=', '+', '-', '@']) expect(toCsv(['A'], [[`${c}SUM(A1)`]])).toBe(`﻿A\r\n'${c}SUM(A1)\r\n`);
+    expect(toCsv(['A'], [['\tx']])).toBe("﻿A\r\n'\tx\r\n");
+    expect(toCsv(['A'], [['\rx']])).toBe('﻿A\r\n"\'\rx"\r\n');
+    expect(toCsv(['A'], [[-5]])).toBe('﻿A\r\n-5\r\n');
+    expect(toCsv(['A', 'B'], [['a=b', csvNumber(-1.5)]])).toBe('﻿A;B\r\na=b;-1,50\r\n');
+  });
   it('groups thousands in amounts', () => {
     expect(ron(18640)).toBe('18.640 RON');
     expect(ron(1200.5)).toBe('1.200,50 RON');

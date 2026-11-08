@@ -9,6 +9,9 @@ const CLUB = join(SRC, 'club');
 /** Admin files that already import a server module before phase 11. New entries are refused in review. */
 const KNOWN: string[] = [];
 
+/** Server-only folders of src (paths relative to src): a club module must not reach them either. */
+const SERVER_FOLDERS = ['api', 'policies', 'middlewares', 'plugins'];
+
 const FORBIDDEN_PACKAGES = ['@strapi/strapi', 'exceljs', 'pdfkit', 'knex'];
 
 function filesUnder(dir: string): string[] {
@@ -50,7 +53,7 @@ function resolveLocal(from: string, spec: string): string | null {
 function forbidden(spec: string): boolean {
   if (spec.startsWith('node:')) return true;
   if (FORBIDDEN_PACKAGES.some((p) => spec === p || spec.startsWith(`${p}/`))) return true;
-  return spec.includes('strapi-store') || spec.includes('club/files/');
+  return spec.includes('strapi-store') || spec.includes('club/files/') || SERVER_FOLDERS.some((f) => spec === f || spec.startsWith(`${f}/`));
 }
 
 const rel = (p: string): string => relative(SRC, p);
@@ -89,5 +92,8 @@ describe('admin bundle imports (11-1 T1)', () => {
     const source = valueImports("import { x } from '../club/presence/strapi-store';\nimport type { Y } from 'exceljs';\nimport { type Z } from 'knex';");
     expect(source).toEqual(['../club/presence/strapi-store']);
     expect(forbidden('../club/presence/strapi-store')).toBe(true);
+    expect(forbidden('api/club/controllers/attendance')).toBe(true);
+    expect(forbidden('policies/is-admin')).toBe(true);
+    expect(forbidden('club/presence/period')).toBe(false);
   });
 });
