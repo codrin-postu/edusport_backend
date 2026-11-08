@@ -86,7 +86,7 @@ export async function unlinkAdminGoogle(c: AdminLoginContext, admin: AdminRow): 
   const account = await c.store.adminAccount(admin.id);
   if (account?.googleSub) {
     await c.store.transaction(async () => {
-      await c.store.updateAdminAccount(account.id, { googleSub: null });
+      await c.store.updateAdminAccount(account.id, { googleSub: null, googleUnlinkedAt: c.now().toISOString() });
       await c.store.record({ subjectType: 'admin', subjectId: String(admin.id), action: SECURITY_ACTIONS.googleUnlinked, changes: {}, actor: adminName(admin) });
     });
   }

@@ -18,7 +18,7 @@ export type PasskeyRow = {
   backedUp: boolean; rpId: string; name: string; createdAt: string; lastUsedAt: string | null;
 };
 export type AdminAccountRow = {
-  id: string; adminUserId: number; googleSub: string | null; webauthnUserId: string; lastMethod: TwoFactorMethod | null; passkeyOfferedAt: string | null;
+  id: string; adminUserId: number; googleSub: string | null; googleUnlinkedAt: string | null; webauthnUserId: string; lastMethod: TwoFactorMethod | null; passkeyOfferedAt: string | null;
 };
 export type AdminDeviceRow = {
   id: string; adminUserId: number; deviceKeyHash: string; strapiDeviceId: string; label: string; firstSeenAt: string; lastSeenAt: string;

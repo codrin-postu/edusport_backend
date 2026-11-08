@@ -12,6 +12,7 @@ import type { Subject } from '../security/store';
 import { adminById, adminByEmail, canEnterAdmin, type AdminRow } from './admins';
 import { ADMIN_PENDING_COOKIE, type AdminLoginContext } from './context';
 import { ADMIN_DEVICE_COOKIE, ADMIN_DEVICE_COOKIE_MS, bindAdminDevice, rememberDevice, rememberedDevice } from './devices';
+import { canLinkByEmail, linkAdminGoogle } from './google-link';
 import { issueAdminSession } from './session';
 
 const PASSWORD_MAX = 256;
@@ -99,13 +100,13 @@ function refuseLogin(c: AdminLoginContext, attempt: { locking: boolean; firstLoc
 }
 
 /** The second step of a right password: the device is bound first (so "remember" has a row), then the pending login opens (6.3). */
-export async function startSecondStep(c: AdminLoginContext, admin: AdminRow, rememberMe: boolean): Promise<PortalResult<SecondStep>> {
+export async function startSecondStep(c: AdminLoginContext, admin: AdminRow, rememberMe: boolean, googleSub?: string): Promise<PortalResult<SecondStep>> {
   const gate = keysOrRefusal(c);
   if ('refusal' in gate) return gate.refusal;
   const { device } = await bindDevice(c, admin, { newDeviceMail: true });
   const last = (await c.store.adminAccount(admin.id))?.lastMethod ?? null;
   try {
-    const { secret, step } = await openPending(c, subjectOf(admin), admin.email, { rememberMe, host: 'admin', deviceKeyHash: device.deviceKeyHash }, last);
+    const { secret, step } = await openPending(c, subjectOf(admin), admin.email, { rememberMe, host: 'admin', deviceKeyHash: device.deviceKeyHash, ...(googleSub ? { googleSub } : {}) }, last);
     c.setCookie(ADMIN_PENDING_COOKIE(c.secure), secret, PENDING_TTL_MS);
     return { ok: true, data: step };
   } catch (err) {
@@ -132,6 +133,15 @@ export async function loginAdmin(c: AdminLoginContext, body: unknown): Promise<P
   return { ok: true, data: await finishAdminLogin(c, admin, read.rememberMe, { newDeviceMail: true, passkey: false }) };
 }
 
+/** A first Google link that waited for 2FA (spec 4.6): stored only if, right now, the account is still free, the link was never removed and the sub is nobody else's. */
+async function linkPendingGoogle(c: AdminLoginContext, admin: AdminRow, sub: string): Promise<boolean> {
+  if (!(await canLinkByEmail(c, admin))) return false;
+  const owner = await c.store.adminAccountByGoogleSub(sub);
+  if (owner && owner.adminUserId !== admin.id) return false;
+  await linkAdminGoogle(c, admin, sub);
+  return true;
+}
+
 /** A code for the pending login: the pending comes from the cookie, a right code ends it, saves the method, remembers the device when asked and issues the session. */
 export async function secondStepAdmin(c: AdminLoginContext, body: unknown): Promise<PortalResult<AdminHandoff>> {
   const read = readSecond(body);
@@ -155,6 +165,10 @@ export async function secondStepAdmin(c: AdminLoginContext, body: unknown): Prom
   if (!canEnterAdmin(admin)) {
     c.clearCookie(pendingName);
     return wrongLogin;
+  }
+  if (data.googleSub && !(await linkPendingGoogle(c, admin, data.googleSub))) {
+    c.clearCookie(pendingName);
+    return pendingExpired;
   }
   if (read.method !== 'backup') {
     const account = await c.store.ensureAdminAccount(admin.id);

@@ -80,6 +80,7 @@ describe('security content types', () => {
     expect(s.attributes.adminUserId).toMatchObject({ type: 'integer', required: true, unique: true, column: { unique: true } });
     expect(s.attributes.googleSub).toMatchObject({ type: 'string', unique: true, column: { unique: true } });
     expect(s.attributes.googleSub.required).toBeUndefined();
+    expect(s.attributes.googleUnlinkedAt.type).toBe('datetime');
     expect(s.attributes.webauthnUserId).toMatchObject({ type: 'string', required: true, unique: true, column: { unique: true } });
     expect(s.attributes.lastMethod).toMatchObject({ type: 'enumeration', enum: ['totp', 'email', 'backup'] });
     expect(s.attributes.passkeyOfferedAt.type).toBe('datetime');

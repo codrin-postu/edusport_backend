@@ -33,6 +33,9 @@
         "unique": true
       }
     },
+    "googleUnlinkedAt": {
+      "type": "datetime"
+    },
     "webauthnUserId": {
       "type": "string",
       "required": true,

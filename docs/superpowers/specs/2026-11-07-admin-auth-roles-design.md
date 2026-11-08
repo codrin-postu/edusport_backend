@@ -147,9 +147,11 @@ The daily portal purge [code src/club/portal/purge.ts] also removes: unconfirmed
 
 ### 4.6 Google [P6b q16; DEC 2026-10-18 admin-login-pages-v3]
 - OIDC code flow with PKCE, `state` and `nonce`, reusing `exchangeCode` and `verifyIdToken` of `src/club/portal/auth/google.ts` [code]; state, nonce and verifier in a 10-minute `HttpOnly` cookie on path `/api/admin-auth/google` [S14].
-- Accepted when the ID token is valid, `email_verified` is true, and `googleSub` matches an active admin, or the e-mail equals an active admin's e-mail (case-insensitive) whose admin account has no `googleSub`; then `googleSub` is stored [P6b q16]. Never creates an admin [R6b 4].
+- Accepted when the ID token is valid, `email_verified` is true, and `googleSub` matches an active admin, or the e-mail equals an active admin's e-mail (case-insensitive) whose admin account has no `googleSub` and no `googleUnlinkedAt` [P6b q16]. Never creates an admin [R6b 4].
+- The first link by e-mail of an admin who has any 2FA method does not store the sub and issues no session: it opens the pending second step of 6.3 with the sub in the pending data, sets the pending and device cookies, and redirects to `/intrare/2fa?via=google&last=<method>&methods=<list>`. The sub is stored (with "Google conectat.") only after a right code, then the normal handoff. At that moment the account must still hold no sub, have no `googleUnlinkedAt`, and the sub must be nobody else's; otherwise the pending login ends with "pending expired". A remembered device does not skip this step. Admins without 2FA link at once, as before [review B4 H1, user ruling 2026-11-09, option b]. Reason: an attacker with only the admin's mailbox can create a Google account on that address and would otherwise get a session with no 2FA.
+- "Elimină legătura" (Securitate) clears `googleSub` and sets `googleUnlinkedAt` on `admin-account` (datetime, Strapi needs a restart to save the new attribute). From then on a Google login with that e-mail is never linked by e-mail again for that admin: it gets the same no-account refusal below, so it does not reveal the account. The clear done by an e-mail change (4.8) does not set it.
 - Anything else: "Nu am găsit un cont pentru adresa asta." [P6 4.4 copy].
-- Google logins skip 2FA; Securitate advises "Pornește 2-Step Verification în contul Google." [DEC 2026-10-18 admin-login-pages-v3; S15].
+- A Google login whose sub is already linked skips 2FA; the first link by e-mail of an admin with 2FA asks for it (4.6). Securitate advises "Pornește 2-Step Verification în contul Google." [DEC 2026-10-18 admin-login-pages-v3; S15].
 - The same Google OAuth client as the portal, with the admin redirect URI added [S14].
 
 ### 4.7 Invite and reset [P6b q4; R6b 3.5]
@@ -223,7 +225,7 @@ Codes and secrets never reach a log: the request bodies of `/api/admin-auth/*` a
 - "Aplicație de autentificare" (TOTP, AAL2) and "Cod pe e-mail" (AAL1), each optional, on or off independently; "Coduri de rezervă" come with the first method turned on [DEC 2026-10-18 twofactor-v2; P6b q6, q8].
 - A passkey is a sign-in method, not a 2FA method: it replaces password and code, is managed in Securitate beside the methods, and is never asked after a password (8) [R6b C3; AUTH Decisions].
 - 2FA is optional for every admin and coach; no banner, no reminder [P6b q8].
-- Google logins skip 2FA, in the portal and in the admin [DEC 2026-10-18 admin-login-pages-v3; P6 4.4].
+- Google logins with an already linked sub skip 2FA, in the portal and in the admin [DEC 2026-10-18 admin-login-pages-v3; P6 4.4]. In the admin the first link by e-mail of an account with 2FA does not skip it, and a removed link is never re-made by e-mail (4.6) [review B4 H1].
 
 ### 6.2 Turning on
 - App: Securitate -> "Activează" -> QR, the text key, "Cod din aplicație" -> "Activează". The factor counts only after a right code [S25].
@@ -237,6 +239,7 @@ Codes and secrets never reach a log: the request bodies of `/api/admin-auth/*` a
 - "Cod pe e-mail" sends the code when chosen (or when it is the last method), "Trimite din nou" sends a new one within the mail limit [P6 5.4].
 - Tick "Ține minte dispozitivul 30 de zile", on by default [P6b q5; S28].
 - A right code ends the pending login, saves `lastMethod` (not for a backup code, so the next login does not offer "Cod de rezervă" first: decided by Claude, low impact), sets `twoFactorUntil` = now + 30 days on the device when ticked, and issues the session (4.2 for the admin, `startSession` for the portal [code src/club/portal/auth/issue.ts]).
+- A pending login can carry a Google sub to store (4.6); it is stored only after a right code and only if the account is still free (admin only).
 - A backup code used at login writes a history line and leaves "Mai ai <n> coduri de rezervă." on the next Securitate visit [S29].
 
 ### 6.4 Remembered devices [P6b q5]
