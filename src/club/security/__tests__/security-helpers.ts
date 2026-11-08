@@ -6,6 +6,7 @@ import { fakePortalStore } from '../../portal/__tests__/fake-portal-store';
 import type { PortalStore } from '../../portal/store';
 import type { SecurityContext } from '../context';
 import type { Subject } from '../store';
+import { forgetDevices } from '../remembered';
 import { TEST_KEYS } from './keys';
 import { memorySecurityStore } from './memory-security-store';
 
@@ -39,7 +40,7 @@ export function setup(o: { keys?: SecurityContext['keys']; mailOk?: boolean } = 
   const mails: Sent[] = [];
   const logs: string[] = [];
   const endSessions = vi.fn(async () => undefined);
-  const forget = vi.fn(async (_s: Subject, _o: { exceptDevice?: string }) => undefined);
+  const forget = vi.fn(async (s: Subject, opts: { exceptDevice?: string }) => forgetDevices(mem.store, s, opts));
   const c: SecurityContext = {
     store: mem.store,
     keys: o.keys === undefined ? TEST_KEYS : o.keys,
