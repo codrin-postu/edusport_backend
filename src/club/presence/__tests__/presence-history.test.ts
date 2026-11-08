@@ -97,6 +97,14 @@ describe('athlete presence history', () => {
     expect(ok(await readPresenceHistory(f.store, ATH, undefined, '1')).seasonLabel).toBe('2026-2027');
   });
 
+  it('refuses a season or page that is not plain text or a number, and a page beyond the cap, with 400', async () => {
+    for (const season of [['s26', 's25'], { id: 's26' }, 5, true]) expect(await readPresenceHistory(f.store, ATH, season, 1), JSON.stringify(season)).toMatchObject({ ok: false, status: 400 });
+    for (const page of [['1', '2'], { n: 1 }, '1e3', '0x10', 1.5, 10 ** 15, '1001']) expect(await readPresenceHistory(f.store, ATH, SEASON, page), JSON.stringify(page)).toMatchObject({ ok: false, status: 400 });
+    expect(await readPresenceHistory(f.store, ATH, undefined, '1')).toMatchObject({ ok: true });
+    expect(await readPresenceHistory(f.store, ATH, '', 1)).toMatchObject({ ok: true });
+    expect(await readPresenceHistory(f.store, ATH, SEASON, '1000')).toMatchObject({ ok: true });
+  });
+
   it('an empty season has total 0', async () => {
     const empty = ok(await readPresenceHistory(f.store, ATH, 's27', 1));
     expect([empty.total, empty.rows]).toEqual([0, []]);

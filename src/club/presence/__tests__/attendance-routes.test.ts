@@ -29,7 +29,8 @@ describe('09-attendance routes (6)', () => {
   it('new phase 11 routes name their area; the others keep the phase 5 guard', () => {
     const areas = Object.fromEntries(routes.filter((r) => areaOfRoute(r.config) !== null).map((r) => [`${r.method} ${r.path}`, areaOfRoute(r.config)]));
     expect(areas).toEqual({
-      'GET /club/attendance/period': 'club', 'GET /club/attendance/grid': 'club', 'GET /club/coaches/:documentId/presence.csv': 'money', 'GET /club/coaches/:documentId/presence': 'club',
+      'GET /club/attendance/period': 'club', 'GET /club/attendance/grid': 'club', 'GET /club/athletes/:documentId/presence': 'club',
+      'GET /club/coaches/:documentId/presence.csv': 'money', 'GET /club/coaches/:documentId/presence': 'club',
     });
     for (const r of routes.filter((x) => areaOfRoute(x.config) === null)) expect(r.config).toEqual({ auth: false, policies: ['global::is-admin'], middlewares: [] });
   });
@@ -56,7 +57,7 @@ describe('09-attendance routes (6)', () => {
       'GET /club/attendance/period', 'GET /club/attendance/grid', 'GET /club/attendance/session/defaults', 'POST /club/attendance/session/check', 'GET /club/attendance/session',
       'PUT /club/attendance/session', 'GET /club/attendance/coaches', 'GET /club/attendance/coaches.csv', 'GET /club/lessons', 'GET /club/lessons/new',
       'POST /club/lessons', 'GET /club/lessons/:documentId', 'PUT /club/lessons/:documentId', 'DELETE /club/lessons/:documentId',
-      'GET /club/groups/:documentId/attendance', 'GET /club/athletes/:documentId/attendance',
+      'GET /club/groups/:documentId/attendance', 'GET /club/athletes/:documentId/attendance', 'GET /club/athletes/:documentId/presence',
       'GET /club/coaches/:documentId/presence.csv', 'GET /club/coaches/:documentId/presence']);
   });
 
@@ -65,5 +66,10 @@ describe('09-attendance routes (6)', () => {
     expect(src).toContain("'text/csv; charset=utf-8'");
     expect(src).toMatch(/attachment; filename="\$\{coachesCsvName\(/);
     expect(src).toContain('respondSave(');
+  });
+
+  it('the athlete presence history is one line over readPresenceHistory with the documentId, season and page', () => {
+    const src = readFileSync(join(SRC, 'api/club/controllers/attendance.ts'), 'utf8');
+    expect(src).toMatch(/async athletePresence\(ctx: AdminCtx\) \{\s+respond\(ctx, await readPresenceHistory\(store\(\), param\(ctx, 'documentId'\), ctx\.query\.season, ctx\.query\.page\)\);\s+\},/);
   });
 });

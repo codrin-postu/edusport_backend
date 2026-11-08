@@ -12,6 +12,8 @@ import type { AttendanceRow, LessonRow, SessionRow } from '../types';
 import { detailOf, lessonPaidMap, payOf, type PayInput } from './pay';
 
 const PAGE_SIZE = 10;
+/** A page past this is refused: the reads take 10 x page rows of each source, so the number must stay bounded. */
+const MAX_PAGE = 1000;
 type Timed = { date: string; startTime: string; id: string };
 const newestFirst = (a: Timed, b: Timed): number => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime) || b.id.localeCompare(a.id);
 
@@ -19,8 +21,11 @@ const newestFirst = (a: Timed, b: Timed): number => b.date.localeCompare(a.date)
 function readPage(v: unknown): number | null {
   if (v === undefined || v === null || v === '') return 1;
   const n = typeof v === 'number' ? v : typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : NaN;
-  return Number.isSafeInteger(n) && n >= 1 ? n : null;
+  return Number.isSafeInteger(n) && n >= 1 && n <= MAX_PAGE ? n : null;
 }
+
+/** Absent or empty: the current season; a season id as text; anything else is not a valid query value. */
+const seasonQueryOk = (v: unknown): boolean => v === undefined || v === null || typeof v === 'string';
 
 const seasonOf = (seasons: SeasonRecord[], id: unknown): SeasonRecord | null =>
   typeof id === 'string' && id !== '' ? (seasons.find((s) => s.id === id) ?? null) : currentSeason(seasons);
@@ -70,7 +75,7 @@ const idsOf = (s: PayInput['row']): Pick<HistoryRow, 'kind' | 'sessionId' | 'les
 /** The athlete's presence history of a season, 10 rows a page, newest first, with what paid for each row (4.3). */
 export async function readPresenceHistory(store: PresenceStore, athleteId: string, seasonId: unknown, page: unknown): Promise<AdminResult<PresenceHistory>> {
   const pageNo = readPage(page);
-  if (pageNo === null) return refuse(400, ADMIN_ERRORS.invalid);
+  if (pageNo === null || !seasonQueryOk(seasonId)) return refuse(400, ADMIN_ERRORS.invalid);
   const season = seasonOf(await store.seasons(), seasonId);
   if (!season || !(await store.athlete(athleteId))) return refuse(404, ADMIN_ERRORS.notFound);
   const take = PAGE_SIZE * pageNo;
