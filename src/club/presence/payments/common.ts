@@ -48,7 +48,7 @@ export async function linkIsValid(store: PresenceStore, athleteId: string, link:
 export async function purposeTextOf(store: PresenceStore, p: Pick<PaymentRow, 'purpose' | 'clubMonth' | 'subscriptionId' | 'seasonId'>): Promise<string> {
   const sub = p.subscriptionId === null ? null : await store.subscription(p.subscriptionId);
   const seasonLabel = p.purpose === 'cotizatie' ? ((await store.seasons()).find((s) => s.id === p.seasonId)?.label ?? null) : null;
-  return purposeText(p, { itemName: sub?.itemName ?? null, startsOn: sub?.startsOn ?? null, seasonLabel });
+  return purposeText(p, { itemName: sub?.itemName ?? null, startsOn: sub?.startsOn ?? null, code: sub?.code ?? null, seasonLabel });
 }
 
 export const writeOf = ({ id: _id, ...fields }: PaymentRow): PaymentWrite => fields;

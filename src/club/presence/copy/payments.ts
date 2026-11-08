@@ -34,7 +34,7 @@ export const PAYMENT_COPY = {
   cancelled: 'Plată anulată.',
   cancelConfirm: (sum: number, date: string): string => `Anulezi plata de ${ron(sum)} din ${date}? Rândul rămâne, marcat anulată.`,
   cancelAction: 'Anulează plata',
-  optAbonament: (item: string, startText: string): string => `${item} (activ din ${startText})`,
+  optAbonament: (item: string, startText: string, code: string | null = null): string => `${code ? `${code}, ` : ''}${item} (activ din ${startText})`,
   optFee: (season: string): string => `Cotizație membru ${season}`,
   optMonth: (month: string): string => `Club, ${monthName(month)}`,
   optLesson: (date: string): string => `Lecție individuală, ${longDate(date)}`,

@@ -99,14 +99,14 @@ async function readPlati(store: PresenceStore, range: Range, src: TableSources):
   return { payments, subscriptions, adminNames };
 }
 
-/** Prezență: attendances and sessions from the season start (or the earliest abonament start) to the period end, so "Ședința 3/8" counts earlier uses. */
-async function readPrezenta(store: PresenceStore, range: Range, season: SeasonRecord, src: TableSources): Promise<Extra> {
-  const subscriptions = keepScope(src, await store.subscriptions());
+/** Prezență: attendances, abonamente and payments are not narrowed to the scope's athletes (a visitor in a group still needs his own abonament and Club month); attendances and sessions run from the season start (or the earliest abonament start) to the period end, so "Ședința 3/8" counts earlier uses. */
+async function readPrezenta(store: PresenceStore, range: Range, season: SeasonRecord): Promise<Extra> {
+  const subscriptions = await store.subscriptions();
   const wide = { from: min([season.startMonth, range.from, ...subscriptions.map((s) => s.startsOn)]) ?? range.from, to: max([season.endMonth, range.to]) ?? range.to };
   const [sessions, attendances, lessons, payments, startDate] = await Promise.all([
     store.sessions(wide), store.attendances(wide), store.lessons(range), store.payments(), store.attendanceStartDate(),
   ]);
-  return { sessions, attendances, lessons, subscriptions, payments: keepScope(src, payments), startDate };
+  return { sessions, attendances, lessons, subscriptions, payments, startDate };
 }
 
 /** One bulk read per source table the subject needs, restricted by the scope; nothing is read per row. */
@@ -125,6 +125,6 @@ function readExtra(store: PresenceStore, d: TableDefinition, period: Range, seas
     case 'sportivi': return readSportivi(store, season.id, period, season, src);
     case 'abonamente': return readAbonamente(store, period, src);
     case 'plati': return readPlati(store, period, src);
-    default: return readPrezenta(store, period, season, src);
+    default: return readPrezenta(store, period, season);
   }
 }

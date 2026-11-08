@@ -89,10 +89,11 @@ export function purposeFields(f: PaymentFor, collectedAtRink: boolean, seasonOfP
   }
 }
 
-export type PurposeNames = { itemName?: string | null; startsOn?: string | null; seasonLabel?: string | null };
+export type PurposeNames = { itemName?: string | null; startsOn?: string | null; seasonLabel?: string | null; code?: string | null };
 
+/** With a code: "Abonament A-0124" (spec 5.7); without one (old rows) the P5 text. */
 const abonamentText = (names: PurposeNames): string =>
-  names.itemName && names.startsOn ? PAYMENT_COPY.optAbonament(names.itemName, startText(names.startsOn)) : (names.itemName ?? PURPOSE_WORDS.abonament);
+  names.code ? `${PURPOSE_WORDS.abonament} ${names.code}` : names.itemName && names.startsOn ? PAYMENT_COPY.optAbonament(names.itemName, startText(names.startsOn)) : (names.itemName ?? PURPOSE_WORDS.abonament);
 
 /** "Pentru" as shown in a payment's own lines (5.10). */
 export function purposeText(p: Pick<PaymentRow, 'purpose' | 'clubMonth'>, names: PurposeNames): string {
@@ -131,7 +132,7 @@ function abonamentOptions(subs: readonly SubscriptionRow[], payments: readonly P
   const open = subs.filter((s) => !s.cancelled);
   return newestFirst(open, (s) => `${s.startsOn}|${s.id}`).map((s) => {
     const left = s.price === null ? null : notBelowZero(sumMoney([s.price, -paidFor(payments, (p) => p.purpose === 'abonament' && p.subscriptionId === s.id)]));
-    return option({ kind: 'abonament', subscriptionId: s.id }, PAYMENT_COPY.optAbonament(s.itemName, startText(s.startsOn)), left);
+    return option({ kind: 'abonament', subscriptionId: s.id }, PAYMENT_COPY.optAbonament(s.itemName, startText(s.startsOn), s.code), left);
   });
 }
 
