@@ -49,7 +49,7 @@ export function detailOf(i: PayInput): string | null {
   const a = i.row.attendance;
   if (a.billing === 'fara_abonament' || a.billing === 'slot') return HISTORY_DETAIL.noSubscription;
   const m = monthOfRow(a, i);
-  return m ? HISTORY_DETAIL.club(m.month, m.due, m.paid, m.left) : null;
+  return m ? HISTORY_DETAIL.club(m.month, m.due, m.paid, m.left) : HISTORY_DETAIL.club(monthOf(a.sessionDate), 0, 0, 0);
 }
 
 export function payLabel(pay: HistoryRow['pay']): string {

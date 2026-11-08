@@ -1,4 +1,5 @@
 import type { AcsRow } from '../../athletes/store';
+import { cmp } from '../subscriptions/usage';
 import { G_GROUPS, type FakeGroupState, fakeGroupStore } from '../../groups/__tests__/fake-group-store';
 import type { CalendarWindow } from '../../groups/occurrences';
 import type {
@@ -90,7 +91,7 @@ function fakeReads(s: FakePresenceState): K<'priceListRecords' | 'acsRows' | 'ca
 }
 
 const newestFirst = (a: { date: string; startTime: string; id: string }, b: { date: string; startTime: string; id: string }): number =>
-  b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime) || b.id.localeCompare(a.id);
+  cmp(b.date, a.date) || cmp(b.startTime, a.startTime) || cmp(b.id, a.id);
 
 function fakeHistoryPages(s: FakePresenceState): K<'athleteAttendancePage' | 'athleteLessonPage'> {
   return {

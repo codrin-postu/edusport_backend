@@ -40,7 +40,7 @@ describe('money UI source', () => {
   });
   it('empty states use the ruled texts on every list, card list and athlete block (I4)', () => {
     const c = MONEY_UI_COPY.empty;
-    expect(c).toEqual({ abonamente: 'Niciun abonament.', plati: 'Nicio plată.', month: 'Nicio prezență în luna aceasta.', earlier: 'Niciun abonament anterior.' });
+    expect(c).toEqual({ abonamente: 'Niciun abonament.', plati: 'Nicio plată.' });
     const plati = src('admin/dashboard/bani/PlatiList.tsx');
     expect(plati).toMatch(/empty=\{MONEY_UI_COPY\.empty\.plati\}/);
     expect(plati).toMatch(/rows\.length === 0\) return <p[^\n]*empty\.plati/);

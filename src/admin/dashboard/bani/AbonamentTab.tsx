@@ -33,7 +33,7 @@ function Cards({ data, athleteId }: { data: AthleteSubscriptionCards; athleteId:
       <Lines title={copy.groups} lines={groupLines(data)} />
       <section className="bn-block">
         <h3 className="spv-h">{CARD_COPY.current}</h3>
-        {current.length === 0 ? <p className="spv-muted">{CARD_COPY.none}</p> : current.map((c) => <AbonamentCard key={c.id} card={c} athleteId={athleteId} />)}
+        {current ? <AbonamentCard card={current} athleteId={athleteId} /> : <p className="spv-muted">{CARD_COPY.none}</p>}
       </section>
       {others.length > 0 && (
         <section className="bn-block">

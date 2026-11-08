@@ -7,7 +7,7 @@ import { HISTORY_DETAIL } from '../copy/prezenta-ui';
 import { groupNameMap } from '../due/reads';
 import { clubMonths } from '../due/settlement';
 import type { PresenceStore } from '../store';
-import { usesOf } from '../subscriptions/usage';
+import { cmp, usesOf } from '../subscriptions/usage';
 import type { AttendanceRow, LessonRow, SessionRow } from '../types';
 import { detailOf, lessonPaidMap, payOf, type PayInput } from './pay';
 
@@ -15,7 +15,7 @@ const PAGE_SIZE = 10;
 /** A page past this is refused: the reads take 10 x page rows of each source, so the number must stay bounded. */
 const MAX_PAGE = 1000;
 type Timed = { date: string; startTime: string; id: string };
-const newestFirst = (a: Timed, b: Timed): number => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime) || b.id.localeCompare(a.id);
+const newestFirst = (a: Timed, b: Timed): number => cmp(b.date, a.date) || cmp(b.startTime, a.startTime) || cmp(b.id, a.id);
 
 /** 1 when absent; a whole number from 1 up, as a number or as query text. */
 function readPage(v: unknown): number | null {

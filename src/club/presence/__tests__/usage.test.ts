@@ -43,19 +43,33 @@ describe('abonament usage', () => {
     ]);
   });
 
-  it('current: active today, ending sooner first; others newest first', async () => {
+  it('current: the one abonament P5 would use today; every other card goes to others, newest start first', async () => {
     const f = fakePresenceContext(seed());
     const cards = ok(await readAthleteSubscriptionCards(f.store, 'a1', 's26', '2026-11-20'));
-    expect(cards.current.map((c) => c.id)).toEqual(['y', 'x']);
-    expect(cards.others.map((c) => [c.id, c.state])).toEqual([['can', 'anulat'], ['old', 'expirat']]);
-    expect(cards.current[1]).toMatchObject({ code: 'A-0001', used: 3, slots: 8, label: 'Abonament 8 ședințe' });
-    expect(cards.current[1].uses).toHaveLength(3);
+    expect(cards.current).toMatchObject({ id: 'y', code: 'A-0002' });
+    expect(cards.others.map((c) => [c.id, c.state])).toEqual([['x', 'activ'], ['can', 'anulat'], ['old', 'expirat']]);
+    expect(cards.others[0]).toMatchObject({ code: 'A-0001', used: 3, slots: 8, label: 'Abonament 8 ședințe' });
+    expect(cards.others[0].uses).toHaveLength(3);
     expect(cards.groups).toEqual([{ name: 'Intermediari Bronze', main: true }]);
   });
 
-  it('none active gives an empty current; unknown athlete is 404', async () => {
+  it('an active abonament plus one starting next week: only the started one is current', async () => {
     const f = fakePresenceContext(seed());
-    expect(ok(await readAthleteSubscriptionCards(f.store, 'a1', 's26', '2027-03-01')).current).toEqual([]);
+    const cards = ok(await readAthleteSubscriptionCards(f.store, 'a1', 's26', '2026-11-08'));
+    expect(cards.current?.id).toBe('x');
+    expect(cards.others.map((c) => [c.id, c.state])).toEqual([['y', 'activ'], ['can', 'anulat'], ['old', 'expirat']]);
+  });
+
+  it('only a future abonament is active: current is null and it sits under others', async () => {
+    const f = fakePresenceContext(seed());
+    const cards = ok(await readAthleteSubscriptionCards(f.store, 'a1', 's26', '2026-10-20'));
+    expect(cards.current).toBeNull();
+    expect(cards.others.map((c) => c.id)).toEqual(['y', 'x', 'can', 'old']);
+  });
+
+  it('none active gives a null current; unknown athlete is 404', async () => {
+    const f = fakePresenceContext(seed());
+    expect(ok(await readAthleteSubscriptionCards(f.store, 'a1', 's26', '2027-03-01')).current).toBeNull();
     expect(await readAthleteSubscriptionCards(f.store, 'nope', 's26', '2026-11-20')).toMatchObject({ ok: false, status: 404 });
   });
 });

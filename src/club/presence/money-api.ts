@@ -13,7 +13,7 @@ export type SubscriptionUse = { unit: number; sessionId: string; date: string; s
 export type SubscriptionCard = {
   id: string; code: string | null; label: string; startsOn: string; validUntil: string; state: SubscriptionState; used: number; slots: number; uses: SubscriptionUse[];
 };
-export type AthleteSubscriptionCards = { groups: { name: string; main: boolean }[]; current: SubscriptionCard[]; others: SubscriptionCard[] };
+export type AthleteSubscriptionCards = { groups: { name: string; main: boolean }[]; current: SubscriptionCard | null; others: SubscriptionCard[] };
 export type MonthRow = { month: string; grup: number; uscat: number; lessons: number; due: number; paid: number; left: number; lines: string[] };
 export type PaymentRowView = {
   paymentId: string; athleteId: string; athleteName: string; paidOn: string; purpose: PaymentPurpose; purposeText: string; method: PaymentMethod;

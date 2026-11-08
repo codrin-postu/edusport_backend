@@ -4,7 +4,7 @@ import { groupLines, monthCells, paymentsReadOnly } from '../athlete-money-view'
 
 describe('athlete money tabs (5.7)', () => {
   it('group lines: the main group says so', () => {
-    expect(groupLines({ groups: [{ name: 'Intermediari Bronze', main: true }, { name: 'Uscat juniori', main: false }], current: [], others: [] }))
+    expect(groupLines({ groups: [{ name: 'Intermediari Bronze', main: true }, { name: 'Uscat juniori', main: false }], current: null, others: [] }))
       .toEqual(['Intermediari Bronze, principală', 'Uscat juniori']);
   });
 

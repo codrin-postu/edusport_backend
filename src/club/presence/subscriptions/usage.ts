@@ -5,10 +5,10 @@ import { currentSeason } from '../../groups/season-pick';
 import { groupNameMap } from '../due/reads';
 import type { AthleteSubscriptionCards, SubscriptionCard, SubscriptionUse } from '../money-api';
 import type { PresenceStore } from '../store';
-import { subscriptionState, usedSlots } from '../subscriptions';
+import { byUseOrder, subscriptionState, usedSlots } from '../subscriptions';
 import type { AttendanceRow, SessionRow, SubscriptionRow } from '../types';
 
-const cmp = (x: string, y: string): number => (x === y ? 0 : x < y ? -1 : 1);
+export const cmp = (x: string, y: string): number => (x === y ? 0 : x < y ? -1 : 1);
 
 /** The used units of one abonament, numbered 1..n in use order: session date, start time, attendance id (4.3a). */
 export function usesOf(
@@ -36,7 +36,7 @@ async function groupRows(store: PresenceStore, athleteId: string, seasonId: stri
     });
 }
 
-/** Current abonamente (active today, ending sooner first) and the others (newest first), each with its dated units (4.4). */
+/** The one current abonament (the one P5 4.10 would use today: started, active, in use order) and every other card (newest start first), each with its dated units (4.4). */
 export async function readAthleteSubscriptionCards(
   store: PresenceStore, athleteId: string, seasonId: string | null, today: string,
 ): Promise<AdminResult<AthleteSubscriptionCards>> {
@@ -54,7 +54,8 @@ export async function readAthleteSubscriptionCards(
       used: count, slots: s.slots, uses: usesOf(s, atts, sessions, names),
     };
   });
-  const current = cards.filter((c) => c.state === 'activ').sort((a, b) => cmp(a.validUntil, b.validUntil) || cmp(a.id, b.id));
-  const others = cards.filter((c) => c.state !== 'activ').sort((a, b) => cmp(b.startsOn, a.startsOn) || cmp(a.id, b.id));
+  const pick = subs.filter((s) => s.startsOn <= today && cards.find((c) => c.id === s.id)?.state === 'activ').sort(byUseOrder)[0];
+  const current = cards.find((c) => c.id === pick?.id) ?? null;
+  const others = cards.filter((c) => c !== current).sort((a, b) => cmp(b.startsOn, a.startsOn) || cmp(a.id, b.id));
   return { ok: true, data: { groups: await groupRows(store, athleteId, seasonId), current, others } };
 }

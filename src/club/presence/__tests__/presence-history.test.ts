@@ -123,4 +123,15 @@ describe('athlete presence history', () => {
     const rows = ok(await readPresenceHistory(tie.store, ATH, SEASON, 1)).rows;
     expect(rows.map((r) => r.sessionId ?? r.lessonId)).toEqual(['att-c', 'ss-2', 'ss-1']);
   });
+
+  it('a Club row whose month is missing from the ledger is "Neplătit" with the zero detail line', async () => {
+    const early = fakePresenceContext({
+      group: { seasons: G_SEASONS, sections: G_SECTIONS, athletes: [athleteRow({ id: ATH, name: 'Ana Ionescu' })], memberships: [member({ id: 'm1', athleteId: ATH, groupId: 'g-av' })] },
+      sessions: [sessionRow({ id: 'ss-1', groupId: 'g-av', date: '2026-10-05', startTime: '17:00' })],
+      attendances: [attendanceRow({ id: 'att-a', sessionId: 'ss-1', athleteId: ATH, uniqueKey: 'k1', billing: 'club', charges: [{ type: 'grup', itemName: 'Ședință grup', price: 40, included: false }], amount: 40 })],
+      startDate: '2026-11-01',
+    } as FakePresenceSeed);
+    const rows = ok(await readPresenceHistory(early.store, ATH, SEASON, 1)).rows;
+    expect(rows.map((r) => [payLabel(r.pay), r.detail])).toEqual([['Neplătit', 'Club, octombrie: de plătit 0 RON, plătit 0 RON, rămas 0 RON.']]);
+  });
 });
