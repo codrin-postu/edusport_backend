@@ -26,7 +26,7 @@ export async function loadRowContext(store: PresenceStore, today: string): Promi
 const coachNames = (ctx: RowContext, ids: string[]): string[] => ids.map((id) => ctx.teamNames.get(id)).filter((n): n is string => n !== undefined);
 const groupOf = (ctx: RowContext, id: string): GroupRecord | undefined => ctx.groups.find((g) => g.id === id);
 
-export type DayRowWithCoaches = DayRow & { coachIds: string[] };
+export type DayRowWithCoaches = DayRow & { coachIds: string[]; durationMin: number | null };
 
 function heldRow(h: HeldOccurrence, ctx: RowContext): DayRowWithCoaches {
   const group = groupOf(ctx, h.groupId);
@@ -34,7 +34,7 @@ function heldRow(h: HeldOccurrence, ctx: RowContext): DayRowWithCoaches {
   const listed = season ? rosterOn(ctx.memberships, h.groupId, season.id, h.date).length : 0;
   return {
     sessionId: null, occurrenceKey: h.key, groupId: h.groupId, groupName: group?.name ?? '', date: h.date, startTime: hhmm(h.startTime) ?? h.startTime,
-    coachNames: coachNames(ctx, group?.coachIds ?? []), coachIds: group?.coachIds ?? [], present: 0, listed, visitors: 0,
+    coachNames: coachNames(ctx, group?.coachIds ?? []), coachIds: group?.coachIds ?? [], durationMin: null, present: 0, listed, visitors: 0,
     state: sessionState({ saved: false, date: h.date, today: ctx.today, startDate: ctx.startDate }), outsideSchedule: false,
   };
 }
@@ -44,7 +44,7 @@ function savedRow(s: SessionRow, atts: AttendanceRow[], ctx: RowContext, held: H
   const counts = presentCounts(atts, listed);
   return {
     sessionId: s.id, occurrenceKey: s.occurrenceKey, groupId: s.groupId, groupName: groupOf(ctx, s.groupId)?.name ?? '', date: s.date,
-    startTime: hhmm(s.startTime) ?? s.startTime, coachNames: coachNames(ctx, s.coachIds), coachIds: s.coachIds, present: counts.present, listed: listed.length,
+    startTime: hhmm(s.startTime) ?? s.startTime, coachNames: coachNames(ctx, s.coachIds), coachIds: s.coachIds, durationMin: s.durationMin, present: counts.present, listed: listed.length,
     visitors: counts.visitors, state: sessionState({ saved: true, date: s.date, today: ctx.today, startDate: ctx.startDate }),
     outsideSchedule: outsideFor({ source: s.source, groupId: s.groupId, date: s.date, startTime: s.startTime }, held),
   };
@@ -72,7 +72,7 @@ export async function rowsWithCoachIds(
 
 /** Rows of the held occurrences and saved sessions from `from` to `to`, optionally of one group. Held rows without a state are kept. */
 export async function rowsBetween(store: PresenceStore, ctx: RowContext, from: string, to: string, groupId?: string): Promise<DayRow[]> {
-  return (await rowsWithCoachIds(store, ctx, from, to, groupId)).map(({ coachIds: _ids, ...row }) => row);
+  return (await rowsWithCoachIds(store, ctx, from, to, groupId)).map(({ coachIds: _ids, durationMin: _min, ...row }) => row);
 }
 
 const orderOf = (ctx: RowContext, groupId: string): number => groupOf(ctx, groupId)?.order ?? 0;

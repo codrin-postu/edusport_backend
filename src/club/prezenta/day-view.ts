@@ -27,7 +27,9 @@ export const visitorsText = (n: number): string => `Din alte grupe: ${n}`;
 
 export const durationText = (min: number): string => `${min} min`;
 
-export const panelTitle = (groupName: string, time: string): string => `${groupName}, ${time}`;
+export const panelTitleSuffix = (time: string): string => `, ${time}`;
+
+export const panelTitle = (groupName: string, time: string): string => `${groupName}${panelTitleSuffix(time)}`;
 
 export const lessonTitle = (time: string): string => `Lecție individuală, ${time}`;
 

@@ -45,4 +45,6 @@ export const LESSON_COPY = {
 
 export const CSV_HEADER = ['Antrenor', 'Ședințe grup', 'Lecții individuale', 'Ore'] as const;
 
+export const COACH_CSV_TYPES = { grup: 'Grup', individual: 'Individual' } as const;
+
 export const COACH_CSV_HEADER = ['Data', 'Tip', 'Grupă sau sportiv', 'Ora', 'Durată', 'Ore'] as const;

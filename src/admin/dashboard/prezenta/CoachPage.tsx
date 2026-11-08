@@ -179,6 +179,25 @@ function CsvButton({ coachId, period }: { coachId: string; period: { from: strin
   return <Button variant="secondary" loading={busy} onClick={() => void run()}>{PERIOD_COPY.exportCsv}</Button>;
 }
 
+type BodyProps = {
+  data: CoachData; query: Query; today: string; phone: boolean;
+  onShow: (show: CoachShow) => void; onSession: (t: SessionTarget) => void; onLesson: (id: string) => void;
+};
+
+function CoachBody({ data, query, today, phone, onShow, onSession, onLesson }: BodyProps) {
+  return (
+    <>
+      <Tiles totals={data.totals} />
+      <div className="pz-bar">
+        <SegmentedControl<CoachShow> size="sm" options={SHOW_OPTIONS} value={query.show} onChange={onShow} aria-label={COACH_COPY.subtitle} />
+      </div>
+      {query.show === 'ore' && <HoursTable data={data} today={today} phone={phone} />}
+      {query.show === 'sedinte' && <SessionsTable rows={data.sessions} today={today} phone={phone} onOpen={onSession} />}
+      {query.show === 'lectii' && <LessonsTable rows={data.lessons} today={today} phone={phone} onOpen={onLesson} />}
+    </>
+  );
+}
+
 /** The coach page (5.3): the period's tiles, then Ore, Ședințe or Lecții individuale as a table (cards on a phone). */
 export function CoachPage({ coachId }: Props) {
   const location = useLocation();
@@ -196,24 +215,16 @@ export function CoachPage({ coachId }: Props) {
       <style>{SPORTIVI_CSS + GRUPE_CSS + PREZENTA_CSS}</style>
       <Window>
         <PageHeader back={{ to: backTarget(location.state), label: COACH_COPY.back }} title={data?.name ?? ''} subtitle={COACH_COPY.subtitle} />
-        <div className="pz-bar">
-          <PeriodHeader view={query.view} date={query.date} today={today} onChange={go} />
-          <span className="pz-bar-sp" />
-          <CsvButton coachId={coachId} period={period} />
-        </div>
+        {!error && (
+          <div className="pz-bar">
+            <PeriodHeader view={query.view} date={query.date} today={today} onChange={go} />
+            <span className="pz-bar-sp" />
+            <CsvButton coachId={coachId} period={period} />
+          </div>
+        )}
         {error && <div className="pz-notices"><Notice tone="danger">{error}</Notice></div>}
         {!error && !data && <Loading />}
-        {data && (
-          <>
-            <Tiles totals={data.totals} />
-            <div className="pz-bar">
-              <SegmentedControl<CoachShow> size="sm" options={SHOW_OPTIONS} value={query.show} onChange={(show) => go({ show })} aria-label={COACH_COPY.subtitle} />
-            </div>
-            {query.show === 'ore' && <HoursTable data={data} today={today} phone={phone} />}
-            {query.show === 'sedinte' && <SessionsTable rows={data.sessions} today={today} phone={phone} onOpen={setSession} />}
-            {query.show === 'lectii' && <LessonsTable rows={data.lessons} today={today} phone={phone} onOpen={setLessonId} />}
-          </>
-        )}
+        {data && <CoachBody data={data} query={query} today={today} phone={phone} onShow={(show) => go({ show })} onSession={setSession} onLesson={setLessonId} />}
       </Window>
       {session && <SessionPanel key={JSON.stringify(session)} target={session} onClose={() => setSession(null)} />}
       {lessonId && <LessonPanel key={lessonId} id={lessonId} onClose={() => setLessonId(null)} />}
