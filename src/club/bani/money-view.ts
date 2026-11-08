@@ -19,3 +19,13 @@ export const accountingDate = (iso: string): string => `${iso.slice(8, 10)}.${is
 
 /** The ">" of the month switcher stops at the current month. */
 export const nextMonthAllowed = (month: string, today: string): boolean => addMonths(month, 1) <= monthOf(today);
+
+type Money4 = { due: number; paid: number; left: number; percent: number | null };
+
+/** The "Total" row: sums of the section totals as computed (Rămas may be negative, the percent above 100); percent null at Datorat 0. */
+export function totalOf(blocks: { totals: Money4 }[]): Money4 {
+  const sum = (pick: (m: Money4) => number): number => Math.round(blocks.reduce((a, b) => a + pick(b.totals) * 100, 0)) / 100;
+  const due = sum((m) => m.due);
+  const paid = sum((m) => m.paid);
+  return { due, paid, left: sum((m) => m.left), percent: due === 0 ? null : Math.round((paid / due) * 100) };
+}

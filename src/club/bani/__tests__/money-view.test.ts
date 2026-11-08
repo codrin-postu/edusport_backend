@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BANI_COPY } from '../../presence/copy/money-ui';
-import { accountingDate, expiringLine, nextMonthAllowed, percentText, trendText } from '../money-view';
+import { ron } from '../../presence/money';
+import { accountingDate, totalOf, expiringLine, nextMonthAllowed, percentText, trendText } from '../money-view';
 import { BANI_PATH, abonamenteStateTo, baniTo, deIncasatMonthTo, platiMonthTo, readBaniQuery } from '../routes';
 
 describe('Bani copy, address and figure texts', () => {
@@ -30,5 +31,16 @@ describe('Bani copy, address and figure texts', () => {
     expect([percentText(75), percentText(null)]).toEqual(['75%', '-']);
     expect(accountingDate('2026-11-04')).toBe('04.11');
     expect([nextMonthAllowed('2026-10', '2026-11-08'), nextMonthAllowed('2026-11', '2026-11-08')]).toEqual([true, false]);
+  });
+  it('Total row of the breakdown: sums of the section totals, percent rounded, "-" at 0', () => {
+    const block = (due: number, paid: number) => ({ sectionId: 's', sectionName: 'S', totals: { due, paid, left: due - paid, percent: null }, groups: [] });
+    expect(totalOf([block(400, 300), block(100, 0)])).toEqual({ due: 500, paid: 300, left: 200, percent: 60 });
+    expect(totalOf([block(0, 0)]).percent).toBeNull();
+    expect(totalOf([])).toEqual({ due: 0, paid: 0, left: 0, percent: null });
+  });
+  it('F8: an overpaid group shows a negative Rămas and a percent above 100 as computed, no clamping', () => {
+    expect([ron(-50), percentText(112)]).toEqual(['-50 RON', '112%']);
+    const t = totalOf([{ sectionId: 's', sectionName: 'S', totals: { due: 400, paid: 450, left: -50, percent: 113 }, groups: [] }]);
+    expect(t).toEqual({ due: 400, paid: 450, left: -50, percent: 113 });
   });
 });
