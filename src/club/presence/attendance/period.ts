@@ -4,14 +4,14 @@ import { groupsWithoutPriceList } from '../billing';
 import { adminState, type Period } from '../period';
 import type { PresenceStore } from '../store';
 import { byStartThenOrder, byUndoneOrder, loadRowContext, rowsWithCoachIds, type RowContext, type DayRowWithCoaches } from './day';
-import type { PeriodPage, PeriodRow } from './api-types';
+import type { CoachSessionRow, PeriodPage, PeriodRow } from './api-types';
 
 type Now = { date: string; time: string };
 
-/** Rows of a range with their admin words; rows without a word (before the start date, not saved) are left out. */
-export async function periodRows(
+/** Rows of a range with their admin words and the saved session's minutes; rows without a word (before the start date, not saved) are left out. */
+export async function periodRowsWithMinutes(
   store: PresenceStore, ctx: RowContext, from: string, to: string, now: Now, groupId?: string, opts?: { withAttendances?: boolean },
-): Promise<PeriodRow[]> {
+): Promise<CoachSessionRow[]> {
   const rows = await rowsWithCoachIds(store, ctx, from, to, groupId, opts);
   return rows.flatMap((r: DayRowWithCoaches) => {
     const state = adminState({ saved: r.sessionId !== null, date: r.date, startTime: r.startTime, startDate: ctx.startDate, now });
@@ -19,10 +19,17 @@ export async function periodRows(
   });
 }
 
+/** The same rows without the minutes: the period, grid and group pages do not send them. */
+export async function periodRows(
+  store: PresenceStore, ctx: RowContext, from: string, to: string, now: Now, groupId?: string, opts?: { withAttendances?: boolean },
+): Promise<PeriodRow[]> {
+  return (await periodRowsWithMinutes(store, ctx, from, to, now, groupId, opts)).map(({ durationMin: _min, ...row }) => row);
+}
+
 /** The same rows with the word on each; rows without one are kept as `null` (the group tab lists them without a state). */
 export async function periodRowsKeepingNull(store: PresenceStore, ctx: RowContext, from: string, to: string, now: Now, groupId?: string): Promise<PeriodRow[]> {
   const rows = await rowsWithCoachIds(store, ctx, from, to, groupId);
-  return rows.map((r) => ({ ...r, adminState: adminState({ saved: r.sessionId !== null, date: r.date, startTime: r.startTime, startDate: ctx.startDate, now }) }));
+  return rows.map(({ durationMin: _min, ...r }) => ({ ...r, adminState: adminState({ saved: r.sessionId !== null, date: r.date, startTime: r.startTime, startDate: ctx.startDate, now }) }));
 }
 
 /** Days of the period with their rows, plus the undone list before `from` (spec 4.1, 4.1a, S16). One range read for the days. */

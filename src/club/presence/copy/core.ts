@@ -10,6 +10,7 @@ export const PRESENCE_ERRORS = {
   undoChanged: 'Nu se mai poate anula. Datele s-au schimbat între timp.',
   loadFailed: 'Nu am putut încărca datele.',
   periodTooLong: 'Perioada e prea lungă.',
+  coachNotFound: 'Antrenorul nu există.',
   downloadFailed: 'Descărcarea nu a reușit.',
 };
 

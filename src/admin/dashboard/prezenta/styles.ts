@@ -66,12 +66,18 @@ export const PREZENTA_CSS = `
 .ui-root .pz-ticks{border:1px solid var(--theme-border)}
 .ui-root .pz-warn{color:var(--theme-warning);font-weight:600}
 .ui-root .pz-visitor{display:flex;flex-direction:column;gap:8px}
+.ui-root .pz-name-link{color:inherit;font-weight:600;text-decoration:none}
+.ui-root .pz-name-link:hover{color:var(--theme-primary);text-decoration:underline}
+.ui-root .pz-name-link:focus-visible{outline:2px solid var(--theme-focus);outline-offset:1px}
+.ui-root .pz-ticks tr:has(.pz-hl) td{background:var(--theme-primary-soft)}
 .ui-root .pz-saved{margin:0;font-size:12px;color:var(--theme-text-muted)}
 .ui-root .pz-hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .ui-root .pz-hist li{padding:6px 0;border-bottom:1px solid var(--theme-border-subtle);font-size:12.5px;color:var(--theme-text)}
 .ui-root .pz-foot{display:flex;align-items:center;gap:8px;width:100%}
 .ui-root .pz-foot-count{margin-right:auto;font-weight:600;color:var(--theme-text)}
+.ui-root .pz-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:14px 18px}
 @media (max-width:640px){
+.ui-root .pz-tiles{grid-template-columns:minmax(0,1fr)}
 .ui-root .pz-two{grid-template-columns:minmax(0,1fr)}
 .ui-root .pz-bar-sp{display:none}
 }

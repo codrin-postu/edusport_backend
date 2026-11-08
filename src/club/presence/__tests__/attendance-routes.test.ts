@@ -28,7 +28,9 @@ describe('09-attendance routes (6)', () => {
 
   it('new phase 11 routes name their area; the others keep the phase 5 guard', () => {
     const areas = Object.fromEntries(routes.filter((r) => areaOfRoute(r.config) !== null).map((r) => [`${r.method} ${r.path}`, areaOfRoute(r.config)]));
-    expect(areas).toEqual({ 'GET /club/attendance/period': 'club', 'GET /club/attendance/grid': 'club' });
+    expect(areas).toEqual({
+      'GET /club/attendance/period': 'club', 'GET /club/attendance/grid': 'club', 'GET /club/coaches/:documentId/presence.csv': 'money', 'GET /club/coaches/:documentId/presence': 'club',
+    });
     for (const r of routes.filter((x) => areaOfRoute(x.config) === null)) expect(r.config).toEqual({ auth: false, policies: ['global::is-admin'], middlewares: [] });
   });
 
@@ -36,6 +38,12 @@ describe('09-attendance routes (6)', () => {
     const src = readFileSync(join(SRC, 'api/club/controllers/attendance.ts'), 'utf8');
     expect(src).toMatch(/coachesCsvName\(period\.from, period\.to\)/);
     expect(src).toContain('downloadLogLine(');
+  });
+
+  it('the coach CSV is named by coach and period, with one log line', () => {
+    const src = readFileSync(join(SRC, 'api/club/controllers/attendance.ts'), 'utf8');
+    expect(src).toMatch(/coachCsvName\(page\.name, period\)/);
+    expect(src).toContain("kind: 'coach-csv'");
   });
 
   it('declare fixed paths before parameter paths', () => {
@@ -48,7 +56,8 @@ describe('09-attendance routes (6)', () => {
       'GET /club/attendance/period', 'GET /club/attendance/grid', 'GET /club/attendance/session/defaults', 'POST /club/attendance/session/check', 'GET /club/attendance/session',
       'PUT /club/attendance/session', 'GET /club/attendance/coaches', 'GET /club/attendance/coaches.csv', 'GET /club/lessons', 'GET /club/lessons/new',
       'POST /club/lessons', 'GET /club/lessons/:documentId', 'PUT /club/lessons/:documentId', 'DELETE /club/lessons/:documentId',
-      'GET /club/groups/:documentId/attendance', 'GET /club/athletes/:documentId/attendance']);
+      'GET /club/groups/:documentId/attendance', 'GET /club/athletes/:documentId/attendance',
+      'GET /club/coaches/:documentId/presence.csv', 'GET /club/coaches/:documentId/presence']);
   });
 
   it('the CSV handler sends a file and the save handler answers the inactive 409 (C43, decided 2)', () => {

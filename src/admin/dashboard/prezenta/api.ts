@@ -2,7 +2,7 @@ import * as React from 'react';
 import { getFetchClient, useFetchClient } from '@strapi/admin/strapi-admin';
 import type { ActionBody, GroupOptions } from '../../../club/groups/api-types';
 import type {
-  AddedSession, CoachRow, GridPage, GroupMonth, LessonPanel, LessonSaved, PeriodLessonRow, PeriodPage, SessionCheck, SessionDefaults,
+  AddedSession, CoachPage, CoachRow, GridPage, GroupMonth, LessonPanel, LessonSaved, PeriodLessonRow, PeriodPage, SessionCheck, SessionDefaults,
   SessionPanel, SessionSaveBody, SessionSaved,
 } from '../../../club/presence/attendance/api-types';
 import { coachesCsvName } from '../../../club/presence/coaches/csv';
@@ -15,7 +15,7 @@ type Body = Record<string, unknown>;
 type Wrapped<T> = { data: { data: T } };
 
 /** The panel's address: a saved session, a held occurrence, or a session not saved yet (the "+ Ședință nouă" panel). */
-export type SessionQuery = { id: string } | { occurrence: string } | AddedSession;
+export type SessionQuery = ({ id: string } | { occurrence: string } | AddedSession) & { athlete?: string };
 /** The "+ Ședință nouă" check body (readNewSession). */
 export type NewSessionBody = { groupId: string; date: string; startTime: string };
 
@@ -25,9 +25,10 @@ function query(values: Record<string, string | null>): string {
 }
 
 function sessionQuery(q: SessionQuery): string {
-  if ('id' in q) return query({ id: q.id });
-  if ('occurrence' in q) return query({ occurrence: q.occurrence });
-  return query({ group: q.groupId, date: q.date, time: q.startTime, duration: String(q.durationMin) });
+  const athlete = q.athlete ?? null;
+  if ('id' in q) return query({ id: q.id, athlete });
+  if ('occurrence' in q) return query({ occurrence: q.occurrence, athlete });
+  return query({ group: q.groupId, date: q.date, time: q.startTime, duration: String(q.durationMin), athlete });
 }
 
 /** The plan 5-2 admin routes (attendance, lessons, coaches) and the phase 4 routes the Prezență screens reuse. Same identity on every render. */
@@ -56,6 +57,9 @@ export function usePrezentaApi() {
       coaches: (from: string, to: string) => get<CoachRow[]>(`${BASE}/attendance/coaches${query({ from, to })}`),
       coachesCsv: (from: string, to: string) =>
         downloadPdf(ref.current.get, `${BASE}/attendance/coaches.csv${query({ from, to })}`, coachesCsvName(from, to)),
+      coachPage: (id: string, from: string, to: string) => get<CoachPage>(`${BASE}/coaches/${enc(id)}/presence${query({ from, to })}`),
+      coachCsv: (id: string, from: string, to: string) =>
+        downloadPdf(ref.current.get, `${BASE}/coaches/${enc(id)}/presence.csv${query({ from, to })}`, `antrenor-${from}-${to}.csv`),
       options: () => get<GroupOptions>(`${BASE}/groups/options`),
       undo: (actionId: string) => data<{ undone: true }>(getFetchClient().post(`${BASE}/undo`, { actionId })),
       search: searchUrl,

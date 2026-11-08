@@ -14,7 +14,7 @@ export type PanelRow = {
 export type AddedSession = { groupId: string; date: string; startTime: string; durationMin: number };
 export type SessionPanel = {
   sessionId: string | null; occurrenceKey: string | null; added: AddedSession | null; groupId: string; groupName: string; kind: SectionKind;
-  date: string; startTime: string; durationMin: number; outsideSchedule: boolean; coachIds: string[]; rows: PanelRow[]; savedLine: string | null; history: string[];
+  date: string; startTime: string; durationMin: number; outsideSchedule: boolean; coachIds: string[]; rows: PanelRow[]; highlightAthleteId: string | null; savedLine: string | null; history: string[];
 };
 export type SavedOnDay = { sessionId: string; startTime: string; present: number; listed: number; savedBy: string };
 export type SessionCheck =
@@ -51,6 +51,12 @@ export type LessonBody = { athleteId: string; date: string; startTime: string; d
 export type LessonPatch = { present: boolean; durationMin: number; coachIds: string[] };
 export type LessonSaved = { lessonId: string; changed: boolean; toast: string };
 export type CoachRow = { coachId: string; name: string; sessions: number; lessons: number; minutes: number; hours: string };
+/** A coach's session row; the length is known once the session is saved. */
+export type CoachSessionRow = PeriodRow & { durationMin: number | null };
+export type CoachDay = { date: string; sessions: number; lessons: number; hours: string };
+export type CoachPage = {
+  name: string; totals: { sessions: number; lessons: number; hours: string }; days: CoachDay[]; sessions: CoachSessionRow[]; lessons: PeriodLessonRow[];
+};
 export type AthleteMonthRow = { sessionId: string; date: string; groupName: string; types: string; noSubscription: boolean };
 
 /** Re-exported for panels that carry held occurrences. */

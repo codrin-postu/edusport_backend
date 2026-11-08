@@ -19,6 +19,20 @@ export function lessonListState(l: LessonRow, today: string): SessionState {
 const namesOf = (rows: { id: string; name: string }[]): Map<string, string> => new Map(rows.map((r) => [r.id, r.name]));
 const coachNames = (ids: string[], coaches: Map<string, string>): string[] => ids.flatMap((id) => coaches.get(id) ?? []);
 
+type RowNames = { athletes: Map<string, string>; coaches: Map<string, string>; now: { date: string; time: string } };
+
+export const byDateTime = (lessons: LessonRow[]): LessonRow[] =>
+  [...lessons].sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime) || a.id.localeCompare(b.id));
+
+/** One lesson as a list row with its admin word. */
+export function lessonListRow(l: LessonRow, n: RowNames): PeriodLessonRow {
+  return {
+    lessonId: l.id, date: l.date, startTime: l.startTime, athleteId: l.athleteId, athleteName: n.athletes.get(l.athleteId) ?? GROUP_LINES.deletedAthlete,
+    coachNames: coachNames(l.coachIds, n.coaches), durationMin: l.durationMin, state: lessonListState(l, n.now.date), present: l.present,
+    adminState: adminState({ saved: l.state === 'saved', date: l.date, startTime: hhmm(l.startTime) ?? l.startTime, startDate: l.date, now: n.now }),
+  };
+}
+
 /** Lessons of a period (`from` / `to` or `month`), by date then time. A lesson exists once created, so a planned one whose time passed is "necompletat". */
 export async function listLessons(
   store: PresenceStore, query: Record<string, unknown>, now: { date: string; time: string },
@@ -28,15 +42,8 @@ export async function listLessons(
   const [lessons, athletes, team] = await Promise.all([store.lessons(period.value), store.athletes(), store.teamMembers()]);
   const athleteNames = namesOf(athletes);
   const coaches = namesOf(team);
-  const rows = [...lessons].sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime) || a.id.localeCompare(b.id));
-  return {
-    ok: true,
-    data: rows.map((l) => ({
-      lessonId: l.id, date: l.date, startTime: l.startTime, athleteId: l.athleteId, athleteName: athleteNames.get(l.athleteId) ?? GROUP_LINES.deletedAthlete,
-      coachNames: coachNames(l.coachIds, coaches), durationMin: l.durationMin, state: lessonListState(l, now.date), present: l.present,
-      adminState: adminState({ saved: l.state === 'saved', date: l.date, startTime: hhmm(l.startTime) ?? l.startTime, startDate: l.date, now }),
-    })),
-  };
+  const rows = byDateTime(lessons);
+  return { ok: true, data: rows.map((l) => lessonListRow(l, { athletes: athleteNames, coaches, now })) };
 }
 
 /** Deletable while no non-cancelled payment points at the lesson (C49). */

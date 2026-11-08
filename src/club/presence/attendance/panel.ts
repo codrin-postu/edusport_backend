@@ -14,21 +14,27 @@ import { mainGroupOn, rosterOn } from './roster';
 import { isDuration, outsideFor, savedLine } from './view';
 import type { AddedSession, PanelRow, SectionKind, SessionPanel } from './api-types';
 
-export type PanelQuery = { id: string } | { occurrence: string } | { added: AddedSession };
+type PanelTarget = { id: string } | { occurrence: string } | { added: AddedSession };
+export type PanelQuery = PanelTarget & { athlete?: string };
 type Target = {
   session: SessionRow | null; groupId: string; date: string; startTime: string; durationMin: number; occurrenceKey: string | null; source: SessionSource;
   added: AddedSession | null;
 };
 type PanelAthlete = { name: string; status: string };
 
-/** The panel query: a session id, an occurrence key, or a new session's group, date, time and duration. */
+/** The panel query: a session id, an occurrence key, or a new session's group, date, time and duration; plus an optional `athlete` to highlight (4.4). */
 export function readPanelQuery(q: Record<string, unknown>): PanelQuery | null {
+  const target = readTarget(q);
+  return target && typeof q.athlete === 'string' ? { ...target, athlete: q.athlete } : target;
+}
+
+function readTarget(q: Record<string, unknown>): PanelTarget | null {
   if (typeof q.id === 'string') return { id: q.id };
   if (typeof q.occurrence === 'string') return { occurrence: q.occurrence };
   return readAdded(q);
 }
 
-function readAdded(q: Record<string, unknown>): PanelQuery | null {
+function readAdded(q: Record<string, unknown>): PanelTarget | null {
   const durationMin = Number(q.duration);
   if (typeof q.group !== 'string' || !isIsoDate(q.date) || !isTime(q.time) || !isDuration(durationMin)) return null;
   return { added: { groupId: q.group, date: q.date, startTime: q.time, durationMin } };
@@ -58,7 +64,7 @@ function addedTarget(ctx: RowContext, a: AddedSession): Target | null {
   return { session: null, groupId: a.groupId, date: a.date, startTime: a.startTime, durationMin: a.durationMin, occurrenceKey: null, source: 'added', added: a };
 }
 
-async function resolveTarget(store: PresenceStore, ctx: RowContext, q: PanelQuery): Promise<Target | null> {
+async function resolveTarget(store: PresenceStore, ctx: RowContext, q: PanelTarget): Promise<Target | null> {
   if ('id' in q) {
     const s = await store.session(q.id);
     return s ? fromSession(s) : null;
@@ -73,22 +79,23 @@ export async function readSessionPanel(store: PresenceStore, q: PanelQuery, toda
   const target = await resolveTarget(store, ctx, q);
   const group = target ? ctx.groups.find((g) => g.id === target.groupId) : undefined;
   if (!target || !group) return { ok: false, status: 404, error: PRESENCE_ERRORS.notFound };
-  return { ok: true, data: await buildPanel(store, ctx, target, group) };
+  return { ok: true, data: await buildPanel(store, ctx, target, group, q.athlete) };
 }
 
-async function buildPanel(store: PresenceStore, ctx: RowContext, t: Target, group: GroupRecord): Promise<SessionPanel> {
+async function buildPanel(store: PresenceStore, ctx: RowContext, t: Target, group: GroupRecord, athlete?: string): Promise<SessionPanel> {
   const held = heldOccurrences(await store.calendarWindow(), ctx.groups, t.date, t.date);
   const seasonId = t.session?.seasonId ?? seasonOfDate(ctx.seasons, t.date)?.id ?? null;
   const atts = t.session ? await store.attendances({ sessionIds: [t.session.id] }) : [];
   const athletes = new Map((await store.athletes()).map((a) => [a.id, { name: a.name, status: a.status }]));
   const names = Object.fromEntries([...ctx.teamNames, ...[...athletes].map(([id, a]) => [id, a.name] as const)]);
   const kind = await kindOf(store, group.sectionId);
+  const rows = await panelRows(store, ctx, t, group, kind, seasonId, atts, athletes);
   return {
     sessionId: t.session?.id ?? null, occurrenceKey: t.occurrenceKey, added: t.added, groupId: group.id, groupName: group.name, kind,
     date: t.date, startTime: t.startTime, durationMin: t.durationMin,
     outsideSchedule: outsideFor({ source: t.source, groupId: t.groupId, date: t.date, startTime: t.startTime }, held),
     coachIds: t.session ? t.session.coachIds : group.coachIds,
-    rows: await panelRows(store, ctx, t, group, kind, seasonId, atts, athletes),
+    rows, highlightAthleteId: rows.some((r) => r.athleteId === athlete) ? athlete ?? null : null,
     savedLine: await savedLineOf(store, t.session), history: await historyOf(store, t.session, names),
   };
 }
