@@ -14,6 +14,9 @@ export default ({ env }) => ({
     koa: true,
     ipHeader: 'X-Real-IP',
   },
+  // Remote data transfer is off: `POST /admin/transfer/tokens` would mint a long-lived token that no session control reaches (review B3 M4 class).
+  // Strapi reads `server.transfer.remote.enabled`; a restart is needed for it to apply.
+  transfer: { remote: { enabled: false } },
   // Scheduled jobs (see config/cron-tasks.ts): the Google Sheets reconcile pass
   // and the registration e-mail retry. Both are inert until configured.
   cron: {

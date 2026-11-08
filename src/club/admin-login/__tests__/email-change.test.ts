@@ -33,6 +33,19 @@ describe('onAdminEmailChange', () => {
     expect(account.googleSub).toBeNull();
   });
 
+  it('ends the pending Google link of that admin (a pending login with a sub), and leaves other pendings alone', async () => {
+    const { env } = await withSessions();
+    const subject = { type: 'admin' as const, id: '7' };
+    const mk = (s: typeof subject, data: Record<string, unknown>) => env.c.store.createChallenge({ purpose: 'pending-login', subject: s, secretMac: `m${Math.random()}`, data, expiresAt: '2099-01-01T00:00:00.000Z' });
+    await mk(subject, { googleSub: 'sub-2', host: 'admin' });
+    await mk(subject, { host: 'admin' });
+    await mk({ type: 'admin', id: '8' }, { googleSub: 'sub-3', host: 'admin' });
+    await onAdminEmailChange(env.strapi as never, 7, env.c.store);
+    const open = (id: string) => env.c.store.openChallenges({ type: 'admin', id }, 'pending-login');
+    expect((await open('7')).map((r) => r.data.googleSub)).toEqual([undefined]);
+    expect((await open('8')).map((r) => r.data.googleSub)).toEqual(['sub-3']);
+  });
+
   it('an admin without an account row still has the sessions ended and no row is made', async () => {
     const env = adminEnv();
     await env.sessions.login(9);
