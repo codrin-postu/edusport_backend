@@ -51,6 +51,10 @@ export type LessonBody = { athleteId: string; date: string; startTime: string; d
 export type LessonPatch = { present: boolean; durationMin: number; coachIds: string[] };
 export type LessonSaved = { lessonId: string; changed: boolean; toast: string };
 export type CoachRow = { coachId: string; name: string; sessions: number; lessons: number; minutes: number; hours: string };
+export type CoachDay = { date: string; sessions: number; lessons: number; hours: string };
+export type CoachPage = {
+  name: string; totals: { sessions: number; lessons: number; hours: string }; days: CoachDay[]; sessions: PeriodRow[]; lessons: PeriodLessonRow[];
+};
 export type AthleteMonthRow = { sessionId: string; date: string; groupName: string; types: string; noSubscription: boolean };
 
 /** Re-exported for panels that carry held occurrences. */
