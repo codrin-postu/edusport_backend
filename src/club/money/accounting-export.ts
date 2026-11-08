@@ -51,12 +51,13 @@ function methodSheet(overview: MoneyOverview): XlsxSheet {
 
 const moneyCells = (t: Money4): XlsxCell[] => [t.due, t.paid, t.left, t.percent];
 
-/** "Pe grupă": the "Secțiune și grupă" table of the screen (5.6.2): section rows (bold) with their subtotal, groups under them, "Total". "Încasat %" is empty where Datorat is 0. */
+/** "Pe grupă": the "Secțiune și grupă" table of the screen (5.6.2): a bold section row, its groups, "Subtotal <secțiune>" (the phone screen shows no subtotals, the file does), then "Total". "Încasat %" is empty where Datorat is 0. */
 function groupSheet(overview: MoneyOverview): XlsxSheet {
   const sections = overview.bySection;
   const rows: Body = sections.flatMap((s) => [
-    { style: 'group' as const, cells: [s.sectionName, ...moneyCells(s.totals)] },
+    { style: 'group' as const, cells: [s.sectionName, null, null, null, null] },
     ...s.groups.map((g) => ({ style: 'body' as const, cells: [g.groupName, ...moneyCells(g.totals)] })),
+    { style: 'subtotal' as const, cells: [`Subtotal ${s.sectionName}`, ...moneyCells(s.totals)] },
   ]);
   const due = sumMoney(sections.map((s) => s.totals.due));
   const paid = sumMoney(sections.map((s) => s.totals.paid));

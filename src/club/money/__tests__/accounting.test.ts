@@ -1,6 +1,7 @@
+import { strFromU8, unzipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 import { accounting } from '../accounting';
-import { accountingCsv, accountingName, accountingSheets } from '../accounting-export';
+import { accountingCsv, accountingName, accountingSheets, accountingXlsx } from '../accounting-export';
 import { moneyOverview } from '../overview';
 import { loadMoneySources } from '../sources';
 import { moneySeed, TODAY } from './money-seed';
@@ -68,16 +69,19 @@ describe('Export contabil sheets (S58)', () => {
     expect(sheet.rows.at(-1)?.style).toBe('total');
   });
 
-  it('Pe grupă: section rows bold, groups under them, Total last', async () => {
+  it('Pe grupă: a section row, its groups, a subtotal row per section, Total last', async () => {
     const { acc, overview, extra } = await built();
     const sheet = accountingSheets(acc, overview, extra)[2];
     expect(sheet.columns.map((c) => c.header)).toEqual(['Grupă', 'Datorat', 'Încasat', 'Rămas', 'Încasat %']);
     expect(sheet.rows.map((r) => [r.style, r.cells[0]])).toEqual([
-      ['group', 'Școala de patinaj'], ['body', 'Intermediari Bronze'], ['group', 'Club'], ['body', 'Avansați'], ['body', 'Fără datorii'], ['total', 'Total'],
+      ['group', 'Școala de patinaj'], ['body', 'Intermediari Bronze'], ['subtotal', 'Subtotal Școala de patinaj'],
+      ['group', 'Club'], ['body', 'Avansați'], ['body', 'Fără datorii'], ['subtotal', 'Subtotal Club'], ['total', 'Total'],
     ]);
+    expect(sheet.rows[0].cells).toEqual(['Școala de patinaj', null, null, null, null]);
     expect(sheet.rows[1].cells).toEqual(['Intermediari Bronze', 320, 200, 120, 63]);
-    expect(sheet.rows[4].cells).toEqual(['Fără datorii', 0, 0, 0, null]);
-    expect(sheet.rows[5].cells).toEqual(['Total', 870, 600, 270, 69]);
+    expect(sheet.rows[2].cells.slice(1)).toEqual(sheet.rows[1].cells.slice(1));
+    expect(sheet.rows[5].cells).toEqual(['Fără datorii', 0, 0, 0, null]);
+    expect(sheet.rows[7].cells).toEqual(['Total', 870, 600, 270, 69]);
   });
 
   it('every sheet name fits Excel (31 characters) and widths stay between 8 and 60', async () => {
@@ -86,6 +90,21 @@ describe('Export contabil sheets (S58)', () => {
       expect(s.name.length).toBeLessThanOrEqual(31);
       for (const c of s.columns) expect(c.width >= 8 && c.width <= 60).toBe(true);
     }
+  });
+});
+
+describe('Export contabil xlsx', () => {
+  it('is a file with the three sheets, numeric sums, a guarded name and the section subtotals', async () => {
+    const { acc, overview, extra } = await built();
+    acc.payments[0].athleteName = '=1+1';
+    const zip = unzipSync(new Uint8Array(await accountingXlsx(acc, overview, extra)));
+    const book = strFromU8(zip['xl/workbook.xml']);
+    for (const n of ['Plăți', 'Pe metodă', 'Pe grupă']) expect(book).toContain(`name="${n}"`);
+    const strings = strFromU8(zip['xl/sharedStrings.xml']);
+    expect(strings).toContain("<t>'=1+1</t>");
+    expect(strings).toContain('<t>Subtotal Club</t>');
+    expect(strFromU8(zip['xl/worksheets/sheet1.xml'])).toMatch(/<c r="G2"[^>]*><v>200<\/v><\/c>/);
+    expect(strFromU8(zip['xl/worksheets/sheet2.xml'])).toMatch(/<c r="B5"[^>]*><v>800<\/v><\/c>/);
   });
 });
 
