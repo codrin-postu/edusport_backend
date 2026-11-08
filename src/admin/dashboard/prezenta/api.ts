@@ -15,7 +15,7 @@ type Body = Record<string, unknown>;
 type Wrapped<T> = { data: { data: T } };
 
 /** The panel's address: a saved session, a held occurrence, or a session not saved yet (the "+ Ședință nouă" panel). */
-export type SessionQuery = { id: string } | { occurrence: string } | AddedSession;
+export type SessionQuery = ({ id: string } | { occurrence: string } | AddedSession) & { athlete?: string };
 /** The "+ Ședință nouă" check body (readNewSession). */
 export type NewSessionBody = { groupId: string; date: string; startTime: string };
 
@@ -25,9 +25,10 @@ function query(values: Record<string, string | null>): string {
 }
 
 function sessionQuery(q: SessionQuery): string {
-  if ('id' in q) return query({ id: q.id });
-  if ('occurrence' in q) return query({ occurrence: q.occurrence });
-  return query({ group: q.groupId, date: q.date, time: q.startTime, duration: String(q.durationMin) });
+  const athlete = q.athlete ?? null;
+  if ('id' in q) return query({ id: q.id, athlete });
+  if ('occurrence' in q) return query({ occurrence: q.occurrence, athlete });
+  return query({ group: q.groupId, date: q.date, time: q.startTime, duration: String(q.durationMin), athlete });
 }
 
 /** The plan 5-2 admin routes (attendance, lessons, coaches) and the phase 4 routes the Prezență screens reuse. Same identity on every render. */

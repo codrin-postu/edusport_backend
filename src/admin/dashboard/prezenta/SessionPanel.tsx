@@ -1,11 +1,13 @@
 import * as React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Button, Checkbox, DataTable, Loading, Notice, adminToast, type DataColumn } from '../../ui';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import type { AthleteCard } from '../../../club/athletes/api-types';
 import type { AddedSession, InactiveAthlete, PanelRow, SessionPanel as PanelData } from '../../../club/presence/attendance/api-types';
 import { ATTENDANCE_ERRORS } from '../../../club/presence/copy/attendance';
 import { PRESENCE_ERRORS, PRESENCE_WORDS } from '../../../club/presence/copy/core';
-import { PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
+import { PANEL_LINKS, PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
+import { groupPageTo } from '../../../club/grupe/routes';
 import { footerText, longDayTitle, panelTitle } from '../../../club/prezenta/day-view';
 import {
   addVisitor, answerInactive, coachIdsOf, columnsFor, footerCounts, initialTicks, isDirty, readInactive, refreshAbonamentLines, rowSubLines, saveBody, toggleTick,
@@ -17,6 +19,7 @@ import { AthleteSearch } from '../sportivi/AthleteSearch';
 import { useSportiviApi } from '../sportivi/api';
 import { usePrezentaApi, type PrezentaApi, type SessionQuery } from './api';
 import { CoachFields, useCoachOptions } from './CoachFields';
+import { AthleteLink, CoachLinks } from './PanelLinks';
 import { InactiveDialog } from './InactiveDialog';
 import { RowMoneyMenu } from './RowMoneyMenu';
 import { useMoneyChanged } from '../bani/undo';
@@ -24,10 +27,10 @@ import { runOnce } from '../bani/useSubmitOnce';
 import { failToast, prezentaChanged } from './undo';
 
 export type SessionTarget = { id: string } | { occurrence: string } | { added: AddedSession };
-type Props = { target: SessionTarget; coachIds?: string[]; readOnly?: boolean; onClose: () => void };
+type Props = { target: SessionTarget; coachIds?: string[]; highlightAthleteId?: string; readOnly?: boolean; onClose: () => void };
 type Draft = { rows: PanelRow[]; ticks: Ticks; coaches: CoachValue };
 
-const queryOf = (t: SessionTarget): SessionQuery => ('added' in t ? t.added : t);
+const queryOf = (t: SessionTarget, athlete?: string): SessionQuery => ({ ...('added' in t ? t.added : t), ...(athlete ? { athlete } : {}) });
 const coachesOf = (ids: string[]): CoachValue => (ids.length ? ids : [null]);
 const visitorIds = (rows: PanelRow[]): string[] => rows.filter((r) => r.visitor).map((r) => r.athleteId);
 
@@ -37,7 +40,7 @@ function startOf(panel: PanelData, picked: string[] | undefined): Draft {
   return { rows: panel.rows, ticks: initialTicks(panel), coaches: coachesOf(ids) };
 }
 
-function usePanelData(api: PrezentaApi, target: SessionTarget, picked: string[] | undefined) {
+function usePanelData(api: PrezentaApi, target: SessionTarget, picked: string[] | undefined, athlete: string | undefined) {
   const [panel, setPanel] = React.useState<PanelData | null>(null);
   const [start, setStart] = React.useState<Draft | null>(null);
   const [draft, setDraft] = React.useState<Draft | null>(null);
@@ -46,13 +49,13 @@ function usePanelData(api: PrezentaApi, target: SessionTarget, picked: string[] 
   React.useEffect(() => () => { alive.current = false; }, []);
   // A money write (a new abonament, a payment) changes the abonament lines only: the draft's ticks, coaches and visitors stay.
   useMoneyChanged(() => {
-    api.session(queryOf(target))
+    api.session(queryOf(target, athlete))
       .then((p) => { if (alive.current) setDraft((d) => (d ? { ...d, rows: refreshAbonamentLines(d.rows, p.rows) } : d)); })
       .catch(() => undefined);
   });
   React.useEffect(() => {
     let off = false;
-    api.session(queryOf(target))
+    api.session(queryOf(target, athlete))
       .then((p) => {
         if (off) return;
         const first = startOf(p, picked);
@@ -70,11 +73,19 @@ function usePanelData(api: PrezentaApi, target: SessionTarget, picked: string[] 
 const dirtyOf = (a: Draft, b: Draft): boolean =>
   isDirty({ ticks: a.ticks, coaches: a.coaches, visitors: visitorIds(a.rows) }, { ticks: b.ticks, coaches: b.coaches, visitors: visitorIds(b.rows) });
 
-function RowName({ row }: { row: PanelRow }) {
+/** The athlete the panel was opened for: scrolled into view once when the row appears (S44). */
+function Highlighted({ children }: { children: React.ReactNode }) {
+  const ref = React.useRef<HTMLSpanElement>(null);
+  React.useEffect(() => { ref.current?.scrollIntoView({ block: 'center' }); }, []);
+  return <span ref={ref} className="pz-hl">{children}</span>;
+}
+
+function RowName({ row, highlight }: { row: PanelRow; highlight: boolean }) {
   const sub = rowSubLines(row);
+  const name = <AthleteLink id={row.athleteId} name={row.name} />;
   return (
     <>
-      <span>{row.name}</span>
+      {highlight ? <Highlighted>{name}</Highlighted> : name}
       {row.visitor && row.mainGroup && <span className="pz-sub">{row.mainGroup}</span>}
       {sub.status && <span className="pz-sub">{sub.status}</span>}
       {sub.warn && <span className="pz-sub pz-warn">{sub.warn}</span>}
@@ -82,13 +93,13 @@ function RowName({ row }: { row: PanelRow }) {
   );
 }
 
-type TableProps = { panel: PanelData; draft: Draft; locked: boolean; onTick: (athleteId: string, type: 'grup' | 'uscat') => void };
+type TableProps = { panel: PanelData; draft: Draft; locked: boolean; highlightId: string | null; onTick: (athleteId: string, type: 'grup' | 'uscat') => void };
 
-function TickTable({ panel, draft, locked, onTick }: TableProps) {
+function TickTable({ panel, draft, locked, highlightId, onTick }: TableProps) {
   const [name, ...types] = columnsFor(panel.kind);
   const typeKeys = ['grup', 'uscat'] as const;
   const columns: DataColumn<PanelRow>[] = [
-    { key: 'name', header: name, render: (r) => <RowName row={r} /> },
+    { key: 'name', header: name, render: (r) => <RowName row={r} highlight={r.athleteId === highlightId} /> },
     ...types.map((header, i): DataColumn<PanelRow> => ({
       key: typeKeys[i], header, className: 'pz-tick',
       render: (r) => (
@@ -163,10 +174,14 @@ function useSave(api: PrezentaApi, panel: PanelData | null, draft: Draft | null,
 
 type BodyProps = {
   panel: PanelData; draft: Draft; readOnly: boolean; locked: boolean; coachError: string | null;
-  coachOptions: { documentId: string; name: string }[]; setDraft: (d: Draft) => void;
+  coachOptions: { documentId: string; name: string }[]; from: string; setDraft: (d: Draft) => void;
 };
 
-function PanelBody({ panel, draft, readOnly, locked, coachError, coachOptions, setDraft }: BodyProps) {
+/** The panel's own coaches (not the draft's), by name, for the read line. */
+const linkedCoaches = (ids: string[], options: BodyProps['coachOptions']): { id: string; name: string }[] =>
+  ids.flatMap((id) => options.filter((o) => o.documentId === id).map((o) => ({ id, name: o.name })));
+
+function PanelBody({ panel, draft, readOnly, locked, coachError, coachOptions, from, setDraft }: BodyProps) {
   const pick = (card: AthleteCard) =>
     setDraft({ ...draft, rows: addVisitor(draft.rows, card), ticks: { ...draft.ticks, [card.documentId]: { grup: true, uscat: false } } });
   return (
@@ -174,9 +189,11 @@ function PanelBody({ panel, draft, readOnly, locked, coachError, coachOptions, s
       <div>
         <p className="pz-sheet-sub">{longDayTitle(panel.date)}</p>
         {panel.outsideSchedule && <p className="pz-sub">{PRESENCE_WORDS.outsideSchedule}</p>}
+        <Link className="pz-link" to={groupPageTo(panel.groupId, null)}>{PANEL_LINKS.openGroup}</Link>
       </div>
+      <CoachLinks coaches={linkedCoaches(panel.coachIds, coachOptions)} date={panel.date} from={from} />
       <CoachFields label={PREZENTA_COPY.coach} value={draft.coaches} options={coachOptions} disabled={locked} error={coachError} onChange={(coaches) => setDraft({ ...draft, coaches })} />
-      <TickTable panel={panel} draft={draft} locked={locked} onTick={(id, type) => setDraft({ ...draft, ticks: toggleTick(draft.ticks, id, type) })} />
+      <TickTable panel={panel} draft={draft} locked={locked} highlightId={panel.highlightAthleteId} onTick={(id, type) => setDraft({ ...draft, ticks: toggleTick(draft.ticks, id, type) })} />
       {!readOnly && <Visitors rows={draft.rows} disabled={locked} onPick={pick} />}
       {panel.savedLine && <p className="pz-saved">{panel.savedLine}</p>}
       {panel.history.length > 0 && (
@@ -190,9 +207,11 @@ function PanelBody({ panel, draft, readOnly, locked, coachError, coachOptions, s
 }
 
 /** The session panel (5.3): coaches, the tick table, visitors, the footer; every close path asks first when something changed. */
-export function SessionPanel({ target, coachIds, readOnly = false, onClose }: Props) {
+export function SessionPanel({ target, coachIds, highlightAthleteId, readOnly = false, onClose }: Props) {
   const api = usePrezentaApi();
-  const { panel, start, draft, setDraft, failed } = usePanelData(api, target, coachIds);
+  const location = useLocation();
+  const from = `${location.pathname}${location.search}`;
+  const { panel, start, draft, setDraft, failed } = usePanelData(api, target, coachIds, highlightAthleteId);
   const { coaches: coachOptions, failed: coachesFailed } = useCoachOptions(api);
   const { busy, coachError, ask, answer, save } = useSave(api, panel, draft, onClose);
   const [confirm, setConfirm] = React.useState(false);
@@ -210,13 +229,15 @@ export function SessionPanel({ target, coachIds, readOnly = false, onClose }: Pr
       {!readOnly && panel && <Button loading={busy} disabled={!!ask} onClick={() => void save()}>{PREZENTA_COPY.save}</Button>}
     </div>
   );
-  const title = panel ? panelTitle(panel.groupName, panel.startTime) : '';
+  const title = panel && (
+    <><Link className="pz-name-link" to={groupPageTo(panel.groupId, null)}>{panel.groupName}</Link>{panelTitle(panel.groupName, panel.startTime).slice(panel.groupName.length)}</>
+  );
   return (
     <>
       <PanelShell title={title} footer={footer} onClose={requestClose}>
         {(failed || coachesFailed) && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
         {!failed && !(panel && draft) && <Loading />}
-        {panel && draft && <PanelBody panel={panel} draft={draft} readOnly={readOnly} locked={locked} coachError={coachError} coachOptions={coachOptions} setDraft={setDraft} />}
+        {panel && draft && <PanelBody panel={panel} draft={draft} readOnly={readOnly} locked={locked} coachError={coachError} coachOptions={coachOptions} from={from} setDraft={setDraft} />}
       </PanelShell>
       <ConfirmDialog
         open={confirm} title={PREZENTA_COPY.closeConfirm} message={null} tone="default" confirmLabel={PREZENTA_COPY.close} cancelLabel={PREZENTA_COPY.stay}

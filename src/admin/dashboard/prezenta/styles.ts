@@ -66,6 +66,10 @@ export const PREZENTA_CSS = `
 .ui-root .pz-ticks{border:1px solid var(--theme-border)}
 .ui-root .pz-warn{color:var(--theme-warning);font-weight:600}
 .ui-root .pz-visitor{display:flex;flex-direction:column;gap:8px}
+.ui-root .pz-name-link{color:inherit;font-weight:600;text-decoration:none}
+.ui-root .pz-name-link:hover{color:var(--theme-primary);text-decoration:underline}
+.ui-root .pz-name-link:focus-visible{outline:2px solid var(--theme-focus);outline-offset:1px}
+.ui-root .pz-ticks tr:has(.pz-hl) td{background:var(--theme-primary-soft)}
 .ui-root .pz-saved{margin:0;font-size:12px;color:var(--theme-text-muted)}
 .ui-root .pz-hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .ui-root .pz-hist li{padding:6px 0;border-bottom:1px solid var(--theme-border-subtle);font-size:12.5px;color:var(--theme-text)}

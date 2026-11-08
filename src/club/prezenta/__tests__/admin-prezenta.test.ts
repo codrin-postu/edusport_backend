@@ -212,3 +212,28 @@ it('a coach options load failure shows the load-failed notice in both panels', (
     expect(p, f).toMatch(/failed \|\| coachesFailed\) && <Notice tone="danger">\{PRESENCE_ERRORS\.loadFailed\}/);
   }
 });
+
+it('the panels link coaches, the group and athletes (11-2 T4, S36, S43, S44)', () => {
+  const session = src('dashboard/prezenta/SessionPanel.tsx');
+  const lesson = src('dashboard/prezenta/LessonPanel.tsx');
+  const links = src('dashboard/prezenta/PanelLinks.tsx');
+  expect(session.indexOf('<CoachLinks')).toBeGreaterThan(0);
+  expect(session.indexOf('<CoachLinks')).toBeLessThan(session.indexOf('<CoachFields'));
+  expect(session).toContain('groupPageTo(');
+  expect(session).toContain('PANEL_LINKS.openGroup');
+  expect(session).toContain('highlightAthleteId');
+  expect(session).toContain('scrollIntoView');
+  expect(session).toContain('<AthleteLink');
+  expect(session).not.toMatch(/<span>\{row\.name\}<\/span>/);
+  expect(lesson).toContain('<AthleteLink');
+  expect(lesson).not.toContain('label={lesson.athleteName}');
+  const [coachLinks, athleteLink] = links.split('export function AthleteLink');
+  expect(athleteLink).toContain('target="_blank"');
+  expect(athleteLink).toContain('rel="noopener"');
+  expect(coachLinks).not.toMatch(/target=|rel=/);
+  expect(coachLinks).toContain('coachPageTo(');
+  expect(coachLinks).toContain('state={{ from }}');
+  expect(links).toContain('PANEL_LINKS.coaches');
+  expect(src('dashboard/prezenta/api.ts')).toMatch(/athlete/);
+  for (const f of ['SessionPanel.tsx', 'LessonPanel.tsx', 'PanelLinks.tsx', 'styles.ts']) expect(src(`dashboard/prezenta/${f}`), f).not.toMatch(/dashed|dotted/);
+});
