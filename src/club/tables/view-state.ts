@@ -1,6 +1,7 @@
 import { countWords } from '../ro-count';
 import { TABLES_COUNT_WORDS } from './copy';
-import type { SavedViewRow, Subject, TableDefinition } from './types';
+import { PLATI_GRUPA_ID } from './ready-made';
+import type { SavedViewRow, Subject, TableDefinition, TableResult } from './types';
 
 /** Structural equality of two JSON values: object key order does not matter, array order does (column order is part of a definition). */
 function same(a: unknown, b: unknown): boolean {
@@ -29,6 +30,9 @@ export function actionsFor(view: SavedViewRow, dirty: boolean): ViewActions {
   if (view.broken) return { save: false, saveAsNew: false, duplicate: false, remove: view.canDelete };
   return { save: view.mine && dirty, saveAsNew: true, duplicate: true, remove: view.canDelete };
 }
+
+/** The "Plăți pe grupă luna aceasta" view with nothing paid in the month: the screen keeps the view and shows one line instead of rows of zeros. */
+export const noPaymentsThisMonth = (viewId: string, result: TableResult): boolean => viewId === PLATI_GRUPA_ID && !Number(result.total.platit ?? 0);
 
 /** "Intermediari Bronze, 12 sportivi". */
 export function groupHeader(subject: Subject, label: string, count: number): string {

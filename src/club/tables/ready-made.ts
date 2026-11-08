@@ -11,8 +11,11 @@ const view = (id: string, name: string, d: Partial<TableDefinition> & Pick<Table
 });
 const money = ['sportiv', 'dePlatit', 'platit', 'ramas', 'starePlata'];
 
+/** The ready-made view of the Bani card "Plăți pe grupă luna aceasta". */
+export const PLATI_GRUPA_ID = 'rm-plati-grupa';
+
 export const READY_MADE: SavedViewRow[] = [
-  view('rm-plati-grupa', TABLES_COPY.readyMade.platiGrupa, { subject: 'sportivi', scope: scope({ kind: 'current' }), columns: money, groupBy: 'grupa' }),
+  view(PLATI_GRUPA_ID, TABLES_COPY.readyMade.platiGrupa, { subject: 'sportivi', scope: scope({ kind: 'current' }), columns: money, groupBy: 'grupa' }),
   view('rm-prezenta-grupa', TABLES_COPY.readyMade.prezentaGrupa, { subject: 'prezenta', scope: scope({ kind: 'current' }), columns: ['data', 'ora', 'sportiv', 'tip', 'plata'], groupBy: 'grupa' }),
   view('rm-sportivi-activi', TABLES_COPY.readyMade.sportiviActivi, { subject: 'sportivi', scope: scope(null), filters: [{ column: 'stare', op: 'eq', value: 'Activ' }], columns: ['sportiv', 'grupa', 'abonament', 'telefon'] }),
   view('rm-ramas', TABLES_COPY.readyMade.ramas, { subject: 'sportivi', scope: scope(null), filters: [{ column: 'ramas', op: 'gt', value: 0 }], columns: ['sportiv', 'grupa', 'dePlatit', 'platit', 'ramas'], sort: { column: 'ramas', dir: 'desc' } }),

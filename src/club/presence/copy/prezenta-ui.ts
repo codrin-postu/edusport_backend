@@ -30,9 +30,9 @@ export const PERIOD_COPY = {
   emptyGroups: 'Nicio ședință în perioada asta.',
   emptyLessons: 'Nicio lecție individuală în perioada asta.',
   emptyCoaches: 'Nicio ședință completată în perioada asta.',
-  /** Hidden labels of the arrows. COPY NEEDED for Săptămână (asked of the user). */
-  prev: { zi: 'Ziua anterioară', saptamana: 'COPY NEEDED', luna: 'Luna anterioară' },
-  next: { zi: 'Ziua următoare', saptamana: 'COPY NEEDED', luna: 'Luna următoare' },
+  /** Hidden labels of the arrows. */
+  prev: { zi: 'Ziua anterioară', saptamana: 'Săptămâna anterioară', luna: 'Luna anterioară' },
+  next: { zi: 'Ziua următoare', saptamana: 'Săptămâna următoare', luna: 'Luna următoare' },
 } as const;
 
 export const STATE_COPY = { completat: 'Completat', necompletat: 'Necompletat', urmeaza: 'Urmează' } as const;
