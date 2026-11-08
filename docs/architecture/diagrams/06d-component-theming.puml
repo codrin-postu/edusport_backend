@@ -1,0 +1,57 @@
+@startuml
+!include _style.iuml
+title Components are written once; the look comes from tokens
+skinparam ComponentBackgroundColor #eef7f0
+skinparam ComponentBorderColor #1d6b3a
+skinparam ComponentBackgroundColor<<portal>> #eef2ff
+skinparam ComponentBorderColor<<portal>> #3b4a9a
+skinparam ComponentBackgroundColor<<shared>> #ffffff
+skinparam ComponentBorderColor<<shared>> #1c2240
+
+package "1. Token values (the only place looks differ)" {
+  component "src/app/globals.css  @theme\n~--color-surface: #fbf8f1 (cream)\n~--color-line: #0e1a3c\n~--label-case: uppercase\n~--input-bg: var(~--color-surface)\n~--link-underline: rust\n... default = public site" as Base
+  component "src/styles/portal-theme.css\n[data-theme='portal'] {\n  ~--color-surface: #f6f9fd (ice)\n  ~--color-line: #b9c6da\n  ~--label-case: none\n  ~--input-bg: #ffffff\n  ~--link-underline: none\n  ... only the values that differ\n}" as Theme <<portal>>
+}
+
+package "2. Root layouts choose the theme" {
+  component "(site)/layout.tsx\n<body>  (no theme)" as LSite
+  component "(antrenor)/layout.tsx\n<body data-theme='portal'>" as LCoach <<portal>>
+  component "(sportiv)/layout.tsx\n<body data-theme='portal'>" as LSportiv <<portal>>
+}
+
+package "3. Components, written ONCE" {
+  component "src/components/ui/\nInput  Field  Button  Link  Card\nSelect  Checkbox  Toggle  Dialog ...\nuse classes like bg-[~--input-bg]\nborder-line  text-primary\nnever ask which site they are on" as UI <<shared>>
+  component "Variant (shape differs, not just colour)\n<Button variant='shadow'>\ndocumented prop, same file" as Var <<shared>>
+}
+
+package "4. Portal-only components (no public twin)" {
+  component "src/app/_portal/ui/\nDateBlock  StatusBlock  IndividualTag\nCalendar  CompetitionCard  NowTile\nBottomNav  Sheet ...\nbuilt on the same tokens" as Kit <<portal>>
+}
+
+Base --> UI : "default values"
+Theme --> UI : "same names,\nnew values"
+LSite --> UI : "renders"
+LCoach --> UI : "renders"
+LSportiv --> UI : "renders"
+LCoach --> Kit
+LSportiv --> Kit
+UI <-- Var : "part of"
+
+note bottom of UI
+  Example: <Input/> in the public form and in the coach login
+  is the same code. On www it reads cream + navy border;
+  under data-theme="portal" the same variables resolve
+  to white + #b9c6da. Nothing is written twice.
+end note
+
+legend right
+  Where does a difference go?
+  colour, border, font, size, case, shadow, underline
+      -> one line in portal-theme.css
+  different shape or markup on both sites
+      -> a documented variant prop on the shared component
+  exists only in the portals
+      -> src/app/_portal/ui/
+  Reading portal-theme.css = the full list of differences.
+endlegend
+@enduml
