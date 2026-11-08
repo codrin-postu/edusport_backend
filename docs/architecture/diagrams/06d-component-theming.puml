@@ -10,7 +10,7 @@ skinparam ComponentBorderColor<<shared>> #1c2240
 
 package "1. Token values (the only place looks differ)" {
   component "src/app/globals.css  @theme\n~--color-surface: #fbf8f1 (cream)\n~--color-line: #0e1a3c\n~--label-case: uppercase\n~--input-bg: var(~--color-surface)\n~--link-underline: rust\n... default = public site" as Base
-  component "src/styles/portal-theme.css\n[data-theme='portal'] {\n  ~--color-surface: #f6f9fd (ice)\n  ~--color-line: #b9c6da\n  ~--label-case: none\n  ~--input-bg: #ffffff\n  ~--link-underline: none\n  ... only the values that differ\n}" as Theme <<portal>>
+  component "src/styles/portal-theme.css\n[data-theme='portal'] {\n  ~--color-surface: #f6f9fd (ice)\n  ~--color-input-line: #b9c6da\n  ~--label-case: none\n  ~--input-bg: #ffffff\n  ~--link-underline: none\n  ... only the values that differ\n}" as Theme <<portal>>
 }
 
 package "2. Root layouts choose the theme" {
