@@ -5,6 +5,9 @@ import { sumMoney } from '../presence/money';
 import type { PaymentMethod, PaymentRow } from '../presence/types';
 import type { MoneySources } from './sources';
 
+/** What the accounting list reads: the month's payments (by `paidOn`), athlete names, abonamente and seasons for the purpose text (F4). */
+export type AccountingSources = Pick<MoneySources, 'payments' | 'athletes' | 'subscriptions' | 'seasons'>;
+
 export type AccountingPayment = {
   paymentId: string; athleteId: string; paidOn: string; receiptNo: string | null; athleteName: string; purposeText: string; method: PaymentMethod; amount: number; cancelled: boolean;
 };
@@ -24,7 +27,7 @@ function byDayThenNumber(a: PaymentRow, b: PaymentRow): number {
 }
 
 /** The payments with `paidOn` in the month, cancelled ones included and marked (5.6.3). */
-export function accounting(src: MoneySources, month: string): Accounting {
+export function accounting(src: AccountingSources, month: string): Accounting {
   const { from, to } = monthRange(month);
   const names = new Map(src.athletes.map((a) => [a.id, a.name ?? ''] as const));
   const subs = new Map(src.subscriptions.map((s) => [s.id, s] as const));

@@ -1,6 +1,6 @@
-import { isMonth, monthOf } from '../presence/dates';
+import { isMonth, monthOf, monthRange } from '../presence/dates';
 import type { PresenceStore } from '../presence/store';
-import { accounting, type Accounting } from './accounting';
+import { accounting, type Accounting, type AccountingSources } from './accounting';
 import type { AccountingExtra } from './accounting-export';
 import { moneyOverview } from './overview';
 import { loadMoneySources } from './sources';
@@ -13,23 +13,30 @@ export async function readOverview(store: PresenceStore, month: string, today: s
   return moneyOverview(await loadMoneySources(store, month), month, today);
 }
 
-/** The month's accounting list. */
-export async function readAccounting(store: PresenceStore, month: string): Promise<Accounting> {
-  return accounting(await loadMoneySources(store, month), month);
+/** The month's payments with what the list needs, nothing else (F4). */
+async function loadAccountingSources(store: PresenceStore, month: string): Promise<AccountingSources> {
+  const [payments, athletes, subscriptions, seasons] = await Promise.all([store.payments(monthRange(month)), store.athletes(), store.subscriptions(), store.seasons()]);
+  return { payments, athletes, subscriptions, seasons };
 }
 
-export type AccountingData = { accounting: Accounting; overview: MoneyOverview; extra: AccountingExtra };
+/** The month's accounting list. */
+export async function readAccounting(store: PresenceStore, month: string): Promise<Accounting> {
+  return accounting(await loadAccountingSources(store, month), month);
+}
 
-/** The month's accounting list, the overview its sheets need, and per payment where it was collected and who recorded it (name, else e-mail). */
-export async function readAccountingData(store: PresenceStore, month: string, today: string): Promise<AccountingData> {
-  const src = await loadMoneySources(store, month);
+/** `overview` is read for the xlsx only (its sheets "Pe metodă" and "Pe grupă"); the CSV is the payments sheet alone. */
+export type AccountingData = { accounting: Accounting; overview: MoneyOverview | null; extra: AccountingExtra };
+
+/** The month's accounting list, per payment where it was collected and who recorded it (name, else e-mail), and for the xlsx the overview. */
+export async function readAccountingData(store: PresenceStore, month: string, today: string, format: 'xlsx' | 'csv'): Promise<AccountingData> {
+  const src = await loadAccountingSources(store, month);
   const list = accounting(src, month);
   const ids = new Set(list.payments.map((p) => p.paymentId));
   const inMonth = src.payments.filter((p) => ids.has(p.id));
   const names = await store.adminNames([...new Set(inMonth.map((p) => p.recordedBy))]);
   return {
     accounting: list,
-    overview: moneyOverview(src, month, today),
+    overview: format === 'xlsx' ? await readOverview(store, month, today) : null,
     extra: {
       collectedAtRink: new Map(inMonth.map((p) => [p.id, p.collectedAtRink] as const)),
       recordedBy: new Map(inMonth.map((p) => [p.id, names[p.recordedBy] ?? p.recordedBy] as const)),

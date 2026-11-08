@@ -63,6 +63,7 @@ export const BANI_COPY = {
   switch: { sectiune: 'Secțiune și grupă', metoda: 'Metodă', scop: 'Scop' },
   cols: { group: 'Grupă', due: 'Datorat', paid: 'Încasat', left: 'Rămas', percent: 'Încasat %', method: 'Metodă', purpose: 'Scop', count: 'Plăți' },
   total: 'Total',
+  noGroup: 'Fără grupă',
   note: 'Încasat aici: plătit din ce s-a datorat în luna asta.',
   exportBtn: 'Export contabil',
   xlsx: '.xlsx',

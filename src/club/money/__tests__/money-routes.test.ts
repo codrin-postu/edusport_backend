@@ -6,7 +6,7 @@ import paymentRoutes from '../../../api/club/routes/11-payments';
 import { areaOfRoute } from '../../admin-area';
 import { monthOf } from '../../presence/dates';
 import { todayIso } from '../../groups/http';
-import { readAccountingData, readMoneyMonth } from '../service';
+import { readAccounting, readAccountingData, readMoneyMonth } from '../service';
 import { moneySeed } from './money-seed';
 
 const source = readFileSync(join(__dirname, '../../../api/club/controllers/payments.ts'), 'utf8');
@@ -83,11 +83,20 @@ describe('money service', () => {
     const seed = moneySeed();
     seed.group.admins['admin@example.com'] = 'Ana Admin';
     seed.state.payments = seed.state.payments.map((p) => (p.id === 'p8' ? { ...p, recordedBy: 'cineva@example.com' } : p));
-    const data = await readAccountingData(seed.store, '2026-11', '2026-11-20');
+    const data = await readAccountingData(seed.store, '2026-11', '2026-11-20', 'xlsx');
     expect(data.extra.recordedBy.get('p1')).toBe('Ana Admin');
     expect(data.extra.recordedBy.get('p8')).toBe('cineva@example.com');
     expect(data.extra.collectedAtRink.get('p1')).toBe(false);
     expect(data.accounting.payments).toHaveLength(6);
-    expect(data.overview.month).toBe('2026-11');
+    expect(data.overview?.month).toBe('2026-11');
+  });
+
+  it('the CSV data reads only the month payments, athletes, abonamente and seasons, and builds no overview (F4)', async () => {
+    const seed = moneySeed();
+    for (const m of ['attendances', 'lessons', 'groups', 'sections', 'memberships'] as const) seed.failOn(m);
+    const data = await readAccountingData(seed.store, '2026-11', '2026-11-20', 'csv');
+    expect(data.overview).toBeNull();
+    expect(data.accounting.payments).toHaveLength(6);
+    expect((await readAccounting(seed.store, '2026-11')).payments).toHaveLength(6);
   });
 });

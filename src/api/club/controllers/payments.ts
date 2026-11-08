@@ -3,6 +3,7 @@ import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
 import { downloadLogLine } from '../../../club/download-log';
 import { accountingCsv, accountingName, accountingXlsx } from '../../../club/money/accounting-export';
 import { readAccounting, readAccountingData, readMoneyMonth, readOverview } from '../../../club/money/service';
+import type { MoneyOverview } from '../../../club/money/types';
 import { monthOf, isMonth } from '../../../club/presence/dates';
 import { presenceContext } from '../../../club/presence/context';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
@@ -34,7 +35,7 @@ async function accountingFile(ctx: FileCtx, format: 'xlsx' | 'csv'): Promise<voi
   const month = moneyMonth(ctx, today);
   if (month === null) return;
   if (format === 'xlsx' && !XLSX_READY) return refuseWith(ctx, 501, TABLES_NO_XLSX);
-  const data = await exportLimit(() => readAccountingData(store(), month, today));
+  const data = await exportLimit(() => readAccountingData(store(), month, today, format));
   const adminId = await verifiedAdminId(ctx.request.header.authorization, strapi);
   strapi.log.info(downloadLogLine({ adminId, kind: format === 'xlsx' ? 'accounting-xlsx' : 'accounting-csv', rows: data.accounting.payments.length }));
   ctx.set('Content-Disposition', `attachment; filename="${accountingName(month, format)}"`);
@@ -44,7 +45,7 @@ async function accountingFile(ctx: FileCtx, format: 'xlsx' | 'csv'): Promise<voi
     return;
   }
   ctx.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  ctx.body = await accountingXlsx(data.accounting, data.overview, data.extra);
+  ctx.body = await accountingXlsx(data.accounting, data.overview as MoneyOverview, data.extra);
 }
 
 /** Admin API of Plăți and De încasat (routes/11-payments.ts, all `global::is-admin`). */
