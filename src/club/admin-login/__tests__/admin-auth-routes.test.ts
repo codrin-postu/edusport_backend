@@ -7,6 +7,7 @@ import { adminLoginContext, adminOrigin, originAllowed } from '../context';
 const login = vi.hoisted(() => ({ loginAdmin: vi.fn(), secondStepAdmin: vi.fn(), sendAdminLoginCode: vi.fn() }));
 vi.mock('../login', () => login);
 vi.mock('../reset', () => ({ requestAdminReset: vi.fn(), confirmAdminReset: vi.fn() }));
+vi.mock('../google', () => ({ startAdminGoogle: vi.fn(() => { throw new TypeError('x'); }), adminGoogleCallback: vi.fn(async () => { throw new TypeError('x'); }) }));
 vi.mock('../invite', () => ({ readAdminInvite: vi.fn(), acceptAdminInvite: vi.fn() }));
 
 import controller from '../../../api/admin-auth/controllers/admin-auth';
@@ -20,7 +21,7 @@ describe('routes (spec 4.3)', () => {
   it('login, 2fa, 2fa/email, reset and invite exist as POST, each open to Strapi auth with no policies or middlewares', () => {
     expect(all.map((r) => `${r.method} ${r.path}`)).toEqual([
       'POST /admin-auth/login', 'POST /admin-auth/2fa', 'POST /admin-auth/2fa/email', 'POST /admin-auth/reset/request', 'POST /admin-auth/reset/confirm',
-      'POST /admin-auth/invite/read', 'POST /admin-auth/invite/accept',
+      'POST /admin-auth/invite/read', 'GET /admin-auth/google/start', 'GET /admin-auth/google/callback', 'GET /admin-auth/invite/google', 'POST /admin-auth/invite/accept',
     ]);
     for (const r of all) expect(r.config).toEqual({ auth: false, policies: [], middlewares: [] });
   });
@@ -110,6 +111,20 @@ describe('the controller', () => {
     await controller.twoFactor(ctx as never);
     expect(ctx.status).toBe(500);
     expect(log).toHaveBeenCalledWith('[admin-auth] twoFactor failed: DbError');
+  });
+});
+
+describe('the Google navigations', () => {
+  it('a throw is a redirect to the failure page (the invite page for the invite route), logged by error name', async () => {
+    const log = vi.fn();
+    process.env.ADMIN_ORIGIN = 'https://cms.x.ro';
+    (globalThis as { strapi?: unknown }).strapi = { log: { error: log }, dirs: { app: { root: process.cwd() } } };
+    const urls: string[] = [];
+    const ctx = { params: {}, query: {}, status: 200, body: null, redirect: (u: string) => urls.push(u), request: { body: {}, header: {}, headers: {}, secure: false, ip: '1.1.1.1' }, cookies: { get: () => undefined, set: () => undefined } };
+    for (const h of [controller.googleStart, controller.googleCallback, controller.inviteGoogle]) await h(ctx as never);
+    expect(urls).toEqual(['/intrare?eroare=google', '/intrare?eroare=google', '/intrare/invitatie?eroare=google']);
+    expect(log).toHaveBeenCalledWith('[admin-auth] googleStart failed: TypeError');
+    delete (globalThis as { strapi?: unknown }).strapi;
   });
 });
 

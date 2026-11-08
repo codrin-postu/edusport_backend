@@ -12,6 +12,9 @@ export default {
     { method: 'POST', path: '/admin-auth/reset/request', handler: 'admin-auth.resetRequest', config: open },
     { method: 'POST', path: '/admin-auth/reset/confirm', handler: 'admin-auth.resetConfirm', config: open },
     { method: 'POST', path: '/admin-auth/invite/read', handler: 'admin-auth.inviteRead', config: open },
+    { method: 'GET', path: '/admin-auth/google/start', handler: 'admin-auth.googleStart', config: open },
+    { method: 'GET', path: '/admin-auth/google/callback', handler: 'admin-auth.googleCallback', config: open },
+    { method: 'GET', path: '/admin-auth/invite/google', handler: 'admin-auth.inviteGoogle', config: open },
     { method: 'POST', path: '/admin-auth/invite/accept', handler: 'admin-auth.inviteAccept', config: open },
   ],
 };

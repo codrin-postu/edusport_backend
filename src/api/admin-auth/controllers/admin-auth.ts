@@ -1,5 +1,6 @@
 import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
 import { adminLoginContext, adminOrigin, originAllowed } from '../../../club/admin-login/context';
+import { adminGoogleCallback, startAdminGoogle } from '../../../club/admin-login/google';
 import { acceptAdminInvite, readAdminInvite } from '../../../club/admin-login/invite';
 import { confirmAdminReset, requestAdminReset } from '../../../club/admin-login/reset';
 import { loginAdmin, secondStepAdmin, sendAdminLoginCode } from '../../../club/admin-login/login';
@@ -8,7 +9,7 @@ import { PORTAL_ERRORS } from '../../../club/portal/copy';
 import { SECURITY_ERRORS } from '../../../club/security/copy';
 import { KeysMissing } from '../../../club/security/keys';
 
-type Ctx = AdminCtx & KoaContext & { request: { headers: Record<string, string | string[] | undefined> } };
+type Ctx = AdminCtx & KoaContext & { request: { headers: Record<string, string | string[] | undefined> }; redirect: (url: string) => void };
 type Handler = (ctx: Ctx) => Promise<void>;
 
 const header = (v: string | string[] | undefined): string | undefined => (Array.isArray(v) ? v[0] : v);
@@ -29,6 +30,16 @@ const sameOrigin = (tag: string, handler: Handler): Handler => async (ctx) => {
   }
 };
 
+/** The browser's own navigations (Google start and callback): no Origin to check, and every failure is the failure page, never a JSON error. */
+const navigation = (tag: string, failed: string, handler: (ctx: Ctx) => Promise<string> | string): Handler => async (ctx) => {
+  try {
+    return ctx.redirect(await handler(ctx));
+  } catch (err) {
+    strapi.log.error(`[admin-auth] ${tag} failed: ${err instanceof Error ? err.name : 'error'}`);
+    return ctx.redirect(failed);
+  }
+};
+
 /** Admin login API (routes/01-login.ts). */
 export default {
   login: sameOrigin('login', async (ctx) => respond(ctx, await loginAdmin(adminLoginContext(strapi, ctx), ctx.request.body))),
@@ -37,5 +48,8 @@ export default {
   resetRequest: sameOrigin('resetRequest', async (ctx) => respond(ctx, await requestAdminReset(adminLoginContext(strapi, ctx), ctx.request.body))),
   resetConfirm: sameOrigin('resetConfirm', async (ctx) => respond(ctx, await confirmAdminReset(adminLoginContext(strapi, ctx), ctx.request.body))),
   inviteRead: sameOrigin('inviteRead', async (ctx) => respond(ctx, await readAdminInvite(adminLoginContext(strapi, ctx), ctx.request.body))),
+  googleStart: navigation('googleStart', '/intrare?eroare=google', (ctx) => startAdminGoogle(adminLoginContext(strapi, ctx), ctx.query).redirect),
+  googleCallback: navigation('googleCallback', '/intrare?eroare=google', async (ctx) => (await adminGoogleCallback(adminLoginContext(strapi, ctx), ctx.query)).redirect),
+  inviteGoogle: navigation('inviteGoogle', '/intrare/invitatie?eroare=google', (ctx) => startAdminGoogle(adminLoginContext(strapi, ctx), { registrationToken: ctx.query.registrationToken }).redirect),
   inviteAccept: sameOrigin('inviteAccept', async (ctx) => respond(ctx, await acceptAdminInvite(adminLoginContext(strapi, ctx), ctx.request.body))),
 };
