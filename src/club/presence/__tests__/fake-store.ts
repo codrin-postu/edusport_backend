@@ -12,7 +12,7 @@ export { athleteRow, member } from '../../groups/__tests__/fake-group-store';
 export type FakePaymentJob = PaymentEmailJob & { id: string; status: 'queued' | 'sending' | 'cancelled' | 'sent' };
 export type FakePresenceState = {
   sessions: SessionRow[]; attendances: (AttendanceWrite & { id: string })[]; lessons: LessonRow[]; subscriptions: SubscriptionRow[]; payments: PaymentRow[];
-  priceLists: PriceListRecord[]; acs: AcsRow[]; calendar: CalendarWindow; startDate: string | null; jobs: FakePaymentJob[];
+  priceLists: PriceListRecord[]; acs: AcsRow[]; calendar: CalendarWindow; startDate: string | null; jobs: FakePaymentJob[]; counters: Record<string, number>;
 };
 export type FakePresenceSeed = { group?: Partial<FakeGroupState> } & Partial<FakePresenceState>;
 export type FakePresence = { store: PresenceStore; state: FakePresenceState; group: FakeGroupState; failOn(method: keyof PresenceStore): void };
@@ -159,6 +159,24 @@ function fakePaymentJobs(s: FakePresenceState, next: Next): K<'createPaymentEmai
   };
 }
 
+function fakeCounters(s: FakePresenceState, inTransaction: () => boolean): K<'nextCounter' | 'raiseCounter' | 'counterValue'> {
+  const guard = () => {
+    if (!inTransaction()) throw new Error('fake: counter taken outside a transaction');
+  };
+  return {
+    nextCounter: async (key) => {
+      guard();
+      s.counters[key] = (s.counters[key] ?? 0) + 1;
+      return s.counters[key];
+    },
+    raiseCounter: async (key, atLeast) => {
+      guard();
+      s.counters[key] = Math.max(s.counters[key] ?? 0, atLeast);
+    },
+    counterValue: async (key) => s.counters[key] ?? 0,
+  };
+}
+
 function withFailures(store: PresenceStore, failing: Set<string>): PresenceStore {
   const wrapped: Record<string, unknown> = {};
   for (const [key, fn] of Object.entries(store) as [string, (...args: unknown[]) => Promise<unknown>][]) {
@@ -168,7 +186,7 @@ function withFailures(store: PresenceStore, failing: Set<string>): PresenceStore
 }
 
 const emptyState = (): FakePresenceState => ({
-  sessions: [], attendances: [], lessons: [], subscriptions: [], payments: [], priceLists: copy(P_LISTS), acs: [], calendar: { events: [], blackouts: [] }, startDate: null, jobs: [],
+  sessions: [], attendances: [], lessons: [], subscriptions: [], payments: [], priceLists: copy(P_LISTS), acs: [], calendar: { events: [], blackouts: [] }, startDate: null, jobs: [], counters: {},
 });
 
 /** In-memory PresenceStore over the group fake; a transaction restores presence and group state together when its work throws. */
@@ -199,6 +217,7 @@ export function fakePresenceStore(seed: FakePresenceSeed = {}): FakePresence {
     },
     lockSession: lock('session'), lockLesson: lock('lesson'), lockAttendance: lock('attendance'), lockSubscription: lock('subscription'), lockPayment: lock('payment'),
     ...fakeReads(state), ...fakeSessionAndAttendanceWrites(state, next), ...fakeMoneyWrites(state, next), ...fakePaymentJobs(state, next),
+    ...fakeCounters(state, () => depth > 0),
   };
   const failing = new Set<string>();
   const groupKeys = new Set(Object.keys(group.store));

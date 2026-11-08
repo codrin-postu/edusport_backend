@@ -1,6 +1,8 @@
+import { createId } from '@paralleldrive/cuid2';
 import type { Core } from '@strapi/strapi';
+import type { Knex } from 'knex';
 import { linkId, raws, str, strapiClubStore, text, transactionScope } from '../athletes/strapi-store';
-import type { Raw } from '../athletes/strapi-store';
+import type { Raw, Scope } from '../athletes/strapi-store';
 import type { AcsState } from '../acs';
 import { hhmm } from '../groups/dates';
 import { calendarRows } from '../groups/occurrences';
@@ -21,6 +23,7 @@ const PAYMENT = 'api::payment.payment' as const;
 const PRICE_LIST = 'api::price-list.price-list' as const;
 const SETTINGS = 'api::site-settings.site-settings' as const;
 const JOB = 'api::email-job.email-job' as const;
+const COUNTER_TABLE = 'club_counters';
 const MAX = 100000;
 const PG_UNIQUE = '23505';
 
@@ -246,6 +249,32 @@ function jobs(strapi: Core.Strapi): Keys<'createPaymentEmailJob' | 'cancelPaymen
   };
 }
 
+/** One upsert per number: the `ON CONFLICT DO UPDATE` row lock is the only serialisation between concurrent creates (as the portal `lockLimit`). */
+function counters(strapi: Core.Strapi, scope: Scope): Keys<'nextCounter' | 'raiseCounter' | 'counterValue'> {
+  const upsert = async (key: string, initial: number, merged: Knex.Raw): Promise<number> => {
+    const trx = scope.current();
+    if (!trx) throw new Error('counter taken outside a transaction');
+    const now = new Date();
+    const rows: { value: unknown }[] = await strapi.db.getConnection(COUNTER_TABLE).transacting(trx)
+      .insert({ document_id: createId(), key, value: initial, created_at: now, updated_at: now, published_at: now })
+      .onConflict('key').merge({ value: merged, updated_at: now }).returning('value');
+    return Number(rows[0]?.value);
+  };
+  const raw = (sql: string, args: Knex.RawBinding[] = []): Knex.Raw => strapi.db.connection.raw(sql, args);
+  return {
+    nextCounter: (key) => upsert(key, 1, raw(`${COUNTER_TABLE}.value + 1`)),
+    raiseCounter: async (key, atLeast) => {
+      await upsert(key, atLeast, raw(`greatest(${COUNTER_TABLE}.value, ?)`, [atLeast]));
+    },
+    counterValue: async (key) => {
+      const trx = scope.current();
+      const query = strapi.db.getConnection(COUNTER_TABLE).where('key', key);
+      const row = await (trx ? query.transacting(trx) : query).first('value');
+      return row ? Number(row.value) : 0;
+    },
+  };
+}
+
 /** PresenceStore on Strapi: db queries for reads (relations as documentIds), document service for writes, one transaction scope for every lock. */
 export function strapiPresenceStore(strapi: Core.Strapi): PresenceStore {
   const scope = transactionScope(strapi);
@@ -267,5 +296,6 @@ export function strapiPresenceStore(strapi: Core.Strapi): PresenceStore {
     lockSubscription: (id) => scope.lockRow('club_subscriptions', id),
     lockPayment: (id) => scope.lockRow('club_payments', id),
     ...lookups(strapi), ...sessionRows(strapi), ...attendanceRows(strapi), ...lessonRows(strapi), ...subscriptionRows(strapi), ...paymentRows(strapi), ...jobs(strapi),
+    ...counters(strapi, scope),
   };
 }

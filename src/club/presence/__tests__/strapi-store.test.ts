@@ -36,7 +36,55 @@ function lockingStrapi(calls: string[]): Core.Strapi {
   return { db } as unknown as Core.Strapi;
 }
 
+function countingStrapi(calls: string[]): Core.Strapi {
+  const chain = (table: string) => {
+    calls.push(table);
+    const q = {
+      transacting: (trx: string) => {
+        calls[calls.length - 1] = `${table} in ${trx}`;
+        return q;
+      },
+      insert: (row: { key: string; value: number }) => {
+        calls.push(`insert key=${row.key} value=${row.value}`);
+        return q;
+      },
+      onConflict: (col: string) => {
+        calls.push(`onConflict ${col}`);
+        return q;
+      },
+      merge: (data: { value: unknown }) => {
+        calls.push(`merge ${String(data.value)}`);
+        return q;
+      },
+      returning: async (col: string) => {
+        calls.push(`returning ${col}`);
+        return [{ value: 7 }];
+      },
+    };
+    return q;
+  };
+  const raw = (sql: string, args: unknown[] = []) => (sql.startsWith('greatest') ? `greatest(${args.join(',')})` : 'value+1');
+  const db = { getConnection: chain, connection: { raw }, transaction: async (work: (a: { trx: string }) => Promise<unknown>) => work({ trx: 'trx' }) };
+  return { db } as unknown as Core.Strapi;
+}
+
 describe('strapiPresenceStore', () => {
+  it('the Strapi counter is one upsert in the open transaction', async () => {
+    const calls: string[] = [];
+    const store = strapiPresenceStore(countingStrapi(calls));
+    expect(await store.transaction(() => store.nextCounter('subscription'))).toBe(7);
+    expect(calls).toEqual(['club_counters in trx', 'insert key=subscription value=1', 'onConflict key', 'merge value+1', 'returning value']);
+  });
+
+  it('raising a counter is one upsert with greatest, and a counter outside a transaction throws', async () => {
+    const calls: string[] = [];
+    const store = strapiPresenceStore(countingStrapi(calls));
+    await store.transaction(() => store.raiseCounter('receipt:2026', 40));
+    expect(calls).toEqual(['club_counters in trx', 'insert key=receipt:2026 value=40', 'onConflict key', 'merge greatest(40)', 'returning value']);
+    await expect(store.nextCounter('subscription')).rejects.toThrow('counter taken outside a transaction');
+    await expect(store.raiseCounter('subscription', 1)).rejects.toThrow('counter taken outside a transaction');
+  });
+
   it('has exactly the methods of the fake store (11.2)', () => {
     expect(Object.keys(strapiPresenceStore({} as Core.Strapi)).sort()).toEqual(Object.keys(fakePresenceStore().store).sort());
   });

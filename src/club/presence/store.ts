@@ -61,4 +61,10 @@ export interface PresenceStore extends PresenceGroupReads {
   /** Queued jobs of the payment become `cancelled`; answers how many. */
   cancelPaymentEmailJob(paymentId: string): Promise<number>;
   sentPaymentEmailJobs(paymentId: string): Promise<number>;
+  /** Inside a transaction only; the value after `+ 1` (1 for a new key). The row lock holds until the transaction ends, so no two creates share a number. */
+  nextCounter(key: string): Promise<number>;
+  /** Inside a transaction only; the value becomes the greater of itself and `atLeast`, the row is created when missing. */
+  raiseCounter(key: string, atLeast: number): Promise<void>;
+  /** 0 when the key has no row. */
+  counterValue(key: string): Promise<number>;
 }

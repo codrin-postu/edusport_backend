@@ -1,0 +1,33 @@
+{
+  "kind": "collectionType",
+  "collectionName": "club_counters",
+  "info": {
+    "singularName": "club-counter",
+    "pluralName": "club-counters",
+    "displayName": "Club / Contor",
+    "description": "Numere de abonament și de chitanță"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "key": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "column": {
+        "unique": true
+      }
+    },
+    "value": {
+      "type": "integer",
+      "required": true,
+      "min": 0
+    }
+  }
+}

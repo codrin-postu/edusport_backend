@@ -63,4 +63,22 @@ describe('fake presence store', () => {
     const { store } = fakePresenceStore();
     await expect(store.updatePayment('nope', { amount: 1 })).rejects.toThrow('fake: no payment nope');
   });
+  it('fake counters hand out consecutive numbers and never go back', async () => {
+    const s = fakePresenceStore().store;
+    await expect(s.nextCounter('subscription')).rejects.toThrow('outside a transaction');
+    expect(await s.transaction(async () => [await s.nextCounter('subscription'), await s.nextCounter('subscription')])).toEqual([1, 2]);
+    await s.transaction(() => s.raiseCounter('subscription', 1));
+    expect(await s.counterValue('subscription')).toBe(2);
+    await s.transaction(() => s.raiseCounter('receipt:2026', 40));
+    expect(await s.transaction(() => s.nextCounter('receipt:2026'))).toBe(41);
+    expect(await s.counterValue('missing')).toBe(0);
+  });
+  it('a rolled back transaction gives its counter number back', async () => {
+    const s = fakePresenceStore().store;
+    await expect(s.transaction(async () => {
+      await s.nextCounter('subscription');
+      throw new Error('boom');
+    })).rejects.toThrow('boom');
+    expect(await s.counterValue('subscription')).toBe(0);
+  });
 });
