@@ -187,7 +187,10 @@ export function storeContract(make: () => Promise<StoreHarness>): void {
     const atLeast = (got: Record<string, number>, want: Record<string, number>) => {
       for (const [k, v] of Object.entries(want)) expect(got[k], k).toBeGreaterThanOrEqual(v);
     };
-    expect(await store.purge(minutes(10))).toEqual({ factors: 0, challenges: 0, backupCodes: 0, adminDevices: 0 });
+    await store.purge(minutes(10));
+    expect((await store.factors(s)).length).toBe(2);
+    expect((await store.openChallenges(s, 'email-code')).length).toBe(1);
+    expect((await store.adminDevices(uid)).length).toBe(2);
     atLeast(await store.purge(minutes(20)), { factors: 1 });
     expect((await store.factors(s)).map((f) => f.kind)).toEqual(['email']);
     const days = (n: number) => new Date(t0.getTime() + n * 24 * 3600_000);
