@@ -2,7 +2,7 @@ import * as React from 'react';
 import { getFetchClient, useFetchClient } from '@strapi/admin/strapi-admin';
 import type { ActionBody, GroupOptions } from '../../../club/groups/api-types';
 import type {
-  AddedSession, CoachRow, GridPage, GroupMonth, LessonPanel, LessonSaved, PeriodLessonRow, PeriodPage, SessionCheck, SessionDefaults,
+  AddedSession, CoachPage, CoachRow, GridPage, GroupMonth, LessonPanel, LessonSaved, PeriodLessonRow, PeriodPage, SessionCheck, SessionDefaults,
   SessionPanel, SessionSaveBody, SessionSaved,
 } from '../../../club/presence/attendance/api-types';
 import { coachesCsvName } from '../../../club/presence/coaches/csv';
@@ -57,6 +57,9 @@ export function usePrezentaApi() {
       coaches: (from: string, to: string) => get<CoachRow[]>(`${BASE}/attendance/coaches${query({ from, to })}`),
       coachesCsv: (from: string, to: string) =>
         downloadPdf(ref.current.get, `${BASE}/attendance/coaches.csv${query({ from, to })}`, coachesCsvName(from, to)),
+      coachPage: (id: string, from: string, to: string) => get<CoachPage>(`${BASE}/coaches/${enc(id)}/presence${query({ from, to })}`),
+      coachCsv: (id: string, from: string, to: string) =>
+        downloadPdf(ref.current.get, `${BASE}/coaches/${enc(id)}/presence.csv${query({ from, to })}`, `antrenor-${from}-${to}.csv`),
       options: () => get<GroupOptions>(`${BASE}/groups/options`),
       undo: (actionId: string) => data<{ undone: true }>(getFetchClient().post(`${BASE}/undo`, { actionId })),
       search: searchUrl,

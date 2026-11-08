@@ -75,7 +75,9 @@ export const PREZENTA_CSS = `
 .ui-root .pz-hist li{padding:6px 0;border-bottom:1px solid var(--theme-border-subtle);font-size:12.5px;color:var(--theme-text)}
 .ui-root .pz-foot{display:flex;align-items:center;gap:8px;width:100%}
 .ui-root .pz-foot-count{margin-right:auto;font-weight:600;color:var(--theme-text)}
+.ui-root .pz-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:14px 18px}
 @media (max-width:640px){
+.ui-root .pz-tiles{grid-template-columns:minmax(0,1fr)}
 .ui-root .pz-two{grid-template-columns:minmax(0,1fr)}
 .ui-root .pz-bar-sp{display:none}
 }

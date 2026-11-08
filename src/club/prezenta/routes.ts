@@ -43,3 +43,14 @@ export function prezentaTo(q: Partial<PrezentaQuery>): string {
 /** The coach page (11-2) for a team member, opened on a period. */
 export const coachPageTo = (teamMemberId: string, view: PeriodView, date: string): string =>
   `${PREZENTA_PATH}/${COACH_SEGMENT}/${encodeURIComponent(teamMemberId)}?view=${view}&date=${date}`;
+
+/** The team member id of `antrenor/<id>` in the Prezență route splat; null for the screen itself or an address that is not a coach page. */
+export function coachIdFromSplat(splat: string | undefined): string | null {
+  const [segment, id] = (splat ?? '').split('/');
+  if (segment !== COACH_SEGMENT || !id?.trim()) return null;
+  try {
+    return decodeURIComponent(id);
+  } catch {
+    return null;
+  }
+}

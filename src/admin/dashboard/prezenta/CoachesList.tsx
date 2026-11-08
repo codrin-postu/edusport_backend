@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button, Loading, Notice, useIsPhone } from '../../ui';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { PERIOD_COPY, PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
@@ -37,6 +37,7 @@ const card = (r: CoachRow) => (
 export function CoachesList({ view, date, host }: Props) {
   const api = usePrezentaApi();
   const navigate = useNavigate();
+  const location = useLocation();
   const phone = useIsPhone();
   const period = periodOf(view, date);
   const { data, failed } = usePeriodLoad((a, from, to) => a.coaches(from, to), period);
@@ -58,7 +59,7 @@ export function CoachesList({ view, date, host }: Props) {
     body = (
       <PeriodTable<CoachRow>
         groups={[{ key: 'coaches', header: null, rows: data }]} columns={COLUMNS} phone={phone} getRowKey={(r) => r.coachId} card={card}
-        onOpen={(r) => navigate(coachPageTo(r.coachId, view, date))} rowLabel={(r) => r.name}
+        onOpen={(r) => navigate(coachPageTo(r.coachId, view, date), { state: { from: `${location.pathname}${location.search}` } })} rowLabel={(r) => r.name}
       />
     );
   }

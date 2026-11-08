@@ -1,7 +1,7 @@
 import { capitalized, isIsoDate, weekdayName } from '../groups/dates';
 import { shortDay } from '../presence/copy/attendance';
 import type { PeriodView } from '../presence/period';
-import { prezentaTo } from './routes';
+import { COACH_SEGMENT, PREZENTA_PATH, prezentaTo } from './routes';
 
 export { durationText } from './day-view';
 
@@ -32,3 +32,7 @@ export function backTarget(state: unknown): string {
   const from = typeof state === 'object' && state !== null ? (state as { from?: unknown }).from : undefined;
   return typeof from === 'string' && from.startsWith(APP_PATH) ? from : prezentaTo({ show: 'antrenori' });
 }
+
+/** The coach page with its whole address: `?view=&date=&show=`. */
+export const coachPageAddress = (coachId: string, q: { view: PeriodView; date: string; show: CoachShow }): string =>
+  `${PREZENTA_PATH}/${COACH_SEGMENT}/${encodeURIComponent(coachId)}?view=${q.view}&date=${q.date}&show=${q.show}`;

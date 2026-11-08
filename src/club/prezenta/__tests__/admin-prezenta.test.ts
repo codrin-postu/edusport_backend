@@ -237,3 +237,18 @@ it('the panels link coaches, the group and athletes (11-2 T4, S36, S43, S44)', (
   expect(src('dashboard/prezenta/api.ts')).toMatch(/athlete/);
   for (const f of ['SessionPanel.tsx', 'LessonPanel.tsx', 'PanelLinks.tsx', 'styles.ts']) expect(src(`dashboard/prezenta/${f}`), f).not.toMatch(/dashed|dotted/);
 });
+
+it('the coach page (11-2 T5, 5.3): segmented picker, tiles, header, CSV, back, no tabs', () => {
+  const page = src('dashboard/prezenta/CoachPage.tsx');
+  expect(page).not.toMatch(/\bTabs\b/);
+  for (const k of ['SegmentedControl', 'StatTile', 'PeriodHeader', 'COACH_COPY.back', 'backTarget(', 'readCoachQuery(', 'api.coachCsv(', 'api.coachPage(', 'SessionPanel', 'LessonPanel', 'AthleteLink', 'groupPageTo(', 'COACH_COPY.total', 'COACH_COPY.emptySessions', 'COACH_COPY.emptyLessons', 'COACH_COPY.emptyHours', 'PERIOD_COPY.exportCsv', 'useIsPhone']) {
+    expect(page, k).toContain(k);
+  }
+  const api = src('dashboard/prezenta/api.ts');
+  expect(api).toMatch(/downloadPdf\([\s\S]*?presence\.csv/);
+  expect(api).toContain('coachCsv:');
+  expect(src('dashboard/PrezentaPage.tsx')).toMatch(/coachIdFromSplat\(/);
+  expect(src('dashboard/PrezentaPage.tsx')).toContain('<CoachPage');
+  expect(src('dashboard/prezenta/CoachesList.tsx')).toMatch(/coachPageTo\([^)]*\), \{ state: \{ from/);
+  expect(page).not.toMatch(/dashed|dotted|border-radius:\s*50%/);
+});
