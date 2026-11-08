@@ -26,3 +26,10 @@ export type SavedViewRow = {
   id: string; name: string; subject: Subject; definition: TableDefinition;
   authorId: string | null; authorName: string; mine: boolean; canDelete: boolean; readyMade: boolean;
 };
+export type TableTotals = Record<string, CellValue>;
+export type TableGroup = { key: string; label: string; count: number; subtotal: Record<string, CellValue>; rows: TableRow[] };
+/** What a query answers. `subject` and `groupBy` ride along so the file shapes need no second argument. */
+export type TableResult = {
+  subject: Subject; groupBy: GroupKey | null; columns: CatalogColumn[];
+  groups: TableGroup[] | null; rows: TableRow[]; total: TableTotals; count: number; notices: string[];
+};
