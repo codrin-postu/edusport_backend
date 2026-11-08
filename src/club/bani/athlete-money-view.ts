@@ -1,25 +1,12 @@
 import { MONEY_UI_COPY } from '../presence/copy/money-ui';
 import { PAYMENT_COPY } from '../presence/copy/payments';
-import type { AthleteMonthRow } from '../presence/attendance/api-types';
 import { monthTitle } from '../presence/dates';
-import type { AthletePayments, AthleteSubscriptions, MonthRow } from '../presence/money-api';
+import type { AthletePayments, AthleteSubscriptionCards, MonthRow } from '../presence/money-api';
 import { ron } from '../presence/money';
-import { leftCells, stateWord } from './format';
-
-const copy = MONEY_UI_COPY.athlete;
-const UNCOVERED = ', Fără abonament';
+import { leftCells } from './format';
 
 /** "<grupă>, principală" for the main group, the name alone for the others. */
-export const groupLines = (s: AthleteSubscriptions): string[] => s.groups.map((g) => (g.main ? copy.mainGroup(g.name) : g.name));
-
-export const earlierLines = (s: AthleteSubscriptions): string[] =>
-  s.earlier.map((e) => copy.earlierRow(e.itemName, e.startsOn, e.validUntil, e.used, e.slots, stateWord(e.state)));
-
-/** The ", Fără abonament" part is separate so it renders orange. */
-export function attendanceLine(row: AthleteMonthRow): { text: string; uncovered: string | null } {
-  const text = copy.attendanceRow(row.date, row.groupName, row.types, false);
-  return { text, uncovered: row.noSubscription ? UNCOVERED : null };
-}
+export const groupLines = (s: AthleteSubscriptionCards): string[] => s.groups.map((g) => (g.main ? MONEY_UI_COPY.athlete.mainGroup(g.name) : g.name));
 
 export const monthCells = (m: MonthRow): { month: string; sessions: string; due: string; paid: string; left: string; advance: string | null } => ({
   month: monthTitle(m.month), sessions: PAYMENT_COPY.sessionsText(m.grup, m.uscat, m.lessons), due: ron(m.due), paid: ron(m.paid), ...leftCells(m.left),

@@ -13,7 +13,7 @@ type Opened = { kind: 'subscription' } | { kind: 'payment'; preselect: PaymentFo
 /** The athlete's current abonament, for the "+ Plată" preselect; none when it cannot be read. */
 async function currentSubscriptionId(api: MoneyApi, athleteId: string): Promise<string | null> {
   try {
-    return (await api.athleteSubscriptions(athleteId, null)).bars[0]?.subscriptionId ?? null;
+    return (await api.athleteSubscriptions(athleteId, null)).current?.id ?? null;
   } catch {
     return null;
   }

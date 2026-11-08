@@ -20,6 +20,7 @@
     "cancelledAt": { "type": "datetime" },
     "cancelledBy": { "type": "string" },
     "purchasedAt": { "type": "datetime" },
-    "recordedBy": { "type": "string" }
+    "recordedBy": { "type": "string" },
+    "code": { "type": "string", "unique": true }
   }
 }

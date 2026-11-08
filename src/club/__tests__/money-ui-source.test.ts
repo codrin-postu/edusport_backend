@@ -40,7 +40,7 @@ describe('money UI source', () => {
   });
   it('empty states use the ruled texts on every list, card list and athlete block (I4)', () => {
     const c = MONEY_UI_COPY.empty;
-    expect(c).toEqual({ abonamente: 'Niciun abonament.', plati: 'Nicio plată.', month: 'Nicio prezență în luna aceasta.', earlier: 'Niciun abonament anterior.' });
+    expect(c).toEqual({ abonamente: 'Niciun abonament.', plati: 'Nicio plată.' });
     const plati = src('admin/dashboard/bani/PlatiList.tsx');
     expect(plati).toMatch(/empty=\{MONEY_UI_COPY\.empty\.plati\}/);
     expect(plati).toMatch(/rows\.length === 0\) return <p[^\n]*empty\.plati/);
@@ -50,9 +50,6 @@ describe('money UI source', () => {
     const tab = src('admin/dashboard/bani/PlatiTab.tsx');
     expect(tab).toMatch(/empty=\{MONEY_UI_COPY\.empty\.plati\}/);
     expect(tab).toMatch(/data\.months\.length > 0 && <MonthRows/);   // a school athlete has no month rows: no bare header
-    const a = src('admin/dashboard/bani/AbonamentTab.tsx');
-    expect(a).toContain('MONEY_UI_COPY.empty.month');
-    expect(a).toContain('MONEY_UI_COPY.empty.earlier');
   });
   it('the move window target list leaves out groups the athlete is already in, for move and add-also alike', () => {
     const m = src('admin/dashboard/grupe/MoveDialog.tsx');
@@ -80,8 +77,9 @@ describe('money UI source', () => {
     expect([first(), second()]).toEqual([false, true]);
     l.cancel();
     expect(second()).toBe(false);
-    for (const f of ['PlatiList', 'AbonamenteList', 'DeIncasatList', 'PlatiTab', 'AbonamentTab']) expect(src(`admin/dashboard/bani/${f}.tsx`), f).toMatch(/latest\.next\(\)/);
+    for (const f of ['PlatiList', 'AbonamenteList', 'DeIncasatList', 'PlatiTab']) expect(src(`admin/dashboard/bani/${f}.tsx`), f).toMatch(/latest\.next\(\)/);
     expect(src('admin/dashboard/prezenta/MonthLine.tsx')).toMatch(/latest\.next\(\)/);
+    expect(src('admin/dashboard/bani/useLoad.ts')).toMatch(/latest\.next\(\)/);
   });
   it('stale figures: the athlete Plăți tab follows Prezență writes, the session panel follows money writes (I5)', () => {
     expect(src('admin/dashboard/bani/PlatiTab.tsx')).toContain('usePrezentaRefresh(() => void reload())');
@@ -152,7 +150,7 @@ describe('money UI source', () => {
     expect(r).toContain('seasonId={record.season?.documentId ?? null}');
     for (const name of ['AbonamentTab', 'PlatiTab', 'tabFromSearch', "tab === 'abonament'", "tab === 'plati'"]) expect(r).toContain(name);
     const a = src('admin/dashboard/bani/AbonamentTab.tsx');
-    for (const name of ['AbonamentBar', 'AddSubscriptionWindow', 'MONEY_UI_COPY', 'copy.none', 'SessionPanel', 'attendanceLine(']) expect(a).toContain(name);
+    for (const name of ['AbonamentCard', 'PresenceHistory', 'AddSubscriptionWindow', 'CARD_COPY.none', 'copy.addSubscription']) expect(a).toContain(name);
     expect(a + src('admin/dashboard/bani/styles.ts')).toMatch(/\.bn-warn\{color:var\(--theme-warning\)\}/);
     expect(a).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
     const p = src('admin/dashboard/bani/PlatiTab.tsx');
@@ -199,5 +197,39 @@ describe('money UI source', () => {
     const copy = src('club/presence/copy/prezenta-ui.ts');
     expect(copy).toContain('Prezență și plăți din');
     expect(copy).toContain('Ședințele dinainte nu apar ca nefăcute.');
+  });
+
+  it('the Grupe si abonament screen: order, cards, history (5.4, T9)', () => {
+    const tab = src('admin/dashboard/bani/AbonamentTab.tsx');
+    expect(tab.indexOf('CARD_COPY.current')).toBeGreaterThan(-1);
+    expect(tab.indexOf('CARD_COPY.current')).toBeLessThan(tab.indexOf('CARD_COPY.others'));
+    expect(tab.indexOf('copy.groups')).toBeLessThan(tab.indexOf('CARD_COPY.current'));
+    expect(tab.indexOf('CARD_COPY.others')).toBeLessThan(tab.indexOf('copy.addSubscription'));
+    expect(tab.indexOf('copy.addSubscription')).toBeLessThan(tab.indexOf('<PresenceHistory'));
+    expect(tab).toMatch(/others\.length > 0 && /);
+    expect(tab).not.toContain('MonthLine');
+    expect(tab).toContain('seasonId={seasonId}');
+    const card = src('admin/dashboard/bani/AbonamentCard.tsx');
+    expect(card).toContain('CARD_COPY.showDays');
+    expect(card).toContain('CARD_COPY.hideDays');
+    expect(card).toMatch(/useState\(false\)/);
+    expect(card).toMatch(/card\.used > 0 &&/);
+    expect(card).toMatch(/<SessionPanel[^>]*highlightAthleteId=\{athleteId\}/);
+    expect(card).not.toContain('folosite');
+    const hist = src('admin/dashboard/bani/PresenceHistory.tsx');
+    expect(hist).toContain('HISTORY_COPY.title');
+    expect(hist).toContain('<Pager');
+    expect(hist).toContain('HISTORY_COPY.cols');
+    expect(hist).toMatch(/pay\.kind === 'unit'/);
+    expect(hist).toMatch(/<SessionPanel[^>]*highlightAthleteId=\{athlete\.id\}/);
+    expect(hist).toContain('<LessonPanel');
+    expect(hist).toContain('HISTORY_COPY.openSession');
+    expect(hist).toContain('HISTORY_COPY.openLesson');
+    expect(hist).toContain('HISTORY_COPY.empty(');
+    expect(hist.match(/<ExpandableRow/g)).toHaveLength(1);
+    expect(hist.match(/bn-pay--unit/g)).toHaveLength(1);
+    expect(hist.match(/<StatusBadge/g)).toHaveLength(2);
+    expect(hist).not.toMatch(/subscription.*state|bn-pay--\$\{/);
+    for (const f of ['AbonamentTab', 'AbonamentCard', 'PresenceHistory', 'styles']) expect(src(`admin/dashboard/bani/${f}.${f === 'styles' ? 'ts' : 'tsx'}`), f).not.toMatch(/dashed|dotted|border-radius:\s*50%|#[0-9a-f]{3,6}\b|rgb\(/i);
   });
 });

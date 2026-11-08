@@ -21,8 +21,6 @@ describe('money UI foundation', () => {
     expect([c.abonamente.title, c.abonamente.subtitle, c.abonamente.extend, c.abonamente.add]).toEqual(['Abonamente', 'Școala de patinaj', 'Prelungește abonamentele', '+ Abonament']);
     expect(c.abonamente.stateOptions).toEqual(['Toate', 'Active', 'Epuizate', 'Expirate', 'Anulate']);
     expect(c.plati.total(ron(840))).toBe('Total: 840 RON');
-    expect(c.athlete.earlierRow('Abonament 8 ședințe', '2026-09-29', '2026-10-26', 8, 8, 'epuizat')).toBe('Abonament 8 ședințe, 29 sep 2026 - 26 oct 2026, 8/8, epuizat');
-    expect(c.athlete.attendanceRow('2026-10-20', 'Intermediari Bronze', 'Grup', true)).toBe('Mar 20 oct, Intermediari Bronze, Grup, Fără abonament');
     expect(c.athlete.mainGroup('Intermediari Bronze')).toBe('Intermediari Bronze, principală');
     expect(c.due.empty).toBe('Nimic de încasat în luna asta.');
     expect(c.sportivi.filterOptions).toEqual(['Toate', 'Activ', 'Fără abonament']);

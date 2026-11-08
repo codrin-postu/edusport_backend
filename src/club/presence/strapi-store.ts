@@ -1,6 +1,8 @@
+import { createId } from '@paralleldrive/cuid2';
 import type { Core } from '@strapi/strapi';
+import type { Knex } from 'knex';
 import { linkId, raws, str, strapiClubStore, text, transactionScope } from '../athletes/strapi-store';
-import type { Raw } from '../athletes/strapi-store';
+import type { Raw, Scope } from '../athletes/strapi-store';
 import type { AcsState } from '../acs';
 import { hhmm } from '../groups/dates';
 import { calendarRows } from '../groups/occurrences';
@@ -21,6 +23,7 @@ const PAYMENT = 'api::payment.payment' as const;
 const PRICE_LIST = 'api::price-list.price-list' as const;
 const SETTINGS = 'api::site-settings.site-settings' as const;
 const JOB = 'api::email-job.email-job' as const;
+const COUNTER_TABLE = 'club_counters';
 const MAX = 100000;
 const PG_UNIQUE = '23505';
 
@@ -58,6 +61,10 @@ export function toAttendanceRow(r: Raw): AttendanceRow {
   };
 }
 
+const withStartTime = (r: Raw): AttendanceRow & { startTime: string } => ({
+  ...toAttendanceRow(r), startTime: hhmm(str((isRecord(r.session) ? r.session : {}).startTime)) ?? '',
+});
+
 export const toLessonRow = (r: Raw): LessonRow => ({
   id: text(r.documentId), athleteId: linkId(r.athlete) ?? '', date: text(r.date), startTime: hhmm(str(r.startTime)) ?? '', durationMin: Number(r.durationMin ?? 0),
   coachIds: ids(r.coaches), state: r.state === 'saved' ? 'saved' : 'planned', present: typeof r.present === 'boolean' ? r.present : null, priceListId: linkId(r.priceList),
@@ -69,7 +76,7 @@ export const toSubscriptionRow = (r: Raw): SubscriptionRow => ({
   id: text(r.documentId), athleteId: linkId(r.athlete) ?? '', seasonId: linkId(r.season) ?? '', priceListId: linkId(r.priceList) ?? '', validIn: ids(r.validIn),
   itemName: text(r.itemName), price: decimal(r.price), audience: audience(r.audience) ?? 'member', slots: Number(r.slots ?? 0), startsOn: text(r.startsOn),
   validUntil: text(r.validUntil), extendedWeeks: Number(r.extendedWeeks ?? 0), cancelled: r.cancelled === true, cancelledAt: stamp(r.cancelledAt), cancelledBy: str(r.cancelledBy),
-  purchasedAt: stamp(r.purchasedAt) ?? '', recordedBy: text(r.recordedBy),
+  purchasedAt: stamp(r.purchasedAt) ?? '', recordedBy: text(r.recordedBy), code: str(r.code),
 });
 
 export const toPaymentRow = (r: Raw): PaymentRow => ({
@@ -77,7 +84,7 @@ export const toPaymentRow = (r: Raw): PaymentRow => ({
   purpose: among(PURPOSES, r.purpose, 'altceva'), subscriptionId: linkId(r.subscription), lessonId: linkId(r.lesson), clubMonth: str(r.clubMonth),
   seasonId: linkId(r.season) ?? '', collectedAtRink: r.collectedAtRink === true, note: str(r.note), sendEmail: r.sendEmail === true, emailJobId: linkId(r.emailJob),
   acsBefore: ACS_STATES.find((s) => s === r.acsBefore) ?? null, recordedBy: text(r.recordedBy), recordedAt: stamp(r.recordedAt) ?? '', cancelled: r.cancelled === true,
-  cancelledAt: stamp(r.cancelledAt), cancelledBy: str(r.cancelledBy),
+  cancelledAt: stamp(r.cancelledAt), cancelledBy: str(r.cancelledBy), receiptNo: str(r.receiptNo),
 });
 
 const toPriceItem = (i: Raw): PriceItemRow => ({
@@ -153,6 +160,27 @@ function sessionRows(strapi: Core.Strapi): Keys<'sessions' | 'session' | 'sessio
   };
 }
 
+/** The athlete's history pages: one count and one limited query each; the order joins the session through the query builder, ties after date and start time go by documentId. */
+function historyPages(strapi: Core.Strapi): Keys<'athleteAttendancePage' | 'athleteLessonPage'> {
+  return {
+    athleteAttendancePage: async (athleteId, from, to, take) => {
+      const where = { ...eq('athlete', athleteId), session: { date: span({ from, to }) } };
+      const rows = await strapi.db.query(ATTENDANCE).findMany({
+        where, populate: { session: { populate: ['group'] }, athlete: true, subscription: true },
+        orderBy: [{ session: { date: 'desc' } }, { session: { startTime: 'desc' } }, { documentId: 'desc' }], limit: take,
+      });
+      return { total: await strapi.db.query(ATTENDANCE).count({ where }), rows: raws(rows).map(withStartTime) };
+    },
+    athleteLessonPage: async (athleteId, from, to, take) => {
+      const where = { ...eq('athlete', athleteId), present: true, date: span({ from, to }) };
+      const rows = await strapi.db.query(LESSON).findMany({
+        where, populate: ['athlete', 'coaches', 'priceList'], orderBy: [{ date: 'desc' }, { startTime: 'desc' }, { documentId: 'desc' }], limit: take,
+      });
+      return { total: await strapi.db.query(LESSON).count({ where }), rows: raws(rows).map(toLessonRow) };
+    },
+  };
+}
+
 function attendanceRows(strapi: Core.Strapi): Keys<'attendances' | 'createAttendance' | 'updateAttendance' | 'deleteAttendance'> {
   return {
     attendances: async (w = {}) => {
@@ -200,7 +228,7 @@ function subscriptionRows(strapi: Core.Strapi): Keys<'subscriptions' | 'subscrip
       const [row] = raws(await query({ documentId: id }));
       return row ? toSubscriptionRow(row) : null;
     },
-    createSubscription: async (d) => (await strapi.documents(SUBSCRIPTION).create({ data: dataOf(d) })).documentId,
+    createSubscription: async (d, code) => (await strapi.documents(SUBSCRIPTION).create({ data: dataOf({ ...d, code }) })).documentId,
     updateSubscription: async (id, d) => {
       found(await strapi.documents(SUBSCRIPTION).update({ documentId: id, data: dataOf(d) }), 'updateSubscription');
     },
@@ -220,7 +248,7 @@ function paymentRows(strapi: Core.Strapi): Keys<'payments' | 'payment' | 'create
       const [row] = raws(await query({ documentId: id }));
       return row ? toPaymentRow(row) : null;
     },
-    createPayment: async (d) => (await strapi.documents(PAYMENT).create({ data: dataOf(d) })).documentId,
+    createPayment: async (d, receiptNo) => (await strapi.documents(PAYMENT).create({ data: dataOf({ ...d, receiptNo }) })).documentId,
     updatePayment: async (id, d) => {
       found(await strapi.documents(PAYMENT).update({ documentId: id, data: dataOf(d) }), 'updatePayment');
     },
@@ -246,6 +274,32 @@ function jobs(strapi: Core.Strapi): Keys<'createPaymentEmailJob' | 'cancelPaymen
   };
 }
 
+/** One upsert per number: the `ON CONFLICT DO UPDATE` row lock is the only serialisation between concurrent creates (as the portal `lockLimit`). */
+export function strapiCounters(strapi: Core.Strapi, scope: Scope): Keys<'nextCounter' | 'raiseCounter' | 'counterValue'> {
+  const upsert = async (key: string, initial: number, merged: Knex.Raw): Promise<number> => {
+    const trx = scope.current();
+    if (!trx) throw new Error('counter taken outside a transaction');
+    const now = new Date();
+    const rows: { value: unknown }[] = await strapi.db.getConnection(COUNTER_TABLE).transacting(trx)
+      .insert({ document_id: createId(), key, value: initial, created_at: now, updated_at: now, published_at: now })
+      .onConflict('key').merge({ value: merged, updated_at: now }).returning('value');
+    return Number(rows[0]?.value);
+  };
+  const raw = (sql: string, args: Knex.RawBinding[] = []): Knex.Raw => strapi.db.connection.raw(sql, args);
+  return {
+    nextCounter: (key) => upsert(key, 1, raw(`${COUNTER_TABLE}.value + 1`)),
+    raiseCounter: async (key, atLeast) => {
+      await upsert(key, atLeast, raw(`greatest(${COUNTER_TABLE}.value, ?)`, [atLeast]));
+    },
+    counterValue: async (key) => {
+      const trx = scope.current();
+      const query = strapi.db.getConnection(COUNTER_TABLE).where('key', key);
+      const row = await (trx ? query.transacting(trx) : query).first('value');
+      return row ? Number(row.value) : 0;
+    },
+  };
+}
+
 /** PresenceStore on Strapi: db queries for reads (relations as documentIds), document service for writes, one transaction scope for every lock. */
 export function strapiPresenceStore(strapi: Core.Strapi): PresenceStore {
   const scope = transactionScope(strapi);
@@ -266,6 +320,7 @@ export function strapiPresenceStore(strapi: Core.Strapi): PresenceStore {
     lockAttendance: (id) => scope.lockRow('club_attendances', id),
     lockSubscription: (id) => scope.lockRow('club_subscriptions', id),
     lockPayment: (id) => scope.lockRow('club_payments', id),
-    ...lookups(strapi), ...sessionRows(strapi), ...attendanceRows(strapi), ...lessonRows(strapi), ...subscriptionRows(strapi), ...paymentRows(strapi), ...jobs(strapi),
+    ...lookups(strapi), ...sessionRows(strapi), ...attendanceRows(strapi), ...historyPages(strapi), ...lessonRows(strapi), ...subscriptionRows(strapi), ...paymentRows(strapi), ...jobs(strapi),
+    ...strapiCounters(strapi, scope),
   };
 }

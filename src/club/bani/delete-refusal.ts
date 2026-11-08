@@ -1,11 +1,11 @@
-import type { AthletePayments, AthleteSubscriptions } from '../presence/money-api';
+import type { AthletePayments, AthleteSubscriptionCards } from '../presence/money-api';
 
 export type RefusalCounts = { payments: number; subscriptions: number };
 
 /** What blocks "Șterge sportivul" (5.14, C37): every payment, cancelled ones too, and every abonament, current or earlier. */
-export const refusalCounts = (payments: AthletePayments | null, subs: AthleteSubscriptions | null): RefusalCounts => ({
+export const refusalCounts = (payments: AthletePayments | null, subs: AthleteSubscriptionCards | null): RefusalCounts => ({
   payments: payments?.payments.length ?? 0,
-  subscriptions: subs ? subs.bars.length + subs.earlier.length : 0,
+  subscriptions: subs ? (subs.current ? 1 : 0) + subs.others.length : 0,
 });
 
 export const isBlocked = (c: RefusalCounts): boolean => c.payments > 0 || c.subscriptions > 0;

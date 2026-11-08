@@ -57,7 +57,11 @@ export type CoachDay = { date: string; sessions: number; lessons: number; hours:
 export type CoachPage = {
   name: string; totals: { sessions: number; lessons: number; hours: string }; days: CoachDay[]; sessions: CoachSessionRow[]; lessons: PeriodLessonRow[];
 };
-export type AthleteMonthRow = { sessionId: string; date: string; groupName: string; types: string; noSubscription: boolean };
 
 /** Re-exported for panels that carry held occurrences. */
 export type { HeldOccurrence };
+export type HistoryPay = { kind: 'unit'; unit: number; slots: number; code: string | null } | { kind: 'paid' } | { kind: 'unpaid' };
+export type HistoryRow = {
+  kind: 'grup' | 'individual'; sessionId: string | null; lessonId: string | null; date: string; startTime: string; place: string; pay: HistoryPay; detail: string | null;
+};
+export type PresenceHistory = { seasonLabel: string; total: number; page: number; pageSize: 10; rows: HistoryRow[] };

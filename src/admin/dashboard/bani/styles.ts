@@ -28,5 +28,34 @@ export const MONEY_CSS = `
 .ui-root .bn-mrow{display:grid;grid-template-columns:1.3fr 2.2fr 1fr 1fr 1fr;gap:8px;align-items:baseline;width:100%;text-align:left}
 .ui-root .bn-mhead{padding:0 14px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--theme-text-secondary)}
 .ui-root .bn-months{display:flex;flex-direction:column;gap:6px}
+.ui-root .bn-card{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--theme-border);background:var(--theme-surface)}
+.ui-root .bn-card-l1,.ui-root .bn-card-l2{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap}
+.ui-root .bn-card-code{font-size:12px;color:var(--theme-text-muted)}
+.ui-root .bn-card-name{font-size:14px;font-weight:600;color:var(--theme-text)}
+.ui-root .bn-card-period,.ui-root .bn-card-count{font-size:13px;color:var(--theme-text-secondary)}
+.ui-root .bn-days-chev{display:inline-flex;margin-left:4px;vertical-align:middle}
+.ui-root .bn-days-toggle{margin-left:auto;padding:2px 0;font:inherit;font-size:13px;color:var(--theme-primary);background:none;border:none;cursor:pointer}
+.ui-root .bn-days{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.ui-root .bn-day{display:grid;grid-template-columns:90px 1fr 1fr 20px;gap:8px;align-items:center;width:100%;padding:8px 0;font:inherit;font-size:13px;text-align:left;color:var(--theme-text);background:none;border:none;border-top:1px solid var(--theme-border);cursor:pointer}
+.ui-root .bn-day:hover{background:var(--theme-surface-subtle)}
+.ui-root .bn-day-group{color:var(--theme-text-secondary)}
+.ui-root .bn-day-chev{display:inline-flex;color:var(--theme-text-muted)}
+.ui-root .bn-count{margin:0;padding:12px;font-weight:600;color:var(--theme-text);border:1px solid var(--theme-border);background:var(--theme-surface)}
+.ui-root .bn-hist-head,.ui-root .bn-hist-cells{display:grid;grid-template-columns:1.3fr 1.5fr .8fr 1.3fr;gap:8px;align-items:baseline;width:100%}
+.ui-root .bn-hist-head{padding:0 12px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--theme-text-secondary)}
+.ui-root .bn-hist-row{display:block;width:100%;padding:10px 12px;font:inherit;font-size:13px;text-align:left;color:var(--theme-text);background:var(--theme-surface);border:1px solid var(--theme-border);cursor:pointer}
+.ui-root .bn-hist-row:hover{background:var(--theme-surface-subtle)}
+.ui-root .bn-hist-exp .ui-row-summary{display:block;width:100%;font-size:13px}
+.ui-root .bn-hist-code{margin-left:6px;font-size:12px;color:var(--theme-text-muted)}
+.ui-root .bn-pay{font-weight:600}
+.ui-root .bn-hist-detail{display:flex;flex-direction:column;gap:8px;align-items:flex-start;font-size:13px}
+.ui-root .bn-hist-detail p{margin:0}
+@media (max-width:640px){
+.ui-root .bn-hist-head{display:none}
+.ui-root .bn-hist-cells{grid-template-columns:1fr 1fr}
+.ui-root .bn-day{grid-template-columns:1fr 20px}
+.ui-root .bn-day-unit,.ui-root .bn-day-when,.ui-root .bn-day-group{grid-column:1}
+.ui-root .bn-day-chev{grid-column:2;grid-row:1 / span 3}
+}
 @media (max-width:640px){.ui-root .bn-mrow{grid-template-columns:1fr 1fr}.ui-root .bn-mhead{display:none}}
 `;

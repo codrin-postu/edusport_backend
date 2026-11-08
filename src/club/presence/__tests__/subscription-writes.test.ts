@@ -32,6 +32,49 @@ function actionIdOf(r: AdminResult<{ value: unknown; actionId: string | null }>)
 const historyOf = (f: FakePresenceContext, type: string, id: string): string[] =>
   f.group.history.filter((h) => h.subjectType === type && h.subjectId === id).flatMap((h) => historyTexts(h.action, h.changes, h.subjectType));
 
+function okValue(r: AdminResult<{ value: { subscriptionId: string }; actionId: string | null }>): { subscriptionId: string; actionId: string | null } {
+  if (!r.ok) throw new Error(`expected ok, got ${JSON.stringify(r)}`);
+  return { subscriptionId: r.data.value.subscriptionId, actionId: r.data.actionId };
+}
+
+describe('abonament codes (11-3 T3)', () => {
+  it('gives each new abonament the next code; undo leaves the gap (S4)', async () => {
+    const ctx = fakePresenceContext(seed(), '2026-11-06');
+    const a = okValue(await addSubscription(ctx.ctx, 'a1', add({ cover: [] })));
+    expect((await ctx.store.subscription(a.subscriptionId))?.code).toBe('A-0001');
+    expect((await undoPresenceAction(ctx.ctx, { actionId: a.actionId })).ok).toBe(true);
+    const b = okValue(await addSubscription(ctx.ctx, 'a1', add({ cover: [] })));
+    expect((await ctx.store.subscription(b.subscriptionId))?.code).toBe('A-0002');
+  });
+
+  it('a double click takes no number', async () => {
+    const ctx = fakePresenceContext(seed());
+    await addSubscription(ctx.ctx, 'a1', add({ cover: [] }));
+    await addSubscription(ctx.ctx, 'a1', add({ cover: [] }));
+    expect(await ctx.store.counterValue('subscription')).toBe(1);
+  });
+
+  it('a refused abonament takes no number', async () => {
+    const ctx = fakePresenceContext(seed());
+    expect((await addSubscription(ctx.ctx, 'a1', add({ cover: ['not-his'] }))).ok).toBe(false);
+    expect((await addSubscription(ctx.ctx, 'a1', add({ payment: { amount: 99999, method: 'numerar', collectedAtRink: false, sendEmail: false } }))).ok).toBe(false);
+    expect(await ctx.store.counterValue('subscription')).toBe(0);
+  });
+
+  it('the abonament with a payment: both numbered, both on the lines in order, a cancelled payment keeps its number', async () => {
+    const ctx = fakePresenceContext(seed());
+    const a = okValue(await addSubscription(ctx.ctx, 'a1', add({ cover: [], payment: { ...pay, sendEmail: false } })));
+    expect(ctx.state.payments[0].receiptNo).toBe('2026-0001');
+    expect(historyOf(ctx, 'athlete', 'a1')).toEqual([
+      'Abonament adăugat: Abonament 8 ședințe, din 27 oct 2026, expiră pe 23 noi 2026 (A-0001)',
+      'Plată înregistrată: 360 RON, Numerar, Abonament 8 ședințe (activ din 27 oct) (nr. 2026-0001)',
+    ]);
+    expect((await cancelPayment(ctx.ctx, ctx.state.payments[0].id)).ok).toBe(true);
+    expect(ctx.state.payments[0].receiptNo).toBe('2026-0001');
+    expect(a.subscriptionId).toBe(ctx.state.subscriptions[0].id);
+  });
+});
+
 describe('add an abonament', () => {
   it('the form: items of the main school list at the audience price, coverage oldest first, expiry (5.8)', async () => {
     const f = fakePresenceContext(seed());
@@ -47,7 +90,8 @@ describe('add an abonament', () => {
     expect(res).toMatchObject({ ok: true, data: { value: { athleteName: 'Ana Ionescu', withPayment: false } } });
     expect(f.state.subscriptions[0]).toMatchObject({ itemName: 'Abonament 8 ședințe', price: 360, audience: 'nonMember', slots: 8, validUntil: '2026-11-23', recordedBy: 'Admin Test' });
     expect(f.state.attendances.filter((a) => a.billing === 'slot').map((a) => a.id)).toEqual(['t1', 't2']);
-    expect(historyOf(f, 'athlete', 'a1')).toEqual(['Abonament adăugat: Abonament 8 ședințe, din 27 oct 2026, expiră pe 23 noi 2026.', 'Acoperă 2 prezențe fără abonament.']);
+    expect(historyOf(f, 'athlete', 'a1')).toEqual(['Abonament adăugat: Abonament 8 ședințe, din 27 oct 2026, expiră pe 23 noi 2026 (A-0001)', 'Acoperă 2 prezențe fără abonament.']);
+    expect(f.state.counters).toEqual({ subscription: 1 });
   });
 
   it('with the payment: one action, the toast undo removes both and restores the rows (5.8, 7.3)', async () => {

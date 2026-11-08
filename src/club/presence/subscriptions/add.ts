@@ -5,6 +5,7 @@ import { done, type ActionResult, type Line } from '../../groups/action-log';
 import { isIsoDate } from '../../groups/dates';
 import type { SeasonRecord } from '../../groups/types';
 import { isRecord } from '../../narrow';
+import { SUBSCRIPTION_KEY, formatSubscriptionCode } from '../../codes';
 import { isAnonymized } from '../../personal-data/anonymize-plan';
 import type { Audience } from '../../price-item';
 import { SUBJECT } from '../../subjects';
@@ -108,12 +109,12 @@ async function coverAllowed(store: PresenceStore, athleteId: string, b: AddBody,
   return checkCover(b.cover, coverCandidates(rows, await store.groups()), item.priceListId, item.slots);
 }
 
-const addedChanges = (row: SubscriptionWrite, covered: number): Record<string, unknown> =>
-  ({ itemName: row.itemName, startsOn: row.startsOn, validUntil: row.validUntil, covered });
+const addedChanges = (row: SubscriptionWrite, covered: number, code: string): Record<string, unknown> =>
+  ({ itemName: row.itemName, startsOn: row.startsOn, validUntil: row.validUntil, covered, code });
 
-const addedLines = (athleteId: string, id: string, row: SubscriptionWrite, covered: number): Line[] => [
-  { subjectType: SUBJECT.athlete, subjectId: athleteId, action: P5_ACTIONS.subscriptionAdded, changes: addedChanges(row, covered) },
-  { subjectType: SUBJECT.subscription, subjectId: id, action: P5_ACTIONS.subscriptionAdded, changes: addedChanges(row, covered) },
+const addedLines = (athleteId: string, id: string, row: SubscriptionWrite, covered: number, code: string): Line[] => [
+  { subjectType: SUBJECT.athlete, subjectId: athleteId, action: P5_ACTIONS.subscriptionAdded, changes: addedChanges(row, covered, code) },
+  { subjectType: SUBJECT.subscription, subjectId: id, action: P5_ACTIONS.subscriptionAdded, changes: addedChanges(row, covered, code) },
 ];
 
 async function cover(store: PresenceStore, id: string, rowIds: string[]): Promise<PresenceUndoStep[]> {
@@ -157,10 +158,11 @@ async function addLocked(ctx: PresenceContext, athleteId: string, b: AddBody): P
   const name = athlete.name ?? '';
   if (same) return done({ subscriptionId: same.id, athleteName: name, withPayment: false }, null);
   if (!(await coverAllowed(ctx.store, athleteId, b, item))) return refuse(409, PRESENCE_ERRORS.conflict);
-  const id = await ctx.store.createSubscription(row);
+  const code = formatSubscriptionCode(await ctx.store.nextCounter(SUBSCRIPTION_KEY));
+  const id = await ctx.store.createSubscription(row, code);
   const steps: PresenceUndoStep[] = [{ op: 'deleteSubscription', id }, ...(await cover(ctx.store, id, b.cover))];
   const guards = [await guardOf(ctx.store, 'subscription', id)];
-  const lines = addedLines(athleteId, id, row, b.cover.length);
+  const lines = addedLines(athleteId, id, row, b.cover.length, code);
   const paid = b.payment ? await writePayment(ctx, athlete, id, b.payment) : null;
   if (paid) {
     lines.push(...paid.lines);

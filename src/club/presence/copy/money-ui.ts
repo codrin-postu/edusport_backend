@@ -1,4 +1,3 @@
-import { listDate, longDate } from '../dates';
 
 /** Screen texts of the money admin UI (plan 5-6, spec 5.7 to 5.13). */
 export const MONEY_UI_COPY = {
@@ -39,17 +38,12 @@ export const MONEY_UI_COPY = {
     mainGroup: (name: string): string => `${name}, principală`,
     none: 'Fără abonament.',
     addSubscription: '+ Adaugă abonament',
-    earlier: 'Abonamente anterioare',
-    earlierRow: (itemName: string, startsOn: string, validUntil: string, used: number, slots: number, state: string): string =>
-      `${itemName}, ${longDate(startsOn)} - ${longDate(validUntil)}, ${used}/${slots}, ${state}`,
     attendance: 'Prezențe',
-    attendanceRow: (date: string, group: string, types: string, noSubscription: boolean): string =>
-      [listDate(date), group, types, noSubscription ? 'Fără abonament' : null].filter((c) => c !== null).join(', '),
     monthColumns: ['Luna', 'Ședințe', 'De plătit', 'Plătit', 'Rămas'],
   },
   sportivi: { column: 'Abonament', filter: 'Abonament', filterOptions: ['Toate', 'Activ', 'Fără abonament'] },
   /** Empty states (rulings, decided by Claude): the Plăți text serves both the page and the athlete tab. */
-  empty: { abonamente: 'Niciun abonament.', plati: 'Nicio plată.', month: 'Nicio prezență în luna aceasta.', earlier: 'Niciun abonament anterior.' },
+  empty: { abonamente: 'Niciun abonament.', plati: 'Nicio plată.' },
   /** The phone filter sheet's button: "Arată 12 plăți". */
   show: (count: string): string => `Arată ${count}`,
   undo: { action: 'Anulează', done: 'Anulat.' },

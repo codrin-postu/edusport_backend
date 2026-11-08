@@ -1,6 +1,6 @@
 import { isCurrentMembership } from '../../group-membership';
 import { currentSeason } from '../../groups/season-pick';
-import type { SubscriptionStateFilter, SubscriptionQuery, SubscriptionListPage, SubscriptionListRow, AthleteSubscriptions } from '../money-api';
+import type { SubscriptionStateFilter, SubscriptionQuery, SubscriptionListPage, SubscriptionListRow } from '../money-api';
 import { byId, groupNameMap } from '../due/reads';
 import { mainGroupToday } from '../due/settlement';
 import type { PresenceStore } from '../store';
@@ -54,28 +54,4 @@ export async function listSubscriptions(store: PresenceStore, q: Record<string, 
   const schoolIds = new Set(sections.filter((s) => s.kind === 'school').map((s) => s.id));
   const groupOptions = groups.filter((g) => g.active && g.sectionId !== null && schoolIds.has(g.sectionId)).map((g) => ({ value: g.id, label: g.name }));
   return { rows, groups: groupOptions };
-}
-
-/** The athlete's Abonamente tab: groups of the season (the current one when none is given), active bars, the rest as earlier (5.7). */
-export async function athleteSubscriptions(store: PresenceStore, athleteId: string, seasonId: string | null, today: string): Promise<AthleteSubscriptions | null> {
-  if (!(await store.athlete(athleteId))) return null;
-  const subs = await store.subscriptions({ athleteId });
-  const seasonOf = seasonId ?? currentSeason(await store.seasons())?.id ?? null;
-  const memberships = seasonOf === null ? [] : await store.memberships({ athleteId, seasonId: seasonOf });
-  const groups = groupNameMap(await store.groups());
-  const used = await usedFor(store, subs);
-  const stateOf = (s: SubscriptionRow): SubscriptionState => subscriptionState(s, used.get(s.id) ?? 0, today);
-  const groupRows = memberships
-    .filter(isCurrentMembership)
-    .sort((a, b) => Number(b.isMain) - Number(a.isMain))
-    .flatMap((m) => {
-      const name = groups.get(m.groupId);
-      return name === undefined ? [] : [{ name, main: m.isMain }];
-    });
-  const bars = subs.filter((s) => stateOf(s) === 'activ').sort(byUseOrder).map((s) => barOf(s, used));
-  const earlier = subs
-    .filter((s) => stateOf(s) !== 'activ')
-    .sort((a, b) => b.startsOn.localeCompare(a.startsOn) || a.id.localeCompare(b.id))
-    .map((s) => ({ itemName: s.itemName, startsOn: s.startsOn, validUntil: s.validUntil, used: used.get(s.id) ?? 0, slots: s.slots, state: stateOf(s) }));
-  return { groups: groupRows, bars, earlier };
 }

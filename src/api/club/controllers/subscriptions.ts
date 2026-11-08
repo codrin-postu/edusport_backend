@@ -1,10 +1,10 @@
-import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
+import { respond, type AdminCtx } from '../../../club/admin-http';
 import { presenceContext } from '../../../club/presence/context';
-import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { extendPreview, extendSubscriptions } from '../../../club/presence/subscriptions/extend';
 import { addSubscription, newSubscriptionForm } from '../../../club/presence/subscriptions/add';
 import { cancelSubscription } from '../../../club/presence/subscriptions/cancel';
-import { athleteSubscriptions, listSubscriptions, readSubscriptionQuery } from '../../../club/presence/subscriptions/reads';
+import { listSubscriptions, readSubscriptionQuery } from '../../../club/presence/subscriptions/reads';
+import { readAthleteSubscriptionCards } from '../../../club/presence/subscriptions/usage';
 import { strapiPresenceStore } from '../../../club/presence/strapi-store';
 import { queryText, respondAction, todayIso } from '../../../club/groups/http';
 
@@ -33,9 +33,7 @@ export default {
   },
 
   async athlete(ctx: AdminCtx) {
-    const page = await athleteSubscriptions(strapiPresenceStore(strapi), id(ctx), queryText(ctx.query.season), todayIso());
-    if (!page) return refuseWith(ctx, 404, PRESENCE_ERRORS.notFound);
-    ctx.body = { data: page };
+    respond(ctx, await readAthleteSubscriptionCards(strapiPresenceStore(strapi), id(ctx), queryText(ctx.query.season), todayIso()));
   },
 
   async add(ctx: AdminCtx) {

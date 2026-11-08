@@ -4,8 +4,8 @@ import { downloadLogLine } from '../../../club/download-log';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { presenceContext } from '../../../club/presence/context';
 import { respondAction, todayIso } from '../../../club/groups/http';
-import { readAthleteMonth } from '../../../club/presence/attendance/athlete-month';
 import { checkNewSession, sessionDefaults } from '../../../club/presence/attendance/check';
+import { readPresenceHistory } from '../../../club/presence/history/read';
 import { readGrid } from '../../../club/presence/attendance/grid';
 import { readPeriod } from '../../../club/presence/attendance/period';
 import { readGroupMonth } from '../../../club/presence/attendance/group-month';
@@ -123,7 +123,7 @@ export default {
     respond(ctx, await readGroupMonth(store(), param(ctx, 'documentId'), ctx.query.month, bucharestNow(new Date())));
   },
 
-  async athleteMonth(ctx: AdminCtx) {
-    respond(ctx, await readAthleteMonth(store(), param(ctx, 'documentId'), ctx.query.month));
+  async athletePresence(ctx: AdminCtx) {
+    respond(ctx, await readPresenceHistory(store(), param(ctx, 'documentId'), ctx.query.season, ctx.query.page));
   },
 };

@@ -3,7 +3,7 @@ import { G_SEASONS, G_SECTIONS } from '../../groups/__tests__/fake-group-store';
 import { readDue } from '../due/reads';
 import { athletePayments, listPayments, readPaymentQuery } from '../payments/reads';
 import type { AttendanceWrite, LessonRow, SessionRow } from '../types';
-import { athleteSubscriptions, listSubscriptions, readSubscriptionQuery } from '../subscriptions/reads';
+import { listSubscriptions, readSubscriptionQuery } from '../subscriptions/reads';
 import { athleteRow, attendanceRow, fakePresenceContext, lessonRow, member, paymentRow, sessionRow, subscriptionRow, type FakePresenceSeed } from './fake-store';
 
 /** Sessions and attendance rows, one session per row; ids are unique so the uniqueKey is too. */
@@ -100,21 +100,6 @@ describe('money reads', () => {
     const all = await listSubscriptions(f.store, readSubscriptionQuery({ state: 'toate' }), '2026-11-20');
     expect(all.rows.find((r) => r.state === 'expirat')?.expired).toBe(true);
     expect((await listSubscriptions(f.store, readSubscriptionQuery({ state: 'epuizate' }), '2026-11-20')).rows.map((r) => r.athleteName)).toEqual(['Matei Popescu']);
-  });
-
-  it('athlete abonament tab: groups of the season, active bars, earlier ones (5.7)', async () => {
-    const f = fakePresenceContext(listSeed());
-    expect(await athleteSubscriptions(f.store, 'a1', 's26', '2026-11-20')).toEqual({
-      groups: [{ name: 'Intermediari Bronze', main: true }],
-      bars: [{ subscriptionId: 'sa', itemName: 'Abonament 8 ședințe', slots: 8, used: 5, validUntil: '2026-11-23' }],
-      earlier: [{ itemName: 'Abonament 8 ședințe', startsOn: '2026-09-29', validUntil: '2026-10-26', used: 8, slots: 8, state: 'epuizat' }] });
-  });
-
-  it('athlete abonament tab with no season names the current season groups', async () => {
-    const f = fakePresenceContext(listSeed());
-    const withNull = await athleteSubscriptions(f.store, 'a1', null, '2026-11-20');
-    expect(withNull?.groups).toEqual([{ name: 'Intermediari Bronze', main: true }]);
-    expect(withNull).toEqual(await athleteSubscriptions(f.store, 'a1', 's26', '2026-11-20'));
   });
 
   it('Plăți list: month, filters, newest first, total without cancelled (5.10, C62)', async () => {

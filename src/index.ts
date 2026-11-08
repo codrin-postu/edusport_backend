@@ -1,4 +1,5 @@
 import type { Core } from '@strapi/strapi';
+import { bootErrorText } from './club/boot-error';
 import { captureMessage, initSentry } from './sentry';
 import { registerRecurrenceValidation } from './api/calendar-event/services/validate-recurrence';
 import { registerAnnouncementValidation } from './api/announcement/services/validate-announcement';
@@ -7,6 +8,7 @@ import { normalizeNavigationPages } from './api/navigation/services/pages';
 import { warnIfNoAdminSessions } from './club/admin-auth';
 import { startPersonalDataSweep } from './club/personal-data/http';
 import { ensurePresenceIndexes } from './club/presence/indexes';
+import { codesBackfillPorts, runCodesBackfill } from './club/codes-backfill';
 import { checkUpSettings } from './club/portal/up-settings';
 import { ensurePortalIndexes, subscribeTeamMemberHook } from './club/portal/accounts/team-member-hook';
 
@@ -426,7 +428,18 @@ export default {
     try {
       await ensurePresenceIndexes(strapi.db.connection);
     } catch (e) {
-      strapi.log.error(`[presence] indexes: ${(e as { code?: string })?.code ?? 'unknown'}`);
+      const message = `[presence] indexes: ${bootErrorText(e)}`;
+      strapi.log.error(message);
+      captureMessage(message);
+    }
+
+    // Phase 11-3: every abonament without a code gets one, once (a second boot assigns nothing).
+    try {
+      await runCodesBackfill(codesBackfillPorts(strapi), (message) => strapi.log.info(message));
+    } catch (e) {
+      const message = `[codes] backfill: ${bootErrorText(e)}`;
+      strapi.log.error(message);
+      captureMessage(message);
     }
 
     // Phase 6-3: one portal account per team member (unique link), and a team member delete disables its account first.

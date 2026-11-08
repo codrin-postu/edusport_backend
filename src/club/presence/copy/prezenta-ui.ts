@@ -1,3 +1,6 @@
+import { monthName } from '../dates';
+import { ron } from '../money';
+
 export const PREZENTA_COPY = {
   title: 'Prezență', tabSessions: 'Ședințe', tabLessons: 'Lecții individuale', tabCoaches: 'Pe antrenori',
   today: 'Azi', prevDay: 'Ziua anterioară', nextDay: 'Ziua următoare', monthLabel: 'Luna', prevMonth: 'Luna anterioară', nextMonth: 'Luna următoare',
@@ -48,3 +51,30 @@ export const COACH_COPY = {
 } as const;
 
 export const PANEL_LINKS = { coaches: 'Antrenori: ', openGroup: 'Deschide grupa' } as const;
+
+/** Texts of the athlete presence history: the "Plată" label and the one-line detail of a "Plătit" / "Neplătit" row (5.4.2). */
+export const HISTORY_DETAIL = {
+  unit: (unit: number, slots: number, code: string | null): string => `Ședința ${unit}/${slots}${code ? ` ${code}` : ''}`,
+  paid: 'Plătit', unpaid: 'Neplătit',
+  club: (month: string, due: number, paid: number, left: number): string =>
+    `Club, ${monthName(month)}: de plătit ${ron(due)}, plătit ${ron(paid)}, rămas ${ron(left)}.`,
+  lesson: (price: number | null, paid: number): string =>
+    price === null ? 'Lecție individuală: fără preț.' : `Lecție individuală: ${ron(price)}, plătit ${ron(paid)}.`,
+  noSubscription: 'Fără abonament.',
+  with: (names: string): string => `Cu ${names}`,
+} as const;
+
+/** "Abonament curent" and "Alte abonamente" cards on the athlete record (5.4.1). */
+export const CARD_COPY = {
+  current: 'Abonament curent', others: 'Alte abonamente', none: 'Fără abonament.', showDays: 'Vezi zilele', hideDays: 'Ascunde zilele',
+  unit: (n: number): string => `Ședința ${n}`,
+  states: { activ: 'Activ', epuizat: 'Epuizat', expirat: 'Expirat', anulat: 'Anulat' },
+} as const;
+
+/** "Prezențe" on the athlete record (5.4.2). */
+export const HISTORY_COPY = {
+  title: 'Prezențe', cols: ['Data', 'Grupă', 'Tip', 'Plată'], grup: 'Grup', individual: 'Individual', paid: 'Plătit', unpaid: 'Neplătit',
+  openSession: 'Deschide ședința', openLesson: 'Deschide lecția',
+  with: HISTORY_DETAIL.with,
+  empty: (season: string): string => `Nicio prezență în sezonul ${season}.`,
+} as const;

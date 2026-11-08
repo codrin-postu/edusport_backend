@@ -813,6 +813,50 @@ export interface ApiCalendarEventCalendarEvent
   };
 }
 
+export interface ApiClubCounterClubCounter extends Struct.CollectionTypeSchema {
+  collectionName: 'club_counters';
+  info: {
+    description: 'Numere de abonament \u0219i de chitan\u021B\u0103';
+    displayName: 'Club / Contor';
+    pluralName: 'club-counters';
+    singularName: 'club-counter';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    key: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::club-counter.club-counter'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    value: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
+  };
+}
+
 export interface ApiClubFiguresClubFigures extends Struct.SingleTypeSchema {
   collectionName: 'club_figures';
   info: {
@@ -1703,6 +1747,7 @@ export interface ApiPaymentPayment extends Struct.CollectionTypeSchema {
       ['abonament', 'cotizatie', 'club_luna', 'lectie', 'altceva']
     > &
       Schema.Attribute.Required;
+    receiptNo: Schema.Attribute.String & Schema.Attribute.Unique;
     recordedAt: Schema.Attribute.DateTime;
     recordedBy: Schema.Attribute.String;
     season: Schema.Attribute.Relation<'manyToOne', 'api::season.season'> &
@@ -2632,6 +2677,7 @@ export interface ApiSubscriptionSubscription
     cancelled: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     cancelledAt: Schema.Attribute.DateTime;
     cancelledBy: Schema.Attribute.String;
+    code: Schema.Attribute.String & Schema.Attribute.Unique;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -3377,6 +3423,7 @@ declare module '@strapi/strapi' {
       'api::attendance.attendance': ApiAttendanceAttendance;
       'api::calendar-blackout.calendar-blackout': ApiCalendarBlackoutCalendarBlackout;
       'api::calendar-event.calendar-event': ApiCalendarEventCalendarEvent;
+      'api::club-counter.club-counter': ApiClubCounterClubCounter;
       'api::club-figures.club-figures': ApiClubFiguresClubFigures;
       'api::collaboration-event.collaboration-event': ApiCollaborationEventCollaborationEvent;
       'api::competition.competition': ApiCompetitionCompetition;

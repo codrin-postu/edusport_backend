@@ -16,6 +16,9 @@ export type AttendanceWhere = Range & { ids?: string[]; sessionIds?: string[]; a
 export type LessonWhere = Range & { ids?: string[]; athleteId?: string };
 export type SubscriptionWhere = { ids?: string[]; athleteId?: string };
 export type PaymentWhere = Range & { ids?: string[]; athleteId?: string; subscriptionId?: string; lessonId?: string }; // from/to on paidOn
+/** Rows of the athlete history, newest first by session or lesson date, start time, then id; `total` counts every row in range, `rows` holds the first `take`. */
+export type AttendancePage = { total: number; rows: (AttendanceRow & { startTime: string })[] };
+export type LessonPage = { total: number; rows: LessonRow[] };
 export class UniqueKeyError extends Error {}
 
 export interface PresenceStore extends PresenceGroupReads {
@@ -37,6 +40,10 @@ export interface PresenceStore extends PresenceGroupReads {
   createSession(data: SessionWrite): Promise<string>;
   updateSession(id: string, data: Partial<SessionWrite>): Promise<void>;
   attendances(where?: AttendanceWhere): Promise<AttendanceRow[]>;
+  /** Session date in range, newest first (session date, start time, id desc), `take` rows. */
+  athleteAttendancePage(athleteId: string, from: string, to: string, take: number): Promise<AttendancePage>;
+  /** Present lessons in range, newest first (date, start time, id desc), `take` rows. */
+  athleteLessonPage(athleteId: string, from: string, to: string, take: number): Promise<LessonPage>;
   /** Throws UniqueKeyError on a second uniqueKey. */
   createAttendance(data: AttendanceWrite): Promise<string>;
   updateAttendance(id: string, data: Partial<AttendanceWrite>): Promise<void>;
@@ -48,12 +55,14 @@ export interface PresenceStore extends PresenceGroupReads {
   deleteLesson(id: string): Promise<void>;
   subscriptions(where?: SubscriptionWhere): Promise<SubscriptionRow[]>;
   subscription(id: string): Promise<SubscriptionRow | null>;
-  createSubscription(data: SubscriptionWrite): Promise<string>;
+  /** The code is taken from the counter right before; it is never written again (an update cannot hold it). */
+  createSubscription(data: SubscriptionWrite, code: string): Promise<string>;
   updateSubscription(id: string, data: Partial<SubscriptionWrite>): Promise<void>;
   deleteSubscription(id: string): Promise<void>;
   payments(where?: PaymentWhere): Promise<PaymentRow[]>;
   payment(id: string): Promise<PaymentRow | null>;
-  createPayment(data: PaymentWrite): Promise<string>;
+  /** The receipt number is taken from the counter right before; it is never written again. */
+  createPayment(data: PaymentWrite, receiptNo: string): Promise<string>;
   updatePayment(id: string, data: Partial<PaymentWrite>): Promise<void>;
   deletePayment(id: string): Promise<void>;
   /** Queued, kind `payment`, linked to the payment. */
@@ -61,4 +70,10 @@ export interface PresenceStore extends PresenceGroupReads {
   /** Queued jobs of the payment become `cancelled`; answers how many. */
   cancelPaymentEmailJob(paymentId: string): Promise<number>;
   sentPaymentEmailJobs(paymentId: string): Promise<number>;
+  /** Inside a transaction only; the value after `+ 1` (1 for a new key). The row lock holds until the transaction ends, so no two creates share a number. */
+  nextCounter(key: string): Promise<number>;
+  /** Inside a transaction only; the value becomes the greater of itself and `atLeast`, the row is created when missing. */
+  raiseCounter(key: string, atLeast: number): Promise<void>;
+  /** 0 when the key has no row. */
+  counterValue(key: string): Promise<number>;
 }

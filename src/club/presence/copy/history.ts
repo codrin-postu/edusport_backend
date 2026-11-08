@@ -13,8 +13,9 @@ export const PRESENCE_LINES = {
   },
   sessionCoaches: (from: string, to: string): string => `Antrenori: "${from}" → "${to}"`,
   visitorPresent: (group: string, date: string): string => `Prezent la ${group}, ${date}, doar la ședința asta.`,
-  subscriptionAdded: (item: string, from: string, until: string, covered: number): string[] => [
-    `Abonament adăugat: ${item}, din ${from}, expiră pe ${until}.`,
+  /** A line with the code ends with it, in parentheses and without the full stop (S11); old lines have no code. */
+  subscriptionAdded: (item: string, from: string, until: string, covered: number, code: string | null = null): string[] => [
+    `Abonament adăugat: ${item}, din ${from}, expiră pe ${until}${code ? ` (${code})` : '.'}`,
     ...(covered > 0 ? [`Acoperă ${countWords(covered, 'prezență fără abonament', 'prezențe fără abonament')}.`] : []),
   ],
   subscriptionExtendedAthlete: (weeks: number, to: string): string =>
@@ -23,7 +24,8 @@ export const PRESENCE_LINES = {
     `Prelungit cu ${countWords(weeks, 'săptămână', 'săptămâni')}: ${from} → ${to}.`,
   subscriptionCarried: (listName: string): string => `Valabil și în lista ${listName}.`,
   subscriptionCancelled: 'Abonament anulat.',
-  paymentRecorded: (amount: string, method: string, purpose: string): string => `Plată înregistrată: ${amount}, ${method}, ${purpose}.`,
+  paymentRecorded: (amount: string, method: string, purpose: string, receiptNo: string | null = null): string =>
+    `Plată înregistrată: ${amount}, ${method}, ${purpose}${receiptNo ? ` (nr. ${receiptNo})` : '.'}`,
   paymentRecordedShort: 'Plată înregistrată.',
   paymentCancelled: (amount: string, paidOn: string): string => `Plată anulată: ${amount}, ${paidOn}.`,
   paymentCancelledShort: 'Plată anulată.',

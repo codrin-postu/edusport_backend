@@ -72,4 +72,19 @@ describe('phase 5 schemas', () => {
     expect(j.payment).toEqual({ type: 'relation', relation: 'manyToOne', target: 'api::payment.payment' });
     expect(json('api/site-settings/content-types/site-settings/schema.json').attributes.attendanceStartDate).toEqual({ type: 'date' });
   });
+
+  it('the counter table is private, hidden and keyed (11-3 T2)', () => {
+    const s = json('api/club-counter/content-types/club-counter/schema.json');
+    expect(s.collectionName).toBe('club_counters');
+    expect(s.options).toEqual({ draftAndPublish: false });
+    expect(s.pluginOptions).toEqual({ 'content-manager': { visible: false } });
+    expect(s.attributes.key).toEqual({ type: 'string', required: true, unique: true, column: { unique: true } }); // `column.unique` is what makes the ON CONFLICT index exist
+    expect(s.attributes.value).toEqual({ type: 'integer', required: true, min: 0 });
+    expect(source('api/club-counter/routes/club-counter.ts')).toContain('{ only: [] }');
+  });
+
+  it('code and receiptNo are unique strings; their database indexes are made at boot like the other presence keys (11-3 T3)', () => {
+    expect(json('api/subscription/content-types/subscription/schema.json').attributes.code).toEqual({ type: 'string', unique: true });
+    expect(json('api/payment/content-types/payment/schema.json').attributes.receiptNo).toEqual({ type: 'string', unique: true });
+  });
 });
