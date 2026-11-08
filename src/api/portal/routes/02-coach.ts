@@ -21,6 +21,8 @@ export default {
     route('POST', '/groups/:documentId/program', 'addProgram'),
     route('PUT', '/groups/:documentId/program-public', 'programPublic'),
     route('POST', '/groups/:documentId/members', 'addMembers'),
+    route('POST', '/groups/:documentId/members/:athleteId/move', 'moveMember'),
+    route('POST', '/groups/:documentId/members/:athleteId/remove', 'removeMember'),
     route('GET', '/session', 'session'),
     route('POST', '/session/check', 'sessionCheck'),
     route('PUT', '/session', 'saveSession'),

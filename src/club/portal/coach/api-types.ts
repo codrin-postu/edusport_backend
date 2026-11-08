@@ -57,6 +57,7 @@ export type CoachNewAthleteBody = { groupId: string; name: string; birthDate?: s
 export type CoachAthleteCard = {
   athleteId: string; name: string; age: number | null; groups: string[]; school: string | null; contact: { name: string | null; phone: string | null } | null;
 };
+export type CoachMemberChange = { athleteName: string; groupName: string; from: string; toast: string };
 export type CoachHistoryRow = {
   kind: 'grup' | 'inlocuitor' | 'individuala'; date: string; name: string; present: number | null; durationMin: number | null; sessionId: string | null; lessonId: string | null;
 };
