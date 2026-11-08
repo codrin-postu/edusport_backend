@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { PORTAL_ERRORS } from '../copy';
 import { SECURITY_ERRORS } from '../../security/copy';
+import { seal, totpAad } from '../../security/secret-box';
+import { TEST_KEYS } from '../../security/__tests__/keys';
 import { registerOptions, rpConfig, verifyRegister } from '../../security/passkeys';
 import { softAuthenticator, type SoftAuthenticator } from '../../security/__tests__/soft-authenticator';
 import { loginWithPassword } from '../auth/login';
 import { portalPasskeyOptions, portalPasskeyVerify } from '../auth/passkey';
 import { portalSecurity } from '../security';
-import { setup2fa } from './portal-2fa';
+import { setup2fa, TOTP_SECRET } from './portal-2fa';
 
 const ORIGIN = 'https://antrenor.codrin.space';
 type Opts = { challenge: string; user: { id: string } };
@@ -22,7 +25,11 @@ afterEach(() => {
 async function coach() {
   const s = setup2fa();
   const id = await s.addAccount();
-  const sec = portalSecurity(s.c, { accountId: id, userId: 1, sessionId: 'sess', teamMemberId: 'tm1', name: 'Ana Pop' });
+  const sec = portalSecurity(s.c, { accountId: id, userId: 1, sessionId: 'sess', teamMemberId: 'tm1', name: 'Ana Pop' } as never);
+  // The session's device, just confirmed by a sign-in.
+  const at = s.clock.t.toISOString();
+  const deviceId = await s.store.createDevice({ accountId: id, deviceKeyHash: 'dk', sessionId: 'sess', label: 'T', firstSeenAt: at, lastSeenAt: at });
+  await s.store.updateDevice(deviceId, { confirmedAt: at });
   const enrol = async (name?: string): Promise<SoftAuthenticator> => {
     const auth = softAuthenticator();
     const started = await sec.passkeyStart();
@@ -39,7 +46,7 @@ async function coach() {
   };
   const signIn = async (auth: SoftAuthenticator, counter = 1, body: Record<string, unknown> = {}) =>
     portalPasskeyVerify(s.c, { host: 'antrenor', response: auth.assert({ challenge: await challenge(), origin: ORIGIN, rpId: 'codrin.space', counter, flags: { synced: true } }), ...body });
-  return { ...s, id, sec, enrol, challenge, signIn };
+  return { ...s, id, sec, deviceId, enrol, challenge, signIn };
 }
 
 describe('coach passkey sign-in', () => {
@@ -149,5 +156,78 @@ describe('coach passkeys on Securitate', () => {
     for (let i = 0; i < 5; i += 1) await s.sec.read();
     for (let i = 0; i < 30; i += 1) expect((await s.sec.passkeyStart()).ok).toBe(true);
     expect(await s.sec.passkeyStart()).toMatchObject({ ok: false, status: 429 });
+  });
+});
+
+describe('adding a passkey needs a recent confirmation (user ruling 2026-11-09)', () => {
+  const REFUSED = { ok: false, status: 403, error: SECURITY_ERRORS.reauthRequired };
+
+  it('options and register are refused after 10 minutes + 1 s, allowed up to 10 minutes', async () => {
+    const s = await coach();
+    s.advance(600_000);
+    expect((await s.sec.passkeyStart()).ok).toBe(true);
+    s.advance(1000);
+    expect(await s.sec.passkeyStart()).toEqual(REFUSED);
+    expect(await s.sec.passkeyAdd({ response: {} })).toEqual(REFUSED);
+  });
+
+  it('the password re-confirms (no 2FA): wrong 400, right refreshes the device time', async () => {
+    const s = await coach();
+    s.advance(700_000);
+    expect(await s.sec.reauth({ password: 'nope' })).toEqual({ ok: false, status: 400, error: SECURITY_ERRORS.wrongCurrent });
+    expect(await s.sec.passkeyStart()).toEqual(REFUSED);
+    expect(await s.sec.reauth({ password: 'right' })).toEqual({ ok: true, data: { ok: true } });
+    expect((await s.store.devices(s.id))[0].confirmedAt).toBe(s.clock.t.toISOString());
+    expect((await s.sec.passkeyStart()).ok).toBe(true);
+  });
+
+  it('5 wrong passwords lock the e-mail (429), shared with login', async () => {
+    const s = await coach();
+    for (let i = 0; i < 4; i += 1) expect(await s.sec.reauth({ password: 'nope' })).toMatchObject({ status: 400 });
+    expect(await s.sec.reauth({ password: 'nope' })).toEqual({ ok: false, status: 429, error: PORTAL_ERRORS.paused });
+    expect(await s.sec.reauth({ password: 'right' })).toEqual({ ok: false, status: 429, error: PORTAL_ERRORS.paused });
+    expect(await loginWithPassword(s.c, { host: 'antrenor', email: 'ana@x.ro', password: 'right' })).toEqual({ ok: false, status: 429, error: PORTAL_ERRORS.paused });
+  });
+
+  it('with 2FA on the code is asked, not the password; 5 wrong codes lock', async () => {
+    const s = await coach();
+    await s.secStore.confirmFactor(await s.secStore.upsertFactor({ type: 'portal', id: s.id }, 'totp', { secretBox: seal(TEST_KEYS, TOTP_SECRET, totpAad('portal', s.id)) }), s.clock.t.toISOString());
+    s.advance(700_000);
+    expect(await s.sec.reauth({ password: 'right' })).toMatchObject({ ok: false, status: 400 });
+    for (let i = 0; i < 4; i += 1) expect(await s.sec.reauth({ method: 'totp', code: s.totp(5) })).toEqual({ ok: false, status: 400, error: SECURITY_ERRORS.badCode });
+    expect(await s.sec.reauth({ method: 'totp', code: s.totp(5) })).toEqual({ ok: false, status: 429, error: PORTAL_ERRORS.paused });
+    s.advance(15 * 60_000 + 1000);
+    expect(await s.sec.reauth({ method: 'totp', code: s.totp() })).toEqual({ ok: true, data: { ok: true } });
+    expect((await s.sec.passkeyStart()).ok).toBe(true);
+  });
+
+  it('a session whose device is revoked can neither add nor re-confirm', async () => {
+    const s = await coach();
+    await s.store.updateDevice(s.deviceId, { revokedAt: s.clock.t.toISOString() });
+    expect(await s.sec.passkeyStart()).toEqual(REFUSED);
+    expect(await s.sec.reauth({ password: 'right' })).toEqual(REFUSED);
+  });
+});
+
+describe('review fixes L1, L2, L6', () => {
+  it('two parallel first options end on one user handle (set-if-null)', async () => {
+    const s = await coach();
+    const [a, b] = await Promise.all([s.sec.passkeyStart(), s.sec.passkeyStart()]);
+    const ids = [a, b].map((r) => (r as { data: { options: Opts } }).data.options.user.id);
+    expect(ids[0]).toBe(ids[1]);
+    expect((await s.secStore.portalAccountExtra(s.id)).webauthnUserId).toBe(ids[0]);
+  });
+
+  it('register never creates the handle: without earlier options it is refused', async () => {
+    const s = await coach();
+    expect(await s.sec.passkeyAdd({ response: softAuthenticator().register({ challenge: 'x', origin: ORIGIN, rpId: 'codrin.space' }) })).toMatchObject({ ok: false, status: 400 });
+    expect((await s.secStore.portalAccountExtra(s.id)).webauthnUserId).toBeNull();
+  });
+
+  it('rename and delete count the IP rule', async () => {
+    const s = await coach();
+    for (let i = 0; i < 30; i += 1) expect(await s.sec.passkeyRename('nope', { name: 'x' })).toMatchObject({ status: 404 });
+    expect(await s.sec.passkeyRename('nope', { name: 'x' })).toMatchObject({ ok: false, status: 429 });
+    expect(await s.sec.passkeyDelete('nope')).toMatchObject({ ok: false, status: 429 });
   });
 });

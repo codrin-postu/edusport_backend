@@ -4,6 +4,7 @@ import type { PortalStore } from './store';
 const HOUR_MS = 3600_000;
 const DAY_MS = 24 * HOUR_MS;
 const KEEP_DAYS = 30;
+const UNCONFIRMED_DEVICE_MS = DAY_MS;
 
 /** The portal counts, plus `factors`, `challenges`, `backupCodes` and `adminDevices` when a security store is given. */
 export type PurgeCounts = { limits: number; devices: number; tokens: number; sessions: number } & Partial<Record<'factors' | 'challenges' | 'backupCodes' | 'adminDevices', number>>;
@@ -18,7 +19,7 @@ export async function purgePortal(store: PortalStore, now: Date, security?: Secu
   const cutoff = new Date(now.getTime() - KEEP_DAYS * DAY_MS);
   return {
     limits: await store.purgeLimits(new Date(now.getTime() - DAY_MS), now),
-    devices: await store.purgeDevices(cutoff),
+    devices: await store.purgeDevices(cutoff, new Date(now.getTime() - UNCONFIRMED_DEVICE_MS)),
     tokens: await store.purgeTokens(cutoff),
     sessions: await store.purgeSessions(cutoff),
     ...(security ? await security.purge(now) : {}),

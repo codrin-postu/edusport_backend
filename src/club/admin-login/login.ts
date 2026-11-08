@@ -62,6 +62,7 @@ export async function noticeLockout(c: AdminLoginContext, admin: AdminRow): Prom
 
 async function mailNewDevice(c: AdminLoginContext, admin: AdminRow, label: string): Promise<void> {
   try {
+    if (!(await c.limits.newDeviceMailAllowed(`admin:${admin.id}`))) return;
     if (!(await c.portalMail(admin.email, { kind: 'new-device', device: label, at: c.now() }))) c.log('[admin-login] new-device mail not sent');
   } catch (err) {
     c.log(`[admin-login] new-device mail failed: ${err instanceof Error ? err.name : 'error'}`);
@@ -91,6 +92,8 @@ export async function finishAdminLogin(
   c: AdminLoginContext, admin: AdminRow, rememberMe: boolean, o: { newDeviceMail: boolean; passkey: boolean },
 ): Promise<AdminHandoff> {
   const { device } = await bindDevice(c, admin, o);
+  // A completed sign-in confirms the device (and is the recent-authentication time).
+  await c.store.updateAdminDevice(device.id, { confirmedAt: c.now().toISOString() });
   const { accessToken } = await issueAdminSession(c, admin.id, device, rememberMe);
   return { accessToken, remember: rememberMe, offerPasskey: !o.passkey && (await passkeyOffer(c, admin)) };
 }

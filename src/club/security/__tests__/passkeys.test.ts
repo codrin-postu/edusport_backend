@@ -239,3 +239,37 @@ describe('rename and delete', () => {
     expect(env.mem.history.some((h: { action: string }) => h.action === 'passkeyDeleted')).toBe(true);
   });
 });
+
+describe('review fixes L3, L5, L6', () => {
+  it('the wrong-kind answer needs a valid signature; a bare credential id learns nothing and nothing is saved', async () => {
+    const env = setup();
+    const { auth } = await enrol(env, owner(ADMIN_SUBJECT));
+    const bad = auth.assert({ challenge: await loginChallenge(env), origin: 'https://atelier.codrin.space', rpId: RP.rpId, counter: 1 });
+    expect(await verifyLogin(env.c, RP, 'portal', bad)).toEqual(FAILED);
+    const good = auth.assert({ challenge: await loginChallenge(env), origin: ORIGIN, rpId: RP.rpId, counter: 1 });
+    expect(await verifyLogin(env.c, RP, 'portal', good)).toEqual({ ok: false, status: 401, error: SECURITY_ERRORS.passkeyOtherKind });
+    const [row] = await env.mem.store.passkeys(ADMIN_SUBJECT);
+    expect(row.counter).toBe(0);
+    expect(row.lastUsedAt).toBeNull();
+  });
+
+  it('log lines carry no control characters from the client text', async () => {
+    const env = setup();
+    const { auth } = await enrol(env);
+    await verifyLogin(env.c, RP, 'portal', auth.assert({ challenge: await loginChallenge(env), origin: 'https://x.example\n[passkey] FORGED line', rpId: RP.rpId, counter: 1 }));
+    expect(env.logs.length).toBeGreaterThan(0);
+    expect(env.logs.some((l) => /[\u0000-\u001f]/.test(l))).toBe(false);
+  });
+
+  it('a credential id already owned by another subject answers 400 and leaves the owner row untouched', async () => {
+    const env = setup();
+    const { auth } = await enrol(env);
+    const before = await env.mem.store.passkeys(PORTAL_SUBJECT);
+    const made = await registerOptions(env.c, RP, owner(ADMIN_SUBJECT));
+    const opts = (made as { data: { options: Opts } }).data.options;
+    const out = await verifyRegister(env.c, RP, owner(ADMIN_SUBJECT), auth.register({ challenge: opts.challenge, origin: ORIGIN, rpId: RP.rpId }), 'Copie');
+    expect(out).toMatchObject({ ok: false, status: 400 });
+    expect(await env.mem.store.passkeys(ADMIN_SUBJECT)).toHaveLength(0);
+    expect(await env.mem.store.passkeys(PORTAL_SUBJECT)).toEqual(before);
+  });
+});

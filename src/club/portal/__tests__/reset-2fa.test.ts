@@ -97,3 +97,27 @@ describe('reset forgets remembered devices (spec 6.4)', () => {
     expect((await s.store.devices(id)).map((d) => d.twoFactorUntil)).toEqual([null, null]);
   });
 });
+
+describe('reset path and the device row (M1, M2)', () => {
+  it('the pending answer carries the new device key; only that key completes the step, and the row is confirmed after', async () => {
+    const s = setup2fa();
+    const id = await s.addAccount();
+    await s.enrol(id);
+    await requestReset(s.c, { email: 'ana@x.ro' });
+    const r = await confirm(s);
+    if (!r.ok || !('pending' in r.data)) throw new Error('no pending');
+    const key = r.data.deviceKey as string;
+    expect(key).toEqual(expect.any(String));
+    const row = (await s.store.devices(id))[0];
+    expect(row).toMatchObject({ deviceKeyHash: hashSecret(key), confirmedAt: null, sessionId: null });
+    const { portalSecondStep } = await import('../auth/two-factor');
+    const body = { pending: r.data.pending, method: 'totp', code: s.totp(), remember: false };
+    expect(await portalSecondStep(s.c, { ...body, deviceKey: 'another-browser-key' })).toMatchObject({ ok: false, status: 401 });
+    s.advance(90_000);
+    await requestReset(s.c, { email: 'ana@x.ro' });
+    const again = await confirm(s);
+    if (!again.ok || !('pending' in again.data)) throw new Error('no pending');
+    expect(await portalSecondStep(s.c, { pending: again.data.pending, method: 'totp', code: s.totp(), remember: false, deviceKey: again.data.deviceKey })).toMatchObject({ ok: true });
+    expect((await s.store.devices(id)).find((d) => d.deviceKeyHash === hashSecret(again.data.deviceKey as string))?.confirmedAt).not.toBeNull();
+  });
+});

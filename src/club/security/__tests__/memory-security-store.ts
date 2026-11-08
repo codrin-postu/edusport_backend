@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { ADMIN_DEVICE_KEEP_MS, BACKUP_KEEP_MS, CHALLENGE_KEEP_MS, UNCONFIRMED_FACTOR_MS } from '../purge-rules';
+import { ADMIN_DEVICE_KEEP_MS, BACKUP_KEEP_MS, CHALLENGE_KEEP_MS, UNCONFIRMED_DEVICE_MS, UNCONFIRMED_FACTOR_MS } from '../purge-rules';
 import type {
   AdminAccountRow, AdminDeviceRow, BackupRow, ChallengeRow, FactorRow, PasskeyRow, PortalAccountExtra, SecurityHistoryLine, SecurityNotes, SecurityStore, Subject,
 } from '../store';
@@ -184,7 +184,7 @@ export function memorySecurityStore(now: () => Date = () => new Date()): MemoryS
     adminDeviceByKey: async (uid, key) => copy(adminDevices.find((d) => d.adminUserId === uid && d.deviceKeyHash === key) ?? null),
     async createAdminDevice(d) {
       if (adminDevices.some((x) => x.strapiDeviceId === d.strapiDeviceId)) throw new Error('duplicate key: strapiDeviceId');
-      const row: AdminDeviceRow = { ...copy(d), id: id('dev'), revokedAt: null, twoFactorUntil: null };
+      const row: AdminDeviceRow = { ...copy(d), id: id('dev'), revokedAt: null, twoFactorUntil: null, confirmedAt: null };
       adminDevices.push(row);
       return row.id;
     },
@@ -201,6 +201,11 @@ export function memorySecurityStore(now: () => Date = () => new Date()): MemoryS
         lastMethod: a.lastMethod ?? cur.lastMethod,
         passkeyOfferedAt: a.passkeyOfferedAt === undefined ? cur.passkeyOfferedAt : a.passkeyOfferedAt,
       });
+    },
+    async setPortalHandleIfNull(aid, handle) {
+      const cur = portalExtra.get(aid) ?? { webauthnUserId: null, lastMethod: null, passkeyOfferedAt: null };
+      if (cur.webauthnUserId === null) portalExtra.set(aid, { ...cur, webauthnUserId: handle });
+      return (portalExtra.get(aid) as PortalAccountExtra).webauthnUserId as string;
     },
     portalDeviceIds: async (aid) => [...(portalDevices.get(aid) ?? [])],
     async setPortalDeviceTwoFactor(did, until) {
@@ -226,7 +231,7 @@ export function memorySecurityStore(now: () => Date = () => new Date()): MemoryS
         factors: sweep(factors, (f) => f.confirmedAt === null && old(f.createdAt, UNCONFIRMED_FACTOR_MS)),
         challenges: sweep(challenges, (c) => old(c.usedAt, CHALLENGE_KEEP_MS) || old(c.expiresAt, CHALLENGE_KEEP_MS)),
         backupCodes: 0,
-        adminDevices: sweep(adminDevices, (d) => old(d.revokedAt, ADMIN_DEVICE_KEEP_MS)),
+        adminDevices: sweep(adminDevices, (d) => old(d.revokedAt, ADMIN_DEVICE_KEEP_MS) || (d.confirmedAt === null && old(d.firstSeenAt, UNCONFIRMED_DEVICE_MS))),
       };
       const keep = backups.filter((b) => !old(b.usedAt, BACKUP_KEEP_MS));
       out.backupCodes = backups.length - keep.length;

@@ -272,7 +272,9 @@ describe('devices and sessions', () => {
     expect(r.data.deviceKey).not.toBe('cookie-from-elsewhere');
     expect(s.fake.state.devices).toHaveLength(1);
     expect(s.fake.state.devices[0].deviceKeyHash).toBe(hashSecret(r.data.deviceKey ?? ''));
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(s.mails).toHaveLength(1);
+    expect(s.fake.state.devices[0].confirmedAt).not.toBeNull();
   });
 
   it('a re-login on a known device revokes that device\'s previous live session', async () => {

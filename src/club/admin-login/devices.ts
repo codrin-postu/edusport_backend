@@ -31,7 +31,7 @@ export async function bindAdminDevice(
   const key = newDeviceKey();
   const row = { adminUserId: adminId, deviceKeyHash: hashSecret(key), strapiDeviceId: randomUUID(), label: deviceLabel(c.userAgent), firstSeenAt: at, lastSeenAt: at };
   const id = await c.store.createAdminDevice(row);
-  return { device: { ...row, id, revokedAt: null, twoFactorUntil: null }, newKey: key, isNew: true };
+  return { device: { ...row, id, revokedAt: null, twoFactorUntil: null, confirmedAt: null }, newKey: key, isNew: true };
 }
 
 const isCurrent = (d: AdminDeviceRow, cookieValue: string | null): boolean => cookieValue !== null && sameHash(hashSecret(cookieValue), d.deviceKeyHash);
@@ -39,7 +39,7 @@ const isCurrent = (d: AdminDeviceRow, cookieValue: string | null): boolean => co
 /** The admin's live devices, oldest first; a remembered-until date already passed shows as null. */
 export async function listAdminDevices(store: SecurityStore, adminId: number, cookieValue: string | null, now: Date = new Date()): Promise<AdminDeviceView[]> {
   return (await store.adminDevices(adminId))
-    .filter((d) => d.revokedAt === null)
+    .filter((d) => d.revokedAt === null && d.confirmedAt !== null)
     .map((d) => ({
       id: d.id, label: d.label, lastSeenAt: d.lastSeenAt, current: isCurrent(d, cookieValue), twoFactorUntil: isRemembered(d.twoFactorUntil, now) ? d.twoFactorUntil : null,
     }));
@@ -62,7 +62,7 @@ export async function disconnectAdminDevice(
 export async function rememberedDevice(store: SecurityStore, adminId: number, cookieValue: string | null, now: Date): Promise<AdminDeviceRow | null> {
   if (!cookieValue) return null;
   const device = await store.adminDeviceByKey(adminId, hashSecret(cookieValue));
-  return device && device.revokedAt === null && isRemembered(device.twoFactorUntil, now) ? device : null;
+  return device && device.revokedAt === null && device.confirmedAt !== null && isRemembered(device.twoFactorUntil, now) ? device : null;
 }
 
 /**

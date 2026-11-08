@@ -8,6 +8,7 @@ import { isRemembered, rememberUntil } from '../../security/remembered';
 import { hasTwoFactor, openPending, sendLoginCode, verifySecondStep } from '../../security/second-step';
 import type { Subject } from '../../security/store';
 import { PORTAL_ERRORS } from '../copy';
+import { isConfirmedDevice } from '../devices';
 import type { AccountRow } from '../store';
 import { hashSecret, sameHash } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
@@ -51,7 +52,7 @@ export async function afterPassword(
   const subject = portalSubject(account);
   if ((await hasTwoFactor(c.security, subject)).length === 0) return withOffer(c, account, await startSession(c, account, deviceKey, { notifyNewDevice: true, host }));
   const device = deviceKey ? await c.store.deviceByKey(account.id, hashSecret(deviceKey)) : null;
-  if (device && device.revokedAt === null && isRemembered(device.twoFactorUntil, c.now())) {
+  if (device && device.revokedAt === null && isConfirmedDevice(device) && isRemembered(device.twoFactorUntil, c.now())) {
     return withOffer(c, account, await startSession(c, account, deviceKey, { notifyNewDevice: true, host }));
   }
   const gate = keysOrRefusal(c.security);

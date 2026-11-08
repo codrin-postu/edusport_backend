@@ -119,6 +119,32 @@ async function checkTotpCode(c: SecurityContext, keys: Keys, s: Subject, code: s
   return { right: true, backupLeft: null };
 }
 
+/** The enrolment code mail (`enrol` rows), as a re-confirmation by e-mail code uses it. */
+async function checkEnrolEmailCode(c: SecurityContext, keys: Keys, s: Subject, code: string): Promise<Check> {
+  const now = c.now();
+  const rows = (await c.store.openChallenges(s, 'email-code')).filter((r) => r.data.enrol === true && Date.parse(r.expiresAt) > now.getTime());
+  const row = rows[rows.length - 1];
+  return { right: row !== undefined && (await checkRowCode(c.store, keys, row, code, now)) === 'ok', backupLeft: null };
+}
+
+/**
+ * One typed second-factor code outside a pending login (a re-confirmation): the method must be on for the subject; a right backup code is used up
+ * and noted like at login. The caller counts the attempt first. E-mail codes are the ones `sendEnrolCode` mails.
+ */
+export async function checkSubjectCode(c: SecurityContext, s: Subject, method: TwoFactorMethod, code: string): Promise<boolean> {
+  const gate = keysOrRefusal(c);
+  if ('refusal' in gate) return false;
+  if (!(await hasTwoFactor(c, s)).includes(method)) return false;
+  const check = method === 'totp' ? await checkTotpCode(c, gate.keys, s, code)
+    : method === 'email' ? await checkEnrolEmailCode(c, gate.keys, s, code)
+    : await checkBackupCode(c, gate.keys, s, code);
+  if (check.right && check.backupLeft !== null) {
+    await c.store.record({ subjectType: s.type, subjectId: s.id, action: SECURITY_ACTIONS.backupUsed, changes: { left: check.backupLeft }, actor: c.actor });
+    await c.store.setSecurityNotes(s, { backupNotice: check.backupLeft });
+  }
+  return check.right;
+}
+
 async function checkEmailCode(c: SecurityContext, keys: Keys, s: Subject, pendingId: string, code: string): Promise<Check> {
   const now = c.now();
   const rows = (await c.store.openChallenges(s, 'email-code')).filter((r) => r.data.pending === pendingId && Date.parse(r.expiresAt) > now.getTime());

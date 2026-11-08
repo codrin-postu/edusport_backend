@@ -36,6 +36,7 @@ export default {
   emailConfirm: coachOnly('emailConfirm', (s, ctx) => s.emailConfirm(ctx.request.body)),
   emailOff: coachOnly('emailOff', (s) => s.emailOff()),
   backupCodes: coachOnly('backupCodes', (s) => s.backupCodes()),
+  reauth: coachOnly('reauth', (s, ctx) => s.reauth(ctx.request.body)),
   passkeyStart: coachOnly('passkeyStart', (s) => s.passkeyStart()),
   passkeyAdd: coachOnly('passkeyAdd', (s, ctx) => s.passkeyAdd(ctx.request.body)),
   passkeyDismiss: coachOnly('passkeyDismiss', (s) => s.passkeyDismiss()),

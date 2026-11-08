@@ -51,10 +51,15 @@ export interface SecurityStore {
   updateAdminAccount(id: string, a: Partial<Omit<AdminAccountRow, 'id' | 'adminUserId'>>): Promise<void>;
   adminDevices(adminUserId: number): Promise<AdminDeviceRow[]>;
   adminDeviceByKey(adminUserId: number, keyHash: string): Promise<AdminDeviceRow | null>;
-  createAdminDevice(d: Omit<AdminDeviceRow, 'id' | 'revokedAt' | 'twoFactorUntil'>): Promise<string>;
-  updateAdminDevice(id: string, d: Partial<Pick<AdminDeviceRow, 'lastSeenAt' | 'twoFactorUntil' | 'revokedAt' | 'label'>>): Promise<void>;
+  createAdminDevice(d: Omit<AdminDeviceRow, 'id' | 'revokedAt' | 'twoFactorUntil' | 'confirmedAt'>): Promise<string>;
+  updateAdminDevice(id: string, d: Partial<Pick<AdminDeviceRow, 'lastSeenAt' | 'twoFactorUntil' | 'revokedAt' | 'label' | 'confirmedAt'>>): Promise<void>;
   portalAccountExtra(accountId: string): Promise<PortalAccountExtra>;
   updatePortalAccountExtra(accountId: string, a: Partial<{ webauthnUserId: string; lastMethod: TwoFactorMethod; passkeyOfferedAt: string | null }>): Promise<void>;
+  /**
+   * One guarded UPDATE `webauthnUserId = handle where account and webauthnUserId is null`, then a read: answers the stored handle, which is the
+   * caller's own only when its write won. Two parallel first needs end on one value.
+   */
+  setPortalHandleIfNull(accountId: string, handle: string): Promise<string>;
   /** Document ids of the devices of a portal account. */
   portalDeviceIds(accountId: string): Promise<string[]>;
   setPortalDeviceTwoFactor(deviceId: string, until: string | null): Promise<void>;

@@ -2,7 +2,8 @@ import type { SecurityMail } from '../../email/security-mail';
 import type { SecurityView } from '../security/api-types';
 import { confirmEmail, confirmTotp, newBatch, securityView, sendEnrolCode, startTotp, turnOff } from '../security/factors';
 import type { SecurityContext } from '../security/context';
-import { addPasskey, dismissOffer, removeKey, renameKey, startPasskey } from '../security/passkey-actions';
+import { addPasskey, dismissOffer, removeKey, renameKey, startPasskey, type PasskeyActor } from '../security/passkey-actions';
+import { reauthenticate } from '../security/reauth';
 import { rpConfig } from '../security/passkeys';
 import type { Keys } from '../security/keys';
 import { forgetDevices } from '../security/remembered';
@@ -36,7 +37,7 @@ export function portalSecurityContext(p: PortalSecurityParts): SecurityContext {
   };
 }
 
-type Coach = { accountId: string; name: string };
+type Coach = { accountId: string; name: string; sessionId: string };
 const unauthorized: PortalResult<never> = { ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin };
 const bodyCode = (body: unknown): string => {
   const code = typeof body === 'object' && body !== null ? (body as Record<string, unknown>).code : null;
@@ -56,6 +57,9 @@ export function portalSecurity(c: PortalAuthContext, coach: Coach) {
     if (o.change && (await c.limits.ipBlocked(c.ip))) return { ok: false, status: 429, error: PORTAL_ERRORS.paused };
     return run(account.email);
   };
+  /** The live device whose session is this one (the device row binds the session at sign-in and the refresh keeps the session id). */
+  const ownDevice = async () => (await c.store.devices(coach.accountId)).find((d) => d.revokedAt === null && d.sessionId === coach.sessionId) ?? null;
+  const actorOf = (email: string): PasskeyActor => ({ subject, email, confirmedAt: async () => (await ownDevice())?.confirmedAt ?? null });
   return {
     read: () => as(async (email): Promise<PortalResult<SecurityView>> => ({ ok: true, data: await securityView(security, subject, email, rpConfig()?.rpId ?? null) }), { change: false }),
     totpStart: () => as((email) => startTotp(security, subject, email), { change: true }),
@@ -66,10 +70,23 @@ export function portalSecurity(c: PortalAuthContext, coach: Coach) {
     emailOff: () => as((email) => turnOff(security, subject, email, 'email'), { change: true }),
     backupCodes: () => as(() => newBatch(security, subject), { change: true }),
     // The IP rule counts inside the passkey actions (every POST but the dismiss), so these run without the generic `change` count.
-    passkeyStart: () => as((email) => startPasskey(security, { subject, email }), { change: false }),
-    passkeyAdd: (body: unknown) => as((email) => addPasskey(security, { subject, email }, body), { change: false }),
-    passkeyRename: (id: string, body: unknown) => as((email) => renameKey(security, { subject, email }, id, body), { change: false }),
-    passkeyDelete: (id: string) => as((email) => removeKey(security, { subject, email }, id), { change: false }),
-    passkeyDismiss: () => as((email) => dismissOffer(security, { subject, email }), { change: false }),
+    passkeyStart: () => as((email) => startPasskey(security, actorOf(email)), { change: false }),
+    passkeyAdd: (body: unknown) => as((email) => addPasskey(security, actorOf(email), body), { change: false }),
+    passkeyRename: (id: string, body: unknown) => as((email) => renameKey(security, actorOf(email), id, body), { change: false }),
+    passkeyDelete: (id: string) => as((email) => removeKey(security, actorOf(email), id), { change: false }),
+    passkeyDismiss: () => as((email) => dismissOffer(security, actorOf(email)), { change: false }),
+    /** `POST /portal/me/reauth`: password, or the 2FA code when the account has 2FA; refreshes the confirmation time of this session's device. */
+    reauth: (body: unknown) => as(async (email) => {
+      const user = await c.store.user((await c.store.account(coach.accountId))?.userId ?? -1);
+      return reauthenticate(security, {
+        subject, email, passwordHash: async () => user?.passwordHash ?? null, compare: c.compare,
+        confirm: async (at) => {
+          const device = await ownDevice();
+          if (!device) return false;
+          await c.store.updateDevice(device.id, { confirmedAt: at });
+          return true;
+        },
+      }, body);
+    }, { change: false }),
   };
 }

@@ -97,7 +97,7 @@ export type PasskeyLoginOptions = { options: unknown };
 
 ### Portal: changed auth answers (`src/api/portal/routes/01-auth.ts`)
 
-- `POST /api/portal/auth/login`, `POST /api/portal/auth/reset/confirm`: `data` is `PortalSession & { offerPasskey: boolean }` or `SecondStep & { pending: string }` (pending: 32 random bytes base64url; the BFF moves it into `__Host-es_2fa` and never gives it to page script). New refusal: 503 `"2FA nu este disponibil acum."` (keys missing and the account has 2FA on).
+- `POST /api/portal/auth/login`, `POST /api/portal/auth/reset/confirm`: `data` is `PortalSession & { offerPasskey: boolean }` or `SecondStep & { pending: string; deviceKey: string | null }` (pending: 32 random bytes base64url; the BFF moves it into `__Host-es_2fa` and never gives it to page script). `deviceKey` is the key of the device row the server made for this browser at the password step (null when the browser's own key already named a live device): the BFF must store it at once (its device cookie), replacing any other, and send it back as `deviceKey` in the body of `POST /api/portal/auth/2fa` (without the right key the code answers 401 `"Intrarea a expirat. Intră din nou."`). A session answer with `deviceKey: null` means "keep the current key". The row stays unconfirmed (not listed, purged after 24 h) until the code succeeds [T21 fix, M1/M2]. New refusal: 503 `"2FA nu este disponibil acum."` (keys missing and the account has 2FA on).
 - `offerPasskey`: true when the subject has no passkey on the current rpId and `passkeyOfferedAt` is null. Present on every login-like answer (login, 2fa, reset confirm, invite accept, Google); always false after a passkey sign-in. The browser adds the `isUserVerifyingPlatformAuthenticatorAvailable()` check.
 
 | Method and path | Body | Success `data` | Refusals (status, message) |
@@ -124,6 +124,9 @@ export type PasskeyLoginOptions = { options: unknown };
 | `PUT /api/portal/me/passkeys/:id` | `{ name }` (1 to 60 characters after trim) | `{ toast: "Salvat." }`; 400 invalid; 404 `"Nu a fost găsit."` |
 | `DELETE /api/portal/me/passkeys/:id` | | `{ toast: "Cheie de acces ștearsă." }`; 404 |
 | `POST /api/portal/me/passkey-offer/dismiss` | | `{ ok: true }` |
+| `POST /api/portal/me/reauth` | `{ password }`, or `{ method: TwoFactorMethod, code }` when the account has 2FA | `{ ok: true }`; 400 `"Cerere invalidă."`; 400 wrong password `"Parola actuală nu este corectă."` or bad code text; 403 `reauthRequired` (no live device for the session); 429 (IP rule, e-mail or 2FA lock) |
+
+`POST /api/portal/me/passkeys/options` and `POST /api/portal/me/passkeys` also answer 403 `"Confirmă din nou ca să continui."` (COPY NEEDED) when the session's last confirmation is older than 10 minutes: the client then calls `reauth` and retries (user ruling 2026-11-09, spec 8.2). The e-mail code of a re-confirmation is the one `POST /api/portal/me/2fa/email` sends.
 
 `GET /api/portal/coach/me/devices`: each `CoachDevice` gains `twoFactorUntil: string | null` (spec 6.4). `name` missing on passkey create: the device label of the request user agent (`deviceLabel`, ruling 4). Rate limits: the IP rule counts every `POST` of this table except dismiss.
 
@@ -154,7 +157,7 @@ export type PasskeyLoginOptions = { options: unknown };
 
 ### Admin Securitate (`src/api/admin-auth/routes/02-security.ts`, area `any`; `03-admins.ts`, area `superAdmin`; admin Bearer token from `useFetchClient`, plus the Origin check on mutating calls)
 
-Same bodies and answers as the portal Securitate table, under `/api/admin-auth/me/*` (`security`, `2fa/totp`, `2fa/totp/confirm`, `2fa/email`, `2fa/email/confirm`, `backup-codes`, `passkeys/options`, `passkeys`, `passkeys/:id`, `passkey-offer/dismiss`), plus:
+Same bodies and answers as the portal Securitate table, under `/api/admin-auth/me/*` (`reauth` included, the device cookie names the session's device; `security`, `2fa/totp`, `2fa/totp/confirm`, `2fa/email`, `2fa/email/confirm`, `backup-codes`, `passkeys/options`, `passkeys`, `passkeys/:id`, `passkey-offer/dismiss`), plus:
 
 | Method and path | Body | `data` |
 |---|---|---|

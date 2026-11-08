@@ -3,7 +3,7 @@ import type { AdminRow } from '../../../club/admin-login/admins';
 import { adminLoginContext, adminOrigin, originAllowed, type AdminLoginContext } from '../../../club/admin-login/context';
 import { ADMIN_DEVICE_COOKIE, disconnectAdminDevice, listAdminDevices } from '../../../club/admin-login/devices';
 import { adminGoogleCallback, startAdminGoogle } from '../../../club/admin-login/google';
-import { adminPasskeyOptions, adminPasskeyVerify } from '../../../club/admin-login/passkey';
+import { adminPasskeyActor, adminPasskeyOptions, adminPasskeyVerify, adminReauth } from '../../../club/admin-login/passkey';
 import { acceptAdminInvite, readAdminInvite } from '../../../club/admin-login/invite';
 import { loginAdmin, secondStepAdmin, sendAdminLoginCode } from '../../../club/admin-login/login';
 import { confirmAdminReset, requestAdminReset } from '../../../club/admin-login/reset';
@@ -100,11 +100,12 @@ export default {
   emailConfirm: change('emailConfirm', (c, a, ctx) => confirmEmail(c, adminSubject(a), bodyCode(ctx))),
   emailOff: change('emailOff', (c, a) => turnOff(c, adminSubject(a), a.email, 'email')),
   backupCodes: change('backupCodes', (c, a) => newBatch(c, adminSubject(a))),
-  passkeyStart: change('passkeyStart', (c, a) => startPasskey(c, { subject: adminSubject(a), email: a.email })),
-  passkeyAdd: change('passkeyAdd', (c, a, ctx) => addPasskey(c, { subject: adminSubject(a), email: a.email }, ctx.request.body)),
-  passkeyDismiss: change('passkeyDismiss', (c, a) => dismissOffer(c, { subject: adminSubject(a), email: a.email })),
-  passkeyRename: change('passkeyRename', (c, a, ctx) => renameKey(c, { subject: adminSubject(a), email: a.email }, String(ctx.params.id), ctx.request.body)),
-  passkeyDelete: change('passkeyDelete', (c, a, ctx) => removeKey(c, { subject: adminSubject(a), email: a.email }, String(ctx.params.id))),
+  passkeyStart: change('passkeyStart', (c, a) => startPasskey(c, adminPasskeyActor(c, a, deviceCookie(c)))),
+  passkeyAdd: change('passkeyAdd', (c, a, ctx) => addPasskey(c, adminPasskeyActor(c, a, deviceCookie(c)), ctx.request.body)),
+  passkeyDismiss: change('passkeyDismiss', (c, a) => dismissOffer(c, adminPasskeyActor(c, a, deviceCookie(c)))),
+  passkeyRename: change('passkeyRename', (c, a, ctx) => renameKey(c, adminPasskeyActor(c, a, deviceCookie(c)), String(ctx.params.id), ctx.request.body)),
+  passkeyDelete: change('passkeyDelete', (c, a, ctx) => removeKey(c, adminPasskeyActor(c, a, deviceCookie(c)), String(ctx.params.id))),
+  reauth: change('reauth', (c, a, ctx) => adminReauth(c, a, deviceCookie(c), ctx.request.body)),
   devices: read('devices', async (c, a) => ({ ok: true, data: await listAdminDevices(c.store, a.id, deviceCookie(c), c.now()) })),
   deviceDisconnect: change('deviceDisconnect', (c, a, ctx) => disconnectAdminDevice(c, a.id, String(ctx.params.id), deviceCookie(c))),
   password: change('password', (c, a, ctx) => changeAdminPassword(c, a, ctx.request.body, deviceCookie(c))),

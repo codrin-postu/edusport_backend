@@ -45,6 +45,9 @@
     },
     "twoFactorUntil": {
       "type": "datetime"
+    },
+    "confirmedAt": {
+      "type": "datetime"
     }
   }
 }

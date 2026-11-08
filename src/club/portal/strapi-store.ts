@@ -47,7 +47,7 @@ export function toDeviceRow(r: Raw): DeviceRow {
   return {
     id: text(r.documentId), accountId: linkId(r.account) ?? '', deviceKeyHash: text(r.deviceKeyHash), sessionId: str(r.sessionId), label: text(r.label),
     firstSeenAt: iso(r.firstSeenAt) ?? '', lastSeenAt: iso(r.lastSeenAt) ?? '', revokedAt: iso(r.revokedAt),
-    twoFactorUntil: iso(r.twoFactorUntil),
+    twoFactorUntil: iso(r.twoFactorUntil), confirmedAt: iso(r.confirmedAt),
   };
 }
 
@@ -93,7 +93,15 @@ function purges(strapi: Core.Strapi): Pick<PortalStore, 'purgeDevices' | 'purgeT
   const iso = (d: Date): string => d.toISOString();
   const ago = (d: Date, ms: number): string => iso(new Date(d.getTime() - ms));
   return {
-    purgeDevices: async (before) => (await strapi.db.query(DEVICE).deleteMany({ where: { revokedAt: { $lt: iso(before) } } })).count,
+    purgeDevices: async (before, unconfirmedBefore) =>
+      (await strapi.db.query(DEVICE).deleteMany({
+        where: {
+          $or: [
+            { revokedAt: { $lt: iso(before) } },
+            ...(unconfirmedBefore ? [{ confirmedAt: { $null: true }, sessionId: { $null: true }, firstSeenAt: { $lt: iso(unconfirmedBefore) } }] : []),
+          ],
+        },
+      })).count,
     purgeTokens: async (before) =>
       (await strapi.db.query(TOKEN).deleteMany({ where: { $or: [{ usedAt: { $lt: iso(before) } }, { expiresAt: { $lt: iso(before) } }] } })).count,
     purgeSessions: async (before) =>

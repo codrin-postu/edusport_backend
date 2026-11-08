@@ -74,8 +74,9 @@ async function takeChallenge(c: SecurityContext, keys: Keys, purpose: ChallengeP
   return c.store.consumeOnce('challenge', row.id, c.now().toISOString());
 }
 
+/** Library messages can echo client-controlled text (origin, challenge, type): control characters are stripped so a line cannot be forged. */
 const logFailure = (c: SecurityContext, what: string, err: unknown): void =>
-  c.log(`[passkey] ${what} refused: ${err instanceof Error ? err.message.slice(0, 200) : 'error'}`);
+  c.log(`[passkey] ${what} refused: ${err instanceof Error ? err.message.slice(0, 200).replace(/[\u0000-\u001f\u007f]/g, ' ') : 'error'}`);
 
 export async function registerOptions(c: SecurityContext, rp: RpConfig, o: PasskeyOwner): Promise<PortalResult<PasskeyRegisterOptions>> {
   const gate = keysOrRefusal(c);
@@ -167,7 +168,6 @@ export async function verifyLogin(c: SecurityContext, rp: RpConfig, kind: Subjec
   if (!body || typeof body.id !== 'string' || challenge === null || !(await takeChallenge(c, gate.keys, 'passkey-login', null, challenge))) return failed;
   const key = await c.store.passkeyByCredential(body.id);
   if (!key) return failed;
-  if (key.subject.type !== kind) return refuse(401, SECURITY_ERRORS.passkeyOtherKind);
   if (key.rpId !== rp.rpId) return failed;
   const userHandle = asRecord(body.response)?.userHandle;
   if (typeof userHandle === 'string' && userHandle !== (await handleOf(c, key.subject))) return failed;
@@ -186,6 +186,8 @@ export async function verifyLogin(c: SecurityContext, rp: RpConfig, kind: Subjec
     return failed;
   }
   if (!verified.verified) return failed;
+  // The kind is told only to the holder of the key (a valid signature), never for a bare credential id; nothing is saved for the wrong page.
+  if (key.subject.type !== kind) return refuse(401, SECURITY_ERRORS.passkeyOtherKind);
   await c.store.updatePasskey(key.id, { counter: verified.authenticationInfo.newCounter, lastUsedAt: c.now().toISOString() });
   return { ok: true, data: { subject: key.subject, passkeyId: key.id } };
 }

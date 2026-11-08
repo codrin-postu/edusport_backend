@@ -1,4 +1,4 @@
-import { IP_RULE, LOGIN_RULE, MAIL_RULE, afterHit, afterSuccess, ipKey, isLocked, loginKey, mailKey, type LimitRule } from '../limits';
+import { IP_RULE, LOGIN_RULE, MAIL_RULE, NEW_DEVICE_MAIL_RULE, afterHit, afterSuccess, ipKey, isLocked, loginKey, mailKey, type LimitRule } from '../limits';
 import type { PortalStore } from '../store';
 
 export type Limiter = {
@@ -22,6 +22,8 @@ export type Limiter = {
   keyAttempt(key: string): Promise<{ refused: boolean; locking: boolean; firstLock: boolean }>;
   /** Counts a 2FA code mail under a subject key (`2fa:mail:<type>:<id>`), apart from the reset request's `mail:<email>`. */
   keyMailAllowed(key: string): Promise<boolean>;
+  /** Counts a new-device mail under `<type>:<id>` of the account: true for the first in an hour, false after. */
+  newDeviceMailAllowed(key: string): Promise<boolean>;
   /** A right answer clears the count. */
   keyCleared(key: string): Promise<void>;
 };
@@ -61,6 +63,7 @@ export function limiter(store: PortalStore, now: () => Date): Limiter {
         return { refused: false, locking: out.blocked, firstLock: out.firstLock };
       }),
     keyMailAllowed: async (key) => !(await hit(key, MAIL_RULE)).blocked,
+    newDeviceMailAllowed: async (key) => !(await hit(`newdev:${key}`, NEW_DEVICE_MAIL_RULE)).blocked,
     keyCleared: (key) =>
       store.transaction(async () => {
         const row = await store.lockLimit(key);

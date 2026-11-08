@@ -2,9 +2,11 @@ import type { PortalResult } from '../portal/auth/context';
 import { PORTAL_ERRORS } from '../portal/copy';
 import type { AdminHandoff, PasskeyLoginOptions } from '../security/api-types';
 import { SECURITY_ERRORS } from '../security/copy';
-import { ipPaused, rpOrRefusal } from '../security/passkey-actions';
+import { hashSecret } from '../portal/tokens';
+import { ipPaused, rpOrRefusal, type PasskeyActor } from '../security/passkey-actions';
+import { reauthenticate } from '../security/reauth';
 import { loginOptions, verifyLogin } from '../security/passkeys';
-import { adminById, canEnterAdmin } from './admins';
+import { adminById, canEnterAdmin, type AdminRow } from './admins';
 import type { AdminLoginContext } from './context';
 import { finishAdminLogin } from './login';
 
@@ -36,4 +38,29 @@ export async function adminPasskeyVerify(c: AdminLoginContext, body: unknown): P
   const admin = await adminById(c.strapi, Number(checked.data.subject.id));
   if (!canEnterAdmin(admin)) return failed;
   return { ok: true, data: await finishAdminLogin(c, admin, b.rememberMe === true, { newDeviceMail: true, passkey: true }) };
+}
+
+/** The live device row of this browser's cookie (the session's device: a stolen access token without the cookie finds none). */
+async function ownDevice(c: AdminLoginContext, admin: AdminRow, cookieValue: string | null) {
+  if (!cookieValue) return null;
+  const device = await c.store.adminDeviceByKey(admin.id, hashSecret(cookieValue));
+  return device && device.revokedAt === null ? device : null;
+}
+
+/** The admin as a Securitate passkey actor: the recent-authentication time is the confirmation of the browser's device. */
+export function adminPasskeyActor(c: AdminLoginContext, admin: AdminRow, cookieValue: string | null): PasskeyActor {
+  return { subject: { type: 'admin', id: String(admin.id) }, email: admin.email, confirmedAt: async () => (await ownDevice(c, admin, cookieValue))?.confirmedAt ?? null };
+}
+
+/** `POST /admin-auth/me/reauth`: password, or the 2FA code when the account has 2FA; refreshes the device's confirmation time. */
+export async function adminReauth(c: AdminLoginContext, admin: AdminRow, cookieValue: string | null, body: unknown): Promise<PortalResult<{ ok: true }>> {
+  return reauthenticate(c, {
+    subject: { type: 'admin', id: String(admin.id) }, email: admin.email, passwordHash: async () => admin.passwordHash, compare: c.compare,
+    confirm: async (at) => {
+      const device = await ownDevice(c, admin, cookieValue);
+      if (!device) return false;
+      await c.store.updateAdminDevice(device.id, { confirmedAt: at });
+      return true;
+    },
+  }, body);
 }

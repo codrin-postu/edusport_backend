@@ -5,7 +5,7 @@ import { iso, raws, str, text, transactionScope, type Raw, type Scope } from '..
 import { recordHistory } from '../history';
 import { SUBJECT } from '../subjects';
 import type { TwoFactorMethod } from './api-types';
-import { ADMIN_DEVICE_KEEP_MS, BACKUP_KEEP_MS, CHALLENGE_KEEP_MS, UNCONFIRMED_FACTOR_MS } from './purge-rules';
+import { ADMIN_DEVICE_KEEP_MS, BACKUP_KEEP_MS, CHALLENGE_KEEP_MS, UNCONFIRMED_DEVICE_MS, UNCONFIRMED_FACTOR_MS } from './purge-rules';
 import type {
   AdminAccountRow, AdminDeviceRow, BackupRow, ChallengePurpose, ChallengeRow, FactorRow, PasskeyRow, SecurityNotes, SecurityStore, Subject, SubjectType,
 } from './store';
@@ -51,7 +51,7 @@ const toAdminAccount = (r: Raw): AdminAccountRow => ({
 });
 const toAdminDevice = (r: Raw): AdminDeviceRow => ({
   id: text(r.documentId), adminUserId: Number(r.adminUserId), deviceKeyHash: text(r.deviceKeyHash), strapiDeviceId: text(r.strapiDeviceId), label: text(r.label),
-  firstSeenAt: iso(r.firstSeenAt) ?? '', lastSeenAt: iso(r.lastSeenAt) ?? '', twoFactorUntil: iso(r.twoFactorUntil), revokedAt: iso(r.revokedAt),
+  firstSeenAt: iso(r.firstSeenAt) ?? '', lastSeenAt: iso(r.lastSeenAt) ?? '', twoFactorUntil: iso(r.twoFactorUntil), revokedAt: iso(r.revokedAt), confirmedAt: iso(r.confirmedAt),
 });
 
 type Query = (table: string) => Knex.QueryBuilder;
@@ -207,8 +207,13 @@ function adminStore(strapi: Core.Strapi): Pick<SecurityStore, 'adminAccount' | '
   };
 }
 
-function portalStore(strapi: Core.Strapi): Pick<SecurityStore, 'portalAccountExtra' | 'updatePortalAccountExtra' | 'portalDeviceIds' | 'setPortalDeviceTwoFactor'> {
+function portalStore(strapi: Core.Strapi): Pick<SecurityStore, 'portalAccountExtra' | 'updatePortalAccountExtra' | 'portalDeviceIds' | 'setPortalDeviceTwoFactor' | 'setPortalHandleIfNull'> {
   return {
+    setPortalHandleIfNull: async (accountId, handle) => {
+      await strapi.db.query(PORTAL_ACCOUNT).updateMany({ where: { documentId: accountId, webauthnUserId: { $null: true } }, data: { webauthnUserId: handle } });
+      const r = (await strapi.documents(PORTAL_ACCOUNT).findOne({ documentId: accountId, fields: ['webauthnUserId'] })) as Raw | null;
+      return text(r?.webauthnUserId);
+    },
     portalAccountExtra: async (accountId) => {
       const r = (await strapi.documents(PORTAL_ACCOUNT).findOne({ documentId: accountId, fields: ['webauthnUserId', 'lastMethod', 'passkeyOfferedAt'] })) as Raw | null;
       return { webauthnUserId: str(r?.webauthnUserId), lastMethod: method(r?.lastMethod), passkeyOfferedAt: iso(r?.passkeyOfferedAt) };
@@ -258,7 +263,7 @@ function purgeStore(strapi: Core.Strapi): Pick<SecurityStore, 'purge'> {
       factors: await count(FACTOR, { confirmedAt: { $null: true }, createdAt: { $lt: ago(now, UNCONFIRMED_FACTOR_MS) } }),
       challenges: await count(CHALLENGE, { $or: [{ usedAt: { $lt: ago(now, CHALLENGE_KEEP_MS) } }, { expiresAt: { $lt: ago(now, CHALLENGE_KEEP_MS) } }] }),
       backupCodes: await count(BACKUP, { usedAt: { $lt: ago(now, BACKUP_KEEP_MS) } }),
-      adminDevices: await count(ADMIN_DEVICE, { revokedAt: { $lt: ago(now, ADMIN_DEVICE_KEEP_MS) } }),
+      adminDevices: await count(ADMIN_DEVICE, { $or: [{ revokedAt: { $lt: ago(now, ADMIN_DEVICE_KEEP_MS) } }, { confirmedAt: { $null: true }, firstSeenAt: { $lt: ago(now, UNCONFIRMED_DEVICE_MS) } }] }),
     }),
   };
 }

@@ -15,8 +15,14 @@ const sessionAuth = requireCjs(join(dirname(requireCjs.resolve('@strapi/admin/pa
 };
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
-const bind = (env: ReturnType<typeof adminEnv>, adminId: number, cookie: string | null) =>
+const bindOnly = (env: ReturnType<typeof adminEnv>, adminId: number, cookie: string | null) =>
   bindAdminDevice({ store: env.c.store, now: env.c.now, userAgent: 'Mozilla/5.0 Chrome/120.0' }, adminId, cookie);
+/** A device a completed sign-in has confirmed (a bare bind makes an unconfirmed one). */
+const bind = async (env: ReturnType<typeof adminEnv>, adminId: number, cookie: string | null) => {
+  const out = await bindOnly(env, adminId, cookie);
+  await env.c.store.updateAdminDevice(out.device.id, { confirmedAt: env.c.now().toISOString() });
+  return out;
+};
 
 describe('issueAdminSession', () => {
   it('remember: a refresh session, the cookie with the options Strapi builds, an access token for the admin', async () => {

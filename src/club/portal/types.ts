@@ -13,6 +13,11 @@ export type DeviceRow = {
   id: string; accountId: string; deviceKeyHash: string; sessionId: string | null; label: string; firstSeenAt: string; lastSeenAt: string; revokedAt: string | null;
   /** The end of the remembered-device 2FA skip (6b); null when this device must answer the second step. */
   twoFactorUntil: string | null;
+  /**
+   * When a completed sign-in last confirmed this device (password, second step, Google, passkey): the recent-authentication time. Null with no
+   * session either means a device row made at the password step that never finished (unconfirmed: hidden, purged after a day).
+   */
+  confirmedAt: string | null;
 };
 export type UserAuth = { id: number; email: string; passwordHash: string | null; blocked: boolean; confirmed: boolean };
 export type UserWrite = { email?: string; passwordHash?: string | null; blocked?: boolean; confirmed?: boolean };

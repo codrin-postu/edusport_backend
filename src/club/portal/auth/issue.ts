@@ -21,7 +21,7 @@ export async function createDeviceRow(c: PortalAuthContext, account: AccountRow)
   const at = c.now().toISOString();
   const row = { accountId: account.id, deviceKeyHash: hashSecret(key), sessionId: null, label: deviceLabel(c.userAgent), firstSeenAt: at, lastSeenAt: at };
   const id = await c.store.createDevice(row);
-  return { device: { ...row, id, revokedAt: null, twoFactorUntil: null }, key };
+  return { device: { ...row, id, revokedAt: null, twoFactorUntil: null, confirmedAt: null }, key };
 }
 
 async function bindDevice(c: PortalAuthContext, account: AccountRow, given: string | null): Promise<Bound> {
@@ -36,6 +36,7 @@ async function bindDevice(c: PortalAuthContext, account: AccountRow, given: stri
 
 export async function mailNewDevice(c: PortalAuthContext, account: AccountRow, label: string): Promise<void> {
   try {
+    if (!(await c.limits.newDeviceMailAllowed(`portal:${account.id}`))) return;
     const sent = await c.mail(account.email, { kind: 'new-device', device: label, at: c.now() });
     if (!sent) c.log('[portal-login] new-device mail not sent');
   } catch (err) {
@@ -57,7 +58,7 @@ export async function issueSession(
     const bound = await bindDevice(c, fresh, deviceKey);
     const tokens = await c.sessions.issue(fresh.userId, bound.device.id, o.host);
     const at = c.now().toISOString();
-    await c.store.updateDevice(bound.device.id, { sessionId: tokens.sessionId, lastSeenAt: at });
+    await c.store.updateDevice(bound.device.id, { sessionId: tokens.sessionId, lastSeenAt: at, confirmedAt: at });
     await c.store.updateAccount(fresh.id, { lastLoginAt: at });
     return { bound, tokens };
   });

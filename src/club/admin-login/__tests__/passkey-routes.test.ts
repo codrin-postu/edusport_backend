@@ -26,7 +26,7 @@ function env() {
   const e = loginEnv();
   e.addAdmin({ id: 7, email: 'ana@x.ro', firstname: 'Ana', lastname: 'Pop', password: `hash:${PASSWORD}`, roles: [{ code: 'strapi-super-admin' }] });
   e.addAdmin({ id: 8, email: 'bob@x.ro', firstname: 'Bob', lastname: 'Ene', password: 'hash:x', roles: [{ code: 'strapi-editor' }] });
-  const actor = (id = 7) => ({ subject: { type: 'admin' as const, id: String(id) }, email: id === 7 ? 'ana@x.ro' : 'bob@x.ro' });
+  const actor = (id = 7) => ({ subject: { type: 'admin' as const, id: String(id) }, email: id === 7 ? 'ana@x.ro' : 'bob@x.ro', confirmedAt: async () => e.c.now().toISOString() });
   /** Registers a key through the Securitate services, as the signed-in admin would. */
   const enrol = async (id = 7, name?: string): Promise<SoftAuthenticator> => {
     const auth = softAuthenticator();

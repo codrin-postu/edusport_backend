@@ -189,8 +189,11 @@ export function storeContract(make: () => Promise<StoreHarness>): void {
     await store.insertBackupBatch(s, 'b2', batchRows(s, newBackupCodes(2)), iso(t0));
     const at = iso(t0);
     const revoked = await store.createAdminDevice({ adminUserId: uid, deviceKeyHash: 'r', strapiDeviceId: `rv-${uid}`, label: 'a', firstSeenAt: at, lastSeenAt: at });
-    await store.updateAdminDevice(revoked, { revokedAt: at });
+    await store.updateAdminDevice(revoked, { revokedAt: at, confirmedAt: at });
     const live = await store.createAdminDevice({ adminUserId: uid, deviceKeyHash: 'l', strapiDeviceId: `lv-${uid}`, label: 'b', firstSeenAt: at, lastSeenAt: at });
+    await store.updateAdminDevice(live, { confirmedAt: at });
+    // A device row made at the password step that no sign-in confirmed goes after a day (M1), not before.
+    const unconfirmed = await store.createAdminDevice({ adminUserId: uid, deviceKeyHash: 'u', strapiDeviceId: `uc-${uid}`, label: 'c', firstSeenAt: at, lastSeenAt: at });
 
     const minutes = (n: number) => new Date(t0.getTime() + n * 60_000);
     // The tables are shared with other tests on a real database, so counts are lower bounds and the checks read this subject's rows.
@@ -200,7 +203,7 @@ export function storeContract(make: () => Promise<StoreHarness>): void {
     await store.purge(minutes(10));
     expect((await store.factors(s)).length).toBe(2);
     expect((await store.openChallenges(s, 'email-code')).length).toBe(1);
-    expect((await store.adminDevices(uid)).length).toBe(2);
+    expect((await store.adminDevices(uid)).length).toBe(3);
     atLeast(await store.purge(minutes(20)), { factors: 1 });
     expect((await store.factors(s)).map((f) => f.kind)).toEqual(['email']);
     const days = (n: number) => new Date(t0.getTime() + n * 24 * 3600_000);
@@ -208,6 +211,7 @@ export function storeContract(make: () => Promise<StoreHarness>): void {
     atLeast(await store.purge(days(2)), { challenges: 2 });
     expect(await store.openChallenges(s, 'email-code')).toEqual([]);
     expect(await store.unusedBackup(s)).toHaveLength(2);
+    expect((await store.adminDevices(uid)).map((d) => d.id)).not.toContain(unconfirmed);
     expect((await store.adminDevices(uid)).length).toBe(2);
     atLeast(await store.purge(days(31)), { backupCodes: 2, adminDevices: 1 });
     expect((await store.adminDevices(uid)).map((d) => d.id)).toEqual([live]);

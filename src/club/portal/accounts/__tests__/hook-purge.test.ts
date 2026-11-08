@@ -100,12 +100,21 @@ describe('purgePortal', () => {
     expect(n.limits).toBe(1);
     expect(h.fake.state.limits.map((l) => l.id)).toEqual(['recent', 'locked']);
   });
+  it('purge removes a device row no sign-in confirmed after a day, keeps a younger one and one with a session', async () => {
+    const h = harness();
+    const row = (key: string, age: number, sessionId: string | null) => ({ accountId: 'a', deviceKeyHash: key, sessionId, label: 'L', firstSeenAt: ago(age), lastSeenAt: ago(age) });
+    await h.fake.store.createDevice(row('stale', 2, null));
+    await h.fake.store.createDevice(row('fresh', 0.5, null));
+    await h.fake.store.createDevice(row('bound', 2, 'sess'));
+    expect((await purgePortal(h.fake.store, NOW)).devices).toBe(1);
+    expect(h.fake.state.devices.map((d) => d.deviceKeyHash)).toEqual(['fresh', 'bound']);
+  });
   it('purge keeps devices revoked 29 days ago, removes 31 days, keeps a live one', async () => {
     const h = harness();
     const dev = (key: string, revokedAt: string | null) => ({ accountId: 'a', deviceKeyHash: key, sessionId: null, label: 'L', firstSeenAt: ago(60), lastSeenAt: ago(60) });
     for (const [k, r] of [['d29', ago(29)], ['d31', ago(31)], ['live', null]] as const) {
       const id = await h.fake.store.createDevice(dev(k, r));
-      if (r) await h.fake.store.updateDevice(id, { revokedAt: r });
+      await h.fake.store.updateDevice(id, { confirmedAt: ago(60), ...(r ? { revokedAt: r } : {}) });
     }
     expect((await purgePortal(h.fake.store, NOW)).devices).toBe(1);
     expect(h.fake.state.devices.map((d) => d.deviceKeyHash)).toEqual(['d29', 'live']);

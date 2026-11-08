@@ -90,11 +90,11 @@ New collection types follow P6 3: `draftAndPublish: false`, hidden from the Cont
 - Created on first need (login, Securitate) for an existing admin.
 
 ### 3.6 Admin device (`api::admin-device.admin-device`, table `admin_devices`) [P6b q15]
-- As `portal_devices` [P6 3.5]: `adminUserId`, `deviceKeyHash` (SHA-256 of the device cookie), `strapiDeviceId` (the `deviceId` passed to Strapi's session manager, so "Deconectează" ends that session), `label`, `firstSeenAt`, `lastSeenAt`, `twoFactorUntil` (nullable), `revokedAt`.
+- As `portal_devices` [P6 3.5]: `adminUserId`, `deviceKeyHash` (SHA-256 of the device cookie), `strapiDeviceId` (the `deviceId` passed to Strapi's session manager, so "Deconectează" ends that session), `label`, `firstSeenAt`, `lastSeenAt`, `twoFactorUntil` (nullable), `revokedAt`, `confirmedAt` (nullable: the last completed sign-in; null means made at a password step and never finished, 4.8).
 
 ### 3.7 Portal changes
 - `portal_accounts` gains `webauthnUserId`, `lastMethod`, `passkeyOfferedAt` (as 3.5) [S4].
-- `portal_devices` gains `twoFactorUntil` (nullable) [P6b q5].
+- `portal_devices` gains `twoFactorUntil` (nullable) [P6b q5] and `confirmedAt` (nullable, the last completed sign-in on the device; `admin_devices` has it too, 3.6).
 - `portal_auth_limits` is reused for the admin and for 2FA with new key prefixes: `admin:login:<e-mail>`, `admin:ip:<address>`, `admin:mail:<e-mail>`, `2fa:<subjectType>:<subjectId>` [P6b q13; R6b P13].
 - The mails that carry 2FA codes (login and enrolment) count under their own key `2fa:mail:<subjectType>:<subjectId>`, 5 per hour (decided by Claude, low impact: the spec gave no number), apart from the reset request's `mail:<e-mail>`, so a public reset request cannot silence a person's login codes. A mail over the limit answers as if sent.
 - The portal reset code moves from plain SHA-256 to the keyed MAC of 5.4 (a 6-digit code under plain SHA-256 is reversed from a dump in milliseconds) [P6b user note; S5]. Invite secrets and session tokens keep SHA-256 (32 random bytes cannot be guessed back) [code src/club/portal/tokens.ts, sessions-own.ts].
@@ -104,7 +104,7 @@ New collection types follow P6 3: `draftAndPublish: false`, hidden from the Cont
 - New subject `adminUser` in `src/club/subjects.ts` for admin 2FA lines; `portalAccount` gets the 2FA lines of section 13 [P6 3.7; P6b q7].
 
 ### 3.9 Purge
-The daily portal purge [code src/club/portal/purge.ts] also removes: unconfirmed factors older than 15 minutes, used or expired challenges older than 1 day, used backup codes older than 30 days, revoked admin devices older than 30 days, and old-rpId passkeys 30 days after the domain move (8.6) [S6].
+The daily portal purge [code src/club/portal/purge.ts] also removes: device rows (admin and portal) made at a password step that no sign-in confirmed, after 24 hours, unconfirmed factors older than 15 minutes, used or expired challenges older than 1 day, used backup codes older than 30 days, revoked admin devices older than 30 days, and old-rpId passkeys 30 days after the domain move (8.6) [S6].
 
 ## 4. Admin login
 
@@ -169,6 +169,7 @@ The daily portal purge [code src/club/portal/purge.ts] also removes: unconfirmed
 ### 4.8 Devices and new-device mail [P6b q15]
 - Device cookie `__Host-es_adm_dev` on the CMS host (random 32 bytes, 400 days; locally `es_adm_dev`), bound as P6 5.7 [S9].
 - A login from a device key unknown for the admin sends the portal's new-device mail [P6b q15; P6 12].
+- The device row is made at the password step, before the second step, so the owner learns of a leaked password and "remember" has a row. Until a completed sign-in sets `confirmedAt` the row is unconfirmed: not listed in Securitate, never used to skip the second step, purged after 24 hours by the daily purge. At most one new-device mail per account per hour (admin and portal) [review T20/21 M1, controller ruling 2026-11-09].
 - Admin Securitate lists "Dispozitiv" | "Ultima dată" with "Deconectează" (ends that Strapi session family through `invalidateRefreshToken(userId, deviceId)` and forgets the device) [P6 9.10 pattern].
 - A password change ends every other session of the admin and forgets the other devices' 2FA [P6 5.2; S17].
 - An admin e-mail change (Super Admin, Settings, Users) clears `googleSub` and ends the admin's sessions, through a lifecycle on `admin::user` [DEC 2026-11-06 q27 pattern; S10].
@@ -287,6 +288,7 @@ Codes and secrets never reach a log: the request bodies of `/api/admin-auth/*` a
 - Admin and coach are separate subjects with separate user handles: a person who is both has one key per role. A key of the other kind answers "Cheia nu este pentru această pagină." [S34].
 - A passkey sign-in skips the password and 2FA (user verification is the second factor) [AUTH Decisions; DEC 2026-10-18 passkey-flow-v4]. It does not count toward the password lockout; the IP rule counts it [S35].
 - Disabled, blocked or inactive subjects: "Nu am putut folosi cheia de acces." (no account detail) [S35].
+- Adding a passkey needs a recent authentication [user ruling 2026-11-09]: the options and register calls (admin and coach Securitate) are refused with 403 and the copy `reauthRequired` (COPY NEEDED, now "Confirmă din nou ca să continui.") when the last confirmation of the session's device (a completed sign-in by password, second step, Google, passkey or invite, or a re-confirmation) is older than 10 minutes. The client then asks for the password, or the 2FA code when the account has 2FA, and sends it to `POST /api/portal/me/reauth` or `POST /api/admin-auth/me/reauth` (`{ password }` or `{ method, code }`), which refreshes the confirmation time and answers `{ ok: true }`. Attempts count as at login: the IP rule, the e-mail counter for a password, the subject's 2FA counter for a code (5 wrong in 15 minutes lock, with the login's 429 text). The confirmation time lives on the device row (`confirmedAt`; the coach session finds its device by session id, the admin by the device cookie, so a stolen access token without the cookie can never re-confirm). Reason: a stolen session must not be able to plant a factor that signs in without 2FA.
 
 ### 8.3 On the login pages [P6 13; P6 q23]
 - One form as today; under "Intră" the button "Folosește cheia de acces" and browser autofill on the "E-mail" field (`autocomplete="username webauthn"`, conditional UI), shown only when the browser supports WebAuthn [P6 9.1; DEC 2026-10-18 passkey-flow-v4]. The OS window for Face ID, fingerprint or PIN is the OS's [R6b 11].

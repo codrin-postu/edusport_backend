@@ -74,7 +74,7 @@ scripts/passkeys-cutover.ts                           (T23)
 - Produces:
 
 ```ts
-export type PortalPending = SecondStep & { pending: string };
+export type PortalPending = SecondStep & { pending: string; deviceKey: string | null }; // deviceKey: the key of the unconfirmed device row made at the password step; the BFF stores it at once and sends it back with the code (index contract)
 export async function afterPassword(c: PortalAuthContext, account: AccountRow, deviceKey: string | null, host: string): Promise<PortalResult<(PortalSession & { offerPasskey: boolean }) | PortalPending>>;
 export async function portalSecondStep(c: PortalAuthContext, body: unknown): Promise<PortalResult<PortalSession & { offerPasskey: boolean }>>;
 export async function portalSendCode(c: PortalAuthContext, body: unknown): Promise<PortalResult<CodeSent>>;

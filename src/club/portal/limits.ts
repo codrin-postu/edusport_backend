@@ -3,6 +3,8 @@ export type LimitRule = { max: number; windowMs: number; lockMs: number | null }
 export const LOGIN_RULE: LimitRule = { max: 5, windowMs: 900_000, lockMs: 900_000 };
 export const IP_RULE: LimitRule = { max: 30, windowMs: 900_000, lockMs: null };
 export const MAIL_RULE: LimitRule = { max: 5, windowMs: 3_600_000, lockMs: null };
+/** One new-device mail per account per hour (a leaked password must not flood the owner, nor let a stranger make noise without limit). */
+export const NEW_DEVICE_MAIL_RULE: LimitRule = { max: 1, windowMs: 3_600_000, lockMs: null };
 
 export type LimitState = { count: number; windowStart: string; lockedUntil: string | null; notifiedAt: string | null };
 export type HitOutcome = { state: LimitState; blocked: boolean; firstLock: boolean };

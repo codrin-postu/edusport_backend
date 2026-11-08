@@ -12,6 +12,8 @@ export const SECURITY_ERRORS = {
   selfReset: 'Nu poți reseta propriul 2FA.',
   wrongCurrent: PORTAL_ERRORS.currentWrong,
   noAccess: 'Nu ai acces la această pagină.',
+  // COPY NEEDED: shown when adding a passkey needs a fresh confirmation (403 on the passkey options and register calls).
+  reauthRequired: 'Confirmă din nou ca să continui.',
   googleNoAccount: PORTAL_ERRORS.googleNoAccount,
 } as const;
 

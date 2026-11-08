@@ -16,6 +16,7 @@ export default {
     route('POST', '/2fa/email/confirm', 'emailConfirm'),
     route('DELETE', '/2fa/email', 'emailOff'),
     route('POST', '/backup-codes', 'backupCodes'),
+    route('POST', '/reauth', 'reauth'),
     route('POST', '/passkeys/options', 'passkeyStart'),
     route('POST', '/passkeys', 'passkeyAdd'),
     route('POST', '/passkey-offer/dismiss', 'passkeyDismiss'),

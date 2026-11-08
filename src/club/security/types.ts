@@ -23,6 +23,8 @@ export type AdminAccountRow = {
 export type AdminDeviceRow = {
   id: string; adminUserId: number; deviceKeyHash: string; strapiDeviceId: string; label: string; firstSeenAt: string; lastSeenAt: string;
   twoFactorUntil: string | null; revokedAt: string | null;
+  /** Last completed sign-in on this device (the recent-authentication time); null: made at the password step and never finished (unconfirmed). */
+  confirmedAt: string | null;
 };
 export type PortalAccountExtra = { webauthnUserId: string | null; lastMethod: TwoFactorMethod | null; passkeyOfferedAt: string | null };
 export type SecurityNotes = { backupNotice?: number };

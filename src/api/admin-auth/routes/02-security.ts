@@ -15,6 +15,7 @@ export default {
     { method: 'POST', path: '/admin-auth/me/2fa/email/confirm', handler: 'admin-auth.emailConfirm', config: guard },
     { method: 'DELETE', path: '/admin-auth/me/2fa/email', handler: 'admin-auth.emailOff', config: guard },
     { method: 'POST', path: '/admin-auth/me/backup-codes', handler: 'admin-auth.backupCodes', config: guard },
+    { method: 'POST', path: '/admin-auth/me/reauth', handler: 'admin-auth.reauth', config: guard },
     { method: 'POST', path: '/admin-auth/me/passkeys/options', handler: 'admin-auth.passkeyStart', config: guard },
     { method: 'POST', path: '/admin-auth/me/passkeys', handler: 'admin-auth.passkeyAdd', config: guard },
     { method: 'POST', path: '/admin-auth/me/passkey-offer/dismiss', handler: 'admin-auth.passkeyDismiss', config: guard },
