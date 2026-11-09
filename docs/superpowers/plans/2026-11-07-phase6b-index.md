@@ -69,6 +69,9 @@ Never 55442, 1337, 1340, 3010, 5432, `strapi_app`, `strapi_db`, `edusport-test-p
 5. At least two Super Admins sign in on `/login` before the gate goes live in production (`ADMIN_GATE=on`, ruling 15).
 6. Key rotation: keep `AUTH_CODE_KEY_OLD` until every backup-code batch MACed under the old key id has been regenerated; a MAC cannot be re-keyed, so removing it early silently locks out users whose only recovery is their backup codes. Sealed TOTP secrets re-seal themselves at next use.
 7. Cutover note: pending portal reset codes are invalid after deploy; existing admin sessions keep working until they expire; the first `/login` login creates the device row.
+8. Backend and frontend deploy in one window (M1, review 6b-2): the coach invite mail links `/invite/<secret>` (was `/invitatie/<secret>`); the portal frontend serves `/invite/<secret>`, `/forgot-password` and `/login` (frontend plan). The coach portal's own sign-in paths are the contract; a backend without the matching frontend breaks every invite link.
+
+9. Carry for the T28 boot check (review 6b-2 L8): run `tests/e2e-admin/passkeys.spec.ts` once against a local stack with a CDP virtual authenticator (register, button, autofill, wrong origin, old rpId), and run the `*-pg.test.ts` files serially (they share one database).
 
 ## HTTP contracts
 
@@ -102,6 +105,7 @@ export type PasskeyLoginOptions = { options: unknown };
 
 | Method and path | Body | Success `data` | Refusals (status, message) |
 |---|---|---|---|
+| `POST /api/portal/auth/google` | `{ host, code, codeVerifier, redirectUri, nonce, invite?, deviceKey? }` | `PortalSession & { offerPasskey }`, or `SecondStep & { pending, deviceKey }` for the first link by e-mail of an account with 2FA (the sub waits in the pending data and is stored after a right code at `/2fa`; the BFF treats it exactly like a password login that needs the second step) | 401 `"Nu am găsit un cont pentru adresa asta."` (also for a link removed earlier, never re-made by e-mail); 410; 429; 502 |
 | `POST /api/portal/auth/2fa` | `{ pending, method: TwoFactorMethod, code, remember: boolean, deviceKey?: string }` | `PortalSession & { offerPasskey }` | 400 `"Cerere invalidă."`; 400 `"Codul nu este corect sau a expirat."`; 401 `"Intrarea a expirat. Intră din nou."` (pending unknown, used, expired or ended by 5 wrong codes; ruling 1); 429 `"Prea multe încercări. Încearcă din nou peste 15 minute."`; 503 |
 | `POST /api/portal/auth/2fa/email` | `{ pending }` | `CodeSent` (also when the mail limit is spent: "as if sent") | 401 expired text; 429; 503; 503 `"Nu am putut trimite e-mailul. Încearcă din nou."` |
 | `POST /api/portal/auth/passkey/options` | `{ host: 'antrenor' }` | `PasskeyLoginOptions` | 400; 429; 503 |
@@ -126,7 +130,7 @@ export type PasskeyLoginOptions = { options: unknown };
 | `POST /api/portal/me/passkey-offer/dismiss` | | `{ ok: true }` |
 | `POST /api/portal/me/reauth` | `{ password }`, or `{ method: TwoFactorMethod, code }` when the account has 2FA | `{ ok: true }`; 400 `"Cerere invalidă."`; 400 wrong password `"Parola actuală nu este corectă."` or bad code text; 403 `reauthRequired` (no live device for the session); 429 (IP rule, e-mail or 2FA lock) |
 
-`POST /api/portal/me/passkeys/options` and `POST /api/portal/me/passkeys` also answer 403 `"Confirmă din nou ca să continui."` (COPY NEEDED) when the session's last confirmation is older than 10 minutes: the client then calls `reauth` and retries (user ruling 2026-11-09, spec 8.2). The e-mail code of a re-confirmation is the one `POST /api/portal/me/2fa/email` sends.
+`POST /api/portal/me/passkeys/options` and `POST /api/portal/me/passkeys` also answer 403 `"Confirmă din nou ca să continui."`  when the session's last confirmation is older than 10 minutes: the client then calls `reauth` and retries (user ruling 2026-11-09, spec 8.2). The e-mail code of a re-confirmation is the one `POST /api/portal/me/2fa/email` sends.
 
 `GET /api/portal/coach/me/devices`: each `CoachDevice` gains `twoFactorUntil: string | null` (spec 6.4). `name` missing on passkey create: the device label of the request user agent (`deviceLabel`, ruling 4). Rate limits: the IP rule counts every `POST` of this table except dismiss.
 
@@ -146,14 +150,14 @@ export type PasskeyLoginOptions = { options: unknown };
 | `POST /api/admin-auth/2fa` | `{ method, code, remember: boolean }` | `AdminHandoff` | as portal 2fa |
 | `POST /api/admin-auth/2fa/email` | `{}` | `CodeSent` | as portal |
 | `GET /api/admin-auth/google/start?remember=0\|1` | | 302 to Google | |
-| `GET /api/admin-auth/google/callback` | Google query | 302 to `/login/done` with the access token in the `jwtToken` cookie (ruling 5), or 302 to `/login?eroare=google` | the page shows `"Nu am găsit un cont pentru adresa asta."` |
+| `GET /api/admin-auth/google/callback` | Google query | 302 to `/login/done` with the access token in the `jwtToken` cookie (ruling 5), or 302 to `/login?error=google` | the page shows `"Nu am găsit un cont pentru adresa asta."` |
 | `POST /api/admin-auth/passkey/options` | `{}` | `PasskeyLoginOptions` | 429; 503 |
 | `POST /api/admin-auth/passkey/verify` | `{ response, rememberMe: boolean }` | `AdminHandoff` | 401 passkey texts; 429; 503 |
 | `POST /api/admin-auth/reset/request` | `{ email }` | `{ message: "Dacă adresa are cont, am trimis un cod." }` | 400; 429; 503 send failure |
 | `POST /api/admin-auth/reset/confirm` | `{ email, code, password }` | `AdminHandoff` or `SecondStep` | 400 bad code; 400 password rule texts; 429 |
 | `POST /api/admin-auth/invite/read` | `{ registrationToken }` | `{ state: 'valid'; email: string } \| { state: 'expired'; email: null }` | 429 |
 | `POST /api/admin-auth/invite/accept` | `{ registrationToken, password }` | `AdminHandoff` | 400; 400 password rules; 410 `"Invitația a expirat. Cere administratorului una nouă."`; 429 |
-| `GET /api/admin-auth/invite/google?registrationToken=` | | 302 to Google (accept on callback, same verified e-mail only) | callback refusal 302 `/invite?eroare=google` |
+| `GET /api/admin-auth/invite/google?registrationToken=` | | 302 to Google (accept on callback, same verified e-mail only) | callback refusal 302 `/invite?error=google` |
 
 ### Admin Securitate (`src/api/admin-auth/routes/02-security.ts`, area `any`; `03-admins.ts`, area `superAdmin`; admin Bearer token from `useFetchClient`, plus the Origin check on mutating calls)
 
