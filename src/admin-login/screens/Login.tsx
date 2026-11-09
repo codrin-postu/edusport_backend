@@ -21,7 +21,7 @@ export function Login({ post, go, handoff, search, flash, webauthn }: Deps) {
   const [rememberMe, setRememberMe] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [problem, setProblem] = React.useState<string | null>(null);
-  const googleFailed = new URLSearchParams(search).get('eroare') === 'google';
+  const googleFailed = new URLSearchParams(search).get('error') === 'google';
   const shown = problem ?? flash ?? (googleFailed ? SECURITY_ERRORS.googleNoAccount : null);
 
   const autofill = React.useRef<AbortController | null>(null);

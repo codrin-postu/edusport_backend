@@ -14,8 +14,8 @@ export const ADMIN_GOOGLE_PATH = '/api/admin-auth/google';
 const COOKIE_MS = 600_000;
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_MAX = 256;
-const FAILED = '/login?eroare=google';
-const FAILED_INVITE = '/invite?eroare=google';
+const FAILED = '/login?error=google';
+const FAILED_INVITE = '/invite?error=google';
 /** Strapi's own name for the access-token cookie (not HttpOnly: the page script moves it, as Strapi's SSO page does). */
 const JWT_COOKIE = 'jwtToken';
 /** The page script (T16) reads the cookie and deletes it at once; whatever it leaves behind is gone after a minute. */

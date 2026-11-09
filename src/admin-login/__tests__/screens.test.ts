@@ -37,8 +37,8 @@ describe('Login', () => {
     for (const t of [C.title, C.brand, C.google, C.or, C.email, C.password, C.showPassword, C.remember, C.submit, C.forgot]) expect(has(m, t), t).toBe(true);
   });
 
-  it('shows the Google refusal text for ?eroare=google and a carried flash text', () => {
-    expect(has(html(Login, { search: '?eroare=google' }), SECURITY_ERRORS.googleNoAccount)).toBe(true);
+  it('shows the Google refusal text for ?error=google and a carried flash text', () => {
+    expect(has(html(Login, { search: '?error=google' }), SECURITY_ERRORS.googleNoAccount)).toBe(true);
     expect(has(html(Login, { flash: SECURITY_ERRORS.pendingExpired }), SECURITY_ERRORS.pendingExpired)).toBe(true);
   });
 

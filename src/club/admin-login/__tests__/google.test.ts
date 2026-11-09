@@ -13,8 +13,8 @@ const CLIENT_ID = 'client-1.apps.googleusercontent.com';
 const pair = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const jwk = { ...pair.publicKey.export({ format: 'jwk' }), kid: 'k1', alg: 'RS256', use: 'sig' };
 const COOKIE = ADMIN_GOOGLE_COOKIE(false);
-const FAILED = '/login?eroare=google';
-const FAILED_INVITE = '/invite?eroare=google';
+const FAILED = '/login?error=google';
+const FAILED_INVITE = '/invite?error=google';
 
 function googleEnv() {
   clearGoogleKeyCache();

@@ -39,7 +39,7 @@ export function Invite({ post, go, handoff, search }: Deps) {
     if (next.kind === 'error') setProblem(next.message);
   };
 
-  const googleFailed = params.get('eroare') === 'google' ? SECURITY_ERRORS.googleNoAccount : null;
+  const googleFailed = params.get('error') === 'google' ? SECURITY_ERRORS.googleNoAccount : null;
   return (
     <Shell title={C.title}>
       <Problem text={problem ?? googleFailed} />
