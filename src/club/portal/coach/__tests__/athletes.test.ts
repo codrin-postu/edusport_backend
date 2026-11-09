@@ -140,7 +140,7 @@ describe('readCard additions', () => {
     expect(out).toMatchObject({ ok: true, data: {
       presence: { season: 4, lessons: 1, last: '2026-11-14', missedThisMonth: 1 },
       abonament: { code: null, next: 4, slots: 8, validUntil: '2026-11-28', location: null },
-      groupRows: [{ groupId: 'g-scoala-a', name: 'Școala A' }], sectionName: 'Școala de Patinaj - AFI Cotroceni', competitions: { available: false },
+      groupRows: [{ groupId: 'g-scoala-a', name: 'Școala A' }], sectionName: 'Școala de Patinaj - AFI Cotroceni', competitions: { available: true, category: null, season: '2026-2027', count: 0, podiums: 0, recent: [] },
     } });
     expect(Array.isArray(out.ok && out.data.groupRows[0].program)).toBe(true);
     expect(forbiddenKeysIn(out)).toEqual([]);
@@ -158,7 +158,7 @@ describe('readCard additions', () => {
     c.fake.state.sessions.push(sessionRow({ id: 's-b', groupId: 'g-club-b', date: '2026-11-17', startTime: '18:00', coachIds: [ME, 'tm-virgil'] }));
     c.fake.state.attendances.push(attendanceRow({ id: 't-b', sessionId: 's-b', athleteId: 'a-b-1', uniqueKey: 's-b|a-b-1' }));
     const out = await readCard(c, 'a-b-1');
-    expect(out).toMatchObject({ ok: true, data: { contact: null, abonament: null, presence: { season: 1, lessons: 0, last: '2026-11-17' }, competitions: { available: false } } });
+    expect(out).toMatchObject({ ok: true, data: { contact: null, abonament: null, presence: { season: 1, lessons: 0, last: '2026-11-17' }, competitions: { available: true, category: null, season: '2026-2027', count: 0, podiums: 0, recent: [] } } });
     expect(JSON.stringify(out)).not.toMatch(/0722000111/);
     expect(forbiddenKeysIn(out)).toEqual([]);
   });

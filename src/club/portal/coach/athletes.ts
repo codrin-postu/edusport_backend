@@ -20,6 +20,7 @@ import { isAnonymized } from '../../personal-data/anonymize-plan';
 import { PORTAL_ERRORS, PORTAL_TOASTS } from '../copy';
 import type { CoachAthleteCard, CoachSearchRow } from './api-types';
 import { locationOfGroup } from './calendar';
+import { athleteCompetitions } from './competitions';
 import { forbidden, type CoachContexts, type CoachResult } from './context';
 import { groupAccess, ownAthlete, ownGroupIds } from './ownership';
 import { cardRight } from './rules';
@@ -176,7 +177,7 @@ export async function readCard(c: CoachContexts, athleteId: string): Promise<Coa
       groupRows: groups.map((g) => ({ groupId: g.id, name: g.name, program: groupListRow(g, facts).program })),
       presence: await presenceOf(c, athleteId, season, memberships),
       abonament: right.contact ? await abonamentOf(c, athleteId, groups) : null,
-      competitions: { available: false },
+      competitions: await athleteCompetitions(c, athlete, season.label),
     },
   };
 }

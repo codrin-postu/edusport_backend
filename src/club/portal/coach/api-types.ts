@@ -58,6 +58,11 @@ export type CoachLesson = {
 };
 export type CoachSearchRow = { athleteId: string; name: string; age: number | null };
 export type CoachNewAthleteBody = { groupId: string; name: string; birthDate?: string | null; contactName?: string | null; phone?: string | null; email?: string | null };
+export type CoachCompetitionMember = { athleteId: string; name: string; category: string; placement: number | null; total: number | null };
+export type CoachCompetitionEvent = { eventId: string; name: string; date: string | null; location: string | null; members: CoachCompetitionMember[] };
+export type CoachCompetitions =
+  | { available: false }
+  | { available: true; stale: boolean; seasons: string[]; season: string; events: CoachCompetitionEvent[] };
 /** Competitions of one athlete; `{ available: false }` until a real source exists (plan Task 7 and 8). */
 export type CoachAthleteCompetitions =
   | { available: false }

@@ -16,6 +16,7 @@ import {
   coachAddProgram, coachChangeProgram, coachDeleteClass, coachEndProgram, coachProgramPublic, coachSetDate, readCoachProgram,
 } from '../../../club/portal/coach/program';
 import { readCoachCalendar } from '../../../club/portal/coach/calendar';
+import { readCoachCompetitions } from '../../../club/portal/coach/competitions';
 import { readToday } from '../../../club/portal/coach/today';
 
 type Headers = Record<string, string | string[] | undefined>;
@@ -91,6 +92,7 @@ export default {
   programPublic: coachOnly('programPublic', async (c, ctx) => respondData(ctx, await coachProgramPublic(c, param(ctx, 'documentId'), ctx.request.body))),
   addMembers: coachOnly('addMembers', async (c, ctx) => respondData(ctx, await addMembers(c, param(ctx, 'documentId'), ctx.request.body))),
   calendar: coachOnly('calendar', async (c, ctx) => respondData(ctx, await readCoachCalendar(c, ctx.query.month))),
+  competitions: coachOnly('competitions', async (c, ctx) => respondData(ctx, await readCoachCompetitions(c, ctx.query))),
   moveMember: coachOnly('moveMember', async (c, ctx) => respondData(ctx, await moveMember(c, param(ctx, 'documentId'), param(ctx, 'athleteId'), ctx.request.body))),
   removeMember: coachOnly('removeMember', async (c, ctx) => respondData(ctx, await removeMember(c, param(ctx, 'documentId'), param(ctx, 'athleteId'), ctx.request.body))),
   session: coachOnly('session', async (c, ctx) => respondData(ctx, await readCoachSession(c, ctx.query))),

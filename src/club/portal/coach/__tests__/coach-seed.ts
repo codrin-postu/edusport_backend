@@ -4,6 +4,7 @@ import { athleteRow, event, member } from '../../../groups/__tests__/fake-group-
 import type { DayKey, EventRecord, GroupStore, GroupRecord, NamedRow } from '../../../groups/types';
 import { fakePresenceContext, subscriptionRow, type FakePresenceContext, type FakePresenceSeed } from '../../../presence/__tests__/fake-store';
 import { fakePortalStore, type FakePortal } from '../../__tests__/fake-portal-store';
+import { nullCoachCompetitions } from '../competitions';
 import { coachActor, type CoachContexts } from '../context';
 
 export const C_TEAM: NamedRow[] = [{ id: 'tm-andreea', name: 'Andreea Pascu' }, { id: 'tm-virgil', name: 'Virgil Pascu' }];
@@ -93,6 +94,6 @@ export function coachCtx(teamMemberId: string, today = '2026-11-20', over: FakeP
       store: fake.store as unknown as GroupStore, actor, today, log: fake.ctx.log, revalidate: () => undefined, emails: () => undefined, now: fake.ctx.now,
     },
     club: { store: club.store, actor, today: { year, month, day }, log: fake.ctx.log },
-    portal: portalFake.store, portalFake, fake, clubFake: club,
+    portal: portalFake.store, portalFake, fake, clubFake: club, competitions: nullCoachCompetitions,
   };
 }
