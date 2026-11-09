@@ -1,6 +1,7 @@
 import type { Core } from '@strapi/strapi';
 import { adminById } from '../club/admin-login/admins';
 import { normalizeAdminPath } from '../club/admin-login/admin-path';
+import { intrareRedirect } from '../club/admin-login/intrare-paths';
 import { adminSessionManager } from '../club/admin-login/session';
 
 export type GateDecision = 'pass' | 'notFound' | 'forbidden' | 'profileEmail' | { redirect: string };
@@ -10,22 +11,8 @@ const CLOSED_POSTS = new Set(['/admin/login', '/admin/register', '/admin/registe
 /** Admin API tokens authenticate as an admin with no 2FA and outlive every session control, so minting one is closed too (B3 M4, spec 4.4). */
 const ADMIN_TOKEN_POST = /^\/admin\/admin-tokens(\/[^/]+\/regenerate)?$/;
 const PASSWORD_KEYS = ['password', 'currentPassword'] as const;
-const KEEP_QUERY = ['registrationToken', 'code'] as const;
-
-const ADMIN_AUTH_TARGET: Record<string, string> = {
-  register: '/intrare/invitatie',
-  'forgot-password': '/intrare/parola',
-  'reset-password': '/intrare/parola',
-};
 
 const hasKey = (body: unknown, key: string): boolean => typeof body === 'object' && body !== null && Object.prototype.hasOwnProperty.call(body, key);
-
-function redirectFor(pathname: string, query: string): GateDecision {
-  const target = ADMIN_AUTH_TARGET[pathname.slice('/admin/auth/'.length)] ?? '/intrare';
-  const from = new URLSearchParams(query);
-  const rest = [...from].filter(([key]) => (KEEP_QUERY as readonly string[]).includes(key)).map(([key, value]) => `${key}=${encodeURIComponent(value)}`).join('&');
-  return { redirect: rest ? `${target}?${rest}` : target };
-}
 
 /**
  * Pure: what the gate does with a request. `path` may carry the query string (it is read only for the `/admin/auth/*` redirect).
@@ -42,7 +29,7 @@ export function gateDecision(method: string, path: string, body: unknown, enable
     return hasKey(body, 'email') ? 'profileEmail' : 'pass';
   }
   if (verb === 'PUT' && /^\/admin\/users\/[^/]+$/.test(pathname)) return hasKey(body, 'password') ? 'forbidden' : 'pass';
-  if (verb === 'GET' && pathname.startsWith('/admin/auth/')) return redirectFor(pathname, queryParts.join('?'));
+  if (verb === 'GET' && pathname.startsWith('/admin/auth/')) return { redirect: intrareRedirect(pathname, queryParts.join('?')) };
   return 'pass';
 }
 

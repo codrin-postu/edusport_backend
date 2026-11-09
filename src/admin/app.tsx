@@ -7,27 +7,14 @@ import { SaveBar } from './SaveBar';
 import { BlocksToolbarExtra } from './BlocksToolbarExtra';
 import { registerEdusportMenu } from './dashboard/menu';
 import { mountEdusportShell, tagShellParent, SHELL_CSS } from './dashboard/EdusportShell';
-import { applyLoginBranding } from './dashboard/loginBranding';
 import { ensureAdminUi } from './ui/styles';
 import { PALETTE } from './ui/tokens';
 import { mountToastViewport } from './ui/Toast';
 import { registerNativeFormBridge } from './nativeFormBridge';
 import { startLegacyRedirects } from './lib/legacyRedirects';
+import { startAuthRedirect } from './lib/authRedirect';
 import roTranslations from './translations/ro.json';
 import EdusportLogo from './edusport-logo.svg';
-
-// EduSport login/auth copy, overriding Strapi's default "Welcome to Strapi".
-// Applied to both `ro` and `en` so the auth screen is branded regardless of the
-// visitor's locale (a fresh session defaults to English).
-const AUTH_COPY = {
-  'Auth.form.welcome.title': 'Bine ai venit',
-  'Auth.form.welcome.subtitle': 'Autentifică-te ca să continui',
-  'Auth.form.button.login': 'Autentificare',
-  'Auth.form.email.label': 'Email',
-  'global.password': 'Parolă',
-  'Auth.form.rememberMe.label': 'Ține-mă minte',
-  'Auth.link.forgot-password': 'Ai uitat parola?',
-} as const;
 
 const SIDEBAR_DATA_ATTR = 'data-edusport-sidebar';
 const SUBNAV_DATA_ATTR = 'data-edusport-subnav';
@@ -603,7 +590,6 @@ function setupAdminShell() {
     tagRightRail();
     tagFormGridRows();
     tagShellParent();
-    applyLoginBranding();
   };
   runTaggers();
   let scheduled = false;
@@ -644,8 +630,7 @@ export default {
   config: {
     locales: ['ro'],
     translations: {
-      ro: { ...(roTranslations as Record<string, string>), ...AUTH_COPY },
-      en: { ...AUTH_COPY },
+      ro: roTranslations as Record<string, string>,
     },
     // EduSport branding: login page + sidebar logo, and browser-tab favicon.
     auth: { logo: EdusportLogo },
@@ -665,6 +650,8 @@ export default {
     // (?strapi=1 opts out). First, so a direct load is redirected before the
     // router reads the URL. See ./lib/legacyRedirects.
     startLegacyRedirects();
+    // Strapi's own sign-in pages are closed: its logout or an expired session goes to /intrare (spec 4.1).
+    startAuthRedirect();
     // Lets the global save bar's Renunță reset the edit view form in place (see ./nativeFormBridge).
     registerNativeFormBridge(app);
     // bootstrap can fire before document.body is ready in some edge cases; wait if so.
