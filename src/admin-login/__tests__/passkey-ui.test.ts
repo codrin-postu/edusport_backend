@@ -3,10 +3,7 @@ import { join } from 'node:path';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import {
-  authenticationJson, autofillSupported, creationOptions, fromBase64Url, registrationJson, requestOptions, startAuthentication, toBase64Url,
-  webauthnSupported, type Webauthn, type WebAuthnEnv,
-} from '../../admin/lib/webauthn';
+import type { Webauthn } from '../../admin/lib/webauthn';
 import type { AdminHandoff } from '../../club/security/api-types';
 import { SECURITY_COPY, SECURITY_ERRORS } from '../../club/security/copy';
 import type { Post } from '../api';
@@ -114,43 +111,54 @@ describe('the offer', () => {
   });
 });
 
-describe('the browser layer', () => {
-  const env = (over: Partial<WebAuthnEnv> = {}): WebAuthnEnv => ({
-    credentials: { create: vi.fn(), get: vi.fn() }, PublicKeyCredential: { isConditionalMediationAvailable: async () => true }, ...over,
+describe('the browser layer (official library, mocked)', () => {
+  const lib = vi.hoisted(() => ({
+    startAuthentication: vi.fn(async () => ({ id: 'auth' })),
+    startRegistration: vi.fn(async () => ({ id: 'reg' })),
+    cancelCeremony: vi.fn(),
+    supported: vi.fn(() => true),
+    autofill: vi.fn(async () => true),
+    platform: vi.fn(async () => true),
+  }));
+  vi.mock('@simplewebauthn/browser', () => ({
+    startAuthentication: lib.startAuthentication,
+    startRegistration: lib.startRegistration,
+    browserSupportsWebAuthn: lib.supported,
+    browserSupportsWebAuthnAutofill: lib.autofill,
+    platformAuthenticatorIsAvailable: lib.platform,
+    WebAuthnAbortService: { cancelCeremony: lib.cancelCeremony },
+  }));
+
+  it('passes the server options through and asks for browser autofill only for the conditional request', async () => {
+    const { browserWebauthn } = await import('../../admin/lib/webauthn');
+    const wa = browserWebauthn();
+    expect(wa.supported).toBe(true);
+    expect(await wa.authenticate({ challenge: 'AA' })).toEqual({ id: 'auth' });
+    expect(lib.startAuthentication).toHaveBeenLastCalledWith({ optionsJSON: { challenge: 'AA' }, useBrowserAutofill: false });
+    await wa.authenticate({ challenge: 'AA' }, { conditional: true });
+    expect(lib.startAuthentication).toHaveBeenLastCalledWith({ optionsJSON: { challenge: 'AA' }, useBrowserAutofill: true });
+    expect(await wa.register({ challenge: 'BB' })).toEqual({ id: 'reg' });
+    expect(lib.startRegistration).toHaveBeenLastCalledWith({ optionsJSON: { challenge: 'BB' } });
   });
 
-  it('base64url round trips and detects support', async () => {
-    const bytes = new Uint8Array([251, 255, 0, 1, 2]).buffer;
-    expect(toBase64Url(bytes)).toBe('-_8AAQI');
-    expect(new Uint8Array(fromBase64Url('-_8AAQI'))).toEqual(new Uint8Array(bytes));
-    expect(webauthnSupported(env())).toBe(true);
-    expect(webauthnSupported({})).toBe(false);
-    expect(await autofillSupported(env())).toBe(true);
-    expect(await autofillSupported(env({ PublicKeyCredential: {} }))).toBe(false);
-  });
-
-  it('turns the server options into bytes for the browser', () => {
-    const c = creationOptions({ challenge: 'AQID', user: { id: 'BAUG', name: 'a' }, excludeCredentials: [{ id: 'Bw', type: 'public-key' }], rp: { name: 'EduSport' } });
-    expect(new Uint8Array(c.publicKey.challenge as ArrayBuffer)).toEqual(new Uint8Array([1, 2, 3]));
-    expect(new Uint8Array((c.publicKey.user as { id: ArrayBuffer }).id)).toEqual(new Uint8Array([4, 5, 6]));
-    expect(c.publicKey.rp).toEqual({ name: 'EduSport' });
-    expect(new Uint8Array((c.publicKey.excludeCredentials as Array<{ id: ArrayBuffer }>)[0].id)).toEqual(new Uint8Array([7]));
-    expect(requestOptions({ challenge: 'AQID' }).publicKey.allowCredentials).toEqual([]);
-  });
-
-  it('shapes the answers like the server expects, with transports and the user handle', () => {
-    const buf = (...n: number[]): ArrayBuffer => new Uint8Array(n).buffer;
-    const reg = registrationJson({ id: 'cred', rawId: buf(1), type: 'public-key', response: { clientDataJSON: buf(2), attestationObject: buf(3), getTransports: () => ['internal'] }, getClientExtensionResults: () => ({}) });
-    expect(reg).toMatchObject({ id: 'cred', rawId: 'AQ', type: 'public-key', response: { clientDataJSON: 'Ag', attestationObject: 'Aw', transports: ['internal'] } });
-    const auth = authenticationJson({ id: 'cred', rawId: buf(1), type: 'public-key', response: { clientDataJSON: buf(2), authenticatorData: buf(3), signature: buf(4), userHandle: buf(5) } });
-    expect(auth).toMatchObject({ response: { authenticatorData: 'Aw', signature: 'BA', userHandle: 'BQ' } });
-    expect(() => registrationJson(null)).toThrow();
-  });
-
-  it('conditional mediation and the abort signal reach navigator.credentials.get', async () => {
-    const get = vi.fn(async () => ({ id: 'c', rawId: new Uint8Array([1]).buffer, type: 'public-key', response: { clientDataJSON: new ArrayBuffer(1), authenticatorData: new ArrayBuffer(1), signature: new ArrayBuffer(1) } }));
+  it('aborting the signal cancels the running ceremony', async () => {
+    const { browserWebauthn } = await import('../../admin/lib/webauthn');
     const control = new AbortController();
-    await startAuthentication({ challenge: 'AQ' }, { conditional: true, signal: control.signal }, env({ credentials: { create: vi.fn(), get } }));
-    expect(get.mock.calls[0][0]).toMatchObject({ mediation: 'conditional', signal: control.signal });
+    let release: (v: unknown) => void = () => undefined;
+    lib.startAuthentication.mockImplementationOnce(() => new Promise((r) => { release = r; }) as never);
+    const run = browserWebauthn().authenticate({}, { conditional: true, signal: control.signal });
+    control.abort();
+    expect(lib.cancelCeremony).toHaveBeenCalledTimes(1);
+    release({ id: 'x' });
+    await run;
+  });
+
+  it('capability checks answer false when the library throws', async () => {
+    const { browserWebauthn } = await import('../../admin/lib/webauthn');
+    lib.autofill.mockRejectedValueOnce(new Error('x'));
+    lib.platform.mockResolvedValueOnce(false);
+    const wa = browserWebauthn();
+    expect(await wa.autofill()).toBe(false);
+    expect(await wa.platformKey()).toBe(false);
   });
 });
