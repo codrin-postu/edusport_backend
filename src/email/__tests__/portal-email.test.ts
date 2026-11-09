@@ -7,7 +7,7 @@ import { inviteLink, isPortalInvitePayload, portalHost, portalInviteJob, renderP
 import { toJobRow } from '../strapi-email';
 import { fakeDeps, LINKS, queuedJob } from './helpers';
 
-const payload = { name: 'Andreea Pascu', link: 'https://antrenor.scoaladepatinaj.com/invitatie/abc', host: 'antrenor.scoaladepatinaj.com' };
+const payload = { name: 'Andreea Pascu', link: 'https://antrenor.scoaladepatinaj.com/invite/abc', host: 'antrenor.scoaladepatinaj.com' };
 const inviteJob = (over = {}) => queuedJob({ kind: 'portal-invite', payload, ...over });
 
 describe('invite mail', () => {
@@ -50,7 +50,7 @@ describe('portalHost and inviteLink', () => {
   it('production', () => {
     expect(portalHost('https://scoaladepatinaj.com')).toEqual({ host: 'antrenor.scoaladepatinaj.com', origin: 'https://antrenor.scoaladepatinaj.com' });
     expect(portalHost('https://www.scoaladepatinaj.com').host).toBe('antrenor.scoaladepatinaj.com');
-    expect(inviteLink('antrenor.scoaladepatinaj.com', 's3')).toBe('https://antrenor.scoaladepatinaj.com/invitatie/s3');
+    expect(inviteLink('antrenor.scoaladepatinaj.com', 's3')).toBe('https://antrenor.scoaladepatinaj.com/invite/s3');
   });
   it('local', () => {
     expect(portalHost('http://localhost:3010')).toEqual({ host: 'antrenor.localhost:3010', origin: 'http://antrenor.localhost:3010' });

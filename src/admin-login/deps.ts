@@ -5,7 +5,7 @@ import type { Post } from './api';
 /** What a move to another screen carries: a refusal text for the password form, or the e-mail the code went to. */
 export type Carry = { flash?: string; email?: string; token?: string };
 
-/** What every screen is given: the API, navigation inside `/intrare`, the session handoff and the address query. */
+/** What every screen is given: the API, navigation inside `/login`, the session handoff and the address query. */
 export type Deps = {
   post: Post;
   go: (url: string, carry?: Carry) => void;
@@ -15,7 +15,7 @@ export type Deps = {
   flash: string | null;
   /** The e-mail the login answer named for the e-mail code; null when the page was opened by address (a reload, the Google first link). */
   email: string | null;
-  /** The access token of a login that ended in the passkey offer (`/intrare/cheie`); null when the page was opened by address. */
+  /** The access token of a login that ended in the passkey offer (`/login/passkey`); null when the page was opened by address. */
   token: string | null;
   webauthn: Webauthn;
 };

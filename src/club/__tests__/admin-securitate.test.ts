@@ -137,23 +137,23 @@ describe('rows', () => {
 });
 
 describe('password', () => {
-  it('sends { current, password }, shows "Parolă schimbată." and goes to /intrare only when the session ended', async () => {
+  it('sends { current, password }, shows "Parolă schimbată." and goes to /login only when the session ended', async () => {
     const { client, calls } = fakeClient({ 'POST /api/admin-auth/me/password': { toast: 'Parolă schimbată.', signedOut: false } });
     const done = await createSecurityApi(client).changePassword({ current: 'Old-Password-1', password: 'New-Password-2' });
     expect(calls[0]).toEqual({ method: 'POST', url: '/api/admin-auth/me/password', body: { current: 'Old-Password-1', password: 'New-Password-2' } });
     expect(afterPassword(done)).toEqual({ toast: 'Parolă schimbată.', goTo: null });
-    expect(afterPassword({ toast: 'Parolă schimbată.', signedOut: true })).toEqual({ toast: 'Parolă schimbată.', goTo: '/intrare' });
+    expect(afterPassword({ toast: 'Parolă schimbată.', signedOut: true })).toEqual({ toast: 'Parolă schimbată.', goTo: '/login' });
   });
 });
 
 describe('devices and Administratori', () => {
   const device: AdminDeviceView = { id: 'd1', label: 'Chrome pe Mac', lastSeenAt: '2026-11-08T10:00:00.000Z', current: true, twoFactorUntil: '2026-12-06T10:00:00.000Z' };
 
-  it('lists the device, the last time and the remembered-2FA line, and disconnecting this browser leaves for /intrare', () => {
+  it('lists the device, the last time and the remembered-2FA line, and disconnecting this browser leaves for /login', () => {
     const shown = render(React.createElement(DevicesList, { devices: [device, { ...device, id: 'd2', twoFactorUntil: null }], busy: false, onDisconnect: noop }));
     for (const t of ['Chrome pe Mac', SECURITY_COPY.devices.device, SECURITY_COPY.devices.lastSeen, SECURITY_COPY.devices.disconnect, SECURITY_COPY.devices.rememberedUntil('6 dec 2026')]) expect(has(shown, t), t).toBe(true);
     expect(shown.match(/ținut minte/g)).toHaveLength(1);
-    expect(afterDisconnect({ revokedCurrent: true })).toBe('/intrare');
+    expect(afterDisconnect({ revokedCurrent: true })).toBe('/login');
     expect(afterDisconnect({ revokedCurrent: false })).toBeNull();
   });
 

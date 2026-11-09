@@ -86,7 +86,7 @@ export type PortalInvitePayload = { name: string; link: string; host: string };
 export function isPortalInvitePayload(v: unknown): v is PortalInvitePayload;
 export function renderPortalInvite(input: { payload: PortalInvitePayload; links: EmailLinks }): RenderedEmail;
 export function portalInviteJob(i: { recipient: string; accountId: string; payload: PortalInvitePayload }, now: Date): NewPortalInviteJob; // kind 'portal-invite', status queued, sendAfter now
-export const inviteLink = (siteHost: string, secret: string): string => `https://${siteHost}/invitatie/${secret}`;
+export const inviteLink = (siteHost: string, secret: string): string => `https://${siteHost}/invite/${secret}`;
 ```
 `siteHost` = `antrenor.` + the registrable host of `publicSiteUrl()` (e.g. `antrenor.scoaladepatinaj.com`); locally `antrenor.localhost:3010` over `http` when `publicSiteUrl()` is `http://localhost:3010` (one helper `portalHost(siteUrl): { host: string; origin: string }`, tested for both).
 - [ ] **Step 1: Failing tests**: subject and text of the invite (`"Bună ziua, Andreea Pascu,"`, `"Ai un cont pe antrenor.scoaladepatinaj.com."`, button href the link, `"Linkul este valabil 7 zile."`, `"Echipa EduSport"`); the e-mail change direct mail texts; `isPortalInvitePayload` refuses a missing link; the job composer picks the invite renderer for kind `portal-invite`; outside production the job is sent to the test address only (existing `deliveryTarget`); the email-job schema enum contains `portal-invite`; `portalHost` for production and local URLs.

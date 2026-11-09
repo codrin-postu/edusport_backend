@@ -10,7 +10,7 @@ import { Problem, Shell } from '../Shell';
 const C = SECURITY_COPY.offer;
 
 /**
- * `/intrare/cheie`: shown once after a sign-in that answered `offerPasskey`, when the device has a built-in key. The token is already stored,
+ * `/login/passkey`: shown once after a sign-in that answered `offerPasskey`, when the device has a built-in key. The token is already stored,
  * so both buttons end in `/admin`; "Nu acum" posts the dismissal first. A page opened by address (no token carried) goes straight to the admin.
  */
 export function Offer({ token, webauthn }: Deps) {

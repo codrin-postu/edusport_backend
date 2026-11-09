@@ -23,7 +23,7 @@ Visual rules: no pills or circles (only the spinner ring is round), no dashed or
 Today an admin opens every athlete's data with a password alone [AUTH finding 4], Strapi's own login page carries our branding by DOM injection, and any admin sees everything [DEC 2026-10-19 admin-q1-roles]. Phase 6b closes those gaps: one login page of ours for the admin, an optional 2FA for admins and coaches, passkeys as a password-free sign-in, and three admin roles enforced on the server.
 
 Success:
-- An admin opens `cms-edusport.codrin.space/admin`, lands on our page `/intrare`, signs in with e-mail and password or "Continuă cu Google", passes 2FA when he turned it on, and lands in `/admin` with Strapi's own session [P6b q2, q3; DEC 2026-10-18 auth-levels-v1].
+- An admin opens `cms-edusport.codrin.space/admin`, lands on our page `/login`, signs in with e-mail and password or "Continuă cu Google", passes 2FA when he turned it on, and lands in `/admin` with Strapi's own session [P6b q2, q3; DEC 2026-10-18 auth-levels-v1].
 - No Strapi route issues an admin session behind our page: login, register, register-admin, reset-password and forgot-password are closed [P6b q4; R6b 3.1].
 - A coach or an admin turns on 2FA in "Securitate" with an authenticator app or a code by e-mail, gets 10 backup codes once, and a device he ticks is not asked again for 30 days [P6b q5, q6; DEC 2026-10-18 twofactor-v2].
 - A database dump alone yields no usable TOTP secret, backup code, e-mail code or session [P6b user note].
@@ -33,12 +33,12 @@ Success:
 ## 2. Scope
 
 ### 2.1 In scope, in build order [P6b q1]
-1. 6b-1 Admin security: the spike (14.2); the `/intrare` page; the route gate; admin Google; admin lockout, devices and new-device mail; the shared 2FA core (app, e-mail code, backup codes, remembered devices) with the admin "Securitate" page; reset of a lost 2FA.
+1. 6b-1 Admin security: the spike (14.2); the `/login` page; the route gate; admin Google; admin lockout, devices and new-device mail; the shared 2FA core (app, e-mail code, backup codes, remembered devices) with the admin "Securitate" page; reset of a lost 2FA.
 2. 6b-2 Portal 2FA: the second step after a coach's password login, the 2FA part of the coach "Securitate", "Resetează 2FA" on "Cont portal".
 3. 6b-3 Passkeys: admin and coach, button and autofill, Securitate list, the one-time offer, the domain-move plan.
 4. 6b-4 Roles: three roles, the role map, the `global::has-role` policy on every admin route, menus and pages hidden from the same map.
 
-Delivery split (decided by Claude, low impact): this is one plan, the backend (6b-1 to 6b-4 server, tests, deploy) plus the `/intrare` bundle and the admin Securitate page (admin bundle). Coach screens and the BFF changes are a separate frontend plan that starts after the backend routes are green. The companion round (14.1) is task 0 of each plan and blocks all UI work, not the server work.
+Delivery split (decided by Claude, low impact): this is one plan, the backend (6b-1 to 6b-4 server, tests, deploy) plus the `/login` bundle and the admin Securitate page (admin bundle). Coach screens and the BFF changes are a separate frontend plan that starts after the backend routes are green. The companion round (14.1) is task 0 of each plan and blocks all UI work, not the server work.
 
 ### 2.2 Non-goals
 - Mandatory 2FA for anyone, and any banner asking admins to turn it on [P6b q8].
@@ -109,8 +109,8 @@ The daily portal purge [code src/club/portal/purge.ts] also removes: device rows
 ## 4. Admin login
 
 ### 4.1 The page [P6b q3; R6b 3.1]
-- Our own page on the CMS host at `/intrare` (with `/intrare/invitatie`, `/intrare/parola`, `/intrare/2fa`, `/intrare/cheie`), served by a global middleware `global::admin-login-page` (`src/middlewares/admin-login-page.ts`) from a bundle built from `src/admin-login/` with its own Vite config into `dist/admin-login/`. It reuses `src/admin/ui` components and tokens and the brand layer art of `src/admin/dashboard/loginBranding.ts`, which leaves the Strapi login page with the move [S7].
-- Every `/admin/auth/*` address goes to `/intrare`: the server answers a GET with 302 (keeping `registrationToken` and `code` in the query), and the admin bundle's bootstrap (`src/admin/app.tsx`) replaces the location when the SPA navigates there on its own (logout, expired session) [S7]. `AUTH_COPY` and the auth branding injection are removed from `app.tsx`.
+- Our own page on the CMS host at `/login` (with `/invite`, `/forgot-password`, `/login/2fa`, `/login/passkey`), served by a global middleware `global::admin-login-page` (`src/middlewares/admin-login-page.ts`) from a bundle built from `src/admin-login/` with its own Vite config into `dist/admin-login/`. It reuses `src/admin/ui` components and tokens and the brand layer art of `src/admin/dashboard/loginBranding.ts`, which leaves the Strapi login page with the move [S7].
+- Every `/admin/auth/*` address goes to `/login`: the server answers a GET with 302 (keeping `registrationToken` and `code` in the query), and the admin bundle's bootstrap (`src/admin/app.tsx`) replaces the location when the SPA navigates there on its own (logout, expired session) [S7]. `AUTH_COPY` and the auth branding injection are removed from `app.tsx`.
 - Same-origin JSON calls to `/api/admin-auth/*` (4.3). Every mutating call checks that `Origin` equals `https://<ADMIN_HOST>` (locally `http://localhost:1337`); cookies `HttpOnly`, `Secure` in production, `SameSite=Lax` [P6 5.2 pattern; S8].
 
 ### 4.2 Session handoff [P6b q3, q14; R6b 3.1]
@@ -149,21 +149,21 @@ The daily portal purge [code src/club/portal/purge.ts] also removes: device rows
 ### 4.6 Google [P6b q16; DEC 2026-10-18 admin-login-pages-v3]
 - OIDC code flow with PKCE, `state` and `nonce`, reusing `exchangeCode` and `verifyIdToken` of `src/club/portal/auth/google.ts` [code]; state, nonce and verifier in a 10-minute `HttpOnly` cookie on path `/api/admin-auth/google` [S14].
 - Accepted when the ID token is valid, `email_verified` is true, and `googleSub` matches an active admin, or the e-mail equals an active admin's e-mail (case-insensitive) whose admin account has no `googleSub` and no `googleUnlinkedAt` [P6b q16]. Never creates an admin [R6b 4].
-- The first link by e-mail of an admin who has any 2FA method does not store the sub and issues no session: it opens the pending second step of 6.3 with the sub in the pending data, sets the pending and device cookies, and redirects to `/intrare/2fa?via=google&last=<method>&methods=<list>`. The sub is stored (with "Google conectat.") only after a right code, then the normal handoff. At that moment the account must still hold no sub, have no `googleUnlinkedAt`, and the sub must be nobody else's; otherwise the pending login ends with "pending expired". A remembered device does not skip this step. Admins without 2FA link at once, as before [review B4 H1, user ruling 2026-11-09, option b]. Reason: an attacker with only the admin's mailbox can create a Google account on that address and would otherwise get a session with no 2FA.
+- The first link by e-mail of an admin who has any 2FA method does not store the sub and issues no session: it opens the pending second step of 6.3 with the sub in the pending data, sets the pending and device cookies, and redirects to `/login/2fa?via=google&last=<method>&methods=<list>`. The sub is stored (with "Google conectat.") only after a right code, then the normal handoff. At that moment the account must still hold no sub, have no `googleUnlinkedAt`, and the sub must be nobody else's; otherwise the pending login ends with "pending expired". A remembered device does not skip this step. Admins without 2FA link at once, as before [review B4 H1, user ruling 2026-11-09, option b]. Reason: an attacker with only the admin's mailbox can create a Google account on that address and would otherwise get a session with no 2FA.
 - "Elimină legătura" (Securitate) clears `googleSub` and sets `googleUnlinkedAt` on `admin-account` (datetime, Strapi needs a restart to save the new attribute). From then on a Google login with that e-mail is never linked by e-mail again for that admin: it gets the same no-account refusal below, so it does not reveal the account. The clear done by an e-mail change (4.8) does not set it, but it also ends any pending Google link of that admin. In this phase "Elimină legătura" cannot be undone: there is no signed-in "Conectează Google" action and `googleUnlinkedAt` is never cleared by the application (ops can clear it on `admin_accounts` by hand).
 - Anything else: "Nu am găsit un cont pentru adresa asta." [P6 4.4 copy].
 - A Google login whose sub is already linked skips 2FA; the first link by e-mail of an admin with 2FA asks for it (4.6). Securitate advises "Pornește 2-Step Verification în contul Google." [DEC 2026-10-18 admin-login-pages-v3; S15].
 - The same Google OAuth client as the portal, with the admin redirect URI added [S14].
 
 ### 4.7 Invite and reset [P6b q4; R6b 3.5]
-- Admins are still invited in Strapi's Settings, Users (Super Admin only, Strapi's own permission). The link Strapi shows (`/admin/auth/register?registrationToken=`) lands on `/intrare/invitatie` (4.1).
+- Admins are still invited in Strapi's Settings, Users (Super Admin only, Strapi's own permission). The link Strapi shows (`/admin/auth/register?registrationToken=`) lands on `/invite` (4.1).
 - The page shows the e-mail read only, "Parolă nouă" + "Salvează parola", or "sau" + "Continuă cu Google" (same verified e-mail only). Accept registers through Strapi's `admin::user` service with our password rules (P6 5.5); a Google accept registers with a random 64-character password the admin can replace by reset [P6 4.2 pattern; S16].
 - "Am uitat parola": e-mail -> "Trimite codul" -> "Dacă adresa are cont, am trimis un cod." -> "Cod din e-mail" + "Parolă nouă" + "Salvează parola"; 6 digits, 10 minutes, 5 tries, single use, keyed MAC (5.4) [P6 5.6; S16].
 - A reset ends every session and remembered device of the admin; if 2FA is on, the second step follows before the session [S17].
 - An admin invite expires 7 days after the `admin::user` row's `createdAt` (`INVITE_TTL_MS`, as the portal's), in the read, the accept and the Google accept; it answers 410 with the expired-invite copy. A user blocked before accepting is refused the same way, before anything is registered. The accept claims the token with a conditional update (row count 1) before it writes the password, so of parallel accepts exactly one wins. Strapi cannot resend an invite: the Super Admin deletes the user and invites again (decided by Claude).
 - Reset confirm runs one bcrypt compare on every path, so its time does not tell a known e-mail from an unknown one.
 - Accepted as portal parity (decided by Claude, low impact): a failed mail send answers 503 "Nu am putut trimite" only for a known, active admin, and a send slower than the 1500 ms floor answers later for a known e-mail.
-- Accepted as portal rules (review B4 L7): anyone who knows an admin's e-mail can use up the 5 reset mails an hour (`mail:admin:<e-mail>`) and burn a live code with 5 wrong tries; five wrong logins at `/intrare` lock `admin:login:<e-mail>`, which also refuses the signed-in admin's password change for 15 minutes. A support report of "no code arrives" or "password change refused" can come from this.
+- Accepted as portal rules (review B4 L7): anyone who knows an admin's e-mail can use up the 5 reset mails an hour (`mail:admin:<e-mail>`) and burn a live code with 5 wrong tries; five wrong logins at `/login` lock `admin:login:<e-mail>`, which also refuses the signed-in admin's password change for 15 minutes. A support report of "no code arrives" or "password change refused" can come from this.
 - History line and mail as 13 and 12.
 
 ### 4.8 Devices and new-device mail [P6b q15]
@@ -173,7 +173,7 @@ The daily portal purge [code src/club/portal/purge.ts] also removes: device rows
 - Admin Securitate lists "Dispozitiv" | "Ultima dată" with "Deconectează" (ends that Strapi session family through `invalidateRefreshToken(userId, deviceId)` and forgets the device) [P6 9.10 pattern].
 - A password change ends every other session of the admin and forgets the other devices' 2FA [P6 5.2; S17].
 - An admin e-mail change (Super Admin, Settings, Users) clears `googleSub` and ends the admin's sessions, through a lifecycle on `admin::user` [DEC 2026-11-06 q27 pattern; S10].
-- Cutover (decided by Claude, low impact): admin sessions opened before the deploy have no `admin_devices` row and keep working until they expire; the first `/intrare` login creates the device row. No compatibility shim.
+- Cutover (decided by Claude, low impact): admin sessions opened before the deploy have no `admin_devices` row and keep working until they expire; the first `/login` login creates the device row. No compatibility shim.
 
 ## 5. Secrets and codes [P6b user note]
 
@@ -272,12 +272,12 @@ Codes and secrets never reach a log: the request bodies of `/api/admin-auth/*` a
 
 ### 7.2 Frontend (edusport_frontend, second plan)
 - The BFF login handler keeps the pending secret in `__Host-es_2fa` (10 minutes, `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`; locally without the prefix) and never hands it to page script [P6 5.2; S27].
-- Pages: `/intrare/2fa` (6.3, 11.2), the offer screen (8.4), Securitate sections (11.3); "Folosește cheia de acces" and autofill on the login form (8.3).
+- Pages: `/login/2fa` (6.3, 11.2), the offer screen (8.4), Securitate sections (11.3); "Folosește cheia de acces" and autofill on the login form (8.3).
 
 ## 8. Passkeys (6b-3)
 
 ### 8.1 Library [R6b 3.4]
-- Server: `@simplewebauthn/server` pinned to exactly 14.0.3 (backend). Browser: `@simplewebauthn/browser` pinned to exactly 14.0.0 (the `/intrare` bundle and edusport_frontend). No caret ranges; every upgrade is a reviewed change [R6b 3.4; S33].
+- Server: `@simplewebauthn/server` pinned to exactly 14.0.3 (backend). Browser: `@simplewebauthn/browser` pinned to exactly 14.0.0 (the `/login` bundle and edusport_frontend). No caret ranges; every upgrade is a reviewed change [R6b 3.4; S33].
 - Node 22 as today (the library needs 20 or later) [code package.json engines].
 
 ### 8.2 Ceremonies
@@ -364,12 +364,12 @@ Codes and secrets never reach a log: the request bodies of `/api/admin-auth/*` a
 
 ## 10. Admin screens
 
-### 10.1 Login (`/intrare`) [P6b q3; P6 9.1]
+### 10.1 Login (`/login`) [P6b q3; P6 9.1]
 - Brand layer as today (navy shape, EDUSPORT wordmark, "Panou de administrare"); form on the right.
 - Title "Intră în cont"; "Continuă cu Google"; "sau"; "E-mail"; "Parolă" (eye icon, "Arată parola" / "Ascunde parola"); tick "Ține-mă minte" [code src/admin/app.tsx AUTH_COPY]; button "Intră"; "Folosește cheia de acces"; link "Am uitat parola" [P6 9.1; S43].
 - Errors: 4.5, 4.6, 8.3.
 
-### 10.2 Second step (`/intrare/2fa`) and the offer: as 11.2 and 8.4, same copy.
+### 10.2 Second step (`/login/2fa`) and the offer: as 11.2 and 8.4, same copy.
 
 ### 10.3 Invite and reset: as P6 9.2 copy, admin context (4.7).
 
@@ -423,13 +423,13 @@ Subject `portalAccount` (coach) and `adminUser` (admin); actor the person, or th
 ## 14. Builder notes
 
 ### 14.1 Before building
-- Companion screen round with real component renders and the light-mode overrides: `/intrare` (login, 2FA step, invite, reset), the offer screen, admin Securitate with "Administratori", coach 2FA step and Securitate, "Cont portal" with "Resetează 2FA", the e-mails [R6b 21; memory: decisions in companion].
+- Companion screen round with real component renders and the light-mode overrides: `/login` (login, 2FA step, invite, reset), the offer screen, admin Securitate with "Administratori", coach 2FA step and Securitate, "Cont portal" with "Resetează 2FA", the e-mails [R6b 21; memory: decisions in companion].
 - Strings marked [S n] are confirmed there; copy lives in `src/club/security/copy.ts` (shared), `src/club/portal/copy.ts` and the frontend copy file.
 
 ### 14.2 Task 1: spike (gate for everything after it) [R6b 3.6]
 On Strapi 5.52.1, locally:
 1. A controller of ours issues an admin session for a user id (`generateRefreshToken`, `strapi_admin_refresh` with Strapi's options, `generateAccessToken`); the access token handed over as in 4.2 (both "Ține-mă minte" ways); `/admin` opens logged in; `POST /admin/access-token` rotates; logout ends it; idle and max lifetimes match Strapi's defaults.
-2. The gate refuses the five routes of 4.4; `/admin/auth/*` reaches `/intrare` by server redirect and by the SPA navigation (logout, 401).
+2. The gate refuses the five routes of 4.4; `/admin/auth/*` reaches `/login` by server redirect and by the SPA navigation (logout, 401).
 3. `admin::role` takes a fixed `code`; native Content Manager permissions per role hide Strapi's menus; `/admin/users/me` returns the roles for a non-Super-Admin.
 4. `invalidateRefreshToken(userId)` ends every session of an admin, and `(userId, deviceId)` one device.
 
@@ -460,11 +460,11 @@ Plan shape (decided by Claude, low impact): one plan, written for the main path,
 ### 14.5 Deploy
 1. Strapi env: `AUTH_SECRET_KEY`, `AUTH_CODE_KEY` (`openssl rand -base64 32` on the VM), `WEBAUTHN_RP_ID=codrin.space`, `WEBAUTHN_ORIGINS`, `ADMIN_HOST=cms-edusport.codrin.space`. Next: nothing new beyond the browser library [S18].
 2. Google Cloud: add the redirect URI `https://cms-edusport.codrin.space/api/admin-auth/google/callback` to the portal's OAuth client; the VM egress policy already allows Google for the portal [P6 14.4; memory: VM egress policy].
-3. Before switching the gate on in production: at least two Super Admins sign in on `/intrare` [R6b 6].
+3. Before switching the gate on in production: at least two Super Admins sign in on `/login` [R6b 6].
 4. Restart the backend twice if a new attribute is not saved [memory: schema change needs restart].
 5. Docs with the build: `08-authentication.md` (admin sessions, keys, rpId now and after the move), `13-roadmap.md` rows 6 and 10 (10 loses "Staff club"), the DECISIONS Security index, a sequence diagram for the admin login and the 2FA step.
 6. Role assignment (decided by Claude, low impact): before the gate of step 3 is switched on, the checklist step "a Super Admin assigns Administrator club or Editor site to every non-super admin before the policy is enabled" must be done. The bootstrap log lists each admin without an EduSport role, and that list is the checklist.
-7. Cutover note (decided by Claude, low impact): pending portal reset codes are invalid after deploy and the user requests another; existing admin sessions keep working until they expire; the first `/intrare` login creates the device row.
+7. Cutover note (decided by Claude, low impact): pending portal reset codes are invalid after deploy and the user requests another; existing admin sessions keep working until they expire; the first `/login` login creates the device row.
 
 ## 15. Decided by spec author (low impact)
 - S1 decided by spec author (low impact): one set of 2FA tables for portal and admin subjects, plain `subjectType` and `subjectId` columns.
@@ -473,7 +473,7 @@ Plan shape (decided by Claude, low impact): one plan, written for the main path,
 - S4 decided by spec author (low impact): `admin_accounts` beside `admin::user` for Google, user handle, last method and offer flag; the same three fields on `portal_accounts`.
 - S5 decided by spec author (low impact): the portal reset code moves to the keyed MAC, required by the user note.
 - S6 decided by spec author (low impact): the purge rules of 3.9.
-- S7 decided by spec author (low impact): page path `/intrare` and subpaths, own Vite bundle reusing `src/admin/ui`, server and client redirect of `/admin/auth/*`, Strapi login branding removed.
+- S7 decided by spec author (low impact): page path `/login` and subpaths, own Vite bundle reusing `src/admin/ui`, server and client redirect of `/admin/auth/*`, Strapi login branding removed.
 - S8 decided by spec author (low impact): Origin check on every mutating `/api/admin-auth` call.
 - S9 decided by spec author (low impact): admin device cookie `__Host-es_adm_dev`, 400 days, one Strapi session family per device.
 - S10 decided by spec author (low impact): password only through our Securitate, Strapi profile and user-edit password fields refused; an admin e-mail change clears Google and ends sessions.

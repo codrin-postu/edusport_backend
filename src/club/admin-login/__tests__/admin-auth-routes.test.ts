@@ -122,7 +122,7 @@ describe('the Google navigations', () => {
     const urls: string[] = [];
     const ctx = { params: {}, query: {}, status: 200, body: null, redirect: (u: string) => urls.push(u), request: { body: {}, header: {}, headers: {}, secure: false, ip: '1.1.1.1' }, cookies: { get: () => undefined, set: () => undefined } };
     for (const h of [controller.googleStart, controller.googleCallback, controller.inviteGoogle]) await h(ctx as never);
-    expect(urls).toEqual(['/intrare?eroare=google', '/intrare?eroare=google', '/intrare/invitatie?eroare=google']);
+    expect(urls).toEqual(['/login?eroare=google', '/login?eroare=google', '/invite?eroare=google']);
     expect(log).toHaveBeenCalledWith('[admin-auth] googleStart failed: TypeError');
     delete (globalThis as { strapi?: unknown }).strapi;
   });

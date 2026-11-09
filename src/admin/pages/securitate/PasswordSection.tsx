@@ -13,7 +13,7 @@ import { afterPassword } from './state';
 
 const C = SECURITY_COPY.password;
 
-/** "Parolă": the current one and the new one. Others sign out; when this session ended too (`signedOut`) the page goes to `/intrare`. */
+/** "Parolă": the current one and the new one. Others sign out; when this session ended too (`signedOut`) the page goes to `/login`. */
 export function PasswordSection({ api, goTo }: { api: SecurityApi; goTo: (path: string) => void }) {
   const [current, setCurrent] = React.useState('');
   const [next, setNext] = React.useState('');

@@ -26,7 +26,7 @@ describe('inviteAccount', () => {
     expect(h.fake.state.tokens).toHaveLength(1);
     expect(h.jobs).toHaveLength(1);
     expect(h.jobs[0]).toMatchObject({ recipient: 'andreea@example.com', payload: { name: 'Andreea Pascu', host: 'antrenor.scoaladepatinaj.com' } });
-    const secret = h.jobs[0].payload.link.split('/invitatie/')[1];
+    const secret = h.jobs[0].payload.link.split('/invite/')[1];
     expect(h.fake.state.tokens[0].secretHash).toBe(hashSecret(secret));
     expect(h.after).toEqual(['job1']);
     const line = h.fake.state.history[0];
@@ -297,7 +297,7 @@ describe('q26: a deleted team member leaves a disabled account that a new invite
     expect(h.fake.state.sessions.every((s) => s.revokedAt !== null)).toBe(true);
     const live = h.fake.state.tokens.filter((t) => t.kind === 'invite' && t.usedAt === null);
     expect(live).toHaveLength(1);
-    expect(live[0].secretHash).toBe(hashSecret(h.jobs[0].payload.link.split('/invitatie/')[1]));
+    expect(live[0].secretHash).toBe(hashSecret(h.jobs[0].payload.link.split('/invite/')[1]));
     expect(h.jobs[0]).toMatchObject({ recipient: 'andreea@example.com', accountId: id, payload: { name: 'Virgil Ion' } });
     expect(h.after).toEqual(['job1']);
     expect(h.cancelled).toContain(id);

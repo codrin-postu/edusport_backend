@@ -10,28 +10,28 @@ const source = (p: string): string => readFileSync(join(root, p), 'utf8');
 
 describe('pageDecision', () => {
   it('serves the html for the six pages', () => {
-    for (const p of ['/intrare', '/intrare/', '/intrare/invitatie', '/intrare/parola', '/intrare/2fa', '/intrare/cheie', '/intrare/gata']) {
+    for (const p of ['/login', '/login/', '/invite', '/forgot-password', '/login/2fa', '/login/passkey', '/login/done']) {
       expect(pageDecision('GET', p), p).toEqual({ kind: 'html' });
     }
-    expect(pageDecision('HEAD', '/intrare')).toEqual({ kind: 'html' });
+    expect(pageDecision('HEAD', '/login')).toEqual({ kind: 'html' });
   });
 
-  it('serves hashed bundle files under /intrare/assets', () => {
-    expect(pageDecision('GET', '/intrare/assets/index-AbC123.js')).toEqual({ kind: 'asset', name: 'index-AbC123.js' });
+  it('serves hashed bundle files under /login/assets', () => {
+    expect(pageDecision('GET', '/login/assets/index-AbC123.js')).toEqual({ kind: 'asset', name: 'index-AbC123.js' });
   });
 
-  it('answers 404 for traversal, encoded traversal and unknown paths under /intrare', () => {
-    for (const p of ['/intrare/../x', '/intrare/assets/../../x', '/intrare/assets/%2e%2e/x', '/intrare/assets/a/b.js', '/intrare/assets/..', '/intrare/other', '/intrare/gata/x', '/intrare/assets/']) {
+  it('answers 404 for traversal, encoded traversal and unknown paths under /login', () => {
+    for (const p of ['/login/../x', '/login/assets/../../x', '/login/assets/%2e%2e/x', '/login/assets/a/b.js', '/login/assets/..', '/login/other', '/login/done/x', '/login/assets/']) {
       expect(pageDecision('GET', p), p).toEqual({ kind: 'notFound' });
     }
   });
 
   it('never touches /admin, /api, look-alike prefixes or other methods', () => {
-    for (const p of ['/admin', '/admin/auth/login', '/admin/intrare', '/api/admin-auth/login', '/intrareX', '/intrare-x/y', '/']) {
+    for (const p of ['/admin', '/admin/auth/login', '/admin/login', '/api/admin-auth/login', '/invite/x', '/forgot-password/x', '/loginX', '/login-x/y', '/']) {
       expect(pageDecision('GET', p), p).toEqual({ kind: 'pass' });
     }
-    expect(pageDecision('POST', '/intrare')).toEqual({ kind: 'pass' });
-    expect(pageDecision('PUT', '/intrare/2fa')).toEqual({ kind: 'pass' });
+    expect(pageDecision('POST', '/login')).toEqual({ kind: 'pass' });
+    expect(pageDecision('PUT', '/login/2fa')).toEqual({ kind: 'pass' });
   });
 });
 
@@ -66,7 +66,7 @@ describe('pageMiddleware over a bundle directory', () => {
   };
 
   it('html: no-store, no-referrer, noindex, text/html', async () => {
-    const { ctx, headers } = await run('GET', '/intrare/2fa');
+    const { ctx, headers } = await run('GET', '/login/2fa');
     expect(ctx.type).toBe('text/html; charset=utf-8');
     expect(headers['Cache-Control']).toBe('no-store');
     expect(headers['Referrer-Policy']).toBe('no-referrer');
@@ -74,9 +74,9 @@ describe('pageMiddleware over a bundle directory', () => {
   });
 
   it('a bundle file is javascript and cached; a missing one and a traversal are 404; /admin passes on', async () => {
-    expect((await run('GET', '/intrare/assets/index-1.js')).ctx.type).toBe('application/javascript; charset=utf-8');
-    expect((await run('GET', '/intrare/assets/missing.js')).ctx.status).toBe(404);
-    expect((await run('GET', '/intrare/../x')).ctx.status).toBe(404);
+    expect((await run('GET', '/login/assets/index-1.js')).ctx.type).toBe('application/javascript; charset=utf-8');
+    expect((await run('GET', '/login/assets/missing.js')).ctx.status).toBe(404);
+    expect((await run('GET', '/login/../x')).ctx.status).toBe(404);
     expect((await run('GET', '/admin/auth/login')).passed).toBe(true);
   });
 });

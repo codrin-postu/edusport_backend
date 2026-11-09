@@ -314,7 +314,7 @@ Static paths before parameter paths [P4 8.2].
 ## 11. Mails
 
 ### 11.1 Parent invite [Q-rec q22; R7 C-h]
-- Subject "Acces la portalul EduSport". "Bună, <nume>," / "Ai primit acces la portalul EduSport pentru <copil>." (several: "pentru <copil> și <copil>") / button "Intră în portal" to `https://sportiv.<domain>/invitatie/<secret>` / "Linkul este valabil 7 zile." / signature as P6 [S38].
+- Subject "Acces la portalul EduSport". "Bună, <nume>," / "Ai primit acces la portalul EduSport pentru <copil>." (several: "pentru <copil> și <copil>") / button "Intră în portal" to `https://sportiv.<domain>/invite/<secret>` / "Linkul este valabil 7 zile." / signature as P6 [S38].
 - `PortalInvitePayload` gains `children: string[]`; `portalHost(siteUrl, site)` takes the host [R7 3.3.6].
 
 ### 11.2 Access added (`portal-access`, queued) [P7 q7 A]

@@ -11,7 +11,7 @@ import { Problem, Shell } from '../Shell';
 const C = SECURITY_COPY.invite;
 type Read = { state: 'valid'; email: string } | { state: 'expired'; email: null };
 
-/** `/intrare/invitatie?registrationToken=`: the invited e-mail read only, a new password or the same verified Google address. */
+/** `/invite?registrationToken=`: the invited e-mail read only, a new password or the same verified Google address. */
 export function Invite({ post, go, handoff, search }: Deps) {
   const params = new URLSearchParams(search);
   const token = params.get('registrationToken') ?? '';

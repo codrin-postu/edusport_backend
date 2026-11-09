@@ -11,18 +11,18 @@ export type Next =
   | { kind: 'error'; message: string };
 
 export const PATH = {
-  login: '/intrare',
-  invite: '/intrare/invitatie',
-  reset: '/intrare/parola',
-  secondStep: '/intrare/2fa',
-  done: '/intrare/gata',
-  offer: '/intrare/cheie',
+  login: '/login',
+  invite: '/invite',
+  reset: '/forgot-password',
+  secondStep: '/login/2fa',
+  done: '/login/done',
+  offer: '/login/passkey',
 } as const;
 
 const ALL_METHODS: readonly TwoFactorMethod[] = ['totp', 'email', 'backup'];
 const isMethod = (v: string | null | undefined): v is TwoFactorMethod => ALL_METHODS.includes(v as TwoFactorMethod);
 
-/** `/intrare/2fa?last=totp&methods=totp,backup`, with `via=google` for the Google first-link redirect (spec 4.6). */
+/** `/login/2fa?last=totp&methods=totp,backup`, with `via=google` for the Google first-link redirect (spec 4.6). */
 export const secondStepUrl = (s: Pick<SecondStep, 'methods' | 'last'>, via?: 'google'): string =>
   `${PATH.secondStep}?last=${s.last}&methods=${s.methods.join(',')}${via ? `&via=${via}` : ''}`;
 

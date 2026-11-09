@@ -12,10 +12,10 @@ import { Problem, Shell } from '../Shell';
 
 const C = SECURITY_COPY.reset;
 
-/** `/intrare/parola`: e-mail, "Trimite codul", then the code and a new password (spec 4.7). A `code` in the address fills the code field. */
-export function Reset({ post, go, handoff, search }: Deps) {
+/** `/forgot-password`: e-mail, "Trimite codul", then the code and a new password (spec 4.7). */
+export function Reset({ post, go, handoff }: Deps) {
   const [email, setEmail] = React.useState('');
-  const [code, setCode] = React.useState(new URLSearchParams(search).get('code') ?? '');
+  const [code, setCode] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [sent, setSent] = React.useState(false);
   const [busy, setBusy] = React.useState(false);

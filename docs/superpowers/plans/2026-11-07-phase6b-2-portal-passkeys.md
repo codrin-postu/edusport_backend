@@ -25,7 +25,7 @@
 | 19 Portal Securitate 2FA routes, "Resetează 2FA" | high | Sonnet | B5 |
 | 20 Passkey core | high | Sonnet | B6 |
 | 21 Passkey routes, offer flag | high | Sonnet | B6 |
-| 22 Passkey UI in `/intrare` and admin Securitate | high | Sonnet | B6 |
+| 22 Passkey UI in `/login` and admin Securitate | high | Sonnet | B6 |
 | 23 Domain move script, old keys | high | Haiku | B6 |
 
 Batch B5 also holds 6b-1 T17; one final Opus review of this plan after T23.
@@ -157,16 +157,16 @@ export async function renamePasskey(...), deletePasskey(...); // owner check, 40
 
 ---
 
-### Task 22: Passkey UI in `/intrare` and the admin Securitate page (high, Sonnet). After Task 0
+### Task 22: Passkey UI in `/login` and the admin Securitate page (high, Sonnet). After Task 0
 
 **Files:**
 - Create: `src/admin-login/passkey.ts`, `src/admin-login/screens/Offer.tsx`, `src/admin/pages/securitate/PasskeysSection.tsx`, `tests/e2e-admin/passkeys.spec.ts` (Playwright, run against the T28 boot instance only, skipped without `ADMIN_E2E_BASE`)
-- Modify: `package.json` (`"@simplewebauthn/browser": "14.0.0"`), `src/admin-login/screens/Login.tsx`, `src/admin-login/App.tsx` (`/intrare/cheie`), `src/admin/pages/SecuritatePage.tsx`
+- Modify: `package.json` (`"@simplewebauthn/browser": "14.0.0"`), `src/admin-login/screens/Login.tsx`, `src/admin-login/App.tsx` (`/login/passkey`), `src/admin/pages/SecuritatePage.tsx`
 - Test: `src/admin-login/__tests__/passkey-ui.test.tsx`, `src/club/__tests__/admin-securitate-passkeys.test.tsx`
 
 **Interfaces:**
 - Consumes: the admin passkey contracts; `browserSupportsWebAuthn`, `browserSupportsWebAuthnAutofill`, `platformAuthenticatorIsAvailable`, `startAuthentication`, `startRegistration` from `@simplewebauthn/browser`.
-- Produces: Login: "Folosește cheia de acces" under "Intră" and autofill on "E-mail" (`autocomplete="username webauthn"`, conditional mediation started on mount, aborted when the button flow starts), both only when supported; cancel or failure -> "Nu am putut folosi cheia de acces."; the server's 401 text shown as sent. Offer (`/intrare/cheie`, after a handoff with `offerPasskey` and `platformAuthenticatorIsAvailable()`): title "Creează o cheie de acces", line "Intri cu amprenta, fața sau codul telefonului, fără parolă.", "Creează" and "Nu acum"; both end in `/admin` (dismiss posts first). The offer runs after `storeHandoff` stored the token and before `location.assign`, using the access token for the `me/passkeys` calls. Securitate "Chei de acces": rows "<nume>", "Creată <dată>, folosită <dată>", "Redenumește" (field "Nume"), "Șterge"; old rows "Cheie veche, nu mai merge. Creează una nouă." with "Șterge" only; button "Creează o cheie de acces" on supporting devices; toasts of 11.3.
+- Produces: Login: "Folosește cheia de acces" under "Intră" and autofill on "E-mail" (`autocomplete="username webauthn"`, conditional mediation started on mount, aborted when the button flow starts), both only when supported; cancel or failure -> "Nu am putut folosi cheia de acces."; the server's 401 text shown as sent. Offer (`/login/passkey`, after a handoff with `offerPasskey` and `platformAuthenticatorIsAvailable()`): title "Creează o cheie de acces", line "Intri cu amprenta, fața sau codul telefonului, fără parolă.", "Creează" and "Nu acum"; both end in `/admin` (dismiss posts first). The offer runs after `storeHandoff` stored the token and before `location.assign`, using the access token for the `me/passkeys` calls. Securitate "Chei de acces": rows "<nume>", "Creată <dată>, folosită <dată>", "Redenumește" (field "Nume"), "Șterge"; old rows "Cheie veche, nu mai merge. Creează una nouă." with "Șterge" only; button "Creează o cheie de acces" on supporting devices; toasts of 11.3.
 - [ ] **Step 1: Failing tests** with `@simplewebauthn/browser` mocked: the button and autofill render only when supported; a cancelled `startAuthentication` shows the failure text; the offer shows once and both buttons call dismiss or register then go to `/admin`; Securitate lists keys and old keys with the right texts and buttons; every button has `.pce`. Playwright spec (CDP `WebAuthn.addVirtualAuthenticator`, `ctap2`, `internal`, `hasResidentKey`, `hasUserVerification`, `isUserVerified`): password login, offer "Creează", logout, sign in by the button, then by autofill; wrong origin is covered by T20.
 - [ ] **Step 2: Run** FAIL. **Step 3: Implement.** **Step 4: Run** PASS (suite, tsc, `tsc -p src/admin`, the bundle build). The Playwright spec runs in T28.
 - [ ] **Step 5: Commit** `feat(admin-login): passkey button, autofill, offer and Securitate list`.

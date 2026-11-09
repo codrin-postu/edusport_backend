@@ -3,20 +3,24 @@ import path from 'node:path';
 
 export type PageDecision = { kind: 'html' } | { kind: 'asset'; name: string } | { kind: 'notFound' } | { kind: 'pass' };
 
-/** The five pages of the sign-in bundle (spec 4.1) and `/intrare/gata` (ruling 18); every one is the same single-page html. */
-const PAGES = new Set(['/intrare', '/intrare/invitatie', '/intrare/parola', '/intrare/2fa', '/intrare/cheie', '/intrare/gata']);
-const ASSET = /^\/intrare\/assets\/([A-Za-z0-9_][A-Za-z0-9_.-]*)$/;
+/** The five pages of the sign-in bundle (spec 4.1) and `/login/done` (ruling 18); every one is the same single-page html. */
+const PAGES = new Set(['/login', '/invite', '/forgot-password', '/login/2fa', '/login/passkey', '/login/done']);
+const ASSET = /^\/login\/assets\/([A-Za-z0-9_][A-Za-z0-9_.-]*)$/;
+
+/** Everything under `/login`, and the two pages outside it (`/invite`, `/forgot-password`, which may carry a trailing slash). */
+const isBundlePath = (pathname: string): boolean =>
+  pathname === '/login' || pathname.startsWith('/login/') || /^\/(invite|forgot-password)\/?$/.test(pathname);
 
 /**
- * Pure: what the page middleware does with a request. Only `GET` and `HEAD` under `/intrare` are its business; everything else
- * (the whole `/admin` and `/api` tree included) passes untouched. A path under `/intrare` that is neither a page nor a bundle file
+ * Pure: what the page middleware does with a request. Only `GET` and `HEAD` under `/login` are its business; everything else
+ * (the whole `/admin` and `/api` tree included) passes untouched. A path under `/login` that is neither a page nor a bundle file
  * (a `..` segment, an encoded one, an unknown name) is a 404, never a file read.
  */
 export function pageDecision(method: string, pathname: string): PageDecision {
-  if (pathname !== '/intrare' && !pathname.startsWith('/intrare/')) return { kind: 'pass' };
+  if (!isBundlePath(pathname)) return { kind: 'pass' };
   if (method !== 'GET' && method !== 'HEAD') return { kind: 'pass' };
-  const trimmed = pathname.length > '/intrare/'.length && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
-  if (PAGES.has(trimmed) || pathname === '/intrare/') return { kind: 'html' };
+  const trimmed = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+  if (PAGES.has(trimmed)) return { kind: 'html' };
   const asset = ASSET.exec(pathname);
   return asset && !asset[1].includes('..') ? { kind: 'asset', name: asset[1] } : { kind: 'notFound' };
 }
@@ -70,5 +74,5 @@ export const pageMiddleware = (dir: string) => async (ctx: PageCtx, next: () => 
   return send(ctx, path.join(dir, 'assets', decision.name), false);
 };
 
-/** Global middleware serving the `/intrare` bundle from `dist/admin-login` (built by `vite build -c vite.admin-login.config.ts`). */
+/** Global middleware serving the `/login` bundle from `dist/admin-login` (built by `vite build -c vite.admin-login.config.ts`). */
 export default (_config?: unknown, _deps?: unknown) => pageMiddleware(bundleDir());

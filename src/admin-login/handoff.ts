@@ -58,7 +58,7 @@ export function takeGateToken(w: HandoffWindow): string | null {
   }
 }
 
-/** `/intrare/gata`: moves the Google token into the SPA's storage (`remember` as the first step asked) and opens the admin; false when no token came. */
+/** `/login/done`: moves the Google token into the SPA's storage (`remember` as the first step asked) and opens the admin; false when no token came. */
 export function finishGoogle(remember: boolean, w: HandoffWindow): boolean {
   const token = takeGateToken(w);
   if (!token) return false;

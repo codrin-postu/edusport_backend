@@ -52,13 +52,13 @@ describe('gateDecision, gate on', () => {
     expect(gateDecision('PUT', '/admin/users/5', { email: 'a@b.ro' }, true)).toBe('pass');
   });
 
-  it('GET /admin/auth/*: a redirect to the matching /intrare path, keeping only registrationToken and code', () => {
-    expect(gateDecision('GET', '/admin/auth/register?registrationToken=abc&x=1', undefined, true)).toEqual({ redirect: '/intrare/invitatie?registrationToken=abc' });
-    expect(gateDecision('GET', '/admin/auth/login', undefined, true)).toEqual({ redirect: '/intrare' });
-    expect(gateDecision('GET', '/admin/auth/forgot-password', undefined, true)).toEqual({ redirect: '/intrare/parola' });
-    expect(gateDecision('GET', '/admin/auth/reset-password?code=123456&y=2', undefined, true)).toEqual({ redirect: '/intrare/parola?code=123456' });
-    expect(gateDecision('GET', '/admin/auth/oops?registrationToken=a%20b&code=9', undefined, true)).toEqual({ redirect: '/intrare?registrationToken=a%20b&code=9' });
-    expect(gateDecision('GET', '/admin/auth/register/', undefined, true)).toEqual({ redirect: '/intrare/invitatie' });
+  it('GET /admin/auth/*: a redirect to the matching /login path, keeping only registrationToken', () => {
+    expect(gateDecision('GET', '/admin/auth/register?registrationToken=abc&x=1', undefined, true)).toEqual({ redirect: '/invite?registrationToken=abc' });
+    expect(gateDecision('GET', '/admin/auth/login', undefined, true)).toEqual({ redirect: '/login' });
+    expect(gateDecision('GET', '/admin/auth/forgot-password', undefined, true)).toEqual({ redirect: '/forgot-password' });
+    expect(gateDecision('GET', '/admin/auth/reset-password?code=123456&y=2', undefined, true)).toEqual({ redirect: '/forgot-password' });
+    expect(gateDecision('GET', '/admin/auth/oops?registrationToken=a%20b&code=9', undefined, true)).toEqual({ redirect: '/login?registrationToken=a%20b' });
+    expect(gateDecision('GET', '/admin/auth/register/', undefined, true)).toEqual({ redirect: '/invite' });
   });
 
   it('access-token, logout and everything else pass', () => {
@@ -95,7 +95,7 @@ describe('the middleware', () => {
     expect(forbidden.ctx.status).toBe(403);
     const moved = await run('GET', '/admin/auth/register?registrationToken=abc');
     expect(moved.next).not.toHaveBeenCalled();
-    expect(moved.ctx.redirect).toHaveBeenCalledWith('/intrare/invitatie?registrationToken=abc');
+    expect(moved.ctx.redirect).toHaveBeenCalledWith('/invite?registrationToken=abc');
     const through = await run('POST', '/admin/access-token');
     expect(through.next).toHaveBeenCalledOnce();
   });
@@ -111,7 +111,7 @@ describe('the middleware', () => {
       expect(ctx.status).toBe(404);
       const moved = { ...ctxOf('GET', '/admin/auth/register'), url: 'http://h/admin/auth/register?registrationToken=abc&x=1', path: '/admin/auth/register', querystring: 'registrationToken=abc&x=1' };
       await adminAuthGate()(moved as never, next);
-      expect(moved.redirect).toHaveBeenCalledWith('/intrare/invitatie?registrationToken=abc');
+      expect(moved.redirect).toHaveBeenCalledWith('/invite?registrationToken=abc');
     } finally {
       if (saved !== undefined) process.env.ADMIN_GATE = saved;
     }

@@ -18,7 +18,7 @@ async function addAuthenticator(page) {
 
 test('password login, offer "Creează", logout, sign in by the button, then by autofill', async ({ page }) => {
   await addAuthenticator(page);
-  await page.goto(`${base}/intrare`);
+  await page.goto(`${base}/login`);
   await page.getByLabel('E-mail').fill(email);
   await page.getByLabel('Parolă', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Intră', exact: true }).click();
@@ -29,13 +29,13 @@ test('password login, offer "Creează", logout, sign in by the button, then by a
   await page.evaluate(() => { localStorage.clear(); document.cookie = 'jwtToken=; Path=/admin; Max-Age=0'; });
   await page.context().clearCookies();
 
-  await page.goto(`${base}/intrare`);
+  await page.goto(`${base}/login`);
   await page.getByRole('button', { name: 'Folosește cheia de acces' }).click();
   await page.waitForURL(`${base}/admin**`);
 
   await page.evaluate(() => { localStorage.clear(); });
   await page.context().clearCookies();
-  await page.goto(`${base}/intrare`);
+  await page.goto(`${base}/login`);
   await page.getByLabel('E-mail').focus();
   await page.waitForURL(`${base}/admin**`, { timeout: 15000 }).catch(async () => {
     await page.getByLabel('E-mail').click();

@@ -9,7 +9,7 @@ let initialized = false;
 
 /** Requests whose bodies, cookies, credentials headers and query strings carry passwords, codes or secrets (spec 12). */
 const AUTH_PATH_PREFIXES = [
-  '/api/admin-auth/', '/api/portal/auth/', '/api/portal/me/', '/intrare',
+  '/api/admin-auth/', '/api/portal/auth/', '/api/portal/me/', '/login', '/invite', '/forgot-password',
   // Strapi's own admin auth: the login redirects carry `registrationToken` and `code` in the query, the token routes carry the refresh cookie.
   '/admin/auth/', '/admin/access-token', '/admin/renew-token', '/admin/logout',
   // Disabled by the gate (404) but a stray request can still carry a password.

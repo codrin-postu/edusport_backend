@@ -13,8 +13,8 @@ const CLIENT_ID = 'client-1.apps.googleusercontent.com';
 const pair = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const jwk = { ...pair.publicKey.export({ format: 'jwk' }), kid: 'k1', alg: 'RS256', use: 'sig' };
 const COOKIE = ADMIN_GOOGLE_COOKIE(false);
-const FAILED = '/intrare?eroare=google';
-const FAILED_INVITE = '/intrare/invitatie?eroare=google';
+const FAILED = '/login?eroare=google';
+const FAILED_INVITE = '/invite?eroare=google';
 
 function googleEnv() {
   clearGoogleKeyCache();
@@ -88,7 +88,7 @@ describe('adminGoogleCallback', () => {
     const env = googleEnv();
     await env.c.store.updateAdminAccount((await env.c.store.ensureAdminAccount(7)).id, { googleSub: 'sub-1' });
     const out = await env.run({ email: 'other@x.ro' });
-    expect(out).toEqual({ redirect: '/intrare/gata?remember=1' });
+    expect(out).toEqual({ redirect: '/login/done?remember=1' });
     const jwtSet = env.sets.find((s) => s.name === 'jwtToken');
     expect(jwtSet?.value).toEqual(expect.any(String));
     expect(jwtSet?.options).toMatchObject({ httpOnly: false, path: '/', sameSite: 'lax', maxAge: 60_000 });
@@ -101,14 +101,14 @@ describe('adminGoogleCallback', () => {
 
   it('an e-mail match (case-insensitive) on an account with no sub stores the sub and writes "Google conectat."', async () => {
     const env = googleEnv();
-    expect(await env.run({ email: 'ana@x.ro' })).toEqual({ redirect: '/intrare/gata?remember=1' });
+    expect(await env.run({ email: 'ana@x.ro' })).toEqual({ redirect: '/login/done?remember=1' });
     expect((await env.c.store.adminAccount(7))?.googleSub).toBe('sub-1');
     expect(env.mem.history.map((h) => h.action)).toEqual([SECURITY_ACTIONS.googleLinked]);
   });
 
   it('remember 0 gives a session-type family and remember=0', async () => {
     const env = googleEnv();
-    expect(await env.run({}, { query: { remember: '0' } })).toEqual({ redirect: '/intrare/gata?remember=0' });
+    expect(await env.run({}, { query: { remember: '0' } })).toEqual({ redirect: '/login/done?remember=0' });
     expect(env.sessions.rows[0].type).toBe('session');
   });
 
@@ -151,7 +151,7 @@ describe('adminGoogleCallback', () => {
     const env = googleEnv();
     env.start();
     const { state } = env.flowOf();
-    expect((await adminGoogleCallback(env.c, { code: 'c1', state }, env.g)).redirect).toMatch(/^\/intrare\/gata/);
+    expect((await adminGoogleCallback(env.c, { code: 'c1', state }, env.g)).redirect).toMatch(/^\/login\/done/);
     env.sync();
     expect(await adminGoogleCallback(env.c, { code: 'c1', state }, env.g)).toEqual({ redirect: FAILED });
   });
@@ -173,7 +173,7 @@ describe('adminGoogleCallback', () => {
     const env = googleEnv();
     await env.turnOnTotp();
     await env.c.store.updateAdminAccount((await env.c.store.ensureAdminAccount(7)).id, { googleSub: 'sub-1' });
-    expect(await env.run({ email: 'other@x.ro' })).toEqual({ redirect: '/intrare/gata?remember=1' });
+    expect(await env.run({ email: 'other@x.ro' })).toEqual({ redirect: '/login/done?remember=1' });
     expect(env.sessions.rows).toHaveLength(1);
     expect(env.sets.find((s) => s.name === 'es_adm_2fa')).toBeUndefined();
   });
@@ -203,7 +203,7 @@ describe('first link by e-mail on an admin with 2FA (B4 H1)', () => {
     const env = googleEnv();
     await env.turnOnTotp();
     const out = await env.run({ email: 'ana@x.ro' });
-    expect(out.redirect).toMatch(/^\/intrare\/2fa\?/);
+    expect(out.redirect).toMatch(/^\/login\/2fa\?/);
     expect(new URL(out.redirect, 'http://h').searchParams.get('methods')).toBe('totp');
     expect(env.sessions.rows).toHaveLength(0);
     expect(env.sets.find((x) => x.name === 'jwtToken')).toBeUndefined();
@@ -246,7 +246,7 @@ describe('first link by e-mail on an admin with 2FA (B4 H1)', () => {
     await secondStepAdmin(env.c, { method: 'totp', code: code(env), remember: true });
     await env.c.store.updateAdminAccount((await env.c.store.adminAccount(7))!.id, { googleSub: null });
     const again = await env.run({ email: 'ana@x.ro' });
-    expect(again.redirect).toMatch(/^\/intrare\/2fa/);
+    expect(again.redirect).toMatch(/^\/login\/2fa/);
     expect(env.sessions.rows).toHaveLength(1);
   });
 
@@ -277,7 +277,7 @@ describe('first link by e-mail on an admin with 2FA (B4 H1)', () => {
 
   it('without 2FA nothing changes: linked and signed in at once', async () => {
     const env = googleEnv();
-    expect(await env.run({ email: 'ana@x.ro' })).toEqual({ redirect: '/intrare/gata?remember=1' });
+    expect(await env.run({ email: 'ana@x.ro' })).toEqual({ redirect: '/login/done?remember=1' });
     expect((await env.c.store.adminAccount(7))?.googleSub).toBe('sub-1');
     expect(env.sets.find((x) => x.name.endsWith('es_adm_2fa'))).toBeUndefined();
   });
@@ -319,7 +319,7 @@ describe('invite with Google', () => {
   it('the same e-mail registers with a random 64-character password, links the sub and logs in', async () => {
     const env = inviteEnv();
     const spy = vi.spyOn(env.userService, 'updateById');
-    expect(await env.run({ email: 'nou@x.ro', sub: 'sub-20' }, { query })).toEqual({ redirect: '/intrare/gata?remember=0' });
+    expect(await env.run({ email: 'nou@x.ro', sub: 'sub-20' }, { query })).toEqual({ redirect: '/login/done?remember=0' });
     const given = String(spy.mock.calls[0][1].password);
     expect(given).toHaveLength(64);
     expect(env.admins[1]).toMatchObject({ isActive: true, registrationToken: null });

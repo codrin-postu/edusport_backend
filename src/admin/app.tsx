@@ -650,7 +650,7 @@ export default {
     // (?strapi=1 opts out). First, so a direct load is redirected before the
     // router reads the URL. See ./lib/legacyRedirects.
     startLegacyRedirects();
-    // Strapi's own sign-in pages are closed: its logout or an expired session goes to /intrare (spec 4.1).
+    // Strapi's own sign-in pages are closed: its logout or an expired session goes to /login (spec 4.1).
     startAuthRedirect();
     // Lets the global save bar's Renunță reset the edit view form in place (see ./nativeFormBridge).
     registerNativeFormBridge(app);

@@ -49,9 +49,9 @@ describe('Login', () => {
     expect(next).toEqual({ kind: 'error', message: 'E-mailul sau parola nu sunt corecte.' });
   });
 
-  it('a SecondStep answer routes to /intrare/2fa with last preselected and the e-mail carried', async () => {
+  it('a SecondStep answer routes to /login/2fa with last preselected and the e-mail carried', async () => {
     const next = await submitLogin(okPost(step), { email: 'a@example.invalid', password: 'x', rememberMe: false });
-    expect(next).toEqual({ kind: 'secondStep', to: '/intrare/2fa?last=totp&methods=totp,backup', email: 'admin@example.invalid' });
+    expect(next).toEqual({ kind: 'secondStep', to: '/login/2fa?last=totp&methods=totp,backup', email: 'admin@example.invalid' });
     expect(parseSecondStepQuery('?last=totp&methods=totp,backup')).toEqual({ methods: ['totp', 'backup'], last: 'totp', viaGoogle: false });
   });
 
@@ -100,7 +100,7 @@ describe('SecondStep', () => {
     expect(parseSecondStepQuery('')).toBeNull();
     expect(parseSecondStepQuery('?methods=sms')).toBeNull();
     expect(parseSecondStepQuery('?last=email&methods=totp,backup')?.last).toBe('totp');
-    expect(secondStepUrl({ methods: ['totp'], last: 'totp' }, 'google')).toBe('/intrare/2fa?last=totp&methods=totp&via=google');
+    expect(secondStepUrl({ methods: ['totp'], last: 'totp' }, 'google')).toBe('/login/2fa?last=totp&methods=totp&via=google');
   });
 
   it('an ended pending login (401) goes back to the password form with its text', async () => {
@@ -140,7 +140,7 @@ describe('api and routes', () => {
   });
 
   it('screenOf maps the six paths; unknown paths show the password form', () => {
-    expect(['/intrare', '/intrare/2fa', '/intrare/invitatie', '/intrare/parola', '/intrare/gata', '/intrare/cheie', '/intrare/zzz'].map(screenOf))
+    expect(['/login', '/login/2fa', '/invite', '/forgot-password', '/login/done', '/login/passkey', '/login/zzz'].map(screenOf))
       .toEqual(['login', 'secondStep', 'invite', 'reset', 'done', 'offer', 'login']);
   });
 });

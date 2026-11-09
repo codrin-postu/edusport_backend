@@ -1,6 +1,6 @@
 /**
  * The brand layer of the sign-in page: white ground, the navy "inside the L" shape, the EDUSPORT wordmark and the coloured ribbon
- * straddling the seam. The `/intrare` bundle (src/admin-login) draws it behind its form; Strapi's own login page is no longer
+ * straddling the seam. The `/login` bundle (src/admin-login) draws it behind its form; Strapi's own login page is no longer
  * branded here (it is closed and redirected, 6b-1 spec 4.1).
  */
 import climateFont from '../climate-crisis.ttf';

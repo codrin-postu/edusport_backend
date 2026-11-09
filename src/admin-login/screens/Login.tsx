@@ -12,7 +12,7 @@ import { Problem, Shell } from '../Shell';
 const C = SECURITY_COPY.login;
 
 /**
- * `/intrare`: Google, e-mail and password, "Ține-mă minte", and where the browser supports it the key button under "Intră" and the autofill on
+ * `/login`: Google, e-mail and password, "Ține-mă minte", and where the browser supports it the key button under "Intră" and the autofill on
  * "E-mail" (a conditional request started on mount, aborted when the button flow starts).
  */
 export function Login({ post, go, handoff, search, flash, webauthn }: Deps) {

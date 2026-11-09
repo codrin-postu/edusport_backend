@@ -19,7 +19,7 @@ const promptOf = (m: TwoFactorMethod, sentTo: string | null): string | null => {
 };
 
 /**
- * `/intrare/2fa`: the last used method first, "Altă metodă" for the rest. The address carries `last` and `methods` (also what the
+ * `/login/2fa`: the last used method first, "Altă metodă" for the rest. The address carries `last` and `methods` (also what the
  * Google first-link redirect sends, with `via=google` and no e-mail), so a reload keeps working: the pending login is the HttpOnly cookie.
  */
 export function SecondStep({ post, go, handoff, search, email }: Deps) {

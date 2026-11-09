@@ -7,7 +7,7 @@ import { Shell } from '../Shell';
 import { SECURITY_COPY } from '../../club/security/copy';
 
 /**
- * `/intrare/gata?remember=0|1`: the Google handoff page. The server left the access token in a readable `jwtToken` cookie (60 s); this takes
+ * `/login/done?remember=0|1`: the Google handoff page. The server left the access token in a readable `jwtToken` cookie (60 s); this takes
  * it, deletes the cookie at once as Strapi's SSO page does, moves it to `localStorage` when "Ține-mă minte" was ticked, and opens the admin.
  */
 export function Done({ go, search }: Deps) {

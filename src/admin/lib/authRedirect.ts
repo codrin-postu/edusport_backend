@@ -1,4 +1,4 @@
-import { intrareRedirect, isAdminAuthPath } from '../../club/admin-login/intrare-paths';
+import { loginRedirect, isAdminAuthPath } from '../../club/admin-login/login-paths';
 
 /**
  * Strapi's own sign-in pages are closed (6b-1 spec 4.1): the server redirects a hard load of `/admin/auth/*`, and this listener
@@ -16,7 +16,7 @@ export function authRedirectTarget(url: string | URL | null | undefined, base: s
     return null;
   }
   const pathname = parsed.pathname.toLowerCase();
-  return isAdminAuthPath(pathname) ? intrareRedirect(pathname, parsed.search.replace(/^\?/, '')) : null;
+  return isAdminAuthPath(pathname) ? loginRedirect(pathname, parsed.search.replace(/^\?/, '')) : null;
 }
 
 let started = false;

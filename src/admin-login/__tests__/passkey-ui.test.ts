@@ -84,8 +84,8 @@ describe('the sign-in page with keys', () => {
 });
 
 describe('the offer', () => {
-  it('is its own screen at /intrare/cheie with the approved texts and flat buttons', () => {
-    expect(screenOf('/intrare/cheie')).toBe('offer');
+  it('is its own screen at /login/passkey with the approved texts and flat buttons', () => {
+    expect(screenOf('/login/passkey')).toBe('offer');
     const m = html(Offer, { token: 'tok' });
     for (const t of [SECURITY_COPY.offer.title, SECURITY_COPY.offer.line, SECURITY_COPY.offer.create, SECURITY_COPY.offer.notNow]) expect(has(m, t), t).toBe(true);
     expect(m.match(/class="[^"]*\bpce\b/g)?.length).toBe(2);

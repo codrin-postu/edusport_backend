@@ -97,13 +97,13 @@ export async function newBatch(api: SecurityApi): Promise<Action[]> {
 export const codesFile = (codes: string[]): string => `${codes.join('\n')}\n`;
 export const CODES_FILE_NAME = 'edusport-coduri-de-rezerva.txt';
 
-/** What a password change leads to: the toast, and whether this session ended too (the page then goes to `/intrare`). */
+/** What a password change leads to: the toast, and whether this session ended too (the page then goes to `/login`). */
 export function afterPassword(r: { toast: string; signedOut: boolean }): { toast: string; goTo: string | null } {
-  return { toast: r.toast, goTo: r.signedOut ? '/intrare' : null };
+  return { toast: r.toast, goTo: r.signedOut ? '/login' : null };
 }
 
 /** The device's "2FA ținut minte până la" date, "6 nov 2026", or null. `until` is an ISO instant. */
 export const untilDate = (until: string | null, format: (isoDate: string) => string): string | null => (until ? format(until.slice(0, 10)) : null);
 
-/** A disconnected device that was this browser's own ends this session too: the page goes to `/intrare`. */
-export const afterDisconnect = (r: { revokedCurrent: boolean }): string | null => (r.revokedCurrent ? '/intrare' : null);
+/** A disconnected device that was this browser's own ends this session too: the page goes to `/login`. */
+export const afterDisconnect = (r: { revokedCurrent: boolean }): string | null => (r.revokedCurrent ? '/login' : null);

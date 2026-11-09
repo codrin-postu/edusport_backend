@@ -1,7 +1,7 @@
 import type { Core } from '@strapi/strapi';
 import { adminById } from '../club/admin-login/admins';
 import { normalizeAdminPath } from '../club/admin-login/admin-path';
-import { intrareRedirect } from '../club/admin-login/intrare-paths';
+import { loginRedirect } from '../club/admin-login/login-paths';
 import { adminSessionManager } from '../club/admin-login/session';
 
 export type GateDecision = 'pass' | 'notFound' | 'forbidden' | 'profileEmail' | { redirect: string };
@@ -29,7 +29,7 @@ export function gateDecision(method: string, path: string, body: unknown, enable
     return hasKey(body, 'email') ? 'profileEmail' : 'pass';
   }
   if (verb === 'PUT' && /^\/admin\/users\/[^/]+$/.test(pathname)) return hasKey(body, 'password') ? 'forbidden' : 'pass';
-  if (verb === 'GET' && pathname.startsWith('/admin/auth/')) return { redirect: intrareRedirect(pathname, queryParts.join('?')) };
+  if (verb === 'GET' && pathname.startsWith('/admin/auth/')) return { redirect: loginRedirect(pathname, queryParts.join('?')) };
   return 'pass';
 }
 

@@ -35,7 +35,7 @@
 
     // Do not include admin files in the server compilation
     "src/admin/",
-    // The /intrare page bundle has its own tsconfig (DOM and JSX) and its own Vite build
+    // The /login page bundle has its own tsconfig (DOM and JSX) and its own Vite build
     "src/admin-login/",
     // Do not include test files
     "**/*.test.*",

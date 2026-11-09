@@ -112,7 +112,7 @@ New collection types: `draftAndPublish: false`, hidden from the Content Manager,
 - On a team member, the admin types "E-mail pentru cont" and clicks "Trimite invitația" (10.1). One account per team member; an e-mail already used by another account is refused ("Adresa are deja un cont.") [S4].
 - Creates the U&P user (random unusable password), the portal account `invited`, an invite token, and queues `portal-invite`. History line (11).
 - "Retrimite invitația" while `invited`: new token, older ones used, new e-mail.
-- The invite e-mail links to `https://antrenor.<domain>/invitatie/<secret>`.
+- The invite e-mail links to `https://antrenor.<domain>/invite/<secret>`.
 
 ### 4.2 Accept [P6 q5, q6]
 - The page shows the e-mail (read only) and two ways: "Parolă nouă" + "Salvează parola", or "Continuă cu Google".

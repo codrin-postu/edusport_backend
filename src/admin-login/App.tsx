@@ -17,7 +17,7 @@ type Place = { pathname: string; search: string };
 const here = (): Place => ({ pathname: window.location.pathname, search: window.location.search });
 const webauthn = browserWebauthn();
 
-/** The six screens of `/intrare`, switched by the address (pushState, no router library). */
+/** The six screens of `/login`, switched by the address (pushState, no router library). */
 export function App() {
   const [place, setPlace] = React.useState<Place>(here);
   const [carry, setCarry] = React.useState<Carry>({});

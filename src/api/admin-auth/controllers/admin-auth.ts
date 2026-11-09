@@ -87,9 +87,9 @@ export default {
   resetRequest: sameOrigin('resetRequest', async (ctx) => respond(ctx, await requestAdminReset(adminLoginContext(strapi, ctx), ctx.request.body))),
   resetConfirm: sameOrigin('resetConfirm', async (ctx) => respond(ctx, await confirmAdminReset(adminLoginContext(strapi, ctx), ctx.request.body))),
   inviteRead: sameOrigin('inviteRead', async (ctx) => respond(ctx, await readAdminInvite(adminLoginContext(strapi, ctx), ctx.request.body))),
-  googleStart: navigation('googleStart', '/intrare?eroare=google', (ctx) => startAdminGoogle(adminLoginContext(strapi, ctx), ctx.query).redirect),
-  googleCallback: navigation('googleCallback', '/intrare?eroare=google', async (ctx) => (await adminGoogleCallback(adminLoginContext(strapi, ctx), ctx.query)).redirect),
-  inviteGoogle: navigation('inviteGoogle', '/intrare/invitatie?eroare=google', (ctx) => startAdminGoogle(adminLoginContext(strapi, ctx), { registrationToken: ctx.query.registrationToken }).redirect),
+  googleStart: navigation('googleStart', '/login?eroare=google', (ctx) => startAdminGoogle(adminLoginContext(strapi, ctx), ctx.query).redirect),
+  googleCallback: navigation('googleCallback', '/login?eroare=google', async (ctx) => (await adminGoogleCallback(adminLoginContext(strapi, ctx), ctx.query)).redirect),
+  inviteGoogle: navigation('inviteGoogle', '/invite?eroare=google', (ctx) => startAdminGoogle(adminLoginContext(strapi, ctx), { registrationToken: ctx.query.registrationToken }).redirect),
   inviteAccept: sameOrigin('inviteAccept', async (ctx) => respond(ctx, await acceptAdminInvite(adminLoginContext(strapi, ctx), ctx.request.body))),
   // Securitate (02-security.ts) and Administratori (03-admins.ts)
   security: read('security', (c, a) => readSecurity(c, a)),

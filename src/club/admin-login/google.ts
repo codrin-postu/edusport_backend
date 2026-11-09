@@ -14,8 +14,8 @@ export const ADMIN_GOOGLE_PATH = '/api/admin-auth/google';
 const COOKIE_MS = 600_000;
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const TOKEN_MAX = 256;
-const FAILED = '/intrare?eroare=google';
-const FAILED_INVITE = '/intrare/invitatie?eroare=google';
+const FAILED = '/login?eroare=google';
+const FAILED_INVITE = '/invite?eroare=google';
 /** Strapi's own name for the access-token cookie (not HttpOnly: the page script moves it, as Strapi's SSO page does). */
 const JWT_COOKIE = 'jwtToken';
 /** The page script (T16) reads the cookie and deletes it at once; whatever it leaves behind is gone after a minute. */
@@ -117,12 +117,12 @@ export async function adminGoogleCallback(c: AdminLoginContext, query: Query, g:
     if (entry.second) {
       const step = await startSecondStep(c, entry.admin, flow.remember, entry.sub ?? undefined);
       if (!step.ok) return failure(flow);
-      return { redirect: `/intrare/2fa?via=google&last=${step.data.last}&methods=${step.data.methods.join(',')}` };
+      return { redirect: `/login/2fa?via=google&last=${step.data.last}&methods=${step.data.methods.join(',')}` };
     }
     const admin = entry.admin;
     const handoff = await finishAdminLogin(c, admin, flow.remember, { newDeviceMail: true, passkey: true });
     c.koa.cookies.set(JWT_COOKIE, handoff.accessToken, { httpOnly: false, sameSite: 'lax', secure: c.secure, path: '/', overwrite: true, maxAge: JWT_COOKIE_MS });
-    return { redirect: `/intrare/gata?remember=${flow.remember ? '1' : '0'}` };
+    return { redirect: `/login/done?remember=${flow.remember ? '1' : '0'}` };
   } catch (err) {
     c.log(`[admin-google] failed: ${err instanceof Error ? err.name : 'error'}`);
     return failure(flow);

@@ -41,7 +41,7 @@ export function DevicesList({ devices, busy, onDisconnect }: { devices: AdminDev
   );
 }
 
-/** "Dispozitive": this admin's devices. Disconnecting this browser's own ends this session, so the page goes to `/intrare`. */
+/** "Dispozitive": this admin's devices. Disconnecting this browser's own ends this session, so the page goes to `/login`. */
 export function DevicesSection({ api, goTo }: { api: SecurityApi; goTo: (path: string) => void }) {
   const [devices, setDevices] = React.useState<AdminDeviceView[] | null>(null);
   const [busy, setBusy] = React.useState(false);
