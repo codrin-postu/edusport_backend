@@ -193,8 +193,10 @@ function moveLines(l: Located, to: GroupRecord, main: { from: string; to: string
   return main ? [...lines, { subjectType: ATHLETE_SUBJECT, subjectId: a, action: HISTORY_ACTIONS.mainGroupChanged, changes: main }] : lines;
 }
 
-/** Dated changes only: the date must not be before the row starts (else a later row would overlap the ones it replaces); `targetCheck` returns a refusal text for a target the caller may not use, checked again under the group lock. */
-export type DatedOptions = { dated: true; targetCheck?: (g: GroupRecord) => string | null } | { dated?: false };
+/** Dated changes only: the date must not be before the row starts (else a later row would overlap the ones it replaces); `groupCheck` returns a refusal text for a source or target group the caller may not use, run on the groups as read again under their locks. */
+export type DatedOptions = { dated: true; groupCheck?: (g: GroupRecord) => string | null } | { dated?: false };
+
+const deniedGroup = (opts: DatedOptions, g: GroupRecord): string | null => (opts.dated === true && opts.groupCheck ? opts.groupCheck(g) : null);
 
 const notBeforeStart = (l: Located, effective: string, opts: DatedOptions): boolean => opts.dated === true && l.row.from !== null && effective < l.row.from;
 
@@ -204,7 +206,7 @@ async function moveLocked(ctx: GroupContext, membershipId: string, toGroupId: st
   const l = found.data;
   const to = await activeGroup(ctx.store, toGroupId);
   if (!to || to.id === l.row.groupId) return refuse(400, GROUP_ERRORS.pickGroup);
-  const denied = opts.dated === true && opts.targetCheck ? opts.targetCheck(to) : null;
+  const denied = deniedGroup(opts, l.from) ?? deniedGroup(opts, to);
   if (denied) return refuse(403, denied);
   if (notBeforeStart(l, effective, opts)) return refuse(400, GROUP_ERRORS.invalid);
   const rows = await currentOf(ctx.store, l.athlete.id, l.season.id);
@@ -224,13 +226,15 @@ export async function moveMembership(ctx: GroupContext, membershipId: string, bo
 }
 
 /** Move from `effective` on (W2): the old row ends effective - 1 (or is deleted when it starts on or after `effective`), the new row starts `effective`. The caller validated the date. */
-export const moveMembershipFrom = (ctx: GroupContext, membershipId: string, toGroupId: string, effective: string, carry: MoveCarry = NO_CARRY, targetCheck?: (g: GroupRecord) => string | null): Promise<ActionResult<MoveResult & { carried: number }>> =>
-  guarded(ctx.log, `[groups] moving ${membershipId} from ${effective}`, () => ctx.store.transaction(() => moveLocked(ctx, membershipId, toGroupId, carry, effective, () => effective, { dated: true, targetCheck })));
+export const moveMembershipFrom = (ctx: GroupContext, membershipId: string, toGroupId: string, effective: string, carry: MoveCarry = NO_CARRY, groupCheck?: (g: GroupRecord) => string | null): Promise<ActionResult<MoveResult & { carried: number }>> =>
+  guarded(ctx.log, `[groups] moving ${membershipId} from ${effective}`, () => ctx.store.transaction(() => moveLocked(ctx, membershipId, toGroupId, carry, effective, () => effective, { dated: true, groupCheck })));
 
 async function removeLocked(ctx: GroupContext, membershipId: string, effective: string, opts: DatedOptions = {}): Promise<ActionResult<MoveResult>> {
   const found = await locate(ctx, membershipId, null);
   if (found.ok === false) return found;
   const l = found.data;
+  const denied = deniedGroup(opts, l.from);
+  if (denied) return refuse(403, denied);
   if (notBeforeStart(l, effective, opts)) return refuse(400, GROUP_ERRORS.invalid);
   const rows = await currentOf(ctx.store, l.athlete.id, l.season.id);
   const plan = planRemove(rows, l.row, effective, opts.dated === true ? ctx.today : undefined);
@@ -249,5 +253,5 @@ export const removeMembership = (ctx: GroupContext, membershipId: string): Promi
   guarded(ctx.log, `[groups] removing ${membershipId}`, () => ctx.store.transaction(() => removeLocked(ctx, membershipId, ctx.today)));
 
 /** Remove from `effective` on (W4). The caller validated the date. */
-export const removeMembershipFrom = (ctx: GroupContext, membershipId: string, effective: string): Promise<ActionResult<MoveResult>> =>
-  guarded(ctx.log, `[groups] removing ${membershipId} from ${effective}`, () => ctx.store.transaction(() => removeLocked(ctx, membershipId, effective, { dated: true })));
+export const removeMembershipFrom = (ctx: GroupContext, membershipId: string, effective: string, groupCheck?: (g: GroupRecord) => string | null): Promise<ActionResult<MoveResult>> =>
+  guarded(ctx.log, `[groups] removing ${membershipId} from ${effective}`, () => ctx.store.transaction(() => removeLocked(ctx, membershipId, effective, { dated: true, groupCheck })));

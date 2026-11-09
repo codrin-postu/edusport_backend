@@ -99,9 +99,35 @@ describe('the target is checked again under the lock', () => {
   it('a refused target writes nothing', async () => {
     const { ctx, state } = seed();
     const before = structuredClone(state.memberships);
-    expect(await moveMembershipFrom(ctx, 'm1', 'g-is', '2026-11-12', undefined, () => 'Nu mai ai acces la această grupă.')).toEqual({ ok: false, status: 403, error: 'Nu mai ai acces la această grupă.' });
+    expect(await moveMembershipFrom(ctx, 'm1', 'g-is', '2026-11-12', undefined, (g) => (g.id === 'g-is' ? 'Nu mai ai acces la această grupă.' : null))).toEqual({ ok: false, status: 403, error: 'Nu mai ai acces la această grupă.' });
     expect(state.memberships).toEqual(before);
     expect(state.history).toEqual([]);
+  });
+});
+
+describe('the source group is checked again under the lock', () => {
+  it('a refused source writes nothing, for a move and a removal', async () => {
+    const { ctx, state } = seed();
+    const before = structuredClone(state.memberships);
+    const deny = (g: { id: string }) => (g.id === 'g-ib' ? 'Nu mai ai acces la această grupă.' : null);
+    expect(await moveMembershipFrom(ctx, 'm1', 'g-is', '2026-11-12', undefined, deny)).toMatchObject({ ok: false, status: 403 });
+    expect(await removeMembershipFrom(ctx, 'm1', '2026-11-20', deny)).toMatchObject({ ok: false, status: 403 });
+    expect(state.memberships).toEqual(before);
+  });
+});
+
+describe('a legacy row without a start date', () => {
+  it('keeps one main per day when it takes the main flag on a dated move or removal', async () => {
+    const legacy = () => fakeContext({
+      athletes: [athleteRow({ id: 'a1', name: 'Ana Ionescu' })],
+      memberships: [member({ id: 'm1', athleteId: 'a1', groupId: 'g-ib', from: '2026-09-01' }), member({ id: 'm2', athleteId: 'a1', groupId: 'g-pp', isMain: false, from: null })],
+    }, '2026-11-09');
+    const a = legacy();
+    expect((await removeMembershipFrom(a.ctx, 'm1', '2026-11-20')).ok).toBe(true);
+    oneMainEveryDay(a.state.memberships, 'a1');
+    const b = legacy();
+    expect((await moveMembershipFrom(b.ctx, 'm1', 'g-pp', '2026-11-12')).ok).toBe(true);
+    oneMainEveryDay(b.state.memberships, 'a1');
   });
 });
 

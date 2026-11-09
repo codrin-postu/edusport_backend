@@ -34,10 +34,10 @@ export function earliestRow(rows: MembershipRow[]): MembershipRow | null {
 
 /**
  * The main flag moves to a row the child already has. On a dated change (`effective` after the real `now`) the old main row still runs until the
- * day before, so the flag must not switch before then: a running row is split (it ends the day before, a main row starts on the date).
+ * day before, so the flag must not switch before then: a running row (a legacy row without a start counts as running) is split (it ends the day before, a main row starts on the date).
  */
 function takeMain(row: MembershipRow, effective: string, now: string | undefined): MembershipWrite[] {
-  if (now === undefined || effective <= now || row.from === null || row.from >= effective) return [{ op: 'main', id: row.id, isMain: true }];
+  if (now === undefined || effective <= now || (row.from !== null && row.from >= effective)) return [{ op: 'main', id: row.id, isMain: true }];
   return [
     { op: 'end', id: row.id, to: addDays(effective, -1) },
     { op: 'create', athleteId: row.athleteId, groupId: row.groupId, seasonId: row.seasonId, isMain: true, from: effective },

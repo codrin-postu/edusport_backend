@@ -4,6 +4,7 @@ import type { ActionResult } from '../../groups/action-log';
 import { GROUP_ERRORS } from '../../groups/copy';
 import { isIsoDate } from '../../groups/dates';
 import { moveMembershipFrom, removeMembershipFrom } from '../../groups/members';
+import type { GroupRecord } from '../../groups/types';
 import { currentSeason } from '../../groups/season-pick';
 import { seasonBounds } from '../../groups/series';
 import { presenceCarry } from '../../presence/subscriptions/move';
@@ -46,6 +47,9 @@ async function resolve(c: CoachContexts, groupId: string, athleteId: string, bod
   return { ok: true, data: { membershipId: row.id, athleteName: athlete.name ?? '', groupName: source.name, from: read.from, toGroupId: read.toGroupId } };
 }
 
+/** Re-run under the group locks: a group the coach no longer owns (or that went inactive) refuses the change. */
+const ownCheck = (c: CoachContexts) => (g: GroupRecord): string | null => (groupAccess(g, c.coach.teamMemberId) === 'own' ? null : PORTAL_ERRORS.noAccess);
+
 const answer = (s: Source, groupName: string): CoachMemberChange => ({ athleteName: s.athleteName, groupName, from: s.from, toast: PORTAL_TOASTS.saved });
 
 /** "Mută" from a date, source and target both own (user 2026-11-09). */
@@ -53,7 +57,7 @@ export async function moveMember(c: CoachContexts, groupId: string, athleteId: s
   const s = await resolve(c, groupId, athleteId, body, true);
   if (s.ok === false) return s;
   const to = s.data.toGroupId as string;
-  const res = plain(await moveMembershipFrom(c.groups, s.data.membershipId, to, s.data.from, presenceCarry(c.presence.store).carry, (g) => (groupAccess(g, c.coach.teamMemberId) === 'own' ? null : PORTAL_ERRORS.noAccess)));
+  const res = plain(await moveMembershipFrom(c.groups, s.data.membershipId, to, s.data.from, presenceCarry(c.presence.store).carry, ownCheck(c)));
   if (res.ok === false) return res;
   return { ok: true, data: answer(s.data, res.data.groupName) };
 }
@@ -62,7 +66,7 @@ export async function moveMember(c: CoachContexts, groupId: string, athleteId: s
 export async function removeMember(c: CoachContexts, groupId: string, athleteId: string, body: unknown): Promise<CoachResult<CoachMemberChange>> {
   const s = await resolve(c, groupId, athleteId, body, false);
   if (s.ok === false) return s;
-  const res = plain(await removeMembershipFrom(c.groups, s.data.membershipId, s.data.from));
+  const res = plain(await removeMembershipFrom(c.groups, s.data.membershipId, s.data.from, ownCheck(c)));
   if (res.ok === false) return res;
   return { ok: true, data: answer(s.data, s.data.groupName) };
 }
