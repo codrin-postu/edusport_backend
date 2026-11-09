@@ -91,7 +91,7 @@ describe('adminGoogleCallback', () => {
     expect(out).toEqual({ redirect: '/login/done?remember=1' });
     const jwtSet = env.sets.find((s) => s.name === 'jwtToken');
     expect(jwtSet?.value).toEqual(expect.any(String));
-    expect(jwtSet?.options).toMatchObject({ httpOnly: false, path: '/', sameSite: 'lax', maxAge: 60_000 });
+    expect(jwtSet?.options).toMatchObject({ httpOnly: false, path: '/', sameSite: 'lax', maxAge: 60_000, signed: false });
     expect(env.sets.find((s) => s.name === 'strapi_admin_refresh')).toBeDefined();
     expect(env.sessions.rows[0].type).toBe('refresh');
     await env.flush();

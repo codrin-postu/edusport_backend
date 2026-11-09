@@ -21,6 +21,7 @@ export function PasswordSection({ api, goTo }: { api: SecurityApi; goTo: (path: 
   const [error, setError] = React.useState<string | null>(null);
 
   const change = async (): Promise<void> => {
+    if (busy || current === '' || next === '') return;
     setBusy(true);
     setError(null);
     try {
@@ -39,7 +40,7 @@ export function PasswordSection({ api, goTo }: { api: SecurityApi; goTo: (path: 
   return (
     <Section title={C.title}>
       {error && <Notice tone="danger">{error}</Notice>}
-      <div style={stackStyle}>
+      <form style={stackStyle} onSubmit={(e) => { e.preventDefault(); void change(); }}>
         <Field label={C.current}>
           <Input type="password" value={current} autoComplete="current-password" onChange={(e) => setCurrent(e.target.value)} />
         </Field>
@@ -47,9 +48,9 @@ export function PasswordSection({ api, goTo }: { api: SecurityApi; goTo: (path: 
           <Input type="password" value={next} autoComplete="new-password" onChange={(e) => setNext(e.target.value)} />
         </Field>
         <div>
-          <PceButton loading={busy} disabled={current === '' || next === ''} onClick={() => void change()}>{C.change}</PceButton>
+          <PceButton type="submit" loading={busy} disabled={current === '' || next === ''}>{C.change}</PceButton>
         </div>
-      </div>
+      </form>
     </Section>
   );
 }

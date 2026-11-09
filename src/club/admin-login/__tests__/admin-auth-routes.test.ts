@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { PORTAL_ERRORS } from '../../portal/copy';
 import { staticBeforeParams } from '../../groups/__tests__/route-order';
 import { adminLoginContext, adminOrigin, originAllowed } from '../context';
 
@@ -87,7 +88,7 @@ describe('the controller', () => {
         const ctx = ctxOf(origin);
         await handler(ctx as never);
         expect(ctx.status).toBe(403);
-        expect(ctx.body).toEqual({ data: null, error: { status: 403, name: 'ClubAdminError', message: 'Forbidden' } });
+        expect(ctx.body).toEqual({ data: null, error: { status: 403, name: 'ClubAdminError', message: PORTAL_ERRORS.failed } });
       }
     }
     expect(touched).not.toHaveBeenCalled();

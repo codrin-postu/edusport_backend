@@ -28,7 +28,7 @@ const header = (v: string | string[] | undefined): string | undefined => (Array.
  * the error name only, and answered 500 with the shared copy.
  */
 const sameOrigin = (tag: string, handler: Handler): Handler => async (ctx) => {
-  if (!originAllowed(header(ctx.request.headers.origin), adminOrigin())) return refuseWith(ctx, 403, 'Forbidden');
+  if (!originAllowed(header(ctx.request.headers.origin), adminOrigin())) return refuseWith(ctx, 403, PORTAL_ERRORS.failed);
   return guarded(tag, handler)(ctx);
 };
 

@@ -121,7 +121,7 @@ export async function adminGoogleCallback(c: AdminLoginContext, query: Query, g:
     }
     const admin = entry.admin;
     const handoff = await finishAdminLogin(c, admin, flow.remember, { newDeviceMail: true, passkey: true });
-    c.koa.cookies.set(JWT_COOKIE, handoff.accessToken, { httpOnly: false, sameSite: 'lax', secure: c.secure, path: '/', overwrite: true, maxAge: JWT_COOKIE_MS });
+    c.koa.cookies.set(JWT_COOKIE, handoff.accessToken, { httpOnly: false, sameSite: 'lax', secure: c.secure, path: '/', overwrite: true, signed: false, maxAge: JWT_COOKIE_MS });
     return { redirect: `/login/done?remember=${flow.remember ? '1' : '0'}` };
   } catch (err) {
     c.log(`[admin-google] failed: ${err instanceof Error ? err.name : 'error'}`);

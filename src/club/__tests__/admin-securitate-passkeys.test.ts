@@ -150,4 +150,11 @@ describe('rename, delete and the other Securitate texts', () => {
       expect(src, f).not.toMatch(/<Button\b|<button\b|#[0-9a-fA-F]{3,6}\b|dashed|dotted/);
     }
   });
+
+  it('the password fields sit in a form with a submit button (Enter submits); the Google handoff spinner has a label', () => {
+    const pw = readFileSync(join(dir, 'PasswordSection.tsx'), 'utf8');
+    expect(pw).toMatch(/<form\b[^>]*onSubmit/);
+    expect(pw).toMatch(/<PceButton type="submit"/);
+    expect(readFileSync(join(dir, '..', '..', '..', 'admin-login', 'screens', 'Done.tsx'), 'utf8')).toMatch(/<Spinner [^>]*label=/);
+  });
 });

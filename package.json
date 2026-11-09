@@ -26,6 +26,7 @@
     "migrate:athletes": "node scripts/migrate-athletes-registrations.js",
     "migrate:groups": "node scripts/migrate-groups-schedules.js",
     "admin:reset-2fa": "node dist/scripts/admin-reset-2fa.js",
+    "admin:end-sessions": "node dist/scripts/admin-end-sessions.js",
     "passkeys:cutover": "node dist/scripts/passkeys-cutover.js",
     "start": "strapi start",
     "strapi": "strapi",

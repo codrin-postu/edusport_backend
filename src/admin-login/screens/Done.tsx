@@ -17,7 +17,7 @@ export function Done({ go, search }: Deps) {
   }, [search, go]);
   return (
     <Shell title={SECURITY_COPY.login.title}>
-      <Spinner size={24} />
+      <Spinner size={24} label={SECURITY_COPY.login.title} />
     </Shell>
   );
 }
