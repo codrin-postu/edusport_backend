@@ -83,6 +83,8 @@ export type CoachCalendar = { month: string; today: string; days: { date: string
 export type CoachMemberChange = { athleteName: string; groupName: string; from: string; toast: string };
 export type CoachHistoryRow = {
   kind: 'grup' | 'inlocuitor' | 'individuala'; date: string; name: string; present: number | null; durationMin: number | null; sessionId: string | null; lessonId: string | null;
+  /** false: an own scheduled class of the month, up to today, nobody saved yet. */
+  done: boolean; occurrenceKey: string | null;
 };
 export type CoachHistory = { month: string; sessions: number; lessons: number; hours: string; rows: CoachHistoryRow[] };
 export type CoachProgram = { kind: SectionKind; editable: boolean; programPublic: boolean | null; program: GroupProgram; occurrences: Occurrence[] };
