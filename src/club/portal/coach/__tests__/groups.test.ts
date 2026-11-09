@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { PORTAL_ERRORS } from '../../copy';
 import { readCoachGroupPage, readGroups } from '../groups';
 import { forbiddenKeysIn } from '../views';
+import { removeMembershipFrom } from '../../../groups/members';
+import { member } from '../../../groups/__tests__/fake-group-store';
+import { removeMember } from '../members';
 import { sessionRow } from '../../../presence/__tests__/fake-store';
 import { coachCtx } from './coach-seed';
 
@@ -14,10 +17,10 @@ describe('readGroups', () => {
       ok: true,
       data: {
         mine: [
-          { groupId: 'g-scoala-a', name: 'Școala A', kind: 'school', program: ['Sâ, Du 11:00'], children: 2 },
-          { groupId: 'g-club-a', name: 'Club A', kind: 'club', program: ['Vi 17:00'], children: 2 },
+          { groupId: 'g-scoala-a', name: 'Școala A', kind: 'school', program: ['Sâ, Du 11:00'], children: 2, next: { date: '2026-11-21', startTime: '11:00' } },
+          { groupId: 'g-club-a', name: 'Club A', kind: 'club', program: ['Vi 17:00'], children: 2, next: { date: '2026-11-20', startTime: '17:00' } },
         ],
-        others: [{ groupId: 'g-club-b', name: 'Club B', coaches: ['Virgil Pascu'] }],
+        others: [{ groupId: 'g-club-b', name: 'Club B', coaches: ['Virgil Pascu'], program: ['Mi, Vi 18:00'], children: 1, next: { date: '2026-11-20', startTime: '18:00' } }],
       },
     });
     expect(forbiddenKeysIn(out)).toEqual([]);
@@ -37,8 +40,8 @@ describe('readCoachGroupPage', () => {
     expect(out).toMatchObject({ ok: true, data: { own: true, kind: 'club', coaches: ['Andreea Pascu'], programPublic: true, standIn: [], todayKey: 'ev-g-club-a|2026-11-20|17:00' } });
     if (!out.ok) throw new Error('refused');
     expect(out.data.members).toEqual([
-      { athleteId: 'a-club-1', name: 'Ana Club', age: 14, isNew: false, alsoIn: [] },
-      { athleteId: 'a-club-2', name: 'Bogdan Club', age: 16, isNew: true, alsoIn: [] },
+      { athleteId: 'a-club-1', name: 'Ana Club', age: 14, isNew: false, alsoIn: [], leavesOn: null },
+      { athleteId: 'a-club-2', name: 'Bogdan Club', age: 16, isNew: true, alsoIn: [], leavesOn: null },
     ]);
     expect(forbiddenKeysIn(out)).toEqual([]);
     expect(JSON.stringify(out)).not.toMatch(/Părinte Secret|0722000111|copil@example/);
@@ -54,7 +57,7 @@ describe('readCoachGroupPage', () => {
     expect(out).toEqual({
       ok: true,
       data: {
-        groupId: 'g-club-b', name: 'Club B', kind: 'club', own: false, coaches: ['Virgil Pascu'], program: ['Mi, Vi 18:00'], members: null, programPublic: null,
+        groupId: 'g-club-b', name: 'Club B', kind: 'club', own: false, coaches: ['Virgil Pascu'], program: ['Mi, Vi 18:00'], members: null, programPublic: null, location: null,
         todayKey: 'ev-g-club-b|2026-11-20|18:00',
         standIn: [
           { occurrenceKey: 'ev-g-club-b|2026-11-20|18:00', date: '2026-11-20', startTime: '18:00' },
@@ -99,5 +102,68 @@ describe('readCoachGroupPage', () => {
       id: 's-early', groupId: 'g-club-b', date: TODAY, startTime: '18:00', eventId: 'ev-g-club-b', occurrenceKey: `ev-g-club-b|${TODAY}|18:00`, coachIds: ['tm-virgil'],
     }));
     expect(await readCoachGroupPage(c, 'g-club-b')).toMatchObject({ data: { todayKey: `ev-g-club-b-late|${TODAY}|20:00` } });
+  });
+});
+
+describe('next class, location and leave date', () => {
+  it('today counts while its start time is later than now, else the next class', async () => {
+    const c = coachCtx('tm-andreea');
+    const next = async () => { const o = await readGroups(c); return o.ok ? o.data.mine.find((g) => g.groupId === 'g-club-a')!.next : 'refused'; };
+    expect(await next()).toEqual({ date: '2026-11-20', startTime: '17:00' });
+    c.presence.now = () => new Date('2026-11-20T16:00:00.000Z');
+    expect(await next()).toEqual({ date: '2026-11-27', startTime: '17:00' });
+  });
+
+  it('a group with no class in 60 days has next null', async () => {
+    const c = coachCtx('tm-andreea');
+    c.fake.group.groups.push({ id: 'g-empty', name: 'Fără program', sectionId: 'club', order: 9, active: true, priceListId: 'pl-club', coachIds: ['tm-andreea'], programPublic: true });
+    const o = await readGroups(c);
+    expect(o.ok && o.data.mine.find((g) => g.groupId === 'g-empty')?.next).toBeNull();
+  });
+
+  it('other groups carry no member names', async () => {
+    const o = await readGroups(coachCtx('tm-andreea'));
+    expect(JSON.stringify(o.ok && o.data.others)).not.toMatch(/Eva/);
+  });
+
+  it('the group page has the section location, null without one', async () => {
+    const c = coachCtx('tm-andreea');
+    expect(await readCoachGroupPage(c, 'g-club-a')).toMatchObject({ data: { location: null } });
+    c.fake.group.sections.find((s) => s.id === 'club')!.locationName = 'Patinoar Club';
+    expect(await readCoachGroupPage(c, 'g-club-a')).toMatchObject({ data: { location: 'Patinoar Club' } });
+  });
+
+  it('a member with a scheduled removal stays listed with leavesOn until the day before it', async () => {
+    const c = coachCtx('tm-andreea', '2026-11-09');
+    expect((await removeMembershipFrom(c.groups, 'gm-1', '2026-11-20')).ok).toBe(true);
+    const page = await readCoachGroupPage(c, 'g-club-a');
+    if (!page.ok) throw new Error('refused');
+    expect(page.data.members?.map((m) => [m.athleteId, m.leavesOn])).toEqual([['a-club-1', '2026-11-20'], ['a-club-2', null]]);
+    const later = coachCtx('tm-andreea', '2026-11-20');
+    later.fake.group.memberships.find((m) => m.id === 'gm-1')!.to = '2026-11-19';
+    const gone = await readCoachGroupPage(later, 'g-club-a');
+    expect(gone.ok && gone.data.members?.map((m) => m.athleteId)).toEqual(['a-club-2']);
+  });
+
+  it('the heir row of a split shows no leave date, the group she leaves does; counts include her until the date', async () => {
+    const c = coachCtx('tm-andreea', '2026-11-20');
+    c.fake.group.memberships.push(member({ id: 'gm-extra', athleteId: 'a-club-1', groupId: 'g-scoala-a', isMain: false, from: '2026-10-01' }));
+    expect((await removeMember(c, 'g-club-a', 'a-club-1', { from: '2026-11-25' })).ok).toBe(true);
+    const heir = await readCoachGroupPage(c, 'g-scoala-a');
+    const left = await readCoachGroupPage(c, 'g-club-a');
+    if (!heir.ok || !left.ok) throw new Error('refused');
+    expect(heir.data.members?.filter((m) => m.athleteId === 'a-club-1').map((m) => m.leavesOn)).toEqual([null]);
+    expect(left.data.members?.find((m) => m.athleteId === 'a-club-1')?.leavesOn).toBe('2026-11-25');
+    const list = await readGroups(c);
+    expect(list.ok && list.data.mine.map((g) => [g.groupId, g.children])).toEqual([['g-scoala-a', 3], ['g-club-a', 2]]);
+  });
+
+  it('a change dated before the start of the later main row is refused until the split date', async () => {
+    const c = coachCtx('tm-andreea', '2026-11-20');
+    c.fake.group.memberships.push(member({ id: 'gm-extra', athleteId: 'a-club-1', groupId: 'g-scoala-a', isMain: false, from: '2026-10-01' }));
+    c.fake.group.memberships.forEach((m, i) => { m.id = `seed-${i}`; });
+    await removeMember(c, 'g-club-a', 'a-club-1', { from: '2026-11-25' });
+    expect(await removeMember(c, 'g-scoala-a', 'a-club-1', { from: '2026-11-21' })).toMatchObject({ ok: false, status: 400 });
+    expect((await removeMember(c, 'g-scoala-a', 'a-club-1', { from: '2026-11-25' })).ok).toBe(true);
   });
 });

@@ -18,13 +18,16 @@ export type CoachSavedDays = { month: string; dates: string[] };
 export type CoachDevice = { id: string; label: string; lastSeenAt: string; current: boolean };
 export type CoachClassRow = {
   sessionId: string | null; occurrenceKey: string | null; groupId: string; groupName: string; date: string; startTime: string; children: number; done: boolean; standIn: boolean;
+  location: string | null;
 };
 export type CoachLessonRow = { lessonId: string; athleteName: string; date: string; startTime: string; durationMin: number; done: boolean };
 export type CoachToday = { date: string; today: string; groups: CoachClassRow[]; lessons: CoachLessonRow[]; todo: CoachClassRow[] };
-export type CoachGroupRow = { groupId: string; name: string; kind: SectionKind; program: string[]; children: number };
-export type OtherGroupRow = { groupId: string; name: string; coaches: string[] };
+export type NextClass = { date: string; startTime: string };
+export type CoachGroupRow = { groupId: string; name: string; kind: SectionKind; program: string[]; children: number; next: NextClass | null };
+export type OtherGroupRow = { groupId: string; name: string; coaches: string[]; program: string[]; children: number; next: NextClass | null };
 export type CoachGroups = { mine: CoachGroupRow[]; others: OtherGroupRow[] };
-export type CoachMember = { athleteId: string; name: string; age: number | null; isNew: boolean; alsoIn: string[] };
+/** `leavesOn`: the date a scheduled move or removal takes effect (the membership's `to` + 1 day), null when none; the member is listed until `to`. */
+export type CoachMember = { athleteId: string; name: string; age: number | null; isNew: boolean; alsoIn: string[]; leavesOn: string | null };
 export type StandInSlot = { occurrenceKey: string; date: string; startTime: string };
 export type CoachGroupPage = {
   groupId: string; name: string; kind: SectionKind; own: boolean; coaches: string[]; program: string[];
@@ -36,6 +39,7 @@ export type CoachGroupPage = {
   todayKey: string | null;
   /** Own Club group only. */
   programPublic: boolean | null;
+  location: string | null;
 };
 export type CoachPresenceRow = {
   athleteId: string; name: string; age: number | null; inactive: boolean; visitor: boolean; grup: boolean; uscat: boolean; abonament: string | null;
@@ -54,11 +58,38 @@ export type CoachLesson = {
 };
 export type CoachSearchRow = { athleteId: string; name: string; age: number | null };
 export type CoachNewAthleteBody = { groupId: string; name: string; birthDate?: string | null; contactName?: string | null; phone?: string | null; email?: string | null };
+export type CoachCompetitionMember = { athleteId: string; name: string; category: string; placement: number | null; total: number | null };
+export type CoachCompetitionEvent = { eventId: string; name: string; date: string | null; location: string | null; members: CoachCompetitionMember[] };
+export type CoachCompetitions =
+  | { available: false }
+  | { available: true; stale: boolean; seasons: string[]; season: string; events: CoachCompetitionEvent[] };
+/** Competitions of one athlete; `{ available: false }` until a real source exists (plan Task 7 and 8). */
+export type CoachAthleteCompetitions =
+  | { available: false }
+  | { available: true; category: string | null; season: string; count: number; podiums: number;
+      recent: { eventName: string; date: string | null; location: string | null; placement: number | null; total: number | null }[] };
 export type CoachAthleteCard = {
   athleteId: string; name: string; age: number | null; groups: string[]; school: string | null; contact: { name: string | null; phone: string | null } | null;
+  /** Section of the main group today, e.g. "Școala de patinaj". */
+  sectionName: string | null;
+  /** Current groups, main first. */
+  groupRows: { groupId: string; name: string; program: string[] }[];
+  presence: { season: number; lessons: number; last: string | null; missedThisMonth: number };
+  /** Own children only. */
+  abonament: { code: string | null; next: number; slots: number; validUntil: string; location: string | null } | null;
+  competitions: CoachAthleteCompetitions;
 };
+export type CoachCalendarItem = {
+  kind: 'grup' | 'individual'; cancelled: boolean; date: string; startTime: string; durationMin: number | null; title: string;
+  children: number | null; location: string | null; done: boolean; standIn: boolean;
+  sessionId: string | null; occurrenceKey: string | null; lessonId: string | null;
+};
+export type CoachCalendar = { month: string; today: string; days: { date: string; items: CoachCalendarItem[] }[] };
+export type CoachMemberChange = { athleteName: string; groupName: string; from: string; toast: string };
 export type CoachHistoryRow = {
   kind: 'grup' | 'inlocuitor' | 'individuala'; date: string; name: string; present: number | null; durationMin: number | null; sessionId: string | null; lessonId: string | null;
+  /** false: an own scheduled class of the month, up to today, nobody saved yet. */
+  done: boolean; occurrenceKey: string | null;
 };
 export type CoachHistory = { month: string; sessions: number; lessons: number; hours: string; rows: CoachHistoryRow[] };
 export type CoachProgram = { kind: SectionKind; editable: boolean; programPublic: boolean | null; program: GroupProgram; occurrences: Occurrence[] };

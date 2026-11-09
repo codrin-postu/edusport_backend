@@ -59,6 +59,6 @@ export function toCoachLesson(panel: LessonPanel, x: { team: NamedRow[]; right: 
   };
 }
 
-export function toCoachMember(m: MemberRow, status: AthleteStatus): CoachMember {
-  return { athleteId: m.athleteId, name: m.name, age: m.age, isNew: status === 'nou', alsoIn: m.others.map((o) => o.name) };
+export function toCoachMember(m: MemberRow, status: AthleteStatus, leavesOn: string | null = null): CoachMember {
+  return { athleteId: m.athleteId, name: m.name, age: m.age, isNew: status === 'nou', alsoIn: m.others.map((o) => o.name), leavesOn };
 }

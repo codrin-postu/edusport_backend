@@ -26,7 +26,10 @@ export type AcsRow = { id: string; athleteId: string; seasonId: string; state: A
 /** A possible-duplicate pair; `dismissed` after "Nu e același copil", kept so the pair is never flagged again. */
 export type DuplicateRow = { id: string; firstId: string; secondId: string; dismissed: boolean };
 /** One public profile; `showPublicPage` and `published` come from its published row. */
-export type ProfileRow = { id: string; name: string; slug: string; previousSlugs: string[]; showPublicPage: boolean; published: boolean };
+export type ProfileRow = { id: string; name: string; slug: string; previousSlugs: string[]; showPublicPage: boolean; published: boolean;
+  /** The athlete's slug in skate-results (the profile's `skateResultsSlug`), absent without one. */
+  skateResultsSlug?: string;
+};
 export type HistoryRow = { seq: number; subjectType: string; subjectId: string; action: string; changes: Record<string, unknown>; actor: string; at: string };
 
 export type RegistrationPatch = Partial<{

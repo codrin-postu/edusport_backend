@@ -10,10 +10,13 @@ import { readCoachGroupPage, readGroups } from '../../../club/portal/coach/group
 import { readCoachHistory } from '../../../club/portal/coach/history';
 import { createCoachLesson, deleteCoachLesson, readCoachLesson, saveCoachLesson } from '../../../club/portal/coach/lessons';
 import { changePassword, listDevices, readMe, revokeDevice, saveMe } from '../../../club/portal/coach/me';
+import { moveMember, removeMember } from '../../../club/portal/coach/members';
 import { checkCoachSession, readCoachSession, readSavedDays, saveCoachSession } from '../../../club/portal/coach/presence';
 import {
   coachAddProgram, coachChangeProgram, coachDeleteClass, coachEndProgram, coachProgramPublic, coachSetDate, readCoachProgram,
 } from '../../../club/portal/coach/program';
+import { readCoachCalendar } from '../../../club/portal/coach/calendar';
+import { readCoachCompetitions } from '../../../club/portal/coach/competitions';
 import { readToday } from '../../../club/portal/coach/today';
 
 type Headers = Record<string, string | string[] | undefined>;
@@ -88,6 +91,10 @@ export default {
   addProgram: coachOnly('addProgram', async (c, ctx) => respondData(ctx, await coachAddProgram(c, param(ctx, 'documentId'), ctx.request.body))),
   programPublic: coachOnly('programPublic', async (c, ctx) => respondData(ctx, await coachProgramPublic(c, param(ctx, 'documentId'), ctx.request.body))),
   addMembers: coachOnly('addMembers', async (c, ctx) => respondData(ctx, await addMembers(c, param(ctx, 'documentId'), ctx.request.body))),
+  calendar: coachOnly('calendar', async (c, ctx) => respondData(ctx, await readCoachCalendar(c, ctx.query.month))),
+  competitions: coachOnly('competitions', async (c, ctx) => respondData(ctx, await readCoachCompetitions(c, ctx.query))),
+  moveMember: coachOnly('moveMember', async (c, ctx) => respondData(ctx, await moveMember(c, param(ctx, 'documentId'), param(ctx, 'athleteId'), ctx.request.body))),
+  removeMember: coachOnly('removeMember', async (c, ctx) => respondData(ctx, await removeMember(c, param(ctx, 'documentId'), param(ctx, 'athleteId'), ctx.request.body))),
   session: coachOnly('session', async (c, ctx) => respondData(ctx, await readCoachSession(c, ctx.query))),
   sessionCheck: coachOnly('sessionCheck', async (c, ctx) => respondData(ctx, await checkCoachSession(c, ctx.request.body))),
   saveSession: coachOnly('saveSession', async (c, ctx) => respondCoachSave(ctx, (await saveCoachSession(c, ctx.request.body)) as Acted<unknown>)),

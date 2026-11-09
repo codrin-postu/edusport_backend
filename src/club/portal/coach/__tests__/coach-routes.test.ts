@@ -7,9 +7,10 @@ import { staticBeforeParams } from '../../../groups/__tests__/route-order';
 
 const EXPECTED = [
   'GET /portal/coach/me', 'PUT /portal/coach/me', 'POST /portal/coach/me/password', 'GET /portal/coach/me/devices', 'DELETE /portal/coach/me/devices/:id',
-  'GET /portal/coach/today', 'GET /portal/coach/groups', 'GET /portal/coach/groups/:documentId', 'GET /portal/coach/groups/:documentId/program',
+  'GET /portal/coach/today', 'GET /portal/coach/calendar', 'GET /portal/coach/competitions', 'GET /portal/coach/groups', 'GET /portal/coach/groups/:documentId', 'GET /portal/coach/groups/:documentId/program',
   'GET /portal/coach/groups/:documentId/saved-days',
   'POST /portal/coach/groups/:documentId/program', 'PUT /portal/coach/groups/:documentId/program-public', 'POST /portal/coach/groups/:documentId/members',
+  'POST /portal/coach/groups/:documentId/members/:athleteId/move', 'POST /portal/coach/groups/:documentId/members/:athleteId/remove',
   'GET /portal/coach/session', 'POST /portal/coach/session/check', 'PUT /portal/coach/session',
   'POST /portal/coach/lessons', 'GET /portal/coach/lessons/:documentId', 'PUT /portal/coach/lessons/:documentId', 'DELETE /portal/coach/lessons/:documentId',
   'GET /portal/coach/athletes/search', 'POST /portal/coach/athletes', 'GET /portal/coach/athletes/:documentId',

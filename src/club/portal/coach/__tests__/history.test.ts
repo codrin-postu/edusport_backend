@@ -10,7 +10,7 @@ const ME = 'tm-andreea';
 function seeded() {
   const c = coachCtx(ME);
   c.fake.state.sessions.push(
-    sessionRow({ id: 's-own', groupId: 'g-club-a', date: '2026-11-06', startTime: '17:00', durationMin: 90, coachIds: [ME] }),
+    sessionRow({ id: 's-own', groupId: 'g-club-a', date: '2026-11-06', startTime: '17:00', durationMin: 90, coachIds: [ME], eventId: 'ev-g-club-a', occurrenceKey: 'ev-g-club-a|2026-11-06|17:00' }),
     sessionRow({ id: 's-in', groupId: 'g-club-b', date: '2026-11-13', startTime: '18:00', durationMin: 90, coachIds: [ME] }),
     sessionRow({ id: 's-other', groupId: 'g-club-b', date: '2026-11-11', startTime: '18:00', durationMin: 90, coachIds: ['tm-virgil'] }),
     sessionRow({ id: 's-oct', groupId: 'g-club-a', date: '2026-10-30', startTime: '17:00', durationMin: 90, coachIds: [ME] }),
@@ -34,11 +34,12 @@ describe('readCoachHistory', () => {
     const r = await readCoachHistory(seeded(), '2026-11');
     expect(r).toMatchObject({ ok: true });
     if (!r.ok) return;
-    expect(r.data.rows.map((x) => [x.kind, x.date, x.name])).toEqual([
+    expect(r.data.rows.filter((x) => x.done).map((x) => [x.kind, x.date, x.name])).toEqual([
       ['inlocuitor', '2026-11-13', 'Club B'], ['individuala', '2026-11-09', 'Ana Club'], ['grup', '2026-11-06', 'Club A'],
     ]);
-    expect(r.data.rows[2]).toMatchObject({ present: 2, sessionId: 's-own', lessonId: null });
-    expect(r.data.rows[1]).toMatchObject({ durationMin: 50, lessonId: 'l-done', sessionId: null });
+    const done = r.data.rows.filter((x) => x.done);
+    expect(done[2]).toMatchObject({ present: 2, sessionId: 's-own', lessonId: null, occurrenceKey: 'ev-g-club-a|2026-11-06|17:00' });
+    expect(done[1]).toMatchObject({ durationMin: 50, lessonId: 'l-done', sessionId: null, occurrenceKey: null });
   });
 
   it('labels by the coaches of the group on the class date, not by today link', async () => {
@@ -74,5 +75,40 @@ describe('readCoachHistory', () => {
     expect(await readCoachHistory(c, '2026-09')).toMatchObject({ ok: true, data: { sessions: 0, lessons: 0, hours: '0,0', rows: [] } });
     expect(await readCoachHistory(c, '2026-13')).toEqual({ ok: false, status: 400, error: PORTAL_ERRORS.invalid });
     expect(await readCoachHistory(c, undefined)).toMatchObject({ ok: false, status: 400 });
+  });
+});
+
+describe('not-done classes in the Istoric', () => {
+  it('lists own unsaved past classes of the month, not future, cancelled or saved ones, and leaves the totals alone', async () => {
+    const c = seeded();
+    const before = await readCoachHistory(c, '2026-11');
+    c.fake.state.calendar.events.find((e) => e.documentId === 'ev-g-club-a')!.exceptions = [{ date: '2026-11-13', kind: 'cancel' }];
+    const r = await readCoachHistory(c, '2026-11');
+    if (!r.ok || !before.ok) throw new Error('refused');
+    const club = r.data.rows.filter((x) => !x.done && x.name === 'Club A');
+    expect(club).toEqual([]);
+    c.presence.now = () => new Date('2026-11-20T16:00:00.000Z');
+    const later = await readCoachHistory(c, '2026-11');
+    if (!later.ok) throw new Error('refused');
+    expect(later.data.rows.filter((x) => !x.done && x.name === 'Club A')).toEqual([{ kind: 'grup', date: '2026-11-20', name: 'Club A', present: null, durationMin: 90, sessionId: null, lessonId: null, done: false, occurrenceKey: 'ev-g-club-a|2026-11-20|17:00' }]);
+    expect(r.data.rows.some((x) => x.date > '2026-11-20')).toBe(false);
+    expect(r.data.rows.some((x) => !x.done && x.date === '2026-11-06')).toBe(false);
+    expect(r.data.rows.some((x) => !x.done && x.date === '2026-11-13' && x.name === 'Club A')).toBe(false);
+    expect(r.data.sessions).toBe(before.data.sessions);
+    expect(r.data.hours).toBe(before.data.hours);
+  });
+
+  it('lists nothing before the attendance start date, nothing without one', async () => {
+    const c = seeded();
+    c.presence.now = () => new Date('2026-11-20T16:00:00.000Z');
+    c.fake.state.startDate = '2026-11-14';
+    const r = await readCoachHistory(c, '2026-11');
+    if (!r.ok) throw new Error('refused');
+    const undone = r.data.rows.filter((x) => !x.done);
+    expect(undone.length).toBeGreaterThan(0);
+    expect(undone.every((x) => x.date >= '2026-11-14')).toBe(true);
+    c.fake.state.startDate = null;
+    const none = await readCoachHistory(c, '2026-11');
+    expect(none.ok && none.data.rows.filter((x) => !x.done)).toEqual([]);
   });
 });

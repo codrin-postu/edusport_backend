@@ -11,6 +11,7 @@ import type { PresenceContext } from '../../presence/context';
 import { strapiPresenceStore } from '../../presence/strapi-store';
 import type { AdminResult } from '../../admin-result';
 import type { PortalStore } from '../store';
+import { nullCoachCompetitions, type CoachCompetitionSource } from './competitions';
 import { strapiPortalStore } from '../strapi-store';
 
 /** The coach of the request, as `global::is-coach` read it. `sessionId` is never put in an answer or a log. */
@@ -18,12 +19,17 @@ export type CoachState = { accountId: string; userId: number; sessionId: string;
 
 export type CoachContexts = {
   coach: CoachState; today: string; presence: PresenceContext; groups: GroupContext; club: ServiceContext; portal: PortalStore;
+  /** Where competition results come from (a null source until phase 7-3 is merged). */
+  competitions: CoachCompetitionSource;
 };
 
 /** A coach refusal the admin result has no status for: no right on the group. */
 export type Forbidden = { ok: false; status: 403; error: string };
 export type CoachResult<T> = AdminResult<T> | Forbidden;
 export const forbidden = (error: string): Forbidden => ({ ok: false, status: 403, error });
+
+/** Local clock time in Bucharest, `HH:mm`. */
+export const clockOf = (d: Date): string => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
 
 /** Written on every history line a coach causes. */
 export const coachActor = (name: string): string => `Antrenor ${name}`;
@@ -44,5 +50,6 @@ export function coachContexts(strapi: Core.Strapi, coach: CoachState): CoachCont
     },
     club: { store: strapiClubStore(strapi), actor, today: todayInBucharest(), log },
     portal: strapiPortalStore(strapi),
+    competitions: nullCoachCompetitions,
   };
 }

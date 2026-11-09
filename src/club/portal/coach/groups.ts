@@ -1,25 +1,31 @@
 import { refuse, type AdminResult } from '../../admin-result';
 import { isCurrentMembership } from '../../group-membership';
 import type { MembershipRow } from '../../athletes/store';
-import { addDays } from '../../groups/dates';
+import { addDays, hhmm } from '../../groups/dates';
 import { groupListRow, type ListFacts } from '../../groups/list';
 import { readGroupPage } from '../../groups/group-page';
-import { currentSeason } from '../../groups/season-pick';
+import { ageOnIso, currentSeason } from '../../groups/season-pick';
 import { byGroupOrder, orderedSections } from '../../groups/sections';
 import type { GroupRecord, SectionRecord } from '../../groups/types';
 import { loadRowContext, rowsBetween } from '../../presence/attendance/day';
+import { heldOccurrences } from '../../presence/sessions';
 import { PORTAL_ERRORS } from '../copy';
-import type { CoachGroupPage, CoachGroupRow, CoachGroups, CoachMember, OtherGroupRow, SectionKind, StandInSlot } from './api-types';
+import type { CoachGroupPage, CoachGroupRow, CoachGroups, CoachMember, NextClass, OtherGroupRow, SectionKind, StandInSlot } from './api-types';
+import { locationOfGroup } from './calendar';
+import { clockOf } from './context';
 import type { CoachContexts } from './context';
 import { groupAccess } from './ownership';
 import { toCoachMember } from './views';
 
-async function listFacts(c: CoachContexts): Promise<ListFacts & { memberships: MembershipRow[] }> {
+export async function listFacts(c: CoachContexts): Promise<ListFacts & { memberships: MembershipRow[] }> {
   const store = c.presence.store;
   const [seasons, sections, groups, events, team] = await Promise.all([store.seasons(), store.sections(), store.groups(), c.groups.store.events(), store.teamMembers()]);
   const season = currentSeason(seasons);
   const memberships = season ? await store.memberships({ seasonId: season.id }) : [];
-  return { season, sections, groups, current: memberships.filter(isCurrentMembership), events, team, today: c.today, memberships };
+  /** Rows still running today or open (a scheduled end counts until its date), one per child and group, so the counts match the listed members. */
+  const running = memberships.filter((m) => !m.to || m.to >= c.today);
+  const current = running.filter((m, i) => running.findIndex((r) => r.athleteId === m.athleteId && r.groupId === m.groupId) === i);
+  return { season, sections, groups, current, events, team, today: c.today, memberships };
 }
 
 const kindOf = (sections: SectionRecord[], g: GroupRecord): SectionKind => sections.find((s) => s.id === g.sectionId)?.kind ?? 'school';
@@ -35,21 +41,55 @@ export async function readGroups(c: CoachContexts): Promise<AdminResult<CoachGro
   const f = await listFacts(c);
   const mine: CoachGroupRow[] = [];
   const others: OtherGroupRow[] = [];
+  const next = await nextClasses(c);
   for (const g of ordered(f)) {
+    const row = groupListRow(g, f);
     if (groupAccess(g, c.coach.teamMemberId) === 'own') {
-      const row = groupListRow(g, f);
-      mine.push({ groupId: g.id, name: g.name, kind: kindOf(f.sections, g), program: row.program, children: row.members });
+      mine.push({ groupId: g.id, name: g.name, kind: kindOf(f.sections, g), program: row.program, children: row.members, next: next(g.id) });
     } else {
-      others.push({ groupId: g.id, name: g.name, coaches: f.team.filter((t) => g.coachIds.includes(t.id)).map((t) => t.name) });
+      others.push({ groupId: g.id, name: g.name, coaches: f.team.filter((t) => g.coachIds.includes(t.id)).map((t) => t.name), program: row.program, children: row.members, next: next(g.id) });
     }
   }
   return { ok: true, data: { mine, others } };
 }
 
+const AHEAD_DAYS = 60;
+
+
+/** The first scheduled, not cancelled class of a group from now on (today counts while its start time is later than now), up to 60 days ahead. */
+async function nextClasses(c: CoachContexts): Promise<(groupId: string) => NextClass | null> {
+  const store = c.presence.store;
+  const held = heldOccurrences(await store.calendarWindow(), await store.groups(), c.today, addDays(c.today, AHEAD_DAYS));
+  const clock = clockOf(c.presence.now());
+  return (groupId) => {
+    const h = held.find((x) => x.groupId === groupId && (x.date > c.today || (hhmm(x.startTime) ?? x.startTime) > clock));
+    return h ? { date: h.date, startTime: hhmm(h.startTime) ?? h.startTime } : null;
+  };
+}
+
+/** The current members, plus those with a scheduled end (`to` on or after today), who stay listed with `leavesOn`. */
 async function members(c: CoachContexts, groupId: string): Promise<CoachMember[]> {
+  const store = c.presence.store;
   const page = await readGroupPage(c.groups.store, groupId, null, c.today);
-  const statuses = new Map((await c.presence.store.athletes()).map((a) => [a.id, a.status]));
-  return (page?.members ?? []).map((m) => toCoachMember(m, statuses.get(m.athleteId) ?? 'activ'));
+  const statuses = new Map((await store.athletes()).map((a) => [a.id, a]));
+  const listed = (page?.members ?? []).map((m) => toCoachMember(m, statuses.get(m.athleteId)?.status ?? 'activ'));
+  const season = currentSeason(await store.seasons());
+  if (!season) return listed;
+  const rows = await store.memberships({ seasonId: season.id });
+  const groupNames = new Map((await store.groups()).map((g) => [g.id, g.name]));
+  const leaving = rows.filter((m) => m.groupId === groupId && m.to && m.to >= c.today);
+  /** A split (dated remove of the main row, dated move into a group she is in) leaves a later row of the same group: she stays, no leave date. */
+  const stays = (m: MembershipRow): boolean => rows.some((r) => r.id !== m.id && r.athleteId === m.athleteId && r.groupId === groupId
+    && (r.from === null || r.from <= addDays(m.to as string, 1)) && (!r.to || r.to >= addDays(m.to as string, 1)));
+  const shown = new Set(listed.map((m) => m.athleteId));
+  const extra = leaving.filter((m) => !shown.has(m.athleteId) && !stays(m)).flatMap((m): CoachMember[] => {
+    const a = statuses.get(m.athleteId);
+    if (!a || a.status === 'anonimizat') return [];
+    const alsoIn = rows.filter((r) => r.athleteId === a.id && r.groupId !== groupId && !r.to).map((r) => groupNames.get(r.groupId) ?? '').filter(Boolean);
+    return [{ athleteId: a.id, name: a.name ?? '', age: ageOnIso(a.birthDate, c.today), isNew: a.status === 'nou', alsoIn, leavesOn: addDays(m.to as string, 1) }];
+  });
+  const ends = new Map(leaving.filter((m) => !stays(m)).map((m) => [m.athleteId, addDays(m.to as string, 1)]));
+  return [...listed.map((m) => ({ ...m, leavesOn: ends.get(m.athleteId) ?? null })), ...extra].sort((a, b) => a.name.localeCompare(b.name, 'ro'));
 }
 
 const slotOf = (r: { occurrenceKey: string | null; date: string; startTime: string }): StandInSlot[] =>
@@ -82,6 +122,7 @@ export async function readCoachGroupPage(c: CoachContexts, groupId: string): Pro
     data: {
       groupId, name: group.name, kind, own, coaches: f.team.filter((t) => group.coachIds.includes(t.id)).map((t) => t.name), program: groupListRow(group, f).program,
       members: own ? await members(c, groupId) : null, standIn, todayKey, programPublic: own && kind === 'club' ? group.programPublic : null,
+      location: await locationOfGroup(c, group),
     },
   };
 }

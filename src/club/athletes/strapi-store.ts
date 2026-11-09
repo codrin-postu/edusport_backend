@@ -75,6 +75,7 @@ export function toProfileRows(rows: Raw[]): ProfileRow[] {
       previousSlugs: slugList(r.previousSlugs).length ? slugList(r.previousSlugs) : before?.previousSlugs ?? [],
       showPublicPage: published && r.showPublicPage === true,
       published,
+      ...(text(r.skateResultsSlug) ? { skateResultsSlug: text(r.skateResultsSlug) } : before?.skateResultsSlug ? { skateResultsSlug: before.skateResultsSlug } : {}),
     });
   }
   return [...byId.values()];
@@ -145,7 +146,7 @@ function rowReads(strapi: Core.Strapi): Pick<ClubStore, 'memberships' | 'acsRows
         .map(toDuplicateRow)
         .filter((d) => d.firstId && d.secondId),
     profiles: async () =>
-      toProfileRows(raws(await strapi.db.query(PROFILE).findMany({ select: ['documentId', 'name', 'slug', 'showPublicPage', 'publishedAt', 'previousSlugs'], orderBy: { id: 'asc' }, limit: MAX }))),
+      toProfileRows(raws(await strapi.db.query(PROFILE).findMany({ select: ['documentId', 'name', 'slug', 'showPublicPage', 'publishedAt', 'previousSlugs', 'skateResultsSlug'], orderBy: { id: 'asc' }, limit: MAX }))),
   };
 }
 

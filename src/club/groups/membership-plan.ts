@@ -32,24 +32,37 @@ export function earliestRow(rows: MembershipRow[]): MembershipRow | null {
   return [...rows].sort((a, b) => key(a).localeCompare(key(b)) || a.id.localeCompare(b.id))[0] ?? null;
 }
 
-function arrive(current: MembershipRow[], row: MembershipRow, toGroupId: string, f: JoinFacts): MembershipWrite[] {
+/**
+ * The main flag moves to a row the child already has. On a dated change (`effective` after the real `now`) the old main row still runs until the
+ * day before, so the flag must not switch before then: a running row (a legacy row without a start counts as running) is split (it ends the day before, a main row starts on the date).
+ */
+function takeMain(row: MembershipRow, effective: string, now: string | undefined): MembershipWrite[] {
+  if (now === undefined || effective <= now || (row.from !== null && row.from >= effective)) return [{ op: 'main', id: row.id, isMain: true }];
+  return [
+    { op: 'end', id: row.id, to: addDays(effective, -1) },
+    { op: 'create', athleteId: row.athleteId, groupId: row.groupId, seasonId: row.seasonId, isMain: true, from: effective },
+  ];
+}
+
+function arrive(current: MembershipRow[], row: MembershipRow, toGroupId: string, f: JoinFacts, effective: string, now: string | undefined): MembershipWrite[] {
   const there = current.find((r) => r.groupId === toGroupId);
   if (!there) return [{ op: 'create', athleteId: f.athleteId, groupId: toGroupId, seasonId: f.seasonId, isMain: row.isMain, from: f.from }];
-  return row.isMain && !there.isMain ? [{ op: 'main', id: there.id, isMain: true }] : [];
+  return row.isMain && !there.isMain ? takeMain(there, effective, now) : [];
 }
 
 /** "Mută": this row ends, "În" starts (or keeps its row); the main flag travels with the row (W2). */
-export function planMove(current: MembershipRow[], row: MembershipRow, toGroupId: string, f: JoinFacts, today: string): MembershipPlan {
+/** `today` is the day the change takes effect; `now` (dated changes only) is the real today. */
+export function planMove(current: MembershipRow[], row: MembershipRow, toGroupId: string, f: JoinFacts, today: string, now?: string): MembershipPlan {
   return {
-    writes: [leaveWrite(row, today), ...arrive(current, row, toGroupId, f)],
+    writes: [leaveWrite(row, today), ...arrive(current, row, toGroupId, f, today, now)],
     main: row.isMain ? { fromGroupId: row.groupId, toGroupId } : null,
   };
 }
 
 /** "Scoate din grupă": when the main row leaves and others remain, the earliest remaining one becomes main (W4). */
-export function planRemove(current: MembershipRow[], row: MembershipRow, today: string): MembershipPlan {
+export function planRemove(current: MembershipRow[], row: MembershipRow, today: string, now?: string): MembershipPlan {
   const heir = row.isMain ? earliestRow(current.filter((r) => r.id !== row.id)) : null;
   const writes: MembershipWrite[] = [leaveWrite(row, today)];
-  if (heir) writes.push({ op: 'main', id: heir.id, isMain: true });
+  if (heir) writes.push(...takeMain(heir, today, now));
   return { writes, main: heir ? { fromGroupId: row.groupId, toGroupId: heir.groupId } : null };
 }

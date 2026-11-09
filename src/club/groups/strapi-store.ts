@@ -75,6 +75,7 @@ const toSeason = (s: Raw): SeasonRecord => ({
 const toSection = (s: Raw): SectionRecord => ({
   id: text(s.documentId), name: text(s.name), kind: s.kind === 'club' ? 'club' : 'school', publicPage: s.publicPage === true,
   order: typeof s.order === 'number' ? s.order : null, slug: text(s.slug),
+  locationName: isRecord(s.location) && typeof s.location.name === 'string' && s.location.name ? s.location.name : null,
 });
 const toHistoryEntry = (r: Raw): HistoryEntryRow => ({
   id: text(r.documentId), seq: Number(r.id), subjectType: text(r.subjectType), subjectId: text(r.subjectId), action: text(r.action),
@@ -98,7 +99,7 @@ function lookups(strapi: Core.Strapi): Keys<'seasons' | 'sections' | 'groups' | 
   const populate: ('section' | 'priceList' | 'coaches')[] = ['section', 'priceList', 'coaches'];
   return {
     seasons: async () => raws(await strapi.documents(SEASON).findMany({ sort: BY_ID, limit: 1000 })).map(toSeason),
-    sections: async () => raws(await strapi.documents(SECTION).findMany({ sort: BY_ID, limit: 1000 })).map(toSection),
+    sections: async () => raws(await strapi.documents(SECTION).findMany({ populate: ['location'], sort: BY_ID, limit: 1000 })).map(toSection),
     groups: async () => raws(await groups().findMany({ populate, sort: BY_ID, limit: 1000 })).map(toGroupRecord),
     group: async (id) => {
       const g = await groups().findOne({ documentId: id, populate });

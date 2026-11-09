@@ -1,7 +1,7 @@
 import { isRecord } from '../narrow';
 import { SUBJECT } from '../subjects';
 import { BREAK_LINES, FIELD_LABELS, GROUP_LINES, PROGRAM_LINES, SEASON_LINES, fieldLine, seriesCountText } from './copy';
-import { dayMonth, shortDate, weekdayName } from './dates';
+import { dayMonth, isIsoDate, shortDate, weekdayName } from './dates';
 import { programLine, programLineFrom, type SeriesText } from './program-text';
 
 /** Phase 4 Istoric lines (spec 3.7, 10.8). Pure; group lines get athlete names at read time (decided 2). */
@@ -54,9 +54,23 @@ function fieldLines(c: Changes): string[] {
   });
 }
 
+/** The date a dated change takes effect on: `effectiveFrom`, or `from` when it is a date (it is a group name on the lines that use it for that). */
+export function effectiveDate(c: Changes): string | null {
+  if (typeof c.effectiveFrom === 'string' && isIsoDate(c.effectiveFrom)) return c.effectiveFrom;
+  return typeof c.from === 'string' && isIsoDate(c.from) ? c.from : null;
+}
+
+/** "... din 12 noiembrie" before the final period when the change is dated. */
+export function sinceDate(line: string, c: Changes): string {
+  const d = effectiveDate(c);
+  if (!d) return line;
+  const tail = ` din ${dayMonth(d)}`;
+  return line.endsWith('.') ? `${line.slice(0, -1)}${tail}.` : `${line}${tail}`;
+}
+
 function movedOut(c: Changes, names: Names): string[] {
   const main = isRecord(c.main) ? ` ${GROUP_LINES.mainChanged(text(c.main.from), text(c.main.to))}` : '';
-  return [GROUP_LINES.movedTo(text(c.toGroup), nameOf(c, names)) + main];
+  return [sinceDate(GROUP_LINES.movedTo(text(c.toGroup), nameOf(c, names)), c) + main];
 }
 
 function athleteCopied(c: Changes): string[] {
@@ -78,11 +92,11 @@ const ROSTER: Readonly<Record<string, Render>> = {
   [P4_ACTIONS.groupDeleted]: (c) => [GROUP_LINES.deleted(text(c.name))],
   [P4_ACTIONS.memberAdded]: (c, n) => [GROUP_LINES.memberAdded(nameOf(c, n))],
   [P4_ACTIONS.memberAllocated]: (c, n) => [GROUP_LINES.memberAllocated(nameOf(c, n))],
-  [P4_ACTIONS.memberRemoved]: (c, n) => [GROUP_LINES.memberRemoved(nameOf(c, n))],
+  [P4_ACTIONS.memberRemoved]: (c, n) => [sinceDate(GROUP_LINES.memberRemoved(nameOf(c, n)), c)],
   [P4_ACTIONS.memberMovedOut]: movedOut,
-  [P4_ACTIONS.memberMovedIn]: (c, n) => [GROUP_LINES.movedFrom(text(c.fromGroup), nameOf(c, n))],
-  [P4_ACTIONS.athleteMoved]: (c) => [GROUP_LINES.athleteMoved(text(c.from), text(c.to))],
-  [P4_ACTIONS.athleteRemoved]: (c) => [GROUP_LINES.athleteRemoved(text(c.groupName))],
+  [P4_ACTIONS.memberMovedIn]: (c, n) => [sinceDate(GROUP_LINES.movedFrom(text(c.fromGroup), nameOf(c, n)), c)],
+  [P4_ACTIONS.athleteMoved]: (c) => [sinceDate(GROUP_LINES.athleteMoved(text(c.from), text(c.to)), c)],
+  [P4_ACTIONS.athleteRemoved]: (c) => [sinceDate(GROUP_LINES.athleteRemoved(text(c.groupName)), c)],
   [P4_ACTIONS.athleteCopied]: athleteCopied,
 };
 

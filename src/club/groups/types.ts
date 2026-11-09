@@ -21,7 +21,8 @@ export type GroupRecord = {
   id: string; name: string; sectionId: string | null; order: number | null; active: boolean; priceListId: string | null; coachIds: string[]; programPublic: boolean;
 };
 export type GroupWrite = { name: string; sectionId: string; priceListId: string | null; coachIds: string[]; programPublic: boolean };
-export type SectionRecord = SectionRow & { slug: string };
+/** `locationName`: the name of the section's location, null without one. */
+export type SectionRecord = SectionRow & { slug: string; locationName?: string | null };
 export type SeasonRecord = { id: string; label: string; startMonth: string; endMonth: string; isCurrent: boolean; membershipFee: number | null };
 export type NamedRow = { id: string; name: string };
 export type PriceListRow = { id: string; name: string; sectionId: string | null };

@@ -1,6 +1,6 @@
 import { refuse, type AdminResult } from '../../admin-result';
 import { athleteChanges, isDataIncomplete, readAthleteInput, type AthleteValues } from '../../athlete-data';
-import type { AthleteRow } from '../../athletes/store';
+import type { AthleteRow, MembershipRow } from '../../athletes/store';
 import { refreshAllMatches, safely } from '../../athletes/matches';
 import { matchesQuery, queryRank, type SearchSubject } from '../../athletes/search';
 import { isCurrentMembership } from '../../group-membership';
@@ -8,13 +8,19 @@ import type { ActionResult } from '../../groups/action-log';
 import type { JoinResult } from '../../groups/api-types';
 import { addDays, isIsoDate } from '../../groups/dates';
 import { joinGroup } from '../../groups/members';
+import { groupListRow, type ListFacts } from '../../groups/list';
 import { currentSeason, ageOnIso } from '../../groups/season-pick';
-import type { GroupRecord } from '../../groups/types';
+import { seasonBounds } from '../../groups/series';
+import type { GroupRecord, SeasonRecord } from '../../groups/types';
 import { abonamentSlots, kindOf } from '../../presence/attendance/panel';
+import { onDate, rosterOn } from '../../presence/attendance/roster';
+import { pickSubscription, usedSlots } from '../../presence/subscriptions';
 import { HISTORY_ACTIONS, SUBJECT } from '../../history-text';
 import { isAnonymized } from '../../personal-data/anonymize-plan';
 import { PORTAL_ERRORS, PORTAL_TOASTS } from '../copy';
 import type { CoachAthleteCard, CoachSearchRow } from './api-types';
+import { locationOfGroup } from './calendar';
+import { athleteCompetitions } from './competitions';
 import { forbidden, type CoachContexts, type CoachResult } from './context';
 import { groupAccess, ownAthlete, ownGroupIds } from './ownership';
 import { cardRight } from './rules';
@@ -109,7 +115,46 @@ async function schoolText(c: CoachContexts, athleteId: string, groups: GroupReco
   return null;
 }
 
-/** Athlete card (8.7, ruling 21): own children with the contact, a stand-in's listed children without it, nobody else. */
+type Presence = CoachAthleteCard['presence'];
+type Abonament = NonNullable<CoachAthleteCard['abonament']>;
+
+/** Group presences (grup or uscat ticked) and present lessons of the season; saved sessions this month of the groups the child was listed in on the day, on or before today, where the child was listed and not ticked. */
+async function presenceOf(c: CoachContexts, athleteId: string, season: SeasonRecord, memberships: MembershipRow[]): Promise<Presence> {
+  const store = c.presence.store;
+  const { start, end } = seasonBounds(season);
+  const [attendances, lessons] = await Promise.all([store.attendances({ athleteId, from: start, to: end }), store.lessons({ athleteId, from: start, to: end })]);
+  const ticked = attendances.filter((r) => r.grup || r.uscat);
+  const present = lessons.filter((l) => l.state === 'saved' && l.present === true);
+  const dates = [...ticked.map((r) => r.sessionDate), ...present.map((l) => l.date)].sort();
+  const sessions = (await store.sessions({ from: `${c.today.slice(0, 7)}-01`, to: c.today })).filter((s) => rosterOn(memberships, s.groupId, season.id, s.date).includes(athleteId));
+  const tickedSessions = new Set(ticked.map((r) => r.sessionId));
+  return { season: ticked.length + present.length, lessons: present.length, last: dates[dates.length - 1] ?? null, missedThisMonth: sessions.filter((s) => !tickedSessions.has(s.id)).length };
+}
+
+/** The abonament the child would use today in the first Școala group, as the sportiv app shows it: the next class number and the slots. */
+async function abonamentOf(c: CoachContexts, athleteId: string, groups: GroupRecord[]): Promise<Abonament | null> {
+  const store = c.presence.store;
+  const school = (await Promise.all(groups.map(async (g) => ((await kindOf(store, g.sectionId)) === 'school' && g.priceListId ? g : null)))).find((g) => g !== null);
+  if (!school || !school.priceListId) return null;
+  const subs = await store.subscriptions({ athleteId });
+  const used = usedSlots(subs.length > 0 ? await store.attendances({ subscriptionIds: subs.map((s) => s.id) }) : []);
+  const sub = pickSubscription(subs, used, school.priceListId, c.today);
+  return sub ? { code: sub.code, next: (used.get(sub.id) ?? 0) + 1, slots: sub.slots, validUntil: sub.validUntil, location: await locationOfGroup(c, school) } : null;
+}
+
+/** The rows that count as current on the card: the ones running today (a scheduled end still counts until its date); a child whose rows all start later shows those. */
+function cardRows(memberships: MembershipRow[], today: string): MembershipRow[] {
+  const running = memberships.filter((m) => onDate(m, today));
+  return running.length > 0 ? running : memberships.filter((m) => !m.to || m.to >= today);
+}
+
+/** List facts for the program lines of this child's groups only (no roster counts, no other group's events). */
+async function cardFacts(c: CoachContexts, season: SeasonRecord, groups: GroupRecord[]): Promise<ListFacts> {
+  const [sections, events] = await Promise.all([c.presence.store.sections(), Promise.all(groups.map((g) => c.groups.store.events({ groupId: g.id })))]);
+  return { season, sections, groups, current: [], events: events.flat(), team: [], today: c.today };
+}
+
+/** Athlete card (8.7, ruling 21): own children with the contact and abonament, a stand-in's listed children without them, nobody else. */
 export async function readCard(c: CoachContexts, athleteId: string): Promise<CoachResult<CoachAthleteCard>> {
   const store = c.presence.store;
   const athlete = await store.athlete(athleteId);
@@ -119,13 +164,20 @@ export async function readCard(c: CoachContexts, athleteId: string): Promise<Coa
   const own = ownAthlete(memberships, ownGroupIds(allGroups, c.coach.teamMemberId), athleteId, season.id, c.today);
   const right = cardRight(own, own ? false : await onListedSession(c, athleteId));
   if (!right.read) return forbidden(PORTAL_ERRORS.noAccess);
-  const ids = new Set(memberships.filter(isCurrentMembership).map((m) => m.groupId));
-  const groups = allGroups.filter((g) => ids.has(g.id));
+  const current = cardRows(memberships, c.today).sort((a, b) => Number(b.isMain) - Number(a.isMain));
+  const groups = current.flatMap((m) => allGroups.filter((g) => g.id === m.groupId));
+  const facts = await cardFacts(c, season, groups);
+  const sections = await store.sections();
   return {
     ok: true,
     data: {
       athleteId, name: athlete.name ?? '', age: ageOnIso(athlete.birthDate, c.today), groups: groups.map((g) => g.name), school: await schoolText(c, athleteId, groups),
       contact: right.contact ? { name: athlete.contactName, phone: athlete.phone } : null,
+      sectionName: sections.find((x) => x.id === groups[0]?.sectionId)?.name ?? null,
+      groupRows: groups.map((g) => ({ groupId: g.id, name: g.name, program: groupListRow(g, facts).program })),
+      presence: await presenceOf(c, athleteId, season, memberships),
+      abonament: right.contact ? await abonamentOf(c, athleteId, groups) : null,
+      competitions: await athleteCompetitions(c, athlete, season.label),
     },
   };
 }
