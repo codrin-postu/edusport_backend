@@ -12,6 +12,7 @@ import { attendanceRow, sessionRow } from '../../../presence/__tests__/fake-stor
 import { fakePortalStore } from '../../__tests__/fake-portal-store';
 import { PORTAL_ERRORS } from '../../copy';
 import { portalSessions } from '../../sessions';
+import routes from '../../../../api/portal/routes/02-coach';
 import { forbiddenKeysIn } from '../views';
 import { coachCtx, type CoachSeed } from './coach-seed';
 
@@ -225,6 +226,68 @@ describe('the disabled account column, through the policy', () => {
     await fake.store.updateAccount('acc1', { status: 'disabled' });
     const headers = { 'x-portal-secret': 'test-bff-secret-000000000000000000', authorization: `Bearer ${accessToken}` };
     await expect(isCoach({ request: { header: headers }, state: {} }, {}, { strapi: {} as unknown as Core.Strapi })).rejects.toBeInstanceOf(errors.ForbiddenError);
+  });
+});
+
+describe('the coach additions routes', () => {
+  const NEW: [string, string][] = [
+    ['GET', '/portal/coach/calendar'], ['GET', '/portal/coach/competitions'],
+    ['POST', '/portal/coach/groups/:documentId/members/:athleteId/move'], ['POST', '/portal/coach/groups/:documentId/members/:athleteId/remove'],
+  ];
+
+  it('are guarded by the coach policy only', () => {
+    for (const [method, path] of NEW) {
+      const r = routes.routes.find((x) => x.method === method && x.path === path);
+      expect(r, path).toBeDefined();
+      expect(r?.config, path).toMatchObject({ auth: false, policies: ['global::is-coach'] });
+    }
+  });
+
+  it('answer 401 without a session and 403 for a disabled account, before any handler', async () => {
+    process.env.PORTAL_BFF_SECRET = 'test-bff-secret-000000000000000000';
+    const fake = fakePortalStore({ teamMembers: { tm1: 'Andreea Pascu' } });
+    fake.state.users.push({ id: 1, email: 'u1@x.ro', passwordHash: 'h', blocked: false, confirmed: true, username: 'u1', provider: 'local', role: 'authenticated' });
+    await fake.store.createAccount({ userId: 1, email: 'u1@x.ro', status: 'active', teamMemberId: 'tm1' });
+    holder.portal = fake.store;
+    const { accessToken } = await portalSessions(fake.store).issue(1, 'dev1', 'antrenor');
+    const secret = { 'x-portal-secret': 'test-bff-secret-000000000000000000' };
+    const none = { request: { header: secret }, state: {} };
+    await expect(isCoach(none, {}, { strapi: {} as unknown as Core.Strapi })).rejects.toBeInstanceOf(errors.UnauthorizedError);
+    await fake.store.updateAccount('acc1', { status: 'disabled' });
+    const disabled = { request: { header: { ...secret, authorization: `Bearer ${accessToken}` } }, state: {} };
+    await expect(isCoach(disabled, {}, { strapi: {} as unknown as Core.Strapi })).rejects.toBeInstanceOf(errors.ForbiddenError);
+  });
+
+  it('move and remove on another coach group are 403 with the access text and write nothing', async () => {
+    for (const [name, body] of [['moveMember', { toGroupId: 'g-club-a', from: TODAY }], ['removeMember', { from: TODAY }]] as const) {
+      const c = seeded('own');
+      const before = JSON.stringify([c.fake.group.memberships, c.fake.group.history]);
+      const res = await call(c, name, { params: { documentId: 'g-club-b', athleteId: 'a-b-1' }, body });
+      expect(res.status, name).toBe(403);
+      expect(res.body.error?.message, name).toBe(PORTAL_ERRORS.noAccess);
+      expect(JSON.stringify([c.fake.group.memberships, c.fake.group.history]), name).toBe(before);
+    }
+    const c = seeded('own');
+    const toOther = await call(c, 'moveMember', { params: { documentId: 'g-club-a', athleteId: 'a-club-1' }, body: { toGroupId: 'g-club-b', from: TODAY } });
+    expect([toOther.status, toOther.body.error?.message]).toEqual([403, PORTAL_ERRORS.noAccess]);
+  });
+
+  it('calendar and competitions of a stand-in coach show no unsaved class of another group and no contact', async () => {
+    const c = seeded('removed');
+    c.fake.state.sessions.push(sessionRow({
+      id: 's-in', groupId: 'g-club-b', date: '2026-11-18', startTime: '18:00', eventId: 'ev-g-club-b', occurrenceKey: 'ev-g-club-b|2026-11-18|18:00', coachIds: [ME, 'tm-virgil'],
+    }));
+    const cal = await call(c, 'calendar', { query: { month: '2026-11' } });
+    expect(cal.status).toBe(200);
+    const items = (cal.body.data as { days: { items: { title: string; standIn: boolean; date: string }[] }[] }).days.flatMap((d) => d.items);
+    expect(items.filter((i) => i.title === 'Club B').map((i) => [i.date, i.standIn])).toEqual([['2026-11-18', true]]);
+    expect(items.some((i) => i.title === 'Club A')).toBe(false);
+    const comp = await call(c, 'competitions', { query: { scope: 'all' } });
+    expect(comp).toMatchObject({ status: 200, body: { data: { available: false } } });
+    for (const res of [cal, comp]) {
+      expect(forbiddenKeysIn(res.body)).toEqual([]);
+      expect(JSON.stringify(res.body)).not.toMatch(/0722000111|Părinte Secret|"phone"|"contact"/);
+    }
   });
 });
 
