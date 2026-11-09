@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "@sentry/node": "^10.71.0",
+    "@simplewebauthn/browser": "14.0.0",
     "@simplewebauthn/server": "14.0.3",
     "@strapi/plugin-cloud": "5.52.1",
     "@strapi/plugin-users-permissions": "5.52.1",
