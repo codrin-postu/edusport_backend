@@ -158,6 +158,18 @@ export function storeContract(make: () => Promise<StoreHarness>): void {
     expect(await store.securityNotes(s)).toEqual({ backupNotice: 3 });
   });
 
+  it('allPasskeys and purgeOldPasskeys keep current-rpId keys and spare newer old ones', async () => {
+    const { store, fresh } = await make();
+    const s = fresh();
+    const base = { subject: s, publicKey: 'pk', counter: 0, transports: [], deviceType: 'multiDevice', backedUp: true, name: 'K', createdAt: iso(new Date()) };
+    await store.createPasskey({ ...base, credentialId: `old-${s.id}`, rpId: 'old.example' });
+    await store.createPasskey({ ...base, credentialId: `new-${s.id}`, rpId: 'new.example' });
+    expect((await store.allPasskeys()).filter((p) => p.subject.id === s.id)).toHaveLength(2);
+    expect(await store.purgeOldPasskeys('new.example', new Date(Date.now() - 3600_000))).toBe(0);
+    await store.purgeOldPasskeys('new.example', new Date(Date.now() + 3600_000));
+    expect((await store.passkeys(s)).map((p) => p.rpId)).toEqual(['new.example']);
+  });
+
   it('passkeys round trip', async () => {
     const { store, fresh } = await make();
     const s = fresh();

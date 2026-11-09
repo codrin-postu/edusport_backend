@@ -164,6 +164,13 @@ export function memorySecurityStore(now: () => Date = () => new Date()): MemoryS
       const i = passkeys.findIndex((x) => x.id === pid);
       if (i >= 0) passkeys.splice(i, 1);
     },
+    allPasskeys: async () => copy(passkeys),
+    async purgeOldPasskeys(rpId, before) {
+      const keep = passkeys.filter((p) => !(p.rpId !== rpId && Date.parse(p.createdAt) < before.getTime()));
+      const n = passkeys.length - keep.length;
+      passkeys.splice(0, passkeys.length, ...keep);
+      return n;
+    },
     adminAccount: async (uid) => copy(adminAccounts.find((a) => a.adminUserId === uid) ?? null),
     adminAccountByGoogleSub: async (sub) => copy(adminAccounts.find((a) => a.googleSub === sub) ?? null),
     adminAccountByHandle: async (h) => copy(adminAccounts.find((a) => a.webauthnUserId === h) ?? null),

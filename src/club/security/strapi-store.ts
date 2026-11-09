@@ -144,7 +144,7 @@ function challengeStore(strapi: Core.Strapi, query: Query, write: Write): Pick<S
   };
 }
 
-function passkeyStore(strapi: Core.Strapi): Pick<SecurityStore, 'passkeys' | 'passkeyByCredential' | 'createPasskey' | 'updatePasskey' | 'deletePasskey'> {
+function passkeyStore(strapi: Core.Strapi): Pick<SecurityStore, 'passkeys' | 'passkeyByCredential' | 'createPasskey' | 'updatePasskey' | 'deletePasskey' | 'allPasskeys' | 'purgeOldPasskeys'> {
   const docs = () => strapi.documents(PASSKEY);
   return {
     passkeys: async (s) => raws(await docs().findMany({ filters: where(s), sort: 'createdAt:asc', limit: MAX })).map(toPasskey),
@@ -163,6 +163,9 @@ function passkeyStore(strapi: Core.Strapi): Pick<SecurityStore, 'passkeys' | 'pa
     deletePasskey: async (id) => {
       await docs().delete({ documentId: id });
     },
+    allPasskeys: async () => raws(await docs().findMany({ sort: 'createdAt:asc', limit: MAX })).map(toPasskey),
+    purgeOldPasskeys: async (rpId, before) =>
+      (await strapi.db.query(PASSKEY).deleteMany({ where: { rpId: { $ne: rpId }, createdAt: { $lt: before.toISOString() } } })).count,
   };
 }
 

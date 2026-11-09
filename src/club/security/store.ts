@@ -43,6 +43,10 @@ export interface SecurityStore {
   createPasskey(p: Omit<PasskeyRow, 'id' | 'lastUsedAt'>): Promise<string>;
   updatePasskey(id: string, p: { counter?: number; lastUsedAt?: string; name?: string }): Promise<void>;
   deletePasskey(id: string): Promise<void>;
+  /** Every key of every subject (the cutover script counts them per rpId). */
+  allPasskeys(): Promise<PasskeyRow[]>;
+  /** Deletes the keys whose rpId is not `rpId` and that were made before `before`; answers how many. Current-rpId keys are never touched. */
+  purgeOldPasskeys(rpId: string, before: Date): Promise<number>;
   adminAccount(adminUserId: number): Promise<AdminAccountRow | null>;
   adminAccountByGoogleSub(sub: string): Promise<AdminAccountRow | null>;
   adminAccountByHandle(h: string): Promise<AdminAccountRow | null>;
@@ -66,6 +70,6 @@ export interface SecurityStore {
   securityNotes(s: Subject): Promise<SecurityNotes>;
   setSecurityNotes(s: Subject, n: SecurityNotes): Promise<void>;
   record(line: SecurityHistoryLine): Promise<void>;
-  /** Spec 3.9 rules except the old-rpId passkeys (T23). */
+  /** Spec 3.9 rules except the old-rpId passkeys (`purgeOldPasskeys`). */
   purge(now: Date): Promise<PurgeCounts>;
 }
