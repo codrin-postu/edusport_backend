@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Our own admin login on `/intrare` that hands over Strapi's own admin session, Strapi's session issuers closed, admin lockout, devices and Google, and the shared 2FA core (app, e-mail code, backup codes, remembered devices) with the admin "Securitate" page.
+**Goal:** Our own admin login on `/login` that hands over Strapi's own admin session, Strapi's session issuers closed, admin lockout, devices and Google, and the shared 2FA core (app, e-mail code, backup codes, remembered devices) with the admin "Securitate" page.
 
-**Architecture:** Secrets and codes are pure modules in `src/club/security/` (keys, sealing, MACs, TOTP, codes) over one `SecurityStore` (Strapi store plus an in-memory store with parity tests, the portal pattern). Admin login services live in `src/club/admin-login/` and end in `issueAdminSession`, which calls `sessionManager('admin')` exactly as Strapi's own login controller does. Two global middlewares serve the page bundle and close Strapi's routes. The `/intrare` page is its own Vite bundle built from `src/admin-login/`, reusing `src/admin/ui`.
+**Architecture:** Secrets and codes are pure modules in `src/club/security/` (keys, sealing, MACs, TOTP, codes) over one `SecurityStore` (Strapi store plus an in-memory store with parity tests, the portal pattern). Admin login services live in `src/club/admin-login/` and end in `issueAdminSession`, which calls `sessionManager('admin')` exactly as Strapi's own login controller does. Two global middlewares serve the page bundle and close Strapi's routes. The `/login` page is its own Vite bundle built from `src/admin-login/`, reusing `src/admin/ui`.
 
 **Tech Stack:** Strapi 5.52.1 (TypeScript, CommonJS), `@strapi/admin` 5.52.1 session manager, Postgres 16, Vitest 3, Node 22 `node:crypto`, `qrcode` exactly 1.5.4, Vite (as the admin build), React 18 as shipped with the admin.
 
@@ -24,7 +24,7 @@
 | F | 10 Session handoff and devices, 11 Gate | E | 10: `src/club/admin-login/{session,devices,admins}.ts`; 11: `src/middlewares/admin-auth-gate.ts`, `config/middlewares.ts`, `src/index.ts` (lifecycle) |
 | G | 12 Password login | F | `src/club/admin-login/{context,login}.ts`, `src/api/admin-auth/**` |
 | H | 13 Reset and invite, 14 Google, 15 Securitate routes | G | own files; each adds lines to `01-login.ts` / `02-security.ts` / `03-admins.ts` and one handler each in `controllers/admin-auth.ts` |
-| I | 16 `/intrare` bundle, 17 Securitate page | H and Task 0 | `src/admin-login/**`, `vite.admin-login.config.ts`, `src/middlewares/admin-login-page.ts`, `src/admin/app.tsx`; `src/admin/pages/SecuritatePage.tsx`, `src/admin/pages/securitate/**` |
+| I | 16 `/login` bundle, 17 Securitate page | H and Task 0 | `src/admin-login/**`, `vite.admin-login.config.ts`, `src/middlewares/admin-login-page.ts`, `src/admin/app.tsx`; `src/admin/pages/SecuritatePage.tsx`, `src/admin/pages/securitate/**` |
 
 Group H tasks edit the same route and controller files in separate lines; merge them one after the other.
 
@@ -47,7 +47,7 @@ Group H tasks edit the same route and controller files in separate lines; merge 
 | 13 Reset and invite | high | Sonnet | B4 |
 | 14 Google | high | Sonnet | B4 |
 | 15 Securitate routes, admins, script | high | Sonnet | B4 |
-| 16 `/intrare` bundle | high | Sonnet | B4 |
+| 16 `/login` bundle | high | Sonnet | B4 |
 | 17 Admin Securitate page | high | Sonnet | B5 |
 
 One Opus review per batch (index), one final Opus review of this plan after T17.
@@ -137,7 +137,7 @@ scripts/admin-reset-2fa.ts   (T15)
   1. remember: page script stores `localStorage.jwtToken` (JSON string as the SPA writes it, read `reducer.mjs`) and `isLoggedIn`, then `location.assign('/admin')`: the dashboard opens logged in; reload keeps it; no remember: the `jwtToken` cookie the SPA reads (name from `auth-cookie-name.js`), same result.
   2. `POST /admin/access-token` rotates; `POST /admin/logout` ends it (next `/admin` lands on login).
   3. `admin::role` create with `code: 'edusport-site-editor'` keeps the code; a Content Manager permission on `api::article.article` only hides Settings, Marketplace and the Content-Type Builder for an admin of that role; `GET /admin/users/me` answers `roles[].code` for that admin.
-  4. A scratch global middleware answers 404 to `POST /admin/login` placed after `strapi::body`; `GET /admin/auth/login` answered 302 to `/intrare` by the same middleware; in the SPA, a logout navigates to `/admin/auth/login` and a `history` listener in `app.tsx`'s bootstrap replaces it with `/intrare` (record which hook catches it).
+  4. A scratch global middleware answers 404 to `POST /admin/login` placed after `strapi::body`; `GET /admin/auth/login` answered 302 to `/login` by the same middleware; in the SPA, a logout navigates to `/admin/auth/login` and a `history` listener in `app.tsx`'s bootstrap replaces it with `/login` (record which hook catches it).
 - [ ] **Step 3: Run** `npx vitest run src/club/admin-login/__tests__/spike-admin-session.test.ts`. Expected: PASS for every check that holds; keep the failing ones as `it.fails` with a comment naming the FAIL number.
 - [ ] **Step 4: Decide and stop.** All pass: ledger `SPIKE PASS`. Else ledger `SPIKE FAIL <n>` with what was seen. Report to the controller and stop until answered (index "The gate" lists the paths). Remove the container.
 - [ ] **Step 5: Commit**
@@ -442,7 +442,7 @@ export async function verifySecondStep(c: SecurityContext, secret: string, metho
 - Test: `src/__tests__/sentry-scrub.test.ts`, `src/club/portal/__tests__/purge.test.ts` (extend)
 
 **Interfaces:**
-- Produces: `scrubAuthEvent(event)`: for a request URL path starting with `/api/admin-auth/`, `/api/portal/auth/`, `/api/portal/me/`, `/intrare`, drops `request.data`, `request.cookies`, the `cookie` and `authorization` headers and the query string; `purgePortal` also calls `securityStore.purge(now)` and returns its counts merged.
+- Produces: `scrubAuthEvent(event)`: for a request URL path starting with `/api/admin-auth/`, `/api/portal/auth/`, `/api/portal/me/`, `/login`, drops `request.data`, `request.cookies`, the `cookie` and `authorization` headers and the query string; `purgePortal` also calls `securityStore.purge(now)` and returns its counts merged.
 
 - [ ] **Step 1: Failing tests**: an event for `POST /api/admin-auth/2fa` with `data: { code: '123456' }` comes out with no `123456` anywhere in `JSON.stringify(event)`; same for `/api/portal/me/2fa/totp/confirm`; an event for `/api/club/summary` keeps its data. Purge counts include `factors`, `challenges`, `backupCodes`, `adminDevices`.
 - [ ] **Step 2: Run** FAIL. **Step 3: Implement.** **Step 4: Run** PASS (suite, tsc).
@@ -499,9 +499,9 @@ export async function endAdminSessions(c: AdminSessionCtx, adminId: number, o: {
 
 **Interfaces:**
 - Produces: `gateDecision(method: string, path: string, body: unknown, enabled: boolean): 'pass' | 'notFound' | 'forbidden' | { redirect: string }` (pure, exported for the test) and the middleware around it. `onAdminEmailChange(strapi, adminId)`: clears `googleSub`, ends every session (`endAdminSessions`), forgets every device's 2FA.
-- Rules (spec 4.4, rulings 9, 15): with `enabled` (`ADMIN_GATE !== 'off'`): `POST /admin/login`, `/admin/register`, `/admin/register-admin`, `/admin/reset-password`, `/admin/forgot-password` -> 404; `PUT /admin/users/me` whose body has `password`, `currentPassword` or `email` -> 403; `PUT /admin/users/:id` with `password` -> 403; `GET /admin/auth/<anything>` -> 302 to the matching `/intrare` path (`register` -> `/intrare/invitatie`, `forgot-password` and `reset-password` -> `/intrare/parola`, else `/intrare`), keeping only `registrationToken` and `code` from the query; `POST /admin/access-token`, `POST /admin/logout`, everything else -> pass. Disabled: everything passes.
+- Rules (spec 4.4, rulings 9, 15): with `enabled` (`ADMIN_GATE !== 'off'`): `POST /admin/login`, `/admin/register`, `/admin/register-admin`, `/admin/reset-password`, `/admin/forgot-password` -> 404; `PUT /admin/users/me` whose body has `password`, `currentPassword` or `email` -> 403; `PUT /admin/users/:id` with `password` -> 403; `GET /admin/auth/<anything>` -> 302 to the matching `/login` path (`register` -> `/invite`, `forgot-password` and `reset-password` -> `/forgot-password`, else `/login`), keeping only `registrationToken` and `code` from the query; `POST /admin/access-token`, `POST /admin/logout`, everything else -> pass. Disabled: everything passes.
 
-- [ ] **Step 1: Failing tests**: `closed routes answer 404` (each of the five, enabled); disabled -> pass; profile `PUT` with `{ firstname }` passes, with `{ password }` or `{ email }` -> 403; `PUT /admin/users/5 { password }` -> 403, `{ roles }` passes; `GET /admin/auth/register?registrationToken=abc&x=1` -> `{ redirect: '/intrare/invitatie?registrationToken=abc' }`; `GET /admin/auth/login` -> `/intrare`; `POST /admin/access-token` and `/admin/logout` pass. Source-reading test: `config/middlewares.ts` lists `global::admin-auth-gate` immediately after `strapi::body`. E-mail change: an `admin::user` update that changes `email` calls `onAdminEmailChange`; an update without an e-mail change does not.
+- [ ] **Step 1: Failing tests**: `closed routes answer 404` (each of the five, enabled); disabled -> pass; profile `PUT` with `{ firstname }` passes, with `{ password }` or `{ email }` -> 403; `PUT /admin/users/5 { password }` -> 403, `{ roles }` passes; `GET /admin/auth/register?registrationToken=abc&x=1` -> `{ redirect: '/invite?registrationToken=abc' }`; `GET /admin/auth/login` -> `/login`; `POST /admin/access-token` and `/admin/logout` pass. Source-reading test: `config/middlewares.ts` lists `global::admin-auth-gate` immediately after `strapi::body`. E-mail change: an `admin::user` update that changes `email` calls `onAdminEmailChange`; an update without an e-mail change does not.
 - [ ] **Step 2: Run** FAIL. **Step 3: Implement.** **Step 4: Run** PASS (suite, tsc).
 - [ ] **Step 5: Commit** `feat(admin-login): close Strapi's session routes and redirect /admin/auth`.
 
@@ -572,9 +572,9 @@ export async function finishAdminLogin(c: AdminLoginContext, admin: AdminRow, re
 **Interfaces:**
 - Consumes: `googleClient`, `exchangeCode`, `verifyIdToken` from `src/club/portal/auth/google.ts`.
 - Produces: `startAdminGoogle(c, query): { redirect: string }` (state, nonce, PKCE verifier and `remember` and optional `registrationToken` in the 10-minute cookie on path `/api/admin-auth/google`; `redirect_uri` = `<adminOrigin>/api/admin-auth/google/callback`, `scope=openid email`), `adminGoogleCallback(c, query): Promise<{ redirect: string }>`.
-- Rules (spec 4.6, ruling 5): state must match the cookie (else `/intrare?eroare=google`); identity valid; an active admin whose account has that `googleSub`, or whose e-mail equals the Google e-mail (case-insensitive) and whose account has no `googleSub` (then store it, history `"Google conectat."`); with a `registrationToken`: the invite e-mail must equal the Google e-mail, `registerInvited` with a random 64-character password; never creates an admin otherwise. Success: `finishAdminLogin(..., { newDeviceMail: true })`, the access token into the `jwtToken` cookie (Strapi's name, not HttpOnly, as Strapi's SSO), redirect `/intrare/gata?remember=<0|1>`. Google logins skip 2FA. Not counted by the e-mail lockout; counted by the IP rule.
+- Rules (spec 4.6, ruling 5): state must match the cookie (else `/login?error=google`); identity valid; an active admin whose account has that `googleSub`, or whose e-mail equals the Google e-mail (case-insensitive) and whose account has no `googleSub` (then store it, history `"Google conectat."`); with a `registrationToken`: the invite e-mail must equal the Google e-mail, `registerInvited` with a random 64-character password; never creates an admin otherwise. Success: `finishAdminLogin(..., { newDeviceMail: true })`, the access token into the `jwtToken` cookie (Strapi's name, not HttpOnly, as Strapi's SSO), redirect `/login/done?remember=<0|1>`. Google logins skip 2FA. Not counted by the e-mail lockout; counted by the IP rule.
 
-- [ ] **Step 1: Failing tests** with a local RSA key pair and a fake `fetchFn` (pattern of `src/club/portal/__tests__/google.test.ts`): match by sub; match by e-mail stores the sub; e-mail match when the account already has another sub -> refused; inactive or blocked admin -> refused; unknown e-mail -> `/intrare?eroare=google` and no admin created (`admin::user` count unchanged); wrong state -> refused; invite with another Google e-mail -> refused; invite with the same e-mail -> registered and logged in; 2FA on is skipped.
+- [ ] **Step 1: Failing tests** with a local RSA key pair and a fake `fetchFn` (pattern of `src/club/portal/__tests__/google.test.ts`): match by sub; match by e-mail stores the sub; e-mail match when the account already has another sub -> refused; inactive or blocked admin -> refused; unknown e-mail -> `/login?error=google` and no admin created (`admin::user` count unchanged); wrong state -> refused; invite with another Google e-mail -> refused; invite with the same e-mail -> registered and logged in; 2FA on is skipped.
 - [ ] **Step 2: Run** FAIL. **Step 3: Implement.** **Step 4: Run** PASS (suite, tsc).
 - [ ] **Step 5: Commit** `feat(admin-login): Google login and Google invite accept`.
 
@@ -597,21 +597,21 @@ export async function finishAdminLogin(c: AdminLoginContext, admin: AdminRow, re
 
 ---
 
-### Task 16: The `/intrare` bundle and the SPA redirect (high, Sonnet). After Task 0
+### Task 16: The `/login` bundle and the SPA redirect (high, Sonnet). After Task 0
 
 **Files:**
 - Create: `src/admin-login/main.tsx`, `src/admin-login/App.tsx`, `src/admin-login/screens/{Login,SecondStep,Invite,Reset,Done}.tsx`, `src/admin-login/handoff.ts`, `src/admin-login/api.ts`, `src/admin-login/index.html`, `vite.admin-login.config.ts`, `src/middlewares/admin-login-page.ts`
-- Modify: `config/middlewares.ts` (`'global::admin-login-page'` after the gate), `package.json` (`"build": "strapi build && vite build -c vite.admin-login.config.ts"`), `src/admin/app.tsx` (remove `AUTH_COPY` and `applyLoginBranding`; bootstrap listens to SPA navigation and replaces `/admin/auth/*` with the matching `/intrare` path as T11's map), `src/admin/dashboard/loginBranding.ts` (export the brand art for reuse; the Strapi login injection goes)
+- Modify: `config/middlewares.ts` (`'global::admin-login-page'` after the gate), `package.json` (`"build": "strapi build && vite build -c vite.admin-login.config.ts"`), `src/admin/app.tsx` (remove `AUTH_COPY` and `applyLoginBranding`; bootstrap listens to SPA navigation and replaces `/admin/auth/*` with the matching `/login` path as T11's map), `src/admin/dashboard/loginBranding.ts` (export the brand art for reuse; the Strapi login injection goes)
 - Test: `src/admin-login/__tests__/handoff.test.ts`, `src/admin-login/__tests__/screens.test.tsx` (React Testing Library, the existing admin test setup), `src/middlewares/__tests__/admin-login-page.test.ts`
 
 **Interfaces:**
 - Consumes: the index admin login contracts; `src/admin/ui` components and tokens; `SECURITY_COPY`.
-- Produces: `storeHandoff(h: AdminHandoff, w: Window): void` (remember: `localStorage.setItem('jwtToken', JSON.stringify(token))` and `isLoggedIn` as the spike recorded; else the `jwtToken` cookie, path `/admin`, the SPA's cookie options) then `w.location.assign('/admin')`; the middleware serves `dist/admin-login/index.html` for `GET /intrare` and its subpaths (`/invitatie`, `/parola`, `/2fa`, `/cheie`, `/gata`) and the hashed assets under `/intrare/assets/*` with `Cache-Control: no-store` on the html, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex`.
-- Screens (spec 10.1 to 10.3, 11.2 copy): Login ("Intră în cont", "Continuă cu Google", "sau", "E-mail", "Parolă" with "Arată parola" / "Ascunde parola", "Ține-mă minte", "Intră", "Am uitat parola"); the passkey button and autofill are added by T22; SecondStep (11.2 texts, "Ține minte dispozitivul 30 de zile" ticked by default, "Altă metodă", "Trimite din nou", "Înapoi la intrare", expired pending returns to Login with the ruling 1 text); Invite (e-mail read only, "Parolă nouă", "Salvează parola" with `.pce`, "sau", "Continuă cu Google"); Reset (three states of 4.7); Done (`/intrare/gata`: moves the cookie token to `localStorage` when `remember=1`, opens `/admin`). Brand layer as today on the left (navy shape, wordmark, "Panou de administrare").
+- Produces: `storeHandoff(h: AdminHandoff, w: Window): void` (remember: `localStorage.setItem('jwtToken', JSON.stringify(token))` and `isLoggedIn` as the spike recorded; else the `jwtToken` cookie, path `/admin`, the SPA's cookie options) then `w.location.assign('/admin')`; the middleware serves `dist/admin-login/index.html` for `GET /login` and its subpaths (`/invitatie`, `/parola`, `/2fa`, `/cheie`, `/gata`) and the hashed assets under `/login/assets/*` with `Cache-Control: no-store` on the html, `Referrer-Policy: no-referrer`, `X-Robots-Tag: noindex`.
+- Screens (spec 10.1 to 10.3, 11.2 copy): Login ("Intră în cont", "Continuă cu Google", "sau", "E-mail", "Parolă" with "Arată parola" / "Ascunde parola", "Ține-mă minte", "Intră", "Am uitat parola"); the passkey button and autofill are added by T22; SecondStep (11.2 texts, "Ține minte dispozitivul 30 de zile" ticked by default, "Altă metodă", "Trimite din nou", "Înapoi la intrare", expired pending returns to Login with the ruling 1 text); Invite (e-mail read only, "Parolă nouă", "Salvează parola" with `.pce`, "sau", "Continuă cu Google"); Reset (three states of 4.7); Done (`/login/done`: moves the cookie token to `localStorage` when `remember=1`, opens `/admin`). Brand layer as today on the left (navy shape, wordmark, "Panou de administrare").
 
-- [ ] **Step 1: Failing tests**: `storeHandoff` remember and not (jsdom); Login renders every string exactly, submits `{ email, password, rememberMe }`, shows the 401 text from the server as sent; a `SecondStep` answer routes to `/intrare/2fa` with `last` preselected; SecondStep submit sends `{ method, code, remember: true }` by default; the middleware serves html for the six paths, 404 for `/intrare/../x`, and never for `/admin/*`; `app.tsx` source has no `AUTH_COPY` and no `applyLoginBranding` call.
+- [ ] **Step 1: Failing tests**: `storeHandoff` remember and not (jsdom); Login renders every string exactly, submits `{ email, password, rememberMe }`, shows the 401 text from the server as sent; a `SecondStep` answer routes to `/login/2fa` with `last` preselected; SecondStep submit sends `{ method, code, remember: true }` by default; the middleware serves html for the six paths, 404 for `/login/../x`, and never for `/admin/*`; `app.tsx` source has no `AUTH_COPY` and no `applyLoginBranding` call.
 - [ ] **Step 2: Run** FAIL. **Step 3: Implement.** **Step 4: Run** PASS (suite, tsc, `tsc -p src/admin`, `vite build -c vite.admin-login.config.ts` builds without warnings about missing modules).
-- [ ] **Step 5: Commit** `feat(admin-login): /intrare page bundle and redirect from Strapi's auth pages`.
+- [ ] **Step 5: Commit** `feat(admin-login): /login page bundle and redirect from Strapi's auth pages`.
 
 ---
 

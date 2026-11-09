@@ -4,7 +4,7 @@ import { ACCOUNT_TOASTS } from '../copy-admin';
 import type { AccountRow } from '../store';
 import type { AccountAnswer } from './api-types';
 import { answer, emailOf, guardedWrite, queueFreshInvite, revokeAccess, useUpTokens } from './invite';
-import { blockOf, type AccountContext } from './read';
+import { blockFor, type AccountContext } from './read';
 
 type Changed = { before: AccountRow; after: AccountRow; jobId: string | null };
 
@@ -33,7 +33,8 @@ export async function changeEmail(c: AccountContext, accountId: string, body: un
       const before = await c.store.account(accountId);
       if (!before) return null;
       if (before.email === email) return { before, after: before, jobId: null };
-      await c.store.updateAccount(accountId, { email, googleSub: null });
+      await c.store.updateAccount(accountId, { email, googleSub: null, ...(before.googleSub ? { googleUnlinkedAt: c.now().toISOString() } : {}) });
+      await c.endPendingGoogle?.(accountId);
       await c.store.updateUser(before.userId, { email });
       await revokeAccess(c, before);
       await useUpTokens(c, accountId, before.status === 'invited' ? ['reset', 'invite'] : ['reset']);
@@ -50,6 +51,6 @@ export async function changeEmail(c: AccountContext, accountId: string, body: un
       if (changed.jobId) c.afterCommit(changed.jobId);
       await notify(c, changed.before.email, changed.after.email);
     }
-    return answer(blockOf(changed.after.teamMemberId ?? '', changed.after), ACCOUNT_TOASTS.emailChanged);
+    return answer(await blockFor(c, changed.after.teamMemberId ?? '', changed.after), ACCOUNT_TOASTS.emailChanged);
   });
 }

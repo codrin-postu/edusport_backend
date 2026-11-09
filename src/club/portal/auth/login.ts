@@ -3,7 +3,8 @@ import { PORTAL_ACTIONS, PORTAL_ERRORS } from '../copy';
 import { normalizeEmail } from '../limits';
 import type { AccountRow } from '../store';
 import { DUMMY_HASH, type PortalAuthContext, type PortalResult } from './context';
-import { canEnter, startSession, type PortalSession } from './issue';
+import { canEnter } from './issue';
+import { afterPassword, type PortalPending, type SessionWithOffer } from './two-factor';
 
 export type LoginBody = { host: string; email: string; password: string; deviceKey: string | null };
 
@@ -39,12 +40,12 @@ export async function noticeLockout(c: PortalAuthContext, account: AccountRow): 
   }
 }
 
-function refuseLogin(c: PortalAuthContext, attempt: Attempt, account: AccountRow | null): PortalResult<PortalSession> {
+function refuseLogin(c: PortalAuthContext, attempt: Attempt, account: AccountRow | null): PortalResult<never> {
   if (attempt.firstLock && account) void noticeLockout(c, account);
   return attempt.locking ? paused : { ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin };
 }
 
-export async function loginWithPassword(c: PortalAuthContext, body: unknown): Promise<PortalResult<PortalSession>> {
+export async function loginWithPassword(c: PortalAuthContext, body: unknown): Promise<PortalResult<SessionWithOffer | PortalPending>> {
   const read = readLoginBody(body, c.hosts);
   if (!read) return refuse(400, PORTAL_ERRORS.invalid);
   if (await c.limits.ipBlocked(c.ip)) return paused;
@@ -55,5 +56,5 @@ export async function loginWithPassword(c: PortalAuthContext, body: unknown): Pr
   const right = await c.compare(read.password, user?.passwordHash ?? DUMMY_HASH);
   if (!right || !account || !canEnter(account, user, read.host)) return refuseLogin(c, attempt, account);
   await c.limits.emailCleared(read.email);
-  return startSession(c, account, read.deviceKey, { notifyNewDevice: true, host: read.host });
+  return afterPassword(c, account, read.deviceKey, read.host);
 }

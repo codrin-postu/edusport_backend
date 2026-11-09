@@ -8,6 +8,7 @@ import { PORTAL_ACTIONS, PORTAL_ERRORS, RESET_SENT } from '../copy';
 import { portalSessions } from '../sessions';
 import type { AccountRow } from '../store';
 import { fakePortalStore } from './fake-portal-store';
+import { securityFor } from './portal-2fa';
 
 const SENT = { ok: true, data: { message: RESET_SENT } };
 const BAD = { ok: false, status: 400, error: PORTAL_ERRORS.badCode };
@@ -28,7 +29,7 @@ function setup(o: { mailOk?: boolean | 'throw' } = {}) {
   const logs: string[] = [];
   const sessions = portalSessions(store, now);
   const slept: number[] = [];
-  const c: PortalAuthContext = {
+  const c: PortalAuthContext = { security: securityFor(fake, store, now).security,
     sleep: async (ms) => { slept.push(ms); },
     store, sessions, limits: limiter(store, now), mail, common: new Set(['password123']), hosts: ['antrenor'], ip: '1.1.1.1',
     userAgent: null, now, log: (m) => logs.push(m), hash: async (p) => `hash:${p}`, compare: async (p, h) => h === `hash:${p}`,

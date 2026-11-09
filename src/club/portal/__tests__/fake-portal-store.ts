@@ -93,8 +93,11 @@ function purges(state: FakePortalState): Pick<PortalStore, 'purgeDevices' | 'pur
     return [kept, rows.length - kept.length];
   };
   return {
-    purgeDevices: async (before) => {
-      const [kept, n] = drop(state.devices, (d) => d.revokedAt !== null && t(d.revokedAt) < before.getTime());
+    purgeDevices: async (before, unconfirmedBefore) => {
+      const [kept, n] = drop(
+        state.devices,
+        (d) => (d.revokedAt !== null && t(d.revokedAt) < before.getTime()) || (unconfirmedBefore !== undefined && d.confirmedAt === null && d.sessionId === null && t(d.firstSeenAt) < unconfirmedBefore.getTime()),
+      );
       state.devices = kept;
       return n;
     },
@@ -126,7 +129,7 @@ function accounts(state: FakePortalState): Pick<PortalStore, 'account' | 'accoun
     createAccount: async (a) => {
       const id = `acc${state.nextId++}`;
       state.accounts.push({
-        id, teamMemberId: null, phone: null, googleSub: null, invitedAt: null, invitedBy: null, activatedAt: null, disabledAt: null, disabledBy: null, lastLoginAt: null,
+        id, teamMemberId: null, phone: null, googleSub: null, googleUnlinkedAt: null, invitedAt: null, invitedBy: null, activatedAt: null, disabledAt: null, disabledBy: null, lastLoginAt: null,
         ...defined(a), userId: a.userId, status: a.status, email: a.email.toLowerCase(),
       });
       return id;
@@ -183,7 +186,7 @@ function devices(state: FakePortalState): Pick<PortalStore, 'devices' | 'deviceB
     },
     createDevice: async (d) => {
       const id = `dev${state.nextId++}`;
-      state.devices.push({ ...d, id, revokedAt: null });
+      state.devices.push({ ...d, id, revokedAt: null, twoFactorUntil: null, confirmedAt: null });
       return id;
     },
     updateDevice: async (id, d) => {

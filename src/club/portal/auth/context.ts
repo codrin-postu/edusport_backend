@@ -5,6 +5,11 @@ import type { AdminCtx } from '../../admin-http';
 import type { AdminResult, AuthRefusal } from '../../admin-result';
 import { cancelQueuedInvites } from '../../../email/strapi-email';
 import { portalMailSender, type SendPortalMail } from '../../../email/portal-direct';
+import { securityMailSender } from '../../../email/security-mail';
+import type { SecurityContext } from '../../security/context';
+import { loadKeys } from '../../security/keys';
+import { strapiSecurityStore } from '../../security/strapi-store';
+import { portalSecurityContext } from '../security';
 import { loadCommonPasswords } from '../passwords';
 import { portalSessions, type PortalSessions } from '../sessions';
 import type { PortalStore } from '../store';
@@ -28,6 +33,8 @@ export type PortalAuthContext = {
   /** Inside a transaction: queued invite jobs of the account are cancelled and their links blanked (optional in tests). */
   cancelInvites?: (accountId: string) => Promise<void>;
   hash: (password: string) => Promise<string>; compare: (password: string, hash: string) => Promise<boolean>;
+  /** The shared 2FA machinery (second step, factors, devices) on this request's stores. */
+  security: SecurityContext;
 };
 
 const COST = 10;
@@ -39,17 +46,25 @@ export const DUMMY_HASH: string = bcrypt.hashSync(randomBytes(16).toString('hex'
 export function portalAuthContext(strapi: Core.Strapi, ctx: PortalCtx): PortalAuthContext {
   const store = strapiPortalStore(strapi);
   const now = (): Date => new Date();
+  const sessions = portalSessions(store, now);
+  const limits = limiter(store, now);
+  const ip = clientIp(ctx.request.headers);
+  const ua = userAgent(ctx.request.headers);
+  const log = (m: string): void => void strapi.log.error(m);
   return {
     store,
-    sessions: portalSessions(store, now),
-    limits: limiter(store, now),
+    sessions,
+    limits,
+    security: portalSecurityContext({
+      store, security: strapiSecurityStore(strapi), sessions, limits, now, keys: loadKeys(), log, ip, userAgent: ua, sendSecurity: securityMailSender(strapi),
+    }),
     mail: portalMailSender(strapi),
     common: loadCommonPasswords(strapi.dirs.app.root),
     hosts: PORTAL_HOSTS(),
-    ip: clientIp(ctx.request.headers),
-    userAgent: userAgent(ctx.request.headers),
+    ip,
+    userAgent: ua,
     now,
-    log: (m) => strapi.log.error(m),
+    log,
     cancelInvites: async (accountId) => {
       await cancelQueuedInvites(strapi, accountId);
     },

@@ -10,6 +10,7 @@ import { PORTAL_ACTIONS, PORTAL_ERRORS, portalHistoryText } from '../copy';
 import { portalSessions } from '../sessions';
 import type { PortalStore } from '../store';
 import { fakePortalStore } from './fake-portal-store';
+import { securityFor } from './portal-2fa';
 
 const GONE = { ok: false, status: 410, error: PORTAL_ERRORS.inviteExpired };
 const PASSWORD = 'a-fine-new-password';
@@ -38,7 +39,7 @@ async function setup() {
   fake.state.users.push({ id: 1, email: 'ana@x.ro', passwordHash: 'unusable', blocked: false, confirmed: false, username: 'ana@x.ro', provider: 'local', role: 'authenticated' });
   const mails: { to: string; mail: PortalMail }[] = [];
   const mail: SendPortalMail = async (to, m) => { mails.push({ to, mail: m }); return true; };
-  const c: PortalAuthContext = {
+  const c: PortalAuthContext = { security: securityFor(fake, store, now).security,
     store, sessions: portalSessions(store, now), limits: limiter(store, now), mail, common: new Set(['password123']), hosts: ['antrenor'], ip: '1.1.1.1',
     userAgent: null, now, log: () => undefined, hash: async (p) => `hash:${p}`, compare: async () => false,
   };

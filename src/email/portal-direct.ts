@@ -43,10 +43,10 @@ function letter(mail: PortalMail): { subject: string; paragraphs: string[][] } {
   return { subject: MAIL_COPY.newDevice.subject, paragraphs: [[line], [MAIL_COPY.newDevice.advice], signature] };
 }
 
-const paragraphHtml = (lines: string[]): string => `<p style="margin:0 0 14px;">${lines.map(escapeHtml).join('<br>')}</p>`;
+export const paragraphHtml = (lines: string[]): string => `<p style="margin:0 0 14px;">${lines.map(escapeHtml).join('<br>')}</p>`;
 
-export function renderPortalMail(mail: PortalMail, links: EmailLinks): RenderedEmail {
-  const { subject, paragraphs } = letter(mail);
+/** Layout E1: brand header, one paragraph per line group, footer. */
+export function renderLetter(subject: string, paragraphs: string[][], links: EmailLinks): RenderedEmail {
   const body = `<div style="margin:0 0 28px;">${brandHtml(links.headerImage)}</div>${paragraphs.map(paragraphHtml).join('')}`;
   return {
     subject,
@@ -55,21 +55,30 @@ export function renderPortalMail(mail: PortalMail, links: EmailLinks): RenderedE
   };
 }
 
-function failed(strapi: Core.Strapi, kind: PortalMail['kind'], why: string): false {
+export function renderPortalMail(mail: PortalMail, links: EmailLinks): RenderedEmail {
+  const { subject, paragraphs } = letter(mail);
+  return renderLetter(subject, paragraphs, links);
+}
+
+function failed(strapi: Core.Strapi, kind: string, why: string): false {
   const message = `[portal-mail] ${kind} not sent: ${why}`;
   strapi.log.error(message);
   captureMessage(message);
   return false;
 }
 
-export function portalMailSender(strapi: Core.Strapi): SendPortalMail {
+/** The send path every direct mail shares: test-address routing, config check, E1 render, one retry in `sendNow`. */
+export function directMailSender<M extends { kind: string }>(
+  strapi: Core.Strapi,
+  render: (mail: M, links: EmailLinks) => RenderedEmail,
+): (to: string, mail: M) => Promise<boolean> {
   return async (to, mail) => {
     const config = readEmailConfig();
     const target = deliveryTarget(config, to);
     if (target.ok === false) return failed(strapi, mail.kind, target.reason);
     if (!config.apiKey || !config.sender) return failed(strapi, mail.kind, 'not configured');
     const contact = (await strapi.documents(SITE_UID).findFirst({}))?.contact;
-    const rendered = renderPortalMail(mail, buildEmailLinks(config, contact));
+    const rendered = render(mail, buildEmailLinks(config, contact));
     const result = await sendNow(
       { to: target.to, subject: rendered.subject, html: rendered.html, text: rendered.text, attachments: [] },
       { apiKey: config.apiKey, sender: config.sender, replyTo: config.replyTo },
@@ -78,3 +87,5 @@ export function portalMailSender(strapi: Core.Strapi): SendPortalMail {
     return failed(strapi, mail.kind, failureStatus(result.error));
   };
 }
+
+export const portalMailSender = (strapi: Core.Strapi): SendPortalMail => directMailSender(strapi, renderPortalMail);

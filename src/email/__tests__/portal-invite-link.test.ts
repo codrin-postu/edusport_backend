@@ -5,7 +5,7 @@ import { attemptJob } from '../email-jobs';
 import { cancelQueuedInvites } from '../strapi-email';
 import { fakeDeps, queuedJob } from './helpers';
 
-const payload = { name: 'Ana', link: 'https://antrenor.example.com/invitatie/SECRET', host: 'antrenor.example.com' };
+const payload = { name: 'Ana', link: 'https://antrenor.example.com/invite/SECRET', host: 'antrenor.example.com' };
 const invite = (over = {}) => queuedJob({ kind: 'portal-invite', payload, ...over });
 
 describe('invite link in the stored payload', () => {
@@ -14,7 +14,7 @@ describe('invite link in the stored payload', () => {
     deps.stored.row = invite();
     const out = await attemptJob(deps, invite());
     expect(out.status).toBe('sent');
-    expect(JSON.stringify(deps.stored.row.payload)).not.toContain('/invitatie/');
+    expect(JSON.stringify(deps.stored.row.payload)).not.toContain('/invite/');
     expect((deps.stored.row.payload as { link: string }).link).toBe('');
   });
   it('is blanked when the job fails for good, kept while it is retried', async () => {
@@ -23,7 +23,7 @@ describe('invite link in the stored payload', () => {
     deps.stored.row = invite();
     await attemptJob(deps, invite());
     expect(deps.stored.row.status).toBe('queued');
-    expect((deps.stored.row.payload as { link: string }).link).toContain('/invitatie/');
+    expect((deps.stored.row.payload as { link: string }).link).toContain('/invite/');
     deps.stored.row = invite({ attempts: 4 });
     await attemptJob(deps, invite({ attempts: 4 }));
     expect(deps.stored.row.status).toBe('failed');

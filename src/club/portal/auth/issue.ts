@@ -15,22 +15,29 @@ export function canEnter(account: AccountRow | null, user: UserAuth | null, host
 
 type Bound = { device: DeviceRow; key: string; newRow: boolean; newKey: boolean };
 
+/** A device row for a browser that has none yet (or whose row was revoked), with the key the browser keeps. The session is bound to it later. */
+export async function createDeviceRow(c: PortalAuthContext, account: AccountRow): Promise<{ device: DeviceRow; key: string }> {
+  const key = newDeviceKey();
+  const at = c.now().toISOString();
+  const row = { accountId: account.id, deviceKeyHash: hashSecret(key), sessionId: null, label: deviceLabel(c.userAgent), firstSeenAt: at, lastSeenAt: at };
+  const id = await c.store.createDevice(row);
+  return { device: { ...row, id, revokedAt: null, twoFactorUntil: null, confirmedAt: null }, key };
+}
+
 async function bindDevice(c: PortalAuthContext, account: AccountRow, given: string | null): Promise<Bound> {
   const found = given ? await c.store.deviceByKey(account.id, hashSecret(given)) : null;
   if (found && found.revokedAt === null) {
     await c.sessions.revokeDevice(account.userId, found.id);
     return { device: found, key: given ?? '', newRow: false, newKey: false };
   }
-  const key = newDeviceKey();
-  const at = c.now().toISOString();
-  const row = { accountId: account.id, deviceKeyHash: hashSecret(key), sessionId: null, label: deviceLabel(c.userAgent), firstSeenAt: at, lastSeenAt: at };
-  const id = await c.store.createDevice(row);
-  return { device: { ...row, id, revokedAt: null }, key, newRow: true, newKey: true };
+  const made = await createDeviceRow(c, account);
+  return { device: made.device, key: made.key, newRow: true, newKey: true };
 }
 
-async function mailNewDevice(c: PortalAuthContext, account: AccountRow, device: DeviceRow): Promise<void> {
+export async function mailNewDevice(c: PortalAuthContext, account: AccountRow, label: string): Promise<void> {
   try {
-    const sent = await c.mail(account.email, { kind: 'new-device', device: device.label, at: c.now() });
+    if (!(await c.limits.newDeviceMailAllowed(`portal:${account.id}`))) return;
+    const sent = await c.mail(account.email, { kind: 'new-device', device: label, at: c.now() });
     if (!sent) c.log('[portal-login] new-device mail not sent');
   } catch (err) {
     c.log(`[portal-login] new-device mail failed: ${err instanceof Error ? err.name : 'error'}`);
@@ -51,11 +58,11 @@ export async function issueSession(
     const bound = await bindDevice(c, fresh, deviceKey);
     const tokens = await c.sessions.issue(fresh.userId, bound.device.id, o.host);
     const at = c.now().toISOString();
-    await c.store.updateDevice(bound.device.id, { sessionId: tokens.sessionId, lastSeenAt: at });
+    await c.store.updateDevice(bound.device.id, { sessionId: tokens.sessionId, lastSeenAt: at, confirmedAt: at });
     await c.store.updateAccount(fresh.id, { lastLoginAt: at });
     return { bound, tokens };
   });
-  if (o.notifyNewDevice && bound.newRow) void mailNewDevice(c, account, bound.device);
+  if (o.notifyNewDevice && bound.newRow) void mailNewDevice(c, account, bound.device.label);
   return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, accessExpiresAt: tokens.accessExpiresAt, deviceKey: bound.newKey ? bound.key : null };
 }
 

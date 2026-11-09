@@ -36,3 +36,13 @@ Source: https://pages.nist.gov/800-63-4/sp800-63b.html
 - Session: sliding 7 days (each visit restarts the 7 days). Hard maximum 30 days, then login again (NIST AAL1).
 - Admin panel: e-mail + password or Google (built by us; Strapi SSO is paid), then optional two-factor (app, e-mail code, passkey). Google login skips two-factor.
 - Portal: e-mail + password or Google; optional two-factor (app, e-mail code); passkey replaces password and code.
+
+## Passkey domain move runbook (spec 8.6)
+
+Passkeys are bound to the rpId (`WEBAUTHN_RP_ID`). Today it is `codrin.space`; after the move to `scoaladepatinaj.com` every key made before it stops working. Nobody depends on a key alone: every admin and coach has a password or Google.
+
+1. Before the switch, check that at least two Super Admins can sign in with a password or Google (not a passkey).
+2. In the same deploy step that moves `cms.` and `antrenor.`, set `WEBAUTHN_RP_ID=scoaladepatinaj.com` and `WEBAUTHN_ORIGINS` to the new hosts, and set `WEBAUTHN_MOVED_AT` to the day of the switch (ISO date, for example `2027-01-10`).
+3. Run `npm run passkeys:cutover -- --dry-run` in the `backend` service. It prints the keys per rpId and how many people would see the offer again. Then run `npm run passkeys:cutover`: it clears `passkeyOfferedAt` for everyone whose keys are all on the old rpId, so the "Creează o cheie de acces" offer shows once more. It deletes nothing.
+4. Old keys are never offered by the browser on the new hosts. Securitate lists them as "Cheie veche, nu mai merge. Creează una nouă." with "Șterge". The daily purge deletes them 30 days after `WEBAUTHN_MOVED_AT`; the keys of the new rpId are never touched.
+5. People sign in on the new host with password (and 2FA) or Google, then create a new key from the offer or from Securitate. The authenticator app and the backup codes are not bound to a domain and keep working. Device cookies belong to a host, so the first sign-in on a new host asks for 2FA once and sends the new-device e-mail. Tell the club in the cutover note.

@@ -7,10 +7,10 @@ export type { AccountRow, AccountStatus, AccountWrite, DeviceRow, HistoryLine, L
 
 export type NewAccount = AccountWrite & { userId: number; email: string; status: AccountStatus };
 export type NewToken = Omit<TokenRow, 'id' | 'createdAt' | 'usedAt' | 'tries'>;
-export type NewDevice = Omit<DeviceRow, 'id' | 'revokedAt'>;
+export type NewDevice = Omit<DeviceRow, 'id' | 'revokedAt' | 'twoFactorUntil' | 'confirmedAt'>;
 export type NewSession = Omit<SessionRow, 'id' | 'revokedAt' | 'previousRefreshHash'>;
 export type SessionWrite = Partial<Omit<SessionRow, 'id' | 'accountId' | 'deviceId' | 'host' | 'familyStartedAt'>>;
-export type DeviceWrite = Partial<Pick<DeviceRow, 'sessionId' | 'lastSeenAt' | 'revokedAt' | 'label'>>;
+export type DeviceWrite = Partial<Pick<DeviceRow, 'sessionId' | 'lastSeenAt' | 'revokedAt' | 'label' | 'confirmedAt'>>;
 
 export interface PortalStore {
   transaction<T>(fn: () => Promise<T>): Promise<T>;
@@ -21,8 +21,8 @@ export interface PortalStore {
   lockLimit(key: string): Promise<LimitRow>;
   saveLimit(id: string, s: LimitState): Promise<void>;
   purgeLimits(olderThan: Date, now: Date): Promise<number>;
-  /** Device rows revoked before the instant. */
-  purgeDevices(revokedBefore: Date): Promise<number>;
+  /** Device rows revoked before the first instant, and unconfirmed rows (no session, never confirmed) first seen before the second. */
+  purgeDevices(revokedBefore: Date, unconfirmedBefore?: Date): Promise<number>;
   /** Tokens used before the instant or expired before it; an unused valid token stays. */
   purgeTokens(before: Date): Promise<number>;
   /** Sessions revoked before the instant, or whose end (idle 7 days, family 30 days) fell before it; a live one stays. */

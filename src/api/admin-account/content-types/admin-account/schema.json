@@ -1,0 +1,62 @@
+{
+  "kind": "collectionType",
+  "collectionName": "admin_accounts",
+  "info": {
+    "singularName": "admin-account",
+    "pluralName": "admin-accounts",
+    "displayName": "Admin / Cont"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    },
+    "content-type-builder": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "adminUserId": {
+      "type": "integer",
+      "required": true,
+      "unique": true,
+      "column": {
+        "unique": true
+      }
+    },
+    "googleSub": {
+      "type": "string",
+      "unique": true,
+      "column": {
+        "unique": true
+      }
+    },
+    "googleUnlinkedAt": {
+      "type": "datetime"
+    },
+    "webauthnUserId": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "column": {
+        "unique": true
+      }
+    },
+    "lastMethod": {
+      "type": "enumeration",
+      "enum": [
+        "totp",
+        "email",
+        "backup"
+      ]
+    },
+    "passkeyOfferedAt": {
+      "type": "datetime"
+    },
+    "securityNotes": {
+      "type": "json"
+    }
+  }
+}

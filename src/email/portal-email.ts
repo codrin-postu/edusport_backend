@@ -25,7 +25,7 @@ export function portalHost(siteUrl: string): { host: string; origin: string } {
 }
 
 export const inviteLink = (siteHost: string, secret: string, protocol: 'https' | 'http' = 'https'): string =>
-  `${protocol}://${siteHost}/invitatie/${secret}`;
+  `${protocol}://${siteHost}/invite/${secret}`;
 
 const paragraphHtml = (lines: string[]): string => `<p style="margin:0 0 14px;">${lines.map(escapeHtml).join('<br>')}</p>`;
 

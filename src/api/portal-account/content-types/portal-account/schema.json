@@ -39,6 +39,9 @@
       "relation": "oneToOne",
       "target": "api::team-member.team-member"
     },
+    "googleUnlinkedAt": {
+      "type": "datetime"
+    },
     "googleSub": {
       "type": "string",
       "unique": true,
@@ -66,6 +69,27 @@
     },
     "lastLoginAt": {
       "type": "datetime"
+    },
+    "webauthnUserId": {
+      "type": "string",
+      "unique": true,
+      "column": {
+        "unique": true
+      }
+    },
+    "lastMethod": {
+      "type": "enumeration",
+      "enum": [
+        "totp",
+        "email",
+        "backup"
+      ]
+    },
+    "passkeyOfferedAt": {
+      "type": "datetime"
+    },
+    "securityNotes": {
+      "type": "json"
     }
   }
 }

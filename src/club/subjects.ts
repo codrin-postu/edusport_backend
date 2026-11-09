@@ -8,4 +8,5 @@ export const SUBJECT = {
   payment: 'payment',
   portalAccount: 'portal-account',
   tableView: 'table-view',
+  adminUser: 'admin-user',
 } as const;

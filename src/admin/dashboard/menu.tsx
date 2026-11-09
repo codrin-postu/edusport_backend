@@ -1,15 +1,16 @@
 import type { StrapiApp } from '@strapi/strapi/admin';
 import {
   House, Book, Cursor, Feather, Calendar, User, Star, GridFour,
-  Clock, Bell, Duplicate, Pencil, ChartCircle, Mail, ChartPie,
+  Clock, Bell, Duplicate, Pencil, ChartCircle, Mail, ChartPie, Lock,
 } from '@strapi/icons';
 import {
   CUSTOM_PAGES,
   SETARI_SITE_TO, PAGINA_ECHIPA_TO, ISTORIC_TO, PAGINA_PARTENERI_TO, DISCIPLINE_TO,
   MOMENTE_ISTORIC_TO, CURSURI_TO, PRETURI_TO, SEZOANE_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
-  REALIZARI_TO, EVENIMENTE_COLABORARE_TO, UID,
+  REALIZARI_TO, EVENIMENTE_COLABORARE_TO, SECURITATE_TO, UID,
 } from '../pages/routes';
 import { BANI_PATH } from '../../club/bani/routes';
+import { SECURITY_COPY } from '../../club/security/copy';
 import { OLD_EDITOR_PATH, SPORTIVI_PATH } from '../../club/sportivi/routes';
 import type { AdminArea } from '../../club/admin-area';
 import { GRUPE_PATH } from '../../club/grupe/routes';
@@ -21,7 +22,7 @@ export {
   SETARI_SITE_TO, PAGINA_ECHIPA_TO, ISTORIC_TO, PAGINA_PARTENERI_TO, DISCIPLINE_TO,
   MOMENTE_ISTORIC_TO, CURSURI_TO, PRETURI_TO, SEZOANE_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
   REALIZARI_TO, EVENIMENTE_COLABORARE_TO, EVENIMENT_COLABORARE_EDIT_TO,
-  ARTICOLE_TO, ARTICOL_EDIT_TO,
+  ARTICOLE_TO, ARTICOL_EDIT_TO, SECURITATE_TO,
 } from '../pages/routes';
 
 /**
@@ -193,6 +194,7 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: SETARI_SITE_TO, label: 'Setări site', icon: Pencil, group: 'system', pinned: true },
   { to: SEZOANE_TO, label: 'Sezoane', icon: Calendar, group: 'system', pinned: true },
   { to: NAVIGATION_TO, label: 'Meniu site', icon: GridFour, group: 'system', pinned: true },
+  { to: SECURITATE_TO, label: SECURITY_COPY.page.title, icon: Lock, group: 'system' },
 ];
 
 export function registerEdusportMenu(app: StrapiApp) {
@@ -434,6 +436,16 @@ export function registerEdusportMenu(app: StrapiApp) {
     Component: () => import('./VoluntariatEditPage'),
     permissions: [],
     position: 18,
+  });
+
+  // Securitate: every admin (area any); the Administratori section inside shows for a Super Admin only.
+  app.addMenuLink({
+    to: SECURITATE_TO,
+    icon: Lock,
+    intlLabel: { id: 'edusport.menu.securitate', defaultMessage: SECURITY_COPY.page.title },
+    Component: () => import('../pages/SecuritatePage'),
+    permissions: [],
+    position: 20,
   });
 
   app.addMenuLink({

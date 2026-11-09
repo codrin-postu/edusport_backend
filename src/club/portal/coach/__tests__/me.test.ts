@@ -7,6 +7,7 @@ import { portalSessions } from '../../sessions';
 import { hashSecret } from '../../tokens';
 import { changePassword, listDevices, readMe, revokeDevice, saveMe } from '../me';
 import { coachCtx } from './coach-seed';
+import { securityFor } from '../../__tests__/portal-2fa';
 
 const OK = { ok: true, data: { toast: 'Salvat.' } };
 const user = (id: number, email: string, hash: string | null) => ({ id, email, passwordHash: hash, blocked: false, confirmed: true, username: email, provider: 'local', role: 'authenticated' });
@@ -25,6 +26,7 @@ async function setup() {
     store, sessions, limits: limiter(store, now), mail: async (to, m) => { mailed.push(`${to}:${m.kind}`); return true; }, common: new Set(['parola-comuna-1']),
     hosts: ['antrenor'], ip: '1.1.1.1', userAgent: null, now, log: (m) => logs.push(m),
     hash: async (p) => `hash:${p}`, compare: vi.fn(async (p: string, h: string) => h === `hash:${p}`),
+    security: securityFor(s.portalFake, store, now).security,
   };
   const device = async (acc: string, userId: number, key: string, last: string) => {
     const deviceId = await store.createDevice({ accountId: acc, deviceKeyHash: hashSecret(key), sessionId: null, label: `Telefon ${key}`, firstSeenAt: last, lastSeenAt: last });
@@ -98,6 +100,18 @@ describe('changePassword', () => {
     expect(t.s.portalFake.state.history).toEqual([{ subjectType: expect.any(String), subjectId: t.accountId, action: 'portal-password-changed', changes: {}, actor: 'Antrenor Andreea Pascu' }]);
   });
 
+  it('forgets the remembered devices except the current one', async () => {
+    const t = await setup();
+    const until = '2099-01-01T00:00:00.000Z';
+    const sec = securityFor(t.s.portalFake, t.store, () => new Date()).secStore;
+    await sec.setPortalDeviceTwoFactor(t.first.deviceId, until);
+    await sec.setPortalDeviceTwoFactor(t.second.deviceId, until);
+    expect(await changePassword(t.c, good)).toEqual(OK);
+    const rows = await t.store.devices(t.accountId);
+    expect(rows.find((d) => d.id === t.first.deviceId)?.twoFactorUntil).toBe(until);
+    expect(rows.find((d) => d.id === t.second.deviceId)?.twoFactorUntil).toBeNull();
+  });
+
   it('5 wrong current passwords lock the e-mail: the 5th answers 429, mails the notice, and login answers 429', async () => {
     const t = await setup();
     const answers = [];
@@ -114,10 +128,11 @@ describe('changePassword', () => {
 describe('devices', () => {
   it('lists not revoked devices, newest first, the current one marked by its key', async () => {
     const t = await setup();
+    t.s.portalFake.state.devices.find((d) => d.id === t.first.deviceId)!.twoFactorUntil = '2026-12-01T10:00:00.000Z';
     const out = await listDevices(t.c, 'k1');
     expect(out).toEqual({ ok: true, data: [
-      { id: t.second.deviceId, label: 'Telefon k2', lastSeenAt: '2026-11-05T10:00:00.000Z', current: false },
-      { id: t.first.deviceId, label: 'Telefon k1', lastSeenAt: '2026-11-01T10:00:00.000Z', current: true },
+      { id: t.second.deviceId, label: 'Telefon k2', lastSeenAt: '2026-11-05T10:00:00.000Z', current: false, twoFactorUntil: null },
+      { id: t.first.deviceId, label: 'Telefon k1', lastSeenAt: '2026-11-01T10:00:00.000Z', current: true, twoFactorUntil: '2026-12-01T10:00:00.000Z' },
     ] });
     expect(JSON.stringify(out)).not.toContain(t.first.sessionId);
     expect(await listDevices(t.c, null)).toMatchObject({ data: [{ current: false }, { current: false }] });

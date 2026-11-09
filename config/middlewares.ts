@@ -37,6 +37,12 @@ export default [
   'strapi::poweredBy',
   'strapi::query',
   'strapi::body',
+  // Closes Strapi's own session issuers and sends /admin/auth/* to /login (6b-1 spec 4.4).
+  'global::admin-auth-gate',
+  // Serves the /login sign-in page bundle (6b-1 spec 4.1).
+  'global::admin-login-page',
+  // Ends the sessions of a device whose copied refresh cookie is replayed (6b-1 B1 H1).
+  'global::admin-refresh-reuse',
   'strapi::session',
   'strapi::favicon',
   'strapi::public',

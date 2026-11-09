@@ -6,9 +6,13 @@ import { registerAnnouncementValidation } from './api/announcement/services/vali
 import { seedLegacyLink } from './sheets/store';
 import { normalizeNavigationPages } from './api/navigation/services/pages';
 import { warnIfNoAdminSessions } from './club/admin-auth';
+import { subscribeAdminEmailChange } from './club/admin-login/email-change';
+import { warnGateOff } from './club/admin-login/gate-warning';
 import { startPersonalDataSweep } from './club/personal-data/http';
 import { ensurePresenceIndexes } from './club/presence/indexes';
 import { codesBackfillPorts, runCodesBackfill } from './club/codes-backfill';
+import { assertKeysForBoot } from './club/security/keys';
+import { ensureSecurityIndexesAtBoot } from './club/security/indexes';
 import { checkUpSettings } from './club/portal/up-settings';
 import { ensurePortalIndexes, subscribeTeamMemberHook } from './club/portal/accounts/team-member-hook';
 
@@ -406,6 +410,8 @@ export default {
     });
   },
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
+    // 2FA keys (spec 5.1): production refuses to start without them; elsewhere 2FA routes answer 503.
+    if (!assertKeysForBoot()) strapi.log.warn('[security] AUTH_SECRET_KEY / AUTH_CODE_KEY not usable: 2FA is unavailable');
     // Google Sheets back-compat: migrate the legacy SHEETS_SPREADSHEET_ID env
     // into the per-form sheet-link record, once, if none exists yet.
     await seedLegacyLink();
@@ -450,7 +456,15 @@ export default {
       strapi.log.error(message);
       captureMessage(message);
     }
+    // Phase 6b: one 2FA factor row per subject and kind; a failure refuses the start in production.
+    await ensureSecurityIndexesAtBoot(strapi.db.connection, process.env, (message) => {
+      strapi.log.error(message);
+      captureMessage(message);
+    });
     subscribeTeamMemberHook(strapi);
+    // Phase 6b: a changed admin e-mail ends that admin's sessions and clears the Google link (spec 4.8).
+    subscribeAdminEmailChange(strapi);
+    warnGateOff(strapi);
 
     // Confirm the scheduled jobs actually registered — a cron block that is
     // silently ignored (wrong config key, disabled) is otherwise invisible.

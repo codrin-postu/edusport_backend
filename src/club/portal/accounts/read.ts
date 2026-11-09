@@ -11,6 +11,8 @@ import { portalMailSender, type SendPortalMail } from '../../../email/portal-dir
 import type { NewPortalInviteJob } from '../../../email/portal-email';
 import { PORTAL_ERRORS } from '../copy';
 import { portalSessions, type PortalSessions } from '../sessions';
+import { strapiSecurityStore } from '../../security/strapi-store';
+import type { SecurityStore } from '../../security/store';
 import type { AccountRow, PortalStore } from '../store';
 import { strapiPortalStore } from '../strapi-store';
 import type { AccountBlock, AccountState } from './api-types';
@@ -25,6 +27,10 @@ export type AccountContext = {
   cancelInvites: (accountId: string) => Promise<void>;
   mail: SendPortalMail;
   hash: (p: string) => Promise<string>;
+  /** Whether the account has a confirmed 2FA method; tests that do not read it leave it out (false). */
+  twoFactorOn?: (accountId: string) => Promise<boolean>;
+  /** Ends a first-link Google login that waits for its 2FA code (it was proven for the old e-mail); tests that do not read it leave it out. */
+  endPendingGoogle?: (accountId: string) => Promise<void>;
   /** The public site address the portal host and the invite link derive from; '' when none is configured. */
   siteUrl: string;
 };
@@ -38,6 +44,7 @@ export async function accountContext(strapi: Core.Strapi, ctx: AdminCtx): Promis
 /** The context without a request: the delete hook and the tests build theirs from here. */
 export function baseContext(strapi: Core.Strapi, actor: string): AccountContext {
   const store = strapiPortalStore(strapi);
+  const security = strapiSecurityStore(strapi);
   const now = (): Date => new Date();
   return {
     store,
@@ -59,6 +66,8 @@ export function baseContext(strapi: Core.Strapi, actor: string): AccountContext 
     mail: portalMailSender(strapi),
     hash: (p) => bcrypt.hash(p, 10),
     siteUrl: publicSiteUrl() ?? '',
+    twoFactorOn: (accountId) => twoFactorOn(security, accountId),
+    endPendingGoogle: (accountId) => endPendingGoogleLinks(security, accountId, now()),
   };
 }
 
@@ -70,15 +79,32 @@ const STATE_SINCE: Record<AccountRow['status'], (a: AccountRow) => string | null
   disabled: (a) => a.disabledAt,
 };
 
-export function blockOf(teamMemberId: string, account: AccountRow | null): AccountBlock {
-  if (!account) return { teamMemberId, accountId: null, state: 'none', email: null, since: null, google: false };
+/** Any confirmed method counts (the same rule as `hasTwoFactor`, without the backup-code row). */
+export async function twoFactorOn(store: SecurityStore, accountId: string): Promise<boolean> {
+  return (await store.factors({ type: 'portal', id: accountId })).some((f) => f.confirmedAt !== null);
+}
+
+/** `blockOf` with the 2FA flag read. */
+export async function blockFor(c: AccountContext, teamMemberId: string, account: AccountRow | null): Promise<AccountBlock> {
+  return blockOf(teamMemberId, account, account && c.twoFactorOn ? await c.twoFactorOn(account.id) : false);
+}
+
+export function blockOf(teamMemberId: string, account: AccountRow | null, twoFactor = false): AccountBlock {
+  if (!account) return { teamMemberId, accountId: null, state: 'none', email: null, since: null, google: false, twoFactor: false };
   const state: AccountState = account.status;
-  return { teamMemberId, accountId: account.id, state, email: account.email, since: sinceDate(STATE_SINCE[account.status](account)), google: account.googleSub !== null };
+  return { teamMemberId, accountId: account.id, state, email: account.email, since: sinceDate(STATE_SINCE[account.status](account)), google: account.googleSub !== null, twoFactor };
 }
 
 export async function readAccount(c: AccountContext, teamMemberId: string): Promise<AdminResult<AccountBlock>> {
   return guarded(c.log, 'portal account read', async () => {
     if ((await c.store.teamMemberName(teamMemberId)) === null) return refuse(404, PORTAL_ERRORS.notFound);
-    return { ok: true, data: blockOf(teamMemberId, await c.store.accountByTeamMember(teamMemberId)) };
+    return { ok: true, data: await blockFor(c, teamMemberId, await c.store.accountByTeamMember(teamMemberId)) };
   });
+}
+
+/** Consumes the open pending logins of the account that carry a Google sub to be linked after the code. */
+export async function endPendingGoogleLinks(store: SecurityStore, accountId: string, now: Date): Promise<void> {
+  for (const row of await store.openChallenges({ type: 'portal', id: accountId }, 'pending-login')) {
+    if (typeof row.data.googleSub === 'string') await store.consumeOnce('challenge', row.id, now.toISOString());
+  }
 }

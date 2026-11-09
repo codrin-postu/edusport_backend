@@ -3,6 +3,8 @@ import type { LimitState } from './limits';
 export type AccountStatus = 'invited' | 'active' | 'disabled';
 export type AccountRow = {
   id: string; userId: number; email: string; status: AccountStatus; teamMemberId: string | null; phone: string | null; googleSub: string | null;
+  /** When the Google link was removed (an e-mail change); a link removed this way is never re-made by e-mail alone (spec 4.6, user ruling 2026-11-09). */
+  googleUnlinkedAt: string | null;
   invitedAt: string | null; invitedBy: string | null; activatedAt: string | null; disabledAt: string | null; disabledBy: string | null; lastLoginAt: string | null;
 };
 export type AccountWrite = Partial<Omit<AccountRow, 'id' | 'userId'>>;
@@ -11,6 +13,13 @@ export type TokenRow = { id: string; accountId: string; kind: TokenKind; secretH
 export type LimitRow = LimitState & { id: string; key: string };
 export type DeviceRow = {
   id: string; accountId: string; deviceKeyHash: string; sessionId: string | null; label: string; firstSeenAt: string; lastSeenAt: string; revokedAt: string | null;
+  /** The end of the remembered-device 2FA skip (6b); null when this device must answer the second step. */
+  twoFactorUntil: string | null;
+  /**
+   * When a completed sign-in last confirmed this device (password, second step, Google, passkey): the recent-authentication time. Null with no
+   * session either means a device row made at the password step that never finished (unconfirmed: hidden, purged after a day).
+   */
+  confirmedAt: string | null;
 };
 export type UserAuth = { id: number; email: string; passwordHash: string | null; blocked: boolean; confirmed: boolean };
 export type UserWrite = { email?: string; passwordHash?: string | null; blocked?: boolean; confirmed?: boolean };

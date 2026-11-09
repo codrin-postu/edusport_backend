@@ -5,8 +5,8 @@ export type AdminStatus = 400 | 403 | 404 | 409 | 422 | 500;
 /** Answer of an admin action: the fresh data, or a refusal whose `status` becomes the HTTP status. */
 export type AdminResult<T> = { ok: true; data: T } | { ok: false; status: AdminStatus; error: string };
 
-/** Refusals of the portal auth routes: wrong login (401), too many attempts (429), mail not sent (503), invite expired (410), Google unreachable (502). */
-export type AuthRefusal = { ok: false; status: 401 | 410 | 429 | 502 | 503; error: string };
+/** Refusals of the portal and admin auth routes: wrong login (401), not allowed (403), too many attempts (429), mail not sent (503), invite expired (410), Google unreachable (502). */
+export type AuthRefusal = { ok: false; status: 401 | 403 | 410 | 429 | 502 | 503; error: string };
 
 /** An `AdminResult` whose success may carry counts the screen does not show (`meta`), sent next to `data`. */
 export type AdminResultWithMeta<T> = AdminResult<T> | { ok: true; data: T; meta: Record<string, number> };

@@ -28,6 +28,7 @@ describe('portal content types', () => {
     expect(a.attributes.teamMember).toMatchObject({ type: 'relation', relation: 'oneToOne', target: 'api::team-member.team-member' });
     expect(a.attributes.teamMember.inversedBy).toBeUndefined();
     expect(a.attributes.googleSub).toMatchObject({ type: 'string', unique: true });
+    expect(a.attributes.googleUnlinkedAt.type).toBe('datetime');
     for (const k of ['invitedAt', 'activatedAt', 'disabledAt', 'lastLoginAt']) expect(a.attributes[k].type).toBe('datetime');
     for (const k of ['phone', 'invitedBy', 'disabledBy']) expect(a.attributes[k].type).toBe('string');
     expect(a.attributes.role).toBeUndefined();

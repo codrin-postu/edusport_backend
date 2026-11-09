@@ -3,6 +3,7 @@ import type { Knex } from 'knex';
 import { describe, expect, it } from 'vitest';
 import cronTasks from '../../../../../config/cron-tasks';
 import { purgePortal } from '../../purge';
+import { memorySecurityStore } from '../../../security/__tests__/memory-security-store';
 import { ensurePortalIndexes, disableForTeamMembers, teamMemberHandlers } from '../team-member-hook';
 import { harness, NOW, seedAccount } from './harness';
 
@@ -73,6 +74,21 @@ describe('unique link index', () => {
 });
 
 describe('purgePortal', () => {
+  it('with a security store the counts include factors, challenges, backupCodes and adminDevices', async () => {
+    const h = harness();
+    const mem = memorySecurityStore(() => new Date(NOW.getTime() - 40 * DAY));
+    const subject = { type: 'portal', id: 'a1' } as const;
+    await mem.store.upsertFactor(subject, 'totp', { secretBox: 'x' });
+    const spent = await mem.store.createChallenge({ purpose: 'email-code', subject, secretMac: 'm1:aaaaaaaa:1', data: {}, expiresAt: ago(39) });
+    await mem.store.consumeOnce('challenge', spent, ago(39));
+    await mem.store.insertBackupBatch(subject, 'b', [{ codeMac: 'm1:aaaaaaaa:2', keyId: 'aaaaaaaa' }], ago(40));
+    await mem.store.insertBackupBatch(subject, 'c', [{ codeMac: 'm1:aaaaaaaa:3', keyId: 'aaaaaaaa' }], ago(40));
+    const dev = await mem.store.createAdminDevice({ adminUserId: 7, deviceKeyHash: 'h', strapiDeviceId: 's', label: 'L', firstSeenAt: ago(60), lastSeenAt: ago(60) });
+    await mem.store.updateAdminDevice(dev, { revokedAt: ago(31) });
+    const n = await purgePortal(h.fake.store, NOW, mem.store);
+    expect(n).toMatchObject({ limits: 0, factors: 1, challenges: 1, backupCodes: 1, adminDevices: 1 });
+    expect(Object.keys(await purgePortal(h.fake.store, NOW)).sort()).toEqual(['devices', 'limits', 'sessions', 'tokens']);
+  });
   it('purge keeps a running lock, removes an unlocked row of 25 h ago, keeps one of 23 h ago', async () => {
     const h = harness();
     h.fake.state.limits.push(
@@ -84,12 +100,21 @@ describe('purgePortal', () => {
     expect(n.limits).toBe(1);
     expect(h.fake.state.limits.map((l) => l.id)).toEqual(['recent', 'locked']);
   });
+  it('purge removes a device row no sign-in confirmed after a day, keeps a younger one and one with a session', async () => {
+    const h = harness();
+    const row = (key: string, age: number, sessionId: string | null) => ({ accountId: 'a', deviceKeyHash: key, sessionId, label: 'L', firstSeenAt: ago(age), lastSeenAt: ago(age) });
+    await h.fake.store.createDevice(row('stale', 2, null));
+    await h.fake.store.createDevice(row('fresh', 0.5, null));
+    await h.fake.store.createDevice(row('bound', 2, 'sess'));
+    expect((await purgePortal(h.fake.store, NOW)).devices).toBe(1);
+    expect(h.fake.state.devices.map((d) => d.deviceKeyHash)).toEqual(['fresh', 'bound']);
+  });
   it('purge keeps devices revoked 29 days ago, removes 31 days, keeps a live one', async () => {
     const h = harness();
     const dev = (key: string, revokedAt: string | null) => ({ accountId: 'a', deviceKeyHash: key, sessionId: null, label: 'L', firstSeenAt: ago(60), lastSeenAt: ago(60) });
     for (const [k, r] of [['d29', ago(29)], ['d31', ago(31)], ['live', null]] as const) {
       const id = await h.fake.store.createDevice(dev(k, r));
-      if (r) await h.fake.store.updateDevice(id, { revokedAt: r });
+      await h.fake.store.updateDevice(id, { confirmedAt: ago(60), ...(r ? { revokedAt: r } : {}) });
     }
     expect((await purgePortal(h.fake.store, NOW)).devices).toBe(1);
     expect(h.fake.state.devices.map((d) => d.deviceKeyHash)).toEqual(['d29', 'live']);

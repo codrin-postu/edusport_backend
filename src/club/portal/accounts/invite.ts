@@ -7,7 +7,7 @@ import { normalizeEmail } from '../limits';
 import type { AccountRow } from '../store';
 import { hashSecret, INVITE_TTL_MS, newInviteSecret } from '../tokens';
 import type { AccountAnswer, AccountBlock } from './api-types';
-import { blockOf, type AccountContext } from './read';
+import { blockFor, type AccountContext } from './read';
 
 const stale = (): AdminResult<never> => refuse(409, ADMIN_ERRORS.stale);
 const taken = (): AdminResult<never> => refuse(409, PORTAL_ERRORS.emailTaken);
@@ -86,7 +86,7 @@ export async function inviteAccount(c: AccountContext, teamMemberId: string, bod
     });
     if (!made) return stale();
     c.afterCommit(made.jobId);
-    return answer(blockOf(teamMemberId, made.account), ACCOUNT_TOASTS.invited);
+    return answer(await blockFor(c, teamMemberId, made.account), ACCOUNT_TOASTS.invited);
   });
 }
 
@@ -107,7 +107,7 @@ export async function resendInvite(c: AccountContext, accountId: string): Promis
     });
     if (!done) return stale();
     c.afterCommit(done.jobId);
-    return answer(blockOf(done.account.teamMemberId ?? '', done.account), ACCOUNT_TOASTS.invited);
+    return answer(await blockFor(c, done.account.teamMemberId ?? '', done.account), ACCOUNT_TOASTS.invited);
   });
 }
 
@@ -133,5 +133,5 @@ async function relinkAccount(c: AccountContext, holder: AccountRow, teamMemberId
   });
   if (!made) return stale();
   c.afterCommit(made.jobId);
-  return answer(blockOf(teamMemberId, made.account), ACCOUNT_TOASTS.invited);
+  return answer(await blockFor(c, teamMemberId, made.account), ACCOUNT_TOASTS.invited);
 }

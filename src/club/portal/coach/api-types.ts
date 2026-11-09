@@ -15,7 +15,8 @@ export type CoachMe = {
 };
 /** Dates of one month (`YYYY-MM-DD`, ascending) that have a saved session the coach may read. */
 export type CoachSavedDays = { month: string; dates: string[] };
-export type CoachDevice = { id: string; label: string; lastSeenAt: string; current: boolean };
+/** `twoFactorUntil`: the end of this device's remembered 2FA skip, null when it must answer the second step. */
+export type CoachDevice = { id: string; label: string; lastSeenAt: string; current: boolean; twoFactorUntil: string | null };
 export type CoachClassRow = {
   sessionId: string | null; occurrenceKey: string | null; groupId: string; groupName: string; date: string; startTime: string; children: number; done: boolean; standIn: boolean;
   location: string | null;

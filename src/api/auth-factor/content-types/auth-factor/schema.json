@@ -1,0 +1,54 @@
+{
+  "kind": "collectionType",
+  "collectionName": "auth_factors",
+  "info": {
+    "singularName": "auth-factor",
+    "pluralName": "auth-factors",
+    "displayName": "Securitate / Factor 2FA"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    },
+    "content-type-builder": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "subjectType": {
+      "type": "enumeration",
+      "enum": [
+        "portal",
+        "admin"
+      ],
+      "required": true
+    },
+    "subjectId": {
+      "type": "string",
+      "required": true
+    },
+    "kind": {
+      "type": "enumeration",
+      "enum": [
+        "totp",
+        "email"
+      ],
+      "required": true
+    },
+    "secretBox": {
+      "type": "text"
+    },
+    "confirmedAt": {
+      "type": "datetime"
+    },
+    "lastStep": {
+      "type": "biginteger"
+    },
+    "lastUsedAt": {
+      "type": "datetime"
+    }
+  }
+}

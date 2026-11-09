@@ -12,5 +12,6 @@ export default {
     { method: 'POST', path: '/club/portal-accounts/:documentId/disable', handler: 'portal-accounts.disable', config: adminGuard },
     { method: 'POST', path: '/club/portal-accounts/:documentId/enable', handler: 'portal-accounts.enable', config: adminGuard },
     { method: 'POST', path: '/club/portal-accounts/:documentId/email', handler: 'portal-accounts.email', config: adminGuard },
+    { method: 'POST', path: '/club/portal-accounts/:documentId/reset-2fa', handler: 'portal-accounts.reset2fa', config: adminGuard },
   ],
 };

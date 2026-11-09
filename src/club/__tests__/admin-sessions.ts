@@ -8,7 +8,7 @@ type Where = Record<string, unknown>;
 type OriginSessions = {
   generateRefreshToken: (userId: string, deviceId: string) => Promise<{ token: string; sessionId: string }>;
   generateAccessToken: (refreshToken: string) => Promise<{ token?: string }>;
-  invalidateRefreshToken: (userId: string) => Promise<void>;
+  invalidateRefreshToken: (userId: string, deviceId?: string) => Promise<void>;
 };
 type Manager = ((origin: 'admin') => OriginSessions) & {
   defineOrigin: (origin: string, config: Record<string, unknown>) => void;
@@ -28,6 +28,8 @@ function memoryDb(rows: Row[]) {
   const table = {
     create: async ({ data }: { data: Row }) => { const row = { ...data, createdAt: new Date() }; rows.push(row); return row; },
     findOne: async ({ where }: { where: Where }) => rows.find((r) => matches(r, where)) ?? null,
+    findMany: async ({ where }: { where: Where }) => rows.filter((r) => matches(r, where)),
+    update: async ({ where, data }: { where: Where; data: Row }) => { Object.assign(rows.find((r) => matches(r, where)) ?? {}, data); },
     delete: remove,
     deleteMany: remove,
   };
@@ -39,14 +41,14 @@ export function adminSessions(secret: string) {
   const manager = createSessionManager({ db: memoryDb(rows) });
   const lifespan = { accessTokenLifespan: 1800, maxRefreshTokenLifespan: 3600, idleRefreshTokenLifespan: 3600, maxSessionLifespan: 3600, idleSessionLifespan: 3600 };
   manager.defineOrigin('admin', { jwtSecret: secret, ...lifespan });
-  const login = async (userId: number) => {
-    const refresh = await manager('admin').generateRefreshToken(String(userId), 'device-1');
+  const login = async (userId: number, deviceId = 'device-1') => {
+    const refresh = await manager('admin').generateRefreshToken(String(userId), deviceId);
     const access = await manager('admin').generateAccessToken(refresh.token);
     return { refresh: `Bearer ${refresh.token}`, access: `Bearer ${access.token}`, sessionId: refresh.sessionId };
   };
   const logout = (userId: number) => manager('admin').invalidateRefreshToken(String(userId));
   const expire = (sessionId: string) => rows.filter((r) => r.sessionId === sessionId).forEach((r) => { r.expiresAt = new Date(0); });
-  return { sessionManager: manager as unknown as TokenStrapi['sessionManager'], login, logout, expire };
+  return { sessionManager: manager as unknown as TokenStrapi['sessionManager'], manager, rows, login, logout, expire };
 }
 
 type RouteCtx = {

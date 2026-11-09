@@ -4,10 +4,12 @@ import { refuse, type AdminResult, type AuthRefusal } from '../../admin-result';
 import { PORTAL_ERRORS, googleOtherEmail } from '../copy';
 import { normalizeEmail } from '../limits';
 import type { AccountRow } from '../store';
-import { tokenState } from '../tokens';
+import { hashSecret, tokenState } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
 import { activateInvited, liveInvite } from './invite';
-import { canEnter, startSession, type PortalSession } from './issue';
+import { canEnter, startSession } from './issue';
+import { hasTwoFactor } from '../../security/second-step';
+import { openSecondStep, portalSubject, withOffer, type PortalPending, type SessionWithOffer } from './two-factor';
 
 export type GoogleClient = { clientId: string; clientSecret: string; fetchFn: typeof fetch; now: () => Date };
 export type GoogleIdentity = { sub: string; email: string };
@@ -128,7 +130,7 @@ async function bindSub(c: PortalAuthContext, accountId: string, sub: string, hos
   return c.store.transaction(async () => {
     await c.store.lockAccount(accountId);
     const account = await c.store.account(accountId);
-    if (!account || account.status !== 'active' || account.googleSub !== null) return null;
+    if (!account || account.status !== 'active' || account.googleSub !== null || account.googleUnlinkedAt !== null) return null;
     if (!canEnter(account, await c.store.user(account.userId), host)) return null;
     await c.store.updateAccount(accountId, { googleSub: sub });
     return { ...account, googleSub: sub };
@@ -145,7 +147,12 @@ async function identify(g: GoogleClient, read: GoogleBody): Promise<GoogleIdenti
   return idToken ? verifyIdToken(g, idToken, read.nonce) : null;
 }
 
-export async function loginWithGoogle(c: PortalAuthContext, g: GoogleClient | null, body: unknown): Promise<PortalResult<PortalSession>> {
+/**
+ * Google sign-in (spec 4.6). A sub already linked skips 2FA (user decision). The first link by e-mail of an account with any 2FA method opens
+ * the pending second step with the sub in the pending data and stores it only after a right code; an account whose link was removed (an e-mail
+ * change) is never re-linked by e-mail. An account without 2FA links at once.
+ */
+export async function loginWithGoogle(c: PortalAuthContext, g: GoogleClient | null, body: unknown): Promise<PortalResult<SessionWithOffer | PortalPending>> {
   const read = readBody(body, c.hosts);
   if (!read) return refuse(400, PORTAL_ERRORS.invalid);
   if (await c.limits.ipBlocked(c.ip)) return paused;
@@ -158,8 +165,8 @@ export async function loginWithGoogle(c: PortalAuthContext, g: GoogleClient | nu
     return unreachable;
   }
   if (!who) return noAccount;
-  const session = (account: AccountRow, notifyNewDevice: boolean) => startSession(c, account, read.deviceKey, { notifyNewDevice, host: read.host });
-  const enter = async (account: AccountRow | null): Promise<PortalResult<PortalSession>> => {
+  const session = async (account: AccountRow, notifyNewDevice: boolean) => withOffer(c, account, await startSession(c, account, read.deviceKey, { notifyNewDevice, host: read.host }));
+  const enter = async (account: AccountRow | null): Promise<PortalResult<SessionWithOffer>> => {
     if (!account) return noAccount;
     const user = await c.store.user(account.userId);
     return canEnter(account, user, read.host) ? session(account, false) : noAccount;
@@ -179,12 +186,17 @@ export async function loginWithGoogle(c: PortalAuthContext, g: GoogleClient | nu
     return canEnter(owner, user, read.host) ? session(owner, true) : noAccount;
   }
   const byEmail = await c.store.accountByEmail(who.email);
-  if (!byEmail || byEmail.status === 'disabled' || byEmail.googleSub !== null) return noAccount;
+  if (!byEmail || byEmail.status === 'disabled' || byEmail.googleSub !== null || byEmail.googleUnlinkedAt !== null) return noAccount;
   if (byEmail.status === 'invited') {
     const tokenId = await latestInviteToken(c, byEmail.id);
     if (!tokenId) return expiredInvite;
     const done = await acceptWithGoogle(c, byEmail.id, tokenId, who.sub);
     return done ? enter(done) : expiredInvite;
+  }
+  if ((await hasTwoFactor(c.security, portalSubject(byEmail))).length > 0) {
+    if (!canEnter(byEmail, await c.store.user(byEmail.userId), read.host)) return noAccount;
+    const device = read.deviceKey ? await c.store.deviceByKey(byEmail.id, hashSecret(read.deviceKey)) : null;
+    return openSecondStep(c, byEmail, read.deviceKey, read.host, device, who.sub);
   }
   const bound = await bindSub(c, byEmail.id, who.sub, read.host);
   return bound ? session(bound, true) : noAccount;

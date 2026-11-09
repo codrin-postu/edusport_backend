@@ -2,6 +2,7 @@ import { refuse, type AdminResult } from '../../admin-result';
 import type { PortalAuthContext, PortalResult } from '../auth/context';
 import { noticeLockout } from '../auth/login';
 import { PORTAL_ACTIONS, PORTAL_ERRORS, PORTAL_TOASTS } from '../copy';
+import { isConfirmedDevice } from '../devices';
 import { normalizeEmail } from '../limits';
 import { checkPassword } from '../passwords';
 import { portalSessions } from '../sessions';
@@ -91,13 +92,16 @@ async function storePassword(c: CoachContexts & { auth: PortalAuthContext }, acc
     await c.portal.updateUser(c.coach.userId, { passwordHash });
     await c.portal.record({ subjectId: accountId, action: PORTAL_ACTIONS.passwordChanged, changes: {}, actor: coachActor(c.coach.name) });
     await portalSessions(c.portal, c.presence.now).revokeAll(c.coach.userId, c.coach.sessionId);
+    // Spec 6.4: remembered devices are forgotten, except the one making the change.
+    const mine = (await c.portal.devices(accountId)).find((d) => d.revokedAt === null && d.sessionId === c.coach.sessionId);
+    await c.auth.security.forgetDevices({ type: 'portal', id: accountId }, { exceptDevice: mine?.id });
   });
 }
 
 export async function listDevices(c: CoachContexts, deviceKey: string | null): Promise<AdminResult<CoachDevice[]>> {
   const mine = hashOf(deviceKey);
-  const rows = (await c.portal.devices(c.coach.accountId)).filter((d) => d.revokedAt === null).sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt));
-  return { ok: true, data: rows.map((d) => ({ id: d.id, label: d.label, lastSeenAt: d.lastSeenAt, current: mine !== null && mine === d.deviceKeyHash })) };
+  const rows = (await c.portal.devices(c.coach.accountId)).filter((d) => d.revokedAt === null && isConfirmedDevice(d)).sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt));
+  return { ok: true, data: rows.map((d) => ({ id: d.id, label: d.label, lastSeenAt: d.lastSeenAt, current: mine !== null && mine === d.deviceKeyHash, twoFactorUntil: d.twoFactorUntil })) };
 }
 
 const hashOf = (deviceKey: string | null): string | null => (deviceKey ? hashSecret(deviceKey) : null);

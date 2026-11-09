@@ -26,7 +26,7 @@ describe('inviteAccount', () => {
     expect(h.fake.state.tokens).toHaveLength(1);
     expect(h.jobs).toHaveLength(1);
     expect(h.jobs[0]).toMatchObject({ recipient: 'andreea@example.com', payload: { name: 'Andreea Pascu', host: 'antrenor.scoaladepatinaj.com' } });
-    const secret = h.jobs[0].payload.link.split('/invitatie/')[1];
+    const secret = h.jobs[0].payload.link.split('/invite/')[1];
     expect(h.fake.state.tokens[0].secretHash).toBe(hashSecret(secret));
     expect(h.after).toEqual(['job1']);
     const line = h.fake.state.history[0];
@@ -217,13 +217,14 @@ describe('changeEmail', () => {
 describe('readAccount', () => {
   it('none, invited, active, disabled', async () => {
     const h = harness();
-    expect(ok(await readAccount(h.c, 'tm1'))).toEqual({ teamMemberId: 'tm1', accountId: null, state: 'none', email: null, since: null, google: false });
+    expect(ok(await readAccount(h.c, 'tm1'))).toEqual({ teamMemberId: 'tm1', accountId: null, state: 'none', email: null, since: null, google: false, twoFactor: false });
     expect(await readAccount(h.c, 'nope')).toMatchObject({ ok: false, status: 404 });
     for (const status of ['invited', 'active', 'disabled'] as const) {
       const g = harness();
       const { id } = await seedAccount(g, status);
       await g.fake.store.updateAccount(id, { googleSub: status === 'active' ? 'g1' : null });
-      expect(ok(await readAccount(g.c, 'tm1'))).toEqual({ teamMemberId: 'tm1', accountId: id, state: status, email: 'andreea@example.com', since: '2026-11-06', google: status === 'active' });
+      expect(ok(await readAccount(g.c, 'tm1'))).toEqual({ teamMemberId: 'tm1', accountId: id, state: status, email: 'andreea@example.com', since: '2026-11-06', google: status === 'active', twoFactor: false });
+      expect(ok(await readAccount({ ...g.c, twoFactorOn: async () => true }, 'tm1'))).toMatchObject({ twoFactor: true });
     }
   });
 });
@@ -256,6 +257,20 @@ describe('stale invite jobs and the Google identity', () => {
     const a = ok(await changeEmail(h.c, id, { email: 'nou@example.com' }));
     expect(a.account.google).toBe(false);
     expect((await h.fake.store.account(id))?.googleSub).toBeNull();
+  });
+  it('an e-mail change marks the link as removed (no relink by e-mail) and ends a pending first-link login; no sub, no mark', async () => {
+    const h = harness();
+    const { id } = await seedAccount(h, 'active');
+    const ended: string[] = [];
+    const c = { ...h.c, endPendingGoogle: async (accountId: string) => void ended.push(accountId) };
+    await h.fake.store.updateAccount(id, { googleSub: 'g-1' });
+    ok(await changeEmail(c, id, { email: 'nou@example.com' }));
+    expect((await h.fake.store.account(id))?.googleUnlinkedAt).toEqual(expect.any(String));
+    expect(ended).toEqual([id]);
+    const g = harness();
+    const plain = await seedAccount(g, 'active');
+    ok(await changeEmail(g.c, plain.id, { email: 'nou@example.com' }));
+    expect((await g.fake.store.account(plain.id))?.googleUnlinkedAt).toBeNull();
   });
   it('only a Postgres unique violation or Strapi unique check counts as a unique violation', () => {
     expect(uniqueViolation(Object.assign(new Error('x'), { code: '23505' }))).toMatchObject({ status: 409 });
@@ -296,7 +311,7 @@ describe('q26: a deleted team member leaves a disabled account that a new invite
     expect(h.fake.state.sessions.every((s) => s.revokedAt !== null)).toBe(true);
     const live = h.fake.state.tokens.filter((t) => t.kind === 'invite' && t.usedAt === null);
     expect(live).toHaveLength(1);
-    expect(live[0].secretHash).toBe(hashSecret(h.jobs[0].payload.link.split('/invitatie/')[1]));
+    expect(live[0].secretHash).toBe(hashSecret(h.jobs[0].payload.link.split('/invite/')[1]));
     expect(h.jobs[0]).toMatchObject({ recipient: 'andreea@example.com', accountId: id, payload: { name: 'Virgil Ion' } });
     expect(h.after).toEqual(['job1']);
     expect(h.cancelled).toContain(id);

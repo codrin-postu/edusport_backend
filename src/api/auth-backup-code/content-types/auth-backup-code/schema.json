@@ -1,0 +1,49 @@
+{
+  "kind": "collectionType",
+  "collectionName": "auth_backup_codes",
+  "info": {
+    "singularName": "auth-backup-code",
+    "pluralName": "auth-backup-codes",
+    "displayName": "Securitate / Cod de rezervă"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    },
+    "content-type-builder": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "subjectType": {
+      "type": "enumeration",
+      "enum": [
+        "portal",
+        "admin"
+      ],
+      "required": true
+    },
+    "subjectId": {
+      "type": "string",
+      "required": true
+    },
+    "batch": {
+      "type": "string",
+      "required": true
+    },
+    "codeMac": {
+      "type": "string",
+      "required": true
+    },
+    "keyId": {
+      "type": "string",
+      "required": true
+    },
+    "usedAt": {
+      "type": "datetime"
+    }
+  }
+}

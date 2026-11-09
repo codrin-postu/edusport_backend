@@ -225,8 +225,10 @@ describe('strapiPortalStore', () => {
     expect(await store.purgeDevices(before)).toBe(2);
     expect(await store.purgeTokens(before)).toBe(2);
     expect(await store.purgeSessions(before)).toBe(2);
-    expect(calls.map((c) => c.table)).toEqual(['api::portal-device.portal-device', 'api::portal-token.portal-token', 'api::portal-session.portal-session']);
-    expect(calls[0].arg).toEqual({ where: { revokedAt: { $lt: '2026-10-07T10:00:00.000Z' } } });
+    expect(calls.slice(0, 3).map((c) => c.table)).toEqual(['api::portal-device.portal-device', 'api::portal-token.portal-token', 'api::portal-session.portal-session']);
+    expect(calls[0].arg).toEqual({ where: { $or: [{ revokedAt: { $lt: '2026-10-07T10:00:00.000Z' } }] } });
+    await store.purgeDevices(before, new Date('2026-11-06T10:00:00.000Z'));
+    expect(calls[3].arg).toEqual({ where: { $or: [{ revokedAt: { $lt: '2026-10-07T10:00:00.000Z' } }, { confirmedAt: { $null: true }, sessionId: { $null: true }, firstSeenAt: { $lt: '2026-11-06T10:00:00.000Z' } }] } });
     expect(calls[1].arg).toEqual({ where: { $or: [{ usedAt: { $lt: '2026-10-07T10:00:00.000Z' } }, { expiresAt: { $lt: '2026-10-07T10:00:00.000Z' } }] } });
     expect(JSON.stringify(calls[2].arg)).toContain('"lastUsedAt":{"$lt":"2026-09-30T10:00:00.000Z"}');
   });

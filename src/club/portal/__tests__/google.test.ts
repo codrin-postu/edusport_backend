@@ -10,6 +10,12 @@ import { PORTAL_ACTIONS, PORTAL_ERRORS } from '../copy';
 import { portalSessions } from '../sessions';
 import { INVITE_TTL_MS, hashSecret } from '../tokens';
 import { fakePortalStore } from './fake-portal-store';
+import { portalSecondStep } from '../auth/two-factor';
+import { seal, totpAad } from '../../security/secret-box';
+import { totpAt } from '../../security/totp';
+import { TEST_KEYS } from '../../security/__tests__/keys';
+import { SECURITY_ERRORS } from '../../security/copy';
+import { TOTP_SECRET, securityFor } from './portal-2fa';
 
 const CLIENT_ID = 'client-1.apps.googleusercontent.com';
 const NOW = new Date('2026-11-06T10:00:00.000Z');
@@ -44,13 +50,14 @@ function setup(o: { idToken?: () => string; tokenStatus?: number; certsFail?: bo
   const g: GoogleClient = { clientId: CLIENT_ID, clientSecret: 'secret-1', fetchFn, now: () => NOW };
   const fake = fakePortalStore({ now: () => NOW });
   const { store } = fake;
+  const sec = securityFor(fake, store, () => NOW);
   fake.state.teamMembers.tm1 = 'Ana Pop';
   fake.state.users.push({ id: 1, email: 'ana@x.ro', passwordHash: null, blocked: false, confirmed: true, username: 'ana@x.ro', provider: 'local', role: 'authenticated' });
   const mails: { to: string; mail: PortalMail }[] = [];
   const mail: SendPortalMail = async (to, m) => { mails.push({ to, mail: m }); return true; };
   const logs: string[] = [];
   const c: PortalAuthContext = {
-    store, sessions: portalSessions(store, () => NOW), limits: limiter(store, () => NOW), mail, common: new Set(), hosts: ['antrenor'], ip: '1.1.1.1',
+    security: sec.security, store, sessions: portalSessions(store, () => NOW), limits: limiter(store, () => NOW), mail, common: new Set(), hosts: ['antrenor'], ip: '1.1.1.1',
     userAgent: null, now: () => NOW, log: (m) => logs.push(m), hash: async (p) => p, compare: async () => false,
   };
   const body = (extra: Claims = {}) => ({ host: 'antrenor', code: 'c', codeVerifier: 'v', redirectUri: 'https://a/cb', nonce: 'n1', ...extra });
@@ -58,7 +65,7 @@ function setup(o: { idToken?: () => string; tokenStatus?: number; certsFail?: bo
   const addAccount = (extra: Record<string, unknown> = {}) => store.createAccount({ userId: 1, email: 'ana@x.ro', status: 'active', teamMemberId: 'tm1', ...extra });
   const invite = (secret: string, accountId: string) =>
     store.createToken({ accountId, kind: 'invite', secretHash: hashSecret(secret), expiresAt: new Date(NOW.getTime() + INVITE_TTL_MS).toISOString() });
-  return { c, g, fake, store, mails, logs, calls, signals, fetchFn, login, addAccount, invite };
+  return { c, g, sec, fake, store, mails, logs, calls, signals, fetchFn, login, addAccount, invite };
 }
 
 describe('loginWithGoogle', () => {
@@ -71,6 +78,21 @@ describe('loginWithGoogle', () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(s.mails.filter((m) => m.mail.kind === 'new-device')).toHaveLength(1);
     expect(s.fake.state.limits.filter((l) => l.key.startsWith('login:'))).toEqual([]);
+  });
+
+  it('an account with 2FA on gets the session without the second step, and the passkey offer', async () => {
+    process.env.WEBAUTHN_RP_ID = 'edusport.test';
+    process.env.WEBAUTHN_ORIGINS = 'https://edusport.test';
+    try {
+      const s = setup();
+      const id = await s.addAccount({ googleSub: 'sub-1' });
+      const sec = s.c.security.store;
+      await sec.confirmFactor(await sec.upsertFactor({ type: 'portal', id }, 'email', { secretBox: null }), NOW.toISOString());
+      expect(await s.login()).toMatchObject({ ok: true, data: { accessToken: expect.any(String), offerPasskey: true } });
+    } finally {
+      delete process.env.WEBAUTHN_RP_ID;
+      delete process.env.WEBAUTHN_ORIGINS;
+    }
   });
 
   it('refuses wrong audience, issuer, expiry, nonce, signature and unverified e-mail with the no-account answer', async () => {
@@ -283,3 +305,76 @@ describe('controller', () => {
     }
   });
 });
+
+describe('first Google link and 2FA (user ruling 2026-11-09)', () => {
+  const enrol = async (s: ReturnType<typeof setup>, id: string): Promise<void> => {
+    const subject = { type: 'portal' as const, id };
+    await s.sec.secStore.confirmFactor(await s.sec.secStore.upsertFactor(subject, 'totp', { secretBox: seal(TEST_KEYS, TOTP_SECRET, totpAad('portal', id)) }), NOW.toISOString());
+  };
+  const code = (): string => totpAt(TOTP_SECRET, Math.floor(NOW.getTime() / 30_000));
+  const pendingOf = (r: Awaited<ReturnType<ReturnType<typeof setup>['login']>>): { pending: string; deviceKey: string | null } => {
+    if (!r.ok || !('pending' in r.data)) throw new Error('no pending');
+    return { pending: r.data.pending, deviceKey: r.data.deviceKey };
+  };
+
+  it('an account with 2FA and no sub opens the second step, stores no sub and gives no session', async () => {
+    const s = setup();
+    const id = await s.addAccount();
+    await enrol(s, id);
+    const r = await s.login();
+    expect(r).toMatchObject({ ok: true, data: { step: '2fa', methods: expect.arrayContaining(['totp']), pending: expect.any(String) } });
+    expect(r.ok && 'accessToken' in r.data).toBe(false);
+    expect(s.fake.state.accounts[0].googleSub).toBeNull();
+    expect(s.fake.state.sessions).toHaveLength(0);
+  });
+
+  it('a right code stores the sub and starts the session; the sub then skips 2FA', async () => {
+    const s = setup();
+    const id = await s.addAccount();
+    await enrol(s, id);
+    const p = pendingOf(await s.login());
+    const done = await portalSecondStep(s.c, { ...p, deviceKey: p.deviceKey ?? undefined, method: 'totp', code: code(), remember: false });
+    expect(done).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
+    expect(s.fake.state.accounts[0].googleSub).toBe('sub-1');
+    expect(await s.login()).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
+  });
+
+  it('a wrong code stores nothing', async () => {
+    const s = setup();
+    const id = await s.addAccount();
+    await enrol(s, id);
+    const p = pendingOf(await s.login());
+    const wrong = await portalSecondStep(s.c, { ...p, deviceKey: p.deviceKey ?? undefined, method: 'totp', code: '000000', remember: false });
+    expect(wrong.ok).toBe(false);
+    expect(s.fake.state.accounts[0].googleSub).toBeNull();
+  });
+
+  it('a sub taken by another account meanwhile ends the pending login at the code', async () => {
+    const s = setup();
+    const id = await s.addAccount();
+    await enrol(s, id);
+    const p = pendingOf(await s.login());
+    s.fake.state.users.push({ id: 2, email: 'bo@x.ro', passwordHash: null, blocked: false, confirmed: true, username: 'bo@x.ro', provider: 'local', role: 'authenticated' });
+    await s.store.createAccount({ userId: 2, email: 'bo@x.ro', status: 'active', teamMemberId: null, googleSub: 'sub-1' });
+    const done = await portalSecondStep(s.c, { ...p, deviceKey: p.deviceKey ?? undefined, method: 'totp', code: code(), remember: false });
+    expect(done).toMatchObject({ ok: false, status: 401, error: SECURITY_ERRORS.pendingExpired });
+    expect(s.fake.state.accounts[0].googleSub).toBeNull();
+  });
+
+  it('a link removed earlier (googleUnlinkedAt) is never re-made by e-mail, with or without 2FA', async () => {
+    const s = setup();
+    const id = await s.addAccount({ googleUnlinkedAt: NOW.toISOString() });
+    expect(await s.login()).toEqual(NO_ACCOUNT);
+    await enrol(s, id);
+    expect(await s.login()).toEqual(NO_ACCOUNT);
+    expect(s.fake.state.accounts[0].googleSub).toBeNull();
+  });
+
+  it('an account without 2FA still links at once', async () => {
+    const s = setup();
+    await s.addAccount();
+    expect(await s.login()).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
+    expect(s.fake.state.accounts[0].googleSub).toBe('sub-1');
+  });
+});
+

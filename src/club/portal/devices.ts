@@ -19,3 +19,6 @@ export function deviceLabel(userAgent: string | null): string {
   if (!userAgent) return DEVICE_WORDS.unknown;
   return `${kindOf(userAgent)}, ${browserOf(userAgent)}`;
 }
+
+/** A device row a completed sign-in has confirmed or bound a session to; the others were made at a password step that never finished. */
+export const isConfirmedDevice = (d: { confirmedAt: string | null; sessionId: string | null }): boolean => d.confirmedAt !== null || d.sessionId !== null;
