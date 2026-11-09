@@ -27,6 +27,9 @@ export const SECURITY_TOASTS = {
 } as const;
 
 export const SECURITY_COPY = {
+  page: {
+    title: 'Securitate',
+  },
   login: {
     title: 'Intră în cont',
     brand: 'Panou de administrare',
