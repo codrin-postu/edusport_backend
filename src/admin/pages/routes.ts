@@ -30,6 +30,8 @@ export const REALIZARI_TO = '/plugins/edusport-realizari';
 export const EVENIMENTE_COLABORARE_TO = '/plugins/edusport-evenimente-colaborare';
 /** Edit page; `?id=<documentId>` edits, no id creates. */
 export const EVENIMENT_COLABORARE_EDIT_TO = '/plugins/edusport-evenimente-colaborare-edit';
+/** Admin "Securitate" (6b-1 spec 10.4): 2FA, password, Google, devices, Administratori. */
+export const SECURITATE_TO = '/plugins/edusport-securitate';
 /** Articole: route only for now, the sidebar keeps the Strapi editor and nothing redirects (last step). */
 export const ARTICOLE_TO = '/plugins/edusport-articole';
 /** Edit page; `?id=<documentId>` edits, no id creates. */
