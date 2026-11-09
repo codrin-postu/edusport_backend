@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { finishGoogle, storeHandoff, storeToken, takeGateToken, type HandoffWindow } from '../handoff';
+import { describe, expect, it, vi } from 'vitest';
+import { finishGoogle, openAfterLogin, storeHandoff, storeToken, takeGateToken, type HandoffWindow } from '../handoff';
 
 /** A stand-in for `window`: a cookie jar that keeps what was set (a past `Expires` removes), local storage, and `location.assign`. */
 function fakeWindow(protocol = 'http:', cookies: Record<string, string> = {}) {
@@ -93,5 +93,40 @@ describe('Google handoff page', () => {
     expect(f.writes.some((x) => x === 'jwtToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT')).toBe(true);
     expect(f.writes.at(-1)).toBe('jwtToken=g2; Path=/admin');
     expect(f.storage.has('jwtToken')).toBe(false);
+  });
+});
+
+describe('openAfterLogin (the offer decision)', () => {
+  const h = (offerPasskey: boolean) => ({ accessToken: 'a.b.c', remember: true, offerPasskey });
+
+  it('no offer: stores the session and opens /admin without asking the device', async () => {
+    const f = fakeWindow();
+    const go = vi.fn();
+    const platformKey = vi.fn(async () => true);
+    await openAfterLogin(h(false), platformKey, f.w, go);
+    expect(f.assigned).toEqual(['/admin']);
+    expect(f.storage.get('jwtToken')).toBe('"a.b.c"');
+    expect(platformKey).not.toHaveBeenCalled();
+    expect(go).not.toHaveBeenCalled();
+  });
+
+  it('offer on a device with a built-in key: token stored first, then /login/passkey with the token, no /admin yet', async () => {
+    const f = fakeWindow();
+    const go = vi.fn();
+    await openAfterLogin(h(true), async () => true, f.w, go);
+    expect(f.storage.get('jwtToken')).toBe('"a.b.c"');
+    expect(f.storage.get('isLoggedIn')).toBe('true');
+    expect(go).toHaveBeenCalledWith('/login/passkey', { token: 'a.b.c' });
+    expect(f.assigned).toEqual([]);
+  });
+
+  it('offer on a device without a built-in key (or when the check fails): straight to /admin, no offer', async () => {
+    for (const platformKey of [async () => false, async () => { throw new Error('x'); }]) {
+      const f = fakeWindow();
+      const go = vi.fn();
+      await openAfterLogin(h(true), platformKey, f.w, go);
+      expect(f.assigned).toEqual(['/admin']);
+      expect(go).not.toHaveBeenCalled();
+    }
   });
 });

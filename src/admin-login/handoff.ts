@@ -1,4 +1,5 @@
 import type { AdminHandoff } from '../club/security/api-types';
+import { PATH } from './flow';
 
 /** Strapi's own storage names for the admin session (`@strapi/admin` reducer.mjs, utils/cookies.mjs). */
 const TOKEN_KEY = 'jwtToken';
@@ -65,4 +66,19 @@ export function finishGoogle(remember: boolean, w: HandoffWindow): boolean {
   storeToken(token, remember, w);
   w.location.assign(ADMIN_HOME);
   return true;
+}
+
+/**
+ * What a login that ended in a session leads to. Without `offerPasskey` the admin opens at once. With it, and only on a device that has a
+ * built-in key, the token is stored first (the offer's calls are signed in) and the page moves to the offer; on any other device the admin opens.
+ */
+export async function openAfterLogin(
+  h: AdminHandoff,
+  platformKey: () => Promise<boolean>,
+  w: HandoffWindow,
+  go: (url: string, carry: { token: string }) => void,
+): Promise<void> {
+  if (!h.offerPasskey || !(await platformKey().catch(() => false))) return storeHandoff(h, w);
+  storeToken(h.accessToken, h.remember, w);
+  go(PATH.offer, { token: h.accessToken });
 }
