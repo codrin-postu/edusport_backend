@@ -128,7 +128,6 @@ export const SECURITY_COPY = {
     delete: 'Șterge',
     create: 'Creează o cheie de acces',
     old: 'Cheie veche, nu mai merge. Creează una nouă.',
-    // COPY NEEDED: the three strings below were not in the approved text review (used by the Securitate list and the confirmation step).
     neverUsed: 'niciodată',
     saveName: 'Salvează',
     reauthConfirm: 'Confirmă',
