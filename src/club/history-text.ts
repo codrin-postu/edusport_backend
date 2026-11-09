@@ -1,7 +1,7 @@
 import { acsWord } from './acs';
 import { ATHLETE_FIELD_LABELS, athleteValueText, isAthleteField, type AthleteStatus } from './athlete-data';
 import { GROUP_LINES } from './groups/copy';
-import { P4_ACTIONS, phase4Lines } from './groups/history-lines';
+import { P4_ACTIONS, phase4Lines, sinceDate } from './groups/history-lines';
 import { phase5Lines } from './presence/history-lines';
 import { isRecord } from './narrow';
 import { ARROW, quotedChange } from './text-leaf';
@@ -180,7 +180,7 @@ const RENDER: Readonly<Record<string, Render>> = {
   [HISTORY_ACTIONS.createdFromRegistrations]: () => ['Fișă creată din înscrierile anterioare'],
   [HISTORY_ACTIONS.registrationConfirmed]: (c) => [confirmedOnAthlete(c)],
   [HISTORY_ACTIONS.groupAdded]: (c) => [`Adăugat în grupa ${text(c.groupName)}`],
-  [HISTORY_ACTIONS.mainGroupChanged]: (c) => [`Grupa principală schimbată: ${text(c.from)} ${ARROW} ${text(c.to)}`],
+  [HISTORY_ACTIONS.mainGroupChanged]: (c) => [sinceDate(`Grupa principală schimbată: ${text(c.from)} ${ARROW} ${text(c.to)}`, c)],
   [HISTORY_ACTIONS.acsChanged]: (c) => [`Membru A.C.S. ${text(c.season)}: ${acsWord(c.from)} ${ARROW} ${acsWord(c.to)}`],
   [HISTORY_ACTIONS.reactivated]: () => ['Reactivat'],
   [HISTORY_ACTIONS.statusChanged]: (c) => [`Status: ${statusWord(c.from)} ${ARROW} ${statusWord(c.to)}`],

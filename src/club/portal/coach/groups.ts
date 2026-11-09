@@ -12,6 +12,7 @@ import { heldOccurrences } from '../../presence/sessions';
 import { PORTAL_ERRORS } from '../copy';
 import type { CoachGroupPage, CoachGroupRow, CoachGroups, CoachMember, NextClass, OtherGroupRow, SectionKind, StandInSlot } from './api-types';
 import { locationOfGroup } from './calendar';
+import { clockOf } from './context';
 import type { CoachContexts } from './context';
 import { groupAccess } from './ownership';
 import { toCoachMember } from './views';
@@ -51,8 +52,6 @@ export async function readGroups(c: CoachContexts): Promise<AdminResult<CoachGro
 
 const AHEAD_DAYS = 60;
 
-/** Local clock time in Bucharest, `HH:mm`. */
-const clockOf = (d: Date): string => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
 
 /** The first scheduled, not cancelled class of a group from now on (today counts while its start time is later than now), up to 60 days ahead. */
 async function nextClasses(c: CoachContexts): Promise<(groupId: string) => NextClass | null> {

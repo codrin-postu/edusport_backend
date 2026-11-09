@@ -8,19 +8,18 @@ import type { ActionResult } from '../../groups/action-log';
 import type { JoinResult } from '../../groups/api-types';
 import { addDays, isIsoDate } from '../../groups/dates';
 import { joinGroup } from '../../groups/members';
-import { groupListRow } from '../../groups/list';
+import { groupListRow, type ListFacts } from '../../groups/list';
 import { currentSeason, ageOnIso } from '../../groups/season-pick';
 import { seasonBounds } from '../../groups/series';
 import type { GroupRecord, SeasonRecord } from '../../groups/types';
 import { abonamentSlots, kindOf } from '../../presence/attendance/panel';
-import { rosterOn } from '../../presence/attendance/roster';
+import { onDate, rosterOn } from '../../presence/attendance/roster';
 import { pickSubscription, usedSlots } from '../../presence/subscriptions';
 import { HISTORY_ACTIONS, SUBJECT } from '../../history-text';
 import { isAnonymized } from '../../personal-data/anonymize-plan';
 import { PORTAL_ERRORS, PORTAL_TOASTS } from '../copy';
 import type { CoachAthleteCard, CoachSearchRow } from './api-types';
 import { locationOfGroup } from './calendar';
-import { listFacts } from './groups';
 import { forbidden, type CoachContexts, type CoachResult } from './context';
 import { groupAccess, ownAthlete, ownGroupIds } from './ownership';
 import { cardRight } from './rules';
@@ -118,7 +117,7 @@ async function schoolText(c: CoachContexts, athleteId: string, groups: GroupReco
 type Presence = CoachAthleteCard['presence'];
 type Abonament = NonNullable<CoachAthleteCard['abonament']>;
 
-/** Group presences (grup or uscat ticked) and present lessons of the season; saved sessions of the current groups this month, on or before today, where the child was listed and not ticked. */
+/** Group presences (grup or uscat ticked) and present lessons of the season; saved sessions this month of the groups the child was listed in on the day, on or before today, where the child was listed and not ticked. */
 async function presenceOf(c: CoachContexts, athleteId: string, season: SeasonRecord, memberships: MembershipRow[]): Promise<Presence> {
   const store = c.presence.store;
   const { start, end } = seasonBounds(season);
@@ -126,8 +125,7 @@ async function presenceOf(c: CoachContexts, athleteId: string, season: SeasonRec
   const ticked = attendances.filter((r) => r.grup || r.uscat);
   const present = lessons.filter((l) => l.state === 'saved' && l.present === true);
   const dates = [...ticked.map((r) => r.sessionDate), ...present.map((l) => l.date)].sort();
-  const currentGroups = new Set(memberships.filter(isCurrentMembership).map((m) => m.groupId));
-  const sessions = (await store.sessions({ from: `${c.today.slice(0, 7)}-01`, to: c.today })).filter((s) => currentGroups.has(s.groupId) && rosterOn(memberships, s.groupId, season.id, s.date).includes(athleteId));
+  const sessions = (await store.sessions({ from: `${c.today.slice(0, 7)}-01`, to: c.today })).filter((s) => rosterOn(memberships, s.groupId, season.id, s.date).includes(athleteId));
   const tickedSessions = new Set(ticked.map((r) => r.sessionId));
   return { season: ticked.length + present.length, lessons: present.length, last: dates[dates.length - 1] ?? null, missedThisMonth: sessions.filter((s) => !tickedSessions.has(s.id)).length };
 }
@@ -143,6 +141,18 @@ async function abonamentOf(c: CoachContexts, athleteId: string, groups: GroupRec
   return sub ? { code: sub.code, next: (used.get(sub.id) ?? 0) + 1, slots: sub.slots, validUntil: sub.validUntil, location: await locationOfGroup(c, school) } : null;
 }
 
+/** The rows that count as current on the card: the ones running today (a scheduled end still counts until its date); a child whose rows all start later shows those. */
+function cardRows(memberships: MembershipRow[], today: string): MembershipRow[] {
+  const running = memberships.filter((m) => onDate(m, today));
+  return running.length > 0 ? running : memberships.filter((m) => !m.to || m.to >= today);
+}
+
+/** List facts for the program lines of this child's groups only (no roster counts, no other group's events). */
+async function cardFacts(c: CoachContexts, season: SeasonRecord, groups: GroupRecord[]): Promise<ListFacts> {
+  const [sections, events] = await Promise.all([c.presence.store.sections(), Promise.all(groups.map((g) => c.groups.store.events({ groupId: g.id })))]);
+  return { season, sections, groups, current: [], events: events.flat(), team: [], today: c.today };
+}
+
 /** Athlete card (8.7, ruling 21): own children with the contact and abonament, a stand-in's listed children without them, nobody else. */
 export async function readCard(c: CoachContexts, athleteId: string): Promise<CoachResult<CoachAthleteCard>> {
   const store = c.presence.store;
@@ -153,9 +163,9 @@ export async function readCard(c: CoachContexts, athleteId: string): Promise<Coa
   const own = ownAthlete(memberships, ownGroupIds(allGroups, c.coach.teamMemberId), athleteId, season.id, c.today);
   const right = cardRight(own, own ? false : await onListedSession(c, athleteId));
   if (!right.read) return forbidden(PORTAL_ERRORS.noAccess);
-  const current = memberships.filter(isCurrentMembership).sort((a, b) => Number(b.isMain) - Number(a.isMain));
+  const current = cardRows(memberships, c.today).sort((a, b) => Number(b.isMain) - Number(a.isMain));
   const groups = current.flatMap((m) => allGroups.filter((g) => g.id === m.groupId));
-  const facts = await listFacts(c);
+  const facts = await cardFacts(c, season, groups);
   const sections = await store.sections();
   return {
     ok: true,

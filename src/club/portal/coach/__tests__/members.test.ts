@@ -73,3 +73,28 @@ describe('removeMember', () => {
     expect(await removeMember(c, 'g-scoala-a', 'a-scoala-2', { from: '2026-11-26' })).toMatchObject({ ok: false, status: 409 });
   });
 });
+
+describe('more refusals write nothing', () => {
+  it('a removal on another coach group writes nothing', async () => {
+    const c = coachCtx(ME);
+    const before = snapshot(c);
+    expect(await removeMember(c, 'g-club-b', 'a-b-1', { from: '2026-11-20' })).toEqual(NO_ACCESS);
+    expect(snapshot(c)).toBe(before);
+  });
+
+  it('a child of another coach group named under an own group is 409, nothing written', async () => {
+    const c = coachCtx(ME);
+    const before = snapshot(c);
+    expect(await moveMember(c, 'g-club-a', 'a-b-1', { toGroupId: 'g-scoala-a', from: '2026-11-20' })).toMatchObject({ ok: false, status: 409 });
+    expect(await removeMember(c, 'g-club-a', 'a-b-1', { from: '2026-11-20' })).toMatchObject({ ok: false, status: 409 });
+    expect(snapshot(c)).toBe(before);
+  });
+
+  it('a move followed by a removal of the same row is 409', async () => {
+    const c = coachCtx(ME);
+    expect((await moveMember(c, 'g-club-a', 'a-club-1', { toGroupId: 'g-scoala-a', from: '2026-11-25' })).ok).toBe(true);
+    const before = snapshot(c);
+    expect(await removeMember(c, 'g-club-a', 'a-club-1', { from: '2026-11-26' })).toMatchObject({ ok: false, status: 409 });
+    expect(snapshot(c)).toBe(before);
+  });
+});

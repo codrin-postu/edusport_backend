@@ -86,9 +86,14 @@ describe('not-done classes in the Istoric', () => {
     const r = await readCoachHistory(c, '2026-11');
     if (!r.ok || !before.ok) throw new Error('refused');
     const club = r.data.rows.filter((x) => !x.done && x.name === 'Club A');
-    expect(club).toEqual([{ kind: 'grup', date: '2026-11-20', name: 'Club A', present: null, durationMin: 90, sessionId: null, lessonId: null, done: false, occurrenceKey: 'ev-g-club-a|2026-11-20|17:00' }]);
+    expect(club).toEqual([]);
+    c.presence.now = () => new Date('2026-11-20T16:00:00.000Z');
+    const later = await readCoachHistory(c, '2026-11');
+    if (!later.ok) throw new Error('refused');
+    expect(later.data.rows.filter((x) => !x.done && x.name === 'Club A')).toEqual([{ kind: 'grup', date: '2026-11-20', name: 'Club A', present: null, durationMin: 90, sessionId: null, lessonId: null, done: false, occurrenceKey: 'ev-g-club-a|2026-11-20|17:00' }]);
     expect(r.data.rows.some((x) => x.date > '2026-11-20')).toBe(false);
     expect(r.data.rows.some((x) => !x.done && x.date === '2026-11-06')).toBe(false);
+    expect(r.data.rows.some((x) => !x.done && x.date === '2026-11-13' && x.name === 'Club A')).toBe(false);
     expect(r.data.sessions).toBe(before.data.sessions);
     expect(r.data.hours).toBe(before.data.hours);
   });

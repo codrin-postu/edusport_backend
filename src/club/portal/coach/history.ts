@@ -8,7 +8,7 @@ import type { HistoryEntryRow } from '../../groups/types';
 import { PORTAL_ERRORS } from '../copy';
 import type { CoachHistory, CoachHistoryRow } from './api-types';
 import { ownClassesBetween } from './calendar';
-import type { CoachContexts } from './context';
+import { clockOf, type CoachContexts } from './context';
 
 type NamesChange = { at: string; from: string; to: string };
 
@@ -28,11 +28,13 @@ function wasCoachOn(changes: NamesChange[], currentNames: string[], coachName: s
   return (names === null ? currentNames : names.split(', ')).includes(coachName);
 }
 
-/** Own scheduled, not cancelled classes of the month dated up to today that nobody saved (totals count saved work only). */
+/** Own scheduled, not cancelled classes of the month that nobody saved and whose start has passed (Bucharest time); a later class today is not listed (totals count saved work only). */
 async function notDone(c: CoachContexts, from: string, to: string): Promise<CoachHistoryRow[]> {
   if (from > c.today) return [];
   const items = await ownClassesBetween(c, from, to < c.today ? to : c.today);
-  return items.filter((i) => i.kind === 'grup' && !i.cancelled && !i.standIn && !i.done && i.sessionId === null).map((i): CoachHistoryRow => ({
+  const clock = clockOf(c.presence.now());
+  const started = (i: { date: string; startTime: string }): boolean => i.date < c.today || i.startTime <= clock;
+  return items.filter((i) => i.kind === 'grup' && !i.cancelled && !i.standIn && !i.done && i.sessionId === null && started(i)).map((i): CoachHistoryRow => ({
     kind: 'grup', date: i.date, name: i.title, present: null, durationMin: i.durationMin, sessionId: null, lessonId: null, done: false, occurrenceKey: i.occurrenceKey,
   }));
 }

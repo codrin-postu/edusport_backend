@@ -25,6 +25,9 @@ export type Forbidden = { ok: false; status: 403; error: string };
 export type CoachResult<T> = AdminResult<T> | Forbidden;
 export const forbidden = (error: string): Forbidden => ({ ok: false, status: 403, error });
 
+/** Local clock time in Bucharest, `HH:mm`. */
+export const clockOf = (d: Date): string => new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Bucharest', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
+
 /** Written on every history line a coach causes. */
 export const coachActor = (name: string): string => `Antrenor ${name}`;
 

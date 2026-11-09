@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { athleteRow, member } from '../../../groups/__tests__/fake-group-store';
 import { attendanceRow, lessonRow, sessionRow } from '../../../presence/__tests__/fake-store';
 import { PORTAL_ERRORS } from '../../copy';
+import { removeMember } from '../members';
 import { addMembers, addNewAthlete, readCard, searchAthletes } from '../athletes';
 import { forbiddenKeysIn } from '../views';
 import { coachCtx } from './coach-seed';
@@ -166,5 +167,16 @@ describe('readCard additions', () => {
     const c = coachCtx(ME);
     c.fake.group.athletes.find((a) => a.id === 'a-scoala-1')!.status = 'anonimizat';
     expect(await readCard(c, 'a-scoala-1')).toMatchObject({ ok: false, status: 404 });
+  });
+
+  it('a child with a scheduled removal still shows her group, section, abonament and missed classes until the date', async () => {
+    const c = coachCtx(ME);
+    c.fake.state.sessions.push(sessionRow({ id: 's-1', groupId: 'g-scoala-a', date: '2026-11-07', startTime: '11:00', coachIds: [ME] }));
+    expect((await removeMember(c, 'g-scoala-a', 'a-scoala-1', { from: '2026-11-25' })).ok).toBe(true);
+    const out = await readCard(c, 'a-scoala-1');
+    expect(out).toMatchObject({ ok: true, data: {
+      groups: ['Școala A'], groupRows: [{ groupId: 'g-scoala-a' }], sectionName: 'Școala de Patinaj - AFI Cotroceni', abonament: { next: 1, slots: 8 },
+      presence: { missedThisMonth: 1 },
+    } });
   });
 });
