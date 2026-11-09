@@ -9,7 +9,7 @@ import { hasTwoFactor, openPending, sendLoginCode, verifySecondStep } from '../.
 import type { Subject } from '../../security/store';
 import { PORTAL_ERRORS } from '../copy';
 import { isConfirmedDevice } from '../devices';
-import type { AccountRow } from '../store';
+import type { AccountRow, DeviceRow } from '../store';
 import { hashSecret, sameHash } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
 import { coachActor } from '../coach/context';
@@ -55,6 +55,17 @@ export async function afterPassword(
   if (device && device.revokedAt === null && isConfirmedDevice(device) && isRemembered(device.twoFactorUntil, c.now())) {
     return withOffer(c, account, await startSession(c, account, deviceKey, { notifyNewDevice: true, host }));
   }
+  return openSecondStep(c, account, deviceKey, host, device);
+}
+
+/**
+ * Opens the pending login of an account with 2FA. `googleSub` is set only by a first Google link: it waits in the pending data and is stored
+ * after a right code (spec 4.6, user ruling 2026-11-09), never before.
+ */
+export async function openSecondStep(
+  c: PortalAuthContext, account: AccountRow, deviceKey: string | null, host: string, device: DeviceRow | null, googleSub?: string,
+): Promise<PortalResult<PortalPending>> {
+  const subject = portalSubject(account);
   const gate = keysOrRefusal(c.security);
   if ('refusal' in gate) return gate.refusal;
   // An unknown browser is mailed now (as the admin login does), so a password alone shows up before any code is tried.
@@ -65,7 +76,7 @@ export async function afterPassword(
   const boundKey = made ? made.key : deviceKey;
   const last = (await c.security.store.portalAccountExtra(account.id)).lastMethod;
   try {
-    const { secret, step } = await openPending(c.security, subject, account.email, { rememberMe: false, host, deviceKeyHash: boundKey ? hashSecret(boundKey) : null }, last);
+    const { secret, step } = await openPending(c.security, subject, account.email, { rememberMe: false, host, deviceKeyHash: boundKey ? hashSecret(boundKey) : null, ...(googleSub ? { googleSub } : {}) }, last);
     return { ok: true, data: { ...step, pending: secret, deviceKey: made ? made.key : null } };
   } catch (err) {
     if (err instanceof KeysMissing) return { ok: false, status: 503, error: SECURITY_ERRORS.unavailable };
@@ -90,6 +101,19 @@ function readSecond(body: unknown): SecondBody | null {
 const sameBrowser = (bound: string | null, deviceKey: string | null): boolean =>
   bound === null ? deviceKey === null : deviceKey !== null && sameHash(hashSecret(deviceKey), bound);
 
+/** A first Google link that waited for 2FA: stored only if, right now, the account is still free, its link was never removed and the sub is nobody else's. */
+async function linkPendingGoogle(c: PortalAuthContext, account: AccountRow, sub: string): Promise<boolean> {
+  return c.store.transaction(async () => {
+    await c.store.lockAccount(account.id);
+    const fresh = await c.store.account(account.id);
+    if (!fresh || fresh.googleSub !== null || fresh.googleUnlinkedAt !== null) return false;
+    const owner = await c.store.accountByGoogleSub(sub);
+    if (owner && owner.id !== account.id) return false;
+    await c.store.updateAccount(account.id, { googleSub: sub });
+    return true;
+  });
+}
+
 /** A code for a pending login: a right one ends it, saves the method, remembers the device when asked and starts the session. */
 export async function portalSecondStep(c: PortalAuthContext, body: unknown): Promise<PortalResult<SessionWithOffer>> {
   const read = readSecond(body);
@@ -106,6 +130,7 @@ export async function portalSecondStep(c: PortalAuthContext, body: unknown): Pro
   const account = await c.store.account(subject.id);
   const user = account ? await c.store.user(account.userId) : null;
   if (!account || !canEnter(account, user, data.host)) return wrongLogin;
+  if (data.googleSub && !(await linkPendingGoogle(c, account, data.googleSub))) return pendingExpired;
   if (read.method !== 'backup') await c.security.store.updatePortalAccountExtra(account.id, { lastMethod: read.method });
   // The new-device mail went out after the password.
   const session = await startSession(c, account, read.deviceKey, { notifyNewDevice: false, host: data.host });

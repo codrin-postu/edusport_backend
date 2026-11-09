@@ -33,7 +33,8 @@ export async function changeEmail(c: AccountContext, accountId: string, body: un
       const before = await c.store.account(accountId);
       if (!before) return null;
       if (before.email === email) return { before, after: before, jobId: null };
-      await c.store.updateAccount(accountId, { email, googleSub: null });
+      await c.store.updateAccount(accountId, { email, googleSub: null, ...(before.googleSub ? { googleUnlinkedAt: c.now().toISOString() } : {}) });
+      await c.endPendingGoogle?.(accountId);
       await c.store.updateUser(before.userId, { email });
       await revokeAccess(c, before);
       await useUpTokens(c, accountId, before.status === 'invited' ? ['reset', 'invite'] : ['reset']);

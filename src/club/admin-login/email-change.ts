@@ -15,7 +15,7 @@ const SYSTEM_ACTOR = 'sistem';
 export async function onAdminEmailChange(strapi: Core.Strapi, adminId: number, store: SecurityStore = strapiSecurityStore(strapi)): Promise<void> {
   const account = await store.adminAccount(adminId);
   if (account?.googleSub) {
-    await store.updateAdminAccount(account.id, { googleSub: null });
+    await store.updateAdminAccount(account.id, { googleSub: null, googleUnlinkedAt: new Date().toISOString() });
     await store.record({ subjectType: 'admin', subjectId: String(adminId), action: SECURITY_ACTIONS.googleUnlinked, changes: {}, actor: SYSTEM_ACTOR });
   }
   // A first-link Google login waiting for its 2FA code was proven for the old address: end it (B4 H1 review L2).

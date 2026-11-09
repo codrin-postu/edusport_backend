@@ -29,6 +29,8 @@ export type AccountContext = {
   hash: (p: string) => Promise<string>;
   /** Whether the account has a confirmed 2FA method; tests that do not read it leave it out (false). */
   twoFactorOn?: (accountId: string) => Promise<boolean>;
+  /** Ends a first-link Google login that waits for its 2FA code (it was proven for the old e-mail); tests that do not read it leave it out. */
+  endPendingGoogle?: (accountId: string) => Promise<void>;
   /** The public site address the portal host and the invite link derive from; '' when none is configured. */
   siteUrl: string;
 };
@@ -65,6 +67,7 @@ export function baseContext(strapi: Core.Strapi, actor: string): AccountContext 
     hash: (p) => bcrypt.hash(p, 10),
     siteUrl: publicSiteUrl() ?? '',
     twoFactorOn: (accountId) => twoFactorOn(security, accountId),
+    endPendingGoogle: (accountId) => endPendingGoogleLinks(security, accountId, now()),
   };
 }
 
@@ -97,4 +100,11 @@ export async function readAccount(c: AccountContext, teamMemberId: string): Prom
     if ((await c.store.teamMemberName(teamMemberId)) === null) return refuse(404, PORTAL_ERRORS.notFound);
     return { ok: true, data: await blockFor(c, teamMemberId, await c.store.accountByTeamMember(teamMemberId)) };
   });
+}
+
+/** Consumes the open pending logins of the account that carry a Google sub to be linked after the code. */
+export async function endPendingGoogleLinks(store: SecurityStore, accountId: string, now: Date): Promise<void> {
+  for (const row of await store.openChallenges({ type: 'portal', id: accountId }, 'pending-login')) {
+    if (typeof row.data.googleSub === 'string') await store.consumeOnce('challenge', row.id, now.toISOString());
+  }
 }

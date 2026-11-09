@@ -258,6 +258,20 @@ describe('stale invite jobs and the Google identity', () => {
     expect(a.account.google).toBe(false);
     expect((await h.fake.store.account(id))?.googleSub).toBeNull();
   });
+  it('an e-mail change marks the link as removed (no relink by e-mail) and ends a pending first-link login; no sub, no mark', async () => {
+    const h = harness();
+    const { id } = await seedAccount(h, 'active');
+    const ended: string[] = [];
+    const c = { ...h.c, endPendingGoogle: async (accountId: string) => void ended.push(accountId) };
+    await h.fake.store.updateAccount(id, { googleSub: 'g-1' });
+    ok(await changeEmail(c, id, { email: 'nou@example.com' }));
+    expect((await h.fake.store.account(id))?.googleUnlinkedAt).toEqual(expect.any(String));
+    expect(ended).toEqual([id]);
+    const g = harness();
+    const plain = await seedAccount(g, 'active');
+    ok(await changeEmail(g.c, plain.id, { email: 'nou@example.com' }));
+    expect((await g.fake.store.account(plain.id))?.googleUnlinkedAt).toBeNull();
+  });
   it('only a Postgres unique violation or Strapi unique check counts as a unique violation', () => {
     expect(uniqueViolation(Object.assign(new Error('x'), { code: '23505' }))).toMatchObject({ status: 409 });
     expect(uniqueViolation(Object.assign(new Error('This attribute must be unique'), { name: 'ValidationError' }))).toMatchObject({ status: 409 });

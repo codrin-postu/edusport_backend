@@ -39,6 +39,9 @@
       "relation": "oneToOne",
       "target": "api::team-member.team-member"
     },
+    "googleUnlinkedAt": {
+      "type": "datetime"
+    },
     "googleSub": {
       "type": "string",
       "unique": true,

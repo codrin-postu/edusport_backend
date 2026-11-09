@@ -129,7 +129,7 @@ function accounts(state: FakePortalState): Pick<PortalStore, 'account' | 'accoun
     createAccount: async (a) => {
       const id = `acc${state.nextId++}`;
       state.accounts.push({
-        id, teamMemberId: null, phone: null, googleSub: null, invitedAt: null, invitedBy: null, activatedAt: null, disabledAt: null, disabledBy: null, lastLoginAt: null,
+        id, teamMemberId: null, phone: null, googleSub: null, googleUnlinkedAt: null, invitedAt: null, invitedBy: null, activatedAt: null, disabledAt: null, disabledBy: null, lastLoginAt: null,
         ...defined(a), userId: a.userId, status: a.status, email: a.email.toLowerCase(),
       });
       return id;

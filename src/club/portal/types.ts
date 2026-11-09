@@ -3,6 +3,8 @@ import type { LimitState } from './limits';
 export type AccountStatus = 'invited' | 'active' | 'disabled';
 export type AccountRow = {
   id: string; userId: number; email: string; status: AccountStatus; teamMemberId: string | null; phone: string | null; googleSub: string | null;
+  /** When the Google link was removed (an e-mail change); a link removed this way is never re-made by e-mail alone (spec 4.6, user ruling 2026-11-09). */
+  googleUnlinkedAt: string | null;
   invitedAt: string | null; invitedBy: string | null; activatedAt: string | null; disabledAt: string | null; disabledBy: string | null; lastLoginAt: string | null;
 };
 export type AccountWrite = Partial<Omit<AccountRow, 'id' | 'userId'>>;

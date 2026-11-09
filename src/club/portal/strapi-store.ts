@@ -27,7 +27,7 @@ export function toAccountRow(r: Raw): AccountRow {
   if (!user) throw new Error('portal account without a user link');
   return {
     id: text(r.documentId), userId: Number(user.id), email: text(r.email), status: STATUSES.find((s) => s === r.status) ?? 'invited',
-    teamMemberId: linkId(r.teamMember), phone: str(r.phone), googleSub: str(r.googleSub), invitedAt: iso(r.invitedAt), invitedBy: str(r.invitedBy),
+    teamMemberId: linkId(r.teamMember), phone: str(r.phone), googleSub: str(r.googleSub), googleUnlinkedAt: iso(r.googleUnlinkedAt), invitedAt: iso(r.invitedAt), invitedBy: str(r.invitedBy),
     activatedAt: iso(r.activatedAt), disabledAt: iso(r.disabledAt), disabledBy: str(r.disabledBy), lastLoginAt: iso(r.lastLoginAt),
   };
 }
