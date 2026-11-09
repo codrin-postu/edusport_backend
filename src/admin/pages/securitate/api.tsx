@@ -12,6 +12,7 @@ export function useSecurityApi(): SecurityApi {
       createSecurityApi({
         get: (url) => ref.current.get(url),
         post: (url, data) => ref.current.post(url, data),
+        put: (url, data) => ref.current.put(url, data),
         del: (url) => ref.current.del(url),
       }),
     [],

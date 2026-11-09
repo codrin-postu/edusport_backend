@@ -32,7 +32,7 @@ function fakeClient(answers: Record<string, unknown>) {
     calls.push({ method, url, body });
     return { data: { data: answers[`${method} ${url}`] } };
   };
-  const client: Client = { get: answer('GET'), post: answer('POST'), del: answer('DELETE') };
+  const client: Client = { get: answer('GET'), post: answer('POST'), put: answer('PUT'), del: answer('DELETE') };
   return { client, calls };
 }
 

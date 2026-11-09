@@ -1,4 +1,6 @@
 import type { AdminHandoff, CodeSent, SecondStep, TwoFactorMethod } from '../club/security/api-types';
+import type { Webauthn } from '../admin/lib/webauthn';
+import { SECURITY_ERRORS } from '../club/security/copy';
 import { API, type ApiResult, type Post } from './api';
 
 /** What a login-like answer leads to. `expired` is a pending login that ended (ruling 1): back to the password form with its text. */
@@ -14,6 +16,7 @@ export const PATH = {
   reset: '/intrare/parola',
   secondStep: '/intrare/2fa',
   done: '/intrare/gata',
+  offer: '/intrare/cheie',
 } as const;
 
 const ALL_METHODS: readonly TwoFactorMethod[] = ['totp', 'email', 'backup'];
@@ -70,3 +73,45 @@ export const submitResetConfirm = async (post: Post, f: { email: string; code: s
 
 export const googleStartUrl = (remember: boolean): string => `${API.googleStart}?remember=${remember ? '1' : '0'}`;
 export const inviteGoogleUrl = (registrationToken: string): string => `${API.inviteGoogle}?registrationToken=${encodeURIComponent(registrationToken)}`;
+
+/** Everything a key sign-in can end in; null is a silent stop (the autofill request was aborted because the button took over). */
+export type KeyNext = Next | null;
+
+const FAILED_KEY = SECURITY_ERRORS.passkeyFailed;
+
+/**
+ * The passkey sign-in (button or autofill): options, the browser's answer, verify. A cancelled or refused dialog is the one failure text;
+ * the server's 401 text is shown as sent. An aborted autofill request ends quietly.
+ */
+export async function signInWithKey(post: Post, wa: Webauthn, rememberMe: boolean, opts: { conditional?: boolean; signal?: AbortSignal } = {}): Promise<KeyNext> {
+  const options = await post<{ options: unknown }>(API.passkeyOptions, {});
+  if (!options.ok) return { kind: 'error', message: options.message };
+  let response: unknown;
+  try {
+    response = await wa.authenticate(options.data.options, opts);
+  } catch {
+    return opts.signal?.aborted ? null : { kind: 'error', message: FAILED_KEY };
+  }
+  return nextOf(await post<AdminHandoff>(API.passkeyVerify, { response, rememberMe }));
+}
+
+export type OfferResult = { ok: true } | { ok: false; message: string };
+
+/** "Creează" on the offer: options, the browser's dialog, register. Runs with the access token the handoff just stored. */
+export async function createOfferedKey(post: Post, wa: Webauthn): Promise<OfferResult> {
+  const options = await post<{ options: unknown }>(API.meKeyOptions, {});
+  if (!options.ok) return { ok: false, message: options.message };
+  let response: unknown;
+  try {
+    response = await wa.register(options.data.options);
+  } catch {
+    return { ok: false, message: FAILED_KEY };
+  }
+  const added = await post<{ toast: string }>(API.meKeyAdd, { response });
+  return added.ok ? { ok: true } : { ok: false, message: added.message };
+}
+
+/** "Nu acum": the offer is closed for good, then the admin opens. The refusal of this call is ignored, the offer would only show again. */
+export async function dismissOffer(post: Post): Promise<void> {
+  await post(API.meKeyDismiss, {});
+}

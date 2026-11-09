@@ -1,9 +1,10 @@
-import type { AdminDeviceView, BackupBatch, CodeSent, MethodOn, SecurityView, TotpStart } from '../../../club/security/api-types';
+import type { AdminDeviceView, BackupBatch, CodeSent, MethodOn, PasskeyRegisterOptions, PasskeyRow, SecurityView, TotpStart } from '../../../club/security/api-types';
 
 /** The admin fetch client's shape (Strapi's `useFetchClient`), so the calls are testable without the Strapi package. */
 export type Client = {
   get: (url: string) => Promise<{ data: unknown }>;
   post: (url: string, data?: unknown) => Promise<{ data: unknown }>;
+  put: (url: string, data?: unknown) => Promise<{ data: unknown }>;
   del: (url: string) => Promise<{ data: unknown }>;
 };
 
@@ -31,6 +32,11 @@ export function createSecurityApi(client: Client) {
     changePassword: (body: { current: string; password: string }) => data<Toast & { signedOut: boolean }>(client.post(`${BASE}/me/password`, body)),
     google: () => data<{ email: string | null }>(client.get(`${BASE}/me/google`)),
     unlinkGoogle: () => data<Toast>(client.del(`${BASE}/me/google`)),
+    passkeyOptions: () => data<PasskeyRegisterOptions>(client.post(`${BASE}/me/passkeys/options`, {})),
+    passkeyAdd: (response: unknown) => data<Toast & { passkey: PasskeyRow }>(client.post(`${BASE}/me/passkeys`, { response })),
+    passkeyRename: (id: string, name: string) => data<Toast>(client.put(`${BASE}/me/passkeys/${enc(id)}`, { name })),
+    passkeyDelete: (id: string) => data<Toast>(client.del(`${BASE}/me/passkeys/${enc(id)}`)),
+    reauth: (body: { password: string } | { method: 'totp' | 'email' | 'backup'; code: string }) => data<{ ok: true }>(client.post(`${BASE}/me/reauth`, body)),
     admins: () => data<AdminListRow[]>(client.get(`${BASE}/admins`)),
     resetAdmin: (id: number) => data<Toast>(client.post(`${BASE}/admins/${id}/reset-2fa`, {})),
   };

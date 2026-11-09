@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
+import type { Webauthn } from '../../admin/lib/webauthn';
 import type { AdminHandoff, SecondStep as SecondStepAnswer } from '../../club/security/api-types';
 import { SECURITY_COPY, SECURITY_ERRORS } from '../../club/security/copy';
 import { createPost, type Post } from '../api';
@@ -17,10 +18,11 @@ import { Login } from '../screens/Login';
 import { Reset } from '../screens/Reset';
 import { SecondStep } from '../screens/SecondStep';
 
+const noKeys: Webauthn = { supported: false, autofill: async () => false, platformKey: async () => false, register: async () => ({}), authenticate: async () => ({}) };
 const dir = join(__dirname, '..');
 const read = (p: string): string => readFileSync(join(dir, p), 'utf8');
 const html = (c: React.ComponentType<Deps>, over: Partial<Deps> = {}): string =>
-  renderToStaticMarkup(React.createElement(c, { post: vi.fn() as unknown as Post, go: vi.fn(), handoff: vi.fn(), search: '', flash: null, email: null, ...over }));
+  renderToStaticMarkup(React.createElement(c, { post: vi.fn() as unknown as Post, go: vi.fn(), handoff: vi.fn(), search: '', flash: null, email: null, token: null, webauthn: noKeys, ...over }));
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
 const has = (markup: string, text: string): boolean => markup.includes(esc(text));
 
@@ -137,9 +139,9 @@ describe('api and routes', () => {
     expect(await createPost(async () => { throw new Error('offline'); })('/x', {})).toMatchObject({ ok: false, status: 0 });
   });
 
-  it('screenOf maps the six paths; /cheie and unknown paths show the password form', () => {
+  it('screenOf maps the six paths; unknown paths show the password form', () => {
     expect(['/intrare', '/intrare/2fa', '/intrare/invitatie', '/intrare/parola', '/intrare/gata', '/intrare/cheie', '/intrare/zzz'].map(screenOf))
-      .toEqual(['login', 'secondStep', 'invite', 'reset', 'done', 'login', 'login']);
+      .toEqual(['login', 'secondStep', 'invite', 'reset', 'done', 'offer', 'login']);
   });
 });
 

@@ -27,6 +27,7 @@ export function DevicesList({ devices, busy, onDisconnect }: { devices: AdminDev
           <Row key={d.id}>
             <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <span>{d.label}</span>
+              {d.current && <span style={mutedStyle}>{C.current}</span>}
               {until && <span style={mutedStyle}>{C.rememberedUntil(until)}</span>}
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

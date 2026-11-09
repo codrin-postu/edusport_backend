@@ -15,18 +15,23 @@ export const API = {
   inviteAccept: '/api/admin-auth/invite/accept',
   googleStart: '/api/admin-auth/google/start',
   inviteGoogle: '/api/admin-auth/invite/google',
+  passkeyOptions: '/api/admin-auth/passkey/options',
+  passkeyVerify: '/api/admin-auth/passkey/verify',
+  meKeyOptions: '/api/admin-auth/me/passkeys/options',
+  meKeyAdd: '/api/admin-auth/me/passkeys',
+  meKeyDismiss: '/api/admin-auth/me/passkey-offer/dismiss',
 } as const;
 
 type Answer = { data?: unknown; error?: { message?: unknown } } | null;
 
 /** Same-origin JSON POST. A network or parse failure is a refusal with the shared "nothing was saved" text, never a throw. */
-export function createPost(fetchFn: Fetch): Post {
+export function createPost(fetchFn: Fetch, extraHeaders: Record<string, string> = {}): Post {
   return async <T>(path: string, body: unknown): Promise<ApiResult<T>> => {
     try {
       const res = await fetchFn(path, {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...extraHeaders },
         body: JSON.stringify(body),
       });
       const answer = (await res.json()) as Answer;

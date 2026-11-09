@@ -14,6 +14,7 @@ const C = SECURITY_COPY.google;
 export function GoogleSection({ api }: { api: SecurityApi }) {
   const [email, setEmail] = React.useState<string | null | undefined>(undefined);
   const [busy, setBusy] = React.useState(false);
+  const [asking, setAsking] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -27,6 +28,7 @@ export function GoogleSection({ api }: { api: SecurityApi }) {
   const unlink = async (): Promise<void> => {
     setBusy(true);
     setError(null);
+    setAsking(false);
     try {
       adminToast.success((await api.unlinkGoogle()).toast);
       setEmail(null);
@@ -43,7 +45,16 @@ export function GoogleSection({ api }: { api: SecurityApi }) {
       {email && (
         <Row first>
           <span>{C.connected(email)}</span>
-          <PceButton variant="secondary" size="sm" loading={busy} onClick={() => void unlink()}>{C.unlink}</PceButton>
+          {!asking && <PceButton variant="secondary" size="sm" loading={busy} onClick={() => setAsking(true)}>{C.unlink}</PceButton>}
+        </Row>
+      )}
+      {email && asking && (
+        <Row>
+          <span>{C.confirmUnlink}</span>
+          <span style={{ display: 'flex', gap: 8 }}>
+            <PceButton size="sm" loading={busy} onClick={() => void unlink()}>{C.confirmUnlinkYes}</PceButton>
+            <PceButton variant="secondary" size="sm" disabled={busy} onClick={() => setAsking(false)}>{SECURITY_COPY.twoFactor.cancel}</PceButton>
+          </span>
         </Row>
       )}
       {email === null && (

@@ -128,12 +128,17 @@ export const SECURITY_COPY = {
     delete: 'Șterge',
     create: 'Creează o cheie de acces',
     old: 'Cheie veche, nu mai merge. Creează una nouă.',
+    // COPY NEEDED: the three strings below were not in the approved text review (used by the Securitate list and the confirmation step).
+    neverUsed: 'niciodată',
+    saveName: 'Salvează',
+    reauthConfirm: 'Confirmă',
   },
   devices: {
     title: 'Dispozitive',
     device: 'Dispozitiv',
     lastSeen: 'Ultima dată',
     disconnect: 'Deconectează',
+    current: 'Acest dispozitiv', // controller ruling 2026-11-09
     rememberedUntil: (date: string): string => `2FA ținut minte până la ${date}.`,
   },
   password: {
@@ -146,6 +151,8 @@ export const SECURITY_COPY = {
     title: 'Google',
     connected: (email: string): string => `Conectat: ${email}`,
     unlink: 'Elimină legătura',
+    confirmUnlink: 'Elimini legătura cu Google? Nu o poți reface din pagină.', // controller ruling 2026-11-09
+    confirmUnlinkYes: 'Elimină',
     notConnected: 'Neconectat.',
     hint: 'Pornește 2-Step Verification în contul Google.',
   },
