@@ -22,10 +22,12 @@ export type CoachClassRow = {
 };
 export type CoachLessonRow = { lessonId: string; athleteName: string; date: string; startTime: string; durationMin: number; done: boolean };
 export type CoachToday = { date: string; today: string; groups: CoachClassRow[]; lessons: CoachLessonRow[]; todo: CoachClassRow[] };
-export type CoachGroupRow = { groupId: string; name: string; kind: SectionKind; program: string[]; children: number };
-export type OtherGroupRow = { groupId: string; name: string; coaches: string[] };
+export type NextClass = { date: string; startTime: string };
+export type CoachGroupRow = { groupId: string; name: string; kind: SectionKind; program: string[]; children: number; next: NextClass | null };
+export type OtherGroupRow = { groupId: string; name: string; coaches: string[]; program: string[]; children: number; next: NextClass | null };
 export type CoachGroups = { mine: CoachGroupRow[]; others: OtherGroupRow[] };
-export type CoachMember = { athleteId: string; name: string; age: number | null; isNew: boolean; alsoIn: string[] };
+/** `leavesOn`: the date a scheduled move or removal takes effect (the membership's `to` + 1 day), null when none; the member is listed until `to`. */
+export type CoachMember = { athleteId: string; name: string; age: number | null; isNew: boolean; alsoIn: string[]; leavesOn: string | null };
 export type StandInSlot = { occurrenceKey: string; date: string; startTime: string };
 export type CoachGroupPage = {
   groupId: string; name: string; kind: SectionKind; own: boolean; coaches: string[]; program: string[];
@@ -37,6 +39,7 @@ export type CoachGroupPage = {
   todayKey: string | null;
   /** Own Club group only. */
   programPublic: boolean | null;
+  location: string | null;
 };
 export type CoachPresenceRow = {
   athleteId: string; name: string; age: number | null; inactive: boolean; visitor: boolean; grup: boolean; uscat: boolean; abonament: string | null;

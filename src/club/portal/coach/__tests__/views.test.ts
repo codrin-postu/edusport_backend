@@ -41,7 +41,7 @@ describe('views drop every forbidden key', () => {
 
   it('a member shows new status and the other group names only', () => {
     const view = toCoachMember({ membershipId: 'm', athleteId: 'a1', name: 'Ana', age: 9, isMain: true, others: [{ name: 'Club B', isMain: false }] }, 'nou');
-    expect(view).toEqual({ athleteId: 'a1', name: 'Ana', age: 9, isNew: true, alsoIn: ['Club B'] });
+    expect(view).toEqual({ athleteId: 'a1', name: 'Ana', age: 9, isNew: true, alsoIn: ['Club B'], leavesOn: null });
     expect(forbiddenKeysIn(view)).toEqual([]);
   });
 });
