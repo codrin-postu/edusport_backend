@@ -25,8 +25,11 @@ export function Login({ post, go, handoff, search, flash, webauthn }: Deps) {
   const shown = problem ?? flash ?? (googleFailed ? SECURITY_ERRORS.googleNoAccount : null);
 
   const autofill = React.useRef<AbortController | null>(null);
-  const finishKey = React.useCallback(async (opts: { conditional?: boolean; signal?: AbortSignal }, remember: boolean): Promise<void> => {
-    const next = await signInWithKey(post, webauthn, remember, opts);
+  // The autofill request picks the box up when the key is chosen, not when the page opened.
+  const rememberRef = React.useRef(false);
+  rememberRef.current = rememberMe;
+  const finishKey = React.useCallback(async (opts: { conditional?: boolean; signal?: AbortSignal }): Promise<void> => {
+    const next = await signInWithKey(post, webauthn, () => rememberRef.current, opts);
     if (next === null) return;
     if (next.kind === 'handoff') return handoff(next.handoff);
     setBusy(false);
@@ -40,7 +43,7 @@ export function Login({ post, go, handoff, search, flash, webauthn }: Deps) {
     void webauthn.autofill().then((yes) => {
       if (!live || !yes) return;
       autofill.current = control;
-      void finishKey({ conditional: true, signal: control.signal }, false);
+      void finishKey({ conditional: true, signal: control.signal });
     });
     return () => {
       live = false;
@@ -52,7 +55,7 @@ export function Login({ post, go, handoff, search, flash, webauthn }: Deps) {
     autofill.current?.abort();
     setBusy(true);
     setProblem(null);
-    await finishKey({}, rememberMe);
+    await finishKey({});
   };
 
   const submit = async (e: React.FormEvent): Promise<void> => {

@@ -40,6 +40,7 @@ export const browserWebauthn = (): Webauthn => ({
   platformKey: () => quiet(platformAuthenticatorIsAvailable),
   register: async (options) => (await startRegistration({ optionsJSON: options as RegistrationOptions })) as unknown as Json,
   authenticate: async (options, opts = {}) => {
+    if (opts.signal?.aborted) throw new Error('aborted');
     const stop = (): void => WebAuthnAbortService.cancelCeremony();
     opts.signal?.addEventListener('abort', stop, { once: true });
     try {

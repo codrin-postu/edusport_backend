@@ -70,6 +70,27 @@ describe('the sign-in page with keys', () => {
     expect(await signInWithKey(refused.post, fake(), false)).toEqual({ kind: 'error', message: SECURITY_ERRORS.passkeyOtherKind });
   });
 
+  it('an autofill request aborted while the options were on their way never starts its dialog', async () => {
+    const control = new AbortController();
+    const calls: string[] = [];
+    const post = (async (path: string) => {
+      calls.push(path);
+      control.abort();
+      return { ok: true, data: { options: {} } };
+    }) as unknown as Post;
+    const authenticate = vi.fn(async () => ({}));
+    expect(await signInWithKey(post, fake({ authenticate }), false, { conditional: true, signal: control.signal })).toBeNull();
+    expect(authenticate).not.toHaveBeenCalled();
+    expect(calls).toEqual(['/api/admin-auth/passkey/options']);
+  });
+
+  it('"Ține-mă minte" is read when the key is chosen, not when the request started', async () => {
+    let box = false;
+    const { post, calls } = posts({ '/api/admin-auth/passkey/options': { ok: true, data: { options: {} } }, '/api/admin-auth/passkey/verify': { ok: true, data: handoff } });
+    await signInWithKey(post, fake({ authenticate: async () => { box = true; return { id: 'k1' }; } }), () => box, { conditional: true });
+    expect(calls[1].body).toEqual({ response: { id: 'k1' }, rememberMe: true });
+  });
+
   it('the button flow passes no conditional mediation, the autofill flow does', async () => {
     const authenticate = vi.fn(async () => ({ id: 'k1' }));
     const { post } = posts({ '/api/admin-auth/passkey/options': { ok: true, data: { options: { challenge: 'AA' } } }, '/api/admin-auth/passkey/verify': { ok: true, data: handoff } });
@@ -151,6 +172,15 @@ describe('the browser layer (official library, mocked)', () => {
     expect(lib.cancelCeremony).toHaveBeenCalledTimes(1);
     release({ id: 'x' });
     await run;
+  });
+
+  it('an already aborted signal throws before any dialog opens', async () => {
+    const { browserWebauthn } = await import('../../admin/lib/webauthn');
+    const control = new AbortController();
+    control.abort();
+    lib.startAuthentication.mockClear();
+    await expect(browserWebauthn().authenticate({}, { conditional: true, signal: control.signal })).rejects.toThrow();
+    expect(lib.startAuthentication).not.toHaveBeenCalled();
   });
 
   it('capability checks answer false when the library throws', async () => {

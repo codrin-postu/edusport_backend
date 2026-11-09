@@ -11,7 +11,7 @@ import { adminToast } from '../../ui/Toast';
 import { errorText } from './errors';
 import type { SecurityApi } from './client';
 import { Row, mutedStyle, stackStyle } from './layout';
-import { addKey, confirmReauth, GOOGLE_REAUTH_URL, keySub, reauthAsk, startEmailReauth, type ReauthAsk } from './passkeys';
+import { addKey, confirmReauth, googleReauthUrl, isRemembered, keySub, reauthAsk, startEmailReauth, type ReauthAsk } from './passkeys';
 import { PceButton } from './PceButton';
 
 const C = SECURITY_COPY.passkeys;
@@ -67,7 +67,7 @@ export function ReauthForm(p: {
       </Field>
       <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <PceButton size="sm" loading={p.busy} disabled={p.value.trim() === ''} onClick={p.onConfirm}>{C.reauthConfirm}</PceButton>
-        {p.google && <a className="ui-btn" href={GOOGLE_REAUTH_URL}>{SECURITY_COPY.login.google}</a>}
+        {p.google && <a className="ui-btn" href={googleReauthUrl(isRemembered(typeof window === 'undefined' ? null : window.localStorage))}>{SECURITY_COPY.login.google}</a>}
         <PceButton variant="secondary" size="sm" disabled={p.busy} onClick={p.onCancel}>{SECURITY_COPY.twoFactor.cancel}</PceButton>
       </span>
     </div>

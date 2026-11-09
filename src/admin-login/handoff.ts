@@ -10,6 +10,8 @@ const SPA_COOKIE_PATH = '/admin';
 const SERVER_COOKIE_PATH = '/';
 const GONE = 'Expires=Thu, 01 Jan 1970 00:00:01 GMT';
 export const ADMIN_HOME = '/admin';
+/** Where `/login/done?to=` may lead: an allow-list of names, never an address from the query. */
+export const DONE_TARGETS: Record<string, string> = { securitate: '/admin/plugins/edusport-securitate' };
 
 /** The slice of `window` the handoff touches; a test passes a fake. */
 export type HandoffWindow = {
@@ -60,11 +62,11 @@ export function takeGateToken(w: HandoffWindow): string | null {
 }
 
 /** `/login/done`: moves the Google token into the SPA's storage (`remember` as the first step asked) and opens the admin; false when no token came. */
-export function finishGoogle(remember: boolean, w: HandoffWindow): boolean {
+export function finishGoogle(remember: boolean, w: HandoffWindow, to: string | null = null): boolean {
   const token = takeGateToken(w);
   if (!token) return false;
   storeToken(token, remember, w);
-  w.location.assign(ADMIN_HOME);
+  w.location.assign(to !== null && Object.prototype.hasOwnProperty.call(DONE_TARGETS, to) ? DONE_TARGETS[to] : ADMIN_HOME);
   return true;
 }
 

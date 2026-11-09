@@ -83,16 +83,18 @@ const FAILED_KEY = SECURITY_ERRORS.passkeyFailed;
  * The passkey sign-in (button or autofill): options, the browser's answer, verify. A cancelled or refused dialog is the one failure text;
  * the server's 401 text is shown as sent. An aborted autofill request ends quietly.
  */
-export async function signInWithKey(post: Post, wa: Webauthn, rememberMe: boolean, opts: { conditional?: boolean; signal?: AbortSignal } = {}): Promise<KeyNext> {
+export async function signInWithKey(post: Post, wa: Webauthn, rememberMe: boolean | (() => boolean), opts: { conditional?: boolean; signal?: AbortSignal } = {}): Promise<KeyNext> {
   const options = await post<{ options: unknown }>(API.passkeyOptions, {});
   if (!options.ok) return { kind: 'error', message: options.message };
+  // The button may have been pressed while the options were on their way: the autofill request ends here, before it can cancel the button's dialog.
+  if (opts.signal?.aborted) return null;
   let response: unknown;
   try {
     response = await wa.authenticate(options.data.options, opts);
   } catch {
     return opts.signal?.aborted ? null : { kind: 'error', message: FAILED_KEY };
   }
-  return nextOf(await post<AdminHandoff>(API.passkeyVerify, { response, rememberMe }));
+  return nextOf(await post<AdminHandoff>(API.passkeyVerify, { response, rememberMe: typeof rememberMe === 'function' ? rememberMe() : rememberMe }));
 }
 
 export type OfferResult = { ok: true } | { ok: false; message: string };

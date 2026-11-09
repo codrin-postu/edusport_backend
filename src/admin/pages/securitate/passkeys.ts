@@ -66,5 +66,17 @@ export function keySub(created: string, used: string | null, longDate: (iso: str
   return C.rowSub(longDate(created.slice(0, 10)), used ? longDate(used.slice(0, 10)) : C.neverUsed);
 }
 
-/** The Google sign-in that re-confirms an account that has no password to type (it sets the device's confirmation time). */
-export const GOOGLE_REAUTH_URL = '/api/admin-auth/google/start?remember=0';
+/**
+ * The Google sign-in that re-confirms an account (it sets the device's confirmation time). It keeps the session as remembered or not, as it is now
+ * (a token in `localStorage` means remembered), and comes back to Securitate.
+ */
+export const googleReauthUrl = (remembered: boolean): string => `/api/admin-auth/google/start?remember=${remembered ? '1' : '0'}&to=securitate`;
+
+/** Whether this browser holds a remembered admin session (the token is in `localStorage`, not in the session cookie). */
+export function isRemembered(storage: Pick<Storage, 'getItem'> | null): boolean {
+  try {
+    return storage?.getItem('jwtToken') != null;
+  } catch {
+    return false;
+  }
+}

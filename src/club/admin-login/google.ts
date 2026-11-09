@@ -21,7 +21,8 @@ const JWT_COOKIE = 'jwtToken';
 /** The page script (T16) reads the cookie and deletes it at once; whatever it leaves behind is gone after a minute. */
 const JWT_COOKIE_MS = 60_000;
 
-type Flow = { state: string; nonce: string; verifier: string; remember: boolean; registrationToken: string | null };
+/** `to`: where `/login/done` opens afterwards; only the allow-listed name `securitate` (the passkey re-confirmation), never a free address. */
+type Flow = { state: string; nonce: string; verifier: string; remember: boolean; registrationToken: string | null; to: 'securitate' | null };
 type Query = Record<string, unknown>;
 
 const text = (v: unknown, max = TOKEN_MAX): string | null => (typeof v === 'string' && v !== '' && v.length <= max ? v : null);
@@ -32,7 +33,7 @@ const failure = (flow: Flow | null): { redirect: string } => ({ redirect: flow?.
 /** The browser leaves for Google: state, nonce, verifier, the remember tick and an optional invite token go into the cookie. */
 export function startAdminGoogle(c: AdminLoginContext, query: Query, g: GoogleClient | null = googleClient()): { redirect: string } {
   const registrationToken = text(query.registrationToken);
-  const flow: Flow = { state: random(), nonce: random(), verifier: random(), remember: query.remember === '1', registrationToken };
+  const flow: Flow = { state: random(), nonce: random(), verifier: random(), remember: query.remember === '1', registrationToken, to: query.to === 'securitate' ? 'securitate' : null };
   if (!g || (query.registrationToken !== undefined && registrationToken === null)) return failure(flow);
   c.setCookie(ADMIN_GOOGLE_COOKIE(c.secure), Buffer.from(JSON.stringify(flow)).toString('base64url'), COOKIE_MS, ADMIN_GOOGLE_PATH);
   const params = new URLSearchParams({
@@ -49,7 +50,7 @@ function readFlow(raw: string | null): Flow | null {
     const [state, nonce, verifier] = [text(f.state), text(f.nonce), text(f.verifier)];
     const token = f.registrationToken === null ? null : text(f.registrationToken);
     if (!state || !nonce || !verifier || typeof f.remember !== 'boolean' || (f.registrationToken !== null && token === null)) return null;
-    return { state, nonce, verifier, remember: f.remember, registrationToken: token };
+    return { state, nonce, verifier, remember: f.remember, registrationToken: token, to: f.to === 'securitate' ? 'securitate' : null };
   } catch {
     return null;
   }
@@ -122,7 +123,7 @@ export async function adminGoogleCallback(c: AdminLoginContext, query: Query, g:
     const admin = entry.admin;
     const handoff = await finishAdminLogin(c, admin, flow.remember, { newDeviceMail: true, passkey: true });
     c.koa.cookies.set(JWT_COOKIE, handoff.accessToken, { httpOnly: false, sameSite: 'lax', secure: c.secure, path: '/', overwrite: true, signed: false, maxAge: JWT_COOKIE_MS });
-    return { redirect: `/login/done?remember=${flow.remember ? '1' : '0'}` };
+    return { redirect: `/login/done?remember=${flow.remember ? '1' : '0'}${flow.to ? `&to=${flow.to}` : ''}` };
   } catch (err) {
     c.log(`[admin-google] failed: ${err instanceof Error ? err.name : 'error'}`);
     return failure(flow);

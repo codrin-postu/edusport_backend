@@ -8,7 +8,7 @@ import { SECURITY_COPY, SECURITY_ERRORS } from '../security/copy';
 import type { Webauthn } from '../../admin/lib/webauthn';
 import { createSecurityApi, type Client } from '../../admin/pages/securitate/client';
 import { DevicesList } from '../../admin/pages/securitate/DevicesSection';
-import { addKey, confirmReauth, GOOGLE_REAUTH_URL, keySub, reauthAsk } from '../../admin/pages/securitate/passkeys';
+import { addKey, confirmReauth, googleReauthUrl, isRemembered, keySub, reauthAsk } from '../../admin/pages/securitate/passkeys';
 import { PasskeysList, ReauthForm, RenameForm } from '../../admin/pages/securitate/PasskeysSection';
 
 const dir = join(__dirname, '..', '..', 'admin', 'pages', 'securitate');
@@ -108,10 +108,19 @@ describe('adding a key', () => {
     expect(reauthAsk({ totp: false, emailCode: false })).toEqual({ kind: 'password' });
   });
 
+  it('the Google re-confirmation keeps remembered or not and returns to Securitate', () => {
+    expect(googleReauthUrl(true)).toBe('/api/admin-auth/google/start?remember=1&to=securitate');
+    expect(googleReauthUrl(false)).toBe('/api/admin-auth/google/start?remember=0&to=securitate');
+    expect(isRemembered({ getItem: () => '"a.b.c"' })).toBe(true);
+    expect(isRemembered({ getItem: () => null })).toBe(false);
+    expect(isRemembered({ getItem: () => { throw new Error('blocked'); } })).toBe(false);
+    expect(isRemembered(null)).toBe(false);
+  });
+
   it('the re-confirmation form offers Google only for a linked account', () => {
     const base = { ask: { kind: 'password' } as const, sentTo: null, value: '', busy: false, onValue: noop, onConfirm: noop, onCancel: noop };
     const withGoogle = render(React.createElement(ReauthForm, { ...base, google: true }));
-    expect(withGoogle).toContain(`href="${GOOGLE_REAUTH_URL}"`);
+    expect(withGoogle).toContain(`href="${esc(googleReauthUrl(false))}"`);
     expect(has(withGoogle, SECURITY_ERRORS.reauthRequired)).toBe(true);
     expect(render(React.createElement(ReauthForm, { ...base, google: false }))).not.toContain('google');
   });

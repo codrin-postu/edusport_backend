@@ -96,6 +96,16 @@ describe('Google handoff page', () => {
   });
 });
 
+describe('finishGoogle target', () => {
+  it('opens Securitate only for the allow-listed name `securitate`, else /admin', () => {
+    for (const [to, expected] of [['securitate', '/admin/plugins/edusport-securitate'], ['https://evil.example', '/admin'], ['__proto__', '/admin'], [null, '/admin']] as const) {
+      const f = fakeWindow('http:', { jwtToken: 'a.b.c' });
+      expect(finishGoogle(true, f.w, to)).toBe(true);
+      expect(f.assigned, String(to)).toEqual([expected]);
+    }
+  });
+});
+
 describe('openAfterLogin (the offer decision)', () => {
   const h = (offerPasskey: boolean) => ({ accessToken: 'a.b.c', remember: true, offerPasskey });
 

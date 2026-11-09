@@ -12,8 +12,8 @@ import { SECURITY_COPY } from '../../club/security/copy';
  */
 export function Done({ go, search }: Deps) {
   React.useEffect(() => {
-    const remember = new URLSearchParams(search).get('remember') === '1';
-    if (!finishGoogle(remember, window)) go(PATH.login);
+    const q = new URLSearchParams(search);
+    if (!finishGoogle(q.get('remember') === '1', window, q.get('to'))) go(PATH.login);
   }, [search, go]);
   return (
     <Shell title={SECURITY_COPY.login.title}>

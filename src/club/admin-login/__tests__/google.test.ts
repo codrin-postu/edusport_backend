@@ -106,6 +106,13 @@ describe('adminGoogleCallback', () => {
     expect(env.mem.history.map((h) => h.action)).toEqual([SECURITY_ACTIONS.googleLinked]);
   });
 
+  it('to=securitate (the passkey re-confirmation) is carried to /login/done; any other value is dropped', async () => {
+    const env = googleEnv();
+    expect(await env.run({}, { query: { remember: '1', to: 'securitate' } })).toEqual({ redirect: '/login/done?remember=1&to=securitate' });
+    const other = googleEnv();
+    expect(await other.run({}, { query: { remember: '1', to: 'https://evil.example' } })).toEqual({ redirect: '/login/done?remember=1' });
+  });
+
   it('remember 0 gives a session-type family and remember=0', async () => {
     const env = googleEnv();
     expect(await env.run({}, { query: { remember: '0' } })).toEqual({ redirect: '/login/done?remember=0' });
