@@ -97,4 +97,18 @@ describe('not-done classes in the Istoric', () => {
     expect(r.data.sessions).toBe(before.data.sessions);
     expect(r.data.hours).toBe(before.data.hours);
   });
+
+  it('lists nothing before the attendance start date, nothing without one', async () => {
+    const c = seeded();
+    c.presence.now = () => new Date('2026-11-20T16:00:00.000Z');
+    c.fake.state.startDate = '2026-11-14';
+    const r = await readCoachHistory(c, '2026-11');
+    if (!r.ok) throw new Error('refused');
+    const undone = r.data.rows.filter((x) => !x.done);
+    expect(undone.length).toBeGreaterThan(0);
+    expect(undone.every((x) => x.date >= '2026-11-14')).toBe(true);
+    c.fake.state.startDate = null;
+    const none = await readCoachHistory(c, '2026-11');
+    expect(none.ok && none.data.rows.filter((x) => !x.done)).toEqual([]);
+  });
 });

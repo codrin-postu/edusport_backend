@@ -41,6 +41,7 @@ async function resolve(c: CoachContexts, groupId: string, athleteId: string, bod
     if (!target || !target.active || target.id === groupId) return refuse(400, GROUP_ERRORS.pickGroup);
     if (groupAccess(target, c.coach.teamMemberId) !== 'own') return forbidden(PORTAL_ERRORS.noAccess);
   }
+  // The open row. After a split (a dated change that moved the main flag onto a row of this group) that is the later main row, so a change dated before its start is refused until then.
   const row = (await store.memberships({ athleteId, seasonId: season.id })).find((m) => m.groupId === groupId && isCurrentMembership(m));
   const athlete = row ? await store.athlete(athleteId) : null;
   if (!row || !athlete) return refuse(409, GROUP_ERRORS.stale);

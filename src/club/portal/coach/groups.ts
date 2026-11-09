@@ -22,7 +22,10 @@ export async function listFacts(c: CoachContexts): Promise<ListFacts & { members
   const [seasons, sections, groups, events, team] = await Promise.all([store.seasons(), store.sections(), store.groups(), c.groups.store.events(), store.teamMembers()]);
   const season = currentSeason(seasons);
   const memberships = season ? await store.memberships({ seasonId: season.id }) : [];
-  return { season, sections, groups, current: memberships.filter(isCurrentMembership), events, team, today: c.today, memberships };
+  /** Rows still running today or open (a scheduled end counts until its date), one per child and group, so the counts match the listed members. */
+  const running = memberships.filter((m) => !m.to || m.to >= c.today);
+  const current = running.filter((m, i) => running.findIndex((r) => r.athleteId === m.athleteId && r.groupId === m.groupId) === i);
+  return { season, sections, groups, current, events, team, today: c.today, memberships };
 }
 
 const kindOf = (sections: SectionRecord[], g: GroupRecord): SectionKind => sections.find((s) => s.id === g.sectionId)?.kind ?? 'school';
@@ -75,14 +78,17 @@ async function members(c: CoachContexts, groupId: string): Promise<CoachMember[]
   const rows = await store.memberships({ seasonId: season.id });
   const groupNames = new Map((await store.groups()).map((g) => [g.id, g.name]));
   const leaving = rows.filter((m) => m.groupId === groupId && m.to && m.to >= c.today);
+  /** A split (dated remove of the main row, dated move into a group she is in) leaves a later row of the same group: she stays, no leave date. */
+  const stays = (m: MembershipRow): boolean => rows.some((r) => r.id !== m.id && r.athleteId === m.athleteId && r.groupId === groupId
+    && (r.from === null || r.from <= addDays(m.to as string, 1)) && (!r.to || r.to >= addDays(m.to as string, 1)));
   const shown = new Set(listed.map((m) => m.athleteId));
-  const extra = leaving.filter((m) => !shown.has(m.athleteId)).flatMap((m): CoachMember[] => {
+  const extra = leaving.filter((m) => !shown.has(m.athleteId) && !stays(m)).flatMap((m): CoachMember[] => {
     const a = statuses.get(m.athleteId);
     if (!a || a.status === 'anonimizat') return [];
     const alsoIn = rows.filter((r) => r.athleteId === a.id && r.groupId !== groupId && !r.to).map((r) => groupNames.get(r.groupId) ?? '').filter(Boolean);
     return [{ athleteId: a.id, name: a.name ?? '', age: ageOnIso(a.birthDate, c.today), isNew: a.status === 'nou', alsoIn, leavesOn: addDays(m.to as string, 1) }];
   });
-  const ends = new Map(leaving.map((m) => [m.athleteId, addDays(m.to as string, 1)]));
+  const ends = new Map(leaving.filter((m) => !stays(m)).map((m) => [m.athleteId, addDays(m.to as string, 1)]));
   return [...listed.map((m) => ({ ...m, leavesOn: ends.get(m.athleteId) ?? null })), ...extra].sort((a, b) => a.name.localeCompare(b.name, 'ro'));
 }
 

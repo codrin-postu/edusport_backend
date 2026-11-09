@@ -51,4 +51,16 @@ describe('readCoachCalendar', () => {
   it('refuses a bad month', async () => {
     for (const m of ['2026-13', '2026-1', undefined, 5]) expect(await readCoachCalendar(coachCtx(ME), m)).toEqual({ ok: false, status: 400, error: PORTAL_ERRORS.invalid });
   });
+
+  it('reads sections once and no attendances', async () => {
+    const c = seeded();
+    const sections = c.presence.store.sections;
+    const attendances = c.presence.store.attendances;
+    let s = 0;
+    let a = 0;
+    c.presence.store.sections = async () => { s += 1; return sections(); };
+    c.presence.store.attendances = async (w) => { a += 1; return attendances(w); };
+    await month(c);
+    expect([s, a]).toEqual([1, 0]);
+  });
 });

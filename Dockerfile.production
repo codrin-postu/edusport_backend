@@ -48,7 +48,7 @@ RUN npm run build
 # else verbatim rather than cherry-picking (selective copies previously missed
 # files and caused "Config file not loaded" then a fatal undefined db config).
 RUN mkdir -p /opt/out \
-  && tar --exclude=./node_modules --exclude=./backups --exclude=./.git -cf - -C /opt/app . \
+  && tar --exclude=./node_modules --exclude=./backups --exclude=./.git --exclude=./scripts/fixtures --exclude='./scripts/clickthrough-*' -cf - -C /opt/app . \
    | tar -xf - -C /opt/out
 
 # ---------- Stage 4: runner ----------

@@ -11,7 +11,13 @@ import { ownGroupIds } from './ownership';
 
 /** The name of the group's section location, null without one. */
 export async function locationOfGroup(c: CoachContexts, group: GroupRecord): Promise<string | null> {
-  return (await c.presence.store.sections()).find((s) => s.id === group.sectionId)?.locationName ?? null;
+  return (await locationsOf(c, [group])).get(group.id) ?? null;
+}
+
+/** Group id to location name for many groups with one read of the sections. */
+export async function locationsOf(c: CoachContexts, groups: GroupRecord[]): Promise<Map<string, string | null>> {
+  const sections = await c.presence.store.sections();
+  return new Map(groups.map((g) => [g.id, sections.find((s) => s.id === g.sectionId)?.locationName ?? null]));
 }
 
 /** Own groups' classes (scheduled and cancelled) between two dates, plus saved stand-in sessions that list the coach, and the coach's lessons; by date, start time, group order. */
@@ -21,17 +27,13 @@ export async function ownClassesBetween(c: CoachContexts, from: string, to: stri
   const own = ownGroupIds(ctx.groups, c.coach.teamMemberId);
   const calendar = await store.calendarWindow();
   const durations = new Map(heldOccurrences(calendar, ctx.groups, from, to).map((h) => [h.key, h.durationMin]));
-  const locations = new Map<string, string | null>();
-  const locationOf = async (g: GroupRecord | undefined): Promise<string | null> => {
-    if (!g) return null;
-    if (!locations.has(g.id)) locations.set(g.id, await locationOfGroup(c, g));
-    return locations.get(g.id) ?? null;
-  };
+  const locations = await locationsOf(c, ctx.groups);
+  const locationOf = async (g: GroupRecord | undefined): Promise<string | null> => (g ? locations.get(g.id) ?? null : null);
   const order = new Map<CoachCalendarItem, number>();
   const items: CoachCalendarItem[] = [];
   const add = (item: CoachCalendarItem, groupOrder: number): void => { items.push(item); order.set(item, groupOrder); };
 
-  const rows = await rowsWithCoachIds(store, ctx, from, to);
+  const rows = await rowsWithCoachIds(store, ctx, from, to, undefined, { withAttendances: false });
   const saved = new Set((await store.sessions({ from, to })).filter((s) => s.occurrenceKey).map((s) => s.occurrenceKey));
   for (const r of rows) {
     const group = ctx.groups.find((g) => g.id === r.groupId);

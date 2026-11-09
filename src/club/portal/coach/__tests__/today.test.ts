@@ -91,4 +91,13 @@ describe('readToday location', () => {
     expect(out.groups[0].location).toBe('Patinoar Club');
     expect((await read(coachCtx('tm-andreea'))).groups[0].location).toBeNull();
   });
+
+  it('reads the sections once for all groups', async () => {
+    const c = coachCtx('tm-andreea');
+    const read = c.presence.store.sections;
+    let calls = 0;
+    c.presence.store.sections = async () => { calls += 1; return read(); };
+    await readToday(c, TODAY);
+    expect(calls).toBe(1);
+  });
 });

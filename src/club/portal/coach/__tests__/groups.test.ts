@@ -3,6 +3,8 @@ import { PORTAL_ERRORS } from '../../copy';
 import { readCoachGroupPage, readGroups } from '../groups';
 import { forbiddenKeysIn } from '../views';
 import { removeMembershipFrom } from '../../../groups/members';
+import { member } from '../../../groups/__tests__/fake-group-store';
+import { removeMember } from '../members';
 import { sessionRow } from '../../../presence/__tests__/fake-store';
 import { coachCtx } from './coach-seed';
 
@@ -141,5 +143,27 @@ describe('next class, location and leave date', () => {
     later.fake.group.memberships.find((m) => m.id === 'gm-1')!.to = '2026-11-19';
     const gone = await readCoachGroupPage(later, 'g-club-a');
     expect(gone.ok && gone.data.members?.map((m) => m.athleteId)).toEqual(['a-club-2']);
+  });
+
+  it('the heir row of a split shows no leave date, the group she leaves does; counts include her until the date', async () => {
+    const c = coachCtx('tm-andreea', '2026-11-20');
+    c.fake.group.memberships.push(member({ id: 'gm-extra', athleteId: 'a-club-1', groupId: 'g-scoala-a', isMain: false, from: '2026-10-01' }));
+    expect((await removeMember(c, 'g-club-a', 'a-club-1', { from: '2026-11-25' })).ok).toBe(true);
+    const heir = await readCoachGroupPage(c, 'g-scoala-a');
+    const left = await readCoachGroupPage(c, 'g-club-a');
+    if (!heir.ok || !left.ok) throw new Error('refused');
+    expect(heir.data.members?.filter((m) => m.athleteId === 'a-club-1').map((m) => m.leavesOn)).toEqual([null]);
+    expect(left.data.members?.find((m) => m.athleteId === 'a-club-1')?.leavesOn).toBe('2026-11-25');
+    const list = await readGroups(c);
+    expect(list.ok && list.data.mine.map((g) => [g.groupId, g.children])).toEqual([['g-scoala-a', 3], ['g-club-a', 2]]);
+  });
+
+  it('a change dated before the start of the later main row is refused until the split date', async () => {
+    const c = coachCtx('tm-andreea', '2026-11-20');
+    c.fake.group.memberships.push(member({ id: 'gm-extra', athleteId: 'a-club-1', groupId: 'g-scoala-a', isMain: false, from: '2026-10-01' }));
+    c.fake.group.memberships.forEach((m, i) => { m.id = `seed-${i}`; });
+    await removeMember(c, 'g-club-a', 'a-club-1', { from: '2026-11-25' });
+    expect(await removeMember(c, 'g-scoala-a', 'a-club-1', { from: '2026-11-21' })).toMatchObject({ ok: false, status: 400 });
+    expect((await removeMember(c, 'g-scoala-a', 'a-club-1', { from: '2026-11-25' })).ok).toBe(true);
   });
 });

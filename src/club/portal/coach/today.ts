@@ -5,7 +5,7 @@ import type { SessionRow } from '../../presence/types';
 import { PORTAL_ERRORS } from '../copy';
 import type { CoachClassRow, CoachLessonRow, CoachToday } from './api-types';
 import type { CoachContexts } from './context';
-import { locationOfGroup } from './calendar';
+import { locationsOf } from './calendar';
 import { ownGroupIds } from './ownership';
 
 type Located = (groupId: string) => string | null;
@@ -37,8 +37,7 @@ export async function readToday(c: CoachContexts, date: unknown): Promise<AdminR
   if (!day.ok) return refuse(400, PORTAL_ERRORS.invalid);
   const groups = await c.presence.store.groups();
   const own = ownGroupIds(groups, c.coach.teamMemberId);
-  const places = new Map<string, string | null>();
-  for (const g of groups) places.set(g.id, await locationOfGroup(c, g));
+  const places = await locationsOf(c, groups);
   const where: Located = (id) => places.get(id) ?? null;
   const ownRows = day.data.day.filter((r) => own.has(r.groupId));
   const standIn = await standInRows(c, day.data.day.filter((r) => !own.has(r.groupId)));
