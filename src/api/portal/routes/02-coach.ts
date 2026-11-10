@@ -29,6 +29,7 @@ export default {
     route('POST', '/session/check', 'sessionCheck'),
     route('PUT', '/session', 'saveSession'),
     route('POST', '/lessons', 'createLesson'),
+    route('PUT', '/lessons/:documentId/plan', 'planLesson'),
     route('GET', '/lessons/:documentId', 'lesson'),
     route('PUT', '/lessons/:documentId', 'saveLesson'),
     route('DELETE', '/lessons/:documentId', 'deleteLesson'),

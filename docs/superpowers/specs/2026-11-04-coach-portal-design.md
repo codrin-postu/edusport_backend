@@ -321,7 +321,7 @@ Layout: phone bottom bar "Azi" / "Grupe" / "Istoric" / "Profil"; desktop top men
 ### 9.8 Program tab (Club groups) [R D32-D36; P4 6.3; P6 q15, q16]
 - Same model as the admin, phone layout: "Listă" / "Lună" switch, month navigation, "+ Adaugă program" with "Se repetă" (on: "Cât de des" "Săptămânal" / "La 2 săptămâni" / "Lunar", "Zile", "De la", "Durată", "Se aplică din"; off: one class on a date), "Schimbă" ("Se aplică din") with "Șterge programul", per date "Ține" / "Anulează" / "Mută", tick "Anunță părinții pe e-mail" (off by default) on cancel and move [R D32, D35; P4 6.3 strings and toasts].
 - Switch "Program public" with the hint "Programul apare în calendarul de pe site." [P6 q16; S36].
-- Past dates read only, shown "trecut" without actions; dates inside a Pauză read only with the P4 notice [P6 q15; R D36].
+- Past dates read only, shown "trecut" without actions; one exception (user ruling 2026-11-10): a one-off class ("Nu se repetă") may be added for today or any of the last 7 days (the presence correction window, `canCoachCorrect`), then its presence works as for any class; repeating series and older dates stay as above; dates inside a Pauză read only with the P4 notice [P6 q15; R D36].
 - Școala group: the same list read only, line "Programul Școlii îl schimbă administratorul." [R D33; S37].
 - Coach writes go through the same services as the admin (`addProgram`, `setDate`, the program-public switch), so they write the same P4 3.7 field-change history lines and the same public cache refresh. The plan checks first that those services trigger the refresh; if one does not, the coach and the admin path both get it (decided by Claude, low impact).
 

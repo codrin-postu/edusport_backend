@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { lessonRow, sessionRow } from '../../../presence/__tests__/fake-store';
 import { PORTAL_ERRORS } from '../../copy';
 import { readCoachCalendar } from '../calendar';
+import { createCoachLesson } from '../lessons';
 import type { CoachCalendar } from '../api-types';
 import { forbiddenKeysIn } from '../views';
-import { coachCtx } from './coach-seed';
+import { addOneOffClass, coachCtx } from './coach-seed';
 
 const ME = 'tm-andreea';
 const month = async (c: ReturnType<typeof coachCtx>): Promise<CoachCalendar> => {
@@ -62,5 +63,21 @@ describe('readCoachCalendar', () => {
     c.presence.store.attendances = async (w) => { a += 1; return attendances(w); };
     await month(c);
     expect([s, a]).toEqual([1, 0]);
+  });
+});
+
+describe('repeating lessons and one-off classes in the calendar', () => {
+  it('shows series lessons as individual items, a one-off class with its key, and no removed date', async () => {
+    const c = coachCtx(ME);
+    await createCoachLesson(c, { athleteId: 'a-club-1', date: '2026-11-24', startTime: '16:00', durationMin: 50, coachIds: [ME], repeat: { freq: 'weekly', days: ['tue'], until: '2026-12-01' } });
+    addOneOffClass(c, '2026-11-25');
+    c.fake.state.calendar.events.find((e) => e.documentId === 'ev-g-club-a')!.exceptions = [{ date: '2026-11-27', kind: 'sters' }];
+    const out = await month(c);
+    const all = out.days.flatMap((d) => d.items);
+    expect(all.filter((i) => i.kind === 'individual').map((i) => [i.date, i.title, i.done])).toEqual([['2026-11-24', 'Ana Club', false]]);
+    const one = all.find((i) => i.date === '2026-11-25' && i.title === 'Club A');
+    expect(one).toMatchObject({ kind: 'grup', startTime: '15:00', cancelled: false, done: false, occurrenceKey: `ev-one|2026-11-25|15:00` });
+    expect(all.some((i) => i.date === '2026-11-27' && i.title === 'Club A')).toBe(false);
+    expect(forbiddenKeysIn(out)).toEqual([]);
   });
 });

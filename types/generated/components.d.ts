@@ -13,7 +13,7 @@ export interface CalendarException extends Struct.ComponentSchema {
   attributes: {
     date: Schema.Attribute.Date & Schema.Attribute.Required;
     kind: Schema.Attribute.Enumeration<
-      ['cancel', 'override', 'liber', 'anulat']
+      ['cancel', 'override', 'liber', 'anulat', 'sters']
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'cancel'>;

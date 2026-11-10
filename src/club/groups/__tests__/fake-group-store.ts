@@ -224,7 +224,9 @@ export function fakeGroupStore(seed: Partial<FakeGroupState> = {}): FakeGroup {
   return { store: withFailures(base, failing), state, failOn: (method) => failing.add(method) };
 }
 
-export type FakeContext = FakeGroup & { ctx: GroupContext; revalidated: () => number; logs: string[]; emailed: string[] };
+/** A saved session as the program sees it. */
+export type FakeSavedSession = { id: string; eventId: string; date: string; startTime: string; key: string };
+export type FakeContext = FakeGroup & { sessions: FakeSavedSession[]; ctx: GroupContext; revalidated: () => number; logs: string[]; emailed: string[] };
 
 /** A GroupContext over the fake store; today 20 November 2026, now 10:00 UTC, unless given. */
 export function fakeContext(seed: Partial<FakeGroupState> = {}, today = '2026-11-20'): FakeContext {
@@ -232,9 +234,14 @@ export function fakeContext(seed: Partial<FakeGroupState> = {}, today = '2026-11
   let pings = 0;
   const logs: string[] = [];
   const emailed: string[] = [];
+  const sessions: FakeSavedSession[] = [];
   const ctx: GroupContext = {
     store: fake.store, actor: 'admin@example.com', today, log: (m) => logs.push(m), revalidate: () => { pings += 1; },
     emails: (key) => emailed.push(key), now: () => new Date(`${today}T10:00:00.000Z`),
+    sessions: {
+      ofEvent: async (eventId) => sessions.filter((s) => s.eventId === eventId).map(({ id, date, startTime }) => ({ id, date, startTime })),
+      move: async (id, eventId, key) => { Object.assign(sessions.find((s) => s.id === id) ?? {}, { eventId, key }); },
+    },
   };
-  return { ...fake, ctx, logs, emailed, revalidated: () => pings };
+  return { ...fake, sessions, ctx, logs, emailed, revalidated: () => pings };
 }

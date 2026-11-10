@@ -3,7 +3,7 @@ import { cmp } from '../subscriptions/usage';
 import { G_GROUPS, type FakeGroupState, fakeGroupStore } from '../../groups/__tests__/fake-group-store';
 import type { CalendarWindow } from '../../groups/occurrences';
 import type {
-  AttendanceRow, AttendanceWrite, LessonRow, PaymentEmailJob, PaymentRow, PriceItemRow, PriceListRecord, SessionRow, SubscriptionRow,
+  AttendanceRow, AttendanceWrite, LessonRow, LessonSeriesRow, PaymentEmailJob, PaymentRow, PriceItemRow, PriceListRecord, SessionRow, SubscriptionRow,
 } from '../types';
 import type { PresenceContext } from '../context';
 import type { PresenceStore } from '../store';
@@ -12,7 +12,7 @@ import { UniqueKeyError } from '../store';
 export { athleteRow, member } from '../../groups/__tests__/fake-group-store';
 export type FakePaymentJob = PaymentEmailJob & { id: string; status: 'queued' | 'sending' | 'cancelled' | 'sent' };
 export type FakePresenceState = {
-  sessions: SessionRow[]; attendances: (AttendanceWrite & { id: string })[]; lessons: LessonRow[]; subscriptions: SubscriptionRow[]; payments: PaymentRow[];
+  sessions: SessionRow[]; attendances: (AttendanceWrite & { id: string })[]; lessons: LessonRow[]; lessonSeries: LessonSeriesRow[]; subscriptions: SubscriptionRow[]; payments: PaymentRow[];
   priceLists: PriceListRecord[]; acs: AcsRow[]; calendar: CalendarWindow; startDate: string | null; jobs: FakePaymentJob[]; counters: Record<string, number>;
 };
 export type FakePresenceSeed = { group?: Partial<FakeGroupState> } & Partial<FakePresenceState>;
@@ -41,7 +41,11 @@ export const attendanceRow = (over: Partial<AttendanceWrite & { id: string }> = 
 });
 export const lessonRow = (over: Partial<LessonRow> = {}): LessonRow => ({
   id: 'l1', athleteId: 'a1', date: '2026-11-10', startTime: '17:00', durationMin: 50, coachIds: ['tm-andreea'], state: 'planned', present: null, priceListId: null,
-  itemName: null, price: null, audience: null, amount: 0, createdByName: 'admin@example.com', recordedAt: '2026-11-01T10:00:00.000Z', savedBy: null, savedAt: null, ...over,
+  itemName: null, price: null, audience: null, amount: 0, createdByName: 'admin@example.com', recordedAt: '2026-11-01T10:00:00.000Z', savedBy: null, savedAt: null, seriesId: null, ...over,
+});
+export const lessonSeriesRow = (over: Partial<LessonSeriesRow> = {}): LessonSeriesRow => ({
+  id: 'ls1', athleteId: 'a1', coachIds: ['tm-andreea'], freq: 'weekly', days: ['tue', 'thu'], weekOfMonth: null, startTime: '17:30', durationMin: 45,
+  from: '2026-11-10', to: '2026-12-03', createdByName: 'admin@example.com', ...over,
 });
 export const subscriptionRow = (over: Partial<SubscriptionRow> = {}): SubscriptionRow => ({
   id: 'sub1', athleteId: 'a1', seasonId: 's26', priceListId: 'pl-std', validIn: [], itemName: 'Abonament 8 ședințe', price: 320, audience: 'member', slots: 8,
@@ -68,7 +72,7 @@ function must<T extends { id: string }>(rows: T[], id: string, what: string): T 
 type Next = (prefix: string) => string;
 type K<Keys extends keyof PresenceStore> = Pick<PresenceStore, Keys>;
 
-function fakeReads(s: FakePresenceState): K<'priceListRecords' | 'acsRows' | 'calendarWindow' | 'attendanceStartDate' | 'sessions' | 'session' | 'sessionByKey' | 'attendances' | 'lessons' | 'lesson' | 'subscriptions' | 'subscription' | 'payments' | 'payment'> {
+function fakeReads(s: FakePresenceState): K<'priceListRecords' | 'acsRows' | 'calendarWindow' | 'attendanceStartDate' | 'sessions' | 'session' | 'sessionByKey' | 'attendances' | 'lessons' | 'lesson' | 'lessonSeries' | 'lessonSeriesOf' | 'subscriptions' | 'subscription' | 'payments' | 'payment'> {
   return {
     priceListRecords: async () => copy(s.priceLists),
     acsRows: async (w) => copy(s.acs.filter((r) => same(w.athleteId, r.athleteId) && same(w.seasonId, r.seasonId))),
@@ -80,8 +84,10 @@ function fakeReads(s: FakePresenceState): K<'priceListRecords' | 'acsRows' | 'ca
     attendances: async (w = {}) => byId(joined(s).filter((r) => inList(w.ids, r.id) && inList(w.sessionIds, r.sessionId) && same(w.athleteId, r.athleteId)
       && (w.subscriptionIds === undefined || (r.subscriptionId !== null && w.subscriptionIds.includes(r.subscriptionId)))
       && (w.billing === undefined || w.billing.includes(r.billing)) && inRange(w, r.sessionDate))),
-    lessons: async (w = {}) => byId(s.lessons.filter((r) => inList(w.ids, r.id) && same(w.athleteId, r.athleteId) && inRange(w, r.date))),
+    lessons: async (w = {}) => byId(s.lessons.filter((r) => inList(w.ids, r.id) && same(w.athleteId, r.athleteId) && same(w.seriesId, r.seriesId) && inRange(w, r.date))),
     lesson: async (id) => copy(s.lessons.find((r) => r.id === id) ?? null),
+    lessonSeries: async (id) => copy(s.lessonSeries.find((r) => r.id === id) ?? null),
+    lessonSeriesOf: async (athleteId) => copy(s.lessonSeries.filter((r) => r.athleteId === athleteId).sort((a, b) => cmp(a.from, b.from) || cmp(a.id, b.id))),
     subscriptions: async (w = {}) => byId(s.subscriptions.filter((r) => inList(w.ids, r.id) && same(w.athleteId, r.athleteId))),
     subscription: async (id) => copy(s.subscriptions.find((r) => r.id === id) ?? null),
     payments: async (w = {}) => byId(s.payments.filter((r) => inList(w.ids, r.id) && same(w.athleteId, r.athleteId) && same(w.subscriptionId, r.subscriptionId)
@@ -148,11 +154,18 @@ function fakeSessionAndAttendanceWrites(s: FakePresenceState, next: Next): K<'cr
   };
 }
 
-function fakeMoneyWrites(s: FakePresenceState, next: Next): K<'createLesson' | 'updateLesson' | 'deleteLesson' | 'createSubscription' | 'updateSubscription' | 'deleteSubscription' | 'createPayment' | 'updatePayment' | 'deletePayment'> {
+function fakeMoneyWrites(s: FakePresenceState, next: Next): K<'createLesson' | 'updateLesson' | 'deleteLesson' | 'createLessonSeries' | 'updateLessonSeries' | 'deleteLessonSeries' | 'createSubscription' | 'updateSubscription' | 'deleteSubscription' | 'createPayment' | 'updatePayment' | 'deletePayment'> {
   return {
     createLesson: async (d) => { const id = next('l'); s.lessons.push({ ...copy(d), id }); return id; },
     updateLesson: async (id, d) => { Object.assign(must(s.lessons, id, 'lesson'), copy(defined(d))); },
     deleteLesson: async (id) => { must(s.lessons, id, 'lesson'); s.lessons = s.lessons.filter((r) => r.id !== id); },
+    createLessonSeries: async (d) => { const id = next('ls'); s.lessonSeries.push({ ...copy(d), id }); return id; },
+    updateLessonSeries: async (id, d) => { Object.assign(must(s.lessonSeries, id, 'lesson series'), copy(defined(d))); },
+    deleteLessonSeries: async (id) => {
+      must(s.lessonSeries, id, 'lesson series');
+      s.lessonSeries = s.lessonSeries.filter((r) => r.id !== id);
+      for (const l of s.lessons) if (l.seriesId === id) l.seriesId = null; // the link row goes with the series, the lesson stays
+    },
     createSubscription: async (d, code) => { const id = next('sub'); s.subscriptions.push({ ...copy(d), id, code }); return id; },
     updateSubscription: async (id, d) => { Object.assign(must(s.subscriptions, id, 'subscription'), copy(defined(d))); },
     deleteSubscription: async (id) => { must(s.subscriptions, id, 'subscription'); s.subscriptions = s.subscriptions.filter((r) => r.id !== id); },
@@ -205,7 +218,7 @@ function withFailures(store: PresenceStore, failing: Set<string>): PresenceStore
 }
 
 const emptyState = (): FakePresenceState => ({
-  sessions: [], attendances: [], lessons: [], subscriptions: [], payments: [], priceLists: copy(P_LISTS), acs: [], calendar: { events: [], blackouts: [] }, startDate: null, jobs: [], counters: {},
+  sessions: [], attendances: [], lessons: [], lessonSeries: [], subscriptions: [], payments: [], priceLists: copy(P_LISTS), acs: [], calendar: { events: [], blackouts: [] }, startDate: null, jobs: [], counters: {},
 });
 
 /** In-memory PresenceStore over the group fake; a transaction restores presence and group state together when its work throws. */
@@ -234,7 +247,7 @@ export function fakePresenceStore(seed: FakePresenceSeed = {}): FakePresence {
         depth -= 1;
       }
     },
-    lockSession: lock('session'), lockLesson: lock('lesson'), lockAttendance: lock('attendance'), lockSubscription: lock('subscription'), lockPayment: lock('payment'),
+    lockSession: lock('session'), lockLessonSeries: lock('lessonSeries'), lockLesson: lock('lesson'), lockAttendance: lock('attendance'), lockSubscription: lock('subscription'), lockPayment: lock('payment'),
     ...fakeReads(state), ...fakeHistoryPages(state), ...fakeSessionAndAttendanceWrites(state, next), ...fakeMoneyWrites(state, next), ...fakePaymentJobs(state, next),
     ...fakeCounters(state, () => depth > 0),
   };

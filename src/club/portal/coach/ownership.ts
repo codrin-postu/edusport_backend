@@ -1,4 +1,5 @@
-import type { MembershipRow } from '../../athletes/store';
+import type { AthleteRow, MembershipRow } from '../../athletes/store';
+import { isAnonymized } from '../../personal-data/anonymize-plan';
 import type { GroupRecord } from '../../groups/types';
 
 export type GroupAccess = 'own' | 'other' | 'none';
@@ -19,3 +20,6 @@ export function ownAthlete(memberships: MembershipRow[], own: Set<string>, athle
   return memberships.some((m) =>
     m.athleteId === athleteId && m.seasonId === seasonId && own.has(m.groupId) && (!m.to || m.to >= today));
 }
+
+/** The athletes a coach can see and pick (the name search, adding to a group, a new lesson or series): new or active, not anonymized. One rule for all of them. */
+export const visibleToCoach = (a: AthleteRow | null): a is AthleteRow => a !== null && (a.status === 'nou' || a.status === 'activ') && !isAnonymized(a);

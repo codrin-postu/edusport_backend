@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { lessonRow, sessionRow } from '../../../presence/__tests__/fake-store';
 import { PORTAL_ERRORS } from '../../copy';
 import { forbiddenKeysIn } from '../views';
+import { createCoachLesson } from '../lessons';
 import { readToday } from '../today';
-import { coachCtx } from './coach-seed';
+import { addOneOffClass, coachCtx } from './coach-seed';
 
 const TODAY = '2026-11-20';
 const data = <T>(r: { ok: boolean } & Record<string, unknown>): T => {
@@ -99,5 +100,21 @@ describe('readToday location', () => {
     c.presence.store.sections = async () => { calls += 1; return read(); };
     await readToday(c, TODAY);
     expect(calls).toBe(1);
+  });
+});
+
+describe('repeating lessons and one-off classes in Azi', () => {
+  it('a series lesson shows on its date as not done, a one-off class on its date, a removed date nowhere', async () => {
+    const c = coachCtx('tm-andreea');
+    const made = await createCoachLesson(c, { athleteId: 'a-club-1', date: '2026-11-20', startTime: '16:00', durationMin: 50, coachIds: ['tm-andreea'], repeat: { freq: 'weekly', days: ['fri'], until: '2026-11-27' } });
+    expect(made).toMatchObject({ ok: true, data: { count: 2 } });
+    addOneOffClass(c, '2026-11-25');
+    const fri = await read(c);
+    expect(fri.lessons).toEqual([{ lessonId: expect.any(String), athleteName: 'Ana Club', date: TODAY, startTime: '16:00', durationMin: 50, done: false }]);
+    expect(forbiddenKeysIn(fri)).toEqual([]);
+    const wed = await read(c, '2026-11-25');
+    expect(wed.groups.map((g) => [g.groupId, g.startTime, g.done])).toEqual([['g-club-a', '15:00', false]]);
+    c.fake.state.calendar.events.find((e) => e.documentId === 'ev-g-club-a')!.exceptions = [{ date: '2026-11-27', kind: 'sters' }];
+    expect((await read(c, '2026-11-27')).groups).toEqual([]);
   });
 });

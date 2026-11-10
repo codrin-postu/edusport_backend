@@ -35,10 +35,14 @@ export const REACTIVATE_DIALOG = {
   reactivate: 'Reactivează și salvează',
 };
 
+/** `day` as the weekday and the short date, e.g. "joi, 19 noi". */
+export const LESSON_ERRORS = { conflict: (day: string, time: string): string => `Sportivul are deja o lecție pe ${day}, la ${time}.` };
+
 export const LESSON_COPY = {
   saved: 'Salvat.',
   unchanged: 'Nicio modificare.',
   deleted: 'Lecție ștearsă.',
+  deletedMany: 'Lecții șterse.',
   deleteLink: 'Șterge lecția',
   deleteConfirm: (date: string) => `Ștergi lecția din ${shortDay(date)}?`,
 };

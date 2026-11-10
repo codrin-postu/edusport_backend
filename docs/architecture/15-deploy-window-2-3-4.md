@@ -119,3 +119,9 @@ Spec: `docs/superpowers/specs/2026-11-07-admin-auth-roles-design.md` 4.4 and 14.
 8. Sessions opened through Strapi during the window have no device row and are ended by `admin:end-sessions` in step 7; the first `/login` login creates the row.
 9. Server 2FA reset of an admin who lost every factor (spec 6.6): `EXEC npm run admin:reset-2fa -- <e-mail>` (the `backend` service, see the top of this file). It prints `2FA reset: <e-mail>` and exits 0, or prints `No admin: <e-mail>` and exits 1. It clears the methods, backup codes and remembered devices, ends every session, writes a history line with the actor `server` and mails the admin. Boot-checked on a throwaway Postgres (review B4 L6).
 10. An admin invite expires after 7 days (spec 4.7). To resend one, delete the user in Settings, Users and invite again.
+
+## 7. Coach "Antrenament nou" deploy (lesson series, removed date)
+
+1. Deploy and restart the backend, and restart it a second time. A new attribute on an existing content type is silently dropped from saves until the container restarts: the `series` relation on `individual-lesson`, and the new exception value `sters` on the `calendar.exception` component (`kind`). The new type `lesson-series` (`club_lesson_series`) is created at boot.
+2. Check after the second restart (boot-checked on a throwaway Postgres, ids and click-through in `scripts/clickthrough-training-add.sh`): `\dt club_lesson_series*` lists the series table and its two link tables, `club_individual_lessons_series_lnk` exists, and a coach "Șterge" on one program date keeps a `sters` row in `components_calendar_exceptions` across a restart.
+3. No data migration: existing lessons have no series, existing exceptions keep their kind.

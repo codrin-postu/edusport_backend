@@ -1,14 +1,16 @@
+import { expandOccurrences } from '../../api/calendar-event/services/expand';
 import { guarded, refuse, type AdminResult } from '../admin-result';
+import { occurrenceKey } from '../presence/sessions';
 import { isRecord } from '../narrow';
 import { done, recordAction, type ActionResult, type Line } from './action-log';
-import type { GroupContext } from './context';
+import type { EventSession, GroupContext } from './context';
 import { GROUP_ERRORS } from './copy';
 import { isIsoDate } from './dates';
 import { GROUP_SUBJECT, P4_ACTIONS } from './history-lines';
-import { classWrite, eventType, inputText, planChange, planEnd, readProgramInput, readSeriesInput, seasonOf, seriesWrite, type EventChange, type ProgramInput } from './program-plan';
+import { asCalendarRow, classWrite, eventType, inputText, planDayChange, planDayEnd, readDayKey, readProgramInput, readSeriesInput, seasonOf, seriesWrite, type EventChange, type ProgramInput } from './program-plan';
 import { isPastSeason } from './season-pick';
 import { seasonBounds, seriesText, seriesView, type SeriesView } from './series';
-import type { EventRecord, EventWrite, GroupRecord, GroupStore, SeasonRecord, SectionRecord } from './types';
+import type { DayKey, EventRecord, EventWrite, GroupRecord, GroupStore, SeasonRecord, SectionRecord } from './types';
 import type { UndoStep } from './undo';
 
 /** The group's program (spec 6.3, W10): one transaction each, the group locked before the event, a group line, an undo, a website ping. */
@@ -47,6 +49,7 @@ async function addLocked(ctx: GroupContext, groupId: string, input: ProgramInput
   const placed = await placeOn(ctx.store, groupId, date);
   if (placed.ok === false) return placed;
   const { group, section, season } = placed.data;
+  if (input.repeat === true && input.series.until && (input.series.until < input.series.from || input.series.until > seasonBounds(season).end)) return refuse(400, GROUP_ERRORS.invalid);
   const type = eventType(section.kind);
   const write = input.repeat === true ? seriesWrite(group, type, input.series, seasonBounds(season).end) : classWrite(group, type, input.one);
   const eventId = await ctx.store.createEvent(write);
@@ -99,18 +102,65 @@ async function applyChange(store: GroupStore, e: EventRecord, change: EventChang
   return { op: 'setEvent', id: e.id, recurrence: e.recurrence, exceptions: e.exceptions };
 }
 
+/** The rest event, then the new one; the steps that delete them again. */
+async function createdSteps(store: GroupStore, rest: EventWrite | null, created: EventWrite): Promise<{ createdId: string; restId: string | null; undo: UndoStep[] }> {
+  const restId = rest ? await store.createEvent(rest) : null;
+  const createdId = await store.createEvent(created);
+  return { createdId, restId, undo: [...(restId ? [{ op: 'deleteEvent' as const, id: restId }] : []), { op: 'deleteEvent' as const, id: createdId }] };
+}
+
+type Target = { id: string; write: EventWrite };
+
+/** Is a class of this rule held on the date at the time (a moved-in date counts)? */
+const heldBy = (t: Target, date: string, startTime: string): boolean =>
+  expandOccurrences([asCalendarRow({ ...t.write, id: t.id })], [], date, date).some((o) => (o.status === 'scheduled' || o.status === 'override') && o.startTime === startTime);
+
+/**
+ * A session is keyed by its event (`eventId|date|time`). A split makes new events, so the saved sessions of `from` on that still match a class of a new event
+ * move to it with a new key (nothing else would show them against their class, and a second save would bill the class twice). `before` was read before the old event could go.
+ */
+async function moveSessions(ctx: GroupContext, before: EventSession[], from: string, targets: Target[]): Promise<void> {
+  for (const s of before.filter((x) => x.date >= from)) {
+    const to = targets.find((t) => heldBy(t, s.date, s.startTime));
+    if (to) await ctx.sessions.move(s.id, to.id, occurrenceKey(to.id, s.date, s.startTime));
+  }
+}
+
+/** The old event is deleted and a saved session of it would be left on no event: the program cannot go (a one-off class is refused the same way). */
+const orphans = (sessions: EventSession[], from: string, targets: Target[]): boolean =>
+  sessions.some((s) => s.date < from || !targets.some((t) => heldBy(t, s.date, s.startTime)));
+
+/** `day` is absent (the whole event) or a weekday key; anything else is invalid. */
+const dayOf = (body: unknown): { ok: true; day: DayKey | null } | { ok: false } => {
+  const raw = isRecord(body) ? body.day : undefined;
+  if (raw === undefined || raw === null) return { ok: true, day: null };
+  const day = readDayKey(raw);
+  return day ? { ok: true, day } : { ok: false };
+};
+
 async function changeLocked(ctx: GroupContext, eventId: string, body: unknown): Promise<ActionResult<{ eventId: string }>> {
   const read = readSeriesInput(body);
   if (read.ok === false) return refuse(400, read.error);
+  const dayRead = dayOf(body);
+  if (dayRead.ok === false) return refuse(400, GROUP_ERRORS.invalid);
+  const day = dayRead.day;
   const found = await lockedSeries(ctx.store, eventId, read.value.from);
   if (found.ok === false) return found;
   const { e, series, group } = found.data;
-  const plan = planChange(e, read.value, group.name);
+  if (day && !e.recurrence.days.includes(day)) return refuse(400, GROUP_ERRORS.invalid);
+  if (day && read.value.days.some((d) => e.recurrence.days.includes(d) && d !== day)) return refuse(400, GROUP_ERRORS.invalid);
+  const plan = planDayChange(e, day, read.value, group.name);
+  if (!plan.created) return refuse(409, GROUP_ERRORS.stale);
+  const sessions = await ctx.sessions.ofEvent(e.id);
+  const future: Target[] = [...(plan.rest ? [{ id: 'rest', write: plan.rest }] : []), { id: 'created', write: plan.created }];
+  if (plan.old.op === 'delete' && orphans(sessions, read.value.from, future)) return refuse(409, GROUP_ERRORS.datePresence);
   const oldStep = await applyChange(ctx.store, e, plan.old);
-  const createdId = await ctx.store.createEvent(plan.created);
-  const line: Line = { subjectType: GROUP_SUBJECT, subjectId: group.id, action: P4_ACTIONS.programChanged, changes: { from: read.value.from, before: seriesText(series), after: inputText(read.value) } };
-  const actionId = await recordAction(ctx.store, ctx.actor, [line], { kind: 'group', steps: [oldStep, { op: 'deleteEvent', id: createdId }], revalidate: true });
-  return done({ eventId: createdId }, actionId);
+  const steps = await createdSteps(ctx.store, plan.rest, plan.created);
+  await moveSessions(ctx, sessions, read.value.from, [...(plan.rest && steps.restId ? [{ id: steps.restId, write: plan.rest }] : []), { id: steps.createdId, write: plan.created }]);
+  const before = day ? { ...seriesText(series), days: [day] } : seriesText(series);
+  const line: Line = { subjectType: GROUP_SUBJECT, subjectId: group.id, action: P4_ACTIONS.programChanged, changes: { from: read.value.from, before, after: inputText({ ...read.value, until: null }) } };
+  const actionId = await recordAction(ctx.store, ctx.actor, [line], { kind: 'group', steps: [oldStep, ...steps.undo], revalidate: true });
+  return done({ eventId: steps.createdId }, actionId);
 }
 
 /** PUT /club/program/:eventId: "Schimbă" from "Se aplică din" (W10). */
@@ -118,21 +168,29 @@ export async function changeProgram(ctx: GroupContext, eventId: string, body: un
   return pinged(ctx, await guarded(ctx.log, `[program] changing ${eventId}`, () => ctx.store.transaction(() => changeLocked(ctx, eventId, body))));
 }
 
-async function endLocked(ctx: GroupContext, eventId: string, from: string): Promise<ActionResult<{ eventId: string }>> {
+async function endLocked(ctx: GroupContext, eventId: string, from: string, day: DayKey | null): Promise<ActionResult<{ eventId: string }>> {
   const found = await lockedSeries(ctx.store, eventId, from);
   if (found.ok === false) return found;
   const { e, series, group } = found.data;
-  const step = await applyChange(ctx.store, e, planEnd(e, from));
-  const line: Line = { subjectType: GROUP_SUBJECT, subjectId: group.id, action: P4_ACTIONS.programEnded, changes: { from, series: seriesText(series) } };
-  const actionId = await recordAction(ctx.store, ctx.actor, [line], { kind: 'group', steps: [step], revalidate: true });
+  if (day && !e.recurrence.days.includes(day)) return refuse(400, GROUP_ERRORS.invalid);
+  const plan = planDayEnd(e, day, from);
+  const sessions = await ctx.sessions.ofEvent(e.id);
+  if (plan.old.op === 'delete' && orphans(sessions, from, plan.rest ? [{ id: 'rest', write: plan.rest }] : [])) return refuse(409, GROUP_ERRORS.datePresence);
+  const step = await applyChange(ctx.store, e, plan.old);
+  const restId = plan.rest ? await ctx.store.createEvent(plan.rest) : null;
+  if (plan.rest && restId) await moveSessions(ctx, sessions, from, [{ id: restId, write: plan.rest }]);
+  const shown = day ? { ...seriesText(series), days: [day] } : seriesText(series);
+  const line: Line = { subjectType: GROUP_SUBJECT, subjectId: group.id, action: P4_ACTIONS.programEnded, changes: { from, series: shown } };
+  const actionId = await recordAction(ctx.store, ctx.actor, [line], { kind: 'group', steps: [step, ...(restId ? [{ op: 'deleteEvent' as const, id: restId }] : [])], revalidate: true });
   return done({ eventId }, actionId);
 }
 
 /** POST /club/program/:eventId/end body `{ from }`: "Șterge programul" (W10). */
 export async function endProgram(ctx: GroupContext, eventId: string, body: unknown): Promise<ActionResult<{ eventId: string }>> {
   const from = isRecord(body) ? body.from : null;
-  if (!isIsoDate(from)) return refuse(400, GROUP_ERRORS.invalid);
-  return pinged(ctx, await guarded(ctx.log, `[program] ending ${eventId}`, () => ctx.store.transaction(() => endLocked(ctx, eventId, from))));
+  const dayRead = dayOf(body);
+  if (!isIsoDate(from) || dayRead.ok === false) return refuse(400, GROUP_ERRORS.invalid);
+  return pinged(ctx, await guarded(ctx.log, `[program] ending ${eventId}`, () => ctx.store.transaction(() => endLocked(ctx, eventId, from, dayRead.day))));
 }
 
 async function deleteLocked(ctx: GroupContext, eventId: string): Promise<ActionResult<{ date: string }>> {
@@ -143,6 +201,7 @@ async function deleteLocked(ctx: GroupContext, eventId: string): Promise<ActionR
   if (!e || !date || !e.groupId) return refuse(409, GROUP_ERRORS.stale);
   const placed = await placeOn(ctx.store, e.groupId, date);
   if (placed.ok === false) return placed;
+  if ((await ctx.sessions.ofEvent(e.id)).length > 0) return refuse(409, GROUP_ERRORS.datePresence);
   await ctx.store.deleteEvent(e.id);
   const line: Line = { subjectType: GROUP_SUBJECT, subjectId: e.groupId, action: P4_ACTIONS.classDeleted, changes: { date, startTime: e.recurrence.startTime } };
   const actionId = await recordAction(ctx.store, ctx.actor, [line], { kind: 'group', steps: [{ op: 'createEvent', event: eventSnapshot(e) }], revalidate: true });

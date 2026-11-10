@@ -1,6 +1,11 @@
 import { refuse, type AdminResult } from '../../admin-result';
 import type { ActionResult } from '../../groups/action-log';
-import { isIsoDate } from '../../groups/dates';
+import { isIsoDate, weekdayIndex } from '../../groups/dates';
+import { expandOccurrences } from '../../../api/calendar-event/services/expand';
+import { asCalendarRow } from '../../groups/program-plan';
+import { DAY_OF_INDEX, DAY_ORDER } from '../../groups/program-text';
+import { seasonBounds } from '../../groups/series';
+import type { DayKey, EventRecord } from '../../groups/types';
 import { setProgramPublic } from '../../groups/group-admin';
 import { adminWindow } from '../../groups/occurrences';
 import { addProgram, changeProgram, deleteClass, endProgram } from '../../groups/program';
@@ -9,7 +14,8 @@ import { readGroupProgram } from '../../groups/program-read';
 import { isRecord } from '../../narrow';
 import { isMonth, monthRange } from '../../presence/dates';
 import { PORTAL_ERRORS, PORTAL_TOASTS } from '../copy';
-import type { CoachProgram, SectionKind } from './api-types';
+import { canCoachCorrect } from '../window';
+import type { CoachProgram, CoachProgramRule, SectionKind } from './api-types';
 import { forbidden, type CoachContexts, type CoachResult } from './context';
 import { groupAccess } from './ownership';
 import { programRight } from './rules';
@@ -36,6 +42,12 @@ async function groupOfEvent(c: CoachContexts, eventId: string): Promise<Found | 
 /** A date the body names that is earlier than today: past dates are read only. */
 const inPast = (c: CoachContexts, ...dates: unknown[]): boolean => dates.some((d) => isIsoDate(d) && d < c.today);
 
+/** A class added for a past date: only a one-off one, and only inside the correction window (the same one as the presence). */
+const oneOffTooOld = (c: CoachContexts, body: unknown): boolean => {
+  const date = put(body, 'date');
+  return !isIsoDate(date) || !canCoachCorrect(date, c.today);
+};
+
 const put = (body: unknown, key: string): unknown => (isRecord(body) ? body[key] : undefined);
 
 async function writeRight(c: CoachContexts, g: Found | null): Promise<CoachResult<never> | null> {
@@ -43,22 +55,52 @@ async function writeRight(c: CoachContexts, g: Found | null): Promise<CoachResul
   return g.right.write ? null : forbidden(PORTAL_ERRORS.noAccess);
 }
 
+/** The weekday's first date from `from` on that still has a class: a removed or cancelled date is skipped, a moved one counts on its new date only when that is the same weekday. */
+function nextHeldDate(e: EventRecord, day: DayKey, from: string, to: string): string | null {
+  const rule = { ...e, recurrence: { ...e.recurrence, days: [day] } };
+  return expandOccurrences([asCalendarRow(rule)], [], from, to)
+    .filter((o) => o.status === 'scheduled' || (o.status === 'override' && DAY_OF_INDEX[weekdayIndex(o.date)] === day))
+    .map((o) => o.date).sort()[0] ?? null;
+}
+
+/** The series split per weekday, Monday first then start time, the ones that have ended left out; `nextDate` is the weekday's next class date from today on. */
+function rulesOf(program: NonNullable<Awaited<ReturnType<typeof readGroupProgram>>>, events: EventRecord[], seasonEnd: string | null, today: string): CoachProgramRule[] {
+  const rules = program.series.flatMap((row) => {
+    const e = events.find((x) => x.id === row.eventId);
+    if (row.to < today) return [];
+    return row.days.map((day): CoachProgramRule => {
+      const from = today > row.from ? today : row.from;
+      const nextDate = e ? nextHeldDate(e, day, from, row.to) : null;
+      return {
+        eventId: row.eventId, day, freq: row.freq, weekOfMonth: row.weekOfMonth, startTime: row.startTime, durationMin: row.durationMin,
+        from: row.from, to: row.to, untilSeasonEnd: row.to === seasonEnd, nextDate,
+      };
+    });
+  });
+  return rules.sort((a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day) || a.startTime.localeCompare(b.startTime) || a.from.localeCompare(b.from));
+}
+
 export async function readCoachProgram(c: CoachContexts, groupId: string, month: unknown): Promise<AdminResult<CoachProgram>> {
   if (!isMonth(month)) return refuse(400, PORTAL_ERRORS.invalid);
   const g = await found(c, groupId);
   if (!g || !g.right.read) return refuse(404, PORTAL_ERRORS.notFound);
-  const [program, window] = await Promise.all([readGroupProgram(c.groups.store, groupId, null, c.today), c.presence.store.calendarWindow()]);
+  const [program, window, seasons, events] = await Promise.all([
+    readGroupProgram(c.groups.store, groupId, null, c.today), c.presence.store.calendarWindow(), c.groups.store.seasons(), c.groups.store.events({ groupId }),
+  ]);
   if (!program) return refuse(404, PORTAL_ERRORS.notFound);
+  const season = seasons.find((s) => s.id === program.season?.documentId);
+  const rules = rulesOf(program, events, season ? seasonBounds(season).end : null, c.today);
   const { data: all } = adminWindow(window, monthRange(month), groupId);
   const data = g.own ? all : all.map((o) => ({ ...o, description: null }));
-  return { ok: true, data: { kind: g.kind, editable: g.right.write, programPublic: g.own && g.kind === 'club' ? g.programPublic : null, program, occurrences: data } };
+  return { ok: true, data: { kind: g.kind, editable: g.right.write, programPublic: g.own && g.kind === 'club' ? g.programPublic : null, program, rules, occurrences: data } };
 }
 
 export async function coachAddProgram(c: CoachContexts, groupId: string, body: unknown): Promise<CoachResult<{ eventId: string; date: string | null }>> {
   const g = await found(c, groupId);
   const refusal = await writeRight(c, g);
   if (refusal) return refusal;
-  if (inPast(c, put(body, 'from'), put(body, 'date'))) return refuse(400, PORTAL_ERRORS.invalid);
+  const tooOld = put(body, 'repeat') === false ? oneOffTooOld(c, body) : inPast(c, put(body, 'from'), put(body, 'until'));
+  if (tooOld) return refuse(400, PORTAL_ERRORS.invalid);
   return plain(await addProgram(c.groups, groupId, body));
 }
 
@@ -80,7 +122,8 @@ export async function coachDeleteClass(c: CoachContexts, eventId: string): Promi
   const refusal = await writeRight(c, await groupOfEvent(c, eventId));
   if (refusal) return refusal;
   const e = await c.groups.store.event(eventId);
-  if (inPast(c, e?.recurrence.singleDate)) return refuse(400, PORTAL_ERRORS.invalid);
+  const date = e?.recurrence.singleDate;
+  if (!isIsoDate(date) || !canCoachCorrect(date, c.today)) return refuse(400, PORTAL_ERRORS.invalid);
   return plain(await deleteClass(c.groups, eventId));
 }
 

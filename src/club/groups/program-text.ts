@@ -7,7 +7,7 @@ export const DAY_SHORT: Readonly<Record<DayKey, string>> = { mon: 'Lu', tue: 'Ma
 /** `getUTCDay()` index to DayKey. */
 export const DAY_OF_INDEX: readonly DayKey[] = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
-export type SeriesText = { freq: Freq; days: readonly DayKey[]; startTime: string; durationMin: number; from: string };
+export type SeriesText = { freq: Freq; days: readonly DayKey[]; startTime: string; durationMin: number; from: string; to?: string };
 
 const ordered = (days: readonly DayKey[]): string[] => DAY_ORDER.filter((d) => days.includes(d)).map((d) => DAY_SHORT[d]);
 const FREQ_SUFFIX: Readonly<Record<Freq, string>> = { none: '', weekly: '', biweekly: ', la 2 săptămâni', monthly: ', lunar' };
@@ -27,4 +27,4 @@ export const listLine = (s: SeriesText): string => `${daysList(s.days)} ${s.star
 /** "Sâ și Du, 11:00, 50 min" and ", la 2 săptămâni" / ", lunar" (6.3). */
 export const programLine = (s: SeriesText): string => `${daysSpoken(s.days)}, ${s.startTime}, ${s.durationMin} min${FREQ_SUFFIX[s.freq]}`;
 /** "Sâ și Du, 11:00, 50 min, din 4 oct 2026" (3.7). */
-export const programLineFrom = (s: SeriesText): string => `${programLine(s)}, din ${shortDate(s.from)}`;
+export const programLineFrom = (s: SeriesText): string => `${programLine(s)}, din ${shortDate(s.from)}${s.to ? `, până pe ${shortDate(s.to)}` : ''}`;

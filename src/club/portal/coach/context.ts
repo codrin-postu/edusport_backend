@@ -4,7 +4,7 @@ import { pingRevalidate } from '../../../utils/revalidate';
 import type { ServiceContext } from '../../athletes/store';
 import { strapiClubStore } from '../../athletes/strapi-store';
 import { todayInBucharest } from '../../birth-date';
-import type { GroupContext } from '../../groups/context';
+import { strapiSessionPort, type GroupContext } from '../../groups/context';
 import { todayIso } from '../../groups/http';
 import { strapiGroupStore } from '../../groups/strapi-store';
 import type { PresenceContext } from '../../presence/context';
@@ -47,6 +47,7 @@ export function coachContexts(strapi: Core.Strapi, coach: CoachState): CoachCont
       store: strapiGroupStore(strapi), actor, today, log, now,
       revalidate: () => { void pingRevalidate(); },
       emails: (changeKey) => attemptScheduleChangeJobs(strapi, changeKey),
+      sessions: strapiSessionPort(strapi),
     },
     club: { store: strapiClubStore(strapi), actor, today: todayInBucharest(), log },
     portal: strapiPortalStore(strapi),

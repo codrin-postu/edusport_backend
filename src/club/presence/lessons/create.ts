@@ -13,6 +13,7 @@ import { P5_ACTIONS } from '../history-lines';
 import type { PresenceStore } from '../store';
 import type { LessonWrite } from '../types';
 import { readLessonBody } from './input';
+import { firstConflict } from './conflict';
 
 export type PriceSnapshot = Pick<LessonWrite, 'priceListId' | 'itemName' | 'price' | 'audience'>;
 const NO_PRICE: PriceSnapshot = { priceListId: null, itemName: null, price: null, audience: null };
@@ -46,7 +47,7 @@ async function newLesson(ctx: PresenceContext, b: LessonBody): Promise<LessonWri
   const name = await actorName(ctx);
   const snap = held ? await lessonSnapshot(ctx.store, b.athleteId, b.date) : NO_PRICE;
   return {
-    ...b, state: held ? 'saved' : 'planned', present: held ? true : null, ...snap, amount: snap.price ?? 0,
+    ...b, seriesId: null, state: held ? 'saved' : 'planned', present: held ? true : null, ...snap, amount: snap.price ?? 0,
     createdByName: name, recordedAt: ctx.now().toISOString(), savedBy: held ? name : null, savedAt: held ? ctx.now().toISOString() : null,
   };
 }
@@ -67,12 +68,16 @@ async function findDuplicate(ctx: PresenceContext, b: LessonBody): Promise<strin
   return same?.id ?? null;
 }
 
-async function createLocked(ctx: PresenceContext, b: LessonBody): Promise<ActionResult<LessonSaved>> {
+async function createLocked(ctx: PresenceContext, b: LessonBody, checkConflict: boolean): Promise<ActionResult<LessonSaved>> {
   await ctx.store.lockAthlete(b.athleteId);
   const athlete = await ctx.store.athlete(b.athleteId);
   if (!athlete || athlete.status === 'anonimizat' || !(await coachesExist(ctx.store, b.coachIds))) return refuse(400, PRESENCE_ERRORS.invalid);
   const twin = await findDuplicate(ctx, b);
   if (twin) return done({ lessonId: twin, changed: false, toast: LESSON_COPY.saved }, null);
+  if (checkConflict) {
+    const clash = firstConflict(await ctx.store.lessons({ athleteId: b.athleteId }), [b.date], b.startTime, b.durationMin, new Set());
+    if (clash) return clash;
+  }
   const row = await newLesson(ctx, b);
   const id = await ctx.store.createLesson(row);
   const actionId = await recordPresenceAction(ctx.store, ctx.actor, createLines(id, b, row.state === 'saved'), {
@@ -82,9 +87,9 @@ async function createLocked(ctx: PresenceContext, b: LessonBody): Promise<Action
 }
 
 /** A lesson after the fact (date today or earlier) is held and priced; a later one is planned (C47). */
-export async function createLesson(ctx: PresenceContext, body: unknown): Promise<ActionResult<LessonSaved>> {
+export async function createLesson(ctx: PresenceContext, body: unknown, opts: { checkConflict?: boolean } = {}): Promise<ActionResult<LessonSaved>> {
   const b = readLessonBody(body);
   if (!b) return refuse(400, PRESENCE_ERRORS.invalid);
   if (b.coachIds.length === 0) return refuse(400, ATTENDANCE_ERRORS.noCoach);
-  return guarded(ctx.log, '[lesson-create]', () => ctx.store.transaction(() => createLocked(ctx, b)));
+  return guarded(ctx.log, '[lesson-create]', () => ctx.store.transaction(() => createLocked(ctx, b, opts.checkConflict === true)));
 }

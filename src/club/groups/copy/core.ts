@@ -12,6 +12,7 @@ const ageText = (age: number | null): string | null => (age === null ? null : co
 
 export const GROUP_ERRORS = {
   ...ADMIN_ERRORS,
+  datePresence: 'Data are prezența salvată. Poți doar să o anulezi.',
   nameTaken: 'Există deja o grupă cu acest nume.',
   pickGroup: 'Alege grupa.',
   undoGroup: 'Nu se mai poate anula. Grupa s-a schimbat între timp.',
@@ -85,6 +86,7 @@ export const PROGRAM_LINES = {
   classDeleted: (day: string, date: string, time: string) => `Ședință unică ștearsă: ${day}, ${date}, ${time}.`,
   cancelled: (date: string, reason: string | null) => (reason ? `Ședința din ${date} anulată: ${withPeriod(reason)}` : `Ședința din ${date} anulată.`),
   moved: (date: string, newDate: string, time: string) => `Ședința din ${date} mutată: ${newDate}, ${time}.`,
+  removed: (date: string) => `Ședința din ${date} ștearsă din program.`,
   kept: (date: string) => `Ședința din ${date} se ține.`,
   parentsTold: ' Părinții anunțați pe e-mail.',
   copied: (season: string, program: string) => `Program copiat din ${season}: ${program}.`,

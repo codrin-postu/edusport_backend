@@ -63,7 +63,7 @@ describe('individual lessons', () => {
     const id = ok(await createLesson(f.ctx, body({ date: '2026-11-20' }))).value.lessonId;
     const before = { ...f.state.lessons[0] };
     const d = await deleteLesson(f.ctx, id);
-    expect(ok(d).value).toEqual({ deleted: true, toast: 'Lecție ștearsă.' });
+    expect(ok(d).value).toEqual({ deleted: true, count: 1, toast: 'Lecție ștearsă.' });
     ok(await undoPresenceAction(f.ctx, { actionId: ok(d).actionId }));
     const { id: _old, ...fields } = before;
     expect(f.state.lessons[0]).toMatchObject(fields);

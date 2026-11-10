@@ -137,7 +137,7 @@ describe('strapiPresenceStore', () => {
       priceList: { documentId: 'pl-club' }, itemName: 'Lecție individuală', price: '80.00', audience: 'member', amount: '80.00', createdByName: 'Ana', recordedAt: '2026-11-10T17:30:00.000Z', savedBy: 'Ana', savedAt: '2026-11-10T18:00:00.000Z',
     })).toEqual({
       id: 'l1', athleteId: 'a1', date: '2026-11-10', startTime: '17:00', durationMin: 50, coachIds: ['tm-andreea'], state: 'saved', present: true, priceListId: 'pl-club',
-      itemName: 'Lecție individuală', price: 80, audience: 'member', amount: 80, createdByName: 'Ana', recordedAt: '2026-11-10T17:30:00.000Z', savedBy: 'Ana', savedAt: '2026-11-10T18:00:00.000Z',
+      itemName: 'Lecție individuală', price: 80, audience: 'member', amount: 80, createdByName: 'Ana', recordedAt: '2026-11-10T17:30:00.000Z', savedBy: 'Ana', savedAt: '2026-11-10T18:00:00.000Z', seriesId: null,
     });
     expect(toLessonRow({ documentId: 'l2', state: 'planned', present: null })).toMatchObject({ present: null, priceListId: null, price: null, amount: 0, savedAt: null });
     expect(toPriceListRecord({

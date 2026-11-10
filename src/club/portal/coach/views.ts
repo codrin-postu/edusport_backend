@@ -2,7 +2,9 @@ import type { NamedRow } from '../../groups/types';
 import type { AthleteStatus } from '../../athlete-data';
 import type { MemberRow } from '../../groups/api-types';
 import type { LessonPanel, SessionPanel } from '../../presence/attendance/api-types';
-import type { CoachLesson, CoachMember, CoachPresenceRow, CoachSession, SectionKind } from './api-types';
+import type { SeasonRecord } from '../../groups/types';
+import type { LessonSeriesRow } from '../../presence/types';
+import type { CoachLesson, CoachMember, LessonSeriesView, CoachPresenceRow, CoachSession, SectionKind } from './api-types';
 import type { Right } from './rules';
 
 /** Keys no coach answer may carry (spec 14.3), the coach's own `email` in `CoachMe` excepted through `allow`. */
@@ -51,11 +53,20 @@ export function toCoachSession(panel: SessionPanel, x: SessionExtras): CoachSess
   };
 }
 
-export function toCoachLesson(panel: LessonPanel, x: { team: NamedRow[]; right: Right & { delete: boolean }; paid: boolean }): CoachLesson {
+/** The rule of a lesson series; `untilSeasonEnd` when `to` is the last day of the season that holds `from`. */
+export function toLessonSeriesView(s: LessonSeriesRow, seasons: SeasonRecord[]): LessonSeriesView {
+  const season = seasons.find((x) => x.startMonth.slice(0, 10) <= s.from && s.from <= x.endMonth.slice(0, 10));
+  return {
+    seriesId: s.id, freq: s.freq, days: [...s.days], weekOfMonth: s.weekOfMonth, startTime: s.startTime, durationMin: s.durationMin, from: s.from, to: s.to,
+    untilSeasonEnd: !!season && season.endMonth.slice(0, 10) === s.to,
+  };
+}
+
+export function toCoachLesson(panel: LessonPanel, x: { team: NamedRow[]; right: Right & { delete: boolean }; paid: boolean; series: LessonSeriesView | null; planEditable: boolean }): CoachLesson {
   return {
     lessonId: panel.lessonId, athleteId: panel.athleteId, athleteName: panel.athleteName, date: panel.date, startTime: panel.startTime, durationMin: panel.durationMin,
     coachIds: [...panel.coachIds], coachOptions: options(x.team), state: panel.state, present: panel.present, savedLine: panel.savedLine,
-    editable: x.right.write, archived: x.right.archived, deletable: x.right.delete && !x.paid,
+    editable: x.right.write, archived: x.right.archived, deletable: x.right.delete && !x.paid, series: x.series, planEditable: x.planEditable,
   };
 }
 

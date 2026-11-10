@@ -1,6 +1,6 @@
 import { sumMoney } from './money';
 import { usedSlots } from './subscriptions';
-import { acsStamp, attendanceStamp, lessonStamp, paymentStamp, subscriptionStamp, type GuardType, type PresenceGuard, type PresenceUndoRecord } from './undo';
+import { acsStamp, attendanceStamp, lessonSeriesStamp, lessonStamp, paymentStamp, subscriptionStamp, type GuardType, type PresenceGuard, type PresenceUndoRecord } from './undo';
 import { subjectsOf, type Line } from '../groups/action-log';
 import type { PresenceStore } from './store';
 
@@ -31,6 +31,10 @@ async function stampOf(store: PresenceStore, type: GuardType, id: string): Promi
       return acsStamp(athleteId, seasonId, (await store.acsRows({ athleteId, seasonId }))[0]?.state ?? null);
     }
     case 'attendance': return attendanceStamp((await store.attendances({ ids: [id] }))[0] ?? null);
+    case 'lessonSeries': {
+      const row = await store.lessonSeries(id);
+      return lessonSeriesStamp(row, row ? (await store.lessons({ seriesId: id })).map((l) => l.id) : []);
+    }
     case 'lesson': {
       const paid = (await store.payments({ lessonId: id })).filter((p) => !p.cancelled).map((p) => p.amount);
       return lessonStamp(await store.lesson(id), sumMoney(paid));

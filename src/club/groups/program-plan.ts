@@ -1,16 +1,16 @@
 import { expandOccurrences, type CalendarEventRow } from '../../api/calendar-event/services/expand';
 import { isRecord } from '../narrow';
 import { DURATION, GROUP_ERRORS, SCHEDULE_ERRORS } from './copy';
-import { addDays, addMinutes, isIsoDate, isTime, minutesBetween, minutesOf } from './dates';
-import { DAY_ORDER, type SeriesText } from './program-text';
+import { addDays, addMinutes, isIsoDate, isTime, minutesBetween, minutesOf, weekdayIndex } from './dates';
+import { DAY_OF_INDEX, DAY_ORDER, type SeriesText } from './program-text';
 import type { RepeatFreq } from './series';
 import type { DayKey, EventRecord, EventWrite, ExceptionRow, GroupRecord, Recurrence, SeasonRecord, WeekOfMonth } from './types';
 
 /** The group program rules (spec 3.3, 3.4, 6.3, W10, W12). Pure. */
-export type SeriesInput = { freq: RepeatFreq; weekOfMonth: WeekOfMonth | null; days: DayKey[]; startTime: string; durationMin: number; from: string };
+export type SeriesInput = { freq: RepeatFreq; weekOfMonth: WeekOfMonth | null; days: DayKey[]; startTime: string; durationMin: number; from: string; until: string | null };
 export type ClassInput = { date: string; startTime: string; durationMin: number; note: string | null };
 export type ProgramInput = { repeat: true; series: SeriesInput } | { repeat: false; one: ClassInput };
-export type DateMode = { mode: 'keep' } | { mode: 'cancel'; reason: string | null } | { mode: 'move'; newDate: string; newStartTime: string; reason: string | null };
+export type DateMode = { mode: 'keep' } | { mode: 'cancel'; reason: string | null } | { mode: 'move'; newDate: string; newStartTime: string; reason: string | null } | { mode: 'remove' };
 export type EventChange = { op: 'end'; recurrence: Recurrence; exceptions: ExceptionRow[] } | { op: 'delete' };
 type Read<T> = { ok: true; value: T } | { ok: false; error: string };
 type Body = Record<string, unknown>;
@@ -35,9 +35,10 @@ export function readSeriesInput(body: unknown): Read<SeriesInput> {
   const days = Array.isArray(b.days) ? DAY_ORDER.filter((d) => (b.days as unknown[]).includes(d)) : [];
   const times = readTimes(b);
   if (!freq || !isIsoDate(b.from) || times.ok === false) return invalid;
+  if (b.until !== undefined && b.until !== null && !isIsoDate(b.until)) return invalid;
   if (!days.length) return { ok: false, error: SCHEDULE_ERRORS.noDays };
   const weekOfMonth = freq === 'monthly' ? WEEKS.find((w) => w === b.weekOfMonth) ?? 'first' : null;
-  return { ok: true, value: { freq, weekOfMonth, days, ...times.value, from: b.from } };
+  return { ok: true, value: { freq, weekOfMonth, days, ...times.value, from: b.from, until: isIsoDate(b.until) ? b.until : null } };
 }
 
 function readClassInput(b: Body): Read<ClassInput> {
@@ -59,10 +60,14 @@ export function readProgramInput(body: unknown): Read<ProgramInput> {
   return { ok: true, value: { repeat: true, series: series.value } };
 }
 
+/** A weekday key, or null. */
+export const readDayKey = (v: unknown): DayKey | null => DAY_ORDER.find((d) => d === v) ?? null;
+
 export function readDateMode(body: unknown): DateMode | null {
   const b = isRecord(body) ? body : {};
   const reason = text(b.reason, 120);
   if (b.mode === 'keep') return { mode: 'keep' };
+  if (b.mode === 'remove') return { mode: 'remove' };
   if (b.mode === 'cancel') return { mode: 'cancel', reason };
   if (b.mode === 'move' && isIsoDate(b.newDate) && isTime(b.newStartTime)) return { mode: 'move', newDate: b.newDate, newStartTime: b.newStartTime, reason };
   return null;
@@ -77,15 +82,15 @@ export const seasonOf = (seasons: SeasonRecord[], date: string): SeasonRecord | 
 /** W9: school groups write `scoala`, Club groups `curs`. */
 export const eventType = (kind: 'school' | 'club'): string => (kind === 'school' ? 'scoala' : 'curs');
 
-export const inputText = (s: SeriesInput): SeriesText => ({ freq: s.freq, days: s.days, startTime: s.startTime, durationMin: s.durationMin, from: s.from });
+export const inputText = (s: SeriesInput): SeriesText => ({ freq: s.freq, days: s.days, startTime: s.startTime, durationMin: s.durationMin, from: s.from, ...(s.until ? { to: s.until } : {}) });
 
 const seriesRecurrence = (s: SeriesInput, seasonEnd: string): Recurrence => ({
   freq: s.freq, days: s.days, weekOfMonth: s.weekOfMonth, startTime: s.startTime, endTime: addMinutes(s.startTime, s.durationMin), singleDate: null, seasonStart: s.from, seasonEnd,
 });
 
-/** A new series: from "Se aplică din" to the last day of that season (W10), titled with the group name (W9). */
+/** A new series: from "Se aplică din" to "Până la" or the last day of that season (W10), titled with the group name (W9). */
 export const seriesWrite = (group: GroupRecord, type: string, s: SeriesInput, seasonEnd: string): EventWrite => ({
-  title: group.name, type, description: null, groupId: group.id, recurrence: seriesRecurrence(s, seasonEnd), exceptions: [],
+  title: group.name, type, description: null, groupId: group.id, recurrence: seriesRecurrence(s, s.until ?? seasonEnd), exceptions: [],
 });
 
 /** One class: its note is the event description (6.3). */
@@ -134,13 +139,55 @@ export function planChange(e: EventRecord, input: SeriesInput, title: string): {
   return { old: planEnd(e, input.from), created: { ...created, exceptions: carried } };
 }
 
+export type DayPlan = { old: EventChange; rest: EventWrite | null; created: EventWrite | null };
+
+/** The other weekdays of the event from `from` on: starts on their first class date (so a biweekly series keeps its parity), keeps the old end and the exceptions of its dates. Null when no class is left. */
+function restOf(e: EventRecord, day: DayKey, from: string): EventWrite | null {
+  const days = e.recurrence.days.filter((d) => d !== day);
+  const seasonEnd = e.recurrence.seasonEnd;
+  if (!days.length || !seasonEnd) return null;
+  const rule: EventWrite = { title: e.title, type: e.type, description: e.description, groupId: e.groupId, exceptions: [], recurrence: { ...e.recurrence, days } };
+  const first = classDates(rule, from, seasonEnd)[0];
+  if (!first) return null;
+  const rest: EventWrite = { ...rule, recurrence: { ...rule.recurrence, seasonStart: first } };
+  return { ...rest, exceptions: e.exceptions.filter((x) => x.date >= from && isClassDate(rest, x.date)) };
+}
+
+const onlyDay = (e: EventRecord, day: DayKey | null): boolean => day === null || (e.recurrence.days.length === 1 && e.recurrence.days[0] === day);
+const wasOn = (day: DayKey) => (x: ExceptionRow): boolean => DAY_OF_INDEX[weekdayIndex(x.date)] === day;
+
+/** A biweekly weekday changed from an off-week date keeps its week parity: the new rule starts on that weekday's first class date, so it stays in the weeks of the other weekdays. */
+function paritySafe(e: EventRecord, day: DayKey, input: SeriesInput, created: EventWrite): EventWrite {
+  const end = e.recurrence.seasonEnd;
+  if (e.recurrence.freq !== 'biweekly' || input.freq !== 'biweekly' || !end) return created;
+  const first = classDates({ ...e, exceptions: [], recurrence: { ...e.recurrence, days: [day] } }, input.from, end)[0];
+  if (!first || first === input.from) return created;
+  return { ...created, recurrence: { ...created.recurrence, seasonStart: first }, exceptions: e.exceptions.filter((x) => x.date >= first && isClassDate({ ...created, recurrence: { ...created.recurrence, seasonStart: first } }, x.date)) };
+}
+
+/** "Schimbă" on one weekday's row from `input.from`; `day` absent or the event's only day -> today's planChange with `rest: null`. */
+export function planDayChange(e: EventRecord, day: DayKey | null, input: SeriesInput, title: string): DayPlan {
+  const whole = planChange(e, input, title);
+  if (day === null || onlyDay(e, day)) return { ...whole, rest: null };
+  const anchored = paritySafe(e, day, input, whole.created);
+  const carried = anchored.exceptions.filter(wasOn(day));
+  return { old: whole.old, rest: restOf(e, day, input.from), created: { ...anchored, exceptions: carried } };
+}
+
+/** "Șterge" on one weekday's row from `from`; `day` absent or the only day -> today's planEnd with `rest: null, created: null`. */
+export function planDayEnd(e: EventRecord, day: DayKey | null, from: string): DayPlan {
+  if (day === null || onlyDay(e, day)) return { old: planEnd(e, from), rest: null, created: null };
+  return { old: planEnd(e, from), rest: restOf(e, day, from), created: null };
+}
+
 const blank = (date: string): ExceptionRow => ({ date, kind: 'anulat', newDate: null, newStartTime: null, newEndTime: null, newTitle: null, reason: null });
 
-/** "Ține" removes the date's exception, "Anulează" writes `anulat`, "Mută" writes `override` with the series duration (W12). */
+/** "Ține" removes the date's exception, "Anulează" writes `anulat`, "Șterge" writes `sters` (the date is gone), "Mută" writes `override` with the series duration (W12). */
 export function planDateMode(e: EventRecord, date: string, m: DateMode): ExceptionRow[] | null {
   const rest = e.exceptions.filter((x) => x.date !== date);
   if (m.mode === 'keep') return rest;
   if (m.mode === 'cancel') return [...rest, { ...blank(date), reason: m.reason }];
+  if (m.mode === 'remove') return [...rest, { ...blank(date), kind: 'sters' }];
   const minutes = minutesBetween(e.recurrence.startTime ?? '00:00', e.recurrence.endTime ?? '00:00');
   if (!fitsDay(m.newStartTime, minutes)) return null;
   return [...rest, { ...blank(date), kind: 'override', newDate: m.newDate === date ? null : m.newDate, newStartTime: m.newStartTime, newEndTime: addMinutes(m.newStartTime, minutes), reason: m.reason }];

@@ -6,7 +6,7 @@ import type { AthleteRow, ClubStore, HistoryRow, RegistrationRow, ServiceContext
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import { athleteScrub, registrationScrub, scrubChanges, type BulkAnonymizeResult } from './anonymize-plan';
 import { carriedNames, nameKey } from './carried-names';
-import { clearPaymentNotes, scrubPaymentChanges } from '../presence/lifecycle/anonymize-rows';
+import { clearPaymentNotes, dropFutureLessons, scrubPaymentChanges } from '../presence/lifecycle/anonymize-rows';
 import { inBothTransactions } from '../presence/lifecycle/transaction';
 import type { PresenceStore } from '../presence/store';
 
@@ -72,6 +72,7 @@ async function anonymizeInTransaction(ctx: AnonymizeContext, id: string): Promis
   const pairs = (await ctx.store.duplicates()).filter((d) => d.firstId === id || d.secondId === id);
   await scrubHistory(ctx.store, athlete, registrations);
   await scrubRegistrations(ctx.store, athlete, registrations);
+  await dropFutureLessons(ctx.presence, id, new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Bucharest' }).format(ctx.now()));
   await scrubPayments(ctx, id);
   for (const d of pairs) await ctx.store.deleteDuplicate(d.id);
   const mediaIds = await deleteProfileOf(ctx.store, athlete.profileId);

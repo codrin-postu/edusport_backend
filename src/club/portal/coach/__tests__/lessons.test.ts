@@ -34,7 +34,7 @@ describe('create and read', () => {
   it('creates with the coach name, answers without undo, and reads back without money keys', async () => {
     const c = coachCtx(ME);
     const made = await createCoachLesson(c, newBody());
-    expect(made).toMatchObject({ ok: true, data: { changed: true } });
+    expect(made).toMatchObject({ ok: true, data: { count: 1, seriesId: null, toast: 'Salvat.' } });
     expect(JSON.stringify(made)).not.toContain('actionId');
     const id = c.fake.state.lessons[0].id;
     expect(c.fake.state.lessons[0].createdByName).toBe('Antrenor Andreea Pascu');
@@ -43,6 +43,38 @@ describe('create and read', () => {
     expect(read).toMatchObject({ ok: true, data: { athleteName: 'Ana Club', state: 'planned', editable: true, deletable: true } });
     expect(forbiddenKeysIn(read)).toEqual([]);
     expect(forbiddenKeysIn(made)).toEqual([]);
+  });
+});
+
+describe('repeating lessons', () => {
+  const repeat = { freq: 'weekly', days: ['fri'], until: '2026-12-11' };
+  it('answers the new rows without undo or money keys', async () => {
+    const c = coachCtx(ME);
+    const made = await createCoachLesson(c, newBody({ date: '2026-11-27', repeat }));
+    expect(made).toMatchObject({ ok: true, data: { count: 3, seriesId: expect.any(String) } });
+    expect(Object.keys((made as { data: object }).data).sort()).toEqual(['count', 'lessonId', 'seriesId', 'toast']);
+    expect(forbiddenKeysIn(made)).toEqual([]);
+    expect(JSON.stringify(made)).not.toContain('actionId');
+  });
+
+  it('needs the coach, refuses a past start with 400 and a conflict with 409, and writes nothing then', async () => {
+    const c = coachCtx(ME);
+    expect(await createCoachLesson(c, newBody({ date: '2026-11-27', repeat, coachIds: ['tm-virgil'] }))).toEqual(NO_ACCESS);
+    expect(await createCoachLesson(c, newBody({ date: '2026-11-19', repeat }))).toMatchObject({ ok: false, status: 400 });
+    c.fake.state.lessons.push(lessonRow({ id: 'x', athleteId: 'a-club-1', date: '2026-12-04', startTime: '16:30', durationMin: 60 }));
+    expect(await createCoachLesson(c, newBody({ date: '2026-11-27', repeat }))).toEqual({ ok: false, status: 409, error: 'Sportivul are deja o lecție pe vineri, 4 dec, la 16:00.' });
+    expect([c.fake.state.lessons.length, c.fake.state.lessonSeries.length]).toEqual([1, 0]);
+  });
+});
+
+describe('scoped delete', () => {
+  it('answers exactly deleted, count, toast and refuses an unknown scope', async () => {
+    const c = coachCtx(ME);
+    c.fake.state.lessons.push(lessonRow({ id: 'l1', athleteId: 'a-club-1', date: '2026-12-01', coachIds: [ME] }));
+    expect(await deleteCoachLesson(c, 'l1', { scope: 'x' })).toEqual({ ok: false, status: 400, error: PORTAL_ERRORS.invalid });
+    const r = await deleteCoachLesson(c, 'l1', { scope: 'following' });
+    expect(r).toEqual({ ok: true, data: { deleted: true, count: 1, toast: 'Lecție ștearsă.' } });
+    expect(forbiddenKeysIn(r)).toEqual([]);
   });
 });
 
@@ -95,5 +127,23 @@ describe('window and ownership', () => {
     expect(await saveCoachLesson(c, 'l1', patch())).toEqual(NOT_FOUND);
     expect(await deleteCoachLesson(c, 'l1')).toEqual(NOT_FOUND);
     expect(await readCoachLesson(c, 'nope')).toEqual(NOT_FOUND);
+  });
+});
+
+describe('series and planEditable on the lesson page', () => {
+  it('a series lesson carries its rule and is plan editable, a saved one is not, a plain one has no series', async () => {
+    const c = coachCtx(ME);
+    const made = await createCoachLesson(c, newBody({ date: '2026-11-24', repeat: { freq: 'weekly', days: ['tue', 'thu'], until: '2026-12-03' } }));
+    if (!made.ok) throw new Error('refused');
+    const read = await readCoachLesson(c, made.data.lessonId);
+    expect(read).toMatchObject({ ok: true, data: { planEditable: true, series: { seriesId: made.data.seriesId, freq: 'weekly', days: ['tue', 'thu'], from: '2026-11-24', to: '2026-12-03', untilSeasonEnd: false, startTime: '16:00', durationMin: 50 } } });
+    expect(forbiddenKeysIn(read)).toEqual([]);
+    const end = await createCoachLesson(c, newBody({ date: '2026-11-24', startTime: '19:00', repeat: { freq: 'weekly', days: ['tue'], until: null } }));
+    if (!end.ok) throw new Error('refused');
+    expect(await readCoachLesson(c, end.data.lessonId)).toMatchObject({ data: { series: { untilSeasonEnd: true } } });
+    c.fake.state.lessons.push(lessonRow({ id: 'l-saved', athleteId: 'a-club-1', date: '2026-11-18', coachIds: [ME], state: 'saved', present: true, seriesId: made.data.seriesId }));
+    expect(await readCoachLesson(c, 'l-saved')).toMatchObject({ ok: true, data: { planEditable: false, series: { seriesId: made.data.seriesId } } });
+    c.fake.state.lessons.push(lessonRow({ id: 'l-plain', athleteId: 'a-club-1', date: '2026-12-01', coachIds: [ME] }));
+    expect(await readCoachLesson(c, 'l-plain')).toMatchObject({ ok: true, data: { series: null, planEditable: true } });
   });
 });

@@ -28,7 +28,7 @@ interface Recurrence {
 
 interface ExceptionRow {
   date: string;
-  kind: 'cancel' | 'override' | 'liber' | 'anulat';
+  kind: 'cancel' | 'override' | 'liber' | 'anulat' | 'sters';
   newStartTime?: string | null;
   newEndTime?: string | null;
   newTitle?: string | null;
@@ -204,6 +204,7 @@ function overridden(slot: Slot, ex: ExceptionRow): Slot {
 function applyException(slot: Slot, ex: ExceptionRow | undefined): Slot {
   if (!ex) return slot;
   if (ex.kind === 'override') return overridden(slot, ex);
+  if (ex.kind === 'sters') return slot; // dropped before this, see eventOccurrences
   if (ex.kind === 'cancel') return { ...slot, status: 'cancelled', cancelReason: 'exception' };
   return { ...slot, status: 'cancelled', cancelReason: 'exception', state: ex.kind, note: ex.reason ?? ex.newTitle ?? null };
 }
@@ -253,6 +254,7 @@ function eventOccurrences(ev: CalendarEventRow, breaks: Break[], range: Range): 
   const byDate = new Map((ev.exceptions ?? []).map((x) => [x.date, x]));
   const applies = breakApplies(ev);
   return sourceDates(ev, range)
+    .filter((d) => byDate.get(ymd(d))?.kind !== 'sters')
     .map((d) => {
       const slot = applyException(baseSlot(ev, ymd(d)), byDate.get(ymd(d)));
       return toOccurrence(ev, applyBreak(slot, applies ? breakAt(breaks, d) : null));

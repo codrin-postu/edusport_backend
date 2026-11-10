@@ -20,6 +20,7 @@
     "createdByName": { "type": "string" },
     "recordedAt": { "type": "datetime" },
     "savedBy": { "type": "string" },
-    "savedAt": { "type": "datetime" }
+    "savedAt": { "type": "datetime" },
+    "series": { "type": "relation", "relation": "manyToOne", "target": "api::lesson-series.lesson-series" }
   }
 }

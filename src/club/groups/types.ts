@@ -6,7 +6,7 @@ import type { HistoryInput } from '../history';
 export type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 export type Freq = 'none' | 'weekly' | 'biweekly' | 'monthly';
 export type WeekOfMonth = 'first' | 'second' | 'third' | 'fourth' | 'last';
-export type ExceptionKind = 'cancel' | 'override' | 'liber' | 'anulat';
+export type ExceptionKind = 'cancel' | 'override' | 'liber' | 'anulat' | 'sters';
 export type ExceptionRow = {
   date: string; kind: ExceptionKind; newDate: string | null; newStartTime: string | null; newEndTime: string | null; newTitle: string | null; reason: string | null;
 };
