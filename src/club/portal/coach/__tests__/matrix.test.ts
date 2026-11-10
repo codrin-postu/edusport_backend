@@ -215,6 +215,108 @@ describe('ownership matrix (spec 7) through the controller', () => {
   });
 });
 
+/** Every answer of the training-add routes: no forbidden key, no undo or action id, no price. */
+const clean = (res: { body: unknown }, label: string): void => {
+  expect(forbiddenKeysIn(res.body), label).toEqual([]);
+  expect(JSON.stringify(res.body), label).not.toMatch(/actionId|"undo"|"price"|"amount"/);
+};
+
+describe('training add: program routes', () => {
+  const answers: { body: unknown }[] = [];
+  const run = async (col: Col, name: string, input: Call, c = seeded(col)) => {
+    const res = await call(c, name, input);
+    answers.push(res);
+    return res;
+  };
+
+  it('POST /groups/:id/program with until: own Club 200, others 403, 400 out of season', async () => {
+    const body = { freq: 'weekly', days: ['fri'], startTime: '16:00', durationMin: 60, from: '2026-11-27', until: '2026-12-18' };
+    await expectRow({ own: 200, other: 403, scoala: 403, removed: 403 }, (col) => run(col, 'addProgram', { params: { documentId: GROUP[col] }, body }));
+    expect((await run('own', 'addProgram', { params: { documentId: 'g-club-a' }, body: { ...body, until: '2027-09-01' } })).status).toBe(400);
+    expect((await run('own', 'addProgram', { params: { documentId: 'g-club-a' }, body: { ...body, until: '2026-11-20' } })).status).toBe(400);
+  });
+
+  it('PUT /program/:eventId with day: own Club 200, others 403, 400 day not in the event', async () => {
+    const body = { freq: 'weekly', days: ['fri'], startTime: '16:00', durationMin: 60, from: '2026-11-27', day: 'fri' };
+    await expectRow({ own: 200, other: 403, scoala: 403, removed: 403 }, (col) => run(col, 'changeProgram', { params: { eventId: EVENT[col] }, body }));
+    expect((await run('own', 'changeProgram', { params: { eventId: 'ev-g-club-a' }, body: { ...body, day: 'mon' } })).status).toBe(400);
+  });
+
+  it('POST /program/:eventId/end with day: own Club 200, others 403, 400 from in the past', async () => {
+    const body = { from: '2026-11-27', day: 'fri' };
+    await expectRow({ own: 200, other: 403, scoala: 403, removed: 403 }, (col) => run(col, 'endProgram', { params: { eventId: EVENT[col] }, body }));
+    expect((await run('own', 'endProgram', { params: { eventId: 'ev-g-club-a' }, body: { from: '2026-11-10', day: 'fri' } })).status).toBe(400);
+  });
+
+  it('PUT /program/:eventId/dates/:date remove: own Club 200, others 403, 409 saved session, 400 past date', async () => {
+    const params = (col: Col, date: string) => ({ eventId: EVENT[col], date });
+    await expectRow({ own: 200, other: 403, scoala: 403, removed: 403 }, (col) => run(col, 'setDate', { params: params(col, '2026-11-27'), body: { mode: 'remove' } }));
+    const c = seeded('own');
+    c.fake.state.sessions.push(sessionRow({ id: 's-fut', groupId: 'g-club-a', date: '2026-11-27', startTime: '17:00', source: 'schedule', eventId: 'ev-g-club-a', occurrenceKey: 'ev-g-club-a|2026-11-27|17:00', coachIds: [ME] }));
+    expect((await run('own', 'setDate', { params: params('own', '2026-11-27'), body: { mode: 'remove' } }, c)).status).toBe(409);
+    expect((await run('own', 'setDate', { params: params('own', '2026-11-13'), body: { mode: 'remove' } })).status).toBe(400);
+  });
+
+  it('every answer is clean', () => {
+    expect(answers.length).toBeGreaterThan(20);
+    answers.forEach((a, i) => clean(a, `answer ${i}`));
+  });
+});
+
+describe('training add: lesson routes', () => {
+  const answers: { body: unknown }[] = [];
+  const run = async (c: CoachSeed, name: string, input: Call) => {
+    const res = await call(c, name, input);
+    answers.push(res);
+    return res;
+  };
+  const repeat = { freq: 'weekly', days: ['fri'], until: '2026-12-11' };
+  const newBody = (over = {}) => ({ athleteId: 'a-club-1', date: '2026-11-27', startTime: '16:00', durationMin: 50, coachIds: [ME], repeat, ...over });
+
+  it('POST /lessons with repeat: 200 listed, 403 not listed, 409 conflict, 400 from in the past', async () => {
+    const c = coachCtx(ME, TODAY);
+    expect((await run(c, 'createLesson', { body: newBody({ coachIds: ['tm-virgil'] }) })).status).toBe(403);
+    expect((await run(c, 'createLesson', { body: newBody({ date: '2026-11-19' }) })).status).toBe(400);
+    expect(c.fake.state.lessons).toEqual([]);
+    expect((await run(c, 'createLesson', { body: newBody() })).status).toBe(200);
+    expect((await run(c, 'createLesson', { body: newBody({ startTime: '16:30' }) })).status).toBe(409);
+  });
+
+  async function twoCoaches() {
+    const c = coachCtx(ME, TODAY);
+    const made = await run(c, 'createLesson', { body: newBody() });
+    const id = (made.body.data as { lessonId: string }).lessonId;
+    const other = await run(c, 'createLesson', { body: newBody({ athleteId: 'a-club-2', coachIds: [ME, 'tm-virgil'] }) });
+    const otherId = (other.body.data as { lessonId: string }).lessonId;
+    c.fake.state.lessons.find((l) => l.id === otherId)!.coachIds = ['tm-virgil'];
+    return { c, id, otherId };
+  }
+  const plan = (over = {}) => ({ date: '2026-12-05', startTime: '16:00', durationMin: 50, coachIds: [ME], scope: 'one', ...over });
+
+  it('PUT /lessons/:id/plan: 200 own, 404 another coach, 409 saved', async () => {
+    const { c, id, otherId } = await twoCoaches();
+    expect((await run(c, 'planLesson', { params: { documentId: otherId }, body: plan() })).status).toBe(404);
+    expect((await run(c, 'planLesson', { params: { documentId: id }, body: plan() })).status).toBe(200);
+    const row = c.fake.state.lessons.find((l) => l.id === id)!;
+    Object.assign(row, { state: 'saved', present: true });
+    expect((await run(c, 'planLesson', { params: { documentId: id }, body: plan() })).status).toBe(409);
+  });
+
+  it('DELETE /lessons/:id?scope=following: 200 own, 404 another coach, 400 bad scope', async () => {
+    const { c, id, otherId } = await twoCoaches();
+    expect((await run(c, 'deleteLesson', { params: { documentId: otherId }, query: { scope: 'following' } })).status).toBe(404);
+    expect((await run(c, 'deleteLesson', { params: { documentId: id }, query: { scope: 'sometimes' } })).status).toBe(400);
+    expect(c.fake.state.lessons.some((l) => l.id === id)).toBe(true);
+    expect((await run(c, 'deleteLesson', { params: { documentId: id }, query: { scope: 'following' } })).status).toBe(200);
+    expect(c.fake.state.lessons.some((l) => l.id === otherId)).toBe(true);
+  });
+
+  it('every answer is clean', () => {
+    expect(answers.length).toBeGreaterThan(8);
+    answers.forEach((a, i) => clean(a, `answer ${i}`));
+  });
+});
+
 describe('the disabled account column, through the policy', () => {
   it('is 403 before any handler runs', async () => {
     process.env.PORTAL_BFF_SECRET = 'test-bff-secret-000000000000000000';
