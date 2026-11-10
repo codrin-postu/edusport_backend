@@ -92,6 +92,7 @@ export function coachCtx(teamMemberId: string, today = '2026-11-20', over: FakeP
     presence: { ...fake.ctx, actor },
     groups: {
       store: fake.store as unknown as GroupStore, actor, today, log: fake.ctx.log, revalidate: () => undefined, emails: () => undefined, now: fake.ctx.now,
+      hasSavedSession: async (groupId, date) => fake.state.sessions.some((s) => s.groupId === groupId && s.date === date),
     },
     club: { store: club.store, actor, today: { year, month, day }, log: fake.ctx.log },
     portal: portalFake.store, portalFake, fake, clubFake: club, competitions: nullCoachCompetitions,

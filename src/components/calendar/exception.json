@@ -12,7 +12,7 @@
     "date": { "type": "date", "required": true },
     "kind": {
       "type": "enumeration",
-      "enum": ["cancel", "override", "liber", "anulat"],
+      "enum": ["cancel", "override", "liber", "anulat", "sters"],
       "default": "cancel",
       "required": true
     },

@@ -41,6 +41,7 @@ async function spotOf(store: GroupStore, eventId: string, date: string): Promise
 function dateLine(groupId: string, date: string, m: DateMode, emails: number): Line {
   const base = { subjectType: GROUP_SUBJECT, subjectId: groupId };
   if (m.mode === 'keep') return { ...base, action: P4_ACTIONS.dateKept, changes: { date } };
+  if (m.mode === 'remove') return { ...base, action: P4_ACTIONS.dateRemoved, changes: { date } };
   if (m.mode === 'cancel') return { ...base, action: P4_ACTIONS.dateCancelled, changes: { date, reason: m.reason, emails } };
   return { ...base, action: P4_ACTIONS.dateMoved, changes: { date, newDate: m.newDate, newStartTime: m.newStartTime, reason: m.reason, emails } };
 }
@@ -66,10 +67,11 @@ async function dateLocked(ctx: GroupContext, eventId: string, date: string, m: D
   const found = await spotOf(ctx.store, eventId, date);
   if (found.ok === false) return found;
   const spot = found.data;
+  if (m.mode === 'remove' && (await ctx.hasSavedSession(spot.group.id, date))) return refuse(409, GROUP_ERRORS.datePresence);
   const exceptions = planDateMode(spot.e, date, m);
   if (!exceptions) return refuse(400, GROUP_ERRORS.invalid);
   if (same(spot.e.exceptions, exceptions)) return done({ mode: m.mode, date, emails: 0 }, null);
-  const change: Change | null = m.mode === 'keep' ? null : m;
+  const change: Change | null = m.mode === 'keep' || m.mode === 'remove' ? null : m;
   const addresses = change && notify ? await addressesOf(ctx.store, spot) : [];
   await ctx.store.updateEvent(spot.e.id, { exceptions });
   const steps: UndoStep[] = [{ op: 'setEvent', id: spot.e.id, recurrence: spot.e.recurrence, exceptions: spot.e.exceptions }];

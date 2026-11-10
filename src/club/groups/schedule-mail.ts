@@ -10,7 +10,7 @@ import type { BreakRecord, EventRecord, ScheduleChangePayload, ScheduleEmailJob 
 export const SCHEDULE_HOLD_MS = 15_000;
 const SENDABLE: ReadonlySet<string> = new Set(['nou', 'activ']);
 type Held = { date: string; startTime: string };
-export type Change = Exclude<DateMode, { mode: 'keep' }>;
+export type Change = Exclude<DateMode, { mode: 'keep' } | { mode: 'remove' }>;
 
 /** The contact e-mail of every current member of the group in the season; Inactiv and anonymized left out; each address once. */
 export function recipients(athletes: AthleteRow[], memberships: MembershipRow[], groupId: string, seasonId: string): string[] {

@@ -15,7 +15,7 @@ export const P4_ACTIONS = {
   memberAdded: 'member-added', memberAllocated: 'member-allocated', memberMovedOut: 'member-moved-out', memberMovedIn: 'member-moved-in', memberRemoved: 'member-removed',
   athleteMoved: 'athlete-group-moved', athleteRemoved: 'athlete-group-removed', athleteCopied: 'athlete-copied',
   programAdded: 'program-added', programChanged: 'program-changed', programEnded: 'program-ended', classAdded: 'class-added', classDeleted: 'class-deleted',
-  dateCancelled: 'date-cancelled', dateMoved: 'date-moved', dateKept: 'date-kept',
+  dateCancelled: 'date-cancelled', dateMoved: 'date-moved', dateKept: 'date-kept', dateRemoved: 'date-removed',
   breakAdded: 'break-added', breakUpdated: 'break-updated', breakDeleted: 'break-deleted',
   currentChanged: 'current-changed', seasonCopied: 'season-copied', membersCopied: 'members-copied', programCopied: 'program-copied',
   undone: 'undone',
@@ -113,6 +113,7 @@ const PROGRAM: Readonly<Record<string, Render>> = {
   [P4_ACTIONS.dateCancelled]: (c) => [PROGRAM_LINES.cancelled(date(c), text(c.reason) || null) + told(c)],
   [P4_ACTIONS.dateMoved]: (c) => [PROGRAM_LINES.moved(date(c), date(c, 'newDate'), text(c.newStartTime)) + told(c)],
   [P4_ACTIONS.dateKept]: (c) => [PROGRAM_LINES.kept(date(c))],
+  [P4_ACTIONS.dateRemoved]: (c) => [PROGRAM_LINES.removed(shortDate(text(c.date)))],
 };
 
 const OTHER: Readonly<Record<string, Render>> = {

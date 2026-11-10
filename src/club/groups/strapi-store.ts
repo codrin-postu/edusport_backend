@@ -28,7 +28,7 @@ const among = <T extends string>(values: readonly T[], v: unknown): T | null => 
 const DAYS: readonly DayKey[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const FREQS: readonly Freq[] = ['none', 'weekly', 'biweekly', 'monthly'];
 const WEEKS: readonly WeekOfMonth[] = ['first', 'second', 'third', 'fourth', 'last'];
-const KINDS: readonly ExceptionKind[] = ['cancel', 'override', 'liber', 'anulat'];
+const KINDS: readonly ExceptionKind[] = ['cancel', 'override', 'liber', 'anulat', 'sters'];
 /** Strapi `time` attributes are written as "HH:mm:ss.SSS". */
 const time = (t: string | null): string | null => (t ? `${t}:00.000` : null);
 

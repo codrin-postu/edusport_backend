@@ -10,7 +10,7 @@ import type { DayKey, EventRecord, EventWrite, ExceptionRow, GroupRecord, Recurr
 export type SeriesInput = { freq: RepeatFreq; weekOfMonth: WeekOfMonth | null; days: DayKey[]; startTime: string; durationMin: number; from: string };
 export type ClassInput = { date: string; startTime: string; durationMin: number; note: string | null };
 export type ProgramInput = { repeat: true; series: SeriesInput } | { repeat: false; one: ClassInput };
-export type DateMode = { mode: 'keep' } | { mode: 'cancel'; reason: string | null } | { mode: 'move'; newDate: string; newStartTime: string; reason: string | null };
+export type DateMode = { mode: 'keep' } | { mode: 'cancel'; reason: string | null } | { mode: 'move'; newDate: string; newStartTime: string; reason: string | null } | { mode: 'remove' };
 export type EventChange = { op: 'end'; recurrence: Recurrence; exceptions: ExceptionRow[] } | { op: 'delete' };
 type Read<T> = { ok: true; value: T } | { ok: false; error: string };
 type Body = Record<string, unknown>;
@@ -63,6 +63,7 @@ export function readDateMode(body: unknown): DateMode | null {
   const b = isRecord(body) ? body : {};
   const reason = text(b.reason, 120);
   if (b.mode === 'keep') return { mode: 'keep' };
+  if (b.mode === 'remove') return { mode: 'remove' };
   if (b.mode === 'cancel') return { mode: 'cancel', reason };
   if (b.mode === 'move' && isIsoDate(b.newDate) && isTime(b.newStartTime)) return { mode: 'move', newDate: b.newDate, newStartTime: b.newStartTime, reason };
   return null;
@@ -136,11 +137,12 @@ export function planChange(e: EventRecord, input: SeriesInput, title: string): {
 
 const blank = (date: string): ExceptionRow => ({ date, kind: 'anulat', newDate: null, newStartTime: null, newEndTime: null, newTitle: null, reason: null });
 
-/** "Ține" removes the date's exception, "Anulează" writes `anulat`, "Mută" writes `override` with the series duration (W12). */
+/** "Ține" removes the date's exception, "Anulează" writes `anulat`, "Șterge" writes `sters` (the date is gone), "Mută" writes `override` with the series duration (W12). */
 export function planDateMode(e: EventRecord, date: string, m: DateMode): ExceptionRow[] | null {
   const rest = e.exceptions.filter((x) => x.date !== date);
   if (m.mode === 'keep') return rest;
   if (m.mode === 'cancel') return [...rest, { ...blank(date), reason: m.reason }];
+  if (m.mode === 'remove') return [...rest, { ...blank(date), kind: 'sters' }];
   const minutes = minutesBetween(e.recurrence.startTime ?? '00:00', e.recurrence.endTime ?? '00:00');
   if (!fitsDay(m.newStartTime, minutes)) return null;
   return [...rest, { ...blank(date), kind: 'override', newDate: m.newDate === date ? null : m.newDate, newStartTime: m.newStartTime, newEndTime: addMinutes(m.newStartTime, minutes), reason: m.reason }];

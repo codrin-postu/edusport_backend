@@ -224,7 +224,7 @@ export function fakeGroupStore(seed: Partial<FakeGroupState> = {}): FakeGroup {
   return { store: withFailures(base, failing), state, failOn: (method) => failing.add(method) };
 }
 
-export type FakeContext = FakeGroup & { ctx: GroupContext; revalidated: () => number; logs: string[]; emailed: string[] };
+export type FakeContext = FakeGroup & { saved: Set<string>; ctx: GroupContext; revalidated: () => number; logs: string[]; emailed: string[] };
 
 /** A GroupContext over the fake store; today 20 November 2026, now 10:00 UTC, unless given. */
 export function fakeContext(seed: Partial<FakeGroupState> = {}, today = '2026-11-20'): FakeContext {
@@ -232,9 +232,11 @@ export function fakeContext(seed: Partial<FakeGroupState> = {}, today = '2026-11
   let pings = 0;
   const logs: string[] = [];
   const emailed: string[] = [];
+  const saved = new Set<string>();
   const ctx: GroupContext = {
     store: fake.store, actor: 'admin@example.com', today, log: (m) => logs.push(m), revalidate: () => { pings += 1; },
     emails: (key) => emailed.push(key), now: () => new Date(`${today}T10:00:00.000Z`),
+    hasSavedSession: async (groupId, date) => saved.has(`${groupId}|${date}`),
   };
-  return { ...fake, ctx, logs, emailed, revalidated: () => pings };
+  return { ...fake, saved, ctx, logs, emailed, revalidated: () => pings };
 }

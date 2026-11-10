@@ -7,12 +7,18 @@ import { todayIso } from './http';
 import { strapiGroupStore } from './strapi-store';
 import type { GroupStore } from './types';
 
+/** A session row exists only once a presence list is saved. */
+export const savedSession = async (strapi: Core.Strapi, groupId: string, date: string): Promise<boolean> =>
+  (await strapi.db.query('api::session.session').count({ where: { group: { documentId: groupId }, date } })) > 0;
+
 /** What every phase 4 service gets from its controller. `today` is Bucharest's date, 'YYYY-MM-DD'. */
 export type GroupContext = {
   store: GroupStore; actor: string; today: string; log: (message: string) => void; revalidate: () => void;
   /** After commit: the first attempt of a schedule change's e-mails once the hold is over. */
   emails: (changeKey: string) => void;
   now: () => Date;
+  /** A session is saved for the group on the date (a removed date must have none). */
+  hasSavedSession: (groupId: string, date: string) => Promise<boolean>;
 };
 
 export async function groupContext(strapi: Core.Strapi, ctx: AdminCtx): Promise<GroupContext> {
@@ -26,5 +32,6 @@ export async function groupContext(strapi: Core.Strapi, ctx: AdminCtx): Promise<
     },
     emails: (changeKey) => attemptScheduleChangeJobs(strapi, changeKey),
     now: () => new Date(),
+    hasSavedSession: (groupId, date) => savedSession(strapi, groupId, date),
   };
 }
