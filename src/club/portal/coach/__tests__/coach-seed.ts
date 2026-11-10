@@ -92,7 +92,10 @@ export function coachCtx(teamMemberId: string, today = '2026-11-20', over: FakeP
     presence: { ...fake.ctx, actor },
     groups: {
       store: fake.store as unknown as GroupStore, actor, today, log: fake.ctx.log, revalidate: () => undefined, emails: () => undefined, now: fake.ctx.now,
-      hasSavedSession: async (groupId, date) => fake.state.sessions.some((s) => s.groupId === groupId && s.date === date),
+      sessions: {
+        ofEvent: async (eventId) => fake.state.sessions.filter((s) => s.eventId === eventId).map((s) => ({ id: s.id, date: s.date, startTime: s.startTime })),
+        move: (id, eventId, occurrenceKey) => fake.store.updateSession(id, { eventId, occurrenceKey }),
+      },
     },
     club: { store: club.store, actor, today: { year, month, day }, log: fake.ctx.log },
     portal: portalFake.store, portalFake, fake, clubFake: club, competitions: nullCoachCompetitions,

@@ -159,6 +159,12 @@ async function writeUndone(ctx: GroupContext, entry: HistoryEntryRow, own: Histo
   await ctx.store.setHistoryChanges(entry.id, { ...entry.changes, undone: true });
 }
 
+/** An event the undo would remove (a split's new events, an added program) holds a saved session by now: taking it back would orphan the presence. */
+async function sessionOnRemoved(ctx: GroupContext, steps: UndoStep[]): Promise<boolean> {
+  for (const step of steps) if (step.op === 'deleteEvent' && (await ctx.sessions.ofEvent(step.id)).length > 0) return true;
+  return false;
+}
+
 async function undoLocked(ctx: GroupContext, actionId: string, ports: CarryPorts): Promise<AdminResult<{ revalidate: boolean }>> {
   const first = await ctx.store.historyEntry(actionId);
   if (!first) return refuse(404, GROUP_ERRORS.notFound);
@@ -171,6 +177,7 @@ async function undoLocked(ctx: GroupContext, actionId: string, ports: CarryPorts
   await lockTargets(ctx.store, targets, ports);
   if (record.kind === 'group' && (await inPastSeason(ctx.store, groupSeasons))) return refuse(409, GROUP_ERRORS.stale);
   if (!(await targetsExist(ctx.store, targets, record.steps, ports))) return refuse(409, refusalText(record.kind));
+  if (await sessionOnRemoved(ctx, record.steps)) return refuse(409, refusalText(record.kind));
   await ctx.store.lockHistoryEntry(actionId);
   const entry = await ctx.store.historyEntry(actionId);
   if (!entry) return refuse(404, GROUP_ERRORS.notFound);

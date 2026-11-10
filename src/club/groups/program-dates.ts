@@ -63,11 +63,18 @@ async function queueEmails(ctx: GroupContext, spot: Spot, date: string, change: 
   await ctx.store.createEmailJobs(scheduleJobs(addresses, payload, spot.group.id, actionId, ctx.now()));
 }
 
+/** A session of this event is saved on the date the class happens on: the series date, and the new date when it was moved (a session belongs to its class, not to the group's day). */
+async function heldWithPresence(ctx: GroupContext, e: EventRecord, date: string): Promise<boolean> {
+  const moved = e.exceptions.find((x) => x.date === date && x.kind === 'override')?.newDate ?? null;
+  const on = moved ? [date, moved] : [date];
+  return (await ctx.sessions.ofEvent(e.id)).some((s) => on.includes(s.date));
+}
+
 async function dateLocked(ctx: GroupContext, eventId: string, date: string, m: DateMode, notify: boolean): Promise<ActionResult<DateAnswer>> {
   const found = await spotOf(ctx.store, eventId, date);
   if (found.ok === false) return found;
   const spot = found.data;
-  if (m.mode === 'remove' && (await ctx.hasSavedSession(spot.group.id, date))) return refuse(409, GROUP_ERRORS.datePresence);
+  if (m.mode === 'remove' && (await heldWithPresence(ctx, spot.e, date))) return refuse(409, GROUP_ERRORS.datePresence);
   const exceptions = planDateMode(spot.e, date, m);
   if (!exceptions) return refuse(400, GROUP_ERRORS.invalid);
   if (same(spot.e.exceptions, exceptions)) return done({ mode: m.mode, date, emails: 0 }, null);

@@ -86,8 +86,20 @@ function inactiveAsked(b: SessionSaveBody, rows: AttendanceRow[], tickedIds: str
     .map((id) => ({ id, name: athletes.get(id)?.name ?? '' }));
 }
 
-async function saveLocked(ctx: PresenceContext, scope: SaveScope, b: SessionSaveBody): Promise<SaveOutcome> {
+/**
+ * A new session of a scheduled class takes the group and event locks (after the athletes: seasons, athletes, groups, events), the same ones a program write takes,
+ * then reads the class again: a date removed, cancelled or moved in the meantime is refused, and a removal that comes later sees the session.
+ */
+async function lockedScope(ctx: PresenceContext, scope: SaveScope, b: SessionSaveBody, session: SessionRow | null): Promise<SaveScope | ReturnType<typeof refuse>> {
+  if (session || scope.target.source !== 'schedule' || !scope.target.eventId) return scope;
+  await ctx.store.lockGroup(scope.group.id);
+  await ctx.store.lockEvent(scope.target.eventId);
+  return resolveScope(ctx.store, b);
+}
+
+async function saveLocked(ctx: PresenceContext, first: SaveScope, b: SessionSaveBody): Promise<SaveOutcome> {
   const { store } = ctx;
+  let scope = first;
   let session = scope.target.session;
   if (session) {
     await store.lockSession(session.id);
@@ -100,6 +112,9 @@ async function saveLocked(ctx: PresenceContext, scope: SaveScope, b: SessionSave
   if (tickedIds.some((id) => { const a = people.athletes.get(id); return !a || a.status === 'anonimizat'; })) return refuse(400, PRESENCE_ERRORS.invalid);
   const inactive = inactiveAsked(b, people.rows, tickedIds, people.athletes);
   if (inactive.length > 0) return { ok: false, status: 409, error: ATTENDANCE_ERRORS.inactive, inactive };
+  const locked = await lockedScope(ctx, scope, b, session);
+  if ('ok' in locked) return locked;
+  scope = locked;
   return writeSave(ctx, scope, b, session, people, tickedIds);
 }
 

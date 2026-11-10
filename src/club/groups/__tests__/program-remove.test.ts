@@ -69,8 +69,8 @@ describe('setDate remove', () => {
   });
 
   it('refuses a date with a saved session (409) and writes nothing', async () => {
-    const { ctx, state, saved } = seed();
-    saved.add('g-av|2026-11-13');
+    const { ctx, state, sessions } = seed();
+    sessions.push({ id: 's1', eventId: 'ev-g-club-a', date: '2026-11-13', startTime: '17:30', key: 'ev-g-club-a|2026-11-13|17:30' });
     const res = await setDate(ctx, 'ev-g-club-a', '2026-11-13', { mode: 'remove' });
     expect(res).toMatchObject({ ok: false, status: 409, error: 'Data are prezența salvată. Poți doar să o anulezi.' });
     expect([state.events[0].exceptions, state.history]).toEqual([[], []]);

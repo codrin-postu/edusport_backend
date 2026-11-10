@@ -1,10 +1,11 @@
 import { refuse, type AdminResult } from '../../admin-result';
 import type { ActionResult } from '../../groups/action-log';
-import { isIsoDate } from '../../groups/dates';
-import { classDates } from '../../groups/program-plan';
-import { DAY_ORDER } from '../../groups/program-text';
+import { isIsoDate, weekdayIndex } from '../../groups/dates';
+import { expandOccurrences } from '../../../api/calendar-event/services/expand';
+import { asCalendarRow } from '../../groups/program-plan';
+import { DAY_OF_INDEX, DAY_ORDER } from '../../groups/program-text';
 import { seasonBounds } from '../../groups/series';
-import type { EventRecord } from '../../groups/types';
+import type { DayKey, EventRecord } from '../../groups/types';
 import { setProgramPublic } from '../../groups/group-admin';
 import { adminWindow } from '../../groups/occurrences';
 import { addProgram, changeProgram, deleteClass, endProgram } from '../../groups/program';
@@ -54,13 +55,22 @@ async function writeRight(c: CoachContexts, g: Found | null): Promise<CoachResul
   return g.right.write ? null : forbidden(PORTAL_ERRORS.noAccess);
 }
 
-/** The series split per weekday, Monday first then start time; `nextDate` is the weekday's first class date from today on. */
+/** The weekday's first date from `from` on that still has a class: a removed or cancelled date is skipped, a moved one counts on its new date only when that is the same weekday. */
+function nextHeldDate(e: EventRecord, day: DayKey, from: string, to: string): string | null {
+  const rule = { ...e, recurrence: { ...e.recurrence, days: [day] } };
+  return expandOccurrences([asCalendarRow(rule)], [], from, to)
+    .filter((o) => o.status === 'scheduled' || (o.status === 'override' && DAY_OF_INDEX[weekdayIndex(o.date)] === day))
+    .map((o) => o.date).sort()[0] ?? null;
+}
+
+/** The series split per weekday, Monday first then start time, the ones that have ended left out; `nextDate` is the weekday's next class date from today on. */
 function rulesOf(program: NonNullable<Awaited<ReturnType<typeof readGroupProgram>>>, events: EventRecord[], seasonEnd: string | null, today: string): CoachProgramRule[] {
   const rules = program.series.flatMap((row) => {
     const e = events.find((x) => x.id === row.eventId);
+    if (row.to < today) return [];
     return row.days.map((day): CoachProgramRule => {
       const from = today > row.from ? today : row.from;
-      const nextDate = e ? classDates({ ...e, recurrence: { ...e.recurrence, days: [day] } }, from, row.to)[0] ?? null : null;
+      const nextDate = e ? nextHeldDate(e, day, from, row.to) : null;
       return {
         eventId: row.eventId, day, freq: row.freq, weekOfMonth: row.weekOfMonth, startTime: row.startTime, durationMin: row.durationMin,
         from: row.from, to: row.to, untilSeasonEnd: row.to === seasonEnd, nextDate,
@@ -112,7 +122,8 @@ export async function coachDeleteClass(c: CoachContexts, eventId: string): Promi
   const refusal = await writeRight(c, await groupOfEvent(c, eventId));
   if (refusal) return refusal;
   const e = await c.groups.store.event(eventId);
-  if (inPast(c, e?.recurrence.singleDate)) return refuse(400, PORTAL_ERRORS.invalid);
+  const date = e?.recurrence.singleDate;
+  if (!isIsoDate(date) || !canCoachCorrect(date, c.today)) return refuse(400, PORTAL_ERRORS.invalid);
   return plain(await deleteClass(c.groups, eventId));
 }
 

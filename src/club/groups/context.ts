@@ -7,9 +7,26 @@ import { todayIso } from './http';
 import { strapiGroupStore } from './strapi-store';
 import type { GroupStore } from './types';
 
-/** A session row exists only once a presence list is saved. */
-export const savedSession = async (strapi: Core.Strapi, groupId: string, date: string): Promise<boolean> =>
-  (await strapi.db.query('api::session.session').count({ where: { group: { documentId: groupId }, date } })) > 0;
+const SESSION = 'api::session.session' as const;
+
+/** A saved session of an event, as the program writes need it (the presence rows are not read). */
+export type EventSession = { id: string; date: string; startTime: string };
+/** The sessions of the presence module, seen from the program: read by event, and moved to another event with a new occurrence key. */
+export type SessionPort = {
+  ofEvent: (eventId: string) => Promise<EventSession[]>;
+  move: (sessionId: string, eventId: string, occurrenceKey: string) => Promise<void>;
+};
+
+/** Reads and writes join the open Strapi transaction (the same connection scope), so the checks of a program write see what the write sees. */
+export const strapiSessionPort = (strapi: Core.Strapi): SessionPort => ({
+  ofEvent: async (eventId) => {
+    const rows = (await strapi.db.query(SESSION).findMany({ where: { event: { documentId: eventId } }, select: ['documentId', 'date', 'startTime'], limit: 100000 })) as Record<string, unknown>[];
+    return rows.map((r) => ({ id: String(r.documentId), date: String(r.date), startTime: String(r.startTime ?? '').slice(0, 5) }));
+  },
+  move: async (sessionId, eventId, occurrenceKey) => {
+    await strapi.documents(SESSION).update({ documentId: sessionId, data: { event: eventId, occurrenceKey } as never });
+  },
+});
 
 /** What every phase 4 service gets from its controller. `today` is Bucharest's date, 'YYYY-MM-DD'. */
 export type GroupContext = {
@@ -17,8 +34,8 @@ export type GroupContext = {
   /** After commit: the first attempt of a schedule change's e-mails once the hold is over. */
   emails: (changeKey: string) => void;
   now: () => Date;
-  /** A session is saved for the group on the date (a removed date must have none). */
-  hasSavedSession: (groupId: string, date: string) => Promise<boolean>;
+  /** Saved sessions by event: a removed date or a deleted class must have none; a split moves the ones that stay with their class. */
+  sessions: SessionPort;
 };
 
 export async function groupContext(strapi: Core.Strapi, ctx: AdminCtx): Promise<GroupContext> {
@@ -32,6 +49,6 @@ export async function groupContext(strapi: Core.Strapi, ctx: AdminCtx): Promise<
     },
     emails: (changeKey) => attemptScheduleChangeJobs(strapi, changeKey),
     now: () => new Date(),
-    hasSavedSession: (groupId, date) => savedSession(strapi, groupId, date),
+    sessions: strapiSessionPort(strapi),
   };
 }

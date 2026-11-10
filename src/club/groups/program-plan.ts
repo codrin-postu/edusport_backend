@@ -156,12 +156,22 @@ function restOf(e: EventRecord, day: DayKey, from: string): EventWrite | null {
 const onlyDay = (e: EventRecord, day: DayKey | null): boolean => day === null || (e.recurrence.days.length === 1 && e.recurrence.days[0] === day);
 const wasOn = (day: DayKey) => (x: ExceptionRow): boolean => DAY_OF_INDEX[weekdayIndex(x.date)] === day;
 
+/** A biweekly weekday changed from an off-week date keeps its week parity: the new rule starts on that weekday's first class date, so it stays in the weeks of the other weekdays. */
+function paritySafe(e: EventRecord, day: DayKey, input: SeriesInput, created: EventWrite): EventWrite {
+  const end = e.recurrence.seasonEnd;
+  if (e.recurrence.freq !== 'biweekly' || input.freq !== 'biweekly' || !end) return created;
+  const first = classDates({ ...e, exceptions: [], recurrence: { ...e.recurrence, days: [day] } }, input.from, end)[0];
+  if (!first || first === input.from) return created;
+  return { ...created, recurrence: { ...created.recurrence, seasonStart: first }, exceptions: e.exceptions.filter((x) => x.date >= first && isClassDate({ ...created, recurrence: { ...created.recurrence, seasonStart: first } }, x.date)) };
+}
+
 /** "Schimbă" on one weekday's row from `input.from`; `day` absent or the event's only day -> today's planChange with `rest: null`. */
 export function planDayChange(e: EventRecord, day: DayKey | null, input: SeriesInput, title: string): DayPlan {
   const whole = planChange(e, input, title);
   if (day === null || onlyDay(e, day)) return { ...whole, rest: null };
-  const carried = whole.created.exceptions.filter(wasOn(day));
-  return { old: whole.old, rest: restOf(e, day, input.from), created: { ...whole.created, exceptions: carried } };
+  const anchored = paritySafe(e, day, input, whole.created);
+  const carried = anchored.exceptions.filter(wasOn(day));
+  return { old: whole.old, rest: restOf(e, day, input.from), created: { ...anchored, exceptions: carried } };
 }
 
 /** "Șterge" on one weekday's row from `from`; `day` absent or the only day -> today's planEnd with `rest: null, created: null`. */
