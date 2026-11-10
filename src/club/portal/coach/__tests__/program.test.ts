@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { PORTAL_ERRORS } from '../../copy';
 import { coachAddProgram, coachChangeProgram, coachDeleteClass, coachEndProgram, coachProgramPublic, coachSetDate, readCoachProgram } from '../program';
 import { forbiddenKeysIn } from '../views';
+import { asCalendarRow } from '../../../groups/program-plan';
+import { heldOccurrences } from '../../../presence/sessions';
 import { coachCtx } from './coach-seed';
 
 const ME = 'tm-andreea';
@@ -129,5 +131,113 @@ describe('Program public', () => {
     expect(await coachProgramPublic(c, 'g-club-b', { value: false })).toEqual(NO_ACCESS);
     expect(await coachProgramPublic(c, 'g-club-a', { value: 'nu' })).toEqual(INVALID);
     expect(await coachProgramPublic(c, 'nope', { value: true })).toMatchObject({ ok: false, status: 404 });
+  });
+});
+
+const tueThu = (over = {}) => weekly({ days: ['tue', 'thu'], from: '2026-11-24', ...over });
+const rulesOf = async (c: ReturnType<typeof ctx>['c'], id = 'g-club-a') => {
+  const res = await readCoachProgram(c, id, '2026-11');
+  if (!res.ok) throw new Error('read refused');
+  return res.data.rules;
+};
+
+describe('rules per weekday', () => {
+  it('lists one rule per weekday of each series, Monday first, with the next class date', async () => {
+    const { c } = ctx();
+    await coachAddProgram(c, 'g-club-a', tueThu());
+    const rules = await rulesOf(c);
+    expect(rules.map((r) => r.day)).toEqual(['tue', 'thu', 'fri']);
+    expect(rules[0]).toMatchObject({ day: 'tue', freq: 'weekly', startTime: '16:00', durationMin: 60, from: '2026-11-24', to: '2027-05-31', untilSeasonEnd: true, nextDate: '2026-11-24' });
+    expect(rules[1]).toMatchObject({ day: 'thu', nextDate: '2026-11-26' });
+    expect(rules[2]).toMatchObject({ day: 'fri', nextDate: '2026-11-20' });
+    expect(forbiddenKeysIn(await readCoachProgram(c, 'g-club-a', '2026-11'))).toEqual([]);
+  });
+
+  it('a series added with "Până la" is not until the season end', async () => {
+    const { c } = ctx();
+    expect(await coachAddProgram(c, 'g-club-a', tueThu({ until: '2027-03-31' }))).toMatchObject({ ok: true });
+    const rules = await rulesOf(c);
+    expect(rules.filter((r) => r.day !== 'fri').map((r) => [r.to, r.untilSeasonEnd])).toEqual([['2027-03-31', false], ['2027-03-31', false]]);
+    expect(rules.find((r) => r.day === 'fri')?.untilSeasonEnd).toBe(true);
+  });
+
+  it('refuses an until in the past or before from, writing nothing', async () => {
+    const { c } = ctx();
+    expect(await coachAddProgram(c, 'g-club-a', tueThu({ until: '2026-11-19' }))).toEqual(INVALID);
+    expect(await coachAddProgram(c, 'g-club-a', tueThu({ until: '2026-11-23' }))).toMatchObject({ ok: false, status: 400 });
+    expect(c.fake.group.history).toEqual([]);
+  });
+
+  it('ends one weekday from a date: the old event ends the day before and only the other weekday goes on', async () => {
+    const { c } = ctx();
+    const added = await coachAddProgram(c, 'g-club-a', tueThu());
+    expect(await coachEndProgram(c, added.ok ? added.data.eventId : '', { from: '2026-12-01', day: 'tue' })).toMatchObject({ ok: true });
+    const rules = await rulesOf(c);
+    expect(rules.map((r) => [r.day, r.from, r.to])).toEqual([
+      ['tue', '2026-11-24', '2026-11-30'], ['thu', '2026-11-24', '2026-11-30'], ['thu', '2026-12-03', '2027-05-31'], ['fri', '2026-10-02', '2027-05-31'],
+    ]);
+  });
+
+  it('a day the series does not run on is 400', async () => {
+    const { c } = ctx();
+    expect(await coachEndProgram(c, 'ev-g-club-a', { from: '2026-12-01', day: 'tue' })).toEqual(INVALID);
+    expect(await coachChangeProgram(c, 'ev-g-club-a', weekly({ days: ['fri'], from: '2026-12-01', day: 'tue' }))).toEqual(INVALID);
+  });
+
+  it('another coach group is read only but its rules are shown, notes still dropped', async () => {
+    const { c } = ctx();
+    const res = await readCoachProgram(c, 'g-club-b', '2026-11');
+    if (!res.ok) throw new Error('read refused');
+    expect(res.data.rules.map((r) => r.day)).toEqual(['wed', 'fri']);
+    expect(res.data.occurrences.every((o) => o.description === null)).toBe(true);
+    expect(forbiddenKeysIn(res)).toEqual([]);
+  });
+});
+
+describe('removed dates', () => {
+  it('removes a future date of an own Club series', async () => {
+    const { c } = ctx();
+    expect(await coachSetDate(c, 'ev-g-club-a', '2026-11-27', { mode: 'remove' })).toEqual({ ok: true, data: { mode: 'remove', date: '2026-11-27', emails: 0 } });
+    expect(c.fake.group.events.find((e) => e.id === 'ev-g-club-a')?.exceptions.map((x) => x.kind)).toEqual(['sters']);
+  });
+
+  it('is refused on a school group, another coach group and a past date', async () => {
+    const { c } = ctx();
+    expect(await coachSetDate(c, 'ev-g-scoala-a', '2026-11-28', { mode: 'remove' })).toEqual(NO_ACCESS);
+    expect(await coachSetDate(c, 'ev-g-club-b', '2026-11-27', { mode: 'remove' })).toEqual(NO_ACCESS);
+    expect(await coachSetDate(c, 'ev-g-club-a', '2026-11-13', { mode: 'remove' })).toEqual(INVALID);
+  });
+
+  it('a date with a saved session is 409 with the refusal text', async () => {
+    const { c } = ctx();
+    c.fake.state.sessions.push({ id: 's1', groupId: 'g-club-a', date: '2026-11-27' } as never);
+    expect(await coachSetDate(c, 'ev-g-club-a', '2026-11-27', { mode: 'remove' })).toMatchObject({ ok: false, status: 409, error: 'Data are prezența salvată. Poți doar să o anulezi.' });
+  });
+});
+
+describe('a one-off class in the last 7 days (user ruling 2026-11-10)', () => {
+  const one = (date: string) => ({ repeat: false, date, startTime: '16:00', durationMin: 60 });
+
+  it('3 days ago: added, in Istoric and in the presence occurrences', async () => {
+    const { c } = ctx();
+    const res = await coachAddProgram(c, 'g-club-a', one('2026-11-17'));
+    expect(res).toMatchObject({ ok: true, data: { date: '2026-11-17' } });
+    expect(c.fake.group.history.at(-1)).toMatchObject({ action: 'class-added', actor: 'Antrenor Andreea Pascu', changes: { date: '2026-11-17' } });
+    const added = c.fake.group.events.find((e) => e.id === (res.ok ? res.data.eventId : ''));
+    if (!added) throw new Error('not written');
+    const held = heldOccurrences({ events: [asCalendarRow(added, 'Club A')], blackouts: [] }, c.fake.group.groups, '2026-11-17', '2026-11-17');
+    expect(held.map((h) => [h.date, h.startTime])).toEqual([['2026-11-17', '16:00']]);
+  });
+
+  it('today and the 7th day back are fine, 8 days ago is 400', async () => {
+    const { c } = ctx();
+    expect(await coachAddProgram(c, 'g-club-a', one('2026-11-20'))).toMatchObject({ ok: true });
+    expect(await coachAddProgram(c, 'g-club-a', one('2026-11-13'))).toMatchObject({ ok: true });
+    expect(await coachAddProgram(c, 'g-club-a', one('2026-11-12'))).toEqual(INVALID);
+  });
+
+  it('a repeating series from yesterday is still 400', async () => {
+    const { c } = ctx();
+    expect(await coachAddProgram(c, 'g-club-a', weekly({ from: '2026-11-19' }))).toEqual(INVALID);
   });
 });

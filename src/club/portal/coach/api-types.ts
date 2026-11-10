@@ -3,7 +3,10 @@ import type { GroupProgram } from '../../groups/program-read';
 import type { AddedSession, SavedOnDay, SectionKind, SessionCheck } from '../../presence/attendance/api-types';
 import type { LessonState } from '../../presence/types';
 
-export type { SectionKind };
+import type { DayKey, WeekOfMonth } from '../../groups/types';
+import type { RepeatFreq } from '../../groups/series';
+
+export type { SectionKind, DayKey, WeekOfMonth, RepeatFreq };
 
 /** JSON shapes of the coach routes (spec 8, 9). Only what the coach screens show: no price, amount, birth date, note, address or registration. */
 export type CoachMe = {
@@ -93,4 +96,9 @@ export type CoachHistoryRow = {
   done: boolean; occurrenceKey: string | null;
 };
 export type CoachHistory = { month: string; sessions: number; lessons: number; hours: string; rows: CoachHistoryRow[] };
-export type CoachProgram = { kind: SectionKind; editable: boolean; programPublic: boolean | null; program: GroupProgram; occurrences: Occurrence[] };
+/** One weekday of a series: the rows of "Program săptămânal". `untilSeasonEnd` is true when `to` is the season's last day. */
+export type CoachProgramRule = {
+  eventId: string; day: DayKey; freq: RepeatFreq; weekOfMonth: WeekOfMonth | null; startTime: string; durationMin: number;
+  from: string; to: string; untilSeasonEnd: boolean; nextDate: string | null;
+};
+export type CoachProgram = { kind: SectionKind; editable: boolean; programPublic: boolean | null; program: GroupProgram; rules: CoachProgramRule[]; occurrences: Occurrence[] };
