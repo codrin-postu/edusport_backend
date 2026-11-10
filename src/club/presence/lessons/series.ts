@@ -77,7 +77,7 @@ export async function writeSeries(ctx: PresenceContext, plan: SeriesPlan, skipDa
       subjectType: SUBJECT.lesson, subjectId: id, action: P5_ACTIONS.lessonPlanned, changes: { date: written[i], startTime: rule.startTime, durationMin: rule.durationMin },
     })),
   ];
-  const guards = await Promise.all(lessonIds.map((id) => guardOf(ctx.store, 'lesson', id)));
+  const guards = await Promise.all([guardOf(ctx.store, 'lessonSeries', seriesId), ...lessonIds.map((id) => guardOf(ctx.store, 'lesson', id))]);
   return { seriesId, lessonIds, lines, guards, steps: [{ op: 'deleteLessonSeries', id: seriesId }, ...lessonIds.map((id): PresenceUndoStep => ({ op: 'deleteLesson', id }))] };
 }
 

@@ -5,6 +5,7 @@ import { readActionId } from '../groups/undo-service';
 import type { PresenceContext } from './context';
 import { PRESENCE_ERRORS } from './copy';
 import { guardOf } from './action-log';
+import { conflictOf } from './lessons/conflict';
 import { overpayRefusal } from './payments/common';
 import { paymentForOf } from './payments/rules';
 import type { PresenceStore } from './store';
@@ -12,12 +13,10 @@ import { readViewUndo } from '../tables/views-undo';
 import { presenceLockTargets, readPresenceRecord, type PresenceUndoRecord, type PresenceUndoStep } from './undo';
 
 /** POST /club/undo body `{ actionId }` for a presence action: the toast's "Anulează" (spec 7.3). */
-type Run<K extends PresenceUndoStep['op']> = (store: PresenceStore, step: Extract<PresenceUndoStep, { op: K }>) => Promise<void>;
+/** Lessons put back by this undo: the id they had, then the id they have now (a series relinks by the old one). One map per undo. */
+type PutBack = Map<string, string>;
+type Run<K extends PresenceUndoStep['op']> = (store: PresenceStore, step: Extract<PresenceUndoStep, { op: K }>, put: PutBack) => Promise<void>;
 type Runners = { [K in PresenceUndoStep['op']]: Run<K> };
-/** Lessons put back by this undo: the id they had, then the id they have now (a series relinks by the old one). */
-const PUT_BACK = new WeakMap<PresenceStore, Map<string, string>>();
-const putBack = (s: PresenceStore): Map<string, string> => PUT_BACK.get(s) ?? PUT_BACK.set(s, new Map()).get(s)!;
-
 const RUN: Runners = {
   deleteSubscription: (s, st) => s.deleteSubscription(st.id),
   setSubscription: (s, st) => s.updateSubscription(st.id, st.values),
@@ -31,20 +30,20 @@ const RUN: Runners = {
     if ((await s.sentPaymentEmailJobs(st.paymentId)) > 0) throw new Error('the e-mail of this payment is already being sent');
   },
   deleteLesson: (s, st) => s.deleteLesson(st.id),
-  createLesson: async (s, st) => {
+  createLesson: async (s, st, put) => {
     const id = await s.createLesson(st.row);
-    if (st.was) putBack(s).set(st.was, id);
+    if (st.was) put.set(st.was, id);
   },
   setLesson: (s, st) => s.updateLesson(st.id, st.values),
   deleteLessonSeries: (s, st) => s.deleteLessonSeries(st.id),
   setLessonSeries: (s, st) => s.updateLessonSeries(st.id, { to: st.to }),
-  createLessonSeries: async (s, st) => {
+  createLessonSeries: async (s, st, put) => {
     const id = await s.createLessonSeries(st.row);
-    for (const old of st.lessonIds) await s.updateLesson(putBack(s).get(old) ?? old, { seriesId: id });
+    for (const old of st.lessonIds) await s.updateLesson(put.get(old) ?? old, { seriesId: id });
   },
 };
 
-const runStep = (store: PresenceStore, step: PresenceUndoStep): Promise<void> => (RUN[step.op] as (s: PresenceStore, st: PresenceUndoStep) => Promise<void>)(store, step);
+const runStep = (store: PresenceStore, step: PresenceUndoStep, put: PutBack): Promise<void> => (RUN[step.op] as (s: PresenceStore, st: PresenceUndoStep, p: PutBack) => Promise<void>)(store, step, put);
 
 /** 'presence' or 'table-view' when the entry carries that undo record; anything else (or no entry) is left to the phase 4 undo. */
 export async function undoKindOf(store: Pick<PresenceStore, 'historyEntry'>, body: unknown): Promise<'presence' | 'table-view' | 'other'> {
@@ -72,6 +71,16 @@ async function lockAll(store: PresenceStore, record: PresenceUndoRecord, actionI
 async function athletesExist(store: PresenceStore, record: PresenceUndoRecord): Promise<boolean> {
   for (const id of presenceLockTargets(record).athletes) if (!(await store.athlete(id))) return false;
   return true;
+}
+
+/** A lesson a cut put back must not now overlap another lesson of the athlete (the rows this same undo deletes do not count). */
+async function restoredConflict(store: PresenceStore, record: PresenceUndoRecord): Promise<boolean> {
+  const ignore = new Set(record.steps.flatMap((s) => (s.op === 'deleteLesson' ? [s.id] : [])));
+  for (const step of record.steps) {
+    if (step.op !== 'createLesson' || !step.was) continue;
+    if (conflictOf(await store.lessons({ athleteId: step.row.athleteId }), step.row.date, step.row.startTime, step.row.durationMin, ignore)) return true;
+  }
+  return false;
 }
 
 async function guardsHold(store: PresenceStore, record: PresenceUndoRecord): Promise<boolean> {
@@ -115,12 +124,11 @@ async function undoLocked(ctx: PresenceContext, actionId: string): Promise<Admin
   await lockAll(ctx.store, record, actionId);
   const entry = await ctx.store.historyEntry(actionId);
   if (!entry) return refuse(404, PRESENCE_ERRORS.notFound);
-  if (isUndone(entry) || !(await athletesExist(ctx.store, record)) || !(await guardsHold(ctx.store, record))) return refuse(409, PRESENCE_ERRORS.undoChanged);
+  if (isUndone(entry) || !(await athletesExist(ctx.store, record)) || !(await guardsHold(ctx.store, record)) || (await restoredConflict(ctx.store, record))) return refuse(409, PRESENCE_ERRORS.undoChanged);
   const over = await restoredOverpay(ctx.store, record);
   if (over !== null) return refuse(400, over);
-  putBack(ctx.store).clear();
-  for (const step of [...record.steps].reverse()) await runStep(ctx.store, step);
-  putBack(ctx.store).clear();
+  const put: PutBack = new Map();
+  for (const step of [...record.steps].reverse()) await runStep(ctx.store, step, put);
   await writeUndone(ctx, entry, record);
   return { ok: true, data: { undone: true } };
 }

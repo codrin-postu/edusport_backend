@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { athleteRow, fakeClubStore } from '../../../athletes/__tests__/fake-store';
 import { SUBJECT } from '../../../history-text';
 import { anonymizeAthlete, type AnonymizeContext } from '../../../personal-data/anonymize-service';
-import { attendanceRow, fakePresenceStore, lessonRow, paymentRow, sessionRow, subscriptionRow } from '../../__tests__/fake-store';
+import { attendanceRow, fakePresenceStore, lessonRow, lessonSeriesRow, paymentRow, sessionRow, subscriptionRow } from '../../__tests__/fake-store';
 import { scrubPaymentChanges } from '../anonymize-rows';
 
 const AT = '2026-10-20T10:00:00.000Z';
@@ -26,7 +26,7 @@ function setup() {
   const pres = fakePresenceStore({
     sessions: [sessionRow({ id: 's1' })],
     attendances: [attendanceRow({ id: 't1', sessionId: 's1', athleteId: 'a1', uniqueKey: 's1|a1' })],
-    lessons: [lessonRow({ id: 'l1', athleteId: 'a1' })],
+    lessons: [lessonRow({ id: 'l1', athleteId: 'a1', date: '2026-10-05' })],
     subscriptions: [subscriptionRow({ id: 'sub1', athleteId: 'a1' })],
     payments: [
       paymentRow({ id: 'p1', athleteId: 'a1', note: 'Plătit de bunica Vasilescu', subscriptionId: 'sub1', purpose: 'abonament' }),
@@ -55,6 +55,22 @@ describe('anonymize keeps money rows (4.21, p5 Q30)', () => {
     const snapshot = structuredClone([f.pres.state.attendances, f.pres.state.lessons, f.pres.state.subscriptions]);
     await anonymizeAthlete(f.ctx, 'a1');
     expect([f.pres.state.attendances, f.pres.state.lessons, f.pres.state.subscriptions]).toEqual(snapshot);
+  });
+
+  it('deletes the series and the planned unpaid lessons from today on; saved, paid, past and another child\'s lessons stay', async () => {
+    const f = setup();
+    f.pres.state.lessonSeries.push(lessonSeriesRow({ id: 'ls1', athleteId: 'a1' }), lessonSeriesRow({ id: 'ls2', athleteId: 'a2' }));
+    f.pres.state.lessons.push(
+      lessonRow({ id: 'f1', athleteId: 'a1', date: '2026-10-27', seriesId: 'ls1' }), lessonRow({ id: 'f2', athleteId: 'a1', date: '2026-11-03', seriesId: 'ls1' }),
+      lessonRow({ id: 'paid', athleteId: 'a1', date: '2026-11-10', seriesId: 'ls1' }), lessonRow({ id: 'done', athleteId: 'a1', date: '2026-11-12', state: 'saved', present: true }),
+      lessonRow({ id: 'other', athleteId: 'a2', date: '2026-11-03', seriesId: 'ls2' }),
+    );
+    f.pres.state.payments.push(paymentRow({ id: 'pl', athleteId: 'a1', purpose: 'lectie', lessonId: 'paid' }));
+    expect((await anonymizeAthlete(f.ctx, 'a1')).ok).toBe(true);
+    expect(f.pres.state.lessons.map((l) => l.id).sort()).toEqual(['done', 'l1', 'other', 'paid']);
+    expect(f.pres.state.lessons.find((l) => l.id === 'paid')?.seriesId).toBeNull();
+    expect(f.pres.state.lessonSeries.map((x) => x.id)).toEqual(['ls2']);
+    expect(f.pres.group.locks.filter((l) => l.startsWith('lesson'))).toEqual(['lessonSeries:ls1', 'lesson:f1', 'lesson:f2', 'lesson:paid']);
   });
 
   it('scrubs the child\'s payment e-mails: queued cancelled, sent kept, another child\'s untouched (P3C 4)', async () => {

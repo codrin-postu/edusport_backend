@@ -117,8 +117,11 @@ describe('the lessons that follow', () => {
     const paid = await seeded();
     paid.fake.state.payments.push(paymentRow({ id: 'p1', athleteId: 'a-club-1', purpose: 'lectie', lessonId: paid.at('2026-11-24'), amount: 80 }));
     expect((await planCoachLesson(paid, paid.at('2026-11-19'), form({ scope: 'following', repeat: thursdays }))).ok).toBe(true);
-    expect(datesOf(paid, paid.seriesId)).toEqual(['2026-11-10', '2026-11-12', '2026-11-17', '2026-11-24']);
+    expect(datesOf(paid, paid.seriesId)).toEqual(['2026-11-10', '2026-11-12', '2026-11-17']);
     expect(paid.fake.state.lessonSeries.find((s) => s.id === paid.seriesId)?.to).toBe('2026-11-18');
+    const tail = paid.fake.state.lessonSeries.find((s) => s.id !== paid.seriesId && s.from === '2026-11-24');
+    expect(tail).toMatchObject({ to: '2026-12-03', days: ['tue', 'thu'], startTime: '17:30' });
+    expect(paid.fake.state.lessons.find((l) => l.date === '2026-11-24')?.seriesId).toBe(tail?.id);
     const saved = await seeded();
     Object.assign(saved.fake.state.lessons.find((l) => l.date === TODAY)!, { state: 'saved', present: true, savedBy: 'x', savedAt: `${TODAY}T11:00:00.000Z` });
     const before = shape(saved);

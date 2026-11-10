@@ -34,8 +34,9 @@ export function readLessonRepeat(body: unknown): { ok: true; value: LessonRepeat
   if (r === undefined || r === null) return { ok: true, value: null };
   if (!isRecord(r)) return { ok: false };
   const freq = FREQS.find((f) => f === r.freq);
-  const days = Array.isArray(r.days) ? DAY_ORDER.filter((d) => (r.days as unknown[]).includes(d)) : [];
-  if (!freq || days.length === 0 || (r.until !== undefined && r.until !== null && !isIsoDate(r.until))) return { ok: false };
+  const asked = Array.isArray(r.days) ? (r.days as unknown[]) : [];
+  const days = DAY_ORDER.filter((d) => asked.includes(d));
+  if (!freq || days.length === 0 || asked.some((d) => !DAY_ORDER.includes(d as never)) || (r.until !== undefined && r.until !== null && !isIsoDate(r.until))) return { ok: false };
   const weekOfMonth = freq === 'monthly' ? (WEEKS.find((w) => w === r.weekOfMonth) ?? 'first') : null;
   return { ok: true, value: { freq, days: [...days], weekOfMonth, until: isIsoDate(r.until) ? r.until : null } };
 }

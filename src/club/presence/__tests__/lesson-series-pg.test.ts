@@ -4,7 +4,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { strapiPresenceStore } from '../strapi-store';
 import { fakePresenceStore } from './fake-store';
 import { athleteRow } from '../../groups/__tests__/fake-group-store';
+import { deleteLessonsFrom } from '../lessons/delete';
 import { createLessonSeries } from '../lessons/series';
+import { undoPresenceAction } from '../undo-service';
 import type { PresenceContext } from '../context';
 import { lessonOf, walkExpected, walkSeries } from './lesson-series-scenario';
 
@@ -19,6 +21,7 @@ describe.skipIf(!enabled)('lesson series on Postgres', () => {
   let strapi: Core.Strapi;
   let athleteId = '';
   let coachId = '';
+  let raceAthlete = '';
   beforeAll(async () => {
     strapi = await createStrapi(await compileStrapi()).load();
     athleteId = (await strapi.documents('api::athlete.athlete').create({ data: { name: 'Sportiv series PG', status: 'activ' } as never })).documentId;
@@ -60,5 +63,22 @@ describe.skipIf(!enabled)('lesson series on Postgres', () => {
     expect(results.map((r) => (r.ok ? 200 : r.status)).sort()).toEqual([200, 409]);
     expect(await ctx.store.lessons({ athleteId: athlete })).toHaveLength(8);
     expect(await ctx.store.lessonSeriesOf(athlete)).toHaveLength(1);
+    raceAthlete = athlete;
+  });
+
+  it('delete following cuts the series on Postgres (planCut reads by series and ids) and the undo puts it back', async () => {
+    const ctx: PresenceContext = {
+      store: strapiPresenceStore(strapi), actor: 'cut@example.com', today: '2026-11-10', now: () => new Date('2026-11-10T10:00:00.000Z'), log: () => undefined, paymentEmails: () => undefined,
+    };
+    const rows = (await ctx.store.lessons({ athleteId: raceAthlete })).sort((a, b) => a.date.localeCompare(b.date));
+    const cut = await deleteLessonsFrom(ctx, rows[2].id, coachId);
+    expect(cut).toMatchObject({ ok: true, data: { value: { count: 6 } } });
+    expect(await ctx.store.lessons({ athleteId: raceAthlete })).toHaveLength(2);
+    const [series] = await ctx.store.lessonSeriesOf(raceAthlete);
+    expect(series.to).toBe('2026-11-16');
+    const actionId = cut.ok ? cut.data.actionId : null;
+    expect((await undoPresenceAction(ctx, { actionId })).ok).toBe(true);
+    expect(await ctx.store.lessons({ athleteId: raceAthlete })).toHaveLength(8);
+    expect((await ctx.store.lessonSeriesOf(raceAthlete))[0].to).toBe('2026-12-03');
   });
 });

@@ -22,14 +22,14 @@ import type { CoachAthleteCard, CoachSearchRow } from './api-types';
 import { locationOfGroup } from './calendar';
 import { athleteCompetitions } from './competitions';
 import { forbidden, type CoachContexts, type CoachResult } from './context';
-import { groupAccess, ownAthlete, ownGroupIds } from './ownership';
+import { groupAccess, ownAthlete, ownGroupIds, visibleToCoach } from './ownership';
 import { cardRight } from './rules';
 import { coachAbonamentText } from './views';
 
 const SEARCH_MIN = 3;
 const SEARCH_MAX = 8;
 const NONE: AthleteValues = { name: null, birthDate: null, contactName: null, phone: null, email: null };
-const joinable = (a: AthleteRow): boolean => (a.status === 'nou' || a.status === 'activ') && !isAnonymized(a);
+const joinable = (a: AthleteRow): boolean => visibleToCoach(a);
 
 const plain = <T>(r: ActionResult<T>): AdminResult<T> => (r.ok === false ? r : { ok: true, data: r.data.value });
 

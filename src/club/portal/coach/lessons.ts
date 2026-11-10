@@ -14,6 +14,7 @@ import { PORTAL_ERRORS } from '../copy';
 import type { CoachLesson, CoachLessonCreated } from './api-types';
 import { forbidden, type CoachContexts, type CoachResult } from './context';
 import { canCoachCorrect } from '../window';
+import { visibleToCoach } from './ownership';
 import { lessonRight, type Right } from './rules';
 import { toCoachLesson, toLessonSeriesView } from './views';
 
@@ -23,9 +24,9 @@ const plain = <T>(r: ActionResult<T>): AdminResult<T> => (r.ok === false ? r : {
 const notFound = (): AdminResult<never> => refuse(404, PORTAL_ERRORS.notFound);
 
 /** A lesson is the coach's only while he is among its coaches; anything else answers 404, so the id tells nothing. */
-async function mine(c: CoachContexts, id: string): Promise<{ date: string; recorded: boolean; seriesId: string | null } | null> {
+async function mine(c: CoachContexts, id: string): Promise<{ date: string; recorded: boolean; seriesId: string | null; athleteId: string } | null> {
   const l = await c.presence.store.lesson(id);
-  return l && l.coachIds.includes(c.coach.teamMemberId) ? { date: l.date, recorded: l.state === 'saved', seriesId: l.seriesId } : null;
+  return l && l.coachIds.includes(c.coach.teamMemberId) ? { date: l.date, recorded: l.state === 'saved', seriesId: l.seriesId, athleteId: l.athleteId } : null;
 }
 
 const rightOf = (c: CoachContexts, l: { date: string; recorded: boolean }) => lessonRight({ listed: true, date: l.date, today: c.today, recorded: l.recorded });
@@ -57,8 +58,7 @@ export async function createCoachLesson(c: CoachContexts, body: unknown): Promis
   if (!b.coachIds.includes(c.coach.teamMemberId)) return forbidden(PORTAL_ERRORS.noAccess);
   if (repeat === null && !canCoachCorrect(b.date, c.today)) return forbidden(PORTAL_ERRORS.archived);
   if (repeat !== null && b.date < c.today) return refuse(400, PORTAL_ERRORS.invalid);
-  const athlete = await c.presence.store.athlete(b.athleteId);
-  if (!athlete || (athlete.status !== 'nou' && athlete.status !== 'activ')) return refuse(400, PORTAL_ERRORS.invalid);
+  if (!visibleToCoach(await c.presence.store.athlete(b.athleteId))) return refuse(400, PORTAL_ERRORS.invalid);
   return repeat === null ? createOne(c, body) : plain(await createLessonSeries(c.presence, { ...b, repeat }));
 }
 
@@ -71,7 +71,9 @@ export async function planCoachLesson(c: CoachContexts, id: string, body: unknow
   if (!b || b.date < c.today) return refuse(400, PORTAL_ERRORS.invalid);
   if (b.coachIds.length === 0) return refuse(400, ATTENDANCE_ERRORS.noCoach);
   if (!b.coachIds.includes(c.coach.teamMemberId)) return forbidden(PORTAL_ERRORS.noAccess);
-  return plain(await planLesson(c.presence, id, b));
+  const writesRows = b.repeat !== null && b.repeat !== undefined ? true : b.scope === 'following' && l.seriesId !== null;
+  if (writesRows && !visibleToCoach(await c.presence.store.athlete(l.athleteId))) return refuse(400, PORTAL_ERRORS.invalid);
+  return plain(await planLesson(c.presence, id, b, c.coach.teamMemberId));
 }
 
 export async function saveCoachLesson(c: CoachContexts, id: string, body: unknown): Promise<CoachResult<LessonSaved>> {
@@ -97,5 +99,5 @@ export async function deleteCoachLesson(c: CoachContexts, id: string, query: Rec
   if (!scope) return refuse(400, PORTAL_ERRORS.invalid);
   const right = rightOf(c, l);
   if (!right.delete) return refusalFor(right);
-  return plain(scope === 'following' ? await deleteLessonsFrom(c.presence, id) : await deleteLesson(c.presence, id));
+  return plain(scope === 'following' ? await deleteLessonsFrom(c.presence, id, c.coach.teamMemberId) : await deleteLesson(c.presence, id, c.coach.teamMemberId));
 }
