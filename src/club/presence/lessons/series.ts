@@ -50,27 +50,31 @@ export async function planSeries(ctx: PresenceContext, b: LessonBody, repeat: Le
 
 export type SeriesWritten = { seriesId: string; lessonIds: string[]; lines: Line[]; steps: PresenceUndoStep[]; guards: PresenceGuard[] };
 
-const plannedLesson = (ctx: PresenceContext, rule: LessonSeriesWrite, date: string, seriesId: string): LessonWrite => ({
-  athleteId: rule.athleteId, date, startTime: rule.startTime, durationMin: rule.durationMin, coachIds: [...rule.coachIds], state: 'planned', present: null,
-  priceListId: null, itemName: null, price: null, audience: null, amount: 0, createdByName: rule.createdByName, recordedAt: ctx.now().toISOString(), savedBy: null, savedAt: null, seriesId,
+type PlannedFields = Pick<LessonWrite, 'athleteId' | 'startTime' | 'durationMin' | 'coachIds' | 'createdByName' | 'seriesId'>;
+
+/** A lesson that is planned only: never held, never priced, whatever the date. */
+export const plannedLesson = (ctx: PresenceContext, f: PlannedFields, date: string): LessonWrite => ({
+  athleteId: f.athleteId, date, startTime: f.startTime, durationMin: f.durationMin, coachIds: [...f.coachIds], state: 'planned', present: null,
+  priceListId: null, itemName: null, price: null, audience: null, amount: 0, createdByName: f.createdByName, recordedAt: ctx.now().toISOString(), savedBy: null, savedAt: null, seriesId: f.seriesId,
 });
 
 /**
- * The series row, then one planned lesson per date: never held, never priced, whatever the date (so the due and money reads do not move). The athlete is locked
+ * The series row, then one planned lesson per date: never held, never priced, whatever the date (so the due and money reads do not move). `skipDate` is a date whose lesson already exists (the caller links it). The athlete is locked
  * by the caller; the rows go in after it, series first. `steps` undo from the last to the first: the lessons go, then the series.
  */
-export async function writeSeries(ctx: PresenceContext, plan: SeriesPlan): Promise<SeriesWritten> {
+export async function writeSeries(ctx: PresenceContext, plan: SeriesPlan, skipDate: string | null = null): Promise<SeriesWritten> {
   const { rule, dates } = plan;
   const seriesId = await ctx.store.createLessonSeries(rule);
   const lessonIds: string[] = [];
-  for (const date of dates) lessonIds.push(await ctx.store.createLesson(plannedLesson(ctx, rule, date, seriesId)));
+  const written = dates.filter((d) => d !== skipDate);
+  for (const date of written) lessonIds.push(await ctx.store.createLesson(plannedLesson(ctx, { ...rule, seriesId }, date)));
   const lines: Line[] = [
     {
       subjectType: SUBJECT.athlete, subjectId: rule.athleteId, action: P5_ACTIONS.lessonSeriesAdded,
       changes: { freq: rule.freq, days: rule.days, startTime: rule.startTime, durationMin: rule.durationMin, from: rule.from, to: rule.to, count: dates.length },
     },
     ...lessonIds.map((id, i): Line => ({
-      subjectType: SUBJECT.lesson, subjectId: id, action: P5_ACTIONS.lessonPlanned, changes: { date: dates[i], startTime: rule.startTime, durationMin: rule.durationMin },
+      subjectType: SUBJECT.lesson, subjectId: id, action: P5_ACTIONS.lessonPlanned, changes: { date: written[i], startTime: rule.startTime, durationMin: rule.durationMin },
     })),
   ];
   const guards = await Promise.all(lessonIds.map((id) => guardOf(ctx.store, 'lesson', id)));

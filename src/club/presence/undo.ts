@@ -21,7 +21,9 @@ export type PresenceUndoStep =
   | { op: 'deleteLessonSeries'; id: string }
   /** Recreates the rule and links `lessonIds` to it; the ids are the ones the lessons had (`was` of the `createLesson` steps put back before) or still have. */
   | { op: 'createLessonSeries'; row: LessonSeriesWrite; lessonIds: string[] }
-  | { op: 'setLessonSeries'; id: string; to: string };
+  | { op: 'setLessonSeries'; id: string; to: string }
+  /** A plan edit of one lesson put back (guarded by the lesson stamp). */
+  | { op: 'setLesson'; id: string; values: Partial<Pick<LessonWrite, 'date' | 'startTime' | 'durationMin' | 'coachIds' | 'seriesId'>> };
 export type GuardType = 'subscription' | 'payment' | 'lesson' | 'attendance' | 'acs';
 export type PresenceGuard = { type: GuardType; id: string; stamp: string | null };
 export type PresenceUndoRecord = { kind: 'presence'; steps: PresenceUndoStep[]; subjects: Subject[]; athletes: string[]; guards: PresenceGuard[] };
@@ -66,7 +68,7 @@ function stepTargets(step: PresenceUndoStep): Partial<Targets> {
     case 'deleteSubscription': case 'setSubscription': return { subscriptions: [step.id] };
     case 'deletePayment': case 'setPayment': return { payments: [step.id] };
     case 'cancelPaymentEmail': return { payments: [step.paymentId] };
-    case 'deleteLesson': return { lessons: [step.id] };
+    case 'deleteLesson': case 'setLesson': return { lessons: [step.id] };
     case 'createLesson': return { athletes: [step.row.athleteId] };
     case 'deleteLessonSeries': case 'setLessonSeries': return { series: [step.id] };
     case 'createLessonSeries': return { athletes: [step.row.athleteId] };

@@ -3,7 +3,9 @@ import type { ActionResult } from '../../groups/action-log';
 import { ATTENDANCE_ERRORS } from '../../presence/copy/attendance';
 import { createLesson } from '../../presence/lessons/create';
 import { deleteLesson } from '../../presence/lessons/delete';
-import { readLessonPatch } from '../../presence/lessons/input';
+import { readLessonPatch, readLessonPlan } from '../../presence/lessons/input';
+import { planLesson } from '../../presence/lessons/plan';
+import { PRESENCE_ERRORS } from '../../presence/copy';
 import { createLessonSeries, readRepeatingBody } from '../../presence/lessons/series';
 import { readLesson } from '../../presence/lessons/read';
 import { saveLesson } from '../../presence/lessons/save';
@@ -13,7 +15,7 @@ import type { CoachLesson, CoachLessonCreated } from './api-types';
 import { forbidden, type CoachContexts, type CoachResult } from './context';
 import { canCoachCorrect } from '../window';
 import { lessonRight, type Right } from './rules';
-import { toCoachLesson } from './views';
+import { toCoachLesson, toLessonSeriesView } from './views';
 
 /** A write answers the phase 5 data; a coach answer never carries `undo`. */
 const plain = <T>(r: ActionResult<T>): AdminResult<T> => (r.ok === false ? r : { ok: true, data: r.data.value });
@@ -21,9 +23,9 @@ const plain = <T>(r: ActionResult<T>): AdminResult<T> => (r.ok === false ? r : {
 const notFound = (): AdminResult<never> => refuse(404, PORTAL_ERRORS.notFound);
 
 /** A lesson is the coach's only while he is among its coaches; anything else answers 404, so the id tells nothing. */
-async function mine(c: CoachContexts, id: string): Promise<{ date: string; recorded: boolean } | null> {
+async function mine(c: CoachContexts, id: string): Promise<{ date: string; recorded: boolean; seriesId: string | null } | null> {
   const l = await c.presence.store.lesson(id);
-  return l && l.coachIds.includes(c.coach.teamMemberId) ? { date: l.date, recorded: l.state === 'saved' } : null;
+  return l && l.coachIds.includes(c.coach.teamMemberId) ? { date: l.date, recorded: l.state === 'saved', seriesId: l.seriesId } : null;
 }
 
 const rightOf = (c: CoachContexts, l: { date: string; recorded: boolean }) => lessonRight({ listed: true, date: l.date, today: c.today, recorded: l.recorded });
@@ -34,7 +36,10 @@ export async function readCoachLesson(c: CoachContexts, id: string): Promise<Adm
   if (!l) return notFound();
   const panel = await readLesson(c.presence.store, id);
   if (panel.ok === false) return panel;
-  return { ok: true, data: toCoachLesson(panel.data, { team: await c.presence.store.teamMembers(), right: rightOf(c, l), paid: !panel.data.deletable }) };
+  const row = l.seriesId ? await c.presence.store.lessonSeries(l.seriesId) : null;
+  const series = row ? toLessonSeriesView(row, await c.presence.store.seasons()) : null;
+  const planEditable = !l.recorded && l.date >= c.today;
+  return { ok: true, data: toCoachLesson(panel.data, { team: await c.presence.store.teamMembers(), right: rightOf(c, l), paid: !panel.data.deletable, series, planEditable }) };
 }
 
 /** A lesson write answers the new rows: one for a single lesson, the series' lessons for a repeat (`lessonId` is the first). */
@@ -55,6 +60,18 @@ export async function createCoachLesson(c: CoachContexts, body: unknown): Promis
   const athlete = await c.presence.store.athlete(b.athleteId);
   if (!athlete || (athlete.status !== 'nou' && athlete.status !== 'activ')) return refuse(400, PORTAL_ERRORS.invalid);
   return repeat === null ? createOne(c, body) : plain(await createLessonSeries(c.presence, { ...b, repeat }));
+}
+
+/** The plan of a lesson (date, time, duration, coaches) for it alone or for the ones that follow. Order of refusals: not mine 404, saved or past 409, body 400, coach missing 403. */
+export async function planCoachLesson(c: CoachContexts, id: string, body: unknown): Promise<CoachResult<CoachLessonCreated>> {
+  const l = await mine(c, id);
+  if (!l) return notFound();
+  if (l.recorded || l.date < c.today) return refuse(409, PRESENCE_ERRORS.stale);
+  const b = readLessonPlan(body);
+  if (!b || b.date < c.today) return refuse(400, PORTAL_ERRORS.invalid);
+  if (b.coachIds.length === 0) return refuse(400, ATTENDANCE_ERRORS.noCoach);
+  if (!b.coachIds.includes(c.coach.teamMemberId)) return forbidden(PORTAL_ERRORS.noAccess);
+  return plain(await planLesson(c.presence, id, b));
 }
 
 export async function saveCoachLesson(c: CoachContexts, id: string, body: unknown): Promise<CoachResult<LessonSaved>> {

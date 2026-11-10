@@ -26,6 +26,14 @@ describe('lesson series in the fake store', () => {
     expect((await f.store.lessons({ seriesId: sid })).map((l) => l.id)).toEqual([id]);
   });
 
+  it('deleting a series leaves its lessons, unlinked', async () => {
+    const f = fakePresenceStore(A);
+    const sid = await f.store.createLessonSeries(seriesRule('a1', 'tm-andreea'));
+    const id = await f.store.createLesson(lessonOf('a1', 'tm-andreea', '2026-11-10', sid));
+    await f.store.deleteLessonSeries(sid);
+    expect((await f.store.lesson(id))?.seriesId).toBeNull();
+  });
+
   it('the undo of a series create deletes its lessons, then the series', async () => {
     const f = fakePresenceContext(A);
     const actionId = await f.store.transaction(async () => {

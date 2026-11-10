@@ -12,7 +12,7 @@ const EXPECTED = [
   'POST /portal/coach/groups/:documentId/program', 'PUT /portal/coach/groups/:documentId/program-public', 'POST /portal/coach/groups/:documentId/members',
   'POST /portal/coach/groups/:documentId/members/:athleteId/move', 'POST /portal/coach/groups/:documentId/members/:athleteId/remove',
   'GET /portal/coach/session', 'POST /portal/coach/session/check', 'PUT /portal/coach/session',
-  'POST /portal/coach/lessons', 'GET /portal/coach/lessons/:documentId', 'PUT /portal/coach/lessons/:documentId', 'DELETE /portal/coach/lessons/:documentId',
+  'POST /portal/coach/lessons', 'PUT /portal/coach/lessons/:documentId/plan', 'GET /portal/coach/lessons/:documentId', 'PUT /portal/coach/lessons/:documentId', 'DELETE /portal/coach/lessons/:documentId',
   'GET /portal/coach/athletes/search', 'POST /portal/coach/athletes', 'GET /portal/coach/athletes/:documentId',
   'GET /portal/coach/history',
   'PUT /portal/coach/program/:eventId', 'POST /portal/coach/program/:eventId/end', 'DELETE /portal/coach/program/:eventId', 'PUT /portal/coach/program/:eventId/dates/:date',

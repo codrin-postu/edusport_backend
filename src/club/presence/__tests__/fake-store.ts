@@ -161,7 +161,11 @@ function fakeMoneyWrites(s: FakePresenceState, next: Next): K<'createLesson' | '
     deleteLesson: async (id) => { must(s.lessons, id, 'lesson'); s.lessons = s.lessons.filter((r) => r.id !== id); },
     createLessonSeries: async (d) => { const id = next('ls'); s.lessonSeries.push({ ...copy(d), id }); return id; },
     updateLessonSeries: async (id, d) => { Object.assign(must(s.lessonSeries, id, 'lesson series'), copy(defined(d))); },
-    deleteLessonSeries: async (id) => { must(s.lessonSeries, id, 'lesson series'); s.lessonSeries = s.lessonSeries.filter((r) => r.id !== id); },
+    deleteLessonSeries: async (id) => {
+      must(s.lessonSeries, id, 'lesson series');
+      s.lessonSeries = s.lessonSeries.filter((r) => r.id !== id);
+      for (const l of s.lessons) if (l.seriesId === id) l.seriesId = null; // the link row goes with the series, the lesson stays
+    },
     createSubscription: async (d, code) => { const id = next('sub'); s.subscriptions.push({ ...copy(d), id, code }); return id; },
     updateSubscription: async (id, d) => { Object.assign(must(s.subscriptions, id, 'subscription'), copy(defined(d))); },
     deleteSubscription: async (id) => { must(s.subscriptions, id, 'subscription'); s.subscriptions = s.subscriptions.filter((r) => r.id !== id); },

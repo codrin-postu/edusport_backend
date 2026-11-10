@@ -3,7 +3,7 @@ import { isRecord } from '../../narrow';
 import { isDuration, isTime } from '../attendance/view';
 import type { LessonBody, LessonPatch } from '../attendance/api-types';
 import { DAY_ORDER } from '../../groups/program-text';
-import type { LessonRepeat } from '../../portal/coach/api-types';
+import type { CoachLessonPlanBody, LessonRepeat } from '../../portal/coach/api-types';
 
 const readCoachIds = (v: unknown): string[] | null =>
   Array.isArray(v) && v.every((x) => typeof x === 'string' && x !== '') ? [...new Set(v as string[])] : null;
@@ -38,4 +38,14 @@ export function readLessonRepeat(body: unknown): { ok: true; value: LessonRepeat
   if (!freq || days.length === 0 || (r.until !== undefined && r.until !== null && !isIsoDate(r.until))) return { ok: false };
   const weekOfMonth = freq === 'monthly' ? (WEEKS.find((w) => w === r.weekOfMonth) ?? 'first') : null;
   return { ok: true, value: { freq, days: [...days], weekOfMonth, until: isIsoDate(r.until) ? r.until : null } };
+}
+
+/** The plan form of a lesson: date, time, duration, coaches, scope (one or following) and an optional repeat; null when malformed. An empty coach list is read, the writer refuses it. */
+export function readLessonPlan(body: unknown): CoachLessonPlanBody | null {
+  if (!isRecord(body)) return null;
+  const coachIds = readCoachIds(body.coachIds);
+  const repeat = readLessonRepeat(body);
+  if (!isIsoDate(body.date) || !isTime(body.startTime) || !isDuration(body.durationMin) || !coachIds || !repeat.ok) return null;
+  if (body.scope !== 'one' && body.scope !== 'following') return null;
+  return { date: body.date, startTime: body.startTime, durationMin: body.durationMin, coachIds, scope: body.scope, repeat: repeat.value };
 }

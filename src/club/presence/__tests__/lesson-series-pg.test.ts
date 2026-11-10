@@ -6,7 +6,7 @@ import { fakePresenceStore } from './fake-store';
 import { athleteRow } from '../../groups/__tests__/fake-group-store';
 import { createLessonSeries } from '../lessons/series';
 import type { PresenceContext } from '../context';
-import { walkExpected, walkSeries } from './lesson-series-scenario';
+import { lessonOf, walkExpected, walkSeries } from './lesson-series-scenario';
 
 /**
  * Runs only with PRESENCE_PG_TEST=1 and DATABASE_* pointing at a throwaway Postgres 16 (never a shared database), as history-pg.test.ts does:
@@ -41,8 +41,11 @@ describe.skipIf(!enabled)('lesson series on Postgres', () => {
     });
     await store.transaction(() => store.lockLessonSeries(id));
     expect((await store.lessonSeries(id))?.freq).toBe('biweekly');
+    const lessonId = await store.createLesson(lessonOf(athleteId, coachId, '2026-11-10', id));
+    expect((await store.lesson(lessonId))?.seriesId).toBe(id);
     await store.deleteLessonSeries(id);
     expect(await store.lessonSeries(id)).toBeNull();
+    expect((await store.lesson(lessonId))?.seriesId).toBeNull();
   });
 
   it('two series for the same athlete and dates at once: one is written, the other answers 409 and leaves nothing', async () => {
