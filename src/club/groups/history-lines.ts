@@ -32,7 +32,7 @@ const nameOf = (c: Changes, names: Names): string => names[text(c.athleteId)] ??
 
 function asSeries(v: unknown): SeriesText | null {
   if (!isRecord(v) || !Array.isArray(v.days) || typeof v.startTime !== 'string' || typeof v.from !== 'string') return null;
-  return { freq: v.freq === 'biweekly' || v.freq === 'monthly' ? v.freq : 'weekly', days: v.days, startTime: v.startTime, durationMin: num(v.durationMin), from: v.from };
+  return { freq: v.freq === 'biweekly' || v.freq === 'monthly' ? v.freq : 'weekly', days: v.days, startTime: v.startTime, durationMin: num(v.durationMin), from: v.from, ...(typeof v.to === 'string' ? { to: v.to } : {}) };
 }
 
 const withSeries = (v: unknown, line: (s: SeriesText) => string): string[] => {

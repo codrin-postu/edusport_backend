@@ -7,7 +7,7 @@ import type { RepeatFreq } from './series';
 import type { DayKey, EventRecord, EventWrite, ExceptionRow, GroupRecord, Recurrence, SeasonRecord, WeekOfMonth } from './types';
 
 /** The group program rules (spec 3.3, 3.4, 6.3, W10, W12). Pure. */
-export type SeriesInput = { freq: RepeatFreq; weekOfMonth: WeekOfMonth | null; days: DayKey[]; startTime: string; durationMin: number; from: string };
+export type SeriesInput = { freq: RepeatFreq; weekOfMonth: WeekOfMonth | null; days: DayKey[]; startTime: string; durationMin: number; from: string; until: string | null };
 export type ClassInput = { date: string; startTime: string; durationMin: number; note: string | null };
 export type ProgramInput = { repeat: true; series: SeriesInput } | { repeat: false; one: ClassInput };
 export type DateMode = { mode: 'keep' } | { mode: 'cancel'; reason: string | null } | { mode: 'move'; newDate: string; newStartTime: string; reason: string | null } | { mode: 'remove' };
@@ -35,9 +35,10 @@ export function readSeriesInput(body: unknown): Read<SeriesInput> {
   const days = Array.isArray(b.days) ? DAY_ORDER.filter((d) => (b.days as unknown[]).includes(d)) : [];
   const times = readTimes(b);
   if (!freq || !isIsoDate(b.from) || times.ok === false) return invalid;
+  if (b.until !== undefined && b.until !== null && !isIsoDate(b.until)) return invalid;
   if (!days.length) return { ok: false, error: SCHEDULE_ERRORS.noDays };
   const weekOfMonth = freq === 'monthly' ? WEEKS.find((w) => w === b.weekOfMonth) ?? 'first' : null;
-  return { ok: true, value: { freq, weekOfMonth, days, ...times.value, from: b.from } };
+  return { ok: true, value: { freq, weekOfMonth, days, ...times.value, from: b.from, until: isIsoDate(b.until) ? b.until : null } };
 }
 
 function readClassInput(b: Body): Read<ClassInput> {
@@ -78,15 +79,15 @@ export const seasonOf = (seasons: SeasonRecord[], date: string): SeasonRecord | 
 /** W9: school groups write `scoala`, Club groups `curs`. */
 export const eventType = (kind: 'school' | 'club'): string => (kind === 'school' ? 'scoala' : 'curs');
 
-export const inputText = (s: SeriesInput): SeriesText => ({ freq: s.freq, days: s.days, startTime: s.startTime, durationMin: s.durationMin, from: s.from });
+export const inputText = (s: SeriesInput): SeriesText => ({ freq: s.freq, days: s.days, startTime: s.startTime, durationMin: s.durationMin, from: s.from, ...(s.until ? { to: s.until } : {}) });
 
 const seriesRecurrence = (s: SeriesInput, seasonEnd: string): Recurrence => ({
   freq: s.freq, days: s.days, weekOfMonth: s.weekOfMonth, startTime: s.startTime, endTime: addMinutes(s.startTime, s.durationMin), singleDate: null, seasonStart: s.from, seasonEnd,
 });
 
-/** A new series: from "Se aplică din" to the last day of that season (W10), titled with the group name (W9). */
+/** A new series: from "Se aplică din" to "Până la" or the last day of that season (W10), titled with the group name (W9). */
 export const seriesWrite = (group: GroupRecord, type: string, s: SeriesInput, seasonEnd: string): EventWrite => ({
-  title: group.name, type, description: null, groupId: group.id, recurrence: seriesRecurrence(s, seasonEnd), exceptions: [],
+  title: group.name, type, description: null, groupId: group.id, recurrence: seriesRecurrence(s, s.until ?? seasonEnd), exceptions: [],
 });
 
 /** One class: its note is the event description (6.3). */

@@ -47,6 +47,7 @@ async function addLocked(ctx: GroupContext, groupId: string, input: ProgramInput
   const placed = await placeOn(ctx.store, groupId, date);
   if (placed.ok === false) return placed;
   const { group, section, season } = placed.data;
+  if (input.repeat === true && input.series.until && (input.series.until < input.series.from || input.series.until > seasonBounds(season).end)) return refuse(400, GROUP_ERRORS.invalid);
   const type = eventType(section.kind);
   const write = input.repeat === true ? seriesWrite(group, type, input.series, seasonBounds(season).end) : classWrite(group, type, input.one);
   const eventId = await ctx.store.createEvent(write);
