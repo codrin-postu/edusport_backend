@@ -52,12 +52,12 @@ describe('readCoachGroupPage', () => {
     expect(out).toMatchObject({ ok: true, data: { own: true, kind: 'school', programPublic: null } });
   });
 
-  it('another group has members null and only the slots of the last 7 days, newest first', async () => {
+  it('another group has read-only names and ages and only the slots of the last 7 days, newest first', async () => {
     const out = await readCoachGroupPage(coachCtx('tm-andreea'), 'g-club-b');
     expect(out).toEqual({
       ok: true,
       data: {
-        groupId: 'g-club-b', name: 'Club B', kind: 'club', own: false, coaches: ['Virgil Pascu'], program: ['Mi, Vi 18:00'], members: null, programPublic: null, location: null,
+        groupId: 'g-club-b', name: 'Club B', kind: 'club', own: false, coaches: ['Virgil Pascu'], program: ['Mi, Vi 18:00'], members: [{ name: 'Eva Cealaltă', age: 15 }], membersReadOnly: true, programPublic: null, location: null,
         todayKey: 'ev-g-club-b|2026-11-20|18:00',
         standIn: [
           { occurrenceKey: 'ev-g-club-b|2026-11-20|18:00', date: '2026-11-20', startTime: '18:00' },
@@ -69,12 +69,29 @@ describe('readCoachGroupPage', () => {
     expect(forbiddenKeysIn(out)).toEqual([]);
   });
 
+  it('another group lists names and ages only: no ids, contacts or notes, sorted by name, today-running members only', async () => {
+    const c = coachCtx('tm-andreea');
+    c.fake.group.memberships.push(member({ id: 'gm-b2', athleteId: 'a-club-1', groupId: 'g-club-b' }), member({ id: 'gm-b3', athleteId: 'a-club-2', groupId: 'g-club-b', to: '2026-11-01' }));
+    const out = await readCoachGroupPage(c, 'g-club-b');
+    if (!out.ok) throw new Error('refused');
+    expect(out.data.membersReadOnly).toBe(true);
+    expect(out.data.members).toEqual([{ name: 'Ana Club', age: 14 }, { name: 'Eva Cealaltă', age: 15 }]);
+    out.data.members.forEach((m) => expect(Object.keys(m).sort()).toEqual(['age', 'name']));
+    expect(forbiddenKeysIn(out)).toEqual([]);
+    expect(JSON.stringify(out)).not.toMatch(/athleteId|a-b-1|Părinte Secret|0722000111|copil@example/);
+  });
+
+  it('an own group is not read only', async () => {
+    const out = await readCoachGroupPage(coachCtx('tm-andreea'), 'g-club-a');
+    expect(out).toMatchObject({ ok: true, data: { membersReadOnly: false } });
+  });
+
   it('losing the coach link turns the page into another group page, read on each request', async () => {
     const c = coachCtx('tm-andreea');
     expect(await readCoachGroupPage(c, 'g-club-a')).toMatchObject({ data: { own: true } });
     c.fake.group.groups.find((g) => g.id === 'g-club-a')!.coachIds = ['tm-virgil'];
     const out = await readCoachGroupPage(c, 'g-club-a');
-    expect(out).toMatchObject({ ok: true, data: { own: false, members: null } });
+    expect(out).toMatchObject({ ok: true, data: { own: false, membersReadOnly: true } });
   });
 
   it('an unknown or inactive group answers 404', async () => {
