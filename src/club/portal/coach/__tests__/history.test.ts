@@ -3,7 +3,8 @@ import { attendanceRow, lessonRow, sessionRow } from '../../../presence/__tests_
 import { readCoachPeriod } from '../../../presence/coaches/report';
 import { PORTAL_ERRORS } from '../../copy';
 import { readCoachHistory } from '../history';
-import { coachCtx } from './coach-seed';
+import { createCoachLesson, saveCoachLesson } from '../lessons';
+import { addOneOffClass, coachCtx } from './coach-seed';
 
 const ME = 'tm-andreea';
 
@@ -110,5 +111,25 @@ describe('not-done classes in the Istoric', () => {
     c.fake.state.startDate = null;
     const none = await readCoachHistory(c, '2026-11');
     expect(none.ok && none.data.rows.filter((x) => !x.done)).toEqual([]);
+  });
+});
+
+describe('repeating lessons and one-off classes in the Istoric', () => {
+  it('a saved series lesson counts in lessons, an unsaved past one-off class is listed as not done, a removed date is not', async () => {
+    const c = coachCtx(ME);
+    c.presence.now = () => new Date('2026-11-20T16:00:00.000Z');
+    const made = await createCoachLesson(c, { athleteId: 'a-club-1', date: '2026-11-20', startTime: '16:00', durationMin: 50, coachIds: [ME], repeat: { freq: 'weekly', days: ['fri'], until: '2026-11-20' } });
+    if (!made.ok) throw new Error('refused');
+    const before = await readCoachHistory(c, '2026-11');
+    const saved = await saveCoachLesson(c, made.data.lessonId, { present: true, durationMin: 50, coachIds: [ME] });
+    expect(saved.ok).toBe(true);
+    addOneOffClass(c, '2026-11-19');
+    c.fake.state.calendar.events.find((e) => e.documentId === 'ev-g-club-a')!.exceptions = [{ date: '2026-11-13', kind: 'sters' }];
+    const r = await readCoachHistory(c, '2026-11');
+    if (!r.ok || !before.ok) throw new Error('refused');
+    expect(r.data.lessons).toBe(before.data.lessons + 1);
+    const undone = r.data.rows.filter((x) => !x.done && x.name === 'Club A');
+    expect(undone.some((x) => x.date === '2026-11-19' && x.occurrenceKey?.endsWith('|2026-11-19|15:00'))).toBe(true);
+    expect(undone.some((x) => x.date === '2026-11-13')).toBe(false);
   });
 });

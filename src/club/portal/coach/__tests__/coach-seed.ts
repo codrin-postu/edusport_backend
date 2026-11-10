@@ -101,3 +101,12 @@ export function coachCtx(teamMemberId: string, today = '2026-11-20', over: FakeP
     portal: portalFake.store, portalFake, fake, clubFake: club, competitions: nullCoachCompetitions,
   };
 }
+
+/** A one-off class (`freq: 'none'`) of Club A in the presence calendar, as `addProgram` with `repeat: false` writes it; its occurrence key starts with `ev-one`. */
+export function addOneOffClass(c: CoachSeed, date: string, startTime = '15:00', endTime = '16:00'): void {
+  c.fake.state.calendar.events.push({
+    id: 99, documentId: 'ev-one', title: 'Club A', type: 'grupa',
+    recurrence: { freq: 'none', startTime, endTime, endsNextDay: false, singleDate: date, seasonStart: '2026-10-02', seasonEnd: '2027-05-31' } as CalendarEventRow['recurrence'],
+    exceptions: [], group: { documentId: 'g-club-a', name: 'Club A', active: true, programPublic: true },
+  });
+}

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { G_SEASONS, G_SECTIONS } from '../../groups/__tests__/fake-group-store';
+import { coachCtx } from '../../portal/coach/__tests__/coach-seed';
+import { createCoachLesson } from '../../portal/coach/lessons';
 import { readDue } from '../due/reads';
 import { athletePaymentOptions, athletePayments, listPayments, readPaymentQuery } from '../payments/reads';
 import type { AttendanceWrite, LessonRow, SessionRow } from '../types';
@@ -163,5 +165,18 @@ describe('money reads', () => {
     expect(due.school[0]).toMatchObject({ athleteName: 'Sofia Dinu', code: 'A-0125' });
     const options = await athletePaymentOptions(f.store, 'a1', '2026-11-20');
     expect(options?.some((o) => o.label.startsWith('A-0124, Abonament 8 ședințe (activ din'))).toBe(true);
+  });
+});
+
+describe('money reads and repeating lessons', () => {
+  it('a series of future lessons moves no due, payment or athlete tab', async () => {
+    const c = coachCtx('tm-andreea', '2026-11-10');
+    const store = c.presence.store;
+    const read = async () => [await readDue(store, '2026-11', c.today), await readDue(store, '2026-12', c.today),
+      await listPayments(store, readPaymentQuery({ month: '2026-11' }, c.today), c.today), await athletePayments(store, 'a-club-1', c.today)];
+    const before = await read();
+    const made = await createCoachLesson(c, { athleteId: 'a-club-1', date: '2026-11-10', startTime: '17:30', durationMin: 45, coachIds: ['tm-andreea'], repeat: { freq: 'weekly', days: ['tue', 'thu'], until: '2026-12-03' } });
+    expect(made).toMatchObject({ ok: true, data: { count: 8 } });
+    expect(await read()).toEqual(before);
   });
 });

@@ -129,3 +129,21 @@ describe('window and ownership', () => {
     expect(await readCoachLesson(c, 'nope')).toEqual(NOT_FOUND);
   });
 });
+
+describe('series and planEditable on the lesson page', () => {
+  it('a series lesson carries its rule and is plan editable, a saved one is not, a plain one has no series', async () => {
+    const c = coachCtx(ME);
+    const made = await createCoachLesson(c, newBody({ date: '2026-11-24', repeat: { freq: 'weekly', days: ['tue', 'thu'], until: '2026-12-03' } }));
+    if (!made.ok) throw new Error('refused');
+    const read = await readCoachLesson(c, made.data.lessonId);
+    expect(read).toMatchObject({ ok: true, data: { planEditable: true, series: { seriesId: made.data.seriesId, freq: 'weekly', days: ['tue', 'thu'], from: '2026-11-24', to: '2026-12-03', untilSeasonEnd: false, startTime: '16:00', durationMin: 50 } } });
+    expect(forbiddenKeysIn(read)).toEqual([]);
+    const end = await createCoachLesson(c, newBody({ date: '2026-11-24', startTime: '19:00', repeat: { freq: 'weekly', days: ['tue'], until: null } }));
+    if (!end.ok) throw new Error('refused');
+    expect(await readCoachLesson(c, end.data.lessonId)).toMatchObject({ data: { series: { untilSeasonEnd: true } } });
+    c.fake.state.lessons.push(lessonRow({ id: 'l-saved', athleteId: 'a-club-1', date: '2026-11-18', coachIds: [ME], state: 'saved', present: true, seriesId: made.data.seriesId }));
+    expect(await readCoachLesson(c, 'l-saved')).toMatchObject({ ok: true, data: { planEditable: false, series: { seriesId: made.data.seriesId } } });
+    c.fake.state.lessons.push(lessonRow({ id: 'l-plain', athleteId: 'a-club-1', date: '2026-12-01', coachIds: [ME] }));
+    expect(await readCoachLesson(c, 'l-plain')).toMatchObject({ ok: true, data: { series: null, planEditable: true } });
+  });
+});
