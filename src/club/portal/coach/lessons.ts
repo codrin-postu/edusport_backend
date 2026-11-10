@@ -3,12 +3,13 @@ import type { ActionResult } from '../../groups/action-log';
 import { ATTENDANCE_ERRORS } from '../../presence/copy/attendance';
 import { createLesson } from '../../presence/lessons/create';
 import { deleteLesson } from '../../presence/lessons/delete';
-import { readLessonBody, readLessonPatch } from '../../presence/lessons/input';
+import { readLessonPatch } from '../../presence/lessons/input';
+import { createLessonSeries, readRepeatingBody } from '../../presence/lessons/series';
 import { readLesson } from '../../presence/lessons/read';
 import { saveLesson } from '../../presence/lessons/save';
 import type { LessonSaved } from '../../presence/attendance/api-types';
 import { PORTAL_ERRORS } from '../copy';
-import type { CoachLesson } from './api-types';
+import type { CoachLesson, CoachLessonCreated } from './api-types';
 import { forbidden, type CoachContexts, type CoachResult } from './context';
 import { canCoachCorrect } from '../window';
 import { lessonRight, type Right } from './rules';
@@ -36,15 +37,24 @@ export async function readCoachLesson(c: CoachContexts, id: string): Promise<Adm
   return { ok: true, data: toCoachLesson(panel.data, { team: await c.presence.store.teamMembers(), right: rightOf(c, l), paid: !panel.data.deletable }) };
 }
 
-export async function createCoachLesson(c: CoachContexts, body: unknown): Promise<CoachResult<LessonSaved>> {
-  const b = readLessonBody(body);
-  if (!b) return refuse(400, PORTAL_ERRORS.invalid);
+/** A lesson write answers the new rows: one for a single lesson, the series' lessons for a repeat (`lessonId` is the first). */
+async function createOne(c: CoachContexts, body: unknown): Promise<CoachResult<CoachLessonCreated>> {
+  const made = plain(await createLesson(c.presence, body, { checkConflict: true }));
+  if (made.ok === false) return made;
+  return { ok: true, data: { lessonId: made.data.lessonId, seriesId: null, count: 1, toast: made.data.toast } };
+}
+
+export async function createCoachLesson(c: CoachContexts, body: unknown): Promise<CoachResult<CoachLessonCreated>> {
+  const read = readRepeatingBody(body);
+  if (!read) return refuse(400, PORTAL_ERRORS.invalid);
+  const { lesson: b, repeat } = read;
   if (b.coachIds.length === 0) return refuse(400, ATTENDANCE_ERRORS.noCoach);
   if (!b.coachIds.includes(c.coach.teamMemberId)) return forbidden(PORTAL_ERRORS.noAccess);
-  if (!canCoachCorrect(b.date, c.today)) return forbidden(PORTAL_ERRORS.archived);
+  if (repeat === null && !canCoachCorrect(b.date, c.today)) return forbidden(PORTAL_ERRORS.archived);
+  if (repeat !== null && b.date < c.today) return refuse(400, PORTAL_ERRORS.invalid);
   const athlete = await c.presence.store.athlete(b.athleteId);
   if (!athlete || (athlete.status !== 'nou' && athlete.status !== 'activ')) return refuse(400, PORTAL_ERRORS.invalid);
-  return plain(await createLesson(c.presence, body));
+  return repeat === null ? createOne(c, body) : plain(await createLessonSeries(c.presence, { ...b, repeat }));
 }
 
 export async function saveCoachLesson(c: CoachContexts, id: string, body: unknown): Promise<CoachResult<LessonSaved>> {

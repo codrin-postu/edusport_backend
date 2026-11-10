@@ -60,6 +60,9 @@ export type CoachLesson = {
   lessonId: string; athleteId: string; athleteName: string; date: string; startTime: string; durationMin: number; coachIds: string[];
   coachOptions: { id: string; name: string }[]; state: LessonState; present: boolean | null; savedLine: string | null; editable: boolean; archived: boolean; deletable: boolean;
 };
+export type LessonRepeat = { freq: RepeatFreq; days: DayKey[]; weekOfMonth?: WeekOfMonth | null; until: string | null };
+/** `lessonId` is the first lesson written; `count` the lessons written (1 for a single lesson). */
+export type CoachLessonCreated = { lessonId: string; seriesId: string | null; count: number; toast: string };
 export type CoachSearchRow = { athleteId: string; name: string; age: number | null };
 export type CoachNewAthleteBody = { groupId: string; name: string; birthDate?: string | null; contactName?: string | null; phone?: string | null; email?: string | null };
 export type CoachCompetitionMember = { athleteId: string; name: string; category: string; placement: number | null; total: number | null };

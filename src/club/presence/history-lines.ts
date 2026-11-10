@@ -1,5 +1,6 @@
 import { GROUP_LINES } from '../groups/copy';
-import { isIsoDate } from '../groups/dates';
+import { isIsoDate, shortDate } from '../groups/dates';
+import { programLine, programLineFrom, type SeriesText } from '../groups/program-text';
 import { isRecord } from '../narrow';
 import { SUBJECT } from '../subjects';
 import { quotedChange } from '../text-leaf';
@@ -26,6 +27,8 @@ export const P5_ACTIONS = {
   lessonSaved: 'lesson-saved',
   lessonEdited: 'lesson-edited',
   lessonDeleted: 'lesson-deleted',
+  lessonSeriesAdded: 'lesson-series-added',
+  lessonSeriesEnded: 'lesson-series-ended',
 } as const;
 
 type Changes = Record<string, unknown>;
@@ -41,6 +44,16 @@ const yesNo = (v: unknown): string => (v === true ? 'Da' : v === false ? 'Nu' : 
 const namesOf = (ids: unknown, names: Names): string[] => strs(ids).map((id) => (has(names, id) ? names[id] : GROUP_LINES.deletedAthlete));
 const nameList = (ids: unknown, names: Names): string => namesOf(ids, names).join(', ');
 const coachList = (ids: unknown, names: Names): string => strs(ids).map((id) => (has(names, id) ? names[id] : PRESENCE_LINES.deletedCoach)).join(', ');
+
+const FREQS = ['weekly', 'biweekly', 'monthly'] as const;
+const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+/** The rule a series line carries: freq, days, startTime, durationMin, from and (when kept) to; a malformed one reads as empty. */
+function ruleOf(c: Changes): SeriesText {
+  return {
+    freq: FREQS.find((f) => f === c.freq) ?? 'weekly', days: strs(c.days).flatMap((d) => DAYS.find((x) => x === d) ?? []), startTime: text(c.startTime), durationMin: num(c.durationMin),
+    from: text(c.from), ...(typeof c.to === 'string' && c.to ? { to: c.to } : {}),
+  };
+}
 
 function sessionCorrected(c: Changes, _s: string, names: Names): string[] {
   return [PRESENCE_LINES.sessionCorrected({ added: namesOf(c.added, names), removed: namesOf(c.removed, names), uscat: namesOf(c.uscat, names) })];
@@ -104,6 +117,8 @@ const RENDER: Readonly<Record<string, Render>> = {
   [P5_ACTIONS.lessonSaved]: (c) => [PRESENCE_LINES.lessonSaved(c.present === true)],
   [P5_ACTIONS.lessonEdited]: (c, _s, names) => fieldLines(c, LESSON_FIELD_LABELS, lessonValue(names)),
   [P5_ACTIONS.lessonDeleted]: () => [PRESENCE_LINES.lessonDeleted],
+  [P5_ACTIONS.lessonSeriesAdded]: (c) => [PRESENCE_LINES.lessonSeriesAdded(programLineFrom(ruleOf(c)), num(c.count))],
+  [P5_ACTIONS.lessonSeriesEnded]: (c) => [PRESENCE_LINES.lessonSeriesEnded(shortDate(text(c.endedFrom)), programLine(ruleOf(c)))],
 };
 
 /** The lines of a phase 5 action; null when the action is not one. */

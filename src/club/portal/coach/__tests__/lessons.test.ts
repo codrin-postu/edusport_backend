@@ -34,7 +34,7 @@ describe('create and read', () => {
   it('creates with the coach name, answers without undo, and reads back without money keys', async () => {
     const c = coachCtx(ME);
     const made = await createCoachLesson(c, newBody());
-    expect(made).toMatchObject({ ok: true, data: { changed: true } });
+    expect(made).toMatchObject({ ok: true, data: { count: 1, seriesId: null, toast: 'Salvat.' } });
     expect(JSON.stringify(made)).not.toContain('actionId');
     const id = c.fake.state.lessons[0].id;
     expect(c.fake.state.lessons[0].createdByName).toBe('Antrenor Andreea Pascu');
@@ -43,6 +43,27 @@ describe('create and read', () => {
     expect(read).toMatchObject({ ok: true, data: { athleteName: 'Ana Club', state: 'planned', editable: true, deletable: true } });
     expect(forbiddenKeysIn(read)).toEqual([]);
     expect(forbiddenKeysIn(made)).toEqual([]);
+  });
+});
+
+describe('repeating lessons', () => {
+  const repeat = { freq: 'weekly', days: ['fri'], until: '2026-12-11' };
+  it('answers the new rows without undo or money keys', async () => {
+    const c = coachCtx(ME);
+    const made = await createCoachLesson(c, newBody({ date: '2026-11-27', repeat }));
+    expect(made).toMatchObject({ ok: true, data: { count: 3, seriesId: expect.any(String) } });
+    expect(Object.keys((made as { data: object }).data).sort()).toEqual(['count', 'lessonId', 'seriesId', 'toast']);
+    expect(forbiddenKeysIn(made)).toEqual([]);
+    expect(JSON.stringify(made)).not.toContain('actionId');
+  });
+
+  it('needs the coach, refuses a past start with 400 and a conflict with 409, and writes nothing then', async () => {
+    const c = coachCtx(ME);
+    expect(await createCoachLesson(c, newBody({ date: '2026-11-27', repeat, coachIds: ['tm-virgil'] }))).toEqual(NO_ACCESS);
+    expect(await createCoachLesson(c, newBody({ date: '2026-11-19', repeat }))).toMatchObject({ ok: false, status: 400 });
+    c.fake.state.lessons.push(lessonRow({ id: 'x', athleteId: 'a-club-1', date: '2026-12-04', startTime: '16:30', durationMin: 60 }));
+    expect(await createCoachLesson(c, newBody({ date: '2026-11-27', repeat }))).toEqual({ ok: false, status: 409, error: 'Sportivul are deja o lecție pe vineri, 4 dec, la 16:00.' });
+    expect([c.fake.state.lessons.length, c.fake.state.lessonSeries.length]).toEqual([1, 0]);
   });
 });
 

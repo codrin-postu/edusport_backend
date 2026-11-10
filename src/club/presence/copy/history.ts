@@ -34,6 +34,8 @@ export const PRESENCE_LINES = {
   lessonPlanned: (date: string, startTime: string, durationMin: number): string => `Lecție programată: ${date}, ${startTime}, ${durationMin} min.`,
   lessonSaved: (present: boolean): string => `Lecție salvată: ${present ? 'prezent' : 'absent'}.`,
   lessonDeleted: 'Lecție ștearsă.',
+  lessonSeriesAdded: (rule: string, count: number): string => `Lecții individuale programate: ${rule}, ${countWords(count, 'lecție', 'lecții')}.`,
+  lessonSeriesEnded: (from: string, rule: string): string => `Lecții individuale oprite din ${from}: ${rule}.`,
 };
 
 /** Labels of the changed fields of a payment and of a lesson (Istoric field lines). */

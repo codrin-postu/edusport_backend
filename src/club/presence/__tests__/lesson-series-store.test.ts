@@ -33,7 +33,7 @@ describe('lesson series in the fake store', () => {
       const ids = [await f.store.createLesson(lessonOf('a1', 'tm-andreea', '2026-11-10', sid)), await f.store.createLesson(lessonOf('a1', 'tm-andreea', '2026-11-12', sid))];
       return recordPresenceAction(f.store, 'admin@example.com', [{ subjectType: 'athlete', subjectId: 'a1', action: 'lesson-series-added' }], {
         athletes: ['a1'], guards: [await guardOf(f.store, 'lesson', ids[0]), await guardOf(f.store, 'lesson', ids[1])],
-        steps: [...ids.map((id) => ({ op: 'deleteLesson' as const, id })), { op: 'deleteLessonSeries' as const, id: sid }],
+        steps: [{ op: 'deleteLessonSeries' as const, id: sid }, ...ids.map((id) => ({ op: 'deleteLesson' as const, id }))],
       });
     });
     expect(f.state.lessonSeries).toHaveLength(1);
