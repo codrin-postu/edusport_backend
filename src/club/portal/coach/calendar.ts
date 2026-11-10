@@ -21,13 +21,13 @@ export async function locationsOf(c: CoachContexts, groups: GroupRecord[]): Prom
 }
 
 /** Own groups' classes (scheduled and cancelled) between two dates, plus saved stand-in sessions that list the coach, and the coach's lessons; by date, start time, group order. */
-export async function ownClassesBetween(c: CoachContexts, from: string, to: string): Promise<CoachCalendarItem[]> {
+export async function ownClassesBetween(c: CoachContexts, from: string, to: string, known?: Map<string, string | null>): Promise<CoachCalendarItem[]> {
   const store = c.presence.store;
   const ctx = await loadRowContext(store, c.today);
   const own = ownGroupIds(ctx.groups, c.coach.teamMemberId);
   const calendar = await store.calendarWindow();
   const durations = new Map(heldOccurrences(calendar, ctx.groups, from, to).map((h) => [h.key, h.durationMin]));
-  const locations = await locationsOf(c, ctx.groups);
+  const locations = known ?? await locationsOf(c, ctx.groups);
   const locationOf = async (g: GroupRecord | undefined): Promise<string | null> => (g ? locations.get(g.id) ?? null : null);
   const order = new Map<CoachCalendarItem, number>();
   const items: CoachCalendarItem[] = [];
