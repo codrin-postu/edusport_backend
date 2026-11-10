@@ -77,7 +77,7 @@ function rulesOf(program: NonNullable<Awaited<ReturnType<typeof readGroupProgram
       };
     });
   });
-  return rules.sort((a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day) || a.startTime.localeCompare(b.startTime));
+  return rules.sort((a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day) || a.startTime.localeCompare(b.startTime) || a.from.localeCompare(b.from));
 }
 
 export async function readCoachProgram(c: CoachContexts, groupId: string, month: unknown): Promise<AdminResult<CoachProgram>> {

@@ -116,3 +116,53 @@ describe('deleting a one-off class with presence (L3)', () => {
     expect((await deleteClass(b.ctx, 'o')).ok).toBe(true);
   });
 });
+
+describe('final review: a program that would be deleted keeps its presence (M1, L3, L4)', () => {
+  const FROM_TODAY: Recurrence = { ...FRIDAY, seasonStart: '2026-11-13' };
+  const seedToday = () => fakeContext({ events: [event({ id: 'ev', type: 'curs', groupId: 'g-av', title: 'Avansați', recurrence: FROM_TODAY })] }, '2026-11-13');
+  const weekly = { freq: 'weekly', days: ['fri'], startTime: '18:00', durationMin: 60, from: '2026-11-13' };
+
+  it('end from the first class date with presence saved there is 409 and writes nothing', async () => {
+    const { ctx, sessions, state } = seedToday();
+    sessions.push(session('s1', 'ev', '2026-11-13'));
+    const before = structuredClone(state.events);
+    expect(await endProgram(ctx, 'ev', { from: '2026-11-13' })).toEqual({ ok: false, status: 409, error: SESSION_MSG });
+    expect(state.events).toEqual(before);
+    expect(sessions[0].eventId).toBe('ev');
+  });
+
+  it('change from the first class date with presence saved there is 409 and writes nothing', async () => {
+    const { ctx, sessions, state } = seedToday();
+    sessions.push(session('s1', 'ev', '2026-11-13'));
+    const before = structuredClone(state.events);
+    expect(await changeProgram(ctx, 'ev', weekly)).toEqual({ ok: false, status: 409, error: SESSION_MSG });
+    expect(state.events).toEqual(before);
+  });
+
+  it('without presence the same end still works', async () => {
+    const { ctx } = seedToday();
+    expect((await endProgram(ctx, 'ev', { from: '2026-11-13' })).ok).toBe(true);
+  });
+
+  it('"Schimbă" history line does not show an until it ignored', async () => {
+    const { ctx, state } = seedFriday();
+    const res = await changeProgram(ctx, 'ev', { ...weekly, from: '2026-11-13', until: '2026-12-18' });
+    expect(res.ok).toBe(true);
+    expect(JSON.stringify(state.history.at(-1))).not.toContain('2026-12-18');
+  });
+
+  it('undo of "Ține" is refused once presence is saved on the date it would hide again', async () => {
+    const { ctx, sessions } = seedFriday();
+    await setDate(ctx, 'ev', '2026-11-20', { mode: 'remove' });
+    const kept = await setDate(ctx, 'ev', '2026-11-20', { mode: 'keep' });
+    sessions.push(session('s1', 'ev', '2026-11-20'));
+    expect(await undoAction(ctx, { actionId: kept.ok ? kept.data.actionId : null })).toMatchObject({ ok: false, status: 409 });
+  });
+
+  it('undo of "Mută" is refused once presence is saved on the new date', async () => {
+    const { ctx, sessions } = seedFriday();
+    const moved = await setDate(ctx, 'ev', '2026-11-13', move);
+    sessions.push(session('s1', 'ev', '2026-11-15'));
+    expect(await undoAction(ctx, { actionId: moved.ok ? moved.data.actionId : null })).toMatchObject({ ok: false, status: 409 });
+  });
+});

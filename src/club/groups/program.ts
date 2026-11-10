@@ -126,6 +126,10 @@ async function moveSessions(ctx: GroupContext, before: EventSession[], from: str
   }
 }
 
+/** The old event is deleted and a saved session of it would be left on no event: the program cannot go (a one-off class is refused the same way). */
+const orphans = (sessions: EventSession[], from: string, targets: Target[]): boolean =>
+  sessions.some((s) => s.date < from || !targets.some((t) => heldBy(t, s.date, s.startTime)));
+
 /** `day` is absent (the whole event) or a weekday key; anything else is invalid. */
 const dayOf = (body: unknown): { ok: true; day: DayKey | null } | { ok: false } => {
   const raw = isRecord(body) ? body.day : undefined;
@@ -148,11 +152,13 @@ async function changeLocked(ctx: GroupContext, eventId: string, body: unknown): 
   const plan = planDayChange(e, day, read.value, group.name);
   if (!plan.created) return refuse(409, GROUP_ERRORS.stale);
   const sessions = await ctx.sessions.ofEvent(e.id);
+  const future: Target[] = [...(plan.rest ? [{ id: 'rest', write: plan.rest }] : []), { id: 'created', write: plan.created }];
+  if (plan.old.op === 'delete' && orphans(sessions, read.value.from, future)) return refuse(409, GROUP_ERRORS.datePresence);
   const oldStep = await applyChange(ctx.store, e, plan.old);
   const steps = await createdSteps(ctx.store, plan.rest, plan.created);
   await moveSessions(ctx, sessions, read.value.from, [...(plan.rest && steps.restId ? [{ id: steps.restId, write: plan.rest }] : []), { id: steps.createdId, write: plan.created }]);
   const before = day ? { ...seriesText(series), days: [day] } : seriesText(series);
-  const line: Line = { subjectType: GROUP_SUBJECT, subjectId: group.id, action: P4_ACTIONS.programChanged, changes: { from: read.value.from, before, after: inputText(read.value) } };
+  const line: Line = { subjectType: GROUP_SUBJECT, subjectId: group.id, action: P4_ACTIONS.programChanged, changes: { from: read.value.from, before, after: inputText({ ...read.value, until: null }) } };
   const actionId = await recordAction(ctx.store, ctx.actor, [line], { kind: 'group', steps: [oldStep, ...steps.undo], revalidate: true });
   return done({ eventId: steps.createdId }, actionId);
 }
@@ -169,6 +175,7 @@ async function endLocked(ctx: GroupContext, eventId: string, from: string, day: 
   if (day && !e.recurrence.days.includes(day)) return refuse(400, GROUP_ERRORS.invalid);
   const plan = planDayEnd(e, day, from);
   const sessions = await ctx.sessions.ofEvent(e.id);
+  if (plan.old.op === 'delete' && orphans(sessions, from, plan.rest ? [{ id: 'rest', write: plan.rest }] : [])) return refuse(409, GROUP_ERRORS.datePresence);
   const step = await applyChange(ctx.store, e, plan.old);
   const restId = plan.rest ? await ctx.store.createEvent(plan.rest) : null;
   if (plan.rest && restId) await moveSessions(ctx, sessions, from, [{ id: restId, write: plan.rest }]);

@@ -4,7 +4,8 @@ import { isRecord } from '../narrow';
 import type { GroupContext } from './context';
 import { GROUP_ERRORS } from './copy';
 import { P4_ACTIONS } from './history-lines';
-import { seasonOf } from './program-plan';
+import { expandOccurrences } from '../../api/calendar-event/services/expand';
+import { asCalendarRow, seasonOf } from './program-plan';
 import { isPastSeason } from './season-pick';
 import type { GroupStore, HistoryEntryRow } from './types';
 import { NO_CARRY_PORTS, readUndoRecord, undoLockTargets, undoRefusal, type CarryPorts, type LockTargets, type UndoKind, type UndoRecord, type UndoStep } from './undo';
@@ -159,9 +160,23 @@ async function writeUndone(ctx: GroupContext, entry: HistoryEntryRow, own: Histo
   await ctx.store.setHistoryChanges(entry.id, { ...entry.changes, undone: true });
 }
 
-/** An event the undo would remove (a split's new events, an added program) holds a saved session by now: taking it back would orphan the presence. */
+/** Is a class of the event held on the session's date at the session's time (a moved-in date counts)? */
+const heldOn = (row: ReturnType<typeof asCalendarRow>, s: { date: string; startTime: string }): boolean =>
+  expandOccurrences([row], [], s.date, s.date).some((o) => (o.status === 'scheduled' || o.status === 'override') && o.startTime === s.startTime);
+
+/**
+ * An event the undo would remove (a split's new events, an added program) holds a saved session by now: taking it back would orphan the presence.
+ * An event the undo would restore (`setEvent`) must still hold the date of each of its sessions, else the undo would hide a date that has presence.
+ */
 async function sessionOnRemoved(ctx: GroupContext, steps: UndoStep[]): Promise<boolean> {
-  for (const step of steps) if (step.op === 'deleteEvent' && (await ctx.sessions.ofEvent(step.id)).length > 0) return true;
+  for (const step of steps) {
+    if (step.op === 'deleteEvent' && (await ctx.sessions.ofEvent(step.id)).length > 0) return true;
+    if (step.op !== 'setEvent') continue;
+    const e = await ctx.store.event(step.id);
+    if (!e) continue;
+    const row = asCalendarRow({ ...e, recurrence: step.recurrence, exceptions: step.exceptions });
+    if ((await ctx.sessions.ofEvent(step.id)).some((s) => !heldOn(row, s))) return true;
+  }
   return false;
 }
 
