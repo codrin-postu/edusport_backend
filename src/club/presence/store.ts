@@ -3,7 +3,7 @@ import type { AcsState } from '../acs';
 import type { CalendarWindow } from '../groups/occurrences';
 import type { GroupStore } from '../groups/types';
 import type {
-  AttendanceRow, AttendanceWrite, Billing, LessonRow, LessonWrite, PaymentEmailJob, PaymentRow, PaymentWrite, PriceListRecord, SessionRow, SessionWrite,
+  AttendanceRow, AttendanceWrite, Billing, LessonRow, LessonSeriesRow, LessonSeriesWrite, LessonWrite, PaymentEmailJob, PaymentRow, PaymentWrite, PriceListRecord, SessionRow, SessionWrite,
   SubscriptionRow, SubscriptionWrite,
 } from './types';
 
@@ -13,7 +13,7 @@ export type PresenceGroupReads = Pick<GroupStore, 'transaction' | 'lockSeason' |
 export type Range = { from?: string; to?: string };
 export type SessionWhere = Range & { ids?: string[]; groupId?: string };
 export type AttendanceWhere = Range & { ids?: string[]; sessionIds?: string[]; athleteId?: string; subscriptionIds?: string[]; billing?: Billing[] }; // from/to on the session date
-export type LessonWhere = Range & { ids?: string[]; athleteId?: string };
+export type LessonWhere = Range & { ids?: string[]; athleteId?: string; seriesId?: string };
 export type SubscriptionWhere = { ids?: string[]; athleteId?: string };
 export type PaymentWhere = Range & { ids?: string[]; athleteId?: string; subscriptionId?: string; lessonId?: string }; // from/to on paidOn
 /** Rows of the athlete history, newest first by session or lesson date, start time, then id; `total` counts every row in range, `rows` holds the first `take`. */
@@ -21,8 +21,10 @@ export type AttendancePage = { total: number; rows: (AttendanceRow & { startTime
 export type LessonPage = { total: number; rows: LessonRow[] };
 export class UniqueKeyError extends Error {}
 
+/** Lock order: seasons, athletes, groups, events, then (per athlete) lesson series, then lessons, attendances, subscriptions, payments. */
 export interface PresenceStore extends PresenceGroupReads {
   lockSession(id: string): Promise<void>;
+  lockLessonSeries(id: string): Promise<void>;
   lockLesson(id: string): Promise<void>;
   lockAttendance(id: string): Promise<void>;
   lockSubscription(id: string): Promise<void>;
@@ -53,6 +55,12 @@ export interface PresenceStore extends PresenceGroupReads {
   createLesson(data: LessonWrite): Promise<string>;
   updateLesson(id: string, data: Partial<LessonWrite>): Promise<void>;
   deleteLesson(id: string): Promise<void>;
+  lessonSeries(id: string): Promise<LessonSeriesRow | null>;
+  /** By `from`, then id. */
+  lessonSeriesOf(athleteId: string): Promise<LessonSeriesRow[]>;
+  createLessonSeries(data: LessonSeriesWrite): Promise<string>;
+  updateLessonSeries(id: string, data: Partial<Pick<LessonSeriesWrite, 'to' | 'coachIds' | 'athleteId'>>): Promise<void>;
+  deleteLessonSeries(id: string): Promise<void>;
   subscriptions(where?: SubscriptionWhere): Promise<SubscriptionRow[]>;
   subscription(id: string): Promise<SubscriptionRow | null>;
   /** The code is taken from the counter right before; it is never written again (an update cannot hold it). */

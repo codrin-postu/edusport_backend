@@ -1,5 +1,6 @@
 import type { AcsState } from '../acs';
-import type { PriceListRow } from '../groups/types';
+import type { RepeatFreq } from '../groups/series';
+import type { DayKey, PriceListRow, WeekOfMonth } from '../groups/types';
 import type { Audience, PriceItemKind } from '../price-item';
 
 export type PresenceType = 'grup' | 'uscat';
@@ -20,9 +21,15 @@ export type LessonState = 'planned' | 'saved';
 export type LessonWrite = {
   athleteId: string; date: string; startTime: string; durationMin: number; coachIds: string[]; state: LessonState; present: boolean | null;
   priceListId: string | null; itemName: string | null; price: number | null; audience: Audience | null; amount: number;
-  createdByName: string; recordedAt: string; savedBy: string | null; savedAt: string | null;
+  createdByName: string; recordedAt: string; savedBy: string | null; savedAt: string | null; seriesId: string | null;
 };
 export type LessonRow = LessonWrite & { id: string };
+/** The rule of a repeating individual lesson; its dates are ordinary planned lessons that point back at it. */
+export type LessonSeriesWrite = {
+  athleteId: string; coachIds: string[]; freq: RepeatFreq; days: DayKey[]; weekOfMonth: WeekOfMonth | null;
+  startTime: string; durationMin: number; from: string; to: string; createdByName: string;
+};
+export type LessonSeriesRow = LessonSeriesWrite & { id: string };
 export type SubscriptionWrite = {
   athleteId: string; seasonId: string; priceListId: string; validIn: string[]; itemName: string; price: number | null; audience: Audience; slots: number;
   startsOn: string; validUntil: string; extendedWeeks: number; cancelled: boolean; cancelledAt: string | null; cancelledBy: string | null;

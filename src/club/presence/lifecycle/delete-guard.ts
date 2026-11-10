@@ -14,12 +14,15 @@ export async function useCountOf(presence: PresenceStore, athleteId: string): Pr
   return (block ? block.payments + block.subscriptions : 0) + attendances.length + lessons.length;
 }
 
-/** Locks the athlete's lessons (sorted), then deletes its lessons and attendance rows; sessions stay. */
+/** Locks the athlete's lesson series and lessons (each sorted), then deletes its lessons, series and attendance rows; sessions stay. */
 export async function removePresenceRows(presence: PresenceStore, athleteId: string): Promise<void> {
+  const series = (await presence.lessonSeriesOf(athleteId)).sort((a, b) => a.id.localeCompare(b.id));
+  for (const s of series) await presence.lockLessonSeries(s.id);
   const lessons = (await presence.lessons({ athleteId })).sort((a, b) => a.id.localeCompare(b.id));
   for (const l of lessons) await presence.lockLesson(l.id);
   const attendances = (await presence.attendances({ athleteId })).sort((a, b) => a.id.localeCompare(b.id));
   for (const a of attendances) await presence.lockAttendance(a.id);
   for (const a of attendances) await presence.deleteAttendance(a.id);
   for (const l of lessons) await presence.deleteLesson(l.id);
+  for (const s of series) await presence.deleteLessonSeries(s.id);
 }

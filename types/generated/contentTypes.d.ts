@@ -1805,6 +1805,10 @@ export interface ApiIndividualLessonIndividualLesson
     recordedAt: Schema.Attribute.DateTime;
     savedAt: Schema.Attribute.DateTime;
     savedBy: Schema.Attribute.String;
+    series: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::lesson-series.lesson-series'
+    >;
     startTime: Schema.Attribute.String & Schema.Attribute.Required;
     state: Schema.Attribute.Enumeration<['planned', 'saved']> &
       Schema.Attribute.Required &
@@ -1812,6 +1816,64 @@ export interface ApiIndividualLessonIndividualLesson
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+  };
+}
+
+export interface ApiLessonSeriesLessonSeries
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'club_lesson_series';
+  info: {
+    displayName: 'Club / Serie de lec\u021Bii individuale';
+    pluralName: 'lesson-series-list';
+    singularName: 'lesson-series';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'> &
+      Schema.Attribute.Required;
+    coaches: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::team-member.team-member'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    createdByName: Schema.Attribute.String;
+    days: Schema.Attribute.JSON & Schema.Attribute.Required;
+    durationMin: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 600;
+          min: 5;
+        },
+        number
+      >;
+    freq: Schema.Attribute.Enumeration<['weekly', 'biweekly', 'monthly']> &
+      Schema.Attribute.Required;
+    from: Schema.Attribute.Date & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::lesson-series.lesson-series'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    startTime: Schema.Attribute.String & Schema.Attribute.Required;
+    to: Schema.Attribute.Date & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    weekOfMonth: Schema.Attribute.Enumeration<
+      ['first', 'second', 'third', 'fourth', 'last']
+    >;
   };
 }
 
@@ -3782,6 +3844,7 @@ declare module '@strapi/strapi' {
       'api::history-milestone.history-milestone': ApiHistoryMilestoneHistoryMilestone;
       'api::homepage.homepage': ApiHomepageHomepage;
       'api::individual-lesson.individual-lesson': ApiIndividualLessonIndividualLesson;
+      'api::lesson-series.lesson-series': ApiLessonSeriesLessonSeries;
       'api::location.location': ApiLocationLocation;
       'api::navigation.navigation': ApiNavigationNavigation;
       'api::partner-submission.partner-submission': ApiPartnerSubmissionPartnerSubmission;

@@ -1,7 +1,7 @@
 import type { AcsState } from '../acs';
 import { isRecord } from '../narrow';
 import type { Subject } from '../groups/types';
-import type { AttendanceRow, LessonRow, LessonWrite, PaymentRow, PaymentWrite, SubscriptionRow, SubscriptionWrite } from './types';
+import type { AttendanceRow, LessonRow, LessonSeriesWrite, LessonWrite, PaymentRow, PaymentWrite, SubscriptionRow, SubscriptionWrite } from './types';
 
 /**
  * What a phase 5 action wrote, stored as `undo` on its first Istoric line (spec 7.3). `POST /club/undo` applies the steps in
@@ -16,7 +16,12 @@ export type PresenceUndoStep =
   | { op: 'setAcs'; athleteId: string; seasonId: string; state: AcsState | null }
   | { op: 'cancelPaymentEmail'; paymentId: string }
   | { op: 'deleteLesson'; id: string }
-  | { op: 'createLesson'; row: LessonWrite };
+  /** `was` is the id the lesson had; a `createLessonSeries` later in the same undo relinks by it. */
+  | { op: 'createLesson'; row: LessonWrite; was?: string }
+  | { op: 'deleteLessonSeries'; id: string }
+  /** Recreates the rule and links `lessonIds` to it; the ids are the ones the lessons had (`was` of the `createLesson` steps put back before) or still have. */
+  | { op: 'createLessonSeries'; row: LessonSeriesWrite; lessonIds: string[] }
+  | { op: 'setLessonSeries'; id: string; to: string };
 export type GuardType = 'subscription' | 'payment' | 'lesson' | 'attendance' | 'acs';
 export type PresenceGuard = { type: GuardType; id: string; stamp: string | null };
 export type PresenceUndoRecord = { kind: 'presence'; steps: PresenceUndoStep[]; subjects: Subject[]; athletes: string[]; guards: PresenceGuard[] };
@@ -53,7 +58,7 @@ export function readPresenceRecord(v: unknown): PresenceUndoRecord | null {
   return ok ? (v as unknown as PresenceUndoRecord) : null;
 }
 
-type Targets = { athletes: string[]; lessons: string[]; attendances: string[]; subscriptions: string[]; payments: string[] };
+type Targets = { athletes: string[]; series: string[]; lessons: string[]; attendances: string[]; subscriptions: string[]; payments: string[] };
 const sorted = (ids: string[]): string[] => [...new Set(ids)].sort();
 
 function stepTargets(step: PresenceUndoStep): Partial<Targets> {
@@ -63,6 +68,8 @@ function stepTargets(step: PresenceUndoStep): Partial<Targets> {
     case 'cancelPaymentEmail': return { payments: [step.paymentId] };
     case 'deleteLesson': return { lessons: [step.id] };
     case 'createLesson': return { athletes: [step.row.athleteId] };
+    case 'deleteLessonSeries': case 'setLessonSeries': return { series: [step.id] };
+    case 'createLessonSeries': return { athletes: [step.row.athleteId] };
     case 'setAcs': return { athletes: [step.athleteId] };
     case 'setAttendanceSlot': return { attendances: [step.id] };
   }
@@ -70,11 +77,11 @@ function stepTargets(step: PresenceUndoStep): Partial<Targets> {
 
 const guardKey: Partial<Record<GuardType, keyof Targets>> = { subscription: 'subscriptions', payment: 'payments', lesson: 'lessons', attendance: 'attendances' };
 
-/** Lock order of 7.1: athletes (an A.C.S. row is guarded by its athlete's lock), lessons, attendances, subscriptions, payments; each sorted and unique. */
+/** Lock order of 7.1: athletes (an A.C.S. row is guarded by its athlete's lock), lesson series, lessons, attendances, subscriptions, payments; each sorted and unique. */
 export function presenceLockTargets(r: PresenceUndoRecord): Targets {
   const all = r.steps.map(stepTargets);
   const pick = (k: keyof Targets, extra: string[] = []): string[] => sorted([...all.flatMap((t) => t[k] ?? []), ...extra]);
   const guarded = (k: keyof Targets): string[] => r.guards.filter((g) => guardKey[g.type] === k).map((g) => g.id);
   const acsAthletes = r.guards.filter((g) => g.type === 'acs').map((g) => acsGuardAthlete(g.id));
-  return { athletes: pick('athletes', [...r.athletes, ...acsAthletes]), lessons: pick('lessons', guarded('lessons')), attendances: pick('attendances', guarded('attendances')), subscriptions: pick('subscriptions', guarded('subscriptions')), payments: pick('payments', guarded('payments')) };
+  return { athletes: pick('athletes', [...r.athletes, ...acsAthletes]), series: pick('series'), lessons: pick('lessons', guarded('lessons')), attendances: pick('attendances', guarded('attendances')), subscriptions: pick('subscriptions', guarded('subscriptions')), payments: pick('payments', guarded('payments')) };
 }

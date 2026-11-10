@@ -14,6 +14,9 @@ import { presenceLockTargets, readPresenceRecord, type PresenceUndoRecord, type 
 /** POST /club/undo body `{ actionId }` for a presence action: the toast's "Anulează" (spec 7.3). */
 type Run<K extends PresenceUndoStep['op']> = (store: PresenceStore, step: Extract<PresenceUndoStep, { op: K }>) => Promise<void>;
 type Runners = { [K in PresenceUndoStep['op']]: Run<K> };
+/** Lessons put back by this undo: the id they had, then the id they have now (a series relinks by the old one). */
+const PUT_BACK = new WeakMap<PresenceStore, Map<string, string>>();
+const putBack = (s: PresenceStore): Map<string, string> => PUT_BACK.get(s) ?? PUT_BACK.set(s, new Map()).get(s)!;
 
 const RUN: Runners = {
   deleteSubscription: (s, st) => s.deleteSubscription(st.id),
@@ -29,7 +32,14 @@ const RUN: Runners = {
   },
   deleteLesson: (s, st) => s.deleteLesson(st.id),
   createLesson: async (s, st) => {
-    await s.createLesson(st.row);
+    const id = await s.createLesson(st.row);
+    if (st.was) putBack(s).set(st.was, id);
+  },
+  deleteLessonSeries: (s, st) => s.deleteLessonSeries(st.id),
+  setLessonSeries: (s, st) => s.updateLessonSeries(st.id, { to: st.to }),
+  createLessonSeries: async (s, st) => {
+    const id = await s.createLessonSeries(st.row);
+    for (const old of st.lessonIds) await s.updateLesson(putBack(s).get(old) ?? old, { seriesId: id });
   },
 };
 
@@ -49,6 +59,7 @@ const isUndone = (entry: HistoryEntryRow | null): boolean => entry?.changes.undo
 async function lockAll(store: PresenceStore, record: PresenceUndoRecord, actionId: string): Promise<void> {
   const t = presenceLockTargets(record);
   for (const id of t.athletes) await store.lockAthlete(id);
+  for (const id of t.series) await store.lockLessonSeries(id);
   for (const id of t.lessons) await store.lockLesson(id);
   for (const id of t.attendances) await store.lockAttendance(id);
   for (const id of t.subscriptions) await store.lockSubscription(id);
@@ -106,7 +117,9 @@ async function undoLocked(ctx: PresenceContext, actionId: string): Promise<Admin
   if (isUndone(entry) || !(await athletesExist(ctx.store, record)) || !(await guardsHold(ctx.store, record))) return refuse(409, PRESENCE_ERRORS.undoChanged);
   const over = await restoredOverpay(ctx.store, record);
   if (over !== null) return refuse(400, over);
+  putBack(ctx.store).clear();
   for (const step of [...record.steps].reverse()) await runStep(ctx.store, step);
+  putBack(ctx.store).clear();
   await writeUndone(ctx, entry, record);
   return { ok: true, data: { undone: true } };
 }

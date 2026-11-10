@@ -5,6 +5,8 @@ import { linkId, raws, str, strapiClubStore, text, transactionScope } from '../a
 import type { Raw, Scope } from '../athletes/strapi-store';
 import type { AcsState } from '../acs';
 import { hhmm } from '../groups/dates';
+import type { RepeatFreq } from '../groups/series';
+import type { DayKey, WeekOfMonth } from '../groups/types';
 import { calendarRows } from '../groups/occurrences';
 import { deleted, found, strapiGroupStore } from '../groups/strapi-store';
 import { isRecord } from '../narrow';
@@ -12,12 +14,13 @@ import type { Audience, PriceItemKind } from '../price-item';
 import type { PresenceStore } from './store';
 import { UniqueKeyError } from './store';
 import type {
-  AttendanceRow, Billing, Charge, LessonRow, PaymentMethod, PaymentPurpose, PaymentRow, PresenceType, PriceItemRow, PriceListRecord, SessionRow, SubscriptionRow,
+  AttendanceRow, Billing, Charge, LessonRow, LessonSeriesRow, PaymentMethod, PaymentPurpose, PaymentRow, PresenceType, PriceItemRow, PriceListRecord, SessionRow, SubscriptionRow,
 } from './types';
 
 const SESSION = 'api::session.session' as const;
 const ATTENDANCE = 'api::attendance.attendance' as const;
 const LESSON = 'api::individual-lesson.individual-lesson' as const;
+const SERIES = 'api::lesson-series.lesson-series' as const;
 const SUBSCRIPTION = 'api::subscription.subscription' as const;
 const PAYMENT = 'api::payment.payment' as const;
 const PRICE_LIST = 'api::price-list.price-list' as const;
@@ -69,7 +72,16 @@ export const toLessonRow = (r: Raw): LessonRow => ({
   id: text(r.documentId), athleteId: linkId(r.athlete) ?? '', date: text(r.date), startTime: hhmm(str(r.startTime)) ?? '', durationMin: Number(r.durationMin ?? 0),
   coachIds: ids(r.coaches), state: r.state === 'saved' ? 'saved' : 'planned', present: typeof r.present === 'boolean' ? r.present : null, priceListId: linkId(r.priceList),
   itemName: str(r.itemName), price: decimal(r.price), audience: audience(r.audience), amount: amountOf(r.amount), createdByName: text(r.createdByName), recordedAt: stamp(r.recordedAt) ?? '',
-  savedBy: str(r.savedBy), savedAt: stamp(r.savedAt),
+  savedBy: str(r.savedBy), savedAt: stamp(r.savedAt), seriesId: linkId(r.series),
+});
+
+const FREQS: readonly RepeatFreq[] = ['weekly', 'biweekly', 'monthly'];
+const WEEKS: readonly WeekOfMonth[] = ['first', 'second', 'third', 'fourth', 'last'];
+const DAYS: readonly DayKey[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+export const toLessonSeriesRow = (r: Raw): LessonSeriesRow => ({
+  id: text(r.documentId), athleteId: linkId(r.athlete) ?? '', coachIds: ids(r.coaches), freq: among(FREQS, r.freq, 'weekly'),
+  days: (Array.isArray(r.days) ? r.days : []).flatMap((d) => DAYS.find((x) => x === d) ?? []), weekOfMonth: WEEKS.find((w) => w === r.weekOfMonth) ?? null,
+  startTime: hhmm(str(r.startTime)) ?? '', durationMin: Number(r.durationMin ?? 0), from: text(r.from), to: text(r.to), createdByName: text(r.createdByName),
 });
 
 export const toSubscriptionRow = (r: Raw): SubscriptionRow => ({
@@ -104,7 +116,7 @@ export function asUniqueKeyError(err: unknown): UniqueKeyError | null {
 
 const RELATIONS: Record<string, string> = {
   groupId: 'group', seasonId: 'season', eventId: 'event', coachIds: 'coaches', sessionId: 'session', athleteId: 'athlete', subscriptionId: 'subscription',
-  priceListId: 'priceList', lessonId: 'lesson', emailJobId: 'emailJob',
+  priceListId: 'priceList', lessonId: 'lesson', emailJobId: 'emailJob', seriesId: 'series',
 };
 /** Document service data: set fields only, relations by documentId. */
 const dataOf = (d: object): never =>
@@ -174,7 +186,7 @@ function historyPages(strapi: Core.Strapi): Keys<'athleteAttendancePage' | 'athl
     athleteLessonPage: async (athleteId, from, to, take) => {
       const where = { ...eq('athlete', athleteId), present: true, date: span({ from, to }) };
       const rows = await strapi.db.query(LESSON).findMany({
-        where, populate: ['athlete', 'coaches', 'priceList'], orderBy: [{ date: 'desc' }, { startTime: 'desc' }, { documentId: 'desc' }], limit: take,
+        where, populate: ['athlete', 'coaches', 'priceList', 'series'], orderBy: [{ date: 'desc' }, { startTime: 'desc' }, { documentId: 'desc' }], limit: take,
       });
       return { total: await strapi.db.query(LESSON).count({ where }), rows: raws(rows).map(toLessonRow) };
     },
@@ -203,9 +215,9 @@ function attendanceRows(strapi: Core.Strapi): Keys<'attendances' | 'createAttend
 }
 
 function lessonRows(strapi: Core.Strapi): Keys<'lessons' | 'lesson' | 'createLesson' | 'updateLesson' | 'deleteLesson'> {
-  const query = (where: Where) => strapi.db.query(LESSON).findMany({ where, populate: ['athlete', 'coaches', 'priceList'], orderBy: { id: 'asc' }, limit: MAX });
+  const query = (where: Where) => strapi.db.query(LESSON).findMany({ where, populate: ['athlete', 'coaches', 'priceList', 'series'], orderBy: { id: 'asc' }, limit: MAX });
   return {
-    lessons: async (w = {}) => raws(await query({ ...docIds(w.ids), ...eq('athlete', w.athleteId), ...dated('date', w) })).map(toLessonRow),
+    lessons: async (w = {}) => raws(await query({ ...docIds(w.ids), ...eq('athlete', w.athleteId), ...eq('series', w.seriesId), ...dated('date', w) })).map(toLessonRow),
     lesson: async (id) => {
       const [row] = raws(await query({ documentId: id }));
       return row ? toLessonRow(row) : null;
@@ -216,6 +228,24 @@ function lessonRows(strapi: Core.Strapi): Keys<'lessons' | 'lesson' | 'createLes
     },
     deleteLesson: async (id) => {
       deleted(await strapi.documents(LESSON).delete({ documentId: id }), 'deleteLesson');
+    },
+  };
+}
+
+function seriesRows(strapi: Core.Strapi): Keys<'lessonSeries' | 'lessonSeriesOf' | 'createLessonSeries' | 'updateLessonSeries' | 'deleteLessonSeries'> {
+  const query = (where: Where) => strapi.db.query(SERIES).findMany({ where, populate: ['athlete', 'coaches'], orderBy: [{ from: 'asc' }, { id: 'asc' }], limit: MAX });
+  return {
+    lessonSeries: async (id) => {
+      const [row] = raws(await query({ documentId: id }));
+      return row ? toLessonSeriesRow(row) : null;
+    },
+    lessonSeriesOf: async (athleteId) => raws(await query(eq('athlete', athleteId))).map(toLessonSeriesRow),
+    createLessonSeries: async (d) => (await strapi.documents(SERIES).create({ data: dataOf(d) })).documentId,
+    updateLessonSeries: async (id, d) => {
+      found(await strapi.documents(SERIES).update({ documentId: id, data: dataOf(d) }), 'updateLessonSeries');
+    },
+    deleteLessonSeries: async (id) => {
+      deleted(await strapi.documents(SERIES).delete({ documentId: id }), 'deleteLessonSeries');
     },
   };
 }
@@ -316,11 +346,12 @@ export function strapiPresenceStore(strapi: Core.Strapi): PresenceStore {
     lockAthlete: (id) => scope.lockRow('athletes', id),
     lockHistoryEntry: (id) => scope.lockRow('history_entries', id),
     lockSession: (id) => scope.lockRow('club_sessions', id),
+    lockLessonSeries: (id) => scope.lockRow('club_lesson_series', id),
     lockLesson: (id) => scope.lockRow('club_individual_lessons', id),
     lockAttendance: (id) => scope.lockRow('club_attendances', id),
     lockSubscription: (id) => scope.lockRow('club_subscriptions', id),
     lockPayment: (id) => scope.lockRow('club_payments', id),
-    ...lookups(strapi), ...sessionRows(strapi), ...attendanceRows(strapi), ...historyPages(strapi), ...lessonRows(strapi), ...subscriptionRows(strapi), ...paymentRows(strapi), ...jobs(strapi),
+    ...lookups(strapi), ...sessionRows(strapi), ...attendanceRows(strapi), ...historyPages(strapi), ...lessonRows(strapi), ...seriesRows(strapi), ...subscriptionRows(strapi), ...paymentRows(strapi), ...jobs(strapi),
     ...strapiCounters(strapi, scope),
   };
 }

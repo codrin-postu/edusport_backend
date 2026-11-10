@@ -1,0 +1,19 @@
+{
+  "kind": "collectionType",
+  "collectionName": "club_lesson_series",
+  "info": { "singularName": "lesson-series", "pluralName": "lesson-series-list", "displayName": "Club / Serie de lecții individuale" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete", "required": true },
+    "coaches": { "type": "relation", "relation": "manyToMany", "target": "api::team-member.team-member" },
+    "freq": { "type": "enumeration", "enum": ["weekly", "biweekly", "monthly"], "required": true },
+    "days": { "type": "json", "required": true },
+    "weekOfMonth": { "type": "enumeration", "enum": ["first", "second", "third", "fourth", "last"] },
+    "startTime": { "type": "string", "required": true },
+    "durationMin": { "type": "integer", "required": true, "min": 5, "max": 600 },
+    "from": { "type": "date", "required": true },
+    "to": { "type": "date", "required": true },
+    "createdByName": { "type": "string" }
+  }
+}
