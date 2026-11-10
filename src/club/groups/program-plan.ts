@@ -1,8 +1,8 @@
 import { expandOccurrences, type CalendarEventRow } from '../../api/calendar-event/services/expand';
 import { isRecord } from '../narrow';
 import { DURATION, GROUP_ERRORS, SCHEDULE_ERRORS } from './copy';
-import { addDays, addMinutes, isIsoDate, isTime, minutesBetween, minutesOf } from './dates';
-import { DAY_ORDER, type SeriesText } from './program-text';
+import { addDays, addMinutes, isIsoDate, isTime, minutesBetween, minutesOf, weekdayIndex } from './dates';
+import { DAY_OF_INDEX, DAY_ORDER, type SeriesText } from './program-text';
 import type { RepeatFreq } from './series';
 import type { DayKey, EventRecord, EventWrite, ExceptionRow, GroupRecord, Recurrence, SeasonRecord, WeekOfMonth } from './types';
 
@@ -59,6 +59,9 @@ export function readProgramInput(body: unknown): Read<ProgramInput> {
   if (series.ok === false) return series;
   return { ok: true, value: { repeat: true, series: series.value } };
 }
+
+/** A weekday key, or null. */
+export const readDayKey = (v: unknown): DayKey | null => DAY_ORDER.find((d) => d === v) ?? null;
 
 export function readDateMode(body: unknown): DateMode | null {
   const b = isRecord(body) ? body : {};
@@ -134,6 +137,37 @@ export function planChange(e: EventRecord, input: SeriesInput, title: string): {
   };
   const carried = e.exceptions.filter((x) => x.date >= input.from && isClassDate(created, x.date));
   return { old: planEnd(e, input.from), created: { ...created, exceptions: carried } };
+}
+
+export type DayPlan = { old: EventChange; rest: EventWrite | null; created: EventWrite | null };
+
+/** The other weekdays of the event from `from` on: starts on their first class date (so a biweekly series keeps its parity), keeps the old end and the exceptions of its dates. Null when no class is left. */
+function restOf(e: EventRecord, day: DayKey, from: string): EventWrite | null {
+  const days = e.recurrence.days.filter((d) => d !== day);
+  const seasonEnd = e.recurrence.seasonEnd;
+  if (!days.length || !seasonEnd) return null;
+  const rule: EventWrite = { title: e.title, type: e.type, description: e.description, groupId: e.groupId, exceptions: [], recurrence: { ...e.recurrence, days } };
+  const first = classDates(rule, from, seasonEnd)[0];
+  if (!first) return null;
+  const rest: EventWrite = { ...rule, recurrence: { ...rule.recurrence, seasonStart: first } };
+  return { ...rest, exceptions: e.exceptions.filter((x) => x.date >= from && isClassDate(rest, x.date)) };
+}
+
+const onlyDay = (e: EventRecord, day: DayKey | null): boolean => day === null || (e.recurrence.days.length === 1 && e.recurrence.days[0] === day);
+const wasOn = (day: DayKey) => (x: ExceptionRow): boolean => DAY_OF_INDEX[weekdayIndex(x.date)] === day;
+
+/** "Schimbă" on one weekday's row from `input.from`; `day` absent or the event's only day -> today's planChange with `rest: null`. */
+export function planDayChange(e: EventRecord, day: DayKey | null, input: SeriesInput, title: string): DayPlan {
+  const whole = planChange(e, input, title);
+  if (day === null || onlyDay(e, day)) return { ...whole, rest: null };
+  const carried = whole.created.exceptions.filter(wasOn(day));
+  return { old: whole.old, rest: restOf(e, day, input.from), created: { ...whole.created, exceptions: carried } };
+}
+
+/** "Șterge" on one weekday's row from `from`; `day` absent or the only day -> today's planEnd with `rest: null, created: null`. */
+export function planDayEnd(e: EventRecord, day: DayKey | null, from: string): DayPlan {
+  if (day === null || onlyDay(e, day)) return { old: planEnd(e, from), rest: null, created: null };
+  return { old: planEnd(e, from), rest: restOf(e, day, from), created: null };
 }
 
 const blank = (date: string): ExceptionRow => ({ date, kind: 'anulat', newDate: null, newStartTime: null, newEndTime: null, newTitle: null, reason: null });

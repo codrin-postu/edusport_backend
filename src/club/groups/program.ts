@@ -5,10 +5,10 @@ import type { GroupContext } from './context';
 import { GROUP_ERRORS } from './copy';
 import { isIsoDate } from './dates';
 import { GROUP_SUBJECT, P4_ACTIONS } from './history-lines';
-import { classWrite, eventType, inputText, planChange, planEnd, readProgramInput, readSeriesInput, seasonOf, seriesWrite, type EventChange, type ProgramInput } from './program-plan';
+import { classWrite, eventType, inputText, planDayChange, planDayEnd, readDayKey, readProgramInput, readSeriesInput, seasonOf, seriesWrite, type EventChange, type ProgramInput } from './program-plan';
 import { isPastSeason } from './season-pick';
 import { seasonBounds, seriesText, seriesView, type SeriesView } from './series';
-import type { EventRecord, EventWrite, GroupRecord, GroupStore, SeasonRecord, SectionRecord } from './types';
+import type { DayKey, EventRecord, EventWrite, GroupRecord, GroupStore, SeasonRecord, SectionRecord } from './types';
 import type { UndoStep } from './undo';
 
 /** The group's program (spec 6.3, W10): one transaction each, the group locked before the event, a group line, an undo, a website ping. */
@@ -100,18 +100,39 @@ async function applyChange(store: GroupStore, e: EventRecord, change: EventChang
   return { op: 'setEvent', id: e.id, recurrence: e.recurrence, exceptions: e.exceptions };
 }
 
+/** The rest event, then the new one; the steps that delete them again. */
+async function createdSteps(store: GroupStore, rest: EventWrite | null, created: EventWrite): Promise<{ createdId: string; undo: UndoStep[] }> {
+  const restId = rest ? await store.createEvent(rest) : null;
+  const createdId = await store.createEvent(created);
+  return { createdId, undo: [...(restId ? [{ op: 'deleteEvent' as const, id: restId }] : []), { op: 'deleteEvent' as const, id: createdId }] };
+}
+
+/** `day` is absent (the whole event) or a weekday key; anything else is invalid. */
+const dayOf = (body: unknown): { ok: true; day: DayKey | null } | { ok: false } => {
+  const raw = isRecord(body) ? body.day : undefined;
+  if (raw === undefined || raw === null) return { ok: true, day: null };
+  const day = readDayKey(raw);
+  return day ? { ok: true, day } : { ok: false };
+};
+
 async function changeLocked(ctx: GroupContext, eventId: string, body: unknown): Promise<ActionResult<{ eventId: string }>> {
   const read = readSeriesInput(body);
   if (read.ok === false) return refuse(400, read.error);
+  const dayRead = dayOf(body);
+  if (dayRead.ok === false) return refuse(400, GROUP_ERRORS.invalid);
+  const day = dayRead.day;
   const found = await lockedSeries(ctx.store, eventId, read.value.from);
   if (found.ok === false) return found;
   const { e, series, group } = found.data;
-  const plan = planChange(e, read.value, group.name);
+  if (day && !e.recurrence.days.includes(day)) return refuse(400, GROUP_ERRORS.invalid);
+  const plan = planDayChange(e, day, read.value, group.name);
+  if (!plan.created) return refuse(409, GROUP_ERRORS.stale);
   const oldStep = await applyChange(ctx.store, e, plan.old);
-  const createdId = await ctx.store.createEvent(plan.created);
-  const line: Line = { subjectType: GROUP_SUBJECT, subjectId: group.id, action: P4_ACTIONS.programChanged, changes: { from: read.value.from, before: seriesText(series), after: inputText(read.value) } };
-  const actionId = await recordAction(ctx.store, ctx.actor, [line], { kind: 'group', steps: [oldStep, { op: 'deleteEvent', id: createdId }], revalidate: true });
-  return done({ eventId: createdId }, actionId);
+  const steps = await createdSteps(ctx.store, plan.rest, plan.created);
+  const before = day ? { ...seriesText(series), days: [day] } : seriesText(series);
+  const line: Line = { subjectType: GROUP_SUBJECT, subjectId: group.id, action: P4_ACTIONS.programChanged, changes: { from: read.value.from, before, after: inputText(read.value) } };
+  const actionId = await recordAction(ctx.store, ctx.actor, [line], { kind: 'group', steps: [oldStep, ...steps.undo], revalidate: true });
+  return done({ eventId: steps.createdId }, actionId);
 }
 
 /** PUT /club/program/:eventId: "Schimbă" from "Se aplică din" (W10). */
@@ -119,21 +140,26 @@ export async function changeProgram(ctx: GroupContext, eventId: string, body: un
   return pinged(ctx, await guarded(ctx.log, `[program] changing ${eventId}`, () => ctx.store.transaction(() => changeLocked(ctx, eventId, body))));
 }
 
-async function endLocked(ctx: GroupContext, eventId: string, from: string): Promise<ActionResult<{ eventId: string }>> {
+async function endLocked(ctx: GroupContext, eventId: string, from: string, day: DayKey | null): Promise<ActionResult<{ eventId: string }>> {
   const found = await lockedSeries(ctx.store, eventId, from);
   if (found.ok === false) return found;
   const { e, series, group } = found.data;
-  const step = await applyChange(ctx.store, e, planEnd(e, from));
-  const line: Line = { subjectType: GROUP_SUBJECT, subjectId: group.id, action: P4_ACTIONS.programEnded, changes: { from, series: seriesText(series) } };
-  const actionId = await recordAction(ctx.store, ctx.actor, [line], { kind: 'group', steps: [step], revalidate: true });
+  if (day && !e.recurrence.days.includes(day)) return refuse(400, GROUP_ERRORS.invalid);
+  const plan = planDayEnd(e, day, from);
+  const step = await applyChange(ctx.store, e, plan.old);
+  const restId = plan.rest ? await ctx.store.createEvent(plan.rest) : null;
+  const shown = day ? { ...seriesText(series), days: [day] } : seriesText(series);
+  const line: Line = { subjectType: GROUP_SUBJECT, subjectId: group.id, action: P4_ACTIONS.programEnded, changes: { from, series: shown } };
+  const actionId = await recordAction(ctx.store, ctx.actor, [line], { kind: 'group', steps: [step, ...(restId ? [{ op: 'deleteEvent' as const, id: restId }] : [])], revalidate: true });
   return done({ eventId }, actionId);
 }
 
 /** POST /club/program/:eventId/end body `{ from }`: "Șterge programul" (W10). */
 export async function endProgram(ctx: GroupContext, eventId: string, body: unknown): Promise<ActionResult<{ eventId: string }>> {
   const from = isRecord(body) ? body.from : null;
-  if (!isIsoDate(from)) return refuse(400, GROUP_ERRORS.invalid);
-  return pinged(ctx, await guarded(ctx.log, `[program] ending ${eventId}`, () => ctx.store.transaction(() => endLocked(ctx, eventId, from))));
+  const dayRead = dayOf(body);
+  if (!isIsoDate(from) || dayRead.ok === false) return refuse(400, GROUP_ERRORS.invalid);
+  return pinged(ctx, await guarded(ctx.log, `[program] ending ${eventId}`, () => ctx.store.transaction(() => endLocked(ctx, eventId, from, dayRead.day))));
 }
 
 async function deleteLocked(ctx: GroupContext, eventId: string): Promise<ActionResult<{ date: string }>> {
