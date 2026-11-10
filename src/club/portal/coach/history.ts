@@ -36,7 +36,7 @@ async function notDone(c: CoachContexts, from: string, to: string): Promise<Coac
   const clock = clockOf(c.presence.now());
   const started = (i: { date: string; startTime: string }): boolean => i.date >= startDate && (i.date < c.today || i.startTime <= clock);
   return items.filter((i) => i.kind === 'grup' && !i.cancelled && !i.standIn && !i.done && i.sessionId === null && started(i)).map((i): CoachHistoryRow => ({
-    kind: 'grup', date: i.date, name: i.title, present: null, durationMin: i.durationMin, sessionId: null, lessonId: null, done: false, occurrenceKey: i.occurrenceKey,
+    kind: 'grup', date: i.date, startTime: i.startTime, name: i.title, present: null, durationMin: i.durationMin, sessionId: null, lessonId: null, done: false, occurrenceKey: i.occurrenceKey,
   }));
 }
 
@@ -67,12 +67,12 @@ export async function readCoachHistory(c: CoachContexts, month: unknown): Promis
   const athleteName = new Map(athletes.map((a) => [a.id, a.name]));
   const rows: CoachHistoryRow[] = [
     ...sessions.map((s): CoachHistoryRow => ({
-      kind: asCoach(s.groupId, s.date) ? 'grup' : 'inlocuitor', date: s.date, name: groupName.get(s.groupId) ?? '', present: present.get(s.id) ?? 0, durationMin: null, sessionId: s.id, lessonId: null, done: true, occurrenceKey: s.occurrenceKey,
+      kind: asCoach(s.groupId, s.date) ? 'grup' : 'inlocuitor', date: s.date, startTime: s.startTime, name: groupName.get(s.groupId) ?? '', present: present.get(s.id) ?? 0, durationMin: null, sessionId: s.id, lessonId: null, done: true, occurrenceKey: s.occurrenceKey,
     })),
     ...lessons.map((l): CoachHistoryRow => ({
-      kind: 'individuala', date: l.date, name: athleteName.get(l.athleteId) ?? '', present: null, durationMin: l.durationMin, sessionId: null, lessonId: l.id, done: true, occurrenceKey: null,
+      kind: 'individuala', date: l.date, startTime: l.startTime, name: athleteName.get(l.athleteId) ?? '', present: null, durationMin: l.durationMin, sessionId: null, lessonId: l.id, done: true, occurrenceKey: null,
     })),
     ...(await notDone(c, from, to)),
-  ].sort((a, b) => b.date.localeCompare(a.date));
+  ].sort((a, b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime));
   return { ok: true, data: { month, sessions: mine?.sessions ?? 0, lessons: mine?.lessons ?? 0, hours: mine?.hours ?? hoursText(0), rows } };
 }

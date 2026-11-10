@@ -108,7 +108,7 @@ export type CoachCalendarItem = {
 export type CoachCalendar = { month: string; today: string; days: { date: string; items: CoachCalendarItem[] }[] };
 export type CoachMemberChange = { athleteName: string; groupName: string; from: string; toast: string };
 export type CoachHistoryRow = {
-  kind: 'grup' | 'inlocuitor' | 'individuala'; date: string; name: string; present: number | null; durationMin: number | null; sessionId: string | null; lessonId: string | null;
+  kind: 'grup' | 'inlocuitor' | 'individuala'; date: string; startTime: string; name: string; present: number | null; durationMin: number | null; sessionId: string | null; lessonId: string | null;
   /** false: an own scheduled class of the month, up to today, nobody saved yet. */
   done: boolean; occurrenceKey: string | null;
 };
