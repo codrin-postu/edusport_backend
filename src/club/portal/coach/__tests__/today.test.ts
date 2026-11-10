@@ -4,6 +4,7 @@ import { PORTAL_ERRORS } from '../../copy';
 import { forbiddenKeysIn } from '../views';
 import { createCoachLesson } from '../lessons';
 import { readToday } from '../today';
+import { canCoachCorrect } from '../../window';
 import { addOneOffClass, coachCtx } from './coach-seed';
 
 const TODAY = '2026-11-20';
@@ -56,6 +57,15 @@ describe('readToday', () => {
     expect(out.todo.some((r) => r.date === '2026-11-13' && r.groupId === 'g-club-a')).toBe(false);
     const dates = out.todo.map((r) => r.date);
     expect(dates).toEqual([...dates].sort().reverse());
+  });
+
+  it('todo holds only classes the coach can still fill: 2 days old yes, 8 days old no', async () => {
+    const out = await read(coachCtx('tm-andreea', '2026-11-22'), '2026-11-22');
+    const dates = out.todo.map((r) => r.date);
+    expect(dates).toContain('2026-11-20');
+    expect(dates).not.toContain('2026-11-14');
+    expect(dates.every((d) => canCoachCorrect(d, '2026-11-22'))).toBe(true);
+    expect(out.week.missing).toBe(out.todo.filter((r) => r.date >= '2026-11-16').length);
   });
 
   it('lessons of the date whose coaches include her, done when recorded', async () => {

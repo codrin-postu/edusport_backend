@@ -3,6 +3,7 @@ import { readDay } from '../../presence/attendance/day';
 import type { DayRow } from '../../presence/attendance/api-types';
 import type { SessionRow } from '../../presence/types';
 import { PORTAL_ERRORS } from '../copy';
+import { canCoachCorrect } from '../window';
 import { addDays, weekdayIndex } from '../../groups/dates';
 import type { CoachClassRow, CoachLessonRow, CoachNext, CoachToday, CoachWeek } from './api-types';
 import { clockOf, type CoachContexts } from './context';
@@ -59,7 +60,7 @@ export async function readToday(c: CoachContexts, date: unknown): Promise<AdminR
   const where: Located = (id) => places.get(id) ?? null;
   const ownRows = day.data.day.filter((r) => own.has(r.groupId));
   const standIn = await standInRows(c, day.data.day.filter((r) => !own.has(r.groupId)));
-  const todo = day.data.undone.filter((r) => own.has(r.groupId)).map((r) => classRow(r, false, where));
+  const todo = day.data.undone.filter((r) => own.has(r.groupId) && canCoachCorrect(r.date, c.today)).map((r) => classRow(r, false, where));
   return {
     ok: true,
     data: {
