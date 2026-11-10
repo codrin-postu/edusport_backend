@@ -84,9 +84,10 @@ describe('ownership matrix (spec 7) through the controller', () => {
     for (const col of COLS) {
       const res = await call(seeded(col), 'group', { params: { documentId: GROUP[col] } });
       expect(res.status, col).toBe(200);
-      const data = res.body.data as { members: unknown[] | null; own: boolean };
+      const data = res.body.data as { members: Record<string, unknown>[]; membersReadOnly: boolean; own: boolean };
       expect(data.own, col).toBe(col === 'own' || col === 'scoala');
-      expect(data.members === null, col).toBe(col === 'other' || col === 'removed');
+      expect(data.membersReadOnly, col).toBe(!data.own);
+      if (!data.own) for (const m of data.members) expect(Object.keys(m).sort(), col).toEqual(['age', 'name']);
     }
   });
 

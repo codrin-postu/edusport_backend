@@ -108,7 +108,7 @@ async function slots(c: CoachContexts, groupId: string, own: boolean): Promise<{
   return { standIn, todayKey };
 }
 
-/** Group page (spec 9.5): roster only of an own group; another group shows its coaches and the classes a stand-in may take. */
+/** Group page (spec 9.5): full roster only of an own group (another group: names and ages, read only); another group shows its coaches and the classes a stand-in may take. */
 export async function readCoachGroupPage(c: CoachContexts, groupId: string): Promise<AdminResult<CoachGroupPage>> {
   const f = await listFacts(c);
   const group = f.groups.find((g) => g.id === groupId) ?? null;
@@ -121,7 +121,7 @@ export async function readCoachGroupPage(c: CoachContexts, groupId: string): Pro
     ok: true,
     data: {
       groupId, name: group.name, kind, own, coaches: f.team.filter((t) => group.coachIds.includes(t.id)).map((t) => t.name), program: groupListRow(group, f).program,
-      members: own ? await members(c, groupId) : null, standIn, todayKey, programPublic: own && kind === 'club' ? group.programPublic : null,
+      members: own ? await members(c, groupId) : (await members(c, groupId)).map(({ name, age }) => ({ name, age })), membersReadOnly: !own, standIn, todayKey, programPublic: own && kind === 'club' ? group.programPublic : null,
       location: await locationOfGroup(c, group),
     },
   };
