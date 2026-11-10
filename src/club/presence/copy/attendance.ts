@@ -42,6 +42,7 @@ export const LESSON_COPY = {
   saved: 'Salvat.',
   unchanged: 'Nicio modificare.',
   deleted: 'Lecție ștearsă.',
+  deletedMany: 'Lecții șterse.',
   deleteLink: 'Șterge lecția',
   deleteConfirm: (date: string) => `Ștergi lecția din ${shortDay(date)}?`,
 };

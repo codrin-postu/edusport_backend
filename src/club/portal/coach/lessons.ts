@@ -2,7 +2,7 @@ import { refuse, type AdminResult } from '../../admin-result';
 import type { ActionResult } from '../../groups/action-log';
 import { ATTENDANCE_ERRORS } from '../../presence/copy/attendance';
 import { createLesson } from '../../presence/lessons/create';
-import { deleteLesson } from '../../presence/lessons/delete';
+import { deleteLesson, deleteLessonsFrom, type Deleted } from '../../presence/lessons/delete';
 import { readLessonPatch, readLessonPlan } from '../../presence/lessons/input';
 import { planLesson } from '../../presence/lessons/plan';
 import { PRESENCE_ERRORS } from '../../presence/copy';
@@ -86,10 +86,16 @@ export async function saveCoachLesson(c: CoachContexts, id: string, body: unknow
   return plain(await saveLesson(c.presence, id, body));
 }
 
-export async function deleteCoachLesson(c: CoachContexts, id: string): Promise<CoachResult<{ deleted: true; toast: string }>> {
+/** `scope` of the delete query: absent or one, or following; anything else is refused. */
+const readScope = (query: Record<string, unknown>): 'one' | 'following' | null =>
+  query.scope === undefined || query.scope === 'one' ? 'one' : query.scope === 'following' ? 'following' : null;
+
+export async function deleteCoachLesson(c: CoachContexts, id: string, query: Record<string, unknown> = {}): Promise<CoachResult<Deleted>> {
   const l = await mine(c, id);
   if (!l) return notFound();
+  const scope = readScope(query);
+  if (!scope) return refuse(400, PORTAL_ERRORS.invalid);
   const right = rightOf(c, l);
   if (!right.delete) return refusalFor(right);
-  return plain(await deleteLesson(c.presence, id));
+  return plain(scope === 'following' ? await deleteLessonsFrom(c.presence, id) : await deleteLesson(c.presence, id));
 }

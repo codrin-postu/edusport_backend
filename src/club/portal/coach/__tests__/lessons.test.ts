@@ -67,6 +67,17 @@ describe('repeating lessons', () => {
   });
 });
 
+describe('scoped delete', () => {
+  it('answers exactly deleted, count, toast and refuses an unknown scope', async () => {
+    const c = coachCtx(ME);
+    c.fake.state.lessons.push(lessonRow({ id: 'l1', athleteId: 'a-club-1', date: '2026-12-01', coachIds: [ME] }));
+    expect(await deleteCoachLesson(c, 'l1', { scope: 'x' })).toEqual({ ok: false, status: 400, error: PORTAL_ERRORS.invalid });
+    const r = await deleteCoachLesson(c, 'l1', { scope: 'following' });
+    expect(r).toEqual({ ok: true, data: { deleted: true, count: 1, toast: 'Lecție ștearsă.' } });
+    expect(forbiddenKeysIn(r)).toEqual([]);
+  });
+});
+
 describe('window and ownership', () => {
   const seeded = (today: string, date: string, over = {}) => {
     const c = coachCtx(ME, today);

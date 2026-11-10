@@ -102,7 +102,7 @@ export default {
   lesson: coachOnly('lesson', async (c, ctx) => respondData(ctx, await readCoachLesson(c, param(ctx, 'documentId')))),
   planLesson: coachOnly('planLesson', async (c, ctx) => respondData(ctx, await planCoachLesson(c, param(ctx, 'documentId'), ctx.request.body))),
   saveLesson: coachOnly('saveLesson', async (c, ctx) => respondData(ctx, await saveCoachLesson(c, param(ctx, 'documentId'), ctx.request.body))),
-  deleteLesson: coachOnly('deleteLesson', async (c, ctx) => respondData(ctx, await deleteCoachLesson(c, param(ctx, 'documentId')))),
+  deleteLesson: coachOnly('deleteLesson', async (c, ctx) => respondData(ctx, await deleteCoachLesson(c, param(ctx, 'documentId'), ctx.query))),
   searchAthletes: coachOnly('searchAthletes', async (c, ctx) => respondData(ctx, await searchAthletes(c, ctx.query))),
   addAthlete: coachOnly('addAthlete', async (c, ctx) => respondData(ctx, await addNewAthlete(c, ctx.request.body))),
   athlete: coachOnly('athlete', async (c, ctx) => respondData(ctx, await readCard(c, param(ctx, 'documentId')))),
