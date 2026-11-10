@@ -5,7 +5,7 @@ import {
 import { event, G_GROUPS, G_SEASONS } from './fake-group-store';
 
 const IB = G_GROUPS[1];
-const series: SeriesInput = { freq: 'weekly', weekOfMonth: null, days: ['sat', 'sun'], startTime: '11:00', durationMin: 50, from: '2026-11-07' };
+const series: SeriesInput = { freq: 'weekly', weekOfMonth: null, days: ['sat', 'sun'], startTime: '11:00', durationMin: 50, from: '2026-11-07', until: null };
 const cancel = (date: string, reason: string | null = null) => ({ date, kind: 'anulat' as const, newDate: null, newStartTime: null, newEndTime: null, newTitle: null, reason });
 
 describe('reading the "Program nou" form (6.3, W10)', () => {
