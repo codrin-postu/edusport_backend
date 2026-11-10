@@ -25,7 +25,11 @@ export type CoachClassRow = {
   location: string | null;
 };
 export type CoachLessonRow = { lessonId: string; athleteName: string; date: string; startTime: string; durationMin: number; done: boolean };
-export type CoachToday = { date: string; today: string; groups: CoachClassRow[]; lessons: CoachLessonRow[]; todo: CoachClassRow[] };
+/** The first own class or lesson after now (14 days ahead at most), for the Azi column. */
+export type CoachNext = { kind: 'grup' | 'individual'; date: string; startTime: string; title: string; location: string | null; occurrenceKey: string | null; lessonId: string | null };
+/** The Monday to Sunday week of today: classes and lessons held (start time passed) and left, and held classes still without saved presence. */
+export type CoachWeek = { groupsHeld: number; groupsLeft: number; lessonsHeld: number; lessonsLeft: number; missing: number };
+export type CoachToday = { date: string; today: string; groups: CoachClassRow[]; lessons: CoachLessonRow[]; todo: CoachClassRow[]; next: CoachNext | null; week: CoachWeek };
 export type NextClass = { date: string; startTime: string };
 export type CoachGroupRow = { groupId: string; name: string; kind: SectionKind; program: string[]; children: number; next: NextClass | null };
 export type OtherGroupRow = { groupId: string; name: string; coaches: string[]; program: string[]; children: number; next: NextClass | null };

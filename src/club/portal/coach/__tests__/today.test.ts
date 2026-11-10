@@ -4,6 +4,7 @@ import { PORTAL_ERRORS } from '../../copy';
 import { forbiddenKeysIn } from '../views';
 import { createCoachLesson } from '../lessons';
 import { readToday } from '../today';
+import { canCoachCorrect } from '../../window';
 import { addOneOffClass, coachCtx } from './coach-seed';
 
 const TODAY = '2026-11-20';
@@ -56,6 +57,15 @@ describe('readToday', () => {
     expect(out.todo.some((r) => r.date === '2026-11-13' && r.groupId === 'g-club-a')).toBe(false);
     const dates = out.todo.map((r) => r.date);
     expect(dates).toEqual([...dates].sort().reverse());
+  });
+
+  it('todo holds only classes the coach can still fill: 2 days old yes, 8 days old no', async () => {
+    const out = await read(coachCtx('tm-andreea', '2026-11-22'), '2026-11-22');
+    const dates = out.todo.map((r) => r.date);
+    expect(dates).toContain('2026-11-20');
+    expect(dates).not.toContain('2026-11-14');
+    expect(dates.every((d) => canCoachCorrect(d, '2026-11-22'))).toBe(true);
+    expect(out.week.missing).toBe(out.todo.filter((r) => r.date >= '2026-11-16').length);
   });
 
   it('lessons of the date whose coaches include her, done when recorded', async () => {
@@ -116,5 +126,45 @@ describe('repeating lessons and one-off classes in Azi', () => {
     expect(wed.groups.map((g) => [g.groupId, g.startTime, g.done])).toEqual([['g-club-a', '15:00', false]]);
     c.fake.state.calendar.events.find((e) => e.documentId === 'ev-g-club-a')!.exceptions = [{ date: '2026-11-27', kind: 'sters' }];
     expect((await read(c, '2026-11-27')).groups).toEqual([]);
+  });
+});
+
+describe('readToday next and week', () => {
+  // Friday 20 November 2026, 12:00 in Bucharest; Club A on Fridays 17:00, Școala A on Saturdays and Sundays 11:00.
+  it('a normal week: next is the Club A class today, three classes left, none held', async () => {
+    const out = await read(coachCtx('tm-andreea'));
+    expect(out.next).toEqual({ kind: 'grup', date: TODAY, startTime: '17:00', title: 'Club A', location: null, occurrenceKey: `ev-g-club-a|${TODAY}|17:00`, lessonId: null });
+    expect(out.week).toEqual({ groupsHeld: 0, groupsLeft: 3, lessonsHeld: 0, lessonsLeft: 0, missing: 0 });
+    expect(forbiddenKeysIn(out)).toEqual([]);
+  });
+
+  it('after the class started it counts as held, missing until saved; lessons count too and the next one is a lesson', async () => {
+    const c = coachCtx('tm-andreea');
+    c.presence.now = () => new Date(`${TODAY}T16:00:00.000Z`);
+    c.fake.state.lessons.push(
+      lessonRow({ id: 'l1', athleteId: 'a-club-1', date: '2026-11-18', startTime: '16:00', durationMin: 50, coachIds: ['tm-andreea'], present: null }),
+      lessonRow({ id: 'l2', athleteId: 'a-club-2', date: '2026-11-21', startTime: '09:00', durationMin: 50, coachIds: ['tm-andreea'] }),
+    );
+    const out = await read(c);
+    expect(out.week).toEqual({ groupsHeld: 1, groupsLeft: 2, lessonsHeld: 1, lessonsLeft: 1, missing: 0 });
+    expect(out.next).toMatchObject({ kind: 'individual', date: '2026-11-21', startTime: '09:00', title: 'Bogdan Club', location: null, occurrenceKey: null, lessonId: 'l2' });
+  });
+
+  it('missing counts the past unsaved classes of this week only', async () => {
+    const c = coachCtx('tm-andreea', '2026-11-22');
+    const out = await read(c, '2026-11-22');
+    expect(out.todo.filter((r) => r.date >= '2026-11-16').map((r) => r.date).length).toBe(out.week.missing);
+    expect(out.week.missing).toBeGreaterThan(0);
+  });
+
+  it('a day with nothing next answers next null', async () => {
+    expect((await read(coachCtx('tm-andreea', '2027-08-20'), '2027-08-20')).next).toBeNull();
+  });
+
+  it('a saved stand-in class is not counted in the week and is never next', async () => {
+    const c = coachCtx('tm-andreea');
+    c.fake.state.sessions.push(standInSession);
+    const out = await read(c);
+    expect(out.week).toEqual({ groupsHeld: 0, groupsLeft: 3, lessonsHeld: 0, lessonsLeft: 0, missing: 0 });
   });
 });
