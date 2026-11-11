@@ -13,6 +13,7 @@ import type { AccountRow, DeviceRow } from '../store';
 import { hashSecret, sameHash } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
 import { portalActor } from '../actor';
+import { portalTwoFactorOn } from './bff';
 import { mayEnter, createDeviceRow, mailNewDevice, startSession, type PortalSession } from './issue';
 
 /** `deviceKey`: the key of a device row made for this browser at the password step; the browser keeps it and sends it back with the code. */
@@ -32,7 +33,7 @@ export const portalSubject = (account: AccountRow): Subject => ({ type: 'portal'
 
 /** The one-time offer: passkeys configured (`WEBAUTHN_RP_ID`), no key on this rpId and never offered. */
 export async function offerPasskeyFor(c: PortalAuthContext, account: AccountRow): Promise<boolean> {
-  const rpId = rpConfig()?.rpId;
+  const rpId = portalTwoFactorOn() ? rpConfig()?.rpId : null;
   if (!rpId) return false;
   const extra = await c.security.store.portalAccountExtra(account.id);
   if (extra.passkeyOfferedAt) return false;
@@ -50,7 +51,7 @@ export async function afterPassword(
   c: PortalAuthContext, account: AccountRow, deviceKey: string | null, host: string,
 ): Promise<PortalResult<SessionWithOffer | PortalPending>> {
   const subject = portalSubject(account);
-  if ((await hasTwoFactor(c.security, subject)).length === 0) return withOffer(c, account, await startSession(c, account, deviceKey, { notifyNewDevice: true, host }));
+  if (!portalTwoFactorOn() || (await hasTwoFactor(c.security, subject)).length === 0) return withOffer(c, account, await startSession(c, account, deviceKey, { notifyNewDevice: true, host }));
   const device = deviceKey ? await c.store.deviceByKey(account.id, hashSecret(deviceKey), host) : null;
   if (device && device.revokedAt === null && isConfirmedDevice(device) && isRemembered(device.twoFactorUntil, c.now())) {
     return withOffer(c, account, await startSession(c, account, deviceKey, { notifyNewDevice: true, host }));

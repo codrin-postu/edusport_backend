@@ -50,3 +50,7 @@ Passkeys are bound to the rpId (`WEBAUTHN_RP_ID`). Today it is `codrin.space`; a
 ## Hosts (phase 7-1)
 
 The portal has two hosts, `antrenor.` and `sportiv.` (`PORTAL_HOSTS`). Every sign-in path (password, second step, Google, passkey, reset, invite accept, refresh) carries the host and checks it: `antrenor` needs a team member that is not coach-disabled, `sportiv` needs a live athlete access. The session, the device and an invite token belong to one host; a coach token on a sportiv route (and the reverse) is refused. One account can hold both roles. `WEBAUTHN_ORIGINS` must list both hosts (for example `https://antrenor.scoaladepatinaj.com,https://sportiv.scoaladepatinaj.com`), and device cookies are per host, so the first sign-in on the other host asks for 2FA once.
+
+### Portal 2FA switch (2026-11-11)
+
+`PORTAL_2FA=on|off` (default off). Off: the coach and student portals sign in with e-mail + password or Google only. The portal 2FA enrol and use routes, backup codes and passkey routes answer 404, and stored factors are ignored at sign-in (a session is issued after the usual host check). The code stays for later; admin-auth 2FA is not affected.

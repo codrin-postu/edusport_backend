@@ -7,6 +7,7 @@ import type { AccountRow } from '../store';
 import { hashSecret, tokenState } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
 import { activateInvited, liveInvite } from './invite';
+import { portalTwoFactorOn } from './bff';
 import { mayEnter, startSession } from './issue';
 import { hasTwoFactor } from '../../security/second-step';
 import { openSecondStep, portalSubject, withOffer, type PortalPending, type SessionWithOffer } from './two-factor';
@@ -193,7 +194,7 @@ export async function loginWithGoogle(c: PortalAuthContext, g: GoogleClient | nu
     const done = await acceptWithGoogle(c, byEmail.id, tokenId, who.sub);
     return done ? enter(done) : expiredInvite;
   }
-  if ((await hasTwoFactor(c.security, portalSubject(byEmail))).length > 0) {
+  if (portalTwoFactorOn() && (await hasTwoFactor(c.security, portalSubject(byEmail))).length > 0) {
     if (!(await mayEnter(c, byEmail, await c.store.user(byEmail.userId), read.host))) return noAccount;
     const device = read.deviceKey ? await c.store.deviceByKey(byEmail.id, hashSecret(read.deviceKey), read.host) : null;
     return openSecondStep(c, byEmail, read.deviceKey, read.host, device, who.sub);

@@ -350,6 +350,21 @@ describe('first Google link and 2FA (user ruling 2026-11-09)', () => {
     expect(s.fake.state.sessions).toHaveLength(0);
   });
 
+  it('with PORTAL_2FA off the first link of an account with stored 2FA starts the session and stores the sub, no pending step', async () => {
+    process.env.PORTAL_2FA = 'off';
+    try {
+      const s = setup();
+      const id = await s.addAccount();
+      await enrol(s, id);
+      const r = await s.login();
+      expect(r).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
+      expect(r.ok && 'pending' in r.data).toBe(false);
+      expect(s.fake.state.accounts[0].googleSub).not.toBeNull();
+    } finally {
+      process.env.PORTAL_2FA = 'on';
+    }
+  });
+
   it('first link of a 2FA account on sportiv: a coach-only account is refused, no pending, no sub, no session', async () => {
     const s = setup();
     const id = await s.addAccount();

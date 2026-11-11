@@ -2,6 +2,7 @@ import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
 import { portalAuthContext, type PortalCtx } from '../../../club/portal/auth/context';
 import type { PortalUserState } from '../../../policies/is-portal-user';
 import { PORTAL_ERRORS } from '../../../club/portal/copy';
+import { portalTwoFactorOn } from '../../../club/portal/auth/bff';
 import { portalSecurity } from '../../../club/portal/security';
 import { SECURITY_ERRORS } from '../../../club/security/copy';
 import { KeysMissing } from '../../../club/security/keys';
@@ -26,20 +27,26 @@ const signedIn = (tag: string, run: Run) => async (ctx: Ctx): Promise<void> => {
   }
 };
 
+/** The 2FA, backup code and passkey routes answer 404 while `PORTAL_2FA` is off (before any account data is read). The overview, reauth and the rest stay. */
+const factor = (tag: string, run: Run) => {
+  const handler = signedIn(tag, run);
+  return async (ctx: Ctx): Promise<void> => (portalTwoFactorOn() ? handler(ctx) : refuseWith(ctx, 404, 'Not Found'));
+};
+
 /** Portal Securitate API (routes/03-security.ts). */
 export default {
   security: signedIn('security', (s) => s.read()),
-  totpStart: signedIn('totpStart', (s) => s.totpStart()),
-  totpConfirm: signedIn('totpConfirm', (s, ctx) => s.totpConfirm(ctx.request.body)),
-  totpOff: signedIn('totpOff', (s) => s.totpOff()),
-  emailStart: signedIn('emailStart', (s) => s.emailStart()),
-  emailConfirm: signedIn('emailConfirm', (s, ctx) => s.emailConfirm(ctx.request.body)),
-  emailOff: signedIn('emailOff', (s) => s.emailOff()),
-  backupCodes: signedIn('backupCodes', (s) => s.backupCodes()),
+  totpStart: factor('totpStart', (s) => s.totpStart()),
+  totpConfirm: factor('totpConfirm', (s, ctx) => s.totpConfirm(ctx.request.body)),
+  totpOff: factor('totpOff', (s) => s.totpOff()),
+  emailStart: factor('emailStart', (s) => s.emailStart()),
+  emailConfirm: factor('emailConfirm', (s, ctx) => s.emailConfirm(ctx.request.body)),
+  emailOff: factor('emailOff', (s) => s.emailOff()),
+  backupCodes: factor('backupCodes', (s) => s.backupCodes()),
   reauth: signedIn('reauth', (s, ctx) => s.reauth(ctx.request.body)),
-  passkeyStart: signedIn('passkeyStart', (s) => s.passkeyStart()),
-  passkeyAdd: signedIn('passkeyAdd', (s, ctx) => s.passkeyAdd(ctx.request.body)),
-  passkeyDismiss: signedIn('passkeyDismiss', (s) => s.passkeyDismiss()),
-  passkeyRename: signedIn('passkeyRename', (s, ctx) => s.passkeyRename(String(ctx.params.id), ctx.request.body)),
-  passkeyDelete: signedIn('passkeyDelete', (s, ctx) => s.passkeyDelete(String(ctx.params.id))),
+  passkeyStart: factor('passkeyStart', (s) => s.passkeyStart()),
+  passkeyAdd: factor('passkeyAdd', (s, ctx) => s.passkeyAdd(ctx.request.body)),
+  passkeyDismiss: factor('passkeyDismiss', (s) => s.passkeyDismiss()),
+  passkeyRename: factor('passkeyRename', (s, ctx) => s.passkeyRename(String(ctx.params.id), ctx.request.body)),
+  passkeyDelete: factor('passkeyDelete', (s, ctx) => s.passkeyDelete(String(ctx.params.id))),
 };
