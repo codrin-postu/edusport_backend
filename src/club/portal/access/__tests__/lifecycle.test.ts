@@ -176,6 +176,18 @@ describe('merge', () => {
     expect(live(w.h)).toMatchObject([{ athleteId: 'k', accountId: other }]);
     expect(w.h.access.state.rows.filter((r) => r.athleteId === 'a1')).toEqual([]);
   });
+  it('a picked e-mail changes the kept athlete e-mail: its access moves to the new holder with one mail after commit', async () => {
+    const w = await world({ club: [kept('k@example.invalid')], access: [ana({ id: 'k', name: 'Ana I.', email: 'k@example.invalid' })], live: false });
+    const holderK = await account(w.h, 'k@example.invalid', 'active');
+    await w.h.access.store.createAccess({ athleteId: 'k', accountId: holderK, email: 'k@example.invalid', invitedAt: NOW.toISOString(), invitedBy: 'x' });
+    const newHolder = w.accountA;
+    expect(await mergeAthletes(w.ctx, { keptId: 'k', removedId: 'a1', take: ['email'] }, fakePresenceStore().store)).toMatchObject({ ok: true });
+    expect(w.fake.state.athletes.find((a) => a.id === 'k')?.email).toBe('a@example.invalid');
+    expect(live(w.h)).toMatchObject([{ athleteId: 'k', accountId: newHolder, email: 'a@example.invalid' }]);
+    expect(w.h.access.state.rows.find((r) => r.accountId === holderK)).toMatchObject({ revokeReason: 'email_schimbat' });
+    expect(w.h.accessJobs).toHaveLength(1);
+    expect(w.h.after).toEqual(['access1']);
+  });
   it('a removed athlete without access leaves the kept one alone', async () => {
     const w = await world({ live: false, club: [kept('a@example.invalid')], access: [ana({ id: 'k', name: 'Ana I.' })] });
     expect(await merge(w)).toMatchObject({ ok: true });
