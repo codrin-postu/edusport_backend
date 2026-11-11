@@ -12,7 +12,7 @@ import { isConfirmedDevice } from '../devices';
 import type { AccountRow, DeviceRow } from '../store';
 import { hashSecret, sameHash } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
-import { coachActor } from '../coach/context';
+import { portalActor } from '../actor';
 import { mayEnter, createDeviceRow, mailNewDevice, startSession, type PortalSession } from './issue';
 
 /** `deviceKey`: the key of a device row made for this browser at the password step; the browser keeps it and sends it back with the code. */
@@ -121,7 +121,7 @@ export async function portalSecondStep(c: PortalAuthContext, body: unknown): Pro
   const personName = async (s: Subject): Promise<string | null> => {
     const a = await c.store.account(s.id);
     const name = a?.teamMemberId ? await c.store.teamMemberName(a.teamMemberId) : null;
-    return coachActor(name ?? '').trim();
+    return a ? portalActor(a, name) : null;
   };
   const verified = await verifySecondStep(c.security, read.pending, read.method, read.code, personName);
   if (verified.ok === false) return verified;

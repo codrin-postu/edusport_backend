@@ -13,7 +13,9 @@ export async function backfillDeviceHosts(knex: Knex): Promise<number> {
   let n = 0;
   for (const table of ['portal_devices', 'portal_tokens']) {
     if (!(await knex.schema.hasTable(table))) continue;
-    n += await knex(table).whereNull('host').update({ host: 'antrenor' });
+    // Reset codes keep a null host (they work on either host); only invites and devices belong to the coach host.
+    const open = knex(table).whereNull('host');
+    n += await (table === 'portal_tokens' ? open.where('kind', 'invite') : open).update({ host: 'antrenor' });
   }
   return n;
 }

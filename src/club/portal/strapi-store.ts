@@ -204,7 +204,7 @@ function devices(strapi: Core.Strapi): Pick<PortalStore, 'devices' | 'deviceByKe
     devices: async (accountId) =>
       raws(await docs().findMany({ filters: { account: { documentId: accountId } }, populate, sort: 'createdAt:asc', limit: MAX })).map(toDeviceRow),
     deviceByKey: async (accountId, keyHash, host) => {
-      const rows = raws(await docs().findMany({ filters: { account: { documentId: accountId }, deviceKeyHash: keyHash, host }, populate, limit: 1 }));
+      const rows = raws(await docs().findMany({ filters: { account: { documentId: accountId }, deviceKeyHash: keyHash, ...(host === 'antrenor' ? { $or: [{ host }, { host: { $null: true } }] } : { host }) }, populate, limit: 1 }));
       return rows[0] ? toDeviceRow(rows[0]) : null;
     },
     createDevice: async (d) => {

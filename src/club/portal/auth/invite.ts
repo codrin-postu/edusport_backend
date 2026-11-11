@@ -1,4 +1,5 @@
 import { refuse, type AuthRefusal } from '../../admin-result';
+import { portalActor } from '../actor';
 import { PORTAL_ACTIONS, PORTAL_ERRORS } from '../copy';
 import { checkPassword } from '../passwords';
 import type { AccountRow, TokenRow } from '../store';
@@ -46,7 +47,7 @@ export async function activateInvited(c: PortalAuthContext, account: AccountRow,
     subjectId: account.id,
     action: how === 'google' ? PORTAL_ACTIONS.activatedGoogle : PORTAL_ACTIONS.activated,
     changes: {},
-    actor: name ? `Antrenor ${name}` : 'Antrenor',
+    actor: portalActor(account, name),
   });
 }
 
@@ -57,8 +58,10 @@ function readAcceptBody(body: unknown, hosts: string[]): AcceptBody | null {
   const { secret, password, host, deviceKey } = body as Record<string, unknown>;
   const key = deviceKey === undefined || deviceKey === null ? null : typeof deviceKey === 'string' && deviceKey !== '' && deviceKey.length <= DEVICE_KEY_MAX ? deviceKey : undefined;
   if (typeof secret !== 'string' || secret === '' || secret.length > SECRET_MAX || typeof password !== 'string' || key === undefined) return null;
-  if (typeof host !== 'string' || !hosts.includes(host)) return null;
-  return { secret, password, host, deviceKey: key };
+  // A missing host is the coach page (the deployed antrenor BFF does not send it on accept); a wrong value is refused.
+  const page = host === undefined ? 'antrenor' : host;
+  if (typeof page !== 'string' || !hosts.includes(page)) return null;
+  return { secret, password, host: page, deviceKey: key };
 }
 
 export async function acceptInvite(c: PortalAuthContext, body: unknown): Promise<PortalResult<SessionWithOffer | AcceptedNoSession>> {

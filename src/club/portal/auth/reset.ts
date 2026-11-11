@@ -1,4 +1,5 @@
 import { refuse, type AuthRefusal } from '../../admin-result';
+import { portalActor } from '../actor';
 import { PORTAL_ACTIONS, PORTAL_ERRORS, RESET_SENT } from '../copy';
 import { normalizeEmail } from '../limits';
 import { checkPassword } from '../passwords';
@@ -117,7 +118,7 @@ async function checkCode(c: PortalAuthContext, keys: Keys, accountId: string, co
     // Spec 6.4: a reset forgets every remembered device, the one that did the reset included.
     await c.security.forgetDevices({ type: 'portal', id: accountId }, {});
     const name = account.teamMemberId ? await c.store.teamMemberName(account.teamMemberId) : null;
-    await c.store.record({ subjectId: accountId, action: PORTAL_ACTIONS.passwordReset, changes: {}, actor: name ? `Antrenor ${name}` : 'Antrenor' });
+    await c.store.record({ subjectId: accountId, action: PORTAL_ACTIONS.passwordReset, changes: {}, actor: portalActor(account, name) });
     return { right: true, account: { ...account, status: account.status === 'invited' ? 'active' : account.status } };
   });
 }

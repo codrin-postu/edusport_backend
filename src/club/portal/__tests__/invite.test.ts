@@ -188,9 +188,15 @@ describe('invite host', () => {
     expect(s.fake.state.sessions).toEqual([]);
   });
 
-  it('accept sets passwordChangedAt; a missing host is refused', async () => {
+  it('a missing host is the coach page; a wrong host value is refused', async () => {
     const s = await setup();
-    expect(await s.accept({ host: undefined })).toMatchObject({ ok: false, status: 400 });
+    expect(await s.accept({ host: 'admin' })).toMatchObject({ ok: false, status: 400 });
+    expect(await s.accept({ host: undefined })).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
+    expect(s.fake.state.sessions.map((x) => x.host)).toEqual(['antrenor']);
+  });
+
+  it('accept sets passwordChangedAt', async () => {
+    const s = await setup();
     s.advance(1000);
     await s.accept();
     expect(s.fake.state.accounts[0].passwordChangedAt).toBe('2026-11-06T10:00:01.000Z');

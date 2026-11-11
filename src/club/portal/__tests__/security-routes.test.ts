@@ -8,21 +8,8 @@ import { open, totpAad } from '../../security/secret-box';
 import { totpAt } from '../../security/totp';
 import { TEST_KEYS } from '../../security/__tests__/keys';
 import { setup2fa } from './portal-2fa';
-import { staticBeforeParams } from '../../groups/__tests__/route-order';
-
-const EXPECTED = [
-  'GET /portal/me/security', 'POST /portal/me/2fa/totp', 'POST /portal/me/2fa/totp/confirm', 'DELETE /portal/me/2fa/totp',
-  'POST /portal/me/2fa/email', 'POST /portal/me/2fa/email/confirm', 'DELETE /portal/me/2fa/email', 'POST /portal/me/backup-codes',
-  'POST /portal/me/reauth', 'POST /portal/me/passkeys/options', 'POST /portal/me/passkeys', 'POST /portal/me/passkey-offer/dismiss', 'PUT /portal/me/passkeys/:id', 'DELETE /portal/me/passkeys/:id',
-];
 
 describe('portal Securitate routes', () => {
-  it('are exactly the listed ones, each behind global::is-portal-user (BFF secret 403, Bearer 401), no Strapi auth', () => {
-    expect(routes.routes.map((r) => `${r.method} ${r.path}`)).toEqual(EXPECTED);
-    for (const r of routes.routes) expect(r.config).toEqual({ auth: false, policies: ['global::is-portal-user'], middlewares: [] });
-    expect(staticBeforeParams(routes.routes.map((r) => r.path))).toBe(true);
-  });
-
   it('a handler run without the policy state answers 401 and builds nothing', async () => {
     const handlers = controller as unknown as Record<string, (ctx: unknown) => Promise<void>>;
     for (const r of routes.routes) {

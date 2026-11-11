@@ -139,6 +139,48 @@ describe('every sign-in path checks the host', () => {
   });
 });
 
+describe('a coach-only account on sportiv', () => {
+  it('is refused by reset confirm and gets no session', async () => {
+    const s = setup2fa();
+    await s.addAccount();
+    await requestReset(s.c, { email: 'ana@x.ro' });
+    expect(await confirmReset(s.c, { host: 'sportiv', email: 'ana@x.ro', code: await code(s), password: 'a-fine-new-password' })).toEqual(WRONG);
+    expect(s.fake.state.sessions).toEqual([]);
+  });
+
+  it('is refused by refresh of a session that claims sportiv', async () => {
+    const s = setup2fa();
+    await s.addAccount();
+    const work = await login(s, 'antrenor');
+    if (!work.ok || !('refreshToken' in work.data)) throw new Error('no session');
+    s.fake.state.sessions[0].host = 'sportiv';
+    expect(await refreshSession(s.c, { refreshToken: work.data.refreshToken })).toMatchObject({ ok: false, status: 401 });
+  });
+
+  it('still pays the password compare before the host refusal', async () => {
+    const s = setup2fa();
+    await s.addAccount();
+    expect(await login(s, 'sportiv')).toEqual(WRONG);
+    expect(s.compare).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('history actor of a holder', () => {
+  it('a holder-only reset writes the account name, else the e-mail, never Antrenor', async () => {
+    const s = setup2fa();
+    const id = await holder(s);
+    await hold(s, id);
+    await s.store.updateAccount(id, { name: 'Maria Ionescu' });
+    await requestReset(s.c, { email: 'ana@x.ro' });
+    await confirmReset(s.c, { host: 'sportiv', email: 'ana@x.ro', code: await code(s), password: 'a-fine-new-password' });
+    expect(s.fake.state.history.map((h) => h.actor)).toEqual(['Maria Ionescu']);
+    await s.store.updateAccount(id, { name: null });
+    await requestReset(s.c, { email: 'ana@x.ro' });
+    await confirmReset(s.c, { host: 'sportiv', email: 'ana@x.ro', code: await code(s), password: 'another-fine-password' });
+    expect(s.fake.state.history.map((h) => h.actor)).toEqual(['Maria Ionescu', 'ana@x.ro']);
+  });
+});
+
 describe('passkey sign-in checks the host', () => {
   async function enrolled(s: S, id: string): Promise<SoftAuthenticator> {
     const at = s.clock.t.toISOString();

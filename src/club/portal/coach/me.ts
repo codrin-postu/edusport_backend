@@ -108,7 +108,7 @@ export async function listDevices(c: CoachContexts, deviceKey: string | null): P
 const hashOf = (deviceKey: string | null): string | null => (deviceKey ? hashSecret(deviceKey) : null);
 
 export async function revokeDevice(c: CoachContexts, deviceId: string): Promise<AdminResult<{ revokedCurrent: boolean }>> {
-  const device = (await c.portal.devices(c.coach.accountId)).find((d) => d.id === deviceId && d.revokedAt === null);
+  const device = (await c.portal.devices(c.coach.accountId)).find((d) => d.id === deviceId && d.host === 'antrenor' && d.revokedAt === null);
   if (!device) return refuse(404, PORTAL_ERRORS.notFound);
   await c.portal.transaction(async () => {
     await c.portal.lockAccount(c.coach.accountId);
