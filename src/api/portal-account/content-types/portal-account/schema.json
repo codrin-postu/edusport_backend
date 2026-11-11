@@ -31,7 +31,11 @@
     },
     "status": {
       "type": "enumeration",
-      "enum": ["invited", "active", "disabled"],
+      "enum": [
+        "invited",
+        "active",
+        "disabled"
+      ],
       "required": true
     },
     "teamMember": {
@@ -90,6 +94,19 @@
     },
     "securityNotes": {
       "type": "json"
+    },
+    "name": {
+      "type": "string"
+    },
+    "coachDisabledAt": {
+      "type": "datetime"
+    },
+    "passwordChangedAt": {
+      "type": "datetime"
+    },
+    "notifySchedule": {
+      "type": "boolean",
+      "default": true
     }
   }
 }

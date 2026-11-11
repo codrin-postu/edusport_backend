@@ -1,0 +1,65 @@
+{
+  "kind": "collectionType",
+  "collectionName": "athlete_accesses",
+  "info": {
+    "singularName": "athlete-access",
+    "pluralName": "athlete-accesses",
+    "displayName": "Portal / Acces sportiv",
+    "description": "Accesul unui cont la un sportiv (părinte sau sportiv adult)"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "athlete": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::athlete.athlete",
+      "required": true
+    },
+    "account": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::portal-account.portal-account",
+      "required": true
+    },
+    "athleteKey": {
+      "type": "string",
+      "private": true,
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "required": true
+    },
+    "invitedAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "invitedBy": {
+      "type": "string",
+      "required": true
+    },
+    "revokedAt": {
+      "type": "datetime"
+    },
+    "revokedBy": {
+      "type": "string"
+    },
+    "revokeReason": {
+      "type": "enumeration",
+      "enum": ["scos", "email_schimbat", "anonimizat", "sters", "unit"]
+    },
+    "levelSeenGroup": {
+      "type": "string"
+    },
+    "levelSeenAt": {
+      "type": "datetime"
+    }
+  }
+}

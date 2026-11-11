@@ -45,7 +45,7 @@ describe('password login with 2FA', () => {
     await s.enrol(id);
     await login(s, { password: 'wrong' });
     expect(s.mails).toEqual([]);
-    await s.store.createDevice({ accountId: id, deviceKeyHash: hashSecret('known'), sessionId: null, label: 'T', firstSeenAt: s.clock.t.toISOString(), lastSeenAt: s.clock.t.toISOString() });
+    await s.store.createDevice({ accountId: id, host: 'antrenor', deviceKeyHash: hashSecret('known'), sessionId: null, label: 'T', firstSeenAt: s.clock.t.toISOString(), lastSeenAt: s.clock.t.toISOString() });
     await login(s, { deviceKey: 'known' });
     expect(s.mails).toEqual([]);
   });
@@ -95,10 +95,10 @@ describe('portalSecondStep', () => {
     const first = await login(s, { deviceKey: undefined });
     const key = keyOf(first);
     expect(key).toEqual(expect.any(String));
-    expect(await s.store.deviceByKey(id, hashSecret(key as string))).toMatchObject({ twoFactorUntil: null });
+    expect(await s.store.deviceByKey(id, hashSecret(key as string), 'antrenor')).toMatchObject({ twoFactorUntil: null });
     const done = await portalSecondStep(s.c, next(first, { method: 'totp', code: s.totp(), remember: true }));
     expect(done).toMatchObject({ ok: true, data: { accessToken: expect.any(String), deviceKey: null, offerPasskey: true } });
-    const device = await s.store.deviceByKey(id, hashSecret(key));
+    const device = await s.store.deviceByKey(id, hashSecret(key), 'antrenor');
     expect(device?.twoFactorUntil).toBe(new Date(s.clock.t.getTime() + REMEMBER_MS).toISOString());
     expect(await s.secStore.portalAccountExtra(id)).toMatchObject({ lastMethod: 'totp' });
     expect(await login(s, { deviceKey: key as string })).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
@@ -123,7 +123,7 @@ describe('portalSecondStep', () => {
     const s = setup2fa();
     const id = await s.addAccount();
     await s.enrol(id);
-    await s.store.createDevice({ accountId: id, deviceKeyHash: hashSecret('key-one'), sessionId: null, label: 'T', firstSeenAt: s.clock.t.toISOString(), lastSeenAt: s.clock.t.toISOString() });
+    await s.store.createDevice({ accountId: id, host: 'antrenor', deviceKeyHash: hashSecret('key-one'), sessionId: null, label: 'T', firstSeenAt: s.clock.t.toISOString(), lastSeenAt: s.clock.t.toISOString() });
     const pending = pendingOf(await login(s, { deviceKey: 'key-one' }));
     expect(await portalSecondStep(s.c, { pending, method: 'totp', code: s.totp(), remember: false, deviceKey: 'key-two' })).toEqual(EXPIRED);
     s.advance(90_000);

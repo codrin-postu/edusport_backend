@@ -12,8 +12,9 @@ import { isConfirmedDevice } from '../devices';
 import type { AccountRow, DeviceRow } from '../store';
 import { hashSecret, sameHash } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
-import { coachActor } from '../coach/context';
-import { canEnter, createDeviceRow, mailNewDevice, startSession, type PortalSession } from './issue';
+import { portalActor } from '../actor';
+import { portalTwoFactorOn } from './bff';
+import { mayEnter, createDeviceRow, mailNewDevice, startSession, type PortalSession } from './issue';
 
 /** `deviceKey`: the key of a device row made for this browser at the password step; the browser keeps it and sends it back with the code. */
 export type PortalPending = SecondStep & { pending: string; deviceKey: string | null };
@@ -32,7 +33,7 @@ export const portalSubject = (account: AccountRow): Subject => ({ type: 'portal'
 
 /** The one-time offer: passkeys configured (`WEBAUTHN_RP_ID`), no key on this rpId and never offered. */
 export async function offerPasskeyFor(c: PortalAuthContext, account: AccountRow): Promise<boolean> {
-  const rpId = rpConfig()?.rpId;
+  const rpId = portalTwoFactorOn() ? rpConfig()?.rpId : null;
   if (!rpId) return false;
   const extra = await c.security.store.portalAccountExtra(account.id);
   if (extra.passkeyOfferedAt) return false;
@@ -50,8 +51,8 @@ export async function afterPassword(
   c: PortalAuthContext, account: AccountRow, deviceKey: string | null, host: string,
 ): Promise<PortalResult<SessionWithOffer | PortalPending>> {
   const subject = portalSubject(account);
-  if ((await hasTwoFactor(c.security, subject)).length === 0) return withOffer(c, account, await startSession(c, account, deviceKey, { notifyNewDevice: true, host }));
-  const device = deviceKey ? await c.store.deviceByKey(account.id, hashSecret(deviceKey)) : null;
+  if (!portalTwoFactorOn() || (await hasTwoFactor(c.security, subject)).length === 0) return withOffer(c, account, await startSession(c, account, deviceKey, { notifyNewDevice: true, host }));
+  const device = deviceKey ? await c.store.deviceByKey(account.id, hashSecret(deviceKey), host) : null;
   if (device && device.revokedAt === null && isConfirmedDevice(device) && isRemembered(device.twoFactorUntil, c.now())) {
     return withOffer(c, account, await startSession(c, account, deviceKey, { notifyNewDevice: true, host }));
   }
@@ -71,8 +72,8 @@ export async function openSecondStep(
   // An unknown browser is mailed now (as the admin login does), so a password alone shows up before any code is tried.
   const known = device !== null && device.revokedAt === null;
   // The device row exists before the second step (as the admin login does), so "remember" and the bound key have a row; its key goes back with the pending answer.
-  const made = known ? null : await createDeviceRow(c, account);
-  if (made) await mailNewDevice(c, account, made.device.label);
+  const made = known ? null : await createDeviceRow(c, account, host);
+  if (made) await mailNewDevice(c, account, made.device.label, host);
   const boundKey = made ? made.key : deviceKey;
   const last = (await c.security.store.portalAccountExtra(account.id)).lastMethod;
   try {
@@ -121,7 +122,7 @@ export async function portalSecondStep(c: PortalAuthContext, body: unknown): Pro
   const personName = async (s: Subject): Promise<string | null> => {
     const a = await c.store.account(s.id);
     const name = a?.teamMemberId ? await c.store.teamMemberName(a.teamMemberId) : null;
-    return coachActor(name ?? '').trim();
+    return a ? portalActor(a, name) : null;
   };
   const verified = await verifySecondStep(c.security, read.pending, read.method, read.code, personName);
   if (verified.ok === false) return verified;
@@ -129,7 +130,7 @@ export async function portalSecondStep(c: PortalAuthContext, body: unknown): Pro
   if (!sameBrowser(data.deviceKeyHash, read.deviceKey)) return pendingExpired;
   const account = await c.store.account(subject.id);
   const user = account ? await c.store.user(account.userId) : null;
-  if (!account || !canEnter(account, user, data.host)) return wrongLogin;
+  if (!account || !(await mayEnter(c, account, user, data.host))) return wrongLogin;
   if (data.googleSub && !(await linkPendingGoogle(c, account, data.googleSub))) return pendingExpired;
   if (read.method !== 'backup') await c.security.store.updatePortalAccountExtra(account.id, { lastMethod: read.method });
   // The new-device mail went out after the password.
@@ -137,7 +138,7 @@ export async function portalSecondStep(c: PortalAuthContext, body: unknown): Pro
   if (session.ok === false) return session;
   if (read.remember) {
     const key = session.data.deviceKey ?? read.deviceKey;
-    const device = key ? await c.store.deviceByKey(account.id, hashSecret(key)) : null;
+    const device = key ? await c.store.deviceByKey(account.id, hashSecret(key), data.host) : null;
     if (device) await c.security.store.setPortalDeviceTwoFactor(device.id, rememberUntil(c.now()));
   }
   return withOffer(c, account, session);

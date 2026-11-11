@@ -4,6 +4,7 @@ import type { AthleteField, AthleteStatus } from '../../../club/athlete-data';
 import type {
   AthleteCard, AthleteEditResponse, AthleteListPage, AthleteRecord, HistoryLine, MergePreview,
 } from '../../../club/athletes/api-types';
+import type { AccessAnswer, AccessBlock, BulkPreview } from '../../../club/portal/access/api-types';
 import type { BulkAnonymizeResult } from '../../../club/personal-data/anonymize-plan';
 import type { InactiveSummary } from '../../../club/personal-data/settings';
 import type { EditBody } from '../../../club/sportivi/record-view';
@@ -45,6 +46,12 @@ export function useSportiviApi() {
       anonymize: (id: string) => detached<{ documentId: string }>(`${one(id)}/anonymize`, {}),
       anonymizeMany: (documentIds: string[]) => detached<BulkAnonymizeResult>(`${BASE}/anonymize`, { documentIds }),
       inactiveSummary: () => get<InactiveSummary>(`${BASE}/inactive-summary`),
+      accessRead: (id: string) => get<AccessBlock>(`${one(id)}/access`),
+      accessInvite: (id: string) => post<AccessAnswer>(`${one(id)}/access/invite`, {}),
+      accessResend: (id: string) => post<AccessAnswer>(`${one(id)}/access/resend`, {}),
+      accessRemove: (id: string) => post<AccessAnswer>(`${one(id)}/access/remove`, {}),
+      bulkPreview: (ids: string[]) => post<BulkPreview>(`${BASE}/access/bulk-preview`, { ids }),
+      bulkInvite: (ids: string[]) => post<{ sent: number; toast: string }>(`${BASE}/access/bulk-invite`, { ids }),
       hideInactiveReview: () => post<InactiveSummary>(`${BASE}/inactive-summary/hide`, {}),
     };
   }, []);

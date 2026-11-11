@@ -42,3 +42,9 @@ export const PORTAL_HOSTS = (env: NodeJS.ProcessEnv = process.env): string[] => 
   const hosts = (env.PORTAL_HOSTS ?? '').split(',').map((h) => h.trim()).filter(Boolean);
   return hosts.length ? hosts : ['antrenor'];
 };
+
+/**
+ * Portal second factor and passkeys (user decision 2026-11-11: coach and student portals sign in with e-mail + password or Google only).
+ * `PORTAL_2FA=on` turns them back on; anything else is off. The admin panel's own 2FA is not affected.
+ */
+export const portalTwoFactorOn = (env: NodeJS.ProcessEnv = process.env): boolean => (env.PORTAL_2FA ?? '').trim().toLowerCase() === 'on';

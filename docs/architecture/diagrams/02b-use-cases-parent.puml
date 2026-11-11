@@ -11,6 +11,8 @@ rectangle "EduSport" {
   usecase "Change password" as PW
   usecase "View child's\nattendance history" as PV
   usecase "View subscriptions\nand payments" as PS
+  usecase "Sign in on the\nsportiv host" as PH
+  usecase "Hold several children\nunder one account" as PK
   usecase "Pay by card" <<proposed>> as PC
 }
 V -- R
@@ -19,6 +21,8 @@ P -- PI
 P -- PW
 P -- PV
 P -- PS
+P -- PH
+P -- PK
 P -- PC
 legend bottom right
   Blue: planned (decided). Yellow «proposed»: not decided.

@@ -2,13 +2,15 @@ import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AdminPage, Button, PageHeader, Window, useIsPhone } from '../../ui';
 import { IconPlus } from '../../ui/icons';
-import { LIST_COPY, seasonValue } from '../../../club/sportivi/list-view';
+import { LIST_COPY, inactiveShown, seasonValue } from '../../../club/sportivi/list-view';
+import { selectionOn } from '../../../club/sportivi/personal-data-view';
 import { SPORTIVI_PATH, athleteRecordTo, wantsAddAthlete } from '../../../club/sportivi/routes';
 import { AddAthleteDialog } from './AddAthleteDialog';
 import { useSportiviApi } from './api';
 import { AthleteCards } from './AthleteCards';
 import { AthleteTable } from './AthleteTable';
 import { BulkAnonymizeBar } from './BulkAnonymizeBar';
+import { BulkInviteBar } from './BulkInviteDialog';
 import { ActiveFilters, IncompleteBanner, ListToolbar } from './ListToolbar';
 import { SPORTIVI_CSS } from './styles';
 import { useAthleteList } from './useAthleteList';
@@ -33,7 +35,8 @@ export function SportiviList({ tabs }: { tabs?: React.ReactNode }) {
   const navigate = useNavigate();
   const { search } = useLocation();
   const list = useAthleteList(api, phone);
-  const selection = useSelection(list, useIsSuperAdmin());
+  const selection = useSelection(list);
+  const anonymizable = selectionOn(inactiveShown(list.state), useIsSuperAdmin());
   useInactiveLink(list, search);
   const { adding, startAdd, closeAdd } = useAddAthlete(search);
   const season = seasonValue(list.state, list.page) || null;
@@ -48,7 +51,8 @@ export function SportiviList({ tabs }: { tabs?: React.ReactNode }) {
         <ListToolbar list={list} phone={phone} />
         <ActiveFilters list={list} phone={phone} />
         <IncompleteBanner list={list} />
-        {selection && selection.ids.size > 0 && <BulkAnonymizeBar ids={[...selection.ids]} api={api} done={selection.done} />}
+        {selection.ids.size > 0 && <BulkInviteBar ids={[...selection.ids]} api={api} done={selection.done} />}
+        {anonymizable && selection.ids.size > 0 && <BulkAnonymizeBar ids={[...selection.ids]} api={api} done={selection.done} />}
         {phone ? <AthleteCards list={list} onOpen={open} selection={selection} /> : <AthleteTable list={list} onOpen={open} selection={selection} />}
       </Window>
       {adding && <AddAthleteDialog api={api} season={season} onClose={closeAdd} />}

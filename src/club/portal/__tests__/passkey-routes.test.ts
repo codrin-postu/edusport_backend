@@ -25,10 +25,10 @@ afterEach(() => {
 async function coach() {
   const s = setup2fa();
   const id = await s.addAccount();
-  const sec = portalSecurity(s.c, { accountId: id, userId: 1, sessionId: 'sess', teamMemberId: 'tm1', name: 'Ana Pop' } as never);
+  const sec = portalSecurity(s.c, { accountId: id, userId: 1, sessionId: 'sess', host: 'antrenor', actor: 'Antrenor Ana Pop' } as never);
   // The session's device, just confirmed by a sign-in.
   const at = s.clock.t.toISOString();
-  const deviceId = await s.store.createDevice({ accountId: id, deviceKeyHash: 'dk', sessionId: 'sess', label: 'T', firstSeenAt: at, lastSeenAt: at });
+  const deviceId = await s.store.createDevice({ accountId: id, host: 'antrenor', deviceKeyHash: 'dk', sessionId: 'sess', label: 'T', firstSeenAt: at, lastSeenAt: at });
   await s.store.updateDevice(deviceId, { confirmedAt: at });
   const enrol = async (name?: string): Promise<SoftAuthenticator> => {
     const auth = softAuthenticator();

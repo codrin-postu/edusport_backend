@@ -2,6 +2,7 @@ import { acsWord } from './acs';
 import { ATHLETE_FIELD_LABELS, athleteValueText, isAthleteField, type AthleteStatus } from './athlete-data';
 import { GROUP_LINES } from './groups/copy';
 import { P4_ACTIONS, phase4Lines, sinceDate } from './groups/history-lines';
+import { ACCESS_HISTORY } from './portal/access/copy';
 import { phase5Lines } from './presence/history-lines';
 import { isRecord } from './narrow';
 import { ARROW, quotedChange } from './text-leaf';
@@ -42,6 +43,11 @@ export const HISTORY_ACTIONS = {
   duplicateDismissed: 'duplicate-dismissed',
   dataExported: 'data-exported',
   dataAnonymized: 'data-anonymized',
+  accessInvited: 'access-invited',
+  accessAdded: 'access-added',
+  accessRemoved: 'access-removed',
+  accessMoved: 'access-moved',
+  accessStopped: 'access-stopped',
 } as const;
 
 /** Copy the spec does not give (plan item N2, option A until the user answers). */
@@ -193,6 +199,11 @@ const RENDER: Readonly<Record<string, Render>> = {
   [HISTORY_ACTIONS.duplicateDismissed]: (c) => [PENDING_COPY.duplicateDismissed(text(c.name))],
   [HISTORY_ACTIONS.dataExported]: () => ['Date exportate'],
   [HISTORY_ACTIONS.dataAnonymized]: () => ['Date anonimizate'],
+  [HISTORY_ACTIONS.accessInvited]: (c) => [ACCESS_HISTORY.athleteInvited(text(c.email))],
+  [HISTORY_ACTIONS.accessAdded]: (c) => [ACCESS_HISTORY.athleteAdded(text(c.email))],
+  [HISTORY_ACTIONS.accessRemoved]: (c) => [ACCESS_HISTORY.athleteRemoved(text(c.email))],
+  [HISTORY_ACTIONS.accessMoved]: (c) => [ACCESS_HISTORY.athleteMoved(text(c.email))],
+  [HISTORY_ACTIONS.accessStopped]: () => [ACCESS_HISTORY.athleteStopped],
 };
 
 /** P3 lines first; then phase 4 lines (athlete subject: moves, removals, copies); "Anulat: " before an undone line. */

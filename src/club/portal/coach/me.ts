@@ -90,6 +90,7 @@ async function storePassword(c: CoachContexts & { auth: PortalAuthContext }, acc
   await c.portal.transaction(async () => {
     await c.portal.lockAccount(accountId);
     await c.portal.updateUser(c.coach.userId, { passwordHash });
+    await c.portal.updateAccount(accountId, { passwordChangedAt: c.presence.now().toISOString() });
     await c.portal.record({ subjectId: accountId, action: PORTAL_ACTIONS.passwordChanged, changes: {}, actor: coachActor(c.coach.name) });
     await portalSessions(c.portal, c.presence.now).revokeAll(c.coach.userId, c.coach.sessionId);
     // Spec 6.4: remembered devices are forgotten, except the one making the change.
@@ -100,14 +101,14 @@ async function storePassword(c: CoachContexts & { auth: PortalAuthContext }, acc
 
 export async function listDevices(c: CoachContexts, deviceKey: string | null): Promise<AdminResult<CoachDevice[]>> {
   const mine = hashOf(deviceKey);
-  const rows = (await c.portal.devices(c.coach.accountId)).filter((d) => d.revokedAt === null && isConfirmedDevice(d)).sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt));
+  const rows = (await c.portal.devices(c.coach.accountId)).filter((d) => d.revokedAt === null && d.host === 'antrenor' && isConfirmedDevice(d)).sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt));
   return { ok: true, data: rows.map((d) => ({ id: d.id, label: d.label, lastSeenAt: d.lastSeenAt, current: mine !== null && mine === d.deviceKeyHash, twoFactorUntil: d.twoFactorUntil })) };
 }
 
 const hashOf = (deviceKey: string | null): string | null => (deviceKey ? hashSecret(deviceKey) : null);
 
 export async function revokeDevice(c: CoachContexts, deviceId: string): Promise<AdminResult<{ revokedCurrent: boolean }>> {
-  const device = (await c.portal.devices(c.coach.accountId)).find((d) => d.id === deviceId && d.revokedAt === null);
+  const device = (await c.portal.devices(c.coach.accountId)).find((d) => d.id === deviceId && d.host === 'antrenor' && d.revokedAt === null);
   if (!device) return refuse(404, PORTAL_ERRORS.notFound);
   await c.portal.transaction(async () => {
     await c.portal.lockAccount(c.coach.accountId);

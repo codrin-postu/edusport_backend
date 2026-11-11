@@ -24,10 +24,21 @@ export const ACCOUNT_BLOCK = {
   disable: 'Dezactivează contul',
   disabled: 'Cont dezactivat.',
   enable: 'Activează contul',
+  coachSideOff: 'Partea de antrenor e dezactivată. Accesul de părinte rămâne activ.',
   changeEmail: 'Schimbă e-mailul',
   newEmail: 'E-mail nou',
   saveEmail: 'Salvează e-mailul',
 } as const;
+
+/** Which buttons the account block shows (a coach side switched off keeps the account active for the parent access). */
+export function accountBlockActions(block: { state: string; hasSportiv: boolean; coachDisabled: boolean }) {
+  const active = block.state === 'active';
+  return {
+    disable: active && !block.coachDisabled,
+    enable: block.state === 'disabled' || (active && block.coachDisabled),
+    disableAll: active && block.hasSportiv,
+  };
+}
 
 export const ACCOUNT_TOASTS = {
   invited: 'Invitație trimisă.',

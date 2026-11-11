@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { fakeAccessStore } from '../access/fake-store';
 import { describe, expect, it } from 'vitest';
 import controller from '../../../api/portal/controllers/portal-auth';
 import type { PortalMail, SendPortalMail } from '../../../email/portal-direct';
@@ -39,30 +40,31 @@ async function setup() {
   fake.state.users.push({ id: 1, email: 'ana@x.ro', passwordHash: 'unusable', blocked: false, confirmed: false, username: 'ana@x.ro', provider: 'local', role: 'authenticated' });
   const mails: { to: string; mail: PortalMail }[] = [];
   const mail: SendPortalMail = async (to, m) => { mails.push({ to, mail: m }); return true; };
+  const access = fakeAccessStore({ athletes: [{ id: 'at1', name: 'Ana', email: 'ana@x.ro', status: 'activ', birthDate: null, contactName: null }] });
   const c: PortalAuthContext = { security: securityFor(fake, store, now).security,
-    store, sessions: portalSessions(store, now), limits: limiter(store, now), mail, common: new Set(['password123']), hosts: ['antrenor'], ip: '1.1.1.1',
+    store, access: access.store, sessions: portalSessions(store, now), limits: limiter(store, now), mail, common: new Set(['password123']), hosts: ['antrenor', 'sportiv'], ip: '1.1.1.1',
     userAgent: null, now, log: () => undefined, hash: async (p) => `hash:${p}`, compare: async () => false,
   };
   const accountId = await store.createAccount({ userId: 1, email: 'ana@x.ro', status: 'invited', teamMemberId: 'tm1' });
   const invite = async (secret: string) =>
-    store.createToken({ accountId, kind: 'invite', secretHash: hashSecret(secret), expiresAt: new Date(clock.t.getTime() + INVITE_TTL_MS).toISOString() });
+    store.createToken({ accountId, host: 'antrenor', kind: 'invite', secretHash: hashSecret(secret), expiresAt: new Date(clock.t.getTime() + INVITE_TTL_MS).toISOString() });
   await invite('s1');
-  const accept = (body: Record<string, unknown> = {}) => acceptInvite(c, { secret: 's1', password: PASSWORD, ...body });
-  return { c, fake, store, mails, accountId, invite, accept, advance: (ms: number) => { clock.t = new Date(clock.t.getTime() + ms); } };
+  const accept = (body: Record<string, unknown> = {}) => acceptInvite(c, { secret: 's1', password: PASSWORD, host: 'antrenor', ...body });
+  return { c, fake, store, access, mails, accountId, invite, accept, advance: (ms: number) => { clock.t = new Date(clock.t.getTime() + ms); } };
 }
 
 describe('readInvite', () => {
   it('a valid secret shows the e-mail', async () => {
     const s = await setup();
-    expect(await readInvite(s.c, 's1')).toEqual({ ok: true, data: { state: 'valid', email: 'ana@x.ro' } });
+    expect(await readInvite(s.c, 's1')).toEqual({ ok: true, data: { state: 'valid', email: 'ana@x.ro', host: 'antrenor' } });
   });
 
   it('unknown, empty, used, resent-over and wrong-kind secrets read as expired', async () => {
     const s = await setup();
-    const expired = { ok: true, data: { state: 'expired', email: null } };
+    const expired = { ok: true, data: { state: 'expired', email: null, host: null } };
     expect(await readInvite(s.c, 'nope')).toEqual(expired);
     expect(await readInvite(s.c, '')).toEqual(expired);
-    await s.store.createToken({ accountId: s.accountId, kind: 'reset', secretHash: hashSecret('r1'), expiresAt: '2030-01-01T00:00:00.000Z' });
+    await s.store.createToken({ accountId: s.accountId, host: null, kind: 'reset', secretHash: hashSecret('r1'), expiresAt: '2030-01-01T00:00:00.000Z' });
     expect(await readInvite(s.c, 'r1')).toEqual(expired);
     s.fake.state.tokens[0].usedAt = 'x';
     expect(await readInvite(s.c, 's1')).toEqual(expired);
@@ -71,10 +73,10 @@ describe('readInvite', () => {
   it('after 7 days and 1 second it is expired; an active account is expired too', async () => {
     const s = await setup();
     s.advance(INVITE_TTL_MS + 1000);
-    expect(await readInvite(s.c, 's1')).toEqual({ ok: true, data: { state: 'expired', email: null } });
+    expect(await readInvite(s.c, 's1')).toEqual({ ok: true, data: { state: 'expired', email: null, host: null } });
     const t = await setup();
     t.fake.state.accounts[0].status = 'active';
-    expect(await readInvite(t.c, 's1')).toEqual({ ok: true, data: { state: 'expired', email: null } });
+    expect(await readInvite(t.c, 's1')).toEqual({ ok: true, data: { state: 'expired', email: null, host: null } });
   });
 
   it('is paused after 30 reads from one IP', async () => {
@@ -153,10 +155,10 @@ describe('acceptInvite', () => {
     }
   });
 
-  it('a host check failing after the accept answers 401 and the account stays active', async () => {
+  it('a host that cannot be entered after the accept answers no session and the account stays active', async () => {
     const s = await setup();
     s.fake.state.accounts[0].teamMemberId = null;
-    expect(await s.accept()).toEqual({ ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin });
+    expect(await s.accept()).toEqual({ ok: true, data: { session: null, host: 'antrenor' } });
     expect(s.fake.state.accounts[0].status).toBe('active');
   });
 
@@ -164,6 +166,40 @@ describe('acceptInvite', () => {
     const s = await setup();
     s.fake.state.users[0].blocked = true;
     expect((await s.accept()).ok).toBe(false);
+  });
+});
+
+describe('invite host', () => {
+  it('a sportiv token reads as sportiv and a holder-only account accepts into a session there', async () => {
+    const s = await setup();
+    s.fake.state.tokens[0].host = 'sportiv';
+    await s.store.updateAccount(s.accountId, { teamMemberId: null });
+    await s.access.store.createAccess({ athleteId: 'at1', accountId: s.accountId, email: 'ana@x.ro', invitedAt: '2026-11-06T10:00:00.000Z', invitedBy: 'admin' });
+    expect(await readInvite(s.c, 's1')).toEqual({ ok: true, data: { state: 'valid', email: 'ana@x.ro', host: 'sportiv' } });
+    const res = await s.accept({ host: 'sportiv' });
+    expect(res).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
+    expect(s.fake.state.sessions.map((x) => x.host)).toEqual(['sportiv']);
+  });
+
+  it('an invited coach-only account accepting on the sportiv page is activated and gets no session', async () => {
+    const s = await setup();
+    expect(await s.accept({ host: 'sportiv' })).toEqual({ ok: true, data: { session: null, host: 'sportiv' } });
+    expect(s.fake.state.accounts[0].status).toBe('active');
+    expect(s.fake.state.sessions).toEqual([]);
+  });
+
+  it('a missing host is the coach page; a wrong host value is refused', async () => {
+    const s = await setup();
+    expect(await s.accept({ host: 'admin' })).toMatchObject({ ok: false, status: 400 });
+    expect(await s.accept({ host: undefined })).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
+    expect(s.fake.state.sessions.map((x) => x.host)).toEqual(['antrenor']);
+  });
+
+  it('accept sets passwordChangedAt', async () => {
+    const s = await setup();
+    s.advance(1000);
+    await s.accept();
+    expect(s.fake.state.accounts[0].passwordChangedAt).toBe('2026-11-06T10:00:01.000Z');
   });
 });
 

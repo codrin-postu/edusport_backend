@@ -10,7 +10,7 @@ Tracks the phases of `10-spec.md` section 7. Update the status line of a phase w
 | 4 | Groups and schedules | 6 of 7 plans merged on feat/athletes (8849250); 4-6 final review left; not deployed |
 | 5 | Attendance, subscriptions and payments | Built on `feat/athletes` (2026-11-02), reviewed, running locally; not deployed |
 | 6 | Login and the coach portal | Built and reviewed: backend and website on `feat/athletes` (2026-11-07); not deployed |
-| 7 | Parent portal | Not started |
+| 7 | Parent portal | In progress: 7-1 (athlete access and accounts) built on `feat/p7-1`, not merged, not deployed |
 | 8 | Documents page | Not started |
 | 9 | Tracking (after phase 8) | Planned: Umami events on the registration steps + funnel report, UTM codes on club links, Umami version check (Realtime, Sessions, Journeys). Ad pixels (Meta/Google/TikTok) only if the club starts paid ads: then a consent banner, one conversion event without personal data, public pages only (user, 2026-10-28) |
 | 10 | Admin trim (after phase 9) | Planned from the audit `edusport_backend/.superpowers/strapi-trim-audit.md`: Strapi telemetry off on the VM, admin NPS and enterprise promos off, remove @strapi/plugin-cloud and strapi-5-plugin-responsive-backend, optionally disable content-releases and the email plugin, Articole menu to the custom page, a "Staff club" admin role (custom pages only, Settings / Marketplace / Content-Type Builder hidden) tested on every page; finer roles belong to phase 6 (user, 2026-10-28) |

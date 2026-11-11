@@ -1,3 +1,4 @@
+import type { AccountContext as AccessContext } from '../portal/accounts/context-type';
 import type { AcsState } from '../acs';
 import type { AthleteStatus, AthleteValues } from '../athlete-data';
 import type { DateParts } from '../birth-date';
@@ -114,4 +115,8 @@ export interface ClubStore {
 }
 
 /** What every 3A+3B service gets from its controller. */
-export type ServiceContext = { store: ClubStore; actor: string; today: DateParts; log: (message: string) => void };
+export type ServiceContext = {
+  store: ClubStore; actor: string; today: DateParts; log: (message: string) => void;
+  /** Portal access (7-1): when set, an e-mail change, a delete, an anonymize and a merge carry the athlete's access along. Tests of the club side leave it out. */
+  access?: AccessContext;
+};

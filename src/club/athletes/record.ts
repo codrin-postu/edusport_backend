@@ -8,6 +8,7 @@ import { DOCUMENT_LABELS, registrationDocumentKinds } from '../registration-pane
 import type { AthleteEditResponse, AthleteRecord } from './api-types';
 import { registrationSeasonLabel } from './cards';
 import { ADMIN_ERRORS } from './errors';
+import { moveOnEmailChange } from '../portal/access/lifecycle';
 import { readHistory } from './history-read';
 import { refreshAllMatches, safely } from './matches';
 import type { AcsRow, AthleteRow, ClubStore, DuplicateRow, GroupRow, MembershipRow, ProfileRow, RegistrationRow, SeasonRow, ServiceContext } from './store';
@@ -97,22 +98,35 @@ async function saveEdit(ctx: ServiceContext, athlete: AthleteRow, values: Athlet
 }
 
 /** Locked and re-read inside the transaction, so a concurrent anonymize is seen (fix round 1, important #2). */
-async function updateInTransaction(ctx: ServiceContext, id: string, values: AthleteValues): Promise<AdminResult<{ changed: AthleteField[] }>> {
+async function updateInTransaction(ctx: ServiceContext, id: string, values: AthleteValues): Promise<AdminResult<{ changed: AthleteField[]; jobIds: string[] }>> {
   await ctx.store.lockAthlete(id);
   const athlete = await ctx.store.athlete(id);
   if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
   if (isAnonymized(athlete)) return refuse(409, ADMIN_ERRORS.stale);
   const changes = athleteChanges(pickAthleteValues(athlete), values);
+  // The access follows the e-mail (spec 4.4); a refusal (a disabled account owns the new address) comes before any write, so the edit is refused whole.
+  const moved = ctx.access && 'email' in changes ? await moveOnEmailChange(ctx.access, id, athlete.email, values.email) : null;
+  if (moved && moved.ok === false) return moved;
   await saveEdit(ctx, athlete, values, changes);
-  return { ok: true, data: { changed: Object.keys(changes).filter(isAthleteField) } };
+  return { ok: true, data: { changed: Object.keys(changes).filter(isAthleteField), jobIds: moved?.ok === true ? moved.data.jobIds : [] } };
 }
 
 /** PUT /api/club/athletes/:documentId ("Editează" on Date, spec 6.2). A name change renames the profile (3b s2). */
 export async function updateAthlete(ctx: ServiceContext, id: string, body: unknown): Promise<AdminResult<AthleteEditResponse>> {
   const input = readAthleteInput(body, 'edit');
   if (input.ok === false) return refuse(400, input.error);
-  const written = await guarded(ctx.log, `[athletes] editing ${id}`, () => ctx.store.transaction(() => updateInTransaction(ctx, id, input.values)));
+  const written = await guarded(ctx.log, `[athletes] editing ${id}`, async () => {
+    try {
+      return await ctx.store.transaction(() => updateInTransaction(ctx, id, input.values));
+    } catch (err) {
+      // Two edits moving two athletes to one new address: the loser of the unique index (or a lock cycle) is stale, not a failure.
+      const code = (err as { code?: unknown } | null)?.code;
+      if (code === '23505' || code === '40P01') return refuse(409, ADMIN_ERRORS.stale);
+      throw err;
+    }
+  });
   if (written.ok === false) return written;
+  for (const jobId of written.data.jobIds) ctx.access?.afterCommit(jobId);
   if (written.data.changed.length > 0) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after an athlete edit');
   const record = await readAthleteRecord(ctx.store, id, null);
   return record ? { ok: true, data: { record, changed: written.data.changed } } : refuse(404, ADMIN_ERRORS.notFound);

@@ -1,8 +1,8 @@
 /**
- * Portal Securitate routes (index "Portal Securitate"): the signed-in coach's own 2FA. `global::is-coach` checks the BFF secret (403), the
- * Bearer session (401) and the account, and leaves the coach on `ctx.state.coach`. Fixed paths before parameter paths (none here yet).
+ * Portal Securitate routes (index "Portal Securitate"): the signed-in person's own 2FA, on either host. `global::is-portal-user` checks the BFF secret (403), the
+ * Bearer session (401) and that the account may still enter the session's host, and leaves the caller on `ctx.state.portalUser`. Fixed paths before parameter paths (none here yet).
  */
-const guard = { auth: false, policies: ['global::is-coach'], middlewares: [] };
+const guard = { auth: false, policies: ['global::is-portal-user'], middlewares: [] };
 
 const route = (method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, handler: string) => ({ method, path: `/portal/me${path}`, handler: `portal-security.${handler}`, config: guard });
 

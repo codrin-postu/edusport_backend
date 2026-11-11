@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { fakeAccessStore } from '../access/fake-store';
 import type { PortalMail, SendPortalMail } from '../../../email/portal-direct';
 import controller from '../../../api/portal/controllers/portal-auth';
 import { limiter } from '../auth/limit';
@@ -31,7 +32,7 @@ function setup(o: { mailOk?: boolean | 'throw' } = {}) {
   const slept: number[] = [];
   const c: PortalAuthContext = { security: securityFor(fake, store, now).security,
     sleep: async (ms) => { slept.push(ms); },
-    store, sessions, limits: limiter(store, now), mail, common: new Set(['password123']), hosts: ['antrenor'], ip: '1.1.1.1',
+    store, access: fakeAccessStore().store, sessions, limits: limiter(store, now), mail, common: new Set(['password123']), hosts: ['antrenor'], ip: '1.1.1.1',
     userAgent: null, now, log: (m) => logs.push(m), hash: async (p) => `hash:${p}`, compare: async (p, h) => h === `hash:${p}`,
   };
   const addAccount = (extra: Partial<AccountRow> = {}) => store.createAccount({ userId: 1, email: 'ana@x.ro', status: 'active', teamMemberId: 'tm1', ...extra });
@@ -141,7 +142,7 @@ describe('confirmReset', () => {
   it('sets the password, logs in, revokes the other sessions and writes history', async () => {
     const s = setup();
     const id = await s.addAccount();
-    const dev = await s.store.createDevice({ accountId: id, deviceKeyHash: 'k', sessionId: null, label: 'x', firstSeenAt: 'a', lastSeenAt: 'a' });
+    const dev = await s.store.createDevice({ accountId: id, host: 'antrenor', deviceKeyHash: 'k', sessionId: null, label: 'x', firstSeenAt: 'a', lastSeenAt: 'a' });
     const old = await s.c.sessions.issue(1, dev);
     const revokeAll = vi.spyOn(s.c.sessions, 'revokeAll');
     await s.request();

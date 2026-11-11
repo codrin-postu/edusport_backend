@@ -12,7 +12,10 @@ import { strapiSecurityStore } from '../../security/strapi-store';
 import { portalSecurityContext } from '../security';
 import { loadCommonPasswords } from '../passwords';
 import { portalSessions, type PortalSessions } from '../sessions';
+import { strapiAccessStore } from '../access/strapi-store';
+import type { AccessStore } from '../access/store';
 import type { PortalStore } from '../store';
+import { transactionScope } from '../../athletes/strapi-store';
 import { strapiPortalStore } from '../strapi-store';
 import { PORTAL_HOSTS, clientIp, userAgent } from './bff';
 import { limiter, type Limiter } from './limit';
@@ -26,7 +29,7 @@ export type PortalCtx = AdminCtx & { request: { headers: Headers } };
 export type PortalResult<T> = AdminResult<T> | AuthRefusal;
 
 export type PortalAuthContext = {
-  store: PortalStore; sessions: PortalSessions; limits: Limiter; mail: SendPortalMail; common: ReadonlySet<string>;
+  store: PortalStore; /** Athlete access rows (7-1): `sportiv` entry needs a live one. Shares the transaction scope of `store`. */ access: AccessStore; sessions: PortalSessions; limits: Limiter; mail: SendPortalMail; common: ReadonlySet<string>;
   hosts: string[]; ip: string; userAgent: string | null; now: () => Date; log: (m: string) => void;
   /** Waits; tests inject a fast one. Defaults to a real timer. */
   sleep?: (ms: number) => Promise<void>;
@@ -44,7 +47,8 @@ export const DUMMY_HASH: string = bcrypt.hashSync(randomBytes(16).toString('hex'
 
 /** A fresh context per request: one store, so one transaction variable, for the sessions and the limiter too. */
 export function portalAuthContext(strapi: Core.Strapi, ctx: PortalCtx): PortalAuthContext {
-  const store = strapiPortalStore(strapi);
+  const scope = transactionScope(strapi);
+  const store = strapiPortalStore(strapi, scope);
   const now = (): Date => new Date();
   const sessions = portalSessions(store, now);
   const limits = limiter(store, now);
@@ -53,6 +57,7 @@ export function portalAuthContext(strapi: Core.Strapi, ctx: PortalCtx): PortalAu
   const log = (m: string): void => void strapi.log.error(m);
   return {
     store,
+    access: strapiAccessStore(strapi, scope),
     sessions,
     limits,
     security: portalSecurityContext({

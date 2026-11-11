@@ -1,11 +1,13 @@
 import { ADMIN_ERRORS } from '../../athletes/errors';
 import { guarded, refuse, type AdminResult } from '../../admin-result';
 import { inviteLink, portalHost, portalInviteJob } from '../../../email/portal-email';
+import { portalAccessJob } from '../../../email/portal-access-email';
 import { PORTAL_ACTIONS, PORTAL_ERRORS } from '../copy';
 import { ACCOUNT_TOASTS } from '../copy-admin';
 import { normalizeEmail } from '../limits';
 import type { AccountRow } from '../store';
 import { hashSecret, INVITE_TTL_MS, newInviteSecret } from '../tokens';
+import type { Host } from '../access/rules';
 import type { AccountAnswer, AccountBlock } from './api-types';
 import { blockFor, type AccountContext } from './read';
 
@@ -44,20 +46,20 @@ export async function useUpTokens(c: AccountContext, accountId: string, kinds: (
 }
 
 /** Inside a transaction with the account locked: a new invite token and its queued mail job; the id of the job. */
-export async function queueFreshInvite(c: AccountContext, account: AccountRow, name: string, email: string): Promise<string> {
+export async function queueFreshInvite(c: AccountContext, account: AccountRow, name: string, email: string, site: Host = 'antrenor', children: string[] = []): Promise<string> {
   if (!c.siteUrl) throw new Error('the public site address is not configured');
-  const { host, origin } = portalHost(c.siteUrl);
+  const { host, origin } = portalHost(c.siteUrl, site);
   const secret = newInviteSecret();
-  await c.store.createToken({ accountId: account.id, kind: 'invite', secretHash: hashSecret(secret), expiresAt: new Date(c.now().getTime() + INVITE_TTL_MS).toISOString() });
+  await c.store.createToken({ accountId: account.id, host: site, kind: 'invite', secretHash: hashSecret(secret), expiresAt: new Date(c.now().getTime() + INVITE_TTL_MS).toISOString() });
   const link = inviteLink(host, secret, origin.startsWith('http://') ? 'http' : 'https');
-  return c.queueInvite(portalInviteJob({ recipient: email, accountId: account.id, payload: { name, link, host } }, c.now()));
+  return c.queueInvite(portalInviteJob({ recipient: email, accountId: account.id, payload: { name, link, host, ...(children.length ? { children } : {}) } }, c.now()));
 }
 
-/** Inside a transaction with the account locked: every device is revoked and every session of the user ends (lock order account, session). */
-export async function revokeAccess(c: AccountContext, account: AccountRow): Promise<void> {
+/** Inside a transaction with the account locked: every device (of the host, when given) is revoked and every session of the user ends (lock order account, session). */
+export async function revokeAccess(c: AccountContext, account: AccountRow, host?: Host): Promise<void> {
   const at = c.now().toISOString();
-  for (const d of await c.store.devices(account.id)) if (d.revokedAt === null) await c.store.updateDevice(d.id, { revokedAt: at });
-  await c.sessions.revokeAll(account.userId);
+  for (const d of await c.store.devices(account.id)) if (d.revokedAt === null && (host === undefined || d.host === host)) await c.store.updateDevice(d.id, { revokedAt: at });
+  await (host === undefined ? c.sessions.revokeAll(account.userId) : c.sessions.revokeAllOnHost(account.userId, host));
 }
 
 export const answer = (block: AccountBlock, toast: string): AdminResult<AccountAnswer> => ({ ok: true, data: { account: block, toast } });
@@ -70,6 +72,7 @@ export async function inviteAccount(c: AccountContext, teamMemberId: string, bod
     const email = emailOf(body);
     if (email === null) return refuse(400, PORTAL_ERRORS.invalid);
     const holder = await c.store.accountByEmail(email);
+    if (holder && holder.teamMemberId === null && holder.status !== 'disabled') return addCoachRole(c, holder, teamMemberId, name);
     if (holder) return relinkAccount(c, holder, teamMemberId, name);
     const at = c.now().toISOString();
     const made = await c.store.transaction(async () => {
@@ -129,6 +132,37 @@ async function relinkAccount(c: AccountContext, holder: AccountRow, teamMemberId
     const fresh = (await c.store.account(account.id)) as AccountRow;
     const jobId = await queueFreshInvite(c, fresh, name, fresh.email);
     await c.store.record({ subjectId: account.id, action: PORTAL_ACTIONS.relinked, changes: { email: fresh.email, name }, actor: c.actor });
+    return { account: fresh, jobId };
+  });
+  if (!made) return stale();
+  c.afterCommit(made.jobId);
+  return answer(await blockFor(c, teamMemberId, made.account), ACCOUNT_TOASTS.invited);
+}
+
+/** The mail to an active holder: the coach role is added, the portal host to enter on. */
+async function coachRoleJob(c: AccountContext, account: AccountRow, name: string): Promise<string> {
+  if (!c.siteUrl) throw new Error('the public site address is not configured');
+  const { host, origin } = portalHost(c.siteUrl, 'antrenor');
+  const who = account.name?.trim() || name;
+  return c.queueAccess(portalAccessJob({ recipient: account.email, accountId: account.id, payload: { name: who, variant: 'coach', childName: null, link: `${origin}/`, host } }));
+}
+
+/**
+ * A holder account (no team member, not disabled) is given the coach role (spec 4.2): password, Google, 2FA and passkeys stay, sessions are
+ * untouched. An active account gets a "you can enter on antrenor" mail; an invited one gets a fresh invite on the antrenor host.
+ */
+export async function addCoachRole(c: AccountContext, holder: AccountRow, teamMemberId: string, name: string): Promise<AdminResult<AccountAnswer>> {
+  const made = await c.store.transaction(async () => {
+    await c.store.lockTeamMember(teamMemberId);
+    await c.store.lockAccount(holder.id);
+    const account = await c.store.account(holder.id);
+    if (!account || account.teamMemberId !== null || account.status === 'disabled' || (await c.store.accountByTeamMember(teamMemberId))) return null;
+    const at = c.now().toISOString();
+    if (account.status === 'invited') await useUpTokens(c, account.id, ['invite']);
+    await c.store.updateAccount(account.id, { teamMemberId, coachDisabledAt: null, ...(account.status === 'invited' ? { invitedAt: at, invitedBy: c.actor } : {}) });
+    const fresh = (await c.store.account(account.id)) as AccountRow;
+    const jobId = account.status === 'invited' ? await queueFreshInvite(c, fresh, name, fresh.email, 'antrenor') : await coachRoleJob(c, fresh, name);
+    await c.store.record({ subjectId: account.id, action: PORTAL_ACTIONS.coachRoleAdded, changes: {}, actor: c.actor });
     return { account: fresh, jobId };
   });
   if (!made) return stale();

@@ -130,6 +130,7 @@ function accounts(state: FakePortalState): Pick<PortalStore, 'account' | 'accoun
       const id = `acc${state.nextId++}`;
       state.accounts.push({
         id, teamMemberId: null, phone: null, googleSub: null, googleUnlinkedAt: null, invitedAt: null, invitedBy: null, activatedAt: null, disabledAt: null, disabledBy: null, lastLoginAt: null,
+        name: null, coachDisabledAt: null, passwordChangedAt: null, notifySchedule: true,
         ...defined(a), userId: a.userId, status: a.status, email: a.email.toLowerCase(),
       });
       return id;
@@ -180,8 +181,8 @@ function tokens(state: FakePortalState): Pick<PortalStore, 'tokens' | 'tokenByHa
 function devices(state: FakePortalState): Pick<PortalStore, 'devices' | 'deviceByKey' | 'createDevice' | 'updateDevice'> {
   return {
     devices: async (accountId) => copy(state.devices.filter((d) => d.accountId === accountId)),
-    deviceByKey: async (accountId, keyHash) => {
-      const d = state.devices.find((x) => x.accountId === accountId && x.deviceKeyHash === keyHash);
+    deviceByKey: async (accountId, keyHash, host) => {
+      const d = state.devices.find((x) => x.accountId === accountId && x.deviceKeyHash === keyHash && x.host === host);
       return d ? copy(d) : null;
     },
     createDevice: async (d) => {

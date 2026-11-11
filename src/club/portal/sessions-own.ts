@@ -9,7 +9,6 @@ export const GRACE_MS = 30 * 1000;
 export const SESSION_IDLE_MS = IDLE_MS;
 export const SESSION_FAMILY_MS = FAMILY_MS;
 const TOKEN_BYTES = 32;
-const DEFAULT_HOST = 'antrenor';
 
 const newSecret = (): string => randomBytes(TOKEN_BYTES).toString('base64url');
 export const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
@@ -76,7 +75,7 @@ export function ownSessions(store: PortalStore, now: () => Date): PortalSessions
   };
 
   return {
-    async issue(userId, deviceId, host = DEFAULT_HOST) {
+    async issue(userId, deviceId, host) {
       const known = await store.accountByUser(userId);
       if (!known) throw new Error('no portal account for user');
       return store.transaction(async () => {
@@ -98,7 +97,7 @@ export function ownSessions(store: PortalStore, now: () => Date): PortalSessions
       const row = await store.sessionByAccess(hashToken(accessToken));
       if (!row || row.revokedAt !== null || !row.accessExpiresAt || Date.parse(row.accessExpiresAt) <= now().getTime()) return null;
       const account = await store.account(row.accountId);
-      return account ? { userId: account.userId, sessionId: row.id } : null;
+      return account ? { userId: account.userId, sessionId: row.id, host: row.host } : null;
     },
     async revoke(refreshToken) {
       const parsed = parseRefresh(refreshToken);
@@ -107,5 +106,6 @@ export function ownSessions(store: PortalStore, now: () => Date): PortalSessions
     },
     revokeDevice: (userId, deviceId) => endWhere(userId, (s) => s.deviceId !== deviceId),
     revokeAll: (userId, exceptSessionId) => endWhere(userId, (s) => s.id === exceptSessionId),
+    revokeAllOnHost: (userId, host) => endWhere(userId, (s) => s.host !== host),
   };
 }

@@ -1,3 +1,4 @@
+import { ACCESS_HISTORY } from './access/copy';
 export const PORTAL_ERRORS = {
   wrongLogin: 'E-mailul sau parola nu sunt corecte.',
   paused: 'Prea multe încercări. Încearcă din nou peste 15 minute.',
@@ -36,6 +37,10 @@ export const PORTAL_ACTIONS = {
   disabled: 'portal-disabled',
   enabled: 'portal-enabled',
   emailChanged: 'portal-email-changed',
+  coachSideOff: 'portal-coach-off',
+  accountOff: 'portal-account-off',
+  coachRoleAdded: 'portal-coach-role-added',
+  accessGranted: 'portal-access-granted',
 } as const;
 
 type Changes = Record<string, unknown>;
@@ -51,6 +56,10 @@ const HISTORY_TEXT = new Map<string, (c: Changes) => string>([
   [PORTAL_ACTIONS.locked, () => 'Cont blocat 15 minute după 5 încercări greșite.'],
   [PORTAL_ACTIONS.disabled, () => 'Cont dezactivat.'],
   [PORTAL_ACTIONS.enabled, () => 'Cont activat de administrator.'],
+  [PORTAL_ACTIONS.coachSideOff, () => ACCESS_HISTORY.coachSideOff],
+  [PORTAL_ACTIONS.accountOff, () => ACCESS_HISTORY.accountOff],
+  [PORTAL_ACTIONS.coachRoleAdded, () => ACCESS_HISTORY.coachRoleAdded],
+  [PORTAL_ACTIONS.accessGranted, (c) => (typeof c.athlete === 'string' && c.athlete ? ACCESS_HISTORY.accountAccess(c.athlete) : ACCESS_HISTORY.accountAccessGone)],
   [PORTAL_ACTIONS.emailChanged, (c) => `E-mail schimbat din ${String(c.from)} în ${String(c.to)}.`],
 ]);
 
@@ -73,7 +82,7 @@ export const MAIL_COPY = {
   },
   newDevice: {
     subject: 'Intrare de pe un dispozitiv nou',
-    line: (device: string, date: string, time: string): string => `${device}, ${date} ${time}.`,
+    line: (device: string, date: string, time: string, host?: string): string => `${device}, ${date} ${time}${host ? `, pe ${host}` : ''}.`,
     advice: 'Dacă nu ai fost tu, schimbă parola.',
   },
   signature: 'Echipa EduSport',

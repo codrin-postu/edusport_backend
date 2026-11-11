@@ -1,6 +1,11 @@
+import { HISTORY_ACTIONS } from '../../history-text';
+import { isAnonymized } from '../../personal-data/anonymize-plan';
+import { normalizeEmail } from '../limits';
+import { ADMIN_ERRORS } from '../../athletes/errors';
 import { refuse, type AdminResult } from '../../admin-result';
 import { PORTAL_ACTIONS, PORTAL_ERRORS } from '../copy';
 import { ACCOUNT_TOASTS } from '../copy-admin';
+import type { AccessRow } from '../access/types';
 import type { AccountRow } from '../store';
 import type { AccountAnswer } from './api-types';
 import { answer, emailOf, guardedWrite, queueFreshInvite, revokeAccess, useUpTokens } from './invite';
@@ -19,6 +24,20 @@ async function notify(c: AccountContext, from: string, to: string): Promise<void
   }
 }
 
+/**
+ * The athletes the account holds follow its new address (user decision 2026-11-11): each one whose e-mail equals the old account e-mail gets the
+ * new one, its access row too, and a history line. The athlete locks are already held (lock order athlete, account). No access mail: same family.
+ */
+async function carryAthletes(c: AccountContext, before: AccountRow, email: string, rows: AccessRow[]): Promise<void> {
+  for (const row of rows) {
+    const athlete = await c.access.athleteForAccess(row.athleteId);
+    if (!athlete || isAnonymized(athlete) || normalizeEmail(athlete.email) !== normalizeEmail(before.email)) continue;
+    await c.access.setAthleteEmail(row.athleteId, email);
+    await c.access.setAccessEmail(row.id, email);
+    await c.access.recordAthlete({ athleteId: row.athleteId, action: HISTORY_ACTIONS.accessMoved, changes: { email }, actor: c.actor });
+  }
+}
+
 /** 10.1 and q27: the new address on the account and the user, every session and device revoked, open reset codes used up, an invited account gets a new invite. */
 export async function changeEmail(c: AccountContext, accountId: string, body: unknown): Promise<AdminResult<AccountAnswer>> {
   return guardedWrite(c, 'portal account e-mail change', async () => {
@@ -28,11 +47,18 @@ export async function changeEmail(c: AccountContext, accountId: string, body: un
     if (!known) return refuse(404, PORTAL_ERRORS.notFound);
     const holder = await c.store.accountByEmail(email);
     if (holder && holder.id !== accountId) return refuse(409, PORTAL_ERRORS.emailTaken);
-    const changed = await c.store.transaction(async (): Promise<Changed | null> => {
+    const changed = await c.store.transaction(async (): Promise<Changed | 'stale' | null> => {
+      // Lock order athlete, account: the holder's athletes are read, locked in id order, and the set is checked again under the account lock.
+      const ids = [...new Set((await c.access.liveByAccount(accountId)).map((r) => r.athleteId))].sort();
+      for (const id of ids) await c.access.lockAthlete(id);
       await c.store.lockAccount(accountId);
       const before = await c.store.account(accountId);
       if (!before) return null;
       if (before.email === email) return { before, after: before, jobId: null };
+      // A live access that appeared on an athlete we did not lock: nothing is written, the admin reloads.
+      const held = await c.access.liveByAccount(accountId);
+      if (held.some((r) => !ids.includes(r.athleteId))) return 'stale';
+      await carryAthletes(c, before, email, held);
       await c.store.updateAccount(accountId, { email, googleSub: null, ...(before.googleSub ? { googleUnlinkedAt: c.now().toISOString() } : {}) });
       await c.endPendingGoogle?.(accountId);
       await c.store.updateUser(before.userId, { email });
@@ -46,6 +72,7 @@ export async function changeEmail(c: AccountContext, accountId: string, body: un
       await c.store.record({ subjectId: accountId, action: PORTAL_ACTIONS.emailChanged, changes: { from: before.email, to: email }, actor: c.actor });
       return { before, after: (await c.store.account(accountId)) as AccountRow, jobId };
     });
+    if (changed === 'stale') return refuse(409, ADMIN_ERRORS.stale);
     if (!changed) return refuse(404, PORTAL_ERRORS.notFound);
     if (changed.before.email !== changed.after.email) {
       if (changed.jobId) c.afterCommit(changed.jobId);

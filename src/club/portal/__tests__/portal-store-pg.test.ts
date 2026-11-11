@@ -105,10 +105,10 @@ describe.skipIf(!enabled)('strapiPortalStore on Postgres', () => {
     await store.createAccount({ userId, email, status: 'active' });
     const clock = { t: new Date() };
     const sessions = ownSessions(store, () => clock.t);
-    const t = await sessions.issue(userId, 'dev-1');
+    const t = await sessions.issue(userId, 'dev-1', 'antrenor');
     const r = await sessions.refresh(t.refreshToken);
     expect(r?.userId).toBe(userId);
-    expect(await sessions.verifyAccess(r!.accessToken)).toEqual({ userId, sessionId: t.sessionId });
+    expect(await sessions.verifyAccess(r!.accessToken)).toEqual({ userId, sessionId: t.sessionId, host: 'antrenor' });
     clock.t = new Date(clock.t.getTime() + 60_000);
     expect(await sessions.refresh(t.refreshToken)).toBeNull();
     expect(await sessions.verifyAccess(r!.accessToken)).toBeNull();

@@ -5,5 +5,6 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
     exclude: ['src/admin/**', 'src/plugins/**', 'node_modules/**', 'dist/**'],
     environment: 'node',
+    setupFiles: ['./vitest.setup.ts'],
   },
 });

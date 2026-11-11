@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { portalHistoryText } from '../../copy';
 import { hashSecret } from '../../tokens';
 import { changeEmail } from '../email';
-import { disableAccount, enableAccount } from '../status';
+import { disableAccount, disableAll, enableAccount } from '../status';
 import { inviteAccount, resendInvite } from '../invite';
 import { disableForTeamMembers } from '../team-member-hook';
 import { readAccount } from '../read';
-import { harness, seedAccount } from './harness';
+import { grantAccess, harness, seedAccount, seedSportivSide, HASH, NOW } from './harness';
 import { uniqueViolation } from '../invite';
+import { inviteAccess } from '../../access/invite';
 
 const ok = <T>(r: { ok: boolean; data?: T }): T => {
   expect(r.ok).toBe(true);
@@ -152,6 +153,44 @@ describe('enableAccount', () => {
   });
 });
 
+describe('changeEmail carries the held athletes', () => {
+  const child = (id: string, email: string | null) => ({ id, name: `Copil ${id}`, email, status: 'activ', birthDate: '2015-01-01', contactName: 'Andreea' });
+  it('athletes on the old address follow, others stay, and a sibling invite joins the same account', async () => {
+    const h = harness();
+    const { id } = await seedAccount(h, 'active');
+    h.access.state.athletes.push(child('a1', 'Andreea@Example.com'), child('a2', 'andreea@example.com'), child('a3', 'altcineva@example.com'), child('a4', 'andreea@example.com'));
+    await grantAccess(h, id, 'a1');
+    await grantAccess(h, id, 'a2');
+    await h.access.store.createAccess({ athleteId: 'a3', accountId: id, email: 'altcineva@example.com', invitedAt: NOW.toISOString(), invitedBy: 'x' });
+    ok(await changeEmail(h.c, id, { email: 'Nou@Example.com' }));
+    const email = (aid: string) => h.access.state.athletes.find((a) => a.id === aid)?.email;
+    expect([email('a1'), email('a2'), email('a3')]).toEqual(['nou@example.com', 'nou@example.com', 'altcineva@example.com']);
+    const rows = await h.access.store.liveByAccount(id);
+    expect(rows.map((r) => [r.athleteId, r.email])).toEqual([['a1', 'nou@example.com'], ['a2', 'nou@example.com'], ['a3', 'altcineva@example.com']]);
+    expect(h.access.state.history.map((l) => [l.athleteId, l.action, l.changes])).toEqual([
+      ['a1', 'access-moved', { email: 'nou@example.com' }], ['a2', 'access-moved', { email: 'nou@example.com' }],
+    ]);
+    expect(h.accessJobs).toHaveLength(0);
+    expect(h.jobs).toHaveLength(0);
+    h.access.state.athletes.find((a) => a.id === 'a4')!.email = 'nou@example.com';
+    ok(await inviteAccess(h.c, 'a4'));
+    expect((await h.access.store.liveByAthlete('a4'))?.accountId).toBe(id);
+    expect(h.fake.state.accounts).toHaveLength(1);
+  });
+  it('a taken new address refuses and writes nothing', async () => {
+    const h = harness();
+    const { id } = await seedAccount(h, 'active');
+    h.access.state.athletes.push(child('a1', 'andreea@example.com'));
+    await grantAccess(h, id, 'a1');
+    const other = await h.fake.store.createUser('other@example.com', HASH);
+    await h.fake.store.createAccount({ userId: other, email: 'other@example.com', status: 'active', teamMemberId: 'tm2' });
+    expect(await changeEmail(h.c, id, { email: 'other@example.com' })).toMatchObject({ ok: false, status: 409 });
+    expect(h.access.state.athletes[0].email).toBe('andreea@example.com');
+    expect((await h.access.store.liveByAthlete('a1'))?.email).toBe('andreea@example.com');
+    expect(h.access.state.history).toHaveLength(0);
+  });
+});
+
 describe('changeEmail', () => {
   it('updates account and user, uses up an open reset token, logs old -> new, mails both addresses after commit', async () => {
     const h = harness();
@@ -217,13 +256,13 @@ describe('changeEmail', () => {
 describe('readAccount', () => {
   it('none, invited, active, disabled', async () => {
     const h = harness();
-    expect(ok(await readAccount(h.c, 'tm1'))).toEqual({ teamMemberId: 'tm1', accountId: null, state: 'none', email: null, since: null, google: false, twoFactor: false });
+    expect(ok(await readAccount(h.c, 'tm1'))).toEqual({ teamMemberId: 'tm1', accountId: null, state: 'none', email: null, since: null, google: false, twoFactor: false, hasSportiv: false, coachDisabled: false });
     expect(await readAccount(h.c, 'nope')).toMatchObject({ ok: false, status: 404 });
     for (const status of ['invited', 'active', 'disabled'] as const) {
       const g = harness();
       const { id } = await seedAccount(g, status);
       await g.fake.store.updateAccount(id, { googleSub: status === 'active' ? 'g1' : null });
-      expect(ok(await readAccount(g.c, 'tm1'))).toEqual({ teamMemberId: 'tm1', accountId: id, state: status, email: 'andreea@example.com', since: '2026-11-06', google: status === 'active', twoFactor: false });
+      expect(ok(await readAccount(g.c, 'tm1'))).toEqual({ teamMemberId: 'tm1', accountId: id, state: status, email: 'andreea@example.com', since: '2026-11-06', google: status === 'active', twoFactor: false, hasSportiv: false, coachDisabled: false });
       expect(ok(await readAccount({ ...g.c, twoFactorOn: async () => true }, 'tm1'))).toMatchObject({ twoFactor: true });
     }
   });
@@ -327,8 +366,8 @@ describe('q26: a deleted team member leaves a disabled account that a new invite
     expect(await inviteAccount(h.c, 'tm2', { email: 'andreea@example.com' })).toMatchObject({ ok: false, status: 409, error: 'Adresa are deja un cont.' });
     expect(h.jobs).toHaveLength(0);
   });
-  it('M3: an orphan with no team member is re-linked whatever its status', async () => {
-    for (const status of ['invited', 'active'] as const) {
+  it('M3: an orphan with no team member is re-linked when it is invited or disabled; an active one keeps its login and gets the role', async () => {
+    for (const status of ['invited', 'disabled'] as const) {
       const g = harness();
       const { id } = await orphan(g);
       await g.fake.store.updateAccount(id, { status });
@@ -337,6 +376,13 @@ describe('q26: a deleted team member leaves a disabled account that a new invite
       expect(g.fake.state.accounts).toHaveLength(1);
       expect(g.jobs).toHaveLength(1);
     }
+    const g = harness();
+    const { id } = await orphan(g);
+    await g.fake.store.updateAccount(id, { status: 'active' });
+    const a = ok(await inviteAccount(g.c, 'tm2', { email: 'andreea@example.com' }));
+    expect(a.account).toMatchObject({ teamMemberId: 'tm2', accountId: id, state: 'active' });
+    expect(g.jobs).toHaveLength(0);
+    expect(g.accessJobs).toHaveLength(1);
   });
   it('M2: re-link and delete hook take the team member lock before the account lock', async () => {
     const h = harness();
@@ -396,5 +442,155 @@ describe('q27: an e-mail change ends every session', () => {
     const { id } = await seedAccount(h, 'active');
     await changeEmail(h.c, id, { email: 'ANDREEA@example.com' });
     expect(h.fake.state.sessions.every((s) => s.revokedAt === null)).toBe(true);
+  });
+});
+
+describe('a coach who also holds athletes', () => {
+  async function shared() {
+    const h = harness();
+    const { id, userId } = await seedAccount(h, 'active');
+    await grantAccess(h, id);
+    const sportiv = await seedSportivSide(h, id);
+    return { h, id, userId, sportiv };
+  }
+  it('coach disable keeps the sportiv side', async () => {
+    const { h, id, userId, sportiv } = await shared();
+    const a = ok(await disableAccount(h.c, id));
+    expect(a.account).toMatchObject({ state: 'active', coachDisabled: true, hasSportiv: true });
+    expect(h.fake.state.accounts[0]).toMatchObject({ status: 'active', coachDisabledAt: NOW.toISOString() });
+    expect((await h.fake.store.user(userId))?.blocked).toBe(false);
+    expect(h.fake.state.sessions.find((s) => s.host === 'antrenor')?.revokedAt).not.toBeNull();
+    expect(h.fake.state.sessions.find((s) => s.id === sportiv.sessionId)?.revokedAt).toBeNull();
+    expect(h.fake.state.devices.find((d) => d.host === 'antrenor')?.revokedAt).not.toBeNull();
+    expect(h.fake.state.devices.find((d) => d.id === sportiv.deviceId)?.revokedAt).toBeNull();
+    const line = h.fake.state.history[0];
+    expect(portalHistoryText(line.action, line.changes)).toBe('Partea de antrenor dezactivată');
+  });
+  it('disabling the coach side twice writes nothing the second time', async () => {
+    const { h, id } = await shared();
+    await disableAccount(h.c, id);
+    await disableAccount(h.c, id);
+    expect(h.fake.state.history).toHaveLength(1);
+  });
+  it('enable brings the coach side back without touching the user', async () => {
+    const { h, id } = await shared();
+    await disableAccount(h.c, id);
+    const a = ok(await enableAccount(h.c, id));
+    expect(a.account).toMatchObject({ state: 'active', coachDisabled: false });
+    expect(h.fake.state.accounts[0].coachDisabledAt).toBeNull();
+  });
+  it('enable refuses an account that is neither disabled nor coach-disabled', async () => {
+    const { h, id } = await shared();
+    expect(await enableAccount(h.c, id)).toMatchObject({ ok: false, status: 409 });
+  });
+  it('disable all ends everything on both hosts and blocks the user', async () => {
+    const { h, id, userId } = await shared();
+    const a = ok(await disableAll(h.c, id));
+    expect(a.account).toMatchObject({ state: 'disabled' });
+    expect((await h.fake.store.user(userId))?.blocked).toBe(true);
+    expect(h.fake.state.sessions.every((s) => s.revokedAt !== null)).toBe(true);
+    expect(h.fake.state.devices.every((d) => d.revokedAt !== null)).toBe(true);
+    const line = h.fake.state.history[0];
+    expect(portalHistoryText(line.action, line.changes)).toBe('Cont dezactivat complet');
+  });
+  it('disable all of an unknown account is 404, of a disabled one changes nothing', async () => {
+    const { h, id } = await shared();
+    expect(await disableAll(h.c, 'nope')).toMatchObject({ ok: false, status: 404 });
+    await disableAll(h.c, id);
+    await disableAll(h.c, id);
+    expect(h.fake.state.history).toHaveLength(1);
+  });
+  it('an account with no live access is disabled whole, as in phase 6', async () => {
+    const h = harness();
+    const { id, userId } = await seedAccount(h, 'active');
+    ok(await disableAccount(h.c, id));
+    expect((await h.fake.store.user(userId))?.blocked).toBe(true);
+    expect(h.fake.state.accounts[0].coachDisabledAt).toBeNull();
+  });
+  it('a revoked access does not count: the account is disabled whole', async () => {
+    const h = harness();
+    const { id, userId } = await seedAccount(h, 'active');
+    const acs = await grantAccess(h, id);
+    await h.access.store.revokeAccess(acs, { revokedAt: NOW.toISOString(), revokedBy: 'x', revokeReason: 'scos' });
+    ok(await disableAccount(h.c, id));
+    expect((await h.fake.store.user(userId))?.blocked).toBe(true);
+  });
+  it('the team member delete hook disables only the coach side of a shared account', async () => {
+    const { h, id, userId, sportiv } = await shared();
+    expect(await disableForTeamMembers(h.c, ['tm1'])).toBe(1);
+    expect(h.fake.state.accounts[0]).toMatchObject({ status: 'active' });
+    expect(h.fake.state.accounts[0].coachDisabledAt).not.toBeNull();
+    expect((await h.fake.store.user(userId))?.blocked).toBe(false);
+    expect(h.fake.state.sessions.find((s) => s.id === sportiv.sessionId)?.revokedAt).toBeNull();
+    expect(id).toBeTruthy();
+  });
+});
+
+describe('a coach invite on a holder account', () => {
+  async function holder(h: ReturnType<typeof harness>, status: 'active' | 'invited') {
+    const { store } = h.fake;
+    const userId = await store.createUser('parinte1@example.invalid', status === 'active' ? HASH_X : null);
+    const at = NOW.toISOString();
+    const id = await store.createAccount({
+      userId, email: 'parinte1@example.invalid', status, name: 'Ioana Ionescu', invitedAt: at, ...(status === 'active' ? { activatedAt: at, googleSub: 'g-1' } : {}),
+    });
+    await grantAccess(h, id);
+    return { id, userId };
+  }
+  const HASH_X = '$2a$10$abcdefghijklmnopqrstuuAbCdEfGhIjKlMnOpQrStUvWxYz012345';
+  it('an active holder keeps password, Google and sessions, gets the role and one access mail', async () => {
+    const h = harness();
+    const { id, userId } = await holder(h, 'active');
+    const sportiv = await seedSportivSide(h, id);
+    const a = ok(await inviteAccount(h.c, 'tm1', { email: 'Parinte1@Example.invalid' }));
+    expect(a.account).toMatchObject({ teamMemberId: 'tm1', state: 'active', hasSportiv: true });
+    expect(h.fake.state.accounts[0]).toMatchObject({ teamMemberId: 'tm1', googleSub: 'g-1', coachDisabledAt: null });
+    expect((await h.fake.store.user(userId))?.passwordHash).toBe(HASH_X);
+    expect(h.fake.state.sessions.find((s) => s.id === sportiv.sessionId)?.revokedAt).toBeNull();
+    expect(h.fake.state.tokens).toHaveLength(0);
+    expect(h.jobs).toHaveLength(0);
+    expect(h.accessJobs).toHaveLength(1);
+    expect(h.accessJobs[0]).toMatchObject({ recipient: 'parinte1@example.invalid', payload: { variant: 'coach', host: 'antrenor.scoaladepatinaj.com' } });
+    expect(h.after).toEqual(['access1']);
+    const line = h.fake.state.history.find((l) => l.action === 'portal-coach-role-added');
+    expect(portalHistoryText(line!.action, line!.changes)).toBe('Rol de antrenor adăugat');
+  });
+  it('an invited holder gets older invites used up and one fresh invite on the antrenor host', async () => {
+    const h = harness();
+    const { id } = await holder(h, 'invited');
+    await h.fake.store.createToken({ accountId: id, host: 'sportiv', kind: 'invite', secretHash: 'old', expiresAt: new Date(NOW.getTime() + 86_400_000).toISOString() });
+    ok(await inviteAccount(h.c, 'tm1', { email: 'parinte1@example.invalid' }));
+    const tokens = h.fake.state.tokens;
+    expect(tokens.find((t) => t.secretHash === 'old')?.usedAt).not.toBeNull();
+    const fresh = tokens.filter((t) => t.usedAt === null);
+    expect(fresh).toHaveLength(1);
+    expect(fresh[0].host).toBe('antrenor');
+    expect(h.jobs).toHaveLength(1);
+    expect(h.accessJobs).toHaveLength(0);
+    expect(h.fake.state.accounts[0].teamMemberId).toBe('tm1');
+  });
+  it('a coach-disabled-then-orphaned holder gets a clean coach side again', async () => {
+    const h = harness();
+    const { id } = await holder(h, 'active');
+    await h.fake.store.updateAccount(id, { coachDisabledAt: NOW.toISOString() });
+    ok(await inviteAccount(h.c, 'tm1', { email: 'parinte1@example.invalid' }));
+    expect(h.fake.state.accounts[0].coachDisabledAt).toBeNull();
+  });
+  it('a disabled holder with no team member is re-linked as in phase 6 (password and Google cleared)', async () => {
+    const h = harness();
+    const { id, userId } = await holder(h, 'active');
+    await disableAll(h.c, id);
+    ok(await inviteAccount(h.c, 'tm1', { email: 'parinte1@example.invalid' }));
+    expect(h.fake.state.accounts[0]).toMatchObject({ status: 'invited', teamMemberId: 'tm1', googleSub: null });
+    expect((await h.fake.store.user(userId))?.passwordHash).toBeNull();
+    expect(h.accessJobs).toHaveLength(0);
+  });
+  it('a failure while queueing the access mail leaves the account without the role', async () => {
+    const h = harness();
+    await holder(h, 'active');
+    h.c.queueAccess = async () => { throw new Error('queue failed'); };
+    expect(await inviteAccount(h.c, 'tm1', { email: 'parinte1@example.invalid' })).toMatchObject({ ok: false, status: 500 });
+    expect(h.fake.state.accounts[0].teamMemberId).toBeNull();
+    expect(h.after).toHaveLength(0);
   });
 });

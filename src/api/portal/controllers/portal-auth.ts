@@ -1,6 +1,6 @@
 import { refuseWith, respond } from '../../../club/admin-http';
 import { PORTAL_ERRORS } from '../../../club/portal/copy';
-import { isBffCall } from '../../../club/portal/auth/bff';
+import { isBffCall, portalTwoFactorOn } from '../../../club/portal/auth/bff';
 import { portalAuthContext, type PortalCtx } from '../../../club/portal/auth/context';
 import { loginWithPassword } from '../../../club/portal/auth/login';
 import { googleClient, googleConfig, loginWithGoogle } from '../../../club/portal/auth/google';
@@ -27,6 +27,9 @@ const bffOnly = (tag: string, handler: Handler): Handler => async (ctx) => {
   }
 };
 
+/** The second step and the passkey routes answer 404 while `PORTAL_2FA` is off; nothing is read or written. */
+const needsTwoFactor = (handler: Handler): Handler => async (ctx) => (portalTwoFactorOn() ? handler(ctx) : refuseWith(ctx, 404, 'Not Found'));
+
 const secretOf = (body: unknown): string => {
   const raw = typeof body === 'object' && body !== null ? (body as Record<string, unknown>).secret : null;
   return typeof raw === 'string' ? raw : '';
@@ -35,10 +38,10 @@ const secretOf = (body: unknown): string => {
 /** Portal auth API (routes/01-auth.ts). */
 export default {
   login: bffOnly('login', async (ctx) => respond(ctx, await loginWithPassword(portalAuthContext(strapi, ctx), ctx.request.body))),
-  secondStep: bffOnly('secondStep', async (ctx) => respond(ctx, await portalSecondStep(portalAuthContext(strapi, ctx), ctx.request.body))),
-  sendCode: bffOnly('sendCode', async (ctx) => respond(ctx, await portalSendCode(portalAuthContext(strapi, ctx), ctx.request.body))),
-  passkeyOptions: bffOnly('passkeyOptions', async (ctx) => respond(ctx, await portalPasskeyOptions(portalAuthContext(strapi, ctx), ctx.request.body))),
-  passkeyVerify: bffOnly('passkeyVerify', async (ctx) => respond(ctx, await portalPasskeyVerify(portalAuthContext(strapi, ctx), ctx.request.body))),
+  secondStep: bffOnly('secondStep', needsTwoFactor(async (ctx) => respond(ctx, await portalSecondStep(portalAuthContext(strapi, ctx), ctx.request.body)))),
+  sendCode: bffOnly('sendCode', needsTwoFactor(async (ctx) => respond(ctx, await portalSendCode(portalAuthContext(strapi, ctx), ctx.request.body)))),
+  passkeyOptions: bffOnly('passkeyOptions', needsTwoFactor(async (ctx) => respond(ctx, await portalPasskeyOptions(portalAuthContext(strapi, ctx), ctx.request.body)))),
+  passkeyVerify: bffOnly('passkeyVerify', needsTwoFactor(async (ctx) => respond(ctx, await portalPasskeyVerify(portalAuthContext(strapi, ctx), ctx.request.body)))),
   refresh: bffOnly('refresh', async (ctx) => respond(ctx, await refreshSession(portalAuthContext(strapi, ctx), ctx.request.body))),
   logout: bffOnly('logout', async (ctx) => respond(ctx, await logout(portalAuthContext(strapi, ctx), ctx.request.body))),
   google: bffOnly('google', async (ctx) => respond(ctx, await loginWithGoogle(portalAuthContext(strapi, ctx), googleClient(), ctx.request.body))),

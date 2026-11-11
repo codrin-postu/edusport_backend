@@ -25,6 +25,7 @@ export function usePortalAccountApi() {
       invite: (teamMemberId: string, email: string) => data<AccountAnswer>(ref.current.post(`${BASE}/team-members/${enc(teamMemberId)}/account/invite`, { email })),
       resend: (id: string) => data<AccountAnswer>(ref.current.post(`${account(id)}/resend`, {})),
       disable: (id: string) => data<AccountAnswer>(ref.current.post(`${account(id)}/disable`, {})),
+      disableAll: (id: string) => data<AccountAnswer>(ref.current.post(`${account(id)}/disable-all`, {})),
       enable: (id: string) => data<AccountAnswer>(ref.current.post(`${account(id)}/enable`, {})),
       changeEmail: (id: string, email: string) => data<AccountAnswer>(ref.current.post(`${account(id)}/email`, { email })),
     };

@@ -13,7 +13,7 @@ if (process.env.ES_THROWAWAY_DB !== '1' || !process.env.IDS_FILE) {
   process.exit(2);
 }
 
-const THROWAWAY_PORTS = [55441, 55443, 55444, 55445, 55446, 55447, 55448, 55449, 55451, 55452, 55453, 55454, 55455, 55456, 55457, 55461, 55462, 55463, 55464, 55469, 55473, 55474, 55475, 55476];
+const THROWAWAY_PORTS = [55441, 55443, 55444, 55445, 55446, 55447, 55448, 55449, 55451, 55452, 55453, 55454, 55455, 55456, 55457, 55461, 55462, 55463, 55464, 55469, 55473, 55474, 55475, 55476, 55481, 55482, 55483, 55484];
 const port = Number(process.env.DATABASE_PORT || 5432);
 const host = process.env.DATABASE_HOST || 'localhost';
 if (process.env.DATABASE_URL || !['127.0.0.1', 'localhost'].includes(host) || !THROWAWAY_PORTS.includes(port)) {

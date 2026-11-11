@@ -2,7 +2,8 @@ import * as React from 'react';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import { Button, Field, Input, Loading, Modal, adminToast } from '../../ui';
 import type { AccountAnswer, AccountBlock as AccountBlockData } from '../../../club/portal/accounts/api-types';
-import { ACCOUNT_BLOCK, accountDisableConfirmText } from '../../../club/portal/copy-admin';
+import { ACCESS_ACTIONS, ACCESS_COPY } from '../../../club/portal/access/copy';
+import { ACCOUNT_BLOCK, accountBlockActions, accountDisableConfirmText } from '../../../club/portal/copy-admin';
 import { accountDate, accountErrorText, usePortalAccountApi } from './api';
 
 const FAILED = 'Acțiunea nu a reușit.';
@@ -19,6 +20,7 @@ export function AccountBlock({ teamMemberId, name }: { teamMemberId: string; nam
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [confirm, setConfirm] = React.useState(false);
+  const [confirmAll, setConfirmAll] = React.useState(false);
   const [changing, setChanging] = React.useState(false);
   const [newEmail, setNewEmail] = React.useState('');
 
@@ -50,6 +52,7 @@ export function AccountBlock({ teamMemberId, name }: { teamMemberId: string; nam
   if (!block) return error ? <div className="ui-error" role="alert">{error}</div> : <Loading />;
   const id = block.accountId ?? '';
   const since = accountDate(block.since);
+  const actions = accountBlockActions(block);
 
   return (
     <section aria-label={ACCOUNT_BLOCK.title} style={{ marginTop: 16, borderTop: '1px solid var(--theme-border)', paddingTop: 12 }}>
@@ -70,12 +73,14 @@ export function AccountBlock({ teamMemberId, name }: { teamMemberId: string; nam
           <p style={{ margin: '0 0 10px', color: 'var(--theme-text-muted)' }}>
             {block.state === 'invited' && ACCOUNT_BLOCK.invited(since)}
             {block.state === 'active' && ACCOUNT_BLOCK.active(since)}
+            {block.state === 'active' && block.coachDisabled && ` ${ACCOUNT_BLOCK.coachSideOff}`}
             {block.state === 'disabled' && ACCOUNT_BLOCK.disabled}
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {block.state === 'invited' && <Button variant="secondary" disabled={busy} onClick={() => void run(() => api.resend(id))}>{ACCOUNT_BLOCK.resend}</Button>}
-            {block.state === 'active' && <Button variant="danger" disabled={busy} onClick={() => setConfirm(true)}>{ACCOUNT_BLOCK.disable}</Button>}
-            {block.state === 'disabled' && <Button variant="secondary" disabled={busy} onClick={() => void run(() => api.enable(id))}>{ACCOUNT_BLOCK.enable}</Button>}
+            {actions.disable && <Button variant="danger" disabled={busy} onClick={() => setConfirm(true)}>{ACCOUNT_BLOCK.disable}</Button>}
+            {actions.disableAll && <Button variant="danger" disabled={busy} onClick={() => setConfirmAll(true)}>{ACCESS_ACTIONS.disableAll}</Button>}
+            {actions.enable && <Button variant="secondary" disabled={busy} onClick={() => void run(() => api.enable(id))}>{ACCOUNT_BLOCK.enable}</Button>}
             <Button variant="secondary" disabled={busy} onClick={() => { setNewEmail(''); setChanging(true); }}>{ACCOUNT_BLOCK.changeEmail}</Button>
           </div>
         </>
@@ -92,6 +97,18 @@ export function AccountBlock({ teamMemberId, name }: { teamMemberId: string; nam
         error={error}
         onCancel={() => setConfirm(false)}
         onConfirm={() => void run(() => api.disable(id)).then((done) => done && setConfirm(false))}
+      />
+
+      <ConfirmDialog
+        open={confirmAll}
+        title={ACCESS_ACTIONS.disableAll}
+        message={ACCESS_COPY.disableAllConfirm(name)}
+        confirmLabel={ACCESS_ACTIONS.disableAll}
+        busyLabel={ACCESS_ACTIONS.disableAll}
+        busy={busy}
+        error={error}
+        onCancel={() => setConfirmAll(false)}
+        onConfirm={() => void run(() => api.disableAll(id)).then((done) => done && setConfirmAll(false))}
       />
 
       <Modal

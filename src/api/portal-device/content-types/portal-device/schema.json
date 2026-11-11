@@ -48,6 +48,9 @@
     },
     "confirmedAt": {
       "type": "datetime"
+    },
+    "host": {
+      "type": "string"
     }
   }
 }

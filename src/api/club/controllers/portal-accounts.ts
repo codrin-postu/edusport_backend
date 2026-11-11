@@ -8,7 +8,7 @@ import { portalSecurityContext } from '../../../club/portal/security';
 import { securityMailSender } from '../../../email/security-mail';
 import { loadKeys } from '../../../club/security/keys';
 import { strapiSecurityStore } from '../../../club/security/strapi-store';
-import { disableAccount, enableAccount } from '../../../club/portal/accounts/status';
+import { disableAccount, disableAll, enableAccount } from '../../../club/portal/accounts/status';
 
 const param = (ctx: AdminCtx, name: string): string => ctx.params[name] ?? '';
 
@@ -26,6 +26,9 @@ export default {
   async disable(ctx: AdminCtx) {
     respond(ctx, await disableAccount(await accountContext(strapi, ctx), param(ctx, 'documentId')));
   },
+  async disableAll(ctx: AdminCtx) {
+    respond(ctx, await disableAll(await accountContext(strapi, ctx), param(ctx, 'documentId')));
+  },
   async enable(ctx: AdminCtx) {
     respond(ctx, await enableAccount(await accountContext(strapi, ctx), param(ctx, 'documentId')));
   },
@@ -38,6 +41,6 @@ export default {
       store: c.store, security: strapiSecurityStore(strapi), sessions: c.sessions, limits: limiter(c.store, c.now), now: c.now, keys: loadKeys(), log: c.log,
       ip: 'admin', userAgent: null, sendSecurity: securityMailSender(strapi),
     });
-    respond(ctx, await resetPortalTwoFactor({ store: c.store, security }, param(ctx, 'documentId'), c.actor));
+    respond(ctx, await resetPortalTwoFactor({ store: c.store, security, access: c.access }, param(ctx, 'documentId'), c.actor));
   },
 };

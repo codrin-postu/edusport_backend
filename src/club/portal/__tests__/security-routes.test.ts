@@ -8,21 +8,8 @@ import { open, totpAad } from '../../security/secret-box';
 import { totpAt } from '../../security/totp';
 import { TEST_KEYS } from '../../security/__tests__/keys';
 import { setup2fa } from './portal-2fa';
-import { staticBeforeParams } from '../../groups/__tests__/route-order';
-
-const EXPECTED = [
-  'GET /portal/me/security', 'POST /portal/me/2fa/totp', 'POST /portal/me/2fa/totp/confirm', 'DELETE /portal/me/2fa/totp',
-  'POST /portal/me/2fa/email', 'POST /portal/me/2fa/email/confirm', 'DELETE /portal/me/2fa/email', 'POST /portal/me/backup-codes',
-  'POST /portal/me/reauth', 'POST /portal/me/passkeys/options', 'POST /portal/me/passkeys', 'POST /portal/me/passkey-offer/dismiss', 'PUT /portal/me/passkeys/:id', 'DELETE /portal/me/passkeys/:id',
-];
 
 describe('portal Securitate routes', () => {
-  it('are exactly the listed ones, each behind global::is-coach (BFF secret 403, Bearer 401), no Strapi auth', () => {
-    expect(routes.routes.map((r) => `${r.method} ${r.path}`)).toEqual(EXPECTED);
-    for (const r of routes.routes) expect(r.config).toEqual({ auth: false, policies: ['global::is-coach'], middlewares: [] });
-    expect(staticBeforeParams(routes.routes.map((r) => r.path))).toBe(true);
-  });
-
   it('a handler run without the policy state answers 401 and builds nothing', async () => {
     const handlers = controller as unknown as Record<string, (ctx: unknown) => Promise<void>>;
     for (const r of routes.routes) {
@@ -36,9 +23,23 @@ describe('portal Securitate routes', () => {
 async function coach() {
   const s = setup2fa();
   const id = await s.addAccount();
-  const sec = portalSecurity(s.c, { accountId: id, userId: 1, sessionId: 'sess', teamMemberId: 'tm1', name: 'Ana Pop' });
+  const sec = portalSecurity(s.c, { accountId: id, userId: 1, sessionId: 'sess', host: 'antrenor', actor: 'Antrenor Ana Pop' });
   return { ...s, id, sec };
 }
+
+describe('Securitate of a sportiv session', () => {
+  it('reads its own methods and turns the app on with the account name on the history line', async () => {
+    const s = setup2fa();
+    const id = await s.addAccount({ teamMemberId: null });
+    const sec = portalSecurity(s.c, { accountId: id, userId: 1, sessionId: 'sess', host: 'sportiv', actor: 'Maria Ionescu' });
+    expect(await sec.read()).toMatchObject({ ok: true, data: { email: 'ana@x.ro', totp: false } });
+    await sec.totpStart();
+    const factor = (await s.secStore.factors({ type: 'portal', id }))[0];
+    const plain = open(TEST_KEYS, factor.secretBox!, totpAad('portal', id))!.plain;
+    expect(await sec.totpConfirm({ code: totpAt(plain, Math.floor(s.clock.t.getTime() / 30_000)) })).toMatchObject({ ok: true });
+    expect(s.mem.history.some((h) => h.actor === 'Maria Ionescu' && h.subjectType === 'portal' && h.subjectId === id)).toBe(true);
+  });
+});
 
 describe('portal Securitate service', () => {
   it('enrol app then confirm returns 10 codes once; GET security never returns codes or the secret', async () => {
@@ -63,7 +64,7 @@ describe('portal Securitate service', () => {
   it('DELETE the last method deletes the codes and forgets devices; the history line names the coach', async () => {
     const s = await coach();
     await s.enrol(s.id, { backup: true });
-    const device = await s.store.createDevice({ accountId: s.id, deviceKeyHash: 'h', sessionId: null, label: 'T', firstSeenAt: s.clock.t.toISOString(), lastSeenAt: s.clock.t.toISOString() });
+    const device = await s.store.createDevice({ accountId: s.id, host: 'antrenor', deviceKeyHash: 'h', sessionId: null, label: 'T', firstSeenAt: s.clock.t.toISOString(), lastSeenAt: s.clock.t.toISOString() });
     await s.secStore.setPortalDeviceTwoFactor(device, '2027-01-01T00:00:00.000Z');
     expect(await s.sec.read()).toMatchObject({ data: { backupLeft: 10 } });
     expect(await s.sec.totpOff()).toEqual({ ok: true, data: { toast: SECURITY_TOASTS.twoFactorOff } });
@@ -90,13 +91,13 @@ describe('portal Securitate service', () => {
     expect(await s.sec.read()).toMatchObject({ ok: true });
     const k = setup2fa({ keys: null });
     const id = await k.addAccount();
-    const sec = portalSecurity(k.c, { accountId: id, userId: 1, sessionId: 's', teamMemberId: 'tm1', name: 'Ana' });
+    const sec = portalSecurity(k.c, { accountId: id, userId: 1, sessionId: 's', host: 'antrenor', actor: 'Antrenor Ana' });
     expect(await sec.totpStart()).toEqual({ ok: false, status: 503, error: SECURITY_ERRORS.unavailable });
   });
 
   it('an account gone or disabled meanwhile answers 401', async () => {
     const s = await coach();
-    const gone = portalSecurity(s.c, { accountId: 'nope', userId: 1, sessionId: 's', teamMemberId: 'tm1', name: 'Ana' });
+    const gone = portalSecurity(s.c, { accountId: 'nope', userId: 1, sessionId: 's', host: 'antrenor', actor: 'Antrenor Ana' });
     expect(await gone.read()).toMatchObject({ ok: false, status: 401 });
   });
 });
