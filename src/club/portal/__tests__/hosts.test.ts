@@ -114,6 +114,18 @@ describe('every sign-in path checks the host', () => {
     expect(s.fake.state.sessions).toEqual([]);
   });
 
+  it('second step: a coach-only account (its access gone) is refused on a sportiv pending, no session', async () => {
+    const s = setup2fa();
+    const id = await s.addAccount();
+    const acs = await hold(s, id);
+    await s.enrol(id);
+    const pending = await login(s, 'sportiv');
+    if (!pending.ok || !('pending' in pending.data)) throw new Error('no pending');
+    await s.access.store.revokeAccess(acs, { revokedAt: s.clock.t.toISOString(), revokedBy: 'admin', revokeReason: 'scos' });
+    expect(await portalSecondStep(s.c, { pending: pending.data.pending, method: 'totp', code: s.totp(), deviceKey: pending.data.deviceKey })).toEqual(WRONG);
+    expect(s.fake.state.sessions).toEqual([]);
+  });
+
   it('second step: a coach side switched off before the code refuses the antrenor pending', async () => {
     const s = setup2fa();
     const id = await s.addAccount();

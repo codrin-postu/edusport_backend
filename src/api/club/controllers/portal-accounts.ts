@@ -8,7 +8,7 @@ import { portalSecurityContext } from '../../../club/portal/security';
 import { securityMailSender } from '../../../email/security-mail';
 import { loadKeys } from '../../../club/security/keys';
 import { strapiSecurityStore } from '../../../club/security/strapi-store';
-import { disableAccount, enableAccount } from '../../../club/portal/accounts/status';
+import { disableAccount, disableAll, enableAccount } from '../../../club/portal/accounts/status';
 
 const param = (ctx: AdminCtx, name: string): string => ctx.params[name] ?? '';
 
@@ -25,6 +25,9 @@ export default {
   },
   async disable(ctx: AdminCtx) {
     respond(ctx, await disableAccount(await accountContext(strapi, ctx), param(ctx, 'documentId')));
+  },
+  async disableAll(ctx: AdminCtx) {
+    respond(ctx, await disableAll(await accountContext(strapi, ctx), param(ctx, 'documentId')));
   },
   async enable(ctx: AdminCtx) {
     respond(ctx, await enableAccount(await accountContext(strapi, ctx), param(ctx, 'documentId')));

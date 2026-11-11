@@ -54,30 +54,35 @@ async function greetingName(c: AccessContext, account: AccountRow, athlete: Athl
   return own || holderName(athlete);
 }
 
-type Plan = { account: AccountRow; athlete: AthleteForAccess; email: string };
+/** `moved`: the athlete line reads "mutat". `silent`: rows are written but no mail is queued (a bulk group's last athlete sends the one mail). `names`: the athletes the one mail names. */
+export type LinkOptions = { moved?: boolean; silent?: boolean; names?: string[] };
+type Plan = { account: AccountRow; athlete: AthleteForAccess; email: string; opts: LinkOptions };
 
 /** Case 1 of spec 4.2: a new invited account for the e-mail, invite on the sportiv host. */
-async function createCase(c: AccessContext, { athlete, email }: Plan): Promise<Linked> {
+async function createCase(c: AccessContext, { athlete, email, opts }: Plan): Promise<Linked> {
   const at = c.now().toISOString();
   const name = holderName(athlete);
   const userId = await c.store.createUser(email, null);
   const id = await c.store.createAccount({ userId, email, status: 'invited', name, invitedAt: at, invitedBy: c.actor });
   await c.store.lockAccount(id);
+  if (opts.silent) return { toast: ACCESS_COPY.inviteSent, jobId: null };
   const account = (await c.store.account(id)) as AccountRow;
-  return { toast: ACCESS_COPY.inviteSent, jobId: await queueFreshInvite(c, account, name, email, 'sportiv', [athlete.name]) };
+  return { toast: ACCESS_COPY.inviteSent, jobId: await queueFreshInvite(c, account, name, email, 'sportiv', opts.names ?? [athlete.name]) };
 }
 
 /** Case 2: an active account gets the athlete and a "you also have access" mail. */
-async function addCase(c: AccessContext, { account, athlete, email }: Plan): Promise<Linked> {
+async function addCase(c: AccessContext, { account, athlete, email, opts }: Plan): Promise<Linked> {
+  if (opts.silent) return { toast: ACCESS_COPY.accessAdded, jobId: null };
   if (!c.siteUrl) throw new Error('the public site address is not configured');
   const { host, origin } = portalHost(c.siteUrl, 'sportiv');
   const name = await greetingName(c, account, athlete);
-  const jobId = await c.queueAccess(portalAccessJob({ recipient: email, accountId: account.id, payload: { name, variant: 'child', childName: athlete.name, link: `${origin}/`, host } }));
+  const jobId = await c.queueAccess(portalAccessJob({ recipient: email, accountId: account.id, payload: { name, variant: 'child', childName: (opts.names ?? [athlete.name]).join(' și '), link: `${origin}/`, host } }));
   return { toast: ACCESS_COPY.accessAdded, jobId };
 }
 
 /** Case 3: an invited account: older invites used up, one fresh invite on the host of the latest one. */
-async function reinviteCase(c: AccessContext, { account, athlete, email }: Plan, host: Host): Promise<Linked> {
+async function reinviteCase(c: AccessContext, { account, athlete, email, opts }: Plan, host: Host): Promise<Linked> {
+  if (opts.silent) return { toast: ACCESS_COPY.inviteSent, jobId: null };
   const children = await childNames(c, account.id, athlete.name);
   await useUpTokens(c, account.id, ['invite']);
   await c.store.updateAccount(account.id, { invitedAt: c.now().toISOString(), invitedBy: c.actor });
@@ -96,9 +101,9 @@ const refusalStatus = (message: string): 400 | 409 => (message === ACCESS_ERRORS
 
 /**
  * The invite outcome of spec 4.2 for `athleteId` and `rawEmail`, inside one transaction (a caller's, when there is one: lock order athlete,
- * account). `moved`: the athlete line reads "mutat" (the e-mail changed) instead of "invitație" or "adăugat". The access row, the account line and the athlete line are written; the queued mail is released by the caller after commit.
+ * account). The access row, the account line and the athlete line are written; the queued mail is released by the caller after commit.
  */
-export async function linkAccess(c: AccessContext, athleteId: string, rawEmail: string, moved = false): Promise<AdminResult<Linked>> {
+export async function linkAccess(c: AccessContext, athleteId: string, rawEmail: string, opts: LinkOptions = {}): Promise<AdminResult<Linked>> {
   return c.store.transaction(async (): Promise<AdminResult<Linked>> => {
     await c.access.lockAthlete(athleteId);
     const athlete = await c.access.athleteForAccess(athleteId);
@@ -112,11 +117,11 @@ export async function linkAccess(c: AccessContext, athleteId: string, rawEmail: 
     const live = await c.access.liveByAthlete(athleteId);
     if (live && account && live.accountId === account.id) return stale();
     if (live) await c.access.revokeAccess(live.id, { revokedAt: c.now().toISOString(), revokedBy: c.actor, revokeReason: 'email_schimbat' });
-    const linked = await run(c, plan, { account: account as AccountRow, athlete, email });
+    const linked = await run(c, plan, { account: account as AccountRow, athlete, email, opts });
     const accountId = (await c.store.accountByEmail(email))?.id as string;
     await c.access.createAccess({ athleteId, accountId, email, invitedAt: c.now().toISOString(), invitedBy: c.actor });
     await c.store.record({ subjectId: accountId, action: PORTAL_ACTIONS.accessGranted, changes: { athlete: athlete.name }, actor: c.actor });
-    const action = moved ? HISTORY_ACTIONS.accessMoved : plan.kind === 'add' ? HISTORY_ACTIONS.accessAdded : HISTORY_ACTIONS.accessInvited;
+    const action = opts.moved ? HISTORY_ACTIONS.accessMoved : plan.kind === 'add' ? HISTORY_ACTIONS.accessAdded : HISTORY_ACTIONS.accessInvited;
     await c.access.recordAthlete({ athleteId, action, changes: { email }, actor: c.actor });
     return { ok: true, data: linked };
   });
@@ -157,7 +162,7 @@ export async function resendAccess(c: AccessContext, athleteId: string): Promise
       await c.store.lockAccount(live.accountId);
       const account = await c.store.account(live.accountId);
       if (!account || account.status !== 'invited') return null;
-      const linked = await reinviteCase(c, { account, athlete, email: account.email }, (await latestInviteHost(c, account.id)) ?? 'sportiv');
+      const linked = await reinviteCase(c, { account, athlete, email: account.email, opts: {} }, (await latestInviteHost(c, account.id)) ?? 'sportiv');
       await c.store.record({ subjectId: account.id, action: PORTAL_ACTIONS.inviteResent, changes: {}, actor: c.actor });
       return linked;
     });

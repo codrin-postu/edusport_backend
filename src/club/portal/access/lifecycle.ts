@@ -29,7 +29,7 @@ export async function moveOnEmailChange(c: AccessContext, athleteId: string, bef
       await c.access.recordAthlete({ athleteId, action: HISTORY_ACTIONS.accessRemoved, changes: { email: live.email }, actor: c.actor });
       return { ok: true, data: { jobIds: [] } };
     }
-    const linked = await linkAccess(c, athleteId, to, true);
+    const linked = await linkAccess(c, athleteId, to, { moved: true });
     if (linked.ok === false) return linked;
     return { ok: true, data: { jobIds: linked.data.jobId ? [linked.data.jobId] : [] } };
   });

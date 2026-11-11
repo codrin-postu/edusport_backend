@@ -350,6 +350,34 @@ describe('first Google link and 2FA (user ruling 2026-11-09)', () => {
     expect(s.fake.state.sessions).toHaveLength(0);
   });
 
+  it('first link of a 2FA account on sportiv: a coach-only account is refused, no pending, no sub, no session', async () => {
+    const s = setup();
+    const id = await s.addAccount();
+    await enrol(s, id);
+    expect(await s.login({ host: 'sportiv' })).toEqual(NO_ACCOUNT);
+    expect(s.fake.state.accounts[0].googleSub).toBeNull();
+    expect(s.fake.state.sessions).toHaveLength(0);
+    expect(s.fake.state.devices).toHaveLength(0);
+  });
+
+  it('first link of a 2FA holder on sportiv: the code finishes it there; access removed before the code gives no session and no sub', async () => {
+    const s = setup();
+    const id = await s.addAccount({ teamMemberId: null });
+    await enrol(s, id);
+    const row = await s.access.store.createAccess({ athleteId: 'at1', accountId: id, email: 'ana@x.ro', invitedAt: NOW.toISOString(), invitedBy: 'admin' });
+    const first = pendingOf(await s.login({ host: 'sportiv' }));
+    const done = await portalSecondStep(s.c, { ...first, deviceKey: first.deviceKey ?? undefined, method: 'totp', code: code(), remember: false });
+    expect(done).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
+    expect(s.fake.state.sessions.map((x) => x.host)).toEqual(['sportiv']);
+    await s.store.updateAccount(id, { googleSub: null });
+    s.fake.state.sessions.length = 0;
+    const second = pendingOf(await s.login({ host: 'sportiv' }));
+    await s.access.store.revokeAccess(row, { revokedAt: NOW.toISOString(), revokedBy: 'admin', revokeReason: 'scos' });
+    expect(await portalSecondStep(s.c, { ...second, deviceKey: second.deviceKey ?? undefined, method: 'totp', code: totpAt(TOTP_SECRET, Math.floor(NOW.getTime() / 30_000) + 1), remember: false })).toEqual({ ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin });
+    expect(s.fake.state.sessions).toHaveLength(0);
+    expect(s.fake.state.accounts[0].googleSub).toBeNull();
+  });
+
   it('a right code stores the sub and starts the session; the sub then skips 2FA', async () => {
     const s = setup();
     const id = await s.addAccount();
