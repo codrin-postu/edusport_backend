@@ -13,6 +13,7 @@ export default {
     route('POST', '/me/password', 'password'),
     route('GET', '/me/devices', 'devices'),
     route('DELETE', '/me/devices/:id', 'revokeDevice'),
+    route('GET', '/today/club', 'todayClub'),
     route('GET', '/today', 'today'),
     route('GET', '/calendar', 'calendar'),
     route('GET', '/competitions', 'competitions'),

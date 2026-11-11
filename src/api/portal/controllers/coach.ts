@@ -17,6 +17,7 @@ import {
 } from '../../../club/portal/coach/program';
 import { readCoachCalendar } from '../../../club/portal/coach/calendar';
 import { readCoachCompetitions } from '../../../club/portal/coach/competitions';
+import { readClubToday } from '../../../club/portal/coach/club-today';
 import { readToday } from '../../../club/portal/coach/today';
 
 type Headers = Record<string, string | string[] | undefined>;
@@ -84,6 +85,7 @@ export default {
   devices: coachOnly('devices', async (c, ctx) => respondData(ctx, await listDevices(c, headerOf(ctx, BFF_HEADERS.device)))),
   revokeDevice: coachOnly('revokeDevice', async (c, ctx) => respondData(ctx, await revokeDevice(c, param(ctx, 'id')))),
   today: coachOnly('today', async (c, ctx) => respondData(ctx, await readToday(c, ctx.query.date))),
+  todayClub: coachOnly('todayClub', async (c, ctx) => respondData(ctx, await readClubToday(c))),
   groups: coachOnly('groups', async (c, ctx) => respondData(ctx, await readGroups(c))),
   group: coachOnly('group', async (c, ctx) => respondData(ctx, await readCoachGroupPage(c, param(ctx, 'documentId')))),
   program: coachOnly('program', async (c, ctx) => respondData(ctx, await readCoachProgram(c, param(ctx, 'documentId'), ctx.query.month))),

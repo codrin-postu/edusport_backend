@@ -119,3 +119,8 @@ export type CoachProgramRule = {
   from: string; to: string; untilSeasonEnd: boolean; nextDate: string | null;
 };
 export type CoachProgram = { kind: SectionKind; editable: boolean; programPublic: boolean | null; program: GroupProgram; rules: CoachProgramRule[]; occurrences: Occurrence[] };
+/** Every session of the club today. No child name, athlete id or member count; `lessonId` only for the asking coach's own lessons. */
+export type ClubTodayRow =
+  | { kind: 'group'; groupId: string; name: string; school: boolean; startTime: string; durationMin: number; coaches: string[]; location: string | null; own: boolean }
+  | { kind: 'lesson'; lessonId: string | null; startTime: string; durationMin: number; coach: string; own: boolean };
+export type CoachClubToday = { date: string; rows: ClubTodayRow[] };
