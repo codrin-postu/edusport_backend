@@ -11,15 +11,11 @@ import { failureStatus, sendNow } from './brevo';
 import { deliveryTarget, readEmailConfig } from './config';
 import { buildEmailLinks } from './links';
 import { portalHost } from './portal-email';
+import type { PortalMail, SendPortalMail } from './portal-mail-type';
+
+export type { PortalMail, SendPortalMail };
 import { brandHtml, emailPage, escapeHtml, footerText, type EmailLinks, type RenderedEmail } from './registration-template';
 
-export type PortalMail =
-  | { kind: 'reset'; code: string }
-  | { kind: 'lockout' }
-  | { kind: 'new-device'; device: string; at: Date; host?: string }
-  | { kind: 'email-changed'; newEmail: string };
-
-export type SendPortalMail = (to: string, mail: PortalMail) => Promise<boolean>;
 
 const SITE_UID = 'api::site-settings.site-settings' as const;
 const BUCHAREST = 'Europe/Bucharest';

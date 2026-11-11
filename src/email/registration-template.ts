@@ -6,7 +6,7 @@
  * Table-based HTML with inline styles, plus a plain-text part. Copy is word for word from the
  * mockup; the footer joins facts with commas (no middle dot).
  */
-import type { DocumentKind } from '../club/documents';
+import type { DocumentKind } from '../club/documents/types';
 
 export type EmailLinks = {
   site: string;

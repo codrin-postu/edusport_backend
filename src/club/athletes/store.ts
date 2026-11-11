@@ -1,4 +1,4 @@
-import type { AccessContext } from '../portal/access/context';
+import type { AccountContext as AccessContext } from '../portal/accounts/context-type';
 import type { AcsState } from '../acs';
 import type { AthleteStatus, AthleteValues } from '../athlete-data';
 import type { DateParts } from '../birth-date';
