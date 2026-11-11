@@ -1,16 +1,18 @@
 # Phase 7-3: Competitions from skate-results Implementation Plan
 
+> **Refreshed 2026-11-11** against `feat/athletes` e3bc966 (coach additions with `CoachCompetitionSource`, behaviour-only tests). See the index "Refresh 2026-11-11" and "Open questions for the user".
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A performance athlete's own competitions in the sportiv app: list with search, season filter, sort and paging, one competition in detail, the category, the Acasă card and the Concursuri badge, all through Strapi, cached in Postgres and alive when skate-results is down.
+**Goal:** A performance athlete's own competitions in the sportiv app: list with search, season filter, sort and paging, one competition in detail, the category, the Acasă card and the Concursuri badge, all through Strapi, cached in Postgres and alive when skate-results is down. The client, cache and derivations are shaped so the coach's real source (coach additions Task 8) reuses them unchanged.
 
-**Architecture:** `src/club/skate/` holds a small client (`client.ts`, timeout and API key), a snapshot cache over the `skate-snapshot` table (`cache.ts`, fresh, stale-while-revalidate, failure kept), pure derivations (`derive.ts`: season, category, short form, records, filter, sort, page, field size) and the real `CompetitionSource` (`source.ts`). Two sportiv routes use it; plan 7-2's null source is replaced in `sportivContext`.
+**Architecture:** `src/club/skate/` holds a small client (`client.ts`, timeout and API key), a snapshot cache over the `skate-snapshot` table (`cache.ts`, fresh, stale-while-revalidate, failure kept), pure derivations (`derive.ts`: season, category, short form, records, filter, sort, page, field size) and the real `SportivCompetitionSource` (`source.ts`, the interface of 7-2 Task 1, sibling of the existing `CoachCompetitionSource` in `src/club/portal/coach/competitions.ts`). Per-skater results are read through one cached call (`resultsOf(slug)`) that both sources use. Two sportiv routes use it; plan 7-2's null source is replaced in `sportivContext`.
 
 **Tech Stack:** Strapi 5.52.1 (TypeScript, CommonJS), Postgres 16, Vitest 3, Node 22 (`fetch`, `AbortSignal.timeout`).
 
-**Spec:** `docs/superpowers/specs/2026-11-07-sportiv-app-design.md` sections 3.4, 6.3 (card), 7 (Concursuri badge), 8, 14.2. Index: `docs/superpowers/plans/2026-11-07-phase7-index.md` (contracts binding). skate-results: `Programming/skate-results/README.md`, `app/schemas.py` (`SkaterDetail`, `SkaterResultItem`, `SegmentDetailOut`, `ResultProtocolOut`, `EventResultItem`, `EventSearchItem`).
+**Spec:** `docs/superpowers/specs/2026-11-07-sportiv-app-design.md` sections 3.4, 6.3 (card), 7 (Concursuri badge), 8, 14.2. Index: `docs/superpowers/plans/2026-11-07-phase7-index.md` (contracts, rulings and user rules binding). skate-results: `Programming/skate-results/README.md`, `app/schemas.py` (`SkaterDetail`, `SkaterResultItem`, `SegmentDetailOut`, `ResultProtocolOut`, `EventResultItem`, `EventSearchItem`). Coach side: `docs/superpowers/plans/2026-11-09-coach-portal-additions.md` Task 8 (consumer of this plan).
 
-**Base:** `feat/athletes` with 7-1 merged. Parallel with 7-2; Task 5 needs 7-2 Task 1 (`CompetitionSource`, types) merged, else it waits. Ledger `p3be/.superpowers/sdd/2026-11-07-phase7-3/progress.md`.
+**Base:** `feat/athletes` with 7-1 merged. Parallel with 7-2; Task 5 needs 7-2 Task 1 (`SportivCompetitionSource`, `skaterOf`, types) merged, else it waits. Ledger `p3be/.superpowers/sdd/2026-11-07-phase7-3/progress.md`.
 
 | Task | Risk | Model | Batch |
 |---|---|---|---|
@@ -25,12 +27,13 @@ This plan has two high-risk tasks; batch A adds a re-read of 7-2 Task 9's matrix
 
 ## Global Constraints
 
-- Everything in plan 7-1 "Global Constraints". Boot check `es73-pg` on 127.0.0.1:55467, Strapi 1387, fake skate-results on 127.0.0.1:18893.
-- Strapi only calls skate-results; base `SKATE_RESULTS_API` (default `https://skate-api.codrin.space`), header `X-API-Key` from `SKATE_RESULTS_API_KEY` when set; the key never appears in an answer or a log. Tests and checks never reach the real service (`SKATE_RESULTS_API` points at the fake or `http://127.0.0.1:9`).
+- Everything in plan 7-1 "Global Constraints" and the index user rules. Boot check `es73-pg` on 127.0.0.1:55483, Strapi 1413, fake skate-results on 127.0.0.1:18894.
+- Strapi only calls skate-results; base `SKATE_RESULTS_API` (default `https://skate-api.codrin.space`, as `src/api/skate/controllers/skate.ts`), header `X-API-Key` from `SKATE_RESULTS_API_KEY` when set; the key never appears in an answer or a log. Tests and checks never reach the real service (`SKATE_RESULTS_API` points at the fake or `http://127.0.0.1:9`).
 - Timeout 3000 ms per call. Freshness: results 1 hour, protocol and field size 24 hours (spec 8.3).
-- Matching only through `athlete.publicProfile.skateResultsSlug` (spec 8.1); no name search anywhere in this plan.
+- Matching only through the athlete's public profile slug (`athlete.profileId` -> profile `skateResultsSlug`, the lookup `skaterOf` of 7-2 Task 1, same as the coach's `clubSkaters`); no name search anywhere in this plan.
 - No other skater's name, id or score leaves Strapi: `GET /events/{id}/results` is reduced to a count per category inside `client.ts`.
-- Files this plan may touch: `src/club/skate/**`, `src/api/skate-snapshot/**`, `src/club/portal/sportiv/{context,competitions,home,athletes}.ts`, `src/api/portal/routes/03-sportiv.ts`, `src/api/portal/controllers/sportiv.ts`, `scripts/portal/fake-skate.mjs`, `scripts/portal/clickthrough-7-3.sh`, `src/index.ts` (bootstrap nothing new; the table is a content type).
+- Page size 20 (index ruling 3).
+- Files this plan may touch: `src/club/skate/**`, `src/api/skate-snapshot/**`, `src/api/skate/controllers/skate.ts` (share `base()` and the key header only), `src/club/portal/sportiv/{context,competitions,competitions-read,home,athletes}.ts`, `src/api/portal/routes/04-sportiv.ts`, `src/api/portal/controllers/sportiv.ts`, `scripts/fake-skate.mjs`, `scripts/clickthrough-7-3.sh`.
 
 ## Review Focus
 
@@ -45,8 +48,8 @@ This plan has two high-risk tasks; batch A adds a re-read of 7-2 Task 9's matrix
 ### Task 1: Snapshot table and store (low, Haiku)
 
 **Files:**
-- Create: `src/api/skate-snapshot/content-types/skate-snapshot/schema.json` (spec 3.4), core factories with closed routes, `src/club/skate/{types,store,strapi-store,fake-store}.ts`
-- Test: `src/club/skate/__tests__/store.test.ts`
+- Create: `src/api/skate-snapshot/content-types/skate-snapshot/schema.json` (spec 3.4; `key` unique), core factories with closed routes, `src/club/skate/{types,store,strapi-store,fake-store}.ts`
+- Test: `src/club/skate/__tests__/store-pg.test.ts`
 
 **Interfaces:**
 - Produces:
@@ -56,9 +59,9 @@ export type Snapshot = { key: string; body: unknown; fetchedAt: string; failedAt
 export interface SnapshotStore { get(key: string): Promise<Snapshot | null>; put(key: string, body: unknown, at: string): Promise<void>; fail(key: string, at: string): Promise<void> }
 ```
 
-- [ ] **Step 1: Failing test** (fake and Strapi store, parity): `put` then `get` returns the body and `failedAt: null`; `fail` keeps the body and sets `failedAt`; a later `put` clears `failedAt`; `key` unique (second `put` updates, not inserts).
-- [ ] **Step 2: Run** `npx vitest run src/club/skate/__tests__/store.test.ts`. Expected: FAIL.
-- [ ] **Step 3: Implement.**
+- [ ] **Step 1: Failing test** (Strapi store against throwaway Postgres 55483, skipped when it is not up; no fake-store test): `put` then `get` returns the body and `failedAt: null`; `fail` keeps the body and sets `failedAt`; a later `put` clears `failedAt`; a second `put` on one key updates (one row, the unique key holds).
+- [ ] **Step 2: Run** `npx vitest run --maxWorkers=3 src/club/skate/__tests__/store-pg.test.ts`. Expected: FAIL.
+- [ ] **Step 3: Implement.** The fake store (for Task 3 and 5 tests) follows the same rules.
 - [ ] **Step 4: Run** the same command. Expected: PASS.
 - [ ] **Step 5: Commit** `git add src/api/skate-snapshot src/club/skate && git commit -m "feat(skate): snapshot table for competition data"`
 
@@ -85,8 +88,8 @@ export interface SkateClient {
 export function skateClient(env?: NodeJS.ProcessEnv, fetchImpl?: typeof fetch): SkateClient;
 ```
 
-- [ ] **Step 1: Failing tests** (fake `fetch`): slug is URL-encoded; `X-API-Key` sent only when the env key is set; a 404 -> `not_found`; a 500, a network error and a 3001 ms delay -> `down`; a non-array JSON for results -> `down`; `fieldSize` returns a number and the returned value has no names (type and runtime: the function returns a plain number); no log line contains the key (log spy over every case); response bodies over 2 MB -> `down`.
-- [ ] **Step 2: Run** `npx vitest run src/club/skate/__tests__/client.test.ts src/api/skate`. Expected: new FAIL, admin proxy tests PASS.
+- [ ] **Step 1: Failing tests** (fake `fetch`): the slug is URL-encoded; `X-API-Key` sent only when the env key is set; a 404 -> `not_found`; a 500, a network error and a 3001 ms delay -> `down`; a non-array JSON for results -> `down`; `fieldSize` resolves a plain number (no names); no log line contains the key (log spy over every case); a response body over 2 MB -> `down`.
+- [ ] **Step 2: Run** `npx vitest run --maxWorkers=3 src/club/skate/__tests__/client.test.ts src/api/skate`. Expected: new FAIL, admin proxy tests PASS.
 - [ ] **Step 3: Implement** with `AbortSignal.timeout(3000)`.
 - [ ] **Step 4: Run** the same command. Expected: PASS.
 - [ ] **Step 5: Commit** `git add src/club/skate src/api/skate && git commit -m "feat(skate): server client with timeout and key"`
@@ -107,10 +110,11 @@ export function snapshotCache(store: SnapshotStore, now: () => Date, schedule: (
   read<T>(key: string, maxAgeMs: number, load: () => Promise<Fetched<T>>): Promise<Cached<T>>;
 };
 export const RESULTS_MAX_AGE = 3_600_000; export const DETAIL_MAX_AGE = 86_400_000;
+export function resultsOf(cache: ReturnType<typeof snapshotCache>, client: SkateClient, slug: string): Promise<Cached<SkateResult[]>>; // key `results:<slug>`; the one per-skater read both sources use
 ```
 
 - [ ] **Step 1: Failing tests.** Fresh snapshot -> answered, `load` not called. Old snapshot -> answered at once with `stale: false` (or `true` when `failedAt` is set), and one refresh scheduled; the refresh success replaces the body. `single flight`: five reads of one old key schedule one refresh. No snapshot -> `load` inline: ok stores and answers; `down` answers `{ available: false }` and stores nothing; `not_found` answers `{ available: true, missing: true }` and stores an empty marker for the max age. A failed refresh calls `store.fail` and keeps the body; the next read answers `stale: true` with the old `updatedAt`.
-- [ ] **Step 2: Run** `npx vitest run src/club/skate/__tests__/cache.test.ts`. Expected: FAIL.
+- [ ] **Step 2: Run** `npx vitest run --maxWorkers=3 src/club/skate/__tests__/cache.test.ts`. Expected: FAIL.
 - [ ] **Step 3: Implement.** In-flight keys in a module `Map`, removed in `finally`.
 - [ ] **Step 4: Run** the same command. Expected: PASS.
 - [ ] **Step 5: Commit** `git add src/club/skate && git commit -m "feat(skate): snapshot cache with stale answers"`
@@ -125,7 +129,7 @@ export const RESULTS_MAX_AGE = 3_600_000; export const DETAIL_MAX_AGE = 86_400_0
 - Produces:
 
 ```ts
-export function seasonKey(date: string | null, name: string): string | null; // Sep to Aug, as edusport_frontend src/lib/skate-results.ts
+export function seasonKey(date: string | null, name: string): string | null; // Sep to Aug, as edusport_frontend src/lib/skate-results.ts; same `YYYY-YYYY` form the coach competitions use
 export function shortCategory(category: string): string;
 export function currentCategory(rows: SkateResult[], currentSeason: string): { current: string; seasonLabel: string; previous: { short: string; sinceYear: number } | null } | null;
 export function records(rows: SkateResult[]): { best: number | null; podiums: number; wins: number };
@@ -134,8 +138,8 @@ export function listRows(rows: SkateResult[], q: { q: string; season: string | n
 export function toRow(r: SkateResult): CompetitionRow;
 ```
 
-- [ ] **Step 1: Failing tests.** `seasonKey('2026-10-26','x')` "2026-2027"; `('2026-06-15','x')` "2025-2026"; `(null,'Winter Cup 2026')` "2025-2026"; none -> null. `shortCategory('Advanced Novice Girls')` "Adv. Novice"; `'Junior Women'` "Junior"; `'Basic Novice Boys'` "Basic Novice"; `'Senior Ice Dance'` unchanged. `currentCategory`: latest in current season Advanced Novice Girls, earlier Basic Novice from season 2024-2025 -> `previous: { short: 'Basic Novice', sinceYear: 2025 }` (the start year of the first season of the current category); no result this season -> the latest result's category with its season. `records`: best total, placements 1 to 3 counted as podiums, 1 as wins; null placements ignored. `listRows`: "brasov" finds a location "Brașov"; "CUPA" finds "Cupa României"; season filter; sort `recent` by date desc (null dates last), `place` by placement asc (null last) then date desc, `points` by total desc; page 2 of 41 with 8 per page gives rows 9 to 16; `seasons` distinct, newest first; `toRow.resultId` is the string of `result_id`, rows without `result_id` dropped.
-- [ ] **Step 2: Run** `npx vitest run src/club/skate/__tests__/derive.test.ts`. Expected: FAIL.
+- [ ] **Step 1: Failing tests.** `seasonKey('2026-10-26','x')` "2026-2027"; `('2026-06-15','x')` "2025-2026"; `(null,'Winter Cup 2026')` "2025-2026"; none -> null. `shortCategory('Advanced Novice Girls')` "Adv. Novice"; `'Junior Women'` "Junior"; `'Senior Ice Dance'` unchanged. `currentCategory`: latest in the current season Advanced Novice Girls, earlier Basic Novice from season 2024-2025 -> `previous: { short: 'Basic Novice', sinceYear: 2025 }`; no result this season -> the latest result's category with its season. `records`: best total, placements 1 to 3 counted as podiums, 1 as wins; null placements ignored. `listRows`: "brasov" finds a location "Brașov"; "CUPA" finds "Cupa României"; season filter; sort `recent` by date desc (null dates last), `place` by placement asc (null last) then date desc, `points` by total desc; page 2 of 41 with 20 per page gives rows 21 to 40; `seasons` distinct, newest first; `toRow.resultId` is the string of `result_id`, rows without `result_id` dropped.
+- [ ] **Step 2: Run** `npx vitest run --maxWorkers=3 src/club/skate/__tests__/derive.test.ts`. Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run** the same command. Expected: PASS.
 - [ ] **Step 5: Commit** `git add src/club/skate && git commit -m "feat(skate): season, category, records and list derivations"`
@@ -144,15 +148,15 @@ export function toRow(r: SkateResult): CompetitionRow;
 
 **Files:**
 - Create: `src/club/skate/source.ts`, `src/club/portal/sportiv/competitions-read.ts`
-- Modify: `src/club/portal/sportiv/context.ts` (real source), `src/api/portal/routes/03-sportiv.ts` and `controllers/sportiv.ts` (two routes inside `withAthlete`), `src/club/portal/sportiv/home.ts` (category in `SportivHome.category` and the subline, spec 6.3)
+- Modify: `src/club/portal/sportiv/context.ts` (real source), `src/api/portal/routes/04-sportiv.ts` and `controllers/sportiv.ts` (two routes inside `withAthlete`), `src/club/portal/sportiv/home.ts` (category in `SportivHome.category` and the subline, spec 6.3)
 - Test: `src/club/skate/__tests__/source.test.ts`, `src/club/portal/sportiv/__tests__/competitions.test.ts`
 
 **Interfaces:**
-- Consumes: T2 to T4; `CompetitionSource` and types (7-2 T1); `withAthlete` (7-2 T9).
-- Produces: `skateSource(strapi, cache, client): CompetitionSource` (adds `list(athleteId, query): Promise<SportivCompetitions>` and `detail(athleteId, resultId): Promise<SportivCompetition | null>` beside the 7-2 methods), `readCompetitions(c, athleteId, query)`, `readCompetition(c, athleteId, resultId)`.
+- Consumes: T2 to T4; `SportivCompetitionSource`, `skaterOf` and types (7-2 T1); `withAthlete` (7-2 T9).
+- Produces: `skateSportivSource(cache, client): SportivCompetitionSource & { list(skater: SkaterRef, query): Promise<SportivCompetitions>; detail(skater: SkaterRef, resultId: string): Promise<SportivCompetition | null> }`, `readCompetitions(c, athleteId, query)`, `readCompetition(c, athleteId, resultId)`. Coach additions Task 8 builds `skateCoachSource(cache, client): CoachCompetitionSource` on the same `resultsOf`, `seasonKey` and `shortCategory`.
 
-- [ ] **Step 1: Failing tests.** `forAthlete` reads `athlete.publicProfile.skateResultsSlug`; no profile or empty slug -> null (route 404 "Nu a fost găsit."). `list` with a warm cache of 41 results: `total` 41, `filtered` per query, `pageSize` 8, `category.current` "Advanced Novice Girls", `records`. `detail` of a result id not in the athlete's results -> null (404) and the client's `protocol` not called; of his own -> segments short first, elements mapped `{ name, base, score }`, `field` from `fieldSize`, `officialUrl` or null. `down and cold`: client `down` everywhere -> `last` `{ available: false }`, `list` `{ available: false }`, `count` null (badge locked), and `readHome` still answers the rest. `count` returns the distinct event count and their dates oldest first. Leak walk: `forbiddenKeysIn` of list and detail answers empty, and no string field equals a fixture name of another skater.
-- [ ] **Step 2: Run** `npx vitest run src/club/skate/__tests__/source.test.ts src/club/portal/sportiv/__tests__/competitions.test.ts src/club/portal/sportiv/__tests__/matrix.test.ts`. Expected: FAIL (matrix PASS).
+- [ ] **Step 1: Failing tests.** No profile or empty slug -> `skaterOf` null -> route 404 "Nu a fost găsit.". `list` with a warm cache of 41 results: `total` 41, `filtered` per query, `pageSize` 20, `category.current` "Advanced Novice Girls", `records`. `detail` of a result id not in the athlete's results -> null (404) and the client's `protocol` not called; of his own -> segments short first, elements mapped `{ name, base, score }`, `field` from `fieldSize`, `officialUrl` or null. `down and cold`: client `down` everywhere -> `last` null (Acasă `{ available: false }`), `list` `{ available: false }`, `count` null (badge locked), and `readHome` still answers the rest. `count` returns the distinct event count and their dates oldest first. Leak walk: `forbiddenPathsIn` of list and detail answers empty, and no string field equals a fixture name of another skater.
+- [ ] **Step 2: Run** `npx vitest run --maxWorkers=3 src/club/skate/__tests__/source.test.ts src/club/portal/sportiv/__tests__/competitions.test.ts src/club/portal/sportiv/__tests__/matrix.test.ts`. Expected: FAIL (matrix PASS).
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run** the same command. Expected: PASS.
 - [ ] **Step 5: Commit** `git add src/club/skate src/club/portal/sportiv src/api/portal && git commit -m "feat(portal): sportiv competitions from skate-results"`
@@ -160,9 +164,9 @@ export function toRow(r: SkateResult): CompetitionRow;
 ### Task 6: Fake server, boot check, click-through (low, Haiku)
 
 **Files:**
-- Create: `scripts/portal/fake-skate.mjs` (Node http on 127.0.0.1:18893: `/skaters/ioana-marin-test/results` 41 synthetic results over three seasons, `/results/<id>/protocol`, `/events/<id>/results` with synthetic names, `/events?q=`; env `FAKE_SKATE_DOWN=1` answers 503), `scripts/portal/clickthrough-7-3.sh`
+- Create: `scripts/fake-skate.mjs` (Node http on 127.0.0.1, port from argv, default 18894: `/skaters/ioana-marin-test/results` 41 synthetic results over three seasons, `/results/<id>/protocol`, `/events/<id>/results` with synthetic names, `/events?q=`; env `FAKE_SKATE_DOWN=1` answers 503), `scripts/clickthrough-7-3.sh` (refuses any `BASE` other than `http://127.0.0.1:1413`)
 
-- [ ] **Step 1: Boot** `es73-pg` on 55467, Strapi 1387 with `SKATE_RESULTS_API=http://127.0.0.1:18893`, fixtures 4 to 7, the fake server, restart Strapi once.
-- [ ] **Step 2: Click-through** `bash scripts/portal/clickthrough-7-3.sh http://127.0.0.1:1387` as `sportiv18@example.invalid`: `home.lastCompetition.available` true; `competitions?page=1` 8 rows of 41; `?q=brasov` only Brașov rows; `?sort=points` first total is the max; detail of row 1 has two segments; a stranger result id -> 404; restart the fake with `FAKE_SKATE_DOWN=1`, set `fetchedAt` back 2 hours in `skate_snapshots`, open the list twice -> second answer `stale: true`; delete the snapshots -> list `{ available: false }`. Each prints `OK`.
-- [ ] **Step 3: Full suite** in a background worktree `npx vitest run`. Expected: PASS. Stop the fake, `docker rm -f es73-pg`.
-- [ ] **Step 4: Commit** `git add scripts/portal && git commit -m "chore(skate): fake skate-results and phase 7-3 click-through"`
+- [ ] **Step 1: Boot** `lsof -i :55483 -i :1413 -i :18894` (free); `es73-pg` on 55483, Strapi 1413 with `SKATE_RESULTS_API=http://127.0.0.1:18894`, fixtures phase 4, 5, 6, 7, the fake server, restart Strapi once.
+- [ ] **Step 2: Click-through** `IDS_FILE=<scratch>/ids.json BASE=http://127.0.0.1:1413 bash scripts/clickthrough-7-3.sh` as `sportiv18@example.invalid`: `home.lastCompetition.available` true; `competitions?page=1` 20 rows of 41; `?q=brasov` only Brașov rows; `?sort=points` first total is the max; detail of row 1 has two segments; a stranger result id -> 404; restart the fake with `FAKE_SKATE_DOWN=1`, set `fetchedAt` back 2 hours in `skate_snapshots`, open the list twice -> second answer `stale: true`; delete the snapshots -> list `{ available: false }`. Each prints `PASS`.
+- [ ] **Step 3: Full suite** in a background worktree `npx vitest run --maxWorkers=3`. Expected: PASS. Stop the fake, `docker rm -f es73-pg`.
+- [ ] **Step 4: Commit** `git add scripts && git commit -m "chore(skate): fake skate-results and phase 7-3 click-through"`
