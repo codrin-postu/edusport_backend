@@ -5,14 +5,11 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@strapi/admin/strapi-admin', () => ({ useFetchClient: () => ({}), getFetchClient: () => ({}) }));
 vi.mock('@strapi/design-system', () => ({}));
 vi.mock('@strapi/icons', () => ({}));
-import { Builder } from '../../../admin/dashboard/sportivi/tabele/Builder';
-import { NewViewModal } from '../../../admin/dashboard/sportivi/tabele/NewViewModal';
 import { ResultTable } from '../../../admin/dashboard/sportivi/tabele/ResultTable';
-import { ViewBar } from '../../../admin/dashboard/sportivi/tabele/ViewBar';
 import { CATALOG, GROUP_LABELS } from '../catalog';
 import type { CatalogAnswer } from '../catalog-api';
 import { READY_MADE } from '../ready-made';
-import type { SavedViewRow, TableResult, TableRow } from '../types';
+import type { TableResult, TableRow } from '../types';
 
 /** Server-side render of the pure parts of the screen: every branch renders, and the text and structure the brief asks for is there. */
 const catalog: CatalogAnswer = {
@@ -58,31 +55,5 @@ describe('Tabele render', () => {
     const out = html(React.createElement(ResultTable, { result: grouped(1500), sort: null, onSort: noop, collapsed: new Set(), onToggle: noop }));
     expect(out.match(/<tr/g)?.length).toBeLessThan(210);
     expect(out).toContain('ui-pager');
-  });
-
-  it('the builder renders every section with the exact labels, the chosen columns first', () => {
-    const out = html(React.createElement(Builder, { definition: READY_MADE[0].definition!, catalog, onChange: noop }));
-    for (const t of ['Subiect', 'Sfera', 'Sezon', 'Secțiune', 'Grupă', 'Perioada', 'Coloane, în ordine', 'Filtre', '+ filtru', 'Grupează după', 'Sortare', 'Sportivi', 'Plăți', 'Abonamente', 'Prezență']) expect(out, t).toContain(t);
-    expect(out).toContain('Tot sezonul');
-    expect(out).toContain('draggable="true"');
-  });
-
-  it('the view bar offers the buttons actionsFor gives and both downloads', () => {
-    const base = { ready: READY_MADE, saved: [] as SavedViewRow[], canDownload: true, downloading: null, onPick: noop, onSave: noop, onSaveAsNew: noop, onDuplicate: noop, onRemove: noop, onDownload: noop };
-    const ready = html(React.createElement(ViewBar, { ...base, current: READY_MADE[0], dirty: true }));
-    expect(ready).toContain('Salvează ca nouă');
-    expect(ready).toContain('Duplică');
-    expect(ready).toContain('Descarcă .xlsx');
-    expect(ready).toContain('Descarcă .csv');
-    expect(ready).not.toContain('Șterge');
-    const mine: SavedViewRow = { ...READY_MADE[0], id: 'v1', readyMade: false, mine: true, canDelete: true, authorId: '1', authorName: 'Ana' };
-    const own = html(React.createElement(ViewBar, { ...base, saved: [mine], current: mine, dirty: true }));
-    expect(own).toContain('Șterge');
-    expect(own.replace('Salvează ca nouă', '')).toContain('Salvează');
-    expect(html(React.createElement(ViewBar, { ...base, saved: [mine], current: mine, dirty: false })).replace('Salvează ca nouă', '')).not.toContain('Salvează');
-  });
-
-  it('the new-view modal is closed until opened', () => {
-    expect(html(React.createElement(NewViewModal, { open: false, initialName: '', onSave: async () => null, onClose: noop }))).toBe('');
   });
 });

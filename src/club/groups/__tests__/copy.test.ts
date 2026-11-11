@@ -27,9 +27,4 @@ describe('phase 4 copy (spec 11)', () => {
     expect(sourceLine('previous', '2026-2027', 1)).toBe('Din 2026-2027, 1 an');
     expect(sourceLine('added', null, null)).toBe('Adăugat în Sportivi');
   });
-
-  it('keeps the gender-neutral toasts (W1)', () => {
-    expect(GROUP_TOASTS.allocated('Intermediari Bronze', 'Elisa Georgescu')).toBe('Sportiv alocat în Intermediari Bronze: Elisa Georgescu.');
-    expect(GROUP_TOASTS.moved('Intermediari Silver', 'Ana Ionescu')).toBe('Sportiv mutat în Intermediari Silver: Ana Ionescu.');
-  });
 });

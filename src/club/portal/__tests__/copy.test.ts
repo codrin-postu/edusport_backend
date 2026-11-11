@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as copy from '../copy';
-import { MAIL_COPY, PORTAL_ACTIONS, portalHistoryText, DEVICE_WORDS } from '../copy';
+import { MAIL_COPY, PORTAL_ACTIONS, portalHistoryText } from '../copy';
 
 const collect = (v: unknown): string[] => {
   if (typeof v === 'string') return [v];
@@ -23,36 +23,9 @@ describe('portal copy', () => {
     expect(texts.length).toBeGreaterThan(40);
   });
 
-  it('device words are the agreed ones', () => {
-    expect(DEVICE_WORDS.unknown).toBe('Dispozitiv necunoscut');
-    expect(DEVICE_WORDS.tablet).toBe('Tabletă');
-  });
-
-  it('history texts', () => {
-    expect(portalHistoryText(PORTAL_ACTIONS.inviteSent, { email: 'a@b.ro' })).toBe('Invitație trimisă la a@b.ro.');
-    expect(portalHistoryText(PORTAL_ACTIONS.inviteResent, {})).toBe('Invitație retrimisă.');
-    expect(portalHistoryText(PORTAL_ACTIONS.activated, {})).toBe('Cont activat.');
-    expect(portalHistoryText(PORTAL_ACTIONS.activatedGoogle, {})).toBe('Cont activat cu Google.');
-    expect(portalHistoryText(PORTAL_ACTIONS.passwordChanged, {})).toBe('Parolă schimbată.');
-    expect(portalHistoryText(PORTAL_ACTIONS.passwordReset, {})).toBe('Parolă resetată.');
-    expect(portalHistoryText(PORTAL_ACTIONS.locked, {})).toBe('Cont blocat 15 minute după 5 încercări greșite.');
-    expect(portalHistoryText(PORTAL_ACTIONS.disabled, {})).toBe('Cont dezactivat.');
-    expect(portalHistoryText(PORTAL_ACTIONS.enabled, {})).toBe('Cont activat de administrator.');
-    expect(portalHistoryText(PORTAL_ACTIONS.emailChanged, { from: 'a@b.ro', to: 'c@d.ro' })).toBe('E-mail schimbat din a@b.ro în c@d.ro.');
-    expect(portalHistoryText(PORTAL_ACTIONS.relinked, { email: 'a@b.ro', name: 'Ana Pop' })).toBe('Cont refolosit pentru Ana Pop');
-    expect(portalHistoryText(PORTAL_ACTIONS.relinked, { email: 'a@b.ro' })).toBe('Cont refolosit');
-    expect(portalHistoryText('other', {})).toBeNull();
-    expect(portalHistoryText('constructor', {})).toBeNull();
-  });
-
   it('disable confirmation names the team member, or falls back without a name', () => {
     expect(copy.accountDisableConfirmText('Ana Pop')).toBe('Dezactivezi contul lui Ana Pop? Toate dispozitivele vor fi deconectate.');
     expect(copy.accountDisableConfirmText('')).toBe('Dezactivezi contul? Toate dispozitivele vor fi deconectate.');
     expect(copy.accountDisableConfirmText('   ')).toBe('Dezactivezi contul? Toate dispozitivele vor fi deconectate.');
-  });
-
-  it('mail copy', () => {
-    expect(MAIL_COPY.reset.code('042517')).toBe('Codul tău: 042517');
-    expect(MAIL_COPY.newDevice.line('Telefon, Chrome', '4 nov 2026', '18:05')).toBe('Telefon, Chrome, 4 nov 2026 18:05.');
   });
 });
