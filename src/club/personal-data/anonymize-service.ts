@@ -1,3 +1,4 @@
+import { endForAthlete } from '../portal/access/lifecycle';
 import { guarded, refuse, type AdminResult } from '../admin-result';
 import { ADMIN_ERRORS } from '../athletes/errors';
 import { lockAthletesWithRegistrations } from '../athletes/locks';
@@ -68,6 +69,7 @@ async function anonymizeInTransaction(ctx: AnonymizeContext, id: string): Promis
   const athlete = await ctx.store.athlete(id);
   if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
   if (athlete.status === 'anonimizat') return refuse(409, ADMIN_ERRORS.stale);
+  if (ctx.access) await endForAthlete(ctx.access, id, 'anonimizat');
   const registrations = await ctx.store.registrations({ athleteId: id });
   const pairs = (await ctx.store.duplicates()).filter((d) => d.firstId === id || d.secondId === id);
   await scrubHistory(ctx.store, athlete, registrations);

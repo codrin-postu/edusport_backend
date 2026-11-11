@@ -6,6 +6,7 @@ import { ADMIN_ERRORS } from './errors';
 import { lockAthletesWithRegistrations } from './locks';
 import { refreshAllMatches, safely } from './matches';
 import { mergeDiffering, planMerge, type MergePlan, type MergeSide } from './merge-plan';
+import { moveOnMerge } from '../portal/access/lifecycle';
 import { isAnonymized } from '../personal-data/anonymize-plan';
 import { mergePresenceRows } from '../presence/lifecycle/merge-rows';
 import { inBothTransactions } from '../presence/lifecycle/transaction';
@@ -125,6 +126,7 @@ async function applyProfile(store: ClubStore, plan: MergePlan, keptId: string, r
 }
 
 async function applyMerge(ctx: ServiceContext, presence: PresenceStore, kept: MergeSource, removed: MergeSource, plan: MergePlan): Promise<void> {
+  if (ctx.access) await moveOnMerge(ctx.access, kept.id, removed.id, plan.values.email);
   await mergePresenceRows(presence, kept.id, removed.id);
   await applyRows(ctx.store, plan, kept.id, removed.id);
   await repointDuplicates(ctx.store, removed.id, kept.id);

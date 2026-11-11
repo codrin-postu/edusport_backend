@@ -3,6 +3,7 @@ import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import { ADMIN_ERRORS } from './errors';
 import { lockAthletesWithRegistrations } from './locks';
 import { refreshAllMatches, safely } from './matches';
+import { endForAthlete } from '../portal/access/lifecycle';
 import { isAnonymized } from '../personal-data/anonymize-plan';
 import { deleteBlockOf, removePresenceRows, type DeleteBlock } from '../presence/lifecycle/delete-guard';
 import { inBothTransactions } from '../presence/lifecycle/transaction';
@@ -39,6 +40,7 @@ async function deleteInTransaction(ctx: ServiceContext, id: string, presence: Pr
   if (isAnonymized(athlete)) return refuse(409, ADMIN_ERRORS.stale);
   const blocked = await deleteBlockOf(presence, id);
   if (blocked) return { ok: true, data: { deleted: false, blocked } };
+  if (ctx.access) await endForAthlete(ctx.access, id, 'sters');
   await removePresenceRows(presence, id);
   await unlinkRegistrations(ctx, athlete);
   await removeOwnRows(ctx.store, id);

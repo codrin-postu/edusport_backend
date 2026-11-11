@@ -96,9 +96,9 @@ const refusalStatus = (message: string): 400 | 409 => (message === ACCESS_ERRORS
 
 /**
  * The invite outcome of spec 4.2 for `athleteId` and `rawEmail`, inside one transaction (a caller's, when there is one: lock order athlete,
- * account). The access row, the account line and the athlete line are written; the queued mail is released by the caller after commit.
+ * account). `moved`: the athlete line reads "mutat" (the e-mail changed) instead of "invitație" or "adăugat". The access row, the account line and the athlete line are written; the queued mail is released by the caller after commit.
  */
-export async function linkAccess(c: AccessContext, athleteId: string, rawEmail: string): Promise<AdminResult<Linked>> {
+export async function linkAccess(c: AccessContext, athleteId: string, rawEmail: string, moved = false): Promise<AdminResult<Linked>> {
   return c.store.transaction(async (): Promise<AdminResult<Linked>> => {
     await c.access.lockAthlete(athleteId);
     const athlete = await c.access.athleteForAccess(athleteId);
@@ -116,7 +116,7 @@ export async function linkAccess(c: AccessContext, athleteId: string, rawEmail: 
     const accountId = (await c.store.accountByEmail(email))?.id as string;
     await c.access.createAccess({ athleteId, accountId, email, invitedAt: c.now().toISOString(), invitedBy: c.actor });
     await c.store.record({ subjectId: accountId, action: PORTAL_ACTIONS.accessGranted, changes: { athlete: athlete.name }, actor: c.actor });
-    const action = plan.kind === 'add' ? HISTORY_ACTIONS.accessAdded : HISTORY_ACTIONS.accessInvited;
+    const action = moved ? HISTORY_ACTIONS.accessMoved : plan.kind === 'add' ? HISTORY_ACTIONS.accessAdded : HISTORY_ACTIONS.accessInvited;
     await c.access.recordAthlete({ athleteId, action, changes: { email }, actor: c.actor });
     return { ok: true, data: linked };
   });
