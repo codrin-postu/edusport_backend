@@ -6,8 +6,9 @@ import { disableAccount, disableAll, enableAccount } from '../status';
 import { inviteAccount, resendInvite } from '../invite';
 import { disableForTeamMembers } from '../team-member-hook';
 import { readAccount } from '../read';
-import { grantAccess, harness, seedAccount, seedSportivSide, NOW } from './harness';
+import { grantAccess, harness, seedAccount, seedSportivSide, HASH, NOW } from './harness';
 import { uniqueViolation } from '../invite';
+import { inviteAccess } from '../../access/invite';
 
 const ok = <T>(r: { ok: boolean; data?: T }): T => {
   expect(r.ok).toBe(true);
@@ -149,6 +150,44 @@ describe('enableAccount', () => {
     const h = harness();
     const { id } = await seedAccount(h, 'active');
     expect(await enableAccount(h.c, id)).toMatchObject({ ok: false, status: 409 });
+  });
+});
+
+describe('changeEmail carries the held athletes', () => {
+  const child = (id: string, email: string | null) => ({ id, name: `Copil ${id}`, email, status: 'activ', birthDate: '2015-01-01', contactName: 'Andreea' });
+  it('athletes on the old address follow, others stay, and a sibling invite joins the same account', async () => {
+    const h = harness();
+    const { id } = await seedAccount(h, 'active');
+    h.access.state.athletes.push(child('a1', 'Andreea@Example.com'), child('a2', 'andreea@example.com'), child('a3', 'altcineva@example.com'), child('a4', 'andreea@example.com'));
+    await grantAccess(h, id, 'a1');
+    await grantAccess(h, id, 'a2');
+    await h.access.store.createAccess({ athleteId: 'a3', accountId: id, email: 'altcineva@example.com', invitedAt: NOW.toISOString(), invitedBy: 'x' });
+    ok(await changeEmail(h.c, id, { email: 'Nou@Example.com' }));
+    const email = (aid: string) => h.access.state.athletes.find((a) => a.id === aid)?.email;
+    expect([email('a1'), email('a2'), email('a3')]).toEqual(['nou@example.com', 'nou@example.com', 'altcineva@example.com']);
+    const rows = await h.access.store.liveByAccount(id);
+    expect(rows.map((r) => [r.athleteId, r.email])).toEqual([['a1', 'nou@example.com'], ['a2', 'nou@example.com'], ['a3', 'altcineva@example.com']]);
+    expect(h.access.state.history.map((l) => [l.athleteId, l.action, l.changes])).toEqual([
+      ['a1', 'access-moved', { email: 'nou@example.com' }], ['a2', 'access-moved', { email: 'nou@example.com' }],
+    ]);
+    expect(h.accessJobs).toHaveLength(0);
+    expect(h.jobs).toHaveLength(0);
+    h.access.state.athletes.find((a) => a.id === 'a4')!.email = 'nou@example.com';
+    ok(await inviteAccess(h.c, 'a4'));
+    expect((await h.access.store.liveByAthlete('a4'))?.accountId).toBe(id);
+    expect(h.fake.state.accounts).toHaveLength(1);
+  });
+  it('a taken new address refuses and writes nothing', async () => {
+    const h = harness();
+    const { id } = await seedAccount(h, 'active');
+    h.access.state.athletes.push(child('a1', 'andreea@example.com'));
+    await grantAccess(h, id, 'a1');
+    const other = await h.fake.store.createUser('other@example.com', HASH);
+    await h.fake.store.createAccount({ userId: other, email: 'other@example.com', status: 'active', teamMemberId: 'tm2' });
+    expect(await changeEmail(h.c, id, { email: 'other@example.com' })).toMatchObject({ ok: false, status: 409 });
+    expect(h.access.state.athletes[0].email).toBe('andreea@example.com');
+    expect((await h.access.store.liveByAthlete('a1'))?.email).toBe('andreea@example.com');
+    expect(h.access.state.history).toHaveLength(0);
   });
 });
 

@@ -10,6 +10,10 @@ export interface AccessStore {
   revokeAccess(id: string, w: { revokedAt: string; revokedBy: string; revokeReason: RevokeReason }): Promise<void>;
   setLevelSeen(id: string, groupId: string, at: string): Promise<void>;
   moveAccess(id: string, athleteId: string): Promise<void>;
+  /** The e-mail an access row names follows an account e-mail change (the holder is the same). */
+  setAccessEmail(id: string, email: string): Promise<void>;
+  /** Writes the athlete's e-mail only. Callers hold the athlete lock and go through `moveOnEmailChange` or the account e-mail change. */
+  setAthleteEmail(athleteId: string, email: string): Promise<void>;
   /** Every row of the athlete (live and revoked) is deleted: "Șterge sportivul" purges its access with it (spec 3.1). */
   deleteForAthlete(athleteId: string): Promise<void>;
   /**

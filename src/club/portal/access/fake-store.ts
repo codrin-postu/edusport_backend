@@ -33,6 +33,14 @@ export function fakeAccessStore(seed: Partial<FakeAccessState> = {}): FakeAccess
       if (row.revokedAt === null && taken(athleteId, id)) throw Object.assign(new Error('duplicate key: athlete_accesses_live_uq'), { code: '23505' });
       row.athleteId = athleteId;
     },
+    setAccessEmail: async (id, email) => {
+      must(id).email = email;
+    },
+    setAthleteEmail: async (athleteId, email) => {
+      const a = state.athletes.find((x) => x.id === athleteId);
+      if (!a) throw new Error(`fake: no athlete ${athleteId}`);
+      a.email = email;
+    },
     lockAthlete: async (athleteId) => {
       state.locks.push(`athlete:${athleteId}`);
     },

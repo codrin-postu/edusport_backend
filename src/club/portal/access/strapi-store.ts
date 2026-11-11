@@ -40,6 +40,12 @@ export function strapiAccessStore(strapi: Core.Strapi, scope: Scope = transactio
     moveAccess: async (id, athleteId) => {
       await docs().update({ documentId: id, data: { athlete: athleteId, athleteKey: athleteId } as never });
     },
+    setAccessEmail: async (id, email) => {
+      await docs().update({ documentId: id, data: { email } as never });
+    },
+    setAthleteEmail: async (athleteId, email) => {
+      await strapi.documents(ATHLETE).update({ documentId: athleteId, data: { email } as never });
+    },
     deleteForAthlete: async (athleteId) => {
       await strapi.db.query(ACCESS).deleteMany({ where: { athleteKey: athleteId } });
     },
