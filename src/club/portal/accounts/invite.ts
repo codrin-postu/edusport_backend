@@ -46,13 +46,13 @@ export async function useUpTokens(c: AccountContext, accountId: string, kinds: (
 }
 
 /** Inside a transaction with the account locked: a new invite token and its queued mail job; the id of the job. */
-export async function queueFreshInvite(c: AccountContext, account: AccountRow, name: string, email: string, site: Host = 'antrenor'): Promise<string> {
+export async function queueFreshInvite(c: AccountContext, account: AccountRow, name: string, email: string, site: Host = 'antrenor', children: string[] = []): Promise<string> {
   if (!c.siteUrl) throw new Error('the public site address is not configured');
   const { host, origin } = portalHost(c.siteUrl, site);
   const secret = newInviteSecret();
   await c.store.createToken({ accountId: account.id, host: site, kind: 'invite', secretHash: hashSecret(secret), expiresAt: new Date(c.now().getTime() + INVITE_TTL_MS).toISOString() });
   const link = inviteLink(host, secret, origin.startsWith('http://') ? 'http' : 'https');
-  return c.queueInvite(portalInviteJob({ recipient: email, accountId: account.id, payload: { name, link, host } }, c.now()));
+  return c.queueInvite(portalInviteJob({ recipient: email, accountId: account.id, payload: { name, link, host, ...(children.length ? { children } : {}) } }, c.now()));
 }
 
 /** Inside a transaction with the account locked: every device (of the host, when given) is revoked and every session of the user ends (lock order account, session). */

@@ -40,6 +40,7 @@ export const PORTAL_ACTIONS = {
   coachSideOff: 'portal-coach-off',
   accountOff: 'portal-account-off',
   coachRoleAdded: 'portal-coach-role-added',
+  accessGranted: 'portal-access-granted',
 } as const;
 
 type Changes = Record<string, unknown>;
@@ -58,6 +59,7 @@ const HISTORY_TEXT = new Map<string, (c: Changes) => string>([
   [PORTAL_ACTIONS.coachSideOff, () => ACCESS_HISTORY.coachSideOff],
   [PORTAL_ACTIONS.accountOff, () => ACCESS_HISTORY.accountOff],
   [PORTAL_ACTIONS.coachRoleAdded, () => ACCESS_HISTORY.coachRoleAdded],
+  [PORTAL_ACTIONS.accessGranted, (c) => ACCESS_HISTORY.accountAccess(String(c.athlete))],
   [PORTAL_ACTIONS.emailChanged, (c) => `E-mail schimbat din ${String(c.from)} în ${String(c.to)}.`],
 ]);
 

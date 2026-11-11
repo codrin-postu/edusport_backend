@@ -13,4 +13,6 @@ export interface AccessStore {
   /** Takes the athlete row lock; lock order is athlete, account, team member. Only inside a transaction. */
   lockAthlete(athleteId: string): Promise<void>;
   athleteForAccess(athleteId: string): Promise<AthleteForAccess | null>;
+  /** One history line on the athlete's record (the account's own lines go through `PortalStore.record`). */
+  recordAthlete(line: { athleteId: string; action: string; changes: Record<string, unknown>; actor: string }): Promise<void>;
 }

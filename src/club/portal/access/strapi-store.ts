@@ -1,5 +1,7 @@
 import type { Core } from '@strapi/strapi';
 import { transactionScope, type Scope, raws, str, text, iso, linkId, type Raw } from '../../athletes/strapi-store';
+import { recordHistory } from '../../history';
+import { SUBJECT } from '../../subjects';
 import type { AccessRow, AccessStore, RevokeReason } from './store';
 
 const ACCESS = 'api::athlete-access.athlete-access' as const;
@@ -36,6 +38,9 @@ export function strapiAccessStore(strapi: Core.Strapi, scope: Scope = transactio
     },
     moveAccess: async (id, athleteId) => {
       await docs().update({ documentId: id, data: { athlete: athleteId, athleteKey: athleteId } as never });
+    },
+    recordAthlete: async (l) => {
+      await recordHistory(strapi as never, { subjectType: SUBJECT.athlete, subjectId: l.athleteId, action: l.action, changes: l.changes, actor: l.actor });
     },
     lockAthlete: (athleteId) => scope.lockRow('athletes', athleteId),
     athleteForAccess: async (athleteId) => {

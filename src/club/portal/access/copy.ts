@@ -52,3 +52,12 @@ export const ACCESS_HISTORY = {
   accountOff: 'Cont dezactivat complet',
   coachRoleAdded: 'Rol de antrenor adăugat',
 } as const;
+
+/** The parent invite and "access added" mails (spec 11). The coach invite mail keeps its own copy in `copy-admin.ts`. */
+export const ACCESS_MAIL = {
+  greeting: (name: string): string => `Bună, ${name},`,
+  inviteLine: (children: string[]): string => `Ai primit acces la portalul EduSport ${ACCESS_COPY.forChildren(children)}.`,
+  childLine: (child: string): string => `Ai acces și la ${child} în portalul EduSport.`,
+  coachLine: (host: string): string => `Poți intra și pe ${host} cu același cont.`,
+  signature: 'Echipa EduSport',
+} as const;

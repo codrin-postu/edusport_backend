@@ -29,6 +29,7 @@ import type { EmailJobStatus } from './job-state';
 import { buildEmailLinks } from './links';
 import { isPaymentPayload, PAYMENT_HOLD_MS } from './payment-email';
 import { isPortalInvitePayload, type PortalInvitePayload } from './portal-email';
+import { isPortalAccessPayload, type PortalAccessPayload } from './portal-access-email';
 import { isSchedulePayload } from './schedule-change-template';
 import { sheetSyncedStore } from './sheet-status';
 import { queueUpsert } from '../sheets/queue';
@@ -58,10 +59,11 @@ type RawJob = {
 const iso = (value: unknown): string | null =>
   value instanceof Date ? value.toISOString() : typeof value === 'string' && value ? value : null;
 
-const KINDS: Record<string, EmailJobKind> = { 'schedule-change': 'schedule-change', payment: 'payment', 'portal-invite': 'portal-invite' };
+const KINDS: Record<string, EmailJobKind> = { 'schedule-change': 'schedule-change', payment: 'payment', 'portal-invite': 'portal-invite', 'portal-access': 'portal-access' };
 
 /** The stored payload when it has the shape the template of its kind needs, else null (the job then fails at once). */
-function payloadOf(kind: EmailJobKind, v: unknown): ScheduleChangePayload | PaymentEmailPayload | PortalInvitePayload | null {
+function payloadOf(kind: EmailJobKind, v: unknown): ScheduleChangePayload | PaymentEmailPayload | PortalInvitePayload | PortalAccessPayload | null {
+  if (kind === 'portal-access') return isPortalAccessPayload(v) ? v : null;
   if (kind === 'portal-invite') return isPortalInvitePayload(v) ? v : null;
   if (kind === 'schedule-change') return isSchedulePayload(v) ? v : null;
   return kind === 'payment' && isPaymentPayload(v) ? v : null;

@@ -1,11 +1,12 @@
 import type { AccessRow, AccessStore, AthleteForAccess } from './store';
 
-export type FakeAccessState = { rows: AccessRow[]; athletes: AthleteForAccess[]; locks: string[]; nextId: number };
+export type FakeAthleteLine = { athleteId: string; action: string; changes: Record<string, unknown>; actor: string };
+export type FakeAccessState = { rows: AccessRow[]; athletes: AthleteForAccess[]; locks: string[]; nextId: number; history: FakeAthleteLine[] };
 export type FakeAccess = { store: AccessStore; state: FakeAccessState };
 
 /** Mirrors the live rule of the database index: one row with `revokedAt` null per athlete (a violation carries code 23505). */
 export function fakeAccessStore(seed: Partial<FakeAccessState> = {}): FakeAccess {
-  const state: FakeAccessState = { rows: [], athletes: [], locks: [], nextId: 1, ...structuredClone(seed) };
+  const state: FakeAccessState = { rows: [], athletes: [], locks: [], nextId: 1, history: [], ...structuredClone(seed) };
   const must = (id: string): AccessRow => {
     const row = state.rows.find((r) => r.id === id);
     if (!row) throw new Error(`fake: no access ${id}`);
@@ -34,6 +35,9 @@ export function fakeAccessStore(seed: Partial<FakeAccessState> = {}): FakeAccess
     },
     lockAthlete: async (athleteId) => {
       state.locks.push(`athlete:${athleteId}`);
+    },
+    recordAthlete: async (line) => {
+      state.history.push(structuredClone(line));
     },
     athleteForAccess: async (athleteId) => structuredClone(state.athletes.find((a) => a.id === athleteId) ?? null),
   };

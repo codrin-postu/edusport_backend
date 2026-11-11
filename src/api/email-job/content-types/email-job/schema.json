@@ -7,7 +7,7 @@
   "attributes": {
     "recipient": { "type": "string", "required": true },
     "subject": { "type": "string", "required": true },
-    "kind": { "type": "enumeration", "enum": ["registration", "schedule-change", "payment", "portal-invite"], "required": true, "default": "registration" },
+    "kind": { "type": "enumeration", "enum": ["registration", "schedule-change", "payment", "portal-invite", "portal-access"], "required": true, "default": "registration" },
     "registration": { "type": "relation", "relation": "manyToOne", "target": "api::registration-submission.registration-submission", "inversedBy": "emailJobs" },
     "status": { "type": "enumeration", "enum": ["queued", "sending", "sent", "failed", "cancelled"], "required": true, "default": "queued" },
     "attempts": { "type": "integer", "required": true, "default": 0, "min": 0 },
