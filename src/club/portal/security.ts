@@ -8,6 +8,7 @@ import { rpConfig } from '../security/passkeys';
 import type { Keys } from '../security/keys';
 import { forgetDevices } from '../security/remembered';
 import type { SecurityStore, Subject } from '../security/store';
+import { portalTwoFactorOn } from './auth/bff';
 import type { PortalAuthContext, PortalResult } from './auth/context';
 import type { Limiter } from './auth/limit';
 import { PORTAL_ERRORS } from './copy';
@@ -79,7 +80,7 @@ export function portalSecurity(c: PortalAuthContext, coach: SecurityActor) {
     reauth: (body: unknown) => as(async (email) => {
       const user = await c.store.user((await c.store.account(coach.accountId))?.userId ?? -1);
       return reauthenticate(security, {
-        subject, email, passwordHash: async () => user?.passwordHash ?? null, compare: c.compare,
+        subject, email, passwordOnly: !portalTwoFactorOn(), passwordHash: async () => user?.passwordHash ?? null, compare: c.compare,
         confirm: async (at) => {
           const device = await ownDevice();
           if (!device) return false;

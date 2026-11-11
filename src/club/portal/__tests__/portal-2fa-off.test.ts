@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import authController from '../../../api/portal/controllers/portal-auth';
 import securityController from '../../../api/portal/controllers/portal-security';
 import { loginWithPassword } from '../auth/login';
+import { portalSecurity } from '../security';
 import { setup2fa } from './portal-2fa';
 
 type Handlers = Record<string, (ctx: unknown) => Promise<void>>;
@@ -79,5 +80,30 @@ describe('portal 2FA switched off (PORTAL_2FA unset or off)', () => {
     const ctx = { request: { headers: {}, body: {} }, state: {}, params: {}, status: 0, body: null as unknown };
     await h.totpStart(ctx);
     expect(ctx.status).toBe(401);
+  });
+});
+
+describe('reauth and the portal 2FA switch', () => {
+  async function withTotp() {
+    const s = setup2fa();
+    const id = await s.addAccount();
+    await s.enrol(id);
+    const at = s.clock.t.toISOString();
+    const deviceId = await s.store.createDevice({ accountId: id, host: 'antrenor', deviceKeyHash: 'dk', sessionId: 'sess', label: 'T', firstSeenAt: at, lastSeenAt: at });
+    const sec = portalSecurity(s.c, { accountId: id, userId: 1, sessionId: 'sess', host: 'antrenor', actor: 'Ana' });
+    return { ...s, sec, deviceId };
+  }
+
+  it('off: the password alone confirms, even with TOTP stored', async () => {
+    const s = await withTotp();
+    expect(await s.sec.reauth({ password: 'nope' })).toMatchObject({ ok: false, status: 400 });
+    expect(await s.sec.reauth({ password: 'right' })).toEqual({ ok: true, data: { ok: true } });
+  });
+
+  it('on: an account with TOTP is asked for a code, a password alone is refused', async () => {
+    process.env.PORTAL_2FA = 'on';
+    const s = await withTotp();
+    expect(await s.sec.reauth({ password: 'right' })).toMatchObject({ ok: false, status: 400 });
+    expect(await s.sec.reauth({ method: 'totp', code: s.totp() })).toEqual({ ok: true, data: { ok: true } });
   });
 });

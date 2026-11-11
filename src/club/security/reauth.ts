@@ -21,6 +21,8 @@ export type ReauthActor = {
   compare: (password: string, hash: string) => Promise<boolean>;
   /** Writes the confirmation time on this session's device; false when the session has no live device row. */
   confirm: (at: string) => Promise<boolean>;
+  /** True when stored factors must not be asked for (the portal's second factor is switched off): only the password counts. */
+  passwordOnly?: boolean;
 };
 
 const refuse = (status: 400 | 403 | 429, error: string): PortalResult<never> => ({ ok: false, status, error });
@@ -44,7 +46,7 @@ export async function reauthenticate(c: SecurityContext, a: ReauthActor, body: u
   if (await c.limits.ipBlocked(c.ip)) return paused;
   const done = async (): Promise<PortalResult<{ ok: true }>> =>
     (await a.confirm(c.now().toISOString())) ? { ok: true, data: { ok: true } } : refuse(403, SECURITY_ERRORS.reauthRequired);
-  if ((await hasTwoFactor(c, a.subject)).length > 0) {
+  if (a.passwordOnly !== true && (await hasTwoFactor(c, a.subject)).length > 0) {
     const method = METHODS.find((m) => m === b.method);
     if (!method || typeof b.code !== 'string' || b.code.trim() === '' || b.code.length > CODE_MAX) return refuse(400, PORTAL_ERRORS.invalid);
     const key = counterKey(a.subject);
