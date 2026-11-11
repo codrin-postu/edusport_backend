@@ -30,6 +30,7 @@ class "PortalAccount" as Acc <<changed>> {
   teamMember : TeamMember [0..1]  // unique link; cleared when the team member is deleted (account is disabled first)
   user : User  // users-permissions; null password hash until invite accepted
   googleSub, phone, lastLoginAt
+  coachDisabledAt  // coach side off, the account stays active
   invitedAt, invitedBy, activatedAt, disabledAt, disabledBy
 }
 note right of Acc
@@ -41,9 +42,11 @@ end note
 class "User (users-permissions)" as UP
 class "PortalToken" as Tok <<new>> {
   kind : invite | reset
+  host : antrenor | sportiv  // invites only
   secretHash, expiresAt, usedAt, tries
 }
 class "PortalDevice" as Dev <<new>> {
+  host : antrenor | sportiv
   deviceKeyHash, label
   firstSeenAt, lastSeenAt, revokedAt
 }
@@ -55,9 +58,18 @@ class "PortalAuthLimit" as Lim <<new>> {
   key : string  // typed e-mail or IP, not an account
   count, windowStart, lockedUntil, notifiedAt
 }
-class "ParentAccess" as PA {
-  status : invited | active
+class "AthleteAccess" as PA <<new>> {
+  athleteKey : string  // athlete id; one live row per athlete (partial unique index)
+  email : string  // the athlete e-mail at the time of the grant
+  invitedAt, invitedBy
+  revokedAt, revokedBy
+  revokeReason : scos | email_schimbat | anonimizat | sters | unit
 }
+note right of PA
+  Status is derived from the account (invited, active, disabled).
+  Follows the athlete e-mail: a change moves it to the account
+  of the new address; anonymize, delete and merge end it.
+end note
 class "TeamMember" as Coach <<changed>>
 class "HistoryEntry" as Hist {
   subject, action, by, at
@@ -68,6 +80,7 @@ Document "0..*" -- "1" DocumentType
 Document "0..*" -- "0..1" Athlete
 Document "0..*" -- "0..1" Reg : generated from >
 Acc "1" -- "0..*" PA
+PA "0..*" -- "1" Athlete
 PA "0..*" -- "1" Athlete
 Coach "0..1" -- "0..1" Acc : can log in >
 Acc "1" -- "1" UP : signs in as >
