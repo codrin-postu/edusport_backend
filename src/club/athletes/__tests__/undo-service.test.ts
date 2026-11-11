@@ -112,18 +112,27 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     expect(fake.state.history.filter((h) => h.action === 'confirmation-undone').map((h) => h.subjectId)).toEqual(['r1']);
   });
 
-  it.each([
-    ['a payment', { payments: [paymentRow({ id: 'p1', athleteId: 'a-new', cancelled: true })] }],
-    ['an abonament', { subscriptions: [subscriptionRow({ id: 'sub1', athleteId: 'a-new', cancelled: true })] }],
-    ['an attendance', { sessions: [sessionRow()], attendances: [attendanceRow({ id: 'at1', athleteId: 'a-new', uniqueKey: 's1|a-new' })] }],
-    ['a lesson', { lessons: [lessonRow({ id: 'l1', athleteId: 'a-new' })] }],
-  ])('keeps a new athlete that has %s, cancelled or not (C37, final review I2)', async (_name, over) => {
+  it('keeps a new athlete that has, cancelled or not (C37, final review I2)' + ' (table)', async () => {
+    const __each = async (_name, over) => {
     const fake = fakeClubStore(seed());
     await confirmed(fake, 'new');
     const created = fake.state.athletes[1];
     const presence = fakePresenceStore(JSON.parse(JSON.stringify(over).replaceAll('a-new', created.id)));
     expect(await undoConfirmation(ctx(fake), 'r1', presence.store)).toEqual({ ok: true, data: { status: 'Contactat', athleteDeleted: false } });
     expect(fake.state.athletes.map((a) => a.id)).toContain(created.id);
+  };
+    for (const row of [
+    ['a payment', { payments: [paymentRow({ id: 'p1', athleteId: 'a-new', cancelled: true })] }],
+    ['an abonament', { subscriptions: [subscriptionRow({ id: 'sub1', athleteId: 'a-new', cancelled: true })] }],
+    ['an attendance', { sessions: [sessionRow()], attendances: [attendanceRow({ id: 'at1', athleteId: 'a-new', uniqueKey: 's1|a-new' })] }],
+    ['a lesson', { lessons: [lessonRow({ id: 'l1', athleteId: 'a-new' })] }],
+  ] as unknown[]) {
+      try {
+        await (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
   });
 
   it('keeps a new athlete that already has another linked registration (Minor 1)', async () => {

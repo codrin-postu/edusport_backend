@@ -18,7 +18,9 @@ const d = (year: number, month: number, day: number) => ({ year, month, day });
 const TODAY = d(2026, 10, 26);
 
 describe('parseBirthDate: the readable forms of spec 1.3', () => {
-  it.each([
+  it('reads' + ' (table)', () => {
+    const __each = (raw, parts) => expect(parseBirthDate(raw)).toEqual(parts);
+    for (const row of [
     ['14.03.2016', d(2016, 3, 14)],
     ['4.3.2016', d(2016, 3, 4)],
     ['14/03/2016', d(2016, 3, 14)],
@@ -26,12 +28,25 @@ describe('parseBirthDate: the readable forms of spec 1.3', () => {
     ['2016-03-14', d(2016, 3, 14)],
     ['14 martie 2016', d(2016, 3, 14)],
     ['  14 Martie 2016 ', d(2016, 3, 14)],
-  ])('reads %s', (raw, parts) => expect(parseBirthDate(raw)).toEqual(parts));
+  ] as unknown[]) {
+      try {
+        (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
+  });
 
-  it.each(['', '2016', '14/3/2016', '4-3-2016', '31.02.2016', '14 mart 2016', 'ieri', '14.03.16', '2016-3-14'])(
-    'refuses %s',
-    (raw) => expect(parseBirthDate(raw)).toBeNull(),
-  );
+  it('refuses' + ' (table)', () => {
+    const __each = (raw) => expect(parseBirthDate(raw)).toBeNull();
+    for (const row of ['', '2016', '14/3/2016', '4-3-2016', '31.02.2016', '14 mart 2016', 'ieri', '14.03.16', '2016-3-14'] as unknown[]) {
+      try {
+        (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
+  });
 
   it('refuses anything that is not text', () => {
     expect(parseBirthDate(null)).toBeNull();

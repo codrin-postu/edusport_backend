@@ -169,8 +169,17 @@ describe('locks and writes to a missing row', () => {
     ['setHistoryChanges', (s) => s.setHistoryChanges('nope', {})],
   ];
 
-  it.each(calls)('the fake %s throws for a missing id', async (_name, call) => {
+  it('the fake throws for a missing id' + ' (table)', async () => {
+    const __each = async (_name, call) => {
     await expect(call(fakeGroupStore().store)).rejects.toThrow();
+  };
+    for (const row of calls as unknown[]) {
+      try {
+        await (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
   });
 
   const empty = { update: async () => null, delete: async () => ({ documentId: 'x', entries: [] }) };
@@ -179,8 +188,17 @@ describe('locks and writes to a missing row', () => {
     db: { query: () => ({ update: async () => null }) },
   } as unknown as Core.Strapi;
 
-  it.each(calls)('the Strapi %s throws for a missing id', async (_name, call) => {
+  it('the Strapi throws for a missing id' + ' (table)', async () => {
+    const __each = async (_name, call) => {
     await expect(call(strapiGroupStore(strapiOfMissing))).rejects.toThrow('the row does not exist');
+  };
+    for (const row of calls as unknown[]) {
+      try {
+        await (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
   });
 });
 

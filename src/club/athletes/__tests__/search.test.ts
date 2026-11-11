@@ -9,11 +9,28 @@ const subject: SearchSubject = {
 };
 
 describe('search (spec 5, 4.1: diacritics, word order and one typo ignored, server side)', () => {
-  it.each(['', 'maria', 'Dumitresu Maria', 'dum mar', 'ion', '0722111', '+40722111222', 'ANA@EX', '2026-0142', '14.03.2016'])('finds "%s"', (q) =>
-    expect(matchesQuery(subject, q)).toBe(true),
-  );
+  it('finds ""' + ' (table)', () => {
+    const __each = (q) =>
+    expect(matchesQuery(subject, q)).toBe(true);
+    for (const row of ['', 'maria', 'Dumitresu Maria', 'dum mar', 'ion', '0722111', '+40722111222', 'ANA@EX', '2026-0142', '14.03.2016'] as unknown[]) {
+      try {
+        (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
+  });
 
-  it.each(['ioana', 'xy', '0733', '15.03.2016', 'mar ioan'])('does not find "%s"', (q) => expect(matchesQuery(subject, q)).toBe(false));
+  it('does not find ""' + ' (table)', () => {
+    const __each = (q) => expect(matchesQuery(subject, q)).toBe(false);
+    for (const row of ['ioana', 'xy', '0733', '15.03.2016', 'mar ioan'] as unknown[]) {
+      try {
+        (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
+  });
 
   it('a diacritics query finds a plain name and the reverse', () => {
     const withDiacritics: SearchSubject = { names: ['Ștefan Popescu'], phone: null, texts: [], birthDate: null };

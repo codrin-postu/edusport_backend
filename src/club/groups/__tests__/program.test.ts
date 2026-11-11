@@ -90,7 +90,8 @@ describe('a season that turns past while the writer waits for its lock', () => {
     ['endProgram', (c) => endProgram(c.ctx, 'e1', { from: '2027-03-01' })],
     ['deleteClass', (c) => deleteClass(c.ctx, 'c1')],
   ];
-  it.each(run)('%s refuses and writes nothing', async (_name, go) => {
+  it(' refuses and writes nothing' + ' (table)', async () => {
+    const __each = async (_name, go) => {
     const c = fakeContext({ events: [event({ id: 'e1' }), one] });
     const lock = c.ctx.store.lockSeason;
     c.ctx.store.lockSeason = async (id) => {
@@ -101,6 +102,14 @@ describe('a season that turns past while the writer waits for its lock', () => {
     expect(await go(c)).toMatchObject({ ok: false, status: 409 });
     expect(c.state.events).toEqual(before);
     expect(c.state.history).toEqual([]);
+  };
+    for (const row of run as unknown[]) {
+      try {
+        await (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
   });
 });
 

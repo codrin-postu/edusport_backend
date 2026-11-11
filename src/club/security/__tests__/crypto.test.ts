@@ -10,7 +10,11 @@ const b64 = (n: number, fill = 7) => Buffer.alloc(n, fill).toString('base64');
 afterEach(() => vi.restoreAllMocks());
 
 describe('loadKeys', () => {
-  it.each([
+  it(' -> null' + ' (table)', () => {
+    const __each = (_name, env) => {
+    expect(loadKeys(env as NodeJS.ProcessEnv)).toBeNull();
+  };
+    for (const row of [
     ['missing', {}],
     ['empty', { AUTH_SECRET_KEY: '', AUTH_CODE_KEY: '' }],
     ['secret 31 bytes', { AUTH_SECRET_KEY: b64(31), AUTH_CODE_KEY: b64(32, 9) }],
@@ -21,8 +25,13 @@ describe('loadKeys', () => {
     ['a malformed old key', { ...TEST_ENV, AUTH_SECRET_KEY_OLD: b64(5) }],
     ['Strapi ENCRYPTION_KEY reused', { ...TEST_ENV, ENCRYPTION_KEY: TEST_ENV.AUTH_SECRET_KEY }],
     ['a Strapi app key reused', { ...TEST_ENV, APP_KEYS: `x,${TEST_ENV.AUTH_CODE_KEY}` }],
-  ])('%s -> null', (_name, env) => {
-    expect(loadKeys(env as NodeJS.ProcessEnv)).toBeNull();
+  ] as unknown[]) {
+      try {
+        (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
   });
 
   it('two valid keys give 8 hex ids and no old keys', () => {
@@ -62,9 +71,18 @@ describe('loadKeys', () => {
     expect(loadKeys({ ...TEST_ENV, AUTH_SECRET_KEY_OLD: o.AUTH_SECRET_KEY, AUTH_CODE_KEY_OLD: o.AUTH_CODE_KEY })).not.toBeNull();
   });
 
-  it.each(['ADMIN_JWT_SECRET', 'JWT_SECRET', 'API_TOKEN_SALT', 'TRANSFER_TOKEN_SALT'])('%s reused as a key is refused', (name) => {
+  it(' reused as a key is refused' + ' (table)', () => {
+    const __each = (name) => {
     expect(loadKeys({ ...TEST_ENV, [name]: TEST_ENV.AUTH_CODE_KEY })).toBeNull();
     expect(loadKeys({ ...TEST_ENV, AUTH_CODE_KEY_OLD: OTHER_ENV.AUTH_CODE_KEY, [name]: OTHER_ENV.AUTH_CODE_KEY })).toBeNull();
+  };
+    for (const row of ['ADMIN_JWT_SECRET', 'JWT_SECRET', 'API_TOKEN_SALT', 'TRANSFER_TOKEN_SALT'] as unknown[]) {
+      try {
+        (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
   });
 
   describe('production strictness', () => {

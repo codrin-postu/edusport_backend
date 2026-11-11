@@ -66,12 +66,21 @@ describe('a season that turns past while the writer waits for its lock', () => {
     ['moveMembership', (c) => moveMembership(c.ctx, 'm1', { toGroupId: 'g-pp' })],
     ['removeMembership', (c) => removeMembership(c.ctx, 'm1')],
   ];
-  it.each(writers)('%s refuses and writes nothing', async (_name, run) => {
+  it(' refuses and writes nothing' + ' (table)', async () => {
+    const __each = async (_name, run) => {
     const c = switchOnLock(seed());
     const before = structuredClone(c.state.memberships);
     expect(await run(c)).toEqual(STALE);
     expect(c.state.memberships).toEqual(before);
     expect(c.state.locks.filter((l) => !l.startsWith('season:'))).toEqual([]);
+  };
+    for (const row of writers as unknown[]) {
+      try {
+        await (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
   });
 });
 
