@@ -11,15 +11,24 @@ const RFC_SECRET = Buffer.from('12345678901234567890');
 const stepOf = (seconds: number): number => Math.floor(seconds / TOTP_STEP_S);
 
 describe('TOTP RFC 6238 appendix B (SHA-1, 6 digits)', () => {
-  it.each([
+  it('T = gives' + ' (table)', () => {
+    const __each = (seconds, code) => {
+    expect(totpAt(RFC_SECRET, stepOf(seconds))).toBe(code);
+  };
+    for (const row of [
     [59, '287082'],
     [1111111109, '081804'],
     [1111111111, '050471'],
     [1234567890, '005924'],
     [2000000000, '279037'],
     [20000000000, '353130'],
-  ])('T = %i gives %s', (seconds, code) => {
-    expect(totpAt(RFC_SECRET, stepOf(seconds))).toBe(code);
+  ] as unknown[]) {
+      try {
+        (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
   });
 
   it('constants', () => {

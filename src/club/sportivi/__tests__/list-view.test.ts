@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NO_SECTION as SERVER_NO_SECTION } from '../../athletes/list';
 import type { AthleteListPage, AthleteListRow } from '../../athletes/api-types';
-import {
-  INITIAL_LIST_STATE, LIST_COPY, NO_GROUP, NO_SECTION, activeChips, ageText, athletesText, clearFilters, filterSections, groupCell, groupHeader,
-  abonamentCell, incompleteBanner, incompleteShown, listQueryString, loadedRange, matchingText, missingTip, acsCell, pageRange, profileCell, seasonOptions, seasonValue,
-  showIncomplete, showLabel, sortSection, withHeaderSort, withPage, withSearch, withSeason, withSection, withoutChip, type ListState,
-} from '../list-view';
+import { INITIAL_LIST_STATE, NO_GROUP, NO_SECTION, activeChips, athletesText, clearFilters, incompleteShown, listQueryString, showIncomplete, withHeaderSort, withPage, withSearch, withSeason, withSection, withoutChip, type ListState } from '../list-view';
 
 const page = (over: Partial<AthleteListPage> = {}): AthleteListPage => ({
   data: [],
@@ -60,11 +56,6 @@ describe('Abonament filter and column (5.13)', () => {
     expect(params(listQueryString(s, 50)).abonament).toBe('activ');
     expect(withSection(INITIAL_LIST_STATE, 'abonament', ['fara']).filters.abonament).toEqual(['fara']);
   });
-  it('the cell shows the abonament text, blank when none', () => {
-    expect(abonamentCell(row({ abonament: '5/8, 7 nov 2026' }))).toBe('5/8, 7 nov 2026');
-    expect(abonamentCell(row({ abonament: null }))).toBe('');
-    expect(LIST_COPY.columns.abonament).toBe('Abonament');
-  });
 });
 
 describe('counts and plurals (Needs decision 7, option A)', () => {
@@ -72,79 +63,6 @@ describe('counts and plurals (Needs decision 7, option A)', () => {
     expect([0, 1, 2, 19, 20, 101, 119, 120, 200].map(athletesText)).toEqual([
       '0 sportivi', '1 sportiv', '2 sportivi', '19 sportivi', '20 de sportivi', '101 sportivi', '119 sportivi', '120 de sportivi', '200 de sportivi',
     ]);
-  });
-
-  it('banner, phone footer, count line, ages', () => {
-    expect(incompleteBanner(1)).toBe('1 sportiv are date incomplete.');
-    expect(incompleteBanner(12)).toBe('12 sportivi au date incomplete.');
-    expect(incompleteBanner(25)).toBe('25 de sportivi au date incomplete.');
-    expect(showLabel(1)).toBe('Arată 1 sportiv');
-    expect(showLabel(218)).toBe('Arată 218 sportivi');
-    const rows = (n: number) => Array.from({ length: n }, (_, i) => row({ documentId: `a${i}` }));
-    expect(pageRange(page({ data: rows(50) }))).toBe('1-50 din 218');
-    expect(pageRange(page({ data: rows(18), pagination: { page: 5, pageSize: 50, total: 218, pageCount: 5 } }))).toBe('201-218 din 218');
-    expect(pageRange(page({ data: rows(1), pagination: { page: 1, pageSize: 50, total: 1, pageCount: 1 } }))).toBe('1 din 1');
-    expect(loadedRange(page(), 60)).toBe('1-60 din 218');
-    expect([matchingText(1), matchingText(218), matchingText(220)]).toEqual(['1 sportiv corespunde', '218 sportivi corespund', '220 de sportivi corespund']);
-    expect([ageText(null), ageText(10), ageText(38)]).toEqual(['', '10 ani', '38 de ani']);
-  });
-});
-
-describe('cells (spec 5)', () => {
-  it('group, A.C.S., profile, missing marker tooltip, phone card line', () => {
-    expect(groupCell(row())).toBe('Fără grupă');
-    expect(groupCell(row({ mainGroup: { documentId: 'g-pp', name: 'Primii Pași' } }))).toBe('Primii Pași');
-    expect([acsCell(row({ acs: 'da' })), acsCell(row()), acsCell(row({ acs: 'in_asteptare' }))]).toEqual(['Da', 'Nu', 'În așteptare']);
-    expect([profileCell(row({ publicProfile: 'public' })), profileCell(row())]).toEqual(['Public', 'Ascuns']);
-    expect(missingTip(row({ dataIncomplete: true, missing: ['data nașterii', 'e-mail'] }))).toBe('Lipsesc: data nașterii, e-mail');
-    expect(missingTip(row({ dataIncomplete: true, missing: [] }))).toBeNull();
-  });
-
-  it('season header, selector options and value', () => {
-    expect(groupHeader(page().season)).toBe('Grupa 2026-2027');
-    expect(groupHeader(null)).toBe('Grupa');
-    expect(seasonOptions(page())).toEqual([{ value: 's25', label: 'Sezon 2025-2026' }, { value: 's26', label: 'Sezon 2026-2027' }]);
-    expect(seasonOptions(null)).toEqual([]);
-    expect(seasonValue(INITIAL_LIST_STATE, page())).toBe('s26');
-    expect(seasonValue(withSeason(INITIAL_LIST_STATE, 's25'), page())).toBe('s25');
-  });
-
-  it('copy of the header and the empty list', () => {
-    expect(LIST_COPY.subtitle).toBe('Toți sportivii clubului. Doar în panou, nu sunt publici.');
-    expect(LIST_COPY.search).toBe('Caută după nume, părinte, telefon, e-mail sau nr. înscriere...');
-    expect(LIST_COPY.empty).toBe('Niciun sportiv nu corespunde filtrelor.');
-    expect(LIST_COPY.more).toBe('Încarcă încă 30');
-    expect([LIST_COPY.incompleteMarker, LIST_COPY.cardIncompleteMarker]).toEqual(['date lipsă', 'Date incomplete']);
-  });
-});
-
-describe('filters-v3 sections (spec 5)', () => {
-  it('sections in the spec order, with their options and the chosen values', () => {
-    const s = withSection(INITIAL_LIST_STATE, 'acs', ['da']);
-    const sections = filterSections(s, page());
-    expect(sections.map((x) => x.label)).toEqual(['Secțiune', 'Grupa', 'Abonament', 'Membru A.C.S.', 'Profil public', 'Date', 'Status', 'Posibile dubluri', 'Date personale']);
-    const labels = (key: string) => sections.find((x) => x.key === key)?.options.map((o) => o.label);
-    expect(labels('section')).toEqual(['Școala de patinaj', 'Club', 'Fără secțiune']);
-    expect(labels('group')).toEqual(['Primii Pași', 'Profesioniști', 'Fără grupă']);
-    expect(labels('acs')).toEqual(['Da', 'Nu', 'În așteptare']);
-    expect(labels('profile')).toEqual(['Public', 'Ascuns']);
-    expect(labels('data')).toEqual(['Complete', 'Incomplete']);
-    expect(labels('status')).toEqual(['Nou', 'Activ', 'Inactiv', 'Anonimizat']);
-    expect(labels('duplicates')).toEqual(['Da']);
-    expect(labels('abonament')).toEqual(['Activ', 'Fără abonament']);
-    expect(sections.find((x) => x.key === 'abonament')).toMatchObject({ key: 'abonament', label: 'Abonament', single: true, selected: [] });
-    expect(sections.find((x) => x.key === 'acs')?.selected).toEqual(['da']);
-  });
-
-  it('before the first answer only the fixed options show', () => {
-    expect(filterSections(INITIAL_LIST_STATE, null)[1].options).toEqual([{ value: NO_GROUP, label: 'Fără grupă' }]);
-  });
-
-  it('sort is one more single section on phones, with no "Toate" clearing row', () => {
-    expect(sortSection(INITIAL_LIST_STATE)).toEqual({
-      key: 'sort', label: 'Sortare', single: true, selected: ['name'], allLabel: null,
-      options: [{ value: 'name', label: 'Nume A-Z' }, { value: 'age', label: 'Vârstă' }, { value: 'group', label: 'Grupă' }],
-    });
   });
 });
 

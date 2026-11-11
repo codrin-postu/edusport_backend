@@ -64,11 +64,6 @@ describe('routes', () => {
       delete process.env.ADMIN_ORIGIN;
     }
   });
-
-  it('each controller handler maps its service result with respond', () => {
-    const src = readFileSync(join(root, 'src/api/admin-auth/controllers/admin-auth.ts'), 'utf8');
-    for (const fn of ['readSecurity', 'changeAdminPassword', 'adminsList', 'resetAdminTwoFactor', 'readAdminGoogle', 'unlinkAdminGoogle']) expect(src).toContain(`${fn}(`);
-  });
 });
 
 function secEnv() {

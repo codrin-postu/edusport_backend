@@ -234,16 +234,16 @@ describe('strapiPresenceStore', () => {
       { name: 'lessons', run: (s: ReturnType<typeof strapiPresenceStore>, w: { from?: string; to?: string }) => s.lessons(w), where: (f: unknown) => (f ? { date: f } : {}) },
       { name: 'payments', run: (s: ReturnType<typeof strapiPresenceStore>, w: { from?: string; to?: string }) => s.payments(w), where: (f: unknown) => (f ? { paidOn: f } : {}) },
     ];
-    for (const read of reads) {
-      for (const range of ranges) {
-        it(`${read.name}: ${range.name} builds exactly the bound(s) that are set`, async () => {
+    it('every read builds exactly the bound(s) that are set', async () => {
+      for (const read of reads) {
+        for (const range of ranges) {
           const seen: { table: string; where: unknown }[] = [];
           await read.run(strapiPresenceStore(queryingStrapi(seen)), range.w);
-          expect(seen).toHaveLength(1);
-          expect(seen[0].where).toStrictEqual(read.where(range.filter));
-        });
+          expect(seen, `${read.name}: ${range.name}`).toHaveLength(1);
+          expect(seen[0].where, `${read.name}: ${range.name}`).toStrictEqual(read.where(range.filter));
+        }
       }
-    }
+    });
   });
 
   it('history pages are one count and one limited query each, ordered through the session (11.3)', async () => {

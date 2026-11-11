@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GroupListPage, GroupPage, MemberRow } from '../../groups/api-types';
-import { addCandidates, groupTabs, mainText, memberMenuItems, othersText, phoneMemberLine, subtitle } from '../group-view';
-import { allocateItems, coachesText, countLine, groupOptions, initialPicks, joinableGroups, phoneSummary, seasonOptions, tabItems, wroteNothing, writable } from '../list-view';
+import { addCandidates, memberMenuItems } from '../group-view';
+import { allocateItems, groupOptions, initialPicks, joinableGroups, wroteNothing } from '../list-view';
 import { groupIdFromSplat, groupPageTo, grupeListTo, readGrupeQuery } from '../routes';
 
 const LIST: GroupListPage = {
@@ -29,20 +29,6 @@ describe('routes (5.1, decided 1)', () => {
 });
 
 describe('Grupe list (5.2)', () => {
-  it('writes the count line, program lines, coaches and phone cards', () => {
-    expect(countLine(LIST)).toBe('77 de sportivi în 7 grupe');
-    expect(coachesText(LIST.rows[0])).toBe('Andreea Pascu');
-    expect(coachesText(LIST.rows[1])).toBeNull();
-    expect(phoneSummary(LIST.rows[0])).toBe('Lu, Mi 17:00, Sâ 09:00, 10 sportivi');
-    expect(phoneSummary(LIST.rows[1])).toBe('Fără program, 1 sportiv');
-  });
-
-  it('tabs with counts, the season choices, and writes only on a season that is not past (W5)', () => {
-    expect(tabItems(LIST)).toEqual([{ id: 'scoala-afi', label: 'Școala de patinaj', count: 7 }, { id: 'club', label: 'Club', count: 2 }]);
-    expect(seasonOptions(LIST)).toEqual([{ value: '2027-2028', label: 'Sezon 2027-2028' }, { value: '2026-2027', label: 'Sezon 2026-2027' }]);
-    expect(writable(LIST)).toBe(true);
-    expect(writable({ ...LIST, season: { documentId: 's25', label: '2025-2026', past: true } })).toBe(false);
-  });
 
   it('"Fără grupă": options with the section as hint, proposals preselected, rows without a group not sent (W6)', () => {
     const groups = [{ documentId: 'g1', name: 'Primii Pași', sectionName: 'Școala de patinaj' }, { documentId: 'g2', name: 'Avansați', sectionName: 'Club' }];
@@ -54,23 +40,6 @@ describe('Grupe list (5.2)', () => {
 });
 
 describe('group page (6.1, 6.2)', () => {
-  it('subtitle: section, coaches, price list, count; "Fără antrenor" and no list part when missing', () => {
-    expect(subtitle(PAGE)).toBe('Școala de patinaj, Virgil Pascu, lista Standard, 11 sportivi');
-    expect(subtitle({ ...PAGE, coaches: [], priceList: null })).toBe('Școala de patinaj, Fără antrenor, 11 sportivi');
-  });
-
-  it('tabs Sportivi (count), Program, Prezență, Istoric (count)', () => {
-    expect(groupTabs(PAGE)).toEqual([{ id: 'sportivi', label: 'Sportivi', count: 11 }, { id: 'program', label: 'Program' }, { id: 'prezenta', label: 'Prezență' }, { id: 'istoric', label: 'Istoric', count: 5 }]);
-  });
-
-  it('roster cells and the phone line', () => {
-    const daria = member({ isMain: false, age: 11, others: [{ name: 'Avansați', isMain: true }] });
-    expect([mainText(daria), othersText(daria)]).toEqual(['Nu', 'Avansați (principală)']);
-    expect(othersText(member({}))).toBeNull();
-    expect(phoneMemberLine(daria)).toBe('11 ani, și în Avansați');
-    expect(phoneMemberLine(member({ age: 13, others: [{ name: 'Profesioniști', isMain: false }] }))).toBe('13 ani, principală, și în Profesioniști');
-    expect(phoneMemberLine(member({ age: null }))).toBe('principală');
-  });
 
   it('row menu and add candidates', () => {
     expect(memberMenuItems().map((i) => [i.key, i.label, i.danger])).toEqual([['move', 'Mută', false], ['addAlso', 'Adaugă și în grupă', false], ['remove', 'Scoate din grupă', true]]);

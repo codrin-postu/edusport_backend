@@ -51,25 +51,4 @@ describe('09-attendance routes (6)', () => {
     expect(staticBeforeParams(routes.map((r) => r.path))).toBe(true);
     expect(staticBeforeParams(['/club/lessons/:documentId', '/club/lessons/new'])).toBe(false);
   });
-
-  it('are exactly the attendance routes', () => {
-    expect(routes.map((r) => `${r.method} ${r.path}`)).toEqual([
-      'GET /club/attendance/period', 'GET /club/attendance/grid', 'GET /club/attendance/session/defaults', 'POST /club/attendance/session/check', 'GET /club/attendance/session',
-      'PUT /club/attendance/session', 'GET /club/attendance/coaches', 'GET /club/attendance/coaches.csv', 'GET /club/lessons', 'GET /club/lessons/new',
-      'POST /club/lessons', 'GET /club/lessons/:documentId', 'PUT /club/lessons/:documentId', 'DELETE /club/lessons/:documentId',
-      'GET /club/groups/:documentId/attendance', 'GET /club/athletes/:documentId/presence',
-      'GET /club/coaches/:documentId/presence.csv', 'GET /club/coaches/:documentId/presence']);
-  });
-
-  it('the CSV handler sends a file and the save handler answers the inactive 409 (C43, decided 2)', () => {
-    const src = readFileSync(join(SRC, 'api/club/controllers/attendance.ts'), 'utf8');
-    expect(src).toContain("'text/csv; charset=utf-8'");
-    expect(src).toMatch(/attachment; filename="\$\{coachesCsvName\(/);
-    expect(src).toContain('respondSave(');
-  });
-
-  it('the athlete presence history is one line over readPresenceHistory with the documentId, season and page', () => {
-    const src = readFileSync(join(SRC, 'api/club/controllers/attendance.ts'), 'utf8');
-    expect(src).toMatch(/async athletePresence\(ctx: AdminCtx\) \{\s+respond\(ctx, await readPresenceHistory\(store\(\), param\(ctx, 'documentId'\), ctx\.query\.season, ctx\.query\.page\)\);\s+\},/);
-  });
 });

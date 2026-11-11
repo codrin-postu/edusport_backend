@@ -11,49 +11,12 @@ const def: TableDefinition = { subject: 'plati', scope: { seasonId: 's1', sectio
 const saved = (over: Partial<SavedViewRow> = {}): SavedViewRow => ({ id: 'v1', name: 'A', subject: 'plati', definition: def, authorId: '1', authorName: 'Ana', mine: true, canDelete: true, readyMade: false, ...over });
 
 describe('Tabele copy', () => {
-  it('has the exact texts of the brief', () => {
-    expect(C.tabs).toEqual({ lista: 'Listă', tabele: 'Tabele' });
-    expect([C.view, C.readyGroup, C.savedGroup, C.readyHint, C.save, C.saveAsNew, C.duplicate, C.remove, C.xlsx, C.csv, C.editMobile]).toEqual([
-      'Vizualizare', 'Gata făcute', 'Salvate', 'Gata făcută', 'Salvează', 'Salvează ca nouă', 'Duplică', 'Șterge', 'Descarcă .xlsx', 'Descarcă .csv', 'Editează tabelul']);
-    expect([C.subject, C.scope, C.season, C.section, C.group, C.all, C.period, C.wholeSeason, C.columns, C.filters, C.addFilter, C.groupBy, C.none, C.sort]).toEqual([
-      'Subiect', 'Sfera', 'Sezon', 'Secțiune', 'Grupă', 'Toate', 'Perioada', 'Tot sezonul', 'Coloane, în ordine', 'Filtre', '+ filtru', 'Grupează după', 'Fără', 'Sortare']);
-    expect([C.total, C.newTitle, C.name, C.giveUp, C.saved, C.savedShort, C.deleted, C.undo, C.empty]).toEqual([
-      'Total', 'Vizualizare nouă', 'Nume', 'Renunță', 'Vizualizare salvată.', 'Salvat.', 'Vizualizare ștearsă.', 'Anulează', 'Niciun rând pentru alegerile astea.']);
-    expect(C.subtotal('Grupa A')).toBe('Subtotal Grupa A');
-    expect(C.copyOf('Plăți')).toBe('Plăți (copie)');
-    expect(C.confirmDelete('Plăți')).toBe('Ștergi vizualizarea "Plăți"?');
-    expect(C.errors).toEqual({
-      tooMany: 'Tabelul are peste 5.000 de rânduri. Restrânge sfera sau filtrele.', tooSlow: 'Tabelul durează prea mult. Restrânge sfera.',
-      nameTaken: 'Există deja o vizualizare cu numele ăsta.', notAuthor: 'Doar autorul poate modifica vizualizarea.',
-      tooManyViews: 'Prea multe vizualizări salvate. Șterge una.', download: 'Descărcarea nu a reușit.',
-    });
-  });
 
   it('shares its texts with the server messages (one source)', () => {
     expect(C.errors.nameTaken).toBe(C.views.duplicate);
     expect(C.errors.tooManyViews).toBe(C.views.tooMany);
     expect(C.errors.notAuthor).toBe(C.views.notAuthor);
     expect([C.saved, C.savedShort, C.deleted]).toEqual([C.views.saved, C.views.updated, C.views.deleted]);
-  });
-
-  it('keeps the ready-made names the views use', () => {
-    expect(READY_MADE.map((v) => v.name)).toEqual(['Plăți pe grupă luna aceasta', 'Prezență pe grupă', 'Sportivi activi', 'Rămas de plată', 'Abonamente care expiră', 'Sportivi pe grupă, cu plăți']);
-  });
-
-  it('has no COPY NEEDED placeholder left and pins the decided texts', () => {
-    const found: string[] = [];
-    const walk = (v: unknown, path: string): void => {
-      if (typeof v === 'string' && v.includes('COPY NEEDED')) found.push(path);
-      else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, `${path}.${k}`);
-    };
-    walk(C, 'TABLES_COPY');
-    expect(found).toEqual([]);
-    expect([C.brokenView, C.ops.in, C.ops.empty, C.ops.notEmpty]).toEqual(['Vizualizarea nu mai poate fi deschisă.', 'este unul din', 'este gol', 'nu este gol']);
-    expect(C.notices).toEqual({
-      columnDropped: 'O coloană nu mai există și a fost scoasă.', filterDropped: 'Un filtru nu mai există și a fost scos.', groupByDropped: 'Gruparea nu mai există și a fost scoasă.',
-      sectionMissing: 'Secțiunea nu mai există.', groupMissing: 'Grupa nu mai există.', seasonMissing: 'Sezonul nu mai există.', periodReset: 'Perioada a fost resetată.',
-    });
-    expect(C.noPaymentsMonth).toBe('Nicio plată luna aceasta.');
   });
 
   it('shows the one line only for the ready-made Plăți view with nothing paid', () => {

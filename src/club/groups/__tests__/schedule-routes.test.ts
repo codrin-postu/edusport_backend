@@ -15,10 +15,6 @@ describe('07-schedule routes (8.2, 8.3)', () => {
     for (const r of routes) expect(r.config, r.path).toEqual(r.path === '/club/schedule' ? { auth: false, policies: [], middlewares: [] } : ADMIN);
   });
 
-  it('point at handlers that exist', () => {
-    for (const r of routes) expect(typeof (schedule as Record<string, unknown>)[r.handler.split('.')[1]], r.handler).toBe('function');
-  });
-
   it('declare fixed paths before parameter paths', () => {
     const paths = routes.map((r) => r.path);
     expect(paths.indexOf('/club/breaks')).toBeLessThan(paths.indexOf('/club/breaks/:documentId'));

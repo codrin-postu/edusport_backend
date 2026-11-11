@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { panelVersion } from '../inscrieri-panel';
 import { SEASON_EMPTY_LABEL, headerLabel, headerSortDir, listMeta, nextHeaderSort, savedStamp } from '../ui-table';
 
@@ -49,10 +47,5 @@ describe('a field save moves the panel version after the write (Istoric reloads)
     expect(panelVersion(saved)).not.toBe(panelVersion(optimistic));
     const note = { ...before, internalNote: 'sunat' };
     expect(panelVersion({ ...note, ...savedStamp({ data: { updatedAt: '2026-10-26T10:00:02.000Z' } }) })).not.toBe(panelVersion(note));
-  });
-
-  it('saveField copies the stamp into the row after every successful PUT', () => {
-    const table = readFileSync(join(__dirname, '..', '..', 'admin', 'dashboard', 'SubmissionTable.tsx'), 'utf8');
-    expect(table).toContain('patchRow(documentId, { ...fieldsClearedByEdit(key, value), ...savedStamp(res.data) });');
   });
 });

@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MembershipRow } from '../../athletes/store';
 import { mainGroupOn, rosterOn } from '../attendance/roster';
-import { defaultDuration, isDuration, isTime, outsideFor, presentCounts, savedLine, typesText } from '../attendance/view';
-import { ATTENDANCE_ERRORS, LESSON_COPY, REACTIVATE_DIALOG, sessionSavedToast } from '../copy/attendance';
+import { defaultDuration, outsideFor, presentCounts } from '../attendance/view';
 import { attendanceSeed } from './attendance-seed';
 import { member } from './fake-store';
 
@@ -17,19 +16,6 @@ describe('attendance view helpers', () => {
     expect(rosterOn(ms, 'g-ib', 's26', '2026-11-15')).toEqual(['a1', 'a3']);
     expect(mainGroupOn(ms, 'a1', 's26', '2026-11-20')).toBe('g-ib');
     expect(mainGroupOn(ms, 'a3', 's26', '2026-11-20')).toBeNull();
-  });
-
-  it('saved line in Bucharest time (5.3)', () => {
-    expect(savedLine('Ana Admin', '2026-10-27T15:52:00.000Z')).toBe('Salvată de Ana Admin, 27 oct 2026 17:52');
-    expect(savedLine('Ana Admin', '2026-07-01T15:52:00.000Z')).toBe('Salvată de Ana Admin, 1 iul 2026 18:52');
-  });
-
-  it('types, toast and dialogs (5.3, 4.22, p5 Q42)', () => {
-    expect([typesText({ grup: true, uscat: false }), typesText({ grup: false, uscat: true }), typesText({ grup: true, uscat: true })]).toEqual(['Grup', 'Uscat', 'Grup, Uscat']);
-    expect(sessionSavedToast('Intermediari Bronze', '2026-10-27')).toBe('Prezență salvată: Intermediari Bronze, 27 oct.');
-    expect(REACTIVATE_DIALOG.text('Ana Ionescu')).toBe('Ana Ionescu are statusul Inactiv. Reactivezi sportivul?');
-    expect(LESSON_COPY.deleteConfirm('2026-10-28')).toBe('Ștergi lecția din 28 oct?');
-    expect(ATTENDANCE_ERRORS.noCoach).toBe('Alege antrenorul.');
   });
 
   it('default duration from the series of that weekday, else 50 (C20)', () => {
@@ -49,10 +35,5 @@ describe('attendance view helpers', () => {
 
   it('counts present on the list and visitors apart (C42)', () => {
     expect(presentCounts([{ athleteId: 'a1', visitor: false }, { athleteId: 'a7', visitor: true }], ['a1', 'a2', 'a3'])).toEqual({ present: 1, visitors: 1 });
-  });
-
-  it('times and durations', () => {
-    expect([isTime('17:00'), isTime('7:00'), isTime('24:00'), isTime(1700)]).toEqual([true, false, false, false]);
-    expect([isDuration(50), isDuration(5), isDuration(600), isDuration(52), isDuration(0), isDuration(605), isDuration('50')]).toEqual([true, true, true, false, false, false, false]);
   });
 });

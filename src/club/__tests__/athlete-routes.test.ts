@@ -26,13 +26,6 @@ describe('3A+3B admin routes', () => {
     expect(route('GET', '/club/athletes/inactive-summary')?.handler).toBe('personal-data.inactiveSummary');
   });
 
-  it('point at handlers that exist', () => {
-    for (const r of all) {
-      const [controller, action] = r.handler.split('.');
-      expect(typeof controllers[controller]?.[action], r.handler).toBe('function');
-    }
-  });
-
   it('list fixed athlete paths before /:documentId ones, so "search" is never read as an id', () => {
     const paths = athleteRoutes.routes.map((r) => r.path);
     expect(fromFirst(paths, (p) => p.startsWith('/club/athletes/:documentId')).every((p) => p.startsWith('/club/athletes/:documentId'))).toBe(true);

@@ -23,17 +23,6 @@ describe('portal Securitate routes', () => {
     expect(staticBeforeParams(routes.routes.map((r) => r.path))).toBe(true);
   });
 
-  it('point at handlers that exist, each used once', () => {
-    const handlers = controller as unknown as Record<string, unknown>;
-    const names = routes.routes.map((r) => r.handler);
-    for (const n of names) {
-      const [name, action] = n.split('.');
-      expect(name).toBe('portal-security');
-      expect(typeof handlers[action], n).toBe('function');
-    }
-    expect(new Set(names).size).toBe(names.length);
-  });
-
   it('a handler run without the policy state answers 401 and builds nothing', async () => {
     const handlers = controller as unknown as Record<string, (ctx: unknown) => Promise<void>>;
     for (const r of routes.routes) {

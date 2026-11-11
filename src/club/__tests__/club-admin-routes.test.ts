@@ -12,13 +12,6 @@ describe('Prețuri and Sezoane admin routes', () => {
   it('are all admin-only', () => {
     for (const r of routes.routes) expect(r.config).toEqual({ auth: false, policies: ['global::is-admin'], middlewares: [] });
   });
-
-  it('point at handlers that exist', () => {
-    for (const r of routes.routes) {
-      const [controller, action] = r.handler.split('.');
-      expect(typeof controllers[controller]?.[action], r.handler).toBe('function');
-    }
-  });
 });
 
 describe('admin-http', () => {

@@ -14,7 +14,19 @@ const event = (url: string, data: unknown = { code: '123456', password: 'hunter2
 });
 
 describe('scrubAuthEvent', () => {
-  it.each([
+  it('drops the secrets of' + ' (table)', () => {
+    const __each = (url) => {
+    const out = scrubAuthEvent(event(url));
+    const json = JSON.stringify(out);
+    for (const secret of ['123456', 'hunter2hunter2', 'secret-cookie', 'Bearer abc', 'abc123']) expect(json).not.toContain(secret);
+    expect(out.request).not.toHaveProperty('data');
+    expect(out.request).not.toHaveProperty('cookies');
+    expect(out.request).not.toHaveProperty('query_string');
+    expect(out.request?.headers).toEqual({ 'user-agent': 'UA', 'content-type': 'application/json' });
+    expect(out.request).toMatchObject({ method: 'POST' });
+    expect(out.message).toBe('boom');
+  };
+    for (const row of [
     'https://api.x.ro/api/admin-auth/2fa',
     'https://api.x.ro/api/admin-auth/login?code=123456',
     'https://api.x.ro/api/Admin-Auth/reset/confirm',
@@ -28,16 +40,13 @@ describe('scrubAuthEvent', () => {
     'https://cms.x.ro/admin/access-token',
     'https://cms.x.ro/admin/renew-token',
     'https://cms.x.ro/admin/logout',
-  ])('drops the secrets of %s', (url) => {
-    const out = scrubAuthEvent(event(url));
-    const json = JSON.stringify(out);
-    for (const secret of ['123456', 'hunter2hunter2', 'secret-cookie', 'Bearer abc', 'abc123']) expect(json).not.toContain(secret);
-    expect(out.request).not.toHaveProperty('data');
-    expect(out.request).not.toHaveProperty('cookies');
-    expect(out.request).not.toHaveProperty('query_string');
-    expect(out.request?.headers).toEqual({ 'user-agent': 'UA', 'content-type': 'application/json' });
-    expect(out.request).toMatchObject({ method: 'POST' });
-    expect(out.message).toBe('boom');
+  ] as unknown[]) {
+      try {
+        (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
   });
 
   it('drops the BFF secret and device key headers on portal paths', () => {

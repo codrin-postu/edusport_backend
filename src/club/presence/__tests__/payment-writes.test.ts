@@ -253,7 +253,8 @@ describe('cancel a payment', () => {
     expect(await acsOf(f)).toEqual(['da']);
   });
 
-  it.each([['f1', 'f2'], ['f2', 'f1']])('cancelling both fees of a season, %s first, puts A.C.S. back to the state before the first fee (final review M4)', async (one, two) => {
+  it('cancelling both fees of a season, first, puts A.C.S. back to the state before the first fee (final review M4)' + ' (table)', async () => {
+    const __each = async (one, two) => {
     const f = fakePresenceContext(seed({ acs: [acsRow('a1', 's26', 'da')], payments: [
       paymentRow({ id: 'f1', athleteId: 'a1', purpose: 'cotizatie', seasonId: 's26', acsBefore: 'nu', recordedAt: '2026-10-01T10:00:00.000Z' }),
       paymentRow({ id: 'f2', athleteId: 'a1', purpose: 'cotizatie', seasonId: 's26', acsBefore: 'da', recordedAt: '2026-10-02T10:00:00.000Z' })] }));
@@ -261,6 +262,14 @@ describe('cancel a payment', () => {
     expect(await acsOf(f)).toEqual(['da']);
     await cancelPayment(f.ctx, two);
     expect(await acsOf(f)).toEqual(['nu']);
+  };
+    for (const row of [['f1', 'f2'], ['f2', 'f1']] as unknown[]) {
+      try {
+        await (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
   });
 
   it('cancelling one fee while another fee of the season remains leaves A.C.S. Da (Review Focus)', async () => {

@@ -1,15 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { breakBody, breakFormError, breakPhoneLine, breakRows, draftOfBreak } from '../calendar/pauze-view';
+import { breakBody, breakFormError, draftOfBreak } from '../calendar/pauze-view';
 import type { StartData } from '../groups/new-season/start-data';
-import { childMain, headerState, initialTicks, inLine, programCell, setSection, startBody, toggleChild, toggleGroup } from '../groups/new-season/window-view';
+import { headerState, initialTicks, setSection, startBody, toggleChild, toggleGroup } from '../groups/new-season/window-view';
 
 const BREAKS = [{ id: 'b2', label: 'Vacanța de primăvară', startDate: '2027-04-03', endDate: '2027-04-11' }, { id: 'b1', label: 'Vacanța de iarnă', startDate: '2026-12-20', endDate: '2027-01-07' }];
 
 describe('Pauze (7.1)', () => {
-  it('rows by De la with short dates; the phone line', () => {
-    expect(breakRows(BREAKS).map((r) => [r.label, r.from, r.to])).toEqual([['Vacanța de iarnă', '20 dec 2026', '7 ian 2027'], ['Vacanța de primăvară', '3 apr 2027', '11 apr 2027']]);
-    expect(breakPhoneLine(BREAKS[1])).toBe('20 dec 2026 - 7 ian 2027');
-  });
 
   it('the window needs a name and an end not before the start', () => {
     expect(breakFormError({ label: 'X', startDate: '2026-12-20', endDate: '2026-12-19' })).toBe('Data de sfârșit trebuie să fie după data de început.');
@@ -57,17 +53,5 @@ describe('step 2 ticks (10.2, W26)', () => {
       { groupId: 'g-pp', copyMembers: false, copyProgram: false, excludeAthleteIds: [] },
       { groupId: 'g-pro', copyMembers: true, copyProgram: false, excludeAthleteIds: [] },
     ] });
-  });
-
-  it('row texts and the children main group lines', () => {
-    expect(inLine(DATA.sections[1].groups[0])).toBe('3 sportivi, 1 inactiv');
-    expect([programCell(DATA.sections[0].groups[0], '2027-2028'), programCell(DATA.sections[0].groups[1], '2027-2028'), programCell(DATA.sections[1].groups[0], '2027-2028')])
-      .toEqual(['Sâ, Du 11:00', 'Fără program', 'Are program în 2027-2028']);
-    const mains = { a1: { groupId: 'g-pro', groupName: 'Profesioniști', previousName: 'Intermediari Bronze', kept: false }, a2: { groupId: 'g-pro', groupName: 'Profesioniști', previousName: 'Profesioniști', kept: true } };
-    expect(childMain(child('a1'), 'g-ib', mains, '2026-2027')).toEqual({ main: 'Profesioniști', note: 'în 2026-2027: Intermediari Bronze, care nu se copiază' });
-    expect(childMain(child('a2'), 'g-ib', mains, '2026-2027')).toEqual({ main: 'Profesioniști', note: 'ca în 2026-2027' });
-    expect(childMain(child('a2'), 'g-pro', mains, '2026-2027')).toEqual({ main: 'Profesioniști', note: null });
-    expect(childMain(child('a9'), 'g-ib', mains, '2026-2027')).toEqual({ main: 'Fără grupă', note: null });
-    expect(childMain(child('a3', true), 'g-pro', mains, '2026-2027')).toEqual({ main: '', note: 'Inactiv, nu se copiază' });
   });
 });

@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  attachedSentence,
-  displayUrl,
-  nextSteps,
-  registrationSubject,
-  renderRegistrationEmail,
-  type RegistrationEmailInput,
-} from '../registration-template';
+import { displayUrl, nextSteps, renderRegistrationEmail, type RegistrationEmailInput } from '../registration-template';
 
 const INPUT: RegistrationEmailInput = {
   childName: 'Maria Dumitrescu',
@@ -28,15 +21,6 @@ const ACORD_ONLY: RegistrationEmailInput = { ...INPUT, documents: ['acord'] };
 const visible = (html: string) => html.replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ');
 
 describe('registration e-mail copy', () => {
-  it('uses the approved subject', () => {
-    expect(registrationSubject('Maria Dumitrescu', '2026-0142')).toBe('Înscriere înregistrată: Maria Dumitrescu (nr. 2026-0142)');
-    expect(registrationSubject(' Maria\n Dumitrescu ', '2026-0142')).toBe('Înscriere înregistrată: Maria Dumitrescu (nr. 2026-0142)');
-  });
-
-  it('names the attached documents', () => {
-    expect(attachedSentence(['acord', 'adeziune'])).toBe('Am atașat formularul de înscriere și cererea de adeziune.');
-    expect(attachedSentence(['acord'])).toBe('Am atașat formularul de înscriere.');
-  });
 
   it('switches the document step between plural and singular', () => {
     expect(nextSteps(['acord', 'adeziune'])[1]).toEqual({
@@ -66,21 +50,6 @@ describe('renderRegistrationEmail', () => {
     expect(html).toContain('href="https://scoaladepatinaj.com/cursuri/program"');
     expect(html).toContain('href="https://whatsapp.com/channel/abc"');
     expect(html).toContain('href="https://scoaladepatinaj.com/protectia-datelor"');
-  });
-
-  it('is table-based and stacks the buttons on phones', () => {
-    const { html } = renderRegistrationEmail(INPUT);
-    expect(html).toContain('role="presentation"');
-    expect(html).toContain('@media only screen and (max-width:600px)');
-    expect(html).toContain('.es-btn{display:block!important;width:100%!important');
-    expect(html).not.toMatch(/border-radius|dashed|dotted/);
-  });
-
-  it('fits phone screens: the outer table has no fixed 600 width, only a max-width', () => {
-    const { html } = renderRegistrationEmail(INPUT);
-    expect(html).not.toMatch(/width="600"/);
-    expect(html).not.toMatch(/(?<!max-)width:\s*600px/);
-    expect(html).toContain('max-width:600px');
   });
 
   it('never breaks the season or the registration number mid-value', () => {

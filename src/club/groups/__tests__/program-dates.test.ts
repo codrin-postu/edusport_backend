@@ -104,7 +104,8 @@ describe('e-mail rules (F2, undo after send, commit order)', () => {
     expect([res.ok, emailed, state.jobs]).toEqual([false, [], []]);
   });
 
-  it.each(['createEmailJobs', 'recordAction'] as const)('no e-mail is announced and nothing is kept when %s throws', async (method) => {
+  it('no e-mail is announced and nothing is kept when throws' + ' (table)', async () => {
+    const __each = async (method) => {
     const { ctx, state, emailed } = seed();
     ctx.store[method] = async () => {
       throw new Error('boom');
@@ -113,6 +114,14 @@ describe('e-mail rules (F2, undo after send, commit order)', () => {
     expect(res.ok).toBe(false);
     expect([emailed, state.jobs, state.history]).toEqual([[], [], []]);
     expect(state.events[0].exceptions).toEqual([]);
+  };
+    for (const row of ['createEmailJobs', 'recordAction'] as const as unknown[]) {
+      try {
+        await (__each as (...a: unknown[]) => unknown)(...(Array.isArray(row) ? row : [row]));
+      } catch (e) {
+        throw new Error(`row ${JSON.stringify(row)}: ${(e as Error).message}`);
+      }
+    }
   });
 
   it('re-saving an unchanged cancel on a date whose row is no longer last writes no line and sends no e-mail', async () => {
