@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import { Button, Field, Input, Loading, Modal, adminToast } from '../../ui';
 import type { AccountAnswer, AccountBlock as AccountBlockData } from '../../../club/portal/accounts/api-types';
+import { ACCESS_ACTIONS, ACCESS_COPY } from '../../../club/portal/access/copy';
 import { ACCOUNT_BLOCK, accountDisableConfirmText } from '../../../club/portal/copy-admin';
 import { accountDate, accountErrorText, usePortalAccountApi } from './api';
 
@@ -19,6 +20,7 @@ export function AccountBlock({ teamMemberId, name }: { teamMemberId: string; nam
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [confirm, setConfirm] = React.useState(false);
+  const [confirmAll, setConfirmAll] = React.useState(false);
   const [changing, setChanging] = React.useState(false);
   const [newEmail, setNewEmail] = React.useState('');
 
@@ -75,6 +77,7 @@ export function AccountBlock({ teamMemberId, name }: { teamMemberId: string; nam
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {block.state === 'invited' && <Button variant="secondary" disabled={busy} onClick={() => void run(() => api.resend(id))}>{ACCOUNT_BLOCK.resend}</Button>}
             {block.state === 'active' && <Button variant="danger" disabled={busy} onClick={() => setConfirm(true)}>{ACCOUNT_BLOCK.disable}</Button>}
+            {block.state === 'active' && block.hasSportiv && <Button variant="danger" disabled={busy} onClick={() => setConfirmAll(true)}>{ACCESS_ACTIONS.disableAll}</Button>}
             {block.state === 'disabled' && <Button variant="secondary" disabled={busy} onClick={() => void run(() => api.enable(id))}>{ACCOUNT_BLOCK.enable}</Button>}
             <Button variant="secondary" disabled={busy} onClick={() => { setNewEmail(''); setChanging(true); }}>{ACCOUNT_BLOCK.changeEmail}</Button>
           </div>
@@ -92,6 +95,18 @@ export function AccountBlock({ teamMemberId, name }: { teamMemberId: string; nam
         error={error}
         onCancel={() => setConfirm(false)}
         onConfirm={() => void run(() => api.disable(id)).then((done) => done && setConfirm(false))}
+      />
+
+      <ConfirmDialog
+        open={confirmAll}
+        title={ACCESS_ACTIONS.disableAll}
+        message={ACCESS_COPY.disableAllConfirm(name)}
+        confirmLabel={ACCESS_ACTIONS.disableAll}
+        busyLabel={ACCESS_ACTIONS.disableAll}
+        busy={busy}
+        error={error}
+        onCancel={() => setConfirmAll(false)}
+        onConfirm={() => void run(() => api.disableAll(id)).then((done) => done && setConfirmAll(false))}
       />
 
       <Modal

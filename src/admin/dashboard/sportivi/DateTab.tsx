@@ -9,7 +9,10 @@ import {
   RECORD_COPY, acsLine, checkDraft, editDraft, fieldRows, isReadOnlyRecord, registrationLine, saveToast, type DraftErrors, type EditBody, type EditDraft,
 } from '../../../club/sportivi/record-view';
 import { registrationPanelTo } from '../../../club/sportivi/routes';
+import { emailHint } from '../../../club/sportivi/access-view';
+import type { AccessBlock as AccessBlockData } from '../../../club/portal/access/api-types';
 import type { SportiviApi } from './api';
+import { AccessBlock, useAccessBlock } from './AccessBlock';
 import { FooterButtons, useRecordFooter, type FooterAction } from './recordFooter';
 
 type Props = { record: AthleteRecord; api: SportiviApi; onSaved: () => Promise<void>; active: boolean };
@@ -92,9 +95,9 @@ function DateView({ record, onEdit }: { record: AthleteRecord; onEdit: (() => vo
   );
 }
 
-type FormProps = { record: AthleteRecord; draft: EditDraft; errors: DraftErrors; onChange: (d: EditDraft) => void };
+type FormProps = { record: AthleteRecord; draft: EditDraft; errors: DraftErrors; onChange: (d: EditDraft) => void; access: AccessBlockData | null };
 
-function DateForm({ record, draft, errors, onChange }: FormProps) {
+function DateForm({ record, draft, errors, onChange, access }: FormProps) {
   const set = (patch: Partial<EditDraft>) => onChange({ ...draft, ...patch });
   const label = (field: AthleteField) => <FieldLabel record={record} field={field} />;
   return (
@@ -111,7 +114,7 @@ function DateForm({ record, draft, errors, onChange }: FormProps) {
       <Field label={label('phone')}>
         <Input type="tel" value={draft.phone} onChange={(e) => set({ phone: e.target.value })} />
       </Field>
-      <Field label={label('email')}>
+      <Field label={label('email')} hint={emailHint(draft.email, access) ?? undefined}>
         <Input type="email" value={draft.email} onChange={(e) => set({ email: e.target.value })} />
       </Field>
     </div>
@@ -150,11 +153,12 @@ export function DateTab(props: Props) {
         { label: RECORD_COPY.save, onClick: () => void edit.save(), loading: edit.saving },
       ]
     : null;
+  const accessState = useAccessBlock(props.api, props.record.documentId, props.record);
   const inFooter = useRecordFooter(props.active ? buttons : null);
   return (
     <div className="ui-body">
       {edit.draft ? (
-        <DateForm record={props.record} draft={edit.draft} errors={edit.errors} onChange={edit.setDraft} />
+        <DateForm record={props.record} draft={edit.draft} errors={edit.errors} onChange={edit.setDraft} access={accessState.block} />
       ) : (
         <DateView record={props.record} onEdit={readOnly ? null : edit.start} />
       )}
@@ -165,6 +169,7 @@ export function DateTab(props: Props) {
         </div>
       )}
       <RecordFacts record={props.record} />
+      <AccessBlock api={props.api} athleteId={props.record.documentId} athleteName={props.record.fields.name ?? ''} state={accessState} />
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { PORTAL_ACTIONS, PORTAL_ERRORS } from '../copy';
 import { normalizeEmail } from '../limits';
 import type { AccountRow } from '../store';
 import { HISTORY_ACTIONS } from '../../history-text';
-import type { AccessBlock } from './api-types';
+import type { AccessAnswer, AccessBlock } from './api-types';
 import { accessBlock } from './block';
 import type { AccessContext } from './context';
 import { ACCESS_COPY, ACCESS_ERRORS } from './copy';
@@ -15,7 +15,7 @@ import { holderName, inviteRefusal, planInvite, type Host } from './rules';
 import type { AthleteForAccess } from './types';
 
 export type { AccessContext } from './context';
-export type AccessAnswer = { access: AccessBlock; toast: string };
+export type { AccessAnswer };
 /** `jobId`: the queued mail, to release after the outermost commit (null when a refusal-free path queued none). */
 export type Linked = { toast: string; jobId: string | null };
 
