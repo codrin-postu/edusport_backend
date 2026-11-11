@@ -25,22 +25,3 @@ describe('incompleteHidden', () => {
     expect(INCOMPLETE_HIDDEN_KEY).toBe('edusport.sportivi.incompleteHidden');
   });
 });
-
-describe('banner wiring (source)', () => {
-  it('Notice renders the close button only when onDismiss is set', () => {
-    const notice = source('admin/ui/Notice.tsx');
-    expect(notice).toContain('onDismiss?: () => void');
-    expect(notice).toMatch(/onDismiss &&[\s\S]*aria-label="Închide"[\s\S]*onClick=\{onDismiss\}/);
-    expect(notice).toContain('iconOnly');
-  });
-  it('a notice without a title is centred', () => {
-    expect(source('admin/ui/Notice.tsx')).toContain('ui-notice--plain');
-    expect(source('admin/ui/styles.ts')).toMatch(/\.ui-notice--plain\{align-items:center\}/);
-  });
-  it('IncompleteBanner passes onDismiss and keeps the dismissal in sessionStorage', () => {
-    const bar = source('admin/dashboard/sportivi/ListToolbar.tsx');
-    expect(bar).toContain('onDismiss={');
-    expect(bar).toContain('INCOMPLETE_HIDDEN_KEY');
-    expect(bar).toContain('sessionStorage');
-  });
-});

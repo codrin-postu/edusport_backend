@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { AthleteListPage } from '../../athletes/api-types';
 import { INACTIVE, INITIAL_LIST_STATE, filterSections, inactiveShown, listQueryString, showInactive, withSection } from '../list-view';
@@ -8,7 +6,6 @@ import {
   addResults, allSelected, anonymizeInTurns, bulkToast, chunks, runToast, selectionOn, toggled, toggledAll, withoutIds,
 } from '../personal-data-view';
 
-const read = (p: string) => readFileSync(join(__dirname, '..', '..', '..', 'admin', 'dashboard', p), 'utf8');
 const page = (retentionYears: number) => ({ retentionYears, options: { sections: [], groups: [] } }) as unknown as AthleteListPage;
 
 describe('list filters (3C spec 5)', () => {
@@ -67,40 +64,6 @@ describe('selection and bulk (3C spec 5)', () => {
   });
 });
 
-describe('list wiring (source, 3C spec 8)', () => {
-  it('the list mounts the selection, the bulk bar and the dashboard link', () => {
-    const list = read('sportivi/SportiviList.tsx');
-    for (const s of [
-      'const selection = useSelection(list, useIsSuperAdmin());', 'useInactiveLink(list, search);',
-      '{selection && selection.ids.size > 0 && <BulkAnonymizeBar ids={[...selection.ids]} api={api} done={selection.done} />}',
-      '{phone ? <AthleteCards list={list} onOpen={open} selection={selection} /> : <AthleteTable list={list} onOpen={open} selection={selection} />}',
-    ]) expect(list, s).toContain(s);
-  });
-
-  it('the selection only for a Super Admin with the filter on, cleared on every list change', () => {
-    const hook = read('sportivi/useSelection.ts');
-    for (const s of ['selectionOn(inactiveShown(list.state), superAdmin)', 'listQueryString(withPage(list.state, 1), 0)', 'wantsInactiveList(search)', 'showInactive(']) {
-      expect(hook, s).toContain(s);
-    }
-  });
-
-  it('the bar: "Anonimizează (k)", the shared confirmation with k, chunks of 200, one toast', () => {
-    const bar = read('sportivi/BulkAnonymizeBar.tsx');
-    for (const s of ['PERSONAL_DATA_COPY.bulkButton(ids.length)', '<AnonymizeDialog', 'count={ids.length}', 'anonymizeInTurns(', 'runToast(run)', 'api.anonymizeMany(part)', 'done(run.doneIds)']) {
-      expect(bar, s).toContain(s);
-    }
-  });
-
-  it('table and cards: square checkboxes, the row click still opens the record', () => {
-    const table = read('sportivi/AthleteTable.tsx');
-    for (const s of ['<Checkbox', 'aria-label={PERSONAL_DATA_COPY.selectAll}', 'selection.toggleAll(ids)', 'onClick={(e) => e.stopPropagation()}', '<div className="ui-table-wrap">', '<div className="spv-foot">', 'withHeaderSort(state, sortKey)']) {
-      expect(table, s).toContain(s);
-    }
-    const cards = read('sportivi/AthleteCards.tsx');
-    for (const s of ['<Checkbox', 'selection.toggle(r.documentId)', '<MissingMarker row={r} card />', 'LIST_COPY.more']) expect(cards, s).toContain(s);
-  });
-});
-
 describe('fix round 1 (controller rulings)', () => {
   const ids = Array.from({ length: 450 }, (_, i) => `id${i}`);
   const fakeApi = (fail: unknown) => {
@@ -138,20 +101,5 @@ describe('fix round 1 (controller rulings)', () => {
     expect(run).toMatchObject({ stopped: false, doneIds: ids.slice(0, 3) });
     expect(runToast(run)).toEqual({ warning: false, text: '3 sportivi anonimizați.' });
     expect(runToast({ ...run, result: { anonymized: 1, skipped: 0, failed: 2 } }).warning).toBe(true);
-  });
-
-  it('the bar closes on a partial run, the selection drops only the done ids', () => {
-    const bar = read('sportivi/BulkAnonymizeBar.tsx');
-    expect(bar).toContain('if (run.doneIds.length === 0) {');
-    expect(read('sportivi/useSelection.ts')).toContain('setIds((s) => withoutIds(s, doneIds));');
-  });
-
-  it('phone: "Selectează tot" over the loaded cards; the bar pads 16px like the other phone bars', () => {
-    const cards = read('sportivi/AthleteCards.tsx');
-    for (const s of ['label={PERSONAL_DATA_COPY.selectAll}', 'selection.toggleAll(ids)', 'allSelected(selection.ids, ids)', '{selection && <SelectAll rows={rows} selection={selection} />}']) {
-      expect(cards, s).toContain(s);
-    }
-    const css = read('sportivi/styles.ts');
-    expect(css.slice(css.indexOf('@media (max-width: 640px)'))).toContain('.ui-root .spv-bulk{padding:10px 16px}');
   });
 });

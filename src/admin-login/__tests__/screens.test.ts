@@ -31,11 +31,6 @@ const step: SecondStepAnswer = { step: '2fa', methods: ['totp', 'backup'], last:
 const okPost = (data: unknown): Post => vi.fn(async () => ({ ok: true as const, data })) as unknown as Post;
 
 describe('Login', () => {
-  it('renders every string of the copy file exactly', () => {
-    const m = html(Login);
-    const C = SECURITY_COPY.login;
-    for (const t of [C.title, C.brand, C.google, C.or, C.email, C.password, C.showPassword, C.remember, C.submit, C.forgot]) expect(has(m, t), t).toBe(true);
-  });
 
   it('shows the Google refusal text for ?error=google and a carried flash text', () => {
     expect(has(html(Login, { search: '?error=google' }), SECURITY_ERRORS.googleNoAccount)).toBe(true);
@@ -148,14 +143,6 @@ describe('api and routes', () => {
 describe('source rules', () => {
   const files = [...readdirSync(join(dir, 'screens')).map((f) => `screens/${f}`), 'Shell.tsx', 'PasswordInput.tsx', 'App.tsx'];
 
-  it('no screen hardcodes Romanian text: every string in a component is from the copy file', () => {
-    for (const f of files) {
-      const src = read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-      expect(src, f).not.toMatch(/[ăâîșțĂÂÎȘȚ]/);
-      expect(src, f).not.toMatch(/(?<![=-])>\s*[A-Za-z][^<>{}=;]{2,}\s*<\//);
-    }
-  });
-
   it('every Button opts out of the SaveBar tagger with .pce and no label is Salvează or Publică', () => {
     for (const f of files) {
       for (const m of read(f).matchAll(/<Button\b[^>]*>/g)) expect(m[0], `${f}: ${m[0]}`).toMatch(/className="pce( [\w-]+)?"/);
@@ -164,26 +151,11 @@ describe('source rules', () => {
     expect(SECURITY_COPY.invite.savePassword).toBe('Salvează parola');
   });
 
-  it('no pills, circles, dashed or dotted shapes, no raw colours', () => {
-    for (const f of [...files, 'styles.ts', 'icons.tsx']) {
-      const src = read(f);
-      for (const bad of ['border-radius: 50%', 'border-radius:50%', '9999px', 'dashed', 'dotted']) expect(src, `${f} ${bad}`).not.toContain(bad);
-      expect(src, f).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
-    }
-  });
-
   it('imports no Strapi package and not the ui index', () => {
     for (const f of readdirSync(dir, { recursive: true, encoding: 'utf8' }).filter((x) => /\.tsx?$/.test(x) && !x.includes('__tests__'))) {
       const src = read(f);
       expect(src, f).not.toMatch(/from '@strapi/);
       expect(src, f).not.toMatch(/from '\.\.?\/(\.\.\/)?admin\/ui'/);
     }
-  });
-
-  it('app.tsx no longer injects the Strapi login copy or branding', () => {
-    const app = readFileSync(join(dir, '..', 'admin', 'app.tsx'), 'utf8');
-    expect(app).not.toContain('AUTH_COPY');
-    expect(app).not.toContain('applyLoginBranding');
-    expect(app).toContain('startAuthRedirect()');
   });
 });

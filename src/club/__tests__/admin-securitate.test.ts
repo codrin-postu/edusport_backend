@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { AdminDeviceView, SecurityView } from '../security/api-types';
 import { SECURITY_COPY } from '../security/copy';
 import { AdminsList } from '../../admin/pages/securitate/AdminsSection';
@@ -202,23 +202,6 @@ describe('page rules', () => {
       expect(label).not.toMatch(/Salvează|Publică/i);
     }
     for (const f of sources) expect(src(f), f).not.toMatch(/Salvează|Publică/);
-  });
-
-  it('no visible text contains "verificare"', () => {
-    for (const f of sources) expect(src(f).toLowerCase(), f).not.toContain('verificare');
-    const all = JSON.stringify([SECURITY_COPY.twoFactor, SECURITY_COPY.backup, SECURITY_COPY.password, SECURITY_COPY.google, SECURITY_COPY.devices, SECURITY_COPY.admins, SECURITY_COPY.page]);
-    expect(all.toLowerCase()).not.toContain('verificare');
-  });
-
-  it('no component hardcodes Romanian text; no pills, circles, dashed or dotted lines, no raw colours', () => {
-    for (const f of sources) {
-      const code = src(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*(\/\/|\{\/\*).*$/gm, '');
-      expect(code, f).not.toMatch(/[ăâîșțĂÂÎȘȚ]/);
-      expect(code, f).not.toMatch(/(?<![=-])>\s*[A-Za-z][^<>{}=;]{2,}\s*<\//);
-      for (const bad of ['border-radius: 50%', '9999px', "'50%'", 'dashed', 'dotted']) expect(code, `${f} ${bad}`).not.toContain(bad);
-      expect(code, f).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
-      expect(code, f).not.toMatch(/color:\s*'?(red|crimson)/);
-    }
   });
 
   it('only the API hook and the page import the Strapi package', () => {

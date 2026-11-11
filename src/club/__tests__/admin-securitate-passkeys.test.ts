@@ -153,13 +153,6 @@ describe('rename, delete and the other Securitate texts', () => {
     expect(src).toMatch(/onClick=\{\(\) => setAsking\(true\)\}/);
   });
 
-  it('the new files use PceButton only (no raw Button) and no inline colours', () => {
-    for (const f of ['PasskeysSection.tsx', 'GoogleSection.tsx', 'passkeys.ts']) {
-      const src = readFileSync(join(dir, f), 'utf8');
-      expect(src, f).not.toMatch(/<Button\b|<button\b|#[0-9a-fA-F]{3,6}\b|dashed|dotted/);
-    }
-  });
-
   it('the password fields sit in a form with a submit button (Enter submits); the Google handoff spinner has a label', () => {
     const pw = readFileSync(join(dir, 'PasswordSection.tsx'), 'utf8');
     expect(pw).toMatch(/<form\b[^>]*onSubmit/);

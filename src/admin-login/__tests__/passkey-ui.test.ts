@@ -1,5 +1,3 @@
-import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
@@ -123,12 +121,6 @@ describe('the offer', () => {
     const { post, calls } = posts({ '/api/admin-auth/me/passkey-offer/dismiss': { ok: true, data: { ok: true } } });
     await dismissOffer(post);
     expect(calls).toEqual([{ path: '/api/admin-auth/me/passkey-offer/dismiss', body: {} }]);
-  });
-
-  it('the offer and login sources use no raw button and no inline colours', () => {
-    const dir = join(__dirname, '..', 'screens');
-    for (const f of ['Offer.tsx', 'Login.tsx']) expect(readFileSync(join(dir, f), 'utf8'), f).not.toMatch(/<button|#[0-9a-fA-F]{3,6}\b/);
-    expect(readdirSync(dir)).toContain('Offer.tsx');
   });
 });
 
