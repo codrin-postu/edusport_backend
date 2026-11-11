@@ -62,6 +62,15 @@ describe('global::is-coach', () => {
     expect(typeof (state.coach as { sessionId: string }).sessionId).toBe('string');
   });
 
+  it('host of the session decides: a sportiv token of a coach account is 403, and so is a coach side switched off', async () => {
+    const s = await setup();
+    await expect(call(withToken((await s.sessions.issue(1, 'dev-s', 'sportiv')).accessToken))).rejects.toBeInstanceOf(errors.ForbiddenError);
+    const token = await s.login(1);
+    expect(await call(withToken(token))).toBe(true);
+    await s.store.updateAccount('acc1', { coachDisabledAt: '2026-11-11T11:00:00.000Z' });
+    await expect(call(withToken(token))).rejects.toBeInstanceOf(errors.ForbiddenError);
+  });
+
   it('answers 403 for a disabled account, an account without a team member and a blocked user', async () => {
     const s = await setup();
     const tokens = await Promise.all([2, 3, 4].map(s.login));

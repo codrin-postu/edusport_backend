@@ -17,9 +17,9 @@ const EXPECTED = [
 ];
 
 describe('portal Securitate routes', () => {
-  it('are exactly the listed ones, each behind global::is-coach (BFF secret 403, Bearer 401), no Strapi auth', () => {
+  it('are exactly the listed ones, each behind global::is-portal-user (BFF secret 403, Bearer 401), no Strapi auth', () => {
     expect(routes.routes.map((r) => `${r.method} ${r.path}`)).toEqual(EXPECTED);
-    for (const r of routes.routes) expect(r.config).toEqual({ auth: false, policies: ['global::is-coach'], middlewares: [] });
+    for (const r of routes.routes) expect(r.config).toEqual({ auth: false, policies: ['global::is-portal-user'], middlewares: [] });
     expect(staticBeforeParams(routes.routes.map((r) => r.path))).toBe(true);
   });
 
@@ -39,6 +39,20 @@ async function coach() {
   const sec = portalSecurity(s.c, { accountId: id, userId: 1, sessionId: 'sess', host: 'antrenor', actor: 'Antrenor Ana Pop' });
   return { ...s, id, sec };
 }
+
+describe('Securitate of a sportiv session', () => {
+  it('reads its own methods and turns the app on with the account name on the history line', async () => {
+    const s = setup2fa();
+    const id = await s.addAccount({ teamMemberId: null });
+    const sec = portalSecurity(s.c, { accountId: id, userId: 1, sessionId: 'sess', host: 'sportiv', actor: 'Maria Ionescu' });
+    expect(await sec.read()).toMatchObject({ ok: true, data: { email: 'ana@x.ro', totp: false } });
+    await sec.totpStart();
+    const factor = (await s.secStore.factors({ type: 'portal', id }))[0];
+    const plain = open(TEST_KEYS, factor.secretBox!, totpAad('portal', id))!.plain;
+    expect(await sec.totpConfirm({ code: totpAt(plain, Math.floor(s.clock.t.getTime() / 30_000)) })).toMatchObject({ ok: true });
+    expect(s.mem.history.some((h) => h.actor === 'Maria Ionescu' && h.subjectType === 'portal' && h.subjectId === id)).toBe(true);
+  });
+});
 
 describe('portal Securitate service', () => {
   it('enrol app then confirm returns 10 codes once; GET security never returns codes or the secret', async () => {

@@ -3,23 +3,14 @@ import { hashSecret, newDeviceKey } from '../tokens';
 import type { AccountRow, DeviceRow, UserAuth } from '../store';
 import { PORTAL_ERRORS } from '../copy';
 import { canEnterHost } from '../access/rules';
+import { heldAthleteIds } from '../sportiv/holder';
 import type { PortalAuthContext, PortalResult } from './context';
 
 export type PortalSession = { accessToken: string; refreshToken: string; accessExpiresAt: string; deviceKey: string | null };
 
-/** Live accesses of the account to athletes that are not anonymized: the count `sportiv` entry needs (spec 5.1). */
-async function liveAccessCount(c: PortalAuthContext, accountId: string): Promise<number> {
-  let n = 0;
-  for (const row of await c.access.liveByAccount(accountId)) {
-    const athlete = await c.access.athleteForAccess(row.athleteId);
-    if (athlete && athlete.status !== 'anonimizat') n += 1;
-  }
-  return n;
-}
-
 /** Per-host entry (spec 5.1): the pure rule with the live access count read only for `sportiv`. Every sign-in path asks this. */
 export async function mayEnter(c: PortalAuthContext, account: AccountRow | null, user: UserAuth | null, host: string): Promise<boolean> {
-  const live = host === 'sportiv' && account !== null && account.status === 'active' ? await liveAccessCount(c, account.id) : 0;
+  const live = host === 'sportiv' && account !== null && account.status === 'active' ? (await heldAthleteIds(c.access, account.id)).length : 0;
   return canEnterHost(account, user, host, live);
 }
 
