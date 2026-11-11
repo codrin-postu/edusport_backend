@@ -1,7 +1,7 @@
 import type { Core } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
 import { isBffCall } from '../club/portal/auth/bff';
-import { canEnter } from '../club/portal/auth/issue';
+import { canEnterHost } from '../club/portal/access/rules';
 import type { CoachState } from '../club/portal/coach/context';
 import { portalSessions } from '../club/portal/sessions';
 import { strapiPortalStore } from '../club/portal/strapi-store';
@@ -34,7 +34,7 @@ export default async (policyContext: PolicyContext, _config: unknown, { strapi }
   if (!check) throw new errors.UnauthorizedError();
   const account = await store.accountByUser(check.userId);
   const user = await store.user(check.userId);
-  if (!account || !canEnter(account, user, HOST) || account.teamMemberId === null) throw new errors.ForbiddenError();
+  if (!account || !canEnterHost(account, user, HOST, 0) || account.teamMemberId === null) throw new errors.ForbiddenError();
   const name = await store.teamMemberName(account.teamMemberId);
   if (name === null) throw new errors.ForbiddenError();
   const coach: CoachState = { accountId: account.id, userId: check.userId, sessionId: check.sessionId, teamMemberId: account.teamMemberId, name };

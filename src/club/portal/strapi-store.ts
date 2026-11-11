@@ -40,7 +40,7 @@ export function toLimitRow(r: Raw): LimitRow {
 export function toTokenRow(r: Raw): TokenRow {
   return {
     id: text(r.documentId), accountId: linkId(r.account) ?? '', kind: r.kind === 'reset' ? 'reset' : 'invite', secretHash: text(r.secretHash),
-    expiresAt: iso(r.expiresAt) ?? '', usedAt: iso(r.usedAt), tries: Number(r.tries ?? 0), createdAt: iso(r.createdAt) ?? '', host: str(r.host) ?? 'antrenor',
+    expiresAt: iso(r.expiresAt) ?? '', usedAt: iso(r.usedAt), tries: Number(r.tries ?? 0), createdAt: iso(r.createdAt) ?? '', host: str(r.host),
   };
 }
 
@@ -203,8 +203,8 @@ function devices(strapi: Core.Strapi): Pick<PortalStore, 'devices' | 'deviceByKe
   return {
     devices: async (accountId) =>
       raws(await docs().findMany({ filters: { account: { documentId: accountId } }, populate, sort: 'createdAt:asc', limit: MAX })).map(toDeviceRow),
-    deviceByKey: async (accountId, keyHash) => {
-      const rows = raws(await docs().findMany({ filters: { account: { documentId: accountId }, deviceKeyHash: keyHash }, populate, limit: 1 }));
+    deviceByKey: async (accountId, keyHash, host) => {
+      const rows = raws(await docs().findMany({ filters: { account: { documentId: accountId }, deviceKeyHash: keyHash, host }, populate, limit: 1 }));
       return rows[0] ? toDeviceRow(rows[0]) : null;
     },
     createDevice: async (d) => {

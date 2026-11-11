@@ -181,8 +181,8 @@ function tokens(state: FakePortalState): Pick<PortalStore, 'tokens' | 'tokenByHa
 function devices(state: FakePortalState): Pick<PortalStore, 'devices' | 'deviceByKey' | 'createDevice' | 'updateDevice'> {
   return {
     devices: async (accountId) => copy(state.devices.filter((d) => d.accountId === accountId)),
-    deviceByKey: async (accountId, keyHash) => {
-      const d = state.devices.find((x) => x.accountId === accountId && x.deviceKeyHash === keyHash);
+    deviceByKey: async (accountId, keyHash, host) => {
+      const d = state.devices.find((x) => x.accountId === accountId && x.deviceKeyHash === keyHash && x.host === host);
       return d ? copy(d) : null;
     },
     createDevice: async (d) => {

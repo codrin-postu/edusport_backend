@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { fakeAccessStore } from '../access/fake-store';
 import type { PortalAuthContext } from '../auth/context';
 import { loginWithPassword } from '../auth/login';
 import { logout, refreshSession } from '../auth/refresh';
@@ -14,8 +15,9 @@ async function setup() {
   const { store } = fake;
   fake.state.users.push({ id: 1, email: 'ana@x.ro', passwordHash: 'hash:right', blocked: false, confirmed: true, username: 'ana@x.ro', provider: 'local', role: 'authenticated' });
   const accountId = await store.createAccount({ userId: 1, email: 'ana@x.ro', status: 'active', teamMemberId: 'tm1' });
+  const access = fakeAccessStore({ athletes: [{ id: 'at1', name: 'Ana', email: 'p@example.invalid', status: 'activ', birthDate: null, contactName: null }] });
   const c: PortalAuthContext = { security: securityFor(fake, store, now).security,
-    store, sessions: portalSessions(store, now), limits: limiter(store, now), mail: async () => true, common: new Set(), hosts: ['antrenor'], ip: '1.1.1.1',
+    store, access: access.store, sessions: portalSessions(store, now), limits: limiter(store, now), mail: async () => true, common: new Set(), hosts: ['antrenor'], ip: '1.1.1.1',
     userAgent: null, now, log: () => undefined, hash: async (p) => `hash:${p}`, compare: vi.fn(async (p: string, h: string) => h === `hash:${p}`),
   };
   const first = await loginWithPassword(c, { host: 'antrenor', email: 'ana@x.ro', password: 'right' });
@@ -81,6 +83,7 @@ describe('refresh host and device session', () => {
     const s = await setup();
     await s.c.store.updateAccount(s.accountId, { teamMemberId: null });
     s.fake.state.sessions[0].host = 'sportiv';
+    await s.c.access.createAccess({ athleteId: 'at1', accountId: s.accountId, email: 'p@example.invalid', invitedAt: '2026-11-06T10:00:00.000Z', invitedBy: 'admin' });
     expect(ok(await refreshSession(s.c, { refreshToken: s.session.refreshToken }))).toBe(true);
   });
 

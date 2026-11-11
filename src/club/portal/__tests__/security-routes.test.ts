@@ -36,7 +36,7 @@ describe('portal Securitate routes', () => {
 async function coach() {
   const s = setup2fa();
   const id = await s.addAccount();
-  const sec = portalSecurity(s.c, { accountId: id, userId: 1, sessionId: 'sess', teamMemberId: 'tm1', name: 'Ana Pop' });
+  const sec = portalSecurity(s.c, { accountId: id, userId: 1, sessionId: 'sess', host: 'antrenor', actor: 'Antrenor Ana Pop' });
   return { ...s, id, sec };
 }
 
@@ -63,7 +63,7 @@ describe('portal Securitate service', () => {
   it('DELETE the last method deletes the codes and forgets devices; the history line names the coach', async () => {
     const s = await coach();
     await s.enrol(s.id, { backup: true });
-    const device = await s.store.createDevice({ accountId: s.id, deviceKeyHash: 'h', sessionId: null, label: 'T', firstSeenAt: s.clock.t.toISOString(), lastSeenAt: s.clock.t.toISOString() });
+    const device = await s.store.createDevice({ accountId: s.id, host: 'antrenor', deviceKeyHash: 'h', sessionId: null, label: 'T', firstSeenAt: s.clock.t.toISOString(), lastSeenAt: s.clock.t.toISOString() });
     await s.secStore.setPortalDeviceTwoFactor(device, '2027-01-01T00:00:00.000Z');
     expect(await s.sec.read()).toMatchObject({ data: { backupLeft: 10 } });
     expect(await s.sec.totpOff()).toEqual({ ok: true, data: { toast: SECURITY_TOASTS.twoFactorOff } });
@@ -90,13 +90,13 @@ describe('portal Securitate service', () => {
     expect(await s.sec.read()).toMatchObject({ ok: true });
     const k = setup2fa({ keys: null });
     const id = await k.addAccount();
-    const sec = portalSecurity(k.c, { accountId: id, userId: 1, sessionId: 's', teamMemberId: 'tm1', name: 'Ana' });
+    const sec = portalSecurity(k.c, { accountId: id, userId: 1, sessionId: 's', host: 'antrenor', actor: 'Antrenor Ana' });
     expect(await sec.totpStart()).toEqual({ ok: false, status: 503, error: SECURITY_ERRORS.unavailable });
   });
 
   it('an account gone or disabled meanwhile answers 401', async () => {
     const s = await coach();
-    const gone = portalSecurity(s.c, { accountId: 'nope', userId: 1, sessionId: 's', teamMemberId: 'tm1', name: 'Ana' });
+    const gone = portalSecurity(s.c, { accountId: 'nope', userId: 1, sessionId: 's', host: 'antrenor', actor: 'Antrenor Ana' });
     expect(await gone.read()).toMatchObject({ ok: false, status: 401 });
   });
 });

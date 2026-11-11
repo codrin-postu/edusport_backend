@@ -15,7 +15,10 @@ export type AccountRow = {
 };
 export type AccountWrite = Partial<Omit<AccountRow, 'id' | 'userId'>>;
 export type TokenKind = 'invite' | 'reset';
-export type TokenRow = { id: string; accountId: string; kind: TokenKind; secretHash: string; expiresAt: string; usedAt: string | null; tries: number; createdAt: string; host: string };
+export type TokenRow = { id: string; accountId: string; kind: TokenKind; secretHash: string; expiresAt: string; usedAt: string | null; tries: number; createdAt: string;
+  /** The host an invite link points to; null for reset codes (they work on either host) and for invites made before phase 7 (read as antrenor). */
+  host: string | null;
+};
 export type LimitRow = LimitState & { id: string; key: string };
 export type DeviceRow = {
   id: string; accountId: string; host: string; deviceKeyHash: string; sessionId: string | null; label: string; firstSeenAt: string; lastSeenAt: string; revokedAt: string | null;

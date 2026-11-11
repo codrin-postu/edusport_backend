@@ -43,7 +43,8 @@ export interface PortalStore {
   createToken(t: NewToken): Promise<string>;
   updateToken(id: string, t: { usedAt?: string; tries?: number }): Promise<void>;
   devices(accountId: string): Promise<DeviceRow[]>;
-  deviceByKey(accountId: string, keyHash: string): Promise<DeviceRow | null>;
+  /** A device row belongs to one host: the same key on the other host finds nothing (7-1 ruling 12). */
+  deviceByKey(accountId: string, keyHash: string, host: string): Promise<DeviceRow | null>;
   createDevice(d: NewDevice): Promise<string>;
   updateDevice(id: string, d: DeviceWrite): Promise<void>;
   lockSession(id: string): Promise<void>;

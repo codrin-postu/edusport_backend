@@ -1,4 +1,5 @@
 import { generateKeyPairSync } from 'node:crypto';
+import { fakeAccessStore } from '../access/fake-store';
 import jwt from 'jsonwebtoken';
 import { describe, expect, it, vi } from 'vitest';
 import controller from '../../../api/portal/controllers/portal-auth';
@@ -56,8 +57,9 @@ function setup(o: { idToken?: () => string; tokenStatus?: number; certsFail?: bo
   const mails: { to: string; mail: PortalMail }[] = [];
   const mail: SendPortalMail = async (to, m) => { mails.push({ to, mail: m }); return true; };
   const logs: string[] = [];
+  const access = fakeAccessStore({ athletes: [{ id: 'at1', name: 'Ana', email: 'ana@x.ro', status: 'activ', birthDate: null, contactName: null }] });
   const c: PortalAuthContext = {
-    security: sec.security, store, sessions: portalSessions(store, () => NOW), limits: limiter(store, () => NOW), mail, common: new Set(), hosts: ['antrenor'], ip: '1.1.1.1',
+    security: sec.security, store, access: access.store, sessions: portalSessions(store, () => NOW), limits: limiter(store, () => NOW), mail, common: new Set(), hosts: ['antrenor', 'sportiv'], ip: '1.1.1.1',
     userAgent: null, now: () => NOW, log: (m) => logs.push(m), hash: async (p) => p, compare: async () => false,
   };
   const body = (extra: Claims = {}) => ({ host: 'antrenor', code: 'c', codeVerifier: 'v', redirectUri: 'https://a/cb', nonce: 'n1', ...extra });
@@ -65,8 +67,28 @@ function setup(o: { idToken?: () => string; tokenStatus?: number; certsFail?: bo
   const addAccount = (extra: Record<string, unknown> = {}) => store.createAccount({ userId: 1, email: 'ana@x.ro', status: 'active', teamMemberId: 'tm1', ...extra });
   const invite = (secret: string, accountId: string) =>
     store.createToken({ accountId, kind: 'invite', secretHash: hashSecret(secret), expiresAt: new Date(NOW.getTime() + INVITE_TTL_MS).toISOString() });
-  return { c, g, sec, fake, store, mails, logs, calls, signals, fetchFn, login, addAccount, invite };
+  return { c, g, sec, access, fake, store, mails, logs, calls, signals, fetchFn, login, addAccount, invite };
 }
+
+describe('google checks the host', () => {
+  it('a linked sub of a coach-only account is refused on sportiv; a holder-only account enters sportiv and not antrenor', async () => {
+    const s = setup();
+    const id = await s.addAccount({ googleSub: 'sub-1' });
+    expect(await s.login({ host: 'sportiv' })).toEqual(NO_ACCOUNT);
+    await s.store.updateAccount(id, { teamMemberId: null });
+    await s.access.store.createAccess({ athleteId: 'at1', accountId: id, email: 'ana@x.ro', invitedAt: '2026-11-06T10:00:00.000Z', invitedBy: 'admin' });
+    expect(await s.login({ host: 'antrenor' })).toEqual(NO_ACCOUNT);
+    expect(await s.login({ host: 'sportiv' })).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
+    expect(s.fake.state.sessions.map((x) => x.host)).toEqual(['sportiv']);
+  });
+
+  it('the first link by e-mail on the wrong host stores no sub', async () => {
+    const s = setup();
+    await s.addAccount();
+    expect(await s.login({ host: 'sportiv' })).toEqual(NO_ACCOUNT);
+    expect(s.fake.state.accounts[0].googleSub).toBeNull();
+  });
+});
 
 describe('loginWithGoogle', () => {
   it('a valid token logs in, stores the sub and sends the new-device mail', async () => {

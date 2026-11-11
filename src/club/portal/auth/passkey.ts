@@ -5,7 +5,7 @@ import { ipPaused, rpOrRefusal } from '../../security/passkey-actions';
 import { loginOptions, verifyLogin } from '../../security/passkeys';
 import { PORTAL_ERRORS } from '../copy';
 import type { PortalAuthContext, PortalResult } from './context';
-import { canEnter, startSession, type PortalSession } from './issue';
+import { mayEnter, startSession, type PortalSession } from './issue';
 
 const DEVICE_KEY_MAX = 200;
 const paused: PortalResult<never> = { ok: false, status: 429, error: PORTAL_ERRORS.paused };
@@ -43,7 +43,7 @@ export async function portalPasskeyVerify(c: PortalAuthContext, body: unknown): 
   if (checked.ok === false) return checked;
   const account = await c.store.account(checked.data.subject.id);
   const user = account ? await c.store.user(account.userId) : null;
-  if (!account || !canEnter(account, user, host)) return failed;
+  if (!account || !(await mayEnter(c, account, user, host))) return failed;
   const session = await startSession(c, account, typeof key === 'string' ? key : null, { notifyNewDevice: true, host });
   if (session.ok === false) return session;
   return { ok: true, data: { ...session.data, offerPasskey: false } };

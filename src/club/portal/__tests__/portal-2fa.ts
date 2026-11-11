@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { fakeAccessStore } from '../access/fake-store';
 import { vi } from 'vitest';
 import type { PortalMail, SendPortalMail } from '../../../email/portal-direct';
 import type { SecurityMailKind } from '../../../email/security-mail';
@@ -73,9 +74,10 @@ export function setup2fa(o: { keys?: Keys | null; mailOk?: boolean } = {}) {
     mails.push({ to, mail: m });
     return true;
   };
+  const access = fakeAccessStore({ athletes: [{ id: 'at1', name: 'Ana Ionescu', email: 'ana@x.ro', status: 'activ', birthDate: null, contactName: null }, { id: 'at2', name: 'Anonim', email: null, status: 'anonimizat', birthDate: null, contactName: null }] });
   const compare = vi.fn(async (p: string, h: string) => h === `hash:${p}`);
   const c: PortalAuthContext = {
-    store, sessions, limits, mail, common: new Set(), hosts: ['antrenor'], ip: '1.1.1.1', userAgent: null, now, log: (m) => logs.push(m),
+    store, access: access.store, sessions, limits, mail, common: new Set(), hosts: ['antrenor', 'sportiv'], ip: '1.1.1.1', userAgent: null, now, log: (m) => logs.push(m),
     sleep: async () => undefined, hash: async (p) => `hash:${p}`, compare, security,
   };
   fake.state.users.push({ id: 1, email: 'ana@x.ro', passwordHash: 'hash:right', blocked: false, confirmed: true, username: 'ana@x.ro', provider: 'local', role: 'authenticated' });
@@ -87,5 +89,5 @@ export function setup2fa(o: { keys?: Keys | null; mailOk?: boolean } = {}) {
     await secStore.confirmFactor(await secStore.upsertFactor(s, 'totp', { secretBox: seal(TEST_KEYS, TOTP_SECRET, totpAad('portal', accountId)) }), clock.t.toISOString());
     return opts.backup ? issueBackupBatch(security, TEST_KEYS, s) : [];
   };
-  return { c, fake, store, mem, secStore, mails, secMails, logs, compare, addAccount, totp, enrol, clock, advance: (ms: number) => { clock.t = new Date(clock.t.getTime() + ms); } };
+  return { c, fake, store, access, mem, secStore, mails, secMails, logs, compare, addAccount, totp, enrol, clock, advance: (ms: number) => { clock.t = new Date(clock.t.getTime() + ms); } };
 }

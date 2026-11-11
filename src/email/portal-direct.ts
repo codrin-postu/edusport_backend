@@ -10,12 +10,13 @@ import { captureMessage } from '../sentry';
 import { failureStatus, sendNow } from './brevo';
 import { deliveryTarget, readEmailConfig } from './config';
 import { buildEmailLinks } from './links';
+import { portalHost } from './portal-email';
 import { brandHtml, emailPage, escapeHtml, footerText, type EmailLinks, type RenderedEmail } from './registration-template';
 
 export type PortalMail =
   | { kind: 'reset'; code: string }
   | { kind: 'lockout' }
-  | { kind: 'new-device'; device: string; at: Date }
+  | { kind: 'new-device'; device: string; at: Date; host?: string }
   | { kind: 'email-changed'; newEmail: string };
 
 export type SendPortalMail = (to: string, mail: PortalMail) => Promise<boolean>;
@@ -25,7 +26,16 @@ const BUCHAREST = 'Europe/Bucharest';
 const dayPart = new Intl.DateTimeFormat('en-CA', { timeZone: BUCHAREST, year: 'numeric', month: '2-digit', day: '2-digit' });
 const timePart = new Intl.DateTimeFormat('ro-RO', { timeZone: BUCHAREST, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
-function letter(mail: PortalMail): { subject: string; paragraphs: string[][] } {
+/** The portal host a device mail names; none when the site address is not configured. */
+function hostOf(siteUrl: string, site: 'antrenor' | 'sportiv'): string | undefined {
+  try {
+    return portalHost(siteUrl, site).host;
+  } catch {
+    return undefined;
+  }
+}
+
+function letter(mail: PortalMail, links: EmailLinks): { subject: string; paragraphs: string[][] } {
   const signature = [MAIL_COPY.signature];
   if (mail.kind === 'reset') {
     return {
@@ -39,7 +49,8 @@ function letter(mail: PortalMail): { subject: string; paragraphs: string[][] } {
   if (mail.kind === 'email-changed') {
     return { subject: EMAIL_CHANGED_MAIL.subject, paragraphs: [[EMAIL_CHANGED_MAIL.line(mail.newEmail)], [EMAIL_CHANGED_MAIL.advice], signature] };
   }
-  const line = MAIL_COPY.newDevice.line(mail.device, longDate(dayPart.format(mail.at)), timePart.format(mail.at));
+  const where = mail.host === 'antrenor' || mail.host === 'sportiv' ? hostOf(links.site, mail.host) : undefined;
+  const line = MAIL_COPY.newDevice.line(mail.device, longDate(dayPart.format(mail.at)), timePart.format(mail.at), where);
   return { subject: MAIL_COPY.newDevice.subject, paragraphs: [[line], [MAIL_COPY.newDevice.advice], signature] };
 }
 
@@ -56,7 +67,7 @@ export function renderLetter(subject: string, paragraphs: string[][], links: Ema
 }
 
 export function renderPortalMail(mail: PortalMail, links: EmailLinks): RenderedEmail {
-  const { subject, paragraphs } = letter(mail);
+  const { subject, paragraphs } = letter(mail, links);
   return renderLetter(subject, paragraphs, links);
 }
 

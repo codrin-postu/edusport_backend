@@ -1,6 +1,6 @@
 import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
 import { portalAuthContext, type PortalCtx } from '../../../club/portal/auth/context';
-import type { CoachState } from '../../../club/portal/coach/context';
+import { coachActor, type CoachState } from '../../../club/portal/coach/context';
 import { PORTAL_ERRORS } from '../../../club/portal/copy';
 import { portalSecurity } from '../../../club/portal/security';
 import { SECURITY_ERRORS } from '../../../club/security/copy';
@@ -18,7 +18,7 @@ const coachOnly = (tag: string, run: Run) => async (ctx: Ctx): Promise<void> => 
   const coach = ctx.state.coach;
   if (!coach) return refuseWith(ctx, 401, PORTAL_ERRORS.wrongLogin);
   try {
-    return respond(ctx, await run(portalSecurity(portalAuthContext(strapi, ctx), coach), ctx));
+    return respond(ctx, await run(portalSecurity(portalAuthContext(strapi, ctx), { accountId: coach.accountId, userId: coach.userId, sessionId: coach.sessionId, host: 'antrenor', actor: coachActor(coach.name) }), ctx));
   } catch (err) {
     if (err instanceof KeysMissing) return refuseWith(ctx, 503, SECURITY_ERRORS.unavailable);
     strapi.log.error(`[portal-security] ${tag} failed: ${err instanceof Error ? err.name : 'error'}`);

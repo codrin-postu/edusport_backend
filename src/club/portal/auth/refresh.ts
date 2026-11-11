@@ -1,6 +1,6 @@
 import type { AdminResult } from '../../admin-result';
 import type { PortalAuthContext, PortalResult } from './context';
-import { canEnter, type PortalSession } from './issue';
+import { mayEnter, type PortalSession } from './issue';
 
 const refused: PortalResult<never> = { ok: false, status: 401, error: '' };
 
@@ -17,7 +17,7 @@ export async function refreshSession(c: PortalAuthContext, body: unknown): Promi
   const account = await c.store.accountByUser(next.userId);
   const user = account ? await c.store.user(account.userId) : null;
   const device = account ? (await c.store.devices(account.id)).find((d) => d.id === next.deviceId) : undefined;
-  if (!canEnter(account, user, next.host) || !device || device.revokedAt !== null) {
+  if (!(await mayEnter(c, account, user, next.host)) || !device || device.revokedAt !== null) {
     await c.sessions.revoke(next.refreshToken);
     return refused;
   }

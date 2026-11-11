@@ -3,7 +3,7 @@ import { PORTAL_ACTIONS, PORTAL_ERRORS } from '../copy';
 import { normalizeEmail } from '../limits';
 import type { AccountRow } from '../store';
 import { DUMMY_HASH, type PortalAuthContext, type PortalResult } from './context';
-import { canEnter } from './issue';
+import { mayEnter } from './issue';
 import { afterPassword, type PortalPending, type SessionWithOffer } from './two-factor';
 
 export type LoginBody = { host: string; email: string; password: string; deviceKey: string | null };
@@ -54,7 +54,7 @@ export async function loginWithPassword(c: PortalAuthContext, body: unknown): Pr
   const account = await c.store.accountByEmail(read.email);
   const user = account ? await c.store.user(account.userId) : null;
   const right = await c.compare(read.password, user?.passwordHash ?? DUMMY_HASH);
-  if (!right || !account || !canEnter(account, user, read.host)) return refuseLogin(c, attempt, account);
+  if (!right || !account || !(await mayEnter(c, account, user, read.host))) return refuseLogin(c, attempt, account);
   await c.limits.emailCleared(read.email);
   return afterPassword(c, account, read.deviceKey, read.host);
 }

@@ -17,8 +17,8 @@ async function setup() {
 describe('ownSessions', () => {
   it('issue then verifyAccess gives the user and the session id; only hashes are stored', async () => {
     const { sessions, state } = await setup();
-    const t = await sessions.issue(7, 'dev-1');
-    expect(await sessions.verifyAccess(t.accessToken)).toEqual({ userId: 7, sessionId: t.sessionId });
+    const t = await sessions.issue(7, 'dev-1', 'antrenor');
+    expect(await sessions.verifyAccess(t.accessToken)).toEqual({ userId: 7, sessionId: t.sessionId, host: 'antrenor' });
     expect(t.accessExpiresAt).toBe('2026-11-06T10:10:00.000Z');
     const row = state.sessions[0];
     expect(row.id).toBe(t.sessionId);
@@ -31,12 +31,12 @@ describe('ownSessions', () => {
 
   it('issue throws for a user without a portal account', async () => {
     const { sessions } = await setup();
-    await expect(sessions.issue(99, 'd')).rejects.toThrow();
+    await expect(sessions.issue(99, 'd', 'antrenor')).rejects.toThrow();
   });
 
   it('access token expires after 10 minutes', async () => {
     const { sessions, advance } = await setup();
-    const t = await sessions.issue(7, 'dev-1');
+    const t = await sessions.issue(7, 'dev-1', 'antrenor');
     advance(10 * 60 * 1000 - 1);
     expect(await sessions.verifyAccess(t.accessToken)).not.toBeNull();
     advance(1);
@@ -45,12 +45,12 @@ describe('ownSessions', () => {
 
   it('refresh rotates, keeps the session id and device, and the old access token stops working', async () => {
     const { sessions } = await setup();
-    const t = await sessions.issue(7, 'dev-1');
+    const t = await sessions.issue(7, 'dev-1', 'antrenor');
     const r = await sessions.refresh(t.refreshToken);
     expect(r).toMatchObject({ userId: 7, deviceId: 'dev-1', sessionId: t.sessionId });
     expect(r?.refreshToken).not.toBe(t.refreshToken);
     expect(await sessions.verifyAccess(t.accessToken)).toBeNull();
-    expect(await sessions.verifyAccess(r!.accessToken)).toEqual({ userId: 7, sessionId: t.sessionId });
+    expect(await sessions.verifyAccess(r!.accessToken)).toEqual({ userId: 7, sessionId: t.sessionId, host: 'antrenor' });
   });
 
   it('an unknown refresh token answers null', async () => {
@@ -60,7 +60,7 @@ describe('ownSessions', () => {
 
   it('a token reused after the grace window revokes the session', async () => {
     const { sessions, advance } = await setup();
-    const t = await sessions.issue(7, 'dev-1');
+    const t = await sessions.issue(7, 'dev-1', 'antrenor');
     const r = await sessions.refresh(t.refreshToken);
     advance(GRACE_MS);
     expect(await sessions.refresh(t.refreshToken)).toBeNull();
@@ -70,7 +70,7 @@ describe('ownSessions', () => {
 
   it('the previous token inside the grace window is refused without revoking', async () => {
     const { sessions, advance } = await setup();
-    const t = await sessions.issue(7, 'dev-1');
+    const t = await sessions.issue(7, 'dev-1', 'antrenor');
     const r = await sessions.refresh(t.refreshToken);
     advance(GRACE_MS - 1);
     expect(await sessions.refresh(t.refreshToken)).toBeNull();
@@ -80,7 +80,7 @@ describe('ownSessions', () => {
 
   it('a token two generations old revokes the session (theft detected at any depth)', async () => {
     const { sessions, advance } = await setup();
-    const t1 = await sessions.issue(7, 'dev-1');
+    const t1 = await sessions.issue(7, 'dev-1', 'antrenor');
     const t2 = await sessions.refresh(t1.refreshToken);
     advance(60_000);
     const t3 = await sessions.refresh(t2!.refreshToken);
@@ -91,7 +91,7 @@ describe('ownSessions', () => {
 
   it('a wrong secret for a live session revokes it; malformed and unknown tokens do nothing', async () => {
     const { sessions } = await setup();
-    const t = await sessions.issue(7, 'dev-1');
+    const t = await sessions.issue(7, 'dev-1', 'antrenor');
     expect(await sessions.refresh('no-dot')).toBeNull();
     expect(await sessions.refresh('ghost.secret')).toBeNull();
     expect(await sessions.verifyAccess(t.accessToken)).not.toBeNull();
@@ -101,22 +101,22 @@ describe('ownSessions', () => {
 
   it('refresh ends the session when the account is disabled or the user blocked', async () => {
     const { sessions, store, a } = await setup();
-    const t = await sessions.issue(7, 'dev-1');
+    const t = await sessions.issue(7, 'dev-1', 'antrenor');
     await store.updateAccount(a, { status: 'disabled' });
     expect(await sessions.refresh(t.refreshToken)).toBeNull();
     await store.updateAccount(a, { status: 'active' });
     expect(await sessions.refresh(t.refreshToken)).toBeNull();
-    const u = await sessions.issue(7, 'dev-2');
+    const u = await sessions.issue(7, 'dev-2', 'antrenor');
     await store.updateUser(7, { blocked: true });
     expect(await sessions.refresh(u.refreshToken)).toBeNull();
   });
 
   it('issue refuses an account that is not active and takes the account lock', async () => {
     const { sessions, store, a, state } = await setup();
-    await sessions.issue(7, 'dev-1');
+    await sessions.issue(7, 'dev-1', 'antrenor');
     expect(state.locks).toContain(`account:${a}`);
     await store.updateAccount(a, { status: 'disabled' });
-    await expect(sessions.issue(7, 'dev-1')).rejects.toThrow('not active');
+    await expect(sessions.issue(7, 'dev-1', 'antrenor')).rejects.toThrow('not active');
     state.locks.length = 0;
     await sessions.revokeAll(7);
     expect(state.locks).toContain(`account:${a}`);
@@ -124,7 +124,7 @@ describe('ownSessions', () => {
 
   it('an expired session is marked revoked, so it drops out of the active list', async () => {
     const { sessions, store, a, advance } = await setup();
-    const t = await sessions.issue(7, 'dev-1');
+    const t = await sessions.issue(7, 'dev-1', 'antrenor');
     advance(7 * DAY + 1);
     expect(await sessions.refresh(t.refreshToken)).toBeNull();
     expect(await store.activeSessions(a)).toEqual([]);
@@ -132,14 +132,14 @@ describe('ownSessions', () => {
 
   it('logout needs the matching secret', async () => {
     const { sessions } = await setup();
-    const t = await sessions.issue(7, 'dev-1');
+    const t = await sessions.issue(7, 'dev-1', 'antrenor');
     await sessions.revoke(`${t.sessionId}.guess`);
     expect(await sessions.verifyAccess(t.accessToken)).not.toBeNull();
   });
 
   it('idle for more than 7 days answers null, exactly 7 days still rotates', async () => {
     const { sessions, advance } = await setup();
-    const t = await sessions.issue(7, 'dev-1');
+    const t = await sessions.issue(7, 'dev-1', 'antrenor');
     advance(7 * DAY);
     const r = await sessions.refresh(t.refreshToken);
     expect(r).not.toBeNull();
@@ -149,7 +149,7 @@ describe('ownSessions', () => {
 
   it('a family older than 30 days answers null even when used daily', async () => {
     const { sessions, advance } = await setup();
-    let token = (await sessions.issue(7, 'dev-1')).refreshToken;
+    let token = (await sessions.issue(7, 'dev-1', 'antrenor')).refreshToken;
     for (let day = 1; day <= 30; day += 1) {
       advance(DAY);
       const r = await sessions.refresh(token);
@@ -162,7 +162,7 @@ describe('ownSessions', () => {
 
   it('revoke logs out one session; an unknown token is a no-op', async () => {
     const { sessions } = await setup();
-    const t = await sessions.issue(7, 'dev-1');
+    const t = await sessions.issue(7, 'dev-1', 'antrenor');
     await sessions.revoke('unknown');
     await sessions.revoke(t.refreshToken);
     expect(await sessions.verifyAccess(t.accessToken)).toBeNull();
@@ -171,9 +171,9 @@ describe('ownSessions', () => {
 
   it('revokeDevice ends only that device', async () => {
     const { sessions } = await setup();
-    const one = await sessions.issue(7, 'dev-1');
-    const two = await sessions.issue(7, 'dev-2');
-    const other = await sessions.issue(8, 'dev-1');
+    const one = await sessions.issue(7, 'dev-1', 'antrenor');
+    const two = await sessions.issue(7, 'dev-2', 'antrenor');
+    const other = await sessions.issue(8, 'dev-1', 'antrenor');
     await sessions.revokeDevice(7, 'dev-1');
     expect(await sessions.verifyAccess(one.accessToken)).toBeNull();
     expect(await sessions.verifyAccess(two.accessToken)).not.toBeNull();
@@ -182,8 +182,8 @@ describe('ownSessions', () => {
 
   it('revokeAll ends all but the kept session', async () => {
     const { sessions } = await setup();
-    const keep = await sessions.issue(7, 'dev-1');
-    const gone = await sessions.issue(7, 'dev-2');
+    const keep = await sessions.issue(7, 'dev-1', 'antrenor');
+    const gone = await sessions.issue(7, 'dev-2', 'antrenor');
     await sessions.revokeAll(7, keep.sessionId);
     expect(await sessions.verifyAccess(keep.accessToken)).not.toBeNull();
     expect(await sessions.verifyAccess(gone.accessToken)).toBeNull();

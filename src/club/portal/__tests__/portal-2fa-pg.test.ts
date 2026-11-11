@@ -87,7 +87,7 @@ describe.skipIf(!url)('portal 2FA single-use paths on Postgres', () => {
 
   it('6 parallel Activează confirms with one right code: exactly one turns the app on and gets the 10 codes', async () => {
     const { id } = await makeAccount();
-    const coach = { accountId: id, userId: 1, sessionId: 's', teamMemberId: 'tm', name: 'Ana' };
+    const coach = { accountId: id, userId: 1, sessionId: 's', host: 'antrenor', actor: 'Antrenor Ana' };
     const started = await portalSecurity(request(), coach).totpStart();
     expect(started.ok).toBe(true);
     const factor = (await strapiSecurityStore(strapi).factors({ type: 'portal', id }))[0];

@@ -88,7 +88,7 @@ describe('reset forgets remembered devices (spec 6.4)', () => {
     await s.enrol(id);
     const until = new Date(s.clock.t.getTime() + 86_400_000).toISOString();
     for (const key of ['k-one', 'k-two']) {
-      const d = await s.store.createDevice({ accountId: id, deviceKeyHash: hashSecret(key), sessionId: null, label: 'Telefon', firstSeenAt: s.clock.t.toISOString(), lastSeenAt: s.clock.t.toISOString() });
+      const d = await s.store.createDevice({ accountId: id, host: 'antrenor', deviceKeyHash: hashSecret(key), sessionId: null, label: 'Telefon', firstSeenAt: s.clock.t.toISOString(), lastSeenAt: s.clock.t.toISOString() });
       await s.secStore.setPortalDeviceTwoFactor(d, until);
     }
     await requestReset(s.c, { email: 'ana@x.ro' });

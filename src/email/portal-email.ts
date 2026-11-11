@@ -16,11 +16,11 @@ export function isPortalInvitePayload(v: unknown): v is PortalInvitePayload {
   return isRecord(v) && typeof v.name === 'string' && typeof v.link === 'string' && v.link.length > 0 && typeof v.host === 'string' && v.host.length > 0;
 }
 
-/** The coach portal host: `antrenor.` + the site host (without `www.`); `antrenor.localhost:port` over http locally. */
-export function portalHost(siteUrl: string): { host: string; origin: string } {
+/** The portal host of a site: `antrenor.` or `sportiv.` + the site host (without `www.`); `<site>.localhost:port` over http locally. */
+export function portalHost(siteUrl: string, site: 'antrenor' | 'sportiv' = 'antrenor'): { host: string; origin: string } {
   const url = new URL(siteUrl);
   const local = url.hostname === 'localhost' || url.hostname.endsWith('.localhost');
-  const host = `antrenor.${url.host.replace(/^www\./, '')}`;
+  const host = `${site}.${url.host.replace(/^www\./, '')}`;
   return { host, origin: `${local ? 'http' : 'https'}://${host}` };
 }
 

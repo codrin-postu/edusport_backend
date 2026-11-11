@@ -73,7 +73,7 @@ export const MAIL_COPY = {
   },
   newDevice: {
     subject: 'Intrare de pe un dispozitiv nou',
-    line: (device: string, date: string, time: string): string => `${device}, ${date} ${time}.`,
+    line: (device: string, date: string, time: string, host?: string): string => `${device}, ${date} ${time}${host ? `, pe ${host}` : ''}.`,
     advice: 'Dacă nu ai fost tu, schimbă parola.',
   },
   signature: 'Echipa EduSport',

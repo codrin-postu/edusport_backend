@@ -8,7 +8,7 @@ import { keysOrRefusal } from '../../security/context';
 import type { Keys } from '../../security/keys';
 import { RESET_MAX_TRIES, RESET_TTL_MS, newResetCode, tokenState } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
-import { canEnter } from './issue';
+import { mayEnter } from './issue';
 import { afterPassword, type PortalPending, type SessionWithOffer } from './two-factor';
 
 /** No reset request answers sooner than this after it started, so the answer time does not tell a known e-mail from an unknown one. */
@@ -69,7 +69,7 @@ async function resetAnswer(c: PortalAuthContext, body: unknown): Promise<PortalR
   const tokenId = await c.store.transaction(async () => {
     await c.store.lockAccount(account.id);
     await useUpOpen(c, account.id);
-    return c.store.createToken({ accountId: account.id, host: 'antrenor', kind: 'reset', secretHash: packMac(codeMac(gate.keys, 'reset-code', 'portal', account.id, code)), expiresAt: new Date(c.now().getTime() + RESET_TTL_MS).toISOString() });
+    return c.store.createToken({ accountId: account.id, host: null, kind: 'reset', secretHash: packMac(codeMac(gate.keys, 'reset-code', 'portal', account.id, code)), expiresAt: new Date(c.now().getTime() + RESET_TTL_MS).toISOString() });
   });
   if (!(await sendCode(c, email, code))) {
     await failSend(c, account.id, tokenId);
@@ -111,6 +111,7 @@ async function checkCode(c: PortalAuthContext, keys: Keys, accountId: string, co
     await c.store.updateToken(token.id, { usedAt: at });
     await useUpOpen(c, accountId, token.id);
     await c.store.updateUser(account.userId, { passwordHash, confirmed: true });
+    await c.store.updateAccount(accountId, { passwordChangedAt: at });
     if (account.status === 'invited') await c.store.updateAccount(accountId, { status: 'active', activatedAt: at });
     await c.sessions.revokeAll(account.userId);
     // Spec 6.4: a reset forgets every remembered device, the one that did the reset included.
@@ -136,6 +137,6 @@ export async function confirmReset(c: PortalAuthContext, body: unknown): Promise
   const checked = await checkCode(c, gate.keys, account.id, read.code, passwordHash);
   if (!checked.right) return badCode;
   const user = await c.store.user(checked.account.userId);
-  if (!canEnter(checked.account, user, read.host)) return { ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin };
+  if (!(await mayEnter(c, checked.account, user, read.host))) return { ok: false, status: 401, error: PORTAL_ERRORS.wrongLogin };
   return afterPassword(c, checked.account, read.deviceKey, read.host);
 }

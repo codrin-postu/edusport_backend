@@ -7,7 +7,7 @@ import type { AccountRow } from '../store';
 import { hashSecret, tokenState } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
 import { activateInvited, liveInvite } from './invite';
-import { canEnter, startSession } from './issue';
+import { mayEnter, startSession } from './issue';
 import { hasTwoFactor } from '../../security/second-step';
 import { openSecondStep, portalSubject, withOffer, type PortalPending, type SessionWithOffer } from './two-factor';
 
@@ -131,7 +131,7 @@ async function bindSub(c: PortalAuthContext, accountId: string, sub: string, hos
     await c.store.lockAccount(accountId);
     const account = await c.store.account(accountId);
     if (!account || account.status !== 'active' || account.googleSub !== null || account.googleUnlinkedAt !== null) return null;
-    if (!canEnter(account, await c.store.user(account.userId), host)) return null;
+    if (!(await mayEnter(c, account, await c.store.user(account.userId), host))) return null;
     await c.store.updateAccount(accountId, { googleSub: sub });
     return { ...account, googleSub: sub };
   });
@@ -169,7 +169,7 @@ export async function loginWithGoogle(c: PortalAuthContext, g: GoogleClient | nu
   const enter = async (account: AccountRow | null): Promise<PortalResult<SessionWithOffer>> => {
     if (!account) return noAccount;
     const user = await c.store.user(account.userId);
-    return canEnter(account, user, read.host) ? session(account, false) : noAccount;
+    return (await mayEnter(c, account, user, read.host)) ? session(account, false) : noAccount;
   };
 
   const owner = await c.store.accountByGoogleSub(who.sub);
@@ -183,7 +183,7 @@ export async function loginWithGoogle(c: PortalAuthContext, g: GoogleClient | nu
   }
   if (owner) {
     const user = await c.store.user(owner.userId);
-    return canEnter(owner, user, read.host) ? session(owner, true) : noAccount;
+    return (await mayEnter(c, owner, user, read.host)) ? session(owner, true) : noAccount;
   }
   const byEmail = await c.store.accountByEmail(who.email);
   if (!byEmail || byEmail.status === 'disabled' || byEmail.googleSub !== null || byEmail.googleUnlinkedAt !== null) return noAccount;
@@ -194,8 +194,8 @@ export async function loginWithGoogle(c: PortalAuthContext, g: GoogleClient | nu
     return done ? enter(done) : expiredInvite;
   }
   if ((await hasTwoFactor(c.security, portalSubject(byEmail))).length > 0) {
-    if (!canEnter(byEmail, await c.store.user(byEmail.userId), read.host)) return noAccount;
-    const device = read.deviceKey ? await c.store.deviceByKey(byEmail.id, hashSecret(read.deviceKey)) : null;
+    if (!(await mayEnter(c, byEmail, await c.store.user(byEmail.userId), read.host))) return noAccount;
+    const device = read.deviceKey ? await c.store.deviceByKey(byEmail.id, hashSecret(read.deviceKey), read.host) : null;
     return openSecondStep(c, byEmail, read.deviceKey, read.host, device, who.sub);
   }
   const bound = await bindSub(c, byEmail.id, who.sub, read.host);

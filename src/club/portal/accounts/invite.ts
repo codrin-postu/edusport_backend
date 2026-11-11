@@ -6,6 +6,7 @@ import { ACCOUNT_TOASTS } from '../copy-admin';
 import { normalizeEmail } from '../limits';
 import type { AccountRow } from '../store';
 import { hashSecret, INVITE_TTL_MS, newInviteSecret } from '../tokens';
+import type { Host } from '../access/rules';
 import type { AccountAnswer, AccountBlock } from './api-types';
 import { blockFor, type AccountContext } from './read';
 
@@ -44,20 +45,20 @@ export async function useUpTokens(c: AccountContext, accountId: string, kinds: (
 }
 
 /** Inside a transaction with the account locked: a new invite token and its queued mail job; the id of the job. */
-export async function queueFreshInvite(c: AccountContext, account: AccountRow, name: string, email: string): Promise<string> {
+export async function queueFreshInvite(c: AccountContext, account: AccountRow, name: string, email: string, site: Host = 'antrenor'): Promise<string> {
   if (!c.siteUrl) throw new Error('the public site address is not configured');
-  const { host, origin } = portalHost(c.siteUrl);
+  const { host, origin } = portalHost(c.siteUrl, site);
   const secret = newInviteSecret();
-  await c.store.createToken({ accountId: account.id, host: 'antrenor', kind: 'invite', secretHash: hashSecret(secret), expiresAt: new Date(c.now().getTime() + INVITE_TTL_MS).toISOString() });
+  await c.store.createToken({ accountId: account.id, host: site, kind: 'invite', secretHash: hashSecret(secret), expiresAt: new Date(c.now().getTime() + INVITE_TTL_MS).toISOString() });
   const link = inviteLink(host, secret, origin.startsWith('http://') ? 'http' : 'https');
   return c.queueInvite(portalInviteJob({ recipient: email, accountId: account.id, payload: { name, link, host } }, c.now()));
 }
 
-/** Inside a transaction with the account locked: every device is revoked and every session of the user ends (lock order account, session). */
-export async function revokeAccess(c: AccountContext, account: AccountRow): Promise<void> {
+/** Inside a transaction with the account locked: every device (of the host, when given) is revoked and every session of the user ends (lock order account, session). */
+export async function revokeAccess(c: AccountContext, account: AccountRow, host?: Host): Promise<void> {
   const at = c.now().toISOString();
-  for (const d of await c.store.devices(account.id)) if (d.revokedAt === null) await c.store.updateDevice(d.id, { revokedAt: at });
-  await c.sessions.revokeAll(account.userId);
+  for (const d of await c.store.devices(account.id)) if (d.revokedAt === null && (host === undefined || d.host === host)) await c.store.updateDevice(d.id, { revokedAt: at });
+  await (host === undefined ? c.sessions.revokeAll(account.userId) : c.sessions.revokeAllOnHost(account.userId, host));
 }
 
 export const answer = (block: AccountBlock, toast: string): AdminResult<AccountAnswer> => ({ ok: true, data: { account: block, toast } });

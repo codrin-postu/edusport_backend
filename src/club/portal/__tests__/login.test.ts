@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { fakeAccessStore } from '../access/fake-store';
 import { describe, expect, it, vi } from 'vitest';
 import type { SendPortalMail, PortalMail } from '../../../email/portal-direct';
 import controller from '../../../api/portal/controllers/portal-auth';
@@ -6,7 +7,6 @@ import { PORTAL_ACTIONS, PORTAL_ERRORS } from '../copy';
 import { limiter } from '../auth/limit';
 import type { PortalAuthContext } from '../auth/context';
 import { loginWithPassword, noticeLockout, readLoginBody } from '../auth/login';
-import { canEnter } from '../auth/issue';
 import { portalSessions } from '../sessions';
 import type { AccountRow, PortalStore } from '../store';
 import { hashSecret } from '../tokens';
@@ -47,7 +47,7 @@ function setup(o: { mailOk?: boolean | 'throw'; ip?: string } = {}) {
   const logs: string[] = [];
   const compare = vi.fn(async (p: string, h: string) => h === `hash:${p}`);
   const c: PortalAuthContext = { security: securityFor(fake, store, now).security,
-    store, sessions: portalSessions(store, now), limits: limiter(store, now), mail, common: new Set(), hosts: ['antrenor'], ip: o.ip ?? '1.1.1.1',
+    store, access: fakeAccessStore().store, sessions: portalSessions(store, now), limits: limiter(store, now), mail, common: new Set(), hosts: ['antrenor'], ip: o.ip ?? '1.1.1.1',
     userAgent: UA, now, log: (m) => logs.push(m), hash: async (p) => `hash:${p}`, compare,
   };
   const addAccount = async (email: string, userId: number, extra: Partial<AccountRow> = {}) => store.createAccount({ userId, email, status: 'active', teamMemberId: 'tm1', ...extra });
@@ -102,17 +102,6 @@ describe('login answers', () => {
     expect(readLoginBody({ host: 'antrenor', email: ' A@b.ro ', password: 'p' }, ['antrenor'])).toEqual({ host: 'antrenor', email: 'a@b.ro', password: 'p', deviceKey: null });
   });
 
-  it('canEnter needs an active account, an unblocked user and a team member on antrenor', () => {
-    const account = { status: 'active', teamMemberId: 'tm' } as AccountRow;
-    const user = { blocked: false } as never;
-    expect(canEnter(account, user, 'antrenor')).toBe(true);
-    expect(canEnter({ ...account, teamMemberId: null }, user, 'antrenor')).toBe(false);
-    expect(canEnter({ ...account, teamMemberId: null }, user, 'sportiv')).toBe(true);
-    expect(canEnter(account, { blocked: true } as never, 'antrenor')).toBe(false);
-    expect(canEnter({ ...account, status: 'invited' }, user, 'antrenor')).toBe(false);
-    expect(canEnter(null, user, 'antrenor')).toBe(false);
-    expect(canEnter(account, null, 'antrenor')).toBe(false);
-  });
 });
 
 describe('lockout and limits', () => {

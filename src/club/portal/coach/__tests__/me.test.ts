@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { fakeAccessStore } from '../../access/fake-store';
 import { limiter } from '../../auth/limit';
 import type { PortalAuthContext } from '../../auth/context';
 import { loginWithPassword } from '../../auth/login';
@@ -23,13 +24,13 @@ async function setup() {
   const mailed: string[] = [];
   const logs: string[] = [];
   const auth: PortalAuthContext = {
-    store, sessions, limits: limiter(store, now), mail: async (to, m) => { mailed.push(`${to}:${m.kind}`); return true; }, common: new Set(['parola-comuna-1']),
+    store, access: fakeAccessStore().store, sessions, limits: limiter(store, now), mail: async (to, m) => { mailed.push(`${to}:${m.kind}`); return true; }, common: new Set(['parola-comuna-1']),
     hosts: ['antrenor'], ip: '1.1.1.1', userAgent: null, now, log: (m) => logs.push(m),
     hash: async (p) => `hash:${p}`, compare: vi.fn(async (p: string, h: string) => h === `hash:${p}`),
     security: securityFor(s.portalFake, store, now).security,
   };
   const device = async (acc: string, userId: number, key: string, last: string) => {
-    const deviceId = await store.createDevice({ accountId: acc, deviceKeyHash: hashSecret(key), sessionId: null, label: `Telefon ${key}`, firstSeenAt: last, lastSeenAt: last });
+    const deviceId = await store.createDevice({ accountId: acc, host: 'antrenor', deviceKeyHash: hashSecret(key), sessionId: null, label: `Telefon ${key}`, firstSeenAt: last, lastSeenAt: last });
     const tokens = await sessions.issue(userId, deviceId);
     await store.updateDevice(deviceId, { sessionId: tokens.sessionId });
     return { deviceId, ...tokens };
@@ -136,6 +137,13 @@ describe('devices', () => {
     ] });
     expect(JSON.stringify(out)).not.toContain(t.first.sessionId);
     expect(await listDevices(t.c, null)).toMatchObject({ data: [{ current: false }, { current: false }] });
+  });
+
+  it('lists the antrenor devices only: a sportiv device of the same account is left out', async () => {
+    const t = await setup();
+    t.s.portalFake.state.devices.find((d) => d.id === t.second.deviceId)!.host = 'sportiv';
+    const out = await listDevices(t.c, null);
+    expect(out).toMatchObject({ ok: true, data: [{ id: t.first.deviceId }] });
   });
 
   it('revokes a device and its sessions; says when it was the current one', async () => {
