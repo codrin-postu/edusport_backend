@@ -2,6 +2,7 @@
 # Click-through of phase 7-1 (athlete access and accounts) against a THROWAWAY Strapi (fixtures phase4, phase5, phase6 and phase7 loaded).
 # Usage: IDS_FILE=/path/ids.json BASE=http://127.0.0.1:1411 bash scripts/clickthrough-7-1.sh
 # Needs the ids file written by phase7-shape.js (it holds the TOTP secret of parinte2fa). Behaviour only: every step prints PASS or FAIL.
+# Start the throwaway Strapi with PORTAL_2FA=on: the 2FA pending step of step 3 only exists while the portal 2FA switch is on (default off).
 set -u
 BASE="${BASE:-http://127.0.0.1:1411}"
 SECRET="${PORTAL_BFF_SECRET:-test-bff-secret-000000000000000000}"
@@ -69,6 +70,15 @@ ACC=$(json "d['data']['accountId']")
 code=$(status "${A[@]}" -X POST "$BASE/api/club/portal-accounts/$ACC/disable"); expect "disable antrenor1 as coach" "$code" 200
 code=$(status "${H[@]}" -X POST "$BASE/api/portal/auth/refresh" -d "{\"refreshToken\":\"$CO_SP_REFRESH\"}"); expect "antrenor1 sportiv refresh still works" "$code" 200
 code=$(status "${H[@]}" -X POST "$BASE/api/portal/auth/refresh" -d "{\"refreshToken\":\"$CO_AN_REFRESH\"}"); expect "antrenor1 antrenor refresh is refused" "$code" 401
+
+# 7 the e-mail of a holder account changes: its athletes and access rows follow, no second account appears
+ANA=$(ids "d['athletes']['Ana Ionescu']"); P1ACC=$(ids "d['portal']['parinte1']['account']"); NEWMAIL="parinte1-new@example.invalid"
+code=$(status "${A[@]}" -X POST "$BASE/api/club/portal-accounts/$P1ACC/email" -d "{\"email\":\"$NEWMAIL\"}"); expect "change parinte1 account e-mail" "$code" 200
+code=$(status "${A[@]}" "$BASE/api/club/athletes/$ANA"); expect "Ana shows the new parent e-mail" "$code" 200 "d['data']['fields']['email']" "$NEWMAIL"
+code=$(status "${A[@]}" "$BASE/api/club/athletes/$ANA/access"); expect "Ana access block shows the new address" "$code" 200 "d['data']['email'] + ' ' + d['data']['state']" "$NEWMAIL active"
+code=$(status "${A[@]}" "$BASE/api/club/athletes/$MATEI/access"); expect "Matei access block shows the new address" "$code" 200 "d['data']['email'] + ' ' + d['data']['state']" "$NEWMAIL active"
+code=$(login sportiv "$NEWMAIL" Throwaway-Parent-1); expect "the same account signs in with the new address" "$code" 200 "'accessToken' in d['data']" True
+code=$(login sportiv parinte1@example.invalid Throwaway-Parent-1); expect "the old address no longer signs in (no second account)" "$code" 401
 
 rm -f "$BODY"
 [ "$fail" = 0 ] && echo "ALL PASS" || echo "SOME FAILED"
