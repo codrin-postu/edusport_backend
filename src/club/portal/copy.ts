@@ -1,3 +1,4 @@
+import { ACCESS_HISTORY } from './access/copy';
 export const PORTAL_ERRORS = {
   wrongLogin: 'E-mailul sau parola nu sunt corecte.',
   paused: 'Prea multe încercări. Încearcă din nou peste 15 minute.',
@@ -36,6 +37,9 @@ export const PORTAL_ACTIONS = {
   disabled: 'portal-disabled',
   enabled: 'portal-enabled',
   emailChanged: 'portal-email-changed',
+  coachSideOff: 'portal-coach-off',
+  accountOff: 'portal-account-off',
+  coachRoleAdded: 'portal-coach-role-added',
 } as const;
 
 type Changes = Record<string, unknown>;
@@ -51,6 +55,9 @@ const HISTORY_TEXT = new Map<string, (c: Changes) => string>([
   [PORTAL_ACTIONS.locked, () => 'Cont blocat 15 minute după 5 încercări greșite.'],
   [PORTAL_ACTIONS.disabled, () => 'Cont dezactivat.'],
   [PORTAL_ACTIONS.enabled, () => 'Cont activat de administrator.'],
+  [PORTAL_ACTIONS.coachSideOff, () => ACCESS_HISTORY.coachSideOff],
+  [PORTAL_ACTIONS.accountOff, () => ACCESS_HISTORY.accountOff],
+  [PORTAL_ACTIONS.coachRoleAdded, () => ACCESS_HISTORY.coachRoleAdded],
   [PORTAL_ACTIONS.emailChanged, (c) => `E-mail schimbat din ${String(c.from)} în ${String(c.to)}.`],
 ]);
 

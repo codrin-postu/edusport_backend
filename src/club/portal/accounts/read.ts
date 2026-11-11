@@ -9,6 +9,10 @@ import { publicSiteUrl } from '../../../email/config';
 import { attemptPortalInvite, cancelQueuedInvites } from '../../../email/strapi-email';
 import { portalMailSender, type SendPortalMail } from '../../../email/portal-direct';
 import type { NewPortalInviteJob } from '../../../email/portal-email';
+import type { NewPortalAccessJob } from '../../../email/portal-access-email';
+import { transactionScope } from '../../athletes/strapi-store';
+import { strapiAccessStore } from '../access/strapi-store';
+import type { AccessStore } from '../access/store';
 import { PORTAL_ERRORS } from '../copy';
 import { portalSessions, type PortalSessions } from '../sessions';
 import { strapiSecurityStore } from '../../security/strapi-store';
@@ -18,7 +22,11 @@ import { strapiPortalStore } from '../strapi-store';
 import type { AccountBlock, AccountState } from './api-types';
 
 export type AccountContext = {
-  store: PortalStore; sessions: PortalSessions; actor: string; now: () => Date; log: (m: string) => void;
+  store: PortalStore; sessions: PortalSessions; actor: string;
+  /** Athlete access rows (7-1), sharing the transaction scope of `store`. */
+  access: AccessStore;
+  /** Writes the queued `portal-access` job (inside the caller's transaction) and answers its id. */
+  queueAccess: (job: NewPortalAccessJob) => Promise<string>; now: () => Date; log: (m: string) => void;
   /** Writes the queued job (inside the caller's transaction) and answers its id. */
   queueInvite: (job: NewPortalInviteJob) => Promise<string>;
   /** After commit: the first attempt of the invite job. */
@@ -43,11 +51,13 @@ export async function accountContext(strapi: Core.Strapi, ctx: AdminCtx): Promis
 
 /** The context without a request: the delete hook and the tests build theirs from here. */
 export function baseContext(strapi: Core.Strapi, actor: string): AccountContext {
-  const store = strapiPortalStore(strapi);
+  const scope = transactionScope(strapi);
+  const store = strapiPortalStore(strapi, scope);
   const security = strapiSecurityStore(strapi);
   const now = (): Date => new Date();
   return {
     store,
+    access: strapiAccessStore(strapi, scope),
     sessions: portalSessions(store, now),
     actor,
     now,
@@ -58,6 +68,10 @@ export function baseContext(strapi: Core.Strapi, actor: string): AccountContext 
     queueInvite: async (job) =>
       (await strapi.documents(JOB_UID).create({
         data: { kind: 'portal-invite', subject: job.subject, recipient: job.recipient, payload: job.payload, changeKey: job.accountId, status: 'queued', attempts: 0 } as never,
+      })).documentId,
+    queueAccess: async (job) =>
+      (await strapi.documents(JOB_UID).create({
+        data: { kind: 'portal-access', subject: job.subject, recipient: job.recipient, payload: job.payload, changeKey: job.accountId, status: 'queued', attempts: 0 } as never,
       })).documentId,
     afterCommit: (jobId) => attemptPortalInvite(strapi, jobId),
     cancelInvites: async (accountId) => {
@@ -86,13 +100,18 @@ export async function twoFactorOn(store: SecurityStore, accountId: string): Prom
 
 /** `blockOf` with the 2FA flag read. */
 export async function blockFor(c: AccountContext, teamMemberId: string, account: AccountRow | null): Promise<AccountBlock> {
-  return blockOf(teamMemberId, account, account && c.twoFactorOn ? await c.twoFactorOn(account.id) : false);
+  const twoFactor = account && c.twoFactorOn ? await c.twoFactorOn(account.id) : false;
+  const hasSportiv = account ? (await c.access.liveByAccount(account.id)).length > 0 : false;
+  return blockOf(teamMemberId, account, twoFactor, hasSportiv);
 }
 
-export function blockOf(teamMemberId: string, account: AccountRow | null, twoFactor = false): AccountBlock {
-  if (!account) return { teamMemberId, accountId: null, state: 'none', email: null, since: null, google: false, twoFactor: false };
+export function blockOf(teamMemberId: string, account: AccountRow | null, twoFactor = false, hasSportiv = false): AccountBlock {
+  if (!account) return { teamMemberId, accountId: null, state: 'none', email: null, since: null, google: false, twoFactor: false, hasSportiv: false, coachDisabled: false };
   const state: AccountState = account.status;
-  return { teamMemberId, accountId: account.id, state, email: account.email, since: sinceDate(STATE_SINCE[account.status](account)), google: account.googleSub !== null, twoFactor };
+  return {
+    teamMemberId, accountId: account.id, state, email: account.email, since: sinceDate(STATE_SINCE[account.status](account)), google: account.googleSub !== null, twoFactor,
+    hasSportiv, coachDisabled: account.coachDisabledAt !== null,
+  };
 }
 
 export async function readAccount(c: AccountContext, teamMemberId: string): Promise<AdminResult<AccountBlock>> {

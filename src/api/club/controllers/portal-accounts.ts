@@ -38,6 +38,6 @@ export default {
       store: c.store, security: strapiSecurityStore(strapi), sessions: c.sessions, limits: limiter(c.store, c.now), now: c.now, keys: loadKeys(), log: c.log,
       ip: 'admin', userAgent: null, sendSecurity: securityMailSender(strapi),
     });
-    respond(ctx, await resetPortalTwoFactor({ store: c.store, security }, param(ctx, 'documentId'), c.actor));
+    respond(ctx, await resetPortalTwoFactor({ store: c.store, security, access: c.access }, param(ctx, 'documentId'), c.actor));
   },
 };
