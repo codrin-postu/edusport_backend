@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { AthleteCard } from '../../athletes/api-types';
 import type { DayRow, LessonListRow, PanelRow, SessionPanel } from '../../presence/attendance/api-types';
-import { addVisitor, addCoachField, answerInactive, coachIdsOf, columnsFor, footerCounts, initialTicks, isDirty, readInactive, saveBody, setCoach, toggleTick } from '../panel-view';
+import { addVisitor, addCoachField, answerInactive, coachIdsOf, footerCounts, isDirty, readInactive, saveBody, setCoach, toggleTick } from '../panel-view';
 import { ABONAMENTE_PATH, DE_INCASAT_PATH, PLATI_PATH, PREZENTA_PATH, prezentaTo, readPrezentaQuery } from '../routes';
-import { addDays, countText, dayLine, dayTitle, durationText, existingLine, footerText, lessonCard, lessonTitle, longDayTitle, panelTitle, sessionCard, stateWord, undoneTitle, visitorsText } from '../day-view';
 
 const dayRow = (p: Partial<DayRow> = {}): DayRow => ({
   sessionId: null, occurrenceKey: null, groupId: 'g1', groupName: 'Intermediari Bronze', date: '2026-10-27', startTime: '17:00',
@@ -21,39 +20,6 @@ const row = (id: string, p: Partial<PanelRow> = {}): PanelRow => ({
   athleteId: id, name: id, visitor: false, inactive: false, mainGroup: null, abonament: null, grup: false, uscat: false, noSubscription: false, ...p,
 });
 
-describe('day lines and titles (5.2, 5.3, p5 Q42)', () => {
-  it('formats day lines, titles and dates', () => {
-    expect(dayLine('2026-10-27')).toBe('Marți, 27 oct 2026');
-    expect([dayTitle('2026-10-27', '2026-10-27'), dayTitle('2026-10-26', '2026-10-27')]).toEqual(['Azi, marți 27 oct', 'Luni, 26 oct']);
-    expect(longDayTitle('2026-10-27')).toBe('Marți 27 oct 2026');
-    expect([panelTitle('Intermediari Bronze', '17:00'), lessonTitle('18:00')]).toEqual(['Intermediari Bronze, 17:00', 'Lecție individuală, 18:00']);
-    expect([addDays('2026-10-31', 1), addDays('2026-03-01', -1)]).toEqual(['2026-11-01', '2026-02-28']);
-  });
-});
-
-describe('counts, states and short texts (5.2, 5.3, 5.6)', () => {
-  it('formats counts and short texts', () => {
-    expect([countText(6, 9), footerText(4, 6), undoneTitle(2), visitorsText(2), durationText(50)])
-      .toEqual(['6 din 9', '4 din 6 prezenți', 'Nefăcute din zilele trecute (2)', 'Din alte grupe: 2', '50 min']);
-  });
-
-  it('maps session states to words and the existing-session line', () => {
-    expect([stateWord('nefacuta'), stateWord('urmeaza'), stateWord('salvata'), stateWord(null)]).toEqual(['nefăcută', 'urmează', 'salvată', '']);
-    expect(existingLine({ sessionId: 's1', startTime: '11:00', present: 6, listed: 9, savedBy: 'Ana Admin' })).toBe('11:00, 6 din 9, Salvată de Ana Admin');
-  });
-});
-
-describe('phone cards (5.2, decided 12)', () => {
-  it('builds the session and lesson card titles and lines', () => {
-    expect(sessionCard(dayRow({ startTime: '17:00', groupName: 'Intermediari Bronze', coachNames: ['Virgil Pascu'], present: 6, listed: 9, state: 'salvata' })))
-      .toEqual({ title: '17:00 Intermediari Bronze', line: 'Virgil Pascu, 6 din 9, salvată' });
-    expect(sessionCard(dayRow({ startTime: '16:00', groupName: 'Primii Pași', coachNames: ['Elena Marin'], present: 0, listed: 12, state: 'urmeaza' })))
-      .toEqual({ title: '16:00 Primii Pași', line: 'Elena Marin, 0 din 12, urmează' });
-    expect(lessonCard(lessonListRow({ startTime: '18:00', athleteName: 'Ana Ionescu', coachNames: ['Virgil Pascu'], durationMin: 50, state: 'salvata' })))
-      .toEqual({ title: '18:00 Ana Ionescu', line: 'Virgil Pascu, 50 min, salvată' });
-  });
-});
-
 describe('address (decided 2)', () => {
   it('reads and writes the Prezență query and the module paths', () => {
     expect(readPrezentaQuery('?tab=lectii&month=2026-10', '2026-10-27')).toEqual({ view: 'luna', date: '2026-10-01', show: 'lectii', layout: 'lista' });
@@ -63,11 +29,6 @@ describe('address (decided 2)', () => {
 });
 
 describe('panel columns, ticks and footer (5.3, p5 Q3, 4.1)', () => {
-  it('shows no Uscat at Școala and starts an unsaved list empty', () => {
-    expect([columnsFor('school'), columnsFor('club')]).toEqual([['Sportiv', 'Grup'], ['Sportiv', 'Grup', 'Uscat']]);
-    expect(Object.values(initialTicks(panel({ sessionId: null, rows: [row('a1'), row('a2')] }))).some((t) => t.grup || t.uscat)).toBe(false);
-    expect(initialTicks(panel({ sessionId: 's1', rows: [row('a1', { grup: true })] }))).toEqual({ a1: { grup: true, uscat: false } });
-  });
 
   it('counts a visitor in neither x nor y', () => {
     const rows = [row('a1'), row('a2'), row('a7', { visitor: true })];

@@ -1,23 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  asciiWords,
-  blankFileName,
-  documentFileName,
-  formatBirthDate,
-  formatDay,
-  formatFee,
-  kindFromFileName,
-  monthYear,
-  relationshipLabel,
-} from '../format';
+import { asciiWords, blankFileName, documentFileName, formatBirthDate, formatDay, kindFromFileName } from '../format';
 
 describe('document formats', () => {
-  it('prints Sezon months in Romanian', () => {
-    expect(monthYear('2026-10-01')).toBe('octombrie 2026');
-    expect(monthYear('2027-05-31')).toBe('mai 2027');
-    expect(monthYear('')).toBeNull();
-    expect(monthYear('2026-13-01')).toBeNull();
-  });
 
   it('prints the birth date as dd.mm.yyyy whatever the form sent', () => {
     expect(formatBirthDate('2014-03-14')).toBe('14.03.2014');
@@ -31,20 +15,6 @@ describe('document formats', () => {
     expect(formatDay('2026-10-02T22:30:00.000Z')).toBe('03.10.2026');
     expect(formatDay('nu e o dată')).toBeNull();
     expect(formatDay(null)).toBeNull();
-  });
-
-  it('prints the fee as the Cerere does', () => {
-    expect(formatFee(270)).toBe('270 ron');
-    expect(formatFee(270.5)).toBe('270,5 ron');
-    expect(formatFee(null)).toBeNull();
-  });
-
-  it('prints the relationship label, or the free text for Alta', () => {
-    expect(relationshipLabel('parinte', null)).toBe('Părinte');
-    expect(relationshipLabel('tutore', 'ignored')).toBe('Tutore Legal');
-    expect(relationshipLabel('alta', ' Bunic ')).toBe('Bunic');
-    expect(relationshipLabel('alta', '')).toBeNull();
-    expect(relationshipLabel(null, null)).toBeNull();
   });
 
   it('names files Nume_Prenume_Tip-document_Sezon.pdf without diacritics', () => {

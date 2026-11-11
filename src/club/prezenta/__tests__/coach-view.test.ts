@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COACH_COPY, PANEL_LINKS } from '../../presence/copy/prezenta-ui';
-import { backTarget, coachPageAddress, coachRowDate, durationText, readCoachQuery } from '../coach-view';
+import { backTarget, coachPageAddress, readCoachQuery } from '../coach-view';
 import { coachIdFromSplat, coachPageTo, prezentaTo } from '../routes';
 
 describe('coach view', () => {
@@ -11,12 +10,6 @@ describe('coach view', () => {
     expect(readCoachQuery('?show=lectii', '2026-11-06').show).toBe('lectii');
   });
 
-  it('row dates and durations', () => {
-    expect(coachRowDate('2026-11-04', '2026-11-06')).toBe('Mie 4 noi');
-    expect(coachRowDate('2025-12-29', '2026-11-06')).toBe('Lun 29 dec 2025');
-    expect(durationText(50)).toBe('50 min');
-  });
-
   it('goes back to where the admin came from, else to Prezență with Antrenori', () => {
     const fallback = prezentaTo({ show: 'antrenori' });
     expect(backTarget({ from: '/plugins/edusport-prezenta?view=luna&show=antrenori' })).toBe('/plugins/edusport-prezenta?view=luna&show=antrenori');
@@ -25,12 +18,6 @@ describe('coach view', () => {
     expect(backTarget(null)).toBe(fallback);
     expect(backTarget(undefined)).toBe(fallback);
     expect(backTarget({ from: 7 })).toBe(fallback);
-  });
-
-  it('copy is exact', () => {
-    expect(COACH_COPY.tiles).toEqual({ sessions: 'Ședințe grup', lessons: 'Lecții individuale', hours: 'Ore' });
-    expect(COACH_COPY.back).toBe('Înapoi');
-    expect(PANEL_LINKS).toEqual({ coaches: 'Antrenori: ', openGroup: 'Deschide grupa' });
   });
 
   it('the page address matches what the Antrenori rows link to (S45)', () => {

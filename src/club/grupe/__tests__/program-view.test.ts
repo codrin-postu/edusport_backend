@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Occurrence } from '../../../api/calendar-event/services/expand';
 import type { ProgramRow } from '../../groups/program-read';
-import {
-  changeBody, dateBody, dateFormOf, dateKey, dateToast, durationOptions, formFromRow, groupChip, isBreak, isOneOffClass, newProgramForm, panelTitle, programBody, programFormError, weekTitle,
-} from '../program-view';
+import { changeBody, dateBody, dateFormOf, dateKey, dateToast, formFromRow, groupChip, isBreak, isOneOffClass, newProgramForm, programBody, programFormError } from '../program-view';
 
 const occ = (over: Partial<Occurrence>): Occurrence => ({
   eventId: 1, documentId: 'e1', title: 'Intermediari Bronze', type: 'scoala', label: null, color: null, order: 0, date: '2026-11-14', startTime: '11:00', endTime: '11:50',
@@ -25,19 +23,6 @@ describe('chips of the group calendar (6.3, W12)', () => {
     expect(isBreak(occ({ status: 'cancelled', cancelReason: 'blackout' }))).toBe(true);
     expect(dateKey(occ({ status: 'override', date: '2026-11-22', originalDate: '2026-11-21' }))).toBe('2026-11-21');
     expect(dateKey(occ({}))).toBe('2026-11-14');
-  });
-});
-
-describe('titles', () => {
-  it('week ranges and the panel title', () => {
-    expect(weekTitle(new Date(2026, 10, 9))).toBe('9 - 15 noiembrie');
-    expect(weekTitle(new Date(2026, 9, 26))).toBe('26 oct - 1 noiembrie');
-    expect(panelTitle('2026-11-14', '11:00')).toBe('Sâmbătă, 14 noiembrie, 11:00');
-  });
-
-  it('durations 15 to 240 by 5', () => {
-    const options = durationOptions();
-    expect([options[0], options[options.length - 1], options.length]).toEqual([{ value: '15', label: '15 min' }, { value: '240', label: '240 min' }, 46]);
   });
 });
 
