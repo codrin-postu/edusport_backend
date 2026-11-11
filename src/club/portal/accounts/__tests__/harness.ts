@@ -50,10 +50,10 @@ export async function seedAccount(h: Harness, status: 'invited' | 'active' | 'di
     ...(status !== 'invited' ? { activatedAt: at } : {}), ...(status === 'disabled' ? { disabledAt: at, disabledBy: 'x' } : {}),
   });
   const later = new Date(NOW.getTime() + 86_400_000).toISOString();
-  await store.createToken({ accountId: id, kind: 'invite', secretHash: 'inv', expiresAt: later });
-  await store.createToken({ accountId: id, kind: 'reset', secretHash: 'rst', expiresAt: later });
+  await store.createToken({ accountId: id, host: 'antrenor', kind: 'invite', secretHash: 'inv', expiresAt: later });
+  await store.createToken({ accountId: id, host: 'antrenor', kind: 'reset', secretHash: 'rst', expiresAt: later });
   if (status === 'active') {
-    const dev = await store.createDevice({ accountId: id, deviceKeyHash: 'k', sessionId: null, label: 'Telefon, Chrome', firstSeenAt: at, lastSeenAt: at });
+    const dev = await store.createDevice({ accountId: id, host: 'antrenor', deviceKeyHash: 'k', sessionId: null, label: 'Telefon, Chrome', firstSeenAt: at, lastSeenAt: at });
     await store.createSession({ accountId: id, deviceId: dev, host: 'antrenor', refreshHash: 'r', accessHash: 'a', accessExpiresAt: later, familyStartedAt: at, lastUsedAt: at });
   }
   return { id, userId };

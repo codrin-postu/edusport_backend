@@ -29,6 +29,7 @@ export function toAccountRow(r: Raw): AccountRow {
     id: text(r.documentId), userId: Number(user.id), email: text(r.email), status: STATUSES.find((s) => s === r.status) ?? 'invited',
     teamMemberId: linkId(r.teamMember), phone: str(r.phone), googleSub: str(r.googleSub), googleUnlinkedAt: iso(r.googleUnlinkedAt), invitedAt: iso(r.invitedAt), invitedBy: str(r.invitedBy),
     activatedAt: iso(r.activatedAt), disabledAt: iso(r.disabledAt), disabledBy: str(r.disabledBy), lastLoginAt: iso(r.lastLoginAt),
+    name: str(r.name), coachDisabledAt: iso(r.coachDisabledAt), passwordChangedAt: iso(r.passwordChangedAt), notifySchedule: r.notifySchedule !== false,
   };
 }
 
@@ -39,13 +40,13 @@ export function toLimitRow(r: Raw): LimitRow {
 export function toTokenRow(r: Raw): TokenRow {
   return {
     id: text(r.documentId), accountId: linkId(r.account) ?? '', kind: r.kind === 'reset' ? 'reset' : 'invite', secretHash: text(r.secretHash),
-    expiresAt: iso(r.expiresAt) ?? '', usedAt: iso(r.usedAt), tries: Number(r.tries ?? 0), createdAt: iso(r.createdAt) ?? '',
+    expiresAt: iso(r.expiresAt) ?? '', usedAt: iso(r.usedAt), tries: Number(r.tries ?? 0), createdAt: iso(r.createdAt) ?? '', host: str(r.host) ?? 'antrenor',
   };
 }
 
 export function toDeviceRow(r: Raw): DeviceRow {
   return {
-    id: text(r.documentId), accountId: linkId(r.account) ?? '', deviceKeyHash: text(r.deviceKeyHash), sessionId: str(r.sessionId), label: text(r.label),
+    id: text(r.documentId), accountId: linkId(r.account) ?? '', host: str(r.host) ?? 'antrenor', deviceKeyHash: text(r.deviceKeyHash), sessionId: str(r.sessionId), label: text(r.label),
     firstSeenAt: iso(r.firstSeenAt) ?? '', lastSeenAt: iso(r.lastSeenAt) ?? '', revokedAt: iso(r.revokedAt),
     twoFactorUntil: iso(r.twoFactorUntil), confirmedAt: iso(r.confirmedAt),
   };
@@ -187,7 +188,7 @@ function tokens(strapi: Core.Strapi): Pick<PortalStore, 'tokens' | 'tokenByHash'
       return rows[0] ? toTokenRow(rows[0]) : null;
     },
     createToken: async (t) => {
-      const created = await docs().create({ data: { account: t.accountId, kind: t.kind, secretHash: t.secretHash, expiresAt: t.expiresAt, tries: 0 } as never });
+      const created = await docs().create({ data: { account: t.accountId, host: t.host, kind: t.kind, secretHash: t.secretHash, expiresAt: t.expiresAt, tries: 0 } as never });
       return text((created as Raw).documentId);
     },
     updateToken: async (id, t) => {
@@ -240,8 +241,7 @@ function sessions(strapi: Core.Strapi): Pick<PortalStore, 'session' | 'sessionBy
   };
 }
 
-export function strapiPortalStore(strapi: Core.Strapi): PortalStore {
-  const scope = transactionScope(strapi);
+export function strapiPortalStore(strapi: Core.Strapi, scope: Scope = transactionScope(strapi)): PortalStore {
   return {
     transaction: scope.transaction,
     lockTeamMember: (id) => scope.lockRow(TEAM_MEMBER_TABLE, id),

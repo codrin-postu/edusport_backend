@@ -19,7 +19,7 @@ type Bound = { device: DeviceRow; key: string; newRow: boolean; newKey: boolean 
 export async function createDeviceRow(c: PortalAuthContext, account: AccountRow): Promise<{ device: DeviceRow; key: string }> {
   const key = newDeviceKey();
   const at = c.now().toISOString();
-  const row = { accountId: account.id, deviceKeyHash: hashSecret(key), sessionId: null, label: deviceLabel(c.userAgent), firstSeenAt: at, lastSeenAt: at };
+  const row = { accountId: account.id, host: 'antrenor', deviceKeyHash: hashSecret(key), sessionId: null, label: deviceLabel(c.userAgent), firstSeenAt: at, lastSeenAt: at };
   const id = await c.store.createDevice(row);
   return { device: { ...row, id, revokedAt: null, twoFactorUntil: null, confirmedAt: null }, key };
 }

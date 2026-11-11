@@ -14,6 +14,7 @@ import { codesBackfillPorts, runCodesBackfill } from './club/codes-backfill';
 import { assertKeysForBoot } from './club/security/keys';
 import { ensureSecurityIndexesAtBoot } from './club/security/indexes';
 import { checkUpSettings } from './club/portal/up-settings';
+import { ensureAccessIndexes, backfillDeviceHosts } from './club/portal/access/indexes';
 import { ensurePortalIndexes, subscribeTeamMemberHook } from './club/portal/accounts/team-member-hook';
 
 // Admin layout overrides - applied on every bootstrap so they survive DB resets.
@@ -453,6 +454,15 @@ export default {
       await ensurePortalIndexes(strapi.db.connection);
     } catch (e) {
       const message = `[portal] indexes: ${(e as { code?: string })?.code ?? 'unknown'}`;
+      strapi.log.error(message);
+      captureMessage(message);
+    }
+    // Phase 7-1: one live access per athlete, and the host of the device and token rows made before phase 7.
+    try {
+      await ensureAccessIndexes(strapi.db.connection);
+      await backfillDeviceHosts(strapi.db.connection);
+    } catch (e) {
+      const message = `[portal] access indexes: ${(e as { code?: string })?.code ?? 'unknown'}`;
       strapi.log.error(message);
       captureMessage(message);
     }

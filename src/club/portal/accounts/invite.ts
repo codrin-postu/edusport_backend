@@ -48,7 +48,7 @@ export async function queueFreshInvite(c: AccountContext, account: AccountRow, n
   if (!c.siteUrl) throw new Error('the public site address is not configured');
   const { host, origin } = portalHost(c.siteUrl);
   const secret = newInviteSecret();
-  await c.store.createToken({ accountId: account.id, kind: 'invite', secretHash: hashSecret(secret), expiresAt: new Date(c.now().getTime() + INVITE_TTL_MS).toISOString() });
+  await c.store.createToken({ accountId: account.id, host: 'antrenor', kind: 'invite', secretHash: hashSecret(secret), expiresAt: new Date(c.now().getTime() + INVITE_TTL_MS).toISOString() });
   const link = inviteLink(host, secret, origin.startsWith('http://') ? 'http' : 'https');
   return c.queueInvite(portalInviteJob({ recipient: email, accountId: account.id, payload: { name, link, host } }, c.now()));
 }

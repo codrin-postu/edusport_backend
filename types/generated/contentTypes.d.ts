@@ -508,6 +508,7 @@ export interface ApiAdminAccountAdminAccount
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     googleSub: Schema.Attribute.String & Schema.Attribute.Unique;
+    googleUnlinkedAt: Schema.Attribute.DateTime;
     lastMethod: Schema.Attribute.Enumeration<['totp', 'email', 'backup']>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -547,6 +548,7 @@ export interface ApiAdminDeviceAdminDevice extends Struct.CollectionTypeSchema {
   };
   attributes: {
     adminUserId: Schema.Attribute.Integer & Schema.Attribute.Required;
+    confirmedAt: Schema.Attribute.DateTime;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -664,6 +666,60 @@ export interface ApiArticleArticle extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     video: Schema.Attribute.JSON &
       Schema.Attribute.CustomField<'plugin::component-preview.video-embed'>;
+  };
+}
+
+export interface ApiAthleteAccessAthleteAccess
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'athlete_accesses';
+  info: {
+    description: 'Accesul unui cont la un sportiv (p\u0103rinte sau sportiv adult)';
+    displayName: 'Portal / Acces sportiv';
+    pluralName: 'athlete-accesses';
+    singularName: 'athlete-access';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    account: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::portal-account.portal-account'
+    > &
+      Schema.Attribute.Required;
+    athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'> &
+      Schema.Attribute.Required;
+    athleteKey: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Private;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    email: Schema.Attribute.String & Schema.Attribute.Required;
+    invitedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    invitedBy: Schema.Attribute.String & Schema.Attribute.Required;
+    levelSeenAt: Schema.Attribute.DateTime;
+    levelSeenGroup: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::athlete-access.athlete-access'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    revokedAt: Schema.Attribute.DateTime;
+    revokedBy: Schema.Attribute.String;
+    revokeReason: Schema.Attribute.Enumeration<
+      ['scos', 'email_schimbat', 'anonimizat', 'sters', 'unit']
+    >;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -2130,6 +2186,7 @@ export interface ApiPortalAccountPortalAccount
   };
   attributes: {
     activatedAt: Schema.Attribute.DateTime;
+    coachDisabledAt: Schema.Attribute.DateTime;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -2139,6 +2196,7 @@ export interface ApiPortalAccountPortalAccount
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
     googleSub: Schema.Attribute.String & Schema.Attribute.Unique;
+    googleUnlinkedAt: Schema.Attribute.DateTime;
     invitedAt: Schema.Attribute.DateTime;
     invitedBy: Schema.Attribute.String;
     lastLoginAt: Schema.Attribute.DateTime;
@@ -2149,7 +2207,10 @@ export interface ApiPortalAccountPortalAccount
       'api::portal-account.portal-account'
     > &
       Schema.Attribute.Private;
+    name: Schema.Attribute.String;
+    notifySchedule: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
     passkeyOfferedAt: Schema.Attribute.DateTime;
+    passwordChangedAt: Schema.Attribute.DateTime;
     phone: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
     securityNotes: Schema.Attribute.JSON;
@@ -2234,11 +2295,13 @@ export interface ApiPortalDevicePortalDevice
       'api::portal-account.portal-account'
     > &
       Schema.Attribute.Required;
+    confirmedAt: Schema.Attribute.DateTime;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     deviceKeyHash: Schema.Attribute.String & Schema.Attribute.Required;
     firstSeenAt: Schema.Attribute.DateTime;
+    host: Schema.Attribute.String;
     label: Schema.Attribute.String & Schema.Attribute.Required;
     lastSeenAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
@@ -2333,6 +2396,7 @@ export interface ApiPortalTokenPortalToken extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     expiresAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    host: Schema.Attribute.String;
     kind: Schema.Attribute.Enumeration<['invite', 'reset']> &
       Schema.Attribute.Required;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
@@ -3818,6 +3882,7 @@ declare module '@strapi/strapi' {
       'api::admin-device.admin-device': ApiAdminDeviceAdminDevice;
       'api::announcement.announcement': ApiAnnouncementAnnouncement;
       'api::article.article': ApiArticleArticle;
+      'api::athlete-access.athlete-access': ApiAthleteAccessAthleteAccess;
       'api::athlete-duplicate.athlete-duplicate': ApiAthleteDuplicateAthleteDuplicate;
       'api::athlete.athlete': ApiAthleteAthlete;
       'api::attendance.attendance': ApiAttendanceAttendance;

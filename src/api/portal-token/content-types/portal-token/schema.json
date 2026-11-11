@@ -24,7 +24,10 @@
     },
     "kind": {
       "type": "enumeration",
-      "enum": ["invite", "reset"],
+      "enum": [
+        "invite",
+        "reset"
+      ],
       "required": true
     },
     "secretHash": {
@@ -41,6 +44,9 @@
     "tries": {
       "type": "integer",
       "default": 0
+    },
+    "host": {
+      "type": "string"
     }
   }
 }

@@ -69,7 +69,7 @@ async function resetAnswer(c: PortalAuthContext, body: unknown): Promise<PortalR
   const tokenId = await c.store.transaction(async () => {
     await c.store.lockAccount(account.id);
     await useUpOpen(c, account.id);
-    return c.store.createToken({ accountId: account.id, kind: 'reset', secretHash: packMac(codeMac(gate.keys, 'reset-code', 'portal', account.id, code)), expiresAt: new Date(c.now().getTime() + RESET_TTL_MS).toISOString() });
+    return c.store.createToken({ accountId: account.id, host: 'antrenor', kind: 'reset', secretHash: packMac(codeMac(gate.keys, 'reset-code', 'portal', account.id, code)), expiresAt: new Date(c.now().getTime() + RESET_TTL_MS).toISOString() });
   });
   if (!(await sendCode(c, email, code))) {
     await failSend(c, account.id, tokenId);
