@@ -40,7 +40,8 @@ const PUBLISH_LABELS = ['publish', 'publică', 'publica'];
 const UNPUBLISH_LABELS = ['unpublish', 'retrage publicarea', 'retrage'];
 
 const GLOBAL_CSS = `
-html, body, * { overscroll-behavior: none; }
+/* No bounce on the page itself. Not on every element: a nested scroll box (calendar, tables) must hand the wheel on to the page. */
+html, body { overscroll-behavior: none; }
 /* Strapi v5 wraps each document action in a labeled card (heading + button).
    We need to hide the WHOLE CARD, not just the inner button, otherwise the
    "Save" / "Preview" label stays visible with an empty body. The card itself
