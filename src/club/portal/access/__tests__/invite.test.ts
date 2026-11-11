@@ -156,6 +156,22 @@ describe('inviteAccess refusals', () => {
   });
 });
 
+describe('an e-mail edited between the click and the lock', () => {
+  it('a single invite answers stale and writes nothing', async () => {
+    const h = withAthletes(harness(), ANA);
+    const real = h.access.store.athleteForAccess;
+    let reads = 0;
+    h.c.access = { ...h.c.access, athleteForAccess: async (id) => {
+      const row = await real(id);
+      return row && ++reads > 1 ? { ...row, email: 'corectat@example.invalid' } : row;
+    } };
+    expect(await inviteAccess(h.c, 'ath1')).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect(h.access.state.rows).toHaveLength(0);
+    expect(h.fake.state.accounts).toHaveLength(0);
+    expect(h.jobs).toHaveLength(0);
+  });
+});
+
 describe('resendAccess', () => {
   it('on an invited account: older invite used, one fresh invite, resend line', async () => {
     const h = withAthletes(harness(), ANA);

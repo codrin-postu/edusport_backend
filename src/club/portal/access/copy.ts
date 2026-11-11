@@ -48,6 +48,7 @@ export const ACCESS_HISTORY = {
   athleteMoved: (email: string): string => `Acces portal mutat la ${email}`,
   athleteStopped: 'Acces portal oprit (anonimizat)',
   accountAccess: (athlete: string): string => `Acces la ${athlete}`,
+  accountAccessGone: 'Acces la un sportiv anonimizat',
   coachSideOff: 'Partea de antrenor dezactivată',
   accountOff: 'Cont dezactivat complet',
   coachRoleAdded: 'Rol de antrenor adăugat',

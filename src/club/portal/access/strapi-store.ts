@@ -2,6 +2,7 @@ import type { Core } from '@strapi/strapi';
 import { transactionScope, type Scope, raws, str, text, iso, linkId, type Raw } from '../../athletes/strapi-store';
 import { recordHistory } from '../../history';
 import { SUBJECT } from '../../subjects';
+import { scrubbedJobStatus } from '../../personal-data/anonymize-plan';
 import type { AccessRow, AccessStore, RevokeReason } from './store';
 
 const ACCESS = 'api::athlete-access.athlete-access' as const;
@@ -39,6 +40,16 @@ export function strapiAccessStore(strapi: Core.Strapi, scope: Scope = transactio
     moveAccess: async (id, athleteId) => {
       await docs().update({ documentId: id, data: { athlete: athleteId, athleteKey: athleteId } as never });
     },
+    deleteForAthlete: async (athleteId) => {
+      await strapi.db.query(ACCESS).deleteMany({ where: { athleteKey: athleteId } });
+    },
+    scrubForAthlete: async (athleteId, name) => {
+      const rows = await many({ athleteKey: athleteId });
+      const accountIds = [...new Set(rows.map((r) => r.accountId))];
+      // The query engine takes the empty e-mail and the null payload where the document service would refuse them.
+      await strapi.db.query(ACCESS).updateMany({ where: { athleteKey: athleteId }, data: { email: '' } });
+      if (accountIds.length) await scrubAccountTraces(strapi, accountIds, athleteId, name);
+    },
     recordAthlete: async (l) => {
       await recordHistory(strapi as never, { subjectType: SUBJECT.athlete, subjectId: l.athleteId, action: l.action, changes: l.changes, actor: l.actor });
     },
@@ -49,4 +60,25 @@ export function strapiAccessStore(strapi: Core.Strapi, scope: Scope = transactio
       return { id: text(r.documentId), name: text(r.name), email: str(r.email), status: text(r.status), birthDate: str(r.birthDate), contactName: str(r.contactName) };
     },
   };
+}
+
+const JOB = 'api::email-job.email-job' as const;
+const HISTORY = 'api::history-entry.history-entry' as const;
+const GRANTED = 'portal-access-granted';
+
+const namesChild = (payload: unknown, name: string): boolean => {
+  const p = (payload ?? {}) as { children?: unknown; childName?: unknown };
+  return p.childName === name || (Array.isArray(p.children) && p.children.includes(name));
+};
+
+/** The account lines "Acces la <sportiv>" of the child lose the name; the invite and access jobs that name the child are scrubbed. */
+async function scrubAccountTraces(strapi: Core.Strapi, accountIds: string[], athleteId: string, name: string): Promise<void> {
+  const lines = raws(await strapi.db.query(HISTORY).findMany({ where: { subjectType: 'portal-account', subjectId: { $in: accountIds }, action: GRANTED }, limit: MAX }));
+  for (const l of lines) {
+    if ((l.changes as { athleteId?: unknown } | null)?.athleteId === athleteId) await strapi.db.query(HISTORY).update({ where: { id: l.id }, data: { changes: { athleteId } } });
+  }
+  const jobs = raws(await strapi.db.query(JOB).findMany({ where: { kind: { $in: ['portal-invite', 'portal-access'] }, changeKey: { $in: accountIds } }, limit: MAX }));
+  for (const j of jobs.filter((x) => namesChild(x.payload, name))) {
+    await strapi.db.query(JOB).update({ where: { id: j.id }, data: { recipient: null, subject: null, lastError: null, payload: null, status: scrubbedJobStatus(text(j.status)) } });
+  }
 }

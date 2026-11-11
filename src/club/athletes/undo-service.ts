@@ -1,3 +1,4 @@
+import { endForAthlete, moveOnEmailChange } from '../portal/access/lifecycle';
 import { guarded, refuse, type AdminResult } from '../admin-result';
 import type { ConfirmationRecord } from '../confirm/plan';
 import { registrationSeason } from '../confirm/season';
@@ -44,6 +45,23 @@ async function revertRows(store: ClubStore, plan: UndoPlan): Promise<void> {
   if (plan.acs?.op === 'set') await store.updateAcs(plan.acs.id, { state: plan.acs.state });
 }
 
+/**
+ * The access follows what the undo does to the athlete (spec 4.4, 4.5): an athlete it deletes ends its access with it, an e-mail it restores
+ * moves the access like an edit. Before the write; a refusal refuses the undo with nothing written.
+ */
+async function followUndo(ctx: ServiceContext, athlete: UndoFacts['athlete'], plan: UndoPlan, jobs: string[]): Promise<AdminResult<null>> {
+  if (!ctx.access) return { ok: true, data: null };
+  if (plan.deleteAthlete) {
+    await endForAthlete(ctx.access, athlete.id, 'sters');
+    return { ok: true, data: null };
+  }
+  if (!plan.athleteUpdate || !('email' in plan.athleteUpdate)) return { ok: true, data: null };
+  const moved = await moveOnEmailChange(ctx.access, athlete.id, athlete.email, plan.athleteUpdate.email ?? null);
+  if (moved.ok === false) return moved;
+  jobs.push(...moved.data.jobIds);
+  return { ok: true, data: null };
+}
+
 async function revertAthlete(store: ClubStore, athlete: UndoFacts['athlete'], plan: UndoPlan): Promise<void> {
   if (plan.deleteAthlete) return store.deleteAthlete(athlete.id);
   if (plan.athleteUpdate) await store.updateAthlete(athlete.id, plan.athleteUpdate);
@@ -61,8 +79,10 @@ async function restoredMain(store: ClubStore, facts: UndoFacts, plan: UndoPlan):
   return from && to ? { from, to } : null;
 }
 
-async function applyUndo(ctx: ServiceContext, reg: RegistrationRow, facts: UndoFacts): Promise<Result> {
+async function applyUndo(ctx: ServiceContext, reg: RegistrationRow, facts: UndoFacts, jobs: string[]): Promise<Result> {
   const plan = planUndo(facts);
+  const followed = await followUndo(ctx, facts.athlete, plan, jobs);
+  if (followed.ok === false) return followed;
   const mainChange = await restoredMain(ctx.store, facts, plan);
   await revertRows(ctx.store, plan);
   await ctx.store.updateRegistration(reg.id, { athleteId: null, status: plan.registration.status, confirmation: null });
@@ -75,18 +95,20 @@ async function applyUndo(ctx: ServiceContext, reg: RegistrationRow, facts: UndoF
   return { ok: true, data: { status: plan.registration.status, athleteDeleted: plan.deleteAthlete } };
 }
 
-async function undoLocked(ctx: ServiceContext, presence: PresenceStore, id: string): Promise<Result> {
+async function undoLocked(ctx: ServiceContext, presence: PresenceStore, id: string, jobs: string[]): Promise<Result> {
   await ctx.store.lockRegistration(id);
   const reg = await ctx.store.registration(id);
   if (!reg) return refuse(404, ADMIN_ERRORS.notFound);
   if (reg.confirmation) await ctx.store.lockAthlete(reg.confirmation.athleteId);
   const facts = reg.confirmation ? await loadFacts(ctx.store, presence, reg, reg.confirmation) : null;
-  return facts && !isAnonymized(facts.athlete) ? applyUndo(ctx, reg, facts) : refuse(409, ADMIN_ERRORS.stale);
+  return facts && !isAnonymized(facts.athlete) ? applyUndo(ctx, reg, facts, jobs) : refuse(409, ADMIN_ERRORS.stale);
 }
 
 /** "Anulează confirmarea" (spec 4.6, gaps #32): one transaction on the locked registration row. */
 export async function undoConfirmation(ctx: ServiceContext, registrationId: string, presence: PresenceStore): Promise<Result> {
-  const result = await guarded(ctx.log, `[confirm-undo] ${registrationId}`, () => inBothTransactions(ctx.store, presence, () => undoLocked(ctx, presence, registrationId)));
+  const jobs: string[] = [];
+  const result = await guarded(ctx.log, `[confirm-undo] ${registrationId}`, () => inBothTransactions(ctx.store, presence, () => undoLocked(ctx, presence, registrationId, jobs)));
+  if (result.ok === true) for (const jobId of jobs) ctx.access?.afterCommit(jobId);
   if (result.ok === true) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after an undo');
   return result;
 }

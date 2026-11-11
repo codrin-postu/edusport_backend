@@ -66,4 +66,24 @@ describe.skipIf(!enabled)('access lifecycle inside an outer transaction on Postg
     expect((rows[0] as { email: string }).email).toBe(email);
     expect(await strapiPortalStore(strapi).accountByEmail(target)).toBeNull();
   }, 60_000);
+
+  it('anonymize scrubs the child out of the access row, the account line and the invite job; delete purges the rows', async () => {
+    const { athleteId, email, c } = await invited('anon');
+    await c.store.transaction(() => endForAthlete(c, athleteId, 'anonimizat'));
+    const rows = await strapi.db.query('api::athlete-access.athlete-access').findMany({ where: { athleteKey: athleteId } });
+    expect(rows).toHaveLength(1);
+    expect((rows[0] as { email: string; revokeReason: string }).email).toBe('');
+    const account = await strapiPortalStore(strapi).accountByEmail(email);
+    const lines = await strapi.db.query('api::history-entry.history-entry').findMany({ where: { subjectId: account!.id, action: 'portal-access-granted' } });
+    expect(lines).toHaveLength(1);
+    expect(JSON.stringify((lines[0] as { changes: unknown }).changes)).not.toContain('Lifecycle anon');
+    const jobs = await strapi.db.query('api::email-job.email-job').findMany({ where: { kind: 'portal-invite', changeKey: account!.id } });
+    expect(jobs).toHaveLength(1);
+    expect(JSON.stringify(jobs[0])).not.toContain('Lifecycle anon');
+    expect((jobs[0] as { payload: unknown }).payload).toBeNull();
+
+    const gone = await invited('gone');
+    await gone.c.store.transaction(() => endForAthlete(gone.c, gone.athleteId, 'sters'));
+    expect(await strapi.db.query('api::athlete-access.athlete-access').findMany({ where: { athleteKey: gone.athleteId } })).toHaveLength(0);
+  }, 60_000);
 });

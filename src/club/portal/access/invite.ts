@@ -27,7 +27,8 @@ async function guardedAccess<T>(c: AccessContext, tag: string, work: () => Promi
     try {
       return await work();
     } catch (err) {
-      if ((err as { code?: unknown } | null)?.code === '23505') return stale();
+      const code = (err as { code?: unknown } | null)?.code;
+      if (code === '23505' || code === '40P01') return stale();
       throw err;
     }
   });
@@ -109,6 +110,8 @@ export async function linkAccess(c: AccessContext, athleteId: string, rawEmail: 
     const athlete = await c.access.athleteForAccess(athleteId);
     if (!athlete) return refuse(404, PORTAL_ERRORS.notFound);
     const email = normalizeEmail(rawEmail);
+    // The e-mail was read before the lock (invite, bulk): an edit that committed meanwhile makes this request stale. A move runs before the write and is exempt.
+    if (!opts.moved && normalizeEmail(athlete.email) !== normalizeEmail(rawEmail)) return stale();
     const refusal = inviteRefusal({ status: athlete.status, email });
     if (refusal !== null || email === null) return refuse(refusalStatus(refusal ?? ACCESS_ERRORS.needsEmail), refusal ?? ACCESS_ERRORS.needsEmail);
     const account = await lockedAccount(c, email);
@@ -120,7 +123,7 @@ export async function linkAccess(c: AccessContext, athleteId: string, rawEmail: 
     const linked = await run(c, plan, { account: account as AccountRow, athlete, email, opts });
     const accountId = (await c.store.accountByEmail(email))?.id as string;
     await c.access.createAccess({ athleteId, accountId, email, invitedAt: c.now().toISOString(), invitedBy: c.actor });
-    await c.store.record({ subjectId: accountId, action: PORTAL_ACTIONS.accessGranted, changes: { athlete: athlete.name }, actor: c.actor });
+    await c.store.record({ subjectId: accountId, action: PORTAL_ACTIONS.accessGranted, changes: { athlete: athlete.name, athleteId }, actor: c.actor });
     const action = opts.moved ? HISTORY_ACTIONS.accessMoved : plan.kind === 'add' ? HISTORY_ACTIONS.accessAdded : HISTORY_ACTIONS.accessInvited;
     await c.access.recordAthlete({ athleteId, action, changes: { email }, actor: c.actor });
     return { ok: true, data: linked };
@@ -180,6 +183,7 @@ export async function removeAccess(c: AccessContext, athleteId: string): Promise
       await c.access.lockAthlete(athleteId);
       const live = await c.access.liveByAthlete(athleteId);
       if (!live) return false;
+      await c.store.lockAccount(live.accountId);
       await c.access.revokeAccess(live.id, { revokedAt: c.now().toISOString(), revokedBy: c.actor, revokeReason: 'scos' });
       await c.access.recordAthlete({ athleteId, action: HISTORY_ACTIONS.accessRemoved, changes: { email: live.email }, actor: c.actor });
       return true;

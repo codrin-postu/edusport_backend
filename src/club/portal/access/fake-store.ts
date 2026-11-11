@@ -36,6 +36,12 @@ export function fakeAccessStore(seed: Partial<FakeAccessState> = {}): FakeAccess
     lockAthlete: async (athleteId) => {
       state.locks.push(`athlete:${athleteId}`);
     },
+    deleteForAthlete: async (athleteId) => {
+      state.rows = state.rows.filter((r) => r.athleteId !== athleteId);
+    },
+    scrubForAthlete: async (athleteId) => {
+      for (const r of state.rows) if (r.athleteId === athleteId) r.email = '';
+    },
     recordAthlete: async (line) => {
       state.history.push(structuredClone(line));
     },

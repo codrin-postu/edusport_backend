@@ -7,6 +7,7 @@ import { registrationSeason, seasonRunning, type SeasonFacts } from '../confirm/
 import { isAnonymized } from '../personal-data/anonymize-plan';
 import type { ConfirmResponse } from './api-types';
 import { groupOptions } from './cards';
+import { moveOnEmailChange } from '../portal/access/lifecycle';
 import { ADMIN_ERRORS, CONFIRM_ERRORS } from './errors';
 import { refreshAllMatches, safely } from './matches';
 import type { AthleteRow, ClubStore, RegistrationRow, ServiceContext } from './store';
@@ -94,8 +95,20 @@ async function previousMainGroup(store: ClubStore, facts: ConfirmFacts, plan: Co
   return (await store.groups()).find((g) => g.id === old.groupId)?.name ?? null;
 }
 
-async function apply(ctx: ServiceContext, reg: RegistrationRow, { facts, athlete }: Loaded): Promise<Result> {
+/** The access follows an e-mail the confirmation writes (spec 4.4), before the write; a refusal refuses the confirmation, nothing written. */
+async function followEmail(ctx: ServiceContext, athlete: AthleteRow | null, plan: ConfirmPlan, jobs: string[]): Promise<AdminResult<null>> {
+  const update = plan.athleteUpdate;
+  if (!ctx.access || !athlete || !update || !('email' in update)) return { ok: true, data: null };
+  const moved = await moveOnEmailChange(ctx.access, athlete.id, athlete.email, update.email ?? null);
+  if (moved.ok === false) return moved;
+  jobs.push(...moved.data.jobIds);
+  return { ok: true, data: null };
+}
+
+async function apply(ctx: ServiceContext, reg: RegistrationRow, { facts, athlete }: Loaded, jobs: string[]): Promise<Result> {
   const plan = planConfirmation(facts);
+  const moved = await followEmail(ctx, athlete, plan, jobs);
+  if (moved.ok === false) return moved;
   const previousMain = await previousMainGroup(ctx.store, facts, plan);
   const athleteId = await writeAthlete(ctx.store, plan, athlete);
   const membershipId = await writeMembership(ctx.store, plan, athleteId);
@@ -110,7 +123,7 @@ async function apply(ctx: ServiceContext, reg: RegistrationRow, { facts, athlete
   return { ok: true, data: { athleteId, athleteName, registrationId: reg.id } };
 }
 
-async function confirmLocked(ctx: ServiceContext, id: string, request: ConfirmRequest): Promise<Result> {
+async function confirmLocked(ctx: ServiceContext, id: string, request: ConfirmRequest, jobs: string[]): Promise<Result> {
   await ctx.store.lockRegistration(id);
   const reg = await ctx.store.registration(id);
   if (!reg) return refuse(404, ADMIN_ERRORS.notFound);
@@ -123,17 +136,19 @@ async function confirmLocked(ctx: ServiceContext, id: string, request: ConfirmRe
   // Polish 12: a second confirmation of the same child, or a merge of this athlete, waits here.
   if (request.athleteId) await ctx.store.lockAthlete(request.athleteId);
   const loaded = await loadFacts(ctx, reg, request);
-  return loaded.ok === true ? apply(ctx, reg, loaded.data) : loaded;
+  return loaded.ok === true ? apply(ctx, reg, loaded.data, jobs) : loaded;
 }
 
 export async function confirmRegistration(ctx: ServiceContext, registrationId: string, request: ConfirmRequest): Promise<Result> {
   let result: Result;
+  const jobs: string[] = [];
   try {
-    result = await ctx.store.transaction(() => confirmLocked(ctx, registrationId, request));
+    result = await ctx.store.transaction(() => confirmLocked(ctx, registrationId, request, jobs));
   } catch (err) {
     ctx.log(`[confirm] ${registrationId} failed: ${err instanceof Error ? err.message : String(err)}`);
     return refuse(500, CONFIRM_ERRORS.failed);
   }
+  if (result.ok === true) for (const jobId of jobs) ctx.access?.afterCommit(jobId);
   if (result.ok === true) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after a confirmation');
   return result;
 }

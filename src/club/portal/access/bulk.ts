@@ -59,6 +59,8 @@ class Refused extends Error {}
 async function inviteAddress(c: AccessContext, group: Candidate[]): Promise<string | null> {
   const names = group.map((g) => g.athlete.name);
   return c.store.transaction(async () => {
+    // Athletes first, sorted, then the account: a single invite of one of them waits instead of deadlocking.
+    for (const id of group.map((g) => g.athlete.id).sort()) await c.access.lockAthlete(id);
     let jobId: string | null = null;
     for (const [i, { athlete, email }] of group.entries()) {
       const last = i === group.length - 1;

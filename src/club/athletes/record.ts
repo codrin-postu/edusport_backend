@@ -115,7 +115,16 @@ async function updateInTransaction(ctx: ServiceContext, id: string, values: Athl
 export async function updateAthlete(ctx: ServiceContext, id: string, body: unknown): Promise<AdminResult<AthleteEditResponse>> {
   const input = readAthleteInput(body, 'edit');
   if (input.ok === false) return refuse(400, input.error);
-  const written = await guarded(ctx.log, `[athletes] editing ${id}`, () => ctx.store.transaction(() => updateInTransaction(ctx, id, input.values)));
+  const written = await guarded(ctx.log, `[athletes] editing ${id}`, async () => {
+    try {
+      return await ctx.store.transaction(() => updateInTransaction(ctx, id, input.values));
+    } catch (err) {
+      // Two edits moving two athletes to one new address: the loser of the unique index (or a lock cycle) is stale, not a failure.
+      const code = (err as { code?: unknown } | null)?.code;
+      if (code === '23505' || code === '40P01') return refuse(409, ADMIN_ERRORS.stale);
+      throw err;
+    }
+  });
   if (written.ok === false) return written;
   for (const jobId of written.data.jobIds) ctx.access?.afterCommit(jobId);
   if (written.data.changed.length > 0) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after an athlete edit');
