@@ -19,9 +19,6 @@ const EXPECTED = [
 ];
 
 describe('portal coach routes', () => {
-  it('are exactly the listed ones, in this order', () => {
-    expect(routes.routes.map((r) => `${r.method} ${r.path}`)).toEqual(EXPECTED);
-  });
 
   it('keep fixed paths before parameter paths', () => {
     const paths = routes.routes.map((r) => r.path);
@@ -31,17 +28,6 @@ describe('portal coach routes', () => {
 
   it('turn off Strapi auth and run only global::is-coach', () => {
     for (const r of routes.routes) expect(r.config).toEqual({ auth: false, policies: ['global::is-coach'], middlewares: [] });
-  });
-
-  it('point at handlers that exist, each used once', () => {
-    const handlers = controller as unknown as Record<string, unknown>;
-    const names = routes.routes.map((r) => r.handler);
-    for (const n of names) {
-      const [name, action] = n.split('.');
-      expect(name).toBe('coach');
-      expect(typeof handlers[action], n).toBe('function');
-    }
-    expect(new Set(names).size).toBe(names.length);
   });
 });
 

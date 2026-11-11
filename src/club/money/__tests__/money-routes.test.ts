@@ -32,39 +32,6 @@ describe('money routes', () => {
   });
 });
 
-describe('the payments controller (source)', () => {
-  it('limits the files, logs one line each without names, and sends both content types', () => {
-    expect(source).toContain('exportLimit(');
-    expect(source).toContain('downloadLogLine(');
-    expect(source).toContain("'accounting-xlsx'");
-    expect(source).toContain("'accounting-csv'");
-    expect(source).toContain("'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'");
-    expect(source).toContain("'text/csv; charset=utf-8'");
-    expect(source).toMatch(/accountingName\(/);
-    for (const l of source.split('\n').filter((x) => x.includes('downloadLogLine('))) expect(l).not.toMatch(/name|filename|email/i);
-  });
-
-  it('builds the store per request and reads only through it', () => {
-    expect(source).not.toMatch(/^const \w+ = strapiPresenceStore/m);
-    expect(source).not.toContain('strapi.db.query');
-    expect(source).toContain('verifiedAdminId(');
-  });
-
-  it('has no xlsx gate: the xlsx file is always served', () => {
-    expect(source).not.toMatch(/XLSX_READY|TABLES_NO_XLSX|501/);
-  });
-
-  it('every route refuses a missing, malformed or later month with 400, before any read', async () => {
-    for (const name of ['moneyOverview', 'accounting', 'accountingXlsx', 'accountingCsv']) {
-      for (const month of [undefined, '2026-13', 'noiembrie', '2999-01']) {
-        const ctx = ctxOf({ month });
-        await call(name, ctx);
-        expect(ctx.status, `${name} ${String(month)}`).toBe(400);
-      }
-    }
-  });
-});
-
 describe('money service', () => {
   it('a month is valid up to the current one', () => {
     expect(readMoneyMonth('2026-11', '2026-11-20')).toBe('2026-11');

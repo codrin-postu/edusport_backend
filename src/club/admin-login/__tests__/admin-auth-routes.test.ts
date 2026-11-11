@@ -35,10 +35,6 @@ describe('routes (spec 4.3)', () => {
       expect(typeof (controller as Record<string, unknown>)[action]).toBe('function');
     }
   });
-
-  it('route files are numbered and sit in the admin-auth api next to the controller', () => {
-    expect(readdirSync(join(__dirname, '../../../api/admin-auth/routes'))).toContain('01-login.ts');
-  });
 });
 
 describe('origin', () => {

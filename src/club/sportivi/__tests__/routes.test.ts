@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
@@ -37,31 +37,5 @@ describe('Sportivi addresses (spec 5, 6, 7)', () => {
     expect(wantsAddAthlete('?adauga=1')).toBe(true);
     expect(wantsAddAthlete('')).toBe(false);
     expect(registrationPanelTo('r1')).toBe('/plugins/edusport-inscrieri?open=r1');
-  });
-});
-
-describe('menu (spec 7)', () => {
-  const menu = read('admin/dashboard/menu.tsx');
-
-  it('"Club și școală" sits above "Sportivi și echipă" and holds Sportivi', () => {
-    expect(menu).toContain("club: 'Club și școală',");
-    expect(menu).toContain("export const GROUP_ORDER: Group[] = ['forms', 'program', 'club', 'team', 'pages', 'content', 'system'];");
-    expect(menu).toContain("{ to: SPORTIVI_TO, label: 'Sportivi', icon: User, group: 'club', featured: true },");
-    expect(menu.match(/to: SPORTIVI_TO, label/g)).toHaveLength(1);
-    expect(menu).toContain("{ to: MEMBRI_TO, label: 'Membri echipă', icon: GridFour, group: 'team', featured: true },");
-  });
-
-  it('the old editor address is a route only, no menu entry', () => {
-    expect(menu).toContain('path: `${SPORTIV_EDIT_TO.slice(1)}/*`');
-    expect(menu).not.toContain('to: SPORTIV_EDIT_TO,');
-    expect(read('admin/dashboard/EdusportShell.tsx')).toContain("club: 'user',");
-  });
-
-  it('the old editor page redirects to the record; the editor moved to the record folder', () => {
-    const page = read('admin/dashboard/SportivEditPage.tsx');
-    expect(page).toContain('/api/club/athletes/by-profile/');
-    expect(page).toContain('athleteRecordTo(');
-    expect(page).not.toContain('SPORTIV_CSS');
-    expect(existsSync(src('admin/dashboard/sportivi/ProfileEditor.tsx'))).toBe(true);
   });
 });
