@@ -20,14 +20,13 @@ const spies = () =>
 
 afterEach(() => {
   vi.restoreAllMocks();
-  vi.useRealTimers();
 });
 
 describe('skate client', () => {
   it('encodes the slug and sends the key only when configured', async () => {
     const a = stub(() => json([]));
-    await skateClient(env, a.fetchImpl).results('a b/c?d');
-    expect(a.calls[0].url).toBe('http://127.0.0.1:9/skaters/a%20b%2Fc%3Fd/results?segments=summary');
+    await skateClient(env, a.fetchImpl).results('a-b');
+    expect(a.calls[0].url).toBe('http://127.0.0.1:9/skaters/a-b/results?segments=summary');
     expect(a.calls[0].headers['X-API-Key']).toBe(KEY);
 
     const b = stub(() => json([]));
@@ -74,15 +73,31 @@ describe('skate client', () => {
     expect(await skateClient(env, stub(() => json({ a: 1 })).fetchImpl).results('x')).toEqual({ ok: false, reason: 'down' });
   });
 
-  it('gives up after 3000 ms', async () => {
-    vi.useFakeTimers();
+  it('gives up when the call outlasts the timeout', async () => {
     const slow = ((_url: string, init?: RequestInit) =>
       new Promise((_res, rej) => {
         init?.signal?.addEventListener('abort', () => rej(new Error('aborted')));
       })) as unknown as typeof fetch;
-    const p = skateClient(env, slow).results('x');
-    await vi.advanceTimersByTimeAsync(3001);
-    expect(await p).toEqual({ ok: false, reason: 'down' });
+    expect(await skateClient(env, slow, 20).results('x')).toEqual({ ok: false, reason: 'down' });
+  });
+
+  it('treats a redirect as down and calls fetch once', async () => {
+    const { calls, fetchImpl } = stub(() => new Response(null, { status: 302, headers: { location: 'https://evil.example/' } }));
+    expect(await skateClient(env, fetchImpl).results('x')).toEqual({ ok: false, reason: 'down' });
+    expect(calls).toHaveLength(1);
+  });
+
+  it('rejects malformed slugs and ids without calling fetch', async () => {
+    const { calls, fetchImpl } = stub(() => json([]));
+    const c = skateClient(env, fetchImpl);
+    for (const slug of ['..', '.', '', 'a/b', 'A', 'a--b'])
+      expect(await c.results(slug)).toEqual({ ok: false, reason: 'not_found' });
+    for (const id of [0, -1, 1.5, NaN, 2 ** 60]) {
+      expect(await c.protocol(id)).toEqual({ ok: false, reason: 'not_found' });
+      expect(await c.fieldSize(id, 'a')).toEqual({ ok: false, reason: 'not_found' });
+      expect(await c.officialUrl(id, 'a')).toEqual({ ok: false, reason: 'not_found' });
+    }
+    expect(calls).toHaveLength(0);
   });
 
   it('treats a body over 2 MB as down', async () => {

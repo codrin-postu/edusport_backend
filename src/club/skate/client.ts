@@ -115,14 +115,25 @@ async function readCapped(res: Response): Promise<string | null> {
   return Buffer.concat(chunks).toString('utf8');
 }
 
-export function skateClient(env: NodeJS.ProcessEnv = process.env, fetchImpl: typeof fetch = fetch): SkateClient {
+const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const validId = (id: number) => Number.isSafeInteger(id) && id > 0;
+
+export function skateClient(
+  env: NodeJS.ProcessEnv = process.env,
+  fetchImpl: typeof fetch = fetch,
+  timeoutMs: number = TIMEOUT_MS,
+): SkateClient {
   async function get(path: string): Promise<Fetched<unknown>> {
     try {
       const res = await fetchImpl(`${base(env)}${path}`, {
         headers: keyHeaders({}, env),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+        signal: AbortSignal.timeout(timeoutMs),
+        // The key must never follow a redirect to another host.
+        redirect: 'manual',
       });
       if (res.status === 404) return NOT_FOUND;
+      if (res.status >= 300 && res.status < 400) return DOWN;
+      if (res.type === 'opaqueredirect') return DOWN;
       if (!res.ok) return DOWN;
       const text = await readCapped(res);
       if (text === null) return DOWN;
@@ -134,6 +145,7 @@ export function skateClient(env: NodeJS.ProcessEnv = process.env, fetchImpl: typ
 
   return {
     async results(slug) {
+      if (!SLUG.test(slug)) return NOT_FOUND;
       const got = await get(`/skaters/${encodeURIComponent(slug)}/results?segments=summary`);
       if ('reason' in got) return fail(got.reason);
       if (!Array.isArray(got.value)) return DOWN;
@@ -141,6 +153,7 @@ export function skateClient(env: NodeJS.ProcessEnv = process.env, fetchImpl: typ
     },
 
     async protocol(resultId) {
+      if (!validId(resultId)) return NOT_FOUND;
       const got = await get(`/results/${encodeURIComponent(String(resultId))}/protocol`);
       if ('reason' in got) return fail(got.reason);
       const p = rec(got.value);
@@ -164,6 +177,7 @@ export function skateClient(env: NodeJS.ProcessEnv = process.env, fetchImpl: typ
     },
 
     async fieldSize(eventId, category) {
+      if (!validId(eventId)) return NOT_FOUND;
       // The response lists every skater in the competition. Only a count leaves
       // this function: no other skater's name, id or score is kept.
       const got = await get(`/events/${encodeURIComponent(String(eventId))}/results?segments=none`);
@@ -175,6 +189,7 @@ export function skateClient(env: NodeJS.ProcessEnv = process.env, fetchImpl: typ
     },
 
     async officialUrl(eventId, name) {
+      if (!validId(eventId)) return NOT_FOUND;
       const got = await get(`/events?q=${encodeURIComponent(name)}&limit=20`);
       if ('reason' in got) return fail(got.reason);
       if (!Array.isArray(got.value)) return DOWN;
