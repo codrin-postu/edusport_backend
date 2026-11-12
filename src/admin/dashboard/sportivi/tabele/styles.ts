@@ -5,6 +5,25 @@
  */
 export const TABELE_CSS = `
 .ui-root .tbl-page{min-width:0;max-width:100%}
+.ui-root .tbl-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:start;min-width:0}
+.ui-root .tbl-rail{background:var(--theme-surface);border:1px solid var(--theme-border);padding:14px 0;min-width:0}
+.ui-root .tbl-rail-title{margin:0 0 8px;padding:0 16px;font-size:13px;font-weight:700;color:var(--theme-text)}
+.ui-root .tbl-rail-head{margin:12px 0 4px;padding:0 16px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--theme-text-secondary)}
+.ui-root .tbl-rail-row{position:relative;display:flex;align-items:center;border-left:3px solid transparent;min-width:0}
+.ui-root .tbl-rail-row[data-current="true"]{border-left-color:var(--theme-primary);background:var(--theme-surface-subtle)}
+.ui-root .tbl-rail-row:hover{background:var(--theme-surface-subtle)}
+.ui-root .tbl-rail-item{all:unset;box-sizing:border-box;flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;padding:8px 13px;cursor:pointer;font-size:var(--ui-fs-body);color:var(--theme-text)}
+.ui-root .tbl-rail-item:focus-visible{outline:2px solid var(--theme-focus);outline-offset:-2px}
+.ui-root .tbl-rail-row[data-current="true"] .tbl-rail-name{font-weight:700}
+.ui-root .tbl-rail-author{font-size:11.5px;color:var(--theme-text-muted)}
+.ui-root .tbl-rail-menu{flex:none;margin-right:8px;visibility:hidden}
+.ui-root .tbl-rail-row:hover .tbl-rail-menu,.ui-root .tbl-rail-row:focus-within .tbl-rail-menu,.ui-root .tbl-rail-menu[data-open="true"]{visibility:visible}
+.ui-root .tbl-rail-phone{min-width:0}
+.ui-root .tbl-rail-phone .ui-sel{width:100%}
+.ui-root .tbl-main{min-width:0}
+@media (max-width:900px){
+.ui-root .tbl-layout{grid-template-columns:minmax(0,1fr)}
+}
 .ui-root .tbl-bar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 12px;padding:14px 18px;border-bottom:1px solid var(--theme-border);min-width:0}
 .ui-root .tbl-bar .tbl-pick{flex:1 1 280px;min-width:0;max-width:420px}
 .ui-root .tbl-bar .tbl-pick .ui-sel{width:100%}

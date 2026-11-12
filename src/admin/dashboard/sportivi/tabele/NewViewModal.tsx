@@ -4,13 +4,15 @@ import { TABLES_COPY } from '../../../../club/tables/copy';
 
 type Props = {
   open: boolean; initialName: string;
+  /** Default "Vizualizare nouă". */
+  title?: string;
   /** Saves the view; resolves with the server's refusal text, or null when it is saved. */
   onSave: (name: string) => Promise<string | null>;
   onClose: () => void;
 };
 
 /** "Vizualizare nouă": a name, "Renunță" and "Salvează" (inside the modal's .ui-root, so the SaveBar tagger skips them). */
-export function NewViewModal({ open, initialName, onSave, onClose }: Props) {
+export function NewViewModal({ open, initialName, title, onSave, onClose }: Props) {
   const [name, setName] = React.useState(initialName);
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
@@ -25,7 +27,7 @@ export function NewViewModal({ open, initialName, onSave, onClose }: Props) {
   };
   return (
     <Modal
-      open={open} onClose={onClose} title={TABLES_COPY.newTitle} dismissable={!busy} initialFocusRef={inputRef}
+      open={open} onClose={onClose} title={title ?? TABLES_COPY.newTitle} dismissable={!busy} initialFocusRef={inputRef}
       footer={(
         <>
           <Button variant="secondary" disabled={busy} onClick={onClose}>{TABLES_COPY.giveUp}</Button>

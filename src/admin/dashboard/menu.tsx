@@ -321,15 +321,12 @@ export function registerEdusportMenu(app: StrapiApp) {
     position: 7,
   });
 
-  // Tabele: the page moves out of Sportivi in a later step; until then it renders the same component.
+  // Tabele: its own page (spec 6).
   app.addMenuLink({
     to: TABELE_PATH,
     icon: GridFour,
     intlLabel: { id: 'edusport.menu.tabele', defaultMessage: 'Tabele' },
-    Component: async () => {
-      const { TabelePage } = await import('./sportivi/tabele/TabelePage');
-      return { default: () => <TabelePage tabs={null} /> };
-    },
+    Component: () => import('./TabeleRoutePage'),
     permissions: [],
     position: 7,
   });

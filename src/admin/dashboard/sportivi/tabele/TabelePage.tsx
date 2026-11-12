@@ -5,12 +5,12 @@ import { ConfirmDialog } from '../../../ConfirmDialog';
 import { effectiveDefinition, NO_QUICK, quickFiltersOpen, type Quick } from '../../../../club/tables/builder-state';
 import type { CatalogAnswer } from '../../../../club/tables/catalog-api';
 import { TABLES_COPY, TABLES_COUNT_WORDS } from '../../../../club/tables/copy';
+import { railGroups, type RailMenuKey } from '../../../../club/tables/rail';
 import { readTabeleQuery, tablesTo } from '../../../../club/tables/routes';
 import type { SavedViewRow, TableDefinition, TableResult } from '../../../../club/tables/types';
 import { isDirty, noPaymentsThisMonth } from '../../../../club/tables/view-state';
 import { MONEY_UI_COPY } from '../../../../club/presence/copy/money-ui';
 import { PRESENCE_ERRORS } from '../../../../club/presence/copy/core';
-import { LIST_COPY } from '../../../../club/sportivi/list-view';
 import { requestErrorText } from '../../../../club/registration-panel';
 import { countWords } from '../../../../club/ro-count';
 import { blobErrorText } from '../../inscrieri/downloadPdf';
@@ -20,6 +20,7 @@ import { useTablesApi, type Format, type TablesApi } from './api';
 import { Builder } from './Builder';
 import { NewViewModal } from './NewViewModal';
 import { ResultTable } from './ResultTable';
+import { SavedRail } from './SavedRail';
 import { TABELE_CSS } from './styles';
 import { ViewBar } from './ViewBar';
 
@@ -89,15 +90,16 @@ function QuickFilters({ catalog, definition, quick, onChange }: { catalog: Catal
   );
 }
 
-type Dialog = { kind: 'new' } | { kind: 'duplicate' } | { kind: 'remove' } | null;
+type Dialog = { kind: 'new' } | { kind: 'duplicate' | 'rename' | 'remove'; view: SavedViewRow } | null;
 
-type LoadedProps = { api: TablesApi; catalog: CatalogAnswer; views: SavedViewRow[]; reloadViews: () => Promise<void>; tabs: React.ReactNode };
+type LoadedProps = { api: TablesApi; catalog: CatalogAnswer; views: SavedViewRow[]; reloadViews: () => Promise<void> };
 
-function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
+function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
   const phone = useIsPhone();
   const navigate = useNavigate();
   const { search } = useLocation();
   const all = [...catalog.readyMade, ...views];
+  const groups = railGroups(all);
   const wanted = readTabeleQuery(search).viewId;
   const current = all.find((v) => v.id === wanted) ?? catalog.readyMade.find((v) => v.id === catalog.defaultViewId) ?? catalog.readyMade[0];
   const saved = current.definition;
@@ -146,9 +148,13 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
     }
   };
 
-  /** Saves a new view; resolves with the server's text when it refuses (the modal shows it). */
+  /** "Salvează" of the header: over an own view when changed, otherwise (ready-made, a colleague's) the "Vizualizare nouă" modal. */
+  const onSaveClick = () => (current.mine ? void save() : setDialog({ kind: 'new' }));
+  const saveEnabled = !current.broken && (current.mine ? dirty : true);
+
+  /** Saves a new view (from the draft, or a copy of the duplicated one); resolves with the server's text when it refuses (the modal shows it). */
   const create = async (name: string): Promise<string | null> => {
-    const definition = dialog?.kind === 'duplicate' ? saved : draft;
+    const definition = dialog?.kind === 'duplicate' ? dialog.view.definition : draft;
     if (!definition) return PRESENCE_ERRORS.failed;
     try {
       const reply = await api.createView(name, definition);
@@ -162,13 +168,33 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
     }
   };
 
+  const rename = async (name: string): Promise<string | null> => {
+    if (dialog?.kind !== 'rename') return PRESENCE_ERRORS.failed;
+    try {
+      const reply = await api.updateView(dialog.view.id, { name });
+      adminToast.success(reply.toast);
+      await reloadViews();
+      setDialog(null);
+      return null;
+    } catch (err) {
+      return requestErrorText(err, PRESENCE_ERRORS.failed);
+    }
+  };
+
+  const onMenu = (key: RailMenuKey, view: SavedViewRow) => {
+    setRemoveError(null);
+    setDialog({ kind: key, view });
+  };
+
   const remove = async () => {
+    if (dialog?.kind !== 'remove') return;
+    const target = dialog.view;
     setRemoving(true);
     try {
-      const reply = await api.deleteView(current.id);
+      const reply = await api.deleteView(target.id);
       setDialog(null);
       setRemoveError(null);
-      go(null);
+      if (target.id === current.id) go(null);
       await reloadViews();
       const { actionId } = reply;
       adminToast.success(reply.toast, actionId ? {
@@ -199,15 +225,14 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
   return (
     <AdminPage className="tbl-page">
       <style>{SPORTIVI_CSS}{TABELE_CSS}</style>
-      {tabs}
       <Window>
-        <PageHeader title={LIST_COPY.title} />
-        <ViewBar
-          ready={catalog.readyMade} saved={views} current={current} dirty={dirty}
-          canDownload={!!result && !error && !current.broken} downloading={downloading}
-          onPick={go} onSave={() => void save()} onSaveAsNew={() => setDialog({ kind: 'new' })} onDuplicate={() => setDialog({ kind: 'duplicate' })}
-          onRemove={() => { setRemoveError(null); setDialog({ kind: 'remove' }); }} onDownload={(f) => void download(f)}
-        />
+        <PageHeader title={TABLES_COPY.pageTitle} actions={<Button disabled={!saveEnabled} onClick={onSaveClick}>{TABLES_COPY.save}</Button>} />
+      </Window>
+      <div className="tbl-layout">
+        <SavedRail groups={groups} currentId={current.id} phone={phone} onPick={go} onMenu={onMenu} />
+        <div className="tbl-main">
+      <Window>
+        <ViewBar canDownload={!!result && !error && !current.broken} downloading={downloading} onDownload={(f) => void download(f)} />
         {current.broken && <div className="tbl-notices"><Notice tone="warning">{TABLES_COPY.brokenView}</Notice></div>}
         {draft && !phone && <div className="tbl-builder">{builder}</div>}
         {draft && phone && (
@@ -229,14 +254,17 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
         )}
         {!draft && !current.broken && <EmptyState>{TABLES_COPY.empty}</EmptyState>}
       </Window>
+        </div>
+      </div>
       <BottomSheet open={phone && sheet} onClose={() => setSheet(false)} title={TABLES_COPY.editMobile} fullHeight>{builder}</BottomSheet>
       <NewViewModal
-        open={dialog?.kind === 'new' || dialog?.kind === 'duplicate'}
-        initialName={dialog?.kind === 'duplicate' ? TABLES_COPY.copyOf(current.name) : ''}
-        onSave={create} onClose={() => setDialog(null)}
+        open={dialog?.kind === 'new' || dialog?.kind === 'duplicate' || dialog?.kind === 'rename'}
+        title={dialog?.kind === 'rename' ? TABLES_COPY.rename : undefined}
+        initialName={dialog?.kind === 'duplicate' ? TABLES_COPY.copyOf(dialog.view.name) : dialog?.kind === 'rename' ? dialog.view.name : ''}
+        onSave={dialog?.kind === 'rename' ? rename : create} onClose={() => setDialog(null)}
       />
       <ConfirmDialog
-        open={dialog?.kind === 'remove'} title={TABLES_COPY.confirmDelete(current.name)} message={null}
+        open={dialog?.kind === 'remove'} title={TABLES_COPY.confirmDelete(dialog?.kind === 'remove' ? dialog.view.name : '')} message={null}
         confirmLabel={TABLES_COPY.remove} busyLabel={TABLES_COPY.remove} cancelLabel={TABLES_COPY.giveUp}
         busy={removing} error={removeError} onConfirm={() => void remove()} onCancel={() => setDialog(null)}
       />
@@ -244,16 +272,15 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
   );
 }
 
-/** The Sportivi "Tabele" tab (spec 5.5): ready-made and saved views, the builder, the table and the downloads. `tabs` is the Listă | Tabele tab row. */
-export function TabelePage({ tabs }: { tabs: React.ReactNode }) {
+/** The Tabele page (spec 6): header, the saved-tables rail, the builder, the table and the downloads. */
+export function TabelePage() {
   const api = useTablesApi();
   const { catalog, views, failed, reloadViews } = useTablesData(api);
-  if (catalog) return <Loaded api={api} catalog={catalog} views={views} reloadViews={reloadViews} tabs={tabs} />;
+  if (catalog) return <Loaded api={api} catalog={catalog} views={views} reloadViews={reloadViews} />;
   return (
     <AdminPage className="tbl-page">
-      {tabs}
       <Window>
-        <PageHeader title={LIST_COPY.title} />
+        <PageHeader title={TABLES_COPY.pageTitle} />
         {failed ? <div className="tbl-notices"><Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice></div> : <div className="tbl-loading"><Loading /></div>}
       </Window>
     </AdminPage>
