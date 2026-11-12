@@ -12,8 +12,10 @@ import { NewSessionWindow } from './NewSessionWindow';
 import { PeriodTable, type PeriodColumn, type PeriodGroup } from './PeriodTable';
 import { SessionPanel, type SessionTarget } from './SessionPanel';
 
+/** The Filtre of the screen applied to rows that carry a group (list rows and grid rows). */
+export type FilterRows = <T extends { groupId: string }>(rows: T[]) => T[];
 type Props = {
-  view: PeriodView; date: string; today: string; host: HTMLElement | null; onPage?: (page: PeriodPage) => void;
+  view: PeriodView; date: string; today: string; host: HTMLElement | null; onPage?: (page: PeriodPage) => void; filterRows: FilterRows;
 };
 type Opened = { target: SessionTarget; coachIds?: string[] };
 
@@ -32,7 +34,7 @@ const groupCell = (r: PeriodRow) => (
 );
 
 const count = (r: PeriodRow): string => `${r.present}/${r.listed}`;
-const rowKey = (r: PeriodRow): string => r.sessionId ?? r.occurrenceKey ?? `${r.groupId}-${r.date}-${r.startTime}`;
+export const rowKey = (r: PeriodRow): string => r.sessionId ?? r.occurrenceKey ?? `${r.groupId}-${r.date}-${r.startTime}`;
 
 const DAY_COLUMNS: PeriodColumn<PeriodRow>[] = [
   { key: 'time', header: PREZENTA_COPY.colTime, render: (r) => r.startTime },
@@ -43,12 +45,12 @@ const DAY_COLUMNS: PeriodColumn<PeriodRow>[] = [
 ];
 
 /** Data, Ora, Grupă, Antrenor, Stare (5.1): no Prezenți, the rows are unsaved. */
-const UNDONE_COLUMNS: PeriodColumn<PeriodRow>[] = [
+export const UNDONE_COLUMNS: PeriodColumn<PeriodRow>[] = [
   { key: 'date', header: PREZENTA_COPY.colDate, render: (r) => listDate(r.date) },
   ...DAY_COLUMNS.filter((c) => c.key !== 'present'),
 ];
 
-function card(r: PeriodRow, withDate: boolean) {
+export function card(r: PeriodRow, withDate: boolean) {
   return (
     <>
       <span className="spv-name">{`${r.startTime} ${r.groupName}`}</span>
@@ -61,8 +63,10 @@ function card(r: PeriodRow, withDate: boolean) {
 }
 
 /** The days of the period with their rows; Zi has no day header (S40). */
-function dayGroups(page: PeriodPage, view: PeriodView): PeriodGroup<PeriodRow>[] {
-  return page.days.map((d) => ({ key: d.date, header: view === 'zi' ? null : dayHeader(d.date, page.today), today: d.date === page.today, rows: d.rows }));
+function dayGroups(page: PeriodPage, view: PeriodView, filterRows: FilterRows): PeriodGroup<PeriodRow>[] {
+  return page.days
+    .map((d) => ({ key: d.date, header: view === 'zi' ? null : dayHeader(d.date, page.today), today: d.date === page.today, rows: filterRows(d.rows) }))
+    .filter((g) => g.rows.length > 0);
 }
 
 /** Month list: scroll to today (or the first day shown) once the rows are in, once per period (a reload after a save keeps the place). */
@@ -80,8 +84,8 @@ function useScrollToToday(page: PeriodPage | null, view: PeriodView, today: stri
   }, [page, view, today, period.from, period.to]);
 }
 
-/** "Grupe", Listă (5.1): the undone list above, then the days with their sessions; a row opens the session panel. */
-export function GroupsList({ view, date, today, host, onPage }: Props) {
+/** "Grupe", Listă (5.1): the days with their sessions (the undone ones are their own tab); a row opens the session panel. */
+export function GroupsList({ view, date, today, host, onPage, filterRows }: Props) {
   const phone = useIsPhone();
   const period = periodOf(view, date);
   const { data: page, failed } = usePeriodLoad((api, from, to) => api.period(from, to), period);
@@ -98,23 +102,14 @@ export function GroupsList({ view, date, today, host, onPage }: Props) {
   let body: React.ReactNode = <Loading />;
   if (failed) body = <div className="pz-notices"><Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice></div>;
   else if (page) {
-    const undone: PeriodGroup<PeriodRow>[] = [{ key: 'undone', header: null, rows: page.undone }];
+    const days = dayGroups(page, view, filterRows);
     body = (
       <>
-        {page.undone.length > 0 && (
-          <>
-            <p className="pz-label pz-label--warn">{PERIOD_COPY.undoneTitle(page.undone.length)}</p>
-            <PeriodTable
-              groups={undone} columns={UNDONE_COLUMNS} phone={phone} getRowKey={rowKey} card={(r) => card(r, true)} onOpen={open}
-              rowLabel={(r) => `${listDate(r.date)} ${r.startTime} ${r.groupName}`}
-            />
-          </>
-        )}
-        {page.days.length === 0 ? (
+        {days.length === 0 ? (
           <p className="pz-empty">{PERIOD_COPY.emptyGroups}</p>
         ) : (
           <PeriodTable
-            groups={dayGroups(page, view)} columns={DAY_COLUMNS} phone={phone} getRowKey={rowKey} card={(r) => card(r, false)} onOpen={open}
+            groups={days} columns={DAY_COLUMNS} phone={phone} getRowKey={rowKey} card={(r) => card(r, false)} onOpen={open}
             rowLabel={(r) => `${r.startTime} ${r.groupName}`} rowToday={(r) => r.date === page.today} anchor="pz-day-"
           />
         )}

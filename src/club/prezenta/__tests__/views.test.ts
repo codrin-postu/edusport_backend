@@ -22,11 +22,15 @@ const row = (id: string, p: Partial<PanelRow> = {}): PanelRow => ({
 
 describe('address (decided 2)', () => {
   it('reads and writes the Prezență query and the module paths', () => {
-    expect(readPrezentaQuery('?tab=lectii&month=2026-10', '2026-10-27')).toEqual({ view: 'luna', date: '2026-10-01', show: 'lectii', layout: 'lista', tab: 'toate', groupId: null, month: '2026-10' });
+    expect(readPrezentaQuery('?tab=lectii&month=2026-10', '2026-10-27')).toEqual({ view: 'luna', date: '2026-10-01', show: 'lectii', layout: 'lista', tab: 'toate', groupId: null, sectiune: null, grupa: [], month: '2026-10' });
     expect(prezentaTo({ view: 'zi', date: '2026-10-26' })).toBe('/plugins/edusport-prezenta?view=zi&date=2026-10-26');
     const t = readPrezentaQuery('?tab=tabel&groupId=g1&month=2026-10', '2026-11-12');
     expect([t.tab, t.groupId, t.month]).toEqual(['tabel', 'g1', '2026-10']);
+    const f = readPrezentaQuery('?sectiune=Club&grupa=g1,g2', '2026-11-12');
+    expect([f.sectiune, f.grupa]).toEqual(['Club', ['g1', 'g2']]);
+    expect(prezentaTo({ tab: 'toate', sectiune: 'Club', grupa: ['g1', 'g2'] })).toBe('/plugins/edusport-prezenta?tab=toate&sectiune=Club&grupa=g1,g2');
     const d = readPrezentaQuery('', '2026-11-12');
+    expect([d.sectiune, d.grupa]).toEqual([null, []]);
     expect([d.tab, d.groupId, d.month]).toEqual(['toate', null, '2026-11']);
     expect(readPrezentaQuery('?tab=tabel&month=2027-01', '2026-11-12').month).toBe('2026-11');
     expect([PREZENTA_PATH, ABONAMENTE_PATH, PLATI_PATH, DE_INCASAT_PATH]).toEqual(['/plugins/edusport-prezenta', '/plugins/edusport-abonamente', '/plugins/edusport-plati', '/plugins/edusport-de-incasat']);

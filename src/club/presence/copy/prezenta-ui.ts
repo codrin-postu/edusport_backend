@@ -1,8 +1,9 @@
 import { monthName } from '../dates';
 import { ron } from '../money';
+import { countWords } from '../../ro-count';
 
 export const PREZENTA_COPY = {
-  title: 'Prezență', tabSessions: 'Ședințe', tabLessons: 'Lecții individuale', tabCoaches: 'Pe antrenori',
+  title: 'Prezență', sub: 'Ședințe și prezențe pe grupe', tabSessions: 'Ședințe', tabLessons: 'Lecții individuale', tabCoaches: 'Pe antrenori',
   today: 'Azi', prevDay: 'Ziua anterioară', nextDay: 'Ziua următoare', monthLabel: 'Luna', prevMonth: 'Luna anterioară', nextMonth: 'Luna următoare',
   newSession: '+ Ședință nouă', newLesson: '+ Lecție individuală', exportCsv: 'Export CSV',
   startNotice: 'Setează data de început a prezenței în Setări site.',
@@ -24,6 +25,9 @@ export const PERIOD_COPY = {
   show: { grupe: 'Grupe', lectii: 'Lecții individuale', antrenori: 'Antrenori' },
   layout: { lista: 'Listă', grila: 'Grilă' },
   newSession: '+ Ședință nouă', newLesson: '+ Lecție individuală', exportCsv: 'Export CSV',
+  tabs: { deCompletat: 'De completat', toate: 'Toate ședințele', tabel: 'Tabel pe grupă' },
+  noUndone: 'Nicio ședință de completat.',
+  filters: { section: 'Secțiune', group: 'Grupă', show: (n: number): string => `Arată ${countWords(n, 'grupă', 'grupe')}` },
   undoneTitle: (n: number): string => `Necompletate din zilele trecute (${n})`,
   outside: 'În afara programului',
   todaySuffix: ' (azi)',
