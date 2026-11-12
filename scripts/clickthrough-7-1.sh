@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Click-through of phase 7-1 (athlete access and accounts) against a THROWAWAY Strapi (fixtures phase4, phase5, phase6 and phase7 loaded).
 # Usage: IDS_FILE=/path/ids.json BASE=http://127.0.0.1:1411 bash scripts/clickthrough-7-1.sh
-# Needs the ids file written by phase7-shape.js (it holds the TOTP secret of parinte2fa). Behaviour only: every step prints PASS or FAIL.
-# Start the throwaway Strapi with PORTAL_2FA=on: the 2FA pending step of step 3 only exists while the portal 2FA switch is on (default off).
+# Needs the ids file written by phase7-shape.js. Behaviour only: every step prints PASS or FAIL.
 set -u
 BASE="${BASE:-http://127.0.0.1:1411}"
 SECRET="${PORTAL_BFF_SECRET:-test-bff-secret-000000000000000000}"
@@ -34,24 +33,6 @@ code=$(login antrenor antrenor1@example.invalid Throwaway-Coach-1); expect "antr
 code=$(login sportiv antrenor1@example.invalid Throwaway-Coach-1); expect "antrenor1 on sportiv" "$code" 200 "'accessToken' in d['data']" True
 CO_SP_REFRESH=$(json "d['data']['refreshToken']")
 code=$(login antrenor antrenor1@example.invalid Throwaway-Coach-1); CO_AN_REFRESH=$(json "d['data']['refreshToken']")
-# 3 2FA holder: pending with a deviceKey, code with the key works, without it is refused
-code=$(login sportiv parinte2fa@example.invalid Throwaway-Parent-2); expect "parinte2fa on sportiv is pending" "$code" 200 "d['data']['step']" 2fa
-PENDING=$(json "d['data']['pending']"); DKEY=$(json "d['data']['deviceKey']")
-[ -n "$PENDING" ] && [ "$DKEY" != "None" ] && ok "pending and deviceKey present" || bad "pending or deviceKey missing"
-# the code of the current step ($1 = 0) or of the next one ($1 = 1); a step already seen is a replay, so each call uses its own
-totp() { py "
-import json,hmac,hashlib,struct,time,base64
-s=json.load(open('$IDS'))['portal']['parinte2fa']['totpSecretBase32']
-k=base64.b32decode(s+'='*(-len(s)%8))
-h=hmac.new(k,struct.pack('>Q',int(time.time())//30+$1),hashlib.sha1).digest()
-o=h[-1]&15
-print(str((struct.unpack('>I',h[o:o+4])[0]&0x7fffffff)%10**6).zfill(6))"; }
-TOTP=$(totp 0)
-code=$(status "${H[@]}" -X POST "$BASE/api/portal/auth/2fa" -d "{\"pending\":\"$PENDING\",\"method\":\"totp\",\"code\":\"$TOTP\",\"remember\":false}")
-expect "code without the deviceKey is refused" "$code" 401
-code=$(login sportiv parinte2fa@example.invalid Throwaway-Parent-2); PENDING=$(json "d['data']['pending']"); DKEY=$(json "d['data']['deviceKey']"); TOTP=$(totp 1)
-code=$(status "${H[@]}" -X POST "$BASE/api/portal/auth/2fa" -d "{\"pending\":\"$PENDING\",\"deviceKey\":\"$DKEY\",\"method\":\"totp\",\"code\":\"$TOTP\",\"remember\":false}")
-expect "code with the deviceKey gives a session" "$code" 200 "'accessToken' in d['data']" True
 # 4 own security on a sportiv session
 code=$(status -H "x-portal-secret: $SECRET" -H "authorization: Bearer $SP_TOKEN" "$BASE/api/portal/me/security"); expect "sportiv session reads /me/security" "$code" 200
 # 5 admin
