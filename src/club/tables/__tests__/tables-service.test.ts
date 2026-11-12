@@ -108,7 +108,7 @@ describe('readCatalog', () => {
     expect(Object.keys(res.subjects)).toEqual(['sportivi', 'plati', 'abonamente', 'prezenta']);
     expect(res.subjects.plati.columns.map((c) => c.key)).toContain('nrChitanta');
     expect(res.seasons[0]).toMatchObject({ id: 's26', isCurrent: true });
-    expect(res.readyMade.map((v) => v.id)).toEqual(['rm-plati-grupa', 'rm-prezenta-grupa', 'rm-sportivi-activi', 'rm-ramas', 'rm-expira', 'rm-sportivi-plati']);
+    expect(res.readyMade.map((v) => v.id)).toEqual(['rm-plati-grupa', 'rm-prezenta-grupa', 'rm-ramas', 'rm-expira', 'rm-contacte', 'rm-sportivi-activi', 'rm-sportivi-plati']);
     expect(res.readyMade.every((v) => v.definition?.scope.seasonId === 's26')).toBe(true);
     expect(res.defaultViewId).toBe('rm-plati-grupa');
     expect(res.groups.map((g) => g.name)).toContain('Intermediari Bronze');

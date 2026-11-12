@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { SPORTIVI_PATH } from '../../sportivi/routes';
 import { TABLES_COPY as C } from '../copy';
 import { READY_MADE } from '../ready-made';
-import { TABLES_AREA, readTablesQuery, tablesTo } from '../routes';
+import { TABLES_AREA, readTablesQuery, readTabeleQuery, tablesTo } from '../routes';
 import type { SavedViewRow, TableDefinition, TableResult } from '../types';
 import { actionsFor, groupHeader, isDirty, noPaymentsThisMonth, windowed } from '../view-state';
 
@@ -47,9 +47,9 @@ describe('address', () => {
   });
 
   it('builds the address and round-trips', () => {
-    expect(tablesTo(null)).toBe(`${SPORTIVI_PATH}?vedere=tabele`);
-    expect(tablesTo('a b/c')).toBe(`${SPORTIVI_PATH}?vedere=tabele&v=a%20b%2Fc`);
-    expect(readTablesQuery(tablesTo('a b/c').split('?')[1])).toEqual({ tab: 'tabele', viewId: 'a b/c' });
+    expect(tablesTo(null)).toBe('/plugins/edusport-tabele');
+    expect(tablesTo('a b/c')).toBe('/plugins/edusport-tabele?v=a%20b%2Fc');
+    expect(readTabeleQuery(tablesTo('a b/c').split('?')[1])).toEqual({ viewId: 'a b/c' });
   });
 });
 

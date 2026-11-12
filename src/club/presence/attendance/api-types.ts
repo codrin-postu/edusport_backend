@@ -38,6 +38,10 @@ export type GridPage = {
   from: string; to: string; startDate: string | null; groupsWithoutList: number; dates: string[]; rows: { groupId: string; groupName: string; cells: GridCell[] }[];
 };
 export type GroupMonth = { month: string; rows: PeriodRow[] };
+export type MatrixColumn = { date: string; startTime: string; sessionId: string | null; occurrenceKey: string | null; state: AdminState };
+export type MatrixCell = { grup: boolean; uscat: boolean };
+export type MatrixRow = { athleteId: string; name: string; visitor: boolean; cells: MatrixCell[]; present: number; of: number | null };
+export type GroupMatrix = { month: string; group: { id: string; name: string; program: string }; columns: MatrixColumn[]; rows: MatrixRow[] };
 export type LessonListRow = {
   lessonId: string; date: string; startTime: string; athleteId: string; athleteName: string; coachNames: string[]; durationMin: number;
   state: SessionState; present: boolean | null;

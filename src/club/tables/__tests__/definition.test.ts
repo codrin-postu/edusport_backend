@@ -187,7 +187,7 @@ describe('ready-made views', () => {
     for (const v of READY_MADE) expect(readDefinition({ definition: v.definition }).ok, v.name).toBe(true);
   });
   it('are read only, authored by the system, and have the rm- ids', () => {
-    expect(READY_MADE.map((v) => v.id)).toEqual(['rm-plati-grupa', 'rm-prezenta-grupa', 'rm-sportivi-activi', 'rm-ramas', 'rm-expira', 'rm-sportivi-plati']);
+    expect(READY_MADE.map((v) => v.id)).toEqual(['rm-plati-grupa', 'rm-prezenta-grupa', 'rm-ramas', 'rm-expira', 'rm-contacte', 'rm-sportivi-activi', 'rm-sportivi-plati']);
     for (const v of READY_MADE) expect(v).toMatchObject({ readyMade: true, canDelete: false, mine: false, authorId: null, authorName: 'Sistem' });
   });
 });

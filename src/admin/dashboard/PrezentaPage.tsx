@@ -17,6 +17,7 @@ export default function PrezentaPage() {
 function PrezentaList() {
   const navigate = useNavigate();
   const query = readPrezentaQuery(useLocation().search, todayIso());
-  const onQuery = (next: Partial<PrezentaQuery>) => navigate(prezentaTo({ ...query, ...next }), { replace: true });
+  // A tab click is a history step (back returns to the tab); every other change replaces the entry.
+  const onQuery = (next: Partial<PrezentaQuery>) => navigate(prezentaTo({ ...query, ...next }), { replace: next.tab === undefined || next.tab === query.tab });
   return <PrezentaScreen query={query} onQuery={onQuery} />;
 }

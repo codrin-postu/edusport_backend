@@ -14,5 +14,19 @@ export function readTablesQuery(search: string): TablesQuery {
   return { tab: 'tabele', viewId: id || null };
 }
 
-/** The Tabele tab, on a view when given. */
-export const tablesTo = (viewId: string | null): string => `${SPORTIVI_PATH}?vedere=tabele${viewId ? `&v=${encodeURIComponent(viewId)}` : ''}`;
+export const TABELE_PATH = '/plugins/edusport-tabele';
+
+/** The Tabele page, on a view when given. */
+export const tablesTo = (viewId: string | null): string => `${TABELE_PATH}${viewId ? `?v=${encodeURIComponent(viewId)}` : ''}`;
+
+/** `?v=<id>`: the view the Tabele page opens on. */
+export function readTabeleQuery(search: string): { viewId: string | null } {
+  const id = (new URLSearchParams(search).get('v') ?? '').trim();
+  return { viewId: id || null };
+}
+
+/** The old Sportivi "Tabele" tab address (`vedere=tabele&v=x`) -> the Tabele page; null for anything else. */
+export function oldTablesRedirect(search: string): string | null {
+  const { tab, viewId } = readTablesQuery(search);
+  return tab === 'tabele' ? tablesTo(viewId) : null;
+}

@@ -2,6 +2,7 @@ import { MAX_COLUMNS, MAX_FILTERS } from './definition';
 import { groupHeader } from './view-state';
 import type { CatalogColumn, CellValue, FilterOp, FilterValue, Subject, TableDefinition, TableFilter, TableGroup, TableResult, TableRow } from './types';
 import { ron } from '../presence/money';
+import { TABLES_COPY } from './copy';
 
 /** Pure editing helpers of the Tabele builder: the screen only wires them to controls. */
 
@@ -18,7 +19,7 @@ export const DEFAULT_COLUMNS: Record<Subject, string[]> = {
 };
 
 /** A new subject keeps the scope and starts from its own columns, with no filter, group or sort. */
-export const withSubject = (d: TableDefinition, subject: Subject): TableDefinition => ({
+export const setSubject = (d: TableDefinition, subject: Subject): TableDefinition => ({
   subject, scope: d.scope, columns: DEFAULT_COLUMNS[subject], filters: [], groupBy: null, sort: null,
 });
 
@@ -46,8 +47,6 @@ export function checklistOrder(d: TableDefinition, catalog: CatalogColumn[]): { 
 
 /** A filter that is valid as it stands: "completat" on the first column; the admin then picks column, op and value. */
 export const newFilter = (catalog: CatalogColumn[]): TableFilter => ({ column: catalog[0].key, op: 'notEmpty' });
-/** The quick filters "Stare" and "Grupă" are extra filters: they close with the builder's own at the cap. */
-export const quickFiltersOpen = (d: TableDefinition): boolean => d.filters.length < MAX_FILTERS;
 export const canAddFilter = (d: TableDefinition): boolean => d.filters.length < MAX_FILTERS;
 
 /** The value a filter starts with when its op needs one. */
@@ -91,19 +90,11 @@ export function filterText(c: CatalogColumn, value: FilterValue | undefined): st
   return Array.isArray(value) ? value.map(one).join(', ') : one(value);
 }
 
-export type Quick = { stare: string | null; grupa: string | null };
-export const NO_QUICK: Quick = { stare: null, grupa: null };
-
-/**
- * What the screen shows and the download carries: the definition plus the quick filters "Stare" and "Grupă", which are extra equality
- * filters that are never saved with the view. A quick filter on a column the subject lacks, or past the filter cap, is left out.
- */
-export function effectiveDefinition(d: TableDefinition, quick: Quick, catalog: CatalogColumn[]): TableDefinition {
-  const has = (key: string): boolean => catalog.some((c) => c.key === key);
-  const extra: TableFilter[] = [];
-  if (quick.stare && has('stare')) extra.push({ column: 'stare', op: 'eq', value: quick.stare });
-  if (quick.grupa && has('grupa')) extra.push({ column: 'grupa', op: 'eq', value: quick.grupa });
-  return extra.length === 0 ? d : { ...d, filters: [...d.filters, ...extra].slice(0, MAX_FILTERS) };
+/** The label of a set filter in the control row: "Grupă: Avansați", "Sumă > 100", "Telefon: este gol". */
+export function filterSummary(c: CatalogColumn, f: TableFilter): string {
+  if (f.op === 'empty' || f.op === 'notEmpty') return `${c.label}: ${TABLES_COPY.ops[f.op]}`;
+  const value = filterText(c, f.value);
+  return f.op === 'gt' || f.op === 'lt' ? `${c.label} ${TABLES_COPY.ops[f.op]} ${value}` : `${c.label}: ${value}`;
 }
 
 /** "10.11.2026" for a date, "1.200 RON" for money, plain for the rest; empty for no value. */
@@ -134,6 +125,13 @@ export function linesOf(result: TableResult, collapsed: ReadonlySet<string>, sub
   });
   if (result.groups === null) result.rows.forEach((row, i) => out.push({ kind: 'row', key: `r${i}`, row }));
   if (result.groups !== null || Object.keys(result.total).length > 0) out.push({ kind: 'total', key: 'total', cells: result.total });
+  return out;
+}
+
+/** "#" of the spreadsheet aspect: rows are counted in the order shown, 1 up; group and subtotal lines carry no number. */
+export function rowNumbers(lines: Line[]): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const l of lines) if (l.kind === 'row') out.set(l.key, out.size + 1);
   return out;
 }
 

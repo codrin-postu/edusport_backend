@@ -1,8 +1,9 @@
 import { monthName } from '../dates';
 import { ron } from '../money';
+import { countWords } from '../../ro-count';
 
 export const PREZENTA_COPY = {
-  title: 'Prezență', tabSessions: 'Ședințe', tabLessons: 'Lecții individuale', tabCoaches: 'Pe antrenori',
+  title: 'Prezență', sub: 'Ședințe și prezențe pe grupe', tabSessions: 'Ședințe', tabLessons: 'Lecții individuale', tabCoaches: 'Pe antrenori',
   today: 'Azi', prevDay: 'Ziua anterioară', nextDay: 'Ziua următoare', monthLabel: 'Luna', prevMonth: 'Luna anterioară', nextMonth: 'Luna următoare',
   newSession: '+ Ședință nouă', newLesson: '+ Lecție individuală', exportCsv: 'Export CSV',
   startNotice: 'Setează data de început a prezenței în Setări site.',
@@ -15,8 +16,11 @@ export const PREZENTA_COPY = {
   closeConfirm: 'Închizi fără să salvezi?', stay: 'Rămâi',
   newSessionTitle: 'Ședință nouă', newLessonTitle: 'Lecție nouă',
 } as const;
+export const MATRIX_COPY = {
+  group: 'Grupă', athlete: 'Sportiv', total: 'Total', today: 'azi', undone: 'necompletat', visitors: 'Vizitatori', download: 'Descarcă Excel',
+  empty: 'Nicio ședință în luna asta.', grup: 'în grup', uscat: 'uscat', open: 'Deschide ședința',
+} as const;
 export const SETARI_COPY = { attendanceStart: 'Prezență și plăți din', attendanceStartHint: 'Ședințele dinainte nu apar ca nefăcute.' } as const;
-export const SHELL_COPY = { abonamente: 'Abonamente', abonamenteSub: 'Școala de patinaj', plati: 'Plăți', deIncasat: 'De încasat' } as const;
 
 export const PERIOD_COPY = {
   views: { zi: 'Zi', saptamana: 'Săptămână', luna: 'Lună' },
@@ -24,7 +28,9 @@ export const PERIOD_COPY = {
   show: { grupe: 'Grupe', lectii: 'Lecții individuale', antrenori: 'Antrenori' },
   layout: { lista: 'Listă', grila: 'Grilă' },
   newSession: '+ Ședință nouă', newLesson: '+ Lecție individuală', exportCsv: 'Export CSV',
-  undoneTitle: (n: number): string => `Necompletate din zilele trecute (${n})`,
+  tabs: { deCompletat: 'De completat', toate: 'Toate ședințele', tabel: 'Tabel pe grupă' },
+  noUndone: 'Nicio ședință de completat.',
+  filters: { section: 'Secțiune', group: 'Grupă', show: (n: number): string => `Arată ${countWords(n, 'grupă', 'grupe')}` },
   outside: 'În afara programului',
   todaySuffix: ' (azi)',
   emptyGroups: 'Nicio ședință în perioada asta.',

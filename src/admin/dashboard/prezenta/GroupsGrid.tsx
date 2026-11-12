@@ -5,12 +5,13 @@ import { GRID_COPY, PERIOD_COPY, PREZENTA_COPY } from '../../../club/presence/co
 import { periodOf, type PeriodView } from '../../../club/presence/period';
 import { cellStep, cellText, gridHeader, type CellStep } from '../../../club/prezenta/period-view';
 import type { PrezentaQuery } from '../../../club/prezenta/routes';
+import type { FilterRows } from './GroupsList';
 import { HeaderSlot } from './Switcher';
 import { usePeriodLoad } from './MonthLine';
 import { NewSessionWindow } from './NewSessionWindow';
 import { SessionPanel, type SessionTarget } from './SessionPanel';
 
-type Props = { view: PeriodView; date: string; today: string; host: HTMLElement | null; onQuery: (q: Partial<PrezentaQuery>) => void;
+type Props = { view: PeriodView; date: string; today: string; host: HTMLElement | null; onQuery: (q: Partial<PrezentaQuery>) => void; filterRows: FilterRows;
   onPage?: (page: { startDate: string | null; groupsWithoutList: number }) => void;
 };
 type Opened = { target: SessionTarget; coachIds?: string[] };
@@ -20,7 +21,7 @@ const STEP_LABEL: Record<CellStep, string> = {
 };
 
 /** "Grupe", Grilă (5.1, S14): groups by days; a cell is the day's present from listed; a click opens that day. */
-export function GroupsGrid({ view, date, today, host, onQuery, onPage }: Props) {
+export function GroupsGrid({ view, date, today, host, onQuery, onPage, filterRows }: Props) {
   const period = periodOf(view, date);
   const { data, failed } = usePeriodLoad((api, from, to) => api.grid(from, to), period);
   const onPageRef = React.useRef(onPage);
@@ -30,7 +31,7 @@ export function GroupsGrid({ view, date, today, host, onQuery, onPage }: Props) 
   const [opened, setOpened] = React.useState<Opened | null>(null);
   let body: React.ReactNode = <Loading />;
   if (failed) body = <div className="pz-notices"><Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice></div>;
-  else if (data && data.rows.length === 0) body = <p className="pz-empty">{PERIOD_COPY.emptyGroups}</p>;
+  else if (data && filterRows(data.rows).length === 0) body = <p className="pz-empty">{PERIOD_COPY.emptyGroups}</p>;
   else if (data) {
     body = (
       <>
@@ -43,7 +44,7 @@ export function GroupsGrid({ view, date, today, host, onQuery, onPage }: Props) 
               </tr>
             </thead>
             <tbody>
-              {data.rows.map((r) => (
+              {filterRows(data.rows).map((r) => (
                 <tr key={r.groupId}>
                   <th scope="row" className="pz-grid-group">{r.groupName}</th>
                   {r.cells.map((c) => {

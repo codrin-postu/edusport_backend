@@ -1,27 +1,29 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AdminPage, BottomSheet, Button, EmptyState, Loading, Notice, PageHeader, Select, Window, adminToast, useIsPhone, type SelectOption } from '../../../ui';
+import { AdminPage, Button, EmptyState, Loading, Notice, PageHeader, Window, adminToast, useIsPhone } from '../../../ui';
 import { ConfirmDialog } from '../../../ConfirmDialog';
-import { effectiveDefinition, NO_QUICK, quickFiltersOpen, type Quick } from '../../../../club/tables/builder-state';
+import { readAspect, writeAspect, type Aspect } from '../../../../club/tables/aspect';
 import type { CatalogAnswer } from '../../../../club/tables/catalog-api';
 import { TABLES_COPY, TABLES_COUNT_WORDS } from '../../../../club/tables/copy';
-import { readTablesQuery, tablesTo } from '../../../../club/tables/routes';
+import { nextSort } from '../../../../club/tables/header-sort';
+import { railGroups, type RailMenuKey } from '../../../../club/tables/rail';
+import { readTabeleQuery, tablesTo } from '../../../../club/tables/routes';
 import type { SavedViewRow, TableDefinition, TableResult } from '../../../../club/tables/types';
 import { isDirty, noPaymentsThisMonth } from '../../../../club/tables/view-state';
 import { MONEY_UI_COPY } from '../../../../club/presence/copy/money-ui';
 import { PRESENCE_ERRORS } from '../../../../club/presence/copy/core';
-import { LIST_COPY } from '../../../../club/sportivi/list-view';
 import { requestErrorText } from '../../../../club/registration-panel';
 import { countWords } from '../../../../club/ro-count';
 import { blobErrorText } from '../../inscrieri/downloadPdf';
 import { useLatest } from '../../bani/latest';
 import { SPORTIVI_CSS } from '../styles';
 import { useTablesApi, type Format, type TablesApi } from './api';
-import { Builder } from './Builder';
+import { ControlRow } from './ControlRow';
+import { ExportMenu } from './ExportMenu';
 import { NewViewModal } from './NewViewModal';
 import { ResultTable } from './ResultTable';
+import { SavedRail } from './SavedRail';
 import { TABELE_CSS } from './styles';
-import { ViewBar } from './ViewBar';
 
 const UNDO_MS = 8000;
 const QUERY_DELAY_MS = 300;
@@ -64,59 +66,31 @@ function useResult(api: TablesApi, definition: TableDefinition | null) {
   return state;
 }
 
-function QuickFilters({ catalog, definition, quick, onChange }: { catalog: CatalogAnswer; definition: TableDefinition; quick: Quick; onChange: (q: Quick) => void }) {
-  const columns = catalog.subjects[definition.subject].columns;
-  const stare = columns.find((c) => c.key === 'stare');
-  const hasGroup = columns.some((c) => c.key === 'grupa');
-  if (!stare && !hasGroup) return null;
-  const all: SelectOption = { value: '', label: TABLES_COPY.all };
-  const open = quickFiltersOpen(definition);
-  return (
-    <div className="tbl-quick">
-      {stare && (
-        <div className="tbl-quick-item">
-          <span className="tbl-label">{stare.label}</span>
-          <Select value={quick.stare ?? ''} aria-label={stare.label} disabled={!open} options={[all, ...(stare.values ?? []).map((v) => ({ value: v, label: v }))]} onChange={(v) => onChange({ ...quick, stare: v || null })} />
-        </div>
-      )}
-      {hasGroup && (
-        <div className="tbl-quick-item">
-          <span className="tbl-label">{TABLES_COPY.group}</span>
-          <Select value={quick.grupa ?? ''} aria-label={TABLES_COPY.group} disabled={!open} options={[all, ...catalog.groups.filter((g) => g.active).map((g) => ({ value: g.name, label: g.name }))]} onChange={(v) => onChange({ ...quick, grupa: v || null })} />
-        </div>
-      )}
-    </div>
-  );
-}
+type Dialog = { kind: 'new' } | { kind: 'duplicate' | 'rename' | 'remove'; view: SavedViewRow } | null;
 
-type Dialog = { kind: 'new' } | { kind: 'duplicate' } | { kind: 'remove' } | null;
+type LoadedProps = { api: TablesApi; catalog: CatalogAnswer; views: SavedViewRow[]; reloadViews: () => Promise<void> };
 
-type LoadedProps = { api: TablesApi; catalog: CatalogAnswer; views: SavedViewRow[]; reloadViews: () => Promise<void>; tabs: React.ReactNode };
-
-function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
+function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
   const phone = useIsPhone();
   const navigate = useNavigate();
   const { search } = useLocation();
   const all = [...catalog.readyMade, ...views];
-  const wanted = readTablesQuery(search).viewId;
+  const groups = railGroups(all);
+  const wanted = readTabeleQuery(search).viewId;
   const current = all.find((v) => v.id === wanted) ?? catalog.readyMade.find((v) => v.id === catalog.defaultViewId) ?? catalog.readyMade[0];
   const saved = current.definition;
   const savedKey = JSON.stringify(saved);
 
   const [draft, setDraft] = React.useState<TableDefinition | null>(saved);
-  const [quick, setQuick] = React.useState<Quick>(NO_QUICK);
   const [collapsed, setCollapsed] = React.useState<ReadonlySet<string>>(new Set());
-  React.useEffect(() => { setDraft(saved); setQuick(NO_QUICK); setCollapsed(new Set()); }, [current.id, savedKey]);
+  React.useEffect(() => { setDraft(saved); setCollapsed(new Set()); }, [current.id, savedKey]);
 
-  const columns = draft ? catalog.subjects[draft.subject].columns : [];
-  // At 10 builder filters there is no room for a quick one: it is closed, and one already chosen is dropped.
-  React.useEffect(() => { if (draft && !quickFiltersOpen(draft)) setQuick(NO_QUICK); }, [draft]);
-  const effective = draft ? effectiveDefinition(draft, quick, columns) : null;
-  const { result, error, loading } = useResult(api, effective);
+  const { result, error, loading } = useResult(api, draft);
+  const [aspect, setAspect] = React.useState<Aspect>(readAspect);
+  const chooseAspect = (a: Aspect) => { setAspect(a); writeAspect(a); };
   const dirty = saved !== null && draft !== null && isDirty(saved, draft);
 
   const [dialog, setDialog] = React.useState<Dialog>(null);
-  const [sheet, setSheet] = React.useState(false);
   const [downloading, setDownloading] = React.useState<Format | null>(null);
   const [removing, setRemoving] = React.useState(false);
   const [removeError, setRemoveError] = React.useState<string | null>(null);
@@ -124,10 +98,10 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
   const go = (id: string | null) => navigate(tablesTo(id), { replace: true });
 
   const download = async (format: Format) => {
-    if (!effective) return;
+    if (!draft) return;
     setDownloading(format);
     try {
-      await api.download(format, effective, current.name, `tabel-${effective.subject}.${format}`);
+      await api.download(format, draft, current.name, `tabel-${draft.subject}.${format}`);
     } catch (err) {
       adminToast.error(await blobErrorText(err, TABLES_COPY.errors.download));
     } finally {
@@ -146,9 +120,13 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
     }
   };
 
-  /** Saves a new view; resolves with the server's text when it refuses (the modal shows it). */
+  /** "Salvează" of the header: over an own view when changed, otherwise (ready-made, a colleague's) the "Vizualizare nouă" modal. */
+  const onSaveClick = () => (current.mine ? void save() : setDialog({ kind: 'new' }));
+  const saveEnabled = !current.broken && (current.mine ? dirty : true);
+
+  /** Saves a new view (from the draft, or a copy of the duplicated one); resolves with the server's text when it refuses (the modal shows it). */
   const create = async (name: string): Promise<string | null> => {
-    const definition = dialog?.kind === 'duplicate' ? saved : draft;
+    const definition = dialog?.kind === 'duplicate' ? dialog.view.definition : draft;
     if (!definition) return PRESENCE_ERRORS.failed;
     try {
       const reply = await api.createView(name, definition);
@@ -162,13 +140,33 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
     }
   };
 
+  const rename = async (name: string): Promise<string | null> => {
+    if (dialog?.kind !== 'rename') return PRESENCE_ERRORS.failed;
+    try {
+      const reply = await api.updateView(dialog.view.id, { name });
+      adminToast.success(reply.toast);
+      await reloadViews();
+      setDialog(null);
+      return null;
+    } catch (err) {
+      return requestErrorText(err, PRESENCE_ERRORS.failed);
+    }
+  };
+
+  const onMenu = (key: RailMenuKey, view: SavedViewRow) => {
+    setRemoveError(null);
+    setDialog({ kind: key, view });
+  };
+
   const remove = async () => {
+    if (dialog?.kind !== 'remove') return;
+    const target = dialog.view;
     setRemoving(true);
     try {
-      const reply = await api.deleteView(current.id);
+      const reply = await api.deleteView(target.id);
       setDialog(null);
       setRemoveError(null);
-      go(null);
+      if (target.id === current.id) go(null);
       await reloadViews();
       const { actionId } = reply;
       adminToast.success(reply.toast, actionId ? {
@@ -185,35 +183,31 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
     }
   };
 
-  const onSort = (key: string) => {
-    if (!draft) return;
-    const s = draft.sort;
-    const next = s?.column !== key ? { column: key, dir: 'asc' as const } : s.dir === 'asc' ? { column: key, dir: 'desc' as const } : null;
-    setDraft({ ...draft, sort: next });
-  };
+  const onSort = (key: string) => draft && setDraft({ ...draft, sort: nextSort(draft.sort, key) });
 
   const notices = [...new Set([...(current.notices ?? []), ...(result?.notices ?? [])])];
-  const builder = draft ? <Builder definition={draft} catalog={catalog} onChange={setDraft} /> : null;
   const [one, many] = draft ? TABLES_COUNT_WORDS[draft.subject] : TABLES_COUNT_WORDS.sportivi;
 
   return (
     <AdminPage className="tbl-page">
       <style>{SPORTIVI_CSS}{TABELE_CSS}</style>
-      {tabs}
       <Window>
-        <PageHeader title={LIST_COPY.title} />
-        <ViewBar
-          ready={catalog.readyMade} saved={views} current={current} dirty={dirty}
-          canDownload={!!result && !error && !current.broken} downloading={downloading}
-          onPick={go} onSave={() => void save()} onSaveAsNew={() => setDialog({ kind: 'new' })} onDuplicate={() => setDialog({ kind: 'duplicate' })}
-          onRemove={() => { setRemoveError(null); setDialog({ kind: 'remove' }); }} onDownload={(f) => void download(f)}
+        <PageHeader
+          title={TABLES_COPY.pageTitle}
+          actions={(
+            <div className="tbl-acts">
+              <ExportMenu canDownload={!!result && !error && !current.broken} downloading={downloading} rows={result?.count ?? 0} columns={result?.columns.length ?? 0} onDownload={(f) => void download(f)} />
+              <Button disabled={!saveEnabled} onClick={onSaveClick}>{TABLES_COPY.save}</Button>
+            </div>
+          )}
         />
+      </Window>
+      <div className="tbl-layout">
+        <SavedRail groups={groups} currentId={current.id} phone={phone} onPick={go} onMenu={onMenu} />
+        <div className="tbl-main">
+      <Window>
         {current.broken && <div className="tbl-notices"><Notice tone="warning">{TABLES_COPY.brokenView}</Notice></div>}
-        {draft && !phone && <div className="tbl-builder">{builder}</div>}
-        {draft && phone && (
-          <div className="tbl-bar"><Button variant="secondary" onClick={() => setSheet(true)}>{TABLES_COPY.editMobile}</Button></div>
-        )}
-        {draft && <QuickFilters catalog={catalog} definition={draft} quick={quick} onChange={setQuick} />}
+        {draft && <ControlRow definition={draft} catalog={catalog} onChange={setDraft} aspect={aspect} onAspect={chooseAspect} />}
         {notices.length > 0 && (
           <div className="tbl-notices">{notices.map((n) => <Notice key={n} tone="warning">{n}</Notice>)}</div>
         )}
@@ -223,20 +217,22 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
         {result && !error && noPaymentsThisMonth(current.id, result) && <EmptyState>{TABLES_COPY.noPaymentsMonth}</EmptyState>}
         {result && !error && !noPaymentsThisMonth(current.id, result) && (
           <ResultTable
-            result={result} sort={draft?.sort ?? null} onSort={onSort} collapsed={collapsed}
+            result={result} sort={draft?.sort ?? null} onSort={onSort} collapsed={collapsed} aspect={aspect}
             onToggle={(k) => setCollapsed((c) => { const n = new Set(c); if (n.has(k)) n.delete(k); else n.add(k); return n; })}
           />
         )}
         {!draft && !current.broken && <EmptyState>{TABLES_COPY.empty}</EmptyState>}
       </Window>
-      <BottomSheet open={phone && sheet} onClose={() => setSheet(false)} title={TABLES_COPY.editMobile} fullHeight>{builder}</BottomSheet>
+        </div>
+      </div>
       <NewViewModal
-        open={dialog?.kind === 'new' || dialog?.kind === 'duplicate'}
-        initialName={dialog?.kind === 'duplicate' ? TABLES_COPY.copyOf(current.name) : ''}
-        onSave={create} onClose={() => setDialog(null)}
+        open={dialog?.kind === 'new' || dialog?.kind === 'duplicate' || dialog?.kind === 'rename'}
+        title={dialog?.kind === 'rename' ? TABLES_COPY.rename : undefined}
+        initialName={dialog?.kind === 'duplicate' ? TABLES_COPY.copyOf(dialog.view.name) : dialog?.kind === 'rename' ? dialog.view.name : ''}
+        onSave={dialog?.kind === 'rename' ? rename : create} onClose={() => setDialog(null)}
       />
       <ConfirmDialog
-        open={dialog?.kind === 'remove'} title={TABLES_COPY.confirmDelete(current.name)} message={null}
+        open={dialog?.kind === 'remove'} title={TABLES_COPY.confirmDelete(dialog?.kind === 'remove' ? dialog.view.name : '')} message={null}
         confirmLabel={TABLES_COPY.remove} busyLabel={TABLES_COPY.remove} cancelLabel={TABLES_COPY.giveUp}
         busy={removing} error={removeError} onConfirm={() => void remove()} onCancel={() => setDialog(null)}
       />
@@ -244,16 +240,15 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
   );
 }
 
-/** The Sportivi "Tabele" tab (spec 5.5): ready-made and saved views, the builder, the table and the downloads. `tabs` is the Listă | Tabele tab row. */
-export function TabelePage({ tabs }: { tabs: React.ReactNode }) {
+/** The Tabele page (spec 6): header, the saved-tables rail, the control row, the table and the export. */
+export function TabelePage() {
   const api = useTablesApi();
   const { catalog, views, failed, reloadViews } = useTablesData(api);
-  if (catalog) return <Loaded api={api} catalog={catalog} views={views} reloadViews={reloadViews} tabs={tabs} />;
+  if (catalog) return <Loaded api={api} catalog={catalog} views={views} reloadViews={reloadViews} />;
   return (
     <AdminPage className="tbl-page">
-      {tabs}
       <Window>
-        <PageHeader title={LIST_COPY.title} />
+        <PageHeader title={TABLES_COPY.pageTitle} />
         {failed ? <div className="tbl-notices"><Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice></div> : <div className="tbl-loading"><Loading /></div>}
       </Window>
     </AdminPage>

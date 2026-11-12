@@ -1,15 +1,18 @@
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@strapi/admin/strapi-admin', () => ({ useFetchClient: () => ({}), getFetchClient: () => ({}) }));
 vi.mock('@strapi/design-system', () => ({}));
 vi.mock('@strapi/icons', () => ({}));
+import { ControlRow } from '../../../admin/dashboard/sportivi/tabele/ControlRow';
+import { ExportMenu } from '../../../admin/dashboard/sportivi/tabele/ExportMenu';
 import { ResultTable } from '../../../admin/dashboard/sportivi/tabele/ResultTable';
 import { CATALOG, GROUP_LABELS } from '../catalog';
 import type { CatalogAnswer } from '../catalog-api';
+import { TABLES_COPY } from '../copy';
 import { READY_MADE } from '../ready-made';
-import type { TableResult, TableRow } from '../types';
+import type { TableDefinition, TableResult, TableRow } from '../types';
 
 /** Server-side render of the pure parts of the screen: every branch renders, and the text and structure the brief asks for is there. */
 const catalog: CatalogAnswer = {
@@ -55,5 +58,36 @@ describe('Tabele render', () => {
     const out = html(React.createElement(ResultTable, { result: grouped(1500), sort: null, onSort: noop, collapsed: new Set(), onToggle: noop }));
     expect(out.match(/<tr/g)?.length).toBeLessThan(210);
     expect(out).toContain('ui-pager');
+  });
+
+  it('the spreadsheet aspect adds a "#" column numbering rows only, not group or subtotal lines', () => {
+    const out = html(React.createElement(ResultTable, { result: grouped(2), sort: null, onSort: noop, collapsed: new Set(), onToggle: noop, aspect: 'foaie' }));
+    expect(out).toContain('>#</th>');
+    expect(out.match(/<td class="tbl-n">\d+<\/td>/g)).toEqual(['<td class="tbl-n">1</td>', '<td class="tbl-n">2</td>']);
+    expect(html(React.createElement(ResultTable, { result: grouped(2), sort: null, onSort: noop, collapsed: new Set(), onToggle: noop }))).not.toContain('>#</th>');
+  });
+});
+
+describe('Tabele control row and export', () => {
+  // Popover lays itself out in a layout effect, which React warns about on the server only; every other error still shows.
+  beforeAll(() => {
+    const real = console.error.bind(console);
+    vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => { if (!args.join(' ').includes('useLayoutEffect')) real(...args); });
+  });
+  afterAll(() => vi.restoreAllMocks());
+  const definition: TableDefinition = { subject: 'plati', scope: { seasonId: 's26', sectionId: null, groupId: null, period: null }, columns: ['data', 'sportiv', 'suma'], filters: [{ column: 'sportiv', op: 'eq', value: 'Ana' }], groupBy: null, sort: null };
+
+  it('shows the table, scope, filter button, group-by, column count and aspect', () => {
+    const control = html(React.createElement(ControlRow, { definition, catalog, onChange: noop, aspect: 'lista', onAspect: noop }));
+    for (const text of ['Tabel:', 'Plăți', '2026-2027', 'Tot sezonul', 'Secțiune:', 'Grupă:', 'Grupează:', 'Sportiv: Ana', '+ Filtru', 'Coloane (3)', 'Aspect:', 'Listă', 'Foaie de calcul']) expect(control).toContain(text);
+    expect(control).not.toContain('Subiect');
+  });
+  it('the export menu is a closed button with the right rows and columns known to it', () => {
+    const out = html(React.createElement(ExportMenu, { canDownload: true, downloading: null, rows: 12, columns: 3, onDownload: noop }));
+    expect(out).toContain('Exportă');
+    expect(TABLES_COPY.export.exact(12, 3)).toBe('Exact ce vezi: 12 rânduri, 3 coloane, cu filtrele aplicate');
+    expect(TABLES_COPY.export.exact(1, 1)).toBe('Exact ce vezi: 1 rând, 1 coloană, cu filtrele aplicate');
+    expect(out).not.toContain('disabled');
+    expect(html(React.createElement(ExportMenu, { canDownload: false, downloading: null, rows: 0, columns: 0, onDownload: noop }))).toContain('disabled');
   });
 });

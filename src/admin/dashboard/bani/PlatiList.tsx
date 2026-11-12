@@ -1,31 +1,23 @@
 import * as React from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { AdminPage, Button, DataTable, FilterPanel, Loading, Notice, PageHeader, Window, useIsPhone, type DataColumn } from '../../ui';
-import { platiCells, platiSections, rowMenu, totalLine, type PlatiCells } from '../../../club/bani/plati-view';
+import { Button, DataTable, FilterPanel, Loading, Notice, useIsPhone, type DataColumn } from '../../ui';
 import { todayIso } from '../../../club/groups/http';
+import { platiCells, platiSections, rowMenu, totalLine, type PlatiCells } from '../../../club/bani/plati-view';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { MONEY_UI_COPY } from '../../../club/presence/copy/money-ui';
 import { PAYMENT_COPY } from '../../../club/presence/copy/payments';
-import { isMonth, monthOf, monthTitle } from '../../../club/presence/dates';
 import type { PaymentList, PaymentQuery, PaymentRowView } from '../../../club/presence/money-api';
 import { countWords } from '../../../club/ro-count';
 import { MenuButton } from '../SubmissionTable';
-import { SPORTIVI_CSS } from '../sportivi/styles';
 import { useMoneyApi } from './api';
+import { ActionsSlot, type ContabBodyProps } from './ContabBody';
 import { CancelPaymentDialog } from './CancelPaymentDialog';
 import { PaymentWindow } from './PaymentWindow';
-import { MONEY_CSS } from './styles';
 import { useLatest } from './latest';
 import { useMoneyChanged } from './undo';
 
 type Dialog = { kind: 'new' } | { kind: 'edit'; payment: PaymentRowView } | { kind: 'cancel'; payment: PaymentRowView } | null;
 type Filters = { month: string; method: string | null; purpose: string | null };
 const copy = MONEY_UI_COPY.plati;
-
-function readFilters(params: URLSearchParams, today: string): Filters {
-  const month = params.get('month');
-  return { month: isMonth(month) ? month : monthOf(today), method: params.get('method') || null, purpose: params.get('purpose') || null };
-}
 
 /** Rows of the filtered month, reloaded after every money write. */
 function usePayments(f: Filters): { list: PaymentList | null; failed: boolean } {
@@ -110,41 +102,34 @@ function Cards({ rows, onPick }: { rows: PaymentRowView[]; onPick: (r: PaymentRo
   );
 }
 
-/** The "Plăți" body (5.10): filters in the URL, the month's payments newest first, the total under the table. */
-export function PlatiList() {
-  const today = React.useMemo(() => todayIso(), []);
+/** The "Plăți" body (spec 5.4): the header month's payments newest first, Metodă and Tip in the URL, the total under the table. */
+export function PlatiBody({ month, params, setParams, actionsHost }: ContabBodyProps) {
   const phone = useIsPhone();
-  const [params, setParams] = useSearchParams();
-  const filters = readFilters(params, today);
+  const filters: Filters = { month, method: params.get('method') || null, purpose: params.get('purpose') || null };
   const { list, failed } = usePayments(filters);
   const [dialog, setDialog] = React.useState<Dialog>(null);
   const change = (key: string, selected: string[]) => {
     const next = new URLSearchParams(params);
     if (selected[0]) next.set(key, selected[0]); else next.delete(key);
-    setParams(next, { replace: true });
+    setParams(next);
   };
   const pick = (payment: PaymentRowView, kind: 'edit' | 'cancel') => setDialog({ kind, payment });
   const count = list ? countWords(list.rows.length, 'plată', 'plăți') : '';
-  const add = <Button onClick={() => setDialog({ kind: 'new' })}>{copy.add}</Button>;
+  // The month is the page's stepper, so the panel keeps only Metodă and Tip.
+  const sections = platiSections(filters, todayIso()).filter((s) => s.key !== 'month');
   return (
-    <AdminPage fit>
-      <style>{SPORTIVI_CSS + MONEY_CSS}</style>
-      <Window>
-        <PageHeader title={copy.title} subtitle={monthTitle(filters.month)} actions={add} />
-        <div className="bn-toolbar">
-          <FilterPanel
-            sections={platiSections(filters, today)} onChange={change} onClearAll={() => setParams({}, { replace: true })}
-            totalLabel={count} showLabel={MONEY_UI_COPY.show(count)}
-          />
-        </div>
-        {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
-        {!list && !failed && <Loading />}
-        {list && (phone ? <Cards rows={list.rows} onPick={pick} /> : <DataTable columns={columns(pick)} rows={list.rows} getRowKey={(r) => r.paymentId} pageSize={0} empty={MONEY_UI_COPY.empty.plati} />)}
-        {list && <p className="bn-total">{totalLine(list)}</p>}
-      </Window>
+    <>
+      <ActionsSlot host={actionsHost}><Button onClick={() => setDialog({ kind: 'new' })}>{copy.add}</Button></ActionsSlot>
+      <div className="bn-toolbar">
+        <FilterPanel sections={sections} onChange={change} onClearAll={() => setParams(new URLSearchParams())} totalLabel={count} showLabel={MONEY_UI_COPY.show(count)} />
+      </div>
+      {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
+      {!list && !failed && <Loading />}
+      {list && (phone ? <Cards rows={list.rows} onPick={pick} /> : <DataTable columns={columns(pick)} rows={list.rows} getRowKey={(r) => r.paymentId} pageSize={0} empty={MONEY_UI_COPY.empty.plati} />)}
+      {list && <p className="bn-total">{totalLine(list)}</p>}
       {dialog?.kind === 'new' && <PaymentWindow mode="new" onClose={() => setDialog(null)} />}
       {dialog?.kind === 'edit' && <PaymentWindow mode="edit" payment={dialog.payment} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'cancel' && <CancelPaymentDialog payment={dialog.payment} onClose={() => setDialog(null)} />}
-    </AdminPage>
+    </>
   );
 }

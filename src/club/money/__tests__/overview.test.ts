@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { restanteBlocks } from '../../bani/restante';
 import { athleteRow, member } from '../../groups/__tests__/fake-group-store';
 import { lessonRow, subscriptionRow } from '../../presence/__tests__/fake-store';
 import { readDue } from '../../presence/due/reads';
@@ -22,10 +23,10 @@ describe('money overview', () => {
     expect(o.cards.schoolAthletes).toBe(3);
   });
 
-  it('left and due are the De incasat totals of the month (S25)', async () => {
+  it('left is the sum of the Restante totals and due the De incasat total of the month (S25)', async () => {
     const seed = moneySeed();
     const page = await readDue(seed.store, '2026-11', TODAY);
-    const left = page.school.reduce((n, r) => n + r.left, 0) + page.club.reduce((n, r) => n + r.left, 0);
+    const left = restanteBlocks(page, 'toate').reduce((n, b) => n + b.total, 0);
     const due = page.school.reduce((n, r) => n + r.price, 0) + page.club.reduce((n, r) => n + r.due, 0);
     const o = moneyOverview(await loadMoneySources(seed.store, '2026-11'), '2026-11', TODAY);
     expect(o.cards.left).toBe(left);

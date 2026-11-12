@@ -9,6 +9,8 @@ import { readPresenceHistory } from '../../../club/presence/history/read';
 import { readGrid } from '../../../club/presence/attendance/grid';
 import { readPeriod } from '../../../club/presence/attendance/period';
 import { readGroupMonth } from '../../../club/presence/attendance/group-month';
+import { readGroupMatrix } from '../../../club/presence/attendance/group-matrix';
+import { groupMatrixName, groupMatrixXlsx } from '../../../club/presence/attendance/group-matrix-xlsx';
 import { readPanelQuery, readSessionPanel } from '../../../club/presence/attendance/panel';
 import { respondSave, saveSession } from '../../../club/presence/attendance/save';
 import { coachCsv, coachCsvName } from '../../../club/presence/coaches/coach-csv';
@@ -56,6 +58,20 @@ export default {
     const period = readPeriodQuery(ctx.query);
     if (period.ok === false) return refuseWith(ctx, period.status, period.error);
     respond(ctx, await readGrid(store(), period.value, bucharestNow(new Date())));
+  },
+
+  async groupMatrix(ctx: AdminCtx) {
+    respond(ctx, await readGroupMatrix(store(), String(ctx.query.groupId ?? ''), ctx.query.month, bucharestNow(new Date())));
+  },
+
+  async groupMatrixXlsx(ctx: FileCtx) {
+    const result = await readGroupMatrix(store(), String(ctx.query.groupId ?? ''), ctx.query.month, bucharestNow(new Date()));
+    if (result.ok === false) return refuseWith(ctx, result.status, result.error);
+    const adminId = await verifiedAdminId(ctx.request.header.authorization, strapi);
+    strapi.log.info(downloadLogLine({ adminId, kind: 'group-matrix-xlsx', rows: result.data.rows.length }));
+    ctx.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    ctx.set('Content-Disposition', `attachment; filename="${groupMatrixName(result.data)}"`);
+    ctx.body = await groupMatrixXlsx(result.data);
   },
 
   async coaches(ctx: AdminCtx) {

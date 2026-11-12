@@ -10,6 +10,8 @@ export default {
   routes: [
     { method: 'GET', path: '/club/attendance/period', handler: 'attendance.period', config: adminRoute('club') },
     { method: 'GET', path: '/club/attendance/grid', handler: 'attendance.grid', config: adminRoute('club') },
+    { method: 'GET', path: '/club/attendance/group-matrix', handler: 'attendance.groupMatrix', config: adminRoute('club') },
+    { method: 'GET', path: '/club/attendance/group-matrix.xlsx', handler: 'attendance.groupMatrixXlsx', config: adminRoute('club') },
     { method: 'GET', path: '/club/attendance/session/defaults', handler: 'attendance.defaults', config: adminGuard },
     { method: 'POST', path: '/club/attendance/session/check', handler: 'attendance.check', config: adminGuard },
     { method: 'GET', path: '/club/attendance/session', handler: 'attendance.session', config: adminGuard },
