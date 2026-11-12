@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { registrationRow } from '../../../athletes/__tests__/fake-store';
 import { attendanceRow, lessonRow, paymentRow, sessionRow, subscriptionRow } from '../../../presence/__tests__/fake-store';
 import type { PaymentRowView } from '../../../presence/money-api';
+import { clubMonths } from '../../../presence/due/settlement';
 import { forbiddenPathsIn } from '../../forbidden-keys';
 import { paymentWhat, readAcord, readMoney, readPayments, readSubscriptions } from '../money';
 import { SPORTIV_FORBIDDEN_KEYS } from '../views';
@@ -53,10 +54,59 @@ describe('readMoney', () => {
     expect(leaks(m)).toEqual([]);
   });
 
-  it('a paid lesson drops its line; paid above due is left 0 and an advance', async () => {
+  it('a paid abonament above its price is left 0 and an advance', async () => {
     const c = sportivCtx('parinte1@example.invalid');
     c.fake.state.payments.push(paymentRow({ id: 'p-ab', athleteId: A_ANA, amount: 350, purpose: 'abonament', subscriptionId: 'sub-ana' }));
     expect(await readMoney(c, A_ANA)).toMatchObject({ left: 0, lines: [], advance: 30 });
+  });
+
+  const lesson = (c: SportivSeed, amount: number): void => {
+    c.fake.state.lessons.push(lessonRow({ id: 'l-12', athleteId: A_IOANA, date: '2026-11-12', state: 'saved', present: true, price: amount, amount }));
+  };
+  const pay = (c: SportivSeed, id: string, amount: number, over: object): void => {
+    c.fake.state.payments.push(paymentRow({ id, athleteId: A_IOANA, amount, ...over }));
+  };
+
+  it('pooled with the month: Club due 100 paid 150 and a lesson 50 unpaid is left 0 and no advance', async () => {
+    const c = sportivCtx('sportiv18@example.invalid');
+    clubPresence(c, 'a1', '2026-11-03', { price: 100 });
+    lesson(c, 50);
+    pay(c, 'p1', 150, { purpose: 'club_luna', clubMonth: '2026-11' });
+    expect(await readMoney(c, A_IOANA)).toMatchObject({ left: 0, lines: [], advance: null });
+  });
+
+  it('pooled with the month: Club left 50 and a lesson overpaid by 30 is left 20 and no advance', async () => {
+    const c = sportivCtx('sportiv18@example.invalid');
+    clubPresence(c, 'b1', '2026-11-03', { price: 50 });
+    lesson(c, 20);
+    pay(c, 'p1', 50, { purpose: 'lectie', lessonId: 'l-12' });
+    pay(c, 'p2', 0.01, { purpose: 'altceva' });
+    const m = await readMoney(c, A_IOANA);
+    expect(m).toMatchObject({ left: 20, lines: [{ text: 'Club Performanță noiembrie', amount: 20 }], advance: null });
+  });
+
+  it('an unpaid lesson is a display line inside its month left, before the Club line', async () => {
+    const c = sportivCtx('sportiv18@example.invalid');
+    clubPresence(c, 'd1', '2026-11-03', { price: 40 });
+    lesson(c, 100);
+    expect((await readMoney(c, A_IOANA)).lines).toEqual([{ text: 'Lecție 12 noi', amount: 100 }, { text: 'Club Performanță noiembrie', amount: 40 }]);
+  });
+
+  it('left and advance equal the admin month ledger for the same athlete', async () => {
+    const c = sportivCtx('sportiv18@example.invalid');
+    clubPresence(c, 'e1', '2026-11-03', { price: 100 });
+    clubPresence(c, 'e2', '2026-10-05', { price: 40 });
+    lesson(c, 50);
+    pay(c, 'p1', 150, { purpose: 'club_luna', clubMonth: '2026-11' });
+    pay(c, 'p2', 90, { purpose: 'club_luna', clubMonth: '2026-10' });
+    const st = c.fake.state;
+    const months = clubMonths({
+      attendances: await c.presence.store.attendances({ athleteId: A_IOANA }), lessons: st.lessons, payments: st.payments, startDate: st.startDate,
+      groupNames: new Map(c.fake.group.groups.map((g) => [g.id, g.name] as const)),
+    });
+    const m = await readMoney(c, A_IOANA);
+    expect(m.left).toBe(months.reduce((n, x) => n + Math.max(0, x.left), 0));
+    expect(m.advance).toBe(months.reduce((n, x) => n + Math.max(0, -x.left), 0));
   });
 
   it('nothing owed is left 0 and no lines', async () => {

@@ -64,7 +64,7 @@ type Owed = { lines: MoneyLine[]; advance: number };
 
 /**
  * What the athlete owes and what is paid ahead. Club months and Școala abonamente come from the admin ledger (`clubMonths`, `schoolDue`);
- * a lesson is settled on its own (its payments only), and attendances without a price (`inclus`, `fara_pret`, a group without a price list) take no part.
+ * lessons pool with their month as in the admin Plăți tab, and attendances without a price (`inclus`, `fara_pret`, a group without a price list) take no part.
  */
 async function owedOf(c: SportivContext, athleteId: string): Promise<Owed> {
   const store = c.presence.store;
@@ -75,18 +75,24 @@ async function owedOf(c: SportivContext, athleteId: string): Promise<Owed> {
   const priced = new Set(groups.filter((g) => g.priceListId).map((g) => g.id));
   const lines: MoneyLine[] = [];
   let advance = 0;
-  const settle = (left: number, text: string): void => {
-    if (left > 0) lines.push({ text, amount: left });
-    else if (left < 0) advance = sumMoney([advance, -left]);
-  };
 
   const club = attendances.filter((a) => a.billing === 'club' && priced.has(a.groupId));
-  for (const m of clubMonths({ attendances: club, lessons: [], payments, groupNames: names, startDate })) settle(m.left, monthLabel(m, priced, names));
-
   const held = (l: LessonRow): boolean => l.state === 'saved' && l.present === true;
-  for (const l of lessons.filter(held).sort((a, b) => a.date.localeCompare(b.date))) {
-    const [block] = clubMonths({ attendances: [], lessons: [l], payments: payments.filter((p) => p.lessonId === l.id), groupNames: names, startDate });
-    if (block) settle(block.left, `Lecție ${dayMonth(l.date)}`);
+  // One pooled ledger per month, exactly as the admin Plăți tab: lessons and club payments settle together.
+  for (const m of clubMonths({ attendances: club, lessons, payments, groupNames: names, startDate })) {
+    if (m.left < 0) {
+      advance = sumMoney([advance, -m.left]);
+      continue;
+    }
+    if (m.left === 0) continue;
+    // Lesson lines are display lines inside the month's left: each unpaid lesson, then the rest as the Club line.
+    let rest = m.left;
+    for (const l of lessons.filter((x) => held(x) && monthOf(x.date) === m.month).sort((x, y) => x.date.localeCompare(y.date))) {
+      const own = Math.min(rest, Math.max(0, sumMoney([l.amount, -liveFor(payments, (p) => p.purpose === 'lectie' && p.lessonId === l.id)])));
+      if (own > 0) lines.push({ text: `Lecție ${dayMonth(l.date)}`, amount: own });
+      rest = sumMoney([rest, -own]);
+    }
+    if (rest > 0) lines.push({ text: monthLabel(m, priced, names), amount: rest });
   }
 
   for (const d of schoolDue(subs, payments)) lines.push({ text: `${PURPOSE_WORDS.abonament} Școala ${monthName(monthOf(d.startsOn))}`, amount: d.left });
