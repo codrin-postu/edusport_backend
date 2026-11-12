@@ -1,5 +1,5 @@
 import type {
-  AbonamentShort, CalendarItem, HistoryRow, Level, LastCompetition, MonthBar, PaymentRow, Promotion, SportivHistory, SportivHome, SportivProfile, Ticket,
+  AbonamentShort, Badge, CalendarItem, HistoryRow, Level, LastCompetition, MonthBar, PaymentRow, Promotion, SportivHistory, SportivHome, SportivPath, SportivProfile, Ticket,
 } from './api-types';
 
 /** Keys no sportiv answer may carry (spec 5.4). The calendar item `note` (a cancelled date's reason) is the one allowed `note`, by path (`SPORTIV_ALLOWED_PATHS`). */
@@ -73,3 +73,18 @@ export const toPaymentRow = (p: PaymentRow): PaymentRow => ({ what: p.what, paid
 export const toTicket = (t: Ticket): Ticket => ({
   code: t.code, itemName: t.itemName, startsOn: t.startsOn, validUntil: t.validUntil, slots: t.slots, used: [...t.used], left: t.left,
 });
+
+const toBadge = (b: Badge): Badge => ({
+  key: b.key, tier: b.tier, label: b.label, count: b.count, next: b.next,
+  tiers: b.tiers.map((t) => ({ threshold: t.threshold, tier: t.tier, reachedOn: t.reachedOn })),
+});
+
+/** The Parcurs answer, field by field. */
+export function toPath(x: SportivPath): SportivPath {
+  return {
+    now: x.now ? { groupName: x.now.groupName, since: x.now.since, location: x.now.location, program: x.now.program } : null,
+    next: x.next ? { groupName: x.next.groupName } : null,
+    before: x.before.map((b) => ({ groupName: b.groupName, from: b.from, to: b.to })),
+    badges: x.badges.map(toBadge),
+  };
+}
