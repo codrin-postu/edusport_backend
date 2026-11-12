@@ -12,9 +12,9 @@ describe('Bani copy, address and figure texts', () => {
     expect(readBaniQuery('?view=x&month=zz', '2026-11-08')).toEqual({ view: 'prezentare', month: '2026-11' });
     expect(baniTo({ view: 'contabilitate', month: '2026-10' })).toBe('/plugins/edusport-bani?view=contabilitate&month=2026-10');
     expect(baniTo({})).toBe(BANI_PATH);
-    expect(platiMonthTo('2026-11')).toBe('/plugins/edusport-plati?month=2026-11');
-    expect(deIncasatMonthTo('2026-11')).toBe('/plugins/edusport-de-incasat?month=2026-11');
-    expect([abonamenteStateTo('active'), abonamenteStateTo('expira14')]).toEqual(['/plugins/edusport-abonamente?state=active', '/plugins/edusport-abonamente?state=expira14']);
+    expect(platiMonthTo('2026-11')).toBe('/plugins/edusport-contabilitate?tab=plati&month=2026-11');
+    expect(deIncasatMonthTo('2026-11')).toBe('/plugins/edusport-contabilitate?tab=restante&month=2026-11');
+    expect([abonamenteStateTo('active'), abonamenteStateTo('expira14')]).toEqual(['/plugins/edusport-contabilitate?tab=abonamente&state=active', '/plugins/edusport-contabilitate?tab=abonamente&state=expira14']);
   });
   it('Total row of the breakdown: sums of the section totals, percent rounded, "-" at 0', () => {
     const block = (due: number, paid: number) => ({ sectionId: 's', sectionName: 'S', totals: { due, paid, left: due - paid, percent: null }, groups: [] });

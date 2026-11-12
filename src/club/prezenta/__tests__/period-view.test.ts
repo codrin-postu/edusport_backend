@@ -7,11 +7,11 @@ const cell = (over: Partial<GridCell>): GridCell => ({ date: '2026-11-03', state
 describe('prezenta address', () => {
   const d = '2026-11-06';
   it('reads defaults, new keys and old tab links', () => {
-    expect(readPrezentaQuery('', d)).toEqual({ view: 'saptamana', date: d, show: 'grupe', layout: 'lista' });
-    expect(readPrezentaQuery('?view=luna&date=2026-10-05&show=antrenori', d)).toEqual({ view: 'luna', date: '2026-10-05', show: 'antrenori', layout: 'lista' });
-    expect(readPrezentaQuery('?tab=lectii&month=2026-10', '2026-11-06')).toEqual({ view: 'luna', date: '2026-10-01', show: 'lectii', layout: 'lista' });
-    expect(readPrezentaQuery('?tab=sedinte&date=2026-10-26', d)).toEqual({ view: 'luna', date: '2026-10-26', show: 'grupe', layout: 'lista' });
-    expect(readPrezentaQuery('?view=x&show=y&date=2026-13-01', d)).toEqual({ view: 'saptamana', date: d, show: 'grupe', layout: 'lista' });
+    expect(readPrezentaQuery('', d)).toMatchObject({ view: 'saptamana', date: d, show: 'grupe', layout: 'lista' });
+    expect(readPrezentaQuery('?view=luna&date=2026-10-05&show=antrenori', d)).toMatchObject({ view: 'luna', date: '2026-10-05', show: 'antrenori', layout: 'lista' });
+    expect(readPrezentaQuery('?tab=lectii&month=2026-10', '2026-11-06')).toMatchObject({ view: 'luna', date: '2026-10-01', show: 'lectii', layout: 'lista' });
+    expect(readPrezentaQuery('?tab=sedinte&date=2026-10-26', d)).toMatchObject({ view: 'luna', date: '2026-10-26', show: 'grupe', layout: 'lista' });
+    expect(readPrezentaQuery('?view=x&show=y&date=2026-13-01', d)).toMatchObject({ view: 'saptamana', date: d, show: 'grupe', layout: 'lista' });
   });
   it('the grid only for Grupe and not in Zi', () => {
     expect(readPrezentaQuery('?layout=grila', d).layout).toBe('grila');

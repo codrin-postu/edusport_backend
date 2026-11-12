@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Tabs } from '../ui';
 import { SPORTIVI_PATH, recordIdFromSplat } from '../../club/sportivi/routes';
 import { TABLES_COPY } from '../../club/tables/copy';
-import { readTablesQuery, tablesTo } from '../../club/tables/routes';
+import { readTablesQuery } from '../../club/tables/routes';
 import { AthleteRecordPage } from './sportivi/AthleteRecordPage';
 import { SportiviList } from './sportivi/SportiviList';
 import { TabelePage } from './sportivi/tabele/TabelePage';
@@ -16,7 +16,7 @@ function ListWithTabs() {
     <Tabs
       label={TABLES_COPY.tabs.lista} value={tab}
       items={[{ id: 'lista', label: TABLES_COPY.tabs.lista }, { id: 'tabele', label: TABLES_COPY.tabs.tabele }]}
-      onChange={(next) => navigate(next === 'tabele' ? tablesTo(null) : SPORTIVI_PATH)}
+      onChange={(next) => navigate(next === 'tabele' ? `${SPORTIVI_PATH}?vedere=tabele` : SPORTIVI_PATH)}
     />
   );
   return tab === 'tabele' ? <TabelePage tabs={tabs} /> : <SportiviList tabs={tabs} />;

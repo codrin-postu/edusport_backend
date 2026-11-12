@@ -1,4 +1,5 @@
 import { ABONAMENTE_PATH, DE_INCASAT_PATH, PLATI_PATH } from '../prezenta/routes';
+import { contabTo } from '../contabilitate/routes';
 import { isMonth, monthOf } from '../presence/dates';
 import { SPORTIVI_PATH } from '../sportivi/routes';
 
@@ -30,6 +31,6 @@ export function baniTo(q: Partial<BaniQuery>): string {
 }
 
 /** The card links: the page they open shows the same numbers. */
-export const platiMonthTo = (month: string): string => `${PLATI_PATH}?month=${month}`;
-export const deIncasatMonthTo = (month: string): string => `${DE_INCASAT_PATH}?month=${month}`;
-export const abonamenteStateTo = (state: 'active' | 'expira14'): string => `${ABONAMENTE_PATH}?state=${state}`;
+export const platiMonthTo = (month: string): string => contabTo({ tab: 'plati', month });
+export const deIncasatMonthTo = (month: string): string => contabTo({ tab: 'restante', month });
+export const abonamenteStateTo = (state: 'active' | 'expira14'): string => contabTo({ tab: 'abonamente', params: { state } });

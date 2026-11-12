@@ -1,5 +1,5 @@
 import { isIsoDate } from '../groups/dates';
-import { isMonth, monthRange } from '../presence/dates';
+import { isMonth, monthOf, monthRange } from '../presence/dates';
 import type { PeriodView } from '../presence/period';
 
 export const PREZENTA_PATH = '/plugins/edusport-prezenta';
@@ -10,8 +10,15 @@ export const COACH_SEGMENT = 'antrenor';
 
 export type PrezentaShow = 'grupe' | 'lectii' | 'antrenori';
 export type PrezentaLayout = 'lista' | 'grila';
-export type PrezentaQuery = { view: PeriodView; date: string; show: PrezentaShow; layout: PrezentaLayout };
+export type PrezentaTab = 'de-completat' | 'toate' | 'tabel';
+export type PrezentaQuery = {
+  view: PeriodView; date: string; show: PrezentaShow; layout: PrezentaLayout;
+  tab: PrezentaTab; groupId: string | null;
+  /** For tab `tabel`: default the current month; a later month is the current one. */
+  month: string;
+};
 
+const TABS: readonly PrezentaTab[] = ['de-completat', 'toate', 'tabel'];
 const VIEWS: readonly PeriodView[] = ['zi', 'saptamana', 'luna'];
 const SHOWS: readonly PrezentaShow[] = ['grupe', 'lectii', 'antrenori'];
 /** Old `tab` values (before phase 11) and the list they now open. */
@@ -24,15 +31,19 @@ export function readPrezentaQuery(search: string, today: string): PrezentaQuery 
   const params = new URLSearchParams(search);
   const oldTab = OLD_TABS[params.get('tab') ?? ''];
   const month = params.get('month');
+  const current = monthOf(today);
+  const tabMonth = isMonth(month) && month <= current ? month : current;
+  const groupId = params.get('groupId')?.trim() || null;
   const monthStart = month !== null && isMonth(month) ? monthRange(month).from : null;
   if (oldTab && !params.get('view')) {
-    return { view: 'luna', date: validDate(params.get('date')) ?? monthStart ?? today, show: oldTab, layout: 'lista' };
+    return { view: 'luna', date: validDate(params.get('date')) ?? monthStart ?? today, show: oldTab, layout: 'lista', tab: 'toate', groupId, month: tabMonth };
   }
   const view = VIEWS.find((v) => v === params.get('view')) ?? 'saptamana';
   const show = SHOWS.find((v) => v === params.get('show')) ?? 'grupe';
+  const tab = TABS.find((t) => t === params.get('tab')) ?? 'toate';
   const wantsGrid = params.get('layout') === 'grila';
   const layout: PrezentaLayout = wantsGrid && show === 'grupe' && view !== 'zi' ? 'grila' : 'lista';
-  return { view, date: validDate(params.get('date')) ?? monthStart ?? today, show, layout };
+  return { view, date: validDate(params.get('date')) ?? monthStart ?? today, show, layout, tab, groupId, month: tabMonth };
 }
 
 export function prezentaTo(q: Partial<PrezentaQuery>): string {

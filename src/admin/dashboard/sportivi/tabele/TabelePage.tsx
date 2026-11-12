@@ -5,7 +5,7 @@ import { ConfirmDialog } from '../../../ConfirmDialog';
 import { effectiveDefinition, NO_QUICK, quickFiltersOpen, type Quick } from '../../../../club/tables/builder-state';
 import type { CatalogAnswer } from '../../../../club/tables/catalog-api';
 import { TABLES_COPY, TABLES_COUNT_WORDS } from '../../../../club/tables/copy';
-import { readTablesQuery, tablesTo } from '../../../../club/tables/routes';
+import { readTabeleQuery, tablesTo } from '../../../../club/tables/routes';
 import type { SavedViewRow, TableDefinition, TableResult } from '../../../../club/tables/types';
 import { isDirty, noPaymentsThisMonth } from '../../../../club/tables/view-state';
 import { MONEY_UI_COPY } from '../../../../club/presence/copy/money-ui';
@@ -98,7 +98,7 @@ function Loaded({ api, catalog, views, reloadViews, tabs }: LoadedProps) {
   const navigate = useNavigate();
   const { search } = useLocation();
   const all = [...catalog.readyMade, ...views];
-  const wanted = readTablesQuery(search).viewId;
+  const wanted = readTabeleQuery(search).viewId;
   const current = all.find((v) => v.id === wanted) ?? catalog.readyMade.find((v) => v.id === catalog.defaultViewId) ?? catalog.readyMade[0];
   const saved = current.definition;
   const savedKey = JSON.stringify(saved);
