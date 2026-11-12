@@ -29,7 +29,8 @@ describe('09-attendance routes (6)', () => {
   it('new phase 11 routes name their area; the others keep the phase 5 guard', () => {
     const areas = Object.fromEntries(routes.filter((r) => areaOfRoute(r.config) !== null).map((r) => [`${r.method} ${r.path}`, areaOfRoute(r.config)]));
     expect(areas).toEqual({
-      'GET /club/attendance/period': 'club', 'GET /club/attendance/grid': 'club', 'GET /club/athletes/:documentId/presence': 'club',
+      'GET /club/attendance/period': 'club', 'GET /club/attendance/grid': 'club',
+      'GET /club/attendance/group-matrix': 'club', 'GET /club/attendance/group-matrix.xlsx': 'club', 'GET /club/athletes/:documentId/presence': 'club',
       'GET /club/coaches/:documentId/presence.csv': 'money', 'GET /club/coaches/:documentId/presence': 'club',
     });
     for (const r of routes.filter((x) => areaOfRoute(x.config) === null)) expect(r.config).toEqual({ auth: false, policies: ['global::is-admin'], middlewares: [] });
