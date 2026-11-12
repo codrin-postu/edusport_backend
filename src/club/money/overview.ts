@@ -69,13 +69,13 @@ function clubBlocks(src: MoneySources, month: string): Map<string, ClubMonth> {
 
 type DueFigures = Pick<MoneyCards, 'left' | 'due' | 'unpaidAthletes'>;
 
-/** De încasat for the month: Rămas of both parts, De plătit plus Preț of both parts, athletes with Rămas above 0 (S25). */
+/** De încasat for the month: Rămas of both parts as shown (an advance counts 0, so it equals the Restanțe totals), De plătit plus Preț of both parts, athletes with Rămas above 0 (S25). */
 function dueFigures(src: MoneySources, blocks: Map<string, ClubMonth>): DueFigures {
   const school = schoolDue(src.subscriptions, src.payments);
   const club = [...blocks.entries()];
   const owing = new Set([...school.filter((r) => r.left > 0).map((r) => r.athleteId), ...club.filter(([, b]) => b.left > 0).map(([id]) => id)]);
   return {
-    left: sumMoney([...school.map((r) => r.left), ...club.map(([, b]) => b.left)]),
+    left: sumMoney([...school.map((r) => Math.max(0, r.left)), ...club.map(([, b]) => Math.max(0, b.left))]),
     due: sumMoney([...school.map((r) => r.price), ...club.map(([, b]) => b.due)]),
     unpaidAthletes: owing.size,
   };

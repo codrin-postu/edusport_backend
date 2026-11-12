@@ -53,9 +53,6 @@ export const MONEY_UI_COPY = {
 
 /** Texts of the "Bani" page (plan 11-5, spec 5.6). */
 export const BANI_COPY = {
-  title: 'Bani',
-  menu: 'Bani',
-  views: { prezentare: 'Prezentare', contabilitate: 'Contabilitate' },
   cards: { collected: 'Încasat', left: 'De încasat', active: 'Abonamente active', expiring: 'Expiră în 14 zile', unpaid: 'Neachitați' },
   dueOf: (s: string): string => `din ${s} datorat`,
   athletesOf: (n: number): string => `din ${n} sportivi`,
@@ -70,12 +67,6 @@ export const BANI_COPY = {
   xlsx: '.xlsx',
   csv: '.csv',
   figures: { numerar: 'Numerar', card: 'Card (POS)', transfer: 'Transfer bancar', cancelled: 'Anulate' },
-  listTitle: 'Plăți din lună',
-  listCols: ['Data', 'Nr. chitanță', 'Sportiv', 'Pentru', 'Metodă', 'Sumă'],
-  cancelledMark: 'anulată',
-  empty: 'Nicio plată în luna asta.',
-  receipt: 'Nr. chitanță',
-  expiringFilter: 'Expiră în 14 zile',
 };
 
 /** Texts of the "Contabilitate" page (admin redesign spec 5): one page for Restanțe, Abonamente, Plăți and Pe grupe. */

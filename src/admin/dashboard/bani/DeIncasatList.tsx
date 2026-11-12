@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { FilterPanel, type FilterSection, Loading, Notice, useIsPhone } from '../../ui';
 import { payFor } from '../../../club/bani/due-view';
 import { athleteTabTo } from '../../../club/bani/routes';
@@ -10,7 +9,7 @@ import { countWords } from '../../../club/ro-count';
 import type { DuePage } from '../../../club/presence/money-api';
 import type { PaymentFor } from '../../../club/presence/payments/rules';
 import { useMoneyApi } from './api';
-import { type ContabBodyProps } from './ContabBody';
+import { useOpenInNewTab, type ContabBodyProps } from './ContabBody';
 import { PaymentWindow } from './PaymentWindow';
 import { RestanteBlocks, type Actions } from './RestanteTab';
 import { useLatest } from './latest';
@@ -55,14 +54,14 @@ function sections(section: RestanteSection, group: string | null, groups: string
 /** The Restanțe body (spec 5.2): what is still owed, Școala (month-independent) then Club (the month); filters `section` and `group` live in the URL. */
 export function DeIncasatBody({ month, params, setParams }: ContabBodyProps) {
   const phone = useIsPhone();
-  const navigate = useNavigate();
+  const openInNewTab = useOpenInNewTab();
   const { page, failed } = useDue(month);
   const [pay, setPay] = React.useState<Pay>(null);
   const section = sectionOf(params.get('section'));
   const group = params.get('group') || null;
   const groups = React.useMemo(() => (page ? restanteGroups(page) : []), [page]);
   const a: Actions = {
-    open: (r) => navigate(athleteTabTo(r.athleteId, 'plati')),
+    open: (r) => openInNewTab(athleteTabTo(r.athleteId, 'plati')),
     pay: (r) => setPay({ athlete: { id: r.athleteId, name: r.athleteName }, preselect: payFor(r, month) }),
   };
   const change = (key: string, selected: string[]) => {

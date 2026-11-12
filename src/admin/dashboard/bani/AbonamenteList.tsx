@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button, DataTable, FilterPanel, Loading, Notice, StatusBadge, adminToast, useIsPhone, type BadgeTone, type DataColumn } from '../../ui';
 import { abonamentCell, abonamenteCells, abonamenteSections, abonamentMenu, stateOf } from '../../../club/bani/abonamente-view';
 import { athleteTabTo } from '../../../club/bani/routes';
@@ -19,7 +18,7 @@ import { WindowShell } from '../grupe/PanelShell';
 import { AbonamentBar } from './AbonamentBar';
 import { AddSubscriptionWindow } from './AddSubscriptionWindow';
 import { useMoneyApi, type MoneyApi } from './api';
-import { ActionsSlot, type ContabBodyProps } from './ContabBody';
+import { ActionsSlot, useOpenInNewTab, type ContabBodyProps } from './ContabBody';
 import { ExtendModal } from './ExtendModal';
 import { RowMenu } from './RowMenu';
 import { useLatest } from './latest';
@@ -136,7 +135,7 @@ export function AbonamenteBody({ params, setParams, actionsHost }: Omit<ContabBo
   const today = React.useMemo(() => todayIso(), []);
   const api = useMoneyApi();
   const phone = useIsPhone();
-  const navigate = useNavigate();
+  const openInNewTab = useOpenInNewTab();
   const query: SubscriptionQuery = { state: stateOf(params.get('state')), groupId: params.get('groupId') || null };
   const { page, failed } = useSubscriptions(query);
   const [dialog, setDialog] = React.useState<Dialog>(null);
@@ -145,7 +144,7 @@ export function AbonamenteBody({ params, setParams, actionsHost }: Omit<ContabBo
     if (selected[0]) next.set(key, selected[0]); else next.delete(key);
     setParams(next);
   };
-  const open = (r: SubscriptionListRow) => navigate(athleteTabTo(r.athleteId, 'abonament'));
+  const open = (r: SubscriptionListRow) => openInNewTab(athleteTabTo(r.athleteId, 'abonament'));
   const cancelling = React.useRef(false);
   const cancel = (r: SubscriptionListRow) => void runOnce(cancelling, () => cancelSubscription(api, r), () => undefined);
   const count = page ? countWords(page.rows.length, 'abonament', 'abonamente') : '';

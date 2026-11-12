@@ -13,6 +13,7 @@ import type { MoneyOverview } from '../../club/money/types';
 import { SPORTIVI_CSS } from './sportivi/styles';
 import { PREZENTA_CSS } from './prezenta/styles';
 import { useMoneyApi } from './bani/api';
+import { useMoneyChanged } from './bani/undo';
 import { BaniAccounting } from './bani/BaniAccounting';
 import { BaniBreakdown } from './bani/BaniBreakdown';
 import { BaniCards } from './bani/BaniCards';
@@ -31,18 +32,23 @@ export const TABS: { id: ContabTab; label: string; area?: AdminArea }[] = [
   { id: 'pe-grupe', label: copy.tabs.peGrupe, area: 'money' },
 ];
 
-/** One month's figures; a stale answer of an earlier month is dropped. */
+/** One month's figures, reloaded after every money write; a stale answer of an earlier month is dropped, and a reload keeps the figures on screen. */
 function useMonthData<T>(load: (month: string) => Promise<T>, month: string, on: boolean): { data: T | null; failed: boolean } {
   const [state, setState] = React.useState<{ data: T | null; failed: boolean }>({ data: null, failed: false });
+  const [tick, setTick] = React.useState(0);
   const loadRef = React.useRef(load);
   loadRef.current = load;
+  const shown = React.useRef('');
+  useMoneyChanged(() => setTick((t) => t + 1));
   React.useEffect(() => {
     if (!on) return undefined;
     let live = true;
-    setState({ data: null, failed: false });
+    const key = month;
+    if (shown.current !== key) setState({ data: null, failed: false });
+    shown.current = key;
     loadRef.current(month).then((data) => { if (live) setState({ data, failed: false }); }, () => { if (live) setState({ data: null, failed: true }); });
     return () => { live = false; };
-  }, [month, on]);
+  }, [month, on, tick]);
   return state;
 }
 
@@ -82,6 +88,7 @@ export default function ContabilitatePage() {
         <PageHeader title={copy.title} actions={stepper} />
         {overview.failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
         {!overview.data && !overview.failed && <Loading />}
+        <header className="ui-ph"><div><h2 className="ui-ph-title">{copy.glance}</h2></div></header>
         {overview.data && <BaniCards cards={overview.data.cards} month={month} current={month === monthOf(today)} onOpen={(to, params) => navigate(contabTo({ tab: to, month, params }))} />}
         <Tabs
           label={copy.title} value={tab} panelId="contab-panel"

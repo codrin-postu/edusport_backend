@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
+import { useHref } from 'react-router-dom';
 
 /** What the Contabilitate page hands to a tab body: the tab's own filter params (in the URL), a way to replace them, and the header slot the body puts its buttons into. */
 export type ContabBodyProps = {
@@ -12,4 +13,10 @@ export type ContabBodyProps = {
 /** The body's buttons, shown in the tab window's header (nothing until the slot exists). */
 export function ActionsSlot({ host, children }: { host: HTMLElement | null; children: React.ReactNode }) {
   return host ? createPortal(children, host) : null;
+}
+
+/** Opens an admin route (written without the /admin basename) in a new browser tab: athlete names open the record in a new tab. */
+export function useOpenInNewTab(): (to: string) => void {
+  const base = useHref('/').replace(/\/$/, '');
+  return (to) => { window.open(`${base}${to}`, '_blank', 'noopener'); };
 }
