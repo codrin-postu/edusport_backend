@@ -3,6 +3,7 @@ import { seasonBounds } from '../groups/series';
 import { kindOf } from '../presence/attendance/panel';
 import { byUseOrder, isValidForList, pickSubscription, usedSlots } from '../presence/subscriptions';
 import type { PresenceStore } from '../presence/store';
+import type { SubscriptionRow } from '../presence/types';
 import type { AbonamentShort } from './sportiv/api-types';
 
 /** Dates of the athlete's presences in a season: a group or dry-land mark (uscat counts as grup) and a present lesson, as the coach card counts `presence.season`. */
@@ -22,7 +23,7 @@ export async function seasonPresenceDates(store: PresenceStore, athleteId: strin
  */
 export async function abonamentShort(
   store: PresenceStore, athleteId: string, groups: GroupRecord[], today: string, keepFull = false,
-): Promise<{ abonament: AbonamentShort; group: GroupRecord } | null> {
+): Promise<{ abonament: AbonamentShort; group: GroupRecord; subscription: SubscriptionRow } | null> {
   const school = (await Promise.all(groups.map(async (g) => ((await kindOf(store, g.sectionId)) === 'school' && g.priceListId ? g : null)))).find((g) => g !== null);
   if (!school || !school.priceListId) return null;
   const subs = await store.subscriptions({ athleteId });
@@ -34,5 +35,5 @@ export async function abonamentShort(
   }
   if (!sub) return null;
   const next = Math.min((used.get(sub.id) ?? 0) + 1, sub.slots);
-  return { abonament: { code: sub.code, next, slots: sub.slots, validUntil: sub.validUntil }, group: school };
+  return { abonament: { code: sub.code, next, slots: sub.slots, validUntil: sub.validUntil }, group: school, subscription: sub };
 }

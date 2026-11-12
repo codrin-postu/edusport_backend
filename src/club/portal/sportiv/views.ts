@@ -1,5 +1,5 @@
 import type {
-  AbonamentShort, Badge, CalendarItem, HistoryRow, Level, LastCompetition, MonthBar, PaymentRow, Promotion, SportivHistory, SportivHome, SportivPath, SportivProfile, Ticket,
+  AbonamentShort, Badge, CalendarItem, HistoryRow, Level, LastCompetition, MonthBar, MoneyLine, PaymentRow, Promotion, SportivHistory, SportivHome, SportivMoney, SportivPath, SportivPayments, SportivProfile, SportivSubscriptions, Ticket,
 } from './api-types';
 
 /** Keys no sportiv answer may carry (spec 5.4). The calendar item `note` (a cancelled date's reason) is the one allowed `note`, by path (`SPORTIV_ALLOWED_PATHS`). */
@@ -88,3 +88,23 @@ export function toPath(x: SportivPath): SportivPath {
     badges: x.badges.map(toBadge),
   };
 }
+
+const toMoneyLine = (l: MoneyLine): MoneyLine => ({ text: l.text, amount: l.amount });
+
+/** The money answer (spec 6.7), field by field: what is owed, the advance, the current abonament and whether the registration PDF exists. */
+export function toMoney(m: SportivMoney): SportivMoney {
+  return {
+    left: m.left, lines: m.lines.map(toMoneyLine), advance: m.advance,
+    abonament: m.abonament ? { ...toAbonamentShort(m.abonament), itemName: m.abonament.itemName, startsOn: m.abonament.startsOn } : null,
+    document: m.document ? { seasonLabel: m.document.seasonLabel } : null,
+  };
+}
+
+/** One page of payments (20 a page), row by row. */
+export const toPayments = (p: Omit<SportivPayments, 'pageSize'>): SportivPayments => ({ page: p.page, pageSize: 20, total: p.total, rows: p.rows.map(toPaymentRow) });
+
+/** The abonament page: the active ticket and the earlier ones. */
+export const toSubscriptions = (s: SportivSubscriptions): SportivSubscriptions => ({
+  active: s.active ? toTicket(s.active) : null,
+  earlier: s.earlier.map((e) => ({ itemName: e.itemName, used: e.used, slots: e.slots, validUntil: e.validUntil })),
+});

@@ -1,3 +1,6 @@
+import { randomBytes } from 'node:crypto';
+import os from 'node:os';
+import path from 'node:path';
 import { fakeClubStore } from '../../../athletes/__tests__/fake-store';
 import { athleteRow, event, member } from '../../../groups/__tests__/fake-group-store';
 import type { GroupRecord, GroupStore } from '../../../groups/types';
@@ -91,6 +94,6 @@ export function sportivCtx(email: keyof typeof HOLDERS | string, today = '2026-1
       sessions: { ofEvent: async () => [], move: async () => undefined },
     },
     club: { store: clubFake.store, actor, today: { year, month, day }, log: fake.ctx.log },
-    portal: portalFake.store, access: accessFake.store, competitions: nullSportivCompetitions, fake, accessFake, portalFake, clubFake,
+    portal: portalFake.store, access: accessFake.store, competitions: nullSportivCompetitions, documentsRoot: path.join(os.tmpdir(), `sportiv-docs-${randomBytes(6).toString('hex')}`), fake, accessFake, portalFake, clubFake,
   };
 }

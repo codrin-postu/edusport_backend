@@ -3,6 +3,7 @@ import type { ServiceContext } from '../../athletes/store';
 import { strapiClubStore, transactionScope } from '../../athletes/strapi-store';
 import { todayInBucharest } from '../../birth-date';
 import { strapiSessionPort, type GroupContext } from '../../groups/context';
+import { documentsRoot } from '../../documents/storage';
 import { todayIso } from '../../groups/http';
 import { strapiGroupStore } from '../../groups/strapi-store';
 import type { PresenceContext } from '../../presence/context';
@@ -20,6 +21,8 @@ export type SportivContext = {
   holder: HolderState; today: string; presence: PresenceContext; groups: GroupContext; club: ServiceContext; portal: PortalStore; access: AccessStore;
   /** Where competition results come from (a null source until phase 7-3 is merged). */
   competitions: SportivCompetitionSource;
+  /** The private folder of the stored registration PDFs. */
+  documentsRoot: string;
 };
 
 /** Written on every history line a holder causes. */
@@ -45,5 +48,6 @@ export function sportivContext(strapi: Core.Strapi, holder: HolderState): Sporti
     portal: strapiPortalStore(strapi, scope),
     access: strapiAccessStore(strapi, scope),
     competitions: nullSportivCompetitions,
+    documentsRoot: documentsRoot(strapi.dirs.app.root),
   };
 }
