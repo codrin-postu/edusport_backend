@@ -2,7 +2,6 @@
 # Click-through of phase 7-2 (sportiv routes) against a THROWAWAY Strapi (fixtures phase4, phase5, phase6 and phase7 loaded).
 # Usage: IDS_FILE=/path/ids.json BASE=http://127.0.0.1:1412 bash scripts/clickthrough-7-2.sh
 # Run from the repo root with the throwaway env loaded (DATABASE_*, AUTH_*): the last step reads the schedule-mail muted list through the real group store.
-# Needs, beyond the phase 7 fixture, attendances ticked as group presences (grup = true) and one stored Acord PDF of Ana's current-season registration.
 # Behaviour only: every step prints PASS or FAIL.
 set -u
 BASE="${BASE:-http://127.0.0.1:1412}"

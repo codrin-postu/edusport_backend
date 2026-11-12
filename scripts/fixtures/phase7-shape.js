@@ -2,7 +2,7 @@
 /**
  * Phase 7 boot-check fixture, run AFTER phase4-shape.js, phase5-shape.js and phase6-shape.js on the same throwaway database and ids file
  * (synthetic data only): parinte1@example.invalid (password Throwaway-Parent-1) holds "Ana Ionescu" (Scoala, Intermediari Bronze, abonament 4/8,
- * 26 presences this season, one earlier main group) and "Matei Ionescu" (Scoala, Incepatori); sportiv18@example.invalid is the adult athlete
+ * 26 group presences this season, one earlier main group, a confirmed registration with its stored Acord PDF) and "Matei Ionescu" (Scoala, Incepatori); sportiv18@example.invalid is the adult athlete
  * "Ioana Marin" (skate slug ioana-marin-test); antrenor1@example.invalid also holds "Radu Pop"; "Elena Stan" is status nou with an e-mail and no
  * access; parinte2fa@example.invalid (password Throwaway-Parent-2) holds "Sara Dinu" with the 2FA app on (TOTP secret only in IDS_FILE, as
  * ids.portal.parinte2fa.totpSecretBase32). admin7@example.invalid (Throwaway-Admin-7, Super Admin) is made for the admin calls of the click-through.
@@ -10,6 +10,7 @@
  *   ES_THROWAWAY_DB=1 IDS_FILE=/tmp/x/ids.json node scripts/fixtures/phase7-shape.js
  */
 const fs = require('node:fs');
+const path = require('node:path');
 const { createCipheriv, createHash, randomBytes } = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const { createId } = require('@paralleldrive/cuid2');
@@ -117,6 +118,9 @@ async function refuse(app, message) {
   const matei = ids.athletes['Matei Ionescu'];
   for (const id of [ana, matei]) await d('api::athlete.athlete').update({ documentId: id, data: { email: PARENT_1.email } });
   await member(ana, 'Primii Paşi', '2025-2026', true, '2025-10-01', '2026-05-31');
+  // Ana's current Scoala membership (Intermediari Bronze) comes from phase4-shape.js; the abonament "next" figure needs it, so check it here.
+  const current = await d('api::group-membership.group-membership').findMany({ filters: { athlete: { documentId: ana }, season: { documentId: season }, group: { documentId: ids.groups['Intermediari Bronze'] } }, limit: 1 });
+  if (current.length === 0) await member(ana, 'Intermediari Bronze', '2026-2027', true, '2026-10-01', null);
   await member(matei, 'Începători', '2026-2027', true, '2026-10-01', null);
   const [standard] = await d('api::price-list.price-list').findMany({ filters: { name: 'Standard' }, limit: 1 });
   const sub = await d('api::subscription.subscription').create({
@@ -129,9 +133,23 @@ async function refuse(app, message) {
     });
     const slot = i < 4;
     await d('api::attendance.attendance').create({
-      data: { session: session.documentId, athlete: ana, uniqueKey: `p7:${session.documentId}:${ana}`, billing: slot ? 'slot' : 'fara_pret', amount: 0, ...(slot ? { subscription: sub.documentId } : {}) },
+      data: { session: session.documentId, athlete: ana, uniqueKey: `p7:${session.documentId}:${ana}`, grup: true, billing: slot ? 'slot' : 'fara_pret', amount: 0, ...(slot ? { subscription: sub.documentId } : {}) },
     });
   }
+
+  // Ana's confirmed registration of the current season with its stored Acord PDF, named and placed as the registration flow does (src/club/documents).
+  const registration = await d('api::registration-submission.registration-submission').create({
+    data: {
+      email: PARENT_1.email, phone: '0700000007', childName: 'Ana Ionescu', childBirthDate: '02.05.2014', parentName: 'Parinte Test', shirtSize: 'S', status: 'Confirmat',
+      season: '2026-2027', seasonRef: season, section: ids.sections.school, registrationNumber: '2026-0902', submittedAt: '2026-10-05T10:00:00.000Z',
+      relationship: 'parinte', gdprConsent: true, regulationsConsent: true, submissionKey: 'phase7-fixture-ana', archived: false, athlete: ana,
+    },
+  });
+  const configuredRoot = (process.env.PRIVATE_FILES_DIR || '').trim();
+  const documentsDir = configuredRoot ? path.resolve(configuredRoot) : path.join(app.dirs.app.root, 'private', 'documents');
+  const acordDir = path.join(documentsDir, 'registrations', registration.documentId);
+  fs.mkdirSync(acordDir, { recursive: true, mode: 0o700 });
+  fs.writeFileSync(path.join(acordDir, 'Ana_Ionescu_Acord_2026-2027.pdf'), '%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n', { mode: 0o600 });
 
   // Ioana Marin: the adult of phase 4 gets her own address and a public profile.
   const ioana = ids.athletes['Ioana Marin'];
