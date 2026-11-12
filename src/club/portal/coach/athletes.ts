@@ -10,11 +10,9 @@ import { addDays, isIsoDate } from '../../groups/dates';
 import { joinGroup } from '../../groups/members';
 import { groupListRow, type ListFacts } from '../../groups/list';
 import { currentSeason, ageOnIso } from '../../groups/season-pick';
-import { seasonBounds } from '../../groups/series';
 import type { GroupRecord, SeasonRecord } from '../../groups/types';
 import { abonamentSlots, kindOf } from '../../presence/attendance/panel';
 import { onDate, rosterOn } from '../../presence/attendance/roster';
-import { pickSubscription, usedSlots } from '../../presence/subscriptions';
 import { HISTORY_ACTIONS, SUBJECT } from '../../history-text';
 import { isAnonymized } from '../../personal-data/anonymize-plan';
 import { PORTAL_ERRORS, PORTAL_TOASTS } from '../copy';
@@ -23,6 +21,7 @@ import { locationOfGroup } from './calendar';
 import { athleteCompetitions } from './competitions';
 import { forbidden, type CoachContexts, type CoachResult } from './context';
 import { groupAccess, ownAthlete, ownGroupIds, visibleToCoach } from './ownership';
+import { abonamentShort, seasonPresenceDates } from '../presence-facts';
 import { cardRight } from './rules';
 import { coachAbonamentText } from './views';
 
@@ -121,25 +120,17 @@ type Abonament = NonNullable<CoachAthleteCard['abonament']>;
 /** Group presences (grup or uscat ticked) and present lessons of the season; saved sessions this month of the groups the child was listed in on the day, on or before today, where the child was listed and not ticked. */
 async function presenceOf(c: CoachContexts, athleteId: string, season: SeasonRecord, memberships: MembershipRow[]): Promise<Presence> {
   const store = c.presence.store;
-  const { start, end } = seasonBounds(season);
-  const [attendances, lessons] = await Promise.all([store.attendances({ athleteId, from: start, to: end }), store.lessons({ athleteId, from: start, to: end })]);
-  const ticked = attendances.filter((r) => r.grup || r.uscat);
-  const present = lessons.filter((l) => l.state === 'saved' && l.present === true);
-  const dates = [...ticked.map((r) => r.sessionDate), ...present.map((l) => l.date)].sort();
+  const mine = await seasonPresenceDates(store, athleteId, season);
+  const dates = [...mine.group, ...mine.lessons].sort();
   const sessions = (await store.sessions({ from: `${c.today.slice(0, 7)}-01`, to: c.today })).filter((s) => rosterOn(memberships, s.groupId, season.id, s.date).includes(athleteId));
-  const tickedSessions = new Set(ticked.map((r) => r.sessionId));
-  return { season: ticked.length + present.length, lessons: present.length, last: dates[dates.length - 1] ?? null, missedThisMonth: sessions.filter((s) => !tickedSessions.has(s.id)).length };
+  const tickedSessions = new Set(mine.groupSessionIds);
+  return { season: dates.length, lessons: mine.lessons.length, last: dates[dates.length - 1] ?? null, missedThisMonth: sessions.filter((s) => !tickedSessions.has(s.id)).length };
 }
 
 /** The abonament the child would use today in the first Școala group, as the sportiv app shows it: the next class number and the slots. */
 async function abonamentOf(c: CoachContexts, athleteId: string, groups: GroupRecord[]): Promise<Abonament | null> {
-  const store = c.presence.store;
-  const school = (await Promise.all(groups.map(async (g) => ((await kindOf(store, g.sectionId)) === 'school' && g.priceListId ? g : null)))).find((g) => g !== null);
-  if (!school || !school.priceListId) return null;
-  const subs = await store.subscriptions({ athleteId });
-  const used = usedSlots(subs.length > 0 ? await store.attendances({ subscriptionIds: subs.map((s) => s.id) }) : []);
-  const sub = pickSubscription(subs, used, school.priceListId, c.today);
-  return sub ? { code: sub.code, next: (used.get(sub.id) ?? 0) + 1, slots: sub.slots, validUntil: sub.validUntil, location: await locationOfGroup(c, school) } : null;
+  const found = await abonamentShort(c.presence.store, athleteId, groups, c.today);
+  return found ? { ...found.abonament, location: await locationOfGroup(c, found.group) } : null;
 }
 
 /** The rows that count as current on the card: the ones running today (a scheduled end still counts until its date); a child whose rows all start later shows those. */

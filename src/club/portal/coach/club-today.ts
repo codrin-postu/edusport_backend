@@ -21,7 +21,7 @@ export async function readClubToday(c: CoachContexts): Promise<AdminResult<Coach
   const ctx = await loadRowContext(store, date);
   const [rows, sections, places, lessons, calendar] = await Promise.all([
     rowsWithCoachIds(store, ctx, date, date, undefined, { withAttendances: false }),
-    store.sections(), locationsOf(c, ctx.groups), store.lessons({ from: date, to: date }), store.calendarWindow(),
+    store.sections(), locationsOf(c.presence.store, ctx.groups), store.lessons({ from: date, to: date }), store.calendarWindow(),
   ]);
   const durations = new Map(heldOccurrences(calendar, ctx.groups, date, date).map((h) => [h.key, h.durationMin]));
   const school = new Set(sections.filter((s) => s.kind === 'school').map((s) => s.id));

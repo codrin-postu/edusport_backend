@@ -1,3 +1,4 @@
+import { forbiddenPathsIn } from '../forbidden-keys';
 import type { NamedRow } from '../../groups/types';
 import type { AthleteStatus } from '../../athlete-data';
 import type { MemberRow } from '../../groups/api-types';
@@ -12,19 +13,10 @@ export const FORBIDDEN_KEYS = [
   'price', 'amount', 'charges', 'birthDate', 'notes', 'address', 'audience', 'itemName', 'priceListId', 'history', 'email', 'registrations', 'documents', 'payments',
 ] as const;
 
-/** Every forbidden key found anywhere in `value`, once each. */
+/** Every forbidden key found anywhere in `value`, once each; `allow` names keys that may appear anywhere. */
 export function forbiddenKeysIn(value: unknown, allow: string[] = []): string[] {
-  const found = new Set<string>();
-  const walk = (v: unknown): void => {
-    if (Array.isArray(v)) return v.forEach(walk);
-    if (typeof v !== 'object' || v === null) return;
-    for (const [key, inner] of Object.entries(v)) {
-      if ((FORBIDDEN_KEYS as readonly string[]).includes(key) && !allow.includes(key)) found.add(key);
-      walk(inner);
-    }
-  };
-  walk(value);
-  return [...found];
+  const keyOf = (path: string): string => path.slice(path.lastIndexOf('.') + 1);
+  return [...new Set(forbiddenPathsIn(value, FORBIDDEN_KEYS).map(keyOf).filter((k) => !allow.includes(k)))];
 }
 
 /** Club has no subscription text; a Școala child shows used/total or "Fără abonament". */

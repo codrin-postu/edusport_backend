@@ -12,9 +12,9 @@ const SENDABLE: ReadonlySet<string> = new Set(['nou', 'activ']);
 type Held = { date: string; startTime: string };
 export type Change = Exclude<DateMode, { mode: 'keep' } | { mode: 'remove' }>;
 
-/** The contact e-mail of every current member of the group in the season; Inactiv and anonymized left out; each address once. */
-export function recipients(athletes: AthleteRow[], memberships: MembershipRow[], groupId: string, seasonId: string): string[] {
-  const ids = new Set(memberships.filter((m) => m.groupId === groupId && m.seasonId === seasonId && isCurrentMembership(m)).map((m) => m.athleteId));
+/** The contact e-mail of every current member of the group in the season; Inactiv and anonymized left out; athletes in `muted` (the holder switched schedule mail off) left out; each address once. */
+export function recipients(athletes: AthleteRow[], memberships: MembershipRow[], groupId: string, seasonId: string, muted: ReadonlySet<string>): string[] {
+  const ids = new Set(memberships.filter((m) => m.groupId === groupId && m.seasonId === seasonId && isCurrentMembership(m) && !muted.has(m.athleteId)).map((m) => m.athleteId));
   const emails = athletes.filter((a) => ids.has(a.id) && SENDABLE.has(a.status)).map((a) => (a.email ?? '').trim().toLowerCase()).filter(Boolean);
   return [...new Set(emails)].sort();
 }

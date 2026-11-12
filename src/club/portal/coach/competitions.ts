@@ -1,5 +1,5 @@
 import { refuse, type AdminResult } from '../../admin-result';
-import type { AthleteRow, MembershipRow } from '../../athletes/store';
+import type { AthleteRow, ClubStore, MembershipRow } from '../../athletes/store';
 import { currentSeason } from '../../groups/season-pick';
 import { isAnonymized } from '../../personal-data/anonymize-plan';
 import { onDate } from '../../presence/attendance/roster';
@@ -67,10 +67,16 @@ export async function readCoachCompetitions(c: CoachContexts, q: Record<string, 
   return { ok: true, data: { available: true, stale: answer.stale, seasons: [...answer.seasons].sort().reverse(), season: answer.season, events } };
 }
 
+/** The skater of an athlete: the profile's skate-results slug, or null when the athlete has none (not a performance athlete). */
+export async function skaterOf(store: ClubStore, athlete: AthleteRow): Promise<SkaterRef | null> {
+  const profile = athlete.profileId ? (await store.profiles()).find((p) => p.id === athlete.profileId) : undefined;
+  return profile?.skateResultsSlug ? { athleteId: athlete.id, name: athlete.name ?? '', slug: profile.skateResultsSlug } : null;
+}
+
 /** The card's competitions: zeros without a slug, `{ available: false }` when the source has nothing. */
 export async function athleteCompetitions(c: CoachContexts, athlete: AthleteRow, season: string): Promise<CoachAthleteCompetitions> {
-  const profile = athlete.profileId ? (await c.club.store.profiles()).find((p) => p.id === athlete.profileId) : undefined;
-  if (!profile?.skateResultsSlug) return { available: true, category: null, season, count: 0, podiums: 0, recent: [] };
-  const answer = await c.competitions.athlete({ athleteId: athlete.id, name: athlete.name ?? '', slug: profile.skateResultsSlug }, season).catch(() => null);
+  const skater = await skaterOf(c.club.store, athlete);
+  if (!skater) return { available: true, category: null, season, count: 0, podiums: 0, recent: [] };
+  const answer = await c.competitions.athlete(skater, season).catch(() => null);
   return answer ? { available: true, ...answer } : { available: false };
 }

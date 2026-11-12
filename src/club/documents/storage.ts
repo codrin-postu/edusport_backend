@@ -40,6 +40,12 @@ export async function listStored(dir: string): Promise<StoredDocument[]> {
   return docs;
 }
 
+/** The stored PDF of one kind (`acord` or `adeziune`) in a registration's folder, with its file name; none stored: null. */
+export async function readStoredDocument(dir: string, kind: DocumentKind): Promise<{ fileName: string; data: Buffer } | null> {
+  const doc = (await listStored(dir)).find((d) => d.kind === kind);
+  return doc ? { fileName: doc.fileName, data: await fs.readFile(doc.path) } : null;
+}
+
 /** Deletes a registration's folder and its PDFs; nothing to delete is fine (idempotent). */
 export async function removeStored(dir: string): Promise<void> {
   await fs.rm(dir, { recursive: true, force: true });

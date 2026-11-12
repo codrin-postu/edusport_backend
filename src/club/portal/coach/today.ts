@@ -56,7 +56,7 @@ export async function readToday(c: CoachContexts, date: unknown): Promise<AdminR
   if (!day.ok) return refuse(400, PORTAL_ERRORS.invalid);
   const groups = await c.presence.store.groups();
   const own = ownGroupIds(groups, c.coach.teamMemberId);
-  const places = await locationsOf(c, groups);
+  const places = await locationsOf(c.presence.store, groups);
   const where: Located = (id) => places.get(id) ?? null;
   const ownRows = day.data.day.filter((r) => own.has(r.groupId));
   const standIn = await standInRows(c, day.data.day.filter((r) => !own.has(r.groupId)));

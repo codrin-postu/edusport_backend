@@ -14,6 +14,7 @@ export const PORTAL_ERRORS = {
   archived: 'Arhivată. Nu mai poate fi modificată.',
   noAccess: 'Nu mai ai acces la această grupă.',
   invalid: 'Cerere invalidă.',
+  nameLength: 'Numele trebuie să aibă între 1 și 80 de caractere.',
   failed: 'Acțiunea nu a reușit. Nimic nu a fost salvat.',
   notFound: 'Nu a fost găsit.',
   loadFailed: 'Nu am putut încărca datele.',

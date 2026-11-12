@@ -4,6 +4,7 @@ import { addDays, hhmm } from '../../groups/dates';
 import type { GroupRecord } from '../../groups/types';
 import { loadRowContext, rowsWithCoachIds } from '../../presence/attendance/day';
 import { durationOf, heldOccurrences, occurrenceKey } from '../../presence/sessions';
+import type { PresenceStore } from '../../presence/store';
 import { PORTAL_ERRORS } from '../copy';
 import type { CoachCalendar, CoachCalendarItem } from './api-types';
 import type { CoachContexts } from './context';
@@ -11,12 +12,12 @@ import { ownGroupIds } from './ownership';
 
 /** The name of the group's section location, null without one. */
 export async function locationOfGroup(c: CoachContexts, group: GroupRecord): Promise<string | null> {
-  return (await locationsOf(c, [group])).get(group.id) ?? null;
+  return (await locationsOf(c.presence.store, [group])).get(group.id) ?? null;
 }
 
 /** Group id to location name for many groups with one read of the sections. */
-export async function locationsOf(c: CoachContexts, groups: GroupRecord[]): Promise<Map<string, string | null>> {
-  const sections = await c.presence.store.sections();
+export async function locationsOf(store: PresenceStore, groups: GroupRecord[]): Promise<Map<string, string | null>> {
+  const sections = await store.sections();
   return new Map(groups.map((g) => [g.id, sections.find((s) => s.id === g.sectionId)?.locationName ?? null]));
 }
 
@@ -27,7 +28,7 @@ export async function ownClassesBetween(c: CoachContexts, from: string, to: stri
   const own = ownGroupIds(ctx.groups, c.coach.teamMemberId);
   const calendar = await store.calendarWindow();
   const durations = new Map(heldOccurrences(calendar, ctx.groups, from, to).map((h) => [h.key, h.durationMin]));
-  const locations = known ?? await locationsOf(c, ctx.groups);
+  const locations = known ?? await locationsOf(c.presence.store, ctx.groups);
   const locationOf = async (g: GroupRecord | undefined): Promise<string | null> => (g ? locations.get(g.id) ?? null : null);
   const order = new Map<CoachCalendarItem, number>();
   const items: CoachCalendarItem[] = [];
