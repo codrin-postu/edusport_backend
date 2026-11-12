@@ -20,7 +20,8 @@ export const MONEY_UI_COPY = {
     type: 'Tip',
     typeOptions: ['Toate', 'Abonament', 'Cotizație membru', 'Club', 'Lecție individuală', 'Altceva'],
     columns: ['Data', 'Nr. chitanță', 'Sportiv', 'Pentru', 'Metodă', 'Sumă', 'Înregistrat de'],
-    total: (sum: string): string => `Total: ${sum}`,
+    total: (sum: string): string => `Total încasat: ${sum}`,
+    sub: (month: string): string => `Încasate în ${month.toLowerCase()}`,
     edit: 'Editează',
   },
   due: {
@@ -75,4 +76,21 @@ export const BANI_COPY = {
   empty: 'Nicio plată în luna asta.',
   receipt: 'Nr. chitanță',
   expiringFilter: 'Expiră în 14 zile',
+};
+
+/** Texts of the "Contabilitate" page (admin redesign spec 5): one page for Restanțe, Abonamente, Plăți and Pe grupe. */
+export const CONTABILITATE_COPY = {
+  title: 'Contabilitate',
+  menu: 'Contabilitate',
+  glance: 'Pe scurt',
+  tabs: { restante: 'Restanțe', abonamente: 'Abonamente', plati: 'Plăți', peGrupe: 'Pe grupe' },
+  restante: {
+    section: 'Secțiune',
+    sectionOptions: { toate: 'Toate', scoala: 'Școala de patinaj', club: 'Club' },
+    group: 'Grupă',
+    schoolSub: 'Toate abonamentele neachitate integral',
+    total: (sum: string): string => `Total rămas: ${sum}`,
+    pay: '+ Plată',
+  },
+  peGrupe: { sub: 'Datorat și încasat pe secțiuni, grupe și metode de plată' },
 };

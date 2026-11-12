@@ -59,12 +59,13 @@ export const MONEY_CSS = `
 .ui-root .bn-day-chev{grid-column:2;grid-row:1 / span 3}
 }
 @media (max-width:640px){.ui-root .bn-mrow{grid-template-columns:1fr 1fr}.ui-root .bn-mhead{display:none}}
-.ui-root .bn-sq-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;padding:12px 16px}
-.ui-root .bn-sq{display:block;aspect-ratio:1 / 1;color:inherit;text-decoration:none}
+.ui-root .bn-sq-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:start;gap:12px;padding:12px 16px}
+.ui-root .bn-sq{display:block;padding:0;margin:0;font:inherit;text-align:left;color:inherit;text-decoration:none;background:none;border:none;cursor:pointer}
+.ui-root .bn-sq--static{cursor:default}
 .ui-root .bn-sq .ui-stat{height:100%;display:flex;flex-direction:column;justify-content:flex-start}
 .ui-root .bn-sq .ui-stat-caption{margin-top:auto}
-.ui-root a.bn-sq:hover .ui-stat{background:var(--theme-surface-subtle)}
-.ui-root a.bn-sq:focus-visible{outline:2px solid var(--theme-focus);outline-offset:2px}
+.ui-root button.bn-sq:hover .ui-stat{background:var(--theme-surface-subtle)}
+.ui-root button.bn-sq:focus-visible{outline:2px solid var(--theme-focus);outline-offset:2px}
 .ui-root .bn-trend{display:block}
 .ui-root .bn-sechead{margin:8px 0 0;padding:3px 12px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--theme-text-secondary);background:var(--theme-surface-subtle);border:1px solid var(--theme-border)}
 .ui-root .bn-bcard{display:flex;flex-direction:column;gap:2px;padding:10px 12px;font-size:13px;border:1px solid var(--theme-border);margin-top:-1px;background:var(--theme-surface);color:var(--theme-text)}
@@ -87,5 +88,5 @@ export const MONEY_CSS = `
 .ui-root.bn-pop{padding:5px;min-width:120px}
 .ui-root.bn-pop button{display:block;width:100%;text-align:left;font:inherit;font-size:12.5px;color:var(--theme-text);background:none;border:none;padding:8px 10px;cursor:pointer}
 .ui-root.bn-pop button:hover,.ui-root.bn-pop button:focus-visible{background:var(--theme-surface-subtle);outline:none}
-@media (max-width:900px){.ui-root .bn-sq-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ui-root .bn-sq-grid .bn-sq:last-child:nth-child(odd){grid-column:1 / -1;aspect-ratio:2 / 1}.ui-root .bn-figures{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:900px){.ui-root .bn-sq-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ui-root .bn-sq-grid .bn-sq:last-child:nth-child(odd){grid-column:1 / -1}.ui-root .bn-figures{grid-template-columns:repeat(2,minmax(0,1fr))}}
 `;

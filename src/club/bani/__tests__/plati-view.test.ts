@@ -20,7 +20,7 @@ describe('Plăți view', () => {
     expect(s.map((x) => x.allLabel)).toEqual([null, undefined, undefined]);   // Toate rows come from the panel
     expect(activeSections(s)).toBe(0);
     expect(activeSections(platiSections({ month: '2026-10', method: 'card', purpose: 'club_luna' }, '2026-11-20'))).toBe(2);   // M1: Metodă and Tip count
-    expect(totalLine({ rows: [], total: 840 })).toBe('Total: 840 RON');
+    expect(totalLine({ rows: [], total: 840 })).toBe('Total încasat: 840 RON');
   });
 });
 

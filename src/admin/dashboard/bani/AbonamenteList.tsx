@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AdminPage, Button, DataTable, FilterPanel, Loading, Notice, PageHeader, StatusBadge, Window, adminToast, useIsPhone, type BadgeTone, type DataColumn } from '../../ui';
+import { useNavigate } from 'react-router-dom';
+import { Button, DataTable, FilterPanel, Loading, Notice, StatusBadge, adminToast, useIsPhone, type BadgeTone, type DataColumn } from '../../ui';
 import { abonamentCell, abonamenteCells, abonamenteSections, abonamentMenu, stateOf } from '../../../club/bani/abonamente-view';
 import { athleteTabTo } from '../../../club/bani/routes';
 import { todayIso } from '../../../club/groups/http';
@@ -13,13 +13,13 @@ import type { AbonamentBar as Bar } from '../../../club/presence/subscriptions/r
 import type { SubscriptionState } from '../../../club/presence/types';
 import { countWords } from '../../../club/ro-count';
 import { requestErrorText } from '../../../club/registration-panel';
-import { SPORTIVI_CSS } from '../sportivi/styles';
 import { useSportiviApi } from '../sportivi/api';
 import { AthleteSearch } from '../sportivi/AthleteSearch';
 import { WindowShell } from '../grupe/PanelShell';
 import { AbonamentBar } from './AbonamentBar';
 import { AddSubscriptionWindow } from './AddSubscriptionWindow';
 import { useMoneyApi, type MoneyApi } from './api';
+import { ActionsSlot, type ContabBodyProps } from './ContabBody';
 import { ExtendModal } from './ExtendModal';
 import { RowMenu } from './RowMenu';
 import { useLatest } from './latest';
@@ -131,51 +131,44 @@ function AthletePick({ onPick, onClose }: { onPick: (a: { id: string; name: stri
   );
 }
 
-/** The "Abonamente" body (5.8, 5.9): Școala's abonamente, filtered by state and group in the URL. */
-export function AbonamenteList() {
+/** The "Abonamente" body (spec 5.3): Școala's abonamente, filtered by state and group in the URL; not bound to the header month. */
+export function AbonamenteBody({ params, setParams, actionsHost }: Omit<ContabBodyProps, 'month'>) {
   const today = React.useMemo(() => todayIso(), []);
   const api = useMoneyApi();
   const phone = useIsPhone();
   const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
   const query: SubscriptionQuery = { state: stateOf(params.get('state')), groupId: params.get('groupId') || null };
   const { page, failed } = useSubscriptions(query);
   const [dialog, setDialog] = React.useState<Dialog>(null);
   const change = (key: string, selected: string[]) => {
     const next = new URLSearchParams(params);
     if (selected[0]) next.set(key, selected[0]); else next.delete(key);
-    setParams(next, { replace: true });
+    setParams(next);
   };
   const open = (r: SubscriptionListRow) => navigate(athleteTabTo(r.athleteId, 'abonament'));
   const cancelling = React.useRef(false);
   const cancel = (r: SubscriptionListRow) => void runOnce(cancelling, () => cancelSubscription(api, r), () => undefined);
   const count = page ? countWords(page.rows.length, 'abonament', 'abonamente') : '';
-  const actions = (
-    <>
-      <Button variant="secondary" onClick={() => setDialog({ kind: 'extend' })}>{copy.extend}</Button>
-      <Button onClick={() => setDialog({ kind: 'search' })}>{copy.add}</Button>
-    </>
-  );
   return (
-    <AdminPage fit>
-      <style>{SPORTIVI_CSS + MONEY_CSS}</style>
-      <Window>
-        <PageHeader title={copy.title} subtitle={copy.subtitle} actions={actions} />
-        <div className="bn-toolbar">
-          <FilterPanel
-            sections={abonamenteSections(query, page?.groups ?? [])} onChange={change} onClearAll={() => setParams({}, { replace: true })}
-            totalLabel={count} showLabel={MONEY_UI_COPY.show(count)}
-          />
-        </div>
-        {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
-        {!page && !failed && <Loading />}
-        {page && (phone
-          ? <Cards rows={page.rows} today={today} onOpen={open} onCancel={cancel} />
-          : <DataTable columns={columns(today, cancel)} rows={page.rows} getRowKey={(r) => r.subscriptionId} onRowClick={open} rowLabel={(r) => r.athleteName} pageSize={0} empty={MONEY_UI_COPY.empty.abonamente} />)}
-      </Window>
+    <>
+      <ActionsSlot host={actionsHost}>
+        <Button variant="secondary" onClick={() => setDialog({ kind: 'extend' })}>{copy.extend}</Button>
+        <Button onClick={() => setDialog({ kind: 'search' })}>{copy.add}</Button>
+      </ActionsSlot>
+      <div className="bn-toolbar">
+        <FilterPanel
+          sections={abonamenteSections(query, page?.groups ?? [])} onChange={change} onClearAll={() => setParams(new URLSearchParams())}
+          totalLabel={count} showLabel={MONEY_UI_COPY.show(count)}
+        />
+      </div>
+      {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
+      {!page && !failed && <Loading />}
+      {page && (phone
+        ? <Cards rows={page.rows} today={today} onOpen={open} onCancel={cancel} />
+        : <DataTable columns={columns(today, cancel)} rows={page.rows} getRowKey={(r) => r.subscriptionId} onRowClick={open} rowLabel={(r) => r.athleteName} pageSize={0} empty={MONEY_UI_COPY.empty.abonamente} />)}
       {dialog?.kind === 'extend' && <ExtendModal onClose={() => setDialog(null)} />}
       {dialog?.kind === 'search' && <AthletePick onPick={(athlete) => setDialog({ kind: 'add', athlete })} onClose={() => setDialog(null)} />}
       {dialog?.kind === 'add' && <AddSubscriptionWindow athlete={dialog.athlete} onClose={() => setDialog(null)} />}
-    </AdminPage>
+    </>
   );
 }

@@ -10,6 +10,8 @@ import {
   REALIZARI_TO, EVENIMENTE_COLABORARE_TO, SECURITATE_TO, UID,
 } from '../pages/routes';
 import { BANI_PATH } from '../../club/bani/routes';
+import { CONTABILITATE_PATH } from '../../club/contabilitate/routes';
+import { TABELE_PATH, TABLES_AREA } from '../../club/tables/routes';
 import { SECURITY_COPY } from '../../club/security/copy';
 import { OLD_EDITOR_PATH, SPORTIVI_PATH } from '../../club/sportivi/routes';
 import type { AdminArea } from '../../club/admin-area';
@@ -149,10 +151,8 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: GRUPE_TO, label: 'Grupe', icon: GridFour, group: 'club', featured: true },
   { to: SPORTIVI_TO, label: 'Sportivi', icon: User, group: 'club', featured: true },
   { to: PREZENTA_PATH, label: 'Prezență', icon: Clock, group: 'club' },
-  { to: ABONAMENTE_PATH, label: 'Abonamente', icon: Book, group: 'club' },
-  { to: PLATI_PATH, label: 'Plăți', icon: ChartCircle, group: 'club' },
-  { to: DE_INCASAT_PATH, label: 'De încasat', icon: Bell, group: 'club' },
-  { to: BANI_PATH, label: 'Bani', icon: ChartPie, group: 'club', area: 'money' },
+  { to: CONTABILITATE_PATH, label: 'Contabilitate', icon: ChartPie, group: 'club' },
+  { to: TABELE_PATH, label: 'Tabele', icon: GridFour, group: 'club', area: TABLES_AREA },
 
   // Sportivi și echipă
   // Re-pointed from collection('api::team-member.team-member'): team members are
@@ -313,40 +313,37 @@ export function registerEdusportMenu(app: StrapiApp) {
   });
 
   app.addMenuLink({
-    to: ABONAMENTE_PATH,
-    icon: Book,
-    intlLabel: { id: 'edusport.menu.abonamente', defaultMessage: 'Abonamente' },
-    Component: () => import('./AbonamentePage'),
-    permissions: [],
-    position: 7,
-  });
-
-  app.addMenuLink({
-    to: PLATI_PATH,
-    icon: ChartCircle,
-    intlLabel: { id: 'edusport.menu.plati', defaultMessage: 'Plăți' },
-    Component: () => import('./PlatiPage'),
-    permissions: [],
-    position: 7,
-  });
-
-  app.addMenuLink({
-    to: DE_INCASAT_PATH,
-    icon: Bell,
-    intlLabel: { id: 'edusport.menu.deIncasat', defaultMessage: 'De încasat' },
-    Component: () => import('./DeIncasatPage'),
-    permissions: [],
-    position: 7,
-  });
-
-  app.addMenuLink({
-    to: BANI_PATH,
+    to: CONTABILITATE_PATH,
     icon: ChartPie,
-    intlLabel: { id: 'edusport.menu.bani', defaultMessage: 'Bani' },
-    Component: () => import('./BaniPage'),
+    intlLabel: { id: 'edusport.menu.contabilitate', defaultMessage: 'Contabilitate' },
+    Component: () => import('./ContabilitatePage'),
     permissions: [],
     position: 7,
   });
+
+  // Tabele: the page moves out of Sportivi in a later step; until then it renders the same component.
+  app.addMenuLink({
+    to: TABELE_PATH,
+    icon: GridFour,
+    intlLabel: { id: 'edusport.menu.tabele', defaultMessage: 'Tabele' },
+    Component: async () => {
+      const { TabelePage } = await import('./sportivi/tabele/TabelePage');
+      return { default: () => <TabelePage tabs={null} /> };
+    },
+    permissions: [],
+    position: 7,
+  });
+
+  // The four old money pages: route only, they redirect to the matching Contabilitate tab (spec 2).
+  for (const path of [ABONAMENTE_PATH, PLATI_PATH, DE_INCASAT_PATH, BANI_PATH]) {
+    app.router.addRoute({
+      path: `${path.slice(1)}/*`,
+      lazy: async () => {
+        const mod = await import('./RedirectPage');
+        return { Component: mod.default };
+      },
+    });
+  }
 
   // The old profile editor: route only, it redirects to the athlete record (spec 7).
   app.router.addRoute({
