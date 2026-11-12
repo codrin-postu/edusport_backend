@@ -17,6 +17,8 @@ export const PREZENTA_CSS = `
 .ui-root .pz-seg-label{display:inline-flex;align-items:center;min-width:120px;justify-content:center;cursor:default}
 .ui-root .pz-bar-sp{flex:1}
 .ui-root .pz-view-select{width:auto;min-width:128px}
+.ui-root .pz-bar .pz-group-select{width:260px;max-width:100%}
+.ui-root .pz-bar .pz-dl{margin-left:auto}
 .ui-root .pz-datewrap{position:relative;display:inline-flex}
 .ui-root .pz-datehidden{position:absolute;left:0;bottom:0;width:100%;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
 .ui-root .pz-seg-label{min-width:150px}

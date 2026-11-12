@@ -25,7 +25,7 @@ export const TABELE_CSS = `
 .ui-root .tbl-layout{grid-template-columns:minmax(0,1fr)}
 }
 .ui-root .tbl-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:14px 18px;border-bottom:1px solid var(--theme-border);min-width:0}
-.ui-root .tbl-controls .ui-sel{width:auto;min-width:0;max-width:100%}
+.ui-root .tbl-controls .ui-sel{width:auto;min-width:0;max-width:min(220px,100%)}
 .ui-root .tbl-named{display:inline-flex;align-items:center;gap:6px;min-width:0}
 .ui-root .tbl-named-label{font-size:var(--ui-fs-body);color:var(--theme-text-secondary);white-space:nowrap}
 .ui-root .tbl-subject{font-weight:700}

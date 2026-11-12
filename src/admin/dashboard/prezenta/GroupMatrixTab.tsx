@@ -125,14 +125,13 @@ export function GroupMatrixTab({ groupId, month, today, onChange }: Props) {
   return (
     <>
       <div className="pz-bar">
-        <Select aria-label={MATRIX_COPY.group} value={chosen ?? ''} options={groups ?? []} onChange={(v) => onChange({ groupId: v })} />
+        <Select className="pz-group-select" aria-label={MATRIX_COPY.group} value={chosen ?? ''} options={groups ?? []} onChange={(v) => onChange({ groupId: v })} />
         <Switcher
           label={PREZENTA_COPY.monthLabel} prevLabel={PREZENTA_COPY.prevMonth} nextLabel={PREZENTA_COPY.nextMonth}
           onPrev={() => onChange({ month: addMonths(month, -1) })} onNext={() => onChange({ month: addMonths(month, 1) })}
           nextDisabled={month >= monthOf(today)} middle={monthTitle(month)} middleOn
         />
-        <span className="pz-bar-sp" />
-        <Button variant="secondary" loading={busy} disabled={!chosen} onClick={() => void download()}>{MATRIX_COPY.download}</Button>
+        <Button className="pz-dl" variant="secondary" loading={busy} disabled={!chosen} onClick={() => void download()}>{MATRIX_COPY.download}</Button>
       </div>
       {data && <p className="pz-mx-sub">{[data.group.name, data.group.program].filter((p) => p !== '').join(', ')}</p>}
       {body}
