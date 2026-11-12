@@ -8,7 +8,7 @@ import type {
 } from './types';
 
 export type PresenceGroupReads = Pick<GroupStore, 'transaction' | 'lockSeason' | 'lockAthlete' | 'lockGroup' | 'lockEvent' | 'lockHistoryEntry' | 'seasons' | 'sections' | 'groups' | 'group'
-  | 'teamMembers' | 'athletes' | 'athlete' | 'memberships' | 'history' | 'historyEntry' | 'historyAfter' | 'adminNames' | 'setAthleteStatus'
+  | 'teamMembers' | 'events' | 'athletes' | 'athlete' | 'memberships' | 'history' | 'historyEntry' | 'historyAfter' | 'adminNames' | 'setAthleteStatus'
   | 'recordAction' | 'record' | 'setHistoryChanges'>;
 export type Range = { from?: string; to?: string };
 export type SessionWhere = Range & { ids?: string[]; groupId?: string };

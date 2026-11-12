@@ -1,8 +1,7 @@
 import type { AdminResult } from '../../admin-result';
-import { addDays, hhmm } from '../../groups/dates';
-import { DAY_OF_INDEX, daysSpoken } from '../../groups/program-text';
-import type { DayKey } from '../../groups/types';
-import { heldOccurrences } from '../sessions';
+import { listLine } from '../../groups/program-text';
+import { currentSeason } from '../../groups/season-pick';
+import { currentSeries, seriesText } from '../../groups/series';
 import { PRESENCE_ERRORS } from '../copy/core';
 import { isMonth, monthOf, monthRange, seasonOfDate } from '../dates';
 import type { PresenceStore } from '../store';
@@ -20,15 +19,11 @@ const daysOf = (from: string, to: string): string[] => {
   return out;
 };
 
-/** The group's schedule words ("Lu și Mi 19:00") from its held occurrences in the four weeks from `from`: the weekdays of each start time; several times are joined with "; ". */
-async function programOf(store: PresenceStore, ctx: RowContext, groupId: string, from: string): Promise<string> {
-  const held = heldOccurrences(await store.calendarWindow(), ctx.groups, from, addDays(from, 27)).filter((h) => h.groupId === groupId);
-  const byTime = new Map<string, Set<DayKey>>();
-  for (const h of held) {
-    const time = hhmm(h.startTime) ?? h.startTime;
-    byTime.set(time, (byTime.get(time) ?? new Set()).add(DAY_OF_INDEX[new Date(`${h.date}T00:00:00Z`).getUTCDay()]));
-  }
-  return [...byTime].sort(([x], [y]) => x.localeCompare(y)).map(([time, days]) => `${daysSpoken([...days])} ${time}`).join('; ');
+/** The schedule lines the Grupe list shows ("Lu, Mi 17:00"), from the season's running series; several lines are joined with "; ". */
+async function programOf(store: PresenceStore, ctx: RowContext, groupId: string): Promise<string> {
+  const season = currentSeason(ctx.seasons);
+  if (!season) return '';
+  return currentSeries(await store.events({ groupId }), groupId, season, ctx.today).map((s) => listLine(seriesText(s))).join('; ');
 }
 
 /** Athlete ids on the group's list on `date`. */
@@ -37,7 +32,20 @@ const listedOn = (ctx: RowContext, groupId: string, date: string): string[] => {
   return season ? rosterOn(ctx.memberships, groupId, season.id, date) : [];
 };
 
-const isPresent = (c: MatrixCell): boolean => c.grup || c.uscat;
+type MatrixFacts = { columns: MatrixColumn[]; lists: Set<string>[]; cells: Map<string, MatrixCell>; names: Map<string, string> };
+
+function rowOf(f: MatrixFacts, athleteId: string, visitor: boolean): MatrixRow {
+  const cells = f.columns.map((c) => f.cells.get(`${c.sessionId}|${athleteId}`) ?? NO_CELL);
+  const done = (i: number): boolean => f.columns[i].state === 'completat';
+  return {
+    athleteId, name: f.names.get(athleteId) ?? '', visitor, cells,
+    present: cells.filter((c, i) => done(i) && (c.grup || c.uscat)).length,
+    of: visitor ? null : f.columns.filter((_c, i) => done(i) && f.lists[i].has(athleteId)).length,
+  };
+}
+
+const cellsOf = (atts: AttendanceRow[]): Map<string, MatrixCell> =>
+  new Map(atts.map((a) => [`${a.sessionId}|${a.athleteId}`, { grup: a.grup, uscat: a.uscat }]));
 
 /** The group's month matrix (spec 4.3): one column per held or saved session, one row per member of the month, then visitors. */
 export async function readGroupMatrix(
@@ -49,28 +57,16 @@ export async function readGroupMatrix(
   if (!group) return { ok: false, status: 404, error: PRESENCE_ERRORS.notFound };
   const { from, to } = monthRange(month);
   const periodRows = await periodRowsKeepingNull(store, ctx, from, to, now, groupId);
-  const sorted = periodRows.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-  const columns: MatrixColumn[] = sorted.map((r) => ({ date: r.date, startTime: r.startTime, sessionId: r.sessionId, occurrenceKey: r.occurrenceKey, state: r.adminState }));
+  const columns: MatrixColumn[] = periodRows.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
+    .map((r) => ({ date: r.date, startTime: r.startTime, sessionId: r.sessionId, occurrenceKey: r.occurrenceKey, state: r.adminState }));
   const sessionIds = columns.flatMap((c) => (c.sessionId ? [c.sessionId] : []));
-  const atts: AttendanceRow[] = sessionIds.length > 0 ? await store.attendances({ sessionIds }) : [];
-  const names = new Map((await store.athletes()).map((a) => [a.id, a.name ?? '']));
-  const lists = columns.map((c) => new Set(listedOn(ctx, groupId, c.date)));
+  const atts = sessionIds.length > 0 ? await store.attendances({ sessionIds }) : [];
+  const facts: MatrixFacts = {
+    columns, cells: cellsOf(atts), names: new Map((await store.athletes()).map((a) => [a.id, a.name ?? ''])),
+    lists: columns.map((c) => new Set(listedOn(ctx, groupId, c.date))),
+  };
   const members = new Set(daysOf(from, to).flatMap((d) => listedOn(ctx, groupId, d)));
-  const cellOf = (athleteId: string, col: MatrixColumn): MatrixCell => {
-    const a = atts.find((x) => x.sessionId === col.sessionId && x.athleteId === athleteId);
-    return a ? { grup: a.grup, uscat: a.uscat } : NO_CELL;
-  };
-  const rowOf = (athleteId: string, visitor: boolean): MatrixRow => {
-    const cells = columns.map((c) => cellOf(athleteId, c));
-    const done = (i: number): boolean => columns[i].state === 'completat';
-    return {
-      athleteId, name: names.get(athleteId) ?? '', visitor, cells,
-      present: cells.filter((c, i) => done(i) && isPresent(c)).length,
-      of: visitor ? null : columns.filter((_c, i) => done(i) && lists[i].has(athleteId)).length,
-    };
-  };
-  const memberRows = [...members].map((id) => rowOf(id, false)).sort(byName);
-  const visitorIds = [...new Set(atts.filter((a) => !members.has(a.athleteId)).map((a) => a.athleteId))];
-  const visitorRows = visitorIds.map((id) => rowOf(id, true)).sort(byName);
-  return { ok: true, data: { month, group: { id: group.id, name: group.name, program: await programOf(store, ctx, groupId, from) }, columns, rows: [...memberRows, ...visitorRows] } };
+  const visitors = [...new Set(atts.filter((a) => !members.has(a.athleteId)).map((a) => a.athleteId))];
+  const rows = [...[...members].map((id) => rowOf(facts, id, false)).sort(byName), ...visitors.map((id) => rowOf(facts, id, true)).sort(byName)];
+  return { ok: true, data: { month, group: { id: group.id, name: group.name, program: await programOf(store, ctx, groupId) }, columns, rows } };
 }
