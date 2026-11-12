@@ -15,8 +15,24 @@ const ROWS = [
 ];
 
 describe('recipients (6.5, W7)', () => {
+  const NONE = new Set<string>();
+
   it('current members of the season, Nou and Activ, trimmed, lower case, each address once', () => {
-    expect(recipients(ATHLETES, ROWS, 'g-ib', 's26')).toEqual(['parinte.ionescu@example.com']);
+    expect(recipients(ATHLETES, ROWS, 'g-ib', 's26', NONE)).toEqual(['parinte.ionescu@example.com']);
+  });
+
+  it('leaves out the athletes whose holder switched schedule mail off', () => {
+    const two = [athleteRow({ id: 'p1', email: 'one@example.com' }), athleteRow({ id: 'p2', email: 'two@example.com' })];
+    const rows = [member({ id: 'k1', athleteId: 'p1', groupId: 'g-ib' }), member({ id: 'k2', athleteId: 'p2', groupId: 'g-ib' })];
+    expect(recipients(two, rows, 'g-ib', 's26', new Set(['p1']))).toEqual(['two@example.com']);
+    expect(recipients(two, rows, 'g-ib', 's26', new Set(['p1', 'p2']))).toEqual([]);
+  });
+
+  it('a muted athlete is left out; the address stays while another unmuted member shares it; muting every member empties the list', () => {
+    expect(recipients(ATHLETES, ROWS, 'g-ib', 's26', new Set(['a2']))).toEqual(['parinte.ionescu@example.com']);
+    expect(recipients(ATHLETES, ROWS, 'g-ib', 's26', new Set(['a1', 'a2']))).toEqual([]);
+    expect(recipients(ATHLETES, ROWS, 'g-ib', 's26', new Set(['a7']))).toEqual(['parinte.ionescu@example.com']);
+    expect(recipients(ATHLETES, ROWS, 'g-ib', 's26', new Set())).toEqual(['parinte.ionescu@example.com']);
   });
 });
 

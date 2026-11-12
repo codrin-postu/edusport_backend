@@ -18,6 +18,7 @@ const ATHLETE = 'api::athlete.athlete' as const;
 const REGISTRATION = 'api::registration-submission.registration-submission' as const;
 const EVENT = 'api::calendar-event.calendar-event' as const;
 const BLACKOUT = 'api::calendar-blackout.calendar-blackout' as const;
+const ACCESS = 'api::athlete-access.athlete-access' as const;
 const JOB = 'api::email-job.email-job' as const;
 const HISTORY = 'api::history-entry.history-entry' as const;
 const MAX = 100000;
@@ -111,12 +112,16 @@ function lookups(strapi: Core.Strapi): Keys<'seasons' | 'sections' | 'groups' | 
   };
 }
 
-function peopleReads(strapi: Core.Strapi): Keys<'athletes' | 'athlete' | 'memberships' | 'membership' | 'registrations' | 'registrationsFiledAfter' | 'adminNames'> {
+function peopleReads(strapi: Core.Strapi): Keys<'athletes' | 'athlete' | 'memberships' | 'membership' | 'scheduleMutedAthletes' | 'registrations' | 'registrationsFiledAfter' | 'adminNames'> {
   const club = strapiClubStore(strapi);
   const by = (key: string, id: string | undefined) => (id ? { [key]: { documentId: id } } : {});
   return {
     athletes: () => club.athletes(),
     athlete: (id) => club.athlete(id),
+    scheduleMutedAthletes: async () => {
+      const live = await strapi.db.query(ACCESS).findMany({ where: { revokedAt: { $null: true }, account: { notifySchedule: false } }, select: ['athleteKey'], limit: MAX });
+      return [...new Set(live.map((r: { athleteKey: string }) => r.athleteKey))];
+    },
     memberships: async (w = {}) => {
       const filters = { ...by('season', w.seasonId), ...by('group', w.groupId), ...by('athlete', w.athleteId) };
       return raws(await strapi.documents(MEMBERSHIP).findMany({ filters, populate: ['athlete', 'group', 'season'], sort: BY_ID, limit: MAX })).map(toMembership);

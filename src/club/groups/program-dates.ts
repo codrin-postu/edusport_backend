@@ -51,8 +51,10 @@ const canonical = (rows: ExceptionRow[]): string[] => rows.map((r) => JSON.strin
 const same = (a: ExceptionRow[], b: ExceptionRow[]): boolean => JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
 
 async function addressesOf(store: GroupStore, spot: Spot): Promise<string[]> {
-  const [athletes, memberships] = await Promise.all([store.athletes(), store.memberships({ groupId: spot.group.id, seasonId: spot.season.id })]);
-  return recipients(athletes, memberships, spot.group.id, spot.season.id);
+  const [athletes, memberships, muted] = await Promise.all([
+    store.athletes(), store.memberships({ groupId: spot.group.id, seasonId: spot.season.id }), store.scheduleMutedAthletes(),
+  ]);
+  return recipients(athletes, memberships, spot.group.id, spot.season.id, new Set(muted));
 }
 
 /** F2: the payload comes from the event as it was before the write (the old date and time), never from a re-read. */

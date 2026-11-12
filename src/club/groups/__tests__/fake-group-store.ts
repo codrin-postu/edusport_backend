@@ -11,7 +11,7 @@ export type FakeJob = ScheduleEmailJob & { id: string; status: 'queued' | 'sendi
 export type FakeGroupState = {
   seasons: SeasonRecord[]; sections: SectionRecord[]; groups: GroupRecord[]; teamMembers: NamedRow[]; priceLists: PriceListRow[]; athletes: AthleteRow[];
   memberships: MembershipRow[]; registrations: RegistrationRow[]; events: EventRecord[]; breaks: BreakRecord[]; history: HistoryEntryRow[]; jobs: FakeJob[];
-  locks: string[]; admins: Record<string, string>; filedAfter: number;
+  locks: string[]; admins: Record<string, string>; filedAfter: number; mutedAthletes: string[];
 };
 export type FakeGroup = { store: GroupStore; state: FakeGroupState; failOn(method: keyof GroupStore): void };
 
@@ -51,7 +51,7 @@ const copy = <T>(v: T): T => structuredClone(v);
 type Next = (prefix: string) => string;
 type K<Keys extends keyof GroupStore> = Pick<GroupStore, Keys>;
 
-function fakeLookups(s: FakeGroupState): K<'seasons' | 'sections' | 'groups' | 'group' | 'teamMembers' | 'priceLists' | 'athletes' | 'athlete' | 'registrations' | 'registrationsFiledAfter' | 'adminNames'> {
+function fakeLookups(s: FakeGroupState): K<'seasons' | 'sections' | 'groups' | 'group' | 'teamMembers' | 'priceLists' | 'athletes' | 'athlete' | 'scheduleMutedAthletes' | 'registrations' | 'registrationsFiledAfter' | 'adminNames'> {
   return {
     seasons: async () => copy(s.seasons),
     sections: async () => copy(s.sections),
@@ -61,6 +61,7 @@ function fakeLookups(s: FakeGroupState): K<'seasons' | 'sections' | 'groups' | '
     priceLists: async () => copy(s.priceLists),
     athletes: async () => copy(s.athletes),
     athlete: async (id) => copy(s.athletes.find((a) => a.id === id) ?? null),
+    scheduleMutedAthletes: async () => copy(s.mutedAthletes),
     registrations: async () => copy(s.registrations),
     registrationsFiledAfter: async () => s.filedAfter,
     adminNames: async (emails) => Object.fromEntries(emails.filter((e) => s.admins[e]).map((e) => [e, s.admins[e]])),
@@ -189,7 +190,7 @@ function withFailures(store: GroupStore, failing: Set<string>): GroupStore {
 
 const EMPTY: FakeGroupState = {
   seasons: G_SEASONS, sections: G_SECTIONS, groups: G_GROUPS, teamMembers: G_TEAM, priceLists: G_PRICE_LISTS, athletes: [], memberships: [], registrations: [],
-  events: [], breaks: [], history: [], jobs: [], locks: [], admins: {}, filedAfter: 0,
+  events: [], breaks: [], history: [], jobs: [], locks: [], admins: {}, filedAfter: 0, mutedAthletes: [],
 };
 
 /** In-memory GroupStore; a transaction restores a snapshot when its work throws, so all-or-nothing is unit tested. */

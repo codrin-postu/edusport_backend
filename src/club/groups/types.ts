@@ -58,6 +58,8 @@ export interface GroupStore {
   athlete(id: string): Promise<AthleteRow | null>;
   /** Every row, ended ones included; filter with `isCurrentMembership`. */
   memberships(where?: MembershipWhere): Promise<MembershipRow[]>;
+  /** Athletes with a live access whose account has the schedule mail switched off (portal notifySchedule false). */
+  scheduleMutedAthletes(): Promise<string[]>;
   membership(id: string): Promise<MembershipRow | null>;
   registrations(): Promise<RegistrationRow[]>;
   /** Registrations filed under the season after `at` (new-season undo, W28). */

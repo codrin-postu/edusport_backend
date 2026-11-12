@@ -33,6 +33,16 @@ describe('"Anulează" (6.3, 6.5)', () => {
     expect(emailed).toEqual([actionId]);
   });
 
+  it('a holder who switched schedule mail off gets no job; the others still do', async () => {
+    const { ctx, state, emailed } = seed();
+    state.mutedAthletes.push('a3');
+    const res = await setDate(ctx, 'e1', '2026-11-14', { mode: 'cancel', reason: null, notifyParents: true });
+    const actionId = actionOf(res);
+    expect(state.jobs.map((j) => [j.recipient, j.changeKey])).toEqual([['ana@example.com', actionId]]);
+    expect(state.history[0].changes.emails).toBe(1);
+    expect(emailed).toEqual([actionId]);
+  });
+
   it('the toast\'s undo restores the date and cancels every queued job of the change (W7)', async () => {
     const { ctx, state } = seed();
     const res = await setDate(ctx, 'e1', '2026-11-14', { mode: 'cancel', reason: null, notifyParents: true });
