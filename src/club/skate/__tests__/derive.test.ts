@@ -82,6 +82,10 @@ describe('records', () => {
     ];
     expect(records(rows)).toEqual({ best: 100.5, podiums: 2, wins: 1 });
   });
+  it('leaves out rows without a result id, like the list', () => {
+    const rows = [res({ placement: 1, total_score: 100 }), res({ result_id: null, placement: 1, total_score: 120 })];
+    expect(records(rows)).toEqual({ best: 100, podiums: 1, wins: 1 });
+  });
   it('has no best without totals', () => {
     expect(records([])).toEqual({ best: null, podiums: 0, wins: 0 });
   });

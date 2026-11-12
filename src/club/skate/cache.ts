@@ -8,6 +8,8 @@ export type Cached<T> =
 
 export const RESULTS_MAX_AGE = 3_600_000;
 export const DETAIL_MAX_AGE = 86_400_000;
+/** After a failed refresh, readers wait this long before another background refresh starts. */
+export const RETRY_AFTER = 300_000;
 
 /** Stored body: either the value, or a marker that skate-results has no such thing. */
 type Body<T> = { value: T } | { missing: true };
@@ -57,7 +59,8 @@ export function snapshotCache(store: SnapshotStore, now: () => Date, schedule: (
       if (snap) {
         const body = snap.body as Body<T>;
         const old = now().getTime() - new Date(snap.fetchedAt).getTime() >= maxAgeMs;
-        if (old) refresh(key, run);
+        const failedRecently = snap.failedAt !== null && now().getTime() - new Date(snap.failedAt).getTime() < RETRY_AFTER;
+        if (old && !failedRecently) refresh(key, run);
         if ('missing' in body) return { available: true, missing: true };
         return { available: true, value: body.value, stale: snap.failedAt !== null, updatedAt: snap.fetchedAt };
       }
@@ -76,5 +79,5 @@ export function resultsOf(
   client: SkateClient,
   slug: string,
 ): Promise<Cached<SkateResult[]>> {
-  return cache.read(`results:${slug}`, RESULTS_MAX_AGE, () => client.results(slug));
+  return cache.read(`skater:${slug}`, RESULTS_MAX_AGE, () => client.results(slug));
 }

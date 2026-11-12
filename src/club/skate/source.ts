@@ -1,3 +1,4 @@
+import { todayInBucharest } from '../birth-date';
 import type { SkaterRef } from '../portal/coach/competitions';
 import type { CompetitionQuery, SportivCompetitionSource, SportivCompetitionViews } from '../portal/sportiv/competitions';
 import type { Segment, SportivCompetition, SportivCompetitions } from '../portal/sportiv/api-types';
@@ -36,7 +37,10 @@ export function skateSportivSource(
     loggedMissing.set(athleteId, day);
     log(`[skate-results] slug not found for athlete ${athleteId}`);
   };
-  const currentSeason = (): string => seasonKey(now().toISOString().slice(0, 10), '') ?? '';
+  const currentSeason = (): string => {
+    const t = todayInBucharest(now());
+    return seasonKey(`${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`, '') ?? '';
+  };
   const detailRead = <T>(key: string, run: () => Promise<Fetched<T>>): Promise<Cached<T>> => cache.read(key, DETAIL_MAX_AGE, run);
   const fieldOf = async (r: SkateResult): Promise<number | null> =>
     valueOf(await detailRead(`field:${r.event_id}:${r.category}`, () => client.fieldSize(r.event_id, r.category)));

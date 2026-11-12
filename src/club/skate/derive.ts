@@ -60,7 +60,9 @@ export function currentCategory(
   };
 }
 
-export function records(rows: SkateResult[]): { best: number | null; podiums: number; wins: number } {
+/** Over the same rows the list shows: a result without an id is left out. */
+export function records(all: SkateResult[]): { best: number | null; podiums: number; wins: number } {
+  const rows = all.filter((r) => r.result_id !== null);
   const totals = rows.map((r) => r.total_score).filter((t): t is number => t !== null);
   return {
     best: totals.length > 0 ? Math.max(...totals) : null,

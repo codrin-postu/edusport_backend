@@ -95,6 +95,22 @@ describe('skateSportivSource', () => {
     expect(d.field).toBeNull();
   });
 
+  it('takes the current season from the Bucharest date', async () => {
+    const rows = [
+      { ...results()[0], result_id: 1, event_id: 1, event_date: '2026-06-10', category: 'Basic Novice Girls' },
+      { ...results()[0], result_id: 2, event_id: 2, event_date: '2026-10-20', category: 'Advanced Novice Girls' },
+    ];
+    // 31 Aug 22:30 UTC is already 1 Sep in Bucharest: the new season
+    const { source } = setup({}, rows, undefined, () => new Date('2026-08-31T22:30:00.000Z'));
+    const l = await source.list(SKATER, query);
+    if (!l.available) throw new Error('unavailable');
+    expect(l.category?.seasonLabel).toBe('2026-2027');
+    const { source: before } = setup({}, rows, undefined, () => new Date('2026-08-31T20:30:00.000Z'));
+    const b = await before.list(SKATER, query);
+    if (!b.available) throw new Error('unavailable');
+    expect(b.category?.seasonLabel).toBe('2025-2026');
+  });
+
   it('count: distinct events, dates oldest first', async () => {
     const rows = results();
     rows.push({ ...rows[0], result_id: 500, segments: [] }); // a second result in an event already counted

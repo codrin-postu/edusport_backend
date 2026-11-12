@@ -56,6 +56,7 @@ const fail = (reason: 'down' | 'not_found'): { ok: false; reason: 'down' | 'not_
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 const str = (v: unknown): string | null => (typeof v === 'string' ? v : null);
+const httpUrl = (v: string | null): string | null => (v !== null && /^https?:\/\//.test(v) ? v : null);
 const rec = (v: unknown): Record<string, unknown> | null =>
   v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
 
@@ -190,11 +191,11 @@ export function skateClient(
 
     async officialUrl(eventId, name) {
       if (!validId(eventId)) return NOT_FOUND;
-      const got = await get(`/events?q=${encodeURIComponent(name)}&limit=20`);
+      const got = await get(`/events?q=${encodeURIComponent(name)}&limit=200`);
       if ('reason' in got) return fail(got.reason);
       if (!Array.isArray(got.value)) return DOWN;
       const row = got.value.map(rec).find((r) => r?.id === eventId);
-      return { ok: true, value: str(row?.source_url) };
+      return { ok: true, value: httpUrl(str(row?.source_url)) };
     },
   };
 }

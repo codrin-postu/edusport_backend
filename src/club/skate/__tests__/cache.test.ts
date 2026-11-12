@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { RESULTS_MAX_AGE, resultsOf, snapshotCache } from '../cache';
+import { RESULTS_MAX_AGE, RETRY_AFTER, resultsOf, snapshotCache } from '../cache';
 import type { Fetched, SkateClient } from '../client';
 import { fakeSnapshotStore } from '../fake-store';
 
@@ -73,6 +73,22 @@ describe('snapshot cache', () => {
     expect(load).toHaveBeenCalledTimes(1);
   });
 
+  it('does not start another refresh within 5 minutes of a failed one', async () => {
+    const s = setup();
+    const k = keyName();
+    await s.store.put(k, { value: 1 }, T0.toISOString());
+    s.advance(2 * HOUR);
+    const load = vi.fn(async () => down);
+    await s.cache.read(k, HOUR, load);
+    await s.runJobs();
+    expect(await s.store.get(k)).toMatchObject({ failedAt: expect.any(String) });
+    await s.cache.read(k, HOUR, load);
+    expect(s.jobs).toHaveLength(0);
+    s.advance(RETRY_AFTER);
+    await s.cache.read(k, HOUR, load);
+    expect(s.jobs).toHaveLength(1);
+  });
+
   it('single flight: concurrent cold reads make one outbound call', async () => {
     const s = setup();
     const k = keyName();
@@ -136,11 +152,11 @@ describe('snapshot cache', () => {
     expect(s.jobs).toHaveLength(1);
   });
 
-  it('resultsOf reads results:<slug> with the results freshness', async () => {
+  it('resultsOf reads skater:<slug> with the results freshness', async () => {
     const s = setup();
     const client = { results: vi.fn(async () => ok([])) } as unknown as SkateClient;
     await resultsOf(s.cache, client, 'ana-pop');
-    expect(await s.store.get('results:ana-pop')).not.toBeNull();
+    expect(await s.store.get('skater:ana-pop')).not.toBeNull();
     s.advance(RESULTS_MAX_AGE);
     await resultsOf(s.cache, client, 'ana-pop');
     expect(s.jobs).toHaveLength(1);

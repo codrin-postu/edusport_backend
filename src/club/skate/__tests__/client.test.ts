@@ -138,9 +138,16 @@ describe('skate client', () => {
     );
     const c = skateClient(env, fetchImpl);
     expect(await c.officialUrl(2, 'Cupa Mare')).toEqual({ ok: true, value: 'https://b' });
-    expect(calls[0].url).toBe('http://127.0.0.1:9/events?q=Cupa%20Mare&limit=20');
+    expect(calls[0].url).toBe('http://127.0.0.1:9/events?q=Cupa%20Mare&limit=200');
     expect(await c.officialUrl(3, 'x')).toEqual({ ok: true, value: null });
     expect(await c.officialUrl(99, 'x')).toEqual({ ok: true, value: null });
+  });
+
+  it('officialUrl keeps only http and https links', async () => {
+    const { fetchImpl } = stub(() => json([{ id: 1, source_url: 'javascript:alert(1)' }, { id: 2, source_url: 'http://ok.example' }]));
+    const c = skateClient(env, fetchImpl);
+    expect(await c.officialUrl(1, 'x')).toEqual({ ok: true, value: null });
+    expect(await c.officialUrl(2, 'x')).toEqual({ ok: true, value: 'http://ok.example' });
   });
 
   it('never logs the key, in any outcome', async () => {
