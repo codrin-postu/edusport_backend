@@ -15,6 +15,7 @@ html, body { margin: 0; background: var(--theme-surface); }
 .ia-or { margin: 0; text-align: center; font-size: var(--ui-fs-body-sm); color: var(--theme-text-muted); }
 .ia-link { align-self: flex-start; font-size: var(--ui-fs-body-sm); font-weight: 600; color: var(--theme-primary); text-decoration: none; }
 .ia-link:hover { text-decoration: underline; }
+.ia-root .ia-problem .ui-notice-mark { display: none; }
 .ia-root a.ia-google { width: 100%; box-sizing: border-box; text-decoration: none; padding: 9px 12px; }
 .ia-root .ia-form .ui-btn[type="submit"] { width: 100%; padding: 9px 12px; }
 .ia-pass { position: relative; }

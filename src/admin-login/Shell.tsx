@@ -19,4 +19,4 @@ export function Shell({ title, children }: { title: string; children: React.Reac
 }
 
 /** A refusal or a note above the form; the text is the server's, as sent. */
-export const Problem = ({ text }: { text: string | null }) => (text ? <Notice tone="danger">{text}</Notice> : null);
+export const Problem = ({ text }: { text: string | null }) => (text ? <Notice tone="danger" className="ia-problem">{text}</Notice> : null);
