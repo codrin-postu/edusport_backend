@@ -7,9 +7,12 @@ import { currentCategory, listRows, records, seasonKey, toRow } from './derive';
 
 type Cache = ReturnType<typeof snapshotCache>;
 
-/** The Acasă card must not wait for the field size: past this the card shows without "din <n>"; the load goes on and is stored. */
-const FIELD_BUDGET_MS = 800;
 const UNAVAILABLE = { available: false } as const;
+/** Acasă answers within this, counted from the start of the read. */
+const HOME_BUDGET_MS = 3500;
+
+/** Slugs skate-results answered 404 for, with the day it was last logged (in process): one log a day per slug. */
+const loggedMissing = new Map<string, string>();
 
 function within<T>(ms: number, work: Promise<T>, fallback: T): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
@@ -23,7 +26,16 @@ const valueOf = <T>(c: Cached<T>): T | null => ('value' in c ? c.value : null);
  * Sportiv competitions on the snapshot cache and the skate-results client. Every answer is for the one skater whose slug is given;
  * a result id is only ever looked up in that skater's own results, so nothing is fetched for an id that is not theirs.
  */
-export function skateSportivSource(cache: Cache, client: SkateClient, now: () => Date = () => new Date()): SportivCompetitionSource & SportivCompetitionViews {
+export function skateSportivSource(
+  cache: Cache, client: SkateClient, now: () => Date = () => new Date(), log: (message: string) => void = () => undefined, homeBudgetMs: number = HOME_BUDGET_MS,
+): SportivCompetitionSource & SportivCompetitionViews {
+  /** The slug only, at most once a day, through the logger that reaches GlitchTip. */
+  const noteMissing = (slug: string): void => {
+    const day = now().toISOString().slice(0, 10);
+    if (loggedMissing.get(slug) === day) return;
+    loggedMissing.set(slug, day);
+    log(`[skate-results] slug not found: ${slug}`);
+  };
   const currentSeason = (): string => seasonKey(now().toISOString().slice(0, 10), '') ?? '';
   const detailRead = <T>(key: string, run: () => Promise<Fetched<T>>): Promise<Cached<T>> => cache.read(key, DETAIL_MAX_AGE, run);
   const fieldOf = async (r: SkateResult): Promise<number | null> =>
@@ -31,28 +43,33 @@ export function skateSportivSource(cache: Cache, client: SkateClient, now: () =>
 
   return {
     async last(skater) {
+      const started = Date.now();
       const got = await resultsOf(cache, client, skater.slug);
+      if ('missing' in got) { noteMissing(skater.slug); return 'none'; }
       if (!('value' in got)) return null;
       const [latest] = listRows(got.value, { q: '', season: null, sort: 'recent', page: 1 }).rows;
-      if (!latest) return null;
+      if (!latest) return 'none';
       const source = got.value.find((r) => String(r.result_id) === latest.resultId);
-      const field = source ? await within(FIELD_BUDGET_MS, fieldOf(source).catch(() => null), null) : null;
+      // The field size only gets what is left of the budget; when it is spent the card shows without it.
+      const left = homeBudgetMs - (Date.now() - started);
+      const field = source && left > 0 ? await within(left, fieldOf(source).catch(() => null), null) : null;
       return { stale: got.stale, updatedAt: got.updatedAt, row: latest, field };
     },
 
     async count(skater) {
       const got = await resultsOf(cache, client, skater.slug);
-      if ('missing' in got) return { count: 0, dates: [] };
+      if ('missing' in got) { noteMissing(skater.slug); return { count: 0, dates: [] }; }
       if (!('value' in got)) return null;
-      const events = new Map<number, string | null>();
-      for (const r of got.value) if (!events.has(r.event_id) || (events.get(r.event_id) ?? '') > (r.event_date ?? '')) events.set(r.event_id, r.event_date);
-      const dates = [...events.values()].filter((d): d is string => d !== null).sort();
-      return { count: events.size, dates };
+      // An event without a date is left out, so the count and the dates agree.
+      const events = new Map<number, string>();
+      for (const r of got.value) if (r.event_date !== null && (events.get(r.event_id) ?? '\uffff') > r.event_date) events.set(r.event_id, r.event_date);
+      return { count: events.size, dates: [...events.values()].sort() };
     },
 
     async list(skater, query: CompetitionQuery): Promise<SportivCompetitions> {
       const got = await resultsOf(cache, client, skater.slug);
       if ('missing' in got) {
+        noteMissing(skater.slug);
         return { available: true, stale: false, updatedAt: now().toISOString(), total: 0, category: null, records: records([]), seasons: [], page: query.page, pageSize: 20, filtered: 0, rows: [] };
       }
       if (!('value' in got)) return UNAVAILABLE;
@@ -67,7 +84,7 @@ export function skateSportivSource(cache: Cache, client: SkateClient, now: () =>
 
     async detail(skater, resultId): Promise<SportivCompetition | null> {
       const got = await resultsOf(cache, client, skater.slug);
-      if ('missing' in got) return null;
+      if ('missing' in got) { noteMissing(skater.slug); return null; }
       if (!('value' in got)) return UNAVAILABLE;
       const own = got.value.find((r) => r.result_id !== null && String(r.result_id) === resultId);
       if (!own || own.result_id === null) return null;

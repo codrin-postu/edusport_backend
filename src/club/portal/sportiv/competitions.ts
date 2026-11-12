@@ -5,7 +5,8 @@ import type { CompetitionSort, LastCompetition, SportivCompetition, SportivCompe
 
 /** Where results come from for the sportiv screens. A null answer means the results are not available now. */
 export interface SportivCompetitionSource {
-  last(skater: SkaterRef): Promise<Omit<Extract<LastCompetition, { available: true }>, 'available'> | null>;
+  /** `'none'`: the skater has no results (card hidden); null: the results are not available now. */
+  last(skater: SkaterRef): Promise<Omit<Extract<LastCompetition, { available: true }>, 'available'> | 'none' | null>;
   /** Event dates oldest first, for the badge tiers. */
   count(skater: SkaterRef): Promise<{ count: number; dates: string[] } | null>;
 }

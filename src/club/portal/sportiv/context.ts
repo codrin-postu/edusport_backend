@@ -41,7 +41,7 @@ export function sportivContext(strapi: Core.Strapi, holder: HolderState): Sporti
   const log = (message: string): void => { strapi.log.error(message); };
   const now = (): Date => new Date();
   const scope = transactionScope(strapi);
-  const source = skateSportivSource(snapshotCache(strapiSnapshotStore(strapi), now, (job) => { setImmediate(() => { void job(); }); }), skateClient(), now);
+  const source = skateSportivSource(snapshotCache(strapiSnapshotStore(strapi), now, (job) => { setImmediate(() => { void job(); }); }), skateClient(), now, log);
   return {
     holder, today,
     presence: { store: strapiPresenceStore(strapi), actor, today, now, log, paymentEmails: () => undefined },

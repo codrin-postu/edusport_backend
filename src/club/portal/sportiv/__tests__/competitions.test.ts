@@ -104,6 +104,12 @@ describe('Acasă and Parcurs over the real source', () => {
     expect(client.results).not.toHaveBeenCalled();
   });
 
+  it('no results or a 404 slug hide the card; unreachable is not the same', async () => {
+    expect((await readHome(withSource(clientOf({ results: async () => ({ ok: true, value: [] }) })), A_IOANA)).lastCompetition).toBeNull();
+    expect((await readHome(withSource(clientOf({ results: async () => ({ ok: false, reason: 'not_found' }) })), A_IOANA)).lastCompetition).toBeNull();
+    expect((await readHome(withSource(clientOf({ results: async () => DOWN })), A_IOANA)).lastCompetition).toEqual({ available: false });
+  });
+
   it('the Concursuri badge counts the distinct events', async () => {
     const badge = (await readPath(withSource(clientOf()), A_IOANA)).badges.find((b) => b.key === 'concursuri');
     expect(badge).toMatchObject({ tier: 'ice', count: 41 });
