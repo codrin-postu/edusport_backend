@@ -1,3 +1,4 @@
+import { isAnonymized } from '../../personal-data/anonymize-plan';
 import { skaterOf as skaterOfAthlete, type SkaterRef } from '../coach/competitions';
 import type { SportivContext } from './context';
 import type { LastCompetition } from './api-types';
@@ -12,8 +13,11 @@ export interface SportivCompetitionSource {
 /** Until the real source (phase 7-3) is merged: nothing is available. */
 export const nullSportivCompetitions: SportivCompetitionSource = { last: async () => null, count: async () => null };
 
-/** The skater of an athlete, null when it has no skate-results slug (not a performance athlete) or is not known. */
+/**
+ * The skater of an athlete, null when it has no skate-results slug (not a performance athlete), is anonymized (as coach `clubSkaters`) or is not known.
+ * It does not check that the caller holds the athlete: callers check access first.
+ */
 export async function skaterOf(c: SportivContext, athleteId: string): Promise<SkaterRef | null> {
   const athlete = (await c.club.store.athletes()).find((a) => a.id === athleteId);
-  return athlete ? skaterOfAthlete(c.club.store, athlete) : null;
+  return athlete && !isAnonymized(athlete) ? skaterOfAthlete(c.club.store, athlete) : null;
 }

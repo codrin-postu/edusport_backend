@@ -1,18 +1,9 @@
 import { refuse, type AdminResult } from '../../admin-result';
 import type { PortalAuthContext, PortalResult } from '../auth/context';
-import { noticeLockout } from '../auth/login';
-import { PORTAL_ACTIONS, PORTAL_ERRORS, PORTAL_TOASTS } from '../copy';
-import { isConfirmedDevice } from '../devices';
-import { normalizeEmail } from '../limits';
-import { checkPassword } from '../passwords';
-import { portalSessions } from '../sessions';
-import { hashSecret } from '../tokens';
+import { PORTAL_ERRORS, PORTAL_TOASTS } from '../copy';
+import { changePasswordFor, listDevicesFor, readPhone, revokeDeviceFor, type MeScope } from '../me-shared';
 import type { CoachDevice, CoachMe } from './api-types';
 import { coachActor, type CoachContexts } from './context';
-
-const PHONE_MAX = 30;
-const PHONE_CHARS = /^[0-9 +.()]+$/;
-const PASSWORD_MAX = 256;
 
 const initialsOf = (name: string): string => {
   const words = name.split(/\s+/).filter(Boolean);
@@ -37,15 +28,12 @@ export async function readMe(c: CoachContexts): Promise<AdminResult<CoachMe>> {
   };
 }
 
-function readPhone(body: unknown): { phone: string | null } | null {
-  if (typeof body !== 'object' || body === null || !('phone' in body)) return null;
-  const raw = (body as { phone: unknown }).phone;
-  if (raw === null) return { phone: null };
-  if (typeof raw !== 'string') return null;
-  const phone = raw.trim();
-  if (phone === '') return { phone: null };
-  return phone.length <= PHONE_MAX && PHONE_CHARS.test(phone) ? { phone } : null;
-}
+const HOST = 'antrenor';
+
+/** The account, session and clock of the coach, as the shared settings code takes them. */
+const scopeOf = (c: CoachContexts): MeScope => ({
+  portal: c.portal, accountId: c.coach.accountId, userId: c.coach.userId, sessionId: c.coach.sessionId, host: HOST, now: c.presence.now, actor: coachActor(c.coach.name),
+});
 
 export async function saveMe(c: CoachContexts, body: unknown): Promise<AdminResult<{ toast: string }>> {
   const read = readPhone(body);
@@ -57,63 +45,11 @@ export async function saveMe(c: CoachContexts, body: unknown): Promise<AdminResu
   return { ok: true, data: { toast: PORTAL_TOASTS.saved } };
 }
 
-function readPasswords(body: unknown): { current: string; password: string } | null {
-  if (typeof body !== 'object' || body === null) return null;
-  const { current, password } = body as Record<string, unknown>;
-  if (typeof current !== 'string' || current === '' || current.length > PASSWORD_MAX || typeof password !== 'string') return null;
-  return { current, password };
-}
-
-const paused: PortalResult<never> = { ok: false, status: 429, error: PORTAL_ERRORS.paused };
-
 /** As login (count before compare): a wrong current password spends one of the 5 attempts of the e-mail. */
-export async function changePassword(c: CoachContexts & { auth: PortalAuthContext }, body: unknown): Promise<PortalResult<{ toast: string }>> {
-  const read = readPasswords(body);
-  const account = await c.portal.account(c.coach.accountId);
-  const user = await c.portal.user(c.coach.userId);
-  if (!read || !account || !user?.passwordHash) return refuse(400, PORTAL_ERRORS.invalid);
-  const email = normalizeEmail(account.email) ?? account.email;
-  const attempt = await c.auth.limits.emailAttempt(email);
-  if (attempt.refused) return paused;
-  if (!(await c.auth.compare(read.current, user.passwordHash))) {
-    if (attempt.firstLock) void noticeLockout(c.auth, account);
-    return attempt.locking ? paused : refuse(400, PORTAL_ERRORS.currentWrong);
-  }
-  await c.auth.limits.emailCleared(email);
-  const rule = checkPassword(read.password, email, c.auth.common);
-  if (rule !== null) return refuse(400, rule);
-  await storePassword(c, account.id, await c.auth.hash(read.password));
-  return { ok: true, data: { toast: PORTAL_TOASTS.saved } };
-}
-
-async function storePassword(c: CoachContexts & { auth: PortalAuthContext }, accountId: string, passwordHash: string): Promise<void> {
-  await c.portal.transaction(async () => {
-    await c.portal.lockAccount(accountId);
-    await c.portal.updateUser(c.coach.userId, { passwordHash });
-    await c.portal.updateAccount(accountId, { passwordChangedAt: c.presence.now().toISOString() });
-    await c.portal.record({ subjectId: accountId, action: PORTAL_ACTIONS.passwordChanged, changes: {}, actor: coachActor(c.coach.name) });
-    await portalSessions(c.portal, c.presence.now).revokeAll(c.coach.userId, c.coach.sessionId);
-    // Spec 6.4: remembered devices are forgotten, except the one making the change.
-    const mine = (await c.portal.devices(accountId)).find((d) => d.revokedAt === null && d.sessionId === c.coach.sessionId);
-    await c.auth.security.forgetDevices({ type: 'portal', id: accountId }, { exceptDevice: mine?.id });
-  });
-}
+export const changePassword = (c: CoachContexts & { auth: PortalAuthContext }, body: unknown): Promise<PortalResult<{ toast: string }>> => changePasswordFor(scopeOf(c), c.auth, body);
 
 export async function listDevices(c: CoachContexts, deviceKey: string | null): Promise<AdminResult<CoachDevice[]>> {
-  const mine = hashOf(deviceKey);
-  const rows = (await c.portal.devices(c.coach.accountId)).filter((d) => d.revokedAt === null && d.host === 'antrenor' && isConfirmedDevice(d)).sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt));
-  return { ok: true, data: rows.map((d) => ({ id: d.id, label: d.label, lastSeenAt: d.lastSeenAt, current: mine !== null && mine === d.deviceKeyHash, twoFactorUntil: d.twoFactorUntil })) };
+  return { ok: true, data: await listDevicesFor(scopeOf(c), deviceKey) };
 }
 
-const hashOf = (deviceKey: string | null): string | null => (deviceKey ? hashSecret(deviceKey) : null);
-
-export async function revokeDevice(c: CoachContexts, deviceId: string): Promise<AdminResult<{ revokedCurrent: boolean }>> {
-  const device = (await c.portal.devices(c.coach.accountId)).find((d) => d.id === deviceId && d.host === 'antrenor' && d.revokedAt === null);
-  if (!device) return refuse(404, PORTAL_ERRORS.notFound);
-  await c.portal.transaction(async () => {
-    await c.portal.lockAccount(c.coach.accountId);
-    await c.portal.updateDevice(device.id, { revokedAt: c.presence.now().toISOString() });
-    await portalSessions(c.portal, c.presence.now).revokeDevice(c.coach.userId, device.id);
-  });
-  return { ok: true, data: { revokedCurrent: device.sessionId === c.coach.sessionId } };
-}
+export const revokeDevice = (c: CoachContexts, deviceId: string): Promise<AdminResult<{ revokedCurrent: boolean }>> => revokeDeviceFor(scopeOf(c), deviceId);

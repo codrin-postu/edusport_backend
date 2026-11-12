@@ -3,7 +3,7 @@ import { FORBIDDEN_KEYS, forbiddenKeysIn } from '../../coach/views';
 import { forbiddenPathsIn } from '../../forbidden-keys';
 import type { CalendarItem, HistoryRow, PaymentRow, SportivHome, Ticket } from '../api-types';
 import { nullSportivCompetitions, skaterOf } from '../competitions';
-import { SPORTIV_ALLOWED_PATHS, SPORTIV_FORBIDDEN_KEYS, toCalendarItem, toHistoryRow, toHome, toPaymentRow, toTicket } from '../views';
+import { CALENDAR_NOTE_PATHS, HOME_NOTE_PATHS, SPORTIV_ALLOWED_PATHS, SPORTIV_FORBIDDEN_KEYS, toCalendarItem, toHistoryRow, toHome, toPaymentRow, toTicket } from '../views';
 import { A_ANA, A_ELENA, A_IOANA, sportivCtx } from './sportiv-seed';
 
 /** A store row carries every forbidden key, and some more. */
@@ -50,7 +50,7 @@ describe('sportiv views drop every forbidden key', () => {
       lastCompetition: { ...home.lastCompetition!, row: dirty((home.lastCompetition as { row: object }).row) } as SportivHome['lastCompetition'],
     }));
     expect(view).toEqual(home);
-    expect(forbiddenPathsIn(view, [...SPORTIV_FORBIDDEN_KEYS, 'price', 'email', 'birthDate'], SPORTIV_ALLOWED_PATHS.map((p) => `upcoming.${p.slice('items.'.length)}`))).toEqual([]);
+    expect(forbiddenPathsIn(view, [...SPORTIV_FORBIDDEN_KEYS, 'price', 'email', 'birthDate'], HOME_NOTE_PATHS)).toEqual([]);
     expect(JSON.stringify(view)).not.toContain('secret-');
   });
 
@@ -65,7 +65,13 @@ describe('sportiv views drop every forbidden key', () => {
     for (const view of [toHistoryRow(dirty(row)), toPaymentRow(dirty(pay)), toTicket(dirty(ticket))]) {
       expect(forbiddenPathsIn(view, SPORTIV_FORBIDDEN_KEYS)).toEqual([]);
     }
-    expect(forbiddenPathsIn({ items: [toCalendarItem(dirty(item))] }, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)).toEqual([]);
+    expect(forbiddenPathsIn({ items: [toCalendarItem(dirty(item))] }, SPORTIV_FORBIDDEN_KEYS, CALENDAR_NOTE_PATHS)).toEqual([]);
+  });
+
+  it('a calendar item keeps its note only when cancelled', () => {
+    expect(toCalendarItem({ ...item, cancelled: false, note: 'Sală închisă' }).note).toBeNull();
+    expect(toCalendarItem({ ...item, cancelled: true, note: 'Sală închisă' }).note).toBe('Sală închisă');
+    expect(SPORTIV_ALLOWED_PATHS).toEqual([...CALENDAR_NOTE_PATHS, ...HOME_NOTE_PATHS]);
   });
 });
 
@@ -82,5 +88,11 @@ describe('competition source and skaterOf', () => {
     expect(await skaterOf(c, 'a-unknown')).toBeNull();
     expect(await skaterOf(c, A_IOANA)).toEqual({ athleteId: A_IOANA, name: 'Ioana Marin', slug: 'ioana-marin-test' });
     expect(await skaterOf(c, A_ELENA)).toBeNull();
+  });
+
+  it('an anonymized athlete is no skater, even with a slug', async () => {
+    const c = sportivCtx('sportiv18@example.invalid');
+    c.clubFake.state.athletes.find((a) => a.id === A_IOANA)!.status = 'anonimizat';
+    expect(await skaterOf(c, A_IOANA)).toBeNull();
   });
 });

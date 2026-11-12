@@ -2,13 +2,19 @@ import type {
   AbonamentShort, CalendarItem, HistoryRow, Level, LastCompetition, MonthBar, PaymentRow, Promotion, SportivHome, Ticket,
 } from './api-types';
 
-/** Keys no sportiv answer may carry (spec 5.4). The calendar item `note` (a cancelled date's reason) is the one allowed `note`, by path. */
+/** Keys no sportiv answer may carry (spec 5.4). The calendar item `note` (a cancelled date's reason) is the one allowed `note`, by path (`SPORTIV_ALLOWED_PATHS`). */
 export const SPORTIV_FORBIDDEN_KEYS: readonly string[] = [
   'notes', 'recordedBy', 'note', 'history', 'priceListId', 'audience', 'charges', 'registrations', 'roster', 'visitor', 'skaterName', 'sessionId',
 ];
 
-/** Path of the one allowed `note`, for `forbiddenPathsIn(answer, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)` on a calendar answer. */
-export const SPORTIV_ALLOWED_PATHS: readonly string[] = ['items.*.note'];
+/** Where a calendar answer may carry a `note` (a cancelled date's reason). */
+export const CALENDAR_NOTE_PATHS: readonly string[] = ['items.*.note'];
+
+/** Where the home answer may carry a `note`: its `upcoming` items are calendar items. */
+export const HOME_NOTE_PATHS: readonly string[] = ['upcoming.*.note'];
+
+/** Every path that may carry a `note`, for `forbiddenPathsIn(answer, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)`; a note anywhere else is a leak. */
+export const SPORTIV_ALLOWED_PATHS: readonly string[] = [...CALENDAR_NOTE_PATHS, ...HOME_NOTE_PATHS];
 
 /** The home answer, field by field: anything else on the sources never leaves. */
 export function toHome(x: {
@@ -46,8 +52,9 @@ function toLastCompetition(l: LastCompetition): LastCompetition {
 
 export const toHistoryRow = (r: HistoryRow): HistoryRow => ({ date: r.date, startTime: r.startTime, kind: r.kind, groupName: r.groupName, coaches: [...r.coaches] });
 
+/** `note` is the reason of a cancelled date and nothing else: a live item never carries one. */
 export const toCalendarItem = (i: CalendarItem): CalendarItem => ({
-  date: i.date, startTime: i.startTime, endTime: i.endTime, kind: i.kind, title: i.title, location: i.location, coaches: [...i.coaches], cancelled: i.cancelled, note: i.note,
+  date: i.date, startTime: i.startTime, endTime: i.endTime, kind: i.kind, title: i.title, location: i.location, coaches: [...i.coaches], cancelled: i.cancelled, note: i.cancelled ? i.note : null,
 });
 
 /** `what` is the readable purpose; the payment note and who recorded it stay out. */
