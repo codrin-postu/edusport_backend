@@ -9,6 +9,7 @@ import { portalSessions } from '../../../club/portal/sessions';
 import { currentSeason } from '../../../club/groups/season-pick';
 import { readAthletes } from '../../../club/portal/sportiv/athletes';
 import { defaultCalendarMonth, readCalendar, ownItems } from '../../../club/portal/sportiv/calendar';
+import { readCompetition, readCompetitions } from '../../../club/portal/sportiv/competitions-read';
 import { sportivContext, type SportivContext } from '../../../club/portal/sportiv/context';
 import { holdsAthlete, NO_ACCESS, type HolderState } from '../../../club/portal/sportiv/holder';
 import { markPromotionSeen, readHome } from '../../../club/portal/sportiv/home';
@@ -135,6 +136,8 @@ export default {
   history: athleteRoute('history', async (c, id, ctx) => done(await readHistory(c, id, ctx.query.page))),
   calendar: athleteRoute('calendar', async (c, id, ctx) => readCalendar(c, id, ctx.query.month ?? (await defaultCalendarMonth(c)))),
   calendarIcs: athleteRoute('calendarIcs', (c, id) => readIcs(c, id)),
+  competitions: athleteRoute('competitions', (c, id, ctx) => readCompetitions(c, id, ctx.query)),
+  competition: athleteRoute('competition', (c, id, ctx) => readCompetition(c, id, ctx.params.resultId ?? '')),
   path: athleteRoute('path', async (c, id) => done(await readPath(c, id))),
   money: athleteRoute('money', async (c, id) => done(await readMoney(c, id))),
   payments: athleteRoute('payments', async (c, id, ctx) => done(await readPayments(c, id, readHistoryPage(ctx.query.page)))),

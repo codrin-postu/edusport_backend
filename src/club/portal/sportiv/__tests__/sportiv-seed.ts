@@ -8,7 +8,7 @@ import { fakePresenceContext, subscriptionRow, P_GROUPS } from '../../../presenc
 import { fakeAccessStore, type FakeAccess } from '../../access/fake-store';
 import { fakePortalStore, type FakePortal } from '../../__tests__/fake-portal-store';
 import type { CalendarEventRow } from '../../../../api/calendar-event/services/expand';
-import { nullSportivCompetitions } from '../competitions';
+import { nullSportivCompetitions, nullSportivCompetitionViews } from '../competitions';
 import type { SportivContext } from '../context';
 import type { HolderState } from '../holder';
 
@@ -94,6 +94,6 @@ export function sportivCtx(email: keyof typeof HOLDERS | string, today = '2026-1
       sessions: { ofEvent: async () => [], move: async () => undefined },
     },
     club: { store: clubFake.store, actor, today: { year, month, day }, log: fake.ctx.log },
-    portal: portalFake.store, access: accessFake.store, competitions: nullSportivCompetitions, documentsRoot: path.join(os.tmpdir(), `sportiv-docs-${randomBytes(6).toString('hex')}`), fake, accessFake, portalFake, clubFake,
+    portal: portalFake.store, access: accessFake.store, competitions: nullSportivCompetitions, competitionViews: nullSportivCompetitionViews, documentsRoot: path.join(os.tmpdir(), `sportiv-docs-${randomBytes(6).toString('hex')}`), fake, accessFake, portalFake, clubFake,
   };
 }
