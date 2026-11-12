@@ -4,7 +4,7 @@
  * (synthetic data only): parinte1@example.invalid (password Throwaway-Parent-1) holds "Ana Ionescu" (Scoala, Intermediari Bronze, abonament 4/8,
  * 26 group presences this season, one earlier main group, a confirmed registration with its stored Acord PDF) and "Matei Ionescu" (Scoala, Incepatori); sportiv18@example.invalid is the adult athlete
  * "Ioana Marin" (skate slug ioana-marin-test); antrenor1@example.invalid also holds "Radu Pop"; "Elena Stan" is status nou with an e-mail and no
- * access; parinte2@example.invalid (password Throwaway-Parent-2) holds "Sara Dinu" as a second family. admin7@example.invalid (Throwaway-Admin-7, Super Admin)
+ * access; parinte2@example.invalid (password Throwaway-Parent-2) holds "Sara Dinu" (skate slug sara-dinu-test, no results) as a second family. admin7@example.invalid (Throwaway-Admin-7, Super Admin)
  * is made for the admin calls of the click-through. Usage (repo root, throwaway env loaded):
  *   ES_THROWAWAY_DB=1 IDS_FILE=/tmp/x/ids.json node scripts/fixtures/phase7-shape.js
  */
@@ -130,6 +130,9 @@ async function refuse(app, message) {
   await athlete('Elena Stan', '2014-04-04', 'nou', 'elena.stan@example.invalid');
   const sara = await athlete('Sara Dinu', '2015-05-05', 'activ', PARENT_2.email);
   await member(sara, 'Intermediari Bronze', '2026-2027', true, '2026-10-01', null);
+  // Sara has a skate-results slug with no results yet (the 7-3 click-through: Acasa shows no competition card).
+  const saraProfile = await d('api::sportsperson.sportsperson').create({ data: { name: 'Sara Dinu', slug: 'sara-dinu', skateResultsSlug: 'sara-dinu-test' }, status: 'published' });
+  await d('api::athlete.athlete').update({ documentId: sara, data: { publicProfile: saraProfile.documentId } });
 
   const parent1 = await account(PARENT_1.email, PARENT_1.password);
   await grant(parent1, ana, PARENT_1.email);
