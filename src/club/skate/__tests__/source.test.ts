@@ -132,16 +132,17 @@ describe('skateSportivSource', () => {
     expect(await setup({ results: async () => ({ ok: false, reason: 'not_found' }) }).source.last(SKATER)).toBe('none');
   });
 
-  it('a 404 slug is logged once a day, slug only', async () => {
+  it('a 404 slug is logged once a day, athlete id only', async () => {
     const log = vi.fn();
     let day = NOW;
     const slug = 'once-a-day-slug';
     const { source } = setup({ results: async () => ({ ok: false, reason: 'not_found' }) }, [], log, () => day);
-    const skater = { ...SKATER, slug };
+    const skater = { ...SKATER, athleteId: 'a-once-a-day', slug };
     await source.count(skater);
     await source.list(skater, query);
     expect(log).toHaveBeenCalledTimes(1);
-    expect(log.mock.calls[0][0]).toContain(slug);
+    expect(log.mock.calls[0][0]).toContain('a-once-a-day');
+    expect(log.mock.calls[0][0]).not.toContain(slug);
     expect(log.mock.calls[0][0]).not.toContain('Ioana');
     day = new Date(NOW.getTime() + 24 * 3_600_000);
     await source.count(skater);

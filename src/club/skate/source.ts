@@ -11,7 +11,7 @@ const UNAVAILABLE = { available: false } as const;
 /** Acasă answers within this, counted from the start of the read. */
 const HOME_BUDGET_MS = 3500;
 
-/** Slugs skate-results answered 404 for, with the day it was last logged (in process): one log a day per slug. */
+/** Athlete ids whose slug skate-results answered 404 for, with the day it was last logged (in process): one log a day per athlete. */
 const loggedMissing = new Map<string, string>();
 
 function within<T>(ms: number, work: Promise<T>, fallback: T): Promise<T> {
@@ -29,12 +29,12 @@ const valueOf = <T>(c: Cached<T>): T | null => ('value' in c ? c.value : null);
 export function skateSportivSource(
   cache: Cache, client: SkateClient, now: () => Date = () => new Date(), log: (message: string) => void = () => undefined, homeBudgetMs: number = HOME_BUDGET_MS,
 ): SportivCompetitionSource & SportivCompetitionViews {
-  /** The slug only, at most once a day, through the logger that reaches GlitchTip. */
-  const noteMissing = (slug: string): void => {
+  /** The athlete id only (a slug can carry the child's name), at most once a day, through the logger that reaches GlitchTip. */
+  const noteMissing = (athleteId: string): void => {
     const day = now().toISOString().slice(0, 10);
-    if (loggedMissing.get(slug) === day) return;
-    loggedMissing.set(slug, day);
-    log(`[skate-results] slug not found: ${slug}`);
+    if (loggedMissing.get(athleteId) === day) return;
+    loggedMissing.set(athleteId, day);
+    log(`[skate-results] slug not found for athlete ${athleteId}`);
   };
   const currentSeason = (): string => seasonKey(now().toISOString().slice(0, 10), '') ?? '';
   const detailRead = <T>(key: string, run: () => Promise<Fetched<T>>): Promise<Cached<T>> => cache.read(key, DETAIL_MAX_AGE, run);
@@ -45,7 +45,7 @@ export function skateSportivSource(
     async last(skater) {
       const started = Date.now();
       const got = await resultsOf(cache, client, skater.slug);
-      if ('missing' in got) { noteMissing(skater.slug); return 'none'; }
+      if ('missing' in got) { noteMissing(skater.athleteId); return 'none'; }
       if (!('value' in got)) return null;
       const [latest] = listRows(got.value, { q: '', season: null, sort: 'recent', page: 1 }).rows;
       if (!latest) return 'none';
@@ -58,7 +58,7 @@ export function skateSportivSource(
 
     async count(skater) {
       const got = await resultsOf(cache, client, skater.slug);
-      if ('missing' in got) { noteMissing(skater.slug); return { count: 0, dates: [] }; }
+      if ('missing' in got) { noteMissing(skater.athleteId); return { count: 0, dates: [] }; }
       if (!('value' in got)) return null;
       // An event without a date is left out, so the count and the dates agree.
       const events = new Map<number, string>();
@@ -69,7 +69,7 @@ export function skateSportivSource(
     async list(skater, query: CompetitionQuery): Promise<SportivCompetitions> {
       const got = await resultsOf(cache, client, skater.slug);
       if ('missing' in got) {
-        noteMissing(skater.slug);
+        noteMissing(skater.athleteId);
         return { available: true, stale: false, updatedAt: now().toISOString(), total: 0, category: null, records: records([]), seasons: [], page: query.page, pageSize: 20, filtered: 0, rows: [] };
       }
       if (!('value' in got)) return UNAVAILABLE;
@@ -84,7 +84,7 @@ export function skateSportivSource(
 
     async detail(skater, resultId): Promise<SportivCompetition | null> {
       const got = await resultsOf(cache, client, skater.slug);
-      if ('missing' in got) { noteMissing(skater.slug); return null; }
+      if ('missing' in got) { noteMissing(skater.athleteId); return null; }
       if (!('value' in got)) return UNAVAILABLE;
       const own = got.value.find((r) => r.result_id !== null && String(r.result_id) === resultId);
       if (!own || own.result_id === null) return null;
