@@ -1,17 +1,20 @@
+import { addDays } from '../../groups/dates';
 import { currentSeason, ageOnIso } from '../../groups/season-pick';
 import type { GroupRecord, SectionRecord, SeasonRecord } from '../../groups/types';
 import { isAnonymized } from '../../personal-data/anonymize-plan';
 import { mainGroupOn, onDate } from '../../presence/attendance/roster';
+import { clockOf } from '../coach/context';
 import { abonamentShort, seasonPresenceDates } from '../presence-facts';
-import type { LastCompetition, SportivHome } from './api-types';
+import type { CalendarItem, LastCompetition, SportivHome } from './api-types';
+import { ownItems } from './calendar';
 import { skaterOf } from './competitions';
 import type { SportivContext } from './context';
 import { levelOf, promotionFor } from './level';
 import { countByMonth, monthBars } from './months';
-import { upcoming } from './upcoming';
 import { toHome } from './views';
 
 const UPCOMING = 3;
+const UPCOMING_WINDOW_DAYS = 90;
 const firstWord = (name: string): string => name.split(/\s+/).find(Boolean) ?? name;
 
 /** The athlete's main group today (a dated move in the future changes nothing yet) with its section. */
@@ -30,6 +33,13 @@ async function lastCompetitionOf(c: SportivContext, athleteId: string): Promise<
   if (!skater) return null;
   const last = await c.competitions.last(skater).catch(() => null);
   return last ? { available: true, ...last } : { available: false };
+}
+
+/** The next own items from now (cancelled ones skipped): the calendar reading over the next 90 days. */
+async function upcoming(c: SportivContext, athleteId: string): Promise<CalendarItem[]> {
+  const now = clockOf(c.presence.now());
+  const items = await ownItems(c, athleteId, c.today, addDays(c.today, UPCOMING_WINDOW_DAYS));
+  return items.filter((i) => !i.cancelled && (i.date > c.today || (i.startTime ?? '') >= now)).slice(0, UPCOMING);
 }
 
 /** Acasă (spec 6.3): level, presences of the season, the next own items, the abonament, the last competition and the promotion moment. Callers check that the holder holds the athlete. */
@@ -61,7 +71,7 @@ export async function readHome(c: SportivContext, athleteId: string): Promise<Sp
     category: lastCompetition?.available ? lastCompetition.row.category : null,
     seasonLabel: season?.label ?? null,
     presences: { total: dates.length, months: season ? monthBars(season.startMonth.slice(0, 10), c.today, countByMonth(dates)) : [] },
-    upcoming: inactive ? [] : await upcoming(c, athleteId, UPCOMING),
+    upcoming: inactive ? [] : await upcoming(c, athleteId),
     abonament: abonament?.abonament ?? null, lastCompetition, promotion,
   });
 }
