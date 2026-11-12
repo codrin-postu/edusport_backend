@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AdminPage, BottomSheet, Button, EmptyState, Loading, Notice, PageHeader, Select, Window, adminToast, useIsPhone, type SelectOption } from '../../../ui';
+import { AdminPage, Button, EmptyState, Loading, Notice, PageHeader, Window, adminToast, useIsPhone } from '../../../ui';
 import { ConfirmDialog } from '../../../ConfirmDialog';
-import { effectiveDefinition, NO_QUICK, quickFiltersOpen, type Quick } from '../../../../club/tables/builder-state';
+import { readAspect, writeAspect, type Aspect } from '../../../../club/tables/aspect';
 import type { CatalogAnswer } from '../../../../club/tables/catalog-api';
 import { TABLES_COPY, TABLES_COUNT_WORDS } from '../../../../club/tables/copy';
+import { nextSort } from '../../../../club/tables/header-sort';
 import { railGroups, type RailMenuKey } from '../../../../club/tables/rail';
 import { readTabeleQuery, tablesTo } from '../../../../club/tables/routes';
 import type { SavedViewRow, TableDefinition, TableResult } from '../../../../club/tables/types';
@@ -17,12 +18,12 @@ import { blobErrorText } from '../../inscrieri/downloadPdf';
 import { useLatest } from '../../bani/latest';
 import { SPORTIVI_CSS } from '../styles';
 import { useTablesApi, type Format, type TablesApi } from './api';
-import { Builder } from './Builder';
+import { ControlRow } from './ControlRow';
+import { ExportMenu } from './ExportMenu';
 import { NewViewModal } from './NewViewModal';
 import { ResultTable } from './ResultTable';
 import { SavedRail } from './SavedRail';
 import { TABELE_CSS } from './styles';
-import { ViewBar } from './ViewBar';
 
 const UNDO_MS = 8000;
 const QUERY_DELAY_MS = 300;
@@ -65,31 +66,6 @@ function useResult(api: TablesApi, definition: TableDefinition | null) {
   return state;
 }
 
-function QuickFilters({ catalog, definition, quick, onChange }: { catalog: CatalogAnswer; definition: TableDefinition; quick: Quick; onChange: (q: Quick) => void }) {
-  const columns = catalog.subjects[definition.subject].columns;
-  const stare = columns.find((c) => c.key === 'stare');
-  const hasGroup = columns.some((c) => c.key === 'grupa');
-  if (!stare && !hasGroup) return null;
-  const all: SelectOption = { value: '', label: TABLES_COPY.all };
-  const open = quickFiltersOpen(definition);
-  return (
-    <div className="tbl-quick">
-      {stare && (
-        <div className="tbl-quick-item">
-          <span className="tbl-label">{stare.label}</span>
-          <Select value={quick.stare ?? ''} aria-label={stare.label} disabled={!open} options={[all, ...(stare.values ?? []).map((v) => ({ value: v, label: v }))]} onChange={(v) => onChange({ ...quick, stare: v || null })} />
-        </div>
-      )}
-      {hasGroup && (
-        <div className="tbl-quick-item">
-          <span className="tbl-label">{TABLES_COPY.group}</span>
-          <Select value={quick.grupa ?? ''} aria-label={TABLES_COPY.group} disabled={!open} options={[all, ...catalog.groups.filter((g) => g.active).map((g) => ({ value: g.name, label: g.name }))]} onChange={(v) => onChange({ ...quick, grupa: v || null })} />
-        </div>
-      )}
-    </div>
-  );
-}
-
 type Dialog = { kind: 'new' } | { kind: 'duplicate' | 'rename' | 'remove'; view: SavedViewRow } | null;
 
 type LoadedProps = { api: TablesApi; catalog: CatalogAnswer; views: SavedViewRow[]; reloadViews: () => Promise<void> };
@@ -106,19 +82,15 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
   const savedKey = JSON.stringify(saved);
 
   const [draft, setDraft] = React.useState<TableDefinition | null>(saved);
-  const [quick, setQuick] = React.useState<Quick>(NO_QUICK);
   const [collapsed, setCollapsed] = React.useState<ReadonlySet<string>>(new Set());
-  React.useEffect(() => { setDraft(saved); setQuick(NO_QUICK); setCollapsed(new Set()); }, [current.id, savedKey]);
+  React.useEffect(() => { setDraft(saved); setCollapsed(new Set()); }, [current.id, savedKey]);
 
-  const columns = draft ? catalog.subjects[draft.subject].columns : [];
-  // At 10 builder filters there is no room for a quick one: it is closed, and one already chosen is dropped.
-  React.useEffect(() => { if (draft && !quickFiltersOpen(draft)) setQuick(NO_QUICK); }, [draft]);
-  const effective = draft ? effectiveDefinition(draft, quick, columns) : null;
-  const { result, error, loading } = useResult(api, effective);
+  const { result, error, loading } = useResult(api, draft);
+  const [aspect, setAspect] = React.useState<Aspect>(readAspect);
+  const chooseAspect = (a: Aspect) => { setAspect(a); writeAspect(a); };
   const dirty = saved !== null && draft !== null && isDirty(saved, draft);
 
   const [dialog, setDialog] = React.useState<Dialog>(null);
-  const [sheet, setSheet] = React.useState(false);
   const [downloading, setDownloading] = React.useState<Format | null>(null);
   const [removing, setRemoving] = React.useState(false);
   const [removeError, setRemoveError] = React.useState<string | null>(null);
@@ -126,10 +98,10 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
   const go = (id: string | null) => navigate(tablesTo(id), { replace: true });
 
   const download = async (format: Format) => {
-    if (!effective) return;
+    if (!draft) return;
     setDownloading(format);
     try {
-      await api.download(format, effective, current.name, `tabel-${effective.subject}.${format}`);
+      await api.download(format, draft, current.name, `tabel-${draft.subject}.${format}`);
     } catch (err) {
       adminToast.error(await blobErrorText(err, TABLES_COPY.errors.download));
     } finally {
@@ -211,34 +183,31 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
     }
   };
 
-  const onSort = (key: string) => {
-    if (!draft) return;
-    const s = draft.sort;
-    const next = s?.column !== key ? { column: key, dir: 'asc' as const } : s.dir === 'asc' ? { column: key, dir: 'desc' as const } : null;
-    setDraft({ ...draft, sort: next });
-  };
+  const onSort = (key: string) => draft && setDraft({ ...draft, sort: nextSort(draft.sort, key) });
 
   const notices = [...new Set([...(current.notices ?? []), ...(result?.notices ?? [])])];
-  const builder = draft ? <Builder definition={draft} catalog={catalog} onChange={setDraft} /> : null;
   const [one, many] = draft ? TABLES_COUNT_WORDS[draft.subject] : TABLES_COUNT_WORDS.sportivi;
 
   return (
     <AdminPage className="tbl-page">
       <style>{SPORTIVI_CSS}{TABELE_CSS}</style>
       <Window>
-        <PageHeader title={TABLES_COPY.pageTitle} actions={<Button disabled={!saveEnabled} onClick={onSaveClick}>{TABLES_COPY.save}</Button>} />
+        <PageHeader
+          title={TABLES_COPY.pageTitle}
+          actions={(
+            <div className="tbl-acts">
+              <ExportMenu canDownload={!!result && !error && !current.broken} downloading={downloading} rows={result?.count ?? 0} columns={result?.columns.length ?? 0} onDownload={(f) => void download(f)} />
+              <Button disabled={!saveEnabled} onClick={onSaveClick}>{TABLES_COPY.save}</Button>
+            </div>
+          )}
+        />
       </Window>
       <div className="tbl-layout">
         <SavedRail groups={groups} currentId={current.id} phone={phone} onPick={go} onMenu={onMenu} />
         <div className="tbl-main">
       <Window>
-        <ViewBar canDownload={!!result && !error && !current.broken} downloading={downloading} onDownload={(f) => void download(f)} />
         {current.broken && <div className="tbl-notices"><Notice tone="warning">{TABLES_COPY.brokenView}</Notice></div>}
-        {draft && !phone && <div className="tbl-builder">{builder}</div>}
-        {draft && phone && (
-          <div className="tbl-bar"><Button variant="secondary" onClick={() => setSheet(true)}>{TABLES_COPY.editMobile}</Button></div>
-        )}
-        {draft && <QuickFilters catalog={catalog} definition={draft} quick={quick} onChange={setQuick} />}
+        {draft && <ControlRow definition={draft} catalog={catalog} onChange={setDraft} aspect={aspect} onAspect={chooseAspect} />}
         {notices.length > 0 && (
           <div className="tbl-notices">{notices.map((n) => <Notice key={n} tone="warning">{n}</Notice>)}</div>
         )}
@@ -248,7 +217,7 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
         {result && !error && noPaymentsThisMonth(current.id, result) && <EmptyState>{TABLES_COPY.noPaymentsMonth}</EmptyState>}
         {result && !error && !noPaymentsThisMonth(current.id, result) && (
           <ResultTable
-            result={result} sort={draft?.sort ?? null} onSort={onSort} collapsed={collapsed}
+            result={result} sort={draft?.sort ?? null} onSort={onSort} collapsed={collapsed} aspect={aspect}
             onToggle={(k) => setCollapsed((c) => { const n = new Set(c); if (n.has(k)) n.delete(k); else n.add(k); return n; })}
           />
         )}
@@ -256,7 +225,6 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
       </Window>
         </div>
       </div>
-      <BottomSheet open={phone && sheet} onClose={() => setSheet(false)} title={TABLES_COPY.editMobile} fullHeight>{builder}</BottomSheet>
       <NewViewModal
         open={dialog?.kind === 'new' || dialog?.kind === 'duplicate' || dialog?.kind === 'rename'}
         title={dialog?.kind === 'rename' ? TABLES_COPY.rename : undefined}
@@ -272,7 +240,7 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
   );
 }
 
-/** The Tabele page (spec 6): header, the saved-tables rail, the builder, the table and the downloads. */
+/** The Tabele page (spec 6): header, the saved-tables rail, the control row, the table and the export. */
 export function TabelePage() {
   const api = useTablesApi();
   const { catalog, views, failed, reloadViews } = useTablesData(api);

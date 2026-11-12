@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { CATALOG } from '../catalog';
 import {
-  canAddFilter, cellText, OPS_BY_TYPE, checklistOrder, DEFAULT_COLUMNS, effectiveDefinition, filterText, linesOf, moveColumn, newFilter, NO_QUICK, parseFilterText, quickFiltersOpen, refilter, toggleColumn,
-  windowOf, withSubject,
+  canAddFilter, cellText, OPS_BY_TYPE, checklistOrder, DEFAULT_COLUMNS, effectiveDefinition, filterText, linesOf, moveColumn, newFilter, NO_QUICK, parseFilterText, quickFiltersOpen, refilter, toggleColumn, filterSummary, rowNumbers,
+  windowOf, setSubject,
 } from '../builder-state';
 import { checkFilter, readDefinition } from '../definition';
 import type { TableDefinition, TableResult } from '../types';
@@ -14,7 +14,7 @@ const col = (k: string) => plati.find((c) => c.key === k)!;
 describe('subject and columns', () => {
   it('a new subject starts from valid columns of its own and clears filters, group and sort', () => {
     for (const s of ['sportivi', 'plati', 'abonamente', 'prezenta'] as const) {
-      const next = withSubject({ ...def, filters: [{ column: 'suma', op: 'gt', value: 1 }], groupBy: 'grupa' }, s);
+      const next = setSubject({ ...def, filters: [{ column: 'suma', op: 'gt', value: 1 }], groupBy: 'grupa' }, s);
       expect(readDefinition({ definition: next }).ok, s).toBe(true);
       expect(next.columns).toEqual(DEFAULT_COLUMNS[s]);
       expect([next.filters, next.groupBy, next.sort, next.scope]).toEqual([[], null, null, def.scope]);
@@ -135,5 +135,27 @@ describe('lines', () => {
     expect(windowOf(lines, 3, 200).items).toHaveLength(50);
     expect(windowOf(lines, 9, 200).page).toBe(3);
     expect(windowOf([], 0, 200)).toEqual({ items: [], pageCount: 1, page: 1 });
+  });
+});
+
+describe('control row helpers', () => {
+  it('a set filter reads as "<coloană>: <valoare>"', () => {
+    expect(filterSummary(col('sportiv'), { column: 'sportiv', op: 'eq', value: 'Ana' })).toBe('Sportiv: Ana');
+    expect(filterSummary(col('sportiv'), { column: 'sportiv', op: 'in', value: ['Ana', 'Dan'] })).toBe('Sportiv: Ana, Dan');
+    expect(filterSummary(col('suma'), { column: 'suma', op: 'gt', value: 100 })).toBe('Sumă > 100');
+    expect(filterSummary(col('nota'), { column: 'nota', op: 'empty' })).toBe('Notă: este gol');
+  });
+  it('numbers only the rows, in shown order', () => {
+    const r = (i: number) => ({ athleteId: null, groupKeys: {}, cells: { sportiv: `A${i}` } });
+    const result: TableResult = {
+      subject: 'plati', groupBy: 'grupa', columns: [col('sportiv')], count: 3, notices: [], total: {},
+      rows: [r(1), r(2), r(3)],
+      groups: [{ key: 'a', label: 'A', count: 2, subtotal: {}, rows: [r(1), r(2)] }, { key: 'b', label: 'B', count: 1, subtotal: {}, rows: [r(3)] }],
+    };
+    const lines = linesOf(result, new Set(), (g) => g);
+    const nums = rowNumbers(lines);
+    const rows = lines.filter((l) => l.kind === 'row');
+    expect(rows.map((l) => nums.get(l.key))).toEqual([1, 2, 3]);
+    expect(nums.size).toBe(3);
   });
 });

@@ -2,6 +2,7 @@ import { MAX_COLUMNS, MAX_FILTERS } from './definition';
 import { groupHeader } from './view-state';
 import type { CatalogColumn, CellValue, FilterOp, FilterValue, Subject, TableDefinition, TableFilter, TableGroup, TableResult, TableRow } from './types';
 import { ron } from '../presence/money';
+import { TABLES_COPY } from './copy';
 
 /** Pure editing helpers of the Tabele builder: the screen only wires them to controls. */
 
@@ -18,7 +19,7 @@ export const DEFAULT_COLUMNS: Record<Subject, string[]> = {
 };
 
 /** A new subject keeps the scope and starts from its own columns, with no filter, group or sort. */
-export const withSubject = (d: TableDefinition, subject: Subject): TableDefinition => ({
+export const setSubject = (d: TableDefinition, subject: Subject): TableDefinition => ({
   subject, scope: d.scope, columns: DEFAULT_COLUMNS[subject], filters: [], groupBy: null, sort: null,
 });
 
@@ -91,6 +92,13 @@ export function filterText(c: CatalogColumn, value: FilterValue | undefined): st
   return Array.isArray(value) ? value.map(one).join(', ') : one(value);
 }
 
+/** The label of a set filter in the control row: "Grupă: Avansați", "Sumă > 100", "Telefon: este gol". */
+export function filterSummary(c: CatalogColumn, f: TableFilter): string {
+  if (f.op === 'empty' || f.op === 'notEmpty') return `${c.label}: ${TABLES_COPY.ops[f.op]}`;
+  const value = filterText(c, f.value);
+  return f.op === 'gt' || f.op === 'lt' ? `${c.label} ${TABLES_COPY.ops[f.op]} ${value}` : `${c.label}: ${value}`;
+}
+
 export type Quick = { stare: string | null; grupa: string | null };
 export const NO_QUICK: Quick = { stare: null, grupa: null };
 
@@ -134,6 +142,13 @@ export function linesOf(result: TableResult, collapsed: ReadonlySet<string>, sub
   });
   if (result.groups === null) result.rows.forEach((row, i) => out.push({ kind: 'row', key: `r${i}`, row }));
   if (result.groups !== null || Object.keys(result.total).length > 0) out.push({ kind: 'total', key: 'total', cells: result.total });
+  return out;
+}
+
+/** "#" of the spreadsheet aspect: rows are counted in the order shown, 1 up; group and subtotal lines carry no number. */
+export function rowNumbers(lines: Line[]): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const l of lines) if (l.kind === 'row') out.set(l.key, out.size + 1);
   return out;
 }
 

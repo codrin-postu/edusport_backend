@@ -31,10 +31,15 @@ export function SavedRail({ groups, currentId, phone, onPick, onMenu }: Props) {
   if (phone) {
     const options: SelectOption[] = groups.flatMap((g) => g.views.map((v) => ({ value: v.id, label: v.name, group: g.title, hint: g.key === 'colegi' ? v.authorName : undefined })));
     const inList = options.some((o) => o.value === currentId);
+    const view = groups.flatMap((g) => g.views).find((v) => v.id === currentId);
+    const keys = view ? railMenuKeys(view) : [];
     return (
       <div className="tbl-rail-phone">
         <span className="tbl-label" id="tbl-rail-label">{TABLES_COPY.rail.pick}</span>
-        <Select value={inList ? currentId : ''} options={options} aria-labelledby="tbl-rail-label" onChange={onPick} />
+        <div className="tbl-rail-phone-row">
+          <Select value={inList ? currentId : ''} options={options} aria-labelledby="tbl-rail-label" onChange={onPick} />
+          {view && keys.length > 0 && <RowMenu key={view.id} view={view} keys={keys} onMenu={onMenu} />}
+        </div>
       </div>
     );
   }

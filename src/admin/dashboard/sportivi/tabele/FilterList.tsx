@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { Button, Input, Select, type SelectOption } from '../../../ui';
 import { IconClose } from '../../../ui/icons';
-import { canAddFilter, filterText, newFilter, OPS_BY_TYPE, parseFilterText, refilter } from '../../../../club/tables/builder-state';
+import { MenuButton } from '../../SubmissionTable';
+import { canAddFilter, filterSummary, filterText, newFilter, OPS_BY_TYPE, parseFilterText, refilter } from '../../../../club/tables/builder-state';
 import { TABLES_COPY } from '../../../../club/tables/copy';
 import type { CatalogColumn, FilterOp, TableDefinition, TableFilter } from '../../../../club/tables/types';
 
@@ -52,22 +53,37 @@ function FilterRow({ filter, catalog, names, onChange, onRemove }: { filter: Tab
   );
 }
 
-/** "Filtre" with "+ filtru" (at most 10). */
-export function FilterList({ definition, catalog, names, onChange }: Props) {
+/** Filter column's value as it reads on the button. */
+function chipLabel(f: TableFilter, catalog: CatalogColumn[]): string {
+  return filterSummary(catalog.find((c) => c.key === f.column) ?? catalog[0], f);
+}
+
+/** "+ Filtru" and the set filters: each one a button "<coloană>: <valoare>" with an "x", its lines in a popover (at most 10). */
+export function FilterBar({ definition, catalog, names, onChange }: Props) {
+  const [openAt, setOpenAt] = React.useState<number | null>(null);
   const set = (i: number, f: TableFilter) => onChange({ ...definition, filters: definition.filters.map((x, j) => (j === i ? f : x)) });
+  const remove = (i: number) => {
+    setOpenAt(null);
+    onChange({ ...definition, filters: definition.filters.filter((_, j) => j !== i) });
+  };
+  const add = () => {
+    setOpenAt(definition.filters.length);
+    onChange({ ...definition, filters: [...definition.filters, newFilter(catalog)] });
+  };
   return (
-    <div className="tbl-filters">
+    <>
       {definition.filters.map((f, i) => (
-        <FilterRow
-          key={i} filter={f} catalog={catalog} names={names} onChange={(next) => set(i, next)}
-          onRemove={() => onChange({ ...definition, filters: definition.filters.filter((_, j) => j !== i) })}
-        />
+        <span key={i} className="tbl-chip">
+          <MenuButton
+            label={chipLabel(f, catalog)} chevron={false} open={openAt === i} popClassName="tbl-pop"
+            onToggle={() => setOpenAt((o) => (o === i ? null : i))} onClose={() => setOpenAt((o) => (o === i ? null : o))}
+          >
+            <FilterRow filter={f} catalog={catalog} names={names} onChange={(next) => set(i, next)} onRemove={() => remove(i)} />
+          </MenuButton>
+          <Button variant="secondary" size="sm" iconOnly icon={<IconClose size={12} />} aria-label={`${TABLES_COPY.filterRemove}: ${chipLabel(f, catalog)}`} onClick={() => remove(i)} />
+        </span>
       ))}
-      <div>
-        <Button variant="secondary" size="sm" disabled={!canAddFilter(definition)} onClick={() => onChange({ ...definition, filters: [...definition.filters, newFilter(catalog)] })}>
-          {TABLES_COPY.addFilter}
-        </Button>
-      </div>
-    </div>
+      <Button variant="secondary" size="sm" disabled={!canAddFilter(definition)} onClick={add}>{TABLES_COPY.filter}</Button>
+    </>
   );
 }
