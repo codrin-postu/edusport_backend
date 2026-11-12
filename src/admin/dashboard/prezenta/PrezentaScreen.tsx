@@ -43,7 +43,7 @@ function Notices({ page }: { page: NoticeData | null }) {
 /** The notices come with the read of the group list and of the grid; lessons and coaches get them from a read of one day. */
 function useNotices(query: PrezentaQuery, page: NoticeData | null, setPage: (p: NoticeData) => void): void {
   const api = usePrezentaApi();
-  const carried = query.show === 'grupe';
+  const carried = query.tab === 'toate' && query.show === 'grupe';
   const { from } = periodOf(query.view, query.date);
   React.useEffect(() => {
     if (carried || page !== null) return undefined;
@@ -83,7 +83,7 @@ export function PrezentaScreen({ query, onQuery }: Props) {
   const filtering = query.tab === 'toate' && query.show === 'grupe';
   const groups = useFilterGroups(filtering);
   const sections = prezentaFilterSections(query, groups ?? []);
-  const filterRows: FilterRows = (rows) => filterPeriodRows(rows, { sectionId: query.sectiune, groupIds: query.grupa }, groups ?? []);
+  const filterRows: FilterRows = (rows) => (groups === null ? rows : filterPeriodRows(rows, { sectionId: query.sectiune, groupIds: query.grupa }, groups));
   const change = (key: string, selected: string[]) => {
     if (key === 'sectiune') onQuery({ sectiune: selected[0] ?? null, grupa: [] });
     else onQuery({ grupa: selected });

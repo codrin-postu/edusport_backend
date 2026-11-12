@@ -21,7 +21,6 @@ export const MATRIX_COPY = {
   empty: 'Nicio ședință în luna asta.', grup: 'în grup', uscat: 'uscat', open: 'Deschide ședința',
 } as const;
 export const SETARI_COPY = { attendanceStart: 'Prezență și plăți din', attendanceStartHint: 'Ședințele dinainte nu apar ca nefăcute.' } as const;
-export const SHELL_COPY = { abonamente: 'Abonamente', abonamenteSub: 'Școala de patinaj', plati: 'Plăți', deIncasat: 'De încasat' } as const;
 
 export const PERIOD_COPY = {
   views: { zi: 'Zi', saptamana: 'Săptămână', luna: 'Lună' },
@@ -32,7 +31,6 @@ export const PERIOD_COPY = {
   tabs: { deCompletat: 'De completat', toate: 'Toate ședințele', tabel: 'Tabel pe grupă' },
   noUndone: 'Nicio ședință de completat.',
   filters: { section: 'Secțiune', group: 'Grupă', show: (n: number): string => `Arată ${countWords(n, 'grupă', 'grupe')}` },
-  undoneTitle: (n: number): string => `Necompletate din zilele trecute (${n})`,
   outside: 'În afara programului',
   todaySuffix: ' (azi)',
   emptyGroups: 'Nicio ședință în perioada asta.',

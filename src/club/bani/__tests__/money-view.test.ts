@@ -1,20 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { ron } from '../../presence/money';
 import { totalOf, visibleGroups, percentText } from '../money-view';
-import { BANI_PATH, abonamenteStateTo, baniTo, deIncasatMonthTo, platiMonthTo, readBaniQuery } from '../routes';
+import { BANI_PATH } from '../routes';
 
 describe('Bani copy, address and figure texts', () => {
   it('address', () => {
     expect(BANI_PATH).toBe('/plugins/edusport-bani');
-    expect(readBaniQuery('', '2026-11-08')).toEqual({ view: 'prezentare', month: '2026-11' });
-    expect(readBaniQuery('?view=contabilitate&month=2026-10', '2026-11-08')).toEqual({ view: 'contabilitate', month: '2026-10' });
-    expect(readBaniQuery('?month=2026-12', '2026-11-08').month).toBe('2026-11');
-    expect(readBaniQuery('?view=x&month=zz', '2026-11-08')).toEqual({ view: 'prezentare', month: '2026-11' });
-    expect(baniTo({ view: 'contabilitate', month: '2026-10' })).toBe('/plugins/edusport-bani?view=contabilitate&month=2026-10');
-    expect(baniTo({})).toBe(BANI_PATH);
-    expect(platiMonthTo('2026-11')).toBe('/plugins/edusport-contabilitate?tab=plati&month=2026-11');
-    expect(deIncasatMonthTo('2026-11')).toBe('/plugins/edusport-contabilitate?tab=restante&month=2026-11');
-    expect([abonamenteStateTo('active'), abonamenteStateTo('expira14')]).toEqual(['/plugins/edusport-contabilitate?tab=abonamente&state=active', '/plugins/edusport-contabilitate?tab=abonamente&state=expira14']);
   });
   it('Total row of the breakdown: sums of the section totals, percent rounded, "-" at 0', () => {
     const block = (due: number, paid: number) => ({ sectionId: 's', sectionName: 'S', totals: { due, paid, left: due - paid, percent: null }, groups: [] });

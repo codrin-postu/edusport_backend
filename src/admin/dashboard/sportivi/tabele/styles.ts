@@ -75,7 +75,7 @@ export const TABELE_CSS = `
 .ui-root .tbl-wrap-foaie{max-height:70vh;overflow:auto}
 .ui-root .tbl-foaie th,.ui-root .tbl-foaie td{border:1px solid var(--theme-border)}
 .ui-root .tbl-foaie thead th{position:sticky;top:0;z-index:3}
-.ui-root .tbl-foaie tbody tr:nth-child(even) td{background:var(--theme-surface-subtle)}
+.ui-root .tbl-foaie tbody tr:nth-child(even):not(.tbl-group):not(.tbl-sub):not(.tbl-total) td{background:var(--theme-surface-subtle)}
 .ui-root .tbl-foaie th.tbl-n,.ui-root .tbl-foaie td.tbl-n,.ui-root .tbl-foaie th.tbl-n+th,.ui-root .tbl-foaie td.tbl-n+td{position:sticky;z-index:2}
 .ui-root .tbl-foaie th.tbl-n,.ui-root .tbl-foaie td.tbl-n{left:0}
 .ui-root .tbl-foaie th.tbl-n+th,.ui-root .tbl-foaie td.tbl-n+td{left:44px}

@@ -47,8 +47,6 @@ export function checklistOrder(d: TableDefinition, catalog: CatalogColumn[]): { 
 
 /** A filter that is valid as it stands: "completat" on the first column; the admin then picks column, op and value. */
 export const newFilter = (catalog: CatalogColumn[]): TableFilter => ({ column: catalog[0].key, op: 'notEmpty' });
-/** The quick filters "Stare" and "Grupă" are extra filters: they close with the builder's own at the cap. */
-export const quickFiltersOpen = (d: TableDefinition): boolean => d.filters.length < MAX_FILTERS;
 export const canAddFilter = (d: TableDefinition): boolean => d.filters.length < MAX_FILTERS;
 
 /** The value a filter starts with when its op needs one. */
@@ -97,21 +95,6 @@ export function filterSummary(c: CatalogColumn, f: TableFilter): string {
   if (f.op === 'empty' || f.op === 'notEmpty') return `${c.label}: ${TABLES_COPY.ops[f.op]}`;
   const value = filterText(c, f.value);
   return f.op === 'gt' || f.op === 'lt' ? `${c.label} ${TABLES_COPY.ops[f.op]} ${value}` : `${c.label}: ${value}`;
-}
-
-export type Quick = { stare: string | null; grupa: string | null };
-export const NO_QUICK: Quick = { stare: null, grupa: null };
-
-/**
- * What the screen shows and the download carries: the definition plus the quick filters "Stare" and "Grupă", which are extra equality
- * filters that are never saved with the view. A quick filter on a column the subject lacks, or past the filter cap, is left out.
- */
-export function effectiveDefinition(d: TableDefinition, quick: Quick, catalog: CatalogColumn[]): TableDefinition {
-  const has = (key: string): boolean => catalog.some((c) => c.key === key);
-  const extra: TableFilter[] = [];
-  if (quick.stare && has('stare')) extra.push({ column: 'stare', op: 'eq', value: quick.stare });
-  if (quick.grupa && has('grupa')) extra.push({ column: 'grupa', op: 'eq', value: quick.grupa });
-  return extra.length === 0 ? d : { ...d, filters: [...d.filters, ...extra].slice(0, MAX_FILTERS) };
 }
 
 /** "10.11.2026" for a date, "1.200 RON" for money, plain for the rest; empty for no value. */

@@ -134,7 +134,7 @@ export function GroupMatrixTab({ groupId, month, today, onChange }: Props) {
         <span className="pz-bar-sp" />
         <Button variant="secondary" loading={busy} disabled={!chosen} onClick={() => void download()}>{MATRIX_COPY.download}</Button>
       </div>
-      {data && data.columns.length > 0 && <p className="pz-mx-sub">{[data.group.name, data.group.program].filter((p) => p !== '').join(', ')}</p>}
+      {data && <p className="pz-mx-sub">{[data.group.name, data.group.program].filter((p) => p !== '').join(', ')}</p>}
       {body}
       {opened && <SessionPanel key={JSON.stringify(opened)} target={opened} onClose={() => setOpened(null)} />}
     </>

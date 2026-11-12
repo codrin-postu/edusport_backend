@@ -19,7 +19,7 @@ export function ExportMenu({ canDownload, downloading, rows, columns, onDownload
       label={TABLES_COPY.export.button} open={open} disabled={!canDownload || downloading !== null} popClassName="spv-menu" role="menu" placement="bottom-end"
       onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)}
     >
-      <p className="tbl-export-note">{TABLES_COPY.export.exact(rows, columns)}</p>
+      <p className="tbl-export-note" role="none">{TABLES_COPY.export.exact(rows, columns)}</p>
       <button type="button" role="menuitem" onClick={() => pick('xlsx')}>{TABLES_COPY.export.xlsx}</button>
       <button type="button" role="menuitem" onClick={() => pick('csv')}>{TABLES_COPY.export.csv}</button>
     </MenuButton>
