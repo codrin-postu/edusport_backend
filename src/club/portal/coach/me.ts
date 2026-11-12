@@ -32,7 +32,7 @@ const HOST = 'antrenor';
 
 /** The account, session and clock of the coach, as the shared settings code takes them. */
 const scopeOf = (c: CoachContexts): MeScope => ({
-  portal: c.portal, accountId: c.coach.accountId, userId: c.coach.userId, sessionId: c.coach.sessionId, host: HOST, now: c.presence.now, actor: coachActor(c.coach.name),
+  portal: c.portal, accountId: c.coach.accountId, userId: c.coach.userId, sessionId: c.coach.sessionId, host: HOST, now: () => c.presence.now(), actor: coachActor(c.coach.name),
 });
 
 export async function saveMe(c: CoachContexts, body: unknown): Promise<AdminResult<{ toast: string }>> {
