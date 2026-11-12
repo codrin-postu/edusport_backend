@@ -8,7 +8,7 @@ import { PORTAL_ERRORS } from '../../../club/portal/copy';
 import { portalSessions } from '../../../club/portal/sessions';
 import { currentSeason } from '../../../club/groups/season-pick';
 import { readAthletes } from '../../../club/portal/sportiv/athletes';
-import { readCalendar, ownItems } from '../../../club/portal/sportiv/calendar';
+import { defaultCalendarMonth, readCalendar, ownItems } from '../../../club/portal/sportiv/calendar';
 import { sportivContext, type SportivContext } from '../../../club/portal/sportiv/context';
 import { holdsAthlete, NO_ACCESS, type HolderState } from '../../../club/portal/sportiv/holder';
 import { markPromotionSeen, readHome } from '../../../club/portal/sportiv/home';
@@ -133,7 +133,7 @@ export default {
   promotionSeen: athleteRoute('promotionSeen', async (c, id) => done(await markPromotionSeen(c, id))),
   profile: athleteRoute('profile', async (c, id) => done(await readProfile(c, id))),
   history: athleteRoute('history', async (c, id, ctx) => done(await readHistory(c, id, ctx.query.page))),
-  calendar: athleteRoute('calendar', (c, id, ctx) => readCalendar(c, id, ctx.query.month ?? c.today.slice(0, 7))),
+  calendar: athleteRoute('calendar', async (c, id, ctx) => readCalendar(c, id, ctx.query.month ?? (await defaultCalendarMonth(c)))),
   calendarIcs: athleteRoute('calendarIcs', (c, id) => readIcs(c, id)),
   path: athleteRoute('path', async (c, id) => done(await readPath(c, id))),
   money: athleteRoute('money', async (c, id) => done(await readMoney(c, id))),

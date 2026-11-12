@@ -54,7 +54,7 @@ describe('toIcs', () => {
 
   it('escapes a comma, a semicolon and a backslash in text', () => {
     const ics = toIcs([item({ title: 'Cupa, Iarna; \\', location: 'Sala 1, Etaj 2' })], NOW, 'Ana');
-    expect(unfolded(ics)).toContain('SUMMARY:Cupa\\, Iarna\; \\\\');
+    expect(unfolded(ics)).toContain('SUMMARY:Cupa\\, Iarna\\; \\\\');
     expect(unfolded(ics)).toContain('LOCATION:Sala 1\\, Etaj 2');
   });
 

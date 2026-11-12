@@ -89,6 +89,16 @@ function shiftMonth(month: string, n: number): string {
   return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`;
 }
 
+/** The month shown when none is asked: today's, kept inside the current season (before it the first month, after it the last); with no season, today's. */
+export async function defaultCalendarMonth(c: SportivContext): Promise<string> {
+  const season = currentSeason(await c.presence.store.seasons());
+  const today = monthOf(c.today);
+  if (!season) return today;
+  const first = monthOf(season.startMonth);
+  const last = monthOf(season.endMonth);
+  return today < first ? first : today > last ? last : today;
+}
+
 /** `month=YYYY-MM` within the current season: the month's own items and the neighbouring months that are still in the season. Callers check that the holder holds the athlete. */
 export async function readCalendar(c: SportivContext, athleteId: string, month: unknown): Promise<AdminResult<SportivCalendar>> {
   if (typeof month !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return refuse(400, PORTAL_ERRORS.invalid);

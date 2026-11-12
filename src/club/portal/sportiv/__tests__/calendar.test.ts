@@ -5,7 +5,7 @@ import { ownClassesBetween } from '../../coach/calendar';
 import { nullCoachCompetitions, type CoachContexts } from '../../coach/context';
 import { PORTAL_ERRORS } from '../../copy';
 import { forbiddenPathsIn } from '../../forbidden-keys';
-import { ownItems, readCalendar } from '../calendar';
+import { defaultCalendarMonth, ownItems, readCalendar } from '../calendar';
 import { SPORTIV_ALLOWED_PATHS, SPORTIV_FORBIDDEN_KEYS } from '../views';
 import { A_ANA, A_MATEI, sportivCtx, type SportivSeed } from './sportiv-seed';
 
@@ -126,5 +126,25 @@ describe('readCalendar', () => {
   it('refuses a month outside the season or not a month', async () => {
     const c = sportivCtx(PARENT);
     for (const m of ['2026-09', '2027-06', '2026-13', '2026-1', undefined, 5]) expect(await readCalendar(c, A_ANA, m)).toEqual({ ok: false, status: 400, error: PORTAL_ERRORS.invalid });
+  });
+});
+
+describe('defaultCalendarMonth', () => {
+  it('is the current month inside the season', async () => {
+    expect(await defaultCalendarMonth(sportivCtx(PARENT))).toBe('2026-11');
+  });
+
+  it('before the season starts it is the first season month, and readCalendar accepts it', async () => {
+    const c = sportivCtx(PARENT, '2026-09-20');
+    const month = await defaultCalendarMonth(c);
+    expect(month).toBe('2026-10');
+    expect((await readCalendar(c, A_ANA, month)).ok).toBe(true);
+  });
+
+  it('after the season ends it is the last season month, and readCalendar accepts it', async () => {
+    const c = sportivCtx(PARENT, '2027-07-15');
+    const month = await defaultCalendarMonth(c);
+    expect(month).toBe('2027-05');
+    expect((await readCalendar(c, A_ANA, month)).ok).toBe(true);
   });
 });

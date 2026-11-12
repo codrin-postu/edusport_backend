@@ -12,7 +12,7 @@ const VTIMEZONE = [
   'END:VTIMEZONE',
 ];
 
-const escapeText = (s: string): string => s.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+const escapeText = (s: string): string => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 
 /** A content line cut into lines of at most 75 octets, each continuation starting with one space; never inside a character. */
 function fold(line: string): string[] {

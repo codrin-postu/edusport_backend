@@ -38,11 +38,21 @@ describe('readMoney', () => {
     expect(await readMoney(c, A_IOANA)).toMatchObject({ left: 0, lines: [], advance: null });
   });
 
-  it('a group without a price list adds nothing', async () => {
+  it('a group without a price list adds nothing when its attendances carry no amount', async () => {
     const c = sportivCtx('sportiv18@example.invalid');
     c.fake.group.groups.find((g) => g.id === 'g-perf')!.priceListId = null;
-    clubPresence(c, 'n1', '2026-11-03');
+    clubPresence(c, 'n1', '2026-11-03', { price: null });
     expect(await readMoney(c, A_IOANA)).toMatchObject({ left: 0, lines: [] });
+  });
+
+  it('charges recorded before the price list was removed still show, equal to the admin settlement', async () => {
+    const c = sportivCtx('sportiv18@example.invalid');
+    for (let i = 0; i < 2; i++) clubPresence(c, `r${i}`, `2026-11-0${i + 2}`);
+    c.fake.group.groups.find((g) => g.id === 'g-perf')!.priceListId = null;
+    const admin = clubMonths({ attendances: await c.presence.store.attendances({ athleteId: A_IOANA }), lessons: [], payments: [], groupNames: new Map([['g-perf', 'Club Performanță']]), startDate: '2026-10-01' });
+    const m = await readMoney(c, A_IOANA);
+    expect(m.left).toBe(admin.reduce((n, x) => n + x.left, 0));
+    expect(m).toMatchObject({ left: 80, lines: [{ text: 'Club Performanță noiembrie', amount: 80 }] });
   });
 
   it('an unpaid Școala abonament and an unpaid lesson are lines', async () => {

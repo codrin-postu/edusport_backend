@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { CalendarEventRow } from '../../../../api/calendar-event/services/expand';
 import { forbiddenPathsIn } from '../../forbidden-keys';
 import { readCard } from '../../coach/athletes';
 import { attendanceRow, lessonRow, sessionRow } from '../../../presence/__tests__/fake-store';
@@ -84,6 +85,17 @@ describe('readHome', () => {
     c.fake.state.calendar.events[0].recurrence.startTime = '11:00';
     const { upcoming } = await readHome(c, A_ANA);
     expect(upcoming[0].date).toBe('2026-11-22');
+  });
+
+  it('an all-day item today (no start time) stays upcoming', async () => {
+    const c = sportivCtx('parinte1@example.invalid', '2026-11-21');
+    c.fake.state.calendar.events.push({
+      id: 88, documentId: 'ev-concurs', title: 'Concurs Brașov', type: 'concurs',
+      recurrence: { freq: 'none', singleDate: '2026-11-21', endsNextDay: false, seasonStart: '2026-10-02', seasonEnd: '2027-05-31' } as CalendarEventRow['recurrence'],
+      exceptions: [], group: { documentId: 'g-ib', name: 'Intermediari Bronze', active: true, programPublic: true },
+    });
+    const { upcoming } = await readHome(c, A_ANA);
+    expect(upcoming.some((i) => i.kind === 'concurs' && i.date === '2026-11-21' && i.startTime === null)).toBe(true);
   });
 
   it('abonament: 5 when 4 of 8 are used, 8 when 8 of 8 are used, the code when there is one', async () => {

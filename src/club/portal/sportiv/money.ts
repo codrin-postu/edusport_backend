@@ -64,7 +64,7 @@ type Owed = { lines: MoneyLine[]; advance: number };
 
 /**
  * What the athlete owes and what is paid ahead. Club months and Școala abonamente come from the admin ledger (`clubMonths`, `schoolDue`);
- * lessons pool with their month as in the admin Plăți tab, and attendances without a price (`inclus`, `fara_pret`, a group without a price list) take no part.
+ * lessons pool with their month as in the admin Plăți tab. Every attendance goes in as the admin reads it: the stored amount is the truth (`inclus`, `fara_pret` and unpriced ones carry 0), even when the group's price list was removed later.
  */
 async function owedOf(c: SportivContext, athleteId: string): Promise<Owed> {
   const store = c.presence.store;
@@ -76,10 +76,9 @@ async function owedOf(c: SportivContext, athleteId: string): Promise<Owed> {
   const lines: MoneyLine[] = [];
   let advance = 0;
 
-  const club = attendances.filter((a) => a.billing === 'club' && priced.has(a.groupId));
   const held = (l: LessonRow): boolean => l.state === 'saved' && l.present === true;
   // One pooled ledger per month, exactly as the admin Plăți tab: lessons and club payments settle together.
-  for (const m of clubMonths({ attendances: club, lessons, payments, groupNames: names, startDate })) {
+  for (const m of clubMonths({ attendances, lessons, payments, groupNames: names, startDate })) {
     if (m.left < 0) {
       advance = sumMoney([advance, -m.left]);
       continue;

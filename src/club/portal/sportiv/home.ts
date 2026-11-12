@@ -39,7 +39,7 @@ async function lastCompetitionOf(c: SportivContext, athleteId: string): Promise<
 async function upcoming(c: SportivContext, athleteId: string): Promise<CalendarItem[]> {
   const now = clockOf(c.presence.now());
   const items = await ownItems(c, athleteId, c.today, addDays(c.today, UPCOMING_WINDOW_DAYS));
-  return items.filter((i) => !i.cancelled && (i.date > c.today || (i.startTime ?? '') >= now)).slice(0, UPCOMING);
+  return items.filter((i) => !i.cancelled && (i.date > c.today || i.startTime === null || i.startTime >= now)).slice(0, UPCOMING);
 }
 
 /** Acasă (spec 6.3): level, presences of the season, the next own items, the abonament, the last competition and the promotion moment. Callers check that the holder holds the athlete. */
