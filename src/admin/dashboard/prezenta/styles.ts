@@ -81,4 +81,21 @@ export const PREZENTA_CSS = `
 .ui-root .pz-two{grid-template-columns:minmax(0,1fr)}
 .ui-root .pz-bar-sp{display:none}
 }
+.ui-root .pz-mx-sub{margin:0;padding:10px 18px 0;font-size:13px;color:var(--theme-text-secondary)}
+.ui-root .pz-mx-wrap{overflow-x:auto;padding:10px 0 4px}
+.ui-root .pz-mx{border-collapse:separate;border-spacing:0;min-width:100%;font-size:13px}
+.ui-root .pz-mx th,.ui-root .pz-mx td{padding:6px 8px;text-align:center;border-bottom:1px solid var(--theme-border);background:var(--theme-surface);white-space:nowrap}
+.ui-root .pz-mx thead th{font-size:11.5px;font-weight:600;color:var(--theme-text-secondary);vertical-align:bottom}
+.ui-root .pz-mx .pz-mx-name{position:sticky;left:0;z-index:1;min-width:150px;text-align:left;padding-left:18px;box-shadow:1px 0 0 var(--theme-border)}
+.ui-root .pz-mx-colbtn{all:unset;display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;cursor:pointer;font-weight:600;color:inherit}
+.ui-root .pz-mx-colbtn:hover{color:var(--theme-primary)}
+.ui-root .pz-mx-colbtn:focus-visible{outline:2px solid var(--theme-focus);outline-offset:2px}
+.ui-root .pz-mx-note{font-size:10.5px;font-weight:600;color:var(--theme-text-muted)}
+.ui-root .pz-mx-note--today{color:var(--theme-primary)}
+.ui-root .pz-mx-note--undone{color:var(--theme-warning)}
+.ui-root .pz-mx .pz-mx-future{background:var(--theme-surface-subtle);opacity:.6}
+.ui-root .pz-mx-check{display:inline-flex;color:var(--theme-success)}
+.ui-root .pz-mx-u{font-weight:700;color:var(--theme-text-secondary)}
+.ui-root .pz-mx-total{font-weight:600}
+.ui-root .pz-mx .pz-mx-vis td{text-align:left;padding-left:18px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--theme-text-secondary);background:var(--theme-surface-subtle)}
 `;

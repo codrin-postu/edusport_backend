@@ -12,10 +12,11 @@ type Props = {
   onMiddle?: () => void;
   middleDisabled?: boolean;
   middleOn?: boolean;
+  nextDisabled?: boolean;
 };
 
 /** One segmented switcher: "<" middle ">" (the approved mockup's day and month switcher). */
-export function Switcher({ label, prevLabel, nextLabel, onPrev, onNext, middle, onMiddle, middleDisabled, middleOn }: Props) {
+export function Switcher({ label, prevLabel, nextLabel, onPrev, onNext, middle, onMiddle, middleDisabled, middleOn, nextDisabled }: Props) {
   const mid = `pz-seg-btn${middleOn ? ' pz-seg-btn--on' : ''}`;
   return (
     <span className="pz-seg" role="group" aria-label={label}>
@@ -25,7 +26,7 @@ export function Switcher({ label, prevLabel, nextLabel, onPrev, onNext, middle, 
       ) : (
         <span className={`${mid} pz-seg-label`}>{middle}</span>
       )}
-      <button type="button" className="pz-seg-btn" aria-label={nextLabel} onClick={onNext}>{'>'}</button>
+      <button type="button" className="pz-seg-btn" aria-label={nextLabel} disabled={nextDisabled} onClick={onNext}>{'>'}</button>
     </span>
   );
 }

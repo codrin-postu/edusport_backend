@@ -2,7 +2,7 @@ import * as React from 'react';
 import { getFetchClient, useAuth, useFetchClient } from '@strapi/admin/strapi-admin';
 import type { ActionBody, GroupOptions } from '../../../club/groups/api-types';
 import type {
-  AddedSession, CoachPage, CoachRow, GridPage, GroupMonth, LessonPanel, LessonSaved, PeriodLessonRow, PeriodPage, SessionCheck, SessionDefaults,
+  AddedSession, CoachPage, CoachRow, GridPage, GroupMatrix, GroupMonth, LessonPanel, LessonSaved, PeriodLessonRow, PeriodPage, SessionCheck, SessionDefaults,
   SessionPanel, SessionSaveBody, SessionSaved,
 } from '../../../club/presence/attendance/api-types';
 import { coachesCsvName } from '../../../club/presence/coaches/csv';
@@ -32,6 +32,9 @@ function sessionQuery(q: SessionQuery): string {
   return query({ group: q.groupId, date: q.date, time: q.startTime, duration: String(q.durationMin), athlete });
 }
 
+const groupMatrixUrl = (groupId: string, month: string, xlsx = false): string =>
+  `${BASE}/attendance/group-matrix${xlsx ? '.xlsx' : ''}${query({ groupId, month })}`;
+
 /** The plan 5-2 admin routes (attendance, lessons, coaches) and the phase 4 routes the Prezență screens reuse. Same identity on every render. */
 export function usePrezentaApi() {
   const client = useFetchClient();
@@ -52,6 +55,10 @@ export function usePrezentaApi() {
       check: (body: NewSessionBody) => data<SessionCheck>(ref.current.post(`${BASE}/attendance/session/check`, body as Body)),
       save: (body: SessionSaveBody) => action<SessionSaved>(ref.current.put(`${BASE}/attendance/session`, body as unknown as Body)),
       groupMonth: (groupId: string, month: string) => get<GroupMonth>(`${BASE}/groups/${enc(groupId)}/attendance${query({ month })}`),
+      groupMatrix: (groupId: string, month: string) => get<GroupMatrix>(groupMatrixUrl(groupId, month)),
+      groupMatrixXlsxUrl: (groupId: string, month: string) => groupMatrixUrl(groupId, month, true),
+      downloadGroupMatrix: (groupId: string, month: string) =>
+        downloadGet(tokenRef.current, groupMatrixUrl(groupId, month, true), `tabel-${month}.xlsx`, strapiDownload()),
       lessons: (from: string, to: string) => get<PeriodLessonRow[]>(`${BASE}/lessons${query({ from, to })}`),
       lesson: (id: string) => get<LessonPanel>(`${BASE}/lessons/${enc(id)}`),
       lessonNew: (athleteId: string, date: string) => get<{ coachIds: string[] }>(`${BASE}/lessons/new${query({ athlete: athleteId, date })}`),

@@ -13,6 +13,7 @@ import { SPORTIVI_CSS } from '../sportivi/styles';
 import { GRUPE_CSS } from '../grupe/styles';
 import { usePrezentaApi } from './api';
 import { CoachesList } from './CoachesList';
+import { GroupMatrixTab } from './GroupMatrixTab';
 import { GroupsGrid } from './GroupsGrid';
 import { GroupsList, type FilterRows } from './GroupsList';
 import { usePeriodLoad } from './MonthLine';
@@ -110,6 +111,7 @@ export function PrezentaScreen({ query, onQuery }: Props) {
           <div className="ui-ph-actions pz-head-slot" ref={setHost} />
         </header>
         {query.tab === 'de-completat' && <UndoneTab rows={undone.data ? undone.data.undone : null} failed={undone.failed} />}
+        {query.tab === 'tabel' && <GroupMatrixTab groupId={query.groupId} month={query.month} today={today} onChange={onQuery} />}
         {query.tab === 'toate' && (
           <>
             <div className="pz-bar">

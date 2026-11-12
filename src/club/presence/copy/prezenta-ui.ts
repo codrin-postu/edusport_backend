@@ -16,6 +16,10 @@ export const PREZENTA_COPY = {
   closeConfirm: 'Închizi fără să salvezi?', stay: 'Rămâi',
   newSessionTitle: 'Ședință nouă', newLessonTitle: 'Lecție nouă',
 } as const;
+export const MATRIX_COPY = {
+  group: 'Grupă', athlete: 'Sportiv', total: 'Total', today: 'azi', undone: 'necompletat', visitors: 'Vizitatori', download: 'Descarcă Excel',
+  empty: 'Nicio ședință în luna asta.', grup: 'în grup', uscat: 'uscat', open: 'Deschide ședința',
+} as const;
 export const SETARI_COPY = { attendanceStart: 'Prezență și plăți din', attendanceStartHint: 'Ședințele dinainte nu apar ca nefăcute.' } as const;
 export const SHELL_COPY = { abonamente: 'Abonamente', abonamenteSub: 'Școala de patinaj', plati: 'Plăți', deIncasat: 'De încasat' } as const;
 
