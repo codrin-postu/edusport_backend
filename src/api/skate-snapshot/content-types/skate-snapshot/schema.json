@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "skate_snapshots",
+  "info": {
+    "singularName": "skate-snapshot",
+    "pluralName": "skate-snapshots",
+    "displayName": "Club / Snapshot competiții",
+    "description": "Date din skate-results, păstrate pentru citire rapidă"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "key": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "column": {
+        "unique": true
+      }
+    },
+    "body": {
+      "type": "json",
+      "required": true
+    },
+    "fetchedAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "failedAt": {
+      "type": "datetime"
+    }
+  }
+}
