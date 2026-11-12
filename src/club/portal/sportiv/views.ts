@@ -1,5 +1,5 @@
 import type {
-  AbonamentShort, CalendarItem, HistoryRow, Level, LastCompetition, MonthBar, PaymentRow, Promotion, SportivHome, Ticket,
+  AbonamentShort, CalendarItem, HistoryRow, Level, LastCompetition, MonthBar, PaymentRow, Promotion, SportivHistory, SportivHome, SportivProfile, Ticket,
 } from './api-types';
 
 /** Keys no sportiv answer may carry (spec 5.4). The calendar item `note` (a cancelled date's reason) is the one allowed `note`, by path (`SPORTIV_ALLOWED_PATHS`). */
@@ -51,6 +51,16 @@ function toLastCompetition(l: LastCompetition): LastCompetition {
 }
 
 export const toHistoryRow = (r: HistoryRow): HistoryRow => ({ date: r.date, startTime: r.startTime, kind: r.kind, groupName: r.groupName, coaches: [...r.coaches] });
+
+/** The history answer (spec 6.4): the summary and the page, row by row. */
+export const toHistory = (h: Omit<SportivHistory, 'pageSize'>): SportivHistory => ({
+  seasonLabel: h.seasonLabel, total: h.total, group: h.group, individual: h.individual, page: h.page, pageSize: 20, rows: h.rows.map(toHistoryRow),
+});
+
+/** The athlete's own data (spec 5.4): name, birth date and age, contact name, phone and e-mail; notes and status stay out. */
+export const toProfile = (p: SportivProfile): SportivProfile => ({
+  name: p.name, birthDate: p.birthDate, age: p.age, contactName: p.contactName, phone: p.phone, email: p.email,
+});
 
 /** `note` is the reason of a cancelled date and nothing else: a live item never carries one. */
 export const toCalendarItem = (i: CalendarItem): CalendarItem => ({
