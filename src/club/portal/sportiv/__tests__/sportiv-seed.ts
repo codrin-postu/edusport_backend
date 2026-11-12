@@ -4,6 +4,7 @@ import type { GroupRecord, GroupStore } from '../../../groups/types';
 import { fakePresenceContext, subscriptionRow, P_GROUPS } from '../../../presence/__tests__/fake-store';
 import { fakeAccessStore, type FakeAccess } from '../../access/fake-store';
 import { fakePortalStore, type FakePortal } from '../../__tests__/fake-portal-store';
+import type { CalendarEventRow } from '../../../../api/calendar-event/services/expand';
 import { nullSportivCompetitions } from '../competitions';
 import type { SportivContext } from '../context';
 import type { HolderState } from '../holder';
@@ -24,6 +25,17 @@ const S_ATHLETES = [
   athleteRow({ id: A_IOANA, name: 'Ioana Marin', birthDate: '2007-01-20', email: 'sportiv18@example.invalid', profileId: 'sp-ioana', ...personal }),
   athleteRow({ id: A_ELENA, name: 'Elena Stan', birthDate: '2016-08-09', email: 'elena@example.invalid', status: 'nou', ...personal }),
   athleteRow({ id: A_RADU, name: 'Radu Pop', birthDate: '2014-03-03', email: 'antrenor1@example.invalid', ...personal }),
+];
+
+const weekly = (groupId: string, name: string, days: Record<string, boolean>, startTime: string, endTime: string): CalendarEventRow => ({
+  id: groupId.length, documentId: `ev-${groupId}`, title: name, type: 'grupa',
+  recurrence: { freq: 'weekly', ...days, startTime, endTime, endsNextDay: false, seasonStart: '2026-10-02', seasonEnd: '2027-05-31' },
+  exceptions: [], group: { documentId: groupId, name, active: true, programPublic: true },
+});
+/** Intermediari Bronze meets on Saturday and Sunday at 11:00, Club Performanță on Tuesday and Thursday at 17:00. */
+export const S_CALENDAR: CalendarEventRow[] = [
+  weekly('g-ib', 'Intermediari Bronze', { sat: true, sun: true }, '11:00', '11:50'),
+  weekly('g-perf', 'Club Performanță', { tue: true, thu: true }, '17:00', '18:30'),
 ];
 
 /** Ana: an earlier main group (Primii Pași) until 14 November, Intermediari Bronze since 15 November. */
@@ -54,7 +66,7 @@ export function sportivCtx(email: keyof typeof HOLDERS | string, today = '2026-1
       events: [event({ id: 'ev-ib', title: 'Intermediari Bronze', groupId: 'g-ib' })],
     },
     subscriptions: [subscriptionRow({ id: 'sub-ana', athleteId: A_ANA, priceListId: 'pl-std', price: 320, audience: 'member', slots: 8, startsOn: '2026-11-01', validUntil: '2026-11-28' })],
-    startDate: '2026-10-01',
+    startDate: '2026-10-01', calendar: { events: structuredClone(S_CALENDAR), blackouts: [] },
   }, today);
   const clubFake = fakeClubStore({
     athletes: structuredClone(fake.group.athletes), memberships: structuredClone(fake.group.memberships),
