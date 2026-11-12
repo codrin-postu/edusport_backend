@@ -4,14 +4,12 @@
  * (synthetic data only): parinte1@example.invalid (password Throwaway-Parent-1) holds "Ana Ionescu" (Scoala, Intermediari Bronze, abonament 4/8,
  * 26 group presences this season, one earlier main group, a confirmed registration with its stored Acord PDF) and "Matei Ionescu" (Scoala, Incepatori); sportiv18@example.invalid is the adult athlete
  * "Ioana Marin" (skate slug ioana-marin-test); antrenor1@example.invalid also holds "Radu Pop"; "Elena Stan" is status nou with an e-mail and no
- * access; parinte2fa@example.invalid (password Throwaway-Parent-2) holds "Sara Dinu" with the 2FA app on (TOTP secret only in IDS_FILE, as
- * ids.portal.parinte2fa.totpSecretBase32). admin7@example.invalid (Throwaway-Admin-7, Super Admin) is made for the admin calls of the click-through.
- * Needs AUTH_SECRET_KEY set (the TOTP secret is sealed under it). Usage (repo root, throwaway env loaded):
+ * access; parinte2@example.invalid (password Throwaway-Parent-2) holds "Sara Dinu" (skate slug sara-dinu-test, no results) as a second family. admin7@example.invalid (Throwaway-Admin-7, Super Admin)
+ * is made for the admin calls of the click-through. Usage (repo root, throwaway env loaded):
  *   ES_THROWAWAY_DB=1 IDS_FILE=/tmp/x/ids.json node scripts/fixtures/phase7-shape.js
  */
 const fs = require('node:fs');
 const path = require('node:path');
-const { createCipheriv, createHash, randomBytes } = require('node:crypto');
 const bcrypt = require('bcryptjs');
 const { createId } = require('@paralleldrive/cuid2');
 const { createStrapi, compileStrapi } = require('@strapi/strapi');
@@ -43,36 +41,9 @@ if (!['127.0.0.1', 'localhost'].includes(target.host) || !THROWAWAY_PORTS.includ
 }
 
 const PARENT_1 = { email: 'parinte1@example.invalid', password: 'Throwaway-Parent-1' };
-const PARENT_2FA = { email: 'parinte2fa@example.invalid', password: 'Throwaway-Parent-2' };
+const PARENT_2 = { email: 'parinte2@example.invalid', password: 'Throwaway-Parent-2' };
 const ADULT = { email: 'sportiv18@example.invalid', password: 'Throwaway-Adult-18' };
 const ADMIN = { email: 'admin7@example.invalid', password: 'Throwaway-Admin-7' };
-const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-
-function base32(b) {
-  let bits = 0;
-  let value = 0;
-  let out = '';
-  for (const byte of b) {
-    value = (value << 8) | byte;
-    bits += 8;
-    while (bits >= 5) {
-      out += BASE32[(value >>> (bits - 5)) & 31];
-      bits -= 5;
-    }
-  }
-  return bits > 0 ? out + BASE32[(value << (5 - bits)) & 31] : out;
-}
-
-/** The secret box of src/club/security/secret-box.ts: v1.<keyId>.<iv>.<ct>.<tag>, AES-256-GCM, aad binds the subject. */
-function seal(keyBytes, plain, aad) {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv('aes-256-gcm', keyBytes, iv, { authTagLength: 16 });
-  cipher.setAAD(Buffer.from(aad, 'utf8'));
-  const ct = Buffer.concat([cipher.update(plain), cipher.final()]);
-  const id = createHash('sha256').update(keyBytes).digest('hex').slice(0, 8);
-  return ['v1', id, iv.toString('base64url'), ct.toString('base64url'), cipher.getAuthTag().toString('base64url')].join('.');
-}
-
 async function refuse(app, message) {
   console.error(`refused: ${message}`);
   await app.destroy();
@@ -87,8 +58,6 @@ async function refuse(app, message) {
   const ids = JSON.parse(fs.readFileSync(process.env.IDS_FILE, 'utf8'));
   if (!ids.portal?.antrenor1 || !ids.athletes?.['Ana Ionescu']) return refuse(app, 'run phase4-shape.js, phase5-shape.js and phase6-shape.js first');
   if (ids.portal.parinte1) return refuse(app, 'the phase 7 fixture was already applied');
-  const keyText = process.env.AUTH_SECRET_KEY;
-  if (!keyText || Buffer.from(keyText, 'base64').length !== 32) return refuse(app, 'AUTH_SECRET_KEY (32 bytes, base64) is needed to seal the TOTP secret');
 
   const season = ids.seasons['2026-2027'];
   const now = new Date().toISOString();
@@ -159,8 +128,11 @@ async function refuse(app, message) {
   const radu = await athlete('Radu Pop', '2015-08-08', 'activ', ids.portal.antrenor1.email);
   await member(radu, 'Intermediari Silver', '2026-2027', true, '2026-10-01', null);
   await athlete('Elena Stan', '2014-04-04', 'nou', 'elena.stan@example.invalid');
-  const sara = await athlete('Sara Dinu', '2015-05-05', 'activ', PARENT_2FA.email);
+  const sara = await athlete('Sara Dinu', '2015-05-05', 'activ', PARENT_2.email);
   await member(sara, 'Intermediari Bronze', '2026-2027', true, '2026-10-01', null);
+  // Sara has a skate-results slug with no results yet (the 7-3 click-through: Acasa shows no competition card).
+  const saraProfile = await d('api::sportsperson.sportsperson').create({ data: { name: 'Sara Dinu', slug: 'sara-dinu', skateResultsSlug: 'sara-dinu-test' }, status: 'published' });
+  await d('api::athlete.athlete').update({ documentId: sara, data: { publicProfile: saraProfile.documentId } });
 
   const parent1 = await account(PARENT_1.email, PARENT_1.password);
   await grant(parent1, ana, PARENT_1.email);
@@ -169,13 +141,8 @@ async function refuse(app, message) {
   await grant(adult, ioana, ADULT.email);
   const [coachAccount] = await accounts.findMany({ filters: { email: ids.portal.antrenor1.email }, limit: 1 });
   await grant(coachAccount.documentId, radu, ids.portal.antrenor1.email);
-  const parent2 = await account(PARENT_2FA.email, PARENT_2FA.password);
-  await grant(parent2, sara, PARENT_2FA.email);
-
-  const totp = randomBytes(20);
-  await d('api::auth-factor.auth-factor').create({
-    data: { subjectType: 'portal', subjectId: parent2, kind: 'totp', secretBox: seal(Buffer.from(keyText, 'base64'), totp, `totp:portal:${parent2}`), confirmedAt: now },
-  });
+  const parent2 = await account(PARENT_2.email, PARENT_2.password);
+  await grant(parent2, sara, PARENT_2.email);
 
   const superRole = await app.db.query('admin::role').findOne({ where: { code: 'strapi-super-admin' } });
   if (!superRole) return refuse(app, 'the Super Admin role is missing');
@@ -184,7 +151,7 @@ async function refuse(app, message) {
   Object.assign(ids.portal, {
     parinte1: { email: PARENT_1.email, account: parent1 },
     sportiv18: { email: ADULT.email, account: adult },
-    parinte2fa: { email: PARENT_2FA.email, account: parent2, totpSecretBase32: base32(totp) },
+    parinte2: { email: PARENT_2.email, account: parent2 },
     admin7: { email: ADMIN.email },
   });
   ids.skateSlugIoana = 'ioana-marin-test';

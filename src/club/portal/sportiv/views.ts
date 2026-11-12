@@ -1,5 +1,5 @@
 import type {
-  AbonamentShort, Badge, CalendarItem, HistoryRow, Level, LastCompetition, MonthBar, MoneyLine, PaymentRow, Promotion, SportivHistory, SportivHome, SportivMoney, SportivPath, SportivPayments, SportivProfile, SportivSubscriptions, Ticket,
+  AbonamentShort, Badge, CalendarItem, CompetitionRow, HistoryRow, Level, LastCompetition, MonthBar, MoneyLine, PaymentRow, Promotion, SportivCompetition, SportivCompetitions, SportivHistory, SportivHome, SportivMoney, SportivPath, SportivPayments, SportivProfile, SportivSubscriptions, Ticket,
 } from './api-types';
 
 /** Keys no sportiv answer may carry (spec 5.4). The calendar item `note` (a cancelled date's reason) is the one allowed `note`, by path (`SPORTIV_ALLOWED_PATHS`). */
@@ -38,15 +38,36 @@ const toLevel = (l: Level): Level => ({ groupId: l.groupId, groupName: l.groupNa
 const toMonthBar = (m: MonthBar): MonthBar => ({ month: m.month, count: m.count, state: m.state });
 export const toAbonamentShort = (a: AbonamentShort): AbonamentShort => ({ code: a.code, next: a.next, slots: a.slots, validUntil: a.validUntil });
 
+const toCompetitionRow = (r: CompetitionRow): CompetitionRow => ({
+  resultId: r.resultId, eventName: r.eventName, date: r.date, location: r.location, category: r.category, categoryShort: r.categoryShort,
+  placement: r.placement, total: r.total,
+});
+
 function toLastCompetition(l: LastCompetition): LastCompetition {
   if (!l.available) return { available: false };
-  const r = l.row;
+  return { available: true, stale: l.stale, updatedAt: l.updatedAt, field: l.field, row: toCompetitionRow(l.row) };
+}
+
+/** The Concursuri list (spec 8.4), field by field. */
+export function toCompetitions(x: SportivCompetitions): SportivCompetitions {
+  if (!x.available) return { available: false };
   return {
-    available: true, stale: l.stale, updatedAt: l.updatedAt, field: l.field,
-    row: {
-      resultId: r.resultId, eventName: r.eventName, date: r.date, location: r.location, category: r.category, categoryShort: r.categoryShort,
-      placement: r.placement, total: r.total,
-    },
+    available: true, stale: x.stale, updatedAt: x.updatedAt, total: x.total,
+    category: x.category ? { current: x.category.current, seasonLabel: x.category.seasonLabel, previous: x.category.previous ? { short: x.category.previous.short, sinceYear: x.category.previous.sinceYear } : null } : null,
+    records: { best: x.records.best, podiums: x.records.podiums, wins: x.records.wins }, seasons: [...x.seasons],
+    page: x.page, pageSize: 20, filtered: x.filtered, rows: x.rows.map(toCompetitionRow),
+  };
+}
+
+/** One competition (spec 8.6), field by field: no other skater's data, no raw source fields. */
+export function toCompetition(x: SportivCompetition): SportivCompetition {
+  if (!x.available) return { available: false };
+  return {
+    available: true, stale: x.stale, updatedAt: x.updatedAt, row: toCompetitionRow(x.row), field: x.field, best: x.best, officialUrl: x.officialUrl,
+    segments: x.segments.map((g) => ({
+      name: g.name, isShort: g.isShort, score: g.score, tes: g.tes, pcs: g.pcs, deductions: g.deductions,
+      elements: g.elements.map((e) => ({ name: e.name, base: e.base, score: e.score })),
+    })),
   };
 }
 

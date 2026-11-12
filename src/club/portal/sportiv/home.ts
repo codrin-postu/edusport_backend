@@ -32,6 +32,7 @@ async function lastCompetitionOf(c: SportivContext, athleteId: string): Promise<
   const skater = await skaterOf(c, athleteId);
   if (!skater) return null;
   const last = await c.competitions.last(skater).catch(() => null);
+  if (last === 'none') return null;
   return last ? { available: true, ...last } : { available: false };
 }
 

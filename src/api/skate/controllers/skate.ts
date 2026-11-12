@@ -8,20 +8,11 @@
  * chosen one's slug to the sportsperson record.
  */
 
-const DEFAULT_BASE = 'https://skate-api.codrin.space';
-
-function base(): string {
-  return (process.env.SKATE_RESULTS_API || DEFAULT_BASE).replace(/\/+$/, '');
-}
+import { base, keyHeaders } from '../../../club/skate/client';
 
 // Headers for mutating calls (import / delete): attach the shared API key so
 // skate-results accepts the write. Reads don't need it.
-function mutHeaders(extra: Record<string, string> = {}): Record<string, string> {
-  const headers: Record<string, string> = { accept: 'application/json', ...extra };
-  const key = process.env.SKATE_RESULTS_API_KEY;
-  if (key) headers['X-API-Key'] = key;
-  return headers;
-}
+const mutHeaders = (extra: Record<string, string> = {}) => keyHeaders(extra);
 
 async function proxy(ctx: any, path: string, degradeOnError = true) {
   try {

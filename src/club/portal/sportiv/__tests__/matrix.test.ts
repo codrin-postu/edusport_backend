@@ -114,7 +114,7 @@ describe('athlete routes', () => {
     const w = await setup();
     const token = await w.login(2, 'sportiv');
     const spies = spyOnStores(w.seed);
-    expect(ATHLETE_ROUTES.length).toBe(11);
+    expect(ATHLETE_ROUTES.length).toBe(13);
     for (const r of ATHLETE_ROUTES) {
       const path = r.path.replace('/portal/sportiv', '').replace(':athleteId', A_IOANA);
       const out = await call(token, r.method, `/portal/sportiv${path}`.replace('/portal/sportiv/portal/sportiv', '/portal/sportiv'));
@@ -191,7 +191,14 @@ describe('leak walk', () => {
     for (const id of [A_ANA, A_MATEI]) {
       for (const r of ATHLETE_ROUTES) {
         if (r.path.endsWith('.ics') || r.path.endsWith('/acord')) continue;
-        const path = `/portal/sportiv${r.path.replace('/portal/sportiv', '').replace(':athleteId', id)}`;
+        const path = `/portal/sportiv${r.path.replace('/portal/sportiv', '').replace(':athleteId', id).replace(':resultId', '1')}`;
+        if (r.path.includes('/competitions')) {
+          // Neither athlete has a skate slug: no competitions, 404 (the answers with data are walked in competitions.test.ts).
+          const out = await call(token, r.method, path);
+          expect(out.status, r.path).toBe(404);
+          expect(out.body, r.path).toEqual({ data: null, error: { status: 404, name: 'ClubAdminError', message: 'Nu a fost găsit.' } });
+          continue;
+        }
         answers.push(await call(token, r.method, path, r.path.endsWith('/calendar') ? { month: '2026-11' } : {}));
       }
     }

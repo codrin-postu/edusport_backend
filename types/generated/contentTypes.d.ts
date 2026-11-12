@@ -2976,6 +2976,45 @@ export interface ApiSiteSettingsSiteSettings extends Struct.SingleTypeSchema {
   };
 }
 
+export interface ApiSkateSnapshotSkateSnapshot extends Struct.CollectionTypeSchema {
+  collectionName: 'skate_snapshots';
+  info: {
+    description: 'Date din skate-results, păstrate pentru citire rapidă';
+    displayName: 'Club / Snapshot competiții';
+    pluralName: 'skate-snapshots';
+    singularName: 'skate-snapshot';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    body: Schema.Attribute.JSON & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    failedAt: Schema.Attribute.DateTime;
+    fetchedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    key: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::skate-snapshot.skate-snapshot'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiSponsorSponsor extends Struct.CollectionTypeSchema {
   collectionName: 'sponsors';
   info: {
@@ -3932,6 +3971,7 @@ declare module '@strapi/strapi' {
       'api::sheet-link.sheet-link': ApiSheetLinkSheetLink;
       'api::sheet-sync-log.sheet-sync-log': ApiSheetSyncLogSheetSyncLog;
       'api::site-settings.site-settings': ApiSiteSettingsSiteSettings;
+      'api::skate-snapshot.skate-snapshot': ApiSkateSnapshotSkateSnapshot;
       'api::sponsor.sponsor': ApiSponsorSponsor;
       'api::sportsperson.sportsperson': ApiSportspersonSportsperson;
       'api::subscription.subscription': ApiSubscriptionSubscription;

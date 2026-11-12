@@ -22,6 +22,8 @@ export default {
     route('GET', '/athletes/:athleteId/history', 'history'),
     route('GET', '/athletes/:athleteId/calendar.ics', 'calendarIcs'),
     route('GET', '/athletes/:athleteId/calendar', 'calendar'),
+    route('GET', '/athletes/:athleteId/competitions', 'competitions'),
+    route('GET', '/athletes/:athleteId/competitions/:resultId', 'competition'),
     route('GET', '/athletes/:athleteId/path', 'path'),
     route('GET', '/athletes/:athleteId/money', 'money'),
     route('GET', '/athletes/:athleteId/payments', 'payments'),
