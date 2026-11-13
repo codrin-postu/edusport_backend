@@ -15,7 +15,7 @@ import { ActiveFilters, IncompleteBanner, ListToolbar } from './ListToolbar';
 import { SPORTIVI_CSS } from './styles';
 import { useAthleteList } from './useAthleteList';
 import { useInactiveLink, useSelection } from './useSelection';
-import { useIsSuperAdmin } from './useSuperAdmin';
+import { useAreas } from '../../lib/useAreas';
 
 /** "Adaugă sportiv" open from the button or from the dashboard shortcut (`?adauga=1`). */
 function useAddAthlete(search: string) {
@@ -36,7 +36,7 @@ export function SportiviList() {
   const { search } = useLocation();
   const list = useAthleteList(api, phone);
   const selection = useSelection(list);
-  const anonymizable = selectionOn(inactiveShown(list.state), useIsSuperAdmin());
+  const anonymizable = selectionOn(inactiveShown(list.state), useAreas().has('superAdmin'));
   useInactiveLink(list, search);
   const { adding, startAdd, closeAdd } = useAddAthlete(search);
   const season = seasonValue(list.state, list.page) || null;

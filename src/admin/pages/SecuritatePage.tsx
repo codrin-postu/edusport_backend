@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { SECURITY_COPY } from '../../club/security/copy';
-import { useIsSuperAdmin } from '../dashboard/sportivi/useSuperAdmin';
+import { useAreas } from '../lib/useAreas';
 import { AdminPage } from '../ui/AdminPage';
 import { PageHeader } from '../ui/PageHeader';
 import { useSecurityApi } from './securitate/api';
@@ -16,12 +16,12 @@ const goTo = (path: string): void => window.location.replace(path);
 
 /**
  * Admin "Securitate" (spec 10.4, route /plugins/edusport-securitate): 2FA, access keys, password, Google,
- * devices, and for a Super Admin "Administratori". The server routes are the authority; `useIsSuperAdmin` only hides the section.
+ * devices, and for a Super Admin "Administratori". The server routes are the authority; `useAreas().has('superAdmin')` only hides the section.
  * Every button goes through PceButton, which opts it out of the SaveBar tagger.
  */
 export default function SecuritatePage() {
   const api = useSecurityApi();
-  const superAdmin = useIsSuperAdmin();
+  const superAdmin = useAreas().has('superAdmin');
   return (
     <AdminPage>
       <PageHeader title={SECURITY_COPY.page.title} />

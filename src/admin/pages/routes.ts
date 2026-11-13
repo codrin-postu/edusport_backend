@@ -14,6 +14,8 @@
  * Routes are admin routes without the /admin basename (like DASHBOARD_TO).
  */
 
+import type { AdminArea } from '../../club/admin-area';
+
 // ---- route constants --------------------------------------------------------
 export const SETARI_SITE_TO = '/plugins/edusport-setari';
 export const PAGINA_ECHIPA_TO = '/plugins/edusport-pagina-echipa';
@@ -70,6 +72,8 @@ export function strapiEditorUrl(uid: string, kind: ContentKind, documentId?: str
 type PageModule = { default: unknown };
 
 export interface CustomPageRoute {
+  /** Role area of the page: the route is gated on it (menu.tsx) and the server routes it reads carry the same area. */
+  area: AdminArea;
   /** Admin route, e.g. PAGINA_ECHIPA_TO. */
   to: string;
   /** Content type the page edits. */
@@ -87,22 +91,22 @@ export interface CustomPageRoute {
 }
 
 export const CUSTOM_PAGES: CustomPageRoute[] = [
-  { to: SETARI_SITE_TO, uid: UID.siteSettings, kind: 'single', role: 'main', redirect: true, load: () => import('./SetariSitePage') },
-  { to: PAGINA_ECHIPA_TO, uid: UID.teamPage, kind: 'single', role: 'main', redirect: true, load: () => import('./PaginaEchipaPage') },
-  { to: ISTORIC_TO, uid: UID.historicPage, kind: 'single', role: 'main', redirect: true, load: () => import('./IstoricPage') },
-  { to: PAGINA_PARTENERI_TO, uid: UID.partnersPage, kind: 'single', role: 'main', redirect: true, load: () => import('./PaginaParteneriPage') },
-  { to: DISCIPLINE_TO, uid: UID.discipline, kind: 'collection', role: 'main', redirect: true, load: () => import('./DisciplinePage') },
-  { to: MOMENTE_ISTORIC_TO, uid: UID.historyMilestone, kind: 'collection', role: 'main', redirect: true, load: () => import('./MomenteIstoricPage') },
-  { to: CURSURI_TO, uid: UID.cursuriPage, kind: 'single', role: 'main', redirect: true, load: () => import('./CursuriPage') },
+  { to: SETARI_SITE_TO, area: 'settings', uid: UID.siteSettings, kind: 'single', role: 'main', redirect: true, load: () => import('./SetariSitePage') },
+  { to: PAGINA_ECHIPA_TO, area: 'website', uid: UID.teamPage, kind: 'single', role: 'main', redirect: true, load: () => import('./PaginaEchipaPage') },
+  { to: ISTORIC_TO, area: 'website', uid: UID.historicPage, kind: 'single', role: 'main', redirect: true, load: () => import('./IstoricPage') },
+  { to: PAGINA_PARTENERI_TO, area: 'website', uid: UID.partnersPage, kind: 'single', role: 'main', redirect: true, load: () => import('./PaginaParteneriPage') },
+  { to: DISCIPLINE_TO, area: 'website', uid: UID.discipline, kind: 'collection', role: 'main', redirect: true, load: () => import('./DisciplinePage') },
+  { to: MOMENTE_ISTORIC_TO, area: 'website', uid: UID.historyMilestone, kind: 'collection', role: 'main', redirect: true, load: () => import('./MomenteIstoricPage') },
+  { to: CURSURI_TO, area: 'website', uid: UID.cursuriPage, kind: 'single', role: 'main', redirect: true, load: () => import('./CursuriPage') },
   // Edits the club price lists now; old content-manager URLs of `pricing` still land here.
-  { to: PRETURI_TO, uid: UID.pricing, kind: 'single', role: 'main', redirect: true, load: () => import('./PreturiPage') },
+  { to: PRETURI_TO, area: 'website', uid: UID.pricing, kind: 'single', role: 'main', redirect: true, load: () => import('./PreturiPage') },
   // The season type is hidden from the content manager, so there is nothing to redirect.
-  { to: SEZOANE_TO, uid: UID.season, kind: 'collection', role: 'main', redirect: false, load: () => import('./SezoanePage') },
-  { to: REGULAMENT_TO, uid: UID.courseRegulations, kind: 'single', role: 'main', redirect: true, load: () => import('./RegulamentPage') },
-  { to: PAGINA_PROGRAM_TO, uid: UID.programPage, kind: 'single', role: 'main', redirect: true, load: () => import('./PaginaProgramPage') },
-  { to: REALIZARI_TO, uid: UID.realizariPage, kind: 'single', role: 'main', redirect: true, load: () => import('./RealizariPage') },
-  { to: EVENIMENTE_COLABORARE_TO, uid: UID.collaborationEvent, kind: 'collection', role: 'main', redirect: true, load: () => import('./EvenimenteColaborarePage') },
-  { to: EVENIMENT_COLABORARE_EDIT_TO, uid: UID.collaborationEvent, kind: 'collection', role: 'edit', redirect: true, load: () => import('./EvenimentColaborareEditPage') },
-  { to: ARTICOLE_TO, uid: UID.article, kind: 'collection', role: 'main', redirect: false, load: () => import('./ArticolePage') },
-  { to: ARTICOL_EDIT_TO, uid: UID.article, kind: 'collection', role: 'edit', redirect: false, load: () => import('./ArticolEditPage') },
+  { to: SEZOANE_TO, area: 'settings', uid: UID.season, kind: 'collection', role: 'main', redirect: false, load: () => import('./SezoanePage') },
+  { to: REGULAMENT_TO, area: 'website', uid: UID.courseRegulations, kind: 'single', role: 'main', redirect: true, load: () => import('./RegulamentPage') },
+  { to: PAGINA_PROGRAM_TO, area: 'website', uid: UID.programPage, kind: 'single', role: 'main', redirect: true, load: () => import('./PaginaProgramPage') },
+  { to: REALIZARI_TO, area: 'website', uid: UID.realizariPage, kind: 'single', role: 'main', redirect: true, load: () => import('./RealizariPage') },
+  { to: EVENIMENTE_COLABORARE_TO, area: 'website', uid: UID.collaborationEvent, kind: 'collection', role: 'main', redirect: true, load: () => import('./EvenimenteColaborarePage') },
+  { to: EVENIMENT_COLABORARE_EDIT_TO, area: 'website', uid: UID.collaborationEvent, kind: 'collection', role: 'edit', redirect: true, load: () => import('./EvenimentColaborareEditPage') },
+  { to: ARTICOLE_TO, area: 'website', uid: UID.article, kind: 'collection', role: 'main', redirect: false, load: () => import('./ArticolePage') },
+  { to: ARTICOL_EDIT_TO, area: 'website', uid: UID.article, kind: 'collection', role: 'edit', redirect: false, load: () => import('./ArticolEditPage') },
 ];

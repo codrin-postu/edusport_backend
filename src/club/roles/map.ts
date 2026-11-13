@@ -20,6 +20,12 @@ export function areasFor(roleCodes: readonly string[]): Set<AdminArea> {
   return areas;
 }
 
+/** Areas of the signed-in admin from the answer of GET /admin/users/me (`{ data: <user with roles> }`); an unreadable answer gives `any` only. */
+export function areasOfMe(body: unknown): Set<AdminArea> {
+  const data = typeof body === 'object' && body !== null ? (body as { data?: unknown }).data : null;
+  return areasFor(roleCodesOf(data));
+}
+
 export const canUse = (roleCodes: readonly string[], area: AdminArea): boolean => areasFor(roleCodes).has(area);
 
 /** `roles[].code` of an admin user row or of the `data` of `/admin/users/me`; anything malformed gives []. */

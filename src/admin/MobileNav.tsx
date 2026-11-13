@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { ensureAdminUi } from './ui/styles';
-import { EDUSPORT_LINKS, GROUP_LABEL, GROUP_ORDER } from './dashboard/menu';
+import { useAreas } from './lib/useAreas';
+import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER } from './dashboard/menu';
 
 interface NavItem {
   label: string;
@@ -147,6 +148,7 @@ export function MobileNav() {
   const isMobile = useIsMobile();
   const [open, setOpen] = React.useState(false);
   const [groups, setGroups] = React.useState<NavGroup[]>([]);
+  const { ready, has } = useAreas();
 
   // Tokens + theme sync (idempotent; the bootstrap already ran it).
   React.useInsertionEffect(() => ensureAdminUi(), []);
@@ -157,12 +159,10 @@ export function MobileNav() {
 
     const next: NavGroup[] = [];
     const covered = new Set<string>();
+    for (const l of EDUSPORT_LINKS) covered.add(eduLinkHref(l.to));
+    const links = visibleLinks(EDUSPORT_LINKS, has);
     for (const group of GROUP_ORDER) {
-      const items = EDUSPORT_LINKS.filter((l) => l.group === group).map((l) => {
-        const href = eduLinkHref(l.to);
-        covered.add(href);
-        return { label: l.label, href };
-      });
+      const items = links.filter((l) => l.group === group).map((l) => ({ label: l.label, href: eduLinkHref(l.to) }));
       if (items.length > 0) next.push({ title: GROUP_LABEL[group], items });
     }
     const extra = readLinksFromContainer(document.querySelector(SIDEBAR_SELECTOR)).filter((l) => !covered.has(l.href ?? ''));
@@ -176,7 +176,7 @@ export function MobileNav() {
     });
 
     setGroups(next);
-  }, [open]);
+  }, [open, ready, has]);
 
   React.useEffect(() => {
     if (!open) return;

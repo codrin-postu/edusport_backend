@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { oldTablesRedirect, readTabeleQuery, tablesTo } from '../../tables/routes';
-import { CONTABILITATE_PATH, contabTo, oldMoneyRedirect, readContabQuery } from '../routes';
+import { CONTABILITATE_PATH, contabTo, oldMoneyRedirect, readContabQuery, visibleContabTabs } from '../routes';
 
 describe('Contabilitate address', () => {
   it('reads tab and month with defaults and clamping', () => {
@@ -45,5 +45,17 @@ describe('Tabele address', () => {
     expect(oldTablesRedirect('?vedere=tabele&v=rm-ramas')).toBe('/plugins/edusport-tabele?v=rm-ramas');
     expect(oldTablesRedirect('?vedere=tabele')).toBe('/plugins/edusport-tabele');
     expect(oldTablesRedirect('?v=x')).toBeNull();
+  });
+});
+
+describe('Contabilitate tabs by area', () => {
+  it('without money: Restante, Abonamente, Plati; with money all four', () => {
+    expect(visibleContabTabs((a) => a === 'club')).toEqual(['restante', 'abonamente', 'plati']);
+    expect(visibleContabTabs((a) => a === 'money')).toEqual(['restante', 'abonamente', 'plati', 'pe-grupe']);
+  });
+  it('a tab not allowed reads as Restante', () => {
+    expect(readContabQuery('?tab=pe-grupe', '2026-11-12', ['restante', 'abonamente', 'plati']).tab).toBe('restante');
+    expect(readContabQuery('?tab=pe-grupe', '2026-11-12').tab).toBe('pe-grupe');
+    expect(readContabQuery('?tab=plati', '2026-11-12', ['restante', 'abonamente', 'plati']).tab).toBe('plati');
   });
 });

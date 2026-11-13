@@ -12,7 +12,7 @@ it('Sezoane is a custom page; Prețuri keeps its route', () => {
 it('the sidebar pins Sezoane at the top, between Setări site and Meniu site, with a calendar icon', () => {
   const read = (p: string) => readFileSync(join(__dirname, '..', '..', p), 'utf8');
   expect(read('admin/dashboard/menu.tsx')).toMatch(
-    /\{ to: SETARI_SITE_TO,[^\n]*pinned: true \},\n\s*\{ to: SEZOANE_TO, label: 'Sezoane', icon: Calendar, group: 'system', pinned: true \},\n\s*\{ to: NAVIGATION_TO,/,
+    /\{ to: SETARI_SITE_TO,[^\n]*pinned: true, area: 'settings' \},\n\s*\{ to: SEZOANE_TO, label: 'Sezoane', icon: Calendar, group: 'system', pinned: true, area: 'settings' \},\n\s*\{ to: NAVIGATION_TO,/,
   );
   expect(read('admin/dashboard/EdusportShell.tsx')).toContain("[SEZOANE_TO]: 'calendar'");
 });

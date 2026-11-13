@@ -4,6 +4,7 @@ import { Button, Field, Input, Loading, Modal, adminToast } from '../../ui';
 import type { AccountAnswer, AccountBlock as AccountBlockData } from '../../../club/portal/accounts/api-types';
 import { ACCESS_ACTIONS, ACCESS_COPY } from '../../../club/portal/access/copy';
 import { ACCOUNT_BLOCK, accountBlockActions, accountDisableConfirmText } from '../../../club/portal/copy-admin';
+import { useAreas } from '../../lib/useAreas';
 import { accountDate, accountErrorText, usePortalAccountApi } from './api';
 
 const FAILED = 'Acțiunea nu a reușit.';
@@ -13,7 +14,11 @@ const FAILED = 'Acțiunea nu a reușit.';
  * It sits in the "Membri echipă" editor and in the coach window of the group page (ruling 22: the team member
  * editor is the custom page, not the Content Manager).
  */
-export function AccountBlock({ teamMemberId, name }: { teamMemberId: string; name: string }) {
+export function AccountBlock(props: { teamMemberId: string; name: string }) {
+  return useAreas().has('coachAccounts') ? <AccountBlockBody {...props} /> : null;
+}
+
+function AccountBlockBody({ teamMemberId, name }: { teamMemberId: string; name: string }) {
   const api = usePortalAccountApi();
   const [block, setBlock] = React.useState<AccountBlockData | null>(null);
   const [email, setEmail] = React.useState('');

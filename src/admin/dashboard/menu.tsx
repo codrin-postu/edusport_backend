@@ -15,6 +15,7 @@ import { TABELE_PATH, TABLES_AREA } from '../../club/tables/routes';
 import { SECURITY_COPY } from '../../club/security/copy';
 import { OLD_EDITOR_PATH, SPORTIVI_PATH } from '../../club/sportivi/routes';
 import type { AdminArea } from '../../club/admin-area';
+import { gated, gatedLazy } from '../lib/AreaGate';
 import { GRUPE_PATH } from '../../club/grupe/routes';
 import { PREZENTA_PATH, ABONAMENTE_PATH, PLATI_PATH, DE_INCASAT_PATH } from '../../club/prezenta/routes';
 
@@ -50,7 +51,7 @@ export interface EdusportLink {
   group: Group;
   featured?: boolean; // shown in the dashboard "Scurtături" grid
   pinned?: boolean;   // shown at the top of the sidebar, next to Acasă
-  area?: AdminArea;   // role area; the shell ignores it until 6b
+  area: AdminArea;    // role area: the sidebar and the phone menu hide the entry outside it, and the page is gated on it
 }
 
 export const GROUP_LABEL: Record<Group, string> = {
@@ -138,73 +139,75 @@ const collection = (uid: string) => `/content-manager/collection-types/${uid}`;
 
 export const EDUSPORT_LINKS: EdusportLink[] = [
   // Formulare (hub + results)
-  { to: FORMULARE_TO, label: 'Formulare', icon: Feather, group: 'forms', featured: true },
-  { to: INSCRIERI_TO, label: 'Înscrieri', icon: Mail, group: 'forms', featured: true },
-  { to: VOLUNTARI_TO, label: 'Voluntari', icon: User, group: 'forms' },
-  { to: PARTENERI_REZULTATE_TO, label: 'Parteneri', icon: Duplicate, group: 'forms' },
-  { to: MESAJE_TO, label: 'Contact', icon: Mail, group: 'forms' },
+  { to: FORMULARE_TO, label: 'Formulare', icon: Feather, group: 'forms', featured: true, area: 'club' },
+  { to: INSCRIERI_TO, label: 'Înscrieri', icon: Mail, group: 'forms', featured: true, area: 'club' },
+  { to: VOLUNTARI_TO, label: 'Voluntari', icon: User, group: 'forms', area: 'club' },
+  { to: PARTENERI_REZULTATE_TO, label: 'Parteneri', icon: Duplicate, group: 'forms', area: 'club' },
+  { to: MESAJE_TO, label: 'Contact', icon: Mail, group: 'forms', area: 'club' },
 
   // Program și calendar
-  { to: PROGRAM_EDIT_TO, label: 'Calendar și serii', icon: Calendar, group: 'program', featured: true },
+  { to: PROGRAM_EDIT_TO, label: 'Calendar și serii', icon: Calendar, group: 'program', featured: true, area: 'club' },
 
   // Club și școală
-  { to: GRUPE_TO, label: 'Grupe', icon: GridFour, group: 'club', featured: true },
-  { to: SPORTIVI_TO, label: 'Sportivi', icon: User, group: 'club', featured: true },
-  { to: PREZENTA_PATH, label: 'Prezență', icon: Clock, group: 'club' },
-  { to: CONTABILITATE_PATH, label: 'Contabilitate', icon: ChartPie, group: 'club' },
+  { to: GRUPE_TO, label: 'Grupe', icon: GridFour, group: 'club', featured: true, area: 'club' },
+  { to: SPORTIVI_TO, label: 'Sportivi', icon: User, group: 'club', featured: true, area: 'club' },
+  { to: PREZENTA_PATH, label: 'Prezență', icon: Clock, group: 'club', area: 'club' },
+  { to: CONTABILITATE_PATH, label: 'Contabilitate', icon: ChartPie, group: 'club', area: 'club' },
   { to: TABELE_PATH, label: 'Tabele', icon: GridFour, group: 'club', area: TABLES_AREA },
 
   // Sportivi și echipă
   // Re-pointed from collection('api::team-member.team-member'): team members are
   // now edited on the custom Membri echipă page.
-  { to: MEMBRI_TO, label: 'Membri echipă', icon: GridFour, group: 'team', featured: true },
-  { to: COMPETITII_TO, label: 'Competiții', icon: Star, group: 'team', featured: true },
-  { to: DISCIPLINE_TO, label: 'Discipline', icon: ChartCircle, group: 'team' },
+  { to: MEMBRI_TO, label: 'Membri echipă', icon: GridFour, group: 'team', featured: true, area: 'website' },
+  { to: COMPETITII_TO, label: 'Competiții', icon: Star, group: 'team', featured: true, area: 'website' },
+  { to: DISCIPLINE_TO, label: 'Discipline', icon: ChartCircle, group: 'team', area: 'website' },
 
   // Pagini site
-  { to: HOMEPAGE_EDIT_TO, label: 'Pagina principală', icon: House, group: 'pages', featured: true },
-  { to: CURSURI_TO, label: 'Cursuri', icon: Book, group: 'pages', featured: true },
-  { to: PRETURI_TO, label: 'Prețuri', icon: Cursor, group: 'pages', featured: true },
-  { to: REGULAMENT_TO, label: 'Regulament', icon: Feather, group: 'pages' },
-  { to: PAGINA_PROGRAM_TO, label: 'Pagina Program', icon: Calendar, group: 'pages' },
-  { to: PAGINA_ECHIPA_TO, label: 'Pagina Echipă', icon: GridFour, group: 'pages' },
-  { to: ISTORIC_TO, label: 'Istoric', icon: Clock, group: 'pages' },
-  { to: REALIZARI_TO, label: 'Realizări', icon: Star, group: 'pages' },
-  { to: PAGINA_PARTENERI_TO, label: 'Parteneri', icon: Duplicate, group: 'pages' },
+  { to: HOMEPAGE_EDIT_TO, label: 'Pagina principală', icon: House, group: 'pages', featured: true, area: 'website' },
+  { to: CURSURI_TO, label: 'Cursuri', icon: Book, group: 'pages', featured: true, area: 'website' },
+  { to: PRETURI_TO, label: 'Prețuri', icon: Cursor, group: 'pages', featured: true, area: 'website' },
+  { to: REGULAMENT_TO, label: 'Regulament', icon: Feather, group: 'pages', area: 'website' },
+  { to: PAGINA_PROGRAM_TO, label: 'Pagina Program', icon: Calendar, group: 'pages', area: 'website' },
+  { to: PAGINA_ECHIPA_TO, label: 'Pagina Echipă', icon: GridFour, group: 'pages', area: 'website' },
+  { to: ISTORIC_TO, label: 'Istoric', icon: Clock, group: 'pages', area: 'website' },
+  { to: REALIZARI_TO, label: 'Realizări', icon: Star, group: 'pages', area: 'website' },
+  { to: PAGINA_PARTENERI_TO, label: 'Parteneri', icon: Duplicate, group: 'pages', area: 'website' },
   // Re-pointed from single('api::volunteer-page.volunteer-page'): the page is
   // now edited on the custom, compact Voluntariat editor.
-  { to: VOLUNTARIAT_EDIT_TO, label: 'Voluntariat', icon: Bell, group: 'pages' },
+  { to: VOLUNTARIAT_EDIT_TO, label: 'Voluntariat', icon: Bell, group: 'pages', area: 'website' },
 
   // Articole și media
   // Stays on the Strapi editor until the Articole page is built (ARTICOLE_TO
   // exists as a route already, see CUSTOM-PAGES.md).
-  { to: collection(UID.article), label: 'Articole', icon: Book, group: 'content', featured: true },
+  { to: collection(UID.article), label: 'Articole', icon: Book, group: 'content', featured: true, area: 'website' },
   // Re-pointed from single('api::announcement.announcement'): that single-type
   // route is dead — announcements are now a hidden collection driven by the
   // custom Anunțuri page.
-  { to: ANUNTURI_TO, label: 'Anunțuri', icon: Bell, group: 'content', pinned: true },
+  { to: ANUNTURI_TO, label: 'Anunțuri', icon: Bell, group: 'content', pinned: true, area: 'website' },
   // Re-pointed from collection('api::sponsor.sponsor'): sponsors are now edited
   // on the custom Sponsori list page.
-  { to: SPONSORI_TO, label: 'Sponsori', icon: Duplicate, group: 'content' },
-  { to: EVENIMENTE_COLABORARE_TO, label: 'Evenimente colaborare', icon: Calendar, group: 'content' },
-  { to: MOMENTE_ISTORIC_TO, label: 'Momente istoric', icon: Clock, group: 'content' },
+  { to: SPONSORI_TO, label: 'Sponsori', icon: Duplicate, group: 'content', area: 'website' },
+  { to: EVENIMENTE_COLABORARE_TO, label: 'Evenimente colaborare', icon: Calendar, group: 'content', area: 'website' },
+  { to: MOMENTE_ISTORIC_TO, label: 'Momente istoric', icon: Clock, group: 'content', area: 'website' },
 
   // Sistem
-  { to: '/plugins/upload', label: 'Media', icon: GridFour, group: 'system' },
-  { to: SETARI_SITE_TO, label: 'Setări site', icon: Pencil, group: 'system', pinned: true },
-  { to: SEZOANE_TO, label: 'Sezoane', icon: Calendar, group: 'system', pinned: true },
-  { to: NAVIGATION_TO, label: 'Meniu site', icon: GridFour, group: 'system', pinned: true },
-  { to: SECURITATE_TO, label: SECURITY_COPY.page.title, icon: Lock, group: 'system' },
+  { to: '/plugins/upload', label: 'Media', icon: GridFour, group: 'system', area: 'website' },
+  { to: SETARI_SITE_TO, label: 'Setări site', icon: Pencil, group: 'system', pinned: true, area: 'settings' },
+  { to: SEZOANE_TO, label: 'Sezoane', icon: Calendar, group: 'system', pinned: true, area: 'settings' },
+  { to: NAVIGATION_TO, label: 'Meniu site', icon: GridFour, group: 'system', pinned: true, area: 'website' },
+  { to: SECURITATE_TO, label: SECURITY_COPY.page.title, icon: Lock, group: 'system', area: 'any' },
 ];
+
+/** The links a caller's areas allow; the sidebar and the phone menu draw only these. */
+export function visibleLinks(links: EdusportLink[], has: (a: AdminArea) => boolean): EdusportLink[] {
+  return links.filter((l) => has(l.area));
+}
 
 export function registerEdusportMenu(app: StrapiApp) {
   // Route only, no menu link (see UI_REFERENCE_TO).
   app.router.addRoute({
     path: `${UI_REFERENCE_TO.slice(1)}/*`,
-    lazy: async () => {
-      const mod = await import('./UiReferencePage');
-      return { Component: mod.default };
-    },
+    lazy: gatedLazy('any', () => import('./UiReferencePage')),
   });
 
   // Custom pages in src/admin/pages: route only, one per CUSTOM_PAGES entry.
@@ -213,10 +216,7 @@ export function registerEdusportMenu(app: StrapiApp) {
   for (const page of CUSTOM_PAGES) {
     app.router.addRoute({
       path: `${page.to.slice(1)}/*`,
-      lazy: async () => {
-        const mod = await page.load();
-        return { Component: mod.default as React.ComponentType };
-      },
+      lazy: gatedLazy(page.area, page.load),
     });
   }
 
@@ -225,7 +225,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: DASHBOARD_TO,
     icon: House,
     intlLabel: { id: 'edusport.menu.dashboard', defaultMessage: 'Panou EduSport' },
-    Component: () => import('./DashboardPage'),
+    Component: gated('any', () => import('./DashboardPage')),
     permissions: [],
     position: 1,
   });
@@ -234,7 +234,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: FORMULARE_TO,
     icon: Feather,
     intlLabel: { id: 'edusport.menu.formulare', defaultMessage: 'Formulare' },
-    Component: () => import('./FormularePage'),
+    Component: gated('club', () => import('./FormularePage')),
     permissions: [],
     position: 2,
   });
@@ -243,7 +243,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: INSCRIERI_TO,
     icon: Mail,
     intlLabel: { id: 'edusport.menu.inscrieri', defaultMessage: 'Înscrieri' },
-    Component: () => import('./InscrieriPage'),
+    Component: gated('club', () => import('./InscrieriPage')),
     permissions: [],
     position: 3,
   });
@@ -252,7 +252,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: MESAJE_TO,
     icon: Mail,
     intlLabel: { id: 'edusport.menu.mesaje', defaultMessage: 'Mesaje contact' },
-    Component: () => import('./MesajePage'),
+    Component: gated('club', () => import('./MesajePage')),
     permissions: [],
     position: 4,
   });
@@ -261,7 +261,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: VOLUNTARI_TO,
     icon: User,
     intlLabel: { id: 'edusport.menu.voluntari', defaultMessage: 'Voluntari' },
-    Component: () => import('./VoluntariPage'),
+    Component: gated('club', () => import('./VoluntariPage')),
     permissions: [],
     position: 12,
   });
@@ -270,7 +270,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: PARTENERI_REZULTATE_TO,
     icon: Duplicate,
     intlLabel: { id: 'edusport.menu.parteneriRezultate', defaultMessage: 'Parteneri' },
-    Component: () => import('./ParteneriRezultatePage'),
+    Component: gated('club', () => import('./ParteneriRezultatePage')),
     permissions: [],
     position: 13,
   });
@@ -279,7 +279,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: FORM_EDITOR_TO,
     icon: Pencil,
     intlLabel: { id: 'edusport.menu.formEditor', defaultMessage: 'Editor formular' },
-    Component: () => import('./FormEditorPage'),
+    Component: gated('club', () => import('./FormEditorPage')),
     permissions: [],
     position: 5,
   });
@@ -288,7 +288,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: GRUPE_TO,
     icon: GridFour,
     intlLabel: { id: 'edusport.menu.grupe', defaultMessage: 'Grupe' },
-    Component: () => import('./GrupePage'),
+    Component: gated('club', () => import('./GrupePage')),
     permissions: [],
     position: 6,
   });
@@ -297,7 +297,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: SPORTIVI_TO,
     icon: User,
     intlLabel: { id: 'edusport.menu.sportivi', defaultMessage: 'Sportivi' },
-    Component: () => import('./SportiviPage'),
+    Component: gated('club', () => import('./SportiviPage')),
     permissions: [],
     position: 6,
   });
@@ -307,7 +307,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: PREZENTA_PATH,
     icon: Clock,
     intlLabel: { id: 'edusport.menu.prezenta', defaultMessage: 'Prezență' },
-    Component: () => import('./PrezentaPage'),
+    Component: gated('club', () => import('./PrezentaPage')),
     permissions: [],
     position: 7,
   });
@@ -316,7 +316,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: CONTABILITATE_PATH,
     icon: ChartPie,
     intlLabel: { id: 'edusport.menu.contabilitate', defaultMessage: 'Contabilitate' },
-    Component: () => import('./ContabilitatePage'),
+    Component: gated('club', () => import('./ContabilitatePage')),
     permissions: [],
     position: 7,
   });
@@ -326,7 +326,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: TABELE_PATH,
     icon: GridFour,
     intlLabel: { id: 'edusport.menu.tabele', defaultMessage: 'Tabele' },
-    Component: () => import('./TabeleRoutePage'),
+    Component: gated('money', () => import('./TabeleRoutePage')),
     permissions: [],
     position: 7,
   });
@@ -335,27 +335,21 @@ export function registerEdusportMenu(app: StrapiApp) {
   for (const path of [ABONAMENTE_PATH, PLATI_PATH, DE_INCASAT_PATH, BANI_PATH]) {
     app.router.addRoute({
       path: `${path.slice(1)}/*`,
-      lazy: async () => {
-        const mod = await import('./RedirectPage');
-        return { Component: mod.default };
-      },
+      lazy: gatedLazy('club', () => import('./RedirectPage')),
     });
   }
 
   // The old profile editor: route only, it redirects to the athlete record (spec 7).
   app.router.addRoute({
     path: `${SPORTIV_EDIT_TO.slice(1)}/*`,
-    lazy: async () => {
-      const mod = await import('./SportivEditPage');
-      return { Component: mod.default };
-    },
+    lazy: gatedLazy('club', () => import('./SportivEditPage')),
   });
 
   app.addMenuLink({
     to: COMPETITII_TO,
     icon: Star,
     intlLabel: { id: 'edusport.menu.competitii', defaultMessage: 'Competiții' },
-    Component: () => import('./CompetitiiPage'),
+    Component: gated('website', () => import('./CompetitiiPage')),
     permissions: [],
     position: 8,
   });
@@ -364,7 +358,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: PROGRAM_EDIT_TO,
     icon: Calendar,
     intlLabel: { id: 'edusport.menu.program', defaultMessage: 'Calendar și serii' },
-    Component: () => import('./ProgramEditPage'),
+    Component: gated('club', () => import('./ProgramEditPage')),
     permissions: [],
     position: 11,
   });
@@ -373,7 +367,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: HOMEPAGE_EDIT_TO,
     icon: House,
     intlLabel: { id: 'edusport.menu.homepage', defaultMessage: 'Pagina principală' },
-    Component: () => import('./HomepageEditPage'),
+    Component: gated('website', () => import('./HomepageEditPage')),
     permissions: [],
     position: 10,
   });
@@ -382,7 +376,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: NAVIGATION_TO,
     icon: GridFour,
     intlLabel: { id: 'edusport.menu.meniuSite', defaultMessage: 'Meniu site' },
-    Component: () => import('./NavigationPage'),
+    Component: gated('website', () => import('./NavigationPage')),
     permissions: [],
     position: 16,
   });
@@ -391,7 +385,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: ANUNTURI_TO,
     icon: Bell,
     intlLabel: { id: 'edusport.menu.anunturi', defaultMessage: 'Anunțuri' },
-    Component: () => import('./AnunturiPage'),
+    Component: gated('website', () => import('./AnunturiPage')),
     permissions: [],
     position: 14,
   });
@@ -400,7 +394,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: ANUNT_EDIT_TO,
     icon: Pencil,
     intlLabel: { id: 'edusport.menu.anuntEdit', defaultMessage: 'Editor anunț' },
-    Component: () => import('./AnuntEditPage'),
+    Component: gated('website', () => import('./AnuntEditPage')),
     permissions: [],
     position: 15,
   });
@@ -409,7 +403,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: SPONSORI_TO,
     icon: Duplicate,
     intlLabel: { id: 'edusport.menu.sponsori', defaultMessage: 'Sponsori' },
-    Component: () => import('./SponsoriPage'),
+    Component: gated('website', () => import('./SponsoriPage')),
     permissions: [],
     position: 17,
   });
@@ -418,7 +412,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: MEMBRI_TO,
     icon: GridFour,
     intlLabel: { id: 'edusport.menu.membri', defaultMessage: 'Membri echipă' },
-    Component: () => import('./MembriEchipaPage'),
+    Component: gated('website', () => import('./MembriEchipaPage')),
     permissions: [],
     position: 19,
   });
@@ -427,7 +421,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: VOLUNTARIAT_EDIT_TO,
     icon: Bell,
     intlLabel: { id: 'edusport.menu.voluntariat', defaultMessage: 'Pagina Voluntariat' },
-    Component: () => import('./VoluntariatEditPage'),
+    Component: gated('website', () => import('./VoluntariatEditPage')),
     permissions: [],
     position: 18,
   });
@@ -437,7 +431,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: SECURITATE_TO,
     icon: Lock,
     intlLabel: { id: 'edusport.menu.securitate', defaultMessage: SECURITY_COPY.page.title },
-    Component: () => import('../pages/SecuritatePage'),
+    Component: gated('any', () => import('../pages/SecuritatePage')),
     permissions: [],
     position: 20,
   });
@@ -446,7 +440,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: COMPETITIE_EDIT_TO,
     icon: Pencil,
     intlLabel: { id: 'edusport.menu.competitieEdit', defaultMessage: 'Editor competiție' },
-    Component: () => import('./CompetitieEditPage'),
+    Component: gated('website', () => import('./CompetitieEditPage')),
     permissions: [],
     position: 9,
   });

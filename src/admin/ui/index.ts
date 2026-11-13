@@ -63,6 +63,7 @@ export {
   type ToastAction,
 } from './Toast';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
+export { NoAccess } from './NoAccess';
 export { StatTile, type StatTileProps } from './StatTile';
 export { Spinner, Loading, type SpinnerProps } from './Spinner';
 export { Modal, type ModalProps } from './Modal';

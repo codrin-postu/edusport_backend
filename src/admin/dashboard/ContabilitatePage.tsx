@@ -2,9 +2,10 @@ import * as React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AdminPage, Button, Loading, Notice, PageHeader, Tabs, Window } from '../ui';
 import { nextMonthAllowed } from '../../club/bani/money-view';
-import { contabTo, readContabQuery, type ContabTab } from '../../club/contabilitate/routes';
+import { contabTo, readContabQuery, visibleContabTabs, type ContabTab } from '../../club/contabilitate/routes';
 import { todayIso } from '../../club/groups/http';
 import type { AdminArea } from '../../club/admin-area';
+import { useAreas } from '../lib/useAreas';
 import { PRESENCE_ERRORS } from '../../club/presence/copy/core';
 import { CONTABILITATE_COPY, MONEY_UI_COPY } from '../../club/presence/copy/money-ui';
 import { addMonths, monthOf, monthTitle } from '../../club/presence/dates';
@@ -23,14 +24,20 @@ import { PlatiBody } from './bani/PlatiList';
 import { MONEY_CSS } from './bani/styles';
 
 const copy = CONTABILITATE_COPY;
-/** "Pe scurt" and "Pe grupe" read /club/money/*, which is area `money`; Restanțe, Abonamente and Plăți have none. The shell ignores areas until 6b, which filters on these. */
+/** "Pe scurt" and "Pe grupe" read /club/money/*, which is area `money`; Restanțe, Abonamente and Plăți have none. */
 export const GLANCE_AREA: AdminArea = 'money';
-export const TABS: { id: ContabTab; label: string; area?: AdminArea }[] = [
+export const TABS: { id: ContabTab; label: string }[] = [
   { id: 'restante', label: copy.tabs.restante },
   { id: 'abonamente', label: copy.tabs.abonamente },
   { id: 'plati', label: copy.tabs.plati },
-  { id: 'pe-grupe', label: copy.tabs.peGrupe, area: 'money' },
+  { id: 'pe-grupe', label: copy.tabs.peGrupe },
 ];
+
+/** The tabs a caller's areas allow. */
+export function visibleTabs(has: (a: AdminArea) => boolean): typeof TABS {
+  const shown = visibleContabTabs(has);
+  return TABS.filter((t) => shown.includes(t.id));
+}
 
 /** One month's figures, reloaded after every money write; a stale answer of an earlier month is dropped, and a reload keeps the figures on screen. */
 function useMonthData<T>(load: (month: string) => Promise<T>, month: string, on: boolean): { data: T | null; failed: boolean } {
@@ -65,10 +72,13 @@ export default function ContabilitatePage() {
   const api = useMoneyApi();
   const navigate = useNavigate();
   const [search, setSearch] = useSearchParams();
-  const { tab, month, rest } = readContabQuery(search.toString(), today);
+  const { ready, has } = useAreas();
+  const money = has(GLANCE_AREA);
+  const tabs = visibleTabs(has);
+  const { tab, month, rest } = readContabQuery(search.toString(), today, tabs.map((t) => t.id));
   const [host, setHost] = React.useState<HTMLElement | null>(null);
-  const overview = useMonthData<MoneyOverview>(api.overview, month, true);
-  const accounting = useMonthData<Accounting>(api.accounting, month, tab === 'pe-grupe');
+  const overview = useMonthData<MoneyOverview>(api.overview, month, money);
+  const accounting = useMonthData<Accounting>(api.accounting, month, money && tab === 'pe-grupe');
   const withUrl = (url: string) => new URLSearchParams(url.split('?')[1] ?? '');
   const goMonth = (next: string) => setSearch(withUrl(contabTo({ tab, month: next, params: Object.fromEntries(rest) })), { replace: true });
   const setParams = (next: URLSearchParams) => setSearch(withUrl(contabTo({ tab, month, params: Object.fromEntries(next) })), { replace: true });
@@ -80,19 +90,20 @@ export default function ContabilitatePage() {
       <Button size="sm" variant="secondary" disabled={!nextMonthAllowed(month, today)} aria-label={monthTitle(addMonths(month, 1))} onClick={() => goMonth(addMonths(month, 1))}>&gt;</Button>
     </div>
   );
-  const label = TABS.find((t) => t.id === tab)?.label ?? '';
+  if (!ready) return <AdminPage><Loading /></AdminPage>;
+  const label = tabs.find((t) => t.id === tab)?.label ?? '';
   return (
     <AdminPage>
       <style>{SPORTIVI_CSS + PREZENTA_CSS + MONEY_CSS}</style>
       <Window>
         <PageHeader title={copy.title} actions={stepper} />
-        {overview.failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
-        {!overview.data && !overview.failed && <Loading />}
-        <header className="ui-ph"><div><h2 className="ui-ph-title">{copy.glance}</h2></div></header>
-        {overview.data && <BaniCards cards={overview.data.cards} month={month} current={month === monthOf(today)} onOpen={(to, params) => navigate(contabTo({ tab: to, month, params }))} />}
+        {money && overview.failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
+        {money && !overview.data && !overview.failed && <Loading />}
+        {money && <header className="ui-ph"><div><h2 className="ui-ph-title">{copy.glance}</h2></div></header>}
+        {money && overview.data && <BaniCards cards={overview.data.cards} month={month} current={month === monthOf(today)} onOpen={(to, params) => navigate(contabTo({ tab: to, month, params }))} />}
         <Tabs
           label={copy.title} value={tab} panelId="contab-panel"
-          items={TABS.map(({ id, label: text }) => ({ id, label: text }))}
+          items={tabs.map(({ id, label: text }) => ({ id, label: text }))}
           onChange={(id) => navigate(contabTo({ tab: id as ContabTab, month }))}
         />
       </Window>

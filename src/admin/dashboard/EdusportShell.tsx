@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
-import { EDUSPORT_LINKS, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, UMAMI_URL, ANUNTURI_TO, NAVIGATION_TO, SEZOANE_TO } from './menu';
+import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, UMAMI_URL, ANUNTURI_TO, NAVIGATION_TO, SEZOANE_TO } from './menu';
 import type { Group } from './menu';
 import { scaleVars } from '../ui/tokens';
+import { useAreas } from '../lib/useAreas';
 
 /** --palette-* and --ui-* declarations for the shell's own roots. */
 const SHELL_VARS = Object.entries(scaleVars())
@@ -364,6 +365,8 @@ export function tagShellParent(): void {
 }
 
 function EdusportShell() {
+  const { has } = useAreas();
+  const links = visibleLinks(EDUSPORT_LINKS, has);
   const [mode, setMode] = React.useState<Mode>(getStoredMode);
   const [path, setPath] = React.useState<string>(() => window.location.pathname);
   const [openGroups, setOpenGroups] = React.useState<OpenState>(() => getInitialOpen(window.location.pathname));
@@ -492,7 +495,7 @@ function EdusportShell() {
     );
   }
 
-  const groupLinks = (group: Group) => EDUSPORT_LINKS.filter((l) => l.group === group && !l.pinned);
+  const groupLinks = (group: Group) => links.filter((l) => l.group === group && !l.pinned);
   const flyLinks = flyGroup ? groupLinks(flyGroup) : [];
 
   return (
@@ -525,7 +528,7 @@ function EdusportShell() {
               <Icon name="chart" /><span className="esd-lbl">Analiză trafic</span>
             </a>
           ) : null}
-          {EDUSPORT_LINKS.filter((l) => l.pinned).map((l) => (
+          {links.filter((l) => l.pinned).map((l) => (
             <a
               key={l.to}
               href={`/admin${l.to}`}

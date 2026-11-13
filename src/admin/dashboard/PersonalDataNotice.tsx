@@ -6,7 +6,7 @@ import { PERSONAL_DATA_COPY } from '../../club/personal-data/copy';
 import type { InactiveSummary } from '../../club/personal-data/settings';
 import { inactiveListTo } from '../../club/sportivi/routes';
 import { useSportiviApi, type SportiviApi } from './sportivi/api';
-import { useIsSuperAdmin } from './sportivi/useSuperAdmin';
+import { useAreas } from '../lib/useAreas';
 
 function useInactiveSummary(api: SportiviApi) {
   const [summary, setSummary] = React.useState<InactiveSummary | null>(null);
@@ -25,7 +25,7 @@ function useInactiveSummary(api: SportiviApi) {
 /** Dashboard notice (3C spec 5): while athletes are past the retention period and the review is not hidden this season. It only informs. */
 export function PersonalDataNotice() {
   const api = useSportiviApi();
-  const superAdmin = useIsSuperAdmin();
+  const superAdmin = useAreas().has('superAdmin');
   const navigate = useNavigate();
   const { summary, setSummary } = useInactiveSummary(api);
   const [busy, setBusy] = React.useState(false);

@@ -17,8 +17,11 @@ import {
 } from '../ui';
 import { FORMULARE_TO, PROGRAM_EDIT_TO } from './menu';
 import { FORM_DEFS, fetchNewCount, tileStyle } from './formDefs';
+import type { AdminArea } from '../../club/admin-area';
 import { addAthleteTo } from '../../club/sportivi/routes';
 import { PersonalDataNotice } from './PersonalDataNotice';
+import { useAreas } from '../lib/useAreas';
+import { dashboardParts } from '../../club/dashboard-parts';
 
 /**
  * EduSport admin dashboard page (Direction A).
@@ -230,11 +233,13 @@ const CSS = `
 .ui-root .dash-qa-i{width:20px;display:inline-flex;justify-content:center;font-weight:800;font-size:14px}
 `;
 
-type QuickAction = { label: string; to: string; ic: string; primary?: boolean };
+type QuickAction = { label: string; to: string; ic: string; primary?: boolean; area: AdminArea };
 
 export default function DashboardPage() {
   const { get, put } = useFetchClient();
   const navigate = useNavigate();
+  const { ready, has } = useAreas();
+  const parts = dashboardParts(has);
 
   const today = React.useMemo(() => new Date(), []);
   const todayStr = ymd(today);
@@ -263,6 +268,7 @@ export default function DashboardPage() {
 
   // --- KPIs
   React.useEffect(() => {
+    if (!ready) return undefined;
     let off = false;
     const year = today.getFullYear();
     const count = async (uid: string, params: Record<string, unknown> = {}): Promise<number | null> => {
@@ -285,6 +291,7 @@ export default function DashboardPage() {
       } catch { return null; }
     };
     const activeAthletes = async (): Promise<number | null> => {
+      if (!parts.athletes) return null;
       try {
         const r = (await get('/api/club/summary')) as { data?: { data?: { activeAthletes?: unknown } } };
         const v = r?.data?.data?.activeAthletes;
@@ -313,7 +320,7 @@ export default function DashboardPage() {
       setKpis(out);
     });
     return () => { off = true; };
-  }, [get, today]);
+  }, [get, today, ready, parts.athletes]);
 
   // --- upcoming events (next 30 days)
   React.useEffect(() => {
@@ -335,6 +342,7 @@ export default function DashboardPage() {
 
   // --- new-entry counts for every live form (shared defs, per-form dialect)
   React.useEffect(() => {
+    if (!parts.feed) return undefined;
     let off = false;
     FORM_DEFS.filter((d) => d.live).forEach((def) => {
       fetchNewCount(get, def).then((n) => {
@@ -342,10 +350,11 @@ export default function DashboardPage() {
       });
     });
     return () => { off = true; };
-  }, [get]);
+  }, [get, parts.feed]);
 
   // --- registration (season) state
   React.useEffect(() => {
+    if (!parts.season) return undefined;
     let off = false;
     get(`/content-manager/single-types/${SITE_SETTINGS_UID}`)
       .then((r: any) => {
@@ -356,7 +365,7 @@ export default function DashboardPage() {
       })
       .catch(() => {});
     return () => { off = true; };
-  }, [get]);
+  }, [get, parts.season]);
 
   // --- analytics (Umami proxy): graceful "not connected"
   React.useEffect(() => {
@@ -413,11 +422,11 @@ export default function DashboardPage() {
   const activeTypes = FILTERS.find((f) => f.key === filter)?.types ?? [];
   const shownEvents = (events ?? []).filter((o) => activeTypes.length === 0 || activeTypes.includes(o.type)).slice(0, 6);
 
-  const quickActions: QuickAction[] = [
-    { label: 'Adaugă eveniment în calendar', to: PROGRAM_EDIT_TO, ic: '+', primary: true },
-    { label: 'Adaugă sportiv', to: addAthleteTo, ic: 'S' },
-    { label: 'Adaugă articol', to: '/content-manager/collection-types/api::article.article/create', ic: 'A' },
-  ];
+  const quickActions: QuickAction[] = ([
+    { label: 'Adaugă eveniment în calendar', to: PROGRAM_EDIT_TO, ic: '+', primary: true, area: 'club' },
+    { label: 'Adaugă sportiv', to: addAthleteTo, ic: 'S', area: 'club' },
+    { label: 'Adaugă articol', to: '/content-manager/collection-types/api::article.article/create', ic: 'A', area: 'website' },
+  ] as QuickAction[]).filter((a) => has(a.area));
 
   const feedItems = FORM_DEFS
     .filter((def) => def.live && (newCounts[def.key] ?? 0) > 0)
@@ -460,7 +469,7 @@ export default function DashboardPage() {
       <PersonalDataNotice />
 
       {/* CE E NOU feed */}
-      <Section
+      {parts.feed && <Section
         title="Ce e nou"
         className="dash-feed-sec"
         aside={totalNew > 0 ? <StatusBadge tone="danger" size="md"><span className="ui-num">{totalNew}</span> de rezolvat</StatusBadge> : undefined}
@@ -478,13 +487,13 @@ export default function DashboardPage() {
         ) : (
           <EmptyState icon={<CheckIcon />}>Nimic nou. Totul e la zi.</EmptyState>
         )}
-      </Section>
+      </Section>}
 
       <div className="dash-grid">
         {/* LEFT */}
         <div className="dash-col">
           {/* Season & registration */}
-          <Section title="Sezon și înscrieri">
+          {parts.season && <Section title="Sezon și înscrieri">
             {reg ? (
               <>
                 <div className="dash-seas">
@@ -503,13 +512,13 @@ export default function DashboardPage() {
                 </div>
               </>
             ) : <Loading />}
-          </Section>
+          </Section>}
 
           {/* Upcoming events */}
           <Section
             title="Următoarele evenimente"
             className="dash-evs"
-            aside={<Button variant="ghost" size="sm" onClick={() => navigate(PROGRAM_EDIT_TO)}>Vezi tot programul &rarr;</Button>}
+            aside={parts.program ? <Button variant="ghost" size="sm" onClick={() => navigate(PROGRAM_EDIT_TO)}>Vezi tot programul &rarr;</Button> : undefined}
           >
             <SegmentedControl<FilterKey>
               className="dash-filter"
@@ -550,7 +559,7 @@ export default function DashboardPage() {
           <HealthCard health={health} />
 
           {/* Quick actions */}
-          <Section title="Acțiuni rapide">
+          {quickActions.length > 0 && <Section title="Acțiuni rapide">
             <div className="dash-qa">
               {quickActions.map((a) => (
                 <Button
@@ -563,7 +572,7 @@ export default function DashboardPage() {
                 </Button>
               ))}
             </div>
-          </Section>
+          </Section>}
         </div>
       </div>
     </AdminPage>

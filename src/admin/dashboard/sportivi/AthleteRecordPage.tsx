@@ -17,7 +17,7 @@ import { ProfileTab } from './ProfileTab';
 import { RecordMenu } from './RecordMenu';
 import { FooterButtons, RecordFooterContext, type FooterAction } from './recordFooter';
 import { SPORTIVI_CSS } from './styles';
-import { useIsSuperAdmin } from './useSuperAdmin';
+import { useAreas } from '../../lib/useAreas';
 
 type Loaded = { record: AthleteRecord | null; failed: boolean; reload: () => Promise<void>; setRecord: (r: AthleteRecord) => void };
 
@@ -133,7 +133,7 @@ function RecordShell({ phone, title, record, actions, body, onClose }: ShellProp
 export function AthleteRecordPage({ documentId }: { documentId: string }) {
   const api = useSportiviApi();
   const phone = useIsPhone();
-  const superAdmin = useIsSuperAdmin();
+  const superAdmin = useAreas().has('superAdmin');
   const navigate = useNavigate();
   const { state } = useLocation();
   const loaded = useAthleteRecord(api, documentId, seasonFromState(state));

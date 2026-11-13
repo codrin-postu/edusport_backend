@@ -1,4 +1,5 @@
 import { ABONAMENTE_PATH, DE_INCASAT_PATH, PLATI_PATH } from '../prezenta/routes';
+import type { AdminArea } from '../admin-area';
 import { isMonth, monthOf } from '../presence/dates';
 
 export const CONTABILITATE_PATH = '/plugins/edusport-contabilitate';
@@ -10,8 +11,14 @@ export type ContabQuery = { tab: ContabTab; month: string; rest: URLSearchParams
 
 const TABS: readonly ContabTab[] = ['restante', 'abonamente', 'plati', 'pe-grupe'];
 
-/** The address of Contabilitate: default tab Restante and the current month; a month after today's is the current one. */
-export function readContabQuery(search: string, today: string): ContabQuery {
+/** "Pe grupe" reads /club/money/*, so it needs `money`; Restanțe, Abonamente and Plăți have no area of their own. */
+export const MONEY_TAB: ContabTab = 'pe-grupe';
+
+/** The tabs a caller may open, in tab order. */
+export const visibleContabTabs = (has: (a: AdminArea) => boolean): ContabTab[] => TABS.filter((t) => t !== MONEY_TAB || has('money'));
+
+/** The address of Contabilitate: default tab Restante and the current month; a month after today's is the current one; a tab not in `allowed` is Restante. */
+export function readContabQuery(search: string, today: string, allowed: readonly ContabTab[] = TABS): ContabQuery {
   const params = new URLSearchParams(search);
   const current = monthOf(today);
   const month = params.get('month');
@@ -19,7 +26,7 @@ export function readContabQuery(search: string, today: string): ContabQuery {
   rest.delete('tab');
   rest.delete('month');
   return {
-    tab: TABS.find((t) => t === params.get('tab')) ?? 'restante',
+    tab: allowed.find((t) => t === params.get('tab')) ?? 'restante',
     month: isMonth(month) && month <= current ? month : current,
     rest,
   };
