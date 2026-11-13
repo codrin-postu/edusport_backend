@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CONFIRM_ERRORS } from '../errors';
+import { ADMIN_ERRORS, CONFIRM_ERRORS } from '../errors';
 import { confirmRegistration } from '../confirm-service';
 import type { ConfirmRequest } from '../../confirm/plan';
 import { planUndo } from '../../confirm/undo-plan';
@@ -113,6 +113,14 @@ describe('errors and concurrency (spec 4.7)', () => {
     const second = await confirmRegistration(ctx(fake), 'r1', { choice: 'new', athleteId: null, groupId: null, makeMain: false, updateFields: null });
     expect(second).toEqual({ ok: false, status: 409, error: CONFIRM_ERRORS.taken });
     expect(fake.state.athletes).toHaveLength(1);
+  });
+
+  it.each(['23505', '40P01'])('a lost race (%s) answers 409 stale, not 500, and saves nothing', async (code) => {
+    const fake = fakeClubStore(seed());
+    fake.failOn('createAcs', Object.assign(new Error('race'), { code }));
+    const result = await confirmRegistration(ctx(fake), 'r1', { choice: 'new', athleteId: null, groupId: 'g-pp', makeMain: false, updateFields: null });
+    expect(result).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect(fake.state.registrations[0]).toMatchObject({ athleteId: null, status: 'Contactat' });
   });
 
   it('all or nothing: a failing write leaves no athlete, link, group, A.C.S. or history', async () => {

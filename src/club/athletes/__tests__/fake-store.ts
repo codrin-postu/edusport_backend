@@ -17,7 +17,7 @@ export type FakeState = {
   texts: string[];
 };
 export type FakeFile = { id: number; hash: string; url: string; usedBy: string[] };
-export type Fake = { store: ClubStore; state: FakeState; failOn(method: keyof ClubStore): void };
+export type Fake = { store: ClubStore; state: FakeState; failOn(method: keyof ClubStore, error?: Error): void };
 
 export const SEASONS: SeasonRow[] = [
   { id: 's25', label: '2025-2026', startMonth: '2025-10-01', endMonth: '2026-05-31', isCurrent: false },
@@ -244,10 +244,16 @@ function fakePersonalData(s: FakeState): Pick<ClubStore, PersonalData> {
   };
 }
 
-function withFailures(store: ClubStore, failing: Set<string>): ClubStore {
+function takeFailure(failing: Map<string, Error | undefined>, key: string): Error {
+  const error = failing.get(key) ?? new Error(`fake failure in ${key}`);
+  failing.delete(key);
+  return error;
+}
+
+function withFailures(store: ClubStore, failing: Map<string, Error | undefined>): ClubStore {
   const wrapped: Record<string, unknown> = {};
   for (const [key, fn] of Object.entries(store) as [string, (...args: unknown[]) => Promise<unknown>][]) {
-    wrapped[key] = (...args: unknown[]) => (failing.delete(key) ? Promise.reject(new Error(`fake failure in ${key}`)) : fn(...args));
+    wrapped[key] = (...args: unknown[]) => (failing.has(key) ? Promise.reject(takeFailure(failing, key)) : fn(...args));
   }
   return wrapped as unknown as ClubStore;
 }
@@ -259,7 +265,7 @@ const EMPTY: FakeState = {
 
 export function fakeClubStore(seed: Partial<FakeState> = {}): Fake {
   const state: FakeState = structuredClone({ ...EMPTY, ...seed });
-  const failing = new Set<string>();
+  const failing = new Map<string, Error | undefined>();
   let n = 0;
   const next: Next = (prefix) => `${prefix}-${(n += 1)}`;
   const tick = () => new Date(Date.UTC(2026, 9, 26, 12, 0, 0) + (n += 1) * 1000).toISOString();
@@ -285,5 +291,5 @@ export function fakeClubStore(seed: Partial<FakeState> = {}): Fake {
     ...fakeReads(state), ...fakeAthleteWrites(state, next, tick), ...fakeRowWrites(state, next), ...fakeProfileWrites(state, next), ...fakeHistory(state, tick),
     ...fakePersonalData(state), ...fakeMedia(state),
   };
-  return { store: withFailures(base, failing), state, failOn: (method) => failing.add(method) };
+  return { store: withFailures(base, failing), state, failOn: (method, error) => void failing.set(method, error) };
 }

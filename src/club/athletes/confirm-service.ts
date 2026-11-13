@@ -1,4 +1,4 @@
-import { refuse, type AdminResult } from '../admin-result';
+import { isRaceError, refuse, type AdminResult } from '../admin-result';
 import { pickAthleteValues } from '../athlete-data';
 import { comparisonRows, defaultUpdateFields, registrationValues } from '../confirm/compare';
 import { confirmationHistory } from '../confirm/history';
@@ -145,6 +145,7 @@ export async function confirmRegistration(ctx: ServiceContext, registrationId: s
   try {
     result = await ctx.store.transaction(() => confirmLocked(ctx, registrationId, request, jobs));
   } catch (err) {
+    if (isRaceError(err)) return refuse(409, ADMIN_ERRORS.stale);
     ctx.log(`[confirm] ${registrationId} failed: ${err instanceof Error ? err.message : String(err)}`);
     return refuse(500, CONFIRM_ERRORS.failed);
   }

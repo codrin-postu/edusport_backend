@@ -1,4 +1,4 @@
-import { guarded, refuse, type AdminResult } from '../admin-result';
+import { guarded, refuse, staleOnRace, type AdminResult } from '../admin-result';
 import { ATHLETE_FIELDS, athleteValueText, isAthleteField, pickAthleteValues, type AthleteField } from '../athlete-data';
 import { HISTORY_ACTIONS, SUBJECT } from '../history-text';
 import type { MergePreview, MergeSideView } from './api-types';
@@ -158,7 +158,7 @@ async function mergeInTransaction(ctx: ServiceContext, presence: PresenceStore, 
 export async function mergeAthletes(ctx: ServiceContext, request: MergeRequest, presence: PresenceStore): Promise<Result> {
   const tag = `[athletes] merging ${request.removedId} into ${request.keptId}`;
   const jobs: string[] = [];
-  const result = await guarded(ctx.log, tag, () => inBothTransactions(ctx.store, presence, () => mergeInTransaction(ctx, presence, request, jobs)));
+  const result = await guarded(ctx.log, tag, () => staleOnRace(() => inBothTransactions(ctx.store, presence, () => mergeInTransaction(ctx, presence, request, jobs))));
   if (result.ok === true) for (const jobId of jobs) ctx.access?.afterCommit(jobId);
   if (result.ok === true) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after a merge');
   return result;
