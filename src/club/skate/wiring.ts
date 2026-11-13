@@ -9,5 +9,5 @@ import { strapiSnapshotStore } from './strapi-store';
 export function strapiCompetitions(strapi: Core.Strapi, now: () => Date): { cache: ReturnType<typeof snapshotCache>; client: SkateClient; results: CompetitionResults } {
   const cache = snapshotCache(strapiSnapshotStore(strapi), now, (job) => { setImmediate(() => { void job(); }); });
   const client = skateClient();
-  return { cache, client, results: pickedResults(cache, client, strapiHandCompetitions(strapi), now) };
+  return { cache, client, results: pickedResults(cache, client, strapiHandCompetitions(strapi), now, (message) => { strapi.log.error(message); }) };
 }

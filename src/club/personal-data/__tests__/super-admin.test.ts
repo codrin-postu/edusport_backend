@@ -8,7 +8,6 @@ import policy from '../../../policies/is-super-admin';
 import { adminSessions, routeAnswer } from '../../__tests__/admin-sessions';
 import { hasSuperAdminRole, superAdminFromMe } from '../roles';
 import type { AdminUserStrapi } from '../../admin-auth';
-import { isSuperAdminRequest } from '../super-admin';
 
 const SECRET = 'test-secret';
 const SUPER = [{ code: 'strapi-super-admin' }];
@@ -24,6 +23,11 @@ const asked: unknown[] = [];
 const strapi: AdminUserStrapi = {
   sessionManager: sessions.sessionManager,
   db: { query: () => ({ findOne: async (args) => { asked.push(args); return USERS[Number(args.where.id)] ?? null; } }) },
+};
+/** True for a Super Admin, false for a 403; every other refusal (401) is rethrown. */
+const isSuperAdminRequest = async (authorization: string | undefined, core: AdminUserStrapi): Promise<boolean> => {
+  try { return await policy({ request: { header: { authorization } } }, {}, { strapi: core as unknown as Core.Strapi }); }
+  catch (e) { if (e instanceof errors.ForbiddenError) return false; throw e; }
 };
 const accessOf = async (userId: number) => (await sessions.login(userId)).access;
 

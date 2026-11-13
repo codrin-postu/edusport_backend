@@ -62,6 +62,15 @@ describe('global::is-coach', () => {
     expect(typeof (state.coach as { sessionId: string }).sessionId).toBe('string');
   });
 
+  it('a failing admin lookup takes only schoolEdit away: the coach still passes with schoolEdit false', async () => {
+    const s = await setup();
+    const token = await s.login(1);
+    const failing = { db: { query: () => ({ findOne: async () => { throw new Error('db down'); } }) } } as unknown as Core.Strapi;
+    const state: Record<string, unknown> = {};
+    expect(await isCoach({ request: { header: withToken(token) }, state }, {}, { strapi: failing })).toBe(true);
+    expect(state.coach).toMatchObject({ teamMemberId: 'tm1', schoolEdit: false });
+  });
+
   it('host of the session decides: a sportiv token of a coach account is 403, and so is a coach side switched off', async () => {
     const s = await setup();
     await expect(call(withToken((await s.sessions.issue(1, 'dev-s', 'sportiv')).accessToken))).rejects.toBeInstanceOf(errors.ForbiddenError);

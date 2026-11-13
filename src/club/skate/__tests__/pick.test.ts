@@ -63,4 +63,28 @@ describe('pickedResults', () => {
     expect(got.get('a1')).toMatchObject({ available: true, value: [{ event_id: 501 }] });
     expect(got.get('a2')).toEqual({ available: false });
   });
+
+  it('at most 5 skate-results reads run at once', async () => {
+    let running = 0;
+    let peak = 0;
+    const client: SkateClient = {
+      results: vi.fn(async () => { running += 1; peak = Math.max(peak, running); await new Promise((r) => setTimeout(r, 5)); running -= 1; return { ok: true, value: [skateRow()] } as Fetched<SkateResult[]>; }),
+      protocol: vi.fn(), fieldSize: vi.fn(), officialUrl: vi.fn(),
+    };
+    const picked = pickedResults(snapshotCache(fakeSnapshotStore(), () => NOW, () => undefined), client, fakeHandCompetitions([]), () => NOW);
+    const refs: SkaterRef[] = Array.from({ length: 12 }, (_, i) => ({ athleteId: `a${i}`, name: `N${i}`, profileId: `p${i}`, slug: `slug-${i}` }));
+    const got = await picked.many(refs);
+    expect(got.size).toBe(12);
+    expect(client.results).toHaveBeenCalledTimes(12);
+    expect(peak).toBe(5);
+  });
+
+  it('a failing hand query logs one line without personal data', async () => {
+    const lines: string[] = [];
+    const broken = { byProfiles: async () => { throw new Error('strapi down for Bogdan'); } };
+    const { client } = setup();
+    const picked = pickedResults(snapshotCache(fakeSnapshotStore(), () => NOW, () => undefined), client, broken, () => NOW, (m) => lines.push(m));
+    await picked.many([noSlug, noSlug2]);
+    expect(lines).toEqual(['[competitions] hand-entered read failed']);
+  });
 });

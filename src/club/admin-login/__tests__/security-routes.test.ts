@@ -6,7 +6,7 @@ import controller from '../../../api/admin-auth/controllers/admin-auth';
 import security from '../../../api/admin-auth/routes/02-security';
 import admins from '../../../api/admin-auth/routes/03-admins';
 import { staticBeforeParams } from '../../groups/__tests__/route-order';
-import { isSuperAdminRequest } from '../../personal-data/super-admin';
+import isSuperAdmin from '../../../policies/is-super-admin';
 import { PORTAL_ERRORS } from '../../portal/copy';
 import { hashSecret } from '../../portal/tokens';
 import { SECURITY_ACTIONS, SECURITY_ERRORS, SECURITY_TOASTS, securityHistoryText } from '../../security/copy';
@@ -230,8 +230,9 @@ describe('who calls', () => {
     const env = secEnv();
     const ana = await env.sessions.login(7, 'dev-a');
     const bob = await env.sessions.login(8, 'dev-b');
-    expect(await isSuperAdminRequest(ana.access, env.strapi as never)).toBe(true);
-    expect(await isSuperAdminRequest(bob.access, env.strapi as never)).toBe(false);
+    const passes = (access: string): Promise<boolean> => isSuperAdmin({ request: { header: { authorization: access } } }, {}, { strapi: env.strapi as never }).then(() => true, () => false);
+    expect(await passes(ana.access)).toBe(true);
+    expect(await passes(bob.access)).toBe(false);
   });
 });
 

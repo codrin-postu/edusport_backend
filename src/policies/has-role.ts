@@ -6,8 +6,9 @@ import { areasFor, canUse, roleCodesOf } from '../club/roles/map';
 
 type PolicyContext = { request?: { header?: { authorization?: string } }; state?: Record<string, unknown> };
 
-/** `HAS_ROLE_ENFORCED` (index ruling 14): unset is on outside production and off in production; only 'true' and 'false' are read. */
-function enforced(): boolean {
+/** `HAS_ROLE_ENFORCED` (index ruling 14), except the `superAdmin` area, which is always enforced (it was Super Admin only before 6b): unset is on outside production and off in production; only 'true' and 'false' are read. */
+function enforced(area: AdminArea): boolean {
+  if (area === 'superAdmin') return true;
   const flag = process.env.HAS_ROLE_ENFORCED;
   if (flag === 'true') return true;
   if (flag === 'false') return false;
@@ -17,7 +18,7 @@ function enforced(): boolean {
 /**
  * Global policy `global::has-role`, config `{ area }`: the admin must be signed in with an active session, active and
  * not blocked (401, as `global::is-admin`), and one of their roles must grant the area (403). On a pass the areas of
- * the admin go to `policyContext.state.adminAreas` for the controllers. With enforcement off a refusal is only logged.
+ * the admin go to `policyContext.state.adminAreas` for the controllers. With enforcement off a refusal of any other area is only logged.
  * An area that is not one of `ADMIN_AREAS` is a route bug (500); a source-reading test prevents it.
  */
 export default async (policyContext: PolicyContext, config: { area?: unknown }, { strapi }: { strapi: Core.Strapi }): Promise<boolean> => {
@@ -26,7 +27,7 @@ export default async (policyContext: PolicyContext, config: { area?: unknown }, 
   const user = await requireAdminUser(policyContext.request?.header?.authorization, strapi);
   const codes = roleCodesOf(user);
   if (!canUse(codes, area as AdminArea)) {
-    if (enforced()) throw new errors.ForbiddenError('Your role does not allow this');
+    if (enforced(area as AdminArea)) throw new errors.ForbiddenError('Your role does not allow this');
     strapi.log.warn(`[has-role] would refuse ${area} for ${String(user.id)}`);
   }
   const adminAreas = [...areasFor(codes)];

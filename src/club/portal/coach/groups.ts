@@ -122,7 +122,7 @@ export async function readCoachGroupPage(c: CoachContexts, groupId: string): Pro
     ok: true,
     data: {
       groupId, name: group.name, kind, own, coaches: f.team.filter((t) => group.coachIds.includes(t.id)).map((t) => t.name), program: groupListRow(group, f).program,
-      members: own ? await members(c, groupId) : (await members(c, groupId)).map(({ name, age }) => ({ name, age })), membersReadOnly: !own, standIn, todayKey, programPublic: own && ownGroupEditable(kind, c.coach.schoolEdit) ? group.programPublic : null,
+      members: own ? await members(c, groupId) : (await members(c, groupId)).map(({ name, age }) => ({ name, age })), membersReadOnly: !own, standIn, todayKey, /* Contract: programPublic is non-null only when the caller may edit the group's program; the frontend treats non-null as editable. */ programPublic: own && ownGroupEditable(kind, c.coach.schoolEdit) ? group.programPublic : null,
       location: await locationOfGroup(c, group),
     },
   };

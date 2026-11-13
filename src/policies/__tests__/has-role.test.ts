@@ -69,6 +69,16 @@ describe('global::has-role', () => {
     expect(warn.mock.calls).toEqual([['[has-role] would refuse club for 3']]);
   });
 
+  it('the superAdmin area is enforced even with HAS_ROLE_ENFORCED=false', async () => {
+    process.env.HAS_ROLE_ENFORCED = 'false';
+    await expect(call(3, 'superAdmin')).rejects.toBeInstanceOf(errors.ForbiddenError);
+    await expect(call(2, 'superAdmin')).rejects.toBeInstanceOf(errors.ForbiddenError);
+    expect(await call(1, 'superAdmin')).toBe(true);
+    const status = async (policy: Parameters<typeof routeAnswer>[0]) => (await routeAnswer(policy, await tokenOf(3), strapi)).status;
+    expect(await status(isSuperAdmin as never)).toBe(403);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it('in production an unset variable means off; outside production it means on', async () => {
     delete process.env.HAS_ROLE_ENFORCED;
     process.env.NODE_ENV = 'production';

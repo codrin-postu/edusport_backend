@@ -24,7 +24,7 @@ import { PlatiBody } from './bani/PlatiList';
 import { MONEY_CSS } from './bani/styles';
 
 const copy = CONTABILITATE_COPY;
-/** "Pe scurt" and "Pe grupe" read /club/money/*, which is area `money`; Restanțe, Abonamente and Plăți have none. */
+/** "Pe scurt" and "Pe grupe" read /club/money/*, which is area `money`; Restanțe, Abonamente and Plăți read routes of area `club`. */
 export const GLANCE_AREA: AdminArea = 'money';
 export const TABS: { id: ContabTab; label: string }[] = [
   { id: 'restante', label: copy.tabs.restante },

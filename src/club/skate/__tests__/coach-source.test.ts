@@ -52,9 +52,30 @@ describe('skateCoachSource.club', () => {
     expect(got?.events.find((e) => e.eventId === 'h-12')?.members).toMatchObject([{ athleteId: 'a-bogdan', category: 'Novice', placement: 4, total: 55 }]);
   });
 
-  it('every slug read cold and down: null, also with a hand athlete in the list', async () => {
-    const { source } = setup({ 'ioana-marin-test': { ok: false, reason: 'down' } }, [handEntry]);
+  it('every slug read cold and down: unavailable (null), also with a hand athlete in the list', async () => {
+    const { source } = setup({ 'ioana-marin-test': { ok: false, reason: 'down' }, 'ana-test': { ok: false, reason: 'down' } }, [handEntry]);
+    expect(await source.club([ioana, ana, bogdan], null)).toBeNull();
     expect(await source.club([ioana, bogdan], null)).toBeNull();
+  });
+
+  it('one slug read cold and down: that athlete is skipped, the others are shown and the answer is stale', async () => {
+    const { source } = setup({ 'ioana-marin-test': { ok: false, reason: 'down' }, 'ana-test': ok([row({ result_id: 2 })]) });
+    const got = await source.club([ioana, ana], null);
+    expect(got).toMatchObject({ stale: true });
+    expect(got?.events[0].members.map((m) => m.athleteId)).toEqual(['a-ana']);
+  });
+
+  it('a failing hand-entered read: the answer is stale, one log line without personal data, the slug athletes still shown', async () => {
+    const lines: string[] = [];
+    const client: SkateClient = { results: vi.fn(async () => ok([row({})])), protocol: vi.fn(), fieldSize: vi.fn(), officialUrl: vi.fn() };
+    const broken = { byProfiles: async () => { throw new Error('strapi down for Bogdan'); } };
+    const cache = snapshotCache(fakeSnapshotStore(), () => NOW, () => undefined);
+    const source = skateCoachSource(pickedResults(cache, client, broken, () => NOW, (m) => lines.push(m)), () => NOW);
+    const got = await source.club([ioana, bogdan], null);
+    expect(got).toMatchObject({ stale: true });
+    expect(got?.events.map((e) => e.eventId)).toEqual(['s-501']);
+    expect(lines).toEqual(['[competitions] hand-entered read failed']);
+    expect(await source.athlete(bogdan, '2026-2027')).toBeNull();
   });
 
   it('a warm slug skater with a failed refresh and a hand athlete: stale, both events', async () => {

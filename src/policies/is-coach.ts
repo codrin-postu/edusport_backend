@@ -20,7 +20,8 @@ export default async (policyContext: PolicyContext, _config: unknown, { strapi }
   if (who.host !== HOST || !account || !canEnterHost(account, who.user, HOST, 0) || account.teamMemberId === null) throw new errors.ForbiddenError();
   const name = await who.store.teamMemberName(account.teamMemberId);
   if (name === null) throw new errors.ForbiddenError();
-  const schoolEdit = await coachSchoolEdit(who.user?.email ?? null, (email) => adminByEmail(strapi, email));
+  // Fail closed: a failing admin lookup only takes the Scoala edit right away, it never turns the request into a 500.
+  const schoolEdit = await coachSchoolEdit(who.user?.email ?? null, (email) => adminByEmail(strapi, email)).catch(() => false);
   const coach: CoachState = { accountId: account.id, userId: who.userId, sessionId: who.sessionId, teamMemberId: account.teamMemberId, name, schoolEdit };
   policyContext.state.coach = coach;
   return true;

@@ -81,14 +81,14 @@ Checks:
 `HAS_ROLE_ENFORCED` (see `.env.example`):
 
 - `true`: refusals are answered (401 or 403).
-- `false`: nothing is refused. Each refusal is only logged as `[has-role] would refuse <area> for <id>`.
-- Unset: enforced outside production; in production (`NODE_ENV=production`) it behaves as `false`.
+- `false`: nothing is refused except the `superAdmin` area, which is always enforced (those routes were Super Admin only before the roles existed). Each other refusal is only logged as `[has-role] would refuse <area> for <id>`.
+- Unset: enforced outside production; in production (`NODE_ENV=production`) it behaves as `false`. `superAdmin` stays enforced in every case.
 
 Deploy order:
 
 1. Set `HAS_ROLE_ENFORCED=true` in the VM's `.env.production`. The deploy env must set it; do not rely on the unset default.
 2. Restart the backend so the variable is read.
-3. To check the rules before enforcement, deploy with `HAS_ROLE_ENFORCED=false` first and read the `[has-role] would refuse` lines in the server log for the real admins. Then set `true` and restart.
+3. To check the rules before enforcement, deploy with `HAS_ROLE_ENFORCED=false` first and read the `[has-role] would refuse` lines in the server log for the real admins. Then set `true` and restart. Even with `false`, the `superAdmin` routes (anonymize, Administratori) already refuse every admin who is not a Super Admin.
 
 Portal sign-in: the coach and student portals sign in with e-mail and password or Google only (portal 2FA and passkeys are off, see `PORTAL_2FA` above). Admin 2FA stays.
 

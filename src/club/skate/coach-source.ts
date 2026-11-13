@@ -15,14 +15,19 @@ export function skateCoachSource(results: CompetitionResults, now: () => Date): 
       const season = asked ?? seasonOfToday(now());
       const reads = await results.many(skaters);
       let stale = false;
+      let slugReads = 0;
+      let slugUnavailable = 0;
       const rowsBy = new Map<string, { name: string; hand: boolean; rows: SkateResult[] }>();
       for (const skater of skaters) {
         const read = reads.get(skater.athleteId);
-        if (!read || !read.available) { if (skater.slug) return null; continue; }
+        if (skater.slug) slugReads += 1;
+        // An unavailable read skips that athlete only; the answer is marked stale so it is not shown as complete.
+        if (!read || !read.available) { stale = true; if (skater.slug) slugUnavailable += 1; continue; }
         if ('missing' in read) continue;
         stale ||= read.stale;
         rowsBy.set(skater.athleteId, { name: skater.name, hand: !skater.slug, rows: rowsOf(read.value) });
       }
+      if (slugReads > 0 && slugUnavailable === slugReads) return null;
       const seasons = new Set<string>();
       const events = new Map<string, CoachCompetitionEvent & { best: Map<string, SkateResult> }>();
       for (const [athleteId, { hand, rows }] of rowsBy) {

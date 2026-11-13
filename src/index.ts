@@ -433,7 +433,13 @@ export default {
     await checkUpSettings(strapi);
 
     // 6b-3: the two EduSport admin roles, created once with their native permissions.
-    await bootstrapRoles(strapi);
+    try {
+      await bootstrapRoles(strapi);
+    } catch (e) {
+      const message = `[roles] bootstrap: ${bootErrorText(e)}`;
+      strapi.log.error(message);
+      captureMessage(message);
+    }
 
     // Phase 5: unique keys and date indexes for presence and payments tables (no-op where a table is missing).
     try {

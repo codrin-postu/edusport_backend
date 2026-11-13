@@ -330,12 +330,12 @@ Codes and secrets never reach a log: the request bodies of `/api/admin-auth/*` a
 | `any` (dashboard, own Securitate) | yes | yes | yes |
 | `website` | yes | yes | yes |
 | `club` (registrations, athletes, groups, schedule, attendance, new season, forms results) | yes | yes | no |
-| `money` (subscriptions, payments, De încasat, phase 11 Bani, accounting, every export) | yes | yes | no |
+| `money` (phase 11 Bani, accounting, every export, Tabele; subscriptions, payments and De încasat are `club`, S1) | yes | yes | no |
 | `coachAccounts` ("Cont portal", "Resetează 2FA") | yes | yes | no |
 | `settings` (Setări site, Sezoane) | yes | yes | no |
 | `superAdmin` (anonymize, hide yearly review, "Administratori" 2FA reset, saved-view cleanup) | yes | no | no |
 
-- `money` holds the phase 11 money pages and exports for Super Admin and Administrator club [P6b q19; P11 4.1 to 4.9]. `coachAccounts` follows [P6b q20]. The three areas `club`, `money` and `coachAccounts` have the same roles today and stay separate keys so a later change is one line [S40].
+- `money` holds the phase 11 money pages (Bani) and exports for Super Admin and Administrator club [P6b q19; P11 4.1 to 4.9]. `coachAccounts` follows [P6b q20]. The three areas `club`, `money` and `coachAccounts` have the same roles today and stay separate keys so a later change is one line [S40].
 
 ### 9.3 Server: `global::has-role` [P6b q18]
 - New policy `src/policies/has-role.ts`, config `{ area }`: an access token of an active admin session, the admin active and not blocked (401 otherwise, as `requireAdminUser` [code src/club/admin-auth.ts]), roles loaded from the database, then 403 when no role opens the area.
@@ -344,7 +344,7 @@ Codes and secrets never reach a log: the request bodies of `/api/admin-auth/*` a
   - `03-admin-prices-seasons.ts`: price lists and price notes `website`; seasons `settings`.
   - `03-documents.ts` (admin routes), `04-registrations.ts`, `05-athletes.ts`, `06-groups.ts`, `07-schedule.ts` (admin routes), `08-new-season.ts`, `09-attendance.ts`: `club`, except `/club/attendance/coaches.csv` and the phase 11 `.csv` routes: `money`.
   - `05-athletes.ts` Super Admin routes: `superAdmin` (today `global::is-super-admin`).
-  - `10-subscriptions.ts`, `11-payments.ts`, phase 11 `/club/money/*` and `13-tables.ts`: `money`.
+  - `10-subscriptions.ts` and `11-payments.ts` (subscriptions and payments routes): `club`; `/club/money/*` (in `11-payments.ts`, phase 11) and `13-tables.ts`: `money` [S1].
   - `12-portal-accounts.ts`: `coachAccounts`.
 - `global::is-admin` and `global::is-super-admin` become thin wrappers of `has-role` with `any` and `superAdmin`, and both now refuse a blocked admin (today only the Super Admin one does) [R6b 17, C9; DEC 2026-10-19 admin-q1-roles note].
 - A source-reading test fails when an admin route has no area or an unknown one [S41].
@@ -354,7 +354,7 @@ Codes and secrets never reach a log: the request bodies of `/api/admin-auth/*` a
 - `useAreas()` in `src/admin/lib/` reads `/admin/users/me` once (roles) and replaces `useIsSuperAdmin` [code src/admin/dashboard/sportivi/useSuperAdmin.ts].
 - Every entry of `EDUSPORT_LINKS` and every `addMenuLink` in `src/admin/dashboard/menu.tsx` names its area; `EdusportShell` hides entries outside the caller's areas, and each page opened by URL without its area shows "Nu ai acces la această pagină." [S42]. Menu -> area:
   - Formulare, Înscrieri, Voluntari, Parteneri (forms), Contact: `club`.
-  - Calendar și serii, Grupe, Sportivi, Prezență: `club`. Sportivi "Tabele", Abonamente, Plăți, De încasat, Bani: `money`.
+  - Calendar și serii, Grupe, Sportivi, Prezență: `club`. Abonamente, Plăți, De încasat: `club`. Sportivi "Tabele", Bani: `money`.
   - Membri echipă, Competiții, Discipline: `website`; the "Cont portal" block on a team member: `coachAccounts`.
   - Pagina principală, Cursuri, Prețuri, Regulament, Pagina Program, Pagina Echipă, Istoric, Realizări, Parteneri (page), Voluntariat: `website`.
   - Articole, Anunțuri, Sponsori, Evenimente colaborare, Momente istoric, Media, Meniu site: `website`.

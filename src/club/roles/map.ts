@@ -78,7 +78,7 @@ export const CM_ACTIONS: readonly string[] = [
   'plugin::content-manager.explorer.publish',
 ];
 
-/** Strapi 5.52.1 Media Library actions (@strapi/upload): read, upload, update plus delete, download, copy link. */
+/** Strapi 5.52.1 Media Library actions (@strapi/upload): read, upload, update; Strapi has no separate media delete action (`assets.update` covers delete), plus download and copy link. */
 export const MEDIA_ACTIONS: readonly string[] = [
   'plugin::upload.read',
   'plugin::upload.assets.create',
