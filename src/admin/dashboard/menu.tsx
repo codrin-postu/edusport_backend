@@ -154,6 +154,7 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: PREZENTA_PATH, label: 'Prezență', icon: Clock, group: 'club', area: 'club' },
   { to: CONTABILITATE_PATH, label: 'Contabilitate', icon: ChartPie, group: 'club', area: 'club' },
   { to: TABELE_PATH, label: 'Tabele', icon: GridFour, group: 'club', area: TABLES_AREA },
+  { to: PRETURI_TO, label: 'Prețuri', icon: Cursor, group: 'club', featured: true, area: 'website' },
 
   // Sportivi și echipă
   // Re-pointed from collection('api::team-member.team-member'): team members are
@@ -165,7 +166,6 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   // Pagini site
   { to: HOMEPAGE_EDIT_TO, label: 'Pagina principală', icon: House, group: 'pages', featured: true, area: 'website' },
   { to: CURSURI_TO, label: 'Cursuri', icon: Book, group: 'pages', featured: true, area: 'website' },
-  { to: PRETURI_TO, label: 'Prețuri', icon: Cursor, group: 'pages', featured: true, area: 'website' },
   { to: REGULAMENT_TO, label: 'Regulament', icon: Feather, group: 'pages', area: 'website' },
   { to: PAGINA_PROGRAM_TO, label: 'Pagina Program', icon: Calendar, group: 'pages', area: 'website' },
   { to: PAGINA_ECHIPA_TO, label: 'Pagina Echipă', icon: GridFour, group: 'pages', area: 'website' },
