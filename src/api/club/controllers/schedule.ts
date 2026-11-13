@@ -1,6 +1,8 @@
+import { breakImpact, breakListLine } from '../../../club/calendar/break-impact';
 import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
 import { createBreak, deleteBreak, listBreaks, updateBreak } from '../../../club/groups/breaks';
 import { groupContext } from '../../../club/groups/context';
+import { isIsoDate } from '../../../club/groups/dates';
 import { GROUP_ERRORS } from '../../../club/groups/copy';
 import { queryText, respondAction, todayIso } from '../../../club/groups/http';
 import { adminWindow, calendarRows, readRange } from '../../../club/groups/occurrences';
@@ -8,6 +10,7 @@ import { addProgram, changeProgram, deleteClass, endProgram } from '../../../clu
 import { setDate } from '../../../club/groups/program-dates';
 import { readGroupProgram } from '../../../club/groups/program-read';
 import { readPublicSchedule } from '../../../club/groups/public-schedule';
+import { isRecord } from '../../../club/narrow';
 import { strapiGroupStore } from '../../../club/groups/strapi-store';
 
 type PublicCtx = AdminCtx & { set: (field: string, value: string) => void };
@@ -28,7 +31,16 @@ export default {
   },
 
   async breaks(ctx: AdminCtx) {
-    ctx.body = { data: await listBreaks(store()) };
+    const [rows, window, groups, sections] = await Promise.all([listBreaks(store()), calendarRows(strapi), store().groups(), store().sections()]);
+    ctx.body = { data: rows.map((b) => ({ ...b, cancels: breakListLine(breakImpact(window, groups, sections, b.startDate, b.endDate), b.exceptGroupIds) })) };
+  },
+
+  async breakImpact(ctx: AdminCtx) {
+    const body = isRecord(ctx.request.body) ? ctx.request.body : {};
+    const { startDate, endDate } = body;
+    if (!isIsoDate(startDate) || !isIsoDate(endDate) || endDate < startDate) return refuseWith(ctx, 400, GROUP_ERRORS.invalid);
+    const [window, groups, sections] = await Promise.all([calendarRows(strapi), store().groups(), store().sections()]);
+    ctx.body = { data: breakImpact(window, groups, sections, startDate, endDate) };
   },
 
   async createBreak(ctx: AdminCtx) {

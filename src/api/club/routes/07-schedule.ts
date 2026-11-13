@@ -13,6 +13,7 @@ export default {
     { method: 'GET', path: '/club/calendar/occurrences', handler: 'schedule.occurrences', config: club },
     { method: 'GET', path: '/club/breaks', handler: 'schedule.breaks', config: club },
     { method: 'POST', path: '/club/breaks', handler: 'schedule.createBreak', config: club },
+    { method: 'POST', path: '/club/breaks/impact', handler: 'schedule.breakImpact', config: club },
     { method: 'PUT', path: '/club/breaks/:documentId', handler: 'schedule.updateBreak', config: club },
     { method: 'DELETE', path: '/club/breaks/:documentId', handler: 'schedule.deleteBreak', config: club },
     { method: 'GET', path: '/club/groups/:documentId/program', handler: 'schedule.program', config: club },

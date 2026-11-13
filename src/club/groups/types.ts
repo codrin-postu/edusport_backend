@@ -16,8 +16,8 @@ export type Recurrence = {
 };
 export type EventRecord = { id: string; title: string; type: string; description: string | null; groupId: string | null; recurrence: Recurrence; exceptions: ExceptionRow[] };
 export type EventWrite = Omit<EventRecord, 'id'>;
-/** `exceptGroupIds`: group documentIds the break does not apply to; empty or absent = every group. */
-export type BreakRecord = { id: string; label: string; startDate: string; endDate: string; exceptGroupIds?: string[] };
+/** `exceptGroupIds`: group documentIds the break does not apply to; empty = every group. */
+export type BreakRecord = { id: string; label: string; startDate: string; endDate: string; exceptGroupIds: string[] };
 export type GroupRecord = {
   id: string; name: string; sectionId: string | null; order: number | null; active: boolean; priceListId: string | null; coachIds: string[]; programPublic: boolean;
 };

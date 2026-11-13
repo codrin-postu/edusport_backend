@@ -19,6 +19,9 @@ describe('07-schedule routes (8.2, 8.3)', () => {
   it('declare fixed paths before parameter paths', () => {
     const paths = routes.map((r) => r.path);
     expect(paths.indexOf('/club/breaks')).toBeLessThan(paths.indexOf('/club/breaks/:documentId'));
+    expect(paths.indexOf('/club/breaks/impact')).toBeGreaterThan(-1);
+    expect(paths.indexOf('/club/breaks/impact')).toBeLessThan(paths.indexOf('/club/breaks/:documentId'));
+    expect(routes.find((r) => r.path === '/club/breaks/impact')?.config).toEqual(ADMIN);
   });
 
   it('the old calendar routes refuse group events and the public occurrences filter them', () => {

@@ -38,7 +38,6 @@ export function BreakDialog({ target, breaks, onClose }: Props) {
         <Field label={PAUZE_COPY.colFrom}><DateInput value={draft.startDate || null} onChange={(v) => setDraft({ ...draft, startDate: v ?? '' })} /></Field>
         <Field label={PAUZE_COPY.colTo}><DateInput value={draft.endDate || null} onChange={(v) => setDraft({ ...draft, endDate: v ?? '' })} /></Field>
       </FieldRow>
-      <p className="ui-hint">{PAUZE_COPY.hint}</p>
       </div>
     </WindowShell>
   );

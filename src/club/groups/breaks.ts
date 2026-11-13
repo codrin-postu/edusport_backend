@@ -8,9 +8,10 @@ import { BREAK_SUBJECT, P4_ACTIONS } from './history-lines';
 import type { BreakRecord, GroupStore } from './types';
 
 /** "Pauze" (spec 3.5, 7.1, W13): Nume, De la, Până la; no undo; every write pings the website. */
-export type BreakInput = { label: string; startDate: string; endDate: string };
+export type BreakInput = { label: string; startDate: string; endDate: string; exceptGroupIds: string[] };
 type Read = { ok: true; value: BreakInput } | { ok: false; error: string };
 const KEYS = ['label', 'startDate', 'endDate'] as const;
+const sameIds = (a: string[], b: string[]): boolean => a.length === b.length && a.every((id, i) => id === b[i]);
 
 export function readBreakInput(body: unknown): Read {
   const b = isRecord(body) ? body : {};
@@ -18,7 +19,9 @@ export function readBreakInput(body: unknown): Read {
   if (!label) return { ok: false, error: GROUP_ERRORS.nameRequired };
   if (!isIsoDate(b.startDate) || !isIsoDate(b.endDate)) return { ok: false, error: GROUP_ERRORS.invalid };
   if (b.endDate < b.startDate) return { ok: false, error: SCHEDULE_ERRORS.endBeforeStart };
-  return { ok: true, value: { label, startDate: b.startDate, endDate: b.endDate } };
+  const ids = b.exceptGroupIds === undefined ? [] : b.exceptGroupIds;
+  if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string' || !id)) return { ok: false, error: GROUP_ERRORS.invalid };
+  return { ok: true, value: { label, startDate: b.startDate, endDate: b.endDate, exceptGroupIds: [...new Set(ids as string[])].sort() } };
 }
 
 export const listBreaks = async (store: GroupStore): Promise<BreakRecord[]> =>
@@ -31,9 +34,17 @@ function pinged<T>(ctx: GroupContext, res: AdminResult<T>): AdminResult<T> {
   return res;
 }
 
+/** Only ids of existing groups may be ticked. */
+async function knownGroups(ctx: GroupContext, ids: string[]): Promise<boolean> {
+  if (!ids.length) return true;
+  const known = new Set((await ctx.store.groups()).map((g) => g.id));
+  return ids.every((id) => known.has(id));
+}
+
 export async function createBreak(ctx: GroupContext, body: unknown): Promise<AdminResult<BreakRecord>> {
   const read = readBreakInput(body);
   if (read.ok === false) return refuse(400, read.error);
+  if (!(await knownGroups(ctx, read.value.exceptGroupIds))) return refuse(400, GROUP_ERRORS.invalid);
   const res = await guarded(ctx.log, '[breaks] adding', () => ctx.store.transaction(async () => {
     const id = await ctx.store.createBreak(read.value);
     await recordLines(ctx.store, ctx.actor, [line(id, P4_ACTIONS.breakAdded, { ...read.value })]);
@@ -45,7 +56,8 @@ export async function createBreak(ctx: GroupContext, body: unknown): Promise<Adm
 async function updateInTransaction(ctx: GroupContext, id: string, input: BreakInput): Promise<AdminResult<{ changed: boolean }>> {
   const current = (await ctx.store.breaks()).find((b) => b.id === id);
   if (!current) return refuse(404, GROUP_ERRORS.notFound);
-  const fields = changedFields<BreakInput>(KEYS, current, input);
+  const fields = changedFields<Omit<BreakInput, 'exceptGroupIds'>>(KEYS, current, input);
+  if (!sameIds(current.exceptGroupIds, input.exceptGroupIds)) fields.exceptGroupIds = { from: current.exceptGroupIds, to: input.exceptGroupIds };
   if (!Object.keys(fields).length) return { ok: true, data: { changed: false } };
   await ctx.store.updateBreak(id, input);
   await recordLines(ctx.store, ctx.actor, [line(id, P4_ACTIONS.breakUpdated, { fields })]);
@@ -55,6 +67,7 @@ async function updateInTransaction(ctx: GroupContext, id: string, input: BreakIn
 export async function updateBreak(ctx: GroupContext, id: string, body: unknown): Promise<AdminResult<{ changed: boolean }>> {
   const read = readBreakInput(body);
   if (read.ok === false) return refuse(400, read.error);
+  if (!(await knownGroups(ctx, read.value.exceptGroupIds))) return refuse(400, GROUP_ERRORS.invalid);
   const res = await guarded(ctx.log, `[breaks] editing ${id}`, () => ctx.store.transaction(() => updateInTransaction(ctx, id, read.value)));
   return res.ok === true && res.data.changed ? pinged(ctx, res) : res;
 }
