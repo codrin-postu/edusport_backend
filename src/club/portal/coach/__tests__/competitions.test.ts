@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PORTAL_ERRORS } from '../../copy';
 import type { CoachCompetitionSource, SkaterRef } from '../competitions';
-import { readCoachCompetitions } from '../competitions';
+import { clubSkaters, readCoachCompetitions, skaterOf } from '../competitions';
 import { readCard } from '../athletes';
 import { forbiddenKeysIn } from '../views';
 import { coachCtx } from './coach-seed';
@@ -9,7 +9,7 @@ import { coachCtx } from './coach-seed';
 const ME = 'tm-andreea';
 const INVALID = { ok: false, status: 400, error: PORTAL_ERRORS.invalid };
 
-/** a-club-1 and a-scoala-1 (own groups) and a-b-1 (Virgil's) have skate slugs; a-club-2 has none. */
+/** a-club-1 and a-scoala-1 (own groups) and a-b-1 (Virgil's) have skate slugs; a-club-2 has no profile. */
 function seeded(source?: CoachCompetitionSource) {
   const c = coachCtx(ME);
   const link: [string, string, string][] = [['a-club-1', 'sp1', 'ana-club'], ['a-scoala-1', 'sp2', 'carmen'], ['a-b-1', 'sp3', 'eva']];
@@ -70,7 +70,7 @@ describe('readCoachCompetitions', () => {
     await readCoachCompetitions(c, { scope: 'mine', season: '2025-2026' });
     expect(source.sent[0].map((s) => s.slug).sort()).toEqual(['ana-club', 'carmen', 'eva']);
     expect(source.sent[1].map((s) => s.slug).sort()).toEqual(['ana-club', 'carmen']);
-    expect(source.sent.flat().every((s) => Object.keys(s).sort().join() === 'athleteId,name,slug')).toBe(true);
+    expect(source.sent.flat().every((s) => Object.keys(s).sort().join() === 'athleteId,name,profileId,slug')).toBe(true);
   });
 
   it('refuses a bad scope or season', async () => {
@@ -85,8 +85,22 @@ describe('readCoachCompetitions', () => {
   });
 });
 
+describe('skaters', () => {
+  it('a profile without a slug is a skater with slug null; an athlete without a profile is none', async () => {
+    const c = seeded(fake());
+    c.fake.group.athletes.find((a) => a.id === 'a-club-2')!.profileId = 'sp4';
+    c.clubFake.state.profiles.push({ id: 'sp4', name: 'bogdan', slug: 'bogdan', previousSlugs: [], showPublicPage: false, published: true, skateResultsSlug: null });
+    const skaters = await clubSkaters(c, 'all');
+    expect(skaters.find((s) => s.athleteId === 'a-club-2')).toEqual({ athleteId: 'a-club-2', name: 'Bogdan Club', profileId: 'sp4', slug: null });
+    expect(skaters.find((s) => s.athleteId === 'a-club-1')).toMatchObject({ profileId: 'sp1', slug: 'ana-club' });
+    expect(skaters.some((s) => s.athleteId === 'a-scoala-2')).toBe(false);
+    const noProfile = c.fake.group.athletes.find((a) => a.id === 'a-scoala-2')!;
+    expect(await skaterOf(c.club.store, noProfile)).toBeNull();
+  });
+});
+
 describe('the card competitions', () => {
-  it('zeros without a slug, the source answer with one', async () => {
+  it('zeros without a profile, the source answer with one', async () => {
     const c = seeded(fake());
     expect(await readCard(c, 'a-club-2')).toMatchObject({ data: { competitions: { available: true, category: null, season: '2026-2027', count: 0, podiums: 0, recent: [] } } });
     expect(await readCard(c, 'a-club-1')).toMatchObject({ data: { competitions: { available: true, category: 'Juniori', count: 2, podiums: 1 } } });

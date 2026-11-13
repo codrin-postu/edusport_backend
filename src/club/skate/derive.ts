@@ -1,3 +1,4 @@
+import { todayInBucharest } from '../birth-date';
 import type { CompetitionRow, CompetitionSort } from '../portal/sportiv/api-types';
 import type { SkateResult } from './client';
 
@@ -115,4 +116,10 @@ export function listRows(
   const start = Math.max(0, q.page - 1) * PAGE_SIZE;
   const page = [...matching].sort(SORTS[q.sort]).slice(start, start + PAGE_SIZE);
   return { filtered: matching.length, rows: page.map(toRow), seasons: seasonsOf(usable) };
+}
+
+/** Season of today's Bucharest date, e.g. `2026-2027` on 2026-11-13. */
+export function seasonOfToday(now: Date): string {
+  const t = todayInBucharest(now);
+  return seasonKey(`${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`, '') ?? '';
 }

@@ -77,7 +77,7 @@ describe('sportiv views drop every forbidden key', () => {
 
 describe('competition source and skaterOf', () => {
   it('the null source resolves null everywhere', async () => {
-    const skater = { athleteId: 'a1', name: 'Ana', slug: 'ana' };
+    const skater = { athleteId: 'a1', name: 'Ana', profileId: 'p1', slug: 'ana' };
     expect(await nullSportivCompetitions.last(skater)).toBeNull();
     expect(await nullSportivCompetitions.count(skater)).toBeNull();
   });
@@ -86,7 +86,7 @@ describe('competition source and skaterOf', () => {
     const c = sportivCtx('parinte1@example.invalid');
     expect(await skaterOf(c, A_ANA)).toBeNull();
     expect(await skaterOf(c, 'a-unknown')).toBeNull();
-    expect(await skaterOf(c, A_IOANA)).toEqual({ athleteId: A_IOANA, name: 'Ioana Marin', slug: 'ioana-marin-test' });
+    expect(await skaterOf(c, A_IOANA)).toMatchObject({ athleteId: A_IOANA, name: 'Ioana Marin', slug: 'ioana-marin-test' });
     expect(await skaterOf(c, A_ELENA)).toBeNull();
   });
 

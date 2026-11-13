@@ -11,7 +11,9 @@ import type { PresenceContext } from '../../presence/context';
 import { strapiPresenceStore } from '../../presence/strapi-store';
 import type { AdminResult } from '../../admin-result';
 import type { PortalStore } from '../store';
-import { nullCoachCompetitions, type CoachCompetitionSource } from './competitions';
+import { skateCoachSource } from '../../skate/coach-source';
+import { strapiCompetitions } from '../../skate/wiring';
+import type { CoachCompetitionSource } from './competitions';
 import { strapiPortalStore } from '../strapi-store';
 
 /** The coach of the request, as `global::is-coach` read it. `sessionId` is never put in an answer or a log. */
@@ -19,7 +21,7 @@ export type CoachState = { accountId: string; userId: number; sessionId: string;
 
 export type CoachContexts = {
   coach: CoachState; today: string; presence: PresenceContext; groups: GroupContext; club: ServiceContext; portal: PortalStore;
-  /** Where competition results come from (a null source until phase 7-3 is merged). */
+  /** Where competition results come from (skate-results or hand-entered, one source per athlete). */
   competitions: CoachCompetitionSource;
 };
 
@@ -51,6 +53,6 @@ export function coachContexts(strapi: Core.Strapi, coach: CoachState): CoachCont
     },
     club: { store: strapiClubStore(strapi), actor, today: todayInBucharest(), log },
     portal: strapiPortalStore(strapi),
-    competitions: nullCoachCompetitions,
+    competitions: skateCoachSource(strapiCompetitions(strapi, now).results, now),
   };
 }

@@ -8,8 +8,8 @@ import type { CoachAthleteCompetitions, CoachCompetitionEvent, CoachCompetitions
 import type { CoachContexts } from './context';
 import { ownGroupIds } from './ownership';
 
-/** A club athlete known to skate-results: our id and name, and the slug that links the two. Nothing else about a skater is ever sent. */
-export type SkaterRef = { athleteId: string; name: string; slug: string };
+/** A club athlete with a profile: our id and name, the profile id (joins the hand-entered competitions) and the skate-results slug when the profile has one. Nothing else is ever sent to skate-results. */
+export type SkaterRef = { athleteId: string; name: string; profileId: string; slug: string | null };
 type Available<T> = Omit<Extract<T, { available: true }>, 'available'>;
 
 /** Where results come from. A null answer means the results are not available now. */
@@ -28,7 +28,7 @@ const newestFirst = (a: CoachCompetitionEvent, b: CoachCompetitionEvent): number
 
 const active = (a: AthleteRow): boolean => (a.status === 'nou' || a.status === 'activ') && !isAnonymized(a);
 
-/** Club athletes of the current season (a membership running today) that have a skate slug, names from Strapi. */
+/** Club athletes of the current season (a membership running today) that have a profile, with or without a skate slug, names from Strapi. */
 export async function clubSkaters(c: CoachContexts, scope: 'all' | 'mine'): Promise<SkaterRef[]> {
   const store = c.presence.store;
   const season = currentSeason(await store.seasons());
@@ -37,11 +37,11 @@ export async function clubSkaters(c: CoachContexts, scope: 'all' | 'mine'): Prom
   const own = ownGroupIds(groups, c.coach.teamMemberId);
   const inSeason = (m: MembershipRow): boolean => onDate(m, c.today) && (scope === 'all' || own.has(m.groupId));
   const members = new Set(memberships.filter(inSeason).map((m) => m.athleteId));
-  const slugs = new Map(profiles.flatMap((p) => (p.skateResultsSlug ? [[p.id, p.skateResultsSlug] as const] : [])));
-  return athletes.flatMap((a) => {
-    const slug = a.profileId ? slugs.get(a.profileId) : undefined;
-    return active(a) && members.has(a.id) && slug ? [{ athleteId: a.id, name: a.name ?? '', slug }] : [];
-  });
+  const slugs = new Map(profiles.map((p) => [p.id, p.skateResultsSlug || null] as const));
+  return athletes.flatMap((a) =>
+    active(a) && members.has(a.id) && a.profileId && slugs.has(a.profileId)
+      ? [{ athleteId: a.id, name: a.name ?? '', profileId: a.profileId, slug: slugs.get(a.profileId) ?? null }]
+      : []);
 }
 
 /** Concursuri: `scope=all` (every club athlete, default) or `mine` (children of own groups); `season=YYYY-YYYY` optional. */
@@ -67,13 +67,13 @@ export async function readCoachCompetitions(c: CoachContexts, q: Record<string, 
   return { ok: true, data: { available: true, stale: answer.stale, seasons: [...answer.seasons].sort().reverse(), season: answer.season, events } };
 }
 
-/** The skater of an athlete: the profile's skate-results slug, or null when the athlete has none (not a performance athlete). */
+/** The skater of an athlete: a ref when the athlete has a profile (the slug may be absent), else null. */
 export async function skaterOf(store: ClubStore, athlete: AthleteRow): Promise<SkaterRef | null> {
   const profile = athlete.profileId ? (await store.profiles()).find((p) => p.id === athlete.profileId) : undefined;
-  return profile?.skateResultsSlug ? { athleteId: athlete.id, name: athlete.name ?? '', slug: profile.skateResultsSlug } : null;
+  return profile ? { athleteId: athlete.id, name: athlete.name ?? '', profileId: profile.id, slug: profile.skateResultsSlug || null } : null;
 }
 
-/** The card's competitions: zeros without a slug, `{ available: false }` when the source has nothing. */
+/** The card's competitions: zeros without a profile, `{ available: false }` when the source has nothing. */
 export async function athleteCompetitions(c: CoachContexts, athlete: AthleteRow, season: string): Promise<CoachAthleteCompetitions> {
   const skater = await skaterOf(c.club.store, athlete);
   if (!skater) return { available: true, category: null, season, count: 0, podiums: 0, recent: [] };

@@ -1,10 +1,8 @@
-import { todayInBucharest } from '../birth-date';
-import type { SkaterRef } from '../portal/coach/competitions';
-import type { CompetitionQuery, SportivCompetitionSource, SportivCompetitionViews } from '../portal/sportiv/competitions';
+import type { CompetitionQuery, SlugSkater, SportivCompetitionSource, SportivCompetitionViews } from '../portal/sportiv/competitions';
 import type { Segment, SportivCompetition, SportivCompetitions } from '../portal/sportiv/api-types';
 import { DETAIL_MAX_AGE, resultsOf, type Cached, type snapshotCache } from './cache';
 import type { Fetched, SkateClient, SkateResult } from './client';
-import { currentCategory, listRows, records, seasonKey, toRow } from './derive';
+import { currentCategory, listRows, records, seasonOfToday, toRow } from './derive';
 
 type Cache = ReturnType<typeof snapshotCache>;
 
@@ -36,10 +34,6 @@ export function skateSportivSource(
     if (loggedMissing.get(athleteId) === day) return;
     loggedMissing.set(athleteId, day);
     log(`[skate-results] slug not found for athlete ${athleteId}`);
-  };
-  const currentSeason = (): string => {
-    const t = todayInBucharest(now());
-    return seasonKey(`${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`, '') ?? '';
   };
   const detailRead = <T>(key: string, run: () => Promise<Fetched<T>>): Promise<Cached<T>> => cache.read(key, DETAIL_MAX_AGE, run);
   const fieldOf = async (r: SkateResult): Promise<number | null> =>
@@ -81,7 +75,7 @@ export function skateSportivSource(
       const page = listRows(rows, query);
       return {
         available: true, stale: got.stale, updatedAt: got.updatedAt, total: rows.filter((r) => r.result_id !== null).length,
-        category: currentCategory(rows, currentSeason()), records: records(rows), seasons: page.seasons,
+        category: currentCategory(rows, seasonOfToday(now())), records: records(rows), seasons: page.seasons,
         page: query.page, pageSize: 20, filtered: page.filtered, rows: page.rows,
       };
     },
