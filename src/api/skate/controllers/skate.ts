@@ -3,7 +3,7 @@
  *
  * The Strapi admin runs in the browser and skate-results has no CORS, so the
  * admin never calls it directly. These content-api routes are auth-disabled but
- * guarded by `global::is-admin` (see routes), so only a logged-in CMS admin can
+ * guarded by `global::has-role` (see routes), so only a logged-in CMS admin can
  * reach them. Used by the Sportiv editor to search for a skater and link the
  * chosen one's slug to the sportsperson record.
  */

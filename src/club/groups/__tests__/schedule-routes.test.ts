@@ -2,13 +2,14 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Core } from '@strapi/strapi';
 import { describe, expect, it } from 'vitest';
+import { adminRoute } from '../../admin-area';
 import schedule from '../../../api/club/controllers/schedule';
 import scheduleRoutes from '../../../api/club/routes/07-schedule';
 import { SCHEDULE_ERRORS } from '../copy';
 import { refuseGroupKey } from '../occurrences';
 
 const routes = scheduleRoutes.routes;
-const ADMIN = { auth: false, policies: ['global::is-admin'], middlewares: [] };
+const ADMIN = adminRoute('club');
 
 describe('07-schedule routes (8.2, 8.3)', () => {
   it('are admin-only, except the public notebook read', () => {

@@ -18,7 +18,7 @@ function adminIdFrom(authorization: string | undefined, secret: unknown): unknow
 
 /**
  * Who makes an admin request, for history entries: the admin's e-mail, read from the admin JWT after
- * `global::is-admin` has checked it. Never throws.
+ * `global::has-role` has checked it. Never throws.
  */
 export async function adminActor(authorization: string | undefined, strapi: ActorStrapi): Promise<string> {
   try {

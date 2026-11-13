@@ -63,7 +63,7 @@ describe('Resetează 2FA on a portal account', () => {
 
   it('the route is admin only and its handler exists', () => {
     const r = routes.routes.find((x) => x.path === '/club/portal-accounts/:documentId/reset-2fa');
-    expect(r).toMatchObject({ method: 'POST', handler: 'portal-accounts.reset2fa', config: { auth: false, policies: ['global::is-admin'], middlewares: [] } });
+    expect(r).toMatchObject({ method: 'POST', handler: 'portal-accounts.reset2fa', config: { auth: false, policies: [{ name: 'global::has-role', config: { area: 'coachAccounts' } }], middlewares: [] } });
     expect(typeof (controller as Record<string, unknown>).reset2fa).toBe('function');
   });
 });

@@ -46,7 +46,7 @@ async function accountingFile(ctx: FileCtx, format: 'xlsx' | 'csv'): Promise<voi
   ctx.body = await accountingXlsx(data.accounting, data.overview as MoneyOverview, data.extra);
 }
 
-/** Admin API of Plăți and De încasat (routes/11-payments.ts, all `global::is-admin`). */
+/** Admin API of Plăți and De încasat (routes/11-payments.ts, all `global::has-role`). */
 export default {
   async list(ctx: AdminCtx) {
     const today = todayIso();

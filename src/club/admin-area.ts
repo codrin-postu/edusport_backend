@@ -5,24 +5,24 @@ export const ADMIN_AREAS: readonly AdminArea[] = ['any', 'website', 'club', 'mon
 
 export type AdminRouteConfig = {
   auth: false;
-  policies: [{ name: 'global::is-admin'; config: { area: AdminArea } }];
+  policies: [{ name: 'global::has-role'; config: { area: AdminArea } }];
   middlewares: [];
 };
 
-/** Route config of an admin-only route that names its area. `global::is-admin` ignores the area until 6b. */
+/** Route config of an admin-only route that names its area. `global::has-role` grants it by role. */
 export const adminRoute = (area: AdminArea): AdminRouteConfig => ({
   auth: false,
-  policies: [{ name: 'global::is-admin', config: { area } }],
+  policies: [{ name: 'global::has-role', config: { area } }],
   middlewares: [],
 });
 
-/** The area of an `adminRoute` config, else null (a route that still uses the plain `global::is-admin` guard). */
+/** The area of an `adminRoute` config, else null (a route that names no area). */
 export function areaOfRoute(config: unknown): AdminArea | null {
   if (typeof config !== 'object' || config === null) return null;
   const policies = (config as { policies?: unknown }).policies;
   if (!Array.isArray(policies)) return null;
   for (const p of policies) {
-    if (typeof p !== 'object' || p === null || (p as { name?: unknown }).name !== 'global::is-admin') continue;
+    if (typeof p !== 'object' || p === null || (p as { name?: unknown }).name !== 'global::has-role') continue;
     const area = (p as { config?: { area?: unknown } }).config?.area;
     if (typeof area === 'string' && (ADMIN_AREAS as readonly string[]).includes(area)) return area as AdminArea;
   }

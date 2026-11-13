@@ -14,10 +14,10 @@ describe('callerOf', () => {
     const user = { id: 7, firstname: 'Radu', lastname: 'Super', email: 'radu@club.ro', isActive: true, roles: [{ code: 'strapi-super-admin' }] };
     expect(await callerOf(auth, strapiWith(user))).toEqual({ adminId: 7, name: 'Radu Super', email: 'radu@club.ro', superAdmin: true });
   });
-  it('is no Super Admin without the role, or when blocked, and falls back to the e-mail for a name', async () => {
+  it('is no Super Admin without the role, refuses a blocked admin, and falls back to the e-mail for a name', async () => {
     const base = { id: 7, email: 'ana@club.ro', isActive: true };
     expect(await callerOf(auth, strapiWith({ ...base, roles: [{ code: 'strapi-editor' }] }))).toEqual({ adminId: 7, name: 'ana@club.ro', email: 'ana@club.ro', superAdmin: false });
-    expect((await callerOf(auth, strapiWith({ ...base, blocked: true, roles: [{ code: 'strapi-super-admin' }] }))).superAdmin).toBe(false);
+    await expect(callerOf(auth, strapiWith({ ...base, blocked: true, roles: [{ code: 'strapi-super-admin' }] }))).rejects.toThrow();
   });
   it('refuses a request that is not an active admin session', async () => {
     await expect(callerOf(undefined, strapiWith({ id: 7, isActive: true }))).rejects.toThrow();

@@ -416,7 +416,7 @@ describe('admin routes against a portal session', () => {
         expect(policies.length, `${file} ${r.path}`).toBe(1);
         // a policy is a name, or { name, config } (`adminRoute(area)`)
         const policy = typeof policies[0] === 'string' ? policies[0] : policies[0].name;
-        expect(['global::is-admin', 'global::is-super-admin']).toContain(policy);
+        expect(policy).toBe('global::has-role');
         checked += 1;
       }
     }

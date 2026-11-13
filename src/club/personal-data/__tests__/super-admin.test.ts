@@ -33,9 +33,9 @@ describe('global::is-super-admin (3C spec 6)', () => {
     expect(asked.at(-1)).toEqual({ where: { id: 1 }, populate: ['roles'] });
   });
 
-  it('refuses (403) a normal admin and a blocked Super Admin', async () => {
+  it('refuses a normal admin (403) and a blocked Super Admin (401, as requireAdminUser)', async () => {
     expect(await isSuperAdminRequest(await accessOf(2), strapi)).toBe(false);
-    expect(await isSuperAdminRequest(await accessOf(4), strapi)).toBe(false);
+    await expect(isSuperAdminRequest(await accessOf(4), strapi)).rejects.toBeInstanceOf(errors.UnauthorizedError);
   });
 
   it('a wrong signature or no token is unauthenticated (401), not forbidden', async () => {
@@ -68,7 +68,7 @@ describe('global::is-super-admin (3C spec 6)', () => {
     const statusOf = async (authorization?: string) => (await routeAnswer(policy, authorization, strapi)).status;
     expect(await statusOf(await accessOf(1))).toBe(200);
     expect(await statusOf(await accessOf(2))).toBe(403);
-    expect(await statusOf(await accessOf(4))).toBe(403);
+    expect(await statusOf(await accessOf(4))).toBe(401);
     expect(await statusOf(await accessOf(3))).toBe(401);
     expect(await statusOf()).toBe(401);
     const core = strapi as unknown as Core.Strapi;

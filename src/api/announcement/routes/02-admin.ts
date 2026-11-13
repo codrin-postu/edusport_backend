@@ -2,7 +2,7 @@
  * Admin CRUD for announcements, consumed by the custom Anunțuri page.
  *
  * Content-api routes (served under /api) with auth disabled but guarded by the
- * `global::is-admin` policy — usable from the admin UI (whose fetch client
+ * `global::has-role` policy — usable from the admin UI (whose fetch client
  * attaches the admin Bearer token) but never from the public API. Mirrors the
  * volunteer-submission admin route pattern.
  *
@@ -10,7 +10,9 @@
  * registration order, so the literal path has to win before the parameter one
  * swallows it.
  */
-const adminGuard = { auth: false, policies: ['global::is-admin'], middlewares: [] };
+import { adminRoute } from '../../../club/admin-area';
+
+const website = adminRoute('website');
 
 export default {
   routes: [
@@ -18,31 +20,31 @@ export default {
       method: 'GET',
       path: '/anunturi',
       handler: 'announcement.list',
-      config: adminGuard,
+      config: website,
     },
     {
       method: 'POST',
       path: '/anunturi',
       handler: 'announcement.createAnnouncement',
-      config: adminGuard,
+      config: website,
     },
     {
       method: 'PUT',
       path: '/anunturi/reorder',
       handler: 'announcement.reorder',
-      config: adminGuard,
+      config: website,
     },
     {
       method: 'PUT',
       path: '/anunturi/:documentId',
       handler: 'announcement.updateAnnouncement',
-      config: adminGuard,
+      config: website,
     },
     {
       method: 'DELETE',
       path: '/anunturi/:documentId',
       handler: 'announcement.deleteAnnouncement',
-      config: adminGuard,
+      config: website,
     },
   ],
 };

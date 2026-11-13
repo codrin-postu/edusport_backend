@@ -10,7 +10,7 @@ import { queryText, respondAction, todayIso } from '../../../club/groups/http';
 
 const id = (ctx: AdminCtx): string => ctx.params.documentId ?? '';
 
-/** Admin API of Abonamente (routes/10-subscriptions.ts, all `global::is-admin`). */
+/** Admin API of Abonamente (routes/10-subscriptions.ts, all `global::has-role`). */
 export default {
   async list(ctx: AdminCtx) {
     ctx.body = { data: await listSubscriptions(strapiPresenceStore(strapi), ctx.query, todayIso()) };

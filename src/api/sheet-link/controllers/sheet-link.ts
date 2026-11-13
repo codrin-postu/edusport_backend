@@ -1,7 +1,7 @@
 /**
  * Admin API for the Google Sheets integration, mounted under /api/sheets.
  *
- * Every route is admin-guarded (`global::is-admin`) — usable from the custom
+ * Every route is admin-guarded (`global::has-role`) — usable from the custom
  * admin settings page, never from the public API.
  *
  * Every failure carries a specific `reason`. `not_configured` (no credentials),

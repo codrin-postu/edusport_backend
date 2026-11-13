@@ -1,9 +1,11 @@
 /**
  * Admin-guarded publish for a sportsperson, used by the custom Sportiv editor.
- * Auth disabled but gated by `global::is-admin`, so only a logged-in CMS admin
+ * Auth disabled but gated by `global::has-role`, so only a logged-in CMS admin
  * (whose Bearer token the admin fetch client attaches) can publish.
  */
-const adminGuard = { auth: false, policies: ['global::is-admin'], middlewares: [] };
+import { adminRoute } from '../../../club/admin-area';
+
+const website = adminRoute('website');
 
 export default {
   routes: [
@@ -11,7 +13,7 @@ export default {
       method: 'POST',
       path: '/sportspeople/:documentId/publish',
       handler: 'sportsperson.publishOne',
-      config: adminGuard,
+      config: website,
     },
   ],
 };

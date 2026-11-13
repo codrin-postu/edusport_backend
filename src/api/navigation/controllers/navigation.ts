@@ -10,7 +10,7 @@
  * The site authenticates with its read API token, like every other content type
  * it fetches, so nothing extra is registered for it.
  *
- * Admin (`/api/meniu-site`, `global::is-admin`) is the custom "Meniu site" page's
+ * Admin (`/api/meniu-site`, `global::has-role`) is the custom "Meniu site" page's
  * data source, following the announcement and sheet-link pattern: content api
  * routes with auth disabled, guarded by the policy, so the admin fetch client's
  * Bearer token is the only way in. The single type is hidden from the

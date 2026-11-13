@@ -51,11 +51,12 @@ export async function verifiedAdminId(authorization: string | undefined, strapi:
 }
 
 const unauthorized = () => new errors.UnauthorizedError('Missing or invalid credentials');
-const isActiveUser = (user: unknown): user is AdminUser => !!user && typeof user === 'object' && (user as AdminUser).isActive === true;
+const isActiveUser = (user: unknown): user is AdminUser =>
+  !!user && typeof user === 'object' && (user as AdminUser).isActive === true && (user as AdminUser).blocked !== true;
 
 /**
  * For the admin policies, step by step as Strapi's admin auth strategy: an access token of an active session, then
- * the admin user (loaded once, with roles) must exist and be active. Otherwise Strapi's UnauthorizedError (401), so
+ * the admin user (loaded once, with roles) must exist, be active and not blocked. Otherwise Strapi's UnauthorizedError (401), so
  * the admin fetch client refreshes the access token and retries once. A failing lookup throws (500).
  */
 export async function requireAdminUser(authorization: string | undefined, strapi: AdminUserStrapi): Promise<AdminUser> {

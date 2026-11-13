@@ -9,7 +9,7 @@
  * Public read is the standard core route: GET /api/club-figures. The site
  * authenticates with its read API token, like every other content type.
  *
- * Admin (`/api/cifre-club`, `global::is-admin`) is the custom "Pagina
+ * Admin (`/api/cifre-club`, `global::has-role`) is the custom "Pagina
  * principală" page's data source, following the navigation and announcement
  * pattern: content api routes with auth disabled, guarded by the policy, so the
  * admin fetch client's Bearer token is the only way in. The single type is

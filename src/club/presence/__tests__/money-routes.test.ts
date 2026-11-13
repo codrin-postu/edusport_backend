@@ -7,7 +7,7 @@ import subscriptions from '../../../api/club/controllers/subscriptions';
 import groupRoutes from '../../../api/club/routes/06-groups';
 import paymentRoutes from '../../../api/club/routes/11-payments';
 import subscriptionRoutes from '../../../api/club/routes/10-subscriptions';
-import { areaOfRoute } from '../../admin-area';
+import { adminRoute, areaOfRoute } from '../../admin-area';
 import { staticBeforeParams } from '../../groups/__tests__/route-order';
 
 const SRC = join(__dirname, '../../..');
@@ -17,7 +17,7 @@ describe('money routes (spec 6, 11.3)', () => {
   it('every route is admin only (6, 11.3); the money routes name their area', () => {
     for (const r of [...subscriptionRoutes.routes, ...paymentRoutes.routes]) {
       if (r.path.startsWith('/club/money/')) expect(areaOfRoute(r.config), r.path).toBe('money');
-      else expect(r.config, r.path).toEqual({ auth: false, policies: ['global::is-admin'], middlewares: [] });
+      else expect(r.config, r.path).toEqual(adminRoute('club'));
     }
   });
   it('static before parameter paths in each file; move preview in 06-groups (P4 8.2)', () => {

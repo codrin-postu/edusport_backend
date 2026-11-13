@@ -1,11 +1,8 @@
 import type { Core } from '@strapi/strapi';
-import { isSuperAdminRequest } from '../club/personal-data/super-admin';
+import hasRole from './has-role';
 
-type PolicyContext = { request?: { header?: { authorization?: string } } };
+type PolicyContext = { request?: { header?: { authorization?: string } }; state?: Record<string, unknown> };
 
-/**
- * Global policy `global::is-super-admin` (3C spec 6): as `global::is-admin` (401 without an access token of an active
- * session of an existing, active admin), then 403 for a blocked admin or one without the Super Admin role.
- */
-export default async (policyContext: PolicyContext, _config: unknown, { strapi }: { strapi: Core.Strapi }): Promise<boolean> =>
-  isSuperAdminRequest(policyContext.request?.header?.authorization, strapi);
+/** Global policy `global::is-super-admin` (3C spec 6): `global::has-role` with the `superAdmin` area. */
+export default (policyContext: PolicyContext, _config: unknown, { strapi }: { strapi: Core.Strapi }): Promise<boolean> =>
+  hasRole(policyContext, { area: 'superAdmin' }, { strapi });

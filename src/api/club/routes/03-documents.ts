@@ -1,8 +1,10 @@
 /**
  * Registration PDFs (plan 2D). The public route is guarded by the signed 24-hour token in the query,
- * the others by the admin JWT (`global::is-admin`), like the other club admin routes.
+ * the others by the admin JWT (`global::has-role`), like the other club admin routes.
  */
-const adminGuard = { auth: false, policies: ['global::is-admin'], middlewares: [] };
+import { adminRoute } from '../../../club/admin-area';
+
+const club = adminRoute('club');
 
 export default {
   routes: [
@@ -12,7 +14,7 @@ export default {
       handler: 'documents.publicDownload',
       config: { auth: false, policies: [], middlewares: [] },
     },
-    { method: 'GET', path: '/club/registrations/:documentId/documents/:kind', handler: 'documents.registrationDocument', config: adminGuard },
-    { method: 'GET', path: '/club/documents/blank/:kind', handler: 'documents.blankForm', config: adminGuard },
+    { method: 'GET', path: '/club/registrations/:documentId/documents/:kind', handler: 'documents.registrationDocument', config: club },
+    { method: 'GET', path: '/club/documents/blank/:kind', handler: 'documents.blankForm', config: club },
   ],
 };

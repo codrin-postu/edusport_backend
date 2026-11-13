@@ -7,7 +7,7 @@ import { strapiGroupStore } from '../../../club/groups/strapi-store';
 
 const id = (ctx: AdminCtx): string => ctx.params.documentId ?? '';
 
-/** routes/08-new-season.ts (all `global::is-admin`). */
+/** routes/08-new-season.ts (all `global::has-role`). */
 export default {
   async data(ctx: AdminCtx) {
     respond(ctx, await readStart(strapiGroupStore(strapi), id(ctx), todayIso()));

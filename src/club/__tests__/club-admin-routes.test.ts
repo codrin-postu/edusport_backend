@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import prices from '../../api/club/controllers/prices';
 import seasons from '../../api/club/controllers/seasons';
 import routes from '../../api/club/routes/03-admin-prices-seasons';
+import { adminRoute } from '../admin-area';
 import { indexParam, refuseWith, respond, type AdminCtx } from '../admin-http';
 
 const controllers: Record<string, Record<string, unknown>> = { prices, seasons };
@@ -10,7 +11,7 @@ const ctx = (): AdminCtx => ({ params: {}, query: {}, request: { header: {} }, s
 
 describe('Prețuri and Sezoane admin routes', () => {
   it('are all admin-only', () => {
-    for (const r of routes.routes) expect(r.config).toEqual({ auth: false, policies: ['global::is-admin'], middlewares: [] });
+    for (const r of routes.routes) expect(r.config).toEqual(adminRoute(r.path.startsWith('/club/seasons') ? 'settings' : 'website'));
   });
 });
 

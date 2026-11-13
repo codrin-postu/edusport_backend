@@ -21,7 +21,7 @@ import { undoViewDelete } from '../../../club/tables/views-service';
 const store = () => strapiGroupStore(strapi);
 const id = (ctx: AdminCtx): string => ctx.params.documentId ?? '';
 
-/** Admin API of Grupe (routes/06-groups.ts, all `global::is-admin`). */
+/** Admin API of Grupe (routes/06-groups.ts, all `global::has-role`). */
 export default {
   async list(ctx: AdminCtx) {
     ctx.body = { data: await readGroupList(store(), readListQuery(ctx.query), todayIso()) };

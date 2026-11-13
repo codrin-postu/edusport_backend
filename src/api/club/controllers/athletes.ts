@@ -17,7 +17,7 @@ import { todayIso } from '../../../club/groups/http';
 import { todayInBucharest } from '../../../club/birth-date';
 import { SUBJECT } from '../../../club/history-text';
 
-/** Admin API of Sportivi (routes/05-athletes.ts, all `global::is-admin`). A deleted athlete is not found (gaps #40). */
+/** Admin API of Sportivi (routes/05-athletes.ts, all `global::has-role`). A deleted athlete is not found (gaps #40). */
 export default {
   async list(ctx: AdminCtx) {
     const presence = strapiPresenceStore(strapi);

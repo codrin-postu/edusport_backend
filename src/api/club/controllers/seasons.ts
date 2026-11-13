@@ -6,7 +6,7 @@ import { createSeason, listAdminSeasons, updateSeason } from '../../../club/seas
 import { pingRevalidate } from '../../../utils/revalidate';
 import { strapiSeasonStore } from '../../../club/season-admin-store';
 
-/** Admin API of the Sezoane page (routes/03-admin-prices-seasons.ts, all `global::is-admin`). */
+/** Admin API of the Sezoane page (routes/03-admin-prices-seasons.ts, all `global::has-role`). */
 const store = () => strapiSeasonStore(strapi);
 const actor = (ctx: AdminCtx) => adminActor(ctx.request.header.authorization, strapi);
 

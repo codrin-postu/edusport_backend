@@ -1,3 +1,4 @@
+import { adminRoute } from '../admin-area';
 import { expect, it } from 'vitest';
 import adminRoutes from '../../api/club/routes/02-admin';
 import publicRoutes from '../../api/club/routes/01-public';
@@ -9,5 +10,5 @@ it('serves the public read without auth', () => {
 });
 
 it('keeps the summary admin-only', () => {
-  expect(adminRoutes.routes[0].config.policies).toEqual(['global::is-admin']);
+  expect(adminRoutes.routes[0].config).toEqual(adminRoute('any'));
 });

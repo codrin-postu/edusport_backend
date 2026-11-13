@@ -92,6 +92,8 @@ All new attributes follow P5 3: collection types hidden from the Content Manager
 
 All admin routes: `{ auth: false, policies: ['global::is-admin'], middlewares: [] }`, static paths before parameter paths (the existing source-reading test covers the new files) [P5 6]. Dates are `YYYY-MM-DD`, Europe/Bucharest. A period is `from` and `to` inclusive; the server refuses a period longer than 42 days on Prezență and coach routes with 400 "Perioada e prea lungă." [S13]. Until phase 6b roles exist, every admin sees Bani, the accounting view and all exports; the phase 6b role map decides later (carried to 6b q17-q21) (decided by Claude, low impact).
 
+Every phase 11 route names its area (`money`) in its route config; the 6b area test fails otherwise (spec 9.3 ruling).
+
 ### 4.1 Prezență period (`src/api/club/routes/09-attendance.ts`)
 - `GET /club/attendance/period?from&to` (new): days in the period, each with the group rows (P5 `DayRow` plus `coachIds`), the undone list before `from` (4.1a), `today`, `startDate`, `groupsWithoutList`. Built from `src/club/presence/attendance/day.ts` [code] generalised to a range (one occurrence expansion and one session read for the range, not one per day).
 - `GET /club/attendance/grid?from&to` (new): groups active in the period (rows, P4 group order), dates (columns), each cell `{ state, present, listed, sessions }` where a day with two sessions of one group adds both [S14].

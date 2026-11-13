@@ -9,7 +9,7 @@ import { AdminPage, Window, PageHeader, Button, StatusBadge, Notice, EmptyState,
  * EduSport admin — "Anunțuri" list page.
  *
  * Data source is the custom admin API (`/api/anunturi`, auth:false +
- * `global::is-admin`), NOT the content-manager: the announcement content type is
+ * `global::has-role`), NOT the content-manager: the announcement content type is
  * hidden from the content-manager on purpose, and the list endpoint additionally
  * decorates every row with its Umami stats and its computed group.
  *

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { adminRoute, areaOfRoute } from '../admin-area';
 import athletes from '../../api/club/controllers/athletes';
 import personalData from '../../api/club/controllers/personal-data';
 import registrations from '../../api/club/controllers/registrations';
@@ -14,15 +15,15 @@ const fromFirst = (paths: string[], test: (p: string) => boolean) => paths.slice
 describe('3A+3B admin routes', () => {
   it('are all admin-only; anonymizing and hiding the yearly review need a Super Admin (3C spec 6)', () => {
     for (const r of all) {
-      const policy = SUPER_ADMIN_ONLY.includes(`${r.method} ${r.path}`) ? 'global::is-super-admin' : 'global::is-admin';
-      expect(r.config, `${r.method} ${r.path}`).toEqual({ auth: false, policies: [policy], middlewares: [] });
+      const area = SUPER_ADMIN_ONLY.includes(`${r.method} ${r.path}`) ? 'superAdmin' : 'club';
+      expect(r.config, `${r.method} ${r.path}`).toEqual(adminRoute(area));
     }
   });
 
   it('export is for any admin, both anonymize routes for a Super Admin (3C spec 8)', () => {
-    expect(route('GET', '/club/athletes/:documentId/export')?.config.policies).toEqual(['global::is-admin']);
-    expect(route('POST', '/club/athletes/:documentId/anonymize')?.config.policies).toEqual(['global::is-super-admin']);
-    expect(route('POST', '/club/athletes/anonymize')?.config.policies).toEqual(['global::is-super-admin']);
+    expect(areaOfRoute(route('GET', '/club/athletes/:documentId/export')?.config)).toBe('club');
+    expect(areaOfRoute(route('POST', '/club/athletes/:documentId/anonymize')?.config)).toBe('superAdmin');
+    expect(areaOfRoute(route('POST', '/club/athletes/anonymize')?.config)).toBe('superAdmin');
     expect(route('GET', '/club/athletes/inactive-summary')?.handler).toBe('personal-data.inactiveSummary');
   });
 

@@ -5,7 +5,7 @@ import { createPriceList, editPriceItem, loadAdminPrices, savePriceNotes } from 
 import { strapiPriceStore } from '../../../club/price-admin-store';
 
 /**
- * Admin API of the Prețuri page (routes/03-admin-prices-seasons.ts, all `global::is-admin`).
+ * Admin API of the Prețuri page (routes/03-admin-prices-seasons.ts, all `global::has-role`).
  * Every answer is the whole page data (`AdminPrices`), so the page simply replaces its state.
  */
 const store = () => strapiPriceStore(strapi);

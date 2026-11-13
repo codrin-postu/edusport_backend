@@ -7,7 +7,7 @@
  * browser, not even as metadata, or a visitor could read tomorrow's message
  * today.
  *
- * Admin (`/api/anunturi`, `global::is-admin`) is the custom Anunțuri page's
+ * Admin (`/api/anunturi`, `global::has-role`) is the custom Anunțuri page's
  * data source — same pattern as the volunteer-submission admin routes: content
  * api routes with auth disabled, guarded by the policy, so the admin fetch
  * client's Bearer token is the only way in.

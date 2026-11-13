@@ -1,4 +1,6 @@
 import type { UID } from '@strapi/strapi';
+import type { AdminArea } from '../../../club/admin-area';
+import { summaryFor } from '../../../club/roles/summary';
 import { loadPublicClubInfo } from '../../../club/public-info-loader';
 
 export default {
@@ -14,7 +16,8 @@ export default {
       count('api::price-list.price-list'),
       count('api::registration-submission.registration-submission', { registrationNumber: { $notNull: true } }),
     ]);
-    ctx.body = { data: { seasons, sections, groups, athletes, activeAthletes, priceLists, numberedRegistrations } };
+    const areas = new Set<AdminArea>((ctx.state?.adminAreas as AdminArea[] | undefined) ?? ['any']);
+    ctx.body = { data: summaryFor({ seasons, sections, groups, athletes, activeAthletes, priceLists, numberedRegistrations }, areas) };
   },
 
   /** GET /api/club/public (no auth): see src/club/public-info.ts for exactly what is returned. */

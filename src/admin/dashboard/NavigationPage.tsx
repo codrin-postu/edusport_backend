@@ -38,7 +38,7 @@ import { DASHBOARD_TO } from './menu';
  * Data:
  *   GET /api/meniu-site  -> { data: { overrides: [{ key, description, image }] } }
  *   PUT /api/meniu-site     body { key, description, image: <fileId|null> }
- * Both are admin-guarded (global::is-admin). The single type is hidden from the
+ * Both are admin-guarded (global::has-role). The single type is hidden from the
  * content-manager, so this page is the only way in.
  *
  * Images go through the standard upload plugin: POST /upload for a new file,

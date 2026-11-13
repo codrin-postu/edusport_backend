@@ -19,7 +19,7 @@ function respondMove(ctx: AdminCtx, result: AdminResult<MoveSchoolResponse>): vo
   respond(ctx, result);
 }
 
-/** Admin API of the Înscrieri confirmation (routes/04-registrations.ts, all `global::is-admin`). */
+/** Admin API of the Înscrieri confirmation (routes/04-registrations.ts, all `global::has-role`). */
 export default {
   async history(ctx: AdminCtx) {
     const store = clubStore(strapi);

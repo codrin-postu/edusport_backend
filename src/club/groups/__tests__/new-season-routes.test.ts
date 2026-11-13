@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { adminRoute } from '../../admin-area';
 import routes from '../../../api/club/routes/08-new-season';
 
 describe('08-new-season routes (10.9)', () => {
   it('are admin-only (any admin, W22)', () => {
-    for (const r of routes.routes) expect(r.config, r.path).toEqual({ auth: false, policies: ['global::is-admin'], middlewares: [] });
+    for (const r of routes.routes) expect(r.config, r.path).toEqual(adminRoute('club'));
   });
 
   it('declare the preview path before the start path', () => {

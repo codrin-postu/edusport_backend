@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import { adminRoute } from '../../admin-area';
 import routes from '../../../api/club/routes/03-documents';
 
 it('serves the PDFs at the contract paths: public by token, the rest admin-only', () => {
@@ -8,8 +9,8 @@ it('serves the PDFs at the contract paths: public by token, the rest admin-only'
       method: 'GET',
       path: '/club/registrations/:documentId/documents/:kind',
       handler: 'documents.registrationDocument',
-      config: { auth: false, policies: ['global::is-admin'], middlewares: [] },
+      config: adminRoute('club'),
     },
-    { method: 'GET', path: '/club/documents/blank/:kind', handler: 'documents.blankForm', config: { auth: false, policies: ['global::is-admin'], middlewares: [] } },
+    { method: 'GET', path: '/club/documents/blank/:kind', handler: 'documents.blankForm', config: adminRoute('club') },
   ]);
 });

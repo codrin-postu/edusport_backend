@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import { adminRoute } from '../../club/admin-area';
 import adminRoutes from '../../api/email-job/routes/02-admin';
 
 it('serves status and resend under /club/registrations, admin only', () => {
@@ -6,5 +7,5 @@ it('serves status and resend under /club/registrations, admin only', () => {
     'GET /club/registrations/:documentId/email-status email-job.emailStatus',
     'POST /club/registrations/:documentId/resend-email email-job.resendEmail',
   ]);
-  for (const route of adminRoutes.routes) expect(route.config).toEqual({ auth: false, policies: ['global::is-admin'], middlewares: [] });
+  for (const route of adminRoutes.routes) expect(route.config).toEqual(adminRoute('club'));
 });

@@ -12,7 +12,7 @@ import { disableAccount, disableAll, enableAccount } from '../../../club/portal/
 
 const param = (ctx: AdminCtx, name: string): string => ctx.params[name] ?? '';
 
-/** Admin API of the coach accounts (routes/12-portal-accounts.ts, all `global::is-admin`). */
+/** Admin API of the coach accounts (routes/12-portal-accounts.ts, all `global::has-role`). */
 export default {
   async read(ctx: AdminCtx) {
     respond(ctx, await readAccount(await accountContext(strapi, ctx), param(ctx, 'documentId')));

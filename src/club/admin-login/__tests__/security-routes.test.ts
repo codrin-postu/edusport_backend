@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { adminRoute } from '../../admin-area';
 import controller from '../../../api/admin-auth/controllers/admin-auth';
 import security from '../../../api/admin-auth/routes/02-security';
 import admins from '../../../api/admin-auth/routes/03-admins';
@@ -23,7 +24,7 @@ describe('routes', () => {
   const mine = security.routes as Route[];
   const others = admins.routes as Route[];
 
-  it('02-security: every route under /admin-auth/me, auth off, policy global::is-admin (T25 swaps it)', () => {
+  it('02-security: every route under /admin-auth/me, auth off, area any', () => {
     expect(mine.map((r) => `${r.method} ${r.path}`)).toEqual([
       'GET /admin-auth/me/security', 'POST /admin-auth/me/2fa/totp', 'POST /admin-auth/me/2fa/totp/confirm', 'DELETE /admin-auth/me/2fa/totp',
       'POST /admin-auth/me/2fa/email', 'POST /admin-auth/me/2fa/email/confirm', 'DELETE /admin-auth/me/2fa/email', 'POST /admin-auth/me/backup-codes',
@@ -31,12 +32,12 @@ describe('routes', () => {
       'GET /admin-auth/me/devices', 'POST /admin-auth/me/password', 'GET /admin-auth/me/google', 'DELETE /admin-auth/me/google', 'DELETE /admin-auth/me/devices/:id',
       'PUT /admin-auth/me/passkeys/:id', 'DELETE /admin-auth/me/passkeys/:id',
     ]);
-    for (const r of mine) expect(r.config).toEqual({ auth: false, policies: ['global::is-admin'], middlewares: [] });
+    for (const r of mine) expect(r.config).toEqual(adminRoute('any'));
   });
 
-  it('03-admins: GET admins and POST admins/:id/reset-2fa, policy global::is-super-admin', () => {
+  it('03-admins: GET admins and POST admins/:id/reset-2fa, area superAdmin', () => {
     expect(others.map((r) => `${r.method} ${r.path}`)).toEqual(['GET /admin-auth/admins', 'POST /admin-auth/admins/:id/reset-2fa']);
-    for (const r of others) expect(r.config).toEqual({ auth: false, policies: ['global::is-super-admin'], middlewares: [] });
+    for (const r of others) expect(r.config).toEqual(adminRoute('superAdmin'));
   });
 
   it('fixed before parameter paths, and every handler exists on the controller', () => {
