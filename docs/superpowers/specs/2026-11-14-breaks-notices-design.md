@@ -59,3 +59,10 @@ Coach portal messages; deleting old Umami data; the frontend main-site changes.
 - S2 The 14-day window and per-account dismissal for automatic messages (as proposed in chat, not objected to).
 - S3 "Achitate" options stay selectable (corrections).
 - S4 Section header counts are the sum of the ticked groups' sessions.
+
+## 9. Amendments 2026-11-14 (user, admin canvas "Anunțuri: tabel")
+
+- No tabs: one Anunțuri table for site and portal, columns with titles: "Anunț" (automatic messages carry the label "Automat" and a muted second line), "Unde" (globe = Site, person = Portal sportiv, fixed slots), "Pentru", "Perioadă", "Stare" ("Activ", "Programat", "Încheiat", "Oprit"), "Rezultat". Active first. No "Șterge" or format label in the rows; a row opens the editor; automatic messages open read-only.
+- "Rezultat" shows views only [U "how about X vizualizari site public, Y vizualizari portal"]: "<x> vizualizări site public" and/or "<y> vizualizări portal". A portal view = an account that opened its Mesaje list while the message was in it, counted once per account (record `seenAt` per delivery). Clicks and other site stats only in the detail.
+- Detail of a portal message: "Trimis la <n> conturi", "Văzut de <m>", and the accounts list with columns "Cont", "Sportivi", "Văzut" ("da, 13 noi" / "nu"). Dismissal is still recorded for the portal counter but not shown to admins.
+- Segmented controls are only as wide as their options site wide (fixed in src/admin/ui/styles.ts, 1cf7afd).
