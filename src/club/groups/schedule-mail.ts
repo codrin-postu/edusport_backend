@@ -24,7 +24,7 @@ export function nextClass(events: EventRecord[], breaks: BreakRecord[], groupId:
   const from = addDays(after, 1);
   if (from > until) return null;
   const rows = events.filter((e) => e.groupId === groupId).map((e) => asCalendarRow(e));
-  const blackouts = breaks.map((b) => ({ label: b.label, startDate: b.startDate, endDate: b.endDate }));
+  const blackouts = breaks.map((b) => ({ label: b.label, startDate: b.startDate, endDate: b.endDate, exceptGroupIds: b.exceptGroupIds }));
   const held = expandOccurrences(rows, blackouts, from, until).find((o) => o.status !== 'cancelled' && o.startTime);
   return held?.startTime ? { date: held.date, startTime: held.startTime } : null;
 }

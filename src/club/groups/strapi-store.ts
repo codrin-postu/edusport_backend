@@ -3,6 +3,7 @@ import { iso, linkId, raws, str, strapiClubStore, text, toMembership, transactio
 import type { Raw } from '../athletes/strapi-store';
 import { buildHistoryEntry } from '../history';
 import { isRecord } from '../narrow';
+import { exceptOf } from '../../api/calendar-event/services/expand';
 import { hhmm } from './dates';
 import type {
   BreakRecord, DayKey, EventRecord, ExceptionKind, ExceptionRow, Freq, GroupRecord, GroupStore, HistoryEntryRow, Recurrence, SeasonRecord, SectionRecord, WeekOfMonth,
@@ -82,7 +83,7 @@ const toHistoryEntry = (r: Raw): HistoryEntryRow => ({
   id: text(r.documentId), seq: Number(r.id), subjectType: text(r.subjectType), subjectId: text(r.subjectId), action: text(r.action),
   changes: isRecord(r.changes) ? r.changes : {}, actor: text(r.actor), at: iso(r.at) ?? '',
 });
-const toBreak = (b: Raw): BreakRecord => ({ id: text(b.documentId), label: text(b.label), startDate: text(b.startDate), endDate: text(b.endDate) });
+const toBreak = (b: Raw): BreakRecord => ({ id: text(b.documentId), label: text(b.label), startDate: text(b.startDate), endDate: text(b.endDate), exceptGroupIds: exceptOf({ exceptGroupIds: b.exceptGroupIds as string[] | null }) });
 
 /** A document-service write on a missing row answers null (update) or no entries (delete) and no error; the action must not commit around it. */
 export const found = <T>(row: T | null | undefined, what: string): T => {

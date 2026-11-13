@@ -39,6 +39,12 @@ describe('recipients (6.5, W7)', () => {
 describe('next class (W33)', () => {
   const e = event({ id: 'e1', exceptions: [{ date: '2026-11-15', kind: 'anulat', newDate: null, newStartTime: null, newEndTime: null, newTitle: null, reason: null }] });
 
+  it('a break the group is excepted from does not hide its dates', () => {
+    const brk = { id: 'b', label: 'Pauză', startDate: '2026-11-21', endDate: '2026-11-22', exceptGroupIds: ['g-ib'] };
+    expect(nextClass([e], [brk], 'g-ib', '2026-11-14', '2027-05-31')).toEqual({ date: '2026-11-21', startTime: '11:00' });
+    expect(nextClass([e], [{ ...brk, exceptGroupIds: ['other'] }], 'g-ib', '2026-11-14', '2027-05-31')).toEqual({ date: '2026-11-28', startTime: '11:00' });
+  });
+
   it('is the first held class after the date, skipping cancelled dates and breaks', () => {
     expect(nextClass([e], [], 'g-ib', '2026-11-14', '2027-05-31')).toEqual({ date: '2026-11-21', startTime: '11:00' });
     expect(nextClass([e], [{ id: 'b', label: 'Pauză', startDate: '2026-11-21', endDate: '2026-11-22' }], 'g-ib', '2026-11-14', '2027-05-31')).toEqual({ date: '2026-11-28', startTime: '11:00' });
