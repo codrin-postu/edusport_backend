@@ -32,8 +32,11 @@ export function lessonRight(f: LessonFacts): Right & { delete: boolean } {
   return { read: true, write: allowed, archived: f.recorded && !allowed, mustIncludeMe: false, delete: allowed };
 }
 
-export function programRight(access: GroupAccess, kind: SectionKind): { read: boolean; write: boolean } {
-  return { read: access !== 'none', write: access === 'own' && kind === 'club' };
+/** Club groups are the coach's to edit; a Scoala group only for a coach whose e-mail is an active club admin (`CoachState.schoolEdit`). */
+export const ownGroupEditable = (kind: SectionKind, schoolEdit: boolean): boolean => kind === 'club' || schoolEdit;
+
+export function programRight(access: GroupAccess, kind: SectionKind, schoolEdit: boolean): { read: boolean; write: boolean } {
+  return { read: access !== 'none', write: access === 'own' && ownGroupEditable(kind, schoolEdit) };
 }
 
 export function cardRight(own: boolean, onListedSession: boolean): { read: boolean; contact: boolean } {

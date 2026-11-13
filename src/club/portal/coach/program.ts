@@ -18,19 +18,19 @@ import { canCoachCorrect } from '../window';
 import type { CoachProgram, CoachProgramRule, SectionKind } from './api-types';
 import { forbidden, type CoachContexts, type CoachResult } from './context';
 import { groupAccess } from './ownership';
-import { programRight } from './rules';
+import { ownGroupEditable, programRight } from './rules';
 
 /** The coach's Program tab and its writes (spec 9.8, 9.9): the phase 4 services with the coach actor, same lines, e-mails and website ping. Answers drop `undo`. */
 const plain = <T>(r: ActionResult<T>): AdminResult<T> => (r.ok === false ? r : { ok: true, data: r.data.value });
 
-type Found = { groupId: string; kind: SectionKind; right: { read: boolean; write: boolean }; own: boolean; programPublic: boolean };
+type Found = { groupId: string; kind: SectionKind; right: { read: boolean; write: boolean }; own: boolean; editableKind: boolean; programPublic: boolean };
 
 async function found(c: CoachContexts, groupId: string): Promise<Found | null> {
   const [group, sections] = await Promise.all([c.groups.store.group(groupId), c.groups.store.sections()]);
   if (!group) return null;
   const kind: SectionKind = sections.find((s) => s.id === group.sectionId)?.kind ?? 'school';
   const access = groupAccess(group, c.coach.teamMemberId);
-  return { groupId, kind, right: programRight(access, kind), own: access === 'own', programPublic: group.programPublic };
+  return { groupId, kind, right: programRight(access, kind, c.coach.schoolEdit), own: access === 'own', editableKind: ownGroupEditable(kind, c.coach.schoolEdit), programPublic: group.programPublic };
 }
 
 /** The group of an event, none when the event is gone or has no group. */
@@ -92,7 +92,7 @@ export async function readCoachProgram(c: CoachContexts, groupId: string, month:
   const rules = rulesOf(program, events, season ? seasonBounds(season).end : null, c.today);
   const { data: all } = adminWindow(window, monthRange(month), groupId);
   const data = g.own ? all : all.map((o) => ({ ...o, description: null }));
-  return { ok: true, data: { kind: g.kind, editable: g.right.write, programPublic: g.own && g.kind === 'club' ? g.programPublic : null, program, rules, occurrences: data } };
+  return { ok: true, data: { kind: g.kind, editable: g.right.write, programPublic: g.own && g.editableKind ? g.programPublic : null, program, rules, occurrences: data } };
 }
 
 export async function coachAddProgram(c: CoachContexts, groupId: string, body: unknown): Promise<CoachResult<{ eventId: string; date: string | null }>> {
@@ -134,11 +134,11 @@ export async function coachSetDate(c: CoachContexts, eventId: string, date: stri
   return plain(await setDate(c.groups, eventId, date, body));
 }
 
-/** "Program public": the coach's own Club group only (spec 9.9). */
+/** "Program public": the coach's own Club group, or an own Scoala group for a coach who is a club admin (spec 9.9). */
 export async function coachProgramPublic(c: CoachContexts, groupId: string, body: unknown): Promise<CoachResult<{ toast: string }>> {
   const g = await found(c, groupId);
   if (!g) return refuse(404, PORTAL_ERRORS.notFound);
-  if (!g.own || g.kind !== 'club') return forbidden(PORTAL_ERRORS.noAccess);
+  if (!g.own || !g.editableKind) return forbidden(PORTAL_ERRORS.noAccess);
   const value = put(body, 'value');
   if (typeof value !== 'boolean') return refuse(400, PORTAL_ERRORS.invalid);
   const res = await setProgramPublic(c.groups, groupId, value);

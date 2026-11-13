@@ -70,7 +70,7 @@ const C_SEED: FakePresenceSeed = {
 export type CoachSeed = CoachContexts & { fake: FakePresenceContext; portal: FakePortal['store']; portalFake: FakePortal; clubFake: ReturnType<typeof fakeClubStore> };
 
 /** Contexts of one coach over the fakes: the phase 5 context carries the phase 4 and 5 state, the actor is "Antrenor <nume>". */
-export function coachCtx(teamMemberId: string, today = '2026-11-20', over: FakePresenceSeed = {}): CoachSeed {
+export function coachCtx(teamMemberId: string, today = '2026-11-20', over: FakePresenceSeed = {}, schoolEdit = false): CoachSeed {
   const fake = fakePresenceContext({ ...C_SEED, ...over, group: { ...C_SEED.group, ...over.group } }, today);
   const name = C_TEAM.find((t) => t.id === teamMemberId)?.name ?? teamMemberId;
   const actor = coachActor(name);
@@ -87,7 +87,7 @@ export function coachCtx(teamMemberId: string, today = '2026-11-20', over: FakeP
   };
   const [year, month, day] = today.split('-').map(Number);
   return {
-    coach: { accountId: 'acc-1', userId: 1, sessionId: 'ses-1', teamMemberId, name },
+    coach: { accountId: 'acc-1', userId: 1, sessionId: 'ses-1', teamMemberId, name, schoolEdit },
     today,
     presence: { ...fake.ctx, actor },
     groups: {

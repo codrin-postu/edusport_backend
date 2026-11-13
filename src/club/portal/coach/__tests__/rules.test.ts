@@ -52,11 +52,15 @@ describe('lessonRight, programRight, cardRight', () => {
     expect(lessonRight({ listed: true, date: '2026-10-06', today: '2026-10-13', recorded: true })).toMatchObject({ write: true, delete: true });
   });
 
-  it('program: read own and other, write only an own Club group', () => {
-    expect(programRight('own', 'school')).toEqual({ read: true, write: false });
-    expect(programRight('other', 'club')).toEqual({ read: true, write: false });
-    expect(programRight('own', 'club')).toEqual({ read: true, write: true });
-    expect(programRight('none', 'club')).toEqual({ read: false, write: false });
+  it('program: read own and other, write an own Club group, an own Scoala group only with the school edit', () => {
+    expect(programRight('own', 'school', false)).toEqual({ read: true, write: false });
+    expect(programRight('own', 'school', true)).toEqual({ read: true, write: true });
+    expect(programRight('other', 'school', true)).toEqual({ read: true, write: false });
+    expect(programRight('none', 'school', true)).toEqual({ read: false, write: false });
+    expect(programRight('other', 'club', false)).toEqual({ read: true, write: false });
+    expect(programRight('own', 'club', false)).toEqual({ read: true, write: true });
+    expect(programRight('own', 'club', true)).toEqual({ read: true, write: true });
+    expect(programRight('none', 'club', false)).toEqual({ read: false, write: false });
   });
 
   it('card: contact only for an own athlete', () => {

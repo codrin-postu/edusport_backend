@@ -308,3 +308,38 @@ describe('fix round A through the coach', () => {
     expect(await coachDeleteClass(c, 'old')).toEqual(INVALID);
   });
 });
+
+describe('a coach who is an active club admin (schoolEdit)', () => {
+  const admin = (schoolEdit = true) => coachCtx(ME, '2026-11-20', {}, schoolEdit);
+
+  it('edits his own Scoala group like a Club group, with the coach actor', async () => {
+    const c = admin();
+    expect(await readCoachProgram(c, 'g-scoala-a', '2026-11')).toMatchObject({ ok: true, data: { kind: 'school', editable: true, programPublic: true } });
+    expect(await coachAddProgram(c, 'g-scoala-a', weekly())).toMatchObject({ ok: true, data: { eventId: expect.any(String) } });
+    expect(c.fake.group.history.at(-1)).toMatchObject({ actor: 'Antrenor Andreea Pascu', subjectId: 'g-scoala-a' });
+    expect(await coachEndProgram(c, 'ev-g-scoala-a', { from: '2026-11-23' })).toMatchObject({ ok: true });
+    expect(await coachProgramPublic(c, 'g-scoala-a', { value: false })).toEqual({ ok: true, data: { toast: 'Salvat.' } });
+  });
+
+  it('still cannot edit the Scoala group of another coach', async () => {
+    const c = coachCtx('tm-virgil', '2026-11-20', {}, true);
+    expect(await readCoachProgram(c, 'g-scoala-a', '2026-11')).toMatchObject({ ok: true, data: { editable: false, programPublic: null } });
+    expect(await coachAddProgram(c, 'g-scoala-a', weekly())).toEqual(NO_ACCESS);
+    expect(await coachProgramPublic(c, 'g-scoala-a', { value: false })).toEqual(NO_ACCESS);
+    expect(c.fake.group.history).toEqual([]);
+  });
+
+  it('is read per request: the same call without it is refused and writes nothing', async () => {
+    const c = admin(false);
+    expect(await readCoachProgram(c, 'g-scoala-a', '2026-11')).toMatchObject({ ok: true, data: { editable: false, programPublic: null } });
+    expect(await coachAddProgram(c, 'g-scoala-a', weekly())).toEqual(NO_ACCESS);
+    expect(await coachProgramPublic(c, 'g-scoala-a', { value: false })).toEqual(NO_ACCESS);
+    expect(c.fake.group.history).toEqual([]);
+  });
+
+  it('changes nothing for a Club group', async () => {
+    const c = admin(false);
+    expect(await readCoachProgram(c, 'g-club-a', '2026-11')).toMatchObject({ ok: true, data: { editable: true } });
+    expect(await coachAddProgram(c, 'g-club-a', weekly())).toMatchObject({ ok: true });
+  });
+});

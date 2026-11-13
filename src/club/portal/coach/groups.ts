@@ -14,6 +14,7 @@ import type { CoachGroupPage, CoachGroupRow, CoachGroups, CoachMember, NextClass
 import { locationOfGroup } from './calendar';
 import { clockOf } from './context';
 import type { CoachContexts } from './context';
+import { ownGroupEditable } from './rules';
 import { groupAccess } from './ownership';
 import { toCoachMember } from './views';
 
@@ -121,7 +122,7 @@ export async function readCoachGroupPage(c: CoachContexts, groupId: string): Pro
     ok: true,
     data: {
       groupId, name: group.name, kind, own, coaches: f.team.filter((t) => group.coachIds.includes(t.id)).map((t) => t.name), program: groupListRow(group, f).program,
-      members: own ? await members(c, groupId) : (await members(c, groupId)).map(({ name, age }) => ({ name, age })), membersReadOnly: !own, standIn, todayKey, programPublic: own && kind === 'club' ? group.programPublic : null,
+      members: own ? await members(c, groupId) : (await members(c, groupId)).map(({ name, age }) => ({ name, age })), membersReadOnly: !own, standIn, todayKey, programPublic: own && ownGroupEditable(kind, c.coach.schoolEdit) ? group.programPublic : null,
       location: await locationOfGroup(c, group),
     },
   };

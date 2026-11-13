@@ -17,7 +17,9 @@ import type { CoachCompetitionSource } from './competitions';
 import { strapiPortalStore } from '../strapi-store';
 
 /** The coach of the request, as `global::is-coach` read it. `sessionId` is never put in an answer or a log. */
-export type CoachState = { accountId: string; userId: number; sessionId: string; teamMemberId: string; name: string };
+export type CoachState = { accountId: string; userId: number; sessionId: string; teamMemberId: string; name: string;
+  /** The portal e-mail is an active, unblocked admin with the `club` area: the coach edits his Scoala groups like his Club groups. Read on every request. */
+  schoolEdit: boolean };
 
 export type CoachContexts = {
   coach: CoachState; today: string; presence: PresenceContext; groups: GroupContext; club: ServiceContext; portal: PortalStore;
