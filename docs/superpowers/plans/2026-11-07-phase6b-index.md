@@ -1,5 +1,7 @@
 # Phase 6b plans: admin login, 2FA, passkeys, admin roles (index)
 
+> **Refreshed 2026-11-13:** plan 6b-3 was refreshed for the current `main` (eead7cf) and runs on `feat/roles`: it adds T30 (Școala program switch on a coach account), drops the portal 2FA steps (portal sign-in is password or Google only, user 2026-11-11), and moves T28 / T29 to `es6b3-boot-pg` 55485 / Strapi 1417 and `es6b3-ct-pg` 55486 / Strapi 1418. Where this index and plan 6b-3 differ, plan 6b-3 wins.
+
 Spec (binding, approved): `docs/superpowers/specs/2026-11-07-admin-auth-roles-design.md` (with its "decided by Claude, low impact" builder defaults). Background: `edusport_backend/.superpowers/phase6b/answers.md` (user answers and the security note, these win over everything), `research.md`, `builder-check.md` (rulings Q1 to Q8). Decisions: `edusport_frontend/docs/portal/DECISIONS.md` (`[DEC 2026-11-07 p6b]`). Conventions: `docs/HANDOFF.md`, `CLAUDE.md`, `.superpowers/phase3-shared/agent-rules.md`, the phase 6 plans `2026-11-04-phase6-*.md` (store pattern with fake and parity tests, `refuseWith`, copy modules, Istoric lines).
 
 Backend: this repo, worktree `p3be`, branch `feat/athletes`, Strapi 5.52.1 TypeScript. The coach screens and the BFF are the frontend plan `/Users/codrin/Documents/Programming/edusport_frontend/docs/superpowers/plans/2026-11-07-phase6b-frontend.md`; it consumes the HTTP contracts below and nothing else, and starts after backend Task 21 is merged.
