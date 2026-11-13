@@ -1,8 +1,10 @@
-import type { CompetitionQuery, SlugSkater, SportivCompetitionSource, SportivCompetitionViews } from '../portal/sportiv/competitions';
+import type { SkaterRef } from '../portal/coach/competitions';
+import type { CompetitionQuery, SportivCompetitionSource, SportivCompetitionViews } from '../portal/sportiv/competitions';
 import type { Segment, SportivCompetition, SportivCompetitions } from '../portal/sportiv/api-types';
-import { DETAIL_MAX_AGE, resultsOf, type Cached, type snapshotCache } from './cache';
+import { DETAIL_MAX_AGE, type Cached, type snapshotCache } from './cache';
 import type { Fetched, SkateClient, SkateResult } from './client';
 import { currentCategory, listRows, records, seasonOfToday, toRow } from './derive';
+import type { CompetitionResults } from './pick';
 
 type Cache = ReturnType<typeof snapshotCache>;
 
@@ -22,11 +24,14 @@ function within<T>(ms: number, work: Promise<T>, fallback: T): Promise<T> {
 const valueOf = <T>(c: Cached<T>): T | null => ('value' in c ? c.value : null);
 
 /**
- * Sportiv competitions on the snapshot cache and the skate-results client. Every answer is for the one skater whose slug is given;
+ * Sportiv competitions on the one-source-per-athlete reads (`results`). Every answer is for the one skater given;
  * a result id is only ever looked up in that skater's own results, so nothing is fetched for an id that is not theirs.
+ * A skater with a slug reads skate-results (field size, protocol, official link on the cache and client); one without
+ * reads its hand-entered competitions only, and nothing else is read for it.
  */
 export function skateSportivSource(
-  cache: Cache, client: SkateClient, now: () => Date = () => new Date(), log: (message: string) => void = () => undefined, homeBudgetMs: number = HOME_BUDGET_MS,
+  cache: Cache, client: SkateClient, results: CompetitionResults, now: () => Date = () => new Date(),
+  log: (message: string) => void = () => undefined, homeBudgetMs: number = HOME_BUDGET_MS,
 ): SportivCompetitionSource & SportivCompetitionViews {
   /** The athlete id only (a slug can carry the child's name), at most once a day, through the logger that reaches GlitchTip. */
   const noteMissing = (athleteId: string): void => {
@@ -42,21 +47,21 @@ export function skateSportivSource(
   return {
     async last(skater) {
       const started = Date.now();
-      const got = await resultsOf(cache, client, skater.slug);
-      if ('missing' in got) { noteMissing(skater.athleteId); return 'none'; }
+      const got = await results.one(skater);
+      if ('missing' in got) { if (skater.slug) noteMissing(skater.athleteId); return 'none'; }
       if (!('value' in got)) return null;
       const [latest] = listRows(got.value, { q: '', season: null, sort: 'recent', page: 1 }).rows;
       if (!latest) return 'none';
       const source = got.value.find((r) => String(r.result_id) === latest.resultId);
       // The field size only gets what is left of the budget; when it is spent the card shows without it.
       const left = homeBudgetMs - (Date.now() - started);
-      const field = source && left > 0 ? await within(left, fieldOf(source).catch(() => null), null) : null;
+      const field = skater.slug && source && left > 0 ? await within(left, fieldOf(source).catch(() => null), null) : null;
       return { stale: got.stale, updatedAt: got.updatedAt, row: latest, field };
     },
 
     async count(skater) {
-      const got = await resultsOf(cache, client, skater.slug);
-      if ('missing' in got) { noteMissing(skater.athleteId); return { count: 0, dates: [] }; }
+      const got = await results.one(skater);
+      if ('missing' in got) { if (skater.slug) noteMissing(skater.athleteId); return { count: 0, dates: [] }; }
       if (!('value' in got)) return null;
       // An event without a date is left out, so the count and the dates agree.
       const events = new Map<number, string>();
@@ -65,9 +70,9 @@ export function skateSportivSource(
     },
 
     async list(skater, query: CompetitionQuery): Promise<SportivCompetitions> {
-      const got = await resultsOf(cache, client, skater.slug);
+      const got = await results.one(skater);
       if ('missing' in got) {
-        noteMissing(skater.athleteId);
+        if (skater.slug) noteMissing(skater.athleteId);
         return { available: true, stale: false, updatedAt: now().toISOString(), total: 0, category: null, records: records([]), seasons: [], page: query.page, pageSize: 20, filtered: 0, rows: [] };
       }
       if (!('value' in got)) return UNAVAILABLE;
@@ -81,11 +86,15 @@ export function skateSportivSource(
     },
 
     async detail(skater, resultId): Promise<SportivCompetition | null> {
-      const got = await resultsOf(cache, client, skater.slug);
-      if ('missing' in got) { noteMissing(skater.athleteId); return null; }
+      const got = await results.one(skater);
+      if ('missing' in got) { if (skater.slug) noteMissing(skater.athleteId); return null; }
       if (!('value' in got)) return UNAVAILABLE;
       const own = got.value.find((r) => r.result_id !== null && String(r.result_id) === resultId);
       if (!own || own.result_id === null) return null;
+      if (!skater.slug) {
+        // Hand-entered: no protocol, field size or official link exists for it.
+        return { available: true, stale: false, updatedAt: got.updatedAt, row: toRow(own), field: null, best: records(got.value).best, segments: [], officialUrl: null };
+      }
       const [protocol, field, url] = await Promise.all([
         detailRead(`protocol:${own.result_id}`, () => client.protocol(own.result_id as number)),
         fieldOf(own).catch(() => null),

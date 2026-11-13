@@ -82,7 +82,7 @@ describe('competition source and skaterOf', () => {
     expect(await nullSportivCompetitions.count(skater)).toBeNull();
   });
 
-  it('only an athlete with a skate slug is a performance athlete', async () => {
+  it('an athlete is a skater when it has a profile, the slug may be absent', async () => {
     const c = sportivCtx('parinte1@example.invalid');
     expect(await skaterOf(c, A_ANA)).toBeNull();
     expect(await skaterOf(c, 'a-unknown')).toBeNull();

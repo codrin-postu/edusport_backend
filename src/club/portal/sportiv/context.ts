@@ -14,10 +14,9 @@ import type { AccessStore } from '../access/store';
 import { strapiAccessStore } from '../access/strapi-store';
 import type { PortalStore } from '../store';
 import { strapiPortalStore } from '../strapi-store';
-import { snapshotCache } from '../../skate/cache';
-import { skateClient } from '../../skate/client';
+import type { CompetitionResults } from '../../skate/pick';
 import { skateSportivSource } from '../../skate/source';
-import { strapiSnapshotStore } from '../../skate/strapi-store';
+import { strapiCompetitions } from '../../skate/wiring';
 import type { SportivCompetitionSource, SportivCompetitionViews } from './competitions';
 import type { HolderState } from './holder';
 
@@ -27,6 +26,8 @@ export type SportivContext = {
   competitions: SportivCompetitionSource;
   /** The Concursuri list and the detail, from the same source. */
   competitionViews: SportivCompetitionViews;
+  /** The one-source-per-athlete result reads, for the athlete list's `performance`. */
+  results: CompetitionResults;
   /** The private folder of the stored registration PDFs. */
   documentsRoot: string;
 };
@@ -41,7 +42,8 @@ export function sportivContext(strapi: Core.Strapi, holder: HolderState): Sporti
   const log = (message: string): void => { strapi.log.error(message); };
   const now = (): Date => new Date();
   const scope = transactionScope(strapi);
-  const source = skateSportivSource(snapshotCache(strapiSnapshotStore(strapi), now, (job) => { setImmediate(() => { void job(); }); }), skateClient(), now, log);
+  const { cache, client, results } = strapiCompetitions(strapi, now);
+  const source = skateSportivSource(cache, client, results, now, log);
   return {
     holder, today,
     presence: { store: strapiPresenceStore(strapi), actor, today, now, log, paymentEmails: () => undefined },
@@ -54,7 +56,7 @@ export function sportivContext(strapi: Core.Strapi, holder: HolderState): Sporti
     club: { store: strapiClubStore(strapi), actor, today: todayInBucharest(), log },
     portal: strapiPortalStore(strapi, scope),
     access: strapiAccessStore(strapi, scope),
-    competitions: source, competitionViews: source,
+    competitions: source, competitionViews: source, results,
     documentsRoot: documentsRoot(strapi.dirs.app.root),
   };
 }

@@ -9,6 +9,7 @@ import { fakeAccessStore, type FakeAccess } from '../../access/fake-store';
 import { fakePortalStore, type FakePortal } from '../../__tests__/fake-portal-store';
 import type { CalendarEventRow } from '../../../../api/calendar-event/services/expand';
 import { nullSportivCompetitions, nullSportivCompetitionViews } from '../competitions';
+import type { CompetitionResults } from '../../../skate/pick';
 import type { SportivContext } from '../context';
 import type { HolderState } from '../holder';
 
@@ -59,7 +60,18 @@ export const HOLDERS: Record<string, string[]> = {
   'antrenor1@example.invalid': [A_RADU],
 };
 
+/** Results are unavailable until a test wires a source. */
+const nullResults: CompetitionResults = { one: async () => ({ available: false }), many: async (refs) => new Map(refs.map((r) => [r.athleteId, { available: false } as const])) };
+
 export type SportivSeed = SportivContext & { fake: ReturnType<typeof fakePresenceContext>; accessFake: FakeAccess; portalFake: FakePortal; clubFake: ReturnType<typeof fakeClubStore> };
+
+/** Gives an athlete a profile without a skate-results slug (its competitions are the hand-entered ones). */
+export function giveSluglessProfile(c: SportivSeed, athleteId: string, profileId: string): void {
+  const athlete = c.clubFake.state.athletes.find((a) => a.id === athleteId);
+  if (!athlete) throw new Error(`no athlete ${athleteId}`);
+  athlete.profileId = profileId;
+  c.clubFake.state.profiles.push({ id: profileId, name: athlete.name ?? '', slug: profileId, previousSlugs: [], showPublicPage: false, published: false, skateResultsSlug: '' });
+}
 
 /** Contexts of one holder over the fakes (index fixture, synthetic): Ioana has the skate slug `ioana-marin-test`, Elena has an e-mail and no access. */
 export function sportivCtx(email: keyof typeof HOLDERS | string, today = '2026-11-20'): SportivSeed {
@@ -94,6 +106,6 @@ export function sportivCtx(email: keyof typeof HOLDERS | string, today = '2026-1
       sessions: { ofEvent: async () => [], move: async () => undefined },
     },
     club: { store: clubFake.store, actor, today: { year, month, day }, log: fake.ctx.log },
-    portal: portalFake.store, access: accessFake.store, competitions: nullSportivCompetitions, competitionViews: nullSportivCompetitionViews, documentsRoot: path.join(os.tmpdir(), `sportiv-docs-${randomBytes(6).toString('hex')}`), fake, accessFake, portalFake, clubFake,
+    portal: portalFake.store, access: accessFake.store, competitions: nullSportivCompetitions, competitionViews: nullSportivCompetitionViews, results: nullResults, documentsRoot: path.join(os.tmpdir(), `sportiv-docs-${randomBytes(6).toString('hex')}`), fake, accessFake, portalFake, clubFake,
   };
 }

@@ -3,7 +3,12 @@ import { forbiddenPathsIn } from '../../forbidden-keys';
 import { attendanceRow, lessonRow, paymentRow, sessionRow } from '../../../presence/__tests__/fake-store';
 import { inPicker, readAthletes } from '../athletes';
 import { SPORTIV_FORBIDDEN_KEYS } from '../views';
-import { A_ANA, A_IOANA, A_MATEI, sportivCtx } from './sportiv-seed';
+import { fakeHandCompetitions } from '../../../skate/hand-store';
+import { pickedResults } from '../../../skate/pick';
+import { snapshotCache } from '../../../skate/cache';
+import { fakeSnapshotStore } from '../../../skate/fake-store';
+import type { SkateClient } from '../../../skate/client';
+import { A_ANA, A_IOANA, A_MATEI, giveSluglessProfile, sportivCtx } from './sportiv-seed';
 
 const TODAY = '2026-11-20';
 
@@ -30,6 +35,20 @@ describe('readAthletes', () => {
       { id: A_ANA, name: 'Ana Ionescu', firstName: 'Ana', groupName: 'Intermediari Bronze', age: 9, section: 'school', inPicker: true, performance: false },
       { id: A_MATEI, name: 'Matei Ionescu', firstName: 'Matei', groupName: 'Primii Pași', age: 7, section: 'school', inPicker: true, performance: false },
     ] });
+  });
+
+  it('performance without a slug follows the hand-entered competitions: false with none, true with one', async () => {
+    const client = { results: async () => ({ ok: true, value: [] }), protocol: async () => ({ ok: false, reason: 'down' }), fieldSize: async () => ({ ok: false, reason: 'down' }), officialUrl: async () => ({ ok: false, reason: 'down' }) } as SkateClient;
+    const NOW = new Date('2026-11-20T10:00:00.000Z');
+    const flagOf = async (entries: { id: number; name: string; date: string; location: string; participantData: unknown }[]) => {
+      const c = sportivCtx('parinte1@example.invalid');
+      giveSluglessProfile(c, A_MATEI, 'sp-matei');
+      const cache = snapshotCache(fakeSnapshotStore(), () => NOW, () => undefined);
+      const withHand = { ...c, results: pickedResults(cache, client, fakeHandCompetitions(entries), () => NOW) };
+      return (await readAthletes(withHand)).athletes.map((a) => [a.id, a.performance]);
+    };
+    expect(await flagOf([])).toEqual([[A_ANA, false], [A_MATEI, false]]);
+    expect(await flagOf([{ id: 5, name: 'Cupa', date: '2026-10-20', location: 'Cluj', participantData: [{ documentId: 'sp-matei', placement: 1 }] }])).toEqual([[A_ANA, false], [A_MATEI, true]]);
   });
 
   it('a performance athlete has a slug and a Club section; only held athletes are listed', async () => {

@@ -54,4 +54,13 @@ describe('pickedResults', () => {
     expect(client.results).toHaveBeenCalledTimes(1);
     expect([...got.keys()].sort()).toEqual(['a1', 'a2', 'a3']);
   });
+
+  it('a failing hand query makes only the hand athletes unavailable, the slug athletes still read', async () => {
+    const { client } = setup();
+    const broken = { byProfiles: async () => { throw new Error('strapi down'); } };
+    const picked = pickedResults(snapshotCache(fakeSnapshotStore(), () => NOW, () => undefined), client, broken, () => NOW);
+    const got = await picked.many([withSlug, noSlug]);
+    expect(got.get('a1')).toMatchObject({ available: true, value: [{ event_id: 501 }] });
+    expect(got.get('a2')).toEqual({ available: false });
+  });
 });

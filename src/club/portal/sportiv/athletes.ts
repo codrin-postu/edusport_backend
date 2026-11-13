@@ -4,6 +4,7 @@ import { groupNameMap } from '../../presence/due/reads';
 import { clubMonths, mainGroupToday, schoolDue } from '../../presence/due/settlement';
 import type { PresenceStore } from '../../presence/store';
 import type { SportivAthleteRow, SportivAthletes } from './api-types';
+import type { SkaterRef } from '../coach/competitions';
 import { skaterOf } from './competitions';
 import type { SportivContext } from './context';
 
@@ -45,14 +46,26 @@ export async function readAthletes(c: SportivContext): Promise<SportivAthletes> 
   const mains = mainGroupToday(memberships, groups, season?.id ?? null);
   const groupNames = groupNameMap(groups);
   const rows: SportivAthleteRow[] = [];
-  for (const a of athletes.filter((x) => held.has(x.id) && !isAnonymized(x))) {
+  const shown = athletes.filter((x) => held.has(x.id) && !isAnonymized(x));
+  const skaters = new Map<string, SkaterRef>();
+  for (const a of shown) { const skater = await skaterOf(c, a.id); if (skater) skaters.set(a.id, skater); }
+  // A slug means skate-results; without one the athlete shows Concursuri only when it has hand-entered competitions (one read for all).
+  const handRead = await c.results.many([...skaters.values()].filter((s) => !s.slug)).catch(() => new Map());
+  const performance = (id: string): boolean => {
+    const skater = skaters.get(id);
+    if (!skater) return false;
+    if (skater.slug) return true;
+    const read = handRead.get(id);
+    return !!read && 'value' in read && read.value.length > 0;
+  };
+  for (const a of shown) {
     const main = mains.get(a.id) ?? null;
     const { owes, lastPresence } = await ledgerOf(store, a.id, groupNames, startDate);
     const name = a.name ?? '';
     rows.push({
       id: a.id, name, firstName: firstWord(name), groupName: main?.name ?? null, age: ageOnIso(a.birthDate, c.today),
       section: sections.find((s) => s.id === main?.sectionId)?.kind ?? null,
-      inPicker: inPicker(a, owes, lastPresence, c.today), performance: (await skaterOf(c, a.id)) !== null,
+      inPicker: inPicker(a, owes, lastPresence, c.today), performance: performance(a.id),
     });
   }
   return { athletes: rows.sort((x, y) => x.name.localeCompare(y.name, 'ro')) };

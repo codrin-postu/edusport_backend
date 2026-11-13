@@ -23,7 +23,7 @@ function readQuery(raw: Record<string, unknown>): CompetitionQuery {
   };
 }
 
-/** Concursuri (spec 8.4). Callers check that the holder holds the athlete; an athlete without a skate slug has no competitions (404). */
+/** Concursuri (spec 8.4). Callers check that the holder holds the athlete; an athlete without a profile has none (404). */
 export async function readCompetitions(c: SportivContext, athleteId: string, query: Record<string, unknown>): Promise<AdminResult<SportivCompetitions>> {
   const skater = await skaterOf(c, athleteId);
   if (!skater) return refuse(404, PORTAL_ERRORS.notFound);

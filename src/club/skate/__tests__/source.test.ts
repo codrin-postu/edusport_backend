@@ -5,10 +5,17 @@ import type { SkaterRef } from '../../portal/coach/competitions';
 import { snapshotCache } from '../cache';
 import type { Fetched, SkateClient, SkateProtocol, SkateResult } from '../client';
 import { fakeSnapshotStore } from '../fake-store';
+import { shortCategory } from '../derive';
+import { fakeHandCompetitions } from '../hand-store';
+import type { HandEntry } from '../hand';
+import { pickedResults } from '../pick';
 import { skateSportivSource } from '../source';
 
 const NOW = new Date('2026-11-10T10:00:00.000Z');
-const SKATER: SkaterRef = { athleteId: 'a-ioana', name: 'Ioana Marin', slug: 'ioana-marin-test' };
+const SKATER: SkaterRef = { athleteId: 'a-ioana', name: 'Ioana Marin', profileId: 'p-ioana', slug: 'ioana-marin-test' };
+const MATEI: SkaterRef = { athleteId: 'a-matei', name: 'Matei Ionescu', profileId: 'p-matei', slug: null };
+const hand = (id: number, name: string, date: string, profileId: string, row: Record<string, unknown> = {}): HandEntry =>
+  ({ id, name, date, location: 'Timișoara', participantData: [{ documentId: profileId, category: 'Începători', placement: 1, ...row }] });
 
 const seg = (name: string, isShort: boolean, tss: number) => ({ segment: name, is_short: isShort, tss, tes: tss - 20, pcs: 20, deductions: 0 });
 
@@ -35,7 +42,7 @@ const protocol = (id: number): SkateProtocol => ({
   ],
 });
 
-function setup(over: Partial<SkateClient> = {}, rows: SkateResult[] = results(), log: (m: string) => void = () => undefined, clock: () => Date = () => NOW, budget?: number) {
+function setup(over: Partial<SkateClient> = {}, rows: SkateResult[] = results(), log: (m: string) => void = () => undefined, clock: () => Date = () => NOW, budget?: number, entries: HandEntry[] = []) {
   const client: SkateClient = {
     results: vi.fn(async () => ({ ok: true, value: structuredClone(rows) }) as Fetched<SkateResult[]>),
     protocol: vi.fn(async (id: number) => ({ ok: true, value: protocol(id) }) as Fetched<SkateProtocol>),
@@ -44,7 +51,8 @@ function setup(over: Partial<SkateClient> = {}, rows: SkateResult[] = results(),
     ...over,
   };
   const cache = snapshotCache(fakeSnapshotStore(), () => NOW, () => undefined);
-  return { client, source: skateSportivSource(cache, client, clock, log, budget) };
+  const handStore = fakeHandCompetitions(entries);
+  return { client, handStore, source: skateSportivSource(cache, client, pickedResults(cache, client, handStore, clock), clock, log, budget) };
 }
 const downAll: Partial<SkateClient> = {
   results: async () => ({ ok: false, reason: 'down' }), protocol: async () => ({ ok: false, reason: 'down' }),
@@ -196,5 +204,64 @@ describe('skateSportivSource', () => {
     for (const answer of [list, detail]) {
       expect(forbiddenPathsIn(answer, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)).toEqual([]);
     }
+  });
+
+  describe('one source per athlete', () => {
+    const entries = [
+      hand(1, 'Cupa Reșiței', '2026-10-20', 'p-matei'),
+      hand(2, 'Cupa Timișoarei', '2026-11-08', 'p-matei', { placement: 3, category: 'Începători Fete' }),
+      hand(3, 'Cupa Dublă', '2026-11-01', 'p-ioana'),
+    ];
+    const fetches = (client: SkateClient) =>
+      [client.results, client.protocol, client.fieldSize, client.officialUrl].reduce((n, f) => n + (f as ReturnType<typeof vi.fn>).mock.calls.length, 0);
+
+    it('slug athlete -> skate-results only', async () => {
+      const { source, handStore } = setup({}, results(), undefined, undefined, undefined, entries);
+      const l = await source.list(SKATER, { ...query, q: 'Dublă' });
+      expect(l).toMatchObject({ available: true, total: 41, filtered: 0, rows: [] });
+      const all = await source.list(SKATER, query);
+      if (!all.available) throw new Error('unavailable');
+      expect(all.total).toBe(41);
+      expect(all.rows.map((r) => r.eventName)).not.toContain('Cupa Dublă');
+      expect(handStore.calls).toEqual([]);
+    });
+
+    it('no slug with hand-entered competitions -> those only', async () => {
+      const { source, client } = setup({}, results(), undefined, undefined, undefined, entries);
+      const l = await source.list(MATEI, query);
+      if (!l.available) throw new Error('unavailable');
+      expect(l).toMatchObject({ available: true, stale: false, total: 2 });
+      expect(l.rows.map((r) => r.eventName)).toEqual(['Cupa Timișoarei', 'Cupa Reșiței']);
+      expect(l.rows[0].categoryShort).toBe(shortCategory('Începători Fete'));
+      const d = await source.detail(MATEI, '200');
+      expect(d).toMatchObject({ available: true, stale: false, field: null, officialUrl: null, segments: [], best: null, row: { resultId: '200', eventName: 'Cupa Timișoarei' } });
+      const last = await source.last(MATEI);
+      expect(last).toMatchObject({ stale: false, field: null, row: { eventName: 'Cupa Timișoarei' } });
+      expect(await source.count(MATEI)).toEqual({ count: 2, dates: ['2026-10-20', '2026-11-08'] });
+      expect(fetches(client)).toBe(0);
+    });
+
+    it('no slug and none -> empty, the card hidden and the count zero', async () => {
+      const { source, client } = setup({}, results(), undefined, undefined, undefined, []);
+      expect(await source.list(MATEI, query)).toMatchObject({ available: true, total: 0, rows: [] });
+      expect(await source.last(MATEI)).toBe('none');
+      expect(await source.count(MATEI)).toEqual({ count: 0, dates: [] });
+      expect(fetches(client)).toBe(0);
+    });
+
+    it('detail of another athlete hand result is null', async () => {
+      const { source, client } = setup({}, results(), undefined, undefined, undefined, entries);
+      expect(await source.detail(MATEI, '300')).toBeNull();
+      expect(await source.detail(MATEI, '999')).toBeNull();
+      expect(fetches(client)).toBe(0);
+    });
+
+    it('a slug-less athlete is never logged as a missing slug', async () => {
+      const log = vi.fn();
+      const { source } = setup({}, results(), log);
+      await source.list(MATEI, query);
+      await source.count(MATEI);
+      expect(log).not.toHaveBeenCalled();
+    });
   });
 });

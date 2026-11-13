@@ -2,13 +2,16 @@ import { describe, expect, it, vi } from 'vitest';
 import { snapshotCache } from '../../../skate/cache';
 import type { Fetched, SkateClient, SkateProtocol, SkateResult } from '../../../skate/client';
 import { fakeSnapshotStore } from '../../../skate/fake-store';
+import { fakeHandCompetitions } from '../../../skate/hand-store';
+import type { HandEntry } from '../../../skate/hand';
+import { pickedResults } from '../../../skate/pick';
 import { skateSportivSource } from '../../../skate/source';
 import { forbiddenPathsIn } from '../../forbidden-keys';
 import { readCompetition, readCompetitions } from '../competitions-read';
 import { readHome } from '../home';
 import { readPath } from '../path';
 import { SPORTIV_ALLOWED_PATHS, SPORTIV_FORBIDDEN_KEYS } from '../views';
-import { A_ANA, A_IOANA, sportivCtx, type SportivSeed } from './sportiv-seed';
+import { A_ANA, A_IOANA, A_MATEI, giveSluglessProfile, sportivCtx, type SportivSeed } from './sportiv-seed';
 
 const NOW = new Date('2026-11-20T10:00:00.000Z');
 const seg = (name: string, isShort: boolean, tss: number) => ({ segment: name, is_short: isShort, tss, tes: tss - 20, pcs: 20, deductions: 0 });
@@ -36,14 +39,15 @@ function clientOf(over: Partial<SkateClient> = {}): SkateClient {
     ...over,
   };
 }
-function withSource(client: SkateClient): SportivSeed {
-  const c = sportivCtx('sportiv18@example.invalid');
-  const source = skateSportivSource(snapshotCache(fakeSnapshotStore(), () => NOW, () => undefined), client, () => NOW);
-  return { ...c, competitions: source, competitionViews: source };
+function withSource(client: SkateClient, entries: HandEntry[] = [], c: SportivSeed = sportivCtx('sportiv18@example.invalid')): SportivSeed {
+  const cache = snapshotCache(fakeSnapshotStore(), () => NOW, () => undefined);
+  const results = pickedResults(cache, client, fakeHandCompetitions(entries), () => NOW);
+  const source = skateSportivSource(cache, client, results, () => NOW);
+  return { ...c, competitions: source, competitionViews: source, results };
 }
 
 describe('readCompetitions', () => {
-  it('an athlete without a skate slug has no competitions: 404 with the shared text', async () => {
+  it('an athlete without a profile has no competitions: 404 with the shared text', async () => {
     const client = clientOf();
     const c = { ...withSource(client), holder: { ...sportivCtx('parinte1@example.invalid').holder } };
     expect(await readCompetitions(c, A_ANA, {})).toMatchObject({ ok: false, status: 404, error: 'Nu a fost găsit.' });
@@ -127,5 +131,52 @@ describe('Acasă and Parcurs over the real source', () => {
     expect(await readCompetitions(c, A_IOANA, {})).toEqual({ ok: true, data: { available: false } });
     expect(await readCompetition(c, A_IOANA, '41')).toEqual({ ok: true, data: { available: false } });
     expect((await readPath(c, A_IOANA)).badges.find((b) => b.key === 'concursuri')).toMatchObject({ tier: null, count: 0 });
+  });
+});
+
+describe('one source per athlete', () => {
+  const hand = (id: number, name: string, date: string, profileId: string, over: Record<string, unknown> = {}): HandEntry =>
+    ({ id, name, date, location: 'Timișoara', participantData: [{ documentId: profileId, category: 'Începători', placement: 1, ...over }] });
+  const entries = [
+    hand(12, 'Cupa Reșiței', '2026-10-20', 'sp-matei'),
+    hand(13, 'Cupa Timișoarei', '2026-11-08', 'sp-matei', { placement: 3 }),
+    hand(14, 'Cupa Dublă', '2026-11-01', 'sp-ioana'),
+  ];
+  /** Matei (no slug, a profile) and Ioana (slug), both held by one account. */
+  function matei(client: SkateClient, rows: HandEntry[] = entries): SportivSeed {
+    const c = sportivCtx('parinte1@example.invalid');
+    giveSluglessProfile(c, A_MATEI, 'sp-matei');
+    return withSource(client, rows, c);
+  }
+
+  it('a slug-less athlete with a profile has competitions: the hand-entered list and detail, no skate-results call', async () => {
+    const client = clientOf();
+    const c = matei(client);
+    const list = await readCompetitions(c, A_MATEI, {});
+    expect(list).toMatchObject({ ok: true, data: { available: true, total: 2 } });
+    const detail = await readCompetition(c, A_MATEI, '1300');
+    expect(detail).toMatchObject({ ok: true, data: { available: true, segments: [], field: null, officialUrl: null, row: { eventName: 'Cupa Timișoarei' } } });
+    expect(await readCompetition(c, A_MATEI, '1400')).toMatchObject({ ok: false, status: 404 });
+    for (const f of [client.results, client.protocol, client.fieldSize, client.officialUrl]) expect(f).not.toHaveBeenCalled();
+  });
+
+  it('Acasă shows the last hand-entered competition and Parcurs counts them', async () => {
+    const c = matei(clientOf());
+    const home = await readHome(c, A_MATEI);
+    expect(home.lastCompetition).toMatchObject({ available: true, stale: false, field: null, row: { eventName: 'Cupa Timișoarei', placement: 3 } });
+    expect((await readPath(c, A_MATEI)).badges.find((b) => b.key === 'concursuri')).toMatchObject({ count: 2 });
+  });
+
+  it('no slug and no hand entries: Acasă card hidden, the list empty, the badge locked', async () => {
+    const c = matei(clientOf(), []);
+    expect((await readHome(c, A_MATEI)).lastCompetition).toBeNull();
+    expect(await readCompetitions(c, A_MATEI, {})).toMatchObject({ ok: true, data: { available: true, total: 0, rows: [] } });
+    expect((await readPath(c, A_MATEI)).badges.find((b) => b.key === 'concursuri')).toMatchObject({ tier: null, count: 0 });
+  });
+
+  it('a slug athlete shows skate-results only, never a hand entry naming her', async () => {
+    const c = withSource(clientOf(), entries);
+    const list = await readCompetitions(c, A_IOANA, { q: 'Dublă' });
+    expect(list).toMatchObject({ ok: true, data: { available: true, total: 41, filtered: 0, rows: [] } });
   });
 });
