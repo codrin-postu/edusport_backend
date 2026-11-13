@@ -1,5 +1,5 @@
 import type { Core } from '@strapi/strapi';
-import { expandOccurrences, publicEvents, type BlackoutRow, type CalendarEventRow, type Occurrence } from '../../api/calendar-event/services/expand';
+import { exceptOf, expandOccurrences, publicEvents, type BlackoutRow, type CalendarEventRow, type Occurrence } from '../../api/calendar-event/services/expand';
 import { isRecord } from '../narrow';
 import { SCHEDULE_ERRORS } from './copy';
 import { isIsoDate } from './dates';
@@ -29,6 +29,7 @@ export async function calendarRows(strapi: Core.Strapi): Promise<CalendarWindow>
 }
 
 const blackoutView = (b: BlackoutRow): BlackoutRow => ({ label: b.label, startDate: b.startDate, endDate: b.endDate });
+const adminBlackoutView = (b: BlackoutRow): BlackoutRow => ({ ...blackoutView(b), exceptGroupIds: exceptOf(b) });
 const publicOccurrence = (o: Occurrence): PublicOccurrence => Object.fromEntries(Object.entries(o).filter(([k]) => k !== 'groupId')) as PublicOccurrence;
 
 /** Public: no group whose program is not public or that is inactive, no group event description; `groupName`, never `groupId`. */
@@ -39,7 +40,7 @@ export function publicWindow(w: CalendarWindow, r: RangeQuery): { data: PublicOc
 /** Admin: every group (non-public ones too); `group=<documentId>` keeps one group's events (the Program tab). */
 export function adminWindow(w: CalendarWindow, r: RangeQuery, groupId: string | null): { data: Occurrence[]; blackouts: BlackoutRow[] } {
   const events = groupId ? w.events.filter((e) => e.group?.documentId === groupId) : w.events;
-  return { data: expandOccurrences(events, w.blackouts, r.from, r.to), blackouts: w.blackouts.map(blackoutView) };
+  return { data: expandOccurrences(events, w.blackouts, r.from, r.to), blackouts: w.blackouts.map(adminBlackoutView) };
 }
 
 /** The name of the group a calendar event belongs to; null for an event of no group (or an unknown one). */

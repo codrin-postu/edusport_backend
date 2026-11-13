@@ -45,6 +45,19 @@ describe('session keys', () => {
     expect(heldOccurrences(calendar, P_GROUPS_WITH_OLD, '2026-11-14', '2026-11-14')[0]).toMatchObject({ groupId: 'g-ib', eventId: 'ev-ib', durationMin: 50, endTime: '11:50' });
   });
 
+  it('a break keeps the unticked group\'s dates held and drops the others (breaks per group)', () => {
+    const brk = { label: 'Vacanta', startDate: '2026-11-14', endDate: '2026-11-15' };
+    const groups: GroupRecord[] = [
+      ...P_GROUPS_WITH_OLD,
+      { id: 'g-free', name: 'Fara pauza', sectionId: null, order: 3, active: true, priceListId: null, coachIds: [], programPublic: true },
+    ];
+    const evFree: CalendarEventRow = { ...EV_IB, id: 9, documentId: 'ev-free-grp', exceptions: [], group: { documentId: 'g-free', name: 'Fara pauza', active: true, programPublic: true } };
+    const w = (except: string[]): CalendarWindow => ({ events: [EV_IB, evFree], blackouts: [{ ...brk, exceptGroupIds: except }] });
+    const held = heldOccurrences(w(['g-free']), groups, '2026-11-14', '2026-11-15');
+    expect(held.map((o) => o.key)).toEqual(['ev-free-grp|2026-11-14|11:00', 'ev-free-grp|2026-11-15|11:00']);
+    expect(heldOccurrences(w([]), groups, '2026-11-14', '2026-11-15')).toEqual([]);
+  });
+
   it('state words: saved, coming, undone only from the start date (3.9, C13)', () => {
     const s = (saved: boolean, date: string, startDate: string | null) => sessionState({ saved, date, today: '2026-11-20', startDate });
     expect(s(true, '2026-11-01', null)).toBe('salvata');

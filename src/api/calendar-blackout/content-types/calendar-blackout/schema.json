@@ -5,7 +5,7 @@
     "singularName": "calendar-blackout",
     "pluralName": "calendar-blackouts",
     "displayName": "Calendar / Pauză",
-    "description": "Interval în care toate evenimentele recurente sunt anulate (ex. vacanța de iarnă)"
+    "description": "Interval în care grupele bifate nu au ședințe"
   },
   "options": {
     "draftAndPublish": false
@@ -27,6 +27,9 @@
     "endDate": {
       "type": "date",
       "required": true
+    },
+    "exceptGroupIds": {
+      "type": "json"
     }
   }
 }

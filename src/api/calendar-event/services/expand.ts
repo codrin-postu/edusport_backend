@@ -59,6 +59,8 @@ export interface BlackoutRow {
   label: string;
   startDate: string;
   endDate: string;
+  /** Group documentIds the break does NOT apply to; null or empty means every group. */
+  exceptGroupIds?: string[] | null;
 }
 
 export interface Occurrence {
@@ -209,7 +211,12 @@ function applyException(slot: Slot, ex: ExceptionRow | undefined): Slot {
   return { ...slot, status: 'cancelled', cancelReason: 'exception', state: ex.kind, note: ex.reason ?? ex.newTitle ?? null };
 }
 
-const breakApplies = (ev: CalendarEventRow): boolean => !!ev.group || ev.type === 'scoala';
+export const exceptOf = (b: Pick<BlackoutRow, 'exceptGroupIds'>): string[] => (Array.isArray(b.exceptGroupIds) ? b.exceptGroupIds : []);
+
+/** A group event follows the break unless its group is ticked; an old unlinked Școala event follows every break; anything else never. */
+export function breakAppliesTo(b: Pick<BlackoutRow, 'exceptGroupIds'>, ev: Pick<CalendarEventRow, 'group' | 'type'>): boolean {
+  return ev.group ? !exceptOf(b).includes(ev.group.documentId) : ev.type === 'scoala';
+}
 
 function applyBreak(slot: Slot, label: string | null): Slot {
   return label !== null && slot.status !== 'override' ? { ...slot, status: 'cancelled', cancelReason: 'blackout', note: label } : slot;
@@ -231,8 +238,10 @@ function toOccurrence(ev: CalendarEventRow, s: Slot): Occurrence {
   };
 }
 
-type Break = { label: string; start: Date; end: Date };
-const breakAt = (breaks: Break[], d: Date): string | null => breaks.find((b) => d >= b.start && d <= b.end)?.label ?? null;
+type Break = { label: string; start: Date; end: Date; except: string[] };
+/** The name of the first break covering the day that applies to the event, or null. */
+const breakAt = (breaks: Break[], d: Date, ev: CalendarEventRow): string | null =>
+  breaks.find((b) => d >= b.start && d <= b.end && breakAppliesTo({ exceptGroupIds: b.except }, ev))?.label ?? null;
 
 const inRange = (day: string, range: Range): boolean => day >= ymd(range.start) && day <= ymd(range.end);
 
@@ -252,12 +261,11 @@ function sourceDates(ev: CalendarEventRow, range: Range): Date[] {
 function eventOccurrences(ev: CalendarEventRow, breaks: Break[], range: Range): Occurrence[] {
   if (!ev.recurrence) return [];
   const byDate = new Map((ev.exceptions ?? []).map((x) => [x.date, x]));
-  const applies = breakApplies(ev);
   return sourceDates(ev, range)
     .filter((d) => byDate.get(ymd(d))?.kind !== 'sters')
     .map((d) => {
       const slot = applyException(baseSlot(ev, ymd(d)), byDate.get(ymd(d)));
-      return toOccurrence(ev, applyBreak(slot, applies ? breakAt(breaks, d) : null));
+      return toOccurrence(ev, applyBreak(slot, breakAt(breaks, d, ev)));
     })
     .filter((o) => inRange(o.date, range));
 }
@@ -267,7 +275,7 @@ const byDateThenTime = (a: Occurrence, b: Occurrence): number =>
 
 export function expandOccurrences(events: CalendarEventRow[], blackouts: BlackoutRow[], from: string, to: string): Occurrence[] {
   const range: Range = { start: parseYMD(from), end: parseYMD(to) };
-  const breaks: Break[] = blackouts.map((b) => ({ label: b.label, start: parseYMD(b.startDate), end: parseYMD(b.endDate) }));
+  const breaks: Break[] = blackouts.map((b) => ({ label: b.label, start: parseYMD(b.startDate), end: parseYMD(b.endDate), except: exceptOf(b) }));
   return events.flatMap((ev) => eventOccurrences(ev, breaks, range)).sort(byDateThenTime);
 }
 
