@@ -59,9 +59,11 @@ export async function endForAthlete(c: AccessContext, athleteId: string, reason:
 /**
  * Merge (spec 4.5): the removed athlete's live access moves to the kept one when the kept one has none and the kept e-mail equals the access
  * e-mail; otherwise it ends with `unit` and is noted on the kept record. The removed athlete's other (revoked) rows are purged with it.
+ * Both athlete locks are taken here in id order (the same order as the merge, and a row lock is re-entrant inside one transaction), so no caller has to hold them first.
  */
 export async function moveOnMerge(c: AccessContext, keptId: string, removedId: string, keptEmail: string | null): Promise<void> {
   await c.store.transaction(async () => {
+    for (const id of [keptId, removedId].sort()) await c.access.lockAthlete(id);
     const live = await c.access.liveByAthlete(removedId);
     if (live) {
       const keeps = (await c.access.liveByAthlete(keptId)) === null && normalizeEmail(keptEmail) === live.email;

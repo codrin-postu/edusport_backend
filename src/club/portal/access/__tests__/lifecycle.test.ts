@@ -3,6 +3,7 @@ import { athleteRow, fakeClubStore, registrationRow } from '../../../athletes/__
 import { deleteAthlete } from '../../../athletes/delete';
 import { ADMIN_ERRORS } from '../../../athletes/errors';
 import { confirmRegistration } from '../../../athletes/confirm-service';
+import { moveOnMerge } from '../lifecycle';
 import { mergeAthletes } from '../../../athletes/merge';
 import { undoConfirmation } from '../../../athletes/undo-service';
 import { updateAthlete } from '../../../athletes/record';
@@ -255,5 +256,17 @@ describe('confirm and undo move the access like an edit', () => {
     expect(await undoConfirmation(w.ctx, 'r8', fakePresenceStore().store)).toMatchObject({ ok: true, data: { athleteDeleted: true } });
     expect(w.fake.state.athletes.map((a) => a.id)).toEqual(['a1']);
     expect(w.h.access.state.rows.filter((r) => r.athleteId === created)).toEqual([]);
+  });
+});
+
+describe('moveOnMerge takes the athlete locks itself', () => {
+  it('locks both athletes in id order before it reads or moves the access', async () => {
+    const w = await world();
+    const taken: string[] = [];
+    const base = w.h.c.access.lockAthlete.bind(w.h.c.access);
+    w.h.c.access.lockAthlete = async (id: string) => { taken.push(id); await base(id); };
+    await moveOnMerge(w.h.c, 'a9', 'a1', 'a@example.invalid');
+    expect(taken).toEqual(['a1', 'a9']);
+    expect(live(w.h).map((r) => r.athleteId)).toEqual(['a9']);
   });
 });
