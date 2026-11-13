@@ -21,6 +21,8 @@ export interface SelectProps extends FieldAria {
   options?: SelectOption[];
   /** Adds a first option with this text and the value '' (picking it clears the choice). */
   placeholder?: string;
+  /** The closed button also shows the selected row's `hint` at its end. */
+  triggerHint?: boolean;
   disabled?: boolean;
   /** On the button (it also carries `ui-input`). */
   className?: string;
@@ -105,6 +107,7 @@ interface TriggerProps extends FieldAria {
   open: boolean;
   active: number;
   listId: string;
+  triggerHint?: boolean;
   disabled?: boolean;
   className?: string;
   style?: React.CSSProperties;
@@ -115,7 +118,7 @@ interface TriggerProps extends FieldAria {
 
 /** The button: every label stacked in one grid cell, so it is as wide as the longest one (like a native select). */
 const SelectTrigger = React.forwardRef<HTMLButtonElement, TriggerProps>(function SelectTrigger(
-  { rows, selected, open, active, listId, disabled, className, style, required, onToggle, onKeyDown, ...aria },
+  { rows, selected, open, active, listId, triggerHint, disabled, className, style, required, onToggle, onKeyDown, ...aria },
   ref,
 ) {
   return (
@@ -143,6 +146,7 @@ const SelectTrigger = React.forwardRef<HTMLButtonElement, TriggerProps>(function
         ))}
         {selected < 0 && <span data-on>{' '}</span>}
       </span>
+      {triggerHint && rows[selected]?.hint && <span className="ui-sel-hint ui-sel-trig-hint">{rows[selected].hint}</span>}
       <span className="ui-sel-chev" aria-hidden="true">
         <IconChevronDown size={12} />
       </span>
@@ -218,7 +222,7 @@ function SelectList({ rows, value, list, listId, anchorRef, disabled }: ListProp
  * picks up id, aria and required. onChange fires only for a different value.
  */
 export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(function Select(
-  { value, onChange, options, placeholder, disabled, className, style, ...rest },
+  { value, onChange, options, placeholder, triggerHint, disabled, className, style, ...rest },
   ref,
 ) {
   const field = useFieldControl(rest);
@@ -241,6 +245,7 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(function 
         open={list.open}
         active={list.active}
         listId={listId}
+        triggerHint={triggerHint}
         disabled={disabled}
         className={className}
         style={style}

@@ -122,17 +122,19 @@ export function sameFor(p: PaymentRow, fields: PurposeFields): boolean {
 export const paidFor = (payments: readonly PaymentRow[], match: (p: PaymentRow) => boolean): number =>
   sumMoney(payments.filter((p) => !p.cancelled && match(p)).map((p) => p.amount));
 
-export type PaymentOption = { for: PaymentFor; label: string; amount: number | null; isDefault: boolean };
+/** `amount` is what is owed (`owed`); `paid` is what live payments already cover (0 for Altceva). */
+export type PaymentOption = { for: PaymentFor; label: string; amount: number | null; isDefault: boolean; owed: number | null; paid: number };
 
-const option = (f: PaymentFor, label: string, amount: number | null, isDefault = false): PaymentOption => ({ for: f, label, amount, isDefault });
+const option = (f: PaymentFor, label: string, owed: number | null, paid: number, isDefault = false): PaymentOption => ({ for: f, label, amount: owed, isDefault, owed, paid });
 const notBelowZero = (n: number): number => Math.max(0, n);
 const newestFirst = <T>(rows: readonly T[], key: (r: T) => string): T[] => [...rows].sort((a, b) => key(b).localeCompare(key(a)));
 
 function abonamentOptions(subs: readonly SubscriptionRow[], payments: readonly PaymentRow[]): PaymentOption[] {
   const open = subs.filter((s) => !s.cancelled);
   return newestFirst(open, (s) => `${s.startsOn}|${s.id}`).map((s) => {
-    const left = s.price === null ? null : notBelowZero(sumMoney([s.price, -paidFor(payments, (p) => p.purpose === 'abonament' && p.subscriptionId === s.id)]));
-    return option({ kind: 'abonament', subscriptionId: s.id }, PAYMENT_COPY.optAbonament(s.itemName, startText(s.startsOn), s.code), left);
+    const paid = paidFor(payments, (p) => p.purpose === 'abonament' && p.subscriptionId === s.id);
+    const left = s.price === null ? null : notBelowZero(sumMoney([s.price, -paid]));
+    return option({ kind: 'abonament', subscriptionId: s.id }, PAYMENT_COPY.optAbonament(s.itemName, startText(s.startsOn), s.code), left, paid);
   });
 }
 
@@ -143,8 +145,8 @@ function monthOptions(months: readonly ClubMonth[], today: string, extra: string
   const listed = new Map(months.filter((m) => m.month >= first && m.month <= current && m.due > 0).map((m) => [m.month, m]));
   const wanted = isMonth(extra) ? [extra] : [];
   const ids = newestFirst([...new Set([current, ...listed.keys(), ...wanted])], (m) => m);
-  const left = (m: string): number => notBelowZero((listed.get(m) ?? months.find((x) => x.month === m))?.left ?? 0);
-  return ids.map((m) => option({ kind: 'club_luna', month: m }, PAYMENT_COPY.optMonth(m), left(m)));
+  const block = (m: string): ClubMonth | undefined => listed.get(m) ?? months.find((x) => x.month === m);
+  return ids.map((m) => option({ kind: 'club_luna', month: m }, PAYMENT_COPY.optMonth(m), notBelowZero(block(m)?.left ?? 0), block(m)?.paid ?? 0));
 }
 
 /** A lesson's price counts once overall: what is left of it, and no more than its Club month still owes after the lesson payments (no month block: no cap). */
@@ -163,17 +165,17 @@ function feeLeft(season: SeasonRecord, payments: readonly PaymentRow[]): number 
 function lessonOptions(lessons: readonly LessonRow[], payments: readonly PaymentRow[], months: readonly ClubMonth[], today: string): PaymentOption[] {
   const from = `${addMonths(monthOf(today), -11)}-01`;
   const open = lessons.filter((l) => l.state === 'saved' && l.present === true && l.price !== null && l.date >= from);
-  return newestFirst(open, (l) => `${l.date}|${l.id}`).map((l) => option({ kind: 'lectie', lessonId: l.id }, PAYMENT_COPY.optLesson(l.date), lessonLeft(l, payments, months)));
+  return newestFirst(open, (l) => `${l.date}|${l.id}`).map((l) => option({ kind: 'lectie', lessonId: l.id }, PAYMENT_COPY.optLesson(l.date), lessonLeft(l, payments, months), paidFor(payments, (p) => p.purpose === 'lectie' && p.lessonId === l.id)));
 }
 
 /** "Pentru" options with default amounts (4.15, C33): abonamente, fee per season, Club months, lessons, Altceva. */
 export function paymentOptions(i: {
   subs: SubscriptionRow[]; payments: PaymentRow[]; seasons: SeasonRecord[]; months: ClubMonth[]; lessons: LessonRow[]; today: string; extraMonth?: string | null;
 }): PaymentOption[] {
-  const fees = newestFirst(i.seasons, (s) => s.startMonth).map((s) => option({ kind: 'cotizatie', seasonId: s.id }, PAYMENT_COPY.optFee(s.label), feeLeft(s, i.payments), s.isCurrent));
+  const fees = newestFirst(i.seasons, (s) => s.startMonth).map((s) => option({ kind: 'cotizatie', seasonId: s.id }, PAYMENT_COPY.optFee(s.label), feeLeft(s, i.payments), paidFor(i.payments, (p) => p.purpose === 'cotizatie' && p.seasonId === s.id), s.isCurrent));
   return [
     ...abonamentOptions(i.subs, i.payments), ...fees, ...monthOptions(i.months, i.today, i.extraMonth ?? null), ...lessonOptions(i.lessons, i.payments, i.months, i.today),
-    option({ kind: 'altceva' }, PURPOSE_WORDS.altceva, null),
+    option({ kind: 'altceva' }, PURPOSE_WORDS.altceva, null, 0),
   ];
 }
 

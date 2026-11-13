@@ -55,6 +55,14 @@ describe('purpose', () => {
     expect(listPurposeText({ purpose: 'altceva', clubMonth: null, note: null }, {})).toBe('Altceva');
     expect(listPurposeText({ purpose: 'lectie', clubMonth: null, note: 'ignorată' }, {})).toBe('Lecție individuală');
   });
+  it('paymentOptions carries owed and paid', () => {
+    const sub = subscriptionRow({ id: 'sub1', startsOn: '2026-10-27', price: 600 });
+    const pay = paymentRow({ id: 'p1', purpose: 'abonament', subscriptionId: 'sub1', amount: 220 });
+    const opts = paymentOptions({ subs: [sub], payments: [pay], seasons: SEASONS, months: [], lessons: [], today });
+    expect(opts[0]).toMatchObject({ owed: 380, paid: 220, amount: 380 });
+    expect(opts.find((o) => o.for.kind === 'cotizatie')).toMatchObject({ owed: 100, paid: 0 });
+    expect(opts.find((o) => o.for.kind === 'altceva')).toMatchObject({ owed: null, paid: 0 });
+  });
   it('options and default amounts (4.15, C33, decided 4 and 5)', () => {
     const sub = subscriptionRow({ id: 'sub1', startsOn: '2026-10-27', price: 320 });
     const paid = paymentRow({ id: 'p1', purpose: 'abonament', subscriptionId: 'sub1', amount: 100 });

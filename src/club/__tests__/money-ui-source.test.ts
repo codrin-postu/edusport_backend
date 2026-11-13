@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { makeLatest } from '../../admin/dashboard/bani/latest';
 import { runOnce } from '../../admin/dashboard/bani/useSubmitOnce';
@@ -25,5 +27,11 @@ describe('money UI source', () => {
     expect([first(), second()]).toEqual([false, true]);
     l.cancel();
     expect(second()).toBe(false);
+  });
+  it('the payment window asks "Pentru" before the amount and shows the amount in the closed select', () => {
+    const src = readFileSync(join(__dirname, '../../admin/dashboard/bani/PaymentWindow.tsx'), 'utf8');
+    expect(src.indexOf('PAYMENT_COPY.forWhat')).toBeGreaterThan(src.indexOf('<AthleteField'));
+    expect(src.indexOf('PAYMENT_COPY.forWhat')).toBeLessThan(src.indexOf('PAYMENT_COPY.amount}'));
+    expect(src).toMatch(/<Select triggerHint /);
   });
 });

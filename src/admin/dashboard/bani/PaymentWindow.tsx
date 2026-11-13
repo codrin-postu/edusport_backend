@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, Checkbox, DateInput, Field, Input, Notice, SegmentedControl, Select, Textarea, adminToast } from '../../ui';
 import { todayIso } from '../../../club/groups/http';
 import {
-  checkDraft, editDraft, editOptions, emailBox, isOverpaid, newDraft, optionKey, showsRink, toBody, toEditBody, withOption,
+  checkDraft, editDraft, editOptions, emailBox, groupedOptions, isOverpaid, newDraft, optionKey, showsRink, toBody, toEditBody, withOption,
   type DraftErrors, type PaymentDraft,
 } from '../../../club/bani/payment-window';
 import { METHOD_WORDS, PRESENCE_ERRORS } from '../../../club/presence/copy/core';
@@ -77,10 +77,13 @@ function EmailBox({ f }: { f: FieldsProps }) {
 
 function PaymentFields({ f }: { f: FieldsProps }) {
   const { draft, errors, busy, set } = f;
-  const options = f.loaded.options.map((o) => ({ value: optionKey(o.for), label: o.label }));
+  const options = groupedOptions(f.loaded.options);
   return (
     <div className="bn-form">
       <AthleteField f={f} />
+      <Field label={PAYMENT_COPY.forWhat} required error={errors.for}>
+        <Select triggerHint value={draft.optionKey ?? ''} options={options} disabled={busy || !draft.athleteId} onChange={f.pickOption} />
+      </Field>
       <Field label={PAYMENT_COPY.amount} required error={errors.amount}>
         <Input inputMode="decimal" value={draft.amount} disabled={busy} onChange={(e) => { set({ amount: e.target.value }); f.clearAmountError(); }} />
       </Field>
@@ -89,9 +92,6 @@ function PaymentFields({ f }: { f: FieldsProps }) {
       </Field>
       <Field label={PAYMENT_COPY.method}>
         <SegmentedControl aria-label={PAYMENT_COPY.method} options={METHOD_OPTIONS} value={draft.method} disabled={busy} onChange={(method) => set({ method })} />
-      </Field>
-      <Field label={PAYMENT_COPY.forWhat} required error={errors.for}>
-        <Select value={draft.optionKey ?? ''} options={options} disabled={busy || !draft.athleteId} onChange={f.pickOption} />
       </Field>
       {showsRink(draft) && <Checkbox checked={draft.collectedAtRink} disabled={busy} label={PAYMENT_COPY.atRink} onChange={(collectedAtRink) => set({ collectedAtRink })} />}
       <EmailBox f={f} />

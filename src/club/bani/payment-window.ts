@@ -1,3 +1,4 @@
+import { ron } from '../presence/money';
 import { PAYMENT_COPY } from '../presence/copy/payments';
 import { longDate } from '../presence/dates';
 import type { PaymentRowView } from '../presence/money-api';
@@ -61,7 +62,37 @@ export function editDraft(p: PaymentRowView): PaymentDraft {
 export function editOptions(options: PaymentOption[], p: PaymentRowView): PaymentOption[] {
   const key = optionKey(p.for);
   if (options.some((o) => optionKey(o.for) === key)) return options;
-  return [{ for: p.for, label: p.purposeText, amount: p.amount, isDefault: false }, ...options];
+  return [{ for: p.for, label: p.purposeText, amount: p.amount, isDefault: false, owed: p.amount, paid: 0 }, ...options];
+}
+
+/** Shape of an admin `SelectOption` row. */
+export type OptionRow = { value: string; label: string; group: string; hint?: string };
+export type OptionGroup = 'due' | 'paid' | 'other';
+
+/** owed > 0: due; nothing owed but something paid: paid; otherwise (Altceva, no price, nothing at all): other. */
+export function optionGroup(o: PaymentOption): OptionGroup {
+  if (o.owed !== null && o.owed > 0) return 'due';
+  return o.owed === 0 && o.paid > 0 ? 'paid' : 'other';
+}
+
+/** "rămas 380 RON" once something is paid, the full price before, "achitat", "orice sumă" (Altceva); null for an option with no amount to show. */
+export function optionHint(o: PaymentOption): string | null {
+  switch (optionGroup(o)) {
+    case 'due': return o.paid > 0 ? PAYMENT_COPY.hintLeft(o.owed as number) : ron(o.owed as number);
+    case 'paid': return PAYMENT_COPY.hintPaid;
+    default: return o.for.kind === 'altceva' ? PAYMENT_COPY.hintAny : null;
+  }
+}
+
+const GROUP_ORDER: OptionGroup[] = ['due', 'paid', 'other'];
+const GROUP_LABEL: Record<OptionGroup, string> = { due: PAYMENT_COPY.groupDue, paid: PAYMENT_COPY.groupPaid, other: PAYMENT_COPY.groupOther };
+
+/** The "Pentru" rows: stable sort by group (De plată, Achitate, Altele), each with its amount hint. */
+export function groupedOptions(options: PaymentOption[]): OptionRow[] {
+  return GROUP_ORDER.flatMap((g) => options.filter((o) => optionGroup(o) === g).map((o) => {
+    const hint = optionHint(o);
+    return { value: optionKey(o.for), label: o.label, group: GROUP_LABEL[g], ...(hint === null ? {} : { hint }) };
+  }));
 }
 
 export function checkDraft(d: PaymentDraft, today: string): DraftErrors {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PaymentOption } from '../../presence/payments/rules';
 import type { PaymentRowView } from '../../presence/money-api';
-import { amountText, cancelText, checkDraft, editDraft, editOptions, emailBox, isOverpaid, newDraft, parseAmount, showsRink, toBody, withOption } from '../payment-window';
+import { amountText, cancelText, checkDraft, editDraft, editOptions, emailBox, groupedOptions, isOverpaid, newDraft, optionGroup, optionHint, parseAmount, showsRink, toBody, withOption } from '../payment-window';
 
 const paymentView = (o: Partial<PaymentRowView>): PaymentRowView => ({
   paymentId: 'p1', athleteId: 'a1', athleteName: 'Ana Ionescu', paidOn: '2026-10-27', purpose: 'abonament', purposeText: 'Abonament', method: 'numerar',
@@ -9,10 +9,10 @@ const paymentView = (o: Partial<PaymentRowView>): PaymentRowView => ({
 });
 
 const opts: PaymentOption[] = [
-  { for: { kind: 'abonament', subscriptionId: 'sub1' }, label: 'Abonament 8 ședințe (activ din 27 oct)', amount: 320, isDefault: false },
-  { for: { kind: 'cotizatie', seasonId: 's26' }, label: 'Cotizație membru 2026-2027', amount: 100, isDefault: true },
-  { for: { kind: 'club_luna', month: '2026-10' }, label: 'Club, octombrie', amount: 160, isDefault: false },
-  { for: { kind: 'altceva' }, label: 'Altceva', amount: null, isDefault: false }];
+  { for: { kind: 'abonament', subscriptionId: 'sub1' }, label: 'Abonament 8 ședințe (activ din 27 oct)', amount: 320, isDefault: false, owed: 320, paid: 0 },
+  { for: { kind: 'cotizatie', seasonId: 's26' }, label: 'Cotizație membru 2026-2027', amount: 100, isDefault: true, owed: 100, paid: 0 },
+  { for: { kind: 'club_luna', month: '2026-10' }, label: 'Club, octombrie', amount: 160, isDefault: false, owed: 160, paid: 0 },
+  { for: { kind: 'altceva' }, label: 'Altceva', amount: null, isDefault: false, owed: null, paid: 0 }];
 
 describe('payment window rules', () => {
   it('amount text: comma or point, two decimals at most (decided 2)', () => {
@@ -37,7 +37,7 @@ describe('payment window rules', () => {
   });
   it('a default amount with cents shows a comma and two decimals (M4)', () => {
     expect([amountText(12.5), amountText(320), amountText(0.05)]).toEqual(['12,50', '320', '0,05']);
-    const o: PaymentOption[] = [{ for: { kind: 'altceva' }, label: 'Altceva', amount: 12.5, isDefault: false }];
+    const o: PaymentOption[] = [{ for: { kind: 'altceva' }, label: 'Altceva', amount: 12.5, isDefault: false, owed: 0, paid: 0 }];
     expect(withOption(newDraft({ athleteId: 'a1', today: '2026-11-20', preselect: null, options: o }), 'altceva', o).amount).toBe('12,50');
     expect(editDraft(paymentView({ amount: 99.9 })).amount).toBe('99,90');
   });
@@ -66,5 +66,19 @@ describe('server refusal under the amount', () => {
   it('only the overpay text belongs under the amount field', () => {
     expect(isOverpaid('Suma depășește restul de plată: 60,50 RON.')).toBe(true);
     expect(isOverpaid('Cerere invalidă.')).toBe(false);
+  });
+  it('groups and hints', () => {
+    const o = (f: PaymentOption['for'], owed: number | null, paid: number): PaymentOption => ({ for: f, label: 'x', amount: owed, isDefault: false, owed, paid });
+    const abon380 = o({ kind: 'abonament', subscriptionId: 's' }, 380, 220);
+    const fee270 = o({ kind: 'cotizatie', seasonId: 's26' }, 270, 0);
+    const paidMonth = o({ kind: 'club_luna', month: '2026-09' }, 0, 340);
+    const altceva = o({ kind: 'altceva' }, null, 0);
+    const emptyMonth = o({ kind: 'club_luna', month: '2026-11' }, 0, 0);
+    expect([optionGroup(abon380), optionHint(abon380)]).toEqual(['due', 'rămas 380 RON']);
+    expect(optionHint(fee270)).toBe('270 RON');
+    expect([optionGroup(paidMonth), optionHint(paidMonth)]).toEqual(['paid', 'achitat']);
+    expect([optionGroup(altceva), optionHint(altceva)]).toEqual(['other', 'orice sumă']);
+    expect([optionGroup(emptyMonth), optionHint(emptyMonth)]).toEqual(['other', null]);
+    expect(groupedOptions([altceva, paidMonth, abon380]).map((r) => r.group)).toEqual(['De plată', 'Achitate', 'Altele']);
   });
 });
