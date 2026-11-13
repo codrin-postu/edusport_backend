@@ -11,16 +11,27 @@ const SEEDED: { code: EduSportCode; name: string }[] = [
 
 const EDUSPORT_CODES: string[] = Object.values(ROLE_CODES);
 
-/** Creates the two EduSport roles when missing (found by code, never renamed) and gives only a new role its native permissions, so a Super Admin's later edits stay. */
+/** Gives a role its native permissions when it has none (a new role, or one whose first grant failed); a role that has any is never touched, so a Super Admin's later edits stay. A failure is logged and never aborts boot. */
+async function grantWhenEmpty(strapi: Core.Strapi, roleId: number, code: EduSportCode): Promise<void> {
+  const count = await strapi.db.query('admin::permission').count({ where: { role: { id: roleId } } });
+  if (count > 0) return;
+  try {
+    await strapi.service('admin::role').assignPermissions(roleId, nativePermissions(code));
+  } catch {
+    strapi.log.warn(`[roles] could not assign permissions to ${code}`);
+  }
+}
+
+/** Creates the two EduSport roles when missing (found by code, never renamed) and grants permissions to an empty one. */
 async function ensureRoles(strapi: Core.Strapi): Promise<string[]> {
-  const roleService = strapi.service('admin::role');
   const created: string[] = [];
   for (const { code, name } of SEEDED) {
-    const existing = await strapi.db.query('admin::role').findOne({ where: { code } });
-    if (existing) continue;
-    const role = await roleService.create({ name, code, description: name });
-    await roleService.assignPermissions(role.id, nativePermissions(code));
-    created.push(code);
+    let role = await strapi.db.query('admin::role').findOne({ where: { code } });
+    if (!role) {
+      role = await strapi.service('admin::role').create({ name, code, description: name });
+      created.push(code);
+    }
+    await grantWhenEmpty(strapi, role.id, code);
   }
   return created;
 }

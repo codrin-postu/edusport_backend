@@ -6,7 +6,9 @@ import { nativePermissions } from '../map';
 type Role = { id: number; name: string; code: string };
 type Admin = { id: number; isActive: boolean; roles: { code: string }[] };
 
-function fakeStrapi(admins: Admin[] = [], roles: Role[] = []) {
+function fakeStrapi(admins: Admin[] = [], roles: Role[] = [], withPermissions: number[] = []) {
+  const failAssign = { on: false };
+  const granted = new Set<number>(withPermissions);
   const assigned: { roleId: number; permissions: { action: string; subject: string | null }[] }[] = [];
   const log = { info: vi.fn(), warn: vi.fn() };
   let nextId = 100;
@@ -17,6 +19,8 @@ function fakeStrapi(admins: Admin[] = [], roles: Role[] = []) {
       return role;
     },
     assignPermissions: async (roleId: number, permissions: { action: string; subject: string | null }[]) => {
+      if (failAssign.on) throw new Error('boom');
+      granted.add(roleId);
       assigned.push({ roleId, permissions });
     },
   };
@@ -25,12 +29,13 @@ function fakeStrapi(admins: Admin[] = [], roles: Role[] = []) {
     service: (uid: string) => (uid === 'admin::role' ? roleService : undefined),
     db: {
       query: (uid: string) => ({
+        count: async ({ where }: { where: { role: { id: number } } }) => (uid === 'admin::permission' && granted.has(where.role.id) ? 3 : 0),
         findOne: async ({ where }: { where: { code: string } }) => (uid === 'admin::role' ? roles.find((r) => r.code === where.code) ?? null : null),
         findMany: async () => (uid === 'admin::user' ? admins.filter((a) => a.isActive) : []),
       }),
     },
   } as unknown as Core.Strapi;
-  return { strapi, assigned, roles, log };
+  return { strapi, assigned, roles, log, failAssign };
 }
 
 describe('bootstrapRoles', () => {
@@ -47,11 +52,26 @@ describe('bootstrapRoles', () => {
   });
 
   it('finds a renamed role by code and does not rename or re-grant it', async () => {
-    const { strapi, assigned, roles } = fakeStrapi([], [{ id: 1, name: 'Club', code: 'edusport-club-admin' }]);
+    const { strapi, assigned, roles } = fakeStrapi([], [{ id: 1, name: 'Club', code: 'edusport-club-admin' }], [1]);
     const result = await bootstrapRoles(strapi);
     expect(result.created).toEqual(['edusport-site-editor']);
     expect(roles.find((r) => r.id === 1)?.name).toBe('Club');
     expect(assigned).toHaveLength(1);
+  });
+
+  it('retries the grant on the next boot when the first assign threw', async () => {
+    const { strapi, assigned, roles, log, failAssign } = fakeStrapi();
+    failAssign.on = true;
+    const first = await bootstrapRoles(strapi);
+    expect(first.created).toHaveLength(2);
+    expect(assigned).toHaveLength(0);
+    expect(log.warn).toHaveBeenCalledWith('[roles] could not assign permissions to edusport-club-admin');
+    expect(log.warn).toHaveBeenCalledWith('[roles] could not assign permissions to edusport-site-editor');
+    failAssign.on = false;
+    const second = await bootstrapRoles(strapi);
+    expect(second.created).toEqual([]);
+    expect(roles).toHaveLength(2);
+    expect(assigned).toHaveLength(2);
   });
 
   it('returns and logs an active admin with no EduSport role, id only', async () => {
