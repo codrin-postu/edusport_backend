@@ -533,8 +533,8 @@ ${R} .ui-sel-hint{margin-left:auto;padding-left:12px;font-size:12px;color:var(--
 @media (prefers-reduced-motion:reduce){${R} .ui-sel-chev{transition:none}}
 
 /* segmented control */
-.ui-root.ui-seg{display:inline-flex;align-items:stretch;gap:2px;padding:2px;background:var(--theme-surface-sunken);border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);max-width:100%}
-.ui-root.ui-seg--block{display:flex;width:100%}
+.ui-root.ui-seg{display:inline-flex;align-items:stretch;gap:2px;padding:2px;background:var(--theme-surface-sunken);border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);max-width:100%;width:fit-content;align-self:flex-start}
+.ui-root.ui-seg--block{display:flex;width:100%;align-self:stretch}
 ${R} .ui-seg-opt{flex:0 1 auto;min-width:0;padding:6px 14px;border:none;border-radius:var(--ui-radius-sm);background:transparent;font-family:inherit;font-size:var(--ui-fs-body-sm);font-weight:600;line-height:1.2;color:var(--theme-text-secondary);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background-color var(--ui-motion-fast) var(--ui-easing),color var(--ui-motion-fast) var(--ui-easing)}
 ${R} .ui-seg--block .ui-seg-opt{flex:1 1 0}
 ${R} .ui-seg--sm .ui-seg-opt{padding:4px 10px;font-size:12px}
