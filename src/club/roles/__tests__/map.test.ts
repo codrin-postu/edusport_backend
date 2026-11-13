@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ADMIN_AREAS, type AdminArea } from '../../admin-area';
-import { CLUB_ADMIN_UIDS, CM_ACTIONS, MEDIA_ACTIONS, ROLE_CODES, WEBSITE_UIDS, areasFor, canUse, nativePermissions, roleCodesOf } from '../map';
+import { CLUB_ADMIN_UIDS, CM_ACTIONS, HIDDEN_FROM_CM_UIDS, MEDIA_ACTIONS, ROLE_CODES, WEBSITE_UIDS, areasFor, canUse, nativePermissions, roleCodesOf } from '../map';
 
 // Spec 9.2 table: Super Admin, Administrator club, Editor site.
 const TABLE: Record<AdminArea, [boolean, boolean, boolean]> = {
@@ -49,7 +49,9 @@ describe('roleCodesOf', () => {
 });
 
 describe('nativePermissions', () => {
-  const cm = (uids: readonly string[]) => uids.flatMap((subject) => CM_ACTIONS.map((action) => ({ action, subject })));
+  const cm = (uids: readonly string[]) => uids.flatMap((subject) =>
+      CM_ACTIONS.filter((action) => action.endsWith('.read') || !HIDDEN_FROM_CM_UIDS.includes(subject)).map((action) => ({ action, subject })),
+    );
   const media = MEDIA_ACTIONS.map((action) => ({ action, subject: null }));
 
   it('pins the action ids as literals', () => {
@@ -88,5 +90,37 @@ describe('map.ts source', () => {
     const imports = source.match(/^import .*$/gm) ?? [];
     expect(imports).toHaveLength(1);
     expect(imports[0]).toContain("from '../admin-area'");
+  });
+});
+
+// Root cause of the real-boot failure: Strapi 5.52.1 registers a content type hidden from the Content Manager
+// (`pluginOptions.content-manager.visible: false`) as a subject of `explorer.read` only, so create/update/delete/publish on it
+// make `validatePermissionsExist` throw and the whole grant is refused. The fakes in the other tests cannot see this.
+describe('native permissions against the real content types', () => {
+  const schemaOf = (uid: string) => {
+    const name = uid.replace(/^api::/, '').split('.')[0];
+    return JSON.parse(readFileSync(join(__dirname, '../../../api', name, 'content-types', name, 'schema.json'), 'utf8')) as {
+      pluginOptions?: { 'content-manager'?: { visible?: boolean } };
+    };
+  };
+  const hidden = (uid: string) => schemaOf(uid).pluginOptions?.['content-manager']?.visible === false;
+  const uids = [...WEBSITE_UIDS, ...CLUB_ADMIN_UIDS];
+
+  it('names only content types that exist', () => {
+    for (const uid of uids) expect(() => schemaOf(uid), uid).not.toThrow();
+  });
+
+  it('HIDDEN_FROM_CM_UIDS is exactly the matrix types hidden from the Content Manager', () => {
+    expect(uids.filter(hidden).sort()).toEqual([...HIDDEN_FROM_CM_UIDS].sort());
+  });
+
+  it('grants only explorer.read on a hidden type, and all five actions on a visible one', () => {
+    for (const code of ['edusport-club-admin', 'edusport-site-editor'] as const) {
+      const perms = nativePermissions(code);
+      for (const uid of uids.filter((u) => perms.some((p) => p.subject === u))) {
+        const actions = perms.filter((p) => p.subject === uid).map((p) => p.action);
+        expect(actions, `${code} ${uid}`).toEqual(hidden(uid) ? ['plugin::content-manager.explorer.read'] : [...CM_ACTIONS]);
+      }
+    }
   });
 });

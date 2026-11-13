@@ -11,14 +11,28 @@ const SEEDED: { code: EduSportCode; name: string }[] = [
 
 const EDUSPORT_CODES: string[] = Object.values(ROLE_CODES);
 
+const FIELD_ACTIONS = ['plugin::content-manager.explorer.create', 'plugin::content-manager.explorer.read', 'plugin::content-manager.explorer.update'];
+
+type ContentTypeService = { getNestedFields: (model: unknown, opts: { components: unknown }) => string[] };
+
+/** Adds `properties.fields` (every field, nested component fields included) like Strapi's own Editor role: the Content Manager UI treats a permission without `fields` as "no field allowed" and shows every input as not allowed. */
+function withFields(strapi: Core.Strapi, permissions: ReturnType<typeof nativePermissions>) {
+  const service = strapi.service('admin::content-type') as unknown as ContentTypeService;
+  return permissions.map((p) => {
+    const model = p.subject ? strapi.contentTypes[p.subject as keyof typeof strapi.contentTypes] : null;
+    if (!model || !FIELD_ACTIONS.includes(p.action)) return p;
+    return { ...p, properties: { fields: service.getNestedFields(model, { components: strapi.components }) } };
+  });
+}
+
 /** Gives a role its native permissions when it has none (a new role, or one whose first grant failed); a role that has any is never touched, so a Super Admin's later edits stay. A failure is logged and never aborts boot. */
 async function grantWhenEmpty(strapi: Core.Strapi, roleId: number, code: EduSportCode): Promise<void> {
   const count = await strapi.db.query('admin::permission').count({ where: { role: { id: roleId } } });
   if (count > 0) return;
   try {
-    await strapi.service('admin::role').assignPermissions(roleId, nativePermissions(code));
-  } catch {
-    strapi.log.warn(`[roles] could not assign permissions to ${code}`);
+    await strapi.service('admin::role').assignPermissions(roleId, withFields(strapi, nativePermissions(code)));
+  } catch (error) {
+    strapi.log.warn(`[roles] could not assign permissions to ${code}: ${error instanceof Error ? error.message : 'unknown error'}`);
   }
 }
 

@@ -67,6 +67,9 @@ export const WEBSITE_UIDS: readonly string[] = [
 /** Content types only "Administrator club" may edit: site settings and the contact inbox the club pages read through the Content Manager. */
 export const CLUB_ADMIN_UIDS: readonly string[] = ['api::site-settings.site-settings', 'api::contact-submission.contact-submission'];
 
+/** Matrix content types hidden from the Content Manager (`pluginOptions.content-manager.visible: false`, edited on their own admin pages). Strapi 5.52.1 registers such a type as a subject of `explorer.read` only; any other action on it fails `validatePermissionsExist` and the whole grant is refused. */
+export const HIDDEN_FROM_CM_UIDS: readonly string[] = ['api::announcement.announcement', 'api::club-figures.club-figures', 'api::navigation.navigation'];
+
 export const CM_ACTIONS: readonly string[] = [
   'plugin::content-manager.explorer.create',
   'plugin::content-manager.explorer.read',
@@ -86,7 +89,12 @@ export const MEDIA_ACTIONS: readonly string[] = [
 
 type Permission = { action: string; subject: string | null };
 
-const contentManager = (uids: readonly string[]): Permission[] => uids.flatMap((subject) => CM_ACTIONS.map((action) => ({ action, subject })));
+const READ_ACTION = 'plugin::content-manager.explorer.read';
+
+const contentManager = (uids: readonly string[]): Permission[] =>
+  uids.flatMap((subject) =>
+    CM_ACTIONS.filter((action) => action === READ_ACTION || !HIDDEN_FROM_CM_UIDS.includes(subject)).map((action) => ({ action, subject })),
+  );
 
 /** Native Strapi permissions given to a new EduSport role (spec 9.1). */
 export function nativePermissions(code: 'edusport-club-admin' | 'edusport-site-editor'): Permission[] {
