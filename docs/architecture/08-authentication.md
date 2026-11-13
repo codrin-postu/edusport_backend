@@ -54,3 +54,42 @@ The portal has two hosts, `antrenor.` and `sportiv.` (`PORTAL_HOSTS`). Every sig
 ### Portal 2FA switch (2026-11-11)
 
 `PORTAL_2FA=on|off` (default off). Off: the coach and student portals sign in with e-mail + password or Google only. The portal 2FA enrol and use routes, backup codes and passkey routes answer 404, and stored factors are ignored at sign-in (a session is issued after the usual host check). The code stays for later; admin-auth 2FA is not affected.
+
+## Admin roles (phase 6b-3)
+
+Three admin roles come from one map, `src/club/roles/map.ts`. The two EduSport roles are created at boot by `src/club/roles/bootstrap.ts`; Super Admin is Strapi's own role.
+
+| Role | Code | Areas |
+|---|---|---|
+| Super Admin | `strapi-super-admin` | all areas |
+| Administrator club | `edusport-club-admin` | all areas except `superAdmin` |
+| Editor site | `edusport-site-editor` | `any`, `website` |
+
+Areas: `any` (every signed-in admin has it), `club`, `money`, `settings`, `website`, `coachAccounts`, `superAdmin`. The admin is allowed what any of their roles grants.
+
+Boot and permissions:
+
+- A role with zero permissions gets the default matrix again at the next boot. A role that has permissions is never changed by boot, so edits made in the admin are kept.
+- The content types hidden from the Content Manager (`announcement`, `club-figures`, `navigation`) are read-only for the roles: they get `explorer.read` only, and are edited on their own admin pages.
+
+Checks:
+
+- Every admin route has exactly one area. `adminRoute(area)` in `src/club/admin-area.ts` emits `global::has-role` with `{ area }`. A source test fails when a route has no known area.
+- `global::has-role` answers 401 when there is no session, or the admin is inactive or blocked. It answers 403 when none of the admin's roles grants the area. On a pass it puts the admin's areas in `policyContext.state.adminAreas`.
+- The admin UI hides the menu entries and pages outside the admin's areas (`useAreas`, `AreaGate`). A direct URL shows "Nu ai acces la această pagină." Contabilitate hides "Pe scurt" and "Pe grupe" without `money`. Tabele is `money`.
+
+`HAS_ROLE_ENFORCED` (see `.env.example`):
+
+- `true`: refusals are answered (401 or 403).
+- `false`: nothing is refused. Each refusal is only logged as `[has-role] would refuse <area> for <id>`.
+- Unset: enforced outside production; in production (`NODE_ENV=production`) it behaves as `false`.
+
+Deploy order:
+
+1. Set `HAS_ROLE_ENFORCED=true` in the VM's `.env.production`. The deploy env must set it; do not rely on the unset default.
+2. Restart the backend so the variable is read.
+3. To check the rules before enforcement, deploy with `HAS_ROLE_ENFORCED=false` first and read the `[has-role] would refuse` lines in the server log for the real admins. Then set `true` and restart.
+
+Portal sign-in: the coach and student portals sign in with e-mail and password or Google only (portal 2FA and passkeys are off, see `PORTAL_2FA` above). Admin 2FA stays.
+
+Coach Școala rights: a coach whose portal e-mail matches an active, non-blocked admin with the `club` area edits his own Școala groups the same way as his Club groups. There is no switch (user decision, 2026-11-13).

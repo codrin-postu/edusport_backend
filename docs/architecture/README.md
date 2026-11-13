@@ -18,7 +18,7 @@ Not part of the build: `docs/` is documentation only.
 3. Class diagram: data model, multiplicities, constraints
 4. State machines: Înscriere, Sportiv, Abonament, Ședință
 5. Sequence and activity diagrams: main flows
-6. Component and deployment diagram
+6. Component and deployment diagram; admin roles (`admin-roles.puml`: request through `has-role`, admin menus and pages)
 7. Mapping to existing Strapi content types
 8. Open decisions, then spec and implementation plan
 

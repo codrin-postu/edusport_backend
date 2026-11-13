@@ -1,0 +1,45 @@
+@startuml
+!include _style.iuml
+title Admin roles: has-role on the server, useAreas and AreaGate in the admin
+actor Admin
+participant "Admin bundle\n(src/admin)" as UI
+participant "Strapi route\n(adminRoute(area))" as R
+participant "global::has-role\n(src/policies)" as P
+participant "admin-auth\n(requireAdminUser)" as A
+database "Postgres" as DB
+
+== Request to an admin route ==
+Admin -> UI : opens a page
+UI -> R : API call, access token
+R -> P : has-role { area }
+P -> A : token, active session
+A -> DB : session, admin user, roles
+alt no session, inactive or blocked
+  A --> P : 401
+  P --> R : 401
+else signed in
+  P -> P : areasFor(role codes)\n(map in src/club/roles/map.ts)
+  alt area not granted
+    alt HAS_ROLE_ENFORCED is true, or unset outside production
+      P --> R : 403
+    else off, or unset in production
+      P -> P : log "would refuse <area> for <id>"
+      P --> R : pass
+    end
+  else area granted
+    P -> P : state.adminAreas = areas
+    P --> R : pass
+  end
+end
+R --> UI : 200 data, or 403
+UI --> Admin : data, or "Nu ai acces la această pagină."
+
+== Menu and pages ==
+UI -> UI : useAreas()\nareas of GET /admin/users/me
+UI -> UI : menu entries outside the areas are hidden
+UI -> UI : AreaGate { area } wraps each page
+note right of UI
+  Contabilitate: "Pe scurt" and "Pe grupe" need money.
+  Tabele needs money.
+end note
+@enduml
