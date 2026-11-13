@@ -13,6 +13,7 @@ import { ensurePresenceIndexes } from './club/presence/indexes';
 import { codesBackfillPorts, runCodesBackfill } from './club/codes-backfill';
 import { assertKeysForBoot } from './club/security/keys';
 import { ensureSecurityIndexesAtBoot } from './club/security/indexes';
+import { bootstrapRoles } from './club/roles/bootstrap';
 import { checkUpSettings } from './club/portal/up-settings';
 import { ensureAccessIndexes, backfillDeviceHosts } from './club/portal/access/indexes';
 import { ensurePortalIndexes, subscribeTeamMemberHook } from './club/portal/accounts/team-member-hook';
@@ -430,6 +431,9 @@ export default {
 
     // Coach portal: public registration and U&P e-mail confirmation stay off.
     await checkUpSettings(strapi);
+
+    // 6b-3: the two EduSport admin roles, created once with their native permissions.
+    await bootstrapRoles(strapi);
 
     // Phase 5: unique keys and date indexes for presence and payments tables (no-op where a table is missing).
     try {
