@@ -4,7 +4,7 @@ import { isRecord } from '../club/narrow';
 import { renderLinkMail } from './portal-email';
 import type { EmailLinks, RenderedEmail } from './registration-template';
 
-export type PortalAccessPayload = { name: string; variant: 'child' | 'coach'; childName: string | null; link: string; host: string };
+export type PortalAccessPayload = { name: string; variant: 'child' | 'coach'; childName: string | null; link: string; host: string; athleteIds?: string[] };
 export type NewPortalAccessJob = {
   recipient: string;
   subject: string;
@@ -15,7 +15,8 @@ export type NewPortalAccessJob = {
 
 export function isPortalAccessPayload(v: unknown): v is PortalAccessPayload {
   return isRecord(v) && typeof v.name === 'string' && (v.variant === 'child' || v.variant === 'coach') && typeof v.link === 'string' && v.link.length > 0
-    && typeof v.host === 'string' && v.host.length > 0 && (v.childName === null || typeof v.childName === 'string') && (v.variant === 'coach' || typeof v.childName === 'string');
+    && typeof v.host === 'string' && v.host.length > 0 && (v.childName === null || typeof v.childName === 'string') && (v.variant === 'coach' || typeof v.childName === 'string')
+    && (v.athleteIds === undefined || (Array.isArray(v.athleteIds) && v.athleteIds.every((c) => typeof c === 'string')));
 }
 
 export function renderPortalAccess(input: { payload: PortalAccessPayload; links: EmailLinks }): RenderedEmail {
