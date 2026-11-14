@@ -17,6 +17,7 @@ export function fakeAccessStore(seed: Partial<FakeAccessState> = {}): FakeAccess
   const store: AccessStore = {
     liveByAthlete: async (athleteId) => structuredClone(state.rows.find((r) => r.athleteId === athleteId && r.revokedAt === null) ?? null),
     liveByAccount: async (accountId) => structuredClone(state.rows.filter((r) => r.accountId === accountId && r.revokedAt === null)),
+    liveAccountIds: async () => [...new Set(state.rows.filter((r) => r.revokedAt === null).map((r) => r.accountId))].sort(),
     createAccess: async (n) => {
       if (taken(n.athleteId)) throw Object.assign(new Error('duplicate key: athlete_accesses_live_uq'), { code: '23505' });
       const id = `acs${state.nextId++}`;

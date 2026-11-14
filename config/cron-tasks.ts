@@ -20,6 +20,8 @@
 import type { Core } from '@strapi/strapi';
 import { retryRegistrationEmails } from '../src/email/strapi-email';
 import { purgePortal } from '../src/club/portal/purge';
+import { strapiNoticeSyncContext } from '../src/club/portal/notices/strapi-sync';
+import { syncNotices } from '../src/club/portal/notices/sync';
 import { strapiNoticeStore } from '../src/club/portal/notices/strapi-store';
 import { todayIso } from '../src/club/groups/http';
 import { strapiPresenceStore } from '../src/club/presence/strapi-store';
@@ -80,6 +82,17 @@ export default {
       rule: '30 * * * *',
       tz: 'Europe/Bucharest',
     },
+  },
+  portalNotices: {
+    task: async ({ strapi }: { strapi: Core.Strapi }) => {
+      try {
+        const n = await syncNotices(strapiNoticeSyncContext(strapi), {});
+        if (n.created || n.delivered || n.ended) strapi.log.info(`[portal][cron] notices: ${n.created} created, ${n.delivered} delivered, ${n.ended} ended`);
+      } catch (err) {
+        strapi.log.warn(`[portal][cron] notice sync failed: ${err instanceof Error ? err.name : 'unknown'}`);
+      }
+    },
+    options: { rule: '*/15 * * * *', tz: 'Europe/Bucharest' },
   },
   portalPurge: {
     task: async ({ strapi }: { strapi: Core.Strapi }) => {

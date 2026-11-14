@@ -5,6 +5,8 @@ export type { AccessRow, AthleteForAccess, NewAccess, RevokeReason } from './typ
 export interface AccessStore {
   liveByAthlete(athleteId: string): Promise<AccessRow | null>;
   liveByAccount(accountId: string): Promise<AccessRow[]>;
+  /** Every account holding at least one live access, sorted (the notice sync walks these). */
+  liveAccountIds(): Promise<string[]>;
   /** One live row per athlete: a second one is refused by the database (code 23505). */
   createAccess(row: NewAccess): Promise<string>;
   revokeAccess(id: string, w: { revokedAt: string; revokedBy: string; revokeReason: RevokeReason }): Promise<void>;

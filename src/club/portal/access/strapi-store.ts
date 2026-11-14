@@ -27,6 +27,7 @@ export function strapiAccessStore(strapi: Core.Strapi, scope: Scope = transactio
   return {
     liveByAthlete: async (athleteId) => (await many({ athleteKey: athleteId, revokedAt: { $null: true } }))[0] ?? null,
     liveByAccount: (accountId) => many({ account: { documentId: accountId }, revokedAt: { $null: true } }),
+    liveAccountIds: async () => [...new Set((await many({ revokedAt: { $null: true } })).map((r) => r.accountId).filter(Boolean))].sort(),
     createAccess: async (row) => {
       const { athleteId, accountId, ...rest } = row;
       const created = await docs().create({ data: { ...rest, athlete: athleteId, account: accountId, athleteKey: athleteId } as never });
