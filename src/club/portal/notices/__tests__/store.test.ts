@@ -48,6 +48,15 @@ describe('notice store (fake)', () => {
     expect(rows.map((d) => `${d.noticeId}:${d.accountId}`).sort()).toEqual([`${a}:acc1`, `${a}:acc2`, `${b}:acc2`].sort());
     expect(await store.deliveriesFor([])).toEqual([]);
   });
+  it('noticesOfAnnouncements reads the notices of several announcements at once and nothing for an empty list', async () => {
+    const { store } = fakeNoticeStore();
+    const a = await store.createNotice(auto(null, { kind: 'anunt', announcementId: 'ann1' }), T1);
+    const b = await store.createNotice(auto(null, { kind: 'anunt', announcementId: 'ann2' }), T1);
+    await store.createNotice(auto(null, { kind: 'anunt', announcementId: 'ann3' }), T1);
+    await store.createNotice(auto('acc1'), T1);
+    expect((await store.noticesOfAnnouncements(['ann1', 'ann2'])).map((n) => n.id).sort()).toEqual([a, b].sort());
+    expect(await store.noticesOfAnnouncements([])).toEqual([]);
+  });
   it('liveAutoNotice ignores ended notices', async () => {
     const { store } = fakeNoticeStore();
     const id = await store.createNotice(auto('acc1'), T1);

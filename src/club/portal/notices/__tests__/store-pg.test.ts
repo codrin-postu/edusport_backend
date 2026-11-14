@@ -57,6 +57,12 @@ describe.skipIf(!enabled)('strapiNoticeStore on Postgres', () => {
     expect(await store.deliveriesFor([])).toEqual([]);
   });
 
+  it('noticesOfAnnouncements reads several in one call', async () => {
+    const store = strapiNoticeStore(strapi);
+    expect(await store.noticesOfAnnouncements([])).toEqual([]);
+    expect(await store.noticesOfAnnouncements([`none-${stamp}`])).toEqual([]);
+  });
+
   it('dropNoticesForAthlete removes the named notices with their deliveries only', async () => {
     const store = strapiNoticeStore(strapi);
     const a = await account('b');

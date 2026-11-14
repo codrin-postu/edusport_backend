@@ -18,8 +18,8 @@ export function useRecipients(noticeId: string | null): { data: RecipientsView |
     let off = false;
     setData(null);
     setFailed(false);
-    get(`${ANUNT_PORTAL_API}/${noticeId}`)
-      .then((res: any) => !off && setData(res?.data?.data ?? null))
+    get<{ data?: RecipientsView }>(`${ANUNT_PORTAL_API}/${noticeId}`)
+      .then((res) => !off && setData(res.data?.data ?? null))
       .catch(() => !off && setFailed(true));
     return () => {
       off = true;

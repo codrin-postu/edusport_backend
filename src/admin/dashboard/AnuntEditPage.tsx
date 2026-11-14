@@ -213,8 +213,8 @@ export default function AnuntEditPage() {
 
   React.useEffect(() => {
     let off = false;
-    get(`${ANUNT_API}/groups`)
-      .then((res: any) => !off && setTree(res?.data?.data ?? null))
+    get<{ data?: TickTree }>(`${ANUNT_API}/groups`)
+      .then((res) => !off && setTree(res.data?.data ?? null))
       .catch(() => !off && setTree(null));
     return () => {
       off = true;
@@ -228,8 +228,8 @@ export default function AnuntEditPage() {
    * use, which is what keeps an auto-generated slug unique on create.
    */
   const fetchList = React.useCallback(async (): Promise<Loaded> => {
-    const res: any = await get(ANUNT_API);
-    const list: Anunt[] = res?.data?.data ?? res?.data ?? [];
+    const res = await get<{ data?: Anunt[] }>(ANUNT_API);
+    const list = res.data?.data;
     return { rows: Array.isArray(list) ? list : [] };
   }, [get]);
 
@@ -310,10 +310,10 @@ export default function AnuntEditPage() {
           if (isNew) {
             // `slug` is the Umami tracking id and the uid field is required, so it
             // is generated here rather than left to the content type's default.
-            const res: any = await post(ANUNT_API, { ...body, slug: newSlug(v.title) });
-            const created = res?.data?.data ?? res?.data;
+            const res = await post<{ data?: { documentId?: string } }>(ANUNT_API, { ...body, slug: newSlug(v.title) });
+            const created = res.data?.data;
             if (created?.documentId) {
-              createdId = created.documentId as string;
+              createdId = created.documentId;
               const list = await fetchList().catch(() => null);
               if (list && apply(createdId, list)) loadedFor.current = createdId;
             }

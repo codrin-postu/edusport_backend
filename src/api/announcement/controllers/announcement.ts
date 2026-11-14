@@ -16,7 +16,8 @@ import { errors } from '@strapi/utils';
 import { validateAnnouncement } from '../services/validate-announcement';
 import { adminActor } from '../../../club/admin-actor';
 import { groupTree, sortedUnique } from '../../../club/anunturi/view';
-import { AUTO_LIST_DAYS, CAUSE_PREFIX, listRows, readCauseRecipients, portalSummary, readRecipients, stopNotice, type ListRow, type PortalSummary } from '../../../club/anunturi/portal-history';
+import type { Core } from '@strapi/strapi';
+import { AUTO_LIST_DAYS, CAUSE_PREFIX, listRows, readCauseRecipients, portalSummary, readRecipients, stopNotice, type AnnouncementForList, type ListRow, type PortalSummary } from '../../../club/anunturi/portal-history';
 import { respond } from '../../../club/admin-http';
 import { transactionScope } from '../../../club/athletes/strapi-store';
 import { strapiAccessStore } from '../../../club/portal/access/strapi-store';
@@ -130,73 +131,59 @@ function pickWritable(body: any): Record<string, unknown> {
   return out;
 }
 
-/** The notices the list shows: those of the announcements and the recent automatic ones, with their deliveries. */
-async function readNotices(strapi: any, entries: any[], now: number): Promise<{ notices: NoticeRecord[]; deliveries: Map<string, DeliveryRecord[]> }> {
+/** An announcement as the list query returns it; every field may be missing or null. */
+type Entry = Partial<Omit<Row, 'documentId' | 'group' | 'stats' | 'portal'>> & { documentId: string };
+type Notices = { notices: NoticeRecord[]; deliveries: Map<string, DeliveryRecord[]> };
+
+/** The notices the list shows (those of the portal announcements and the recent automatic ones) with their deliveries: three store reads. */
+async function readNotices(strapi: Core.Strapi, entries: Entry[], now: number): Promise<Notices> {
   const store = strapiNoticeStore(strapi);
   const since = new Date(now - AUTO_LIST_DAYS * 86_400_000).toISOString();
-  const notices = (await store.notices({ since })).filter((n) => n.kind === 'auto');
-  for (const e of entries) {
-    if (e.showOnPortal !== true) continue;
-    const own = await store.noticeOfAnnouncement(e.documentId);
-    if (own) notices.push(own);
-  }
+  const autos = (await store.notices({ since })).filter((n) => n.kind === 'auto');
+  const own = await store.noticesOfAnnouncements(entries.filter((e) => e.showOnPortal === true).map((e) => e.documentId));
+  const notices = [...autos, ...own];
   const deliveries = new Map<string, DeliveryRecord[]>();
   for (const d of await store.deliveriesFor(notices.map((n) => n.id))) deliveries.set(d.noticeId, [...(deliveries.get(d.noticeId) ?? []), d]);
   return { notices, deliveries };
 }
 
-async function buildRows(strapi: any): Promise<{ data: Row[]; list: ListRow[]; umami: string }> {
-  const [entries, stats] = await Promise.all([
-    strapi.documents(UID).findMany({ fields: [...ADMIN_FIELDS], limit: -1 }),
-    getAnnouncementStats(),
-  ]);
-
-  const now = Date.now();
-  const { notices, deliveries } = await readNotices(strapi, entries ?? [], now);
-  const rows: Row[] = (entries ?? []).map((e: any) => ({
-    documentId: e.documentId,
-    title: e.title ?? null,
-    eyebrow: e.eyebrow ?? null,
-    slug: e.slug ?? null,
-    message: e.message ?? null,
-    format: e.format ?? null,
-    ctaLabel: e.ctaLabel ?? null,
-    ctaUrl: e.ctaUrl ?? null,
-    startAt: e.startAt ?? null,
-    endAt: e.endAt ?? null,
-    priority: e.priority ?? null,
-    isActive: e.isActive ?? null,
-    dismissDays: e.dismissDays ?? null,
-    showOnSite: e.showOnSite ?? null,
-    showOnPortal: e.showOnPortal ?? null,
-    portalGroupIds: Array.isArray(e.portalGroupIds) ? e.portalGroupIds : null,
-    portalAuthor: e.portalAuthor ?? null,
-    group: groupOf(e, now),
-    stats: (e.slug && stats.bySlug.get(e.slug)) || null,
-    portal: portalSummaryOf(e, notices, deliveries),
-  }));
-
-  const ORDER: Record<Group, number> = { active: 0, scheduled: 1, past: 2 };
-  rows.sort((a, b) => {
-    if (a.group !== b.group) return ORDER[a.group] - ORDER[b.group];
-    if (a.group === 'active') return (a.priority ?? 0) - (b.priority ?? 0);
-    if (a.group === 'scheduled') return (time(a.startAt) ?? 0) - (time(b.startAt) ?? 0);
-    return (time(b.endAt) ?? 0) - (time(a.endAt) ?? 0); // past: most recent first
-  });
-
-  const list = listRows({
-    announcements: rows.map((r) => ({
-      id: r.documentId, title: r.title, showOnSite: r.showOnSite, showOnPortal: r.showOnPortal, isActive: r.isActive, startAt: r.startAt, endAt: r.endAt,
-      portalGroupIds: r.portalGroupIds, portalAuthor: r.portalAuthor, siteViews: r.stats?.views ?? null,
-    })),
-    notices, deliveries, now,
-  });
-  return { data: rows, list, umami: stats.state };
-}
-
-function portalSummaryOf(e: any, notices: NoticeRecord[], deliveries: Map<string, DeliveryRecord[]>): PortalSummary | null {
+function portalSummaryOf(e: Entry, { notices, deliveries }: Notices): PortalSummary | null {
   const notice = notices.find((n) => n.kind === 'anunt' && n.announcementId === e.documentId) ?? null;
   return portalSummary(notice, notice ? deliveries.get(notice.id) ?? [] : []);
+}
+
+function toRow(e: Entry, now: number, stats: Map<string, AnnouncementStats>, n: Notices): Row {
+  return {
+    documentId: e.documentId, title: e.title ?? null, eyebrow: e.eyebrow ?? null, slug: e.slug ?? null, message: e.message ?? null, format: e.format ?? null,
+    ctaLabel: e.ctaLabel ?? null, ctaUrl: e.ctaUrl ?? null, startAt: e.startAt ?? null, endAt: e.endAt ?? null, priority: e.priority ?? null,
+    isActive: e.isActive ?? null, dismissDays: e.dismissDays ?? null, showOnSite: e.showOnSite ?? null, showOnPortal: e.showOnPortal ?? null,
+    portalGroupIds: Array.isArray(e.portalGroupIds) ? e.portalGroupIds : null, portalAuthor: e.portalAuthor ?? null,
+    group: groupOf(e, now), stats: (e.slug && stats.get(e.slug)) || null, portal: portalSummaryOf(e, n),
+  };
+}
+
+const GROUP_ORDER: Record<Group, number> = { active: 0, scheduled: 1, past: 2 };
+
+/** Active by priority, scheduled by start, past most recent first. */
+function byGroup(a: Row, b: Row): number {
+  if (a.group !== b.group) return GROUP_ORDER[a.group] - GROUP_ORDER[b.group];
+  if (a.group === 'active') return (a.priority ?? 0) - (b.priority ?? 0);
+  if (a.group === 'scheduled') return (time(a.startAt) ?? 0) - (time(b.startAt) ?? 0);
+  return (time(b.endAt) ?? 0) - (time(a.endAt) ?? 0);
+}
+
+const forList = (r: Row): AnnouncementForList => ({
+  id: r.documentId, title: r.title, showOnSite: r.showOnSite, showOnPortal: r.showOnPortal, isActive: r.isActive, startAt: r.startAt, endAt: r.endAt,
+  portalGroupIds: r.portalGroupIds, portalAuthor: r.portalAuthor, siteViews: r.stats?.views ?? null,
+});
+
+async function buildRows(strapi: Core.Strapi): Promise<{ data: Row[]; list: ListRow[]; umami: string }> {
+  const [found, stats] = await Promise.all([strapi.documents(UID).findMany({ fields: [...ADMIN_FIELDS], limit: -1 }), getAnnouncementStats()]);
+  const entries = (found ?? []) as unknown as Entry[];
+  const now = Date.now();
+  const n = await readNotices(strapi, entries, now);
+  const rows = entries.map((e) => toRow(e, now, stats.bySlug, n)).sort(byGroup);
+  return { data: rows, list: listRows({ announcements: rows.map(forList), ...n, now }), umami: stats.state };
 }
 
 export default {

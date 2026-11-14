@@ -40,6 +40,7 @@ export function strapiNoticeStore(strapi: Core.Strapi, scope: Scope = transactio
     transaction: scope.transaction,
     liveAutoNotice: async (accountId) => (await manyNotices({ kind: 'auto', account: { documentId: accountId }, endedAt: { $null: true } }))[0] ?? null,
     noticeOfAnnouncement: async (announcementId) => (await manyNotices({ announcement: { documentId: announcementId } }))[0] ?? null,
+    noticesOfAnnouncements: async (ids) => (ids.length ? manyNotices({ announcement: { documentId: { $in: [...new Set(ids)] } } }) : []),
     createNotice: async (n, at) => {
       const { accountId, announcementId, ...rest } = n;
       const links = { ...(accountId ? { account: accountId } : {}), ...(announcementId ? { announcement: announcementId } : {}) };

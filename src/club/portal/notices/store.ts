@@ -15,6 +15,8 @@ export interface NoticeStore {
   /** Kind auto, not ended. */
   liveAutoNotice(accountId: string): Promise<NoticeRecord | null>;
   noticeOfAnnouncement(announcementId: string): Promise<NoticeRecord | null>;
+  /** The hand-written notices of several announcements in one read (the admin list); an empty list reads nothing. */
+  noticesOfAnnouncements(announcementIds: string[]): Promise<NoticeRecord[]>;
   createNotice(n: NewNotice, at: string): Promise<string>;
   endNotice(id: string, at: string): Promise<void>;
   stopNotice(id: string, at: string): Promise<void>;

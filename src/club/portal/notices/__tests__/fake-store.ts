@@ -27,6 +27,7 @@ export function fakeNoticeStore(state: NoticeState = emptyNoticeState()): { stor
     transaction: (fn) => fn(),
     liveAutoNotice: async (accountId) => structuredClone(state.notices.find((n) => n.kind === 'auto' && n.accountId === accountId && n.endedAt === null) ?? null),
     noticeOfAnnouncement: async (id) => structuredClone(state.notices.find((n) => n.announcementId === id) ?? null),
+    noticesOfAnnouncements: async (ids) => structuredClone(state.notices.filter((n) => n.announcementId !== null && ids.includes(n.announcementId))),
     createNotice: async (n, at) => {
       const id = `ntc${state.nextId++}`;
       state.notices.push({ ...structuredClone(n), id, createdAt: at, endedAt: null, stoppedAt: null });
