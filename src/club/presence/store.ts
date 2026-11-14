@@ -61,8 +61,10 @@ export interface PresenceStore extends PresenceGroupReads {
   createLessonSeries(data: LessonSeriesWrite): Promise<string>;
   updateLessonSeries(id: string, data: Partial<Pick<LessonSeriesWrite, 'to' | 'coachIds' | 'athleteId'>>): Promise<void>;
   deleteLessonSeries(id: string): Promise<void>;
-  /** A planned lesson deleted from today on. */
+  /** A planned lesson deleted from today on; one row per athlete, date and start time (a repeat changes nothing). */
   recordLessonCancel(row: LessonCancel): Promise<void>;
+  /** Removes the row of that athlete, date and start time (the undo of a delete). */
+  removeLessonCancel(row: LessonCancel): Promise<void>;
   /** The athlete's cancelled lessons dated in range, by date and start time. */
   lessonCancels(q: { athleteId: string; from: string; to: string }): Promise<Omit<LessonCancel, 'athleteId'>[]>;
   /** Deletes the cancellations dated before `before`; answers how many. */

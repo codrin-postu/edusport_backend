@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarEventRow } from '../../../../api/calendar-event/services/expand';
 import { lessonRow, sessionRow } from '../../../presence/__tests__/fake-store';
+import { deleteLesson, deleteLessonsFrom } from '../../../presence/lessons/delete';
+import { undoPresenceAction } from '../../../presence/undo-service';
 import { ownClassesBetween } from '../../coach/calendar';
 import { nullCoachCompetitions, type CoachContexts } from '../../coach/context';
 import { PORTAL_ERRORS } from '../../copy';
@@ -115,6 +117,55 @@ describe('ownItems', () => {
       { date: '2026-11-24', startTime: '16:00', endTime: '16:50', cancelled: true, reason: null, movedFrom: null },
       { date: '2026-12-01', cancelled: false },
     ]);
+  });
+
+  it('a cancelled exception without a reason carries none, never its replacement title', async () => {
+    const c = sportivCtx(PARENT);
+    c.fake.state.calendar.events[0].exceptions = [{ date: '2026-11-21', kind: 'anulat', newTitle: 'Titlu intern' }, { date: '2026-12-05', kind: 'liber', reason: 'Sărbătoare', newTitle: 'Altul' }];
+    const items = (await ownItems(c, A_ANA, '2026-11-21', '2026-12-05')).filter((i) => i.cancelled);
+    expect(items.map((i) => [i.date, i.reason])).toEqual([['2026-11-21', null], ['2026-12-05', 'Sărbătoare']]);
+  });
+
+  describe('a deleted planned lesson and its undo', () => {
+    const cancelled = async (c: SportivSeed) => (await ownItems(c, A_ANA, '2026-11-20', '2026-12-31')).filter((i) => i.kind === 'individual' && i.cancelled);
+    const seedLesson = (c: SportivSeed) => c.fake.state.lessons.push(lessonRow({ id: 'l-d', athleteId: A_ANA, date: '2026-11-24', startTime: '16:00' }));
+    const lastUndo = (c: SportivSeed) => [...c.fake.group.history].reverse().find((h) => h.changes.undo)!.id;
+    const idOf = (c: SportivSeed) => c.fake.state.lessons.find((l) => l.athleteId === A_ANA)!.id;
+
+    it('delete shows it cancelled; undo removes the cancellation; a second delete shows exactly one', async () => {
+      const c = sportivCtx(PARENT);
+      seedLesson(c);
+      await deleteLesson(c.presence, 'l-d');
+      expect(await cancelled(c)).toHaveLength(1);
+      expect((await undoPresenceAction(c.presence, { actionId: lastUndo(c) })).ok).toBe(true);
+      expect(await cancelled(c)).toEqual([]);
+      expect(c.fake.state.lessonCancels).toEqual([]);
+      await deleteLesson(c.presence, idOf(c));
+      expect(await cancelled(c)).toHaveLength(1);
+      expect(c.fake.state.lessonCancels).toHaveLength(1);
+    });
+
+    it('after an undo, moving the lesson leaves no phantom cancellation at the old slot', async () => {
+      const c = sportivCtx(PARENT);
+      seedLesson(c);
+      await deleteLesson(c.presence, 'l-d');
+      await undoPresenceAction(c.presence, { actionId: lastUndo(c) });
+      c.fake.state.lessons.find((l) => l.athleteId === A_ANA)!.startTime = '18:00';
+      expect(await cancelled(c)).toEqual([]);
+    });
+
+    it('the same for the following scope, and recording twice keeps one row', async () => {
+      const c = sportivCtx(PARENT);
+      c.fake.state.lessonSeries.push({ id: 'ls-d', athleteId: A_ANA, coachIds: ['tm-andreea'], freq: 'weekly', days: ['tue'], weekOfMonth: null, startTime: '16:00', durationMin: 50, from: '2026-11-24', to: '2026-12-01', createdByName: 'x' });
+      for (const [id, date] of [['l-s1', '2026-11-24'], ['l-s2', '2026-12-01']]) c.fake.state.lessons.push(lessonRow({ id, athleteId: A_ANA, date, startTime: '16:00', seriesId: 'ls-d' }));
+      await deleteLessonsFrom(c.presence, 'l-s1');
+      expect(await cancelled(c)).toHaveLength(2);
+      expect((await undoPresenceAction(c.presence, { actionId: lastUndo(c) })).ok).toBe(true);
+      expect(await cancelled(c)).toEqual([]);
+      await c.fake.store.recordLessonCancel({ athleteId: A_ANA, date: '2026-12-09', startTime: '16:00', durationMin: 50 });
+      await c.fake.store.recordLessonCancel({ athleteId: A_ANA, date: '2026-12-09', startTime: '16:00', durationMin: 50 });
+      expect(c.fake.state.lessonCancels).toHaveLength(1);
+    });
   });
 
   it('planned and saved lessons, repeating dates included, never another child lesson', async () => {

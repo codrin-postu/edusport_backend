@@ -82,6 +82,8 @@ export interface Occurrence {
   cancelReason: 'exception' | 'blackout' | null;
   state?: 'curs' | 'liber' | 'anulat' | null; // Școala only
   note?: string | null; // reason of a cancelled or moved date, the break name
+  /** What a family may read about a cancelled date: the exception's own reason or the break name, never a title; null otherwise. */
+  reason: string | null;
   description?: string | null;
   imageUrl?: string | null;
   linkUrl?: string | null;
@@ -177,12 +179,12 @@ function datesOf(r: Recurrence, range: Range): Date[] {
   return r.freq === 'monthly' ? monthlyDates(r, lo, hi) : weeklyDates(r, lo, hi);
 }
 
-type Slot = Pick<Occurrence, 'status' | 'cancelReason' | 'state' | 'note' | 'startTime' | 'endTime' | 'endsNextDay' | 'title' | 'originalDate' | 'originalStartTime'> & { date: string };
+type Slot = Pick<Occurrence, 'status' | 'cancelReason' | 'state' | 'note' | 'reason' | 'startTime' | 'endTime' | 'endsNextDay' | 'title' | 'originalDate' | 'originalStartTime'> & { date: string };
 
 function baseSlot(ev: CalendarEventRow, key: string): Slot {
   const r = ev.recurrence;
   return {
-    status: 'scheduled', cancelReason: null, state: ev.type === 'scoala' ? 'curs' : null, note: null, startTime: hhmm(r.startTime), endTime: hhmm(r.endTime),
+    status: 'scheduled', cancelReason: null, state: ev.type === 'scoala' ? 'curs' : null, note: null, reason: null, startTime: hhmm(r.startTime), endTime: hhmm(r.endTime),
     endsNextDay: !!r.endsNextDay, title: ev.title, date: key, originalDate: null, originalStartTime: null,
   };
 }
@@ -199,7 +201,7 @@ function overridden(slot: Slot, ex: ExceptionRow): Slot {
   const endTime = ex.newEndTime ? hhmm(ex.newEndTime) : slot.endTime;
   return {
     ...slot, status: 'override', date: ex.newDate ?? slot.date, startTime, endTime, endsNextDay: retimedEndsNextDay(slot, ex, startTime, endTime),
-    title: ex.newTitle ?? slot.title, note: ex.reason ?? null, originalDate: slot.date, originalStartTime: slot.startTime,
+    title: ex.newTitle ?? slot.title, note: ex.reason ?? null, reason: null, originalDate: slot.date, originalStartTime: slot.startTime,
   };
 }
 
@@ -207,8 +209,8 @@ function applyException(slot: Slot, ex: ExceptionRow | undefined): Slot {
   if (!ex) return slot;
   if (ex.kind === 'override') return overridden(slot, ex);
   if (ex.kind === 'sters') return slot; // dropped before this, see eventOccurrences
-  if (ex.kind === 'cancel') return { ...slot, status: 'cancelled', cancelReason: 'exception' };
-  return { ...slot, status: 'cancelled', cancelReason: 'exception', state: ex.kind, note: ex.reason ?? ex.newTitle ?? null };
+  if (ex.kind === 'cancel') return { ...slot, status: 'cancelled', cancelReason: 'exception', reason: ex.reason ?? null };
+  return { ...slot, status: 'cancelled', cancelReason: 'exception', state: ex.kind, note: ex.reason ?? ex.newTitle ?? null, reason: ex.reason ?? null };
 }
 
 export const exceptOf = (b: Pick<BlackoutRow, 'exceptGroupIds'>): string[] => (Array.isArray(b.exceptGroupIds) ? b.exceptGroupIds : []);
@@ -219,7 +221,7 @@ export function breakAppliesTo(b: Pick<BlackoutRow, 'exceptGroupIds'>, ev: Pick<
 }
 
 function applyBreak(slot: Slot, label: string | null): Slot {
-  return label !== null && slot.status !== 'override' ? { ...slot, status: 'cancelled', cancelReason: 'blackout', note: label } : slot;
+  return label !== null && slot.status !== 'override' ? { ...slot, status: 'cancelled', cancelReason: 'blackout', note: label, reason: label } : slot;
 }
 
 /** Where the end time lands: the same day, or the next one when the class crosses midnight. */
@@ -232,7 +234,7 @@ function toOccurrence(ev: CalendarEventRow, s: Slot): Occurrence {
   return {
     eventId: ev.id, documentId: ev.documentId, title: s.title, type: ev.type, label: ev.label ?? null, color: ev.color ?? null, order: ev.order ?? 0,
     date: s.date, startTime: s.startTime, endTime: s.endTime, ...endDay(s),
-    status: s.status, cancelReason: s.cancelReason, state: s.state, note: s.note, description: ev.description ?? null, imageUrl: ev.imageUrl ?? null,
+    status: s.status, cancelReason: s.cancelReason, state: s.state, note: s.note, reason: s.reason, description: ev.description ?? null, imageUrl: ev.imageUrl ?? null,
     linkUrl: ev.linkUrl ?? null, linkLabel: ev.linkLabel ?? null, groupId: ev.group?.documentId ?? null, groupName: ev.group?.name ?? null,
     oneOff: ev.recurrence.freq === 'none', originalDate: s.originalDate, originalStartTime: s.originalStartTime,
   };

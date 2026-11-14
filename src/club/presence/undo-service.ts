@@ -34,6 +34,7 @@ const RUN: Runners = {
     const id = await s.createLesson(st.row);
     if (st.was) put.set(st.was, id);
   },
+  removeLessonCancel: (s, st) => s.removeLessonCancel(st.row),
   setLesson: (s, st) => s.updateLesson(st.id, st.values),
   deleteLessonSeries: (s, st) => s.deleteLessonSeries(st.id),
   setLessonSeries: (s, st) => s.updateLessonSeries(st.id, { to: st.to }),

@@ -209,9 +209,14 @@ function fakeCounters(s: FakePresenceState, inTransaction: () => boolean): K<'ne
   };
 }
 
-function fakeLessonCancels(s: FakePresenceState): K<'recordLessonCancel' | 'lessonCancels' | 'pruneLessonCancels'> {
+const sameSlot = (a: LessonCancel, b: LessonCancel): boolean => a.athleteId === b.athleteId && a.date === b.date && a.startTime === b.startTime;
+
+function fakeLessonCancels(s: FakePresenceState): K<'recordLessonCancel' | 'removeLessonCancel' | 'lessonCancels' | 'pruneLessonCancels'> {
   return {
-    recordLessonCancel: async (row) => { s.lessonCancels.push(copy(row)); },
+    recordLessonCancel: async (row) => {
+      if (!s.lessonCancels.some((r) => sameSlot(r, row))) s.lessonCancels.push(copy(row));
+    },
+    removeLessonCancel: async (row) => { s.lessonCancels = s.lessonCancels.filter((r) => !sameSlot(r, row)); },
     lessonCancels: async ({ athleteId, from, to }) =>
       copy(s.lessonCancels.filter((r) => r.athleteId === athleteId && inRange({ from, to }, r.date)).sort((a, b) => cmp(a.date, b.date) || cmp(a.startTime, b.startTime))
         .map(({ athleteId: _a, ...rest }) => rest)),

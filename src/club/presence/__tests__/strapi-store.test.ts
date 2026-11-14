@@ -194,6 +194,7 @@ describe('strapiPresenceStore', () => {
     const strapi = {
       documents: () => ({ create: async (args: { data: Record<string, unknown> }) => { created.push(args.data); return { documentId: 'c1' }; } }),
       db: { query: () => ({
+        findOne: async () => null,
         findMany: async (args: { where: unknown }) => { wheres.push(args.where); return [{ date: '2026-11-24', startTime: '16:00:00.000', durationMin: 50 }]; },
         deleteMany: async (args: { where: unknown }) => { wheres.push(args.where); return { count: 3 }; },
       }) },

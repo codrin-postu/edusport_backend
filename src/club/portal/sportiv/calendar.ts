@@ -64,14 +64,14 @@ export async function ownItems(c: SportivContext, athleteId: string, from: strin
     const start = hhmm(o.startTime);
     if (o.type === 'concurs') {
       add({
-        date: o.date, startTime: start, endTime: hhmm(o.endTime), kind: 'concurs', title: o.title, location: null, coaches: [], cancelled: o.status === 'cancelled', reason: o.status === 'cancelled' ? o.note ?? null : null, movedFrom: null,
+        date: o.date, startTime: start, endTime: hhmm(o.endTime), kind: 'concurs', title: o.title, location: null, coaches: [], cancelled: o.status === 'cancelled', reason: o.status === 'cancelled' ? o.reason : null, movedFrom: null,
       }, group.order ?? 0);
       continue;
     }
     if (o.status !== 'cancelled' || !start || saved.has(occurrenceKey(o.documentId ?? String(o.eventId), o.date, start))) continue;
     add({
       date: o.date, startTime: start, endTime: hhmm(o.endTime) ?? endOf(start, durationOf(o)), kind: 'grupa', title: group.name, location: locations.get(group.id) ?? null,
-      coaches: coachNames(group.coachIds), cancelled: true, reason: o.note ?? null, movedFrom: null,
+      coaches: coachNames(group.coachIds), cancelled: true, reason: o.reason, movedFrom: null,
     }, group.order ?? 0);
   }
   const lessons = await store.lessons({ athleteId, from, to });

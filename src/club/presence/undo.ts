@@ -1,7 +1,7 @@
 import type { AcsState } from '../acs';
 import { isRecord } from '../narrow';
 import type { Subject } from '../groups/types';
-import type { AttendanceRow, LessonRow, LessonSeriesWrite, LessonWrite, PaymentRow, PaymentWrite, SubscriptionRow, SubscriptionWrite } from './types';
+import type { AttendanceRow, LessonCancel, LessonRow, LessonSeriesWrite, LessonWrite, PaymentRow, PaymentWrite, SubscriptionRow, SubscriptionWrite } from './types';
 
 /**
  * What a phase 5 action wrote, stored as `undo` on its first Istoric line (spec 7.3). `POST /club/undo` applies the steps in
@@ -22,6 +22,8 @@ export type PresenceUndoStep =
   /** Recreates the rule and links `lessonIds` to it; the ids are the ones the lessons had (`was` of the `createLesson` steps put back before) or still have. */
   | { op: 'createLessonSeries'; row: LessonSeriesWrite; lessonIds: string[] }
   | { op: 'setLessonSeries'; id: string; to: string }
+  /** The cancellation a delete recorded, removed when the delete is undone. */
+  | { op: 'removeLessonCancel'; row: LessonCancel }
   /** A plan edit of one lesson put back (guarded by the lesson stamp). */
   | { op: 'setLesson'; id: string; values: Partial<Pick<LessonWrite, 'date' | 'startTime' | 'durationMin' | 'coachIds' | 'seriesId' | 'movedFromDate' | 'movedFromTime'>> };
 export type GuardType = 'subscription' | 'payment' | 'lesson' | 'attendance' | 'acs' | 'lessonSeries';
@@ -73,7 +75,7 @@ function stepTargets(step: PresenceUndoStep): Partial<Targets> {
     case 'deletePayment': case 'setPayment': return { payments: [step.id] };
     case 'cancelPaymentEmail': return { payments: [step.paymentId] };
     case 'deleteLesson': case 'setLesson': return { lessons: [step.id] };
-    case 'createLesson': return { athletes: [step.row.athleteId] };
+    case 'createLesson': case 'removeLessonCancel': return { athletes: [step.row.athleteId] };
     case 'deleteLessonSeries': case 'setLessonSeries': return { series: [step.id] };
     case 'createLessonSeries': return { athletes: [step.row.athleteId] };
     case 'setAcs': return { athletes: [step.athleteId] };
