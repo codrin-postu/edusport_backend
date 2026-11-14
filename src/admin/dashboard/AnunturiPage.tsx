@@ -266,7 +266,7 @@ export default function AnunturiPage() {
 
   const umamiNote =
     umami === 'not_configured'
-      ? 'Umami nu este configurat, așa că vizualizările site-ului nu apar.'
+      ? 'Umami nu este configurat.'
       : umami === 'error'
         ? 'Nu am putut citi vizualizările din Umami. Restul paginii funcționează normal.'
         : null;
