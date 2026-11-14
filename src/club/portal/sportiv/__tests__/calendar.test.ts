@@ -45,8 +45,8 @@ describe('ownItems', () => {
     const coach = (await ownClassesBetween(fakeCoachCtx(c), '2026-11-15', '2026-12-31')).filter((i) => i.kind === 'grup' && i.title === 'Intermediari Bronze');
     const group = mine.filter((i) => i.kind === 'grupa');
     expect(group.map((i) => [i.date, i.startTime, i.cancelled])).toEqual(coach.map((i) => [i.date, i.startTime, i.cancelled]));
-    expect(group.find((i) => i.date === '2026-11-21')).toMatchObject({ cancelled: true, note: 'Concurs la Brașov' });
-    expect(group.find((i) => i.date === '2026-12-05')).toMatchObject({ cancelled: true, note: null });
+    expect(group.find((i) => i.date === '2026-11-21')).toMatchObject({ cancelled: true, reason: 'Concurs la Brașov', movedFrom: null });
+    expect(group.find((i) => i.date === '2026-12-05')).toMatchObject({ cancelled: true, reason: null });
     expect(group.some((i) => i.date === '2026-11-28')).toBe(false);
     expect(group.find((i) => i.date === '2026-11-25')).toMatchObject({ startTime: '15:00', endTime: '16:00', cancelled: false });
     expect(group.some((i) => i.date === '2026-11-29')).toBe(false);
@@ -81,6 +81,42 @@ describe('ownItems', () => {
     expect(items.some((i) => i.date === '2026-12-09' && i.kind === 'grupa')).toBe(false);
   });
 
+  it('a break cancels the class with its name as the reason', async () => {
+    const c = sportivCtx(PARENT);
+    c.fake.state.calendar.blackouts.push({ label: 'Vacanța de iarnă', startDate: '2026-11-21', endDate: '2026-11-21' });
+    const day = (await ownItems(c, A_ANA, '2026-11-21', '2026-11-21')).filter((i) => i.kind === 'grupa');
+    expect(day).toMatchObject([{ cancelled: true, reason: 'Vacanța de iarnă', movedFrom: null }]);
+  });
+
+  it('a moved class is held on the new date with where it came from', async () => {
+    const c = sportivCtx(PARENT);
+    c.fake.state.calendar.events[0].exceptions = [{ date: '2026-11-21', kind: 'override', newDate: '2026-11-23', newStartTime: '17:00', newEndTime: '17:50' }];
+    const items = (await ownItems(c, A_ANA, '2026-11-21', '2026-11-23')).filter((i) => i.kind === 'grupa');
+    expect(items.find((i) => i.date === '2026-11-23')).toMatchObject({ startTime: '17:00', cancelled: false, reason: null, movedFrom: { date: '2026-11-21', startTime: '11:00' } });
+    expect(items.some((i) => i.date === '2026-11-21')).toBe(false);
+  });
+
+  it('a lesson moved to another time carries its first planned slot', async () => {
+    const c = sportivCtx(PARENT);
+    c.fake.state.lessons.push(lessonRow({ id: 'l-1', athleteId: A_ANA, date: '2026-11-24', startTime: '17:00', movedFromDate: '2026-11-24', movedFromTime: '16:00' }));
+    c.fake.state.lessons.push(lessonRow({ id: 'l-2', athleteId: A_ANA, date: '2026-12-01', startTime: '17:00' }));
+    const items = (await ownItems(c, A_ANA, '2026-11-24', '2026-12-01')).filter((i) => i.kind === 'individual');
+    expect(items.map((i) => i.movedFrom)).toEqual([{ date: '2026-11-24', startTime: '16:00' }, null]);
+  });
+
+  it('a deleted planned lesson shows cancelled with no reason, unless a lesson holds that slot again', async () => {
+    const c = sportivCtx(PARENT);
+    await c.fake.store.recordLessonCancel({ athleteId: A_ANA, date: '2026-11-24', startTime: '16:00', durationMin: 50 });
+    await c.fake.store.recordLessonCancel({ athleteId: A_ANA, date: '2026-12-01', startTime: '16:00', durationMin: 50 });
+    await c.fake.store.recordLessonCancel({ athleteId: A_MATEI, date: '2026-12-02', startTime: '16:00', durationMin: 50 });
+    c.fake.state.lessons.push(lessonRow({ id: 'l-undo', athleteId: A_ANA, date: '2026-12-01', startTime: '16:00' }));
+    const items = (await ownItems(c, A_ANA, '2026-11-01', '2026-12-31')).filter((i) => i.kind === 'individual');
+    expect(items).toMatchObject([
+      { date: '2026-11-24', startTime: '16:00', endTime: '16:50', cancelled: true, reason: null, movedFrom: null },
+      { date: '2026-12-01', cancelled: false },
+    ]);
+  });
+
   it('planned and saved lessons, repeating dates included, never another child lesson', async () => {
     const c = sportivCtx(PARENT);
     const lessons = c.fake.state.lessons;
@@ -96,13 +132,13 @@ describe('ownItems', () => {
     ]);
   });
 
-  it('sorts by date, start time and group order; no note on a live item and no forbidden key', async () => {
+  it('sorts by date, start time and group order; no reason on a live item and no forbidden key', async () => {
     const c = sportivCtx(PARENT);
     c.fake.state.lessons.push(lessonRow({ id: 'l-1', athleteId: A_ANA, date: '2026-11-21', startTime: '09:00' }));
     c.fake.state.calendar.events[0].exceptions = [{ date: '2026-11-22', kind: 'override', newStartTime: '12:00', newEndTime: '12:50', reason: 'Mutat' }];
     const items = await ownItems(c, A_ANA, '2026-11-20', '2026-11-23');
     expect(items.map((i) => [i.date, i.startTime])).toEqual([['2026-11-21', '09:00'], ['2026-11-21', '11:00'], ['2026-11-22', '12:00']]);
-    expect(items.every((i) => i.note === null)).toBe(true);
+    expect(items.every((i) => i.reason === null)).toBe(true);
     expect(forbiddenPathsIn({ items }, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)).toEqual([]);
   });
 });

@@ -3,14 +3,14 @@ import { FORBIDDEN_KEYS, forbiddenKeysIn } from '../../coach/views';
 import { forbiddenPathsIn } from '../../forbidden-keys';
 import type { CalendarItem, HistoryRow, PaymentRow, SportivHome, Ticket } from '../api-types';
 import { nullSportivCompetitions, skaterOf } from '../competitions';
-import { CALENDAR_NOTE_PATHS, HOME_NOTE_PATHS, SPORTIV_ALLOWED_PATHS, SPORTIV_FORBIDDEN_KEYS, toCalendarItem, toHistoryRow, toHome, toPaymentRow, toTicket } from '../views';
+import { SPORTIV_ALLOWED_PATHS, SPORTIV_FORBIDDEN_KEYS, toCalendarItem, toHistoryRow, toHome, toPaymentRow, toTicket } from '../views';
 import { A_ANA, A_ELENA, A_IOANA, sportivCtx } from './sportiv-seed';
 
 /** A store row carries every forbidden key, and some more. */
 const leaky = Object.fromEntries([...SPORTIV_FORBIDDEN_KEYS, 'price', 'amountDue', 'email', 'birthDate'].map((k) => [k, `secret-${k}`]));
 const dirty = <T extends object>(row: T): T => ({ ...leaky, ...row }) as T;
 
-const item: CalendarItem = { date: '2026-11-21', startTime: '11:00', endTime: '11:50', kind: 'grupa', title: 'Intermediari Bronze', location: 'AFI', coaches: ['Virgil'], cancelled: true, note: 'Sală închisă' };
+const item: CalendarItem = { date: '2026-11-21', startTime: '11:00', endTime: '11:50', kind: 'grupa', title: 'Intermediari Bronze', location: 'AFI', coaches: ['Virgil'], cancelled: true, reason: 'Sală închisă', movedFrom: null };
 
 describe('forbiddenPathsIn', () => {
   it('names the dotted path, with * for array items', () => {
@@ -20,10 +20,10 @@ describe('forbiddenPathsIn', () => {
     expect(forbiddenPathsIn({ fine: { deeper: [1, null, { ok: true }] } }, ['note'])).toEqual([]);
   });
 
-  it('allows a path, so a calendar note passes and a payment note fails', () => {
-    const answer = { items: [{ note: 'Sală închisă' }], payments: { rows: [{ note: 'cash' }] } };
-    expect(forbiddenPathsIn(answer, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)).toEqual(['payments.rows.*.note']);
-    expect(forbiddenPathsIn({ items: [{ note: 'x' }] }, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)).toEqual([]);
+  it('allows no path: a note fails everywhere, a reason is not a forbidden key', () => {
+    expect(SPORTIV_FORBIDDEN_KEYS).toContain('note');
+    expect(forbiddenPathsIn({ items: [{ note: 'x' }], payments: { rows: [{ note: 'cash' }] } }, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)).toEqual(['items.*.note', 'payments.rows.*.note']);
+    expect(forbiddenPathsIn({ items: [{ reason: 'Sală închisă', movedFrom: { date: '2026-11-21', startTime: '11:00' } }] }, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)).toEqual([]);
   });
 
   it('the coach wrapper keeps its behaviour', () => {
@@ -50,7 +50,7 @@ describe('sportiv views drop every forbidden key', () => {
       lastCompetition: { ...home.lastCompetition!, row: dirty((home.lastCompetition as { row: object }).row) } as SportivHome['lastCompetition'],
     }));
     expect(view).toEqual(home);
-    expect(forbiddenPathsIn(view, [...SPORTIV_FORBIDDEN_KEYS, 'price', 'email', 'birthDate'], HOME_NOTE_PATHS)).toEqual([]);
+    expect(forbiddenPathsIn(view, [...SPORTIV_FORBIDDEN_KEYS, 'price', 'email', 'birthDate'], SPORTIV_ALLOWED_PATHS)).toEqual([]);
     expect(JSON.stringify(view)).not.toContain('secret-');
   });
 
@@ -65,13 +65,16 @@ describe('sportiv views drop every forbidden key', () => {
     for (const view of [toHistoryRow(dirty(row)), toPaymentRow(dirty(pay)), toTicket(dirty(ticket))]) {
       expect(forbiddenPathsIn(view, SPORTIV_FORBIDDEN_KEYS)).toEqual([]);
     }
-    expect(forbiddenPathsIn({ items: [toCalendarItem(dirty(item))] }, SPORTIV_FORBIDDEN_KEYS, CALENDAR_NOTE_PATHS)).toEqual([]);
+    expect(forbiddenPathsIn({ items: [toCalendarItem(dirty(item))] }, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)).toEqual([]);
   });
 
-  it('a calendar item keeps its note only when cancelled', () => {
-    expect(toCalendarItem({ ...item, cancelled: false, note: 'Sală închisă' }).note).toBeNull();
-    expect(toCalendarItem({ ...item, cancelled: true, note: 'Sală închisă' }).note).toBe('Sală închisă');
-    expect(SPORTIV_ALLOWED_PATHS).toEqual([...CALENDAR_NOTE_PATHS, ...HOME_NOTE_PATHS]);
+  it('a calendar item keeps its reason only when cancelled and movedFrom only when held, as date and start time', () => {
+    const from = { date: '2026-11-18', startTime: '18:00', extra: 'x' } as CalendarItem['movedFrom'];
+    expect(toCalendarItem({ ...item, cancelled: false, reason: 'Sală închisă' }).reason).toBeNull();
+    expect(toCalendarItem({ ...item, cancelled: true, reason: 'Sală închisă' }).reason).toBe('Sală închisă');
+    expect(toCalendarItem({ ...item, cancelled: false, movedFrom: from }).movedFrom).toEqual({ date: '2026-11-18', startTime: '18:00' });
+    expect(toCalendarItem({ ...item, cancelled: true, movedFrom: from }).movedFrom).toBeNull();
+    expect(SPORTIV_ALLOWED_PATHS).toEqual([]);
   });
 });
 

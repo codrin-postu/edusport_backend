@@ -1,0 +1,13 @@
+{
+  "kind": "collectionType",
+  "collectionName": "lesson_cancellations",
+  "info": { "singularName": "lesson-cancellation", "pluralName": "lesson-cancellations", "displayName": "Club / Lecție individuală anulată" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "athleteId": { "type": "string", "required": true },
+    "date": { "type": "date", "required": true },
+    "startTime": { "type": "string", "required": true },
+    "durationMin": { "type": "integer" }
+  }
+}

@@ -183,7 +183,7 @@ describe('host matrix', () => {
 });
 
 describe('leak walk', () => {
-  it('no JSON answer of any route carries a forbidden key outside the allowed note paths', async () => {
+  it('no JSON answer of any route carries a forbidden key (no path is allowed)', async () => {
     const w = await setup();
     const token = await w.login(2, 'sportiv');
     const answers: Ctx[] = [];

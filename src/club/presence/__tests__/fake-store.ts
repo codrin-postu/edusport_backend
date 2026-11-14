@@ -3,7 +3,7 @@ import { cmp } from '../subscriptions/usage';
 import { G_GROUPS, type FakeGroupState, fakeGroupStore } from '../../groups/__tests__/fake-group-store';
 import type { CalendarWindow } from '../../groups/occurrences';
 import type {
-  AttendanceRow, AttendanceWrite, LessonRow, LessonSeriesRow, PaymentEmailJob, PaymentRow, PriceItemRow, PriceListRecord, SessionRow, SubscriptionRow,
+  AttendanceRow, AttendanceWrite, LessonCancel, LessonRow, LessonSeriesRow, PaymentEmailJob, PaymentRow, PriceItemRow, PriceListRecord, SessionRow, SubscriptionRow,
 } from '../types';
 import type { PresenceContext } from '../context';
 import type { PresenceStore } from '../store';
@@ -12,7 +12,7 @@ import { UniqueKeyError } from '../store';
 export { athleteRow, member } from '../../groups/__tests__/fake-group-store';
 export type FakePaymentJob = PaymentEmailJob & { id: string; status: 'queued' | 'sending' | 'cancelled' | 'sent' };
 export type FakePresenceState = {
-  sessions: SessionRow[]; attendances: (AttendanceWrite & { id: string })[]; lessons: LessonRow[]; lessonSeries: LessonSeriesRow[]; subscriptions: SubscriptionRow[]; payments: PaymentRow[];
+  sessions: SessionRow[]; attendances: (AttendanceWrite & { id: string })[]; lessons: LessonRow[]; lessonSeries: LessonSeriesRow[]; lessonCancels: LessonCancel[]; subscriptions: SubscriptionRow[]; payments: PaymentRow[];
   priceLists: PriceListRecord[]; acs: AcsRow[]; calendar: CalendarWindow; startDate: string | null; jobs: FakePaymentJob[]; counters: Record<string, number>;
 };
 export type FakePresenceSeed = { group?: Partial<FakeGroupState> } & Partial<FakePresenceState>;
@@ -41,7 +41,7 @@ export const attendanceRow = (over: Partial<AttendanceWrite & { id: string }> = 
 });
 export const lessonRow = (over: Partial<LessonRow> = {}): LessonRow => ({
   id: 'l1', athleteId: 'a1', date: '2026-11-10', startTime: '17:00', durationMin: 50, coachIds: ['tm-andreea'], state: 'planned', present: null, priceListId: null,
-  itemName: null, price: null, audience: null, amount: 0, createdByName: 'admin@example.com', recordedAt: '2026-11-01T10:00:00.000Z', savedBy: null, savedAt: null, seriesId: null, ...over,
+  itemName: null, price: null, audience: null, amount: 0, createdByName: 'admin@example.com', recordedAt: '2026-11-01T10:00:00.000Z', savedBy: null, savedAt: null, seriesId: null, movedFromDate: null, movedFromTime: null, ...over,
 });
 export const lessonSeriesRow = (over: Partial<LessonSeriesRow> = {}): LessonSeriesRow => ({
   id: 'ls1', athleteId: 'a1', coachIds: ['tm-andreea'], freq: 'weekly', days: ['tue', 'thu'], weekOfMonth: null, startTime: '17:30', durationMin: 45,
@@ -209,6 +209,20 @@ function fakeCounters(s: FakePresenceState, inTransaction: () => boolean): K<'ne
   };
 }
 
+function fakeLessonCancels(s: FakePresenceState): K<'recordLessonCancel' | 'lessonCancels' | 'pruneLessonCancels'> {
+  return {
+    recordLessonCancel: async (row) => { s.lessonCancels.push(copy(row)); },
+    lessonCancels: async ({ athleteId, from, to }) =>
+      copy(s.lessonCancels.filter((r) => r.athleteId === athleteId && inRange({ from, to }, r.date)).sort((a, b) => cmp(a.date, b.date) || cmp(a.startTime, b.startTime))
+        .map(({ athleteId: _a, ...rest }) => rest)),
+    pruneLessonCancels: async (before) => {
+      const gone = s.lessonCancels.filter((r) => r.date < before).length;
+      s.lessonCancels = s.lessonCancels.filter((r) => r.date >= before);
+      return gone;
+    },
+  };
+}
+
 function withFailures(store: PresenceStore, failing: Set<string>): PresenceStore {
   const wrapped: Record<string, unknown> = {};
   for (const [key, fn] of Object.entries(store) as [string, (...args: unknown[]) => Promise<unknown>][]) {
@@ -218,7 +232,7 @@ function withFailures(store: PresenceStore, failing: Set<string>): PresenceStore
 }
 
 const emptyState = (): FakePresenceState => ({
-  sessions: [], attendances: [], lessons: [], lessonSeries: [], subscriptions: [], payments: [], priceLists: copy(P_LISTS), acs: [], calendar: { events: [], blackouts: [] }, startDate: null, jobs: [], counters: {},
+  sessions: [], attendances: [], lessons: [], lessonSeries: [], lessonCancels: [], subscriptions: [], payments: [], priceLists: copy(P_LISTS), acs: [], calendar: { events: [], blackouts: [] }, startDate: null, jobs: [], counters: {},
 });
 
 /** In-memory PresenceStore over the group fake; a transaction restores presence and group state together when its work throws. */
@@ -248,7 +262,7 @@ export function fakePresenceStore(seed: FakePresenceSeed = {}): FakePresence {
       }
     },
     lockSession: lock('session'), lockLessonSeries: lock('lessonSeries'), lockLesson: lock('lesson'), lockAttendance: lock('attendance'), lockSubscription: lock('subscription'), lockPayment: lock('payment'),
-    ...fakeReads(state), ...fakeHistoryPages(state), ...fakeSessionAndAttendanceWrites(state, next), ...fakeMoneyWrites(state, next), ...fakePaymentJobs(state, next),
+    ...fakeReads(state), ...fakeHistoryPages(state), ...fakeSessionAndAttendanceWrites(state, next), ...fakeMoneyWrites(state, next), ...fakeLessonCancels(state), ...fakePaymentJobs(state, next),
     ...fakeCounters(state, () => depth > 0),
   };
   const failing = new Set<string>();

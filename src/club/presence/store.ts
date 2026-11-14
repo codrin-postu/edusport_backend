@@ -3,7 +3,7 @@ import type { AcsState } from '../acs';
 import type { CalendarWindow } from '../groups/occurrences';
 import type { GroupStore } from '../groups/types';
 import type {
-  AttendanceRow, AttendanceWrite, Billing, LessonRow, LessonSeriesRow, LessonSeriesWrite, LessonWrite, PaymentEmailJob, PaymentRow, PaymentWrite, PriceListRecord, SessionRow, SessionWrite,
+  AttendanceRow, AttendanceWrite, Billing, LessonRow, LessonCancel, LessonSeriesRow, LessonSeriesWrite, LessonWrite, PaymentEmailJob, PaymentRow, PaymentWrite, PriceListRecord, SessionRow, SessionWrite,
   SubscriptionRow, SubscriptionWrite,
 } from './types';
 
@@ -61,6 +61,12 @@ export interface PresenceStore extends PresenceGroupReads {
   createLessonSeries(data: LessonSeriesWrite): Promise<string>;
   updateLessonSeries(id: string, data: Partial<Pick<LessonSeriesWrite, 'to' | 'coachIds' | 'athleteId'>>): Promise<void>;
   deleteLessonSeries(id: string): Promise<void>;
+  /** A planned lesson deleted from today on. */
+  recordLessonCancel(row: LessonCancel): Promise<void>;
+  /** The athlete's cancelled lessons dated in range, by date and start time. */
+  lessonCancels(q: { athleteId: string; from: string; to: string }): Promise<Omit<LessonCancel, 'athleteId'>[]>;
+  /** Deletes the cancellations dated before `before`; answers how many. */
+  pruneLessonCancels(before: string): Promise<number>;
   subscriptions(where?: SubscriptionWhere): Promise<SubscriptionRow[]>;
   subscription(id: string): Promise<SubscriptionRow | null>;
   /** The code is taken from the counter right before; it is never written again (an update cannot hold it). */

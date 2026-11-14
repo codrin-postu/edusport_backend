@@ -23,7 +23,7 @@ export type PresenceUndoStep =
   | { op: 'createLessonSeries'; row: LessonSeriesWrite; lessonIds: string[] }
   | { op: 'setLessonSeries'; id: string; to: string }
   /** A plan edit of one lesson put back (guarded by the lesson stamp). */
-  | { op: 'setLesson'; id: string; values: Partial<Pick<LessonWrite, 'date' | 'startTime' | 'durationMin' | 'coachIds' | 'seriesId'>> };
+  | { op: 'setLesson'; id: string; values: Partial<Pick<LessonWrite, 'date' | 'startTime' | 'durationMin' | 'coachIds' | 'seriesId' | 'movedFromDate' | 'movedFromTime'>> };
 export type GuardType = 'subscription' | 'payment' | 'lesson' | 'attendance' | 'acs' | 'lessonSeries';
 export type PresenceGuard = { type: GuardType; id: string; stamp: string | null };
 export type PresenceUndoRecord = { kind: 'presence'; steps: PresenceUndoStep[]; subjects: Subject[]; athletes: string[]; guards: PresenceGuard[] };

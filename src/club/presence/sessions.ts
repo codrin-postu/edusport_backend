@@ -40,7 +40,8 @@ export function heldOccurrences(calendar: CalendarWindow, groups: GroupRecord[],
       const group = o.groupId ? active.get(o.groupId) : undefined;
       if (!group || !o.startTime || (o.status !== 'scheduled' && o.status !== 'override')) return [];
       const eventId = eventIdOf(o);
-      return [{ key: occurrenceKey(eventId, o.date, o.startTime), eventId, groupId: group.id, date: o.date, startTime: o.startTime, endTime: o.endTime, durationMin: durationOf(o) }];
+      return [{ key: occurrenceKey(eventId, o.date, o.startTime), eventId, groupId: group.id, date: o.date, startTime: o.startTime, endTime: o.endTime, durationMin: durationOf(o),
+        movedFrom: o.status === 'override' && o.originalDate && o.originalStartTime ? { date: o.originalDate, startTime: o.originalStartTime } : null }];
     })
     .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime) || a.groupId.localeCompare(b.groupId));
 }

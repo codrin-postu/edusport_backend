@@ -9,7 +9,7 @@ export const seriesRule = (athleteId: string, coachId: string, over: Partial<Les
 
 export const lessonOf = (athleteId: string, coachId: string, date: string, seriesId: string | null): LessonWrite => ({
   athleteId, date, startTime: '17:30', durationMin: 45, coachIds: [coachId], state: 'planned', present: null, priceListId: null, itemName: null, price: null,
-  audience: null, amount: 0, createdByName: 'Ana', recordedAt: '2026-11-10T10:00:00.000Z', savedBy: null, savedAt: null, seriesId,
+  audience: null, amount: 0, createdByName: 'Ana', recordedAt: '2026-11-10T10:00:00.000Z', savedBy: null, savedAt: null, seriesId, movedFromDate: null, movedFromTime: null,
 });
 
 export type SeriesWalk = {

@@ -207,3 +207,33 @@ describe('who and when', () => {
     expect(await readCoachLesson(c, c.at('2026-11-19'))).toMatchObject({ data: { series: { untilSeasonEnd: true } } });
   });
 });
+
+describe('moved from', () => {
+  const slot = (c: CoachSeed, id: string) => {
+    const l = c.fake.state.lessons.find((x) => x.id === id)!;
+    return [l.movedFromDate, l.movedFromTime];
+  };
+
+  it('a new date or time stores the slot before, kept through a second edit, and undo restores it', async () => {
+    const c = await seeded();
+    const id = c.at('2026-11-19');
+    expect(slot(c, id)).toEqual([null, null]);
+    await planCoachLesson(c, id, form({ startTime: '18:00' }));
+    expect(slot(c, id)).toEqual(['2026-11-19', '17:30']);
+    await planCoachLesson(c, id, form({ date: '2026-11-20', startTime: '19:00' }));
+    expect(slot(c, id)).toEqual(['2026-11-19', '17:30']);
+    expect((await undoPresenceAction(c.fake.ctx, { actionId: lastUndo(c) })).ok).toBe(true);
+    expect(slot(c, id)).toEqual(['2026-11-19', '17:30']);
+    expect(c.fake.state.lessons.find((l) => l.id === id)).toMatchObject({ date: '2026-11-19', startTime: '18:00' });
+  });
+
+  it('moving back to the first slot clears it; changing only coaches or duration stores nothing', async () => {
+    const c = await seeded();
+    const id = c.at('2026-11-19');
+    await planCoachLesson(c, id, form({ startTime: '18:00' }));
+    await planCoachLesson(c, id, form({ startTime: '17:30' }));
+    expect(slot(c, id)).toEqual([null, null]);
+    await planCoachLesson(c, id, form({ startTime: '17:30', durationMin: 60, coachIds: [ME, 'tm-virgil'] }));
+    expect(slot(c, id)).toEqual([null, null]);
+  });
+});

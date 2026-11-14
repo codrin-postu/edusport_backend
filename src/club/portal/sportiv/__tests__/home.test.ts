@@ -66,17 +66,17 @@ describe('readHome', () => {
     expect(card.ok && card.data.presence.season).toBe((await readHome(c, A_ANA)).presences.total);
   });
 
-  it('upcoming: the next 3 own items from now, a cancelled date skipped', async () => {
+  it('upcoming: the next 3 own items from now, a cancelled date kept', async () => {
     const c = sportivCtx('parinte1@example.invalid');
     c.fake.state.calendar.events[0].exceptions = [{ date: '2026-11-21', kind: 'cancel' }];
     c.fake.state.lessons.push(lessonRow({ id: 'l-p', athleteId: A_ANA, date: '2026-11-23', startTime: '17:00', coachIds: ['tm-andreea'] }));
     c.fake.state.lessons.push(lessonRow({ id: 'l-m', athleteId: A_MATEI, date: '2026-11-22', startTime: '09:00' }));
     const { upcoming } = await readHome(c, A_ANA);
     expect(upcoming.map((i) => [i.date, i.startTime, i.kind, i.title, i.cancelled])).toEqual([
-      ['2026-11-22', '11:00', 'grupa', 'Intermediari Bronze', false], ['2026-11-23', '17:00', 'individual', 'lecție individuală', false], ['2026-11-28', '11:00', 'grupa', 'Intermediari Bronze', false],
+      ['2026-11-21', '11:00', 'grupa', 'Intermediari Bronze', true], ['2026-11-22', '11:00', 'grupa', 'Intermediari Bronze', false], ['2026-11-23', '17:00', 'individual', 'lecție individuală', false],
     ]);
-    expect(upcoming[0]).toMatchObject({ endTime: '11:50', coaches: ['Virgil Pascu'] });
-    expect(upcoming[1]).toMatchObject({ coaches: ['Andreea Pascu'] });
+    expect(upcoming[1]).toMatchObject({ endTime: '11:50', coaches: ['Virgil Pascu'] });
+    expect(upcoming[2]).toMatchObject({ coaches: ['Andreea Pascu'] });
   });
 
   it('an item earlier today is not upcoming', async () => {

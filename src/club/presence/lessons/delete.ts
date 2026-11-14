@@ -7,10 +7,18 @@ import type { PresenceContext } from '../context';
 import { PRESENCE_ERRORS } from '../copy';
 import { P5_ACTIONS } from '../history-lines';
 import type { PresenceUndoStep } from '../undo';
+import type { LessonRow } from '../types';
 import { applyCut, lessonWriteOf as writeOf, planCut, seriesWriteOf } from './cut';
 import { isDeletable } from './read';
 
 export type Deleted = { deleted: true; count: number; toast: string };
+
+/** A planned lesson deleted from today on stays on the family's calendar as cancelled. */
+async function recordCancels(ctx: PresenceContext, lessons: LessonRow[]): Promise<void> {
+  for (const l of lessons) {
+    if (l.state === 'planned' && l.date >= ctx.today) await ctx.store.recordLessonCancel({ athleteId: l.athleteId, date: l.date, startTime: l.startTime, durationMin: l.durationMin });
+  }
+}
 
 /** `listedFor`: the coach who must still be on the lesson once it is locked (else 404). */
 async function deleteLocked(ctx: PresenceContext, id: string, listedFor: string | null): Promise<ActionResult<Deleted>> {
@@ -25,6 +33,7 @@ async function deleteLocked(ctx: PresenceContext, id: string, listedFor: string 
   if (l.athleteId !== first.athleteId || l.seriesId !== first.seriesId) return refuse(409, PRESENCE_ERRORS.stale);
   if (!(await isDeletable(ctx.store, id))) return refuse(409, PRESENCE_ERRORS.stale);
   await ctx.store.deleteLesson(id);
+  await recordCancels(ctx, [l]);
   const empty = series !== null && (await ctx.store.lessons({ seriesId: series.id })).length === 0;
   if (empty) await ctx.store.deleteLessonSeries(series.id);
   const steps: PresenceUndoStep[] = [
@@ -54,6 +63,7 @@ async function followingLocked(ctx: PresenceContext, id: string, listedFor: stri
   if (l.athleteId !== first.athleteId || l.seriesId !== first.seriesId) return refuse(409, PRESENCE_ERRORS.stale);
   if (l.state !== 'planned' || !(await isDeletable(ctx.store, id))) return refuse(409, PRESENCE_ERRORS.stale);
   const cut = await applyCut(ctx, await planCut(ctx, l, series, listedFor));
+  await recordCancels(ctx, cut.deleted);
   const guards = await Promise.all(cut.touched.map((sid) => guardOf(ctx.store, 'lessonSeries', sid)));
   const actionId = await recordPresenceAction(ctx.store, ctx.actor, cut.lines, { steps: cut.steps, athletes: [l.athleteId], guards });
   return done({ deleted: true as const, count: cut.deleted.length, toast: cut.deleted.length > 1 ? LESSON_COPY.deletedMany : LESSON_COPY.deleted }, actionId);

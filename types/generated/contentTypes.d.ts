@@ -1851,6 +1851,8 @@ export interface ApiIndividualLessonIndividualLesson
       'api::individual-lesson.individual-lesson'
     > &
       Schema.Attribute.Private;
+    movedFromDate: Schema.Attribute.Date;
+    movedFromTime: Schema.Attribute.String;
     present: Schema.Attribute.Boolean;
     price: Schema.Attribute.Decimal;
     priceList: Schema.Attribute.Relation<
@@ -1869,6 +1871,43 @@ export interface ApiIndividualLessonIndividualLesson
     state: Schema.Attribute.Enumeration<['planned', 'saved']> &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'planned'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiLessonCancellationLessonCancellation
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'lesson_cancellations';
+  info: {
+    displayName: 'Club / Lec\u021Bie individual\u0103 anulat\u0103';
+    pluralName: 'lesson-cancellations';
+    singularName: 'lesson-cancellation';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    athleteId: Schema.Attribute.String & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    date: Schema.Attribute.Date & Schema.Attribute.Required;
+    durationMin: Schema.Attribute.Integer;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::lesson-cancellation.lesson-cancellation'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    startTime: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -3948,6 +3987,7 @@ declare module '@strapi/strapi' {
       'api::history-milestone.history-milestone': ApiHistoryMilestoneHistoryMilestone;
       'api::homepage.homepage': ApiHomepageHomepage;
       'api::individual-lesson.individual-lesson': ApiIndividualLessonIndividualLesson;
+      'api::lesson-cancellation.lesson-cancellation': ApiLessonCancellationLessonCancellation;
       'api::lesson-series.lesson-series': ApiLessonSeriesLessonSeries;
       'api::location.location': ApiLocationLocation;
       'api::navigation.navigation': ApiNavigationNavigation;

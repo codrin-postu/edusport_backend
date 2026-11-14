@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PORTAL_ERRORS } from '../../portal/copy';
 import { coachCtx, type CoachSeed } from '../../portal/coach/__tests__/coach-seed';
+import { deleteLesson } from '../lessons/delete';
 import { createCoachLesson, deleteCoachLesson } from '../../portal/coach/lessons';
 import { lessonRow, paymentRow } from './fake-store';
 import { undoPresenceAction } from '../undo-service';
@@ -87,5 +88,31 @@ describe('delete one or following', () => {
     expect((await undoPresenceAction(e.fake.ctx, { actionId: lastUndo(e) })).ok).toBe(true);
     expect(dates(e)).toHaveLength(8);
     expect(e.fake.state.lessonSeries[0].to).toBe('2026-12-03');
+  });
+});
+
+describe('lesson cancellations', () => {
+  const cancels = (c: CoachSeed) => c.fake.state.lessonCancels;
+
+  it('deleting a planned lesson dated today or later records one cancellation', async () => {
+    const c = await seeded();
+    await deleteCoachLesson(c, c.at('2026-11-24'), { scope: 'one' });
+    expect(cancels(c)).toEqual([{ athleteId: 'a-club-1', date: '2026-11-24', startTime: '17:30', durationMin: 45 }]);
+  });
+
+  it('following records one per removed planned lesson', async () => {
+    const c = await seeded();
+    await deleteCoachLesson(c, c.at('2026-11-24'), { scope: 'following' });
+    expect(cancels(c).map((x) => x.date)).toEqual(['2026-11-24', '2026-11-26', '2026-12-01', '2026-12-03']);
+  });
+
+  it('a saved lesson or a past one records none', async () => {
+    const c = coachCtx(ME, TODAY, { lessons: [
+      lessonRow({ id: 'past', athleteId: 'a-club-1', date: '2026-11-05', startTime: '10:00', coachIds: [ME] }),
+      lessonRow({ id: 'held', athleteId: 'a-club-1', date: '2026-11-10', startTime: '11:00', coachIds: [ME], state: 'saved', present: true }),
+    ] });
+    expect((await deleteLesson(c.fake.ctx, 'past')).ok).toBe(true);
+    expect((await deleteLesson(c.fake.ctx, 'held')).ok).toBe(true);
+    expect(cancels(c)).toEqual([]);
   });
 });

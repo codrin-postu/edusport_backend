@@ -1,6 +1,7 @@
 import type { AcsState } from '../acs';
 import type { RepeatFreq } from '../groups/series';
 import type { DayKey, PriceListRow, WeekOfMonth } from '../groups/types';
+import type { MovedFrom } from '../portal/sportiv/api-types';
 import type { Audience, PriceItemKind } from '../price-item';
 
 export type PresenceType = 'grup' | 'uscat';
@@ -22,6 +23,8 @@ export type LessonWrite = {
   athleteId: string; date: string; startTime: string; durationMin: number; coachIds: string[]; state: LessonState; present: boolean | null;
   priceListId: string | null; itemName: string | null; price: number | null; audience: Audience | null; amount: number;
   createdByName: string; recordedAt: string; savedBy: string | null; savedAt: string | null; seriesId: string | null;
+  /** The slot a planned lesson had before its date or time was edited (both set together, or both null). */
+  movedFromDate: string | null; movedFromTime: string | null;
 };
 export type LessonRow = LessonWrite & { id: string };
 /** The rule of a repeating individual lesson; its dates are ordinary planned lessons that point back at it. */
@@ -50,4 +53,6 @@ export type PriceListRecord = PriceListRow & { items: PriceItemRow[] };
 export type PaymentEmailPayload = { athleteName: string; amount: number; method: PaymentMethod; paidOn: string; purposeText: string };
 export type PaymentEmailJob = { recipient: string; subject: string; paymentId: string; notBefore: string; payload: PaymentEmailPayload };
 export type SessionState = 'salvata' | 'urmeaza' | 'nefacuta';
-export type HeldOccurrence = { key: string; eventId: string; groupId: string; date: string; startTime: string; endTime: string | null; durationMin: number };
+export type HeldOccurrence = { key: string; eventId: string; groupId: string; date: string; startTime: string; endTime: string | null; durationMin: number; movedFrom: MovedFrom | null };
+/** A planned lesson that was deleted from today on, so the family still sees it as cancelled. */
+export type LessonCancel = { athleteId: string; date: string; startTime: string; durationMin: number };

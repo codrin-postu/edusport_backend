@@ -21,6 +21,7 @@ const SESSION = 'api::session.session' as const;
 const ATTENDANCE = 'api::attendance.attendance' as const;
 const LESSON = 'api::individual-lesson.individual-lesson' as const;
 const SERIES = 'api::lesson-series.lesson-series' as const;
+const CANCEL = 'api::lesson-cancellation.lesson-cancellation' as const;
 const SUBSCRIPTION = 'api::subscription.subscription' as const;
 const PAYMENT = 'api::payment.payment' as const;
 const PRICE_LIST = 'api::price-list.price-list' as const;
@@ -73,6 +74,7 @@ export const toLessonRow = (r: Raw): LessonRow => ({
   coachIds: ids(r.coaches), state: r.state === 'saved' ? 'saved' : 'planned', present: typeof r.present === 'boolean' ? r.present : null, priceListId: linkId(r.priceList),
   itemName: str(r.itemName), price: decimal(r.price), audience: audience(r.audience), amount: amountOf(r.amount), createdByName: text(r.createdByName), recordedAt: stamp(r.recordedAt) ?? '',
   savedBy: str(r.savedBy), savedAt: stamp(r.savedAt), seriesId: linkId(r.series),
+  movedFromDate: str(r.movedFromDate), movedFromTime: hhmm(str(r.movedFromTime)),
 });
 
 const FREQS: readonly RepeatFreq[] = ['weekly', 'biweekly', 'monthly'];
@@ -232,6 +234,19 @@ function lessonRows(strapi: Core.Strapi): Keys<'lessons' | 'lesson' | 'createLes
   };
 }
 
+/** Planned lessons deleted from today on; a row is plain data (the athlete by id, no relation) and goes with the daily purge. */
+function cancelRows(strapi: Core.Strapi): Keys<'recordLessonCancel' | 'lessonCancels' | 'pruneLessonCancels'> {
+  return {
+    recordLessonCancel: async (row) => {
+      await strapi.documents(CANCEL).create({ data: { ...row } as never });
+    },
+    lessonCancels: async ({ athleteId, from, to }) =>
+      raws(await strapi.db.query(CANCEL).findMany({ where: { athleteId, ...dated('date', { from, to }) }, orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { id: 'asc' }], limit: MAX }))
+        .map((r) => ({ date: text(r.date), startTime: hhmm(str(r.startTime)) ?? '', durationMin: Number(r.durationMin ?? 0) })),
+    pruneLessonCancels: async (before) => Number((await strapi.db.query(CANCEL).deleteMany({ where: { date: { $lt: before } } })).count),
+  };
+}
+
 function seriesRows(strapi: Core.Strapi): Keys<'lessonSeries' | 'lessonSeriesOf' | 'createLessonSeries' | 'updateLessonSeries' | 'deleteLessonSeries'> {
   const query = (where: Where) => strapi.db.query(SERIES).findMany({ where, populate: ['athlete', 'coaches'], orderBy: [{ from: 'asc' }, { id: 'asc' }], limit: MAX });
   return {
@@ -351,7 +366,7 @@ export function strapiPresenceStore(strapi: Core.Strapi): PresenceStore {
     lockAttendance: (id) => scope.lockRow('club_attendances', id),
     lockSubscription: (id) => scope.lockRow('club_subscriptions', id),
     lockPayment: (id) => scope.lockRow('club_payments', id),
-    ...lookups(strapi), ...sessionRows(strapi), ...attendanceRows(strapi), ...historyPages(strapi), ...lessonRows(strapi), ...seriesRows(strapi), ...subscriptionRows(strapi), ...paymentRows(strapi), ...jobs(strapi),
+    ...lookups(strapi), ...sessionRows(strapi), ...attendanceRows(strapi), ...historyPages(strapi), ...lessonRows(strapi), ...cancelRows(strapi), ...seriesRows(strapi), ...subscriptionRows(strapi), ...paymentRows(strapi), ...jobs(strapi),
     ...strapiCounters(strapi, scope),
   };
 }

@@ -135,9 +135,10 @@ describe('strapiPresenceStore', () => {
     expect(toLessonRow({
       documentId: 'l1', athlete: { documentId: 'a1' }, date: '2026-11-10', startTime: '17:00:00.000', durationMin: 50, coaches: [{ documentId: 'tm-andreea' }], state: 'saved', present: true,
       priceList: { documentId: 'pl-club' }, itemName: 'Lecție individuală', price: '80.00', audience: 'member', amount: '80.00', createdByName: 'Ana', recordedAt: '2026-11-10T17:30:00.000Z', savedBy: 'Ana', savedAt: '2026-11-10T18:00:00.000Z',
+      movedFromDate: '2026-11-09', movedFromTime: '16:00:00.000',
     })).toEqual({
       id: 'l1', athleteId: 'a1', date: '2026-11-10', startTime: '17:00', durationMin: 50, coachIds: ['tm-andreea'], state: 'saved', present: true, priceListId: 'pl-club',
-      itemName: 'Lecție individuală', price: 80, audience: 'member', amount: 80, createdByName: 'Ana', recordedAt: '2026-11-10T17:30:00.000Z', savedBy: 'Ana', savedAt: '2026-11-10T18:00:00.000Z', seriesId: null,
+      itemName: 'Lecție individuală', price: 80, audience: 'member', amount: 80, createdByName: 'Ana', recordedAt: '2026-11-10T17:30:00.000Z', savedBy: 'Ana', savedAt: '2026-11-10T18:00:00.000Z', seriesId: null, movedFromDate: '2026-11-09', movedFromTime: '16:00',
     });
     expect(toLessonRow({ documentId: 'l2', state: 'planned', present: null })).toMatchObject({ present: null, priceListId: null, price: null, amount: 0, savedAt: null });
     expect(toPriceListRecord({
@@ -185,6 +186,24 @@ describe('strapiPresenceStore', () => {
     expect(created).toHaveLength(1);
     expect(created[0].data).toHaveProperty('createdByName', 'Ana');
     expect(Object.keys(created[0].data)).not.toContain('createdBy');
+  });
+
+  it('lesson cancellations: a create keeps the athlete as plain id, reads by athlete and range, prune deletes before a date', async () => {
+    const created: Array<Record<string, unknown>> = [];
+    const wheres: unknown[] = [];
+    const strapi = {
+      documents: () => ({ create: async (args: { data: Record<string, unknown> }) => { created.push(args.data); return { documentId: 'c1' }; } }),
+      db: { query: () => ({
+        findMany: async (args: { where: unknown }) => { wheres.push(args.where); return [{ date: '2026-11-24', startTime: '16:00:00.000', durationMin: 50 }]; },
+        deleteMany: async (args: { where: unknown }) => { wheres.push(args.where); return { count: 3 }; },
+      }) },
+    } as unknown as Core.Strapi;
+    const store = strapiPresenceStore(strapi);
+    await store.recordLessonCancel({ athleteId: 'a1', date: '2026-11-24', startTime: '16:00', durationMin: 50 });
+    expect(created).toEqual([{ athleteId: 'a1', date: '2026-11-24', startTime: '16:00', durationMin: 50 }]);
+    expect(await store.lessonCancels({ athleteId: 'a1', from: '2026-11-01', to: '2026-11-30' })).toEqual([{ date: '2026-11-24', startTime: '16:00', durationMin: 50 }]);
+    expect(await store.pruneLessonCancels('2026-11-20')).toBe(3);
+    expect(wheres).toEqual([{ athleteId: 'a1', date: { $gte: '2026-11-01', $lte: '2026-11-30' } }, { date: { $lt: '2026-11-20' } }]);
   });
 
   it('takes every lock inside one transaction scope', async () => {

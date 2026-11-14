@@ -55,7 +55,7 @@ type PlannedFields = Pick<LessonWrite, 'athleteId' | 'startTime' | 'durationMin'
 /** A lesson that is planned only: never held, never priced, whatever the date. */
 export const plannedLesson = (ctx: PresenceContext, f: PlannedFields, date: string): LessonWrite => ({
   athleteId: f.athleteId, date, startTime: f.startTime, durationMin: f.durationMin, coachIds: [...f.coachIds], state: 'planned', present: null,
-  priceListId: null, itemName: null, price: null, audience: null, amount: 0, createdByName: f.createdByName, recordedAt: ctx.now().toISOString(), savedBy: null, savedAt: null, seriesId: f.seriesId,
+  priceListId: null, itemName: null, price: null, audience: null, amount: 0, createdByName: f.createdByName, recordedAt: ctx.now().toISOString(), savedBy: null, savedAt: null, seriesId: f.seriesId, movedFromDate: null, movedFromTime: null,
 });
 
 /**

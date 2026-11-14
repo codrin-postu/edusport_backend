@@ -2,19 +2,13 @@ import type {
   AbonamentShort, Badge, CalendarItem, CompetitionRow, HistoryRow, Level, LastCompetition, MonthBar, MoneyLine, PaymentRow, Promotion, SportivCompetition, SportivCompetitions, SportivHistory, SportivHome, SportivMoney, SportivPath, SportivPayments, SportivProfile, SportivSubscriptions, Ticket,
 } from './api-types';
 
-/** Keys no sportiv answer may carry (spec 5.4). The calendar item `note` (a cancelled date's reason) is the one allowed `note`, by path (`SPORTIV_ALLOWED_PATHS`). */
+/** Keys no sportiv answer may carry (spec 5.4). A cancelled date's reason travels as `reason`, so no path may carry a `note`. */
 export const SPORTIV_FORBIDDEN_KEYS: readonly string[] = [
   'notes', 'recordedBy', 'note', 'history', 'priceListId', 'audience', 'charges', 'registrations', 'roster', 'visitor', 'skaterName', 'sessionId',
 ];
 
-/** Where a calendar answer may carry a `note` (a cancelled date's reason). */
-export const CALENDAR_NOTE_PATHS: readonly string[] = ['items.*.note'];
-
-/** Where the home answer may carry a `note`: its `upcoming` items are calendar items. */
-export const HOME_NOTE_PATHS: readonly string[] = ['upcoming.*.note'];
-
-/** Every path that may carry a `note`, for `forbiddenPathsIn(answer, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)`; a note anywhere else is a leak. */
-export const SPORTIV_ALLOWED_PATHS: readonly string[] = [...CALENDAR_NOTE_PATHS, ...HOME_NOTE_PATHS];
+/** Paths where a forbidden key is allowed, for `forbiddenPathsIn(answer, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)`: none. */
+export const SPORTIV_ALLOWED_PATHS: readonly string[] = [];
 
 /** The home answer, field by field: anything else on the sources never leaves. */
 export function toHome(x: {
@@ -83,9 +77,10 @@ export const toProfile = (p: SportivProfile): SportivProfile => ({
   name: p.name, birthDate: p.birthDate, age: p.age, contactName: p.contactName, phone: p.phone, email: p.email,
 });
 
-/** `note` is the reason of a cancelled date and nothing else: a live item never carries one. */
+/** `reason` belongs to a cancelled item only and `movedFrom` to a held one only (as `{ date, startTime }`): the other never carries it. */
 export const toCalendarItem = (i: CalendarItem): CalendarItem => ({
-  date: i.date, startTime: i.startTime, endTime: i.endTime, kind: i.kind, title: i.title, location: i.location, coaches: [...i.coaches], cancelled: i.cancelled, note: i.cancelled ? i.note : null,
+  date: i.date, startTime: i.startTime, endTime: i.endTime, kind: i.kind, title: i.title, location: i.location, coaches: [...i.coaches], cancelled: i.cancelled,
+  reason: i.cancelled ? i.reason : null, movedFrom: !i.cancelled && i.movedFrom ? { date: i.movedFrom.date, startTime: i.movedFrom.startTime } : null,
 });
 
 /** `what` is the readable purpose; the payment note and who recorded it stay out. */

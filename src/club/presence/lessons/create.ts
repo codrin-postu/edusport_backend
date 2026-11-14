@@ -47,7 +47,7 @@ async function newLesson(ctx: PresenceContext, b: LessonBody): Promise<LessonWri
   const name = await actorName(ctx);
   const snap = held ? await lessonSnapshot(ctx.store, b.athleteId, b.date) : NO_PRICE;
   return {
-    ...b, seriesId: null, state: held ? 'saved' : 'planned', present: held ? true : null, ...snap, amount: snap.price ?? 0,
+    ...b, seriesId: null, movedFromDate: null, movedFromTime: null, state: held ? 'saved' : 'planned', present: held ? true : null, ...snap, amount: snap.price ?? 0,
     createdByName: name, recordedAt: ctx.now().toISOString(), savedBy: held ? name : null, savedAt: held ? ctx.now().toISOString() : null,
   };
 }

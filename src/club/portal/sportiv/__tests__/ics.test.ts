@@ -3,7 +3,7 @@ import type { CalendarItem } from '../api-types';
 import { toIcs } from '../ics';
 
 const item = (over: Partial<CalendarItem> = {}): CalendarItem => ({
-  date: '2026-11-21', startTime: '11:00', endTime: '11:50', kind: 'grupa', title: 'Intermediari Bronze', location: 'AFI Cotroceni', coaches: ['Virgil Pascu'], cancelled: false, note: null, ...over,
+  date: '2026-11-21', startTime: '11:00', endTime: '11:50', kind: 'grupa', title: 'Intermediari Bronze', location: 'AFI Cotroceni', coaches: ['Virgil Pascu'], cancelled: false, reason: null, movedFrom: null, ...over,
 });
 const NOW = new Date('2026-11-20T10:00:00.000Z');
 const unfolded = (ics: string): string => ics.replace(/\r\n /g, '');
@@ -28,7 +28,7 @@ describe('toIcs', () => {
   });
 
   it('leaves out cancelled items and days before today, keeps today', () => {
-    const ics = toIcs([item({ date: '2026-11-19' }), item({ date: '2026-11-20', title: 'Azi' }), item({ date: '2026-11-22', cancelled: true, note: 'x' }), item({ date: '2026-11-23', title: 'Luni' })], NOW, 'Ana');
+    const ics = toIcs([item({ date: '2026-11-19' }), item({ date: '2026-11-20', title: 'Azi' }), item({ date: '2026-11-22', cancelled: true, reason: 'x' }), item({ date: '2026-11-23', title: 'Luni' })], NOW, 'Ana');
     expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(2);
     expect(ics).toContain('SUMMARY:Azi');
     expect(ics).toContain('SUMMARY:Luni');

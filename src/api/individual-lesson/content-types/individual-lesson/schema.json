@@ -21,6 +21,8 @@
     "recordedAt": { "type": "datetime" },
     "savedBy": { "type": "string" },
     "savedAt": { "type": "datetime" },
-    "series": { "type": "relation", "relation": "manyToOne", "target": "api::lesson-series.lesson-series" }
+    "series": { "type": "relation", "relation": "manyToOne", "target": "api::lesson-series.lesson-series" },
+    "movedFromDate": { "type": "date" },
+    "movedFromTime": { "type": "string" }
   }
 }

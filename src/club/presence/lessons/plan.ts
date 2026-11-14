@@ -31,7 +31,7 @@ const editedLine = (l: LessonRow, fields: Fields): Line[] =>
   Object.keys(fields).length ? [{ subjectType: SUBJECT.lesson, subjectId: l.id, action: P5_ACTIONS.lessonEdited, changes: { fields } }] : [];
 
 const oldValues = (l: LessonRow): Extract<PresenceUndoStep, { op: 'setLesson' }>['values'] => ({
-  date: l.date, startTime: l.startTime, durationMin: l.durationMin, coachIds: [...l.coachIds], seriesId: l.seriesId,
+  date: l.date, startTime: l.startTime, durationMin: l.durationMin, coachIds: [...l.coachIds], seriesId: l.seriesId, movedFromDate: l.movedFromDate, movedFromTime: l.movedFromTime,
 });
 
 const created = (lessonId: string, seriesId: string | null, count: number, toast: string): CoachLessonCreated => ({ lessonId, seriesId, count, toast });
@@ -40,11 +40,22 @@ const created = (lessonId: string, seriesId: string | null, count: number, toast
 type Written = { value: CoachLessonCreated; lines: Line[]; steps: PresenceUndoStep[]; guards: PresenceGuard[] };
 type Refusal = ReturnType<typeof refuse>;
 
+/**
+ * The slot the family last saw, kept through repeated edits (the first planned one stays); nothing is stored when the date and time stay, and the
+ * mark clears when the lesson is moved back to that slot.
+ */
+function movedFromOf(l: LessonRow, b: CoachLessonPlanBody): Pick<LessonRow, 'movedFromDate' | 'movedFromTime'> | Record<string, never> {
+  if (l.date === b.date && l.startTime === b.startTime) return {};
+  const date = l.movedFromDate ?? l.date;
+  const time = l.movedFromTime ?? l.startTime;
+  return date === b.date && time === b.startTime ? { movedFromDate: null, movedFromTime: null } : { movedFromDate: date, movedFromTime: time };
+}
+
 /** The lesson itself: new date, time, duration and coaches (it stays in its series). */
 async function editOne(ctx: PresenceContext, l: LessonRow, b: CoachLessonPlanBody): Promise<Written | { unchanged: true }> {
   const fields = changedFields(l, b);
   if (Object.keys(fields).length === 0) return { unchanged: true };
-  await ctx.store.updateLesson(l.id, { date: b.date, startTime: b.startTime, durationMin: b.durationMin, coachIds: b.coachIds });
+  await ctx.store.updateLesson(l.id, { date: b.date, startTime: b.startTime, durationMin: b.durationMin, coachIds: b.coachIds, ...movedFromOf(l, b) });
   return { value: created(l.id, l.seriesId, 1, LESSON_COPY.saved), lines: editedLine(l, fields), steps: [{ op: 'setLesson', id: l.id, values: oldValues(l) }], guards: [await guardOf(ctx.store, 'lesson', l.id)] };
 }
 
