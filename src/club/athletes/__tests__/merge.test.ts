@@ -193,6 +193,14 @@ describe('Unește cu alt sportiv (spec 6.6, d39)', () => {
     expect(await mergeAthletes(ctx(fakeClubStore(seed())), { keptId: 'k', removedId: 'zz', take: [] }, fakePresenceStore().store)).toEqual({ ok: false, status: 404, error: ADMIN_ERRORS.notFound });
   });
 
+  it.each(['23505', '40P01'])('a lost race (%s) answers 409 stale, not 500, and saves nothing', async (code) => {
+    const fake = fakeClubStore(seed());
+    const before = structuredClone(fake.state);
+    fake.failOn('deleteAthlete', Object.assign(new Error('race'), { code }));
+    expect(await mergeAthletes(ctx(fake), { keptId: 'k', removedId: 'r', take: ['email'] }, fakePresenceStore().store)).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect(fake.state).toEqual(before);
+  });
+
   it('all or nothing: a failure saves nothing', async () => {
     const fake = fakeClubStore(seed());
     const before = structuredClone(fake.state);

@@ -183,9 +183,28 @@ describe('invite host', () => {
 
   it('an invited coach-only account accepting on the sportiv page is activated and gets no session', async () => {
     const s = await setup();
+    s.fake.state.tokens[0].host = 'sportiv';
     expect(await s.accept({ host: 'sportiv' })).toEqual({ ok: true, data: { session: null, host: 'sportiv' } });
     expect(s.fake.state.accounts[0].status).toBe('active');
     expect(s.fake.state.sessions).toEqual([]);
+  });
+
+  it('a token is accepted only on its own host, both directions; a mismatch is the invalid-invite answer and changes nothing', async () => {
+    const coach = await setup();
+    expect(await coach.accept({ host: 'sportiv' })).toEqual({ ok: false, status: 410, error: PORTAL_ERRORS.inviteExpired });
+    expect(coach.fake.state.accounts[0].status).toBe('invited');
+    const sportiv = await setup();
+    sportiv.fake.state.tokens[0].host = 'sportiv';
+    expect(await sportiv.accept({ host: 'antrenor' })).toEqual({ ok: false, status: 410, error: PORTAL_ERRORS.inviteExpired });
+    expect(await sportiv.accept({ host: undefined })).toEqual({ ok: false, status: 410, error: PORTAL_ERRORS.inviteExpired });
+    expect(sportiv.fake.state.accounts[0].status).toBe('invited');
+  });
+
+  it('a token without a host is a coach token', async () => {
+    const s = await setup();
+    s.fake.state.tokens[0].host = null;
+    expect(await s.accept({ host: 'sportiv' })).toMatchObject({ ok: false, status: 410 });
+    expect(await s.accept({ host: undefined })).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
   });
 
   it('a missing host is the coach page; a wrong host value is refused', async () => {

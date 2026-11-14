@@ -5,7 +5,8 @@ import { isRecord } from '../club/narrow';
 import { brandHtml, buttonHtml, emailPage, escapeHtml, footerText, type EmailLinks, type RenderedEmail } from './registration-template';
 
 /** `children`: the athletes the parent invite is for (a `sportiv.` host); absent on coach invites and on jobs queued before phase 7. */
-export type PortalInvitePayload = { name: string; link: string; host: string; children?: string[] };
+/** `athleteIds`: the athlete ids of `children`, same order (the anonymize scrub matches by id); absent on jobs queued before. */
+export type PortalInvitePayload = { name: string; link: string; host: string; children?: string[]; athleteIds?: string[] };
 export type NewPortalInviteJob = {
   recipient: string;
   subject: string;
@@ -16,7 +17,8 @@ export type NewPortalInviteJob = {
 
 export function isPortalInvitePayload(v: unknown): v is PortalInvitePayload {
   return isRecord(v) && typeof v.name === 'string' && typeof v.link === 'string' && v.link.length > 0 && typeof v.host === 'string' && v.host.length > 0
-    && (v.children === undefined || (Array.isArray(v.children) && v.children.every((c) => typeof c === 'string')));
+    && (v.children === undefined || (Array.isArray(v.children) && v.children.every((c) => typeof c === 'string')))
+    && (v.athleteIds === undefined || (Array.isArray(v.athleteIds) && v.athleteIds.every((c) => typeof c === 'string')));
 }
 
 /** The portal host of a site: `antrenor.` or `sportiv.` + the site host (without `www.`); `<site>.localhost:port` over http locally. */

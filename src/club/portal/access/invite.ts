@@ -41,13 +41,14 @@ async function latestInviteHost(c: AccessContext, accountId: string): Promise<Ho
 }
 
 /** The names the account's live accesses point to, then `current`. */
-async function childNames(c: AccessContext, accountId: string, current: string): Promise<string[]> {
+async function childNames(c: AccessContext, accountId: string, current: AthleteForAccess): Promise<{ names: string[]; ids: string[] }> {
   const names: string[] = [];
+  const ids: string[] = [];
   for (const row of await c.access.liveByAccount(accountId)) {
     const athlete = await c.access.athleteForAccess(row.athleteId);
-    if (athlete) names.push(athlete.name);
+    if (athlete) { names.push(athlete.name); ids.push(athlete.id); }
   }
-  return [...names, current];
+  return { names: [...names, current.name], ids: [...ids, current.id] };
 }
 
 async function greetingName(c: AccessContext, account: AccountRow, athlete: AthleteForAccess): Promise<string> {
@@ -56,7 +57,7 @@ async function greetingName(c: AccessContext, account: AccountRow, athlete: Athl
 }
 
 /** `moved`: the athlete line reads "mutat". `silent`: rows are written but no mail is queued (a bulk group's last athlete sends the one mail). `names`: the athletes the one mail names. */
-export type LinkOptions = { moved?: boolean; silent?: boolean; names?: string[] };
+export type LinkOptions = { moved?: boolean; silent?: boolean; names?: string[]; ids?: string[] };
 type Plan = { account: AccountRow; athlete: AthleteForAccess; email: string; opts: LinkOptions };
 
 /** Case 1 of spec 4.2: a new invited account for the e-mail, invite on the sportiv host. */
@@ -68,7 +69,7 @@ async function createCase(c: AccessContext, { athlete, email, opts }: Plan): Pro
   await c.store.lockAccount(id);
   if (opts.silent) return { toast: ACCESS_COPY.inviteSent, jobId: null };
   const account = (await c.store.account(id)) as AccountRow;
-  return { toast: ACCESS_COPY.inviteSent, jobId: await queueFreshInvite(c, account, name, email, 'sportiv', opts.names ?? [athlete.name]) };
+  return { toast: ACCESS_COPY.inviteSent, jobId: await queueFreshInvite(c, account, name, email, 'sportiv', opts.names ?? [athlete.name], opts.ids ?? [athlete.id]) };
 }
 
 /** Case 2: an active account gets the athlete and a "you also have access" mail. */
@@ -77,17 +78,17 @@ async function addCase(c: AccessContext, { account, athlete, email, opts }: Plan
   if (!c.siteUrl) throw new Error('the public site address is not configured');
   const { host, origin } = portalHost(c.siteUrl, 'sportiv');
   const name = await greetingName(c, account, athlete);
-  const jobId = await c.queueAccess(portalAccessJob({ recipient: email, accountId: account.id, payload: { name, variant: 'child', childName: (opts.names ?? [athlete.name]).join(' și '), link: `${origin}/`, host } }));
+  const jobId = await c.queueAccess(portalAccessJob({ recipient: email, accountId: account.id, payload: { name, variant: 'child', childName: (opts.names ?? [athlete.name]).join(' și '), athleteIds: opts.ids ?? [athlete.id], link: `${origin}/`, host } }));
   return { toast: ACCESS_COPY.accessAdded, jobId };
 }
 
 /** Case 3: an invited account: older invites used up, one fresh invite on the host of the latest one. */
 async function reinviteCase(c: AccessContext, { account, athlete, email, opts }: Plan, host: Host): Promise<Linked> {
   if (opts.silent) return { toast: ACCESS_COPY.inviteSent, jobId: null };
-  const children = await childNames(c, account.id, athlete.name);
+  const children = await childNames(c, account.id, athlete);
   await useUpTokens(c, account.id, ['invite']);
   await c.store.updateAccount(account.id, { invitedAt: c.now().toISOString(), invitedBy: c.actor });
-  const jobId = await queueFreshInvite(c, account, await greetingName(c, account, athlete), email, host, children);
+  const jobId = await queueFreshInvite(c, account, await greetingName(c, account, athlete), email, host, children.names, children.ids);
   return { toast: ACCESS_COPY.inviteSent, jobId };
 }
 

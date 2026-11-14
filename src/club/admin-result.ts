@@ -26,6 +26,22 @@ export async function guarded<T>(log: (message: string) => void, tag: string, wo
   }
 }
 
+/** A unique-index loss (23505) or a lock cycle (40P01): two admins raced; everything rolled back, so the loser is stale, not failed. */
+export const isRaceError = (err: unknown): boolean => {
+  const code = (err as { code?: unknown } | null)?.code;
+  return code === '23505' || code === '40P01';
+};
+
+/** `work` with a lost race answered 409 "stale"; any other throw goes on to `guarded` (500). One place for confirm, undo, merge and the edit. */
+export async function staleOnRace<T>(work: () => Promise<AdminResult<T>>): Promise<AdminResult<T>> {
+  try {
+    return await work();
+  } catch (err) {
+    if (isRaceError(err)) return refuse(409, ADMIN_ERRORS.stale);
+    throw err;
+  }
+}
+
 /** `guarded` for a write that answers nothing itself. */
 export const guardedWrite = <T>(log: (message: string) => void, tag: string, work: () => Promise<T>): Promise<AdminResult<T>> =>
   guarded(log, tag, async () => ({ ok: true, data: await work() }));

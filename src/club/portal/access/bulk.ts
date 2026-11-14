@@ -58,13 +58,14 @@ class Refused extends Error {}
 /** One address, one transaction: every athlete gets its row, the last one queues the one mail that names them all. */
 async function inviteAddress(c: AccessContext, group: Candidate[]): Promise<string | null> {
   const names = group.map((g) => g.athlete.name);
+  const ids = group.map((g) => g.athlete.id);
   return c.store.transaction(async () => {
     // Athletes first, sorted, then the account: a single invite of one of them waits instead of deadlocking.
     for (const id of group.map((g) => g.athlete.id).sort()) await c.access.lockAthlete(id);
     let jobId: string | null = null;
     for (const [i, { athlete, email }] of group.entries()) {
       const last = i === group.length - 1;
-      const linked = await linkAccess(c, athlete.id, email, last ? { names } : { silent: true });
+      const linked = await linkAccess(c, athlete.id, email, last ? { names, ids } : { silent: true });
       if (linked.ok === false) throw new Refused(linked.error);
       if (last) jobId = linked.data.jobId;
     }

@@ -75,9 +75,21 @@ const JOB = 'api::email-job.email-job' as const;
 const HISTORY = 'api::history-entry.history-entry' as const;
 const GRANTED = 'portal-access-granted';
 
-const namesChild = (payload: unknown, name: string): boolean => {
-  const p = (payload ?? {}) as { children?: unknown; childName?: unknown };
+type JobPayload = { children?: unknown; childName?: unknown; athleteIds?: unknown };
+
+/** By athlete id; a job queued before the ids were stored falls back to the child name. */
+const namesChild = (payload: unknown, athleteId: string, name: string): boolean => {
+  const p = (payload ?? {}) as JobPayload;
+  if (Array.isArray(p.athleteIds)) return p.athleteIds.includes(athleteId);
   return p.childName === name || (Array.isArray(p.children) && p.children.includes(name));
+};
+
+/** A parent invite for several children keeps its job without the scrubbed child; null when the job names only that child. */
+const withoutChild = (payload: unknown, athleteId: string): Record<string, unknown> | null => {
+  const p = (payload ?? {}) as JobPayload & Record<string, unknown>;
+  if (!Array.isArray(p.athleteIds) || !Array.isArray(p.children) || p.athleteIds.length < 2 || p.children.length !== p.athleteIds.length) return null;
+  const at = p.athleteIds.indexOf(athleteId);
+  return { ...p, children: p.children.filter((_, i) => i !== at), athleteIds: p.athleteIds.filter((_, i) => i !== at) };
 };
 
 /** The account lines "Acces la <sportiv>" of the child lose the name; the invite and access jobs that name the child are scrubbed. */
@@ -87,7 +99,12 @@ async function scrubAccountTraces(strapi: Core.Strapi, accountIds: string[], ath
     if ((l.changes as { athleteId?: unknown } | null)?.athleteId === athleteId) await strapi.db.query(HISTORY).update({ where: { id: l.id }, data: { changes: { athleteId } } });
   }
   const jobs = raws(await strapi.db.query(JOB).findMany({ where: { kind: { $in: ['portal-invite', 'portal-access'] }, changeKey: { $in: accountIds } }, limit: MAX }));
-  for (const j of jobs.filter((x) => namesChild(x.payload, name))) {
+  for (const j of jobs.filter((x) => namesChild(x.payload, athleteId, name))) {
+    const rest = j.kind === 'portal-invite' ? withoutChild(j.payload, athleteId) : null;
+    if (rest) {
+      await strapi.db.query(JOB).update({ where: { id: j.id }, data: { payload: rest } });
+      continue;
+    }
     await strapi.db.query(JOB).update({ where: { id: j.id }, data: { recipient: null, subject: null, lastError: null, payload: null, status: scrubbedJobStatus(text(j.status)) } });
   }
 }

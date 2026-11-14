@@ -64,18 +64,24 @@ function readAcceptBody(body: unknown, hosts: string[]): AcceptBody | null {
   return { secret, password, host: page, deviceKey: key };
 }
 
+/** Spec 5.1: an invite is accepted on the token's own host (a missing host is the coach page); another page's request sees an invalid invite. */
+async function liveInviteOnHost(c: PortalAuthContext, secret: string, host: string): Promise<Live | null> {
+  const live = await liveInvite(c, secret);
+  return live && (live.token.host ?? 'antrenor') === host ? live : null;
+}
+
 export async function acceptInvite(c: PortalAuthContext, body: unknown): Promise<PortalResult<SessionWithOffer | AcceptedNoSession>> {
   const read = readAcceptBody(body, c.hosts);
   if (!read) return refuse(400, PORTAL_ERRORS.invalid);
   if (await c.limits.ipBlocked(c.ip)) return paused;
-  const before = await liveInvite(c, read.secret);
+  const before = await liveInviteOnHost(c, read.secret, read.host);
   const rule = checkPassword(read.password, before?.account.email ?? '', c.common);
   if (rule !== null) return refuse(400, rule);
   if (!before) return expiredInvite;
   const passwordHash = await c.hash(read.password);
   const activated = await c.store.transaction(async (): Promise<AccountRow | null> => {
     await c.store.lockAccount(before.account.id);
-    const now = await liveInvite(c, read.secret);
+    const now = await liveInviteOnHost(c, read.secret, read.host);
     if (!now) return null;
     await c.store.updateUser(now.account.userId, { passwordHash });
     await c.store.updateAccount(now.account.id, { passwordChangedAt: c.now().toISOString() });

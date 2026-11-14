@@ -164,6 +164,14 @@ describe('Anulează confirmarea (spec 4.6)', () => {
     expect(await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store)).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
   });
 
+  it.each(['23505', '40P01'])('a lost race (%s) answers 409 stale, not 500', async (code) => {
+    const fake = fakeClubStore(seed());
+    await confirmed(fake);
+    fake.failOn('updateAthlete', Object.assign(new Error('race'), { code }));
+    expect(await undoConfirmation(ctx(fake), 'r1', fakePresenceStore().store)).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect(fake.state.registrations[0]).toMatchObject({ athleteId: 'a1', status: 'Confirmat' });
+  });
+
   it('rolls back on a failure', async () => {
     const fake = fakeClubStore(seed());
     await confirmed(fake);

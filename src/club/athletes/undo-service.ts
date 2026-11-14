@@ -1,5 +1,5 @@
 import { endForAthlete, moveOnEmailChange } from '../portal/access/lifecycle';
-import { guarded, refuse, type AdminResult } from '../admin-result';
+import { guarded, refuse, staleOnRace, type AdminResult } from '../admin-result';
 import type { ConfirmationRecord } from '../confirm/plan';
 import { registrationSeason } from '../confirm/season';
 import { planUndo, undoAllowed, undoSeasonId, type UndoFacts, type UndoPlan } from '../confirm/undo-plan';
@@ -107,7 +107,7 @@ async function undoLocked(ctx: ServiceContext, presence: PresenceStore, id: stri
 /** "Anulează confirmarea" (spec 4.6, gaps #32): one transaction on the locked registration row. */
 export async function undoConfirmation(ctx: ServiceContext, registrationId: string, presence: PresenceStore): Promise<Result> {
   const jobs: string[] = [];
-  const result = await guarded(ctx.log, `[confirm-undo] ${registrationId}`, () => inBothTransactions(ctx.store, presence, () => undoLocked(ctx, presence, registrationId, jobs)));
+  const result = await guarded(ctx.log, `[confirm-undo] ${registrationId}`, () => staleOnRace(() => inBothTransactions(ctx.store, presence, () => undoLocked(ctx, presence, registrationId, jobs))));
   if (result.ok === true) for (const jobId of jobs) ctx.access?.afterCommit(jobId);
   if (result.ok === true) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after an undo');
   return result;
