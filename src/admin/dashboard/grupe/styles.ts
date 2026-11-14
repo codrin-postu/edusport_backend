@@ -10,6 +10,15 @@ export const GRUPE_CSS = `
 .ui-root .grp-tabs{padding:0 18px}
 .ui-root .grp-lines div+div{margin-top:2px}
 .ui-root .grp-form{display:flex;flex-direction:column;gap:14px}
+.ui-root .gtt{display:flex;flex-direction:column;gap:10px}
+.ui-root .gtt-section{display:flex;flex-direction:column;gap:6px}
+.ui-root .gtt-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ui-root .gtt-head{font-weight:600}
+.ui-root .gtt-group{padding-left:24px}
+.ui-root .gtt-count{font-size:var(--ui-fs-body);font-weight:400;color:var(--theme-text-muted);white-space:nowrap}
+.ui-root .gtt-box{display:flex;flex-direction:column;gap:12px;padding:12px 14px;border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);background:var(--theme-surface)}
+.ui-root .gtt-title{font-weight:600}
+.ui-root .gtt-rest{font-size:var(--ui-fs-body);color:var(--theme-text-muted)}
 .ui-root .grp-ua{display:flex;flex-direction:column}
 .ui-root .grp-ua-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,230px) auto;gap:8px 10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--theme-border)}
 .ui-root .grp-ua-row:last-child{border-bottom:none}

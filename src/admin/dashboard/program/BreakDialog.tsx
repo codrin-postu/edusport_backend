@@ -1,11 +1,14 @@
 import * as React from 'react';
 import { Button, DateInput, Field, FieldRow, Input, Notice, adminToast } from '../../ui';
-import { breakBody, breakFormError, draftOfBreak, emptyBreakDraft, type BreakDraft } from '../../../club/calendar/pauze-view';
+import { impactTitle } from '../../../club/calendar/break-impact';
+import { pruneExcept } from '../../../club/calendar/group-ticks';
+import { breakBody, breakFormError, draftOfBreak, emptyBreakDraft, impactAsked, type BreakDraft } from '../../../club/calendar/pauze-view';
 import { GROUP_ERRORS, PAUZE_COPY, SCHEDULE_TOASTS } from '../../../club/groups/copy';
 import type { BreakRecord } from '../../../club/groups/types';
 import { requestErrorText } from '../../../club/registration-panel';
+import { GroupTickTree } from '../GroupTickTree';
 import { WindowShell } from '../grupe/PanelShell';
-import type { Breaks } from './useBreaks';
+import { useBreakImpact, type Breaks } from './useBreaks';
 
 type Props = { target: BreakRecord | null; breaks: Breaks; onClose: () => void };
 
@@ -14,12 +17,13 @@ export function BreakDialog({ target, breaks, onClose }: Props) {
   const [draft, setDraft] = React.useState<BreakDraft>(() => (target ? draftOfBreak(target) : emptyBreakDraft()));
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const { impact } = useBreakImpact(draft.startDate, draft.endDate, impactAsked(draft));
   const submit = async () => {
     const invalid = breakFormError(draft);
     if (invalid) return setError(invalid);
     setBusy(true);
     try {
-      await breaks.save(target?.id ?? null, breakBody(draft));
+      await breaks.save(target?.id ?? null, breakBody(impact ? { ...draft, exceptGroupIds: pruneExcept(impact, draft.exceptGroupIds) } : draft));
       adminToast.success(SCHEDULE_TOASTS.breakSaved);
       onClose();
     } catch (err) {
@@ -38,6 +42,13 @@ export function BreakDialog({ target, breaks, onClose }: Props) {
         <Field label={PAUZE_COPY.colFrom}><DateInput value={draft.startDate || null} onChange={(v) => setDraft({ ...draft, startDate: v ?? '' })} /></Field>
         <Field label={PAUZE_COPY.colTo}><DateInput value={draft.endDate || null} onChange={(v) => setDraft({ ...draft, endDate: v ?? '' })} /></Field>
       </FieldRow>
+      {impact && (
+        <div className="gtt-box">
+          <div className="gtt-title">{impactTitle(impact, draft.exceptGroupIds)}</div>
+          <GroupTickTree tree={impact} except={draft.exceptGroupIds} onChange={(exceptGroupIds) => setDraft({ ...draft, exceptGroupIds })} counts />
+          <div className="gtt-rest">{PAUZE_COPY.rest}</div>
+        </div>
+      )}
       </div>
     </WindowShell>
   );

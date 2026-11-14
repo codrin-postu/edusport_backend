@@ -1,17 +1,41 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { breakBody, breakFormError, draftOfBreak } from '../calendar/pauze-view';
+import { breakBody, breakFormError, draftOfBreak, impactAsked } from '../calendar/pauze-view';
 import type { StartData } from '../groups/new-season/start-data';
 import { headerState, initialTicks, setSection, startBody, toggleChild, toggleGroup } from '../groups/new-season/window-view';
 
-const BREAKS = [{ id: 'b2', label: 'Vacanța de primăvară', startDate: '2027-04-03', endDate: '2027-04-11' }, { id: 'b1', label: 'Vacanța de iarnă', startDate: '2026-12-20', endDate: '2027-01-07' }];
+const BREAKS = [{ id: 'b2', label: 'Vacanța de primăvară', startDate: '2027-04-03', endDate: '2027-04-11', exceptGroupIds: [] }, { id: 'b1', label: 'Vacanța de iarnă', startDate: '2026-12-20', endDate: '2027-01-07', exceptGroupIds: [] }];
+
+const dashboard = (file: string): string => readFileSync(join(__dirname, '../../admin/dashboard', file), 'utf8');
 
 describe('Pauze (7.1)', () => {
+  it('the dialog asks the impact for valid dates and renders the tick tree; the list has the cancels column', () => {
+    const dialog = dashboard('program/BreakDialog.tsx');
+    expect(dialog).toContain('<GroupTickTree');
+    expect(dialog).toContain('counts');
+    expect(dialog).toContain('PAUZE_COPY.rest');
+    expect(dialog).not.toContain('PAUZE_COPY.hint');
+    expect(dashboard('program/useBreaks.ts')).toContain('`${BASE}/impact`');
+    const list = dashboard('program/PauzeSection.tsx');
+    expect(list.indexOf('PAUZE_COPY.colCancels')).toBeGreaterThan(0);
+    expect(list.indexOf('PAUZE_COPY.colCancels')).toBeLessThan(list.indexOf("key: 'menu'"));
+  });
+
+  it('a draft carries the unticked groups; the impact is asked only for ordered valid dates', () => {
+    const rec = { ...BREAKS[0], exceptGroupIds: ['g2'] };
+    expect(draftOfBreak(rec).exceptGroupIds).toEqual(['g2']);
+    expect(breakBody(draftOfBreak(rec)).exceptGroupIds).toEqual(['g2']);
+    expect(impactAsked({ label: '', startDate: '2026-12-20', endDate: '2026-12-20', exceptGroupIds: [] })).toBe(true);
+    expect(impactAsked({ label: '', startDate: '2026-12-20', endDate: '2026-12-19', exceptGroupIds: [] })).toBe(false);
+    expect(impactAsked({ label: '', startDate: '', endDate: '2026-12-19', exceptGroupIds: [] })).toBe(false);
+  });
 
   it('the window needs a name and an end not before the start', () => {
-    expect(breakFormError({ label: 'X', startDate: '2026-12-20', endDate: '2026-12-19' })).toBe('Data de sfârșit trebuie să fie după data de început.');
-    expect(breakFormError({ label: ' ', startDate: '2026-12-20', endDate: '2026-12-21' })).toBe('Completați numele.');
+    expect(breakFormError({ label: 'X', startDate: '2026-12-20', endDate: '2026-12-19', exceptGroupIds: [] })).toBe('Data de sfârșit trebuie să fie după data de început.');
+    expect(breakFormError({ label: ' ', startDate: '2026-12-20', endDate: '2026-12-21', exceptGroupIds: [] })).toBe('Completați numele.');
     expect(breakFormError(draftOfBreak(BREAKS[0]))).toBeNull();
-    expect(breakBody({ label: ' Iarnă ', startDate: '2026-12-20', endDate: '2026-12-20' })).toEqual({ label: 'Iarnă', startDate: '2026-12-20', endDate: '2026-12-20' });
+    expect(breakBody({ label: ' Iarnă ', startDate: '2026-12-20', endDate: '2026-12-20', exceptGroupIds: [] })).toEqual({ label: 'Iarnă', startDate: '2026-12-20', endDate: '2026-12-20', exceptGroupIds: [] });
   });
 });
 

@@ -29,6 +29,7 @@ const columns = (onPick: Pick): DataColumn<Row>[] => [
   { key: 'label', header: PAUZE_COPY.colName, render: (r) => <span className="spv-name">{r.label}</span> },
   { key: 'from', header: PAUZE_COPY.colFrom, render: (r) => r.from },
   { key: 'to', header: PAUZE_COPY.colTo, render: (r) => r.to },
+  { key: 'cancels', header: PAUZE_COPY.colCancels, render: (r) => r.cancels ?? '' },
   { key: 'menu', header: <span className="ui-sr">{PAUZE_COPY.menu}</span>, align: 'right', render: (r) => <RowMenu row={r} onPick={onPick} /> },
 ];
 
@@ -37,7 +38,7 @@ function BreakList({ rows, onPick }: { rows: Row[]; onPick: Pick }) {
   return (
     <ul className="spv-cards">
       {rows.map((r) => (
-        <li key={r.id} className="spv-card"><span className="spv-name">{r.label}</span><span>{breakPhoneLine(r)}</span><RowMenu row={r} onPick={onPick} /></li>
+        <li key={r.id} className="spv-card"><span className="spv-name">{r.label}</span><span>{breakPhoneLine(r)}</span>{r.cancels && <span>{r.cancels}</span>}<RowMenu row={r} onPick={onPick} /></li>
       ))}
     </ul>
   );
