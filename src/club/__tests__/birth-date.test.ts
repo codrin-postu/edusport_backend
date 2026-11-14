@@ -100,14 +100,14 @@ describe('age today (spec 3.1, 5)', () => {
 });
 
 describe('picker years (spec 9, P14)', () => {
-  it('runs from 25 years ago to 2 years ago', () => {
-    expect(birthYearRange(TODAY)).toEqual({ min: 2001, max: 2024 });
+  it('runs from 1980 to 2 years ago', () => {
+    expect(birthYearRange(TODAY)).toEqual({ min: 1980, max: 2024 });
     const years = birthYearOptions(TODAY, null);
-    expect([years[0], years[years.length - 1], years.length]).toEqual([2001, 2024, 24]);
+    expect([years[0], years[years.length - 1], years.length]).toEqual([1980, 2024, 45]);
   });
 
   it('keeps a stored year outside the range selectable', () => {
-    expect(birthYearOptions(TODAY, 1999).slice(0, 2)).toEqual([1999, 2001]);
-    expect(birthYearOptions(TODAY, 2010)).toHaveLength(24);
+    expect(birthYearOptions(TODAY, 1975).slice(0, 2)).toEqual([1975, 1980]);
+    expect(birthYearOptions(TODAY, 2010)).toHaveLength(45);
   });
 });

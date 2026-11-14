@@ -94,9 +94,9 @@ export function todayInBucharest(now: Date = new Date()): DateParts {
   return { year: part('year'), month: part('month'), day: part('day') };
 }
 
-/** The website's year range (spec 9): from 25 years ago to 2 years ago. */
+/** The website's year range: from 1980 (adults join Școala too) to 2 years ago. */
 export function birthYearRange(today: DateParts): { min: number; max: number } {
-  return { min: today.year - 25, max: today.year - 2 };
+  return { min: 1980, max: today.year - 2 };
 }
 
 /** Ascending; a stored year outside the range stays selectable (P14). */
