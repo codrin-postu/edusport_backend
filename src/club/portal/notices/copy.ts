@@ -9,6 +9,12 @@ export function shortDay(date: string): string {
   return `${WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]} ${d} ${MONTHS[m - 1]}`;
 }
 
+/** "13 noi": the day and the month word, no weekday. */
+export function shortDate(date: string): string {
+  const [, m, d] = date.split('-').map(Number);
+  return `${d} ${MONTHS[m - 1]}`;
+}
+
 const MOVED_PREFIX = 'Mutată: ';
 
 /** A row written by `movedTo`. */

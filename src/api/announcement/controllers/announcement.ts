@@ -16,6 +16,13 @@ import { errors } from '@strapi/utils';
 import { validateAnnouncement } from '../services/validate-announcement';
 import { adminActor } from '../../../club/admin-actor';
 import { groupTree, sortedUnique } from '../../../club/anunturi/view';
+import { AUTO_LIST_DAYS, listRows, portalSummary, readRecipients, stopNotice, type ListRow, type PortalSummary } from '../../../club/anunturi/portal-history';
+import { respond } from '../../../club/admin-http';
+import { transactionScope } from '../../../club/athletes/strapi-store';
+import { strapiAccessStore } from '../../../club/portal/access/strapi-store';
+import type { DeliveryRecord, NoticeRecord } from '../../../club/portal/notices/store';
+import { strapiNoticeStore } from '../../../club/portal/notices/strapi-store';
+import { strapiPortalStore } from '../../../club/portal/strapi-store';
 import { strapiGroupStore } from '../../../club/groups/strapi-store';
 import { syncNoticesAfterSave } from '../../../club/portal/notices/strapi-sync';
 import { getAnnouncementStats, type AnnouncementStats } from '../services/announcement-stats';
@@ -67,6 +74,8 @@ interface Row {
   portalAuthor: string | null;
   group: Group;
   stats: AnnouncementStats | null;
+  /** The notice made for the portal (counts only); null when it was never sent there. */
+  portal: PortalSummary | null;
 }
 
 const time = (v: unknown): number | null => {
@@ -121,13 +130,29 @@ function pickWritable(body: any): Record<string, unknown> {
   return out;
 }
 
-async function buildRows(strapi: any): Promise<{ data: Row[]; umami: string }> {
+/** The notices the list shows: those of the announcements and the recent automatic ones, with their deliveries. */
+async function readNotices(strapi: any, entries: any[], now: number): Promise<{ notices: NoticeRecord[]; deliveries: Map<string, DeliveryRecord[]> }> {
+  const store = strapiNoticeStore(strapi);
+  const since = new Date(now - AUTO_LIST_DAYS * 86_400_000).toISOString();
+  const notices = (await store.notices({ since })).filter((n) => n.kind === 'auto');
+  for (const e of entries) {
+    if (e.showOnPortal !== true) continue;
+    const own = await store.noticeOfAnnouncement(e.documentId);
+    if (own) notices.push(own);
+  }
+  const deliveries = new Map<string, DeliveryRecord[]>();
+  for (const n of notices) deliveries.set(n.id, await store.deliveries({ noticeId: n.id }));
+  return { notices, deliveries };
+}
+
+async function buildRows(strapi: any): Promise<{ data: Row[]; list: ListRow[]; umami: string }> {
   const [entries, stats] = await Promise.all([
     strapi.documents(UID).findMany({ fields: [...ADMIN_FIELDS], limit: -1 }),
     getAnnouncementStats(),
   ]);
 
   const now = Date.now();
+  const { notices, deliveries } = await readNotices(strapi, entries ?? [], now);
   const rows: Row[] = (entries ?? []).map((e: any) => ({
     documentId: e.documentId,
     title: e.title ?? null,
@@ -148,6 +173,7 @@ async function buildRows(strapi: any): Promise<{ data: Row[]; umami: string }> {
     portalAuthor: e.portalAuthor ?? null,
     group: groupOf(e, now),
     stats: (e.slug && stats.bySlug.get(e.slug)) || null,
+    portal: portalSummaryOf(e, notices, deliveries),
   }));
 
   const ORDER: Record<Group, number> = { active: 0, scheduled: 1, past: 2 };
@@ -158,7 +184,19 @@ async function buildRows(strapi: any): Promise<{ data: Row[]; umami: string }> {
     return (time(b.endAt) ?? 0) - (time(a.endAt) ?? 0); // past: most recent first
   });
 
-  return { data: rows, umami: stats.state };
+  const list = listRows({
+    announcements: rows.map((r) => ({
+      id: r.documentId, title: r.title, showOnSite: r.showOnSite, showOnPortal: r.showOnPortal, isActive: r.isActive, startAt: r.startAt, endAt: r.endAt,
+      portalGroupIds: r.portalGroupIds, portalAuthor: r.portalAuthor, siteViews: r.stats?.views ?? null,
+    })),
+    notices, deliveries, now,
+  });
+  return { data: rows, list, umami: stats.state };
+}
+
+function portalSummaryOf(e: any, notices: NoticeRecord[], deliveries: Map<string, DeliveryRecord[]>): PortalSummary | null {
+  const notice = notices.find((n) => n.kind === 'anunt' && n.announcementId === e.documentId) ?? null;
+  return portalSummary(notice, notice ? deliveries.get(notice.id) ?? [] : []);
 }
 
 export default {
@@ -229,6 +267,22 @@ export default {
     const { documentId } = ctx.params;
     await strapi.documents(UID).delete({ documentId });
     ctx.body = { data: { documentId } };
+  },
+
+  /** Admin (club area): who got a portal notice, who opened it, the athletes each account holds. */
+  async portalRecipients(ctx: any) {
+    const scope = transactionScope(strapi);
+    respond(ctx, await readRecipients(
+      { notices: strapiNoticeStore(strapi, scope), portal: strapiPortalStore(strapi, scope), access: strapiAccessStore(strapi, scope) },
+      String(ctx.params.noticeId ?? ''),
+    ));
+  },
+
+  /** Admin: "Oprește", the notice stops showing on the portal; the sync then ends it (fire and forget). */
+  async portalStop(ctx: any) {
+    const result = await stopNotice(strapiNoticeStore(strapi), String(ctx.params.noticeId ?? ''), new Date().toISOString());
+    if (result.ok) void syncNoticesAfterSave(strapi as any);
+    respond(ctx, result);
   },
 
   /**

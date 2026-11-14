@@ -28,6 +28,9 @@ import {
 import { usePageForm } from '../lib';
 import { ANUNTURI_TO, ANUNT_EDIT_TO } from './menu';
 import { ConfirmDialog } from '../ConfirmDialog';
+import { useAreas } from '../lib/useAreas';
+import { PortalRecipients, ANUNT_PORTAL_API } from './anunturi/PortalRecipients';
+import { ANUNT_LIST_COPY, type PortalSummary } from '../../club/anunturi/portal-history';
 import { GroupTickTree } from './GroupTickTree';
 import { GRUPE_CSS } from './grupe/styles';
 import { chosenOfExcept, exceptOfChosen, siteFieldsShown } from '../../club/anunturi/view';
@@ -38,7 +41,7 @@ import { ANUNT_API, anuntErrorMessage, slugifyRo, type Anunt } from './AnunturiP
  * EduSport admin, "Anunț" create / edit page (`?id=<documentId>`, no id = new).
  *
  * WHY A SEPARATE PAGE and not an in-place panel on the list: the list page owns
- * a drag-to-reorder interaction over the whole active group, and an overlay that
+ * a drag-to-reorder interaction over its rows, and an overlay that
  * sits on top of rows being dragged fights it (pointer capture, scroll lock,
  * focus). A route also survives a refresh, is linkable, and matches the two
  * existing precedents (SportivEditPage, CompetitieEditPage).
@@ -205,6 +208,8 @@ export default function AnuntEditPage() {
   const [takenSlugs, setTakenSlugs] = React.useState<string[]>([]);
   const loadedFor = React.useRef<string | null>(null);
   const [tree, setTree] = React.useState<TickTree | null>(null);
+  const [portal, setPortal] = React.useState<PortalSummary | null>(null);
+  const canSeeAccounts = useAreas().has('club');
 
   React.useEffect(() => {
     let off = false;
@@ -234,11 +239,13 @@ export default function AnuntEditPage() {
     if (!docId) {
       setLoaded(EMPTY);
       setSlug('');
+      setPortal(null);
       return true;
     }
     const a = rows.find((r) => r.documentId === docId);
     if (!a) return false;
     setSlug(a.slug ?? '');
+    setPortal(a.portal ?? null);
     setLoaded(toForm(a));
     return true;
   }, []);
@@ -354,6 +361,28 @@ export default function AnuntEditPage() {
     }
   };
 
+  // -- stop on the portal ------------------------------------------------------
+
+  const [stopping, setStopping] = React.useState(false);
+  const [stopBusy, setStopBusy] = React.useState(false);
+  const [stopError, setStopError] = React.useState<string | null>(null);
+
+  const confirmStop = async () => {
+    if (!portal) return;
+    setStopBusy(true);
+    setStopError(null);
+    try {
+      await post(`${ANUNT_PORTAL_API}/${portal.noticeId}/stop`, {});
+      const list = await fetchList().catch(() => null);
+      if (list) apply(id, list);
+      setStopping(false);
+    } catch (err) {
+      setStopError(anuntErrorMessage(err, 'Oprirea a eșuat.'));
+    } finally {
+      setStopBusy(false);
+    }
+  };
+
   const previewSlug = (isNew ? slugifyRo(v.title) : slug) || '-';
   const ready = !loading && !error;
   const errFor = (field: Problem['field']) => (problem?.field === field ? problem.text : undefined);
@@ -377,16 +406,30 @@ export default function AnuntEditPage() {
           subtitle="Anunțuri pe site și pe portalul sportivilor."
           actions={
             ready && !isNew ? (
-              <Button
-                variant="danger"
-                onClick={() => {
-                  setDelError(null);
-                  setConfirming(true);
-                }}
-                disabled={save.saving}
-              >
-                Șterge
-              </Button>
+              <>
+                {portal?.live && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setStopError(null);
+                      setStopping(true);
+                    }}
+                    disabled={save.saving}
+                  >
+                    {ANUNT_LIST_COPY.stop}
+                  </Button>
+                )}
+                <Button
+                  variant="danger"
+                  onClick={() => {
+                    setDelError(null);
+                    setConfirming(true);
+                  }}
+                  disabled={save.saving}
+                >
+                  Șterge
+                </Button>
+              </>
             ) : undefined
           }
         />
@@ -400,6 +443,8 @@ export default function AnuntEditPage() {
         ) : (
           <div className="ui-body">
             <div className="anun-narrow ui-stack">
+              {portal && v.showOnPortal && <PortalRecipients summary={portal} canSeeAccounts={canSeeAccounts} />}
+
               <Section title="Unde apare">
                 <div className="ui-stack">
                   <Checkbox
@@ -561,6 +606,21 @@ export default function AnuntEditPage() {
           setDelError(null);
         }}
         onConfirm={confirmDelete}
+      />
+      <ConfirmDialog
+        open={stopping}
+        title={ANUNT_LIST_COPY.stopTitle}
+        message={ANUNT_LIST_COPY.stopMessage}
+        confirmLabel={ANUNT_LIST_COPY.stop}
+        tone="default"
+        busy={stopBusy}
+        error={stopError}
+        onCancel={() => {
+          if (stopBusy) return;
+          setStopping(false);
+          setStopError(null);
+        }}
+        onConfirm={confirmStop}
       />
       <UnsavedGuard when={form.dirty} />
     </AdminPage>

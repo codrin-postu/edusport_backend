@@ -36,6 +36,8 @@ export interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
   /** Accessible name of each clickable row. */
   rowLabel?: (row: T) => string;
+  /** Extra attributes of a row, e.g. the drop-target props of a drag reorder. `index` is the place among the rows shown. */
+  rowProps?: (row: T, index: number) => React.HTMLAttributes<HTMLTableRowElement>;
   loading?: boolean;
   /** Text (or node) when there are no rows at all. */
   empty?: React.ReactNode;
@@ -79,6 +81,7 @@ export function DataTable<T>({
   getRowKey,
   onRowClick,
   rowLabel,
+  rowProps,
   loading = false,
   empty = 'Nu există înregistrări.',
   noMatches = 'Niciun rezultat pentru căutare.',
@@ -180,24 +183,24 @@ export function DataTable<T>({
               </tr>
             </thead>
             <tbody>
-              {visible.map((row) => (
+              {visible.map((row, index) => {
+                const extra = rowProps?.(row, index);
+                return (
                 <tr
+                  {...extra}
                   key={getRowKey(row)}
                   className={onRowClick ? 'ui-table-click' : undefined}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   tabIndex={onRowClick ? 0 : undefined}
                   aria-label={onRowClick && rowLabel ? rowLabel(row) : undefined}
-                  onKeyDown={
-                    onRowClick
-                      ? (e) => {
-                          if (e.target !== e.currentTarget) return;
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            onRowClick(row);
-                          }
-                        }
-                      : undefined
-                  }
+                  onKeyDown={(e) => {
+                    extra?.onKeyDown?.(e);
+                    if (!onRowClick || e.defaultPrevented || e.target !== e.currentTarget) return;
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onRowClick(row);
+                    }
+                  }}
                 >
                   {columns.map((c) => (
                     <td key={c.key} style={{ textAlign: c.align }} className={c.className}>
@@ -205,7 +208,8 @@ export function DataTable<T>({
                     </td>
                   ))}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

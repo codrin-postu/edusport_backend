@@ -80,3 +80,23 @@ export const IconWarning = ({ size = 14 }: P) =>
       <rect x="6.25" y="9.4" width="1.5" height="1.5" fill="currentColor" />
     </>,
   );
+
+/** Globe in a square frame: a meridian and an equator (no round shapes). Place it at 16px. */
+export const IconGlobe = ({ size = 16 }: P) =>
+  svg(
+    size,
+    <>
+      <rect x="1.75" y="1.75" width="10.5" height="10.5" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M7 1.75v10.5M1.75 7h10.5M4.4 1.75c-1 2.9-1 7.6 0 10.5M9.6 1.75c1 2.9 1 7.6 0 10.5" stroke="currentColor" strokeWidth="1.1" />
+    </>,
+  );
+
+/** Person: a square head over square shoulders (no round shapes). Place it at 16px. */
+export const IconUser = ({ size = 16 }: P) =>
+  svg(
+    size,
+    <>
+      <rect x="4.75" y="1.75" width="4.5" height="4.5" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M2 12.25v-2.5h10v2.5" stroke="currentColor" strokeWidth="1.3" />
+    </>,
+  );

@@ -2,28 +2,27 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { ANUNT_EDIT_TO } from './menu';
-import { ConfirmDialog } from '../ConfirmDialog';
-import { AdminPage, Window, PageHeader, Button, StatusBadge, Notice, EmptyState, Loading, adminToast } from '../ui';
+import { AutoNoticeView } from './anunturi/AutoNoticeView';
+import { AdminPage, Window, PageHeader, Button, DataTable, FilterPanel, StatusBadge, Notice, EmptyState, Loading, adminToast, useDragReorder, moveItem, type DataColumn, type FilterSection } from '../ui';
+import { IconGlobe, IconGrip, IconUser } from '../ui/icons';
+import { useAreas } from '../lib/useAreas';
+import { ANUNT_LIST_COPY, filterRows, type ListRow, type PlaceState, type PortalSummary, type RowState, type Where } from '../../club/anunturi/portal-history';
+import { countWords } from '../../club/ro-count';
 
 /**
- * EduSport admin — "Anunțuri" list page.
+ * EduSport admin, "Anunțuri" list page.
  *
  * Data source is the custom admin API (`/api/anunturi`, auth:false +
  * `global::has-role`), NOT the content-manager: the announcement content type is
- * hidden from the content-manager on purpose, and the list endpoint additionally
- * decorates every row with its Umami stats and its computed group.
+ * hidden from the content-manager on purpose. The answer carries `data` (the full
+ * announcement rows, which the editor reads) and `list` (the rows of this table:
+ * announcements and the automatic messages, already ordered).
  *
- * Three groups, exactly as approved in `.mockups/announcements.html` §02:
- *   - Active acum  — drag ⠿ to reorder; row 1 is the one actually on the site;
- *   - Programate   — ordered by start date, no drag (the dates decide);
- *   - Încheiate    — archive with final numbers.
- *
- * NOT a DataTable: the active group is hand-ordered by drag/keyboard (the order
- * itself is the data, persisted via /reorder), and rows are split into three
- * named groups rather than one sortable/searchable/paginated set. DataTable's
- * generic model (search box, column sort, page slicing) has no place to hang a
- * drag handle or a group header, so this page keeps its bespoke list and only
- * moves page chrome, chips and messaging onto the shared components.
+ * One table, no tabs (approved board "Anunțuri: tabel cu titluri, Stare și Rezultat"):
+ * Anunț, Unde (globe = site, person = portal, in fixed slots), Pentru, Perioadă, Stare,
+ * Rezultat. The rows that hold a place in the site order carry a grip; a row opens the
+ * editor, an automatic one a read-only detail. The rules (states, order, filter, texts)
+ * live in src/club/anunturi/portal-history.ts.
  *
  * CSS NOTE: every class this page introduces is prefixed `anun-`, tokens only
  * (var(--theme-*), var(--ui-*)).
@@ -69,6 +68,8 @@ export interface Anunt {
   portalAuthor: string | null;
   group: AnuntGroup;
   stats: AnuntStats | null;
+  /** Counts of the notice made for the portal; null when it was never sent there. */
+  portal: PortalSummary | null;
 }
 
 /**
@@ -103,230 +104,89 @@ export function slugifyRo(input: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Formatting
-// ---------------------------------------------------------------------------
-
-const NUM = new Intl.NumberFormat('ro-RO');
-
-/** "2026-09-20T10:00:00.000Z" -> "20.09" */
-function dayMonth(iso?: string | null): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-/** The schedule window, phrased per group, as in the mockup. */
-function windowLabel(a: Anunt): string {
-  if (a.group === 'scheduled') return `${dayMonth(a.startAt)} – ${dayMonth(a.endAt)}`;
-  if (a.group === 'past') return `încheiat ${dayMonth(a.endAt)}`;
-  return `până ${dayMonth(a.endAt)}`;
-}
-
-/** First line of the message, trimmed to a row-sized snippet. */
-function snippet(message?: string | null): string {
-  const s = (message ?? '').replace(/\s+/g, ' ').trim();
-  if (!s) return '';
-  return s.length > 92 ? `${s.slice(0, 91)}…` : s;
-}
-
-function ctrLabel(ctr: number): string {
-  return `${(ctr * 100).toFixed(1).replace('.', ',')}%`;
-}
-
-// ---------------------------------------------------------------------------
-// Page CSS — tokens only, every selector namespaced under `.ui-root .anun-*`
+// Page CSS, tokens only, every selector namespaced under `.ui-root .anun-*`
 // ---------------------------------------------------------------------------
 
 const ANUN_CSS = `
-.ui-root .anun-grp{margin-bottom:20px}
-.ui-root .anun-grp:last-child{margin-bottom:0}
-.ui-root .anun-grp-h{display:flex;align-items:center;gap:9px;margin:0 0 8px}
-.ui-root .anun-grp-h .anun-t{font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--theme-text-muted)}
-.ui-root .anun-grp-h .anun-n{font-size:11px;font-weight:700;color:var(--theme-text-muted);font-variant-numeric:tabular-nums}
-
-.ui-root .anun-rows{background:var(--theme-surface);border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);overflow:hidden}
-.ui-root .anun-none{padding:16px 14px;font-size:12.5px;color:var(--theme-text-muted)}
-
-.ui-root .anun-row{display:flex;align-items:center;gap:13px;padding:11px 14px;border-bottom:1px solid var(--theme-border-subtle);font-size:13px;cursor:pointer}
-.ui-root .anun-row:last-child{border-bottom:none}
-.ui-root .anun-row:hover{background:var(--theme-surface-subtle)}
-.ui-root .anun-row.is-live{background:var(--theme-primary-soft)}
-.ui-root .anun-row.is-live:hover{background:var(--theme-primary-soft)}
-/* Active but held back by the row above: warm tint + a red left edge, so "not on
-   the site right now" reads without counting positions. */
-.ui-root .anun-row.is-waiting{background:var(--theme-danger-bg);box-shadow:inset 3px 0 0 var(--theme-danger-border)}
-.ui-root .anun-row.is-waiting:hover{background:var(--theme-danger-bg)}
-.ui-root .anun-row.is-paused .anun-nm,.ui-root .anun-row.is-paused .anun-win{opacity:.55}
-.ui-root .anun-row.is-past{color:var(--theme-text-muted)}
-.ui-root .anun-row.is-dragging{opacity:.4}
-.ui-root .anun-row.is-over{box-shadow:inset 0 2px 0 var(--theme-primary)}
-
-.ui-root .anun-grab{border:none;background:none;padding:0 2px;color:var(--theme-text-muted);font-size:13px;letter-spacing:-2px;cursor:grab;line-height:1;flex-shrink:0}
-.ui-root .anun-grab:focus-visible{outline:2px solid var(--theme-focus);outline-offset:2px;border-radius:var(--ui-radius-sm);color:var(--theme-primary)}
+.ui-root .anun-title{color:var(--theme-text);font-weight:650}
+.ui-root .anun-title .ui-badge{margin-left:8px;vertical-align:1px}
+.ui-root .anun-sub{display:block;margin-top:2px;font-size:11.5px;color:var(--theme-text-muted)}
+.ui-root .anun-pl{display:flex;align-items:center;gap:10px}
+.ui-root .anun-slot{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;color:var(--theme-text-muted)}
+.ui-root .anun-slot.is-active{color:var(--theme-primary)}
+.ui-root .anun-res{display:block;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ui-root .anun-grab{border:none;background:none;padding:2px;color:var(--theme-text-muted);cursor:grab;line-height:0;display:inline-flex}
+.ui-root .anun-grab:hover{color:var(--theme-text)}
+.ui-root .anun-grab:focus-visible{outline:2px solid var(--theme-focus);outline-offset:2px;color:var(--theme-primary)}
 .ui-root .anun-grab:active{cursor:grabbing}
-.ui-root .anun-grab:disabled{cursor:default}
-
-.ui-root .anun-pri{width:19px;height:19px;border-radius:var(--ui-radius-sm);background:var(--theme-primary);color:var(--theme-on-primary);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-variant-numeric:tabular-nums}
-
-.ui-root .anun-nm{font-weight:650;flex:1;min-width:0}
-.ui-root .anun-nm .anun-sub{display:block;font-weight:400;font-size:11.5px;color:var(--theme-text-muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ui-root .anun-win{font-size:11.5px;color:var(--theme-text-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
-.ui-root .anun-stat{font-size:11.5px;color:var(--theme-text-secondary);white-space:nowrap;font-variant-numeric:tabular-nums;min-width:118px;text-align:right}
-.ui-root .anun-stat b{font-weight:700}
+.ui-root .anun-portal{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.ui-root .anun-auto-rows{margin:0;padding:0;list-style:none;display:grid;gap:4px}
 `;
 
 // ---------------------------------------------------------------------------
-// Row
+// Cells
 // ---------------------------------------------------------------------------
 
-interface RowProps {
-  a: Anunt;
-  /** 1-based badge, or null for the groups that show a "—" badge. */
-  rank: number | null;
-  isLive: boolean;
-  draggable: boolean;
-  dragging: boolean;
-  over: boolean;
-  onOpen: () => void;
-  onDelete: () => void;
-  onGrabDown: () => void;
-  onGrabUp: () => void;
-  onGrabKey: (e: React.KeyboardEvent) => void;
-  onDragStart: (e: React.DragEvent) => void;
-  onDragOver: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent) => void;
-  onDragEnd: () => void;
-}
+const copy = ANUNT_LIST_COPY;
+const NUM_DASH = copy.none;
 
-function AnuntRow({
-  a,
-  rank,
-  isLive,
-  draggable,
-  dragging,
-  over,
-  onOpen,
-  onDelete,
-  onGrabDown,
-  onGrabUp,
-  onGrabKey,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
-}: RowProps) {
-  const paused = a.group === 'active' && a.isActive === false;
-  // In the active group only the top non-paused row reaches the site. Everything
-  // else here is scheduled to be visible right now but is being held back by the
-  // one above it, which is not obvious from the order alone.
-  const waiting = a.group === 'active' && !isLive;
+const STATE_TONE: Record<RowState, 'success' | 'info' | 'neutral'> = { active: 'success', waiting: 'info', ended: 'neutral', stopped: 'neutral' };
 
-  const cls = [
-    'anun-row',
-    isLive ? 'is-live' : '',
-    waiting ? 'is-waiting' : '',
-    paused ? 'is-paused' : '',
-    a.group === 'past' ? 'is-past' : '',
-    dragging ? 'is-dragging' : '',
-    over ? 'is-over' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-
+/** Globe left, person right: each has its own slot, so an empty one keeps the space and the icons line up down the column. */
+function PlaceIcon({ place, state }: { place: 'site' | 'portal'; state: PlaceState }) {
+  const label = copy.placeLabel(place, state);
   return (
-    <div
-      className={cls}
-      onClick={onOpen}
-      draggable={draggable}
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onDragEnd={onDragEnd}
-    >
-      {a.group === 'active' && (
-        <button
-          type="button"
-          className="anun-grab"
-          aria-label={`Reordonează "${a.title ?? ''}". Trage, sau folosește săgețile sus și jos.`}
-          title="Trage ca să schimbi ordinea (sau săgeți sus/jos)"
-          onMouseDown={onGrabDown}
-          onMouseUp={onGrabUp}
-          onKeyDown={onGrabKey}
-          onClick={(e) => e.stopPropagation()}
-        >
-          ⠿
-        </button>
-      )}
-
-      {/* Only the active group is ordered, so only it gets a rank badge. The
-          other two groups are ordered by date and used to show a placeholder
-          dash, which read as a broken cell. */}
-      {rank !== null && (
-        <span className="anun-pri" aria-hidden="true">
-          {rank}
-        </span>
-      )}
-
-      <span className="anun-nm">
-        {a.title || '(fără titlu)'}
-        <span className="anun-sub">{snippet(a.message)}</span>
-      </span>
-
-      {/* No chip for the live row: active is the default, and the highlighted
-          row already says which one is on the site. Only the exceptions are
-          labelled. */}
-      {paused && <StatusBadge tone="warning">inactiv</StatusBadge>}
-      {waiting && !paused && <StatusBadge tone="danger">în așteptare</StatusBadge>}
-      {a.group === 'scheduled' && <StatusBadge tone="info">din {dayMonth(a.startAt)}</StatusBadge>}
-      {a.group === 'past' && <StatusBadge tone="neutral">încheiat</StatusBadge>}
-      <StatusBadge tone="primary">{a.format === 'modal' ? 'modal' : 'card'}</StatusBadge>
-
-      <span className="anun-win">{windowLabel(a)}</span>
-
-      {/* No figures yet (or no Umami) renders nothing at all — a lone dash reads
-          as a broken column rather than as "this has not run yet". */}
-      <span className="anun-stat">
-        {a.stats && (
-          <>
-            <b>{NUM.format(a.stats.views)}</b> văzut · <b>{NUM.format(a.stats.clicks)}</b> click ·{' '}
-            {ctrLabel(a.stats.ctr)}
-          </>
-        )}
-      </span>
-
-      <Button
-        variant="ghost"
-        size="sm"
-        title="Șterge anunțul"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-      >
-        Șterge
-      </Button>
-    </div>
+    <span className={`anun-slot${state === 'active' ? ' is-active' : ''}`} title={state === null ? undefined : label} role={state === null ? undefined : 'img'} aria-label={state === null ? undefined : label}>
+      {state === null ? null : place === 'site' ? <IconGlobe /> : <IconUser />}
+    </span>
   );
 }
+
+const Places = ({ row }: { row: ListRow }) => (
+  <span className="anun-pl">
+    <PlaceIcon place="site" state={row.site} />
+    <PlaceIcon place="portal" state={row.portal} />
+  </span>
+);
+
+const Title = ({ row }: { row: ListRow }) => (
+  <>
+    <span className="anun-title">
+      {row.title || '(fără titlu)'}
+      {row.source === 'auto' && <StatusBadge>{copy.auto}</StatusBadge>}
+    </span>
+    {row.subline && <span className="anun-sub">{row.subline}</span>}
+  </>
+);
+
+const Results = ({ row }: { row: ListRow }) =>
+  row.results.length === 0 ? <span className="ui-muted">{NUM_DASH}</span> : <>{row.results.map((r) => <span key={r} className="anun-res">{r}</span>)}</>;
+
+const WHERE_OPTIONS = [
+  { value: 'site', label: copy.site },
+  { value: 'portal', label: copy.portal },
+];
 
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
 export default function AnunturiPage() {
-  const { get, del, put } = useFetchClient();
+  const { get, put } = useFetchClient();
   const navigate = useNavigate();
+  const areas = useAreas();
 
-  const [rows, setRows] = React.useState<Anunt[]>([]);
+  const [rows, setRows] = React.useState<ListRow[]>([]);
   const [umami, setUmami] = React.useState<UmamiState>('ok');
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
-  const [status, setStatus] = React.useState('');
+  const [where, setWhere] = React.useState<Where>('toate');
+  const [auto, setAuto] = React.useState<ListRow | null>(null);
+  const [reordering, setReordering] = React.useState(false);
 
   const applyList = React.useCallback((payload: any) => {
-    const data = payload?.data?.data ?? payload?.data ?? [];
-    setRows(Array.isArray(data) ? data : []);
+    const list = payload?.data?.list ?? payload?.list ?? [];
+    setRows(Array.isArray(list) ? list : []);
     const u = payload?.data?.umami ?? payload?.umami;
     setUmami(u === 'ok' || u === 'not_configured' || u === 'error' ? u : 'error');
   }, []);
@@ -350,113 +210,65 @@ export default function AnunturiPage() {
     };
   }, [get, applyList]);
 
-  const active = React.useMemo(() => rows.filter((r) => r.group === 'active'), [rows]);
-  const scheduled = React.useMemo(() => rows.filter((r) => r.group === 'scheduled'), [rows]);
-  const past = React.useMemo(() => rows.filter((r) => r.group === 'past'), [rows]);
+  const shown = React.useMemo(() => filterRows(rows, where), [rows, where]);
+  const ordered = React.useMemo(() => rows.filter((r) => r.reorderable), [rows]);
 
-  // The row the site actually renders: first ACTIVE row that is not paused.
-  const liveId = React.useMemo(() => active.find((r) => r.isActive !== false)?.documentId ?? null, [active]);
-
-  const openEdit = (documentId: string) => navigate(`${ANUNT_EDIT_TO}?id=${documentId}`);
-
-  // -- reorder ---------------------------------------------------------------
-
-  const [handleIdx, setHandleIdx] = React.useState<number | null>(null);
-  const [dragIdx, setDragIdx] = React.useState<number | null>(null);
-  const [overIdx, setOverIdx] = React.useState<number | null>(null);
-  const [reordering, setReordering] = React.useState(false);
-
-  const resetDrag = () => {
-    setHandleIdx(null);
-    setDragIdx(null);
-    setOverIdx(null);
-  };
+  const openRow = (r: ListRow) => (r.source === 'auto' ? setAuto(r) : navigate(`${ANUNT_EDIT_TO}?id=${r.id}`));
 
   /**
-   * Optimistic reorder: move `from` to `to` inside the active group, renumber
-   * priority 1..n locally so the badges update immediately, then persist. The
-   * server answers with the whole refreshed list; on failure we put the previous
-   * rows back so the UI never claims an order the database does not hold.
+   * Optimistic reorder inside the rows that hold a place in the site order (they come first in the list). The server answers with the whole
+   * refreshed list; on failure the previous rows come back so the page never claims an order the database does not hold.
    */
-  const moveActive = React.useCallback(
+  const move = React.useCallback(
     async (from: number, to: number) => {
-      if (from === to || from < 0 || to < 0 || from >= active.length || to >= active.length) return;
-
       const previous = rows;
-      const next = active.slice();
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
-      const renumbered = next.map((r, i) => ({ ...r, priority: i + 1 }));
-
-      setRows([...renumbered, ...scheduled, ...past]);
-      setStatus(`"${moved.title ?? ''}" mutat pe poziția ${to + 1} din ${next.length}.`);
+      const next = moveItem(ordered, from, to);
+      setRows([...next, ...rows.filter((r) => !r.reorderable)]);
       setReordering(true);
       try {
-        const res: any = await put(`${ANUNT_API}/reorder`, {
-          order: renumbered.map((r) => r.documentId),
-        });
-        applyList(res);
+        applyList(await put(`${ANUNT_API}/reorder`, { order: next.map((r) => r.id) }));
       } catch (err) {
         setRows(previous);
-        setStatus('');
         adminToast.error(anuntErrorMessage(err, 'Reordonarea a eșuat. Ordinea a fost restaurată.'));
       } finally {
         setReordering(false);
       }
     },
-    [rows, active, scheduled, past, put, applyList],
+    [rows, ordered, put, applyList],
   );
+  const drag = useDragReorder({ count: ordered.length, onMove: move, disabled: where !== 'toate' || reordering });
 
-  const onGrabKey = (i: number) => (e: React.KeyboardEvent) => {
-    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
-    e.preventDefault();
-    e.stopPropagation();
-    if (reordering) return;
-    const to = e.key === 'ArrowUp' ? i - 1 : i + 1;
-    if (to < 0 || to >= active.length) return;
-    void moveActive(i, to);
-    // Keep the keyboard on the handle that just moved.
-    const el = e.currentTarget as HTMLElement;
-    window.setTimeout(() => {
-      const handles = el.closest('.anun-rows')?.querySelectorAll<HTMLElement>('.anun-grab');
-      handles?.[to]?.focus();
-    }, 0);
-  };
+  const columns: DataColumn<ListRow>[] = [
+    {
+      key: 'grip', header: <span className="ui-sr">Ordine</span>, width: '1%',
+      render: (r) => {
+        const i = ordered.indexOf(r);
+        if (i < 0) return null;
+        return (
+          <button type="button" className="anun-grab" aria-label={`Reordonează "${r.title}"`} {...drag.handleProps(i)} onClick={(e) => e.stopPropagation()}>
+            <IconGrip />
+          </button>
+        );
+      },
+    },
+    { key: 'title', header: 'Anunț', width: '30%', render: (r) => <Title row={r} /> },
+    { key: 'where', header: copy.filterWhere, width: '1%', render: (r) => <Places row={r} /> },
+    { key: 'audience', header: 'Pentru', render: (r) => r.audience },
+    { key: 'period', header: 'Perioadă', render: (r) => <span className="ui-muted">{r.period}</span> },
+    { key: 'state', header: 'Stare', render: (r) => <StatusBadge tone={STATE_TONE[r.state]}>{copy.states[r.state]}</StatusBadge> },
+    { key: 'results', header: 'Rezultat', width: '24%', render: (r) => <Results row={r} /> },
+  ];
 
-  // -- delete ----------------------------------------------------------------
-
-  const [target, setTarget] = React.useState<Anunt | null>(null);
-  const [deleting, setDeleting] = React.useState(false);
-  const [delError, setDelError] = React.useState<string | null>(null);
-
-  const closeConfirm = React.useCallback(() => {
-    if (deleting) return;
-    setTarget(null);
-    setDelError(null);
-  }, [deleting]);
-
-  const confirmDelete = async () => {
-    if (!target) return;
-    setDeleting(true);
-    setDelError(null);
-    try {
-      await del(`${ANUNT_API}/${target.documentId}`);
-      setRows((rs) => rs.filter((r) => r.documentId !== target.documentId));
-      setTarget(null);
-    } catch (err) {
-      setDelError(anuntErrorMessage(err, 'Ștergerea a eșuat.'));
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  // -- render ----------------------------------------------------------------
+  const sections: FilterSection[] = [
+    { key: 'where', label: copy.filterWhere, options: WHERE_OPTIONS, selected: where === 'toate' ? [] : [where], single: true, allLabel: copy.filterAll },
+  ];
+  const count = countWords(shown.length, 'anunț', 'anunțuri');
 
   const umamiNote =
     umami === 'not_configured'
-      ? 'Umami nu este configurat, așa că nu avem de unde citi cifrele. Coloana de statistici arată "—", nu zero. Anunțurile pot fi văzute și apăsate fără ca noi să știm.'
+      ? 'Umami nu este configurat, așa că vizualizările site-ului nu apar.'
       : umami === 'error'
-        ? 'Nu am putut citi statisticile din Umami. Coloana arată "—" până când conexiunea revine; restul paginii funcționează normal.'
+        ? 'Nu am putut citi vizualizările din Umami. Restul paginii funcționează normal.'
         : null;
 
   return (
@@ -466,168 +278,47 @@ export default function AnunturiPage() {
       <Window>
         <PageHeader
           title="Anunțuri"
-          subtitle="Un singur anunț e vizibil pe site — primul din lista de mai jos. Apasă un rând pentru a edita."
-          actions={<Button onClick={() => navigate(ANUNT_EDIT_TO)}>+ Anunț nou</Button>}
+          subtitle="Anunțuri pe site și pe portalul sportivilor."
+          actions={
+            <>
+              <FilterPanel
+                sections={sections}
+                onChange={(_key, selected) => setWhere((selected[0] as Where | undefined) ?? 'toate')}
+                onClearAll={() => setWhere('toate')}
+                totalLabel={count}
+                showLabel={`Arată ${count}`}
+              />
+              <Button onClick={() => navigate(ANUNT_EDIT_TO)}>+ Anunț nou</Button>
+            </>
+          }
         />
 
         {loading ? (
           <Loading />
         ) : error ? (
           <EmptyState>Nu am putut încărca anunțurile.</EmptyState>
-        ) : rows.length === 0 ? (
-          <EmptyState>Niciun anunț încă. Apasă "+ Anunț nou" ca să creezi primul.</EmptyState>
         ) : (
           <>
             {umamiNote && <Notice tone="info">{umamiNote}</Notice>}
-
-            <div className="anun-grp">
-              <div className="anun-grp-h">
-                <span className="anun-t">Active acum</span>
-                <span className="anun-n">{active.length}</span>
-              </div>
-              {active.length === 0 ? (
-                <div className="anun-rows">
-                  <div className="anun-none">Niciun anunț activ în acest moment.</div>
-                </div>
-              ) : (
-                <div className="anun-rows">
-                  {active.map((a, i) => (
-                    <AnuntRow
-                      key={a.documentId}
-                      a={a}
-                      rank={i + 1}
-                      isLive={a.documentId === liveId}
-                      draggable={handleIdx === i && !reordering}
-                      dragging={dragIdx === i}
-                      over={overIdx === i && dragIdx !== null && dragIdx !== i}
-                      onOpen={() => openEdit(a.documentId)}
-                      onDelete={() => {
-                        setDelError(null);
-                        setTarget(a);
-                      }}
-                      onGrabDown={() => setHandleIdx(i)}
-                      onGrabUp={() => setHandleIdx(null)}
-                      onGrabKey={onGrabKey(i)}
-                      onDragStart={(e) => {
-                        setDragIdx(i);
-                        e.dataTransfer.effectAllowed = 'move';
-                        // Firefox refuses to start a drag without payload.
-                        e.dataTransfer.setData('text/plain', String(i));
-                      }}
-                      onDragOver={(e) => {
-                        if (dragIdx === null) return;
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = 'move';
-                        if (overIdx !== i) setOverIdx(i);
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const from = dragIdx;
-                        resetDrag();
-                        if (from !== null) void moveActive(from, i);
-                      }}
-                      onDragEnd={resetDrag}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {scheduled.length > 0 && (
-              <div className="anun-grp">
-                <div className="anun-grp-h">
-                  <span className="anun-t">Programate</span>
-                  <span className="anun-n">{scheduled.length}</span>
-                </div>
-                <div className="anun-rows">
-                  {scheduled.map((a) => (
-                    <AnuntRow
-                      key={a.documentId}
-                      a={a}
-                      rank={null}
-                      isLive={false}
-                      draggable={false}
-                      dragging={false}
-                      over={false}
-                      onOpen={() => openEdit(a.documentId)}
-                      onDelete={() => {
-                        setDelError(null);
-                        setTarget(a);
-                      }}
-                      onGrabDown={() => {}}
-                      onGrabUp={() => {}}
-                      onGrabKey={() => {}}
-                      onDragStart={() => {}}
-                      onDragOver={() => {}}
-                      onDrop={() => {}}
-                      onDragEnd={() => {}}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {past.length > 0 && (
-              <div className="anun-grp">
-                <div className="anun-grp-h">
-                  <span className="anun-t">Încheiate</span>
-                  <span className="anun-n">{past.length}</span>
-                </div>
-                <div className="anun-rows">
-                  {past.map((a) => (
-                    <AnuntRow
-                      key={a.documentId}
-                      a={a}
-                      rank={null}
-                      isLive={false}
-                      draggable={false}
-                      dragging={false}
-                      over={false}
-                      onOpen={() => openEdit(a.documentId)}
-                      onDelete={() => {
-                        setDelError(null);
-                        setTarget(a);
-                      }}
-                      onGrabDown={() => {}}
-                      onGrabUp={() => {}}
-                      onGrabKey={() => {}}
-                      onDragStart={() => {}}
-                      onDragOver={() => {}}
-                      onDrop={() => {}}
-                      onDragEnd={() => {}}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <p className="ui-muted" style={{ marginTop: 14, fontSize: 12 }}>
-              {rows.length} {rows.length === 1 ? 'anunț' : 'anunțuri'} · {active.length} active ·{' '}
-              {scheduled.length} programate · {past.length} încheiate
-            </p>
+            <DataTable
+              columns={columns}
+              rows={shown}
+              getRowKey={(r) => `${r.source}:${r.id}`}
+              onRowClick={openRow}
+              rowLabel={(r) => r.title}
+              rowProps={(r) => {
+                const i = ordered.indexOf(r);
+                return i < 0 ? {} : (drag.itemProps(i) as React.HTMLAttributes<HTMLTableRowElement>);
+              }}
+              pageSize={0}
+              empty={rows.length === 0 ? 'Niciun anunț încă. Apasă "+ Anunț nou" ca să creezi primul.' : 'Niciun anunț aici.'}
+            />
           </>
         )}
       </Window>
 
-      {/* Screen-reader feedback for keyboard reordering. */}
-      <div
-        aria-live="polite"
-        style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}
-      >
-        {status}
-      </div>
-
-      <ConfirmDialog
-        open={target !== null}
-        title="Ștergi anunțul?"
-        message={`"${target?.title ?? ''}" se șterge definitiv. Acțiunea nu poate fi anulată.`}
-        detail="Dacă vrei doar să nu mai apară pe site, treci-l pe Inactiv din editor — rămâne în listă cu statisticile lui."
-        busy={deleting}
-        error={delError}
-        onCancel={closeConfirm}
-        onConfirm={confirmDelete}
-      />
+      {drag.live}
+      {auto && <AutoNoticeView row={auto} canSeeAccounts={areas.has('club')} onClose={() => setAuto(null)} />}
     </AdminPage>
   );
 }

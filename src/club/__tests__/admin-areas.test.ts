@@ -5,7 +5,8 @@ import { describe, expect, it, vi } from 'vitest';
 // menu.tsx reaches the admin fetch client through AreaGate; the Strapi admin bundle does not load in vitest.
 vi.mock('@strapi/admin/strapi-admin', () => ({ getFetchClient: () => ({}) }));
 
-import { ADMIN_AREAS, type AdminArea } from '../admin-area';
+import { ADMIN_AREAS, areaOfRoute, type AdminArea } from '../admin-area';
+import anunturiRoutes from '../../api/announcement/routes/02-admin';
 import { areasFor, areasOfMe, ROLE_CODES } from '../roles/map';
 import { dashboardParts } from '../dashboard-parts';
 import { EDUSPORT_LINKS, visibleLinks } from '../../admin/dashboard/menu';
@@ -126,5 +127,22 @@ describe('super admin and coach accounts', () => {
   });
   it('AccountBlock renders only with coachAccounts', () => {
     expect(read('dashboard/portal/AccountBlock.tsx')).toContain("useAreas().has('coachAccounts') ? <AccountBlockBody");
+  });
+});
+
+describe('Anunțuri portal routes', () => {
+  const routes = (anunturiRoutes as { routes: { method: string; path: string; config: unknown }[] }).routes;
+  const area = (method: string, path: string) => areaOfRoute(routes.find((r) => r.method === method && r.path === path)?.config);
+  it('lists the accounts for the club area and stops a notice for the website area', () => {
+    expect(area('GET', '/anunturi/portal/:noticeId')).toBe('club');
+    expect(area('POST', '/anunturi/portal/:noticeId/stop')).toBe('website');
+  });
+  it('declares both before the parameter route', () => {
+    const at = (path: string) => routes.findIndex((r) => r.path === path);
+    expect(at('/anunturi/portal/:noticeId')).toBeLessThan(at('/anunturi/:documentId'));
+    expect(at('/anunturi/portal/:noticeId/stop')).toBeLessThan(at('/anunturi/:documentId'));
+  });
+  it('keeps the rest of Anunțuri on the website area', () => {
+    for (const r of routes.filter((x) => !x.path.startsWith('/anunturi/portal'))) expect(areaOfRoute(r.config)).toBe('website');
   });
 });
