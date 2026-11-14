@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import type { BreakDraft } from '../../../club/calendar/pauze-view';
 import type { BreakRecord } from '../../../club/groups/types';
-import type { BreakImpact } from '../../../club/calendar/break-impact';
+import type { BreakImpact } from '../../../club/calendar/break-impact-copy';
 import { grupeChanged } from '../grupe/undo';
 
 const BASE = '/api/club/breaks';

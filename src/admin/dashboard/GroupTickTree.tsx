@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Checkbox } from '../ui';
-import { groupLine } from '../../club/calendar/break-impact';
+import { groupLine } from '../../club/calendar/break-impact-copy';
 import { sectionState, tickedSessions, toggleGroup, toggleSection, type TickTree } from '../../club/calendar/group-ticks';
 import { countWords } from '../../club/ro-count';
 
