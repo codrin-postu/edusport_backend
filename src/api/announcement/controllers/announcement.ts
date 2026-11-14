@@ -14,6 +14,9 @@
  */
 import { errors } from '@strapi/utils';
 import { validateAnnouncement } from '../services/validate-announcement';
+import { adminActor } from '../../../club/admin-actor';
+import { groupTree, sortedUnique } from '../../../club/anunturi/view';
+import { strapiGroupStore } from '../../../club/groups/strapi-store';
 import { getAnnouncementStats, type AnnouncementStats } from '../services/announcement-stats';
 
 const UID = 'api::announcement.announcement';
@@ -32,7 +35,14 @@ const ADMIN_FIELDS = [
   'priority',
   'isActive',
   'dismissDays',
+  'showOnSite',
+  'showOnPortal',
+  'portalGroupIds',
+  'portalAuthor',
 ] as const;
+
+/** Set by the server from the signed-in admin, never taken from a request body. */
+const SERVER_FIELDS: readonly string[] = ['portalAuthor'];
 
 type Group = 'active' | 'scheduled' | 'past';
 
@@ -50,6 +60,10 @@ interface Row {
   priority: number | null;
   isActive: boolean | null;
   dismissDays: number | null;
+  showOnSite: boolean | null;
+  showOnPortal: boolean | null;
+  portalGroupIds: string[] | null;
+  portalAuthor: string | null;
   group: Group;
   stats: AnnouncementStats | null;
 }
@@ -99,8 +113,10 @@ function fail(ctx: any, err: unknown): void {
 function pickWritable(body: any): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const f of ADMIN_FIELDS) {
+    if (SERVER_FIELDS.includes(f)) continue;
     if (body && Object.prototype.hasOwnProperty.call(body, f)) out[f] = body[f];
   }
+  if (Array.isArray(out.portalGroupIds)) out.portalGroupIds = sortedUnique(out.portalGroupIds.map(String));
   return out;
 }
 
@@ -125,6 +141,10 @@ async function buildRows(strapi: any): Promise<{ data: Row[]; umami: string }> {
     priority: e.priority ?? null,
     isActive: e.isActive ?? null,
     dismissDays: e.dismissDays ?? null,
+    showOnSite: e.showOnSite ?? null,
+    showOnPortal: e.showOnPortal ?? null,
+    portalGroupIds: Array.isArray(e.portalGroupIds) ? e.portalGroupIds : null,
+    portalAuthor: e.portalAuthor ?? null,
     group: groupOf(e, now),
     stats: (e.slug && stats.bySlug.get(e.slug)) || null,
   }));
@@ -147,6 +167,7 @@ export default {
     const found = await strapi.documents(UID).findMany({
       filters: {
         isActive: true,
+        showOnSite: { $ne: false },
         startAt: { $lte: now },
         endAt: { $gte: now },
       },
@@ -166,6 +187,7 @@ export default {
     const data = pickWritable(ctx.request?.body?.data ?? ctx.request?.body);
     try {
       validateAnnouncement(data, true);
+      if (data.showOnPortal === true) data.portalAuthor = await adminActor(ctx.request?.header?.authorization, strapi as any);
       const created = await strapi
         .documents(UID)
         .create({ data: data as any, fields: [...ADMIN_FIELDS] });
@@ -191,6 +213,13 @@ export default {
     } catch (err) {
       fail(ctx, err);
     }
+  },
+
+  /** Admin: the sections and active groups an announcement can be aimed at (names only). */
+  async groups(ctx: any) {
+    const store = strapiGroupStore(strapi);
+    const [groups, sections] = await Promise.all([store.groups(), store.sections()]);
+    ctx.body = { data: groupTree(groups, sections) };
   },
 
   async deleteAnnouncement(ctx: any) {

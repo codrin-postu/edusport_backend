@@ -611,8 +611,12 @@ export interface ApiAnnouncementAnnouncement
     > &
       Schema.Attribute.Private;
     message: Schema.Attribute.Text & Schema.Attribute.Required;
+    portalAuthor: Schema.Attribute.String;
+    portalGroupIds: Schema.Attribute.JSON;
     priority: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<100>;
     publishedAt: Schema.Attribute.DateTime;
+    showOnPortal: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    showOnSite: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
     slug: Schema.Attribute.UID<'title'> & Schema.Attribute.Required;
     startAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
     title: Schema.Attribute.String & Schema.Attribute.Required;

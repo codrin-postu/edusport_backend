@@ -63,6 +63,10 @@ export interface Anunt {
   priority: number | null;
   isActive: boolean | null;
   dismissDays: number | null;
+  showOnSite: boolean | null;
+  showOnPortal: boolean | null;
+  portalGroupIds: string[] | null;
+  portalAuthor: string | null;
   group: AnuntGroup;
   stats: AnuntStats | null;
 }

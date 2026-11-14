@@ -63,6 +63,20 @@
     "dismissDays": {
       "type": "integer",
       "default": 7
+    },
+    "showOnSite": {
+      "type": "boolean",
+      "default": true
+    },
+    "showOnPortal": {
+      "type": "boolean",
+      "default": false
+    },
+    "portalGroupIds": {
+      "type": "json"
+    },
+    "portalAuthor": {
+      "type": "string"
     }
   }
 }

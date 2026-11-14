@@ -14,6 +14,7 @@ import {
   TimeInput,
   NumberInput,
   SegmentedControl,
+  Checkbox,
   Button,
   Notice,
   Loading,
@@ -27,6 +28,10 @@ import {
 import { usePageForm } from '../lib';
 import { ANUNTURI_TO, ANUNT_EDIT_TO } from './menu';
 import { ConfirmDialog } from '../ConfirmDialog';
+import { GroupTickTree } from './GroupTickTree';
+import { GRUPE_CSS } from './grupe/styles';
+import { chosenOfExcept, exceptOfChosen, siteFieldsShown } from '../../club/anunturi/view';
+import type { TickTree } from '../../club/calendar/group-ticks';
 import { ANUNT_API, anuntErrorMessage, slugifyRo, type Anunt } from './AnunturiPage';
 
 /**
@@ -63,6 +68,10 @@ interface FormState {
   endMinute: number;
   isActive: boolean;
   dismissDays: number;
+  showOnSite: boolean;
+  showOnPortal: boolean;
+  allGroups: boolean;
+  portalGroupIds: string[];
 }
 
 const EMPTY: FormState = {
@@ -80,11 +89,19 @@ const EMPTY: FormState = {
   endMinute: 59,
   isActive: true,
   dismissDays: 7,
+  showOnSite: true,
+  showOnPortal: false,
+  allGroups: true,
+  portalGroupIds: [],
 };
 
 const FORMAT_OPTIONS = [
   { value: 'card', label: 'Card în colț' },
   { value: 'modal', label: 'Modal în centru' },
+] as const;
+const AUDIENCE_OPTIONS = [
+  { value: 'all', label: 'Toate grupele' },
+  { value: 'some', label: 'Grupe alese' },
 ] as const;
 const STATE_OPTIONS = [
   { value: 'on', label: 'Activ' },
@@ -120,18 +137,12 @@ function splitIso(iso: string | null | undefined, fallbackHour: number, fallback
   return { date: dateToYMD(d), hour: d.getHours(), minute: d.getMinutes() };
 }
 
-/** "reapare după 7 zile" / "nu mai reapare", shown live under the field. */
-function dismissHint(days: number): string {
-  if (!Number.isFinite(days) || days < 0) return '';
-  if (days === 0) return 'Nu mai reapare: odată închis de un vizitator, nu îl mai vede niciodată.';
-  if (days === 1) return 'Reapare după o zi de la momentul în care vizitatorul l-a închis.';
-  return `Reapare după ${days} zile de la momentul în care vizitatorul l-a închis.`;
-}
-
-type Problem = { field: 'title' | 'message' | 'dates' | 'days'; text: string };
+type Problem = { field: 'title' | 'message' | 'dates' | 'days' | 'places' | 'groups'; text: string };
 
 /** Local mirror of the server rules, so the obvious mistakes never round-trip. */
 function localValidation(f: FormState): Problem | null {
+  if (!f.showOnSite && !f.showOnPortal) return { field: 'places', text: 'Alege unde apare.' };
+  if (f.showOnPortal && !f.allGroups && f.portalGroupIds.length === 0) return { field: 'groups', text: 'Alege cel puțin o grupă.' };
   if (!f.title.trim()) return { field: 'title', text: 'Titlul anunțului este obligatoriu.' };
   if (!f.message.trim()) return { field: 'message', text: 'Mesajul anunțului este obligatoriu.' };
   const start = toIso(f.startDate, f.startHour, f.startMinute);
@@ -162,6 +173,10 @@ function toForm(a: Anunt): FormState {
     endMinute: e.minute,
     isActive: a.isActive !== false,
     dismissDays: typeof a.dismissDays === 'number' ? a.dismissDays : 7,
+    showOnSite: a.showOnSite !== false,
+    showOnPortal: a.showOnPortal === true,
+    allGroups: !Array.isArray(a.portalGroupIds),
+    portalGroupIds: Array.isArray(a.portalGroupIds) ? a.portalGroupIds : [],
   };
 }
 
@@ -189,6 +204,17 @@ export default function AnuntEditPage() {
   const [slug, setSlug] = React.useState('');
   const [takenSlugs, setTakenSlugs] = React.useState<string[]>([]);
   const loadedFor = React.useRef<string | null>(null);
+  const [tree, setTree] = React.useState<TickTree | null>(null);
+
+  React.useEffect(() => {
+    let off = false;
+    get(`${ANUNT_API}/groups`)
+      .then((res: any) => !off && setTree(res?.data?.data ?? null))
+      .catch(() => !off && setTree(null));
+    return () => {
+      off = true;
+    };
+  }, [get]);
 
   /**
    * There is no GET /anunturi/:id: the admin API exposes one list route that
@@ -265,6 +291,9 @@ export default function AnuntEditPage() {
       endAt: toIso(v.endDate, v.endHour, v.endMinute),
       isActive: v.isActive,
       dismissDays: v.dismissDays,
+      showOnSite: v.showOnSite,
+      showOnPortal: v.showOnPortal,
+      portalGroupIds: v.showOnPortal && !v.allGroups ? v.portalGroupIds : null,
     };
 
     let createdId: string | null = null;
@@ -329,6 +358,9 @@ export default function AnuntEditPage() {
   const ready = !loading && !error;
   const errFor = (field: Problem['field']) => (problem?.field === field ? problem.text : undefined);
 
+  /** The last ticked place stays ticked, so a save never has neither. */
+  const tickPlace = (place: 'showOnSite' | 'showOnPortal', on: boolean) => upd({ [place]: on } as Partial<FormState>);
+
   const setTime = (which: 'start' | 'end') => (t: string | null) => {
     const hm = t ? parseTimeText(t) : null;
     if (!hm) return;
@@ -337,12 +369,12 @@ export default function AnuntEditPage() {
 
   return (
     <AdminPage>
-      <style>{ANUNT_EDIT_CSS}</style>
+      <style>{GRUPE_CSS + ANUNT_EDIT_CSS}</style>
       <Window>
         <PageHeader
           back={{ to: ANUNTURI_TO, label: 'Anunțuri' }}
           title={isNew ? 'Anunț nou' : 'Editează anunțul'}
-          subtitle={isNew ? 'Completează textul și fereastra de afișare.' : loaded.title || 'Anunț'}
+          subtitle="Anunțuri pe site și pe portalul sportivilor."
           actions={
             ready && !isNew ? (
               <Button
@@ -368,67 +400,60 @@ export default function AnuntEditPage() {
         ) : (
           <div className="ui-body">
             <div className="anun-narrow ui-stack">
-              <Section title="Text">
+              <Section title="Unde apare">
                 <div className="ui-stack">
-                  <Field label="Etichetă mică (deasupra titlului)" hint="Apare cu roșu-cărămiziu, deasupra titlului. Opțional.">
-                    <Input value={v.eyebrow} onChange={(e) => upd({ eyebrow: e.target.value })} placeholder="ex. Înscrieri deschise" />
-                  </Field>
-                  <Field label="Titlu" required error={errFor('title')}>
-                    <Input value={v.title} onChange={(e) => upd({ title: e.target.value })} placeholder="ex. Sezonul 2026–2027" />
-                  </Field>
-                  {/*
-                    Plain textarea on purpose. A MarkdownEditor exists in this
-                    bundle, but `message` is a plain text field that the site
-                    renders as a paragraph: markdown typed here would reach the
-                    visitor as literal `**asterisks**`.
-                  */}
-                  <Field
-                    label="Mesaj"
-                    required
-                    error={errFor('message')}
-                    hint="Text simplu: cardul și modalul îl afișează ca un singur paragraf."
-                  >
-                    <Textarea
-                      rows={4}
-                      value={v.message}
-                      onChange={(e) => upd({ message: e.target.value })}
-                      placeholder="Două-trei rânduri. Text simplu, fără formatare."
-                    />
-                  </Field>
-                  <div className="ui-field">
-                    <span className="ui-label">Id de urmărire (Umami)</span>
-                    <div className="anun-ro">
-                      <code className="anun-slug">{previewSlug}</code>
-                      <span className="ui-hint">
-                        {isNew
-                          ? 'se generează automat din titlu la salvare'
-                          : 'fixat la creare, statisticile sunt grupate după el'}
-                      </span>
-                    </div>
-                  </div>
+                  <Checkbox
+                    label="Site"
+                    checked={v.showOnSite}
+                    disabled={v.showOnSite && !v.showOnPortal}
+                    onChange={(on) => tickPlace('showOnSite', on)}
+                  />
+                  <Checkbox
+                    label="Portal sportiv"
+                    checked={v.showOnPortal}
+                    disabled={v.showOnPortal && !v.showOnSite}
+                    onChange={(on) => tickPlace('showOnPortal', on)}
+                  />
+                  {errFor('places') && <div className="ui-error">{errFor('places')}</div>}
                 </div>
               </Section>
 
-              <Section title="Afișare">
-                <div className="ui-stack">
-                  <div className="ui-field">
-                    <span className="ui-label" id="anun-format-label">
-                      Format
-                    </span>
+              {v.showOnPortal && (
+                <Section title="Pentru cine">
+                  <div className="ui-stack">
                     <SegmentedControl
-                      aria-labelledby="anun-format-label"
-                      options={[...FORMAT_OPTIONS]}
-                      value={v.format}
-                      onChange={(format) => upd({ format })}
+                      aria-label="Pentru cine"
+                      options={[...AUDIENCE_OPTIONS]}
+                      value={v.allGroups ? 'all' : 'some'}
+                      onChange={(o) => upd({ allGroups: o === 'all' })}
                     />
-                    <div className="ui-hint">
-                      {v.format === 'card'
-                        ? 'Card discret jos-dreapta. Pentru mesaje obișnuite.'
-                        : 'Blochează pagina până la o acțiune. De folosit rar, pentru anunțuri importante.'}
-                    </div>
+                    {!v.allGroups && tree && (
+                      <GroupTickTree
+                        tree={tree}
+                        except={exceptOfChosen(tree, v.portalGroupIds)}
+                        onChange={(except) => upd({ portalGroupIds: chosenOfExcept(tree, except) })}
+                        counts={false}
+                      />
+                    )}
+                    {errFor('groups') && <div className="ui-error">{errFor('groups')}</div>}
                   </div>
+                </Section>
+              )}
 
-                  <div>
+              {siteFieldsShown(v) && (
+                <Section title="Afișare">
+                  <div className="ui-stack">
+                    <div className="ui-field">
+                      <span className="ui-label" id="anun-format-label">
+                        Format
+                      </span>
+                      <SegmentedControl
+                        aria-labelledby="anun-format-label"
+                        options={[...FORMAT_OPTIONS]}
+                        value={v.format}
+                        onChange={(format) => upd({ format })}
+                      />
+                    </div>
                     <FieldRow>
                       <Field label="Text buton">
                         <Input value={v.ctaLabel} onChange={(e) => upd({ ctaLabel: e.target.value })} placeholder="ex. Vezi detalii" />
@@ -437,8 +462,37 @@ export default function AnuntEditPage() {
                         <Input value={v.ctaUrl} onChange={(e) => upd({ ctaUrl: e.target.value })} placeholder="/inscriere" />
                       </Field>
                     </FieldRow>
-                    <div className="ui-hint">Lasă ambele goale dacă anunțul nu trimite nicăieri.</div>
                   </div>
+                </Section>
+              )}
+
+              <Section title="Text">
+                <div className="ui-stack">
+                  {siteFieldsShown(v) && (
+                    <Field label="Etichetă mică (deasupra titlului)">
+                      <Input value={v.eyebrow} onChange={(e) => upd({ eyebrow: e.target.value })} placeholder="ex. Înscrieri deschise" />
+                    </Field>
+                  )}
+                  <Field label="Titlu" required error={errFor('title')}>
+                    <Input value={v.title} onChange={(e) => upd({ title: e.target.value })} placeholder="ex. Sezonul 2026–2027" />
+                  </Field>
+                  {/* Plain textarea on purpose: `message` is plain text, markdown would reach the reader as literal asterisks. */}
+                  <Field label="Mesaj" required error={errFor('message')}>
+                    <Textarea
+                      rows={4}
+                      value={v.message}
+                      onChange={(e) => upd({ message: e.target.value })}
+                      placeholder="Două-trei rânduri. Text simplu, fără formatare."
+                    />
+                  </Field>
+                  {siteFieldsShown(v) && (
+                    <div className="ui-field">
+                      <span className="ui-label">Id de urmărire (Umami)</span>
+                      <div className="anun-ro">
+                        <code className="anun-slug">{previewSlug}</code>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </Section>
 
@@ -451,7 +505,6 @@ export default function AnuntEditPage() {
                     value={{ start: v.startDate || null, end: v.endDate || null }}
                     onChange={(r) => upd({ startDate: r.start ?? '', endDate: r.end ?? '' })}
                     error={errFor('dates')}
-                    hint="Finalul trebuie să fie după început."
                   />
                   <FieldRow>
                     <Field label="Ora de început">
@@ -466,36 +519,26 @@ export default function AnuntEditPage() {
                     <span className="ui-label" id="anun-state-label">
                       Stare
                     </span>
-                    {/* Segmented control, same as the Format picker above: both
-                        states stay visible, so there is nothing to infer from a
-                        tick. */}
                     <SegmentedControl
                       aria-labelledby="anun-state-label"
                       options={[...STATE_OPTIONS]}
                       value={v.isActive ? 'on' : 'off'}
                       onChange={(s) => upd({ isActive: s === 'on' })}
                     />
-                    <div className="ui-hint">
-                      {v.isActive
-                        ? 'Se afișează pe site între datele de mai sus. Dacă mai multe anunțuri sunt active în același timp, apare cel aflat mai sus în listă.'
-                        : 'Nu se afișează pe site, dar rămâne în listă cu statisticile lui. Nu trebuie șters ca să-l oprești.'}
-                    </div>
                   </div>
 
-                  <Field
-                    label="Zile până reapare după ce e închis"
-                    error={errFor('days')}
-                    hint={`${dismissHint(v.dismissDays)} Maxim 365. Scrie 0 pentru "niciodată".`}
-                  >
-                    <NumberInput
-                      className="anun-days"
-                      value={v.dismissDays}
-                      min={0}
-                      max={365}
-                      label="zilele"
-                      onChange={(n) => upd({ dismissDays: n ?? 0 })}
-                    />
-                  </Field>
+                  {siteFieldsShown(v) && (
+                    <Field label="Zile până reapare după ce e închis" error={errFor('days')}>
+                      <NumberInput
+                        className="anun-days"
+                        value={v.dismissDays}
+                        min={0}
+                        max={365}
+                        label="zilele"
+                        onChange={(n) => upd({ dismissDays: n ?? 0 })}
+                      />
+                    </Field>
+                  )}
                 </div>
               </Section>
             </div>

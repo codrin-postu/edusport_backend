@@ -29,6 +29,9 @@ export interface AnnouncementPayload {
   startAt?: unknown;
   endAt?: unknown;
   dismissDays?: unknown;
+  showOnSite?: unknown;
+  showOnPortal?: unknown;
+  portalGroupIds?: unknown;
 }
 
 /** Strapi datetime values arrive as ISO strings (or Date objects from seeds). */
@@ -42,6 +45,17 @@ function toTime(v: unknown): number | null {
 
 function isBlank(v: unknown): boolean {
   return typeof v !== 'string' || v.trim() === '';
+}
+
+/** A place must be ticked (checked on create and whenever both boxes are sent) and a chosen group list is never empty. */
+function validatePlaces(d: AnnouncementPayload, full: boolean): void {
+  if (full || ('showOnSite' in d && 'showOnPortal' in d)) {
+    const site = d.showOnSite !== false;
+    if (!site && d.showOnPortal !== true) throw new ValidationError('Alege unde apare.');
+  }
+  if (Array.isArray(d.portalGroupIds) && d.portalGroupIds.length === 0) {
+    throw new ValidationError('Alege cel puțin o grupă.');
+  }
 }
 
 /**
@@ -74,6 +88,8 @@ export function validateAnnouncement(data: unknown, full = false): void {
   if (start !== null && end !== null && end <= start) {
     throw new ValidationError('Data de final trebuie să fie după data de început.');
   }
+
+  validatePlaces(d, full);
 
   if (d.dismissDays !== undefined && d.dismissDays !== null) {
     const n = typeof d.dismissDays === 'number' ? d.dismissDays : Number(d.dismissDays);

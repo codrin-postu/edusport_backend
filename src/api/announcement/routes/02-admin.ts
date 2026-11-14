@@ -6,8 +6,8 @@
  * attaches the admin Bearer token) but never from the public API. Mirrors the
  * volunteer-submission admin route pattern.
  *
- * `/reorder` is declared BEFORE `/:documentId`: Koa matches routes in
- * registration order, so the literal path has to win before the parameter one
+ * `/groups` and `/reorder` are declared BEFORE `/:documentId`: Koa matches routes in
+ * registration order, so the literal paths have to win before the parameter one
  * swallows it.
  */
 import { adminRoute } from '../../../club/admin-area';
@@ -20,6 +20,12 @@ export default {
       method: 'GET',
       path: '/anunturi',
       handler: 'announcement.list',
+      config: website,
+    },
+    {
+      method: 'GET',
+      path: '/anunturi/groups',
+      handler: 'announcement.groups',
       config: website,
     },
     {
