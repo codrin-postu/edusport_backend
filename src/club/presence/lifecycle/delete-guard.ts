@@ -25,4 +25,5 @@ export async function removePresenceRows(presence: PresenceStore, athleteId: str
   for (const a of attendances) await presence.deleteAttendance(a.id);
   for (const l of lessons) await presence.deleteLesson(l.id);
   for (const s of series) await presence.deleteLessonSeries(s.id);
+  await presence.dropLessonCancels(athleteId);
 }

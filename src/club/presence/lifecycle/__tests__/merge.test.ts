@@ -39,6 +39,15 @@ describe('merge moves presence rows (4.21, C38)', () => {
     expect(f.pres.state.payments).toHaveLength(2);
   });
 
+  it('moves the removed athlete\'s lesson cancellations to the kept one without doubling a slot', async () => {
+    const f = setup();
+    f.pres.state.lessonCancels.push(
+      { athleteId: 'r', ...{ date: '2026-11-21', startTime: '17:00', durationMin: 45 } }, { athleteId: 'r', date: '2026-11-28', startTime: '17:00', durationMin: 45 }, { athleteId: 'k', ...{ date: '2026-11-21', startTime: '17:00', durationMin: 45 } },
+    );
+    expect((await mergeAthletes(f.ctx, { keptId: 'k', removedId: 'r', take: [] }, f.presence)).ok).toBe(true);
+    expect(f.pres.state.lessonCancels.map((x) => [x.athleteId, x.date]).sort()).toEqual([['k', '2026-11-21'], ['k', '2026-11-28']]);
+  });
+
   it('locks registrations and athletes first, then lessons, subscriptions, payments, each sorted (7.1)', async () => {
     const f = setup();
     await mergeAthletes(f.ctx, { keptId: 'k', removedId: 'r', take: [] }, f.presence);

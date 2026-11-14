@@ -20,7 +20,7 @@ export async function clearPaymentNotes(presence: PresenceStore, athleteId: stri
 }
 
 /**
- * The athlete's lesson series go, and so do its planned lessons from `today` on that no payment points at (they would keep showing for the rest of the season);
+ * The athlete's lesson series and lesson cancellations go, and so do its planned lessons from `today` on that no payment points at (they would keep showing for the rest of the season);
  * lessons already saved or paid stay with the athlete's other history. Locks the series, then the lessons (athlete locked by the caller). Answers the lesson ids removed.
  */
 export async function dropFutureLessons(presence: PresenceStore, athleteId: string, today: string): Promise<string[]> {
@@ -36,5 +36,6 @@ export async function dropFutureLessons(presence: PresenceStore, athleteId: stri
     }
   }
   for (const s of series) await presence.deleteLessonSeries(s.id);
+  await presence.dropLessonCancels(athleteId);
   return gone;
 }

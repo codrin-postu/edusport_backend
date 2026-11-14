@@ -235,7 +235,7 @@ function lessonRows(strapi: Core.Strapi): Keys<'lessons' | 'lesson' | 'createLes
 }
 
 /** Planned lessons deleted from today on; a row is plain data (the athlete by id, no relation) and goes with the daily purge. */
-function cancelRows(strapi: Core.Strapi): Keys<'recordLessonCancel' | 'removeLessonCancel' | 'lessonCancels' | 'pruneLessonCancels'> {
+function cancelRows(strapi: Core.Strapi): Keys<'recordLessonCancel' | 'removeLessonCancel' | 'lessonCancels' | 'dropLessonCancels' | 'pruneLessonCancels'> {
   const slot = (r: { athleteId: string; date: string; startTime: string }): Where => ({ athleteId: r.athleteId, date: r.date, startTime: r.startTime });
   return {
     recordLessonCancel: async (row) => {
@@ -248,6 +248,9 @@ function cancelRows(strapi: Core.Strapi): Keys<'recordLessonCancel' | 'removeLes
     lessonCancels: async ({ athleteId, from, to }) =>
       raws(await strapi.db.query(CANCEL).findMany({ where: { athleteId, ...dated('date', { from, to }) }, orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { id: 'asc' }], limit: MAX }))
         .map((r) => ({ date: text(r.date), startTime: hhmm(str(r.startTime)) ?? '', durationMin: Number(r.durationMin ?? 0) })),
+    dropLessonCancels: async (athleteId) => {
+      await strapi.db.query(CANCEL).deleteMany({ where: { athleteId } });
+    },
     pruneLessonCancels: async (before) => Number((await strapi.db.query(CANCEL).deleteMany({ where: { date: { $lt: before } } })).count),
   };
 }

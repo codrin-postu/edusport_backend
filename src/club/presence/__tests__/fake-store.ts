@@ -211,7 +211,7 @@ function fakeCounters(s: FakePresenceState, inTransaction: () => boolean): K<'ne
 
 const sameSlot = (a: LessonCancel, b: LessonCancel): boolean => a.athleteId === b.athleteId && a.date === b.date && a.startTime === b.startTime;
 
-function fakeLessonCancels(s: FakePresenceState): K<'recordLessonCancel' | 'removeLessonCancel' | 'lessonCancels' | 'pruneLessonCancels'> {
+function fakeLessonCancels(s: FakePresenceState): K<'recordLessonCancel' | 'removeLessonCancel' | 'lessonCancels' | 'dropLessonCancels' | 'pruneLessonCancels'> {
   return {
     recordLessonCancel: async (row) => {
       if (!s.lessonCancels.some((r) => sameSlot(r, row))) s.lessonCancels.push(copy(row));
@@ -220,6 +220,7 @@ function fakeLessonCancels(s: FakePresenceState): K<'recordLessonCancel' | 'remo
     lessonCancels: async ({ athleteId, from, to }) =>
       copy(s.lessonCancels.filter((r) => r.athleteId === athleteId && inRange({ from, to }, r.date)).sort((a, b) => cmp(a.date, b.date) || cmp(a.startTime, b.startTime))
         .map(({ athleteId: _a, ...rest }) => rest)),
+    dropLessonCancels: async (athleteId) => { s.lessonCancels = s.lessonCancels.filter((r) => r.athleteId !== athleteId); },
     pruneLessonCancels: async (before) => {
       const gone = s.lessonCancels.filter((r) => r.date < before).length;
       s.lessonCancels = s.lessonCancels.filter((r) => r.date >= before);

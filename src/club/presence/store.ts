@@ -67,6 +67,8 @@ export interface PresenceStore extends PresenceGroupReads {
   removeLessonCancel(row: LessonCancel): Promise<void>;
   /** The athlete's cancelled lessons dated in range, by date and start time. */
   lessonCancels(q: { athleteId: string; from: string; to: string }): Promise<Omit<LessonCancel, 'athleteId'>[]>;
+  /** Deletes every cancellation of the athlete (athlete delete and anonymize; a merge moves them first). */
+  dropLessonCancels(athleteId: string): Promise<void>;
   /** Deletes the cancellations dated before `before`; answers how many. */
   pruneLessonCancels(before: string): Promise<number>;
   subscriptions(where?: SubscriptionWhere): Promise<SubscriptionRow[]>;

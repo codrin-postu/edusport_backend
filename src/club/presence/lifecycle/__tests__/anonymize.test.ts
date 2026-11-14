@@ -66,7 +66,9 @@ describe('anonymize keeps money rows (4.21, p5 Q30)', () => {
       lessonRow({ id: 'other', athleteId: 'a2', date: '2026-11-03', seriesId: 'ls2' }),
     );
     f.pres.state.payments.push(paymentRow({ id: 'pl', athleteId: 'a1', purpose: 'lectie', lessonId: 'paid' }));
+    f.pres.state.lessonCancels.push({ athleteId: 'a1', date: '2026-11-21', startTime: '17:00', durationMin: 45 }, { athleteId: 'a2', date: '2026-11-21', startTime: '17:00', durationMin: 45 });
     expect((await anonymizeAthlete(f.ctx, 'a1')).ok).toBe(true);
+    expect(f.pres.state.lessonCancels.map((x) => x.athleteId)).toEqual(['a2']);
     expect(f.pres.state.lessons.map((l) => l.id).sort()).toEqual(['done', 'l1', 'other', 'paid']);
     expect(f.pres.state.lessons.find((l) => l.id === 'paid')?.seriesId).toBeNull();
     expect(f.pres.state.lessonSeries.map((x) => x.id)).toEqual(['ls2']);

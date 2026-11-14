@@ -51,10 +51,11 @@ describe('delete refusal and presence rows (4.21, C37, 5.14)', () => {
   });
 
   it('otherwise removes attendance rows and lessons, keeps the session (4.21)', async () => {
-    const f = setup({});
+    const f = setup({ lessonCancels: [{ athleteId: 'a1', date: '2026-11-21', startTime: '17:00', durationMin: 45 }, { athleteId: 'a2', date: '2026-11-21', startTime: '17:00', durationMin: 45 }] });
     expect(await deleteAthlete(f.ctx, 'a1', f.presence)).toEqual({ ok: true, data: { deleted: true, documentId: 'a1' } });
     expect(f.pres.state.attendances.map((a) => a.athleteId)).toEqual(['a2']);
     expect(f.pres.state.lessons).toEqual([]);
+    expect(f.pres.state.lessonCancels.map((x) => x.athleteId)).toEqual(['a2']);
     expect(f.pres.state.sessions).toHaveLength(1);
     expect(f.club.state.athletes.map((a) => a.id)).toEqual(['a2']);
   });

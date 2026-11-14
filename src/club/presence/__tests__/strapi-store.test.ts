@@ -204,7 +204,8 @@ describe('strapiPresenceStore', () => {
     expect(created).toEqual([{ athleteId: 'a1', date: '2026-11-24', startTime: '16:00', durationMin: 50 }]);
     expect(await store.lessonCancels({ athleteId: 'a1', from: '2026-11-01', to: '2026-11-30' })).toEqual([{ date: '2026-11-24', startTime: '16:00', durationMin: 50 }]);
     expect(await store.pruneLessonCancels('2026-11-20')).toBe(3);
-    expect(wheres).toEqual([{ athleteId: 'a1', date: { $gte: '2026-11-01', $lte: '2026-11-30' } }, { date: { $lt: '2026-11-20' } }]);
+    await store.dropLessonCancels('a1');
+    expect(wheres).toEqual([{ athleteId: 'a1', date: { $gte: '2026-11-01', $lte: '2026-11-30' } }, { date: { $lt: '2026-11-20' } }, { athleteId: 'a1' }]);
   });
 
   it('takes every lock inside one transaction scope', async () => {
