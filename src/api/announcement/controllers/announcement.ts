@@ -16,7 +16,7 @@ import { errors } from '@strapi/utils';
 import { validateAnnouncement } from '../services/validate-announcement';
 import { adminActor } from '../../../club/admin-actor';
 import { groupTree, sortedUnique } from '../../../club/anunturi/view';
-import { AUTO_LIST_DAYS, listRows, portalSummary, readRecipients, stopNotice, type ListRow, type PortalSummary } from '../../../club/anunturi/portal-history';
+import { AUTO_LIST_DAYS, CAUSE_PREFIX, listRows, readCauseRecipients, portalSummary, readRecipients, stopNotice, type ListRow, type PortalSummary } from '../../../club/anunturi/portal-history';
 import { respond } from '../../../club/admin-http';
 import { transactionScope } from '../../../club/athletes/strapi-store';
 import { strapiAccessStore } from '../../../club/portal/access/strapi-store';
@@ -141,7 +141,7 @@ async function readNotices(strapi: any, entries: any[], now: number): Promise<{ 
     if (own) notices.push(own);
   }
   const deliveries = new Map<string, DeliveryRecord[]>();
-  for (const n of notices) deliveries.set(n.id, await store.deliveries({ noticeId: n.id }));
+  for (const d of await store.deliveriesFor(notices.map((n) => n.id))) deliveries.set(d.noticeId, [...(deliveries.get(d.noticeId) ?? []), d]);
   return { notices, deliveries };
 }
 
@@ -272,10 +272,9 @@ export default {
   /** Admin (club area): who got a portal notice, who opened it, the athletes each account holds. */
   async portalRecipients(ctx: any) {
     const scope = transactionScope(strapi);
-    respond(ctx, await readRecipients(
-      { notices: strapiNoticeStore(strapi, scope), portal: strapiPortalStore(strapi, scope), access: strapiAccessStore(strapi, scope) },
-      String(ctx.params.noticeId ?? ''),
-    ));
+    const c = { notices: strapiNoticeStore(strapi, scope), portal: strapiPortalStore(strapi, scope), access: strapiAccessStore(strapi, scope) };
+    const id = String(ctx.params.noticeId ?? '');
+    respond(ctx, id.startsWith(CAUSE_PREFIX) ? await readCauseRecipients(c, id, Date.now()) : await readRecipients(c, id));
   },
 
   /** Admin: "Oprește", the notice stops showing on the portal; the sync then ends it (fire and forget). */

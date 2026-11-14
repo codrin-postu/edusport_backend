@@ -5,7 +5,7 @@ import type { AccountRow } from '../../portal/types';
 import { readNotices, resetNoticeSyncThrottle } from '../../portal/sportiv/notices';
 import { HOLDERS, sportivCtx, type SportivSeed } from '../../portal/sportiv/__tests__/sportiv-seed';
 import {
-  ANUNT_LIST_COPY, announcementRow, autoRow, filterRows, listRows, orderRows, placeStates, portalSummary, readRecipients, resultLines, stopNotice,
+  ANUNT_LIST_COPY, announcementRow, autoGroupRow, causeKey, filterRows, listRows, orderRows, placeStates, portalSummary, readCauseRecipients, readRecipients, resultLines, stopNotice,
   type AnnouncementForList, type ListRow,
 } from '../portal-history';
 
@@ -76,11 +76,33 @@ describe('rows', () => {
   it('puts automatic notices in the list as Automat with the portal icon only, newest first, with a muted line of reason and dates', () => {
     const rows = listRows({
       announcements: [ann()],
-      notices: [notice(), autoNotice({ id: 'a1', createdAt: '2026-11-18T00:00:00.000Z' }), autoNotice({ id: 'a2', createdAt: '2026-11-19T00:00:00.000Z' })],
+      notices: [notice(), autoNotice({ id: 'a1', createdAt: '2026-11-18T00:00:00.000Z' }), autoNotice({ id: 'a2', createdAt: '2026-11-19T00:00:00.000Z', rows: [{ date: '2026-11-25', text: '11:00 Grupa', reason: 'Zi liberă' }] })],
       deliveries: new Map(), now: NOW,
     });
-    expect(rows.map((r) => r.id)).toEqual(['an1', 'a2', 'a1']);
-    expect(rows[1]).toMatchObject({ source: 'auto', kind: 'Automat', site: null, portal: 'active', subline: 'Vacanța de toamnă, 21-22 noi', audience: '1 sportiv', reorderable: false });
+    expect(rows.map((r) => r.subline)).toEqual([null, 'Zi liberă, 25 noi', 'Vacanța de toamnă, 21-22 noi']);
+    expect(rows[2]).toMatchObject({ source: 'auto', kind: 'Automat', site: null, portal: 'active', subline: 'Vacanța de toamnă, 21-22 noi', audience: '1 sportiv', reorderable: false });
+  });
+
+  it('makes one row per cause: sessions two accounts share count once, athletes and viewing accounts are counted across the group', () => {
+    const shared = { date: '2026-11-21', text: '11:00 Grupa', reason: 'Vacanța de toamnă' };
+    const a = autoNotice({ id: 'a1', accountId: 'acc1', athleteIds: ['x'], rows: [shared, { date: '2026-11-22', text: '11:00 Grupa', reason: 'Vacanța de toamnă' }] });
+    const b = autoNotice({ id: 'a2', accountId: 'acc2', athleteIds: ['y', 'z'], rows: [shared, { date: '2026-11-23', text: '17:00 Alta', reason: 'Vacanța de toamnă' }] });
+    const other = autoNotice({ id: 'a3', accountId: 'acc3', rows: [{ date: '2026-11-24', text: '18:00 Grupa', reason: 'Zi liberă' }] });
+    const rows = listRows({ announcements: [], notices: [a, b, other], deliveries: new Map(), now: NOW });
+    expect(rows).toHaveLength(2);
+    const group = rows.find((r) => r.subline?.startsWith('Vacanța'));
+    expect(group).toMatchObject({ title: '3 ședințe anulate', audience: '3 sportivi', subline: 'Vacanța de toamnă, 21-23 noi' });
+    expect(causeKey(a.rows)).toBe(causeKey(b.rows));
+    expect(causeKey(a.rows)).not.toBe(causeKey(other.rows));
+    const seen = [delivery({ id: 'd1', noticeId: 'a1', accountId: 'acc1', seenAt: '2026-11-21T10:00:00.000Z' }), delivery({ id: 'd2', noticeId: 'a2', accountId: 'acc1', seenAt: '2026-11-22T10:00:00.000Z' })];
+    expect(autoGroupRow([a, b], seen).results).toEqual(['1 vizualizare portal']);
+  });
+
+  it('groups every moved session into one cause and uses the moved title', () => {
+    const m = (id: string, to: string) => autoNotice({ id, rows: [{ date: '2026-11-21', text: '11:00 Grupa', reason: `Mutată: ${to}` }] });
+    const rows = listRows({ announcements: [], notices: [m('m1', 'Vin 20 noi, 18:00'), m('m2', 'Sâm 21 noi, 10:00')], deliveries: new Map(), now: NOW });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].title).toBe('1 ședință anulată sau mutată');
   });
 
   it('orders active, then scheduled, then ended; site rows keep their order and come before the rest', () => {
@@ -99,7 +121,7 @@ describe('rows', () => {
     expect(announcementRow(ann(), notice(), [], NOW).reorderable).toBe(true);
     expect(announcementRow(ann({ startAt: '2026-11-25T00:00:00.000Z' }), null, [], NOW).reorderable).toBe(false);
     expect(announcementRow(ann({ showOnSite: false }), notice(), [], NOW).reorderable).toBe(false);
-    expect(autoRow(autoNotice(), []).reorderable).toBe(false);
+    expect(autoGroupRow([autoNotice()], []).reorderable).toBe(false);
   });
 
   it('summarises the portal counts of an announcement', () => {
@@ -114,11 +136,11 @@ describe('filterRows', () => {
   const site = announcementRow(ann({ showOnPortal: false }), null, [], NOW);
   const both = announcementRow(ann({ id: 'an2' }), notice({ id: 'n2', announcementId: 'an2' }), [], NOW);
   const portalOnly = announcementRow(ann({ id: 'an3', showOnSite: false }), notice({ id: 'n3', announcementId: 'an3' }), [], NOW);
-  const auto = autoRow(autoNotice(), []);
+  const auto = autoGroupRow([autoNotice()], []);
   const rows = [site, both, portalOnly, auto];
   it('keeps every row for Toate', () => expect(filterRows(rows, 'toate')).toEqual(rows));
   it('keeps the rows with a site place for Site', () => expect(filterRows(rows, 'site').map((r) => r.id)).toEqual(['an1', 'an2']));
-  it('keeps the rows with a portal place for Portal, automatic ones included', () => expect(filterRows(rows, 'portal').map((r) => r.id)).toEqual(['an2', 'an3', 'a1']));
+  it('keeps the rows with a portal place for Portal, automatic ones included', () => expect(filterRows(rows, 'portal').map((r) => r.id)).toEqual(['an2', 'an3', auto.id]));
 });
 
 const account = (id: string, email: string): AccountRow => ({
@@ -156,6 +178,20 @@ describe('readRecipients', () => {
     const parent = out.data.accounts.find((a) => a.email === PARENT);
     expect(parent).toMatchObject({ athletes: ['Ana Ionescu', 'Matei Ionescu'], seen: true, seenText: 'da, 20 noi' });
     expect(out.data.accounts.find((a) => a.email === ADULT)).toMatchObject({ athletes: ['Ioana Marin'], seen: false, seenText: 'nu' });
+  });
+
+  it('aggregates a cause across its notices: an account once, with its earliest seenAt', async () => {
+    const { seed, auto, ctx, store } = await setup();
+    await readNotices(asAccount(seed, PARENT), true);
+    const twin = await store.createNotice({ ...auto, accountId: `acc-${ADULT}` }, '2026-11-20T09:00:00.000Z');
+    await store.deliver(twin, [`acc-${ADULT}`, `acc-${PARENT}`], '2026-11-20T09:00:00.000Z');
+    const second = seed.noticeFake.state.deliveries.find((d) => d.noticeId === twin && d.accountId === `acc-${PARENT}`);
+    if (second) second.seenAt = '2026-11-19T08:00:00.000Z';
+    const out = await readCauseRecipients(ctx, causeKey(auto.rows), NOW);
+    if (!out.ok) throw new Error('expected ok');
+    expect(out.data).toMatchObject({ title: '1 ședință anulată', sentTo: 'Trimis la 2 conturi', seenBy: 'Văzut de 1', canStop: false });
+    expect(out.data.accounts.find((a) => a.email === PARENT)).toMatchObject({ seen: true, seenText: 'da, 19 noi' });
+    expect(await readCauseRecipients(ctx, 'cause-nope', NOW)).toMatchObject({ ok: false, status: 404 });
   });
 
   it('words one account as "1 cont" and shows nothing about dismissals', async () => {

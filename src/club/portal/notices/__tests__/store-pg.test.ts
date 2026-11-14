@@ -46,6 +46,17 @@ describe.skipIf(!enabled)('strapiNoticeStore on Postgres', () => {
     expect((await store.notice(id))).toMatchObject({ createdAt: T1, rows: [{ text: 'x' }], athleteIds: ['ath1'] });
   });
 
+  it('deliveriesFor reads several notices in one call', async () => {
+    const store = strapiNoticeStore(strapi);
+    const a = await account('c');
+    const one = await store.createNotice(draft(a, ['x1']), T1);
+    const two = await store.createNotice(draft(a, ['x2']), T1);
+    await store.deliver(one, [a], T1);
+    await store.deliver(two, [a], T1);
+    expect((await store.deliveriesFor([one, two])).map((d) => d.noticeId).sort()).toEqual([one, two].sort());
+    expect(await store.deliveriesFor([])).toEqual([]);
+  });
+
   it('dropNoticesForAthlete removes the named notices with their deliveries only', async () => {
     const store = strapiNoticeStore(strapi);
     const a = await account('b');

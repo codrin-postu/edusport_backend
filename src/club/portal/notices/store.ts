@@ -23,6 +23,8 @@ export interface NoticeStore {
   notice(id: string): Promise<NoticeRecord | null>;
   /** `open`: not dismissed. */
   deliveries(q: { noticeId?: string; accountId?: string; open?: boolean }): Promise<DeliveryRecord[]>;
+  /** The deliveries of all these notices in one read (the admin list); an empty list reads nothing. */
+  deliveriesFor(noticeIds: string[]): Promise<DeliveryRecord[]>;
   /** Callers hold the account locks first (lock order account, then notice rows). Accounts already delivered are skipped; returns the count created. */
   deliver(noticeId: string, accountIds: string[], at: string): Promise<number>;
   dismiss(deliveryId: string, at: string): Promise<void>;

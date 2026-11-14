@@ -43,6 +43,7 @@ export function fakeNoticeStore(state: NoticeState = emptyNoticeState()): { stor
     notice: async (id) => structuredClone(state.notices.find((n) => n.id === id) ?? null),
     deliveries: async ({ noticeId, accountId, open }) =>
       structuredClone(state.deliveries.filter((d) => (!noticeId || d.noticeId === noticeId) && (!accountId || d.accountId === accountId) && (!open || d.dismissedAt === null))),
+    deliveriesFor: async (ids) => structuredClone(state.deliveries.filter((d) => ids.includes(d.noticeId))),
     deliver: async (noticeId, accountIds, at) => {
       const fresh = [...new Set(accountIds)].filter((a) => !state.deliveries.some((d) => d.noticeId === noticeId && d.accountId === a));
       for (const accountId of fresh) state.deliveries.push({ id: `dlv${state.nextId++}`, noticeId, accountId, deliveredAt: at, seenAt: null, dismissedAt: null });

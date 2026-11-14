@@ -2,7 +2,7 @@ import { refuse, type AdminResult } from '../admin-result';
 import { ADMIN_ERRORS } from '../athletes/errors';
 import { isoDate, todayInBucharest } from '../birth-date';
 import type { AccessStore } from '../portal/access/store';
-import { shortDate, isMovedReason } from '../portal/notices/copy';
+import { NOTICE_COPY, shortDate, isMovedReason } from '../portal/notices/copy';
 import type { DeliveryRecord, NoticeRecord, NoticeRow, NoticeStore } from '../portal/notices/store';
 import type { PortalStore } from '../portal/store';
 import { heldAthleteIds } from '../portal/sportiv/holder';
@@ -150,15 +150,71 @@ export function autoSubline(rows: NoticeRow[]): string | null {
   return reason ? `${reason}, ${range}` : range;
 }
 
-export function autoRow(n: NoticeRecord, deliveries: DeliveryRecord[]): ListRow {
-  const portal = autoPortal(n);
-  const athletes = n.athleteIds.length;
+/** Prefix of the id of a row that stands for one cause (every automatic notice of it), not for one notice. */
+export const CAUSE_PREFIX = 'cause-';
+
+const hashText = (text: string): string => {
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+};
+
+/**
+ * The cause of an automatic notice: the sorted distinct reasons of its rows (every moved row counts as one "moved" reason, its text only says
+ * where it went). Accounts hit by the same break have the same reasons, whatever sessions each of them holds. Pure.
+ */
+export function causeKey(rows: NoticeRow[]): string {
+  const parts = [...new Set(rows.map((r) => (isMovedReason(r.reason) ? '\u0000moved' : r.reason ?? '')))].sort();
+  return `${CAUSE_PREFIX}${hashText(parts.join('\u0001'))}`;
+}
+
+/** Sessions are told apart by date and text: a session two accounts share counts once. */
+function distinctRows(notices: NoticeRecord[]): NoticeRow[] {
+  const seen = new Map<string, NoticeRow>();
+  for (const n of notices) for (const r of n.rows) seen.set(`${r.date}|${r.text}`, r);
+  return [...seen.values()].sort((a, b) => a.date.localeCompare(b.date) || a.text.localeCompare(b.text, 'ro'));
+}
+
+/** One row per account: the earliest `seenAt` of its deliveries (null when none was seen). */
+function perAccount(deliveries: DeliveryRecord[]): Map<string, string | null> {
+  const out = new Map<string, string | null>();
+  for (const d of deliveries) {
+    if (!d.accountId) continue;
+    const had = out.get(d.accountId);
+    const first = had === undefined ? d.seenAt : d.seenAt === null ? had : had === null || d.seenAt < had ? d.seenAt : had;
+    out.set(d.accountId, first);
+  }
+  return out;
+}
+
+const seenAccounts = (deliveries: DeliveryRecord[]): number => [...perAccount(deliveries).values()].filter((v) => v !== null).length;
+
+/**
+ * One list row for all the automatic notices of one cause. The title counts the distinct sessions, "Pentru" the distinct athletes, the
+ * result the accounts that saw it (each once). Active while any of its notices is live.
+ */
+export function autoGroupRow(notices: NoticeRecord[], deliveries: DeliveryRecord[]): ListRow {
+  const rows = distinctRows(notices);
+  const moved = rows.some((r) => isMovedReason(r.reason));
+  const portal: PlaceState = notices.some((n) => autoPortal(n) === 'active') ? 'active' : 'ended';
+  const athletes = new Set(notices.flatMap((n) => n.athleteIds)).size;
   return {
-    id: n.id, source: 'auto', title: n.title, site: null, portal, kind: ANUNT_LIST_COPY.auto,
+    id: causeKey(notices[0].rows), source: 'auto', title: moved ? NOTICE_COPY.titleMoved(rows.length) : NOTICE_COPY.title(rows.length), site: null, portal, kind: ANUNT_LIST_COPY.auto,
     audience: athletes > 0 ? countWords(athletes, 'sportiv', 'sportivi') : ANUNT_LIST_COPY.noGroups,
-    state: rowState(null, portal, false), period: n.rows.length > 0 ? dateRange(n.rows[0].date, n.rows[n.rows.length - 1].date) : ANUNT_LIST_COPY.none,
-    subline: autoSubline(n.rows), results: resultLines(null, seenCount(deliveries)), reorderable: false,
+    state: rowState(null, portal, false), period: rows.length > 0 ? dateRange(rows[0].date, rows[rows.length - 1].date) : ANUNT_LIST_COPY.none,
+    subline: autoSubline(rows), results: resultLines(null, seenAccounts(deliveries)), reorderable: false,
   };
+}
+
+/** The automatic notices grouped by cause, the group with the newest notice first. */
+export function autoGroups(notices: NoticeRecord[]): NoticeRecord[][] {
+  const groups = new Map<string, NoticeRecord[]>();
+  for (const n of notices.filter((x) => x.kind === 'auto')) {
+    const key = causeKey(n.rows);
+    groups.set(key, [...(groups.get(key) ?? []), n]);
+  }
+  const newest = (g: NoticeRecord[]): string => g.map((n) => n.createdAt).sort().at(-1) ?? '';
+  return [...groups.values()].sort((a, b) => newest(b).localeCompare(newest(a)) || causeKey(b[0].rows).localeCompare(causeKey(a[0].rows)));
 }
 
 const STATE_RANK: Record<RowState, number> = { active: 0, waiting: 1, ended: 2, stopped: 2 };
@@ -172,7 +228,7 @@ export function orderRows(rows: ListRow[]): ListRow[] {
   return rows.map((r, i) => ({ r, i })).sort((x, y) => rank(x.r) - rank(y.r) || x.i - y.i).map((x) => x.r);
 }
 
-/** Automatic messages made this many days ago or later are listed. */
+/** Automatic messages made this many days ago or later are listed (and counted in a cause). */
 export const AUTO_LIST_DAYS = 30;
 
 /**
@@ -185,8 +241,8 @@ export function listRows(c: { announcements: AnnouncementForList[]; notices: Not
     const notice = c.notices.find((n) => n.kind === 'anunt' && n.announcementId === a.id) ?? null;
     return announcementRow(a, notice, notice ? of(notice) : [], c.now);
   });
-  const autos = c.notices.filter((n) => n.kind === 'auto').sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
-  return orderRows([...rows, ...autos.map((n) => autoRow(n, of(n)))]);
+  const autos = autoGroups(c.notices).map((g) => autoGroupRow(g, g.flatMap(of)));
+  return orderRows([...rows, ...autos]);
 }
 
 /** The counts of the "Pe portal" block of an announcement; null when it was never sent to the portal. */
@@ -203,7 +259,27 @@ export type RecipientsView = Recipients & { title: string; rows: NoticeRow[] };
 
 export type RecipientsContext = { notices: NoticeStore; portal: PortalStore; access: AccessStore };
 
-const seenText = (d: DeliveryRecord): string => (d.seenAt === null ? ANUNT_LIST_COPY.seenNo : ANUNT_LIST_COPY.seenYes(shortDate(dayOfInstant(d.seenAt))));
+const seenText = (seenAt: string | null): string => (seenAt === null ? ANUNT_LIST_COPY.seenNo : ANUNT_LIST_COPY.seenYes(shortDate(dayOfInstant(seenAt))));
+
+/** The accounts of some deliveries, each once with its earliest `seenAt`, with the athletes each holds now. */
+async function accountsOf(c: RecipientsContext, deliveries: DeliveryRecord[]): Promise<RecipientAccount[]> {
+  const accounts: RecipientAccount[] = [];
+  for (const [accountId, seenAt] of perAccount(deliveries)) {
+    const account = await c.portal.account(accountId);
+    if (!account) continue;
+    const athletes: string[] = [];
+    for (const id of await heldAthleteIds(c.access, account.id)) {
+      const athlete = await c.access.athleteForAccess(id);
+      if (athlete) athletes.push(athlete.name);
+    }
+    accounts.push({ email: account.email, athletes: athletes.sort((x, y) => x.localeCompare(y, 'ro')), seen: seenAt !== null, seenText: seenText(seenAt) });
+  }
+  return accounts.sort((x, y) => x.email.localeCompare(y.email));
+}
+
+const counts = (accounts: RecipientAccount[]): Pick<Recipients, 'sentTo' | 'seenBy'> => ({
+  sentTo: ANUNT_LIST_COPY.sentTo(accounts.length), seenBy: ANUNT_LIST_COPY.seenBy(accounts.filter((a) => a.seen).length),
+});
 
 /**
  * Who got the notice, who opened it and the athletes each account holds now. Personal data: the route is for the club area. Dismissals are
@@ -212,26 +288,24 @@ const seenText = (d: DeliveryRecord): string => (d.seenAt === null ? ANUNT_LIST_
 export async function readRecipients(c: RecipientsContext, noticeId: string): Promise<AdminResult<RecipientsView>> {
   const notice = await c.notices.notice(noticeId);
   if (!notice) return refuse(404, ADMIN_ERRORS.notFound);
-  const deliveries = await c.notices.deliveries({ noticeId });
-  const accounts: RecipientAccount[] = [];
-  for (const d of deliveries) {
-    const account = d.accountId ? await c.portal.account(d.accountId) : null;
-    if (!account) continue;
-    const athletes: string[] = [];
-    for (const id of await heldAthleteIds(c.access, account.id)) {
-      const athlete = await c.access.athleteForAccess(id);
-      if (athlete) athletes.push(athlete.name);
-    }
-    accounts.push({ email: account.email, athletes: athletes.sort((x, y) => x.localeCompare(y, 'ro')), seen: d.seenAt !== null, seenText: seenText(d) });
-  }
-  accounts.sort((x, y) => x.email.localeCompare(y.email));
+  const accounts = await accountsOf(c, await c.notices.deliveries({ noticeId }));
   return {
     ok: true,
     data: {
-      title: notice.title, rows: notice.rows, sentTo: ANUNT_LIST_COPY.sentTo(deliveries.length), seenBy: ANUNT_LIST_COPY.seenBy(seenCount(deliveries)),
-      stopped: notice.stoppedAt !== null, canStop: notice.kind === 'anunt' && notice.stoppedAt === null && notice.endedAt === null, accounts,
+      title: notice.title, rows: notice.rows, ...counts(accounts), stopped: notice.stoppedAt !== null,
+      canStop: notice.kind === 'anunt' && notice.stoppedAt === null && notice.endedAt === null, accounts,
     },
   };
+}
+
+/** The detail of one cause (the id of a list row of automatic messages): its sessions and its accounts, each counted once. */
+export async function readCauseRecipients(c: RecipientsContext, key: string, now: number): Promise<AdminResult<RecipientsView>> {
+  const since = new Date(now - AUTO_LIST_DAYS * 86_400_000).toISOString();
+  const group = (await c.notices.notices({ since })).filter((n) => n.kind === 'auto' && causeKey(n.rows) === key);
+  if (group.length === 0) return refuse(404, ADMIN_ERRORS.notFound);
+  const accounts = await accountsOf(c, await c.notices.deliveriesFor(group.map((n) => n.id)));
+  const row = autoGroupRow(group, []);
+  return { ok: true, data: { title: row.title, rows: distinctRows(group), ...counts(accounts), stopped: false, canStop: false, accounts } };
 }
 
 /**

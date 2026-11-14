@@ -59,6 +59,7 @@ export function strapiNoticeStore(strapi: Core.Strapi, scope: Scope = transactio
       manyDeliveries({
         ...(noticeId ? { notice: { documentId: noticeId } } : {}), ...(accountId ? { account: { documentId: accountId } } : {}), ...(open ? { dismissedAt: { $null: true } } : {}),
       }),
+    deliveriesFor: async (noticeIds) => (noticeIds.length ? manyDeliveries({ notice: { documentId: { $in: [...new Set(noticeIds)] } } }) : []),
     deliver: async (noticeId, accountIds, at) => {
       const have = new Set((await manyDeliveries({ notice: { documentId: noticeId } })).map((d) => d.accountId));
       const fresh = [...new Set(accountIds)].filter((a) => !have.has(a));
