@@ -17,7 +17,7 @@ export const ANUNT_LIST_COPY = {
   filterAll: 'Toate',
   auto: 'Automat',
   by: (name: string): string => `Scris de ${name}`,
-  /** COPY NEEDED: author unknown (a row written before the author was recorded, or a site-only row). */
+  /** Author unknown (a row written before the author was recorded, or a site-only row). */
   authorUnknown: '-',
   allGroups: 'Toate grupele',
   noGroups: '-',
@@ -34,7 +34,7 @@ export const ANUNT_LIST_COPY = {
   accountsLink: 'Vezi conturile',
   accountsHeads: ['Cont', 'Sportivi', 'Văzut'],
   noAccounts: 'Încă nu a fost trimis.',
-  /** COPY NEEDED: an automatic message cannot be stopped. */
+  /** An automatic message cannot be stopped. */
   autoNotStoppable: 'Mesajele automate nu se pot opri.',
   states: { active: 'Activ', waiting: 'Programat', ended: 'Încheiat', stopped: 'Oprit' },
   /** Title and aria-label of an icon: "Pe site, activ". */
