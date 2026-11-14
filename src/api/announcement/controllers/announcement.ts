@@ -13,12 +13,12 @@
  * client's Bearer token is the only way in.
  */
 import { errors } from '@strapi/utils';
-import { validateAnnouncement } from '../services/validate-announcement';
+import { validateAnnouncement, validatePlacesMerged } from '../services/validate-announcement';
 import { adminActor } from '../../../club/admin-actor';
 import { groupTree, sortedUnique } from '../../../club/anunturi/view';
 import type { Core } from '@strapi/strapi';
 import { AUTO_LIST_DAYS, CAUSE_PREFIX, listRows, readCauseRecipients, portalSummary, readRecipients, stopNotice, type AnnouncementForList, type ListRow, type PortalSummary } from '../../../club/anunturi/portal-history';
-import { respond } from '../../../club/admin-http';
+import { respond, type AdminCtx } from '../../../club/admin-http';
 import { transactionScope } from '../../../club/athletes/strapi-store';
 import { strapiAccessStore } from '../../../club/portal/access/strapi-store';
 import type { DeliveryRecord, NoticeRecord } from '../../../club/portal/notices/store';
@@ -193,7 +193,7 @@ export default {
     const found = await strapi.documents(UID).findMany({
       filters: {
         isActive: true,
-        showOnSite: { $ne: false },
+        $or: [{ showOnSite: true }, { showOnSite: { $null: true } }],
         startAt: { $lte: now },
         endAt: { $gte: now },
       },
@@ -213,11 +213,11 @@ export default {
     const data = pickWritable(ctx.request?.body?.data ?? ctx.request?.body);
     try {
       validateAnnouncement(data, true);
-      if (data.showOnPortal === true) data.portalAuthor = await adminActor(ctx.request?.header?.authorization, strapi as any);
+      if (data.showOnPortal === true) data.portalAuthor = await adminActor(ctx.request?.header?.authorization, strapi);
       const created = await strapi
         .documents(UID)
         .create({ data: data as any, fields: [...ADMIN_FIELDS] });
-      void syncNoticesAfterSave(strapi as any);
+      void syncNoticesAfterSave(strapi);
       ctx.body = { data: { ...created, group: groupOf(created, Date.now()) } };
     } catch (err) {
       fail(ctx, err);
@@ -229,14 +229,15 @@ export default {
     const data = pickWritable(ctx.request?.body?.data ?? ctx.request?.body);
     try {
       validateAnnouncement(data);
-      const updated = await strapi
-        .documents(UID)
-        .update({ documentId, data, fields: [...ADMIN_FIELDS] });
-      if (!updated) {
+      const stored = await strapi.documents(UID).findOne({ documentId, fields: ['showOnSite', 'showOnPortal', 'portalAuthor'] });
+      if (!stored) {
         ctx.notFound('Anunțul nu a fost găsit.');
         return;
       }
-      void syncNoticesAfterSave(strapi as any);
+      validatePlacesMerged(stored, data);
+      if (data.showOnPortal === true && !stored.portalAuthor) data.portalAuthor = await adminActor(ctx.request?.header?.authorization, strapi);
+      const updated = await strapi.documents(UID).update({ documentId, data, fields: [...ADMIN_FIELDS] });
+      void syncNoticesAfterSave(strapi);
       ctx.body = { data: { ...updated, group: groupOf(updated, Date.now()) } };
     } catch (err) {
       fail(ctx, err);
@@ -244,7 +245,7 @@ export default {
   },
 
   /** Admin: the sections and active groups an announcement can be aimed at (names only). */
-  async groups(ctx: any) {
+  async groups(ctx: AdminCtx) {
     const store = strapiGroupStore(strapi);
     const [groups, sections] = await Promise.all([store.groups(), store.sections()]);
     ctx.body = { data: groupTree(groups, sections) };
@@ -257,7 +258,7 @@ export default {
   },
 
   /** Admin (club area): who got a portal notice, who opened it, the athletes each account holds. */
-  async portalRecipients(ctx: any) {
+  async portalRecipients(ctx: AdminCtx) {
     const scope = transactionScope(strapi);
     const c = { notices: strapiNoticeStore(strapi, scope), portal: strapiPortalStore(strapi, scope), access: strapiAccessStore(strapi, scope) };
     const id = String(ctx.params.noticeId ?? '');
@@ -265,9 +266,9 @@ export default {
   },
 
   /** Admin: "Oprește", the notice stops showing on the portal; the sync then ends it (fire and forget). */
-  async portalStop(ctx: any) {
+  async portalStop(ctx: AdminCtx) {
     const result = await stopNotice(strapiNoticeStore(strapi), String(ctx.params.noticeId ?? ''), new Date().toISOString());
-    if (result.ok) void syncNoticesAfterSave(strapi as any);
+    if (result.ok) void syncNoticesAfterSave(strapi);
     respond(ctx, result);
   },
 

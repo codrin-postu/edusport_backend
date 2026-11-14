@@ -58,6 +58,13 @@ function validatePlaces(d: AnnouncementPayload, full: boolean): void {
   }
 }
 
+/** On update the places are judged on the stored row with the patch laid over it. */
+export function validatePlacesMerged(stored: { showOnSite?: unknown; showOnPortal?: unknown }, patch: AnnouncementPayload): void {
+  const site = ('showOnSite' in patch ? patch.showOnSite : stored.showOnSite) !== false;
+  const portal = ('showOnPortal' in patch ? patch.showOnPortal : stored.showOnPortal) === true;
+  if (!site && !portal) throw new ValidationError('Alege unde apare.');
+}
+
 /**
  * Validates whatever announcement fields are present on `data`.
  *

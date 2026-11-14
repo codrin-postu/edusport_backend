@@ -3,10 +3,11 @@ import controller from '../controllers/announcement';
 
 type Call = { method: string; args: any };
 
-function setup(found: any[] = []) {
+function setup(found: any[] = [], stored: any = { showOnSite: true, showOnPortal: false, portalAuthor: null }) {
   const calls: Call[] = [];
   const documents = () => ({
     findMany: async (args: any) => (calls.push({ method: 'findMany', args }), found),
+    findOne: async (args: any) => (calls.push({ method: 'findOne', args }), stored),
     create: async (args: any) => (calls.push({ method: 'create', args }), { documentId: 'd1', ...args.data }),
     update: async (args: any) => (calls.push({ method: 'update', args }), { documentId: args.documentId, ...args.data }),
   });
@@ -30,7 +31,8 @@ describe('current', () => {
     const calls = setup([{ slug: 'a', showOnSite: null }]);
     const ctx: any = {};
     await (controller as any).current(ctx);
-    expect(calls[0].args.filters.showOnSite).toEqual({ $ne: false });
+    expect(calls[0].args.filters.$or).toEqual([{ showOnSite: true }, { showOnSite: { $null: true } }]);
+    expect(calls[0].args.filters.showOnSite).toBeUndefined();
     expect(ctx.body.data.slug).toBe('a');
   });
 });
@@ -68,5 +70,36 @@ describe('update', () => {
     ctx.params = { documentId: 'd1' };
     await (controller as any).updateAnnouncement(ctx);
     expect(calls.find((c) => c.method === 'update')!.args.data.portalGroupIds).toEqual(['y', 'z']);
+  });
+});
+
+describe('update places and author', () => {
+  const put = async (data: any, stored?: any) => {
+    const calls = setup([], stored);
+    const ctx = ctxOf(data);
+    ctx.params = { documentId: 'd1' };
+    await (controller as any).updateAnnouncement(ctx);
+    return { calls, ctx };
+  };
+
+  it('refuses a patch that leaves the merged row with no place', async () => {
+    const { calls, ctx } = await put({ showOnSite: false }, { showOnSite: true, showOnPortal: false, portalAuthor: null });
+    expect(ctx.bad).toBe('Alege unde apare.');
+    expect(calls.some((c) => c.method === 'update')).toBe(false);
+  });
+
+  it('accepts the same patch when the portal is stored as ticked', async () => {
+    const { ctx } = await put({ showOnSite: false }, { showOnSite: true, showOnPortal: true, portalAuthor: 'x' });
+    expect(ctx.bad).toBeUndefined();
+  });
+
+  it('sets the author when the portal is ticked on an existing row without one', async () => {
+    const { calls } = await put({ showOnPortal: true });
+    expect(calls.find((c) => c.method === 'update')!.args.data.portalAuthor).toBe('admin');
+  });
+
+  it('keeps a stored author', async () => {
+    const { calls } = await put({ showOnPortal: true }, { showOnSite: true, showOnPortal: false, portalAuthor: 'a@b.ro' });
+    expect(calls.find((c) => c.method === 'update')!.args.data.portalAuthor).toBeUndefined();
   });
 });
