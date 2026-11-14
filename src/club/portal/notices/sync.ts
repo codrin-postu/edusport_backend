@@ -129,14 +129,27 @@ async function ensureAnnouncementNotices(c: NoticeSyncContext, at: string, out: 
   return running;
 }
 
+/** The running hand-written notices that already exist, for an account-scoped sync: nothing is created or ended here. */
+async function existingAnnouncementNotices(c: NoticeSyncContext): Promise<{ notice: NoticeRecord; groups: string[] | null }[]> {
+  const at = c.now().toISOString();
+  const running: { notice: NoticeRecord; groups: string[] | null }[] = [];
+  for (const a of await c.announcements()) {
+    const notice = await c.notices.noticeOfAnnouncement(a.id);
+    if (notice && isLive(notice) && runningAt(a, at)) running.push({ notice, groups: a.portalGroupIds });
+  }
+  return running;
+}
+
 /**
  * Live notices nothing backs any more: a hand-written one whose announcement is deleted or no longer ticked for the portal, and an automatic one
  * of an account that is out of scope (every access gone, disabled). Each ends under the lock of its own rows.
  */
 async function endOrphans(c: NoticeSyncContext, scope: { accountId?: string }, inScope: Set<string>, at: string, out: NoticeSyncResult): Promise<void> {
-  const shown = new Set((await c.announcements()).map((a) => a.id));
+  // An account-scoped sync (a read) never ends hand-written notices: the club-wide sync does.
+  const shown = new Set(scope.accountId ? [] : (await c.announcements()).map((a) => a.id));
   for (const n of await c.notices.notices({})) {
     if (n.endedAt !== null) continue;
+    if (scope.accountId && n.kind === 'anunt') continue;
     const orphan = n.kind === 'anunt'
       ? n.announcementId === null || !shown.has(n.announcementId)
       : n.accountId !== null && (!scope.accountId || n.accountId === scope.accountId) && !inScope.has(n.accountId);
@@ -172,7 +185,7 @@ export async function syncNotices(c: NoticeSyncContext, scope: { accountId?: str
   const at = c.now().toISOString();
   let running: Awaited<ReturnType<typeof ensureAnnouncementNotices>> = [];
   try {
-    running = await ensureAnnouncementNotices(c, at, out);
+    running = scope.accountId ? await existingAnnouncementNotices(c) : await ensureAnnouncementNotices(c, at, out);
   } catch (err) {
     c.log(`[notices] announcement sync failed: ${errorCode(err)}`);
   }
