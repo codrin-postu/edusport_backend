@@ -78,7 +78,7 @@ describe.skipIf(!enabled)('strapiNoticeStore on Postgres', () => {
 
   it('purgeOrphans removes what a deleted account left behind', async () => {
     const store = strapiNoticeStore(strapi);
-    const a = await account('c');
+    const a = await account('e');
     const id = await store.createNotice(draft(a, ['x']), T1);
     await store.deliver(id, [a], T1);
     await strapi.documents('api::portal-account.portal-account').delete({ documentId: a });
