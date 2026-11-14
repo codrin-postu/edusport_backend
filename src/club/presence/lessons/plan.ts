@@ -71,7 +71,7 @@ async function startSeriesFrom(ctx: PresenceContext, l: LessonRow, b: CoachLesso
   const clash = firstConflict(await ctx.store.lessons({ athleteId: l.athleteId }), adopt ? dates : [...dates, b.date].sort(), b.startTime, b.durationMin, new Set([l.id]));
   if (clash) return clash;
   const w = await writeSeries(ctx, planned.data, adopt ? b.date : null);
-  await ctx.store.updateLesson(l.id, { date: b.date, startTime: b.startTime, durationMin: b.durationMin, coachIds: b.coachIds, ...(adopt ? { seriesId: w.seriesId } : {}) });
+  await ctx.store.updateLesson(l.id, { date: b.date, startTime: b.startTime, durationMin: b.durationMin, coachIds: b.coachIds, ...movedFromOf(l, b), ...(adopt ? { seriesId: w.seriesId } : {}) });
   return {
     value: created(l.id, w.seriesId, dates.length, LESSON_COPY.saved), lines: [...w.lines, ...editedLine(l, changedFields(l, b))],
     steps: [{ op: 'setLesson', id: l.id, values: oldValues(l) }, ...w.steps], guards: [await guardOf(ctx.store, 'lessonSeries', w.seriesId), ...w.guards.filter((g) => g.type !== 'lessonSeries'), await guardOf(ctx.store, 'lesson', l.id)],

@@ -19,11 +19,5 @@ export function toggleSection(s: TickSection, except: string[]): string[] {
 export const toggleGroup = (id: string, except: string[]): string[] =>
   sorted(except.includes(id) ? except.filter((e) => e !== id) : [...except, id]);
 
-/** Drops ids the tree no longer shows (a group made inactive since the break was saved), so the server never sees them. */
-export const pruneExcept = (tree: TickTree, except: string[]): string[] => {
-  const known = new Set(tree.sections.flatMap((s) => s.groups.map((g) => g.id)));
-  return sorted(except.filter((id) => known.has(id)));
-};
-
 export const tickedSessions = (s: TickSection, except: string[]): number =>
   s.groups.filter((g) => !except.includes(g.id)).reduce((n, g) => n + (g.sessions ?? 0), 0);

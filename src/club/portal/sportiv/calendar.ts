@@ -27,6 +27,68 @@ function listedOn(ctx: RowContext, athleteId: string, groupId: string, date: str
   return season !== null && rosterOn(ctx.memberships, groupId, season.id, date).includes(athleteId);
 }
 
+type Add = (item: CalendarItem, groupOrder: number) => void;
+type Window = Awaited<ReturnType<SportivContext['presence']['store']['calendarWindow']>>;
+type Reads = { c: SportivContext; ctx: RowContext; calendar: Window; locations: Map<string, string | null>; athleteId: string; from: string; to: string };
+
+const coachNamesOf = (ctx: RowContext, ids: string[]): string[] => ids.map((id) => ctx.teamNames.get(id)).filter((n): n is string => n !== undefined);
+
+/** Held and saved classes of the groups that list the athlete on the day (not `concurs` events). */
+async function classItems(r: Reads, add: Add): Promise<void> {
+  const store = r.c.presence.store;
+  const held = new Map(heldOccurrences(r.calendar, r.ctx.groups, r.from, r.to).map((h) => [h.key, h]));
+  const eventOf = new Map(r.calendar.events.map((e) => [e.documentId ?? String(e.id), e]));
+  const isConcurs = (key: string | null): boolean => key !== null && eventOf.get(key.split('|')[0])?.type === 'concurs';
+  for (const row of await rowsWithCoachIds(store, r.ctx, r.from, r.to, undefined, { withAttendances: false })) {
+    const group = r.ctx.groups.find((g) => g.id === row.groupId);
+    if (!group || isConcurs(row.occurrenceKey) || !listedOn(r.ctx, r.athleteId, row.groupId, row.date)) continue;
+    const h = row.occurrenceKey ? held.get(row.occurrenceKey) : undefined;
+    const minutes = row.durationMin ?? h?.durationMin ?? null;
+    const end = (h ? hhmm(h.endTime) : null) ?? (minutes === null ? null : endOf(row.startTime, minutes));
+    add({
+      date: row.date, startTime: row.startTime, endTime: end, kind: 'grupa', title: group.name, location: r.locations.get(group.id) ?? null,
+      coaches: row.coachNames, cancelled: false, reason: null, movedFrom: h?.movedFrom ?? null,
+    }, group.order ?? 0);
+  }
+}
+
+/** `concurs` events linked to the athlete's groups, and the classes a break or a cancellation took out. */
+async function eventItems(r: Reads, add: Add): Promise<void> {
+  const saved = new Set((await r.c.presence.store.sessions({ from: r.from, to: r.to })).flatMap((s) => (s.occurrenceKey ? [s.occurrenceKey] : [])));
+  for (const o of expandOccurrences(r.calendar.events, r.calendar.blackouts, r.from, r.to)) {
+    const group = o.groupId ? r.ctx.groups.find((g) => g.id === o.groupId) : undefined;
+    if (!group || !group.active || !listedOn(r.ctx, r.athleteId, group.id, o.date)) continue;
+    const start = hhmm(o.startTime);
+    if (o.type === 'concurs') {
+      const cancelled = o.status === 'cancelled';
+      add({ date: o.date, startTime: start, endTime: hhmm(o.endTime), kind: 'concurs', title: o.title, location: null, coaches: [], cancelled, reason: cancelled ? o.reason : null, movedFrom: null }, group.order ?? 0);
+      continue;
+    }
+    if (o.status !== 'cancelled' || !start || saved.has(occurrenceKey(o.documentId ?? String(o.eventId), o.date, start))) continue;
+    add({
+      date: o.date, startTime: start, endTime: hhmm(o.endTime) ?? endOf(start, durationOf(o)), kind: 'grupa', title: group.name, location: r.locations.get(group.id) ?? null,
+      coaches: coachNamesOf(r.ctx, group.coachIds), cancelled: true, reason: o.reason, movedFrom: null,
+    }, group.order ?? 0);
+  }
+}
+
+/** His lessons (planned and saved) and the planned ones deleted since (cancelled, unless a lesson holds that date and time again after an undo). */
+async function lessonItems(r: Reads, add: Add): Promise<void> {
+  const store = r.c.presence.store;
+  const lessons = await store.lessons({ athleteId: r.athleteId, from: r.from, to: r.to });
+  for (const l of lessons) {
+    const start = hhmm(l.startTime) ?? l.startTime;
+    const movedFrom = l.movedFromDate && l.movedFromTime ? { date: l.movedFromDate, startTime: hhmm(l.movedFromTime) ?? l.movedFromTime } : null;
+    add({ date: l.date, startTime: start, endTime: endOf(start, l.durationMin), kind: 'individual', title: LESSON_TITLE, location: null, coaches: coachNamesOf(r.ctx, l.coachIds), cancelled: false, reason: null, movedFrom }, 0);
+  }
+  const slots = new Set(lessons.map((l) => `${l.date}|${hhmm(l.startTime) ?? l.startTime}`));
+  for (const x of await store.lessonCancels({ athleteId: r.athleteId, from: r.from, to: r.to })) {
+    const start = hhmm(x.startTime) ?? x.startTime;
+    if (slots.has(`${x.date}|${start}`)) continue;
+    add({ date: x.date, startTime: start, endTime: endOf(start, x.durationMin), kind: 'individual', title: LESSON_TITLE, location: null, coaches: [], cancelled: true, reason: null, movedFrom: null }, 0);
+  }
+}
+
 /**
  * The athlete's own items between two dates (inclusive), by date, start time and group order: group classes (held, saved and cancelled) of the groups
  * that list him on the day, `concurs` events linked to those groups, and his lessons (planned and saved, repeating dates included).
@@ -35,58 +97,13 @@ function listedOn(ctx: RowContext, athleteId: string, groupId: string, date: str
 export async function ownItems(c: SportivContext, athleteId: string, from: string, to: string): Promise<CalendarItem[]> {
   const store = c.presence.store;
   const ctx = await loadRowContext(store, c.today);
-  const calendar = await store.calendarWindow();
-  const locations = await locationsOf(store, ctx.groups);
-  const held = new Map(heldOccurrences(calendar, ctx.groups, from, to).map((h) => [h.key, h]));
-  const eventOf = new Map(calendar.events.map((e) => [e.documentId ?? String(e.id), e]));
-  const isConcurs = (key: string | null): boolean => key !== null && eventOf.get(key.split('|')[0])?.type === 'concurs';
-  const coachNames = (ids: string[]): string[] => ids.map((id) => ctx.teamNames.get(id)).filter((n): n is string => n !== undefined);
+  const r: Reads = { c, ctx, calendar: await store.calendarWindow(), locations: await locationsOf(store, ctx.groups), athleteId, from, to };
   const order = new Map<CalendarItem, number>();
   const items: CalendarItem[] = [];
-  const add = (item: CalendarItem, groupOrder: number): void => { items.push(item); order.set(item, groupOrder); };
-
-  const rows = await rowsWithCoachIds(store, ctx, from, to, undefined, { withAttendances: false });
-  const saved = new Set((await store.sessions({ from, to })).flatMap((s) => (s.occurrenceKey ? [s.occurrenceKey] : [])));
-  for (const r of rows) {
-    const group = ctx.groups.find((g) => g.id === r.groupId);
-    if (!group || isConcurs(r.occurrenceKey) || !listedOn(ctx, athleteId, r.groupId, r.date)) continue;
-    const minutes = r.durationMin ?? (r.occurrenceKey ? held.get(r.occurrenceKey)?.durationMin ?? null : null);
-    const end = (r.occurrenceKey ? hhmm(held.get(r.occurrenceKey)?.endTime) : null) ?? (minutes === null ? null : endOf(r.startTime, minutes));
-    add({
-      date: r.date, startTime: r.startTime, endTime: end, kind: 'grupa', title: group.name, location: locations.get(group.id) ?? null,
-      coaches: r.coachNames, cancelled: false, reason: null,
-      movedFrom: r.occurrenceKey ? held.get(r.occurrenceKey)?.movedFrom ?? null : null,
-    }, group.order ?? 0);
-  }
-  for (const o of expandOccurrences(calendar.events, calendar.blackouts, from, to)) {
-    const group = o.groupId ? ctx.groups.find((g) => g.id === o.groupId) : undefined;
-    if (!group || !group.active || !listedOn(ctx, athleteId, group.id, o.date)) continue;
-    const start = hhmm(o.startTime);
-    if (o.type === 'concurs') {
-      add({
-        date: o.date, startTime: start, endTime: hhmm(o.endTime), kind: 'concurs', title: o.title, location: null, coaches: [], cancelled: o.status === 'cancelled', reason: o.status === 'cancelled' ? o.reason : null, movedFrom: null,
-      }, group.order ?? 0);
-      continue;
-    }
-    if (o.status !== 'cancelled' || !start || saved.has(occurrenceKey(o.documentId ?? String(o.eventId), o.date, start))) continue;
-    add({
-      date: o.date, startTime: start, endTime: hhmm(o.endTime) ?? endOf(start, durationOf(o)), kind: 'grupa', title: group.name, location: locations.get(group.id) ?? null,
-      coaches: coachNames(group.coachIds), cancelled: true, reason: o.reason, movedFrom: null,
-    }, group.order ?? 0);
-  }
-  const lessons = await store.lessons({ athleteId, from, to });
-  for (const l of lessons) {
-    const start = hhmm(l.startTime) ?? l.startTime;
-    const moved = l.movedFromDate && l.movedFromTime ? { date: l.movedFromDate, startTime: hhmm(l.movedFromTime) ?? l.movedFromTime } : null;
-    add({ date: l.date, startTime: start, endTime: endOf(start, l.durationMin), kind: 'individual', title: LESSON_TITLE, location: null, coaches: coachNames(l.coachIds), cancelled: false, reason: null, movedFrom: moved }, 0);
-  }
-  // A deleted planned lesson stays as cancelled, unless a lesson holds that date and time again (an undo).
-  const lessonSlots = new Set(lessons.map((l) => `${l.date}|${hhmm(l.startTime) ?? l.startTime}`));
-  for (const x of await store.lessonCancels({ athleteId, from, to })) {
-    const start = hhmm(x.startTime) ?? x.startTime;
-    if (lessonSlots.has(`${x.date}|${start}`)) continue;
-    add({ date: x.date, startTime: start, endTime: endOf(start, x.durationMin), kind: 'individual', title: LESSON_TITLE, location: null, coaches: [], cancelled: true, reason: null, movedFrom: null }, 0);
-  }
+  const add: Add = (item, groupOrder) => { items.push(item); order.set(item, groupOrder); };
+  await classItems(r, add);
+  await eventItems(r, add);
+  await lessonItems(r, add);
   return items
     .sort((a, b) => a.date.localeCompare(b.date) || (a.startTime ?? '').localeCompare(b.startTime ?? '') || (order.get(a) ?? 0) - (order.get(b) ?? 0))
     .map(toCalendarItem);

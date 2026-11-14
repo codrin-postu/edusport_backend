@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Button, DateInput, Field, FieldRow, Input, Notice, adminToast } from '../../ui';
 import { impactTitle } from '../../../club/calendar/break-impact-copy';
-import { pruneExcept } from '../../../club/calendar/group-ticks';
 import { breakBody, breakFormError, draftOfBreak, emptyBreakDraft, impactAsked, type BreakDraft } from '../../../club/calendar/pauze-view';
 import { GROUP_ERRORS, PAUZE_COPY, SCHEDULE_TOASTS } from '../../../club/groups/copy';
 import type { BreakRecord } from '../../../club/groups/types';
@@ -23,7 +22,7 @@ export function BreakDialog({ target, breaks, onClose }: Props) {
     if (invalid) return setError(invalid);
     setBusy(true);
     try {
-      await breaks.save(target?.id ?? null, breakBody(impact ? { ...draft, exceptGroupIds: pruneExcept(impact, draft.exceptGroupIds) } : draft));
+      await breaks.save(target?.id ?? null, breakBody(draft));
       adminToast.success(SCHEDULE_TOASTS.breakSaved);
       onClose();
     } catch (err) {

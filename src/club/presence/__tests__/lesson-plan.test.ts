@@ -74,7 +74,7 @@ describe('one lesson', () => {
     expect(r).toMatchObject({ ok: true, data: { lessonId: 'solo', count: 3, seriesId: expect.any(String) } });
     const rows = c.fake.state.lessons.filter((l) => l.seriesId === (r as { data: { seriesId: string } }).data.seriesId).map((l) => l.date).sort();
     expect(rows).toEqual(['2026-12-10', '2026-12-17', '2026-12-24']);
-    expect(c.fake.state.lessons.find((l) => l.id === 'solo')?.date).toBe('2026-12-10');
+    expect(c.fake.state.lessons.find((l) => l.id === 'solo')).toMatchObject({ date: '2026-12-10', movedFromDate: '2026-12-08', movedFromTime: '10:00' });
     const before = shape(c);
     expect((await undoPresenceAction(c.fake.ctx, { actionId: lastUndo(c) })).ok).toBe(true);
     expect(c.fake.state.lessons.find((l) => l.id === 'solo')).toMatchObject({ date: '2026-12-08', startTime: '10:00', seriesId: null });

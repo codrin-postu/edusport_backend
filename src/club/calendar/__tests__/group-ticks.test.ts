@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pruneExcept, sectionState, tickedSessions, toggleGroup, toggleSection, type TickTree } from '../group-ticks';
+import { sectionState, tickedSessions, toggleGroup, toggleSection, type TickTree } from '../group-ticks';
 
 const TREE: TickTree = {
   sections: [
@@ -29,9 +29,8 @@ describe('group tick tree', () => {
     expect(toggleGroup('b', ['a', 'b', 'c'])).toEqual(['a', 'c']);
   });
 
-  it('sums the ticked sessions and drops ids the tree does not show', () => {
+  it('sums the ticked sessions', () => {
     expect(tickedSessions(school, ['b'])).toBe(3);
     expect(tickedSessions(school, ['a', 'b'])).toBe(0);
-    expect(pruneExcept(TREE, ['z', 'c', 'a'])).toEqual(['a', 'c']);
   });
 });

@@ -34,21 +34,21 @@ function pinged<T>(ctx: GroupContext, res: AdminResult<T>): AdminResult<T> {
   return res;
 }
 
-/** Only ids of existing groups may be ticked. */
-async function knownGroups(ctx: GroupContext, ids: string[]): Promise<boolean> {
-  if (!ids.length) return true;
+/** The input with only the ids of groups that still exist (a group deleted since the break was saved drops out; inactive and sectionless ones stay). */
+async function withKnownGroups(ctx: GroupContext, input: BreakInput): Promise<BreakInput> {
+  if (!input.exceptGroupIds.length) return input;
   const known = new Set((await ctx.store.groups()).map((g) => g.id));
-  return ids.every((id) => known.has(id));
+  return { ...input, exceptGroupIds: input.exceptGroupIds.filter((id) => known.has(id)) };
 }
 
 export async function createBreak(ctx: GroupContext, body: unknown): Promise<AdminResult<BreakRecord>> {
   const read = readBreakInput(body);
   if (read.ok === false) return refuse(400, read.error);
-  if (!(await knownGroups(ctx, read.value.exceptGroupIds))) return refuse(400, GROUP_ERRORS.invalid);
+  const input = await withKnownGroups(ctx, read.value);
   const res = await guarded(ctx.log, '[breaks] adding', () => ctx.store.transaction(async () => {
-    const id = await ctx.store.createBreak(read.value);
-    await recordLines(ctx.store, ctx.actor, [line(id, P4_ACTIONS.breakAdded, { ...read.value })]);
-    return { ok: true as const, data: { id, ...read.value } };
+    const id = await ctx.store.createBreak(input);
+    await recordLines(ctx.store, ctx.actor, [line(id, P4_ACTIONS.breakAdded, { ...input })]);
+    return { ok: true as const, data: { id, ...input } };
   }));
   return pinged(ctx, res);
 }
@@ -67,8 +67,8 @@ async function updateInTransaction(ctx: GroupContext, id: string, input: BreakIn
 export async function updateBreak(ctx: GroupContext, id: string, body: unknown): Promise<AdminResult<{ changed: boolean }>> {
   const read = readBreakInput(body);
   if (read.ok === false) return refuse(400, read.error);
-  if (!(await knownGroups(ctx, read.value.exceptGroupIds))) return refuse(400, GROUP_ERRORS.invalid);
-  const res = await guarded(ctx.log, `[breaks] editing ${id}`, () => ctx.store.transaction(() => updateInTransaction(ctx, id, read.value)));
+  const input = await withKnownGroups(ctx, read.value);
+  const res = await guarded(ctx.log, `[breaks] editing ${id}`, () => ctx.store.transaction(() => updateInTransaction(ctx, id, input)));
   return res.ok === true && res.data.changed ? pinged(ctx, res) : res;
 }
 

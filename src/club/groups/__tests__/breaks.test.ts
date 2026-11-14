@@ -32,10 +32,11 @@ describe('Pauze writes', () => {
     expect(revalidated()).toBe(3);
   });
 
-  it('unknown groups are refused; updating only the ticks writes one line, the same ticks in another order change nothing', async () => {
+  it('a deleted group id drops out; updating only the ticks writes one line, the same ticks in another order change nothing', async () => {
     const { ctx, state, store } = fakeContext();
     const [g1, g2] = (await store.groups()).map((g) => g.id);
-    expect((await createBreak(ctx, { ...BODY, exceptGroupIds: ['nope'] })).ok).toBe(false);
+    const other = fakeContext();
+    expect(await createBreak(other.ctx, { ...BODY, exceptGroupIds: ['nope', g2] })).toMatchObject({ ok: true, data: { exceptGroupIds: [g2] } });
     const created = await createBreak(ctx, { ...BODY, exceptGroupIds: [g1] });
     const id = created.ok ? created.data.id : '';
     expect(await updateBreak(ctx, id, { ...BODY, exceptGroupIds: [g2, g1] })).toEqual({ ok: true, data: { changed: true } });
