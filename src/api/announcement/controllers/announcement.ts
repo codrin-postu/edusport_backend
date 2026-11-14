@@ -192,7 +192,7 @@ export default {
       const created = await strapi
         .documents(UID)
         .create({ data: data as any, fields: [...ADMIN_FIELDS] });
-      await syncNoticesAfterSave(strapi as any);
+      void syncNoticesAfterSave(strapi as any);
       ctx.body = { data: { ...created, group: groupOf(created, Date.now()) } };
     } catch (err) {
       fail(ctx, err);
@@ -211,7 +211,7 @@ export default {
         ctx.notFound('Anunțul nu a fost găsit.');
         return;
       }
-      await syncNoticesAfterSave(strapi as any);
+      void syncNoticesAfterSave(strapi as any);
       ctx.body = { data: { ...updated, group: groupOf(updated, Date.now()) } };
     } catch (err) {
       fail(ctx, err);

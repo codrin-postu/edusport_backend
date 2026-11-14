@@ -12,11 +12,15 @@ const ANNOUNCEMENT = 'api::announcement.announcement' as const;
 /** The portal announcements as the sync reads them (every row ticked for the portal, whatever its dates). */
 const portalAnnouncements = (strapi: Core.Strapi) => async (): Promise<PortalAnnouncement[]> => {
   const rows = (await strapi.documents(ANNOUNCEMENT).findMany({ filters: { showOnPortal: true }, limit: -1 })) as unknown as Record<string, unknown>[];
-  return (rows ?? []).map((r) => ({
-    id: String(r.documentId), title: String(r.title ?? ''), startAt: new Date(String(r.startAt)).toISOString(), endAt: new Date(String(r.endAt)).toISOString(),
-    isActive: r.isActive !== false, showOnPortal: true,
-    portalGroupIds: Array.isArray(r.portalGroupIds) ? r.portalGroupIds.filter((x): x is string => typeof x === 'string') : null,
-  }));
+  return (rows ?? []).flatMap((r) => {
+    const start = new Date(String(r.startAt));
+    const end = new Date(String(r.endAt));
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return [];
+    return [{
+      id: String(r.documentId), title: String(r.title ?? ''), startAt: start.toISOString(), endAt: end.toISOString(), isActive: r.isActive !== false, showOnPortal: true,
+      portalGroupIds: Array.isArray(r.portalGroupIds) ? r.portalGroupIds.filter((x): x is string => typeof x === 'string') : null,
+    }];
+  });
 };
 
 /** One scope for the notice, portal and access stores, so an account's lock and its notice writes share a transaction. */

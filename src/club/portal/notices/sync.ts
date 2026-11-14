@@ -6,7 +6,7 @@ import { ownItems } from '../sportiv/calendar';
 import { heldAthleteIds, type HolderState } from '../sportiv/holder';
 import { autoKey, autoRows, autoTitle, NOTICE_WINDOW_DAYS } from './auto';
 import { isMovedReason } from './copy';
-import type { NoticeRecord, NoticeStore } from './store';
+import type { NoticeRecord, NoticeRow, NoticeStore } from './store';
 
 /** The announcement fields the sync reads (Task 7 row); only rows with `showOnPortal` are listed. */
 export type PortalAnnouncement = {
@@ -29,7 +29,14 @@ const MOVE_HORIZON_DAYS = 60;
 
 const firstNameOf = (name: string): string => name.trim().split(/\s+/)[0] ?? name;
 const isLive = (n: NoticeRecord): boolean => n.endedAt === null && n.stoppedAt === null;
-const sameRows = (a: NoticeRecord['rows'], b: NoticeRecord['rows']): boolean => autoKey(a) === autoKey(b);
+/**
+ * Whether the live message still says what the new rows say: no new row is missing from it, and no row still ahead (date today or later) was
+ * dropped (an undo). A row already past leaves silently, so passing time alone never makes a new message.
+ */
+const unchanged = (live: NoticeRow[], rows: NoticeRow[], today: string): boolean => {
+  const has = (list: NoticeRow[], r: NoticeRow): boolean => list.some((x) => x.date === r.date && x.text === r.text && x.reason === r.reason);
+  return rows.every((r) => has(live, r)) && live.every((r) => r.date < today || has(rows, r));
+};
 
 /** Active at the instant: ticked for the portal, switched on, inside its window. A stop or an end date is checked on the notice and the dates. */
 const runningAt = (a: PortalAnnouncement, at: string): boolean => a.showOnPortal && a.isActive && a.startAt <= at && at <= a.endAt;
@@ -56,8 +63,7 @@ async function syncAuto(c: NoticeSyncContext, accountId: string, holder: HolderS
     return;
   }
   // Rows already past drop out of the live message on their own; a changed or missing future row (an undo) makes a new message.
-  const stillShown = live ? live.rows.filter((r) => r.date >= c.today) : null;
-  if (live && stillShown && sameRows(stillShown, rows)) {
+  if (live && unchanged(live.rows, rows, c.today)) {
     out.delivered += await c.notices.deliver(live.id, [accountId], at);
     return;
   }
@@ -66,7 +72,7 @@ async function syncAuto(c: NoticeSyncContext, accountId: string, holder: HolderS
     out.ended++;
   }
   const id = await c.notices.createNotice({
-    kind: 'auto', accountId, announcementId: null, key: autoKey(rows), title: autoTitle(rows, rows.some((r) => isMovedReason(r.reason))),
+    kind: 'auto', accountId, announcementId: null, key: `${autoKey(rows)}.${at}`, title: autoTitle(rows, rows.some((r) => isMovedReason(r.reason))),
     rows, athleteIds: holder.athleteIds, groupIds: [], lastDate: rows[rows.length - 1].date,
   }, at);
   out.created++;
@@ -95,7 +101,13 @@ async function ensureAnnouncementNotices(c: NoticeSyncContext, at: string, out: 
     await c.notices.transaction(async () => {
       await c.portal.lockLimit(`notice-announcement:${a.id}`);
       let notice = await c.notices.noticeOfAnnouncement(a.id);
-      if (notice && notice.stoppedAt !== null) return;
+      if (notice && notice.stoppedAt !== null) {
+        if (notice.endedAt === null) {
+          await c.notices.endNotice(notice.id, at);
+          out.ended++;
+        }
+        return;
+      }
       if (!runningAt(a, at)) {
         if (notice && isLive(notice)) {
           await c.notices.endNotice(notice.id, at);
@@ -115,6 +127,29 @@ async function ensureAnnouncementNotices(c: NoticeSyncContext, at: string, out: 
     });
   }
   return running;
+}
+
+/**
+ * Live notices nothing backs any more: a hand-written one whose announcement is deleted or no longer ticked for the portal, and an automatic one
+ * of an account that is out of scope (every access gone, disabled). Each ends under the lock of its own rows.
+ */
+async function endOrphans(c: NoticeSyncContext, scope: { accountId?: string }, inScope: Set<string>, at: string, out: NoticeSyncResult): Promise<void> {
+  const shown = new Set((await c.announcements()).map((a) => a.id));
+  for (const n of await c.notices.notices({})) {
+    if (n.endedAt !== null) continue;
+    const orphan = n.kind === 'anunt'
+      ? n.announcementId === null || !shown.has(n.announcementId)
+      : n.accountId !== null && (!scope.accountId || n.accountId === scope.accountId) && !inScope.has(n.accountId);
+    if (!orphan) continue;
+    await c.notices.transaction(async () => {
+      if (n.kind === 'auto' && n.accountId) await c.portal.lockAccount(n.accountId);
+      const fresh = await c.notices.notice(n.id);
+      if (fresh && fresh.endedAt === null) {
+        await c.notices.endNotice(n.id, at);
+        out.ended++;
+      }
+    });
+  }
 }
 
 /** Accounts in scope: active, holding at least one live access, no team member. */
@@ -141,7 +176,8 @@ export async function syncNotices(c: NoticeSyncContext, scope: { accountId?: str
   } catch (err) {
     c.log(`[notices] announcement sync failed: ${errorCode(err)}`);
   }
-  for (const accountId of await accountsInScope(c, scope)) {
+  const inScope = await accountsInScope(c, scope);
+  for (const accountId of inScope) {
     try {
       await c.notices.transaction(async () => {
         await c.portal.lockAccount(accountId);
@@ -159,6 +195,11 @@ export async function syncNotices(c: NoticeSyncContext, scope: { accountId?: str
     } catch (err) {
       c.log(`[notices] account sync failed: ${errorCode(err)}`);
     }
+  }
+  try {
+    await endOrphans(c, scope, new Set(inScope), at, out);
+  } catch (err) {
+    c.log(`[notices] orphan sweep failed: ${errorCode(err)}`);
   }
   return out;
 }

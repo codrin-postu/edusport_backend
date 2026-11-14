@@ -116,7 +116,51 @@ describe('automatic notices', () => {
   });
 });
 
+describe('stable notices', () => {
+  it('a moved row whose planned date has passed stays one notice across syncs and stays dismissed', async () => {
+    const { seed, c, state } = setup();
+    seed.fake.state.calendar.events[0].exceptions = [{ date: '2026-11-21', kind: 'override', newDate: '2026-11-23', newStartTime: '17:00', newEndTime: '17:50' }];
+    expect(await syncNotices(c, {})).toMatchObject({ created: 1, delivered: 1 });
+    await c.notices.dismiss(state.deliveries[0].id, NOW.toISOString());
+    const later: NoticeSyncContext = { ...c, today: '2026-11-22', now: () => new Date('2026-11-22T09:00:00.000Z') };
+    for (let i = 0; i < 3; i++) expect(await syncNotices(later, {})).toEqual({ created: 0, delivered: 0, ended: 0 });
+    expect(state.notices).toHaveLength(1);
+    expect(await c.notices.deliveries({ accountId: PARENT_ACC, open: true })).toEqual([]);
+  });
+
+  it('an account that lost every access has its live auto notice ended', async () => {
+    const { seed, c, state } = setup();
+    breakOn(seed, 'Vacanța de iarnă', '2026-11-21');
+    await syncNotices(c, {});
+    for (const r of seed.accessFake.state.rows.filter((x) => x.accountId === PARENT_ACC)) r.revokedAt = NOW.toISOString();
+    expect(await syncNotices(c, {})).toMatchObject({ ended: 1 });
+    expect(state.notices[0].endedAt).not.toBeNull();
+  });
+});
+
 describe('hand-written notices', () => {
+  it.each([
+    ['deleted', (a: PortalAnnouncement[]) => { a.length = 0; }],
+    ['unticked for the portal', (a: PortalAnnouncement[]) => { a.length = 0; }],
+    ['no longer running', (a: PortalAnnouncement[]) => { a[0].endAt = '2026-11-19T00:00:00.000Z'; }],
+  ])('an announcement %s ends its notice', async (_name, change) => {
+    const { c, state, announcements } = setup();
+    announcements.push(announcement());
+    await syncNotices(c, {});
+    change(announcements);
+    expect(await syncNotices(c, {})).toMatchObject({ ended: 1 });
+    expect(state.notices[0].endedAt).not.toBeNull();
+  });
+
+  it('a stopped announcement ends its notice', async () => {
+    const { c, state, announcements } = setup();
+    announcements.push(announcement());
+    await syncNotices(c, {});
+    await c.notices.stopNotice(state.notices[0].id, NOW.toISOString());
+    expect(await syncNotices(c, {})).toMatchObject({ ended: 1 });
+    expect(state.notices[0].endedAt).not.toBeNull();
+  });
+
   it('a group announcement reaches the account with an athlete in the group, "Toate grupele" reaches both', async () => {
     const { c, state, announcements } = setup();
     announcements.push(announcement({ portalGroupIds: ['g-ib'] }));
