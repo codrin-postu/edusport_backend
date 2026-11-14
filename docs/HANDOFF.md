@@ -34,6 +34,14 @@ Carried to the frontend plan:
 - The admin join accepts `from` (bounded by the start date rule and the season end); a schedule-change mail goes once per distinct parent address.
 - Session revocation and the password change share the per-request `PortalStore` (`c.portal`); keep that when wiring auth.
 
+## Breaks and notices
+
+Built on `feat/admin-sat`. Breaks apply per group (`calendar_blackouts.except_group_ids`); announcements gain `show_on_site`, `show_on_portal`, `portal_group_ids`, `portal_author`; new types `portal_notices`, `portal_notice_deliveries`, `lesson_cancellations`. Contract rename: the break field `note` is now `reason`.
+
+Routes: sportiv `GET /me/notices` and `POST /me/notices/:noticeId/dismiss`; club `GET /anunturi/portal/:noticeId` (recipients list); website `POST /anunturi/portal/:noticeId/stop`. Cron `portalNotices` runs every 15 minutes (`config/cron-tasks.ts`) and logs only when it created, delivered or ended something.
+
+Deploy: backend and frontend together, because the frontend reads `reason`. Rulings and approved copy: spec `docs/superpowers/specs/2026-11-14-breaks-notices-design.md` section 9.
+
 ## Branches and worktrees
 
 Backend `/Users/codrin/Documents/Programming/edusport_backend`, frontend `/Users/codrin/Documents/Programming/edusport_frontend`.
