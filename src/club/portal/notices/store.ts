@@ -22,6 +22,8 @@ export interface NoticeStore {
   stopNotice(id: string, at: string): Promise<void>;
   /** Newest first; `since` keeps notices created at or after the instant. */
   notices(q: { since?: string }): Promise<NoticeRecord[]>;
+  /** Every notice not ended (kind auto or anunt), for the orphan sweep. */
+  liveNotices(): Promise<NoticeRecord[]>;
   notice(id: string): Promise<NoticeRecord | null>;
   /** `open`: not dismissed. */
   deliveries(q: { noticeId?: string; accountId?: string; open?: boolean }): Promise<DeliveryRecord[]>;
@@ -34,4 +36,6 @@ export interface NoticeStore {
   markSeen(deliveryIds: string[], at: string): Promise<void>;
   /** Deliveries whose account is gone, and auto notices whose account is gone (with their deliveries). Returns the counts removed. */
   purgeOrphans(): Promise<{ notices: number; deliveries: number }>;
+  /** Ended automatic notices that ended before the instant, with their deliveries. Hand-written ones stay (the admin list counts them). Returns the counts removed. */
+  purgeEnded(before: string): Promise<{ notices: number; deliveries: number }>;
 }

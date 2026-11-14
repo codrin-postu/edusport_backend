@@ -41,6 +41,7 @@ export function fakeNoticeStore(state: NoticeState = emptyNoticeState()): { stor
     },
     notices: async ({ since }) =>
       structuredClone(state.notices.filter((n) => !since || n.createdAt >= since).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))),
+    liveNotices: async () => structuredClone(state.notices.filter((n) => n.endedAt === null)),
     notice: async (id) => structuredClone(state.notices.find((n) => n.id === id) ?? null),
     deliveries: async ({ noticeId, accountId, open }) =>
       structuredClone(state.deliveries.filter((d) => (!noticeId || d.noticeId === noticeId) && (!accountId || d.accountId === accountId) && (!open || d.dismissedAt === null))),
@@ -62,6 +63,13 @@ export function fakeNoticeStore(state: NoticeState = emptyNoticeState()): { stor
       state.deliveries = state.deliveries.filter((d) => d.accountId !== '' && !notices.includes(d.noticeId));
       state.notices = state.notices.filter((n) => !notices.includes(n.id));
       return { notices: notices.length, deliveries: before - state.deliveries.length };
+    },
+    purgeEnded: async (cutoff) => {
+      const gone = new Set(state.notices.filter((n) => n.kind === 'auto' && n.endedAt !== null && n.endedAt < cutoff).map((n) => n.id));
+      const before = state.deliveries.length;
+      state.deliveries = state.deliveries.filter((d) => !gone.has(d.noticeId));
+      state.notices = state.notices.filter((n) => !gone.has(n.id));
+      return { notices: gone.size, deliveries: before - state.deliveries.length };
     },
   };
   return { store, state };

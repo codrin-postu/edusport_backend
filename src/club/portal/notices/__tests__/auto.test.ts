@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { autoKey, autoRows, autoTitle } from '../auto';
+import { autoKey, autoPlan, autoTitle } from '../auto';
+
+const autoRows = (...a: Parameters<typeof autoPlan>) => autoPlan(...a).rows;
 import type { CalendarItem } from '../../sportiv/api-types';
 
 const TODAY = '2026-11-14';

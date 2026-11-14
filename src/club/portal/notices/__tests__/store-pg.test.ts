@@ -87,4 +87,18 @@ describe.skipIf(!enabled)('strapiNoticeStore on Postgres', () => {
     expect(await strapi.db.query(NOTICE).count({ where: { documentId: id } })).toBe(0);
     expect(await strapi.db.query(DELIVERY).count({ where: { notice: { documentId: id } } })).toBe(0);
   });
+
+  it('purgeEnded removes ended automatic notices before the instant with their deliveries; liveNotices skips ended ones', async () => {
+    const store = strapiNoticeStore(strapi);
+    const a = await account('d');
+    const old = await store.createNotice(draft(a, ['x']), T1);
+    const live = await store.createNotice(draft(a, ['y']), T1);
+    await store.deliver(old, [a], T1);
+    await store.endNotice(old, T1);
+    const gone = await store.purgeEnded(T2);
+    expect(gone.notices).toBeGreaterThanOrEqual(1);
+    expect(await store.notice(old)).toBeNull();
+    expect(await store.deliveries({ noticeId: old })).toEqual([]);
+    expect((await store.liveNotices()).some((n) => n.id === live)).toBe(true);
+  });
 });

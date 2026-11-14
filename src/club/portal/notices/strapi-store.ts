@@ -52,6 +52,7 @@ export function strapiNoticeStore(strapi: Core.Strapi, scope: Scope = transactio
     endNotice: (id, at) => patch(id, { endedAt: at }),
     stopNotice: (id, at) => patch(id, { stoppedAt: at }),
     notices: ({ since }) => manyNotices(since ? { createdAt: { $gte: since } } : {}, 'createdAt:desc'),
+    liveNotices: () => manyNotices({ endedAt: { $null: true } }),
     notice: async (id) => {
       const r = await notices().findOne({ documentId: id, populate: POPULATE });
       return r ? toNoticeRecord(r as Raw) : null;
@@ -75,7 +76,23 @@ export function strapiNoticeStore(strapi: Core.Strapi, scope: Scope = transactio
       await strapi.db.query(DELIVERY).updateMany({ where: { documentId: { $in: ids }, seenAt: { $null: true } }, data: { seenAt: at } });
     },
     purgeOrphans: () => purgeOrphans(strapi),
+    purgeEnded: (before) => purgeEnded(strapi, before),
   };
+}
+
+/** Deletes the deliveries of the given notice rows, then the notices; returns the counts. */
+async function deleteNotices(strapi: Core.Strapi, notices: Raw[]): Promise<{ notices: number; deliveries: number }> {
+  if (!notices.length) return { notices: 0, deliveries: 0 };
+  const docIds = notices.map((n) => text(n.documentId));
+  const rows = raws(await strapi.db.query(DELIVERY).findMany({ where: { notice: { documentId: { $in: docIds } } }, select: ['id'], limit: MAX }));
+  if (rows.length) await strapi.db.query(DELIVERY).deleteMany({ where: { id: { $in: rows.map((d) => d.id) } } });
+  await strapi.db.query(NOTICE).deleteMany({ where: { id: { $in: notices.map((n) => n.id) } } });
+  return { notices: notices.length, deliveries: rows.length };
+}
+
+async function purgeEnded(strapi: Core.Strapi, before: string): Promise<{ notices: number; deliveries: number }> {
+  const ended = raws(await strapi.db.query(NOTICE).findMany({ where: { kind: 'auto', endedAt: { $lt: before } }, select: ['id', 'documentId'], limit: MAX }));
+  return deleteNotices(strapi, ended);
 }
 
 async function purgeOrphans(strapi: Core.Strapi): Promise<{ notices: number; deliveries: number }> {
@@ -94,8 +111,5 @@ export async function dropNoticesForAthlete(strapi: Core.Strapi, athleteId: stri
   const autos = raws(await strapi.db.query(NOTICE).findMany({ where: { kind: 'auto' }, select: ['id', 'documentId', 'athleteIds'], limit: MAX }));
   const named = autos.filter((n) => strings(n.athleteIds).includes(athleteId));
   if (!named.length) return;
-  const docIds = named.map((n) => text(n.documentId));
-  const rows = raws(await strapi.db.query(DELIVERY).findMany({ where: { notice: { documentId: { $in: docIds } } }, select: ['id'], limit: MAX }));
-  if (rows.length) await strapi.db.query(DELIVERY).deleteMany({ where: { id: { $in: rows.map((d) => d.id) } } });
-  await strapi.db.query(NOTICE).deleteMany({ where: { id: { $in: named.map((n) => n.id) } } });
+  await deleteNotices(strapi, named);
 }

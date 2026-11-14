@@ -26,7 +26,7 @@ export async function purgePortal(store: PortalStore, now: Date, security?: Secu
     sessions: await store.purgeSessions(cutoff),
     ...(security ? await security.purge(now) : {}),
     ...(security ? await purgeOldKeys(security, now, env) : {}),
-    ...(notices ? await purgeNotices(notices) : {}),
+    ...(notices ? await purgeNotices(notices, cutoff) : {}),
   };
 }
 
@@ -35,8 +35,9 @@ async function purgeOldKeys(security: SecurityStore, now: Date, env: NodeJS.Proc
   return rule ? { passkeys: await security.purgeOldPasskeys(rule.rpId, rule.before) } : {};
 }
 
-/** Notices and deliveries left behind by a deleted account. */
-async function purgeNotices(notices: NoticeStore): Promise<{ notices: number; noticeDeliveries: number }> {
+/** Notices and deliveries left behind by a deleted account, and automatic notices that ended before the cutoff (30 days ago) with their deliveries. */
+async function purgeNotices(notices: NoticeStore, cutoff: Date): Promise<{ notices: number; noticeDeliveries: number }> {
   const gone = await notices.purgeOrphans();
-  return { notices: gone.notices, noticeDeliveries: gone.deliveries };
+  const ended = await notices.purgeEnded(cutoff.toISOString());
+  return { notices: gone.notices + ended.notices, noticeDeliveries: gone.deliveries + ended.deliveries };
 }

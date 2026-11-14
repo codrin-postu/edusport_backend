@@ -93,3 +93,28 @@ describe('purge of a deleted account', () => {
     expect(f.state.deliveries.map((d) => d.accountId).sort()).toEqual(['acc2', 'acc2']);
   });
 });
+
+describe('purge of ended notices', () => {
+  it('an automatic notice ended 30 days ago goes with its deliveries; live, recent and hand-written ones stay', async () => {
+    const f = fakeNoticeStore();
+    const old = await f.store.createNotice(auto('acc1'), '2026-09-01T10:00:00.000Z');
+    const recent = await f.store.createNotice(auto('acc1'), '2026-09-01T10:00:00.000Z');
+    const live = await f.store.createNotice(auto('acc2'), '2026-09-01T10:00:00.000Z');
+    const anunt = await f.store.createNotice(auto(null, { kind: 'anunt', announcementId: 'ann1' }), '2026-09-01T10:00:00.000Z');
+    for (const id of [old, recent, live, anunt]) await f.store.deliver(id, ['acc1'], T1);
+    await f.store.endNotice(old, '2026-10-01T10:00:00.000Z');
+    await f.store.endNotice(recent, '2026-11-10T10:00:00.000Z');
+    await f.store.endNotice(anunt, '2026-10-01T10:00:00.000Z');
+    const n = await purgePortal(fakePortalStore().store, new Date('2026-11-14T10:00:00.000Z'), undefined, {}, f.store);
+    expect(n).toMatchObject({ notices: 1, noticeDeliveries: 1 });
+    expect(f.state.notices.map((x) => x.id).sort()).toEqual([recent, live, anunt].sort());
+  });
+
+  it('liveNotices reads only notices not ended', async () => {
+    const f = fakeNoticeStore();
+    const a = await f.store.createNotice(auto('acc1'), T1);
+    const b = await f.store.createNotice(auto('acc2'), T1);
+    await f.store.endNotice(a, T2);
+    expect((await f.store.liveNotices()).map((x) => x.id)).toEqual([b]);
+  });
+});

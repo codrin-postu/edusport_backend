@@ -223,3 +223,36 @@ describe('hand-written notices', () => {
     expect(state.deliveries.map((d) => `${d.noticeId}|${d.accountId}`)).toEqual([...new Set(state.deliveries.map((d) => `${d.noticeId}|${d.accountId}`))]);
   });
 });
+
+describe('long breaks and moved rows', () => {
+  const dayCtx = (c: NoticeSyncContext, today: string): NoticeSyncContext => ({ ...c, today, now: () => new Date(`${today}T09:00:00.000Z`) });
+
+  it('a 3-week break synced on consecutive days gives one stable notice that lists the whole break', async () => {
+    const { seed, c, state } = setup();
+    seed.fake.state.calendar.blackouts.push({ label: 'Vacanța de iarnă', startDate: '2026-12-10', endDate: '2026-12-31' });
+    let day = '2026-11-20';
+    while (day <= '2026-12-12') {
+      await syncNotices(dayCtx(c, day), {});
+      day = new Date(Date.parse(`${day}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+    }
+    const mine = state.notices.filter((n) => n.accountId === PARENT_ACC);
+    expect(mine).toHaveLength(1);
+    expect(mine[0].endedAt).toBeNull();
+    expect(mine[0].rows.some((r) => r.date > '2026-12-24')).toBe(true);
+    expect(deliveriesOf(state, PARENT_ACC)).toHaveLength(1);
+  });
+
+  it('a break that is still beyond 14 days makes no notice yet', async () => {
+    const { seed, c, state } = setup();
+    seed.fake.state.calendar.blackouts.push({ label: 'Vacanța de iarnă', startDate: '2026-12-20', endDate: '2026-12-31' });
+    await syncNotices(c, {});
+    expect(state.notices).toEqual([]);
+  });
+
+  it('lastDate of a moved row is its new date, so the message stays until the moved session', async () => {
+    const { seed, c, state } = setup();
+    seed.fake.state.calendar.events[0].exceptions = [{ date: '2026-11-21', kind: 'override', newDate: '2026-11-30', newStartTime: '17:00', newEndTime: '17:50' }];
+    await syncNotices(c, {});
+    expect(state.notices.find((n) => n.accountId === PARENT_ACC)?.lastDate).toBe('2026-11-30');
+  });
+});

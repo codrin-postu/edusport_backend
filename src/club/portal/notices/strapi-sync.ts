@@ -4,6 +4,7 @@ import { todayIso } from '../../groups/http';
 import { strapiAccessStore } from '../access/strapi-store';
 import { sportivContext } from '../sportiv/context';
 import { strapiPortalStore } from '../strapi-store';
+import { coalesced } from './coalesce';
 import { strapiNoticeStore } from './strapi-store';
 import { syncNotices, type NoticeSyncContext, type NoticeSyncResult, type PortalAnnouncement } from './sync';
 
@@ -33,10 +34,22 @@ export function strapiNoticeSyncContext(strapi: Core.Strapi): NoticeSyncContext 
   };
 }
 
+const clubWide = new WeakMap<Core.Strapi, () => Promise<NoticeSyncResult>>();
+
+/** The club-wide sync, one at a time in this process (the cron and every save share it); calls made while it runs coalesce into one follow-up run. */
+export function syncClubWide(strapi: Core.Strapi): Promise<NoticeSyncResult> {
+  let run = clubWide.get(strapi);
+  if (!run) {
+    run = coalesced(() => syncNotices(strapiNoticeSyncContext(strapi), {}));
+    clubWide.set(strapi, run);
+  }
+  return run();
+}
+
 /** After a save or a stop: the sync must never fail the save, so a failure is logged by code only. */
 export async function syncNoticesAfterSave(strapi: Core.Strapi): Promise<NoticeSyncResult | null> {
   try {
-    return await syncNotices(strapiNoticeSyncContext(strapi), {});
+    return await syncClubWide(strapi);
   } catch (err) {
     const code = (err as { code?: unknown } | null)?.code;
     strapi.log?.warn?.(`[notices] sync after save failed: ${typeof code === 'string' ? code : err instanceof Error ? err.name : 'unknown'}`);
