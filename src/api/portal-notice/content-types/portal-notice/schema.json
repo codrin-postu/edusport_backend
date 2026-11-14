@@ -1,0 +1,20 @@
+{
+  "kind": "collectionType",
+  "collectionName": "portal_notices",
+  "info": { "singularName": "portal-notice", "pluralName": "portal-notices", "displayName": "Portal / Mesaj", "description": "Mesaje pentru portalul sportiv" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "kind": { "type": "enumeration", "enum": ["auto", "anunt"], "required": true },
+    "account": { "type": "relation", "relation": "manyToOne", "target": "api::portal-account.portal-account" },
+    "announcement": { "type": "relation", "relation": "manyToOne", "target": "api::announcement.announcement" },
+    "key": { "type": "string" },
+    "title": { "type": "string" },
+    "rows": { "type": "json" },
+    "athleteIds": { "type": "json" },
+    "groupIds": { "type": "json" },
+    "lastDate": { "type": "date" },
+    "endedAt": { "type": "datetime" },
+    "stoppedAt": { "type": "datetime" }
+  }
+}

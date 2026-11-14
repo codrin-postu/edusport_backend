@@ -2363,6 +2363,103 @@ export interface ApiPortalDevicePortalDevice
   };
 }
 
+export interface ApiPortalNoticeDeliveryPortalNoticeDelivery extends Struct.CollectionTypeSchema {
+  collectionName: 'portal_notice_deliveries';
+  info: {
+    description: 'Un mesaj livrat unui cont';
+    displayName: 'Portal / Livrare mesaj';
+    pluralName: 'portal-notice-deliveries';
+    singularName: 'portal-notice-delivery';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    account: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::portal-account.portal-account'
+    > &
+      Schema.Attribute.Required;
+    deliveredAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    dismissedAt: Schema.Attribute.DateTime;
+    notice: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::portal-notice.portal-notice'
+    > &
+      Schema.Attribute.Required;
+    seenAt: Schema.Attribute.DateTime;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::portal-notice-delivery.portal-notice-delivery'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiPortalNoticePortalNotice extends Struct.CollectionTypeSchema {
+  collectionName: 'portal_notices';
+  info: {
+    description: 'Mesaje pentru portalul sportiv';
+    displayName: 'Portal / Mesaj';
+    pluralName: 'portal-notices';
+    singularName: 'portal-notice';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    account: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::portal-account.portal-account'
+    >;
+    announcement: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::announcement.announcement'
+    >;
+    athleteIds: Schema.Attribute.JSON;
+    endedAt: Schema.Attribute.DateTime;
+    groupIds: Schema.Attribute.JSON;
+    key: Schema.Attribute.String;
+    kind: Schema.Attribute.Enumeration<['auto', 'anunt']> &
+      Schema.Attribute.Required;
+    lastDate: Schema.Attribute.Date;
+    rows: Schema.Attribute.JSON;
+    stoppedAt: Schema.Attribute.DateTime;
+    title: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::portal-notice.portal-notice'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiPortalSessionPortalSession
   extends Struct.CollectionTypeSchema {
   collectionName: 'portal_sessions';
@@ -4001,6 +4098,8 @@ declare module '@strapi/strapi' {
       'api::portal-account.portal-account': ApiPortalAccountPortalAccount;
       'api::portal-auth-limit.portal-auth-limit': ApiPortalAuthLimitPortalAuthLimit;
       'api::portal-device.portal-device': ApiPortalDevicePortalDevice;
+      'api::portal-notice-delivery.portal-notice-delivery': ApiPortalNoticeDeliveryPortalNoticeDelivery;
+      'api::portal-notice.portal-notice': ApiPortalNoticePortalNotice;
       'api::portal-session.portal-session': ApiPortalSessionPortalSession;
       'api::portal-token.portal-token': ApiPortalTokenPortalToken;
       'api::price-list.price-list': ApiPriceListPriceList;

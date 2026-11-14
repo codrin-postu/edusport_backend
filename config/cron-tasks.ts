@@ -20,6 +20,7 @@
 import type { Core } from '@strapi/strapi';
 import { retryRegistrationEmails } from '../src/email/strapi-email';
 import { purgePortal } from '../src/club/portal/purge';
+import { strapiNoticeStore } from '../src/club/portal/notices/strapi-store';
 import { todayIso } from '../src/club/groups/http';
 import { strapiPresenceStore } from '../src/club/presence/strapi-store';
 import { strapiPortalStore } from '../src/club/portal/strapi-store';
@@ -84,11 +85,11 @@ export default {
     task: async ({ strapi }: { strapi: Core.Strapi }) => {
       try {
         // One daily pass also clears the 2FA rows (unconfirmed factors, spent challenges and backup codes, revoked admin devices).
-        const n = await purgePortal(strapiPortalStore(strapi), new Date(), strapiSecurityStore(strapi));
+        const n = await purgePortal(strapiPortalStore(strapi), new Date(), strapiSecurityStore(strapi), process.env, strapiNoticeStore(strapi));
         const cancels = await strapiPresenceStore(strapi).pruneLessonCancels(todayIso());
         strapi.log.info(
           `[portal][cron] purged ${n.limits} limit row(s), ${n.devices} device(s), ${n.tokens} token(s), ${n.sessions} session(s), ` +
-            `${n.factors ?? 0} factor(s), ${n.challenges ?? 0} challenge(s), ${n.backupCodes ?? 0} backup code(s), ${n.adminDevices ?? 0} admin device(s), ${cancels} lesson cancellation(s)`,
+            `${n.factors ?? 0} factor(s), ${n.challenges ?? 0} challenge(s), ${n.backupCodes ?? 0} backup code(s), ${n.adminDevices ?? 0} admin device(s), ${n.notices ?? 0} notice(s), ${n.noticeDeliveries ?? 0} notice delivery(ies), ${cancels} lesson cancellation(s)`,
         );
       } catch (err) {
         strapi.log.warn(`[portal][cron] purge failed: ${err instanceof Error ? err.message : String(err)}`);

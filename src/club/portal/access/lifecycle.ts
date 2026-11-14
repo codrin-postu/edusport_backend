@@ -49,6 +49,7 @@ export async function endForAthlete(c: AccessContext, athleteId: string, reason:
     await c.access.lockAthlete(athleteId);
     const live = await c.access.liveByAthlete(athleteId);
     if (live) await revokeLive(c, live, reason);
+    await c.access.dropNoticesForAthlete(athleteId);
     if (reason === 'sters') return c.access.deleteForAthlete(athleteId);
     if (live) await c.access.recordAthlete({ athleteId, action: HISTORY_ACTIONS.accessStopped, changes: {}, actor: c.actor });
     const athlete = await c.access.athleteForAccess(athleteId);
@@ -74,6 +75,7 @@ export async function moveOnMerge(c: AccessContext, keptId: string, removedId: s
         await c.access.recordAthlete({ athleteId: keptId, action: HISTORY_ACTIONS.accessRemoved, changes: { email: live.email }, actor: c.actor });
       }
     }
+    await c.access.dropNoticesForAthlete(removedId);
     await c.access.deleteForAthlete(removedId);
   });
 }

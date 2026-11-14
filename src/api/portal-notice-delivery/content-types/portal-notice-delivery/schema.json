@@ -1,0 +1,14 @@
+{
+  "kind": "collectionType",
+  "collectionName": "portal_notice_deliveries",
+  "info": { "singularName": "portal-notice-delivery", "pluralName": "portal-notice-deliveries", "displayName": "Portal / Livrare mesaj", "description": "Un mesaj livrat unui cont" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "notice": { "type": "relation", "relation": "manyToOne", "target": "api::portal-notice.portal-notice", "required": true },
+    "account": { "type": "relation", "relation": "manyToOne", "target": "api::portal-account.portal-account", "required": true },
+    "deliveredAt": { "type": "datetime", "required": true },
+    "seenAt": { "type": "datetime" },
+    "dismissedAt": { "type": "datetime" }
+  }
+}

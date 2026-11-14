@@ -3,6 +3,7 @@ import { transactionScope, type Scope, raws, str, text, iso, linkId, type Raw } 
 import { recordHistory } from '../../history';
 import { SUBJECT } from '../../subjects';
 import { scrubbedJobStatus } from '../../personal-data/anonymize-plan';
+import { dropNoticesForAthlete } from '../notices/strapi-store';
 import type { AccessRow, AccessStore, RevokeReason } from './store';
 
 const ACCESS = 'api::athlete-access.athlete-access' as const;
@@ -59,6 +60,7 @@ export function strapiAccessStore(strapi: Core.Strapi, scope: Scope = transactio
     recordAthlete: async (l) => {
       await recordHistory(strapi as never, { subjectType: SUBJECT.athlete, subjectId: l.athleteId, action: l.action, changes: l.changes, actor: l.actor });
     },
+    dropNoticesForAthlete: (athleteId) => dropNoticesForAthlete(strapi, athleteId),
     lockAthlete: (athleteId) => scope.lockRow('athletes', athleteId),
     athleteForAccess: async (athleteId) => {
       const r = (await strapi.documents(ATHLETE).findOne({ documentId: athleteId })) as Raw | null;

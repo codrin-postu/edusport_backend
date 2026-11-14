@@ -11,6 +11,7 @@ import { historyTexts } from '../../../history-text';
 import { anonymizeAthlete } from '../../../personal-data/anonymize-service';
 import { attendanceRow, fakePresenceStore, paymentRow, sessionRow } from '../../../presence/__tests__/fake-store';
 import { SUBJECT } from '../../../subjects';
+import { fakeNoticeStore } from '../../notices/__tests__/fake-store';
 import { harness, NOW, type Harness } from '../../accounts/__tests__/harness';
 import type { AthleteForAccess } from '../types';
 
@@ -255,5 +256,37 @@ describe('confirm and undo move the access like an edit', () => {
     expect(await undoConfirmation(w.ctx, 'r8', fakePresenceStore().store)).toMatchObject({ ok: true, data: { athleteDeleted: true } });
     expect(w.fake.state.athletes.map((a) => a.id)).toEqual(['a1']);
     expect(w.h.access.state.rows.filter((r) => r.athleteId === created)).toEqual([]);
+  });
+});
+
+describe('notices follow the athlete', () => {
+  const notice = (accountId: string, athleteIds: string[]) => ({ kind: 'auto' as const, accountId, announcementId: null, key: 'k', title: 't', rows: [], athleteIds, groupIds: [], lastDate: null });
+  async function seeded(w: World & { accountA: string }) {
+    const { store } = fakeNoticeStore(w.h.access.state.notices);
+    const named = await store.createNotice(notice(w.accountA, ['a1']), NOW.toISOString());
+    const other = await store.createNotice(notice('accB', ['zz']), NOW.toISOString());
+    await store.deliver(named, [w.accountA], NOW.toISOString());
+    await store.deliver(other, ['accB'], NOW.toISOString());
+    return { named, other, state: w.h.access.state.notices };
+  }
+  const left = (s: { state: { notices: { id: string }[]; deliveries: { noticeId: string }[] } }) => [s.state.notices.map((n) => n.id), s.state.deliveries.map((d) => d.noticeId)];
+
+  it('delete removes the notices that name him with their deliveries and keeps the others', async () => {
+    const w = await world();
+    const s = await seeded(w);
+    await deleteAthlete(w.ctx, 'a1', fakePresenceStore().store);
+    expect(left(s)).toEqual([[s.other], [s.other]]);
+  });
+  it('anonymize does the same', async () => {
+    const w = await world();
+    const s = await seeded(w);
+    await anonymizeAthlete({ ...w.ctx, removeFiles: async () => undefined, now: () => NOW, presence: fakePresenceStore().store }, 'a1');
+    expect(left(s)).toEqual([[s.other], [s.other]]);
+  });
+  it('merge removes the notices of the athlete merged away', async () => {
+    const w = await world({ club: [{ id: 'k', name: 'Ana I.', email: null, birthDate: '2015-04-03' }], access: [ana({ id: 'k', name: 'Ana I.' })] });
+    const s = await seeded(w);
+    expect(await mergeAthletes(w.ctx, { keptId: 'k', removedId: 'a1', take: [] }, fakePresenceStore().store)).toMatchObject({ ok: true });
+    expect(left(s)).toEqual([[s.other], [s.other]]);
   });
 });

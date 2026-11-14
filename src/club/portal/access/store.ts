@@ -21,6 +21,8 @@ export interface AccessStore {
    * portal-invite / portal-access jobs of those accounts that name the child are scrubbed like the other e-mail jobs.
    */
   scrubForAthlete(athleteId: string, name: string): Promise<void>;
+  /** Auto notices that name the athlete are deleted with their deliveries (delete, anonymize, merge of the athlete). */
+  dropNoticesForAthlete(athleteId: string): Promise<void>;
   /** Takes the athlete row lock; lock order is athlete, account, team member. Only inside a transaction. */
   lockAthlete(athleteId: string): Promise<void>;
   athleteForAccess(athleteId: string): Promise<AthleteForAccess | null>;
