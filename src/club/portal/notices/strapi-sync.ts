@@ -17,7 +17,7 @@ const portalAnnouncements = (strapi: Core.Strapi) => async (): Promise<PortalAnn
     const end = new Date(String(r.endAt));
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return [];
     return [{
-      id: String(r.documentId), title: String(r.title ?? ''), startAt: start.toISOString(), endAt: end.toISOString(), isActive: r.isActive !== false, showOnPortal: true,
+      id: String(r.documentId), title: String(r.title ?? ''), message: String(r.message ?? ''), startAt: start.toISOString(), endAt: end.toISOString(), isActive: r.isActive !== false, showOnPortal: true,
       portalGroupIds: Array.isArray(r.portalGroupIds) ? r.portalGroupIds.filter((x): x is string => typeof x === 'string') : null,
     }];
   });

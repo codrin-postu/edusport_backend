@@ -17,6 +17,7 @@ import { readHistory, readHistoryPage, readProfile } from '../../../club/portal/
 import { toIcs } from '../../../club/portal/sportiv/ics';
 import { changePassword, listDevices, readMe, revokeDevice, saveMe, saveNotifications } from '../../../club/portal/sportiv/me';
 import { readAcord, readMoney, readPayments, readSubscriptions } from '../../../club/portal/sportiv/money';
+import { dismissNotice, readNotices } from '../../../club/portal/sportiv/notices';
 import { readPath } from '../../../club/portal/sportiv/path';
 import type { AdminResult } from '../../../club/admin-result';
 
@@ -129,6 +130,8 @@ export default {
   password: own('password', (c, ctx) => changePassword(withAuth(c, ctx), ctx.request.body)),
   devices: own('devices', async (c, ctx) => done(await listDevices(c, headerOf(ctx, BFF_HEADERS.device)))),
   revokeDevice: own('revokeDevice', (c, ctx) => revokeDevice(c, ctx.params.id ?? '')),
+  notices: own('notices', async (c, ctx) => done(await readNotices(c, ctx.query?.seen === '1'))),
+  dismissNotice: own('dismissNotice', (c, ctx) => dismissNotice(c, ctx.params.noticeId)),
   athletes: own('athletes', async (c) => done(await readAthletes(c))),
   home: athleteRoute('home', async (c, id) => done(await readHome(c, id))),
   promotionSeen: athleteRoute('promotionSeen', async (c, id) => done(await markPromotionSeen(c, id))),

@@ -15,6 +15,8 @@ export default {
     route('POST', '/me/password', 'password'),
     route('GET', '/me/devices', 'devices'),
     route('DELETE', '/me/devices/:id', 'revokeDevice'),
+    route('GET', '/me/notices', 'notices'),
+    route('POST', '/me/notices/:noticeId/dismiss', 'dismissNotice'),
     route('GET', '/athletes', 'athletes'),
     route('GET', '/athletes/:athleteId/home', 'home'),
     route('POST', '/athletes/:athleteId/promotion/seen', 'promotionSeen'),

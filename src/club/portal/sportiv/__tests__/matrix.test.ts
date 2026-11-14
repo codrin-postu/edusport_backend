@@ -182,6 +182,49 @@ describe('host matrix', () => {
   });
 });
 
+describe('notice routes', () => {
+  const NOTICE_ROUTES = (sportivRoutes.routes as Route[]).filter((r) => r.path.includes('/me/notices'));
+
+  it('both routes exist and refuse a call without the BFF secret or without a sportiv session', async () => {
+    const w = await setup();
+    const token = await w.login(2, 'sportiv');
+    expect(NOTICE_ROUTES.map((r) => `${r.method} ${r.path}`)).toEqual(['GET /portal/sportiv/me/notices', 'POST /portal/sportiv/me/notices/:noticeId/dismiss']);
+    for (const r of NOTICE_ROUTES) {
+      const noSecret = ctxFor(token);
+      delete noSecret.request.headers['x-portal-secret'];
+      delete noSecret.request.header['x-portal-secret'];
+      await expect(runPolicies(r, noSecret), `${r.path} no secret`).rejects.toBeInstanceOf(Error);
+      const noSession = ctxFor('not-a-session');
+      await expect(runPolicies(r, noSession), `${r.path} no session`).rejects.toBeInstanceOf(Error);
+      await expect(runPolicies(r, ctxFor(await w.login(1, 'antrenor'))), `${r.path} coach`).rejects.toBeInstanceOf(errors.ForbiddenError);
+    }
+  });
+
+  it('the answers carry no e-mail, no athlete id and no child of another account; a foreign or unknown id is 404 and writes nothing', async () => {
+    const w = await setup();
+    const token = await w.login(2, 'sportiv');
+    w.seed.fake.state.calendar.blackouts.push({ label: 'Zi liberă', startDate: '2026-11-21', endDate: '2026-11-21' });
+    const list = await call(token, 'GET', '/portal/sportiv/me/notices', { seen: '1' });
+    expect(list.status).toBeUndefined();
+    const data = (list.body as { data: { count: number; notices: { id: string }[] } }).data;
+    expect(data.count).toBeGreaterThan(0);
+    expect(forbiddenPathsIn(data, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)).toEqual([]);
+    const text = JSON.stringify(data);
+    for (const needle of ['example.invalid', A_IOANA, 'Ioana', 'athleteId', 'athleteIds', 'userId', 'accountId']) expect(text, needle).not.toContain(needle);
+    const before = structuredClone(w.seed.noticeFake.state.deliveries);
+    for (const id of ['unknown', 'x'.repeat(40)]) {
+      const out = await call(token, 'POST', `/portal/sportiv/me/notices/${id}/dismiss`);
+      expect(out.status, id).toBe(404);
+      expect(out.body, id).toEqual({ data: null, error: { status: 404, name: 'ClubAdminError', message: 'Nu a fost găsit.' } });
+    }
+    expect(w.seed.noticeFake.state.deliveries).toEqual(before);
+    const done = await call(token, 'POST', `/portal/sportiv/me/notices/${data.notices[0].id}/dismiss`);
+    expect(done.status).toBeUndefined();
+    expect(done.body).toEqual({ data: { count: data.count - 1 } });
+    expect(forbiddenPathsIn((done.body as { data: unknown }).data, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)).toEqual([]);
+  });
+});
+
 describe('leak walk', () => {
   it('no JSON answer of any route carries a forbidden key (no path is allowed)', async () => {
     const w = await setup();

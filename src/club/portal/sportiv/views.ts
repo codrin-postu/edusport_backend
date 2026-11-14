@@ -1,5 +1,5 @@
 import type {
-  AbonamentShort, Badge, CalendarItem, CompetitionRow, HistoryRow, Level, LastCompetition, MonthBar, MoneyLine, PaymentRow, Promotion, SportivCompetition, SportivCompetitions, SportivHistory, SportivHome, SportivMoney, SportivPath, SportivPayments, SportivProfile, SportivSubscriptions, Ticket,
+  AbonamentShort, Badge, CalendarItem, CompetitionRow, HistoryRow, Level, LastCompetition, MonthBar, MoneyLine, PaymentRow, Promotion, SportivCompetition, SportivCompetitions, SportivHistory, SportivHome, SportivNotice, SportivNotices, SportivMoney, SportivPath, SportivPayments, SportivProfile, SportivSubscriptions, Ticket,
 } from './api-types';
 
 /** Keys no sportiv answer may carry (spec 5.4). A cancelled date's reason travels as `reason`, so no path may carry a `note`. */
@@ -124,3 +124,11 @@ export const toSubscriptions = (s: SportivSubscriptions): SportivSubscriptions =
   active: s.active ? toTicket(s.active) : null,
   earlier: s.earlier.map((e) => ({ itemName: e.itemName, used: e.used, slots: e.slots, validUntil: e.validUntil })),
 });
+
+/** One notice, field by field: no account, athlete id, group id or key leaves. */
+export const toNotice = (n: SportivNotice): SportivNotice => ({
+  id: n.id, date: n.date, title: n.title, body: n.body, rows: n.rows.map((r) => ({ date: r.date, text: r.text, reason: r.reason })),
+});
+
+/** The Mesaje answer: `count` is the list length (open, unexpired notices). */
+export const toNotices = (notices: SportivNotice[]): SportivNotices => ({ count: notices.length, notices: notices.map(toNotice) });

@@ -19,6 +19,10 @@ import { skateSportivSource } from '../../skate/source';
 import { strapiCompetitions } from '../../skate/wiring';
 import type { SportivCompetitionSource, SportivCompetitionViews } from './competitions';
 import type { HolderState } from './holder';
+import type { NoticeStore } from '../notices/store';
+import { strapiNoticeStore } from '../notices/strapi-store';
+import { strapiNoticeSyncContext } from '../notices/strapi-sync';
+import type { NoticeSyncContext } from '../notices/sync';
 
 export type SportivContext = {
   holder: HolderState; today: string; presence: PresenceContext; groups: GroupContext; club: ServiceContext; portal: PortalStore; access: AccessStore;
@@ -28,6 +32,10 @@ export type SportivContext = {
   competitionViews: SportivCompetitionViews;
   /** The one-source-per-athlete result reads, for the athlete list's `performance`. */
   results: CompetitionResults;
+  /** Mesaje: the notice and delivery store. */
+  notices: NoticeStore;
+  /** What the notice sync reads and writes (built when a notices route needs it). */
+  noticeSync: () => NoticeSyncContext;
   /** The private folder of the stored registration PDFs. */
   documentsRoot: string;
 };
@@ -56,6 +64,7 @@ export function sportivContext(strapi: Core.Strapi, holder: HolderState): Sporti
     club: { store: strapiClubStore(strapi), actor, today: todayInBucharest(), log },
     portal: strapiPortalStore(strapi, scope),
     access: strapiAccessStore(strapi, scope),
+    notices: strapiNoticeStore(strapi, scope), noticeSync: () => strapiNoticeSyncContext(strapi),
     competitions: source, competitionViews: source, results,
     documentsRoot: documentsRoot(strapi.dirs.app.root),
   };

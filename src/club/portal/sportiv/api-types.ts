@@ -51,3 +51,9 @@ export type Segment = { name: string; isShort: boolean; score: number | null; te
 export type SportivCompetition = { available: false } | {
   available: true; stale: boolean; updatedAt: string; row: CompetitionRow; field: number | null; best: number | null; segments: Segment[]; officialUrl: string | null;
 };
+
+/** Mesaje: the automatic and hand-written notices of the account, newest `date` first. `body` is null on an automatic one; `rows` is empty on a hand-written one. */
+export type NoticeRow = { date: string; text: string; reason: string | null };
+export type SportivNotice = { id: string; date: string; title: string; body: string | null; rows: NoticeRow[] };
+export type SportivNotices = { count: number; notices: SportivNotice[] };
+export type NoticeDismissed = { count: number };

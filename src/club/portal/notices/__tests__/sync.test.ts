@@ -30,7 +30,7 @@ function setup() {
 }
 
 const announcement = (over: Partial<PortalAnnouncement> = {}): PortalAnnouncement => ({
-  id: 'an1', title: 'Program de sărbători', startAt: '2026-11-19T00:00:00.000Z', endAt: '2026-11-30T00:00:00.000Z', isActive: true, showOnPortal: true, portalGroupIds: null, ...over,
+  id: 'an1', title: 'Program de sărbători', message: 'Detalii.', startAt: '2026-11-19T00:00:00.000Z', endAt: '2026-11-30T00:00:00.000Z', isActive: true, showOnPortal: true, portalGroupIds: null, ...over,
 });
 const deliveriesOf = (state: ReturnType<typeof setup>['state'], accountId: string) => state.deliveries.filter((d) => d.accountId === accountId);
 const breakOn = (seed: SportivSeed, label: string, date: string): void => { seed.fake.state.calendar.blackouts.push({ label, startDate: date, endDate: date }); };

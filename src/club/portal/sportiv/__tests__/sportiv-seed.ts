@@ -1,3 +1,5 @@
+import { fakeNoticeStore } from '../../notices/__tests__/fake-store';
+import type { NoticeSyncContext, PortalAnnouncement } from '../../notices/sync';
 import { randomBytes } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
@@ -63,7 +65,8 @@ export const HOLDERS: Record<string, string[]> = {
 /** Results are unavailable until a test wires a source. */
 const nullResults: CompetitionResults = { one: async () => ({ available: false }), many: async (refs) => new Map(refs.map((r) => [r.athleteId, { available: false } as const])) };
 
-export type SportivSeed = SportivContext & { fake: ReturnType<typeof fakePresenceContext>; accessFake: FakeAccess; portalFake: FakePortal; clubFake: ReturnType<typeof fakeClubStore> };
+export type SportivSeed = SportivContext & { fake: ReturnType<typeof fakePresenceContext>; accessFake: FakeAccess; portalFake: FakePortal; clubFake: ReturnType<typeof fakeClubStore>;
+  noticeFake: ReturnType<typeof fakeNoticeStore>; announcements: PortalAnnouncement[] };
 
 /** Gives an athlete a profile without a skate-results slug (its competitions are the hand-entered ones). */
 export function giveSluglessProfile(c: SportivSeed, athleteId: string, profileId: string): void {
@@ -96,9 +99,11 @@ export function sportivCtx(email: keyof typeof HOLDERS | string, today = '2026-1
     athletes: S_ATHLETES.map((a) => ({ id: a.id, name: a.name ?? '', email: a.email, status: a.status, birthDate: a.birthDate, contactName: a.contactName })),
   });
   const portalFake = fakePortalStore({});
+  const noticeFake = fakeNoticeStore();
+  const announcements: PortalAnnouncement[] = [];
   const [year, month, day] = today.split('-').map(Number);
   const actor = 'Portal sportiv';
-  return {
+  const seed: SportivSeed = {
     holder: holderOf(HOLDERS[email] ?? []), today,
     presence: { ...fake.ctx, actor },
     groups: {
@@ -106,6 +111,15 @@ export function sportivCtx(email: keyof typeof HOLDERS | string, today = '2026-1
       sessions: { ofEvent: async () => [], move: async () => undefined },
     },
     club: { store: clubFake.store, actor, today: { year, month, day }, log: fake.ctx.log },
-    portal: portalFake.store, access: accessFake.store, competitions: nullSportivCompetitions, competitionViews: nullSportivCompetitionViews, results: nullResults, documentsRoot: path.join(os.tmpdir(), `sportiv-docs-${randomBytes(6).toString('hex')}`), fake, accessFake, portalFake, clubFake,
+    portal: portalFake.store, access: accessFake.store, notices: noticeFake.store, noticeSync: () => noticeSync(seed), competitions: nullSportivCompetitions, competitionViews: nullSportivCompetitionViews, results: nullResults, documentsRoot: path.join(os.tmpdir(), `sportiv-docs-${randomBytes(6).toString('hex')}`), fake, accessFake, portalFake, clubFake, noticeFake, announcements,
+  };
+  return seed;
+}
+
+/** The notice sync over the seed's own stores (the fake notice store joins the portal fake's transaction). */
+function noticeSync(seed: SportivSeed): NoticeSyncContext {
+  return {
+    notices: { ...seed.noticeFake.store, transaction: seed.portal.transaction }, portal: seed.portal, access: seed.access, sportiv: (holder) => ({ ...seed, holder }),
+    announcements: async () => structuredClone(seed.announcements), now: seed.presence.now, today: seed.today, log: seed.presence.log,
   };
 }

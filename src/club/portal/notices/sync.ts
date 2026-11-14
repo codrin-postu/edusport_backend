@@ -10,7 +10,7 @@ import type { NoticeRecord, NoticeRow, NoticeStore } from './store';
 
 /** The announcement fields the sync reads (Task 7 row); only rows with `showOnPortal` are listed. */
 export type PortalAnnouncement = {
-  id: string; title: string; startAt: string; endAt: string; isActive: boolean; showOnPortal: boolean;
+  id: string; title: string; message: string; startAt: string; endAt: string; isActive: boolean; showOnPortal: boolean;
   /** null: "Toate grupele". */
   portalGroupIds: string[] | null;
 };
@@ -39,7 +39,7 @@ const unchanged = (live: NoticeRow[], rows: NoticeRow[], today: string): boolean
 };
 
 /** Active at the instant: ticked for the portal, switched on, inside its window. A stop or an end date is checked on the notice and the dates. */
-const runningAt = (a: PortalAnnouncement, at: string): boolean => a.showOnPortal && a.isActive && a.startAt <= at && at <= a.endAt;
+export const runningAt = (a: PortalAnnouncement, at: string): boolean => a.showOnPortal && a.isActive && a.startAt <= at && at <= a.endAt;
 
 /** Automatic message of one account, inside its transaction (account lock held). */
 async function syncAuto(c: NoticeSyncContext, accountId: string, holder: HolderState, at: string, out: NoticeSyncResult): Promise<void> {
@@ -80,7 +80,7 @@ async function syncAuto(c: NoticeSyncContext, accountId: string, holder: HolderS
 }
 
 /** Groups the account's athletes are in today (a membership started and not ended). */
-async function groupsToday(c: NoticeSyncContext, holder: HolderState): Promise<Set<string>> {
+export async function groupsToday(c: NoticeSyncContext, holder: HolderState): Promise<Set<string>> {
   const store = c.sportiv(holder).groups.store;
   const ids = new Set<string>();
   for (const athleteId of holder.athleteIds) {
