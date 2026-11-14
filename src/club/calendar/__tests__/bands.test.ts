@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bandsFor, breakSpans, multiDaySpans, weekBands, type Span } from '../bands';
-import type { CalendarWindow } from '../../groups/occurrences';
-import type { CalendarEventRow } from '../../../api/calendar-event/services/expand';
+import { breakSpans, multiDaySpans, weekBands, type Span } from '../bands';
 
 const week = (monday: string): string[] => {
   const out: string[] = [];
@@ -66,29 +64,5 @@ describe('breakSpans', () => {
     expect(breakSpans([{ label: 'Vacanța', startDate: '2026-12-20', endDate: '2027-01-06' }])).toEqual([
       { key: 'pauza:2026-12-20:2027-01-06:Vacanța', title: 'Vacanța', from: '2026-12-20', to: '2027-01-06', kind: 'pauza' },
     ]);
-  });
-});
-
-describe('bandsFor', () => {
-  const ev = (id: number, groupId: string, singleDate: string, endDate: string): CalendarEventRow => ({
-    id, documentId: `e${id}`, title: `Cupa ${id}`, type: 'concurs', recurrence: { freq: 'none', singleDate, endDate }, exceptions: [],
-    group: { documentId: groupId, name: groupId, active: true, programPublic: true },
-  });
-  const w: CalendarWindow = {
-    events: [ev(1, 'g1', '2026-12-11', '2026-12-13'), ev(2, 'g2', '2026-12-11', '2026-12-13')],
-    blackouts: [
-      { label: 'Vacanța', startDate: '2026-12-20', endDate: '2027-01-06', exceptGroupIds: ['g1', 'g2'] },
-      { label: 'Pauză', startDate: '2026-12-22', endDate: '2026-12-23', exceptGroupIds: ['g1'] },
-    ],
-  };
-
-  it('leaves out a break that excepts all the given groups', () => {
-    expect(bandsFor(w, new Set(['g1']), '2026-12-01', '2027-01-31').filter((b) => b.kind === 'pauza')).toEqual([]);
-    expect(bandsFor(w, new Set(['g1', 'g2']), '2026-12-01', '2027-01-31').filter((b) => b.kind === 'pauza').map((b) => b.title)).toEqual(['Pauză']);
-  });
-
-  it('keeps the multi-day events of the given groups only, inside the range', () => {
-    expect(bandsFor(w, new Set(['g1']), '2026-12-01', '2026-12-31').map((b) => b.title)).toEqual(['Cupa 1']);
-    expect(bandsFor(w, new Set(['g1']), '2027-01-01', '2027-01-31')).toEqual([]);
   });
 });

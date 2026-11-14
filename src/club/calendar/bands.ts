@@ -1,10 +1,8 @@
-import { expandOccurrences, exceptOf, type BlackoutRow, type Occurrence } from '../../api/calendar-event/services/expand';
+import type { BlackoutRow, Occurrence } from '../../api/calendar-event/services/expand';
 import { addDays } from '../groups/dates';
-import type { CalendarWindow } from '../groups/occurrences';
 
 /** Multi-day things the month grid draws as one band across their days (breaks, holidays, multi-day competitions). Pure. */
 export type Span = { key: string; title: string; from: string; to: string; kind: 'pauza' | 'eveniment' };
-export type CalendarBand = Span;
 /** One row's share of a span: `col` 0..6 Monday first, `lane` counts down from the day numbers. */
 export type BandPiece = { key: string; title: string; col: number; span: number; lane: number };
 
@@ -62,12 +60,4 @@ export function weekBands(week: string[], spans: Span[]): BandPiece[] {
     pieces.push({ key: s.key, title: s.title, col, span, lane });
   }
   return pieces.sort((a, b) => a.lane - b.lane || a.col - b.col);
-}
-
-/** Bands for the given groups in from..to: the breaks that apply to at least one of them, and their multi-day events. */
-export function bandsFor(w: CalendarWindow, groupIds: Set<string>, from: string, to: string): CalendarBand[] {
-  const ids = [...groupIds];
-  const applying = w.blackouts.filter((b) => b.startDate <= to && b.endDate >= from && ids.some((id) => !exceptOf(b).includes(id)));
-  const events = w.events.filter((e) => e.group && groupIds.has(e.group.documentId));
-  return [...breakSpans(applying), ...multiDaySpans(expandOccurrences(events, w.blackouts, from, to))];
 }
