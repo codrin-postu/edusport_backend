@@ -16,7 +16,8 @@ import type { UndoStep } from './undo';
 export type DateAnswer = { mode: DateMode['mode']; date: string; emails: number };
 type Spot = { e: EventRecord; group: GroupRecord; season: SeasonRecord };
 
-const inBreak = (store: GroupStore, date: string): Promise<boolean> => store.breaks().then((list) => list.some((b) => b.startDate <= date && date <= b.endDate));
+const inBreak = (store: GroupStore, groupId: string, date: string): Promise<boolean> =>
+  store.breaks().then((list) => list.some((b) => b.startDate <= date && date <= b.endDate && !b.exceptGroupIds.includes(groupId)));
 
 /** The season of the date locked first (a concurrent season switch waits), then read again: it must still be a season that is not past. */
 async function lockedSeason(store: GroupStore, date: string): Promise<SeasonRecord | null> {
@@ -34,7 +35,7 @@ async function spotOf(store: GroupStore, eventId: string, date: string): Promise
   const e = season ? await lockedEvent(store, eventId) : null;
   const group = e?.groupId ? await store.group(e.groupId) : null;
   if (!e || !group || !season) return refuse(409, GROUP_ERRORS.stale);
-  if (!isClassDate(e, date) || (await inBreak(store, date))) return refuse(400, GROUP_ERRORS.invalid);
+  if (!isClassDate(e, date) || (await inBreak(store, group.id, date))) return refuse(400, GROUP_ERRORS.invalid);
   return { ok: true, data: { e, group, season } };
 }
 

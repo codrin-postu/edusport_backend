@@ -7,7 +7,7 @@ const seed = () => fakeContext({
   athletes: [athleteRow({ id: 'a1', name: 'Ana', email: 'ana@example.com' }), athleteRow({ id: 'a2', name: 'Bia', email: 'Ana@example.com ' }), athleteRow({ id: 'a3', name: 'Cai', email: 'cai@example.com' })],
   memberships: [member({ id: 'm1', athleteId: 'a1', groupId: 'g-ib' }), member({ id: 'm2', athleteId: 'a2', groupId: 'g-ib' }), member({ id: 'm3', athleteId: 'a3', groupId: 'g-ib' })],
   events: [event({ id: 'e1' })],
-  breaks: [{ id: 'b1', label: 'Vacanța de iarnă', startDate: '2026-12-26', endDate: '2027-01-03' }],
+  breaks: [{ id: 'b1', label: 'Vacanța de iarnă', startDate: '2026-12-26', endDate: '2027-01-03', exceptGroupIds: [] }],
 });
 const actionOf = (r: { ok: boolean; data?: { actionId: string | null } }) => (r.ok && r.data?.actionId) || '';
 
@@ -78,6 +78,14 @@ describe('refusals', () => {
     expect((await setDate(ctx, 'e1', '2026-11-16', { mode: 'cancel' })).ok).toBe(false);
     expect((await setDate(ctx, 'e1', '2026-12-26', { mode: 'cancel' })).ok).toBe(false);
     expect((await setDate(ctx, 'e1', '2026-11-14', { mode: 'later' })).ok).toBe(false);
+  });
+
+  it('a group excepted from the break can cancel and move its date in it; a covered group still gets 400', async () => {
+    const { ctx, state } = seed();
+    state.breaks.forEach((b) => (b.exceptGroupIds = ['g-ib']));
+    expect((await setDate(ctx, 'e1', '2026-12-26', { mode: 'cancel' })).ok).toBe(true);
+    state.breaks.forEach((b) => (b.exceptGroupIds = ['other']));
+    expect(await setDate(ctx, 'e1', '2026-12-27', { mode: 'cancel' })).toMatchObject({ ok: false, status: 400 });
   });
 
   it('locks the group, then the event (lock order)', async () => {
