@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Button, EmptyState, Popover, SegmentedControl, type CalendarCategory } from '../../../../../admin/ui';
 import { IconPlus } from '../../../../../admin/ui/icons';
+import { weekBands, type Span } from '../../../../../club/calendar/bands';
 import {
   FILTER_GROUPS,
   RO_DOW,
@@ -191,8 +192,11 @@ function dayClass(d: Date, m: number, key: string, todayKey: string, extra = '')
     .join(' ');
 }
 
-/** Full month grid (desktop and tablet). */
-export function MonthGrid({ y, m, byDate, todayKey, onEvent, onAddOn, view, onMore }: GridProps & { onMore: (date: string) => void }) {
+/** Height of one band lane in a day cell: the band plus the cell's 3px gap. */
+const LANE = 20;
+
+/** Full month grid (desktop and tablet). A multi-day band sits under the day numbers of its week row. */
+export function MonthGrid({ y, m, byDate, todayKey, onEvent, onAddOn, view, onMore, bands = [], bandCat = {} }: GridProps & { onMore: (date: string) => void; bands?: Span[]; bandCat?: Record<string, CalendarCategory> }) {
   const weeks = React.useMemo(() => monthWeeks(y, m), [y, m]);
   return (
     <div className="cal-month">
@@ -201,47 +205,65 @@ export function MonthGrid({ y, m, byDate, todayKey, onEvent, onAddOn, view, onMo
           <div key={d}>{d}</div>
         ))}
       </div>
-      <div className="cal-grid">
-        {weeks.flat().map((d) => {
-          const key = ymd(d);
-          const items = byDate.get(key) ?? [];
-          const rest = items.length - MAX_PER_DAY;
-          return (
-            <div key={key} className={dayClass(d, m, key, todayKey)} onClick={onAddOn ? () => onAddOn(key) : undefined}>
-              {onAddOn ? (
-                <button
-                  type="button"
-                  className="cal-num"
-                  aria-label={`Adaugă eveniment, ${fmtRoLong(key)}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddOn(key);
-                  }}
-                >
-                  {d.getDate()}
-                </button>
-              ) : (
-                <span className="cal-num">{d.getDate()}</span>
-              )}
-              {items.slice(0, MAX_PER_DAY).map((o, i) => (
-                <EventChip key={i} o={o} clamp view={view} onOpen={() => onEvent(o, key)} />
-              ))}
-              {rest > 0 && (
-                <button
-                  type="button"
-                  className="cal-more"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onMore(key);
-                  }}
-                >
-                  +{rest} încă
-                </button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {weeks.map((row) => {
+        const pieces = weekBands(row.map(ymd), bands);
+        const lanes = pieces.reduce((n, p) => Math.max(n, p.lane + 1), 0);
+        return (
+          <div key={ymd(row[0])} className="cal-grid cal-week" style={{ '--cal-lanes': lanes } as React.CSSProperties}>
+            {row.map((d) => {
+              const key = ymd(d);
+              const items = byDate.get(key) ?? [];
+              const rest = items.length - MAX_PER_DAY;
+              return (
+                <div key={key} className={dayClass(d, m, key, todayKey)} onClick={onAddOn ? () => onAddOn(key) : undefined}>
+                  {onAddOn ? (
+                    <button
+                      type="button"
+                      className="cal-num"
+                      aria-label={`Adaugă eveniment, ${fmtRoLong(key)}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddOn(key);
+                      }}
+                    >
+                      {d.getDate()}
+                    </button>
+                  ) : (
+                    <span className="cal-num">{d.getDate()}</span>
+                  )}
+                  {lanes > 0 && <span className="cal-lanes" aria-hidden="true" />}
+                  {items.slice(0, MAX_PER_DAY).map((o, i) => (
+                    <EventChip key={i} o={o} clamp view={view} onOpen={() => onEvent(o, key)} />
+                  ))}
+                  {rest > 0 && (
+                    <button
+                      type="button"
+                      className="cal-more"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMore(key);
+                      }}
+                    >
+                      +{rest} încă
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            {pieces.map((p) => (
+              <div
+                key={`${p.key}:${p.lane}`}
+                className="cal-band"
+                data-calcat={bandCat[p.key] ?? 'liber'}
+                title={p.title}
+                style={{ '--cal-col': p.col, '--cal-span': p.span, '--cal-lane': p.lane } as React.CSSProperties}
+              >
+                <span className="cal-band-t">{p.title}</span>
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 }

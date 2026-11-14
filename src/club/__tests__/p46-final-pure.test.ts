@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { breakDaysIn, withoutBlackoutSessions } from '../calendar/break-days';
 import { NEW_SEASON_COPY, summaryParts, summaryText } from '../groups/copy';
 import { latestGate } from '../groups/new-season/latest';
 import { childPhoneLine, phoneLine } from '../groups/new-season/window-view';
@@ -30,26 +29,6 @@ describe('season window (I3, I6)', () => {
     expect(isPastSeasonDate('2026-10-05', '2026-2027')).toBe(false);
     expect(isPastSeasonDate('2027-10-05', '2026-2027')).toBe(false);
     expect(isPastSeasonDate('2026-03-02', null)).toBe(false);
-  });
-});
-
-describe('break days of the general calendar (I4)', () => {
-  const winter = { label: 'Vacanța de iarnă', startDate: '2026-12-22', endDate: '2027-01-03' };
-  it('gives one entry per day of the month, with the break name', () => {
-    const days = breakDaysIn([winter], '2026-12-01', '2026-12-31');
-    expect(days).toHaveLength(10);
-    expect(days[0]).toEqual({ date: '2026-12-22', label: 'Vacanța de iarnă' });
-    expect(days[9].date).toBe('2026-12-31');
-    expect(breakDaysIn([winter], '2027-01-01', '2027-01-31').map((d) => d.date)).toEqual(['2027-01-01', '2027-01-02', '2027-01-03']);
-    expect(breakDaysIn([winter], '2026-11-01', '2026-11-30')).toEqual([]);
-  });
-  it('one chip per day when breaks overlap: the first wins', () => {
-    const days = breakDaysIn([winter, { label: 'Alta', startDate: '2026-12-30', endDate: '2027-01-05' }], '2026-12-29', '2026-12-31');
-    expect(days.map((d) => d.label)).toEqual(['Vacanța de iarnă', 'Vacanța de iarnă', 'Vacanța de iarnă']);
-  });
-  it('leaves out the group sessions a break cancels', () => {
-    const list = [{ id: 1, cancelReason: 'blackout' as const }, { id: 2, cancelReason: 'exception' as const }, { id: 3, cancelReason: null }];
-    expect(withoutBlackoutSessions(list).map((o) => o.id)).toEqual([2, 3]);
   });
 });
 

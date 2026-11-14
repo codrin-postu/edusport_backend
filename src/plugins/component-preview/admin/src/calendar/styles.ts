@@ -56,6 +56,12 @@ ${CAT}
 .cal-more{align-self:flex-start;border:none;background:none;padding:0 5px;font-family:inherit;font-size:11px;font-weight:700;color:var(--theme-primary);cursor:pointer}
 .cal-more:hover{text-decoration:underline}
 
+/* multi-day band: one per span in each week row, under the day numbers (4px cell padding + 18px number + 3px gap) */
+.cal-week{position:relative}
+.cal-lanes{display:block;flex:none;height:calc(var(--cal-lanes) * 20px - 3px)}
+.ui-root .cal-band{position:absolute;z-index:1;pointer-events:none;top:calc(25px + var(--cal-lane) * 20px);left:calc(var(--cal-col) * 100% / 7 + 2px);width:calc(var(--cal-span) * 100% / 7 - 4px);height:17px;box-sizing:border-box;padding:0 6px;display:flex;align-items:center;overflow:hidden;border-left:3px solid var(--cal-c);border-radius:var(--ui-radius-sm);background:var(--cal-s);color:var(--cal-sf);font-size:11px;font-weight:700;line-height:17px}
+.cal-band-t{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
 /* an event: soft category tint, 3px category edge, dark text, time first */
 .ui-root .cal-ev{display:block;width:100%;min-width:0;text-align:left;font-family:inherit;font-size:11px;font-weight:600;line-height:1.3;padding:2px 5px;border:none;border-left:3px solid var(--cal-c);border-radius:var(--ui-radius-sm);background:var(--cal-s);color:var(--cal-sf);cursor:pointer}
 .ui-root .cal-ev b{font-weight:800}

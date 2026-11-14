@@ -13,6 +13,7 @@ import {
   buildBody,
   emptyForm,
   filterCatOf,
+  occView,
   fmtRoDate,
   formFromEvent,
   validateForm,
@@ -25,7 +26,8 @@ import { DatePanel } from '../../../../admin/dashboard/grupe/DatePanel';
 import { useGrupeApi } from '../../../../admin/dashboard/grupe/api';
 import { groupPageTo } from '../../../../club/grupe/routes';
 import { isPastSeasonDate, seasonLabelOf } from '../../../../club/grupe/season-window';
-import { breakDaysIn, withoutBlackoutSessions, type BreakWindow } from '../../../../club/calendar/break-days';
+import { breakSpans, inEventSpan, multiDaySpans, type Span } from '../../../../club/calendar/bands';
+import type { BlackoutRow } from '../../../../api/calendar-event/services/expand';
 import { useGrupeRefresh } from '../../../../admin/dashboard/grupe/undo';
 import { AgendaList, CalendarToolbar, CompactMonth, MonthGrid, type CalView } from './calendar/CalendarView';
 import { EventDrawer } from './calendar/EventDrawer';
@@ -82,7 +84,7 @@ export default function ProgramOverviewEditor(_props: Props) {
   const [mediaOpen, setMediaOpen] = React.useState(false);
   const [reloadKey, setReloadKey] = React.useState(0);
   const grupeApi = useGrupeApi();
-  const [blackouts, setBlackouts] = React.useState<BreakWindow[]>([]);
+  const [blackouts, setBlackouts] = React.useState<BlackoutRow[]>([]);
   // An undo from a toast (or any Grupe change) reloads the calendar too.
   useGrupeRefresh(() => setReloadKey((k) => k + 1));
   const [groupDate, setGroupDate] = React.useState<{ o: Occurrence; isClass: boolean; readOnly: boolean } | null>(null);
@@ -107,29 +109,32 @@ export default function ProgramOverviewEditor(_props: Props) {
       .then((r) => {
         const body = r.data as { data?: unknown; blackouts?: unknown } | undefined;
         if (cancelled) return;
-        setOccurrences(Array.isArray(body?.data) ? withoutBlackoutSessions(body.data as Occurrence[]) : []);
-        setBlackouts(Array.isArray(body?.blackouts) ? (body.blackouts as BreakWindow[]) : []);
+        setOccurrences(Array.isArray(body?.data) ? (body.data as Occurrence[]) : []);
+        setBlackouts(Array.isArray(body?.blackouts) ? (body.blackouts as BlackoutRow[]) : []);
       })
       .catch(() => { if (!cancelled) { setOccurrences([]); setBlackouts([]); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [ym, reloadKey]);
 
-  const byDate = React.useMemo(() => {
+  // A break or a multi-day event is one band across its days; its days get no chip of their own.
+  const { byDate, bands, bandCat } = React.useMemo(() => {
+    const spans = [...breakSpans(blackouts), ...multiDaySpans(occurrences)];
+    const catOfEvent = new Map<number, CalendarCategory>();
+    for (const o of occurrences) if (o.oneOff) catOfEvent.set(o.eventId, filterCatOf(o) ?? occView(o).cat);
+    const cat = (s: Span): CalendarCategory => (s.kind === 'pauza' ? 'liber' : catOfEvent.get(Number(s.key.split(':')[1])) ?? 'scoala');
     const map = new Map<string, Occurrence[]>();
-    // One "liber" chip per break day with the break's name; it opens nothing (no document id, no group).
-    const breakChips = breakDaysIn(blackouts, ymd(new Date(ym.y, ym.m, 1)), ymd(new Date(ym.y, ym.m + 1, 0))).map((d): Occurrence => ({
-      eventId: -1, title: d.label, type: 'vacanta', label: d.label, color: null, date: d.date, startTime: null, endTime: null, status: 'scheduled', cancelReason: null,
-    }));
-    for (const o of [...breakChips, ...occurrences]) {
-      const cat = filterCatOf(o);
-      if (cat && hidden.has(cat)) continue;
+    for (const o of occurrences) {
+      if (inEventSpan(o, spans)) continue;
+      const c = filterCatOf(o);
+      if (c && hidden.has(c)) continue;
       const arr = map.get(o.date) ?? [];
       arr.push(o);
       map.set(o.date, arr);
     }
-    return map;
-  }, [occurrences, blackouts, ym, hidden]);
+    const shown = spans.filter((s) => !hidden.has(cat(s)));
+    return { byDate: map, bands: shown, bandCat: Object.fromEntries(shown.map((s) => [s.key, cat(s)])) };
+  }, [occurrences, blackouts, hidden]);
 
   const goMonth = (delta: number) => {
     setYm(({ y, m }) => {
@@ -277,6 +282,8 @@ export default function ProgramOverviewEditor(_props: Props) {
         ) : (
           <MonthGrid
             {...grid}
+            bands={bands}
+            bandCat={bandCat}
             onMore={(date) => {
               setView('list');
               setFocusDate(date);

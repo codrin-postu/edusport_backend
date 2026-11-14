@@ -100,6 +100,8 @@ export interface Occurrence {
   groupName?: string | null;
   originalDate?: string | null;
   originalStartTime?: string | null;
+  /** A date of a one-off event; a run of them is one band in the month grid. */
+  oneOff?: boolean;
 }
 export interface Exception { date: string; kind: 'cancel' | 'override' | 'liber' | 'anulat'; newStartTime?: string | null; newEndTime?: string | null; newTitle?: string | null; newDate?: string | null; }
 export interface FormState {
