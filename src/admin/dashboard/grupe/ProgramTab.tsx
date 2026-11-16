@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, EmptyState, Loading, Notice, Section } from '../../ui';
+import { Button, EmptyState, Loading, Notice, EditorCard } from '../../ui';
 import { IconPlus } from '../../ui/icons';
 import type { Occurrence } from '../../../api/calendar-event/services/expand';
 import type { GroupPage } from '../../../club/groups/api-types';
@@ -73,9 +73,9 @@ function EmptyProgram({ page, api, can, onAdd }: { page: GroupPage; api: GrupeAp
 }
 
 function Usual({ page, api, program, can, onChange, onAdd }: { page: GroupPage; api: GrupeApi; program: GroupProgram; can: boolean; onChange: (row: ProgramRow) => void; onAdd: () => void }) {
-  if (!program.series.length) return <Section title={GRUPE_COPY.usual}><EmptyProgram page={page} api={api} can={can} onAdd={onAdd} /></Section>;
+  if (!program.series.length) return <EditorCard variant="plain" title={GRUPE_COPY.usual}><EmptyProgram page={page} api={api} can={can} onAdd={onAdd} /></EditorCard>;
   return (
-    <Section title={GRUPE_COPY.usual}>
+    <EditorCard variant="plain" title={GRUPE_COPY.usual}>
       <div className="grp-usual">
         {program.series.map((row) => (
           <div key={row.eventId} className="grp-usual-row">
@@ -86,7 +86,7 @@ function Usual({ page, api, program, can, onChange, onAdd }: { page: GroupPage; 
         ))}
         {can && <Button variant="secondary" size="sm" icon={<IconPlus />} onClick={onAdd}>{GRUPE_COPY.addProgram}</Button>}
       </div>
-    </Section>
+    </EditorCard>
   );
 }
 

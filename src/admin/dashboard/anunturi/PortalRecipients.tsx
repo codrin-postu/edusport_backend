@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
-import { Button, DataTable, Loading, Modal, Notice, Section, type DataColumn } from '../../ui';
+import { Button, DataTable, Loading, Modal, Notice, type DataColumn, EditorCard } from '../../ui';
 import { ANUNT_LIST_COPY, type PortalSummary, type RecipientAccount, type RecipientsView } from '../../../club/anunturi/portal-history';
 
 /** Content-api route of the recipients (club area) and of "Oprește". */
@@ -47,7 +47,7 @@ export function PortalRecipients({ summary, canSeeAccounts }: { summary: PortalS
   const [open, setOpen] = React.useState(false);
   const { data, failed } = useRecipients(open && canSeeAccounts ? summary.noticeId : null);
   return (
-    <Section title={copy.portalBlock}>
+    <EditorCard variant="plain" title={copy.portalBlock}>
       <div className="anun-portal">
         <span>{copy.sentTo(summary.sent)}</span>
         <span>{copy.seenBy(summary.seen)}</span>
@@ -60,6 +60,6 @@ export function PortalRecipients({ summary, canSeeAccounts }: { summary: PortalS
       <Modal open={open} onClose={() => setOpen(false)} title={copy.accountsLink} size="lg" footer={<Button variant="secondary" onClick={() => setOpen(false)}>Închide</Button>}>
         {failed ? <Notice tone="danger">Nu am putut încărca conturile.</Notice> : !data ? <Loading /> : <AccountsTable accounts={data.accounts} />}
       </Modal>
-    </Section>
+    </EditorCard>
   );
 }

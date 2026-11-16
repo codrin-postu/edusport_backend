@@ -698,6 +698,8 @@ export function scaleVars(): Record<string, string> {
   v['--ui-font'] = font.family;
   v['--ui-font-mono'] = font.mono;
   v['--ui-inset'] = '16px';
+  v['--ui-control-h'] = '34px';
+  v['--ui-control-h-sm'] = '28px';
   v['--ui-motion-fast'] = motion.fast;
   v['--ui-easing'] = motion.easing;
   return v;

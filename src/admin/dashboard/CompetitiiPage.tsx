@@ -7,7 +7,6 @@ import {
   AdminPage,
   Window,
   PageHeader,
-  Section,
   Field,
   Input,
   Select,
@@ -15,6 +14,7 @@ import {
   Notice,
   DataTable,
   type DataColumn,
+  EditorCard,
 } from '../ui';
 
 /**
@@ -355,7 +355,7 @@ export default function CompetitiiPage() {
           subtitle="Importă o competiție după nume pentru a-i prelua rezultatele. Sportivii apar automat și pot fi conectați în editorul de sportiv."
         />
 
-        <Section title="Importă o competiție">
+        <EditorCard variant="plain" title="Importă o competiție">
           <div className="ui-grid2">
             <Field label="Nume competiție sau URL rezultate" hideLabel>
               <Input
@@ -400,9 +400,9 @@ export default function CompetitiiPage() {
               ))}
             </div>
           )}
-        </Section>
+        </EditorCard>
 
-        <Section title="Competiții importate">
+        <EditorCard variant="plain" title="Competiții importate">
           <div className="ui-grid2" style={{ marginBottom: 12 }}>
             <Select
               aria-label="Filtrează după sezon"
@@ -469,7 +469,7 @@ export default function CompetitiiPage() {
               )}
             </div>
           )}
-        </Section>
+        </EditorCard>
       </Window>
 
       <ConfirmDialog

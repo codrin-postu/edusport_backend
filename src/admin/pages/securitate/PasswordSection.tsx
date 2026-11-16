@@ -3,7 +3,7 @@ import { SECURITY_COPY } from '../../../club/security/copy';
 import { Field } from '../../ui/Field';
 import { Input } from '../../ui/Input';
 import { Notice } from '../../ui/Notice';
-import { Section } from '../../ui/Section';
+import { EditorCard } from '../../ui/EditorCard';
 import { adminToast } from '../../ui/Toast';
 import { errorText } from './errors';
 import type { SecurityApi } from './client';
@@ -38,7 +38,7 @@ export function PasswordSection({ api, goTo }: { api: SecurityApi; goTo: (path: 
   };
 
   return (
-    <Section title={C.title}>
+    <EditorCard variant="plain" title={C.title}>
       {error && <Notice tone="danger">{error}</Notice>}
       <form style={stackStyle} onSubmit={(e) => { e.preventDefault(); void change(); }}>
         <Field label={C.current}>
@@ -51,6 +51,6 @@ export function PasswordSection({ api, goTo }: { api: SecurityApi; goTo: (path: 
           <PceButton type="submit" loading={busy} disabled={current === '' || next === ''}>{C.change}</PceButton>
         </div>
       </form>
-    </Section>
+    </EditorCard>
   );
 }

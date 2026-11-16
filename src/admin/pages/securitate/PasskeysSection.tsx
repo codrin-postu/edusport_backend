@@ -6,7 +6,7 @@ import { browserWebauthn, type Webauthn } from '../../lib/webauthn';
 import { Field } from '../../ui/Field';
 import { Input } from '../../ui/Input';
 import { Notice } from '../../ui/Notice';
-import { Section } from '../../ui/Section';
+import { EditorCard } from '../../ui/EditorCard';
 import { adminToast } from '../../ui/Toast';
 import { errorText } from './errors';
 import type { SecurityApi } from './client';
@@ -146,7 +146,7 @@ export function PasskeysSection({ api, webauthn }: { api: SecurityApi; webauthn?
   };
 
   return (
-    <Section title={C.title}>
+    <EditorCard variant="plain" title={C.title}>
       {error && <Notice tone="danger">{error}</Notice>}
       {rows && <PasskeysList rows={rows} busy={busy} onRename={(r) => setPanel({ kind: 'rename', id: r.id, name: r.name })} onDelete={(r) => void run(() => api.passkeyDelete(r.id))} />}
       {panel.kind === 'rename' && (
@@ -166,6 +166,6 @@ export function PasskeysSection({ api, webauthn }: { api: SecurityApi; webauthn?
       {wa.supported && panel.kind === 'idle' && (
         <div><PceButton loading={busy} onClick={() => void attempt()}>{C.create}</PceButton></div>
       )}
-    </Section>
+    </EditorCard>
   );
 }

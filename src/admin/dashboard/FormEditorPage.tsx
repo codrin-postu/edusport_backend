@@ -5,7 +5,6 @@ import {
   AdminPage,
   Window,
   PageHeader,
-  Section,
   EditorCard,
   RepeatableList,
   Field,
@@ -126,8 +125,8 @@ const NEW_TYPE_CHOICES: { value: string; label: string }[] = [
 
 // Page-local bits, tokens only. Kept free of backticks.
 const CSS = `
-.ui-root .fe-step-closed .ui-sec-b{display:none}
-.ui-root .fe-step-closed .ui-sec-h{border-bottom:none}
+.ui-root .fe-step-closed .ui-ecard-b{display:none}
+.ui-root .fe-step-closed .ui-ecard-h{border-bottom:none}
 .ui-root .fe-step-aside{display:flex;align-items:center;gap:8px}
 .ui-root .fe-sum{display:flex;align-items:center;gap:8px;min-width:0}
 .ui-root .fe-sum-l{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -354,11 +353,11 @@ export default function FormEditorPage() {
               const gen = listGen[step.key];
               const n = step.questions.length;
               return (
-                <Section
+                <EditorCard variant="plain"
                   key={step.key}
                   className={open ? undefined : 'fe-step-closed'}
                   title={`${si + 1}. ${step.title}`}
-                  aside={
+                  headerAction={
                     <span className="fe-step-aside">
                       <span className="ui-hint ui-num">
                         {n} {n === 1 ? 'element' : 'elemente'}
@@ -433,12 +432,12 @@ export default function FormEditorPage() {
                       )}
                     </>
                   ) : null}
-                </Section>
+                </EditorCard>
               );
             })}
 
             {removed.length > 0 && (
-              <Section title="Câmpuri scoase din formular">
+              <EditorCard variant="plain" title="Câmpuri scoase din formular">
                 <div>
                   {removed.map((r) => (
                     <div className="fe-ritem" key={r.key}>
@@ -459,7 +458,7 @@ export default function FormEditorPage() {
                   Coloanele și datele deja trimise rămân în tabelul de rezultate, marcate "(eliminată)". Anulează pentru a
                   readuce câmpul în formular la următoarea salvare.
                 </div>
-              </Section>
+              </EditorCard>
             )}
           </div>
         )}

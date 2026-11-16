@@ -4,7 +4,7 @@ import { useFieldControl, type FieldAria } from './Field';
 import { Popover } from './Popover';
 import { Spinner } from './Spinner';
 import { IconChevronDown, IconClose, IconPlus } from './icons';
-import { groupHeaderAt } from '../../club/ui-select';
+import { SELECT_EMPTY_LABEL, groupHeaderAt } from '../../club/ui-select';
 
 export interface ComboOption {
   value: string;
@@ -62,7 +62,7 @@ export function SearchableSelect({
   options,
   loadOptions,
   valueLabel,
-  placeholder = 'Caută...',
+  placeholder = SELECT_EMPTY_LABEL,
   creatable = false,
   onCreate,
   clearable = true,

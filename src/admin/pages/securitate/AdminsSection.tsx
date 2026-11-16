@@ -2,7 +2,7 @@ import * as React from 'react';
 import { SECURITY_COPY } from '../../../club/security/copy';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import { Notice } from '../../ui/Notice';
-import { Section } from '../../ui/Section';
+import { EditorCard } from '../../ui/EditorCard';
 import { adminToast } from '../../ui/Toast';
 import { errorText } from './errors';
 import type { AdminListRow, SecurityApi } from './client';
@@ -59,7 +59,7 @@ export function AdminsSection({ api }: { api: SecurityApi }) {
   };
 
   return (
-    <Section title={C.title}>
+    <EditorCard variant="plain" title={C.title}>
       {!target && error && <Notice tone="danger">{error}</Notice>}
       {rows && <AdminsList rows={rows} busy={busy} onReset={(r) => { setError(null); setTarget(r); }} />}
       <ConfirmDialog
@@ -74,6 +74,6 @@ export function AdminsSection({ api }: { api: SecurityApi }) {
         onCancel={() => setTarget(null)}
         onConfirm={() => void reset()}
       />
-    </Section>
+    </EditorCard>
   );
 }

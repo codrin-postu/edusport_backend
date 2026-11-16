@@ -18,7 +18,7 @@ const muted = (text: string) => <span className="spv-muted">{text}</span>;
 
 function MemberTable({ page, can, busy, onPick }: ListProps) {
   return (
-    <table className="ui-table">
+    <table className="ui-table grp-roster">
       <thead>
         <tr><th scope="col">{GRUPE_COPY.colAthlete}</th><th scope="col">{GRUPE_COPY.colAge}</th><th scope="col">{GRUPE_COPY.colMain}</th><th scope="col">{GRUPE_COPY.colOthers}</th><th scope="col"><span className="ui-sr">{GRUPE_COPY.menu}</span></th></tr>
       </thead>

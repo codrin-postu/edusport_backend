@@ -97,6 +97,9 @@ export function groupHeaderAt(list: ReadonlyArray<{ group?: string }>, i: number
   return i === 0 || list[i - 1].group !== group ? group : null;
 }
 
+/** Text of a select (or combobox) with nothing chosen: never an empty box. */
+export const SELECT_EMPTY_LABEL = 'Selectează';
+
 /** Class of the Select button; dropdown menu buttons (MenuButton) wear the same look. */
 export const SELECT_TRIGGER_CLASS = 'ui-input ui-sel';
 

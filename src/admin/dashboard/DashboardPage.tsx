@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import {
   AdminPage,
-  Section,
   StatTile,
   StatusBadge,
   Switch,
@@ -14,6 +13,7 @@ import {
   Button,
   adminToast,
   toastAutosaved,
+  EditorCard,
 } from '../ui';
 import { FORMULARE_TO, PROGRAM_EDIT_TO } from './menu';
 import { FORM_DEFS, fetchNewCount, tileStyle } from './formDefs';
@@ -153,9 +153,9 @@ const CSS = `
 .ui-root .dash-lnk:hover{text-decoration:underline}
 
 /* analytics (Umami): the navy card */
-.ui-root .ui-sec.dash-dark{background:var(--palette-brand-navy);border-color:var(--palette-blue-800);color:var(--palette-blue-50)}
-.ui-root .dash-dark .ui-sec-h{border-bottom-color:var(--palette-blue-800)}
-.ui-root .dash-dark .ui-sec-title{color:var(--palette-grey-350)}
+.ui-root .ui-ecard.dash-dark{background:var(--palette-brand-navy);border-color:var(--palette-blue-800);color:var(--palette-blue-50)}
+.ui-root .dash-dark .ui-ecard-h{border-bottom-color:var(--palette-blue-800)}
+.ui-root .dash-dark .ui-ecard-title{color:var(--palette-grey-350)}
 .ui-root .dash-dark .dash-lnk{color:var(--palette-blue-200)}
 .ui-root .dash-big{display:flex;align-items:flex-end;gap:9px;margin:0 0 1px}
 .ui-root .dash-big b{font-size:32px;font-weight:800;letter-spacing:-.025em;line-height:1;font-variant-numeric:tabular-nums;color:var(--palette-grey-0)}
@@ -229,7 +229,7 @@ const CSS = `
 .ui-root .dash-sk.pl{height:16px;width:62px}
 
 .ui-root .dash-qa{display:flex;flex-direction:column;gap:8px}
-.ui-root .dash-qa .ui-btn{width:100%;justify-content:flex-start;padding-top:10px;padding-bottom:10px}
+.ui-root .dash-qa .ui-btn{width:100%;justify-content:flex-start}
 .ui-root .dash-qa-i{width:20px;display:inline-flex;justify-content:center;font-weight:800;font-size:14px}
 `;
 
@@ -469,10 +469,10 @@ export default function DashboardPage() {
       <PersonalDataNotice />
 
       {/* CE E NOU feed */}
-      {parts.feed && <Section
+      {parts.feed && <EditorCard variant="plain"
         title="Ce e nou"
         className="dash-feed-sec"
-        aside={totalNew > 0 ? <StatusBadge tone="danger" size="md"><span className="ui-num">{totalNew}</span> de rezolvat</StatusBadge> : undefined}
+        headerAction={totalNew > 0 ? <StatusBadge tone="danger" size="md"><span className="ui-num">{totalNew}</span> de rezolvat</StatusBadge> : undefined}
       >
         {feedItems.length > 0 ? (
           <div className="dash-feed">
@@ -487,13 +487,13 @@ export default function DashboardPage() {
         ) : (
           <EmptyState icon={<CheckIcon />}>Nimic nou. Totul e la zi.</EmptyState>
         )}
-      </Section>}
+      </EditorCard>}
 
       <div className="dash-grid">
         {/* LEFT */}
         <div className="dash-col">
           {/* Season & registration */}
-          {parts.season && <Section title="Sezon și înscrieri">
+          {parts.season && <EditorCard variant="plain" title="Sezon și înscrieri">
             {reg ? (
               <>
                 <div className="dash-seas">
@@ -512,13 +512,13 @@ export default function DashboardPage() {
                 </div>
               </>
             ) : <Loading />}
-          </Section>}
+          </EditorCard>}
 
           {/* Upcoming events */}
-          <Section
+          <EditorCard variant="plain"
             title="Următoarele evenimente"
             className="dash-evs"
-            aside={parts.program ? <Button variant="ghost" size="sm" onClick={() => navigate(PROGRAM_EDIT_TO)}>Vezi tot programul &rarr;</Button> : undefined}
+            headerAction={parts.program ? <Button variant="ghost" size="sm" onClick={() => navigate(PROGRAM_EDIT_TO)}>Vezi tot programul &rarr;</Button> : undefined}
           >
             <SegmentedControl<FilterKey>
               className="dash-filter"
@@ -550,7 +550,7 @@ export default function DashboardPage() {
                 })}
               </div>
             )}
-          </Section>
+          </EditorCard>
         </div>
 
         {/* RIGHT */}
@@ -559,7 +559,7 @@ export default function DashboardPage() {
           <HealthCard health={health} />
 
           {/* Quick actions */}
-          {quickActions.length > 0 && <Section title="Acțiuni rapide">
+          {quickActions.length > 0 && <EditorCard variant="plain" title="Acțiuni rapide">
             <div className="dash-qa">
               {quickActions.map((a) => (
                 <Button
@@ -572,7 +572,7 @@ export default function DashboardPage() {
                 </Button>
               ))}
             </div>
-          </Section>}
+          </EditorCard>}
         </div>
       </div>
     </AdminPage>
@@ -594,7 +594,7 @@ function CheckIcon() {
 function AnalyticsCard({ analytics }: { analytics: AnalyticsData | null }) {
   if (analytics == null) {
     return (
-      <Section title="Analiză trafic" className="dash-dark" aside={<span className="dash-sk pl" />}>
+      <EditorCard variant="plain" title="Analiză trafic" className="dash-dark" headerAction={<span className="dash-sk pl" />}>
         <div className="dash-sk n" />
         <div className="dash-sk cap" />
         <div className="dash-sk ch" />
@@ -604,12 +604,12 @@ function AnalyticsCard({ analytics }: { analytics: AnalyticsData | null }) {
           <div className="dash-sk r" style={{ width: '64%' }} />
           <div className="dash-sk r" style={{ width: '73%' }} />
         </div>
-      </Section>
+      </EditorCard>
     );
   }
   if (analytics.state !== 'ok') {
     return (
-      <Section title="Analiză trafic" className="dash-dark">
+      <EditorCard variant="plain" title="Analiză trafic" className="dash-dark">
         {analytics.state === 'not_configured' ? (
           <StateBox kind="q" title="Umami nu este conectat" body="Lipsesc datele de acces către serviciul de statistici." />
         ) : (
@@ -621,7 +621,7 @@ function AnalyticsCard({ analytics }: { analytics: AnalyticsData | null }) {
             linkLabel="Deschide Umami"
           />
         )}
-      </Section>
+      </EditorCard>
     );
   }
   const series = analytics.series ?? [];
@@ -633,10 +633,10 @@ function AnalyticsCard({ analytics }: { analytics: AnalyticsData | null }) {
   // neutral rather than reading as a drop to zero.
   const noTraffic = visitors === 0 && series.every((v) => v === 0);
   return (
-    <Section
+    <EditorCard variant="plain"
       title="Analiză trafic"
       className="dash-dark"
-      aside={analytics.publicUrl ? (
+      headerAction={analytics.publicUrl ? (
         <a className="dash-lnk" href={analytics.publicUrl} target="_blank" rel="noreferrer">Vezi tot &rsaquo;</a>
       ) : undefined}
     >
@@ -680,7 +680,7 @@ function AnalyticsCard({ analytics }: { analytics: AnalyticsData | null }) {
           ))}
         </div>
       )}
-    </Section>
+    </EditorCard>
   );
 }
 
@@ -688,16 +688,16 @@ function AnalyticsCard({ analytics }: { analytics: AnalyticsData | null }) {
 function HealthCard({ health }: { health: HealthData | null }) {
   if (health == null) {
     return (
-      <Section title="Sănătate site" aside={<span className="dash-sk pl" />}>
+      <EditorCard variant="plain" title="Sănătate site" headerAction={<span className="dash-sk pl" />}>
         <div className="dash-sk bd" />
         <div className="dash-sk st" />
         <div className="dash-sk is" />
-      </Section>
+      </EditorCard>
     );
   }
   if (health.state !== 'ok') {
     return (
-      <Section title="Sănătate site">
+      <EditorCard variant="plain" title="Sănătate site">
         {health.state === 'not_configured' ? (
           <StateBox kind="q" title="GlitchTip nu este conectat" body="Lipsesc datele de acces către serviciul de erori." />
         ) : (
@@ -709,7 +709,7 @@ function HealthCard({ health }: { health: HealthData | null }) {
             linkLabel="Deschide GlitchTip"
           />
         )}
-      </Section>
+      </EditorCard>
     );
   }
   const e24 = health.errors24h ?? 0;
@@ -719,9 +719,9 @@ function HealthCard({ health }: { health: HealthData | null }) {
   const dayMax = Math.max(...days.map((d) => d.count), 0);
   const tone = e24 === 0 ? '' : e24 > 5 ? ' bad' : ' warn';
   return (
-    <Section
+    <EditorCard variant="plain"
       title="Sănătate site"
-      aside={health.publicUrl ? (
+      headerAction={health.publicUrl ? (
         <a className="dash-lnk" href={health.publicUrl} target="_blank" rel="noreferrer">Deschide GlitchTip &rsaquo;</a>
       ) : undefined}
     >
@@ -782,7 +782,7 @@ function HealthCard({ health }: { health: HealthData | null }) {
       {health.capped && (
         <div className="dash-note">Sunt afișate primele 100 de incidente, deci cifrele sunt un minim.</div>
       )}
-    </Section>
+    </EditorCard>
   );
 }
 

@@ -7,7 +7,7 @@ export const rowStyle: React.CSSProperties = {
 };
 export const firstRowStyle: React.CSSProperties = { ...rowStyle, borderTop: 'none', paddingTop: 0 };
 export const mutedStyle: React.CSSProperties = { color: 'var(--theme-text-muted)', fontSize: 'var(--ui-fs-body-sm)' };
-export const stackStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 10 };
+export const stackStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' };
 
 export function Row({ first, children }: { first?: boolean; children: React.ReactNode }) {
   return <div style={first ? firstRowStyle : rowStyle}>{children}</div>;

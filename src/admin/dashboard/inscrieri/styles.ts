@@ -30,7 +30,7 @@ const PANEL_CSS =
   '.ui-root .ins-ph-meta b{color:var(--theme-text)}' +
   '.ui-root .ins-ph .sbt-statusbox{margin:4px 0 0}' +
   '.ui-root .ins-tabs{margin-top:10px;padding:0 7px}' +
-  '.ui-root .ins-tabs .ui-tab{padding:9px 8px}' +
+  '.ui-root .ins-tabs .ui-tab{padding:0 8px}' +
   '.ui-root .ins-panel .sbt-pb{max-height:calc(100vh - 420px);min-height:240px}' +
   '.ui-root .ins-extra{margin-top:16px;padding-top:12px;border-top:1px solid var(--theme-border)}' +
   '.ui-root .ins-empty{margin:0;font-size:13px;color:var(--theme-text-muted)}' +
@@ -104,7 +104,7 @@ const CONFIRM_CSS =
   '.ui-root .ins-win .ins-cmp{min-width:520px}' +
   '.ui-root .ins-note,.ui-root .ins-line,.ui-root .ins-intent,.ui-root .ins-acs p{margin:0;font-size:13px;color:var(--theme-text)}' +
   '.ui-root .ins-acs{display:flex;flex-direction:column;gap:4px}' +
-  '.ui-root .ins-search-bar{display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);background:var(--theme-surface-sunken)}' +
+  '.ui-root .ins-search-bar{display:flex;align-items:center;gap:8px;height:var(--ui-control-h);padding:0 10px;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);background:var(--theme-surface-sunken)}' +
   '.ui-root .ins-search-bar:focus-within{border-color:var(--theme-primary);box-shadow:0 0 0 1px var(--theme-primary)}' +
   '.ui-root .ins-search-bar svg{flex:none;color:var(--theme-text-muted)}' +
   '.ui-root .ins-search-bar .ui-input,.ui-root .ins-search-bar .ui-input:focus{flex:1;min-width:0;padding:0;border:0;background:none;box-shadow:none}' +

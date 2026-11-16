@@ -5,7 +5,6 @@ import {
   AdminPage,
   Window,
   PageHeader,
-  Section,
   Field,
   FieldRow,
   Input,
@@ -24,6 +23,7 @@ import {
   useSaveState,
   adminToast,
   parseTimeText,
+  EditorCard,
 } from '../ui';
 import { usePageForm } from '../lib';
 import { ANUNTURI_TO, ANUNT_EDIT_TO } from './menu';
@@ -445,7 +445,7 @@ export default function AnuntEditPage() {
             <div className="anun-narrow ui-stack">
               {portal && v.showOnPortal && <PortalRecipients summary={portal} canSeeAccounts={canSeeAccounts} />}
 
-              <Section title="Unde apare">
+              <EditorCard variant="plain" title="Unde apare">
                 <div className="ui-stack">
                   <Checkbox
                     label="Site"
@@ -461,10 +461,10 @@ export default function AnuntEditPage() {
                   />
                   {errFor('places') && <div className="ui-error">{errFor('places')}</div>}
                 </div>
-              </Section>
+              </EditorCard>
 
               {v.showOnPortal && (
-                <Section title="Pentru cine">
+                <EditorCard variant="plain" title="Pentru cine">
                   <div className="ui-stack">
                     <SegmentedControl
                       aria-label="Pentru cine"
@@ -482,11 +482,11 @@ export default function AnuntEditPage() {
                     )}
                     {errFor('groups') && <div className="ui-error">{errFor('groups')}</div>}
                   </div>
-                </Section>
+                </EditorCard>
               )}
 
               {siteFieldsShown(v) && (
-                <Section title="Afișare">
+                <EditorCard variant="plain" title="Afișare">
                   <div className="ui-stack">
                     <div className="ui-field">
                       <span className="ui-label" id="anun-format-label">
@@ -508,10 +508,10 @@ export default function AnuntEditPage() {
                       </Field>
                     </FieldRow>
                   </div>
-                </Section>
+                </EditorCard>
               )}
 
-              <Section title="Text">
+              <EditorCard variant="plain" title="Text">
                 <div className="ui-stack">
                   {siteFieldsShown(v) && (
                     <Field label="Etichetă mică (deasupra titlului)">
@@ -539,9 +539,9 @@ export default function AnuntEditPage() {
                     </div>
                   )}
                 </div>
-              </Section>
+              </EditorCard>
 
-              <Section title="Programare">
+              <EditorCard variant="plain" title="Programare">
                 <div className="ui-stack">
                   <DateRangeInput
                     startLabel="Începe"
@@ -585,7 +585,7 @@ export default function AnuntEditPage() {
                     </Field>
                   )}
                 </div>
-              </Section>
+              </EditorCard>
             </div>
           </div>
         )}

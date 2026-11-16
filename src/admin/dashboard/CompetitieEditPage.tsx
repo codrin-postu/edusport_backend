@@ -5,7 +5,6 @@ import {
   AdminPage,
   Window,
   PageHeader,
-  Section,
   Field,
   FieldRow,
   Input,
@@ -22,6 +21,7 @@ import {
   releaseUnsavedGuards,
   useSaveState,
   adminToast,
+  EditorCard,
 } from '../ui';
 import { usePageForm } from '../lib';
 import { LEVEL_OPTIONS } from './constants';
@@ -276,7 +276,7 @@ export default function CompetitieEditPage() {
         ) : (
           <div className="ui-body">
             <div className="cp-narrow ui-stack">
-              <Section title="Detalii">
+              <EditorCard variant="plain" title="Detalii">
                 <div className="ui-stack">
                   <Field label="Nume" required error={showErrors && missing.name ? 'Numele este obligatoriu.' : undefined}>
                     <Input value={v.name} onChange={(e) => upd({ name: e.target.value })} placeholder="Numele competiției" />
@@ -306,9 +306,9 @@ export default function CompetitieEditPage() {
                     </Field>
                   </FieldRow>
                 </div>
-              </Section>
+              </EditorCard>
 
-              <Section title="Sportivi participanți">
+              <EditorCard variant="plain" title="Sportivi participanți">
                 <Field label="Sportivi participanți" hideLabel>
                   <RelationMultiSelect
                     value={v.participants.map((p) => p.documentId)}
@@ -318,9 +318,9 @@ export default function CompetitieEditPage() {
                     onChange={(ids) => upd({ participants: ids.map((d) => participantByDoc.get(d)).filter((o): o is Opt => !!o) })}
                   />
                 </Field>
-              </Section>
+              </EditorCard>
 
-              <Section title="Rezultate participanți">
+              <EditorCard variant="plain" title="Rezultate participanți">
                 <RepeatableList<ResultRow>
                   items={v.results}
                   onChange={(results) => upd({ results })}
@@ -350,7 +350,7 @@ export default function CompetitieEditPage() {
                     </div>
                   )}
                 />
-              </Section>
+              </EditorCard>
             </div>
           </div>
         )}

@@ -5,7 +5,6 @@ import {
   Window,
   PageHeader,
   TwoColumn,
-  Section,
   Field,
   Textarea,
   Button,
@@ -16,6 +15,7 @@ import {
   UnsavedGuard,
   useSaveState,
   ImagePicker,
+  EditorCard,
 } from '../ui';
 import { DASHBOARD_TO } from './menu';
 
@@ -257,15 +257,15 @@ const NavigationPage: React.FC = () => {
         ) : (
           <TwoColumn rail={rail} railLabel="Secțiunile meniului" railClassName="meniu-tree">
             {!editable ? (
-              <Section title={section?.label}>
+              <EditorCard variant="plain" title={section?.label}>
                 <p className="ui-muted" style={{ margin: 0 }}>
                   {section?.promo
                     ? 'Secțiunea are un card promo, dar el nu este încă înregistrat în administrare. Cere unui dezvoltator să îl adauge.'
                     : 'Secțiunea nu are card promo, deci nu are nimic de editat. Cardul apare doar la Despre Noi și Cursuri.'}
                 </p>
-              </Section>
+              </EditorCard>
             ) : (
-              <Section title={`Card promo: ${section?.label}`}>
+              <EditorCard variant="plain" title={`Card promo: ${section?.label}`}>
                 <Field label="Descriere" hint="Apare în lista care se deschide pe desktop, sub titlul cardului.">
                   <Textarea
                     rows={3}
@@ -317,7 +317,7 @@ const NavigationPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </Section>
+              </EditorCard>
             )}
           </TwoColumn>
         )}

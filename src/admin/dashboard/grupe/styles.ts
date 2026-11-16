@@ -36,17 +36,19 @@ export const GRUPE_CSS = `
 .ui-root .grp-usual{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
 .ui-root .grp-usual-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
 .ui-root .grp-days{display:flex;flex-wrap:wrap;gap:6px}
-.ui-root .grp-day{min-width:40px;height:34px;padding:0 8px;font:inherit;font-weight:600;color:var(--theme-text);background:var(--theme-surface);border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);cursor:pointer}
+.ui-root .grp-day{min-width:40px;height:var(--ui-control-h);padding:0 8px;font:inherit;font-weight:600;color:var(--theme-text);background:var(--theme-surface);border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);cursor:pointer}
 .ui-root .grp-day[aria-pressed=true]{color:var(--theme-on-primary);background:var(--theme-primary);border-color:var(--theme-primary)}
 .ui-root .grp-day:focus-visible{outline:2px solid var(--theme-focus);outline-offset:1px}
 .ui-root .grp-danger-link{font:inherit;font-size:13px;font-weight:600;color:var(--theme-danger);background:none;border:none;padding:0;cursor:pointer;align-self:flex-start}
 .ui-root .grp-cal-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0}
 .ui-root .grp-cal-bar .cal-sp{flex:1}
-.ui-root .grp-sec{margin:14px 0 6px}
+.ui-root .grp-sec{margin:14px 0 6px;font-size:var(--ui-fs-section-title);font-weight:var(--ui-fw-section-title);letter-spacing:var(--ui-ls-section-title);text-transform:uppercase;color:var(--theme-text-muted)}
 .ui-root .grp-sec:first-child{margin-top:0}
 .ui-root .grp-aside{margin:4px 0 10px;font-size:12px;font-weight:600}
 .ui-root .grp-kv--rows{grid-template-columns:150px minmax(0,1fr);gap:0 14px;align-items:start}
 .ui-root .grp-kv--rows dt,.ui-root .grp-kv--rows dd{padding:8px 0;border-bottom:1px solid var(--theme-border-subtle)}
+.ui-root .grp-roster th:first-child,.ui-root .grp-roster td:first-child{padding-left:0}
+.ui-root .grp-roster th:last-child,.ui-root .grp-roster td:last-child{padding-right:0}
 .ui-root .grp-tbl{border:1px solid var(--theme-border)}
 .ui-root .grp-tbl .ui-table th,.ui-root .grp-tbl .ui-table td{padding:8px 12px;vertical-align:middle}
 .ui-root .grp-see{margin-left:8px}

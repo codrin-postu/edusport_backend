@@ -203,7 +203,6 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(func
             }}
           />
         </div>
-        <div className="ui-hint ui-time-note">sau scrie ora direct în câmp</div>
       </Popover>
     </span>
   );

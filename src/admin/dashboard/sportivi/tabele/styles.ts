@@ -67,7 +67,7 @@ export const TABELE_CSS = `
 .ui-root .tbl-table tr.tbl-click:hover td{background:var(--theme-surface-subtle)}
 .ui-root .tbl-table tr.tbl-click:focus-visible{outline:2px solid var(--theme-focus);outline-offset:-2px}
 .ui-root .tbl-table tr.tbl-group td{background:var(--theme-surface-subtle);font-weight:700;padding:0}
-.ui-root .tbl-group-btn{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:6px;width:100%;padding:9px var(--ui-inset);cursor:pointer}
+.ui-root .tbl-group-btn{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:6px;width:100%;min-height:var(--ui-control-h);padding:0 var(--ui-inset);cursor:pointer}
 .ui-root .tbl-group-btn:focus-visible{outline:2px solid var(--theme-focus);outline-offset:-2px}
 .ui-root .tbl-group-chev{display:inline-flex;transition:transform .12s}
 .ui-root .tbl-group-btn[aria-expanded="false"] .tbl-group-chev{transform:rotate(-90deg)}

@@ -473,7 +473,7 @@ const TABLE_CSS = `
 .ui-root .ui-input.sbt-status-sel,.ui-root .ui-input.sbt-cell-sel{font-weight:700}
 .ui-root .sbt-statusbox{margin:0 0 14px;padding:11px 12px;border:1px solid var(--theme-primary-soft-line);background:var(--theme-primary-soft);border-radius:var(--ui-radius-sm);border-left:4px solid var(--theme-primary)}
 .ui-root .sbt-statusbox .ui-label{color:var(--theme-primary);font-weight:800}
-.ui-root .sbt-statusbox .ui-input{font-size:14px;padding:8px 10px}
+.ui-root .sbt-statusbox .ui-input{font-size:14px}
 .ui-root .sbt-lv{font-size:11px;color:var(--theme-text-muted);border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);padding:2px 7px;display:inline-block}
 .ui-root .sbt-nm{font-weight:600}
 .ui-root .sbt-bulk{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px var(--ui-inset);border-bottom:1px solid var(--theme-border);background:var(--theme-primary-soft)}
@@ -499,7 +499,7 @@ const TABLE_CSS = `
 .ui-root .sbt-ph b{font-size:14.5px;color:var(--theme-text)}
 .ui-root .sbt-pb{padding:12px var(--ui-inset);max-height:calc(100vh - 340px);min-height:200px;overflow-y:auto}
 .ui-root .sbt-pa{padding:12px var(--ui-inset);border-top:1px solid var(--theme-border);display:flex;justify-content:space-between;gap:8px}
-.ui-root .sbt-fld{margin-bottom:11px}
+.ui-root .sbt-fld{margin-bottom:var(--ui-space-3)}
 .ui-root .sbt-v{font-size:13px;color:var(--theme-text);margin-top:2px;white-space:pre-wrap;word-break:break-word}
 .ui-root .sbt-sheetwrap{position:relative;overflow-x:auto;background:var(--theme-surface)}
 .ui-root .sbt-sheetwrap[data-xscroll="true"]{padding-bottom:14px}
@@ -508,7 +508,7 @@ const TABLE_CSS = `
 .ui-root .sbt-sheet td{padding:0;border-bottom:1px solid var(--theme-border-subtle)}
 .ui-root .sbt-sheet tbody tr:hover td{background:var(--theme-surface-subtle)}
 .ui-root .sbt-sheet .sbt-cellv{display:block;padding:8px 10px;color:var(--theme-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ui-root .sbt-sheet .ui-input.sbt-cell-sel{border-color:transparent;font-size:12.5px;padding:7px 10px}
+.ui-root .sbt-sheet .ui-input.sbt-cell-sel{border-color:transparent;font-size:12.5px;padding:0 10px}
 .ui-root .sbt-sheet .ui-input.sbt-cell-sel:focus{box-shadow:inset 0 0 0 2px var(--theme-focus)}
 .ui-root .sbt-sheet td.sbt-boolc{text-align:center}
 .ui-root .sbt-sheet td.sbt-acts{text-align:right;white-space:nowrap;padding:0 8px}
@@ -516,7 +516,7 @@ const TABLE_CSS = `
 .ui-root .sbt-sheet th.sbt-frz{z-index:4;background:var(--theme-surface-subtle)}
 .ui-root .sbt-ft{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .ui-root .sbt-ft-l{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--theme-text-muted)}
-.ui-root .sbt-ft-l .ui-input{width:auto;padding:5px 8px}
+.ui-root .sbt-ft-l .ui-input{width:auto}
 .ui-root.ui-pop.sbt-pop{width:288px;padding:8px}
 .ui-root.ui-pop.sbt-qfpop{width:210px;padding:6px}
 .ui-root.ui-pop.sbt-advpop{min-width:430px;max-width:calc(100vw - 16px);padding:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}

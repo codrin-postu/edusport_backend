@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { AdminPage, PageHeader, Section, StatusBadge, Window } from '../ui';
+import { AdminPage, PageHeader, StatusBadge, Window, EditorCard } from '../ui';
 import { DASHBOARD_TO } from './menu';
 import ProgramOverviewEditor from '../../plugins/component-preview/admin/src/ProgramOverviewEditor';
 import { PAUZE_COPY } from '../../club/groups/copy';
@@ -19,9 +19,9 @@ const ProgramEditPage: React.FC = () => (
       <PageHeader back={{ to: DASHBOARD_TO }} title="Program" subtitle="Calendarul sezonului și seriile de cursuri" />
       <div className="ui-body">
         <PauzeSection />
-        <Section title={PAUZE_COPY.calendar} aside={<StatusBadge tone="neutral">{PAUZE_COPY.autosave}</StatusBadge>}>
+        <EditorCard variant="plain" title={PAUZE_COPY.calendar} headerAction={<StatusBadge tone="neutral">{PAUZE_COPY.autosave}</StatusBadge>}>
           <ProgramOverviewEditor name="overview" attribute={{}} />
-        </Section>
+        </EditorCard>
       </div>
     </Window>
   </AdminPage>

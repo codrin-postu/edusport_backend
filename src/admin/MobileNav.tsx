@@ -37,13 +37,13 @@ body{padding-top:var(--ui-topbar)}
 .ui-root .edu-mnav-bar{position:fixed;top:0;left:0;right:0;height:var(--ui-topbar);display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 16px;background:var(--theme-surface);border-bottom:1px solid var(--theme-border);z-index:99997}
 .ui-root .edu-mnav-logo{display:flex;align-items:center;height:100%}
 .ui-root .edu-mnav-logo img{display:block;height:28px;width:auto}
-.ui-root .edu-mnav-burger{position:relative;width:38px;height:38px;display:flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);background:var(--theme-surface);color:var(--theme-primary);cursor:pointer;box-shadow:var(--theme-shadow-sm)}
+.ui-root .edu-mnav-burger{position:relative;width:var(--ui-control-h);height:var(--ui-control-h);display:flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);background:var(--theme-surface);color:var(--theme-primary);cursor:pointer;box-shadow:var(--theme-shadow-sm)}
 .ui-root .edu-mnav-burger:focus-visible,.ui-root .edu-mnav-close:focus-visible,.ui-root .edu-mnav-item:focus-visible{outline:2px solid var(--theme-focus);outline-offset:-2px}
 .ui-root .edu-mnav-backdrop{position:fixed;inset:0;background:var(--theme-overlay);z-index:99999;display:flex;justify-content:flex-end}
 .ui-root .edu-mnav-panel{width:85%;max-width:320px;height:100%;background:var(--theme-surface);box-shadow:var(--theme-shadow-md);display:flex;flex-direction:column;overflow-y:auto;font-family:var(--ui-font)}
 .ui-root .edu-mnav-head{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--theme-border);position:sticky;top:0;background:var(--theme-surface);z-index:1}
 .ui-root .edu-mnav-title{font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--theme-text-muted)}
-.ui-root .edu-mnav-close{width:36px;height:36px;display:flex;align-items:center;justify-content:center;padding:0;border:none;background:transparent;border-radius:var(--ui-radius-sm);cursor:pointer;color:var(--theme-text)}
+.ui-root .edu-mnav-close{width:var(--ui-control-h);height:var(--ui-control-h);display:flex;align-items:center;justify-content:center;padding:0;border:none;background:transparent;border-radius:var(--ui-radius-sm);cursor:pointer;color:var(--theme-text)}
 .ui-root .edu-mnav-close:hover{background:var(--theme-surface-subtle)}
 .ui-root .edu-mnav-body{padding:8px 0;flex:1}
 .ui-root .edu-mnav-empty{padding:16px;font-size:13px;color:var(--theme-text-muted)}

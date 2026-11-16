@@ -5,7 +5,7 @@ import { ConfirmDialog } from '../../ConfirmDialog';
 import { Field } from '../../ui/Field';
 import { Input } from '../../ui/Input';
 import { Notice } from '../../ui/Notice';
-import { Section } from '../../ui/Section';
+import { EditorCard } from '../../ui/EditorCard';
 import { adminToast } from '../../ui/Toast';
 import { errorText } from './errors';
 import { BackupCodesWindow } from './BackupCodesWindow';
@@ -135,7 +135,7 @@ export function TwoFactorSection({ api }: { api: SecurityApi }) {
   const confirmOff = (): Promise<boolean> => (panel.kind === 'off' ? run(() => turnOff(api, panel.method)) : Promise.resolve(false));
 
   return (
-    <Section title={C.title}>
+    <EditorCard variant="plain" title={C.title}>
       {state.notice !== null && <Notice tone="info">{B.backupLeft(state.notice)}</Notice>}
       {error && <Notice tone="danger">{error}</Notice>}
       {view && (
@@ -179,6 +179,6 @@ export function TwoFactorSection({ api }: { api: SecurityApi }) {
         onConfirm={() => void run(() => newBatch(api))}
       />
       <BackupCodesWindow codes={state.codes} onDone={() => dispatch({ type: 'codesDone' })} />
-    </Section>
+    </EditorCard>
   );
 }

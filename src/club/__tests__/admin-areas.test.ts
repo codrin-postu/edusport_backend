@@ -100,7 +100,7 @@ describe('dashboard parts', () => {
   });
   it('DashboardPage reads club and settings routes only for those parts', () => {
     const src = read('dashboard/DashboardPage.tsx');
-    for (const part of ['if (!parts.feed) return undefined', 'if (!parts.season) return undefined', 'if (!parts.athletes) return null', '{parts.feed && <Section', '{parts.season && <Section', '.filter((a) => has(a.area))', 'if (!ready) return undefined']) {
+    for (const part of ['if (!parts.feed) return undefined', 'if (!parts.season) return undefined', 'if (!parts.athletes) return null', '{parts.feed && <EditorCard', '{parts.season && <EditorCard', '.filter((a) => has(a.area))', 'if (!ready) return undefined']) {
       expect(src, part).toContain(part);
     }
   });

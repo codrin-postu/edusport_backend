@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { SECURITY_COPY } from '../../../club/security/copy';
 import { Notice } from '../../ui/Notice';
-import { Section } from '../../ui/Section';
+import { EditorCard } from '../../ui/EditorCard';
 import { adminToast } from '../../ui/Toast';
 import { errorText } from './errors';
 import type { SecurityApi } from './client';
@@ -40,7 +40,7 @@ export function GoogleSection({ api }: { api: SecurityApi }) {
   };
 
   return (
-    <Section title={C.title}>
+    <EditorCard variant="plain" title={C.title}>
       {error && <Notice tone="danger">{error}</Notice>}
       {email && (
         <Row first>
@@ -63,6 +63,6 @@ export function GoogleSection({ api }: { api: SecurityApi }) {
           <span style={mutedStyle}>{C.hint}</span>
         </>
       )}
-    </Section>
+    </EditorCard>
   );
 }

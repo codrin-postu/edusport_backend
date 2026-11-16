@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { scaleVars, tokensCss } from '../../admin/ui/tokens';
+import { SELECT_EMPTY_LABEL } from '../ui-select';
 
 const read = (rel: string) => readFileSync(join(__dirname, '../../admin', rel), 'utf8');
 const styles = read('ui/styles.ts');
@@ -12,9 +13,7 @@ const RULES = [
   '.ui-ph',
   '.ui-body',
   '.ui-rail',
-  '.ui-sec-h',
-  '.ui-sec-b',
-  '.ui-sec-f',
+  '.ui-ecard-f',
   '.ui-ecard-h',
   '.ui-ecard-b',
   '.ui-row-b',
@@ -58,7 +57,7 @@ describe('tables, tabs and toolbars on the token', () => {
   it('flush window tables align first and last cells to the token, not body or section tables', () => {
     expect(styles).toMatch(FIRST_LAST);
     expect(styles).toMatch(/\.ui-win > \.ui-table-wrap \.ui-table td:last-child[^\n]*\{padding-right:var\(--ui-inset\)\}/);
-    expect(styles).toContain(':not(.ui-body):not(.ui-sec-b) .ui-table-wrap');
+    expect(styles).toContain(':not(.ui-body):not(.ui-ecard-b) .ui-table-wrap');
   });
 
   it('bars and pager use the token with 12px vertical padding', () => {
@@ -78,5 +77,79 @@ describe('tables, tabs and toolbars on the token', () => {
       const pad = rule.match(/(?:^|[;{])padding:([^;}]*)/)?.[1];
       if (pad) expect(rule, rule).toContain('var(--ui-inset)');
     }
+  });
+});
+
+const CTL = '${H}';
+
+function files(dir: string): string[] {
+  return readdirSync(dir).flatMap((f) => {
+    const p = join(dir, f);
+    return statSync(p).isDirectory() ? files(p) : [p];
+  });
+}
+
+describe('one card, one rhythm', () => {
+  it('fields are 12 apart in a card, blocks 16 apart in a body', () => {
+    expect(ruleBody('.ui-body')).toContain('gap:var(--ui-space-4)');
+    expect(ruleBody('.ui-ecard-b')).toContain('gap:var(--ui-space-3)');
+    expect(read('dashboard/SubmissionTable.tsx')).toMatch(/\.sbt-fld\{margin-bottom:var\(--ui-space-3\)\}/);
+    expect(read('pages/securitate/layout.tsx')).toContain("gap: 'var(--ui-space-3)'");
+  });
+
+  it('Section is gone: no ui-sec classes anywhere in the admin', () => {
+    expect(existsSync(join(__dirname, '../../admin/ui/Section.tsx'))).toBe(false);
+    const hits = files(join(__dirname, '../../admin')).filter((f) => /\.tsx?$/.test(f) && /ui-sec-|\.ui-sec\b/.test(readFileSync(f, 'utf8')));
+    expect(hits).toEqual([]);
+  });
+
+  it('EditorCard has the plain variant and a footer', () => {
+    const card = read('ui/EditorCard.tsx');
+    expect(card).toContain("variant?: 'plain'");
+    expect(card).toContain('ui-ecard-f');
+    expect(styles).toContain('.ui-ecard--plain');
+  });
+});
+
+describe('one control height', () => {
+  it('has the two tokens, and the helper resolves them', () => {
+    expect(styles).toContain("const H = 'var(--ui-ctl, var(--ui-control-h))';");
+    expect(scaleVars()['--ui-control-h']).toBeDefined();
+    expect(scaleVars()['--ui-control-h-sm']).toBeDefined();
+  });
+
+  it.each(['.ui-btn', '.ui-input', '.ui-pg', '.ui-iconbtn', '.ui-add', '.ui-tab', '.ui-seg'])('%s takes its height from the control token', (sel) => {
+    const line = styles.split('\n').find((l) => l.startsWith('${R} ' + sel + '{') || l.startsWith('.ui-root' + sel + '{'));
+    const m = line ? [line, line] : null;
+    expect(m, sel).not.toBeNull();
+    expect(m![1]).toContain(CTL);
+  });
+
+  it('controls in table cells take the small token', () => {
+    expect(styles).toMatch(/td,\$\{R\} th\{--ui-ctl:var\(--ui-control-h-sm\)\}|td,\.ui-root th\{--ui-ctl:var\(--ui-control-h-sm\)\}/);
+  });
+
+  it('page-local controls use the token, not their own height', () => {
+    expect(read('dashboard/prezenta/styles.ts')).toContain('var(--ui-control-h)');
+    expect(read('dashboard/inscrieri/styles.ts')).toContain('height:var(--ui-control-h)');
+    expect(read('dashboard/sportivi/styles.ts')).not.toMatch(/min-height:40px/);
+  });
+
+  it('the group roster table starts at the title edge, not 14px in', () => {
+    expect(read('dashboard/grupe/styles.ts')).toMatch(/\.grp-roster td:first-child\{padding-left:0\}/);
+    expect(read('dashboard/grupe/RosterTab.tsx')).toContain('ui-table grp-roster');
+  });
+
+  it('the time icon sits on the right, like the date picker', () => {
+    const btn = styles.match(/\.ui-time-btn\{([^}]*)\}/)![1];
+    expect(btn).toContain('right:');
+    expect(btn).not.toContain('left:');
+    expect(ruleBody('.ui-time .ui-input')).toContain('padding-right');
+  });
+
+  it('a select with nothing chosen shows Selectează', () => {
+    expect(SELECT_EMPTY_LABEL).toBe('Selectează');
+    expect(read('ui/Select.tsx')).toContain('SELECT_EMPTY_LABEL');
+    expect(read('ui/SearchableSelect.tsx')).toContain('SELECT_EMPTY_LABEL');
   });
 });

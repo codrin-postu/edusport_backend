@@ -16,9 +16,9 @@ export function StepOne({ data }: { data: StartData }) {
   return (
     <>
       <p>{NEW_SEASON_COPY.lead1(data.target.label)}</p>
-      <h3 className="ui-sec-title grp-sec">{NEW_SEASON_COPY.onSite}</h3>
+      <h3 className="grp-sec">{NEW_SEASON_COPY.onSite}</h3>
       {list(rows.slice(0, 4))}
-      <h3 className="ui-sec-title grp-sec">{NEW_SEASON_COPY.inPanel}</h3>
+      <h3 className="grp-sec">{NEW_SEASON_COPY.inPanel}</h3>
       {list(rows.slice(4))}
     </>
   );
@@ -80,7 +80,7 @@ function SectionTable({ s, p }: { s: StartSection; p: StepProps }) {
   const th = (k: TickKey, label: string) => <th scope="col"><HeaderBox section={s} ticks={p.ticks} setTicks={p.setTicks} k={k} label={label} /></th>;
   return (
     <section>
-      <h3 className="ui-sec-title grp-sec">{s.label}</h3>
+      <h3 className="grp-sec">{s.label}</h3>
       <div className="ui-table-wrap grp-tbl">
         <table className="ui-table">
           <thead><tr><th scope="col">{NEW_SEASON_COPY.colGroup}</th><th scope="col">{NEW_SEASON_COPY.colIn(p.data.current.label)}</th>{th('members', NEW_SEASON_COPY.colMembers)}{th('program', NEW_SEASON_COPY.colProgram)}</tr></thead>
@@ -112,7 +112,7 @@ function GroupCard({ g, p }: { g: StartGroup; p: StepProps }) {
 function SectionCards({ s, p }: { s: StartSection; p: StepProps }) {
   return (
     <section>
-      <h3 className="ui-sec-title grp-sec">{s.label}</h3>
+      <h3 className="grp-sec">{s.label}</h3>
       <div className="grp-bar">
         <HeaderBox section={s} ticks={p.ticks} setTicks={p.setTicks} k="members" label={NEW_SEASON_COPY.phoneAllMembers} />
         <HeaderBox section={s} ticks={p.ticks} setTicks={p.setTicks} k="program" label={NEW_SEASON_COPY.phoneAllProgram} />

@@ -7,8 +7,8 @@ export const PREZENTA_CSS = `
 .ui-root .pz-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px var(--ui-inset);border-bottom:1px solid var(--theme-border)}
 .ui-root .pz-head-slot{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ui-root .pz-head-slot .ui-input{width:auto}
-.ui-root .pz-seg{display:inline-flex;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);overflow:hidden;background:var(--theme-surface)}
-.ui-root .pz-seg-btn{min-height:30px;padding:5px 12px;font:inherit;font-size:12.5px;font-weight:600;color:var(--theme-text-secondary);background:var(--theme-surface);border:none;border-right:1px solid var(--theme-border-strong);cursor:pointer}
+.ui-root .pz-seg{display:inline-flex;height:var(--ui-ctl,var(--ui-control-h));border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);overflow:hidden;background:var(--theme-surface)}
+.ui-root .pz-seg-btn{display:inline-flex;align-items:center;padding:0 12px;font:inherit;font-size:12.5px;font-weight:600;color:var(--theme-text-secondary);background:var(--theme-surface);border:none;border-right:1px solid var(--theme-border-strong);cursor:pointer}
 .ui-root .pz-seg-btn:last-child{border-right:none}
 .ui-root .pz-seg-btn:hover:not(:disabled):not(.pz-seg-label){background:var(--theme-surface-subtle);color:var(--theme-text)}
 .ui-root .pz-seg-btn--on{background:var(--theme-primary-soft);color:var(--theme-primary)}

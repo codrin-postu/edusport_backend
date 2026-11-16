@@ -11,7 +11,6 @@ export { cx } from './cx';
 export { AdminPage, type AdminPageProps } from './AdminPage';
 export { Window, type WindowProps } from './Window';
 export { PageHeader, type PageHeaderProps, type PageHeaderBack } from './PageHeader';
-export { Section, type SectionProps } from './Section';
 export { TwoColumn, type TwoColumnProps } from './TwoColumn';
 
 export { Button, type ButtonProps, type ButtonVariant, type ButtonSize } from './Button';

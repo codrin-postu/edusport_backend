@@ -3,7 +3,6 @@ import {
   AdminPage,
   Window,
   PageHeader,
-  Section,
   TwoColumn,
   Button,
   StatusBadge,
@@ -321,7 +320,7 @@ function Controls() {
   const [chips, setChips] = React.useState(['Național', 'Juniori', 'Program Scurt']);
   return (
     <>
-      <Section title="Switch (setări pornit / oprit)">
+      <EditorCard variant="plain" title="Switch (setări pornit / oprit)">
         <div className="ui-ref-row" style={{ gap: 24 }}>
           <Switch checked={sw} onChange={setSw} label="Vizibil pe site" />
           <Switch checked={sw2} onChange={setSw2} label="Afișează în meniu" description="Apare în lista din bara de sus" />
@@ -329,8 +328,8 @@ function Controls() {
           <Switch checked={false} onChange={() => {}} label="Oprit, dezactivat" disabled />
           <Switch checked={sw} onChange={setSw} aria-label="Fără etichetă vizibilă" />
         </div>
-      </Section>
-      <Section title="Checkbox (alegere de opțiuni)">
+      </EditorCard>
+      <EditorCard variant="plain" title="Checkbox (alegere de opțiuni)">
         <div className="ui-ref-row" style={{ gap: 24 }}>
           <Checkbox checked={cb} onChange={setCb} label="Program Scurt" />
           <Checkbox checked={cb2} onChange={setCb2} label="Program Liber" />
@@ -338,8 +337,8 @@ function Controls() {
           <Checkbox checked onChange={() => {}} disabled label="Bifat, dezactivat" />
           <Checkbox checked={false} onChange={() => {}} disabled label="Dezactivat" />
         </div>
-      </Section>
-      <Section title="Chip">
+      </EditorCard>
+      <EditorCard variant="plain" title="Chip">
         <ChipList>
           {chips.map((c) => (
             <Chip key={c} onRemove={() => setChips((cur) => cur.filter((x) => x !== c))}>
@@ -355,7 +354,7 @@ function Controls() {
             </Button>
           </div>
         )}
-      </Section>
+      </EditorCard>
     </>
   );
 }
@@ -365,7 +364,7 @@ function Fields() {
   const [dt, setDt] = React.useState<string | null>(null);
   const [lvl, setLvl] = React.useState('national');
   return (
-    <Section title="Câmpuri">
+    <EditorCard variant="plain" title="Câmpuri">
       <FieldRow>
         <Field label="Nume" required hint="Cum apare pe site.">
           <Input placeholder="ex. Ana Popescu" />
@@ -405,7 +404,7 @@ function Fields() {
           <Input value="Calculat automat" disabled readOnly />
         </Field>
       </FieldRow>
-    </Section>
+    </EditorCard>
   );
 }
 
@@ -416,7 +415,7 @@ function Dialogs() {
   const [picker, setPicker] = React.useState<null | 'single' | 'multiple'>(null);
   const [picked, setPicked] = React.useState<PickedImage[]>([]);
   return (
-    <Section title="Modal, Drawer, ConfirmDialog, ImagePicker">
+    <EditorCard variant="plain" title="Modal, Drawer, ConfirmDialog, ImagePicker">
       <div className="ui-ref-row">
         <Button variant="secondary" onClick={() => setModal(true)}>Deschide Modal</Button>
         <Button variant="secondary" onClick={() => setDrawer(true)}>Deschide Drawer</Button>
@@ -515,7 +514,7 @@ function Dialogs() {
           setPicker(null);
         }}
       />
-    </Section>
+    </EditorCard>
   );
 }
 
@@ -600,7 +599,7 @@ function RepeatableDemo() {
   ]);
   return (
     <>
-      <Section title="RepeatableList: rânduri extensibile, reordonare, confirmare la ștergere">
+      <EditorCard variant="plain" title="RepeatableList: rânduri extensibile, reordonare, confirmare la ștergere">
         <RepeatableList<Rule>
           items={rules}
           onChange={setRules}
@@ -633,8 +632,8 @@ function RepeatableDemo() {
         <span className="ui-hint">
           Trage de mâner, sau focus pe mâner și săgețile sus / jos; Alt+săgeată mută rândul din orice câmp. Pe ecrane tactile apar butoane sus / jos.
         </span>
-      </Section>
-      <Section title="RepeatableList: rânduri simple, maxim 4, fără confirmare">
+      </EditorCard>
+      <EditorCard variant="plain" title="RepeatableList: rânduri simple, maxim 4, fără confirmare">
         <RepeatableList<{ id: string; name: string }>
           items={names}
           onChange={setNames}
@@ -649,7 +648,7 @@ function RepeatableDemo() {
             <Input aria-label="Nume participant" value={n.name} placeholder="Nume și prenume" onChange={(e) => update({ name: e.target.value })} />
           )}
         />
-      </Section>
+      </EditorCard>
     </>
   );
 }
@@ -659,7 +658,7 @@ function PrimitivesDemo() {
   const [items, setItems] = React.useState(['Luni', 'Marți', 'Miercuri', 'Joi']);
   const drag = useDragReorder({ count: items.length, onMove: (f, t) => setItems((cur) => moveItem(cur, f, t)) });
   return (
-    <Section title="ExpandableRow, useDragReorder, AddButton">
+    <EditorCard variant="plain" title="ExpandableRow, useDragReorder, AddButton">
       <ExpandableRow expanded={open} onToggle={() => setOpen((o) => !o)} summary="Grupa de începători, 17:00">
         <span className="ui-muted">Conținutul rândului, afișat doar cât timp e deschis.</span>
       </ExpandableRow>
@@ -678,7 +677,7 @@ function PrimitivesDemo() {
       {drag.live}
       <AddButton label="Adaugă zi" onClick={() => adminToast.info('AddButton apăsat.')} />
       <AddButton label="Dezactivat" disabled />
-    </Section>
+    </EditorCard>
   );
 }
 
@@ -750,7 +749,7 @@ function ObjectFieldDemo() {
 
 function CardsDemo() {
   return (
-    <Section title="EditorCard, LinkOutCard, HelpTip">
+    <EditorCard variant="plain" title="EditorCard, LinkOutCard, HelpTip">
       <EditorCard
         title="Contact"
         description="Datele de contact din subsolul site-ului."
@@ -780,7 +779,7 @@ function CardsDemo() {
           Sus, la dreapta <HelpTip placement="top-end" size={22} label="Portal în body: nu îl taie niciun container." />
         </span>
       </div>
-    </Section>
+    </EditorCard>
   );
 }
 
@@ -797,12 +796,12 @@ function GalleryDemo() {
   const [slots, setSlots] = React.useState<Array<GalleryImage | null>>([demoImg(1, 'patinoar.jpg'), null, demoImg(3, 'gala.jpg')]);
   const [list, setList] = React.useState<GalleryImage[]>([demoImg(11, 'antrenament-1.jpg'), demoImg(12, 'antrenament-2.jpg'), demoImg(13, 'podium.jpg')]);
   return (
-    <Section title="GalleryGrid">
+    <EditorCard variant="plain" title="GalleryGrid">
       <span className="ui-label">Sloturi fixe (3), reordonarea schimbă sloturile între ele</span>
       <GalleryGrid slots={3} images={slots} onChange={setSlots} slotLabels={SLOT_LABELS} columns={3} reorder />
       <span className="ui-label">Listă deschisă, maxim 6, reordonare</span>
       <GalleryGrid images={list} onChange={setList} reorder max={6} confirmRemove />
-    </Section>
+    </EditorCard>
   );
 }
 
@@ -838,7 +837,7 @@ function InputsDemo() {
   const [mode, setMode] = React.useState<'upload' | 'youtube'>('youtube');
   const [pub, setPub] = React.useState('draft');
   return (
-    <Section title="DateRangeInput, TimeInput, NumberInput, TagsInput, SearchableSelect, SegmentedControl">
+    <EditorCard variant="plain" title="DateRangeInput, TimeInput, NumberInput, TagsInput, SearchableSelect, SegmentedControl">
       <DateRangeInput value={range} onChange={setRange} hint="Sfârșitul nu poate fi înaintea începutului: alegerile se ajustează singure." required />
       <FieldRow>
         <Field label="Ora de început" hint="Scrie 9, 930, 9.30 sau folosește ceasul.">
@@ -917,7 +916,7 @@ function InputsDemo() {
           { value: 'archived', label: 'Arhivat' },
         ]}
       />
-    </Section>
+    </EditorCard>
   );
 }
 
@@ -925,7 +924,7 @@ function MediaAcceptDemo() {
   const [accept, setAccept] = React.useState<null | 'video' | 'any'>(null);
   const [picked, setPicked] = React.useState<string | null>(null);
   return (
-    <Section title="ImagePicker: accept">
+    <EditorCard variant="plain" title="ImagePicker: accept">
       <div className="ui-ref-row">
         <Button variant="secondary" onClick={() => setAccept('video')}>
           Alege un videoclip
@@ -944,7 +943,7 @@ function MediaAcceptDemo() {
           setAccept(null);
         }}
       />
-    </Section>
+    </EditorCard>
   );
 }
 
@@ -991,16 +990,16 @@ const UiReferencePage: React.FC = () => {
               </div>
             }
           >
-            <Section title="Culori" aside={<span className="ui-muted">--palette-*, apoi --theme-* pe teme</span>}>
+            <EditorCard variant="plain" title="Culori" headerAction={<span className="ui-muted">--palette-*, apoi --theme-* pe teme</span>}>
               <span className="ui-label">Paletă (primitive)</span>
               <PaletteSwatches />
               <span className="ui-label">Tokenuri semantice</span>
               <SemanticSwatches />
-            </Section>
-            <Section title="Colțuri, umbre, spațiere, text">
+            </EditorCard>
+            <EditorCard variant="plain" title="Colțuri, umbre, spațiere, text">
               <Scales />
-            </Section>
-            <Section title="Butoane">
+            </EditorCard>
+            <EditorCard variant="plain" title="Butoane">
               {(['md', 'sm'] as const).map((size) => (
                 <div className="ui-ref-row" key={size}>
                   <Button variant="primary" size={size}>Salvează</Button>
@@ -1014,8 +1013,8 @@ const UiReferencePage: React.FC = () => {
                   <Button variant="ghost" size={size} iconOnly icon={<Plus />} aria-label="Adaugă rând" />
                 </div>
               ))}
-            </Section>
-            <Section title="StatusBadge">
+            </EditorCard>
+            <EditorCard variant="plain" title="StatusBadge">
               {(['sm', 'md'] as const).map((size) => (
                 <div className="ui-ref-row" key={size}>
                   <StatusBadge tone="success" size={size}>Publicat</StatusBadge>
@@ -1029,18 +1028,18 @@ const UiReferencePage: React.FC = () => {
                   </StatusBadge>
                 </div>
               ))}
-            </Section>
+            </EditorCard>
             <Controls />
             <Fields />
-            <Section title="Notice">
+            <EditorCard variant="plain" title="Notice">
               <Notice tone="success" title="Salvat">Modificările au fost salvate.</Notice>
               <Notice tone="info" title="Setarea este pe altă pagină" action={<Button variant="secondary" size="sm">Deschide Setări site</Button>}>
                 Adresa de email se schimbă din Setări site.
               </Notice>
               <Notice tone="warning" title="Atenție">Imaginea are peste 300 KB și se încarcă greu pe telefon.</Notice>
               <Notice tone="danger">Nu am putut încărca meniul.</Notice>
-            </Section>
-            <Section title="EmptyState, Spinner">
+            </EditorCard>
+            <EditorCard variant="plain" title="EmptyState, Spinner">
               <EmptyState icon={<Inbox />} action={<Button variant="secondary" size="sm" icon={<Plus />}>Adaugă primul sportiv</Button>}>
                 Nu există încă sportivi.
               </EmptyState>
@@ -1050,8 +1049,8 @@ const UiReferencePage: React.FC = () => {
                 <Spinner size={24} label="Se încarcă" />
               </div>
               <Loading />
-            </Section>
-            <Section title="Tabs, Pager">
+            </EditorCard>
+            <EditorCard variant="plain" title="Tabs, Pager">
               <Tabs
                 label="Exemplu"
                 value={tab}
@@ -1064,7 +1063,7 @@ const UiReferencePage: React.FC = () => {
                 ]}
               />
               <Pager page={page} pageCount={9} total={214} pageSize={25} onChange={setPage} />
-            </Section>
+            </EditorCard>
             <Dialogs />
           </TwoColumn>
         </Window>

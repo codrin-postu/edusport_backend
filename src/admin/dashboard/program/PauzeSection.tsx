@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, DataTable, Loading, Notice, Section, adminToast, useIsPhone, type DataColumn } from '../../ui';
+import { Button, DataTable, Loading, Notice, adminToast, useIsPhone, type DataColumn, EditorCard } from '../../ui';
 import { IconPlus } from '../../ui/icons';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import { MenuButton } from '../SubmissionTable';
@@ -73,10 +73,10 @@ export function PauzeSection() {
   const add = <Button variant="secondary" size="sm" icon={<IconPlus />} onClick={() => setEdit({ target: null })}>{PAUZE_COPY.add}</Button>;
   const body = breaks.failed ? <Notice tone="danger">{GROUP_ERRORS.loadFailed}</Notice> : breaks.list ? <BreakList rows={breakRows(breaks.list)} onPick={onPick} /> : <Loading />;
   return (
-    <Section title={PAUZE_COPY.section} aside={add}>
+    <EditorCard variant="plain" title={PAUZE_COPY.section} headerAction={add}>
       {body}
       {edit && <BreakDialog target={edit.target} breaks={breaks} onClose={() => setEdit(null)} />}
       <ConfirmDialog open={!!del} title={PAUZE_COPY.remove} message={PAUZE_COPY.removeConfirm(del?.label ?? '')} tone="danger" confirmLabel={PAUZE_COPY.remove} busy={remove.busy} error={remove.error} onCancel={() => { remove.clear(); setDel(null); }} onConfirm={() => del && void remove.run(del)} />
-    </Section>
+    </EditorCard>
   );
 }

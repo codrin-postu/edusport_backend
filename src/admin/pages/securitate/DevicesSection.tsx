@@ -3,7 +3,7 @@ import type { AdminDeviceView } from '../../../club/security/api-types';
 import { SECURITY_COPY } from '../../../club/security/copy';
 import { longDate } from '../../../club/presence/dates';
 import { Notice } from '../../ui/Notice';
-import { Section } from '../../ui/Section';
+import { EditorCard } from '../../ui/EditorCard';
 import { errorText } from './errors';
 import type { SecurityApi } from './client';
 import { Row, mutedStyle } from './layout';
@@ -67,9 +67,9 @@ export function DevicesSection({ api, goTo }: { api: SecurityApi; goTo: (path: s
   };
 
   return (
-    <Section title={C.title}>
+    <EditorCard variant="plain" title={C.title}>
       {error && <Notice tone="danger">{error}</Notice>}
       {devices && <DevicesList devices={devices} busy={busy} onDisconnect={(d) => void disconnect(d)} />}
-    </Section>
+    </EditorCard>
   );
 }

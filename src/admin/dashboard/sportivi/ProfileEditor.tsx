@@ -2,7 +2,6 @@ import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import {
   TwoColumn,
-  Section,
   Field,
   FieldRow,
   Input,
@@ -22,6 +21,7 @@ import {
   useSaveState,
   adminToast,
   type GalleryImage,
+  EditorCard,
 } from '../../ui';
 import { usePageForm } from '../../lib';
 import { PROGRAM_TYPES } from '../constants';
@@ -574,7 +574,7 @@ export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord
           </div>
         ) : (
           <TwoColumn rail={rail} railLabel="Profil">
-            <Section title="Identitate">
+            <EditorCard variant="plain" title="Identitate">
               <div className="ui-stack">
                 <Field label="Nume" hint={RECORD_COPY.profile.nameHint}>
                   <Input value={athleteName} readOnly disabled />
@@ -583,9 +583,9 @@ export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord
                   <Textarea rows={2} value={v.description} onChange={(e) => upd({ description: e.target.value })} />
                 </Field>
               </div>
-            </Section>
+            </EditorCard>
 
-            <Section title="Poveste">
+            <EditorCard variant="plain" title="Poveste">
               <Field label="Text poveste" hint="Fiecare rând nou devine un paragraf pe site.">
                 <Textarea
                   rows={6}
@@ -594,17 +594,17 @@ export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord
                   placeholder="Fiecare rând devine un paragraf."
                 />
               </Field>
-            </Section>
+            </EditorCard>
 
-            <Section title="Echipă și discipline">
+            <EditorCard variant="plain" title="Echipă și discipline">
               <div className="ui-stack">
                 <RelationField label="Discipline" value={v.disciplines} options={disciplineOpts} onChange={(next) => upd({ disciplines: next })} />
                 <RelationField label="Antrenori" value={v.coaches} options={teamOpts} onChange={(next) => upd({ coaches: next })} />
                 <RelationField label="Coregrafi" value={v.choreographers} options={teamOpts} onChange={(next) => upd({ choreographers: next })} />
               </div>
-            </Section>
+            </EditorCard>
 
-            <Section title="Mișcări și hobby-uri">
+            <EditorCard variant="plain" title="Mișcări și hobby-uri">
               <div className="ui-stack">
                 <Field label="Mișcări preferate">
                   <TagsInput value={v.favoriteMoves} onChange={(next) => upd({ favoriteMoves: next })} placeholder="Mișcare, apasă Enter" />
@@ -613,17 +613,17 @@ export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord
                   <TagsInput value={v.hobbies} onChange={(next) => upd({ hobbies: next })} placeholder="Hobby, apasă Enter" />
                 </Field>
               </div>
-            </Section>
+            </EditorCard>
 
-            <Section title="Obiectiv de carieră">
+            <EditorCard variant="plain" title="Obiectiv de carieră">
               <Field label="Obiectiv de carieră" hideLabel hint={`${v.careerGoal.length}/300`}>
                 <Textarea rows={2} value={v.careerGoal} onChange={(e) => upd({ careerGoal: e.target.value })} maxLength={300} />
               </Field>
-            </Section>
+            </EditorCard>
 
-            <Section
+            <EditorCard variant="plain"
               title="Rezultate competiții"
-              aside={v.skateResultsSlug ? <StatusBadge tone="success">conectat</StatusBadge> : undefined}
+              headerAction={v.skateResultsSlug ? <StatusBadge tone="success">conectat</StatusBadge> : undefined}
             >
               {v.skateResultsSlug ? (
                 <div>
@@ -744,13 +744,13 @@ export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord
                   )}
                 </div>
               )}
-            </Section>
+            </EditorCard>
 
-            <Section title="Galerie" aside={<StatusBadge tone="neutral">{`${v.gallery.length} imagini`}</StatusBadge>}>
+            <EditorCard variant="plain" title="Galerie" headerAction={<StatusBadge tone="neutral">{`${v.gallery.length} imagini`}</StatusBadge>}>
               <GalleryGrid images={v.gallery} onChange={(next) => upd({ gallery: next })} addLabel="Adaugă imagine" aria-label="Galerie" confirmRemove="Imaginea nu va mai apărea în galeria sportivului." />
-            </Section>
+            </EditorCard>
 
-            <Section title="Programe pe sezon">
+            <EditorCard variant="plain" title="Programe pe sezon">
               <RepeatableList<SeasonRow>
                 items={v.seasons}
                 onChange={(next) => upd({ seasons: next })}
@@ -788,7 +788,7 @@ export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord
                   </div>
                 )}
               />
-            </Section>
+            </EditorCard>
           </TwoColumn>
         )}
 

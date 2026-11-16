@@ -10,7 +10,6 @@ import {
   PageHeader,
   RadioGroup,
   SearchableSelect,
-  Section,
   Select,
   Window,
   adminToast,
@@ -18,6 +17,7 @@ import {
   type ComboOption,
   type DateParts,
   type FilterSection,
+  EditorCard,
 } from '../../ui';
 
 /** Phase 3 shared pieces on the UI reference page (plan 3-1). Synthetic data only. */
@@ -39,7 +39,7 @@ function SelectDemo() {
   const [season, setSeason] = React.useState('');
   const [picked, setPicked] = React.useState<string | null>(null);
   return (
-    <Section title="Select, SearchableSelect pe secțiuni">
+    <EditorCard variant="plain" title="Select, SearchableSelect pe secțiuni">
       <FieldRow>
         <Field label="Grupa (Select)">
           <Select value={group} options={GROUP_OPTIONS} onChange={setGroup} />
@@ -59,7 +59,7 @@ function SelectDemo() {
       <p className="ui-muted" data-testid="sel-out">
         Ales: {group}
       </p>
-    </Section>
+    </EditorCard>
   );
 }
 
@@ -67,7 +67,7 @@ function RadioDemo() {
   const [plain, setPlain] = React.useState<'da' | 'nu'>('da');
   const [choice, setChoice] = React.useState<'existent' | 'nou' | null>(null);
   return (
-    <Section title="Radio">
+    <EditorCard variant="plain" title="Radio">
       <RadioGroup
         aria-label="Dorește să fie membru"
         value={plain}
@@ -87,7 +87,7 @@ function RadioDemo() {
           { value: 'nou', label: 'Sportiv nou', hint: 'Se creează o fișă nouă: Ana Pop' },
         ]}
       />
-    </Section>
+    </EditorCard>
   );
 }
 
@@ -98,13 +98,13 @@ function ToastDemo() {
       action: { label: 'Anulează', onClick: () => adminToast.info('Confirmare anulată') },
     });
   return (
-    <Section title="Toast cu acțiune">
+    <EditorCard variant="plain" title="Toast cu acțiune">
       <div className="ui-ref-row">
         <Button variant="secondary" onClick={undoable}>
           Toast cu acțiune
         </Button>
       </div>
-    </Section>
+    </EditorCard>
   );
 }
 
@@ -161,7 +161,7 @@ function FilterDemo() {
   ];
   const n = DEMO.filter((a) => sections.every((s) => s.selected.length === 0 || s.selected.includes(a[s.key as keyof DemoAthlete]))).length;
   return (
-    <Section title="Filtre">
+    <EditorCard variant="plain" title="Filtre">
       <FilterPanel
         sections={sections}
         onChange={(key, selected) => setPicks((p) => ({ ...p, [key]: selected }))}
@@ -169,7 +169,7 @@ function FilterDemo() {
         totalLabel={n === 1 ? '1 sportiv' : `${n} sportivi`}
         showLabel={n === 1 ? 'Arată 1 sportiv' : `Arată ${n} sportivi`}
       />
-    </Section>
+    </EditorCard>
   );
 }
 
@@ -177,7 +177,7 @@ function BirthDemo() {
   const [date, setDate] = React.useState<DateParts>(EMPTY_DATE);
   const [old, setOld] = React.useState<DateParts>({ day: 14, month: 3, year: 1998 });
   return (
-    <Section title="Data nașterii">
+    <EditorCard variant="plain" title="Data nașterii">
       <FieldRow>
         <Field label="Data nașterii">
           <BirthDatePicker value={date} onChange={setDate} />
@@ -189,7 +189,7 @@ function BirthDemo() {
       <p className="ui-muted" data-testid="bd-out">
         {partsToDisplay(date) ?? ''}
       </p>
-    </Section>
+    </EditorCard>
   );
 }
 
@@ -201,13 +201,13 @@ export function Phase3Demos() {
         <SelectDemo />
         <RadioDemo />
         <ToastDemo />
-        <Section title="BottomSheet">
+        <EditorCard variant="plain" title="BottomSheet">
           <div className="ui-ref-row">
             <SheetDemo label="Panou: meniu" desktop="dropdown" />
             <SheetDemo label="Panou: fereastră" desktop="modal" />
             <SheetDemo label="Panou: ecran întreg" desktop="modal" fullHeight />
           </div>
-        </Section>
+        </EditorCard>
         <FilterDemo />
         <BirthDemo />
       </div>

@@ -4,7 +4,7 @@ import { useFetchClient } from '@strapi/admin/strapi-admin';
 // relative path), so importing across the boundary is safe and type-checked.
 import {
   Modal,
-  Section,
+  EditorCard,
   Field,
   FieldRow,
   Input,
@@ -210,7 +210,7 @@ export default function QuickCreateSportspersonModal({ isOpen, onClose, initialN
         {error && <Notice tone="danger">{error}</Notice>}
         {createdDocumentId && <Notice tone="success">Sportivul a fost creat și publicat.</Notice>}
 
-        <Section title="Identitate">
+        <EditorCard variant="plain" title="Identitate">
           <FieldRow>
             <Field label="Nume complet" required>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="ex: Maria Popescu" disabled={disabled} />
@@ -227,9 +227,9 @@ export default function QuickCreateSportspersonModal({ isOpen, onClose, initialN
               />
             </Field>
           </FieldRow>
-        </Section>
+        </EditorCard>
 
-        <Section title="Profil">
+        <EditorCard variant="plain" title="Profil">
           <div className="ui-stack">
             <Field label="Descriere">
               <Textarea
@@ -266,10 +266,10 @@ export default function QuickCreateSportspersonModal({ isOpen, onClose, initialN
               </div>
             </FieldRow>
           </div>
-        </Section>
+        </EditorCard>
 
         {(disciplines.length > 0 || teamMembers.length > 0) && (
-          <Section title="Relații">
+          <EditorCard variant="plain" title="Relații">
             <div className="ui-stack">
               {disciplines.length > 0 && (
                 <Field label="Discipline">
@@ -305,7 +305,7 @@ export default function QuickCreateSportspersonModal({ isOpen, onClose, initialN
                 </FieldRow>
               )}
             </div>
-          </Section>
+          </EditorCard>
         )}
 
         <Notice tone="info">Fotografie, galerie, muzică sezon și hobby-uri se completează din pagina profilului după creare.</Notice>
