@@ -100,3 +100,11 @@ export const IconUser = ({ size = 16 }: P) =>
       <path d="M2 12.25v-2.5h10v2.5" stroke="currentColor" strokeWidth="1.3" />
     </>,
   );
+
+/** Copy: two overlapping squares. */
+export const IconCopy = ({ size = 14 }: P) =>
+  svg(size, <path d="M4.5 4.5h7v7h-7zM2.5 9.5v-7h7" stroke="currentColor" strokeWidth="1.4" />);
+
+/** Chat bubble (square, with a corner tail), for the WhatsApp action. */
+export const IconWhatsapp = ({ size = 14 }: P) =>
+  svg(size, <path d="M2 2h10v7.5H6.5L3.5 12V9.5H2z" stroke="currentColor" strokeWidth="1.4" />);

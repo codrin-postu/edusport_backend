@@ -26,6 +26,7 @@ import {
 } from '../../club/inscrieri-panel';
 import { BlankFormsMenu } from './inscrieri/BlankFormsMenu';
 import { BackToList, BulkMoveSchool, ExistingFilter, SchoolTabs } from './inscrieri/ListControls';
+import { PhoneActions } from './inscrieri/PhoneActions';
 import { RegistrationPanel } from './inscrieri/RegistrationPanel';
 import { IconUser } from './inscrieri/icons';
 import { INSCRIERI_CSS } from './inscrieri/styles';
@@ -75,7 +76,7 @@ const BUILTIN_COLUMNS: ColumnDef[] = [
   { key: 'childBirthDate', label: 'Data nașterii', type: 'text', width: 150 },
   { key: 'parentName', label: 'Nume părinte', type: 'text', width: 170 },
   { key: 'email', label: 'Email', type: 'text', width: 210 },
-  { key: 'phone', label: 'Telefon', type: 'text', width: 140 },
+  { key: 'phone', label: 'Telefon', type: 'text', width: 200, render: (row, api) => <PhoneActions row={row} api={api} /> },
   { key: 'level', label: 'Nivel', type: 'level', width: 190 },
   { key: 'shirtSize', label: 'Mărime tricou', type: 'text', width: 120 },
   { key: 'howHeard', label: 'Cum a aflat', type: 'text', width: 170 },

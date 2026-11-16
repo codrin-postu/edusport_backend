@@ -79,8 +79,8 @@ describe('draft and patch', () => {
   });
 
   it('an untouched unreadable birth date stays as it is while other answers save', () => {
-    const result = patchOf(legacy, (d) => ({ ...d, text: { ...d.text, phone: '0712' } }));
-    expect(result).toEqual({ patch: { phone: '0712' }, error: null });
+    const result = patchOf(legacy, (d) => ({ ...d, text: { ...d.text, phone: '0712345678' } }));
+    expect(result).toEqual({ patch: { phone: '0712345678' }, error: null });
   });
 
   it('a touched, incomplete date is refused with the picker error', () => {
@@ -110,8 +110,8 @@ describe('draft and patch', () => {
 
   it('an old value outside today\'s options, left unchanged, is not sent', () => {
     const stale = { ...script, lastSeason: 'Nivel desființat', source: 'Un canal vechi' };
-    const result = patchOf(stale, (d) => ({ ...d, text: { ...d.text, phone: '0712' } }));
-    expect(result).toEqual({ patch: { phone: '0712' }, error: null });
+    const result = patchOf(stale, (d) => ({ ...d, text: { ...d.text, phone: '0712345678' } }));
+    expect(result).toEqual({ patch: { phone: '0712345678' }, error: null });
   });
 });
 

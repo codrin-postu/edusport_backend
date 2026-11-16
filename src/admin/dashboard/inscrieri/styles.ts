@@ -8,6 +8,8 @@ import { FIT_PAGE_MEDIA } from '../../ui';
 const LIST_CSS =
   '.ui-root .sbt-clist td{height:50px;padding-top:0;padding-bottom:0}' +
   '.ui-root .ins-nr{font-weight:700}' +
+  '.ui-root .ins-phone{display:inline-flex;align-items:center;gap:4px}' +
+  '.ui-root .ins-phone-warn{display:inline-flex;color:var(--theme-warning)}' +
   '.ui-root .ins-name{line-height:1.2}' +
   '.ui-root .ins-name b{display:block}' +
   '.ui-root .ins-ex{display:flex;align-items:center;gap:5px;margin-top:1px;min-height:14px;font-size:11.5px;font-weight:600;color:var(--theme-info)}' +

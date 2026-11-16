@@ -1,4 +1,5 @@
 import type { HistoryInput } from './history';
+import { PHONE_ERROR, normalizePhone } from './phone';
 import { RELATIONSHIP_OTHER, isMembershipAnswer, isRelationship } from './registration-form-options';
 
 /**
@@ -17,8 +18,9 @@ const VALID: Record<(typeof REGISTRATION_EDIT_FIELDS)[number], (v: unknown) => b
   membershipAnswer: (v) => typeof v === 'string' && isMembershipAnswer(v),
 };
 
-/** Refuses a value the schema enum would refuse; null when the edit is fine. */
+/** Refuses a value the schema enum would refuse, or a changed phone that is not a valid number (callers pass changed values only); null when the edit is fine. */
 export function registrationEditError(data: Record<string, unknown>): string | null {
+  if ('phone' in data && (typeof data.phone !== 'string' || normalizePhone(data.phone) === null)) return PHONE_ERROR;
   const bad = REGISTRATION_EDIT_FIELDS.some((key) => key in data && !VALID[key](data[key]));
   return bad ? REGISTRATION_EDIT_ERROR : null;
 }
@@ -32,6 +34,7 @@ export function fieldsClearedByEdit(key: string, value: unknown): { relationship
 export function normalizeRegistrationEdit(data: Record<string, unknown>): Record<string, unknown> {
   const out = { ...data };
   if (typeof out.relationshipOther === 'string') out.relationshipOther = out.relationshipOther.trim() || null;
+  if (typeof out.phone === 'string') out.phone = normalizePhone(out.phone) ?? out.phone.trim();
   if ('relationship' in out) Object.assign(out, fieldsClearedByEdit('relationship', out.relationship));
   return out;
 }

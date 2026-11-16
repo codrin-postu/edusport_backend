@@ -5,6 +5,9 @@ import { REGISTRATION_FIELD_LABELS } from '../../../club/history-text';
 import { cellText, dateTabRows, isAnonymizedRow } from '../../../club/inscrieri-panel';
 import { EditForm } from './EditForm';
 import { IconEdit } from './icons';
+import { PhoneActions } from './PhoneActions';
+
+const phoneValue = (r: { key: string; value: React.ReactNode }, row: Row, api: TableApi) => (r.key === 'phone' ? <PhoneActions row={row} api={api} /> : r.value);
 
 /** "Sezon", "Arhivare", custom answers and "Notă internă", after the answers (Needs decision 1, option A); as text when read-only. */
 export function PanelExtras({ row, api }: { row: Row; api: TableApi }) {
@@ -70,7 +73,7 @@ export function DateTab({ row, api }: { row: Row; api: TableApi }) {
     <>
       {dateTabRows(row).map((r, i) => (
         <DetailField key={r.key} label={i === 0 ? <EditLabel label={r.label} onEdit={() => setEditing(true)} /> : r.label}>
-          {r.value}
+          {phoneValue(r, row, api)}
         </DetailField>
       ))}
       <PanelExtras row={row} api={api} />

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
+import { PHONE_ERROR } from '../phone';
 import {
   REGISTRATION_EDIT_ERROR,
   documentRebuiltEntry,
@@ -51,4 +52,16 @@ it('the admin PUT accepts these fields, checks them and records the rebuild', ()
   expect(update).toContain('...REGISTRATION_EDIT_FIELDS,');
   expect(update).toContain('return registrationEditError(data);');
   expect(update).toContain('if (rebuild?.ok) await guarded(');
+});
+
+it('a changed phone must be a valid number and is stored as E.164', () => {
+  expect(registrationEditError({ phone: '0722 12' })).toBe(PHONE_ERROR);
+  expect(registrationEditError({ phone: '' })).toBe(PHONE_ERROR);
+  expect(registrationEditError({ phone: '0722123456' })).toBeNull();
+  expect(normalizeRegistrationEdit({ phone: ' 0722 123 456 ' })).toEqual({ phone: '+40722123456' });
+});
+
+it('an unchanged legacy phone that does not parse is not checked', () => {
+  const sent = { childName: 'Maria' };
+  expect(registrationEditError(sent)).toBeNull();
 });

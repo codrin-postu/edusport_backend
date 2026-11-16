@@ -114,7 +114,7 @@ export interface ColumnDef {
   extraKey?: string;
   removed?: boolean; // removed from the form but still has data
   /** Optional custom cell renderer for a built-in column (spreadsheet view). */
-  render?: (row: Row) => React.ReactNode;
+  render?: (row: Row, api: TableApi) => React.ReactNode;
 }
 
 export interface FormMeta {
@@ -1496,7 +1496,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
       if (col.type === 'bool') return <span className="sbt-cellv">{v === true ? 'Da' : v === false ? 'Nu' : ''}</span>;
       return <span className="sbt-cellv">{v == null || v === '' ? '' : String(v)}</span>;
     }
-    if (col.render) return <span className="sbt-cellv">{col.render(row)}</span>;
+    if (col.render) return <span className="sbt-cellv">{col.render(row, api)}</span>;
     if (col.type === 'date') {
       const raw = row[col.key];
       return <span className="sbt-cellv">{fmtDateTime(typeof raw === 'string' ? raw : null)}</span>;

@@ -78,7 +78,7 @@ describe('PUT /api/forms/inscrieri/:documentId (spec 3.2, 3.4)', () => {
     t.d.save = async () => {
       throw new Error('db');
     };
-    expect(await updateRegistration(t.d, 'r1', { phone: '0733' }, 'ana')).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
+    expect(await updateRegistration(t.d, 'r1', { phone: '0733123456' }, 'ana')).toEqual({ ok: false, status: 500, error: ADMIN_ERRORS.failed });
     expect(t.logs).toEqual(['[inscrieri] saving r1 failed: db']);
     expect(t.history).toEqual([]);
   });
@@ -88,7 +88,7 @@ describe('PUT /api/forms/inscrieri/:documentId (spec 3.2, 3.4)', () => {
     t.d.record = async () => {
       throw new Error('db');
     };
-    expect(await updateRegistration(t.d, 'r1', { phone: '0733' }, 'ana')).toMatchObject({ ok: true, changed: ['phone'] });
+    expect(await updateRegistration(t.d, 'r1', { phone: '0733123456' }, 'ana')).toMatchObject({ ok: true, changed: ['phone'] });
     expect(t.logs[0]).toContain('db');
   });
 });
@@ -124,8 +124,8 @@ describe('"De unde ați aflat" and "Calitatea față de sportiv" in Editează (p
   it('keeps an old answer outside today\'s options while it is sent back unchanged', async () => {
     const old = { ...BASE, source: 'Ziar local', lastSeason: 'Da' };
     const t = deps(old);
-    expect(await updateRegistration(t.d, 'r1', { source: 'Ziar local', lastSeason: 'Da', phone: '0733' }, 'ana')).toMatchObject({ ok: true, changed: ['phone'] });
-    expect(t.saved).toEqual([{ phone: '0733' }]);
+    expect(await updateRegistration(t.d, 'r1', { source: 'Ziar local', lastSeason: 'Da', phone: '0733123456' }, 'ana')).toMatchObject({ ok: true, changed: ['phone'] });
+    expect(t.saved).toEqual([{ phone: '+40733123456' }]);
     expect(await updateRegistration(deps(old).d, 'r1', { source: 'Radio' }, 'ana')).toEqual({ ok: false, status: 400, error: REGISTRATION_EDIT_ERROR });
     expect(await updateRegistration(deps(old).d, 'r1', { lastSeason: 'Poate' }, 'ana')).toEqual({ ok: false, status: 400, error: REGISTRATION_EDIT_ERROR });
   });
@@ -157,7 +157,7 @@ describe('a registration with an athlete linked keeps "Confirmat" (only "Anuleaz
 
   it('still saves its other fields, and "Confirmat" sent back unchanged', async () => {
     const t = deps({ ...LINKED });
-    expect(await updateRegistration(t.d, 'r1', { status: 'Confirmat', phone: '0733' }, 'ana')).toMatchObject({ ok: true, changed: ['phone'] });
+    expect(await updateRegistration(t.d, 'r1', { status: 'Confirmat', phone: '0733123456' }, 'ana')).toMatchObject({ ok: true, changed: ['phone'] });
   });
 
   it('sees a confirmation that landed first, because the read and the save hold the row', async () => {
@@ -178,7 +178,7 @@ describe('a registration with an athlete linked keeps "Confirmat" (only "Anuleaz
     };
     expect(await updateRegistration(t.d, 'r1', { status: 'Contactat' }, 'ana')).toEqual({ ok: false, status: 409, error: LINKED_STATUS_ERROR });
     expect(t.saved).toEqual([]);
-    expect(await updateRegistration(t.d, 'r1', { phone: '0733' }, 'ana')).toMatchObject({ ok: true, changed: ['phone'] });
+    expect(await updateRegistration(t.d, 'r1', { phone: '0733123456' }, 'ana')).toMatchObject({ ok: true, changed: ['phone'] });
   });
 });
 
@@ -188,13 +188,13 @@ describe('a registration linked to an anonymized athlete (fix round 1, critical)
   it('refuses childName / phone edits with 409 stale, saves nothing', async () => {
     const t = deps({ ...ANON_LINKED });
     expect(await updateRegistration(t.d, 'r1', { childName: 'Alt Nume' }, 'ana')).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
-    expect(await updateRegistration(t.d, 'r1', { phone: '0733' }, 'ana')).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
+    expect(await updateRegistration(t.d, 'r1', { phone: '0733123456' }, 'ana')).toEqual({ ok: false, status: 409, error: ADMIN_ERRORS.stale });
     expect([t.saved, t.history]).toEqual([[], []]);
   });
 
   it('still saves a registration of a normal (non-anonymized) athlete', async () => {
     const t = deps({ ...BASE, athlete: { documentId: 'a1', status: 'activ' } });
-    expect(await updateRegistration(t.d, 'r1', { phone: '0733' }, 'ana')).toMatchObject({ ok: true, changed: ['phone'] });
+    expect(await updateRegistration(t.d, 'r1', { phone: '0733123456' }, 'ana')).toMatchObject({ ok: true, changed: ['phone'] });
   });
 });
 
