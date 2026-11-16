@@ -16,6 +16,9 @@ import { abonamentCells } from '../../../club/presence/subscriptions/cells';
 import { todayIso } from '../../../club/groups/http';
 import { todayInBucharest } from '../../../club/birth-date';
 import { SUBJECT } from '../../../club/history-text';
+import { readAthleteCompetitions } from '../../../club/sportivi/competitions-read';
+import { strapiCompetitions } from '../../../club/skate/wiring';
+import { skateSportivSource } from '../../../club/skate/source';
 
 /** Admin API of Sportivi (routes/05-athletes.ts, all `global::has-role`). A deleted athlete is not found (gaps #40). */
 export default {
@@ -35,6 +38,16 @@ export default {
     const id = ctx.params.documentId ?? '';
     if (!(await store.athlete(id))) return refuseWith(ctx, 404, ADMIN_ERRORS.notFound);
     ctx.body = { data: await readHistory(store, SUBJECT.athlete, id) };
+  },
+
+  async competitions(ctx: AdminCtx) {
+    const store = clubStore(strapi);
+    const athlete = await store.athlete(ctx.params.documentId ?? '');
+    if (!athlete) return refuseWith(ctx, 404, ADMIN_ERRORS.notFound);
+    const now = (): Date => new Date();
+    const { cache, client, results } = strapiCompetitions(strapi, now);
+    const views = skateSportivSource(cache, client, results, now, (message) => { strapi.log.error(message); });
+    ctx.body = { data: await readAthleteCompetitions(store, athlete, views, queryText(ctx.query.season) || null) };
   },
 
   async byProfile(ctx: AdminCtx) {

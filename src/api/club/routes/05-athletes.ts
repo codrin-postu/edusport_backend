@@ -21,6 +21,7 @@ export default {
     { method: 'POST', path: '/club/athletes/anonymize', handler: 'personal-data.anonymizeMany', config: superAdmin },
     { method: 'POST', path: '/club/athlete-duplicates/:pairId/dismiss', handler: 'athletes.dismissDuplicate', config: club },
     { method: 'GET', path: '/club/athletes/:documentId/history', handler: 'athletes.history', config: club },
+    { method: 'GET', path: '/club/athletes/:documentId/competitions', handler: 'athletes.competitions', config: club },
     { method: 'GET', path: '/club/athletes/:documentId/export', handler: 'personal-data.export', config: club },
     { method: 'POST', path: '/club/athletes/:documentId/anonymize', handler: 'personal-data.anonymize', config: superAdmin },
     { method: 'GET', path: '/club/athletes/:documentId', handler: 'athletes.record', config: club },

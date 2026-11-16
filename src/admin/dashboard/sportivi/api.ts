@@ -7,6 +7,7 @@ import type {
 import type { AccessAnswer, AccessBlock, BulkPreview } from '../../../club/portal/access/api-types';
 import type { BulkAnonymizeResult } from '../../../club/personal-data/anonymize-plan';
 import type { InactiveSummary } from '../../../club/personal-data/settings';
+import type { AthleteCompetitions } from '../../../club/sportivi/competitions-view';
 import type { EditBody } from '../../../club/sportivi/record-view';
 import { searchUrl } from '../../../club/sportivi/search-view';
 import { dataOf, detachedClient } from '../inscrieri/useClient';
@@ -33,6 +34,7 @@ export function useSportiviApi() {
       list: async (query: string) => (await ref.current.get(`${BASE}?${query}`)).data as AthleteListPage,
       record: (id: string, season: string | null) => get<AthleteRecord>(`${one(id)}${season ? `?season=${enc(season)}` : ''}`),
       history: (id: string) => get<HistoryLine[]>(`${one(id)}/history`),
+      competitions: (id: string, season: string | null) => get<AthleteCompetitions>(`${one(id)}/competitions${season ? `?season=${enc(season)}` : ''}`),
       update: (id: string, body: EditBody) => put<AthleteEditResponse>(one(id), body),
       setStatus: (id: string, status: 'activ' | 'inactiv') => post<{ status: AthleteStatus }>(`${one(id)}/status`, { status }),
       remove: async (id: string) => { await ref.current.del(one(id)); },

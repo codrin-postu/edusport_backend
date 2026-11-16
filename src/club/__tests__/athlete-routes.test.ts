@@ -27,6 +27,13 @@ describe('3A+3B admin routes', () => {
     expect(route('GET', '/club/athletes/inactive-summary')?.handler).toBe('personal-data.inactiveSummary');
   });
 
+  it('the competitions route is area club like its siblings, and before nothing it could shadow', () => {
+    const r = route('GET', '/club/athletes/:documentId/competitions');
+    expect(r?.handler).toBe('athletes.competitions');
+    expect(areaOfRoute(r?.config)).toBe('club');
+    expect(typeof athletes.competitions).toBe('function');
+  });
+
   it('list fixed athlete paths before /:documentId ones, so "search" is never read as an id', () => {
     const paths = athleteRoutes.routes.map((r) => r.path);
     expect(fromFirst(paths, (p) => p.startsWith('/club/athletes/:documentId')).every((p) => p.startsWith('/club/athletes/:documentId'))).toBe(true);
