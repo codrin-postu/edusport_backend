@@ -57,6 +57,17 @@ describe('anonymize keeps money rows (4.21, p5 Q30)', () => {
     expect([f.pres.state.attendances, f.pres.state.lessons, f.pres.state.subscriptions]).toEqual(snapshot);
   });
 
+  it('nulls the cancel reason of the athlete\'s remaining lessons, another child\'s stays', async () => {
+    const f = setup();
+    f.pres.state.lessons.push(
+      lessonRow({ id: 'c1', athleteId: 'a1', date: '2026-10-02', cancelledAt: '2026-10-01T10:00:00.000Z', cancelReason: 'febră' }),
+      lessonRow({ id: 'c2', athleteId: 'a2', date: '2026-10-02', cancelledAt: '2026-10-01T10:00:00.000Z', cancelReason: 'altceva' }),
+    );
+    await anonymizeAthlete(f.ctx, 'a1');
+    const row = (id: string) => f.pres.state.lessons.find((l) => l.id === id);
+    expect([row('c1')?.cancelReason, row('c1')?.cancelledAt, row('c2')?.cancelReason]).toEqual([null, '2026-10-01T10:00:00.000Z', 'altceva']);
+  });
+
   it('deletes the series and the planned unpaid lessons from today on; saved, paid, past and another child\'s lessons stay', async () => {
     const f = setup();
     f.pres.state.lessonSeries.push(lessonSeriesRow({ id: 'ls1', athleteId: 'a1' }), lessonSeriesRow({ id: 'ls2', athleteId: 'a2' }));

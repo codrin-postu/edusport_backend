@@ -5,7 +5,7 @@ import { PORTAL_ERRORS } from '../portal/copy';
 import { deviceLabel } from '../portal/devices';
 import { hashSecret, newDeviceKey, sameHash } from '../portal/tokens';
 import { cookieOfLiveOrStaleRow, isLive, reusableRow } from '../security/device-life';
-import { isRemembered, rememberUntil } from '../security/remembered';
+import { isRemembered } from '../security/remembered';
 import type { AdminDeviceRow, SecurityStore } from '../security/store';
 import { adminSessionManager, clearRefreshCookie, type AdminSessionCtx } from './session';
 
@@ -61,15 +61,26 @@ export async function bindAdminDevice(c: BindCtx, adminId: number, cookieValue: 
   const isNew = newDeviceMailDue(rows, keyHash);
   const found = keyHash ? rows.find((d) => sameHash(keyHash, d.deviceKeyHash)) ?? null : null;
   const preAuth = o.preAuth === true;
-  if (found && keepsRow(found, now, preAuth)) {
-    if (!preAuth) await c.store.updateAdminDevice(found.id, { lastSeenAt: at });
-    return { device: preAuth ? found : { ...found, lastSeenAt: at }, newKey: null, isNew: false };
-  }
-  const ended = reusableRow(takeable(rows, preAuth), label, now);
-  if (found && found.revokedAt === null && found.id !== ended?.id) await endStale(c, found, at);
-  const taken = ended ? await takeOver(c, ended, at) : null;
-  const bound = taken ?? (await createDevice(c, adminId, label, at));
-  return { device: bound.device, newKey: bound.key, isNew };
+  if (found && keepsRow(found, now, preAuth)) return keepRow(c, found, at, preAuth);
+  return { ...(await claimDevice(c, adminId, { rows, found, label, at, now, preAuth })), isNew };
+}
+
+/** The cookie's row stays as it is; outside the password step it is also marked as seen now. */
+async function keepRow(c: BindCtx, found: AdminDeviceRow, at: string, preAuth: boolean): Promise<Bound> {
+  if (preAuth) return { device: found, newKey: null, isNew: false };
+  await c.store.updateAdminDevice(found.id, { lastSeenAt: at });
+  return { device: { ...found, lastSeenAt: at }, newKey: null, isNew: false };
+}
+
+type Claim = { rows: AdminDeviceRow[]; found: AdminDeviceRow | null; label: string; at: string; now: Date; preAuth: boolean };
+
+/** A new key: the stale row of the cookie ends first, then an ended row of the same label is taken over, else a new row is made. */
+async function claimDevice(c: BindCtx, adminId: number, k: Claim): Promise<Pick<Bound, 'device' | 'newKey'>> {
+  const ended = reusableRow(takeable(k.rows, k.preAuth), k.label, k.now);
+  if (k.found && k.found.revokedAt === null && k.found.id !== ended?.id) await endStale(c, k.found, k.at);
+  const taken = ended ? await takeOver(c, ended, k.at) : null;
+  const bound = taken ?? (await createDevice(c, adminId, k.label, k.at));
+  return { device: bound.device, newKey: bound.key };
 }
 
 const isCurrent = (d: AdminDeviceRow, cookieValue: string | null): boolean => cookieValue !== null && sameHash(hashSecret(cookieValue), d.deviceKeyHash);
@@ -101,16 +112,4 @@ export async function rememberedDevice(store: SecurityStore, adminId: number, co
   if (!cookieValue) return null;
   const device = await store.adminDeviceByKey(adminId, hashSecret(cookieValue));
   return device && device.revokedAt === null && device.confirmedAt !== null && isRemembered(device.twoFactorUntil, now) ? device : null;
-}
-
-/**
- * "Ține minte dispozitivul": `twoFactorUntil` goes only on the row whose key hash is both the one the pending login recorded and the one of the
- * cookie sent with the code, and only when that row is live. Answers whether a device was marked.
- */
-export async function rememberDevice(store: SecurityStore, adminId: number, pendingKeyHash: string | null, cookieValue: string | null, now: Date): Promise<boolean> {
-  if (pendingKeyHash === null || !cookieValue || !sameHash(hashSecret(cookieValue), pendingKeyHash)) return false;
-  const device = await store.adminDeviceByKey(adminId, pendingKeyHash);
-  if (!device || device.revokedAt !== null) return false;
-  await store.updateAdminDevice(device.id, { twoFactorUntil: rememberUntil(now) });
-  return true;
 }

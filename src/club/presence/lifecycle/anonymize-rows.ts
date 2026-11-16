@@ -21,19 +21,22 @@ export async function clearPaymentNotes(presence: PresenceStore, athleteId: stri
 
 /**
  * The athlete's lesson series and lesson cancellations go, and so do its planned lessons from `today` on that no payment points at (they would keep showing for the rest of the season);
- * lessons already saved or paid stay with the athlete's other history. Locks the series, then the lessons (athlete locked by the caller). Answers the lesson ids removed.
+ * lessons already saved or paid stay with the athlete's other history, but lose their free-text cancel reason (it can hold a health remark).
+ * Locks the series, then the lessons (athlete locked by the caller). Answers the lesson ids removed.
  */
 export async function dropFutureLessons(presence: PresenceStore, athleteId: string, today: string): Promise<string[]> {
   const series = (await presence.lessonSeriesOf(athleteId)).sort((a, b) => a.id.localeCompare(b.id));
   for (const s of series) await presence.lockLessonSeries(s.id);
-  const future = (await presence.lessons({ athleteId, from: today })).filter((l) => l.state === 'planned').sort((a, b) => a.id.localeCompare(b.id));
-  for (const l of future) await presence.lockLesson(l.id);
+  const all = await presence.lessons({ athleteId });
+  const future = all.filter((l) => l.date >= today && l.state === 'planned');
+  const touched = all.filter((l) => future.includes(l) || l.cancelReason !== null).sort((a, b) => a.id.localeCompare(b.id));
+  for (const l of touched) await presence.lockLesson(l.id);
   const gone: string[] = [];
-  for (const l of future) {
-    if (await isDeletable(presence, l.id)) {
+  for (const l of touched) {
+    if (future.includes(l) && (await isDeletable(presence, l.id))) {
       await presence.deleteLesson(l.id);
       gone.push(l.id);
-    }
+    } else if (l.cancelReason !== null) await presence.updateLesson(l.id, { cancelReason: null });
   }
   for (const s of series) await presence.deleteLessonSeries(s.id);
   await presence.dropLessonCancels(athleteId);

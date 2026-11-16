@@ -3,8 +3,8 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { adminByEmail, adminById, adminName, canEnterAdmin, type AdminRow } from '../admins';
-import { ADMIN_DEVICE_COOKIE, bindAdminDevice, disconnectAdminDevice, listAdminDevices, rememberDevice, rememberedDevice } from '../devices';
-import { REMEMBER_MS } from '../../security/remembered';
+import { ADMIN_DEVICE_COOKIE, bindAdminDevice, disconnectAdminDevice, listAdminDevices, rememberedDevice } from '../devices';
+import { REMEMBER_MS, rememberUntil } from '../../security/remembered';
 import { endAdminSessions, issueAdminSession } from '../session';
 import { adminEnv } from './admin-env';
 
@@ -242,26 +242,14 @@ describe('admins', () => {
   });
 });
 
-describe('remembered devices (B2 L6)', () => {
-  it('rememberDevice marks only the row of the pending hash, for 30 days, and only when the cookie sent is that device', async () => {
-    const env = adminEnv();
-    const a = await bind(env, 7, null);
-    const b = await bind(env, 7, null);
-    expect(await rememberDevice(env.c.store, 7, a.device.deviceKeyHash, b.newKey, env.clock.t)).toBe(false);
-    expect(await rememberDevice(env.c.store, 7, a.device.deviceKeyHash, null, env.clock.t)).toBe(false);
-    expect(await rememberDevice(env.c.store, 7, null, a.newKey, env.clock.t)).toBe(false);
-    expect((await env.c.store.adminDevices(7)).every((d) => d.twoFactorUntil === null)).toBe(true);
-    expect(await rememberDevice(env.c.store, 7, a.device.deviceKeyHash, a.newKey, env.clock.t)).toBe(true);
-    const rows = await env.c.store.adminDevices(7);
-    expect(rows.find((d) => d.id === a.device.id)?.twoFactorUntil).toBe(new Date(env.clock.t.getTime() + REMEMBER_MS).toISOString());
-    expect(rows.find((d) => d.id === b.device.id)?.twoFactorUntil).toBeNull();
-  });
+const remember = (env: ReturnType<typeof adminEnv>, id: string): Promise<void> =>
+  env.c.store.updateAdminDevice(id, { twoFactorUntil: rememberUntil(env.clock.t) });
 
-  it('a revoked row is never marked and is not remembered even with a future date', async () => {
+describe('remembered devices (B2 L6)', () => {
+  it('a revoked row is not remembered even with a future date', async () => {
     const env = adminEnv();
     const a = await bind(env, 7, null);
     await env.c.store.updateAdminDevice(a.device.id, { revokedAt: env.clock.t.toISOString() });
-    expect(await rememberDevice(env.c.store, 7, a.device.deviceKeyHash, a.newKey, env.clock.t)).toBe(false);
     await env.c.store.updateAdminDevice(a.device.id, { twoFactorUntil: new Date(env.clock.t.getTime() + 1000).toISOString() });
     expect(await rememberedDevice(env.c.store, 7, a.newKey, env.clock.t)).toBeNull();
   });
@@ -269,7 +257,7 @@ describe('remembered devices (B2 L6)', () => {
   it('rememberedDevice: remembered until the end date, forgotten from exactly 30 days, and a device of another admin never counts', async () => {
     const env = adminEnv();
     const a = await bind(env, 7, null);
-    await rememberDevice(env.c.store, 7, a.device.deviceKeyHash, a.newKey, env.clock.t);
+    await remember(env, a.device.id);
     expect((await rememberedDevice(env.c.store, 7, a.newKey, env.clock.t))?.id).toBe(a.device.id);
     env.advance(REMEMBER_MS - 1);
     expect(await rememberedDevice(env.c.store, 7, a.newKey, env.clock.t)).not.toBeNull();
@@ -283,8 +271,8 @@ describe('remembered devices (B2 L6)', () => {
     const env = adminEnv();
     const a = await bind(env, 7, null);
     const b = await bind(env, 7, null);
-    await rememberDevice(env.c.store, 7, a.device.deviceKeyHash, a.newKey, env.clock.t);
-    await rememberDevice(env.c.store, 7, b.device.deviceKeyHash, b.newKey, env.clock.t);
+    await remember(env, a.device.id);
+    await remember(env, b.device.id);
     await endAdminSessions(env.ctx, 7, { exceptDevice: a.device.id });
     expect(await rememberedDevice(env.c.store, 7, a.newKey, env.clock.t)).not.toBeNull();
     expect(await rememberedDevice(env.c.store, 7, b.newKey, env.clock.t)).toBeNull();

@@ -8,12 +8,12 @@ import { METHOD_WORDS, PRESENCE_WORDS, SUBSCRIPTION_STATE_WORDS } from './core';
 export const LIFECYCLE_PDF = { attendance: 'Prezență', lessons: 'Lecții individuale', subscriptions: 'Abonamente', payments: 'Plăți' } as const;
 
 const WORDS = {
-  grup: 'Grup', uscat: 'Uscat', visitor: 'doar la ședința asta', coach: 'antrenor', coaches: 'antrenori', and: 'și', present: 'prezent', absent: 'absent',
+  grup: 'Grup', uscat: 'Uscat', visitor: 'doar la ședința asta', coach: 'antrenor', coaches: 'antrenori', and: 'și', present: 'prezent', absent: 'absent', cancelled: 'anulată',
   from: 'din', expires: 'expiră pe', atRink: 'la patinoar', note: 'Notă',
 } as const;
 
 export type AttendanceLine = { date: string; groupName: string; startTime: string; grup: boolean; uscat: boolean; visitor: boolean };
-export type LessonLine = { date: string; startTime: string; durationMin: number; coachNames: string[]; present: boolean | null; price: number | null };
+export type LessonLine = { date: string; startTime: string; durationMin: number; coachNames: string[]; present: boolean | null; price: number | null; cancelled: boolean; reason: string | null };
 export type SubscriptionLine = { itemName: string; startsOn: string; validUntil: string; used: number; slots: number; state: SubscriptionState; price: number | null };
 export type PaymentLine = { paidOn: string; amount: number; method: PaymentMethod; purposeText: string; collectedAtRink: boolean; note: string | null; cancelled: boolean };
 
@@ -32,6 +32,7 @@ export const lessonLine = (r: LessonLine): string =>
   joined([
     longDate(r.date), r.startTime, `${r.durationMin} min`, coachText(r.coachNames),
     r.present === true && WORDS.present, r.present === true && r.price !== null && ron(r.price), r.present === false && WORDS.absent,
+    r.cancelled && WORDS.cancelled, r.cancelled && r.reason,
   ]);
 
 export const subscriptionLine = (r: SubscriptionLine): string =>

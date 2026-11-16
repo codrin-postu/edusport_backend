@@ -6,7 +6,6 @@ import type { AttendanceRow, LessonRow, PaymentRow, SessionRow, SubscriptionRow 
 import { inPeriod, type Period } from './period';
 import type { TableDefinition } from './types';
 
-
 /** Every table a row builder reads, loaded once per query and restricted by the scope; tables a subject does not need are empty. */
 export type TableSources = {
   /** The scope's season; null when the id is unknown (every table is then empty). */

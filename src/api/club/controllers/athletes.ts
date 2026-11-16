@@ -46,8 +46,9 @@ export default {
     if (!athlete) return refuseWith(ctx, 404, ADMIN_ERRORS.notFound);
     const now = (): Date => new Date();
     const { cache, client, results } = strapiCompetitions(strapi, now);
-    const views = skateSportivSource(cache, client, results, now, (message) => { strapi.log.error(message); });
-    ctx.body = { data: await readAthleteCompetitions(store, athlete, views, queryText(ctx.query.season) || null) };
+    const log = (message: string): void => { strapi.log.error(message); };
+    const views = skateSportivSource(cache, client, results, now, log);
+    ctx.body = { data: await readAthleteCompetitions(store, athlete, views, queryText(ctx.query.season) || null, log) };
   },
 
   async byProfile(ctx: AdminCtx) {

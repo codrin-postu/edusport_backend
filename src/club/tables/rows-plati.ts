@@ -7,7 +7,6 @@ import type { Period } from './period';
 import { inRange, type TableSources } from './sources';
 import type { CellValue, TableDefinition, TableRow } from './types';
 
-
 /** One row per payment with `paidOn` in the period, cancelled ones included; "Grupă" is the athlete's main group in the scope season. */
 export function platiRows(src: TableSources, _d: TableDefinition, period: Period): TableRow[] {
   if (src.season === null) return [];

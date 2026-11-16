@@ -394,19 +394,29 @@ describe('password login: the second step', () => {
 
   it('the password step may reuse an already revoked row', async () => {
     const env = loginEnv();
+    const mails = () => env.portalMails.filter((m) => m.mail.kind === 'new-device').length;
     await env.turnOnTotp();
     await env.login();
+    await flush();
     env.browser();
     await secondStepAdmin(env.c, { method: 'totp', code: env.code(), remember: false });
     const [before] = await env.c.store.adminDevices(7);
     await env.c.store.updateAdminDevice(before.id, { revokedAt: env.c.now().toISOString() });
     env.browser();
-    env.advance(60_000);
+    env.advance(3600_001);
     expect(await env.login()).toMatchObject({ ok: true, data: { step: '2fa' } });
+    await flush();
+    expect(mails()).toBe(2);
     const rows = await env.c.store.adminDevices(7);
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ id: before.id, revokedAt: null });
+    expect(rows[0]).toMatchObject({ id: before.id, revokedAt: null, confirmedAt: null });
     expect(rows[0].deviceKeyHash).not.toBe(before.deviceKeyHash);
+    env.browser();
+    expect((await secondStepAdmin(env.c, { method: 'totp', code: env.code(), remember: true })).ok).toBe(true);
+    const [after] = await env.c.store.adminDevices(7);
+    expect(after).toMatchObject({ id: before.id, revokedAt: null, confirmedAt: env.c.now().toISOString() });
+    expect(after.twoFactorUntil).not.toBeNull();
+    expect(isLive(after, env.c.now())).toBe(true);
   });
 
   it('a remembered device goes straight to the session; 31 days later it gets the second step again', async () => {

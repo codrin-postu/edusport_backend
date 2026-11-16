@@ -9,6 +9,7 @@ import { fakeHandCompetitions } from '../../skate/hand-store';
 import { pickedResults } from '../../skate/pick';
 import { skateSportivSource } from '../../skate/source';
 import { bySeason, newestFirst, scoreText, summarize, type CompetitionLine } from '../competitions-view';
+import type { SportivCompetitionViews } from '../../portal/sportiv/competitions';
 import { readAthleteCompetitions } from '../competitions-read';
 import { recordTabs } from '../record-view';
 import type { AthleteRecord } from '../../athletes/api-types';
@@ -71,14 +72,14 @@ const HAND: HandEntry[] = [
 describe('readAthleteCompetitions', () => {
   it('an athlete with a slug reads skate-results only, never the hand-entered ones', async () => {
     const { views: v, handStore } = views([skate(1, '2026-03-01', 1, 70)], HAND);
-    const out = await readAthleteCompetitions(storeOf([{ id: 'p1', skateResultsSlug: 'matei-v' }]), athlete(), v, null);
+    const out = await readAthleteCompetitions(storeOf([{ id: 'p1', skateResultsSlug: 'matei-v' }]), athlete(), v, null, () => undefined);
     expect(out.lines.map((l) => l.name)).toEqual(['Skate 1']);
     expect(out.summary).toEqual({ competitions: 1, podiums: 1, bestPlacement: 1, bestScore: 70 });
     expect(handStore.calls).toEqual([]);
   });
   it('an athlete without a slug reads the hand-entered competitions only, newest first', async () => {
     const { views: v, client } = views([skate(1, '2026-03-01', 1, 70)], HAND);
-    const out = await readAthleteCompetitions(storeOf([{ id: 'p1' }]), athlete(), v, null);
+    const out = await readAthleteCompetitions(storeOf([{ id: 'p1' }]), athlete(), v, null, () => undefined);
     expect(out.available).toBe(true);
     expect(out.lines.map((l) => l.name)).toEqual(['Cupa Mock', 'Alta Cupa']);
     expect(out.seasons).toEqual(['2025-2026', '2024-2025']);
@@ -87,25 +88,33 @@ describe('readAthleteCompetitions', () => {
   it('filters by season, and ignores a season it does not know', async () => {
     const { views: v } = views([], HAND);
     const store = storeOf([{ id: 'p1' }]);
-    const one = await readAthleteCompetitions(store, athlete(), v, '2024-2025');
+    const one = await readAthleteCompetitions(store, athlete(), v, '2024-2025', () => undefined);
     expect(one.season).toBe('2024-2025');
     expect(one.lines.map((l) => l.name)).toEqual(['Alta Cupa']);
-    expect((await readAthleteCompetitions(store, athlete(), v, '1999-2000')).season).toBeNull();
+    expect((await readAthleteCompetitions(store, athlete(), v, '1999-2000', () => undefined)).season).toBeNull();
   });
   it('no profile (or anonymized) is available with zeros', async () => {
     const { views: v } = views([], HAND);
-    const out = await readAthleteCompetitions(storeOf([]), athlete({ profileId: null }), v, null);
+    const out = await readAthleteCompetitions(storeOf([]), athlete({ profileId: null }), v, null, () => undefined);
     expect(out).toEqual({ available: true, seasons: [], season: null, summary: summarize([]), lines: [] });
     expect((await readAthleteCompetitions(storeOf([{ id: 'p1' }]), athlete({ status: 'anonimizat' }), v, null)).lines).toEqual([]);
   });
   it('a source that is down is not available', async () => {
     const { views: v } = views([], [], true);
-    const out = await readAthleteCompetitions(storeOf([{ id: 'p1', skateResultsSlug: 'matei-v' }]), athlete(), v, null);
+    const out = await readAthleteCompetitions(storeOf([{ id: 'p1', skateResultsSlug: 'matei-v' }]), athlete(), v, null, () => undefined);
     expect(out.available).toBe(false);
+  });
+  it('a source that throws is not available and the failure is logged without detail', async () => {
+    const log = vi.fn();
+    const broken = { list: async () => { throw new Error('secret detail'); } } as unknown as SportivCompetitionViews;
+    const out = await readAthleteCompetitions(storeOf([{ id: 'p1', skateResultsSlug: 'matei-v' }]), athlete(), broken, null, log);
+    expect(out.available).toBe(false);
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(String(log.mock.calls[0][0])).not.toContain('secret');
   });
   it('keeps the result id of each line', async () => {
     const { views: v } = views([], HAND);
-    const out = await readAthleteCompetitions(storeOf([{ id: 'p1' }]), athlete(), v, null);
+    const out = await readAthleteCompetitions(storeOf([{ id: 'p1' }]), athlete(), v, null, () => undefined);
     expect(out.lines[0].resultId).toBe('700');
   });
 });

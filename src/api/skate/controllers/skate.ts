@@ -10,6 +10,7 @@
 
 import { base, keyHeaders } from '../../../club/skate/client';
 import { clubStatsByEvent } from '../../../club/competitions/club-stats';
+import { isRecord } from '../../../club/narrow';
 import { clubStore } from '../../../club/athletes/http';
 import { isAnonymized } from '../../../club/personal-data/anonymize-plan';
 import { strapiCompetitions } from '../../../club/skate/wiring';
@@ -23,7 +24,7 @@ const mutHeaders = (extra: Record<string, string> = {}) => keyHeaders(extra);
  * Adds `podiums` and `best_placement` (club athletes with a skate-results slug only) to each listed event.
  * One read of the club's results through the portals' source, not one per row; when it fails the rows keep no stats.
  */
-async function withClubStats(body: any): Promise<void> {
+async function withClubStats(body: unknown): Promise<void> {
   if (!Array.isArray(body)) return;
   try {
     const store = clubStore(strapi);
@@ -38,8 +39,8 @@ async function withClubStats(body: any): Promise<void> {
     const rows = [...reads.values()].flatMap((read) => (read.available && !('missing' in read) ? read.value : []))
       .filter((r) => r.result_id !== null).map((r) => ({ eventId: r.event_id, placement: r.placement }));
     const stats = clubStatsByEvent(rows);
-    for (const event of body) {
-      const s = stats.get(event.id);
+    for (const event of body.filter(isRecord)) {
+      const s = typeof event.id === 'number' ? stats.get(event.id) : undefined;
       event.podiums = s?.podiums ?? 0;
       event.best_placement = s?.bestPlacement ?? null;
     }

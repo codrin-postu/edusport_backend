@@ -27,13 +27,19 @@ const facts = (): PresenceExportFacts => ({
 });
 
 describe('export rows (4.21a)', () => {
+  it('the personal-data summary lists a cancelled lesson with its reason', () => {
+    const f = { ...facts(), lessons: [lessonRow({ id: 'l9', athleteId: 'a1', date: '2026-11-10', cancelledAt: '2026-11-09T10:00:00.000Z', cancelReason: 'febră' })] };
+    expect(presenceSummary(f, '2026-11-20').lessons[0]).toContain('anulată, febră');
+  });
+
   it('row formats of spec 4.21a', () => {
     expect(attendanceLine({ date: '2026-10-27', groupName: 'Intermediari Bronze', startTime: '17:00', grup: true, uscat: false, visitor: false })).toBe('27 oct 2026, Intermediari Bronze, 17:00, Grup');
     expect(attendanceLine({ date: '2026-10-27', groupName: 'Avansați', startTime: '18:00', grup: true, uscat: true, visitor: false })).toBe('27 oct 2026, Avansați, 18:00, Grup, Uscat');
     expect(attendanceLine({ date: '2026-10-27', groupName: 'Avansați', startTime: '18:00', grup: false, uscat: true, visitor: true })).toBe('27 oct 2026, Avansați, 18:00, Uscat, doar la ședința asta');
-    expect(lessonLine({ date: '2026-10-28', startTime: '18:00', durationMin: 50, coachNames: ['Virgil Pascu'], present: true, price: 80 })).toBe('28 oct 2026, 18:00, 50 min, antrenor Virgil Pascu, prezent, 80 RON');
-    expect(lessonLine({ date: '2026-10-28', startTime: '18:00', durationMin: 50, coachNames: ['Virgil Pascu'], present: false, price: 80 })).toBe('28 oct 2026, 18:00, 50 min, antrenor Virgil Pascu, absent');
-    expect(lessonLine({ date: '2026-10-28', startTime: '18:00', durationMin: 60, coachNames: ['Virgil Pascu', 'Andreea Pascu'], present: null, price: null })).toBe('28 oct 2026, 18:00, 60 min, antrenori Virgil Pascu și Andreea Pascu');
+    expect(lessonLine({ date: '2026-10-28', startTime: '18:00', durationMin: 50, coachNames: ['Virgil Pascu'], present: true, price: 80, cancelled: false, reason: null })).toBe('28 oct 2026, 18:00, 50 min, antrenor Virgil Pascu, prezent, 80 RON');
+    expect(lessonLine({ date: '2026-10-28', startTime: '18:00', durationMin: 50, coachNames: ['Virgil Pascu'], present: false, price: 80, cancelled: false, reason: null })).toBe('28 oct 2026, 18:00, 50 min, antrenor Virgil Pascu, absent');
+    expect(lessonLine({ date: '2026-10-28', startTime: '18:00', durationMin: 60, coachNames: ['Virgil Pascu', 'Andreea Pascu'], present: null, price: null, cancelled: false, reason: null })).toBe('28 oct 2026, 18:00, 60 min, antrenori Virgil Pascu și Andreea Pascu');
+    expect(lessonLine({ date: '2026-10-28', startTime: '18:00', durationMin: 50, coachNames: ['Virgil Pascu'], present: null, price: null, cancelled: true, reason: 'răcită' })).toBe('28 oct 2026, 18:00, 50 min, antrenor Virgil Pascu, anulată, răcită');
     expect(subscriptionLine({ itemName: 'Abonament 8 ședințe', startsOn: '2026-10-27', validUntil: '2026-11-23', used: 5, slots: 8, state: 'activ', price: 320 })).toBe('Abonament 8 ședințe, din 27 oct 2026, expiră pe 23 noi 2026, 5/8, activ, 320 RON');
     expect(paymentLine({ paidOn: '2026-10-27', amount: 320, method: 'numerar', purposeText: 'Abonament 8 ședințe', collectedAtRink: true, note: null, cancelled: false })).toBe('27 oct 2026, 320 RON, Numerar, Abonament 8 ședințe, la patinoar');
     expect(paymentLine({ paidOn: '2026-10-27', amount: 12.5, method: 'card', purposeText: 'Altceva', collectedAtRink: false, note: 'taxă concurs', cancelled: true })).toBe('27 oct 2026, 12,50 RON, Card (POS), Altceva, Notă: taxă concurs, anulată');

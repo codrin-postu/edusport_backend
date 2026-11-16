@@ -50,7 +50,7 @@ function attendanceLines(f: PresenceExportFacts): string[] {
 const lessonLines = (f: PresenceExportFacts): string[] =>
   newestFirst(f.lessons, (l) => `${l.date} ${l.startTime}`).map((l) => lessonLine({
     date: l.date, startTime: l.startTime, durationMin: l.durationMin, coachNames: l.coachIds.map((id) => nameOf(f.coaches, id)).filter(Boolean),
-    present: l.present, price: l.price,
+    present: l.present, price: l.price, cancelled: l.cancelledAt !== null, reason: l.cancelReason,
   }));
 
 const subscriptionLines = (f: PresenceExportFacts, today: string): string[] =>

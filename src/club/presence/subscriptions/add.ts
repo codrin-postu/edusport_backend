@@ -222,7 +222,6 @@ async function writeAdd(ctx: PresenceContext, b: AddBody, { athlete, offer, row,
   return done({ subscriptionId: id, athleteName: athlete.name ?? '', withPayment: paid !== null }, actionId);
 }
 
-
 async function addLocked(ctx: PresenceContext, athleteId: string, b: AddBody): Promise<ActionResult<AddSubscriptionResult>> {
   await ctx.store.lockAthlete(athleteId);
   const athlete = await ctx.store.athlete(athleteId);
