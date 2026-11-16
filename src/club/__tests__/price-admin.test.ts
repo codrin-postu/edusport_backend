@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   PRICE_ERRORS,
@@ -146,5 +148,19 @@ describe('groups using a price list', () => {
     const lists = [{ documentId: 'l1', name: 'Standard' }, { documentId: 'l2', name: 'Gold' }];
     const r = buildAdminPrices([], lists, groupsByListId(raw));
     expect(r.lists.map((l) => [l.documentId, l.groups.map((g) => g.name)])).toEqual([['l1', ['Avansați', 'Nou']], ['l2', []]]);
+  });
+});
+
+describe('neafiliat wording', () => {
+  const read = (p: string): string => readFileSync(join(__dirname, '..', '..', p), 'utf8');
+  it('the Prețuri column and drawer say Neafiliați', () => {
+    expect(read('admin/pages/preturi/PriceListCard.tsx')).toContain("header: 'Neafiliați'");
+    expect(read('admin/pages/preturi/PriceItemDrawer.tsx')).toContain('Preț neafiliați');
+    expect(read('admin/pages/preturi/PriceListCard.tsx') + read('admin/pages/preturi/PriceItemDrawer.tsx')).not.toMatch(/non-membri/i);
+  });
+  it('the abonament copy says preț neafiliat', () => {
+    const copy = read('club/presence/copy/subscriptions.ts');
+    expect(copy).toContain('preț neafiliat');
+    expect(copy).not.toContain('nemembru');
   });
 });

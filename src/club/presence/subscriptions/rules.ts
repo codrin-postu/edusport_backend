@@ -1,5 +1,5 @@
 import type { Audience } from '../../price-item';
-import { offeredItems, priceFor } from '../../price-item';
+import { isOfferedTo, offeredItems, priceFor } from '../../price-item';
 import { isCurrentMembership } from '../../group-membership';
 import { MONTHS_SHORT } from '../../groups/dates';
 import type { GroupRecord, SectionRecord } from '../../groups/types';
@@ -7,6 +7,7 @@ import type { MembershipRow } from '../../athletes/store';
 import { subscriptionValidUntil } from '../../subscription';
 import { longDate } from '../dates';
 import { byUseOrder, slotCandidates, subscriptionState } from '../subscriptions';
+import type { FormItem } from './views';
 import type { AttendanceRow, PriceListRecord, SubscriptionRow, SubscriptionWrite } from '../types';
 
 export type OfferedItem = { itemKey: string; itemName: string; slots: number; price: number; priceListId: string; listName: string };
@@ -31,6 +32,16 @@ export function offeredSubscriptionItems(list: PriceListRecord, audience: Audien
   return offeredItems(items, audience).map((i) => ({
     itemKey: i.name, itemName: i.name, slots: i.sessions as number, price: priceFor(i, audience) as number, priceListId: list.id, listName: list.name,
   }));
+}
+
+/** Subscription items with a session count offered to either audience, both prices kept: the window switches audience without a request. */
+export function formSubscriptionItems(list: PriceListRecord): FormItem[] {
+  return list.items
+    .filter((i) => i.kind === 'subscription' && i.sessions !== null && i.sessions > 0 && (isOfferedTo(i, 'member') || isOfferedTo(i, 'nonMember')))
+    .map((i) => ({
+      itemKey: i.name, itemName: i.name, slots: i.sessions as number, priceListId: list.id, listName: list.name,
+      memberPrice: priceFor(i, 'member'), nonMemberPrice: priceFor(i, 'nonMember'),
+    }));
 }
 
 const byDate = (a: CoverRow, b: CoverRow): number => a.date.localeCompare(b.date) || a.attendanceId.localeCompare(b.attendanceId);

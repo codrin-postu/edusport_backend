@@ -40,7 +40,7 @@ function DraftFields({ draft, set }: { draft: Draft; set: (patch: Partial<Draft>
           <Input inputMode="numeric" value={draft.memberPrice} onChange={(e) => set({ memberPrice: e.target.value })} />
         </Field>
       </FieldRow>
-      <Field label="Preț non-membri">
+      <Field label="Preț neafiliați">
         <Input inputMode="numeric" value={draft.nonMemberPrice} onChange={(e) => set({ nonMemberPrice: e.target.value })} />
       </Field>
       <Field label="Tooltip" hint="Opțional">
@@ -100,7 +100,7 @@ function useDraft(target: ItemTarget | null, item: AdminPriceItem | undefined, r
   return { draft, set: (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch })) };
 }
 
-/** Nume, Tip, Ședințe, Preț membri, Preț non-membri, Tooltip; "Șterge" asks first. */
+/** Nume, Tip, Ședințe, Preț membri, Preț neafiliați, Tooltip; "Șterge" asks first. */
 export function PriceItemDrawer({ target, mutate, onClose }: PriceItemDrawerProps) {
   const item = target && target.index !== null ? target.list.items[target.index] : undefined;
   const state = useSaveState();

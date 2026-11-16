@@ -18,21 +18,21 @@ import { METHOD_WORDS, PRESENCE_ERRORS } from '../copy/core';
 import { seasonOfDate } from '../dates';
 import { P5_ACTIONS } from '../history-lines';
 import { actorName } from '../lessons/create';
-import { paymentGuards } from '../payments/common';
+import { currentAcs, moveAcs, overpayRefusal, paymentGuards } from '../payments/common';
 import { writePaymentLocked } from '../payments/record';
 import { overpayText, readAmount, type Checked } from '../payments/rules';
 import type { PresenceStore } from '../store';
 import type { AttendanceRow, PaymentMethod, PriceListRecord, SubscriptionRow, SubscriptionWrite } from '../types';
-import type { PresenceUndoStep } from '../undo';
+import { acsGuardId, type PresenceUndoStep } from '../undo';
 import {
-  checkCover, coverCandidates, listsForAthlete, offeredSubscriptionItems, schoolListIds, subscriptionWrite, type CoverRow, type OfferedItem,
+  checkCover, coverCandidates, formSubscriptionItems, listsForAthlete, offeredSubscriptionItems, schoolListIds, subscriptionWrite, type CoverRow, type OfferedItem,
 } from './rules';
 
 import type { AddSubscriptionResult, NewSubscriptionForm } from './views';
 export type { AddSubscriptionResult, NewSubscriptionForm } from './views';
 type PaymentBody = { amount: number; method: PaymentMethod; collectedAtRink: boolean; sendEmail: boolean };
-type AddBody = { itemKey: string; priceListId: string; startsOn: string; cover: string[]; payment: PaymentBody | null };
-type Offer = { season: SeasonRecord; audience: Audience; lists: { list: PriceListRecord; items: OfferedItem[] }[] };
+type AddBody = { itemKey: string; priceListId: string; startsOn: string; cover: string[]; payment: PaymentBody | null; member: boolean | null; addFee: boolean };
+type Offer = { season: SeasonRecord; audience: Audience; wasMember: boolean; lists: { list: PriceListRecord; items: OfferedItem[] }[] };
 
 const DUPLICATE_WINDOW_MS = 10_000;
 const invalid = { ok: false, status: 400, error: PRESENCE_ERRORS.invalid } as const;
@@ -44,15 +44,17 @@ async function mainSchoolListId(store: PresenceStore, athleteId: string, seasonI
   return listId !== null && schoolIds.has(listId) ? listId : null;
 }
 
-/** What the athlete may be sold from `startsOn`: the season's audience price, the main school group's list (4.9). Null: no season. */
-async function offerOn(store: PresenceStore, athleteId: string, startsOn: string): Promise<Offer | null> {
+/** What the athlete may be sold from `startsOn`: the audience price (the A.C.S. box when sent, else the season's A.C.S. state), the main school group's list (4.9). Null: no season. */
+async function offerOn(store: PresenceStore, athleteId: string, startsOn: string, member: boolean | null = null): Promise<Offer | null> {
   const season = seasonOfDate(await store.seasons(), startsOn);
   if (!season) return null;
   const records = await store.priceListRecords();
   const schoolIds = schoolListIds(records, await store.sections());
-  const audience = audienceFor(await store.acsRows({ athleteId }), athleteId, season.id);
+  const acs = await store.acsRows({ athleteId });
+  const wasMember = audienceFor(acs, athleteId, season.id) === 'member';
+  const audience: Audience = (member ?? wasMember) ? 'member' : 'nonMember';
   const lists = listsForAthlete(records, schoolIds, await mainSchoolListId(store, athleteId, season.id, startsOn, schoolIds));
-  return { season, audience, lists: lists.map((list) => ({ list, items: offeredSubscriptionItems(list, audience) })) };
+  return { season, audience, wasMember, lists: lists.map((list) => ({ list, items: offeredSubscriptionItems(list, audience) })) };
 }
 
 export async function newSubscriptionForm(store: PresenceStore, athleteId: string, startsOn: string | null, today: string): Promise<AdminResult<NewSubscriptionForm>> {
@@ -65,8 +67,9 @@ export async function newSubscriptionForm(store: PresenceStore, athleteId: strin
   return {
     ok: true,
     data: {
-      athleteName: athlete.name ?? '', hasEmail: hasEmail(athlete), audience: offer.audience, startsOn: date, validUntil: subscriptionValidUntil(date, 0),
-      lists: offer.lists.map((l) => ({ priceListId: l.list.id, listName: l.list.name, items: l.items })),
+      athleteName: athlete.name ?? '', hasEmail: hasEmail(athlete), member: offer.wasMember, seasonLabel: offer.season.label, fee: offer.season.membershipFee,
+      startsOn: date, validUntil: subscriptionValidUntil(date, 0),
+      lists: offer.lists.map((l) => ({ priceListId: l.list.id, listName: l.list.name, items: formSubscriptionItems(l.list) })),
       cover: coverCandidates(await store.attendances({ athleteId }), await store.groups()),
     },
   };
@@ -88,7 +91,15 @@ function readAddBody(body: unknown): Checked<AddBody> {
   if (!Array.isArray(body.cover) || !body.cover.every(isText)) return invalid;
   const payment = readPayment(body.payment);
   if (payment.ok === false) return payment;
-  return { ok: true, value: { itemKey: body.itemKey, priceListId: body.priceListId, startsOn: body.startsOn, cover: body.cover as string[], payment: payment.value } };
+  if (body.member !== undefined && typeof body.member !== 'boolean') return invalid;
+  if (body.addFee !== undefined && typeof body.addFee !== 'boolean') return invalid;
+  return {
+    ok: true,
+    value: {
+      itemKey: body.itemKey, priceListId: body.priceListId, startsOn: body.startsOn, cover: body.cover as string[], payment: payment.value,
+      member: typeof body.member === 'boolean' ? body.member : null, addFee: body.addFee === true,
+    },
+  };
 }
 
 const pickItem = (offer: Offer, b: AddBody): OfferedItem | null =>
@@ -141,18 +152,43 @@ async function paymentRefusal(ctx: PresenceContext, athlete: AthleteRow, p: Paym
   return overpayText(p.amount, item.price);
 }
 
-type Added = { value: AddSubscriptionResult; paymentId: string | null };
+/**
+ * The season fee as a second payment when the box is ticked, membership turns on and a payment is recorded now (the fee has no stored debt:
+ * what is owed stays the season fee less its payments). Null when the fee does not apply or is already covered. Read before the first write.
+ */
+async function feeToCollect(ctx: PresenceContext, athleteId: string, offer: Offer, b: AddBody): Promise<number | null> {
+  const fee = offer.season.membershipFee;
+  if (!b.addFee || b.member !== true || offer.wasMember || b.payment === null || fee === null || fee <= 0) return null;
+  const refused = await overpayRefusal(ctx.store, athleteId, { kind: 'cotizatie', seasonId: offer.season.id }, fee, null);
+  return refused === null ? fee : null;
+}
+
+/** The box turning membership on writes A.C.S. "Da" through the payments' own writer (`moveAcs`), with its Istoric line and undo step; never turns it off. */
+async function turnMembershipOn(ctx: PresenceContext, athleteId: string, offer: Offer, b: AddBody): Promise<{ lines: Line[]; steps: PresenceUndoStep[] }> {
+  if (b.member !== true || offer.wasMember) return { lines: [], steps: [] };
+  const move = await moveAcs(ctx.store, athleteId, offer.season, await currentAcs(ctx.store, athleteId, offer.season.id), 'da');
+  return { lines: [move.line], steps: [move.step] };
+}
+
+async function writeFee(ctx: PresenceContext, athlete: AthleteRow, offer: Offer, fee: number, p: PaymentBody): Promise<Paid> {
+  const input = { amount: fee, paidOn: ctx.today, method: p.method, for: { kind: 'cotizatie' as const, seasonId: offer.season.id }, collectedAtRink: p.collectedAtRink, note: null };
+  const written = await writePaymentLocked(ctx, { athlete, input, sendEmail: false });
+  if (written.ok === false) throw new Error(`fee payment refused after the abonament was written: ${written.error}`);
+  const w = written.data;
+  return { lines: w.lines, steps: w.steps, paymentId: w.paymentId, emailQueued: false };
+}
 
 async function addLocked(ctx: PresenceContext, athleteId: string, b: AddBody): Promise<ActionResult<AddSubscriptionResult>> {
   await ctx.store.lockAthlete(athleteId);
   const athlete = await ctx.store.athlete(athleteId);
   if (!athlete) return refuse(404, PRESENCE_ERRORS.notFound);
   if (isAnonymized(athlete)) return refuse(409, PRESENCE_ERRORS.stale);
-  const offer = await offerOn(ctx.store, athleteId, b.startsOn);
+  const offer = await offerOn(ctx.store, athleteId, b.startsOn, b.member);
   const item = offer ? pickItem(offer, b) : null;
   if (!offer || !item) return refuse(400, PRESENCE_ERRORS.invalid);
   const refused = await paymentRefusal(ctx, athlete, b.payment, item);
   if (refused !== null) return refuse(400, refused);
+  const fee = await feeToCollect(ctx, athleteId, offer, b);
   const row = subscriptionWrite({ athleteId, seasonId: offer.season.id, item, audience: offer.audience, startsOn: b.startsOn, actor: await actorName(ctx), now: ctx.now().toISOString() });
   const same = await findDuplicate(ctx, row);
   const name = athlete.name ?? '';
@@ -168,6 +204,16 @@ async function addLocked(ctx: PresenceContext, athleteId: string, b: AddBody): P
     lines.push(...paid.lines);
     steps.push(...paid.steps);
     guards.push(...(await paymentGuards(ctx.store, paid.paymentId, paid.steps)));
+  }
+  const member = await turnMembershipOn(ctx, athleteId, offer, b);
+  lines.push(...member.lines);
+  steps.push(...member.steps);
+  if (member.steps.length > 0) guards.push(await guardOf(ctx.store, 'acs', acsGuardId(athleteId, offer.season.id)));
+  const feePaid = fee !== null && b.payment ? await writeFee(ctx, athlete, offer, fee, b.payment) : null;
+  if (feePaid) {
+    lines.push(...feePaid.lines);
+    steps.push(...feePaid.steps);
+    guards.push(...(await paymentGuards(ctx.store, feePaid.paymentId, feePaid.steps)));
   }
   const actionId = await recordPresenceAction(ctx.store, ctx.actor, lines, { steps, athletes: [athleteId], guards });
   return done({ subscriptionId: id, athleteName: name, withPayment: paid !== null }, actionId);

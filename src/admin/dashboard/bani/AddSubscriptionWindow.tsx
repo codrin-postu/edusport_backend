@@ -1,13 +1,14 @@
 import * as React from 'react';
 import { Button, Checkbox, DateInput, Field, Input, Notice, SegmentedControl, Select } from '../../ui';
 import {
-  addBody, addDraft, addToast, coverDisabled, coverRows, formMatchesStart, itemOptions, itemValue, toggleCover, withForm, withItem, type AddDraft,
+  addBody, addDraft, addToast, coverDisabled, coverRows, formMatchesStart, itemOptions, itemValue, offeredLists, toggleCover, withForm, withItem, withMember, type AddDraft,
 } from '../../../club/bani/abonamente-view';
 import { emailBox } from '../../../club/bani/payment-window';
 import { METHOD_WORDS, PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { PAYMENT_COPY } from '../../../club/presence/copy/payments';
 import { SUBSCRIPTION_COPY } from '../../../club/presence/copy/subscriptions';
 import { longDate } from '../../../club/presence/dates';
+import { feeLine } from '../../../club/presence/subscriptions/audience';
 import type { NewSubscriptionForm } from '../../../club/presence/subscriptions/views';
 import type { PaymentMethod } from '../../../club/presence/types';
 import { requestErrorText } from '../../../club/registration-panel';
@@ -84,7 +85,8 @@ function PaymentBlock({ form, draft, busy, amountError, set }: Pick<BodyProps, '
 
 function FormBody(p: BodyProps) {
   const { form, draft, busy, set } = p;
-  const options = itemOptions(form).map((o) => ({ value: o.value, label: o.hint ? `${o.label} (${o.hint})` : o.label }));
+  const options = itemOptions(form, draft.member);
+  const fee = feeLine(draft.member, form.member, form.fee);
   const listName = form.lists.find((l) => l.priceListId === draft.listId)?.listName ?? form.lists[0]?.listName ?? '';
   const pick = (value: string) => {
     const [listId, ...rest] = value.split('|');
@@ -95,11 +97,18 @@ function FormBody(p: BodyProps) {
       <DateInput value={p.startsOn} disabled={busy} onChange={(v) => { if (v) p.onStart(v); }} />
     </Field>
   );
-  if (options.length === 0) return <div className="bn-form"><Notice tone="info">{SUBSCRIPTION_COPY.noItems(listName)}</Notice>{start}</div>;
+  const memberBox = (
+    <>
+      <Checkbox checked={draft.member} disabled={busy} label={SUBSCRIPTION_COPY.memberBox(form.seasonLabel)} onChange={(member) => set((d) => withMember(d, form, member))} />
+      {fee && <Checkbox checked={draft.addFee} disabled={busy} label={fee.label} onChange={(addFee) => set((d) => ({ ...d, addFee }))} />}
+    </>
+  );
+  if (options.length === 0) return <div className="bn-form">{memberBox}<Notice tone="info">{SUBSCRIPTION_COPY.noItems(listName)}</Notice>{start}</div>;
   return (
     <div className="bn-form">
+      {memberBox}
       <Field label={SUBSCRIPTION_COPY.itemLabel(listName)}>
-        <Select value={draft.listId && draft.itemKey ? itemValue(draft.listId, draft.itemKey) : ''} options={options} disabled={busy} onChange={pick} />
+        <Select value={draft.listId && draft.itemKey ? itemValue(draft.listId, draft.itemKey) : ''} options={options} disabled={busy} triggerHint onChange={pick} />
       </Field>
       {start}
       <Field label={SUBSCRIPTION_COPY.expires}><span>{longDate(form.validUntil)}</span></Field>
@@ -130,7 +139,7 @@ export function AddSubscriptionWindow({ athlete, onClose }: Props) {
       setServerError(requestErrorText(err, PRESENCE_ERRORS.failed));
     }
   });
-  const hasItems = form !== null && form.lists.some((l) => l.items.length > 0);
+  const hasItems = form !== null && draft !== null && offeredLists(form, draft.member).some((l) => l.items.length > 0);
   const footer = (
     <>
       <Button variant="ghost" disabled={submit.busy} onClick={onClose}>{SUBSCRIPTION_COPY.cancel}</Button>

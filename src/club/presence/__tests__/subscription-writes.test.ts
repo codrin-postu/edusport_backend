@@ -79,8 +79,9 @@ describe('add an abonament', () => {
   it('the form: items of the main school list at the audience price, coverage oldest first, expiry (5.8)', async () => {
     const f = fakePresenceContext(seed());
     const form = await newSubscriptionForm(f.store, 'a1', '2026-10-27', '2026-11-20');
-    expect(form).toMatchObject({ ok: true, data: { audience: 'nonMember', validUntil: '2026-11-23', hasEmail: true,
-      lists: [{ priceListId: 'pl-std', listName: 'Standard', items: [{ itemKey: 'Abonament 8 ședințe', price: 360 }, { itemKey: 'Abonament 6 ședințe', price: 290 }] }] } });
+    expect(form).toMatchObject({ ok: true, data: { member: false, seasonLabel: '2026-2027', fee: 270, validUntil: '2026-11-23', hasEmail: true,
+      lists: [{ priceListId: 'pl-std', listName: 'Standard', items: [
+        { itemKey: 'Abonament 8 ședințe', memberPrice: 320, nonMemberPrice: 360 }, { itemKey: 'Abonament 6 ședințe', memberPrice: 260, nonMemberPrice: 290 }] }] } });
     expect(form.ok && form.data.cover.map((c) => c.attendanceId)).toEqual(['t1', 't2', 't3']);
   });
 

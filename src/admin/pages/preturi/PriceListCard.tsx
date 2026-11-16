@@ -27,7 +27,7 @@ const COLUMNS: DataColumn<Row>[] = [
   { key: 'kind', header: 'Tip', render: (r) => KIND_LABELS[r.kind] },
   { key: 'sessions', header: 'Ședințe', render: (r) => (r.sessions === null ? '-' : String(r.sessions)) },
   { key: 'memberPrice', header: 'Membri', render: priceCell((r) => r.memberPrice) },
-  { key: 'nonMemberPrice', header: 'Non-membri', render: priceCell((r) => r.nonMemberPrice) },
+  { key: 'nonMemberPrice', header: 'Neafiliați', render: priceCell((r) => r.nonMemberPrice) },
 ];
 
 /** The groups using the list, each a link to its page. */
