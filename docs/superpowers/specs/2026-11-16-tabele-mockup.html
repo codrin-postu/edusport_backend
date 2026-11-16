@@ -117,6 +117,16 @@ td.mk{text-align:center;width:44px;padding-inline:4px}
 th.mk{text-align:center;padding-inline:4px;line-height:1.2}
 td.mk .x{display:inline-block;width:18px;height:18px;line-height:18px;background:var(--primary-soft);color:var(--primary);font-weight:700;border-radius:2px}
 td.mk .no{color:var(--muted)}
+.chip .chipv{border:0;background:none;padding:0;cursor:pointer;font:inherit;color:inherit;height:auto;width:auto}
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
+.mgrid button{height:34px;border:1px solid var(--border-strong);background:var(--surface);border-radius:var(--r-sm);cursor:pointer}
+.mgrid button[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary);font-weight:600}
+.optbtn{width:100%;border:0;background:none;text-align:left;font:inherit;color:inherit}
+.tsearch{height:34px;width:min(260px,100%);border:1px solid var(--border-strong);border-radius:var(--r-sm);padding:0 10px;background:var(--surface)}
+th.nr,td.nr{width:44px;color:var(--muted);text-align:right;padding-right:6px}
+a.name{color:var(--text);font-weight:600;text-decoration:none}
+a.name:hover{color:var(--primary);text-decoration:underline;text-underline-offset:2px}
+tbody tr:hover td{background:var(--subtle)}
 </style>
 
 
@@ -148,12 +158,12 @@ td.mk .no{color:var(--muted)}
         <div class="row">
           <div class="tabs" id="subject" role="group" aria-label="Tabel"></div>
           <span class="spacer"></span>
-          <select class="sel" id="period" aria-label="Perioada"></select>
+          <button class="sel" id="periodBtn" aria-haspopup="dialog" style="text-align:left;min-width:180px"></button>
         </div>
         <div class="row" id="filters"></div>
       </div>
       <div class="meta">
-        <span class="count" id="count"></span>
+        <input class="search tsearch" id="q" type="search" placeholder="Caută" aria-label="Caută"><span class="count" id="count"></span>
         <span class="spacer"></span>
         <select class="sel hide-sm" id="groupBy" aria-label="Grupare"></select>
         <button class="btn" id="colBtn"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM9 5v14M15 5v14"/></svg>Coloane</button>
@@ -216,9 +226,31 @@ const PRESETS=[
  {name:'Prezență pe grupă',type:'Prezență pe ședințe',filters:[{key:'grupa',value:'Avansați'}]}];
 let state={};let mine=['Restanțe Avansați'];let rail=true;
 try{if(localStorage.getItem('tabele-rail')==='0')rail=false}catch(e){}
-function load(i){const p=PRESETS[i];const t=TYPES[p.type];state={preset:i,name:p.name,type:p.type,filters:p.filters.map(f=>({...f})),groupBy:p.groupBy||'',sort:null,collapsed:{},onlyDebt:!!p.onlyDebt,
- period:t.period[0],cols:t.cols.map(c=>({...c,on:p.cols?p.cols.includes(c.key):!!c.on}))}}
-function setType(type){const t=TYPES[type];state={...state,preset:null,name:type,type,filters:t.matrix?[{key:'grupa',value:'Avansați'}]:[],groupBy:t.groupBy[0]||'',sort:null,collapsed:{},onlyDebt:false,period:t.period[0],cols:t.cols.map(c=>({...c,on:!!c.on}))}}
+function load(i){const p=PRESETS[i];const t=TYPES[p.type];state={preset:i,name:p.name,type:p.type,filters:p.filters.map(f=>({key:f.key,values:[f.value]})),groupBy:p.groupBy||'',sort:null,collapsed:{},onlyDebt:!!p.onlyDebt,
+ period:{season:SEASONS[0],months:t.matrix?['nov']:(p.name.includes('luna')?['nov']:[])},cols:t.cols.map(c=>({...c,on:p.cols?p.cols.includes(c.key):!!c.on}))}}
+function setType(type){const t=TYPES[type];state={...state,preset:null,name:type,type,filters:t.matrix?[{key:'grupa',values:['Avansați']}]:[],groupBy:t.groupBy[0]||'',sort:null,collapsed:{},onlyDebt:false,period:{season:SEASONS[0],months:t.matrix?['nov']:[]},cols:t.cols.map(c=>({...c,on:!!c.on}))}}
+
+const SEASONS=['2026-2027','2025-2026','2024-2025'];
+const MONTHS=['sep','oct','nov','dec','ian','feb','mar','apr','mai','iun','iul','aug'];
+const MLONG={sep:'Septembrie',oct:'Octombrie',nov:'Noiembrie',dec:'Decembrie',ian:'Ianuarie',feb:'Februarie',mar:'Martie',apr:'Aprilie',mai:'Mai',iun:'Iunie',iul:'Iulie',aug:'August'};
+const cap=m=>m.charAt(0).toUpperCase()+m.slice(1);
+function periodLabel(){const {season,months}=state.period;if(state.type==='Sportivi'||!months.length)return season;
+ if(months.length===1)return MLONG[months[0]]+' '+(MONTHS.indexOf(months[0])<4?season.slice(0,4):season.slice(5));return season+': '+months.map(cap).join(', ')}
+function editPeriod(anchor){const single=TYPES[state.type].matrix;const noMonths=state.type==='Sportivi';
+ const draw=()=>`<select class="sel" id="pSeason" style="width:100%">${SEASONS.map(x=>`<option ${x===state.period.season?'selected':''}>${x}</option>`).join('')}</select>`+
+  (noMonths?'':`<div class="mgrid">${MONTHS.map(m=>`<button data-m2="${m}" aria-pressed="${state.period.months.includes(m)}">${cap(m)}</button>`).join('')}</div>`+
+  (single?'':`<button class="link" id="pAll" ${state.period.months.length?'':'disabled'}>Tot sezonul</button>`));
+ const p=pop(anchor,draw());p.style.width='260px';
+ const redraw=()=>{p.innerHTML=draw();renderBar();renderTable()};
+ p.addEventListener('change',ev=>{if(ev.target.id==='pSeason'){state.period.season=ev.target.value;redraw()}});
+ p.addEventListener('click',ev=>{const b=ev.target.closest('button');if(!b)return;ev.stopPropagation();
+  if(b.dataset.m2){const m=b.dataset.m2;const ms=state.period.months;state.period.months=single?[m]:ms.includes(m)?ms.filter(x=>x!==m):MONTHS.filter(x=>x===m||ms.includes(x))}
+  else if(b.id==='pAll'){state.period.months=[]}redraw()})}
+function editFilter(i){const f=state.filters[i];const anchor=document.querySelector(`[data-edit="${i}"]`)||$('#addF');const single=TYPES[state.type].matrix;
+ const draw=()=>values(f.key).map(v=>`<label class="opt"><input type="${single?'radio':'checkbox'}" name="fv" data-v="${v}" ${f.values.includes(v)?'checked':''}>${v}</label>`).join('');
+ const p=pop(anchor,draw());
+ p.addEventListener('change',ev=>{const v=ev.target.dataset.v;if(!v)return;f.values=single?[v]:ev.target.checked?[...f.values,v]:f.values.filter(x=>x!==v);
+  if(!f.values.length&&!single){state.filters.splice(i,1);closeLayer()}renderBar();renderTable()})}
 const badgeCls=v=>/Achitat|Activ|Da/.test(v)?'b-ok':/Parțial|Consumat/.test(v)?'b-warn':/Expirat|Inactiv|Neachitat/.test(v)?'b-bad':'';
 function toast(t){const d=document.createElement('div');d.className='toast';d.setAttribute('role','status');d.textContent=t;document.body.append(d);setTimeout(()=>d.remove(),2000)}
 function closeLayer(){$('#layer').innerHTML='';document.removeEventListener('click',outside,true)}
@@ -226,7 +258,7 @@ function outside(e){if(!$('#layer').contains(e.target))closeLayer()}
 function pop(anchor,html,cls){closeLayer();const r=anchor.getBoundingClientRect();const p=document.createElement('div');p.className='pop '+(cls||'');p.innerHTML=html;$('#layer').append(p);
  const w=p.offsetWidth;p.style.left=Math.max(12,Math.min(r.left+scrollX,scrollX+innerWidth-w-12))+'px';p.style.top=(r.bottom+scrollY+4)+'px';setTimeout(()=>document.addEventListener('click',outside,true));return p}
 function values(key){const t=TYPES[state.type];const src=t.matrix?ATH:t.rows();return [...new Set(src.map(r=>r[key]))].filter(Boolean)}
-function rows(){const t=TYPES[state.type];let rs=t.rows();for(const f of state.filters)rs=rs.filter(r=>r[f.key]===f.value);
+function rows(){const t=TYPES[state.type];let rs=t.rows();const q=($('#q').value||'').trim().toLowerCase();if(q)rs=rs.filter(r=>String(r.sportiv||'').toLowerCase().includes(q));for(const f of state.filters)rs=rs.filter(r=>f.values.includes(r[f.key]));const ms=state.period.months;if(ms.length&&!t.matrix&&state.type!=='Sportivi')rs=rs.filter(r=>ms.some(m=>String(r.data||r.inceput||'').includes(' '+m+' ')));
  if(state.onlyDebt)rs=rs.filter(r=>r.ramas>0);
  if(state.sort){const {key,dir}=state.sort;rs=[...rs].sort((a,b)=>(typeof a[key]==='number'?a[key]-b[key]:String(a[key]).localeCompare(String(b[key]),'ro',{numeric:true}))*dir)}return rs}
 function renderRail(){$('#rail').hidden=!rail;$('#railBtn').setAttribute('aria-expanded',String(rail));$('#railTxt').textContent='Tabele salvate';
@@ -236,30 +268,30 @@ function renderRail(){$('#rail').hidden=!rail;$('#railBtn').setAttribute('aria-e
  try{localStorage.setItem('tabele-rail',rail?'1':'0')}catch(e){}}
 function renderBar(){const t=TYPES[state.type];$('#title').textContent=state.name;
  $('#subject').innerHTML=Object.keys(TYPES).map(s=>`<button aria-pressed="${state.type===s}">${s}</button>`).join('');
- $('#period').innerHTML=t.period.map(p=>`<option ${p===state.period?'selected':''}>${p}</option>`).join('');
- $('#filters').innerHTML=state.filters.map((x,i)=>`<span class="chip">${LABEL[x.key]}: <b>${x.value}</b>${t.matrix?'':`<button data-rm="${i}" aria-label="Șterge"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`}</span>`).join('')
+ $('#periodBtn').textContent=periodLabel();$('#periodBtn').disabled=false;
+ $('#filters').innerHTML=state.filters.map((x,i)=>`<span class="chip"><button class="chipv" data-edit="${i}">${LABEL[x.key]}: <b>${x.values.join(', ')}</b></button>${t.matrix&&false?'':`<button data-rm="${i}" aria-label="Șterge"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`}</span>`).join('')
   +(t.matrix?'':`<button class="addf" id="addF"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Filtru</button>`)
   +(state.onlyDebt?'<span class="chip">Doar cu rest de plată<button data-debt="1" aria-label="Șterge"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>':'');
  const g=$('#groupBy');g.hidden=!t.groupBy.length;g.innerHTML=['',...t.groupBy].map(k=>`<option value="${k}" ${k===state.groupBy?'selected':''}>${k?'Pe '+LABEL[k].toLowerCase():'Negrupat'}</option>`).join('');
  $('#colBtn').hidden=!!t.matrix}
-function renderMatrix(){const grp=state.filters[0].value;const dates=DATES[grp];const people=ATH.filter(a=>a.grupa===grp);
+function renderMatrix(){const grp=state.filters[0].values[0];const dates=DATES[grp];const people=ATH.filter(a=>a.grupa===grp);
  const here=(a,d)=>PRES.some(p=>p.sportiv===a.sportiv&&p.data===d+' nov 2026');
  $('#count').textContent=people.length+' sportivi, '+dates.length+' ședințe';
- $('#tbl thead').innerHTML='<tr><th>Sportiv</th>'+dates.map(d=>`<th class="mk">${['Lu','Ma','Mi','Jo','Vi','Sâ','Du'][(+d+6)%7]}<br>${d}</th>`).join('')+'<th class="num">Total</th></tr>';
- $('#tbl tbody').innerHTML=people.map(a=>{const c=dates.map(d=>here(a,d));return `<tr class="r" tabindex="0" data-n="${a.sportiv}"><td>${a.sportiv}</td>`+c.map(v=>`<td class="mk">${v?'<span class="x">X</span>':'<span class="no"></span>'}</td>`).join('')+`<td class="num">${c.filter(Boolean).length}</td></tr>`}).join('')
-  +'<tr class="st"><td>Total</td>'+dates.map(d=>`<td class="mk">${people.filter(a=>here(a,d)).length}</td>`).join('')+'<td></td></tr>'}
+ $('#tbl thead').innerHTML='<tr><th class="nr">Nr.</th><th>Sportiv</th>'+dates.map(d=>`<th class="mk">${['Lu','Ma','Mi','Jo','Vi','Sâ','Du'][(+d+6)%7]}<br>${d}</th>`).join('')+'<th class="num">Total</th></tr>';
+ $('#tbl tbody').innerHTML=people.map(a=>{const c=dates.map(d=>here(a,d));return `<tr><td class="nr">${people.indexOf(a)+1}</td><td><a class="name" href="#" data-n="${a.sportiv}">${a.sportiv}</a></td>`+c.map(v=>`<td class="mk">${v?'<span class="x">X</span>':'<span class="no"></span>'}</td>`).join('')+`<td class="num">${c.filter(Boolean).length}</td></tr>`}).join('')
+  +'<tr class="st"><td></td><td>Total</td>'+dates.map(d=>`<td class="mk">${people.filter(a=>here(a,d)).length}</td>`).join('')+'<td></td></tr>'}
 function renderTable(){const t=TYPES[state.type];if(t.matrix)return renderMatrix();const cols=state.cols.filter(c=>c.on);const rs=rows();
  $('#count').textContent=rs.length+' '+(rs.length===1?t.unit[0]:t.unit[1]);
- $('#tbl thead').innerHTML='<tr>'+cols.map(c=>{const s=state.sort&&state.sort.key===c.key;return `<th class="${c.num||c.money?'num':''}" data-sort="${c.key}" ${s?`aria-sort="${state.sort.dir>0?'ascending':'descending'}"`:''}>${c.label}<span class="ar">${s&&state.sort.dir<0?'↓':'↑'}</span></th>`}).join('')+'</tr>';
+ $('#tbl thead').innerHTML='<tr><th class="nr">Nr.</th>'+cols.map(c=>{const s=state.sort&&state.sort.key===c.key;return `<th class="${c.num||c.money?'num':''}" data-sort="${c.key}" ${s?`aria-sort="${state.sort.dir>0?'ascending':'descending'}"`:''}>${c.label}<span class="ar">${s&&state.sort.dir<0?'↓':'↑'}</span></th>`}).join('')+'</tr>';
  const cell=(c,r)=>c.badge?`<span class="badge ${badgeCls(r[c.key])}">${r[c.key]}</span>`:c.money?`<span class="${r[c.key]===0?'zero':''}">${lei(r[c.key])}</span>`:(r[c.key]??'');
- const line=r=>`<tr class="r" tabindex="0" data-n="${r.sportiv}">`+cols.map(c=>`<td class="${c.num||c.money?'num':''}">${cell(c,r)}</td>`).join('')+'</tr>';
+ let nr=0;const line=r=>`<tr><td class="nr">${++nr}</td>`+cols.map(c=>`<td class="${c.num||c.money?'num':''}">${c.key==='sportiv'?`<a class="name" href="#" data-n="${r.sportiv}">${r.sportiv}</a>`:cell(c,r)}</td>`).join('')+'</tr>';
  const money=cols.some(c=>c.money);const sum=(l,k)=>l.reduce((a,r)=>a+r[k],0);
- const totals=(label,l)=>money?`<tr class="st">`+cols.map((c,i)=>`<td class="${c.num||c.money?'num':''}">${i===0?label:c.money?lei(sum(l,c.key)):''}</td>`).join('')+'</tr>':'';
+ const totals=(label,l)=>money?`<tr class="st"><td></td>`+cols.map((c,i)=>`<td class="${c.num||c.money?'num':''}">${i===0?label:c.money?lei(sum(l,c.key)):''}</td>`).join('')+'</tr>':'';
  let html='';if(!state.groupBy)html=rs.map(line).join('')+(rs.length?totals('Total',rs):'');
  else{const gs={};for(const r of rs)(gs[r[state.groupBy]]=gs[r[state.groupBy]]||[]).push(r);
-  for(const g in gs){const l=gs[g];const open=!state.collapsed[g];html+=`<tr class="gh" data-g="${g}"><td colspan="${cols.length}"><span aria-hidden="true">${open?'▾':'▸'}</span> ${g} <span class="gsum">${l.length}</span></td></tr>`;if(open)html+=l.map(line).join('')+totals('Total',l)}
+  for(const g in gs){const l=gs[g];const open=!state.collapsed[g];html+=`<tr class="gh" data-g="${g}"><td colspan="${cols.length+1}"><span aria-hidden="true">${open?'▾':'▸'}</span> ${g} <span class="gsum">${l.length}</span></td></tr>`;if(open)html+=l.map(line).join('')+totals('Total',l)}
   if(Object.keys(gs).length>1)html+=totals('Total general',rs)}
- if(!rs.length)html=`<tr><td colspan="${cols.length}" style="text-align:center;padding:32px;color:var(--muted)">Nimic.</td></tr>`;
+ if(!rs.length)html=`<tr><td colspan="${cols.length+1}" style="text-align:center;padding:32px;color:var(--muted)">Nimic.</td></tr>`;
  $('#tbl tbody').innerHTML=html}
 function render(){renderRail();renderBar();renderTable()}
 function openCols(anchor){const draw=q=>`<input class="search" id="colQ" placeholder="Caută" value="${q}">`+
@@ -273,23 +305,26 @@ function openCols(anchor){const draw=q=>`<input class="search" id="colQ" placeho
 document.addEventListener('click',e=>{const t=e.target.closest('button,th,tr');if(!t)return;
  if(t.id==='railBtn'||t.id==='railClose'){rail=!rail;renderRail();return}
  if(t.dataset.p!==undefined){load(+t.dataset.p);if(matchMedia('(max-width:900px)').matches)rail=false;render();return}
- if(t.dataset.m!==undefined){load(3);state.preset='m'+t.dataset.m;state.name=mine[+t.dataset.m];state.filters=[{key:'grupa',value:'Avansați'}];render();return}
+ if(t.dataset.m!==undefined){load(3);state.preset='m'+t.dataset.m;state.name=mine[+t.dataset.m];state.filters=[{key:'grupa',values:['Avansați']}];render();return}
  if(t.closest('#subject')&&t.tagName==='BUTTON'){setType(t.textContent);render();return}
  if(t.dataset.rm!==undefined){state.filters.splice(+t.dataset.rm,1);render();return}
  if(t.dataset.debt){state.onlyDebt=false;render();return}
  if(t.id==='addF'){const used=new Set(state.filters.map(f=>f.key));const keys=TYPES[state.type].filters.filter(k=>!used.has(k));
-  const p=pop(t,keys.map(k=>`<label class="opt"><span style="min-width:96px">${LABEL[k]}</span><select class="sel" data-fk="${k}" style="flex:1;height:30px"><option value="">Selectează</option>${values(k).map(v=>`<option>${v}</option>`).join('')}</select></label>`).join(''));
-  p.addEventListener('change',ev=>{const s=ev.target.closest('select');if(s&&s.value){state.filters.push({key:s.dataset.fk,value:s.value});closeLayer();render()}});return}
+  const p=pop(t,keys.map(k=>`<button class="opt optbtn" data-fk="${k}">${LABEL[k]}</button>`).join('')||'<span class="opt">Toate filtrele sunt folosite.</span>');
+  p.addEventListener('click',ev=>{const b=ev.target.closest('[data-fk]');if(!b)return;ev.stopPropagation();state.filters.push({key:b.dataset.fk,values:[]});render();editFilter(state.filters.length-1)});return}
+ if(t.dataset.edit!==undefined){editFilter(+t.dataset.edit);return}
+ if(t.id==='periodBtn'){editPeriod(t);return}
  if(t.id==='colBtn'){openCols(t);return}
  if(t.id==='dlBtn'){toast(state.name+'.xlsx');return}
  if(t.id==='dlMore'){const p=pop(t,'<button data-f="xlsx">Excel</button><button data-f="csv">CSV</button>','menu');p.onclick=ev=>{const b=ev.target.closest('button');if(b){closeLayer();toast(state.name+'.'+b.dataset.f)}};return}
  if(t.id==='saveBtn'){if(!mine.includes(state.name))mine.push(state.name);state.preset='m'+mine.indexOf(state.name);renderRail();toast('Salvat.');return}
  if(t.tagName==='TH'&&t.dataset.sort){const key=t.dataset.sort;state.sort=state.sort&&state.sort.key===key?{key,dir:-state.sort.dir}:{key,dir:1};renderTable();return}
  if(t.classList.contains('gh')){const g=t.dataset.g;state.collapsed[g]=!state.collapsed[g];renderTable();return}
- if(t.classList.contains('r')){toast(t.dataset.n);return}});
+ });
+document.addEventListener('click',e=>{const a=e.target.closest('a.name');if(a){e.preventDefault();toast(a.dataset.n)}});
+$('#q').addEventListener('input',()=>renderTable());
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLayer()});
 $('#groupBy').onchange=e=>{state.groupBy=e.target.value;renderTable()};
-$('#period').onchange=e=>{state.period=e.target.value};
 document.addEventListener('change',e=>{if(e.target.closest('#filters')){}});
 addEventListener('resize',()=>renderRail());
 if(matchMedia('(max-width:900px)').matches)rail=false;
