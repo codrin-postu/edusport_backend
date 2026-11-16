@@ -11,7 +11,7 @@ export type NewDevice = Omit<DeviceRow, 'id' | 'revokedAt' | 'twoFactorUntil' | 
 export type NewSession = Omit<SessionRow, 'id' | 'revokedAt' | 'previousRefreshHash'>;
 export type SessionWrite = Partial<Omit<SessionRow, 'id' | 'accountId' | 'deviceId' | 'host' | 'familyStartedAt'>>;
 export type DeviceRebind = Pick<DeviceRow, 'deviceKeyHash' | 'sessionId' | 'firstSeenAt' | 'lastSeenAt' | 'revokedAt' | 'confirmedAt' | 'twoFactorUntil'>;
-export type DeviceWrite = Partial<Pick<DeviceRow, 'sessionId' | 'lastSeenAt' | 'revokedAt' | 'label' | 'confirmedAt'>>;
+export type DeviceWrite = Partial<Pick<DeviceRow, 'sessionId' | 'lastSeenAt' | 'revokedAt' | 'label' | 'confirmedAt' | 'twoFactorUntil'>>;
 
 export interface PortalStore {
   transaction<T>(fn: () => Promise<T>): Promise<T>;

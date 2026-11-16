@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { loginWithPassword } from '../auth/login';
+import { deviceLabel } from '../devices';
 import { listDevicesFor } from '../me-shared';
 import { hashSecret } from '../tokens';
 import { setup2fa } from './portal-2fa';
@@ -56,9 +57,7 @@ describe('portal device life', () => {
   it('the same label on another host is not reused', async () => {
     const s = setup2fa();
     const id = await s.addAccount();
-    await ended(s, id, { host: 'sportiv', label: 'Calculator, Browser' });
-    s.c.userAgent = null;
-    await s.store.updateDevice((await s.store.devices(id))[0].id, { label: 'Dispozitiv necunoscut' });
+    await ended(s, id, { host: 'sportiv', label: deviceLabel(s.c.userAgent) });
     await login(s);
     const rows = await s.store.devices(id);
     expect(rows).toHaveLength(2);
@@ -72,6 +71,7 @@ describe('portal device life', () => {
     const revoke = vi.spyOn(s.c.sessions, 'revokeDevice');
     const again = await login(s, first.deviceKey);
     expect(revoke).toHaveBeenCalledTimes(1);
+    expect(revoke).toHaveBeenCalledWith(1, (await s.store.devices((await s.store.accountByEmail('ana@x.ro'))?.id ?? ''))[0].id);
     expect(again.deviceKey).toBeNull();
   });
 
@@ -119,7 +119,7 @@ describe('portal new-device mail', () => {
     expect(mailCount(s)).toBe(2);
   });
 
-  it('the cookie of this account: no mail, also when the row ended or went stale', async () => {
+  it('the cookie of a live or stale not-yet-ended row: no mail; the cookie of a revoked row: mail', async () => {
     const s = setup2fa();
     const id = await s.addAccount();
     const first = await login(s);
@@ -127,15 +127,13 @@ describe('portal new-device mail', () => {
     s.advance(3600_001);
     await login(s, first.deviceKey);
     expect(mailCount(s)).toBe(1);
+    s.advance(31 * DAY);
+    const rebound = await login(s, first.deviceKey);
+    expect(mailCount(s)).toBe(1);
     const [row] = await s.store.devices(id);
     await s.store.updateDevice(row.id, { revokedAt: s.clock.t.toISOString() });
-    await login(s, first.deviceKey);
-    expect(mailCount(s)).toBe(1);
-    const second = await login(s, null);
-    expect(second.deviceKey).not.toBeNull();
-    expect(mailCount(s)).toBe(2);
-    s.advance(31 * DAY);
-    await login(s, second.deviceKey);
+    s.advance(3600_001);
+    await login(s, rebound.deviceKey);
     expect(mailCount(s)).toBe(2);
   });
 
@@ -147,5 +145,58 @@ describe('portal new-device mail', () => {
     await login(s, 'bobs-key');
     expect(mailCount(s)).toBe(1);
     expect((await s.store.devices(id))).toHaveLength(1);
+  });
+});
+
+describe('portal 2FA password step uses the same device rules', () => {
+  const start = async (s: Env, deviceKey: string | null = null) => {
+    const r = await loginWithPassword(s.c, { host: 'antrenor', email: 'ana@x.ro', password: 'right', deviceKey });
+    if (!r.ok || !('pending' in r.data)) throw new Error('no pending');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return r.data;
+  };
+
+  it('reuses an ended same-label row instead of adding one, and mails', async () => {
+    const s = setup2fa();
+    const id = await s.addAccount();
+    await s.enrol(id);
+    const first = await start(s);
+    const [before] = await s.store.devices(id);
+    await s.store.updateDevice(before.id, { revokedAt: s.clock.t.toISOString() });
+    const again = await start(s);
+    const rows = await s.store.devices(id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: before.id, revokedAt: null });
+    expect(rows[0].deviceKeyHash).toBe(hashSecret(String(again.deviceKey)));
+    expect(again.deviceKey).not.toBe(first.deviceKey);
+    expect(mailCount(s)).toBe(1);
+  });
+
+  it('a stale not-yet-ended cookie row is ended and rebound with a new key, no mail', async () => {
+    const s = setup2fa();
+    const id = await s.addAccount();
+    await s.enrol(id);
+    const first = await start(s);
+    s.advance(31 * DAY);
+    const revoke = vi.spyOn(s.c.sessions, 'revokeDevice');
+    const again = await start(s, first.deviceKey);
+    expect(revoke).toHaveBeenCalledTimes(1);
+    expect(again.deviceKey).not.toBeNull();
+    expect(await s.store.devices(id)).toHaveLength(1);
+    expect(mailCount(s)).toBe(1);
+  });
+
+  it('a live cookie row is kept: no new key, no mail; no cookie mails even with the same label', async () => {
+    const s = setup2fa();
+    const id = await s.addAccount();
+    await s.enrol(id);
+    const first = await start(s);
+    s.advance(3600_001);
+    const again = await start(s, first.deviceKey);
+    expect(again.deviceKey).toBeNull();
+    expect(mailCount(s)).toBe(1);
+    await start(s);
+    expect(mailCount(s)).toBe(2);
+    expect((await s.store.devices(id)).length).toBeGreaterThan(0);
   });
 });

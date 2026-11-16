@@ -14,7 +14,7 @@ import { hashSecret, sameHash } from '../tokens';
 import type { PortalAuthContext, PortalResult } from './context';
 import { portalActor } from '../actor';
 import { portalTwoFactorOn } from './bff';
-import { mayEnter, createDeviceRow, mailNewDevice, startSession, type PortalSession } from './issue';
+import { bindDevice, mayEnter, mailNewDevice, startSession, type PortalSession } from './issue';
 
 /** `deviceKey`: the key of a device row made for this browser at the password step; the browser keeps it and sends it back with the code. */
 export type PortalPending = SecondStep & { pending: string; deviceKey: string | null };
@@ -56,7 +56,7 @@ export async function afterPassword(
   if (device && device.revokedAt === null && isConfirmedDevice(device) && isRemembered(device.twoFactorUntil, c.now())) {
     return withOffer(c, account, await startSession(c, account, deviceKey, { notifyNewDevice: true, host }));
   }
-  return openSecondStep(c, account, deviceKey, host, device);
+  return openSecondStep(c, account, deviceKey, host);
 }
 
 /**
@@ -64,21 +64,20 @@ export async function afterPassword(
  * after a right code (spec 4.6, user ruling 2026-11-09), never before.
  */
 export async function openSecondStep(
-  c: PortalAuthContext, account: AccountRow, deviceKey: string | null, host: string, device: DeviceRow | null, googleSub?: string,
+  c: PortalAuthContext, account: AccountRow, deviceKey: string | null, host: string, googleSub?: string,
 ): Promise<PortalResult<PortalPending>> {
   const subject = portalSubject(account);
   const gate = keysOrRefusal(c.security);
   if ('refusal' in gate) return gate.refusal;
-  // An unknown browser is mailed now (as the admin login does), so a password alone shows up before any code is tried.
-  const known = device !== null && device.revokedAt === null;
-  // The device row exists before the second step (as the admin login does), so "remember" and the bound key have a row; its key goes back with the pending answer.
-  const made = known ? null : await createDeviceRow(c, account, host);
-  if (made) await mailNewDevice(c, account, made.device.label, host);
-  const boundKey = made ? made.key : deviceKey;
+  // The device row exists before the second step (as the admin login does), so "remember" and the bound key have a row; a new key goes back with the pending answer.
+  // A browser without a device cookie of this account is mailed now, so a password alone shows up before any code is tried.
+  const bound = await bindDevice(c, account, deviceKey, host, false);
+  if (bound.mailDue) await mailNewDevice(c, account, bound.device.label, host);
+  const boundKey = bound.newKey ? bound.key : deviceKey;
   const last = (await c.security.store.portalAccountExtra(account.id)).lastMethod;
   try {
     const { secret, step } = await openPending(c.security, subject, account.email, { rememberMe: false, host, deviceKeyHash: boundKey ? hashSecret(boundKey) : null, ...(googleSub ? { googleSub } : {}) }, last);
-    return { ok: true, data: { ...step, pending: secret, deviceKey: made ? made.key : null } };
+    return { ok: true, data: { ...step, pending: secret, deviceKey: bound.newKey ? bound.key : null } };
   } catch (err) {
     if (err instanceof KeysMissing) return { ok: false, status: 503, error: SECURITY_ERRORS.unavailable };
     throw err;

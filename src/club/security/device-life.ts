@@ -1,4 +1,4 @@
-import { hashSecret, sameHash } from '../portal/tokens';
+import { sameHash } from '../portal/tokens';
 
 export const DEVICE_STALE_DAYS = 30;
 
@@ -19,6 +19,10 @@ export function reusableRow<T extends Life>(rows: T[], label: string, now: Date)
   return ended.sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt))[0] ?? null;
 }
 
-/** The browser proved itself by a device cookie whose key hash is a row of this account (live, stale or ended): the new-device mail is not due. The label plays no part: it is client-supplied and shared by most computers. */
-export const cookieKnown = (rows: { deviceKeyHash: string }[], cookieValue: string | null): boolean =>
-  cookieValue !== null && rows.some((d) => sameHash(hashSecret(cookieValue), d.deviceKeyHash));
+/**
+ * The browser proved itself by a device cookie whose key hash is a row of this account that was not revoked when the rows were loaded (live, or
+ * stale and not yet ended): the new-device mail is not due. A row that was revoked (Deconectează, sign-out-everywhere, ended) does not count, and
+ * neither does the label: it is client-supplied and shared by most computers.
+ */
+export const cookieOfLiveOrStaleRow = (rows: { deviceKeyHash: string; revokedAt: string | null }[], keyHash: string | null): boolean =>
+  keyHash !== null && rows.some((d) => d.revokedAt === null && sameHash(keyHash, d.deviceKeyHash));

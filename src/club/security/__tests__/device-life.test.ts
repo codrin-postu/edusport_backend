@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { hashSecret } from '../../portal/tokens';
-import { DEVICE_STALE_DAYS, isLive, isStale, cookieKnown, reusableRow } from '../device-life';
+import { DEVICE_STALE_DAYS, isLive, isStale, cookieOfLiveOrStaleRow, reusableRow } from '../device-life';
 
 const DAY = 24 * 3600_000;
 const now = new Date('2026-11-16T12:00:00.000Z');
@@ -29,10 +29,11 @@ describe('device life', () => {
     expect(reusableRow([row('A', ago(DAY)), row('B', ago(50 * DAY))], 'A', now)).toBeNull();
   });
 
-  it('cookieKnown is true only for a cookie whose hash is a row of the list, whatever the row state', () => {
-    const rows = [{ deviceKeyHash: hashSecret('mine') }];
-    expect(cookieKnown(rows, 'mine')).toBe(true);
-    expect(cookieKnown(rows, 'other')).toBe(false);
-    expect(cookieKnown(rows, null)).toBe(false);
+  it('cookieOfLiveOrStaleRow is true only for the hash of a row that was not revoked, stale or not', () => {
+    const rows = [{ deviceKeyHash: hashSecret('live'), revokedAt: null }, { deviceKeyHash: hashSecret('gone'), revokedAt: ago(DAY) }];
+    expect(cookieOfLiveOrStaleRow(rows, hashSecret('live'))).toBe(true);
+    expect(cookieOfLiveOrStaleRow(rows, hashSecret('gone'))).toBe(false);
+    expect(cookieOfLiveOrStaleRow(rows, hashSecret('other'))).toBe(false);
+    expect(cookieOfLiveOrStaleRow(rows, null)).toBe(false);
   });
 });

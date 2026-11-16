@@ -236,18 +236,23 @@ describe('password login: the session', () => {
     expect(mails()).toBe(2);
   });
 
-  it('the cookie of an ended row of this account: no mail', async () => {
+  it('the cookie of a revoked row of this account sends the mail; the cookie of a stale not-yet-ended row does not', async () => {
     const env = loginEnv();
     const mails = () => env.portalMails.filter((m) => m.mail.kind === 'new-device').length;
     await env.login();
     await flush();
+    env.browser();
+    env.advance(31 * 24 * 3600_000);
+    await env.login();
+    await flush();
+    expect(mails()).toBe(1);
     const [row] = await env.c.store.adminDevices(7);
     await env.c.store.updateAdminDevice(row.id, { revokedAt: env.c.now().toISOString() });
     env.browser();
     env.advance(3600_001);
     await env.login();
     await flush();
-    expect(mails()).toBe(1);
+    expect(mails()).toBe(2);
   });
 
   it('the cookie of another account row sends the mail', async () => {

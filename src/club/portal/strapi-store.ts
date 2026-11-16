@@ -215,6 +215,7 @@ function devices(strapi: Core.Strapi): Pick<PortalStore, 'devices' | 'deviceByKe
     updateDevice: async (id, d) => {
       await docs().update({ documentId: id, data: defined(d) as never });
     },
+    // Guarded write on purpose through the query engine: one UPDATE ... WHERE key hash = old, no lifecycles.
     rebindDevice: async (id, oldKeyHash, d) =>
       (await strapi.db.query(DEVICE).updateMany({ where: { documentId: id, deviceKeyHash: oldKeyHash }, data: d })).count > 0,
   };

@@ -196,8 +196,7 @@ export async function loginWithGoogle(c: PortalAuthContext, g: GoogleClient | nu
   }
   if (portalTwoFactorOn() && (await hasTwoFactor(c.security, portalSubject(byEmail))).length > 0) {
     if (!(await mayEnter(c, byEmail, await c.store.user(byEmail.userId), read.host))) return noAccount;
-    const device = read.deviceKey ? await c.store.deviceByKey(byEmail.id, hashSecret(read.deviceKey), read.host) : null;
-    return openSecondStep(c, byEmail, read.deviceKey, read.host, device, who.sub);
+    return openSecondStep(c, byEmail, read.deviceKey, read.host, who.sub);
   }
   const bound = await bindSub(c, byEmail.id, who.sub, read.host);
   return bound ? session(bound, true) : noAccount;

@@ -4,7 +4,7 @@ import type { AdminDeviceView } from '../security/api-types';
 import { PORTAL_ERRORS } from '../portal/copy';
 import { deviceLabel } from '../portal/devices';
 import { hashSecret, newDeviceKey, sameHash } from '../portal/tokens';
-import { cookieKnown, isLive, reusableRow } from '../security/device-life';
+import { cookieOfLiveOrStaleRow, isLive, reusableRow } from '../security/device-life';
 import { isRemembered, rememberUntil } from '../security/remembered';
 import type { AdminDeviceRow, SecurityStore } from '../security/store';
 import { adminSessionManager, clearRefreshCookie, type AdminSessionCtx } from './session';
@@ -17,8 +17,8 @@ export const ADMIN_DEVICE_COOKIE_MS = 400 * 24 * 3600_000;
 type BindCtx = { store: SecurityStore; now: () => Date; userAgent: string | null; endFamily?: (strapiDeviceId: string) => Promise<void> };
 type Bound = { device: AdminDeviceRow; newKey: string | null; isNew: boolean };
 
-/** The new-device mail decision, in one place: due unless the browser presented a device cookie that matches a row of this account (live, stale or ended). The label plays no part. */
-export const newDeviceMailDue = (rows: AdminDeviceRow[], cookieValue: string | null): boolean => !cookieKnown(rows, cookieValue);
+/** The new-device mail decision, in one place: due unless the browser's cookie matches a row of this account that was not revoked (live, or stale and not yet ended). The label plays no part. */
+export const newDeviceMailDue = (rows: AdminDeviceRow[], keyHash: string | null): boolean => !cookieOfLiveOrStaleRow(rows, keyHash);
 
 async function endStale(c: BindCtx, row: AdminDeviceRow, at: string): Promise<void> {
   await c.endFamily?.(row.strapiDeviceId);
@@ -51,8 +51,9 @@ export async function bindAdminDevice(c: BindCtx, adminId: number, cookieValue: 
   const at = now.toISOString();
   const label = deviceLabel(c.userAgent);
   const rows = await c.store.adminDevices(adminId);
-  const isNew = newDeviceMailDue(rows, cookieValue);
-  const found = cookieValue ? rows.find((d) => sameHash(hashSecret(cookieValue), d.deviceKeyHash)) ?? null : null;
+  const keyHash = cookieValue ? hashSecret(cookieValue) : null;
+  const isNew = newDeviceMailDue(rows, keyHash);
+  const found = keyHash ? rows.find((d) => sameHash(keyHash, d.deviceKeyHash)) ?? null : null;
   if (found && isLive(found, now)) {
     await c.store.updateAdminDevice(found.id, { lastSeenAt: at });
     return { device: { ...found, lastSeenAt: at }, newKey: null, isNew: false };
