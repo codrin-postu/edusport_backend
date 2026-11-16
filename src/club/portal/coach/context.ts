@@ -44,6 +44,7 @@ export function coachContexts(strapi: Core.Strapi, coach: CoachState): CoachCont
   const today = todayIso();
   const log = (message: string): void => { strapi.log.error(message); };
   const now = (): Date => new Date();
+  const competitions = strapiCompetitions(strapi, now);
   return {
     coach, today,
     presence: { store: strapiPresenceStore(strapi), actor, today, now, log, paymentEmails: () => undefined },
@@ -55,6 +56,6 @@ export function coachContexts(strapi: Core.Strapi, coach: CoachState): CoachCont
     },
     club: { store: strapiClubStore(strapi), actor, today: todayInBucharest(), log },
     portal: strapiPortalStore(strapi),
-    competitions: skateCoachSource(strapiCompetitions(strapi, now).results, now),
+    competitions: skateCoachSource(competitions.results, competitions.client, now),
   };
 }

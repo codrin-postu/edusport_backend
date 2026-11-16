@@ -25,7 +25,7 @@ function setup(bySlug: Record<string, Fetched<SkateResult[]>>, entries: HandEntr
   };
   const store = fakeSnapshotStore();
   const cache = snapshotCache(store, () => NOW, () => undefined);
-  return { seen, store, cache, client, source: skateCoachSource(pickedResults(cache, client, hand, () => NOW), () => NOW) };
+  return { seen, store, cache, client, source: skateCoachSource(pickedResults(cache, client, hand, () => NOW), client, () => NOW) };
 }
 const ok = (rows: SkateResult[]): Fetched<SkateResult[]> => ({ ok: true, value: rows });
 const handEntry: HandEntry = { id: 12, name: 'Cupa Reșiței', date: '2026-10-25', location: 'Reșița', participantData: [{ documentId: 'p-bogdan', category: 'Novice', placement: 4, score: 55 }] };
@@ -42,14 +42,14 @@ describe('skateCoachSource.club', () => {
   it('one skater with two categories at one event: one member with the better placement', async () => {
     const { source } = setup({ 'ioana-marin-test': ok([row({ result_id: 1, placement: 5, category: 'Duet' }), row({ result_id: 2, placement: 2, category: 'Juniori' }), row({ result_id: 3, placement: null, category: 'Z' })]) });
     const got = await source.club([ioana], null);
-    expect(got?.events[0].members).toEqual([{ athleteId: 'a-ioana', name: 'Ioana', category: 'Juniori', placement: 2, total: 90 }]);
+    expect(got?.events[0].members).toEqual([{ athleteId: 'a-ioana', name: 'Ioana', category: 'Juniori', placement: 2, total: 90, resultId: '2' }]);
   });
 
   it('a hand-only athlete is a hand event; equal ids of the two sources stay two events', async () => {
     const { source } = setup({ 'ioana-marin-test': ok([row({ result_id: 9, event_id: 12 })]) }, [handEntry]);
     const got = await source.club([ioana, bogdan], null);
     expect(got?.events.map((e) => e.eventId).sort()).toEqual(['h-12', 's-12']);
-    expect(got?.events.find((e) => e.eventId === 'h-12')?.members).toMatchObject([{ athleteId: 'a-bogdan', category: 'Novice', placement: 4, total: 55 }]);
+    expect(got?.events.find((e) => e.eventId === 'h-12')?.members).toMatchObject([{ athleteId: 'a-bogdan', category: 'Novice', placement: 4, total: 55, resultId: null }]);
   });
 
   it('every slug read cold and down: unavailable (null), also with a hand athlete in the list', async () => {
@@ -70,7 +70,7 @@ describe('skateCoachSource.club', () => {
     const client: SkateClient = { results: vi.fn(async () => ok([row({})])), protocol: vi.fn(), fieldSize: vi.fn(), officialUrl: vi.fn() };
     const broken = { byProfiles: async () => { throw new Error('strapi down for Bogdan'); } };
     const cache = snapshotCache(fakeSnapshotStore(), () => NOW, () => undefined);
-    const source = skateCoachSource(pickedResults(cache, client, broken, () => NOW, (m) => lines.push(m)), () => NOW);
+    const source = skateCoachSource(pickedResults(cache, client, broken, () => NOW, (m) => lines.push(m)), client, () => NOW);
     const got = await source.club([ioana, bogdan], null);
     expect(got).toMatchObject({ stale: true });
     expect(got?.events.map((e) => e.eventId)).toEqual(['s-501']);
@@ -114,7 +114,12 @@ describe('skateCoachSource.athlete', () => {
     const got = await source.athlete(ioana, '2026-2027');
     expect(got).toMatchObject({ category: 'Juniori', season: '2026-2027', count: 3, podiums: 2 });
     expect(got?.recent.map((r) => r.date)).toEqual(['2026-11-01', '2026-10-20', '2026-09-20']);
-    expect(got?.recent[0]).toEqual({ eventName: 'Skate Cup', date: '2026-11-01', location: 'Cluj', placement: 7, total: 90 });
+    expect(got?.recent[0]).toEqual({ eventName: 'Skate Cup', date: '2026-11-01', location: 'Cluj', placement: 7, total: 90, resultId: '3' });
+  });
+
+  it('a hand athlete rows carry no result id', async () => {
+    const { source } = setup({}, [handEntry]);
+    expect((await source.athlete(bogdan, '2026-2027'))?.recent[0].resultId).toBeNull();
   });
 
   it('a hand row without category has no category; a hand athlete reads the hand rows', async () => {
@@ -127,5 +132,54 @@ describe('skateCoachSource.athlete', () => {
     expect(await missing.source.athlete(ioana, '2026-2027')).toEqual({ category: null, season: '2026-2027', count: 0, podiums: 0, recent: [] });
     const down = setup({ 'ioana-marin-test': { ok: false, reason: 'down' } });
     expect(await down.source.athlete(ioana, '2026-2027')).toBeNull();
+  });
+});
+
+const wire = {
+  result_id: 7,
+  segments: [{
+    segment: 'Free Skating', is_short: false, placement: 2, tss: 90.5, tes: 50, pcs: 41.5, deductions: 1,
+    elements: [{ order: 1, name: '3T', base_value: 4.2, goe: 0.5, judges: [1, 0, null], score: 4.7, info: '<', bonus: true }],
+    components: [{ name: 'Skating Skills', factor: 1.6, judges: [7.5, 8, 7.75], score: 12.4 }],
+  }],
+};
+
+describe('skateCoachSource.protocol', () => {
+  function withProtocol(got: Fetched<unknown>, bySlug: Record<string, Fetched<SkateResult[]>> = { 'ioana-marin-test': ok([row({ result_id: 7 })]) }, entries: HandEntry[] = []) {
+    const made = setup(bySlug, entries);
+    (made.client.protocol as ReturnType<typeof vi.fn>).mockImplementation(async () => got);
+    return made;
+  }
+
+  it('maps the protocol of an own result, asking skate-results for that id only', async () => {
+    const { source, client } = withProtocol({ ok: true, value: wire });
+    expect(await source.protocol(ioana, '7')).toEqual({
+      segments: [{
+        name: 'Free Skating', placement: 2, tss: 90.5, tes: 50, pcs: 41.5, deductions: 1,
+        elements: [{ order: 1, name: '3T', baseValue: 4.2, goe: 0.5, judges: [1, 0, null], score: 4.7, info: '<', bonus: true }],
+        components: [{ name: 'Skating Skills', factor: 1.6, judges: [7.5, 8, 7.75], score: 12.4 }],
+      }],
+    });
+    expect(client.protocol).toHaveBeenCalledTimes(1);
+    expect(client.protocol).toHaveBeenCalledWith(7);
+  });
+
+  it('an id that is not among the athlete own results is none, nothing fetched', async () => {
+    const { source, client } = withProtocol({ ok: true, value: wire });
+    expect(await source.protocol(ioana, '8')).toBe('none');
+    expect(await source.protocol(ioana, '7; drop')).toBe('none');
+    expect(client.protocol).not.toHaveBeenCalled();
+  });
+
+  it('a hand-entered athlete is none, nothing read or fetched', async () => {
+    const { source, client } = withProtocol({ ok: true, value: wire }, {}, [handEntry]);
+    expect(await source.protocol(bogdan, '7')).toBe('none');
+    expect(client.protocol).not.toHaveBeenCalled();
+  });
+
+  it('skate-results down is null, skate-results 404 on the sheet is none', async () => {
+    expect(await withProtocol({ ok: false, reason: 'down' }).source.protocol(ioana, '7')).toBeNull();
+    expect(await withProtocol({ ok: false, reason: 'not_found' }).source.protocol(ioana, '7')).toBe('none');
+    expect(await withProtocol({ ok: true, value: wire }, { 'ioana-marin-test': { ok: false, reason: 'down' } }).source.protocol(ioana, '7')).toBeNull();
   });
 });

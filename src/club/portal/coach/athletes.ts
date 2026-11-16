@@ -145,8 +145,8 @@ async function cardFacts(c: CoachContexts, season: SeasonRecord, groups: GroupRe
   return { season, sections, groups, current: [], events: events.flat(), team: [], today: c.today };
 }
 
-/** Athlete card (8.7, ruling 21): own children with the contact and abonament, a stand-in's listed children without them, nobody else. */
-export async function readCard(c: CoachContexts, athleteId: string): Promise<CoachResult<CoachAthleteCard>> {
+/** What the card lets a coach see of an athlete: own children with the contact, a stand-in's listed children without it, nobody else. */
+async function cardAccess(c: CoachContexts, athleteId: string) {
   const store = c.presence.store;
   const athlete = await store.athlete(athleteId);
   const season = currentSeason(await store.seasons());
@@ -155,6 +155,21 @@ export async function readCard(c: CoachContexts, athleteId: string): Promise<Coa
   const own = ownAthlete(memberships, ownGroupIds(allGroups, c.coach.teamMemberId), athleteId, season.id, c.today);
   const right = cardRight(own, own ? false : await onListedSession(c, athleteId));
   if (!right.read) return forbidden(PORTAL_ERRORS.noAccess);
+  return { ok: true as const, data: { athlete, season, memberships, allGroups, right } };
+}
+
+/** The athlete a coach may open: the same visibility as the card (404 unknown, 403 not theirs). */
+export async function visibleAthlete(c: CoachContexts, athleteId: string): Promise<CoachResult<AthleteRow>> {
+  const got = await cardAccess(c, athleteId);
+  return got.ok === true ? { ok: true, data: got.data.athlete } : got;
+}
+
+/** Athlete card (8.7, ruling 21): own children with the contact and abonament, a stand-in's listed children without them, nobody else. */
+export async function readCard(c: CoachContexts, athleteId: string): Promise<CoachResult<CoachAthleteCard>> {
+  const store = c.presence.store;
+  const access = await cardAccess(c, athleteId);
+  if (access.ok === false) return access;
+  const { athlete, season, memberships, allGroups, right } = access.data;
   const current = cardRows(memberships, c.today).sort((a, b) => Number(b.isMain) - Number(a.isMain));
   const groups = current.flatMap((m) => allGroups.filter((g) => g.id === m.groupId));
   const facts = await cardFacts(c, season, groups);

@@ -38,6 +38,7 @@ export default {
     route('GET', '/athletes/search', 'searchAthletes'),
     route('POST', '/athletes', 'addAthlete'),
     route('GET', '/athletes/:documentId', 'athlete'),
+    route('GET', '/athletes/:athleteId/competitions/:resultId/protocol', 'protocol'),
     route('GET', '/history', 'history'),
     route('PUT', '/program/:eventId', 'changeProgram'),
     route('POST', '/program/:eventId/end', 'endProgram'),

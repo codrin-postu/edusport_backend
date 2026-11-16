@@ -4,8 +4,9 @@ import { currentSeason } from '../../groups/season-pick';
 import { isAnonymized } from '../../personal-data/anonymize-plan';
 import { onDate } from '../../presence/attendance/roster';
 import { PORTAL_ERRORS } from '../copy';
-import type { CoachAthleteCompetitions, CoachCompetitionEvent, CoachCompetitions } from './api-types';
-import type { CoachContexts } from './context';
+import type { CoachAthleteCompetitions, CoachCompetitionEvent, CoachCompetitions, CoachProtocol, CoachProtocolRead } from './api-types';
+import type { CoachContexts, CoachResult } from './context';
+import { visibleAthlete } from './athletes';
 import { ownGroupIds } from './ownership';
 
 /** A club athlete with a profile: our id and name, the profile id (joins the hand-entered competitions) and the skate-results slug when the profile has one. Nothing else is ever sent to skate-results. */
@@ -16,10 +17,12 @@ type Available<T> = Omit<Extract<T, { available: true }>, 'available'>;
 export interface CoachCompetitionSource {
   club(skaters: SkaterRef[], season: string | null): Promise<Available<CoachCompetitions> | null>;
   athlete(skater: SkaterRef, season: string): Promise<Available<CoachAthleteCompetitions> | null>;
+  /** The judges' protocol of one of this skater's own results: 'none' when the skater has no such result or no sheet, null when the source is unavailable. */
+  protocol(skater: SkaterRef, resultId: string): Promise<CoachProtocol | 'none' | null>;
 }
 
 /** Until the real source (phase 7-3) is merged: nothing is available. */
-export const nullCoachCompetitions: CoachCompetitionSource = { club: async () => null, athlete: async () => null };
+export const nullCoachCompetitions: CoachCompetitionSource = { club: async () => null, athlete: async () => null, protocol: async () => null };
 
 const SEASON = /^\d{4}-\d{4}$/;
 const byPlacement = (a: { placement: number | null; name: string }, b: { placement: number | null; name: string }): number =>
@@ -59,7 +62,7 @@ export async function readCoachCompetitions(c: CoachContexts, q: Record<string, 
     .map((e): CoachCompetitionEvent => ({
       eventId: e.eventId, name: e.name, date: e.date, location: e.location,
       members: e.members.filter((m) => names.has(m.athleteId))
-        .map((m) => ({ athleteId: m.athleteId, name: names.get(m.athleteId) ?? '', category: m.category, placement: m.placement, total: m.total }))
+        .map((m) => ({ athleteId: m.athleteId, name: names.get(m.athleteId) ?? '', category: m.category, placement: m.placement, total: m.total, resultId: m.resultId }))
         .sort(byPlacement),
     }))
     .filter((e) => e.members.length > 0)
@@ -79,4 +82,15 @@ export async function athleteCompetitions(c: CoachContexts, athlete: AthleteRow,
   if (!skater) return { available: true, category: null, season, count: 0, podiums: 0, recent: [] };
   const answer = await c.competitions.athlete(skater, season).catch(() => null);
   return answer ? { available: true, ...answer } : { available: false };
+}
+
+/** The score sheet of one result: the athlete must be visible to the coach as on the card, and the result one of the athlete's own. */
+export async function readProtocol(c: CoachContexts, athleteId: string, resultId: string): Promise<CoachResult<CoachProtocolRead>> {
+  const seen = await visibleAthlete(c, athleteId);
+  if (seen.ok === false) return seen;
+  const skater = await skaterOf(c.club.store, seen.data);
+  if (!skater || !skater.slug) return refuse(404, PORTAL_ERRORS.notFound);
+  const answer = await c.competitions.protocol(skater, resultId).catch(() => null);
+  if (answer === 'none') return refuse(404, PORTAL_ERRORS.notFound);
+  return { ok: true, data: answer ? { available: true, ...answer } : { available: false } };
 }

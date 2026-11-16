@@ -79,7 +79,7 @@ export type CoachLessonPlanBody = {
 };
 export type CoachSearchRow = { athleteId: string; name: string; age: number | null };
 export type CoachNewAthleteBody = { groupId: string; name: string; birthDate?: string | null; contactName?: string | null; phone?: string | null; email?: string | null };
-export type CoachCompetitionMember = { athleteId: string; name: string; category: string; placement: number | null; total: number | null };
+export type CoachCompetitionMember = { athleteId: string; name: string; category: string; placement: number | null; total: number | null; resultId: string | null };
 export type CoachCompetitionEvent = { eventId: string; name: string; date: string | null; location: string | null; members: CoachCompetitionMember[] };
 export type CoachCompetitions =
   | { available: false }
@@ -88,7 +88,17 @@ export type CoachCompetitions =
 export type CoachAthleteCompetitions =
   | { available: false }
   | { available: true; category: string | null; season: string; count: number; podiums: number;
-      recent: { eventName: string; date: string | null; location: string | null; placement: number | null; total: number | null }[] };
+      recent: { eventName: string; date: string | null; location: string | null; placement: number | null; total: number | null; resultId: string | null }[] };
+/** The judges' protocol of one result (skate-results). */
+export type CoachProtocol = {
+  segments: {
+    name: string; placement: number | null; tss: number | null; tes: number | null; pcs: number | null; deductions: number | null;
+    elements: { order: number; name: string; baseValue: number | null; goe: number | null; judges: (number | null)[]; score: number | null; info: string | null; bonus: boolean }[];
+    components: { name: string; factor: number | null; judges: (number | null)[]; score: number | null }[];
+  }[];
+};
+/** The route's answer: the sheet, or the existing unavailable state when the source is down. */
+export type CoachProtocolRead = ({ available: true } & CoachProtocol) | { available: false };
 export type CoachAthleteCard = {
   athleteId: string; name: string; age: number | null; groups: string[]; school: string | null; contact: { name: string | null; phone: string | null } | null;
   /** Section of the main group today, e.g. "Școala de patinaj". */

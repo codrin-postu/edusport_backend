@@ -105,17 +105,26 @@ describe('skate client', () => {
     expect(await skateClient(env, stub(() => new Response(big)).fetchImpl).results('x')).toEqual({ ok: false, reason: 'down' });
   });
 
-  it('maps a protocol to segments and elements only', async () => {
+  it('maps a protocol to segments, elements and components only', async () => {
     const { fetchImpl } = stub(() =>
       json({
         result_id: 5, skater_name: 'Ana', segments: [
-          { segment: 'Free', is_short: false, tss: 60, tes: 30, pcs: 30, deductions: 1, components: [], elements: [{ order: 1, name: '3T', base_value: 4.2, goe: 0.5, judges: [1], score: 4.7 }] },
+          { segment: 'Free', is_short: false, placement: 2, tss: 60, tes: 30, pcs: 30, deductions: 1,
+            components: [{ name: 'Skating Skills', factor: 1.6, judges: [7.5, 8], score: 12.4 }],
+            elements: [{ order: 1, name: '3T', base_value: 4.2, goe: 0.5, judges: [1, -1], score: 4.7, info: '<', bonus: 1.1, secret: 'x' }] },
         ],
       }),
     );
     expect(await skateClient(env, fetchImpl).protocol(5)).toEqual({
       ok: true,
-      value: { result_id: 5, segments: [{ segment: 'Free', is_short: false, tss: 60, tes: 30, pcs: 30, deductions: 1, elements: [{ name: '3T', base_value: 4.2, score: 4.7 }] }] },
+      value: {
+        result_id: 5,
+        segments: [{
+          segment: 'Free', is_short: false, placement: 2, tss: 60, tes: 30, pcs: 30, deductions: 1,
+          elements: [{ order: 1, name: '3T', base_value: 4.2, goe: 0.5, judges: [1, -1], score: 4.7, info: '<', bonus: true }],
+          components: [{ name: 'Skating Skills', factor: 1.6, judges: [7.5, 8], score: 12.4 }],
+        }],
+      },
     });
   });
 

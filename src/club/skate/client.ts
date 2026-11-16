@@ -38,9 +38,14 @@ export type SkateResult = {
   free_score: number | null;
   segments: Segment[];
 };
+export type SkateElement = {
+  order: number; name: string; base_value: number | null; goe: number | null; judges: (number | null)[];
+  score: number | null; info: string | null; bonus: boolean;
+};
+export type SkateComponent = { name: string; factor: number | null; judges: (number | null)[]; score: number | null };
 export type SkateProtocol = {
   result_id: number;
-  segments: (Segment & { elements: { name: string; base_value: number | null; score: number | null }[] })[];
+  segments: (Segment & { placement: number | null; elements: SkateElement[]; components: SkateComponent[] })[];
 };
 export type Fetched<T> = { ok: true; value: T } | { ok: false; reason: 'down' | 'not_found' };
 export interface SkateClient {
@@ -59,6 +64,8 @@ const str = (v: unknown): string | null => (typeof v === 'string' ? v : null);
 const httpUrl = (v: string | null): string | null => (v !== null && /^https?:\/\//.test(v) ? v : null);
 const rec = (v: unknown): Record<string, unknown> | null =>
   v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
+
+const marks = (v: unknown): (number | null)[] => (Array.isArray(v) ? v.map(num) : []);
 
 function segment(raw: unknown): Segment | null {
   const s = rec(raw);
@@ -163,14 +170,22 @@ export function skateClient(
       for (const raw of p.segments) {
         const base = segment(raw);
         if (!base) continue;
-        const elements = Array.isArray(rec(raw)?.elements) ? (rec(raw)!.elements as unknown[]) : [];
+        const list = (key: string): unknown[] => { const v = rec(raw)?.[key]; return Array.isArray(v) ? v : []; };
         segments.push({
           ...base,
-          elements: elements.flatMap((e) => {
+          placement: num(rec(raw)?.placement),
+          elements: list('elements').flatMap((e, i) => {
             const el = rec(e);
             return el && typeof el.name === 'string'
-              ? [{ name: el.name, base_value: num(el.base_value), score: num(el.score) }]
+              ? [{
+                order: num(el.order) ?? i + 1, name: el.name, base_value: num(el.base_value), goe: num(el.goe), judges: marks(el.judges),
+                score: num(el.score), info: str(el.info), bonus: (num(el.bonus) ?? 0) !== 0,
+              }]
               : [];
+          }),
+          components: list('components').flatMap((e) => {
+            const c = rec(e);
+            return c && typeof c.name === 'string' ? [{ name: c.name, factor: num(c.factor), judges: marks(c.judges), score: num(c.score) }] : [];
           }),
         });
       }

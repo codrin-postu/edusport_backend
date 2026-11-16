@@ -16,7 +16,7 @@ import {
   coachAddProgram, coachChangeProgram, coachDeleteClass, coachEndProgram, coachProgramPublic, coachSetDate, readCoachProgram,
 } from '../../../club/portal/coach/program';
 import { readCoachCalendar } from '../../../club/portal/coach/calendar';
-import { readCoachCompetitions } from '../../../club/portal/coach/competitions';
+import { readCoachCompetitions, readProtocol } from '../../../club/portal/coach/competitions';
 import { readClubToday } from '../../../club/portal/coach/club-today';
 import { readToday } from '../../../club/portal/coach/today';
 
@@ -95,6 +95,7 @@ export default {
   addMembers: coachOnly('addMembers', async (c, ctx) => respondData(ctx, await addMembers(c, param(ctx, 'documentId'), ctx.request.body))),
   calendar: coachOnly('calendar', async (c, ctx) => respondData(ctx, await readCoachCalendar(c, ctx.query.month))),
   competitions: coachOnly('competitions', async (c, ctx) => respondData(ctx, await readCoachCompetitions(c, ctx.query))),
+  protocol: coachOnly('protocol', async (c, ctx) => respondData(ctx, await readProtocol(c, param(ctx, 'athleteId'), param(ctx, 'resultId')))),
   moveMember: coachOnly('moveMember', async (c, ctx) => respondData(ctx, await moveMember(c, param(ctx, 'documentId'), param(ctx, 'athleteId'), ctx.request.body))),
   removeMember: coachOnly('removeMember', async (c, ctx) => respondData(ctx, await removeMember(c, param(ctx, 'documentId'), param(ctx, 'athleteId'), ctx.request.body))),
   session: coachOnly('session', async (c, ctx) => respondData(ctx, await readCoachSession(c, ctx.query))),

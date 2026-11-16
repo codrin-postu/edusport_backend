@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PORTAL_ERRORS } from '../../copy';
 import type { CoachCompetitionSource, SkaterRef } from '../competitions';
-import { clubSkaters, readCoachCompetitions, skaterOf } from '../competitions';
+import { clubSkaters, readCoachCompetitions, readProtocol, skaterOf } from '../competitions';
 import { readCard } from '../athletes';
 import { forbiddenKeysIn } from '../views';
 import { coachCtx } from './coach-seed';
@@ -21,11 +21,13 @@ function seeded(source?: CoachCompetitionSource) {
   return c;
 }
 
-const member = (athleteId: string, placement: number | null) => ({ athleteId, name: 'FROM SKATE', category: 'Juniori', placement, total: placement === null ? null : 100 - placement });
-function fake(): CoachCompetitionSource & { sent: SkaterRef[][] } {
+const member = (athleteId: string, placement: number | null) => ({ athleteId, name: 'FROM SKATE', category: 'Juniori', placement, total: placement === null ? null : 100 - placement, resultId: athleteId === 'a-club-1' ? '11' : null });
+const SHEET = { segments: [{ name: 'Free Skating', placement: 1, tss: 100, tes: 55, pcs: 46, deductions: 1, elements: [], components: [] }] };
+function fake(): CoachCompetitionSource & { sent: SkaterRef[][]; asked: [string, string][] } {
   const sent: SkaterRef[][] = [];
+  const asked: [string, string][] = [];
   return {
-    sent,
+    sent, asked,
     async club(skaters, season) {
       sent.push(skaters);
       return {
@@ -36,6 +38,7 @@ function fake(): CoachCompetitionSource & { sent: SkaterRef[][] } {
         ],
       };
     },
+    async protocol(skater, resultId) { asked.push([skater.athleteId, resultId]); return resultId === '11' && skater.athleteId === 'a-club-1' ? SHEET : 'none'; },
     async athlete() { return { category: 'Juniori', season: '2026-2027', count: 2, podiums: 1, recent: [{ eventName: 'Cupa Nouă', date: '2026-11-14', location: 'Reșița', placement: 3, total: 97 }] }; },
   };
 }
@@ -80,7 +83,7 @@ describe('readCoachCompetitions', () => {
   });
 
   it('a source that throws answers not available', async () => {
-    const c = seeded({ club: async () => { throw new Error('down'); }, athlete: async () => { throw new Error('down'); } });
+    const c = seeded({ club: async () => { throw new Error('down'); }, athlete: async () => { throw new Error('down'); }, protocol: async () => null });
     expect(await readCoachCompetitions(c, {})).toEqual({ ok: true, data: { available: false } });
   });
 });
@@ -104,5 +107,46 @@ describe('the card competitions', () => {
     const c = seeded(fake());
     expect(await readCard(c, 'a-club-2')).toMatchObject({ data: { competitions: { available: true, category: null, season: '2026-2027', count: 0, podiums: 0, recent: [] } } });
     expect(await readCard(c, 'a-club-1')).toMatchObject({ data: { competitions: { available: true, category: 'Juniori', count: 2, podiums: 1 } } });
+  });
+});
+
+describe('readProtocol', () => {
+  it('an own athlete and an own result: the sheet, marked available', async () => {
+    const source = fake();
+    const c = seeded(source);
+    expect(await readProtocol(c, 'a-club-1', '11')).toEqual({ ok: true, data: { available: true, ...SHEET } });
+    expect(source.asked).toEqual([['a-club-1', '11']]);
+  });
+
+  it('a result that is not the athlete own: 404', async () => {
+    const c = seeded(fake());
+    expect(await readProtocol(c, 'a-club-1', '12')).toEqual({ ok: false, status: 404, error: PORTAL_ERRORS.notFound });
+  });
+
+  it('an athlete the card refuses: the card refusal, the source never asked', async () => {
+    const source = fake();
+    const c = seeded(source);
+    const card = await readCard(c, 'a-b-1');
+    expect(card).toMatchObject({ ok: false, status: 403 });
+    expect(await readProtocol(c, 'a-b-1', '11')).toEqual({ ok: false, status: 403, error: PORTAL_ERRORS.noAccess });
+    expect(await readProtocol(c, 'nobody', '11')).toMatchObject({ ok: false, status: 404 });
+    expect(source.asked).toEqual([]);
+  });
+
+  it('an athlete without a slug (hand-entered): 404, the source never asked', async () => {
+    const source = fake();
+    const c = seeded(source);
+    c.fake.group.athletes.find((a) => a.id === 'a-club-2')!.profileId = 'sp4';
+    c.clubFake.state.profiles.push({ id: 'sp4', name: 'bogdan', slug: 'bogdan', previousSlugs: [], showPublicPage: false, published: true, skateResultsSlug: null });
+    expect(await readProtocol(c, 'a-club-2', '11')).toMatchObject({ ok: false, status: 404 });
+    expect(await readProtocol(c, 'a-scoala-2', '11')).toMatchObject({ ok: false, status: 404 });
+    expect(source.asked).toEqual([]);
+  });
+
+  it('a source that is down or throws answers the unavailable state', async () => {
+    const down = seeded({ ...fake(), protocol: async () => null });
+    expect(await readProtocol(down, 'a-club-1', '11')).toEqual({ ok: true, data: { available: false } });
+    const throwing = seeded({ ...fake(), protocol: async () => { throw new Error('x'); } });
+    expect(await readProtocol(throwing, 'a-club-1', '11')).toEqual({ ok: true, data: { available: false } });
   });
 });
