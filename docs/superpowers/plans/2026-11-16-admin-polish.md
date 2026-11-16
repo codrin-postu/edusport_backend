@@ -474,11 +474,11 @@ git commit -m "refactor(copy): shorter athlete portal and shared messages"
 
 ---
 
-## Amendments 2026-11-16 (tasks 17 to 28c)
+## Amendments 2026-11-16 (tasks 17 to 30)
 
 Approved after the first plan: layout (Tasks 17 to 20, from `docs/superpowers/specs/2026-11-16-layout-audit.md`, root causes R1 to R9), Sportivi, Înscrieri, Grupe, abonament and Competiții changes (Tasks 21 to 26).
 
-**Execution order:** 1, 2, 3, 17, 18, 19, 20 (layout first: later tasks build on `--ui-inset`), then 4 to 11, then 28a, 28b, 28c (needs Task 11), then 21 to 26, then 27, then the copy tasks 12 to 16 last (they edit the same files). Task numbers are kept so the cross references above stay valid. Tasks 28a to 28c and 27 carry the strict user rule: no helper text anywhere.
+**Execution order:** 1, 2, 3, 17, 18, 19, 20 (layout first: later tasks build on `--ui-inset`), then 4 to 11, then 28a, 28b, 28c (needs Task 11), then 21 to 26, then 27, then 29 and 30, then the copy tasks 12 to 16 last (they edit the same files). Task numbers are kept so the cross references above stay valid. Tasks 28a to 28c and 27 carry the strict user rule: no helper text anywhere.
 
 Extra Global Constraints for tasks 17 to 26:
 - Layout values: `--ui-inset` is 16px, 12px at `max-width:640px`; fields gap 12 (`--ui-space-3`), blocks gap 16 (`--ui-space-4`); every control 34px; nothing keeps 13, 14, 15 or 18 as a horizontal inset; breakpoints are phone 640 and tablet 1024 (audit R1, R7, R8, R9).
@@ -875,6 +875,81 @@ git commit -m "feat(tabele): columns popover, grouped rows and totals only with 
 git add src && git commit -m "feat(lessons): cancel one individual lesson with an optional reason and a notice"
 # frontend worktree
 git add src scripts/portal && git commit -m "feat(calendar): one session sheet with presence, cancel, move and delete"
+```
+
+---
+
+### Task 29: Coach portal score sheet and collapsible chevrons (Frontend + backend coach route)
+
+**Strict rule:** no helper text anywhere (no descriptions, hints or explanatory notes; headings and column names only).
+
+**Execution order:** after Task 27, before the copy tasks.
+
+**Files (Backend worktree):**
+- Modify: `src/club/skate/client.ts` (`protocol(resultId)` call to skate-results `GET /results/{result_id}/protocol`; schema in `/Users/codrin/Documents/Programming/skate-results/app/schemas.py`: `ProtocolSegmentOut`, `ProtocolElementOut`, `ProtocolComponentOut`), `src/club/skate/types.ts`, `src/club/skate/coach-source.ts` (result ids flow into members and recent rows; new `protocol`), `src/club/portal/coach/competitions.ts` (`CoachCompetitionSource.protocol`, `nullCoachCompetitions`, `readProtocol`), `src/club/portal/coach/api-types.ts` (`CoachCompetitionMember.resultId: string | null`, `recent[].resultId: string | null`, `CoachProtocol`), `src/api/portal/controllers/coach.ts` and its routes file (new route), `src/club/skate/__tests__` fake client
+- Test: `src/club/portal/coach/__tests__/competitions.test.ts`, `src/club/skate/__tests__/coach-source.test.ts`
+
+**Files (Frontend worktree):**
+- Create: `src/lib/portal/score-sheet.ts` (pure), `src/app/_portal/ui/ScoreSheet.tsx` (reusable, no coach-only imports), `src/app/_portal/ui/CollapseHeader.tsx`
+- Modify: coach screens with collapsibles (find every `aria-expanded` under `src/app/(antrenor)`: Concursuri competition cards, athlete card competitions, result rows), `src/lib/portal/api-types.ts`, `src/lib/portal/copy.ts` (segment, column and totals names only; unlisted words `COPY NEEDED`)
+- Test: `scripts/portal/score-sheet.test.mjs`
+
+**Interfaces:**
+- Backend produces: `CoachProtocol = { segments: { name: string; placement: number | null; tss: number | null; tes: number | null; pcs: number | null; deductions: number | null; elements: { order: number; name: string; baseValue: number | null; goe: number | null; judges: (number | null)[]; score: number | null; info: string | null; bonus: boolean }[]; components: { name: string; factor: number | null; judges: (number | null)[]; score: number | null }[] }[] }` (field names follow `ProtocolSegmentOut` and friends; map snake_case there); `protocol(skater: SkaterRef, resultId: string): Promise<CoachProtocol | null>` on `CoachCompetitionSource`; `readProtocol(c: CoachContexts, coachId, athleteId: string, resultId: string): Promise<AdminResult<CoachProtocol>>`; route `GET /portal/coach/athletes/:athleteId/competitions/:resultId/protocol`.
+- Rules: the coach may open a result only of an athlete the athlete card lets them see (same visibility function as the card); the `resultId` must be one of that athlete's own results read from the source (never proxy an arbitrary id); an athlete without a slug (hand-entered results) answers 404, those rows carry `resultId: null`; a source failure answers the existing unavailable state, nothing cached as success.
+- Frontend produces: `judgeLabels(n: number): string[]` (`['J1', ...]`), `judgeCount(seg): number` (longest `judges` array over elements and components), `segmentTotals(seg): { label: string; value: number | null }[]` (TSS, TES, PCS, deductions in that order, nulls skipped), `isExpandable(row: { resultId: string | null }): boolean`.
+- `CollapseHeader({ open, onToggle, children })`: the whole header is one button with `aria-expanded`, a chevron at the right edge (down closed, up open), hover state; used by every collapsible in the coach portal.
+
+- [ ] **Step 1: Find the real wiring.** Read how `CoachCompetitionSource` is built (`src/club/skate/wiring.ts`, `coach-source.ts`) and how `result_id` flows from `SkateResult`; write the answer in the commit message. Confirm the skate-results protocol response against `app/main.py:845` and `app/schemas.py` and pin the real field names in the test fixtures.
+- [ ] **Step 2: Write the failing tests.**
+  - Backend: members and `recent` rows carry `resultId` for slug athletes and null for hand-entered ones; `readProtocol` returns the mapped protocol for an own result; a `resultId` not among the athlete's results answers 404; a coach who cannot see the athlete gets the card's refusal (403 or 404 as the card does); hand-entered athlete answers 404; source down answers the unavailable state; the controller route is area guarded like its siblings (`matrix.test.ts` style route table test). Fake client parity: the fake `protocol` returns fixtures and counts calls.
+  - Frontend `score-sheet.test.mjs`: `judgeLabels(3)` is `['J1','J2','J3']`, `judgeLabels(0)` is `[]`; `judgeCount` is the longest judges list (elements 5, components 7 gives 7); `segmentTotals` order and null skipping; `isExpandable({ resultId: null })` false; source pins: `ScoreSheet.tsx` renders per segment an elements table (`#`, element, info, `BV`, `GOE`, judge columns, score), a components table (name, factor, judge columns, score) and totals; the judge columns sit in a horizontally scrolling wrapper (`overflow-x:auto`); `CollapseHeader.tsx` has `aria-expanded`, a chevron icon, and is used by every file under `src/app/(antrenor)` that had an `aria-expanded` header; no description text in these files.
+- [ ] **Step 3: Run** backend `npx vitest run src/club/portal/coach src/club/skate`; frontend `node --test scripts/portal/score-sheet.test.mjs` Expected: FAIL.
+- [ ] **Step 4: Implement** backend (client, types, source, service, controller, route, store/fake parity) then frontend (fetch on first open, loading and unavailable states with the existing short copy, result rows expandable only when `isExpandable`).
+- [ ] **Step 5: Run** backend `npx vitest run src/club`, both `tsc`; frontend `node --test scripts/portal/*.test.mjs`, `npx tsc --noEmit`, `npm run lint`. Expected: PASS.
+- [ ] **Step 6: Commit, one per repo**
+```bash
+# backend worktree
+git add src && git commit -m "feat(coach): proxy the judges' protocol of an own result"
+# frontend worktree
+git add src scripts/portal && git commit -m "feat(antrenor): score sheet per result and chevrons on every collapsible"
+```
+- **Open question for the user:** should the athlete portal get the same sheet? Pending: implement the coach only and keep `ScoreSheet` free of coach imports so the athlete portal can reuse it.
+
+---
+
+### Task 30: Admin dates read zz/ll/aaaa (backend admin)
+
+**Strict rule:** no helper text anywhere; the placeholder `zz / ll / aaaa` is the field's only text (same as the portals, frontend commit `b068b19`, `edusport_frontend/docs/portal/DECISIONS.md` 2026-11-16).
+
+**Execution order:** after Task 27 and Task 29, before the copy tasks.
+
+**Files:**
+- Create: `src/club/date-format.ts`
+- Modify: `src/admin/ui/DateInput.tsx`, `src/admin/ui/BirthDatePicker.tsx`, `src/admin/ui/DateRangeInput.tsx`, `src/club/ui-birth-date.ts` (display and parse with slashes), numeric date displays in `src/admin/dashboard/SubmissionTable.tsx` (`fmtDateTime`), `FormResultsPage.tsx`, `DashboardPage.tsx`, `InscrieriPage.tsx`, `VoluntariPage.tsx`, `inscrieri/PanelHeader.tsx`, `inscrieri/PanelTabs.tsx`, and every other numeric date in admin tables and panels found by the grep in step 1
+- Test: `src/club/__tests__/date-format.test.ts`, `src/club/__tests__/ui-birth-date.test.ts`
+
+**Interfaces:**
+- Produces (pure):
+```ts
+export const DATE_PLACEHOLDER = 'zz / ll / aaaa';
+export function isoToSlash(iso: string): string | null;       // '2018-12-01' or '2018-12-01T10:00' -> '01/12/2018'; null if not a real date
+export function slashToIso(text: string): string | null;       // '01/12/2018' -> '2018-12-01'; null if not a real date
+export function maskSlash(typed: string): string;              // digits only, inserts '/' after day and month, max 10 characters
+export function numericDateToSlash(text: string): string;      // whole-string '2018-12-01', '24.07.2015', '24/07/2015' become 'dd/mm/yyyy'; worded dates ('26 oct 2026') and anything else returned unchanged
+```
+- `DateInput` keeps its contract (`value: string | null` ISO `YYYY-MM-DD`, or `YYYY-MM-DDTHH:mm` with `withTime`; `onChange` emits the same ISO or null): a text field with `maskSlash` typing, `DATE_PLACEHOLDER`, `inputMode="numeric"`, and a calendar icon button that opens the native picker through a visually hidden date input; `withTime` adds the existing `TimeInput` next to it.
+- `BirthDatePicker` shows and parses `dd/mm/yyyy`; the value it hands to callers is unchanged (`ZZ.LL.AAAA` for registrations).
+
+- [ ] **Step 1: Read, do not guess.** Grep `src/admin` and `src/plugins` for `DateInput`, `BirthDatePicker`, `DateRangeInput`, `type="date"`, `datetime-local`, `dd.mm`, `toLocaleDateString`, `fmtDate`, `formatDate` and list every call; for each API that receives a date, note the format sent today (ISO, `DD.MM.YYYY`, month `YYYY-MM`) in the commit message. Values sent keep that format.
+- [ ] **Step 2: Write the failing tests** `date-format.test.ts`: `isoToSlash('2018-12-01')` is `'01/12/2018'`, `isoToSlash('2018-12-01T10:30')` the same, `isoToSlash('2018-02-30')` null; `slashToIso('01/12/2018')` is `'2018-12-01'`, `'31/04/2018'` null, `'1/12/2018'` null; `maskSlash('01122018')` is `'01/12/2018'`, `maskSlash('0112')` is `'01/12'`, `maskSlash('01/1')` is `'01/1'`, letters dropped, longer than 8 digits cut; `numericDateToSlash('24.07.2015')` is `'24/07/2015'`, `('2018-12-01')` is `'01/12/2018'`, `('26 oct 2026')` unchanged, `('')` unchanged, `('Trimis 24.07.2015')` unchanged (only whole-string numeric dates). `ui-birth-date.test.ts`: the picker's display text is slashed and its emitted value keeps `ZZ.LL.AAAA`. Source pins: `DateInput.tsx` imports `maskSlash` and `DATE_PLACEHOLDER` and contains no `type="date"` as the visible input; `DateRangeInput.tsx` uses `DateInput`; no `dd.mm.yyyy` display pattern remains in `src/admin` outside value conversion code; no helper text beside the date fields.
+- [ ] **Step 3: Run** `npx vitest run src/club/__tests__/date-format.test.ts src/club/__tests__/ui-birth-date.test.ts` Expected: FAIL.
+- [ ] **Step 4: Implement** the helpers, the three components and every numeric date display from step 1 (wrap with `numericDateToSlash` or `isoToSlash`); worded dates stay as they are.
+- [ ] **Step 5: Run** `npx vitest run src/club`, both `tsc`, `node scripts/admin-ui-check.mjs --strict`. Expected: PASS, exit 0.
+- [ ] **Step 6: Commit**
+```bash
+git add src
+git commit -m "feat(admin): dates read and type as dd/mm/yyyy"
 ```
 
 ---
