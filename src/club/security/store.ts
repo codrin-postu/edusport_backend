@@ -56,7 +56,7 @@ export interface SecurityStore {
   adminDevices(adminUserId: number): Promise<AdminDeviceRow[]>;
   adminDeviceByKey(adminUserId: number, keyHash: string): Promise<AdminDeviceRow | null>;
   createAdminDevice(d: Omit<AdminDeviceRow, 'id' | 'revokedAt' | 'twoFactorUntil' | 'confirmedAt'>): Promise<string>;
-  updateAdminDevice(id: string, d: Partial<Pick<AdminDeviceRow, 'lastSeenAt' | 'twoFactorUntil' | 'revokedAt' | 'label' | 'confirmedAt'>>): Promise<void>;
+  updateAdminDevice(id: string, d: Partial<Pick<AdminDeviceRow, 'lastSeenAt' | 'twoFactorUntil' | 'revokedAt' | 'label' | 'confirmedAt' | 'deviceKeyHash' | 'strapiDeviceId'>>): Promise<void>;
   portalAccountExtra(accountId: string): Promise<PortalAccountExtra>;
   updatePortalAccountExtra(accountId: string, a: Partial<{ webauthnUserId: string; lastMethod: TwoFactorMethod; passkeyOfferedAt: string | null }>): Promise<void>;
   /**

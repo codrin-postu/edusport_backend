@@ -74,13 +74,16 @@ describe('admin device made at the password step is unconfirmed (M1)', () => {
   it('at most one new-device mail per account per hour', async () => {
     const e = env();
     await e.turnOnTotp();
-    for (let i = 0; i < 3; i += 1) {
+    const agents = ['Mozilla/5.0 (Macintosh) Chrome/120.0', 'Mozilla/5.0 (iPhone) Safari/604.1', 'Mozilla/5.0 (Windows NT 10.0) Firefox/121.0'];
+    for (const agent of agents) {
+      e.c.userAgent = agent;
       await e.login();
       await flush();
     }
     expect(await e.c.store.adminDevices(7)).toHaveLength(3);
     expect(e.portalMails.filter((m) => m.mail.kind === 'new-device')).toHaveLength(1);
     e.advance(3600_001);
+    e.c.userAgent = 'Mozilla/5.0 (Linux; Android 14) Chrome/120.0 Mobile';
     await e.login();
     await flush();
     expect(e.portalMails.filter((m) => m.mail.kind === 'new-device')).toHaveLength(2);

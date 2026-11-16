@@ -8,7 +8,7 @@ import { seal, totpAad } from '../../security/secret-box';
 import { totpAt } from '../../security/totp';
 import { hashSecret } from '../../portal/tokens';
 import { ADMIN_PENDING_COOKIE, adminLimits, cookieHelpers, type AdminLoginContext } from '../context';
-import { ADMIN_DEVICE_COOKIE } from '../devices';
+import { ADMIN_DEVICE_COOKIE, bindAdminDevice, listAdminDevices, rememberedDevice } from '../devices';
 import { finishAdminLogin, loginAdmin, secondStepAdmin, sendAdminLoginCode } from '../login';
 import { adminEnv } from './admin-env';
 
@@ -145,6 +145,85 @@ describe('password login: the session', () => {
     expect(env.portalMails).toEqual([]);
     expect(await env.c.store.adminDevices(7)).toHaveLength(1);
     expect(env.sessions.rows).toHaveLength(1);
+  });
+
+  it('a device not seen for 30 days is ended when touched', async () => {
+    const env = loginEnv();
+    await env.login();
+    const [row] = await env.c.store.adminDevices(7);
+    const key = String(env.sets.find((s) => s.name === DEVICE)?.value);
+    env.advance(30 * 24 * 3600_000 + 1000);
+    const endFamily = vi.fn(async () => undefined);
+    const out = await bindAdminDevice({ store: env.c.store, now: env.c.now, userAgent: env.koa.request.headers['user-agent'], endFamily }, 7, key);
+    expect(endFamily).toHaveBeenCalledWith(row.strapiDeviceId);
+    expect(out.newKey).toEqual(expect.any(String));
+    expect(out.newKey).not.toBe(key);
+  });
+
+  it('a new login from a browser without cookie reuses the ended row with the same label', async () => {
+    const env = loginEnv();
+    await env.login();
+    const [before] = await env.c.store.adminDevices(7);
+    await env.c.store.updateAdminDevice(before.id, { revokedAt: env.c.now().toISOString(), confirmedAt: env.c.now().toISOString(), twoFactorUntil: env.c.now().toISOString() });
+    env.sets.length = 0;
+    env.jar.clear();
+    await env.login();
+    const rows = await env.c.store.adminDevices(7);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].deviceKeyHash).toBe(hashSecret(String(env.sets.find((s) => s.name === DEVICE)?.value)));
+    expect(rows[0].deviceKeyHash).not.toBe(before.deviceKeyHash);
+    expect(rows[0].revokedAt).toBeNull();
+    expect(rows[0].twoFactorUntil).toBeNull();
+    expect(rows[0].confirmedAt).toBe(env.c.now().toISOString());
+  });
+
+  it('a stale row met by its own cookie ends its family, is rebound with a new key hash and is live again', async () => {
+    const env = loginEnv();
+    await env.login();
+    const [before] = await env.c.store.adminDevices(7);
+    env.browser();
+    env.advance(31 * 24 * 3600_000);
+    await env.login();
+    const rows = await env.c.store.adminDevices(7);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].deviceKeyHash).not.toBe(before.deviceKeyHash);
+    expect(rows[0].strapiDeviceId).not.toBe(before.strapiDeviceId);
+    expect(rows[0].revokedAt).toBeNull();
+    expect(env.sessions.rows.map((r) => r.deviceId)).toEqual([rows[0].strapiDeviceId]);
+  });
+
+  it('mails only for a label not seen in 30 days', async () => {
+    const env = loginEnv();
+    const mails = () => env.portalMails.filter((m) => m.mail.kind === 'new-device').length;
+    await env.login();
+    await flush();
+    expect(mails()).toBe(1);
+    env.jar.clear();
+    await env.login();
+    await flush();
+    expect(mails()).toBe(1);
+    env.jar.clear();
+    env.advance(31 * 24 * 3600_000);
+    await env.login();
+    await flush();
+    expect(mails()).toBe(2);
+  });
+
+  it('lists no stale device', async () => {
+    const env = loginEnv();
+    await env.login();
+    expect(await listAdminDevices(env.c.store, 7, null, env.c.now())).toHaveLength(1);
+    env.advance(31 * 24 * 3600_000);
+    expect(await listAdminDevices(env.c.store, 7, null, env.c.now())).toEqual([]);
+  });
+
+  it('keeps Ține minte dispozitivul: a live row with a future twoFactorUntil is remembered', async () => {
+    const env = loginEnv();
+    await env.login();
+    const [row] = await env.c.store.adminDevices(7);
+    await env.c.store.updateAdminDevice(row.id, { twoFactorUntil: new Date(env.c.now().getTime() + 1000_000).toISOString() });
+    const key = String(env.sets.find((s) => s.name === DEVICE)?.value);
+    expect((await rememberedDevice(env.c.store, 7, key, env.c.now()))?.id).toBe(row.id);
   });
 
   it('rememberMe false opens a session-type family', async () => {

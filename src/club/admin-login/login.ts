@@ -14,7 +14,7 @@ import { adminById, adminByEmail, adminName, canEnterAdmin, type AdminRow } from
 import { ADMIN_PENDING_COOKIE, type AdminLoginContext } from './context';
 import { ADMIN_DEVICE_COOKIE, ADMIN_DEVICE_COOKIE_MS, bindAdminDevice, rememberDevice, rememberedDevice } from './devices';
 import { canLinkByEmail, linkAdminGoogle } from './google-link';
-import { issueAdminSession } from './session';
+import { adminSessionManager, issueAdminSession } from './session';
 
 const PASSWORD_MAX = 256;
 const CODE_MAX = 64;
@@ -72,7 +72,10 @@ async function mailNewDevice(c: AdminLoginContext, admin: AdminRow, label: strin
 /** The device of this browser: a new key goes into the device cookie (400 days) and an unknown device is mailed (spec 4.8). */
 async function bindDevice(c: AdminLoginContext, admin: AdminRow, o: { newDeviceMail: boolean }) {
   const name = ADMIN_DEVICE_COOKIE(c.secure);
-  const bound = await bindAdminDevice({ store: c.store, now: c.now, userAgent: c.userAgent }, admin.id, c.cookie(name));
+  const bound = await bindAdminDevice(
+    { store: c.store, now: c.now, userAgent: c.userAgent, endFamily: (id) => adminSessionManager(c.strapi).invalidateRefreshToken(String(admin.id), id) },
+    admin.id, c.cookie(name),
+  );
   if (bound.newKey) c.setCookie(name, bound.newKey, ADMIN_DEVICE_COOKIE_MS);
   if (bound.isNew && o.newDeviceMail) void mailNewDevice(c, admin, bound.device.label);
   return bound;

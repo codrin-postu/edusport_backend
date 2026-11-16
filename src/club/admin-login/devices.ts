@@ -4,6 +4,7 @@ import type { AdminDeviceView } from '../security/api-types';
 import { PORTAL_ERRORS } from '../portal/copy';
 import { deviceLabel } from '../portal/devices';
 import { hashSecret, newDeviceKey, sameHash } from '../portal/tokens';
+import { isLive, labelSeenRecently, reusableRow } from '../security/device-life';
 import { isRemembered, rememberUntil } from '../security/remembered';
 import type { AdminDeviceRow, SecurityStore } from '../security/store';
 import { adminSessionManager, clearRefreshCookie, type AdminSessionCtx } from './session';
@@ -13,25 +14,46 @@ export const ADMIN_DEVICE_COOKIE = (secure: boolean): string => (secure ? '__Hos
 /** 400 days, as the spec says. */
 export const ADMIN_DEVICE_COOKIE_MS = 400 * 24 * 3600_000;
 
-type BindCtx = { store: SecurityStore; now: () => Date; userAgent: string | null };
+type BindCtx = { store: SecurityStore; now: () => Date; userAgent: string | null; endFamily?: (strapiDeviceId: string) => Promise<void> };
+type Bound = { device: AdminDeviceRow; newKey: string | null; isNew: boolean };
+
+async function takeOver(c: BindCtx, row: AdminDeviceRow, at: string): Promise<Bound> {
+  const key = newDeviceKey();
+  const next = { deviceKeyHash: hashSecret(key), strapiDeviceId: randomUUID(), lastSeenAt: at, revokedAt: null, confirmedAt: null, twoFactorUntil: null };
+  await c.store.updateAdminDevice(row.id, next);
+  return { device: { ...row, ...next }, newKey: key, isNew: false };
+}
+
+async function endStale(c: BindCtx, row: AdminDeviceRow, at: string): Promise<AdminDeviceRow> {
+  await c.endFamily?.(row.strapiDeviceId);
+  await c.store.updateAdminDevice(row.id, { revokedAt: at, twoFactorUntil: null });
+  return { ...row, revokedAt: at, twoFactorUntil: null };
+}
 
 /**
- * The device of this browser for this admin: the cookie's key (only its SHA-256 is stored) finds a live row, anything else
- * (no cookie, another admin's key, a revoked row) makes a new key and a new row. The caller sets the cookie and sends the mail.
+ * The device of this browser for this admin: the cookie's key (only its SHA-256 is stored) finds a live row; a row unseen for 30 days ends
+ * when touched. Anything else makes a new key, which takes over the ended row of the same label or else a new row. `isNew` means the
+ * new-device mail is due: no row of that label was seen in 30 days. The caller sets the cookie and sends the mail.
  */
-export async function bindAdminDevice(
-  c: BindCtx, adminId: number, cookieValue: string | null,
-): Promise<{ device: AdminDeviceRow; newKey: string | null; isNew: boolean }> {
-  const at = c.now().toISOString();
-  const found = cookieValue ? await c.store.adminDeviceByKey(adminId, hashSecret(cookieValue)) : null;
-  if (found && found.revokedAt === null) {
+export async function bindAdminDevice(c: BindCtx, adminId: number, cookieValue: string | null): Promise<Bound> {
+  const now = c.now();
+  const at = now.toISOString();
+  const label = deviceLabel(c.userAgent);
+  const rows = await c.store.adminDevices(adminId);
+  const mailDue = !labelSeenRecently(rows, label, now);
+  const keyHash = cookieValue ? hashSecret(cookieValue) : null;
+  const found = rows.find((d) => d.deviceKeyHash === keyHash) ?? null;
+  if (found && isLive(found, now)) {
     await c.store.updateAdminDevice(found.id, { lastSeenAt: at });
     return { device: { ...found, lastSeenAt: at }, newKey: null, isNew: false };
   }
+  const current = found && found.revokedAt === null ? await endStale(c, found, at) : found;
+  const ended = reusableRow(rows.map((d) => (d.id === current?.id ? current : d)), label, now);
+  if (ended) return { ...(await takeOver(c, ended, at)), isNew: mailDue };
   const key = newDeviceKey();
-  const row = { adminUserId: adminId, deviceKeyHash: hashSecret(key), strapiDeviceId: randomUUID(), label: deviceLabel(c.userAgent), firstSeenAt: at, lastSeenAt: at };
+  const row = { adminUserId: adminId, deviceKeyHash: hashSecret(key), strapiDeviceId: randomUUID(), label, firstSeenAt: at, lastSeenAt: at };
   const id = await c.store.createAdminDevice(row);
-  return { device: { ...row, id, revokedAt: null, twoFactorUntil: null, confirmedAt: null }, newKey: key, isNew: true };
+  return { device: { ...row, id, revokedAt: null, twoFactorUntil: null, confirmedAt: null }, newKey: key, isNew: mailDue };
 }
 
 const isCurrent = (d: AdminDeviceRow, cookieValue: string | null): boolean => cookieValue !== null && sameHash(hashSecret(cookieValue), d.deviceKeyHash);
@@ -39,7 +61,7 @@ const isCurrent = (d: AdminDeviceRow, cookieValue: string | null): boolean => co
 /** The admin's live devices, oldest first; a remembered-until date already passed shows as null. */
 export async function listAdminDevices(store: SecurityStore, adminId: number, cookieValue: string | null, now: Date = new Date()): Promise<AdminDeviceView[]> {
   return (await store.adminDevices(adminId))
-    .filter((d) => d.revokedAt === null && d.confirmedAt !== null)
+    .filter((d) => isLive(d, now) && d.confirmedAt !== null)
     .map((d) => ({
       id: d.id, label: d.label, lastSeenAt: d.lastSeenAt, current: isCurrent(d, cookieValue), twoFactorUntil: isRemembered(d.twoFactorUntil, now) ? d.twoFactorUntil : null,
     }));

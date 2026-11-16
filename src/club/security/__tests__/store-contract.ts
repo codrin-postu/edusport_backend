@@ -152,6 +152,9 @@ export function storeContract(make: () => Promise<StoreHarness>): void {
     await store.updateAdminDevice(id, { twoFactorUntil: at });
     expect(await store.adminDeviceByKey(uid, 'h1')).toMatchObject({ id, twoFactorUntil: at, revokedAt: null });
     expect((await store.adminDevices(uid)).map((d) => d.id)).toEqual([id]);
+    await store.updateAdminDevice(id, { deviceKeyHash: 'h2', strapiDeviceId: `sd2-${uid}` });
+    expect(await store.adminDeviceByKey(uid, 'h1')).toBeNull();
+    expect(await store.adminDeviceByKey(uid, 'h2')).toMatchObject({ id, strapiDeviceId: `sd2-${uid}` });
     const s: Subject = { type: 'admin', id: String(uid) };
     expect(await store.securityNotes(s)).toEqual({});
     await store.setSecurityNotes(s, { backupNotice: 3 });

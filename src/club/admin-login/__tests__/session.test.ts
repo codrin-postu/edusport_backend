@@ -109,13 +109,16 @@ describe('bindAdminDevice', () => {
     expect(mine.device.id).not.toBe(other.device.id);
   });
 
-  it('a revoked device is not reused: the key makes a new row', async () => {
+  it('a revoked device is not live: its key makes a new key and takes over that row, rebound', async () => {
     const env = adminEnv();
     const first = await bind(env, 7, null);
     await env.c.store.updateAdminDevice(first.device.id, { revokedAt: env.clock.t.toISOString() });
     const again = await bind(env, 7, first.newKey);
-    expect(again.isNew).toBe(true);
-    expect(again.device.id).not.toBe(first.device.id);
+    expect(again.newKey).not.toBeNull();
+    expect(again.device.id).toBe(first.device.id);
+    expect(again.device.deviceKeyHash).not.toBe(first.device.deviceKeyHash);
+    expect(again.device.revokedAt).toBeNull();
+    expect(await env.c.store.adminDevices(7)).toHaveLength(1);
   });
 
   it('the cookie name: __Host- on a secure request, plain locally', () => {
