@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { activeSections } from '../../ui-filters';
 import type { SubscriptionListRow } from '../../presence/money-api';
 import type { NewSubscriptionForm } from '../../presence/subscriptions/views';
-import { abonamenteSections, addDraft, coverDisabled, extendModel, formMatchesStart, itemOptions, stateOf, toggleCover, addBody, withMember } from '../abonamente-view';
+import { abonamenteSections, addDraft, coverDisabled, extendModel, formMatchesStart, itemOptions, stateOf, toggleCover, addBody, feeBox, withForm, withMember } from '../abonamente-view';
 
 const listRow = (o: Partial<SubscriptionListRow>): SubscriptionListRow => ({
   subscriptionId: 's1', athleteId: 'a1', athleteName: 'Ana Ionescu', groupName: 'Intermediari Bronze', slots: 8, used: 0, validUntil: '2026-12-01',
@@ -56,7 +56,8 @@ describe('Abonamente view', () => {
     const on = withMember(d, form, true);
     expect([on.member, on.itemKey, on.amount]).toEqual([true, 'Mini', '100']);
     expect(itemOptions(form, true).map((o) => o.label)).toEqual(['Mini', 'Gold']);
-    expect(addBody({ ...on, addFee: true })).toMatchObject({ member: true, addFee: true });
+    expect(addBody({ ...on, addFee: true }, form)).toMatchObject({ member: true, addFee: false });
+    expect(addBody({ ...on, addFee: true, payNow: true, amount: '100' }, form)).toMatchObject({ member: true, addFee: true });
   });
   it('an item the new audience is not offered falls to the first one; the fee box choice goes when membership goes', () => {
     const form = formOf({ cover: [], member: true, items: [{ itemKey: 'Gold', slots: 4, price: 300, nonMemberPrice: null }, { itemKey: 'Mini', slots: 2, price: 100 }], fee: 50 });
@@ -66,11 +67,26 @@ describe('Abonamente view', () => {
     const off = withMember({ ...withMember(addDraft({ ...form, member: false }), { ...form, member: false }, true), addFee: true }, { ...form, member: false }, false);
     expect(off.addFee).toBe(false);
   });
+  it('the fee box shows only with the payment on; ticked it adds its own row and the total; a remaining fee is shown as is', () => {
+    const form = formOf({ cover: [], member: false, items: [{ itemKey: 'Mini', slots: 2, price: 100 }], fee: 170 });
+    const d = withMember(addDraft(form), form, true);
+    expect(feeBox(d, form)).toBeNull();
+    const pay = { ...d, payNow: true };
+    expect(feeBox(pay, form)).toEqual({ label: 'Adaugă cotizația (170 lei)', row: null, total: null });
+    expect(feeBox({ ...pay, addFee: true }, form)).toEqual({ label: 'Adaugă cotizația (170 lei)', row: 'Cotizație 170 lei', total: 'Total 270 lei' });
+    expect(feeBox(pay, { ...form, fee: 0 })).toBeNull();
+    expect(feeBox({ ...pay, member: false }, form)).toBeNull();
+  });
+  it('a date change keeps a deliberate untick for an existing member', () => {
+    const form = formOf({ cover: [], member: true, items: [{ itemKey: 'Mini', slots: 2, price: 100 }] });
+    const unticked = withMember(addDraft(form), form, false);
+    expect(withForm(unticked, form).member).toBe(false);
+  });
   it('the window source: box on top from the athlete, price as hint, fee box by feeLine', () => {
     const src = readFileSync(join(__dirname, '../../../admin/dashboard/bani/AddSubscriptionWindow.tsx'), 'utf8');
     expect(src).toContain('SUBSCRIPTION_COPY.memberBox(form.seasonLabel)');
     expect(src).toContain('withMember(d, form, member)');
-    expect(src).toContain('feeLine(draft.member, form.member, form.fee)');
+    expect(src).toContain('feeBox(draft, form)');
     expect(src).toContain('triggerHint');
     expect(src).not.toContain('o.hint ?');
   });

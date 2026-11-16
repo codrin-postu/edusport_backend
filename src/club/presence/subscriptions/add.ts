@@ -20,10 +20,10 @@ import { P5_ACTIONS } from '../history-lines';
 import { actorName } from '../lessons/create';
 import { currentAcs, moveAcs, overpayRefusal, paymentGuards } from '../payments/common';
 import { writePaymentLocked } from '../payments/record';
-import { overpayText, readAmount, type Checked } from '../payments/rules';
+import { feeLeft, overpayText, readAmount, type Checked } from '../payments/rules';
 import type { PresenceStore } from '../store';
 import type { AttendanceRow, PaymentMethod, PriceListRecord, SubscriptionRow, SubscriptionWrite } from '../types';
-import { acsGuardId, type PresenceUndoStep } from '../undo';
+import { acsGuardId, type PresenceGuard, type PresenceUndoStep } from '../undo';
 import {
   checkCover, coverCandidates, formSubscriptionItems, listsForAthlete, offeredSubscriptionItems, schoolListIds, subscriptionWrite, type CoverRow, type OfferedItem,
 } from './rules';
@@ -67,7 +67,7 @@ export async function newSubscriptionForm(store: PresenceStore, athleteId: strin
   return {
     ok: true,
     data: {
-      athleteName: athlete.name ?? '', hasEmail: hasEmail(athlete), member: offer.wasMember, seasonLabel: offer.season.label, fee: offer.season.membershipFee,
+      athleteName: athlete.name ?? '', hasEmail: hasEmail(athlete), member: offer.wasMember, seasonLabel: offer.season.label, fee: await feeRemaining(store, athleteId, offer.season),
       startsOn: date, validUntil: subscriptionValidUntil(date, 0),
       lists: offer.lists.map((l) => ({ priceListId: l.list.id, listName: l.list.name, items: formSubscriptionItems(l.list) })),
       cover: coverCandidates(await store.attendances({ athleteId }), await store.groups()),
@@ -85,21 +85,22 @@ function readPayment(v: unknown): Checked<PaymentBody | null> {
 
 const isText = (v: unknown): v is string => typeof v === 'string' && v.trim() !== '';
 
+/** The A.C.S. box (absent: the season's own state) and the fee box; anything but a boolean is refused (null). */
+function readFlags(body: Record<string, unknown>): Pick<AddBody, 'member' | 'addFee'> | null {
+  const { member, addFee } = body;
+  if ((member !== undefined && typeof member !== 'boolean') || (addFee !== undefined && typeof addFee !== 'boolean')) return null;
+  return { member: typeof member === 'boolean' ? member : null, addFee: addFee === true };
+}
+
 function readAddBody(body: unknown): Checked<AddBody> {
   if (!isRecord(body) || !isText(body.itemKey) || !isText(body.priceListId)) return invalid;
   if (typeof body.startsOn !== 'string' || !isIsoDate(body.startsOn)) return invalid;
   if (!Array.isArray(body.cover) || !body.cover.every(isText)) return invalid;
   const payment = readPayment(body.payment);
   if (payment.ok === false) return payment;
-  if (body.member !== undefined && typeof body.member !== 'boolean') return invalid;
-  if (body.addFee !== undefined && typeof body.addFee !== 'boolean') return invalid;
-  return {
-    ok: true,
-    value: {
-      itemKey: body.itemKey, priceListId: body.priceListId, startsOn: body.startsOn, cover: body.cover as string[], payment: payment.value,
-      member: typeof body.member === 'boolean' ? body.member : null, addFee: body.addFee === true,
-    },
-  };
+  const flags = readFlags(body);
+  if (flags === null) return invalid;
+  return { ok: true, value: { itemKey: body.itemKey, priceListId: body.priceListId, startsOn: body.startsOn, cover: body.cover as string[], payment: payment.value, ...flags } };
 }
 
 const pickItem = (offer: Offer, b: AddBody): OfferedItem | null =>
@@ -152,15 +153,19 @@ async function paymentRefusal(ctx: PresenceContext, athlete: AthleteRow, p: Paym
   return overpayText(p.amount, item.price);
 }
 
+/** What is still owed of the season fee (the fee less its live payments); 0 or null: nothing to collect. */
+async function feeRemaining(store: PresenceStore, athleteId: string, season: SeasonRecord): Promise<number | null> {
+  return feeLeft(season, await store.payments({ athleteId }));
+}
+
 /**
- * The season fee as a second payment when the box is ticked, membership turns on and a payment is recorded now (the fee has no stored debt:
- * what is owed stays the season fee less its payments). Null when the fee does not apply or is already covered. Read before the first write.
+ * The fee box asked for: only with membership turning on and a payment recorded now. The amount is the rest of the season fee, worked out here
+ * (never taken from the client). Null when it does not apply or nothing is left. Read before the first write.
  */
 async function feeToCollect(ctx: PresenceContext, athleteId: string, offer: Offer, b: AddBody): Promise<number | null> {
-  const fee = offer.season.membershipFee;
-  if (!b.addFee || b.member !== true || offer.wasMember || b.payment === null || fee === null || fee <= 0) return null;
-  const refused = await overpayRefusal(ctx.store, athleteId, { kind: 'cotizatie', seasonId: offer.season.id }, fee, null);
-  return refused === null ? fee : null;
+  if (!b.addFee || b.member !== true || offer.wasMember || b.payment === null) return null;
+  const left = await feeRemaining(ctx.store, athleteId, offer.season);
+  return left !== null && left > 0 ? left : null;
 }
 
 /** The box turning membership on writes A.C.S. "Da" through the payments' own writer (`moveAcs`), with its Istoric line and undo step; never turns it off. */
@@ -176,6 +181,21 @@ async function writeFee(ctx: PresenceContext, athlete: AthleteRow, offer: Offer,
   if (written.ok === false) throw new Error(`fee payment refused after the abonament was written: ${written.error}`);
   const w = written.data;
   return { lines: w.lines, steps: w.steps, paymentId: w.paymentId, emailQueued: false };
+}
+
+type Extra = { lines: Line[]; steps: PresenceUndoStep[]; guards: PresenceGuard[] };
+
+/** A.C.S. turned on and the fee collected with it: the membership first, so the fee payment finds "Da" and keeps it if that payment is cancelled. */
+async function membershipAndFee(ctx: PresenceContext, athlete: AthleteRow, offer: Offer, b: AddBody, fee: number | null): Promise<Extra> {
+  const member = await turnMembershipOn(ctx, athlete.id, offer, b);
+  const out: Extra = { ...member, guards: [] };
+  if (member.steps.length > 0) out.guards.push(await guardOf(ctx.store, 'acs', acsGuardId(athlete.id, offer.season.id)));
+  if (fee === null || b.payment === null) return out;
+  const paid = await writeFee(ctx, athlete, offer, fee, b.payment);
+  out.lines.push(...paid.lines);
+  out.steps.push(...paid.steps);
+  out.guards.push(...(await paymentGuards(ctx.store, paid.paymentId, paid.steps)));
+  return out;
 }
 
 async function addLocked(ctx: PresenceContext, athleteId: string, b: AddBody): Promise<ActionResult<AddSubscriptionResult>> {
@@ -205,16 +225,10 @@ async function addLocked(ctx: PresenceContext, athleteId: string, b: AddBody): P
     steps.push(...paid.steps);
     guards.push(...(await paymentGuards(ctx.store, paid.paymentId, paid.steps)));
   }
-  const member = await turnMembershipOn(ctx, athleteId, offer, b);
-  lines.push(...member.lines);
-  steps.push(...member.steps);
-  if (member.steps.length > 0) guards.push(await guardOf(ctx.store, 'acs', acsGuardId(athleteId, offer.season.id)));
-  const feePaid = fee !== null && b.payment ? await writeFee(ctx, athlete, offer, fee, b.payment) : null;
-  if (feePaid) {
-    lines.push(...feePaid.lines);
-    steps.push(...feePaid.steps);
-    guards.push(...(await paymentGuards(ctx.store, feePaid.paymentId, feePaid.steps)));
-  }
+  const extra = await membershipAndFee(ctx, athlete, offer, b, fee);
+  lines.push(...extra.lines);
+  steps.push(...extra.steps);
+  guards.push(...extra.guards);
   const actionId = await recordPresenceAction(ctx.store, ctx.actor, lines, { steps, athletes: [athleteId], guards });
   return done({ subscriptionId: id, athleteName: name, withPayment: paid !== null }, actionId);
 }

@@ -158,7 +158,7 @@ function lessonLeft(l: LessonRow, payments: readonly PaymentRow[], months: reado
 }
 
 /** What is left of the season fee after its live fee payments (null: no fee set). */
-function feeLeft(season: SeasonRecord, payments: readonly PaymentRow[]): number | null {
+export function feeLeft(season: SeasonRecord, payments: readonly PaymentRow[]): number | null {
   return season.membershipFee === null ? null : notBelowZero(sumMoney([season.membershipFee, -paidFor(payments, (p) => p.purpose === 'cotizatie' && p.seasonId === season.id)]));
 }
 

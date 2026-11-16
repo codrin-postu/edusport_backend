@@ -83,6 +83,17 @@ export function withMember(d: AddDraft, form: NewSubscriptionForm, member: boole
   return { ...next, listId: fresh.listId, itemKey: fresh.itemKey, cover: fresh.cover, amount: fresh.amount };
 }
 
+/** The fee box lives in the payment block: shown only with "Înregistrează plata acum" on. Ticked, it adds its own visible row and the total. */
+export function feeBox(d: AddDraft, form: NewSubscriptionForm): { label: string; row: string | null; total: string | null } | null {
+  const line = d.payNow ? feeLine(d.member, form.member, form.fee) : null;
+  if (line === null || form.fee === null) return null;
+  const amount = parseAmount(d.amount);
+  return {
+    label: line.label, row: d.addFee ? SUBSCRIPTION_COPY.feeRow(form.fee) : null,
+    total: d.addFee && amount !== null ? SUBSCRIPTION_COPY.total(amount + form.fee) : null,
+  };
+}
+
 /** The athlete's "Fără abonament" rows on the chosen list. */
 export const coverRows = (d: AddDraft, form: NewSubscriptionForm) => form.cover.filter((r) => r.priceListId === d.listId);
 
@@ -97,13 +108,13 @@ export function toggleCover(d: AddDraft, form: NewSubscriptionForm, id: string):
 }
 
 /** POST /club/athletes/:id/subscriptions body (plan 5-3 Task 5); the payment only when "Înregistrează plata acum" is on; the server prices again from `member`. */
-export function addBody(d: AddDraft): Record<string, unknown> | { error: string } {
+export function addBody(d: AddDraft, form: NewSubscriptionForm): Record<string, unknown> | { error: string } {
   if (d.listId === null || d.itemKey === null) return { error: PRESENCE_ERRORS.invalid };
-  const body = { itemKey: d.itemKey, priceListId: d.listId, startsOn: d.startsOn, cover: d.cover, member: d.member, addFee: d.addFee };
+  const body = { itemKey: d.itemKey, priceListId: d.listId, startsOn: d.startsOn, cover: d.cover, member: d.member, addFee: false };
   if (!d.payNow) return body;
   const amount = parseAmount(d.amount);
   if (amount === null) return { error: PAYMENT_COPY.errors.amount };
-  return { ...body, payment: { amount, method: d.method, collectedAtRink: d.collectedAtRink, sendEmail: d.sendEmail } };
+  return { ...body, addFee: d.addFee && feeLine(d.member, form.member, form.fee) !== null, payment: { amount, method: d.method, collectedAtRink: d.collectedAtRink, sendEmail: d.sendEmail } };
 }
 
 export const addToast = (name: string, withPayment: boolean): string =>
@@ -128,9 +139,9 @@ export const extendModel = (preview: { count: number } | null, weeks: number): {
 /** The list's state filter as the address carries it; anything else is the default "Active". */
 export const stateOf = (v: string | null): SubscriptionStateFilter => STATES.find((s) => s === v) ?? 'active';
 
-/** After the start date changed: the same item when still offered, else the first; the A.C.S. box stays ticked once ticked, the payment choices stay, the amount follows the item. */
+/** After the start date changed: the same item when still offered, else the first; the A.C.S. box keeps the admin's choice (an untick stays), the payment choices stay, the amount follows the item. */
 export function withForm(d: AddDraft, form: NewSubscriptionForm): AddDraft {
-  const member = d.member || form.member;
+  const member = d.member;
   const fresh = addDraft({ ...form, member });
   const kept = d.listId !== null && d.itemKey !== null && itemOf(form, member, d.listId, d.itemKey) ? withItem(fresh, form, d.listId, d.itemKey) : fresh;
   return { ...kept, payNow: d.payNow, method: d.method, collectedAtRink: d.collectedAtRink, sendEmail: d.sendEmail, member, addFee: d.addFee && feeLine(member, form.member, form.fee) !== null };

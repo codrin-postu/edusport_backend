@@ -85,7 +85,6 @@ describe('abonament rules', () => {
     expect([c.usedText(5), c.usedText(1), c.leftText(3), c.leftText(1)]).toEqual(['5 folosite', '1 folosită', '3 rămase', '1 rămasă']);
     expect(c.expiresOn('2026-11-23')).toBe('Expiră pe 23 noi 2026');
     expect(c.coverRow('2026-10-20', 'Intermediari Bronze')).toBe('Mar 20 oct, Intermediari Bronze');
-    expect(c.itemOption('Abonament 8 ședințe', 'member')).toBe('Abonament 8 ședințe, preț membru');
     expect(c.noItems('Standard')).toBe('Lista Standard nu are abonamente pentru acest sportiv.');
   });
 });

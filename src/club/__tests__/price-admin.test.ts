@@ -158,9 +158,7 @@ describe('neafiliat wording', () => {
     expect(read('admin/pages/preturi/PriceItemDrawer.tsx')).toContain('Preț neafiliați');
     expect(read('admin/pages/preturi/PriceListCard.tsx') + read('admin/pages/preturi/PriceItemDrawer.tsx')).not.toMatch(/non-membri/i);
   });
-  it('the abonament copy says preț neafiliat', () => {
-    const copy = read('club/presence/copy/subscriptions.ts');
-    expect(copy).toContain('preț neafiliat');
-    expect(copy).not.toContain('nemembru');
+  it('no "nemembru" wording is left in the abonament copy or the add window', () => {
+    expect(read('club/presence/copy/subscriptions.ts') + read('admin/dashboard/bani/AddSubscriptionWindow.tsx')).not.toMatch(/nemembru/i);
   });
 });

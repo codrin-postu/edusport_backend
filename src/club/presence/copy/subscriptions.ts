@@ -1,5 +1,4 @@
 import { countWords } from '../../ro-count';
-import type { Audience } from '../../price-item';
 import { listDate, longDate } from '../dates';
 
 const lei = (n: number): string => `${Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ',')} lei`;
@@ -8,9 +7,10 @@ const weeksText = (n: number): string => countWords(n, 'săptămână', 'săptă
 export const SUBSCRIPTION_COPY = {
   windowTitle: (name: string): string => `Adaugă abonament, ${name}`,
   itemLabel: (list: string): string => `Abonament (lista ${list})`,
-  itemOption: (itemName: string, audience: Audience): string => `${itemName}, ${audience === 'member' ? 'preț membru' : 'preț neafiliat'}`,
   memberBox: (season: string): string => `Membru A.C.S. ${season}`,
   addFee: (fee: number): string => `Adaugă cotizația (${lei(fee)})`,
+  feeRow: (fee: number): string => `Cotizație ${lei(fee)}`,
+  total: (sum: number): string => `Total ${lei(sum)}`,
   price: (price: number): string => lei(price),
   startsOn: 'Data de start',
   expires: 'Expiră (estimat)',

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { HISTORY_ACTIONS } from '../../history-text';
-import { addSubscription } from '../subscriptions/add';
+import { addSubscription, newSubscriptionForm } from '../subscriptions/add';
 import { undoPresenceAction } from '../undo-service';
-import { athleteRow, fakePresenceContext, member, type FakePresenceSeed } from './fake-store';
+import { athleteRow, fakePresenceContext, member, paymentRow, type FakePresenceSeed } from './fake-store';
 
 function seed(over: Partial<FakePresenceSeed> = {}): FakePresenceSeed {
   return {
@@ -54,7 +54,7 @@ describe('Adaugă abonament with the A.C.S. box', () => {
     expect(acsOf(f)).toBe('da');
   });
 
-  it('addFee is ignored for a member, without the member box, or without a payment', async () => {
+  it('addFee is ignored for a member, without the member box, or without a payment now', async () => {
     const already = fakePresenceContext(seed({ acs: [{ id: 'x1', athleteId: 'a1', seasonId: 's26', state: 'da' }] }));
     await addSubscription(already.ctx, 'a1', add({ member: true, addFee: true, payment: pay }));
     expect(already.state.payments.map((p) => p.purpose)).toEqual(['abonament']);
@@ -64,6 +64,19 @@ describe('Adaugă abonament with the A.C.S. box', () => {
     const none = fakePresenceContext(seed());
     await addSubscription(none.ctx, 'a1', add({ member: true, addFee: true }));
     expect(none.state.payments).toEqual([]);
+    expect(acsOf(none)).toBe('da');
+  });
+
+  it('a partly paid fee: only the rest is collected; a fully paid one collects nothing', async () => {
+    const paid = (amount: number, id: string) => paymentRow({ id, athleteId: 'a1', purpose: 'cotizatie', seasonId: 's26', amount });
+    const partly = fakePresenceContext(seed({ payments: [paid(100, 'p1')] }));
+    await addSubscription(partly.ctx, 'a1', add({ member: true, addFee: true, payment: pay }));
+    expect(partly.state.payments.filter((p) => p.id !== 'p1').map((p) => [p.purpose, p.amount])).toEqual([['abonament', 320], ['cotizatie', 170]]);
+    const full = fakePresenceContext(seed({ payments: [paid(270, 'p1')] }));
+    await addSubscription(full.ctx, 'a1', add({ member: true, addFee: true, payment: pay }));
+    expect(full.state.payments.map((p) => p.id === 'p1' ? 'old' : p.purpose)).toEqual(['old', 'abonament']);
+    const form = await newSubscriptionForm(partly.store, 'a1', '2026-10-27', '2026-11-20');
+    expect(form.ok && form.data.fee).toBe(0);
   });
 
   it('a season without a fee ignores addFee', async () => {

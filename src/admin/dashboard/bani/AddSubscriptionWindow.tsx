@@ -1,14 +1,13 @@
 import * as React from 'react';
 import { Button, Checkbox, DateInput, Field, Input, Notice, SegmentedControl, Select } from '../../ui';
 import {
-  addBody, addDraft, addToast, coverDisabled, coverRows, formMatchesStart, itemOptions, itemValue, offeredLists, toggleCover, withForm, withItem, withMember, type AddDraft,
+  addBody, addDraft, addToast, coverDisabled, coverRows, feeBox, formMatchesStart, itemOptions, itemValue, offeredLists, toggleCover, withForm, withItem, withMember, type AddDraft,
 } from '../../../club/bani/abonamente-view';
 import { emailBox } from '../../../club/bani/payment-window';
 import { METHOD_WORDS, PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { PAYMENT_COPY } from '../../../club/presence/copy/payments';
 import { SUBSCRIPTION_COPY } from '../../../club/presence/copy/subscriptions';
 import { longDate } from '../../../club/presence/dates';
-import { feeLine } from '../../../club/presence/subscriptions/audience';
 import type { NewSubscriptionForm } from '../../../club/presence/subscriptions/views';
 import type { PaymentMethod } from '../../../club/presence/types';
 import { requestErrorText } from '../../../club/registration-panel';
@@ -56,6 +55,18 @@ function CoverRows({ form, draft, busy, set }: Pick<BodyProps, 'form' | 'draft' 
   );
 }
 
+function FeeBox({ form, draft, busy, set }: Pick<BodyProps, 'form' | 'draft' | 'busy' | 'set'>) {
+  const box = feeBox(draft, form);
+  if (box === null) return null;
+  return (
+    <>
+      <Checkbox checked={draft.addFee} disabled={busy} label={box.label} onChange={(addFee) => set((d) => ({ ...d, addFee }))} />
+      {box.row && <span>{box.row}</span>}
+      {box.total && <strong>{box.total}</strong>}
+    </>
+  );
+}
+
 function PaymentBlock({ form, draft, busy, amountError, set }: Pick<BodyProps, 'form' | 'draft' | 'busy' | 'amountError' | 'set'>) {
   const box = emailBox(form.hasEmail);
   const patch = (p: Partial<AddDraft>) => set((d) => ({ ...d, ...p }));
@@ -68,6 +79,7 @@ function PaymentBlock({ form, draft, busy, amountError, set }: Pick<BodyProps, '
             <Field label={PAYMENT_COPY.amount} required error={amountError ?? undefined}>
               <Input inputMode="decimal" value={draft.amount} disabled={busy} onChange={(e) => patch({ amount: e.target.value })} />
             </Field>
+            <FeeBox form={form} draft={draft} busy={busy} set={set} />
             <Field label={PAYMENT_COPY.method}>
               <SegmentedControl aria-label={PAYMENT_COPY.method} options={METHOD_OPTIONS} value={draft.method} disabled={busy} onChange={(method) => patch({ method })} />
             </Field>
@@ -86,7 +98,6 @@ function PaymentBlock({ form, draft, busy, amountError, set }: Pick<BodyProps, '
 function FormBody(p: BodyProps) {
   const { form, draft, busy, set } = p;
   const options = itemOptions(form, draft.member);
-  const fee = feeLine(draft.member, form.member, form.fee);
   const listName = form.lists.find((l) => l.priceListId === draft.listId)?.listName ?? form.lists[0]?.listName ?? '';
   const pick = (value: string) => {
     const [listId, ...rest] = value.split('|');
@@ -100,7 +111,6 @@ function FormBody(p: BodyProps) {
   const memberBox = (
     <>
       <Checkbox checked={draft.member} disabled={busy} label={SUBSCRIPTION_COPY.memberBox(form.seasonLabel)} onChange={(member) => set((d) => withMember(d, form, member))} />
-      {fee && <Checkbox checked={draft.addFee} disabled={busy} label={fee.label} onChange={(addFee) => set((d) => ({ ...d, addFee }))} />}
     </>
   );
   if (options.length === 0) return <div className="bn-form">{memberBox}<Notice tone="info">{SUBSCRIPTION_COPY.noItems(listName)}</Notice>{start}</div>;
@@ -126,8 +136,8 @@ export function AddSubscriptionWindow({ athlete, onClose }: Props) {
   const [amountError, setAmountError] = React.useState<string | null>(null);
   const [serverError, setServerError] = React.useState<string | null>(null);
   const submit = useSubmitOnce(async () => {
-    if (!draft) return;
-    const body = addBody(draft);
+    if (!draft || !form) return;
+    const body = addBody(draft, form);
     setAmountError(null);
     setServerError(null);
     if (typeof body.error === 'string') { setAmountError(body.error); return; }
