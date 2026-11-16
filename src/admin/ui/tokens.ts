@@ -697,6 +697,7 @@ export function scaleVars(): Record<string, string> {
   }
   v['--ui-font'] = font.family;
   v['--ui-font-mono'] = font.mono;
+  v['--ui-inset'] = '16px';
   v['--ui-motion-fast'] = motion.fast;
   v['--ui-easing'] = motion.easing;
   return v;
@@ -734,7 +735,7 @@ const OUTER_ROOT = '.ui-root:not(:where(.ui-root .ui-root))';
  *     attribute inside a root (the reference page previews a theme this way).
  */
 export function tokensCss(): string {
-  const out = [block(OUTER_ROOT, scaleVars())];
+  const out = [block(OUTER_ROOT, scaleVars()), `@media (max-width:640px){${block(OUTER_ROOT, { '--ui-inset': '12px' })}}`];
   for (const name of THEME_NAMES) {
     const t = THEMES[name];
     const attr = `[${THEME_ATTR}="${name}"]`;
