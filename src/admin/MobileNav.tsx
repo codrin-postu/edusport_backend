@@ -4,6 +4,7 @@ import { ensureAdminUi } from './ui/styles';
 import { useAreas } from './lib/useAreas';
 import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO } from './dashboard/menu';
 import EdusportLogo from './edusport-logo.svg';
+import { eduLinkHref } from '../club/admin-href';
 
 interface NavItem {
   label: string;
@@ -78,10 +79,6 @@ function useIsMobile(query = '(max-width: 640px)'): boolean {
  * the EduSport list lacks (Content Manager, Settings, other plugin links) when
  * it is tagged; entries already covered by an EduSport link are dropped.
  */
-export function eduLinkHref(to: string): string {
-  return '/admin' + to;
-}
-
 function readLinksFromContainer(container: Element | null): NavItem[] {
   if (!container) return [];
   const seen = new Set<string>();

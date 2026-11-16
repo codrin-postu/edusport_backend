@@ -5,6 +5,7 @@ import { cellText, linesOf, rowNumbers, windowOf, type Line } from '../../../../
 import type { Aspect } from '../../../../club/tables/aspect';
 import { TABLES_COPY } from '../../../../club/tables/copy';
 import { athleteRecordTo } from '../../../../club/sportivi/routes';
+import { eduLinkHref } from '../../../../club/admin-href';
 import type { CatalogColumn, CellValue, TableDefinition, TableResult } from '../../../../club/tables/types';
 import { WINDOW_ROWS, windowed } from '../../../../club/tables/view-state';
 
@@ -56,7 +57,7 @@ function SumLine({ line, columns, numbered }: { line: Extract<Line, { kind: 'sub
 
 function RowLine({ row, columns, n }: { row: TableResult['rows'][number]; columns: CatalogColumn[]; n: number | null }) {
   const id = row.athleteId;
-  const open = () => id && window.open(athleteRecordTo(id), '_blank', 'noopener');
+  const open = () => id && window.open(eduLinkHref(athleteRecordTo(id)), '_blank', 'noopener');
   return (
     <tr
       className={id ? 'tbl-click' : undefined} tabIndex={id ? 0 : undefined}
