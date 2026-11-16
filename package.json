@@ -50,6 +50,7 @@
     "fs-extra": "^10.0.0",
     "googleapis": "^144.0.0",
     "jsonwebtoken": "9.0.3",
+    "libphonenumber-js": "^1.13.16",
     "mime-types": "^2.1.27",
     "pdfkit": "^0.20.2",
     "pg": "8.8.0",

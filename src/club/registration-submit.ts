@@ -17,6 +17,7 @@ import {
   selectValues,
   type RegistrationInput,
 } from './registration-input';
+import { PHONE_ERROR, normalizePhone } from './phone';
 import { pickSchool, type SchoolChoiceCode, type SchoolRow } from './school-choice';
 import { seasonStartYear } from './season';
 
@@ -150,6 +151,7 @@ async function validateInput(input: RegistrationInput, deps: SubmitDeps): Promis
   const isRequired = await loadRequired(deps);
   const missing = Object.entries(presenceValues(input)).some(([key, value]) => isRequired(key) && !value);
   if (missing) return MISSING_FIELDS_ERROR;
+  if (input.phone && !normalizePhone(input.phone)) return PHONE_ERROR;
   return (await configCheck(input, deps)) ?? checkRegistrationRules(input, isRequired);
 }
 
@@ -164,7 +166,7 @@ async function chooseSubscription(input: RegistrationInput, ctx: SubmitContext, 
 function personFields(i: RegistrationInput) {
   return {
     email: i.email,
-    phone: i.phone,
+    phone: normalizePhone(i.phone) ?? i.phone,
     parentName: i.parentName,
     relationship: isRelationship(i.relationship) ? i.relationship : undefined,
     relationshipOther: i.relationship === RELATIONSHIP_OTHER ? i.relationshipOther : undefined,

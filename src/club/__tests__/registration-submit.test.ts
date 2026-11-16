@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CurrentSeason } from '../current-season';
 import type { PublicSchool } from '../public-info';
+import { PHONE_ERROR } from '../phone';
 import { LAST_SEASON_OPTIONS, SOURCE_OPTIONS } from '../registration-form-options';
 import {
   CHOICE_ERROR,
@@ -88,7 +89,7 @@ describe('submitRegistration', () => {
         startYear: 2026,
         data: {
           email: 'ana.pop@example.com',
-          phone: '0712345678',
+          phone: '+40712345678',
           parentName: 'Ana Pop',
           relationship: 'parinte',
           childName: 'Maria Pop',
@@ -112,6 +113,24 @@ describe('submitRegistration', () => {
         },
       },
     ]);
+  });
+
+  it('rejects an invalid phone with the phone message and saves nothing', async () => {
+    const { deps, created } = fake({ validateFieldFormats: async () => 'din câmpul telefon nu este valid' });
+    await expect(submitRegistration({ ...BODY, phone: '0722 12' }, null, deps)).resolves.toEqual({ ok: false, code: 'invalid', error: PHONE_ERROR });
+    expect(created).toEqual([]);
+  });
+
+  it('stores a typed phone as E.164', async () => {
+    const { deps, created } = fake();
+    await submitRegistration({ ...BODY, phone: '0722 123 456' }, null, deps);
+    expect(created[0].data.phone).toBe('+40722123456');
+  });
+
+  it('still reports a missing required phone as a missing field', async () => {
+    const { deps, created } = fake();
+    await expect(submitRegistration({ ...BODY, phone: '' }, null, deps)).resolves.toEqual({ ok: false, code: 'invalid', error: MISSING_FIELDS_ERROR });
+    expect(created).toEqual([]);
   });
 
   it('rejects a filled honeypot without saving', async () => {
