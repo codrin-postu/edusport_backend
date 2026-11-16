@@ -9,10 +9,44 @@
  */
 
 import { base, keyHeaders } from '../../../club/skate/client';
+import { clubStatsByEvent } from '../../../club/competitions/club-stats';
+import { clubStore } from '../../../club/athletes/http';
+import { isAnonymized } from '../../../club/personal-data/anonymize-plan';
+import { strapiCompetitions } from '../../../club/skate/wiring';
+import type { SkaterRef } from '../../../club/portal/coach/competitions';
 
 // Headers for mutating calls (import / delete): attach the shared API key so
 // skate-results accepts the write. Reads don't need it.
 const mutHeaders = (extra: Record<string, string> = {}) => keyHeaders(extra);
+
+/**
+ * Adds `podiums` and `best_placement` (club athletes with a skate-results slug only) to each listed event.
+ * One read of the club's results through the portals' source, not one per row; when it fails the rows keep no stats.
+ */
+async function withClubStats(body: any): Promise<void> {
+  if (!Array.isArray(body)) return;
+  try {
+    const store = clubStore(strapi);
+    const [athletes, profiles] = await Promise.all([store.athletes(), store.profiles()]);
+    const slugs = new Map(profiles.map((p) => [p.id, p.skateResultsSlug || null] as const));
+    const skaters: SkaterRef[] = athletes.flatMap((a) => {
+      const slug = a.profileId ? slugs.get(a.profileId) ?? null : null;
+      return slug && !isAnonymized(a) ? [{ athleteId: a.id, name: a.name ?? '', profileId: a.profileId as string, slug }] : [];
+    });
+    const { results } = strapiCompetitions(strapi, () => new Date());
+    const reads = await results.many(skaters);
+    const rows = [...reads.values()].flatMap((read) => (read.available && !('missing' in read) ? read.value : []))
+      .filter((r) => r.result_id !== null).map((r) => ({ eventId: r.event_id, placement: r.placement }));
+    const stats = clubStatsByEvent(rows);
+    for (const event of body) {
+      const s = stats.get(event.id);
+      event.podiums = s?.podiums ?? 0;
+      event.best_placement = s?.bestPlacement ?? null;
+    }
+  } catch (err) {
+    strapi.log.error(`[competitii] club stats failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
 
 async function proxy(ctx: any, path: string, degradeOnError = true) {
   try {
@@ -70,6 +104,7 @@ export default {
     const q = typeof ctx.query.q === 'string' ? ctx.query.q : '';
     ctx.state = { emptyOnError: [] };
     await proxy(ctx, `/events?q=${encodeURIComponent(q)}&limit=100`);
+    await withClubStats(ctx.body);
   },
 
   // Full results for one competition (every category/skater). The admin UI

@@ -37,6 +37,8 @@ interface EventRow {
   event_date?: string | null;
   skaters_count?: number;
   results_count?: number;
+  podiums?: number;
+  best_placement?: number | null;
 }
 
 interface Candidate {
@@ -310,6 +312,8 @@ export default function CompetitiiPage() {
     { key: 'season', header: 'Sezon', value: (r) => r.season ?? '', sortable: true, align: 'right' },
     { key: 'skaters_count', header: 'Sportivi', value: (r) => r.skaters_count ?? 0, sortable: true, align: 'right' },
     { key: 'results_count', header: 'Rezultate', value: (r) => r.results_count ?? 0, sortable: true, align: 'right' },
+    { key: 'podiums', header: 'Podiumuri', value: (r) => r.podiums ?? null, render: (r) => r.podiums ?? '-', sortable: true, align: 'right' },
+    { key: 'best_placement', header: 'Cel mai bun loc', value: (r) => r.best_placement ?? null, render: (r) => r.best_placement ?? '-', sortable: true, align: 'right' },
     {
       key: 'actions',
       header: '',
