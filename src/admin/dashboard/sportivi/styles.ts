@@ -88,6 +88,8 @@ export const SPORTIVI_CSS = `
 .ui-root .spv-q{grid-column:1/-1;min-width:0}
 .ui-root .ui-sel.spv-season,.ui-root .spv-toolbar .ui-filters,.ui-root .spv-toolbar .ui-fbtn{width:100%}
 .ui-root .spv-toolbar .ui-fbtn{justify-content:center}
+.ui-root .spv-sort{grid-column:1/-1;margin-left:0}
+.ui-root .spv-sort .ui-sel{flex:1;width:auto}
 .ui-root .spv-merge{min-width:460px}
 .ui-root .spv-merge th[scope=row]{white-space:normal;width:104px}
 .ui-root .spv-fields,.ui-root .spv-form{grid-template-columns:minmax(0,1fr)}

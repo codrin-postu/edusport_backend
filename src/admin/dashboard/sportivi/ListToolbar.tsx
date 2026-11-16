@@ -3,7 +3,7 @@ import { Button, Chip, FilterPanel, Input, Notice, Select } from '../../ui';
 import { IconSearch } from '../../ui/icons';
 import {
   LIST_COPY, SORT_OPTIONS, activeChips, athletesText, clearFilters, filterSections, incompleteBanner, incompleteShown, matchingText, seasonOptions,
-  seasonValue, showIncomplete, showLabel, sortSection, withSearch, withSeason, withSection, withoutChip,
+  seasonValue, showIncomplete, showLabel, showSortSelect, withSearch, withSeason, withSection, withoutChip,
 } from '../../../club/sportivi/list-view';
 import { INCOMPLETE_HIDDEN_KEY, incompleteHidden } from '../../../club/sportivi/incomplete-banner';
 import type { AthleteList } from './useAthleteList';
@@ -25,7 +25,7 @@ function SearchBox({ list }: { list: AthleteList }) {
   );
 }
 
-/** Search, season and filters-v3 on one row, sort at its end (spec 5). On phones the sort is one more section of the filter sheet. */
+/** Search, season and filters-v3 on one row, sort at its end on phones only (desktop and tablet sort by column header). */
 export function ListToolbar({ list, phone }: { list: AthleteList; phone: boolean }) {
   const { state, setState, page } = list;
   const filters = filterSections(state, page);
@@ -35,13 +35,13 @@ export function ListToolbar({ list, phone }: { list: AthleteList; phone: boolean
       <SearchBox list={list} />
       <Select className="spv-season" aria-label={LIST_COPY.season} value={seasonValue(state, page)} options={seasonOptions(page)} onChange={(v) => setState(withSeason(state, v))} />
       <FilterPanel
-        sections={phone ? [...filters, sortSection(state)] : filters}
+        sections={filters}
         onChange={(key, selected) => setState(withSection(state, key, selected))}
         onClearAll={() => setState(clearFilters(state))}
         totalLabel={athletesText(total)}
         showLabel={showLabel(total)}
       />
-      {!phone && (
+      {showSortSelect(phone) && (
         <label className="spv-sort">
           <span>{LIST_COPY.sort}:</span>
           <Select aria-label={LIST_COPY.sort} value={state.sort} options={SORT_OPTIONS} onChange={(v) => setState(withSection(state, 'sort', [v]))} />

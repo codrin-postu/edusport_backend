@@ -146,10 +146,8 @@ export function filterSections(s: ListState, p: AthleteListPage | null): Section
   ];
 }
 
-/** No "Toate" clearing row: a sort always has a value (plan 3-1 Task 9, `allLabel: null`). */
-export const sortSection = (s: ListState): SectionModel => ({
-  key: 'sort', label: LIST_COPY.sort, options: SORT_OPTIONS, selected: [s.sort], single: true, allLabel: null,
-});
+/** Column headers sort the desktop and tablet table; only the phone cards need the Sortare select. */
+export const showSortSelect = (isPhone: boolean): boolean => isPhone;
 
 const isFilterKey = (key: string): key is FilterKey => (FILTER_KEYS as readonly string[]).includes(key);
 const toSort = (v: string | undefined): SortKey => (v === 'age' || v === 'group' ? v : 'name');

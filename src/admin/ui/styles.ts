@@ -617,8 +617,8 @@ ${R} .ui-stat-caption{font-size:var(--ui-fs-caption);color:var(--theme-text-seco
 /* filters (filters-v3): desktop dropdown with sections left, options right; phone drill-in bottom sheet */
 ${R} .ui-filters{display:inline-flex}
 ${R} .ui-fbtn-n{display:inline-block;min-width:16px;padding:0 5px;font-size:10.5px;line-height:16px;text-align:center;background:var(--theme-primary);color:var(--theme-on-primary);border-radius:var(--ui-radius-sm)}
-${R} .ui-fdesk{display:grid;grid-template-columns:190px minmax(0,1fr);min-height:236px}
-${R} .ui-fnav{display:flex;flex-direction:column;gap:2px;padding:8px;border-right:1px solid var(--theme-border);background:var(--theme-surface-subtle);border-top-left-radius:var(--ui-radius-lg)}
+${R} .ui-fdesk{--ui-fdesk-max:min(480px, calc(100vh - 150px));display:grid;grid-template-columns:190px minmax(0,1fr);min-height:236px}
+${R} .ui-fnav{display:flex;flex-direction:column;gap:2px;padding:8px;border-right:1px solid var(--theme-border);background:var(--theme-surface-subtle);border-top-left-radius:var(--ui-radius-lg);max-height:var(--ui-fdesk-max);overflow-y:auto}
 ${R} .ui-fnav-item{display:block;width:100%;padding:9px 12px;border:none;border-radius:var(--ui-radius-md);background:none;font-family:inherit;text-align:left;color:var(--theme-text);cursor:pointer}
 ${R} .ui-fnav-item b{display:block;font-size:var(--ui-fs-body);font-weight:700}
 ${R} .ui-fnav-item span{display:block;margin-top:1px;font-size:12px;color:var(--theme-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -626,7 +626,7 @@ ${R} .ui-fnav-item[data-set] span{color:var(--theme-primary);font-weight:600}
 ${R} .ui-fnav-item:hover{background:var(--theme-surface)}
 ${R} .ui-fnav-item[aria-current="true"]{background:var(--theme-surface);box-shadow:0 0 0 1px var(--theme-border),inset 3px 0 0 var(--theme-primary)}
 ${R} .ui-fnav-item[aria-current="true"] b{color:var(--theme-primary)}
-${R} .ui-fpane{min-width:0;padding:10px 12px}
+${R} .ui-fpane{min-width:0;padding:10px 12px;max-height:var(--ui-fdesk-max);overflow-y:auto}
 ${R} .ui-fopts{display:flex;flex-direction:column}
 ${R} .ui-fopts .ui-check,${R} .ui-fopts .ui-radio{display:flex;align-items:center;height:36px;padding:0 8px;border-radius:var(--ui-radius-sm)}
 ${R} .ui-fopts .ui-radios{gap:0}
