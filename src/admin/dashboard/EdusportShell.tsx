@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { tabletQuery } from '../../club/ui-breakpoints';
 import { createRoot } from 'react-dom/client';
 import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, UMAMI_URL, ANUNTURI_TO, NAVIGATION_TO, SEZOANE_TO } from './menu';
 import type { Group } from './menu';
@@ -247,7 +248,7 @@ html[${MODE_ATTR}="custom"] [${SHELL_PARENT_ATTR}] {
   transition: padding-left .26s cubic-bezier(.4,0,.2,1);
 }
 html[${MODE_ATTR}="custom"][${RAIL_ATTR}="1"] [${SHELL_PARENT_ATTR}] { padding-left: 58px !important; }
-@media (max-width: 640px) {
+@media ${tabletQuery} {
   html[${MODE_ATTR}="custom"] [${SHELL_PARENT_ATTR}],
   html[${MODE_ATTR}="custom"][${RAIL_ATTR}="1"] [${SHELL_PARENT_ATTR}] { padding-left: 0 !important; }
   .esd-side { display: none !important; }
@@ -349,7 +350,7 @@ html[${MODE_ATTR}="custom"][${RAIL_ATTR}="1"] [${SHELL_PARENT_ATTR}] { padding-l
 .esd-fab { position: fixed; left: 16px; bottom: 16px; z-index: 100; display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--palette-brand-navy); color: var(--palette-grey-0); border: none; border-radius: var(--ui-radius-sm); font-size: 12.5px; font-family: system-ui, -apple-system, sans-serif; cursor: pointer; box-shadow: 0 4px 16px color-mix(in srgb, var(--palette-grey-1000) 25%, transparent); }
 .esd-fab:hover { background: var(--palette-shell-raised); }
 .esd-fab .mark { width: 20px; height: 20px; border-radius: var(--ui-radius-md); background: var(--palette-blue-600); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 10px; }
-@media (max-width: 640px) { .esd-fab { display: none; } }
+@media ${tabletQuery} { .esd-fab { display: none; } }
 `;
 
 /**

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { tabletQuery } from '../club/ui-breakpoints';
 import { createPortal } from 'react-dom';
 import { ensureAdminUi } from './ui/styles';
 import { useAreas } from './lib/useAreas';
@@ -29,7 +30,7 @@ const JWT_COOKIE_NAME = 'jwtToken';
  */
 const NAV_CSS = `
 :root{--ui-topbar:56px}
-@media (max-width: 640px){
+@media ${tabletQuery}{
 [data-edusport-strapi-topbar]{display:none !important}
 nav:has(button[aria-controls="burger-menu"]){display:none !important}
 body{padding-top:var(--ui-topbar)}
@@ -53,7 +54,7 @@ body{padding-top:var(--ui-topbar)}
 .ui-root .edu-mnav-item:hover{background:var(--theme-primary-soft);border-left-color:var(--theme-primary)}
 `;
 
-function useIsMobile(query = '(max-width: 640px)'): boolean {
+function useIsMobile(query = tabletQuery): boolean {
   const [matches, setMatches] = React.useState(false);
   React.useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;

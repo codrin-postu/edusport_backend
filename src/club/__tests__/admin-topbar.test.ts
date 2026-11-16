@@ -33,7 +33,7 @@ describe('phone top bar wiring', () => {
   });
 
   it('hides the tagged header on phones and shows the EduSport bar', () => {
-    const media = css.slice(css.indexOf('@media (max-width: 640px)'));
+    const media = css.slice(css.indexOf('@media ${tabletQuery}'));
     expect(media).toContain('[data-edusport-strapi-topbar]');
     expect(media).toContain('display:none');
     expect(media).toContain('nav:has(button[aria-controls="burger-menu"]){display:none !important}');

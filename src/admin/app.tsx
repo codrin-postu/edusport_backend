@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { tabletQuery } from '../club/ui-breakpoints';
 import { createRoot } from 'react-dom/client';
 import type { StrapiApp } from '@strapi/strapi/admin';
 import componentPreview from '../plugins/component-preview/admin/src';
@@ -126,7 +127,7 @@ const MOBILE_OVERRIDES_CSS = `
   }
 }
 
-@media (max-width: 640px) {
+@media ${tabletQuery} {
   /* Hide Strapi's main navigation sidebar - replaced by our MobileNav burger. */
   nav[${SIDEBAR_DATA_ATTR}] {
     display: none !important;
