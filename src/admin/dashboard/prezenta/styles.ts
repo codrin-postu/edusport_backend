@@ -3,8 +3,8 @@
  * The Sportivi CSS (SPORTIVI_CSS) and the Grupe CSS (GRUPE_CSS) are loaded alongside it.
  */
 export const PREZENTA_CSS = `
-.ui-root .pz-notices{display:flex;flex-direction:column;gap:8px;padding:12px 18px 0}
-.ui-root .pz-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 18px;border-bottom:1px solid var(--theme-border)}
+.ui-root .pz-notices{display:flex;flex-direction:column;gap:8px;padding:12px var(--ui-inset) 0}
+.ui-root .pz-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px var(--ui-inset);border-bottom:1px solid var(--theme-border)}
 .ui-root .pz-head-slot{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ui-root .pz-head-slot .ui-input{width:auto}
 .ui-root .pz-seg{display:inline-flex;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);overflow:hidden;background:var(--theme-surface)}
@@ -22,12 +22,12 @@ export const PREZENTA_CSS = `
 .ui-root .pz-datewrap{position:relative;display:inline-flex}
 .ui-root .pz-datehidden{position:absolute;left:0;bottom:0;width:100%;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
 .ui-root .pz-seg-label{min-width:150px}
-.ui-root .pz-dayrow td{padding:3px 14px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.3;color:var(--theme-text-secondary);background:var(--theme-surface-subtle);border-bottom:1px solid var(--theme-border);scroll-margin-top:72px}
+.ui-root .pz-dayrow td{padding:3px var(--ui-inset);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.3;color:var(--theme-text-secondary);background:var(--theme-surface-subtle);border-bottom:1px solid var(--theme-border);scroll-margin-top:72px}
 .ui-root .pz-dayrow--today td{color:var(--theme-primary);background:var(--theme-primary-soft)}
 .ui-root .pz-table tr.pz-today td:first-child{box-shadow:inset 3px 0 0 var(--theme-primary)}
-.ui-root .pz-dayhead{margin:0;padding:3px 14px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.3;color:var(--theme-text-secondary);background:var(--theme-surface-subtle);border-bottom:1px solid var(--theme-border);scroll-margin-top:72px}
+.ui-root .pz-dayhead{margin:0;padding:3px var(--ui-inset);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.3;color:var(--theme-text-secondary);background:var(--theme-surface-subtle);border-bottom:1px solid var(--theme-border);scroll-margin-top:72px}
 .ui-root .pz-dayhead--today{color:var(--theme-primary);background:var(--theme-primary-soft)}
-.ui-root .pz-grid-wrap{overflow-x:auto;padding:0 0 4px}
+.ui-root .pz-grid-wrap{overflow-x:auto;padding:0 var(--ui-inset) 4px}
 .ui-root .pz-grid{border-collapse:separate;border-spacing:2px;width:100%;table-layout:fixed;min-width:560px}
 .ui-root .pz-grid--luna{min-width:880px}
 .ui-root .pz-grid th{padding:5px 2px;text-align:center;font-size:10.5px;font-weight:600;color:var(--theme-text-secondary);background:var(--theme-surface)}
@@ -45,12 +45,12 @@ export const PREZENTA_CSS = `
 .ui-root .pz-cell--s2{background:color-mix(in srgb,var(--theme-primary) 34%,var(--theme-surface));color:var(--theme-text)}
 .ui-root .pz-cell--s3{background:color-mix(in srgb,var(--theme-primary) 56%,var(--theme-surface));color:var(--theme-text)}
 .ui-root .pz-cell--s4{background:var(--theme-primary);color:var(--theme-on-primary)}
-.ui-root .pz-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:10px 18px;font-size:11px;color:var(--theme-text-secondary);border-top:1px solid var(--theme-border)}
+.ui-root .pz-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:12px var(--ui-inset);font-size:11px;color:var(--theme-text-secondary);border-top:1px solid var(--theme-border)}
 .ui-root .pz-legend-item{display:inline-flex;align-items:center;gap:5px}
 .ui-root .pz-legend i{display:inline-block;width:14px;height:12px;border:1px solid var(--theme-border)}
-.ui-root .pz-label{margin:0;padding:9px 18px 5px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--theme-text-secondary);background:var(--theme-surface-subtle);border-bottom:1px solid var(--theme-border)}
+.ui-root .pz-label{margin:0;padding:9px var(--ui-inset) 5px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--theme-text-secondary);background:var(--theme-surface-subtle);border-bottom:1px solid var(--theme-border)}
 .ui-root .pz-label--warn{color:var(--theme-warning);background:var(--theme-warning-bg)}
-.ui-root .pz-empty{margin:0;padding:16px 18px;color:var(--theme-text-muted)}
+.ui-root .pz-empty{margin:0;padding:16px var(--ui-inset);color:var(--theme-text-muted)}
 .ui-root .pz-sub{display:block;font-size:11.5px;color:var(--theme-text-muted)}
 .ui-root .pz-state--nefacuta{color:var(--theme-warning);font-weight:600}
 .ui-root .pz-lesson-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -77,18 +77,18 @@ export const PREZENTA_CSS = `
 .ui-root .pz-hist li{padding:6px 0;border-bottom:1px solid var(--theme-border-subtle);font-size:12.5px;color:var(--theme-text)}
 .ui-root .pz-foot{display:flex;align-items:center;gap:8px;width:100%}
 .ui-root .pz-foot-count{margin-right:auto;font-weight:600;color:var(--theme-text)}
-.ui-root .pz-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:14px 18px}
+.ui-root .pz-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:12px var(--ui-inset)}
 @media (max-width:640px){
 .ui-root .pz-tiles{grid-template-columns:minmax(0,1fr)}
 .ui-root .pz-two{grid-template-columns:minmax(0,1fr)}
 .ui-root .pz-bar-sp{display:none}
 }
-.ui-root .pz-mx-sub{margin:0;padding:10px 18px 0;font-size:13px;color:var(--theme-text-secondary)}
+.ui-root .pz-mx-sub{margin:0;padding:12px var(--ui-inset) 0;font-size:13px;color:var(--theme-text-secondary)}
 .ui-root .pz-mx-wrap{overflow-x:auto;padding:10px 0 4px}
 .ui-root .pz-mx{border-collapse:separate;border-spacing:0;min-width:100%;font-size:13px}
 .ui-root .pz-mx th,.ui-root .pz-mx td{padding:6px 8px;text-align:center;border-bottom:1px solid var(--theme-border);background:var(--theme-surface);white-space:nowrap}
 .ui-root .pz-mx thead th{font-size:11.5px;font-weight:600;color:var(--theme-text-secondary);vertical-align:bottom}
-.ui-root .pz-mx .pz-mx-name{position:sticky;left:0;z-index:1;min-width:150px;text-align:left;padding-left:18px;box-shadow:1px 0 0 var(--theme-border)}
+.ui-root .pz-mx .pz-mx-name{position:sticky;left:0;z-index:1;min-width:150px;text-align:left;padding-left:var(--ui-inset);box-shadow:1px 0 0 var(--theme-border)}
 .ui-root .pz-mx-colbtn{all:unset;display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;cursor:pointer;font-weight:600;color:inherit}
 .ui-root .pz-mx-colbtn:hover{color:var(--theme-primary)}
 .ui-root .pz-mx-colbtn:focus-visible{outline:2px solid var(--theme-focus);outline-offset:2px}
@@ -99,5 +99,5 @@ export const PREZENTA_CSS = `
 .ui-root .pz-mx-check{display:inline-flex;color:var(--theme-success)}
 .ui-root .pz-mx-u{font-weight:700;color:var(--theme-text-secondary)}
 .ui-root .pz-mx-total{font-weight:600}
-.ui-root .pz-mx .pz-mx-vis td{text-align:left;padding-left:18px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--theme-text-secondary);background:var(--theme-surface-subtle)}
+.ui-root .pz-mx .pz-mx-vis td{text-align:left;padding-left:var(--ui-inset);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--theme-text-secondary);background:var(--theme-surface-subtle)}
 `;

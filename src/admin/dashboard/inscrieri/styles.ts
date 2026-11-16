@@ -14,7 +14,7 @@ const LIST_CSS =
   '.ui-root .ins-name b{display:block}' +
   '.ui-root .ins-ex{display:flex;align-items:center;gap:5px;margin-top:1px;min-height:14px;font-size:11.5px;font-weight:600;color:var(--theme-info)}' +
   '.ui-root .ins-exf{display:inline-flex;align-items:center;gap:6px}' +
-  '.ui-root .ins-schools{padding:0 18px;border-bottom:1px solid var(--theme-border)}' +
+  '.ui-root .ins-schools{padding:0 var(--ui-inset);border-bottom:1px solid var(--theme-border)}' +
   '.ui-root .ins-back{padding:4px 18px 10px}' +
   '.ui-root .sbt-tag{min-width:0}' +
   '.ui-root .sbt-clist td.ins-school{min-width:140px;white-space:normal;line-height:1.25}' +

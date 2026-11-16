@@ -74,7 +74,7 @@ function GroupBody({ page, api, tab, onTab }: { page: GroupPageData; api: GrupeA
     <>
       <CoachAccounts coaches={page.coaches} />
       {page.priceList && <PriceListRow list={page.priceList} />}
-      <Tabs items={tabs} value={tab} onChange={(id) => onTab(id as GroupTab)} label={GRUPE_COPY.title} panelId="grp-panel" className="spv-tabs" />
+      <Tabs items={tabs} value={tab} onChange={(id) => onTab(id as GroupTab)} label={GRUPE_COPY.title} panelId="grp-panel" />
       <div role="tabpanel" id="grp-panel">
         {tab === 'sportivi' && <RosterTab page={page} api={api} />}
         {tab === 'program' && <ProgramTab page={page} api={api} />}

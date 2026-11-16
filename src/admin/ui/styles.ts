@@ -315,8 +315,9 @@ ${R} .ui-sheetdd-b{flex:1;min-height:0;overflow-y:auto}
 ${R} .ui-sheetdd-f{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--theme-border)}
 
 /* tabs */
-${R} .ui-tabs{display:flex;gap:2px;border-bottom:1px solid var(--theme-border);overflow-x:auto}
+${R} .ui-tabs{display:flex;gap:2px;padding-inline:var(--ui-inset);border-bottom:1px solid var(--theme-border);overflow-x:auto}
 ${R} .ui-tab{display:inline-flex;align-items:center;gap:6px;font-family:inherit;font-size:var(--ui-fs-body-sm);font-weight:600;color:var(--theme-text-muted);background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;padding:9px 12px;cursor:pointer;white-space:nowrap}
+${R} .ui-tabs .ui-tab:first-child{padding-left:0}
 ${R} .ui-tab:hover{color:var(--theme-text)}
 ${R} .ui-tab[aria-selected="true"]{color:var(--theme-primary);border-bottom-color:var(--theme-primary)}
 ${R} .ui-tab-count{font-size:10.5px;font-weight:700;color:var(--theme-text-muted);background:var(--theme-neutral-bg);border-radius:var(--ui-radius-sm);padding:0 5px}
@@ -334,7 +335,7 @@ ${R} .ui-pg-gap{min-width:16px;text-align:center}
 ${R} .ui-confirm-typed .ui-label{text-transform:none;letter-spacing:0;font-size:var(--ui-fs-body-sm);font-weight:600;color:var(--theme-text)}
 
 /* data table */
-${R} .ui-table-bar{display:flex;align-items:center;gap:10px;padding:12px 18px;border-bottom:1px solid var(--theme-border);flex-wrap:wrap}
+${R} .ui-table-bar{display:flex;align-items:center;gap:10px;padding:12px var(--ui-inset);border-bottom:1px solid var(--theme-border);flex-wrap:wrap}
 ${R} .ui-table-search{flex:1;min-width:200px;max-width:420px}
 ${R} .ui-table-wrap{position:relative;overflow-x:auto}
 ${R} .ui-table{border-collapse:collapse;width:100%;font-size:var(--ui-fs-body)}
@@ -346,7 +347,9 @@ ${R} .ui-table th[aria-sort="ascending"],${R} .ui-table th[aria-sort="descending
 ${R} .ui-table td{padding:10px 14px;border-bottom:1px solid var(--theme-border-subtle);vertical-align:middle}
 ${R} .ui-table tbody tr.ui-table-click{cursor:pointer}
 ${R} .ui-table tbody tr.ui-table-click:hover td{background:var(--theme-surface-subtle)}
-${R} .ui-table-pager{padding:11px 18px;border-top:1px solid var(--theme-border)}
+${R} .ui-win > .ui-table-wrap .ui-table th:first-child,${R} .ui-win > .ui-table-wrap .ui-table td:first-child,${R} .ui-win > :not(.ui-body):not(.ui-sec-b) .ui-table-wrap .ui-table th:first-child,${R} .ui-win > :not(.ui-body):not(.ui-sec-b) .ui-table-wrap .ui-table td:first-child{padding-left:var(--ui-inset)}
+${R} .ui-win > .ui-table-wrap .ui-table th:last-child,${R} .ui-win > .ui-table-wrap .ui-table td:last-child,${R} .ui-win > :not(.ui-body):not(.ui-sec-b) .ui-table-wrap .ui-table th:last-child,${R} .ui-win > :not(.ui-body):not(.ui-sec-b) .ui-table-wrap .ui-table td:last-child{padding-right:var(--ui-inset)}
+${R} .ui-table-pager{padding:12px var(--ui-inset);border-top:1px solid var(--theme-border)}
 ${R} .ui-table-sort{font-size:9px;opacity:.8}
 
 /* image picker */
@@ -375,8 +378,8 @@ ${R} .ui-inbox-reader{min-width:0;padding:var(--ui-space-4) 18px}
 ${R} .ui-inbox-back{display:none}
 ${R} .ui-inbox-group{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--theme-text-muted);padding:10px 14px 6px;background:var(--theme-surface-subtle);border-bottom:1px solid var(--theme-border-subtle)}
 ${R} .ui-inbox-pager{padding:10px 14px;border-top:1px solid var(--theme-border)}
-${R} .ui-inbox-head{display:flex;flex-direction:column;gap:var(--ui-space-3);padding:var(--ui-space-3) 18px 0}
-${R} .ui-inbox-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:var(--ui-space-3) 18px;border-bottom:1px solid var(--theme-border)}
+${R} .ui-inbox-head{display:flex;flex-direction:column;gap:var(--ui-space-3);padding:var(--ui-space-3) var(--ui-inset) 0}
+${R} .ui-inbox-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:var(--ui-space-3) var(--ui-inset);border-bottom:1px solid var(--theme-border)}
 ${R} .ui-inbox-row{display:flex;gap:10px;align-items:flex-start}
 ${R} .ui-inbox-row-pick{flex-shrink:0;padding-top:1px}
 ${R} .ui-inbox-row-bd{flex:1;min-width:0}
