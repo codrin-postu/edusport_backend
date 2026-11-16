@@ -46,11 +46,20 @@ describe('a cancelled lesson in every list that shows lessons', () => {
     expect(rows.map((x) => x.kind === 'lesson' && [x.lessonId, x.cancelled, x.reason])).toEqual([['l-x', true, 'bolnav'], ['l-y', false, null]]);
   });
 
+  it('a cancelled lesson of another coach shows cancelled but never its reason', async () => {
+    const c = await seeded();
+    c.fake.state.lessons[0].coachIds = ['tm-virgil'];
+    const r = await readClubToday(c);
+    if (!r.ok) throw new Error('refused');
+    const row = r.data.rows.find((x) => x.kind === 'lesson' && x.startTime === '16:00');
+    expect(row).toMatchObject({ cancelled: true, reason: null, own: false, lessonId: null });
+  });
+
   it('the coach lesson page is cancelled and not editable', async () => {
     const c = await seeded();
     const r = await readCoachLesson(c, 'l-x');
     if (!r.ok) throw new Error('refused');
-    expect(r.data).toMatchObject({ cancelled: true, cancelReason: 'bolnav', editable: false });
+    expect(r.data).toMatchObject({ cancelled: true, cancelReason: 'bolnav', editable: false, planEditable: false });
     const other = await readCoachLesson(c, 'l-y');
     expect(other.ok && other.data).toMatchObject({ cancelled: false, cancelReason: null });
   });

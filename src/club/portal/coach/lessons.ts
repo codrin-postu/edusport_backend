@@ -40,7 +40,7 @@ export async function readCoachLesson(c: CoachContexts, id: string): Promise<Adm
   if (panel.ok === false) return panel;
   const row = l.seriesId ? await c.presence.store.lessonSeries(l.seriesId) : null;
   const series = row ? toLessonSeriesView(row, await c.presence.store.seasons()) : null;
-  const planEditable = !l.recorded && l.date >= c.today;
+  const planEditable = !l.recorded && l.date >= c.today && !panel.data.cancelled;
   return { ok: true, data: toCoachLesson(panel.data, { team: await c.presence.store.teamMembers(), right: rightOf(c, l), paid: !panel.data.deletable, series, planEditable }) };
 }
 
