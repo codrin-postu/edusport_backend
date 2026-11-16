@@ -2,6 +2,7 @@ import { refuse, type AdminResult } from '../admin-result';
 import type { PortalAuthContext, PortalResult } from './auth/context';
 import { noticeLockout } from './auth/login';
 import { PORTAL_ACTIONS, PORTAL_ERRORS, PORTAL_TOASTS } from './copy';
+import { isLive } from '../security/device-life';
 import { isConfirmedDevice } from './devices';
 import { normalizeEmail } from './limits';
 import { checkPassword } from './passwords';
@@ -74,9 +75,9 @@ async function storePassword(s: MeScope, auth: PortalAuthContext, passwordHash: 
 
 const hashOf = (deviceKey: string | null): string | null => (deviceKey ? hashSecret(deviceKey) : null);
 
-/** Confirmed, not revoked devices of the account on this host. */
-export async function liveDevices(s: Pick<MeScope, 'portal' | 'accountId' | 'host'>): Promise<Awaited<ReturnType<PortalStore['devices']>>> {
-  return (await s.portal.devices(s.accountId)).filter((d) => d.revokedAt === null && d.host === s.host && isConfirmedDevice(d));
+/** Confirmed, not revoked devices of the account on this host, seen within 30 days. */
+export async function liveDevices(s: Pick<MeScope, 'portal' | 'accountId' | 'host' | 'now'>): Promise<Awaited<ReturnType<PortalStore['devices']>>> {
+  return (await s.portal.devices(s.accountId)).filter((d) => d.host === s.host && isLive(d, s.now()) && isConfirmedDevice(d));
 }
 
 /** Newest first; `current` is the device whose key the caller sent. */

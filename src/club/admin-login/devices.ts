@@ -4,7 +4,7 @@ import type { AdminDeviceView } from '../security/api-types';
 import { PORTAL_ERRORS } from '../portal/copy';
 import { deviceLabel } from '../portal/devices';
 import { hashSecret, newDeviceKey, sameHash } from '../portal/tokens';
-import { isLive, labelSeenRecently, reusableRow } from '../security/device-life';
+import { cookieKnown, isLive, reusableRow } from '../security/device-life';
 import { isRemembered, rememberUntil } from '../security/remembered';
 import type { AdminDeviceRow, SecurityStore } from '../security/store';
 import { adminSessionManager, clearRefreshCookie, type AdminSessionCtx } from './session';
@@ -17,8 +17,8 @@ export const ADMIN_DEVICE_COOKIE_MS = 400 * 24 * 3600_000;
 type BindCtx = { store: SecurityStore; now: () => Date; userAgent: string | null; endFamily?: (strapiDeviceId: string) => Promise<void> };
 type Bound = { device: AdminDeviceRow; newKey: string | null; isNew: boolean };
 
-/** The new-device mail decision, in one place: no row of this label (revoked or not) was seen in 30 days. */
-export const newDeviceMailDue = (rows: AdminDeviceRow[], label: string, now: Date): boolean => !labelSeenRecently(rows, label, now);
+/** The new-device mail decision, in one place: due unless the browser presented a device cookie that matches a row of this account (live, stale or ended). The label plays no part. */
+export const newDeviceMailDue = (rows: AdminDeviceRow[], cookieValue: string | null): boolean => !cookieKnown(rows, cookieValue);
 
 async function endStale(c: BindCtx, row: AdminDeviceRow, at: string): Promise<void> {
   await c.endFamily?.(row.strapiDeviceId);
@@ -51,7 +51,7 @@ export async function bindAdminDevice(c: BindCtx, adminId: number, cookieValue: 
   const at = now.toISOString();
   const label = deviceLabel(c.userAgent);
   const rows = await c.store.adminDevices(adminId);
-  const isNew = newDeviceMailDue(rows, label, now);
+  const isNew = newDeviceMailDue(rows, cookieValue);
   const found = cookieValue ? rows.find((d) => sameHash(hashSecret(cookieValue), d.deviceKeyHash)) ?? null : null;
   if (found && isLive(found, now)) {
     await c.store.updateAdminDevice(found.id, { lastSeenAt: at });

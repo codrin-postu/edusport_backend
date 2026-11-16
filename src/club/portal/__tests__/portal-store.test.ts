@@ -33,6 +33,10 @@ function recordingStrapi(calls: Call[], opts: { rolePresent?: boolean } = {}): C
       calls.push({ table, op: 'deleteMany', arg: a });
       return { count: 2 };
     },
+    updateMany: async (a: unknown) => {
+      calls.push({ table, op: 'updateMany', arg: a });
+      return { count: (a as { where: { deviceKeyHash?: string } }).where.deviceKeyHash === 'stale' ? 0 : 1 };
+    },
   });
   const documents = (table: string) => ({
     findOne: async () => ({ documentId: 'lim-doc', key: 'k', count: 0, windowStart: '2026-11-06T10:00:00.000Z', lockedUntil: null, notifiedAt: null }),
@@ -100,6 +104,15 @@ describe('strapiPortalStore', () => {
     expect(calls[3].arg).toEqual({ where: { $or: [{ revokedAt: { $lt: '2026-10-07T10:00:00.000Z' } }, { confirmedAt: { $null: true }, sessionId: { $null: true }, firstSeenAt: { $lt: '2026-11-06T10:00:00.000Z' } }] } });
     expect(calls[1].arg).toEqual({ where: { $or: [{ usedAt: { $lt: '2026-10-07T10:00:00.000Z' } }, { expiresAt: { $lt: '2026-10-07T10:00:00.000Z' } }] } });
     expect(JSON.stringify(calls[2].arg)).toContain('"lastUsedAt":{"$lt":"2026-09-30T10:00:00.000Z"}');
+  });
+
+  it('rebindDevice writes guarded by the old key hash and answers whether a row matched', async () => {
+    const calls: Call[] = [];
+    const store = strapiPortalStore(recordingStrapi(calls));
+    const next = { deviceKeyHash: 'new', sessionId: null, firstSeenAt: 'a', lastSeenAt: 'a', revokedAt: null, confirmedAt: null, twoFactorUntil: null };
+    expect(await store.rebindDevice('d1', 'old', next)).toBe(true);
+    expect(await store.rebindDevice('d1', 'stale', next)).toBe(false);
+    expect(calls[0]).toMatchObject({ table: 'api::portal-device.portal-device', op: 'updateMany', arg: { where: { documentId: 'd1', deviceKeyHash: 'old' }, data: next } });
   });
 
   it('record writes a history entry with subject portal-account', async () => {

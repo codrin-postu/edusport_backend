@@ -21,7 +21,7 @@ describe('device row made at the password step is unconfirmed (M1)', () => {
     await s.enrol(id);
     const pending = pendingOf(await login(s));
     expect((await s.store.devices(id))).toHaveLength(1);
-    const coachCtx = { coach: { accountId: id, userId: 1, sessionId: 'x', teamMemberId: 'tm1', name: 'Ana' }, portal: s.store } as never;
+    const coachCtx = { coach: { accountId: id, userId: 1, sessionId: 'x', teamMemberId: 'tm1', name: 'Ana' }, portal: s.store, presence: { now: s.c.now } } as never;
     expect(await listDevices(coachCtx, pending.deviceKey)).toEqual({ ok: true, data: [] });
     const done = await portalSecondStep(s.c, { pending: pending.pending, method: 'totp', code: s.totp(), remember: false, deviceKey: pending.deviceKey });
     expect(done.ok).toBe(true);

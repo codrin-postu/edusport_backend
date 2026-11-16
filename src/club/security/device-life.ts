@@ -1,3 +1,5 @@
+import { hashSecret, sameHash } from '../portal/tokens';
+
 export const DEVICE_STALE_DAYS = 30;
 
 const STALE_MS = DEVICE_STALE_DAYS * 24 * 3600_000;
@@ -17,6 +19,6 @@ export function reusableRow<T extends Life>(rows: T[], label: string, now: Date)
   return ended.sort((a, b) => b.lastSeenAt.localeCompare(a.lastSeenAt))[0] ?? null;
 }
 
-/** Any row of that label, revoked or not, seen within 30 days: the new-device mail is not due. */
-export const labelSeenRecently = (rows: Life[], label: string, now: Date): boolean =>
-  rows.some((d) => d.label === label && !isStale(d.lastSeenAt, now));
+/** The browser proved itself by a device cookie whose key hash is a row of this account (live, stale or ended): the new-device mail is not due. The label plays no part: it is client-supplied and shared by most computers. */
+export const cookieKnown = (rows: { deviceKeyHash: string }[], cookieValue: string | null): boolean =>
+  cookieValue !== null && rows.some((d) => sameHash(hashSecret(cookieValue), d.deviceKeyHash));

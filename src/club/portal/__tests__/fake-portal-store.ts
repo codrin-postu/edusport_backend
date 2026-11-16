@@ -178,7 +178,7 @@ function tokens(state: FakePortalState): Pick<PortalStore, 'tokens' | 'tokenByHa
   };
 }
 
-function devices(state: FakePortalState): Pick<PortalStore, 'devices' | 'deviceByKey' | 'createDevice' | 'updateDevice'> {
+function devices(state: FakePortalState): Pick<PortalStore, 'devices' | 'deviceByKey' | 'createDevice' | 'updateDevice' | 'rebindDevice'> {
   return {
     devices: async (accountId) => copy(state.devices.filter((d) => d.accountId === accountId)),
     deviceByKey: async (accountId, keyHash, host) => {
@@ -192,6 +192,12 @@ function devices(state: FakePortalState): Pick<PortalStore, 'devices' | 'deviceB
     },
     updateDevice: async (id, d) => {
       Object.assign(must(state.devices, id), defined(d));
+    },
+    rebindDevice: async (id, oldKeyHash, d) => {
+      const row = state.devices.find((x) => x.id === id && x.deviceKeyHash === oldKeyHash);
+      if (!row) return false;
+      Object.assign(row, d);
+      return true;
     },
   };
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEVICE_STALE_DAYS, isLive, isStale, labelSeenRecently, reusableRow } from '../device-life';
+import { hashSecret } from '../../portal/tokens';
+import { DEVICE_STALE_DAYS, isLive, isStale, cookieKnown, reusableRow } from '../device-life';
 
 const DAY = 24 * 3600_000;
 const now = new Date('2026-11-16T12:00:00.000Z');
@@ -28,9 +29,10 @@ describe('device life', () => {
     expect(reusableRow([row('A', ago(DAY)), row('B', ago(50 * DAY))], 'A', now)).toBeNull();
   });
 
-  it('labelSeenRecently counts revoked rows seen within 30 days', () => {
-    expect(labelSeenRecently([row('A', ago(10 * DAY), ago(9 * DAY))], 'A', now)).toBe(true);
-    expect(labelSeenRecently([row('A', ago(31 * DAY))], 'A', now)).toBe(false);
-    expect(labelSeenRecently([row('B', ago(DAY))], 'A', now)).toBe(false);
+  it('cookieKnown is true only for a cookie whose hash is a row of the list, whatever the row state', () => {
+    const rows = [{ deviceKeyHash: hashSecret('mine') }];
+    expect(cookieKnown(rows, 'mine')).toBe(true);
+    expect(cookieKnown(rows, 'other')).toBe(false);
+    expect(cookieKnown(rows, null)).toBe(false);
   });
 });

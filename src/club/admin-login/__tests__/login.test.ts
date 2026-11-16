@@ -223,21 +223,46 @@ describe('password login: the session', () => {
     expect(env.sessions.rows.map((r) => r.deviceId)).toEqual([rows[0].strapiDeviceId]);
   });
 
-  it('mails only for a label not seen in 30 days', async () => {
+  it('no cookie: the mail goes even with the same label as an existing row (limit permitting)', async () => {
     const env = loginEnv();
     const mails = () => env.portalMails.filter((m) => m.mail.kind === 'new-device').length;
     await env.login();
     await flush();
     expect(mails()).toBe(1);
     env.jar.clear();
-    await env.login();
-    await flush();
-    expect(mails()).toBe(1);
-    env.jar.clear();
-    env.advance(31 * 24 * 3600_000);
+    env.advance(3600_001);
     await env.login();
     await flush();
     expect(mails()).toBe(2);
+  });
+
+  it('the cookie of an ended row of this account: no mail', async () => {
+    const env = loginEnv();
+    const mails = () => env.portalMails.filter((m) => m.mail.kind === 'new-device').length;
+    await env.login();
+    await flush();
+    const [row] = await env.c.store.adminDevices(7);
+    await env.c.store.updateAdminDevice(row.id, { revokedAt: env.c.now().toISOString() });
+    env.browser();
+    env.advance(3600_001);
+    await env.login();
+    await flush();
+    expect(mails()).toBe(1);
+  });
+
+  it('the cookie of another account row sends the mail', async () => {
+    const env = loginEnv();
+    env.addAdmin({ id: 8, email: 'bob@x.ro', password: `hash:${PASSWORD}` });
+    const mails = () => env.portalMails.filter((m) => m.mail.kind === 'new-device').length;
+    await env.login();
+    await flush();
+    expect(mails()).toBe(1);
+    env.browser();
+    env.advance(3600_001);
+    await env.login({ email: 'bob@x.ro' });
+    await flush();
+    expect(mails()).toBe(2);
+    expect(await env.c.store.adminDevices(8)).toHaveLength(1);
   });
 
   it('lists no stale device', async () => {

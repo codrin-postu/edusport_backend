@@ -1,6 +1,7 @@
 import { deviceLabel } from '../devices';
-import { hashSecret, newDeviceKey } from '../tokens';
+import { hashSecret, newDeviceKey, sameHash } from '../tokens';
 import type { AccountRow, DeviceRow, UserAuth } from '../store';
+import { cookieKnown, isLive, reusableRow } from '../../security/device-life';
 import { PORTAL_ERRORS } from '../copy';
 import { canEnterHost } from '../access/rules';
 import { heldAthleteIds } from '../sportiv/holder';
@@ -14,7 +15,8 @@ export async function mayEnter(c: PortalAuthContext, account: AccountRow | null,
   return canEnterHost(account, user, host, live);
 }
 
-type Bound = { device: DeviceRow; key: string; newRow: boolean; newKey: boolean };
+/** `mailDue`: the browser showed no device cookie of this account (the label plays no part). `newKey`: the browser gets a key to keep. */
+type Bound = { device: DeviceRow; key: string; mailDue: boolean; newKey: boolean };
 
 /** A device row for a browser that has none yet (or whose row was revoked), with the key the browser keeps. The session is bound to it later. */
 export async function createDeviceRow(c: PortalAuthContext, account: AccountRow, host: string): Promise<{ device: DeviceRow; key: string }> {
@@ -25,14 +27,39 @@ export async function createDeviceRow(c: PortalAuthContext, account: AccountRow,
   return { device: { ...row, id, revokedAt: null, twoFactorUntil: null, confirmedAt: null }, key };
 }
 
+/** The ended row of the same label takes the new key; a row not yet revoked still holds sessions, which end first. The write is guarded by the old key hash: a concurrent takeover makes this one miss. */
+async function takeOver(c: PortalAuthContext, account: AccountRow, row: DeviceRow, at: string): Promise<{ device: DeviceRow; key: string } | null> {
+  if (row.revokedAt === null) await c.sessions.revokeDevice(account.userId, row.id);
+  const key = newDeviceKey();
+  const next = { deviceKeyHash: hashSecret(key), sessionId: null, firstSeenAt: at, lastSeenAt: at, revokedAt: null, confirmedAt: null, twoFactorUntil: null };
+  if (!(await c.store.rebindDevice(row.id, row.deviceKeyHash, next))) return null;
+  return { device: { ...row, ...next }, key };
+}
+
+/**
+ * The device of this browser for this account on this host: the cookie's key finds a live row (its old sessions end, the row is kept); a row
+ * unseen for 30 days ends when touched. Anything else makes a new key, which takes over the ended row of the same label on this host or else
+ * a new row. The mail is due unless the cookie matched a row of this account, live or not.
+ */
 async function bindDevice(c: PortalAuthContext, account: AccountRow, given: string | null, host: string): Promise<Bound> {
-  const found = given ? await c.store.deviceByKey(account.id, hashSecret(given), host) : null;
-  if (found && found.revokedAt === null) {
+  const now = c.now();
+  const at = now.toISOString();
+  const label = deviceLabel(c.userAgent);
+  const rows = (await c.store.devices(account.id)).filter((d) => d.host === host);
+  const mailDue = !cookieKnown(rows, given);
+  const found = given ? rows.find((d) => sameHash(hashSecret(given), d.deviceKeyHash)) ?? null : null;
+  if (found && isLive(found, now)) {
     await c.sessions.revokeDevice(account.userId, found.id);
-    return { device: found, key: given ?? '', newRow: false, newKey: false };
+    return { device: found, key: given ?? '', mailDue: false, newKey: false };
   }
-  const made = await createDeviceRow(c, account, host);
-  return { device: made.device, key: made.key, newRow: true, newKey: true };
+  const ended = reusableRow(rows, label, now);
+  if (found && found.revokedAt === null && found.id !== ended?.id) {
+    await c.sessions.revokeDevice(account.userId, found.id);
+    await c.store.updateDevice(found.id, { revokedAt: at });
+  }
+  const taken = ended ? await takeOver(c, account, ended, at) : null;
+  const bound = taken ?? (await createDeviceRow(c, account, host));
+  return { device: bound.device, key: bound.key, mailDue, newKey: true };
 }
 
 export async function mailNewDevice(c: PortalAuthContext, account: AccountRow, label: string, host: string): Promise<void> {
@@ -63,7 +90,7 @@ export async function issueSession(
     await c.store.updateAccount(fresh.id, { lastLoginAt: at });
     return { bound, tokens };
   });
-  if (o.notifyNewDevice && bound.newRow) void mailNewDevice(c, account, bound.device.label, o.host);
+  if (o.notifyNewDevice && bound.mailDue) void mailNewDevice(c, account, bound.device.label, o.host);
   return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, accessExpiresAt: tokens.accessExpiresAt, deviceKey: bound.newKey ? bound.key : null };
 }
 

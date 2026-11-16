@@ -10,6 +10,7 @@ export type NewToken = Omit<TokenRow, 'id' | 'createdAt' | 'usedAt' | 'tries'>;
 export type NewDevice = Omit<DeviceRow, 'id' | 'revokedAt' | 'twoFactorUntil' | 'confirmedAt'>;
 export type NewSession = Omit<SessionRow, 'id' | 'revokedAt' | 'previousRefreshHash'>;
 export type SessionWrite = Partial<Omit<SessionRow, 'id' | 'accountId' | 'deviceId' | 'host' | 'familyStartedAt'>>;
+export type DeviceRebind = Pick<DeviceRow, 'deviceKeyHash' | 'sessionId' | 'firstSeenAt' | 'lastSeenAt' | 'revokedAt' | 'confirmedAt' | 'twoFactorUntil'>;
 export type DeviceWrite = Partial<Pick<DeviceRow, 'sessionId' | 'lastSeenAt' | 'revokedAt' | 'label' | 'confirmedAt'>>;
 
 export interface PortalStore {
@@ -47,6 +48,8 @@ export interface PortalStore {
   deviceByKey(accountId: string, keyHash: string, host: string): Promise<DeviceRow | null>;
   createDevice(d: NewDevice): Promise<string>;
   updateDevice(id: string, d: DeviceWrite): Promise<void>;
+  /** A new login takes over an ended row: written only while the row still holds the old key hash, so a concurrent takeover makes this one answer false. */
+  rebindDevice(id: string, oldKeyHash: string, d: DeviceRebind): Promise<boolean>;
   lockSession(id: string): Promise<void>;
   session(id: string): Promise<SessionRow | null>;
   sessionByAccess(hash: string): Promise<SessionRow | null>;
