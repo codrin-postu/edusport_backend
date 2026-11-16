@@ -11,6 +11,7 @@ export const COMPETITII_COPY = {
   tiles: { competitions: 'Competiții', podiums: 'Podiumuri', bestPlacement: 'Cel mai bun loc', bestScore: 'Cel mai bun scor' },
   columns: { date: 'Data', name: 'Competiție', category: 'Categorie', placement: 'Loc', score: 'Scor' },
   season: 'Sezon',
+  allSeasons: 'Toate sezoanele',
   empty: 'Nicio competiție.',
   unavailable: 'Rezultatele nu sunt disponibile acum.',
   failed: 'Nu am putut încărca competițiile.',
@@ -39,3 +40,6 @@ export function newestFirst(lines: CompetitionLine[]): CompetitionLine[] {
 export function bySeason(lines: (CompetitionLine & { season: string })[], season: string | null): CompetitionLine[] {
   return (season === null ? lines : lines.filter((l) => l.season === season)).map(({ season: _season, ...line }) => line);
 }
+
+/** "43,20": two decimals and a Romanian decimal comma; a missing score is a hyphen. */
+export const scoreText = (v: number | null): string => (v === null ? '-' : v.toFixed(2).replace('.', ','));

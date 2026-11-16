@@ -8,7 +8,7 @@ import type { HandEntry } from '../../skate/hand';
 import { fakeHandCompetitions } from '../../skate/hand-store';
 import { pickedResults } from '../../skate/pick';
 import { skateSportivSource } from '../../skate/source';
-import { bySeason, newestFirst, summarize, type CompetitionLine } from '../competitions-view';
+import { bySeason, newestFirst, scoreText, summarize, type CompetitionLine } from '../competitions-view';
 import { readAthleteCompetitions } from '../competitions-read';
 import { recordTabs } from '../record-view';
 import type { AthleteRecord } from '../../athletes/api-types';
@@ -25,6 +25,12 @@ describe('summarize', () => {
   });
   it('has no best score when no line has one', () => {
     expect(summarize([line({ placement: 4 })]).bestScore).toBeNull();
+  });
+});
+
+describe('scoreText', () => {
+  it('shows two decimals with a comma, a hyphen when missing', () => {
+    expect([43.2, 40.05, 38.419, 7, null].map(scoreText)).toEqual(['43,20', '40,05', '38,42', '7,00', '-']);
   });
 });
 

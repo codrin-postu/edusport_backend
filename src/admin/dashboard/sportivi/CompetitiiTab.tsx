@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { DataTable, Loading, Notice, Select, StatTile, type DataColumn } from '../../ui';
-import { COMPETITII_COPY, type AthleteCompetitions, type CompetitionLine } from '../../../club/sportivi/competitions-view';
+import { COMPETITII_COPY, scoreText, type AthleteCompetitions, type CompetitionLine } from '../../../club/sportivi/competitions-view';
 import type { SportiviApi } from './api';
 
 const copy = COMPETITII_COPY;
@@ -15,7 +15,7 @@ const COLUMNS: DataColumn<CompetitionLine>[] = [
   { key: 'name', header: copy.columns.name, render: (l) => l.name },
   { key: 'category', header: copy.columns.category, render: (l) => l.category ?? dash },
   { key: 'placement', header: copy.columns.placement, align: 'right', render: (l) => num(l.placement), width: '70px' },
-  { key: 'score', header: copy.columns.score, align: 'right', render: (l) => num(l.score), width: '90px' },
+  { key: 'score', header: copy.columns.score, align: 'right', render: (l) => scoreText(l.score), width: '90px' },
 ];
 
 type State = { data: AthleteCompetitions | null; failed: boolean };
@@ -46,12 +46,12 @@ export function CompetitiiTab({ api, documentId }: { api: SportiviApi; documentI
         <StatTile label={copy.tiles.competitions} value={s.competitions} />
         <StatTile label={copy.tiles.podiums} value={s.podiums} />
         <StatTile label={copy.tiles.bestPlacement} value={num(s.bestPlacement)} />
-        <StatTile label={copy.tiles.bestScore} value={num(s.bestScore)} />
+        <StatTile label={copy.tiles.bestScore} value={scoreText(s.bestScore)} />
       </div>
       {data.seasons.length > 0 && (
         <div className="spv-comp-bar">
           <Select
-            className="spv-season" aria-label={copy.season} placeholder="Selectează" value={data.season ?? ''}
+            className="spv-season" aria-label={copy.season} placeholder={copy.allSeasons} value={data.season ?? ''}
             options={data.seasons.map((v) => ({ value: v, label: v }))} onChange={(v) => setSeason(v || null)}
           />
         </div>
