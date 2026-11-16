@@ -10,10 +10,6 @@ export const ACCESS_ERRORS = {
 } as const;
 
 export const ACCESS_COPY = {
-  adult: 'Sportiv 18+',
-  invited: 'Invitat',
-  active: 'Activ',
-  disabled: 'Cont dezactivat',
   inviteSent: 'Invitație trimisă.',
   accessAdded: 'Acces adăugat.',
   accessRemoved: 'Acces scos.',
@@ -24,8 +20,6 @@ export const ACCESS_COPY = {
   enter: 'Intră în portal',
   disableAllConfirm: (name: string): string => `Dezactivezi tot contul lui ${name}? Toate dispozitivele vor fi deconectate, și pe sportiv.`,
   removeConfirm: (email: string, athlete: string): string => `Scoți accesul lui ${email} la ${athlete}?`,
-  moveHint: (email: string): string => `Accesul în portal trece la ${email}.`,
-  stopHint: 'Accesul în portal se oprește.',
   bulkPreview: (invites: number, addresses: number): string => `${countWords(invites, 'invitație', 'invitații')} către ${countWords(addresses, 'adresă', 'adrese')}`,
   bulkToast: (n: number): string => `${countWords(n, 'invitație trimisă', 'invitații trimise')}.`,
   forChildren: (names: string[]): string => `pentru ${names.join(' și ')}`,

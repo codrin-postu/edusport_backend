@@ -1,5 +1,5 @@
 import type { AccessBlock } from '../portal/access/api-types';
-import { ACCESS_ACTIONS, ACCESS_COPY } from '../portal/access/copy';
+import { ACCESS_ACTIONS } from '../portal/access/copy';
 
 export type AccessAction = 'invite' | 'resend' | 'remove';
 
@@ -15,11 +15,3 @@ export const ACCESS_LABELS: Record<AccessAction, string> = {
   resend: ACCESS_ACTIONS.resend,
   remove: ACCESS_ACTIONS.remove,
 };
-
-/** Spec 4.4: the hint under the e-mail field while the edited value differs from the one holding the access. */
-export function emailHint(draft: string, block: AccessBlock | null): string | null {
-  if (!block || block.state === 'none' || block.email === null) return null;
-  const next = draft.trim().toLowerCase();
-  if (next === block.email.trim().toLowerCase()) return null;
-  return next === '' ? ACCESS_COPY.stopHint : ACCESS_COPY.moveHint(draft.trim());
-}

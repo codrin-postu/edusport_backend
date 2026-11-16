@@ -9,8 +9,6 @@ import {
   RECORD_COPY, acsField, checkDraft, editDraft, fieldRows, isReadOnlyRecord, registrationLine, saveToast, type DraftErrors, type EditBody, type EditDraft,
 } from '../../../club/sportivi/record-view';
 import { registrationPanelTo } from '../../../club/sportivi/routes';
-import { emailHint } from '../../../club/sportivi/access-view';
-import type { AccessBlock as AccessBlockData } from '../../../club/portal/access/api-types';
 import type { SportiviApi } from './api';
 import { AccessBlock, useAccessBlock } from './AccessBlock';
 
@@ -94,9 +92,9 @@ function DateView({ record }: { record: AthleteRecord }) {
   );
 }
 
-type FormProps = { record: AthleteRecord; draft: EditDraft; errors: DraftErrors; onChange: (d: EditDraft) => void; access: AccessBlockData | null };
+type FormProps = { record: AthleteRecord; draft: EditDraft; errors: DraftErrors; onChange: (d: EditDraft) => void };
 
-function DateForm({ record, draft, errors, onChange, access }: FormProps) {
+function DateForm({ record, draft, errors, onChange }: FormProps) {
   const set = (patch: Partial<EditDraft>) => onChange({ ...draft, ...patch });
   const label = (field: AthleteField) => ATHLETE_FIELD_LABELS[field];
   return (
@@ -113,7 +111,7 @@ function DateForm({ record, draft, errors, onChange, access }: FormProps) {
       <Field label={label('phone')} required>
         <Input type="tel" value={draft.phone} onChange={(e) => set({ phone: e.target.value })} />
       </Field>
-      <Field label={label('email')} required hint={emailHint(draft.email, access) ?? undefined}>
+      <Field label={label('email')} required>
         <Input type="email" value={draft.email} onChange={(e) => set({ email: e.target.value })} />
       </Field>
       <dl className="spv-acs">
@@ -163,7 +161,7 @@ export function DateTab(props: Props) {
     <div className="ui-body">
       <EditorCard title={RECORD_COPY.tabs.date} headerAction={<DateActions edit={edit} readOnly={readOnly} />}>
         {edit.draft ? (
-          <DateForm record={props.record} draft={edit.draft} errors={edit.errors} onChange={edit.setDraft} access={accessState.block} />
+          <DateForm record={props.record} draft={edit.draft} errors={edit.errors} onChange={edit.setDraft} />
         ) : (
           <DateView record={props.record} />
         )}
