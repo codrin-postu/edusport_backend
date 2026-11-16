@@ -40,7 +40,7 @@ describe('inviteAccount', () => {
     expect(await inviteAccount(h.c, 'tm1', { email: 'nu-e-email' })).toMatchObject({ ok: false, status: 400, error: 'Cerere invalidă.' });
     expect(await inviteAccount(h.c, 'tm1', null)).toMatchObject({ ok: false, status: 400 });
     await seedAccount(h, 'active', 'taken@example.com');
-    expect(await inviteAccount(h.c, 'tm1', { email: 'other@example.com' })).toMatchObject({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+    expect(await inviteAccount(h.c, 'tm1', { email: 'other@example.com' })).toMatchObject({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' });
     expect(await inviteAccount(h.c, 'tm2', { email: 'TAKEN@example.com' })).toMatchObject({ ok: false, status: 409, error: 'Adresa are deja un cont.' });
     expect(h.jobs).toHaveLength(0);
   });
@@ -55,7 +55,7 @@ describe('inviteAccount', () => {
         throw Object.assign(new Error('duplicate key value violates unique constraint "portal_accounts_team_member_lnk_uq" (team_member_id)'), { code: '23505', constraint: 'portal_accounts_team_member_lnk_uq' });
       }
     };
-    expect(await inviteAccount(h.c, 'tm1', { email: 'a@b.ro' })).toMatchObject({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+    expect(await inviteAccount(h.c, 'tm1', { email: 'a@b.ro' })).toMatchObject({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' });
     expect(h.after).toEqual([]);
   });
   it('a failure inside the transaction leaves nothing and queues nothing after commit', async () => {

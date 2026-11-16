@@ -76,8 +76,8 @@ describe('abonament rules', () => {
   });
   it('copy (5.8, 5.9, 5.12)', () => {
     const c = SUBSCRIPTION_COPY;
-    expect(c.extendText(14, 2)).toBe('Se prelungesc 14 abonamente active cu 2 săptămâni. Noua dată de expirare se calculează pentru fiecare.');
-    expect(c.extendText(1, 1)).toBe('Se prelungesc 1 abonament activ cu 1 săptămână. Noua dată de expirare se calculează pentru fiecare.');
+    expect(c.extendText(14, 2)).toBe('Se prelungesc 14 abonamente active cu 2 săptămâni.');
+    expect(c.extendText(1, 1)).toBe('Se prelungesc 1 abonament activ cu 1 săptămână.');
     expect(c.extendText(20, 1)).toContain('20 de abonamente active');
     expect([c.extendButton(14), c.extendButton(1)]).toEqual(['Prelungește 14 abonamente', 'Prelungește 1 abonament']);
     expect([c.extended(14, 2), c.extended(1, 1)]).toEqual(['14 abonamente prelungite cu 2 săptămâni.', '1 abonament prelungit cu 1 săptămână.']);

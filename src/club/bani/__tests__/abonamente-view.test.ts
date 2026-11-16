@@ -91,7 +91,7 @@ describe('Abonamente view', () => {
     expect(src).not.toContain('o.hint ?');
   });
   it('the extend modal (5.9)', () => {
-    expect(extendModel({ count: 14 }, 2)).toEqual({ text: 'Se prelungesc 14 abonamente active cu 2 săptămâni. Noua dată de expirare se calculează pentru fiecare.', button: 'Prelungește 14 abonamente', disabled: false });
+    expect(extendModel({ count: 14 }, 2)).toEqual({ text: 'Se prelungesc 14 abonamente active cu 2 săptămâni.', button: 'Prelungește 14 abonamente', disabled: false });
     expect(extendModel({ count: 0 }, 1).disabled).toBe(true);
     expect(extendModel(null, 1).disabled).toBe(true);
   });

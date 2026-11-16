@@ -18,8 +18,8 @@ const invalid = { ok: false, status: 400, error: 'Cerere invalidă.' };
 describe('payment input', () => {
   it('amounts: two decimals, more than 0, at most 100000, stored rounded (decided 2)', () => {
     expect([readAmount(12.5), readAmount(0.1 + 0.2), readAmount(100000)].map((r) => r.ok && r.value)).toEqual([12.5, 0.3, 100000]);
-    expect(readAmount(0)).toEqual({ ok: false, status: 400, error: 'Suma trebuie să fie mai mare decât 0.' });
-    expect(readAmount(-5)).toEqual({ ok: false, status: 400, error: 'Suma trebuie să fie mai mare decât 0.' });
+    expect(readAmount(0)).toEqual({ ok: false, status: 400, error: 'Suma trebuie să fie peste 0.' });
+    expect(readAmount(-5)).toEqual({ ok: false, status: 400, error: 'Suma trebuie să fie peste 0.' });
     expect([readAmount(12.345), readAmount(0.004), readAmount(100000.01), readAmount('320'), readAmount(Number.NaN)].map((r) => r.ok === false && r.error))
       .toEqual(['Cerere invalidă.', 'Cerere invalidă.', 'Cerere invalidă.', 'Cerere invalidă.', 'Cerere invalidă.']);
   });

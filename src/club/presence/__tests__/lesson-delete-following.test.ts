@@ -8,7 +8,7 @@ import { undoPresenceAction } from '../undo-service';
 
 const ME = 'tm-andreea';
 const TODAY = '2026-11-10';
-const STALE = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' };
+const STALE = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' };
 
 async function seeded(over: Parameters<typeof coachCtx>[2] = {}): Promise<CoachSeed & { seriesId: string; at: (d: string) => string }> {
   const c = coachCtx(ME, TODAY, over);

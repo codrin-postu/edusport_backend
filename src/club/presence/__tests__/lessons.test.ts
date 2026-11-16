@@ -69,7 +69,7 @@ describe('individual lessons', () => {
     expect(f.state.lessons[0]).toMatchObject(fields);
     const back = f.state.lessons[0].id;
     f.state.payments.push(paymentRow({ id: 'p1', athleteId: 'a5', purpose: 'lectie', lessonId: back }));
-    expect(await deleteLesson(f.ctx, back)).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+    expect(await deleteLesson(f.ctx, back)).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' });
     f.state.payments[0].cancelled = true;
     expect((await deleteLesson(f.ctx, back)).ok).toBe(true);
   });
@@ -120,7 +120,7 @@ describe('the athlete is read again after the lock (final review M3)', () => {
   });
   it('save and delete refuse 409 when the lesson moved to another athlete meanwhile', async () => {
     const fresh = () => attendanceSeed('2026-11-20', { lessons: [lessonRow({ id: 'l9', athleteId: 'a5' })] });
-    const stale = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' };
+    const stale = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' };
     const [s, d] = [fresh(), fresh()];
     expect(await saveLesson(merged(s, 'l9'), 'l9', { present: true, durationMin: 50, coachIds: ['tm-virgil'] })).toEqual(stale);
     expect(await deleteLesson(merged(d, 'l9'), 'l9')).toEqual(stale);

@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, DataTable, EditorCard, Notice, StatusBadge, type DataColumn } from '../../ui';
+import { Button, DataTable, EditorCard, HelpTip, StatusBadge, type DataColumn } from '../../ui';
 import { IconPlus } from '../../ui/icons';
 import type { AdminPriceItem, AdminPriceList } from '../../../club/price-admin';
 import { GRUPE_COPY } from '../../../club/groups/copy';
 import { groupPageTo } from '../../../club/grupe/routes';
-import { KIND_LABELS, hasTooltip, priceText } from './format';
+import { KIND_LABELS, priceText } from './format';
 
 type Row = AdminPriceItem & { index: number };
 
@@ -20,7 +20,7 @@ const COLUMNS: DataColumn<Row>[] = [
     render: (r) => (
       <>
         {r.name}
-        {r.tooltip && <span className="ui-hint" style={{ display: 'inline' }}> *</span>}
+        {r.tooltip && <> <HelpTip label={r.tooltip} /></>}
       </>
     ),
   },
@@ -60,7 +60,6 @@ export function PriceListCard({ list, sectionName, onAdd, onOpen }: PriceListCar
   );
   return (
     <EditorCard title={list.name} description={sectionName} headerAction={add}>
-      {list.items.some((i) => i.incomplete) && <Notice tone="warning" title="Preț incomplet" />}
       <DataTable<Row>
         columns={COLUMNS}
         rows={rows}
@@ -71,7 +70,6 @@ export function PriceListCard({ list, sectionName, onAdd, onOpen }: PriceListCar
         empty="Niciun preț"
       />
       {list.groups.length > 0 && <ListGroups groups={list.groups} />}
-      {hasTooltip(list.items) && <p className="ui-hint">* are tooltip. Clic pe rând pentru editare.</p>}
     </EditorCard>
   );
 }

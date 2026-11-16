@@ -20,7 +20,7 @@ export const SEASON_ERRORS = {
   order: 'Sfârșitul trebuie să fie după început.',
   fee: 'Taxa de membru nu este validă.',
   missing: 'Sezonul nu mai există.',
-  locked: 'Sezonul are înscrieri, numele lui nu se mai schimbă.',
+  locked: 'Are înscrieri, nu se mai schimbă.',
 } as const;
 
 export const seasonExistsError = (label: string) => `Sezonul ${label} există deja.`;

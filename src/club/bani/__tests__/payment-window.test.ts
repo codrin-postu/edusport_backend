@@ -43,7 +43,7 @@ describe('payment window rules', () => {
   });
   it('errors of 5.10', () => {
     const d = newDraft({ athleteId: 'a1', today: '2026-11-20', preselect: null, options: opts });
-    expect(checkDraft(d, '2026-11-20')).toEqual({ amount: 'Suma trebuie să fie mai mare decât 0.', for: 'Alege pentru ce este plata.' });
+    expect(checkDraft(d, '2026-11-20')).toEqual({ amount: 'Suma trebuie să fie peste 0.', for: 'Alege pentru ce este plata.' });
     expect(checkDraft({ ...d, amount: '12,50', optionKey: 'altceva', paidOn: '2026-11-21' }, '2026-11-20')).toEqual({ paidOn: 'Data nu poate fi în viitor.' });
   });
   it('the body sent (plan 5-3 Task 4)', () => {
@@ -56,9 +56,9 @@ describe('payment window rules', () => {
     expect(editDraft(p).sendEmail).toBe(false);
   });
   it('e-mail box disabled without an address; cancel confirmation text (C36, 5.10)', () => {
-    expect([emailBox(true), emailBox(false)]).toEqual([{ disabled: false, hint: null }, { disabled: true, hint: 'Sportivul nu are e-mail.' }]);
+    expect([emailBox(true), emailBox(false)]).toEqual([{ disabled: false, hint: null }, { disabled: true, hint: 'Fără e-mail.' }]);
     expect(emailBox(null)).toEqual({ disabled: true, hint: null });   // M3: no hint before the answer
-    expect(cancelText(paymentView({ amount: 320, paidOn: '2026-10-27' }))).toBe('Anulezi plata de 320 RON din 27 oct 2026? Rândul rămâne, marcat anulată.');
+    expect(cancelText(paymentView({ amount: 320, paidOn: '2026-10-27' }))).toBe('Anulezi plata de 320 RON din 27 oct 2026? Rămâne marcată anulată.');
   });
 });
 
@@ -77,7 +77,7 @@ describe('server refusal under the amount', () => {
     expect([optionGroup(abon380), optionHint(abon380)]).toEqual(['due', 'rămas 380 RON']);
     expect(optionHint(fee270)).toBe('270 RON');
     expect([optionGroup(paidMonth), optionHint(paidMonth)]).toEqual(['paid', 'achitat']);
-    expect([optionGroup(altceva), optionHint(altceva)]).toEqual(['other', 'orice sumă']);
+    expect([optionGroup(altceva), optionHint(altceva)]).toEqual(['other', null]);
     expect([optionGroup(emptyMonth), optionHint(emptyMonth)]).toEqual(['other', null]);
     expect(groupedOptions([altceva, paidMonth, abon380]).map((r) => r.group)).toEqual(['De plată', 'Achitate', 'Altele']);
   });

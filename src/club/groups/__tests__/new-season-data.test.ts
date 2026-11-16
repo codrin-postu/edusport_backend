@@ -36,8 +36,8 @@ describe('step 2 data (10.2)', () => {
 
 describe('copy (10.2, W29, decided 1 and 2)', () => {
   it('step 1 rows, the fee part left out without a fee', () => {
-    expect(step1Rows('2026-2027', '2027-2028', 200)[0]).toEqual({ label: 'Înscrieri', value: 'Formularul trece pe 2027-2028, taxa de membru 200 RON. Deschis sau închis din Setări site, ca acum.' });
-    expect(step1Rows('2026-2027', '2027-2028', null)[0].value).toBe('Formularul trece pe 2027-2028. Deschis sau închis din Setări site, ca acum.');
+    expect(step1Rows('2026-2027', '2027-2028', 200)[0]).toEqual({ label: 'Înscrieri', value: 'Formularul trece pe 2027-2028, taxa de membru 200 RON.' });
+    expect(step1Rows('2026-2027', '2027-2028', null)[0].value).toBe('Formularul trece pe 2027-2028.');
   });
 
   it('summary with its parts and forms', () => {
@@ -57,6 +57,5 @@ describe('copy (10.2, W29, decided 1 and 2)', () => {
   it('keeps the window texts of the spec', () => {
     expect(NEW_SEASON_COPY.title('2027-2028')).toBe('Începe sezonul 2027-2028');
     expect(NEW_SEASON_COPY.stepOf(2)).toBe('Pasul 2 din 3');
-    expect(NEW_SEASON_COPY.mainRule).toBe('Grupa principală rămâne aceeași dacă se copiază și ea. Altfel devine principală grupa copiată.');
   });
 });

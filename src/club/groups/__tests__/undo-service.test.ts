@@ -222,7 +222,7 @@ describe('a group action undo takes the season lock first (4-3 final)', () => {
     const joined = actionOf(await joinGroup(ctx, 'g-ib', { season: '2026-2027', athleteIds: ['a1'], mode: 'add' }));
     for (const s of state.seasons) s.isCurrent = s.id === 's27';
     const rows = structuredClone(state.memberships);
-    expect(await undoAction(ctx, { actionId: joined })).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+    expect(await undoAction(ctx, { actionId: joined })).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' });
     expect(state.memberships).toEqual(rows);
   });
 });

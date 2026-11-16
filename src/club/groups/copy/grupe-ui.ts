@@ -23,10 +23,8 @@ export const GRUPE_COPY = {
   windowEdit: 'Editează grupa',
   fieldName: 'Nume',
   fieldPriceList: 'Listă de prețuri',
-  optional: 'Opțional',
   fieldCoaches: 'Antrenori',
   fieldPublic: 'Program public',
-  publicHint: 'Programul apare în calendarul de pe site.',
   create: 'Creează grupa',
   save: 'Salvează',
   cancel: 'Anulează',
@@ -34,7 +32,7 @@ export const GRUPE_COPY = {
   menu: 'Mai multe acțiuni',
   edit: 'Editează grupa',
   remove: 'Șterge grupa',
-  removeConfirm: (name: string) => `Ștergi grupa "${name}"? Acțiunea nu poate fi anulată.`,
+  removeConfirm: (name: string) => `Ștergi grupa "${name}"? Nu se poate anula.`,
   tabMembers: 'Sportivi',
   tabProgram: 'Program',
   tabHistory: 'Istoric',
@@ -98,8 +96,8 @@ export const GRUPE_COPY = {
   cancelled: 'Anulată',
   movedFrom: (what: string) => `Mutată de la ${what}`,
   openGroup: 'Deschide grupa',
-  nothingThisMonth: 'Nimic programat în această lună.',
-  emptyHistory: 'Niciun rând în istoric.',
+  nothingThisMonth: 'Nimic programat.',
+  emptyHistory: 'Niciun eveniment.',
 } as const;
 
 export const FREQ_LABELS = { weekly: 'Săptămânal', biweekly: 'La 2 săptămâni', monthly: 'Lunar' } as const;

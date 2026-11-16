@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { Button, Drawer, DrawerSection, Field, FieldRow, Input, NumberInput, Select, useSaveState } from '../../ui';
-import { monthOptions, type AdminSeason, type SeasonFields } from '../../../club/season-admin';
+import { Button, Drawer, DrawerSection, Field, FieldRow, HelpTip, Input, NumberInput, Select, useSaveState } from '../../ui';
+import { SEASON_ERRORS, monthOptions, type AdminSeason, type SeasonFields } from '../../../club/season-admin';
 
 /** The drawer edits an existing season, or a new one prefilled by `nextSeasonDraft`. */
 export type SeasonTarget = { season: AdminSeason | null; draft: SeasonFields };
@@ -9,7 +9,7 @@ function SeasonFieldsForm({ draft, locked, hinted, set }: { draft: SeasonFields;
   const options = monthOptions(draft.label, [draft.startMonth, draft.endMonth]);
   return (
     <>
-      <Field label="Sezon" hint={hinted ? 'Sezonul are înscrieri.' : undefined}>
+      <Field label={hinted ? <>Sezon <HelpTip icon="lock" label={SEASON_ERRORS.locked} /></> : 'Sezon'}>
         <Input value={draft.label} disabled={locked} onChange={(e) => set({ label: e.target.value })} />
       </Field>
       <FieldRow>

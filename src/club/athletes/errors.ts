@@ -10,7 +10,7 @@ export const CONFIRM_ERRORS = {
 
 export const ADMIN_ERRORS = {
   notFound: 'Nu a fost găsit.',
-  stale: 'Datele s-au schimbat. Reîncarcă pagina.',
+  stale: 'Datele s-au schimbat. Reîncarcă.',
   nameRequired: 'Completați numele.',
   birthDate: 'Alegeți data nașterii.',
   invalid: 'Cerere invalidă.',

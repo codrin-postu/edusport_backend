@@ -86,16 +86,16 @@ describe('preview (10.2 step 3, decided 5)', () => {
     const f = facts();
     const preview = startPreview(f, planStart(f, CLUB_ONLY));
     expect(preview.tiles).toEqual([
-      { label: 'Grupe', value: '5', hint: 'toate trec în 2027-2028' }, { label: 'Sportivi copiați', value: '2', hint: 'în 1 grupă Club' },
-      { label: 'Programe copiate', value: '2', hint: 'din 1 oct 2027' }, { label: 'Fără grupă', value: '1', hint: 'grupa din 2026-2027 propusă' },
+      { label: 'Grupe', value: '5' }, { label: 'Sportivi copiați', value: '2', hint: 'în 1 grupă Club' },
+      { label: 'Programe copiate', value: '2', hint: 'din 1 oct 2027' }, { label: 'Fără grupă', value: '1' },
     ]);
     expect(preview.lines).toEqual([
       { bold: 'Grupa principală se schimbă pentru 1 sportiv.', rest: ' Filip Radu: Intermediari Bronze → Profesioniști.' },
       { bold: 'Rămâne aceeași pentru 1 sportiv', rest: ', de exemplu Ioana Marin: Profesioniști.' },
       { bold: '1 sportiv inactiv nu se copiază:', rest: ' Tudor Matei.' },
       { bold: '1 sportiv intră la Fără grupă', rest: ' în 2027-2028, cu grupa principală din 2026-2027 propusă.' },
-      { bold: 'Programul se repetă', rest: ' din 1 oct 2027 până pe 31 mai 2028. Pauzele nu se copiază: adaugă vacanțele în Calendar și serii.' },
-      { bold: 'Membru A.C.S. nu se copiază.', rest: ' În 2027-2028 toți pornesc de la Nu.' },
+      { bold: 'Programul se repetă', rest: ' din 1 oct 2027 până pe 31 mai 2028. Pauzele nu se copiază.' },
+      { bold: 'Membru A.C.S. nu se copiază', rest: ', toți pornesc de la Nu.' },
     ]);
     expect(preview.summary).toBe('Se copiază 2 sportivi în 1 grupă și programul a 2 grupe. 1 sportiv rămâne fără grupă, 1 inactiv nu se copiază.');
     expect(preview.mains.a1).toEqual({ groupId: 'g-pro', groupName: 'Profesioniști', previousName: 'Intermediari Bronze', kept: false });
@@ -105,8 +105,8 @@ describe('preview (10.2 step 3, decided 5)', () => {
   it('warns when no school group gets a program, and leaves out lines whose count is 0', () => {
     const f = facts();
     const preview = startPreview(f, planStart(f, { groups: [tick('g-ib', false, false), tick('g-pro', false, false)] }));
-    expect(preview.warning).toBe('Grupele Școlii nu au program în 2027-2028: pagina Program arată textul vechi până îl adaugi.');
-    expect(preview.lines.map((l) => l.bold)).toEqual(['1 sportiv inactiv nu se copiază:', '3 sportivi intră la Fără grupă', 'Membru A.C.S. nu se copiază.']);
+    expect(preview.warning).toBe('Grupele Școlii nu au program în 2027-2028. Pagina Program arată textul vechi.');
+    expect(preview.lines.map((l) => l.bold)).toEqual(['1 sportiv inactiv nu se copiază:', '3 sportivi intră la Fără grupă', 'Membru A.C.S. nu se copiază']);
   });
 
   it('the result carries the toast', () => {

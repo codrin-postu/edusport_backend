@@ -45,7 +45,6 @@ export function BreakDialog({ target, breaks, onClose }: Props) {
         <div className="gtt-box">
           <div className="gtt-title">{impactTitle(impact, draft.exceptGroupIds)}</div>
           <GroupTickTree tree={impact} except={draft.exceptGroupIds} onChange={(exceptGroupIds) => setDraft({ ...draft, exceptGroupIds })} counts />
-          <div className="gtt-rest">{PAUZE_COPY.rest}</div>
         </div>
       )}
       </div>

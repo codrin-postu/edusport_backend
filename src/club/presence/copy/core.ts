@@ -4,7 +4,7 @@ import type { PaymentMethod, PaymentPurpose, SessionState, SubscriptionState } f
 export const PRESENCE_ERRORS = {
   notFound: 'Nu a fost găsit.',
   invalid: 'Cerere invalidă.',
-  stale: 'Datele s-au schimbat. Reîncarcă pagina.',
+  stale: 'Datele s-au schimbat. Reîncarcă.',
   failed: 'Nu s-a salvat nimic.',
   conflict: 'Prezența s-a schimbat între timp. Reîncarcă.',
   undoChanged: 'Nu se mai poate anula. Datele s-au schimbat între timp.',
@@ -39,4 +39,4 @@ export const PURPOSE_WORDS: Record<PaymentPurpose, string> = {
 export const remainingText = (n: number): string => countWords(n, 'ședință rămasă', 'ședințe rămase');
 
 export const noPriceListNotice = (n: number): string =>
-  `${countWords(n, 'grupă fără listă de prețuri', 'grupe fără listă de prețuri')}: prezența se înregistrează, nimic nu se calculează.`;
+  `${countWords(n, 'grupă fără listă de prețuri', 'grupe fără listă de prețuri')}, fără sume calculate.`;

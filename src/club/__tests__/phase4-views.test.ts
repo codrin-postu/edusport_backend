@@ -14,7 +14,6 @@ describe('Pauze (7.1)', () => {
     const dialog = dashboard('program/BreakDialog.tsx');
     expect(dialog).toContain('<GroupTickTree');
     expect(dialog).toContain('counts');
-    expect(dialog).toContain('PAUZE_COPY.rest');
     expect(dialog).not.toContain('PAUZE_COPY.hint');
     expect(dashboard('program/useBreaks.ts')).toContain('`${BASE}/impact`');
     const list = dashboard('program/PauzeSection.tsx');
@@ -32,7 +31,7 @@ describe('Pauze (7.1)', () => {
   });
 
   it('the window needs a name and an end not before the start', () => {
-    expect(breakFormError({ label: 'X', startDate: '2026-12-20', endDate: '2026-12-19', exceptGroupIds: [] })).toBe('Data de sfârșit trebuie să fie după data de început.');
+    expect(breakFormError({ label: 'X', startDate: '2026-12-20', endDate: '2026-12-19', exceptGroupIds: [] })).toBe('Sfârșitul trebuie să fie după început.');
     expect(breakFormError({ label: ' ', startDate: '2026-12-20', endDate: '2026-12-21', exceptGroupIds: [] })).toBe('Completați numele.');
     expect(breakFormError(draftOfBreak(BREAKS[0]))).toBeNull();
     expect(breakBody({ label: ' Iarnă ', startDate: '2026-12-20', endDate: '2026-12-20', exceptGroupIds: [] })).toEqual({ label: 'Iarnă', startDate: '2026-12-20', endDate: '2026-12-20', exceptGroupIds: [] });

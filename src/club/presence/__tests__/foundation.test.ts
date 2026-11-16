@@ -37,7 +37,7 @@ describe('foundation', () => {
 
   it('remaining slots and the no-price-list notice, with number forms (4.10, 4.12)', () => {
     expect([remainingText(7), remainingText(1), remainingText(20)]).toEqual(['7 ședințe rămase', '1 ședință rămasă', '20 de ședințe rămase']);
-    expect(noPriceListNotice(2)).toBe('2 grupe fără listă de prețuri: prezența se înregistrează, nimic nu se calculează.');
-    expect(noPriceListNotice(1)).toBe('1 grupă fără listă de prețuri: prezența se înregistrează, nimic nu se calculează.');
+    expect(noPriceListNotice(2)).toBe('2 grupe fără listă de prețuri, fără sume calculate.');
+    expect(noPriceListNotice(1)).toBe('1 grupă fără listă de prețuri, fără sume calculate.');
   });
 });

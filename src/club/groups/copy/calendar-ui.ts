@@ -16,7 +16,6 @@ export const PAUZE_COPY = {
   impactTitle: (n: number, k: number, m: number) => `Se anulează ${countWords(n, 'ședință', 'ședințe')} la ${k} din ${m} grupe`,
   none: 'nicio ședință',
   stays: 'rămâne',
-  rest: 'Lecțiile individuale și competițiile rămân.',
   colCancels: 'Se anulează',
   allGroups: 'toate grupele',
   someGroups: (k: number, m: number) => `${k} din ${m} grupe`,

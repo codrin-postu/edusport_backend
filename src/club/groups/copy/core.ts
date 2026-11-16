@@ -12,7 +12,7 @@ const ageText = (age: number | null): string | null => (age === null ? null : co
 
 export const GROUP_ERRORS = {
   ...ADMIN_ERRORS,
-  datePresence: 'Data are prezența salvată. Poți doar să o anulezi.',
+  datePresence: 'Prezență salvată, se poate doar anula.',
   nameTaken: 'Există deja o grupă cu acest nume.',
   pickGroup: 'Alege grupa.',
   undoGroup: 'Nu se mai poate anula. Grupa s-a schimbat între timp.',

@@ -5,7 +5,7 @@ import { seriesStart, targetSeriesOf, type StartFacts } from './facts';
 import type { MainOutcome, StartPlan } from './plan';
 
 /** Step 3 of the window and the toast (10.2, 10.5, W29). Pure; counts come from the plan the apply uses. */
-export type Tile = { label: string; value: string; hint: string };
+export type Tile = { label: string; value: string; hint?: string };
 export type PreviewLine = { bold: string; rest: string };
 export type ChildMain = { groupId: string; groupName: string; previousName: string | null; kept: boolean };
 export type StartPreview = { summary: string; summaryParts: SummaryPart[]; tiles: Tile[]; lines: PreviewLine[]; warning: string | null; mains: Record<string, ChildMain> };
@@ -26,10 +26,10 @@ function oneSection(f: StartFacts, groupIds: string[]): string | null {
 function tiles(f: StartFacts, plan: StartPlan): Tile[] {
   const groups = copiedGroupIds(plan);
   return [
-    { label: C.tileGroups, value: String(f.groups.filter((g) => g.active).length), hint: C.tileGroupsHint(f.target.label) },
+    { label: C.tileGroups, value: String(f.groups.filter((g) => g.active).length) },
     { label: C.tileAthletes, value: String(copiedAthletes(plan)), hint: C.tileAthletesHint(groups.length, oneSection(f, groups)) },
     { label: C.tileSeries, value: String(plan.series.length), hint: C.tileSeriesHint(shortDate(seriesStart(f))) },
-    { label: C.tileUnassigned, value: String(plan.unassignedAfter), hint: C.tileUnassignedHint(f.current.label) },
+    { label: C.tileUnassigned, value: String(plan.unassignedAfter) },
   ];
 }
 
@@ -47,7 +47,7 @@ function otherLines(f: StartFacts, plan: StartPlan): PreviewLine[] {
   if (plan.inactive.length) lines.push({ bold: C.inactiveBold(plan.inactive.length), rest: ` ${plan.inactive.map((a) => a.name).join(', ')}.` });
   if (plan.unassignedAfter) lines.push({ bold: C.unassignedBold(plan.unassignedAfter), rest: C.unassignedRest(f.target.label, f.current.label) });
   if (plan.series.length) lines.push({ bold: C.programBold, rest: C.programRest(shortDate(plan.seriesFrom), shortDate(plan.seriesTo)) });
-  lines.push({ bold: C.acsBold, rest: C.acsRest(f.target.label) });
+  lines.push({ bold: C.acsBold, rest: C.acsRest() });
   return lines;
 }
 

@@ -43,7 +43,7 @@ function DraftFields({ draft, set }: { draft: Draft; set: (patch: Partial<Draft>
       <Field label="Preț neafiliați">
         <Input inputMode="numeric" value={draft.nonMemberPrice} onChange={(e) => set({ nonMemberPrice: e.target.value })} />
       </Field>
-      <Field label="Tooltip" hint="Opțional">
+      <Field label="Tooltip">
         <Textarea rows={2} value={draft.tooltip} onChange={(e) => set({ tooltip: e.target.value })} />
       </Field>
     </>

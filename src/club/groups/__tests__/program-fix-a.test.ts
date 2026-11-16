@@ -6,7 +6,7 @@ import { undoAction } from '../undo-service';
 import type { EventRecord, Recurrence } from '../types';
 import { event, fakeContext } from './fake-group-store';
 
-const SESSION_MSG = 'Data are prezența salvată. Poți doar să o anulezi.';
+const SESSION_MSG = 'Prezență salvată, se poate doar anula.';
 const FRIDAY: Recurrence = { freq: 'weekly', days: ['fri'], weekOfMonth: null, startTime: '17:30', endTime: '18:30', singleDate: null, seasonStart: '2026-10-02', seasonEnd: '2027-05-31' };
 const TUE_THU: Recurrence = { freq: 'weekly', days: ['tue', 'thu'], weekOfMonth: null, startTime: '17:30', endTime: '18:30', singleDate: null, seasonStart: '2026-09-01', seasonEnd: '2027-06-30' };
 const seedFriday = () => fakeContext({ events: [event({ id: 'ev', type: 'curs', groupId: 'g-av', title: 'Avansați', recurrence: FRIDAY })] }, '2026-11-10');

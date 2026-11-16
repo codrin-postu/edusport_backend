@@ -9,7 +9,7 @@ import { undoPresenceAction } from '../undo-service';
 const ME = 'tm-andreea';
 const TODAY = '2026-11-10';
 const NINE = ['2026-11-10', '2026-11-12', '2026-11-17', '2026-11-19', '2026-11-24', '2026-11-26', '2026-12-01', '2026-12-03'];
-const STALE = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' };
+const STALE = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' };
 
 /** The 8-lesson series of Task 6, written through the coach's own create. */
 async function seeded(over: Parameters<typeof coachCtx>[2] = {}): Promise<CoachSeed & { seriesId: string; at: (date: string) => string }> {

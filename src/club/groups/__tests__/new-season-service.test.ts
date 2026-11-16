@@ -22,7 +22,7 @@ describe('reading and previewing (10.9)', () => {
 
   it('refuses a target that is not the next season (W28)', async () => {
     const { store } = seed();
-    expect(await readStart(store, 's25', '2027-09-15')).toEqual({ ok: false, status: 409, error: 'Sezonul curent s-a schimbat. Reîncarcă pagina.' });
+    expect(await readStart(store, 's25', '2027-09-15')).toEqual({ ok: false, status: 409, error: 'Sezonul curent s-a schimbat. Reîncarcă.' });
   });
 });
 
@@ -62,7 +62,7 @@ describe('applying (10.4, 10.5, W24)', () => {
       state.athletes.find((a) => a.id === 'a3')!.status = 'activ';
     };
     const before = structuredClone({ seasons: state.seasons, memberships: state.memberships, events: state.events, history: state.history });
-    expect(await applyStart(ctx, 's27', BODY)).toEqual({ ok: false, status: 409, error: 'Sezonul curent s-a schimbat. Reîncarcă pagina.' });
+    expect(await applyStart(ctx, 's27', BODY)).toEqual({ ok: false, status: 409, error: 'Sezonul curent s-a schimbat. Reîncarcă.' });
     expect({ seasons: state.seasons, memberships: state.memberships, events: state.events, history: state.history }).toEqual(before);
   });
 
@@ -110,7 +110,7 @@ describe('applying (10.4, 10.5, W24)', () => {
     const { ctx, state } = seed();
     await applyStart(ctx, 's27', BODY);
     const count = state.memberships.length;
-    expect(await applyStart(ctx, 's27', BODY)).toEqual({ ok: false, status: 409, error: 'Sezonul curent s-a schimbat. Reîncarcă pagina.' });
+    expect(await applyStart(ctx, 's27', BODY)).toEqual({ ok: false, status: 409, error: 'Sezonul curent s-a schimbat. Reîncarcă.' });
     expect(state.memberships).toHaveLength(count);
   });
 

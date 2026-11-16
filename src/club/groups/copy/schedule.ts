@@ -3,9 +3,9 @@ import { dayMonth } from '../dates';
 /** Group program copy (spec 6.3, 7.1, 7.2, 11). */
 export const SCHEDULE_ERRORS = {
   noDays: 'Alege cel puțin o zi.',
-  endBeforeStart: 'Data de sfârșit trebuie să fie după data de început.',
-  groupEvent: (group: string) => `Evenimentul aparține grupei ${group}. Se schimbă din pagina grupei.`,
-  groupKey: 'Grupa unui eveniment se schimbă din pagina grupei.',
+  endBeforeStart: 'Sfârșitul trebuie să fie după început.',
+  groupEvent: (group: string) => `Eveniment al grupei ${group}.`,
+  groupKey: 'Se schimbă din pagina grupei.',
 } as const;
 
 export const SCHEDULE_TOASTS = {

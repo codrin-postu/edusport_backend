@@ -59,11 +59,10 @@ function useMonthData<T>(load: (month: string) => Promise<T>, month: string, on:
   return state;
 }
 
-const subOf = (tab: ContabTab, month: string): string => {
+const subOf = (tab: ContabTab, month: string): string | null => {
   if (tab === 'restante') return monthTitle(month);
   if (tab === 'abonamente') return MONEY_UI_COPY.abonamente.subtitle;
-  if (tab === 'plati') return MONEY_UI_COPY.plati.sub(monthTitle(month));
-  return copy.peGrupe.sub;
+  return null;
 };
 
 /** "Contabilitate" (spec 5): one page for Restanțe, Abonamente, Plăți and Pe grupe; tab and month are in the address. */
@@ -92,6 +91,7 @@ export default function ContabilitatePage() {
   );
   if (!ready) return <AdminPage><Loading /></AdminPage>;
   const label = tabs.find((t) => t.id === tab)?.label ?? '';
+  const sub = subOf(tab, month);
   return (
     <AdminPage>
       <style>{SPORTIVI_CSS + PREZENTA_CSS + MONEY_CSS}</style>
@@ -111,7 +111,7 @@ export default function ContabilitatePage() {
         <header className="ui-ph">
           <div>
             <h2 className="ui-ph-title">{label}</h2>
-            <p className="ui-ph-sub">{subOf(tab, month)}</p>
+            {sub && <p className="ui-ph-sub">{sub}</p>}
           </div>
           <div className="ui-ph-actions" ref={setHost} />
         </header>

@@ -133,7 +133,7 @@ describe('gate and blocked states (spec 4.7)', () => {
     const s = initialWindow(view());
     expect(confirmGate(s, ctx({ blocked: 'birth-date' }), false)).toEqual({ disabled: true, hint: null, notice: 'Corectează data nașterii în Date.' });
     expect(confirmGate(s, ctx({ blocked: 'confirmed' }), false).notice).toBe('Înscrierea a fost deja confirmată de alt administrator.');
-    expect(confirmGate(s, ctx({ blocked: 'not-confirmable' }), false).notice).toBe('Datele s-au schimbat. Reîncarcă pagina.');
+    expect(confirmGate(s, ctx({ blocked: 'not-confirmable' }), false).notice).toBe('Datele s-au schimbat. Reîncarcă.');
   });
 
   it('disabled while loading or without a context; the search keeps the chosen athlete (proto v5)', () => {

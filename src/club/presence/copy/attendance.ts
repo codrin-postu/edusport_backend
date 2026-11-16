@@ -30,7 +30,7 @@ export const EXISTING_SESSION = {
 
 export const REACTIVATE_DIALOG = {
   title: 'Sportiv inactiv',
-  text: (name: string) => `${name} are statusul Inactiv. Reactivezi sportivul?`,
+  text: (name: string) => `${name} este inactiv. Reactivezi?`,
   keep: 'Salvează fără',
   reactivate: 'Reactivează și salvează',
 };

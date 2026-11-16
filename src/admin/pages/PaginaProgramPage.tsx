@@ -100,7 +100,6 @@ const PaginaProgramPage: React.FC = () => {
         <PageHeader
           back={{ to: DASHBOARD_TO }}
           title="Pagina Program"
-          subtitle="Bannerul, subtitlul orarului și notificările de pe pagina /cursuri/program"
         />
 
         {page.loading ? (
@@ -113,23 +112,20 @@ const PaginaProgramPage: React.FC = () => {
           <div className="ui-body">
             <LinkOutCard
               title="Calendar și serii"
-              description="Calendarul sezonului și seriile de curs se editează în pagina Program, nu aici."
-              body="Aici poți edita datele pentru școala de patinaj și alte evenimente."
+              body="Se editează în pagina Program."
               href={`/admin${PROGRAM_EDIT_TO}`}
               linkLabel="Deschide Calendar și serii"
             />
 
             <ObjectFieldCard<Banner>
               title="Banner Pagină"
-              description="Titlul și subtitlul afișate în banner-ul din partea de sus a paginii."
               value={banner}
               onFieldChange={(key, v) => form.set('banner', { ...banner, [key]: v })}
               fields={[
-                { key: 'title', label: 'Titlu', hint: 'Titlul mare afișat în banner', placeholder: 'ex: Echipa noastră', span: 2 },
+                { key: 'title', label: 'Titlu', placeholder: 'ex: Echipa noastră', span: 2 },
                 {
                   key: 'subtitle',
                   label: 'Subtitlu',
-                  hint: 'Textul descriptiv de sub titlu',
                   type: 'textarea',
                   rows: 3,
                   placeholder: 'ex: Antrenorii și instructorii care ghidează cursanții...',
@@ -139,14 +135,12 @@ const PaginaProgramPage: React.FC = () => {
 
             <ObjectFieldCard<PageInfo>
               title="Pagina Program - Informații"
-              description="Subtitlul orarului afișat pe /cursuri/program. Etichetele și datele de sezon sunt setate global în Setări Site."
               value={info}
               onFieldChange={(key, v) => form.set('pageInfo', { ...info, [key]: v })}
               fields={[
                 {
                   key: 'scheduleSubtitle',
                   label: 'Subtitlu orar',
-                  hint: 'Textul de sub titlul secțiunii de orar',
                   placeholder: 'ex: Cursuri în fiecare weekend',
                   span: 2,
                 },
@@ -161,13 +155,12 @@ const PaginaProgramPage: React.FC = () => {
                   </Link>
                 }
               >
-                Setate o singură dată în Setări Site → Înscrieri & Sezon. Apar automat pe pagina Program și în calendar.
+                Se setează în Setări site.
               </Notice>
             </ObjectFieldCard>
 
             <EditorCard
               title="Notificări importante"
-              description="Notificările afișate pe pagina Program, în ordinea de aici."
             >
               <RepeatableList<Disclaimer>
                 items={disclaimers}

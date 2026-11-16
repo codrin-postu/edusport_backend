@@ -95,7 +95,7 @@ function PaymentFields({ f }: { f: FieldsProps }) {
       </Field>
       {showsRink(draft) && <Checkbox checked={draft.collectedAtRink} disabled={busy} label={PAYMENT_COPY.atRink} onChange={(collectedAtRink) => set({ collectedAtRink })} />}
       <EmailBox f={f} />
-      <Field label={PAYMENT_COPY.note} hint={PAYMENT_COPY.noteHint}>
+      <Field label={PAYMENT_COPY.note}>
         <Textarea value={draft.note} disabled={busy} onChange={(e) => set({ note: e.target.value })} />
       </Field>
     </div>

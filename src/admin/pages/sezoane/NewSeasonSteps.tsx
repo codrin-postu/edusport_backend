@@ -133,7 +133,6 @@ export function StepTwo(p: StepProps) {
     <>
       <p>{NEW_SEASON_COPY.lead2(p.data.target.label, p.data.current.label)}</p>
       {p.data.sections.map((s) => (phone ? <SectionCards key={s.sectionId} s={s} p={p} /> : <SectionTable key={s.sectionId} s={s} p={p} />))}
-      <p className="spv-muted">{NEW_SEASON_COPY.mainRule}</p>
       {p.preview && <Summary preview={p.preview} />}
     </>
   );

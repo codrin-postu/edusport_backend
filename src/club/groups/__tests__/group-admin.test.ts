@@ -81,7 +81,7 @@ describe('"Șterge grupa" (W11)', () => {
 
   it('refuses (409) once it had an ended membership or an event', async () => {
     const used = fakeContext({ memberships: [member({ id: 'm1', athleteId: 'a1', groupId: 'g-is', to: '2026-10-31' })] });
-    expect(await deleteGroup(used.ctx, 'g-is')).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+    expect(await deleteGroup(used.ctx, 'g-is')).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' });
     const scheduled = fakeContext({ events: [event({ id: 'e1', groupId: 'g-is' })] });
     expect((await deleteGroup(scheduled.ctx, 'g-is')).ok).toBe(false);
   });
@@ -90,7 +90,7 @@ describe('"Șterge grupa" (W11)', () => {
     for (const action of ['member-added', 'class-added', 'class-deleted', 'program-added']) {
       const { ctx, state } = fakeContext();
       await ctx.store.record({ subjectType: 'group', subjectId: 'g-is', action, actor: 'admin@example.com' });
-      expect(await deleteGroup(ctx, 'g-is'), action).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+      expect(await deleteGroup(ctx, 'g-is'), action).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' });
       expect(state.groups.some((g) => g.id === 'g-is')).toBe(true);
     }
   });

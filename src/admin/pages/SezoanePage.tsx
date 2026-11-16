@@ -36,7 +36,6 @@ function SeasonsTable({ seasons, onOpen, onStart }: { seasons: AdminSeason[]; on
   return (
     <div className="ui-body">
       <DataTable<AdminSeason> columns={columns(startableLabel(seasons), phone, onStart)} rows={seasons} getRowKey={(s) => s.documentId} onRowClick={onOpen} rowLabel={(s) => `Editează sezonul ${s.label}`} pageSize={0} empty="Niciun sezon" />
-      <p className="ui-hint">Clic pe un rând deschide editarea lui într-un panou lateral.</p>
     </div>
   );
 }
@@ -56,7 +55,7 @@ const SezoanePage: React.FC = () => {
   return (
     <AdminPage>
       <Window>
-        <PageHeader back={{ to: DASHBOARD_TO }} title="Sezoane" subtitle="Sezoanele școlii, taxa de membru și sezonul curent." actions={action} />
+        <PageHeader back={{ to: DASHBOARD_TO }} title="Sezoane" actions={action} />
         {error ? (
           <div className="ui-body"><Notice tone="danger">Nu am putut încărca sezoanele.</Notice></div>
         ) : seasons ? (

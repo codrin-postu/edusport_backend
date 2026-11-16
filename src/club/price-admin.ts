@@ -44,7 +44,7 @@ export const PRICE_ERRORS = {
   section: 'Alege secțiunea.',
   listMissing: 'Lista nu mai există.',
   sectionMissing: 'Secțiunea nu mai există.',
-  stale: 'Lista s-a schimbat între timp. Reîncarcă pagina.',
+  stale: 'Datele s-au schimbat. Reîncarcă.',
   notes: 'Notițele nu sunt valide.',
 } as const;
 

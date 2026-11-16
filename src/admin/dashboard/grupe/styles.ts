@@ -22,7 +22,6 @@ export const GRUPE_CSS = `
 .ui-root .gtt-count{font-size:var(--ui-fs-body);font-weight:400;color:var(--theme-text-muted);white-space:nowrap}
 .ui-root .gtt-box{display:flex;flex-direction:column;gap:12px;padding:12px 14px;border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);background:var(--theme-surface)}
 .ui-root .gtt-title{font-weight:600}
-.ui-root .gtt-rest{font-size:var(--ui-fs-body);color:var(--theme-text-muted)}
 .ui-root .grp-ua{display:flex;flex-direction:column}
 .ui-root .grp-ua-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,230px) auto;gap:8px 10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--theme-border)}
 .ui-root .grp-ua-row:last-child{border-bottom:none}

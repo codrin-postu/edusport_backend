@@ -28,10 +28,10 @@ export const SUBSCRIPTION_COPY = {
   extendTitle: 'Prelungește abonamentele Școlii de patinaj',
   weeks: 'Număr de săptămâni',
   extendText: (n: number, x: number): string =>
-    `Se prelungesc ${countWords(n, 'abonament activ', 'abonamente active')} cu ${weeksText(x)}. Noua dată de expirare se calculează pentru fiecare.`,
+    `Se prelungesc ${countWords(n, 'abonament activ', 'abonamente active')} cu ${weeksText(x)}.`,
   extendButton: (n: number): string => `Prelungește ${countWords(n, 'abonament', 'abonamente')}`,
   extended: (n: number, x: number): string => `${countWords(n, 'abonament prelungit', 'abonamente prelungite')} cu ${weeksText(x)}.`,
-  extendStale: 'Abonamentele s-au schimbat. Reîncarcă pagina.',
+  extendStale: 'Datele s-au schimbat. Reîncarcă.',
   barTitle: (itemName: string, slots: number): string => (itemName === `Abonament ${slots} ședințe` ? `Abonament Școala de patinaj, ${slots} ședințe` : itemName),
   expiresOn: (date: string): string => `Expiră pe ${longDate(date)}`,
   usedText: (n: number): string => (n === 1 ? '1 folosită' : `${n} folosite`),

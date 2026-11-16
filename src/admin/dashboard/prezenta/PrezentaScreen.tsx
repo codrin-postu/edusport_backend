@@ -94,7 +94,7 @@ export function PrezentaScreen({ query, onQuery }: Props) {
     <AdminPage>
       <style>{SPORTIVI_CSS + GRUPE_CSS + PREZENTA_CSS}</style>
       <Window>
-        <PageHeader title={PREZENTA_COPY.title} subtitle={PREZENTA_COPY.sub} />
+        <PageHeader title={PREZENTA_COPY.title} />
         <Notices page={page} />
         <Tabs
           label={PREZENTA_COPY.title} value={query.tab} panelId="prezenta-panel"

@@ -14,7 +14,7 @@ function oneMainEveryDay(rows: MembershipRow[], athleteId: string): void {
   }
 }
 
-const STALE = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' };
+const STALE = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' };
 /** Ana: main in Bronze (g-ib) since 2026-09-01, also in "Uscat" (g-pp). Today 2026-11-09. */
 const seed = (bronze = member({ id: 'm1', athleteId: 'a1', groupId: 'g-ib', from: '2026-09-01' })) =>
   fakeContext({

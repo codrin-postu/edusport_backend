@@ -57,7 +57,7 @@ describe('"Copiază sportivii din <sezon>" (W31)', () => {
   it('refuses once the tab is not empty', async () => {
     const { ctx } = seed();
     await copyMembers(ctx, 'g-ib', { season: '2027-2028' });
-    expect(await copyMembers(ctx, 'g-ib', { season: '2027-2028' })).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+    expect(await copyMembers(ctx, 'g-ib', { season: '2027-2028' })).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' });
   });
 
   it('locks the season before the athletes (sorted) and the group, and refuses a past season', async () => {
@@ -85,7 +85,7 @@ describe('a season that has ended', () => {
     const { ctx, state, store } = fakeContext({ ...seedState() }, '2028-06-15');
     const page = await readGroupPage(store, 'g-ib', '2027-2028', '2028-06-15');
     expect(page?.copyFrom?.program ?? []).toEqual([]);
-    expect(await copyProgram(ctx, 'g-ib', { season: '2027-2028' })).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+    expect(await copyProgram(ctx, 'g-ib', { season: '2027-2028' })).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' });
     expect(state.events).toHaveLength(1);
     expect(state.history).toEqual([]);
   });

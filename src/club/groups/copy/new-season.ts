@@ -10,10 +10,10 @@ export const NEW_SEASON_COPY = {
   next: 'Continuă',
   back: 'Înapoi',
   apply: (next: string) => `Începe sezonul ${next}`,
-  lead1: (next: string) => `${next} devine sezonul curent. Se aplică abia la ultimul pas.`,
+  lead1: (next: string) => `${next} devine sezonul curent la ultimul pas.`,
   onSite: 'Pe site',
   inPanel: 'În panou',
-  lead2: (next: string, current: string) => `Toate grupele trec în ${next}. Alege ce copiezi din ${current}.`,
+  lead2: (next: string, current: string) => `Grupele trec în ${next}. Alege ce copiezi din ${current}.`,
   colGroup: 'Grupă',
   colIn: (current: string) => `În ${current}`,
   colMembers: 'Copiază sportivii',
@@ -34,15 +34,12 @@ export const NEW_SEASON_COPY = {
   phoneAllMembers: 'Sportivii, toate',
   phoneAllProgram: 'Programul, toate',
   phoneCard: (n: number, current: string) => `${athletesText(n)} în ${current}`,
-  mainRule: 'Grupa principală rămâne aceeași dacă se copiază și ea. Altfel devine principală grupa copiată.',
   tileGroups: 'Grupe',
-  tileGroupsHint: (next: string) => `toate trec în ${next}`,
   tileAthletes: 'Sportivi copiați',
   tileAthletesHint: (groups: number, section: string | null) => `în ${groupsText(groups)}${section ? ` ${section}` : ''}`,
   tileSeries: 'Programe copiate',
   tileSeriesHint: (from: string) => `din ${from}`,
   tileUnassigned: 'Fără grupă',
-  tileUnassignedHint: (current: string) => `grupa din ${current} propusă`,
   mainChangesBold: (n: number) => `Grupa principală se schimbă pentru ${athletesText(n)}.`,
   mainKeptBold: (n: number) => `Rămâne aceeași pentru ${athletesText(n)}`,
   mainKeptRest: (name: string, group: string) => `, de exemplu ${name}: ${group}.`,
@@ -50,10 +47,10 @@ export const NEW_SEASON_COPY = {
   unassignedBold: (n: number) => (n === 1 ? '1 sportiv intră la Fără grupă' : `${athletesText(n)} intră la Fără grupă`),
   unassignedRest: (next: string, current: string) => ` în ${next}, cu grupa principală din ${current} propusă.`,
   programBold: 'Programul se repetă',
-  programRest: (from: string, to: string) => ` din ${from} până pe ${to}. Pauzele nu se copiază: adaugă vacanțele în Calendar și serii.`,
-  acsBold: 'Membru A.C.S. nu se copiază.',
-  acsRest: (next: string) => ` În ${next} toți pornesc de la Nu.`,
-  schoolWarning: (next: string) => `Grupele Școlii nu au program în ${next}: pagina Program arată textul vechi până îl adaugi.`,
+  programRest: (from: string, to: string) => ` din ${from} până pe ${to}. Pauzele nu se copiază.`,
+  acsBold: 'Membru A.C.S. nu se copiază',
+  acsRest: () => ', toți pornesc de la Nu.',
+  schoolWarning: (next: string) => `Grupele Școlii nu au program în ${next}. Pagina Program arată textul vechi.`,
   emptyMembers: (season: string) => `Niciun sportiv în ${season}.`,
   copyMembers: (season: string) => `Copiază sportivii din ${season}`,
   copyMembersHint: (n: number, season: string, inactive: number) =>
@@ -63,7 +60,7 @@ export const NEW_SEASON_COPY = {
   copyProgramHint: (season: string, program: string, from: string) => `În ${season}: ${program}. Se repetă din ${from}.`,
   membersCopiedToast: (n: number, season: string) => (n === 1 ? `1 sportiv copiat din ${season}.` : `${athletesText(n)} copiați din ${season}.`),
   programCopiedToast: (season: string) => `Program copiat din ${season}.`,
-  seasonChanged: 'Sezonul curent s-a schimbat. Reîncarcă pagina.',
+  seasonChanged: 'Sezonul curent s-a schimbat. Reîncarcă.',
 } as const;
 
 export type Step1Row = { label: string; value: string };
@@ -72,13 +69,13 @@ export type Step1Row = { label: string; value: string };
 export function step1Rows(current: string, next: string, fee: number | null): Step1Row[] {
   const feePart = fee === null ? '' : `, taxa de membru ${fee} RON`;
   return [
-    { label: 'Înscrieri', value: `Formularul trece pe ${next}${feePart}. Deschis sau închis din Setări site, ca acum.` },
+    { label: 'Înscrieri', value: `Formularul trece pe ${next}${feePart}.` },
     { label: 'Formular pe hârtie', value: `Sezonul ${next}.` },
     { label: 'Program', value: `Orarul Școlii se ia din programul grupelor în ${next}.` },
-    { label: 'Calendar', value: 'Nu se schimbă. Arată fiecare dată din programul grupelor, din ambele sezoane.' },
+    { label: 'Calendar', value: 'Nu se schimbă.' },
     { label: 'Grupe, Sportivi', value: `Se deschid pe ${next}.` },
-    { label: current, value: 'Rămâne de citit în Grupe, nu se mai modifică.' },
-    { label: 'Membru A.C.S.', value: `Pe sezon, nu se copiază. În ${next} toți pornesc de la Nu.` },
+    { label: current, value: 'Doar citire.' },
+    { label: 'Membru A.C.S.', value: 'Toți pornesc de la Nu.' },
   ];
 }
 

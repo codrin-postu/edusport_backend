@@ -105,7 +105,7 @@ describe('updateSeason', () => {
 
   it('locks the label of a season with a group membership, 409 with the stale text', async () => {
     const { store, writes } = fakeStore(0, { memberships: 1 });
-    await expect(updateSeason(store, 'cur', { ...fields, label: '2027-2028' }, 'a')).resolves.toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+    await expect(updateSeason(store, 'cur', { ...fields, label: '2027-2028' }, 'a')).resolves.toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' });
     expect(writes).toEqual([]);
   });
 

@@ -32,7 +32,7 @@ describe('record menu (3C spec 3, 4, 6)', () => {
 
   it('the confirmation error: the server text for 409, the shared text for 403 and 500', () => {
     const fail = (status: number, message: string) => ({ status, response: { status, data: { error: { status, message } } } });
-    expect(anonymizeErrorText(fail(409, 'Datele s-au schimbat. Reîncarcă pagina.'))).toBe('Datele s-au schimbat. Reîncarcă pagina.');
+    expect(anonymizeErrorText(fail(409, 'Datele s-au schimbat. Reîncarcă.'))).toBe('Datele s-au schimbat. Reîncarcă.');
     expect(anonymizeErrorText(fail(403, 'Policy Failed'))).toBe('Nu s-a salvat nimic.');
     expect(anonymizeErrorText(fail(500, 'Internal Server Error'))).toBe('Nu s-a salvat nimic.');
   });

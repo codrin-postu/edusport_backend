@@ -42,7 +42,7 @@ export interface PriceNotesCardProps {
 export function PriceNotesCard({ notes, onChange }: PriceNotesCardProps) {
   const keyOf = useRowKeys(notes);
   return (
-    <EditorCard title="Notițe subsol" description="Textele afișate în subsolul secțiunii de prețuri de pe site.">
+    <EditorCard title="Notițe subsol">
       <RepeatableList<string>
         items={notes}
         onChange={onChange}

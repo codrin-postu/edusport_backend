@@ -8,7 +8,7 @@ const CLEAN = { label: 'Vacanța de iarnă', startDate: '2026-12-20', endDate: '
 describe('the break window (7.1)', () => {
   it('reads Nume, De la, Până la; the end before the start is refused with the spec text', () => {
     expect(readBreakInput(BODY)).toEqual({ ok: true, value: CLEAN });
-    expect(readBreakInput({ ...BODY, endDate: '2026-12-19' })).toEqual({ ok: false, error: 'Data de sfârșit trebuie să fie după data de început.' });
+    expect(readBreakInput({ ...BODY, endDate: '2026-12-19' })).toEqual({ ok: false, error: 'Sfârșitul trebuie să fie după început.' });
     expect(readBreakInput({ ...BODY, endDate: '2026-12-20' }).ok).toBe(true);
     expect(readBreakInput({ ...BODY, label: '' }).ok).toBe(false);
   });

@@ -3,14 +3,14 @@ import { ron } from '../money';
 import { countWords } from '../../ro-count';
 
 export const PREZENTA_COPY = {
-  title: 'Prezență', sub: 'Ședințe și prezențe pe grupe', tabSessions: 'Ședințe', tabLessons: 'Lecții individuale', tabCoaches: 'Pe antrenori',
+  title: 'Prezență', tabSessions: 'Ședințe', tabLessons: 'Lecții individuale', tabCoaches: 'Pe antrenori',
   today: 'Azi', prevDay: 'Ziua anterioară', nextDay: 'Ziua următoare', monthLabel: 'Luna', prevMonth: 'Luna anterioară', nextMonth: 'Luna următoare',
   newSession: '+ Ședință nouă', newLesson: '+ Lecție individuală', exportCsv: 'Export CSV',
-  startNotice: 'Setează data de început a prezenței în Setări site.',
+  startNotice: 'Setează data de început în Setări site.',
   colDate: 'Data', colTime: 'Ora', colGroup: 'Grupă', colCoach: 'Antrenor', colPresent: 'Prezenți', colState: 'Stare',
   colAthlete: 'Sportiv', colDuration: 'Durată', colGroupSessions: 'Ședințe grup', colLessons: 'Lecții individuale', colHours: 'Ore',
-  emptyDay: 'Nicio ședință în ziua asta.', emptyLessons: 'Nicio lecție individuală în luna asta.', emptyCoaches: 'Nicio ședință salvată în luna asta.',
-  emptyGroupMonth: 'Nicio ședință în luna asta.', tabGroup: 'Prezență',
+  emptyDay: 'Nicio ședință.', emptyLessons: 'Nicio lecție.', emptyCoaches: 'Nicio ședință.',
+  emptyGroupMonth: 'Nicio ședință.', tabGroup: 'Prezență',
   coach: 'Antrenor', addCoaches: '+ Adaugă alți antrenori', grup: 'Grup', uscat: 'Uscat', addVisitor: '+ Adaugă doar la ședința asta',
   close: 'Închide', save: 'Salvează', cancel: 'Anulează', continue: 'Continuă', giveUp: 'Renunță', history: 'Istoric',
   closeConfirm: 'Închizi fără să salvezi?', stay: 'Rămâi',
@@ -18,9 +18,9 @@ export const PREZENTA_COPY = {
 } as const;
 export const MATRIX_COPY = {
   group: 'Grupă', athlete: 'Sportiv', total: 'Total', today: 'azi', undone: 'necompletat', visitors: 'Vizitatori', download: 'Descarcă Excel',
-  empty: 'Nicio ședință în luna asta.', grup: 'în grup', uscat: 'uscat', open: 'Deschide ședința',
+  empty: 'Nicio ședință.', grup: 'în grup', uscat: 'uscat', open: 'Deschide ședința',
 } as const;
-export const SETARI_COPY = { attendanceStart: 'Prezență și plăți din', attendanceStartHint: 'Ședințele dinainte nu apar ca nefăcute.' } as const;
+export const SETARI_COPY = { attendanceStart: 'Prezență și plăți din' } as const;
 
 export const PERIOD_COPY = {
   views: { zi: 'Zi', saptamana: 'Săptămână', luna: 'Lună' },
@@ -33,9 +33,9 @@ export const PERIOD_COPY = {
   filters: { section: 'Secțiune', group: 'Grupă', show: (n: number): string => `Arată ${countWords(n, 'grupă', 'grupe')}` },
   outside: 'În afara programului',
   todaySuffix: ' (azi)',
-  emptyGroups: 'Nicio ședință în perioada asta.',
-  emptyLessons: 'Nicio lecție individuală în perioada asta.',
-  emptyCoaches: 'Nicio ședință completată în perioada asta.',
+  emptyGroups: 'Nicio ședință.',
+  emptyLessons: 'Nicio lecție.',
+  emptyCoaches: 'Nicio ședință.',
   /** Hidden labels of the arrows. */
   prev: { zi: 'Ziua anterioară', saptamana: 'Săptămâna anterioară', luna: 'Luna anterioară' },
   next: { zi: 'Ziua următoare', saptamana: 'Săptămâna următoare', luna: 'Luna următoare' },
@@ -55,7 +55,7 @@ export const COACH_COPY = {
   tiles: { sessions: 'Ședințe grup', lessons: 'Lecții individuale', hours: 'Ore' },
   picker: { ore: 'Ore', sedinte: 'Ședințe', lectii: 'Lecții individuale' },
   total: 'Total',
-  emptySessions: 'Nicio ședință în perioada asta.', emptyLessons: 'Nicio lecție individuală în perioada asta.', emptyHours: 'Nicio oră în perioada asta.',
+  emptySessions: 'Nicio ședință.', emptyLessons: 'Nicio lecție.', emptyHours: 'Nicio oră.',
 } as const;
 
 export const PANEL_LINKS = { coaches: 'Antrenori: ', openGroup: 'Deschide grupa' } as const;

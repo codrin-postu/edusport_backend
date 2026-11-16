@@ -31,7 +31,7 @@ function DateFields({ form, set, readOnly }: { form: DateForm; set: (f: DateForm
       )}
       {form.mode !== 'keep' && (
         <>
-          <Field label={GRUPE_COPY.reason} hint={GRUPE_COPY.optional}><Input value={form.reason} maxLength={120} onChange={(e) => set({ ...form, reason: e.target.value })} disabled={readOnly} /></Field>
+          <Field label={GRUPE_COPY.reason}><Input value={form.reason} maxLength={120} onChange={(e) => set({ ...form, reason: e.target.value })} disabled={readOnly} /></Field>
           <Checkbox checked={form.notify} onChange={(v) => set({ ...form, notify: v })} label={GRUPE_COPY.notify} disabled={readOnly} />
         </>
       )}

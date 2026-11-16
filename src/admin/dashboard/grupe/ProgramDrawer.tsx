@@ -49,7 +49,7 @@ function ClassFields({ form, set }: { form: ProgramForm; set: Set }) {
     <>
       <Field label={GRUPE_COPY.date}><DateInput value={form.date} onChange={(v) => set({ ...form, date: v ?? form.date })} /></Field>
       {timeAndDuration(form, set)}
-      <Field label={GRUPE_COPY.note} hint={GRUPE_COPY.optional}><Input value={form.note} onChange={(e) => set({ ...form, note: e.target.value })} /></Field>
+      <Field label={GRUPE_COPY.note}><Input value={form.note} onChange={(e) => set({ ...form, note: e.target.value })} /></Field>
     </>
   );
 }

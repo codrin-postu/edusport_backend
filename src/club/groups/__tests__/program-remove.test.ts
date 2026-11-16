@@ -72,7 +72,7 @@ describe('setDate remove', () => {
     const { ctx, state, sessions } = seed();
     sessions.push({ id: 's1', eventId: 'ev-g-club-a', date: '2026-11-13', startTime: '17:30', key: 'ev-g-club-a|2026-11-13|17:30' });
     const res = await setDate(ctx, 'ev-g-club-a', '2026-11-13', { mode: 'remove' });
-    expect(res).toMatchObject({ ok: false, status: 409, error: 'Data are prezența salvată. Poți doar să o anulezi.' });
+    expect(res).toMatchObject({ ok: false, status: 409, error: 'Prezență salvată, se poate doar anula.' });
     expect([state.events[0].exceptions, state.history]).toEqual([[], []]);
   });
 

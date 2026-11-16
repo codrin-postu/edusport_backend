@@ -52,7 +52,7 @@ describe('extend the abonamente', () => {
     const f = fakePresenceContext(seed());
     const key = await keyOf(f);
     await extendSubscriptions(f.ctx, { weeks: 1, key });
-    expect(await extendSubscriptions(f.ctx, { weeks: 1, key })).toEqual({ ok: false, status: 409, error: 'Abonamentele s-au schimbat. Reîncarcă pagina.' });
+    expect(await extendSubscriptions(f.ctx, { weeks: 1, key })).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' });
   });
 
   it('weeks outside 1 to 12 or not whole: 400', async () => {

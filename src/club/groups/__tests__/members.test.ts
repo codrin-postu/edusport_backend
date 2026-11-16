@@ -36,7 +36,7 @@ describe('"Alocă" (5.3)', () => {
 
   it('refuses a past season, an inactive group and an anonymized athlete', async () => {
     const { ctx, state } = seed();
-    expect(await joinGroup(ctx, 'g-ib', { season: '2025-2026', athleteIds: ['a3'], mode: 'allocate' })).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+    expect(await joinGroup(ctx, 'g-ib', { season: '2025-2026', athleteIds: ['a3'], mode: 'allocate' })).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' });
     state.groups[0].active = false;
     expect((await joinGroup(ctx, 'g-pp', { season: '2026-2027', athleteIds: ['a3'], mode: 'allocate' })).ok).toBe(false);
     expect((await joinGroup(ctx, 'g-ib', { season: '2026-2027', athleteIds: ['a5'], mode: 'add' })).ok).toBe(false);
@@ -51,7 +51,7 @@ describe('"Alocă" (5.3)', () => {
 
 /** The season is switched right after the writer locked it: the writer must read it again and refuse (season lock before athletes and groups). */
 describe('a season that turns past while the writer waits for its lock', () => {
-  const STALE = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' };
+  const STALE = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' };
   const switchOnLock = (c: ReturnType<typeof seed>) => {
     const lock = c.ctx.store.lockSeason;
     c.ctx.store.lockSeason = async (id) => {

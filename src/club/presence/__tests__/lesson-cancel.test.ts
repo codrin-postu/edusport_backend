@@ -11,7 +11,7 @@ import { readCancelReason } from '../lessons/cancel';
 import { lessonRow } from './fake-store';
 
 const PARENT = 'parinte1@example.invalid';
-const STALE = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' };
+const STALE = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' };
 
 const coachOf = (c: SportivSeed, teamMemberId = 'tm-virgil'): CoachContexts => ({
   coach: { accountId: 'acc-c', userId: 2, sessionId: 'ses-c', teamMemberId, name: 'Virgil Pascu' },

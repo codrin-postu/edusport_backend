@@ -233,7 +233,7 @@ describe('removed dates', () => {
   it('a date with a saved session is 409 with the refusal text', async () => {
     const { c } = ctx();
     c.fake.state.sessions.push({ id: 's1', groupId: 'g-club-a', eventId: 'ev-g-club-a', date: '2026-11-27', startTime: '17:00' } as never);
-    expect(await coachSetDate(c, 'ev-g-club-a', '2026-11-27', { mode: 'remove' })).toMatchObject({ ok: false, status: 409, error: 'Data are prezența salvată. Poți doar să o anulezi.' });
+    expect(await coachSetDate(c, 'ev-g-club-a', '2026-11-27', { mode: 'remove' })).toMatchObject({ ok: false, status: 409, error: 'Prezență salvată, se poate doar anula.' });
   });
 });
 
@@ -303,7 +303,7 @@ describe('fix round A through the coach', () => {
     const again = await coachAddProgram(c, 'g-club-a', { repeat: false, date: '2026-11-15', startTime: '16:00', durationMin: 60 });
     const id2 = again.ok ? again.data.eventId : '';
     c.fake.state.sessions.push({ id: 's1', groupId: 'g-club-a', eventId: id2, date: '2026-11-15', startTime: '16:00' } as never);
-    expect(await coachDeleteClass(c, id2)).toMatchObject({ ok: false, status: 409, error: 'Data are prezența salvată. Poți doar să o anulezi.' });
+    expect(await coachDeleteClass(c, id2)).toMatchObject({ ok: false, status: 409, error: 'Prezență salvată, se poate doar anula.' });
     c.fake.group.events.push({ ...c.fake.group.events.find((e) => e.id === id2)!, id: 'old', recurrence: { ...c.fake.group.events.find((e) => e.id === id2)!.recurrence, singleDate: '2026-11-12' } });
     expect(await coachDeleteClass(c, 'old')).toEqual(INVALID);
   });

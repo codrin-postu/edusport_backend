@@ -171,7 +171,7 @@ describe('"Anulează abonamentul"', () => {
     const f = fakePresenceContext(seed());
     await addSubscription(f.ctx, 'a1', add({ payment: { amount: 360, method: 'numerar', collectedAtRink: false, sendEmail: false } }));
     const id = f.state.subscriptions[0].id;
-    expect(await cancelSubscription(f.ctx, id)).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+    expect(await cancelSubscription(f.ctx, id)).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' });
     await cancelPayment(f.ctx, f.state.payments[0].id);
     expect((await cancelSubscription(f.ctx, id)).ok).toBe(true);
   });

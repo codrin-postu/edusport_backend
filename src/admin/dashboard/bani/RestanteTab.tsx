@@ -99,7 +99,6 @@ export function RestanteBlocks({ blocks, phone, a }: { blocks: RestanteBlock[]; 
         <EditorCard variant="plain"
           key={b.key} title={sectionTitle[b.key]} footer={<strong>{CONTABILITATE_COPY.restante.total(ron(b.total))}</strong>}
         >
-          {b.key === 'scoala' && <p className="ui-muted">{CONTABILITATE_COPY.restante.schoolSub}</p>}
           {b.key === 'scoala'
             ? (phone ? <Cards rows={b.rows} line={schoolLine} a={a} /> : <DataTable columns={schoolColumns(a)} rows={b.rows} getRowKey={rowKey} onRowClick={a.open} rowLabel={(r) => r.athleteName} pageSize={0} />)
             : (phone ? <Cards rows={b.rows} line={clubLine} a={a} /> : <DataTable columns={clubColumns(a)} rows={b.rows} getRowKey={rowKey} onRowClick={a.open} rowLabel={(r) => r.athleteName} pageSize={0} />)}

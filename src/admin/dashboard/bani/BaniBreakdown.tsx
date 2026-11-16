@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { SegmentedControl, useIsPhone } from '../../ui';
+import { HelpTip, SegmentedControl, useIsPhone } from '../../ui';
 import { breakdownCards, percentText, totalOf, visibleGroups } from '../../../club/bani/money-view';
 import { BANI_COPY } from '../../../club/presence/copy/money-ui';
 import { ron } from '../../../club/presence/money';
@@ -46,7 +46,7 @@ function Sections({ blocks, phone }: { blocks: MoneyOverview['bySection']; phone
       ) : (
       <div className="bn-scroll">
         <table className="bn-table">
-          <thead><tr><th>{cols.group}</th><th>{cols.due}</th><th>{cols.paid}</th><th>{cols.left}</th><th>{cols.percent}</th></tr></thead>
+          <thead><tr><th>{cols.group}</th><th>{cols.due}</th><th>{cols.paid} <HelpTip label={BANI_COPY.paidTip} /></th><th>{cols.left}</th><th>{cols.percent}</th></tr></thead>
           <tbody>
             {blocks.map((b) => (
               <React.Fragment key={b.sectionId}>
@@ -59,7 +59,6 @@ function Sections({ blocks, phone }: { blocks: MoneyOverview['bySection']; phone
         </table>
       </div>
       )}
-      <p className="ui-muted bn-mark">{BANI_COPY.note}</p>
     </>
   );
 }

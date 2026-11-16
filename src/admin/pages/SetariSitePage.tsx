@@ -142,7 +142,7 @@ const PersonalDataCard: React.FC<FormProps> = ({ form }) => {
           onChange={(next) => form.set('personalData', { ...personalData, retentionYears: retentionYearsOf(next) })}
         />
       </Field>
-      <Field label={SETARI_COPY.attendanceStart} hint={SETARI_COPY.attendanceStartHint}>
+      <Field label={SETARI_COPY.attendanceStart}>
         <DateInput
           value={form.value.attendanceStartDate ?? null}
           onChange={(next) => form.set('attendanceStartDate', next)}

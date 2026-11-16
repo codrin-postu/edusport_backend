@@ -144,7 +144,7 @@ describe('record a payment', () => {
 
   it('refuses a cancelled abonament, a lesson not held, an anonymized athlete, a future date (8 decided)', async () => {
     const f = fakePresenceContext(seed());
-    expect(await recordPayment(f.ctx, pay({ for: { kind: 'abonament', subscriptionId: 'sub-off' } }))).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+    expect(await recordPayment(f.ctx, pay({ for: { kind: 'abonament', subscriptionId: 'sub-off' } }))).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' });
     expect((await recordPayment(f.ctx, pay({ for: { kind: 'lectie', lessonId: 'l-absent' } }))).ok).toBe(false);
     expect((await recordPayment(f.ctx, pay({ athleteId: 'a9' }))).ok).toBe(false);
     expect(await recordPayment(f.ctx, pay({ paidOn: '2026-11-21' }))).toEqual({ ok: false, status: 400, error: 'Data nu poate fi în viitor.' });
@@ -212,7 +212,7 @@ describe('edit a payment', () => {
 
   it('a cancelled payment is not edited', async () => {
     const f = fakePresenceContext(seed({ payments: [paymentRow({ id: 'p1', athleteId: 'a1', cancelled: true })] }));
-    expect(await editPayment(f.ctx, 'p1', editBody())).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' });
+    expect(await editPayment(f.ctx, 'p1', editBody())).toEqual({ ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' });
   });
 
   it('moving a payment between two abonamente with the same item name writes a Pentru line with the start dates (final review M1)', async () => {
@@ -292,7 +292,7 @@ describe('the athlete is read again after the lock (final review M3)', () => {
   });
   it('edit and cancel refuse 409 when the payment moved to another athlete meanwhile', async () => {
     const fresh = () => fakePresenceContext(seed({ payments: [paymentRow({ id: 'p1', athleteId: 'a1', amount: 300 })] }));
-    const stale = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă pagina.' };
+    const stale = { ok: false, status: 409, error: 'Datele s-au schimbat. Reîncarcă.' };
     const [e, c] = [fresh(), fresh()];
     expect(await editPayment(merged(e), 'p1', editBody({ amount: 100 }))).toEqual(stale);
     expect(await cancelPayment(merged(c), 'p1')).toEqual(stale);

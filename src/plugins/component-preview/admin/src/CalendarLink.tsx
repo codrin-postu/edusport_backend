@@ -19,8 +19,7 @@ export default function CalendarLink(_props: Props) {
   return (
     <LinkOutCard
       title="Calendar și serii"
-      description="Calendarul sezonului și seriile de curs se editează în pagina Program, nu aici."
-      body="Aici poți edita datele pentru școala de patinaj și alte evenimente."
+      body="Se editează în pagina Program."
       href="/admin/plugins/edusport-program"
       linkLabel="Deschide Calendar și serii"
     />

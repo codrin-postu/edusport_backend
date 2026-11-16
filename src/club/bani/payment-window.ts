@@ -80,7 +80,7 @@ export function optionHint(o: PaymentOption): string | null {
   switch (optionGroup(o)) {
     case 'due': return o.paid > 0 ? PAYMENT_COPY.hintLeft(o.owed as number) : ron(o.owed as number);
     case 'paid': return PAYMENT_COPY.hintPaid;
-    default: return o.for.kind === 'altceva' ? PAYMENT_COPY.hintAny : null;
+    default: return null;
   }
 }
 

@@ -16,7 +16,7 @@ const ProgramEditPage: React.FC = () => (
   <AdminPage>
     <style>{SPORTIVI_CSS + GRUPE_CSS}</style>
     <Window>
-      <PageHeader back={{ to: DASHBOARD_TO }} title="Program" subtitle="Calendarul sezonului și seriile de cursuri" />
+      <PageHeader back={{ to: DASHBOARD_TO }} title="Program" />
       <div className="ui-body">
         <PauzeSection />
         <EditorCard variant="plain" title={PAUZE_COPY.calendar} headerAction={<StatusBadge tone="neutral">{PAUZE_COPY.autosave}</StatusBadge>}>
