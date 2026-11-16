@@ -24,6 +24,7 @@ import type { TableDefinition, TableResult, TableRow } from '../types';
 const catalog: CatalogAnswer = {
   subjects: CATALOG, groupLabels: GROUP_LABELS, today: '2026-11-20', maxRows: 5000, defaultViewId: 'rm-plati-grupa', readyMade: READY_MADE,
   seasons: [{ id: 's26', label: '2026-2027', startMonth: '2026-10-01', endMonth: '2027-05-31', isCurrent: true }],
+  coaches: [{ id: 'c1', name: 'Alina Gheorghe' }],
   sections: [{ id: 'sec1', name: 'Club' }], groups: [{ id: 'g1', name: 'Avansați', sectionId: 'sec1', active: true }],
 };
 const html = (el: React.ReactElement) => renderToStaticMarkup(el);
@@ -101,12 +102,12 @@ describe('Tabele control row and export', () => {
 
   it('shows the five types, the one period, the chip, the Filtru button, grouping and column count, with no row labels', () => {
     const bar = html(React.createElement(TypeBar, { definition, catalog, onChange: noop }));
-    for (const text of ['Sportivi', 'Plăți', 'Abonamente', 'Prezență', 'Prezență pe ședințe', 'Sezonul 2026-2027']) expect(bar).toContain(text);
+    for (const text of ['Sportivi', 'Plăți', 'Abonamente', 'Prezență', 'Prezență pe ședințe', '2026-2027']) expect(bar).toContain(text);
     const chips = html(React.createElement(FilterChips, { definition: { ...definition, filters: [{ column: 'metoda', op: 'eq', value: 'Card' }] }, catalog, onChange: noop }));
     expect(chips).toContain('Metodă: Card');
     expect(chips).toContain('aria-label="Șterge"');
     expect(chips).toContain('Filtru');
-    const meta = html(React.createElement(MetaRow, { definition, columns: CATALOG.plati.columns, count: 12, onChange: noop }));
+    const meta = html(React.createElement(MetaRow, { definition, columns: CATALOG.plati.columns, count: 12, onChange: noop, search: '', onSearch: noop }));
     for (const text of ['12 plăți', 'Negrupat', 'Coloane (3)']) expect(meta).toContain(text);
     for (const label of ['Tabel:', 'Secțiune:', 'Grupă:', 'Grupează:', 'Filtre', 'Perioada:']) expect(bar + chips + meta).not.toContain(`>${label}`);
   });
@@ -116,7 +117,7 @@ describe('Tabele control row and export', () => {
       expect(readDefinition({ definition: next }).ok, subject).toBe(true);
       expect(() => html(React.createElement(TypeBar, { definition: next, catalog, onChange: noop })), subject).not.toThrow();
       expect(() => html(React.createElement(FilterChips, { definition: next, catalog, onChange: noop })), subject).not.toThrow();
-      expect(() => html(React.createElement(MetaRow, { definition: next, columns: catalog.subjects[subject].columns, count: 1, onChange: noop })), subject).not.toThrow();
+      expect(() => html(React.createElement(MetaRow, { definition: next, columns: catalog.subjects[subject].columns, count: 1, onChange: noop, search: '', onSearch: noop })), subject).not.toThrow();
     }
   });
   it('a catalog from a server that does not know Prezență pe ședințe does not crash the type bar', () => {
@@ -131,7 +132,7 @@ describe('Tabele control row and export', () => {
     const chips = html(React.createElement(FilterChips, { definition: sed, catalog, onChange: noop }));
     expect(chips).toContain('Selectează');
     expect(chips).not.toContain('Filtru');
-    const meta = html(React.createElement(MetaRow, { definition: sed, columns: [], count: 3, onChange: noop }));
+    const meta = html(React.createElement(MetaRow, { definition: sed, columns: [], count: 3, onChange: noop, search: '', onSearch: noop }));
     expect(meta).toContain('3 sportivi');
     expect(meta).not.toContain('Negrupat');
     expect(meta).not.toContain('Coloane');
@@ -143,6 +144,70 @@ describe('Tabele control row and export', () => {
     expect(out).not.toContain('disabled');
     const off = html(React.createElement(ExportMenu, { canDownload: false, downloading: null, onDownload: noop }));
     expect(off.match(/disabled/g)?.length).toBe(2);
+  });
+});
+
+describe('Tabele v5 screen', () => {
+  const real = console.error.bind(console);
+  beforeAll(() => { vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => { if (!args.join(' ').includes('useLayoutEffect')) real(...args); }); });
+  afterAll(() => vi.restoreAllMocks());
+  const plati: TableDefinition = { subject: 'plati', scope: { seasonId: 's26', sectionId: null, groupId: null, period: null }, columns: ['data', 'sportiv', 'suma'], filters: [], groupBy: null, sort: null };
+  const bar = (d: TableDefinition) => html(React.createElement(TypeBar, { definition: d, catalog, onChange: noop }));
+
+  it('the period button reads the season alone, one month, or several months', () => {
+    expect(bar(plati)).toContain('>2026-2027<');
+    expect(bar({ ...plati, scope: { ...plati.scope, period: { kind: 'months', months: ['2026-11'] } } })).toContain('>Noiembrie 2026<');
+    expect(bar({ ...plati, scope: { ...plati.scope, period: { kind: 'months', months: ['2026-10', '2026-11'] } } })).toContain('>2026-2027: Oct, Nov<');
+    expect(bar({ ...plati, scope: { ...plati.scope, period: { kind: 'current' } } })).toContain('>Noiembrie 2026<');
+  });
+  it('a chip with several values reads them all, and unused fields only are offered by Filtru', () => {
+    const d: TableDefinition = { ...plati, filters: [{ column: 'grupa', op: 'in', value: ['Avansați', 'Primii Pași'] }] };
+    const out = html(React.createElement(FilterChips, { definition: d, catalog, onChange: noop }));
+    expect(out).toContain('Grupă: Avansați, Primii Pași');
+    expect(out).toContain('aria-haspopup="dialog"');
+    expect(out).toContain('aria-label="Șterge"');
+  });
+  it('Prezență pe ședințe shows the group as a chip with no x', () => {
+    const sed: TableDefinition = { ...plati, subject: 'sedinte', columns: ['sportiv', 'total'], scope: { ...plati.scope, groupId: 'g1', period: { kind: 'months', months: ['2026-11'] } } };
+    const out = html(React.createElement(FilterChips, { definition: sed, catalog, onChange: noop }));
+    expect(out).toContain('Grupă: Avansați');
+    expect(out).not.toContain('aria-label="Șterge"');
+  });
+  it('the name search sits before the count', () => {
+    const out = html(React.createElement(MetaRow, { definition: plati, columns: CATALOG.plati.columns, count: 5, onChange: noop, search: 'ana', onSearch: noop }));
+    expect(out).toContain('placeholder="Caută"');
+    expect(out).toContain('value="ana"');
+    expect(out.indexOf('Caută')).toBeLessThan(out.indexOf('5 plăți'));
+  });
+  it('the table starts with Nr., numbers rows across groups, and links only the name', () => {
+    const g = grouped(2);
+    const res: TableResult = { ...g, groups: [...g.groups!, { ...g.groups![0], key: 'g2', label: 'Începători' }] };
+    const out = html(React.createElement(ResultTable, { result: res, sort: null, onSort: noop, collapsed: new Set(), onToggle: noop }));
+    expect(out.indexOf('>Nr.<')).toBeLessThan(out.indexOf('>Sportiv<'));
+    expect(out.match(/<td class="tbl-nr">(\d+)<\/td>/g)?.map((x) => x.replace(/\D/g, ''))).toEqual(['1', '2', '3', '4']);
+    expect(out.match(/<a class="tbl-name" href="\/admin\/plugins\/edusport-sportivi\/a\d" target="_blank" rel="noopener">Ana \d<\/a>/g)).toHaveLength(4);
+    expect(out).not.toContain('onclick');
+    expect(out).not.toContain('tabindex="0"');
+    expect(out).toContain('colSpan="3"');
+  });
+  it('the session grid heads each session with weekday over day, draws a square per present, totals per athlete and per session', () => {
+    const sess = (key: string, weekday: string, day: string, time: string | null) => ({ key, label: `${weekday} ${day}`, type: 'text' as const, session: { weekday, day, time } });
+    const columns = [CATALOG.sedinte.columns[0], sess('s:1', 'Lu', '3', null), sess('s:2', 'Ma', '4', '17:00'), CATALOG.sedinte.columns[1]];
+    const result: TableResult = {
+      subject: 'sedinte', groupBy: null, columns, count: 2, notices: [], groups: null, total: { 's:1': 1, 's:2': 2, total: 3 },
+      rows: [
+        { athleteId: 'a1', groupKeys: {}, cells: { sportiv: 'Ana', 's:1': 'X', 's:2': 'X', total: 2 } },
+        { athleteId: 'a2', groupKeys: {}, cells: { sportiv: 'Dan', 's:1': null, 's:2': 'X', total: 1 } },
+      ],
+    };
+    const out = html(React.createElement(ResultTable, { result, sort: null, onSort: noop, collapsed: new Set(), onToggle: noop }));
+    expect(out).toContain('Lu<br/>3');
+    expect(out).toContain('Ma<br/>4<br/>17:00');
+    expect(out.match(/class="tbl-mark"/g)).toHaveLength(3);
+    expect(out).not.toContain('>X<');
+    expect(out).toContain('>Total<');
+    expect(out).toMatch(/<td class="tbl-mk">1<\/td><td class="tbl-mk">2<\/td><td class="tbl-num">3<\/td>/);
+    expect(out).toContain('Ana</a>');
   });
 });
 

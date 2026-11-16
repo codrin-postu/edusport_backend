@@ -24,8 +24,8 @@ export function useTablesApi() {
     const view = (id: string) => `${BASE}/table-views/${encodeURIComponent(id)}`;
     return {
       catalog: async () => ((await ref.current.get(`${BASE}/tables/catalog`)) as Wrapped<CatalogAnswer>).data.data,
-      query: async (definition: TableDefinition, signal?: AbortSignal) =>
-        ((await ref.current.post(`${BASE}/tables/query`, { definition }, { signal })) as Wrapped<TableResult>).data.data,
+      query: async (definition: TableDefinition, search: string, signal?: AbortSignal) =>
+        ((await ref.current.post(`${BASE}/tables/query`, search === '' ? { definition } : { definition, search }, { signal })) as Wrapped<TableResult>).data.data,
       views: async () => ((await ref.current.get(`${BASE}/table-views`)) as Wrapped<SavedViewRow[]>).data.data,
       createView: async (name: string, definition: TableDefinition) =>
         ((await ref.current.post(`${BASE}/table-views`, { name, definition })) as Wrapped<ViewReply>).data.data,
@@ -38,8 +38,8 @@ export function useTablesApi() {
       /** The toast's "Anulează": it outlives the screen, so it uses the plain client. */
       undo: async (actionId: string) => ((await getFetchClient().post(`${BASE}/undo`, { actionId })) as Wrapped<{ undone: true }>).data.data,
       /** `name` is the view's name (it names the file and the sheet); an unsaved definition sends none. */
-      download: (format: Format, definition: TableDefinition, name: string | null, fallbackName: string) =>
-        downloadPost(tokenRef.current, `${BASE}/tables/export`, name ? { definition, format, name } : { definition, format }, fallbackName, strapiDownload()),
+      download: (format: Format, definition: TableDefinition, name: string | null, fallbackName: string, search = '') =>
+        downloadPost(tokenRef.current, `${BASE}/tables/export`, { definition, format, ...(name ? { name } : {}), ...(search === '' ? {} : { search }) }, fallbackName, strapiDownload()),
     };
   }, []);
 }

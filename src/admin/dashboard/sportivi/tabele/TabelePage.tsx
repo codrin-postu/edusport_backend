@@ -56,17 +56,17 @@ function useTablesData(api: TablesApi) {
 }
 
 /** The result of the definition on screen, a moment after the last change; a slow older answer is dropped. */
-function useResult(api: TablesApi, definition: TableDefinition | null) {
+function useResult(api: TablesApi, definition: TableDefinition | null, search: string) {
   const [state, setState] = React.useState<{ result: TableResult | null; error: string | null; loading: boolean }>({ result: null, error: null, loading: true });
   const latest = useLatest();
-  const key = JSON.stringify(definition);
+  const key = JSON.stringify([definition, search]);
   React.useEffect(() => {
     if (definition === null) { setState({ result: null, error: null, loading: false }); return undefined; }
     setState((s) => ({ ...s, loading: true }));
     const current = latest.next();
     const timer = setTimeout(async () => {
       try {
-        const result = await api.query(definition);
+        const result = await api.query(definition, search);
         if (current()) setState({ result, error: null, loading: false });
       } catch (err) {
         if (current()) setState({ result: null, error: requestErrorText(err, PRESENCE_ERRORS.loadFailed), loading: false });
@@ -101,10 +101,11 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
   const savedKey = JSON.stringify(saved);
 
   const [draft, setDraft] = React.useState<TableDefinition | null>(saved);
+  const [nameQuery, setNameQuery] = React.useState('');
   const [collapsed, setCollapsed] = React.useState<ReadonlySet<string>>(new Set());
-  React.useEffect(() => { setDraft(saved); setCollapsed(new Set()); }, [current.id, savedKey]);
+  React.useEffect(() => { setDraft(saved); setCollapsed(new Set()); setNameQuery(''); }, [current.id, savedKey]);
 
-  const { result, error, loading } = useResult(api, draft);
+  const { result, error, loading } = useResult(api, draft, nameQuery.trim());
   const dirty = saved !== null && draft !== null && isDirty(saved, draft);
 
   const [dialog, setDialog] = React.useState<Dialog>(null);
@@ -118,7 +119,7 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
     if (!draft) return;
     setDownloading(format);
     try {
-      await api.download(format, draft, current.name, `tabel-${draft.subject}.${format}`);
+      await api.download(format, draft, current.name, `tabel-${draft.subject}.${format}`, nameQuery.trim());
     } catch (err) {
       adminToast.error(await blobErrorText(err, TABLES_COPY.errors.download));
     } finally {
@@ -228,7 +229,7 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
           <div className="tbl-notices">{notices.map((n) => <Notice key={n} tone="warning">{n}</Notice>)}</div>
         )}
         {error && <div className="tbl-notices"><Notice tone="danger">{error}</Notice></div>}
-        {draft && <MetaRow definition={draft} columns={catalog.subjects[draft.subject]?.columns ?? []} count={result && !error ? result.count : null} onChange={setDraft} />}
+        {draft && <MetaRow definition={draft} columns={catalog.subjects[draft.subject]?.columns ?? []} count={result && !error ? result.count : null} onChange={setDraft} search={nameQuery} onSearch={setNameQuery} />}
         {loading && !result && !error && <div className="tbl-loading"><Loading /></div>}
         {result && !error && noPaymentsThisMonth(current.id, dirty, result) && <EmptyState>{TABLES_COPY.noPaymentsMonth}</EmptyState>}
         {result && !error && !noPaymentsThisMonth(current.id, dirty, result) && (
