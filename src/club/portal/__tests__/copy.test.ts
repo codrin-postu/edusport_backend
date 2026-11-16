@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as copy from '../copy';
-import { MAIL_COPY, PORTAL_ACTIONS, portalHistoryText } from '../copy';
+import { MAIL_COPY, PORTAL_ACTIONS, PORTAL_ERRORS, portalHistoryText } from '../copy';
+import { ACCESS_ERRORS } from '../access/copy';
+import { NO_ACCESS } from '../sportiv/holder';
 
 const collect = (v: unknown): string[] => {
   if (typeof v === 'string') return [v];
@@ -27,5 +29,13 @@ describe('portal copy', () => {
     expect(copy.accountDisableConfirmText('Ana Pop')).toBe('Dezactivezi contul lui Ana Pop? Toate dispozitivele vor fi deconectate.');
     expect(copy.accountDisableConfirmText('')).toBe('Dezactivezi contul? Toate dispozitivele vor fi deconectate.');
     expect(copy.accountDisableConfirmText('   ')).toBe('Dezactivezi contul? Toate dispozitivele vor fi deconectate.');
+  });
+
+  // The frontend matches these three with === (scripts/portal/server-strings.test.mjs pins the same literals).
+  it('keeps the messages the portal frontend compares by value', () => {
+    expect(PORTAL_ERRORS.archived).toBe('Arhivată');
+    expect(PORTAL_ERRORS.noAccess).toBe('Nu mai ai acces la această grupă.');
+    expect(ACCESS_ERRORS.noAccess).toBe('Nu mai ai acces la acest sportiv.');
+    expect(NO_ACCESS).toBe('Nu mai ai acces la acest sportiv.');
   });
 });

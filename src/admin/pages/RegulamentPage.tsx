@@ -138,7 +138,6 @@ function RulesTable({ rules, onChange }: { rules: Rule[]; onChange: (next: Rule[
           </>
         )}
       />
-      <div className="ui-hint">Trage de mâner pentru a reordona. Fiecare rând are o etichetă, un text și o opțiune de evidențiere.</div>
     </div>
   );
 }

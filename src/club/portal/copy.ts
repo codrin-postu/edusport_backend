@@ -11,7 +11,7 @@ export const PORTAL_ERRORS = {
   passwordWeak: 'Parola este prea ușor de ghicit. Alege alta.',
   currentWrong: 'Parola actuală nu este corectă.',
   emailTaken: 'Adresa are deja un cont.',
-  archived: 'Arhivată. Nu mai poate fi modificată.',
+  archived: 'Arhivată',
   noAccess: 'Nu mai ai acces la această grupă.',
   invalid: 'Cerere invalidă.',
   nameLength: 'Numele trebuie să aibă între 1 și 80 de caractere.',
