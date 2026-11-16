@@ -1,3 +1,4 @@
+import { BP } from '../../ui-breakpoints';
 import { describe, expect, it } from 'vitest';
 import { EXPORT_FORMATS, RAIL_KEY, pageTitle, railInitial, railStored } from '../shell-state';
 
@@ -6,9 +7,9 @@ describe('rail state', () => {
     expect(railInitial('0', 1440)).toBe(false);
     expect(railInitial('1', 600)).toBe(true);
   });
-  it('with nothing remembered the rail is closed up to 900 and open above', () => {
-    expect(railInitial(null, 900)).toBe(false);
-    expect(railInitial(null, 901)).toBe(true);
+  it('with nothing remembered the rail is closed up to the tablet width and open above', () => {
+    expect(railInitial(null, BP.tablet)).toBe(false);
+    expect(railInitial(null, BP.tablet + 1)).toBe(true);
   });
   it('an unknown stored value counts as nothing remembered', () => {
     expect(railInitial('zzz', 1440)).toBe(true);

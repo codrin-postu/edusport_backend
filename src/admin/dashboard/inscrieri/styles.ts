@@ -1,3 +1,4 @@
+import { BP } from '../../../club/ui-breakpoints';
 import { FIT_PAGE_MEDIA } from '../../ui';
 
 /**
@@ -18,7 +19,7 @@ const LIST_CSS =
   '.ui-root .ins-back{padding:4px 18px 10px}' +
   '.ui-root .sbt-tag{min-width:0}' +
   '.ui-root .sbt-clist td.ins-school{min-width:140px;white-space:normal;line-height:1.25}' +
-  '@media (min-width:1041px){.ui-root .sbt-split--panel .sbt-clist th,.ui-root .sbt-split--panel .sbt-clist td{padding-left:8px;padding-right:8px}' +
+  `@media (min-width:${BP.tablet + 1}px){`+'.ui-root .sbt-split--panel .sbt-clist th,.ui-root .sbt-split--panel .sbt-clist td{padding-left:8px;padding-right:8px}' +
   '.ui-root .sbt-split--panel .sbt-clist th{white-space:normal}}';
 
 const PANEL_CSS =

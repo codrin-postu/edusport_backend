@@ -3,6 +3,8 @@
  * No backtick inside the string (one stray backtick blanks the admin); no dashed or dotted lines; no pills or circles.
  * On a phone the page never scrolls sideways: every parent can shrink (min-width:0) and the table scrolls inside its own box with its first column fixed.
  */
+import { phoneQuery, tabletQuery } from '../../../../club/ui-breakpoints';
+
 export const TABELE_CSS = `
 .ui-root .tbl-page{min-width:0;max-width:100%}
 .ui-root .tbl-ph{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px var(--ui-inset);min-width:0}
@@ -73,11 +75,11 @@ export const TABELE_CSS = `
 .ui-root .tbl-table tr.tbl-total td{font-weight:700;border-top:2px solid var(--theme-border);background:var(--theme-surface-subtle)}
 .ui-root .tbl-pager{padding:12px var(--ui-inset);border-top:1px solid var(--theme-border)}
 .ui-root .tbl-loading{padding:24px var(--ui-inset)}
-@media (max-width:640px){
+@media ${phoneQuery}{
 .ui-root .tbl-ph .ui-ph-title{flex-basis:calc(100% - 60px)}
 .ui-root .tbl-bar-row .tbl-period,.ui-root .tbl-bar-row .tbl-type-select{margin-left:0;flex:1 1 100%;max-width:100%}
 }
-@media (max-width:900px){
+@media ${tabletQuery}{
 .ui-root .tbl-rail:not([hidden]){display:block;position:fixed;inset:0 auto 0 0;z-index:var(--ui-z-drawer,390);width:min(300px,85vw);overflow-y:auto;border-radius:0;box-shadow:var(--theme-shadow-md)}
 .ui-root .tbl-scrim{position:fixed;inset:0;z-index:calc(var(--ui-z-drawer,390) - 1);background:var(--theme-overlay)}
 }

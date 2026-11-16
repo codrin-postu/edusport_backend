@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
+import { phoneQuery, tabletQuery } from '../../club/ui-breakpoints';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { SheetsDialog, type SheetsForm } from './SheetsDialog';
 import {
@@ -484,8 +485,8 @@ const TABLE_CSS = `
 .ui-root .sbt-search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--theme-text-muted);pointer-events:none}
 .ui-root .sbt-search .ui-input{padding-left:30px;text-overflow:ellipsis}
 .ui-root .sbt-sort{display:inline-flex;align-items:center;gap:7px}
-@media (max-width:640px){.ui-root .sbt-season{flex-wrap:wrap}.ui-root .sbt-season .ui-input{flex:none}.ui-root .sbt-stat{text-align:left}}
-@media (max-width:1040px){.ui-root .sbt-split{grid-template-columns:1fr}}
+@media ${phoneQuery}{.ui-root .sbt-season{flex-wrap:wrap}.ui-root .sbt-season .ui-input{flex:none}.ui-root .sbt-stat{text-align:left}}
+@media ${tabletQuery}{.ui-root .sbt-split{grid-template-columns:1fr}}
 .ui-root .sbt-clist td{white-space:nowrap}
 .ui-root .sbt-clist tbody tr[aria-selected="true"] td{background:var(--theme-primary-soft)}
 .ui-root .sbt-chk{width:1%;padding-right:0}
@@ -494,7 +495,7 @@ const TABLE_CSS = `
 .ui-root .sbt-rowacts{display:inline-flex;gap:6px;opacity:0}
 .ui-root .sbt-clist tr:hover .sbt-rowacts,.ui-root .sbt-clist tr[aria-selected="true"] .sbt-rowacts,.ui-root .sbt-rowacts:focus-within{opacity:1}
 .ui-root .sbt-panel{border-left:1px solid var(--theme-border);background:var(--theme-surface-subtle);min-width:0}
-@media (max-width:1040px){.ui-root .sbt-panel{border-left:none;border-top:1px solid var(--theme-border)}}
+@media ${tabletQuery}{.ui-root .sbt-panel{border-left:none;border-top:1px solid var(--theme-border)}}
 .ui-root .sbt-ph{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px var(--ui-inset);border-bottom:1px solid var(--theme-border)}
 .ui-root .sbt-ph b{font-size:14.5px;color:var(--theme-text)}
 .ui-root .sbt-pb{padding:12px var(--ui-inset);max-height:calc(100vh - 340px);min-height:200px;overflow-y:auto}

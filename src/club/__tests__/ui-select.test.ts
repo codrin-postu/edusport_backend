@@ -121,6 +121,6 @@ describe('one dropdown look', () => {
   });
 
   it('triggers are 16px on phones so iOS does not zoom', () => {
-    expect(styles).toContain('@media (max-width:640px){${R} .ui-input{font-size:16px}}');
+    expect(styles).toContain('${PHONE_MQ}{${R} .ui-input{font-size:16px}}');
   });
 });

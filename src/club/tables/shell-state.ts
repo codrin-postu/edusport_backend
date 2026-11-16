@@ -1,10 +1,12 @@
+import { BP } from '../ui-breakpoints';
+
 /** Browser storage key of the saved-tables rail (open or closed); per browser. */
 export const RAIL_KEY = 'tabele-rail';
 
 /** Widest screen where the rail is a slide-over instead of a column. */
-export const RAIL_OVERLAY_MAX = 900;
+export const RAIL_OVERLAY_MAX = BP.tablet;
 
-/** Whether the rail starts open: the remembered choice ('0' closed, '1' open), else closed up to 900px wide and open above. */
+/** Whether the rail starts open: the remembered choice ('0' closed, '1' open), else closed up to the tablet width and open above. */
 export function railInitial(stored: string | null, viewportWidth: number): boolean {
   if (stored === '0') return false;
   if (stored === '1') return true;

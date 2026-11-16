@@ -1,7 +1,8 @@
 import * as React from 'react';
+import { phoneQuery } from '../../club/ui-breakpoints';
 
 /** Phone layout of the admin: the breakpoint Drawer, Toast and MobileNav already use. */
-export const PHONE_QUERY = '(max-width: 640px)';
+export const PHONE_QUERY = phoneQuery;
 
 const media = (query: string): MediaQueryList | null =>
   typeof window !== 'undefined' && typeof window.matchMedia === 'function' ? window.matchMedia(query) : null;

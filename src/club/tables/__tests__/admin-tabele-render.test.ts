@@ -175,7 +175,7 @@ describe('Tabele shell source', () => {
     }
     expect(JSON.stringify(TABLES_COPY)).not.toMatch(/Aspect|Foaie de calcul|Exact ce vezi/);
   });
-  it('below 900px the rail is a slide-over with a scrim that closes on pick', () => {
+  it('up to the tablet width the rail is a slide-over with a scrim that closes on pick', () => {
     const rail = tabele('SavedRail.tsx');
     expect(tabele('TabelePage.tsx')).toMatch(/useMediaQuery\(OVERLAY_QUERY\)/);
     expect(tabele('TabelePage.tsx')).toContain('RAIL_OVERLAY_MAX');

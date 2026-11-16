@@ -33,6 +33,7 @@
  *     dark, the fill at least 3:1 on the raised surface. Category soft-fg at
  *     least 4.5:1 on its soft fill.
  */
+import { phoneQuery } from '../../club/ui-breakpoints';
 
 /* ---- primitive palette -------------------------------------------------- */
 
@@ -737,7 +738,7 @@ const OUTER_ROOT = '.ui-root:not(:where(.ui-root .ui-root))';
  *     attribute inside a root (the reference page previews a theme this way).
  */
 export function tokensCss(): string {
-  const out = [block(OUTER_ROOT, scaleVars()), `@media (max-width:640px){${block(OUTER_ROOT, { '--ui-inset': '12px' })}}`];
+  const out = [block(OUTER_ROOT, scaleVars()), `@media ${phoneQuery}{${block(OUTER_ROOT, { '--ui-inset': '12px' })}}`];
   for (const name of THEME_NAMES) {
     const t = THEMES[name];
     const attr = `[${THEME_ATTR}="${name}"]`;

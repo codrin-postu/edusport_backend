@@ -1,3 +1,4 @@
+import { phoneQuery, tabletQuery } from '../../club/ui-breakpoints';
 import { tokensCss } from './tokens';
 import { startAdminThemeSync } from './useAdminTheme';
 
@@ -29,6 +30,8 @@ const R = '.ui-root';
 /** The one control height; controls inside table cells take the smaller one (td/th set --ui-ctl). */
 const H = 'var(--ui-ctl, var(--ui-control-h))';
 const SB = '.ui-root.ui-savebar';
+const PHONE_MQ = `@media ${phoneQuery}`;
+const TABLET_MQ = `@media ${tabletQuery}`;
 
 /** Desktop window where a fit page (AdminPage `fit`) fills Strapi's scroll box; below it the page scrolls as usual. */
 export const FIT_PAGE_MEDIA = '@media (min-width:1100px) and (min-height:700px)';
@@ -58,7 +61,7 @@ ${R} .ui-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflo
 /* page root. flex-shrink:0: Strapi renders plugin pages inside a fixed-height
    flex column; without it the background stops after the first screen. */
 .ui-root.ui-page{background:var(--theme-bg);min-height:100%;flex-shrink:0;padding:var(--ui-space-5)}
-@media (max-width:640px){.ui-root.ui-page{padding:var(--ui-space-3)}}
+${PHONE_MQ}{.ui-root.ui-page{padding:var(--ui-space-3)}}
 /* .ui-root.ui-stack: AdminPage puts both classes on the page root itself. */
 .ui-root.ui-stack,${R} .ui-stack{display:flex;flex-direction:column;gap:var(--ui-space-4)}
 
@@ -83,7 +86,7 @@ ${R} .ui-ph-back:hover{color:var(--theme-primary-hover);text-decoration:none}
 ${R} .ui-ph-title{margin:0;font-size:var(--ui-fs-page-title);font-weight:var(--ui-fw-page-title);line-height:var(--ui-lh-page-title);letter-spacing:var(--ui-ls-page-title);color:var(--theme-text)}
 ${R} .ui-ph-sub{margin:3px 0 0;font-size:var(--ui-fs-body-sm);color:var(--theme-text-muted)}
 ${R} .ui-ph-actions{display:flex;align-items:center;gap:var(--ui-space-2);flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
-@media (max-width:640px){${R} .ui-ph{flex-direction:column}${R} .ui-ph-actions{justify-content:flex-start}}
+${PHONE_MQ}{${R} .ui-ph{flex-direction:column}${R} .ui-ph-actions{justify-content:flex-start}}
 
 /* buttons */
 ${R} .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;font-size:var(--ui-fs-body-sm);font-weight:600;line-height:1.2;height:${H};padding:0 12px;border-radius:var(--ui-radius-sm);border:1px solid var(--theme-border-strong);background:var(--theme-surface);color:var(--theme-text);cursor:pointer;white-space:nowrap;transition:background-color var(--ui-motion-fast) var(--ui-easing),border-color var(--ui-motion-fast) var(--ui-easing),color var(--ui-motion-fast) var(--ui-easing)}
@@ -148,7 +151,7 @@ ${R} .ui-radios{display:flex;flex-wrap:wrap;gap:var(--ui-space-2) var(--ui-space
 ${R} .ui-radios--column{flex-direction:column;gap:var(--ui-space-2)}
 ${R} .ui-radios--card{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 ${R} .ui-radios--card.ui-radios--column{grid-template-columns:minmax(0,1fr)}
-@media (max-width:640px){${R} .ui-radios--card{grid-template-columns:minmax(0,1fr)}}
+${PHONE_MQ}{${R} .ui-radios--card{grid-template-columns:minmax(0,1fr)}}
 ${R} .ui-radio{display:inline-flex;align-items:flex-start;gap:8px;font-size:var(--ui-fs-body);color:var(--theme-text);cursor:pointer;user-select:none}
 ${R} .ui-radio input{appearance:none;-webkit-appearance:none;margin:2px 0 0;flex-shrink:0;width:16px;height:16px;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-radio);background:var(--theme-surface);display:inline-grid;place-content:center;cursor:pointer;transition:border-color var(--ui-motion-fast) var(--ui-easing)}
 ${R} .ui-radio input::before{content:"";width:8px;height:8px;border-radius:var(--ui-radius-none);background:var(--theme-primary);opacity:0}
@@ -177,13 +180,14 @@ ${R} .ui-input[aria-invalid="true"]{border-color:var(--theme-danger)}
 ${R} input.ui-input[type=date],${R} input.ui-input[type=datetime-local]{min-width:0}
 ${R} textarea.ui-input{height:auto;padding:7px 9px;resize:vertical;min-height:64px}
 ${R} .ui-grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--ui-space-3)}
-@media (max-width:640px){${R} .ui-grid2{grid-template-columns:1fr}}
+${PHONE_MQ}{${R} .ui-grid2{grid-template-columns:1fr}}
 
 /* two column: rail + body */
 ${R} .ui-two{display:grid;grid-template-columns:var(--ui-rail-w,280px) minmax(0,1fr);align-items:start}
 ${R} .ui-rail{border-right:1px solid var(--theme-border);padding:var(--ui-space-4) var(--ui-inset);background:var(--theme-surface-subtle);align-self:stretch}
 ${R} .ui-body{padding:var(--ui-space-4) var(--ui-inset);display:flex;flex-direction:column;gap:var(--ui-space-4);min-width:0}
-@media (max-width:900px){${R} .ui-two{grid-template-columns:1fr}${R} .ui-rail{border-right:none;border-bottom:1px solid var(--theme-border)}}
+${TABLET_MQ}{${R} .ui-two{grid-template-columns:var(--ui-rail-w-tablet,240px) minmax(0,1fr)}}
+${PHONE_MQ}{${R} .ui-two{grid-template-columns:1fr}${R} .ui-rail{border-right:none;border-bottom:1px solid var(--theme-border)}}
 
 /* save bar (SaveBarView): the floating, Strapi-matching bar used by the
    native content-manager pages (src/admin/SaveBar.tsx) and by every custom
@@ -209,7 +213,7 @@ ${SB} .ui-savebar-btn--primary:disabled{opacity:.55;cursor:default}
 ${SB} .ui-savebar-btn--primary[aria-busy="true"]{opacity:1;cursor:progress}
 ${SB} :focus-visible{outline-color:var(--theme-savebar-line-hover)}
 ${SB} .ui-savebar-spin{display:inline-block;flex-shrink:0;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:var(--ui-radius-savebar-dot);animation:ui-spin .7s linear infinite}
-${sheet(SB + ':not(.ui-savebar--inline)', '@media (max-width:640px)')}
+${sheet(SB + ':not(.ui-savebar--inline)', PHONE_MQ)}
 ${sheet(SB + '.ui-savebar--sheet', '')}
 ${R} .ui-savebar-spacer{height:72px;flex-shrink:0}
 /* in-place rendering for the reference page: no fixed position, no slide */
@@ -231,7 +235,7 @@ ${R} .ui-notice--warning{--ui-notice-fg:var(--theme-warning);--ui-notice-bg:var(
 ${R} .ui-notice--danger{--ui-notice-fg:var(--theme-danger);--ui-notice-bg:var(--theme-danger-bg);--ui-notice-border:var(--theme-danger-border)}
 ${R} .ui-notice--info{--ui-notice-fg:var(--theme-info);--ui-notice-bg:var(--theme-info-bg);--ui-notice-border:var(--theme-info-border)}
 /* ui-notice--stack-phone: on phone, the action row drops below the text (full width) instead of squeezing it */
-@media (max-width:640px){${R} .ui-notice--stack-phone{flex-direction:column;align-items:stretch}${R} .ui-notice--stack-phone .ui-notice-action{align-self:stretch;display:flex;flex-wrap:wrap;gap:var(--ui-space-2)}${R} .ui-notice--stack-phone .ui-notice-close{align-self:flex-end}}
+${PHONE_MQ}{${R} .ui-notice--stack-phone{flex-direction:column;align-items:stretch}${R} .ui-notice--stack-phone .ui-notice-action{align-self:stretch;display:flex;flex-wrap:wrap;gap:var(--ui-space-2)}${R} .ui-notice--stack-phone .ui-notice-close{align-self:flex-end}}
 
 /* empty state + spinner */
 ${R} .ui-empty{display:flex;flex-direction:column;align-items:center;gap:var(--ui-space-3);padding:44px var(--ui-space-4);text-align:center;color:var(--theme-text-muted);font-size:var(--ui-fs-body)}
@@ -277,7 +281,7 @@ ${R} .ui-dsec-fold-title{flex:1;min-width:0}
 ${R} .ui-dsec-chev{display:inline-flex;color:var(--theme-text-muted);transition:transform var(--ui-motion-fast) var(--ui-easing)}
 ${R} .ui-dsec--fold[data-open="true"] .ui-dsec-chev{transform:rotate(180deg)}
 ${R} .ui-dsec--fold .ui-dsec-b{padding-top:0}
-@media (max-width:640px){
+${PHONE_MQ}{
   .ui-root.ui-drawer-layer{background:var(--theme-surface)}
   ${R} .ui-drawer{width:100%;border-left:none;box-shadow:none}
   ${R} .ui-drawer-sub{padding:0 12px}
@@ -389,7 +393,7 @@ ${R} .ui-inbox-rh h3{margin:0;font-size:16px;font-weight:800;color:var(--theme-t
 ${R} .ui-inbox-meta{font-size:12px;color:var(--theme-text-muted);margin-top:3px}
 ${R} .ui-inbox-meta a{color:var(--theme-primary);text-decoration:none}
 ${R} .ui-inbox-meta a:hover{text-decoration:underline}
-@media (max-width:900px){${R} .ui-inbox{grid-template-columns:1fr}${R} .ui-inbox-list{border-right:none}${R} .ui-inbox[data-open="true"] .ui-inbox-list{display:none}${R} .ui-inbox[data-open="false"] .ui-inbox-reader{display:none}${R} .ui-inbox-back{display:inline-flex;margin-bottom:var(--ui-space-3)}}
+${TABLET_MQ}{${R} .ui-inbox{grid-template-columns:1fr}${R} .ui-inbox-list{border-right:none}${R} .ui-inbox[data-open="true"] .ui-inbox-list{display:none}${R} .ui-inbox[data-open="false"] .ui-inbox-reader{display:none}${R} .ui-inbox-back{display:inline-flex;margin-bottom:var(--ui-space-3)}}
 
 /* shared small icon button (rows, tiles, combobox) */
 ${R} .ui-iconbtn{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:${H};height:${H};padding:0;border:1px solid transparent;border-radius:var(--ui-radius-sm);background:none;color:var(--theme-text-muted);cursor:pointer;font-family:inherit}
@@ -456,7 +460,7 @@ ${R} .ui-ofc-sec + .ui-ofc-sec{border-top:1px solid var(--theme-border-subtle);p
 ${R} .ui-ofc-sec-title{margin:0 0 10px;font-size:var(--ui-fs-section-title);font-weight:var(--ui-fw-section-title);letter-spacing:var(--ui-ls-section-title);text-transform:uppercase;color:var(--theme-text-secondary)}
 ${R} .ui-ofc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ui-space-3) var(--ui-space-4)}
 ${R} .ui-ofc-span2{grid-column:1 / -1}
-@media (max-width:720px){${R} .ui-ofc-grid{grid-template-columns:minmax(0,1fr)}}
+${PHONE_MQ}{${R} .ui-ofc-grid{grid-template-columns:minmax(0,1fr)}}
 
 /* help tip */
 .ui-root.ui-tipbtn{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;margin:0;border:none;background:none;color:var(--theme-text-muted);cursor:help;vertical-align:middle;line-height:0;border-radius:var(--ui-radius-sm)}
@@ -534,7 +538,7 @@ ${R} .ui-sel-tick{display:inline-flex;width:12px;flex-shrink:0}
 ${R} .ui-sel-hint{margin-left:auto;padding-left:12px;font-size:12px;color:var(--theme-text-muted);white-space:nowrap}
 ${R} .ui-sel-trig-hint{margin-left:0;padding-left:0}
 @media (prefers-reduced-motion:reduce){${R} .ui-sel-chev{transition:none}}
-@media (max-width:640px){${R} .ui-input{font-size:16px}}
+${PHONE_MQ}{${R} .ui-input{font-size:16px}}
 
 /* segmented control */
 .ui-root.ui-seg{display:inline-flex;align-items:stretch;gap:2px;height:${H};padding:2px;background:var(--theme-surface-sunken);border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);max-width:100%;width:fit-content;align-self:flex-start}
@@ -549,7 +553,7 @@ ${R} .ui-seg-opt:disabled{opacity:.5;cursor:default}
 /* gallery grid */
 .ui-root.ui-gal-wrap{display:block}
 ${R} .ui-gal{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(var(--ui-gal-cols,4),minmax(0,1fr));gap:10px}
-@media (max-width:640px){${R} .ui-gal{grid-template-columns:repeat(2,minmax(0,1fr))}}
+${PHONE_MQ}{${R} .ui-gal{grid-template-columns:repeat(2,minmax(0,1fr))}}
 ${R} .ui-gal-tile{position:relative;aspect-ratio:1 / 1;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);background:var(--theme-surface-sunken) center / cover no-repeat;transition:opacity var(--ui-motion-fast) var(--ui-easing)}
 ${R} .ui-gal-tile[data-dragging="true"]{opacity:.45}
 ${R} .ui-gal-hit{position:absolute;inset:0;width:100%;height:100%;padding:0;border:none;background:none;cursor:pointer;border-radius:var(--ui-radius-sm)}
@@ -598,7 +602,7 @@ ${R} .ui-toast--danger{--ui-toast-fg:var(--theme-danger)}
 @keyframes ui-toast-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 ${R} .ui-toast--out{opacity:0;transform:translateY(-6px);transition:opacity var(--ui-motion-fast) var(--ui-easing),transform var(--ui-motion-fast) var(--ui-easing)}
 @media (prefers-reduced-motion:reduce){${R} .ui-toast{animation:none}${R} .ui-toast--out{transition:none}}
-@media (max-width:640px){.ui-root.ui-toast-viewport{top:var(--ui-space-3);left:var(--ui-space-3);right:var(--ui-space-3);width:auto;max-width:none}}
+${PHONE_MQ}{.ui-root.ui-toast-viewport{top:var(--ui-space-3);left:var(--ui-space-3);right:var(--ui-space-3);width:auto;max-width:none}}
 ${R} .ui-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--ui-space-3)}
 ${R} .ui-stat{background:var(--theme-surface);border:1px solid var(--theme-border);border-left:3px solid var(--theme-primary);border-radius:var(--ui-radius-sm);padding:12px 14px;min-width:0}
 ${R} .ui-stat--success{border-left-color:var(--theme-success)}
