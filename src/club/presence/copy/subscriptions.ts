@@ -11,6 +11,7 @@ export const SUBSCRIPTION_COPY = {
   addFee: (fee: number): string => `Adaugă cotizația (${lei(fee)})`,
   feeRow: (fee: number): string => `Cotizație ${lei(fee)}`,
   total: (sum: number): string => `Total ${lei(sum)}`,
+  priceWord: { member: 'preț membru', nonMember: 'preț neafiliat' } as const,
   price: (price: number): string => lei(price),
   startsOn: 'Data de start',
   expires: 'Expiră (estimat)',

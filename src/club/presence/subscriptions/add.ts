@@ -31,7 +31,7 @@ import {
 import type { AddSubscriptionResult, NewSubscriptionForm } from './views';
 export type { AddSubscriptionResult, NewSubscriptionForm } from './views';
 type PaymentBody = { amount: number; method: PaymentMethod; collectedAtRink: boolean; sendEmail: boolean };
-type AddBody = { itemKey: string; priceListId: string; startsOn: string; cover: string[]; payment: PaymentBody | null; member: boolean | null; addFee: boolean };
+type AddBody = { itemKey: string; priceListId: string; startsOn: string; cover: string[]; payment: PaymentBody | null; member: boolean | null; audience: Audience | null; addFee: boolean };
 type Offer = { season: SeasonRecord; audience: Audience; wasMember: boolean; lists: { list: PriceListRecord; items: OfferedItem[] }[] };
 
 const DUPLICATE_WINDOW_MS = 10_000;
@@ -45,14 +45,14 @@ async function mainSchoolListId(store: PresenceStore, athleteId: string, seasonI
 }
 
 /** What the athlete may be sold from `startsOn`: the audience price (the A.C.S. box when sent, else the season's A.C.S. state), the main school group's list (4.9). Null: no season. */
-async function offerOn(store: PresenceStore, athleteId: string, startsOn: string, member: boolean | null = null): Promise<Offer | null> {
+async function offerOn(store: PresenceStore, athleteId: string, startsOn: string, chosen: Audience | null = null): Promise<Offer | null> {
   const season = seasonOfDate(await store.seasons(), startsOn);
   if (!season) return null;
   const records = await store.priceListRecords();
   const schoolIds = schoolListIds(records, await store.sections());
   const acs = await store.acsRows({ athleteId });
   const wasMember = audienceFor(acs, athleteId, season.id) === 'member';
-  const audience: Audience = (member ?? wasMember) ? 'member' : 'nonMember';
+  const audience: Audience = chosen ?? (wasMember ? 'member' : 'nonMember');
   const lists = listsForAthlete(records, schoolIds, await mainSchoolListId(store, athleteId, season.id, startsOn, schoolIds));
   return { season, audience, wasMember, lists: lists.map((list) => ({ list, items: offeredSubscriptionItems(list, audience) })) };
 }
@@ -85,11 +85,13 @@ function readPayment(v: unknown): Checked<PaymentBody | null> {
 
 const isText = (v: unknown): v is string => typeof v === 'string' && v.trim() !== '';
 
-/** The A.C.S. box (absent: the season's own state) and the fee box; anything but a boolean is refused (null). */
-function readFlags(body: Record<string, unknown>): Pick<AddBody, 'member' | 'addFee'> | null {
-  const { member, addFee } = body;
+/** The A.C.S. box (only turns membership on), the fee box and the chosen price audience (absent: the season's own state); anything else is refused (null). */
+function readFlags(body: Record<string, unknown>): Pick<AddBody, 'member' | 'addFee' | 'audience'> | null {
+  const { member, addFee, audience } = body;
   if ((member !== undefined && typeof member !== 'boolean') || (addFee !== undefined && typeof addFee !== 'boolean')) return null;
-  return { member: typeof member === 'boolean' ? member : null, addFee: addFee === true };
+  if (audience === undefined) return { member: typeof member === 'boolean' ? member : null, audience: null, addFee: addFee === true };
+  if (audience !== 'member' && audience !== 'nonMember') return null;
+  return { member: typeof member === 'boolean' ? member : null, audience, addFee: addFee === true };
 }
 
 function readAddBody(body: unknown): Checked<AddBody> {
@@ -227,7 +229,7 @@ async function addLocked(ctx: PresenceContext, athleteId: string, b: AddBody): P
   const athlete = await ctx.store.athlete(athleteId);
   if (!athlete) return refuse(404, PRESENCE_ERRORS.notFound);
   if (isAnonymized(athlete)) return refuse(409, PRESENCE_ERRORS.stale);
-  const offer = await offerOn(ctx.store, athleteId, b.startsOn, b.member);
+  const offer = await offerOn(ctx.store, athleteId, b.startsOn, b.audience ?? (b.member === null ? null : b.member ? 'member' : 'nonMember'));
   const item = offer ? pickItem(offer, b) : null;
   if (!offer || !item) return refuse(400, PRESENCE_ERRORS.invalid);
   const refused = await paymentRefusal(ctx, athlete, b.payment, item);

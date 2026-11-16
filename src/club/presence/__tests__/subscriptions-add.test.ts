@@ -34,6 +34,21 @@ describe('Adaugă abonament with the A.C.S. box', () => {
     expect(acsOf(f)).toBe('da');
   });
 
+  it('the chosen audience decides the price, the box only membership', async () => {
+    const f = fakePresenceContext(seed());
+    expect((await addSubscription(f.ctx, 'a1', add({ audience: 'member', member: false }))).ok).toBe(true);
+    expect(f.state.subscriptions[0]).toMatchObject({ price: 320, audience: 'member' });
+    expect(acsOf(f)).toBeNull();
+    const g = fakePresenceContext(seed({ acs: [{ id: 'x1', athleteId: 'a1', seasonId: 's26', state: 'da' }] }));
+    await addSubscription(g.ctx, 'a1', add({ audience: 'nonMember', member: true }));
+    expect(g.state.subscriptions[0]).toMatchObject({ price: 360, audience: 'nonMember' });
+    expect(acsOf(g)).toBe('da');
+    const h = fakePresenceContext(seed());
+    await addSubscription(h.ctx, 'a1', add({ audience: 'nonMember', member: true }));
+    expect([h.state.subscriptions[0].price, acsOf(h)]).toEqual([360, 'da']);
+    expect((await addSubscription(h.ctx, 'a1', add({ audience: 'x' }))).ok).toBe(false);
+  });
+
   it('no member field keeps the season state as before', async () => {
     const f = fakePresenceContext(seed());
     expect((await addSubscription(f.ctx, 'a1', add())).ok).toBe(true);

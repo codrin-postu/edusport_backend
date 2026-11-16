@@ -1,7 +1,9 @@
 import { priceFor, type Audience } from '../../price-item';
 import { SUBSCRIPTION_COPY } from '../copy/subscriptions';
 
-/** The A.C.S. box of "Adaugă abonament" picks the audience: ticked is a member, unticked pays the non-member price (shown as "neafiliat"). */
+export const AUDIENCES: Audience[] = ['member', 'nonMember'];
+
+/** The athlete's own audience, which the first option of "Adaugă abonament" starts on. */
 export const audienceOf = (member: boolean): Audience => (member ? 'member' : 'nonMember');
 
 /** The item's price for the audience; null when it is not offered to it. */

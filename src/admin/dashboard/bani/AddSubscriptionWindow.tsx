@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, Checkbox, DateInput, Field, Input, Notice, SegmentedControl, Select } from '../../ui';
 import {
-  addBody, addDraft, addToast, coverDisabled, coverRows, feeBox, formMatchesStart, itemOptions, itemValue, offeredLists, toggleCover, withForm, withItem, withMember, type AddDraft,
+  addBody, addDraft, addToast, coverDisabled, coverRows, feeBox, formMatchesStart, itemOptions, itemValue, priceOptions, toggleCover, withForm, withMember, withOption, type AddDraft,
 } from '../../../club/bani/abonamente-view';
 import { emailBox } from '../../../club/bani/payment-window';
 import { METHOD_WORDS, PRESENCE_ERRORS } from '../../../club/presence/copy/core';
@@ -97,11 +97,11 @@ function PaymentBlock({ form, draft, busy, amountError, set }: Pick<BodyProps, '
 
 function FormBody(p: BodyProps) {
   const { form, draft, busy, set } = p;
-  const options = itemOptions(form, draft.member);
+  const options = itemOptions(form);
   const listName = form.lists.find((l) => l.priceListId === draft.listId)?.listName ?? form.lists[0]?.listName ?? '';
   const pick = (value: string) => {
-    const [listId, ...rest] = value.split('|');
-    set((d) => withItem(d, form, listId, rest.join('|')));
+    const [listId, audience, ...rest] = value.split('|');
+    if (audience === 'member' || audience === 'nonMember') set((d) => withOption(d, form, { listId, itemKey: rest.join('|'), audience }));
   };
   const start = (
     <Field label={SUBSCRIPTION_COPY.startsOn}>
@@ -118,7 +118,7 @@ function FormBody(p: BodyProps) {
     <div className="bn-form">
       {memberBox}
       <Field label={SUBSCRIPTION_COPY.itemLabel(listName)}>
-        <Select value={draft.listId && draft.itemKey ? itemValue(draft.listId, draft.itemKey) : ''} options={options} disabled={busy} triggerHint onChange={pick} />
+        <Select value={draft.listId && draft.itemKey ? itemValue(draft.listId, draft.itemKey, draft.audience) : ''} options={options} disabled={busy} triggerHint onChange={pick} />
       </Field>
       {start}
       <Field label={SUBSCRIPTION_COPY.expires}><span>{longDate(form.validUntil)}</span></Field>
@@ -149,7 +149,7 @@ export function AddSubscriptionWindow({ athlete, onClose }: Props) {
       setServerError(requestErrorText(err, PRESENCE_ERRORS.failed));
     }
   });
-  const hasItems = form !== null && draft !== null && offeredLists(form, draft.member).some((l) => l.items.length > 0);
+  const hasItems = form !== null && draft !== null && priceOptions(form).length > 0;
   const footer = (
     <>
       <Button variant="ghost" disabled={submit.busy} onClick={onClose}>{SUBSCRIPTION_COPY.cancel}</Button>
