@@ -1,15 +1,19 @@
 import { sumMoney } from '../presence/money';
-import { NO_GROUP_LABEL, PAYMENT_STATE_VALUES } from './catalog';
+import { NO_GROUP_LABEL, PAYMENT_STATE_VALUES, SESSION_MARK } from './catalog';
 import type { CatalogColumn, CellValue, TableDefinition, TableGroup, TableRow, TableTotals } from './types';
 
 const PAID = PAYMENT_STATE_VALUES[0];
 
-/** Sums of number and money columns (null when no row has a value), "<a> din <n>" under "Stare plată". */
+/** Sums of number and money columns (null when no row has a value), the present marks of a session column, "<a> din <n>" under "Stare plată". */
 function totalsOf(rows: TableRow[], columns: CatalogColumn[]): Record<string, CellValue> {
   const out: Record<string, CellValue> = {};
   for (const c of columns) {
     if (c.key === 'starePlata') {
       out[c.key] = `${rows.filter((r) => r.cells[c.key] === PAID).length} din ${rows.length}`;
+      continue;
+    }
+    if (c.session) {
+      out[c.key] = rows.filter((r) => r.cells[c.key] === SESSION_MARK).length;
       continue;
     }
     if (c.type !== 'number' && c.type !== 'money') continue;

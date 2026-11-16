@@ -1,11 +1,13 @@
 export type Subject = 'sportivi' | 'plati' | 'abonamente' | 'prezenta' | 'sedinte';
 export type ColumnType = 'text' | 'number' | 'money' | 'date' | 'label';
 /** `values` lists the words a label column can show; absent for labels that are data (group, section names). */
-export type CatalogColumn = { key: string; label: string; type: ColumnType; values?: string[] };
+export type CatalogColumn = { key: string; label: string; type: ColumnType; values?: string[]; session?: SessionHead };
+/** The header of a session column of Prezență pe ședințe: weekday abbreviation over the day number, the time only when two sessions share a day. */
+export type SessionHead = { weekday: string; day: string; time: string | null };
 export type FilterOp = 'eq' | 'in' | 'gt' | 'lt' | 'empty' | 'notEmpty';
 export type GroupKey = 'grupa' | 'sectiune' | 'luna' | 'antrenor';
-/** null: the season; `current`: the month of today; `month`: that month. */
-export type PeriodSpec = null | { kind: 'month'; month: string } | { kind: 'current' };
+/** null: the whole season; `current`: the month of today; `month`: that month; `months`: several months of the season, oldest first (the picker's own shape). */
+export type PeriodSpec = null | { kind: 'month'; month: string } | { kind: 'current' } | { kind: 'months'; months: string[] };
 export type FilterValue = string | number | string[];
 export type TableFilter = { column: string; op: FilterOp; value?: FilterValue };
 export type TableDefinition = {

@@ -1,5 +1,5 @@
 import { refuse, type AdminResult } from '../admin-result';
-import { applyFilters } from './filter';
+import { applyFilters, searchRows } from './filter';
 import { groupRows } from './group';
 import type { Budget } from './limit';
 import { sortRows } from './sort';
@@ -8,7 +8,7 @@ import type { CatalogColumn, TableDefinition, TableResult, TableRow } from './ty
 export const MAX_ROWS = 5000;
 export const TOO_MANY_ROWS = 'Tabelul are peste 5.000 de rânduri. Restrânge sfera sau filtrele.';
 
-type Options = { notices?: string[]; today?: string; groupOrder?: ReadonlyMap<string, number>; maxRows?: number };
+type Options = { notices?: string[]; today?: string; search?: string; groupOrder?: ReadonlyMap<string, number>; maxRows?: number };
 
 /** The chosen cells and the active group-by key only: the row builders fill every column and key so filters can use hidden ones. */
 const pick = (r: TableRow, d: TableDefinition): TableRow => {
@@ -20,7 +20,7 @@ const pick = (r: TableRow, d: TableDefinition): TableRow => {
 export async function runQuery(rowsOf: () => Promise<TableRow[]>, d: TableDefinition, columns: CatalogColumn[], budget: Budget, opts: Options = {}): Promise<AdminResult<TableResult>> {
   const read = await rowsOf();
   budget.check();
-  const kept = applyFilters(read, d, opts.today);
+  const kept = searchRows(applyFilters(read, d, opts.today), opts.search ?? '');
   if (kept.length > (opts.maxRows ?? MAX_ROWS)) return refuse(422, TOO_MANY_ROWS);
   const rows = sortRows(kept, d.sort, columns).map((r) => pick(r, d));
   budget.check();

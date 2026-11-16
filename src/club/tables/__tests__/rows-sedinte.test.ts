@@ -5,7 +5,7 @@ import type { TableDefinition } from '../types';
 import { definition, TODAY, tablesSeed } from './tables-seed';
 
 const NOW = { date: TODAY, time: '12:00' };
-const scoped = (groupId: string | null, period: TableDefinition['scope']['period'] = { kind: 'month', month: '2026-11' }): TableDefinition =>
+const scoped = (groupId: string | null, period: TableDefinition['scope']['period'] = { kind: 'months', months: ['2026-11'] }): TableDefinition =>
   definition({ subject: 'sedinte', columns: ['sportiv', 'total'], scope: { seasonId: 's26', sectionId: null, groupId, period } });
 
 describe('sedinteTable', () => {
@@ -17,7 +17,7 @@ describe('sedinteTable', () => {
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     expect(res.data.columns.map((c) => c.key)).toEqual(['sportiv', 's:s1', 's:s5', 's:s2', 'total']);
-    expect(res.data.columns.map((c) => c.label)).toEqual(['Sportiv', '07.11 11:00', '10.11 17:00', '14.11 11:00', 'Total']);
+    expect(res.data.columns.map((c) => c.label)).toEqual(['Sportiv', 'Sâ 7', 'Ma 10', 'Sâ 14', 'Total']);
     const ana = res.data.rows.find((r) => r.athleteId === 'a1');
     expect(ana?.cells).toEqual({ sportiv: 'Ana Ionescu', 's:s1': SESSION_MARK, 's:s5': SESSION_MARK, 's:s2': SESSION_MARK, total: 3 });
   });
@@ -41,7 +41,7 @@ describe('sedinteTable', () => {
   });
 
   it('gives only the athlete and total columns, no error, for a month without sessions', async () => {
-    const res = await sedinteTable(tablesSeed().store, scoped('g-ib', { kind: 'month', month: '2026-09' }), TODAY, NOW);
+    const res = await sedinteTable(tablesSeed().store, scoped('g-ib', { kind: 'months', months: ['2026-09'] }), TODAY, NOW);
     expect(res.ok && res.data.columns.map((c) => c.key)).toEqual(['sportiv', 'total']);
   });
 
@@ -53,7 +53,7 @@ describe('sedinteTable', () => {
 
   it('refuses a missing group, the whole season and a month after the current one', async () => {
     const s = tablesSeed().store;
-    for (const d of [scoped(null), scoped('g-ib', null), scoped('g-ib', { kind: 'month', month: '2026-12' })]) {
+    for (const d of [scoped(null), scoped('g-ib', null), scoped('g-ib', { kind: 'months', months: ['2026-12'] })]) {
       expect(await sedinteTable(s, d, TODAY, NOW)).toMatchObject({ ok: false, status: 400 });
     }
   });

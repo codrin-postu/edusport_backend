@@ -1,4 +1,5 @@
 import { MAX_COLUMNS, MAX_FILTERS } from './definition';
+import { monthsOfPeriod } from './period';
 import { groupCountText, groupHeader } from './view-state';
 import type { CatalogColumn, CellValue, FilterOp, FilterValue, Subject, TableDefinition, TableFilter, TableGroup, TableResult, TableRow } from './types';
 import { ron } from '../presence/money';
@@ -25,9 +26,9 @@ export type ScopeFill = { groupId: string | null; month: string };
 /** A new subject keeps the scope and starts from its own columns, with no filter, group or sort. Prezență pe ședințe needs a group and a month: `fill` supplies them when the scope lacks them. */
 export const setSubject = (d: TableDefinition, subject: Subject, fill?: ScopeFill): TableDefinition => {
   if (subject !== 'sedinte' || fill === undefined) return { subject, scope: d.scope, columns: DEFAULT_COLUMNS[subject], filters: [], groupBy: null, sort: null };
-  const { period } = d.scope;
-  const keep = period !== null && (period.kind === 'current' || period.month <= fill.month);
-  const scope = { ...d.scope, sectionId: null, groupId: d.scope.groupId ?? fill.groupId, period: keep ? period : { kind: 'month' as const, month: fill.month } };
+  const months = monthsOfPeriod(d.scope.period, `${fill.month}-01`);
+  const keep = months.length === 1 && months[0] <= fill.month;
+  const scope = { ...d.scope, sectionId: null, groupId: d.scope.groupId ?? fill.groupId, period: keep ? d.scope.period : { kind: 'months' as const, months: [fill.month] } };
   return { subject, scope, columns: DEFAULT_COLUMNS[subject], filters: [], groupBy: null, sort: null };
 };
 
@@ -133,6 +134,13 @@ export function linesOf(result: TableResult, collapsed: ReadonlySet<string>, sub
   });
   if (result.groups === null) result.rows.forEach((row, i) => out.push({ kind: 'row', key: `r${i}`, row }));
   if (result.groups !== null || Object.keys(result.total).length > 0) out.push({ kind: 'total', key: 'total', label: TABLES_COPY.total, cells: result.total });
+  return out;
+}
+
+/** The number of each row line (by line key): 1, 2, 3 in display order, continuing across groups. */
+export function rowNumbers(lines: Line[]): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const line of lines) if (line.kind === 'row') out.set(line.key, out.size + 1);
   return out;
 }
 

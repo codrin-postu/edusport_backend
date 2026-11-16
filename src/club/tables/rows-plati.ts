@@ -3,19 +3,19 @@ import { monthOf, monthTitle } from '../presence/dates';
 import { listPurposeText } from '../presence/payments/rules';
 import { CANCELLED_WORD, YES_NO } from './catalog';
 import { groupInfoMap, infoOf, mainKeys, nameOf } from './context';
-import type { TableSources } from './sources';
+import type { Period } from './period';
+import { inRange, type TableSources } from './sources';
 import type { CellValue, TableDefinition, TableRow } from './types';
 
-type Range = { from: string; to: string };
 
 /** One row per payment with `paidOn` in the period, cancelled ones included; "Grupă" is the athlete's main group in the scope season. */
-export function platiRows(src: TableSources, _d: TableDefinition, period: Range): TableRow[] {
+export function platiRows(src: TableSources, _d: TableDefinition, period: Period): TableRow[] {
   if (src.season === null) return [];
   const info = groupInfoMap(src);
   const names = nameOf(src);
   const subs = new Map(src.subscriptions.map((s) => [s.id, s] as const));
   const seasons = new Map(src.seasons.map((s) => [s.id, s.label] as const));
-  return src.payments.filter((p) => period.from <= p.paidOn && p.paidOn <= period.to)
+  return src.payments.filter((p) => inRange(p.paidOn, period))
     .sort((a, b) => a.paidOn.localeCompare(b.paidOn) || String(a.receiptNo).localeCompare(String(b.receiptNo)) || a.id.localeCompare(b.id))
     .map((p): TableRow => {
       const i = infoOf(info, p.athleteId);

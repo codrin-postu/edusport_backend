@@ -5,10 +5,10 @@ import { usesOf } from '../presence/subscriptions/usage';
 import type { AttendanceRow, LessonRow, SessionRow } from '../presence/types';
 import { TYPE_VALUES } from './catalog';
 import { groupBy, nameOf } from './context';
+import { inPeriod, type Period } from './period';
 import type { TableSources } from './sources';
 import type { CellValue, GroupKey, TableDefinition, TableRow } from './types';
 
-type Range = { from: string; to: string };
 type Keys = Partial<Record<GroupKey, { key: string; label: string }[]>>;
 type Shared = Pick<PayInput, 'slots' | 'lessonPaid'> & { units: Map<string, Map<string, number>>; months: (athleteId: string) => PayInput['clubMonths'] };
 
@@ -80,15 +80,15 @@ const byDateTime = (a: TableRow, b: TableRow): number =>
   String(a.cells.data).localeCompare(String(b.cells.data)) || String(a.cells.ora).localeCompare(String(b.cells.ora)) || String(a.cells.sportiv).localeCompare(String(b.cells.sportiv), 'ro');
 
 /** One row per attendance and per held individual lesson in the period; a session's coaches all appear in `groupKeys.antrenor` and the row counts once. */
-export function prezentaRows(src: TableSources, _d: TableDefinition, period: Range): TableRow[] {
+export function prezentaRows(src: TableSources, _d: TableDefinition, period: Period): TableRow[] {
   if (src.season === null) return [];
   const sessions = new Map(src.sessions.map((s) => [s.id, s] as const));
   const c: Ctx = {
     src, shared: sharedOf(src, sessions), names: nameOf(src), groups: new Map(src.groups.map((g) => [g.id, g] as const)),
     sections: new Map(src.sections.map((s) => [s.id, s.name] as const)),
   };
-  const inPeriod = (date: string): boolean => period.from <= date && date <= period.to;
-  const attendances = src.attendances.filter((a) => inPeriod(a.sessionDate) && (!src.restricted || src.scopeGroupIds.has(a.groupId)));
-  const held = src.lessons.filter((l) => l.state === 'saved' && l.present === true && inPeriod(l.date) && (!src.restricted || src.scopeAthleteIds.has(l.athleteId)));
+  const within = (date: string): boolean => inPeriod(date, period);
+  const attendances = src.attendances.filter((a) => within(a.sessionDate) && (!src.restricted || src.scopeGroupIds.has(a.groupId)));
+  const held = src.lessons.filter((l) => l.state === 'saved' && l.present === true && within(l.date) && (!src.restricted || src.scopeAthleteIds.has(l.athleteId)));
   return [...attendances.map((a) => attendanceRow(a, sessions.get(a.sessionId), c)), ...held.map((l) => lessonRow(l, c))].sort(byDateTime);
 }

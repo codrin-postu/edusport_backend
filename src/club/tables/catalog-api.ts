@@ -9,6 +9,8 @@ export type CatalogAnswer = {
   seasons: SeasonChoice[];
   sections: { id: string; name: string }[];
   groups: { id: string; name: string; sectionId: string | null; active: boolean }[];
+  /** The coaches of the groups, for the "Antrenor" filter. */
+  coaches: { id: string; name: string }[];
   readyMade: SavedViewRow[];
   defaultViewId: string;
   today: string;

@@ -22,7 +22,7 @@ describe('subject and columns', () => {
   });
   it('Prezență pe ședințe fills a group and the current month only where the scope lacks them', () => {
     const fill = { groupId: 'g1', month: '2026-11' };
-    expect(setSubject(def, 'sedinte', fill).scope).toEqual({ ...def.scope, groupId: 'g1', period: { kind: 'month', month: '2026-11' } });
+    expect(setSubject(def, 'sedinte', fill).scope).toEqual({ ...def.scope, groupId: 'g1', period: { kind: 'months', months: ['2026-11'] } });
     const own = { ...def.scope, groupId: 'g2', period: { kind: 'current' as const } };
     expect(setSubject({ ...def, scope: own }, 'sedinte', fill).scope).toEqual(own);
     expect(setSubject(def, 'plati', fill).scope).toEqual(def.scope);
@@ -30,7 +30,14 @@ describe('subject and columns', () => {
   it('Prezență pe ședințe drops the section and a month after the current one', () => {
     const fill = { groupId: 'g1', month: '2026-11' };
     const scope = { ...def.scope, sectionId: 'sec1', period: { kind: 'month' as const, month: '2026-12' } };
-    expect(setSubject({ ...def, scope }, 'sedinte', fill).scope).toEqual({ ...scope, sectionId: null, groupId: 'g1', period: { kind: 'month', month: '2026-11' } });
+    expect(setSubject({ ...def, scope }, 'sedinte', fill).scope).toEqual({ ...scope, sectionId: null, groupId: 'g1', period: { kind: 'months', months: ['2026-11'] } });
+  });
+  it('keeps one chosen month of the picker, replaces several months or none', () => {
+    const fill = { groupId: 'g1', month: '2026-11' };
+    const one = { ...def.scope, groupId: 'g1', period: { kind: 'months' as const, months: ['2026-10'] } };
+    expect(setSubject({ ...def, scope: one }, 'sedinte', fill).scope.period).toEqual({ kind: 'months', months: ['2026-10'] });
+    const several = { ...one, period: { kind: 'months' as const, months: ['2026-10', '2026-11'] } };
+    expect(setSubject({ ...def, scope: several }, 'sedinte', fill).scope.period).toEqual({ kind: 'months', months: ['2026-11'] });
   });
   it('toggles columns: appends, removes, never the last, drops a sort on a removed column', () => {
     expect(toggleColumn(def, 'metoda', true).columns).toEqual(['data', 'sportiv', 'suma', 'metoda']);

@@ -49,7 +49,7 @@ export default {
     if (request.ok === false) return refuseWith(ctx, request.status, request.error);
     const { format } = request.data;
     const today = todayIso();
-    const result = await limited(ctx, { definition: request.data.definition }, today);
+    const result = await limited(ctx, { definition: request.data.definition, search: request.data.search }, today);
     if (!result) return;
     if (result.ok === false) return refuseWith(ctx, result.status, result.error);
     const table = result.data;

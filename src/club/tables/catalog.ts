@@ -9,6 +9,8 @@ export const PAYMENT_STATE_VALUES = ['Achitat', 'Parțial', 'Neachitat'];
 export const TYPE_VALUES = ['Grup', 'Individual'];
 export const YES_NO = ['Da', 'Nu'];
 export const CANCELLED_WORD = 'anulată';
+/** What a present cell of Prezență pe ședințe holds (the screen draws a small square for it; a file keeps the letter). */
+export const SESSION_MARK = 'X';
 
 const sportiv = col('sportiv', 'Sportiv', 'text');
 const grupa = col('grupa', 'Grupă', 'label');
@@ -63,10 +65,10 @@ export const CATALOG: Record<Subject, CatalogSubject> = {
 
 /** Columns a type offers as a filter chip, each a pick from a list of values (a word list, or the group and section names). */
 export const FILTERABLE: Record<Subject, string[]> = {
-  sportivi: ['grupa', 'sectiune', 'stare', 'membruAcs'],
+  sportivi: ['grupa', 'sectiune', 'antrenor', 'stare', 'membruAcs'],
   plati: ['grupa', 'sectiune', 'metoda', 'laPatinoar'],
   abonamente: ['grupa', 'sectiune', 'stare'],
-  prezenta: ['grupa', 'tip'],
+  prezenta: ['grupa', 'antrenor', 'tip'],
   sedinte: ['grupa'],
 };
 

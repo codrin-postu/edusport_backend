@@ -3,9 +3,9 @@ import { isCurrentMembership } from '../group-membership';
 import type { GroupRecord, SeasonRecord, SectionRecord } from '../groups/types';
 import type { PresenceStore } from '../presence/store';
 import type { AttendanceRow, LessonRow, PaymentRow, SessionRow, SubscriptionRow } from '../presence/types';
+import { inPeriod, type Period } from './period';
 import type { TableDefinition } from './types';
 
-type Range = { from: string; to: string };
 
 /** Every table a row builder reads, loaded once per query and restricted by the scope; tables a subject does not need are empty. */
 export type TableSources = {
@@ -41,7 +41,7 @@ const emptySources = (seasons: SeasonRecord[]): TableSources => ({
   subscriptions: [], payments: [], adminNames: {}, startDate: null, scopeGroupIds: new Set(), restricted: false, scopeAthleteIds: new Set(),
 });
 
-export const inRange = (date: string, r: Range): boolean => r.from <= date && date <= r.to;
+export const inRange = inPeriod;
 const min = (values: string[]): string | null => values.reduce<string | null>((m, v) => (m === null || v < m ? v : m), null);
 const max = (values: string[]): string | null => values.reduce<string | null>((m, v) => (m === null || v > m ? v : m), null);
 
@@ -69,7 +69,7 @@ async function readBase(store: PresenceStore, seasonId: string): Promise<Base> {
 type Extra = Partial<Omit<TableSources, keyof Base | 'season' | 'seasons' | 'scopeGroupIds' | 'restricted' | 'scopeAthleteIds'>>;
 
 /** Sportivi: subscriptions and payments of the scope's athletes, club-month inputs, and the attendances the current abonament's count needs. */
-async function readSportivi(store: PresenceStore, seasonId: string, range: Range, season: SeasonRecord, src: TableSources): Promise<Extra> {
+async function readSportivi(store: PresenceStore, seasonId: string, range: Period, season: SeasonRecord, src: TableSources): Promise<Extra> {
   const [acs, allSubs, payments, startDate, lessons] = await Promise.all([
     store.acsRows({ seasonId }), store.subscriptions(), store.payments(), store.attendanceStartDate(), store.lessons(range),
   ]);
@@ -81,7 +81,7 @@ async function readSportivi(store: PresenceStore, seasonId: string, range: Range
   return { acs, subscriptions, payments: keepScope(src, payments), startDate, lessons: keepScope(src, lessons), attendances: keepScope(src, attendances) };
 }
 
-async function readAbonamente(store: PresenceStore, range: Range, src: TableSources): Promise<Extra> {
+async function readAbonamente(store: PresenceStore, range: Period, src: TableSources): Promise<Extra> {
   const subscriptions = keepScope(src, await store.subscriptions()).filter((s) => inRange(s.startsOn, range));
   const ids = subscriptions.map((s) => s.id);
   const [attendances, payments] = await Promise.all([ids.length > 0 ? store.attendances({ subscriptionIds: ids }) : Promise.resolve([]), store.payments()]);
@@ -89,7 +89,7 @@ async function readAbonamente(store: PresenceStore, range: Range, src: TableSour
   return { subscriptions, attendances, payments: payments.filter((p) => p.subscriptionId !== null && wanted.has(p.subscriptionId)) };
 }
 
-async function readPlati(store: PresenceStore, range: Range, src: TableSources): Promise<Extra> {
+async function readPlati(store: PresenceStore, range: Period, src: TableSources): Promise<Extra> {
   const payments = keepScope(src, await store.payments(range));
   const subIds = [...new Set(payments.flatMap((p) => (p.subscriptionId === null ? [] : [p.subscriptionId])))];
   const emails = [...new Set(payments.map((p) => p.recordedBy))];
@@ -100,7 +100,7 @@ async function readPlati(store: PresenceStore, range: Range, src: TableSources):
 }
 
 /** Prezență: attendances, abonamente and payments are not narrowed to the scope's athletes (a visitor in a group still needs his own abonament and Club month); attendances and sessions run from the season start (or the earliest abonament start) to the period end, so "Ședința 3/8" counts earlier uses. */
-async function readPrezenta(store: PresenceStore, range: Range, season: SeasonRecord): Promise<Extra> {
+async function readPrezenta(store: PresenceStore, range: Period, season: SeasonRecord): Promise<Extra> {
   const subscriptions = await store.subscriptions();
   const wide = { from: min([season.startMonth, range.from, ...subscriptions.map((s) => s.startsOn)]) ?? range.from, to: max([season.endMonth, range.to]) ?? range.to };
   const [sessions, attendances, lessons, payments, startDate] = await Promise.all([
@@ -110,7 +110,7 @@ async function readPrezenta(store: PresenceStore, range: Range, season: SeasonRe
 }
 
 /** One bulk read per source table the subject needs, restricted by the scope; nothing is read per row. */
-export async function loadSources(store: PresenceStore, d: TableDefinition, period: Range): Promise<TableSources> {
+export async function loadSources(store: PresenceStore, d: TableDefinition, period: Period): Promise<TableSources> {
   const seasons = await store.seasons();
   const season = seasons.find((s) => s.id === d.scope.seasonId) ?? null;
   if (season === null) return emptySources(seasons);
@@ -120,7 +120,7 @@ export async function loadSources(store: PresenceStore, d: TableDefinition, peri
   return { ...src, ...extra };
 }
 
-function readExtra(store: PresenceStore, d: TableDefinition, period: Range, season: SeasonRecord, src: TableSources): Promise<Extra> {
+function readExtra(store: PresenceStore, d: TableDefinition, period: Period, season: SeasonRecord, src: TableSources): Promise<Extra> {
   switch (d.subject) {
     case 'sportivi': return readSportivi(store, season.id, period, season, src);
     case 'abonamente': return readAbonamente(store, period, src);

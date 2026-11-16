@@ -2,17 +2,16 @@ import type { AthleteRow } from '../athletes/store';
 import { acsWord, effectiveAcs } from '../acs';
 import { ageFromIso, isoDate, partsFromIso } from '../birth-date';
 import { STATUS_WORDS } from '../history-text';
-import { monthOf } from '../presence/dates';
 import { clubMonths } from '../presence/due/settlement';
 import { sumMoney } from '../presence/money';
 import { byUseOrder, subscriptionState, usedSlots } from '../presence/subscriptions';
 import type { AttendanceRow, PaymentRow, SubscriptionRow } from '../presence/types';
 import { coachText, groupBy, groupInfoMap, infoOf, mainKeys, type GroupInfo } from './context';
 import { PAYMENT_STATE_VALUES } from './catalog';
+import { monthInPeriod, type Period } from './period';
 import { inRange, type TableSources } from './sources';
 import type { CellValue, TableDefinition, TableRow } from './types';
 
-type Range = { from: string; to: string };
 type Money = { due: number; paid: number; left: number };
 const [PAID, PARTLY, UNPAID] = PAYMENT_STATE_VALUES;
 
@@ -26,10 +25,10 @@ const livePaid = (payments: readonly PaymentRow[], subId: string): number =>
   sumMoney(payments.filter((p) => !p.cancelled && p.purpose === 'abonament' && p.subscriptionId === subId).map((p) => p.amount));
 
 /** Club months inside the period plus the priced, not cancelled abonamente starting in it, with what is paid for each whenever paid. */
-function moneyOf(a: AthleteRow, own: { atts: AttendanceRow[]; lessons: TableSources['lessons']; payments: PaymentRow[]; subs: SubscriptionRow[] }, src: TableSources, period: Range): Money {
+function moneyOf(a: AthleteRow, own: { atts: AttendanceRow[]; lessons: TableSources['lessons']; payments: PaymentRow[]; subs: SubscriptionRow[] }, src: TableSources, period: Period): Money {
   const names = new Map(src.groups.map((g) => [g.id, g.name] as const));
   const months = clubMonths({ attendances: own.atts, lessons: own.lessons, payments: own.payments, groupNames: names, startDate: src.startDate })
-    .filter((m) => m.month >= monthOf(period.from) && m.month <= monthOf(period.to));
+    .filter((m) => monthInPeriod(m.month, period));
   const school = own.subs.filter((s) => !s.cancelled && s.price !== null && inRange(s.startsOn, period));
   const due = sumMoney([...months.map((m) => m.due), ...school.map((s) => s.price as number)]);
   const paid = sumMoney([...months.map((m) => m.paid), ...school.map((s) => livePaid(own.payments, s.id))]);
@@ -57,7 +56,7 @@ function personCells(a: AthleteRow, i: GroupInfo, acs: string, today: string): R
 
 type Own = { atts: Map<string, AttendanceRow[]>; lessons: Map<string, TableSources['lessons']>; payments: Map<string, PaymentRow[]>; subs: Map<string, SubscriptionRow[]> };
 
-function rowOf(a: AthleteRow, i: GroupInfo, src: TableSources, own: Own, ctx: { period: Range; today: string; used: Map<string, number>; acs: Map<string, string> }): TableRow {
+function rowOf(a: AthleteRow, i: GroupInfo, src: TableSources, own: Own, ctx: { period: Period; today: string; used: Map<string, number>; acs: Map<string, string> }): TableRow {
   const mine = { atts: own.atts.get(a.id) ?? [], lessons: own.lessons.get(a.id) ?? [], payments: own.payments.get(a.id) ?? [], subs: own.subs.get(a.id) ?? [] };
   const money = moneyOf(a, mine, src, ctx.period);
   const current = currentOf(mine.subs, ctx.used, ctx.today);
@@ -70,7 +69,7 @@ function rowOf(a: AthleteRow, i: GroupInfo, src: TableSources, own: Own, ctx: { 
 }
 
 /** One row per athlete with a current membership in the scope; every column is filled, the query picks the chosen ones. */
-export function sportiviRows(src: TableSources, _d: TableDefinition, period: Range, today: string): TableRow[] {
+export function sportiviRows(src: TableSources, _d: TableDefinition, period: Period, today: string): TableRow[] {
   if (src.season === null) return [];
   const info = groupInfoMap(src);
   const own: Own = {

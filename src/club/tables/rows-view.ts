@@ -3,8 +3,8 @@ import type { CatalogColumn, TableDefinition, TableResult } from './types';
 
 /** Pure parts of the rendered table: when sums show, what they are called, the column search and reorder, status tones. */
 
-/** Sums only make sense for money; a table with no money column has no total lines. */
-export const showTotals = (columns: CatalogColumn[]): boolean => columns.some((c) => c.type === 'money');
+/** Sums only make sense for money, and the present count of a session column; any other table has no total lines. */
+export const showTotals = (columns: CatalogColumn[]): boolean => columns.some((c) => c.type === 'money' || c.session !== undefined);
 
 /** "Total" closes each group (or the whole table); "Total general" closes several groups. */
 export function totalLabels(grouped: boolean, groupCount: number): { group: string; grand: string | null } {

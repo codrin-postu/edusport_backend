@@ -3,13 +3,13 @@ import { SUBSCRIPTION_STATE_WORDS } from '../presence/copy/core';
 import { sumMoney } from '../presence/money';
 import { subscriptionState, usedSlots } from '../presence/subscriptions';
 import { groupInfoMap, infoOf, mainKeys, nameOf } from './context';
+import type { Period } from './period';
 import { inRange, inScope, type TableSources } from './sources';
 import type { CellValue, TableDefinition, TableRow } from './types';
 
-type Range = { from: string; to: string };
 
 /** One row per abonament with `startsOn` in the period; Preț, Plătit and Rămas from its non-cancelled payments (a cancelled abonament owes nothing). */
-export function abonamenteRows(src: TableSources, _d: TableDefinition, period: Range, today: string): TableRow[] {
+export function abonamenteRows(src: TableSources, _d: TableDefinition, period: Period, today: string): TableRow[] {
   if (src.season === null) return [];
   const info = groupInfoMap(src);
   const names = nameOf(src);
