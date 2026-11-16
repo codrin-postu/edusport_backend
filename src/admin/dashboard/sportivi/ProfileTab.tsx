@@ -42,9 +42,6 @@ export function ProfileTab({ record, api, onRecord, active }: Props) {
           active={active}
         />
       )}
-      <div className="ui-body">
-        <p className="ui-hint">{RECORD_COPY.profile.note}</p>
-      </div>
     </>
   );
 }

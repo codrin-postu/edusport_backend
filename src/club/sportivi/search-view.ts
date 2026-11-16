@@ -4,7 +4,7 @@ import { numericDateToSlash } from '../date-format';
 
 /** The search of "Caută alt sportiv" (spec 4.1), reused by "Adaugă sportiv" (6.7) and the merge (6.6). Pure. */
 
-export const SEARCH_COPY = { placeholder: 'Nume, data nașterii, părinte sau telefon', newAthlete: 'Sportiv nou' } as const;
+export const SEARCH_COPY = { placeholder: 'Caută sportiv', newAthlete: 'Sportiv nou' } as const;
 
 export const SEARCH_FAILED = 'Nu am putut încărca datele.';
 
@@ -15,7 +15,6 @@ export const ADD_COPY = {
   contact: 'Persoana de contact',
   phone: 'Telefon',
   email: 'E-mail',
-  optional: 'Opțional',
   submit: 'Adaugă sportiv',
   cancel: 'Anulează',
 } as const;

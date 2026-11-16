@@ -5,7 +5,7 @@ export const PRESENCE_ERRORS = {
   notFound: 'Nu a fost găsit.',
   invalid: 'Cerere invalidă.',
   stale: 'Datele s-au schimbat. Reîncarcă pagina.',
-  failed: 'Acțiunea nu a reușit. Nimic nu a fost salvat.',
+  failed: 'Nu s-a salvat nimic.',
   conflict: 'Prezența s-a schimbat între timp. Reîncarcă.',
   undoChanged: 'Nu se mai poate anula. Datele s-au schimbat între timp.',
   loadFailed: 'Nu am putut încărca datele.',

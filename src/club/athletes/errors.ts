@@ -3,9 +3,9 @@
  * the admin screen's own guards were bypassed (a stale page); their wording waits on plan item N1 (option A).
  */
 export const CONFIRM_ERRORS = {
-  failed: 'Confirmarea nu a reușit. Nimic nu a fost salvat.',
+  failed: 'Confirmarea a eșuat.',
   taken: 'Înscrierea a fost deja confirmată de alt administrator.',
-  birthDate: 'Data nașterii nu poate fi citită. Corectați-o în Date.',
+  birthDate: 'Corectează data nașterii în Date.',
 } as const;
 
 export const ADMIN_ERRORS = {
@@ -14,5 +14,5 @@ export const ADMIN_ERRORS = {
   nameRequired: 'Completați numele.',
   birthDate: 'Alegeți data nașterii.',
   invalid: 'Cerere invalidă.',
-  failed: 'Acțiunea nu a reușit. Nimic nu a fost salvat.',
+  failed: 'Nu s-a salvat nimic.',
 } as const;

@@ -28,7 +28,7 @@ describe('search rows (spec 4.1, 6.7)', () => {
     expect(searchUrl('  maria pop ')).toBe('/api/club/athletes/search?q=maria%20pop');
     expect(withoutAthlete([card(), card({ documentId: 'a2' })], 'a1').map((c) => c.documentId)).toEqual(['a2']);
     expect(withoutAthlete([card()], undefined)).toHaveLength(1);
-    expect(SEARCH_COPY).toEqual({ placeholder: 'Nume, data nașterii, părinte sau telefon', newAthlete: 'Sportiv nou' });
+    expect(SEARCH_COPY).toEqual({ placeholder: 'Caută sportiv', newAthlete: 'Sportiv nou' });
     expect([ADD_COPY.title, ADD_COPY.name, ADD_COPY.birth, ADD_COPY.contact, ADD_COPY.phone, ADD_COPY.email]).toEqual([
       'Adaugă sportiv', 'Nume complet', 'Data nașterii', 'Persoana de contact', 'Telefon', 'E-mail',
     ]);
@@ -103,7 +103,7 @@ describe('merge (spec 6.6)', () => {
 
   it('confirmation copy (spec Open 3)', () => {
     expect(MERGE_COPY.confirmTitle).toBe('Unești cele două fișe?');
-    expect(MERGE_COPY.confirmMessage('Sara Ilie')).toBe('Rămâne fișa "Sara Ilie". Cealaltă se șterge. Acțiunea nu poate fi anulată.');
+    expect(MERGE_COPY.confirmMessage('Sara Ilie')).toBe('Rămâne fișa "Sara Ilie". Cealaltă se șterge. Nu se poate anula.');
     expect([MERGE_COPY.confirmLabel, MERGE_COPY.title, MERGE_COPY.kept]).toEqual(['Unește', 'Unește cu alt sportiv', 'Rămâne']);
   });
 });

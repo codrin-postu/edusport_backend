@@ -117,7 +117,7 @@ describe('saveSession', () => {
   it('rolls back on a failure (7.2)', async () => {
     const f = attendanceSeed();
     f.failOn('createAttendance');
-    expect(await save(f, { occurrence: 'ev-ib|2026-11-14|11:00', ticks: [grup('a1')] })).toEqual({ ok: false, status: 500, error: 'Acțiunea nu a reușit. Nimic nu a fost salvat.' });
+    expect(await save(f, { occurrence: 'ev-ib|2026-11-14|11:00', ticks: [grup('a1')] })).toEqual({ ok: false, status: 500, error: 'Nu s-a salvat nimic.' });
     expect(f.state.sessions).toEqual([]);
   });
 

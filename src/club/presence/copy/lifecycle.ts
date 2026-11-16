@@ -48,7 +48,7 @@ export const paymentLine = (r: PaymentLine): string =>
 
 export const LIFECYCLE_DELETE = {
   title: (name: string) => `Șterge ${name}`,
-  anonymizeInstead: 'Poți anonimiza sportivul în schimb: numele și datele personale se șterg, sumele plăților rămân.',
+  anonymizeInstead: 'Îl poți anonimiza: datele personale se șterg, plățile rămân.',
   cancel: 'Renunță',
   anonymize: 'Anonimizează',
 } as const;
@@ -56,5 +56,5 @@ export const LIFECYCLE_DELETE = {
 /** "Sportivul are 2 plăți și 1 abonament. ..." (5.14): a part with 0 is dropped. */
 export function deleteBlockedText(payments: number, subscriptions: number): string {
   const parts = [payments > 0 && countWords(payments, 'plată', 'plăți'), subscriptions > 0 && countWords(subscriptions, 'abonament', 'abonamente')].filter(Boolean);
-  return `Sportivul are ${parts.join(' și ')}. Ștergerea este blocată cât timp există plăți sau abonamente.`;
+  return `Sportivul are ${parts.join(' și ')}, deci nu se poate șterge.`;
 }

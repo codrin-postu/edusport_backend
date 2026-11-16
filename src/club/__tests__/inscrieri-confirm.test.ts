@@ -54,7 +54,7 @@ describe('start (spec 4.1)', () => {
   it('Probabil: nothing chosen, the button disabled with the hint (r3 c1)', () => {
     const s = initialWindow(view({ preselect: null }));
     expect(s.choice).toBeNull();
-    expect(confirmGate(s, ctx(), false)).toEqual({ disabled: true, hint: 'Alege "Sportiv existent" sau "Sportiv nou"', notice: null });
+    expect(confirmGate(s, ctx(), false)).toEqual({ disabled: true, hint: 'Alege una dintre cele două.', notice: null });
   });
 
   it('no match: "Sportiv nou"', () => {
@@ -131,7 +131,7 @@ describe('request body (spec 4.3, 4.5)', () => {
 describe('gate and blocked states (spec 4.7)', () => {
   it('blocked windows show the spec texts', () => {
     const s = initialWindow(view());
-    expect(confirmGate(s, ctx({ blocked: 'birth-date' }), false)).toEqual({ disabled: true, hint: null, notice: 'Data nașterii nu poate fi citită. Corectați-o în Date.' });
+    expect(confirmGate(s, ctx({ blocked: 'birth-date' }), false)).toEqual({ disabled: true, hint: null, notice: 'Corectează data nașterii în Date.' });
     expect(confirmGate(s, ctx({ blocked: 'confirmed' }), false).notice).toBe('Înscrierea a fost deja confirmată de alt administrator.');
     expect(confirmGate(s, ctx({ blocked: 'not-confirmable' }), false).notice).toBe('Datele s-au schimbat. Reîncarcă pagina.');
   });
@@ -151,7 +151,7 @@ describe('season, groups, A.C.S. and intent lines (spec 4.3, 4.4)', () => {
     expect(seasonNote(ctx())).toBeNull();
     const ended = 'Sezonul 2025-2026 s-a încheiat. Se leagă doar fișa sportivului.';
     expect(seasonNote(ctx({ season: { label: '2025-2026', running: false, endedText: ended } }))).toBe(ended);
-    expect(seasonNote(ctx({ season: { label: null, running: false, endedText: null } }))).toBe('Se leagă doar fișa sportivului.');
+    expect(seasonNote(ctx({ season: { label: null, running: false, endedText: null } }))).toBe('Fără sezon, doar fișa.');
   });
 
   it('season heading with the school, without it, and none without a season', () => {
@@ -183,8 +183,8 @@ describe('season, groups, A.C.S. and intent lines (spec 4.3, 4.4)', () => {
     expect(mainNowLine(ctx({ mainGroupNow: { name: 'Profesioniști', sectionName: 'Club' } }))).toBe('Grupă principală acum: Profesioniști (Club)');
     expect(intentParts(ctx())).toBe('Abonament 8 ședințe grup');
     expect(intentParts(ctx({ subscriptionIntent: null }))).toBeNull();
-    expect(newAthleteHint(ctx(), true)).toBe('Se creează o fișă nouă: Maria Dumitrescu, 14/03/2014');
-    expect(newAthleteHint(ctx(), false)).toBe('Se creează o fișă nouă: Maria Dumitrescu');
+    expect(newAthleteHint(ctx(), true)).toBe('Fișă nouă: Maria Dumitrescu, 14/03/2014');
+    expect(newAthleteHint(ctx(), false)).toBe('Fișă nouă: Maria Dumitrescu');
   });
 });
 
@@ -216,8 +216,8 @@ describe('failures (spec 4.7)', () => {
   });
 
   it('anything else: "nothing was saved", the window stays, never the raw server text', () => {
-    expect(confirmFailure(fetchError(500))).toEqual({ text: 'Confirmarea nu a reușit. Nimic nu a fost salvat.', close: false });
-    expect(confirmFailure(new Error('network'))).toEqual({ text: 'Confirmarea nu a reușit. Nimic nu a fost salvat.', close: false });
-    expect(confirmFailure(fetchError(500, 'Internal Server Error'))).toEqual({ text: 'Confirmarea nu a reușit. Nimic nu a fost salvat.', close: false });
+    expect(confirmFailure(fetchError(500))).toEqual({ text: 'Confirmarea a eșuat.', close: false });
+    expect(confirmFailure(new Error('network'))).toEqual({ text: 'Confirmarea a eșuat.', close: false });
+    expect(confirmFailure(fetchError(500, 'Internal Server Error'))).toEqual({ text: 'Confirmarea a eșuat.', close: false });
   });
 });

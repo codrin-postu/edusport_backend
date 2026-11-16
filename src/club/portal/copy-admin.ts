@@ -24,7 +24,7 @@ export const ACCOUNT_BLOCK = {
   disable: 'Dezactivează contul',
   disabled: 'Cont dezactivat.',
   enable: 'Activează contul',
-  coachSideOff: 'Partea de antrenor e dezactivată. Accesul de părinte rămâne activ.',
+  coachSideOff: 'Antrenor dezactivat. Accesul de părinte rămâne.',
   changeEmail: 'Schimbă e-mailul',
   newEmail: 'E-mail nou',
   saveEmail: 'Salvează e-mailul',

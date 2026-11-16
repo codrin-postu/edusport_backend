@@ -103,7 +103,7 @@ describe('runQuery', () => {
   it('refuses above 5.000 records and accepts exactly 5.000', async () => {
     const d = def('plati', ['suma']);
     expect(MAX_ROWS).toBe(5000);
-    expect(await runQuery(async () => many(5001), d, cols, noBudget)).toEqual({ ok: false, status: 422, error: 'Tabelul are peste 5.000 de rânduri. Restrânge sfera sau filtrele.' });
+    expect(await runQuery(async () => many(5001), d, cols, noBudget)).toEqual({ ok: false, status: 422, error: 'Peste 5.000 de rânduri. Adaugă filtre.' });
     expect((await runQuery(async () => many(5000), d, cols, noBudget)).ok).toBe(true);
   });
   it('counts the cap after filters and before grouping repeats', async () => {

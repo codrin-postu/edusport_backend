@@ -1,7 +1,7 @@
 import type { Subject } from './types';
 
 const VIEWS = {
-  duplicate: 'Există deja o vizualizare cu numele ăsta.',
+  duplicate: 'Numele e deja folosit.',
   tooMany: 'Prea multe vizualizări salvate. Șterge una.',
   notAuthor: 'Doar autorul poate modifica vizualizarea.',
   saved: 'Vizualizare salvată.',
@@ -78,8 +78,8 @@ export const TABLES_COPY = {
     notEmpty: 'nu este gol',
   },
   errors: {
-    tooMany: 'Tabelul are peste 5.000 de rânduri. Restrânge sfera sau filtrele.',
-    tooSlow: 'Tabelul durează prea mult. Restrânge sfera.',
+    tooMany: 'Peste 5.000 de rânduri. Adaugă filtre.',
+    tooSlow: 'Prea lent. Restrânge sfera.',
     nameTaken: VIEWS.duplicate,
     notAuthor: VIEWS.notAuthor,
     tooManyViews: VIEWS.tooMany,
@@ -89,9 +89,9 @@ export const TABLES_COPY = {
   },
   /** Notices of a view opened after the catalog or the data changed (repairDefinition). One per kind of change. */
   notices: {
-    columnDropped: 'O coloană nu mai există și a fost scoasă.',
-    filterDropped: 'Un filtru nu mai există și a fost scos.',
-    groupByDropped: 'Gruparea nu mai există și a fost scoasă.',
+    columnDropped: 'Coloană scoasă.',
+    filterDropped: 'Filtru scos.',
+    groupByDropped: 'Grupare scoasă.',
     sectionMissing: 'Secțiunea nu mai există.',
     groupMissing: 'Grupa nu mai există.',
     seasonMissing: 'Sezonul nu mai există.',

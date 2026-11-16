@@ -7,7 +7,7 @@ import {
   formatEmailSentAt,
   readEmailStatus,
   registrationDocumentKinds,
-  failedEmailError,
+  emailStatusIcon,
   relationshipText,
   requestErrorText,
   resendTarget,
@@ -86,8 +86,8 @@ describe('documents and e-mail', () => {
     expect(emailStatusText(null, fmt)).toBe('Niciun e-mail trimis');
     expect(emailStatusText(status({ status: 'none' }), fmt)).toBe('Niciun e-mail trimis');
     expect(emailStatusText(status({}), fmt)).toBe('Trimis 20 oct 2026, 14:05');
-    expect(emailStatusText(status({ status: 'queued', sentAt: null }), fmt)).toBe('Urmează să fie trimis');
-    expect(emailStatusText(status({ status: 'failed', sentAt: null }), fmt)).toBe('Netrimis');
+    expect(emailStatusText(status({ status: 'queued', sentAt: null }), fmt)).toBe('Urmează');
+    expect(emailStatusText(status({ status: 'failed', sentAt: null }), fmt)).toBe('Nu s-a putut trimite');
   });
 
   it('formats the sent date for the panel and the Sheet, in Bucharest time, summer and winter', () => {
@@ -119,9 +119,11 @@ describe('documents and e-mail', () => {
     expect(resendToast(status({ status: 'queued', sentAt: null }))).toEqual({ tone: 'info', text: 'Urmează să fie trimis.' });
     expect(resendToast(status({ status: 'failed', sentAt: null, lastError: 'Brevo 401' }))).toEqual({ tone: 'error', text: 'Nu s-a putut trimite.' });
     expect(resendToast(null)).toEqual({ tone: 'info', text: 'Urmează să fie trimis.' });
-    expect(failedEmailError(status({ status: 'failed', sentAt: null, lastError: 'Brevo 401' }))).toBe('Apasă Retrimite sau verifică adresa.');
-    expect(failedEmailError(status({ status: 'queued', sentAt: null, lastError: 'Brevo 401' }))).toBeNull();
-    expect(failedEmailError(null)).toBeNull();
+    expect(emailStatusIcon(status({ status: 'failed', sentAt: null, lastError: 'Brevo 401' }))).toEqual({ icon: 'warning', label: 'Nu s-a putut trimite' });
+    expect(emailStatusIcon(status({ status: 'queued', sentAt: null }))).toEqual({ icon: 'clock', label: 'Urmează' });
+    expect(emailStatusIcon(status({ status: 'cancelled', sentAt: null }))).toEqual({ icon: 'warning', label: 'Netrimis' });
+    expect(emailStatusIcon(status({}))).toBeNull();
+    expect(emailStatusIcon(null)).toBeNull();
   });
 
   it("shows the server's refusal text, in Strapi's shape or 2F's", () => {

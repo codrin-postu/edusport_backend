@@ -46,7 +46,7 @@ export function SportiviList() {
     <AdminPage fit>
       <style>{SPORTIVI_CSS}</style>
       <Window>
-        <PageHeader title={LIST_COPY.title} subtitle={LIST_COPY.subtitle} actions={add} />
+        <PageHeader title={LIST_COPY.title} actions={add} />
         <ListToolbar list={list} phone={phone} />
         <ActiveFilters list={list} phone={phone} />
         <IncompleteBanner list={list} />

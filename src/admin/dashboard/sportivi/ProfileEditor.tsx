@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import {
   TwoColumn,
+  HelpTip,
   Field,
   FieldRow,
   Input,
@@ -576,7 +577,7 @@ export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord
           <TwoColumn rail={rail} railLabel="Profil">
             <EditorCard variant="plain" title="Identitate">
               <div className="ui-stack">
-                <Field label="Nume" hint={RECORD_COPY.profile.nameHint}>
+                <Field label={<>Nume <HelpTip icon="lock" label={RECORD_COPY.profile.nameLock} /></>}>
                   <Input value={athleteName} readOnly disabled />
                 </Field>
                 <Field label="Descriere scurtă">
@@ -586,12 +587,11 @@ export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord
             </EditorCard>
 
             <EditorCard variant="plain" title="Poveste">
-              <Field label="Text poveste" hint="Fiecare rând nou devine un paragraf pe site.">
+              <Field label="Text poveste">
                 <Textarea
                   rows={6}
                   value={v.storyText}
                   onChange={(e) => upd({ storyText: e.target.value })}
-                  placeholder="Fiecare rând devine un paragraf."
                 />
               </Field>
             </EditorCard>

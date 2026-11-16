@@ -39,12 +39,11 @@ export const PAGE_SIZE = { desktop: 50, phone: 30 } as const;
 
 export const LIST_COPY = {
   title: 'Sportivi',
-  subtitle: 'Toți sportivii clubului. Doar în panou, nu sunt publici.',
   add: 'Adaugă sportiv',
-  search: 'Caută după nume, părinte, telefon, e-mail sau nr. înscriere...',
+  search: 'Nume, telefon, e-mail, nr.',
   season: 'Sezon',
   sort: 'Sortare',
-  empty: 'Niciun sportiv nu corespunde filtrelor.',
+  empty: 'Niciun sportiv.',
   loadFailed: 'Nu am putut încărca sportivii.',
   showThem: 'Arată-i',
   more: 'Încarcă încă 30',

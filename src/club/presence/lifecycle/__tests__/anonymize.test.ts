@@ -102,7 +102,7 @@ describe('anonymize keeps money rows (4.21, p5 Q30)', () => {
   it('rolls both stores back on a failure', async () => {
     const f = setup();
     f.club.failOn('scrubPaymentEmailJobs');
-    expect(await anonymizeAthlete(f.ctx, 'a1')).toEqual({ ok: false, status: 500, error: 'Acțiunea nu a reușit. Nimic nu a fost salvat.' });
+    expect(await anonymizeAthlete(f.ctx, 'a1')).toEqual({ ok: false, status: 500, error: 'Nu s-a salvat nimic.' });
     expect(f.pres.state.payments.find((p) => p.id === 'p1')?.note).toBe('Plătit de bunica Vasilescu');
     expect(f.club.state.athletes.find((a) => a.id === 'a1')?.name).toBe('Carla Vasilescu');
   });

@@ -13,9 +13,9 @@ export const PERSONAL_DATA_COPY = {
   dialog: {
     title: 'Anonimizezi datele sportivului?',
     removed:
-      'Se șterg: numele, data nașterii, contactul, telefonul, e-mailul, notele, datele din înscrieri, documentele PDF, adresele din coada de e-mail, valorile vechi din Istoric și profilul public.',
-    kept: 'Rămân: grupele pe sezoane, statusul A.C.S. și numărul de înscrieri.',
-    final: 'Acțiunea nu poate fi anulată.',
+      'Se șterg datele personale, PDF-urile și profilul public.',
+    kept: 'Rămân grupele pe sezoane, statusul A.C.S. și numărul de înscrieri.',
+    final: 'Nu se poate anula.',
     confirm: 'Anonimizează',
     busy: 'Se anonimizează...',
   },

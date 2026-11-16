@@ -3,7 +3,7 @@
  * give (plan 3-4 Needs decision 7, option A until the user answers). Pure; the admin bundle imports it.
  */
 export const LIST_COPY = {
-  searchPlaceholder: 'Caută după nr. înscriere, nume, părinte, email sau telefon...',
+  searchPlaceholder: 'Nume, nr., telefon, e-mail',
   headers: ['Nr.', 'Trimis la', 'Nume sportiv', 'Vârstă', 'Status', 'Completat de', 'Dorește să fie membru'],
   school: 'Școala',
   all: 'Toate',
@@ -35,7 +35,7 @@ export const PANEL_COPY = {
   delete: 'Șterge înscrierea',
   undoDialog: {
     title: 'Anulezi confirmarea?',
-    message: 'Se anulează legătura cu fișa, grupa adăugată și statusul A.C.S. scris la confirmare.',
+    message: 'Se anulează legătura cu fișa, grupa și statusul A.C.S.',
     confirm: 'Anulează confirmarea',
   },
   schoolField: 'Școala',
@@ -52,14 +52,14 @@ export const MATCH_COPY = {
   openFull: 'Deschide fișa completă',
   inRecord: 'În fișă',
   inRegistration: 'În înscriere',
-  notAttended: 'În formular: nu a participat sezonul trecut.',
+  notAttended: 'Nu a participat sezonul trecut.',
   lastRegistration: (season: string) => `Ultima înscriere: ${season}`,
 } as const;
 
 export const EDIT_TOASTS = {
-  rebuilt: 'Salvat. Documentul a fost refăcut.',
+  rebuilt: 'Salvat. Documentul refăcut.',
   unchanged: 'Nicio modificare.',
-  rebuildFailed: 'Salvat. Documentul PDF nu a putut fi refăcut.',
+  rebuildFailed: 'Salvat. PDF-ul nu s-a refăcut.',
   saved: 'Salvat',
 } as const;
 
@@ -69,17 +69,16 @@ export const CONFIRM_COPY = {
   cancel: 'Anulează',
   confirm: 'Confirmă înscrierea',
   existingLabel: 'Sportiv existent',
-  existingHint: 'Înscrierea se adaugă la această fișă',
   newLabel: 'Sportiv nou',
-  newHint: (name: string) => `Se creează o fișă nouă: ${name}`,
-  pickHint: 'Alege "Sportiv existent" sau "Sportiv nou"',
+  newHint: (name: string) => `Fișă nouă: ${name}`,
+  pickHint: 'Alege una dintre cele două.',
   viewRecord: 'Vezi fișa',
   compare: 'Compară și actualizează',
   hide: 'Ascunde',
   update: 'Actualizează',
   searchOther: 'Caută alt sportiv',
   searchExisting: 'Caută un sportiv existent',
-  searchPlaceholder: 'Nume, data nașterii, părinte sau telefon',
+  searchPlaceholder: 'Caută sportiv',
   noResults: (text: string) => `Niciun sportiv găsit pentru "${text}".`,
   seasonHeading: (school: string, season: string) => `${school}, sezonul ${season}`,
   group: 'Grupa',
@@ -88,7 +87,7 @@ export const CONFIRM_COPY = {
   mainTick: 'Grupă principală',
   acs: (season: string) => `Membru A.C.S. ${season}`,
   wish: 'Dorește să fie membru (formular)',
-  intentHeading: 'Abonament dorit (din formular)',
+  intentHeading: 'Abonament dorit',
   confirmed: (name: string) => `Înscriere confirmată: ${name}`,
   undo: 'Anulează',
 } as const;
@@ -100,7 +99,7 @@ export const INSCRIERI_PENDING_COPY = {
   movedMany: (school: string, n: number | string) => `Mutate la ${school}: ${n}.`,
   notMoved: (n: number | string) => `Nemutate (deja confirmate): ${n}.`,
   loadFailed: 'Nu am putut încărca datele.',
-  noSeason: 'Se leagă doar fișa sportivului.',
+  noSeason: 'Fără sezon, doar fișa.',
   seasonOnly: (season: string) => `Sezonul ${season}`,
   noDocuments: 'Niciun document încă.',
   backToList: 'Înapoi la listă',

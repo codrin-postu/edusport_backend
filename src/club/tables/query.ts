@@ -6,7 +6,7 @@ import { sortRows } from './sort';
 import type { CatalogColumn, TableDefinition, TableResult, TableRow } from './types';
 
 export const MAX_ROWS = 5000;
-export const TOO_MANY_ROWS = 'Tabelul are peste 5.000 de rânduri. Restrânge sfera sau filtrele.';
+export const TOO_MANY_ROWS = 'Peste 5.000 de rânduri. Adaugă filtre.';
 
 type Options = { notices?: string[]; today?: string; search?: string; groupOrder?: ReadonlyMap<string, number>; maxRows?: number };
 

@@ -68,7 +68,7 @@ describe('undoPresenceAction', () => {
   it('rolls everything back when a step fails', async () => {
     const f = await recordedPayment();
     f.failOn('setAcs');
-    expect(await undoPresenceAction(f.ctx, { actionId: f.actionId })).toEqual({ ok: false, status: 500, error: 'Acțiunea nu a reușit. Nimic nu a fost salvat.' });
+    expect(await undoPresenceAction(f.ctx, { actionId: f.actionId })).toEqual({ ok: false, status: 500, error: 'Nu s-a salvat nimic.' });
     expect(f.state.payments).toHaveLength(1);
     expect(f.logs[0]).toContain('[undo-presence]');
   });

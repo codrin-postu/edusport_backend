@@ -36,13 +36,12 @@ export const RECORD_COPY = {
   deleteDialog: {
     title: 'Ștergi sportivul?',
     message: (name: string) =>
-      `"${name}" se șterge definitiv, împreună cu profilul public, rezultatele și sezoanele. Înscrierile rămân, fără legătură. Acțiunea nu poate fi anulată.`,
+      `"${name}" se șterge cu profilul public, rezultatele și sezoanele. Înscrierile rămân, fără legătură. Nu se poate anula.`,
   },
   duplicate: { line: (name: string) => `Posibil același copil cu ${name}`, merge: 'Unește', dismiss: 'Nu e același copil' },
   profile: {
     create: 'Creează profil public',
-    nameHint: 'Numele se schimbă în Date.',
-    note: 'Datele de contact și data nașterii nu ajung niciodată aici.',
+    nameLock: 'Se schimbă în Date.',
   },
 } as const;
 

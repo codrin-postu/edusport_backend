@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Popover, type PopoverPlacement } from './Popover';
-import { IconInfo } from './icons';
+import { IconInfo, IconLock } from './icons';
 
 export interface HelpTipProps {
   /** The help text. */
@@ -10,6 +10,8 @@ export interface HelpTipProps {
   placement?: PopoverPlacement;
   /** Accessible name when `label` is not a string. Default "Mai multe informații". */
   ariaLabel?: string;
+  /** "info" for a hint, "lock" for a rule or a read-only field. Default "info". */
+  icon?: 'info' | 'lock';
 }
 
 /**
@@ -19,7 +21,7 @@ export interface HelpTipProps {
  * components/HelpTip, on tokens (inverse surface: primary text colour as the
  * background).
  */
-export function HelpTip({ label, size = 18, placement = 'bottom-start', ariaLabel }: HelpTipProps) {
+export function HelpTip({ label, size = 18, placement = 'bottom-start', ariaLabel, icon = 'info' }: HelpTipProps) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLButtonElement | null>(null);
   const tipId = React.useId().replace(/:/g, '');
@@ -60,7 +62,7 @@ export function HelpTip({ label, size = 18, placement = 'bottom-start', ariaLabe
         onFocus={show}
         onBlur={() => setOpen(false)}
       >
-        <IconInfo size={Math.round(size * 0.8)} />
+        {icon === 'lock' ? <IconLock size={Math.round(size * 0.8)} /> : <IconInfo size={Math.round(size * 0.8)} />}
       </button>
       <Popover
         open={open}

@@ -168,7 +168,7 @@ describe('record a payment', () => {
   it('one failing write rolls everything back (7.2)', async () => {
     const f = fakePresenceContext(seed());
     f.failOn('createPaymentEmailJob');
-    expect(await recordPayment(f.ctx, pay({ sendEmail: true }))).toEqual({ ok: false, status: 500, error: 'Acțiunea nu a reușit. Nimic nu a fost salvat.' });
+    expect(await recordPayment(f.ctx, pay({ sendEmail: true }))).toEqual({ ok: false, status: 500, error: 'Nu s-a salvat nimic.' });
     expect(f.state.payments).toEqual([]);
     expect(f.emailsAfter).toEqual([]);
   });

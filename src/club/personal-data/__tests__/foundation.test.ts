@@ -57,10 +57,10 @@ describe('3C copy (spec 4, 5, 7)', () => {
   it('the confirmation is the spec text', () => {
     expect(C.dialog.title).toBe('Anonimizezi datele sportivului?');
     expect(C.dialog.removed).toBe(
-      'Se șterg: numele, data nașterii, contactul, telefonul, e-mailul, notele, datele din înscrieri, documentele PDF, adresele din coada de e-mail, valorile vechi din Istoric și profilul public.',
+      'Se șterg datele personale, PDF-urile și profilul public.',
     );
-    expect(C.dialog.kept).toBe('Rămân: grupele pe sezoane, statusul A.C.S. și numărul de înscrieri.');
-    expect(C.dialog.final).toBe('Acțiunea nu poate fi anulată.');
+    expect(C.dialog.kept).toBe('Rămân grupele pe sezoane, statusul A.C.S. și numărul de înscrieri.');
+    expect(C.dialog.final).toBe('Nu se poate anula.');
     expect(C.dialog.confirm).toBe('Anonimizează');
   });
 

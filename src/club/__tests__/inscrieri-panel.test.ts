@@ -249,13 +249,13 @@ describe('copy (spec copy rules)', () => {
   });
 
   it('quotes the spec word for word where it gives the text', () => {
-    expect(LIST_COPY.searchPlaceholder).toBe('Caută după nr. înscriere, nume, părinte, email sau telefon...');
-    expect(CONFIRM_COPY.pickHint).toBe('Alege "Sportiv existent" sau "Sportiv nou"');
+    expect(LIST_COPY.searchPlaceholder).toBe('Nume, nr., telefon, e-mail');
+    expect(CONFIRM_COPY.pickHint).toBe('Alege una dintre cele două.');
     expect(LIST_COPY.pickSchool).toBe('Alege școala');
     expect(CONFIRM_COPY).not.toHaveProperty('intent');
     expect(PANEL_COPY.undoDialog).toEqual({
       title: 'Anulezi confirmarea?',
-      message: 'Se anulează legătura cu fișa, grupa adăugată și statusul A.C.S. scris la confirmare.',
+      message: 'Se anulează legătura cu fișa, grupa și statusul A.C.S.',
       confirm: 'Anulează confirmarea',
     });
   });

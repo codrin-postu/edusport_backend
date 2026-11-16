@@ -13,7 +13,7 @@ const root: Caller = { adminId: 3, name: 'Radu Super', email: 'radu@club.ro', su
 const def: TableDefinition = { subject: 'plati', scope: { seasonId: 's1', sectionId: null, groupId: null, period: { kind: 'current' } }, columns: ['data', 'sportiv', 'suma'], filters: [], groupBy: null, sort: null };
 const body = (name: string, definition: unknown = def) => ({ name, definition });
 const NOT_AUTHOR = 'Doar autorul poate modifica vizualizarea.';
-const DUPLICATE = 'Există deja o vizualizare cu numele ăsta.';
+const DUPLICATE = 'Numele e deja folosit.';
 const INVALID = 'Cerere invalidă.';
 
 /** A live view of Ana's in the fake database, made through the service. */
@@ -320,7 +320,7 @@ describe('delete and undo', () => {
     const { db, id } = await withView();
     const logged: string[] = [];
     db.failOn('recordAction');
-    await expect(deleteView(db.store(), ana, id, { log: (m) => logged.push(m) })).resolves.toEqual({ ok: false, status: 500, error: 'Acțiunea nu a reușit. Nimic nu a fost salvat.' });
+    await expect(deleteView(db.store(), ana, id, { log: (m) => logged.push(m) })).resolves.toEqual({ ok: false, status: 500, error: 'Nu s-a salvat nimic.' });
     expect(logged).toHaveLength(1);
     expect(db.state.views[0].deletedAt).toBeNull();
     expect(history(db)).toEqual([]);

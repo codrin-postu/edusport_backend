@@ -37,12 +37,7 @@ function ProposedCard({ card, onLeave, busy }: { card: AthleteCard; onLeave: () 
 }
 
 function choiceOptions(ctx: ConfirmContext, notAttended: boolean): RadioOption<Choice>[] {
-  const existingHint = (
-    <>
-      {CONFIRM_COPY.existingHint}
-      {notAttended && <span className="ins-hint2">{MATCH_COPY.notAttended}</span>}
-    </>
-  );
+  const existingHint = notAttended ? <span className="ins-hint2">{MATCH_COPY.notAttended}</span> : undefined;
   return [
     { value: 'existing', label: CONFIRM_COPY.existingLabel, hint: existingHint },
     { value: 'new', label: CONFIRM_COPY.newLabel, hint: newAthleteHint(ctx, false) },

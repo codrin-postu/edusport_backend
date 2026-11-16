@@ -80,7 +80,7 @@ describe('confirm window context (spec 4.3, 4.4)', () => {
   it('no matching Sezon and no season text: link only, no label', async () => {
     const fake = fakeClubStore({ ...seed(), registrations: [registrationRow({ id: 'r1', seasonId: null, season: null })] });
     const result = await confirmContext(fake.store, 'r1', null, TODAY);
-    expect(result.ok && result.data.season).toEqual({ label: null, running: false, endedText: 'Se leagă doar fișa sportivului.' });
+    expect(result.ok && result.data.season).toEqual({ label: null, running: false, endedText: 'Fără sezon, doar fișa.' });
   });
 
   it('A.C.S. already "da" is never lowered', async () => {

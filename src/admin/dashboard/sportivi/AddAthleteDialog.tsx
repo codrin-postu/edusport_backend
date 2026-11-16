@@ -21,13 +21,13 @@ function AddForm({ form, errors, onChange }: FormProps) {
       <Field label={ADD_COPY.birth} required error={errors.birthDate} className="spv-wide">
         <BirthDatePicker value={form.birth} onChange={(birth) => set({ birth })} />
       </Field>
-      <Field label={ADD_COPY.contact} hint={ADD_COPY.optional}>
+      <Field label={ADD_COPY.contact}>
         <Input value={form.contactName} onChange={(e) => set({ contactName: e.target.value })} />
       </Field>
-      <Field label={ADD_COPY.phone} hint={ADD_COPY.optional}>
+      <Field label={ADD_COPY.phone}>
         <Input type="tel" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
       </Field>
-      <Field label={ADD_COPY.email} hint={ADD_COPY.optional}>
+      <Field label={ADD_COPY.email}>
         <Input type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} />
       </Field>
     </div>

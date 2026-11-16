@@ -78,7 +78,7 @@ const intentOf = (choice: unknown): string | null => {
 function seasonView(reg: RegistrationRow, season: SeasonFacts | null, running: boolean): ConfirmContext['season'] {
   if (season) return { label: season.label, running, endedText: running ? null : seasonEndedText(season.label) };
   const label = reg.season;
-  return { label, running: false, endedText: label ? seasonEndedText(label) : 'Se leagă doar fișa sportivului.' };
+  return { label, running: false, endedText: label ? seasonEndedText(label) : 'Fără sezon, doar fișa.' };
 }
 
 function buildContext(reg: RegistrationRow, season: SeasonFacts | null, running: boolean, state: SeasonState, athlete: AthleteRow | null): Omit<ConfirmContext, 'groups'> {

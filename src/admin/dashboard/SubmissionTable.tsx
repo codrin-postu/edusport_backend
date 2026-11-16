@@ -246,7 +246,7 @@ export interface SubmissionTableCfg {
   bulk?: boolean;
   texts: {
     title: string;
-    subtitle: string;
+    subtitle?: string;
     searchPlaceholder: string;
     empty: string;
     loadError: string;
@@ -2111,7 +2111,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
         title={pendingConfirm?.kind === 'bulk' ? 'Ștergi selecția?' : 'Ștergi definitiv?'}
         message={
           pendingConfirm?.kind === 'bulk'
-            ? `Ștergi definitiv ${pendingConfirm.count} ${cfg.texts.bulkDeleteNoun}? Acțiunea nu poate fi anulată.`
+            ? `Ștergi ${pendingConfirm.count} ${cfg.texts.bulkDeleteNoun}? Nu se poate anula.`
             : cfg.texts.deleteConfirm
         }
         busy={pendingConfirm?.kind === 'bulk' ? busy : false}

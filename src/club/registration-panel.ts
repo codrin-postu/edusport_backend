@@ -95,11 +95,18 @@ export function formatEmailSentAt(iso: string): string {
 /** The same stamp for the admin screen: "24/10/2026, 11:31". The Sheet and the PDF keep formatEmailSentAt. */
 export const formatEmailSentAtSlash = (iso: string): string => formatEmailSentAt(iso).replace(/^(\d{2})\.(\d{2})\.(\d{4})/, '$1/$2/$3');
 
-/** "Trimis 24.10.2026, 11:31", "Urmează să fie trimis", "Netrimis", or "Niciun e-mail trimis" before the first job. */
+/** "Trimis 24.10.2026, 11:31", "Urmează", "Netrimis", "Nu s-a putut trimite", or "Niciun e-mail trimis" before the first job. */
 export function emailStatusText(status: EmailStatus | null, formatDate: (iso: string) => string): string {
   if (!status || status.status === 'none') return 'Niciun e-mail trimis';
   if (status.status === 'sent') return status.sentAt ? `Trimis ${formatDate(status.sentAt)}` : 'Trimis';
-  return status.status === 'queued' ? 'Urmează să fie trimis' : 'Netrimis';
+  if (status.status === 'queued') return 'Urmează';
+  return status.status === 'failed' ? 'Nu s-a putut trimite' : 'Netrimis';
+}
+
+/** The icon that stands for an unsent e-mail (clock: waiting, warning: not sent), its words go in the aria-label; null for sent or none. */
+export function emailStatusIcon(status: EmailStatus | null): { icon: 'clock' | 'warning'; label: string } | null {
+  if (!status || status.status === 'none' || status.status === 'sent') return null;
+  return { icon: status.status === 'queued' ? 'clock' : 'warning', label: emailStatusText(status, () => '') };
 }
 
 export type EmailPanelState = 'loading' | 'load-failed' | 'ready';
@@ -128,14 +135,6 @@ export function resendToast(status: EmailStatus | null): ResendToast {
   if (status?.status === 'sent') return { tone: 'success', text: 'E-mail trimis.' };
   if (status?.status === 'failed') return { tone: 'error', text: 'Nu s-a putut trimite.' };
   return { tone: 'info', text: 'Urmează să fie trimis.' };
-}
-
-/**
- * The line shown in the panel under a failed status; null otherwise. The technical `lastError`
- * is no longer rendered here (it stays in the API answer, logs and GlitchTip).
- */
-export function failedEmailError(status: EmailStatus | null): string | null {
-  return status?.status === 'failed' ? 'Apasă Retrimite sau verifică adresa.' : null;
 }
 
 /** The refusal text of a failed admin request: Strapi's `error.message` or 2F's `error` string. */

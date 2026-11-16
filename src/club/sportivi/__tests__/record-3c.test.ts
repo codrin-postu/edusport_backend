@@ -22,9 +22,9 @@ describe('record menu (3C spec 3, 4, 6)', () => {
 
   it('the confirmation lines and the export address', () => {
     expect(anonymizeLines()).toEqual([
-      'Se șterg: numele, data nașterii, contactul, telefonul, e-mailul, notele, datele din înscrieri, documentele PDF, adresele din coada de e-mail, valorile vechi din Istoric și profilul public.',
-      'Rămân: grupele pe sezoane, statusul A.C.S. și numărul de înscrieri.',
-      'Acțiunea nu poate fi anulată.',
+      'Se șterg datele personale, PDF-urile și profilul public.',
+      'Rămân grupele pe sezoane, statusul A.C.S. și numărul de înscrieri.',
+      'Nu se poate anula.',
     ]);
     expect(exportUrl('a b')).toBe('/api/club/athletes/a%20b/export');
     expect(EXPORT_FALLBACK_NAME).toBe('date.zip');
@@ -33,8 +33,8 @@ describe('record menu (3C spec 3, 4, 6)', () => {
   it('the confirmation error: the server text for 409, the shared text for 403 and 500', () => {
     const fail = (status: number, message: string) => ({ status, response: { status, data: { error: { status, message } } } });
     expect(anonymizeErrorText(fail(409, 'Datele s-au schimbat. Reîncarcă pagina.'))).toBe('Datele s-au schimbat. Reîncarcă pagina.');
-    expect(anonymizeErrorText(fail(403, 'Policy Failed'))).toBe('Acțiunea nu a reușit. Nimic nu a fost salvat.');
-    expect(anonymizeErrorText(fail(500, 'Internal Server Error'))).toBe('Acțiunea nu a reușit. Nimic nu a fost salvat.');
+    expect(anonymizeErrorText(fail(403, 'Policy Failed'))).toBe('Nu s-a salvat nimic.');
+    expect(anonymizeErrorText(fail(500, 'Internal Server Error'))).toBe('Nu s-a salvat nimic.');
   });
 
   it('an anonymized record: read-only, Date, Plăți and Istoric only, sub-line without "data nașterii lipsește"', () => {

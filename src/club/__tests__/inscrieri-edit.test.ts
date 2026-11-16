@@ -136,8 +136,8 @@ describe('changed-value checks match the server (registration-update.ts editErro
 describe('save toast (spec 3.4)', () => {
   it('follows the PUT answer', () => {
     expect(editToast({ changed: [] })).toEqual({ tone: 'info', text: 'Nicio modificare.' });
-    expect(editToast({ changed: ['phone'], rebuild: { ok: true, documents: ['acord'] } })).toEqual({ tone: 'success', text: 'Salvat. Documentul a fost refăcut.' });
-    expect(editToast({ changed: ['phone'], rebuild: { ok: false, documents: [] } })).toEqual({ tone: 'warning', text: 'Salvat. Documentul PDF nu a putut fi refăcut.' });
+    expect(editToast({ changed: ['phone'], rebuild: { ok: true, documents: ['acord'] } })).toEqual({ tone: 'success', text: 'Salvat. Documentul refăcut.' });
+    expect(editToast({ changed: ['phone'], rebuild: { ok: false, documents: [] } })).toEqual({ tone: 'warning', text: 'Salvat. PDF-ul nu s-a refăcut.' });
     expect(editToast({ changed: ['expectations'], rebuild: null })).toEqual({ tone: 'success', text: 'Salvat' });
     expect(editToast(null)).toEqual({ tone: 'success', text: 'Salvat' });
   });

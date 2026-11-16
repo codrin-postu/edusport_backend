@@ -80,6 +80,16 @@ export const IconInfo = ({ size = 14 }: P) =>
     </>,
   );
 
+/** Padlock: square body and a square shackle (no round shapes). */
+export const IconLock = ({ size = 14 }: P) =>
+  svg(
+    size,
+    <>
+      <rect x="2.75" y="6.25" width="8.5" height="6" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M4.5 6.25V3.5h5v2.75" stroke="currentColor" strokeWidth="1.4" />
+    </>,
+  );
+
 /** "!" in a triangle (no round shapes). */
 export const IconWarning = ({ size = 14 }: P) =>
   svg(

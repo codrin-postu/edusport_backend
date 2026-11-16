@@ -2,12 +2,13 @@ import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import { Button, Spinner, adminToast } from '../../ui';
+import { IconClock, IconWarning } from '../../ui/icons';
 import { DetailField, type Row } from '../SubmissionTable';
 import {
   EMAIL_LOAD_FAILED_TEXT,
   emailPanelState,
   emailStatusText,
-  failedEmailError,
+  emailStatusIcon,
   formatEmailSentAtSlash,
   readEmailStatus,
   requestErrorText,
@@ -67,6 +68,17 @@ function useResend(documentId: string, onStatus: (s: EmailStatus | null) => void
   return { busy, resend };
 }
 
+/** An unsent e-mail shows an icon (clock or warning) named by its aria-label; a sent one keeps its date. */
+function EmailStatusLine({ status }: { status: EmailStatus | null }) {
+  const icon = emailStatusIcon(status);
+  if (!icon) return <span>{emailStatusText(status, formatEmailSentAtSlash)}</span>;
+  return (
+    <span role="img" aria-label={icon.label} title={icon.label} style={{ display: 'inline-flex' }}>
+      {icon.icon === 'clock' ? <IconClock size={16} /> : <IconWarning size={16} />}
+    </span>
+  );
+}
+
 /** The block inside the "E-mail" field: a spinner, the reload prompt, or the status and resend button. */
 function EmailStatusDisplay({
   view,
@@ -92,7 +104,7 @@ function EmailStatusDisplay({
   }
   return (
     <>
-      <span>{emailStatusText(status, formatEmailSentAtSlash)}</span>
+      <EmailStatusLine status={status} />
       <Button size="sm" variant="secondary" onClick={onResend}>
         Retrimite e-mailul
       </Button>
@@ -113,7 +125,6 @@ export function RegistrationEmail({ row }: { row: Row }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <EmailStatusDisplay view={view} status={email.status} onReload={email.reload} onResend={() => setConfirming(true)} />
       </div>
-      {failedEmailError(email.status) && <div className="ui-error">{failedEmailError(email.status)}</div>}
       <ConfirmDialog
         open={confirming}
         title="Retrimiți e-mailul?"

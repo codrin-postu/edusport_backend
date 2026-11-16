@@ -18,7 +18,7 @@ export const ACCESS_COPY = {
   accessSubject: 'Acces nou în portalul EduSport',
   validDays: 'Linkul este valabil 7 zile.',
   enter: 'Intră în portal',
-  disableAllConfirm: (name: string): string => `Dezactivezi tot contul lui ${name}? Toate dispozitivele vor fi deconectate, și pe sportiv.`,
+  disableAllConfirm: (name: string): string => `Dezactivezi tot contul lui ${name}? Toate dispozitivele se deconectează.`,
   removeConfirm: (email: string, athlete: string): string => `Scoți accesul lui ${email} la ${athlete}?`,
   bulkPreview: (invites: number, addresses: number): string => `${countWords(invites, 'invitație', 'invitații')} către ${countWords(addresses, 'adresă', 'adrese')}`,
   bulkToast: (n: number): string => `${countWords(n, 'invitație trimisă', 'invitații trimise')}.`,

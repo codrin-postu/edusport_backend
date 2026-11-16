@@ -28,10 +28,10 @@ function setup(over: FakePresenceSeed) {
 
 describe('delete refusal and presence rows (4.21, C37, 5.14)', () => {
   it('refusal sentence drops a part with 0, with number forms (5.14, C66)', () => {
-    expect(deleteBlockedText(2, 1)).toBe('Sportivul are 2 plăți și 1 abonament. Ștergerea este blocată cât timp există plăți sau abonamente.');
-    expect(deleteBlockedText(0, 1)).toBe('Sportivul are 1 abonament. Ștergerea este blocată cât timp există plăți sau abonamente.');
-    expect(deleteBlockedText(1, 0)).toBe('Sportivul are 1 plată. Ștergerea este blocată cât timp există plăți sau abonamente.');
-    expect(deleteBlockedText(20, 3)).toBe('Sportivul are 20 de plăți și 3 abonamente. Ștergerea este blocată cât timp există plăți sau abonamente.');
+    expect(deleteBlockedText(2, 1)).toBe('Sportivul are 2 plăți și 1 abonament, deci nu se poate șterge.');
+    expect(deleteBlockedText(0, 1)).toBe('Sportivul are 1 abonament, deci nu se poate șterge.');
+    expect(deleteBlockedText(1, 0)).toBe('Sportivul are 1 plată, deci nu se poate șterge.');
+    expect(deleteBlockedText(20, 3)).toBe('Sportivul are 20 de plăți și 3 abonamente, deci nu se poate șterge.');
     expect(LIFECYCLE_DELETE.title('Ana Ionescu')).toBe('Șterge Ana Ionescu');
   });
 
@@ -81,7 +81,7 @@ describe('delete refusal and presence rows (4.21, C37, 5.14)', () => {
   it('rolls both stores back when a later step fails', async () => {
     const f = setup({});
     f.club.failOn('deleteAthlete');
-    expect(await deleteAthlete(f.ctx, 'a1', f.presence)).toEqual({ ok: false, status: 500, error: 'Acțiunea nu a reușit. Nimic nu a fost salvat.' });
+    expect(await deleteAthlete(f.ctx, 'a1', f.presence)).toEqual({ ok: false, status: 500, error: 'Nu s-a salvat nimic.' });
     expect(f.pres.state.attendances).toHaveLength(2);
     expect(f.pres.state.lessons).toHaveLength(1);
   });

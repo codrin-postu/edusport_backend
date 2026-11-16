@@ -158,7 +158,7 @@ describe('"Scoate din grupă" (W4)', () => {
   it('writes nothing when a write fails half way (all or nothing)', async () => {
     const { ctx, state, failOn } = seed([member({ id: 'm1', athleteId: 'a1', groupId: 'g-ib' }), member({ id: 'm2', athleteId: 'a1', groupId: 'g-pro', isMain: false })]);
     failOn('record');
-    expect(await removeMembership(ctx, 'm1')).toEqual({ ok: false, status: 500, error: 'Acțiunea nu a reușit. Nimic nu a fost salvat.' });
+    expect(await removeMembership(ctx, 'm1')).toEqual({ ok: false, status: 500, error: 'Nu s-a salvat nimic.' });
     expect(current(state, 'a1').map((m) => m.athleteId)).toHaveLength(2);
   });
 });
