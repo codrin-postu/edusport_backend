@@ -96,3 +96,11 @@ export function groupHeaderAt(list: ReadonlyArray<{ group?: string }>, i: number
   if (!group) return null;
   return i === 0 || list[i - 1].group !== group ? group : null;
 }
+
+/** Class of the Select button; dropdown menu buttons (MenuButton) wear the same look. */
+export const SELECT_TRIGGER_CLASS = 'ui-input ui-sel';
+
+/** Class of a labelled MenuButton trigger: the Select look at its content width, marked when a filter is on. */
+export function menuTriggerClass(active: boolean): string {
+  return `${SELECT_TRIGGER_CLASS} ui-sel--menu${active ? ' sbt-qf-on' : ''}`;
+}

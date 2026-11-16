@@ -3,7 +3,7 @@ import { cx } from './cx';
 import { useFieldControl, type FieldAria } from './Field';
 import { Popover } from './Popover';
 import { IconCheck, IconChevronDown } from './icons';
-import { edgeIndex, groupHeaderAt, scrollTopFor, selectKeyAction, typeaheadIndex } from '../../club/ui-select';
+import { SELECT_TRIGGER_CLASS, edgeIndex, groupHeaderAt, scrollTopFor, selectKeyAction, typeaheadIndex } from '../../club/ui-select';
 
 export interface SelectOption {
   value: string;
@@ -133,7 +133,7 @@ const SelectTrigger = React.forwardRef<HTMLButtonElement, TriggerProps>(function
       aria-required={required || undefined}
       {...aria}
       disabled={disabled}
-      className={cx('ui-input', 'ui-sel', className)}
+      className={cx(SELECT_TRIGGER_CLASS, className)}
       style={style}
       onClick={onToggle}
       onKeyDown={onKeyDown}

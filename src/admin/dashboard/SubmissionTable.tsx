@@ -32,6 +32,7 @@ import {
   type PopoverPlacement,
 } from '../ui';
 import { IconChevronDown, IconChevronUp, IconGrip, IconSearch } from '../ui/icons';
+import { menuTriggerClass } from '../../club/ui-select';
 import { fieldsClearedByEdit } from '../../club/registration-edit';
 import { SEASON_EMPTY_LABEL, headerLabel, headerSortDir, listMeta, nextHeaderSort, savedStamp, type CompactHeader } from '../../club/ui-table';
 
@@ -462,7 +463,7 @@ const TABLE_CSS = `
 .ui-root .sbt-tbB{display:flex;align-items:center;gap:9px;padding:11px 18px;border-bottom:1px solid var(--theme-border);flex-wrap:wrap;background:var(--theme-surface-subtle)}
 .ui-root .sbt-tbB .ui-input{width:auto}
 .ui-root .sbt-grow{flex:1}
-.ui-root .ui-btn.sbt-qf-on{border-color:var(--theme-primary);color:var(--theme-primary);background:var(--theme-primary-soft)}
+.ui-root .ui-btn.sbt-qf-on,.ui-root .ui-sel.sbt-qf-on{border-color:var(--theme-primary);color:var(--theme-primary);background:var(--theme-primary-soft)}
 .ui-root .sbt-sorth{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:none;font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}
 .ui-root .sbt-sorth:focus-visible{outline:2px solid var(--theme-focus);outline-offset:2px}
 .ui-root .sbt-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 18px 12px;border-bottom:1px solid var(--theme-border)}
@@ -576,6 +577,27 @@ export function DetailFooter({ children }: { children: React.ReactNode }) {
   return <div className="sbt-pa">{children}</div>;
 }
 
+/** Icon-only menu trigger (kebab, row menu): keeps the icon-button look, not the Select look. */
+const IconMenuTrigger = React.forwardRef<
+  HTMLButtonElement,
+  { label: React.ReactNode; active?: boolean; open: boolean; disabled?: boolean; onToggle: () => void }
+>(function IconMenuTrigger({ label, active, open, disabled, onToggle }, ref) {
+  return (
+    <Button
+      ref={ref}
+      size="sm"
+      variant="secondary"
+      className={active ? 'sbt-qf-on' : undefined}
+      aria-haspopup="true"
+      aria-expanded={open}
+      disabled={disabled}
+      onClick={onToggle}
+    >
+      {label}
+    </Button>
+  );
+});
+
 /**
  * A toolbar dropdown button with its own anchored Popover. Exported for page-specific header menus. With
  * `role="menuitem"` items it follows the menu button pattern (useMenuFocus); `chevron={false}` drops the arrow.
@@ -610,19 +632,26 @@ export function MenuButton({
   const menu = useMenuFocus(open, ref, onClose);
   return (
     <>
-      <Button
-        ref={ref}
-        size="sm"
-        variant="secondary"
-        className={active ? 'sbt-qf-on' : undefined}
-        aria-haspopup="true"
-        aria-expanded={open}
-        disabled={disabled}
-        onClick={onToggle}
-      >
-        {label}
-        {chevron && <IconChevronDown size={12} />}
-      </Button>
+      {chevron ? (
+        <button
+          ref={ref}
+          type="button"
+          className={menuTriggerClass(!!active)}
+          aria-haspopup="true"
+          aria-expanded={open}
+          disabled={disabled}
+          onClick={onToggle}
+        >
+          <span className="ui-sel-val">
+            <span data-on>{label}</span>
+          </span>
+          <span className="ui-sel-chev" aria-hidden="true">
+            <IconChevronDown size={12} />
+          </span>
+        </button>
+      ) : (
+        <IconMenuTrigger ref={ref} label={label} active={active} open={open} disabled={disabled} onToggle={onToggle} />
+      )}
       <Popover
         open={open}
         anchorRef={ref}

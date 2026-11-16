@@ -1,5 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { edgeIndex, foldText, groupHeaderAt, scrollTopFor, selectKeyAction, stepIndex, typeaheadIndex } from '../ui-select';
+import { SELECT_TRIGGER_CLASS, edgeIndex, foldText, groupHeaderAt, menuTriggerClass, scrollTopFor, selectKeyAction, stepIndex, typeaheadIndex } from '../ui-select';
 
 const rows = [
   { label: 'Primii Pași' },
@@ -95,5 +96,31 @@ describe('groupHeaderAt', () => {
     const list = [{}, { group: 'Club' }, {}];
     expect(list.map((_, i) => groupHeaderAt(list, i))).toEqual([null, 'Club', null]);
     expect(groupHeaderAt(list, 5)).toBeNull();
+  });
+});
+
+describe('one dropdown look', () => {
+  const read = (f: string) => readFileSync(new URL(f, import.meta.url), 'utf8');
+  const select = read('../../admin/ui/Select.tsx');
+  const table = read('../../admin/dashboard/SubmissionTable.tsx');
+  const styles = read('../../admin/ui/styles.ts');
+
+  it('menuTriggerClass builds on the select trigger class', () => {
+    expect(SELECT_TRIGGER_CLASS).toBe('ui-input ui-sel');
+    expect(menuTriggerClass(false).startsWith(SELECT_TRIGGER_CLASS)).toBe(true);
+    expect(menuTriggerClass(false)).toContain('ui-sel--menu');
+    expect(menuTriggerClass(false)).not.toContain('sbt-qf-on');
+    expect(menuTriggerClass(true)).toContain('sbt-qf-on');
+  });
+
+  it('Select and MenuButton share the trigger look', () => {
+    expect(select).toContain('SELECT_TRIGGER_CLASS');
+    expect(table).toContain('menuTriggerClass(');
+    const menuButton = table.slice(table.indexOf('export function MenuButton'), table.indexOf('const DEFAULT_SORT_OPTIONS'));
+    expect(menuButton).not.toContain('variant="secondary"');
+  });
+
+  it('triggers are 16px on phones so iOS does not zoom', () => {
+    expect(styles).toContain('@media (max-width:640px){${R} .ui-input{font-size:16px}}');
   });
 });

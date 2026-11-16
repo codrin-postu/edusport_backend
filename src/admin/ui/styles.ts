@@ -519,6 +519,7 @@ ${R} .ui-cbx-actions{position:absolute;top:0;right:5px;bottom:0;display:flex;ali
 
 /* select (custom, admin-wide): a combobox button + the shared list */
 ${R} .ui-sel{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;cursor:pointer;padding-right:8px}
+${R} .ui-sel--menu{width:auto;display:inline-flex}
 ${R} .ui-sel:disabled{cursor:not-allowed}
 ${R} .ui-sel[aria-expanded="true"]{border-color:var(--theme-primary);box-shadow:0 0 0 1px var(--theme-primary)}
 ${R} .ui-sel-val{display:grid;flex:1;min-width:0}
@@ -532,6 +533,7 @@ ${R} .ui-sel-tick{display:inline-flex;width:12px;flex-shrink:0}
 ${R} .ui-sel-hint{margin-left:auto;padding-left:12px;font-size:12px;color:var(--theme-text-muted);white-space:nowrap}
 ${R} .ui-sel-trig-hint{margin-left:0;padding-left:0}
 @media (prefers-reduced-motion:reduce){${R} .ui-sel-chev{transition:none}}
+@media (max-width:640px){${R} .ui-input{font-size:16px}}
 
 /* segmented control */
 .ui-root.ui-seg{display:inline-flex;align-items:stretch;gap:2px;padding:2px;background:var(--theme-surface-sunken);border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);max-width:100%;width:fit-content;align-self:flex-start}
