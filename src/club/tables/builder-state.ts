@@ -24,10 +24,10 @@ export type ScopeFill = { groupId: string | null; month: string };
 
 /** A new subject keeps the scope and starts from its own columns, with no filter, group or sort. Prezență pe ședințe needs a group and a month: `fill` supplies them when the scope lacks them. */
 export const setSubject = (d: TableDefinition, subject: Subject, fill?: ScopeFill): TableDefinition => {
-  const needs = subject === 'sedinte' && fill !== undefined;
-  const scope = !needs ? d.scope : {
-    ...d.scope, groupId: d.scope.groupId ?? fill.groupId, period: d.scope.period ?? { kind: 'month' as const, month: fill.month },
-  };
+  if (subject !== 'sedinte' || fill === undefined) return { subject, scope: d.scope, columns: DEFAULT_COLUMNS[subject], filters: [], groupBy: null, sort: null };
+  const { period } = d.scope;
+  const keep = period !== null && (period.kind === 'current' || period.month <= fill.month);
+  const scope = { ...d.scope, sectionId: null, groupId: d.scope.groupId ?? fill.groupId, period: keep ? period : { kind: 'month' as const, month: fill.month } };
   return { subject, scope, columns: DEFAULT_COLUMNS[subject], filters: [], groupBy: null, sort: null };
 };
 

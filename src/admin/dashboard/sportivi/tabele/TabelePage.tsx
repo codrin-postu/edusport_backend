@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { AdminPage, EmptyState, Loading, Notice, PageHeader, Window, adminToast, useMediaQuery } from '../../../ui';
 import { ConfirmDialog } from '../../../ConfirmDialog';
 import type { CatalogAnswer } from '../../../../club/tables/catalog-api';
-import { TABLES_COPY, TABLES_COUNT_WORDS } from '../../../../club/tables/copy';
+import { TABLES_COPY } from '../../../../club/tables/copy';
 import { nextSort } from '../../../../club/tables/header-sort';
 import { railGroups, type RailMenuKey } from '../../../../club/tables/rail';
 import { readTabeleQuery, tablesTo } from '../../../../club/tables/routes';
@@ -13,16 +13,17 @@ import { isDirty, noPaymentsThisMonth } from '../../../../club/tables/view-state
 import { MONEY_UI_COPY } from '../../../../club/presence/copy/money-ui';
 import { PRESENCE_ERRORS } from '../../../../club/presence/copy/core';
 import { requestErrorText } from '../../../../club/registration-panel';
-import { countWords } from '../../../../club/ro-count';
 import { blobErrorText } from '../../inscrieri/downloadPdf';
 import { useLatest } from '../../bani/latest';
 import { SPORTIVI_CSS } from '../styles';
 import { useTablesApi, type Format, type TablesApi } from './api';
-import { ControlRow } from './ControlRow';
+import { FilterChips } from './FilterChips';
+import { MetaRow } from './MetaRow';
 import { NewViewModal } from './NewViewModal';
 import { ResultTable } from './ResultTable';
 import { SavedRail } from './SavedRail';
 import { TableHeader } from './TableHeader';
+import { TypeBar } from './TypeBar';
 import { TABELE_CSS } from './styles';
 
 const UNDO_MS = 8000;
@@ -203,7 +204,6 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
 
   const notices = [...new Set([...(current.notices ?? []), ...(result?.notices ?? [])])];
   const title = pageTitle(draft && saved && draft.subject !== saved.subject ? null : current, TABLES_COPY.subjects[draft?.subject ?? 'sportivi']);
-  const [one, many] = draft ? TABLES_COUNT_WORDS[draft.subject] : TABLES_COUNT_WORDS.sportivi;
 
   return (
     <AdminPage className="tbl-page">
@@ -218,12 +218,17 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
         <div className="tbl-main">
       <Window>
         {current.broken && <div className="tbl-notices"><Notice tone="warning">{TABLES_COPY.brokenView}</Notice></div>}
-        {draft && <ControlRow definition={draft} catalog={catalog} onChange={setDraft} />}
+        {draft && (
+          <div className="tbl-bar">
+            <TypeBar definition={draft} catalog={catalog} onChange={setDraft} />
+            <FilterChips definition={draft} catalog={catalog} onChange={setDraft} />
+          </div>
+        )}
         {notices.length > 0 && (
           <div className="tbl-notices">{notices.map((n) => <Notice key={n} tone="warning">{n}</Notice>)}</div>
         )}
         {error && <div className="tbl-notices"><Notice tone="danger">{error}</Notice></div>}
-        {result && !error && <p className="tbl-count">{countWords(result.count, one, many)}</p>}
+        {draft && <MetaRow definition={draft} columns={catalog.subjects[draft.subject].columns} count={result && !error ? result.count : null} onChange={setDraft} />}
         {loading && !result && !error && <div className="tbl-loading"><Loading /></div>}
         {result && !error && noPaymentsThisMonth(current.id, result) && <EmptyState>{TABLES_COPY.noPaymentsMonth}</EmptyState>}
         {result && !error && !noPaymentsThisMonth(current.id, result) && (

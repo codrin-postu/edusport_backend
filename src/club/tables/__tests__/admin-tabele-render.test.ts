@@ -7,7 +7,9 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 vi.mock('@strapi/admin/strapi-admin', () => ({ useFetchClient: () => ({}), getFetchClient: () => ({}) }));
 vi.mock('@strapi/design-system', () => ({}));
 vi.mock('@strapi/icons', () => ({}));
-import { ControlRow } from '../../../admin/dashboard/sportivi/tabele/ControlRow';
+import { FilterChips } from '../../../admin/dashboard/sportivi/tabele/FilterChips';
+import { MetaRow } from '../../../admin/dashboard/sportivi/tabele/MetaRow';
+import { TypeBar } from '../../../admin/dashboard/sportivi/tabele/TypeBar';
 import { ExportMenu } from '../../../admin/dashboard/sportivi/tabele/ExportMenu';
 import { ResultTable } from '../../../admin/dashboard/sportivi/tabele/ResultTable';
 import { CATALOG, GROUP_LABELS } from '../catalog';
@@ -72,10 +74,26 @@ describe('Tabele control row and export', () => {
   afterAll(() => vi.restoreAllMocks());
   const definition: TableDefinition = { subject: 'plati', scope: { seasonId: 's26', sectionId: null, groupId: null, period: null }, columns: ['data', 'sportiv', 'suma'], filters: [{ column: 'sportiv', op: 'eq', value: 'Ana' }], groupBy: null, sort: null };
 
-  it('shows the table, scope, filter button, group-by and column count', () => {
-    const control = html(React.createElement(ControlRow, { definition, catalog, onChange: noop }));
-    for (const text of ['Tabel:', 'Plăți', '2026-2027', 'Tot sezonul', 'Secțiune:', 'Grupă:', 'Grupează:', 'Sportiv: Ana', '+ Filtru', 'Coloane (3)']) expect(control).toContain(text);
-    expect(control).not.toContain('Subiect');
+  it('shows the five types, the one period, the chip, the Filtru button, grouping and column count, with no row labels', () => {
+    const bar = html(React.createElement(TypeBar, { definition, catalog, onChange: noop }));
+    for (const text of ['Sportivi', 'Plăți', 'Abonamente', 'Prezență', 'Prezență pe ședințe', 'Sezonul 2026-2027']) expect(bar).toContain(text);
+    const chips = html(React.createElement(FilterChips, { definition: { ...definition, filters: [{ column: 'metoda', op: 'eq', value: 'Card' }] }, catalog, onChange: noop }));
+    expect(chips).toContain('Metodă: Card');
+    expect(chips).toContain('aria-label="Șterge"');
+    expect(chips).toContain('Filtru');
+    const meta = html(React.createElement(MetaRow, { definition, columns: CATALOG.plati.columns, count: 12, onChange: noop }));
+    for (const text of ['12 plăți', 'Negrupat', 'Coloane (3)']) expect(meta).toContain(text);
+    for (const label of ['Tabel:', 'Secțiune:', 'Grupă:', 'Grupează:', 'Filtre', 'Perioada:']) expect(bar + chips + meta).not.toContain(`>${label}`);
+  });
+  it('Prezență pe ședințe shows a group select reading Selectează, no Filtru, no grouping, no columns', () => {
+    const sed: TableDefinition = { ...definition, subject: 'sedinte', columns: ['sportiv', 'total'], filters: [] };
+    const chips = html(React.createElement(FilterChips, { definition: sed, catalog, onChange: noop }));
+    expect(chips).toContain('Selectează');
+    expect(chips).not.toContain('Filtru');
+    const meta = html(React.createElement(MetaRow, { definition: sed, columns: [], count: 3, onChange: noop }));
+    expect(meta).toContain('3 sportivi');
+    expect(meta).not.toContain('Negrupat');
+    expect(meta).not.toContain('Coloane');
   });
   it('the download is a split button: primary "Descarcă Excel" and an arrow menu, both off when nothing can be downloaded', () => {
     const out = html(React.createElement(ExportMenu, { canDownload: true, downloading: null, onDownload: noop }));

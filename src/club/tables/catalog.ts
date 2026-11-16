@@ -61,5 +61,17 @@ export const CATALOG: Record<Subject, CatalogSubject> = {
   sedinte: { label: 'Prezență pe ședințe', columns: [sportiv, col('total', 'Total', 'number')], groupBy: [] },
 };
 
+/** Columns a type offers as a filter chip, each a pick from a list of values (a word list, or the group and section names). */
+export const FILTERABLE: Record<Subject, string[]> = {
+  sportivi: ['grupa', 'sectiune', 'stare', 'membruAcs'],
+  plati: ['grupa', 'sectiune', 'metoda', 'laPatinoar'],
+  abonamente: ['grupa', 'sectiune', 'stare'],
+  prezenta: ['grupa', 'tip'],
+  sedinte: ['grupa'],
+};
+
+/** Prezență pe ședințe has no group column (its group is the scope), yet the group is its one filter. */
+export const GROUP_COLUMN = grupa;
+
 export const GROUP_LABELS: Record<GroupKey, string> = { grupa: 'Grupă', sectiune: 'Secțiune', luna: 'Lună', antrenor: 'Antrenor' };
 export const NO_GROUP_LABEL = 'Fără';

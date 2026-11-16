@@ -27,6 +27,11 @@ describe('subject and columns', () => {
     expect(setSubject({ ...def, scope: own }, 'sedinte', fill).scope).toEqual(own);
     expect(setSubject(def, 'plati', fill).scope).toEqual(def.scope);
   });
+  it('Prezență pe ședințe drops the section and a month after the current one', () => {
+    const fill = { groupId: 'g1', month: '2026-11' };
+    const scope = { ...def.scope, sectionId: 'sec1', period: { kind: 'month' as const, month: '2026-12' } };
+    expect(setSubject({ ...def, scope }, 'sedinte', fill).scope).toEqual({ ...scope, sectionId: null, groupId: 'g1', period: { kind: 'month', month: '2026-11' } });
+  });
   it('toggles columns: appends, removes, never the last, drops a sort on a removed column', () => {
     expect(toggleColumn(def, 'metoda', true).columns).toEqual(['data', 'sportiv', 'suma', 'metoda']);
     expect(toggleColumn(def, 'data', true)).toBe(def);

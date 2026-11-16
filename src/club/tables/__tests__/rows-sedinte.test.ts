@@ -48,7 +48,7 @@ describe('sedinteTable', () => {
   it('uses the month of today for the current period and names occurrences by their key', async () => {
     const res = await sedinteTable(tablesSeed().store, scoped('g-av', { kind: 'current' }), TODAY, NOW);
     expect(res.ok && res.data.columns.map((c) => c.key)).toEqual(['sportiv', 's:s3', 's:s4', 'total']);
-    expect(sessionKey({ date: '2026-11-07', startTime: '11:00', sessionId: null, occurrenceKey: 'k1', state: null as never })).toBe('s:k1');
+    expect(sessionKey({ date: '2026-11-07', startTime: '11:00', sessionId: null, occurrenceKey: 'k1', state: 'completat' })).toBe('s:k1');
   });
 
   it('refuses a missing group, the whole season and a month after the current one', async () => {
