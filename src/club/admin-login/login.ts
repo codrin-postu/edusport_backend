@@ -12,7 +12,8 @@ import { PENDING_TTL_MS, hasTwoFactor, openPending, sendLoginCode, verifySecondS
 import type { Subject } from '../security/store';
 import { adminById, adminByEmail, adminName, canEnterAdmin, type AdminRow } from './admins';
 import { ADMIN_PENDING_COOKIE, type AdminLoginContext } from './context';
-import { ADMIN_DEVICE_COOKIE, ADMIN_DEVICE_COOKIE_MS, bindAdminDevice, rememberDevice, rememberedDevice } from './devices';
+import { rememberUntil } from '../security/remembered';
+import { ADMIN_DEVICE_COOKIE, ADMIN_DEVICE_COOKIE_MS, bindAdminDevice, rememberedDevice } from './devices';
 import { canLinkByEmail, linkAdminGoogle } from './google-link';
 import { adminSessionManager, issueAdminSession } from './session';
 
@@ -92,11 +93,11 @@ async function passkeyOffer(c: AdminLoginContext, admin: AdminRow): Promise<bool
 
 /** The last step of every login: binds the device, issues Strapi's session, computes the passkey offer. Used by password, second step, Google, passkey, invite and reset. */
 export async function finishAdminLogin(
-  c: AdminLoginContext, admin: AdminRow, rememberMe: boolean, o: { newDeviceMail: boolean; passkey: boolean },
+  c: AdminLoginContext, admin: AdminRow, rememberMe: boolean, o: { newDeviceMail: boolean; passkey: boolean; rememberDevice?: boolean },
 ): Promise<AdminHandoff> {
   const { device } = await bindDevice(c, admin, o);
-  // A completed sign-in confirms the device (and is the recent-authentication time).
-  await c.store.updateAdminDevice(device.id, { confirmedAt: c.now().toISOString() });
+  // A completed sign-in confirms the device (and is the recent-authentication time). "Ține minte" lands on the row this login actually bound (a stale row was just rebound).
+  await c.store.updateAdminDevice(device.id, { confirmedAt: c.now().toISOString(), ...(o.rememberDevice ? { twoFactorUntil: rememberUntil(c.now()) } : {}) });
   const { accessToken } = await issueAdminSession(c, admin.id, device, rememberMe);
   return { accessToken, remember: rememberMe, offerPasskey: !o.passkey && (await passkeyOffer(c, admin)) };
 }
@@ -184,9 +185,8 @@ export async function secondStepAdmin(c: AdminLoginContext, body: unknown): Prom
     const account = await c.store.ensureAdminAccount(admin.id);
     await c.store.updateAdminAccount(account.id, { lastMethod: read.method });
   }
-  if (read.remember) await rememberDevice(c.store, admin.id, data.deviceKeyHash, deviceCookie, c.now());
   c.clearCookie(pendingName);
-  return { ok: true, data: await finishAdminLogin(c, admin, data.rememberMe, { newDeviceMail: true, passkey: false }) };
+  return { ok: true, data: await finishAdminLogin(c, admin, data.rememberMe, { newDeviceMail: true, passkey: false, rememberDevice: read.remember }) };
 }
 
 /** "Trimite din nou" and the choice of the e-mail method. */

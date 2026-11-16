@@ -372,6 +372,26 @@ describe('password login: the second step', () => {
     expect(rows[0].strapiDeviceId).not.toBe(before.strapiDeviceId);
   });
 
+  it('remember=true on a stale-cookie login lands on the rebound live row, and the next password login skips the second step', async () => {
+    const env = loginEnv();
+    await env.turnOnTotp();
+    await env.login();
+    env.browser();
+    await secondStepAdmin(env.c, { method: 'totp', code: env.code(), remember: false });
+    env.browser();
+    env.advance(31 * 24 * 3600_000);
+    await env.login();
+    env.browser();
+    expect((await secondStepAdmin(env.c, { method: 'totp', code: env.code(), remember: true })).ok).toBe(true);
+    const rows = await env.c.store.adminDevices(7);
+    expect(rows).toHaveLength(1);
+    expect(isLive(rows[0], env.c.now())).toBe(true);
+    expect(rows[0].twoFactorUntil).not.toBeNull();
+    env.browser();
+    env.advance(60_000);
+    expect(await env.login()).toMatchObject({ ok: true, data: { accessToken: expect.any(String) } });
+  });
+
   it('the password step may reuse an already revoked row', async () => {
     const env = loginEnv();
     await env.turnOnTotp();
