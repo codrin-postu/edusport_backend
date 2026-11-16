@@ -278,7 +278,7 @@ document.addEventListener('click',e=>{const t=e.target.closest('button,th,tr');i
  if(t.dataset.rm!==undefined){state.filters.splice(+t.dataset.rm,1);render();return}
  if(t.dataset.debt){state.onlyDebt=false;render();return}
  if(t.id==='addF'){const used=new Set(state.filters.map(f=>f.key));const keys=TYPES[state.type].filters.filter(k=>!used.has(k));
-  const p=pop(t,keys.map(k=>`<label class="opt"><span style="min-width:96px">${LABEL[k]}</span><select class="sel" data-fk="${k}" style="flex:1;height:30px"><option value=""></option>${values(k).map(v=>`<option>${v}</option>`).join('')}</select></label>`).join(''));
+  const p=pop(t,keys.map(k=>`<label class="opt"><span style="min-width:96px">${LABEL[k]}</span><select class="sel" data-fk="${k}" style="flex:1;height:30px"><option value="">Selectează</option>${values(k).map(v=>`<option>${v}</option>`).join('')}</select></label>`).join(''));
   p.addEventListener('change',ev=>{const s=ev.target.closest('select');if(s&&s.value){state.filters.push({key:s.dataset.fk,value:s.value});closeLayer();render()}});return}
  if(t.id==='colBtn'){openCols(t);return}
  if(t.id==='dlBtn'){toast(state.name+'.xlsx');return}

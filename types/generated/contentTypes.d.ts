@@ -1065,7 +1065,7 @@ export interface ApiCalendarBlackoutCalendarBlackout
   extends Struct.CollectionTypeSchema {
   collectionName: 'calendar_blackouts';
   info: {
-    description: 'Interval \u00EEn care toate evenimentele recurente sunt anulate (ex. vacan\u021Ba de iarn\u0103)';
+    description: 'Interval \u00EEn care grupele bifate nu au \u0219edin\u021Be';
     displayName: 'Calendar / Pauz\u0103';
     pluralName: 'calendar-blackouts';
     singularName: 'calendar-blackout';
@@ -1083,6 +1083,7 @@ export interface ApiCalendarBlackoutCalendarBlackout
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     endDate: Schema.Attribute.Date & Schema.Attribute.Required;
+    exceptGroupIds: Schema.Attribute.JSON;
     label: Schema.Attribute.String & Schema.Attribute.Required;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -1503,7 +1504,13 @@ export interface ApiEmailJobEmailJob extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     group: Schema.Attribute.Relation<'manyToOne', 'api::group.group'>;
     kind: Schema.Attribute.Enumeration<
-      ['registration', 'schedule-change', 'payment', 'portal-invite']
+      [
+        'registration',
+        'schedule-change',
+        'payment',
+        'portal-invite',
+        'portal-access',
+      ]
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'registration'>;
@@ -2363,7 +2370,8 @@ export interface ApiPortalDevicePortalDevice
   };
 }
 
-export interface ApiPortalNoticeDeliveryPortalNoticeDelivery extends Struct.CollectionTypeSchema {
+export interface ApiPortalNoticeDeliveryPortalNoticeDelivery
+  extends Struct.CollectionTypeSchema {
   collectionName: 'portal_notice_deliveries';
   info: {
     description: 'Un mesaj livrat unui cont';
@@ -2385,31 +2393,32 @@ export interface ApiPortalNoticeDeliveryPortalNoticeDelivery extends Struct.Coll
       'api::portal-account.portal-account'
     > &
       Schema.Attribute.Required;
-    deliveredAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
-    dismissedAt: Schema.Attribute.DateTime;
-    notice: Schema.Attribute.Relation<
-      'manyToOne',
-      'api::portal-notice.portal-notice'
-    > &
-      Schema.Attribute.Required;
-    seenAt: Schema.Attribute.DateTime;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    deliveredAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    dismissedAt: Schema.Attribute.DateTime;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::portal-notice-delivery.portal-notice-delivery'
     > &
       Schema.Attribute.Private;
+    notice: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::portal-notice.portal-notice'
+    > &
+      Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
+    seenAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
   };
 }
 
-export interface ApiPortalNoticePortalNotice extends Struct.CollectionTypeSchema {
+export interface ApiPortalNoticePortalNotice
+  extends Struct.CollectionTypeSchema {
   collectionName: 'portal_notices';
   info: {
     description: 'Mesaje pentru portalul sportiv';
@@ -2435,18 +2444,15 @@ export interface ApiPortalNoticePortalNotice extends Struct.CollectionTypeSchema
       'api::announcement.announcement'
     >;
     athleteIds: Schema.Attribute.JSON;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
     endedAt: Schema.Attribute.DateTime;
     groupIds: Schema.Attribute.JSON;
     key: Schema.Attribute.String;
     kind: Schema.Attribute.Enumeration<['auto', 'anunt']> &
       Schema.Attribute.Required;
     lastDate: Schema.Attribute.Date;
-    rows: Schema.Attribute.JSON;
-    stoppedAt: Schema.Attribute.DateTime;
-    title: Schema.Attribute.String;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -2454,6 +2460,9 @@ export interface ApiPortalNoticePortalNotice extends Struct.CollectionTypeSchema
     > &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
+    rows: Schema.Attribute.JSON;
+    stoppedAt: Schema.Attribute.DateTime;
+    title: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -3116,11 +3125,12 @@ export interface ApiSiteSettingsSiteSettings extends Struct.SingleTypeSchema {
   };
 }
 
-export interface ApiSkateSnapshotSkateSnapshot extends Struct.CollectionTypeSchema {
+export interface ApiSkateSnapshotSkateSnapshot
+  extends Struct.CollectionTypeSchema {
   collectionName: 'skate_snapshots';
   info: {
-    description: 'Date din skate-results, păstrate pentru citire rapidă';
-    displayName: 'Club / Snapshot competiții';
+    description: 'Date din skate-results, p\u0103strate pentru citire rapid\u0103';
+    displayName: 'Club / Snapshot competi\u021Bii';
     pluralName: 'skate-snapshots';
     singularName: 'skate-snapshot';
   };

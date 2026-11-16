@@ -474,11 +474,11 @@ git commit -m "refactor(copy): shorter athlete portal and shared messages"
 
 ---
 
-## Amendments 2026-11-16 (tasks 17 to 26)
+## Amendments 2026-11-16 (tasks 17 to 28c)
 
 Approved after the first plan: layout (Tasks 17 to 20, from `docs/superpowers/specs/2026-11-16-layout-audit.md`, root causes R1 to R9), Sportivi, Înscrieri, Grupe, abonament and Competiții changes (Tasks 21 to 26).
 
-**Execution order:** 1, 2, 3, 17, 18, 19, 20 (layout first: later tasks build on `--ui-inset`), then 4 to 11, then 21 to 26, then the copy tasks 12 to 16 last (they edit the same files). Task numbers are kept so the cross references above stay valid.
+**Execution order:** 1, 2, 3, 17, 18, 19, 20 (layout first: later tasks build on `--ui-inset`), then 4 to 11, then 28a, 28b, 28c (needs Task 11), then 21 to 26, then 27, then the copy tasks 12 to 16 last (they edit the same files). Task numbers are kept so the cross references above stay valid. Tasks 28a to 28c and 27 carry the strict user rule: no helper text anywhere.
 
 Extra Global Constraints for tasks 17 to 26:
 - Layout values: `--ui-inset` is 16px, 12px at `max-width:640px`; fields gap 12 (`--ui-space-3`), blocks gap 16 (`--ui-space-4`); every control 34px; nothing keeps 13, 14, 15 or 18 as a horizontal inset; breakpoints are phone 640 and tablet 1024 (audit R1, R7, R8, R9).
@@ -730,6 +730,151 @@ git commit -m "feat(sportivi): Competiții tab with club results and summary"
 ```bash
 git add src
 git commit -m "feat(competitii): club podiums and best placement per competition"
+```
+
+---
+
+### Task 28a: Tabele shell, saved-tables rail, header and export (backend)
+
+**Strict rule (user, applies to 28a, 28b, 28c and 27):** no helper text anywhere: no descriptions on buttons, menu items, toggles or options, no row labels such as "Arată" or "Filtre", no hints, no explanatory notes. Controls carry only their name, or an icon with a tooltip naming it. Source tests pin that none is added.
+
+**Design authority:** `docs/superpowers/specs/2026-11-16-tabele-mockup.html` (approved; its data and behaviour are sample only). Order of execution: after Task 11 (it needs the "Prezență pe ședințe" subject), before Tasks 21 to 26.
+
+**Files:**
+- Modify: `src/admin/dashboard/sportivi/tabele/TabelePage.tsx`, `SavedRail.tsx`, `ExportMenu.tsx`, `styles.ts`, `ControlRow.tsx` (header part moves out), `src/club/tables/rail.ts`, `src/club/tables/copy.ts`
+- Create: `src/club/tables/shell-state.ts`, `src/admin/dashboard/sportivi/tabele/TableHeader.tsx`
+- Test: `src/club/tables/__tests__/shell-state.test.ts`, `src/club/__tests__/admin-tabele-render.test.ts` (existing source pins)
+
+**Interfaces:**
+- Produces (pure):
+```ts
+export const RAIL_KEY = 'tabele-rail';
+export function railInitial(stored: string | null, viewportWidth: number): boolean; // '0' closed, '1' open, null: closed at <= 900, else open
+export function railStored(open: boolean): '0' | '1';
+export function pageTitle(view: { name: string } | null, subjectLabel: string): string; // current view name, else the type label
+export const EXPORT_FORMATS: readonly [{ format: 'xlsx'; label: 'Excel' }, { format: 'csv'; label: 'CSV' }];
+```
+- Consumes: existing export endpoints and `TablesApi` download calls in `api.ts`; `Button`, `Popover`, `adminToast`.
+
+- [ ] **Step 1: Write the failing tests** `shell-state.test.ts`: `railInitial('0', 1440)` false, `railInitial('1', 600)` true (remembered choice wins), `railInitial(null, 900)` false, `railInitial(null, 901)` true; `railStored` round trip; `pageTitle({ name: 'Restanțe' }, 'Abonamente')` is `'Restanțe'`, `pageTitle(null, 'Abonamente')` is `'Abonamente'`. Source pins in `admin-tabele-render.test.ts`: `TableHeader.tsx` contains a rail toggle button (`aria-expanded`, `aria-controls`), an `h1` with `pageTitle`, "Salvează tabelul", a split primary button "Descarcă Excel" with an arrow menu built from `EXPORT_FORMATS`; no "Aspect", "Listă" or "Foaie de calcul" anywhere under `tabele/`; `SavedRail.tsx` below 900px is a slide-over with a scrim (`useMediaQuery(phoneQuery...)` or the 900 query, closes on pick); `TabelePage.tsx` reads and writes `RAIL_KEY` inside try/catch.
+- [ ] **Step 2: Run** `npx vitest run src/club/tables/__tests__/shell-state.test.ts src/club/__tests__/admin-tabele-render.test.ts` Expected: FAIL.
+- [ ] **Step 3: Implement** the header (rail button with icon, title, save, split download), the collapsible rail remembered per browser (localStorage, wrapped in try/catch), slide-over at 900px and below, the split download (primary click exports Excel; arrow menu lists Excel and CSV through the existing endpoints and file names). Remove the "Aspect: Listă / Foaie de calcul" toggle and delete `aspect.ts` with its tests; the export keeps the shape the former default produced (verify in `aspect.ts` which one that was and report it). Ruling decided by Claude, mockup approved by the user.
+- [ ] **Step 4: Run** `npx vitest run src/club/tables src/club/__tests__/admin-tabele-render.test.ts`, both `tsc`, `node scripts/admin-ui-check.mjs --strict`. Expected: PASS, exit 0.
+- [ ] **Step 5: Commit**
+```bash
+git add src
+git commit -m "feat(tabele): header, collapsible saved-tables rail and split download"
+```
+
+---
+
+### Task 28b: Tabele type picker, period, filter chips and grouping (backend)
+
+**Strict rule:** as in Task 28a (no helper text anywhere).
+
+**Files:**
+- Create: `src/club/tables/view-model.ts`, `src/admin/dashboard/sportivi/tabele/TypeBar.tsx`, `FilterChips.tsx`
+- Modify: `src/club/tables/catalog.ts` (`FILTERABLE: Record<Subject, string[]>`), `src/club/tables/ready-made.ts` ("Restanțe" keeps its data as a filter `{ column: 'ramas', op: 'gt', value: 0 }`), `ControlRow.tsx` (reduced to the pieces below, then removed if empty), `FilterList.tsx` (replaced by `FilterChips.tsx`), `src/admin/dashboard/sportivi/tabele/TabelePage.tsx`, `src/club/tables/copy.ts`
+- Test: `src/club/tables/__tests__/view-model.test.ts`, `src/club/__tests__/admin-tabele-render.test.ts`
+
+**Interfaces:**
+- Produces (pure, in `view-model.ts`):
+```ts
+export function filterFields(subject: Subject, used: TableFilter[]): CatalogColumn[];       // FILTERABLE[subject] not yet used, catalog order
+export function groupingOptions(subject: Subject): { value: GroupKey | null; label: string }[]; // [{null,'Negrupat'}, {'grupa','Pe grupă'}, ...] ('Pe ' + lowercase label); empty array when the subject has no grouping
+export function removeFilter(d: TableDefinition, index: number): TableDefinition;
+export function chipLabel(c: CatalogColumn, f: TableFilter): string;                         // 'Grupă: Avansați'; 'Doar cu rest de plată' for ramas gt 0
+export type PeriodChoice = { value: string; label: string };
+export function periodChoices(subject: Subject, cat: { seasons: SeasonChoice[]; today: string }): PeriodChoice[]; // months of the season plus the whole season; months only for 'sedinte'
+export function applyPeriodChoice(d: TableDefinition, value: string): TableDefinition;      // sets scope.seasonId and scope.period together
+export function countLine(subject: Subject, n: number): string;                              // '1 plată' / '12 plăți', noun per type
+```
+- Consumes: Task 3 `SELECT_TRIGGER_CLASS` select look, `Checkbox`, `Popover`, kit `Button`, `--ui-inset`, Task 11 subject `sedinte`.
+- The segmented control uses the kit `SegmentedControl` with the five subjects (Sportivi, Plăți, Abonamente, Prezență, Prezență pe ședințe); "Filtru" opens a `Popover` listing only `filterFields(...)`, each a labelled select of values; picking a value adds a removable chip and closes the popover.
+
+- [ ] **Step 1: Write the failing tests** `view-model.test.ts`:
+  - `filterFields('plati', [])` equals the type's `FILTERABLE` columns (metoda, grupa, sectiune, laPatinoar) in catalog order; with a `grupa` filter used it omits `grupa`; `filterFields('sedinte', [])` is `['grupa']` only; a subject never offers a column outside its own catalog.
+  - `groupingOptions('sportivi')` is `[Negrupat, Pe grupă, Pe secțiune, Pe antrenor]` in that order (labels as listed); `groupingOptions('sedinte')` is `[]`.
+  - `removeFilter` removes only the index, keeps the rest, returns a new object.
+  - `chipLabel` gives `'Metodă: Card'` for an `eq` filter and `'Doar cu rest de plată'` for `ramas gt 0`.
+  - `periodChoices('plati', ...)` lists the season's months then the whole season; `periodChoices('sedinte', ...)` has no whole-season entry; `applyPeriodChoice` for a month sets both `seasonId` and `period: { kind: 'month', month }`, for the whole season sets `period: null`.
+  - `countLine('plati', 1)` is `'1 plată'`, `('plati', 12)` is `'12 plăți'`, `('sportivi', 0)` is `'0 sportivi'`.
+  - source pins: `TypeBar.tsx` uses `SegmentedControl`, one period `Select`, no separate season or month selects, no label text such as "Perioada" or "Filtre" rendered (aria-label only); `FilterChips.tsx` renders a chip per filter with a remove button (`aria-label` "Șterge") and a "Filtru" button only when `filterFields(...)` is non-empty; grouping `Select` uses `groupingOptions` and is absent when empty; the "Restanțe" ready-made view carries the `ramas gt 0` filter.
+- [ ] **Step 2: Run** `npx vitest run src/club/tables/__tests__/view-model.test.ts src/club/__tests__/admin-tabele-render.test.ts` Expected: FAIL.
+- [ ] **Step 3: Implement** the pure rules, `FILTERABLE`, the two components, the page wiring and the preset change (the filter shows as a chip, the backend definition is unchanged in shape).
+- [ ] **Step 4: Run** `npx vitest run src/club/tables`, both `tsc`, `node scripts/admin-ui-check.mjs --strict`. Expected: PASS, exit 0.
+- [ ] **Step 5: Commit**
+```bash
+git add src
+git commit -m "feat(tabele): type picker, one period select, filter chips and grouping"
+```
+
+---
+
+### Task 28c: Tabele columns popover, table rows and totals (backend)
+
+**Strict rule:** as in Task 28a (no helper text anywhere).
+
+**Files:**
+- Create: `src/club/tables/rows-view.ts`
+- Modify: `src/admin/dashboard/sportivi/tabele/ColumnsPopover.tsx`, `ResultTable.tsx`, `styles.ts`, `src/club/tables/builder-state.ts` (`linesOf`, `moveColumn`, `toggleColumn` reused, `columnMatches`), `src/club/tables/header-sort.ts`
+- Test: `src/club/tables/__tests__/rows-view.test.ts`, `src/club/tables/__tests__/builder-state.test.ts`, `src/club/__tests__/admin-tabele-render.test.ts`
+
+**Interfaces:**
+- Produces (pure):
+```ts
+export function showTotals(columns: CatalogColumn[]): boolean;                  // true only when some column is money
+export function totalLabels(grouped: boolean, groupCount: number): { group: string; grand: string | null }; // grand 'Total general' only when grouped with more than one group; 'Total' when not grouped
+export function columnMatches(c: CatalogColumn, q: string): boolean;            // case and diacritic insensitive on the label
+export function moveColumnTo(d: TableDefinition, key: string, dir: -1 | 1): TableDefinition; // up and down buttons; no-op at the ends
+export function emptyRow(): string;                                             // 'Nimic.'
+```
+- Consumes: `linesOf(result, collapsed, subtotalLabel)`, `toggleColumn`, `headerSort` (click a header sorts; no sort select), `eduLinkHref` row link (already fixed in 14dc84d).
+
+- [ ] **Step 1: Write the failing tests** `rows-view.test.ts`: `showTotals` false for text, number and date columns only, true with one money column (`suma`); `totalLabels(true, 3)` is `{ group: 'Total', grand: 'Total general' }`, `totalLabels(true, 1).grand` is null, `totalLabels(false, 0)` has `grand: null`; `columnMatches({ label: 'Sumă' }, 'suma')` true, `'telefon'` false; `moveColumnTo` moves up and down and is a no-op at the ends and for an unknown key; `emptyRow()` is `'Nimic.'`. `builder-state.test.ts`: `linesOf` yields a header line per group with its row count and no lines for a collapsed group's rows. Source pins: `ColumnsPopover.tsx` is a `Popover` with a search `Input` (no visible label text), a `Checkbox` per column and up and down icon buttons (tooltip names "Sus" and "Jos" via aria-label); `ResultTable.tsx` renders collapsible group header rows with the group count, totals rows only through `showTotals`, header cells toggle sort (`aria-sort`), a row opens the athlete via `eduLinkHref`; no sort select and no "Sortare" text anywhere under `tabele/`.
+- [ ] **Step 2: Run** `npx vitest run src/club/tables/__tests__/rows-view.test.ts src/club/tables/__tests__/builder-state.test.ts src/club/__tests__/admin-tabele-render.test.ts` Expected: FAIL.
+- [ ] **Step 3: Implement** per the mockup: "Coloane" popover with search, checkboxes and up/down reorder; group header rows (collapsible, count at the right); subtotal rows per group only with `showTotals`, plus the grand total row; sticky first-class table look from the kit `DataTable` styles on `--ui-inset`; one control height (Task 19 carry).
+- [ ] **Step 4: Run** `npx vitest run src/club/tables`, both `tsc`, `node scripts/admin-ui-check.mjs --strict`, then `scripts/layout-shots.cjs`-style screenshots of Tabele at 1440, 820 and 390 for the user (no pixel assertions). Expected: PASS, exit 0.
+- [ ] **Step 5: Commit**
+```bash
+git add src
+git commit -m "feat(tabele): columns popover, grouped rows and totals only with money columns"
+```
+
+---
+
+### Task 27: Coach portal calendar sheet (Frontend, backend only if missing)
+
+**Strict rule:** as in Task 28a (no helper text anywhere: the sheet rows carry only their names; "Anulează" has an optional reason input with a placeholder-free label "Motiv", no hint under it).
+
+**Execution order:** after Task 26, before the copy tasks.
+
+**Files (Frontend worktree):**
+- Create: `src/app/(antrenor)/antrenor/(app)/calendar/SessionSheet.tsx`, `src/app/(antrenor)/antrenor/(app)/calendar/session-actions.ts`
+- Modify: `src/app/(antrenor)/antrenor/(app)/calendar/CalendarView.tsx` (tap opens the sheet), `src/lib/portal/copy.ts` (action names; any other new text `COPY NEEDED`), `src/app/(antrenor)/antrenor/(app)/grupe/[id]/_program/DateSheet.tsx` (reused, made importable from the calendar)
+- Test: `scripts/portal/session-actions.test.mjs`
+
+**Files (Backend worktree, only if step 1 finds it missing):**
+- Modify: `src/club/presence/lessons/` (new `cancel.ts`), `src/club/presence/store.ts` and its real and fake implementations, `src/api/club/routes/09-attendance.ts` and controller, `src/club/portal/coach/calendar.ts` (cancelled lesson is returned marked cancelled with the reason), `src/club/portal/sportiv/calendar.ts` (athletes see it as cancelled), the notice producer used for group cancellations
+- Test: `src/club/presence/__tests__/lesson-cancel.test.ts`, `src/club/portal/coach/__tests__/calendar.test.ts`, `src/club/portal/sportiv/__tests__/calendar.test.ts`
+
+**Interfaces:**
+- Produces (frontend, pure): `sessionActions(s: { kind: 'group' | 'lesson'; archived: boolean; future: boolean }): ('prezenta' | 'anuleaza' | 'muta' | 'sterge')[]` (a group session returns all four and is carried out by the existing DateSheet options; an individual lesson returns `prezenta`, `anuleaza`, `sterge`; an archived session returns only `prezenta`, read only). `cancelBody(reason: string): { reason?: string }` (trimmed, omitted when empty).
+- Backend (if missing): `cancelLesson(ctx, lessonId: string, reason: string | undefined): Promise<AdminResult<{ cancelled: true }>>` marks one individual lesson cancelled with an optional reason, keeps it in the coach calendar marked cancelled, shows it as cancelled to the athlete and produces a Mesaje notice like a group cancellation.
+
+- [ ] **Step 1: Verify first, in the backend worktree, read only.** What exists: `src/api/lesson-cancellation` is a private content type (`only: []`, no routes); `recordLessonCancel` is called only from `src/club/presence/lessons/delete.ts:22` (deleting one date of a lesson series, no reason, the lesson disappears from the calendar); `src/club/portal/sportiv/calendar.ts:85` reads `lessonCancels` as "classes a cancellation took out". Find how a group cancellation produces its athlete notice (`src/club/groups/program-plan.ts`, `schedule-mail.ts`, `src/club/anunturi/portal-history.ts`, `src/club/portal/coach/program.ts`) and whether any route cancels one individual lesson with a reason and a notice. Write the finding into the commit message of step 3. My reading before the check: cancel-with-reason, calendar mark and notice are missing for individual lessons; only delete exists.
+- [ ] **Step 2: Write the failing tests.**
+  - Frontend `session-actions.test.mjs`: `sessionActions` for a future individual lesson is `['prezenta','anuleaza','sterge']`; for an archived session it offers only `prezenta` (read); `cancelBody('  ')` is `{}`, `cancelBody(' bolnav ')` is `{ reason: 'bolnav' }`; source pins: `CalendarView.tsx` opens `SessionSheet` on tap; a group session opens the existing `DateSheet` through the sheet (Prezență, Anulează, Mută, Șterge map to its options, no second implementation); the sheet contains no hint or description line.
+  - Backend (only if step 1 found it missing) `lesson-cancel.test.ts`: cancelling a lesson keeps the row and marks it cancelled with the reason; an empty reason stores null; cancelling twice answers 409 and writes once; a lesson with saved presence is refused with the existing "has presence" error form; the notice job is created once for the athlete (and not for a lesson that is deleted, which keeps today's delete path); `calendar.test.ts` (coach): the cancelled lesson is listed with `cancelled: true` and `reason`; (sportiv): the same lesson shows as cancelled, not removed.
+- [ ] **Step 3: Run** frontend `node --test scripts/portal/session-actions.test.mjs`; backend `npx vitest run src/club/presence/__tests__/lesson-cancel.test.ts src/club/portal` Expected: FAIL.
+- [ ] **Step 4: Implement** the backend service, store parity (real and fake, parity tests), route (`adminRoute`/coach portal guard like sibling lesson routes, same ownership rule as lesson delete), notice and calendar changes in one `store.transaction`; then the frontend sheet (reuse `DateSheet` for group sessions, individual lessons get Prezență, Anulează with the optional Motiv field, Șterge for mistakes, a cancelled lesson shows marked cancelled and offers no Anulează).
+- [ ] **Step 5: Run** frontend `node --test scripts/portal/*.test.mjs`, `npx tsc --noEmit`, `npm run lint`; backend `npx vitest run src/club`, both `tsc`. Expected: PASS.
+- [ ] **Step 6: Commit, one per repo**
+```bash
+# backend worktree (only if the route and service were missing)
+git add src && git commit -m "feat(lessons): cancel one individual lesson with an optional reason and a notice"
+# frontend worktree
+git add src scripts/portal && git commit -m "feat(calendar): one session sheet with presence, cancel, move and delete"
 ```
 
 ---
