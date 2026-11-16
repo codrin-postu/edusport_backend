@@ -7,6 +7,10 @@ export const GRUPE_CSS = `
 .ui-root .ui-btn.grp-unassigned{background:var(--theme-surface);border-color:var(--theme-cat-eveniment);color:var(--theme-cat-eveniment-soft-fg)}
 .ui-root .ui-btn.grp-unassigned:hover:not(:disabled){background:var(--theme-cat-eveniment-soft);border-color:var(--theme-cat-eveniment);color:var(--theme-cat-eveniment-soft-fg)}
 .ui-root .grp-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;padding:0 5px;margin-left:6px;font-size:11px;font-weight:700;border-radius:var(--ui-radius-sm);background:var(--theme-cat-eveniment-soft-fg);color:var(--theme-cat-eveniment-soft)}
+.ui-root .grp-meta{display:flex;flex-direction:column;gap:6px;padding:12px var(--ui-inset) 0}
+.ui-root .grp-meta--phone{padding-left:0;padding-right:0}
+.ui-root .grp-meta-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.ui-root .grp-meta-label{min-width:112px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--theme-text-secondary)}
 .ui-root .grp-tabs{padding:0 var(--ui-inset)}
 .ui-root .grp-lines div+div{margin-top:2px}
 .ui-root .grp-form{display:flex;flex-direction:column;gap:14px}

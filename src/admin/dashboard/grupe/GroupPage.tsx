@@ -41,15 +41,19 @@ function useGroupPage(api: GrupeApi, id: string, season: string | null): Loaded 
 
 const SHOWN: readonly GroupTab[] = ['sportivi', 'program', 'prezenta', 'istoric'];
 
-/** The coaches line: each name opens the "Cont portal" block of that coach. */
-function CoachAccounts({ coaches }: { coaches: GroupPageData['coaches'] }) {
+/** The ANTRENORI row: each name opens the "Cont portal" block of that coach; "Fără antrenor" when there is none. */
+function CoachesRow({ coaches }: { coaches: GroupPageData['coaches'] }) {
   const [open, setOpen] = React.useState<GroupPageData['coaches'][number] | null>(null);
-  if (!coaches.length) return null;
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 12px' }}>
-      {coaches.map((c) => (
-        <Button key={c.documentId} variant="secondary" size="sm" onClick={() => setOpen(c)}>{c.name}</Button>
-      ))}
+    <div className="grp-meta-row">
+      <span className="grp-meta-label">{GRUPE_COPY.fieldCoaches}</span>
+      {coaches.length ? (
+        coaches.map((c) => (
+          <Button key={c.documentId} variant="ghost" size="sm" onClick={() => setOpen(c)}>{c.name}</Button>
+        ))
+      ) : (
+        <span>{GRUPE_COPY.noCoach}</span>
+      )}
       <Modal open={open !== null} onClose={() => setOpen(null)} title={open?.name ?? ''}>
         {open && <AccountBlock teamMemberId={open.documentId} name={open.name} />}
       </Modal>
@@ -61,8 +65,8 @@ function CoachAccounts({ coaches }: { coaches: GroupPageData['coaches'] }) {
 function PriceListRow({ list }: { list: NonNullable<GroupPageData['priceList']> }) {
   const navigate = useNavigate();
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
-      <span className="spv-muted">{GRUPE_COPY.fieldPriceList}</span>
+    <div className="grp-meta-row">
+      <span className="grp-meta-label">{GRUPE_COPY.fieldPriceList}</span>
       <Button variant="ghost" size="sm" onClick={() => navigate(preturiTo(list.documentId))}>{list.name}</Button>
     </div>
   );
@@ -70,10 +74,13 @@ function PriceListRow({ list }: { list: NonNullable<GroupPageData['priceList']> 
 
 function GroupBody({ page, api, tab, onTab }: { page: GroupPageData; api: GrupeApi; tab: GroupTab; onTab: (t: GroupTab) => void }) {
   const tabs = groupTabs(page).filter((t) => SHOWN.includes(t.id));
+  const phone = useIsPhone();
   return (
     <>
-      <CoachAccounts coaches={page.coaches} />
-      {page.priceList && <PriceListRow list={page.priceList} />}
+      <div className={phone ? 'grp-meta grp-meta--phone' : 'grp-meta'}>
+        <CoachesRow coaches={page.coaches} />
+        {page.priceList && <PriceListRow list={page.priceList} />}
+      </div>
       <Tabs items={tabs} value={tab} onChange={(id) => onTab(id as GroupTab)} label={GRUPE_COPY.title} panelId="grp-panel" />
       <div role="tabpanel" id="grp-panel">
         {tab === 'sportivi' && <RosterTab page={page} api={api} />}
