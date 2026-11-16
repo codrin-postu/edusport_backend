@@ -67,8 +67,8 @@ describe('tableSheet', () => {
   it('writes group headers, body, subtotals and a total (names counted in Romanian)', () => {
     const s = tableSheet(grouped, 'Plăți');
     expect(s.rows.map((r) => [r.style, ...r.cells])).toEqual([
-      ['group', 'Avansați, 2 plăți', null], ['body', 'Ana', 40.5], ['body', 'Bia', 50], ['subtotal', 'Subtotal Avansați', 90.5],
-      ['group', 'Începători, 1 plată', null], ['body', 'Cat', 10], ['subtotal', 'Subtotal Începători', 10],
+      ['group', 'Avansați, 2 plăți', null], ['body', 'Ana', 40.5], ['body', 'Bia', 50], ['subtotal', 'Total Avansați', 90.5],
+      ['group', 'Începători, 1 plată', null], ['body', 'Cat', 10], ['subtotal', 'Total Începători', 10],
       ['total', 'Total', 100.5],
     ]);
   });
@@ -90,7 +90,7 @@ describe('tableSheet', () => {
   });
   it('puts the subtotal label in the first column that carries no sum', () => {
     const s = tableSheet(resultOf('plati', ['suma', 'sportiv'], [row({ suma: 5, sportiv: 'A' }, grupa('G'))], 'grupa'), 'P');
-    expect(s.rows.find((r) => r.style === 'subtotal')?.cells).toEqual([5, 'Subtotal G']);
+    expect(s.rows.find((r) => r.style === 'subtotal')?.cells).toEqual([5, 'Total G']);
   });
 });
 
@@ -117,7 +117,7 @@ describe('tableXlsx', () => {
   });
   it('writes group headers, subtotals and the total like the sheet', async () => {
     const { strings } = await sheet1(grouped);
-    for (const t of ['Avansați, 2 plăți', 'Subtotal Avansați', 'Total']) expect(strings).toContain(`<t>${t}</t>`);
+    for (const t of ['Avansați, 2 plăți', 'Total Avansați', 'Total']) expect(strings).toContain(`<t>${t}</t>`);
   });
 });
 

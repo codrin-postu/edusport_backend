@@ -74,7 +74,8 @@ export const TABELE_CSS = `
 .ui-root .tbl-pager{padding:12px var(--ui-inset);border-top:1px solid var(--theme-border)}
 .ui-root .tbl-loading{padding:24px var(--ui-inset)}
 @media (max-width:640px){
-.ui-root .tbl-ph .ui-ph-title{flex-basis:100%}
+.ui-root .tbl-ph .ui-ph-title{flex-basis:calc(100% - 60px)}
+.ui-root .tbl-bar-row .tbl-period,.ui-root .tbl-bar-row .tbl-type-select{margin-left:0;flex:1 1 100%;max-width:100%}
 }
 @media (max-width:900px){
 .ui-root .tbl-rail:not([hidden]){display:block;position:fixed;inset:0 auto 0 0;z-index:var(--ui-z-drawer,390);width:min(300px,85vw);overflow-y:auto;border-radius:0;box-shadow:var(--theme-shadow-md)}

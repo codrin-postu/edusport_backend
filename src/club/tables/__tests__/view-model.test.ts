@@ -76,7 +76,8 @@ describe('bar source pins', () => {
   it('TypeBar: segmented types, one period select, no visible labels', () => {
     const t = src('TypeBar.tsx');
     expect(t).toContain('SegmentedControl');
-    expect(t.match(/<Select/g)).toHaveLength(1);
+    expect(t.match(/<Select/g)).toHaveLength(2);
+    expect(t).toContain("useIsPhone");
     expect(t).not.toMatch(/>\s*(Perioada|Sezon|Luna|Tabel)\s*</);
     expect(t).not.toContain('scope.seasonId');
   });

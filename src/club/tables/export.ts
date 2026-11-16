@@ -52,7 +52,7 @@ function sumRow(result: TableResult, sums: Record<string, CellValue>, label: str
   return cells;
 }
 
-/** Group header ("<grupă>, <n> sportivi"), body rows, "Subtotal <grupă>" and "Total"; without group-by the body and, when something is summed, "Total". Text stays a plain string: the writer never makes it a formula. */
+/** Group header ("<grupă>, <n> sportivi"), body rows, "Total <grupă>" and "Total"; without group-by the body and, when something is summed, "Total". Text stays a plain string: the writer never makes it a formula. */
 export function tableSheet(result: TableResult, name: string): XlsxSheet {
   const body = (r: TableRow): { cells: XlsxCell[]; style: 'body' } => ({ style: 'body', cells: result.columns.map((c) => xlsxCell(c, r.cells[c.key])) });
   const [one, many] = TABLES_COUNT_WORDS[result.subject];
@@ -60,7 +60,7 @@ export function tableSheet(result: TableResult, name: string): XlsxSheet {
   for (const g of result.groups ?? []) {
     rows.push({ style: 'group', cells: [`${g.label}, ${countWords(g.count, one, many)}`, ...result.columns.slice(1).map(() => null)] });
     rows.push(...g.rows.map(body));
-    rows.push({ style: 'subtotal', cells: sumRow(result, g.subtotal, `Subtotal ${g.label}`) });
+    rows.push({ style: 'subtotal', cells: sumRow(result, g.subtotal, `Total ${g.label}`) });
   }
   if (!result.groups) rows.push(...result.rows.map(body));
   if (result.groups || Object.keys(result.total).length > 0) rows.push({ style: 'total', cells: sumRow(result, result.total, 'Total') });
