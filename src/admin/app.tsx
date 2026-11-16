@@ -15,6 +15,7 @@ import { startLegacyRedirects } from './lib/legacyRedirects';
 import { startAuthRedirect } from './lib/authRedirect';
 import roTranslations from './translations/ro.json';
 import EdusportLogo from './edusport-logo.svg';
+import { STRAPI_TOPBAR_ATTR, isStrapiTopbar } from '../club/admin-topbar';
 
 const SIDEBAR_DATA_ATTR = 'data-edusport-sidebar';
 const SUBNAV_DATA_ATTR = 'data-edusport-subnav';
@@ -130,11 +131,6 @@ const MOBILE_OVERRIDES_CSS = `
   nav[${SIDEBAR_DATA_ATTR}] {
     display: none !important;
   }
-  /* Pad the page so our fixed burger button (top-right, 38px) doesn't overlap headers */
-  main,
-  [role="main"] {
-    padding-top: 56px !important;
-  }
 }
 `;
 
@@ -190,7 +186,24 @@ function tagAdminShellReliably() {
     });
   };
 
+  const tagTopbar = () => {
+    document.querySelectorAll('nav').forEach((nav) => {
+      if (nav.hasAttribute(STRAPI_TOPBAR_ATTR)) return;
+      const cs = window.getComputedStyle(nav);
+      const rect = nav.getBoundingClientRect();
+      const facts = {
+        tag: nav.tagName,
+        position: cs.position,
+        top: rect.top,
+        height: rect.height,
+        hasMenuButton: nav.querySelector('button[aria-controls="burger-menu"]') != null,
+      };
+      if (isStrapiTopbar(facts)) nav.setAttribute(STRAPI_TOPBAR_ATTR, 'true');
+    });
+  };
+
   const tagAll = () => {
+    tagTopbar();
     const navs = findStickyTallNavs();
     navs.forEach((nav, idx) => {
       if (idx === 0) {

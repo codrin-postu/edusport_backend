@@ -2,7 +2,8 @@ import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { ensureAdminUi } from './ui/styles';
 import { useAreas } from './lib/useAreas';
-import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER } from './dashboard/menu';
+import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO } from './dashboard/menu';
+import EdusportLogo from './edusport-logo.svg';
 
 interface NavItem {
   label: string;
@@ -26,7 +27,15 @@ const JWT_COOKIE_NAME = 'jwtToken';
  * Kept free of backticks: one stray backtick takes the admin down.
  */
 const NAV_CSS = `
-.ui-root .edu-mnav-burger{position:fixed;top:12px;right:12px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);background:var(--theme-surface);color:var(--theme-primary);cursor:pointer;box-shadow:var(--theme-shadow-sm);z-index:99998}
+:root{--ui-topbar:56px}
+@media (max-width: 640px){
+[data-edusport-strapi-topbar]{display:none !important}
+body{padding-top:var(--ui-topbar)}
+}
+.ui-root .edu-mnav-bar{position:fixed;top:0;left:0;right:0;height:var(--ui-topbar);display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 16px;background:var(--theme-surface);border-bottom:1px solid var(--theme-border);z-index:99997}
+.ui-root .edu-mnav-logo{display:flex;align-items:center;height:100%}
+.ui-root .edu-mnav-logo img{display:block;height:28px;width:auto}
+.ui-root .edu-mnav-burger{position:relative;width:38px;height:38px;display:flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--theme-border-strong);border-radius:var(--ui-radius-sm);background:var(--theme-surface);color:var(--theme-primary);cursor:pointer;box-shadow:var(--theme-shadow-sm)}
 .ui-root .edu-mnav-burger:focus-visible,.ui-root .edu-mnav-close:focus-visible,.ui-root .edu-mnav-item:focus-visible{outline:2px solid var(--theme-focus);outline-offset:-2px}
 .ui-root .edu-mnav-backdrop{position:fixed;inset:0;background:var(--theme-overlay);z-index:99999;display:flex;justify-content:flex-end}
 .ui-root .edu-mnav-panel{width:85%;max-width:320px;height:100%;background:var(--theme-surface);box-shadow:var(--theme-shadow-md);display:flex;flex-direction:column;overflow-y:auto;font-family:var(--ui-font)}
@@ -224,15 +233,20 @@ export function MobileNav() {
   return createPortal(
     <div className="ui-root">
       <style>{NAV_CSS}</style>
-      <button
-        type="button"
-        className="edu-mnav-burger"
-        onClick={() => setOpen(true)}
-        aria-label="Deschide meniul"
-        aria-expanded={open}
-      >
-        <BurgerIcon />
-      </button>
+      <div className="edu-mnav-bar">
+        <a href={eduLinkHref(DASHBOARD_TO)} className="edu-mnav-logo" aria-label="EduSport">
+          <img src={EdusportLogo} alt="" />
+        </a>
+        <button
+          type="button"
+          className="edu-mnav-burger"
+          onClick={() => setOpen(true)}
+          aria-label="Deschide meniul"
+          aria-expanded={open}
+        >
+          <BurgerIcon />
+        </button>
+      </div>
 
       {open && (
         <div
