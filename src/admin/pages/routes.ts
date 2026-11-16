@@ -15,6 +15,7 @@
  */
 
 import type { AdminArea } from '../../club/admin-area';
+import { PRETURI_PATH } from '../../club/preturi-routes';
 
 // ---- route constants --------------------------------------------------------
 export const SETARI_SITE_TO = '/plugins/edusport-setari';
@@ -24,7 +25,7 @@ export const PAGINA_PARTENERI_TO = '/plugins/edusport-pagina-parteneri';
 export const DISCIPLINE_TO = '/plugins/edusport-discipline';
 export const MOMENTE_ISTORIC_TO = '/plugins/edusport-momente-istoric';
 export const CURSURI_TO = '/plugins/edusport-cursuri';
-export const PRETURI_TO = '/plugins/edusport-preturi';
+export const PRETURI_TO = PRETURI_PATH;
 export const SEZOANE_TO = '/plugins/edusport-sezoane';
 export const REGULAMENT_TO = '/plugins/edusport-regulament';
 export const PAGINA_PROGRAM_TO = '/plugins/edusport-pagina-program';

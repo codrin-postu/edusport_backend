@@ -15,12 +15,15 @@ export type PriceItemFields = {
 /** The full stored component (`club.price-item`), written back on every change. */
 export type PriceItemData = PriceItemFields & { included: boolean };
 export type AdminPriceItem = PriceItemFields & { incomplete: boolean };
-export type AdminPriceList = { documentId: string; name: string; sectionId: string | null; items: AdminPriceItem[] };
+export type ListGroup = { documentId: string; name: string };
+/** `groups`: the active groups that use the list (Grupe pages open from the card). */
+export type AdminPriceList = { documentId: string; name: string; sectionId: string | null; items: AdminPriceItem[]; groups: ListGroup[] };
 export type AdminSection = { documentId: string; name: string; kind: 'school' | 'club'; priceNotes: string[] };
 /** GET /api/club/prices and every Prețuri mutation answer with this. */
 export type AdminPrices = { sections: AdminSection[]; lists: AdminPriceList[] };
 
 export type RawAdminList = { documentId?: unknown; name?: unknown; section?: { documentId?: unknown } | null; items?: unknown };
+export type RawListGroup = { documentId?: unknown; name?: unknown; active?: unknown; priceList?: { documentId?: unknown } | null };
 export type RawAdminSection = { documentId?: unknown; name?: unknown; kind?: unknown; order?: unknown; priceNotes?: unknown };
 
 export type ItemEdit =
@@ -122,21 +125,32 @@ function toAdminSection(raw: RawAdminSection): AdminSection | null {
   return { documentId: raw.documentId, name, kind: raw.kind === 'club' ? 'club' : 'school', priceNotes: asTextList(raw.priceNotes) };
 }
 
-function toAdminList(raw: RawAdminList): AdminPriceList | null {
+function toAdminList(raw: RawAdminList, groups: Record<string, ListGroup[]>): AdminPriceList | null {
   if (typeof raw.documentId !== 'string') return null;
   const sectionId = typeof raw.section?.documentId === 'string' ? raw.section.documentId : null;
   const items = toItemData(raw.items).map(({ included: _included, ...f }) => ({ ...f, incomplete: isIncomplete(f) }));
-  return { documentId: raw.documentId, name: asText(raw.name), sectionId, items };
+  return { documentId: raw.documentId, name: asText(raw.name), sectionId, items, groups: groups[raw.documentId] ?? [] };
 }
 
 const rank = (s: RawAdminSection) => (typeof s.order === 'number' ? s.order : Number.MAX_SAFE_INTEGER);
 
-/** Sections by `order`, then name; lists in the order given (the loader sorts them by creation). */
-export function buildAdminPrices(sections: RawAdminSection[], lists: RawAdminList[]): AdminPrices {
+/** Active groups keyed by the price list they use, in the order given; groups without a list or without a name are left out. */
+export function groupsByListId(groups: RawListGroup[]): Record<string, ListGroup[]> {
+  const out: Record<string, ListGroup[]> = {};
+  for (const g of groups) {
+    const listId = g.priceList?.documentId;
+    if (g.active === false || typeof g.documentId !== 'string' || typeof listId !== 'string') continue;
+    (out[listId] ??= []).push({ documentId: g.documentId, name: asText(g.name) });
+  }
+  return out;
+}
+
+/** Sections by `order`, then name; lists in the order given (the loader sorts them by creation); each list carries the groups using it. */
+export function buildAdminPrices(sections: RawAdminSection[], lists: RawAdminList[], groups: Record<string, ListGroup[]> = {}): AdminPrices {
   const sorted = [...sections].sort((a, b) => rank(a) - rank(b) || asText(a.name).localeCompare(asText(b.name), 'ro'));
   return {
     sections: sorted.map(toAdminSection).filter((s): s is AdminSection => s !== null),
-    lists: lists.map(toAdminList).filter((l): l is AdminPriceList => l !== null),
+    lists: lists.map((l) => toAdminList(l, groups)).filter((l): l is AdminPriceList => l !== null),
   };
 }
 

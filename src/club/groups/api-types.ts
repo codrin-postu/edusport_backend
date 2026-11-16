@@ -3,7 +3,7 @@ export type SeasonRef = { documentId: string; label: string; past: boolean };
 export type SeasonChoice = { documentId: string; label: string; isCurrent: boolean };
 export type NamedRef = { documentId: string; name: string };
 export type SectionTab = { documentId: string; slug: string; label: string; count: number };
-export type GroupListRow = { documentId: string; name: string; program: string[]; coaches: string[]; members: number };
+export type GroupListRow = { documentId: string; name: string; program: string[]; coaches: string[]; members: number; priceList: NamedRef | null };
 export type GroupListPage = {
   season: SeasonRef | null; seasons: SeasonChoice[]; tabs: SectionTab[]; section: string | null;
   /** Distinct athletes with a current membership in the tab's groups, and the number of groups (the line under the tabs). */

@@ -28,6 +28,8 @@ const seed = () => fakeGroupStore({
   events: [event({ id: 'e1' }), event({ id: 'e2', groupId: 'g-av', type: 'curs', title: 'Avansați', recurrence: { freq: 'weekly', days: ['tue', 'thu'], weekOfMonth: null, startTime: '18:00', endTime: '19:30', singleDate: null, seasonStart: '2026-10-01', seasonEnd: '2027-05-31' } })],
 });
 
+const STD = { documentId: 'pl-std', name: 'Standard' };
+
 describe('Grupe list (5.2)', () => {
   it('shows one tab per section, the school one as "Școala de patinaj", with group counts', async () => {
     const page = await readGroupList(seed().store, readListQuery({}), TODAY);
@@ -39,9 +41,9 @@ describe('Grupe list (5.2)', () => {
   it('lists the groups with program, coaches and current members; the line counts distinct athletes', async () => {
     const page = await readGroupList(seed().store, readListQuery({ section: 'scoala-afi' }), TODAY);
     expect(page.rows).toEqual([
-      { documentId: 'g-pp', name: 'Primii Pași', program: [], coaches: [], members: 0 },
-      { documentId: 'g-ib', name: 'Intermediari Bronze', program: ['Sâ, Du 11:00'], coaches: ['Virgil Pascu'], members: 2 },
-      { documentId: 'g-is', name: 'Intermediari Silver', program: [], coaches: ['Virgil Pascu'], members: 0 },
+      { documentId: 'g-pp', name: 'Primii Pași', program: [], coaches: [], members: 0, priceList: STD },
+      { documentId: 'g-ib', name: 'Intermediari Bronze', program: ['Sâ, Du 11:00'], coaches: ['Virgil Pascu'], members: 2, priceList: STD },
+      { documentId: 'g-is', name: 'Intermediari Silver', program: [], coaches: ['Virgil Pascu'], members: 0, priceList: STD },
     ]);
     expect([page.athletes, page.groups]).toEqual([2, 3]);
     expect(page.unassigned).toBe(3);

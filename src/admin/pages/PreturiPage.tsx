@@ -1,5 +1,7 @@
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import { AdminPage, Loading, Notice, PageHeader, SaveBar, Tabs, UnsavedGuard, Window } from '../ui';
+import { readPreturiQuery, sectionOfList } from '../../club/preturi-routes';
 import { DASHBOARD_TO } from '../dashboard/menu';
 import { NewListDrawer } from './preturi/NewListDrawer';
 import { PriceItemDrawer, type ItemTarget } from './preturi/PriceItemDrawer';
@@ -18,13 +20,14 @@ type BodyProps = {
   prices: PricesState;
   notes: NotesDraft;
   tab: string;
+  focusListId: string | null;
   onTab: (id: string) => void;
   onOpen: (target: ItemTarget) => void;
   onNewList: () => void;
 };
 
 /** Loading, load error, or the section tabs with the open tab's lists. */
-function PricesBody({ prices, notes, tab, onTab, onOpen, onNewList }: BodyProps) {
+function PricesBody({ prices, notes, tab, focusListId, onTab, onOpen, onNewList }: BodyProps) {
   if (prices.error) {
     return (
       <div className="ui-body">
@@ -39,7 +42,7 @@ function PricesBody({ prices, notes, tab, onTab, onOpen, onNewList }: BodyProps)
     <div className="ui-body">
       <Tabs items={sections.map((s) => ({ id: s.documentId, label: s.name }))} value={section?.documentId ?? ''} onChange={onTab} label="Secțiuni" />
       {section && (
-        <SectionPrices section={section} lists={lists.filter((l) => l.sectionId === section.documentId)} notes={notes} onOpen={onOpen} onNewList={onNewList} />
+        <SectionPrices section={section} lists={lists.filter((l) => l.sectionId === section.documentId)} notes={notes} focusListId={focusListId} onOpen={onOpen} onNewList={onNewList} />
       )}
     </div>
   );
@@ -51,14 +54,17 @@ const PreturiPage: React.FC = () => {
   const [tab, setTab] = React.useState('');
   const [target, setTarget] = React.useState<ItemTarget | null>(null);
   const [newList, setNewList] = React.useState(false);
+  const { lista } = readPreturiQuery(useLocation().search);
   const sections = prices.data?.sections ?? [];
-  const sectionId = (sections.find((s) => s.documentId === tab) ?? sections[0])?.documentId ?? '';
+  // Until the admin picks a tab, the list named by ?lista= decides it.
+  const activeTab = tab || sectionOfList(prices.data?.lists ?? [], lista) || '';
+  const sectionId = (sections.find((s) => s.documentId === activeTab) ?? sections[0])?.documentId ?? '';
 
   return (
     <AdminPage>
       <Window>
         <PageHeader back={{ to: DASHBOARD_TO }} title="Prețuri" subtitle="Listele de prețuri pe secțiuni." />
-        <PricesBody prices={prices} notes={notes} tab={tab} onTab={setTab} onOpen={setTarget} onNewList={() => setNewList(true)} />
+        <PricesBody prices={prices} notes={notes} tab={activeTab} focusListId={lista} onTab={setTab} onOpen={setTarget} onNewList={() => setNewList(true)} />
         <SaveBar {...notes.bar} onSave={() => void notes.save()} onDiscard={notes.reset} />
       </Window>
       <PriceItemDrawer target={target} mutate={prices.mutate} onClose={() => setTarget(null)} />

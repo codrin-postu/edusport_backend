@@ -9,7 +9,7 @@ const LIST: GroupListPage = {
   seasons: [{ documentId: 's27', label: '2027-2028', isCurrent: false }, { documentId: 's26', label: '2026-2027', isCurrent: true }],
   tabs: [{ documentId: 'afi', slug: 'scoala-afi', label: 'Școala de patinaj', count: 7 }, { documentId: 'club', slug: 'club', label: 'Club', count: 2 }], section: 'scoala-afi',
   athletes: 77, groups: 7, unassigned: 3,
-  rows: [{ documentId: 'g1', name: 'Avansați', program: ['Lu, Mi 17:00', 'Sâ 09:00'], coaches: ['Andreea Pascu'], members: 10 }, { documentId: 'g2', name: 'Nou', program: [], coaches: [], members: 1 }],
+  rows: [{ documentId: 'g1', name: 'Avansați', program: ['Lu, Mi 17:00', 'Sâ 09:00'], coaches: ['Andreea Pascu'], members: 10, priceList: { documentId: 'pl', name: 'Standard' } }, { documentId: 'g2', name: 'Nou', program: [], coaches: [], members: 1, priceList: null }],
 };
 const member = (over: Partial<MemberRow>): MemberRow => ({ membershipId: 'm', athleteId: 'a', name: 'Ana', age: 12, isMain: true, others: [], ...over });
 const PAGE: GroupPage = {

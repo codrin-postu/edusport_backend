@@ -7,10 +7,9 @@ import { countWords } from '../ro-count';
 export type GroupTab = 'sportivi' | 'program' | 'prezenta' | 'istoric';
 export type MemberAction = 'move' | 'addAlso' | 'remove';
 
-/** "Școala de patinaj, Virgil Pascu, lista Standard, 11 sportivi"; "Fără antrenor"; no list part without a price list. */
+/** "Școala de patinaj, 11 sportivi". The coaches and the price list sit in their own rows on the page. */
 export function subtitle(p: GroupPage): string {
-  const coaches = p.coaches.length ? p.coaches.map((c) => c.name).join(', ') : GRUPE_COPY.noCoach;
-  return [p.section?.name ?? '', coaches, p.priceList ? `lista ${p.priceList.name}` : '', athletesText(p.members.length)].filter(Boolean).join(', ');
+  return [p.section?.name ?? '', athletesText(p.members.length)].filter(Boolean).join(', ');
 }
 
 export const groupTabs = (p: GroupPage): { id: GroupTab; label: string; count?: number }[] => [

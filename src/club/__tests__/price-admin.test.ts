@@ -4,6 +4,7 @@ import {
   applyItemEdit,
   buildAdminPrices,
   fieldChanges,
+  groupsByListId,
   nameClash,
   readNewListInput,
   readPriceItemInput,
@@ -124,5 +125,26 @@ describe('readPriceNotes and readNewListInput', () => {
     expect(readNewListInput({ name: ' Gold ', sectionId: 's' })).toEqual({ ok: true, name: 'Gold', sectionId: 's' });
     expect(readNewListInput({ sectionId: 's' })).toEqual({ ok: false, error: PRICE_ERRORS.listName });
     expect(readNewListInput({ name: 'Gold' })).toEqual({ ok: false, error: PRICE_ERRORS.section });
+  });
+});
+
+describe('groups using a price list', () => {
+  const raw = [
+    { documentId: 'g1', name: 'Avansați', active: true, priceList: { documentId: 'l1' } },
+    { documentId: 'g2', name: 'Vechi', active: false, priceList: { documentId: 'l1' } },
+    { documentId: 'g3', name: 'Fără listă', active: true, priceList: null },
+    { documentId: 'g4', name: 'Nou', priceList: { documentId: 'l1' } },
+  ];
+
+  it('keeps active groups per list, in the order given', () => {
+    expect(groupsByListId(raw)).toEqual({
+      l1: [{ documentId: 'g1', name: 'Avansați' }, { documentId: 'g4', name: 'Nou' }],
+    });
+  });
+
+  it('attaches groups to each list; a list no group uses has none', () => {
+    const lists = [{ documentId: 'l1', name: 'Standard' }, { documentId: 'l2', name: 'Gold' }];
+    const r = buildAdminPrices([], lists, groupsByListId(raw));
+    expect(r.lists.map((l) => [l.documentId, l.groups.map((g) => g.name)])).toEqual([['l1', ['Avansați', 'Nou']], ['l2', []]]);
   });
 });

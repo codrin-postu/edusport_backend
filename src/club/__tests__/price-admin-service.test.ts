@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { HistoryInput } from '../history';
-import { PRICE_ERRORS, duplicateNameError, type PriceItemData, type RawAdminList, type RawAdminSection } from '../price-admin';
-import { createPriceList, editPriceItem, savePriceNotes, type PriceStore } from '../price-admin-service';
+import { PRICE_ERRORS, duplicateNameError, groupsByListId, type PriceItemData, type RawAdminList, type RawAdminSection } from '../price-admin';
+import { strapiPriceStore } from '../price-admin-store';
+import { createPriceList, editPriceItem, loadAdminPrices, savePriceNotes, type PriceStore } from '../price-admin-service';
 
 const item = (name: string, extra: Partial<PriceItemData> = {}): PriceItemData => ({
   name,
@@ -13,6 +14,13 @@ const item = (name: string, extra: Partial<PriceItemData> = {}): PriceItemData =
   included: false,
   ...extra,
 });
+
+const GROUPS = [
+  { documentId: 'g1', name: 'Avansați', active: true, priceList: { documentId: 'std' } },
+  { documentId: 'g2', name: 'Vechi', active: false, priceList: { documentId: 'std' } },
+  { documentId: 'g3', name: 'Club A', active: true, priceList: { documentId: 'clb' } },
+  { documentId: 'g4', name: 'Fără listă', active: true, priceList: null },
+];
 
 function fakeStore() {
   const sections: RawAdminSection[] = [
@@ -31,6 +39,7 @@ function fakeStore() {
     lists: async () => lists,
     findList: async (id) => lists.find((l) => l.documentId === id) ?? null,
     findSection: async (id) => sections.find((s) => s.documentId === id) ?? null,
+    groupsByList: async () => groupsByListId(GROUPS),
     listNameTaken: async (name) => lists.some((l) => String(l.name).toLowerCase() === name.toLowerCase()),
     saveItems: async (id, items) => {
       saved.push(id);
@@ -138,5 +147,22 @@ describe('savePriceNotes', () => {
 
   it('refuses an unknown section', async () => {
     await expect(savePriceNotes(fakeStore().store, 'x', [], 'a')).resolves.toEqual({ ok: false, status: 404, error: PRICE_ERRORS.sectionMissing });
+  });
+});
+
+describe('groupsByList (store parity)', () => {
+  it('the Strapi store and the fake answer the same for the same groups', async () => {
+    const asked: unknown[] = [];
+    const strapi = { documents: () => ({ findMany: async (q: unknown) => (asked.push(q), GROUPS) }) };
+    const real = await strapiPriceStore(strapi as never).groupsByList();
+    expect(real).toEqual(await fakeStore().store.groupsByList());
+    expect(real).toEqual({ std: [{ documentId: 'g1', name: 'Avansați' }], clb: [{ documentId: 'g3', name: 'Club A' }] });
+    expect(asked).toHaveLength(1);
+  });
+
+  it('loadAdminPrices puts the groups on their lists', async () => {
+    const { store } = fakeStore();
+    const data = await loadAdminPrices(store);
+    expect(data.lists.map((l) => [l.documentId, l.groups.map((g) => g.name)])).toEqual([['std', ['Avansați']], ['gold', []], ['clb', ['Club A']]]);
   });
 });

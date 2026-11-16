@@ -1,8 +1,10 @@
 import type { Core } from '@strapi/strapi';
 import { recordHistory } from './history';
+import { groupsByListId } from './price-admin';
 import type { PriceStore } from './price-admin-service';
 
 const LIST = 'api::price-list.price-list' as const;
+const GROUP = 'api::group.group' as const;
 const SECTION = 'api::section.section' as const;
 
 /** The Prețuri storage on Strapi's document service. */
@@ -14,6 +16,8 @@ export function strapiPriceStore(strapi: Core.Strapi): PriceStore {
     lists: () => lists().findMany({ populate: { items: true, section: { fields: ['documentId'] } }, sort: 'createdAt:asc', limit: 500 }),
     findList: (documentId) => lists().findOne({ documentId, populate: { items: true, section: { fields: ['documentId'] } } }),
     findSection: (documentId) => sections().findOne({ documentId }),
+    groupsByList: async () =>
+      groupsByListId(await strapi.documents(GROUP).findMany({ fields: ['name', 'active'], populate: { priceList: { fields: ['documentId'] } }, sort: ['order:asc', 'name:asc'], limit: 1000 })),
     listNameTaken: async (name) => (await lists().count({ filters: { name: { $eqi: name } } })) > 0,
     saveItems: async (listId, items) => {
       await lists().update({ documentId: listId, data: { items } });

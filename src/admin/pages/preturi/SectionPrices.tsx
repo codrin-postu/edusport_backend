@@ -11,12 +11,17 @@ export interface SectionPricesProps {
   section: AdminSection;
   lists: AdminPriceList[];
   notes: NotesDraft;
+  /** The list `?lista=` points at: its card scrolls into view. */
+  focusListId: string | null;
   onOpen: (target: ItemTarget) => void;
   onNewList: () => void;
 }
 
 /** One tab: a card per price list, "+ Listă nouă", and "Notițe subsol" for a school. */
-export function SectionPrices({ section, lists, notes, onOpen, onNewList }: SectionPricesProps) {
+export function SectionPrices({ section, lists, notes, focusListId, onOpen, onNewList }: SectionPricesProps) {
+  React.useEffect(() => {
+    if (focusListId) document.getElementById(`lista-${focusListId}`)?.scrollIntoView({ block: 'start' });
+  }, [focusListId, lists.length]);
   const newList = (
     <Button variant="secondary" size="sm" icon={<IconPlus />} onClick={onNewList}>
       Listă nouă
@@ -36,13 +41,14 @@ export function SectionPrices({ section, lists, notes, onOpen, onNewList }: Sect
   return (
     <>
       {lists.map((list) => (
-        <PriceListCard
-          key={list.documentId}
-          list={list}
-          sectionName={section.name}
-          onAdd={() => onOpen({ list, index: null })}
-          onOpen={(index) => onOpen({ list, index })}
-        />
+        <div key={list.documentId} id={`lista-${list.documentId}`}>
+          <PriceListCard
+            list={list}
+            sectionName={section.name}
+            onAdd={() => onOpen({ list, index: null })}
+            onOpen={(index) => onOpen({ list, index })}
+          />
+        </div>
       ))}
       <div>{newList}</div>
       {notesCard}

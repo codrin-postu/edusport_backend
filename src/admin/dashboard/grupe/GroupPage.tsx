@@ -7,6 +7,7 @@ import { GROUP_ERRORS, GRUPE_COPY } from '../../../club/groups/copy';
 import { groupTabs, subtitle, type GroupTab } from '../../../club/grupe/group-view';
 import { writable } from '../../../club/grupe/list-view';
 import { grupeListTo, readGrupeQuery } from '../../../club/grupe/routes';
+import { preturiTo } from '../../../club/preturi-routes';
 import { SPORTIVI_CSS } from '../sportivi/styles';
 import { useGrupeApi, type GrupeApi } from './api';
 import { GroupHistoryTab } from './GroupHistoryTab';
@@ -56,11 +57,23 @@ function CoachAccounts({ coaches }: { coaches: GroupPageData['coaches'] }) {
   );
 }
 
+/** The group's price list, as a link to that list in Prețuri. */
+function PriceListRow({ list }: { list: NonNullable<GroupPageData['priceList']> }) {
+  const navigate = useNavigate();
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
+      <span className="spv-muted">{GRUPE_COPY.fieldPriceList}</span>
+      <Button variant="ghost" size="sm" onClick={() => navigate(preturiTo(list.documentId))}>{list.name}</Button>
+    </div>
+  );
+}
+
 function GroupBody({ page, api, tab, onTab }: { page: GroupPageData; api: GrupeApi; tab: GroupTab; onTab: (t: GroupTab) => void }) {
   const tabs = groupTabs(page).filter((t) => SHOWN.includes(t.id));
   return (
     <>
       <CoachAccounts coaches={page.coaches} />
+      {page.priceList && <PriceListRow list={page.priceList} />}
       <Tabs items={tabs} value={tab} onChange={(id) => onTab(id as GroupTab)} label={GRUPE_COPY.title} panelId="grp-panel" className="spv-tabs" />
       <div role="tabpanel" id="grp-panel">
         {tab === 'sportivi' && <RosterTab page={page} api={api} />}

@@ -1,7 +1,10 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, DataTable, EditorCard, Notice, StatusBadge, type DataColumn } from '../../ui';
 import { IconPlus } from '../../ui/icons';
 import type { AdminPriceItem, AdminPriceList } from '../../../club/price-admin';
+import { GRUPE_COPY } from '../../../club/groups/copy';
+import { groupPageTo } from '../../../club/grupe/routes';
 import { KIND_LABELS, hasTooltip, priceText } from './format';
 
 type Row = AdminPriceItem & { index: number };
@@ -26,6 +29,19 @@ const COLUMNS: DataColumn<Row>[] = [
   { key: 'memberPrice', header: 'Membri', render: priceCell((r) => r.memberPrice) },
   { key: 'nonMemberPrice', header: 'Non-membri', render: priceCell((r) => r.nonMemberPrice) },
 ];
+
+/** The groups using the list, each a link to its page. */
+function ListGroups({ groups }: { groups: AdminPriceList['groups'] }) {
+  const navigate = useNavigate();
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}>
+      <span className="ui-hint" style={{ margin: 0 }}>{GRUPE_COPY.title}</span>
+      {groups.map((g) => (
+        <Button key={g.documentId} variant="ghost" size="sm" onClick={() => navigate(groupPageTo(g.documentId, null))}>{g.name}</Button>
+      ))}
+    </div>
+  );
+}
 
 export interface PriceListCardProps {
   list: AdminPriceList;
@@ -54,6 +70,7 @@ export function PriceListCard({ list, sectionName, onAdd, onOpen }: PriceListCar
         pageSize={0}
         empty="Niciun preț"
       />
+      {list.groups.length > 0 && <ListGroups groups={list.groups} />}
       {hasTooltip(list.items) && <p className="ui-hint">* are tooltip. Clic pe rând pentru editare.</p>}
     </EditorCard>
   );

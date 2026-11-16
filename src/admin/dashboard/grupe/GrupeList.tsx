@@ -6,6 +6,7 @@ import type { GroupListPage, GroupListRow } from '../../../club/groups/api-types
 import { GROUP_ERRORS, GRUPE_COPY } from '../../../club/groups/copy';
 import { coachesText, countLine, phoneSummary, seasonOptions, tabItems, writable } from '../../../club/grupe/list-view';
 import { groupPageTo, grupeListTo, readGrupeQuery } from '../../../club/grupe/routes';
+import { preturiTo } from '../../../club/preturi-routes';
 import { SPORTIVI_CSS } from '../sportivi/styles';
 import { useGrupeApi, type GrupeApi } from './api';
 import { GroupDialog } from './GroupDialog';
@@ -36,10 +37,22 @@ function useGroupList(api: GrupeApi, season: string | null, section: string | nu
 
 const muted = (text: string) => <span className="spv-muted">{text}</span>;
 
+/** The price list name opens that list in Prețuri; the row click is not triggered. */
+function PriceListLink({ list }: { list: GroupListRow['priceList'] }) {
+  const navigate = useNavigate();
+  if (!list) return muted('-');
+  return (
+    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(preturiTo(list.documentId)); }}>
+      {list.name}
+    </Button>
+  );
+}
+
 const COLUMNS: DataColumn<GroupListRow>[] = [
   { key: 'name', header: GRUPE_COPY.colGroup, render: (r) => <span className="spv-name">{r.name}</span> },
   { key: 'program', header: GRUPE_COPY.colProgram, render: (r) => (r.program.length ? <div className="grp-lines">{r.program.map((l) => <div key={l}>{l}</div>)}</div> : muted(GRUPE_COPY.noProgram)) },
   { key: 'coaches', header: GRUPE_COPY.colCoaches, render: (r) => coachesText(r) ?? muted(GRUPE_COPY.noCoach) },
+  { key: 'priceList', header: GRUPE_COPY.fieldPriceList, render: (r) => <PriceListLink list={r.priceList} /> },
   { key: 'members', header: GRUPE_COPY.colMembers, align: 'right', render: (r) => r.members },
 ];
 

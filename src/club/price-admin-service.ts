@@ -11,6 +11,7 @@ import {
   toItemData,
   type AdminPrices,
   type ItemEdit,
+  type ListGroup,
   type PriceItemData,
   type RawAdminList,
   type RawAdminSection,
@@ -22,6 +23,8 @@ export interface PriceStore {
   lists(): Promise<RawAdminList[]>;
   findList(documentId: string): Promise<RawAdminList | null>;
   findSection(documentId: string): Promise<RawAdminSection | null>;
+  /** Active groups per price list documentId. */
+  groupsByList(): Promise<Record<string, ListGroup[]>>;
   listNameTaken(name: string): Promise<boolean>;
   saveItems(listId: string, items: PriceItemData[]): Promise<void>;
   createList(name: string, sectionId: string): Promise<string>;
@@ -32,8 +35,8 @@ export interface PriceStore {
 const ITEM_ACTIONS: Record<ItemEdit['kind'], string> = { add: 'price-added', update: 'price-updated', remove: 'price-removed' };
 
 export async function loadAdminPrices(store: PriceStore): Promise<AdminPrices> {
-  const [sections, lists] = await Promise.all([store.sections(), store.lists()]);
-  return buildAdminPrices(sections, lists);
+  const [sections, lists, groups] = await Promise.all([store.sections(), store.lists(), store.groupsByList()]);
+  return buildAdminPrices(sections, lists, groups);
 }
 
 const sectionOf = (list: RawAdminList) => (typeof list.section?.documentId === 'string' ? list.section.documentId : null);
