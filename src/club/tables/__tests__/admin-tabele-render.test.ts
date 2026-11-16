@@ -46,6 +46,13 @@ describe('Tabele render', () => {
     expect(out).toContain('aria-expanded="true"');
   });
 
+  it('the count of a result equals the rendered rows, and a plati result with rows is not the empty state', () => {
+    const result: TableResult = { ...grouped(4), groupBy: null, groups: null };
+    const out = html(React.createElement(ResultTable, { result, sort: null, onSort: noop, collapsed: new Set(), onToggle: noop }));
+    expect(out.match(/Ana \d/g)).toHaveLength(result.count);
+    expect(out).not.toContain('Nicio plată');
+  });
+
   it('a collapsed group keeps header and subtotal but not its rows', () => {
     const out = html(React.createElement(ResultTable, { result: grouped(2), sort: { column: 'suma', dir: 'desc' }, onSort: noop, collapsed: new Set(['g1']), onToggle: noop }));
     expect(out).not.toContain('Ana 1');
@@ -55,7 +62,7 @@ describe('Tabele render', () => {
   });
 
   it('an empty result says so', () => {
-    expect(html(React.createElement(ResultTable, { result: { ...grouped(0), groups: [], rows: [] }, sort: null, onSort: noop, collapsed: new Set(), onToggle: noop }))).toContain('Niciun rând pentru alegerile astea.');
+    expect(html(React.createElement(ResultTable, { result: { ...grouped(0), groups: [], rows: [] }, sort: null, onSort: noop, collapsed: new Set(), onToggle: noop }))).toContain('Nicio plată.');
   });
 
   it('above 1.000 rows it renders one window of 200 lines with a pager', () => {

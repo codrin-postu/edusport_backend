@@ -1,3 +1,5 @@
+import type { Subject } from './types';
+
 const VIEWS = {
   duplicate: 'Există deja o vizualizare cu numele ăsta.',
   tooMany: 'Prea multe vizualizări salvate. Șterge una.',
@@ -20,7 +22,7 @@ export const TABLES_COPY = {
   save: 'Salvează',
   pageTitle: 'Tabele',
   saveTable: 'Salvează tabelul',
-  rail: { title: 'Tabele salvate', gata: 'Gata făcute', mele: 'Ale mele', colegi: 'Ale colegilor', menu: 'Acțiuni', hide: 'Ascunde tabelele salvate', show: 'Arată tabelele salvate' },
+  rail: { title: 'Tabele salvate', gata: 'Gata făcute', mele: 'Ale mele', colegi: 'Ale colegilor', menu: 'Acțiuni', hide: 'Ascunde tabelele salvate' },
   rename: 'Redenumește',
   duplicate: 'Duplică',
   remove: 'Șterge',
@@ -56,9 +58,10 @@ export const TABLES_COPY = {
   confirmDelete: (n: string): string => `Ștergi vizualizarea "${n}"?`,
   deleted: VIEWS.deleted,
   undo: 'Anulează',
-  empty: 'Niciun rând pentru alegerile astea.',
+  /** One short line per type when a table has no row. */
+  empty: { sportivi: 'Niciun sportiv.', plati: 'Nicio plată.', abonamente: 'Niciun abonament.', prezenta: 'Nicio prezență.', sedinte: 'Niciun sportiv.' } as Record<Subject, string>,
   /** The ready-made "Plăți pe grupă luna aceasta" when nothing was paid: one line instead of rows of zeros. */
-  noPaymentsMonth: 'Nicio plată luna aceasta.',
+  noPaymentsMonth: 'Nicio plată.',
   /** Shown for a saved view whose stored definition cannot be repaired. It can only be deleted. */
   brokenView: 'Vizualizarea nu mai poate fi deschisă.',
   /** Accessible names of the column reorder controls (same wording as the other reorderable lists). */

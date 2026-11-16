@@ -230,14 +230,14 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
         {error && <div className="tbl-notices"><Notice tone="danger">{error}</Notice></div>}
         {draft && <MetaRow definition={draft} columns={catalog.subjects[draft.subject].columns} count={result && !error ? result.count : null} onChange={setDraft} />}
         {loading && !result && !error && <div className="tbl-loading"><Loading /></div>}
-        {result && !error && noPaymentsThisMonth(current.id, result) && <EmptyState>{TABLES_COPY.noPaymentsMonth}</EmptyState>}
-        {result && !error && !noPaymentsThisMonth(current.id, result) && (
+        {result && !error && noPaymentsThisMonth(current.id, dirty, result) && <EmptyState>{TABLES_COPY.noPaymentsMonth}</EmptyState>}
+        {result && !error && !noPaymentsThisMonth(current.id, dirty, result) && (
           <ResultTable
             result={result} sort={draft?.sort ?? null} onSort={onSort} collapsed={collapsed}
             onToggle={(k) => setCollapsed((c) => { const n = new Set(c); if (n.has(k)) n.delete(k); else n.add(k); return n; })}
           />
         )}
-        {!draft && !current.broken && <EmptyState>{TABLES_COPY.empty}</EmptyState>}
+        {!draft && !current.broken && <EmptyState>{TABLES_COPY.empty.sportivi}</EmptyState>}
       </Window>
         </div>
       </div>

@@ -31,8 +31,8 @@ export function actionsFor(view: SavedViewRow, dirty: boolean): ViewActions {
   return { save: view.mine && dirty, saveAsNew: true, duplicate: true, remove: view.canDelete };
 }
 
-/** The "Plăți pe grupă luna aceasta" view with nothing paid in the month: the screen keeps the view and shows one line instead of rows of zeros. */
-export const noPaymentsThisMonth = (viewId: string, result: TableResult): boolean => viewId === PLATI_GRUPA_ID && !Number(result.total.platit ?? 0);
+/** The "Plăți pe grupă luna aceasta" view, as saved (not edited, e.g. to another type), with nothing paid in the month: the screen keeps the view and shows one line instead of rows of zeros. */
+export const noPaymentsThisMonth = (viewId: string, dirty: boolean, result: TableResult): boolean => viewId === PLATI_GRUPA_ID && !dirty && !Number(result.total.platit ?? 0);
 
 /** "Intermediari Bronze, 12 sportivi". */
 export function groupHeader(subject: Subject, label: string, count: number): string {

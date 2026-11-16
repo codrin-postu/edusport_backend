@@ -68,7 +68,7 @@ function RowLine({ row, columns }: { row: TableResult['rows'][number]; columns: 
 export function ResultTable({ result, sort, onSort, collapsed, onToggle }: Props) {
   const [page, setPage] = React.useState(1);
   React.useEffect(() => setPage(1), [result]);
-  if (result.count === 0) return <EmptyState>{TABLES_COPY.empty}</EmptyState>;
+  if (result.count === 0) return <EmptyState>{TABLES_COPY.empty[result.subject]}</EmptyState>;
   const lines = linesOf(result, collapsed, TABLES_COPY.subtotal);
   const win = windowed(result.count) ? windowOf(lines, page, WINDOW_ROWS) : { items: lines, pageCount: 1, page: 1 };
   return (

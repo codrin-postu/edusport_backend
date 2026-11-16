@@ -28,11 +28,9 @@ export function TableHeader({ title, railOpen, onRail, railId, canSave, onSave, 
     <Window>
       <header className="tbl-ph">
         <Button
-          variant="ghost" icon={<IconRail />} aria-expanded={railOpen} aria-controls={railId}
-          title={railOpen ? TABLES_COPY.rail.hide : TABLES_COPY.rail.show} onClick={onRail}
-        >
-          {TABLES_COPY.rail.title}
-        </Button>
+          variant="ghost" iconOnly icon={<IconRail />} aria-expanded={railOpen} aria-controls={railId}
+          aria-label={TABLES_COPY.rail.title} onClick={onRail}
+        />
         <h1 className="ui-ph-title">{title}</h1>
         <Button variant="secondary" icon={<IconSave />} disabled={!canSave} onClick={onSave}>{TABLES_COPY.saveTable}</Button>
         <ExportMenu canDownload={canDownload} downloading={downloading} onDownload={onDownload} />

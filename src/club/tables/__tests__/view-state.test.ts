@@ -21,10 +21,11 @@ describe('Tabele copy', () => {
 
   it('shows the one line only for the ready-made Plăți view with nothing paid', () => {
     const result = (platit: number | undefined) => ({ total: platit === undefined ? {} : { platit } }) as TableResult;
-    expect(noPaymentsThisMonth('rm-plati-grupa', result(0))).toBe(true);
-    expect(noPaymentsThisMonth('rm-plati-grupa', result(undefined))).toBe(true);
-    expect(noPaymentsThisMonth('rm-plati-grupa', result(120))).toBe(false);
-    expect(noPaymentsThisMonth('rm-ramas', result(0))).toBe(false);
+    expect(noPaymentsThisMonth('rm-plati-grupa', false, result(0))).toBe(true);
+    expect(noPaymentsThisMonth('rm-plati-grupa', false, result(undefined))).toBe(true);
+    expect(noPaymentsThisMonth('rm-plati-grupa', false, result(120))).toBe(false);
+    expect(noPaymentsThisMonth('rm-ramas', false, result(0))).toBe(false);
+    expect(noPaymentsThisMonth('rm-plati-grupa', true, result(0))).toBe(false);
   });
 
   it('the source has no forbidden characters', () => {
