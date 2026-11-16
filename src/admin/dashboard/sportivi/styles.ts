@@ -44,8 +44,11 @@ export const SPORTIVI_CSS = `
 .ui-root .spv-value .spv-missing{display:inline;margin:0 6px 0 0}
 .ui-root .spv-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 24px}
 .ui-root .spv-form .spv-wide{grid-column:1/-1}
-.ui-root .spv-actions{display:flex;justify-content:flex-end;gap:8px}
-.ui-root .spv-line{margin:0;color:var(--theme-text)}
+.ui-root .spv-acs{display:contents;margin:0}
+.ui-root .spv-access{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--ui-space-2) var(--ui-space-3)}
+.ui-root .spv-access-who{display:flex;align-items:center;flex-wrap:wrap;gap:var(--ui-space-2) var(--ui-space-3);min-width:0}
+.ui-root .spv-access-mail{color:var(--theme-text);overflow-wrap:anywhere}
+.ui-root .spv-access-acts{display:flex;flex-wrap:wrap;gap:var(--ui-space-2);margin-left:auto}
 .ui-root .spv-h{margin:0;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--theme-text-secondary)}
 .ui-root .spv-rows{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
 .ui-root .spv-docs,.ui-root .spv-hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
@@ -88,5 +91,7 @@ export const SPORTIVI_CSS = `
 .ui-root .spv-merge{min-width:460px}
 .ui-root .spv-merge th[scope=row]{white-space:normal;width:104px}
 .ui-root .spv-fields,.ui-root .spv-form{grid-template-columns:minmax(0,1fr)}
+.ui-root .spv-access-acts{width:100%;margin-left:0}
+.ui-root .spv-access-acts .ui-btn{flex:1 1 100%}
 }
 `;

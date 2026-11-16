@@ -36,19 +36,6 @@ function ReadOnlyDate({ row, api }: { row: Row; api: TableApi }) {
   );
 }
 
-/** The first row's label with the "Editează" link on its right (spec 3.4: no extra row). */
-function EditLabel({ label, onEdit }: { label: string; onEdit: () => void }) {
-  return (
-    <span className="ins-label-row">
-      <span>{label}</span>
-      <button type="button" className="ins-link" onClick={onEdit}>
-        <IconEdit size={12} />
-        {PANEL_COPY.edit}
-      </button>
-    </span>
-  );
-}
-
 /** Salvează / Anulează return focus to "Editează" (gap not in the sample code); the tab panel is the one stable anchor. */
 function useReturnFocusOnClose(editing: boolean) {
   const wasEditing = React.useRef(false);
@@ -71,8 +58,15 @@ export function DateTab({ row, api }: { row: Row; api: TableApi }) {
   if (isAnonymizedRow(row)) return <ReadOnlyDate row={row} api={api} />;
   return (
     <>
-      {dateTabRows(row).map((r, i) => (
-        <DetailField key={r.key} label={i === 0 ? <EditLabel label={r.label} onEdit={() => setEditing(true)} /> : r.label}>
+      <div className="ins-date-head">
+        <h3 className="ins-date-title">{PANEL_COPY.tabs.date}</h3>
+        <button type="button" className="ins-link" onClick={() => setEditing(true)}>
+          <IconEdit size={12} />
+          {PANEL_COPY.edit}
+        </button>
+      </div>
+      {dateTabRows(row).map((r) => (
+        <DetailField key={r.key} label={r.label}>
           {phoneValue(r, row, api)}
         </DetailField>
       ))}

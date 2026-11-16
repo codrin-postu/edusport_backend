@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { ConfirmDialog } from '../../ConfirmDialog';
-import { Button, Loading, adminToast } from '../../ui';
+import { Button, EditorCard, Loading, StatusBadge, adminToast } from '../../ui';
 import type { AccessAnswer, AccessBlock as AccessBlockData } from '../../../club/portal/access/api-types';
 import { ACCESS_COPY } from '../../../club/portal/access/copy';
-import { ACCESS_LABELS, accessActions, sinceText, statusText, type AccessAction } from '../../../club/sportivi/access-view';
+import { ACCESS_LABELS, accessActions, type AccessAction } from '../../../club/sportivi/access-view';
+import { accessBadge, accessBadgeState } from '../../../club/sportivi/access-badge';
 import { requestErrorText } from '../../../club/registration-panel';
 import type { SportiviApi } from './api';
 
@@ -59,20 +60,22 @@ export function AccessBlock({ api, athleteId, athleteName, state }: {
   const [confirm, setConfirm] = React.useState(false);
   if (!block) return loadError ? <div className="ui-error" role="alert">{loadError}</div> : <Loading />;
   const actions = accessActions(block);
-  const since = sinceText(block.since);
+  const badge = accessBadge(accessBadgeState(block.state));
   const click = (a: AccessAction) => (a === 'remove' ? setConfirm(true) : void run(a));
   return (
-    <section aria-label={TITLE} style={{ marginTop: 16, borderTop: '1px solid var(--theme-border)', paddingTop: 12 }}>
-      <h3 style={{ fontSize: 'var(--ui-fs-body-sm)', fontWeight: 700, margin: '0 0 8px' }}>{TITLE}</h3>
-      {block.email && <p style={{ margin: '0 0 4px' }}>{block.email}</p>}
-      <p style={{ margin: '0 0 10px', color: 'var(--theme-text-muted)' }}>{[statusText(block), since].filter(Boolean).join(' ')}</p>
-      {block.state === 'none' && block.hint && <p className="ui-hint">{block.hint}</p>}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {actions.map((a) => (
-          <Button key={a} variant={a === 'remove' ? 'danger' : 'secondary'} disabled={busy} onClick={() => click(a)}>{ACCESS_LABELS[a]}</Button>
-        ))}
+    <EditorCard title={TITLE}>
+      <div className="spv-access">
+        <div className="spv-access-who">
+          {block.email && <span className="spv-access-mail">{block.email}</span>}
+          <StatusBadge tone={badge.tone}>{badge.text}</StatusBadge>
+        </div>
+        <div className="spv-access-acts">
+          {actions.map((a) => (
+            <Button key={a} variant={a === 'remove' ? 'danger' : 'secondary'} disabled={busy} onClick={() => click(a)}>{ACCESS_LABELS[a]}</Button>
+          ))}
+        </div>
       </div>
-      {error && !confirm && <div className="ui-error" role="alert" style={{ marginTop: 10 }}>{error}</div>}
+      {error && !confirm && <div className="ui-error" role="alert">{error}</div>}
       <ConfirmDialog
         open={confirm}
         title={ACCESS_LABELS.remove}
@@ -84,6 +87,6 @@ export function AccessBlock({ api, athleteId, athleteName, state }: {
         onCancel={() => setConfirm(false)}
         onConfirm={() => void run('remove').then((done) => done && setConfirm(false))}
       />
-    </section>
+    </EditorCard>
   );
 }

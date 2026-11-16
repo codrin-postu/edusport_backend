@@ -16,10 +16,9 @@ export const RECORD_COPY = {
   incomplete: 'Date incomplete',
   noBirthDate: 'data nașterii lipsește',
   missing: 'lipsește',
-  requiredHint: 'Obligatorii pentru "complet": nume, data nașterii, persoana de contact, telefon, e-mail.',
   edit: 'Editează',
   save: 'Salvează',
-  cancel: 'Anulează',
+  cancel: 'Renunță',
   noChange: 'Nicio modificare.',
   complete: 'Salvat. Datele sunt complete.',
   registrations: 'Înscrieri',
@@ -72,8 +71,9 @@ export type FieldRowView = { field: AthleteField; label: string; value: string; 
 export const fieldRows = (r: AthleteRecord): FieldRowView[] =>
   ATHLETE_FIELDS.map((field) => ({ field, label: ATHLETE_FIELD_LABELS[field], value: r.fields[field] ?? '', missing: r.missing.includes(field) }));
 
-/** "Membru A.C.S. <sezon>: <stare>" of the selected or current season, read-only (gaps #11). */
-export const acsLine = (r: AthleteRecord): string | null => (r.acs.seasonLabel ? `Membru A.C.S. ${r.acs.seasonLabel}: ${ACS_WORDS[r.acs.state]}` : null);
+/** "Membru A.C.S. <sezon>" with its state, a read-only field of the selected or current season (gaps #11). */
+export const acsField = (r: AthleteRecord): { label: string; value: string } | null =>
+  r.acs.seasonLabel ? { label: `Membru A.C.S. ${r.acs.seasonLabel}`, value: ACS_WORDS[r.acs.state] } : null;
 
 /** "<nr>, <sezon>, <status>" (gaps #11); an empty part is left out. */
 export const registrationLine = (reg: AthleteRecord['registrations'][number]): string => [reg.number, reg.season, reg.status].filter(Boolean).join(', ');

@@ -44,8 +44,8 @@ const PANEL_CSS =
   '.ui-root .ins-link{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--theme-primary);cursor:pointer}' +
   '.ui-root .ins-link:focus-visible{outline:2px solid var(--theme-focus);outline-offset:2px}' +
   '.ui-root .ins-link:disabled{opacity:.5;cursor:default}' +
-  '.ui-root .ins-label-row{display:flex;align-items:center;justify-content:space-between;gap:8px}' +
-  '.ui-root .ins-label-row .ins-link{text-transform:none;letter-spacing:0}' +
+  '.ui-root .ins-date-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:var(--ui-control-h);margin-bottom:var(--ui-space-2)}' +
+  '.ui-root .ins-date-title{margin:0;font-size:var(--ui-fs-section-title);font-weight:var(--ui-fw-section-title);letter-spacing:var(--ui-ls-section-title);text-transform:uppercase;color:var(--theme-text-muted)}' +
   '.ui-root.sbt-menu button.ins-danger{color:var(--theme-danger)}';
 
 /**

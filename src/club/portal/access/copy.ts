@@ -10,7 +10,6 @@ export const ACCESS_ERRORS = {
 } as const;
 
 export const ACCESS_COPY = {
-  none: 'Fără acces în portal.',
   adult: 'Sportiv 18+',
   invited: 'Invitat',
   active: 'Activ',
