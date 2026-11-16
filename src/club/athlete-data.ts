@@ -2,6 +2,7 @@ import { changedFields, type FieldChange } from './admin-result';
 import { ADMIN_ERRORS } from './athletes/errors';
 import { isoDate, partsFromIso, readPickedDate, roDate } from './birth-date';
 import { collapseSpaces } from './person-match';
+import { numericDateToSlash } from './date-format';
 
 /** The athlete's private data (spec 1.1, 6.2). One full name; birth date as ISO; empty = null. */
 export type AthleteStatus = 'nou' | 'activ' | 'inactiv' | 'anonimizat';
@@ -47,9 +48,9 @@ export function birthDateForPicker(iso: string | null): string | null {
   return parts ? roDate(parts) : null;
 }
 
-/** Display text of a stored value: birth date as ZZ.LL.AAAA, empty as blank. */
+/** Display text of a stored value: birth date as dd/mm/yyyy, empty as blank. */
 export function athleteValueText(field: AthleteField, value: string | null): string {
-  return field === 'birthDate' ? birthDateForPicker(value) ?? '' : value ?? '';
+  return field === 'birthDate' ? numericDateToSlash(birthDateForPicker(value) ?? '') : value ?? '';
 }
 
 export type AthleteInput = { ok: true; values: AthleteValues } | { ok: false; error: string };

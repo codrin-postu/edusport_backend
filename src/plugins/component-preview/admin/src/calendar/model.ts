@@ -175,10 +175,10 @@ const daysBetween = (a: string, b: string): number => {
   const [by, bm, bd] = b.split('-').map(Number);
   return Math.round((Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86_400_000);
 };
-// "2026-03-14" -> "14.03"
+// "2026-03-14" -> "14/03"
 const fmtDM = (d: string): string => {
   const p = String(d || '').slice(0, 10).split('-');
-  return p.length < 3 ? '' : `${p[2]}.${p[1]}`;
+  return p.length < 3 ? '' : `${p[2]}/${p[1]}`;
 };
 const addDayYMD = (d: string): string => {
   const [y, m, dd] = d.split('-').map(Number);

@@ -27,9 +27,9 @@ describe('Compară și actualizează (spec 4.2)', () => {
     expect(defaultUpdateFields(rows)).toEqual(['contactName', 'phone']);
   });
 
-  it('shows dates as ZZ.LL.AAAA, an unreadable one as typed, and empty cells blank', () => {
+  it('shows dates as dd/mm/yyyy, an unreadable one as typed, and empty cells blank', () => {
     const rows = comparisonRows(athlete({ contactName: null }), { ...reg, childBirthDate: 'martie 2016' });
-    expect(rows[1]).toMatchObject({ athlete: '14.03.2016', registration: 'martie 2016', differs: true });
+    expect(rows[1]).toMatchObject({ athlete: '14/03/2016', registration: 'martie 2016', differs: true });
     expect(rows[2]).toMatchObject({ athlete: '', registration: 'Ana Pop', defaultUpdate: true });
   });
 

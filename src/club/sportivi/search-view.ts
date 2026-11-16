@@ -1,5 +1,6 @@
 import type { AthleteCard } from '../athletes/api-types';
 import { countWords } from './list-view';
+import { numericDateToSlash } from '../date-format';
 
 /** The search of "Caută alt sportiv" (spec 4.1), reused by "Adaugă sportiv" (6.7) and the merge (6.6). Pure. */
 
@@ -30,7 +31,7 @@ export const searchUrl = (q: string): string => `/api/club/athletes/search?q=${e
  */
 const groupLine = (g: AthleteCard['lastGroup']): string | null => (g ? `${g.name} ${g.season}` : null);
 
-export const cardSubline = (c: AthleteCard): string => [c.birthDate, groupLine(c.lastGroup), c.contactName].filter(Boolean).join(', ');
+export const cardSubline = (c: AthleteCard): string => [c.birthDate ? numericDateToSlash(c.birthDate) : c.birthDate, groupLine(c.lastGroup), c.contactName].filter(Boolean).join(', ');
 
 export const withoutAthlete = (cards: AthleteCard[], ids: string | string[] | undefined): AthleteCard[] => {
   const out = [ids ?? []].flat();

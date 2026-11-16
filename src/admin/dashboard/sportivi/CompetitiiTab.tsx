@@ -1,13 +1,14 @@
 import * as React from 'react';
 import { DataTable, Loading, Notice, Select, StatTile, type DataColumn } from '../../ui';
 import { COMPETITII_COPY, scoreText, type AthleteCompetitions, type CompetitionLine } from '../../../club/sportivi/competitions-view';
+import { isoToSlash } from '../../../club/date-format';
 import type { SportiviApi } from './api';
 
 const copy = COMPETITII_COPY;
 const dash = '-';
 
-/** "14.03.2026" from an ISO date; a line without a date shows nothing. */
-const dateText = (iso: string | null): string => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}` : '');
+/** "14/03/2026" from an ISO date; a line without a date shows nothing. */
+const dateText = (iso: string | null): string => (iso ? isoToSlash(iso) ?? '' : '');
 const num = (v: number | null): string => (v === null ? dash : String(v));
 
 const COLUMNS: DataColumn<CompetitionLine>[] = [

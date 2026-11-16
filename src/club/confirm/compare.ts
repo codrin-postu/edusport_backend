@@ -1,6 +1,7 @@
 import { ATHLETE_FIELDS, athleteValueText, type AthleteField, type AthleteValues } from '../athlete-data';
 import { isoDate, parseBirthDate } from '../birth-date';
 import { collapseSpaces, normalizeEmail, normalizePhone } from '../person-match';
+import { numericDateToSlash } from '../date-format';
 
 /** "Compară" (panel) and "Compară și actualizează" (window), spec 3.3 and 4.2. */
 export type RegistrationPerson = { childName: string; childBirthDate: string; parentName: string; phone: string; email: string };
@@ -27,7 +28,7 @@ function differs(field: AthleteField, a: string | null, b: string | null): boole
 }
 
 function registrationText(field: AthleteField, r: RegistrationPerson, values: AthleteValues): string {
-  if (field === 'birthDate' && !values.birthDate) return collapseSpaces(r.childBirthDate);
+  if (field === 'birthDate' && !values.birthDate) return numericDateToSlash(collapseSpaces(r.childBirthDate));
   return athleteValueText(field, values[field]);
 }
 

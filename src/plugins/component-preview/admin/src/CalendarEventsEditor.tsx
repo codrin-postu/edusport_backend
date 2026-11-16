@@ -13,6 +13,7 @@ import {
   Typography,
 } from '@strapi/design-system';
 import { SafeDatePicker as DatePicker } from './components/SafeDatePicker';
+import { DATE_PLACEHOLDER } from '../../../../club/date-format';
 import { ArrowRight, Gift, Plus, Star, Sun, Cloud } from '@strapi/icons';
 import type { StrapiTheme } from '@strapi/design-system';
 import { EditorCard } from './components/EditorCard';
@@ -594,7 +595,7 @@ const SpecialCourseRow = React.memo(function SpecialCourseRow({
                 onChange={(d) => onPatch(i, { startDate: d ? dateToYMD(d) : '' })}
                 onClear={() => onPatch(i, { startDate: '' })}
                 clearLabel="Șterge"
-                placeholder="zz/ll/aaaa"
+                placeholder={DATE_PLACEHOLDER}
               />
               <Field.Error />
             </Field.Root>
@@ -749,7 +750,7 @@ const SpecialEventRow = React.memo(function SpecialEventRow({
                 }}
                 onClear={() => onPatch(i, { startDate: '' })}
                 clearLabel="Șterge"
-                placeholder="zz/ll/aaaa"
+                placeholder={DATE_PLACEHOLDER}
               />
             </Field.Root>
           </Box>
@@ -762,7 +763,7 @@ const SpecialEventRow = React.memo(function SpecialEventRow({
                 onChange={(d) => onPatch(i, { endDate: d ? dateToYMD(d) : '' })}
                 onClear={() => onPatch(i, { endDate: '' })}
                 clearLabel="Șterge"
-                placeholder="zz/ll/aaaa"
+                placeholder={DATE_PLACEHOLDER}
               />
             </Field.Root>
           </Box>

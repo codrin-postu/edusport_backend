@@ -51,8 +51,8 @@ describe('changes and display', () => {
     });
   });
 
-  it('shows the birth date as ZZ.LL.AAAA and empties as blank', () => {
-    expect(athleteValueText('birthDate', '2016-03-14')).toBe('14.03.2016');
+  it('shows the birth date as dd/mm/yyyy and empties as blank', () => {
+    expect(athleteValueText('birthDate', '2016-03-14')).toBe('14/03/2016');
     expect(athleteValueText('phone', null)).toBe('');
     expect(birthDateForPicker('2016-03-04')).toBe('04.03.2016');
     expect(birthDateForPicker(null)).toBeNull();

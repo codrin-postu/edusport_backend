@@ -5,6 +5,7 @@ import { ADMIN_ERRORS, CONFIRM_ERRORS } from './athletes/errors';
 import { ARROW } from './history-text';
 import { CONFIRM_COPY, INSCRIERI_PENDING_COPY } from './inscrieri-copy';
 import { requestErrorText } from './registration-panel';
+import { numericDateToSlash } from './date-format';
 
 /**
  * The confirm window (spec 4): what is chosen, what the button sends, the lines it shows and how a failure ends.
@@ -167,7 +168,7 @@ export function highlightParts(text: string, query: string): HighlightParts | nu
 
 export function newAthleteHint(ctx: ConfirmContext, withBirthDate: boolean): string {
   const { name, birthDate } = ctx.newAthlete;
-  return CONFIRM_COPY.newHint(withBirthDate && birthDate ? `${name}, ${birthDate}` : name);
+  return CONFIRM_COPY.newHint(withBirthDate && birthDate ? `${name}, ${numericDateToSlash(birthDate)}` : name);
 }
 
 type ErrorShape = { status?: unknown; response?: { status?: unknown; data?: { error?: { status?: unknown } } } };

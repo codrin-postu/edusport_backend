@@ -8,7 +8,7 @@ import {
   emailPanelState,
   emailStatusText,
   failedEmailError,
-  formatEmailSentAt,
+  formatEmailSentAtSlash,
   readEmailStatus,
   requestErrorText,
   resendTarget,
@@ -92,7 +92,7 @@ function EmailStatusDisplay({
   }
   return (
     <>
-      <span>{emailStatusText(status, formatEmailSentAt)}</span>
+      <span>{emailStatusText(status, formatEmailSentAtSlash)}</span>
       <Button size="sm" variant="secondary" onClick={onResend}>
         Retrimite e-mailul
       </Button>

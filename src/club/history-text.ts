@@ -9,6 +9,7 @@ import { ARROW, quotedChange } from './text-leaf';
 import { SUBJECT } from './subjects';
 import { RELATIONSHIP_EDIT_OPTIONS } from './registration-panel';
 import { RELATIONSHIP_OTHER, SOURCE_OTHER } from './registration-form-options';
+import { numericDateToSlash } from './date-format';
 
 /** Istoric lines (spec 1.6): one line per change, old → new, newest first. Pure; the history read renders with it. */
 export { SUBJECT };
@@ -110,8 +111,8 @@ function fieldLabel(subjectType: string, key: string): string | null {
 }
 
 function valueText(subjectType: string, key: string, value: unknown): string {
-  if (subjectType === SUBJECT.athlete && isAthleteField(key)) return athleteValueText(key, typeof value === 'string' ? value : null);
-  return registrationValueText(key, value);
+  if (subjectType === SUBJECT.athlete && isAthleteField(key)) return numericDateToSlash(athleteValueText(key, typeof value === 'string' ? value : null));
+  return numericDateToSlash(registrationValueText(key, value));
 }
 
 /** An answer with an "other" free text: `relationship` + "Alta", `source` + "Altele". */

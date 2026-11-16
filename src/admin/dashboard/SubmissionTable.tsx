@@ -34,6 +34,7 @@ import {
 } from '../ui';
 import { IconChevronDown, IconChevronUp, IconGrip, IconSearch } from '../ui/icons';
 import { menuTriggerClass } from '../../club/ui-select';
+import { numericDateToSlash } from '../../club/date-format';
 import { fieldsClearedByEdit } from '../../club/registration-edit';
 import { SEASON_EMPTY_LABEL, headerLabel, headerSortDir, listMeta, nextHeaderSort, savedStamp, type CompactHeader } from '../../club/ui-table';
 
@@ -369,7 +370,7 @@ export function extraValueText(v: unknown): string {
   if (typeof v === 'boolean') return v ? 'Da' : 'Nu';
   if (Array.isArray(v)) return v.map((x) => String(x)).join(', ');
   if (typeof v === 'object') return JSON.stringify(v);
-  return String(v);
+  return numericDateToSlash(String(v));
 }
 
 /**
@@ -1495,7 +1496,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
       const ex = row.extra && typeof row.extra === 'object' ? (row.extra as Record<string, unknown>) : {};
       const v = ex[col.extraKey!];
       if (col.type === 'bool') return <span className="sbt-cellv">{v === true ? 'Da' : v === false ? 'Nu' : ''}</span>;
-      return <span className="sbt-cellv">{v == null || v === '' ? '' : String(v)}</span>;
+      return <span className="sbt-cellv">{v == null || v === '' ? '' : numericDateToSlash(String(v))}</span>;
     }
     if (col.render) return <span className="sbt-cellv">{col.render(row, api)}</span>;
     if (col.type === 'date') {
@@ -1511,7 +1512,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
     if (col.type === 'bool') return <span className="sbt-cellv">{val ? 'Da' : 'Nu'}</span>;
     if (col.type === 'list')
       return <span className="sbt-cellv">{Array.isArray(val) ? val.map((x) => String(x)).join(', ') : val == null || val === '' ? '' : String(val)}</span>;
-    return <span className="sbt-cellv">{val == null || val === '' ? '' : String(val)}</span>;
+    return <span className="sbt-cellv">{val == null || val === '' ? '' : numericDateToSlash(String(val))}</span>;
   };
 
   const seasonSelectValue = season || activeSeason || 'all';

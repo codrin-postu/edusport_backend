@@ -838,7 +838,7 @@ function InputsDemo() {
   const [pub, setPub] = React.useState('draft');
   return (
     <EditorCard variant="plain" title="DateRangeInput, TimeInput, NumberInput, TagsInput, SearchableSelect, SegmentedControl">
-      <DateRangeInput value={range} onChange={setRange} hint="Sfârșitul nu poate fi înaintea începutului: alegerile se ajustează singure." required />
+      <DateRangeInput value={range} onChange={setRange} required />
       <FieldRow>
         <Field label="Ora de început" hint="Scrie 9, 930, 9.30 sau folosește ceasul.">
           <TimeInput value={time} onChange={setTime} />

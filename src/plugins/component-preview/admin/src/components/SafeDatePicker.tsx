@@ -28,7 +28,7 @@ export const SafeDatePicker = React.forwardRef<HTMLInputElement, StrapiDatePicke
         ref={ref}
         {...rest}
         // Default to Romanian (dd/mm/yyyy) so the displayed format matches the
-        // `zz/ll/aaaa` placeholder. Callers can override by passing `locale`.
+        // `zz / ll / aaaa` placeholder. Callers can override by passing `locale`.
         locale={locale ?? 'ro-RO'}
         value={anchorAtLocalNoon(value)}
         minDate={anchorAtLocalNoon(minDate)}

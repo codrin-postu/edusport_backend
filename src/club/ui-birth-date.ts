@@ -1,6 +1,6 @@
 /**
  * Rules of the admin birth date picker (src/admin/ui/BirthDatePicker.tsx):
- * one native date input limited to the website's year range (25 to 2 years
+ * one date field (typed dd/mm/yyyy, calendar button) limited to the website's year range (25 to 2 years
  * ago), a stored date outside that range kept selectable (spec 3.4, 6.2, 8, 9).
  * Pure: no DOM, no React. Reads and writes ZZ.LL.AAAA (registrations) and
  * AAAA-LL-ZZ (athlete.birthDate). Old free-text dates ("14 martie 2016",
@@ -48,11 +48,11 @@ export function isFullDate(p: DateParts): p is FullDate {
  * website's BIRTH_DATE_ERROR (_rules.ts). The caller (Înscrieri / athlete edit form) shows it. */
 export const BIRTH_DATE_ERROR = 'Alegeți data nașterii.';
 
-const DISPLAY = /^(\d{2})\.(\d{2})\.(\d{4})$/;
+const DISPLAY = /^(\d{2})[./](\d{2})[./](\d{4})$/;
 const ISO = /^(\d{4})-(\d{2})-(\d{2})$/;
 const realOrNull = (p: DateParts): DateParts | null => (isFullDate(p) ? p : null);
 
-/** "14.03.2016" -> parts; null for anything else or an impossible date. */
+/** "14.03.2016" or "14/03/2016" -> parts; null for anything else or an impossible date. */
 export function partsFromDisplay(text: string | null | undefined): DateParts | null {
   const m = DISPLAY.exec((text ?? '').trim());
   return m ? realOrNull({ day: Number(m[1]), month: Number(m[2]), year: Number(m[3]) }) : null;
@@ -61,6 +61,11 @@ export function partsFromDisplay(text: string | null | undefined): DateParts | n
 /** Parts -> "14.03.2016" (how registrations store it); null until the date is complete and real. */
 export function partsToDisplay(p: DateParts): string | null {
   return isFullDate(p) ? `${pad2(p.day)}.${pad2(p.month)}.${pad4(p.year)}` : null;
+}
+
+/** Parts -> "14/03/2016", how the admin shows and types it; null until the date is complete and real. */
+export function partsToSlash(p: DateParts): string | null {
+  return isFullDate(p) ? `${pad2(p.day)}/${pad2(p.month)}/${pad4(p.year)}` : null;
 }
 
 /** "2016-03-14" -> parts; null for anything else or an impossible date. */

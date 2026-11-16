@@ -177,7 +177,6 @@ ${R} .ui-input::placeholder{color:var(--theme-text-muted);opacity:1}
 ${R} .ui-input:focus{outline:none;border-color:var(--theme-primary);box-shadow:0 0 0 1px var(--theme-primary)}
 ${R} .ui-input:disabled{color:var(--theme-text-disabled);cursor:not-allowed}
 ${R} .ui-input[aria-invalid="true"]{border-color:var(--theme-danger)}
-${R} input.ui-input[type=date],${R} input.ui-input[type=datetime-local]{min-width:0}
 ${R} textarea.ui-input{height:auto;padding:7px 9px;resize:vertical;min-height:64px}
 ${R} .ui-grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--ui-space-3)}
 ${PHONE_MQ}{${R} .ui-grid2{grid-template-columns:1fr}}
@@ -504,6 +503,17 @@ ${R} .ui-time-btn:disabled{cursor:not-allowed;opacity:.55}
 .ui-root.ui-pop.ui-time-pop{padding:14px 16px}
 ${R} .ui-time-spin{display:flex;align-items:center;justify-content:center;gap:8px}
 ${R} .ui-time-colon{font-size:20px;font-weight:700;color:var(--theme-text-muted);user-select:none}
+
+/* date input: typed dd/mm/yyyy, calendar button on the right like the time input, hidden native picker under it */
+.ui-root.ui-date{display:flex;align-items:flex-start;gap:8px;width:100%;min-width:0;vertical-align:top}
+${R} .ui-date-field{position:relative;display:inline-flex;flex:1 1 auto;min-width:0}
+${R} .ui-date--time .ui-date-field{flex:1 1 55%}
+${R} .ui-date-time{flex:1 1 45%;min-width:0}
+${R} .ui-date .ui-input{padding-right:32px;letter-spacing:.04em;font-variant-numeric:tabular-nums;min-width:0}
+${R} .ui-date-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border:none;background:none;border-radius:var(--ui-radius-sm);color:var(--theme-text-muted);cursor:pointer}
+${R} .ui-date-btn:hover:not(:disabled){color:var(--theme-primary);background:var(--theme-primary-soft)}
+${R} .ui-date-btn:disabled{cursor:not-allowed;opacity:.55}
+${R} .ui-date-native{position:absolute;left:0;bottom:0;width:100%;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
 
 /* date range */
 .ui-root.ui-range{display:flex;flex-direction:column;gap:6px}

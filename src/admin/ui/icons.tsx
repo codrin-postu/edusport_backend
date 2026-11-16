@@ -49,6 +49,16 @@ export const IconGrip = ({ size = 14 }: P) =>
     </g>,
   );
 
+/** Calendar drawn in a square frame (no round shapes). */
+export const IconCalendar = ({ size = 14 }: P) =>
+  svg(
+    size,
+    <>
+      <rect x="1.75" y="2.75" width="10.5" height="9.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M1.75 5.75h10.5M4.5 1.5v2.5M9.5 1.5v2.5" stroke="currentColor" strokeWidth="1.4" />
+    </>,
+  );
+
 /** Clock drawn in a square frame (no round shapes). */
 export const IconClock = ({ size = 14 }: P) =>
   svg(

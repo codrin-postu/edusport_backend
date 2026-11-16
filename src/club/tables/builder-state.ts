@@ -71,7 +71,7 @@ export function refilter(f: TableFilter, c: CatalogColumn, op: FilterOp): TableF
   return { column: c.key, op, value: keep ? (f.value as FilterValue) : startValue(c, op) };
 }
 
-const DISPLAY_DATE = /^(\d{2})\.(\d{2})\.(\d{4})$/;
+const DISPLAY_DATE = /^(\d{2})[./](\d{2})[./](\d{4})$/;
 
 /** The text typed into a filter's value box, as the typed value of the column; null while it is not valid yet. */
 export function parseFilterText(c: CatalogColumn, op: FilterOp, text: string): FilterValue | null {
@@ -92,7 +92,7 @@ export function parseFilterText(c: CatalogColumn, op: FilterOp, text: string): F
 /** The value as the admin reads and edits it. */
 export function filterText(c: CatalogColumn, value: FilterValue | undefined): string {
   const one = (v: string | number): string => {
-    if (c.type === 'date' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return `${v.slice(8, 10)}.${v.slice(5, 7)}.${v.slice(0, 4)}`;
+    if (c.type === 'date' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return `${v.slice(8, 10)}/${v.slice(5, 7)}/${v.slice(0, 4)}`;
     return String(v).replace('.', c.type === 'money' || c.type === 'number' ? ',' : '.');
   };
   if (value === undefined) return '';
@@ -106,11 +106,11 @@ export function filterSummary(c: CatalogColumn, f: TableFilter): string {
   return f.op === 'gt' || f.op === 'lt' ? `${c.label} ${TABLES_COPY.ops[f.op]} ${value}` : `${c.label}: ${value}`;
 }
 
-/** "10.11.2026" for a date, "1.200 RON" for money, plain for the rest; empty for no value. */
+/** "10/11/2026" for a date, "1.200 RON" for money, plain for the rest; empty for no value. */
 export function cellText(c: CatalogColumn, v: CellValue | undefined): string {
   if (v === null || v === undefined || v === '') return '';
   if (c.type === 'money' && typeof v === 'number') return ron(v);
-  if (c.type === 'date' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return `${v.slice(8, 10)}.${v.slice(5, 7)}.${v.slice(0, 4)}`;
+  if (c.type === 'date' && typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return `${v.slice(8, 10)}/${v.slice(5, 7)}/${v.slice(0, 4)}`;
   if (typeof v === 'number') return String(v).replace('.', ',');
   return v;
 }

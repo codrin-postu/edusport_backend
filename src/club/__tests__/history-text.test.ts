@@ -91,7 +91,7 @@ describe('athlete lines (spec 1.6)', () => {
   });
 
   it('edits, status, profile, merge, delete', () => {
-    expect(ath(A.updated, { fields: { birthDate: { from: null, to: '2016-03-14' } } })).toEqual(['Data nașterii: "" → "14.03.2016"']);
+    expect(ath(A.updated, { fields: { birthDate: { from: null, to: '2016-03-14' } } })).toEqual(['Data nașterii: "" → "14/03/2016"']);
     expect(ath(A.statusChanged, { from: 'activ', to: 'inactiv' })).toEqual(['Status: Activ → Inactiv']);
     expect(ath(A.registrationDeleted, { registrationNumber: '2026-0142' })).toEqual(['Înscriere ștearsă: 2026-0142']);
     expect(ath(A.profileCreated)).toEqual(['Profil public creat']);

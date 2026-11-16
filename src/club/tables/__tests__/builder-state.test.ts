@@ -83,6 +83,7 @@ describe('filters', () => {
     expect(parseFilterText(col('suma'), 'gt', 'abc')).toBeNull();
     expect(parseFilterText(col('suma'), 'gt', '')).toBeNull();
     expect(parseFilterText(col('data'), 'lt', '05.11.2026')).toBe('2026-11-05');
+    expect(parseFilterText(col('data'), 'lt', '05/11/2026')).toBe('2026-11-05');
     expect(parseFilterText(col('data'), 'lt', '2026-11-05')).toBe('2026-11-05');
     expect(parseFilterText(col('data'), 'lt', '+14d')).toBe('+14d');
     expect(parseFilterText(col('data'), 'lt', '5 nov')).toBeNull();
@@ -90,7 +91,7 @@ describe('filters', () => {
     expect(parseFilterText(col('suma'), 'in', '10, x')).toBeNull();
   });
   it('shows a value the way the admin types it', () => {
-    expect(filterText(col('data'), '2026-11-05')).toBe('05.11.2026');
+    expect(filterText(col('data'), '2026-11-05')).toBe('05/11/2026');
     expect(filterText(col('data'), '+14d')).toBe('+14d');
     expect(filterText(col('suma'), 12.5)).toBe('12,5');
     expect(filterText(col('sportiv'), ['Ana', 'Dan'])).toBe('Ana, Dan');
@@ -106,7 +107,7 @@ describe('cell text', () => {
   it('writes money, dates and numbers the Romanian way and nothing for no value', () => {
     expect(cellText(col('suma'), 1200)).toBe('1.200 RON');
     expect(cellText(col('suma'), 12.5)).toBe('12,50 RON');
-    expect(cellText(col('data'), '2026-11-05')).toBe('05.11.2026');
+    expect(cellText(col('data'), '2026-11-05')).toBe('05/11/2026');
     expect(cellText(CATALOG.sportivi.columns.find((c) => c.key === 'varsta')!, 9)).toBe('9');
     expect(cellText(col('sportiv'), 'Ana')).toBe('Ana');
     expect([cellText(col('suma'), null), cellText(col('sportiv'), ''), cellText(col('sportiv'), undefined)]).toEqual(['', '', '']);

@@ -5,6 +5,7 @@ import { ADMIN_ERRORS } from '../athletes/errors';
 import { MONEY_UI_COPY } from '../presence/copy/money-ui';
 import { EMPTY_DATE, partsFromDisplay, partsToDisplay, type DateParts } from '../ui-birth-date';
 import { COMPETITII_COPY } from './competitions-view';
+import { numericDateToSlash } from '../date-format';
 
 /** Rules of the athlete record (spec 6): header, Date tab, toasts, Istoric time, "..." menu. Pure. */
 
@@ -51,7 +52,7 @@ export const isReadOnlyRecord = (r: Pick<AthleteRecord, 'status'>): boolean => r
 /** "<data nașterii>, <grupa principală>", or "data nașterii lipsește" (spec 6.1; no middle dot, gaps #1); an anonymized record: the group only. */
 export function recordSubline(r: AthleteRecord): string {
   if (isReadOnlyRecord(r)) return r.header.mainGroup ?? '';
-  return [r.header.birthDate ?? RECORD_COPY.noBirthDate, r.header.mainGroup].filter(Boolean).join(', ');
+  return [r.header.birthDate ? numericDateToSlash(r.header.birthDate) : RECORD_COPY.noBirthDate, r.header.mainGroup].filter(Boolean).join(', ');
 }
 
 const TAB_IDS: readonly RecordTab[] = ['date', 'abonament', 'plati', 'profil', 'documente', 'istoric', 'competitii'];

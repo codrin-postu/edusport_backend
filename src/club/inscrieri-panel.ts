@@ -5,6 +5,7 @@ import { INSCRIERI_PENDING_COPY, LIST_COPY, MATCH_COPY, PANEL_COPY } from './ins
 import { MEMBERSHIP_OPTIONS } from './registration-form-options';
 import { isScriptFormRegistration, registrationDocumentKinds, relationshipText, sourceText } from './registration-panel';
 import { athleteRecordTo } from './sportivi/routes';
+import { numericDateToSlash } from './date-format';
 
 /**
  * The Înscrieri list and panel (spec 3.1 to 3.6) as data: cells, tabs, rows, footer, menu, links and route urls.
@@ -218,7 +219,7 @@ export function lastGroupText(card: AthleteCard): string {
 
 /** Second line of a search row (spec 4.1): birth date, last group and parent, separated by commas. */
 export const cardDetailLine = (card: AthleteCard): string =>
-  [card.birthDate, groupText(card), card.contactName].filter((p): p is string => !!p).join(', ');
+  [card.birthDate ? numericDateToSlash(card.birthDate) : card.birthDate, groupText(card), card.contactName].filter((p): p is string => !!p).join(', ');
 
 export const showMatchCard = (view: RegistrationMatchView | null): boolean => !!view && !view.confirmed && view.existing !== null;
 

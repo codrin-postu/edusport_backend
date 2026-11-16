@@ -92,6 +92,9 @@ export function formatEmailSentAt(iso: string): string {
   return `${part('day')}.${part('month')}.${part('year')}, ${part('hour')}:${part('minute')}`;
 }
 
+/** The same stamp for the admin screen: "24/10/2026, 11:31". The Sheet and the PDF keep formatEmailSentAt. */
+export const formatEmailSentAtSlash = (iso: string): string => formatEmailSentAt(iso).replace(/^(\d{2})\.(\d{2})\.(\d{4})/, '$1/$2/$3');
+
 /** "Trimis 24.10.2026, 11:31", "Urmează să fie trimis", "Netrimis", or "Niciun e-mail trimis" before the first job. */
 export function emailStatusText(status: EmailStatus | null, formatDate: (iso: string) => string): string {
   if (!status || status.status === 'none') return 'Niciun e-mail trimis';

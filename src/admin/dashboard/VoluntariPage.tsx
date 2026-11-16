@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Button, StatusBadge } from '../ui';
+import { numericDateToSlash } from '../../club/date-format';
 import SubmissionTablePage, {
   DetailBody,
   DetailField,
@@ -78,7 +79,7 @@ function birthDateCell(row: VolunteerRow): React.ReactNode {
   const age = ageOf(bd);
   return (
     <>
-      {bd}
+      {numericDateToSlash(bd)}
       {age != null ? <span className="ui-num"> · {age} ani</span> : null}
       {age != null && age < 18 ? <StatusBadge tone="warning" className="vol-minor">minor</StatusBadge> : null}
     </>
@@ -227,7 +228,7 @@ const renderDetail = (row: Row, api: TableApi) => {
         <DetailField label="Data nașterii">
           {selected.birthDate ? (
             <>
-              {selected.birthDate}
+              {numericDateToSlash(selected.birthDate)}
               {age != null ? ` · ${age} ani` : ''}
             </>
           ) : (

@@ -33,6 +33,7 @@ export {
   isFullDate,
   partsFromDisplay,
   partsToDisplay,
+  partsToSlash,
   partsFromIso,
   partsToIso,
   type DateParts,

@@ -197,7 +197,7 @@ describe('match card, search rows, history and links (spec 3.3, 4.1, 1.6)', () =
   });
 
   it('search rows: birth date, last group and parent, separated by commas, empties left out', () => {
-    expect(cardDetailLine(card())).toBe('14.03.2014, Primii Pași 2025-2026, Mihaela Dumitrescu');
+    expect(cardDetailLine(card())).toBe('14/03/2014, Primii Pași 2025-2026, Mihaela Dumitrescu');
     expect(cardDetailLine(card({ birthDate: null, lastGroup: null }))).toBe('Mihaela Dumitrescu');
   });
 

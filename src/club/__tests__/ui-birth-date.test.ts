@@ -100,3 +100,19 @@ describe('pickedDate', () => {
     expect(pickedDate('', range)).toEqual(EMPTY_DATE);
   });
 });
+
+describe('slash display', () => {
+  it('shows dd/mm/yyyy while the value handed to callers keeps ZZ.LL.AAAA', async () => {
+    const { partsToSlash } = await import('../ui-birth-date');
+    const p = { day: 4, month: 3, year: 2016 };
+    expect(partsToSlash(p)).toBe('04/03/2016');
+    expect(partsToDisplay(p)).toBe('04.03.2016');
+    expect(partsToSlash({ day: null, month: 3, year: 2016 })).toBeNull();
+  });
+
+  it('reads slashes and dots', () => {
+    expect(partsFromDisplay('14/03/2016')).toEqual({ day: 14, month: 3, year: 2016 });
+    expect(partsFromDisplay('14.03.2016')).toEqual({ day: 14, month: 3, year: 2016 });
+    expect(partsFromDisplay('31/02/2016')).toBeNull();
+  });
+});
