@@ -8,7 +8,7 @@ import { addMembers, addNewAthlete, readCard, searchAthletes } from '../../../cl
 import { coachContexts, type CoachContexts, type CoachResult, type CoachState } from '../../../club/portal/coach/context';
 import { readCoachGroupPage, readGroups } from '../../../club/portal/coach/groups';
 import { readCoachHistory } from '../../../club/portal/coach/history';
-import { createCoachLesson, deleteCoachLesson, planCoachLesson, readCoachLesson, saveCoachLesson } from '../../../club/portal/coach/lessons';
+import { cancelCoachLesson, createCoachLesson, deleteCoachLesson, planCoachLesson, readCoachLesson, saveCoachLesson } from '../../../club/portal/coach/lessons';
 import { changePassword, listDevices, readMe, revokeDevice, saveMe } from '../../../club/portal/coach/me';
 import { moveMember, removeMember } from '../../../club/portal/coach/members';
 import { checkCoachSession, readCoachSession, readSavedDays, saveCoachSession } from '../../../club/portal/coach/presence';
@@ -104,6 +104,7 @@ export default {
   lesson: coachOnly('lesson', async (c, ctx) => respondData(ctx, await readCoachLesson(c, param(ctx, 'documentId')))),
   planLesson: coachOnly('planLesson', async (c, ctx) => respondData(ctx, await planCoachLesson(c, param(ctx, 'documentId'), ctx.request.body))),
   saveLesson: coachOnly('saveLesson', async (c, ctx) => respondData(ctx, await saveCoachLesson(c, param(ctx, 'documentId'), ctx.request.body))),
+  cancelLesson: coachOnly('cancelLesson', async (c, ctx) => respondData(ctx, await cancelCoachLesson(c, param(ctx, 'documentId'), ctx.request.body))),
   deleteLesson: coachOnly('deleteLesson', async (c, ctx) => respondData(ctx, await deleteCoachLesson(c, param(ctx, 'documentId'), ctx.query))),
   searchAthletes: coachOnly('searchAthletes', async (c, ctx) => respondData(ctx, await searchAthletes(c, ctx.query))),
   addAthlete: coachOnly('addAthlete', async (c, ctx) => respondData(ctx, await addNewAthlete(c, ctx.request.body))),

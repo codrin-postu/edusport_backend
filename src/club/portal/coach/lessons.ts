@@ -2,6 +2,7 @@ import { refuse, type AdminResult } from '../../admin-result';
 import type { ActionResult } from '../../groups/action-log';
 import { ATTENDANCE_ERRORS } from '../../presence/copy/attendance';
 import { createLesson } from '../../presence/lessons/create';
+import { cancelLesson, readCancelReason, type Cancelled } from '../../presence/lessons/cancel';
 import { deleteLesson, deleteLessonsFrom, type Deleted } from '../../presence/lessons/delete';
 import { readLessonPatch, readLessonPlan } from '../../presence/lessons/input';
 import { planLesson } from '../../presence/lessons/plan';
@@ -100,4 +101,14 @@ export async function deleteCoachLesson(c: CoachContexts, id: string, query: Rec
   const right = rightOf(c, l);
   if (!right.delete) return refusalFor(right);
   return plain(scope === 'following' ? await deleteLessonsFrom(c.presence, id, c.coach.teamMemberId) : await deleteLesson(c.presence, id, c.coach.teamMemberId));
+}
+
+/** Cancels one planned lesson of the coach from today on; the reason is optional. Order of refusals: not mine 404, body 400, saved or past or cancelled 409. */
+export async function cancelCoachLesson(c: CoachContexts, id: string, body: unknown): Promise<CoachResult<Cancelled>> {
+  const l = await mine(c, id);
+  if (!l) return notFound();
+  const reason = readCancelReason(body);
+  if (reason === undefined) return refuse(400, PORTAL_ERRORS.invalid);
+  if (l.recorded || l.date < c.today) return refuse(409, PRESENCE_ERRORS.stale);
+  return plain(await cancelLesson(c.presence, id, reason, c.coach.teamMemberId));
 }

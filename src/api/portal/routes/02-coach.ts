@@ -33,6 +33,7 @@ export default {
     route('PUT', '/lessons/:documentId/plan', 'planLesson'),
     route('GET', '/lessons/:documentId', 'lesson'),
     route('PUT', '/lessons/:documentId', 'saveLesson'),
+    route('POST', '/lessons/:documentId/cancel', 'cancelLesson'),
     route('DELETE', '/lessons/:documentId', 'deleteLesson'),
     route('GET', '/athletes/search', 'searchAthletes'),
     route('POST', '/athletes', 'addAthlete'),

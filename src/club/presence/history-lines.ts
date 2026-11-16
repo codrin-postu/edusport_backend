@@ -27,6 +27,7 @@ export const P5_ACTIONS = {
   lessonSaved: 'lesson-saved',
   lessonEdited: 'lesson-edited',
   lessonDeleted: 'lesson-deleted',
+  lessonCancelled: 'lesson-cancelled',
   lessonSeriesAdded: 'lesson-series-added',
   lessonSeriesEnded: 'lesson-series-ended',
 } as const;
@@ -117,6 +118,7 @@ const RENDER: Readonly<Record<string, Render>> = {
   [P5_ACTIONS.lessonSaved]: (c) => [PRESENCE_LINES.lessonSaved(c.present === true)],
   [P5_ACTIONS.lessonEdited]: (c, _s, names) => fieldLines(c, LESSON_FIELD_LABELS, lessonValue(names)),
   [P5_ACTIONS.lessonDeleted]: () => [PRESENCE_LINES.lessonDeleted],
+  [P5_ACTIONS.lessonCancelled]: () => [PRESENCE_LINES.lessonCancelled],
   [P5_ACTIONS.lessonSeriesAdded]: (c) => [PRESENCE_LINES.lessonSeriesAdded(programLineFrom(ruleOf(c)), num(c.count))],
   [P5_ACTIONS.lessonSeriesEnded]: (c) => [PRESENCE_LINES.lessonSeriesEnded(shortDate(text(c.endedFrom)), programLine(ruleOf(c)))],
 };

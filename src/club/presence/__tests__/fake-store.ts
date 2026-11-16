@@ -41,7 +41,7 @@ export const attendanceRow = (over: Partial<AttendanceWrite & { id: string }> = 
 });
 export const lessonRow = (over: Partial<LessonRow> = {}): LessonRow => ({
   id: 'l1', athleteId: 'a1', date: '2026-11-10', startTime: '17:00', durationMin: 50, coachIds: ['tm-andreea'], state: 'planned', present: null, priceListId: null,
-  itemName: null, price: null, audience: null, amount: 0, createdByName: 'admin@example.com', recordedAt: '2026-11-01T10:00:00.000Z', savedBy: null, savedAt: null, seriesId: null, movedFromDate: null, movedFromTime: null, ...over,
+  itemName: null, price: null, audience: null, amount: 0, createdByName: 'admin@example.com', recordedAt: '2026-11-01T10:00:00.000Z', savedBy: null, savedAt: null, seriesId: null, movedFromDate: null, movedFromTime: null, cancelledAt: null, cancelReason: null, ...over,
 });
 export const lessonSeriesRow = (over: Partial<LessonSeriesRow> = {}): LessonSeriesRow => ({
   id: 'ls1', athleteId: 'a1', coachIds: ['tm-andreea'], freq: 'weekly', days: ['tue', 'thu'], weekOfMonth: null, startTime: '17:30', durationMin: 45,

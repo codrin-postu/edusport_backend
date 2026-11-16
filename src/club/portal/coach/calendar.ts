@@ -44,7 +44,7 @@ export async function ownClassesBetween(c: CoachContexts, from: string, to: stri
     add({
       kind: 'grup', cancelled: false, date: r.date, startTime: r.startTime, durationMin: r.durationMin ?? (r.occurrenceKey ? durations.get(r.occurrenceKey) ?? null : null),
       title: r.groupName, children: r.listed, location: await locationOf(group), done: r.state === 'salvata', standIn,
-      sessionId: r.sessionId, occurrenceKey: r.occurrenceKey, lessonId: null,
+      sessionId: r.sessionId, occurrenceKey: r.occurrenceKey, lessonId: null, reason: null,
     }, group?.order ?? 0);
   }
   for (const o of expandOccurrences(calendar.events, calendar.blackouts, from, to)) {
@@ -54,15 +54,15 @@ export async function ownClassesBetween(c: CoachContexts, from: string, to: stri
     if (saved.has(key)) continue;
     add({
       kind: 'grup', cancelled: true, date: o.date, startTime: hhmm(o.startTime) ?? o.startTime, durationMin: durationOf(o), title: group.name, children: null,
-      location: await locationOf(group), done: false, standIn: false, sessionId: null, occurrenceKey: key, lessonId: null,
+      location: await locationOf(group), done: false, standIn: false, sessionId: null, occurrenceKey: key, lessonId: null, reason: o.reason,
     }, group.order);
   }
   const [lessons, athletes] = await Promise.all([store.lessons({ from, to }), store.athletes()]);
   const names = new Map(athletes.map((a) => [a.id, a.name ?? '']));
   for (const l of lessons.filter((x) => x.coachIds.includes(c.coach.teamMemberId))) {
     add({
-      kind: 'individual', cancelled: false, date: l.date, startTime: hhmm(l.startTime) ?? l.startTime, durationMin: l.durationMin, title: names.get(l.athleteId) ?? '',
-      children: null, location: null, done: l.present !== null, standIn: false, sessionId: null, occurrenceKey: null, lessonId: l.id,
+      kind: 'individual', cancelled: l.cancelledAt !== null, date: l.date, startTime: hhmm(l.startTime) ?? l.startTime, durationMin: l.durationMin, title: names.get(l.athleteId) ?? '',
+      children: null, location: null, done: l.present !== null, standIn: false, sessionId: null, occurrenceKey: null, lessonId: l.id, reason: l.cancelReason,
     }, 0);
   }
   return items.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime) || (order.get(a) ?? 0) - (order.get(b) ?? 0));

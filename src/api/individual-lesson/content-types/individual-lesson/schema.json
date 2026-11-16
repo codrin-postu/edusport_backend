@@ -23,6 +23,8 @@
     "savedAt": { "type": "datetime" },
     "series": { "type": "relation", "relation": "manyToOne", "target": "api::lesson-series.lesson-series" },
     "movedFromDate": { "type": "date" },
-    "movedFromTime": { "type": "string" }
+    "movedFromTime": { "type": "string" },
+    "cancelledAt": { "type": "datetime" },
+    "cancelReason": { "type": "string" }
   }
 }

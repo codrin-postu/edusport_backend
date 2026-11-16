@@ -25,6 +25,8 @@ export type LessonWrite = {
   createdByName: string; recordedAt: string; savedBy: string | null; savedAt: string | null; seriesId: string | null;
   /** The slot a planned lesson had before its date or time was edited (both set together, or both null). */
   movedFromDate: string | null; movedFromTime: string | null;
+  /** Set when the coach cancelled this planned lesson; it stays on both calendars marked cancelled. */
+  cancelledAt: string | null; cancelReason: string | null;
 };
 export type LessonRow = LessonWrite & { id: string };
 /** The rule of a repeating individual lesson; its dates are ordinary planned lessons that point back at it. */

@@ -34,6 +34,7 @@ export const PRESENCE_LINES = {
   lessonPlanned: (date: string, startTime: string, durationMin: number): string => `Lecție programată: ${date}, ${startTime}, ${durationMin} min.`,
   lessonSaved: (present: boolean): string => `Lecție salvată: ${present ? 'prezent' : 'absent'}.`,
   lessonDeleted: 'Lecție ștearsă.',
+  lessonCancelled: 'Lecție anulată.',
   lessonSeriesAdded: (rule: string, count: number): string => `Lecții individuale programate: ${rule}, ${countWords(count, 'lecție', 'lecții')}.`,
   lessonSeriesEnded: (from: string, rule: string): string => `Lecții individuale oprite din ${from}: ${rule}.`,
 };

@@ -75,6 +75,7 @@ export const toLessonRow = (r: Raw): LessonRow => ({
   itemName: str(r.itemName), price: decimal(r.price), audience: audience(r.audience), amount: amountOf(r.amount), createdByName: text(r.createdByName), recordedAt: stamp(r.recordedAt) ?? '',
   savedBy: str(r.savedBy), savedAt: stamp(r.savedAt), seriesId: linkId(r.series),
   movedFromDate: str(r.movedFromDate), movedFromTime: hhmm(str(r.movedFromTime)),
+  cancelledAt: stamp(r.cancelledAt), cancelReason: str(r.cancelReason),
 });
 
 const FREQS: readonly RepeatFreq[] = ['weekly', 'biweekly', 'monthly'];

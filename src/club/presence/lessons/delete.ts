@@ -17,7 +17,7 @@ export type Deleted = { deleted: true; count: number; toast: string };
 async function recordCancels(ctx: PresenceContext, lessons: LessonRow[]): Promise<PresenceUndoStep[]> {
   const steps: PresenceUndoStep[] = [];
   for (const l of lessons) {
-    if (l.state !== 'planned' || l.date < ctx.today) continue;
+    if (l.state !== 'planned' || l.date < ctx.today || l.cancelledAt !== null) continue;
     const row = { athleteId: l.athleteId, date: l.date, startTime: l.startTime, durationMin: l.durationMin };
     await ctx.store.recordLessonCancel(row);
     steps.push({ op: 'removeLessonCancel', row });

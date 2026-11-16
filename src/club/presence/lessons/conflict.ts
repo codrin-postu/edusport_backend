@@ -9,7 +9,7 @@ const endOf = (startTime: string, durationMin: number): number => minutesOf(star
 export function conflictOf(lessons: LessonRow[], date: string, startTime: string, durationMin: number, ignore: Set<string>): LessonRow | null {
   const start = minutesOf(startTime);
   const end = endOf(startTime, durationMin);
-  const hits = lessons.filter((l) => l.date === date && !ignore.has(l.id) && minutesOf(l.startTime) < end && start < endOf(l.startTime, l.durationMin));
+  const hits = lessons.filter((l) => l.date === date && l.cancelledAt === null && !ignore.has(l.id) && minutesOf(l.startTime) < end && start < endOf(l.startTime, l.durationMin));
   return hits.sort((a, b) => a.startTime.localeCompare(b.startTime) || a.id.localeCompare(b.id))[0] ?? null;
 }
 

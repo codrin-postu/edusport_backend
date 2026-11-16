@@ -79,7 +79,7 @@ async function lessonItems(r: Reads, add: Add): Promise<void> {
   for (const l of lessons) {
     const start = hhmm(l.startTime) ?? l.startTime;
     const movedFrom = l.movedFromDate && l.movedFromTime ? { date: l.movedFromDate, startTime: hhmm(l.movedFromTime) ?? l.movedFromTime } : null;
-    add({ date: l.date, startTime: start, endTime: endOf(start, l.durationMin), kind: 'individual', title: LESSON_TITLE, location: null, coaches: coachNamesOf(r.ctx, l.coachIds), cancelled: false, reason: null, movedFrom }, 0);
+    add({ date: l.date, startTime: start, endTime: endOf(start, l.durationMin), kind: 'individual', title: LESSON_TITLE, location: null, coaches: coachNamesOf(r.ctx, l.coachIds), cancelled: l.cancelledAt !== null, reason: l.cancelReason, movedFrom: l.cancelledAt !== null ? null : movedFrom }, 0);
   }
   const slots = new Set(lessons.map((l) => `${l.date}|${hhmm(l.startTime) ?? l.startTime}`));
   for (const x of await store.lessonCancels({ athleteId: r.athleteId, from: r.from, to: r.to })) {

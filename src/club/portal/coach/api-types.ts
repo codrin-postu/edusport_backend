@@ -104,6 +104,8 @@ export type CoachCalendarItem = {
   kind: 'grup' | 'individual'; cancelled: boolean; date: string; startTime: string; durationMin: number | null; title: string;
   children: number | null; location: string | null; done: boolean; standIn: boolean;
   sessionId: string | null; occurrenceKey: string | null; lessonId: string | null;
+  /** Why a cancelled item was cancelled (an individual lesson: the coach's own reason), else null. */
+  reason: string | null;
 };
 export type CoachCalendar = { month: string; today: string; days: { date: string; items: CoachCalendarItem[] }[] };
 export type CoachMemberChange = { athleteName: string; groupName: string; from: string; toast: string };

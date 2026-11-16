@@ -134,7 +134,7 @@ async function planLocked(ctx: PresenceContext, id: string, b: CoachLessonPlanBo
   const l = await ctx.store.lesson(id);
   if (!l || (listedFor !== null && !l.coachIds.includes(listedFor))) return refuse(404, PRESENCE_ERRORS.notFound);
   if (l.athleteId !== first.athleteId || l.seriesId !== first.seriesId) return refuse(409, PRESENCE_ERRORS.stale);
-  if (l.state !== 'planned' || l.date < ctx.today) return refuse(409, PRESENCE_ERRORS.stale);
+  if (l.state !== 'planned' || l.date < ctx.today || l.cancelledAt !== null) return refuse(409, PRESENCE_ERRORS.stale);
   if (b.date < ctx.today || !(await coachesExist(ctx.store, b.coachIds))) return refuse(400, PRESENCE_ERRORS.invalid);
   const writesRows = b.repeat !== null && b.repeat !== undefined ? true : b.scope === 'following' && series !== null;
   if (writesRows && !(await seriesAthleteOk(ctx.store, l.athleteId, b.coachIds))) return refuse(400, PRESENCE_ERRORS.invalid);
