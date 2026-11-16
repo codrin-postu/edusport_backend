@@ -49,6 +49,13 @@ export const FILTER_GROUPS: ReadonlyArray<{ cat: CalendarCategory; label: string
   { cat: 'liber', label: 'Liber, vacanță, sărbătoare' },
 ];
 
+/** The hidden set with `cat` flipped; a new set, the input stays untouched. */
+export function toggleCategory(hidden: ReadonlySet<CalendarCategory>, cat: CalendarCategory): Set<CalendarCategory> {
+  const next = new Set(hidden);
+  if (!next.delete(cat)) next.add(cat);
+  return next;
+}
+
 /** CSS fill of a calendar category, from the theme tokens. */
 export const catFill = (c: CalendarCategory) => `var(--theme-cat-${c})`;
 

@@ -2,8 +2,8 @@ import { CALENDAR_CATEGORIES } from '../../../../../admin/ui';
 
 /**
  * CSS of the admin calendar. Two scopes: `.cal` (the calendar, inside the
- * editor root, which also carries .ui-root) and `.cal-drawer` / `.cal-pop`
- * (the editor drawer and the phone filter popover, portalled to <body>).
+ * editor root, which also carries .ui-root) and `.cal-drawer`
+ * (the editor drawer, portalled to <body>).
  * Colours only from --theme-* (categories from --theme-cat-*), corners from
  * --ui-radius-*, so the calendar follows the light / dark admin theme.
  *
@@ -34,12 +34,9 @@ ${CAT}
 .cal-bar-row--sub .cal-viewseg{flex:1;width:auto}
 .cal-nav{display:flex;align-items:center;gap:6px}
 .cal-mon{font-size:15px;font-weight:700;margin:0 4px;color:var(--theme-text);white-space:nowrap}
-.cal-filters{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-top:1px solid var(--theme-border)}
-.cal-filters--stack{flex-direction:column;align-items:stretch;padding:8px;border-top:none}
-.cal-filter{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);background:var(--theme-surface);font-family:inherit;font-size:12px;font-weight:600;line-height:1.35;color:var(--theme-text-secondary);cursor:pointer;text-align:left}
-.cal-filter:hover{border-color:var(--theme-border-strong);color:var(--theme-text)}
-.cal-filter[aria-pressed="false"]{opacity:.45}
-.cal-filter[aria-pressed="false"] .cal-filter-l{text-decoration:line-through}
+.cal-filters{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:8px 12px;border-top:1px solid var(--theme-border)}
+.cal-filters-t{font-size:var(--ui-fs-body-sm);font-weight:600;color:var(--theme-text-secondary)}
+.cal-filter-l{display:inline-flex;align-items:center;gap:6px}
 
 /* month grid */
 .cal-dows{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
@@ -121,9 +118,6 @@ ${CAT}
 .cal-drawer .cal-dt-row--cur{background:var(--theme-primary-soft)}
 .cal-drawer .cal-dt-note{grid-column:1 / -1}
 .cal-drawer .cal-dt-state,.cal-drawer .cal-dt-note{padding-top:3px;padding-bottom:3px;font-size:var(--ui-fs-body-sm)}
-
-/* phone filter popover */
-.cal-pop{min-width:240px}
 
 @media (max-width:900px){
   .cal-day{min-height:76px}

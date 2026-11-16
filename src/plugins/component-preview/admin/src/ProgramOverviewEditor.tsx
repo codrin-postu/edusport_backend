@@ -16,6 +16,7 @@ import {
   occView,
   fmtRoDate,
   formFromEvent,
+  toggleCategory,
   validateForm,
   withOccurrenceEdit,
   ymd,
@@ -149,7 +150,7 @@ export default function ProgramOverviewEditor(_props: Props) {
     setSelDay(todayKey);
     setFocusDate(view === 'list' ? todayKey : null);
   };
-  const toggleCat = (k: CalendarCategory) => setHidden((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
+  const toggleCat = (k: CalendarCategory) => setHidden((s) => toggleCategory(s, k));
 
   const open = (f: FormState) => {
     baseline.current = JSON.stringify(f);

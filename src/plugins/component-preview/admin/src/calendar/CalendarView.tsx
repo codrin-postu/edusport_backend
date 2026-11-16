@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, EmptyState, Popover, SegmentedControl, type CalendarCategory } from '../../../../../admin/ui';
+import { Button, Checkbox, EmptyState, SegmentedControl, type CalendarCategory } from '../../../../../admin/ui';
 import { IconPlus } from '../../../../../admin/ui/icons';
 import { weekBands, type Span } from '../../../../../club/calendar/bands';
 import {
@@ -41,19 +41,26 @@ export interface FilterProps {
   onToggle: (cat: CalendarCategory) => void;
 }
 
-/** The four colour chips. Off = dimmed and struck through. */
-export function FilterChips({ hidden, onToggle, stacked = false }: FilterProps & { stacked?: boolean }) {
+/** "Arată:" and one checkbox per colour; checked = shown. */
+export function FilterRow({ hidden, onToggle }: FilterProps) {
   return (
-    <div className={stacked ? 'cal-filters cal-filters--stack' : 'cal-filters'} role="group" aria-label="Categorii afișate">
-      {FILTER_GROUPS.map((g) => {
-        const on = !hidden.has(g.cat);
-        return (
-          <button key={g.cat} type="button" className="cal-filter" aria-pressed={on} data-calcat={g.cat} onClick={() => onToggle(g.cat)}>
-            <span className="cal-sw" aria-hidden="true" />
-            <span className="cal-filter-l">{g.label}</span>
-          </button>
-        );
-      })}
+    <div className="cal-filters" role="group" aria-labelledby="cal-filters-l">
+      <span id="cal-filters-l" className="cal-filters-t">
+        Arată:
+      </span>
+      {FILTER_GROUPS.map((g) => (
+        <Checkbox
+          key={g.cat}
+          checked={!hidden.has(g.cat)}
+          onChange={() => onToggle(g.cat)}
+          label={
+            <span className="cal-filter-l" data-calcat={g.cat}>
+              <span className="cal-sw" aria-hidden="true" />
+              {g.label}
+            </span>
+          }
+        />
+      ))}
     </div>
   );
 }
@@ -72,9 +79,6 @@ export interface ToolbarProps extends FilterProps {
 }
 
 export function CalendarToolbar({ y, m, narrow, view, loading, onPrev, onNext, onToday, onView, onAdd, hidden, onToggle }: ToolbarProps) {
-  const [filtersOpen, setFiltersOpen] = React.useState(false);
-  const filtersRef = React.useRef<HTMLButtonElement>(null);
-  const off = hidden.size;
   const viewSwitch = <SegmentedControl<CalView> aria-label="Vizualizare" options={VIEW_OPTIONS} value={view} onChange={onView} block={narrow} className="cal-viewseg" />;
   return (
     <div className="cal-bar">
@@ -104,26 +108,8 @@ export function CalendarToolbar({ y, m, narrow, view, loading, onPrev, onNext, o
           </Button>
         )}
       </div>
-      {narrow ? (
-        <div className="cal-bar-row cal-bar-row--sub">
-          {viewSwitch}
-          <Button
-            ref={filtersRef}
-            variant="secondary"
-            size="sm"
-            aria-expanded={filtersOpen}
-            aria-haspopup="true"
-            onClick={() => setFiltersOpen((o) => !o)}
-          >
-            {off > 0 ? `Filtre (${FILTER_GROUPS.length - off}/${FILTER_GROUPS.length})` : 'Filtre'}
-          </Button>
-          <Popover open={filtersOpen} anchorRef={filtersRef} onClose={() => setFiltersOpen(false)} placement="bottom-end" className="cal-pop">
-            <FilterChips hidden={hidden} onToggle={onToggle} stacked />
-          </Popover>
-        </div>
-      ) : (
-        <FilterChips hidden={hidden} onToggle={onToggle} />
-      )}
+      {narrow && <div className="cal-bar-row cal-bar-row--sub">{viewSwitch}</div>}
+      <FilterRow hidden={hidden} onToggle={onToggle} />
     </div>
   );
 }
