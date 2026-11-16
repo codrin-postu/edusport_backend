@@ -116,7 +116,7 @@ describe('lines', () => {
   it('lists header, rows, subtotal per group and Total', () => {
     const lines = linesOf(result(), new Set(), (g) => `Subtotal ${g}`);
     expect(lines.map((l) => l.kind)).toEqual(['group', 'row', 'row', 'subtotal', 'group', 'row', 'subtotal', 'total']);
-    expect(lines[0]).toMatchObject({ header: 'Avansați, 2 plăți', open: true, groupKey: 'g1' });
+    expect(lines[0]).toMatchObject({ header: 'Avansați, 2 plăți', label: 'Avansați', countText: '2 plăți', open: true, groupKey: 'g1' });
     expect(lines[3]).toMatchObject({ label: 'Subtotal Avansați' });
   });
   it('a collapsed group keeps its header and subtotal, loses its rows', () => {

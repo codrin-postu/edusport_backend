@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { EmptyState, Pager } from '../../../ui';
+import { EmptyState, Pager, StatusBadge } from '../../../ui';
 import { IconChevronDown } from '../../../ui/icons';
-import { cellText, linesOf, windowOf, type Line } from '../../../../club/tables/builder-state';
+import { cellText, windowOf, type Line } from '../../../../club/tables/builder-state';
 import { TABLES_COPY } from '../../../../club/tables/copy';
 import { athleteRecordTo } from '../../../../club/sportivi/routes';
 import { eduLinkHref } from '../../../../club/admin-href';
 import type { CatalogColumn, CellValue, TableDefinition, TableResult } from '../../../../club/tables/types';
+import { badgeTone, tableLines } from '../../../../club/tables/rows-view';
 import { WINDOW_ROWS, windowed } from '../../../../club/tables/view-state';
 
 type Props = {
@@ -38,7 +39,7 @@ function Head({ columns, sort, onSort }: { columns: CatalogColumn[]; sort: Props
 
 /** A subtotal or Total line: the label sits in the first column that carries no sum (as in the file). */
 function SumLine({ line, columns }: { line: Extract<Line, { kind: 'subtotal' | 'total' }>; columns: CatalogColumn[] }) {
-  const label = line.kind === 'subtotal' ? line.label : TABLES_COPY.total;
+  const label = line.label;
   const free = columns.findIndex((c) => !(c.key in line.cells));
   return (
     <tr className={line.kind === 'total' ? 'tbl-total' : 'tbl-sub'}>
@@ -50,6 +51,12 @@ function SumLine({ line, columns }: { line: Extract<Line, { kind: 'subtotal' | '
   );
 }
 
+function Cell({ c, v }: { c: CatalogColumn; v: CellValue | undefined }) {
+  const text = cellText(c, v);
+  const tone = text === '' ? null : badgeTone(c, text);
+  return <td className={isNum(c) ? 'tbl-num' : undefined}>{tone ? <StatusBadge tone={tone}>{text}</StatusBadge> : text}</td>;
+}
+
 function RowLine({ row, columns }: { row: TableResult['rows'][number]; columns: CatalogColumn[] }) {
   const id = row.athleteId;
   const open = () => id && window.open(eduLinkHref(athleteRecordTo(id)), '_blank', 'noopener');
@@ -59,7 +66,7 @@ function RowLine({ row, columns }: { row: TableResult['rows'][number]; columns: 
       onClick={id ? open : undefined}
       onKeyDown={id ? (e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(); } } : undefined}
     >
-      {columns.map((c) => <td key={c.key} className={isNum(c) ? 'tbl-num' : undefined}>{cellText(c, row.cells[c.key])}</td>)}
+      {columns.map((c) => <Cell key={c.key} c={c} v={row.cells[c.key]} />)}
     </tr>
   );
 }
@@ -69,7 +76,7 @@ export function ResultTable({ result, sort, onSort, collapsed, onToggle }: Props
   const [page, setPage] = React.useState(1);
   React.useEffect(() => setPage(1), [result]);
   if (result.count === 0) return <EmptyState>{TABLES_COPY.empty[result.subject]}</EmptyState>;
-  const lines = linesOf(result, collapsed, TABLES_COPY.subtotal);
+  const lines = tableLines(result, collapsed);
   const win = windowed(result.count) ? windowOf(lines, page, WINDOW_ROWS) : { items: lines, pageCount: 1, page: 1 };
   return (
     <>
@@ -84,7 +91,8 @@ export function ResultTable({ result, sort, onSort, collapsed, onToggle }: Props
                     <td colSpan={result.columns.length}>
                       <button type="button" className="tbl-group-btn" aria-expanded={line.open} onClick={() => onToggle(line.groupKey)}>
                         <span className="tbl-group-chev" aria-hidden="true"><IconChevronDown size={12} /></span>
-                        {line.header}
+                        <span>{line.label}</span>
+                        <span className="tbl-group-count">{line.countText}</span>
                       </button>
                     </td>
                   </tr>

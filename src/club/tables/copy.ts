@@ -35,9 +35,7 @@ export const TABLES_COPY = {
   seasonOption: (label: string): string => `Sezonul ${label}`,
   groupLabel: 'Grupează',
   columnsLabel: (n: number): string => `Coloane (${n})`,
-  columnSearch: 'Caută coloană',
-  shown: 'Afișate, în ordine',
-  hidden: 'Ascunse',
+  columnSearch: 'Caută',
   season: 'Sezon',
   section: 'Secțiune',
   group: 'Grupă',
@@ -47,7 +45,6 @@ export const TABLES_COPY = {
   filters: 'Filtre',
   none: 'Fără',
   ungrouped: 'Negrupat',
-  subtotal: (g: string): string => `Subtotal ${g}`,
   total: 'Total',
   newTitle: 'Vizualizare nouă',
   name: 'Nume',
@@ -64,10 +61,9 @@ export const TABLES_COPY = {
   noPaymentsMonth: 'Nicio plată.',
   /** Shown for a saved view whose stored definition cannot be repaired. It can only be deleted. */
   brokenView: 'Vizualizarea nu mai poate fi deschisă.',
-  /** Accessible names of the column reorder controls (same wording as the other reorderable lists). */
-  move: (n: string): string => `Mută ${n}`,
-  moveUp: (n: string): string => `Mută ${n} mai sus`,
-  moveDown: (n: string): string => `Mută ${n} mai jos`,
+  /** Accessible names of the column reorder buttons. */
+  moveUp: 'Sus',
+  moveDown: 'Jos',
   /** Names of the filter operators in the builder. */
   ops: {
     eq: '=',

@@ -1,5 +1,5 @@
 import { MAX_COLUMNS, MAX_FILTERS } from './definition';
-import { groupHeader } from './view-state';
+import { groupCountText, groupHeader } from './view-state';
 import type { CatalogColumn, CellValue, FilterOp, FilterValue, Subject, TableDefinition, TableFilter, TableGroup, TableResult, TableRow } from './types';
 import { ron } from '../presence/money';
 import { TABLES_COPY } from './copy';
@@ -116,10 +116,10 @@ export function cellText(c: CatalogColumn, v: CellValue | undefined): string {
 
 /** One line of the rendered table. `group` lines can be collapsed; a row carries the athlete (null for payments of no athlete). */
 export type Line =
-  | { kind: 'group'; key: string; groupKey: string; header: string; open: boolean }
+  | { kind: 'group'; key: string; groupKey: string; header: string; label: string; countText: string; open: boolean }
   | { kind: 'row'; key: string; row: TableRow }
   | { kind: 'subtotal'; key: string; label: string; cells: Record<string, CellValue> }
-  | { kind: 'total'; key: string; cells: Record<string, CellValue> };
+  | { kind: 'total'; key: string; label: string; cells: Record<string, CellValue> };
 
 /** Header, rows and subtotal per group (a collapsed group keeps header and subtotal), then Total; or the plain rows and, when something is summed, Total. */
 export function linesOf(result: TableResult, collapsed: ReadonlySet<string>, subtotalLabel: (group: string) => string): Line[] {
@@ -127,12 +127,12 @@ export function linesOf(result: TableResult, collapsed: ReadonlySet<string>, sub
   const groups: TableGroup[] = result.groups ?? [];
   groups.forEach((g, gi) => {
     const open = !collapsed.has(g.key);
-    out.push({ kind: 'group', key: `g${gi}`, groupKey: g.key, header: groupHeader(result.subject, g.label, g.count), open });
+    out.push({ kind: 'group', key: `g${gi}`, groupKey: g.key, header: groupHeader(result.subject, g.label, g.count), label: g.label, countText: groupCountText(result.subject, g.count), open });
     if (open) g.rows.forEach((row, i) => out.push({ kind: 'row', key: `g${gi}r${i}`, row }));
     out.push({ kind: 'subtotal', key: `s${gi}`, label: subtotalLabel(g.label), cells: g.subtotal });
   });
   if (result.groups === null) result.rows.forEach((row, i) => out.push({ kind: 'row', key: `r${i}`, row }));
-  if (result.groups !== null || Object.keys(result.total).length > 0) out.push({ kind: 'total', key: 'total', cells: result.total });
+  if (result.groups !== null || Object.keys(result.total).length > 0) out.push({ kind: 'total', key: 'total', label: TABLES_COPY.total, cells: result.total });
   return out;
 }
 

@@ -35,11 +35,13 @@ const grouped = (n: number): TableResult => ({
 const noop = () => undefined;
 
 describe('Tabele render', () => {
-  it('a grouped result shows the header with its count, rows, "Subtotal <grupă>" and "Total" with money', () => {
+  it('a grouped result shows the header with its count, rows and "Total" lines with money', () => {
     const out = html(React.createElement(ResultTable, { result: grouped(2), sort: null, onSort: noop, collapsed: new Set(), onToggle: noop }));
-    expect(out).toContain('Avansați, 2 plăți');
-    expect(out).toContain('Subtotal Avansați');
-    expect(out).toContain('Total');
+    expect(out).toContain('Avansați');
+    expect(out).toContain('2 plăți');
+    expect(out).toContain('>Total<');
+    expect(out).not.toContain('Subtotal');
+    expect(out).not.toContain('Total general');
     expect(out).toContain('1.200 RON');
     expect(out).toContain('2.400 RON');
     expect(out).toContain('Ana 1');
@@ -56,9 +58,23 @@ describe('Tabele render', () => {
   it('a collapsed group keeps header and subtotal but not its rows', () => {
     const out = html(React.createElement(ResultTable, { result: grouped(2), sort: { column: 'suma', dir: 'desc' }, onSort: noop, collapsed: new Set(['g1']), onToggle: noop }));
     expect(out).not.toContain('Ana 1');
-    expect(out).toContain('Subtotal Avansați');
+    expect(out).toContain('>Total<');
     expect(out).toContain('aria-expanded="false"');
     expect(out).toContain('aria-sort="descending"');
+  });
+
+  it('a table with no money column has no total lines, and a status value is a badge', () => {
+    const stare = CATALOG.abonamente.columns.find((c) => c.key === 'stare')!;
+    const res: TableResult = { ...grouped(2), subject: 'abonamente', columns: [cols[0], stare], total: {}, groups: null, groupBy: null, rows: [{ athleteId: 'a1', groupKeys: {}, cells: { sportiv: 'Ana', stare: 'activ' } }] };
+    const out = html(React.createElement(ResultTable, { result: res, sort: null, onSort: noop, collapsed: new Set(), onToggle: noop }));
+    expect(out).not.toContain('Total');
+    expect(out).toContain('ui-badge');
+  });
+
+  it('several groups end with Total general', () => {
+    const g = grouped(1);
+    const res: TableResult = { ...g, groups: [...g.groups!, { ...g.groups![0], key: 'g2', label: 'Începători' }] };
+    expect(html(React.createElement(ResultTable, { result: res, sort: null, onSort: noop, collapsed: new Set(), onToggle: noop }))).toContain('Total general');
   });
 
   it('an empty result says so', () => {
@@ -113,6 +129,30 @@ describe('Tabele control row and export', () => {
 });
 
 const tabele = (file: string) => readFileSync(join(__dirname, '../../../admin/dashboard/sportivi/tabele', file), 'utf8');
+
+describe('Tabele table source', () => {
+  it('the columns popover has a search, a checkbox per column and Sus and Jos buttons, no visible label', () => {
+    const src = tabele('ColumnsPopover.tsx');
+    expect(src).toContain('MenuButton');
+    expect(src).toContain('<Input');
+    expect(src).toContain('<Checkbox');
+    expect(src).toContain('moveColumnTo');
+    expect(src).not.toContain('<h4');
+    expect(TABLES_COPY.columnSearch).toBe('Caută');
+    expect([TABLES_COPY.moveUp, TABLES_COPY.moveDown]).toEqual(['Sus', 'Jos']);
+  });
+  it('the table has collapsible groups, totals through tableLines, sortable headers and a link to the athlete', () => {
+    const src = tabele('ResultTable.tsx');
+    expect(src).toContain('aria-expanded');
+    expect(src).toContain('tableLines');
+    expect(src).toContain('aria-sort');
+    expect(src).toContain('eduLinkHref');
+  });
+  it('there is no sort select and no Sortare text under tabele', () => {
+    for (const file of readdirSync(join(__dirname, '../../../admin/dashboard/sportivi/tabele'))) expect(tabele(file), file).not.toMatch(/Sortare|<Select[^>]*sort/i);
+    expect(JSON.stringify(TABLES_COPY)).not.toContain('Sortare');
+  });
+});
 
 describe('Tabele shell source', () => {
   it('the header has the rail toggle, the title, "Salvează tabelul" and the split download', () => {

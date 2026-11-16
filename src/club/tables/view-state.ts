@@ -34,11 +34,14 @@ export function actionsFor(view: SavedViewRow, dirty: boolean): ViewActions {
 /** The "Plăți pe grupă luna aceasta" view, as saved (not edited, e.g. to another type), with nothing paid in the month: the screen keeps the view and shows one line instead of rows of zeros. */
 export const noPaymentsThisMonth = (viewId: string, dirty: boolean, result: TableResult): boolean => viewId === PLATI_GRUPA_ID && !dirty && !Number(result.total.platit ?? 0);
 
-/** "Intermediari Bronze, 12 sportivi". */
-export function groupHeader(subject: Subject, label: string, count: number): string {
+/** "12 sportivi". */
+export function groupCountText(subject: Subject, count: number): string {
   const [one, many] = TABLES_COUNT_WORDS[subject];
-  return `${label}, ${countWords(count, one, many)}`;
+  return countWords(count, one, many);
 }
+
+/** "Intermediari Bronze, 12 sportivi". */
+export const groupHeader = (subject: Subject, label: string, count: number): string => `${label}, ${groupCountText(subject, count)}`;
 
 export const WINDOW_ROWS = 200;
 const WINDOW_ABOVE = 1000;

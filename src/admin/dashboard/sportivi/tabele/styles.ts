@@ -41,13 +41,12 @@ export const TABELE_CSS = `
 .ui-root.ui-pop.tbl-pop{width:min(440px,calc(100vw - 16px));padding:12px;max-height:min(520px,calc(100vh - 32px));overflow-y:auto}
 .ui-root.ui-pop.tbl-filter-pop{width:min(320px,calc(100vw - 16px));display:flex;flex-direction:column;gap:8px}
 .ui-root.ui-pop.tbl-cols-pop{width:min(320px,calc(100vw - 16px))}
-.ui-root .tbl-pop-head{margin:12px 0 6px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--theme-text-secondary)}
-.ui-root .tbl-cols{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto}
+.ui-root .tbl-cols{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:360px;overflow-y:auto}
 .ui-root .tbl-col{display:flex;align-items:center;gap:6px;padding:3px 6px;border:1px solid transparent;background:var(--theme-surface)}
 .ui-root .tbl-col[data-on="true"]{border-color:var(--theme-border);background:var(--theme-surface-subtle)}
 .ui-root .tbl-col .ui-check{flex:1;min-width:0}
-.ui-root .tbl-grip{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border:none;background:none;color:var(--theme-text-muted);cursor:grab}
-.ui-root .tbl-grip[disabled]{visibility:hidden}
+.ui-root .tbl-col[data-on="false"] .ui-check{color:var(--theme-text-muted)}
+.ui-root .tbl-col-move{display:inline-flex;align-items:center;gap:2px;margin-left:auto}
 .ui-root .tbl-notices{display:flex;flex-direction:column;gap:8px;padding:12px var(--ui-inset) 0}
 .ui-root .tbl-count{margin:0;font-size:12.5px;color:var(--theme-text-secondary)}
 .ui-root .tbl-wrap{position:relative;overflow-x:auto;max-width:100%;min-width:0}
@@ -67,6 +66,7 @@ export const TABELE_CSS = `
 .ui-root .tbl-table tr.tbl-group td{background:var(--theme-surface-subtle);font-weight:700;padding:0}
 .ui-root .tbl-group-btn{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:6px;width:100%;min-height:var(--ui-control-h);padding:0 var(--ui-inset);cursor:pointer}
 .ui-root .tbl-group-btn:focus-visible{outline:2px solid var(--theme-focus);outline-offset:-2px}
+.ui-root .tbl-group-count{margin-left:auto;font-weight:500;color:var(--theme-text-secondary)}
 .ui-root .tbl-group-chev{display:inline-flex;transition:transform .12s}
 .ui-root .tbl-group-btn[aria-expanded="false"] .tbl-group-chev{transform:rotate(-90deg)}
 .ui-root .tbl-table tr.tbl-sub td{font-weight:700;border-top:1px solid var(--theme-border)}
