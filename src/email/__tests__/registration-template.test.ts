@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { displayUrl, nextSteps, renderRegistrationEmail, type RegistrationEmailInput } from '../registration-template';
+import type { ScheduleChangePayload } from '../../club/groups/types';
+import { displayUrl, emailPage, nextSteps, renderRegistrationEmail, type RegistrationEmailInput } from '../registration-template';
+import { renderScheduleEmail } from '../schedule-change-template';
 
 const INPUT: RegistrationEmailInput = {
   childName: 'Maria Dumitrescu',
@@ -103,5 +105,33 @@ describe('renderRegistrationEmail', () => {
     const { html } = renderRegistrationEmail({ ...INPUT, childName: 'Ana <script>alert(1)</script> & "Co"' });
     expect(html).not.toContain('<script>');
     expect(html).toContain('Ana &lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;Co&quot;');
+  });
+});
+
+describe('light-only e-mail frame', () => {
+  const CANCEL: ScheduleChangePayload = {
+    groupName: 'Primii Pași', date: '2026-11-14', startTime: '10:00', mode: 'cancel', newDate: null, newStartTime: null,
+    nextDate: null, nextStartTime: null, reason: null,
+  };
+  const COLOUR_META = [
+    '<meta name="color-scheme" content="light only">',
+    '<meta name="supported-color-schemes" content="light only">',
+    ':root{color-scheme:light only}',
+  ];
+
+  it('declares light only colour scheme', () => {
+    const html = emailPage('<p>x</p>', INPUT.links);
+    for (const part of COLOUR_META) expect(html).toContain(part);
+  });
+
+  it('keeps every white background Gmail-proof', () => {
+    const { html } = renderRegistrationEmail(INPUT);
+    expect(html).toContain('background-image:linear-gradient(#ffffff,#ffffff)');
+    expect(html).not.toContain('#f3f4f6');
+  });
+
+  it('applies to every e-mail that uses the frame', () => {
+    const { html } = renderScheduleEmail({ payload: CANCEL, links: INPUT.links });
+    for (const part of COLOUR_META) expect(html).toContain(part);
   });
 });

@@ -166,7 +166,9 @@ function footerHtml(links: EmailLinks): string {
 
 const HEAD =
   '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
-  '<meta name="x-apple-disable-message-reformatting"><style>' +
+  '<meta name="x-apple-disable-message-reformatting">' +
+  '<meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light only"><style>' +
+  ':root{color-scheme:light only}' +
   '@media only screen and (max-width:600px){' +
   '.es-pad{padding-left:22px!important;padding-right:22px!important}' +
   '.es-btns,.es-btns tbody,.es-btns tr{display:block!important;width:100%!important}' +
@@ -174,12 +176,15 @@ const HEAD =
   '.es-gap{display:block!important;width:100%!important;height:10px!important}}' +
   '</style></head>';
 
+/** White under the letter, as a gradient too, so dark-mode clients that rewrite plain backgrounds leave it alone. */
+const WHITE = 'background:#ffffff;background-image:linear-gradient(#ffffff,#ffffff);';
+
 /** The E1 letter around `bodyHtml`: navy left bar, white letter, the contact footer (registration and schedule e-mails). */
 export function emailPage(bodyHtml: string, links: EmailLinks): string {
   return (
-    `<!DOCTYPE html><html lang="ro">${HEAD}<body style="margin:0;padding:0;background:#f3f4f6;">` +
-    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f4f6"><tr><td align="center" style="padding:24px 12px;">' +
-    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width:100%;max-width:600px;background:#ffffff;">' +
+    `<!DOCTYPE html><html lang="ro">${HEAD}<body style="margin:0;padding:0;${WHITE}">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="${WHITE}"><tr><td align="center" style="padding:24px 12px;${WHITE}">` +
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width:100%;max-width:600px;${WHITE}">` +
     `<tr><td width="6" bgcolor="${NAVY}" style="width:6px;background:${NAVY};font-size:0;line-height:0;">&nbsp;</td>` +
     `<td class="es-pad" style="padding:36px;font-family:${FONT};font-size:14px;line-height:1.5;color:#1b1d22;">${bodyHtml}</td></tr>` +
     `<tr>${footerHtml(links)}</tr>` +
