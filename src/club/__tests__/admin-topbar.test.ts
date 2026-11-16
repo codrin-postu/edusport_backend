@@ -36,6 +36,7 @@ describe('phone top bar wiring', () => {
     const media = css.slice(css.indexOf('@media (max-width: 640px)'));
     expect(media).toContain('[data-edusport-strapi-topbar]');
     expect(media).toContain('display:none');
+    expect(media).toContain('nav:has(button[aria-controls="burger-menu"]){display:none !important}');
     expect(css).toContain('.edu-mnav-bar');
     expect(css).toContain('--ui-topbar');
   });

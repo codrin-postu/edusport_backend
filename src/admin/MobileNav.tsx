@@ -30,6 +30,7 @@ const NAV_CSS = `
 :root{--ui-topbar:56px}
 @media (max-width: 640px){
 [data-edusport-strapi-topbar]{display:none !important}
+nav:has(button[aria-controls="burger-menu"]){display:none !important}
 body{padding-top:var(--ui-topbar)}
 }
 .ui-root .edu-mnav-bar{position:fixed;top:0;left:0;right:0;height:var(--ui-topbar);display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 16px;background:var(--theme-surface);border-bottom:1px solid var(--theme-border);z-index:99997}
