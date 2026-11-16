@@ -120,3 +120,16 @@ describe('tableXlsx', () => {
     for (const t of ['Avansați, 2 plăți', 'Subtotal Avansați', 'Total']) expect(strings).toContain(`<t>${t}</t>`);
   });
 });
+
+describe('tableXlsx, Prezență pe ședințe', () => {
+  it('writes a header cell for every generated session column, past the 20 column cap', async () => {
+    const keys = Array.from({ length: 25 }, (_v, i) => `s:${i}`);
+    const columns = [...colsOf('sedinte', ['sportiv']), ...keys.map((key, i) => ({ key, label: `${String(i + 1).padStart(2, '0')}.11 17:00`, type: 'text' as const })), ...colsOf('sedinte', ['total'])];
+    const cells = Object.fromEntries([['sportiv', 'Ana'], ...keys.map((k) => [k, 'X']), ['total', 25]]);
+    const result: TableResult = { subject: 'sedinte', groupBy: null, columns, groups: null, rows: [row(cells)], total: {}, count: 1, notices: [] };
+    const sheet = tableSheet(result, 'Prezență');
+    expect(sheet.columns).toHaveLength(27);
+    const files = unzipSync(new Uint8Array(await tableXlsx(result, 'Prezență')));
+    expect(strFromU8(files['xl/sharedStrings.xml'])).toContain('25.11 17:00');
+  });
+});

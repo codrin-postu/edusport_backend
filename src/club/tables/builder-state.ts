@@ -16,12 +16,20 @@ export const DEFAULT_COLUMNS: Record<Subject, string[]> = {
   plati: ['data', 'sportiv', 'grupa', 'suma'],
   abonamente: ['cod', 'sportiv', 'abonament', 'expira'],
   prezenta: ['data', 'sportiv', 'grupa', 'tip'],
+  sedinte: ['sportiv', 'total'],
 };
 
-/** A new subject keeps the scope and starts from its own columns, with no filter, group or sort. */
-export const setSubject = (d: TableDefinition, subject: Subject): TableDefinition => ({
-  subject, scope: d.scope, columns: DEFAULT_COLUMNS[subject], filters: [], groupBy: null, sort: null,
-});
+/** What a subject that needs one group and one month falls back to when the scope has none. */
+export type ScopeFill = { groupId: string | null; month: string };
+
+/** A new subject keeps the scope and starts from its own columns, with no filter, group or sort. Prezență pe ședințe needs a group and a month: `fill` supplies them when the scope lacks them. */
+export const setSubject = (d: TableDefinition, subject: Subject, fill?: ScopeFill): TableDefinition => {
+  const needs = subject === 'sedinte' && fill !== undefined;
+  const scope = !needs ? d.scope : {
+    ...d.scope, groupId: d.scope.groupId ?? fill.groupId, period: d.scope.period ?? { kind: 'month' as const, month: fill.month },
+  };
+  return { subject, scope, columns: DEFAULT_COLUMNS[subject], filters: [], groupBy: null, sort: null };
+};
 
 /** Add at the end, or remove (never the last one, never above the cap); a sort on a removed column goes. */
 export function toggleColumn(d: TableDefinition, key: string, on: boolean): TableDefinition {

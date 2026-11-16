@@ -105,7 +105,7 @@ describe('readExportRequest', () => {
 describe('readCatalog', () => {
   it('lists subjects, the seasons (current first), sections, groups, the ready-made views for the current season and the default view', async () => {
     const res = await readCatalog(store(), TODAY);
-    expect(Object.keys(res.subjects)).toEqual(['sportivi', 'plati', 'abonamente', 'prezenta']);
+    expect(Object.keys(res.subjects)).toEqual(['sportivi', 'plati', 'abonamente', 'prezenta', 'sedinte']);
     expect(res.subjects.plati.columns.map((c) => c.key)).toContain('nrChitanta');
     expect(res.seasons[0]).toMatchObject({ id: 's26', isCurrent: true });
     expect(res.readyMade.map((v) => v.id)).toEqual(['rm-plati-grupa', 'rm-prezenta-grupa', 'rm-ramas', 'rm-expira', 'rm-contacte', 'rm-sportivi-activi', 'rm-sportivi-plati']);
@@ -113,5 +113,27 @@ describe('readCatalog', () => {
     expect(res.defaultViewId).toBe('rm-plati-grupa');
     expect(res.groups.map((g) => g.name)).toContain('Intermediari Bronze');
     expect(res.today).toBe(TODAY);
+  });
+});
+
+describe('runTable, Prezență pe ședințe', () => {
+  const sedinte = (over: Partial<ReturnType<typeof definition>['scope']> = {}, rest: Partial<ReturnType<typeof definition>> = {}) => ({
+    definition: definition({ subject: 'sedinte', columns: ['sportiv', 'total'], scope: { seasonId: 's26', sectionId: null, groupId: 'g-ib', period: { kind: 'month', month: '2026-11' }, ...over }, ...rest }),
+  });
+  it('refuses no group, the whole season and a later month with 400', async () => {
+    for (const over of [{ groupId: null }, { period: null }, { period: { kind: 'month' as const, month: '2026-12' } }]) {
+      expect(await runTable(store(), sedinte(over), { today: TODAY, budget: noBudget })).toMatchObject({ ok: false, status: 400 });
+    }
+  });
+  it('answers the generated columns, not the two stored ones', async () => {
+    const res = await runTable(store(), sedinte(), { today: TODAY, budget: noBudget });
+    expect(res.ok && res.data.columns.map((c) => c.key)).toEqual(['sportiv', 's:s1', 's:s2', 'total']);
+    expect(res.ok && res.data.rows[0].cells).toEqual({ sportiv: 'Ana Ionescu', 's:s1': 'X', 's:s2': 'X', total: 2 });
+  });
+  it('filters on the athlete and sorts on the total', async () => {
+    const filtered = await runTable(store(), sedinte({}, { filters: [{ column: 'sportiv', op: 'eq', value: 'Mihai Pop' }] }), { today: TODAY, budget: noBudget });
+    expect(filtered.ok && filtered.data.rows.map((r) => r.cells.sportiv)).toEqual(['Mihai Pop']);
+    const sorted = await runTable(store(), sedinte({}, { sort: { column: 'total', dir: 'desc' } }), { today: TODAY, budget: noBudget });
+    expect(sorted.ok && sorted.data.rows[0].cells.sportiv).toBe('Ana Ionescu');
   });
 });

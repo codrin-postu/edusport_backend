@@ -13,12 +13,19 @@ const col = (k: string) => plati.find((c) => c.key === k)!;
 
 describe('subject and columns', () => {
   it('a new subject starts from valid columns of its own and clears filters, group and sort', () => {
-    for (const s of ['sportivi', 'plati', 'abonamente', 'prezenta'] as const) {
+    for (const s of ['sportivi', 'plati', 'abonamente', 'prezenta', 'sedinte'] as const) {
       const next = setSubject({ ...def, filters: [{ column: 'suma', op: 'gt', value: 1 }], groupBy: 'grupa' }, s);
       expect(readDefinition({ definition: next }).ok, s).toBe(true);
       expect(next.columns).toEqual(DEFAULT_COLUMNS[s]);
       expect([next.filters, next.groupBy, next.sort, next.scope]).toEqual([[], null, null, def.scope]);
     }
+  });
+  it('Prezență pe ședințe fills a group and the current month only where the scope lacks them', () => {
+    const fill = { groupId: 'g1', month: '2026-11' };
+    expect(setSubject(def, 'sedinte', fill).scope).toEqual({ ...def.scope, groupId: 'g1', period: { kind: 'month', month: '2026-11' } });
+    const own = { ...def.scope, groupId: 'g2', period: { kind: 'current' as const } };
+    expect(setSubject({ ...def, scope: own }, 'sedinte', fill).scope).toEqual(own);
+    expect(setSubject(def, 'plati', fill).scope).toEqual(def.scope);
   });
   it('toggles columns: appends, removes, never the last, drops a sort on a removed column', () => {
     expect(toggleColumn(def, 'metoda', true).columns).toEqual(['data', 'sportiv', 'suma', 'metoda']);

@@ -15,6 +15,7 @@ export const TABLES_COUNT_WORDS = {
   plati: ['plată', 'plăți'],
   abonamente: ['abonament', 'abonamente'],
   prezenta: ['prezență', 'prezențe'],
+  sedinte: ['sportiv', 'sportivi'],
 } as const;
 
 export const TABLES_COPY = {
@@ -31,7 +32,7 @@ export const TABLES_COPY = {
   },
   /** Control row. */
   table: 'Tabel',
-  subjects: { sportivi: 'Sportivi', plati: 'Plăți', abonamente: 'Abonamente', prezenta: 'Prezențe' },
+  subjects: { sportivi: 'Sportivi', plati: 'Plăți', abonamente: 'Abonamente', prezenta: 'Prezențe', sedinte: 'Prezență pe ședințe' },
   filter: '+ Filtru',
   filterRemove: 'Scoate filtrul',
   groupLabel: 'Grupează',
@@ -44,6 +45,7 @@ export const TABLES_COPY = {
   section: 'Secțiune',
   group: 'Grupă',
   all: 'Toate',
+  select: 'Selectează',
   period: 'Perioada',
   wholeSeason: 'Tot sezonul',
   filters: 'Filtre',
@@ -84,6 +86,8 @@ export const TABLES_COPY = {
     notAuthor: VIEWS.notAuthor,
     tooManyViews: VIEWS.tooMany,
     download: 'Descărcarea nu a reușit.',
+    /** COPY NEEDED: invented wording. */
+    sedinteScope: 'Alege o grupă și o lună, cel mult luna aceasta.',
   },
   /** Notices of a view opened after the catalog or the data changed (repairDefinition). One per kind of change. */
   notices: {

@@ -1,4 +1,4 @@
-export type Subject = 'sportivi' | 'plati' | 'abonamente' | 'prezenta';
+export type Subject = 'sportivi' | 'plati' | 'abonamente' | 'prezenta' | 'sedinte';
 export type ColumnType = 'text' | 'number' | 'money' | 'date' | 'label';
 /** `values` lists the words a label column can show; absent for labels that are data (group, section names). */
 export type CatalogColumn = { key: string; label: string; type: ColumnType; values?: string[] };

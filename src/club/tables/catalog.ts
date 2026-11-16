@@ -57,6 +57,8 @@ export const CATALOG: Record<Subject, CatalogSubject> = {
     columns: [data, col('ora', 'Ora', 'text'), sportiv, grupa, col('tip', 'Tip', 'label', TYPE_VALUES), antrenor, col('plata', 'Plată', 'text'), suma],
     groupBy: ['grupa', 'sectiune', 'luna', 'antrenor'],
   },
+  /** The session columns are generated per group and month (rows-sedinte.ts); only these two are fixed. */
+  sedinte: { label: 'Prezență pe ședințe', columns: [sportiv, col('total', 'Total', 'number')], groupBy: [] },
 };
 
 export const GROUP_LABELS: Record<GroupKey, string> = { grupa: 'Grupă', sectiune: 'Secțiune', luna: 'Lună', antrenor: 'Antrenor' };

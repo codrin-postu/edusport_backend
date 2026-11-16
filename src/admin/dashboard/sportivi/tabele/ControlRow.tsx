@@ -11,7 +11,7 @@ import { FilterBar } from './FilterList';
 
 type Props = { definition: TableDefinition; catalog: CatalogAnswer; onChange: (d: TableDefinition) => void; aspect: Aspect; onAspect: (a: Aspect) => void };
 
-const SUBJECTS: Subject[] = ['sportivi', 'plati', 'abonamente', 'prezenta'];
+const SUBJECTS: Subject[] = ['sportivi', 'plati', 'abonamente', 'prezenta', 'sedinte'];
 const NONE = '';
 
 /** Months of a season, first to last (a season is under two years, so the loop is short). */
@@ -35,13 +35,16 @@ export function ControlRow({ definition, catalog, onChange, aspect, onAspect }: 
   const names: Record<string, string[]> = { grupa: catalog.groups.map((g) => g.name), sectiune: catalog.sections.map((s) => s.name) };
   const season = catalog.seasons.find((s) => s.id === scope.seasonId) ?? catalog.seasons[0];
   const sections: SelectOption[] = [{ value: NONE, label: TABLES_COPY.all }, ...catalog.sections.map((s) => ({ value: s.id, label: s.name }))];
-  const groups: SelectOption[] = [{ value: NONE, label: TABLES_COPY.all }, ...catalog.groups
+  const sedinte = definition.subject === 'sedinte';
+  const groupChoices: SelectOption[] = catalog.groups
     .filter((g) => (g.active || g.id === scope.groupId) && (scope.sectionId === null || g.sectionId === scope.sectionId))
-    .map((g) => ({ value: g.id, label: g.name }))];
+    .map((g) => ({ value: g.id, label: g.name }));
+  const groups: SelectOption[] = sedinte ? groupChoices : [{ value: NONE, label: TABLES_COPY.all }, ...groupChoices];
   const months = season ? monthsOf(season.startMonth, season.endMonth) : [];
   const current = periodValue(scope.period, catalog.today);
   if (current !== NONE && !months.includes(current)) months.push(current);
-  const periods: SelectOption[] = [{ value: NONE, label: TABLES_COPY.wholeSeason }, ...months.map((m) => ({ value: m, label: monthTitle(m) }))];
+  const monthOptions: SelectOption[] = months.map((m) => ({ value: m, label: monthTitle(m) }));
+  const periods: SelectOption[] = sedinte ? monthOptions : [{ value: NONE, label: TABLES_COPY.wholeSeason }, ...monthOptions];
   const groupBys: SelectOption[] = [{ value: NONE, label: TABLES_COPY.none }, ...subject.groupBy.map((k) => ({ value: k, label: catalog.groupLabels[k] }))];
   const set = (patch: Partial<TableDefinition['scope']>) => onChange({ ...definition, scope: { ...scope, ...patch } });
   return (
@@ -50,16 +53,16 @@ export function ControlRow({ definition, catalog, onChange, aspect, onAspect }: 
         <Select
           className="tbl-subject" value={definition.subject} aria-label={TABLES_COPY.table}
           options={SUBJECTS.map((s) => ({ value: s, label: TABLES_COPY.subjects[s] }))}
-          onChange={(s) => s !== definition.subject && onChange(setSubject(definition, s as Subject))}
+          onChange={(s) => s !== definition.subject && onChange(setSubject(definition, s as Subject, { groupId: groupChoices[0]?.value ?? null, month: monthOf(catalog.today) }))}
         />
       </Named>
       <Select value={scope.seasonId} aria-label={TABLES_COPY.season} options={catalog.seasons.map((s) => ({ value: s.id, label: s.label }))} onChange={(seasonId) => set({ seasonId, period: null })} />
-      <Select value={current} aria-label={TABLES_COPY.period} options={periods} onChange={(v) => set({ period: v === NONE ? null : { kind: 'month', month: v } })} />
+      <Select value={current} aria-label={TABLES_COPY.period} options={periods} placeholder={sedinte ? TABLES_COPY.select : undefined} onChange={(v) => set({ period: v === NONE ? null : { kind: 'month', month: v } })} />
       <Named name={TABLES_COPY.section}>
         <Select value={scope.sectionId ?? NONE} aria-label={TABLES_COPY.section} options={sections} onChange={(v) => set({ sectionId: v === NONE ? null : v, groupId: null })} />
       </Named>
       <Named name={TABLES_COPY.group}>
-        <Select value={scope.groupId ?? NONE} aria-label={TABLES_COPY.group} options={groups} onChange={(v) => set({ groupId: v === NONE ? null : v })} />
+        <Select value={scope.groupId ?? NONE} aria-label={TABLES_COPY.group} options={groups} placeholder={sedinte ? TABLES_COPY.select : undefined} onChange={(v) => set({ groupId: v === NONE ? null : v })} />
       </Named>
       <FilterBar definition={definition} catalog={subject.columns} names={names} onChange={onChange} />
       <span className="tbl-sep" aria-hidden="true" />

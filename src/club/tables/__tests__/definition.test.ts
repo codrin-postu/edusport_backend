@@ -191,3 +191,17 @@ describe('ready-made views', () => {
     for (const v of READY_MADE) expect(v).toMatchObject({ readyMade: true, canDelete: false, mine: false, authorId: null, authorName: 'Sistem' });
   });
 });
+
+describe('Prezență pe ședințe definition', () => {
+  const sedinte: TableDefinition = { ...base, subject: 'sedinte', scope: { ...base.scope, groupId: 'g1' }, columns: ['sportiv', 'total'] };
+  it('accepts its two fixed columns and rejects any other', () => {
+    expect(readDefinition({ definition: sedinte }).ok).toBe(true);
+    expect(bad({ ...sedinte, columns: ['sportiv', 'data'] })).toBe(false);
+    expect(bad({ ...sedinte, columns: ['sportiv', 's:s1'] })).toBe(false);
+  });
+  it('keeps the scope when repaired', () => {
+    const r = repairDefinition(sedinte, { seasons: ['s1'], sections: [], groups: ['g1'] });
+    expect(r.definition?.scope).toEqual(sedinte.scope);
+    expect(r.notices).toEqual([]);
+  });
+});

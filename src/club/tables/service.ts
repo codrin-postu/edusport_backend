@@ -15,6 +15,7 @@ import { readyMadeFor } from './ready-made';
 import { abonamenteRows } from './rows-abonamente';
 import { platiRows } from './rows-plati';
 import { prezentaRows } from './rows-prezenta';
+import { sedinteTable } from './rows-sedinte';
 import { sportiviRows } from './rows-sportivi';
 import { loadSources } from './sources';
 import type { TableDefinition, TableResult, TableRow } from './types';
@@ -23,6 +24,8 @@ export type TableFailure = { ok: false; status: 400 | 403 | 404 | 409 | 422 | 50
 type Opts = { today: string; budget: Budget; maxRows?: number };
 
 const invalid = refuse(400, PRESENCE_ERRORS.invalid);
+/** Session states are not read by the table; the whole day counts as passed. */
+const END_OF_DAY = '23:59';
 
 /** Current season first: `repairDefinition` falls back to the first id. */
 const currentFirst = (seasons: SeasonRecord[]): SeasonRecord[] => [...seasons].sort((a, b) => Number(b.isCurrent) - Number(a.isCurrent));
@@ -64,6 +67,12 @@ export async function runTable(store: PresenceStore, body: unknown, opts: Opts):
   const prepared = await prepare(store, body);
   if (prepared.ok === false) return prepared;
   const { d, notices, season, groupOrder } = prepared.data;
+  if (d.subject === 'sedinte') {
+    const made = await sedinteTable(store, d, opts.today, { date: opts.today, time: END_OF_DAY });
+    if (made.ok === false) return made;
+    const generated = { ...d, columns: made.data.columns.map((c) => c.key) };
+    return runQuery(async () => made.data.rows, generated, made.data.columns, opts.budget, { notices, today: opts.today, groupOrder, maxRows: opts.maxRows });
+  }
   const build = rowsOf(store, d, season, opts.today);
   if (build.ok === false) return build;
   const columns = d.columns.map((k) => CATALOG[d.subject].columns.find((c) => c.key === k)).filter((c): c is NonNullable<typeof c> => c !== undefined);
