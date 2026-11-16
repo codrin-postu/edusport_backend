@@ -41,12 +41,18 @@ async function createDevice(c: BindCtx, adminId: number, label: string, at: stri
   return { device: { ...row, id, revokedAt: null, twoFactorUntil: null, confirmedAt: null }, key };
 }
 
+/** The row the cookie names, when it needs no change now: live, or (pre-auth) not yet revoked. */
+const keepsRow = (row: AdminDeviceRow, now: Date, preAuth: boolean): boolean => isLive(row, now) || (preAuth && row.revokedAt === null);
+
+/** The rows a new key may take over: the ended ones, and before any code only those already revoked. */
+const takeable = (rows: AdminDeviceRow[], preAuth: boolean): AdminDeviceRow[] => (preAuth ? rows.filter((d) => d.revokedAt !== null) : rows);
+
 /**
  * The device of this browser for this admin: the cookie's key (only its SHA-256 is stored) finds a live row; a row unseen for 30 days ends
- * when touched. Anything else makes a new key, which takes over the ended row of the same label or else a new row. `isNew` means the
+ * when touched. Anything else makes a new key, which takes over the ended row of the same label or else a new row. `preAuth` (the password step of a 2FA login, before any code) leaves every row not yet revoked untouched and only reuses an already revoked row or makes a new one. `isNew` means the
  * new-device mail is due (`newDeviceMailDue`). The caller sets the cookie and sends the mail.
  */
-export async function bindAdminDevice(c: BindCtx, adminId: number, cookieValue: string | null): Promise<Bound> {
+export async function bindAdminDevice(c: BindCtx, adminId: number, cookieValue: string | null, o: { preAuth?: boolean } = {}): Promise<Bound> {
   const now = c.now();
   const at = now.toISOString();
   const label = deviceLabel(c.userAgent);
@@ -54,11 +60,12 @@ export async function bindAdminDevice(c: BindCtx, adminId: number, cookieValue: 
   const keyHash = cookieValue ? hashSecret(cookieValue) : null;
   const isNew = newDeviceMailDue(rows, keyHash);
   const found = keyHash ? rows.find((d) => sameHash(keyHash, d.deviceKeyHash)) ?? null : null;
-  if (found && isLive(found, now)) {
-    await c.store.updateAdminDevice(found.id, { lastSeenAt: at });
-    return { device: { ...found, lastSeenAt: at }, newKey: null, isNew: false };
+  const preAuth = o.preAuth === true;
+  if (found && keepsRow(found, now, preAuth)) {
+    if (!preAuth) await c.store.updateAdminDevice(found.id, { lastSeenAt: at });
+    return { device: preAuth ? found : { ...found, lastSeenAt: at }, newKey: null, isNew: false };
   }
-  const ended = reusableRow(rows, label, now);
+  const ended = reusableRow(takeable(rows, preAuth), label, now);
   if (found && found.revokedAt === null && found.id !== ended?.id) await endStale(c, found, at);
   const taken = ended ? await takeOver(c, ended, at) : null;
   const bound = taken ?? (await createDevice(c, adminId, label, at));

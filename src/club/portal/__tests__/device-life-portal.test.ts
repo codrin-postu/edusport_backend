@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { loginWithPassword } from '../auth/login';
+import { portalSecondStep } from '../auth/two-factor';
 import { deviceLabel } from '../devices';
 import { listDevicesFor } from '../me-shared';
 import { hashSecret } from '../tokens';
@@ -156,37 +157,47 @@ describe('portal 2FA password step uses the same device rules', () => {
     return r.data;
   };
 
-  it('reuses an ended same-label row instead of adding one, and mails', async () => {
+  it('reuses an already revoked same-label row instead of adding one; a second start after the hourly limit mails again', async () => {
     const s = setup2fa();
     const id = await s.addAccount();
     await s.enrol(id);
     const first = await start(s);
     const [before] = await s.store.devices(id);
     await s.store.updateDevice(before.id, { revokedAt: s.clock.t.toISOString() });
+    s.advance(3600_001);
     const again = await start(s);
     const rows = await s.store.devices(id);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ id: before.id, revokedAt: null });
     expect(rows[0].deviceKeyHash).toBe(hashSecret(String(again.deviceKey)));
     expect(again.deviceKey).not.toBe(first.deviceKey);
-    expect(mailCount(s)).toBe(1);
+    expect(mailCount(s)).toBe(2);
   });
 
-  it('a stale not-yet-ended cookie row is ended and rebound with a new key, no mail', async () => {
+  it('a stale not-yet-ended cookie row is left untouched at the password step and ended and rebound only after the code', async () => {
     const s = setup2fa();
     const id = await s.addAccount();
+    const first = await login(s);
     await s.enrol(id);
-    const first = await start(s);
+    const [before] = await s.store.devices(id);
+    const sessionsBefore = await s.store.activeSessions(id);
+    expect(sessionsBefore).toHaveLength(1);
     s.advance(31 * DAY);
-    const revoke = vi.spyOn(s.c.sessions, 'revokeDevice');
-    const again = await start(s, first.deviceKey);
-    expect(revoke).toHaveBeenCalledTimes(1);
-    expect(again.deviceKey).not.toBeNull();
-    expect(await s.store.devices(id)).toHaveLength(1);
+    const pending = await start(s, first.deviceKey);
+    expect(pending.deviceKey).toBeNull();
+    expect(await s.store.devices(id)).toEqual([before]);
+    expect(await s.store.activeSessions(id)).toEqual(sessionsBefore);
     expect(mailCount(s)).toBe(1);
+    const done = await portalSecondStep(s.c, { pending: pending.pending, method: 'totp', code: s.totp(), remember: false, deviceKey: first.deviceKey });
+    expect(done.ok).toBe(true);
+    const rows = await s.store.devices(id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: before.id, revokedAt: null });
+    expect(rows[0].deviceKeyHash).not.toBe(before.deviceKeyHash);
+    expect(await s.store.activeSessions(id)).not.toEqual(sessionsBefore);
   });
 
-  it('a live cookie row is kept: no new key, no mail; no cookie mails even with the same label', async () => {
+  it('a live cookie row is kept: no new key, no mail; no cookie mails even with the same label and adds a second row', async () => {
     const s = setup2fa();
     const id = await s.addAccount();
     await s.enrol(id);
@@ -195,8 +206,9 @@ describe('portal 2FA password step uses the same device rules', () => {
     const again = await start(s, first.deviceKey);
     expect(again.deviceKey).toBeNull();
     expect(mailCount(s)).toBe(1);
-    await start(s);
+    const other = await start(s);
     expect(mailCount(s)).toBe(2);
-    expect((await s.store.devices(id)).length).toBeGreaterThan(0);
+    const rows = await s.store.devices(id);
+    expect(rows.map((r) => r.deviceKeyHash).sort()).toEqual([hashSecret(String(first.deviceKey)), hashSecret(String(other.deviceKey))].sort());
   });
 });

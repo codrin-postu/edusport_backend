@@ -70,11 +70,11 @@ async function mailNewDevice(c: AdminLoginContext, admin: AdminRow, label: strin
 }
 
 /** The device of this browser: a new key goes into the device cookie (400 days) and an unknown device is mailed (spec 4.8). */
-async function bindDevice(c: AdminLoginContext, admin: AdminRow, o: { newDeviceMail: boolean }) {
+async function bindDevice(c: AdminLoginContext, admin: AdminRow, o: { newDeviceMail: boolean; preAuth?: boolean }) {
   const name = ADMIN_DEVICE_COOKIE(c.secure);
   const bound = await bindAdminDevice(
     { store: c.store, now: c.now, userAgent: c.userAgent, endFamily: (id) => adminSessionManager(c.strapi).invalidateRefreshToken(String(admin.id), id) },
-    admin.id, c.cookie(name),
+    admin.id, c.cookie(name), { preAuth: o.preAuth },
   );
   if (bound.newKey) c.setCookie(name, bound.newKey, ADMIN_DEVICE_COOKIE_MS);
   if (bound.isNew && o.newDeviceMail) void mailNewDevice(c, admin, bound.device.label);
@@ -110,7 +110,7 @@ function refuseLogin(c: AdminLoginContext, attempt: { locking: boolean; firstLoc
 export async function startSecondStep(c: AdminLoginContext, admin: AdminRow, rememberMe: boolean, googleSub?: string): Promise<PortalResult<SecondStep>> {
   const gate = keysOrRefusal(c);
   if ('refusal' in gate) return gate.refusal;
-  const { device } = await bindDevice(c, admin, { newDeviceMail: true });
+  const { device } = await bindDevice(c, admin, { newDeviceMail: true, preAuth: true });
   const last = (await c.store.adminAccount(admin.id))?.lastMethod ?? null;
   try {
     const { secret, step } = await openPending(c, subjectOf(admin), admin.email, { rememberMe, host: 'admin', deviceKeyHash: device.deviceKeyHash, ...(googleSub ? { googleSub } : {}) }, last);

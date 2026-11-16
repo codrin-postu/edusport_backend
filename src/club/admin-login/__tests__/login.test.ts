@@ -348,6 +348,47 @@ describe('password login: the second step', () => {
     expect(env.portalMails).toEqual([]);
   });
 
+  it('the password step leaves a stale not-yet-ended row alone; only the code ends and rebinds it', async () => {
+    const env = loginEnv();
+    await env.turnOnTotp();
+    await env.login();
+    env.browser();
+    await secondStepAdmin(env.c, { method: 'totp', code: env.code(), remember: false });
+    const [before] = await env.c.store.adminDevices(7);
+    const sessionsBefore = JSON.stringify(env.sessions.rows);
+    env.browser();
+    env.advance(31 * 24 * 3600_000);
+    env.sets.length = 0;
+    expect(await env.login()).toMatchObject({ ok: true, data: { step: '2fa' } });
+    expect(await env.c.store.adminDevices(7)).toEqual([before]);
+    expect(JSON.stringify(env.sessions.rows)).toBe(sessionsBefore);
+    expect(env.sets.find((x) => x.name === DEVICE)).toBeUndefined();
+    env.browser();
+    expect((await secondStepAdmin(env.c, { method: 'totp', code: env.code(), remember: false })).ok).toBe(true);
+    const rows = await env.c.store.adminDevices(7);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: before.id, revokedAt: null });
+    expect(rows[0].deviceKeyHash).not.toBe(before.deviceKeyHash);
+    expect(rows[0].strapiDeviceId).not.toBe(before.strapiDeviceId);
+  });
+
+  it('the password step may reuse an already revoked row', async () => {
+    const env = loginEnv();
+    await env.turnOnTotp();
+    await env.login();
+    env.browser();
+    await secondStepAdmin(env.c, { method: 'totp', code: env.code(), remember: false });
+    const [before] = await env.c.store.adminDevices(7);
+    await env.c.store.updateAdminDevice(before.id, { revokedAt: env.c.now().toISOString() });
+    env.browser();
+    env.advance(60_000);
+    expect(await env.login()).toMatchObject({ ok: true, data: { step: '2fa' } });
+    const rows = await env.c.store.adminDevices(7);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: before.id, revokedAt: null });
+    expect(rows[0].deviceKeyHash).not.toBe(before.deviceKeyHash);
+  });
+
   it('a remembered device goes straight to the session; 31 days later it gets the second step again', async () => {
     const env = loginEnv();
     await env.turnOnTotp();

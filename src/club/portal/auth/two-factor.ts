@@ -71,7 +71,10 @@ export async function openSecondStep(
   if ('refusal' in gate) return gate.refusal;
   // The device row exists before the second step (as the admin login does), so "remember" and the bound key have a row; a new key goes back with the pending answer.
   // A browser without a device cookie of this account is mailed now, so a password alone shows up before any code is tried.
-  const bound = await bindDevice(c, account, deviceKey, host, false);
+  const bound = await c.store.transaction(async () => {
+    await c.store.lockAccount(account.id);
+    return bindDevice(c, account, deviceKey, host, true);
+  });
   if (bound.mailDue) await mailNewDevice(c, account, bound.device.label, host);
   const boundKey = bound.newKey ? bound.key : deviceKey;
   const last = (await c.security.store.portalAccountExtra(account.id)).lastMethod;

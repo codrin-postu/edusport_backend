@@ -42,10 +42,16 @@ async function endStale(c: PortalAuthContext, account: AccountRow, row: DeviceRo
   await c.store.updateDevice(row.id, { revokedAt: at, twoFactorUntil: null });
 }
 
+/** The row the cookie names, when it needs no change now: live, or (pre-auth) not yet revoked. */
+const keepsRow = (row: DeviceRow, now: Date, preAuth: boolean): boolean => isLive(row, now) || (preAuth && row.revokedAt === null);
+
+/** The rows a new key may take over: the ended ones, and before any code only those already revoked. */
+const takeable = (rows: DeviceRow[], preAuth: boolean): DeviceRow[] => (preAuth ? rows.filter((d) => d.revokedAt !== null) : rows);
+
 /** The key of a browser that has no live row: the ended row of the same label on this host is taken over, else a new row is made. */
-async function claimRow(c: PortalAuthContext, account: AccountRow, rows: DeviceRow[], found: DeviceRow | null, host: string): Promise<{ device: DeviceRow; key: string }> {
+async function claimRow(c: PortalAuthContext, account: AccountRow, rows: DeviceRow[], found: DeviceRow | null, host: string, preAuth: boolean): Promise<{ device: DeviceRow; key: string }> {
   const at = c.now().toISOString();
-  const ended = reusableRow(rows, deviceLabel(c.userAgent), c.now());
+  const ended = reusableRow(takeable(rows, preAuth), deviceLabel(c.userAgent), c.now());
   if (found && found.revokedAt === null && found.id !== ended?.id) await endStale(c, account, found, at);
   const taken = ended ? await takeOver(c, account, ended, at) : null;
   return taken ?? (await createDeviceRow(c, account, host));
@@ -53,19 +59,21 @@ async function claimRow(c: PortalAuthContext, account: AccountRow, rows: DeviceR
 
 /**
  * The device of this browser for this account on this host, for the password step and the session alike. The cookie's key finds a live row
- * (`revokeLive`: its old sessions end, the row is kept); a row unseen for 30 days ends when touched. Anything else makes a new key, which takes
+ * (its old sessions end, the row is kept); a row unseen for 30 days ends when touched. Anything else makes a new key, which takes
  * over the ended row of the same label on this host or else a new row. The mail is due unless the cookie matched a row that was not revoked.
+ * `preAuth` (the password step of a 2FA login, before any code): rows not yet revoked are left exactly as they are, so someone who only knows the password
+ * changes nothing; only an already revoked row may be taken over, or a new row is made. The session step does the rest.
  */
-export async function bindDevice(c: PortalAuthContext, account: AccountRow, given: string | null, host: string, revokeLive: boolean): Promise<Bound> {
+export async function bindDevice(c: PortalAuthContext, account: AccountRow, given: string | null, host: string, preAuth: boolean): Promise<Bound> {
   const rows = (await c.store.devices(account.id)).filter((d) => d.host === host);
   const keyHash = given ? hashSecret(given) : null;
   const mailDue = !cookieOfLiveOrStaleRow(rows, keyHash);
   const found = keyHash ? rows.find((d) => sameHash(keyHash, d.deviceKeyHash)) ?? null : null;
-  if (found && isLive(found, c.now())) {
-    if (revokeLive) await c.sessions.revokeDevice(account.userId, found.id);
+  if (found && keepsRow(found, c.now(), preAuth)) {
+    if (!preAuth) await c.sessions.revokeDevice(account.userId, found.id);
     return { device: found, key: given ?? '', mailDue: false, newKey: false };
   }
-  const claimed = await claimRow(c, account, rows, found, host);
+  const claimed = await claimRow(c, account, rows, found, host, preAuth);
   return { device: claimed.device, key: claimed.key, mailDue, newKey: true };
 }
 
@@ -90,7 +98,7 @@ export async function issueSession(
     const fresh = await c.store.account(account.id);
     const user = fresh ? await c.store.user(fresh.userId) : null;
     if (!fresh || !(await mayEnter(c, fresh, user, o.host))) throw new InactiveAccount();
-    const bound = await bindDevice(c, fresh, deviceKey, o.host, true);
+    const bound = await bindDevice(c, fresh, deviceKey, o.host, false);
     const tokens = await c.sessions.issue(fresh.userId, bound.device.id, o.host);
     const at = c.now().toISOString();
     await c.store.updateDevice(bound.device.id, { sessionId: tokens.sessionId, lastSeenAt: at, confirmedAt: at });
