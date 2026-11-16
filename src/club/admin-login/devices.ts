@@ -17,43 +17,51 @@ export const ADMIN_DEVICE_COOKIE_MS = 400 * 24 * 3600_000;
 type BindCtx = { store: SecurityStore; now: () => Date; userAgent: string | null; endFamily?: (strapiDeviceId: string) => Promise<void> };
 type Bound = { device: AdminDeviceRow; newKey: string | null; isNew: boolean };
 
-async function takeOver(c: BindCtx, row: AdminDeviceRow, at: string): Promise<Bound> {
-  const key = newDeviceKey();
-  const next = { deviceKeyHash: hashSecret(key), strapiDeviceId: randomUUID(), lastSeenAt: at, revokedAt: null, confirmedAt: null, twoFactorUntil: null };
-  await c.store.updateAdminDevice(row.id, next);
-  return { device: { ...row, ...next }, newKey: key, isNew: false };
-}
+/** The new-device mail decision, in one place: no row of this label (revoked or not) was seen in 30 days. */
+export const newDeviceMailDue = (rows: AdminDeviceRow[], label: string, now: Date): boolean => !labelSeenRecently(rows, label, now);
 
-async function endStale(c: BindCtx, row: AdminDeviceRow, at: string): Promise<AdminDeviceRow> {
+async function endStale(c: BindCtx, row: AdminDeviceRow, at: string): Promise<void> {
   await c.endFamily?.(row.strapiDeviceId);
   await c.store.updateAdminDevice(row.id, { revokedAt: at, twoFactorUntil: null });
-  return { ...row, revokedAt: at, twoFactorUntil: null };
+}
+
+/** The ended row of the same label takes the new key. A row not yet revoked still holds a Strapi family, which ends first. The write is guarded by the old key hash: a concurrent login that took the row first makes this one miss. */
+async function takeOver(c: BindCtx, row: AdminDeviceRow, at: string): Promise<{ device: AdminDeviceRow; key: string } | null> {
+  if (row.revokedAt === null) await c.endFamily?.(row.strapiDeviceId);
+  const key = newDeviceKey();
+  const next = { deviceKeyHash: hashSecret(key), strapiDeviceId: randomUUID(), firstSeenAt: at, lastSeenAt: at, revokedAt: null, confirmedAt: null, twoFactorUntil: null };
+  if (!(await c.store.rebindAdminDevice(row.id, row.deviceKeyHash, next))) return null;
+  return { device: { ...row, ...next }, key };
+}
+
+async function createDevice(c: BindCtx, adminId: number, label: string, at: string): Promise<{ device: AdminDeviceRow; key: string }> {
+  const key = newDeviceKey();
+  const row = { adminUserId: adminId, deviceKeyHash: hashSecret(key), strapiDeviceId: randomUUID(), label, firstSeenAt: at, lastSeenAt: at };
+  const id = await c.store.createAdminDevice(row);
+  return { device: { ...row, id, revokedAt: null, twoFactorUntil: null, confirmedAt: null }, key };
 }
 
 /**
  * The device of this browser for this admin: the cookie's key (only its SHA-256 is stored) finds a live row; a row unseen for 30 days ends
  * when touched. Anything else makes a new key, which takes over the ended row of the same label or else a new row. `isNew` means the
- * new-device mail is due: no row of that label was seen in 30 days. The caller sets the cookie and sends the mail.
+ * new-device mail is due (`newDeviceMailDue`). The caller sets the cookie and sends the mail.
  */
 export async function bindAdminDevice(c: BindCtx, adminId: number, cookieValue: string | null): Promise<Bound> {
   const now = c.now();
   const at = now.toISOString();
   const label = deviceLabel(c.userAgent);
   const rows = await c.store.adminDevices(adminId);
-  const mailDue = !labelSeenRecently(rows, label, now);
-  const keyHash = cookieValue ? hashSecret(cookieValue) : null;
-  const found = rows.find((d) => d.deviceKeyHash === keyHash) ?? null;
+  const isNew = newDeviceMailDue(rows, label, now);
+  const found = cookieValue ? rows.find((d) => sameHash(hashSecret(cookieValue), d.deviceKeyHash)) ?? null : null;
   if (found && isLive(found, now)) {
     await c.store.updateAdminDevice(found.id, { lastSeenAt: at });
     return { device: { ...found, lastSeenAt: at }, newKey: null, isNew: false };
   }
-  const current = found && found.revokedAt === null ? await endStale(c, found, at) : found;
-  const ended = reusableRow(rows.map((d) => (d.id === current?.id ? current : d)), label, now);
-  if (ended) return { ...(await takeOver(c, ended, at)), isNew: mailDue };
-  const key = newDeviceKey();
-  const row = { adminUserId: adminId, deviceKeyHash: hashSecret(key), strapiDeviceId: randomUUID(), label, firstSeenAt: at, lastSeenAt: at };
-  const id = await c.store.createAdminDevice(row);
-  return { device: { ...row, id, revokedAt: null, twoFactorUntil: null, confirmedAt: null }, newKey: key, isNew: mailDue };
+  const ended = reusableRow(rows, label, now);
+  if (found && found.revokedAt === null && found.id !== ended?.id) await endStale(c, found, at);
+  const taken = ended ? await takeOver(c, ended, at) : null;
+  const bound = taken ?? (await createDevice(c, adminId, label, at));
+  return { device: bound.device, newKey: bound.key, isNew };
 }
 
 const isCurrent = (d: AdminDeviceRow, cookieValue: string | null): boolean => cookieValue !== null && sameHash(hashSecret(cookieValue), d.deviceKeyHash);

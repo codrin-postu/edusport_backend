@@ -155,6 +155,11 @@ export function storeContract(make: () => Promise<StoreHarness>): void {
     await store.updateAdminDevice(id, { deviceKeyHash: 'h2', strapiDeviceId: `sd2-${uid}` });
     expect(await store.adminDeviceByKey(uid, 'h1')).toBeNull();
     expect(await store.adminDeviceByKey(uid, 'h2')).toMatchObject({ id, strapiDeviceId: `sd2-${uid}` });
+    const next = { deviceKeyHash: 'h3', strapiDeviceId: `sd3-${uid}`, firstSeenAt: at, lastSeenAt: at, revokedAt: null, confirmedAt: null, twoFactorUntil: null };
+    expect(await store.rebindAdminDevice(id, 'h1', next)).toBe(false);
+    expect(await store.rebindAdminDevice(id, 'h2', next)).toBe(true);
+    expect(await store.rebindAdminDevice(id, 'h2', next)).toBe(false);
+    expect(await store.adminDeviceByKey(uid, 'h3')).toMatchObject({ id, strapiDeviceId: `sd3-${uid}` });
     const s: Subject = { type: 'admin', id: String(uid) };
     expect(await store.securityNotes(s)).toEqual({});
     await store.setSecurityNotes(s, { backupNotice: 3 });

@@ -200,6 +200,12 @@ export function memorySecurityStore(now: () => Date = () => new Date()): MemoryS
       if (!row) throw new Error(`fake: no admin device ${did}`);
       Object.assign(row, defined(d));
     },
+    async rebindAdminDevice(did, oldKeyHash, d) {
+      const row = adminDevices.find((x) => x.id === did && x.deviceKeyHash === oldKeyHash);
+      if (!row) return false;
+      Object.assign(row, d);
+      return true;
+    },
     portalAccountExtra: async (aid) => copy(portalExtra.get(aid) ?? { webauthnUserId: null, lastMethod: null, passkeyOfferedAt: null }),
     async updatePortalAccountExtra(aid, a) {
       const cur = portalExtra.get(aid) ?? { webauthnUserId: null, lastMethod: null, passkeyOfferedAt: null };

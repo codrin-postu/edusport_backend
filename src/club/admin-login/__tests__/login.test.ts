@@ -7,6 +7,7 @@ import { issueBackupBatch } from '../../security/factors';
 import { seal, totpAad } from '../../security/secret-box';
 import { totpAt } from '../../security/totp';
 import { hashSecret } from '../../portal/tokens';
+import { isLive } from '../../security/device-life';
 import { ADMIN_PENDING_COOKIE, adminLimits, cookieHelpers, type AdminLoginContext } from '../context';
 import { ADMIN_DEVICE_COOKIE, bindAdminDevice, listAdminDevices, rememberedDevice } from '../devices';
 import { finishAdminLogin, loginAdmin, secondStepAdmin, sendAdminLoginCode } from '../login';
@@ -175,6 +176,36 @@ describe('password login: the session', () => {
     expect(rows[0].revokedAt).toBeNull();
     expect(rows[0].twoFactorUntil).toBeNull();
     expect(rows[0].confirmedAt).toBe(env.c.now().toISOString());
+    expect(isLive(rows[0], env.c.now())).toBe(true);
+  });
+
+  it('a stale never-revoked row reached without its cookie ends its family before it is rebound', async () => {
+    const env = loginEnv();
+    await env.login();
+    const [before] = await env.c.store.adminDevices(7);
+    env.advance(31 * 24 * 3600_000);
+    const endFamily = vi.fn(async () => undefined);
+    const ua = env.c.userAgent;
+    const out = await bindAdminDevice({ store: env.c.store, now: env.c.now, userAgent: ua, endFamily }, 7, null);
+    expect(endFamily).toHaveBeenCalledWith(before.strapiDeviceId);
+    expect(out.device.id).toBe(before.id);
+    const [after] = await env.c.store.adminDevices(7);
+    expect(after).toMatchObject({ revokedAt: null, firstSeenAt: env.c.now().toISOString() });
+    expect(after.strapiDeviceId).not.toBe(before.strapiDeviceId);
+  });
+
+  it('two cookieless logins racing for one ended row: one takes it, the other misses the guarded rebind and gets a new row', async () => {
+    const env = loginEnv();
+    await env.login();
+    const [before] = await env.c.store.adminDevices(7);
+    await env.c.store.updateAdminDevice(before.id, { revokedAt: env.c.now().toISOString() });
+    const ctx = { store: env.c.store, now: env.c.now, userAgent: env.c.userAgent };
+    const [a, b] = await Promise.all([bindAdminDevice(ctx, 7, null), bindAdminDevice(ctx, 7, null)]);
+    const rows = await env.c.store.adminDevices(7);
+    expect(rows).toHaveLength(2);
+    expect(new Set([a.device.id, b.device.id]).size).toBe(2);
+    expect(new Set(rows.map((r) => r.deviceKeyHash))).toEqual(new Set([hashSecret(String(a.newKey)), hashSecret(String(b.newKey))]));
+    expect(new Set(rows.map((r) => r.strapiDeviceId)).size).toBe(2);
   });
 
   it('a stale row met by its own cookie ends its family, is rebound with a new key hash and is live again', async () => {

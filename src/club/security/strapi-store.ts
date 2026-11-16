@@ -169,7 +169,7 @@ function passkeyStore(strapi: Core.Strapi): Pick<SecurityStore, 'passkeys' | 'pa
   };
 }
 
-function adminStore(strapi: Core.Strapi): Pick<SecurityStore, 'adminAccount' | 'adminAccountByGoogleSub' | 'adminAccountByHandle' | 'ensureAdminAccount' | 'updateAdminAccount' | 'adminDevices' | 'adminDeviceByKey' | 'createAdminDevice' | 'updateAdminDevice'> {
+function adminStore(strapi: Core.Strapi): Pick<SecurityStore, 'adminAccount' | 'adminAccountByGoogleSub' | 'adminAccountByHandle' | 'ensureAdminAccount' | 'updateAdminAccount' | 'adminDevices' | 'adminDeviceByKey' | 'createAdminDevice' | 'updateAdminDevice' | 'rebindAdminDevice'> {
   const accounts = () => strapi.documents(ADMIN_ACCOUNT);
   const devices = () => strapi.documents(ADMIN_DEVICE);
   const oneAccount = async (filters: Record<string, unknown>) => {
@@ -207,6 +207,8 @@ function adminStore(strapi: Core.Strapi): Pick<SecurityStore, 'adminAccount' | '
     updateAdminDevice: async (id, d) => {
       await devices().update({ documentId: id, data: defined(d) as never });
     },
+    rebindAdminDevice: async (id, oldKeyHash, d) =>
+      (await strapi.db.query(ADMIN_DEVICE).updateMany({ where: { documentId: id, deviceKeyHash: oldKeyHash }, data: d })).count > 0,
   };
 }
 
