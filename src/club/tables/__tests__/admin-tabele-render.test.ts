@@ -12,6 +12,8 @@ import { MetaRow } from '../../../admin/dashboard/sportivi/tabele/MetaRow';
 import { TypeBar } from '../../../admin/dashboard/sportivi/tabele/TypeBar';
 import { ExportMenu } from '../../../admin/dashboard/sportivi/tabele/ExportMenu';
 import { ResultTable } from '../../../admin/dashboard/sportivi/tabele/ResultTable';
+import { setSubject } from '../builder-state';
+import { readDefinition } from '../definition';
 import { CATALOG, GROUP_LABELS } from '../catalog';
 import type { CatalogAnswer } from '../catalog-api';
 import { TABLES_COPY } from '../copy';
@@ -107,6 +109,22 @@ describe('Tabele control row and export', () => {
     const meta = html(React.createElement(MetaRow, { definition, columns: CATALOG.plati.columns, count: 12, onChange: noop }));
     for (const text of ['12 plăți', 'Negrupat', 'Coloane (3)']) expect(meta).toContain(text);
     for (const label of ['Tabel:', 'Secțiune:', 'Grupă:', 'Grupează:', 'Filtre', 'Perioada:']) expect(bar + chips + meta).not.toContain(`>${label}`);
+  });
+  it('switching to every type renders the bar and the control row without throwing and gives a definition the server accepts', () => {
+    for (const subject of ['sportivi', 'plati', 'abonamente', 'prezenta', 'sedinte'] as const) {
+      const next = setSubject(definition, subject, { groupId: 'g1', month: '2026-11' });
+      expect(readDefinition({ definition: next }).ok, subject).toBe(true);
+      expect(() => html(React.createElement(TypeBar, { definition: next, catalog, onChange: noop })), subject).not.toThrow();
+      expect(() => html(React.createElement(FilterChips, { definition: next, catalog, onChange: noop })), subject).not.toThrow();
+      expect(() => html(React.createElement(MetaRow, { definition: next, columns: catalog.subjects[subject].columns, count: 1, onChange: noop })), subject).not.toThrow();
+    }
+  });
+  it('a catalog from a server that does not know Prezență pe ședințe does not crash the type bar', () => {
+    const { sedinte: _omit, ...rest } = CATALOG;
+    const old = { ...catalog, subjects: rest as typeof CATALOG };
+    const out = html(React.createElement(TypeBar, { definition, catalog: old, onChange: noop }));
+    expect(out).toContain('Plăți');
+    expect(out).not.toContain('Prezență pe ședințe');
   });
   it('Prezență pe ședințe shows a group select reading Selectează, no Filtru, no grouping, no columns', () => {
     const sed: TableDefinition = { ...definition, subject: 'sedinte', columns: ['sportiv', 'total'], filters: [] };

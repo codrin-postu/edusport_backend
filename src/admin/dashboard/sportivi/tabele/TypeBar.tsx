@@ -11,7 +11,7 @@ type Props = { definition: TableDefinition; catalog: CatalogAnswer; onChange: (d
 
 const SUBJECTS: Subject[] = ['sportivi', 'plati', 'abonamente', 'prezenta', 'sedinte'];
 
-/** The type picker and the one period select (months of a season and the whole season). */
+/** The type picker (only the types the server's catalog offers) and the one period select (months of a season and the whole season). */
 export function TypeBar({ definition, catalog, onChange }: Props) {
   const phone = useIsPhone();
   const sedinte = definition.subject === 'sedinte';
@@ -22,7 +22,7 @@ export function TypeBar({ definition, catalog, onChange }: Props) {
   if (!known && month) options.push({ value, label: monthTitle(month) });
   const firstGroup = catalog.groups.find((g) => g.active)?.id ?? null;
   const pick = (s: Subject) => onChange(setSubject(definition, s, { groupId: firstGroup, month: monthOf(catalog.today) }));
-  const subjectOptions = SUBJECTS.map((s) => ({ value: s, label: TABLES_COPY.subjects[s] }));
+  const subjectOptions = SUBJECTS.filter((s) => catalog.subjects[s] !== undefined).map((s) => ({ value: s, label: TABLES_COPY.subjects[s] }));
   return (
     <div className="tbl-bar-row">
       {phone ? (

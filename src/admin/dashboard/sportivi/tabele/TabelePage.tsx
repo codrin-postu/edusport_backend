@@ -228,7 +228,7 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
           <div className="tbl-notices">{notices.map((n) => <Notice key={n} tone="warning">{n}</Notice>)}</div>
         )}
         {error && <div className="tbl-notices"><Notice tone="danger">{error}</Notice></div>}
-        {draft && <MetaRow definition={draft} columns={catalog.subjects[draft.subject].columns} count={result && !error ? result.count : null} onChange={setDraft} />}
+        {draft && <MetaRow definition={draft} columns={catalog.subjects[draft.subject]?.columns ?? []} count={result && !error ? result.count : null} onChange={setDraft} />}
         {loading && !result && !error && <div className="tbl-loading"><Loading /></div>}
         {result && !error && noPaymentsThisMonth(current.id, dirty, result) && <EmptyState>{TABLES_COPY.noPaymentsMonth}</EmptyState>}
         {result && !error && !noPaymentsThisMonth(current.id, dirty, result) && (
