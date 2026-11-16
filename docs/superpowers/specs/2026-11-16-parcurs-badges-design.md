@@ -65,3 +65,17 @@ Stored record: athlete, kind (steaua | test | jump), jump code + level for jumps
 - Where grants are created (on read when a new competition result or season end is seen, idempotent per competition/season).
 - Serving the PNGs: frontend `public/` (portals) and admin static assets.
 - Removing the old tier copy (`tierWord`, tier aria texts) and the metal art.
+
+## Builder check answers (decided by Claude unless marked user)
+
+- Giver: always an athlete. An account holding several athletes gives as the athlete currently selected in the portal (the existing athlete picker); each athlete has its own grants. The recipient sees the giving athlete's name.
+- Grants: created when a competition result for the athlete exists (once per competition) and when a season's end date passes (once per season, athlete had a membership in that season, cancelled memberships excluded). Expiry: 3 months from the competition date or the season end date. No backfill: only competitions and seasons ending on or after the release date create grants.
+- Delete athlete: their awards, grants and pins (given and received) are deleted. Anonymise: pins stay, the giver shows as "Fost sportiv". Merge: awards, grants and pins move to the kept athlete; duplicates (same giver, recipient, grant) are dropped.
+- Prezență 100%: main group = the athlete's main membership in that month; only sessions held (cancelled and moved-away dates excluded); a month counts only after it ends; months where the athlete joined after the 1st do not count; excused absences (if recorded) do not break it.
+- Membru: years since the first membership start, gaps ignored; capped at 15.
+- Locul 1 / Podium: counted from final results (overall placement as the source gives it); Locul 1 also counts as Podium; the date shown is the latest.
+- Jumps: an implied lower level shows the date of the higher award; removing 2S leaves 1S only if 1S was given on its own; remove deletes only the explicit record.
+- Admin deleting a friendship pin returns it to the giver's grant if the grant has not expired; the one-per-recipient-per-grant rule then allows a new pin to that recipient.
+- Prima prietenie: on the first pin given; date of that pin.
+- Coach scope: athletes with a membership in one of the coach's groups in the current season. Admin area: 'club' (same as Sportivi).
+- Same design to the same recipient from different grants: allowed.
