@@ -23,6 +23,7 @@ import {
   type TabItem,
 } from '../ui';
 import { INBOX_CSS, RO_MON_SHORT, pad2, relTime, snippet } from './inboxShared';
+import { EMPTY_VALUE } from '../../club/empty-value';
 
 /**
  * EduSport admin — "Mesaje" contact inbox page.
@@ -375,7 +376,7 @@ export default function MesajePage() {
     );
   };
 
-  const cNum = (v: number | null) => (v == null ? '—' : String(v));
+  const cNum = (v: number | null) => (v == null ? EMPTY_VALUE : String(v));
   const summary = `${cNum(counts.new)} noi, ${cNum(counts.read)} citite, ${cNum(counts.all)} în total`;
 
   // The count marks unread only: a number on every tab turned it into

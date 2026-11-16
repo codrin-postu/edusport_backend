@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Button, StatusBadge } from '../ui';
 import { numericDateToSlash } from '../../club/date-format';
+import { EMPTY_VALUE } from '../../club/empty-value';
 import SubmissionTablePage, {
   DetailBody,
   DetailField,
@@ -187,21 +188,21 @@ const renderCells = (r: Row, api: TableApi) => {
     <>
       <td className="ui-num">{fmtDateShort(v.submittedAt)}</td>
       <td className="sbt-nm">
-        {v.fullName ?? '—'}
+        {v.fullName ?? EMPTY_VALUE}
         {age != null && age < 18 ? <StatusBadge tone="warning" className="vol-minor">minor</StatusBadge> : null}
       </td>
       <td>{api.statusTag(v)}</td>
-      <td>{v.city ?? '—'}</td>
+      <td>{v.city ?? EMPTY_VALUE}</td>
       <td className="wraphc">
         {areas.length ? (
           <span className="hclamp" title={areas.join(', ')}>
             {helpAreasText(v)}
           </span>
         ) : (
-          '—'
+          EMPTY_VALUE
         )}
       </td>
-      <td>{v.availability ?? '—'}</td>
+      <td>{v.availability ?? EMPTY_VALUE}</td>
     </>
   );
 };
@@ -216,7 +217,7 @@ const renderDetail = (row: Row, api: TableApi) => {
     <>
       <DetailHeader>
         <b>
-          {selected.fullName ?? '—'}
+          {selected.fullName ?? EMPTY_VALUE}
           {age != null && age < 18 ? <StatusBadge tone="warning" className="vol-minor">minor</StatusBadge> : null}
         </b>
         {statusTag(selected)}
@@ -232,7 +233,7 @@ const renderDetail = (row: Row, api: TableApi) => {
               {age != null ? `, ${age} ani` : ''}
             </>
           ) : (
-            '—'
+            EMPTY_VALUE
           )}
         </DetailField>
         {(
@@ -243,9 +244,9 @@ const renderDetail = (row: Row, api: TableApi) => {
             ['occupation', 'Ocupație'],
           ] as Array<[keyof VolunteerRow & string, string]>
         ).map(([key, label]) => (
-          <DetailField key={key} label={label}>{String(selected[key] ?? '') || '—'}</DetailField>
+          <DetailField key={key} label={label}>{String(selected[key] ?? '') || EMPTY_VALUE}</DetailField>
         ))}
-        <DetailField label="Cum ajută">{areas.length ? helpAreasText(selected) : '—'}</DetailField>
+        <DetailField label="Cum ajută">{areas.length ? helpAreasText(selected) : EMPTY_VALUE}</DetailField>
         {(
           [
             ['availability', 'Disponibilitate'],
@@ -253,16 +254,16 @@ const renderDetail = (row: Row, api: TableApi) => {
             ['skatingExperience', 'Experiență cu patinajul'],
           ] as Array<[keyof VolunteerRow & string, string]>
         ).map(([key, label]) => (
-          <DetailField key={key} label={label}>{String(selected[key] ?? '') || '—'}</DetailField>
+          <DetailField key={key} label={label}>{String(selected[key] ?? '') || EMPTY_VALUE}</DetailField>
         ))}
         <DetailField style={{ marginTop: 11 }} label="Experiență cu copiii">
-          {String(selected.childrenExperience ?? '') || '—'}
+          {String(selected.childrenExperience ?? '') || EMPTY_VALUE}
         </DetailField>
-        <DetailField label="Motivație">{String(selected.motivation ?? '') || '—'}</DetailField>
-        <DetailField label="Cum a aflat">{String(selected.howHeard ?? '') || '—'}</DetailField>
+        <DetailField label="Motivație">{String(selected.motivation ?? '') || EMPTY_VALUE}</DetailField>
+        <DetailField label="Cum a aflat">{String(selected.howHeard ?? '') || EMPTY_VALUE}</DetailField>
         {hasParent && (
           <DetailField label="Părinte / tutore">
-            {[selected.parentName, selected.parentPhone].filter(Boolean).join(', ') || '—'}
+            {[selected.parentName, selected.parentPhone].filter(Boolean).join(', ') || EMPTY_VALUE}
             {selected.parentalConsent === true ? ', acord parental: Da' : ''}
           </DetailField>
         )}

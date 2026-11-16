@@ -50,3 +50,11 @@ export function numericDateToSlash(text: string): string {
   const parts = iso ? [Number(iso[3]), Number(iso[2]), Number(iso[1])] : dmy ? [Number(dmy[1]), Number(dmy[2]), Number(dmy[3])] : null;
   return parts && isRealDate(parts[0], parts[1], parts[2]) ? slash(parts[0], parts[1], parts[2]) : s;
 }
+
+/** What a typed, masked draft means: `empty` clears the value, `ok` carries the ISO day, `invalid` is half typed, impossible or outside `min` / `max` (ISO days). */
+export function readTypedDate(masked: string, min?: string, max?: string): { kind: 'empty' } | { kind: 'ok'; iso: string } | { kind: 'invalid' } {
+  if (masked === '') return { kind: 'empty' };
+  const iso = masked.length === 10 ? slashToIso(masked) : null;
+  if (!iso || (min && iso < min.slice(0, 10)) || (max && iso > max.slice(0, 10))) return { kind: 'invalid' };
+  return { kind: 'ok', iso };
+}

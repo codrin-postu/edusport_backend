@@ -210,7 +210,7 @@ const CursuriPage: React.FC = () => {
                   span: 2,
                 },
                 { key: 'scheduleDays', label: 'Zile de curs', placeholder: 'ex: Sâmbătă & Duminică' },
-                { key: 'scheduleTimes', label: 'Ore de curs', placeholder: 'ex: 10:00–10:50 & 11:00–11:50' },
+                { key: 'scheduleTimes', label: 'Ore de curs', placeholder: 'ex: 10:00-10:50 & 11:00-11:50' },
                 { key: 'locationName', label: 'Locație', placeholder: 'ex: AFI Cotroceni' },
                 {
                   key: 'locationUrl',

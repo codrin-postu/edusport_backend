@@ -19,6 +19,7 @@ import { ConfirmDialog } from '../ConfirmDialog';
 import { useCollection, type Row } from '../lib';
 import { DASHBOARD_TO } from '../dashboard/menu';
 import { UID } from './routes';
+import { EMPTY_VALUE } from '../../club/empty-value';
 
 /**
  * Momente istoric (/plugins/edusport-momente-istoric): the history-milestone
@@ -145,7 +146,7 @@ const MomenteIstoricPage: React.FC = () => {
   const columns: DataColumn<Row<Milestone>>[] = [
     { key: 'year', header: 'An', value: (r) => r.year, sortable: true, width: '90px' },
     { key: 'title', header: 'Titlu', value: (r) => r.title, sortable: true },
-    { key: 'description', header: 'Descriere', value: (r) => r.description ?? '', render: (r) => <span className="ui-hint">{r.description || '—'}</span> },
+    { key: 'description', header: 'Descriere', value: (r) => r.description ?? '', render: (r) => <span className="ui-hint">{r.description || EMPTY_VALUE}</span> },
     {
       key: 'move',
       header: '',

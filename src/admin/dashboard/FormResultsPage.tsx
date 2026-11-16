@@ -20,6 +20,7 @@ import {
   type TabItem,
 } from '../ui';
 import { INBOX_CSS, RO_MON_SHORT, pad2, relTime, snippet } from './inboxShared';
+import { EMPTY_VALUE } from '../../club/empty-value';
 
 /**
  * EduSport admin — generic form-results inbox.
@@ -319,7 +320,7 @@ export default function FormResultsPage({ config }: { config: FormResultsConfig 
     return Object.entries(ex).filter(([, v]) => v != null && v !== '');
   }, [selected]);
 
-  const cNum = (v: number | null | undefined) => (v == null ? '—' : String(v));
+  const cNum = (v: number | null | undefined) => (v == null ? EMPTY_VALUE : String(v));
   const firstStatus = statuses[0]?.value;
 
   const summary = `${cNum(counts[firstStatus])} noi, ${cNum(counts.all)} în total`;

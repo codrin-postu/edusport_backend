@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DATE_PLACEHOLDER, isoToSlash, maskSlash, numericDateToSlash, slashToIso } from '../date-format';
+import { DATE_PLACEHOLDER, isoToSlash, maskSlash, numericDateToSlash, readTypedDate, slashToIso } from '../date-format';
 
 describe('date-format', () => {
   it('has the one placeholder', () => {
@@ -51,10 +51,23 @@ const filesUnder = (dir: string): string[] =>
     return statSync(full).isDirectory() ? filesUnder(full) : /\.tsx?$/.test(n) ? [full] : [];
   });
 
+describe('readTypedDate', () => {
+  it('reads empty, a real day, and flags half typed, impossible and out of range days', () => {
+    expect(readTypedDate('')).toEqual({ kind: 'empty' });
+    expect(readTypedDate('15/03/2026')).toEqual({ kind: 'ok', iso: '2026-03-15' });
+    expect(readTypedDate('15/03/20')).toEqual({ kind: 'invalid' });
+    expect(readTypedDate('31/02/2026')).toEqual({ kind: 'invalid' });
+    expect(readTypedDate('15/03/2026', '2026-03-16')).toEqual({ kind: 'invalid' });
+    expect(readTypedDate('15/03/2026', undefined, '2026-03-14T10:00')).toEqual({ kind: 'invalid' });
+    expect(readTypedDate('15/03/2026', '2026-03-15', '2026-03-15')).toEqual({ kind: 'ok', iso: '2026-03-15' });
+  });
+});
+
 describe('admin date sources', () => {
   it('DateInput types with the slash mask and shows the placeholder; its only type="date" is the hidden picker', () => {
     const src = read('src/admin/ui/DateInput.tsx');
-    expect(src).toMatch(/import \{[^}]*\bDATE_PLACEHOLDER\b[^}]*\bmaskSlash\b|import \{[^}]*\bmaskSlash\b[^}]*\bDATE_PLACEHOLDER\b/);
+    expect(src).toMatch(/import \{[^}]*\bDATE_PLACEHOLDER\b[^}]*\} from '..\/..\/club\/date-format'/);
+    expect(read('src/admin/ui/useDateInput.ts')).toMatch(/import \{[^}]*\bmaskSlash\b[^}]*\} from '..\/..\/club\/date-format'/);
     expect(src).toContain('inputMode="numeric"');
     const dateTypes = src.match(/type="date"/g) ?? [];
     expect(dateTypes).toHaveLength(1);

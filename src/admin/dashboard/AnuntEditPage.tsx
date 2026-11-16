@@ -512,7 +512,7 @@ export default function AnuntEditPage() {
                     </Field>
                   )}
                   <Field label="Titlu" required error={errFor('title')}>
-                    <Input value={v.title} onChange={(e) => upd({ title: e.target.value })} placeholder="ex. Sezonul 2026–2027" />
+                    <Input value={v.title} onChange={(e) => upd({ title: e.target.value })} placeholder="ex. Sezonul 2026-2027" />
                   </Field>
                   {/* Plain textarea on purpose: `message` is plain text, markdown would reach the reader as literal asterisks. */}
                   <Field label="Mesaj" required error={errFor('message')}>

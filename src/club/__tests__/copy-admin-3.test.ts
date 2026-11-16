@@ -90,6 +90,14 @@ describe('admin copy 3: Anunțuri, Setări, Securitate, Sheets, site editors', (
     }
   });
 
+  it('shows no dash on screen in the polished admin pages', () => {
+    const files = ['dashboard/VoluntariPage.tsx', 'dashboard/MesajePage.tsx', 'dashboard/FormResultsPage.tsx', 'dashboard/AnuntEditPage.tsx', 'pages/CursuriPage.tsx', 'pages/MomenteIstoricPage.tsx'];
+    for (const f of files) {
+      const code = src(`admin/${f}`).split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+      expect(code, f).not.toMatch(/[–—]/);
+    }
+  });
+
   it('keeps placeholders and has no banned characters', () => {
     const texts = [...Object.values(SECURITY_COPY.backup).filter((v) => typeof v === 'string'), SECURITY_COPY.google.confirmUnlink, ...Object.values(ANUNT_LIST_COPY).filter((v) => typeof v === 'string')] as string[];
     for (const t of texts) {
