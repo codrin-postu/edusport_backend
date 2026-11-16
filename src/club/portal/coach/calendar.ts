@@ -1,6 +1,7 @@
 import { expandOccurrences } from '../../../api/calendar-event/services/expand';
 import { refuse, type AdminResult } from '../../admin-result';
 import { addDays, hhmm } from '../../groups/dates';
+import type { CalendarWindow } from '../../groups/occurrences';
 import type { GroupRecord } from '../../groups/types';
 import { loadRowContext, rowsWithCoachIds } from '../../presence/attendance/day';
 import { durationOf, heldOccurrences, occurrenceKey } from '../../presence/sessions';
@@ -19,6 +20,13 @@ export async function locationOfGroup(c: CoachContexts, group: GroupRecord): Pro
 export async function locationsOf(store: PresenceStore, groups: GroupRecord[]): Promise<Map<string, string | null>> {
   const sections = await store.sections();
   return new Map(groups.map((g) => [g.id, sections.find((s) => s.id === g.sectionId)?.locationName ?? null]));
+}
+
+/** The program event an occurrence key names (`eventId|date|time`), and whether it is a single class. */
+function eventOf(events: CalendarWindow['events'], key: string | null): Pick<CoachCalendarItem, 'eventId' | 'oneOff'> {
+  const id = key?.split('|')[0];
+  const event = id ? events.find((e) => e.documentId === id) : undefined;
+  return { eventId: event?.documentId ?? null, oneOff: event?.recurrence.freq === 'none' };
 }
 
 /** Own groups' classes (scheduled and cancelled) between two dates, plus saved stand-in sessions that list the coach, and the coach's lessons; by date, start time, group order. */
@@ -44,7 +52,7 @@ export async function ownClassesBetween(c: CoachContexts, from: string, to: stri
     add({
       kind: 'grup', cancelled: false, date: r.date, startTime: r.startTime, durationMin: r.durationMin ?? (r.occurrenceKey ? durations.get(r.occurrenceKey) ?? null : null),
       title: r.groupName, children: r.listed, location: await locationOf(group), done: r.state === 'salvata', standIn,
-      sessionId: r.sessionId, occurrenceKey: r.occurrenceKey, lessonId: null, reason: null,
+      sessionId: r.sessionId, occurrenceKey: r.occurrenceKey, lessonId: null, ...eventOf(calendar.events, r.occurrenceKey), reason: null,
     }, group?.order ?? 0);
   }
   for (const o of expandOccurrences(calendar.events, calendar.blackouts, from, to)) {
@@ -54,7 +62,7 @@ export async function ownClassesBetween(c: CoachContexts, from: string, to: stri
     if (saved.has(key)) continue;
     add({
       kind: 'grup', cancelled: true, date: o.date, startTime: hhmm(o.startTime) ?? o.startTime, durationMin: durationOf(o), title: group.name, children: null,
-      location: await locationOf(group), done: false, standIn: false, sessionId: null, occurrenceKey: key, lessonId: null, reason: o.reason,
+      location: await locationOf(group), done: false, standIn: false, sessionId: null, occurrenceKey: key, lessonId: null, ...eventOf(calendar.events, key), reason: o.reason,
     }, group.order);
   }
   const [lessons, athletes] = await Promise.all([store.lessons({ from, to }), store.athletes()]);
@@ -62,7 +70,7 @@ export async function ownClassesBetween(c: CoachContexts, from: string, to: stri
   for (const l of lessons.filter((x) => x.coachIds.includes(c.coach.teamMemberId))) {
     add({
       kind: 'individual', cancelled: l.cancelledAt !== null, date: l.date, startTime: hhmm(l.startTime) ?? l.startTime, durationMin: l.durationMin, title: names.get(l.athleteId) ?? '',
-      children: null, location: null, done: l.present !== null, standIn: false, sessionId: null, occurrenceKey: null, lessonId: l.id, reason: l.cancelReason,
+      children: null, location: null, done: l.present !== null, standIn: false, sessionId: null, occurrenceKey: null, lessonId: l.id, eventId: null, oneOff: false, reason: l.cancelReason,
     }, 0);
   }
   return items.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime) || (order.get(a) ?? 0) - (order.get(b) ?? 0));

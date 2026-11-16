@@ -76,7 +76,9 @@ describe('repeating lessons and one-off classes in the calendar', () => {
     const all = out.days.flatMap((d) => d.items);
     expect(all.filter((i) => i.kind === 'individual').map((i) => [i.date, i.title, i.done])).toEqual([['2026-11-24', 'Ana Club', false]]);
     const one = all.find((i) => i.date === '2026-11-25' && i.title === 'Club A');
-    expect(one).toMatchObject({ kind: 'grup', startTime: '15:00', cancelled: false, done: false, occurrenceKey: `ev-one|2026-11-25|15:00` });
+    expect(one).toMatchObject({ kind: 'grup', startTime: '15:00', cancelled: false, done: false, occurrenceKey: `ev-one|2026-11-25|15:00`, eventId: 'ev-one', oneOff: true });
+    expect(all.find((i) => i.date === '2026-11-20' && i.title === 'Club A')).toMatchObject({ eventId: 'ev-g-club-a', oneOff: false });
+    expect(all.find((i) => i.kind === 'individual')).toMatchObject({ eventId: null, oneOff: false });
     expect(all.some((i) => i.date === '2026-11-27' && i.title === 'Club A')).toBe(false);
     expect(forbiddenKeysIn(out)).toEqual([]);
   });

@@ -2,19 +2,19 @@ import * as React from 'react';
 import { DataTable, Loading, Notice, Select, StatTile, type DataColumn } from '../../ui';
 import { COMPETITII_COPY, scoreText, type AthleteCompetitions, type CompetitionLine } from '../../../club/sportivi/competitions-view';
 import { isoToSlash } from '../../../club/date-format';
+import { EMPTY_VALUE } from '../../../club/empty-value';
 import type { SportiviApi } from './api';
 
 const copy = COMPETITII_COPY;
-const dash = '-';
 
 /** "14/03/2026" from an ISO date; a line without a date shows nothing. */
 const dateText = (iso: string | null): string => (iso ? isoToSlash(iso) ?? '' : '');
-const num = (v: number | null): string => (v === null ? dash : String(v));
+const num = (v: number | null): string => (v === null ? EMPTY_VALUE : String(v));
 
 const COLUMNS: DataColumn<CompetitionLine>[] = [
   { key: 'date', header: copy.columns.date, render: (l) => dateText(l.date), width: '110px' },
   { key: 'name', header: copy.columns.name, render: (l) => l.name },
-  { key: 'category', header: copy.columns.category, render: (l) => l.category ?? dash },
+  { key: 'category', header: copy.columns.category, render: (l) => l.category ?? EMPTY_VALUE },
   { key: 'placement', header: copy.columns.placement, align: 'right', render: (l) => num(l.placement), width: '70px' },
   { key: 'score', header: copy.columns.score, align: 'right', render: (l) => scoreText(l.score), width: '90px' },
 ];

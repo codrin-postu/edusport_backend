@@ -114,6 +114,8 @@ export type CoachCalendarItem = {
   kind: 'grup' | 'individual'; cancelled: boolean; date: string; startTime: string; durationMin: number | null; title: string;
   children: number | null; location: string | null; done: boolean; standIn: boolean;
   sessionId: string | null; occurrenceKey: string | null; lessonId: string | null;
+  /** The program event a group item is a date of (null without one), and whether that event is a single class (no repeat). */
+  eventId: string | null; oneOff: boolean;
   /** Why a cancelled item was cancelled (an individual lesson: the coach's own reason), else null. */
   reason: string | null;
 };
