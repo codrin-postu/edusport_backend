@@ -39,7 +39,7 @@ export async function readClubToday(c: CoachContexts): Promise<AdminResult<Coach
   }
   for (const l of lessons) {
     const own = l.coachIds.includes(me);
-    out.push({ kind: 'lesson', lessonId: own ? l.id : null, startTime: hhmm(l.startTime) ?? l.startTime, durationMin: l.durationMin, coach: names(l.coachIds).join(', '), own });
+    out.push({ kind: 'lesson', lessonId: own ? l.id : null, startTime: hhmm(l.startTime) ?? l.startTime, durationMin: l.durationMin, coach: names(l.coachIds).join(', '), own, cancelled: l.cancelledAt !== null, reason: l.cancelReason });
   }
   const title = (r: ClubTodayRow): string => (r.kind === 'group' ? r.name : '');
   out.sort((a, b) => a.startTime.localeCompare(b.startTime) || title(a).localeCompare(title(b), 'ro'));

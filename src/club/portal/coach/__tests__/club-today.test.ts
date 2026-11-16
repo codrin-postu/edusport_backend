@@ -67,8 +67,8 @@ describe('readClubToday', () => {
     const out = await read(c);
     const lessons = out.rows.filter((r) => r.kind === 'lesson');
     expect(lessons).toEqual([
-      { kind: 'lesson', lessonId: 'l-mine', startTime: '16:00', durationMin: 50, coach: 'Andreea Pascu', own: true },
-      { kind: 'lesson', lessonId: null, startTime: '16:30', durationMin: 50, coach: 'Virgil Pascu', own: false },
+      { kind: 'lesson', lessonId: 'l-mine', startTime: '16:00', durationMin: 50, coach: 'Andreea Pascu', own: true, cancelled: false, reason: null },
+      { kind: 'lesson', lessonId: null, startTime: '16:30', durationMin: 50, coach: 'Virgil Pascu', own: false, cancelled: false, reason: null },
     ]);
     expect(out.rows.map((r) => r.startTime)).toEqual(['16:00', '16:30', '17:00', '18:00']);
     const text = JSON.stringify(out);

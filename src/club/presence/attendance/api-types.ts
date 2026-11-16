@@ -44,12 +44,12 @@ export type MatrixRow = { athleteId: string; name: string; visitor: boolean; cel
 export type GroupMatrix = { month: string; group: { id: string; name: string; program: string }; columns: MatrixColumn[]; rows: MatrixRow[] };
 export type LessonListRow = {
   lessonId: string; date: string; startTime: string; athleteId: string; athleteName: string; coachNames: string[]; durationMin: number;
-  state: SessionState; present: boolean | null;
+  state: SessionState; present: boolean | null; cancelled: boolean; cancelReason: string | null;
 };
 export type PeriodLessonRow = LessonListRow & { adminState: AdminState };
 export type LessonPanel = {
   lessonId: string; athleteId: string; athleteName: string; date: string; startTime: string; durationMin: number; coachIds: string[];
-  state: LessonState; present: boolean | null; savedLine: string | null; deletable: boolean;
+  state: LessonState; present: boolean | null; savedLine: string | null; deletable: boolean; cancelled: boolean; cancelReason: string | null;
 };
 export type LessonBody = { athleteId: string; date: string; startTime: string; durationMin: number; coachIds: string[] };
 export type LessonPatch = { present: boolean; durationMin: number; coachIds: string[] };

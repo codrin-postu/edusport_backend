@@ -58,7 +58,7 @@ export function toCoachLesson(panel: LessonPanel, x: { team: NamedRow[]; right: 
   return {
     lessonId: panel.lessonId, athleteId: panel.athleteId, athleteName: panel.athleteName, date: panel.date, startTime: panel.startTime, durationMin: panel.durationMin,
     coachIds: [...panel.coachIds], coachOptions: options(x.team), state: panel.state, present: panel.present, savedLine: panel.savedLine,
-    editable: x.right.write, archived: x.right.archived, deletable: x.right.delete && !x.paid, series: x.series, planEditable: x.planEditable,
+    editable: x.right.write && !panel.cancelled, archived: x.right.archived, deletable: x.right.delete && !x.paid, cancelled: panel.cancelled, cancelReason: panel.cancelReason, series: x.series, planEditable: x.planEditable,
   };
 }
 

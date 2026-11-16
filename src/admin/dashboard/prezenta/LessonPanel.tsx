@@ -4,7 +4,7 @@ import { ConfirmDialog } from '../../ConfirmDialog';
 import type { LessonPanel as LessonData } from '../../../club/presence/attendance/api-types';
 import { ATTENDANCE_ERRORS, LESSON_COPY } from '../../../club/presence/copy/attendance';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
-import { PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
+import { LESSON_CANCELLED_COPY, PREZENTA_COPY } from '../../../club/presence/copy/prezenta-ui';
 import { durationOptions } from '../../../club/grupe/program-view';
 import { lessonTitle, longDayTitle } from '../../../club/prezenta/day-view';
 import { coachIdsOf, type CoachFields as CoachValue } from '../../../club/prezenta/panel-view';
@@ -80,7 +80,8 @@ function useActions(api: PrezentaApi, id: string, draft: Draft | null, onClose: 
 
 type BodyProps = { lesson: LessonData; draft: Draft; busy: boolean; follow: Follow; coachError: string | null; options: { documentId: string; name: string }[]; onDraft: (d: Draft) => void; onDelete: () => void };
 
-function LessonBody({ lesson, draft, busy, follow, coachError, options, onDraft, onDelete }: BodyProps) {
+function LessonBody({ lesson, draft, busy: working, follow, coachError, options, onDraft, onDelete }: BodyProps) {
+  const busy = working || lesson.cancelled;
   return (
     <div className="pz-form">
       <p className="pz-sheet-sub">{longDayTitle(lesson.date)}</p>
@@ -93,9 +94,10 @@ function LessonBody({ lesson, draft, busy, follow, coachError, options, onDraft,
       <Field label={PREZENTA_COPY.colDuration}>
         <Select value={draft.duration} options={durationOptions()} disabled={busy} onChange={(duration) => onDraft({ ...draft, duration })} />
       </Field>
+      {lesson.cancelled && <p className="pz-muted">{[LESSON_CANCELLED_COPY, lesson.cancelReason].filter(Boolean).join(': ')}</p>}
       {lesson.savedLine && <p className="pz-saved">{lesson.savedLine}</p>}
       {lesson.deletable && (
-        <button type="button" className="pz-link pz-link--danger" disabled={busy} onClick={onDelete}>{LESSON_COPY.deleteLink}</button>
+        <button type="button" className="pz-link pz-link--danger" disabled={working} onClick={onDelete}>{LESSON_COPY.deleteLink}</button>
       )}
     </div>
   );
@@ -113,7 +115,7 @@ export function LessonPanel({ id, onClose }: Props) {
   const footer = (
     <div className="pz-foot">
       <Button variant="ghost" disabled={busy} onClick={onClose}>{PREZENTA_COPY.close}</Button>
-      {lesson && <Button loading={busy} onClick={() => void save()}>{PREZENTA_COPY.save}</Button>}
+      {lesson && !lesson.cancelled && <Button loading={busy} onClick={() => void save()}>{PREZENTA_COPY.save}</Button>}
     </div>
   );
   return (

@@ -5,7 +5,7 @@ import { PERIOD_COPY, PREZENTA_COPY } from '../../../club/presence/copy/prezenta
 import type { PeriodLessonRow } from '../../../club/presence/attendance/api-types';
 import { periodOf, type PeriodView } from '../../../club/presence/period';
 import { dayHeader } from '../../../club/prezenta/period-view';
-import { stateLabel } from './GroupsList';
+import { lessonStateLabel } from './GroupsList';
 import { LessonPanel } from './LessonPanel';
 import { usePeriodLoad } from './MonthLine';
 import { NewLessonWindow } from './NewLessonWindow';
@@ -15,13 +15,13 @@ import { HeaderSlot } from './Switcher';
 type Props = { view: PeriodView; date: string; today: string; host: HTMLElement | null };
 
 /** A saved lesson the athlete missed is muted (P5 C48). */
-const absent = (r: PeriodLessonRow): boolean => r.adminState === 'completat' && r.present === false;
+const absent = (r: PeriodLessonRow): boolean => r.cancelled || (r.adminState === 'completat' && r.present === false);
 
 const COLUMNS: PeriodColumn<PeriodLessonRow>[] = [
   { key: 'time', header: PREZENTA_COPY.colTime, render: (r) => r.startTime },
   { key: 'athlete', header: PREZENTA_COPY.colAthlete, render: (r) => <span className={absent(r) ? 'pz-muted' : undefined}>{r.athleteName}</span> },
   { key: 'coach', header: PREZENTA_COPY.colCoach, render: (r) => r.coachNames.join(', ') },
-  { key: 'state', header: PREZENTA_COPY.colState, render: (r) => stateLabel(r.adminState) },
+  { key: 'state', header: PREZENTA_COPY.colState, render: lessonStateLabel },
 ];
 
 function groupsOf(rows: PeriodLessonRow[], view: PeriodView, today: string): PeriodGroup<PeriodLessonRow>[] {
@@ -53,7 +53,7 @@ export function LessonsList({ view, date, today, host }: Props) {
           <>
             <span className={absent(r) ? 'pz-muted' : undefined}>{`${r.startTime} ${r.athleteName}`}</span>
             <span>{r.coachNames.join(', ')}</span>
-            <span>{stateLabel(r.adminState)}</span>
+            <span>{lessonStateLabel(r)}</span>
           </>
         )}
       />

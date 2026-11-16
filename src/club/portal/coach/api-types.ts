@@ -24,7 +24,7 @@ export type CoachClassRow = {
   sessionId: string | null; occurrenceKey: string | null; groupId: string; groupName: string; date: string; startTime: string; children: number; done: boolean; standIn: boolean;
   location: string | null;
 };
-export type CoachLessonRow = { lessonId: string; athleteName: string; date: string; startTime: string; durationMin: number; done: boolean };
+export type CoachLessonRow = { lessonId: string; athleteName: string; date: string; startTime: string; durationMin: number; done: boolean; cancelled: boolean; reason: string | null };
 /** The first own class or lesson after now (14 days ahead at most), for the Azi column. */
 export type CoachNext = { kind: 'grup' | 'individual'; date: string; startTime: string; title: string; location: string | null; occurrenceKey: string | null; lessonId: string | null };
 /** The Monday to Sunday week of today: classes and lessons held (start time passed) and left, and held classes still without saved presence. */
@@ -65,7 +65,7 @@ export type CoachSession = {
 };
 export type CoachLesson = {
   lessonId: string; athleteId: string; athleteName: string; date: string; startTime: string; durationMin: number; coachIds: string[];
-  coachOptions: { id: string; name: string }[]; state: LessonState; present: boolean | null; savedLine: string | null; editable: boolean; archived: boolean; deletable: boolean;
+  coachOptions: { id: string; name: string }[]; state: LessonState; present: boolean | null; savedLine: string | null; editable: boolean; archived: boolean; deletable: boolean; cancelled: boolean; cancelReason: string | null;
   series: LessonSeriesView | null; planEditable: boolean;
 };
 export type LessonRepeat = { freq: RepeatFreq; days: DayKey[]; weekOfMonth?: WeekOfMonth | null; until: string | null };
@@ -124,5 +124,5 @@ export type CoachProgram = { kind: SectionKind; editable: boolean; programPublic
 /** Every session of the club today. No child name, athlete id or member count; `lessonId` only for the asking coach's own lessons. */
 export type ClubTodayRow =
   | { kind: 'group'; groupId: string; name: string; school: boolean; startTime: string; durationMin: number; coaches: string[]; location: string | null; own: boolean }
-  | { kind: 'lesson'; lessonId: string | null; startTime: string; durationMin: number; coach: string; own: boolean };
+  | { kind: 'lesson'; lessonId: string | null; startTime: string; durationMin: number; coach: string; own: boolean; cancelled: boolean; reason: string | null };
 export type CoachClubToday = { date: string; rows: ClubTodayRow[] };

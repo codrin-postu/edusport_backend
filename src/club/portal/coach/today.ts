@@ -29,7 +29,7 @@ async function lessonsOf(c: CoachContexts, date: string): Promise<CoachLessonRow
   const [lessons, athletes] = await Promise.all([c.presence.store.lessons({ from: date, to: date }), c.presence.store.athletes()]);
   const names = new Map(athletes.map((a) => [a.id, a.name ?? '']));
   return lessons.filter((l) => l.coachIds.includes(c.coach.teamMemberId)).sort((a, b) => a.startTime.localeCompare(b.startTime))
-    .map((l) => ({ lessonId: l.id, athleteName: names.get(l.athleteId) ?? '', date: l.date, startTime: l.startTime, durationMin: l.durationMin, done: l.present !== null }));
+    .map((l) => ({ lessonId: l.id, athleteName: names.get(l.athleteId) ?? '', date: l.date, startTime: l.startTime, durationMin: l.durationMin, done: l.present !== null, cancelled: l.cancelledAt !== null, reason: l.cancelReason }));
 }
 
 /** Next class or lesson and the week counts, from one read of the own classes between Monday and the later of Sunday and 14 days ahead. */

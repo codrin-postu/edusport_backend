@@ -14,7 +14,7 @@ import { SPORTIVI_CSS } from '../sportivi/styles';
 import { GRUPE_CSS } from '../grupe/styles';
 import { usePrezentaApi } from './api';
 import { LessonPanel } from './LessonPanel';
-import { stateLabel, targetOf } from './GroupsList';
+import { lessonStateLabel, stateLabel, targetOf } from './GroupsList';
 import { AthleteLink } from './PanelLinks';
 import { PeriodHeader } from './PeriodHeader';
 import { PeriodTable, type PeriodColumn } from './PeriodTable';
@@ -132,7 +132,7 @@ const lessonColumns = (today: string): PeriodColumn<PeriodLessonRow>[] => [
   { key: 'time', header: PREZENTA_COPY.colTime, render: (r) => r.startTime },
   { key: 'athlete', header: PREZENTA_COPY.colAthlete, render: athleteLink },
   { key: 'duration', header: PREZENTA_COPY.colDuration, render: (r) => durationText(r.durationMin) },
-  { key: 'state', header: PREZENTA_COPY.colState, render: (r) => stateLabel(r.adminState) },
+  { key: 'state', header: PREZENTA_COPY.colState, render: lessonStateLabel },
 ];
 
 const lessonCard = (today: string) => (r: PeriodLessonRow) => (
@@ -140,7 +140,7 @@ const lessonCard = (today: string) => (r: PeriodLessonRow) => (
     <span className="spv-name">{`${coachRowDate(r.date, today)} ${r.startTime}`}</span>
     <span>{r.athleteName}</span>
     <span>{durationText(r.durationMin)}</span>
-    <span>{stateLabel(r.adminState)}</span>
+    <span>{lessonStateLabel(r)}</span>
   </>
 );
 

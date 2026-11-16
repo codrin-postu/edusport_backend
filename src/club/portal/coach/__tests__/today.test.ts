@@ -77,8 +77,8 @@ describe('readToday', () => {
     );
     const out = await read(c);
     expect(out.lessons).toEqual([
-      { lessonId: 'l2', athleteName: 'Bogdan Club', date: TODAY, startTime: '15:00', durationMin: 50, done: true },
-      { lessonId: 'l1', athleteName: 'Ana Club', date: TODAY, startTime: '16:00', durationMin: 50, done: false },
+      { lessonId: 'l2', athleteName: 'Bogdan Club', date: TODAY, startTime: '15:00', durationMin: 50, done: true, cancelled: false, reason: null },
+      { lessonId: 'l1', athleteName: 'Ana Club', date: TODAY, startTime: '16:00', durationMin: 50, done: false, cancelled: false, reason: null },
     ]);
     expect(forbiddenKeysIn(out)).toEqual([]);
   });
@@ -120,7 +120,7 @@ describe('repeating lessons and one-off classes in Azi', () => {
     expect(made).toMatchObject({ ok: true, data: { count: 2 } });
     addOneOffClass(c, '2026-11-25');
     const fri = await read(c);
-    expect(fri.lessons).toEqual([{ lessonId: expect.any(String), athleteName: 'Ana Club', date: TODAY, startTime: '16:00', durationMin: 50, done: false }]);
+    expect(fri.lessons).toEqual([{ lessonId: expect.any(String), athleteName: 'Ana Club', date: TODAY, startTime: '16:00', durationMin: 50, done: false, cancelled: false, reason: null }]);
     expect(forbiddenKeysIn(fri)).toEqual([]);
     const wed = await read(c, '2026-11-25');
     expect(wed.groups.map((g) => [g.groupId, g.startTime, g.done])).toEqual([['g-club-a', '15:00', false]]);

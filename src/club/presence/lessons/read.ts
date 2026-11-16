@@ -28,7 +28,7 @@ export const byDateTime = (lessons: LessonRow[]): LessonRow[] =>
 export function lessonListRow(l: LessonRow, n: RowNames): PeriodLessonRow {
   return {
     lessonId: l.id, date: l.date, startTime: l.startTime, athleteId: l.athleteId, athleteName: n.athletes.get(l.athleteId) ?? GROUP_LINES.deletedAthlete,
-    coachNames: coachNames(l.coachIds, n.coaches), durationMin: l.durationMin, state: lessonListState(l, n.now.date), present: l.present,
+    coachNames: coachNames(l.coachIds, n.coaches), durationMin: l.durationMin, state: lessonListState(l, n.now.date), present: l.present, cancelled: l.cancelledAt !== null, cancelReason: l.cancelReason,
     adminState: adminState({ saved: l.state === 'saved', date: l.date, startTime: hhmm(l.startTime) ?? l.startTime, startDate: l.date, now: n.now }),
   };
 }
@@ -60,7 +60,7 @@ export async function readLesson(store: PresenceStore, id: string): Promise<Admi
     data: {
       lessonId: l.id, athleteId: l.athleteId, athleteName: athlete?.name ?? GROUP_LINES.deletedAthlete, date: l.date, startTime: l.startTime,
       durationMin: l.durationMin, coachIds: l.coachIds, state: l.state, present: l.present,
-      savedLine: l.savedBy && l.savedAt ? savedLine(l.savedBy, l.savedAt) : null, deletable: await isDeletable(store, id),
+      savedLine: l.savedBy && l.savedAt ? savedLine(l.savedBy, l.savedAt) : null, deletable: await isDeletable(store, id), cancelled: l.cancelledAt !== null, cancelReason: l.cancelReason,
     },
   };
 }

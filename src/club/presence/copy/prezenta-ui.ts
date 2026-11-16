@@ -42,6 +42,8 @@ export const PERIOD_COPY = {
 } as const;
 
 export const STATE_COPY = { completat: 'Completat', necompletat: 'Necompletat', urmeaza: 'Urmează' } as const;
+/** The state word of a cancelled individual lesson. */
+export const LESSON_CANCELLED_COPY = 'Anulată';
 
 export const GRID_COPY = {
   legendWeek: 'Prezenți din listați', legendMonth: 'Prezenți din listați, % în celule',

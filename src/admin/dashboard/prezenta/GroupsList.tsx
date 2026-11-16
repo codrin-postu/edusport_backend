@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Button, Loading, Notice, StatusBadge, useIsPhone, type BadgeTone } from '../../ui';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
-import { PERIOD_COPY, PREZENTA_COPY, STATE_COPY } from '../../../club/presence/copy/prezenta-ui';
+import { LESSON_CANCELLED_COPY, PERIOD_COPY, PREZENTA_COPY, STATE_COPY } from '../../../club/presence/copy/prezenta-ui';
 import type { PeriodPage, PeriodRow } from '../../../club/presence/attendance/api-types';
 import { periodOf, type AdminState, type PeriodView } from '../../../club/presence/period';
 import { listDate } from '../../../club/presence/dates';
@@ -22,6 +22,15 @@ type Opened = { target: SessionTarget; coachIds?: string[] };
 const TONES: Record<Exclude<AdminState, null>, BadgeTone> = { completat: 'success', necompletat: 'warning', urmeaza: 'neutral' };
 
 export const targetOf = (r: PeriodRow): SessionTarget | null => (r.sessionId ? { id: r.sessionId } : r.occurrenceKey ? { occurrence: r.occurrenceKey } : null);
+
+/** The state of a lesson row: a cancelled lesson reads Anulată with its reason muted beside it, else the admin state. */
+export const lessonStateLabel = (r: { adminState: AdminState; cancelled: boolean; cancelReason: string | null }) =>
+  r.cancelled ? (
+    <>
+      <StatusBadge tone="neutral">{LESSON_CANCELLED_COPY}</StatusBadge>
+      {r.cancelReason && <span className="pz-muted">{` ${r.cancelReason}`}</span>}
+    </>
+  ) : stateLabel(r.adminState);
 
 /** The state word as a square label; nothing for a row without one. */
 export const stateLabel = (state: AdminState) => (state ? <StatusBadge tone={TONES[state]}>{STATE_COPY[state]}</StatusBadge> : null);
