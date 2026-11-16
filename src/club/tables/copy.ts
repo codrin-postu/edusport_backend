@@ -1,5 +1,3 @@
-import { countWords } from '../ro-count';
-
 const VIEWS = {
   duplicate: 'Există deja o vizualizare cu numele ăsta.',
   tooMany: 'Prea multe vizualizări salvate. Șterge una.',
@@ -21,15 +19,13 @@ export const TABLES_COUNT_WORDS = {
 export const TABLES_COPY = {
   save: 'Salvează',
   pageTitle: 'Tabele',
-  rail: { title: 'Tabele salvate', gata: 'Gata făcute', mele: 'Ale mele', colegi: 'Ale colegilor', menu: 'Acțiuni', pick: 'Tabel salvat' },
+  saveTable: 'Salvează tabelul',
+  rail: { title: 'Tabele salvate', gata: 'Gata făcute', mele: 'Ale mele', colegi: 'Ale colegilor', menu: 'Acțiuni', hide: 'Ascunde tabelele salvate', show: 'Arată tabelele salvate' },
   rename: 'Redenumește',
   duplicate: 'Duplică',
   remove: 'Șterge',
-  /** "Exportă" menu of the header. */
-  export: {
-    button: 'Exportă', xlsx: 'Excel (.xlsx)', csv: 'CSV',
-    exact: (rows: number, columns: number): string => `Exact ce vezi: ${countWords(rows, 'rând', 'rânduri')}, ${countWords(columns, 'coloană', 'coloane')}, cu filtrele aplicate`,
-  },
+  /** Split download of the header: the button gives Excel, the arrow lists the formats. */
+  export: { button: 'Descarcă Excel', more: 'Alte formate' },
   /** Control row. */
   table: 'Tabel',
   subjects: { sportivi: 'Sportivi', plati: 'Plăți', abonamente: 'Abonamente', prezenta: 'Prezențe', sedinte: 'Prezență pe ședințe' },
@@ -40,7 +36,6 @@ export const TABLES_COPY = {
   columnSearch: 'Caută coloană',
   shown: 'Afișate, în ordine',
   hidden: 'Ascunse',
-  aspect: { label: 'Aspect', lista: 'Listă', foaie: 'Foaie de calcul' },
   season: 'Sezon',
   section: 'Secțiune',
   group: 'Grupă',

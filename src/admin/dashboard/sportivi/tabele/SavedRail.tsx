@@ -1,13 +1,14 @@
 import * as React from 'react';
-import { Select, type SelectOption } from '../../../ui';
+import { Button } from '../../../ui';
+import { IconChevronLeft } from '../../../ui/icons';
 import { MenuButton } from '../../SubmissionTable';
 import { TABLES_COPY } from '../../../../club/tables/copy';
 import { railMenuKeys, type RailGroup, type RailMenuKey } from '../../../../club/tables/rail';
 import type { SavedViewRow } from '../../../../club/tables/types';
 
 type Props = {
-  groups: RailGroup[]; currentId: string; phone: boolean;
-  onPick: (id: string) => void;
+  id: string; groups: RailGroup[]; currentId: string; open: boolean; overlay: boolean;
+  onPick: (id: string) => void; onClose: () => void;
   onMenu: (key: RailMenuKey, view: SavedViewRow) => void;
 };
 
@@ -26,43 +27,40 @@ function RowMenu({ view, keys, onMenu }: { view: SavedViewRow; keys: RailMenuKey
   );
 }
 
-/** "Tabele salvate": ready-made, own and colleagues' views; the open one is marked. On a phone it is a Select "Tabel salvat". */
-export function SavedRail({ groups, currentId, phone, onPick, onMenu }: Props) {
-  if (phone) {
-    const options: SelectOption[] = groups.flatMap((g) => g.views.map((v) => ({ value: v.id, label: v.name, group: g.title, hint: g.key === 'colegi' ? v.authorName : undefined })));
-    const inList = options.some((o) => o.value === currentId);
-    const view = groups.flatMap((g) => g.views).find((v) => v.id === currentId);
-    const keys = view ? railMenuKeys(view) : [];
-    return (
-      <div className="tbl-rail-phone">
-        <span className="tbl-label" id="tbl-rail-label">{TABLES_COPY.rail.pick}</span>
-        <div className="tbl-rail-phone-row">
-          <Select value={inList ? currentId : ''} options={options} aria-labelledby="tbl-rail-label" onChange={onPick} />
-          {view && keys.length > 0 && <RowMenu key={view.id} view={view} keys={keys} onMenu={onMenu} />}
-        </div>
-      </div>
-    );
-  }
+/** "Tabele salvate": ready-made, own and colleagues' views; the open one is marked. Up to 900px wide it is a slide-over with a scrim and closes on pick. */
+export function SavedRail({ id, groups, currentId, open, overlay, onPick, onMenu, onClose }: Props) {
+  React.useEffect(() => {
+    if (!open || !overlay) return undefined;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, overlay, onClose]);
   return (
-    <nav className="tbl-rail" aria-label={TABLES_COPY.rail.title}>
-      <h2 className="tbl-rail-title">{TABLES_COPY.rail.title}</h2>
-      {groups.map((g) => (
-        <section key={g.key} className="tbl-rail-group" aria-label={g.title}>
-          <h3 className="tbl-rail-head">{g.title}</h3>
-          {g.views.map((v) => {
-            const keys = railMenuKeys(v);
-            return (
-              <div key={v.id} className="tbl-rail-row" data-current={v.id === currentId}>
-                <button type="button" className="tbl-rail-item" aria-current={v.id === currentId ? 'true' : undefined} onClick={() => onPick(v.id)}>
-                  <span className="tbl-rail-name">{v.name}</span>
-                  {g.key === 'colegi' && <span className="tbl-rail-author">{v.authorName}</span>}
-                </button>
-                {keys.length > 0 && <RowMenu view={v} keys={keys} onMenu={onMenu} />}
-              </div>
-            );
-          })}
-        </section>
-      ))}
-    </nav>
+    <>
+      {open && overlay && <div className="tbl-scrim" onClick={onClose} aria-hidden="true" />}
+      <aside id={id} className="ui-win tbl-rail" aria-label={TABLES_COPY.rail.title} hidden={!open}>
+        <div className="tbl-rail-h">
+          <h2 className="tbl-rail-title">{TABLES_COPY.rail.title}</h2>
+          <Button variant="ghost" size="sm" iconOnly icon={<IconChevronLeft />} aria-label={TABLES_COPY.rail.hide} onClick={onClose} />
+        </div>
+        {groups.map((g) => (
+          <section key={g.key} className="tbl-rail-group" aria-label={g.title}>
+            <h3 className="tbl-rail-head">{g.title}</h3>
+            {g.views.map((v) => {
+              const keys = railMenuKeys(v);
+              return (
+                <div key={v.id} className="tbl-rail-row" data-current={v.id === currentId}>
+                  <button type="button" className="tbl-rail-item" aria-current={v.id === currentId ? 'true' : undefined} onClick={() => { onPick(v.id); if (overlay) onClose(); }}>
+                    <span className="tbl-rail-name">{v.name}</span>
+                    {g.key === 'colegi' && <span className="tbl-rail-author">{v.authorName}</span>}
+                  </button>
+                  {keys.length > 0 && <RowMenu view={v} keys={keys} onMenu={onMenu} />}
+                </div>
+              );
+            })}
+          </section>
+        ))}
+      </aside>
+    </>
   );
 }

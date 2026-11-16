@@ -136,13 +136,6 @@ export function linesOf(result: TableResult, collapsed: ReadonlySet<string>, sub
   return out;
 }
 
-/** "#" of the spreadsheet aspect: rows are counted in the order shown, 1 up; group and subtotal lines carry no number. */
-export function rowNumbers(lines: Line[]): Map<string, number> {
-  const out = new Map<string, number>();
-  for (const l of lines) if (l.kind === 'row') out.set(l.key, out.size + 1);
-  return out;
-}
-
 /** Windows of `size` lines; the page is clamped. */
 export function windowOf<T>(lines: T[], page: number, size: number): { items: T[]; pageCount: number; page: number } {
   const pageCount = Math.max(1, Math.ceil(lines.length / size));

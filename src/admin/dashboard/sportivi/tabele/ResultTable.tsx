@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { EmptyState, Pager } from '../../../ui';
 import { IconChevronDown } from '../../../ui/icons';
-import { cellText, linesOf, rowNumbers, windowOf, type Line } from '../../../../club/tables/builder-state';
-import type { Aspect } from '../../../../club/tables/aspect';
+import { cellText, linesOf, windowOf, type Line } from '../../../../club/tables/builder-state';
 import { TABLES_COPY } from '../../../../club/tables/copy';
 import { athleteRecordTo } from '../../../../club/sportivi/routes';
 import { eduLinkHref } from '../../../../club/admin-href';
@@ -12,18 +11,15 @@ import { WINDOW_ROWS, windowed } from '../../../../club/tables/view-state';
 type Props = {
   result: TableResult; sort: TableDefinition['sort']; onSort: (columnKey: string) => void;
   collapsed: ReadonlySet<string>; onToggle: (groupKey: string) => void;
-  /** "foaie": cell borders, a "#" column, sticky header and first column, zebra rows. Default "lista". */
-  aspect?: Aspect;
 };
 
 const SORT_MARK = { asc: '▲', desc: '▼' } as const;
 const isNum = (c: CatalogColumn): boolean => c.type === 'number' || c.type === 'money';
 
-function Head({ columns, sort, onSort, numbered }: { columns: CatalogColumn[]; sort: Props['sort']; onSort: Props['onSort']; numbered: boolean }) {
+function Head({ columns, sort, onSort }: { columns: CatalogColumn[]; sort: Props['sort']; onSort: Props['onSort'] }) {
   return (
     <thead>
       <tr>
-        {numbered && <th scope="col" className="tbl-n">#</th>}
         {columns.map((c) => {
           const dir = sort?.column === c.key ? sort.dir : null;
           return (
@@ -41,12 +37,11 @@ function Head({ columns, sort, onSort, numbered }: { columns: CatalogColumn[]; s
 }
 
 /** A subtotal or Total line: the label sits in the first column that carries no sum (as in the file). */
-function SumLine({ line, columns, numbered }: { line: Extract<Line, { kind: 'subtotal' | 'total' }>; columns: CatalogColumn[]; numbered: boolean }) {
+function SumLine({ line, columns }: { line: Extract<Line, { kind: 'subtotal' | 'total' }>; columns: CatalogColumn[] }) {
   const label = line.kind === 'subtotal' ? line.label : TABLES_COPY.total;
   const free = columns.findIndex((c) => !(c.key in line.cells));
   return (
     <tr className={line.kind === 'total' ? 'tbl-total' : 'tbl-sub'}>
-      {numbered && <td className="tbl-n" />}
       {columns.map((c, i) => {
         const v: CellValue | undefined = line.cells[c.key];
         return <td key={c.key} className={isNum(c) ? 'tbl-num' : undefined}>{i === free ? label : cellText(c, v)}</td>;
@@ -55,7 +50,7 @@ function SumLine({ line, columns, numbered }: { line: Extract<Line, { kind: 'sub
   );
 }
 
-function RowLine({ row, columns, n }: { row: TableResult['rows'][number]; columns: CatalogColumn[]; n: number | null }) {
+function RowLine({ row, columns }: { row: TableResult['rows'][number]; columns: CatalogColumn[] }) {
   const id = row.athleteId;
   const open = () => id && window.open(eduLinkHref(athleteRecordTo(id)), '_blank', 'noopener');
   return (
@@ -64,32 +59,29 @@ function RowLine({ row, columns, n }: { row: TableResult['rows'][number]; column
       onClick={id ? open : undefined}
       onKeyDown={id ? (e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(); } } : undefined}
     >
-      {n !== null && <td className="tbl-n">{n}</td>}
       {columns.map((c) => <td key={c.key} className={isNum(c) ? 'tbl-num' : undefined}>{cellText(c, row.cells[c.key])}</td>)}
     </tr>
   );
 }
 
 /** The result: collapsible group headers, subtotals, Total; header click sorts; a row with an athlete opens the record in a new tab. Above 1.000 rows it shows windows of 200 lines. */
-export function ResultTable({ result, sort, onSort, collapsed, onToggle, aspect = 'lista' }: Props) {
+export function ResultTable({ result, sort, onSort, collapsed, onToggle }: Props) {
   const [page, setPage] = React.useState(1);
   React.useEffect(() => setPage(1), [result]);
   if (result.count === 0) return <EmptyState>{TABLES_COPY.empty}</EmptyState>;
   const lines = linesOf(result, collapsed, TABLES_COPY.subtotal);
-  const sheet = aspect === 'foaie';
-  const numbers = sheet ? rowNumbers(lines) : null;
   const win = windowed(result.count) ? windowOf(lines, page, WINDOW_ROWS) : { items: lines, pageCount: 1, page: 1 };
   return (
     <>
-      <div className={sheet ? 'tbl-wrap tbl-wrap-foaie' : 'tbl-wrap'}>
-        <table className={sheet ? 'tbl-table tbl-foaie' : 'tbl-table'}>
-          <Head columns={result.columns} sort={sort} onSort={onSort} numbered={sheet} />
+      <div className="tbl-wrap">
+        <table className="tbl-table">
+          <Head columns={result.columns} sort={sort} onSort={onSort} />
           <tbody>
             {win.items.map((line) => {
               if (line.kind === 'group') {
                 return (
                   <tr key={line.key} className="tbl-group">
-                    <td colSpan={result.columns.length + (sheet ? 1 : 0)}>
+                    <td colSpan={result.columns.length}>
                       <button type="button" className="tbl-group-btn" aria-expanded={line.open} onClick={() => onToggle(line.groupKey)}>
                         <span className="tbl-group-chev" aria-hidden="true"><IconChevronDown size={12} /></span>
                         {line.header}
@@ -98,8 +90,8 @@ export function ResultTable({ result, sort, onSort, collapsed, onToggle, aspect 
                   </tr>
                 );
               }
-              if (line.kind === 'row') return <RowLine key={line.key} row={line.row} columns={result.columns} n={numbers?.get(line.key) ?? null} />;
-              return <SumLine key={line.key} line={line} columns={result.columns} numbered={sheet} />;
+              if (line.kind === 'row') return <RowLine key={line.key} row={line.row} columns={result.columns} />;
+              return <SumLine key={line.key} line={line} columns={result.columns} />;
             })}
           </tbody>
         </table>

@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { SegmentedControl, Select, type SelectOption } from '../../../ui';
+import { Select, type SelectOption } from '../../../ui';
 import { setSubject } from '../../../../club/tables/builder-state';
-import type { Aspect } from '../../../../club/tables/aspect';
 import type { CatalogAnswer } from '../../../../club/tables/catalog-api';
 import { TABLES_COPY } from '../../../../club/tables/copy';
 import { addMonths, monthOf, monthTitle } from '../../../../club/presence/dates';
@@ -9,7 +8,7 @@ import type { PeriodSpec, Subject, TableDefinition } from '../../../../club/tabl
 import { ColumnsPopover } from './ColumnsPopover';
 import { FilterBar } from './FilterList';
 
-type Props = { definition: TableDefinition; catalog: CatalogAnswer; onChange: (d: TableDefinition) => void; aspect: Aspect; onAspect: (a: Aspect) => void };
+type Props = { definition: TableDefinition; catalog: CatalogAnswer; onChange: (d: TableDefinition) => void };
 
 const SUBJECTS: Subject[] = ['sportivi', 'plati', 'abonamente', 'prezenta', 'sedinte'];
 const NONE = '';
@@ -28,8 +27,8 @@ function Named({ name, children }: { name: string; children: React.ReactNode }) 
   return <span className="tbl-named"><span className="tbl-named-label">{name}:</span>{children}</span>;
 }
 
-/** The one row above the table: subject, season, period, section, group, filters, group-by, columns and aspect. Every control edits a catalog key. */
-export function ControlRow({ definition, catalog, onChange, aspect, onAspect }: Props) {
+/** The one row above the table: subject, season, period, section, group, filters, group-by and columns. Every control edits a catalog key. */
+export function ControlRow({ definition, catalog, onChange }: Props) {
   const { scope } = definition;
   const subject = catalog.subjects[definition.subject];
   const names: Record<string, string[]> = { grupa: catalog.groups.map((g) => g.name), sectiune: catalog.sections.map((s) => s.name) };
@@ -70,13 +69,6 @@ export function ControlRow({ definition, catalog, onChange, aspect, onAspect }: 
         <Select value={definition.groupBy ?? NONE} aria-label={TABLES_COPY.groupLabel} options={groupBys} onChange={(v) => onChange({ ...definition, groupBy: v === NONE ? null : (v as TableDefinition['groupBy']) })} />
       </Named>
       <ColumnsPopover definition={definition} catalog={subject.columns} onChange={onChange} />
-      <span className="tbl-named tbl-aspect">
-        <span className="tbl-named-label" id="tbl-aspect">{TABLES_COPY.aspect.label}:</span>
-        <SegmentedControl
-          aria-labelledby="tbl-aspect" size="sm" value={aspect} onChange={onAspect}
-          options={[{ value: 'lista', label: TABLES_COPY.aspect.lista }, { value: 'foaie', label: TABLES_COPY.aspect.foaie }]}
-        />
-      </span>
     </div>
   );
 }

@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -59,13 +61,6 @@ describe('Tabele render', () => {
     expect(out.match(/<tr/g)?.length).toBeLessThan(210);
     expect(out).toContain('ui-pager');
   });
-
-  it('the spreadsheet aspect adds a "#" column numbering rows only, not group or subtotal lines', () => {
-    const out = html(React.createElement(ResultTable, { result: grouped(2), sort: null, onSort: noop, collapsed: new Set(), onToggle: noop, aspect: 'foaie' }));
-    expect(out).toContain('>#</th>');
-    expect(out.match(/<td class="tbl-n">\d+<\/td>/g)).toEqual(['<td class="tbl-n">1</td>', '<td class="tbl-n">2</td>']);
-    expect(html(React.createElement(ResultTable, { result: grouped(2), sort: null, onSort: noop, collapsed: new Set(), onToggle: noop }))).not.toContain('>#</th>');
-  });
 });
 
 describe('Tabele control row and export', () => {
@@ -77,17 +72,55 @@ describe('Tabele control row and export', () => {
   afterAll(() => vi.restoreAllMocks());
   const definition: TableDefinition = { subject: 'plati', scope: { seasonId: 's26', sectionId: null, groupId: null, period: null }, columns: ['data', 'sportiv', 'suma'], filters: [{ column: 'sportiv', op: 'eq', value: 'Ana' }], groupBy: null, sort: null };
 
-  it('shows the table, scope, filter button, group-by, column count and aspect', () => {
-    const control = html(React.createElement(ControlRow, { definition, catalog, onChange: noop, aspect: 'lista', onAspect: noop }));
-    for (const text of ['Tabel:', 'Plăți', '2026-2027', 'Tot sezonul', 'Secțiune:', 'Grupă:', 'Grupează:', 'Sportiv: Ana', '+ Filtru', 'Coloane (3)', 'Aspect:', 'Listă', 'Foaie de calcul']) expect(control).toContain(text);
+  it('shows the table, scope, filter button, group-by and column count', () => {
+    const control = html(React.createElement(ControlRow, { definition, catalog, onChange: noop }));
+    for (const text of ['Tabel:', 'Plăți', '2026-2027', 'Tot sezonul', 'Secțiune:', 'Grupă:', 'Grupează:', 'Sportiv: Ana', '+ Filtru', 'Coloane (3)']) expect(control).toContain(text);
     expect(control).not.toContain('Subiect');
   });
-  it('the export menu is a closed button with the right rows and columns known to it', () => {
-    const out = html(React.createElement(ExportMenu, { canDownload: true, downloading: null, rows: 12, columns: 3, onDownload: noop }));
-    expect(out).toContain('Exportă');
-    expect(TABLES_COPY.export.exact(12, 3)).toBe('Exact ce vezi: 12 rânduri, 3 coloane, cu filtrele aplicate');
-    expect(TABLES_COPY.export.exact(1, 1)).toBe('Exact ce vezi: 1 rând, 1 coloană, cu filtrele aplicate');
+  it('the download is a split button: primary "Descarcă Excel" and an arrow menu, both off when nothing can be downloaded', () => {
+    const out = html(React.createElement(ExportMenu, { canDownload: true, downloading: null, onDownload: noop }));
+    expect(out).toContain('Descarcă Excel');
+    expect(out).toContain('aria-haspopup="menu"');
     expect(out).not.toContain('disabled');
-    expect(html(React.createElement(ExportMenu, { canDownload: false, downloading: null, rows: 0, columns: 0, onDownload: noop }))).toContain('disabled');
+    const off = html(React.createElement(ExportMenu, { canDownload: false, downloading: null, onDownload: noop }));
+    expect(off.match(/disabled/g)?.length).toBe(2);
+  });
+});
+
+const tabele = (file: string) => readFileSync(join(__dirname, '../../../admin/dashboard/sportivi/tabele', file), 'utf8');
+
+describe('Tabele shell source', () => {
+  it('the header has the rail toggle, the title, "Salvează tabelul" and the split download', () => {
+    const header = tabele('TableHeader.tsx');
+    expect(header).toContain('aria-expanded');
+    expect(header).toContain('aria-controls');
+    expect(header).toMatch(/<h1[^>]*>\{title\}<\/h1>/);
+    expect(header).toContain('TABLES_COPY.saveTable');
+    expect(header).toContain('<ExportMenu');
+    expect(TABLES_COPY.saveTable).toBe('Salvează tabelul');
+    const split = tabele('ExportMenu.tsx');
+    expect(split).toContain('TABLES_COPY.export.button');
+    expect(split).toContain('EXPORT_FORMATS');
+    expect(TABLES_COPY.export.button).toBe('Descarcă Excel');
+  });
+  it('the page has no Aspect, Listă or Foaie de calcul and no helper text on the export', () => {
+    for (const file of readdirSync(join(__dirname, '../../../admin/dashboard/sportivi/tabele'))) {
+      const src = tabele(file);
+      for (const word of ['Aspect', 'Listă', 'Foaie de calcul', 'aspect', 'Exact ce vezi']) expect(src, `${file} ${word}`).not.toContain(word);
+    }
+    expect(JSON.stringify(TABLES_COPY)).not.toMatch(/Aspect|Foaie de calcul|Exact ce vezi/);
+  });
+  it('below 900px the rail is a slide-over with a scrim that closes on pick', () => {
+    const rail = tabele('SavedRail.tsx');
+    expect(tabele('TabelePage.tsx')).toMatch(/useMediaQuery\(OVERLAY_QUERY\)/);
+    expect(tabele('TabelePage.tsx')).toContain('RAIL_OVERLAY_MAX');
+    expect(rail).toContain('tbl-scrim');
+    expect(rail).toMatch(/onPick\(v\.id\);\s*if \(overlay\) onClose\(\)/);
+  });
+  it('the page remembers the rail in localStorage inside try/catch', () => {
+    const page = tabele('TabelePage.tsx');
+    expect(page).toContain('RAIL_KEY');
+    expect(page).toMatch(/try \{[^}]*localStorage\.getItem\(RAIL_KEY\)[^}]*\} catch/);
+    expect(page).toMatch(/try \{[^}]*localStorage\.setItem\(RAIL_KEY[^}]*\} catch/);
   });
 });

@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AdminPage, Button, EmptyState, Loading, Notice, PageHeader, Window, adminToast, useIsPhone } from '../../../ui';
+import { AdminPage, EmptyState, Loading, Notice, PageHeader, Window, adminToast, useMediaQuery } from '../../../ui';
 import { ConfirmDialog } from '../../../ConfirmDialog';
-import { readAspect, writeAspect, type Aspect } from '../../../../club/tables/aspect';
 import type { CatalogAnswer } from '../../../../club/tables/catalog-api';
 import { TABLES_COPY, TABLES_COUNT_WORDS } from '../../../../club/tables/copy';
 import { nextSort } from '../../../../club/tables/header-sort';
 import { railGroups, type RailMenuKey } from '../../../../club/tables/rail';
 import { readTabeleQuery, tablesTo } from '../../../../club/tables/routes';
+import { RAIL_KEY, RAIL_OVERLAY_MAX, pageTitle, railInitial, railStored } from '../../../../club/tables/shell-state';
 import type { SavedViewRow, TableDefinition, TableResult } from '../../../../club/tables/types';
 import { isDirty, noPaymentsThisMonth } from '../../../../club/tables/view-state';
 import { MONEY_UI_COPY } from '../../../../club/presence/copy/money-ui';
@@ -19,14 +19,24 @@ import { useLatest } from '../../bani/latest';
 import { SPORTIVI_CSS } from '../styles';
 import { useTablesApi, type Format, type TablesApi } from './api';
 import { ControlRow } from './ControlRow';
-import { ExportMenu } from './ExportMenu';
 import { NewViewModal } from './NewViewModal';
 import { ResultTable } from './ResultTable';
 import { SavedRail } from './SavedRail';
+import { TableHeader } from './TableHeader';
 import { TABELE_CSS } from './styles';
 
 const UNDO_MS = 8000;
 const QUERY_DELAY_MS = 300;
+const RAIL_ID = 'tbl-rail';
+const OVERLAY_QUERY = `(max-width: ${RAIL_OVERLAY_MAX}px)`;
+
+/** Whether the rail starts open: the remembered choice, else by width. A slide-over always starts closed. */
+function railStart(overlay: boolean): boolean {
+  if (overlay) return false;
+  let stored: string | null = null;
+  try { stored = globalThis.localStorage.getItem(RAIL_KEY); } catch { /* storage blocked: not remembered */ }
+  return railInitial(stored, window.innerWidth);
+}
 
 /** Catalog and the saved views; the views reload after a write. */
 function useTablesData(api: TablesApi) {
@@ -71,7 +81,15 @@ type Dialog = { kind: 'new' } | { kind: 'duplicate' | 'rename' | 'remove'; view:
 type LoadedProps = { api: TablesApi; catalog: CatalogAnswer; views: SavedViewRow[]; reloadViews: () => Promise<void> };
 
 function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
-  const phone = useIsPhone();
+  const overlay = useMediaQuery(OVERLAY_QUERY);
+  const [railOpen, setRailOpen] = React.useState(() => railStart(overlay));
+  React.useEffect(() => setRailOpen(railStart(overlay)), [overlay]);
+  /** The choice of the column rail is remembered; opening the slide-over on a narrow screen is not. */
+  const setRail = (open: boolean) => {
+    setRailOpen(open);
+    if (overlay) return;
+    try { globalThis.localStorage.setItem(RAIL_KEY, railStored(open)); } catch { /* storage blocked: not remembered */ }
+  };
   const navigate = useNavigate();
   const { search } = useLocation();
   const all = [...catalog.readyMade, ...views];
@@ -86,8 +104,6 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
   React.useEffect(() => { setDraft(saved); setCollapsed(new Set()); }, [current.id, savedKey]);
 
   const { result, error, loading } = useResult(api, draft);
-  const [aspect, setAspect] = React.useState<Aspect>(readAspect);
-  const chooseAspect = (a: Aspect) => { setAspect(a); writeAspect(a); };
   const dirty = saved !== null && draft !== null && isDirty(saved, draft);
 
   const [dialog, setDialog] = React.useState<Dialog>(null);
@@ -186,28 +202,23 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
   const onSort = (key: string) => draft && setDraft({ ...draft, sort: nextSort(draft.sort, key) });
 
   const notices = [...new Set([...(current.notices ?? []), ...(result?.notices ?? [])])];
+  const title = pageTitle(draft && saved && draft.subject !== saved.subject ? null : current, TABLES_COPY.subjects[draft?.subject ?? 'sportivi']);
   const [one, many] = draft ? TABLES_COUNT_WORDS[draft.subject] : TABLES_COUNT_WORDS.sportivi;
 
   return (
     <AdminPage className="tbl-page">
       <style>{SPORTIVI_CSS}{TABELE_CSS}</style>
-      <Window>
-        <PageHeader
-          title={TABLES_COPY.pageTitle}
-          actions={(
-            <div className="tbl-acts">
-              <ExportMenu canDownload={!!result && !error && !current.broken} downloading={downloading} rows={result?.count ?? 0} columns={result?.columns.length ?? 0} onDownload={(f) => void download(f)} />
-              <Button disabled={!saveEnabled} onClick={onSaveClick}>{TABLES_COPY.save}</Button>
-            </div>
-          )}
-        />
-      </Window>
+      <TableHeader
+        title={title} railOpen={railOpen} railId={RAIL_ID} onRail={() => setRail(!railOpen)}
+        canSave={saveEnabled} onSave={onSaveClick}
+        canDownload={!!result && !error && !current.broken} downloading={downloading} onDownload={(f) => void download(f)}
+      />
       <div className="tbl-layout">
-        <SavedRail groups={groups} currentId={current.id} phone={phone} onPick={go} onMenu={onMenu} />
+        <SavedRail id={RAIL_ID} groups={groups} currentId={current.id} open={railOpen} overlay={overlay} onPick={go} onMenu={onMenu} onClose={() => setRail(false)} />
         <div className="tbl-main">
       <Window>
         {current.broken && <div className="tbl-notices"><Notice tone="warning">{TABLES_COPY.brokenView}</Notice></div>}
-        {draft && <ControlRow definition={draft} catalog={catalog} onChange={setDraft} aspect={aspect} onAspect={chooseAspect} />}
+        {draft && <ControlRow definition={draft} catalog={catalog} onChange={setDraft} />}
         {notices.length > 0 && (
           <div className="tbl-notices">{notices.map((n) => <Notice key={n} tone="warning">{n}</Notice>)}</div>
         )}
@@ -217,7 +228,7 @@ function Loaded({ api, catalog, views, reloadViews }: LoadedProps) {
         {result && !error && noPaymentsThisMonth(current.id, result) && <EmptyState>{TABLES_COPY.noPaymentsMonth}</EmptyState>}
         {result && !error && !noPaymentsThisMonth(current.id, result) && (
           <ResultTable
-            result={result} sort={draft?.sort ?? null} onSort={onSort} collapsed={collapsed} aspect={aspect}
+            result={result} sort={draft?.sort ?? null} onSort={onSort} collapsed={collapsed}
             onToggle={(k) => setCollapsed((c) => { const n = new Set(c); if (n.has(k)) n.delete(k); else n.add(k); return n; })}
           />
         )}
