@@ -198,22 +198,11 @@ async function membershipAndFee(ctx: PresenceContext, athlete: AthleteRow, offer
   return out;
 }
 
-async function addLocked(ctx: PresenceContext, athleteId: string, b: AddBody): Promise<ActionResult<AddSubscriptionResult>> {
-  await ctx.store.lockAthlete(athleteId);
-  const athlete = await ctx.store.athlete(athleteId);
-  if (!athlete) return refuse(404, PRESENCE_ERRORS.notFound);
-  if (isAnonymized(athlete)) return refuse(409, PRESENCE_ERRORS.stale);
-  const offer = await offerOn(ctx.store, athleteId, b.startsOn, b.member);
-  const item = offer ? pickItem(offer, b) : null;
-  if (!offer || !item) return refuse(400, PRESENCE_ERRORS.invalid);
-  const refused = await paymentRefusal(ctx, athlete, b.payment, item);
-  if (refused !== null) return refuse(400, refused);
-  const fee = await feeToCollect(ctx, athleteId, offer, b);
-  const row = subscriptionWrite({ athleteId, seasonId: offer.season.id, item, audience: offer.audience, startsOn: b.startsOn, actor: await actorName(ctx), now: ctx.now().toISOString() });
-  const same = await findDuplicate(ctx, row);
-  const name = athlete.name ?? '';
-  if (same) return done({ subscriptionId: same.id, athleteName: name, withPayment: false }, null);
-  if (!(await coverAllowed(ctx.store, athleteId, b, item))) return refuse(409, PRESENCE_ERRORS.conflict);
+type Plan = { athlete: AthleteRow; offer: Offer; item: OfferedItem; row: SubscriptionWrite; fee: number | null };
+
+/** Every write of the add, after all checks passed: abonament, covered rows, payment, A.C.S. and fee, recorded as one undoable action. */
+async function writeAdd(ctx: PresenceContext, b: AddBody, { athlete, offer, row, fee }: Plan): Promise<ActionResult<AddSubscriptionResult>> {
+  const athleteId = athlete.id;
   const code = formatSubscriptionCode(await ctx.store.nextCounter(SUBSCRIPTION_KEY));
   const id = await ctx.store.createSubscription(row, code);
   const steps: PresenceUndoStep[] = [{ op: 'deleteSubscription', id }, ...(await cover(ctx.store, id, b.cover))];
@@ -230,7 +219,27 @@ async function addLocked(ctx: PresenceContext, athleteId: string, b: AddBody): P
   steps.push(...extra.steps);
   guards.push(...extra.guards);
   const actionId = await recordPresenceAction(ctx.store, ctx.actor, lines, { steps, athletes: [athleteId], guards });
-  return done({ subscriptionId: id, athleteName: name, withPayment: paid !== null }, actionId);
+  return done({ subscriptionId: id, athleteName: athlete.name ?? '', withPayment: paid !== null }, actionId);
+}
+
+
+async function addLocked(ctx: PresenceContext, athleteId: string, b: AddBody): Promise<ActionResult<AddSubscriptionResult>> {
+  await ctx.store.lockAthlete(athleteId);
+  const athlete = await ctx.store.athlete(athleteId);
+  if (!athlete) return refuse(404, PRESENCE_ERRORS.notFound);
+  if (isAnonymized(athlete)) return refuse(409, PRESENCE_ERRORS.stale);
+  const offer = await offerOn(ctx.store, athleteId, b.startsOn, b.member);
+  const item = offer ? pickItem(offer, b) : null;
+  if (!offer || !item) return refuse(400, PRESENCE_ERRORS.invalid);
+  const refused = await paymentRefusal(ctx, athlete, b.payment, item);
+  if (refused !== null) return refuse(400, refused);
+  const fee = await feeToCollect(ctx, athleteId, offer, b);
+  const row = subscriptionWrite({ athleteId, seasonId: offer.season.id, item, audience: offer.audience, startsOn: b.startsOn, actor: await actorName(ctx), now: ctx.now().toISOString() });
+  const same = await findDuplicate(ctx, row);
+  const name = athlete.name ?? '';
+  if (same) return done({ subscriptionId: same.id, athleteName: name, withPayment: false }, null);
+  if (!(await coverAllowed(ctx.store, athleteId, b, item))) return refuse(409, PRESENCE_ERRORS.conflict);
+  return writeAdd(ctx, b, { athlete, offer, item, row, fee });
 }
 
 /** Adds an abonament frozen at today's price, covers the chosen "Fără abonament" rows and may record the payment, as one undoable action (4.9, 5.8). */
