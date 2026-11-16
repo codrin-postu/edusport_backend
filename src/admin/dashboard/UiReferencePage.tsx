@@ -553,13 +553,12 @@ function InboxDemo() {
         )}
         selectedKey={sel}
         onSelect={setSel}
-        empty="Niciun mesaj pentru filtrul curent."
+        empty="Niciun mesaj."
         page={page}
         pageCount={3}
         total={62}
         pageSize={25}
         onPageChange={setPage}
-        readerEmpty="Selectează un mesaj din listă pentru a-l citi."
         reader={
           current && (
             <div className="ui-stack" style={{ gap: 10 }}>
@@ -1032,7 +1031,7 @@ const UiReferencePage: React.FC = () => {
             <Controls />
             <Fields />
             <EditorCard variant="plain" title="Notice">
-              <Notice tone="success" title="Salvat">Modificările au fost salvate.</Notice>
+              <Notice tone="success" title="Salvat">Salvat.</Notice>
               <Notice tone="info" title="Setarea este pe altă pagină" action={<Button variant="secondary" size="sm">Deschide Setări site</Button>}>
                 Adresa de email se schimbă din Setări site.
               </Notice>
@@ -1129,7 +1128,7 @@ const UiReferencePage: React.FC = () => {
           />
           <div className="ui-body">
             <div className="ui-ref-row">
-              <Button variant="secondary" onClick={() => adminToast.success('Modificările au fost salvate.')}>Success</Button>
+              <Button variant="secondary" onClick={() => adminToast.success('Salvat.')}>Success</Button>
               <Button variant="secondary" onClick={() => adminToast.info('Setarea este pe altă pagină.')}>Info</Button>
               <Button variant="secondary" onClick={() => adminToast.warning('Imaginea are peste 300 KB.')}>Warning</Button>
               <Button variant="secondary" onClick={() => adminToast.error('Nu am putut salva. Încearcă din nou.')}>Error</Button>

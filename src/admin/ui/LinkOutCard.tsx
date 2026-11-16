@@ -6,8 +6,8 @@ export interface LinkOutCardProps {
   /** Card title, e.g. "Membri echipă". */
   title: React.ReactNode;
   description?: React.ReactNode;
-  /** What the link is for. */
-  body: React.ReactNode;
+  /** What the link is for. Optional: the button label usually says it. */
+  body?: React.ReactNode;
   /** Admin URL or external URL. */
   href: string;
   /** Button text, e.g. "Gestionează membrii echipei". */
@@ -25,7 +25,7 @@ export function LinkOutCard({ title, description, body, href, linkLabel, externa
   return (
     <EditorCard title={title} description={description}>
       <div className="ui-linkout">
-        <p className="ui-linkout-text">{body}</p>
+        {body && <p className="ui-linkout-text">{body}</p>}
         <a className="ui-btn ui-btn--secondary" href={href} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
           {linkLabel}
           <IconArrowRight />

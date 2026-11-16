@@ -52,13 +52,12 @@ export default function VolunteerContentEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Voluntariat - Text pagină"
-        description='Titlul din antet și textul introductiv "De ce voluntariat".'
       >
         <Box padding={4}>
           <Section title="Antet (hero)" first>
             <Grid.Root gridCols={12} gap={4}>
               <Grid.Item col={6} s={12} xs={12}>
-                <EditorField name="heroTitle" label="Titlu" hint="Titlul mare din antet.">
+                <EditorField name="heroTitle" label="Titlu">
                   <TextInput
                     id="heroTitle"
                     name="heroTitle"
@@ -71,7 +70,7 @@ export default function VolunteerContentEditor({ name }: Props) {
                 </EditorField>
               </Grid.Item>
               <Grid.Item col={12} s={12} xs={12}>
-                <EditorField name="heroSubtitle" label="Subtitlu" hint="Textul de sub titlu.">
+                <EditorField name="heroSubtitle" label="Subtitlu">
                   <Textarea
                     id="heroSubtitle"
                     name="heroSubtitle"
@@ -90,7 +89,7 @@ export default function VolunteerContentEditor({ name }: Props) {
           <Section title="Introducere (De ce voluntariat)">
             <Grid.Root gridCols={12} gap={4}>
               <Grid.Item col={6} s={12} xs={12}>
-                <EditorField name="introEyebrow" label="Etichetă mică" hint="Textul mic deasupra titlului.">
+                <EditorField name="introEyebrow" label="Etichetă mică">
                   <TextInput
                     id="introEyebrow"
                     name="introEyebrow"
@@ -116,7 +115,7 @@ export default function VolunteerContentEditor({ name }: Props) {
                 </EditorField>
               </Grid.Item>
               <Grid.Item col={12} s={12} xs={12}>
-                <EditorField name="introBody" label="Text" hint="Paragraful introductiv.">
+                <EditorField name="introBody" label="Text">
                   <Textarea
                     id="introBody"
                     name="introBody"

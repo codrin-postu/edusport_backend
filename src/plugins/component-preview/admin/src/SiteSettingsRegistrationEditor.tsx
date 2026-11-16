@@ -44,7 +44,7 @@ export default function SiteSettingsRegistrationEditor({ name }: Props) {
 
   return (
     <Box width="100%">
-      <EditorCard title="Înscrieri" description="Starea înscrierilor pe site.">
+      <EditorCard title="Înscrieri">
         <Box padding={4}>
           <Field.Root id={`${name}-open`} name="open" width="100%">
             <LabelWithTip tip="Când este activ, pe site se afișează secțiunea de înscrieri. Când este inactiv, apare mesajul că înscrierile sunt închise.">

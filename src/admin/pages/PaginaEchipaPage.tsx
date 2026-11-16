@@ -57,7 +57,6 @@ const PaginaEchipaPage: React.FC = () => {
         <PageHeader
           back={{ to: DASHBOARD_TO }}
           title="Pagina Echipă"
-          subtitle="Bannerul și textul de introducere de pe pagina /despre-noi/echipa"
         />
 
         {page.loading ? (
@@ -70,15 +69,13 @@ const PaginaEchipaPage: React.FC = () => {
           <div className="ui-body">
             <ObjectFieldCard<Banner>
               title="Banner pagină"
-              description="Titlul și subtitlul afișate în bannerul din partea de sus a paginii."
               value={banner}
               onFieldChange={(key, v) => form.set('banner', { ...banner, [key]: v })}
               fields={[
-                { key: 'title', label: 'Titlu', hint: 'Titlul mare afișat în banner', placeholder: 'ex: Echipa noastră', span: 2 },
+                { key: 'title', label: 'Titlu', placeholder: 'ex: Echipa noastră', span: 2 },
                 {
                   key: 'subtitle',
                   label: 'Subtitlu',
-                  hint: 'Textul descriptiv de sub titlu',
                   type: 'textarea',
                   rows: 3,
                   placeholder: 'ex: Antrenorii și instructorii care ghidează cursanții...',
@@ -88,14 +85,12 @@ const PaginaEchipaPage: React.FC = () => {
 
             <ObjectFieldCard<PageInfo>
               title="Introducere"
-              description="Textul de introducere afișat înainte de lista de membri."
               value={info}
               onFieldChange={(key, v) => form.set('pageInfo', { ...info, [key]: v })}
               fields={[
                 {
                   key: 'introText',
                   label: 'Text introducere',
-                  hint: 'Paragraful de introducere afișat înainte de lista de membri',
                   type: 'textarea',
                   rows: 4,
                   placeholder: 'Textul de introducere al paginii echipei...',

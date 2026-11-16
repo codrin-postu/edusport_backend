@@ -205,14 +205,9 @@ const VoluntariatEditPage: React.FC = () => {
                     getKey={(_, i) => i}
                     newItem={() => ({ title: '', desc: '' })}
                     addLabel="Adaugă un mod de a ajuta"
-                    emptyLabel="Niciun mod de a ajuta. Secțiunea nu apare pe site."
+                    emptyLabel="Niciun mod de a ajuta."
                     itemLabel={(w, i) => w.title.trim() || `modul ${i + 1}`}
                     reorder
-                    confirmDelete={{
-                      title: 'Ștergi rândul?',
-                      message: 'Rândul dispare din lista de moduri de a ajuta.',
-                      detail: 'Modificarea se aplică după ce apeși Salvează.',
-                    }}
                     aria-label="Moduri de a ajuta"
                     renderRow={(w, i, { update }) => (
                       <div className="vp-way">
@@ -235,11 +230,6 @@ const VoluntariatEditPage: React.FC = () => {
 
                 <EditorCard
                   title="Galerie"
-                  description={
-                    gallery.length === 0
-                      ? 'Momentan nu există imagini, iar galeria nu apare pe site.'
-                      : 'Imaginile apar în galeria de pe pagina publică, în ordinea de aici.'
-                  }
                   headerAction={count(gallery.length, 'imagine', 'imagini')}
                 >
                   <GalleryGrid

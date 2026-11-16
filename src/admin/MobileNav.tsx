@@ -264,7 +264,7 @@ export function MobileNav() {
 
             <div className="edu-mnav-body">
               {groups.length === 0 ? (
-                <div className="edu-mnav-empty">Meniul Strapi nu este încă disponibil. Reîncarcă pagina dacă persistă.</div>
+                <div className="edu-mnav-empty">Meniul nu s-a încărcat. Reîncarcă pagina.</div>
               ) : (
                 groups.map((group, gi) => (
                   <div key={group.title + gi} className="edu-mnav-group">

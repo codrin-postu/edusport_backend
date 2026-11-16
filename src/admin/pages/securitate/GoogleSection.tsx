@@ -5,7 +5,7 @@ import { EditorCard } from '../../ui/EditorCard';
 import { adminToast } from '../../ui/Toast';
 import { errorText } from './errors';
 import type { SecurityApi } from './client';
-import { Row, mutedStyle } from './layout';
+import { Row } from './layout';
 import { PceButton } from './PceButton';
 
 const C = SECURITY_COPY.google;
@@ -58,10 +58,7 @@ export function GoogleSection({ api }: { api: SecurityApi }) {
         </Row>
       )}
       {email === null && (
-        <>
-          <span>{C.notConnected}</span>
-          <span style={mutedStyle}>{C.hint}</span>
-        </>
+        <span>{C.notConnected}</span>
       )}
     </EditorCard>
   );

@@ -62,7 +62,6 @@ export default function VolunteerHelpWaysEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Moduri de a ajuta"
-        description='Lista modurilor în care voluntarii pot contribui, afișate în secțiunea "Cum poți ajuta".'
       >
         <Box padding={4}>
           <Flex direction="column" alignItems="stretch" gap={2}>
@@ -78,7 +77,7 @@ export default function VolunteerHelpWaysEditor({ name }: Props) {
               >
                 <Flex justifyContent="space-between" alignItems="flex-start" gap={2}>
                   <Box style={{ flex: 1, minWidth: 0 }}>
-                    <EditorField name={`way-${i}-title`} label="Titlu" hint="Numele rolului.">
+                    <EditorField name={`way-${i}-title`} label="Titlu">
                       <TextInput
                         id={`way-${i}-title`}
                         name={`way-${i}-title`}
@@ -102,7 +101,6 @@ export default function VolunteerHelpWaysEditor({ name }: Props) {
                   <EditorField
                     name={`way-${i}-desc`}
                     label="Descriere"
-                    hint="Un rând despre ce presupune."
                   >
                     <Textarea
                       id={`way-${i}-desc`}

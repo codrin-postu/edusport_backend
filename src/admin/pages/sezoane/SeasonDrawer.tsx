@@ -20,7 +20,7 @@ function SeasonFieldsForm({ draft, locked, hinted, set }: { draft: SeasonFields;
           <Select value={draft.endMonth} options={options} onChange={(v) => set({ endMonth: v })} />
         </Field>
       </FieldRow>
-      <Field label="Taxă de membru" hint="RON">
+      <Field label="Taxă de membru">
         <NumberInput value={draft.membershipFee} min={0} label="Taxă de membru" onChange={(v) => set({ membershipFee: v })} />
       </Field>
     </>

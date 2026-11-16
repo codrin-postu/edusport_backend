@@ -7,6 +7,7 @@ import {
   PageHeader,
   Button,
   Field,
+  HelpTip,
   Input,
   Modal,
   ImagePicker,
@@ -134,7 +135,7 @@ function SponsorEditor({
         />
       </Field>
 
-      <Field label="Logo" hint="Se afișează în banda de sponsori de pe pagina Parteneri.">
+      <Field label="Logo">
         <div className="sp-logo-pv" style={draft.logo ? { backgroundImage: `url(${draft.logo.thumb ?? draft.logo.url})` } : undefined}>
           {!draft.logo && 'fără logo'}
         </div>
@@ -151,14 +152,14 @@ function SponsorEditor({
       </Field>
 
       <div className="ui-grid2">
-        <Field label="Link" hint="Opțional. Lasă gol dacă logo-ul nu trebuie să ducă nicăieri.">
+        <Field label="Link">
           <Input
             value={draft.href}
             placeholder="ex: https://www.exemplu.ro"
             onChange={(e) => onChange({ href: e.target.value })}
           />
         </Field>
-        <Field label="Ordine" hint="Numărul mai mic apare primul.">
+        <Field label="Ordine">
           <Input
             type="number"
             min={1}
@@ -267,7 +268,7 @@ export default function SponsoriPage() {
         await post(CT, bodyOf(draft));
       }
       await load();
-    }, 'Salvarea a eșuat. Verifică datele și încearcă din nou.');
+    }, 'Nu s-a salvat. Verifică datele.');
     if (ok) setDraft(null);
   };
 
@@ -421,7 +422,6 @@ export default function SponsoriPage() {
       <Window>
         <PageHeader
           title="Sponsori"
-          subtitle="Logo-urile afișate pe pagina Parteneri. Apasă un rând pentru a edita."
           actions={<Button onClick={openNew}>+ Adaugă sponsor</Button>}
         />
 
@@ -432,7 +432,7 @@ export default function SponsoriPage() {
           onRowClick={(r) => openEdit(r)}
           rowLabel={(r) => `Editează ${r.name}`}
           loading={loading}
-          empty={error ? 'Nu am putut încărca sponsorii.' : rows.length === 0 ? 'Niciun sponsor adăugat.' : 'Niciun sponsor pentru căutarea curentă.'}
+          empty={error ? 'Nu am putut încărca sponsorii.' : rows.length === 0 ? 'Niciun sponsor adăugat.' : 'Niciun sponsor.'}
           search={false}
           toolbar={
             <>
@@ -442,7 +442,7 @@ export default function SponsoriPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label="Caută după nume"
               />
-              {sortLocked && <span className="ui-hint">Golește căutarea pentru a putea reordona.</span>}
+              {sortLocked && <HelpTip icon="lock" label="Golește căutarea ca să reordonezi." />}
             </>
           }
         />
@@ -467,8 +467,7 @@ export default function SponsoriPage() {
       <ConfirmDialog
         open={target !== null}
         title="Ștergi sponsorul?"
-        message={`"${target?.name ?? ''}" se șterge definitiv și dispare din banda de sponsori de pe pagina Parteneri. Acțiunea nu poate fi anulată.`}
-        detail="Logo-ul rămâne în biblioteca media."
+        message={`"${target?.name ?? ''}" se șterge. Nu se poate anula.`}
         busy={deleting}
         error={delError}
         onCancel={closeConfirm}

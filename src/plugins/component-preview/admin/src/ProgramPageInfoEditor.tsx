@@ -47,14 +47,12 @@ export default function ProgramPageInfoEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Pagina Program - Informații"
-        description="Subtitlul orarului afișat pe /cursuri/program. Etichetele și datele de sezon sunt setate global în Setări Site."
       >
         <Box padding={4}>
           <Flex direction="column" gap={4} alignItems="stretch">
             <EditorField
               name="scheduleSubtitle"
               label="Subtitlu orar"
-              hint="Textul de sub titlul secțiunii de orar"
             >
               <TextInput
                 id="scheduleSubtitle"

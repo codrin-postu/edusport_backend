@@ -184,7 +184,6 @@ const CursuriPage: React.FC = () => {
         <PageHeader
           back={{ to: DASHBOARD_TO }}
           title="Cursuri"
-          subtitle="Bannerul, prezentarea, cardul promo și informațiile practice de pe pagina /cursuri"
         />
 
         {page.loading ? (
@@ -197,7 +196,6 @@ const CursuriPage: React.FC = () => {
           <div className="ui-body">
             <ObjectFieldCard<Banner>
               title="Banner Pagina Cursuri"
-              description="Titlul și informațiile de orar afișate în header-ul paginii /cursuri."
               value={banner}
               onFieldChange={(key, v) => form.set('banner', { ...banner, [key]: v })}
               sections={[
@@ -208,17 +206,15 @@ const CursuriPage: React.FC = () => {
                 {
                   key: 'title',
                   label: 'Titlu banner',
-                  hint: 'Titlul mare afișat pe banner-ul paginii, ex: Cursuri de Patinaj',
                   placeholder: 'ex: Cursuri de Patinaj',
                   span: 2,
                 },
-                { key: 'scheduleDays', label: 'Zile de curs', hint: 'ex: Sâmbătă & Duminică', placeholder: 'ex: Sâmbătă & Duminică' },
-                { key: 'scheduleTimes', label: 'Ore de curs', hint: 'ex: 10:00–10:50 & 11:00–11:50', placeholder: 'ex: 10:00–10:50 & 11:00–11:50' },
-                { key: 'locationName', label: 'Locație', hint: 'Numele locației, ex: AFI Cotroceni', placeholder: 'ex: AFI Cotroceni' },
+                { key: 'scheduleDays', label: 'Zile de curs', placeholder: 'ex: Sâmbătă & Duminică' },
+                { key: 'scheduleTimes', label: 'Ore de curs', placeholder: 'ex: 10:00–10:50 & 11:00–11:50' },
+                { key: 'locationName', label: 'Locație', placeholder: 'ex: AFI Cotroceni' },
                 {
                   key: 'locationUrl',
                   label: 'Link locație',
-                  hint: 'URL Google Maps sau altă pagină a locației',
                   type: 'url',
                   placeholder: 'ex: https://maps.google.com/...',
                 },
@@ -227,7 +223,6 @@ const CursuriPage: React.FC = () => {
 
             <ObjectFieldCard<About>
               title="Secțiunea Despre Cursuri"
-              description="Prezentarea școlii de patinaj: titlu, text descriptiv, puncte cheie și link video opțional."
               value={about}
               onFieldChange={(key, v) => form.set('aboutSection', { ...about, [key]: v })}
               sections={[
@@ -236,41 +231,36 @@ const CursuriPage: React.FC = () => {
                 { title: 'Video', keys: ['videoUrl', 'videoLabel'] },
               ]}
               fields={[
-                { key: 'eyebrow', label: 'Etichetă mică', hint: 'Textul mic deasupra titlului, ex: Despre noi', placeholder: 'ex: Despre noi' },
-                { key: 'heading', label: 'Titlu secțiune', hint: 'ex: Școala de patinaj EduSport', placeholder: 'ex: Școala de patinaj EduSport' },
+                { key: 'eyebrow', label: 'Etichetă mică', placeholder: 'ex: Despre noi' },
+                { key: 'heading', label: 'Titlu secțiune', placeholder: 'ex: Școala de patinaj EduSport' },
                 {
                   key: 'content',
                   label: 'Text principal',
-                  hint: 'Descrierea principală. Separă paragrafele cu o linie goală.',
                   type: 'textarea',
                   rows: 5,
                   placeholder: 'Descrierea principală a școlii...',
                 },
-                { key: 'locationBullet', label: 'Bullet locație', hint: 'ex: Patinoar AFI Cotroceni', placeholder: 'ex: Patinoar AFI Cotroceni' },
+                { key: 'locationBullet', label: 'Bullet locație', placeholder: 'ex: Patinoar AFI Cotroceni' },
                 {
                   key: 'levelsBullet',
                   label: 'Bullet niveluri',
-                  hint: 'ex: Toate nivelurile de vârstă și experiență',
                   placeholder: 'ex: Toate nivelurile de vârstă și experiență',
                 },
                 {
                   key: 'coachesBullet',
                   label: 'Bullet antrenori',
-                  hint: 'ex: Antrenori cu experiență internațională',
                   placeholder: 'ex: Antrenori cu experiență internațională',
                   span: 2,
                 },
                 {
                   key: 'videoUrl',
                   label: 'Link video',
-                  hint: 'URL YouTube sau alt video, opțional',
                   type: 'url',
                   placeholder: 'ex: https://youtube.com/watch?v=...',
                 },
                 {
                   key: 'videoLabel',
                   label: 'Text link video',
-                  hint: 'Textul afișat pe linkul video, ex: Urmărește un curs',
                   placeholder: 'ex: Urmărește un curs',
                 },
               ]}
@@ -278,7 +268,6 @@ const CursuriPage: React.FC = () => {
 
             <ObjectFieldCard<PromoCard>
               title="Card Promo Abonament"
-              description="Cardul albastru care promovează abonamentul de club afișat pe pagina /cursuri."
               value={promo}
               onFieldChange={(key, v) => form.set('promoCard', { ...promo, [key]: v })}
               sections={[
@@ -286,12 +275,11 @@ const CursuriPage: React.FC = () => {
                 { title: 'Informații abonament', keys: ['subscriptionInfoTitle'] },
               ]}
               fields={[
-                { key: 'eyebrow', label: 'Etichetă mică', hint: 'Textul mic deasupra titlului, ex: Devino Membru', placeholder: 'ex: Devino Membru' },
-                { key: 'title', label: 'Titlu card', hint: 'Titlul cardului promo, ex: Abonament de Club', placeholder: 'ex: Abonament de Club' },
+                { key: 'eyebrow', label: 'Etichetă mică', placeholder: 'ex: Devino Membru' },
+                { key: 'title', label: 'Titlu card', placeholder: 'ex: Abonament de Club' },
                 {
                   key: 'description',
                   label: 'Descriere',
-                  hint: 'Textul descriptiv al cardului promo',
                   type: 'textarea',
                   rows: 3,
                   placeholder: 'Descrierea cardului promo...',
@@ -299,7 +287,6 @@ const CursuriPage: React.FC = () => {
                 {
                   key: 'subscriptionInfoTitle',
                   label: 'Titlu info abonament',
-                  hint: 'Titlul listei de informații, ex: Ce include abonamentul?',
                   placeholder: 'ex: Ce include abonamentul?',
                   span: 2,
                 },
@@ -307,7 +294,7 @@ const CursuriPage: React.FC = () => {
             >
               <StringList
                 label="Informații abonament"
-                hint="Câte un punct pe rând"
+                hint="Câte unul pe rând."
                 items={bullets}
                 onChange={(subscriptionBullets) => form.set('promoCard', { ...promo, subscriptionBullets })}
                 itemName="Punct"
@@ -317,20 +304,19 @@ const CursuriPage: React.FC = () => {
 
             <ObjectFieldCard<InfoSection>
               title="Secțiunea Informații Practice"
-              description="Sfaturile și regulile afișate la finalul paginii /cursuri (secțiunea Ce trebuie să știi)."
               value={info}
               onFieldChange={(key, v) => form.set('infoSection', { ...info, [key]: v })}
-              fields={[{ key: 'sectionLabel', label: 'Titlu secțiune', hint: 'ex: Ce trebuie să știi', placeholder: 'ex: Ce trebuie să știi', span: 2 }]}
+              fields={[{ key: 'sectionLabel', label: 'Titlu secțiune', placeholder: 'ex: Ce trebuie să știi', span: 2 }]}
             >
               <StringList
                 label="Sfaturi & reguli"
-                hint="Câte un sfat sau regulă pe rând"
+                hint="Câte unul pe rând."
                 items={tips}
                 onChange={(next) => form.set('infoSection', { ...info, tips: next })}
                 itemName="Sfat"
                 addLabel="Adaugă sfat"
               />
-              <Field label="Linie de închidere" hint="Textul final afișat după lista de sfaturi, opțional">
+              <Field label="Linie de închidere">
                 <Input
                   value={info.closingLine ?? ''}
                   placeholder="ex: Ne rezervăm dreptul de a modifica orarul..."

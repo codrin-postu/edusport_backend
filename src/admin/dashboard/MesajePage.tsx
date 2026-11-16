@@ -293,7 +293,7 @@ export default function MesajePage() {
     }
     setDeleting(false);
     if (okCount === 0) {
-      setDeleteError('Stergerea nu a reusit. Incearca din nou.');
+      setDeleteError('Ștergerea nu a reușit.');
       return;
     }
     setPendingDelete(null);
@@ -376,7 +376,7 @@ export default function MesajePage() {
   };
 
   const cNum = (v: number | null) => (v == null ? '—' : String(v));
-  const summary = `${cNum(counts.new)} noi · ${cNum(counts.read)} citite · ${cNum(counts.all)} în total`;
+  const summary = `${cNum(counts.new)} noi, ${cNum(counts.read)} citite, ${cNum(counts.all)} în total`;
 
   // The count marks unread only: a number on every tab turned it into
   // decoration; here a number means "these need reading".
@@ -438,7 +438,7 @@ export default function MesajePage() {
         meta={[
           <>
             <a href={`mailto:${selected.email}`}>{selected.email}</a>
-            {selected.phone ? ` · ${selected.phone}` : ''}
+            {selected.phone ? `, ${selected.phone}` : ''}
           </>,
           `Trimis ${fmtFull(whenOf(selected))}`,
         ]}
@@ -491,7 +491,6 @@ export default function MesajePage() {
       <Window className="mesg-root">
         <PageHeader
           title="Mesaje contact"
-          subtitle="Mesajele trimise din formularul public de contact."
           actions={<span className="inbx-sum">{summary}</span>}
         />
         <InboxLayout<Submission>
@@ -523,14 +522,13 @@ export default function MesajePage() {
           onSelect={setSelectedId}
           loading={loading}
           error={error ? 'Nu am putut încărca mesajele.' : undefined}
-          empty="Niciun mesaj pentru filtrul curent."
+          empty="Niciun mesaj."
           page={page}
           pageCount={pageCount}
           total={total}
           pageSize={PAGE_SIZE}
           onPageChange={setPage}
           reader={reader}
-          readerEmpty="Selectează un mesaj din listă pentru a-l citi."
           listLabel="Mesaje"
         />
       </Window>
@@ -539,16 +537,16 @@ export default function MesajePage() {
         open={pendingDelete !== null}
         tone="danger"
         title={
-          (pendingDelete?.length ?? 0) > 1 ? 'Stergi mesajele selectate?' : 'Stergi mesajul?'
+          (pendingDelete?.length ?? 0) > 1 ? 'Ștergi mesajele selectate?' : 'Ștergi mesajul?'
         }
         message={
           (pendingDelete?.length ?? 0) > 1
-            ? `Se sterg ${pendingDelete?.length} mesaje.`
-            : 'Mesajul se sterge definitiv.'
+            ? `Se șterg ${pendingDelete?.length} mesaje.`
+            : 'Mesajul se șterge.'
         }
-        detail="Stergerea este definitiva. Datele expeditorului nu mai pot fi recuperate."
-        confirmLabel="Sterge"
-        busyLabel="Se sterge"
+        detail="Se șterge definitiv."
+        confirmLabel="Șterge"
+        busyLabel="Se șterge"
         busy={deleting}
         error={deleteError}
         onCancel={() => {

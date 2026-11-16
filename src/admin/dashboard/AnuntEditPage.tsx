@@ -114,8 +114,6 @@ const STATE_OPTIONS = [
 // Page-local styles, tokens only. No backticks inside.
 const ANUNT_EDIT_CSS = `
 .ui-root .anun-narrow{max-width:760px;width:100%}
-.ui-root .anun-slug{font-family:var(--ui-font-mono);font-size:12px;font-weight:700;color:var(--theme-text)}
-.ui-root .anun-ro{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
 .ui-root .anun-days{max-width:140px}
 `;
 
@@ -146,11 +144,11 @@ type Problem = { field: 'title' | 'message' | 'dates' | 'days' | 'places' | 'gro
 function localValidation(f: FormState): Problem | null {
   if (!f.showOnSite && !f.showOnPortal) return { field: 'places', text: 'Alege unde apare.' };
   if (f.showOnPortal && !f.allGroups && f.portalGroupIds.length === 0) return { field: 'groups', text: 'Alege cel puțin o grupă.' };
-  if (!f.title.trim()) return { field: 'title', text: 'Titlul anunțului este obligatoriu.' };
-  if (!f.message.trim()) return { field: 'message', text: 'Mesajul anunțului este obligatoriu.' };
+  if (!f.title.trim()) return { field: 'title', text: 'Completează titlul.' };
+  if (!f.message.trim()) return { field: 'message', text: 'Completează mesajul.' };
   const start = toIso(f.startDate, f.startHour, f.startMinute);
   const end = toIso(f.endDate, f.endHour, f.endMinute);
-  if (!start || !end) return { field: 'dates', text: 'Un anunț are nevoie de o dată de început și una de final.' };
+  if (!start || !end) return { field: 'dates', text: 'Alege data de început și de final.' };
   if (Date.parse(end) <= Date.parse(start)) return { field: 'dates', text: 'Data de final trebuie să fie după data de început.' };
   if (!Number.isInteger(f.dismissDays) || f.dismissDays < 0 || f.dismissDays > 365) {
     return { field: 'days', text: 'Numărul de zile trebuie să fie între 0 și 365.' };
@@ -204,7 +202,6 @@ export default function AnuntEditPage() {
   const [loading, setLoading] = React.useState(!isNew);
   const [error, setError] = React.useState(false);
   const [problem, setProblem] = React.useState<Problem | null>(null);
-  const [slug, setSlug] = React.useState('');
   const [takenSlugs, setTakenSlugs] = React.useState<string[]>([]);
   const loadedFor = React.useRef<string | null>(null);
   const [tree, setTree] = React.useState<TickTree | null>(null);
@@ -238,13 +235,11 @@ export default function AnuntEditPage() {
     setTakenSlugs(rows.map((r) => r.slug ?? '').filter(Boolean));
     if (!docId) {
       setLoaded(EMPTY);
-      setSlug('');
       setPortal(null);
       return true;
     }
     const a = rows.find((r) => r.documentId === docId);
     if (!a) return false;
-    setSlug(a.slug ?? '');
     setPortal(a.portal ?? null);
     setLoaded(toForm(a));
     return true;
@@ -326,7 +321,7 @@ export default function AnuntEditPage() {
             if (list) apply(id, list);
           }
         } catch (err) {
-          throw new Error(anuntErrorMessage(err, 'Salvarea a eșuat. Verifică datele și încearcă din nou.'));
+          throw new Error(anuntErrorMessage(err, 'Nu s-a salvat. Verifică datele.'));
         }
       })
       .then((ok) => {
@@ -383,7 +378,6 @@ export default function AnuntEditPage() {
     }
   };
 
-  const previewSlug = (isNew ? slugifyRo(v.title) : slug) || '-';
   const ready = !loading && !error;
   const errFor = (field: Problem['field']) => (problem?.field === field ? problem.text : undefined);
 
@@ -403,7 +397,6 @@ export default function AnuntEditPage() {
         <PageHeader
           back={{ to: ANUNTURI_TO, label: 'Anunțuri' }}
           title={isNew ? 'Anunț nou' : 'Editează anunțul'}
-          subtitle="Anunțuri pe site și pe portalul sportivilor."
           actions={
             ready && !isNew ? (
               <>
@@ -527,17 +520,8 @@ export default function AnuntEditPage() {
                       rows={4}
                       value={v.message}
                       onChange={(e) => upd({ message: e.target.value })}
-                      placeholder="Două-trei rânduri. Text simplu, fără formatare."
                     />
                   </Field>
-                  {siteFieldsShown(v) && (
-                    <div className="ui-field">
-                      <span className="ui-label">Id de urmărire (Umami)</span>
-                      <div className="anun-ro">
-                        <code className="anun-slug">{previewSlug}</code>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </EditorCard>
 
@@ -596,8 +580,8 @@ export default function AnuntEditPage() {
       <ConfirmDialog
         open={confirming}
         title="Ștergi anunțul?"
-        message={`"${loaded.title || 'Anunțul'}" se șterge definitiv. Acțiunea nu poate fi anulată.`}
-        detail="Dacă vrei doar să nu mai apară pe site, treci-l pe Inactiv: rămâne în listă cu statisticile lui."
+        message={`"${loaded.title || 'Anunțul'}" se șterge. Nu se poate anula.`}
+        detail="Ca să nu mai apară, treci-l pe Inactiv."
         busy={deleting}
         error={delError}
         onCancel={() => {

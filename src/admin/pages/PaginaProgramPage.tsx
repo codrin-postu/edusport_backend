@@ -159,9 +159,7 @@ const PaginaProgramPage: React.FC = () => {
               </Notice>
             </ObjectFieldCard>
 
-            <EditorCard
-              title="Notificări importante"
-            >
+            <EditorCard title="Notificări importante">
               <RepeatableList<Disclaimer>
                 items={disclaimers}
                 onChange={(next) => form.set('disclaimers', next)}

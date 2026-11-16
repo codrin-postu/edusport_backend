@@ -14,6 +14,7 @@ import {
   adminToast,
   toastAutosaved,
   EditorCard,
+  HelpTip,
 } from '../ui';
 import { FORMULARE_TO, PROGRAM_EDIT_TO } from './menu';
 import { FORM_DEFS, fetchNewCount, tileStyle } from './formDefs';
@@ -187,7 +188,6 @@ const CSS = `
 .ui-root .dash-strip i.h{background:var(--theme-danger-border)}
 .ui-root .dash-strip i.hh{background:var(--theme-danger)}
 .ui-root .dash-striplbl{display:flex;justify-content:space-between;font-size:10px;color:var(--theme-text-muted)}
-.ui-root .dash-note{font-size:10.5px;color:var(--theme-text-muted);margin-top:4px;line-height:1.4}
 .ui-root .dash-iss{border-top:1px solid var(--theme-border-subtle)}
 .ui-root .dash-irow{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px solid var(--theme-border-subtle);text-decoration:none;color:var(--theme-text)}
 .ui-root .dash-irow:last-child{border-bottom:none}
@@ -485,7 +485,7 @@ export default function DashboardPage() {
             ))}
           </div>
         ) : (
-          <EmptyState icon={<CheckIcon />}>Nimic nou. Totul e la zi.</EmptyState>
+          <EmptyState icon={<CheckIcon />}>La zi</EmptyState>
         )}
       </EditorCard>}
 
@@ -539,7 +539,7 @@ export default function DashboardPage() {
                 {shownEvents.map((o, i) => {
                   const off = isOff(o);
                   const time = o.startTime ? `${o.startTime}${o.endTime ? ` - ${o.endTime}` : ''}` : 'Toată ziua';
-                  const sub = o.label && o.type !== 'scoala' ? `${time} · ${o.label}` : `${time} · ${CATEGORY_LABEL[o.type] ?? ''}`;
+                  const sub = o.label && o.type !== 'scoala' ? `${time}, ${o.label}` : `${time}, ${CATEGORY_LABEL[o.type] ?? ''}`;
                   return (
                     <div key={`${o.date}-${i}`} className={`dash-ev${off ? ' off' : ''}`}>
                       <span className="dash-ev-dt">{dtLabel(o.date)}</span>
@@ -611,12 +611,12 @@ function AnalyticsCard({ analytics }: { analytics: AnalyticsData | null }) {
     return (
       <EditorCard variant="plain" title="Analiză trafic" className="dash-dark">
         {analytics.state === 'not_configured' ? (
-          <StateBox kind="q" title="Umami nu este conectat" body="Lipsesc datele de acces către serviciul de statistici." />
+          <StateBox kind="q" title="Umami nu este conectat" />
         ) : (
           <StateBox
             kind="x"
             title="Nu am putut prelua statisticile"
-            body="Serviciul nu a răspuns. Datele reapar singure când revine."
+            body="Serviciul nu răspunde."
             href={analytics.publicUrl}
             linkLabel="Deschide Umami"
           />
@@ -658,7 +658,7 @@ function AnalyticsCard({ analytics }: { analytics: AnalyticsData | null }) {
         </div>
       </div>
       {noTraffic ? (
-        <StateBox kind="q" body="Statisticile apar după prima vizită pe site. Poate dura câteva minute." />
+        <StateBox kind="q" body="Încă nicio vizită." />
       ) : (
         <div>
           <div className="dash-area">{renderArea(series)}</div>
@@ -699,12 +699,12 @@ function HealthCard({ health }: { health: HealthData | null }) {
     return (
       <EditorCard variant="plain" title="Sănătate site">
         {health.state === 'not_configured' ? (
-          <StateBox kind="q" title="GlitchTip nu este conectat" body="Lipsesc datele de acces către serviciul de erori." />
+          <StateBox kind="q" title="GlitchTip nu este conectat" />
         ) : (
           <StateBox
             kind="x"
             title="Nu am putut verifica erorile"
-            body="Serviciul nu a răspuns. Asta nu înseamnă că site-ul are probleme."
+            body="Serviciul nu răspunde."
             href={health.publicUrl}
             linkLabel="Deschide GlitchTip"
           />
@@ -720,7 +720,7 @@ function HealthCard({ health }: { health: HealthData | null }) {
   const tone = e24 === 0 ? '' : e24 > 5 ? ' bad' : ' warn';
   return (
     <EditorCard variant="plain"
-      title="Sănătate site"
+      title={health.capped ? <>Sănătate site <HelpTip label="Primele 100 de incidente." /></> : 'Sănătate site'}
       headerAction={health.publicUrl ? (
         <a className="dash-lnk" href={health.publicUrl} target="_blank" rel="noreferrer">Deschide GlitchTip &rsaquo;</a>
       ) : undefined}
@@ -760,8 +760,7 @@ function HealthCard({ health }: { health: HealthData | null }) {
               );
             })}
           </div>
-          <div className="dash-striplbl"><span>acum 7 zile</span><span>azi</span></div>
-          <div className="dash-note">Bara numără incidente după ultima apariție, nu numărul total de apariții.</div>
+          <div className="dash-striplbl"><span>acum 7 zile <HelpTip label="După ultima apariție." /></span><span>azi</span></div>
         </div>
       )}
 
@@ -772,15 +771,12 @@ function HealthCard({ health }: { health: HealthData | null }) {
               <span className={`dash-lv ${levelClass(i.level)}`} />
               <div className="dash-irow-m">
                 <b title={i.title}>{i.title}</b>
-                <small>{[i.shortId, relTime(i.lastSeen)].filter(Boolean).join(' · ')}</small>
+                <small>{[i.shortId, relTime(i.lastSeen)].filter(Boolean).join(', ')}</small>
               </div>
               {i.count > 1 && <StatusBadge tone="neutral"><span className="ui-num">{roNum(i.count)}×</span></StatusBadge>}
             </a>
           ))}
         </div>
-      )}
-      {health.capped && (
-        <div className="dash-note">Sunt afișate primele 100 de incidente, deci cifrele sunt un minim.</div>
       )}
     </EditorCard>
   );
@@ -861,7 +857,7 @@ function levelClass(level: string): string {
 function StateBox({ kind, title, body, href, linkLabel }: {
   kind: 'q' | 'x';
   title?: string;
-  body: string;
+  body?: string;
   href?: string | null;
   linkLabel?: string;
 }) {
@@ -870,7 +866,7 @@ function StateBox({ kind, title, body, href, linkLabel }: {
       <span className={`dash-si ${kind}`} aria-hidden="true">{kind === 'x' ? '!' : '?'}</span>
       <div className="dash-st">
         {title && <b>{title}</b>}
-        <small>{body}</small>
+        {body && <small>{body}</small>}
         {href && linkLabel && (
           <a href={href} target="_blank" rel="noreferrer">{linkLabel} &rsaquo;</a>
         )}

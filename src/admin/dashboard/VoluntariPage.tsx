@@ -72,7 +72,7 @@ function helpAreasOf(row: VolunteerRow): string[] {
   return [];
 }
 
-/** Birth date + derived age, e.g. "2008-04-12 · 17 ani", with a minor badge. */
+/** Birth date + derived age, e.g. "12/04/2008, 17 ani", with a minor badge. */
 function birthDateCell(row: VolunteerRow): React.ReactNode {
   const bd = row.birthDate ?? '';
   if (!bd) return '';
@@ -80,7 +80,7 @@ function birthDateCell(row: VolunteerRow): React.ReactNode {
   return (
     <>
       {numericDateToSlash(bd)}
-      {age != null ? <span className="ui-num"> · {age} ani</span> : null}
+      {age != null ? <span className="ui-num">, {age} ani</span> : null}
       {age != null && age < 18 ? <StatusBadge tone="warning" className="vol-minor">minor</StatusBadge> : null}
     </>
   );
@@ -121,7 +121,7 @@ const BUILTIN_COLUMNS: ColumnDef[] = [
     readOnly: true,
     render: (r) => {
       const v = r as VolunteerRow;
-      return [v.parentName, v.parentPhone].filter(Boolean).join(' · ');
+      return [v.parentName, v.parentPhone].filter(Boolean).join(', ');
     },
   },
   { key: 'parentalConsent', label: 'Acord părinți', type: 'bool', width: 120 },
@@ -229,7 +229,7 @@ const renderDetail = (row: Row, api: TableApi) => {
           {selected.birthDate ? (
             <>
               {numericDateToSlash(selected.birthDate)}
-              {age != null ? ` · ${age} ani` : ''}
+              {age != null ? `, ${age} ani` : ''}
             </>
           ) : (
             '—'
@@ -262,8 +262,8 @@ const renderDetail = (row: Row, api: TableApi) => {
         <DetailField label="Cum a aflat">{String(selected.howHeard ?? '') || '—'}</DetailField>
         {hasParent && (
           <DetailField label="Părinte / tutore">
-            {[selected.parentName, selected.parentPhone].filter(Boolean).join(' · ') || '—'}
-            {selected.parentalConsent === true ? ' · acord parental: Da' : ''}
+            {[selected.parentName, selected.parentPhone].filter(Boolean).join(', ') || '—'}
+            {selected.parentalConsent === true ? ', acord parental: Da' : ''}
           </DetailField>
         )}
         <DetailField label="Acord confidențialitate">{selected.privacyConsent ? 'Da' : 'Nu'}</DetailField>
@@ -303,13 +303,12 @@ const CFG: SubmissionTableCfg = {
   bulk: false,
   texts: {
     title: 'Voluntari',
-    subtitle: 'Cererile de voluntariat trimise din pagina publică de voluntariat.',
     // The server's quick `q` searches fullName/email/phone/city only.
     searchPlaceholder: 'Caută după nume, email, telefon sau oraș...',
-    empty: 'Nicio cerere pentru filtrul curent.',
+    empty: 'Nicio cerere.',
     loadError: 'Nu am putut încărca cererile.',
     statSuffix: '',
-    deleteConfirm: 'Ștergi definitiv această cerere de voluntariat? Acțiunea nu poate fi anulată.',
+    deleteConfirm: 'Ștergi cererea? Nu se poate anula.',
     // Bulk is disabled for Voluntari (`bulk: false`), but the config stays coherent.
     bulkDeleteNoun: 'cereri de voluntariat',
     deleteError: 'Nu am putut șterge cererea.',

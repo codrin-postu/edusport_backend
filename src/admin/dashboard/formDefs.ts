@@ -29,7 +29,6 @@ export interface AdminFormDef {
   tileColor: TileColor;
   questions: number;
   mode: 'Tabel' | 'Inbox';
-  desc: string;
   live: boolean; // false => "în curând", no results/counts yet
   resultsTo?: string;
   resultsLabel?: string;
@@ -50,7 +49,6 @@ export const FORM_DEFS: AdminFormDef[] = [
     tileColor: 'blue',
     questions: 13,
     mode: 'Tabel',
-    desc: 'Cererile de înscriere trimise din pagina publică de cursuri.',
     live: true,
     resultsTo: INSCRIERI_TO,
     resultsLabel: 'Rezultate',
@@ -66,7 +64,6 @@ export const FORM_DEFS: AdminFormDef[] = [
     tileColor: 'teal',
     questions: 4,
     mode: 'Inbox',
-    desc: 'Mesajele trimise din formularul de contact.',
     live: true,
     resultsTo: MESAJE_TO,
     resultsLabel: 'Vezi mesajele',
@@ -86,7 +83,6 @@ export const FORM_DEFS: AdminFormDef[] = [
     tileColor: 'green',
     questions: 19,
     mode: 'Tabel',
-    desc: 'Cererile de voluntariat trimise din pagina publică de voluntariat.',
     live: true,
     resultsTo: VOLUNTARI_TO,
     resultsLabel: 'Rezultate',
@@ -102,7 +98,6 @@ export const FORM_DEFS: AdminFormDef[] = [
     tileColor: 'amber',
     questions: 7,
     mode: 'Inbox',
-    desc: 'Propunerile de parteneriat trimise din pagina publică de parteneri.',
     live: true,
     resultsTo: PARTENERI_REZULTATE_TO,
     resultsLabel: 'Vezi mesajele',

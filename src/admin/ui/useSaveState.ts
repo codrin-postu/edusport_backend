@@ -105,7 +105,7 @@ export function useSaveState(initialDirty = false): SaveState {
         timer.current = null;
         if (alive.current) setSaved(false);
       }, SAVED_MS);
-      adminToast.success('Modificările au fost salvate.');
+      adminToast.success('Salvat.');
       return true;
     } catch (e) {
       const msg = errorMessage ?? (e instanceof Error && e.message && !/^Request failed/i.test(e.message) ? e.message : DEFAULT_ERROR);

@@ -117,7 +117,6 @@ export default function RulesTable({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Reguli"
-        description="Trage de mâner pentru a reordona. Fiecare rând are o etichetă, un text și o opțiune de evidențiere."
         headerAction={headerAction}
       >
         <Box padding={4}>

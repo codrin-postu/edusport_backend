@@ -105,7 +105,6 @@ const EvenimenteColaborarePage: React.FC = () => {
         <PageHeader
           back={{ to: DASHBOARD_TO }}
           title="Evenimente colaborare"
-          subtitle="Evenimentele realizate împreună cu partenerii, afișate pe pagina /parteneri în ordinea câmpului Ordine"
           actions={<Button onClick={() => navigate(editUrl())}>+ Adaugă eveniment</Button>}
         />
         <div className="ui-body">

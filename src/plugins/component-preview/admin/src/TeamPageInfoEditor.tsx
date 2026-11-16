@@ -43,7 +43,6 @@ export default function TeamPageInfoEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Pagina Echipă - Introducere"
-        description="Textul de introducere afișat înainte de lista de membri pe pagina /despre-noi/echipa."
       >
         <Box padding={4}>
           <Grid.Root gridCols={12} gap={4}>
@@ -51,7 +50,6 @@ export default function TeamPageInfoEditor({ name }: Props) {
               <EditorField
                 name="introText"
                 label="Text introducere"
-                hint="Paragraful de introducere afișat înainte de lista de membri"
               >
                 <Textarea
                   id="introText"

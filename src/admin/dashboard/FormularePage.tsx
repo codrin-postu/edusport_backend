@@ -92,7 +92,6 @@ export default function FormularePage() {
       <Window>
         <PageHeader
           title="Formulare"
-          subtitle="Formularele publice ale site-ului, cu răspunsurile primite și acces la rezultate."
           actions={
             <Button variant="secondary" disabled title="În curând">
               + Formular nou
@@ -114,9 +113,8 @@ export default function FormularePage() {
                   <StatusBadge tone={f.mode === 'Tabel' ? 'primary' : 'warning'}>{f.mode}</StatusBadge>
                 </div>
                 <div className="fm-meta ui-num">
-                  {f.questions} întrebări · mod {f.mode}
+                  {f.questions} întrebări
                 </div>
-                <div className="fm-desc">{f.desc}</div>
               </div>
 
               <div className="fm-counts">{renderCounts(f)}</div>

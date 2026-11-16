@@ -237,7 +237,7 @@ export default function CompetitieEditPage() {
           loadedFor.current = id;
           setLoaded(fresh);
         }
-      }, 'Salvarea a eșuat. Verifică datele și încearcă din nou.')
+      }, 'Nu s-a salvat. Verifică datele.')
       .then((ok) => {
         if (ok && createdId) {
           releaseUnsavedGuards();

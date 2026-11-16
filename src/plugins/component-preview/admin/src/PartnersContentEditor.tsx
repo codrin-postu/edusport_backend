@@ -58,9 +58,8 @@ export default function PartnersContentEditor({ name }: Props) {
     key: keyof ContentData,
     label: string,
     placeholder: string,
-    hint?: string,
   ) => (
-    <EditorField name={key} label={label} hint={hint}>
+    <EditorField name={key} label={label}>
       <TextInput
         id={key}
         name={key}
@@ -71,8 +70,8 @@ export default function PartnersContentEditor({ name }: Props) {
     </EditorField>
   );
 
-  const area = (key: keyof ContentData, label: string, placeholder: string, hint?: string) => (
-    <EditorField name={key} label={label} hint={hint}>
+  const area = (key: keyof ContentData, label: string, placeholder: string) => (
+    <EditorField name={key} label={label}>
       <Textarea
         id={key}
         name={key}
@@ -88,7 +87,6 @@ export default function PartnersContentEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Parteneri - Text pagină"
-        description='Textele din antet, secțiunea "De ce parteneriat" și secțiunea de colaborare/sponsorizare.'
       >
         <Box padding={4}>
           <Section title="Antet (hero)" first>

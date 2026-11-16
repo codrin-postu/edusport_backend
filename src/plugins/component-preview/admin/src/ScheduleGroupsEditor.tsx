@@ -157,7 +157,6 @@ export default function ScheduleGroupsEditor({ name }: Props) {
   return (
     <EditorCard
       title="Serii Școala de Patinaj"
-      description="Fiecare serie are un interval orar și grupele care intră pe gheață atunci. Ordinea de aici este ordinea de pe site."
     >
       <ScheduleGroupsInner value={field.value} onChange={(next) => field.onChange(name, next)} />
     </EditorCard>

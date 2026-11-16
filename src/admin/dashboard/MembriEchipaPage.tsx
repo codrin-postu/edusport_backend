@@ -8,6 +8,7 @@ import {
   PageHeader,
   Button,
   Field,
+  HelpTip,
   Input,
   Textarea,
   Select,
@@ -187,9 +188,7 @@ function GroupPicker({
   return (
     <div className="mem-groups">
       <div className="mem-sublabel">Selectate</div>
-      {value.length === 0 ? (
-        <div className="ui-hint">Nicio categorie aleasă. Membrul apare pe site fără lista "Predă la".</div>
-      ) : (
+      {value.length > 0 && (
         <ChipList className="mem-chiprow">
           {value.map((g) => (
             <Chip key={g} onRemove={() => remove(g)}>
@@ -313,7 +312,7 @@ function MemberEditor({
               onChange={(e) => onChange({ role: e.target.value })}
             />
           </Field>
-          <Field label="Descriere" hint="Apare sub nume, pe cardul din pagina Echipa.">
+          <Field label="Descriere">
             <Textarea
               rows={4}
               value={draft.bio}
@@ -506,7 +505,7 @@ export default function MembriEchipaPage() {
         await post(CT, bodyOf(draft));
       }
       await load();
-    }, 'Salvarea a eșuat. Verifică datele și încearcă din nou.');
+    }, 'Nu s-a salvat. Verifică datele.');
     if (ok) setDraft(null);
   };
 
@@ -589,7 +588,6 @@ export default function MembriEchipaPage() {
       <Window>
         <PageHeader
           title="Membri echipă"
-          subtitle="Antrenorii afișați pe pagina Echipa. Apasă un card pentru a edita, trage-l pentru a schimba ordinea."
           actions={<Button onClick={openNew}>+ Adaugă membru</Button>}
         />
 
@@ -615,7 +613,7 @@ export default function MembriEchipaPage() {
         ) : error ? (
           <EmptyState>Nu am putut încărca membrii echipei.</EmptyState>
         ) : filtered.length === 0 ? (
-          <EmptyState>{rows.length === 0 ? 'Niciun membru adăugat.' : 'Niciun membru pentru filtrul curent.'}</EmptyState>
+          <EmptyState>{rows.length === 0 ? 'Niciun membru adăugat.' : 'Niciun membru.'}</EmptyState>
         ) : (
           <div className="mem-grid">
             {filtered.map((r) => {
@@ -703,7 +701,7 @@ export default function MembriEchipaPage() {
             {filtered.length} {filtered.length === 1 ? 'membru' : 'membri'}
             {filtered.length !== rows.length ? ` din ${rows.length}` : ''}
             {reordering ? '. Se salvează ordinea...' : ''}
-            {sortLocked ? '. Golește căutarea și filtrul pentru a putea reordona.' : ''}
+            {sortLocked && <> {<HelpTip icon="lock" label="Golește căutarea ca să reordonezi." />}</>}
           </p>
         )}
       </Window>
@@ -735,8 +733,7 @@ export default function MembriEchipaPage() {
       <ConfirmDialog
         open={target !== null}
         title="Ștergi membrul?"
-        message={`"${target?.name ?? ''}" se șterge definitiv și dispare de pe pagina Echipa. Acțiunea nu poate fi anulată.`}
-        detail="Fotografia rămâne în biblioteca media."
+        message={`"${target?.name ?? ''}" se șterge. Nu se poate anula.`}
         busy={deleting}
         error={delError}
         onCancel={closeConfirm}

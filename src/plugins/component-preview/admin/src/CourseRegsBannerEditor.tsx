@@ -42,12 +42,11 @@ export default function CourseRegsBannerEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Regulament Cursuri - Banner"
-        description="Titlul și subtitlul bannerului pentru pagina cu regulamentul cursurilor."
       >
         <Box padding={4}>
           <Grid.Root gridCols={12} gap={4}>
             <Grid.Item col={12} s={12} xs={12}>
-              <EditorField name="bannerTitle" label="Titlu banner" hint="ex: Regulamentul cursurilor">
+              <EditorField name="bannerTitle" label="Titlu banner">
                 <TextInput
                   id="bannerTitle"
                   name="bannerTitle"
@@ -64,7 +63,6 @@ export default function CourseRegsBannerEditor({ name }: Props) {
               <EditorField
                 name="bannerSubtitle"
                 label="Subtitlu banner"
-                hint="Textul de sub titlul bannerului"
               >
                 <Textarea
                   id="bannerSubtitle"

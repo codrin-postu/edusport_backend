@@ -17,7 +17,7 @@ const ArticolePage: React.FC = () => {
           <EmptyState>În lucru</EmptyState>
           <LinkOutCard
             title="Editorul Strapi"
-            body="Până când pagina este gata, conținutul se editează în continuare în editorul Strapi."
+            body="Se editează în editorul Strapi."
             href={strapiEditorUrl(UID.article, 'collection')}
             linkLabel="Deschide în editorul Strapi"
           />

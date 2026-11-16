@@ -313,7 +313,7 @@ export default function VideoEmbedEditor({ name }: Props): React.ReactElement {
                 />
               </EditorField>
             ) : (
-              <Field.Root id={`${name}-file`} name="file" hint="Fișierul ales din Biblioteca Media">
+              <Field.Root id={`${name}-file`} name="file">
                 <Field.Label>Fișier video</Field.Label>
                 <Box paddingTop={2}>
                   {data.url ? (

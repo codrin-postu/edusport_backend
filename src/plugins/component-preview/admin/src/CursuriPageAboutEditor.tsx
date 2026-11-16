@@ -72,23 +72,22 @@ export default function CursuriPageAboutEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Secțiunea Despre Cursuri"
-        description="Prezentarea școlii de patinaj: titlu, text descriptiv, puncte cheie și link video opțional."
       >
         <Box padding={4}>
           <Grid.Root gridCols={12} gap={4}>
             <Grid.Item col={6} s={12} xs={12}>
-              <EditorField name="eyebrow" label="Etichetă mică" hint="Textul mic deasupra titlului, ex: Despre noi">
+              <EditorField name="eyebrow" label="Etichetă mică">
                 <TextInput id="eyebrow" name="eyebrow" value={data.eyebrow} placeholder="ex: Despre noi" onChange={onText('eyebrow')} />
               </EditorField>
             </Grid.Item>
             <Grid.Item col={6} s={12} xs={12}>
-              <EditorField name="heading" label="Titlu secțiune" hint="ex: Școala de patinaj EduSport">
+              <EditorField name="heading" label="Titlu secțiune">
                 <TextInput id="heading" name="heading" value={data.heading} placeholder="ex: Școala de patinaj EduSport" onChange={onText('heading')} />
               </EditorField>
             </Grid.Item>
 
             <Grid.Item col={12} s={12} xs={12}>
-              <EditorField name="content" label="Text principal" hint="Descrierea principală. Separă paragrafele cu o linie goală.">
+              <EditorField name="content" label="Text principal">
                 <Textarea
                   id="content"
                   name="content"
@@ -105,17 +104,17 @@ export default function CursuriPageAboutEditor({ name }: Props) {
             </Grid.Item>
 
             <Grid.Item col={6} s={12} xs={12}>
-              <EditorField name="locationBullet" label="Bullet locație" hint="ex: Patinoar AFI Cotroceni">
+              <EditorField name="locationBullet" label="Bullet locație">
                 <TextInput id="locationBullet" name="locationBullet" value={data.locationBullet} placeholder="ex: Patinoar AFI Cotroceni" onChange={onText('locationBullet')} />
               </EditorField>
             </Grid.Item>
             <Grid.Item col={6} s={12} xs={12}>
-              <EditorField name="levelsBullet" label="Bullet niveluri" hint="ex: Toate nivelurile de vârstă și experiență">
+              <EditorField name="levelsBullet" label="Bullet niveluri">
                 <TextInput id="levelsBullet" name="levelsBullet" value={data.levelsBullet} placeholder="ex: Toate nivelurile de vârstă și experiență" onChange={onText('levelsBullet')} />
               </EditorField>
             </Grid.Item>
             <Grid.Item col={12} s={12} xs={12}>
-              <EditorField name="coachesBullet" label="Bullet antrenori" hint="ex: Antrenori cu experiență internațională">
+              <EditorField name="coachesBullet" label="Bullet antrenori">
                 <TextInput id="coachesBullet" name="coachesBullet" value={data.coachesBullet} placeholder="ex: Antrenori cu experiență internațională" onChange={onText('coachesBullet')} />
               </EditorField>
             </Grid.Item>
@@ -125,12 +124,12 @@ export default function CursuriPageAboutEditor({ name }: Props) {
             </Grid.Item>
 
             <Grid.Item col={6} s={12} xs={12}>
-              <EditorField name="videoUrl" label="Link video" hint="URL YouTube sau alt video, opțional">
+              <EditorField name="videoUrl" label="Link video">
                 <TextInput id="videoUrl" name="videoUrl" value={data.videoUrl} placeholder="ex: https://youtube.com/watch?v=..." onChange={onText('videoUrl')} />
               </EditorField>
             </Grid.Item>
             <Grid.Item col={6} s={12} xs={12}>
-              <EditorField name="videoLabel" label="Text link video" hint="Textul afișat pe linkul video, ex: Urmărește un curs">
+              <EditorField name="videoLabel" label="Text link video">
                 <TextInput id="videoLabel" name="videoLabel" value={data.videoLabel} placeholder="ex: Urmărește un curs" onChange={onText('videoLabel')} />
               </EditorField>
             </Grid.Item>

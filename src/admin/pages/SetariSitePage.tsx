@@ -79,16 +79,15 @@ const EMPTY_CONTACT: Contact = {
 const EMPTY_PERSONAL_DATA: PersonalDataSettings = { retentionYears: DEFAULT_RETENTION_YEARS, reviewHiddenUntilSeason: null };
 
 const CONTACT_FIELDS: ObjectFieldConfig<Contact>[] = [
-  { key: 'phone', label: 'Număr telefon', hint: 'Cu sau fără spații, link-ul tel: se generează automat', placeholder: 'ex: 0723 623 712' },
+  { key: 'phone', label: 'Număr telefon', placeholder: 'ex: 0723 623 712' },
   { key: 'email', label: 'Adresă email', type: 'text', placeholder: 'ex: scoala.de.patinaj@gmail.com' },
   { key: 'facebookUrl1', label: 'Facebook', placeholder: 'ex: https://facebook.com/edusport', span: 2 },
   { key: 'instagramUrl', label: 'Instagram', placeholder: 'ex: https://instagram.com/edusport', span: 2 },
-  { key: 'whatsappChannelUrl', label: 'Canal WhatsApp', hint: 'Link către canalul de WhatsApp', placeholder: 'ex: https://whatsapp.com/channel/...', span: 2 },
-  { key: 'addressDisplay', label: 'Adresă afișată', hint: 'Textul adresei care apare pe site', placeholder: 'ex: Patinoarul AFI Cotroceni, București', span: 2 },
+  { key: 'whatsappChannelUrl', label: 'Canal WhatsApp', placeholder: 'ex: https://whatsapp.com/channel/...', span: 2 },
+  { key: 'addressDisplay', label: 'Adresă afișată', placeholder: 'ex: Patinoarul AFI Cotroceni, București', span: 2 },
   {
     key: 'addressMapsUrl',
-    label: 'Link hartă (opțional)',
-    hint: 'Lasă gol și adresa duce automat la o căutare Google Maps. Completează doar dacă vrei un loc anume: deschide locația în Google Maps, apasă Partajează, copiază linkul.',
+    label: <>Link hartă <HelpTip label="Gol: căutare Google Maps. Altfel lipește linkul din Partajează." /></>,
     placeholder: 'ex: https://maps.app.goo.gl/...',
     span: 2,
   },
@@ -100,15 +99,13 @@ const RegistrationCard: React.FC<FormProps> = ({ form }) => {
   const registration = normalizeObject<Registration>(form.value.registration, EMPTY_REGISTRATION);
   return (
     <EditorCard title="Înscrieri">
-      <Field label="Înscrieri deschise" hint="Când este activ, pe site se afișează secțiunea de înscrieri. Când este inactiv, apare mesajul că înscrierile sunt închise.">
+      <Field label="Înscrieri deschise">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-3)' }}>
           <Switch
             checked={registration.open}
             onChange={(next) => form.set('registration', { ...registration, open: next })}
             aria-label="Înscrieri deschise"
           />
-          <span className="ui-hint">{registration.open ? 'Vizibile pe site' : 'Închise'}</span>
-          <HelpTip label="Comută starea de înscrieri afișată public pe site." />
         </div>
       </Field>
     </EditorCard>
@@ -120,7 +117,6 @@ const ContactCard: React.FC<FormProps> = ({ form }) => {
   return (
     <ObjectFieldCard<Contact>
       title="Date de contact & rețele sociale"
-      description="Informații afișate în footer-ul site-ului și pe paginile de contact. Modificările se reflectă pe tot site-ul."
       value={contact}
       onFieldChange={(key, v) => form.set('contact', { ...contact, [key]: v })}
       fields={CONTACT_FIELDS}
@@ -160,7 +156,7 @@ const SetariSitePage: React.FC = () => {
   return (
     <AdminPage>
       <Window>
-        <PageHeader back={{ to: DASHBOARD_TO }} title="Setări site" subtitle="Înscrieri și date de contact, folosite pe tot site-ul." />
+        <PageHeader back={{ to: DASHBOARD_TO }} title="Setări site" />
         {page.loading && <Loading />}
         {!page.loading && page.error ? (
           <div className="ui-body">

@@ -519,7 +519,7 @@ export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord
       const fresh = await fetchEntry(id);
       loadedFor.current = id;
       setLoaded(fresh);
-    }, 'Salvarea a eșuat. Verifică datele și încearcă din nou.');
+    }, 'Nu s-a salvat. Verifică datele.');
   };
 
   const discard = () => form.reset();
@@ -759,7 +759,6 @@ export function ProfileEditor({ profileId, athleteId, athleteName, api, onRecord
                 newItem={() => ({ season: '', programs: [] })}
                 addLabel="Adaugă sezon"
                 emptyLabel="Niciun sezon adăugat."
-                confirmDelete="Sezonul și programele lui dispar din profil după ce salvezi."
                 aria-label="Sezoane"
                 renderRow={(s, _i, row) => (
                   <div className="sp-season">

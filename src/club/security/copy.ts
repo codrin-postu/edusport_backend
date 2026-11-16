@@ -110,7 +110,7 @@ export const SECURITY_COPY = {
     left: (n: number): string => `${n} rămase`,
     generate: 'Generează coduri noi',
     generateConfirm: 'Codurile vechi nu vor mai merge.',
-    note: 'Fiecare cod merge o singură dată. Păstrează-le, nu le mai arătăm.',
+    note: 'Fiecare cod merge o dată. Nu se mai afișează.',
     download: 'Descarcă',
     copy: 'Copiază',
     done: 'Gata',
@@ -153,7 +153,6 @@ export const SECURITY_COPY = {
     confirmUnlink: 'Elimini legătura cu Google? Nu o poți reface din pagină.', // controller ruling 2026-11-09
     confirmUnlinkYes: 'Elimină',
     notConnected: 'Neconectat.',
-    hint: 'Pornește 2-Step Verification în contul Google.',
   },
   admins: {
     title: 'Administratori',

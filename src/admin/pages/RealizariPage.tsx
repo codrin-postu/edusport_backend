@@ -85,7 +85,6 @@ const RealizariPage: React.FC = () => {
         <PageHeader
           back={{ to: DASHBOARD_TO }}
           title="Realizări"
-          subtitle="Bannerul, palmaresul și galeria foto de pe pagina /despre-noi/realizari"
         />
 
         {page.loading ? (
@@ -98,15 +97,13 @@ const RealizariPage: React.FC = () => {
           <div className="ui-body">
             <ObjectFieldCard<Banner>
               title="Pagina Realizări - Banner"
-              description="Titlul și subtitlul bannerului pentru pagina /despre-noi/realizari."
               value={banner}
               onFieldChange={(key, v) => form.set('banner', { ...banner, [key]: v })}
               fields={[
-                { key: 'bannerTitle', label: 'Titlu banner', hint: 'ex: Realizările noastre', placeholder: 'ex: Realizările noastre', span: 2 },
+                { key: 'bannerTitle', label: 'Titlu banner', placeholder: 'ex: Realizările noastre', span: 2 },
                 {
                   key: 'bannerSubtitle',
                   label: 'Subtitlu banner',
-                  hint: 'Textul de sub titlul bannerului',
                   type: 'textarea',
                   rows: 3,
                   placeholder: 'Subtitlul bannerului...',
@@ -114,10 +111,7 @@ const RealizariPage: React.FC = () => {
               ]}
             />
 
-            <EditorCard
-              title="Realizări notabile"
-              description="Lista realizărilor importante ale clubului, afișată în secțiunea Palmares de pe pagina Realizări."
-            >
+            <EditorCard title="Realizări notabile">
               <RepeatableList<string>
                 items={achievements}
                 onChange={(next) => form.set('notableAchievements', next)}
@@ -139,17 +133,12 @@ const RealizariPage: React.FC = () => {
               />
             </EditorCard>
 
-            <EditorCard
-              title="Galerie foto competiții"
-              description="Fotografiile afișate în galeria paginii Realizări, în ordinea de aici."
-            >
+            <EditorCard title="Galerie foto competiții">
               <GalleryGrid images={gallery.map(toTile)} onChange={setGallery} reorder aria-label="Galerie foto competiții" confirmRemove="Imaginea nu va mai apărea în galeria foto a competițiilor." />
             </EditorCard>
 
             <LinkOutCard
               title="Competiții & Rezultate"
-              description="Competițiile și rezultatele sportivilor sunt gestionate separat, ca înregistrări individuale, organizate pe sezoane."
-              body="Adaugă sau editează competițiile și rezultatele din secțiunea dedicată."
               href={`/admin${COMPETITII_TO}`}
               linkLabel="Gestionează competițiile"
             />

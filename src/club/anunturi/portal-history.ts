@@ -35,7 +35,7 @@ export const ANUNT_LIST_COPY = {
   accountsHeads: ['Cont', 'Sportivi', 'Văzut'],
   noAccounts: 'Încă nu a fost trimis.',
   /** An automatic message cannot be stopped. */
-  autoNotStoppable: 'Mesajele automate nu se pot opri.',
+  autoNotStoppable: 'Automat, nu se poate opri.',
   states: { active: 'Activ', waiting: 'Programat', ended: 'Încheiat', stopped: 'Oprit' },
   /** Title and aria-label of an icon: "Pe site, activ". */
   placeLabel: (place: 'site' | 'portal', state: PlaceState): string => `${place === 'site' ? 'Pe site' : 'Pe portal'}, ${state === null ? 'nu apare' : PLACE_WORD[state]}`,

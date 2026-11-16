@@ -47,7 +47,6 @@ export default function HistoricPageInfoEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Pagina Istoric - Secțiunea Principală"
-        description="Titlurile și textul introductiv al secțiunii cu timeline și statistici."
       >
         <Box padding={4}>
           <Flex direction="column" gap={4} alignItems="stretch">
@@ -56,7 +55,6 @@ export default function HistoricPageInfoEditor({ name }: Props) {
                 <EditorField
                   name="sectionHeading"
                   label="Titlu secțiune principală"
-                  hint="Titlul secțiunii cu timeline și statistici"
                 >
                   <TextInput
                     id="sectionHeading"
@@ -74,7 +72,6 @@ export default function HistoricPageInfoEditor({ name }: Props) {
                 <EditorField
                   name="sectionSubheading"
                   label="Subtitlu secțiune"
-                  hint="Subtitlul de sub titlul secțiunii principale"
                 >
                   <TextInput
                     id="sectionSubheading"
@@ -92,7 +89,6 @@ export default function HistoricPageInfoEditor({ name }: Props) {
             <EditorField
               name="introText"
               label="Text introducere"
-              hint="Paragraful introductiv afișat la începutul secțiunii principale"
             >
               <Textarea
                 id="introText"

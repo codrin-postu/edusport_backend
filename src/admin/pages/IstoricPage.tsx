@@ -108,7 +108,6 @@ const IstoricPage: React.FC = () => {
         <PageHeader
           back={{ to: DASHBOARD_TO }}
           title="Istoric"
-          subtitle="Bannerul, textele și statisticile de pe pagina /despre-noi/istoric"
         />
 
         {page.loading ? (
@@ -121,15 +120,13 @@ const IstoricPage: React.FC = () => {
           <div className="ui-body">
             <ObjectFieldCard<Banner>
               title="Banner pagină"
-              description="Titlul și subtitlul afișate în bannerul din partea de sus a paginii."
               value={banner}
               onFieldChange={(key, v) => form.set('banner', { ...banner, [key]: v })}
               fields={[
-                { key: 'title', label: 'Titlu', hint: 'Titlul mare afișat în banner', placeholder: 'ex: Echipa noastră', span: 2 },
+                { key: 'title', label: 'Titlu', placeholder: 'ex: Echipa noastră', span: 2 },
                 {
                   key: 'subtitle',
                   label: 'Subtitlu',
-                  hint: 'Textul descriptiv de sub titlu',
                   type: 'textarea',
                   rows: 3,
                   placeholder: 'ex: Antrenorii și instructorii care ghidează cursanții...',
@@ -139,16 +136,14 @@ const IstoricPage: React.FC = () => {
 
             <ObjectFieldCard<PageInfo>
               title="Secțiunea principală"
-              description="Titlurile și textul introductiv al secțiunii cu timeline și statistici."
               value={info}
               onFieldChange={(key, v) => form.set('pageInfo', { ...info, [key]: v })}
               fields={[
-                { key: 'sectionHeading', label: 'Titlu secțiune principală', hint: 'Titlul secțiunii cu timeline și statistici', placeholder: 'ex: Povestea noastră' },
-                { key: 'sectionSubheading', label: 'Subtitlu secțiune', hint: 'Subtitlul de sub titlul secțiunii principale', placeholder: 'ex: De la început până astăzi' },
+                { key: 'sectionHeading', label: 'Titlu secțiune principală', placeholder: 'ex: Povestea noastră' },
+                { key: 'sectionSubheading', label: 'Subtitlu secțiune', placeholder: 'ex: De la început până astăzi' },
                 {
                   key: 'introText',
                   label: 'Text introducere',
-                  hint: 'Paragraful introductiv afișat la începutul secțiunii principale',
                   type: 'textarea',
                   rows: 4,
                   placeholder: 'Textul introductiv al secțiunii principale...',
@@ -157,10 +152,7 @@ const IstoricPage: React.FC = () => {
               ]}
             />
 
-            <EditorCard
-              title="Statistici club"
-              description='Valorile afișate în grilă (ex: "10+|Competiții pe an"). Format: valoare|etichetă, câte una pe rând.'
-            >
+            <EditorCard title="Statistici club" description="Format: valoare|etichetă, câte una pe rând.">
               <StringList
                 items={stats}
                 onChange={(next) => form.set('stats', next)}
@@ -172,10 +164,7 @@ const IstoricPage: React.FC = () => {
               />
             </EditorCard>
 
-            <EditorCard
-              title="Evenimente organizate de ACS EduSport"
-              description="Lista evenimentelor organizate de club, afișată pe pagina Istoric. Câte un eveniment pe rând."
-            >
+            <EditorCard title="Evenimente organizate de ACS EduSport">
               <StringList
                 items={eventsOrganized}
                 onChange={(next) => form.set('eventsOrganized', next)}
@@ -185,10 +174,7 @@ const IstoricPage: React.FC = () => {
               />
             </EditorCard>
 
-            <EditorCard
-              title="Participări ale sportivilor EduSport"
-              description="Lista participărilor sportivilor la evenimente externe, afișată pe pagina Istoric. Câte un element pe rând."
-            >
+            <EditorCard title="Participări ale sportivilor EduSport">
               <StringList
                 items={eventsParticipated}
                 onChange={(next) => form.set('eventsParticipated', next)}

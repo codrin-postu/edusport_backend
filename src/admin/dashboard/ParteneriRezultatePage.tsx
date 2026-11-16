@@ -10,7 +10,6 @@ import FormResultsPage, { type FormResultsConfig } from './FormResultsPage';
 
 const CONFIG: FormResultsConfig = {
   title: 'Parteneri',
-  subtitle: 'Propunerile de parteneriat trimise din pagina publică de parteneri.',
   apiBase: '/api/forms/parteneri-rezultate',
   statuses: [
     { value: 'Nou', label: 'Noi', color: 'var(--theme-primary)' },

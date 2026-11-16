@@ -209,7 +209,6 @@ const MomenteIstoricPage: React.FC = () => {
         <PageHeader
           back={{ to: DASHBOARD_TO }}
           title="Momente istoric"
-          subtitle="Intrările de pe linia de timp a istoricului clubului (pagina /despre-noi/istoric)."
           actions={<Button onClick={openNew}>+ Adaugă moment</Button>}
         />
 

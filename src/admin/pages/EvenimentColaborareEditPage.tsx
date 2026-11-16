@@ -122,7 +122,6 @@ const EvenimentColaborareEditPage: React.FC = () => {
         <PageHeader
           back={{ to: EVENIMENTE_COLABORARE_TO, label: 'Evenimente colaborare' }}
           title={heading}
-          subtitle="Eveniment realizat împreună cu un partener, afișat pe pagina /parteneri"
           actions={
             ready && entry.exists ? (
               <Button variant="danger" onClick={() => setAsking(true)}>
@@ -140,16 +139,16 @@ const EvenimentColaborareEditPage: React.FC = () => {
           </div>
         ) : (
           <div className="ui-body">
-            <EditorCard title="Detalii eveniment" description="Textele afișate pe cardul evenimentului.">
+            <EditorCard title="Detalii eveniment">
               <div className="ui-stack">
                 <Field label="Titlu" required error={showErrors && titleMissing ? 'Titlul este obligatoriu.' : undefined}>
                   <Input value={v.title ?? ''} placeholder="ex: Cupa de Iarnă" onChange={setText('title')} />
                 </Field>
                 <FieldRow>
-                  <Field label="Partener" hint="Numele partenerului cu care a fost realizat evenimentul">
+                  <Field label="Partener">
                     <Input value={v.partner ?? ''} placeholder="ex: AFI Cotroceni" onChange={setText('partner')} />
                   </Field>
-                  <Field label="Dată" hint="Text liber, afișat exact cum este scris">
+                  <Field label="Dată">
                     <Input value={v.date ?? ''} placeholder="ex: Decembrie 2024" onChange={setText('date')} />
                   </Field>
                 </FieldRow>
@@ -159,12 +158,12 @@ const EvenimentColaborareEditPage: React.FC = () => {
               </div>
             </EditorCard>
 
-            <EditorCard title="Imagine" description="Fotografia afișată pe cardul evenimentului.">
+            <EditorCard title="Imagine">
               <GalleryGrid slots={1} images={[toTile(v.image ?? null)]} onChange={setImage} slotLabels={['Imagine eveniment']} columns={4} />
             </EditorCard>
 
             <EditorCard title="Afișare">
-              <Field label="Ordine afișare" hint="Evenimentele apar pe /parteneri în ordine crescătoare după acest număr.">
+              <Field label="Ordine afișare">
                 <NumberInput value={v.order ?? null} onChange={(n) => form.set('order', n)} allowEmpty />
               </Field>
             </EditorCard>

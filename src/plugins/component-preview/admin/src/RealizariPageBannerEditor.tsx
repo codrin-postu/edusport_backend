@@ -45,7 +45,6 @@ export default function RealizariPageBannerEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Pagina Realizări - Banner"
-        description="Titlul și subtitlul bannerului pentru pagina /despre-noi/realizari."
       >
         <Box padding={4}>
           <Grid.Root gridCols={12} gap={4}>
@@ -53,7 +52,6 @@ export default function RealizariPageBannerEditor({ name }: Props) {
               <EditorField
                 name="bannerTitle"
                 label="Titlu banner"
-                hint="ex: Realizările noastre"
               >
                 <TextInput
                   id="bannerTitle"
@@ -71,7 +69,6 @@ export default function RealizariPageBannerEditor({ name }: Props) {
               <EditorField
                 name="bannerSubtitle"
                 label="Subtitlu banner"
-                hint="Textul de sub titlul bannerului"
               >
                 <Textarea
                   id="bannerSubtitle"

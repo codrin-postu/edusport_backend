@@ -132,7 +132,6 @@ const DisciplinePage: React.FC = () => {
         <PageHeader
           back={{ to: DASHBOARD_TO }}
           title="Discipline"
-          subtitle="Disciplinele sportive practicate în club."
           actions={<Button onClick={openNew}>+ Adaugă disciplină</Button>}
         />
 

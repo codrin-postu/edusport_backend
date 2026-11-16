@@ -3,6 +3,7 @@ import { useField } from '@strapi/admin/strapi-admin';
 import { Box, Divider, Grid, TextInput, Typography } from '@strapi/design-system';
 import { EditorCard } from './components/EditorCard';
 import { EditorField } from './components/EditorField';
+import { HelpTip } from './components/HelpTip';
 
 interface Props {
   name: string;
@@ -70,12 +71,11 @@ export default function SiteSettingsContactEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Date de Contact & Rețele Sociale"
-        description="Informații afișate în footer-ul site-ului și pe paginile de contact. Modificările se reflectă pe tot site-ul."
       >
         <Box padding={4}>
           <Grid.Root gridCols={12} gap={4}>
             <Grid.Item col={12} s={12} xs={12}>
-              <EditorField name="phone" label="Număr telefon" hint="Cu sau fără spații - link-ul tel: se generează automat">
+              <EditorField name="phone" label="Număr telefon">
                 <TextInput id="phone" name="phone" value={data.phone} placeholder="ex: 0723 623 712" onChange={onText('phone')} />
               </EditorField>
             </Grid.Item>
@@ -100,7 +100,7 @@ export default function SiteSettingsContactEditor({ name }: Props) {
               </EditorField>
             </Grid.Item>
             <Grid.Item col={12} s={12} xs={12}>
-              <EditorField name="whatsappChannelUrl" label="Canal WhatsApp" hint="Link către canalul de WhatsApp">
+              <EditorField name="whatsappChannelUrl" label="Canal WhatsApp">
                 <TextInput id="whatsappChannelUrl" name="whatsappChannelUrl" value={data.whatsappChannelUrl} placeholder="ex: https://whatsapp.com/channel/..." onChange={onText('whatsappChannelUrl')} />
               </EditorField>
             </Grid.Item>
@@ -110,17 +110,13 @@ export default function SiteSettingsContactEditor({ name }: Props) {
             </Grid.Item>
 
             <Grid.Item col={12} s={12} xs={12}>
-              <EditorField name="addressDisplay" label="Adresă afișată" hint="Textul adresei care apare pe site">
+              <EditorField name="addressDisplay" label="Adresă afișată">
                 <TextInput id="addressDisplay" name="addressDisplay" value={data.addressDisplay} placeholder="ex: Patinoarul AFI Cotroceni, București" onChange={onText('addressDisplay')} />
               </EditorField>
             </Grid.Item>
 
             <Grid.Item col={12} s={12} xs={12}>
-              <EditorField
-                name="addressMapsUrl"
-                label="Link hartă (opțional)"
-                hint="Lasă gol și adresa duce automat la o căutare Google Maps. Completează doar dacă vrei un loc anume: deschide locația în Google Maps, apasă Partajează, copiază linkul."
-              >
+              <EditorField name="addressMapsUrl" label={<>Link hartă <HelpTip label="Gol: căutare Google Maps. Altfel lipește linkul din Partajează." /></>}>
                 <TextInput id="addressMapsUrl" name="addressMapsUrl" value={data.addressMapsUrl} placeholder="ex: https://maps.app.goo.gl/..." onChange={onText('addressMapsUrl')} />
               </EditorField>
             </Grid.Item>

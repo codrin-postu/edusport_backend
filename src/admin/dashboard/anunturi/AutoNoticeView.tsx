@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Button, Loading, Modal, Notice } from '../../ui';
+import { Button, HelpTip, Loading, Modal, Notice } from '../../ui';
 import { ANUNT_LIST_COPY, type ListRow } from '../../../club/anunturi/portal-history';
 import { shortDay } from '../../../club/portal/notices/copy';
 import { AccountsTable, useRecipients } from './PortalRecipients';
@@ -15,7 +15,7 @@ export function AutoNoticeView({ row, canSeeAccounts, onClose }: { row: ListRow;
   return (
     <Modal open onClose={onClose} title={row.title} size="md" footer={<Button variant="secondary" onClick={onClose}>Închide</Button>}>
       <div className="ui-stack">
-        <p className="ui-muted">{[copy.auto, row.period].join(', ')}</p>
+        <p className="ui-muted">{[copy.auto, row.period].join(', ')} <HelpTip icon="lock" label={copy.autoNotStoppable} /></p>
         {canSeeAccounts && failed && <Notice tone="danger">Nu am putut încărca detaliile.</Notice>}
         {canSeeAccounts && !failed && !data && <Loading />}
         {data && (

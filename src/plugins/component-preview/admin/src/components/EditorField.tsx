@@ -3,7 +3,7 @@ import { Field } from '@strapi/design-system';
 
 interface EditorFieldProps {
   name: string;
-  label: string;
+  label: React.ReactNode;
   hint?: string;
   error?: string;
   required?: boolean;

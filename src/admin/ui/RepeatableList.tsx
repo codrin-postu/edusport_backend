@@ -152,7 +152,7 @@ export function RepeatableList<T>({
     const name = labelOf(items[asking], asking);
     if (isPlainObject(confirmDelete)) return { title: confirmDelete.title ?? `Ștergi ${name}?`, message: confirmDelete.message, detail: confirmDelete.detail };
     if (typeof confirmDelete === 'string') return { title: `Ștergi ${name}?`, message: confirmDelete, detail: undefined };
-    return { title: `Ștergi ${name}?`, message: 'Elementul dispare din listă după ce salvezi pagina.', detail: undefined };
+    return { title: `Ștergi ${name}?`, message: 'Se șterge la salvare.', detail: undefined };
   })();
 
   return (

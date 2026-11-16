@@ -68,7 +68,6 @@ const PaginaParteneriPage: React.FC = () => {
         <PageHeader
           back={{ to: DASHBOARD_TO }}
           title="Pagina Parteneri"
-          subtitle='Textele de antet, "De ce parteneriat" și secțiunea de colaborare de pe pagina /parteneri'
         />
 
         {page.loading ? (
@@ -81,7 +80,6 @@ const PaginaParteneriPage: React.FC = () => {
           <div className="ui-body">
             <ObjectFieldCard<Content>
               title="Antet (hero)"
-              description="Titlul și subtitlul din partea de sus a paginii."
               value={content}
               onFieldChange={(key, v) => form.set('content', { ...content, [key]: v })}
               fields={[
@@ -114,8 +112,6 @@ const PaginaParteneriPage: React.FC = () => {
 
             <LinkOutCard
               title="Sponsori"
-              description="Logo-urile afișate în banda de sponsori sunt gestionate separat, ca înregistrări individuale."
-              body="Adaugă, ordonează sau editează sponsorii din secțiunea dedicată."
               href={`/admin${SPONSORI_TO}`}
               linkLabel="Gestionează sponsorii"
               external={false}
@@ -123,8 +119,6 @@ const PaginaParteneriPage: React.FC = () => {
 
             <LinkOutCard
               title="Evenimente & colaborări"
-              description="Evenimentele realizate împreună cu partenerii sunt înregistrări individuale."
-              body="Adaugă sau editează evenimentele de colaborare din secțiunea dedicată."
               href={`/admin${EVENIMENTE_COLABORARE_TO}`}
               linkLabel="Gestionează evenimentele"
               external={false}

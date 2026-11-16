@@ -42,12 +42,11 @@ export default function PageBannerEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Banner Pagină"
-        description="Titlul și subtitlul afișate în banner-ul din partea de sus a paginii."
       >
         <Box padding={4}>
           <Grid.Root gridCols={12} gap={4}>
             <Grid.Item col={12} s={12} xs={12}>
-              <EditorField name="title" label="Titlu" hint="Titlul mare afișat în banner">
+              <EditorField name="title" label="Titlu">
                 <TextInput
                   id="title"
                   name="title"
@@ -61,7 +60,7 @@ export default function PageBannerEditor({ name }: Props) {
             </Grid.Item>
 
             <Grid.Item col={12} s={12} xs={12}>
-              <EditorField name="subtitle" label="Subtitlu" hint="Textul descriptiv de sub titlu">
+              <EditorField name="subtitle" label="Subtitlu">
                 <Textarea
                   id="subtitle"
                   name="subtitle"

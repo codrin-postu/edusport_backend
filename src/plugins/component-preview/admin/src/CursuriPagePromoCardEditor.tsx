@@ -72,23 +72,22 @@ export default function CursuriPagePromoCardEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Card Promo Abonament"
-        description="Cardul albastru care promovează abonamentul de club afișat pe pagina /cursuri."
       >
         <Box padding={4}>
           <Grid.Root gridCols={12} gap={4}>
             <Grid.Item col={6} s={12} xs={12}>
-              <EditorField name="eyebrow" label="Etichetă mică" hint="Textul mic deasupra titlului, ex: Devino Membru">
+              <EditorField name="eyebrow" label="Etichetă mică">
                 <TextInput id="eyebrow" name="eyebrow" value={data.eyebrow} placeholder="ex: Devino Membru" onChange={onText('eyebrow')} />
               </EditorField>
             </Grid.Item>
             <Grid.Item col={6} s={12} xs={12}>
-              <EditorField name="title" label="Titlu card" hint="Titlul cardului promo, ex: Abonament de Club">
+              <EditorField name="title" label="Titlu card">
                 <TextInput id="title" name="title" value={data.title} placeholder="ex: Abonament de Club" onChange={onText('title')} />
               </EditorField>
             </Grid.Item>
 
             <Grid.Item col={12} s={12} xs={12}>
-              <EditorField name="description" label="Descriere" hint="Textul descriptiv al cardului promo">
+              <EditorField name="description" label="Descriere">
                 <Textarea
                   id="description"
                   name="description"
@@ -113,7 +112,6 @@ export default function CursuriPagePromoCardEditor({ name }: Props) {
               <EditorField
                 name="subscriptionInfoTitle"
                 label="Titlu info abonament"
-                hint="Titlul listei de informații, ex: Ce include abonamentul?"
               >
                 <TextInput
                   id="subscriptionInfoTitle"
@@ -126,7 +124,7 @@ export default function CursuriPagePromoCardEditor({ name }: Props) {
             </Grid.Item>
 
             <Grid.Item col={12} s={12} xs={12}>
-              <Field.Root id={`${name}-bullets`} name="subscriptionBullets" hint="Câte un punct pe rând" width="100%">
+              <Field.Root id={`${name}-bullets`} name="subscriptionBullets" hint="Câte unul pe rând." width="100%">
                 <Field.Label>Informații abonament</Field.Label>
                 <Box paddingTop={2}>
                   <InlineStringList

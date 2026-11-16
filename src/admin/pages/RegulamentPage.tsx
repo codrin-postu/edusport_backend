@@ -118,7 +118,6 @@ function RulesTable({ rules, onChange }: { rules: Rule[]; onChange: (next: Rule[
         aria-label="Reguli"
         reorder
         expandable
-        confirmDelete="Regula dispare din listă după ce salvezi pagina."
         itemLabel={(r, i) => (r.label ? `regula "${r.label}"` : `regula ${i + 1}`)}
         renderSummary={(r, i) => (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
@@ -177,7 +176,6 @@ const RegulamentPage: React.FC = () => {
         <PageHeader
           back={{ to: DASHBOARD_TO }}
           title="Regulament"
-          subtitle="Bannerul și regulile cursurilor, pe categorii, de pe pagina /cursuri/regulament"
         />
 
         {page.loading ? (
@@ -190,15 +188,13 @@ const RegulamentPage: React.FC = () => {
           <div className="ui-body">
             <ObjectFieldCard<Banner>
               title="Regulament Cursuri - Banner"
-              description="Titlul și subtitlul bannerului pentru pagina cu regulamentul cursurilor."
               value={banner}
               onFieldChange={(key, v) => form.set('banner', { ...banner, [key]: v })}
               fields={[
-                { key: 'bannerTitle', label: 'Titlu banner', hint: 'ex: Regulamentul cursurilor', placeholder: 'ex: Regulamentul cursurilor', span: 2 },
+                { key: 'bannerTitle', label: 'Titlu banner', placeholder: 'ex: Regulamentul cursurilor', span: 2 },
                 {
                   key: 'bannerSubtitle',
                   label: 'Subtitlu banner',
-                  hint: 'Textul de sub titlul bannerului',
                   type: 'textarea',
                   rows: 3,
                   placeholder: 'Subtitlul bannerului...',
@@ -206,7 +202,7 @@ const RegulamentPage: React.FC = () => {
               ]}
             />
 
-            <EditorCard title="Categorii" description="Fiecare categorie este un grup de reguli sub un titlu. Ordinea de aici este ordinea de pe site.">
+            <EditorCard title="Categorii">
               <RepeatableList<Category>
                 items={categories}
                 onChange={setCategories}
@@ -217,14 +213,14 @@ const RegulamentPage: React.FC = () => {
                 aria-label="Categorii"
                 reorder
                 expandable
-                confirmDelete="Categoria și toate regulile ei dispar după ce salvezi pagina."
+                confirmDelete="Se șterge cu toate regulile ei."
                 itemLabel={(c, i) => (c.title ? `categoria "${c.title}"` : `categoria ${i + 1}`)}
                 renderSummary={(c) => {
                   const n = ruleList(c.rules).length;
                   return (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--ui-space-2)' }}>
                       <span className={c.title ? undefined : 'ui-muted'}>{c.title || 'Categorie nouă'}</span>
-                      <span className="ui-muted">· {n === 1 ? '1 regulă' : `${n} reguli`}</span>
+                      <span className="ui-muted">{n === 1 ? '1 regulă' : `${n} reguli`}</span>
                     </span>
                   );
                 }}
@@ -234,7 +230,7 @@ const RegulamentPage: React.FC = () => {
                       <Field label="Titlu" required error={tried && !String(c.title ?? '').trim() ? 'Completează titlul categoriei.' : undefined}>
                         <Input value={c.title ?? ''} onChange={(e) => row.update({ title: e.target.value })} />
                       </Field>
-                      <Field label="Pictogramă" hint="Pictograma afișată lângă titlul categoriei (fără alegere: Layers)">
+                      <Field label="Pictogramă">
                         <Select
                           value={c.icon ?? ''}
                           options={ICON_OPTIONS}

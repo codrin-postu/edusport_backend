@@ -16,7 +16,6 @@ export default function CompetitionsLink(_props: Props) {
   return (
     <LinkOutCard
       title="Competiții & Rezultate"
-      description="Competițiile și rezultatele sportivilor sunt gestionate separat, ca înregistrări individuale, organizate pe sezoane."
       body="Adaugă sau editează competițiile și rezultatele din secțiunea dedicată."
       href="/admin/plugins/edusport-competitii"
       linkLabel="Gestionează competițiile"

@@ -246,11 +246,10 @@ const InheritedField: React.FC<{
   inherited: string;
   overridden: boolean;
   settingsName: string;
-  emptyNote?: string;
   onChange: (next: string) => void;
   onOverride: () => void;
   onUseSetting: () => void;
-}> = ({ label, value, inherited, overridden, settingsName, emptyNote, onChange, onOverride, onUseSetting }) => {
+}> = ({ label, value, inherited, overridden, settingsName, onChange, onOverride, onUseSetting }) => {
   const local = value.trim() !== '';
   const editing = local || overridden;
   const drifted = local && inherited.trim() !== '' && value.trim() !== inherited.trim();
@@ -273,7 +272,6 @@ const InheritedField: React.FC<{
               </>
             ) : (
               <>
-                <span>Valoare scrisă doar pentru pagina principală.</span>
                 <Button variant="secondary" size="sm" onClick={onUseSetting}>
                   Revino la valoarea din setări
                 </Button>
@@ -288,7 +286,6 @@ const InheritedField: React.FC<{
             <StatusBadge tone="primary">Din setări</StatusBadge>
             <span>
               Se schimbă în <b>{settingsName}</b>, ca să nu existe două valori diferite.
-              {emptyNote ? ' ' + emptyNote : ''}
             </span>
             <Button variant="secondary" size="sm" onClick={onOverride}>
               Suprascrie aici
@@ -576,7 +573,7 @@ const HomepageEditPage: React.FC = () => {
     <AdminPage>
       <style>{PAGE_CSS}</style>
       <Window>
-        <PageHeader back={{ to: DASHBOARD_TO }} title="Pagina principală" subtitle="Textele de pe prima pagină a site-ului" />
+        <PageHeader back={{ to: DASHBOARD_TO }} title="Pagina principală" />
 
         {loading ? (
           <Loading />
@@ -589,7 +586,6 @@ const HomepageEditPage: React.FC = () => {
             {/* ── Hero ── */}
             <ObjectFieldCard<Hero>
               title="Hero"
-              description="Titlul EDUSPORT și fundalul video nu se editează, fac parte din design."
               value={form.hero}
               onFieldChange={(k, v) => upd('hero', { [k]: v })}
               fields={[
@@ -606,13 +602,12 @@ const HomepageEditPage: React.FC = () => {
                   </Button>
                 }
               >
-                Se ia automat din Noutăți, primul eveniment care nu a trecut. Când nu urmează niciunul, eticheta nu se
-                afișează.
+                Se ia automat din Noutăți.
               </Notice>
             </ObjectFieldCard>
 
             {/* ── Registration: one variant at a time ── */}
-            <EditorCard title="Înscrieri" description="Pe site apare o singură variantă.">
+            <EditorCard title="Înscrieri">
               <Notice
                 tone="info"
                 title="Sezonul și starea înscrierilor"
@@ -623,10 +618,10 @@ const HomepageEditPage: React.FC = () => {
                 }
               >
                 {registrationOpen === null
-                  ? 'Se schimbă din Setări site, nu de aici.'
+                  ? 'Se schimbă din Setări site.'
                   : registrationOpen
-                    ? 'Acum înscrierile sunt deschise, deci site-ul afișează varianta "deschise". Se schimbă din Setări site.'
-                    : 'Acum înscrierile sunt închise, deci site-ul afișează varianta "închise". Se schimbă din Setări site.'}
+                    ? 'Înscrieri deschise. Se schimbă din Setări site.'
+                    : 'Înscrieri închise. Se schimbă din Setări site.'}
               </Notice>
 
               <Tabs
@@ -685,7 +680,6 @@ const HomepageEditPage: React.FC = () => {
                     inherited={inheritedWhatsapp}
                     overridden={overrideWhatsapp}
                     settingsName="Setări site"
-                    emptyNote="Înainte câmpul era gol aici, deci butonul nu ducea nicăieri."
                     onChange={(v) => onRegC({ whatsappUrl: v })}
                     onOverride={() => setOverrideWhatsapp(true)}
                     onUseSetting={() => {
@@ -704,7 +698,6 @@ const HomepageEditPage: React.FC = () => {
             {/* ── About: one panel at a time ── */}
             <EditorCard
               title="Despre noi"
-              description={`Layout-ul e construit pentru exact ${ABOUT_PANELS} panouri. Un al patrulea nu s-ar afișa.`}
               headerAction={<StatusBadge tone="neutral">{ABOUT_PANELS} panouri</StatusBadge>}
             >
               <Tabs
@@ -748,7 +741,7 @@ const HomepageEditPage: React.FC = () => {
                 { key: 'ctaUrl', label: 'Link buton', span: 2 },
               ]}
             >
-              <Field label="Număr sportivi" hint="Se actualizează când adaugi sau ascunzi un sportiv.">
+              <Field label="Număr sportivi">
                 <div className="hp-count">
                   <StatusBadge tone="primary">automat</StatusBadge>
                   <span>
@@ -759,13 +752,9 @@ const HomepageEditPage: React.FC = () => {
             </ObjectFieldCard>
 
             {/* ── Club figures ── */}
-            <EditorCard
-              title="Cifrele clubului"
-              description="Pagina Istoric are deocamdată lista ei separată de cifre, în Club / Pagina Istoric."
-            >
+            <EditorCard title="Cifrele clubului">
               <Notice tone="info" title="Cifrele se scriu o singură dată">
-                Lista de mai jos este comună. Bifează aici doar cifrele care apar pe pagina principală. Ordinea de pe site
-                este ordinea din listă.
+                Bifează cifrele care apar pe prima pagină.
               </Notice>
               <RepeatableList<Figure>
                 items={figures}
@@ -773,7 +762,7 @@ const HomepageEditPage: React.FC = () => {
                 getKey={(f, i) => f.id || `i${i}`}
                 newItem={() => newFigure(figures)}
                 addLabel="Adaugă cifră"
-                emptyLabel="Nicio cifră în listă. Adaugă prima cifră a clubului."
+                emptyLabel="Nicio cifră."
                 itemLabel={(f, i) => f.label || f.value || `cifra ${i + 1}`}
                 reorder
                 hideDelete
@@ -802,8 +791,7 @@ const HomepageEditPage: React.FC = () => {
             {/* ── Competition gallery ── */}
             <EditorCard title="Galeria competițiilor">
               <Notice tone="info" title="Trei imagini, în ordinea de aici">
-                Secțiunea apare pe pagina principală doar dacă este aleasă cel puțin o imagine. Fără imagini, secțiunea nu
-                se afișează deloc.
+                Fără imagini, secțiunea nu apare.
               </Notice>
               <Field label="Text secțiune">
                 <Input

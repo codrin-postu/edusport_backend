@@ -53,7 +53,6 @@ export default function CursuriPageBannerEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Banner Pagina Cursuri"
-        description="Titlul și informațiile de orar afișate în header-ul paginii /cursuri."
       >
         <Box padding={4}>
           <Grid.Root gridCols={12} gap={4}>
@@ -61,7 +60,6 @@ export default function CursuriPageBannerEditor({ name }: Props) {
               <EditorField
                 name="title"
                 label="Titlu banner"
-                hint="Titlul mare afișat pe banner-ul paginii, ex: Cursuri de Patinaj"
               >
                 <TextInput
                   id="title"
@@ -83,7 +81,7 @@ export default function CursuriPageBannerEditor({ name }: Props) {
             </Grid.Item>
 
             <Grid.Item col={6} s={12} xs={12}>
-              <EditorField name="scheduleDays" label="Zile de curs" hint="ex: Sâmbătă & Duminică">
+              <EditorField name="scheduleDays" label="Zile de curs">
                 <TextInput
                   id="scheduleDays"
                   name="scheduleDays"
@@ -97,7 +95,6 @@ export default function CursuriPageBannerEditor({ name }: Props) {
               <EditorField
                 name="scheduleTimes"
                 label="Ore de curs"
-                hint="ex: 10:00–10:50 & 11:00–11:50"
               >
                 <TextInput
                   id="scheduleTimes"
@@ -113,7 +110,6 @@ export default function CursuriPageBannerEditor({ name }: Props) {
               <EditorField
                 name="locationName"
                 label="Locație"
-                hint="Numele locației, ex: AFI Cotroceni"
               >
                 <TextInput
                   id="locationName"
@@ -128,7 +124,6 @@ export default function CursuriPageBannerEditor({ name }: Props) {
               <EditorField
                 name="locationUrl"
                 label="Link locație"
-                hint="URL Google Maps sau altă pagină a locației"
               >
                 <TextInput
                   id="locationUrl"

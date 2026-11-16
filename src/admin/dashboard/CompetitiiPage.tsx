@@ -176,14 +176,14 @@ export default function CompetitiiPage() {
         setCandidates(d.candidates);
         setMsg({
           kind: 'ok',
-          text: 'Alege competiția de importat dintre rezultatele de mai jos:',
+          text: 'Alege competiția:',
         });
       } else {
         setCandidates([]);
-        setMsg({ kind: 'err', text: 'Nicio potrivire găsită. Încearcă alt nume sau lipește direct URL-ul rezultatelor.' });
+        setMsg({ kind: 'err', text: 'Nicio potrivire. Încearcă alt nume sau lipește URL-ul.' });
       }
     } catch {
-      setMsg({ kind: 'err', text: 'Căutarea a eșuat. Verifică numele/URL-ul și încearcă din nou.' });
+      setMsg({ kind: 'err', text: 'Căutarea a eșuat. Verifică numele sau URL-ul.' });
     } finally {
       setImporting(false);
     }
@@ -324,7 +324,7 @@ export default function CompetitiiPage() {
           <Button
             variant="ghost"
             size="sm"
-            title="Recitește rezultatele din baza noastră de date"
+            title="Recitește rezultatele"
             onClick={(e) => {
               e.stopPropagation();
               refresh(r);
@@ -356,7 +356,7 @@ export default function CompetitiiPage() {
       <Window>
         <PageHeader
           title="Competiții"
-          subtitle="Importă o competiție după nume pentru a-i prelua rezultatele. Sportivii apar automat și pot fi conectați în editorul de sportiv."
+          subtitle="Importă o competiție după nume sau URL."
         />
 
         <EditorCard variant="plain" title="Importă o competiție">
@@ -431,7 +431,7 @@ export default function CompetitiiPage() {
             onRowClick={toggleRow}
             rowLabel={(r) => `Detalii ${r.name}`}
             loading={loading}
-            empty={error ? 'Nu am putut încărca competițiile din skate-results.' : 'Nicio competiție importată încă. Importă una mai sus.'}
+            empty={error ? 'Nu am putut încărca competițiile din skate-results.' : 'Nicio competiție importată.'}
             search
             searchPlaceholder="Filtrează competițiile importate..."
             initialSort={{ key: 'name', dir: 'asc' }}
@@ -446,8 +446,8 @@ export default function CompetitiiPage() {
               ) : expandedData.length === 0 ? (
                 <div className="cmp-detail-msg">
                   {clubLoadFailed
-                    ? 'Nu am putut încărca lista sportivilor clubului, așa că nu putem spune cine a participat. Reîncarcă pagina.'
-                    : 'Niciun sportiv conectat al clubului în această competiție. Conectează sportivii în editorul de sportiv.'}
+                    ? 'Lista sportivilor nu s-a încărcat. Reîncarcă pagina.'
+                    : 'Niciun sportiv conectat.'}
                 </div>
               ) : (
                 <>

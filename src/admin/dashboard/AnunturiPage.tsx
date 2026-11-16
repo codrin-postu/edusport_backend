@@ -268,7 +268,7 @@ export default function AnunturiPage() {
     umami === 'not_configured'
       ? 'Umami nu este configurat.'
       : umami === 'error'
-        ? 'Nu am putut citi vizualizările din Umami. Restul paginii funcționează normal.'
+        ? 'Vizualizările nu s-au încărcat.'
         : null;
 
   return (
@@ -278,7 +278,6 @@ export default function AnunturiPage() {
       <Window>
         <PageHeader
           title="Anunțuri"
-          subtitle="Anunțuri pe site și pe portalul sportivilor."
           actions={
             <>
               <FilterPanel
@@ -311,7 +310,7 @@ export default function AnunturiPage() {
                 return i < 0 ? {} : (drag.itemProps(i) as React.HTMLAttributes<HTMLTableRowElement>);
               }}
               pageSize={0}
-              empty={rows.length === 0 ? 'Niciun anunț încă. Apasă "+ Anunț nou" ca să creezi primul.' : 'Niciun anunț aici.'}
+              empty={rows.length === 0 ? 'Niciun anunț încă.' : 'Niciun anunț aici.'}
             />
           </>
         )}

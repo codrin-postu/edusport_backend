@@ -17,14 +17,12 @@ export default function PartnersLinksEditor(_props: Props) {
     <Flex direction="column" alignItems="stretch" gap={4}>
       <LinkOutCard
         title="Sponsori"
-        description="Logo-urile afișate în banda de sponsori sunt gestionate separat, ca înregistrări individuale."
         body="Adaugă, ordonează sau editează sponsorii din secțiunea dedicată."
         href="/admin/plugins/edusport-sponsori"
         linkLabel="Gestionează sponsorii"
       />
       <LinkOutCard
         title="Evenimente & colaborări"
-        description="Evenimentele realizate împreună cu partenerii sunt înregistrări individuale."
         body="Adaugă sau editează evenimentele de colaborare din secțiunea dedicată."
         href="/admin/content-manager/collection-types/api::collaboration-event.collaboration-event"
         linkLabel="Gestionează evenimentele"

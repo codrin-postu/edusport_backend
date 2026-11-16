@@ -604,7 +604,6 @@ const SpecialCourseRow = React.memo(function SpecialCourseRow({
             <Field.Root
               id={`${namePrefix}-special-course-${i}-time`}
               name="timeSlot"
-              hint="Opțional"
             >
               <Field.Label>Interval</Field.Label>
               <TextInput
@@ -641,7 +640,6 @@ const SpecialCourseRow = React.memo(function SpecialCourseRow({
         <Field.Root
           id={`${namePrefix}-special-course-${i}-description`}
           name="description"
-          hint="Afișată în card-ul de hover. Suportă markdown."
         >
           <Field.Label>Descriere</Field.Label>
           <MarkdownEditor
@@ -772,7 +770,6 @@ const SpecialEventRow = React.memo(function SpecialEventRow({
         <Field.Root
           id={`${namePrefix}-special-${i}-description`}
           name="description"
-          hint="Afișată în card-ul de hover. Suportă markdown."
         >
           <Field.Label>Descriere</Field.Label>
           <MarkdownEditor
@@ -1096,7 +1093,6 @@ function CalendarEventsInner({ value, onChange }: InnerProps) {
     <Box width="100%">
       <EditorCard
         title="Calendar sezonal"
-        description="Setează starea fiecărui weekend. Descrierea afișată în card-ul de hover este preluată automat din șablonul stării (Curs / Liber / Curs anulat) editat mai jos."
       >
         <Box padding={4}>
           <Flex direction="column" gap={4} alignItems="stretch">
@@ -1171,7 +1167,6 @@ function CalendarEventsInner({ value, onChange }: InnerProps) {
                   <EditorField
                     name="defaultCursDesc"
                     label="Descriere implicită - Curs"
-                    hint="Afișată în card-ul de hover pentru fiecare weekend de Curs. Suportă markdown."
                   >
                     <MarkdownEditor
                       id="defaultCursDesc"
@@ -1184,7 +1179,6 @@ function CalendarEventsInner({ value, onChange }: InnerProps) {
                   <EditorField
                     name="defaultLiberDesc"
                     label="Descriere implicită - Liber"
-                    hint="Afișată în card-ul de hover pentru fiecare weekend Liber. Suportă markdown."
                   >
                     <MarkdownEditor
                       id="defaultLiberDesc"
@@ -1197,7 +1191,6 @@ function CalendarEventsInner({ value, onChange }: InnerProps) {
                   <EditorField
                     name="defaultAnulatDesc"
                     label="Descriere implicită - Curs anulat"
-                    hint="Afișată în card-ul de hover pentru fiecare weekend de Curs anulat. Suportă markdown."
                   >
                     <MarkdownEditor
                       id="defaultAnulatDesc"

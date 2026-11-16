@@ -246,7 +246,6 @@ export interface SubmissionTableCfg {
   bulk?: boolean;
   texts: {
     title: string;
-    subtitle?: string;
     searchPlaceholder: string;
     empty: string;
     loadError: string;
@@ -1588,7 +1587,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
       onClose={() => setPopOpen(false)}
       popClassName="sbt-pop"
     >
-      <h4>Coloane: trage pentru a reordona, bifează ce se afișează</h4>
+      <h4>Coloane</h4>
       <div className="sbt-pop-body">
         {colCfg.order.map((key, i) => {
           const c = colByKey[key];
@@ -1946,7 +1945,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
       <style>{fullCss}</style>
 
       <Window>
-        <PageHeader title={cfg.texts.title} subtitle={cfg.texts.subtitle} actions={statActions} />
+        <PageHeader title={cfg.texts.title} actions={statActions} />
 
         {/* toolbar A: search, view, columns, export */}
         <div className="ui-table-bar">

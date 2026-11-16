@@ -50,7 +50,6 @@ export interface InboxLayoutProps<T> {
 
   /** Reader content for the selected item. */
   reader: React.ReactNode;
-  readerEmpty?: React.ReactNode;
   listLabel?: string;
 }
 
@@ -69,14 +68,13 @@ export function InboxLayout<T>({
   onSelect,
   loading = false,
   error,
-  empty = 'Nimic pentru filtrul curent.',
+  empty = 'Nimic.',
   page,
   pageCount,
   total,
   pageSize,
   onPageChange,
   reader,
-  readerEmpty = 'Selectează un element din listă.',
   listLabel = 'Listă',
 }: InboxLayoutProps<T>) {
   const groups: InboxGroup<T>[] = groupBy ? groupBy(items) : [{ label: '', items }];
@@ -139,7 +137,7 @@ export function InboxLayout<T>({
           <Button className="ui-inbox-back" size="sm" variant="ghost" onClick={() => onSelect(null)}>
             Înapoi la listă
           </Button>
-          {open ? reader : <EmptyState>{readerEmpty}</EmptyState>}
+          {open && reader}
         </div>
       </div>
     </div>

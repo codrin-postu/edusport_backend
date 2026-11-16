@@ -246,7 +246,7 @@ export function requestError(e: unknown, fallback = 'Nu am putut salva. Încearc
   const detail = (e as any)?.response?.data?.error;
   if (detail) console.error('[edusport] content-manager request failed', detail);
   else console.error('[edusport] content-manager request failed', e);
-  if (detail?.name === 'ValidationError') return new Error('Datele nu sunt valide. Verifică câmpurile și încearcă din nou.');
+  if (detail?.name === 'ValidationError') return new Error('Verifică câmpurile.');
   return new Error(fallback);
 }
 

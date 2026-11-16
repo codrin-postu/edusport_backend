@@ -282,7 +282,7 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
           message:
             res.reason === 'not_found'
               ? 'Nu există nicio foaie cu acest ID.'
-              : 'Link invalid. Copiază adresa din bara browserului, cu foaia deschisă.',
+              : 'Link invalid. Copiază adresa foii din browser.',
         });
       } else if (res.reason === 'not_configured' || res.reason === 'client_unavailable') {
         setVerify({ kind: 'not_configured', message: res.message ?? '' });
@@ -334,7 +334,7 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
       setEditing(false);
       setLink('');
       if (res.sharedWith) adminToast.success(`Foaie nouă creată și partajată cu ${res.sharedWith}.`);
-      else adminToast.warning('Foaie nouă creată. Nu am putut-o partaja automat, deschide-o din link.');
+      else adminToast.warning('Foaie creată, dar nepartajată. Deschide-o din link.');
       await load();
       onChanged?.();
     } catch {
@@ -368,7 +368,7 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
     try {
       await post(`${SHEETS_API}/${form}/disconnect`, {});
       setConfirmDisconnect(false);
-      adminToast.success('Foaia a fost deconectată. Datele din foaie rămân neatinse.');
+      adminToast.success('Foaie deconectată.');
       await load();
       onChanged?.();
     } catch {
@@ -395,7 +395,7 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
         const code = e?.response?.status ?? e?.status;
         adminToast.error(
           code === 404
-            ? 'Ritmul verificării nu poate fi salvat încă: serverul nu are endpointul de programare.'
+            ? 'Ritmul nu s-a putut salva.'
             : 'Nu am putut salva ritmul verificării.',
         );
       }
@@ -445,8 +445,7 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
         {saEmail && (
           <>
             <div className="ui-hint" style={{ marginTop: 4 }}>
-              Foaia trebuie partajată cu drepturi de <b>editor</b> către adresa contului de serviciu (generată de Google
-              la crearea contului):
+              Partajează foaia ca editor cu adresa:
             </div>
             <ServiceAccountAddress email={saEmail} />
           </>
@@ -469,9 +468,6 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
       {verify?.kind === 'failed' && <Notice tone="danger">{verify.message}</Notice>}
 
       <div className="sdlg-divider">sau</div>
-      <Notice tone="info" title="Foaie nouă">
-        Creată de contul de serviciu și partajată cu adresa ta, ca să apară în Google Drive.
-      </Notice>
     </div>
   );
 
@@ -558,9 +554,7 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
           </span>
         </div>
         <div className="ui-hint">
-          Trimiterile ajung în foaie imediat. Verificarea compară foaia cu baza de date și repară ce a lipsit, dacă
-          Google a fost indisponibil.
-          {interval === 0 && ' "Oprit" oprește doar verificarea periodică, nu și trimiterile către foaie.'}
+          Verificarea compară foaia cu baza de date și repară diferențele.
         </div>
       </div>
 
@@ -600,9 +594,6 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
             </div>
           )}
         </div>
-        <div className="ui-hint" style={{ marginTop: 4 }}>
-          Se păstrează ultimele 20 de rulări per formular.
-        </div>
       </div>
     </div>
   );
@@ -626,9 +617,7 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
         footer={loading ? undefined : showConnected ? connectedFooter : connectFooter}
       >
         <style>{SHEETS_CSS}</style>
-        <p className="sdlg-sub">
-          {connected ? 'Conectat, cu sincronizare la fiecare trimitere' : 'Trimiterile sunt scrise automat într-o foaie de calcul.'}
-        </p>
+        {connected && <p className="sdlg-sub">Conectat, cu sincronizare la fiecare trimitere</p>}
         {loadErr && (
           <div style={{ marginBottom: 12 }}>
             <Notice tone="danger">{loadErr}</Notice>
@@ -640,7 +629,7 @@ export function SheetsDialog({ open, form, label, onClose, onChanged }: SheetsDi
       <ConfirmDialog
         open={confirmDisconnect}
         title="Deconectezi foaia?"
-        message={`Nu mai trimitem nimic către "${entry?.spreadsheetName || 'foaia conectată'}". Foaia și datele din ea rămân neatinse.`}
+        message={`Nu se mai trimit date către "${entry?.spreadsheetName || 'foaia conectată'}". Foaia rămâne neatinsă.`}
         confirmLabel="Deconectează"
         busyLabel="Se deconectează..."
         busy={busy}

@@ -55,12 +55,11 @@ export default function CursuriPageInfoSectionEditor({ name }: Props) {
     <Box width="100%">
       <EditorCard
         title="Secțiunea Informații Practice"
-        description="Sfaturile și regulile afișate la finalul paginii /cursuri (secțiunea Ce trebuie să știi)."
       >
         <Box padding={4}>
           <Grid.Root gridCols={12} gap={4}>
             <Grid.Item col={12} s={12} xs={12}>
-              <EditorField name="sectionLabel" label="Titlu secțiune" hint="ex: Ce trebuie să știi">
+              <EditorField name="sectionLabel" label="Titlu secțiune">
                 <TextInput
                   id="sectionLabel"
                   name="sectionLabel"
@@ -75,7 +74,7 @@ export default function CursuriPageInfoSectionEditor({ name }: Props) {
               <Box paddingBottom={2}>
                 <Divider />
               </Box>
-              <Field.Root id={`${name}-tips`} name="tips" hint="Câte un sfat sau regulă pe rând" width="100%">
+              <Field.Root id={`${name}-tips`} name="tips" hint="Câte unul pe rând." width="100%">
                 <Field.Label>
                   <Typography variant="pi" fontWeight="semiBold" textColor="neutral600">
                     Sfaturi & reguli
@@ -99,7 +98,6 @@ export default function CursuriPageInfoSectionEditor({ name }: Props) {
               <EditorField
                 name="closingLine"
                 label="Linie de închidere"
-                hint="Textul final afișat după lista de sfaturi, opțional"
               >
                 <TextInput
                   id="closingLine"

@@ -9,6 +9,7 @@ import {
   RepeatableList,
   Field,
   FieldRow,
+  HelpTip,
   Input,
   Textarea,
   Select,
@@ -385,9 +386,8 @@ export default function FormEditorPage() {
                         expandable
                         defaultExpanded={gen?.open}
                         confirmDelete={{
-                          message: 'Întrebarea dispare din formular după ce salvezi.',
-                          detail:
-                            'Un câmp încorporat își păstrează coloana și datele deja trimise în tabelul de rezultate și poate fi readus din lista câmpurilor scoase.',
+                          message: 'Se șterge la salvare.',
+                          detail: 'Datele trimise rămân în rezultate. Îl poți readuce din lista câmpurilor scoase.',
                         }}
                         itemLabel={(q) => `${q.sensitive ? 'câmpul sensibil ' : 'întrebarea '}"${questionLabel(q)}"`}
                         renderSummary={(q) => <QuestionSummary q={q} />}
@@ -407,7 +407,7 @@ export default function FormEditorPage() {
                             />
                           </Field>
                           <div className="fe-add-row">
-                            <Field label="Tip" hint="Tipul nu se mai poate schimba după adăugare.">
+                            <Field label={<>Tip <HelpTip icon="lock" label="Nu se mai schimbă." /></>}>
                               <Select
                                 value={draftFor(step.key).type}
                                 onChange={(v) => setDraft(step.key, { type: v })}
@@ -447,17 +447,14 @@ export default function FormEditorPage() {
                         variant="secondary"
                         size="sm"
                         onClick={() => setRemoved((cur) => cur.filter((x) => x.key !== r.key))}
-                        title="Anulează scoaterea (câmpul revine în formular la salvare)"
+                        title="Anulează scoaterea"
                       >
                         Anulează
                       </Button>
                     </div>
                   ))}
                 </div>
-                <div className="ui-hint">
-                  Coloanele și datele deja trimise rămân în tabelul de rezultate, marcate "(eliminată)". Anulează pentru a
-                  readuce câmpul în formular la următoarea salvare.
-                </div>
+                <div className="ui-hint">Datele trimise rămân în rezultate, marcate "(eliminată)".</div>
               </EditorCard>
             )}
           </div>
@@ -602,12 +599,12 @@ function QuestionBody({
 
       {!isInfo && (
         <Field label="Text ajutor / placeholder">
-          <Input value={q.help} placeholder="Opțional" onChange={(e) => onChange({ help: e.target.value })} />
+          <Input value={q.help} onChange={(e) => onChange({ help: e.target.value })} />
         </Field>
       )}
 
       {q.cardCapable && (
-        <Field label="Mod de afișare" hint="Alege cum arată pe site.">
+        <Field label="Mod de afișare">
           <Select
             value={q.display}
             onChange={(v) => onChange({ display: v })}
@@ -658,16 +655,9 @@ function QuestionBody({
         )}
         <span className="fe-meta-i">
           tip: <TypeBadge type={q.type} />
-          {q.isCustom && <span>tipul nu se poate schimba</span>}
+          {q.isCustom && <HelpTip icon="lock" label="Nu se mai schimbă." />}
         </span>
       </div>
-
-      {q.isBuiltin && (
-        <Notice tone="warning">
-          Câmp încorporat. La ștergere dispare din formular, dar coloana și datele deja trimise rămân în tabelul de
-          rezultate.
-        </Notice>
-      )}
 
       {(q.type === 'select' || q.type === 'multiselect') && <OptionsEditor q={q} onOptions={onOptions} />}
     </>
@@ -679,7 +669,7 @@ function OptionsEditor({ q, onOptions }: { q: EditQuestion; onOptions: (next: Ed
   const fixed = q.optionSource === 'enum';
   return (
     <div className="ui-field">
-      <span className="ui-label">Opțiuni</span>
+      <span className="ui-label">Opțiuni <HelpTip label="Redenumirea nu schimbă datele trimise." /></span>
       <RepeatableList<EditOption>
         aria-label={`Opțiunile întrebării ${questionLabel(q)}`}
         items={q.options}
@@ -719,11 +709,6 @@ function OptionsEditor({ q, onOptions }: { q: EditQuestion; onOptions: (next: Ed
           </div>
         )}
       />
-      {fixed && <div className="ui-hint">Opțiunile acestei liste sunt fixe; se pot redenumi și dezactiva.</div>}
-      <div className="ui-hint">
-        Poți redenumi, reordona sau dezactiva opțiuni. Redenumirea nu schimbă datele deja trimise; o opțiune ștearsă cu
-        date vechi rămâne vizibilă în rezultate.
-      </div>
     </div>
   );
 }

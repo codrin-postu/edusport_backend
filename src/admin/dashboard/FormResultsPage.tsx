@@ -56,7 +56,6 @@ export interface FieldDef {
 
 export interface FormResultsConfig {
   title: string;
-  subtitle: string;
   apiBase: string; // e.g. '/api/forms/voluntari'
   statuses: StatusDef[]; // first entry is the "new" status
   fields: FieldDef[]; // reader pane, in order
@@ -323,7 +322,7 @@ export default function FormResultsPage({ config }: { config: FormResultsConfig 
   const cNum = (v: number | null | undefined) => (v == null ? '—' : String(v));
   const firstStatus = statuses[0]?.value;
 
-  const summary = `${cNum(counts[firstStatus])} noi · ${cNum(counts.all)} în total`;
+  const summary = `${cNum(counts[firstStatus])} noi, ${cNum(counts.all)} în total`;
 
   // statuses[0] is the form's "new" status by contract, see StatusDef; only
   // that tab carries a count.
@@ -370,7 +369,7 @@ export default function FormResultsPage({ config }: { config: FormResultsConfig 
               {config.emailKey && selected[config.emailKey] ? (
                 <a href={`mailto:${String(selected[config.emailKey])}`}>{String(selected[config.emailKey])}</a>
               ) : null}
-              {config.phoneKey && selected[config.phoneKey] ? ` · ${String(selected[config.phoneKey])}` : ''}
+              {config.phoneKey && selected[config.phoneKey] ? `, ${String(selected[config.phoneKey])}` : ''}
             </>
           ) : null,
           `Trimis ${fmtDate(whenOf(selected)) || 'la dată necunoscută'}`,
@@ -421,7 +420,7 @@ export default function FormResultsPage({ config }: { config: FormResultsConfig 
     <AdminPage>
       <style>{INBOX_CSS}</style>
       <Window>
-        <PageHeader title={config.title} subtitle={config.subtitle} actions={<span className="inbx-sum">{summary}</span>} />
+        <PageHeader title={config.title} actions={<span className="inbx-sum">{summary}</span>} />
         <InboxLayout<Row>
           tabs={tabs}
           activeTab={activeTab || '__all'}
@@ -443,14 +442,13 @@ export default function FormResultsPage({ config }: { config: FormResultsConfig 
           onSelect={setSelectedId}
           loading={loading}
           error={error ? 'Nu am putut încărca datele.' : undefined}
-          empty="Nicio înregistrare pentru filtrul curent."
+          empty="Nicio înregistrare."
           page={page}
           pageCount={pageCount}
           total={total}
           pageSize={PAGE_SIZE}
           onPageChange={setPage}
           reader={reader}
-          readerEmpty="Selectează o înregistrare din listă pentru a o citi."
           listLabel={config.title}
         />
       </Window>
