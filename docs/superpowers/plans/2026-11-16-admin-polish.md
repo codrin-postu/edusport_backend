@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship the ten admin polish items (phone handling in Înscrieri, Prețuri/Grupe links, per-session Tabele subject, shorter copy, one dropdown look, phone top bar, light e-mails, device hygiene, calendar filters, 16px selects) across the backend and frontend repos.
+**Goal:** Ship the admin polish items (the original ten plus the 2026-11-16 amendments: layout, Sportivi and Înscrieri panels, Grupe coaches, abonament, Competiții) (phone handling in Înscrieri, Prețuri/Grupe links, per-session Tabele subject, shorter copy, one dropdown look, phone top bar, light e-mails, device hygiene, calendar filters, 16px selects) across the backend and frontend repos.
 
 **Architecture:** Rules go in pure `src/club/**` modules with Vitest tests; admin components stay thin and are pinned by source-reading tests in `src/club/__tests__/`. Phone parsing is one `libphonenumber-js` rule used by the server, the admin and (separately bundled) the site form. Copy is applied last, area by area, from the two audits.
 
@@ -37,6 +37,8 @@ Paths are relative to the backend worktree unless a task says **Frontend**. Each
 - "Prezență pe ședințe" for a group with no session in the month: only `Sportiv` and `Total` columns, no crash; a visitor (not on the list) is still a row; a month after the current month and a missing group are refused (Task 11).
 - All four calendar categories unticked: empty calendar, boxes stay operable by keyboard; ticking again restores them (Task 10).
 - A shortened string that takes arguments (`{nume}`, `{sumă}`, `{data}`) keeps every placeholder; shortened strings contain none of the banned characters (Tasks 12 to 16).
+- Adaugă abonament: an athlete already a member sees the box ticked and no fee box; unticking never removes membership; a failed add writes neither membership nor fee (Task 24).
+- Competiții tab for an athlete with no profile, or with the source down: zeros or the unavailable state, never a crash or a merged list (Task 25).
 
 ---
 
@@ -472,9 +474,269 @@ git commit -m "refactor(copy): shorter athlete portal and shared messages"
 
 ---
 
+## Amendments 2026-11-16 (tasks 17 to 26)
+
+Approved after the first plan: layout (Tasks 17 to 20, from `docs/superpowers/specs/2026-11-16-layout-audit.md`, root causes R1 to R9), Sportivi, Înscrieri, Grupe, abonament and Competiții changes (Tasks 21 to 26).
+
+**Execution order:** 1, 2, 3, 17, 18, 19, 20 (layout first: later tasks build on `--ui-inset`), then 4 to 11, then 21 to 26, then the copy tasks 12 to 16 last (they edit the same files). Task numbers are kept so the cross references above stay valid.
+
+Extra Global Constraints for tasks 17 to 26:
+- Layout values: `--ui-inset` is 16px, 12px at `max-width:640px`; fields gap 12 (`--ui-space-3`), blocks gap 16 (`--ui-space-4`); every control 34px; nothing keeps 13, 14, 15 or 18 as a horizontal inset; breakpoints are phone 640 and tablet 1024 (audit R1, R7, R8, R9).
+- Wording: "preț nemembru" becomes "preț neafiliat", Prețuri "Preț non-membri" becomes "Preț neafiliați", column "Non-membri" becomes "Neafiliați"; "Membri" and "preț membru" stay.
+- New copy not given here is marked `COPY NEEDED` in a single constant, never invented. Layout and visibility are checked by screenshots the user approves, never by assertions (behaviour tests only; source-reading tests may pin the token and class names).
+
+---
+
+### Task 17: Inset token and screenshot gate (backend)
+
+**Files:**
+- Modify: `src/admin/ui/styles.ts` (`.ui-ph`, `.ui-body`, `.ui-rail`, `.ui-sec-h/b/f`, `.ui-ecard-h/b`, `.ui-row-b`, `.ui-modal`, `.ui-drawer`, `.ui-sheet`; token declaration beside the scale vars), `src/admin/ui/tokens.ts` (`scaleVars`: `--ui-inset`, phone override)
+- Create: `scripts/layout-shots.cjs` (adapted from the scratchpad `shots/audit.cjs`: args `--out <dir>`, pages Înscrieri, Sportivi record (first athlete), Setări, widths 1440, 820, 390, full page)
+- Test: `src/club/__tests__/ui-inset.test.ts`
+
+**Interfaces:**
+- Produces: CSS variable `--ui-inset` (16px; 12px under `@media (max-width:640px)`), used by every later layout task.
+
+- [ ] **Step 1: Capture the "before" set** with `node scripts/layout-shots.cjs --out <scratchpad>/layout-before` against the local environment (read only, port 1340). Expected: 9 PNGs.
+- [ ] **Step 2: Write the failing test** `ui-inset.test.ts`: `scaleVars()['--ui-inset']` is `'16px'`; the generated CSS contains `--ui-inset:12px` inside a `max-width:640px` block; source test that `.ui-ph`, `.ui-body`, `.ui-rail`, `.ui-sec-h`, `.ui-sec-b`, `.ui-sec-f`, `.ui-ecard-h`, `.ui-ecard-b`, `.ui-row-b`, `.ui-modal`, `.ui-drawer-h`, `.ui-sheet-h` rules use `var(--ui-inset)` and none of their horizontal paddings is 13, 14, 15 or 18.
+- [ ] **Step 3: Run** `npx vitest run src/club/__tests__/ui-inset.test.ts` Expected: FAIL.
+- [ ] **Step 4: Implement** the token and apply it to the listed rules only (audit R1, R6): phone also sets `.ui-ph` and `.ui-body` to the token and `.ui-sec-b{padding:12px}`.
+- [ ] **Step 5: Capture "after"** to `<scratchpad>/layout-after` and put both sets side by side for the user. **STOP: wait for the user's approval of the before/after images before Task 18 starts.**
+- [ ] **Step 6: Run** the test, both `tsc`, `node scripts/admin-ui-check.mjs --strict`. Expected: PASS, exit 0. Commit:
+```bash
+git add src/admin/ui scripts/layout-shots.cjs src/club/__tests__/ui-inset.test.ts
+git commit -m "feat(admin): one horizontal inset token"
+```
+
+---
+
+### Task 18: Tables, tabs and page toolbars on the token (backend)
+
+**Files:**
+- Modify: `src/admin/ui/styles.ts` (`.ui-table th/td`, `.ui-table-bar`, `.ui-table-pager`, `.ui-inbox-head/tools`, `.ui-tabs`), `src/admin/dashboard/sportivi/styles.ts` (`.spv-*`, delete the `.spv-tabs` rule and phone overrides), `src/admin/dashboard/SubmissionTable.tsx` (`.sbt-*` styles, `.sbt-chk` first cell, `.sbt-ph/pb/pa`), `src/admin/dashboard/sportivi/tabele/styles.ts` (`.tbl-controls`), `src/admin/dashboard/prezenta/styles.ts` (`.pz-*`)
+- Test: `src/club/__tests__/ui-inset.test.ts`
+
+**Interfaces:**
+- Consumes: `--ui-inset` (Task 17).
+- Produces: flush-in-window table rule `.ui-win .ui-table th:first-child, td:first-child{padding-left:var(--ui-inset)}` and the same for `last-child` right padding (audit R2: not applied inside `.ui-body` or `.ui-sec-b`).
+
+- [ ] **Step 1: Write the failing tests** (source pins): `.ui-tabs` rule contains `padding-inline:var(--ui-inset)`; `sportivi/styles.ts` has no `spv-tabs` and no hard-coded `18px` or `16px` horizontal padding; every `.spv-*`, `.sbt-*`, `.tbl-controls`, `.pz-*` rule that sets horizontal padding uses `var(--ui-inset)`; the flush-table first/last cell rules exist; vertical bar padding is 12.
+- [ ] **Step 2: Run** `npx vitest run src/club/__tests__/ui-inset.test.ts` Expected: FAIL.
+- [ ] **Step 3: Implement** audit R2, R3, R4 exactly as written there.
+- [ ] **Step 4: Verify** with `scripts/layout-shots.cjs` for Sportivi, Înscrieri, Prezență, Tabele at 1440/820/390 and show the images to the user (no pixel assertions). Run both `tsc` and `node scripts/admin-ui-check.mjs --strict`. Expected: exit 0.
+- [ ] **Step 5: Commit**
+```bash
+git add src/admin src/club/__tests__/ui-inset.test.ts
+git commit -m "feat(admin): tables, tabs and toolbars use the inset token"
+```
+
+---
+
+### Task 19: One card component, one rhythm, 34px controls (backend)
+
+**Files:**
+- Modify: `src/admin/ui/EditorCard.tsx`, `src/admin/ui/Section.tsx`, `src/admin/ui/styles.ts` (`.ui-sec*`, `.ui-ecard*`, `.ui-body`, `.ui-stack`, `.ui-input[type=date]`), every caller of the card kept after the merge (grep `Section` and `EditorCard`), `src/admin/dashboard/SubmissionTable.tsx` (`.sbt-fld`, `.sbt-ft-l .ui-input`), `src/admin/pages/securitate/layout.tsx` (gap 10)
+- Test: `src/club/__tests__/ui-inset.test.ts`
+
+**Interfaces:**
+- Produces: `EditorCard` is the one card (props gain optional `variant?: 'plain'` for the old Section look, header `padding-block:12px`, body gap `var(--ui-space-3)`); `Section` becomes a thin wrapper re-exporting it so callers keep compiling, then is removed from callers in the same task (my call: keep `EditorCard`, because it already has title, description and header action).
+
+- [ ] **Step 1: Write the failing tests** (source pins): `.ui-body{gap:var(--ui-space-4)}`; `.ui-input[type=date]` has `height:34px`; `.sbt-fld` has no `margin-bottom:11px`; `securitate/layout.tsx` gap is `var(--ui-space-3)`; `Section.tsx` no longer defines its own markup (`ui-sec-` classes appear nowhere in `src/admin`).
+- [ ] **Step 2: Run** `npx vitest run src/club/__tests__/ui-inset.test.ts` Expected: FAIL.
+- [ ] **Step 3: Implement** audit R5, R7, R8: fields 12, blocks 16, date input 34px, Înscrieri toolbar selects 34px (the same size as the search, not mixed).
+- [ ] **Step 4: Verify** Setări, Voluntariat, Anunț edit, Competiție edit, Securitate, Înscrieri at 1440/820/390 with `scripts/layout-shots.cjs`; show to the user. Both `tsc`, `node scripts/admin-ui-check.mjs --strict`.
+- [ ] **Step 5: Commit**
+```bash
+git add src/admin src/club/__tests__/ui-inset.test.ts
+git commit -m "feat(admin): one card component, field gap 12, block gap 16, 34px controls"
+```
+
+---
+
+### Task 20: One breakpoint set (backend)
+
+**Files:**
+- Modify: `src/admin/ui/styles.ts` (`.ui-two`, `.ui-rail`, `.ui-inbox`, `.ui-ofc-grid`, `.ui-grid2` media queries), `src/admin/dashboard/SubmissionTable.tsx` (`.sbt-split` 1040), `src/admin/dashboard/sportivi/tabele/styles.ts` (rail), `src/admin/ui/useMediaQuery.ts` callers if they use other widths
+- Create: `src/club/ui-breakpoints.ts`
+- Test: `src/club/__tests__/ui-breakpoints.test.ts`
+
+**Interfaces:**
+- Produces: `export const BP = { phone: 640, tablet: 1024 } as const;` and `phoneQuery`/`tabletQuery` strings built from it, used by the admin CSS builders and hooks.
+
+- [ ] **Step 1: Write the failing tests**: `BP` values; `phoneQuery` is `'(max-width:640px)'`; source pins that `styles.ts` contains no `max-width:720px`, `900px` or `1040px` query and `.ui-two` stacks only at `BP.phone` (a rail is a fixed 240px column on tablet).
+- [ ] **Step 2: Run** `npx vitest run src/club/__tests__/ui-breakpoints.test.ts` Expected: FAIL.
+- [ ] **Step 3: Implement** audit R9: 820px width keeps two columns for forms, rails (Tabele, Meniu) stay a 240px column so "Tabele salvate" is never a tall empty block above the controls, inbox and `sbt-split` collapse at 1024. Check whether the EduSport sidebar drawer being open on load at 820 is a shell bug and report it (not fixed here).
+- [ ] **Step 4: Verify** Tabele, Meniu, Mesaje, Parteneri at 820 with `scripts/layout-shots.cjs`; show the user. Both `tsc`, `node scripts/admin-ui-check.mjs --strict`.
+- [ ] **Step 5: Commit**
+```bash
+git add src/club/ui-breakpoints.ts src/admin src/club/__tests__/ui-breakpoints.test.ts
+git commit -m "feat(admin): one breakpoint set, tablet keeps two columns"
+```
+
+---
+
+### Task 21: Sportivi Date tab and Acces portal, Înscrieri panel header (backend)
+
+**Files:**
+- Modify: `src/admin/dashboard/sportivi/DateTab.tsx`, `src/admin/dashboard/sportivi/AccessBlock.tsx`, `src/admin/dashboard/sportivi/ActiveSinceField.tsx` (if the A.C.S. field lives there), `src/admin/dashboard/inscrieri/DateTab.tsx` (`EditLabel`), `src/club/sportivi/record-view.ts`, `src/club/portal/access/copy.ts`, `src/admin/dashboard/sportivi/styles.ts`
+- Create: `src/club/sportivi/access-badge.ts`
+- Test: `src/club/__tests__/sportivi-date-tab.test.ts`, `src/club/sportivi/__tests__/access-badge.test.ts`
+
+**Interfaces:**
+- Produces: `accessBadge(state: 'none' | 'invited' | 'active'): { text: 'FĂRĂ ACCES' | 'INVITAT' | 'ACTIV'; tone: 'neutral' | 'warning' | 'success' }` (the three words are the user's); the badge is the kit `StatusBadge` (flat, square).
+- Consumes: the existing access state read by `AccessBlock.tsx` (`src/club/sportivi/access-view.ts`).
+
+- [ ] **Step 1: Write the failing tests**
+  - `access-badge.test.ts`: the three states map to the three words and tones.
+  - `sportivi-date-tab.test.ts` (source pins): the record `DateTab` renders a section header row titled "Date" whose right side holds "Editează" (and "Salvează" and "Renunță" in edit mode, no buttons below the form); no "Obligatorii pentru" line remains (`record-view.ts`); required labels carry `required` (star) in edit mode and `MissingMarker` stays in read view; "Membru A.C.S." with its season renders as a normal `Field` in the grid, not a side block; the Înscrieri `DateTab.tsx` puts "Editează" in the card header row, not next to the e-mail field (`EditLabel` removed); `AccessBlock.tsx` has a header row "Acces portal", the e-mail, then `accessBadge`, the action button at the right edge, and no "Fără acces în portal." (`access/copy.ts`).
+  - behaviour: the button text per state is unchanged from today's copy (reuse existing constants, add none).
+- [ ] **Step 2: Run** `npx vitest run src/club/__tests__/sportivi-date-tab.test.ts src/club/sportivi/__tests__/access-badge.test.ts` Expected: FAIL.
+- [ ] **Step 3: Implement**; at `max-width:640px` the Acces portal button drops to its own full-width line (CSS on the shared row class, token spacing only).
+- [ ] **Step 4: Verify** Sportivi record and an Înscrieri detail at 1440/820/390 with `scripts/layout-shots.cjs`; both `tsc`, `node scripts/admin-ui-check.mjs --strict`, `npx vitest run src/club/sportivi src/club/__tests__`.
+- [ ] **Step 5: Commit**
+```bash
+git add src
+git commit -m "feat(sportivi): Date and Acces portal header rows, badge, A.C.S. as a field"
+```
+
+---
+
+### Task 22: Sportivi list filter popup scroll and sort select (backend)
+
+**Files:**
+- Modify: `src/admin/dashboard/sportivi/ListToolbar.tsx`, `src/admin/dashboard/sportivi/styles.ts`, `src/admin/ui/FilterPanel.tsx` (if the popup layout lives there), `src/club/sportivi/list-view.ts`
+- Test: `src/club/__tests__/sportivi-list-toolbar.test.ts`
+
+**Interfaces:**
+- Consumes: `useMediaQuery` and `phoneQuery` (Task 20).
+- Produces: `showSortSelect(isPhone: boolean): boolean` in `list-view.ts` (true only on phone, where the list is cards).
+
+- [ ] **Step 1: Write the failing tests**: `showSortSelect(true)` true, `showSortSelect(false)` false; source pins that `ListToolbar.tsx` renders the "Sortare" select only when `showSortSelect(...)`, and that the filter popup's left list and right content are two separate scroll containers (each has its own `overflow-y:auto` rule with a bounded max-height token, no shared scroller).
+- [ ] **Step 2: Run** `npx vitest run src/club/__tests__/sportivi-list-toolbar.test.ts` Expected: FAIL.
+- [ ] **Step 3: Implement**; column headers already sort on desktop and tablet.
+- [ ] **Step 4: Run** the test, both `tsc`, `node scripts/admin-ui-check.mjs --strict`.
+- [ ] **Step 5: Commit**
+```bash
+git add src
+git commit -m "feat(sportivi): independent filter popup scroll, sort select on phones only"
+```
+
+---
+
+### Task 23: Grupe group page coaches row (backend)
+
+**Files:**
+- Modify: `src/club/grupe/group-view.ts` (`subtitle`), `src/admin/dashboard/grupe/GroupPage.tsx` (`CoachAccounts` ~line 44, subtitle ~line 84), `src/admin/dashboard/grupe/styles.ts`
+- Test: `src/club/groups/__tests__/group-view.test.ts` (or the existing `phase4-views.test.ts` home of `subtitle`)
+
+**Interfaces:**
+- Produces: `subtitle(page)` returns section, price list name and athlete count only (no coaches); the price list is rendered as a link with `preturiTo` (Task 9).
+- Consumes: `CoachAccounts` behaviour (each name opens that coach's "Cont portal" block) is kept.
+
+- [ ] **Step 1: Write the failing tests**: `subtitle(page)` for a page with two coaches does not contain either coach name; contains the section name and athlete count; with no coaches the subtitle is unchanged; source pins that `GroupPage.tsx` renders a labelled row "ANTRENORI" (uppercase label via the kit label class) with each coach as a button-link that opens the account block, and that the price list link uses `preturiTo`.
+- [ ] **Step 2: Run** `npx vitest run src/club/groups src/club/__tests__/phase4-views.test.ts` Expected: FAIL.
+- [ ] **Step 3: Implement**; a group without coaches shows no ANTRENORI row.
+- [ ] **Step 4: Run** the tests, both `tsc`, `node scripts/admin-ui-check.mjs --strict`.
+- [ ] **Step 5: Commit**
+```bash
+git add src
+git commit -m "feat(grupe): coaches in their own labelled row, subtitle without them"
+```
+
+---
+
+### Task 24: Adaugă abonament with A.C.S. choice, and neafiliat wording (backend)
+
+**Files:**
+- Create: `src/club/presence/subscriptions/audience.ts`
+- Modify: `src/club/presence/subscriptions/add.ts` (accepts membership and fee choice), `src/club/presence/subscriptions/views.ts` (item list per audience), `src/club/presence/copy/subscriptions.ts` ("preț nemembru" to "preț neafiliat", new constants), `src/api/club/` add-subscription route and controller (body gains `member: boolean`, `addFee: boolean`), the athlete membership write used by the record (reuse that path, do not duplicate), `src/admin/dashboard/bani/AddSubscriptionWindow.tsx`, `src/admin/pages/preturi/PriceItemDrawer.tsx` ("Preț non-membri" to "Preț neafiliați"), `src/admin/pages/preturi/PriceListCard.tsx` (column "Non-membri" to "Neafiliați")
+- Test: `src/club/presence/__tests__/subscription-audience.test.ts`, `src/club/presence/__tests__/subscriptions-add.test.ts`, `src/club/__tests__/price-admin.test.ts`
+
+**Interfaces:**
+- Produces:
+```ts
+export type Audience = 'member' | 'neafiliat';
+export function audienceOf(member: boolean): Audience;
+export function itemPrice(item: { memberPrice: number | null; nonMemberPrice: number | null }, a: Audience): number | null;
+export function feeLine(member: boolean, wasMember: boolean, fee: number | null): { show: boolean; label: string } | null; // the "Adaugă cotizația (<fee> lei)" checkbox: only when turning membership on and a fee exists
+```
+`COPY NEEDED` constants (single place, `subscriptions.ts`): the "Membru A.C.S. <season>" checkbox label function and the "Adaugă cotizația (<fee> lei)" label function use the user's wording from the brief; any other new text is marked `COPY NEEDED`.
+- Consumes: season `membershipFee` (`season.membershipFee`), the existing membership write used by the Sportivi record (A.C.S. status per season, `src/club/acs.ts` and `src/club/athletes/` path), `add.ts` payload.
+
+- [ ] **Step 1: Write the failing tests**
+  - `subscription-audience.test.ts`: `audienceOf(true)` is `'member'`; `itemPrice` returns `memberPrice` for member and `nonMemberPrice` for neafiliat; `feeLine(true, false, 50)` shows label with "50 lei"; `feeLine(true, true, 50)` is null (already member); `feeLine(false, false, 50)` is null; `feeLine(true, false, null)` is null.
+  - `subscriptions-add.test.ts`: adding with `member: true` for a non-member makes the athlete an A.C.S. member for that season through the record's path and prices the subscription from `memberPrice`; with `member: false` for a member athlete it prices from `nonMemberPrice` and does not unset membership (my call: the box only turns membership on); `addFee: true` with membership turning on adds an amount to collect equal to the season fee and `addFee: true` without turning on is ignored; a missing season fee ignores `addFee`; nothing is written when the add fails (single transaction).
+  - `price-admin.test.ts`: column and drawer labels say "Neafiliați" / "Preț neafiliați"; `subscriptions.ts` contains "preț neafiliat" and no "nemembru".
+  - source pins: `AddSubscriptionWindow.tsx` has the checkbox at the top ticked from the athlete's membership, re-renders the item list on toggle without a request round trip, shows each option's price right-aligned (the select's `hint` slot) for the chosen audience, shows the optional fee checkbox only per `feeLine`.
+- [ ] **Step 2: Run** `npx vitest run src/club/presence src/club/__tests__/price-admin.test.ts` Expected: FAIL.
+- [ ] **Step 3: Implement** the pure rules, the service change (inside `store.transaction`), the controller body fields (validated), the window and the three wording edits.
+- [ ] **Step 4: Run** `npx vitest run src/club/presence src/club/athletes src/club/__tests__`, both `tsc`, `node scripts/admin-ui-check.mjs --strict`.
+- [ ] **Step 5: Commit**
+```bash
+git add src
+git commit -m "feat(bani): A.C.S. choice and optional fee in Adaugă abonament, neafiliat wording"
+```
+
+---
+
+### Task 25: Sportivi record "Competiții" tab (backend)
+
+**Files:**
+- Create: `src/club/sportivi/competitions-view.ts`, `src/admin/dashboard/sportivi/CompetitiiTab.tsx`
+- Modify: `src/club/portal/sportiv/competitions.ts` and `src/club/portal/coach/competitions.ts` only to export what the admin reuses (the one results source: skate-results when the athlete has a slug, else hand-entered Strapi competitions, never merged; `skaterOf`, the sportiv `SportivCompetitionViews` list with season, sort and page), the admin athlete route and controller (`src/api/club/routes/`, area-guarded like the other record routes), `src/admin/dashboard/sportivi/AthleteRecordPage.tsx` (tab), `src/admin/dashboard/sportivi/api.ts`, `src/club/sportivi/record-view.ts` (tab list)
+- Test: `src/club/sportivi/__tests__/competitions-view.test.ts`, `src/club/__tests__/athlete-routes.test.ts`
+
+**Interfaces:**
+- Consumes: the portals' existing results source (the builder behind `c.competitions` / `SportivCompetitionViews`; find it first, do not write a second one).
+- Produces:
+```ts
+export type CompetitionLine = { date: string | null; name: string; category: string | null; placement: number | null; score: number | null };
+export type CompetitionsSummary = { competitions: number; podiums: number; bestPlacement: number | null; bestScore: number | null };
+export function summarize(lines: CompetitionLine[]): CompetitionsSummary;   // podium = placement 1 to 3
+export function newestFirst(lines: CompetitionLine[]): CompetitionLine[];
+export function bySeason(lines: (CompetitionLine & { season: string })[], season: string | null): CompetitionLine[];
+```
+Route: `GET /api/club/athletes/:id/competitions?season=` answers `{ available: boolean; seasons: string[]; season: string | null; summary; lines }`. Tab content (decided by Claude): four summary tiles (competiții, podiumuri, cel mai bun loc, cel mai bun scor), then a list with columns data, competiție, categorie, loc, scor, newest first, a season filter. Tab and tile labels beyond these words: `COPY NEEDED` constant `COMPETITII_COPY` in `competitions-view.ts`.
+
+- [ ] **Step 1: Write the failing tests**
+  - `competitions-view.test.ts`: `summarize([])` is all zero and nulls; placements 1, 2, 5 give podiums 2, best 1; best score is the maximum, null when no score; `newestFirst` orders by date descending with null dates last; `bySeason(…, null)` returns all.
+  - route test: an athlete with a slug reads skate-results lines; an athlete without a slug reads hand-entered competitions; never both; no profile gives `available: true` with zeros; source down gives `available: false`; a coach without the Sportivi area is refused (403), same guard as sibling routes.
+  - source pin: `record-view.ts` lists the "Competiții" tab after the existing tabs; `CompetitiiTab.tsx` uses only kit components.
+- [ ] **Step 2: Run** `npx vitest run src/club/sportivi src/club/__tests__/athlete-routes.test.ts` Expected: FAIL.
+- [ ] **Step 3: Implement** the pure view, the route over the shared source, and the tab (loading, unavailable and empty states reuse existing short copy: "Nicio competiție." per rule 4; the unavailable text is `COPY NEEDED`).
+- [ ] **Step 4: Run** `npx vitest run src/club/sportivi src/club/portal src/club/__tests__`, both `tsc`, `node scripts/admin-ui-check.mjs --strict`.
+- [ ] **Step 5: Commit**
+```bash
+git add src
+git commit -m "feat(sportivi): Competiții tab with club results and summary"
+```
+
+---
+
+### Task 26: Competiții page club statistics columns (backend)
+
+**Files:**
+- Modify: `src/admin/dashboard/CompetitiiPage.tsx` (columns near lines 311-312), the competition list endpoint or reader that produces `skaters_count` and `results_count`, `src/club/competitions/` stats helper (create `src/club/competitions/club-stats.ts` if no module exists)
+- Test: `src/club/competitions/__tests__/club-stats.test.ts`
+
+**Interfaces:**
+- Produces: `clubStats(results: { athleteIsClub: boolean; placement: number | null }[]): { podiums: number; bestPlacement: number | null }` (club athletes only; podium = placement 1 to 3); list rows gain `podiums` and `best_placement`; two new columns "Podiumuri" and "Cel mai bun loc" placed after Sportivi and Rezultate, right aligned and sortable like their neighbours.
+
+- [ ] **Step 1: Write the failing tests**: no club results gives `{ podiums: 0, bestPlacement: null }`; placements 4, 2, 1 give podiums 2 and best 1; a non-club athlete's podium is ignored; a null placement is ignored; source pin that the two headers exist in `CompetitiiPage.tsx` after "Rezultate".
+- [ ] **Step 2: Run** `npx vitest run src/club/competitions` Expected: FAIL.
+- [ ] **Step 3: Implement** `clubStats`, feed it where `results_count` is computed (one query, not one per row), add the columns; empty value shows "-" like the other numeric cells.
+- [ ] **Step 4: Run** the test, both `tsc`, `node scripts/admin-ui-check.mjs --strict`.
+- [ ] **Step 5: Commit**
+```bash
+git add src
+git commit -m "feat(competitii): club podiums and best placement per competition"
+```
+
+---
+
 ## Self-Review
 
-1. **Spec coverage:** 1 Înscrieri phone: Tasks 6, 7, 8. 2 Prețuri/Grupe: Task 9. 3 Tabele subject: Task 11. 4 copy: Tasks 12 to 16 (admin audit sections Înscrieri, Sportivi, Grupe, Prezență, Bani, Prețuri, Program, Anunțuri, Setări, Altele each in one task; portals audit Antrenor, Sportiv, Shared; server-matched strings and MesajePage diacritics covered). 5 dropdowns: Task 3. 6 phone bar: Task 2. 7 e-mails: Task 1. 8 devices: Tasks 4, 5. 9 calendar: Task 10. 10 16px: Task 3. No gap found.
+1. **Spec coverage (original items; amendments A to F are Tasks 17 to 26, ordered in the Amendments section):** 1 Înscrieri phone: Tasks 6, 7, 8. 2 Prețuri/Grupe: Task 9. 3 Tabele subject: Task 11. 4 copy: Tasks 12 to 16 (admin audit sections Înscrieri, Sportivi, Grupe, Prezență, Bani, Prețuri, Program, Anunțuri, Setări, Altele each in one task; portals audit Antrenor, Sportiv, Shared; server-matched strings and MesajePage diacritics covered). 5 dropdowns: Task 3. 6 phone bar: Task 2. 7 e-mails: Task 1. 8 devices: Tasks 4, 5. 9 calendar: Task 10. 10 16px: Task 3. No gap found.
 2. **Step scan:** every code step names a signature or exact strings; no bodies; verification steps carry commands.
 3. **Type consistency:** `normalizePhone`/`formatPhone`/`whatsappDigits`/`PHONE_ERROR` defined in Task 6 and used in Task 8; the frontend `phoneError` is separate by design (separate bundle). `isStale`/`isLive`/`reusableRow`/`labelSeenRecently` defined in Task 4, used in Task 5. `HelpTip icon` defined in Task 12, used in 13, 14. `toggleCategory` defined and used in Task 10. `preturiTo`/`groupPageTo` consistent in Task 9. `sessionKey`/`SESSION_MARK` local to Task 11.
 4. **Review Focus:** each line has its test in the owning task (phone forms in 6 and 7, legacy phone in 8, device boundary in 4 and 5, empty session month in 11, all-unticked in 10, placeholders and banned characters in 12 to 16).

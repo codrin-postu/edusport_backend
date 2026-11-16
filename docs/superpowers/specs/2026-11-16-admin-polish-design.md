@@ -63,3 +63,14 @@ The legend pills above the admin Program calendar are filters, which is not obvi
 ## 10. Input text size on phones
 
 On phones text inputs are 16px (stops iOS zoom on focus) but select triggers stay 13px. Make select/menu triggers 16px at phone width too, so all fields match. (Decided by Claude.)
+
+## Amendments 2026-11-16
+
+User-approved after the first version. Layout root causes: `2026-11-16-layout-audit.md`. Plan tasks 17 to 26.
+
+- A. Layout: one `--ui-inset` token (16px, 12px at max-width 640px) for header, body, cards, modal, drawer, table bars, tabs, table first and last cell and the page-local toolbars; one card component; field gap 12, block gap 16; all controls 34px; one breakpoint set (phone 640, tablet 1024) so a tablet gets two columns. Before/after screenshots of Înscrieri, Sportivi record and Setări at 1440, 820 and 390 are approved by the user before the remaining layout changes.
+- B. Sportivi record Date tab: section header row "Date" with "Editează" at the right edge (Salvează and Renunță there in edit mode); same in the Înscrieri detail panel. "Obligatorii pentru complet" hint removed (star on required fields). "Membru A.C.S. <season>" is a normal field. "Acces portal": header row, e-mail, flat square badge (FĂRĂ ACCES, INVITAT, ACTIV), button at the right edge, "Fără acces în portal." removed, on phone the button takes its own full-width line.
+- C. Sportivi list: filter popup left list and right content scroll independently; "Sortare" select only on phone.
+- D. Grupe group page: coaches leave the subtitle; one labelled row "ANTRENORI" with names as links (still open the portal account block); subtitle keeps section, price list link, athlete count.
+- E. Adaugă abonament: "Membru A.C.S. <season>" checkbox on top (ticked when already member) switching the item list between member and unaffiliated prices; saving with it ticked makes the athlete a member; optional "Adaugă cotizația (<fee> lei)" when membership turns on; each option shows its price right-aligned. Wording: "preț nemembru" to "preț neafiliat", "Preț non-membri" to "Preț neafiliați", "Non-membri" to "Neafiliați".
+- F. Sportivi record "Competiții" tab (summary tiles and list from the portals' results source, newest first, season filter); Competiții page gains "Podiumuri" and "Cel mai bun loc" columns. Labels beyond these words are `COPY NEEDED`.
