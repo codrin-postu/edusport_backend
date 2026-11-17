@@ -1,0 +1,14 @@
+{
+  "kind": "collectionType",
+  "collectionName": "friendship_grants",
+  "info": { "singularName": "friendship-grant", "pluralName": "friendship-grants", "displayName": "Parcurs / Pini de prietenie primite" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete" },
+    "source": { "type": "string", "required": true },
+    "size": { "type": "integer", "required": true },
+    "createdOn": { "type": "date", "required": true },
+    "expiresOn": { "type": "date", "required": true }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "kind": "collectionType",
+  "collectionName": "badge_awards",
+  "info": { "singularName": "badge-award", "pluralName": "badge-awards", "displayName": "Parcurs / Insignă acordată" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "content-manager": { "visible": false } },
+  "attributes": {
+    "athlete": { "type": "relation", "relation": "manyToOne", "target": "api::athlete.athlete" },
+    "kind": { "type": "enumeration", "enum": ["steaua", "test", "jump"], "required": true },
+    "jump": { "type": "string" },
+    "level": { "type": "integer" },
+    "givenByTeamMember": { "type": "relation", "relation": "manyToOne", "target": "api::team-member.team-member" },
+    "givenByAdminId": { "type": "integer" },
+    "givenOn": { "type": "date", "required": true }
+  }
+}
