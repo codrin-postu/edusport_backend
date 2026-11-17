@@ -17,6 +17,8 @@ export interface ParcursStore {
   deleteAward(id: string): Promise<void>;
   grants(q: { athleteId: string }): Promise<GrantRow[]>;
   addGrant(row: Omit<GrantRow, 'id'>): Promise<string>;
+  /** Only for a merge that collapses two grants of one source; delete its pins first. */
+  deleteGrant(id: string): Promise<void>;
   pins(q: { giverId?: string; recipientId?: string; grantId?: string }): Promise<PinRow[]>;
   addPin(row: Omit<PinRow, 'id'>): Promise<string>;
   deletePin(id: string): Promise<void>;

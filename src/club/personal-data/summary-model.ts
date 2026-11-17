@@ -27,6 +27,8 @@ export type SummaryInput = {
   registrations: SummaryRegistration[];
   history: SummaryHistoryLine[];
   presence: SummaryPresence;
+  /** Awards and friendship pins, one text per row, newest first. */
+  parcurs: string[];
   /** Every name the child has carried, as `nameKey` normalizes it. */
   childNames: ReadonlySet<string>;
   generatedAt: Date;
@@ -99,6 +101,7 @@ export function buildSummaryModel(input: SummaryInput): SummaryModel {
       registrationsSection(input.registrations),
       single(P.history, input.history.filter((l) => !aboutAnotherChild(l, input.childNames)).map(historyRow)),
       ...presenceSections(input.presence),
+      lines(P.parcurs, input.parcurs),
     ],
     footer: P.generated(formatEmailSentAt(input.generatedAt.toISOString()), input.generatedBy),
   };

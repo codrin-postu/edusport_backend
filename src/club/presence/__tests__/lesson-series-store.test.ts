@@ -1,3 +1,4 @@
+import { fakeParcursStore } from '../../parcurs/__tests__/fake-store';
 import { describe, expect, it, vi } from 'vitest';
 import { athleteRow, fakeClubStore } from '../../athletes/__tests__/fake-store';
 import { mergeAthletes } from '../../athletes/merge';
@@ -81,7 +82,7 @@ describe('lesson series in the fake store', () => {
     const club = fakeClubStore({ athletes: [athleteRow({ id: 'k', name: 'Maria Pop' }), athleteRow({ id: 'r', name: 'Pop Maria' })] });
     const pres = fakePresenceStore({ lessonSeries: [lessonSeriesRow({ id: 'lsr', athleteId: 'r' })], lessons: [lessonRow({ id: 'lr', athleteId: 'r', seriesId: 'lsr' })] });
     const ctx = { store: club.store, actor: 'ana@club.ro', today: { year: 2026, month: 10, day: 27 }, log: vi.fn() };
-    expect((await mergeAthletes(ctx, { keptId: 'k', removedId: 'r', take: [] }, pres.store)).ok).toBe(true);
+    expect((await mergeAthletes(ctx, { keptId: 'k', removedId: 'r', take: [] }, pres.store, fakeParcursStore().store)).ok).toBe(true);
     expect(pres.state.lessonSeries.map((s) => s.athleteId)).toEqual(['k']);
     expect(pres.state.lessons.map((l) => [l.athleteId, l.seriesId])).toEqual([['k', 'lsr']]);
     expect(pres.group.locks.filter((l) => l.startsWith('lesson'))).toEqual(['lessonSeries:lsr', 'lesson:lr']);

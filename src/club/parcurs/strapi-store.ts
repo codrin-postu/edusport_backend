@@ -82,6 +82,9 @@ export function strapiParcursStore(strapi: Core.Strapi, scope: Scope = transacti
     },
     grants: ({ athleteId }) => manyGrants({ athlete: { documentId: athleteId } }),
     addGrant: async (row) => created(await grants().create({ data: { athlete: row.athleteId, source: row.source, size: row.size, createdOn: row.createdOn, expiresOn: row.expiresOn } as never })),
+    deleteGrant: async (id) => {
+      await grants().delete({ documentId: id });
+    },
     pins: ({ giverId, recipientId, grantId }) =>
       manyPins({ ...(giverId ? { giver: { documentId: giverId } } : {}), ...(recipientId ? { recipient: { documentId: recipientId } } : {}), ...(grantId ? { grant: { documentId: grantId } } : {}) }),
     addPin: async (row) => created(await pins().create({ data: { grant: row.grantId, giver: row.giverId, recipient: row.recipientId, design: row.design, givenOn: row.givenOn } as never })),

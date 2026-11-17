@@ -1,3 +1,4 @@
+import { fakeParcursStore } from '../../../parcurs/__tests__/fake-store';
 import { describe, expect, it, vi } from 'vitest';
 import { athleteRow, fakeClubStore, registrationRow } from '../../../athletes/__tests__/fake-store';
 import { deleteAthlete } from '../../../athletes/delete';
@@ -140,20 +141,20 @@ describe('what ends access', () => {
     const w = await world();
     const old = await w.h.access.store.createAccess({ athleteId: 'a1', accountId: 'older', email: 'old@example.invalid', invitedAt: NOW.toISOString(), invitedBy: 'x' }).catch(() => null);
     expect(old).toBeNull();
-    expect(await deleteAthlete(w.ctx, 'a1', fakePresenceStore().store)).toEqual({ ok: true, data: { deleted: true, documentId: 'a1' } });
+    expect(await deleteAthlete(w.ctx, 'a1', fakePresenceStore().store, fakeParcursStore().store)).toEqual({ ok: true, data: { deleted: true, documentId: 'a1' } });
     expect(w.h.access.state.rows).toEqual([]);
     expect(w.fake.state.athletes).toHaveLength(0);
   });
   it('a delete refused for a payment keeps the access', async () => {
     const w = await world();
     const presence = fakePresenceStore({ payments: [paymentRow({ id: 'p1', athleteId: 'a1' })], sessions: [sessionRow({ id: 's1' })], attendances: [attendanceRow({ id: 't1', sessionId: 's1', athleteId: 'a1', uniqueKey: 's1|a1' })] });
-    expect(await deleteAthlete(w.ctx, 'a1', presence.store)).toMatchObject({ ok: true, data: { deleted: false } });
+    expect(await deleteAthlete(w.ctx, 'a1', presence.store, fakeParcursStore().store)).toMatchObject({ ok: true, data: { deleted: false } });
     expect(live(w.h)).toHaveLength(1);
   });
 });
 
 describe('merge', () => {
-  const merge = (w: World) => mergeAthletes(w.ctx, { keptId: 'k', removedId: 'a1', take: [] }, fakePresenceStore().store);
+  const merge = (w: World) => mergeAthletes(w.ctx, { keptId: 'k', removedId: 'a1', take: [] }, fakePresenceStore().store, fakeParcursStore().store);
   const kept = (email: string | null) => ({ id: 'k', name: 'Ana I.', email, birthDate: '2015-04-03' });
 
   it('the access moves to the kept athlete when it has none and its e-mail equals the access e-mail', async () => {
@@ -183,7 +184,7 @@ describe('merge', () => {
     const holderK = await account(w.h, 'k@example.invalid', 'active');
     await w.h.access.store.createAccess({ athleteId: 'k', accountId: holderK, email: 'k@example.invalid', invitedAt: NOW.toISOString(), invitedBy: 'x' });
     const newHolder = w.accountA;
-    expect(await mergeAthletes(w.ctx, { keptId: 'k', removedId: 'a1', take: ['email'] }, fakePresenceStore().store)).toMatchObject({ ok: true });
+    expect(await mergeAthletes(w.ctx, { keptId: 'k', removedId: 'a1', take: ['email'] }, fakePresenceStore().store, fakeParcursStore().store)).toMatchObject({ ok: true });
     expect(w.fake.state.athletes.find((a) => a.id === 'k')?.email).toBe('a@example.invalid');
     expect(live(w.h)).toMatchObject([{ athleteId: 'k', accountId: newHolder, email: 'a@example.invalid' }]);
     expect(w.h.access.state.rows.find((r) => r.accountId === holderK)).toMatchObject({ revokeReason: 'email_schimbat' });
@@ -275,7 +276,7 @@ describe('notices follow the athlete', () => {
   it('delete removes the notices that name him with their deliveries and keeps the others', async () => {
     const w = await world();
     const s = await seeded(w);
-    await deleteAthlete(w.ctx, 'a1', fakePresenceStore().store);
+    await deleteAthlete(w.ctx, 'a1', fakePresenceStore().store, fakeParcursStore().store);
     expect(left(s)).toEqual([[s.other], [s.other]]);
   });
   it('anonymize does the same', async () => {
@@ -287,7 +288,7 @@ describe('notices follow the athlete', () => {
   it('merge removes the notices of the athlete merged away', async () => {
     const w = await world({ club: [{ id: 'k', name: 'Ana I.', email: null, birthDate: '2015-04-03' }], access: [ana({ id: 'k', name: 'Ana I.' })] });
     const s = await seeded(w);
-    expect(await mergeAthletes(w.ctx, { keptId: 'k', removedId: 'a1', take: [] }, fakePresenceStore().store)).toMatchObject({ ok: true });
+    expect(await mergeAthletes(w.ctx, { keptId: 'k', removedId: 'a1', take: [] }, fakePresenceStore().store, fakeParcursStore().store)).toMatchObject({ ok: true });
     expect(left(s)).toEqual([[s.other], [s.other]]);
   });
 });

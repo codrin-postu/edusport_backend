@@ -23,6 +23,9 @@ export function fakeParcursStore(state: ParcursState = emptyParcursState()): { s
       state.grants.push(added);
       return added.id;
     },
+    deleteGrant: async (grantId) => {
+      state.grants = state.grants.filter((g) => g.id !== grantId);
+    },
     pins: async ({ giverId, recipientId, grantId }) =>
       structuredClone(state.pins.filter((p) => (!giverId || p.giverId === giverId) && (!recipientId || p.recipientId === recipientId) && (!grantId || p.grantId === grantId))),
     addPin: async (row) => {

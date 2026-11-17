@@ -1,3 +1,4 @@
+import { fakeParcursStore } from '../../../parcurs/__tests__/fake-store';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -37,7 +38,7 @@ describe('delete refusal and presence rows (4.21, C37, 5.14)', () => {
 
   it('is refused while a payment exists, a cancelled one too; nothing is written (4.21, C37)', async () => {
     const f = setup({ payments: [paymentRow({ id: 'p1', athleteId: 'a1', cancelled: true })] });
-    expect(await deleteAthlete(f.ctx, 'a1', f.presence)).toEqual({ ok: true, data: { deleted: false, blocked: { payments: 1, subscriptions: 0 } } });
+    expect(await deleteAthlete(f.ctx, 'a1', f.presence, fakeParcursStore().store)).toEqual({ ok: true, data: { deleted: false, blocked: { payments: 1, subscriptions: 0 } } });
     expect(f.club.state.athletes.map((a) => a.id)).toContain('a1');
     expect(f.club.state.memberships).toHaveLength(1);
     expect(f.pres.state.attendances).toHaveLength(2);
@@ -47,12 +48,12 @@ describe('delete refusal and presence rows (4.21, C37, 5.14)', () => {
 
   it('is refused while only a cancelled abonament exists', async () => {
     const f = setup({ subscriptions: [subscriptionRow({ id: 'sub1', athleteId: 'a1', cancelled: true })] });
-    expect(await deleteAthlete(f.ctx, 'a1', f.presence)).toEqual({ ok: true, data: { deleted: false, blocked: { payments: 0, subscriptions: 1 } } });
+    expect(await deleteAthlete(f.ctx, 'a1', f.presence, fakeParcursStore().store)).toEqual({ ok: true, data: { deleted: false, blocked: { payments: 0, subscriptions: 1 } } });
   });
 
   it('otherwise removes attendance rows and lessons, keeps the session (4.21)', async () => {
     const f = setup({ lessonCancels: [{ athleteId: 'a1', date: '2026-11-21', startTime: '17:00', durationMin: 45 }, { athleteId: 'a2', date: '2026-11-21', startTime: '17:00', durationMin: 45 }] });
-    expect(await deleteAthlete(f.ctx, 'a1', f.presence)).toEqual({ ok: true, data: { deleted: true, documentId: 'a1' } });
+    expect(await deleteAthlete(f.ctx, 'a1', f.presence, fakeParcursStore().store)).toEqual({ ok: true, data: { deleted: true, documentId: 'a1' } });
     expect(f.pres.state.attendances.map((a) => a.athleteId)).toEqual(['a2']);
     expect(f.pres.state.lessons).toEqual([]);
     expect(f.pres.state.lessonCancels.map((x) => x.athleteId)).toEqual(['a2']);
@@ -62,7 +63,7 @@ describe('delete refusal and presence rows (4.21, C37, 5.14)', () => {
 
   it('only the deleted athlete rows go; another athlete payments never block it', async () => {
     const f = setup({ payments: [paymentRow({ id: 'p9', athleteId: 'a2' })] });
-    expect(await deleteAthlete(f.ctx, 'a1', f.presence)).toMatchObject({ ok: true, data: { deleted: true } });
+    expect(await deleteAthlete(f.ctx, 'a1', f.presence, fakeParcursStore().store)).toMatchObject({ ok: true, data: { deleted: true } });
     expect(f.pres.state.payments).toHaveLength(1);
   });
 
@@ -74,14 +75,14 @@ describe('delete refusal and presence rows (4.21, C37, 5.14)', () => {
       seen.push(f.club.state.locks.includes('athlete:a1'));
       return read(where);
     };
-    await deleteAthlete(f.ctx, 'a1', f.presence);
+    await deleteAthlete(f.ctx, 'a1', f.presence, fakeParcursStore().store);
     expect(seen).toEqual([true]);
   });
 
   it('rolls both stores back when a later step fails', async () => {
     const f = setup({});
     f.club.failOn('deleteAthlete');
-    expect(await deleteAthlete(f.ctx, 'a1', f.presence)).toEqual({ ok: false, status: 500, error: 'Nu s-a salvat nimic.' });
+    expect(await deleteAthlete(f.ctx, 'a1', f.presence, fakeParcursStore().store)).toEqual({ ok: false, status: 500, error: 'Nu s-a salvat nimic.' });
     expect(f.pres.state.attendances).toHaveLength(2);
     expect(f.pres.state.lessons).toHaveLength(1);
   });
@@ -96,6 +97,6 @@ describe('delete refusal and presence rows (4.21, C37, 5.14)', () => {
   });
 
   it('the remove handler passes a presence store and answers through respondDelete', () => {
-    expect(source('api/club/controllers/athletes.ts')).toMatch(/respondDelete\(ctx, await deleteAthlete\(await serviceContext\(strapi, ctx\), ctx\.params\.documentId \?\? '', strapiPresenceStore\(strapi\)\)\)/);
+    expect(source('api/club/controllers/athletes.ts')).toMatch(/respondDelete\(ctx, await deleteAthlete\(await serviceContext\(strapi, ctx\), ctx\.params\.documentId \?\? '', strapiPresenceStore\(strapi\), strapiParcursStore\(strapi\)\)\)/);
   });
 });

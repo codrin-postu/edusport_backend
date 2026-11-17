@@ -42,6 +42,7 @@ export const PERSONAL_DATA_COPY = {
     registrations: 'Înscrieri',
     registration: 'Înscrierea',
     history: 'Istoric',
+    parcurs: 'Parcurs',
     season: 'Sezon',
     school: 'Școala',
     status: 'Status',

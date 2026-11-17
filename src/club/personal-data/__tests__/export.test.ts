@@ -4,6 +4,7 @@ import { athleteRow, fakeClubStore, registrationRow } from '../../athletes/__tes
 import { ADMIN_ERRORS } from '../../athletes/errors';
 import { pdfText } from '../../documents/__tests__/pdf-text';
 import { HISTORY_ACTIONS } from '../../history-text';
+import { emptyParcursState, fakeParcursStore, type ParcursState } from '../../parcurs/__tests__/fake-store';
 import { fakePresenceStore, paymentRow, type FakePresenceSeed } from '../../presence/__tests__/fake-store';
 import { exportAthleteData, type ExportContext, type ExportDocument } from '../export-service';
 import { exportFileName, zipExport, zipHeaders } from '../export-zip';
@@ -17,6 +18,7 @@ function setup(
   stored: Record<string, ExportDocument[]> = { r1: [{ kind: 'acord', fileName: 'Ilinca-Zamfirescu_Acord_2026-2027.pdf', data: PDF }] },
   registrationRecords: Record<string, Record<string, unknown>> = { r1: { relationship: 'parinte', gdprConsent: true, regulationsConsent: true } },
   presenceSeed: FakePresenceSeed = {},
+  parcursState?: ParcursState,
 ) {
   const fake = fakeClubStore({
     athletes: [
@@ -35,7 +37,7 @@ function setup(
   const logs: string[] = [];
   const ctx: ExportContext = {
     store: fake.store, actor: 'ana@example.com', today: { year: 2026, month: 10, day: 27 }, log: (m) => logs.push(m),
-    storedDocuments: async (id) => stored[id] ?? [], now: () => NOW, presence: fakePresenceStore(presenceSeed).store,
+    storedDocuments: async (id) => stored[id] ?? [], now: () => NOW, presence: fakePresenceStore(presenceSeed).store, parcurs: fakeParcursStore(parcursState).store,
   };
   return { fake, ctx, logs };
 }
@@ -123,6 +125,29 @@ describe('export service (spec 3)', () => {
     expect(text).toContain('Plăți');
     expect(text).toContain('320 RON');
     expect(text).not.toContain('777');
+  });
+
+  it('the summary lists the child\'s awards and pins, other children as "Ana P." or "Fost sportiv"', async () => {
+    const parcurs = emptyParcursState();
+    parcurs.awards.push({ id: 'w1', athleteId: 'a1', kind: 'steaua', jump: null, level: null, givenBy: { adminId: '1' }, givenOn: '2026-10-01' });
+    parcurs.pins.push(
+      { id: 'p1', grantId: 'g1', giverId: 'a1', recipientId: 'a2', design: 1, givenOn: '2026-10-05' },
+      { id: 'p2', grantId: 'g2', giverId: 'a9', recipientId: 'a1', design: 3, givenOn: '2026-10-06' },
+      { id: 'p3', grantId: 'g3', giverId: 'a2', recipientId: 'a3', design: 2, givenOn: '2026-10-07' },
+    );
+    const { fake, ctx } = setup(undefined, undefined, {}, parcurs);
+    fake.state.athletes.push(athleteRow({ id: 'a2', name: 'Ana Popescu' }), athleteRow({ id: 'a3', name: 'Zoe Pop' }));
+    const result = await exportAthleteData(ctx, 'a1');
+    if (result.ok !== true) throw new Error('export refused');
+    const { text } = await pdfText(Buffer.from(files(result.data.data)['rezumat.pdf']));
+    expect(text).toContain('Parcurs');
+    expect(text).toContain('Steaua antrenorului');
+    expect(text).toContain('Dat lui Ana P.');
+    expect(text).toContain('Bate palma!');
+    expect(text).toContain('Primit de Fost sportiv');
+    expect(text).toContain('Te susțin!');
+    expect(text).not.toContain('Popescu');
+    expect(text).not.toContain('Zoe');
   });
 
   it('unknown or anonymized: 404; a build failure: the shared text and no history line', async () => {

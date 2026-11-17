@@ -3,6 +3,7 @@ import type { Core } from '@strapi/strapi';
 import type { AdminCtx } from '../admin-http';
 import { clubStore, serviceContext } from '../athletes/http';
 import { deleteRegistrationDocuments, listRegistrationDocuments } from '../documents';
+import { strapiParcursStore } from '../parcurs/strapi-store';
 import { strapiPresenceStore } from '../presence/strapi-store';
 import type { AnonymizeContext } from './anonymize-service';
 import type { ExportContext, ExportDocument } from './export-service';
@@ -18,7 +19,7 @@ export async function anonymizeContext(strapi: Core.Strapi, ctx: AdminCtx): Prom
 }
 
 export async function exportContext(strapi: Core.Strapi, ctx: AdminCtx): Promise<ExportContext> {
-  return { ...(await serviceContext(strapi, ctx)), storedDocuments: (id) => storedDocuments(strapi, id), now: () => new Date(), presence: strapiPresenceStore(strapi) };
+  return { ...(await serviceContext(strapi, ctx)), storedDocuments: (id) => storedDocuments(strapi, id), now: () => new Date(), presence: strapiPresenceStore(strapi), parcurs: strapiParcursStore(strapi) };
 }
 
 /** Startup (3C spec 4): removes PDF folders an anonymization could not delete. Never blocks or fails the start. */

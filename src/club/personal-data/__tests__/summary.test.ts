@@ -19,6 +19,7 @@ const INPUT: SummaryInput = {
   registrations: [{ number: '2026-0142', record: RECORD, seasonLabel: '2026-2027', sectionName: 'Școala de patinaj', missingDocuments: ['adeziune'] }],
   history: [{ at: '2026-10-20T10:00:00.000Z', actor: 'Ana Admin', text: 'Telefon: "0799 000 111" → "0799 123 456"', subject: '', action: 'updated', changes: {} },
     { at: '2026-10-03T11:22:00.000Z', actor: '', text: 'Înscriere înregistrată', subject: '2026-0142', action: 'submitted', changes: {} }],
+  parcurs: ['Steaua antrenorului, 1 oct 2026'],
   presence: { attendance: ['7 noi 2026, Începători, 11:00, Grup'], lessons: ['28 oct 2026, 18:00, 50 min, antrenor Virgil Pascu, prezent, 80 RON'], subscriptions: [], payments: ['27 oct 2026, 320 RON, Numerar, Altceva'] },
   childNames: new Set(['ilinca zamfirescu']),
   generatedAt: new Date('2026-10-27T10:00:00.000Z'),
@@ -44,7 +45,7 @@ describe('summary model (spec 3)', () => {
   });
 
   it('sections in the spec order, title with the name, the generated line', () => {
-    expect(model.sections.map((s) => s.title)).toEqual(['Sportiv', 'Grupe pe sezoane', 'Membru A.C.S. pe sezoane', 'Înscrieri', 'Istoric', 'Prezență', 'Lecții individuale', 'Abonamente', 'Plăți']);
+    expect(model.sections.map((s) => s.title)).toEqual(['Sportiv', 'Grupe pe sezoane', 'Membru A.C.S. pe sezoane', 'Înscrieri', 'Istoric', 'Prezență', 'Lecții individuale', 'Abonamente', 'Plăți', 'Parcurs']);
     expect(model.title).toBe('Date personale');
     expect(model.name).toBe('Ilinca Zamfirescu');
     expect(model.footer).toBe('Generat la 27.10.2026, 12:00, de Ana Admin.');
@@ -87,9 +88,13 @@ describe('summary model (spec 3)', () => {
     expect(rows(model, 'Abonamente')).toEqual([{ label: '', value: 'Nimic înregistrat.' }]);
   });
 
+  it('parcurs lines are rows with an empty label', () => {
+    expect(rows(model, 'Parcurs')).toEqual([{ label: '', value: 'Steaua antrenorului, 1 oct 2026' }]);
+  });
+
   it('an empty section says so', () => {
-    const empty = buildSummaryModel({ ...INPUT, groups: [], acs: [], registrations: [], history: [], presence: { attendance: [], lessons: [], subscriptions: [], payments: [] } });
-    for (const title of ['Grupe pe sezoane', 'Membru A.C.S. pe sezoane', 'Înscrieri', 'Istoric', 'Prezență', 'Lecții individuale', 'Abonamente', 'Plăți']) expect(rows(empty, title)).toEqual([{ label: '', value: 'Nimic înregistrat.' }]);
+    const empty = buildSummaryModel({ ...INPUT, groups: [], acs: [], registrations: [], history: [], presence: { attendance: [], lessons: [], subscriptions: [], payments: [] }, parcurs: [] });
+    for (const title of ['Grupe pe sezoane', 'Membru A.C.S. pe sezoane', 'Înscrieri', 'Istoric', 'Prezență', 'Lecții individuale', 'Abonamente', 'Plăți', 'Parcurs']) expect(rows(empty, title)).toEqual([{ label: '', value: 'Nimic înregistrat.' }]);
   });
 });
 

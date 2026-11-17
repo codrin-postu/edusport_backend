@@ -69,7 +69,7 @@ export async function readParcurs(d: ParcursDeps, athleteId: string, today: stri
   return view(l, shortNames(fullNames(l.people)));
 }
 
-const awardPinId = (a: AwardRow): PinId => (a.kind === 'jump' ? `saritura-${a.level}${a.jump}` : a.kind);
+export const awardPinId = (a: AwardRow): PinId => (a.kind === 'jump' ? `saritura-${a.level}${a.jump}` : a.kind);
 
 async function giverNames(d: ParcursStaffDeps, awards: AwardRow[]): Promise<(by: AwardRow['givenBy']) => string> {
   const team = new Map((await d.presence.teamMembers()).map((t) => [t.id, t.name]));

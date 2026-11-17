@@ -1,3 +1,4 @@
+import { fakeParcursStore } from '../../../parcurs/__tests__/fake-store';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -31,7 +32,7 @@ function setup() {
 describe('merge moves presence rows (4.21, C38)', () => {
   it('moves attendance, lessons, abonamente and payments; no double row, the removed slot returns (4.21, C38)', async () => {
     const f = setup();
-    expect((await mergeAthletes(f.ctx, { keptId: 'k', removedId: 'r', take: [] }, f.presence)).ok).toBe(true);
+    expect((await mergeAthletes(f.ctx, { keptId: 'k', removedId: 'r', take: [] }, f.presence, fakeParcursStore().store)).ok).toBe(true);
     expect(f.pres.state.attendances.map((a) => [a.sessionId, a.athleteId, a.uniqueKey, a.subscriptionId])).toEqual([['s1', 'k', 's1|k', 'subK'], ['s2', 'k', 's2|k', 'subR']]);
     const used = usedSlots(await f.presence.attendances());
     expect([used.get('subK'), used.get('subR')]).toEqual([1, 1]);
@@ -44,13 +45,13 @@ describe('merge moves presence rows (4.21, C38)', () => {
     f.pres.state.lessonCancels.push(
       { athleteId: 'r', ...{ date: '2026-11-21', startTime: '17:00', durationMin: 45 } }, { athleteId: 'r', date: '2026-11-28', startTime: '17:00', durationMin: 45 }, { athleteId: 'k', ...{ date: '2026-11-21', startTime: '17:00', durationMin: 45 } },
     );
-    expect((await mergeAthletes(f.ctx, { keptId: 'k', removedId: 'r', take: [] }, f.presence)).ok).toBe(true);
+    expect((await mergeAthletes(f.ctx, { keptId: 'k', removedId: 'r', take: [] }, f.presence, fakeParcursStore().store)).ok).toBe(true);
     expect(f.pres.state.lessonCancels.map((x) => [x.athleteId, x.date]).sort()).toEqual([['k', '2026-11-21'], ['k', '2026-11-28']]);
   });
 
   it('locks registrations and athletes first, then lessons, subscriptions, payments, each sorted (7.1)', async () => {
     const f = setup();
-    await mergeAthletes(f.ctx, { keptId: 'k', removedId: 'r', take: [] }, f.presence);
+    await mergeAthletes(f.ctx, { keptId: 'k', removedId: 'r', take: [] }, f.presence, fakeParcursStore().store);
     expect(f.pres.group.locks).toEqual(['lesson:lr', 'subscription:subK', 'subscription:subR', 'payment:pr', 'payment:pr2']);
     expect(f.club.state.locks.slice(-2)).toEqual(['athlete:k', 'athlete:r']);
   });
@@ -58,12 +59,12 @@ describe('merge moves presence rows (4.21, C38)', () => {
   it('rolls both stores back when a later step fails', async () => {
     const f = setup();
     f.club.failOn('deleteAthlete');
-    expect((await mergeAthletes(f.ctx, { keptId: 'k', removedId: 'r', take: [] }, f.presence)).ok).toBe(false);
+    expect((await mergeAthletes(f.ctx, { keptId: 'k', removedId: 'r', take: [] }, f.presence, fakeParcursStore().store)).ok).toBe(false);
     expect(f.pres.state.attendances.map((a) => a.athleteId).sort()).toEqual(['k', 'r', 'r']);
     expect(f.pres.state.payments.every((p) => p.athleteId === 'r')).toBe(true);
   });
 
   it('the merge handler passes a presence store', () => {
-    expect(source('api/club/controllers/athletes.ts')).toMatch(/mergeAthletes\(await serviceContext\(strapi, ctx\), request, strapiPresenceStore\(strapi\)\)/);
+    expect(source('api/club/controllers/athletes.ts')).toMatch(/mergeAthletes\(await serviceContext\(strapi, ctx\), request, strapiPresenceStore\(strapi\), strapiParcursStore\(strapi\)\)/);
   });
 });

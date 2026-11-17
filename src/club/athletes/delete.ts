@@ -7,6 +7,8 @@ import { endForAthlete } from '../portal/access/lifecycle';
 import { isAnonymized } from '../personal-data/anonymize-plan';
 import { deleteBlockOf, removePresenceRows, type DeleteBlock } from '../presence/lifecycle/delete-guard';
 import { inBothTransactions } from '../presence/lifecycle/transaction';
+import { dropParcurs } from '../parcurs/lifecycle';
+import type { ParcursStore } from '../parcurs/store';
 import type { PresenceStore } from '../presence/store';
 import type { AthleteRow, ClubStore, ServiceContext } from './store';
 
@@ -33,7 +35,7 @@ async function removeOwnRows(store: ClubStore, id: string): Promise<void> {
   for (const d of await store.duplicates()) if (d.firstId === id || d.secondId === id) await store.deleteDuplicate(d.id);
 }
 
-async function deleteInTransaction(ctx: ServiceContext, id: string, presence: PresenceStore): Promise<Result> {
+async function deleteInTransaction(ctx: ServiceContext, id: string, presence: PresenceStore, parcurs: ParcursStore): Promise<Result> {
   await lockAthletesWithRegistrations(ctx.store, [id]);
   const athlete = await ctx.store.athlete(id);
   if (!athlete) return refuse(404, ADMIN_ERRORS.notFound);
@@ -42,6 +44,7 @@ async function deleteInTransaction(ctx: ServiceContext, id: string, presence: Pr
   if (blocked) return { ok: true, data: { deleted: false, blocked } };
   if (ctx.access) await endForAthlete(ctx.access, id, 'sters');
   await removePresenceRows(presence, id);
+  await dropParcurs(parcurs, id);
   await unlinkRegistrations(ctx, athlete);
   await removeOwnRows(ctx.store, id);
   if (athlete.profileId) await ctx.store.deleteProfile(athlete.profileId);
@@ -50,8 +53,8 @@ async function deleteInTransaction(ctx: ServiceContext, id: string, presence: Pr
   return { ok: true, data: { deleted: true, documentId: id } };
 }
 
-export async function deleteAthlete(ctx: ServiceContext, id: string, presence: PresenceStore): Promise<Result> {
-  const result = await guarded(ctx.log, `[athletes] deleting ${id}`, () => inBothTransactions(ctx.store, presence, () => deleteInTransaction(ctx, id, presence)));
+export async function deleteAthlete(ctx: ServiceContext, id: string, presence: PresenceStore, parcurs: ParcursStore): Promise<Result> {
+  const result = await guarded(ctx.log, `[athletes] deleting ${id}`, () => inBothTransactions(ctx.store, presence, () => parcurs.transaction(() => deleteInTransaction(ctx, id, presence, parcurs))));
   if (result.ok === true && result.data.deleted) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after a delete');
   return result;
 }

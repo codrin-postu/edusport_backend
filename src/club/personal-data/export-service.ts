@@ -7,6 +7,8 @@ import type { AcsRow, AthleteRow, ClubStore, GroupRow, MembershipRow, Registrati
 import type { DocumentKind } from '../documents/types';
 import { isoDate } from '../birth-date';
 import { loadPresenceExportFacts, presenceSummary } from '../presence/lifecycle/export-rows';
+import { parcursExportLines } from '../parcurs/export-rows';
+import type { ParcursStore } from '../parcurs/store';
 import type { PresenceStore } from '../presence/store';
 import { HISTORY_ACTIONS, SUBJECT, actorLabel } from '../history-text';
 import { isScriptFormRegistration, registrationDocumentKinds } from '../registration-panel';
@@ -17,7 +19,7 @@ import { buildSummaryModel, type SummaryInput, type SummaryRegistration } from '
 import { renderSummaryPdf } from './summary-pdf';
 
 export type ExportDocument = { kind: DocumentKind; fileName: string; data: Uint8Array };
-export type ExportContext = ServiceContext & { storedDocuments: (registrationId: string) => Promise<ExportDocument[]>; now: () => Date; presence: PresenceStore };
+export type ExportContext = ServiceContext & { storedDocuments: (registrationId: string) => Promise<ExportDocument[]>; now: () => Date; presence: PresenceStore; parcurs: ParcursStore };
 export type ExportFile = { fileName: string; data: Uint8Array };
 
 type Facts = {
@@ -74,6 +76,7 @@ async function buildExport(ctx: ExportContext, athlete: AthleteRow): Promise<Adm
     athlete, groups: groupLines(facts), acs: acsLines(facts), registrations: loaded.registrations,
     history: await historyLines(ctx.store, athlete.id, facts.registrations), childNames: await carriedNames(ctx.store, athlete, facts.registrations),
     presence: presenceSummary(await loadPresenceExportFacts(ctx.presence, athlete.id), isoDate(ctx.today)),
+    parcurs: await parcursExportLines(ctx.parcurs, ctx.store, athlete.id),
     generatedAt: now, generatedBy: actorLabel(ctx.actor, names),
   });
   const summary = await renderSummaryPdf(model);

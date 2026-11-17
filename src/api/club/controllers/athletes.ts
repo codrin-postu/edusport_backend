@@ -23,6 +23,7 @@ import { verifiedAdminId } from '../../../club/admin-auth';
 import type { AdminResult } from '../../../club/admin-result';
 import type { ParcursStaff } from '../../../club/parcurs/api-types';
 import { readParcursStaff, type ParcursStaffDeps } from '../../../club/parcurs/read';
+import { strapiParcursStore } from '../../../club/parcurs/strapi-store';
 import { addAward, removeAwardOf, removePinOf } from '../../../club/parcurs/staff';
 import { strapiParcursDeps } from '../../../club/parcurs/strapi-port';
 
@@ -110,7 +111,7 @@ export default {
   },
 
   async remove(ctx: AdminCtx) {
-    respondDelete(ctx, await deleteAthlete(await serviceContext(strapi, ctx), ctx.params.documentId ?? '', strapiPresenceStore(strapi)));
+    respondDelete(ctx, await deleteAthlete(await serviceContext(strapi, ctx), ctx.params.documentId ?? '', strapiPresenceStore(strapi), strapiParcursStore(strapi)));
   },
 
   async mergePreview(ctx: AdminCtx) {
@@ -120,7 +121,7 @@ export default {
   async merge(ctx: AdminCtx) {
     const request = readMergeRequest(ctx.request.body);
     if (!request) return refuseWith(ctx, 400, ADMIN_ERRORS.invalid);
-    respond(ctx, await mergeAthletes(await serviceContext(strapi, ctx), request, strapiPresenceStore(strapi)));
+    respond(ctx, await mergeAthletes(await serviceContext(strapi, ctx), request, strapiPresenceStore(strapi), strapiParcursStore(strapi)));
   },
 
   async dismissDuplicate(ctx: AdminCtx) {

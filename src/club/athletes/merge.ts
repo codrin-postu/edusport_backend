@@ -10,6 +10,8 @@ import { moveOnEmailChange, moveOnMerge } from '../portal/access/lifecycle';
 import { isAnonymized } from '../personal-data/anonymize-plan';
 import { mergePresenceRows } from '../presence/lifecycle/merge-rows';
 import { inBothTransactions } from '../presence/lifecycle/transaction';
+import { mergeParcurs } from '../parcurs/lifecycle';
+import type { ParcursStore } from '../parcurs/store';
 import type { PresenceStore } from '../presence/store';
 import type { AthleteRow, ClubStore, DuplicateRow, ProfileRow, ServiceContext } from './store';
 
@@ -125,9 +127,10 @@ async function applyProfile(store: ClubStore, plan: MergePlan, keptId: string, r
   if (p.finalId && plan.values.name) await store.renameProfile(p.finalId, plan.values.name);
 }
 
-async function applyMerge(ctx: ServiceContext, presence: PresenceStore, kept: MergeSource, removed: MergeSource, plan: MergePlan): Promise<void> {
+async function applyMerge(ctx: ServiceContext, presence: PresenceStore, parcurs: ParcursStore, kept: MergeSource, removed: MergeSource, plan: MergePlan): Promise<void> {
   if (ctx.access) await moveOnMerge(ctx.access, kept.id, removed.id, plan.values.email);
   await mergePresenceRows(presence, kept.id, removed.id);
+  await mergeParcurs(parcurs, kept.id, removed.id);
   await applyRows(ctx.store, plan, kept.id, removed.id);
   await repointDuplicates(ctx.store, removed.id, kept.id);
   await applyProfile(ctx.store, plan, kept.id, removed.id);
@@ -140,7 +143,7 @@ async function applyMerge(ctx: ServiceContext, presence: PresenceStore, kept: Me
   await ctx.store.deleteAthlete(removed.id);
 }
 
-async function mergeInTransaction(ctx: ServiceContext, presence: PresenceStore, request: MergeRequest, jobs: string[]): Promise<Result> {
+async function mergeInTransaction(ctx: ServiceContext, presence: PresenceStore, parcurs: ParcursStore, request: MergeRequest, jobs: string[]): Promise<Result> {
   await lockAthletesWithRegistrations(ctx.store, [request.keptId, request.removedId]);
   const profiles = await ctx.store.profiles();
   const [kept, removed] = await Promise.all([loadSide(ctx.store, request.keptId, profiles), loadSide(ctx.store, request.removedId, profiles)]);
@@ -150,15 +153,15 @@ async function mergeInTransaction(ctx: ServiceContext, presence: PresenceStore, 
   // A picked e-mail changes the kept athlete's e-mail: its access follows (spec 4.4), before any write; a refusal refuses the merge.
   const moved = ctx.access && 'email' in plan.fieldChanges ? await moveOnEmailChange(ctx.access, kept.id, kept.values.email, plan.values.email) : null;
   if (moved && moved.ok === false) return moved;
-  await applyMerge(ctx, presence, kept, removed, plan);
+  await applyMerge(ctx, presence, parcurs, kept, removed, plan);
   jobs.push(...(moved?.ok === true ? moved.data.jobIds : []));
   return { ok: true, data: { documentId: kept.id } };
 }
 
-export async function mergeAthletes(ctx: ServiceContext, request: MergeRequest, presence: PresenceStore): Promise<Result> {
+export async function mergeAthletes(ctx: ServiceContext, request: MergeRequest, presence: PresenceStore, parcurs: ParcursStore): Promise<Result> {
   const tag = `[athletes] merging ${request.removedId} into ${request.keptId}`;
   const jobs: string[] = [];
-  const result = await guarded(ctx.log, tag, () => staleOnRace(() => inBothTransactions(ctx.store, presence, () => mergeInTransaction(ctx, presence, request, jobs))));
+  const result = await guarded(ctx.log, tag, () => staleOnRace(() => inBothTransactions(ctx.store, presence, () => parcurs.transaction(() => mergeInTransaction(ctx, presence, parcurs, request, jobs)))));
   if (result.ok === true) for (const jobId of jobs) ctx.access?.afterCommit(jobId);
   if (result.ok === true) await safely(() => refreshAllMatches(ctx.store), ctx.log, 'matches after a merge');
   return result;
