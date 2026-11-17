@@ -93,7 +93,7 @@ describe('readCard', () => {
   it('an own child has the contact, the Școala one its abonament text', async () => {
     const c = coachCtx(ME);
     const club = await readCard(c, 'a-club-1');
-    expect(club).toMatchObject({ ok: true, data: { athleteId: 'a-club-1', name: 'Ana Club', age: 14, groups: ['Club A'], school: null, contact: { name: 'Părinte Secret', phone: '0722000111' }, abonament: null } });
+    expect(club).toMatchObject({ ok: true, data: { own: true, athleteId: 'a-club-1', name: 'Ana Club', age: 14, groups: ['Club A'], school: null, contact: { name: 'Părinte Secret', phone: '0722000111' }, abonament: null } });
     expect(await readCard(c, 'a-scoala-1')).toMatchObject({ data: { school: '0/8', contact: { phone: '0722000111' } } });
     expect(forbiddenKeysIn(club)).toEqual([]);
   });
@@ -104,7 +104,7 @@ describe('readCard', () => {
     c.fake.state.sessions.push(sessionRow({ id: 's-b', groupId: 'g-club-b', date: '2026-11-17', startTime: '18:00', coachIds: [ME, 'tm-virgil'] }));
     c.fake.state.attendances.push(attendanceRow({ id: 't-b', sessionId: 's-b', athleteId: 'a-b-1', uniqueKey: 's-b|a-b-1' }));
     const card = await readCard(c, 'a-b-1');
-    expect(card).toMatchObject({ ok: true, data: { name: 'Eva Cealaltă', contact: null, groups: ['Club B'] } });
+    expect(card).toMatchObject({ ok: true, data: { own: false, name: 'Eva Cealaltă', contact: null, groups: ['Club B'] } });
     expect(JSON.stringify(card)).not.toMatch(/0722000111|copil@example/);
     expect(await readCard(c, 'a-free')).toEqual(NO_ACCESS);
   });

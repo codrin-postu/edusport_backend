@@ -7,8 +7,6 @@ import type { CompetitionSort, LastCompetition, SportivCompetition, SportivCompe
 export interface SportivCompetitionSource {
   /** `'none'`: the skater has no results (card hidden); null: the results are not available now. */
   last(skater: SkaterRef): Promise<Omit<Extract<LastCompetition, { available: true }>, 'available'> | 'none' | null>;
-  /** Event dates oldest first, for the badge tiers. */
-  count(skater: SkaterRef): Promise<{ count: number; dates: string[] } | null>;
   /** Every dated result, for the Parcurs pins; null: the results are not available now. */
   results(skater: SkaterRef): Promise<{ date: string; placement: number | null; eventId: string }[] | null>;
 }
@@ -23,7 +21,7 @@ export interface SportivCompetitionViews {
 }
 
 /** Until the real source (phase 7-3) is merged: nothing is available. */
-export const nullSportivCompetitions: SportivCompetitionSource = { last: async () => null, count: async () => null, results: async () => null };
+export const nullSportivCompetitions: SportivCompetitionSource = { last: async () => null, results: async () => null };
 export const nullSportivCompetitionViews: SportivCompetitionViews = {
   list: async () => ({ available: false }),
   detail: async () => ({ available: false }),

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { awardBody, awardLine, friendshipCell, pinCell, pinSrc } from '../staff-view';
+import { PARCURS_COPY, awardBody, awardLine, friendshipCell, pinCell, pinSrc } from '../staff-view';
 
 describe('staff-view', () => {
   it('a pin cell shows the count only above 1 and greys an unearned pin', () => {
@@ -18,6 +18,10 @@ describe('staff-view', () => {
     expect(awardBody({ kind: 'jump', jump: 'lz', level: '' })).toBeNull();
     expect(awardBody({ kind: 'jump', jump: 'zz', level: '2' })).toBeNull();
     expect(awardBody({ kind: 'jump', jump: 'lz', level: '2' })).toEqual({ kind: 'jump', jump: 'lz', level: 2 });
+  });
+
+  it('the given-pins section is named Oferite, apart from the record tab Date', () => {
+    expect(PARCURS_COPY.given).toBe('Oferite');
   });
 
   it('friendship pins use the design number and name the other side', () => {

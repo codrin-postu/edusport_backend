@@ -177,7 +177,7 @@ export async function readCard(c: CoachContexts, athleteId: string): Promise<Coa
   return {
     ok: true,
     data: {
-      athleteId, name: athlete.name ?? '', age: ageOnIso(athlete.birthDate, c.today), groups: groups.map((g) => g.name), school: await schoolText(c, athleteId, groups),
+      own: right.contact, athleteId, name: athlete.name ?? '', age: ageOnIso(athlete.birthDate, c.today), groups: groups.map((g) => g.name), school: await schoolText(c, athleteId, groups),
       contact: right.contact ? { name: athlete.contactName, phone: athlete.phone } : null,
       sectionName: sections.find((x) => x.id === groups[0]?.sectionId)?.name ?? null,
       groupRows: groups.map((g) => ({ groupId: g.id, name: g.name, program: groupListRow(g, facts).program })),

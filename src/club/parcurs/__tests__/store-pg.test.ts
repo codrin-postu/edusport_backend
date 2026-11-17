@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import type { Core } from '@strapi/strapi';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { dropParcurs, mergeParcurs } from '../lifecycle';
 import { strapiParcursStore, AWARD, GRANT, PIN } from '../strapi-store';
 
 /** Runs only with PORTAL_PG_TEST=1 and DATABASE_* pointing at a throwaway Postgres 16 (never a shared database). */
@@ -84,6 +85,47 @@ describe.skipIf(!enabled)('strapiParcursStore on Postgres', () => {
     expect(await store.pins({ recipientId: kept })).toEqual([]);
     expect(await store.grants({ athleteId: other })).toHaveLength(1);
     await store.dropForAthlete(kept);
+  });
+
+  it('mergeParcurs on the real store: self-pin dropped, same-month grants collapse with pins repointed', async () => {
+    const store = strapiParcursStore(strapi);
+    const [kept, removed, x] = [await athlete('K'), await athlete('R'), await athlete('X')];
+    const keptNov = await store.addGrant(grantOf(kept));
+    const removedNov = await store.addGrant(grantOf(removed));
+    const removedOct = await store.addGrant({ ...grantOf(removed), source: 'm:2026-10', createdOn: '2026-10-01', expiresOn: '2026-10-31' });
+    const xNov = await store.addGrant(grantOf(x));
+    await store.addPin({ grantId: removedNov, giverId: removed, recipientId: x, design: 1, givenOn: '2026-11-02' });
+    await store.addPin({ grantId: keptNov, giverId: kept, recipientId: removed, design: 2, givenOn: '2026-11-03' });
+    await store.addPin({ grantId: xNov, giverId: x, recipientId: removed, design: 3, givenOn: '2026-11-04' });
+    await store.addAward(awardOf(removed, { adminId: '1' }));
+    await mergeParcurs(store, kept, removed);
+    const grants = await store.grants({ athleteId: kept });
+    expect(grants.map((g) => g.source).sort()).toEqual(['m:2026-10', 'm:2026-11']);
+    expect(grants.map((g) => g.id)).toContain(keptNov);
+    expect(grants.map((g) => g.id)).toContain(removedOct);
+    expect(await store.grants({ athleteId: removed })).toEqual([]);
+    expect((await store.pins({ giverId: kept })).map((p) => [p.grantId, p.recipientId])).toEqual([[keptNov, x]]);
+    expect((await store.pins({ recipientId: kept })).map((p) => [p.giverId, p.grantId])).toEqual([[x, xNov]]);
+    expect(await store.pins({ giverId: removed })).toEqual([]);
+    expect(await store.pins({ recipientId: removed })).toEqual([]);
+    expect(await store.awards({ athleteId: kept })).toHaveLength(1);
+  });
+
+  it('dropParcurs on the real store removes the awards, grants and pins given and received', async () => {
+    const store = strapiParcursStore(strapi);
+    const [gone, other] = [await athlete('G'), await athlete('O')];
+    const goneGrant = await store.addGrant(grantOf(gone));
+    const otherGrant = await store.addGrant(grantOf(other));
+    await store.addAward(awardOf(gone, { adminId: '1' }));
+    await store.addPin({ grantId: goneGrant, giverId: gone, recipientId: other, design: 1, givenOn: '2026-11-02' });
+    await store.addPin({ grantId: otherGrant, giverId: other, recipientId: gone, design: 2, givenOn: '2026-11-02' });
+    await dropParcurs(store, gone);
+    expect(await store.awards({ athleteId: gone })).toEqual([]);
+    expect(await store.grants({ athleteId: gone })).toEqual([]);
+    expect(await store.pins({ giverId: gone })).toEqual([]);
+    expect(await store.pins({ recipientId: gone })).toEqual([]);
+    expect(await store.pins({ grantId: otherGrant })).toEqual([]);
+    expect(await store.grants({ athleteId: other })).toHaveLength(1);
   });
 
   it('lockAthlete runs inside a transaction and throws outside one', async () => {

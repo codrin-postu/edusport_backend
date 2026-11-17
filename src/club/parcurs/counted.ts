@@ -1,4 +1,5 @@
 import type { PinView } from './api-types';
+import { lastDayOfMonth } from './month';
 import { ANTRENAMENTE_THRESHOLDS, CONCURSURI_THRESHOLDS, MEMBRU_MAX_YEARS, pinLabel } from './catalog';
 
 export type CountedInput = {
@@ -21,11 +22,6 @@ const view = (pin: string, earnedOn: string | null, count = earnedOn ? 1 : 0): P
 
 /** `dates` oldest first: a milestone is earned on the date of the unit that crossed it. */
 const milestone = (pin: string, threshold: number, dates: string[]): PinView => view(pin, dates[threshold - 1] ?? null);
-
-const lastDayOfMonth = (month: string): string => {
-  const day = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
-  return `${month}-${String(day).padStart(2, '0')}`;
-};
 
 /** Same month and day `years` later; 29 Feb falls back to 28 Feb in a non-leap year. */
 function addYears(date: string, years: number): string {

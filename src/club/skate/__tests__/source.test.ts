@@ -128,15 +128,6 @@ describe('skateSportivSource', () => {
     expect(await setup({ results: async () => ({ ok: false, reason: 'down' }) }, []).source.results(SKATER)).toBeNull();
   });
 
-  it('count: distinct events, dates oldest first', async () => {
-    const rows = results();
-    rows.push({ ...rows[0], result_id: 500, segments: [] }); // a second result in an event already counted
-    const { source } = setup({}, rows);
-    const c = await source.count(SKATER);
-    expect(c?.count).toBe(41);
-    expect(c?.dates).toEqual([...(c?.dates ?? [])].sort());
-  });
-
   it('last: the newest result with its field size', async () => {
     const { source } = setup();
     const last = await source.last(SKATER);
@@ -149,15 +140,6 @@ describe('skateSportivSource', () => {
     expect(await source.last(SKATER)).toBeNull();
     expect(await source.list(SKATER, query)).toEqual({ available: false });
     expect(await source.detail(SKATER, '41')).toEqual({ available: false });
-    expect(await source.count(SKATER)).toBeNull();
-  });
-
-  it('count leaves undated events out, so count and dates agree', async () => {
-    const rows = results();
-    rows[0].event_date = null;
-    const c = await setup({}, rows).source.count(SKATER);
-    expect(c?.count).toBe(40);
-    expect(c?.dates).toHaveLength(40);
   });
 
   it('last: no results is none, not unavailable', async () => {
@@ -171,14 +153,13 @@ describe('skateSportivSource', () => {
     const slug = 'once-a-day-slug';
     const { source } = setup({ results: async () => ({ ok: false, reason: 'not_found' }) }, [], log, () => day);
     const skater = { ...SKATER, athleteId: 'a-once-a-day', slug };
-    await source.count(skater);
     await source.list(skater, query);
     expect(log).toHaveBeenCalledTimes(1);
     expect(log.mock.calls[0][0]).toContain('a-once-a-day');
     expect(log.mock.calls[0][0]).not.toContain(slug);
     expect(log.mock.calls[0][0]).not.toContain('Ioana');
     day = new Date(NOW.getTime() + 24 * 3_600_000);
-    await source.count(skater);
+    await source.list(skater, query);
     expect(log).toHaveBeenCalledTimes(2);
   });
 
@@ -201,7 +182,6 @@ describe('skateSportivSource', () => {
 
   it('a slug skate-results does not know is no competitions', async () => {
     const { source } = setup({ results: async () => ({ ok: false, reason: 'not_found' }) });
-    expect(await source.count(SKATER)).toEqual({ count: 0, dates: [] });
     expect(await source.list(SKATER, query)).toMatchObject({ available: true, total: 0, rows: [] });
     expect(await source.detail(SKATER, '1')).toBeNull();
   });
@@ -246,15 +226,13 @@ describe('skateSportivSource', () => {
       expect(d).toMatchObject({ available: true, stale: false, field: null, officialUrl: null, segments: [], best: null, row: { resultId: '200', eventName: 'Cupa Timișoarei' } });
       const last = await source.last(MATEI);
       expect(last).toMatchObject({ stale: false, field: null, row: { eventName: 'Cupa Timișoarei' } });
-      expect(await source.count(MATEI)).toEqual({ count: 2, dates: ['2026-10-20', '2026-11-08'] });
       expect(fetches(client)).toBe(0);
     });
 
-    it('no slug and none -> empty, the card hidden and the count zero', async () => {
+    it('no slug and none -> empty, the card hidden', async () => {
       const { source, client } = setup({}, results(), undefined, undefined, undefined, []);
       expect(await source.list(MATEI, query)).toMatchObject({ available: true, total: 0, rows: [] });
       expect(await source.last(MATEI)).toBe('none');
-      expect(await source.count(MATEI)).toEqual({ count: 0, dates: [] });
       expect(fetches(client)).toBe(0);
     });
 
@@ -269,7 +247,6 @@ describe('skateSportivSource', () => {
       const log = vi.fn();
       const { source } = setup({}, results(), log);
       await source.list(MATEI, query);
-      await source.count(MATEI);
       expect(log).not.toHaveBeenCalled();
     });
   });

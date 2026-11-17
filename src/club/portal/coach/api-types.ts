@@ -103,6 +103,8 @@ export type CoachProtocol = {
 /** The route's answer: the sheet, or the existing unavailable state when the source is down. */
 export type CoachProtocolRead = ({ available: true } & CoachProtocol) | { available: false };
 export type CoachAthleteCard = {
+  /** true: the child is in one of the coach's own groups (a stand-in's listed child is false; the Parcurs is own children only). */
+  own: boolean;
   athleteId: string; name: string; age: number | null; groups: string[]; school: string | null; contact: { name: string | null; phone: string | null } | null;
   /** Section of the main group today, e.g. "Școala de patinaj". */
   sectionName: string | null;

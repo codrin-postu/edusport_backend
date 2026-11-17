@@ -155,7 +155,10 @@ describe('athlete routes', () => {
     expect(await post(A_ANA, A_MATEI)).toMatchObject({ status: 409, body: { error: { message: 'NO_PINS_LEFT' } } });
     expect((await post(A_IOANA, A_ANA)).status).toBe(403);
     const list = await call(token, 'GET', `/portal/sportiv/athletes/${A_ANA}/pin-recipients`);
-    expect((list.body as { data: { id: string }[] }).data.map((r) => r.id)).not.toContain(A_ANA);
+    const listed = (list.body as { data: { id: string }[] }).data.map((r) => r.id);
+    expect(listed).not.toContain(A_ANA);
+    expect(listed).not.toContain(A_MATEI);
+    expect(listed).toContain(A_IOANA);
   });
 
   it('calendar.ics reaches the phone calendar handler, not the calendar JSON one', async () => {

@@ -59,16 +59,6 @@ export function skateSportivSource(
       return { stale: got.stale, updatedAt: got.updatedAt, row: latest, field };
     },
 
-    async count(skater) {
-      const got = await results.one(skater);
-      if ('missing' in got) { if (skater.slug) noteMissing(skater.athleteId); return { count: 0, dates: [] }; }
-      if (!('value' in got)) return null;
-      // An event without a date is left out, so the count and the dates agree.
-      const events = new Map<number, string>();
-      for (const r of got.value) if (r.event_date !== null && (events.get(r.event_id) ?? '\uffff') > r.event_date) events.set(r.event_id, r.event_date);
-      return { count: events.size, dates: [...events.values()].sort() };
-    },
-
     async results(skater) {
       const got = await results.one(skater);
       if ('missing' in got) { if (skater.slug) noteMissing(skater.athleteId); return []; }

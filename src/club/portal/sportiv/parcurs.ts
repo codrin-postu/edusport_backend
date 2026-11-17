@@ -1,10 +1,11 @@
 import { refuse, type AdminResult } from '../../admin-result';
-import { ensureGrants, givePin, recipients } from '../../parcurs/grants';
+import { availableRecipients, ensureGrants, givePin, recipients } from '../../parcurs/grants';
 import type { PinRecipient } from './api-types';
 import type { SportivContext } from './context';
 
-/** The friends an athlete may give a pin to: every other active athlete, by short name. */
-export const readPinRecipients = (c: SportivContext, athleteId: string): Promise<PinRecipient[]> => recipients(c.club.store, athleteId);
+/** The friends an athlete can give a pin to now: other active athletes by short name, minus those already given a pin on every grant with room. */
+export const readPinRecipients = (c: SportivContext, athleteId: string): Promise<PinRecipient[]> =>
+  availableRecipients(c.club.store, c.parcurs, { giverId: athleteId, today: c.today });
 
 const STATUS = { SELF: 400, BAD_RECIPIENT: 400, BAD_DESIGN: 400, NO_PINS_LEFT: 409 } as const;
 

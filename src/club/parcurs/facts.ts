@@ -4,6 +4,7 @@ import { mainGroupOn } from '../presence/attendance/roster';
 import type { PresenceStore } from '../presence/store';
 import { PARCURS_FROM } from './catalog';
 import type { CountedInput } from './counted';
+import { lastDayOfMonth } from './month';
 
 export type FactsDeps = {
   presence: PresenceStore;
@@ -52,7 +53,7 @@ async function perfectMonths(
     const season = seasons.find((s) => { const b = seasonBounds(s); return b.start <= first && first <= b.end; });
     const groupId = season ? mainGroupOn(memberships, athleteId, season.id, first) : null;
     if (!groupId) continue;
-    const sessions = await d.presence.sessions({ groupId, from: first, to: `${month}-31` });
+    const sessions = await d.presence.sessions({ groupId, from: first, to: lastDayOfMonth(month) });
     if (sessions.length >= MIN_SESSIONS && sessions.every((s) => groupPresent.has(s.id))) out.push(month);
   }
   return out;

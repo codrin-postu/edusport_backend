@@ -8,7 +8,7 @@ export const PARCURS_COPY = {
   tab: 'Parcurs',
   sections: { antrenamente: 'Antrenamente', concursuri: 'Concursuri', membru: 'Membru', insigne: 'Insigne', sarituri: 'Sărituri', prietenie: 'Prietenie' },
   received: 'Primite',
-  given: 'Date',
+  given: 'Oferite',
   awards: 'Acordate',
   award: 'Acordă',
   remove: 'Șterge',

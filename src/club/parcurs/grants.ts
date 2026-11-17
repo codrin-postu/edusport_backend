@@ -1,6 +1,7 @@
 import type { ClubStore, SeasonRow } from '../athletes/store';
 import { seasonBounds } from '../groups/series';
 import { FRIENDSHIP_MESSAGES } from './catalog';
+import { lastDayOfMonth } from './month';
 import type { GrantRow, ParcursStore, PinRow } from './store';
 
 const ACTIVE = new Set(['nou', 'activ']);
@@ -10,10 +11,6 @@ type GrantAthlete = { id: string; status: string; anonymizedAt: string | null };
 type GiveResult = { ok: true; id: string } | { ok: false; code: 'SELF' | 'BAD_RECIPIENT' | 'BAD_DESIGN' | 'NO_PINS_LEFT' };
 
 const isActive = (a: { status: string; anonymizedAt: string | null }): boolean => ACTIVE.has(a.status) && !a.anonymizedAt;
-const lastDayOf = (ym: string): string => {
-  const day = new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)), 0)).getUTCDate();
-  return `${ym}-${String(day).padStart(2, '0')}`;
-};
 const inSeason = (ym: string, seasons: SeasonRow[]): boolean =>
   seasons.some((s) => {
     const b = seasonBounds(s);
@@ -27,11 +24,12 @@ export async function ensureGrants(s: ParcursStore, d: { athlete: GrantAthlete; 
   const ym = d.today.slice(0, 7);
   if (!isActive(d.athlete) || !inSeason(ym, d.seasons)) return;
   const source = `m:${ym}`;
+  const has = async (): Promise<boolean> => (await s.grants({ athleteId: d.athlete.id })).some((g) => g.source === source);
+  if (await has()) return;
   await s.transaction(async () => {
     await s.lockAthlete(d.athlete.id);
-    const grants = await s.grants({ athleteId: d.athlete.id });
-    if (grants.some((g) => g.source === source)) return;
-    await s.addGrant({ athleteId: d.athlete.id, source, size: MONTHLY_SIZE, createdOn: `${ym}-01`, expiresOn: lastDayOf(ym) });
+    if (await has()) return;
+    await s.addGrant({ athleteId: d.athlete.id, source, size: MONTHLY_SIZE, createdOn: `${ym}-01`, expiresOn: lastDayOfMonth(ym) });
   });
 }
 
@@ -79,10 +77,22 @@ export const shortName = (name: string): string => {
   return last ? `${words[0]} ${last[0].toUpperCase()}.` : words[0] ?? '';
 };
 
+/** Every other active athlete, by short name. */
 export async function recipients(club: ClubStore, giverId: string): Promise<{ id: string; name: string }[]> {
   const all = await club.athletes();
   return all
     .filter((a) => a.id !== giverId && isActive(a))
     .map((a) => ({ id: a.id, name: shortName(a.name ?? '') }))
     .sort((a, b) => a.name.localeCompare(b.name, 'ro'));
+}
+
+/** The friends the giver can still give a pin to now: those already given one on every unexpired grant with room are left out. */
+export async function availableRecipients(
+  club: ClubStore, s: ParcursStore, d: { giverId: string; today: string },
+): Promise<{ id: string; name: string }[]> {
+  const [all, grants, pins] = await Promise.all([recipients(club, d.giverId), s.grants({ athleteId: d.giverId }), s.pins({ giverId: d.giverId })]);
+  const open = grants.filter((g) => unexpired(g, d.today) && used(g, pins) < g.size);
+  if (open.length === 0) return all;
+  const given = (grantId: string, recipientId: string): boolean => pins.some((p) => p.grantId === grantId && p.recipientId === recipientId);
+  return all.filter((r) => !open.every((g) => given(g.id, r.id)));
 }

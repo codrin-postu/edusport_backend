@@ -126,7 +126,7 @@ describe('readHome', () => {
     const c = sportivCtx('sportiv18@example.invalid');
     expect((await readHome(c, A_IOANA)).lastCompetition).toEqual({ available: false });
     const row = { resultId: 'r1', eventName: 'Cupa Test', date: '2026-11-01', location: 'Bucuresti', category: 'Advanced Novice Girls', categoryShort: 'Adv. Novice', placement: 2, total: 98.42 };
-    c.competitions = { last: async () => ({ stale: false, updatedAt: '2026-11-20T09:00:00.000Z', row, field: 12 }), count: async () => null, results: async () => null };
+    c.competitions = { last: async () => ({ stale: false, updatedAt: '2026-11-20T09:00:00.000Z', row, field: 12 }), results: async () => null };
     const home = await readHome(c, A_IOANA);
     expect(home.lastCompetition).toEqual({ available: true, stale: false, updatedAt: '2026-11-20T09:00:00.000Z', row, field: 12 });
     expect(home.category).toBe('Advanced Novice Girls');
@@ -134,7 +134,7 @@ describe('readHome', () => {
 
   it('a failing source is the same as an unavailable one', async () => {
     const c = sportivCtx('sportiv18@example.invalid');
-    c.competitions = { last: async () => { throw new Error('down'); }, count: async () => null, results: async () => null };
+    c.competitions = { last: async () => { throw new Error('down'); }, results: async () => null };
     expect((await readHome(c, A_IOANA)).lastCompetition).toEqual({ available: false });
   });
 

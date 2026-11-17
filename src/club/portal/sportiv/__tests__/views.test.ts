@@ -82,7 +82,6 @@ describe('competition source and skaterOf', () => {
   it('the null source resolves null everywhere', async () => {
     const skater = { athleteId: 'a1', name: 'Ana', profileId: 'p1', slug: 'ana' };
     expect(await nullSportivCompetitions.last(skater)).toBeNull();
-    expect(await nullSportivCompetitions.count(skater)).toBeNull();
   });
 
   it('an athlete is a skater when it has a profile, the slug may be absent', async () => {

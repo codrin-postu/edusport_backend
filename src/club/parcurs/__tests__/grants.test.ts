@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { athleteRow, fakeClubStore } from '../../athletes/__tests__/fake-store';
 import type { SeasonRow } from '../../athletes/store';
-import { deletePin, ensureGrants, givePin, pinsLeft, recipients } from '../grants';
+import { availableRecipients, deletePin, ensureGrants, givePin, pinsLeft, recipients } from '../grants';
 import { fakeParcursStore } from './fake-store';
 
 const SEASON: SeasonRow = { id: 's1', label: '2026/2027', startMonth: '2026-09-01', endMonth: '2027-06-30', isCurrent: true };
@@ -91,6 +91,11 @@ describe('givePin', () => {
     expect((await give(store, 'b2')).ok).toBe(true);
     expect(await give(store, 'c3')).toEqual({ ok: false, code: 'NO_PINS_LEFT' });
   });
+  it('refuses once the grant has expired', async () => {
+    const { store } = await setup();
+    expect((await give(store, 'b2', '2026-11-30')).ok).toBe(true);
+    expect(await give(store, 'c3', '2026-12-01')).toEqual({ ok: false, code: 'NO_PINS_LEFT' });
+  });
   it('lets the same recipient receive again after deletePin', async () => {
     const { store } = await setup();
     const first = await give(store, 'b2');
@@ -113,5 +118,36 @@ describe('recipients', () => {
       ],
     });
     expect(await recipients(club.store, 'a1')).toEqual([{ id: 'c3', name: 'Bogdan R.' }, { id: 'b2', name: 'Maria Z.' }]);
+  });
+});
+
+describe('availableRecipients', () => {
+  const club = fakeClubStore({
+    athletes: [athleteRow({ id: 'a1', name: 'Ana Popescu' }), athleteRow({ id: 'b2', name: 'Maria Ionescu' }), athleteRow({ id: 'c3', name: 'Bogdan Radu' })],
+  });
+  const ofGiver = (s: ReturnType<typeof fakeParcursStore>['store']) => availableRecipients(club.store, s, { giverId: 'a1', today: '2026-11-10' });
+  const names = (list: { id: string }[]) => list.map((r) => r.id);
+
+  it('leaves out a friend already given a pin this month, keeps the others', async () => {
+    const f = fakeParcursStore();
+    await ensureGrants(f.store, { athlete: active, seasons: [SEASON], today: '2026-11-10' });
+    expect(names(await ofGiver(f.store))).toEqual(['c3', 'b2']);
+    await give(f.store, 'b2');
+    expect(names(await ofGiver(f.store))).toEqual(['c3']);
+  });
+  it('keeps a friend while a later grant with room has not been used on them', async () => {
+    const { store, state } = fakeParcursStore();
+    state.grants.push(
+      { id: 'g1', athleteId: 'a1', source: 'm:2026-10', size: 2, createdOn: '2026-10-01', expiresOn: '2026-11-30' },
+      { id: 'g2', athleteId: 'a1', source: 'm:2026-11', size: 2, createdOn: '2026-11-01', expiresOn: '2026-11-30' },
+    );
+    await give(store, 'b2');
+    expect(names(await ofGiver(store))).toContain('b2');
+    await give(store, 'b2');
+    expect(names(await ofGiver(store))).toEqual(['c3']);
+  });
+  it('lists everyone when no grant has room', async () => {
+    const { store } = fakeParcursStore();
+    expect(names(await ofGiver(store))).toEqual(['c3', 'b2']);
   });
 });

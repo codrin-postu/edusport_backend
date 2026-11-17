@@ -95,6 +95,15 @@ describe('countedFacts perfect months', () => {
     }
     expect((await ana(c)).perfectMonths).toEqual([]);
   });
+  it('asks for the sessions of each month up to its real last day', async () => {
+    const c = sportivCtx('parinte1@example.invalid');
+    const asked: string[] = [];
+    const presence = { ...c.presence.store, sessions: async (q: Parameters<typeof c.presence.store.sessions>[0]) => { asked.push(q.to ?? ''); return c.presence.store.sessions(q); } };
+    await countedFacts({ presence, results: none }, A_ANA, '2027-06-10');
+    expect(asked).toEqual(expect.arrayContaining(['2026-12-31', '2027-02-28', '2027-04-30']));
+    for (const to of asked) expect(new Date(`${to}T00:00:00Z`).toISOString().slice(0, 10)).toBe(to);
+    expect(asked).toContain('2027-02-28');
+  });
   it('an athlete in another group is not credited with that group sessions', async () => {
     const c = sportivCtx('parinte1@example.invalid');
     december(c, 4, 4);

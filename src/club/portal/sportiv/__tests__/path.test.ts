@@ -134,7 +134,7 @@ describe('readPath', () => {
     expect((await readPath(c, A_IOANA)).parcurs.concursuri.every((p) => p.earnedOn === null)).toBe(true);
     const dates = ['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05'];
     const source: SportivCompetitionSource = {
-      last: async () => null, count: async () => null,
+      last: async () => null,
       results: async () => dates.map((date, i) => ({ date, placement: i === 0 ? 1 : 5, eventId: `e${i}` })),
     };
     const got = await readPath({ ...c, competitions: source }, A_IOANA);
