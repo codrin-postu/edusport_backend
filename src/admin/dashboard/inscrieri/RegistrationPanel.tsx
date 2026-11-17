@@ -17,43 +17,30 @@ import {
 import { ConfirmWindow } from './ConfirmWindow';
 import { MatchCard } from './MatchCard';
 import { PanelHeader } from './PanelHeader';
+import { WhatsappDialog } from './PhoneActions';
 import { PanelBody } from './PanelTabs';
 import { usePanelData } from './usePanelData';
 import { useStickyInsets } from './useStickyInsets';
 
-type FooterProps = { row: Row; api: TableApi; onConfirm?: () => void; onContacted?: () => void };
+type FooterProps = { row: Row; api: TableApi; onConfirm?: () => void };
 
 const PANEL_BODY_ID = 'ins-tabpanel';
 
-/** "Contactat" hides itself once used: focus moves to the status menu, else to the panel heading. */
-function focusAfterContactat(panel: HTMLElement | null) {
-  requestAnimationFrame(() => {
-    const target = panel?.querySelector<HTMLElement>('.sbt-statusbox [role="combobox"]') ?? panel?.querySelector<HTMLElement>('.ins-ph-name');
-    target?.focus();
-  });
-}
-
-function ContactatButton({ row, api, onContacted }: FooterProps) {
-  const click = () => {
-    api.saveField(row.documentId, 'status', 'Contactat');
-    onContacted?.();
-  };
-  return (
-    <Button size="sm" variant="secondary" onClick={click}>
-      {PANEL_COPY.contactat}
-    </Button>
-  );
-}
-
-/** Fixed footer (spec 3.3): "Contactat" and "Confirmă înscrierea" before confirmation, "Deschide fișa sportivului" after. */
-function PanelFooter({ row, api, onConfirm, onContacted }: FooterProps) {
+/** Fixed footer (spec 3.3): "Contactează" (opens the message popup, which stays open after a status change) and "Confirmă înscrierea" before confirmation, "Deschide fișa sportivului" after. */
+function PanelFooter({ row, api, onConfirm }: FooterProps) {
   const navigate = useNavigate();
   const actions = footerActions(row);
   const athleteId = linkedAthleteId(row);
+  const [contact, setContact] = React.useState(false);
+  const phone = cellText(row.phone);
   return (
     <DetailFooter>
       <span className="ins-foot">
-        {actions.contactat && <ContactatButton row={row} api={api} onContacted={onContacted} />}
+        {actions.contactat && phone && (
+          <Button size="sm" variant="secondary" onClick={() => setContact(true)}>
+            {PANEL_COPY.contactat}
+          </Button>
+        )}
         {actions.confirm && (
           <Button size="sm" onClick={onConfirm} disabled={!onConfirm}>
             {PANEL_COPY.confirm}
@@ -65,6 +52,7 @@ function PanelFooter({ row, api, onConfirm, onContacted }: FooterProps) {
           </Button>
         )}
       </span>
+      {contact && <WhatsappDialog row={row} api={api} raw={phone} onClose={() => setContact(false)} />}
     </DetailFooter>
   );
 }
@@ -104,7 +92,6 @@ export function RegistrationPanel({ row, api }: { row: Row; api: TableApi }) {
         row={row}
         api={api}
         onConfirm={data.match ? () => setConfirming(true) : undefined}
-        onContacted={() => focusAfterContactat(ref.current)}
       />
       {confirming && data.match && (
         <ConfirmWindow row={row} view={data.match} onClose={() => setConfirming(false)} onDone={afterConfirm} />

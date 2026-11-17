@@ -25,7 +25,7 @@ export const PANEL_COPY = {
   save: 'Salvează',
   cancel: 'Anulează',
   abonamentHeading: 'Abonament',
-  contactat: 'Contactat',
+  contactat: 'Contactează',
   confirm: 'Confirmă înscrierea',
   openAthlete: 'Deschide fișa sportivului',
   more: '...',
