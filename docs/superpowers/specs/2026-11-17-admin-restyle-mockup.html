@@ -1,0 +1,332 @@
+<title>Stil admin</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: page switch (Propunere / Acum), then the interactive Înscrieri screen at desktop size, then the other pages' fixes. Admin palette, single light look like the admin. */
+:root{
+  --bg:#eef0f4;--surface:#ffffff;--subtle:#f8f9fb;--text:#1b1d22;--sec:#4a5061;--muted:#666c7c;
+  --line:#e0e3ea;--ctl:#bcc3cf;--ctl-hover:#8f97a8;--primary:#3e5a8e;--primary-hover:#334c79;--primary-soft:#ecf0f8;--on:#ffffff;
+  --nou-bg:#e8eefb;--nou-fg:#3e5a8e;--nou-line:#c6d3ee;--con-bg:#e6f3fb;--con-fg:#1f6c94;--con-line:#bfe0f1;
+  --res-bg:#fdeeee;--res-fg:#b42318;--res-line:#f4c7c3;--ok-bg:#e9f6ee;--ok-fg:#1d6b3f;--ok-line:#bfe3cc;
+  --side:#121c3d;--side-text:#c9cfe0;--side-on:#25386e;
+  --r:6px;--h:34px;--t:120ms;color-scheme:light}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--text);font:13px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.top{max-width:1280px;margin:0 auto 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--ctl);border-radius:var(--r);background:var(--surface);padding:2px;gap:2px}
+.seg button{height:28px;padding:0 12px;border:0;border-radius:4px;background:none;font-weight:600;cursor:pointer;transition:background var(--t)}
+.seg button:hover{background:var(--primary-soft)}
+.seg button[aria-pressed="true"]{background:var(--primary);color:var(--on)}
+.frame{max-width:1280px;margin:0 auto;overflow-x:auto;border-radius:8px;border:1px solid var(--line)}
+.app{width:1280px;height:800px;display:grid;grid-template-columns:220px 1fr;background:var(--bg);position:relative}
+.side{background:var(--side);color:var(--side-text);padding:14px 0;display:flex;flex-direction:column;gap:2px;font-size:13.5px}
+.brand{display:flex;gap:10px;align-items:center;padding:0 16px 14px;color:#fff;font-weight:700}
+.brand i{width:30px;height:30px;border-radius:6px;background:#2f4fd1;display:grid;place-items:center;font-style:normal;font-size:12px}
+.side a{padding:8px 18px;color:inherit;text-decoration:none;transition:background var(--t),color var(--t)}
+.side a:hover{background:rgb(255 255 255 / .06);color:#fff}
+.side a.on{background:var(--side-on);color:#fff}
+.side .grp{padding:14px 18px 4px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+.side .sub{padding-left:30px}
+.main{padding:16px;min-width:0;display:flex}
+.win{background:var(--surface);border:1px solid var(--line);border-radius:8px;flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.hd{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.hd h1{font-size:19px;margin:0;font-weight:800;letter-spacing:-.01em}
+.sp{flex:1}
+.lbl{font-size:12px;color:var(--muted);font-weight:600}
+.btn{height:var(--h);padding:0 12px;border:1px solid var(--ctl);border-radius:var(--r);background:var(--surface);font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;transition:border-color var(--t),background var(--t),box-shadow var(--t)}
+.btn:hover{border-color:var(--ctl-hover);background:var(--subtle)}
+.btn:active{background:var(--primary-soft)}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:var(--on)}
+.btn.pri:hover{background:var(--primary-hover);border-color:var(--primary-hover)}
+.btn.ico{width:var(--h);padding:0;justify-content:center}
+.btn[aria-expanded="true"]{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.chev{width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px);margin-left:2px;transition:transform var(--t)}
+[aria-expanded="true"] .chev{transform:rotate(-135deg) translateY(-1px)}
+.tagn{height:24px;padding:0 8px;border:1px solid var(--nou-line);background:var(--nou-bg);color:var(--nou-fg);border-radius:4px;font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:background var(--t),border-color var(--t)}
+.tagn:hover{border-color:var(--nou-fg)}
+.tagn[aria-pressed="true"]{background:var(--nou-fg);color:var(--on);border-color:var(--nou-fg)}
+.bar{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:nowrap}
+.search{position:relative;flex:0 1 280px;min-width:180px}
+.search input{width:100%;height:var(--h);border:1px solid var(--ctl);border-radius:var(--r);padding:0 10px 0 30px;font:inherit;background:var(--surface);transition:border-color var(--t),box-shadow var(--t)}
+.search input:hover{border-color:var(--ctl-hover)}
+.search input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.tabs{display:flex;gap:20px;padding:0 16px;border-bottom:1px solid var(--line)}
+.tabs button{height:40px;border:0;background:none;padding:0;color:var(--sec);font-weight:600;cursor:pointer;border-bottom:2px solid transparent;display:flex;gap:6px;align-items:center;transition:color var(--t),border-color var(--t)}
+.tabs button:hover{color:var(--text);border-bottom-color:var(--ctl)}
+.tabs button[aria-selected="true"]{color:var(--primary);border-bottom-color:var(--primary)}
+.cnt{font-size:11px;background:var(--bg);border-radius:4px;padding:1px 6px;color:var(--sec);font-weight:700}
+.split{flex:1;display:grid;grid-template-columns:1fr 340px;min-height:0}
+.tblw{overflow:auto;min-height:0}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{position:sticky;top:0;background:var(--surface);text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:0 8px;height:44px;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody tr{cursor:pointer;transition:background var(--t)}
+tbody tr:hover{background:var(--subtle)}
+tbody tr[aria-selected="true"]{background:var(--primary-soft)}
+td.nr{font-weight:600}
+td b{font-weight:600}
+td.muted{color:var(--sec)}
+.st{display:inline-flex;align-items:center;height:22px;padding:0 7px;border-radius:4px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;border:1px solid}
+.st.Nou{background:var(--nou-bg);color:var(--nou-fg);border-color:var(--nou-line)}
+.st.Contactat{background:var(--con-bg);color:var(--con-fg);border-color:var(--con-line)}
+.st.Respins{background:var(--res-bg);color:var(--res-fg);border-color:var(--res-line)}
+.st.Confirmat{background:var(--ok-bg);color:var(--ok-fg);border-color:var(--ok-line)}
+.cb{width:16px;height:16px;accent-color:var(--primary)}
+.panel{border-left:1px solid var(--line);background:var(--subtle);display:flex;flex-direction:column;min-height:0}
+.ph{padding:14px 16px 10px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid var(--line)}
+.ph-top{display:flex;align-items:center;gap:8px}
+.ph-top b{font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.meta{font-size:12.5px;color:var(--sec);display:flex;gap:14px}
+.meta b{color:var(--text)}
+.stsel{height:30px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;font-weight:800;border-radius:4px}
+.stsel.Nou{background:var(--nou-bg);color:var(--nou-fg);border-color:var(--nou-line)}
+.stsel.Contactat{background:var(--con-bg);color:var(--con-fg);border-color:var(--con-line)}
+.stsel.Respins{background:var(--res-bg);color:var(--res-fg);border-color:var(--res-line)}
+.stsel:hover{filter:brightness(.97)}
+.ptabs{padding:0 16px;gap:16px}
+.ptabs button{height:38px}
+.pb{flex:1;overflow:auto;padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;align-content:start}
+.f{display:flex;flex-direction:column;gap:3px;min-width:0}
+.f.w{grid-column:1/-1}
+.f span{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.f div{font-size:13.5px;overflow-wrap:anywhere}
+.phone{display:flex;align-items:center;gap:4px}
+.phone .btn{height:28px;width:28px;padding:0;justify-content:center;border-color:transparent;background:none}
+.phone .btn:hover{background:var(--surface);border-color:var(--ctl)}
+.pf{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:var(--subtle)}
+.pg{display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid var(--line);color:var(--sec)}
+.menu{position:absolute;min-width:200px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 10px 28px rgb(20 30 60 / .16);padding:4px;z-index:20;opacity:0;transform:translateY(-4px);transition:opacity var(--t),transform var(--t);pointer-events:none}
+.menu.open{opacity:1;transform:none;pointer-events:auto}
+.menu button,.menu label{display:flex;align-items:center;gap:8px;width:100%;height:32px;border:0;background:none;padding:0 10px;text-align:left;border-radius:4px;cursor:pointer;font-weight:500}
+.menu button:hover,.menu label:hover{background:var(--primary-soft)}
+.menu .sep{height:1px;background:var(--line);margin:4px 0}
+.menu .gl{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding:6px 10px 2px}
+.menu [aria-checked="true"]::after{content:"";margin-left:auto;width:9px;height:5px;border-left:2px solid var(--primary);border-bottom:2px solid var(--primary);transform:rotate(-45deg) translateY(-2px)}
+.tip{position:absolute;z-index:30;background:var(--text);color:var(--surface);font-size:12px;font-weight:500;padding:5px 8px;border-radius:4px;pointer-events:none;opacity:0;transition:opacity 90ms;white-space:nowrap}
+.tip.on{opacity:1}
+.toast{position:absolute;top:14px;right:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 10px 28px rgb(20 30 60 / .16);padding:10px 14px;font-weight:600;opacity:0;transform:translateY(-6px);transition:opacity 160ms,transform 160ms;z-index:40}
+.toast.on{opacity:1;transform:none}
+.shot img{display:block;width:100%;height:auto}
+.notes{max-width:1280px;margin:20px auto 0;display:flex;flex-direction:column;gap:14px}
+.notes h2{font-size:15px;margin:0}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
+.card img{width:100%;height:auto;display:block;border-bottom:1px solid var(--line)}
+.card div{padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.card b{font-size:13.5px}
+.card ul{margin:0;padding-left:16px;color:var(--sec)}
+.ix{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.ix ul{margin:6px 0 0;padding-left:16px;color:var(--sec);columns:2;column-gap:28px}
+@media (max-width:700px){.ix ul{columns:1}}
+
+.phones{max-width:1280px;margin:0 auto;display:flex;gap:28px;flex-wrap:wrap;justify-content:center}
+.ph-col{display:flex;flex-direction:column;gap:8px;align-items:center}
+.ph-col > span{font-weight:700;color:var(--sec)}
+.phone-f{width:390px;height:844px;max-width:100%;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--bg);position:relative;display:flex;flex-direction:column}
+.phone-f > img{width:100%;height:100%;object-fit:cover;object-position:top}
+.m-top{height:52px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 12px;background:var(--surface);border-bottom:1px solid var(--line);font-weight:700}
+.m-top .es{display:flex;gap:8px;align-items:center}.m-top i{width:26px;height:26px;border-radius:5px;background:var(--side);color:#fff;display:grid;place-items:center;font-style:normal;font-size:11px}
+.m-scr{flex:1;overflow:auto;background:var(--surface)}
+.m-hd{display:flex;align-items:center;gap:8px;padding:12px 12px 8px}
+.m-hd h1{font-size:18px;margin:0;font-weight:800}
+.m-row{display:flex;gap:8px;padding:0 12px 10px;align-items:center}
+.m-chips{display:flex;gap:6px;overflow-x:auto;padding:0 12px 10px;scrollbar-width:none}
+.m-chips .btn{height:32px;flex:none}
+.m-tabs{display:flex;gap:16px;overflow-x:auto;padding:0 12px;border-bottom:1px solid var(--line);scrollbar-width:none}
+.m-tabs button{flex:none;height:38px;border:0;background:none;padding:0;font-weight:600;color:var(--sec);border-bottom:2px solid transparent;display:flex;gap:6px;align-items:center}
+.m-tabs button[aria-selected="true"]{color:var(--primary);border-bottom-color:var(--primary)}
+.m-item{display:flex;flex-direction:column;gap:3px;padding:11px 12px;border-bottom:1px solid var(--line);cursor:pointer;transition:background var(--t)}
+.m-item:active,.m-item:hover{background:var(--subtle)}
+.m-l1{display:flex;align-items:center;gap:8px}.m-l1 b{flex:1;font-size:14.5px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-l2{display:flex;gap:12px;color:var(--sec);font-size:12.5px;font-variant-numeric:tabular-nums}
+.m-back{display:flex;align-items:center;gap:6px;height:44px;padding:0 12px;border:0;background:none;color:var(--primary);font-weight:600;cursor:pointer}
+.m-pn{display:flex;flex-direction:column;flex:1;min-height:0;background:var(--subtle)}
+.m-pn .ph{border-bottom:1px solid var(--line)}
+.m-pn .pb{grid-template-columns:1fr 1fr}
+.m-pn .pf{position:sticky;bottom:0}
+.m-pn .pf .btn{flex:1;justify-content:center;height:40px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="top">
+  <div class="seg" role="group" aria-label="Versiune">
+    <button id="v-new" aria-pressed="true">Propunere</button><button id="v-now" aria-pressed="false">Acum</button><button id="v-mob" aria-pressed="false">Telefon</button>
+  </div>
+</div>
+
+<div class="frame" id="f-new">
+<div class="app" id="app">
+  <nav class="side" aria-label="Meniu">
+    <div class="brand"><i>ES</i>EduSport</div>
+    <a href="#">Acasă</a><a href="#">Anunțuri</a><a href="#">Setări site</a><a href="#">Sezoane</a>
+    <div class="grp">Formulare</div>
+    <a class="sub" href="#">Formulare</a><a class="sub on" href="#">Înscrieri</a><a class="sub" href="#">Voluntari</a><a class="sub" href="#">Contact</a>
+    <div class="grp">Program și calendar</div><div class="grp">Club și școală</div><div class="grp">Sportivi și echipă</div>
+  </nav>
+  <div class="main"><section class="win">
+    <div class="hd">
+      <h1>Înscrieri</h1><button class="tagn" id="newTag" aria-pressed="false" data-tip="Fără arhivate"><span id="newN">11</span> noi</button>
+      <span class="sp"></span>
+      <span class="lbl">Sezon</span>
+      <button class="btn" data-menu="m-sez" aria-expanded="false">2026-2027 (activ)<i class="chev"></i></button>
+      <button class="btn ico" data-menu="m-more" aria-expanded="false" data-tip="Mai multe acțiuni">...</button>
+    </div>
+    <div class="bar">
+      <label class="search"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="6" r="4.5"/><path d="m9.5 9.5 3 3"/></svg><input id="q" type="search" placeholder="Nume, nr., telefon, e-mail" aria-label="Caută"></label>
+      <button class="btn" data-menu="m-status" aria-expanded="false">Status<i class="chev"></i></button>
+      <button class="btn" data-menu="m-nivel" aria-expanded="false">Nivel<i class="chev"></i></button>
+      <button class="btn" data-menu="m-alte" aria-expanded="false">Alte filtre<i class="chev"></i></button>
+      <span class="sp"></span>
+      <button class="btn" data-menu="m-sort" aria-expanded="false" data-tip="Sortare">Cele mai noi<i class="chev"></i></button>
+      <button class="btn ico" data-menu="m-cols" aria-expanded="false" data-tip="Coloane"><svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="1.5" y="2" width="12" height="11" rx="1"/><path d="M5.5 2v11M9.5 2v11"/></svg></button>
+      <button class="btn" data-menu="m-exp" aria-expanded="false">Export<i class="chev"></i></button>
+    </div>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-school="">Toate <span class="cnt" id="c-all">17</span></button>
+      <button role="tab" aria-selected="false" data-school="AFI Cotroceni">AFI Cotroceni <span class="cnt">15</span></button>
+      <button role="tab" aria-selected="false" data-school="Patinoar Nord">Patinoar Nord <span class="cnt">2</span></button>
+    </div>
+    <div class="split">
+      <div class="tblw"><table>
+        <thead><tr><th><input class="cb" type="checkbox" aria-label="Toate"></th><th>Nr.</th><th>Trimis la</th><th>Nume sportiv</th><th class="col-sc">Școala</th><th>Vârstă</th><th>Status</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+      <aside class="panel" id="panel"></aside>
+    </div>
+    <div class="pg"><span>Rânduri pe pagină:</span><button class="btn" style="height:30px">25<i class="chev"></i></button><span class="sp"></span><span id="pgtxt">1 - 17 din 17</span></div>
+  </section></div>
+
+  <div class="menu" id="m-status" role="menu"><label><input class="cb" type="checkbox" data-st="Nou">Nou</label><label><input class="cb" type="checkbox" data-st="Contactat">Contactat</label><label><input class="cb" type="checkbox" data-st="Confirmat">Confirmat</label><label><input class="cb" type="checkbox" data-st="Respins">Respins</label></div>
+  <div class="menu" id="m-nivel" role="menu"><label><input class="cb" type="checkbox">Începător</label><label><input class="cb" type="checkbox">Mediu</label><label><input class="cb" type="checkbox">Avansat</label></div>
+  <div class="menu" id="m-alte" role="menu"><label><input class="cb" type="checkbox">Sportiv existent</label><label><input class="cb" type="checkbox">Arhivate</label></div>
+  <div class="menu" id="m-sort" role="menu"><button role="menuitemradio" aria-checked="true">Cele mai noi</button><button role="menuitemradio" aria-checked="false">Cele mai vechi</button><button role="menuitemradio" aria-checked="false">Nume</button></div>
+  <div class="menu" id="m-cols" role="menu"><button role="menuitemradio" aria-checked="true">Compact</button><button role="menuitemradio" aria-checked="false">Toate coloanele</button></div>
+  <div class="menu" id="m-sez" role="menu"><button role="menuitemradio" aria-checked="true">2026-2027 (activ)</button><button role="menuitemradio" aria-checked="false">2025-2026</button></div>
+  <div class="menu" id="m-more" role="menu"><button role="menuitem">Mută tot sezonul...</button></div>
+  <div class="menu" id="m-exp" role="menu"><button role="menuitem">Descarcă CSV</button><button role="menuitem">Google Sheets</button><div class="sep"></div><div class="gl">Formulare goale</div><button role="menuitem">Acord (PDF)</button><button role="menuitem">Cerere de adeziune (PDF)</button></div>
+  <div class="menu" id="m-pst" role="menu"><button role="menuitemradio" data-v="Nou">Nou</button><button role="menuitemradio" data-v="Contactat">Contactat</button><button role="menuitemradio" data-v="Respins">Respins</button></div>
+  <div class="tip" id="tip" role="tooltip"></div>
+  <div class="toast" id="toast" role="status">Salvat</div>
+</div>
+</div>
+
+<div class="frame shot" id="f-now" hidden><img alt="Înscrieri acum" src="data:image/jpeg;base64,__NOW__"></div>
+
+<div class="phones" id="f-mob" hidden>
+  <div class="ph-col"><span>Acum</span><div class="phone-f"><img alt="Înscrieri pe telefon acum" src="data:image/jpeg;base64,__mobnow__"></div></div>
+  <div class="ph-col"><span>Propunere</span><div class="phone-f" id="mob">
+    <div class="m-top"><span class="es"><i>ES</i>EduSport</span><button class="btn ico" aria-label="Meniu" data-tip="Meniu"><svg width="16" height="16" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.6"><path d="M2 4h12M2 8h12M2 12h12"/></svg></button></div>
+    <div class="m-scr" id="m-list">
+      <div class="m-hd"><h1>Înscrieri</h1><button class="tagn" id="m-new" aria-pressed="false"><span id="m-newN">11</span> noi</button><span class="sp"></span><button class="btn" style="height:32px">2026-2027<i class="chev"></i></button><button class="btn ico" style="height:32px;width:32px" aria-label="Mai multe acțiuni">...</button></div>
+      <div class="m-row"><label class="search" style="flex:1 1 auto;min-width:0"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="6" cy="6" r="4.5"/><path d="m9.5 9.5 3 3"/></svg><input id="m-q" type="search" placeholder="Nume, nr., telefon" aria-label="Caută"></label></div>
+      <div class="m-chips"><button class="btn">Status<i class="chev"></i></button><button class="btn">Nivel<i class="chev"></i></button><button class="btn">Alte filtre<i class="chev"></i></button><button class="btn">Cele mai noi<i class="chev"></i></button><button class="btn">Export<i class="chev"></i></button></div>
+      <div class="m-tabs" role="tablist"><button role="tab" aria-selected="true" data-s="">Toate <span class="cnt">17</span></button><button role="tab" aria-selected="false" data-s="AFI Cotroceni">AFI Cotroceni <span class="cnt">15</span></button><button role="tab" aria-selected="false" data-s="Patinoar Nord">Patinoar Nord <span class="cnt">2</span></button></div>
+      <div id="m-items"></div>
+    </div>
+    <div class="m-pn" id="m-panel" hidden></div>
+  </div></div>
+</div>
+<div class="notes">
+  <div class="ix">
+    <h2>Interacțiune</h2>
+    <ul>
+      <li>Hover pe rând, buton, câmp, tab: fundal sau contur mai închis</li>
+      <li>Rând selectat: fundal albastru deschis</li>
+      <li>Meniuri: apar cu o mică alunecare, bifă la opțiunea aleasă</li>
+      <li>Buton cu meniul deschis: contur albastru</li>
+      <li>Tooltip la 0,25 s pe pictograme</li>
+      <li>Status schimbat direct din eticheta de lângă nume, apoi "Salvat"</li>
+      <li>Focus de la tastatură: inel albastru</li>
+      <li>"11 noi": apăsat filtrează, apăsat din nou anulează</li>
+    </ul>
+  </div>
+  <div class="ix">
+    <h2>Înscrieri, ce s-a schimbat</h2>
+    <ul>
+      <li>Căutare și filtre pe un singur rând, sortare și Export la dreapta</li>
+      <li>Compact / Toate coloanele într-o pictogramă</li>
+      <li>Taburile fără "Școala de Patinaj -"</li>
+      <li>Coloana Școala ascunsă pe tabul unei școli; rânduri de 44px pe un rând</li><li>Compact fără "Completat de" (e în panou)</li>
+      <li>Panou: statusul lângă nume, fără caseta mare</li>
+      <li>Panou: câmpurile scurte pe două coloane</li>
+    </ul>
+  </div>
+  <h2>Alte pagini</h2>
+  <div class="list">
+    <div class="card"><img alt="" src="data:image/jpeg;base64,__program__"><div><b>Program</b><ul><li>Caseta Pauze goală ocupă mult: ascunsă când e goală, "Adaugă pauză" în antet</li><li>Legenda calendarului pe un rând mai scurt</li></ul></div></div>
+    <div class="card"><img alt="" src="data:image/jpeg;base64,__contab__"><div><b>Contabilitate</b><ul><li>Titluri dublate ("Pe scurt", "Restanțe" sub tab): rămâne doar tabul</li><li>Cele 5 cifre pe un rând mai jos</li></ul></div></div>
+    <div class="card"><img alt="" src="data:image/jpeg;base64,__record__"><div><b>Fișa sportivului</b><ul><li>Prezențe: rânduri de 40px, săgeata doar la hover</li><li>Etichete Grup / Neplătit mai mici</li></ul></div></div>
+    <div class="card"><img alt="" src="data:image/jpeg;base64,__sportivi__"><div><b>Sportivi</b><ul><li>Contact pe un rând: părintele, telefonul în panou</li><li>Rânduri de 44px</li></ul></div></div>
+    <div class="card"><img alt="" src="data:image/jpeg;base64,__prezenta__"><div><b>Prezență</b><ul><li>Zilele cu mai mult spațiu deasupra</li><li>Antrenorii trunchiați cu tooltip</li></ul></div></div>
+    <div class="card"><img alt="" src="data:image/jpeg;base64,__acasa__"><div><b>Acasă</b><ul><li>Textul de 10px din carduri la 11-12px</li><li>Mai mult spațiu între carduri</li></ul></div></div>
+  </div>
+  <div class="ix"><h2>Peste tot</h2><ul><li>Etichete mici de 10px la 11px</li><li>Antet tabel 11px</li><li>Contururi deschise, albe, colțuri 6px</li><li>Butoane și liste 13px, aceeași grosime</li></ul></div>
+</div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const R=[["2026-0006","26 oct 2026","Luca Popa","AFI Cotroceni","7 ani","Nou","George Popa"],["2026-0005","26 oct 2026","TEST Copil Dumitru","AFI Cotroceni","11 ani","Nou","Cristina Dumitru"],["2026-0004","26 oct 2026","David Stan","AFI Cotroceni","9 ani","Nou","Mihai Stan"],["2026-0003","26 oct 2026","Sofia Radu","AFI Cotroceni","7 ani","Nou","Elena Radu"],["2026-0002","26 oct 2026","Andrei Ionescu","AFI Cotroceni","9 ani","Nou","Ion Ionescu"],["2026-0001","26 oct 2026","Maria Pop","AFI Cotroceni","8 ani","Nou","Ana Pop"],["2026-0017","24 oct 2026","Petra Sima","AFI Cotroceni","9 ani","Contactat","Oana Sima"],["2026-0016","24 oct 2026","Bianca Florea","Patinoar Nord","9 ani","Nou","Ramona Florea"],["2026-0015","23 oct 2026","Rareș Dobre","AFI Cotroceni","8 ani","Respins","Nicoleta Dobre"],["2026-0014","23 oct 2026","Victor Lungu","Patinoar Nord","12 ani","Confirmat","Monica Lungu"],["2026-0013","22 oct 2026","Gabriel Stoica","AFI Cotroceni","10 ani","Nou","Irina Stoica"],["2026-0012","22 oct 2026","Ioana Matei","AFI Cotroceni","6 ani","Nou","Dan Matei"],["2026-0011","21 oct 2026","Tudor Enache","AFI Cotroceni","8 ani","Nou","Alina Enache"]];
+let sel=0, school='', onlyNew=false, stF=new Set();
+const app=$('#app');
+function visible(){const q=$('#q').value.trim().toLowerCase();return R.map((r,i)=>[r,i]).filter(([r])=>(!school||r[3]===school)&&(!onlyNew||r[5]==='Nou')&&(!stF.size||stF.has(r[5]))&&(!q||r.join(' ').toLowerCase().includes(q)));}
+function rows(){const v=visible();$$('.col-sc').forEach(e=>e.hidden=!!school);
+ $('#rows').innerHTML=v.map(([r,i])=>`<tr data-i="${i}" aria-selected="${i===sel}"><td><input class="cb" type="checkbox" aria-label="${r[2]}"></td><td class="nr">${r[0]}</td><td class="muted">${r[1]}</td><td><b>${r[2]}</b></td>${school?'':`<td class="muted">${r[3]}</td>`}<td>${r[4]}</td><td><span class="st ${r[5]}">${r[5]}</span></td></tr>`).join('');
+ $('#pgtxt').textContent=`1 - ${v.length} din ${v.length}`;$('#newN').textContent=R.filter(r=>r[5]==='Nou').length;}
+function panel(){const r=R[sel];const stEl=r[5]==='Confirmat'?`<span class="st Confirmat">Confirmat</span>`:`<button class="btn stsel ${r[5]}" data-menu="m-pst" aria-expanded="false">${r[5]}<i class="chev"></i></button>`;
+ $('#panel').innerHTML=`<div class="ph"><div class="ph-top"><b>${r[2]}</b>${stEl}<button class="btn ico" data-tip="Mai multe acțiuni" style="height:30px;width:30px">...</button></div><div class="meta"><span>Nr. <b>${r[0]}</b></span><span>Trimis <b>${r[1]}, 12:32</b></span></div></div>
+ <div class="tabs ptabs" role="tablist"><button role="tab" aria-selected="true">Date</button><button role="tab" aria-selected="false">Abonament</button><button role="tab" aria-selected="false">Documente <span class="cnt">1</span></button><button role="tab" aria-selected="false">Istoric <span class="cnt">3</span></button></div>
+ <div class="pb"><div class="f w"><span>E-mail</span><div>${r[6].toLowerCase().replace(' ','.')}@example.invalid</div></div><div class="f"><span>Completat de</span><div>${r[6]}</div></div><div class="f"><span>Calitatea</span><div>Părinte</div></div>
+ <div class="f w"><span>Telefon</span><div class="phone">+40 700 000 00${sel%9}<button class="btn" data-tip="Copiază" aria-label="Copiază"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="4" width="7.5" height="7.5" rx="1"/><path d="M2 9V2h7"/></svg></button><button class="btn" data-tip="Trimite mesaj" aria-label="Trimite mesaj"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 2.5h9v6H6l-3 2.5v-2.5H2z"/></svg></button></div></div>
+ <div class="f"><span>Copilul</span><div>${r[2]}</div></div><div class="f"><span>Vârstă</span><div>${r[4]}</div></div><div class="f"><span>Data nașterii</span><div>12/04/2018</div></div><div class="f"><span>Înălțime</span><div>122 cm</div></div><div class="f"><span>Bluză</span><div>128</div></div><div class="f"><span>Nivel</span><div>Începător</div></div>
+ <div class="f w"><span>Așteptări</span><div>Să învețe să patineze în siguranță și să se distreze.</div></div></div>
+ <div class="pf">${r[5]==='Nou'||r[5]==='Respins'?'<button class="btn">Contactează</button>':''}<button class="btn pri">Confirmă înscrierea</button></div>`;}
+function closeMenus(){$$('.menu.open').forEach(m=>m.classList.remove('open'));$$('[aria-expanded="true"]').forEach(b=>b.setAttribute('aria-expanded','false'));}
+function openMenu(btn){const m=$('#'+btn.dataset.menu);const was=btn.getAttribute('aria-expanded')==='true';closeMenus();if(was)return;
+ const a=app.getBoundingClientRect(),b=btn.getBoundingClientRect();btn.setAttribute('aria-expanded','true');m.classList.add('open');
+ const w=m.offsetWidth;let left=b.left-a.left;if(left+w>a.width-8)left=b.right-a.left-w;m.style.left=left+'px';m.style.top=(b.bottom-a.top+6)+'px';m._btn=btn;}
+app.addEventListener('click',e=>{const mb=e.target.closest('[data-menu]');if(mb){e.stopPropagation();openMenu(mb);return;}
+ const tr=e.target.closest('tbody tr');if(tr&&!e.target.closest('input')){sel=+tr.dataset.i;rows();panel();return;}
+ const tab=e.target.closest('.win > .tabs [role=tab]');if(tab){$$('.win > .tabs [role=tab]').forEach(t=>t.setAttribute('aria-selected',String(t===tab)));school=tab.dataset.school;rows();return;}
+ const pt=e.target.closest('.ptabs [role=tab]');if(pt){$$('.ptabs [role=tab]').forEach(t=>t.setAttribute('aria-selected',String(t===pt)));return;}
+ const opt=e.target.closest('#m-pst button');if(opt){R[sel][5]=opt.dataset.v;closeMenus();rows();panel();toast();return;}
+ const radio=e.target.closest('.menu [role=menuitemradio]');if(radio){radio.parentElement.querySelectorAll('[role=menuitemradio]').forEach(x=>x.setAttribute('aria-checked',String(x===radio)));const b=radio.parentElement._btn;if(b&&b.id!=='')b.firstChild.textContent=radio.textContent;closeMenus();return;}
+ if(e.target.closest('.menu [role=menuitem]')){closeMenus();return;}
+ if(!e.target.closest('.menu'))closeMenus();});
+$('#m-sort').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{}));
+$$('#m-status input').forEach(c=>c.addEventListener('change',()=>{c.checked?stF.add(c.dataset.st):stF.delete(c.dataset.st);rows();}));
+$('#newTag').addEventListener('click',e=>{e.stopPropagation();onlyNew=!onlyNew;$('#newTag').setAttribute('aria-pressed',String(onlyNew));rows();});
+$('#q').addEventListener('input',rows);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenus();});
+document.addEventListener('click',e=>{if(!app.contains(e.target))closeMenus();});
+let tt;const tip=$('#tip');
+app.addEventListener('pointerover',e=>{const el=e.target.closest('[data-tip]');clearTimeout(tt);tip.classList.remove('on');if(!el||el.getAttribute('aria-expanded')==='true')return;
+ tt=setTimeout(()=>{tip.textContent=el.dataset.tip;const a=app.getBoundingClientRect(),b=el.getBoundingClientRect();tip.style.left=Math.max(4,b.left-a.left+b.width/2-tip.offsetWidth/2)+'px';tip.style.top=(b.top-a.top-tip.offsetHeight-6)+'px';tip.classList.add('on');},250);});
+app.addEventListener('pointerdown',()=>{clearTimeout(tt);tip.classList.remove('on');});
+let th;function toast(){const t=$('#toast');t.classList.add('on');clearTimeout(th);th=setTimeout(()=>t.classList.remove('on'),1600);}
+
+const mob=$('#mob');let mSchool='',mNew=false,mSel=0;
+function mItems(){const q=$('#m-q').value.trim().toLowerCase();
+ $('#m-items').innerHTML=R.map((r,i)=>[r,i]).filter(([r])=>(!mSchool||r[3]===mSchool)&&(!mNew||r[5]==='Nou')&&(!q||r.join(' ').toLowerCase().includes(q))).map(([r,i])=>`<div class="m-item" data-i="${i}" role="button" tabindex="0"><div class="m-l1"><b>${r[2]}</b><span class="st ${r[5]}">${r[5]}</span></div><div class="m-l2"><span>${r[0]}</span><span>${r[4]}</span>${mSchool?'':`<span>${r[3]}</span>`}<span>${r[1].replace(' 2026','')}</span></div></div>`).join('');
+ $('#m-newN').textContent=R.filter(r=>r[5]==='Nou').length;}
+function mPanel(){const r=R[mSel];const stEl=r[5]==='Confirmat'?`<span class="st Confirmat">Confirmat</span>`:`<button class="btn stsel ${r[5]}" data-mst>${r[5]}<i class="chev"></i></button>`;
+ $('#m-panel').innerHTML=`<button class="m-back" data-back><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7.5 2 3.5 6l4 4"/></svg>Înscrieri</button>
+ <div class="ph"><div class="ph-top"><b>${r[2]}</b>${stEl}<button class="btn ico" style="height:30px;width:30px" aria-label="Mai multe acțiuni">...</button></div><div class="meta"><span>Nr. <b>${r[0]}</b></span><span>Trimis <b>${r[1]}</b></span></div></div>
+ <div class="tabs ptabs m-tabs" role="tablist"><button role="tab" aria-selected="true">Date</button><button role="tab" aria-selected="false">Abonament</button><button role="tab" aria-selected="false">Documente <span class="cnt">1</span></button><button role="tab" aria-selected="false">Istoric <span class="cnt">3</span></button></div>
+ <div class="pb"><div class="f w"><span>Telefon</span><div class="phone">+40 700 000 00${mSel%9}<button class="btn" aria-label="Copiază"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="4" width="7.5" height="7.5" rx="1"/><path d="M2 9V2h7"/></svg></button><button class="btn" aria-label="Trimite mesaj"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 2.5h9v6H6l-3 2.5v-2.5H2z"/></svg></button></div></div>
+ <div class="f w"><span>E-mail</span><div>${r[6].toLowerCase().replace(' ','.')}@example.invalid</div></div><div class="f"><span>Completat de</span><div>${r[6]}</div></div><div class="f"><span>Calitatea</span><div>Părinte</div></div><div class="f"><span>Vârstă</span><div>${r[4]}</div></div><div class="f"><span>Data nașterii</span><div>12/04/2018</div></div><div class="f"><span>Înălțime</span><div>122 cm</div></div><div class="f"><span>Bluză</span><div>128</div></div><div class="f w"><span>Așteptări</span><div>Să învețe să patineze în siguranță și să se distreze.</div></div></div>
+ <div class="pf">${r[5]==='Nou'||r[5]==='Respins'?'<button class="btn">Contactează</button>':''}<button class="btn pri">Confirmă</button></div>`;}
+mob.addEventListener('click',e=>{const it=e.target.closest('.m-item');if(it){mSel=+it.dataset.i;mPanel();$('#m-list').hidden=true;$('#m-panel').hidden=false;return;}
+ if(e.target.closest('[data-back]')){$('#m-panel').hidden=true;$('#m-list').hidden=false;mItems();return;}
+ const st=e.target.closest('[data-mst]');if(st){const order=['Nou','Contactat','Respins'];R[mSel][5]=order[(order.indexOf(R[mSel][5])+1)%3];mPanel();rows();panel();return;}
+ const t=e.target.closest('#m-list .m-tabs [role=tab]');if(t){mob.querySelectorAll('#m-list .m-tabs [role=tab]').forEach(x=>x.setAttribute('aria-selected',String(x===t)));mSchool=t.dataset.s;mItems();return;}
+ const pt=e.target.closest('#m-panel [role=tab]');if(pt){mob.querySelectorAll('#m-panel [role=tab]').forEach(x=>x.setAttribute('aria-selected',String(x===pt)));}});
+$('#m-new').addEventListener('click',()=>{mNew=!mNew;$('#m-new').setAttribute('aria-pressed',String(mNew));mItems();});
+$('#m-q').addEventListener('input',mItems);
+for(const k of ['new','now','mob'])$('#v-'+k).onclick=()=>{if(k==='mob')mItems();$('#f-new').hidden=k!=='new';$('#f-now').hidden=k!=='now';$('#f-mob').hidden=k!=='mob';$$('.top .seg button').forEach(b=>b.setAttribute('aria-pressed',String(b.id==='v-'+k)));};
+rows();panel();
+})();
+</script>
