@@ -15,10 +15,10 @@ export function fillMessage(template: string, names: Names): string {
 
 export const whatsappMessage = (names: Names): string => fillMessage(WHATSAPP_MESSAGE, names);
 
-/** wa.me link with the (edited) message; null when the phone does not parse. */
+/** whatsapp: app link with the (edited) message (opens the installed app, not the wa.me web page); null when the phone does not parse. */
 export function whatsappUrl(raw: string, text: string): string | null {
   const digits = whatsappDigits(raw);
-  return digits ? `https://wa.me/${digits}?text=${encodeURIComponent(text)}` : null;
+  return digits ? `whatsapp://send?phone=${digits}&text=${encodeURIComponent(text)}` : null;
 }
 
 /** sms: link with the (edited) message; null when the phone does not parse. */

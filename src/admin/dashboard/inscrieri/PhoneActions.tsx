@@ -8,13 +8,13 @@ import { formatPhone, normalizePhone } from '../../../club/phone';
 
 const BTN = 'ui-btn ui-btn--ghost ui-btn--sm ui-btn--icon';
 
-/** WhatsApp / SMS popup: the message is edited here, WhatsApp opens in a new tab, SMS in the phone's messages app, the status is changed on return (saved like the panel status). */
+/** WhatsApp / SMS popup: the message is edited here, WhatsApp and SMS open their apps, the status is changed on return (saved like the panel status). */
 function WhatsappDialog({ row, api, raw, onClose }: { row: Row; api: TableApi; raw: string; onClose: () => void }) {
   const [text, setText] = React.useState(() => whatsappMessage({ parinte: cellText(row.parentName), copil: cellText(row.childName) }));
   const url = whatsappUrl(raw, text);
   const sms = smsUrl(raw, text);
   const open = () => {
-    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    if (url) window.location.href = url;
   };
   const openSms = () => {
     if (sms) window.location.href = sms;

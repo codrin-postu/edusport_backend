@@ -6,9 +6,9 @@ import { PHONE_COPY, WHATSAPP_MESSAGE, fillMessage, smsUrl, whatsappMessage, wha
 const names = { parinte: 'Ana', copil: 'Mihai' };
 const admin = (...p: string[]) => readFileSync(join(__dirname, '..', '..', 'admin', 'dashboard', ...p), 'utf8');
 
-it('builds the wa.me link from the E.164 digits and the edited message', () => {
-  expect(whatsappUrl('0722123456', 'Bună ziua & mulțumim')).toBe('https://wa.me/40722123456?text=' + encodeURIComponent('Bună ziua & mulțumim'));
-  expect(whatsappUrl('+40 722 123 456', 'x')).toContain('https://wa.me/40722123456?');
+it('builds the WhatsApp app link from the E.164 digits and the edited message', () => {
+  expect(whatsappUrl('0722123456', 'Bună ziua & mulțumim')).toBe('whatsapp://send?phone=40722123456&text=' + encodeURIComponent('Bună ziua & mulțumim'));
+  expect(whatsappUrl('+40 722 123 456', 'x')).toContain('whatsapp://send?phone=40722123456&');
 });
 
 it('prefills the dialog with the template and the names', () => {
