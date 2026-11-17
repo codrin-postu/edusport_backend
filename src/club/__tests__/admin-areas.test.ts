@@ -107,13 +107,20 @@ describe('dashboard parts', () => {
 });
 
 describe('Contabilitate parts by area', () => {
-  it('ContabilitatePage loads the overview and accounting only with money and hides the glance', () => {
+  it('ContabilitatePage loads the overview and accounting only with money and hides the glance cards', () => {
     const src = read('dashboard/ContabilitatePage.tsx');
     expect(src).toContain("const money = has(GLANCE_AREA)");
     expect(src).toContain('api.overview, month, money)');
     expect(src).toContain("api.accounting, month, money && tab === 'pe-grupe')");
-    expect(src).toContain('{money && <header');
+    expect(src).toContain('{money && overview.data && <BaniCards');
     expect(src).toContain('readContabQuery(search.toString(), today, tabs.map((t) => t.id))');
+  });
+
+  it('no section title repeats the active tab or "Pe scurt"; the subtitle stays', () => {
+    const src = read('dashboard/ContabilitatePage.tsx');
+    expect(src).not.toContain('ui-ph-title');
+    expect(src).not.toContain('copy.glance');
+    expect(src).toContain('<p className="ui-ph-sub">{sub}</p>');
   });
 });
 

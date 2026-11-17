@@ -24,7 +24,7 @@ import { PlatiBody } from './bani/PlatiList';
 import { MONEY_CSS } from './bani/styles';
 
 const copy = CONTABILITATE_COPY;
-/** "Pe scurt" and "Pe grupe" read /club/money/*, which is area `money`; Restanțe, Abonamente and Plăți read routes of area `club`. */
+/** The overview cards and "Pe grupe" read /club/money/*, which is area `money`; Restanțe, Abonamente and Plăți read routes of area `club`. */
 export const GLANCE_AREA: AdminArea = 'money';
 export const TABS: { id: ContabTab; label: string }[] = [
   { id: 'restante', label: copy.tabs.restante },
@@ -90,7 +90,6 @@ export default function ContabilitatePage() {
     </div>
   );
   if (!ready) return <AdminPage><Loading /></AdminPage>;
-  const label = tabs.find((t) => t.id === tab)?.label ?? '';
   const sub = subOf(tab, month);
   return (
     <AdminPage>
@@ -99,7 +98,6 @@ export default function ContabilitatePage() {
         <PageHeader title={copy.title} actions={stepper} />
         {money && overview.failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
         {money && !overview.data && !overview.failed && <Loading />}
-        {money && <header className="ui-ph"><div><h2 className="ui-ph-title">{copy.glance}</h2></div></header>}
         {money && overview.data && <BaniCards cards={overview.data.cards} month={month} current={month === monthOf(today)} onOpen={(to, params) => navigate(contabTo({ tab: to, month, params }))} />}
         <Tabs
           label={copy.title} value={tab} panelId="contab-panel"
@@ -109,10 +107,7 @@ export default function ContabilitatePage() {
       </Window>
       <Window id="contab-panel" role="tabpanel">
         <header className="ui-ph">
-          <div>
-            <h2 className="ui-ph-title">{label}</h2>
-            {sub && <p className="ui-ph-sub">{sub}</p>}
-          </div>
+          <div>{sub && <p className="ui-ph-sub">{sub}</p>}</div>
           <div className="ui-ph-actions" ref={setHost} />
         </header>
         {tab === 'restante' && <DeIncasatBody {...body} />}

@@ -72,7 +72,6 @@ export const BANI_COPY = {
 export const CONTABILITATE_COPY = {
   title: 'Contabilitate',
   menu: 'Contabilitate',
-  glance: 'Pe scurt',
   tabs: { restante: 'Restanțe', abonamente: 'Abonamente', plati: 'Plăți', peGrupe: 'Pe grupe' },
   restante: {
     section: 'Secțiune',
