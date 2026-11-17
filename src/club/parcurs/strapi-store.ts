@@ -1,5 +1,6 @@
 import type { Core } from '@strapi/strapi';
 import { transactionScope, type Scope, raws, str, text, linkId, type Raw } from '../athletes/strapi-store';
+import { JUMP_CODES } from './catalog';
 import type { JumpCode, JumpLevel } from './api-types';
 import type { AwardRow, GrantRow, ParcursStore, PinRow } from './store';
 
@@ -12,13 +13,23 @@ const GRANT_POPULATE = { athlete: { fields: ['documentId' as const] } };
 const PIN_POPULATE = { grant: { fields: ['documentId' as const] }, giver: { fields: ['documentId' as const] }, recipient: { fields: ['documentId' as const] } };
 const KINDS = ['steaua', 'test', 'jump'] as const;
 
+const corrupt = (what: string, r: Raw): never => {
+  throw new Error(`badge-award ${text(r.documentId)}: ${what}`);
+};
+
 export function toAwardRow(r: Raw): AwardRow {
+  const kind = KINDS.find((k) => k === r.kind);
+  if (!kind) corrupt(`unknown kind ${String(r.kind)}`, r);
   const teamMemberId = linkId(r.givenByTeamMember);
-  const adminId = r.givenByAdminId === null || r.givenByAdminId === undefined ? '' : String(r.givenByAdminId);
+  const adminId = typeof r.givenByAdminId === 'number' ? String(r.givenByAdminId) : null;
+  if (!teamMemberId && adminId === null) corrupt('no giver', r);
+  const jump = str(r.jump);
+  if (jump !== null && !JUMP_CODES.some((c) => c === jump)) corrupt(`unknown jump ${jump}`, r);
+  if (r.level !== null && r.level !== undefined && ![1, 2, 3].includes(r.level as number)) corrupt(`bad level ${String(r.level)}`, r);
   return {
-    id: text(r.documentId), athleteId: linkId(r.athlete) ?? '', kind: KINDS.find((k) => k === r.kind) ?? 'steaua',
-    jump: str(r.jump) as JumpCode | null, level: typeof r.level === 'number' ? (r.level as JumpLevel) : null,
-    givenBy: teamMemberId ? { teamMemberId } : { adminId }, givenOn: text(r.givenOn),
+    id: text(r.documentId), athleteId: linkId(r.athlete) ?? '', kind: kind as AwardRow['kind'],
+    jump: jump as JumpCode | null, level: typeof r.level === 'number' ? (r.level as JumpLevel) : null,
+    givenBy: teamMemberId ? { teamMemberId } : { adminId: adminId as string }, givenOn: text(r.givenOn),
   };
 }
 
@@ -30,9 +41,15 @@ export const toPinRow = (r: Raw): PinRow => ({
   id: text(r.documentId), grantId: linkId(r.grant) ?? '', giverId: linkId(r.giver) ?? '', recipientId: linkId(r.recipient) ?? '', design: Number(r.design), givenOn: text(r.givenOn),
 });
 
-const awardData = (row: Omit<AwardRow, 'id'>) => ({
+function adminNumber(id: string): number {
+  const n = Number(id);
+  if (id === '' || !Number.isInteger(n)) throw new Error(`givenBy.adminId must be an integer, got "${id}"`);
+  return n;
+}
+
+export const awardData = (row: Omit<AwardRow, 'id'>) => ({
   athlete: row.athleteId, kind: row.kind, jump: row.jump, level: row.level, givenOn: row.givenOn,
-  ...('teamMemberId' in row.givenBy ? { givenByTeamMember: row.givenBy.teamMemberId } : { givenByAdminId: Number(row.givenBy.adminId) }),
+  ...('teamMemberId' in row.givenBy ? { givenByTeamMember: row.givenBy.teamMemberId } : { givenByAdminId: adminNumber(row.givenBy.adminId) }),
 });
 
 /** Pass the scope of the store built for the same request so the writes join its transaction. */
@@ -68,12 +85,16 @@ export function strapiParcursStore(strapi: Core.Strapi, scope: Scope = transacti
 const idsOf = async (strapi: Core.Strapi, uid: typeof AWARD | typeof GRANT | typeof PIN, where: Record<string, unknown>) =>
   raws(await strapi.db.query(uid).findMany({ where, select: ['id'], limit: MAX })).map((r) => r.id as number);
 
+async function deleteByIds(strapi: Core.Strapi, uid: typeof AWARD | typeof GRANT | typeof PIN, where: Record<string, unknown>): Promise<void> {
+  const ids = await idsOf(strapi, uid, where);
+  if (ids.length) await strapi.db.query(uid).deleteMany({ where: { id: { $in: ids } } });
+}
+
 async function dropForAthlete(strapi: Core.Strapi, athleteId: string): Promise<void> {
   const mine = { athlete: { documentId: athleteId } };
-  const pinIds = await idsOf(strapi, PIN, { $or: [{ giver: { documentId: athleteId } }, { recipient: { documentId: athleteId } }, { grant: mine }] });
-  if (pinIds.length) await strapi.db.query(PIN).deleteMany({ where: { id: { $in: pinIds } } });
-  await strapi.db.query(GRANT).deleteMany({ where: { id: { $in: await idsOf(strapi, GRANT, mine) } } });
-  await strapi.db.query(AWARD).deleteMany({ where: { id: { $in: await idsOf(strapi, AWARD, mine) } } });
+  await deleteByIds(strapi, PIN, { $or: [{ giver: { documentId: athleteId } }, { recipient: { documentId: athleteId } }, { grant: mine }] });
+  await deleteByIds(strapi, GRANT, mine);
+  await deleteByIds(strapi, AWARD, mine);
 }
 
 async function moveForMerge(strapi: Core.Strapi, keptId: string, removedId: string): Promise<void> {
