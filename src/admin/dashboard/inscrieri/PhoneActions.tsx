@@ -1,19 +1,48 @@
 import * as React from 'react';
-import { adminToast } from '../../ui';
+import { Button, Modal, Textarea, adminToast } from '../../ui';
 import { IconCopy, IconWarning, IconWhatsapp } from '../../ui/icons';
 import type { Row, TableApi } from '../SubmissionTable';
-import { PHONE_COPY, statusAfterWhatsapp, whatsappUrl } from '../../../club/inscrieri-phone';
-import { cellText, isAnonymizedRow, registrationStatus } from '../../../club/inscrieri-panel';
+import { PHONE_COPY, whatsappMessage, whatsappUrl } from '../../../club/inscrieri-phone';
+import { cellText, isAnonymizedRow } from '../../../club/inscrieri-panel';
 import { formatPhone, normalizePhone } from '../../../club/phone';
 
 const BTN = 'ui-btn ui-btn--ghost ui-btn--sm ui-btn--icon';
 
-/** The phone number with a copy button and a WhatsApp link; archived and anonymized rows show the number only. */
+/** WhatsApp popup: the message is edited here, WhatsApp opens in a new tab, the status is changed on return (saved like the panel status). */
+function WhatsappDialog({ row, api, raw, onClose }: { row: Row; api: TableApi; raw: string; onClose: () => void }) {
+  const [text, setText] = React.useState(() => whatsappMessage({ parinte: cellText(row.parentName), copil: cellText(row.childName) }));
+  const url = whatsappUrl(raw, text);
+  const open = () => {
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  };
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={formatPhone(raw).text}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            {PHONE_COPY.close}
+          </Button>
+          <Button disabled={!url} onClick={open}>
+            {PHONE_COPY.whatsapp}
+          </Button>
+        </>
+      }
+    >
+      <Textarea rows={5} aria-label={PHONE_COPY.whatsapp} value={text} onChange={(e) => setText(e.target.value)} />
+      {api.statusBox(row)}
+    </Modal>
+  );
+}
+
+/** The phone number with a copy button and a WhatsApp popup; archived and anonymized rows show the number only. */
 export function PhoneActions({ row, api }: { row: Row; api: TableApi }) {
+  const [dialog, setDialog] = React.useState(false);
   const raw = cellText(row.phone);
   const shown = formatPhone(raw);
   const readOnly = isAnonymizedRow(row) || row.archived === true;
-  const url = whatsappUrl(raw, { parinte: cellText(row.parentName), copil: cellText(row.childName) });
   if (readOnly || !raw) return <span className="ins-phone">{shown.text}</span>;
 
   const copy = () => {
@@ -22,10 +51,6 @@ export function PhoneActions({ row, api }: { row: Row; api: TableApi }) {
       () => adminToast.success(PHONE_COPY.copied),
       () => undefined,
     );
-  };
-  const contacted = () => {
-    const next = statusAfterWhatsapp(registrationStatus(row));
-    if (next) api.saveField(row.documentId, 'status', next);
   };
 
   return (
@@ -39,10 +64,15 @@ export function PhoneActions({ row, api }: { row: Row; api: TableApi }) {
       <button type="button" className={BTN} aria-label={PHONE_COPY.copy} title={PHONE_COPY.copy} onClick={copy}>
         <IconCopy />
       </button>
-      {url && (
-        <a className={BTN} href={url} target="_blank" rel="noopener noreferrer" aria-label={PHONE_COPY.whatsapp} title={PHONE_COPY.whatsapp} onClick={contacted}>
+      {whatsappUrl(raw, '') && (
+        <button type="button" className={BTN} aria-label={PHONE_COPY.whatsapp} title={PHONE_COPY.whatsapp} onClick={() => setDialog(true)}>
           <IconWhatsapp />
-        </a>
+        </button>
+      )}
+      {dialog && (
+        <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          <WhatsappDialog row={row} api={api} raw={raw} onClose={() => setDialog(false)} />
+        </span>
       )}
     </span>
   );
