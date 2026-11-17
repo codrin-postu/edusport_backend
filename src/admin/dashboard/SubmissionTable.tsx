@@ -249,8 +249,8 @@ export interface SubmissionTableCfg {
     searchPlaceholder: string;
     empty: string;
     loadError: string;
-    /** Appended after the "X noi" stat, e.g. ', exclus arhivate'. */
-    statSuffix: string;
+    /** Appended after the "X noi" stat, e.g. ', exclus arhivate' (unused with `compactHeader`). */
+    statSuffix?: string;
     deleteConfirm: string;
     /**
      * Plural noun for the bulk-delete confirmation, e.g. 'înscrieri'. This table
@@ -270,8 +270,13 @@ export interface SubmissionTableCfg {
   };
   /** Extra CSS appended after the shared stylesheet (screen-specific bits, tokens only). */
   extraCss?: string;
-  /** Page-specific buttons at the start of the header actions (Înscrieri: "Formulare goale"). */
-  headerActions?: React.ReactNode;
+  /**
+   * Înscrieri header: a "N noi" tag by the title (filters to Nou) instead of the stat block, and
+   * "Mută tot sezonul..." in a "..." menu right of the Sezon select.
+   */
+  compactHeader?: boolean;
+  /** Items appended to the Export menu after its own (Înscrieri: "Formulare goale"); `close` shuts the menu. */
+  exportExtras?: (close: () => void) => React.ReactNode;
   /** Desktop: the page fits the window, the list and the panel body scroll inside (AdminPage `fit`). */
   fitPage?: boolean;
 }
@@ -458,6 +463,9 @@ const TABLE_CSS = `
 .ui-root .sbt-stat{text-align:right;font-size:12px;color:var(--theme-text-muted);white-space:nowrap;line-height:1.45}
 .ui-root .sbt-stat b{color:var(--theme-text);font-size:15px}
 .ui-root .sbt-stat .sbt-noi{color:var(--theme-danger);font-weight:700}
+.ui-root .sbt-title{display:inline-flex;align-items:center;gap:10px}
+.ui-root .sbt-newtag{display:inline-flex;padding:0;border:0;background:none;font:inherit;cursor:pointer;border-radius:var(--ui-radius-sm)}
+.ui-root .sbt-newtag .ui-badge{text-transform:uppercase}
 .ui-root .sbt-season{display:flex;align-items:center;gap:7px}
 .ui-root .sbt-season .ui-input{width:auto}
 .ui-root .sbt-lbl{font-size:11px;color:var(--theme-text-muted);font-weight:600}
@@ -590,6 +598,7 @@ const IconMenuTrigger = React.forwardRef<
       variant="secondary"
       className={active ? 'sbt-qf-on' : undefined}
       title={title}
+      aria-label={title}
       aria-haspopup="true"
       aria-expanded={open}
       disabled={disabled}
@@ -837,6 +846,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
 
   // move-whole-season dialog
   const [mwsOpen, setMwsOpen] = React.useState(false);
+  const [pageMenuOpen, setPageMenuOpen] = React.useState(false);
   const [mwsTo, setMwsTo] = React.useState('');
   const [mwsArchivedOnly, setMwsArchivedOnly] = React.useState(false);
 
@@ -1551,9 +1561,59 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
     return cfg.filterSelectFallback?.[dCol] ?? null;
   }, [dCol, statusFilterValues, formMeta, cfg]);
 
+  const showOnly = (col: string, val: string) => {
+    setFilters((all) => [
+      ...all.filter((x) => !(x.col === col && (x.op === 'equals' || x.op === 'anyOf'))),
+      { id: `${Date.now()}-${Math.random()}`, col, op: 'equals', val },
+    ]);
+    setPage(1);
+  };
+  const noiCount = seasonStat.noi ?? 0;
+  const headerTitle = cfg.compactHeader ? (
+    <span className="sbt-title">
+      {cfg.texts.title}
+      {noiCount > 0 && (
+        <button type="button" className="sbt-newtag" title="Fără arhivate" onClick={() => showOnly('status', 'Nou')}>
+          <StatusBadge size="md" custom={{ fg: statusOf('Nou').color, bg: statusOf('Nou').soft, line: statusOf('Nou').border }}>
+            {noiCount} noi
+          </StatusBadge>
+        </button>
+      )}
+    </span>
+  ) : (
+    cfg.texts.title
+  );
+  const seasonButton = cfg.compactHeader ? (
+    <MenuButton
+      label="..."
+      title="Mai multe acțiuni"
+      chevron={false}
+      open={pageMenuOpen}
+      onToggle={() => setPageMenuOpen((o) => !o)}
+      onClose={() => setPageMenuOpen(false)}
+      popClassName="sbt-menu"
+      role="menu"
+      placement="bottom-end"
+    >
+      <button
+        type="button"
+        role="menuitem"
+        onClick={() => {
+          setPageMenuOpen(false);
+          setMwsOpen(true);
+        }}
+      >
+        Mută tot sezonul...
+      </button>
+    </MenuButton>
+  ) : (
+    <Button size="sm" variant="secondary" onClick={() => setMwsOpen(true)}>
+      Mută tot sezonul...
+    </Button>
+  );
+
   const statActions = (
     <>
-      {cfg.headerActions}
       {cfg.seasons && (
         <div className="sbt-season">
           <span className="sbt-lbl">Sezon</span>
@@ -1569,17 +1629,17 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
               { value: 'all', label: 'Toate sezoanele' },
             ]}
           />
-          <Button size="sm" variant="secondary" onClick={() => setMwsOpen(true)}>
-            Mută tot sezonul...
-          </Button>
+          {seasonButton}
         </div>
       )}
-      <div className="sbt-stat">
-        <b className="ui-num">{seasonStat.total ?? ''}</b> în total
-        <br />
-        <span className="sbt-noi ui-num">{seasonStat.noi ?? 0} noi</span>
-        {cfg.texts.statSuffix}
-      </div>
+      {!cfg.compactHeader && (
+        <div className="sbt-stat">
+          <b className="ui-num">{seasonStat.total ?? ''}</b> în total
+          <br />
+          <span className="sbt-noi ui-num">{seasonStat.noi ?? 0} noi</span>
+          {cfg.texts.statSuffix}
+        </div>
+      )}
     </>
   );
 
@@ -1679,6 +1739,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
           </button>
         </>
       )}
+      {cfg.exportExtras?.(() => setExportOpen(false))}
     </MenuButton>
   );
 
@@ -1949,7 +2010,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
       <style>{fullCss}</style>
 
       <Window>
-        <PageHeader title={cfg.texts.title} actions={statActions} />
+        <PageHeader title={headerTitle} actions={statActions} />
 
         {/* toolbar A: search, view, columns, export */}
         <div className="ui-table-bar">

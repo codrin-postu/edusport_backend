@@ -16,3 +16,6 @@ export const IconUser = ({ size = 14 }: P) =>
 /** Pencil on a line. Used by "Editează". */
 export const IconEdit = ({ size = 14 }: P) =>
   svg(size, <path d="M2 12.5h10M9 2.5l2.5 2.5L5.5 11H3V8.5z" stroke="currentColor" strokeWidth="1.4" />);
+
+/** Arrow into a tray. Used by the "Formulare goale" items of the Export menu. */
+export const IconDownload = ({ size = 14 }: P) => svg(size, <path d="M7 2v7M4 6.5l3 3 3-3M2.5 12h9" stroke="currentColor" strokeWidth="1.5" />);

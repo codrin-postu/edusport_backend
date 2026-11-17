@@ -121,6 +121,7 @@ const CONFIRM_CSS =
   '.ui-root .ins-res-t{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--theme-text-secondary)}' +
   '.ui-root .ins-res-t b{font-size:13.5px;color:var(--theme-text)}' +
   '.ui-root .ins-res-none{padding:10px 12px;font-size:13px;color:var(--theme-text-muted)}' +
-  '.ui-root .ins-foot-hint{flex:1;align-self:center;font-size:12.5px;color:var(--theme-text-muted)}';
+  '.ui-root .ins-foot-hint{flex:1;align-self:center;font-size:12.5px;color:var(--theme-text-muted)}' +
+  '.ui-root.sbt-menu button.ins-dl{display:flex;align-items:center;gap:8px}';
 
 export const INSCRIERI_CSS = [LIST_CSS, PANEL_CSS, FIT_CSS, DOCS_CSS, MATCH_CSS, EDIT_CSS, CONFIRM_CSS].join('\n');

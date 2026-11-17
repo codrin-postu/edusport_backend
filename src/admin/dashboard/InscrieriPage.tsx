@@ -24,7 +24,7 @@ import {
   wishText,
   type ListMeta,
 } from '../../club/inscrieri-panel';
-import { BlankFormsMenu } from './inscrieri/BlankFormsMenu';
+import { BlankFormItems } from './inscrieri/BlankFormsMenu';
 import { BackToList, BulkMoveSchool, ExistingFilter, SchoolTabs } from './inscrieri/ListControls';
 import { PhoneActions } from './inscrieri/PhoneActions';
 import { RegistrationPanel } from './inscrieri/RegistrationPanel';
@@ -153,7 +153,8 @@ const CFG: SubmissionTableCfg = {
   archive: true,
   sheetsForm: 'inscrieri',
   bulk: true,
-  headerActions: <BlankFormsMenu />,
+  compactHeader: true,
+  exportExtras: (close) => <BlankFormItems close={close} />,
   extraCss: INSCRIERI_CSS,
   fitPage: true,
   texts: {
@@ -161,7 +162,6 @@ const CFG: SubmissionTableCfg = {
     searchPlaceholder: LIST_COPY.searchPlaceholder,
     empty: 'Nicio înscriere.',
     loadError: 'Nu am putut încărca înscrierile.',
-    statSuffix: ', exclus arhivate',
     deleteConfirm: 'Ștergi înscrierea și documentele ei? Nu se poate anula.',
     bulkDeleteNoun: 'înscrieri',
     deleteError: 'Nu am putut șterge înscrierea.',
