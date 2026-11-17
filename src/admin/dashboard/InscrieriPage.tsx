@@ -24,6 +24,7 @@ import {
   wishText,
   type ListMeta,
 } from '../../club/inscrieri-panel';
+import { cardFacts } from '../../club/inscrieri-card';
 import { shortSchoolName } from '../../club/inscrieri-school';
 import { BlankFormItems } from './inscrieri/BlankFormsMenu';
 import { BackToList, BulkMoveSchool, ExistingFilter, SchoolTabs } from './inscrieri/ListControls';
@@ -127,6 +128,21 @@ const renderCells = (r: Row, api: TableApi) => {
 /** The panel (spec 3.3): header, match card, tabs, footer, confirm window. Keyed so its state resets per registration. */
 const renderDetail = (row: Row, api: TableApi) => <RegistrationPanel key={row.documentId} row={row} api={api} />;
 
+/** One phone card (spec 3): name and status, then nr, age, school (not on a school tab), date. */
+const phoneCardView = (r: Row, api: TableApi, showSchool: boolean) => (
+  <>
+    <span className="ins-l1">
+      <b>{cellText(r.childName)}</b>
+      {api.statusTag(r)}
+    </span>
+    <span className="ins-l2">
+      {cardFacts({ nr: cellText(r.registrationNumber), age: ageText(r.age), school: cellText(r.schoolName), showSchool, submittedAt: r.submittedAt }).map((fact) => (
+        <span key={fact}>{fact}</span>
+      ))}
+    </span>
+  </>
+);
+
 const CFG: SubmissionTableCfg = {
   api: '/api/forms/inscrieri',
   storagePrefix: 'edusport-inscrieri-cols',
@@ -153,6 +169,7 @@ const CFG: SubmissionTableCfg = {
   bulk: true,
   compactHeader: true,
   oneRowToolbar: true,
+  phoneCards: true,
   exportExtras: (close) => <BlankFormItems close={close} />,
   extraCss: INSCRIERI_CSS,
   fitPage: true,
@@ -182,6 +199,7 @@ export default function InscrieriPage() {
   const extras: SubmissionTableExtras = {
     params: open ? openListParams(open) : listParams(existing, school, meta),
     onMeta,
+    phoneCard: (r, api) => phoneCardView(r, api, meta.multipleSchools && school === ALL_SCHOOLS),
     advancedFilters: <ExistingFilter value={existing} onChange={setExisting} />,
     aboveList: (
       <>

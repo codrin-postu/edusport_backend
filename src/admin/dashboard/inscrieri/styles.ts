@@ -1,4 +1,4 @@
-import { BP } from '../../../club/ui-breakpoints';
+import { BP, phoneQuery } from '../../../club/ui-breakpoints';
 import { FIT_PAGE_MEDIA } from '../../ui';
 
 /**
@@ -21,6 +21,40 @@ const LIST_CSS =
   '.ui-root .sbt-clist td.ins-school{max-width:180px}' +
   `@media (min-width:${BP.tablet + 1}px){`+'.ui-root .sbt-split--panel .sbt-clist th,.ui-root .sbt-split--panel .sbt-clist td{padding-left:8px;padding-right:8px}' +
   '.ui-root .sbt-split--panel .sbt-clist th{white-space:nowrap}}';
+
+const PHONE_CSS =
+  `@media ${phoneQuery}{` +
+  '.ui-root .ui-ph{flex-direction:row;align-items:center;gap:8px;padding:12px var(--ui-inset)}' +
+  '.ui-root .ui-ph > div:first-child{flex:none;min-width:0}' +
+  '.ui-root .ui-ph .ui-ph-title{font-size:19px}' +
+  '.ui-root .ui-ph .sbt-title{gap:6px}' +
+  '.ui-root .ui-ph-actions{flex:1;min-width:0;flex-wrap:nowrap;justify-content:flex-end}' +
+  '.ui-root .sbt-season{flex:1;min-width:0;flex-wrap:nowrap;justify-content:flex-end;gap:6px}' +
+  '.ui-root .sbt-season .sbt-lbl{display:none}' +
+  '.ui-root .sbt-season .ui-sel{flex:0 1 auto;min-width:0;max-width:100%;font-size:14px;gap:4px;padding-left:8px;padding-right:6px}' +
+  '.ui-root .sbt-season > .ui-btn,.ui-root .sbt-season > button{flex:none}' +
+  '.ui-root .sbt-pbar{padding-bottom:0;border-bottom:0}' +
+  '.ui-root .sbt-pbar .sbt-search{flex:1 1 100%}' +
+  '.ui-root .sbt-pscroll{display:flex;align-items:center;gap:8px;padding:10px var(--ui-inset);overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--theme-border)}' +
+  '.ui-root .sbt-pscroll::-webkit-scrollbar{display:none}' +
+  '.ui-root .sbt-pscroll > *{flex:none}' +
+  '.ui-root .ins-schools{overflow-x:auto;scrollbar-width:none;white-space:nowrap}' +
+  '.ui-root .ins-schools::-webkit-scrollbar{display:none}' +
+  '.ui-root .sbt-cards{display:flex;flex-direction:column}' +
+  '.ui-root .sbt-card{display:flex;flex-direction:column;gap:3px;width:100%;min-width:0;padding:11px var(--ui-inset);border:0;border-bottom:1px solid var(--theme-border);background:var(--theme-surface);font:inherit;text-align:left;color:var(--theme-text);cursor:pointer}' +
+  '.ui-root .sbt-card:active{background:var(--theme-surface-subtle)}' +
+  '.ui-root .ins-l1{display:flex;align-items:center;gap:8px;min-width:0}' +
+  '.ui-root .ins-l1 b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14.5px}' +
+  '.ui-root .ins-l1 > :not(b){flex:none}' +
+  '.ui-root .ins-l2{display:flex;gap:12px;min-width:0;overflow:hidden;white-space:nowrap;font-size:12.5px;color:var(--theme-text-secondary)}' +
+  '.ui-root .sbt-pdetail{position:fixed;inset:0;z-index:var(--ui-z-drawer);display:flex;flex-direction:column;background:var(--theme-surface-subtle);overscroll-behavior:contain}' +
+  '.ui-root .sbt-pdetail > .ins-back{flex:none;padding:12px 15px 0}' +
+  '.ui-root .sbt-pdetail > .ins-panel{flex:1 1 auto;min-height:0}' +
+  '.ui-root .sbt-pdetail .ins-ph{flex:none}' +
+  '.ui-root .sbt-pdetail .ins-tabs{flex:none;overflow-x:auto;scrollbar-width:none}' +
+  '.ui-root .sbt-pdetail .ins-tabs::-webkit-scrollbar{display:none}' +
+  '.ui-root .sbt-pdetail .ins-panel > .sbt-pb{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto}' +
+  '.ui-root .sbt-pdetail .ins-panel > .sbt-pa{flex:none;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(--theme-surface-subtle)}}';
 
 const PANEL_CSS =
   '.ui-root .ins-panel{display:flex;flex-direction:column;min-width:0}' +
@@ -124,4 +158,4 @@ const CONFIRM_CSS =
   '.ui-root .ins-foot-hint{flex:1;align-self:center;font-size:12.5px;color:var(--theme-text-muted)}' +
   '.ui-root.sbt-menu button.ins-dl{display:flex;align-items:center;gap:8px}';
 
-export const INSCRIERI_CSS = [LIST_CSS, PANEL_CSS, FIT_CSS, DOCS_CSS, MATCH_CSS, EDIT_CSS, CONFIRM_CSS].join('\n');
+export const INSCRIERI_CSS = [LIST_CSS, PANEL_CSS, PHONE_CSS, FIT_CSS, DOCS_CSS, MATCH_CSS, EDIT_CSS, CONFIRM_CSS].join('\n');

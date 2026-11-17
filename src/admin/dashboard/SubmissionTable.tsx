@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { phoneQuery, tabletQuery } from '../../club/ui-breakpoints';
+import { PhoneCards, PhoneDetail } from './inscrieri/PhoneList';
+import { useIsPhone } from './useIsPhone';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { SheetsDialog, type SheetsForm } from './SheetsDialog';
 import {
@@ -282,6 +284,8 @@ export interface SubmissionTableCfg {
    * `extras.advancedFilters` goes inside "Alte filtre".
    */
   oneRowToolbar?: boolean;
+  /** Phone (<= 640px) with `extras.phoneCard`: search, one scrolling filter row, cards, the detail as a full screen layer; no selection or bulk bar there. */
+  phoneCards?: boolean;
   /** Items appended to the Export menu after its own (Înscrieri: "Formulare goale"); `close` shuts the menu. */
   exportExtras?: (close: () => void) => React.ReactNode;
   /** Desktop: the page fits the window, the list and the panel body scroll inside (AdminPage `fit`). */
@@ -298,6 +302,8 @@ export interface SubmissionTableExtras {
   toolbar?: React.ReactNode;
   /** Inside the "Alte filtre" popover, before the filter builder (`oneRowToolbar`). */
   advancedFilters?: React.ReactNode;
+  /** One phone card's content (`cfg.phoneCards`): line 1 name and status, line 2 facts. */
+  phoneCard?: (row: Row, api: TableApi) => React.ReactNode;
   /** Between the toolbars and the list. */
   aboveList?: React.ReactNode;
   /** In the bulk bar, before "Arhivează"; `done` clears the selection and reloads. */
@@ -1011,15 +1017,18 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
     };
   }, [get, cfg, season, reloadTick, statTick]);
 
+  const isPhone = useIsPhone();
+  const phoneCard = extras?.phoneCard;
+  const phoneCards = Boolean(cfg.phoneCards && phoneCard && isPhone);
   const selected = React.useMemo(() => rows.find((r) => r.documentId === selectedId) ?? null, [rows, selectedId]);
 
   // Keep the first row open in compact view so the detail column is never empty.
   React.useEffect(() => {
-    if (view !== 'compact') return;
+    if (view !== 'compact' || phoneCards) return;
     if (rows.length && !rows.some((r) => r.documentId === selectedId)) {
       setSelectedId(rows[0].documentId);
     }
-  }, [view, rows, selectedId]);
+  }, [view, rows, selectedId, phoneCards]);
 
   const refetch = React.useCallback(() => setReloadTick((n) => n + 1), []);
   const refetchStat = React.useCallback(() => setStatTick((n) => n + 1), []);
@@ -1917,7 +1926,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
     </MenuButton>
   );
 
-  const bulkBar = cfg.bulk && selectedIds.size > 0 && (
+  const bulkBar = cfg.bulk && !phoneCards && selectedIds.size > 0 && (
     <div className="sbt-bulk">
       <span className="sbt-bcount">{selectedIds.size} selectate</span>
       {cfg.seasons && (
@@ -2138,23 +2147,39 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
     </div>
   );
 
+  const sortSelect = (
+    <span className="sbt-sort" title="Sortare">
+      <Select
+        aria-label="Sortare"
+        value={sortOptions.some((o) => o.value === sort) ? sort : ''}
+        onChange={(v) => {
+          setSort(v);
+          setPage(1);
+        }}
+        options={sortOptions}
+      />
+    </span>
+  );
+
+  const phoneBar = (
+    <>
+      <div className="ui-table-bar sbt-pbar">{searchBox}</div>
+      <div className="sbt-pscroll">
+        {quickMenus}
+        {advMenu}
+        {sortSelect}
+        {exportMenu}
+      </div>
+    </>
+  );
+
   const oneRowBar = (
     <div className="ui-table-bar sbt-bar1">
       {searchBox}
       {quickMenus}
       {advMenu}
       <span className="sbt-grow" />
-      <span className="sbt-sort" title="Sortare">
-        <Select
-          aria-label="Sortare"
-          value={sortOptions.some((o) => o.value === sort) ? sort : ''}
-          onChange={(v) => {
-            setSort(v);
-            setPage(1);
-          }}
-          options={sortOptions}
-        />
-      </span>
+      {sortSelect}
       {viewMenu}
       {exportMenu}
     </div>
@@ -2167,7 +2192,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
       <Window>
         <PageHeader title={headerTitle} actions={statActions} />
 
-        {cfg.oneRowToolbar ? oneRowBar : twoRowBars}
+        {phoneCards ? phoneBar : cfg.oneRowToolbar ? oneRowBar : twoRowBars}
 
         {extras?.aboveList}
 
@@ -2198,6 +2223,8 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
             <EmptyState>{cfg.texts.loadError}</EmptyState>
           ) : rows.length === 0 ? (
             <EmptyState>{cfg.texts.empty}</EmptyState>
+          ) : phoneCards && phoneCard ? (
+            <PhoneCards rows={rows} onOpen={setSelectedId} renderCard={(r) => phoneCard(r, api)} />
           ) : view === 'compact' ? (
             compactView
           ) : (
@@ -2234,6 +2261,8 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
           </div>
         )}
       </Window>
+
+      {phoneCards && selected && <PhoneDetail onBack={() => setSelectedId(null)}>{cfg.compact.renderDetail(selected, api)}</PhoneDetail>}
 
       {cfg.seasons && (
         <Modal
