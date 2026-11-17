@@ -17,20 +17,31 @@ const corrupt = (what: string, r: Raw): never => {
   throw new Error(`badge-award ${text(r.documentId)}: ${what}`);
 };
 
-export function toAwardRow(r: Raw): AwardRow {
-  const kind = KINDS.find((k) => k === r.kind);
-  if (!kind) corrupt(`unknown kind ${String(r.kind)}`, r);
-  const teamMemberId = linkId(r.givenByTeamMember);
-  const adminId = typeof r.givenByAdminId === 'number' ? String(r.givenByAdminId) : null;
-  if (!teamMemberId && adminId === null) corrupt('no giver', r);
+const isKind = (v: unknown): v is AwardRow['kind'] => KINDS.some((k) => k === v);
+const isJump = (v: string): v is JumpCode => JUMP_CODES.some((c) => c === v);
+const isLevel = (v: unknown): v is JumpLevel => v === 1 || v === 2 || v === 3;
+
+const kindOf = (r: Raw): AwardRow['kind'] => (isKind(r.kind) ? r.kind : corrupt(`unknown kind ${String(r.kind)}`, r));
+
+function jumpOf(r: Raw): JumpCode | null {
   const jump = str(r.jump);
-  if (jump !== null && !JUMP_CODES.some((c) => c === jump)) corrupt(`unknown jump ${jump}`, r);
-  if (r.level !== null && r.level !== undefined && ![1, 2, 3].includes(r.level as number)) corrupt(`bad level ${String(r.level)}`, r);
-  return {
-    id: text(r.documentId), athleteId: linkId(r.athlete) ?? '', kind: kind as AwardRow['kind'],
-    jump: jump as JumpCode | null, level: typeof r.level === 'number' ? (r.level as JumpLevel) : null,
-    givenBy: teamMemberId ? { teamMemberId } : { adminId: adminId as string }, givenOn: text(r.givenOn),
-  };
+  if (jump === null) return null;
+  return isJump(jump) ? jump : corrupt(`unknown jump ${jump}`, r);
+}
+
+function levelOf(r: Raw): JumpLevel | null {
+  if (r.level === null || r.level === undefined) return null;
+  return isLevel(r.level) ? r.level : corrupt(`bad level ${String(r.level)}`, r);
+}
+
+function giverOf(r: Raw): AwardRow['givenBy'] {
+  const teamMemberId = linkId(r.givenByTeamMember);
+  if (teamMemberId) return { teamMemberId };
+  return typeof r.givenByAdminId === 'number' ? { adminId: String(r.givenByAdminId) } : corrupt('no giver', r);
+}
+
+export function toAwardRow(r: Raw): AwardRow {
+  return { id: text(r.documentId), athleteId: linkId(r.athlete) ?? '', kind: kindOf(r), jump: jumpOf(r), level: levelOf(r), givenBy: giverOf(r), givenOn: text(r.givenOn) };
 }
 
 export const toGrantRow = (r: Raw): GrantRow => ({
