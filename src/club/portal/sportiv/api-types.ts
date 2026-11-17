@@ -1,5 +1,8 @@
 /** JSON shapes of the sportiv routes (index 7, spec sportiv app). Imports nothing: the frontend copies this file verbatim. */
-import type { Parcurs } from '../../parcurs/api-types';
+import type { Parcurs, PinView, ReceivedPin } from '../../parcurs/api-types';
+export type { Parcurs, PinView, ReceivedPin };
+/** A friend a pin can be given to: the id and the short name ("Ana P."). */
+export type PinRecipient = { id: string; name: string };
 export type SectionKind = 'school' | 'club';
 export type SportivMe = { email: string; name: string | null; phone: string | null; hasPassword: boolean; google: boolean; passwordChangedAt: string | null; notifySchedule: boolean; devices: number };
 export type PortalDevice = { id: string; label: string; lastSeenAt: string; current: boolean; twoFactorUntil: string | null }; // same shape as CoachDevice

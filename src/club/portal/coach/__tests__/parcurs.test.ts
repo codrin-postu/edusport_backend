@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { PORTAL_ERRORS } from '../../copy';
 import { addCoachAward, readCoachParcurs, removeCoachAward } from '../parcurs';
 import { coachCtx } from './coach-seed';
 
@@ -12,7 +11,7 @@ describe('coach Parcurs', () => {
   it('refuses 403 an athlete of another coach and one with no group, for read, award and removal', async () => {
     const c = coachCtx('tm-andreea');
     for (const id of ['a-b-1', 'a-free']) {
-      expect(await readCoachParcurs(c, id), id).toEqual({ ok: false, status: 403, error: PORTAL_ERRORS.noAccess });
+      expect(await readCoachParcurs(c, id), id).toEqual({ ok: false, status: 403, error: 'NO_ACCESS' });
       expect(await addCoachAward(c, id, { kind: 'steaua' }), id).toMatchObject({ ok: false, status: 403 });
       expect(await removeCoachAward(c, id, 'x'), id).toMatchObject({ ok: false, status: 403 });
     }

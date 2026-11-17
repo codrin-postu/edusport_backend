@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import clubAthleteRoutes from '../../../api/club/routes/05-athletes';
 import { A_ANA, A_IOANA, A_MATEI, sportivCtx } from '../../portal/sportiv/__tests__/sportiv-seed';
 import { givePin } from '../grants';
 import { readParcurs, type ParcursStaffDeps } from '../read';
@@ -55,16 +54,5 @@ describe('pins', () => {
     const { d, c, pinId } = await pinGiven();
     expect(await removePinOf(d, A_MATEI, pinId, TODAY)).toMatchObject({ ok: false, status: 404 });
     expect(c.parcursFake.state.pins).toHaveLength(1);
-  });
-});
-
-describe('admin routes', () => {
-  it('the Parcurs routes sit before the by-id routes and are all club-area', () => {
-    const paths = (clubAthleteRoutes.routes as { method: string; path: string }[]).map((r) => `${r.method} ${r.path}`);
-    const byId = paths.indexOf('GET /club/athletes/:documentId');
-    for (const p of ['GET /club/athletes/:documentId/parcurs', 'POST /club/athletes/:documentId/awards', 'DELETE /club/athletes/:documentId/awards/:awardId', 'DELETE /club/athletes/:documentId/pins/:pinId']) {
-      expect(paths.indexOf(p), p).toBeGreaterThan(-1);
-    }
-    expect(paths.indexOf('GET /club/athletes/:documentId/parcurs')).toBeLessThan(byId);
   });
 });

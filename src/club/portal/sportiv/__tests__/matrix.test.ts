@@ -136,6 +136,13 @@ describe('athlete routes', () => {
     expect(second.body).toMatchObject({ error: { message: NO_ACCESS } });
   });
 
+  it('a pin given with no earlier read still finds this month grant: 201', async () => {
+    const w = await setup();
+    const token = await w.login(2, 'sportiv');
+    const sent = await call(token, 'POST', `/portal/sportiv/athletes/${A_ANA}/pins`, {}, { recipientId: A_MATEI, design: 1 });
+    expect(sent.status).toBe(201);
+  });
+
   it('pins: a pin to the athlete itself is 400 SELF, a pin to a friend is 201, the next one to the same friend 409, a foreign athlete 403', async () => {
     const w = await setup();
     const token = await w.login(2, 'sportiv');

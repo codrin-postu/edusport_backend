@@ -1,24 +1,25 @@
-import type { AdminResult } from '../../admin-result';
+import { refuse, type AdminResult } from '../../admin-result';
 import { currentSeason } from '../../groups/season-pick';
 import type { ParcursStaff } from '../../parcurs/api-types';
 import { readParcursStaff } from '../../parcurs/read';
 import { addAward, removeAwardOf } from '../../parcurs/staff';
-import { PORTAL_ERRORS } from '../copy';
 import { visibleAthlete } from './athletes';
 import { forbidden, type CoachContexts, type CoachResult } from './context';
 import { ownAthlete, ownGroupIds } from './ownership';
 
+const NO_ACCESS = 'NO_ACCESS';
+
 /** Only a coach whose own group lists the athlete in the current season reads or changes the Parcurs: others are refused 403. */
 async function ownRight(c: CoachContexts, athleteId: string): Promise<CoachResult<null>> {
   const seen = await visibleAthlete(c, athleteId);
-  if (seen.ok === false) return seen;
+  if (seen.ok === false) return seen.status === 404 ? refuse(404, 'NOT_FOUND') : forbidden(NO_ACCESS);
   const store = c.presence.store;
   const season = currentSeason(await store.seasons());
-  if (!season) return forbidden(PORTAL_ERRORS.noAccess);
+  if (!season) return forbidden(NO_ACCESS);
   const [memberships, groups] = await Promise.all([store.memberships({ athleteId }), store.groups()]);
   return ownAthlete(memberships, ownGroupIds(groups, c.coach.teamMemberId), athleteId, season.id, c.today)
     ? { ok: true, data: null }
-    : forbidden(PORTAL_ERRORS.noAccess);
+    : forbidden(NO_ACCESS);
 }
 
 const gated = async (c: CoachContexts, athleteId: string, run: () => Promise<AdminResult<ParcursStaff>>): Promise<CoachResult<ParcursStaff>> => {

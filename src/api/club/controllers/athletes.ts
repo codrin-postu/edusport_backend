@@ -28,7 +28,7 @@ import { strapiParcursDeps } from '../../../club/parcurs/strapi-port';
 
 /** The Parcurs routes of one athlete: 404 for an unknown athlete, then `work` on the real stores. */
 async function parcursOf(ctx: AdminCtx, work: (d: ParcursStaffDeps, athleteId: string, today: string) => Promise<AdminResult<ParcursStaff>>): Promise<void> {
-  const deps = strapiParcursDeps(strapi);
+  const deps = strapiParcursDeps(strapi, strapiCompetitions(strapi, () => new Date()));
   const athleteId = ctx.params.documentId ?? '';
   if (!(await deps.club.athlete(athleteId))) return refuseWith(ctx, 404, ADMIN_ERRORS.notFound);
   respond(ctx, await work(deps, athleteId, todayIso()));
@@ -69,7 +69,7 @@ export default {
 
   async addAward(ctx: AdminCtx) {
     const adminId = await verifiedAdminId(ctx.request.header.authorization, strapi);
-    if (adminId === null) return refuseWith(ctx, 401, 'Missing or invalid credentials');
+    if (adminId === null) return refuseWith(ctx, 401, 'UNAUTHORIZED');
     return parcursOf(ctx, (d, id, today) => addAward(d, id, ctx.request.body, { adminId: String(adminId) }, today));
   },
 

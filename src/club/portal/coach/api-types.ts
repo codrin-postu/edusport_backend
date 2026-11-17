@@ -2,6 +2,9 @@ import type { Occurrence } from '../../../api/calendar-event/services/expand';
 import type { GroupProgram } from '../../groups/program-read';
 import type { AddedSession, SavedOnDay, SectionKind, SessionCheck } from '../../presence/attendance/api-types';
 import type { LessonState } from '../../presence/types';
+import type { Parcurs, ParcursStaff, PinView, ReceivedPin } from '../../parcurs/api-types';
+
+export type { Parcurs, ParcursStaff, PinView, ReceivedPin };
 
 import type { DayKey, WeekOfMonth } from '../../groups/types';
 import type { RepeatFreq } from '../../groups/series';

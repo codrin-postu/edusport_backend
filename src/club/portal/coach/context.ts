@@ -61,6 +61,6 @@ export function coachContexts(strapi: Core.Strapi, coach: CoachState): CoachCont
     club: { store: strapiClubStore(strapi), actor, today: todayInBucharest(), log },
     portal: strapiPortalStore(strapi),
     competitions: skateCoachSource(competitions.results, competitions.client, now),
-    parcurs: strapiParcursDeps(strapi),
+    parcurs: strapiParcursDeps(strapi, competitions),
   };
 }

@@ -14,10 +14,12 @@ async function adminNamesById(strapi: Core.Strapi, ids: string[]): Promise<Recor
   return Object.fromEntries(users.map((u) => [String(u.id), `${text(u.firstname)} ${text(u.lastname)}`.trim()]));
 }
 
-/** The Parcurs read over the real stores, for the coach and admin routes (the results come from the same skate-results source as the sportiv portal). */
-export function strapiParcursDeps(strapi: Core.Strapi, scope: Scope = transactionScope(strapi)): ParcursStaffDeps {
+/** The Parcurs read over the real stores, for the coach and admin routes (the results come from the skate-results source the caller already built). */
+export function strapiParcursDeps(
+  strapi: Core.Strapi, competitions: ReturnType<typeof strapiCompetitions>, scope: Scope = transactionScope(strapi),
+): ParcursStaffDeps {
   const now = (): Date => new Date();
-  const { cache, client, results } = strapiCompetitions(strapi, now);
+  const { cache, client, results } = competitions;
   const log = (message: string): void => { strapi.log.error(message); };
   const source = skateSportivSource(cache, client, results, now, log);
   const club = strapiClubStore(strapi);

@@ -10,7 +10,8 @@ export type ReceivedPin = { id: string; design: number; message: string; from: s
 
 /** What the athlete sees: pins by group, the friendship pins received and how many can still be given today. */
 export type Parcurs = {
-  antrenamente: PinView[]; concursuri: PinView[]; membru: PinView[]; insigne: PinView[]; sarituri: PinView[][]; received: ReceivedPin[]; pinsLeft: number;
+  antrenamente: PinView[]; concursuri: PinView[]; membru: PinView[]; insigne: PinView[];
+  sarituri: PinView[][]; received: ReceivedPin[]; pinsLeft: number;
 };
 
 /** Coach and admin: the same with who gave each award and the friendship pins the athlete gave; every name is the full one. */

@@ -1,4 +1,5 @@
 import type { AthleteRow, ClubStore } from '../athletes/store';
+import { EMPTY_VALUE } from '../empty-value';
 import { isAnonymized } from '../personal-data/anonymize-plan';
 import type { PresenceStore } from '../presence/store';
 import type { Parcurs, ParcursStaff, PinId, PinView, ReceivedPin } from './api-types';
@@ -37,7 +38,9 @@ const earliest = (pins: PinRow[]): string | null => pins.map((p) => p.givenOn).s
 
 const byPinOrder = (a: PinView, b: PinView): number => INSIGNE_ORDER.indexOf(a.pin) - INSIGNE_ORDER.indexOf(b.pin);
 
-type Loaded = { athlete: AthleteRow; awards: AwardRow[]; given: PinRow[]; received: PinRow[]; left: number; pins: ReturnType<typeof countedPins>; people: AthleteRow[] };
+type Loaded = {
+  athlete: AthleteRow; awards: AwardRow[]; given: PinRow[]; received: PinRow[]; left: number; pins: ReturnType<typeof countedPins>; people: AthleteRow[];
+};
 
 async function load(d: ParcursDeps, athleteId: string, today: string): Promise<Loaded> {
   const athlete = await d.club.athlete(athleteId);
@@ -72,7 +75,7 @@ async function giverNames(d: ParcursStaffDeps, awards: AwardRow[]): Promise<(by:
   const team = new Map((await d.presence.teamMembers()).map((t) => [t.id, t.name]));
   const adminIds = awards.flatMap((a) => ('adminId' in a.givenBy ? [a.givenBy.adminId] : []));
   const admins = adminIds.length > 0 ? await d.adminNames(adminIds) : {};
-  return (by) => ('teamMemberId' in by ? team.get(by.teamMemberId) : admins[by.adminId]) ?? '';
+  return (by) => ('teamMemberId' in by ? team.get(by.teamMemberId) : admins[by.adminId]) ?? EMPTY_VALUE;
 }
 
 /** The Parcurs for the coach and the admin: full names, awards with who gave them, and the pins the athlete gave. */
