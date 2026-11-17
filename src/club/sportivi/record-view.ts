@@ -4,12 +4,13 @@ import type { AthleteEditResponse, AthleteRecord } from '../athletes/api-types';
 import { ADMIN_ERRORS } from '../athletes/errors';
 import { MONEY_UI_COPY } from '../presence/copy/money-ui';
 import { EMPTY_DATE, partsFromDisplay, partsToDisplay, type DateParts } from '../ui-birth-date';
+import { PARCURS_COPY } from '../parcurs/staff-view';
 import { COMPETITII_COPY } from './competitions-view';
 import { numericDateToSlash } from '../date-format';
 
 /** Rules of the athlete record (spec 6): header, Date tab, toasts, Istoric time, "..." menu. Pure. */
 
-export type RecordTab = 'date' | 'abonament' | 'plati' | 'profil' | 'documente' | 'istoric' | 'competitii';
+export type RecordTab = 'date' | 'abonament' | 'plati' | 'profil' | 'documente' | 'istoric' | 'competitii' | 'parcurs';
 export type MenuKey = 'status' | 'merge' | 'delete';
 
 export const RECORD_COPY = {
@@ -30,7 +31,7 @@ export const RECORD_COPY = {
   documentFailed: 'Documentul nu a putut fi descărcat.',
   loadFailed: 'Nu am putut încărca sportivul.',
   historyFailed: 'Nu am putut încărca istoricul.',
-  tabs: { date: 'Date', abonament: MONEY_UI_COPY.tabs.abonament, plati: MONEY_UI_COPY.tabs.plati, profil: 'Profil public', documente: 'Documente', istoric: 'Istoric', competitii: COMPETITII_COPY.tab },
+  tabs: { date: 'Date', abonament: MONEY_UI_COPY.tabs.abonament, plati: MONEY_UI_COPY.tabs.plati, profil: 'Profil public', documente: 'Documente', istoric: 'Istoric', competitii: COMPETITII_COPY.tab, parcurs: PARCURS_COPY.tab },
   menu: { button: 'Mai multe acțiuni', inactive: 'Marchează inactiv', active: 'Marchează activ', merge: 'Unește cu alt sportiv', remove: 'Șterge sportivul' },
   inactiveDialog: { title: 'Marchezi sportivul ca inactiv?', message: 'Nu mai apare în liste. Istoricul rămâne.', confirm: 'Marchează inactiv' },
   deleteDialog: {
@@ -54,7 +55,7 @@ export function recordSubline(r: AthleteRecord): string {
   return [r.header.birthDate ? numericDateToSlash(r.header.birthDate) : RECORD_COPY.noBirthDate, r.header.mainGroup].filter(Boolean).join(', ');
 }
 
-const TAB_IDS: readonly RecordTab[] = ['date', 'abonament', 'plati', 'profil', 'documente', 'istoric', 'competitii'];
+const TAB_IDS: readonly RecordTab[] = ['date', 'abonament', 'plati', 'profil', 'documente', 'istoric', 'competitii', 'parcurs'];
 const ANONYMIZED_TABS: readonly RecordTab[] = ['date', 'plati', 'istoric'];
 
 /** The tab the address asks for (`?tab=plati`), or null. */

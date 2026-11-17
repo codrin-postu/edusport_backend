@@ -8,6 +8,8 @@ import type { AccessAnswer, AccessBlock, BulkPreview } from '../../../club/porta
 import type { BulkAnonymizeResult } from '../../../club/personal-data/anonymize-plan';
 import type { InactiveSummary } from '../../../club/personal-data/settings';
 import type { AthleteCompetitions } from '../../../club/sportivi/competitions-view';
+import type { ParcursStaff } from '../../../club/parcurs/api-types';
+import type { AwardBody } from '../../../club/parcurs/staff-view';
 import type { EditBody } from '../../../club/sportivi/record-view';
 import { searchUrl } from '../../../club/sportivi/search-view';
 import { dataOf, detachedClient } from '../inscrieri/useClient';
@@ -35,6 +37,10 @@ export function useSportiviApi() {
       record: (id: string, season: string | null) => get<AthleteRecord>(`${one(id)}${season ? `?season=${enc(season)}` : ''}`),
       history: (id: string) => get<HistoryLine[]>(`${one(id)}/history`),
       competitions: (id: string, season: string | null) => get<AthleteCompetitions>(`${one(id)}/competitions${season ? `?season=${enc(season)}` : ''}`),
+      parcurs: (id: string) => get<ParcursStaff>(`${one(id)}/parcurs`),
+      parcursAward: (id: string, body: AwardBody) => post<ParcursStaff>(`${one(id)}/awards`, body),
+      parcursRemoveAward: async (id: string, awardId: string) => dataOf<ParcursStaff>(await ref.current.del(`${one(id)}/awards/${enc(awardId)}`)),
+      parcursRemovePin: async (id: string, pinId: string) => dataOf<ParcursStaff>(await ref.current.del(`${one(id)}/pins/${enc(pinId)}`)),
       update: (id: string, body: EditBody) => put<AthleteEditResponse>(one(id), body),
       setStatus: (id: string, status: 'activ' | 'inactiv') => post<{ status: AthleteStatus }>(`${one(id)}/status`, { status }),
       remove: async (id: string) => { await ref.current.del(one(id)); },

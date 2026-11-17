@@ -9,6 +9,7 @@ import { AbonamentTab } from '../bani/AbonamentTab';
 import { PlatiTab } from '../bani/PlatiTab';
 import { useSportiviApi, type SportiviApi } from './api';
 import { CompetitiiTab } from './CompetitiiTab';
+import { ParcursTab } from './ParcursTab';
 import { DateTab } from './DateTab';
 import { DocumentsTab } from './DocumentsTab';
 import { DuplicateLines } from './DuplicateLines';
@@ -91,6 +92,7 @@ function RecordContent({ record, api, loaded, head, onMerge }: ContentProps) {
         {tab === 'documente' && <DocumentsTab record={record} />}
         {tab === 'istoric' && <HistoryTab api={api} documentId={record.documentId} />}
         {tab === 'competitii' && <CompetitiiTab api={api} documentId={record.documentId} />}
+        {tab === 'parcurs' && <ParcursTab api={api} documentId={record.documentId} />}
       </div>
     </>
   );

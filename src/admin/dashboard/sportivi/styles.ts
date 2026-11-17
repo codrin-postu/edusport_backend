@@ -59,6 +59,20 @@ export const SPORTIVI_CSS = `
 .ui-root .spv-hist li{padding:8px 0;border-bottom:1px solid var(--theme-border);color:var(--theme-text);overflow-wrap:anywhere}
 .ui-root .spv-comp{display:flex;flex-direction:column;gap:var(--ui-space-3)}
 .ui-root .spv-comp-bar{display:flex}
+.ui-root .spv-parcurs{display:flex;flex-direction:column;gap:var(--ui-space-4)}
+.ui-root .spv-award{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ui-space-2)}
+.ui-root .spv-award .ui-sel{width:auto;min-width:180px}
+.ui-root .spv-pin-sec{display:flex;flex-direction:column;gap:var(--ui-space-2)}
+.ui-root .spv-pin-sub{display:flex;flex-direction:column;gap:var(--ui-space-2)}
+.ui-root .spv-pins{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px 8px}
+.ui-root .spv-pins--wide{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+.ui-root .spv-pin{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.ui-root .spv-pin img{width:100%;max-width:96px;height:96px;object-fit:contain}
+.ui-root .spv-pin--locked img{filter:grayscale(1);opacity:.32}
+.ui-root .spv-pin-n{font-size:16px;font-weight:800;line-height:1;color:var(--theme-text)}
+.ui-root .spv-pin-d{min-height:16px;font-size:12px;color:var(--theme-text-muted)}
+.ui-root .spv-friend{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.ui-root .spv-award-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 @media (max-width:640px){.ui-root .spv-comp .ui-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.ui-root .spv-comp .ui-table th,.ui-root .spv-comp .ui-table td{padding-left:8px;padding-right:8px}}
 .ui-root .spv-hist-h{display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px}
 .ui-root .spv-hist-h span{color:var(--theme-text-muted)}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AthleteRecord } from '../../athletes/api-types';
-import { EMPTY_DRAFT, checkDraft, editDraft, historyWhen, newAthleteDraft, saveToast } from '../record-view';
+import { EMPTY_DRAFT, recordTabs, checkDraft, editDraft, historyWhen, newAthleteDraft, saveToast } from '../record-view';
 
 const record = (over: Partial<AthleteRecord> = {}): AthleteRecord => ({
   documentId: 'a1',
@@ -55,5 +55,12 @@ describe('Istoric and copy', () => {
     expect(historyWhen('2026-10-03T11:22:00.000Z')).toBe('3 oct 2026, 14:22');
     expect(historyWhen('2026-12-01T08:05:00.000Z')).toBe('1 dec 2026, 10:05');
     expect(historyWhen('nope')).toBe('');
+  });
+});
+
+describe('record tabs', () => {
+  it('Parcurs is a tab of a normal athlete, not of an anonymised one', () => {
+    expect(recordTabs(record()).map((t) => t.id)).toContain('parcurs');
+    expect(recordTabs(record({ status: 'anonimizat' })).map((t) => t.id)).not.toContain('parcurs');
   });
 });

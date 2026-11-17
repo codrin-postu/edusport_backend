@@ -123,8 +123,8 @@ describe('record tabs and tab source', () => {
   const record = { status: 'activ' } as AthleteRecord;
   it('lists Competiții after the existing tabs, and not on an anonymized record', () => {
     const ids = recordTabs(record).map((t) => t.id);
-    expect(ids.slice(-2)).toEqual(['istoric', 'competitii']);
-    expect(recordTabs(record).at(-1)?.label).toBe('Competiții');
+    expect(ids.slice(-3)).toEqual(['istoric', 'competitii', 'parcurs']);
+    expect(recordTabs(record).at(-2)?.label).toBe('Competiții');
     expect(recordTabs({ status: 'anonimizat' } as AthleteRecord).map((t) => t.id)).not.toContain('competitii');
   });
   it('CompetitiiTab uses only kit components', () => {
