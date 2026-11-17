@@ -24,14 +24,15 @@
 - Store pattern with fake parity; lock order per `CLAUDE.md` L19 (registrations > seasons > athletes > groups > events ...; each set sorted by id; re-read after lock).
 - Competition source rule: skate-results if the profile has a slug, else hand-entered; never merged (`CompetitionResults` in `src/club/skate/pick.ts`).
 - Admin area for routes: `adminRoute('club')`. Coach scope: athlete with a current-season membership in one of the coach's groups (`ownGroupIds` + `ownAthlete`, `src/club/portal/coach/ownership.ts`).
-- Grants and Prezență only count from `PARCURS_FROM = '2026-12-01'` (no backfill) (decided by Claude; edit the const at release if the release date differs).
+- Friendship grants (user, 2026-11-17): 2 pins per active athlete per month, only in months inside a season; unused pins lost at month end; created lazily for the current month, never for past months.
+- Prezență only counts from `PARCURS_FROM = '2026-12-01'` (no backfill) (decided by Claude; edit the const at release if the release date differs).
 - Vitest with `--maxWorkers=3`; Playwright `-c playwright.e2e.config.ts --workers=1`.
 
 ## Review Focus
 
 1. Merge where the kept athlete had received a pin from the removed one (or the reverse): the pin would become self-given; expected: dropped. Test in Task 7.
 2. Two concurrent "give" requests on the last remaining pin of a grant: expected exactly one succeeds, the other 409 `NO_PINS_LEFT`. Test in Task 5 (lock + re-read; fake test simulates the second call after the first commits).
-3. Profile has no skate-results slug and no hand results, or results source down (`null`): counted pins Concursuri/Locul 1/Podium show 0, no grants created, page still renders. Test in Task 2.
+3. Profile has no skate-results slug and no hand results, or results source down (`null`): counted pins Concursuri/Locul 1/Podium show 0, page still renders. Test in Task 2.
 4. Coach awards a badge to an athlete who left the coach's groups (or on a past-season membership): expected 403. Test in Task 6.
 5. Removing an explicit 2S when 1S was also explicitly given keeps 1S earned with its own date; removing 2S when 1S was only implied leaves 1S not earned. Test in Task 4.
 
@@ -96,7 +97,7 @@ Frontend: `public/parcurs/*.png`; `src/lib/portal/parcurs.ts` (types + aria); `s
 
 **Interfaces:**
 - Consumes: `countedPins`, `CountedInput` (Task 1); `CompetitionResults.one(ref)` (`skate/pick.ts`), `skaterOf(c, athleteId)` (`portal/sportiv/competitions.ts`); `PresenceStore.sessions/attendances/lessons`; `mainGroupOn` (`presence/attendance/roster.ts`).
-- Produces: `countedFacts(d: FactsDeps, athleteId: string, today: string): Promise<Omit<CountedInput,'firstPinGivenOn'>>` where `FactsDeps = { club: ClubStore; presence: PresenceStore; results: (athleteId: string) => Promise<{ date: string; placement: number|null; eventId: string }[] | null> }`. `results` is exported too as `resultFacts` for Task 5.
+- Produces: `countedFacts(d: FactsDeps, athleteId: string, today: string): Promise<Omit<CountedInput,'firstPinGivenOn'>>` where `FactsDeps = { club: ClubStore; presence: PresenceStore; results: (athleteId: string) => Promise<{ date: string; placement: number|null; eventId: string }[] | null> }`.
 
 - [ ] **Step 1: Failing tests** (seed with `sportiv-seed.ts` fakes):
   - presence dates: attendances with `grup || uscat` + lessons `state==='saved' && present` (same as today's `path.ts`).
@@ -118,7 +119,7 @@ Frontend: `public/parcurs/*.png`; `src/lib/portal/parcurs.ts` (types + aria); `s
 **Interfaces:**
 - Schemas (all `draftAndPublish: false`, content-manager hidden):
   - `badge-award`: `athlete` (manyToOne athlete), `kind` enum `steaua|test|jump`, `jump` string nullable, `level` integer nullable, `givenByTeamMember` (manyToOne team-member, nullable), `givenByAdmin` (manyToOne `admin::user`, nullable), `givenOn` date.
-  - `friendship-grant`: `athlete`, `source` string (`c:<eventId>` or `s:<seasonId>`), `size` integer (3 or 5), `createdOn` date, `expiresOn` date.
+  - `friendship-grant`: `athlete`, `source` string (`m:YYYY-MM`), `size` integer (2), `createdOn` date, `expiresOn` date.
   - `friendship-pin`: `grant` (manyToOne friendship-grant), `giver` (manyToOne athlete), `recipient` (manyToOne athlete), `design` integer 1..15, `givenOn` date.
 - Row types: `AwardRow = { id; athleteId; kind: 'steaua'|'test'|'jump'; jump: JumpCode|null; level: JumpLevel|null; givenBy: { teamMemberId: string } | { adminId: string }; givenOn: string }`; `GrantRow = { id; athleteId; source; size; createdOn; expiresOn }`; `PinRow = { id; grantId; giverId; recipientId; design; givenOn }`.
 - `ParcursStore`: `transaction<T>(fn: () => Promise<T>): Promise<T>`; `lockAthlete(id: string): Promise<void>`; `awards({ athleteId? })`; `addAward(row without id)`; `deleteAward(id)`; `grants({ athleteId })`; `addGrant(...)`; `pins({ giverId?, recipientId?, grantId? })`; `addPin(...)`; `deletePin(id)`; `dropForAthlete(athleteId)` (awards + grants + pins given or received); `moveForMerge(keptId, removedId)` (raw repoint, dedupe in Task 7).
@@ -144,13 +145,13 @@ Frontend: `public/parcurs/*.png`; `src/lib/portal/parcurs.ts` (types + aria); `s
 **Files:** Create `src/club/parcurs/grants.ts`; Test `src/club/parcurs/__tests__/grants.test.ts`
 
 **Interfaces:**
-- `ensureGrants(s: ParcursStore, d: { athleteId; results: { date; eventId }[] | null; seasons: SeasonRow[]; memberships: MembershipRow[]; today: string }): Promise<void>`: inside `s.transaction` + `lockAthlete(athleteId)`, re-read grants; add one `c:<eventId>` grant (size 3, `createdOn` = event date, `expiresOn` = event date + 3 months) per result with `date >= PARCURS_FROM` and `date <= today`; one `s:<seasonId>` grant (size 5, from season `endMonth` last day, + 3 months) per season whose end `< today`, end `>= PARCURS_FROM`, and with a non-cancelled membership of the athlete in that season. Idempotent.
+- `ensureGrants(s: ParcursStore, d: { athlete: { id; status; anonymizedAt }; seasons: SeasonRow[]; today: string }): Promise<void>`: only when the athlete is active (status `nou|activ`, not anonymised) and `today`'s month lies inside a season (`seasonBounds`, `src/club/groups/series.ts`): inside `s.transaction` + `lockAthlete(id)`, re-read grants; add one grant `source: 'm:YYYY-MM'`, `size: 2`, `createdOn` = 1st of month, `expiresOn` = last day of month, unless it exists. Idempotent; never creates past months.
 - `pinsLeft(grants: GrantRow[], pins: PinRow[], today: string): number` (sum over unexpired grants of `size - pins on grant`).
 - `givePin(s, input: { giverId; recipientId; design: number; today: string; activeIds: Set<string> }): Promise<{ ok: true; id } | { ok: false; code: 'SELF' | 'BAD_RECIPIENT' | 'BAD_DESIGN' | 'NO_PINS_LEFT' }>`: lock giver athlete, re-read; pick oldest unexpired grant (by `createdOn`, then id) with room and no pin to this recipient; none -> `NO_PINS_LEFT`.
 - `deletePin(s, pinId): Promise<{ ok: true } | { ok: false; code: 'NOT_FOUND' }>` (the pin returns to its grant automatically through `pinsLeft`).
 - `recipients(club: ClubStore, giverId): Promise<{ id: string; name: string }[]>`: athletes with status `nou|activ`, not anonymised, not the giver, name `"Ana P."`, sorted by name.
 
-- [ ] **Step 1: Failing tests:** grant created once on repeated calls; result before `PARCURS_FROM` -> no grant; season with only cancelled membership -> no grant; expired grant not counted in `pinsLeft`; giving to self -> `SELF`; second pin to same recipient within one grant goes to next grant, or `NO_PINS_LEFT` when none; design 0 or 16 -> `BAD_DESIGN`; oldest grant used first; Review Focus 2: two sequential `givePin` on a grant with 1 left -> second `NO_PINS_LEFT`; after `deletePin` on unexpired grant the same recipient can receive again.
+- [ ] **Step 1: Failing tests:** grant created once on repeated calls in the same month; new grant in the next season month; month outside every season (summer gap) -> no grant; inactive or anonymised athlete -> no grant; previous month's unused pins not counted in `pinsLeft` (grant ended); giving to self -> `SELF`; second pin to same recipient within one grant goes to next grant, or `NO_PINS_LEFT` when none; design 0 or 16 -> `BAD_DESIGN`; oldest grant used first; Review Focus 2: two sequential `givePin` on a grant with 1 left -> second `NO_PINS_LEFT`; after `deletePin` on unexpired grant the same recipient can receive again.
 - [ ] **Step 2-4:** FAIL, implement, PASS. **Step 5:** Commit `feat(parcurs): friendship grants and pins`.
 
 ### Task 6: Read model and routes
@@ -218,7 +219,7 @@ Frontend: `public/parcurs/*.png`; `src/lib/portal/parcurs.ts` (types + aria); `s
 
 **Files:** Modify `src/app/(sportiv)/sportiv/(app)/[athleteId]/parcurs/page.tsx`, `src/lib/portal/sportiv-types.ts`, `src/lib/portal/sportiv-routes.ts` (+ `GET ${A}/pin-recipients`, `POST ${A}/pins`), `scripts/portal/sportiv-routes.test.mjs`, `tests/e2e/mock-sportiv.mjs`; Create `src/components/portal/parcurs/GiveDialog.tsx`; e2e spec `tests/e2e/sportiv-parcurs.spec.ts`.
 
-- [ ] **Step 1: Failing tests:** route allowlist accepts both new routes and rejects `DELETE ${A}/pins/x`; e2e: button "Dă o insignă (3)" visible with 3 left, hidden with 0; give flow: pick design 5, recipient "Ana P.", "Trimite" -> button shows "(2)".
+- [ ] **Step 1: Failing tests:** route allowlist accepts both new routes and rejects `DELETE ${A}/pins/x`; e2e: button "Dă o insignă (2)" visible with 2 left, hidden with 0; give flow: pick design 5, recipient "Ana P.", "Trimite" -> button shows "(1)".
 - [ ] **Step 2-4:** FAIL, implement (dialog per mockup: 15 designs in a 5-column grid, message under, recipient Select with placeholder "Selectează", buttons "Renunță" / "Trimite"; on 409 show the server code mapped to one short line: `NO_PINS_LEFT` -> "Nu mai ai insigne."), PASS.
 - [ ] **Step 5:** Commit `feat(sportiv): Parcurs with felt pins and friendship giving`.
 

@@ -1836,6 +1836,8 @@ export interface ApiIndividualLessonIndividualLesson
     athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'> &
       Schema.Attribute.Required;
     audience: Schema.Attribute.Enumeration<['member', 'nonMember']>;
+    cancelledAt: Schema.Attribute.DateTime;
+    cancelReason: Schema.Attribute.String;
     coaches: Schema.Attribute.Relation<
       'manyToMany',
       'api::team-member.team-member'
