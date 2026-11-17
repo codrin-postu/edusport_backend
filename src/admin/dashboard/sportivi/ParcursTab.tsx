@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Button, Loading, Notice, Select } from '../../ui';
 import { IconTrash } from '../../ui/icons';
+import { EMPTY_VALUE } from '../../../club/empty-value';
 import type { ParcursStaff, PinView } from '../../../club/parcurs/api-types';
 import {
   AWARD_OPTIONS, EMPTY_AWARD_FORM, JUMP_OPTIONS, LEVEL_OPTIONS, PARCURS_COPY as copy,
@@ -34,7 +35,7 @@ function Friendship({ title, pins, onRemove }: { title: string; pins: Friend[]; 
   return (
     <div className="spv-pin-sub">
       <h4 className="spv-sub2">{title}</h4>
-      {pins.length === 0 ? <span className="spv-muted">{copy.empty}</span> : (
+      {pins.length === 0 ? <span className="spv-muted">{EMPTY_VALUE}</span> : (
         <div className="spv-pins spv-pins--wide">
           {pins.map((p) => {
             const c = friendshipCell(p);
@@ -54,13 +55,13 @@ function AwardPicker({ onGive, busy }: { onGive: (b: NonNullable<ReturnType<type
   return (
     <div className="spv-award">
       <Select
-        aria-label={copy.kind} placeholder={copy.kind} value={form.kind} options={AWARD_OPTIONS}
+        aria-label={copy.select} placeholder={copy.select} value={form.kind} options={AWARD_OPTIONS}
         onChange={(v) => setForm({ ...EMPTY_AWARD_FORM, kind: v as AwardChoice | '' })}
       />
       {form.kind === 'jump' && (
         <>
-          <Select aria-label={copy.jump} placeholder={copy.jump} value={form.jump} options={JUMP_OPTIONS} onChange={(jump) => setForm({ ...form, jump })} />
-          <Select aria-label={copy.level} placeholder={copy.level} value={form.level} options={LEVEL_OPTIONS} onChange={(level) => setForm({ ...form, level })} />
+          <Select aria-label={copy.select} placeholder={copy.select} value={form.jump} options={JUMP_OPTIONS} onChange={(jump) => setForm({ ...form, jump })} />
+          <Select aria-label={copy.select} placeholder={copy.select} value={form.level} options={LEVEL_OPTIONS} onChange={(level) => setForm({ ...form, level })} />
         </>
       )}
       <Button variant="secondary" disabled={!body || busy} loading={busy} onClick={() => { if (body) { onGive(body); setForm(EMPTY_AWARD_FORM); } }}>{copy.award}</Button>
