@@ -72,7 +72,7 @@ export function PhoneActions({ row, api }: { row: Row; api: TableApi }) {
         <IconCopy />
       </button>
       {whatsappUrl(raw, '') && (
-        <button type="button" className={BTN} aria-label={PHONE_COPY.whatsapp} title={PHONE_COPY.whatsapp} onClick={() => setDialog(true)}>
+        <button type="button" className={BTN} aria-label={PHONE_COPY.send} title={PHONE_COPY.send} onClick={() => setDialog(true)}>
           <IconWhatsapp />
         </button>
       )}
