@@ -6,6 +6,7 @@ import { MEMBERSHIP_OPTIONS } from './registration-form-options';
 import { isScriptFormRegistration, registrationDocumentKinds, relationshipText, sourceText } from './registration-panel';
 import { athleteRecordTo } from './sportivi/routes';
 import { numericDateToSlash } from './date-format';
+import { shortSchoolName } from './inscrieri-school';
 
 /**
  * The Înscrieri list and panel (spec 3.1 to 3.6) as data: cells, tabs, rows, footer, menu, links and route urls.
@@ -41,9 +42,9 @@ const yesNo = (v: unknown): string => (v === true ? 'Da' : 'Nu');
 // --- list (spec 3.1, 3.6)
 
 export function compactHeaders(multipleSchools: boolean): CompactHeaderSpec[] {
-  const [nr, sent, name, age, ...rest] = LIST_COPY.headers;
+  const [nr, sent, name, age, status, , wish] = LIST_COPY.headers;
   const school = multipleSchools ? [LIST_COPY.school] : [];
-  return [nr, sent, name, ...school, { label: age, sort: AGE_SORT }, ...rest];
+  return [nr, sent, name, ...school, { label: age, sort: AGE_SORT }, status, wish];
 }
 
 export const ageText = (age: unknown): string => (typeof age === 'number' && age >= 0 ? `${age} ani` : '');
@@ -80,7 +81,7 @@ export function listParams(existing: string, school: string, meta: ListMeta): Re
 
 export function schoolTabs(meta: ListMeta): PanelTabItem[] {
   const all = { id: ALL_SCHOOLS, label: LIST_COPY.all, count: meta.allSchoolsTotal };
-  return [all, ...meta.schools.map((s) => ({ id: s.documentId, label: s.name, count: s.count }))];
+  return [all, ...meta.schools.map((s) => ({ id: s.documentId, label: shortSchoolName(s.name), count: s.count }))];
 }
 
 export const moveTargets = (meta: ListMeta, currentSchoolId: unknown): SelectChoice[] =>
@@ -138,6 +139,10 @@ export const isPanelTab = (v: string): v is PanelTab => v === 'date' || v === 'a
 const SCRIPT_DATE_KEYS = [
   'email', 'parentName', 'relationship', 'phone', 'childName', 'childBirthDate', 'childHeight', 'shirtSize', 'lastSeason', 'priorExperience', 'expectations',
 ] as const;
+
+/** Date tab fields shown full width; the short ones sit in two columns. */
+const LONG_DATE_KEYS: ReadonlySet<string> = new Set(['email', 'phone', 'priorExperience', 'expectations']);
+export const isLongDateKey = (key: string): boolean => LONG_DATE_KEYS.has(key);
 
 /** Old registrations (before the phase 2 form): their own fields, today's panel wording (Needs decision 3, option A). */
 export const LEGACY_LABELS: Readonly<Record<string, string>> = {

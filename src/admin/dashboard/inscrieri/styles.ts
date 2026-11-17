@@ -7,20 +7,20 @@ import { FIT_PAGE_MEDIA } from '../../ui';
  * CSS template literal blanks the admin, see src/admin/ui/styles.ts).
  */
 const LIST_CSS =
-  '.ui-root .sbt-clist td{height:50px;padding-top:0;padding-bottom:0}' +
+  '.ui-root .sbt-clist td{height:44px;padding-top:0;padding-bottom:0;max-width:240px;overflow:hidden;text-overflow:ellipsis}' +
+  '.ui-root .sbt-clist td.sbt-chk,.ui-root .sbt-clist td.sbt-actcell{max-width:none;overflow:visible}' +
   '.ui-root .ins-nr{font-weight:700}' +
   '.ui-root .ins-phone{display:inline-flex;align-items:center;gap:4px}' +
   '.ui-root .ins-phone-warn{display:inline-flex;color:var(--theme-warning)}' +
-  '.ui-root .ins-name{line-height:1.2}' +
-  '.ui-root .ins-name b{display:block}' +
-  '.ui-root .ins-ex{display:flex;align-items:center;gap:5px;margin-top:1px;min-height:14px;font-size:11.5px;font-weight:600;color:var(--theme-info)}' +
-  '.ui-root .ins-exf{display:inline-flex;align-items:center;gap:6px}' +
+  '.ui-root .ins-ex{display:inline-flex;align-items:center;gap:5px;margin-left:8px;font-size:11.5px;font-weight:600;color:var(--theme-info);vertical-align:baseline}' +
+  '.ui-root .ins-exf{display:inline-flex;align-items:center;gap:6px;width:100%}' +
+  '.ui-root.sbt-advpop .ins-exf .sbt-lbl{width:auto}' +
   '.ui-root .ins-schools{padding:0 var(--ui-inset);border-bottom:1px solid var(--theme-border)}' +
   '.ui-root .ins-back{padding:4px 18px 10px}' +
   '.ui-root .sbt-tag{min-width:0}' +
-  '.ui-root .sbt-clist td.ins-school{min-width:140px;white-space:normal;line-height:1.25}' +
+  '.ui-root .sbt-clist td.ins-school{max-width:180px}' +
   `@media (min-width:${BP.tablet + 1}px){`+'.ui-root .sbt-split--panel .sbt-clist th,.ui-root .sbt-split--panel .sbt-clist td{padding-left:8px;padding-right:8px}' +
-  '.ui-root .sbt-split--panel .sbt-clist th{white-space:normal}}';
+  '.ui-root .sbt-split--panel .sbt-clist th{white-space:nowrap}}';
 
 const PANEL_CSS =
   '.ui-root .ins-panel{display:flex;flex-direction:column;min-width:0}' +
@@ -29,9 +29,9 @@ const PANEL_CSS =
   '.ui-root .ins-ph-name{flex:1;min-width:0;font-size:15px;color:var(--theme-text)}' +
   '.ui-root .ins-ph-meta{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--theme-text-secondary)}' +
   '.ui-root .ins-ph-meta b{color:var(--theme-text)}' +
-  '.ui-root .ins-status{padding:10px 15px 0}' +
-  '.ui-root .ins-status:empty{display:none}' +
-  '.ui-root .ins-status .sbt-statusbox{margin:0}' +
+  '.ui-root .ins-stsel{flex:none;width:auto;min-width:0;height:30px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:var(--ui-radius-sm)}' +
+  '.ui-root .ins-grid,.ui-root .ins-extra{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:16px}' +
+  '.ui-root .ins-extra > :nth-child(n+3){grid-column:1 / -1}' +
   '.ui-root .ins-tabs{margin-top:10px;padding:0 7px}' +
   '.ui-root .ins-tabs .ui-tab{padding:0 8px}' +
   '.ui-root .ins-panel .sbt-pb{max-height:calc(100vh - 420px);min-height:240px}' +

@@ -32,7 +32,7 @@ import {
   cx,
   type PopoverPlacement,
 } from '../ui';
-import { IconChevronDown, IconChevronUp, IconGrip, IconSearch } from '../ui/icons';
+import { IconCheck, IconChevronDown, IconChevronUp, IconColumns, IconGrip, IconSearch } from '../ui/icons';
 import { menuTriggerClass } from '../../club/ui-select';
 import { numericDateToSlash } from '../../club/date-format';
 import { fieldsClearedByEdit } from '../../club/registration-edit';
@@ -175,6 +175,8 @@ export interface TableApi {
   removeRow: (documentId: string) => void;
   /** Shared detail-panel blocks — identical on every screen, so they live here. */
   statusBox: (r: Row) => React.ReactNode;
+  /** The status Select styled as its tag (the badge when the row's status cannot change). */
+  statusInline: (r: Row) => React.ReactNode;
   /** Season Select for the detail panel; null when the screen has no seasons. */
   seasonField: (r: Row) => React.ReactNode;
   /** Custom-question answers read out of `row.extra`; null when there are none. */
@@ -275,6 +277,11 @@ export interface SubmissionTableCfg {
    * "Mută tot sezonul..." in a "..." menu right of the Sezon select.
    */
   compactHeader?: boolean;
+  /**
+   * Înscrieri toolbar: one row (search, filters, then sort, a columns icon menu with the view choice, export);
+   * `extras.advancedFilters` goes inside "Alte filtre".
+   */
+  oneRowToolbar?: boolean;
   /** Items appended to the Export menu after its own (Înscrieri: "Formulare goale"); `close` shuts the menu. */
   exportExtras?: (close: () => void) => React.ReactNode;
   /** Desktop: the page fits the window, the list and the panel body scroll inside (AdminPage `fit`). */
@@ -289,6 +296,8 @@ export interface SubmissionTableExtras {
   onMeta?: (meta: Record<string, unknown>) => void;
   /** After the quick filters in toolbar B. */
   toolbar?: React.ReactNode;
+  /** Inside the "Alte filtre" popover, before the filter builder (`oneRowToolbar`). */
+  advancedFilters?: React.ReactNode;
   /** Between the toolbars and the list. */
   aboveList?: React.ReactNode;
   /** In the bulk bar, before "Arhivează"; `done` clears the selection and reloads. */
@@ -550,6 +559,12 @@ const TABLE_CSS = `
 .ui-root.sbt-menu .sbt-sep{height:1px;background:var(--theme-border);margin:4px 0}
 .ui-root.sbt-menu .sbt-grp{padding:8px 10px 3px;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--theme-text-muted)}
 .ui-root .sbt-mws{display:flex;flex-direction:column;gap:12px}
+.ui-root .sbt-bar1{flex-wrap:nowrap}
+.ui-root .sbt-bar1 .sbt-search{flex:0 1 280px;min-width:160px}
+.ui-root .sbt-bar1 .sbt-grow{min-width:0}
+.ui-root.sbt-pop .sbt-radio{display:flex;align-items:center;justify-content:space-between;width:100%;padding:8px 10px;border:0;border-radius:var(--ui-radius-sm);background:none;font:inherit;font-size:13px;font-weight:600;color:var(--theme-text);text-align:left;cursor:pointer;transition:background-color var(--ui-motion-fast) var(--ui-easing)}
+.ui-root.sbt-pop .sbt-radio:hover,.ui-root.sbt-pop .sbt-radio:focus-visible{background:var(--theme-primary-soft);outline:none}
+.ui-root.sbt-pop .sbt-sep{height:1px;background:var(--theme-border);margin:4px 0}
 ${FIT_PAGE_MEDIA}{
 .ui-root.ui-page--fit .ui-win > .sbt-listbody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
 .ui-root.ui-page--fit .sbt-listbody > *{flex:none}
@@ -590,18 +605,28 @@ export function DetailFooter({ children }: { children: React.ReactNode }) {
 /** Icon-only menu trigger (kebab, row menu): keeps the icon-button look, not the Select look. */
 const IconMenuTrigger = React.forwardRef<
   HTMLButtonElement,
-  { label: React.ReactNode; title?: string; active?: boolean; open: boolean; disabled?: boolean; onToggle: () => void }
->(function IconMenuTrigger({ label, title, active, open, disabled, onToggle }, ref) {
+  {
+    label: React.ReactNode;
+    title?: string;
+    icon?: React.ReactNode;
+    ariaLabel?: string;
+    active?: boolean;
+    open: boolean;
+    disabled?: boolean;
+    onToggle: () => void;
+  }
+>(function IconMenuTrigger({ label, title, icon, ariaLabel, active, open, disabled, onToggle }, ref) {
+  if (icon && ariaLabel) {
+    return (
+      <Button ref={ref} size="sm" variant="secondary" iconOnly icon={icon} aria-label={ariaLabel} aria-haspopup="true" aria-expanded={open} disabled={disabled} onClick={onToggle} />
+    );
+  }
   return (
     <Button
       ref={ref}
       size="sm"
       variant="secondary"
       className={active ? 'sbt-qf-on' : undefined}
-      title={title}
-      aria-label={title}
-      aria-haspopup="true"
-      aria-expanded={open}
       disabled={disabled}
       onClick={onToggle}
     >
@@ -625,6 +650,8 @@ export function MenuButton({
   popClassName,
   role,
   chevron = true,
+  icon,
+  ariaLabel,
   placement,
   children,
 }: {
@@ -639,6 +666,9 @@ export function MenuButton({
   popClassName: string;
   role?: string;
   chevron?: boolean;
+  /** With `ariaLabel`: an icon-only trigger (tooltip and name are the label) instead of the text one. */
+  icon?: React.ReactNode;
+  ariaLabel?: string;
   /** Default 'bottom-start'; 'bottom-end' keeps a menu at the right edge inside the page. */
   placement?: PopoverPlacement;
   children: React.ReactNode;
@@ -647,7 +677,7 @@ export function MenuButton({
   const menu = useMenuFocus(open, ref, onClose);
   return (
     <>
-      {chevron ? (
+      {chevron && !icon ? (
         <button
           ref={ref}
           type="button"
@@ -665,7 +695,7 @@ export function MenuButton({
           </span>
         </button>
       ) : (
-        <IconMenuTrigger ref={ref} label={label} title={title} active={active} open={open} disabled={disabled} onToggle={onToggle} />
+        <IconMenuTrigger ref={ref} label={label} title={title} icon={icon} ariaLabel={ariaLabel} active={active} open={open} disabled={disabled} onToggle={onToggle} />
       )}
       <Popover
         open={open}
@@ -1492,6 +1522,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
     saveField,
     removeRow,
     statusBox,
+    statusInline: (r) => statusSelect(r, 'status', 'sbt-status-sel ins-stsel', 'Status'),
     seasonField,
     customFields,
     internalNoteField,
@@ -1644,14 +1675,8 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
     </>
   );
 
-  const columnsMenu = (
-    <MenuButton
-      label="Coloane"
-      open={popOpen}
-      onToggle={() => setPopOpen((o) => !o)}
-      onClose={() => setPopOpen(false)}
-      popClassName="sbt-pop"
-    >
+  const columnsBody = (
+    <>
       <h4>Coloane</h4>
       <div className="sbt-pop-body">
         {colCfg.order.map((key, i) => {
@@ -1677,6 +1702,49 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
           Aplică
         </Button>
       </div>
+    </>
+  );
+
+  const columnsMenu = (
+    <MenuButton label="Coloane" open={popOpen} onToggle={() => setPopOpen((o) => !o)} onClose={() => setPopOpen(false)} popClassName="sbt-pop">
+      {columnsBody}
+    </MenuButton>
+  );
+
+  const viewChoices = (['compact', 'full'] as const).map((v) => (
+    <button
+      key={v}
+      type="button"
+      role="menuitemradio"
+      aria-checked={view === v}
+      className="sbt-radio"
+      onClick={() => {
+        setView(v);
+        if (v === 'compact') setPopOpen(false);
+      }}
+    >
+      {v === 'compact' ? 'Compact' : 'Toate coloanele'}
+      {view === v && <IconCheck size={12} />}
+    </button>
+  ));
+
+  const viewMenu = (
+    <MenuButton
+      label="Coloane"
+      ariaLabel="Coloane"
+      icon={<IconColumns size={15} />}
+      open={popOpen}
+      onToggle={() => setPopOpen((o) => !o)}
+      onClose={() => setPopOpen(false)}
+      popClassName="sbt-pop"
+      role="menu"
+      placement="bottom-end"
+    >
+      <div role="group" aria-label="Vizualizare">
+        {viewChoices}
+      </div>
+      {view === 'full' && <div className="sbt-sep" />}
+      {view === 'full' && columnsBody}
     </MenuButton>
   );
 
@@ -1796,6 +1864,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
       onClose={() => setAdvOpen(false)}
       popClassName="sbt-advpop"
     >
+      {extras?.advancedFilters}
       <span className="sbt-lbl">Filtru:</span>
       <Select
         aria-label="Coloana filtrului"
@@ -2006,13 +2075,8 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
     </div>
   );
 
-  return (
-    <AdminPage fit={cfg.fitPage}>
-      <style>{fullCss}</style>
-
-      <Window>
-        <PageHeader title={headerTitle} actions={statActions} />
-
+  const twoRowBars = (
+    <>
         {/* toolbar A: search, view, columns, export */}
         <div className="ui-table-bar">
           <div className="ui-table-search sbt-search">
@@ -2058,6 +2122,52 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
             />
           </span>
         </div>
+    </>
+  );
+
+  const searchBox = (
+    <div className="ui-table-search sbt-search">
+      <IconSearch size={14} />
+      <Input
+        type="search"
+        aria-label="Caută"
+        placeholder={cfg.texts.searchPlaceholder}
+        value={searchInput}
+        onChange={(e) => setSearchInput(e.target.value)}
+      />
+    </div>
+  );
+
+  const oneRowBar = (
+    <div className="ui-table-bar sbt-bar1">
+      {searchBox}
+      {quickMenus}
+      {advMenu}
+      <span className="sbt-grow" />
+      <span className="sbt-sort" title="Sortare">
+        <Select
+          aria-label="Sortare"
+          value={sortOptions.some((o) => o.value === sort) ? sort : ''}
+          onChange={(v) => {
+            setSort(v);
+            setPage(1);
+          }}
+          options={sortOptions}
+        />
+      </span>
+      {viewMenu}
+      {exportMenu}
+    </div>
+  );
+
+  return (
+    <AdminPage fit={cfg.fitPage}>
+      <style>{fullCss}</style>
+
+      <Window>
+        <PageHeader title={headerTitle} actions={statActions} />
+
+        {cfg.oneRowToolbar ? oneRowBar : twoRowBars}
 
         {extras?.aboveList}
 

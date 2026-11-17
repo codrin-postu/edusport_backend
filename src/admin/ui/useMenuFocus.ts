@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { menuKeyTarget } from '../../club/ui-menu';
 
-const ITEMS = '[role="menuitem"]:not(:disabled)';
+const ITEMS = '[role="menuitem"]:not(:disabled),[role="menuitemradio"]:not(:disabled)';
 
 const itemsOf = (pop: HTMLElement | null): HTMLElement[] => (pop ? Array.from(pop.querySelectorAll<HTMLElement>(ITEMS)) : []);
 

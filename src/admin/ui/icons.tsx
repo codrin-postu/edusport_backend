@@ -13,6 +13,9 @@ const svg = (size: number, children: React.ReactNode, box = 14) => (
   </svg>
 );
 
+export const IconColumns = ({ size = 14 }: P) =>
+  svg(size, <path d="M1.5 2.5h11v9h-11zM5.2 2.5v9M8.8 2.5v9" stroke="currentColor" strokeWidth="1.4" />);
+
 export const IconPlus = ({ size = 14 }: P) => svg(size, <path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="1.6" />);
 
 export const IconClose = ({ size = 14 }: P) => svg(size, <path d="M3.5 3.5l7 7M10.5 3.5l-7 7" stroke="currentColor" strokeWidth="1.6" />);

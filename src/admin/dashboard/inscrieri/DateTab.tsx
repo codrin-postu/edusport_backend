@@ -2,7 +2,7 @@ import * as React from 'react';
 import { DetailField, type Row, type TableApi } from '../SubmissionTable';
 import { PANEL_COPY } from '../../../club/inscrieri-copy';
 import { REGISTRATION_FIELD_LABELS } from '../../../club/history-text';
-import { cellText, dateTabRows, isAnonymizedRow } from '../../../club/inscrieri-panel';
+import { cellText, dateTabRows, isAnonymizedRow, isLongDateKey } from '../../../club/inscrieri-panel';
 import { EditForm } from './EditForm';
 import { IconEdit } from './icons';
 import { PhoneActions } from './PhoneActions';
@@ -22,15 +22,26 @@ export function PanelExtras({ row, api }: { row: Row; api: TableApi }) {
   );
 }
 
+const FULL_WIDTH = { gridColumn: '1 / -1' } as const;
+
+/** The answers, short ones in two columns, long ones (e-mail, telefon, free text) full width. */
+function DateFields({ row, api, editable }: { row: Row; api: TableApi; editable: boolean }) {
+  return (
+    <div className="ins-grid">
+      {dateTabRows(row).map((r) => (
+        <DetailField key={r.key} label={r.label} style={isLongDateKey(r.key) ? FULL_WIDTH : undefined}>
+          {editable ? phoneValue(r, row, api) : r.value}
+        </DetailField>
+      ))}
+    </div>
+  );
+}
+
 /** A registration of an anonymized athlete (3C spec 4): the answers as stored (blanked), no "Editează". */
 function ReadOnlyDate({ row, api }: { row: Row; api: TableApi }) {
   return (
     <>
-      {dateTabRows(row).map((r) => (
-        <DetailField key={r.key} label={r.label}>
-          {r.value}
-        </DetailField>
-      ))}
+      <DateFields row={row} api={api} editable={false} />
       <PanelExtras row={row} api={api} />
     </>
   );
@@ -65,11 +76,7 @@ export function DateTab({ row, api }: { row: Row; api: TableApi }) {
           {PANEL_COPY.edit}
         </button>
       </div>
-      {dateTabRows(row).map((r) => (
-        <DetailField key={r.key} label={r.label}>
-          {phoneValue(r, row, api)}
-        </DetailField>
-      ))}
+      <DateFields row={row} api={api} editable />
       <PanelExtras row={row} api={api} />
     </>
   );

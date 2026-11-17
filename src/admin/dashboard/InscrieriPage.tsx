@@ -24,6 +24,7 @@ import {
   wishText,
   type ListMeta,
 } from '../../club/inscrieri-panel';
+import { shortSchoolName } from '../../club/inscrieri-school';
 import { BlankFormItems } from './inscrieri/BlankFormsMenu';
 import { BackToList, BulkMoveSchool, ExistingFilter, SchoolTabs } from './inscrieri/ListControls';
 import { PhoneActions } from './inscrieri/PhoneActions';
@@ -108,19 +109,16 @@ const renderCells = (r: Row, api: TableApi) => {
       <td className="ui-num">{fmtDateShort(r.submittedAt)}</td>
       <td className="ins-name">
         <b>{cellText(r.childName)}</b>
-        <span className="ins-ex">
-          {showsExistingLine(r) && (
-            <>
-              <IconUser size={12} />
-              {LIST_COPY.existing}
-            </>
-          )}
-        </span>
+        {showsExistingLine(r) && (
+          <span className="ins-ex">
+            <IconUser size={12} />
+            {LIST_COPY.existing}
+          </span>
+        )}
       </td>
-      {multiple && <td className="ins-school">{cellText(r.schoolName)}</td>}
+      {multiple && <td className="ins-school">{shortSchoolName(r.schoolName)}</td>}
       <td className="ui-num">{ageText(r.age)}</td>
       <td>{api.statusTag(r)}</td>
-      <td>{cellText(r.parentName)}</td>
       <td>{wishText(r.membershipAnswer)}</td>
     </>
   );
@@ -154,6 +152,7 @@ const CFG: SubmissionTableCfg = {
   sheetsForm: 'inscrieri',
   bulk: true,
   compactHeader: true,
+  oneRowToolbar: true,
   exportExtras: (close) => <BlankFormItems close={close} />,
   extraCss: INSCRIERI_CSS,
   fitPage: true,
@@ -183,7 +182,7 @@ export default function InscrieriPage() {
   const extras: SubmissionTableExtras = {
     params: open ? openListParams(open) : listParams(existing, school, meta),
     onMeta,
-    toolbar: <ExistingFilter value={existing} onChange={setExisting} />,
+    advancedFilters: <ExistingFilter value={existing} onChange={setExisting} />,
     aboveList: (
       <>
         {open && <BackToList />}

@@ -59,7 +59,7 @@ const values = (rows: { label: string; value: string }[]) => rows.map((r) => [r.
 describe('Înscrieri list (spec 3.1, 3.6)', () => {
   it('has the prototype v5 columns, "Școala" after the name only with 2+ schools, "Vârstă" sortable', () => {
     expect(compactHeaders(false)).toEqual([
-      'Nr.', 'Trimis la', 'Nume sportiv', { label: 'Vârstă', sort: ['age-asc', 'age-desc'] }, 'Status', 'Completat de', 'Dorește să fie membru',
+      'Nr.', 'Trimis la', 'Nume sportiv', { label: 'Vârstă', sort: ['age-asc', 'age-desc'] }, 'Status', 'Dorește să fie membru',
     ]);
     expect(compactHeaders(true).slice(2, 4)).toEqual(['Nume sportiv', 'Școala']);
   });

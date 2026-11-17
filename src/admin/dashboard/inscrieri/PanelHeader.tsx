@@ -5,7 +5,7 @@ import { cellText } from '../../../club/inscrieri-panel';
 import { PanelMenu } from './PanelMenu';
 
 /**
- * Fixed panel header (spec 3.3): name, status badge, "..." menu; "Nr. 2026-0142", "Trimis 3 oct 2026, 14:22";
+ * Fixed panel header (spec 3.3): name, status Select (the plain tag when it cannot change), "..." menu; "Nr. 2026-0142", "Trimis 3 oct 2026, 14:22";
  * the status menu sits below it in the panel, so it scrolls away in a short window.
  */
 export function PanelHeader({ row, api }: { row: Row; api: TableApi }) {
@@ -14,7 +14,7 @@ export function PanelHeader({ row, api }: { row: Row; api: TableApi }) {
     <div className="ins-ph">
       <div className="ins-ph-top">
         <b className="ins-ph-name" tabIndex={-1}>{cellText(row.childName)}</b>
-        {api.statusTag(row)}
+        {api.statusInline(row)}
         <PanelMenu row={row} api={api} />
       </div>
       <div className="ins-ph-meta">
