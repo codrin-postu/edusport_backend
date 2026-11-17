@@ -34,9 +34,9 @@ ${CAT}
 .cal-bar-row--sub .cal-viewseg{flex:1;width:auto}
 .cal-nav{display:flex;align-items:center;gap:6px}
 .cal-mon{font-size:15px;font-weight:700;margin:0 4px;color:var(--theme-text);white-space:nowrap}
-.cal-filters{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:8px 12px;border-top:1px solid var(--theme-border)}
+.cal-filters{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;padding:6px 12px;border-top:1px solid var(--theme-border)}
 .cal-filters-t{font-size:var(--ui-fs-body-sm);font-weight:600;color:var(--theme-text-secondary)}
-.cal-filter-l{display:inline-flex;align-items:center;gap:6px}
+.cal-filter-l{display:inline-flex;align-items:center;gap:4px}
 
 /* month grid */
 .cal-dows{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}

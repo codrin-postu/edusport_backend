@@ -63,20 +63,25 @@ function useRemove(breaks: Breaks, done: () => void) {
   return { busy, error, run, clear: () => setError(null) };
 }
 
-/** "Pauze" at the top of "Calendar și serii" (7.1, mock pauze-a A1). */
-export function PauzeSection() {
-  const breaks = useBreaks();
-  const [edit, setEdit] = React.useState<{ target: BreakRecord | null } | null>(null);
+export type PauzeEdit = { target: BreakRecord | null } | null;
+
+/** "Add a break" for the page header; the Pauze section itself is hidden while there are none. */
+export function AddPauzeButton({ onAdd }: { onAdd: () => void }) {
+  return <Button variant="secondary" size="sm" icon={<IconPlus />} onClick={onAdd}>{PAUZE_COPY.add}</Button>;
+}
+
+/** "Pauze" at the top of "Calendar și serii" (7.1): only when breaks exist; its dialogs are always mounted. */
+export function PauzeSection({ breaks, edit, setEdit }: { breaks: Breaks; edit: PauzeEdit; setEdit: (e: PauzeEdit) => void }) {
   const [del, setDel] = React.useState<BreakRecord | null>(null);
   const remove = useRemove(breaks, () => setDel(null));
   const onPick: Pick = (b, what) => (what === 'edit' ? setEdit({ target: b }) : (remove.clear(), setDel(b)));
-  const add = <Button variant="secondary" size="sm" icon={<IconPlus />} onClick={() => setEdit({ target: null })}>{PAUZE_COPY.add}</Button>;
+  const empty = !!breaks.list && breaks.list.length === 0;
   const body = breaks.failed ? <Notice tone="danger">{GROUP_ERRORS.loadFailed}</Notice> : breaks.list ? <BreakList rows={breakRows(breaks.list)} onPick={onPick} /> : <Loading />;
   return (
-    <EditorCard variant="plain" title={PAUZE_COPY.section} headerAction={add}>
-      {body}
+    <>
+      {!empty && <EditorCard variant="plain" title={PAUZE_COPY.section}>{body}</EditorCard>}
       {edit && <BreakDialog target={edit.target} breaks={breaks} onClose={() => setEdit(null)} />}
       <ConfirmDialog open={!!del} title={PAUZE_COPY.remove} message={PAUZE_COPY.removeConfirm(del?.label ?? '')} tone="danger" confirmLabel={PAUZE_COPY.remove} busy={remove.busy} error={remove.error} onCancel={() => { remove.clear(); setDel(null); }} onConfirm={() => del && void remove.run(del)} />
-    </EditorCard>
+    </>
   );
 }

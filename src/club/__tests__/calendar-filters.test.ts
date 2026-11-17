@@ -51,3 +51,11 @@ describe('calendar filter row source', () => {
     expect(read('ProgramOverviewEditor.tsx')).toContain('toggleCategory');
   });
 });
+
+describe('calendar legend spacing', () => {
+  it('keeps the legend tight so it stays on one row at 1280', () => {
+    const css = read('calendar/styles.ts');
+    expect(css).toContain('.cal-filters{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;padding:6px 12px;');
+    expect(css).toContain('.cal-filter-l{display:inline-flex;align-items:center;gap:4px}');
+  });
+});
