@@ -44,9 +44,15 @@ export const MONEY_CSS = `
 .ui-root .bn-count{margin:0;padding:12px;font-weight:600;color:var(--theme-text);border:1px solid var(--theme-border);background:var(--theme-surface)}
 .ui-root .bn-hist-head,.ui-root .bn-hist-cells{display:grid;grid-template-columns:1.3fr 1.5fr .8fr 1.3fr;gap:8px;align-items:baseline;width:100%}
 .ui-root .bn-hist-head{padding:0 12px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--theme-text-secondary)}
-.ui-root .bn-hist-row{display:block;width:100%;padding:10px 12px;font:inherit;font-size:13px;text-align:left;color:var(--theme-text);background:var(--theme-surface);border:1px solid var(--theme-border);cursor:pointer}
+.ui-root .bn-hist-row{display:flex;align-items:center;width:100%;height:40px;padding:0 12px;font:inherit;font-size:13px;text-align:left;color:var(--theme-text);background:var(--theme-surface);border:1px solid var(--theme-border);cursor:pointer}
 .ui-root .bn-hist-row:hover{background:var(--theme-surface-subtle)}
+.ui-root .bn-hist-exp .ui-row-h{padding:0 6px}
+.ui-root .bn-hist-exp .ui-row-toggle{min-height:38px}
 .ui-root .bn-hist-exp .ui-row-summary{display:block;width:100%;font-size:13px}
+.ui-root .bn-hist-exp .ui-row-chev{opacity:0}
+.ui-root .bn-hist-exp .ui-row-toggle:hover .ui-row-chev,.ui-root .bn-hist-exp .ui-row-toggle:focus-visible .ui-row-chev,.ui-root .bn-hist-exp.ui-row--open .ui-row-chev{opacity:1}
+.ui-root .bn-hist-cells .ui-badge{padding:0 4px;letter-spacing:.03em;line-height:1.25}
+@media (pointer:coarse),(hover:none),(max-width:640px){.ui-root .bn-hist-exp .ui-row-chev{opacity:1}}
 .ui-root .bn-hist-code{margin-left:6px;font-size:12px;color:var(--theme-text-muted)}
 .ui-root .bn-pay{font-weight:600}
 .ui-root .bn-hist-detail{display:flex;flex-direction:column;gap:8px;align-items:flex-start;font-size:13px}
