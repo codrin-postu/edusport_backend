@@ -46,7 +46,7 @@ function Row({ row, onOpen, selection }: { row: AthleteListRow; onOpen: Open; se
     onOpen(row.documentId);
   };
   return (
-    <tr className="ui-table-click" onClick={() => onOpen(row.documentId)}>
+    <tr className="ui-table-click spv-trow" onClick={() => onOpen(row.documentId)}>
       {selection && <CheckCell row={row} selection={selection} />}
       <td>
         <Link className="spv-name" to={athleteRecordTo(row.documentId)} onClick={open}>{row.name}</Link>
@@ -55,10 +55,7 @@ function Row({ row, onOpen, selection }: { row: AthleteListRow; onOpen: Open; se
       <td>{ageText(row.age)}</td>
       <td className={row.mainGroup ? undefined : 'spv-muted'}>{groupCell(row)}</td>
       <td>{abonamentCell(row)}</td>
-      <td>
-        {row.contactName}
-        <span className="spv-sub2">{row.phone}</span>
-      </td>
+      <td className="spv-contact">{row.contactName}</td>
       <td>{acsCell(row)}</td>
       <td>{profileCell(row)}</td>
     </tr>

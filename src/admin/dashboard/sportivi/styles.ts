@@ -20,6 +20,8 @@ export const SPORTIVI_CSS = `
 .ui-root .spv-miss{display:flex;align-items:center;gap:4px;font-size:11.5px;line-height:1.2;margin-top:1px;color:var(--theme-warning)}
 .ui-root .spv-unsorted{color:var(--theme-text-muted)}
 .ui-root .spv-muted{color:var(--theme-text-muted)}
+.ui-root .spv-trow td{height:44px;padding-top:0;padding-bottom:0}
+.ui-root .spv-contact{white-space:nowrap}
 .ui-root .spv-sub2{display:block;font-size:12px;color:var(--theme-text-muted)}
 .ui-root .spv-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px var(--ui-inset);border-top:1px solid var(--theme-border);font-size:12.5px;color:var(--theme-text-secondary)}
 .ui-root .spv-count{margin:0;padding:12px var(--ui-inset) 0;font-size:12.5px;color:var(--theme-text-secondary)}
