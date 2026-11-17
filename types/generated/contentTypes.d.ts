@@ -763,131 +763,6 @@ export interface ApiAthleteDuplicateAthleteDuplicate
   };
 }
 
-export interface ApiBadgeAwardBadgeAward
-  extends Struct.CollectionTypeSchema {
-  collectionName: 'badge_awards';
-  info: {
-    displayName: 'Parcurs / Insign\u0103 acordat\u0103';
-    pluralName: 'badge-awards';
-    singularName: 'badge-award';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  pluginOptions: {
-    'content-manager': {
-      visible: false;
-    };
-  };
-  attributes: {
-    athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    givenByAdminId: Schema.Attribute.Integer;
-    givenByTeamMember: Schema.Attribute.Relation<'manyToOne', 'api::team-member.team-member'>;
-    givenOn: Schema.Attribute.Date & Schema.Attribute.Required;
-    jump: Schema.Attribute.String;
-    kind: Schema.Attribute.Enumeration<['steaua', 'test', 'jump']> &
-      Schema.Attribute.Required;
-    level: Schema.Attribute.Integer;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::badge-award.badge-award'
-    > &
-      Schema.Attribute.Private;
-    publishedAt: Schema.Attribute.DateTime;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-  };
-}
-
-export interface ApiFriendshipGrantFriendshipGrant
-  extends Struct.CollectionTypeSchema {
-  collectionName: 'friendship_grants';
-  info: {
-    displayName: 'Parcurs / Pini de prietenie primite';
-    pluralName: 'friendship-grants';
-    singularName: 'friendship-grant';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  pluginOptions: {
-    'content-manager': {
-      visible: false;
-    };
-  };
-  attributes: {
-    athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    createdOn: Schema.Attribute.Date & Schema.Attribute.Required;
-    expiresOn: Schema.Attribute.Date & Schema.Attribute.Required;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::friendship-grant.friendship-grant'
-    > &
-      Schema.Attribute.Private;
-    publishedAt: Schema.Attribute.DateTime;
-    size: Schema.Attribute.Integer & Schema.Attribute.Required;
-    source: Schema.Attribute.String & Schema.Attribute.Required;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-  };
-}
-
-export interface ApiFriendshipPinFriendshipPin
-  extends Struct.CollectionTypeSchema {
-  collectionName: 'friendship_pins';
-  info: {
-    displayName: 'Parcurs / Pin de prietenie dat';
-    pluralName: 'friendship-pins';
-    singularName: 'friendship-pin';
-  };
-  options: {
-    draftAndPublish: false;
-  };
-  pluginOptions: {
-    'content-manager': {
-      visible: false;
-    };
-  };
-  attributes: {
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    design: Schema.Attribute.Integer &
-      Schema.Attribute.Required &
-      Schema.Attribute.SetMinMax<
-        {
-          max: 15;
-          min: 1;
-        },
-        number
-      >;
-    givenOn: Schema.Attribute.Date & Schema.Attribute.Required;
-    giver: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
-    grant: Schema.Attribute.Relation<'manyToOne', 'api::friendship-grant.friendship-grant'>;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::friendship-pin.friendship-pin'
-    > &
-      Schema.Attribute.Private;
-    publishedAt: Schema.Attribute.DateTime;
-    recipient: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-  };
-}
-
 export interface ApiAthleteAthlete extends Struct.CollectionTypeSchema {
   collectionName: 'athletes';
   info: {
@@ -1180,6 +1055,49 @@ export interface ApiAuthPasskeyAuthPasskey extends Struct.CollectionTypeSchema {
     subjectType: Schema.Attribute.Enumeration<['portal', 'admin']> &
       Schema.Attribute.Required;
     transports: Schema.Attribute.JSON;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiBadgeAwardBadgeAward extends Struct.CollectionTypeSchema {
+  collectionName: 'badge_awards';
+  info: {
+    displayName: 'Parcurs / Insign\u0103 acordat\u0103';
+    pluralName: 'badge-awards';
+    singularName: 'badge-award';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    givenByAdminId: Schema.Attribute.Integer;
+    givenByTeamMember: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::team-member.team-member'
+    >;
+    givenOn: Schema.Attribute.Date & Schema.Attribute.Required;
+    jump: Schema.Attribute.String;
+    kind: Schema.Attribute.Enumeration<['steaua', 'test', 'jump']> &
+      Schema.Attribute.Required;
+    level: Schema.Attribute.Integer;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::badge-award.badge-award'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1699,6 +1617,93 @@ export interface ApiFormConfigFormConfig extends Struct.CollectionTypeSchema {
     type: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.Unique;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiFriendshipGrantFriendshipGrant
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'friendship_grants';
+  info: {
+    displayName: 'Parcurs / Pini de prietenie primite';
+    pluralName: 'friendship-grants';
+    singularName: 'friendship-grant';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    athlete: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    createdOn: Schema.Attribute.Date & Schema.Attribute.Required;
+    expiresOn: Schema.Attribute.Date & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::friendship-grant.friendship-grant'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    size: Schema.Attribute.Integer & Schema.Attribute.Required;
+    source: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiFriendshipPinFriendshipPin
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'friendship_pins';
+  info: {
+    displayName: 'Parcurs / Pin de prietenie dat';
+    pluralName: 'friendship-pins';
+    singularName: 'friendship-pin';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    design: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 15;
+          min: 1;
+        },
+        number
+      >;
+    givenOn: Schema.Attribute.Date & Schema.Attribute.Required;
+    giver: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
+    grant: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::friendship-grant.friendship-grant'
+    >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::friendship-pin.friendship-pin'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    recipient: Schema.Attribute.Relation<'manyToOne', 'api::athlete.athlete'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -4200,15 +4205,13 @@ declare module '@strapi/strapi' {
       'api::article.article': ApiArticleArticle;
       'api::athlete-access.athlete-access': ApiAthleteAccessAthleteAccess;
       'api::athlete-duplicate.athlete-duplicate': ApiAthleteDuplicateAthleteDuplicate;
-      'api::badge-award.badge-award': ApiBadgeAwardBadgeAward;
-      'api::friendship-grant.friendship-grant': ApiFriendshipGrantFriendshipGrant;
-      'api::friendship-pin.friendship-pin': ApiFriendshipPinFriendshipPin;
       'api::athlete.athlete': ApiAthleteAthlete;
       'api::attendance.attendance': ApiAttendanceAttendance;
       'api::auth-backup-code.auth-backup-code': ApiAuthBackupCodeAuthBackupCode;
       'api::auth-challenge.auth-challenge': ApiAuthChallengeAuthChallenge;
       'api::auth-factor.auth-factor': ApiAuthFactorAuthFactor;
       'api::auth-passkey.auth-passkey': ApiAuthPasskeyAuthPasskey;
+      'api::badge-award.badge-award': ApiBadgeAwardBadgeAward;
       'api::calendar-blackout.calendar-blackout': ApiCalendarBlackoutCalendarBlackout;
       'api::calendar-event.calendar-event': ApiCalendarEventCalendarEvent;
       'api::club-counter.club-counter': ApiClubCounterClubCounter;
@@ -4221,6 +4224,8 @@ declare module '@strapi/strapi' {
       'api::discipline.discipline': ApiDisciplineDiscipline;
       'api::email-job.email-job': ApiEmailJobEmailJob;
       'api::form-config.form-config': ApiFormConfigFormConfig;
+      'api::friendship-grant.friendship-grant': ApiFriendshipGrantFriendshipGrant;
+      'api::friendship-pin.friendship-pin': ApiFriendshipPinFriendshipPin;
       'api::group-membership.group-membership': ApiGroupMembershipGroupMembership;
       'api::group.group': ApiGroupGroup;
       'api::historic-page.historic-page': ApiHistoricPageHistoricPage;
