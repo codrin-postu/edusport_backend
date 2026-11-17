@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
-import { PHONE_COPY, WHATSAPP_MESSAGE, fillMessage, whatsappMessage, whatsappUrl } from '../inscrieri-phone';
+import { PHONE_COPY, WHATSAPP_MESSAGE, fillMessage, smsUrl, whatsappMessage, whatsappUrl } from '../inscrieri-phone';
 
 const names = { parinte: 'Ana', copil: 'Mihai' };
 const admin = (...p: string[]) => readFileSync(join(__dirname, '..', '..', 'admin', 'dashboard', ...p), 'utf8');
@@ -24,14 +24,20 @@ it('fills the placeholders of a template', () => {
   expect(fillMessage('Buna {parinte}, {copil}', names)).toBe('Buna Ana, Mihai');
 });
 
-it('the message stays a marked gap until the user writes it', () => {
-  expect(WHATSAPP_MESSAGE).toContain('COPY NEEDED');
+it('uses the user\'s message text', () => {
+  expect(WHATSAPP_MESSAGE).toBe('Bună ziua! Confirmăm înscrierea la cursurile de patinaj. În următoarele zile veți primi un SMS cu ora/grupa. O zi frumoasă!\n\nȘcoala de Patinaj EduSport');
+});
+
+it('builds the sms link with the E.164 number and the edited message', () => {
+  expect(smsUrl('0722123456', 'Bună & ziua')).toBe('sms:+40722123456?body=' + encodeURIComponent('Bună & ziua'));
+  expect(smsUrl('0722 12', 'x')).toBeNull();
 });
 
 it('the WhatsApp dialog edits the message, opens WhatsApp itself and changes the status only through the saved status box', () => {
   const src = admin('inscrieri', 'PhoneActions.tsx');
   expect(src).toContain('<Textarea');
   expect(src).toContain('whatsappUrl(raw, text)');
+  expect(src).toContain('smsUrl(raw, text)');
   expect(src).toContain('api.statusBox(row)');
   expect(src).not.toMatch(/saveField\(/);
 });

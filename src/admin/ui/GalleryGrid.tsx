@@ -172,7 +172,7 @@ export function GalleryGrid(props: GalleryGridProps) {
         {list.map((img, i) => {
           const grip =
             reorder && img ? (
-              <button type="button" className="ui-gal-grip" aria-label={`Mută ${labelOf(i)}`} disabled={disabled} {...drag.handleProps(i)}>
+              <button type="button" className="ui-gal-grip" aria-label={`Mută ${labelOf(i)}`} title={`Mută ${labelOf(i)}`} disabled={disabled} {...drag.handleProps(i)}>
                 <IconGrip size={12} />
               </button>
             ) : null;

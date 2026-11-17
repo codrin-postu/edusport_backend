@@ -43,7 +43,7 @@ export function GroupMenu({ page, api, back }: Props) {
   const label = <><span aria-hidden="true">...</span><span className="ui-sr">{GRUPE_COPY.menu}</span></>;
   return (
     <>
-      <MenuButton label={label} open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="spv-menu" placement="bottom-end" role="menu" chevron={false}>
+      <MenuButton title={GRUPE_COPY.menu} label={label} open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="spv-menu" placement="bottom-end" role="menu" chevron={false}>
         <button type="button" role="menuitem" onClick={() => pick('edit')}>{GRUPE_COPY.edit}</button>
         {page.deletable && <button type="button" role="menuitem" className="spv-danger" onClick={() => pick('delete')}>{GRUPE_COPY.remove}</button>}
       </MenuButton>

@@ -581,14 +581,15 @@ export function DetailFooter({ children }: { children: React.ReactNode }) {
 /** Icon-only menu trigger (kebab, row menu): keeps the icon-button look, not the Select look. */
 const IconMenuTrigger = React.forwardRef<
   HTMLButtonElement,
-  { label: React.ReactNode; active?: boolean; open: boolean; disabled?: boolean; onToggle: () => void }
->(function IconMenuTrigger({ label, active, open, disabled, onToggle }, ref) {
+  { label: React.ReactNode; title?: string; active?: boolean; open: boolean; disabled?: boolean; onToggle: () => void }
+>(function IconMenuTrigger({ label, title, active, open, disabled, onToggle }, ref) {
   return (
     <Button
       ref={ref}
       size="sm"
       variant="secondary"
       className={active ? 'sbt-qf-on' : undefined}
+      title={title}
       aria-haspopup="true"
       aria-expanded={open}
       disabled={disabled}
@@ -605,6 +606,7 @@ const IconMenuTrigger = React.forwardRef<
  */
 export function MenuButton({
   label,
+  title,
   active,
   open,
   onToggle,
@@ -617,6 +619,8 @@ export function MenuButton({
   children,
 }: {
   label: React.ReactNode;
+  /** Tooltip of the icon-only trigger (`chevron={false}`). */
+  title?: string;
   active?: boolean;
   open: boolean;
   onToggle: () => void;
@@ -651,7 +655,7 @@ export function MenuButton({
           </span>
         </button>
       ) : (
-        <IconMenuTrigger ref={ref} label={label} active={active} open={open} disabled={disabled} onToggle={onToggle} />
+        <IconMenuTrigger ref={ref} label={label} title={title} active={active} open={open} disabled={disabled} onToggle={onToggle} />
       )}
       <Popover
         open={open}
@@ -1595,7 +1599,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
           const shown = !colCfg.hidden.includes(key);
           return (
             <div key={key} className="sbt-prow" {...colDrag.itemProps(i)}>
-              <button type="button" className="ui-iconbtn ui-iconbtn--sm ui-grip" aria-label={`Mută coloana ${c.label}`} {...colDrag.handleProps(i)}>
+              <button type="button" className="ui-iconbtn ui-iconbtn--sm ui-grip" aria-label={`Mută coloana ${c.label}`} title={`Mută coloana ${c.label}`} {...colDrag.handleProps(i)}>
                 <IconGrip size={12} />
               </button>
               <Checkbox checked={shown} onChange={() => toggleHidden(key)} label={c.label} />

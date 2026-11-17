@@ -49,6 +49,7 @@ function RowMenu({ row, onPick }: { row: PaymentRowView; onPick: (k: 'edit' | 'c
   const pick = (k: 'edit' | 'cancel') => { setOpen(false); onPick(k); };
   return (
     <MenuButton
+      title={row.athleteName}
       label={<><span aria-hidden="true">...</span><span className="ui-sr">{row.athleteName}</span></>} open={open} onToggle={() => setOpen((o) => !o)}
       onClose={() => setOpen(false)} popClassName="spv-menu" placement="bottom-end" role="menu" chevron={false}
     >

@@ -209,7 +209,7 @@ export function RecordMenu({ record, api, reload, onMerge, superAdmin }: Props) 
   };
   return (
     <>
-      <MenuButton label={<MenuLabel />} open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="spv-menu" placement="bottom-end" role="menu" chevron={false} disabled={busy}>
+      <MenuButton title={RECORD_COPY.menu.button} label={<MenuLabel />} open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="spv-menu" placement="bottom-end" role="menu" chevron={false} disabled={busy}>
         <MenuItems items={recordMenuItems(record.status, superAdmin)} onPick={pick} />
       </MenuButton>
       <RecordDialogs record={record} api={api} reload={reload} dialog={dialog} onClose={() => setDialog(null)} onRefused={setRefusal} />

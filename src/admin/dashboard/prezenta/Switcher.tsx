@@ -20,13 +20,13 @@ export function Switcher({ label, prevLabel, nextLabel, onPrev, onNext, middle, 
   const mid = `pz-seg-btn${middleOn ? ' pz-seg-btn--on' : ''}`;
   return (
     <span className="pz-seg" role="group" aria-label={label}>
-      <button type="button" className="pz-seg-btn" aria-label={prevLabel} onClick={onPrev}>{'<'}</button>
+      <button type="button" className="pz-seg-btn" aria-label={prevLabel} title={prevLabel} onClick={onPrev}>{'<'}</button>
       {onMiddle ? (
         <button type="button" className={mid} disabled={middleDisabled} onClick={onMiddle}>{middle}</button>
       ) : (
         <span className={`${mid} pz-seg-label`}>{middle}</span>
       )}
-      <button type="button" className="pz-seg-btn" aria-label={nextLabel} disabled={nextDisabled} onClick={onNext}>{'>'}</button>
+      <button type="button" className="pz-seg-btn" aria-label={nextLabel} title={nextLabel} disabled={nextDisabled} onClick={onNext}>{'>'}</button>
     </span>
   );
 }

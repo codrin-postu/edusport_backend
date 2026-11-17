@@ -2,18 +2,22 @@ import * as React from 'react';
 import { Button, Modal, Textarea, adminToast } from '../../ui';
 import { IconCopy, IconWarning, IconWhatsapp } from '../../ui/icons';
 import type { Row, TableApi } from '../SubmissionTable';
-import { PHONE_COPY, whatsappMessage, whatsappUrl } from '../../../club/inscrieri-phone';
+import { PHONE_COPY, smsUrl, whatsappMessage, whatsappUrl } from '../../../club/inscrieri-phone';
 import { cellText, isAnonymizedRow } from '../../../club/inscrieri-panel';
 import { formatPhone, normalizePhone } from '../../../club/phone';
 
 const BTN = 'ui-btn ui-btn--ghost ui-btn--sm ui-btn--icon';
 
-/** WhatsApp popup: the message is edited here, WhatsApp opens in a new tab, the status is changed on return (saved like the panel status). */
+/** WhatsApp / SMS popup: the message is edited here, WhatsApp opens in a new tab, SMS in the phone's messages app, the status is changed on return (saved like the panel status). */
 function WhatsappDialog({ row, api, raw, onClose }: { row: Row; api: TableApi; raw: string; onClose: () => void }) {
   const [text, setText] = React.useState(() => whatsappMessage({ parinte: cellText(row.parentName), copil: cellText(row.childName) }));
   const url = whatsappUrl(raw, text);
+  const sms = smsUrl(raw, text);
   const open = () => {
     if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  };
+  const openSms = () => {
+    if (sms) window.location.href = sms;
   };
   return (
     <Modal
@@ -24,6 +28,9 @@ function WhatsappDialog({ row, api, raw, onClose }: { row: Row; api: TableApi; r
         <>
           <Button variant="secondary" onClick={onClose}>
             {PHONE_COPY.close}
+          </Button>
+          <Button variant="secondary" disabled={!sms} onClick={openSms}>
+            {PHONE_COPY.sms}
           </Button>
           <Button disabled={!url} onClick={open}>
             {PHONE_COPY.whatsapp}

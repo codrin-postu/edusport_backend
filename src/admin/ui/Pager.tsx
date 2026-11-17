@@ -33,7 +33,7 @@ export function Pager({ page, pageCount, onChange, total, pageSize, className }:
     <nav className={cx('ui-pager', className)} aria-label="Paginare">
       {range && <span className="ui-num ui-pager-range">{range}</span>}
       <span className="ui-pager-pages">
-        <button type="button" className="ui-pg" disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label="Pagina anterioară">
+        <button type="button" className="ui-pg" disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label="Pagina anterioară" title="Pagina anterioară">
           ‹
         </button>
         {pages.map((p, i) =>
@@ -59,6 +59,7 @@ export function Pager({ page, pageCount, onChange, total, pageSize, className }:
           disabled={page >= pageCount}
           onClick={() => onChange(page + 1)}
           aria-label="Pagina următoare"
+          title="Pagina următoare"
         >
           ›
         </button>

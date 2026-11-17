@@ -221,7 +221,7 @@ export function SearchableSelect({
           <button
             type="button"
             className="ui-iconbtn ui-iconbtn--sm"
-            aria-label="Golește selecția"
+            aria-label="Golește selecția" title="Golește selecția"
             onClick={() => {
               setPicked(null);
               onChange(null, null);
@@ -236,7 +236,7 @@ export function SearchableSelect({
           type="button"
           className="ui-iconbtn ui-iconbtn--sm"
           tabIndex={-1}
-          aria-label={open ? 'Închide lista' : 'Deschide lista'}
+          aria-label={open ? 'Închide lista' : 'Deschide lista'} title={open ? 'Închide lista' : 'Deschide lista'}
           disabled={disabled}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => {

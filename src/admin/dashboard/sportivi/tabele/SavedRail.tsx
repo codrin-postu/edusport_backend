@@ -18,7 +18,7 @@ function RowMenu({ view, keys, onMenu }: { view: SavedViewRow; keys: RailMenuKey
   const [open, setOpen] = React.useState(false);
   return (
     <span className="tbl-rail-menu" data-open={open}>
-      <MenuButton label={<span title={TABLES_COPY.rail.menu}>...</span>} open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="spv-menu" placement="bottom-end" role="menu" chevron={false}>
+      <MenuButton title={TABLES_COPY.rail.menu} label="..." open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="spv-menu" placement="bottom-end" role="menu" chevron={false}>
         {keys.map((key) => (
           <button key={key} type="button" role="menuitem" className={key === 'remove' ? 'spv-danger' : undefined} onClick={() => { setOpen(false); onMenu(key, view); }}>{LABEL[key]}</button>
         ))}

@@ -57,7 +57,7 @@ export const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(func
             onBlur?.(e);
           }}
         />
-        <button type="button" className="ui-date-btn" aria-label="Alege data" disabled={disabled} onClick={openPicker}>
+        <button type="button" className="ui-date-btn" aria-label="Alege data" title="Alege data" disabled={disabled} onClick={openPicker}>
           <IconCalendar />
         </button>
         <input

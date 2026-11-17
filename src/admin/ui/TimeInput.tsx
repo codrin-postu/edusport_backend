@@ -123,7 +123,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(func
       <button
         type="button"
         className="ui-time-btn"
-        aria-label="Alege ora"
+        aria-label="Alege ora" title="Alege ora"
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? popId : undefined}

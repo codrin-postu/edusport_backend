@@ -159,10 +159,10 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         }}
       />
       <span className="ui-numin-steps">
-        <button type="button" tabIndex={-1} aria-label={`Crește ${label ?? 'valoarea'}`} disabled={upOff} onClick={() => stepBy(1)}>
+        <button type="button" tabIndex={-1} aria-label={`Crește ${label ?? 'valoarea'}`} title={`Crește ${label ?? 'valoarea'}`} disabled={upOff} onClick={() => stepBy(1)}>
           <IconChevronUp size={size === 'lg' ? 12 : 10} />
         </button>
-        <button type="button" tabIndex={-1} aria-label={`Scade ${label ?? 'valoarea'}`} disabled={downOff} onClick={() => stepBy(-1)}>
+        <button type="button" tabIndex={-1} aria-label={`Scade ${label ?? 'valoarea'}`} title={`Scade ${label ?? 'valoarea'}`} disabled={downOff} onClick={() => stepBy(-1)}>
           <IconChevronDown size={size === 'lg' ? 12 : 10} />
         </button>
       </span>

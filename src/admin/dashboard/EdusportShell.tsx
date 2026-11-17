@@ -567,7 +567,7 @@ function EdusportShell() {
             );
           })}
         </nav>
-        <button type="button" className="esd-railbtn" onClick={toggleRail} aria-label="Desfă bara" aria-expanded={!railed}>
+        <button type="button" className="esd-railbtn" onClick={toggleRail} aria-label="Desfă bara" title="Desfă bara" aria-expanded={!railed}>
           <Caret dir="right" />
         </button>
         <div className="esd-railacct">

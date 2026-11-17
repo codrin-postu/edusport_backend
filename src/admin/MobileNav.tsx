@@ -241,6 +241,7 @@ export function MobileNav() {
           className="edu-mnav-burger"
           onClick={() => setOpen(true)}
           aria-label="Deschide meniul"
+          title="Deschide meniul"
           aria-expanded={open}
         >
           <BurgerIcon />
@@ -257,7 +258,7 @@ export function MobileNav() {
           <nav aria-label="Navigare mobilă" className="edu-mnav-panel">
             <div className="edu-mnav-head">
               <span className="edu-mnav-title">Navigare</span>
-              <button type="button" className="edu-mnav-close" onClick={() => setOpen(false)} aria-label="Închide meniul">
+              <button type="button" className="edu-mnav-close" onClick={() => setOpen(false)} aria-label="Închide meniul" title="Închide meniul">
                 <CloseIcon />
               </button>
             </div>

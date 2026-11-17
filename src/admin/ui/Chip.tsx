@@ -18,7 +18,7 @@ export function Chip({ children, onRemove, removeLabel, title, className }: Chip
     <span className={cx('ui-chip', !onRemove && 'ui-chip--static', className)} title={title ?? (text || undefined)}>
       <span className="ui-chip-label">{children}</span>
       {onRemove && (
-        <button type="button" className="ui-chip-x" onClick={onRemove} aria-label={removeLabel ?? (text ? `Elimină ${text}` : 'Elimină')}>
+        <button type="button" className="ui-chip-x" onClick={onRemove} aria-label={removeLabel ?? (text ? `Elimină ${text}` : 'Elimină')} title={removeLabel ?? (text ? `Elimină ${text}` : 'Elimină')}>
           <span aria-hidden="true">×</span>
         </button>
       )}

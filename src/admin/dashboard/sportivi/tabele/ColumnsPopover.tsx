@@ -34,8 +34,8 @@ export function ColumnsPopover({ definition, catalog, onChange }: Props) {
               />
               {on && (
                 <span className="tbl-col-move">
-                  <button type="button" className="ui-iconbtn" aria-label={TABLES_COPY.moveUp} disabled={i === 0} onClick={() => onChange(moveColumnTo(definition, c.key, -1))}><IconChevronUp /></button>
-                  <button type="button" className="ui-iconbtn" aria-label={TABLES_COPY.moveDown} disabled={i === shownCount - 1} onClick={() => onChange(moveColumnTo(definition, c.key, 1))}><IconChevronDown /></button>
+                  <button type="button" className="ui-iconbtn" aria-label={TABLES_COPY.moveUp} title={TABLES_COPY.moveUp} disabled={i === 0} onClick={() => onChange(moveColumnTo(definition, c.key, -1))}><IconChevronUp /></button>
+                  <button type="button" className="ui-iconbtn" aria-label={TABLES_COPY.moveDown} title={TABLES_COPY.moveDown} disabled={i === shownCount - 1} onClick={() => onChange(moveColumnTo(definition, c.key, 1))}><IconChevronDown /></button>
                 </span>
               )}
             </li>

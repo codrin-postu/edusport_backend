@@ -9,7 +9,7 @@ export function MemberMenu({ member, busy, onPick }: { member: MemberRow; busy: 
   const [open, setOpen] = React.useState(false);
   const label = <><span aria-hidden="true">...</span><span className="ui-sr">{GRUPE_COPY.menu}</span></>;
   return (
-    <MenuButton label={label} open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="spv-menu" placement="bottom-end" role="menu" chevron={false} disabled={busy}>
+    <MenuButton title={GRUPE_COPY.menu} label={label} open={open} onToggle={() => setOpen((o) => !o)} onClose={() => setOpen(false)} popClassName="spv-menu" placement="bottom-end" role="menu" chevron={false} disabled={busy}>
       {memberMenuItems().map((item) => (
         <button key={item.key} type="button" role="menuitem" className={item.danger ? 'spv-danger' : undefined} onClick={() => { setOpen(false); onPick(item.key, member); }}>
           {item.label}

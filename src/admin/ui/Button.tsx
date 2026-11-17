@@ -48,7 +48,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
       )}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      title={iconOnly ? rest['aria-label'] : rest.title}
+      title={rest.title ?? rest['aria-label']}
       {...rest}
     >
       {loading ? <Spinner size={14} /> : icon}

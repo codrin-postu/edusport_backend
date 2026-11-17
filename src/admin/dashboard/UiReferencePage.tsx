@@ -664,7 +664,7 @@ function PrimitivesDemo() {
       <ul className="ui-rl-items">
         {items.map((d, i) => (
           <li key={d} className="ui-row ui-row--flat" {...drag.itemProps(i)}>
-            <button type="button" className="ui-iconbtn ui-grip" aria-label={`Mută ${d}`} {...drag.handleProps(i)}>
+            <button type="button" className="ui-iconbtn ui-grip" aria-label={`Mută ${d}`} title={`Mută ${d}`} {...drag.handleProps(i)}>
               ⠿
             </button>
             <div className="ui-row-main" style={{ alignSelf: 'center' }}>

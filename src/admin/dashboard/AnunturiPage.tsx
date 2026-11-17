@@ -245,7 +245,7 @@ export default function AnunturiPage() {
         const i = ordered.indexOf(r);
         if (i < 0) return null;
         return (
-          <button type="button" className="anun-grab" aria-label={`Reordonează "${r.title}"`} {...drag.handleProps(i)} onClick={(e) => e.stopPropagation()}>
+          <button type="button" className="anun-grab" aria-label={`Reordonează "${r.title}"`} title={`Reordonează "${r.title}"`} {...drag.handleProps(i)} onClick={(e) => e.stopPropagation()}>
             <IconGrip />
           </button>
         );

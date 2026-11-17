@@ -1,9 +1,10 @@
 import { whatsappDigits } from './phone';
 
-/** The first message of the WhatsApp action. The user writes the text; placeholders: {parinte}, {copil}. */
-export const WHATSAPP_MESSAGE = 'COPY NEEDED';
+/** The first message of the WhatsApp / SMS action (user's text, 2026-11-17); placeholders available: {parinte}, {copil}. */
+export const WHATSAPP_MESSAGE =
+  'Bună ziua! Confirmăm înscrierea la cursurile de patinaj. În următoarele zile veți primi un SMS cu ora/grupa. O zi frumoasă!\n\nȘcoala de Patinaj EduSport';
 
-export const PHONE_COPY = { copied: 'Copiat.', invalid: 'Număr de telefon invalid', copy: 'Copiază', whatsapp: 'WhatsApp', close: 'Închide' };
+export const PHONE_COPY = { copied: 'Copiat.', invalid: 'Număr de telefon invalid', copy: 'Copiază', whatsapp: 'WhatsApp', sms: 'SMS', close: 'Închide' };
 
 type Names = { parinte: string; copil: string };
 
@@ -18,4 +19,10 @@ export const whatsappMessage = (names: Names): string => fillMessage(WHATSAPP_ME
 export function whatsappUrl(raw: string, text: string): string | null {
   const digits = whatsappDigits(raw);
   return digits ? `https://wa.me/${digits}?text=${encodeURIComponent(text)}` : null;
+}
+
+/** sms: link with the (edited) message; null when the phone does not parse. */
+export function smsUrl(raw: string, text: string): string | null {
+  const digits = whatsappDigits(raw);
+  return digits ? `sms:+${digits}?body=${encodeURIComponent(text)}` : null;
 }

@@ -9,6 +9,7 @@ export function RowMenu({ name, items, onPick }: Props) {
   if (items.length === 0) return null;
   return (
     <MenuButton
+      title={name}
       label={<><span aria-hidden="true">...</span><span className="ui-sr">{name}</span></>} open={open} onToggle={() => setOpen((o) => !o)}
       onClose={() => setOpen(false)} popClassName="spv-menu" placement="bottom-end" role="menu" chevron={false}
     >

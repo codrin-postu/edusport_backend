@@ -196,20 +196,20 @@ export function RepeatableList<T>({
                 <button
                   type="button"
                   className="ui-iconbtn ui-grip"
-                  aria-label={`Mută ${name}`}
+                  aria-label={`Mută ${name}`} title={`Mută ${name}`}
                   disabled={disabled}
                   {...drag.handleProps(i)}
                 >
                   <IconGrip />
                 </button>
                 <span className="ui-row-move">
-                  <button type="button" className="ui-iconbtn" aria-label={`Mută ${name} mai sus`} disabled={disabled || i === 0} onClick={api.moveUp}>
+                  <button type="button" className="ui-iconbtn" aria-label={`Mută ${name} mai sus`} title={`Mută ${name} mai sus`} disabled={disabled || i === 0} onClick={api.moveUp}>
                     <IconChevronUp />
                   </button>
                   <button
                     type="button"
                     className="ui-iconbtn"
-                    aria-label={`Mută ${name} mai jos`}
+                    aria-label={`Mută ${name} mai jos`} title={`Mută ${name} mai jos`}
                     disabled={disabled || i === items.length - 1}
                     onClick={api.moveDown}
                   >
