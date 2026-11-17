@@ -223,7 +223,7 @@ ${SB}.ui-savebar--inline.ui-savebar--sheet{display:flex}
 
 /* notice */
 ${R} .ui-notice{display:flex;align-items:flex-start;gap:var(--ui-space-3);font-size:var(--ui-fs-body-sm);color:var(--theme-text);background:var(--ui-notice-bg);border:1px solid var(--ui-notice-border);border-radius:var(--ui-radius-sm);padding:10px 12px}
-${R} .ui-notice-mark{width:3px;align-self:stretch;flex-shrink:0;background:var(--ui-notice-fg)}
+${R} .ui-notice-mark{display:none}
 ${R} .ui-notice-text{flex:1;line-height:1.45;min-width:0}
 ${R} .ui-notice-title{display:block;font-weight:700;color:var(--ui-notice-fg);margin-bottom:1px}
 ${R} .ui-notice-body{color:var(--theme-text-secondary)}

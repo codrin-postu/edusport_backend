@@ -143,7 +143,7 @@ const CSS = `
 .ui-root .dash-ev{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--theme-border-subtle)}
 .ui-root .dash-ev:first-child{border-top:none}
 .ui-root .dash-ev-dt{font-size:11px;color:var(--theme-text-muted);width:54px;flex-shrink:0;font-weight:600}
-.ui-root .dash-ev-bar{width:3px;align-self:stretch;min-height:26px;flex-shrink:0}
+.ui-root .dash-ev-bar{display:none}
 .ui-root .dash-ev-tx{min-width:0}
 .ui-root .dash-ev-tx b{font-weight:600;font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--theme-text)}
 .ui-root .dash-ev-tx small{font-size:11.5px;color:var(--theme-text-muted)}
