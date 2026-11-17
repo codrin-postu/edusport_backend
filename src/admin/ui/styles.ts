@@ -1,5 +1,6 @@
 import { phoneQuery, tabletQuery } from '../../club/ui-breakpoints';
 import { tokensCss } from './tokens';
+import { startHoverTips } from './hoverTip';
 import { startAdminThemeSync } from './useAdminTheme';
 
 /**
@@ -655,6 +656,8 @@ ${R} .ui-fm-row small[data-set]{color:var(--theme-primary);font-weight:600}
 ${R} .ui-fm-title{display:block;margin:4px 0 8px;font-size:15px}
 `;
 
+const HOVER_TIP_CSS = `.ui-root.ui-hovertip{position:fixed;z-index:calc(var(--ui-z-toast) + 1);visibility:hidden;pointer-events:none;max-width:280px;padding:5px 8px;border-radius:var(--ui-radius-sm);background:var(--theme-text);color:var(--theme-surface);font-size:12px;font-weight:500;line-height:1.35;box-shadow:var(--theme-shadow-sm)}`;
+
 const STYLE_ID = 'ui-styles';
 
 /**
@@ -665,9 +668,10 @@ const STYLE_ID = 'ui-styles';
 export function ensureAdminUi(): void {
   if (typeof document === 'undefined') return;
   startAdminThemeSync();
+  startHoverTips();
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
   style.id = STYLE_ID;
-  style.textContent = tokensCss() + '\n' + UI_CSS;
+  style.textContent = tokensCss() + '\n' + UI_CSS + '\n' + HOVER_TIP_CSS;
   document.head.appendChild(style);
 }

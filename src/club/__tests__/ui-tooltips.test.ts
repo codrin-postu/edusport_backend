@@ -29,3 +29,12 @@ describe('icon-only controls show a native tooltip', () => {
     }
   });
 });
+
+it('the admin ui starts the fast hover tooltip once, moving title to data-tip', () => {
+  const ui = (f: string) => readFileSync(join(__dirname, '..', '..', 'admin', 'ui', f), 'utf8');
+  expect(ui('styles.ts')).toContain('startHoverTips();');
+  const tip = ui('hoverTip.ts');
+  expect(tip).toContain("el.setAttribute('data-tip', title)");
+  expect(tip).toContain("el.removeAttribute('title')");
+  expect(tip).toContain("role: 'tooltip'");
+});
