@@ -18,8 +18,8 @@ export const TABELE_CSS = `
 .ui-root .tbl-rail-h{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 8px var(--ui-inset)}
 .ui-root .tbl-rail-title{margin:0;font-size:13px;font-weight:700;color:var(--theme-text)}
 .ui-root .tbl-rail-head{margin:12px 0 4px;padding:0 var(--ui-inset);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--theme-text-secondary)}
-.ui-root .tbl-rail-row{position:relative;display:flex;align-items:center;border-left:3px solid transparent;min-width:0}
-.ui-root .tbl-rail-row[data-current="true"]{border-left-color:var(--theme-primary);background:var(--theme-primary-soft)}
+.ui-root .tbl-rail-row{position:relative;display:flex;align-items:center;min-width:0}
+.ui-root .tbl-rail-row[data-current="true"]{background:var(--theme-primary-soft)}
 .ui-root .tbl-rail[hidden]{display:none}
 .ui-root .tbl-rail-row:hover{background:var(--theme-surface-subtle)}
 .ui-root .tbl-rail-item{all:unset;box-sizing:border-box;flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;padding:8px calc(var(--ui-inset) - 3px);cursor:pointer;font-size:var(--ui-fs-body);color:var(--theme-text)}

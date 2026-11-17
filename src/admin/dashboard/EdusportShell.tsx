@@ -281,7 +281,7 @@ html[${MODE_ATTR}="custom"][${RAIL_ATTR}="1"] [${SHELL_PARENT_ATTR}] { padding-l
 .esd-grp-btn .esd-chev.open { transform: rotate(90deg); }
 .esd-nav a { display: flex; align-items: center; gap: 11px; padding: 9px 18px; font-size: 13.5px; color: var(--palette-shell-text); text-decoration: none; cursor: pointer; border-left: 3px solid transparent; white-space: nowrap; }
 .esd-nav a:hover { background: color-mix(in srgb, var(--palette-grey-0) 5%, transparent); color: var(--palette-grey-0); }
-.esd-nav a.on { background: color-mix(in srgb, var(--palette-blue-600) 35%, transparent); color: var(--palette-grey-0); border-left-color: var(--palette-shell-active); }
+.esd-nav a.on { background: color-mix(in srgb, var(--palette-blue-600) 35%, transparent); color: var(--palette-grey-0); }
 .esd-nav a svg { width: 15px; height: 15px; flex-shrink: 0; opacity: .8; }
 /* page links inside a category: plain indented text, no glyph */
 .esd-nav a.esd-sub { padding-left: 32px; font-size: 13px; color: var(--palette-shell-text-sub); }

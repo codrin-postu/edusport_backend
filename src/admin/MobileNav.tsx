@@ -51,7 +51,7 @@ body{padding-top:var(--ui-topbar)}
 .ui-root .edu-mnav-group{padding:8px 0}
 .ui-root .edu-mnav-gtitle{padding:8px 16px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--theme-text-muted)}
 .ui-root .edu-mnav-item{display:block;padding:12px 16px;font-size:14px;font-weight:500;color:var(--theme-text);text-decoration:none;border:none;border-left:3px solid transparent;background:transparent;width:100%;text-align:left;cursor:pointer;font-family:inherit}
-.ui-root .edu-mnav-item:hover{background:var(--theme-primary-soft);border-left-color:var(--theme-primary)}
+.ui-root .edu-mnav-item:hover{background:var(--theme-primary-soft)}
 `;
 
 function useIsMobile(query = tabletQuery): boolean {

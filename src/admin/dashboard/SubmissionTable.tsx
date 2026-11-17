@@ -480,7 +480,7 @@ const TABLE_CSS = `
 .ui-root .sbt-listbody[data-busy="true"]{opacity:.5;pointer-events:none;transition-delay:.3s}
 .ui-root .sbt-tag{min-width:96px;justify-content:center}
 .ui-root .ui-input.sbt-status-sel,.ui-root .ui-input.sbt-cell-sel{font-weight:700}
-.ui-root .sbt-statusbox{margin:0 0 14px;padding:11px 12px;border:1px solid var(--theme-primary-soft-line);background:var(--theme-primary-soft);border-radius:var(--ui-radius-sm);border-left:4px solid var(--theme-primary)}
+.ui-root .sbt-statusbox{margin:0 0 14px;padding:11px 12px;border:1px solid var(--theme-primary-soft-line);background:var(--theme-primary-soft);border-radius:var(--ui-radius-sm)}
 .ui-root .sbt-statusbox .ui-label{color:var(--theme-primary);font-weight:800}
 .ui-root .sbt-statusbox .ui-input{font-size:14px}
 .ui-root .sbt-lv{font-size:11px;color:var(--theme-text-muted);border:1px solid var(--theme-border);border-radius:var(--ui-radius-sm);padding:2px 7px;display:inline-block}
@@ -490,6 +490,7 @@ const TABLE_CSS = `
 .ui-root .sbt-bcount{font-size:12.5px;font-weight:700;color:var(--theme-primary)}
 .ui-root .sbt-split{display:grid;grid-template-columns:minmax(0,1fr) 360px}
 .ui-root .sbt-search{position:relative}
+.ui-root .ui-table-bar > .sbt-end{margin-left:auto}
 .ui-root .sbt-search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--theme-text-muted);pointer-events:none}
 .ui-root .sbt-search .ui-input{padding-left:30px;text-overflow:ellipsis}
 .ui-root .sbt-sort{display:inline-flex;align-items:center;gap:7px}
@@ -2035,7 +2036,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
             ]}
           />
           {view === 'full' && columnsMenu}
-          {exportMenu}
+          <div className="sbt-end">{exportMenu}</div>
         </div>
 
         {/* toolbar B: quick filters, the builder behind a dropdown, sort */}

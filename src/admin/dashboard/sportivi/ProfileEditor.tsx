@@ -150,7 +150,7 @@ const SPORTIV_CSS = `
 .ui-root .sp-bar > span{display:block;height:100%;background:var(--theme-primary)}
 .ui-root .sp-bar[data-tone="success"] > span{background:var(--theme-success)}
 .ui-root .sp-bar[data-tone="danger"] > span{background:var(--theme-danger)}
-.ui-root .sp-fail{margin-top:10px;border-left:2px solid var(--theme-danger);background:var(--theme-danger-bg);padding:7px 10px}
+.ui-root .sp-fail{margin-top:10px;background:var(--theme-danger-bg);padding:7px 10px}
 .ui-root .sp-fail-h{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--theme-danger);font-weight:700;margin-bottom:3px}
 .ui-root .sp-fail-row{display:flex;justify-content:space-between;gap:10px;padding:1px 0;color:var(--theme-text)}
 .ui-root .sp-fail-row span:last-child{color:var(--theme-danger);font-size:12px}

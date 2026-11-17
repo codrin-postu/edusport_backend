@@ -24,7 +24,6 @@ export const PREZENTA_CSS = `
 .ui-root .pz-seg-label{min-width:150px}
 .ui-root .pz-dayrow td{padding:3px var(--ui-inset);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.3;color:var(--theme-text-secondary);background:var(--theme-surface-subtle);border-bottom:1px solid var(--theme-border);scroll-margin-top:72px}
 .ui-root .pz-dayrow--today td{color:var(--theme-primary);background:var(--theme-primary-soft)}
-.ui-root .pz-table tr.pz-today td:first-child{box-shadow:inset 3px 0 0 var(--theme-primary)}
 .ui-root .pz-dayhead{margin:0;padding:3px var(--ui-inset);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.3;color:var(--theme-text-secondary);background:var(--theme-surface-subtle);border-bottom:1px solid var(--theme-border);scroll-margin-top:72px}
 .ui-root .pz-dayhead--today{color:var(--theme-primary);background:var(--theme-primary-soft)}
 .ui-root .pz-grid-wrap{overflow-x:auto;padding:0 var(--ui-inset) 4px}
