@@ -67,13 +67,13 @@ const REGISTRY_COL_KEYS = [
   'expectations',
 ];
 
-// Order convention shared with VoluntariPage: `submittedAt`, the row's name column, `status`, then the rest.
+// Order: the name, `status`, "Vârstă", `submittedAt`, then the rest (Voluntari still starts with `submittedAt`).
 // Bump `colConfigVersion` in CFG whenever this order changes (2 = "Vârstă" after the name, spec 3.2).
 const BUILTIN_COLUMNS: ColumnDef[] = [
-  { key: 'submittedAt', label: 'Trimis la', type: 'date', readOnly: true, width: 150 },
   { key: 'childName', label: 'Nume sportiv', type: 'text', width: 170 },
-  { key: 'age', label: 'Vârstă', type: 'text', readOnly: true, width: 90, render: (row) => ageText(row.age) },
   { key: 'status', label: 'Status', type: 'status', width: 130 },
+  { key: 'age', label: 'Vârstă', type: 'text', readOnly: true, width: 90, render: (row) => ageText(row.age) },
+  { key: 'submittedAt', label: 'Trimis la', type: 'date', readOnly: true, width: 150 },
   { key: 'childBirthDate', label: 'Data nașterii', type: 'text', width: 150 },
   { key: 'parentName', label: 'Nume părinte', type: 'text', width: 170 },
   { key: 'email', label: 'Email', type: 'text', width: 210 },
@@ -106,7 +106,6 @@ const renderCells = (r: Row, api: TableApi) => {
   return (
     <>
       <td className="ui-num ins-nr">{cellText(r.registrationNumber)}</td>
-      <td className="ui-num">{fmtDateShort(r.submittedAt)}</td>
       <td className="ins-name">
         <b>{cellText(r.childName)}</b>
         {showsExistingLine(r) && (
@@ -116,9 +115,10 @@ const renderCells = (r: Row, api: TableApi) => {
           </span>
         )}
       </td>
+      <td>{api.statusTag(r)}</td>
       {multiple && <td className="ins-school">{shortSchoolName(r.schoolName)}</td>}
       <td className="ui-num">{ageText(r.age)}</td>
-      <td>{api.statusTag(r)}</td>
+      <td className="ui-num">{fmtDateShort(r.submittedAt)}</td>
       <td>{wishText(r.membershipAnswer)}</td>
     </>
   );
@@ -130,8 +130,8 @@ const renderDetail = (row: Row, api: TableApi) => <RegistrationPanel key={row.do
 const CFG: SubmissionTableCfg = {
   api: '/api/forms/inscrieri',
   storagePrefix: 'edusport-inscrieri-cols',
-  // 1 = status moved directly after `childName`; 2 = "Vârstă" added after the name.
-  colConfigVersion: 2,
+  // 1 = status moved directly after `childName`; 2 = "Vârstă" added after the name; 3 = name, status, age, date.
+  colConfigVersion: 3,
   csvPrefix: 'inscrieri',
   statuses: [
     { value: 'Nou', color: 'var(--theme-primary)', soft: 'var(--theme-primary-soft)', border: 'var(--theme-primary-soft-line)' },

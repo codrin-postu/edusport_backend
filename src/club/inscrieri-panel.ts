@@ -44,7 +44,7 @@ const yesNo = (v: unknown): string => (v === true ? 'Da' : 'Nu');
 export function compactHeaders(multipleSchools: boolean): CompactHeaderSpec[] {
   const [nr, sent, name, age, status, , wish] = LIST_COPY.headers;
   const school = multipleSchools ? [LIST_COPY.school] : [];
-  return [nr, sent, name, ...school, { label: age, sort: AGE_SORT }, status, wish];
+  return [nr, name, status, ...school, { label: age, sort: AGE_SORT }, sent, wish];
 }
 
 export const ageText = (age: unknown): string => (typeof age === 'number' && age >= 0 ? `${age} ani` : '');
