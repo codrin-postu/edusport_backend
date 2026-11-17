@@ -84,6 +84,7 @@ export function RegistrationPanel({ row, api }: { row: Row; api: TableApi }) {
   return (
     <div className="ins-panel" ref={ref}>
       <PanelHeader row={row} api={api} />
+      <div className="ins-status">{api.statusBox(row)}</div>
       {showMatchCard(data.match) && data.match && <MatchCard view={data.match} />}
       {!linkedAthleteId(row) && data.matchFailed && <p className="ins-empty">{INSCRIERI_PENDING_COPY.loadFailed}</p>}
       <Tabs

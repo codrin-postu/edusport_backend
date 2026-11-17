@@ -6,7 +6,7 @@ import { PanelMenu } from './PanelMenu';
 
 /**
  * Fixed panel header (spec 3.3): name, status badge, "..." menu; "Nr. 2026-0142", "Trimis 3 oct 2026, 14:22";
- * then the status menu "Nou" / "Contactat" / "Respins" (Needs decision 1, option A; none on a Confirmat row).
+ * the status menu sits below it in the panel, so it scrolls away in a short window.
  */
 export function PanelHeader({ row, api }: { row: Row; api: TableApi }) {
   const nr = cellText(row.registrationNumber);
@@ -27,7 +27,6 @@ export function PanelHeader({ row, api }: { row: Row; api: TableApi }) {
           {PANEL_COPY.submitted} <b>{fmtDateTime(row.submittedAt)}</b>
         </span>
       </div>
-      {api.statusBox(row)}
     </div>
   );
 }

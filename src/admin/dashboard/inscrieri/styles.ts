@@ -29,7 +29,9 @@ const PANEL_CSS =
   '.ui-root .ins-ph-name{flex:1;min-width:0;font-size:15px;color:var(--theme-text)}' +
   '.ui-root .ins-ph-meta{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--theme-text-secondary)}' +
   '.ui-root .ins-ph-meta b{color:var(--theme-text)}' +
-  '.ui-root .ins-ph .sbt-statusbox{margin:4px 0 0}' +
+  '.ui-root .ins-status{padding:10px 15px 0}' +
+  '.ui-root .ins-status:empty{display:none}' +
+  '.ui-root .ins-status .sbt-statusbox{margin:0}' +
   '.ui-root .ins-tabs{margin-top:10px;padding:0 7px}' +
   '.ui-root .ins-tabs .ui-tab{padding:0 8px}' +
   '.ui-root .ins-panel .sbt-pb{max-height:calc(100vh - 420px);min-height:240px}' +
