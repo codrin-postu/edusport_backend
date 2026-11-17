@@ -8,7 +8,8 @@ import type { MembershipRow, SeasonRow } from '../../athletes/store';
 import { isAnonymized } from '../../personal-data/anonymize-plan';
 import { mainGroupOn } from '../../presence/attendance/roster';
 import type { SportivPath } from './api-types';
-import { badges, type BadgeInput } from './badges';
+import { countedFacts } from '../../parcurs/facts';
+import { countedPins } from '../../parcurs/counted';
 import { skaterOf } from './competitions';
 import type { SportivContext } from './context';
 import { toPath } from './views';
@@ -72,35 +73,14 @@ async function programOf(c: SportivContext, group: GroupRecord, seasonLabel: str
   return `${daysSpoken(series.days)}, ${series.startTime}${coaches ? `, cu ${coaches}` : ''}`;
 }
 
-/** Months with a saved session of a main group while the athlete was in it, per season, and the months with a presence. */
-async function seasonFacts(c: SportivContext, athleteId: string, memberships: MembershipRow[], seasons: SeasonRow[], presenceDates: string[]): Promise<BadgeInput['seasons']> {
-  const store = c.presence.store;
-  const runs = mainRuns(memberships, seasons);
-  const present = new Set(presenceDates.map(monthOf));
-  return Promise.all(seasons.map(async (season) => {
-    const months = new Set<string>();
-    for (const run of runs.filter((r) => r.seasonId === season.id)) {
-      for (const s of await store.sessions({ groupId: run.groupId, from: run.from, to: run.to })) months.add(monthOf(s.date));
-    }
-    const { start, end } = seasonBounds(season);
-    return { months: [...months].sort(), presentMonths: new Set([...present].filter((m) => m >= monthOf(start) && m <= monthOf(end))), finished: end < c.today };
-  }));
-}
-
-/** Parcurs (spec 6.6): the level now, the next one, earlier main groups and the badges (all time). Callers check that the holder holds the athlete. */
+/** Parcurs (spec 6.6): the level now, the next one, earlier main groups and the counted pins (all time). Callers check that the holder holds the athlete. */
 export async function readPath(c: SportivContext, athleteId: string): Promise<SportivPath> {
   const store = c.presence.store;
   const athlete = await store.athlete(athleteId);
   if (!athlete || isAnonymized(athlete)) throw new Error('sportiv path: athlete not found');
-  const [seasons, memberships, groups, sections, attendances, lessons, skater] = await Promise.all([
-    store.seasons(), store.memberships({ athleteId }), store.groups(), store.sections(),
-    store.attendances({ athleteId }), store.lessons({ athleteId }), skaterOf(c, athleteId),
-  ]);
-  const presenceDates = [
-    ...attendances.filter((r) => r.grup || r.uscat).map((r) => r.sessionDate),
-    ...lessons.filter((l) => l.state === 'saved' && l.present === true).map((l) => l.date),
-  ];
-  const competitions = skater ? await c.competitions.count(skater).catch(() => null) : null;
+  const [seasons, memberships, groups, sections] = await Promise.all([store.seasons(), store.memberships({ athleteId }), store.groups(), store.sections()]);
+  const results = async (id: string) => { const skater = await skaterOf(c, id); return skater ? c.competitions.results(skater) : null; };
+  const facts = await countedFacts({ presence: store, results }, athleteId, c.today);
 
   const season = currentSeason(seasons);
   const nowGroup = season ? groups.find((g) => g.id === mainGroupOn(memberships, athleteId, season.id, c.today)) ?? null : null;
@@ -117,6 +97,6 @@ export async function readPath(c: SportivContext, athleteId: string): Promise<Sp
   return toPath({
     now, next: next ? { groupName: next.name } : null,
     before: earlierLevels(memberships, seasons, groups, nowGroup?.id ?? null, c.today),
-    badges: badges({ presenceDates, competitions, seasons: await seasonFacts(c, athleteId, memberships, seasons, presenceDates) }),
+    counted: countedPins({ ...facts, firstPinGivenOn: null }),
   });
 }

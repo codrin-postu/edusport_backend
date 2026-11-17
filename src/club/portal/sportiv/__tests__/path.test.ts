@@ -72,7 +72,7 @@ describe('readPath', () => {
     expect(path.now).toEqual({ groupName: 'Intermediari Bronze', since: '2026-11', location: 'AFI Cotroceni', program: 'Sâ și Du, 11:00, cu Virgil Pascu' });
     expect(path.next).toEqual({ groupName: 'Intermediari Silver' });
     expect(path.before).toEqual([{ groupName: 'Primii Pași', from: '2026-10', to: '2026-11' }]);
-    expect(path.badges.map((b) => b.key)).toEqual(['antrenamente', 'sezon', 'prima', 'concursuri']);
+    expect(path.counted.membru[0]).toMatchObject({ pin: 'membru-1', earnedOn: null });
   });
 
   it('a group without a program has no program text', async () => {
@@ -109,49 +109,39 @@ describe('readPath', () => {
     expect(path.next).toBeNull();
   });
 
-  it('badges count all time: the new season has no presences on 1 September but the badges keep counting', async () => {
+  it('pins count all time: the new season has no presences on 1 September but the counted pins keep counting', async () => {
     const c = sportivCtx('parinte1@example.invalid', '2027-09-01');
     withSessions(c, 25);
     c.fake.group.seasons.find((s) => s.id === 's26')!.isCurrent = false;
     c.fake.group.seasons.find((s) => s.id === 's27')!.isCurrent = true;
     const path = await readPath(c, A_ANA);
     expect(path.now).toBeNull();
-    const [training, , first] = path.badges;
-    expect(training).toMatchObject({ tier: 'bronze', count: 25 });
-    expect(first.tier).toBe('bronze');
+    expect(path.counted.antrenamente.find((p) => p.pin === 'antrenamente-25')?.earnedOn).not.toBeNull();
+    expect(path.counted.antrenamente.find((p) => p.pin === 'antrenamente-50')?.earnedOn).toBeNull();
   });
 
   it('counts present lessons and ignores absent ones', async () => {
     const c = sportivCtx('parinte1@example.invalid');
     c.fake.state.lessons.push(lessonRow({ id: 'l1', athleteId: A_ANA, date: '2026-11-05', state: 'saved', present: true }));
     c.fake.state.lessons.push(lessonRow({ id: 'l2', athleteId: A_ANA, date: '2026-11-06', state: 'saved', present: false }));
-    const path = await readPath(c, A_ANA);
-    expect(path.badges[0].count).toBe(1);
-    expect(path.badges[2]).toMatchObject({ tier: 'bronze' });
-    expect((await readPath(c, A_MATEI)).badges[2].tier).toBeNull();
+    const first = (id: string) => readPath(c, id).then((p) => p.counted.antrenamente.find((x) => x.pin === 'prima-lectie'));
+    expect(await first(A_ANA)).toMatchObject({ earnedOn: '2026-11-05' });
+    expect(await first(A_MATEI)).toMatchObject({ earnedOn: null });
   });
 
-  it('a performance athlete with the null source has a locked Concursuri badge; a real source counts', async () => {
+  it('a performance athlete with the null source has no Concursuri pins; a real source counts events', async () => {
     const c = sportivCtx('sportiv18@example.invalid');
-    expect((await readPath(c, A_IOANA)).badges[3]).toMatchObject({ tier: null, count: 0 });
-    const source: SportivCompetitionSource = { last: async () => null, count: async () => ({ count: 5, dates: ['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05'] }) };
-    const withSource = { ...c, competitions: source };
-    expect((await readPath(withSource, A_IOANA)).badges[3]).toMatchObject({ tier: 'gold', count: 5 });
-    expect((await readPath({ ...c, competitions: { last: async () => null, count: async () => { throw new Error('down'); } } }, A_IOANA)).badges[3].tier).toBeNull();
-  });
-
-  it('Sezon complet counts a finished season where every session month has a presence', async () => {
-    const c = sportivCtx('parinte1@example.invalid', '2027-09-01');
-    const months = ['2026-10', '2026-11', '2026-12', '2027-01', '2027-02', '2027-03'];
-    months.forEach((m, i) => {
-      c.fake.state.sessions.push(sessionRow({ id: `sm-${i}`, groupId: 'g-ib', date: `${m}-10` }));
-      if (i < 5) c.fake.state.attendances.push(attendanceRow({ id: `tm-${i}`, sessionId: `sm-${i}`, athleteId: A_ANA, uniqueKey: `sm-${i}|ana`, grup: true }));
-    });
-    c.fake.group.memberships.find((m) => m.id === 'gm-ana')!.from = '2026-10-01';
-    c.fake.group.memberships.splice(c.fake.group.memberships.findIndex((m) => m.id === 'gm-ana-old'), 1);
-    expect((await readPath(c, A_ANA)).badges[1].tier).toBeNull();
-    c.fake.state.attendances.push(attendanceRow({ id: 'tm-5', sessionId: 'sm-5', athleteId: A_ANA, uniqueKey: 'sm-5|ana', grup: true }));
-    expect((await readPath(c, A_ANA)).badges[1]).toMatchObject({ tier: 'bronze', count: 1 });
+    expect((await readPath(c, A_IOANA)).counted.concursuri.every((p) => p.earnedOn === null)).toBe(true);
+    const dates = ['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05'];
+    const source: SportivCompetitionSource = {
+      last: async () => null, count: async () => null,
+      results: async () => dates.map((date, i) => ({ date, placement: i === 0 ? 1 : 5, eventId: `e${i}` })),
+    };
+    const got = await readPath({ ...c, competitions: source }, A_IOANA);
+    expect(got.counted.concursuri.filter((p) => p.earnedOn !== null).map((p) => p.pin)).toEqual(['concursuri-1', 'concursuri-2', 'concursuri-5']);
+    expect(got.counted.insigne.find((p) => p.pin === 'locul-1')).toMatchObject({ count: 1, earnedOn: '2026-11-01' });
+    const down: SportivCompetitionSource = { ...source, results: async () => { throw new Error('down'); } };
+    expect((await readPath({ ...c, competitions: down }, A_IOANA)).counted.concursuri.every((p) => p.earnedOn === null)).toBe(true);
   });
 
   it('leaks nothing a sportiv may not see', async () => {

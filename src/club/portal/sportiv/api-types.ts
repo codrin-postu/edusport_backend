@@ -1,4 +1,5 @@
 /** JSON shapes of the sportiv routes (index 7, spec sportiv app). Imports nothing: the frontend copies this file verbatim. */
+import type { PinView } from '../../parcurs/api-types';
 export type SectionKind = 'school' | 'club';
 export type SportivMe = { email: string; name: string | null; phone: string | null; hasPassword: boolean; google: boolean; passwordChangedAt: string | null; notifySchedule: boolean; devices: number };
 export type PortalDevice = { id: string; label: string; lastSeenAt: string; current: boolean; twoFactorUntil: string | null }; // same shape as CoachDevice
@@ -28,12 +29,9 @@ export type SportivProfile = { name: string; birthDate: string | null; age: numb
 export type HistoryRow = { date: string; startTime: string | null; kind: 'Grup' | 'Individual'; groupName: string | null; coaches: string[] };
 export type SportivHistory = { seasonLabel: string | null; total: number; group: number; individual: number; page: number; pageSize: 20; rows: HistoryRow[] };
 export type SportivCalendar = { month: string; prevMonth: string | null; nextMonth: string | null; items: CalendarItem[] };
-export type BadgeKey = 'antrenamente' | 'sezon' | 'prima' | 'concursuri';
-export type Tier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'ice';
-export type Badge = { key: BadgeKey; tier: Tier | null; label: string; count: number; next: number | null; tiers: { threshold: number; tier: Tier; reachedOn: string | null }[] };
 export type SportivPath = {
   now: { groupName: string; since: string; location: string | null; program: string | null } | null;
-  next: { groupName: string } | null; before: { groupName: string; from: string; to: string }[]; badges: Badge[];
+  next: { groupName: string } | null; before: { groupName: string; from: string; to: string }[]; counted: { antrenamente: PinView[]; concursuri: PinView[]; membru: PinView[]; insigne: PinView[] };
 };
 export type MoneyLine = { text: string; amount: number };
 export type SportivMoney = { left: number; lines: MoneyLine[]; advance: number | null; abonament: (AbonamentShort & { itemName: string; startsOn: string }) | null; document: { seasonLabel: string } | null };

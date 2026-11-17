@@ -119,6 +119,15 @@ describe('skateSportivSource', () => {
     expect(b.category?.seasonLabel).toBe('2025-2026');
   });
 
+  it('results: dated rows with placement and event id, undated ones skipped, null when unavailable', async () => {
+    const rows = results();
+    rows[0] = { ...rows[0], event_date: null };
+    const got = await setup({}, rows).source.results(SKATER);
+    expect(got).toHaveLength(40);
+    expect(got?.[0]).toEqual({ date: rows[1].event_date, placement: rows[1].placement, eventId: String(rows[1].event_id) });
+    expect(await setup({ results: async () => ({ ok: false, reason: 'down' }) }, []).source.results(SKATER)).toBeNull();
+  });
+
   it('count: distinct events, dates oldest first', async () => {
     const rows = results();
     rows.push({ ...rows[0], result_id: 500, segments: [] }); // a second result in an event already counted

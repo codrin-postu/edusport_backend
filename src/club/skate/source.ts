@@ -69,6 +69,13 @@ export function skateSportivSource(
       return { count: events.size, dates: [...events.values()].sort() };
     },
 
+    async results(skater) {
+      const got = await results.one(skater);
+      if ('missing' in got) { if (skater.slug) noteMissing(skater.athleteId); return []; }
+      if (!('value' in got)) return null;
+      return got.value.flatMap((r) => (r.event_date === null ? [] : [{ date: r.event_date, placement: r.placement, eventId: String(r.event_id) }]));
+    },
+
     async list(skater, query: CompetitionQuery): Promise<SportivCompetitions> {
       const got = await results.one(skater);
       if ('missing' in got) {

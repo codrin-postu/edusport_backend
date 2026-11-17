@@ -115,8 +115,8 @@ describe('Acasă and Parcurs over the real source', () => {
   });
 
   it('the Concursuri badge counts the distinct events', async () => {
-    const badge = (await readPath(withSource(clientOf()), A_IOANA)).badges.find((b) => b.key === 'concursuri');
-    expect(badge).toMatchObject({ tier: 'ice', count: 41 });
+    const pins = (await readPath(withSource(clientOf()), A_IOANA)).counted.concursuri;
+    expect(pins.filter((p) => p.earnedOn !== null).map((p) => p.pin)).toEqual(['concursuri-1', 'concursuri-2', 'concursuri-5', 'concursuri-10', 'concursuri-25']);
   });
 
   it('down and cold: Acasă answers the rest within 3.5 s, the pages are unavailable, the badge is locked', async () => {
@@ -130,7 +130,7 @@ describe('Acasă and Parcurs over the real source', () => {
     expect(home.level?.groupName).toBe('Club Performanță');
     expect(await readCompetitions(c, A_IOANA, {})).toEqual({ ok: true, data: { available: false } });
     expect(await readCompetition(c, A_IOANA, '41')).toEqual({ ok: true, data: { available: false } });
-    expect((await readPath(c, A_IOANA)).badges.find((b) => b.key === 'concursuri')).toMatchObject({ tier: null, count: 0 });
+    expect((await readPath(c, A_IOANA)).counted.concursuri.every((p) => p.earnedOn === null)).toBe(true);
   });
 });
 
@@ -164,14 +164,14 @@ describe('one source per athlete', () => {
     const c = matei(clientOf());
     const home = await readHome(c, A_MATEI);
     expect(home.lastCompetition).toMatchObject({ available: true, stale: false, field: null, row: { eventName: 'Cupa Timișoarei', placement: 3 } });
-    expect((await readPath(c, A_MATEI)).badges.find((b) => b.key === 'concursuri')).toMatchObject({ count: 2 });
+    expect((await readPath(c, A_MATEI)).counted.concursuri.filter((p) => p.earnedOn !== null).map((p) => p.pin)).toEqual(['concursuri-1', 'concursuri-2']);
   });
 
   it('no slug and no hand entries: Acasă card hidden, the list empty, the badge locked', async () => {
     const c = matei(clientOf(), []);
     expect((await readHome(c, A_MATEI)).lastCompetition).toBeNull();
     expect(await readCompetitions(c, A_MATEI, {})).toMatchObject({ ok: true, data: { available: true, total: 0, rows: [] } });
-    expect((await readPath(c, A_MATEI)).badges.find((b) => b.key === 'concursuri')).toMatchObject({ tier: null, count: 0 });
+    expect((await readPath(c, A_MATEI)).counted.concursuri.every((p) => p.earnedOn === null)).toBe(true);
   });
 
   it('a slug athlete shows skate-results only, never a hand entry naming her', async () => {
