@@ -44,7 +44,7 @@ Stored record: athlete, kind (steaua | test | jump), jump code + level for jumps
 - The giver picks one of 15 designs; each design has one fixed message:
   1 Bate palma! / 2 Ai strălucit. / 3 Te susțin! / 4 Un gând bun pentru tine. / 5 Mă bucur că ești în echipă. / 6 Crești frumos. / 7 Mi-ai făcut ziua mai bună. / 8 Cred în tine! / 9 Patinezi frumos. / 10 Prieteni pe gheață. / 11 Echipă bună! / 12 Te ridici de fiecare dată. / 13 Ai fost o vedetă. / 14 Ușor ca un fluture. / 15 Hai la o ciocolată caldă!
 - The receiving account (parent or athlete, whoever holds access) sees the pin, the message, the giver's name and the date.
-- Giving uses the oldest unexpired grant first. The button shows the remaining count: "Dă o insignă (3)"; hidden when 0.
+- Giving uses the oldest unexpired grant first. The button shows the remaining count: "Dă o insignă (2)"; hidden when 0.
 - Abuse: one pin per giver per recipient per grant (decided by Claude); admin can delete a pin.
 
 ## 4. Screens
