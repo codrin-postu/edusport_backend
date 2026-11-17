@@ -4,6 +4,7 @@ import { athleteRow, event, member } from '../../../groups/__tests__/fake-group-
 import type { DayKey, EventRecord, GroupStore, GroupRecord, NamedRow } from '../../../groups/types';
 import { fakePresenceContext, subscriptionRow, type FakePresenceContext, type FakePresenceSeed } from '../../../presence/__tests__/fake-store';
 import { fakePortalStore, type FakePortal } from '../../__tests__/fake-portal-store';
+import { fakeParcursStore } from '../../../parcurs/__tests__/fake-store';
 import { nullCoachCompetitions } from '../competitions';
 import { coachActor, type CoachContexts } from '../context';
 
@@ -67,7 +68,7 @@ const C_SEED: FakePresenceSeed = {
   startDate: '2026-10-01',
 };
 
-export type CoachSeed = CoachContexts & { fake: FakePresenceContext; portal: FakePortal['store']; portalFake: FakePortal; clubFake: ReturnType<typeof fakeClubStore> };
+export type CoachSeed = CoachContexts & { fake: FakePresenceContext; portal: FakePortal['store']; portalFake: FakePortal; clubFake: ReturnType<typeof fakeClubStore>; parcursFake: ReturnType<typeof fakeParcursStore> };
 
 /** Contexts of one coach over the fakes: the phase 5 context carries the phase 4 and 5 state, the actor is "Antrenor <nume>". */
 export function coachCtx(teamMemberId: string, today = '2026-11-20', over: FakePresenceSeed = {}, schoolEdit = false): CoachSeed {
@@ -85,6 +86,7 @@ export function coachCtx(teamMemberId: string, today = '2026-11-20', over: FakeP
     fake.group.athletes.push(athleteRow({ ...data, id }));
     return id;
   };
+  const parcursFake = fakeParcursStore();
   const [year, month, day] = today.split('-').map(Number);
   return {
     coach: { accountId: 'acc-1', userId: 1, sessionId: 'ses-1', teamMemberId, name, schoolEdit },
@@ -98,7 +100,8 @@ export function coachCtx(teamMemberId: string, today = '2026-11-20', over: FakeP
       },
     },
     club: { store: club.store, actor, today: { year, month, day }, log: fake.ctx.log },
-    portal: portalFake.store, portalFake, fake, clubFake: club, competitions: nullCoachCompetitions,
+    portal: portalFake.store, portalFake, fake, clubFake: club, competitions: nullCoachCompetitions, parcursFake,
+    parcurs: { store: parcursFake.store, club: club.store, presence: fake.store, results: async () => null, adminNames: async () => ({}) },
   };
 }
 

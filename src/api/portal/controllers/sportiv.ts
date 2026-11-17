@@ -19,6 +19,7 @@ import { changePassword, listDevices, readMe, revokeDevice, saveMe, saveNotifica
 import { readAcord, readMoney, readPayments, readSubscriptions } from '../../../club/portal/sportiv/money';
 import { dismissNotice, readNotices } from '../../../club/portal/sportiv/notices';
 import { readPath } from '../../../club/portal/sportiv/path';
+import { givePinFrom, readPinRecipients } from '../../../club/portal/sportiv/parcurs';
 import type { AdminResult } from '../../../club/admin-result';
 
 type Headers = Record<string, string | string[] | undefined>;
@@ -142,6 +143,12 @@ export default {
   competitions: athleteRoute('competitions', (c, id, ctx) => readCompetitions(c, id, ctx.query)),
   competition: athleteRoute('competition', (c, id, ctx) => readCompetition(c, id, ctx.params.resultId ?? '')),
   path: athleteRoute('path', async (c, id) => done(await readPath(c, id))),
+  pinRecipients: athleteRoute('pinRecipients', async (c, id) => done(await readPinRecipients(c, id))),
+  givePin: athleteRoute('givePin', async (c, id, ctx) => {
+    const given = await givePinFrom(c, id, ctx.request.body);
+    if (given.ok === true) ctx.status = 201;
+    return given;
+  }),
   money: athleteRoute('money', async (c, id) => done(await readMoney(c, id))),
   payments: athleteRoute('payments', async (c, id, ctx) => done(await readPayments(c, id, readHistoryPage(ctx.query.page)))),
   subscriptions: athleteRoute('subscriptions', async (c, id) => done(await readSubscriptions(c, id))),

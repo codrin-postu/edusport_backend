@@ -17,6 +17,7 @@ import {
 } from '../../../club/portal/coach/program';
 import { readCoachCalendar } from '../../../club/portal/coach/calendar';
 import { readCoachCompetitions, readProtocol } from '../../../club/portal/coach/competitions';
+import { addCoachAward, readCoachParcurs, removeCoachAward } from '../../../club/portal/coach/parcurs';
 import { readClubToday } from '../../../club/portal/coach/club-today';
 import { readToday } from '../../../club/portal/coach/today';
 
@@ -110,6 +111,9 @@ export default {
   searchAthletes: coachOnly('searchAthletes', async (c, ctx) => respondData(ctx, await searchAthletes(c, ctx.query))),
   addAthlete: coachOnly('addAthlete', async (c, ctx) => respondData(ctx, await addNewAthlete(c, ctx.request.body))),
   athlete: coachOnly('athlete', async (c, ctx) => respondData(ctx, await readCard(c, param(ctx, 'documentId')))),
+  parcurs: coachOnly('parcurs', async (c, ctx) => respondData(ctx, await readCoachParcurs(c, param(ctx, 'athleteId')))),
+  addAward: coachOnly('addAward', async (c, ctx) => respondData(ctx, await addCoachAward(c, param(ctx, 'athleteId'), ctx.request.body))),
+  removeAward: coachOnly('removeAward', async (c, ctx) => respondData(ctx, await removeCoachAward(c, param(ctx, 'athleteId'), param(ctx, 'awardId')))),
   history: coachOnly('history', async (c, ctx) => respondData(ctx, await readCoachHistory(c, ctx.query.month))),
   changeProgram: coachOnly('changeProgram', async (c, ctx) => respondData(ctx, await coachChangeProgram(c, param(ctx, 'eventId'), ctx.request.body))),
   endProgram: coachOnly('endProgram', async (c, ctx) => respondData(ctx, await coachEndProgram(c, param(ctx, 'eventId'), ctx.request.body))),

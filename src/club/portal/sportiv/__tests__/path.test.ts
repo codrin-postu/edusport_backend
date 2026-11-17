@@ -72,7 +72,7 @@ describe('readPath', () => {
     expect(path.now).toEqual({ groupName: 'Intermediari Bronze', since: '2026-11', location: 'AFI Cotroceni', program: 'Sâ și Du, 11:00, cu Virgil Pascu' });
     expect(path.next).toEqual({ groupName: 'Intermediari Silver' });
     expect(path.before).toEqual([{ groupName: 'Primii Pași', from: '2026-10', to: '2026-11' }]);
-    expect(path.counted.membru[0]).toMatchObject({ pin: 'membru-1', earnedOn: null });
+    expect(path.parcurs.membru[0]).toMatchObject({ pin: 'membru-1', earnedOn: null });
   });
 
   it('a group without a program has no program text', async () => {
@@ -116,32 +116,32 @@ describe('readPath', () => {
     c.fake.group.seasons.find((s) => s.id === 's27')!.isCurrent = true;
     const path = await readPath(c, A_ANA);
     expect(path.now).toBeNull();
-    expect(path.counted.antrenamente.find((p) => p.pin === 'antrenamente-25')?.earnedOn).not.toBeNull();
-    expect(path.counted.antrenamente.find((p) => p.pin === 'antrenamente-50')?.earnedOn).toBeNull();
+    expect(path.parcurs.antrenamente.find((p) => p.pin === 'antrenamente-25')?.earnedOn).not.toBeNull();
+    expect(path.parcurs.antrenamente.find((p) => p.pin === 'antrenamente-50')?.earnedOn).toBeNull();
   });
 
   it('counts present lessons and ignores absent ones', async () => {
     const c = sportivCtx('parinte1@example.invalid');
     c.fake.state.lessons.push(lessonRow({ id: 'l1', athleteId: A_ANA, date: '2026-11-05', state: 'saved', present: true }));
     c.fake.state.lessons.push(lessonRow({ id: 'l2', athleteId: A_ANA, date: '2026-11-06', state: 'saved', present: false }));
-    const first = (id: string) => readPath(c, id).then((p) => p.counted.antrenamente.find((x) => x.pin === 'prima-lectie'));
+    const first = (id: string) => readPath(c, id).then((p) => p.parcurs.antrenamente.find((x) => x.pin === 'prima-lectie'));
     expect(await first(A_ANA)).toMatchObject({ earnedOn: '2026-11-05' });
     expect(await first(A_MATEI)).toMatchObject({ earnedOn: null });
   });
 
   it('a performance athlete with the null source has no Concursuri pins; a real source counts events', async () => {
     const c = sportivCtx('sportiv18@example.invalid');
-    expect((await readPath(c, A_IOANA)).counted.concursuri.every((p) => p.earnedOn === null)).toBe(true);
+    expect((await readPath(c, A_IOANA)).parcurs.concursuri.every((p) => p.earnedOn === null)).toBe(true);
     const dates = ['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05'];
     const source: SportivCompetitionSource = {
       last: async () => null, count: async () => null,
       results: async () => dates.map((date, i) => ({ date, placement: i === 0 ? 1 : 5, eventId: `e${i}` })),
     };
     const got = await readPath({ ...c, competitions: source }, A_IOANA);
-    expect(got.counted.concursuri.filter((p) => p.earnedOn !== null).map((p) => p.pin)).toEqual(['concursuri-1', 'concursuri-2', 'concursuri-5']);
-    expect(got.counted.insigne.find((p) => p.pin === 'locul-1')).toMatchObject({ count: 1, earnedOn: '2026-11-01' });
+    expect(got.parcurs.concursuri.filter((p) => p.earnedOn !== null).map((p) => p.pin)).toEqual(['concursuri-1', 'concursuri-2', 'concursuri-5']);
+    expect(got.parcurs.insigne.find((p) => p.pin === 'locul-1')).toMatchObject({ count: 1, earnedOn: '2026-11-01' });
     const down: SportivCompetitionSource = { ...source, results: async () => { throw new Error('down'); } };
-    expect((await readPath({ ...c, competitions: down }, A_IOANA)).counted.concursuri.every((p) => p.earnedOn === null)).toBe(true);
+    expect((await readPath({ ...c, competitions: down }, A_IOANA)).parcurs.concursuri.every((p) => p.earnedOn === null)).toBe(true);
   });
 
   it('leaks nothing a sportiv may not see', async () => {

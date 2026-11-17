@@ -12,6 +12,7 @@ import { fakePortalStore, type FakePortal } from '../../__tests__/fake-portal-st
 import type { CalendarEventRow } from '../../../../api/calendar-event/services/expand';
 import { nullSportivCompetitions, nullSportivCompetitionViews } from '../competitions';
 import type { CompetitionResults } from '../../../skate/pick';
+import { fakeParcursStore } from '../../../parcurs/__tests__/fake-store';
 import type { SportivContext } from '../context';
 import type { HolderState } from '../holder';
 
@@ -65,7 +66,7 @@ export const HOLDERS: Record<string, string[]> = {
 /** Results are unavailable until a test wires a source. */
 const nullResults: CompetitionResults = { one: async () => ({ available: false }), many: async (refs) => new Map(refs.map((r) => [r.athleteId, { available: false } as const])) };
 
-export type SportivSeed = SportivContext & { fake: ReturnType<typeof fakePresenceContext>; accessFake: FakeAccess; portalFake: FakePortal; clubFake: ReturnType<typeof fakeClubStore>;
+export type SportivSeed = SportivContext & { fake: ReturnType<typeof fakePresenceContext>; accessFake: FakeAccess; portalFake: FakePortal; clubFake: ReturnType<typeof fakeClubStore>; parcursFake: ReturnType<typeof fakeParcursStore>;
   noticeFake: ReturnType<typeof fakeNoticeStore>; announcements: PortalAnnouncement[] };
 
 /** Gives an athlete a profile without a skate-results slug (its competitions are the hand-entered ones). */
@@ -99,6 +100,7 @@ export function sportivCtx(email: keyof typeof HOLDERS | string, today = '2026-1
     athletes: S_ATHLETES.map((a) => ({ id: a.id, name: a.name ?? '', email: a.email, status: a.status, birthDate: a.birthDate, contactName: a.contactName })),
   });
   const portalFake = fakePortalStore({});
+  const parcursFake = fakeParcursStore();
   const noticeFake = fakeNoticeStore();
   const announcements: PortalAnnouncement[] = [];
   const [year, month, day] = today.split('-').map(Number);
@@ -111,7 +113,7 @@ export function sportivCtx(email: keyof typeof HOLDERS | string, today = '2026-1
       sessions: { ofEvent: async () => [], move: async () => undefined },
     },
     club: { store: clubFake.store, actor, today: { year, month, day }, log: fake.ctx.log },
-    portal: portalFake.store, access: accessFake.store, notices: noticeFake.store, noticeSync: () => noticeSync(seed), competitions: nullSportivCompetitions, competitionViews: nullSportivCompetitionViews, results: nullResults, documentsRoot: path.join(os.tmpdir(), `sportiv-docs-${randomBytes(6).toString('hex')}`), fake, accessFake, portalFake, clubFake, noticeFake, announcements,
+    portal: portalFake.store, access: accessFake.store, parcurs: parcursFake.store, parcursFake, notices: noticeFake.store, noticeSync: () => noticeSync(seed), competitions: nullSportivCompetitions, competitionViews: nullSportivCompetitionViews, results: nullResults, documentsRoot: path.join(os.tmpdir(), `sportiv-docs-${randomBytes(6).toString('hex')}`), fake, accessFake, portalFake, clubFake, noticeFake, announcements,
   };
   return seed;
 }

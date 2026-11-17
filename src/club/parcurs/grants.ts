@@ -73,7 +73,7 @@ export async function deletePin(s: ParcursStore, pinId: string): Promise<{ ok: t
 }
 
 /** "Ana Popescu" becomes "Ana P." */
-const shortName = (name: string): string => {
+export const shortName = (name: string): string => {
   const words = name.split(/\s+/).filter(Boolean);
   const last = words.length > 1 ? words[words.length - 1] : '';
   return last ? `${words[0]} ${last[0].toUpperCase()}.` : words[0] ?? '';

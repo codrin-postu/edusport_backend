@@ -15,6 +15,8 @@ import { strapiAccessStore } from '../access/strapi-store';
 import type { PortalStore } from '../store';
 import { strapiPortalStore } from '../strapi-store';
 import type { CompetitionResults } from '../../skate/pick';
+import type { ParcursStore } from '../../parcurs/store';
+import { strapiParcursStore } from '../../parcurs/strapi-store';
 import { skateSportivSource } from '../../skate/source';
 import { strapiCompetitions } from '../../skate/wiring';
 import type { SportivCompetitionSource, SportivCompetitionViews } from './competitions';
@@ -32,6 +34,8 @@ export type SportivContext = {
   competitionViews: SportivCompetitionViews;
   /** The one-source-per-athlete result reads, for the athlete list's `performance`. */
   results: CompetitionResults;
+  /** Awards, friendship grants and pins. */
+  parcurs: ParcursStore;
   /** Mesaje: the notice and delivery store. */
   notices: NoticeStore;
   /** What the notice sync reads and writes (built when a notices route needs it). */
@@ -63,7 +67,7 @@ export function sportivContext(strapi: Core.Strapi, holder: HolderState): Sporti
     },
     club: { store: strapiClubStore(strapi), actor, today: todayInBucharest(), log },
     portal: strapiPortalStore(strapi, scope),
-    access: strapiAccessStore(strapi, scope),
+    access: strapiAccessStore(strapi, scope), parcurs: strapiParcursStore(strapi, scope),
     notices: strapiNoticeStore(strapi, scope), noticeSync: () => strapiNoticeSyncContext(strapi),
     competitions: source, competitionViews: source, results,
     documentsRoot: documentsRoot(strapi.dirs.app.root),

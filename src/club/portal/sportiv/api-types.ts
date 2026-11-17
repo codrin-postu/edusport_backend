@@ -1,5 +1,5 @@
 /** JSON shapes of the sportiv routes (index 7, spec sportiv app). Imports nothing: the frontend copies this file verbatim. */
-import type { PinView } from '../../parcurs/api-types';
+import type { Parcurs } from '../../parcurs/api-types';
 export type SectionKind = 'school' | 'club';
 export type SportivMe = { email: string; name: string | null; phone: string | null; hasPassword: boolean; google: boolean; passwordChangedAt: string | null; notifySchedule: boolean; devices: number };
 export type PortalDevice = { id: string; label: string; lastSeenAt: string; current: boolean; twoFactorUntil: string | null }; // same shape as CoachDevice
@@ -31,7 +31,7 @@ export type SportivHistory = { seasonLabel: string | null; total: number; group:
 export type SportivCalendar = { month: string; prevMonth: string | null; nextMonth: string | null; items: CalendarItem[] };
 export type SportivPath = {
   now: { groupName: string; since: string; location: string | null; program: string | null } | null;
-  next: { groupName: string } | null; before: { groupName: string; from: string; to: string }[]; counted: { antrenamente: PinView[]; concursuri: PinView[]; membru: PinView[]; insigne: PinView[] };
+  next: { groupName: string } | null; before: { groupName: string; from: string; to: string }[]; parcurs: Parcurs;
 };
 export type MoneyLine = { text: string; amount: number };
 export type SportivMoney = { left: number; lines: MoneyLine[]; advance: number | null; abonament: (AbonamentShort & { itemName: string; startsOn: string }) | null; document: { seasonLabel: string } | null };

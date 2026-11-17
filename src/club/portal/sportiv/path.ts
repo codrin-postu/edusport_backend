@@ -8,8 +8,7 @@ import type { MembershipRow, SeasonRow } from '../../athletes/store';
 import { isAnonymized } from '../../personal-data/anonymize-plan';
 import { mainGroupOn } from '../../presence/attendance/roster';
 import type { SportivPath } from './api-types';
-import { countedFacts } from '../../parcurs/facts';
-import { countedPins } from '../../parcurs/counted';
+import { readParcurs } from '../../parcurs/read';
 import { skaterOf } from './competitions';
 import type { SportivContext } from './context';
 import { toPath } from './views';
@@ -73,14 +72,14 @@ async function programOf(c: SportivContext, group: GroupRecord, seasonLabel: str
   return `${daysSpoken(series.days)}, ${series.startTime}${coaches ? `, cu ${coaches}` : ''}`;
 }
 
-/** Parcurs (spec 6.6): the level now, the next one, earlier main groups and the counted pins (all time). Callers check that the holder holds the athlete. */
+/** Parcurs (spec 6.6): the level now, the next one, earlier main groups and the Parcurs pins (all time). Callers check that the holder holds the athlete. */
 export async function readPath(c: SportivContext, athleteId: string): Promise<SportivPath> {
   const store = c.presence.store;
   const athlete = await store.athlete(athleteId);
   if (!athlete || isAnonymized(athlete)) throw new Error('sportiv path: athlete not found');
   const [seasons, memberships, groups, sections] = await Promise.all([store.seasons(), store.memberships({ athleteId }), store.groups(), store.sections()]);
   const results = async (id: string) => { const skater = await skaterOf(c, id); return skater ? c.competitions.results(skater) : null; };
-  const facts = await countedFacts({ presence: store, results }, athleteId, c.today);
+  const parcurs = await readParcurs({ store: c.parcurs, club: c.club.store, presence: store, results }, athleteId, c.today);
 
   const season = currentSeason(seasons);
   const nowGroup = season ? groups.find((g) => g.id === mainGroupOn(memberships, athleteId, season.id, c.today)) ?? null : null;
@@ -97,6 +96,6 @@ export async function readPath(c: SportivContext, athleteId: string): Promise<Sp
   return toPath({
     now, next: next ? { groupName: next.name } : null,
     before: earlierLevels(memberships, seasons, groups, nowGroup?.id ?? null, c.today),
-    counted: countedPins({ ...facts, firstPinGivenOn: null }),
+    parcurs,
   });
 }

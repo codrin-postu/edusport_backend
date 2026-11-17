@@ -27,6 +27,8 @@ export default {
     route('GET', '/athletes/:athleteId/competitions', 'competitions'),
     route('GET', '/athletes/:athleteId/competitions/:resultId', 'competition'),
     route('GET', '/athletes/:athleteId/path', 'path'),
+    route('GET', '/athletes/:athleteId/pin-recipients', 'pinRecipients'),
+    route('POST', '/athletes/:athleteId/pins', 'givePin'),
     route('GET', '/athletes/:athleteId/money', 'money'),
     route('GET', '/athletes/:athleteId/payments', 'payments'),
     route('GET', '/athletes/:athleteId/subscriptions', 'subscriptions'),

@@ -19,6 +19,20 @@ import { SUBJECT } from '../../../club/history-text';
 import { readAthleteCompetitions } from '../../../club/sportivi/competitions-read';
 import { strapiCompetitions } from '../../../club/skate/wiring';
 import { skateSportivSource } from '../../../club/skate/source';
+import { verifiedAdminId } from '../../../club/admin-auth';
+import type { AdminResult } from '../../../club/admin-result';
+import type { ParcursStaff } from '../../../club/parcurs/api-types';
+import { readParcursStaff, type ParcursStaffDeps } from '../../../club/parcurs/read';
+import { addAward, removeAwardOf, removePinOf } from '../../../club/parcurs/staff';
+import { strapiParcursDeps } from '../../../club/parcurs/strapi-port';
+
+/** The Parcurs routes of one athlete: 404 for an unknown athlete, then `work` on the real stores. */
+async function parcursOf(ctx: AdminCtx, work: (d: ParcursStaffDeps, athleteId: string, today: string) => Promise<AdminResult<ParcursStaff>>): Promise<void> {
+  const deps = strapiParcursDeps(strapi);
+  const athleteId = ctx.params.documentId ?? '';
+  if (!(await deps.club.athlete(athleteId))) return refuseWith(ctx, 404, ADMIN_ERRORS.notFound);
+  respond(ctx, await work(deps, athleteId, todayIso()));
+}
 
 /** Admin API of Sportivi (routes/05-athletes.ts, all `global::has-role`). A deleted athlete is not found (gaps #40). */
 export default {
@@ -50,6 +64,18 @@ export default {
     const views = skateSportivSource(cache, client, results, now, log);
     ctx.body = { data: await readAthleteCompetitions(store, athlete, views, queryText(ctx.query.season) || null, log) };
   },
+
+  parcurs: (ctx: AdminCtx) => parcursOf(ctx, async (d, id, today) => ({ ok: true, data: await readParcursStaff(d, id, today) })),
+
+  async addAward(ctx: AdminCtx) {
+    const adminId = await verifiedAdminId(ctx.request.header.authorization, strapi);
+    if (adminId === null) return refuseWith(ctx, 401, 'Missing or invalid credentials');
+    return parcursOf(ctx, (d, id, today) => addAward(d, id, ctx.request.body, { adminId: String(adminId) }, today));
+  },
+
+  removeAward: (ctx: AdminCtx) => parcursOf(ctx, (d, id, today) => removeAwardOf(d, id, ctx.params.awardId ?? '', today)),
+
+  removePin: (ctx: AdminCtx) => parcursOf(ctx, (d, id, today) => removePinOf(d, id, ctx.params.pinId ?? '', today)),
 
   async byProfile(ctx: AdminCtx) {
     const documentId = await athleteIdForProfile(clubStore(strapi), ctx.params.profileId ?? '');

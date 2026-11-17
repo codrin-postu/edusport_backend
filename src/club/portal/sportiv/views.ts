@@ -96,7 +96,7 @@ export function toPath(x: SportivPath): SportivPath {
     now: x.now ? { groupName: x.now.groupName, since: x.now.since, location: x.now.location, program: x.now.program } : null,
     next: x.next ? { groupName: x.next.groupName } : null,
     before: x.before.map((b) => ({ groupName: b.groupName, from: b.from, to: b.to })),
-    counted: x.counted,
+    parcurs: x.parcurs,
   };
 }
 

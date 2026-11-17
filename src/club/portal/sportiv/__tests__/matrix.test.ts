@@ -114,7 +114,7 @@ describe('athlete routes', () => {
     const w = await setup();
     const token = await w.login(2, 'sportiv');
     const spies = spyOnStores(w.seed);
-    expect(ATHLETE_ROUTES.length).toBe(13);
+    expect(ATHLETE_ROUTES.length).toBe(15);
     for (const r of ATHLETE_ROUTES) {
       const path = r.path.replace('/portal/sportiv', '').replace(':athleteId', A_IOANA);
       const out = await call(token, r.method, `/portal/sportiv${path}`.replace('/portal/sportiv/portal/sportiv', '/portal/sportiv'));
@@ -134,6 +134,21 @@ describe('athlete routes', () => {
     const second = await call(token, 'GET', `/portal/sportiv/athletes/${A_MATEI}/home`);
     expect(second.status).toBe(403);
     expect(second.body).toMatchObject({ error: { message: NO_ACCESS } });
+  });
+
+  it('pins: a pin to the athlete itself is 400 SELF, a pin to a friend is 201, the next one to the same friend 409, a foreign athlete 403', async () => {
+    const w = await setup();
+    const token = await w.login(2, 'sportiv');
+    const post = (athlete: string, recipientId: string) => call(token, 'POST', `/portal/sportiv/athletes/${athlete}/pins`, {}, { recipientId, design: 4 });
+    await call(token, 'GET', `/portal/sportiv/athletes/${A_ANA}/path`);
+    expect((await post(A_ANA, A_ANA)).body).toMatchObject({ error: { status: 400, message: 'SELF' } });
+    const sent = await post(A_ANA, A_MATEI);
+    expect(sent.status).toBe(201);
+    expect(sent.body).toMatchObject({ data: { id: expect.any(String) } });
+    expect(await post(A_ANA, A_MATEI)).toMatchObject({ status: 409, body: { error: { message: 'NO_PINS_LEFT' } } });
+    expect((await post(A_IOANA, A_ANA)).status).toBe(403);
+    const list = await call(token, 'GET', `/portal/sportiv/athletes/${A_ANA}/pin-recipients`);
+    expect((list.body as { data: { id: string }[] }).data.map((r) => r.id)).not.toContain(A_ANA);
   });
 
   it('calendar.ics reaches the phone calendar handler, not the calendar JSON one', async () => {
@@ -233,7 +248,7 @@ describe('leak walk', () => {
     for (const p of ['/me', '/me/devices', '/athletes']) answers.push(await call(token, 'GET', `/portal/sportiv${p}`));
     for (const id of [A_ANA, A_MATEI]) {
       for (const r of ATHLETE_ROUTES) {
-        if (r.path.endsWith('.ics') || r.path.endsWith('/acord')) continue;
+        if (r.path.endsWith('.ics') || r.path.endsWith('/acord') || r.path.endsWith('/pins')) continue;
         const path = `/portal/sportiv${r.path.replace('/portal/sportiv', '').replace(':athleteId', id).replace(':resultId', '1')}`;
         if (r.path.includes('/competitions')) {
           // Neither athlete has a skate slug: no competitions, 404 (the answers with data are walked in competitions.test.ts).
@@ -245,7 +260,7 @@ describe('leak walk', () => {
         answers.push(await call(token, r.method, path, r.path.endsWith('/calendar') ? { month: '2026-11' } : {}));
       }
     }
-    expect(answers.length).toBe(3 + 2 * 9);
+    expect(answers.length).toBe(3 + 2 * 10);
     for (const a of answers) {
       expect(a.status, JSON.stringify([a.body, (strapi.log.error as ReturnType<typeof vi.fn>).mock.calls])).toBeUndefined();
       expect(forbiddenPathsIn((a.body as { data: unknown }).data, SPORTIV_FORBIDDEN_KEYS, SPORTIV_ALLOWED_PATHS)).toEqual([]);
