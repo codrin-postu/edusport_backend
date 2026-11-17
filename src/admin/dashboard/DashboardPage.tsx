@@ -111,7 +111,7 @@ const CSS = `
 .ui-root .dash-hero h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em;color:var(--palette-grey-0)}
 .ui-root .dash-hero h1 span{color:var(--palette-blue-200)}
 .ui-root .dash-hero .dash-date{margin:4px 0 0;font-size:12.5px;color:var(--palette-blue-100);text-transform:capitalize}
-.ui-root .dash-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--ui-space-4)}
+.ui-root .dash-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--ui-space-5)}
 @media (max-width:900px){.ui-root .dash-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .ui-root .dash-feed{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px}
@@ -124,8 +124,8 @@ const CSS = `
 .ui-root .dash-empty-ok{color:var(--theme-success)}
 .ui-root .dash-feed-sec .ui-empty{padding:18px var(--ui-space-4)}
 
-.ui-root .dash-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:var(--ui-space-4);align-items:start}
-.ui-root .dash-col{display:flex;flex-direction:column;gap:var(--ui-space-4);min-width:0}
+.ui-root .dash-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:var(--ui-space-5);align-items:start}
+.ui-root .dash-col{display:flex;flex-direction:column;gap:var(--ui-space-5);min-width:0}
 @media (max-width:900px){.ui-root .dash-grid{grid-template-columns:minmax(0,1fr)}}
 
 .ui-root .dash-seas{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -166,9 +166,9 @@ const CSS = `
 .ui-root .dash-cap{font-size:11px;color:var(--palette-blue-100)}
 .ui-root .dash-area{height:62px;margin:4px 0 3px}
 .ui-root .dash-area svg{width:100%;height:100%;display:block}
-.ui-root .dash-axis{display:flex;justify-content:space-between;font-size:10px;color:var(--palette-grey-350);border-top:1px solid var(--palette-blue-800);padding-top:5px}
+.ui-root .dash-axis{display:flex;justify-content:space-between;font-size:var(--ui-fs-caption);color:var(--palette-grey-350);border-top:1px solid var(--palette-blue-800);padding-top:5px}
 .ui-root .dash-tops{border-top:1px solid var(--palette-blue-800);padding-top:9px}
-.ui-root .dash-tops-t{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--palette-grey-350);font-weight:700;margin-bottom:6px}
+.ui-root .dash-tops-t{font-size:var(--ui-fs-caption);text-transform:uppercase;letter-spacing:.06em;color:var(--palette-grey-350);font-weight:700;margin-bottom:6px}
 .ui-root .dash-prow{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:12px}
 .ui-root .dash-prow-p{color:var(--palette-blue-100);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
 .ui-root .dash-prow-bar{width:74px;height:4px;background:var(--palette-blue-800);overflow:hidden;flex:none}
@@ -187,7 +187,7 @@ const CSS = `
 .ui-root .dash-strip i{flex:1;background:var(--theme-success-border);min-height:3px;display:block}
 .ui-root .dash-strip i.h{background:var(--theme-danger-border)}
 .ui-root .dash-strip i.hh{background:var(--theme-danger)}
-.ui-root .dash-striplbl{display:flex;justify-content:space-between;font-size:10px;color:var(--theme-text-muted)}
+.ui-root .dash-striplbl{display:flex;justify-content:space-between;font-size:var(--ui-fs-caption);color:var(--theme-text-muted)}
 .ui-root .dash-iss{border-top:1px solid var(--theme-border-subtle)}
 .ui-root .dash-irow{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px solid var(--theme-border-subtle);text-decoration:none;color:var(--theme-text)}
 .ui-root .dash-irow:last-child{border-bottom:none}
@@ -197,7 +197,7 @@ const CSS = `
 .ui-root .dash-lv.wrn{background:var(--theme-warning)}
 .ui-root .dash-irow-m{flex:1;min-width:0}
 .ui-root .dash-irow-m b{display:block;font-size:12.5px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ui-root .dash-irow-m small{font-size:10.5px;color:var(--theme-text-muted);font-variant-numeric:tabular-nums}
+.ui-root .dash-irow-m small{font-size:var(--ui-fs-caption);color:var(--theme-text-muted);font-variant-numeric:tabular-nums}
 .ui-root .dash-irow .ui-badge{margin-top:2px;flex:none}
 
 /* not-configured / error / info box, shared by both cards */
