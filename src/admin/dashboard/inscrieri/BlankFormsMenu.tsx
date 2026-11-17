@@ -9,11 +9,11 @@ const BLANK_KINDS: PanelDocumentKind[] = ['acord', 'adeziune'];
 /** Export menu items "Formulare goale": blank Acord and Cerere de adeziune with season, period and fee printed. */
 export function BlankFormItems({ close }: { close: () => void }) {
   const { get } = useFetchClient();
+  // The menu closes after the download: Strapi's fetch client aborts its requests when this component unmounts.
   const download = (kind: PanelDocumentKind) => {
-    close();
-    downloadPdf(get, blankFormUrl(kind), `${DOCUMENT_LABELS[kind]}.pdf`).catch(() =>
-      adminToast.error('Formularul nu a putut fi descărcat.'),
-    );
+    downloadPdf(get, blankFormUrl(kind), `${DOCUMENT_LABELS[kind]}.pdf`)
+      .catch(() => adminToast.error('Formularul nu a putut fi descărcat.'))
+      .finally(close);
   };
   return (
     <>
