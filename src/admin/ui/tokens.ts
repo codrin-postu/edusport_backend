@@ -109,6 +109,7 @@ export const PALETTE = {
     200: '#e0e2e8',
     250: '#d7dae1',
     300: '#c0c0cf',
+    325: '#b9c0cc',
     350: '#a4a9b4',
     375: '#a5a5ba',
     400: '#868c9b',
@@ -308,8 +309,11 @@ export interface AdminTheme {
     default: string;
     /** table row separators */
     subtle: string;
-    /** control borders (inputs, checkbox, switch track) */
+    /** control borders (checkbox, radio, switch track) */
     strong: string;
+    /** text control borders (buttons, inputs, selects) and their hover */
+    control: string;
+    controlHover: string;
   };
   primary: {
     default: string;
@@ -375,6 +379,8 @@ export const light: AdminTheme = {
     default: P.grey[200],
     subtle: P.grey[125],
     strong: P.grey[400],
+    control: P.grey[325],
+    controlHover: P.grey[400],
   },
   primary: {
     default: P.steel[500],
@@ -453,6 +459,8 @@ export const dark: AdminTheme = {
     default: P.grey[750],
     subtle: P.grey[775],
     strong: P.grey[450],
+    control: P.grey[525],
+    controlHover: P.grey[450],
   },
   primary: {
     default: P.steel[300],
@@ -527,8 +535,8 @@ export const THEME_NAMES = Object.keys(THEMES) as ThemeName[];
  */
 export const radius = {
   none: '0',
-  sm: '4px',
-  md: '6px',
+  sm: '6px',
+  md: '8px',
   lg: '8px',
   sheet: '10px 10px 0 0',
   /** Radio mark (plan 3-1, Needs decision 1: RESOLVED, square, same as Checkbox). */
@@ -573,7 +581,7 @@ export interface TypeRole {
 export const type = {
   pageTitle: { size: '19px', weight: 800, lineHeight: '1.25', tracking: '-0.01em' },
   sectionTitle: { size: '11px', weight: 800, lineHeight: '1.3', transform: 'uppercase', tracking: '0.05em' },
-  label: { size: '10.5px', weight: 700, lineHeight: '1.3', transform: 'uppercase', tracking: '0.05em' },
+  label: { size: '11px', weight: 700, lineHeight: '1.3', transform: 'uppercase', tracking: '0.05em' },
   body: { size: '13px', weight: 400, lineHeight: '1.5' },
   bodySm: { size: '12.5px', weight: 400, lineHeight: '1.45' },
   caption: { size: '11px', weight: 400, lineHeight: '1.4' },
@@ -642,6 +650,8 @@ export function themeVars(t: AdminTheme): Record<string, string> {
   v['--theme-border'] = t.line.default;
   v['--theme-border-subtle'] = t.line.subtle;
   v['--theme-border-strong'] = t.line.strong;
+  v['--theme-control-border'] = t.line.control;
+  v['--theme-control-border-hover'] = t.line.controlHover;
   v['--theme-primary'] = t.primary.default;
   v['--theme-primary-hover'] = t.primary.hover;
   v['--theme-primary-soft'] = t.primary.soft;

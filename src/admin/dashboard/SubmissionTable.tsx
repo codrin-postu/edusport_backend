@@ -542,8 +542,8 @@ const TABLE_CSS = `
 .ui-root .sbt-pop-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 4px 2px;margin-top:6px;border-top:1px solid var(--theme-border)}
 .ui-root .sbt-qffoot{display:flex;justify-content:flex-end;border-top:1px solid var(--theme-border);margin-top:5px;padding-top:5px}
 .ui-root.ui-pop.sbt-menu{width:260px;padding:5px}
-.ui-root.sbt-menu button{display:block;width:100%;text-align:left;font-family:inherit;font-size:12.5px;color:var(--theme-text);background:none;border:none;padding:8px 10px;border-radius:var(--ui-radius-sm);cursor:pointer}
-.ui-root.sbt-menu button:hover:not(:disabled),.ui-root.sbt-menu button:focus-visible{background:var(--theme-surface-subtle);outline:none}
+.ui-root.sbt-menu button{display:block;width:100%;text-align:left;font-family:inherit;font-size:13px;font-weight:600;color:var(--theme-text);background:none;border:none;padding:8px 10px;border-radius:var(--ui-radius-sm);cursor:pointer;transition:background-color var(--ui-motion-fast) var(--ui-easing)}
+.ui-root.sbt-menu button:hover:not(:disabled),.ui-root.sbt-menu button:focus-visible{background:var(--theme-primary-soft);outline:none}
 .ui-root.sbt-menu button:disabled{opacity:.55;cursor:default}
 .ui-root.sbt-menu .sbt-sub{display:block;font-size:11px;color:var(--theme-text-muted);margin-top:2px}
 .ui-root.sbt-menu button.sbt-warn{color:var(--theme-warning)}
