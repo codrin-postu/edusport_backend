@@ -31,10 +31,20 @@ it('Înscrieri opts into phone cards and the table gates them behind the phone q
 it('the phone detail is a full-screen layer with a back link that closes it, the list stays mounted', () => {
   expect(phone).toContain('PHONE_BACK');
   expect(phone).toContain('sbt-pdetail');
-  expect(table).toContain('<PhoneDetail onBack={() => setSelectedId(null)}>');
+  expect(table).toContain('<PhoneDetail onBack={phoneBack}>');
   expect(table).toContain('if (view !== \'compact\' || phoneCards) return;');
 });
 
 it('selection and bulk actions are not offered on phone cards', () => {
   expect(table).toContain('cfg.bulk && !phoneCards && selectedIds.size > 0');
+});
+
+it('the phone detail opens by ?open= and owns one history entry', () => {
+  const back = dash('inscrieri', 'usePhoneBack.ts');
+  expect(page).toContain('openId: open');
+  expect(page).toContain("onOpenClosed: () => navigate({ search: '' })");
+  expect(table).toContain('usePhoneBack(phoneCards && selected !== null, closePhoneDetail)');
+  expect(back).toContain('window.history.pushState');
+  expect(back).toContain("addEventListener('popstate'");
+  expect(back).toContain('window.history.back()');
 });

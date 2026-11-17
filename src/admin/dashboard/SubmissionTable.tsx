@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { phoneQuery, tabletQuery } from '../../club/ui-breakpoints';
 import { PhoneCards, PhoneDetail } from './inscrieri/PhoneList';
+import { usePhoneBack } from './inscrieri/usePhoneBack';
 import { useIsPhone } from './useIsPhone';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { SheetsDialog, type SheetsForm } from './SheetsDialog';
@@ -304,6 +305,9 @@ export interface SubmissionTableExtras {
   advancedFilters?: React.ReactNode;
   /** One phone card's content (`cfg.phoneCards`): line 1 name and status, line 2 facts. */
   phoneCard?: (row: Row, api: TableApi) => React.ReactNode;
+  /** Phone: the registration to open straight away (`?open=`), and what to do once its detail is closed. */
+  openId?: string | null;
+  onOpenClosed?: () => void;
   /** Between the toolbars and the list. */
   aboveList?: React.ReactNode;
   /** In the bulk bar, before "Arhivează"; `done` clears the selection and reloads. */
@@ -1021,6 +1025,19 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
   const phoneCard = extras?.phoneCard;
   const phoneCards = Boolean(cfg.phoneCards && phoneCard && isPhone);
   const selected = React.useMemo(() => rows.find((r) => r.documentId === selectedId) ?? null, [rows, selectedId]);
+  const openedFor = React.useRef<string | null>(null);
+  const openId = extras?.openId ?? null;
+  const onOpenClosed = extras?.onOpenClosed;
+  React.useEffect(() => {
+    if (!phoneCards || !openId || openedFor.current === openId || !rows.some((r) => r.documentId === openId)) return;
+    openedFor.current = openId;
+    setSelectedId(openId);
+  }, [phoneCards, openId, rows]);
+  const closePhoneDetail = React.useCallback(() => {
+    setSelectedId(null);
+    if (openId) onOpenClosed?.();
+  }, [openId, onOpenClosed]);
+  const phoneBack = usePhoneBack(phoneCards && selected !== null, closePhoneDetail);
 
   // Keep the first row open in compact view so the detail column is never empty.
   React.useEffect(() => {
@@ -2262,7 +2279,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
         )}
       </Window>
 
-      {phoneCards && selected && <PhoneDetail onBack={() => setSelectedId(null)}>{cfg.compact.renderDetail(selected, api)}</PhoneDetail>}
+      {phoneCards && selected && <PhoneDetail onBack={phoneBack}>{cfg.compact.renderDetail(selected, api)}</PhoneDetail>}
 
       {cfg.seasons && (
         <Modal

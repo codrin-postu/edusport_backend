@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import SubmissionTablePage, {
   fmtDateShort,
   type ColumnDef,
@@ -192,6 +192,7 @@ const CFG: SubmissionTableCfg = {
 
 export default function InscrieriPage() {
   const open = readOpenParam(useLocation().search);
+  const navigate = useNavigate();
   const [existing, setExisting] = React.useState('');
   const [school, setSchool] = React.useState<string>(ALL_SCHOOLS);
   const [meta, setMeta] = React.useState<ListMeta>(EMPTY_LIST_META);
@@ -199,6 +200,8 @@ export default function InscrieriPage() {
   const extras: SubmissionTableExtras = {
     params: open ? openListParams(open) : listParams(existing, school, meta),
     onMeta,
+    openId: open,
+    onOpenClosed: () => navigate({ search: '' }),
     phoneCard: (r, api) => phoneCardView(r, api, meta.multipleSchools && school === ALL_SCHOOLS),
     advancedFilters: <ExistingFilter value={existing} onChange={setExisting} />,
     aboveList: (

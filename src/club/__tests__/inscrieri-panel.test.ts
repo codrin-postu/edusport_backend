@@ -109,6 +109,12 @@ describe('panel (spec 3.3, 3.5)', () => {
     expect(panelTabs(legacy, 0)[3].count).toBeNull();
   });
 
+  it('the birth date reads dd/mm/yyyy whatever the stored format, in both form generations', () => {
+    expect(dateTabRows({ ...script, childBirthDate: '2018-04-12' })[5].value).toBe('12/04/2018');
+    expect(dateTabRows({ ...legacy, childBirthDate: '2018-04-12' })[4].value).toBe('12/04/2018');
+    expect(dateTabRows({ ...script, childBirthDate: 'aprilie 2018' })[5].value).toBe('aprilie 2018');
+  });
+
   it('Date tab: the form wording, in form order, blank empties', () => {
     expect(values(dateTabRows(script))).toEqual([
       ['Adresă de e-mail', 'parinte@exemplu.ro'],
@@ -116,7 +122,7 @@ describe('panel (spec 3.3, 3.5)', () => {
       ['Calitatea față de sportiv', 'Părinte'],
       ['Telefon de contact', '0722 111 222'],
       ['Numele copilului', 'Maria Dumitrescu'],
-      ['Data nașterii copilului', '14.03.2014'],
+      ['Data nașterii copilului', '14/03/2014'],
       ['Înălțimea copilului (cm)', '142'],
       ['Măsura bluză', 'S'],
       ['Sezonul trecut a participat la cursurile ACS EduSport?', 'Începători'],

@@ -164,16 +164,19 @@ export const LEGACY_DATE_KEYS = ['email', 'parentName', 'phone', 'childName', 'c
 export const LEGACY_ABONAMENT_KEYS = ['clubInterest', 'howHeard', 'regulationsAgreement', 'privacyConsent'] as const;
 const LEGACY_BOOLEANS = new Set<string>(['clubInterest', 'regulationsAgreement', 'privacyConsent']);
 
+const dateAnswers = new Set<string>(['childBirthDate']);
+const answerText = (row: InscriereRow, key: string): string => (dateAnswers.has(key) ? numericDateToSlash(cellText(row[key])) : cellText(row[key]));
+
 const legacyRow = (row: InscriereRow, key: string): TabRow => ({
   key,
   label: LEGACY_LABELS[key],
-  value: LEGACY_BOOLEANS.has(key) ? yesNo(row[key]) : cellText(row[key]),
+  value: LEGACY_BOOLEANS.has(key) ? yesNo(row[key]) : answerText(row, key),
 });
 
 const scriptRow = (row: InscriereRow, key: string): TabRow => ({
   key,
   label: REGISTRATION_FIELD_LABELS[key],
-  value: key === 'relationship' ? relationshipText(row) : cellText(row[key]),
+  value: key === 'relationship' ? relationshipText(row) : answerText(row, key),
 });
 
 /** Date tab (spec 3.3): the form's questions in form order; old registrations their own. */
