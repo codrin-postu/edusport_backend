@@ -48,3 +48,12 @@ it('the phone detail opens by ?open= and owns one history entry', () => {
   expect(back).toContain("addEventListener('popstate'");
   expect(back).toContain('window.history.back()');
 });
+
+it('opening the athlete record from the phone detail replaces the detail history entry, so one back returns to the list', async () => {
+  const { isPhoneDetailEntry } = await import('../../admin/dashboard/inscrieri/usePhoneBack');
+  expect(isPhoneDetailEntry({ insDetail: true, idx: 3 })).toBe(true);
+  expect(isPhoneDetailEntry({ idx: 3 })).toBe(false);
+  expect(isPhoneDetailEntry(null)).toBe(false);
+  const panel = readFileSync(join(__dirname, '../../admin/dashboard/inscrieri/RegistrationPanel.tsx'), 'utf8');
+  expect(panel).toContain('replace: isPhoneDetailEntry(window.history.state)');
+});

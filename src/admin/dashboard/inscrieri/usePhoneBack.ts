@@ -2,6 +2,11 @@ import * as React from 'react';
 
 const MARK = 'insDetail';
 
+/** True when the current history entry is the one the phone detail pushed: leaving the detail should replace it, not stack on it. */
+export function isPhoneDetailEntry(state: unknown): boolean {
+  return typeof state === 'object' && state !== null && (state as Record<string, unknown>)[MARK] === true;
+}
+
 /**
  * Phone detail and the back gesture: opening pushes one history entry, a popstate closes the detail,
  * and the returned handler (the "back" link) goes back that one entry so history stays clean.

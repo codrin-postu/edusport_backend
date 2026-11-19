@@ -20,6 +20,7 @@ import { PanelHeader } from './PanelHeader';
 import { WhatsappDialog } from './PhoneActions';
 import { PanelBody } from './PanelTabs';
 import { usePanelData } from './usePanelData';
+import { isPhoneDetailEntry } from './usePhoneBack';
 import { useStickyInsets } from './useStickyInsets';
 
 type FooterProps = { row: Row; api: TableApi; onConfirm?: () => void };
@@ -47,7 +48,7 @@ function PanelFooter({ row, api, onConfirm }: FooterProps) {
           </Button>
         )}
         {actions.openAthlete && athleteId && (
-          <Button size="sm" variant="secondary" onClick={() => navigate(athleteRecordPath(athleteId))}>
+          <Button size="sm" variant="secondary" onClick={() => navigate(athleteRecordPath(athleteId), { replace: isPhoneDetailEntry(window.history.state) })}>
             {PANEL_COPY.openAthlete}
           </Button>
         )}
