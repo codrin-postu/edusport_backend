@@ -43,6 +43,17 @@ const PHONE_CSS =
   '.ui-root .sbt-cards{display:flex;flex-direction:column}' +
   '.ui-root .sbt-card{display:flex;flex-direction:column;gap:3px;width:100%;min-width:0;padding:11px var(--ui-inset);border:0;border-bottom:1px solid var(--theme-border);background:var(--theme-surface);font:inherit;text-align:left;color:var(--theme-text);cursor:pointer}' +
   '.ui-root .sbt-card:active{background:var(--theme-surface-subtle)}' +
+  '.ui-root .sbt-cards--sel{padding-bottom:calc(64px + env(safe-area-inset-bottom))}' +
+  '.ui-root .sbt-cards--sel .sbt-card{flex-direction:row;align-items:flex-start;gap:12px}' +
+  '.ui-root .sbt-card--on{background:var(--theme-primary-soft)}' +
+  '.ui-root .sbt-cardbody{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}' +
+  '.ui-root .sbt-cardcheck{flex:none;display:grid;place-items:center;width:20px;height:20px;margin-top:1px;border:1.5px solid var(--theme-control-border);border-radius:var(--ui-radius-sm);background:var(--theme-surface)}' +
+  '.ui-root .sbt-card--on .sbt-cardcheck{background:var(--theme-primary);border-color:var(--theme-primary)}' +
+  '.ui-root .sbt-card--on .sbt-cardcheck::after{content:"";width:9px;height:5px;border-left:2px solid var(--theme-on-primary);border-bottom:2px solid var(--theme-on-primary);transform:translateY(-1px) rotate(-45deg)}' +
+  '.ui-root .sbt-pselbar{position:fixed;left:0;right:0;bottom:0;z-index:var(--ui-z-drawer);display:flex;gap:8px;padding:10px var(--ui-inset) max(10px,env(safe-area-inset-bottom));background:var(--theme-surface);border-top:1px solid var(--theme-border)}' +
+  '.ui-root .sbt-pselbar > *{flex:1}' +
+  '.ui-root .sbt-pmove{display:flex;flex-direction:column;gap:12px}' +
+  '.ui-root .sbt-pmove .ui-select,.ui-root .sbt-pmove .ui-input{width:100%}' +
   '.ui-root .ins-l1{display:flex;align-items:center;gap:8px;min-width:0}' +
   '.ui-root .ins-l1 b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14.5px}' +
   '.ui-root .ins-l1 > :not(b){flex:none}' +

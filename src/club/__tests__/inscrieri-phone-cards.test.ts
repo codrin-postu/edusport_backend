@@ -57,3 +57,30 @@ it('opening the athlete record from the phone detail replaces the detail history
   const panel = readFileSync(join(__dirname, '../../admin/dashboard/inscrieri/RegistrationPanel.tsx'), 'utf8');
   expect(panel).toContain('replace: isPhoneDetailEntry(window.history.state)');
 });
+
+it('counts registrations in Romanian for the move sheet title', async () => {
+  const { registrationsCount, PHONE_SELECT } = await import('../inscrieri-card');
+  expect([1, 3, 19, 20, 100, 101, 120].map(registrationsCount)).toEqual([
+    '1 înscriere',
+    '3 înscrieri',
+    '19 înscrieri',
+    '20 de înscrieri',
+    '100 de înscrieri',
+    '101 înscrieri',
+    '120 de înscrieri',
+  ]);
+  expect(PHONE_SELECT.moveTitle(3)).toBe('Mută 3 înscrieri');
+  expect(PHONE_SELECT.count(3)).toBe('3 selectate');
+});
+
+it('phone selection: started from the page menu, cards toggle instead of opening, back leaves it, actions leave it on success', () => {
+  const table = readFileSync(join(__dirname, '../../admin/dashboard/SubmissionTable.tsx'), 'utf8');
+  const cards = readFileSync(join(__dirname, '../../admin/dashboard/inscrieri/PhoneList.tsx'), 'utf8');
+  expect(table).toContain('{phoneCards && cfg.bulk && (');
+  expect(table).toContain('const phoneSelectBack = usePhoneBack(selecting, leavePhoneSelect);');
+  expect(table).toContain('selection={selecting ? { ids: selectedIds, toggle: toggleSelect } : undefined}');
+  expect(table).toContain('open={selecting && phoneMoveOpen && selectedIds.size > 0}');
+  expect(table).toContain("void bulkDelete().then((ok) => ok && selecting && phoneSelectBack())");
+  expect(cards).toContain('onClick={() => (selection ? selection.toggle(r.documentId) : onOpen(r.documentId))}');
+  expect(cards).toContain('aria-pressed={selection ? on : undefined}');
+});

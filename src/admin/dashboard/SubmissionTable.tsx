@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { phoneQuery, tabletQuery } from '../../club/ui-breakpoints';
 import { PhoneCards, PhoneDetail } from './inscrieri/PhoneList';
+import { PhoneMoveSheet, PhoneSelectActions, PhoneSelectBar } from './inscrieri/PhoneSelect';
 import { usePhoneBack } from './inscrieri/usePhoneBack';
 import { useIsPhone } from './useIsPhone';
 import { ConfirmDialog } from '../ConfirmDialog';
@@ -37,6 +38,7 @@ import {
 } from '../ui';
 import { IconCheck, IconChevronDown, IconChevronUp, IconColumns, IconGrip, IconSearch } from '../ui/icons';
 import { menuTriggerClass } from '../../club/ui-select';
+import { PHONE_SELECT } from '../../club/inscrieri-card';
 import { numericDateToSlash } from '../../club/date-format';
 import { fieldsClearedByEdit } from '../../club/registration-edit';
 import { SEASON_EMPTY_LABEL, headerLabel, headerSortDir, listMeta, nextHeaderSort, savedStamp, type CompactHeader } from '../../club/ui-table';
@@ -1038,6 +1040,15 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
     if (openId) onOpenClosed?.();
   }, [openId, onOpenClosed]);
   const phoneBack = usePhoneBack(phoneCards && selected !== null, closePhoneDetail);
+  const [phoneSelecting, setPhoneSelecting] = React.useState(false);
+  const [phoneMoveOpen, setPhoneMoveOpen] = React.useState(false);
+  const leavePhoneSelect = React.useCallback(() => {
+    setPhoneSelecting(false);
+    setPhoneMoveOpen(false);
+    setSelectedIds(new Set());
+  }, []);
+  const selecting = phoneCards && phoneSelecting;
+  const phoneSelectBack = usePhoneBack(selecting, leavePhoneSelect);
 
   // Keep the first row open in compact view so the detail column is never empty.
   React.useEffect(() => {
@@ -1133,43 +1144,49 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
 
   const bulkMove = React.useCallback(async () => {
     const toSeason = bulkSeason.trim();
-    if (!toSeason || selectedIds.size === 0) return;
+    if (!toSeason || selectedIds.size === 0) return false;
     setBusy(true);
     try {
       const r: any = await post(`${cfg.api}/move-season`, { documentIds: [...selectedIds], toSeason });
       adminToast.success(`Am mutat ${r?.data?.moved ?? 0} înscrieri în sezonul ${toSeason}.`);
       setBulkSeason('');
       refetch();
+      return true;
     } catch {
       adminToast.error('Mutarea în sezon a eșuat.');
+      return false;
     } finally {
       setBusy(false);
     }
   }, [post, bulkSeason, selectedIds, refetch, cfg]);
 
   const bulkArchive = React.useCallback(async () => {
-    if (selectedIds.size === 0) return;
+    if (selectedIds.size === 0) return false;
     const n = selectedIds.size;
     setBusy(true);
     try {
       await Promise.all([...selectedIds].map((id) => put(`${cfg.api}/${id}`, { archived: true })));
       adminToast.success(`Am arhivat ${n} înscrieri.`);
       refetch();
+      return true;
     } catch {
       adminToast.error('Arhivarea selecției a eșuat.');
+      return false;
     } finally {
       setBusy(false);
     }
   }, [put, selectedIds, refetch, cfg]);
 
   const bulkDelete = React.useCallback(async () => {
-    if (selectedIds.size === 0) return;
+    if (selectedIds.size === 0) return false;
     setBusy(true);
     try {
       await Promise.all([...selectedIds].map((id) => del(`${cfg.api}/${id}`)));
       refetch();
+      return true;
     } catch {
       adminToast.error('Ștergerea selecției a eșuat.');
+      return false;
     } finally {
       setBusy(false);
       setPendingConfirm(null);
@@ -1653,6 +1670,18 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
       role="menu"
       placement="bottom-end"
     >
+      {phoneCards && cfg.bulk && (
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            setPageMenuOpen(false);
+            setPhoneSelecting(true);
+          }}
+        >
+          {PHONE_SELECT.start}
+        </button>
+      )}
       <button
         type="button"
         role="menuitem"
@@ -2207,7 +2236,11 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
       <style>{fullCss}</style>
 
       <Window>
-        <PageHeader title={headerTitle} actions={statActions} />
+        {selecting ? (
+          <PageHeader title={PHONE_SELECT.count(selectedIds.size)} actions={<PhoneSelectActions onAll={toggleSelectAll} onDone={phoneSelectBack} />} />
+        ) : (
+          <PageHeader title={headerTitle} actions={statActions} />
+        )}
 
         {phoneCards ? phoneBar : cfg.oneRowToolbar ? oneRowBar : twoRowBars}
 
@@ -2241,7 +2274,12 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
           ) : rows.length === 0 ? (
             <EmptyState>{cfg.texts.empty}</EmptyState>
           ) : phoneCards && phoneCard ? (
-            <PhoneCards rows={rows} onOpen={setSelectedId} renderCard={(r) => phoneCard(r, api)} />
+            <PhoneCards
+              rows={rows}
+              onOpen={setSelectedId}
+              renderCard={(r) => phoneCard(r, api)}
+              selection={selecting ? { ids: selectedIds, toggle: toggleSelect } : undefined}
+            />
           ) : view === 'compact' ? (
             compactView
           ) : (
@@ -2280,6 +2318,32 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
       </Window>
 
       {phoneCards && selected && <PhoneDetail onBack={phoneBack}>{cfg.compact.renderDetail(selected, api)}</PhoneDetail>}
+
+      {selecting && (
+        <PhoneSelectBar
+          count={selectedIds.size}
+          busy={busy}
+          canMove={Boolean(cfg.seasons || extras?.bulkActions)}
+          canArchive={Boolean(cfg.archive)}
+          onMove={() => setPhoneMoveOpen(true)}
+          onArchive={() => void bulkArchive().then((ok) => ok && phoneSelectBack())}
+          onDelete={() => setPendingConfirm({ kind: 'bulk', count: selectedIds.size })}
+        />
+      )}
+      <PhoneMoveSheet open={selecting && phoneMoveOpen && selectedIds.size > 0} count={selectedIds.size} onClose={() => setPhoneMoveOpen(false)}>
+        {cfg.seasons && (
+          <>
+            <SeasonSelect aria-label="Sezon destinație" value={bulkSeason} seasons={seasons} activeSeason={activeSeason} onChange={setBulkSeason} emptyLabel="Sezon destinație..." />
+            <Button onClick={() => void bulkMove().then((ok) => ok && phoneSelectBack())} disabled={busy || !bulkSeason.trim()}>
+              Mută în sezon
+            </Button>
+          </>
+        )}
+        {extras?.bulkActions?.([...selectedIds], () => {
+          phoneSelectBack();
+          refetch();
+        })}
+      </PhoneMoveSheet>
 
       {cfg.seasons && (
         <Modal
@@ -2339,7 +2403,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
         onCancel={() => setPendingConfirm(null)}
         onConfirm={() => {
           if (!pendingConfirm) return;
-          if (pendingConfirm.kind === 'bulk') bulkDelete();
+          if (pendingConfirm.kind === 'bulk') void bulkDelete().then((ok) => ok && selecting && phoneSelectBack());
           else doRemoveRow(pendingConfirm.documentId);
         }}
       />

@@ -2,15 +2,28 @@ import * as React from 'react';
 import { PHONE_BACK } from '../../../club/inscrieri-card';
 import type { Row } from '../SubmissionTable';
 
-/** Phone list: one card per registration; the card content comes from the page, a tap opens the detail. */
-export function PhoneCards({ rows, onOpen, renderCard }: { rows: Row[]; onOpen: (id: string) => void; renderCard: (row: Row) => React.ReactNode }) {
+/** Phone selection mode: which cards are ticked and how a tap toggles one. */
+export type PhoneSelection = { ids: Set<string>; toggle: (id: string) => void };
+
+/** Phone list: one card per registration; the card content comes from the page, a tap opens the detail (or ticks the card while selecting). */
+export function PhoneCards({ rows, onOpen, renderCard, selection }: { rows: Row[]; onOpen: (id: string) => void; renderCard: (row: Row) => React.ReactNode; selection?: PhoneSelection }) {
   return (
-    <div className="sbt-cards">
-      {rows.map((r) => (
-        <button key={r.documentId} type="button" className="sbt-card" onClick={() => onOpen(r.documentId)}>
-          {renderCard(r)}
-        </button>
-      ))}
+    <div className={selection ? 'sbt-cards sbt-cards--sel' : 'sbt-cards'}>
+      {rows.map((r) => {
+        const on = selection?.ids.has(r.documentId) ?? false;
+        return (
+          <button
+            key={r.documentId}
+            type="button"
+            className={on ? 'sbt-card sbt-card--on' : 'sbt-card'}
+            aria-pressed={selection ? on : undefined}
+            onClick={() => (selection ? selection.toggle(r.documentId) : onOpen(r.documentId))}
+          >
+            {selection && <span className="sbt-cardcheck" aria-hidden="true" />}
+            {selection ? <span className="sbt-cardbody">{renderCard(r)}</span> : renderCard(r)}
+          </button>
+        );
+      })}
     </div>
   );
 }
