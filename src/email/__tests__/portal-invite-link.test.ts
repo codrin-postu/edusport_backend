@@ -1,5 +1,5 @@
 import type { Core } from '@strapi/strapi';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import databaseConfig from '../../../config/database';
 import { attemptJob } from '../email-jobs';
 import { cancelQueuedInvites } from '../strapi-email';
@@ -45,7 +45,14 @@ describe('invite link in the stored payload', () => {
 });
 
 describe('database config', () => {
+  afterEach(() => vi.unstubAllEnvs());
+  it('refuses to boot without DATABASE_CLIENT outside development', () => {
+    vi.stubEnv('DATABASE_CLIENT', '');
+    vi.stubEnv('NODE_ENV', 'production');
+    expect(() => databaseConfig({ env: Object.assign((k: string, d?: unknown) => d, { int: (_k: string, d: number) => d, bool: (_k: string, d: boolean) => d }) as never })).toThrow(/DATABASE_CLIENT is not set/);
+  });
   it('keeps bound values out of database error messages', () => {
+    vi.stubEnv('DATABASE_CLIENT', 'postgres');
     const env = Object.assign((k: string, d?: unknown) => d, { int: (_k: string, d: number) => d, bool: (_k: string, d: boolean) => d });
     expect((databaseConfig({ env: env as never }).connection as Record<string, unknown>).compileSqlOnError).toBe(false);
   });

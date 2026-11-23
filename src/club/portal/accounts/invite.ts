@@ -4,6 +4,7 @@ import { inviteLink, portalHost, portalInviteJob } from '../../../email/portal-e
 import { portalAccessJob } from '../../../email/portal-access-email';
 import { PORTAL_ACTIONS, PORTAL_ERRORS } from '../copy';
 import { ACCOUNT_TOASTS } from '../copy-admin';
+import { portalsEnabled } from '../auth/bff';
 import { normalizeEmail } from '../limits';
 import type { AccountRow } from '../store';
 import { hashSecret, INVITE_TTL_MS, newInviteSecret } from '../tokens';
@@ -47,8 +48,7 @@ export async function useUpTokens(c: AccountContext, accountId: string, kinds: (
 
 /** Inside a transaction with the account locked: a new invite token and its queued mail job; the id of the job. */
 export async function queueFreshInvite(c: AccountContext, account: AccountRow, name: string, email: string, site: Host = 'antrenor', children: string[] = [], athleteIds: string[] = []): Promise<string> {
-  if (!c.siteUrl) throw new Error('the public site address is not configured');
-  const { host, origin } = portalHost(c.siteUrl, site);
+  const { host, origin } = portalHost(site);
   const secret = newInviteSecret();
   await c.store.createToken({ accountId: account.id, host: site, kind: 'invite', secretHash: hashSecret(secret), expiresAt: new Date(c.now().getTime() + INVITE_TTL_MS).toISOString() });
   const link = inviteLink(host, secret, origin.startsWith('http://') ? 'http' : 'https');
@@ -66,6 +66,7 @@ export const answer = (block: AccountBlock, toast: string): AdminResult<AccountA
 
 export async function inviteAccount(c: AccountContext, teamMemberId: string, body: unknown): Promise<AdminResult<AccountAnswer>> {
   return guardedWrite(c, 'portal invite', async () => {
+    if (!portalsEnabled()) return refuse(409, PORTAL_ERRORS.portalsOff);
     const name = await c.store.teamMemberName(teamMemberId);
     if (name === null) return refuse(404, PORTAL_ERRORS.notFound);
     if (await c.store.accountByTeamMember(teamMemberId)) return stale();
@@ -95,6 +96,7 @@ export async function inviteAccount(c: AccountContext, teamMemberId: string, bod
 
 export async function resendInvite(c: AccountContext, accountId: string): Promise<AdminResult<AccountAnswer>> {
   return guardedWrite(c, 'portal invite resend', async () => {
+    if (!portalsEnabled()) return refuse(409, PORTAL_ERRORS.portalsOff);
     if (!(await c.store.account(accountId))) return refuse(404, PORTAL_ERRORS.notFound);
     const done = await c.store.transaction(async () => {
       await c.store.lockAccount(accountId);
@@ -141,8 +143,7 @@ async function relinkAccount(c: AccountContext, holder: AccountRow, teamMemberId
 
 /** The mail to an active holder: the coach role is added, the portal host to enter on. */
 async function coachRoleJob(c: AccountContext, account: AccountRow, name: string): Promise<string> {
-  if (!c.siteUrl) throw new Error('the public site address is not configured');
-  const { host, origin } = portalHost(c.siteUrl, 'antrenor');
+  const { host, origin } = portalHost('antrenor');
   const who = account.name?.trim() || name;
   return c.queueAccess(portalAccessJob({ recipient: account.email, accountId: account.id, payload: { name: who, variant: 'coach', childName: null, link: `${origin}/`, host } }));
 }

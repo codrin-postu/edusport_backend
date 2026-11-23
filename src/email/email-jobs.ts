@@ -8,6 +8,7 @@ import type { ScheduleChangePayload } from '../club/groups/types';
 import type { PaymentEmailPayload } from '../club/presence/types';
 import type { Attachment, OutgoingEmail, SendResult } from './brevo';
 import { blockedReason, deliveryTarget, type BlockedReason, type EmailConfig } from './config';
+import { portalsEnabled } from '../club/portal/auth/bff';
 import { isDue, nextJobState, type AttemptOutcome, type EmailJobStatus, type JobState } from './job-state';
 import { registrationSubject, renderRegistrationEmail, type EmailLinks } from './registration-template';
 import { isPaymentPayload, renderPaymentEmail } from './payment-email';
@@ -216,6 +217,10 @@ async function notifySent(deps: EmailDeps, job: EmailJobRow): Promise<void> {
  */
 export async function attemptJob(deps: EmailDeps, job: EmailJobRow): Promise<EmailJobRow> {
   if (job.status !== 'queued' || held(job, deps.now())) return job;
+  if ((job.kind === 'portal-invite' || job.kind === 'portal-access') && !portalsEnabled()) {
+    deps.log('info', `[email-job] job ${job.documentId} stays queued: portals are off (PORTAL_HOSTS)`);
+    return job;
+  }
   const composer = composerFor(deps, job);
   const target = composer ? deliveryTarget(deps.config, job.recipient) : null;
   if (target && target.ok === false) {

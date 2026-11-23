@@ -40,7 +40,8 @@ ENV NODE_ENV=production
 COPY --from=deps /opt/app/node_modules ./node_modules
 COPY . .
 
-RUN npm run build
+# strapi build loads config/database.ts, which requires DATABASE_CLIENT. Build-time only: the runner stage gets the real value from .env.production.
+RUN DATABASE_CLIENT=postgres npm run build
 
 # Stage the app without node_modules so the volatile layer stays small and the
 # dependency layer stays reusable. Strapi 5 needs src/, tsconfig.json,

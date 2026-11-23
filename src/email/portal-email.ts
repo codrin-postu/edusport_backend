@@ -21,12 +21,23 @@ export function isPortalInvitePayload(v: unknown): v is PortalInvitePayload {
     && (v.athleteIds === undefined || (Array.isArray(v.athleteIds) && v.athleteIds.every((c) => typeof c === 'string')));
 }
 
-/** The portal host of a site: `antrenor.` or `sportiv.` + the site host (without `www.`); `<site>.localhost:port` over http locally. */
-export function portalHost(siteUrl: string, site: 'antrenor' | 'sportiv' = 'antrenor'): { host: string; origin: string } {
-  const url = new URL(siteUrl);
-  const local = url.hostname === 'localhost' || url.hostname.endsWith('.localhost');
-  const host = `${site}.${url.host.replace(/^www\./, '')}`;
-  return { host, origin: `${local ? 'http' : 'https'}://${host}` };
+const PORTAL_URL_NAME = { antrenor: 'PORTAL_ANTRENOR_URL', sportiv: 'PORTAL_SPORTIV_URL' } as const;
+
+/**
+ * The portal host of a site, from the configured origin (`PORTAL_ANTRENOR_URL`, `PORTAL_SPORTIV_URL`: scheme and host, for example
+ * `https://antrenor.example.com`). Never derived from the public site address. Throws when the setting is missing or not a URL.
+ */
+export function portalHost(site: 'antrenor' | 'sportiv' = 'antrenor', env: NodeJS.ProcessEnv = process.env): { host: string; origin: string } {
+  const name = PORTAL_URL_NAME[site];
+  const raw = (env[name] ?? '').trim();
+  if (!raw) throw new Error(`${name} is not configured`);
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error(`${name} is not a valid URL`);
+  }
+  return { host: url.host, origin: url.origin };
 }
 
 export const inviteLink = (siteHost: string, secret: string, protocol: 'https' | 'http' = 'https'): string =>

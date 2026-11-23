@@ -19,6 +19,7 @@
  */
 import type { Core } from '@strapi/strapi';
 import { retryRegistrationEmails } from '../src/email/strapi-email';
+import { portalsEnabled } from '../src/club/portal/auth/bff';
 import { purgePortal } from '../src/club/portal/purge';
 import { syncClubWide } from '../src/club/portal/notices/strapi-sync';
 import { strapiNoticeStore } from '../src/club/portal/notices/strapi-store';
@@ -84,6 +85,7 @@ export default {
   },
   portalNotices: {
     task: async ({ strapi }: { strapi: Core.Strapi }) => {
+      if (!portalsEnabled()) return;
       try {
         const n = await syncClubWide(strapi);
         if (n.created || n.delivered || n.ended) strapi.log.info(`[portal][cron] notices: ${n.created} created, ${n.delivered} delivered, ${n.ended} ended`);
@@ -95,6 +97,7 @@ export default {
   },
   portalPurge: {
     task: async ({ strapi }: { strapi: Core.Strapi }) => {
+      if (!portalsEnabled()) return;
       try {
         // One daily pass also clears the 2FA rows (unconfirmed factors, spent challenges and backup codes, revoked admin devices).
         const n = await purgePortal(strapiPortalStore(strapi), new Date(), strapiSecurityStore(strapi), process.env, strapiNoticeStore(strapi));

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PORTAL_HOSTS, clientIp, isBffCall, userAgent } from '../auth/bff';
+import { PORTAL_HOSTS, clientIp, isBffCall, portalsEnabled, userAgent } from '../auth/bff';
 import { limiter } from '../auth/limit';
 import { fakePortalStore } from './fake-portal-store';
 
@@ -26,8 +26,15 @@ describe('BFF channel', () => {
     expect(userAgent({ 'x-portal-user-agent': 'u'.repeat(600) })).toHaveLength(512);
   });
   it('reads portal hosts', () => {
-    expect(PORTAL_HOSTS({})).toEqual(['antrenor']);
+    expect(PORTAL_HOSTS({})).toEqual([]);
+    expect(PORTAL_HOSTS({ PORTAL_HOSTS: '  ' })).toEqual([]);
     expect(PORTAL_HOSTS({ PORTAL_HOSTS: 'antrenor, coach' })).toEqual(['antrenor', 'coach']);
+  });
+  it('portals are off unless a host is listed', () => {
+    expect(portalsEnabled({})).toBe(false);
+    expect(portalsEnabled({ PORTAL_HOSTS: '' })).toBe(false);
+    expect(portalsEnabled({ PORTAL_HOSTS: ' , ' })).toBe(false);
+    expect(portalsEnabled({ PORTAL_HOSTS: 'antrenor' })).toBe(true);
   });
 });
 

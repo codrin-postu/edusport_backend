@@ -23,6 +23,7 @@ beforeEach(() => {
   process.env.WEBAUTHN_ORIGINS = ORIGIN;
 });
 afterEach(() => {
+  process.env.PORTAL_SPORTIV_URL = 'https://sportiv.scoaladepatinaj.com';
   delete process.env.WEBAUTHN_RP_ID;
   delete process.env.WEBAUTHN_ORIGINS;
 });
@@ -257,6 +258,7 @@ describe('device and host', () => {
 
 describe('host in mails', () => {
   it('the new-device mail of a sportiv device names the sportiv host, the invite link points at it', async () => {
+    process.env.PORTAL_SPORTIV_URL = 'https://sportiv.codrin.space';
     const s = setup2fa();
     await hold(s, await holder(s));
     await login(s, 'sportiv');
@@ -265,7 +267,7 @@ describe('host in mails', () => {
     expect(mail?.mail).toMatchObject({ host: 'sportiv' });
     const links = { site: 'https://www.codrin.space', program: '', privacy: '', headerImage: null, whatsapp: null, phone: null, email: null, facebook: null };
     expect(renderPortalMail(mail!.mail, links).text).toContain('sportiv.codrin.space');
-    expect(portalHost('https://www.codrin.space', 'sportiv').host).toBe('sportiv.codrin.space');
-    expect(portalHost('https://www.codrin.space').host).toBe('antrenor.codrin.space');
+    expect(portalHost('sportiv', { PORTAL_SPORTIV_URL: 'https://sportiv.codrin.space' }).host).toBe('sportiv.codrin.space');
+    expect(portalHost('antrenor', { PORTAL_ANTRENOR_URL: 'https://antrenor.codrin.space' }).host).toBe('antrenor.codrin.space');
   });
 });

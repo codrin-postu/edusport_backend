@@ -48,12 +48,17 @@ describe('invite mail', () => {
 
 describe('portalHost and inviteLink', () => {
   it('production', () => {
-    expect(portalHost('https://scoaladepatinaj.com')).toEqual({ host: 'antrenor.scoaladepatinaj.com', origin: 'https://antrenor.scoaladepatinaj.com' });
-    expect(portalHost('https://www.scoaladepatinaj.com').host).toBe('antrenor.scoaladepatinaj.com');
+    expect(portalHost('antrenor', { PORTAL_ANTRENOR_URL: 'https://antrenor.scoaladepatinaj.com' })).toEqual({ host: 'antrenor.scoaladepatinaj.com', origin: 'https://antrenor.scoaladepatinaj.com' });
+    expect(portalHost('sportiv', { PORTAL_SPORTIV_URL: 'https://sportiv.example.org/' }).host).toBe('sportiv.example.org');
     expect(inviteLink('antrenor.scoaladepatinaj.com', 's3')).toBe('https://antrenor.scoaladepatinaj.com/invite/s3');
   });
   it('local', () => {
-    expect(portalHost('http://localhost:3010')).toEqual({ host: 'antrenor.localhost:3010', origin: 'http://antrenor.localhost:3010' });
+    expect(portalHost('antrenor', { PORTAL_ANTRENOR_URL: 'http://antrenor.localhost:3010' })).toEqual({ host: 'antrenor.localhost:3010', origin: 'http://antrenor.localhost:3010' });
+  });
+  it('is configured, never derived: a missing or invalid setting throws', () => {
+    expect(() => portalHost('antrenor', {})).toThrow('PORTAL_ANTRENOR_URL is not configured');
+    expect(() => portalHost('sportiv', { PORTAL_SPORTIV_URL: '  ' })).toThrow('PORTAL_SPORTIV_URL is not configured');
+    expect(() => portalHost('sportiv', { PORTAL_SPORTIV_URL: 'not a url' })).toThrow('not a valid URL');
   });
 });
 

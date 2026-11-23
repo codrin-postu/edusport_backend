@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/node';
+import { envNumber } from './utils/env';
 
 /**
  * Backend error tracking, sent to the self-hosted GlitchTip instance (Sentry-API
@@ -86,7 +87,7 @@ export function initSentry(): void {
     Sentry.init({
       dsn: process.env.SENTRY_DSN,
       environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',
-      tracesSampleRate: Number(process.env.SENTRY_TRACES_SAMPLE_RATE ?? 0.1),
+      tracesSampleRate: envNumber(process.env.SENTRY_TRACES_SAMPLE_RATE, 0.1),
       beforeSend: (event) => scrubAuthEvent(event),
       beforeSendTransaction: (event) => scrubAuthEvent(event),
     });

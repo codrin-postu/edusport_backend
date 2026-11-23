@@ -11,6 +11,7 @@ export const PORTAL_ERRORS = {
   passwordWeak: 'Parola este prea ușor de ghicit. Alege alta.',
   currentWrong: 'Parola actuală nu este corectă.',
   emailTaken: 'Adresa are deja un cont.',
+  portalsOff: 'Portalurile nu sunt activate pe acest server (PORTAL_HOSTS). Invitațiile nu se pot trimite.',
   archived: 'Arhivată',
   noAccess: 'Nu mai ai acces la această grupă.',
   invalid: 'Cerere invalidă.',

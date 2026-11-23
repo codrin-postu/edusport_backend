@@ -2,7 +2,7 @@ import type { Core } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
 import { strapiAccessStore } from '../club/portal/access/strapi-store';
 import type { AccessStore } from '../club/portal/access/store';
-import { isBffCall } from '../club/portal/auth/bff';
+import { isBffCall, portalsEnabled } from '../club/portal/auth/bff';
 import { portalSessions } from '../club/portal/sessions';
 import { strapiPortalStore } from '../club/portal/strapi-store';
 import type { AccountRow, PortalStore, UserAuth } from '../club/portal/store';
@@ -27,6 +27,7 @@ function bearer(headers: Headers): string | null {
  * The session id stays in the returned value and is never answered or logged.
  */
 export async function portalCaller(policyContext: PolicyContext, strapi: Core.Strapi): Promise<PortalCaller> {
+  if (!portalsEnabled()) throw new errors.NotFoundError();
   const headers = policyContext.request.header;
   if (!isBffCall(headers, process.env.PORTAL_BFF_SECRET)) throw new errors.ForbiddenError();
   const token = bearer(headers);

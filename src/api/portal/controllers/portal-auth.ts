@@ -1,6 +1,6 @@
 import { refuseWith, respond } from '../../../club/admin-http';
 import { PORTAL_ERRORS } from '../../../club/portal/copy';
-import { isBffCall, portalTwoFactorOn } from '../../../club/portal/auth/bff';
+import { isBffCall, portalsEnabled, portalTwoFactorOn } from '../../../club/portal/auth/bff';
 import { portalAuthContext, type PortalCtx } from '../../../club/portal/auth/context';
 import { loginWithPassword } from '../../../club/portal/auth/login';
 import { googleClient, googleConfig, loginWithGoogle } from '../../../club/portal/auth/google';
@@ -13,11 +13,12 @@ import { portalSecondStep, portalSendCode } from '../../../club/portal/auth/two-
 type Handler = (ctx: PortalCtx) => Promise<void>;
 
 /**
- * Every handler answers 403 before anything else runs when the BFF secret is missing or wrong. An unexpected
+ * Every handler answers 404 when portals are off (PORTAL_HOSTS empty), then 403 before anything else runs when the BFF secret is missing or wrong. An unexpected
  * throw is logged as the handler name and the error name only (a database error can carry limit keys or
  * e-mails in its text) and answered 500 with the shared copy.
  */
 const bffOnly = (tag: string, handler: Handler): Handler => async (ctx) => {
+  if (!portalsEnabled()) return refuseWith(ctx, 404, 'Not Found');
   if (!isBffCall(ctx.request.headers, process.env.PORTAL_BFF_SECRET)) return refuseWith(ctx, 403, 'Forbidden');
   try {
     return await handler(ctx);

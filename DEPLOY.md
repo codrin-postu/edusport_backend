@@ -120,6 +120,20 @@ done
 `APP_KEYS` expects a comma-separated list. Generate two values and join them
 with a comma.
 
+Variables that decide how the server starts (see `.env.example` for every name,
+one comment per group):
+
+| Variable | Rule |
+|---|---|
+| `DATABASE_CLIENT` | Required (`postgres`). Unset or empty: the server refuses to boot. Only `NODE_ENV=development` falls back to sqlite. The image build sets it for `strapi build` only. |
+| `PORTAL_HOSTS` | Portals are opt-in. Empty or unset means no portals: routes answer 404, `portalNotices` and `portalPurge` skip, admin invites are refused ("Portalurile nu sunt activate"), queued invite mails wait. Set `antrenor`, `sportiv` or both, comma separated. |
+| `PORTAL_ANTRENOR_URL`, `PORTAL_SPORTIV_URL` | Origins (scheme and host) used in invite and access mail links. Required when the matching host is in `PORTAL_HOSTS`; a missing one makes that invite fail instead of guessing a host. |
+| `PORTAL_BFF_SECRET` | 32+ characters, equal to the frontend value. |
+
+An empty value (`NAME=`) counts as missing wherever a default exists. See
+`docs/ENV-CHANGES.md` for what changed and what production must set before
+deploying it.
+
 ## 6. PostgreSQL initialisation
 
 The `postgres:16-alpine` service reads `POSTGRES_*` from `.env.production`. On

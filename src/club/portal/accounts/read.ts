@@ -5,7 +5,6 @@ import type { AdminCtx } from '../../admin-http';
 import { guarded, refuse, type AdminResult } from '../../admin-result';
 import { isoDate, todayInBucharest } from '../../birth-date';
 import { captureMessage } from '../../../sentry';
-import { publicSiteUrl } from '../../../email/config';
 import { attemptPortalInvite, cancelQueuedInvites } from '../../../email/strapi-email';
 import { portalMailSender, type SendPortalMail } from '../../../email/portal-direct';
 import type { NewPortalInviteJob } from '../../../email/portal-email';
@@ -60,7 +59,6 @@ export function baseContext(strapi: Core.Strapi, actor: string): AccountContext 
     },
     mail: portalMailSender(strapi),
     hash: (p) => bcrypt.hash(p, 10),
-    siteUrl: publicSiteUrl() ?? '',
     twoFactorOn: (accountId) => twoFactorOn(security, accountId),
     endPendingGoogle: (accountId) => endPendingGoogleLinks(security, accountId, now()),
   };

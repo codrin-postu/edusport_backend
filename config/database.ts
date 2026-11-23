@@ -1,7 +1,8 @@
 import path from 'path';
+import { databaseClient } from '../src/utils/env';
 
 export default ({ env }) => {
-  const client = env('DATABASE_CLIENT', 'sqlite');
+  const client = databaseClient();
 
   const connections = {
     mysql: {

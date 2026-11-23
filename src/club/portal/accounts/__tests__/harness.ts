@@ -42,7 +42,6 @@ export function harness(over: Partial<AccountContext> = {}, mailOk = true): Harn
       return mailOk;
     },
     hash: async (p) => `hash:${p}`,
-    siteUrl: 'https://scoaladepatinaj.com',
     ...over,
   };
   return { fake, access, accessJobs, c, cancelled, jobs, after, mails, logs };

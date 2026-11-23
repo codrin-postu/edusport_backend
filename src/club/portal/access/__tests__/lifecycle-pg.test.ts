@@ -31,7 +31,6 @@ describe.skipIf(!enabled)('access lifecycle inside an outer transaction on Postg
   const context = () => {
     const c = accessContext(strapi, 'admin@example.invalid');
     c.afterCommit = () => undefined;
-    c.siteUrl = 'https://scoaladepatinaj.com';
     return c;
   };
   const invited = async (n: string) => {

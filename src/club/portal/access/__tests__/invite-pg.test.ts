@@ -32,7 +32,6 @@ describe.skipIf(!enabled)('athlete access invite on Postgres', () => {
     const released: string[] = [];
     const c = accessContext(strapi, actor);
     c.afterCommit = (id) => void released.push(id);
-    c.siteUrl = 'https://scoaladepatinaj.com';
     return { c, released };
   };
 

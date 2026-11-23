@@ -24,6 +24,4 @@ export type AccountContext = {
   twoFactorOn?: (accountId: string) => Promise<boolean>;
   /** Ends a first-link Google login that waits for its 2FA code (it was proven for the old e-mail); tests that do not read it leave it out. */
   endPendingGoogle?: (accountId: string) => Promise<void>;
-  /** The public site address the portal host and the invite link derive from; '' when none is configured. */
-  siteUrl: string;
 };

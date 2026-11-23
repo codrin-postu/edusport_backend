@@ -22,10 +22,10 @@ const BUCHAREST = 'Europe/Bucharest';
 const dayPart = new Intl.DateTimeFormat('en-CA', { timeZone: BUCHAREST, year: 'numeric', month: '2-digit', day: '2-digit' });
 const timePart = new Intl.DateTimeFormat('ro-RO', { timeZone: BUCHAREST, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
-/** The portal host a device mail names; none when the site address is not configured. */
-function hostOf(siteUrl: string, site: 'antrenor' | 'sportiv'): string | undefined {
+/** The portal host a device mail names; none when the portal address is not configured. */
+function hostOf(site: 'antrenor' | 'sportiv'): string | undefined {
   try {
-    return portalHost(siteUrl, site).host;
+    return portalHost(site).host;
   } catch {
     return undefined;
   }
@@ -45,7 +45,7 @@ function letter(mail: PortalMail, links: EmailLinks): { subject: string; paragra
   if (mail.kind === 'email-changed') {
     return { subject: EMAIL_CHANGED_MAIL.subject, paragraphs: [[EMAIL_CHANGED_MAIL.line(mail.newEmail)], [EMAIL_CHANGED_MAIL.advice], signature] };
   }
-  const where = mail.host === 'antrenor' || mail.host === 'sportiv' ? hostOf(links.site, mail.host) : undefined;
+  const where = mail.host === 'antrenor' || mail.host === 'sportiv' ? hostOf(mail.host) : undefined;
   const line = MAIL_COPY.newDevice.line(mail.device, longDate(dayPart.format(mail.at)), timePart.format(mail.at), where);
   return { subject: MAIL_COPY.newDevice.subject, paragraphs: [[line], [MAIL_COPY.newDevice.advice], signature] };
 }

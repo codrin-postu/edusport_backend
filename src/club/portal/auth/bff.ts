@@ -38,10 +38,12 @@ export function userAgent(headers: Headers): string | null {
   return v ? v.slice(0, UA_MAX) : null;
 }
 
-export const PORTAL_HOSTS = (env: NodeJS.ProcessEnv = process.env): string[] => {
-  const hosts = (env.PORTAL_HOSTS ?? '').split(',').map((h) => h.trim()).filter(Boolean);
-  return hosts.length ? hosts : ['antrenor'];
-};
+/** The portal host labels (`antrenor`, `sportiv`) this install runs. Unset or empty means none: portals are opt-in. */
+export const PORTAL_HOSTS = (env: NodeJS.ProcessEnv = process.env): string[] =>
+  (env.PORTAL_HOSTS ?? '').split(',').map((h) => h.trim()).filter(Boolean);
+
+/** The one switch for the whole portal side: routes, crons, admin invites and invite mails all follow it. */
+export const portalsEnabled = (env: NodeJS.ProcessEnv = process.env): boolean => PORTAL_HOSTS(env).length > 0;
 
 /**
  * Portal second factor and passkeys (user decision 2026-11-11: coach and student portals sign in with e-mail + password or Google only).
