@@ -20,7 +20,7 @@
 import type { Core } from '@strapi/strapi';
 import { retryRegistrationEmails } from '../src/email/strapi-email';
 import { portalsEnabled } from '../src/club/portal/auth/bff';
-import { purgePortal } from '../src/club/portal/purge';
+import { purgeHousekeeping, purgePortal } from '../src/club/portal/purge';
 import { syncClubWide } from '../src/club/portal/notices/strapi-sync';
 import { strapiNoticeStore } from '../src/club/portal/notices/strapi-store';
 import { todayIso } from '../src/club/groups/http';
@@ -97,10 +97,12 @@ export default {
   },
   portalPurge: {
     task: async ({ strapi }: { strapi: Core.Strapi }) => {
-      if (!portalsEnabled()) return;
       try {
         // One daily pass also clears the 2FA rows (unconfirmed factors, spent challenges and backup codes, revoked admin devices).
-        const n = await purgePortal(strapiPortalStore(strapi), new Date(), strapiSecurityStore(strapi), process.env, strapiNoticeStore(strapi));
+        // With portals off only the portal tables are skipped; the non-portal housekeeping still runs.
+        const n = portalsEnabled()
+          ? await purgePortal(strapiPortalStore(strapi), new Date(), strapiSecurityStore(strapi), process.env, strapiNoticeStore(strapi))
+          : { limits: 0, devices: 0, tokens: 0, sessions: 0, ...(await purgeHousekeeping(new Date(), strapiSecurityStore(strapi), process.env, strapiNoticeStore(strapi))) };
         const cancels = await strapiPresenceStore(strapi).pruneLessonCancels(todayIso());
         strapi.log.info(
           `[portal][cron] purged ${n.limits} limit row(s), ${n.devices} device(s), ${n.tokens} token(s), ${n.sessions} session(s), ` +

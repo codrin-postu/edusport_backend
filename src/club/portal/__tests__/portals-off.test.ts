@@ -11,9 +11,13 @@ import { inviteAccount, resendInvite } from '../accounts/invite';
 import { harness, seedAccount } from '../accounts/__tests__/harness';
 import { PORTAL_ERRORS } from '../copy';
 
-const { notices, purge } = vi.hoisted(() => ({ notices: vi.fn(), purge: vi.fn() }));
+const { notices, purge, housekeeping, lessonCancels } = vi.hoisted(() => ({ notices: vi.fn(), purge: vi.fn(), housekeeping: vi.fn(), lessonCancels: vi.fn() }));
 vi.mock('../notices/strapi-sync', () => ({ syncClubWide: notices }));
-vi.mock('../purge', () => ({ purgePortal: purge }));
+vi.mock('../purge', () => ({ purgePortal: purge, purgeHousekeeping: housekeeping }));
+vi.mock('../../presence/strapi-store', () => ({ strapiPresenceStore: () => ({ pruneLessonCancels: lessonCancels }) }));
+vi.mock('../strapi-store', () => ({ strapiPortalStore: () => ({}) }));
+vi.mock('../notices/strapi-store', () => ({ strapiNoticeStore: () => ({}) }));
+vi.mock('../../security/strapi-store', () => ({ strapiSecurityStore: () => ({}) }));
 
 const strapi = { log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } } as unknown as Core.Strapi;
 
@@ -24,6 +28,8 @@ afterEach(() => {
   process.env.PORTAL_HOSTS = 'antrenor,sportiv';
   notices.mockReset();
   purge.mockReset();
+  housekeeping.mockReset();
+  lessonCancels.mockReset();
 });
 
 const off = (value?: string) => {
@@ -51,9 +57,16 @@ describe.each([['unset', undefined], ['empty', ''], ['blank', ' , ']])('portals 
 
   it('the notice and purge crons return without touching anything', async () => {
     await cronTasks.portalNotices.task({ strapi });
-    await cronTasks.portalPurge.task({ strapi });
     expect(notices).not.toHaveBeenCalled();
+  });
+
+  it('the purge cron skips the portal pruning but still runs the non-portal housekeeping', async () => {
+    housekeeping.mockResolvedValue({ factors: 2, notices: 1 });
+    lessonCancels.mockResolvedValue(3);
+    await cronTasks.portalPurge.task({ strapi });
     expect(purge).not.toHaveBeenCalled();
+    expect(housekeeping).toHaveBeenCalledTimes(1);
+    expect(lessonCancels).toHaveBeenCalledTimes(1);
   });
 
   it('admin invites are refused with a clear message and queue nothing', async () => {
@@ -81,6 +94,14 @@ describe.each([['unset', undefined], ['empty', ''], ['blank', ' , ']])('portals 
 });
 
 describe('portals on', () => {
+  it('the purge cron runs the full purge', async () => {
+    purge.mockResolvedValue({ limits: 0, devices: 0, tokens: 0, sessions: 0 });
+    lessonCancels.mockResolvedValue(0);
+    await cronTasks.portalPurge.task({ strapi });
+    expect(purge).toHaveBeenCalledTimes(1);
+    expect(housekeeping).not.toHaveBeenCalled();
+  });
+
   it('the crons run', async () => {
     notices.mockResolvedValue({ created: 0, delivered: 0, ended: 0 });
     await cronTasks.portalNotices.task({ strapi });

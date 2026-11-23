@@ -24,6 +24,14 @@ export async function purgePortal(store: PortalStore, now: Date, security?: Secu
     devices: await store.purgeDevices(cutoff, new Date(now.getTime() - UNCONFIRMED_DEVICE_MS)),
     tokens: await store.purgeTokens(cutoff),
     sessions: await store.purgeSessions(cutoff),
+    ...(await purgeHousekeeping(now, security, env, notices)),
+  };
+}
+
+/** The part of the daily purge that is not portal-specific (2FA rows including admin devices, old passkeys, notices); it runs even when portals are off. */
+export async function purgeHousekeeping(now: Date, security?: SecurityStore, env: NodeJS.ProcessEnv = process.env, notices?: NoticeStore): Promise<Omit<PurgeCounts, 'limits' | 'devices' | 'tokens' | 'sessions'>> {
+  const cutoff = new Date(now.getTime() - KEEP_DAYS * DAY_MS);
+  return {
     ...(security ? await security.purge(now) : {}),
     ...(security ? await purgeOldKeys(security, now, env) : {}),
     ...(notices ? await purgeNotices(notices, cutoff) : {}),
