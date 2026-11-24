@@ -113,3 +113,9 @@ Per-task review only for high-risk tasks (data loss, locks, undo, security, migr
 ## Models (user, 2026-10-27)
 
 Implementers: Haiku where the plan carries the code or the work is mechanical (renders, docs, single-file fixes); Sonnet for tasks needing judgment; Opus only for specs, plans, high-risk and final reviews. Save tokens: short prompts, batched agents.
+
+## Feature switches (Funcții)
+
+- Where: backend `src/club/features`, route `/club/features`; Super Admin page "Funcții" in the admin panel (Sistem). Five switches: attendance, subscriptions and payments, coach portal, parent portal, journey and badges.
+- Default: no row means every feature is active, so an untouched install behaves as before.
+- Rollout: needs `chore/env-cleanup` deployed first. Backend and frontend `feat/feature-switches` deploy together, plus frontend `feat/ghid` for the guide page "Funcțiile platformei". Restart Strapi so the new content type is registered.
