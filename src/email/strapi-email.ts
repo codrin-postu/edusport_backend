@@ -7,6 +7,7 @@ import type { Core } from '@strapi/strapi';
 import { buildRegistrationDocuments, listRegistrationDocuments } from '../club/documents';
 import { SCHEDULE_HOLD_MS } from '../club/groups/schedule-mail';
 import type { ScheduleChangePayload } from '../club/groups/types';
+import { loadFeatures } from '../club/features/strapi-store';
 import { recordHistory } from '../club/history';
 import { P5_ACTIONS } from '../club/presence/history-lines';
 import type { PaymentEmailPayload } from '../club/presence/types';
@@ -142,6 +143,15 @@ export function jobStore(strapi: Core.Strapi): EmailJobStore {
     },
     countForRecipientSince: (recipient, since) =>
       jobs().count({ filters: { kind: 'registration', recipient: { $eqi: recipient }, createdAt: { $gte: since.toISOString() } } }),
+    cancelQueuedOfKinds: async (kinds, reason) => {
+      const rows = (await strapi.db.query(JOB_UID).findMany({ where: { kind: { $in: kinds }, status: 'queued' }, select: ['id', 'kind', 'payload'] })) as { id: number; kind: string; payload: unknown }[];
+      let count = 0;
+      for (const j of rows) {
+        const payload = j.kind === 'portal-invite' && j.payload && typeof j.payload === 'object' ? { ...(j.payload as object), link: '' } : j.payload;
+        count += (await strapi.db.query(JOB_UID).updateMany({ where: { id: j.id, status: 'queued' }, data: { status: 'cancelled', lastError: reason, payload, updatedAt: new Date() } })).count;
+      }
+      return count;
+    },
   };
 }
 
@@ -180,6 +190,7 @@ export function buildEmailDeps(strapi: Core.Strapi, config: EmailConfig = readEm
     },
     now: () => new Date(),
     onSent: (job) => onPaymentSent(strapi, job),
+    featureOn: async (feature) => (await loadFeatures(strapi))[feature],
   };
 }
 

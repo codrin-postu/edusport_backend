@@ -8,6 +8,7 @@ import type { ScheduleChangePayload } from '../club/groups/types';
 import type { PaymentEmailPayload } from '../club/presence/types';
 import type { Attachment, OutgoingEmail, SendResult } from './brevo';
 import { blockedReason, deliveryTarget, type BlockedReason, type EmailConfig } from './config';
+import { JOB_FEATURE, type FeatureKey } from '../club/features/features';
 import { portalsEnabled } from '../club/portal/auth/bff';
 import { isDue, nextJobState, type AttemptOutcome, type EmailJobStatus, type JobState } from './job-state';
 import { registrationSubject, renderRegistrationEmail, type EmailLinks } from './registration-template';
@@ -62,6 +63,8 @@ export interface EmailJobStore {
   findQueued(limit: number): Promise<EmailJobRow[]>;
   findLatest(registrationDocumentId: string): Promise<EmailJobRow | null>;
   countForRecipientSince(recipient: string, since: Date): Promise<number>;
+  /** One conditional write queued -> cancelled (lastError `featureOff`) for every still-queued job of these kinds; the count. */
+  cancelQueuedOfKinds(kinds: string[], reason: 'featureOff'): Promise<number>;
 }
 
 export interface EmailDeps {
@@ -80,6 +83,8 @@ export interface EmailDeps {
   now(): Date;
   /** Called once after a job is written `sent`; a throw is logged and never fails the attempt. */
   onSent?(job: EmailJobRow): Promise<void>;
+  /** Whether a feature switch is on; the jobs of a switched-off feature are cancelled, never sent. Absent: all on. */
+  featureOn?: (feature: FeatureKey) => Promise<boolean>;
 }
 
 export type RegistrationEmailStatus = {
@@ -209,6 +214,13 @@ async function notifySent(deps: EmailDeps, job: EmailJobRow): Promise<void> {
   }
 }
 
+/** A queued job of a switched-off feature: claimed, then written `cancelled` (so a concurrent sender or undo still wins or loses cleanly); nothing is composed or sent. */
+async function cancelForFeature(deps: EmailDeps, job: EmailJobRow, feature: FeatureKey): Promise<EmailJobRow> {
+  if (!(await deps.jobs.claim(job.documentId))) return (deps.jobs.findById ? await deps.jobs.findById(job.documentId) : null) ?? { ...job, status: 'cancelled' };
+  deps.log('info', `[email-job] job ${job.documentId} cancelled: ${feature} is off`);
+  return finishJob(deps, job, { status: 'cancelled', attempts: job.attempts, lastError: 'featureOff', sentAt: null });
+}
+
 /**
  * One delivery attempt for a queued job. Skipped (job unchanged) while it is held (`notBefore`) or while e-mail
  * cannot be sent here. The job is claimed (queued -> sending, one conditional write) before anything is composed or
@@ -221,6 +233,8 @@ export async function attemptJob(deps: EmailDeps, job: EmailJobRow): Promise<Ema
     deps.log('info', `[email-job] job ${job.documentId} stays queued: portals are off (PORTAL_HOSTS)`);
     return job;
   }
+  const feature = job.kind && job.kind in JOB_FEATURE ? JOB_FEATURE[job.kind as keyof typeof JOB_FEATURE] : null;
+  if (feature && deps.featureOn && !(await deps.featureOn(feature))) return cancelForFeature(deps, job, feature);
   const composer = composerFor(deps, job);
   const target = composer ? deliveryTarget(deps.config, job.recipient) : null;
   if (target && target.ok === false) {

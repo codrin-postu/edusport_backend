@@ -88,6 +88,11 @@ function fakeDeps(options: Options = {}) {
         for (const j of stuck) save({ ...j, status: 'failed', lastError: error });
         return stuck.length;
       },
+      cancelQueuedOfKinds: async (kinds: string[]) => {
+        const rows = [...jobs.values()].filter((j) => j.status === 'queued' && kinds.includes(j.kind ?? 'registration'));
+        for (const j of rows) save({ ...j, status: 'cancelled', lastError: 'featureOff' });
+        return rows.length;
+      },
       findQueued: async () => [...jobs.values()].filter((j) => j.status === 'queued'),
       findLatest: async (regId: string) => [...jobs.values()].filter((j) => j.registrationDocumentId === regId).pop() ?? null,
       countForRecipientSince: async (recipient: string, since: Date) =>
