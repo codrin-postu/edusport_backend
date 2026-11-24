@@ -3,6 +3,7 @@ import { tabletQuery } from '../club/ui-breakpoints';
 import { createPortal } from 'react-dom';
 import { ensureAdminUi } from './ui/styles';
 import { useAreas } from './lib/useAreas';
+import { useFeatures } from './lib/useFeatures';
 import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO } from './dashboard/menu';
 import EdusportLogo from './edusport-logo.svg';
 import { eduLinkHref } from '../club/admin-href';
@@ -157,6 +158,7 @@ export function MobileNav() {
   const [open, setOpen] = React.useState(false);
   const [groups, setGroups] = React.useState<NavGroup[]>([]);
   const { ready, has } = useAreas();
+  const features = useFeatures();
 
   // Tokens + theme sync (idempotent; the bootstrap already ran it).
   React.useInsertionEffect(() => ensureAdminUi(), []);
@@ -168,7 +170,7 @@ export function MobileNav() {
     const next: NavGroup[] = [];
     const covered = new Set<string>();
     for (const l of EDUSPORT_LINKS) covered.add(eduLinkHref(l.to));
-    const links = visibleLinks(EDUSPORT_LINKS, has);
+    const links = visibleLinks(EDUSPORT_LINKS, has, features.on);
     for (const group of GROUP_ORDER) {
       const items = links.filter((l) => l.group === group).map((l) => ({ label: l.label, href: eduLinkHref(l.to) }));
       if (items.length > 0) next.push({ title: GROUP_LABEL[group], items });
@@ -184,7 +186,7 @@ export function MobileNav() {
     });
 
     setGroups(next);
-  }, [open, ready, has]);
+  }, [open, ready, has, features.on]);
 
   React.useEffect(() => {
     if (!open) return;

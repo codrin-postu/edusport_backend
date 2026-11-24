@@ -98,3 +98,11 @@ export function hostFeature(host: string): 'portalAntrenori' | 'portalParinti' |
 export type PortalFeatures = { prezenta: boolean; abonamente: boolean; parcurs: boolean };
 
 export const portalFeatures = (f: Features): PortalFeatures => ({ prezenta: f.prezenta, abonamente: f.abonamente, parcurs: f.parcurs });
+
+/** The answer of `GET /club/features` (`data`): `features` is the effective set the admin gates on. */
+export type FeaturesResponse = {
+  saved: Features;
+  features: Features;
+  installed: Installed;
+  lastChange: { by: string; at: string } | null;
+};

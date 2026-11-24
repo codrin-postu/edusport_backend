@@ -15,6 +15,7 @@
  */
 
 import type { AdminArea } from '../../club/admin-area';
+import type { FeatureKey } from '../../club/features/features';
 import { PRETURI_PATH } from '../../club/preturi-routes';
 
 // ---- route constants --------------------------------------------------------
@@ -75,6 +76,8 @@ type PageModule = { default: unknown };
 export interface CustomPageRoute {
   /** Role area of the page: the route is gated on it (menu.tsx) and the server routes it reads carry the same area. */
   area: AdminArea;
+  /** Club switch the page needs; the route shows NoAccess while it is off. */
+  feature?: FeatureKey;
   /** Admin route, e.g. PAGINA_ECHIPA_TO. */
   to: string;
   /** Content type the page edits. */

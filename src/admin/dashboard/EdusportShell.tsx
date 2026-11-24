@@ -5,6 +5,7 @@ import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, U
 import type { Group } from './menu';
 import { scaleVars } from '../ui/tokens';
 import { useAreas } from '../lib/useAreas';
+import { useFeatures } from '../lib/useFeatures';
 
 /** --palette-* and --ui-* declarations for the shell's own roots. */
 const SHELL_VARS = Object.entries(scaleVars())
@@ -367,7 +368,8 @@ export function tagShellParent(): void {
 
 function EdusportShell() {
   const { has } = useAreas();
-  const links = visibleLinks(EDUSPORT_LINKS, has);
+  const features = useFeatures();
+  const links = visibleLinks(EDUSPORT_LINKS, has, features.on);
   const [mode, setMode] = React.useState<Mode>(getStoredMode);
   const [path, setPath] = React.useState<string>(() => window.location.pathname);
   const [openGroups, setOpenGroups] = React.useState<OpenState>(() => getInitialOpen(window.location.pathname));

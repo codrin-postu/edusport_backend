@@ -16,6 +16,8 @@ import { SECURITY_COPY } from '../../club/security/copy';
 import { OLD_EDITOR_PATH, SPORTIVI_PATH } from '../../club/sportivi/routes';
 import type { AdminArea } from '../../club/admin-area';
 import { gated, gatedLazy } from '../lib/AreaGate';
+import type { FeatureKey } from '../../club/features/features';
+import { tablesVisible, visibleLinks, type GatedLink } from '../../club/features/visible';
 import { GRUPE_PATH } from '../../club/grupe/routes';
 import { PREZENTA_PATH, ABONAMENTE_PATH, PLATI_PATH, DE_INCASAT_PATH } from '../../club/prezenta/routes';
 
@@ -52,7 +54,11 @@ export interface EdusportLink {
   featured?: boolean; // shown in the dashboard "Scurtături" grid
   pinned?: boolean;   // shown at the top of the sidebar, next to Acasă
   area: AdminArea;    // role area: the sidebar and the phone menu hide the entry outside it, and the page is gated on it
+  feature?: FeatureKey; // club switch: the entry is hidden while it is off
+  show?: GatedLink['show']; // extra rule over the switches (Tabele)
 }
+
+export { visibleLinks };
 
 export const GROUP_LABEL: Record<Group, string> = {
   forms: 'Formulare',
@@ -151,9 +157,9 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   // Club și școală
   { to: GRUPE_TO, label: 'Grupe', icon: GridFour, group: 'club', featured: true, area: 'club' },
   { to: SPORTIVI_TO, label: 'Sportivi', icon: User, group: 'club', featured: true, area: 'club' },
-  { to: PREZENTA_PATH, label: 'Prezență', icon: Clock, group: 'club', area: 'club' },
-  { to: CONTABILITATE_PATH, label: 'Contabilitate', icon: ChartPie, group: 'club', area: 'club' },
-  { to: TABELE_PATH, label: 'Tabele', icon: GridFour, group: 'club', area: TABLES_AREA },
+  { to: PREZENTA_PATH, label: 'Prezență', icon: Clock, group: 'club', area: 'club', feature: 'prezenta' },
+  { to: CONTABILITATE_PATH, label: 'Contabilitate', icon: ChartPie, group: 'club', area: 'club', feature: 'abonamente' },
+  { to: TABELE_PATH, label: 'Tabele', icon: GridFour, group: 'club', area: TABLES_AREA, show: tablesVisible },
   { to: PRETURI_TO, label: 'Prețuri', icon: Cursor, group: 'club', featured: true, area: 'website' },
 
   // Sportivi și echipă
@@ -198,11 +204,6 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: SECURITATE_TO, label: SECURITY_COPY.page.title, icon: Lock, group: 'system', area: 'any' },
 ];
 
-/** The links a caller's areas allow; the sidebar and the phone menu draw only these. */
-export function visibleLinks(links: EdusportLink[], has: (a: AdminArea) => boolean): EdusportLink[] {
-  return links.filter((l) => has(l.area));
-}
-
 export function registerEdusportMenu(app: StrapiApp) {
   // Route only, no menu link (see UI_REFERENCE_TO).
   app.router.addRoute({
@@ -216,7 +217,7 @@ export function registerEdusportMenu(app: StrapiApp) {
   for (const page of CUSTOM_PAGES) {
     app.router.addRoute({
       path: `${page.to.slice(1)}/*`,
-      lazy: gatedLazy(page.area, page.load),
+      lazy: gatedLazy(page.area, page.load, page.feature),
     });
   }
 
@@ -307,7 +308,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: PREZENTA_PATH,
     icon: Clock,
     intlLabel: { id: 'edusport.menu.prezenta', defaultMessage: 'Prezență' },
-    Component: gated('club', () => import('./PrezentaPage')),
+    Component: gated('club', () => import('./PrezentaPage'), 'prezenta'),
     permissions: [],
     position: 7,
   });
@@ -316,7 +317,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: CONTABILITATE_PATH,
     icon: ChartPie,
     intlLabel: { id: 'edusport.menu.contabilitate', defaultMessage: 'Contabilitate' },
-    Component: gated('club', () => import('./ContabilitatePage')),
+    Component: gated('club', () => import('./ContabilitatePage'), 'abonamente'),
     permissions: [],
     position: 7,
   });
@@ -335,7 +336,7 @@ export function registerEdusportMenu(app: StrapiApp) {
   for (const path of [ABONAMENTE_PATH, PLATI_PATH, DE_INCASAT_PATH, BANI_PATH]) {
     app.router.addRoute({
       path: `${path.slice(1)}/*`,
-      lazy: gatedLazy('club', () => import('./RedirectPage')),
+      lazy: gatedLazy('club', () => import('./RedirectPage'), 'abonamente'),
     });
   }
 

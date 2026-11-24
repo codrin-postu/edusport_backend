@@ -18,7 +18,7 @@ const hasOf = (codes: string[]) => {
   const areas = areasFor(codes);
   return (a: AdminArea) => areas.has(a);
 };
-const labels = (codes: string[]) => visibleLinks(EDUSPORT_LINKS, hasOf(codes)).map((l) => l.label);
+const labels = (codes: string[]) => visibleLinks(EDUSPORT_LINKS, hasOf(codes), () => true).map((l) => l.label);
 
 const SITE_EDITOR_LABELS = [
   'Membri echipă', 'Competiții', 'Discipline',
@@ -44,7 +44,7 @@ describe('menu entries per role', () => {
     expect(area('Sezoane')).toBe('settings');
   });
   it('before the read answers only area any shows', () => {
-    expect(visibleLinks(EDUSPORT_LINKS, (a) => a === 'any').map((l) => l.label)).toEqual(['Securitate']);
+    expect(visibleLinks(EDUSPORT_LINKS, (a) => a === 'any', () => true).map((l) => l.label)).toEqual(['Securitate']);
   });
 });
 
@@ -65,16 +65,17 @@ describe('areas on every entry and gate', () => {
     expect(src).not.toContain('ignores it until 6b');
   });
   it('the sidebar and the phone menu filter through visibleLinks', () => {
-    expect(read('dashboard/EdusportShell.tsx')).toContain('visibleLinks(EDUSPORT_LINKS, has)');
-    expect(read('MobileNav.tsx')).toContain('visibleLinks(EDUSPORT_LINKS, has)');
+    expect(read('dashboard/EdusportShell.tsx')).toContain('visibleLinks(EDUSPORT_LINKS, has, features.on)');
+    expect(read('MobileNav.tsx')).toContain('visibleLinks(EDUSPORT_LINKS, has, features.on)');
   });
   it('a page opened by URL shows NoAccess when not allowed and nothing before ready', () => {
     const gate = read('lib/AreaGate.tsx');
     const body = gate.slice(gate.indexOf('export function AreaGate'), gate.indexOf('export function gated'));
-    expect(body.indexOf('if (!ready) return null')).toBeGreaterThan(-1);
-    expect(body.indexOf('if (!ready)')).toBeLessThan(body.indexOf('<NoAccess />'));
+    expect(body.indexOf('if (!ready || !features.ready) return null')).toBeGreaterThan(-1);
+    expect(body.indexOf('if (!ready ||')).toBeLessThan(body.indexOf('<NoAccess />'));
     expect(body.indexOf('<NoAccess />')).toBeLessThan(body.indexOf('{children}'));
-    expect(body).toContain('!has(area)');
+    expect(body).toContain('has(area)');
+    expect(body).toContain('!features.ready');
     expect(read('ui/NoAccess.tsx')).toContain('SECURITY_ERRORS.noAccess');
   });
   it('useAreas shares one /admin/users/me read and drops a failed one', () => {
