@@ -36,7 +36,7 @@ const FunctiiPage: React.FC = () => {
         {!ready && <Loading />}
         {ready && !data && (
           <div className="ui-body">
-            <Notice tone="danger">Nu am putut încărca datele. Reîncarcă pagina.</Notice>
+            <Notice tone="danger">Nu am putut încărca datele.</Notice>
           </div>
         )}
         {data && (
