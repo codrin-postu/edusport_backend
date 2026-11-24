@@ -1,5 +1,33 @@
 import type { FeatureKey } from './features';
 
+const FEATURES_ITEMS = {
+  prezenta: {
+    name: 'Prezență',
+    title: 'Prezența',
+    text: 'Antrenorii și administratorii completează prezența la fiecare ședință. Din prezență se calculează ședințele rămase din abonament.',
+  },
+  abonamente: {
+    name: 'Abonamente și plăți',
+    title: 'Abonamente și plăți',
+    text: 'Evidența abonamentelor, a plăților și a restanțelor, în Contabilitate. Părinții primesc pe e-mail confirmarea fiecărei plăți.',
+  },
+  portalAntrenori: {
+    name: 'Portalul antrenorilor',
+    title: 'Portalul antrenorilor',
+    text: 'Antrenorii au acces la un portal propriu, unde își văd programul, grupele și sportivii și completează prezența de pe telefon.',
+  },
+  portalParinti: {
+    name: 'Portalul părinților',
+    title: 'Portalul părinților',
+    text: 'Părinții și sportivii majori au acces la un portal unde urmăresc calendarul, prezența, plățile și rezultatele.',
+  },
+  parcurs: {
+    name: 'Parcurs și insigne',
+    title: 'Parcurs și insigne',
+    text: 'Sportivii primesc insigne pentru antrenamente, concursuri și vechime, iar antrenorii le pot acorda și insigne proprii. Insignele apar în fișa sportivului și în portaluri.',
+  },
+} satisfies Record<FeatureKey, { name: string; title: string; text: string }>;
+
 export const FEATURES_COPY = {
   page: 'Funcții',
   card: 'Funcțiile platformei',
@@ -8,28 +36,7 @@ export const FEATURES_COPY = {
   footer: 'Mereu active: site-ul, înscrierile, sportivii, grupele și calendarul.',
   needsPrezenta: 'Se poate activa doar împreună cu Prezența.',
   notInstalled: 'Portalul nu este instalat pe acest server.',
-  items: {
-    prezenta: {
-      name: 'Prezență',
-      text: 'Antrenorii și administratorii completează prezența la fiecare ședință. Din prezență se calculează ședințele rămase din abonament.',
-    },
-    abonamente: {
-      name: 'Abonamente și plăți',
-      text: 'Evidența abonamentelor, a plăților și a restanțelor, în Contabilitate. Părinții primesc pe e-mail confirmarea fiecărei plăți.',
-    },
-    portalAntrenori: {
-      name: 'Portalul antrenorilor',
-      text: 'Antrenorii au acces la un portal propriu, unde își văd programul, grupele și sportivii și completează prezența de pe telefon.',
-    },
-    portalParinti: {
-      name: 'Portalul părinților',
-      text: 'Părinții și sportivii majori au acces la un portal unde urmăresc calendarul, prezența, plățile și rezultatele.',
-    },
-    parcurs: {
-      name: 'Parcurs și insigne',
-      text: 'Sportivii primesc insigne pentru antrenamente, concursuri și vechime, iar antrenorii le pot acorda și insigne proprii. Insignele apar în fișa sportivului și în portaluri.',
-    },
-  } satisfies Record<FeatureKey, { name: string; text: string }>,
+  items: FEATURES_ITEMS,
   coachTextWithoutPrezenta:
     'Antrenorii au acces la un portal propriu, unde își văd programul, grupele și sportivii.',
   warning: {
@@ -44,8 +51,9 @@ export const FEATURES_COPY = {
     parcurs:
       'Parcursul și insignele nu mai apar în fișa sportivilor și în portaluri. Insignele acordate până acum se păstrează și redevin vizibile când activezi din nou funcția.',
   } satisfies Record<FeatureKey, string>,
-  warningTitle: (name: string): string => `Dezactivezi ${name}?`,
-  alsoOffLine: 'Odată cu Prezența se dezactivează și:',
+  warningTitle: (key: FeatureKey): string =>
+    `Dezactivezi ${FEATURES_ITEMS[key].title}?`,
+  alsoOffLine: `Odată cu ${FEATURES_ITEMS.prezenta.title} se dezactivează și:`,
   cancel: 'Anulează',
   confirm: 'Dezactivează',
   lastChange: (who: string, date: string): string =>

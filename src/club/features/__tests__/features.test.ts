@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { FEATURES_COPY } from '../copy';
 import {
   applyChange,
   installedPortals,
@@ -70,5 +71,13 @@ describe('installedPortals', () => {
       portalAntrenori: true,
       portalParinti: false,
     });
+  });
+});
+
+describe('warning copy', () => {
+  it('articulates only the Prezență title', () => {
+    expect(FEATURES_COPY.warningTitle('prezenta')).toBe('Dezactivezi Prezența?');
+    expect(FEATURES_COPY.warningTitle('abonamente')).toBe('Dezactivezi Abonamente și plăți?');
+    expect(FEATURES_COPY.alsoOffLine).toBe('Odată cu Prezența se dezactivează și:');
   });
 });
