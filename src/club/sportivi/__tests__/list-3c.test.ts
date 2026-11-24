@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AthleteListPage } from '../../athletes/api-types';
-import { INACTIVE, INITIAL_LIST_STATE, filterSections, inactiveShown, listQueryString, showInactive, withSection } from '../list-view';
+import { withoutOffFilters, INACTIVE, INITIAL_LIST_STATE, filterSections, inactiveShown, listQueryString, showInactive, withSection } from '../list-view';
 import type { BulkAnonymizeResult } from '../../personal-data/anonymize-plan';
 import {
   addResults, allSelected, anonymizeInTurns, bulkToast, chunks, runToast, selectionOn, toggled, toggledAll, withoutIds,
@@ -24,6 +24,12 @@ describe('list filters (3C spec 5)', () => {
     const s = withSection(INITIAL_LIST_STATE, 'abonament', ['activ']);
     expect(new URLSearchParams(listQueryString(s, 50, off)).get('abonament')).toBeNull();
     expect(new URLSearchParams(listQueryString(s, 50)).get('abonament')).toBe('activ');
+  });
+
+  it('clears a remembered Abonament choice only while abonamente is off', () => {
+    const s = withSection(INITIAL_LIST_STATE, 'abonament', ['activ']);
+    expect(withoutOffFilters(s, (k) => k !== 'abonamente').filters.abonament).toEqual([]);
+    expect(withoutOffFilters(s, () => true)).toBe(s);
   });
 
   it('asks the server for inactive=true and status=anonimizat', () => {

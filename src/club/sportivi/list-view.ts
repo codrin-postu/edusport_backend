@@ -128,6 +128,10 @@ export const seasonValue = (s: ListState, p: AthleteListPage | null): string => 
 /** The Abonament column and filter exist only while subscriptions are on. */
 export const abonamenteOn = (on: (k: FeatureKey) => boolean): boolean => on('abonamente');
 
+/** The state without the filters of a switched-off feature (a remembered Abonament choice), so it is never sent or shown. */
+export const withoutOffFilters = (s: ListState, on: (k: FeatureKey) => boolean): ListState =>
+  abonamenteOn(on) || s.filters.abonament.length === 0 ? s : { ...s, filters: { ...s.filters, abonament: [] } };
+
 export function filterSections(s: ListState, p: AthleteListPage | null, on: (k: FeatureKey) => boolean = () => true): SectionModel[] {
   const f = s.filters;
   // "Fără secțiune" is the server's own option (NO_SECTION), not appended here.

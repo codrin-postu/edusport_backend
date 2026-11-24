@@ -1,7 +1,8 @@
 import * as React from 'react';
 import type { AthleteListPage, AthleteListRow } from '../../../club/athletes/api-types';
 import { listRequest, type LoadedPages } from '../../../club/sportivi/list-pages';
-import { INITIAL_LIST_STATE, listQueryString, withPage, type ListState } from '../../../club/sportivi/list-view';
+import { INITIAL_LIST_STATE, listQueryString, withPage, withoutOffFilters, type ListState } from '../../../club/sportivi/list-view';
+import { useFeatures } from '../../lib/useFeatures';
 import type { SportiviApi } from './api';
 
 /** Kept while the admin moves between the list and a record, so "Sportivi" brings the same view back. */
@@ -65,7 +66,9 @@ function useListLoad(api: SportiviApi, wanted: ListState, phone: boolean, restar
 }
 
 export function useAthleteList(api: SportiviApi, phone: boolean): AthleteList {
-  const [state, setRaw] = React.useState<ListState>(remembered);
+  const [raw, setRaw] = React.useState<ListState>(remembered);
+  const { on } = useFeatures();
+  const state = withoutOffFilters(raw, on);
   const q = useDebounced(state.q, 300);
   const setState = React.useCallback((next: ListState) => {
     remembered = next;
