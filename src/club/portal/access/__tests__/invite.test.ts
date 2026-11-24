@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LINKS } from '../../../../email/__tests__/helpers';
 import { renderPortalAccess } from '../../../../email/portal-access-email';
 import { renderPortalInvite, type PortalInvitePayload } from '../../../../email/portal-email';
-import { portalHistoryText } from '../../copy';
+import { PORTAL_ERRORS, portalHistoryText } from '../../copy';
 import { harness, NOW, seedAccount, type Harness } from '../../accounts/__tests__/harness';
 import { historyTexts } from '../../../history-text';
 import { SUBJECT } from '../../../subjects';
@@ -24,6 +24,18 @@ function withAthletes(h: Harness, ...athletes: AthleteForAccess[]): Harness {
 }
 
 const athleteLines = (h: Harness, id = 'ath1') => h.access.state.history.filter((l) => l.athleteId === id).map((l) => historyTexts(l.action, l.changes, SUBJECT.athlete)[0]);
+
+describe('athlete access with the parent portal switched off', () => {
+  it('invite and resend answer 409 portalsOff and write nothing', async () => {
+    const h = withAthletes(harness(), ANA);
+    h.c.portalOn = async (host) => host !== 'sportiv';
+    const off = { ok: false, status: 409, error: PORTAL_ERRORS.portalsOff };
+    expect(await inviteAccess(h.c, 'ath1')).toEqual(off);
+    expect(await resendAccess(h.c, 'ath1')).toEqual(off);
+    expect(h.jobs).toHaveLength(0);
+    expect(await h.access.store.liveByAthlete('ath1')).toBeNull();
+  });
+});
 
 describe('inviteAccess case 1: no account for the e-mail', () => {
   it('creates user and invited account named after the contact, one parent invite on the sportiv host, one access row', async () => {

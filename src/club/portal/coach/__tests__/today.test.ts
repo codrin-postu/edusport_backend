@@ -46,6 +46,22 @@ describe('readToday', () => {
     expect((await read(other)).groups.some((g) => g.groupId === 'g-club-b')).toBe(false);
   });
 
+  it('prezenta off keeps the classes and lessons but drops the attendance state', async () => {
+    const c = coachCtx('tm-andreea');
+    c.fake.state.sessions.push(standInSession, sessionRow({
+      id: 's-old', groupId: 'g-club-a', date: '2026-11-13', startTime: '17:00', eventId: 'ev-g-club-a', occurrenceKey: 'ev-g-club-a|2026-11-13|17:00', coachIds: ['tm-andreea'],
+    }));
+    const on = await read(c);
+    expect(on.todo.length).toBeGreaterThan(0);
+    const off = await read({ ...c, coach: { ...c.coach, features: { ...c.coach.features, prezenta: false } } });
+    expect(off.groups.map((g) => g.groupId)).toEqual(on.groups.map((g) => g.groupId));
+    expect(off.groups.length).toBeGreaterThan(0);
+    for (const row of [...off.groups, ...off.lessons]) expect('done' in row).toBe(false);
+    expect(off.todo).toEqual([]);
+    expect(off.week.missing).toBe(0);
+    expect(off.week.groupsLeft).toBe(on.week.groupsLeft);
+  });
+
   it('todo holds her past unsaved classes only, newest first', async () => {
     const c = coachCtx('tm-andreea');
     c.fake.state.sessions.push(sessionRow({

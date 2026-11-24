@@ -18,10 +18,12 @@ const featuresOf = (routes: Route[]): string[] =>
   routes.flatMap((r) => r.config.policies.flatMap((p) => (typeof p !== 'string' && p.name === 'global::portal-feature' ? [`${r.method} ${r.path} ${p.config?.feature}`] : []))).sort();
 
 describe('which portal routes name a feature', () => {
+  afterEach(() => { (globalThis as { __features?: unknown }).__features = undefined; });
+
   it('names exactly the coach routes of Prezență and Parcurs', () => {
     const base = '/portal/coach';
     const expected = [
-      ['GET', '/session', 'prezenta'], ['POST', '/session/check', 'prezenta'], ['PUT', '/session', 'prezenta'],
+      ['GET', '/groups/:documentId/saved-days', 'prezenta'], ['GET', '/history', 'prezenta'], ['GET', '/session', 'prezenta'], ['POST', '/session/check', 'prezenta'], ['PUT', '/session', 'prezenta'],
       ['POST', '/lessons', 'prezenta'], ['PUT', '/lessons/:documentId/plan', 'prezenta'], ['GET', '/lessons/:documentId', 'prezenta'],
       ['PUT', '/lessons/:documentId', 'prezenta'], ['POST', '/lessons/:documentId/cancel', 'prezenta'], ['DELETE', '/lessons/:documentId', 'prezenta'],
       ['GET', '/athletes/:athleteId/parcurs', 'parcurs'], ['POST', '/athletes/:athleteId/awards', 'parcurs'], ['DELETE', '/athletes/:athleteId/awards/:awardId', 'parcurs'],
@@ -47,6 +49,7 @@ describe('which portal routes name a feature', () => {
 });
 
 describe('global::portal-feature', () => {
+  afterEach(() => { (globalThis as { __features?: unknown }).__features = undefined; });
   const strapi = {} as unknown as Core.Strapi;
   const run = (feature: FeatureKey, state: Record<string, unknown>) => portalFeature({ request: { header: {} }, state }, { feature }, { strapi });
 

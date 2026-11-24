@@ -53,6 +53,36 @@ async function setup() {
   return { c, fake, store, access, mails, accountId, invite, accept, advance: (ms: number) => { clock.t = new Date(clock.t.getTime() + ms); } };
 }
 
+describe('a portal switched off', () => {
+  it('invite read answers 404 for an invite of that host and still reads one of the other host', async () => {
+    const s = await setup();
+    s.c.portalOn = async (host) => host !== 'antrenor';
+    expect(await readInvite(s.c, 's1')).toEqual({ ok: false, status: 404, error: 'Not Found' });
+    s.c.portalOn = async () => true;
+    expect(await readInvite(s.c, 's1')).toMatchObject({ ok: true, data: { state: 'valid' } });
+  });
+
+  it('login, reset and invite accept answer 404 on the controller for a switched-off host, before anything is read', async () => {
+    process.env.PORTAL_BFF_SECRET = 's'.repeat(40);
+    (globalThis as { strapi?: unknown }).strapi = { log: { error: () => undefined } };
+    (globalThis as { __features?: unknown }).__features = { portalParinti: false };
+    try {
+      const run = async (name: 'login' | 'google' | 'resetRequest' | 'resetConfirm' | 'inviteAccept', body: Record<string, unknown>) => {
+        const ctx = { request: { headers: { 'x-portal-secret': 's'.repeat(40) }, body }, params: {}, status: 0, body: null as unknown };
+        await (controller as Record<string, (c: unknown) => Promise<void>>)[name](ctx);
+        return ctx.status;
+      };
+      expect(await run('login', { host: 'sportiv', email: 'a@b.ro', password: 'x' })).toBe(404);
+      expect(await run('google', { host: 'sportiv' })).toBe(404);
+      expect(await run('resetRequest', { host: 'sportiv', email: 'a@b.ro' })).toBe(404);
+      expect(await run('resetConfirm', { host: 'sportiv' })).toBe(404);
+      expect(await run('inviteAccept', { host: 'sportiv', secret: 's', password: 'x' })).toBe(404);
+    } finally {
+      (globalThis as { __features?: unknown }).__features = undefined;
+    }
+  });
+});
+
 describe('readInvite', () => {
   it('a valid secret shows the e-mail', async () => {
     const s = await setup();

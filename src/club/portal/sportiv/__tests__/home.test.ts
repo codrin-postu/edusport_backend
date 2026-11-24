@@ -115,6 +115,19 @@ describe('readHome', () => {
     expect((await readHome(c, A_ANA)).abonament).toMatchObject({ next: 8, slots: 8 });
   });
 
+  it('prezenta off leaves presences out, abonamente off nulls the abonament', async () => {
+    const c = sportivCtx('parinte1@example.invalid');
+    withPresences(c);
+    expect(await readHome(c, A_ANA)).toMatchObject({ presences: { total: 26 }, abonament: expect.anything() });
+    const features = (f: Partial<typeof c.holder.features>) => ({ ...c, holder: { ...c.holder, features: { ...c.holder.features, ...f } } });
+    const noPresence = await readHome(features({ prezenta: false, abonamente: false }), A_ANA);
+    expect('presences' in noPresence).toBe(false);
+    expect(noPresence.abonament).toBeNull();
+    const noMoney = await readHome(features({ abonamente: false }), A_ANA);
+    expect(noMoney.presences?.total).toBe(26);
+    expect(noMoney.abonament).toBeNull();
+  });
+
   it('no abonament for a child without one or a cancelled one', async () => {
     const c = sportivCtx('parinte1@example.invalid');
     expect((await readHome(c, A_MATEI)).abonament).toBeNull();

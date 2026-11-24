@@ -43,6 +43,14 @@ describe('refreshSession', () => {
     expect(ipHits()).toEqual(before);
   });
 
+  it('answers 404 and ends the session when the portal of its host is switched off', async () => {
+    const s = await setup();
+    s.c.portalOn = async (host) => host !== 'antrenor';
+    expect(await refreshSession(s.c, { refreshToken: s.session.refreshToken })).toEqual({ ok: false, status: 404, error: 'Not Found' });
+    s.c.portalOn = async () => true;
+    expect(await refreshSession(s.c, { refreshToken: s.session.refreshToken })).toEqual(DENIED);
+  });
+
   it('a reused refresh token answers 401', async () => {
     const s = await setup();
     const used = await refreshSession(s.c, { refreshToken: s.session.refreshToken });
