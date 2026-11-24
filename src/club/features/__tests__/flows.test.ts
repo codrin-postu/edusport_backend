@@ -20,17 +20,16 @@ async function run(abonamente: boolean) {
   let out!: CarryOutcome;
   await f.store.transaction(async () => {
     await f.store.lockAthlete('a1');
-    out = await presenceCarry(f.store, { abonamente }).carry(move);
+    out = await presenceCarry(f.store).carry(move);
   });
   return { f, out };
 }
 
 describe('group move with the abonamente switch', () => {
-  it('off: no abonament is carried or locked, the move outcome is empty', async () => {
+  it('off: the move still carries the existing abonament (update, not creation)', async () => {
     const { f, out } = await run(false);
-    expect(out).toEqual({ lines: [], steps: [], carried: 0 });
-    expect(f.state.subscriptions[0].validIn).toEqual([]);
-    expect(f.group.locks).toEqual(['athlete:a1']);
+    expect(out.carried).toBe(1);
+    expect(f.state.subscriptions[0].validIn).toEqual(['pl-gold']);
   });
 
   it('on: the same move still carries', async () => {

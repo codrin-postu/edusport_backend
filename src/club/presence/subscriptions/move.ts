@@ -63,10 +63,9 @@ async function carryUsed(store: PresenceStore, subscriptionId: string, priceList
   return (await store.attendances({ subscriptionIds: [subscriptionId] })).some((a) => onList.has(a.groupId));
 }
 
-/** With `abonamente` off the move carries nothing: no abonament is touched (spec 11.3). Undo ports stay, they only act on steps already logged. */
-export function presenceCarry(store: PresenceStore, features: Pick<Features, 'abonamente'> = ALL_ON): { carry: MoveCarry; ports: CarryPorts } {
+export function presenceCarry(store: PresenceStore): { carry: MoveCarry; ports: CarryPorts } {
   return {
-    carry: features.abonamente ? (i) => store.transaction(() => carryLocked(store, i)) : NO_CARRY,
+    carry: (i) => store.transaction(() => carryLocked(store, i)),
     ports: {
       lockSubscription: (subscriptionId) => store.transaction(() => store.lockSubscription(subscriptionId)),
       subscriptionExists: async (subscriptionId) => (await store.subscription(subscriptionId)) !== null,

@@ -77,7 +77,7 @@ export default {
   async move(ctx: AdminCtx) {
     const membershipId = id(ctx);
     const gctx = await groupContext(strapi, ctx);
-    respondAction(ctx, await moveMembership(gctx, membershipId, ctx.request.body, presenceCarry(strapiPresenceStore(strapi), await loadFeatures(strapi)).carry));
+    respondAction(ctx, await moveMembership(gctx, membershipId, ctx.request.body, presenceCarry(strapiPresenceStore(strapi)).carry));
   },
 
   async remove(ctx: AdminCtx) {
