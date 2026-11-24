@@ -58,6 +58,6 @@ export function sheetSyncedStore(store: EmailJobStore, refreshRow: (registration
     findQueued: (limit) => store.findQueued(limit),
     findLatest: (registrationDocumentId) => store.findLatest(registrationDocumentId),
     countForRecipientSince: (recipient, since) => store.countForRecipientSince(recipient, since),
-    cancelQueuedOfKinds: (kinds, reason) => store.cancelQueuedOfKinds(kinds, reason),
+    cancelQueuedForFeatures: (features, reason) => store.cancelQueuedForFeatures(features, reason),
   };
 }

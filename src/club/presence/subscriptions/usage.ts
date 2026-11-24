@@ -38,9 +38,11 @@ async function groupRows(store: PresenceStore, athleteId: string, seasonId: stri
 
 /** The one current abonament (the one P5 4.10 would use today: started, active, in use order) and every other card (newest start first), each with its dated units (4.4). */
 export async function readAthleteSubscriptionCards(
-  store: PresenceStore, athleteId: string, seasonId: string | null, today: string,
+  store: PresenceStore, athleteId: string, seasonId: string | null, today: string, withMoney = true,
 ): Promise<AdminResult<AthleteSubscriptionCards>> {
   if (!(await store.athlete(athleteId))) return refuse(404, ADMIN_ERRORS.notFound);
+  // `abonamente` off: the groups of the record stay, the abonamente are not read or sent.
+  if (!withMoney) return { ok: true, data: { groups: await groupRows(store, athleteId, seasonId), current: null, others: [] } };
   const subs = await store.subscriptions({ athleteId });
   const atts = subs.length > 0 ? await store.attendances({ subscriptionIds: subs.map((s) => s.id) }) : [];
   const sessionIds = [...new Set(atts.map((a) => a.sessionId))];

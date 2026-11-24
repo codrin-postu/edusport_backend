@@ -115,8 +115,9 @@ export type CoachAthleteCard = {
   sectionName: string | null;
   /** Current groups, main first. */
   groupRows: { groupId: string; name: string; program: string[] }[];
-  presence: { season: number; lessons: number; last: string | null; missedThisMonth: number };
-  /** Own children only. */
+  /** Absent while `prezenta` is off. */
+  presence?: { season: number; lessons: number; last: string | null; missedThisMonth: number };
+  /** Own children only; null while `abonamente` is off. */
   abonament: { code: string | null; next: number; slots: number; validUntil: string; location: string | null } | null;
   competitions: CoachAthleteCompetitions;
 };

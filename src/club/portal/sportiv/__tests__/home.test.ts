@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CalendarEventRow } from '../../../../api/calendar-event/services/expand';
 import { forbiddenPathsIn } from '../../forbidden-keys';
+import { ALL_ON } from '../../../features/features';
 import { readCard } from '../../coach/athletes';
 import { attendanceRow, lessonRow, sessionRow } from '../../../presence/__tests__/fake-store';
 import { markPromotionSeen, readHome } from '../home';
@@ -10,7 +11,7 @@ import { nullCoachCompetitions, type CoachContexts } from '../../coach/context';
 
 /** The coach of Intermediari Bronze reading over the same fakes, for the numbers both apps must agree on. */
 const fakeCoachCtx = (c: SportivSeed): CoachContexts => ({
-  coach: { accountId: 'acc-c', userId: 2, sessionId: 'ses-c', teamMemberId: 'tm-virgil', name: 'Virgil Pascu' },
+  coach: { accountId: 'acc-c', userId: 2, sessionId: 'ses-c', teamMemberId: 'tm-virgil', name: 'Virgil Pascu', features: ALL_ON },
   today: c.today, presence: c.presence, groups: c.groups, club: c.club, portal: c.portal, competitions: nullCoachCompetitions,
 });
 

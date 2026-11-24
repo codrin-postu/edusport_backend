@@ -64,7 +64,7 @@ function deps(now: string, sent: string[], stored: Stored = { row: job() }): Ema
       },
       finish: async (_id, data) => (stored.row.status === 'sending' ? (stored.row = { ...stored.row, ...data }) : null),
       failStuck: async () => 0,
-      cancelQueuedOfKinds: async () => 0,
+      cancelQueuedForFeatures: async () => 0,
       findQueued: async () => [],
       findLatest: async () => null,
       countForRecipientSince: async () => 0,

@@ -27,6 +27,8 @@ export function coachAbonamentText(kind: SectionKind, slots: { used: number; tot
 
 type SessionExtras = {
   ages: Map<string, number | null>; slots: Map<string, { used: number; total: number } | null>; team: NamedRow[]; right: Right; standIn: boolean;
+  /** `abonamente` off: the rows carry no abonament text. */
+  money?: boolean;
 };
 
 const options = (team: NamedRow[]): { id: string; name: string }[] => team.map((t) => ({ id: t.id, name: t.name }));
@@ -34,7 +36,7 @@ const options = (team: NamedRow[]): { id: string; name: string }[] => team.map((
 export function toCoachSession(panel: SessionPanel, x: SessionExtras): CoachSession {
   const rows: CoachPresenceRow[] = panel.rows.map((r) => ({
     athleteId: r.athleteId, name: r.name, age: x.ages.get(r.athleteId) ?? null, inactive: r.inactive, visitor: r.visitor, grup: r.grup, uscat: r.uscat,
-    abonament: r.visitor ? null : coachAbonamentText(panel.kind, x.slots.get(r.athleteId) ?? null),
+    abonament: r.visitor || x.money === false ? null : coachAbonamentText(panel.kind, x.slots.get(r.athleteId) ?? null),
   }));
   return {
     sessionId: panel.sessionId, occurrenceKey: panel.occurrenceKey,

@@ -32,6 +32,14 @@ const ok = <T>(r: { ok: boolean; data?: T }): T => {
 };
 
 describe('abonament usage', () => {
+  it('without money the groups stay and no abonament is sent', async () => {
+    const f = fakePresenceContext(seed());
+    const cards = ok(await readAthleteSubscriptionCards(f.store, 'a1', 's26', '2026-11-20', false));
+    expect(cards.groups.map((g) => g.name)).toEqual(['Intermediari Bronze']);
+    expect(cards.current).toBeNull();
+    expect(cards.others).toEqual([]);
+  });
+
   it('lists dated units by session date, start time, attendance id', async () => {
     const f = fakePresenceContext(seed());
     const sub = (await f.store.subscription('x'))!;

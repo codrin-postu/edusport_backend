@@ -6,11 +6,12 @@ import { cancelSubscription } from '../../../club/presence/subscriptions/cancel'
 import { listSubscriptions, readSubscriptionQuery } from '../../../club/presence/subscriptions/reads';
 import { readAthleteSubscriptionCards } from '../../../club/presence/subscriptions/usage';
 import { strapiPresenceStore } from '../../../club/presence/strapi-store';
+import { loadFeatures } from '../../../club/features/strapi-store';
 import { queryText, respondAction, todayIso } from '../../../club/groups/http';
 
 const id = (ctx: AdminCtx): string => ctx.params.documentId ?? '';
 
-/** Admin API of Abonamente (routes/10-subscriptions.ts, all `global::has-role`). */
+/** Admin API of Abonamente (routes/10-subscriptions.ts, all `global::has-role`; every route names `abonamente` except the athlete's groups read, which answers the groups alone while it is off). */
 export default {
   async list(ctx: AdminCtx) {
     ctx.body = { data: await listSubscriptions(strapiPresenceStore(strapi), ctx.query, todayIso()) };
@@ -33,7 +34,7 @@ export default {
   },
 
   async athlete(ctx: AdminCtx) {
-    respond(ctx, await readAthleteSubscriptionCards(strapiPresenceStore(strapi), id(ctx), queryText(ctx.query.season), todayIso()));
+    respond(ctx, await readAthleteSubscriptionCards(strapiPresenceStore(strapi), id(ctx), queryText(ctx.query.season), todayIso(), (await loadFeatures(strapi)).abonamente));
   },
 
   async add(ctx: AdminCtx) {

@@ -123,6 +123,23 @@ describe('readCard', () => {
   });
 });
 
+describe('readCard follows the switches', () => {
+  const off = (c: ReturnType<typeof coachCtx>, ...keys: ('prezenta' | 'abonamente')[]) => ({ ...c, coach: { ...c.coach, features: { ...c.coach.features, ...Object.fromEntries(keys.map((k) => [k, false])) } } });
+
+  it('prezenta off omits the presence block, abonamente stays', async () => {
+    const out = await readCard(off(coachCtx(ME), 'prezenta', 'abonamente'), 'a-scoala-1');
+    expect(out.ok && 'presence' in out.data).toBe(false);
+  });
+
+  it('abonamente off (prezenta on) keeps presence but drops the abonament and the school line', async () => {
+    const c = coachCtx(ME);
+    const out = await readCard(off(c, 'abonamente'), 'a-scoala-1');
+    expect(out).toMatchObject({ ok: true, data: { school: null, abonament: null } });
+    expect(out.ok && 'presence' in out.data).toBe(true);
+    expect(await readCard(c, 'a-scoala-1')).toMatchObject({ data: { school: '0/8' } });
+  });
+});
+
 describe('readCard additions', () => {
   const seedPresence = (c: ReturnType<typeof coachCtx>) => {
     for (const [id, date] of [['s-1', '2026-11-07'], ['s-2', '2026-11-08'], ['s-3', '2026-11-14']]) {

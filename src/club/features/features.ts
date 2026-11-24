@@ -22,14 +22,21 @@ export type ChangeResult =
   | { ok: true; next: Features; alsoOff: FeatureKey[] }
   | { ok: false; code: 'needsPrezenta' | 'notInstalled' };
 
-export const JOB_FEATURE: Record<
-  'payment' | 'portal-invite' | 'portal-access',
-  FeatureKey
-> = {
-  payment: 'abonamente',
-  'portal-invite': 'portalAntrenori',
-  'portal-access': 'portalParinti',
-};
+/** The e-mail job kinds a switch can cancel; which feature one job belongs to is decided by `jobFeature`. */
+export const FEATURE_JOB_KINDS: readonly string[] = ['payment', 'portal-invite', 'portal-access'];
+
+/**
+ * The feature a queued e-mail job depends on, decided from the job itself: a payment mail by `abonamente`; an invite by the portal
+ * host in its payload (a `sportiv.` host is the parent portal, anything else the coach portal); an access mail by its variant
+ * (`coach` is the coach portal, `child` the parent portal). Other kinds depend on no switch.
+ */
+export function jobFeature(job: { kind?: string | null; payload?: unknown }): FeatureKey | null {
+  const payload = isRecord(job.payload) ? job.payload : {};
+  if (job.kind === 'payment') return 'abonamente';
+  if (job.kind === 'portal-invite') return typeof payload.host === 'string' && payload.host.startsWith('sportiv.') ? 'portalParinti' : 'portalAntrenori';
+  if (job.kind === 'portal-access') return payload.variant === 'coach' ? 'portalAntrenori' : 'portalParinti';
+  return null;
+}
 
 export function installedPortals(hosts: readonly string[]): Installed {
   return {

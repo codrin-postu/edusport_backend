@@ -66,6 +66,9 @@ describe('own group', () => {
     expect(club).toMatchObject({ ok: true, data: { kind: 'club', rows: [{ abonament: null }, { abonament: null }] } });
     const school = await readCoachSession(coachCtx(ME), { occurrence: 'ev-g-scoala-a|2026-11-21|11:00' });
     expect(school).toMatchObject({ ok: true, data: { kind: 'school', rows: [{ athleteId: 'a-scoala-1', abonament: '0/8' }, { athleteId: 'a-scoala-2', abonament: 'Fără abonament' }] } });
+    const c = coachCtx(ME);
+    const noMoney = await readCoachSession({ ...c, coach: { ...c.coach, features: { ...c.coach.features, abonamente: false } } }, { occurrence: 'ev-g-scoala-a|2026-11-21|11:00' });
+    expect(noMoney).toMatchObject({ ok: true, data: { kind: 'school', rows: [{ abonament: null }, { abonament: null }] } });
     expect(forbiddenKeysIn(club)).toEqual([]);
     expect(forbiddenKeysIn(school)).toEqual([]);
   });

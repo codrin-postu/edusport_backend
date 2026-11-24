@@ -27,16 +27,16 @@ function Lines({ title, lines }: { title: string; lines: string[] }) {
   );
 }
 
-function Cards({ data, athleteId }: { data: AthleteSubscriptionCards; athleteId: string }) {
+function Cards({ data, athleteId, money }: { data: AthleteSubscriptionCards; athleteId: string; money: boolean }) {
   const { current, others } = data;
   return (
     <>
       <Lines title={copy.groups} lines={groupLines(data)} />
-      <section className="bn-block">
+      {money && <section className="bn-block">
         <h3 className="spv-h">{CARD_COPY.current}</h3>
         {current ? <AbonamentCard card={current} athleteId={athleteId} /> : <p className="spv-muted">{CARD_COPY.none}</p>}
-      </section>
-      {others.length > 0 && (
+      </section>}
+      {money && others.length > 0 && (
         <section className="bn-block">
           <h3 className="spv-h">{CARD_COPY.others}</h3>
           {others.map((c) => <AbonamentCard key={c.id} card={c} athleteId={athleteId} />)}
@@ -46,19 +46,21 @@ function Cards({ data, athleteId }: { data: AthleteSubscriptionCards; athleteId:
   );
 }
 
-/** "Grupe și abonament" (5.4): groups, current and other abonamente with their days, "+ Adaugă abonament" and the presence history. */
+/** "Grupe și abonament" (5.4; "Grupe" with `abonamente` off, then groups and the presence history only): groups, current and other abonamente with their days, "+ Adaugă abonament" and the presence history. */
 export function AbonamentTab({ athlete, seasonId = null }: { athlete: Athlete; seasonId?: string | null }) {
   const api = useMoneyApi();
   const { data, failed } = useLoad<AthleteSubscriptionCards>(() => api.athleteSubscriptions(athlete.id, seasonId), `${athlete.id}|${seasonId}`);
   const [adding, setAdding] = React.useState(false);
-  const presenceOn = useFeatures().on('prezenta');
+  const features = useFeatures();
+  const presenceOn = features.on('prezenta');
+  const money = features.on('abonamente');
   return (
     <div className="ui-body bn-tab">
       <style>{SPORTIVI_CSS + PREZENTA_CSS + MONEY_CSS}</style>
       {failed && <Notice tone="danger">{PRESENCE_ERRORS.loadFailed}</Notice>}
       {!data && !failed && <Loading />}
-      {data && <Cards data={data} athleteId={athlete.id} />}
-      <div><Button variant="secondary" onClick={() => setAdding(true)}>{copy.addSubscription}</Button></div>
+      {data && <Cards data={data} athleteId={athlete.id} money={money} />}
+      {money && <div><Button variant="secondary" onClick={() => setAdding(true)}>{copy.addSubscription}</Button></div>}
       {presenceOn && <PresenceHistory athlete={athlete} seasonId={seasonId} />}
       {adding && <AddSubscriptionWindow athlete={athlete} onClose={() => setAdding(false)} />}
     </div>

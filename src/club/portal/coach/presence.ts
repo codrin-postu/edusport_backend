@@ -43,10 +43,11 @@ export async function readCoachSession(c: CoachContexts, q: Record<string, unkno
   if (!right.read || !group) return forbidden(PORTAL_ERRORS.noAccess);
   const athletes = await store.athletes();
   const ages = new Map(athletes.map((a) => [a.id, ageOnIso(a.birthDate, c.today)]));
-  const slots = p.kind === 'school' ? await abonamentSlots(store, p.rows.map((r) => r.athleteId), group.priceListId, p.date) : new Map();
+  const money = c.coach.features.abonamente;
+  const slots = money && p.kind === 'school' ? await abonamentSlots(store, p.rows.map((r) => r.athleteId), group.priceListId, p.date) : new Map();
   const mine = c.coach.teamMemberId;
   const shown = facts.access === 'other' && !facts.saved ? { ...p, coachIds: [mine] } : p;
-  return { ok: true, data: toCoachSession(shown, { ages, slots, team: await store.teamMembers(), right, standIn: facts.access === 'other' }) };
+  return { ok: true, data: toCoachSession(shown, { ages, slots, team: await store.teamMembers(), right, standIn: facts.access === 'other', money }) };
 }
 
 /** Another coach's group: only a scheduled class of it inside the stand-in window (today - 7 to today), as the stand-in read of spec 8.2 allows. */

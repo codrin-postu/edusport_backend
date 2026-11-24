@@ -31,7 +31,7 @@ export function fakeDeps(opts: { onSent?: EmailDeps['onSent'] } = {}): FakeDeps 
         return true;
       },
       finish: async (_id, data) => (stored.row.status === 'sending' ? (stored.row = { ...stored.row, ...data }) : null),
-      failStuck: async () => 0, findQueued: async () => [], findLatest: async () => null, countForRecipientSince: async () => 0, cancelQueuedOfKinds: async () => 0,
+      failStuck: async () => 0, findQueued: async () => [], findLatest: async () => null, countForRecipientSince: async () => 0, cancelQueuedForFeatures: async () => 0,
     },
     loadRegistration: async () => null, listDocuments: async () => [], buildDocuments: async () => [], readDocument: async () => Buffer.from(''),
     loadLinks: async () => LINKS,

@@ -68,11 +68,16 @@ describe('record tabs', () => {
   });
   it('drops the tabs of a switched-off feature', () => {
     const ids = (off: FeatureKey) => recordTabs(record(), (k) => k !== off).map((t) => t.id);
-    expect(ids('abonamente')).not.toContain('abonament');
     expect(ids('abonamente')).not.toContain('plati');
     expect(ids('abonamente')).toContain('parcurs');
     expect(ids('parcurs')).not.toContain('parcurs');
     expect(ids('prezenta')).toEqual(ids('portalParinti'));
+  });
+  it('the groups tab stays when money is off and is called Grupe; with both off it still shows', () => {
+    const tab = (on: (k: FeatureKey) => boolean) => recordTabs(record(), on).find((t) => t.id === 'abonament');
+    expect(tab(ALL_ON)?.label).toBe('Grupe și abonament');
+    expect(tab((k) => k !== 'abonamente')?.label).toBe('Grupe');
+    expect(tab((k) => k !== 'abonamente' && k !== 'prezenta')?.label).toBe('Grupe');
   });
   it('an anonymised record keeps Date and Istoric when money is off', () => {
     expect(recordTabs(record({ status: 'anonimizat' }), (k) => k !== 'abonamente').map((t) => t.id)).toEqual(['date', 'istoric']);

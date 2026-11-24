@@ -15,7 +15,6 @@ async function routesOf(file: string): Promise<Route[]> {
 describe('which routes name a feature', () => {
   const whole: [string, string][] = [
     ['09-attendance.ts', 'prezenta'],
-    ['10-subscriptions.ts', 'abonamente'],
     ['11-payments.ts', 'abonamente'],
     ['12-portal-accounts.ts', 'portalAntrenori'],
     ['14-athlete-access.ts', 'portalParinti'],
@@ -24,6 +23,13 @@ describe('which routes name a feature', () => {
     const routes = await routesOf(file);
     expect(routes.length).toBeGreaterThan(0);
     for (const r of routes) expect(featureOfRoute(r.config), `${r.method} ${r.path}`).toBe(feature);
+  });
+
+  it('every route of 10-subscriptions.ts names abonamente except the athlete groups read', async () => {
+    for (const r of await routesOf('10-subscriptions.ts')) {
+      if (r.handler === 'subscriptions.athlete') expect(featureOfRoute(r.config)).toBeNull();
+      else expect(featureOfRoute(r.config), `${r.method} ${r.path}`).toBe('abonamente');
+    }
   });
 
   it('coach CSVs of attendance keep the money area and name prezenta', async () => {
@@ -45,7 +51,7 @@ describe('which routes name a feature', () => {
   });
 
   it('no other route file names a feature', async () => {
-    const named = new Set(['05-athletes.ts', ...whole.map(([f]) => f)]);
+    const named = new Set(['05-athletes.ts', '10-subscriptions.ts', ...whole.map(([f]) => f)]);
     for (const file of readdirSync(ROUTES).filter((f) => f.endsWith('.ts') && !named.has(f))) {
       for (const r of await routesOf(file)) expect(featureOfRoute(r.config), `${file} ${r.path}`).toBeNull();
     }

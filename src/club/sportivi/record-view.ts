@@ -65,11 +65,11 @@ export function tabFromSearch(search: string): RecordTab | null {
   return TAB_IDS.find((id) => id === tab) ?? null;
 }
 
-const TAB_FEATURE: Partial<Record<RecordTab, FeatureKey>> = { abonament: 'abonamente', plati: 'abonamente', parcurs: 'parcurs' };
+const TAB_FEATURE: Partial<Record<RecordTab, FeatureKey>> = { plati: 'abonamente', parcurs: 'parcurs' };
 
-/** The tabs of a record: an anonymized one keeps its three, then each tab of a switched-off feature is dropped. */
+/** The tabs of a record: an anonymized one keeps its three, then each tab of a switched-off feature is dropped. The groups tab never goes: with `abonamente` off it is called "Grupe" and shows no money. */
 export function recordTabs(r: AthleteRecord, on: (k: FeatureKey) => boolean): { id: RecordTab; label: string; count?: number }[] {
-  const tabs = TAB_IDS.filter((id) => { const f = TAB_FEATURE[id]; return !f || on(f); }).map((id) => (id === 'istoric' ? { id, label: RECORD_COPY.tabs[id], count: r.historyCount } : { id, label: RECORD_COPY.tabs[id] }));
+  const tabs = TAB_IDS.filter((id) => { const f = TAB_FEATURE[id]; return !f || on(f); }).map((id) => (id === 'istoric' ? { id, label: RECORD_COPY.tabs[id], count: r.historyCount } : { id, label: id === 'abonament' && !on('abonamente') ? MONEY_UI_COPY.athlete.groups : RECORD_COPY.tabs[id] }));
   return isReadOnlyRecord(r) ? tabs.filter((t) => ANONYMIZED_TABS.includes(t.id)) : tabs;
 }
 

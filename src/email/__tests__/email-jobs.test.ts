@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { StoredDocument } from '../../club/documents';
 import type { OutgoingEmail, SendResult } from '../brevo';
 import { readEmailConfig } from '../config';
+import { jobFeature } from '../../club/features/features';
 import {
   QUIET_MS,
   RECIPIENT_DAILY_CAP,
@@ -88,8 +89,8 @@ function fakeDeps(options: Options = {}) {
         for (const j of stuck) save({ ...j, status: 'failed', lastError: error });
         return stuck.length;
       },
-      cancelQueuedOfKinds: async (kinds: string[]) => {
-        const rows = [...jobs.values()].filter((j) => j.status === 'queued' && kinds.includes(j.kind ?? 'registration'));
+      cancelQueuedForFeatures: async (features: string[]) => {
+        const rows = [...jobs.values()].filter((j) => j.status === 'queued' && features.includes(jobFeature(j) ?? ''));
         for (const j of rows) save({ ...j, status: 'cancelled', lastError: 'featureOff' });
         return rows.length;
       },

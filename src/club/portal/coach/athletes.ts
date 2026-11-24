@@ -114,7 +114,7 @@ async function schoolText(c: CoachContexts, athleteId: string, groups: GroupReco
   return null;
 }
 
-type Presence = CoachAthleteCard['presence'];
+type Presence = NonNullable<CoachAthleteCard['presence']>;
 type Abonament = NonNullable<CoachAthleteCard['abonament']>;
 
 /** Group presences (grup or uscat ticked) and present lessons of the season; saved sessions this month of the groups the child was listed in on the day, on or before today, where the child was listed and not ticked. */
@@ -174,15 +174,16 @@ export async function readCard(c: CoachContexts, athleteId: string): Promise<Coa
   const groups = current.flatMap((m) => allGroups.filter((g) => g.id === m.groupId));
   const facts = await cardFacts(c, season, groups);
   const sections = await store.sections();
+  const features = c.coach.features;
   return {
     ok: true,
     data: {
-      own: right.contact, athleteId, name: athlete.name ?? '', age: ageOnIso(athlete.birthDate, c.today), groups: groups.map((g) => g.name), school: await schoolText(c, athleteId, groups),
+      own: right.contact, athleteId, name: athlete.name ?? '', age: ageOnIso(athlete.birthDate, c.today), groups: groups.map((g) => g.name), school: features.abonamente ? await schoolText(c, athleteId, groups) : null,
       contact: right.contact ? { name: athlete.contactName, phone: athlete.phone } : null,
       sectionName: sections.find((x) => x.id === groups[0]?.sectionId)?.name ?? null,
       groupRows: groups.map((g) => ({ groupId: g.id, name: g.name, program: groupListRow(g, facts).program })),
-      presence: await presenceOf(c, athleteId, season, memberships),
-      abonament: right.contact ? await abonamentOf(c, athleteId, groups) : null,
+      ...(features.prezenta ? { presence: await presenceOf(c, athleteId, season, memberships) } : {}),
+      abonament: right.contact && features.abonamente ? await abonamentOf(c, athleteId, groups) : null,
       competitions: await athleteCompetitions(c, athlete, season.label),
     },
   };

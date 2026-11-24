@@ -7,6 +7,7 @@ import type { Core } from '@strapi/strapi';
 import { buildRegistrationDocuments, listRegistrationDocuments } from '../club/documents';
 import { SCHEDULE_HOLD_MS } from '../club/groups/schedule-mail';
 import type { ScheduleChangePayload } from '../club/groups/types';
+import { FEATURE_JOB_KINDS, jobFeature } from '../club/features/features';
 import { loadFeatures } from '../club/features/strapi-store';
 import { recordHistory } from '../club/history';
 import { P5_ACTIONS } from '../club/presence/history-lines';
@@ -143,8 +144,9 @@ export function jobStore(strapi: Core.Strapi): EmailJobStore {
     },
     countForRecipientSince: (recipient, since) =>
       jobs().count({ filters: { kind: 'registration', recipient: { $eqi: recipient }, createdAt: { $gte: since.toISOString() } } }),
-    cancelQueuedOfKinds: async (kinds, reason) => {
-      const rows = (await strapi.db.query(JOB_UID).findMany({ where: { kind: { $in: kinds }, status: 'queued' }, select: ['id', 'kind', 'payload'] })) as { id: number; kind: string; payload: unknown }[];
+    cancelQueuedForFeatures: async (features, reason) => {
+      const all = (await strapi.db.query(JOB_UID).findMany({ where: { kind: { $in: [...FEATURE_JOB_KINDS] }, status: 'queued' }, select: ['id', 'kind', 'payload'] })) as { id: number; kind: string; payload: unknown }[];
+      const rows = all.filter((j) => { const f = jobFeature(j); return f !== null && features.includes(f); });
       let count = 0;
       for (const j of rows) {
         const payload = j.kind === 'portal-invite' && j.payload && typeof j.payload === 'object' ? { ...(j.payload as object), link: '' } : j.payload;

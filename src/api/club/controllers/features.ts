@@ -1,5 +1,6 @@
 import type { Core } from '@strapi/strapi';
 import { adminActor } from '../../../club/admin-actor';
+import { ADMIN_ERRORS } from '../../../club/athletes/errors';
 import { refuseWith, type AdminCtx } from '../../../club/admin-http';
 import { changeFeatures, type FeaturePort } from '../../../club/features/change';
 import { FEATURES_COPY } from '../../../club/features/copy';
@@ -43,12 +44,13 @@ export default {
   },
   async save(ctx: AdminCtx) {
     const input = readBody(ctx.request.body);
-    if (!input) return refuseWith(ctx, 400, 'Cerere nevalidă.');
+    if (!input) return refuseWith(ctx, 400, ADMIN_ERRORS.invalid);
     const port: FeaturePort = {
       saved: () => loadSaved(strapi),
       save: (f) => saveFeatures(strapi, f),
-      cancelJobs: (kinds) => jobStore(strapi).cancelQueuedOfKinds(kinds, 'featureOff'),
+      cancelJobs: (features) => jobStore(strapi).cancelQueuedForFeatures(features, 'featureOff'),
       history: (entry) => recordHistory(strapi, entry),
+      log: (message) => strapi.log.error(message),
       installed: installedPortals(PORTAL_HOSTS()),
     };
     const result = await changeFeatures(port, { ...input, actor: await adminActor(ctx.request.header.authorization, strapi) });
