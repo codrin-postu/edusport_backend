@@ -3,10 +3,11 @@
  * `global::has-role` policy; anonymizing and hiding the yearly review need `global::has-role (area `superAdmin`)` (3C spec 6).
  * Fixed paths (search, merge, by-profile, inactive-summary, anonymize) come before `/club/athletes/:documentId`.
  */
-import { adminRoute } from '../../../club/admin-area';
+import { adminRoute, featureRoute } from '../../../club/admin-area';
 
 const club = adminRoute('club');
 const superAdmin = adminRoute('superAdmin');
+const parcurs = featureRoute('parcurs', 'club');
 
 export default {
   routes: [
@@ -22,10 +23,10 @@ export default {
     { method: 'POST', path: '/club/athlete-duplicates/:pairId/dismiss', handler: 'athletes.dismissDuplicate', config: club },
     { method: 'GET', path: '/club/athletes/:documentId/history', handler: 'athletes.history', config: club },
     { method: 'GET', path: '/club/athletes/:documentId/competitions', handler: 'athletes.competitions', config: club },
-    { method: 'GET', path: '/club/athletes/:documentId/parcurs', handler: 'athletes.parcurs', config: club },
-    { method: 'POST', path: '/club/athletes/:documentId/awards', handler: 'athletes.addAward', config: club },
-    { method: 'DELETE', path: '/club/athletes/:documentId/awards/:awardId', handler: 'athletes.removeAward', config: club },
-    { method: 'DELETE', path: '/club/athletes/:documentId/pins/:pinId', handler: 'athletes.removePin', config: club },
+    { method: 'GET', path: '/club/athletes/:documentId/parcurs', handler: 'athletes.parcurs', config: parcurs },
+    { method: 'POST', path: '/club/athletes/:documentId/awards', handler: 'athletes.addAward', config: parcurs },
+    { method: 'DELETE', path: '/club/athletes/:documentId/awards/:awardId', handler: 'athletes.removeAward', config: parcurs },
+    { method: 'DELETE', path: '/club/athletes/:documentId/pins/:pinId', handler: 'athletes.removePin', config: parcurs },
     { method: 'GET', path: '/club/athletes/:documentId/export', handler: 'personal-data.export', config: club },
     { method: 'POST', path: '/club/athletes/:documentId/anonymize', handler: 'personal-data.anonymize', config: superAdmin },
     { method: 'GET', path: '/club/athletes/:documentId', handler: 'athletes.record', config: club },

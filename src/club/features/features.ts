@@ -79,3 +79,8 @@ export function applyChange(
   }
   return { ok: true, next, alsoOff };
 }
+
+/** The 403 body of a disabled admin feature, in Strapi's error shape (the admin fetch client reads `details.code`). */
+export function featureOffBody(feature: FeatureKey): { data: null; error: { status: 403; name: 'ForbiddenError'; message: string; details: { code: 'featureOff'; feature: FeatureKey } } } {
+  return { data: null, error: { status: 403, name: 'ForbiddenError', message: 'Feature is off', details: { code: 'featureOff', feature } } };
+}

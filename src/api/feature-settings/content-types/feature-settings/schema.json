@@ -1,0 +1,23 @@
+{
+  "kind": "singleType",
+  "collectionName": "feature_settings",
+  "info": {
+    "singularName": "feature-settings",
+    "pluralName": "feature-settings-list",
+    "displayName": "Funcții club",
+    "description": "Comutatoarele de funcții ale clubului, scrise doar din pagina Funcții a Super Adminului"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "content-manager": {
+      "visible": false
+    }
+  },
+  "attributes": {
+    "features": {
+      "type": "json"
+    }
+  }
+}

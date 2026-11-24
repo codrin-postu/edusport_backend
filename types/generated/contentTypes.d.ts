@@ -1586,6 +1586,41 @@ export interface ApiEmailJobEmailJob extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiFeatureSettingsFeatureSettings
+  extends Struct.SingleTypeSchema {
+  collectionName: 'feature_settings';
+  info: {
+    description: 'Comutatoarele de funcții ale clubului, scrise doar din pagina Funcții a Super Adminului';
+    displayName: 'Funcții club';
+    pluralName: 'feature-settings-list';
+    singularName: 'feature-settings';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    features: Schema.Attribute.JSON;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::feature-settings.feature-settings'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiFormConfigFormConfig extends Struct.CollectionTypeSchema {
   collectionName: 'form_configs';
   info: {
@@ -4223,6 +4258,7 @@ declare module '@strapi/strapi' {
       'api::cursuri-page.cursuri-page': ApiCursuriPageCursuriPage;
       'api::discipline.discipline': ApiDisciplineDiscipline;
       'api::email-job.email-job': ApiEmailJobEmailJob;
+      'api::feature-settings.feature-settings': ApiFeatureSettingsFeatureSettings;
       'api::form-config.form-config': ApiFormConfigFormConfig;
       'api::friendship-grant.friendship-grant': ApiFriendshipGrantFriendshipGrant;
       'api::friendship-pin.friendship-pin': ApiFriendshipPinFriendshipPin;

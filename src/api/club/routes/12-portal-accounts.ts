@@ -2,9 +2,9 @@
  * Admin API of the coach accounts (phase 6-3, spec 4). Content-api routes (under /api), auth off, `global::has-role`.
  * Fixed paths come before parameter paths within each prefix (a source-reading test checks it).
  */
-import { adminRoute } from '../../../club/admin-area';
+import { featureRoute } from '../../../club/admin-area';
 
-const coachAccounts = adminRoute('coachAccounts');
+const coachAccounts = featureRoute('portalAntrenori', 'coachAccounts');
 
 export default {
   routes: [

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adminRoute, areaOfRoute } from '../admin-area';
+import { adminRoute, areaOfRoute, featureOfRoute, featureRoute } from '../admin-area';
 import athletes from '../../api/club/controllers/athletes';
 import personalData from '../../api/club/controllers/personal-data';
 import registrations from '../../api/club/controllers/registrations';
@@ -16,7 +16,7 @@ describe('3A+3B admin routes', () => {
   it('are all admin-only; anonymizing and hiding the yearly review need a Super Admin (3C spec 6)', () => {
     for (const r of all) {
       const area = SUPER_ADMIN_ONLY.includes(`${r.method} ${r.path}`) ? 'superAdmin' : 'club';
-      expect(r.config, `${r.method} ${r.path}`).toEqual(adminRoute(area));
+      expect(r.config, `${r.method} ${r.path}`).toEqual(featureOfRoute(r.config) ? featureRoute(featureOfRoute(r.config) ?? 'parcurs', area) : adminRoute(area));
     }
   });
 

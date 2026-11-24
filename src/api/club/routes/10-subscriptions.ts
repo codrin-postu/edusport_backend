@@ -2,9 +2,9 @@
  * Admin API of Abonamente (spec 6). Content-api routes (under /api), auth off, `global::has-role`.
  * Fixed paths come before parameter paths within each prefix (a source-reading test checks it).
  */
-import { adminRoute } from '../../../club/admin-area';
+import { featureRoute } from '../../../club/admin-area';
 
-const club = adminRoute('club');
+const club = featureRoute('abonamente', 'club');
 
 export default {
   routes: [

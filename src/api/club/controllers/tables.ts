@@ -2,7 +2,10 @@ import { verifiedAdminId } from '../../../club/admin-auth';
 import { refuseWith, respond, type AdminCtx } from '../../../club/admin-http';
 import { downloadLogLine } from '../../../club/download-log';
 import { respondAction, todayIso } from '../../../club/groups/http';
+import { featureOffBody, type FeatureKey } from '../../../club/features/features';
+import { loadFeatures } from '../../../club/features/strapi-store';
 import { strapiPresenceStore } from '../../../club/presence/strapi-store';
+import { gateCatalog, gateViews, offFeatureOfBody } from '../../../club/tables/features';
 import { TABLES_COPY } from '../../../club/tables/copy';
 import { tableCsv, tableXlsx } from '../../../club/tables/export';
 import { csvName, xlsxName } from '../../../club/tables/file-names';
@@ -20,6 +23,15 @@ const param = (ctx: AdminCtx, key: string): string => ctx.params[key] ?? '';
 const store = () => strapiPresenceStore(strapi);
 /** One views store per request: its transaction scope is its own state. */
 const views = () => strapiTableViewStore(strapi);
+const features = () => loadFeatures(strapi);
+/** 403 `featureOff`: the table subject of the request belongs to a switched-off feature. True when it refused. */
+async function refusedOff(ctx: AdminCtx, body: unknown): Promise<boolean> {
+  const off: FeatureKey | null = offFeatureOfBody(body, await features());
+  if (off === null) return false;
+  ctx.status = 403;
+  ctx.body = featureOffBody(off);
+  return true;
+}
 const caller = (ctx: AdminCtx) => callerOf(ctx.request.header.authorization, strapi);
 
 /** At most two queries or exports at a time per process; the 10 s budget starts when the work starts, not when it queued. A spent budget is a 503. */
@@ -36,15 +48,17 @@ async function limited(ctx: AdminCtx, body: unknown, today: string): Promise<Adm
 /** The Sportivi "Tabele" tab: catalog, queries, downloads and saved views (routes/13-tables.ts). */
 export default {
   async catalog(ctx: AdminCtx) {
-    respond(ctx, { ok: true, data: await readCatalog(store(), todayIso()) });
+    respond(ctx, { ok: true, data: gateCatalog(await readCatalog(store(), todayIso()), await features()) });
   },
 
   async query(ctx: AdminCtx) {
+    if (await refusedOff(ctx, ctx.request.body)) return;
     const result = await limited(ctx, ctx.request.body, todayIso());
     if (result) respond(ctx, result);
   },
 
   async export(ctx: FileCtx) {
+    if (await refusedOff(ctx, ctx.request.body)) return;
     const request = readExportRequest(ctx.request.body);
     if (request.ok === false) return refuseWith(ctx, request.status, request.error);
     const { format } = request.data;
@@ -67,7 +81,7 @@ export default {
   },
 
   async views(ctx: AdminCtx) {
-    respond(ctx, { ok: true, data: await listViews(views(), await caller(ctx)) });
+    respond(ctx, { ok: true, data: gateViews(await listViews(views(), await caller(ctx)), await features()) });
   },
 
   async createView(ctx: AdminCtx) {
