@@ -1,6 +1,6 @@
 # Feature switches (Funcții) design
 
-Status: draft for approval, 2026-11-24. Repos: edusport_backend (branch `feat/feature-switches`, based on `chore/env-cleanup`) and edusport_frontend. Mockups: admin canvas https://claude.ai/artifact/Cx3uxTqtnuPWDAuB8vR6ws, boards Functii_B, Functii_B2, Functii_B3 (approved: page B, under Sistem).
+Status: approved 2026-11-24. Repos: edusport_backend (branch `feat/feature-switches`, based on `chore/env-cleanup`) and edusport_frontend. Mockups: admin canvas https://claude.ai/artifact/Cx3uxTqtnuPWDAuB8vR6ws, boards Functii_B, Functii_B2, Functii_B3 (approved: page B, under Sistem).
 
 ## 1. Intent
 
@@ -80,14 +80,18 @@ Intro: "Alege ce părți ale platformei folosește clubul. O funcție dezactivat
 
 - Prezență: "Antrenorii și administratorii completează prezența la fiecare ședință. Din prezență se calculează ședințele rămase din abonament."
 - Abonamente și plăți: "Evidența abonamentelor, a plăților și a restanțelor, în Contabilitate. Părinții primesc pe e-mail confirmarea fiecărei plăți."
-- Portalul antrenorilor: "Antrenorii au acces la un portal propriu, unde își văd programul, grupele și sportivii și completează prezența de pe telefon." (with `prezenta` off the last clause is not true; see open item 2)
+- Portalul antrenorilor: "Antrenorii au acces la un portal propriu, unde își văd programul, grupele și sportivii și completează prezența de pe telefon." While Prezență is off the line ends at "sportivii" (the clause about attendance is dropped).
 - Portalul părinților: "Părinții și sportivii majori au acces la un portal unde urmăresc calendarul, prezența, plățile și rezultatele."
-- Parcurs și insigne: OPEN (item 1).
+- Parcurs și insigne: "Sportivii primesc insigne pentru antrenamente, concursuri și vechime, iar antrenorii le pot acorda și insigne proprii. Insignele apar în fișa sportivului și în portaluri."
 - Dependent and disabled: "Se poate activa doar împreună cu Prezența."
-- Portal not installed: "Portalul nu este instalat pe acest server." (to approve)
+- Portal not installed: "Portalul nu este instalat pe acest server."
 - Footer: "Mereu active: site-ul, înscrierile, sportivii, grupele și calendarul."
 
-Warning dialog, one per feature, title "Dezactivezi <funcția>?", buttons Anulează / Dezactivează. Prezență (approved): "Prezența nu mai apare în panou și în portalul antrenorilor. Datele introduse până acum se păstrează și redevin vizibile când activezi din nou funcția." plus "Odată cu Prezența se dezactivează și:" and the list. Texts for the other four: OPEN (item 3).
+Warning dialog, one per feature, title "Dezactivezi <funcția>?", buttons Anulează / Dezactivează. Prezență (approved): "Prezența nu mai apare în panou și în portalul antrenorilor. Datele introduse până acum se păstrează și redevin vizibile când activezi din nou funcția." plus "Odată cu Prezența se dezactivează și:" and the list. Others (approved):
+- Abonamente și plăți: "Contabilitatea, abonamentele și plățile nu mai apar în panou și în portalul părinților, iar e-mailurile de confirmare a plății care așteaptă să fie trimise se anulează. Datele se păstrează și redevin vizibile când activezi din nou funcția."
+- Portalul antrenorilor: "Antrenorii nu mai pot intra în portal, iar invitațiile netrimise se anulează. Conturile lor se păstrează și funcționează din nou când activezi portalul."
+- Portalul părinților: "Părinții nu mai pot intra în portal, iar invitațiile netrimise se anulează. Conturile se păstrează și funcționează din nou când activezi portalul. E-mailurile despre schimbările de program se trimit în continuare."
+- Parcurs și insigne: "Parcursul și insignele nu mai apar în fișa sportivilor și în portaluri. Insignele acordate până acum se păstrează și redevin vizibile când activezi din nou funcția."
 
 ## 8. Tests (behaviour only)
 
@@ -103,9 +107,7 @@ No saved row means all active, so deploying changes nothing for the current club
 
 ## 10. Open items for the user
 
-1. Parcurs și insigne line. Facts: pins come automatically from attendance, competition results and membership anniversaries; coaches also award pins by hand. Proposal: "Sportivii primesc insigne pentru antrenamente, concursuri și vechime, iar antrenorii le pot acorda și insigne proprii. Insignele apar în fișa sportivului și în portaluri."
-2. Coach portal line when attendance is off. Proposal: keep the approved line and drop its last clause while Prezență is off.
-3. Warning texts for Abonamente și plăți, the two portals and Parcurs și insigne.
+None. Approved 2026-11-24: the Parcurs line, the coach portal working without Prezență, the four warning texts, and the build details in section 11.
 
 ## 11. Build details (decided by Claude after the builder check; the user may overrule any)
 
