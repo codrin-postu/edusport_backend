@@ -71,9 +71,9 @@ export async function readHome(c: SportivContext, athleteId: string): Promise<Sp
     level: facts ? levelOf(facts.group, facts.section, facts.section.locationName ?? null) : null,
     category: lastCompetition?.available ? lastCompetition.row.category : null,
     seasonLabel: season?.label ?? null,
-    presences: { total: dates.length, months: season ? monthBars(season.startMonth.slice(0, 10), c.today, countByMonth(dates)) : [] },
+    presences: c.holder.features.prezenta ? { total: dates.length, months: season ? monthBars(season.startMonth.slice(0, 10), c.today, countByMonth(dates)) : [] } : null,
     upcoming: inactive ? [] : await upcoming(c, athleteId),
-    abonament: abonament?.abonament ?? null, lastCompetition, promotion,
+    abonament: c.holder.features.abonamente ? (abonament?.abonament ?? null) : null, lastCompetition, promotion,
   });
 }
 

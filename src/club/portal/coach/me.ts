@@ -2,6 +2,7 @@ import { refuse, type AdminResult } from '../../admin-result';
 import type { PortalAuthContext, PortalResult } from '../auth/context';
 import { PORTAL_ERRORS, PORTAL_TOASTS } from '../copy';
 import { changePasswordFor, listDevicesFor, readPhone, revokeDeviceFor, type MeScope } from '../me-shared';
+import { portalFeatures } from '../../features/features';
 import type { CoachDevice, CoachMe } from './api-types';
 import { coachActor, type CoachContexts } from './context';
 
@@ -24,6 +25,7 @@ export async function readMe(c: CoachContexts): Promise<AdminResult<CoachMe>> {
       name, firstName: name.split(/\s+/)[0] ?? name, initials: initialsOf(name), email: account.email, phone: account.phone,
       hasPassword: user.passwordHash !== null, google: account.googleSub !== null,
       coachId: c.coach.teamMemberId, coachOptions: team.filter((t) => coaching.has(t.id)).map((t) => ({ id: t.id, name: t.name })),
+      features: portalFeatures(c.coach.features),
     },
   };
 }

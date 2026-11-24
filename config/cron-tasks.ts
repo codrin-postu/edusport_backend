@@ -19,7 +19,7 @@
  */
 import type { Core } from '@strapi/strapi';
 import { retryRegistrationEmails } from '../src/email/strapi-email';
-import { portalsEnabled } from '../src/club/portal/auth/bff';
+import { loadFeatures } from '../src/club/features/strapi-store';
 import { purgeHousekeeping, purgePortal } from '../src/club/portal/purge';
 import { syncClubWide } from '../src/club/portal/notices/strapi-sync';
 import { strapiNoticeStore } from '../src/club/portal/notices/strapi-store';
@@ -85,8 +85,8 @@ export default {
   },
   portalNotices: {
     task: async ({ strapi }: { strapi: Core.Strapi }) => {
-      if (!portalsEnabled()) return;
       try {
+        if (!(await loadFeatures(strapi)).portalParinti) return;
         const n = await syncClubWide(strapi);
         if (n.created || n.delivered || n.ended) strapi.log.info(`[portal][cron] notices: ${n.created} created, ${n.delivered} delivered, ${n.ended} ended`);
       } catch (err) {
@@ -99,8 +99,9 @@ export default {
     task: async ({ strapi }: { strapi: Core.Strapi }) => {
       try {
         // One daily pass also clears the 2FA rows (unconfirmed factors, spent challenges and backup codes, revoked admin devices).
-        // With portals off only the portal tables are skipped; the non-portal housekeeping still runs.
-        const n = portalsEnabled()
+        // With both portals off (not installed or switched off) only the portal tables are skipped; the non-portal housekeeping still runs.
+        const features = await loadFeatures(strapi);
+        const n = features.portalAntrenori || features.portalParinti
           ? await purgePortal(strapiPortalStore(strapi), new Date(), strapiSecurityStore(strapi), process.env, strapiNoticeStore(strapi))
           : { limits: 0, devices: 0, tokens: 0, sessions: 0, ...(await purgeHousekeeping(new Date(), strapiSecurityStore(strapi), process.env, strapiNoticeStore(strapi))) };
         const cancels = await strapiPresenceStore(strapi).pruneLessonCancels(todayIso());

@@ -1,3 +1,4 @@
+import { loadFeatures } from '../../features/strapi-store';
 import type { Core } from '@strapi/strapi';
 import bcrypt from 'bcryptjs';
 import { adminActor } from '../../admin-actor';
@@ -57,6 +58,7 @@ export function baseContext(strapi: Core.Strapi, actor: string): AccountContext 
     cancelInvites: async (accountId) => {
       await cancelQueuedInvites(strapi, accountId);
     },
+    portalOn: async (host) => (await loadFeatures(strapi))[host === 'sportiv' ? 'portalParinti' : 'portalAntrenori'],
     mail: portalMailSender(strapi),
     hash: (p) => bcrypt.hash(p, 10),
     twoFactorOn: (accountId) => twoFactorOn(security, accountId),

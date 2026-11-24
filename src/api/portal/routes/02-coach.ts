@@ -4,7 +4,9 @@
  */
 const guard = { auth: false, policies: ['global::is-coach'], middlewares: [] };
 
-const route = (method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, handler: string) => ({ method, path: `/portal/coach${path}`, handler: `coach.${handler}`, config: guard });
+const gated = (feature: 'prezenta' | 'parcurs') => ({ ...guard, policies: ['global::is-coach', { name: 'global::portal-feature', config: { feature } }] });
+
+const route = (method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, handler: string, config: object = guard) => ({ method, path: `/portal/coach${path}`, handler: `coach.${handler}`, config });
 
 export default {
   routes: [
@@ -26,20 +28,20 @@ export default {
     route('POST', '/groups/:documentId/members', 'addMembers'),
     route('POST', '/groups/:documentId/members/:athleteId/move', 'moveMember'),
     route('POST', '/groups/:documentId/members/:athleteId/remove', 'removeMember'),
-    route('GET', '/session', 'session'),
-    route('POST', '/session/check', 'sessionCheck'),
-    route('PUT', '/session', 'saveSession'),
-    route('POST', '/lessons', 'createLesson'),
-    route('PUT', '/lessons/:documentId/plan', 'planLesson'),
-    route('GET', '/lessons/:documentId', 'lesson'),
-    route('PUT', '/lessons/:documentId', 'saveLesson'),
-    route('POST', '/lessons/:documentId/cancel', 'cancelLesson'),
-    route('DELETE', '/lessons/:documentId', 'deleteLesson'),
+    route('GET', '/session', 'session', gated('prezenta')),
+    route('POST', '/session/check', 'sessionCheck', gated('prezenta')),
+    route('PUT', '/session', 'saveSession', gated('prezenta')),
+    route('POST', '/lessons', 'createLesson', gated('prezenta')),
+    route('PUT', '/lessons/:documentId/plan', 'planLesson', gated('prezenta')),
+    route('GET', '/lessons/:documentId', 'lesson', gated('prezenta')),
+    route('PUT', '/lessons/:documentId', 'saveLesson', gated('prezenta')),
+    route('POST', '/lessons/:documentId/cancel', 'cancelLesson', gated('prezenta')),
+    route('DELETE', '/lessons/:documentId', 'deleteLesson', gated('prezenta')),
     route('GET', '/athletes/search', 'searchAthletes'),
     route('POST', '/athletes', 'addAthlete'),
-    route('GET', '/athletes/:athleteId/parcurs', 'parcurs'),
-    route('POST', '/athletes/:athleteId/awards', 'addAward'),
-    route('DELETE', '/athletes/:athleteId/awards/:awardId', 'removeAward'),
+    route('GET', '/athletes/:athleteId/parcurs', 'parcurs', gated('parcurs')),
+    route('POST', '/athletes/:athleteId/awards', 'addAward', gated('parcurs')),
+    route('DELETE', '/athletes/:athleteId/awards/:awardId', 'removeAward', gated('parcurs')),
     route('GET', '/athletes/:documentId', 'athlete'),
     route('GET', '/athletes/:athleteId/competitions/:resultId/protocol', 'protocol'),
     route('GET', '/history', 'history'),

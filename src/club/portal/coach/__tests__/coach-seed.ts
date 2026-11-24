@@ -1,3 +1,4 @@
+import { ALL_ON } from '../../../features/features';
 import type { CalendarEventRow } from '../../../../api/calendar-event/services/expand';
 import { fakeClubStore } from '../../../athletes/__tests__/fake-store';
 import { athleteRow, event, member } from '../../../groups/__tests__/fake-group-store';
@@ -89,7 +90,7 @@ export function coachCtx(teamMemberId: string, today = '2026-11-20', over: FakeP
   const parcursFake = fakeParcursStore();
   const [year, month, day] = today.split('-').map(Number);
   return {
-    coach: { accountId: 'acc-1', userId: 1, sessionId: 'ses-1', teamMemberId, name, schoolEdit },
+    coach: { accountId: 'acc-1', userId: 1, sessionId: 'ses-1', teamMemberId, name, schoolEdit, features: ALL_ON },
     today,
     presence: { ...fake.ctx, actor },
     groups: {

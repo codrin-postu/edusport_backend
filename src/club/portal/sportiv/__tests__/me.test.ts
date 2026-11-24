@@ -49,9 +49,15 @@ async function setup() {
 describe('readMe', () => {
   it('reads the account field by field and counts only confirmed, live sportiv devices', async () => {
     const t = await setup();
-    expect(await readMe(t.c)).toEqual({ email: MAIL, name: 'Maria Ionescu', phone: '0712 000 111', hasPassword: true, google: false, passwordChangedAt: null, notifySchedule: true, devices: 2 });
+    expect(await readMe(t.c)).toEqual({ email: MAIL, name: 'Maria Ionescu', phone: '0712 000 111', hasPassword: true, google: false, passwordChangedAt: null, notifySchedule: true, devices: 2, features: { prezenta: true, abonamente: true, parcurs: true } });
     await t.store.updateDevice(t.second.deviceId, { revokedAt: '2026-11-08T10:00:00.000Z' });
     expect((await readMe(t.c)).devices).toBe(1);
+  });
+
+  it('carries the three switches of the request', async () => {
+    const t = await setup();
+    const off = { ...t.c, holder: { ...t.c.holder, features: { ...t.c.holder.features, prezenta: false, abonamente: false } } };
+    expect((await readMe(off)).features).toEqual({ prezenta: false, abonamente: false, parcurs: true });
   });
 
   it('extra columns on the account row do not leave', async () => {

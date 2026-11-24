@@ -128,3 +128,38 @@ describe('portals on', () => {
     }
   });
 });
+
+describe('a portal switched off while installed', () => {
+  const setFeatures = (value: Record<string, boolean> | undefined) => { (globalThis as { __features?: unknown }).__features = value; };
+  afterEach(() => setFeatures(undefined));
+
+  it('the notices cron needs the parent portal, the coach portal alone is not enough', async () => {
+    setFeatures({ portalParinti: false });
+    await cronTasks.portalNotices.task({ strapi });
+    expect(notices).not.toHaveBeenCalled();
+  });
+
+  it('the purge cron purges the portal tables while one portal is on', async () => {
+    setFeatures({ portalParinti: false });
+    purge.mockResolvedValue({ limits: 0, devices: 0, tokens: 0, sessions: 0 });
+    lessonCancels.mockResolvedValue(0);
+    await cronTasks.portalPurge.task({ strapi });
+    expect(purge).toHaveBeenCalledTimes(1);
+  });
+
+  it('the purge cron keeps only the housekeeping when both portals are switched off', async () => {
+    setFeatures({ portalParinti: false, portalAntrenori: false });
+    housekeeping.mockResolvedValue({});
+    lessonCancels.mockResolvedValue(0);
+    await cronTasks.portalPurge.task({ strapi });
+    expect(purge).not.toHaveBeenCalled();
+    expect(housekeeping).toHaveBeenCalledTimes(1);
+  });
+
+  it('an invite of the switched-off portal answers 409 portalsOff', async () => {
+    const h = harness();
+    h.c.portalOn = async (host) => host !== 'antrenor';
+    expect(await inviteAccount(h.c, 'tm1', { email: 'a@b.ro' })).toEqual({ ok: false, status: 409, error: PORTAL_ERRORS.portalsOff });
+    expect(h.jobs).toHaveLength(0);
+  });
+});

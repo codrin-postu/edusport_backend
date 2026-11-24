@@ -49,6 +49,12 @@ async function nextAndWeek(c: CoachContexts, todo: CoachClassRow[], places: Map<
   };
 }
 
+/** `prezenta` off: the sessions stay, the attendance state goes (no saved flags, no classes still to do, no missing count). */
+function withoutAttendance(today: CoachToday): CoachToday {
+  const plain = <T extends { done?: boolean }>({ done: _done, ...rest }: T): Omit<T, 'done'> => rest;
+  return { ...today, groups: today.groups.map(plain), lessons: today.lessons.map(plain), todo: [], week: { ...today.week, missing: 0 } };
+}
+
 /** Azi (spec 9.3): the coach's classes, stand-in classes already saved, lessons, and the past classes still to do. */
 export async function readToday(c: CoachContexts, date: unknown): Promise<AdminResult<CoachToday>> {
   const wanted = date === undefined || date === '' ? c.today : date;
@@ -61,13 +67,11 @@ export async function readToday(c: CoachContexts, date: unknown): Promise<AdminR
   const ownRows = day.data.day.filter((r) => own.has(r.groupId));
   const standIn = await standInRows(c, day.data.day.filter((r) => !own.has(r.groupId)));
   const todo = day.data.undone.filter((r) => own.has(r.groupId) && canCoachCorrect(r.date, c.today)).map((r) => classRow(r, false, where));
-  return {
-    ok: true,
-    data: {
-      date: day.data.date, today: c.today,
-      groups: [...ownRows.map((r) => classRow(r, false, where)), ...standIn.map((r) => classRow(r, true, where))].sort((a, b) => a.startTime.localeCompare(b.startTime)),
-      lessons: await lessonsOf(c, day.data.date),
-      todo, ...(await nextAndWeek(c, todo, places)),
-    },
+  const data: CoachToday = {
+    date: day.data.date, today: c.today,
+    groups: [...ownRows.map((r) => classRow(r, false, where)), ...standIn.map((r) => classRow(r, true, where))].sort((a, b) => a.startTime.localeCompare(b.startTime)),
+    lessons: await lessonsOf(c, day.data.date),
+    todo, ...(await nextAndWeek(c, todo, places)),
   };
+  return { ok: true, data: c.coach.features.prezenta ? data : withoutAttendance(data) };
 }

@@ -7,6 +7,7 @@ import coachRoutes from '../../../../api/portal/routes/02-coach';
 import sportivRoutes from '../../../../api/portal/routes/04-sportiv';
 import isAdmin from '../../../../policies/is-admin';
 import isCoach from '../../../../policies/is-coach';
+import portalFeature from '../../../../policies/portal-feature';
 import isSportiv from '../../../../policies/is-sportiv';
 import { fakeAccessStore } from '../../access/fake-store';
 import { forbiddenPathsIn } from '../../forbidden-keys';
@@ -69,12 +70,15 @@ function ctxFor(token: string, params: Record<string, string> = {}, query: Recor
   return ctx;
 }
 
-type Route = { method: string; path: string; handler: string; config: { policies: string[] } };
+type Route = { method: string; path: string; handler: string; config: { policies: (string | { name: string })[] } };
 const POLICIES: Record<string, (c: never, cfg: unknown, o: { strapi: Core.Strapi }) => Promise<boolean>> = {
-  'global::is-sportiv': isSportiv as never, 'global::is-coach': isCoach as never, 'global::is-admin': isAdmin as never,
+  'global::portal-feature': portalFeature as never, 'global::is-sportiv': isSportiv as never, 'global::is-coach': isCoach as never, 'global::is-admin': isAdmin as never,
 };
 const runPolicies = async (route: Route, ctx: Ctx): Promise<void> => {
-  for (const p of route.config.policies) await POLICIES[p](ctx as never, {}, { strapi });
+  for (const p of route.config.policies) {
+    const [name, config] = typeof p === 'string' ? [p, {}] : [p.name, (p as { config?: unknown }).config ?? {}];
+    await POLICIES[name](ctx as never, config, { strapi });
+  }
 };
 /** The request as the router would run it: the first route of the table that matches, its policies, then its handler. */
 async function call(token: string, method: string, path: string, query: Record<string, unknown> = {}, body: unknown = {}): Promise<Ctx> {

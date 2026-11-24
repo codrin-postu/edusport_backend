@@ -15,7 +15,7 @@ export default async (policyContext: PolicyContext, _config: unknown, { strapi }
   if (who.host !== 'sportiv' || !who.account) throw new errors.ForbiddenError();
   const athleteIds = await heldAthleteIds(who.access, who.account.id);
   if (!canEnterHost(who.account, who.user, 'sportiv', athleteIds.length)) throw new errors.ForbiddenError();
-  const holder: HolderState = { accountId: who.account.id, userId: who.userId, sessionId: who.sessionId, athleteIds };
+  const holder: HolderState = { accountId: who.account.id, userId: who.userId, sessionId: who.sessionId, athleteIds, features: who.features };
   policyContext.state.holder = holder;
   return true;
 };

@@ -1,10 +1,11 @@
 /** JSON shapes of the sportiv routes (index 7, spec sportiv app). Imports nothing: the frontend copies this file verbatim. */
+import type { PortalFeatures } from '../../features/features';
 import type { Parcurs, PinView, ReceivedPin } from '../../parcurs/api-types';
 export type { Parcurs, PinView, ReceivedPin };
 /** A friend a pin can be given to: the id and the short name ("Ana P."). */
 export type PinRecipient = { id: string; name: string };
 export type SectionKind = 'school' | 'club';
-export type SportivMe = { email: string; name: string | null; phone: string | null; hasPassword: boolean; google: boolean; passwordChangedAt: string | null; notifySchedule: boolean; devices: number };
+export type SportivMe = { email: string; name: string | null; phone: string | null; hasPassword: boolean; google: boolean; passwordChangedAt: string | null; notifySchedule: boolean; devices: number; features: PortalFeatures };
 export type PortalDevice = { id: string; label: string; lastSeenAt: string; current: boolean; twoFactorUntil: string | null }; // same shape as CoachDevice
 export type SportivAthleteRow = { id: string; name: string; firstName: string; groupName: string | null; age: number | null; section: SectionKind | null; inPicker: boolean; performance: boolean };
 export type SportivAthletes = { athletes: SportivAthleteRow[] };
@@ -25,7 +26,8 @@ export type Promotion = { from: string; to: string };
 export type SportivHome = {
   athlete: { id: string; name: string; firstName: string; age: number | null; inactive: boolean };
   level: Level | null; category: string | null; seasonLabel: string | null;
-  presences: { total: number; months: MonthBar[] }; upcoming: CalendarItem[];
+  /** Left out when `prezenta` is off. */
+  presences?: { total: number; months: MonthBar[] }; upcoming: CalendarItem[];
   abonament: AbonamentShort | null; lastCompetition: LastCompetition | null; promotion: Promotion | null;
 };
 export type SportivProfile = { name: string; birthDate: string | null; age: number | null; contactName: string | null; phone: string | null; email: string | null };

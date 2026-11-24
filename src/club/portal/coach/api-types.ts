@@ -2,6 +2,7 @@ import type { Occurrence } from '../../../api/calendar-event/services/expand';
 import type { GroupProgram } from '../../groups/program-read';
 import type { AddedSession, SavedOnDay, SectionKind, SessionCheck } from '../../presence/attendance/api-types';
 import type { LessonState } from '../../presence/types';
+import type { PortalFeatures } from '../../features/features';
 import type { Parcurs, ParcursStaff, PinView, ReceivedPin } from '../../parcurs/api-types';
 
 export type { Parcurs, ParcursStaff, PinView, ReceivedPin };
@@ -18,16 +19,20 @@ export type CoachMe = {
   coachId: string;
   /** Team members who coach any group: id and name only, for choosing a lesson's coaches. */
   coachOptions: { id: string; name: string }[];
+  /** The effective switches that change the coach pages. */
+  features: PortalFeatures;
 };
 /** Dates of one month (`YYYY-MM-DD`, ascending) that have a saved session the coach may read. */
 export type CoachSavedDays = { month: string; dates: string[] };
 /** `twoFactorUntil`: the end of this device's remembered 2FA skip, null when it must answer the second step. */
 export type CoachDevice = { id: string; label: string; lastSeenAt: string; current: boolean; twoFactorUntil: string | null };
 export type CoachClassRow = {
-  sessionId: string | null; occurrenceKey: string | null; groupId: string; groupName: string; date: string; startTime: string; children: number; done: boolean; standIn: boolean;
+  sessionId: string | null; occurrenceKey: string | null; groupId: string; groupName: string; date: string; startTime: string; children: number; standIn: boolean;
+  /** Saved presence state; left out when `prezenta` is off. */
+  done?: boolean;
   location: string | null;
 };
-export type CoachLessonRow = { lessonId: string; athleteName: string; date: string; startTime: string; durationMin: number; done: boolean; cancelled: boolean; reason: string | null };
+export type CoachLessonRow = { lessonId: string; athleteName: string; date: string; startTime: string; durationMin: number; done?: boolean; cancelled: boolean; reason: string | null };
 /** The first own class or lesson after now (14 days ahead at most), for the Azi column. */
 export type CoachNext = { kind: 'grup' | 'individual'; date: string; startTime: string; title: string; location: string | null; occurrenceKey: string | null; lessonId: string | null };
 /** The Monday to Sunday week of today: classes and lessons held (start time passed) and left, and held classes still without saved presence. */

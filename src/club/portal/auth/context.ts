@@ -17,6 +17,8 @@ import type { AccessStore } from '../access/store';
 import type { PortalStore } from '../store';
 import { transactionScope } from '../../athletes/strapi-store';
 import { strapiPortalStore } from '../strapi-store';
+import { hostFeature } from '../../features/features';
+import { loadFeatures } from '../../features/strapi-store';
 import { PORTAL_HOSTS, clientIp, userAgent } from './bff';
 import { limiter, type Limiter } from './limit';
 
@@ -30,7 +32,10 @@ export type PortalResult<T> = AdminResult<T> | AuthRefusal;
 
 export type PortalAuthContext = {
   store: PortalStore; /** Athlete access rows (7-1): `sportiv` entry needs a live one. Shares the transaction scope of `store`. */ access: AccessStore; sessions: PortalSessions; limits: Limiter; mail: SendPortalMail; common: ReadonlySet<string>;
-  hosts: string[]; ip: string; userAgent: string | null; now: () => Date; log: (m: string) => void;
+  hosts: string[];
+  /** Whether the portal of a host is active (installed and switched on); absent in tests, which means active. */
+  portalOn?: (host: string) => Promise<boolean>;
+  ip: string; userAgent: string | null; now: () => Date; log: (m: string) => void;
   /** Waits; tests inject a fast one. Defaults to a real timer. */
   sleep?: (ms: number) => Promise<void>;
   /** Inside a transaction: queued invite jobs of the account are cancelled and their links blanked (optional in tests). */
@@ -66,6 +71,10 @@ export function portalAuthContext(strapi: Core.Strapi, ctx: PortalCtx): PortalAu
     mail: portalMailSender(strapi),
     common: loadCommonPasswords(strapi.dirs.app.root),
     hosts: PORTAL_HOSTS(),
+    portalOn: async (host) => {
+      const portal = hostFeature(host);
+      return portal === null || (await loadFeatures(strapi))[portal];
+    },
     ip,
     userAgent: ua,
     now,

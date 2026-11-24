@@ -13,14 +13,14 @@ export const SPORTIV_ALLOWED_PATHS: readonly string[] = [];
 /** The home answer, field by field: anything else on the sources never leaves. */
 export function toHome(x: {
   athlete: SportivHome['athlete']; level: Level | null; category: string | null; seasonLabel: string | null;
-  presences: { total: number; months: MonthBar[] }; upcoming: CalendarItem[]; abonament: AbonamentShort | null;
+  presences: { total: number; months: MonthBar[] } | null; upcoming: CalendarItem[]; abonament: AbonamentShort | null;
   lastCompetition: LastCompetition | null; promotion: Promotion | null;
 }): SportivHome {
   const a = x.athlete;
   return {
     athlete: { id: a.id, name: a.name, firstName: a.firstName, age: a.age, inactive: a.inactive },
     level: x.level ? toLevel(x.level) : null, category: x.category, seasonLabel: x.seasonLabel,
-    presences: { total: x.presences.total, months: x.presences.months.map(toMonthBar) },
+    ...(x.presences ? { presences: { total: x.presences.total, months: x.presences.months.map(toMonthBar) } } : {}),
     upcoming: x.upcoming.map(toCalendarItem),
     abonament: x.abonament ? toAbonamentShort(x.abonament) : null,
     lastCompetition: x.lastCompetition ? toLastCompetition(x.lastCompetition) : null,

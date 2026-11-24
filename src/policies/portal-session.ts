@@ -1,5 +1,7 @@
 import type { Core } from '@strapi/strapi';
 import { errors } from '@strapi/utils';
+import { hostFeature, type Features } from '../club/features/features';
+import { loadFeatures } from '../club/features/strapi-store';
 import { strapiAccessStore } from '../club/portal/access/strapi-store';
 import type { AccessStore } from '../club/portal/access/store';
 import { isBffCall, portalsEnabled } from '../club/portal/auth/bff';
@@ -11,7 +13,7 @@ type Headers = Record<string, string | string[] | undefined>;
 export type PolicyContext = { request: { header: Headers }; state: Record<string, unknown> };
 
 /** What every portal policy has checked once the BFF secret (403) and the session (401) are through. */
-export type PortalCaller = { store: PortalStore; access: AccessStore; account: AccountRow | null; user: UserAuth | null; userId: number; sessionId: string; host: string };
+export type PortalCaller = { store: PortalStore; access: AccessStore; account: AccountRow | null; user: UserAuth | null; userId: number; sessionId: string; host: string; features: Features };
 
 function bearer(headers: Headers): string | null {
   const raw = headers.authorization;
@@ -34,7 +36,12 @@ export async function portalCaller(policyContext: PolicyContext, strapi: Core.St
   const store = strapiPortalStore(strapi);
   const check = token ? await portalSessions(store).verifyAccess(token) : null;
   if (!check) throw new errors.UnauthorizedError();
+  // The host's own portal must be active (installed and switched on): a session left open when it goes off gets 404 on the next call.
+  const features = await loadFeatures(strapi);
+  const portal = hostFeature(check.host);
+  if (portal !== null && !features[portal]) throw new errors.NotFoundError();
+  policyContext.state.features = features;
   const account = await store.accountByUser(check.userId);
   const user = await store.user(check.userId);
-  return { store, access: strapiAccessStore(strapi), account, user, userId: check.userId, sessionId: check.sessionId, host: check.host };
+  return { store, access: strapiAccessStore(strapi), account, user, userId: check.userId, sessionId: check.sessionId, host: check.host, features };
 }

@@ -1,3 +1,4 @@
+import { ALL_ON } from '../../../features/features';
 import { fakeNoticeStore } from '../../notices/__tests__/fake-store';
 import type { NoticeSyncContext, PortalAnnouncement } from '../../notices/sync';
 import { randomBytes } from 'node:crypto';
@@ -54,7 +55,7 @@ const S_MEMBERSHIPS = [
   member({ id: 'gm-radu', athleteId: A_RADU, groupId: 'g-pro' }),
 ];
 
-const holderOf = (athleteIds: string[]): HolderState => ({ accountId: 'acc-sp', userId: 1, sessionId: 'ses-1', athleteIds: [...athleteIds].sort() });
+const holderOf = (athleteIds: string[]): HolderState => ({ accountId: 'acc-sp', userId: 1, sessionId: 'ses-1', athleteIds: [...athleteIds].sort(), features: ALL_ON });
 
 /** The e-mail of each fixture account and the athletes it holds. */
 export const HOLDERS: Record<string, string[]> = {

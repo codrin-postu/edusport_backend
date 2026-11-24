@@ -26,8 +26,14 @@ describe('portal coach routes', () => {
     for (const resource of resources) expect(staticBeforeParams(paths.filter((p) => p.split('/')[3] === resource).map((p) => p.replace('/portal/coach', '/portal/coach/x'))), resource).toBe(true);
   });
 
-  it('turn off Strapi auth and run only global::is-coach', () => {
-    for (const r of routes.routes) expect(r.config).toEqual({ auth: false, policies: ['global::is-coach'], middlewares: [] });
+  it('turn off Strapi auth and run global::is-coach first, then at most a portal-feature check', () => {
+    for (const r of routes.routes) {
+      const config = r.config as { auth: boolean; policies: (string | { name: string })[]; middlewares: unknown[] };
+      expect(config.auth).toBe(false);
+      expect(config.middlewares).toEqual([]);
+      expect(config.policies[0]).toBe('global::is-coach');
+      for (const extra of config.policies.slice(1)) expect(typeof extra === 'string' ? extra : extra.name).toBe('global::portal-feature');
+    }
   });
 });
 

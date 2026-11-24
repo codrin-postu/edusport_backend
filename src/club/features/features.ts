@@ -14,6 +14,8 @@ export const FEATURE_KEYS: readonly FeatureKey[] = [
 ];
 
 export type Features = Record<FeatureKey, boolean>;
+/** Every switch on: what background work and fixtures use when no request decides. */
+export const ALL_ON: Features = { prezenta: true, abonamente: true, portalAntrenori: true, portalParinti: true, parcurs: true };
 export type Installed = { portalAntrenori: boolean; portalParinti: boolean };
 
 export type ChangeResult =
@@ -84,3 +86,15 @@ export function applyChange(
 export function featureOffBody(feature: FeatureKey): { data: null; error: { status: 403; name: 'ForbiddenError'; message: string; details: { code: 'featureOff'; feature: FeatureKey } } } {
   return { data: null, error: { status: 403, name: 'ForbiddenError', message: 'Feature is off', details: { code: 'featureOff', feature } } };
 }
+
+/** The portal switch a session host answers to (`antrenor` -> `portalAntrenori`, `sportiv` -> `portalParinti`); null for any other value. */
+export function hostFeature(host: string): 'portalAntrenori' | 'portalParinti' | null {
+  if (host === 'antrenor') return 'portalAntrenori';
+  if (host === 'sportiv') return 'portalParinti';
+  return null;
+}
+
+/** What a portal `me` answer tells the app about the three switches that change its pages. */
+export type PortalFeatures = { prezenta: boolean; abonamente: boolean; parcurs: boolean };
+
+export const portalFeatures = (f: Features): PortalFeatures => ({ prezenta: f.prezenta, abonamente: f.abonamente, parcurs: f.parcurs });

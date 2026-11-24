@@ -32,6 +32,7 @@ export async function liveInvite(c: PortalAuthContext, secret: string): Promise<
 export async function readInvite(c: PortalAuthContext, secret: string): Promise<PortalResult<InviteRead>> {
   if (await c.limits.ipBlocked(c.ip)) return paused;
   const live = await liveInvite(c, secret);
+  if (live && c.portalOn && !(await c.portalOn(live.token.host === 'sportiv' ? 'sportiv' : 'antrenor'))) return { ok: false, status: 404, error: 'Not Found' };
   return { ok: true, data: live ? { state: 'valid', email: live.account.email, host: live.token.host === 'sportiv' ? 'sportiv' : 'antrenor' } : { state: 'expired', email: null, host: null } };
 }
 

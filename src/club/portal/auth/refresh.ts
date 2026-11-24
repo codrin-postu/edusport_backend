@@ -17,6 +17,10 @@ export async function refreshSession(c: PortalAuthContext, body: unknown): Promi
   const account = await c.store.accountByUser(next.userId);
   const user = account ? await c.store.user(account.userId) : null;
   const device = account ? (await c.store.devices(account.id)).find((d) => d.id === next.deviceId) : undefined;
+  if (c.portalOn && !(await c.portalOn(next.host))) {
+    await c.sessions.revoke(next.refreshToken);
+    return { ok: false, status: 404, error: 'Not Found' };
+  }
   if (!(await mayEnter(c, account, user, next.host)) || !device || device.revokedAt !== null) {
     await c.sessions.revoke(next.refreshToken);
     return refused;

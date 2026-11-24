@@ -2,9 +2,8 @@ import { portalHost } from '../../../email/portal-email';
 import { portalAccessJob } from '../../../email/portal-access-email';
 import { guarded, refuse, type AdminResult } from '../../admin-result';
 import { ADMIN_ERRORS } from '../../athletes/errors';
-import { queueFreshInvite, useUpTokens } from '../accounts/invite';
+import { portalActive, queueFreshInvite, useUpTokens } from '../accounts/invite';
 import { PORTAL_ACTIONS, PORTAL_ERRORS } from '../copy';
-import { portalsEnabled } from '../auth/bff';
 import { normalizeEmail } from '../limits';
 import type { AccountRow } from '../store';
 import { HISTORY_ACTIONS } from '../../history-text';
@@ -106,7 +105,7 @@ const refusalStatus = (message: string): 400 | 409 => (message === ACCESS_ERRORS
  * account). The access row, the account line and the athlete line are written; the queued mail is released by the caller after commit.
  */
 export async function linkAccess(c: AccessContext, athleteId: string, rawEmail: string, opts: LinkOptions = {}): Promise<AdminResult<Linked>> {
-  if (!portalsEnabled()) return refuse(409, PORTAL_ERRORS.portalsOff);
+  if (!(await portalActive(c, 'sportiv'))) return refuse(409, PORTAL_ERRORS.portalsOff);
   return c.store.transaction(async (): Promise<AdminResult<Linked>> => {
     await c.access.lockAthlete(athleteId);
     const athlete = await c.access.athleteForAccess(athleteId);
@@ -158,7 +157,7 @@ export async function inviteAccess(c: AccessContext, athleteId: string): Promise
 /** "Retrimite invitația": the live access's account must still be `invited` (case 3). */
 export async function resendAccess(c: AccessContext, athleteId: string): Promise<AdminResult<AccessAnswer>> {
   return guardedAccess(c, 'athlete access resend', async () => {
-    if (!portalsEnabled()) return refuse(409, PORTAL_ERRORS.portalsOff);
+    if (!(await portalActive(c, 'sportiv'))) return refuse(409, PORTAL_ERRORS.portalsOff);
     if (!(await c.access.athleteForAccess(athleteId))) return refuse(404, PORTAL_ERRORS.notFound);
     const done = await c.store.transaction(async () => {
       await c.access.lockAthlete(athleteId);

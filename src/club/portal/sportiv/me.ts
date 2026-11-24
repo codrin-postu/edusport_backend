@@ -2,6 +2,7 @@ import { refuse, type AdminResult } from '../../admin-result';
 import type { PortalAuthContext, PortalResult } from '../auth/context';
 import { PORTAL_ERRORS, PORTAL_TOASTS } from '../copy';
 import { changePasswordFor, listDevicesFor, liveDevices, readPhone, revokeDeviceFor, type MeScope } from '../me-shared';
+import { portalFeatures } from '../../features/features';
 import type { PortalDevice, SportivMe } from './api-types';
 import type { SportivContext } from './context';
 
@@ -20,7 +21,7 @@ export async function readMe(c: SportivContext): Promise<SportivMe> {
   if (!account || !user) throw new Error('sportiv me: account or user not found');
   return {
     email: account.email, name: account.name, phone: account.phone, hasPassword: user.passwordHash !== null, google: account.googleSub !== null,
-    passwordChangedAt: account.passwordChangedAt, notifySchedule: account.notifySchedule, devices: (await liveDevices(scopeOf(c))).length,
+    passwordChangedAt: account.passwordChangedAt, notifySchedule: account.notifySchedule, devices: (await liveDevices(scopeOf(c))).length, features: portalFeatures(c.holder.features),
   };
 }
 

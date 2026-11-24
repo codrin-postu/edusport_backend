@@ -3,6 +3,7 @@ import { addDays } from '../../groups/dates';
 import type { PortalStore } from '../store';
 import type { SportivContext } from '../sportiv/context';
 import { ownItems } from '../sportiv/calendar';
+import { ALL_ON } from '../../features/features';
 import { heldAthleteIds, type HolderState } from '../sportiv/holder';
 import { autoKey, autoPlan, autoTitle, NOTICE_WINDOW_DAYS, type AutoSource, type BreakSpan } from './auto';
 import { isMovedReason } from './copy';
@@ -187,7 +188,7 @@ async function syncAccount(c: NoticeSyncContext, accountId: string, running: Run
   const account = await c.portal.account(accountId);
   if (!account || account.status !== 'active' || account.teamMemberId !== null) return;
   const athleteIds = await heldAthleteIds(c.access, accountId);
-  const holder: HolderState = { accountId, userId: account.userId, sessionId: '', athleteIds };
+  const holder: HolderState = { accountId, userId: account.userId, sessionId: '', athleteIds, features: ALL_ON };
   await syncAuto(c, accountId, holder, at, out);
   if (athleteIds.length === 0) return;
   const groups = running.some((r) => r.groups !== null) ? await groupsToday(c, holder) : new Set<string>();

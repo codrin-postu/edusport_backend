@@ -64,9 +64,12 @@ export async function revokeAccess(c: AccountContext, account: AccountRow, host?
 
 export const answer = (block: AccountBlock, toast: string): AdminResult<AccountAnswer> => ({ ok: true, data: { account: block, toast } });
 
+/** The invite target portal is active: the switch when the context carries it, else the install check alone. */
+export const portalActive = async (c: AccountContext, host: Host): Promise<boolean> => (c.portalOn ? c.portalOn(host) : portalsEnabled());
+
 export async function inviteAccount(c: AccountContext, teamMemberId: string, body: unknown): Promise<AdminResult<AccountAnswer>> {
   return guardedWrite(c, 'portal invite', async () => {
-    if (!portalsEnabled()) return refuse(409, PORTAL_ERRORS.portalsOff);
+    if (!(await portalActive(c, 'antrenor'))) return refuse(409, PORTAL_ERRORS.portalsOff);
     const name = await c.store.teamMemberName(teamMemberId);
     if (name === null) return refuse(404, PORTAL_ERRORS.notFound);
     if (await c.store.accountByTeamMember(teamMemberId)) return stale();
@@ -96,7 +99,7 @@ export async function inviteAccount(c: AccountContext, teamMemberId: string, bod
 
 export async function resendInvite(c: AccountContext, accountId: string): Promise<AdminResult<AccountAnswer>> {
   return guardedWrite(c, 'portal invite resend', async () => {
-    if (!portalsEnabled()) return refuse(409, PORTAL_ERRORS.portalsOff);
+    if (!(await portalActive(c, 'antrenor'))) return refuse(409, PORTAL_ERRORS.portalsOff);
     if (!(await c.store.account(accountId))) return refuse(404, PORTAL_ERRORS.notFound);
     const done = await c.store.transaction(async () => {
       await c.store.lockAccount(accountId);

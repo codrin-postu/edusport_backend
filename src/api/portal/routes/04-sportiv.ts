@@ -5,7 +5,9 @@
  */
 const guard = { auth: false, policies: ['global::is-sportiv'], middlewares: [] };
 
-const route = (method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, handler: string) => ({ method, path: `/portal/sportiv${path}`, handler: `sportiv.${handler}`, config: guard });
+const gated = (feature: 'prezenta' | 'abonamente' | 'parcurs') => ({ ...guard, policies: ['global::is-sportiv', { name: 'global::portal-feature', config: { feature } }] });
+
+const route = (method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, handler: string, config: object = guard) => ({ method, path: `/portal/sportiv${path}`, handler: `sportiv.${handler}`, config });
 
 export default {
   routes: [
@@ -21,17 +23,17 @@ export default {
     route('GET', '/athletes/:athleteId/home', 'home'),
     route('POST', '/athletes/:athleteId/promotion/seen', 'promotionSeen'),
     route('GET', '/athletes/:athleteId/profile', 'profile'),
-    route('GET', '/athletes/:athleteId/history', 'history'),
+    route('GET', '/athletes/:athleteId/history', 'history', gated('prezenta')),
     route('GET', '/athletes/:athleteId/calendar.ics', 'calendarIcs'),
     route('GET', '/athletes/:athleteId/calendar', 'calendar'),
     route('GET', '/athletes/:athleteId/competitions', 'competitions'),
     route('GET', '/athletes/:athleteId/competitions/:resultId', 'competition'),
-    route('GET', '/athletes/:athleteId/path', 'path'),
-    route('GET', '/athletes/:athleteId/pin-recipients', 'pinRecipients'),
-    route('POST', '/athletes/:athleteId/pins', 'givePin'),
-    route('GET', '/athletes/:athleteId/money', 'money'),
-    route('GET', '/athletes/:athleteId/payments', 'payments'),
-    route('GET', '/athletes/:athleteId/subscriptions', 'subscriptions'),
+    route('GET', '/athletes/:athleteId/path', 'path', gated('parcurs')),
+    route('GET', '/athletes/:athleteId/pin-recipients', 'pinRecipients', gated('parcurs')),
+    route('POST', '/athletes/:athleteId/pins', 'givePin', gated('parcurs')),
+    route('GET', '/athletes/:athleteId/money', 'money', gated('abonamente')),
+    route('GET', '/athletes/:athleteId/payments', 'payments', gated('abonamente')),
+    route('GET', '/athletes/:athleteId/subscriptions', 'subscriptions', gated('abonamente')),
     route('GET', '/athletes/:athleteId/documents/acord', 'acord'),
   ],
 };

@@ -1,7 +1,8 @@
+import type { Features } from '../../features/features';
 import type { AccessStore } from '../access/store';
 
 /** What the sportiv policy knows about the caller: the account, the session and the athletes held right now (spec 5.2). */
-export type HolderState = { accountId: string; userId: number; sessionId: string; athleteIds: string[] };
+export type HolderState = { accountId: string; userId: number; sessionId: string; athleteIds: string[]; features: Features };
 
 /** The handler refusal when an athlete is not (or no longer) held; the app goes back to the picker. */
 export const NO_ACCESS = 'Nu mai ai acces la acest sportiv.';

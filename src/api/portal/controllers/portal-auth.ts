@@ -1,5 +1,7 @@
 import { refuseWith, respond } from '../../../club/admin-http';
 import { PORTAL_ERRORS } from '../../../club/portal/copy';
+import { hostFeature } from '../../../club/features/features';
+import { loadFeatures } from '../../../club/features/strapi-store';
 import { isBffCall, portalsEnabled, portalTwoFactorOn } from '../../../club/portal/auth/bff';
 import { portalAuthContext, type PortalCtx } from '../../../club/portal/auth/context';
 import { loginWithPassword } from '../../../club/portal/auth/login';
@@ -17,16 +19,27 @@ type Handler = (ctx: PortalCtx) => Promise<void>;
  * throw is logged as the handler name and the error name only (a database error can carry limit keys or
  * e-mails in its text) and answered 500 with the shared copy.
  */
-const bffOnly = (tag: string, handler: Handler): Handler => async (ctx) => {
+const bffOnly = (tag: string, handler: Handler, hostOf?: (body: unknown) => unknown): Handler => async (ctx) => {
   if (!portalsEnabled()) return refuseWith(ctx, 404, 'Not Found');
   if (!isBffCall(ctx.request.headers, process.env.PORTAL_BFF_SECRET)) return refuseWith(ctx, 403, 'Forbidden');
   try {
+    if (hostOf && !(await hostActive(hostOf(ctx.request.body)))) return refuseWith(ctx, 404, 'Not Found');
     return await handler(ctx);
   } catch (err) {
     strapi.log.error(`[portal-auth] ${tag} failed: ${err instanceof Error ? err.name : 'error'}`);
     return refuseWith(ctx, 500, PORTAL_ERRORS.failed);
   }
 };
+
+/** The portal of the named host is active; a missing or unknown host is left to the handler's own validation. */
+async function hostActive(host: unknown): Promise<boolean> {
+  const portal = typeof host === 'string' ? hostFeature(host) : null;
+  return portal === null || (await loadFeatures(strapi))[portal];
+}
+
+const bodyHost = (body: unknown): unknown => (typeof body === 'object' && body !== null ? (body as Record<string, unknown>).host : undefined);
+/** An invite accept without a host is the coach page. */
+const inviteHost = (body: unknown): unknown => bodyHost(body) ?? 'antrenor';
 
 /** The second step and the passkey routes answer 404 while `PORTAL_2FA` is off; nothing is read or written. */
 const needsTwoFactor = (handler: Handler): Handler => async (ctx) => (portalTwoFactorOn() ? handler(ctx) : refuseWith(ctx, 404, 'Not Found'));
@@ -38,17 +51,17 @@ const secretOf = (body: unknown): string => {
 
 /** Portal auth API (routes/01-auth.ts). */
 export default {
-  login: bffOnly('login', async (ctx) => respond(ctx, await loginWithPassword(portalAuthContext(strapi, ctx), ctx.request.body))),
+  login: bffOnly('login', async (ctx) => respond(ctx, await loginWithPassword(portalAuthContext(strapi, ctx), ctx.request.body)), bodyHost),
   secondStep: bffOnly('secondStep', needsTwoFactor(async (ctx) => respond(ctx, await portalSecondStep(portalAuthContext(strapi, ctx), ctx.request.body)))),
   sendCode: bffOnly('sendCode', needsTwoFactor(async (ctx) => respond(ctx, await portalSendCode(portalAuthContext(strapi, ctx), ctx.request.body)))),
   passkeyOptions: bffOnly('passkeyOptions', needsTwoFactor(async (ctx) => respond(ctx, await portalPasskeyOptions(portalAuthContext(strapi, ctx), ctx.request.body)))),
   passkeyVerify: bffOnly('passkeyVerify', needsTwoFactor(async (ctx) => respond(ctx, await portalPasskeyVerify(portalAuthContext(strapi, ctx), ctx.request.body)))),
   refresh: bffOnly('refresh', async (ctx) => respond(ctx, await refreshSession(portalAuthContext(strapi, ctx), ctx.request.body))),
   logout: bffOnly('logout', async (ctx) => respond(ctx, await logout(portalAuthContext(strapi, ctx), ctx.request.body))),
-  google: bffOnly('google', async (ctx) => respond(ctx, await loginWithGoogle(portalAuthContext(strapi, ctx), googleClient(), ctx.request.body))),
+  google: bffOnly('google', async (ctx) => respond(ctx, await loginWithGoogle(portalAuthContext(strapi, ctx), googleClient(), ctx.request.body)), bodyHost),
   googleConfig: bffOnly('googleConfig', async (ctx) => respond(ctx, googleConfig(googleClient()))),
   inviteRead: bffOnly('inviteRead', async (ctx) => respond(ctx, await readInvite(portalAuthContext(strapi, ctx), secretOf(ctx.request.body)))),
-  inviteAccept: bffOnly('inviteAccept', async (ctx) => respond(ctx, await acceptInvite(portalAuthContext(strapi, ctx), ctx.request.body))),
-  resetRequest: bffOnly('resetRequest', async (ctx) => respond(ctx, await requestReset(portalAuthContext(strapi, ctx), ctx.request.body))),
-  resetConfirm: bffOnly('resetConfirm', async (ctx) => respond(ctx, await confirmReset(portalAuthContext(strapi, ctx), ctx.request.body))),
+  inviteAccept: bffOnly('inviteAccept', async (ctx) => respond(ctx, await acceptInvite(portalAuthContext(strapi, ctx), ctx.request.body)), inviteHost),
+  resetRequest: bffOnly('resetRequest', async (ctx) => respond(ctx, await requestReset(portalAuthContext(strapi, ctx), ctx.request.body)), bodyHost),
+  resetConfirm: bffOnly('resetConfirm', async (ctx) => respond(ctx, await confirmReset(portalAuthContext(strapi, ctx), ctx.request.body)), bodyHost),
 };

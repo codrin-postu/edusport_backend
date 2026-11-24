@@ -18,6 +18,8 @@ export type AccountContext = {
   afterCommit: (jobId: string) => void;
   /** Inside a transaction: the account's queued invite jobs are cancelled and their links blanked. */
   cancelInvites: (accountId: string) => Promise<void>;
+  /** Whether the portal of a host is active (installed and switched on); tests that leave it out fall back to the PORTAL_HOSTS install check. */
+  portalOn?: (host: 'antrenor' | 'sportiv') => Promise<boolean>;
   mail: SendPortalMail;
   hash: (p: string) => Promise<string>;
   /** Whether the account has a confirmed 2FA method; tests that do not read it leave it out (false). */
