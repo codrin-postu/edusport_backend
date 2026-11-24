@@ -12,6 +12,7 @@ import { readUnassigned } from '../../../club/groups/unassigned';
 import { readActionId, undoAction } from '../../../club/groups/undo-service';
 import { presenceContext } from '../../../club/presence/context';
 import { strapiPresenceStore } from '../../../club/presence/strapi-store';
+import { loadFeatures } from '../../../club/features/strapi-store';
 import { movePreview as presenceMovePreview, presenceCarry } from '../../../club/presence/subscriptions/move';
 import { undoKindOf, undoPresenceAction } from '../../../club/presence/undo-service';
 import { callerOf } from '../../../club/tables/views-caller';
@@ -69,14 +70,14 @@ export default {
   async movePreview(ctx: AdminCtx) {
     const membership = await store().membership(id(ctx));
     if (!membership) return refuseWith(ctx, 404, GROUP_ERRORS.notFound);
-    const preview = await presenceMovePreview(strapiPresenceStore(strapi), { athleteId: membership.athleteId, fromGroupId: membership.groupId, toGroupId: queryText(ctx.query.to) }, todayIso());
+    const preview = await presenceMovePreview(strapiPresenceStore(strapi), { athleteId: membership.athleteId, fromGroupId: membership.groupId, toGroupId: queryText(ctx.query.to) }, todayIso(), await loadFeatures(strapi));
     ctx.body = { data: preview };
   },
 
   async move(ctx: AdminCtx) {
     const membershipId = id(ctx);
     const gctx = await groupContext(strapi, ctx);
-    respondAction(ctx, await moveMembership(gctx, membershipId, ctx.request.body, presenceCarry(strapiPresenceStore(strapi)).carry));
+    respondAction(ctx, await moveMembership(gctx, membershipId, ctx.request.body, presenceCarry(strapiPresenceStore(strapi), await loadFeatures(strapi)).carry));
   },
 
   async remove(ctx: AdminCtx) {

@@ -1,3 +1,4 @@
+import { ALL_ON, type Features } from '../../features/features';
 import type { CarryInput, CarryOutcome, MoveCarry } from '../../groups/members';
 import { NO_CARRY } from '../../groups/members';
 import type { CarryPorts } from '../../groups/undo';
@@ -62,9 +63,10 @@ async function carryUsed(store: PresenceStore, subscriptionId: string, priceList
   return (await store.attendances({ subscriptionIds: [subscriptionId] })).some((a) => onList.has(a.groupId));
 }
 
-export function presenceCarry(store: PresenceStore): { carry: MoveCarry; ports: CarryPorts } {
+/** With `abonamente` off the move carries nothing: no abonament is touched (spec 11.3). Undo ports stay, they only act on steps already logged. */
+export function presenceCarry(store: PresenceStore, features: Pick<Features, 'abonamente'> = ALL_ON): { carry: MoveCarry; ports: CarryPorts } {
   return {
-    carry: (i) => store.transaction(() => carryLocked(store, i)),
+    carry: features.abonamente ? (i) => store.transaction(() => carryLocked(store, i)) : NO_CARRY,
     ports: {
       lockSubscription: (subscriptionId) => store.transaction(() => store.lockSubscription(subscriptionId)),
       subscriptionExists: async (subscriptionId) => (await store.subscription(subscriptionId)) !== null,
@@ -75,7 +77,8 @@ export function presenceCarry(store: PresenceStore): { carry: MoveCarry; ports: 
 }
 
 /** The abonament the move window shows (decided 9: the current one, else a not started one the move carries) and whether the move carries it (5.12). */
-export async function movePreview(store: PresenceStore, i: { athleteId: string; fromGroupId: string; toGroupId: string | null }, today: string): Promise<MovePreview> {
+export async function movePreview(store: PresenceStore, i: { athleteId: string; fromGroupId: string; toGroupId: string | null }, today: string, features: Pick<Features, 'abonamente'> = ALL_ON): Promise<MovePreview> {
+  if (!features.abonamente) return { bar: null, carries: false };
   const [subs, memberships, groups, lists, sections, seasons] = await Promise.all([
     store.subscriptions({ athleteId: i.athleteId }), store.memberships({ athleteId: i.athleteId }), store.groups(), store.priceListRecords(), store.sections(), store.seasons(),
   ]);

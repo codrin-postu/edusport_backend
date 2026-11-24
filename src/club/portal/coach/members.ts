@@ -58,7 +58,7 @@ export async function moveMember(c: CoachContexts, groupId: string, athleteId: s
   const s = await resolve(c, groupId, athleteId, body, true);
   if (s.ok === false) return s;
   const to = s.data.toGroupId as string;
-  const res = plain(await moveMembershipFrom(c.groups, s.data.membershipId, to, s.data.from, presenceCarry(c.presence.store).carry, ownCheck(c)));
+  const res = plain(await moveMembershipFrom(c.groups, s.data.membershipId, to, s.data.from, presenceCarry(c.presence.store, c.coach.features).carry, ownCheck(c)));
   if (res.ok === false) return res;
   return { ok: true, data: answer(s.data, res.data.groupName) };
 }
