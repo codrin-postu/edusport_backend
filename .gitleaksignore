@@ -1,4 +1,4 @@
-# Synthetic test values (fixtures, test passwords, plan examples); checked 2026-11-14, line numbers updated 2026-11-19.
+# Synthetic test values (fixtures, test passwords, plan examples); checked 2026-11-14, line numbers updated 2026-11-24.
 scripts/fixtures/phase4-shape.js:generic-api-key:117
 scripts/fixtures/phase7-shape.js:generic-api-key:114
 docs/superpowers/plans/2026-10-27-phase4-1-groups-memberships.md:generic-api-key:3914
@@ -8,6 +8,6 @@ src/club/__tests__/registration-input.test.ts:generic-api-key:39
 src/club/__tests__/registration-submit.test.ts:generic-api-key:298
 src/club/__tests__/registration-submit.test.ts:generic-api-key:299
 src/club/personal-data/__tests__/export.test.ts:generic-api-key:168
-src/club/portal/sportiv/__tests__/me.test.ts:generic-api-key:112
-src/club/portal/coach/__tests__/me.test.ts:generic-api-key:67
-src/club/portal/coach/__tests__/me.test.ts:generic-api-key:71
+src/club/portal/sportiv/__tests__/me.test.ts:generic-api-key:118
+src/club/portal/coach/__tests__/me.test.ts:generic-api-key:68
+src/club/portal/coach/__tests__/me.test.ts:generic-api-key:72
