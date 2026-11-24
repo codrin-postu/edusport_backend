@@ -31,8 +31,11 @@ describe('menu entries per role', () => {
   it('Super Admin sees every entry', () => {
     expect(labels([ROLE_CODES.superAdmin])).toEqual(EDUSPORT_LINKS.map((l) => l.label));
   });
-  it('Administrator club sees every entry (Securitate Administratori is inside the page)', () => {
-    expect(labels([ROLE_CODES.clubAdmin])).toEqual(EDUSPORT_LINKS.map((l) => l.label));
+  it('Administrator club sees every entry but Funcții (Securitate Administratori is inside the page)', () => {
+    expect(labels([ROLE_CODES.clubAdmin])).toEqual(EDUSPORT_LINKS.map((l) => l.label).filter((l) => l !== 'Funcții'));
+  });
+  it('Funcții is for the Super Admin only', () => {
+    expect(EDUSPORT_LINKS.find((l) => l.label === 'Funcții')?.area).toBe('superAdmin');
   });
   it('Editor site sees the website entries and Securitate', () => {
     expect(labels([ROLE_CODES.siteEditor]).sort()).toEqual([...SITE_EDITOR_LABELS].sort());

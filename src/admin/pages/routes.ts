@@ -36,6 +36,8 @@ export const EVENIMENTE_COLABORARE_TO = '/plugins/edusport-evenimente-colaborare
 export const EVENIMENT_COLABORARE_EDIT_TO = '/plugins/edusport-evenimente-colaborare-edit';
 /** Admin "Securitate" (6b-1 spec 10.4): 2FA, password, Google, devices, Administratori. */
 export const SECURITATE_TO = '/plugins/edusport-securitate';
+/** Funcții: the club-wide feature switches, Super Admin only. */
+export const FUNCTII_TO = '/plugins/edusport-functii';
 /** Articole: route only for now, the sidebar keeps the Strapi editor and nothing redirects (last step). */
 export const ARTICOLE_TO = '/plugins/edusport-articole';
 /** Edit page; `?id=<documentId>` edits, no id creates. */
@@ -95,6 +97,7 @@ export interface CustomPageRoute {
 }
 
 export const CUSTOM_PAGES: CustomPageRoute[] = [
+  { to: FUNCTII_TO, area: 'superAdmin', uid: 'club-features', kind: 'single', role: 'main', redirect: false, load: () => import('./FunctiiPage') },
   { to: SETARI_SITE_TO, area: 'settings', uid: UID.siteSettings, kind: 'single', role: 'main', redirect: true, load: () => import('./SetariSitePage') },
   { to: PAGINA_ECHIPA_TO, area: 'website', uid: UID.teamPage, kind: 'single', role: 'main', redirect: true, load: () => import('./PaginaEchipaPage') },
   { to: ISTORIC_TO, area: 'website', uid: UID.historicPage, kind: 'single', role: 'main', redirect: true, load: () => import('./IstoricPage') },

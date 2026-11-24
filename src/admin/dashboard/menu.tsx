@@ -7,12 +7,13 @@ import {
   CUSTOM_PAGES,
   SETARI_SITE_TO, PAGINA_ECHIPA_TO, ISTORIC_TO, PAGINA_PARTENERI_TO, DISCIPLINE_TO,
   MOMENTE_ISTORIC_TO, CURSURI_TO, PRETURI_TO, SEZOANE_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
-  REALIZARI_TO, EVENIMENTE_COLABORARE_TO, SECURITATE_TO, UID,
+  REALIZARI_TO, EVENIMENTE_COLABORARE_TO, SECURITATE_TO, FUNCTII_TO, UID,
 } from '../pages/routes';
 import { BANI_PATH } from '../../club/bani/routes';
 import { CONTABILITATE_PATH } from '../../club/contabilitate/routes';
 import { TABELE_PATH, TABLES_AREA } from '../../club/tables/routes';
 import { SECURITY_COPY } from '../../club/security/copy';
+import { FEATURES_COPY } from '../../club/features/copy';
 import { OLD_EDITOR_PATH, SPORTIVI_PATH } from '../../club/sportivi/routes';
 import type { AdminArea } from '../../club/admin-area';
 import { gated, gatedLazy } from '../lib/AreaGate';
@@ -202,6 +203,7 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: SEZOANE_TO, label: 'Sezoane', icon: Calendar, group: 'system', pinned: true, area: 'settings' },
   { to: NAVIGATION_TO, label: 'Meniu site', icon: GridFour, group: 'system', pinned: true, area: 'website' },
   { to: SECURITATE_TO, label: SECURITY_COPY.page.title, icon: Lock, group: 'system', area: 'any' },
+  { to: FUNCTII_TO, label: FEATURES_COPY.page, icon: Lock, group: 'system', area: 'superAdmin' },
 ];
 
 export function registerEdusportMenu(app: StrapiApp) {
