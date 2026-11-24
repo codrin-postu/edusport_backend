@@ -5,6 +5,7 @@ import { STATUS_WORDS } from '../history-text';
 import { MONEY_UI_COPY } from '../presence/copy/money-ui';
 import { PERSONAL_DATA_COPY } from '../personal-data/copy';
 import { DEFAULT_RETENTION_YEARS } from '../personal-data/settings';
+import type { FeatureKey } from '../features/features';
 import { countWords } from '../ro-count';
 
 export { countWords };
@@ -74,13 +75,13 @@ const DATA_OPTIONS: Choice[] = [{ value: 'complete', label: 'Complete' }, { valu
 const DUPLICATE_OPTIONS: Choice[] = [{ value: 'da', label: 'Da' }];
 
 /** Query string of GET /api/club/athletes: lists comma-separated, inactive hidden unless Status asks (spec 5). */
-export function listQueryString(s: ListState, pageSize: number): string {
+export function listQueryString(s: ListState, pageSize: number, on: (k: FeatureKey) => boolean = () => true): string {
   const p = new URLSearchParams();
   if (s.season) p.set('season', s.season);
   if (s.q.trim()) p.set('q', s.q.trim());
   const f = s.filters;
   const lists: [string, string[]][] = [
-    ['section', f.section], ['group', f.group.filter((g) => g !== NO_GROUP)], ['abonament', f.abonament], ['acs', f.acs],
+    ['section', f.section], ['group', f.group.filter((g) => g !== NO_GROUP)], ['abonament', abonamenteOn(on) ? f.abonament : []], ['acs', f.acs],
     ['profile', f.profile], ['data', f.data], ['status', f.status],
   ];
   for (const [key, values] of lists) if (values.length) p.set(key, values.join(','));
@@ -124,12 +125,15 @@ export const seasonOptions = (p: AthleteListPage | null): Choice[] =>
   (p?.seasons ?? []).map((s) => ({ value: s.documentId, label: `${LIST_COPY.season} ${s.label}` }));
 export const seasonValue = (s: ListState, p: AthleteListPage | null): string => s.season || p?.season?.documentId || '';
 
-export function filterSections(s: ListState, p: AthleteListPage | null): SectionModel[] {
+/** The Abonament column and filter exist only while subscriptions are on. */
+export const abonamenteOn = (on: (k: FeatureKey) => boolean): boolean => on('abonamente');
+
+export function filterSections(s: ListState, p: AthleteListPage | null, on: (k: FeatureKey) => boolean = () => true): SectionModel[] {
   const f = s.filters;
   // "Fără secțiune" is the server's own option (NO_SECTION), not appended here.
   const sections = p?.options.sections ?? [];
   const groups = (p?.options.groups ?? []).map((g) => ({ value: g.value, label: g.label }));
-  return [
+  const all: SectionModel[] = [
     { key: 'section', label: 'Secțiune', options: sections, selected: f.section },
     { key: 'group', label: 'Grupa', options: [...groups, { value: NO_GROUP, label: LIST_COPY.noGroup }], selected: f.group },
     { key: 'abonament', label: MONEY_UI_COPY.sportivi.filter, options: ABONAMENT_OPTIONS, selected: f.abonament, single: true },
@@ -143,6 +147,7 @@ export function filterSections(s: ListState, p: AthleteListPage | null): Section
       options: [{ value: INACTIVE, label: PERSONAL_DATA_COPY.inactiveOption(p?.retentionYears ?? DEFAULT_RETENTION_YEARS) }],
     },
   ];
+  return abonamenteOn(on) ? all : all.filter((x) => x.key !== 'abonament');
 }
 
 /** Column headers sort the desktop and tablet table; only the phone cards need the Sortare select. */

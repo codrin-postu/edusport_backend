@@ -40,7 +40,7 @@ describe('record menu (3C spec 3, 4, 6)', () => {
   it('an anonymized record: read-only, Date, Plăți and Istoric only, sub-line without "data nașterii lipsește"', () => {
     expect(isReadOnlyRecord(RECORD)).toBe(true);
     expect(isReadOnlyRecord({ status: 'inactiv' })).toBe(false);
-    expect(recordTabs(RECORD).map((t) => t.id)).toEqual(['date', 'plati', 'istoric']);
+    expect(recordTabs(RECORD, () => true).map((t) => t.id)).toEqual(['date', 'plati', 'istoric']);
     expect(recordSubline(RECORD)).toBe('Începători');
   });
 

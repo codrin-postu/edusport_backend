@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { FeatureKey } from '../../features/features';
 import type { AthleteRecord } from '../../athletes/api-types';
 import { EMPTY_DRAFT, recordTabs, checkDraft, editDraft, historyWhen, newAthleteDraft, saveToast } from '../record-view';
 
@@ -58,9 +59,22 @@ describe('Istoric and copy', () => {
   });
 });
 
+const ALL_ON = () => true;
+
 describe('record tabs', () => {
   it('Parcurs is a tab of a normal athlete, not of an anonymised one', () => {
-    expect(recordTabs(record()).map((t) => t.id)).toContain('parcurs');
-    expect(recordTabs(record({ status: 'anonimizat' })).map((t) => t.id)).not.toContain('parcurs');
+    expect(recordTabs(record(), ALL_ON).map((t) => t.id)).toContain('parcurs');
+    expect(recordTabs(record({ status: 'anonimizat' }), ALL_ON).map((t) => t.id)).not.toContain('parcurs');
+  });
+  it('drops the tabs of a switched-off feature', () => {
+    const ids = (off: FeatureKey) => recordTabs(record(), (k) => k !== off).map((t) => t.id);
+    expect(ids('abonamente')).not.toContain('abonament');
+    expect(ids('abonamente')).not.toContain('plati');
+    expect(ids('abonamente')).toContain('parcurs');
+    expect(ids('parcurs')).not.toContain('parcurs');
+    expect(ids('prezenta')).toEqual(ids('portalParinti'));
+  });
+  it('an anonymised record keeps Date and Istoric when money is off', () => {
+    expect(recordTabs(record({ status: 'anonimizat' }), (k) => k !== 'abonamente').map((t) => t.id)).toEqual(['date', 'istoric']);
   });
 });

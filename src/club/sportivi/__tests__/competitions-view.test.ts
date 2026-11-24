@@ -122,10 +122,10 @@ describe('readAthleteCompetitions', () => {
 describe('record tabs and tab source', () => {
   const record = { status: 'activ' } as AthleteRecord;
   it('lists Competiții after the existing tabs, and not on an anonymized record', () => {
-    const ids = recordTabs(record).map((t) => t.id);
+    const ids = recordTabs(record, () => true).map((t) => t.id);
     expect(ids.slice(-3)).toEqual(['istoric', 'competitii', 'parcurs']);
-    expect(recordTabs(record).at(-2)?.label).toBe('Competiții');
-    expect(recordTabs({ status: 'anonimizat' } as AthleteRecord).map((t) => t.id)).not.toContain('competitii');
+    expect(recordTabs(record, () => true).at(-2)?.label).toBe('Competiții');
+    expect(recordTabs({ status: 'anonimizat' } as AthleteRecord, () => true).map((t) => t.id)).not.toContain('competitii');
   });
   it('CompetitiiTab uses only kit components', () => {
     const src = readFileSync('src/admin/dashboard/sportivi/CompetitiiTab.tsx', 'utf8');

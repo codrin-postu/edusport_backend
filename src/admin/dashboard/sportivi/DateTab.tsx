@@ -10,6 +10,7 @@ import {
 } from '../../../club/sportivi/record-view';
 import { registrationPanelTo } from '../../../club/sportivi/routes';
 import type { SportiviApi } from './api';
+import { useFeatures } from '../../lib/useFeatures';
 import { AccessBlock, useAccessBlock } from './AccessBlock';
 
 type Props = { record: AthleteRecord; api: SportiviApi; onSaved: () => Promise<void>; active: boolean };
@@ -156,6 +157,7 @@ function DateActions({ edit, readOnly }: { edit: ReturnType<typeof useDateEdit>;
 export function DateTab(props: Props) {
   const edit = useDateEdit(props);
   const readOnly = isReadOnlyRecord(props.record);
+  const portalOn = useFeatures().on('portalParinti');
   const accessState = useAccessBlock(props.api, props.record.documentId, props.record);
   return (
     <div className="ui-body">
@@ -167,7 +169,7 @@ export function DateTab(props: Props) {
         )}
         <RecordFacts record={props.record} />
       </EditorCard>
-      <AccessBlock api={props.api} athleteId={props.record.documentId} athleteName={props.record.fields.name ?? ''} state={accessState} />
+      {portalOn && <AccessBlock api={props.api} athleteId={props.record.documentId} athleteName={props.record.fields.name ?? ''} state={accessState} />}
     </div>
   );
 }

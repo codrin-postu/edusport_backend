@@ -7,6 +7,7 @@ import { RECORD_COPY, isReadOnlyRecord, recordSubline, recordTabs, seasonFromSta
 import { athleteRecordTo, SPORTIVI_PATH } from '../../../club/sportivi/routes';
 import { AbonamentTab } from '../bani/AbonamentTab';
 import { PlatiTab } from '../bani/PlatiTab';
+import { useFeatures } from '../../lib/useFeatures';
 import { useSportiviApi, type SportiviApi } from './api';
 import { CompetitiiTab } from './CompetitiiTab';
 import { ParcursTab } from './ParcursTab';
@@ -61,7 +62,7 @@ function useRecordTab(record: AthleteRecord) {
   const { search } = useLocation();
   const [picked, setTab] = React.useState<RecordTab>(() => tabFromSearch(search) ?? 'date');
   const [seen, setSeen] = React.useState<RecordTab[]>(() => Array.from(new Set<RecordTab>(['date', tabFromSearch(search) ?? 'date'])));
-  const tabs = recordTabs(record);
+  const tabs = recordTabs(record, useFeatures().on);
   const tab = tabs.some((t) => t.id === picked) ? picked : 'date';
   const show = (id: string) => {
     const next = id as RecordTab;

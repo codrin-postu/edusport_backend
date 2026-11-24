@@ -29,6 +29,7 @@ import { usePageForm } from '../lib';
 import { ANUNTURI_TO, ANUNT_EDIT_TO } from './menu';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { useAreas } from '../lib/useAreas';
+import { useFeatures } from '../lib/useFeatures';
 import { PortalRecipients, ANUNT_PORTAL_API } from './anunturi/PortalRecipients';
 import { ANUNT_LIST_COPY, type PortalSummary } from '../../club/anunturi/portal-history';
 import { GroupTickTree } from './GroupTickTree';
@@ -207,6 +208,7 @@ export default function AnuntEditPage() {
   const [tree, setTree] = React.useState<TickTree | null>(null);
   const [portal, setPortal] = React.useState<PortalSummary | null>(null);
   const canSeeAccounts = useAreas().has('club');
+  const portalOn = useFeatures().on('portalParinti');
 
   React.useEffect(() => {
     let off = false;
@@ -436,27 +438,29 @@ export default function AnuntEditPage() {
         ) : (
           <div className="ui-body">
             <div className="anun-narrow ui-stack">
-              {portal && v.showOnPortal && <PortalRecipients summary={portal} canSeeAccounts={canSeeAccounts} />}
+              {portalOn && portal && v.showOnPortal && <PortalRecipients summary={portal} canSeeAccounts={canSeeAccounts} />}
 
               <EditorCard variant="plain" title="Unde apare">
                 <div className="ui-stack">
                   <Checkbox
                     label="Site"
                     checked={v.showOnSite}
-                    disabled={v.showOnSite && !v.showOnPortal}
+                    disabled={v.showOnSite && !(portalOn && v.showOnPortal)}
                     onChange={(on) => tickPlace('showOnSite', on)}
                   />
-                  <Checkbox
-                    label="Portal sportiv"
-                    checked={v.showOnPortal}
-                    disabled={v.showOnPortal && !v.showOnSite}
-                    onChange={(on) => tickPlace('showOnPortal', on)}
-                  />
+                  {portalOn && (
+                    <Checkbox
+                      label="Portal sportiv"
+                      checked={v.showOnPortal}
+                      disabled={v.showOnPortal && !v.showOnSite}
+                      onChange={(on) => tickPlace('showOnPortal', on)}
+                    />
+                  )}
                   {errFor('places') && <div className="ui-error">{errFor('places')}</div>}
                 </div>
               </EditorCard>
 
-              {v.showOnPortal && (
+              {portalOn && v.showOnPortal && (
                 <EditorCard variant="plain" title="Pentru cine">
                   <div className="ui-stack">
                     <SegmentedControl

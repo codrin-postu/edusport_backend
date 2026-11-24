@@ -9,6 +9,7 @@ import { writable } from '../../../club/grupe/list-view';
 import { grupeListTo, readGrupeQuery } from '../../../club/grupe/routes';
 import { preturiTo } from '../../../club/preturi-routes';
 import { SPORTIVI_CSS } from '../sportivi/styles';
+import { useFeatures } from '../../lib/useFeatures';
 import { useGrupeApi, type GrupeApi } from './api';
 import { GroupHistoryTab } from './GroupHistoryTab';
 import { GroupMenu } from './GroupMenu';
@@ -43,14 +44,15 @@ const SHOWN: readonly GroupTab[] = ['sportivi', 'program', 'prezenta', 'istoric'
 
 /** The ANTRENORI row: each name opens the "Cont portal" block of that coach; "Fără antrenor" when there is none. */
 function CoachesRow({ coaches }: { coaches: GroupPageData['coaches'] }) {
+  const accounts = useFeatures().on('portalAntrenori');
   const [open, setOpen] = React.useState<GroupPageData['coaches'][number] | null>(null);
   return (
     <div className="grp-meta-row">
       <span className="grp-meta-label">{GRUPE_COPY.fieldCoaches}</span>
       {coaches.length ? (
-        coaches.map((c) => (
-          <Button key={c.documentId} variant="ghost" size="sm" onClick={() => setOpen(c)}>{c.name}</Button>
-        ))
+        coaches.map((c) => (accounts
+          ? <Button key={c.documentId} variant="ghost" size="sm" onClick={() => setOpen(c)}>{c.name}</Button>
+          : <span key={c.documentId}>{c.name}</span>))
       ) : (
         <span>{GRUPE_COPY.noCoach}</span>
       )}
@@ -73,7 +75,8 @@ function PriceListRow({ list }: { list: NonNullable<GroupPageData['priceList']> 
 }
 
 function GroupBody({ page, api, tab, onTab }: { page: GroupPageData; api: GrupeApi; tab: GroupTab; onTab: (t: GroupTab) => void }) {
-  const tabs = groupTabs(page).filter((t) => SHOWN.includes(t.id));
+  const { on } = useFeatures();
+  const tabs = groupTabs(page, on).filter((t) => SHOWN.includes(t.id));
   const phone = useIsPhone();
   return (
     <>

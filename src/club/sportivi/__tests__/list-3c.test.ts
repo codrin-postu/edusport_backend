@@ -17,6 +17,15 @@ describe('list filters (3C spec 5)', () => {
     expect(filterSections(INITIAL_LIST_STATE, null).find((s) => s.key === 'personal')?.options[0].label).toBe('Inactivi de peste 5 ani');
   });
 
+  it('drops the Abonament filter and its query value when abonamente is off', () => {
+    const off = (k: string) => k !== 'abonamente';
+    expect(filterSections(INITIAL_LIST_STATE, null, off).some((s) => s.key === 'abonament')).toBe(false);
+    expect(filterSections(INITIAL_LIST_STATE, null).some((s) => s.key === 'abonament')).toBe(true);
+    const s = withSection(INITIAL_LIST_STATE, 'abonament', ['activ']);
+    expect(new URLSearchParams(listQueryString(s, 50, off)).get('abonament')).toBeNull();
+    expect(new URLSearchParams(listQueryString(s, 50)).get('abonament')).toBe('activ');
+  });
+
   it('asks the server for inactive=true and status=anonimizat', () => {
     const s = withSection(withSection(INITIAL_LIST_STATE, 'personal', [INACTIVE]), 'status', ['anonimizat']);
     const q = new URLSearchParams(listQueryString(s, 50));

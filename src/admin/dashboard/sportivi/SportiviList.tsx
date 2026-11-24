@@ -16,6 +16,7 @@ import { SPORTIVI_CSS } from './styles';
 import { useAthleteList } from './useAthleteList';
 import { useInactiveLink, useSelection } from './useSelection';
 import { useAreas } from '../../lib/useAreas';
+import { useFeatures } from '../../lib/useFeatures';
 
 /** "Adaugă sportiv" open from the button or from the dashboard shortcut (`?adauga=1`). */
 function useAddAthlete(search: string) {
@@ -34,6 +35,7 @@ export function SportiviList() {
   const phone = useIsPhone();
   const navigate = useNavigate();
   const { search } = useLocation();
+  const portalOn = useFeatures().on('portalParinti');
   const list = useAthleteList(api, phone);
   const selection = useSelection(list);
   const anonymizable = selectionOn(inactiveShown(list.state), useAreas().has('superAdmin'));
@@ -50,7 +52,7 @@ export function SportiviList() {
         <ListToolbar list={list} phone={phone} />
         <ActiveFilters list={list} phone={phone} />
         <IncompleteBanner list={list} />
-        {selection.ids.size > 0 && <BulkInviteBar ids={[...selection.ids]} api={api} done={selection.done} />}
+        {portalOn && selection.ids.size > 0 && <BulkInviteBar ids={[...selection.ids]} api={api} done={selection.done} />}
         {anonymizable && selection.ids.size > 0 && <BulkAnonymizeBar ids={[...selection.ids]} api={api} done={selection.done} />}
         {phone ? <AthleteCards list={list} onOpen={open} selection={selection} /> : <AthleteTable list={list} onOpen={open} selection={selection} />}
       </Window>

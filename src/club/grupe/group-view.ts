@@ -1,6 +1,7 @@
 import type { GroupPage, MemberRow } from '../groups/api-types';
 import { GRUPE_COPY, athletesText } from '../groups/copy';
 import { PREZENTA_COPY } from '../presence/copy/prezenta-ui';
+import type { FeatureKey } from '../features/features';
 import { countWords } from '../ro-count';
 
 /** The group page (spec 6.1, 6.2). Pure. */
@@ -12,10 +13,10 @@ export function subtitle(p: GroupPage): string {
   return [p.section?.name ?? '', athletesText(p.members.length)].filter(Boolean).join(', ');
 }
 
-export const groupTabs = (p: GroupPage): { id: GroupTab; label: string; count?: number }[] => [
+export const groupTabs = (p: GroupPage, on: (k: FeatureKey) => boolean): { id: GroupTab; label: string; count?: number }[] => [
   { id: 'sportivi', label: GRUPE_COPY.tabMembers, count: p.members.length },
   { id: 'program', label: GRUPE_COPY.tabProgram },
-  { id: 'prezenta', label: PREZENTA_COPY.tabGroup },
+  ...(on('prezenta') ? [{ id: 'prezenta' as const, label: PREZENTA_COPY.tabGroup }] : []),
   { id: 'istoric', label: GRUPE_COPY.tabHistory, count: p.historyCount },
 ];
 

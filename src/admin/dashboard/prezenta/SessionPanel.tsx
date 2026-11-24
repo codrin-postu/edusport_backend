@@ -20,6 +20,7 @@ import { usePrezentaApi, type PrezentaApi, type SessionQuery } from './api';
 import { CoachFields, useCoachOptions } from './CoachFields';
 import { AthleteLink, CoachLinks, FollowLink, useFollow, type Follow } from './PanelLinks';
 import { InactiveDialog } from './InactiveDialog';
+import { useFeatures } from '../../lib/useFeatures';
 import { RowMoneyMenu } from './RowMoneyMenu';
 import { useMoneyChanged } from '../bani/undo';
 import { runOnce } from '../bani/useSubmitOnce';
@@ -95,6 +96,7 @@ function RowName({ row, highlight }: { row: PanelRow; highlight: boolean }) {
 type TableProps = { panel: PanelData; draft: Draft; locked: boolean; highlightId: string | null; onTick: (athleteId: string, type: 'grup' | 'uscat') => void };
 
 function TickTable({ panel, draft, locked, highlightId, onTick }: TableProps) {
+  const moneyOn = useFeatures().on('abonamente');
   const [name, ...types] = columnsFor(panel.kind);
   const typeKeys = ['grup', 'uscat'] as const;
   const columns: DataColumn<PanelRow>[] = [
@@ -113,7 +115,7 @@ function TickTable({ panel, draft, locked, highlightId, onTick }: TableProps) {
     key: 'menu', header: <span className="ui-sr">{RECORD_COPY.menu.button}</span>, width: '1%',
     render: (r) => <RowMoneyMenu row={r} kind={panel.kind} date={panel.date} />,
   };
-  return <DataTable<PanelRow> columns={[...columns, menu]} rows={draft.rows} getRowKey={(r) => r.athleteId} pageSize={0} className="pz-ticks" />;
+  return <DataTable<PanelRow> columns={moneyOn ? [...columns, menu] : columns} rows={draft.rows} getRowKey={(r) => r.athleteId} pageSize={0} className="pz-ticks" />;
 }
 
 type VisitorProps = { rows: PanelRow[]; disabled: boolean; onPick: (card: AthleteCard) => void };

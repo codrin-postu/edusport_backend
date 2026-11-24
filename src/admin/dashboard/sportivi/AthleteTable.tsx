@@ -4,10 +4,11 @@ import { Checkbox, EmptyState, Loading, Pager } from '../../ui';
 import type { AthleteListPage, AthleteListRow } from '../../../club/athletes/api-types';
 import { PERSONAL_DATA_COPY } from '../../../club/personal-data/copy';
 import {
-  LIST_COPY, abonamentCell, acsCell, ageText, groupCell, groupHeader, pageRange, profileCell, withHeaderSort, withPage, type SortKey,
+  LIST_COPY, abonamenteOn, abonamentCell, acsCell, ageText, groupCell, groupHeader, pageRange, profileCell, withHeaderSort, withPage, type SortKey,
 } from '../../../club/sportivi/list-view';
 import { allSelected } from '../../../club/sportivi/personal-data-view';
 import { athleteRecordTo } from '../../../club/sportivi/routes';
+import { useFeatures } from '../../lib/useFeatures';
 import { MissingMarker } from './MissingMarker';
 import type { AthleteList } from './useAthleteList';
 import type { Selection } from './useSelection';
@@ -38,7 +39,7 @@ function CheckCell({ row, selection }: { row: AthleteListRow; selection: Selecti
   );
 }
 
-function Row({ row, onOpen, selection }: { row: AthleteListRow; onOpen: Open; selection: Selection | null }) {
+function Row({ row, onOpen, selection, money }: { row: AthleteListRow; onOpen: Open; selection: Selection | null; money: boolean }) {
   const open = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
@@ -54,7 +55,7 @@ function Row({ row, onOpen, selection }: { row: AthleteListRow; onOpen: Open; se
       </td>
       <td>{ageText(row.age)}</td>
       <td className={row.mainGroup ? undefined : 'spv-muted'}>{groupCell(row)}</td>
-      <td>{abonamentCell(row)}</td>
+      {money && <td>{abonamentCell(row)}</td>}
       <td className="spv-contact">{row.contactName}</td>
       <td>{acsCell(row)}</td>
       <td>{profileCell(row)}</td>
@@ -62,7 +63,7 @@ function Row({ row, onOpen, selection }: { row: AthleteListRow; onOpen: Open; se
   );
 }
 
-function TableHead({ list, page, selection }: { list: AthleteList; page: AthleteListPage; selection: Selection | null }) {
+function TableHead({ list, page, selection, money }: { list: AthleteList; page: AthleteListPage; selection: Selection | null; money: boolean }) {
   const ids = page.data.map((r) => r.documentId);
   return (
     <thead>
@@ -75,7 +76,7 @@ function TableHead({ list, page, selection }: { list: AthleteList; page: Athlete
         <SortHeader list={list} sortKey="name">{LIST_COPY.columns.name}</SortHeader>
         <SortHeader list={list} sortKey="age">{LIST_COPY.columns.age}</SortHeader>
         <SortHeader list={list} sortKey="group">{groupHeader(page.season)}</SortHeader>
-        <th scope="col">{LIST_COPY.columns.abonament}</th>
+        {money && <th scope="col">{LIST_COPY.columns.abonament}</th>}
         <th scope="col">{LIST_COPY.columns.contact}</th>
         <th scope="col">{LIST_COPY.columns.acs}</th>
         <th scope="col">{LIST_COPY.columns.profile}</th>
@@ -87,6 +88,7 @@ function TableHead({ list, page, selection }: { list: AthleteList; page: Athlete
 /** Desktop Sportivi table, 50 rows a page (spec 5; documents-bulk-v1); 3C: a checkbox column on the inactivity list. */
 export function AthleteTable({ list, onOpen, selection }: { list: AthleteList; onOpen: Open; selection: Selection | null }) {
   const { page, state, setState, failed } = list;
+  const money = abonamenteOn(useFeatures().on);
   if (failed) return <EmptyState>{LIST_COPY.loadFailed}</EmptyState>;
   if (!page) return <Loading />;
   if (page.data.length === 0) return <EmptyState>{LIST_COPY.empty}</EmptyState>;
@@ -94,8 +96,8 @@ export function AthleteTable({ list, onOpen, selection }: { list: AthleteList; o
     <>
       <div className="ui-table-wrap">
         <table className="ui-table">
-          <TableHead list={list} page={page} selection={selection} />
-          <tbody>{page.data.map((row) => <Row key={row.documentId} row={row} onOpen={onOpen} selection={selection} />)}</tbody>
+          <TableHead list={list} page={page} selection={selection} money={money} />
+          <tbody>{page.data.map((row) => <Row key={row.documentId} row={row} onOpen={onOpen} selection={selection} money={money} />)}</tbody>
         </table>
       </div>
       <div className="spv-foot">

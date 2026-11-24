@@ -7,6 +7,7 @@ import { EMPTY_DATE, partsFromDisplay, partsToDisplay, type DateParts } from '..
 import { PARCURS_COPY } from '../parcurs/staff-view';
 import { COMPETITII_COPY } from './competitions-view';
 import { numericDateToSlash } from '../date-format';
+import type { FeatureKey } from '../features/features';
 
 /** Rules of the athlete record (spec 6): header, Date tab, toasts, Istoric time, "..." menu. Pure. */
 
@@ -64,8 +65,11 @@ export function tabFromSearch(search: string): RecordTab | null {
   return TAB_IDS.find((id) => id === tab) ?? null;
 }
 
-export function recordTabs(r: AthleteRecord): { id: RecordTab; label: string; count?: number }[] {
-  const tabs = TAB_IDS.map((id) => (id === 'istoric' ? { id, label: RECORD_COPY.tabs[id], count: r.historyCount } : { id, label: RECORD_COPY.tabs[id] }));
+const TAB_FEATURE: Partial<Record<RecordTab, FeatureKey>> = { abonament: 'abonamente', plati: 'abonamente', parcurs: 'parcurs' };
+
+/** The tabs of a record: an anonymized one keeps its three, then each tab of a switched-off feature is dropped. */
+export function recordTabs(r: AthleteRecord, on: (k: FeatureKey) => boolean): { id: RecordTab; label: string; count?: number }[] {
+  const tabs = TAB_IDS.filter((id) => { const f = TAB_FEATURE[id]; return !f || on(f); }).map((id) => (id === 'istoric' ? { id, label: RECORD_COPY.tabs[id], count: r.historyCount } : { id, label: RECORD_COPY.tabs[id] }));
   return isReadOnlyRecord(r) ? tabs.filter((t) => ANONYMIZED_TABS.includes(t.id)) : tabs;
 }
 

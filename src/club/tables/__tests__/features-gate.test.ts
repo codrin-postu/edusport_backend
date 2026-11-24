@@ -27,4 +27,25 @@ describe('table feature gate', () => {
     expect(offFeatureOfBody({ definition: { subject: 'sportivi' } }, { ...on, prezenta: false })).toBeNull();
     expect(offFeatureOfBody(null, on)).toBeNull();
   });
+  it('drops money columns and the views built on them when abonamente is off', () => {
+    const off = gateCatalog(catalog, { ...on, abonamente: false });
+    const keys = off.subjects.sportivi?.columns.map((c) => c.key) ?? [];
+    for (const k of ['abonament', 'expira', 'dePlatit', 'platit', 'ramas', 'starePlata']) expect(keys).not.toContain(k);
+    expect(keys).toContain('prezente');
+    const ids = off.readyMade.map((v) => v.id);
+    expect(ids).not.toContain('rm-plati-grupa');
+    expect(ids).not.toContain('rm-ramas');
+    expect(ids).toContain('rm-contacte');
+  });
+  it('drops the prezente column when prezenta is off', () => {
+    const keys = gateCatalog(catalog, { ...on, prezenta: false }).subjects.sportivi?.columns.map((c) => c.key) ?? [];
+    expect(keys).not.toContain('prezente');
+    expect(keys).toContain('platit');
+  });
+  it('refuses a Sportivi query that names a switched-off column', () => {
+    const body = { definition: { subject: 'sportivi', columns: ['sportiv', 'ramas'], filters: [] } };
+    expect(offFeatureOfBody(body, { ...on, abonamente: false })).toBe('abonamente');
+    expect(offFeatureOfBody(body, on)).toBeNull();
+    expect(offFeatureOfBody({ definition: { subject: 'sportivi', columns: ['sportiv'], filters: [{ column: 'prezente' }], sort: null } }, { ...on, prezenta: false })).toBe('prezenta');
+  });
 });

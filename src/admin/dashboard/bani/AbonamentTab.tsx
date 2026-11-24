@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Button, Loading, Notice } from '../../ui';
+import { useFeatures } from '../../lib/useFeatures';
 import { groupLines } from '../../../club/bani/athlete-money-view';
 import { PRESENCE_ERRORS } from '../../../club/presence/copy/core';
 import { MONEY_UI_COPY } from '../../../club/presence/copy/money-ui';
@@ -50,6 +51,7 @@ export function AbonamentTab({ athlete, seasonId = null }: { athlete: Athlete; s
   const api = useMoneyApi();
   const { data, failed } = useLoad<AthleteSubscriptionCards>(() => api.athleteSubscriptions(athlete.id, seasonId), `${athlete.id}|${seasonId}`);
   const [adding, setAdding] = React.useState(false);
+  const presenceOn = useFeatures().on('prezenta');
   return (
     <div className="ui-body bn-tab">
       <style>{SPORTIVI_CSS + PREZENTA_CSS + MONEY_CSS}</style>
@@ -57,7 +59,7 @@ export function AbonamentTab({ athlete, seasonId = null }: { athlete: Athlete; s
       {!data && !failed && <Loading />}
       {data && <Cards data={data} athleteId={athlete.id} />}
       <div><Button variant="secondary" onClick={() => setAdding(true)}>{copy.addSubscription}</Button></div>
-      <PresenceHistory athlete={athlete} seasonId={seasonId} />
+      {presenceOn && <PresenceHistory athlete={athlete} seasonId={seasonId} />}
       {adding && <AddSubscriptionWindow athlete={athlete} onClose={() => setAdding(false)} />}
     </div>
   );

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { ConfirmDialog } from '../ConfirmDialog';
+import { useFeatures } from '../lib/useFeatures';
 import { AccountBlock } from './portal/AccountBlock';
 import {
   AdminPage,
@@ -255,6 +256,7 @@ function MemberEditor({
 }) {
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const isNew = draft.documentId === null;
+  const accountsOn = useFeatures().on('portalAntrenori');
 
   return (
     <Modal
@@ -338,7 +340,7 @@ function MemberEditor({
         </div>
       )}
 
-      {!isNew && draft.documentId && <AccountBlock teamMemberId={draft.documentId} name={draft.name} />}
+      {accountsOn && !isNew && draft.documentId && <AccountBlock teamMemberId={draft.documentId} name={draft.name} />}
 
       <ImagePicker
         open={pickerOpen}
