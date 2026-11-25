@@ -1,17 +1,12 @@
 import * as React from 'react';
 import {
-  AdminPage,
-  Notice,
-  Loading,
-  SaveBar,
-  UnsavedGuard,
   ObjectFieldCard,
   normalizeObject,
 } from '../ui';
 import { useSingleType, usePageForm } from '../lib';
 import SponsoriBody from '../dashboard/SponsoriPage';
 import EvenimenteColaborareBody from './EvenimenteColaborarePage';
-import { TabbedWindow } from './TabbedWindow';
+import { SingleTypeHostPage } from './TabbedWindow';
 import { UID } from './routes';
 
 /**
@@ -98,33 +93,16 @@ function PartnersFields({ form }: { form: PartnersForm }) {
 const PaginaParteneriPage: React.FC = () => {
   const page = useSingleType<PartnersPage>(UID.partnersPage);
   const form = usePageForm<PartnersPage>(page.data, page.saveState);
-  const ready = !page.loading && !page.error;
-
   return (
-    <AdminPage>
-      <TabbedWindow host="parteneri" title="Pagina Parteneri">
-        {(tab) => (
-          <>
-            <div hidden={tab !== 'pagina'}>
-              {page.loading && <Loading />}
-              {page.error && (
-                <div className="ui-body">
-                  <Notice tone="danger">Nu am putut încărca pagina de parteneri.</Notice>
-                </div>
-              )}
-              {ready && <PartnersFields form={form} />}
-            </div>
-            {tab === 'sponsori' && <SponsoriBody />}
-            {tab === 'evenimente' && <EvenimenteColaborareBody />}
-            {ready && tab === 'pagina' && (
-              <SaveBar {...page.saveState.bar} onSave={() => void page.save(form.value)} onDiscard={form.reset} />
-            )}
-          </>
-        )}
-      </TabbedWindow>
-
-      <UnsavedGuard when={form.dirty} />
-    </AdminPage>
+    <SingleTypeHostPage
+      host="parteneri"
+      title="Pagina Parteneri"
+      page={page}
+      form={form}
+      loadError="Nu am putut încărca pagina de parteneri."
+      fields={<PartnersFields form={form} />}
+      bodies={{ sponsori: <SponsoriBody />, evenimente: <EvenimenteColaborareBody /> }}
+    />
   );
 };
 

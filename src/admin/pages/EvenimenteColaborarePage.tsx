@@ -6,8 +6,8 @@ import { HeaderAction } from './TabbedWindow';
 import { EVENIMENT_COLABORARE_EDIT_TO, UID } from './routes';
 
 /**
- * Evenimente colaborare: the collaboration-event list (shown on /parteneri,
- * sorted by `order`). A row opens its own edit page
+ * Evenimente colaborare: the tab of Pagina Parteneri with the collaboration-event
+ * list (shown on /parteneri, sorted by `order`). The old route redirects to the tab. A row opens its own edit page
  * (EVENIMENT_COLABORARE_EDIT_TO?id=<documentId>); "Adaugă eveniment" opens it
  * without an id.
  *

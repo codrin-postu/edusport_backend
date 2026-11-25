@@ -24,6 +24,8 @@ const OUTSIDE_ROUTER_ROOTS = '#edusport-shell-root, #edusport-mobile-nav-root';
 export interface UnsavedGuardOptions {
   title?: string;
   message?: string;
+  /** Moves between two addresses this says are one view (tab switches, an opened entry) do not ask. */
+  sameView?: (current: string, next: string) => boolean;
 }
 
 /**
@@ -51,6 +53,8 @@ export function useUnsavedGuard(dirty: boolean, opts: UnsavedGuardOptions = {}):
   const allow = React.useRef(false);
   const dirtyRef = React.useRef(dirty);
   dirtyRef.current = dirty;
+  const sameViewRef = React.useRef(opts.sameView);
+  sameViewRef.current = opts.sameView;
   const [pending, setPending] = React.useState<string | null>(null);
 
   // Re-arm after a release once this page's dirty flag moves.
@@ -66,7 +70,8 @@ export function useUnsavedGuard(dirty: boolean, opts: UnsavedGuardOptions = {}):
         !allow.current &&
         !released &&
         dirtyRef.current &&
-        (currentLocation.pathname !== nextLocation.pathname || currentLocation.search !== nextLocation.search),
+        (currentLocation.pathname !== nextLocation.pathname || currentLocation.search !== nextLocation.search) &&
+        !sameViewRef.current?.(currentLocation.pathname + currentLocation.search, nextLocation.pathname + nextLocation.search),
       [],
     ),
   );
@@ -97,6 +102,7 @@ export function useUnsavedGuard(dirty: boolean, opts: UnsavedGuardOptions = {}):
       const url = new URL(a.href, window.location.href);
       if (url.origin !== window.location.origin) return;
       if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+      if (sameViewRef.current?.(window.location.pathname + window.location.search, url.pathname + url.search)) return;
       e.preventDefault();
       e.stopPropagation();
       setPending(url.pathname + url.search + url.hash);

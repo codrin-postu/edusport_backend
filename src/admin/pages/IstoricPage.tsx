@@ -1,10 +1,5 @@
 import * as React from 'react';
 import {
-  AdminPage,
-  Notice,
-  Loading,
-  SaveBar,
-  UnsavedGuard,
   ObjectFieldCard,
   EditorCard,
   RepeatableList,
@@ -13,7 +8,7 @@ import {
 } from '../ui';
 import { useSingleType, usePageForm } from '../lib';
 import MomenteIstoricBody from './MomenteIstoricPage';
-import { TabbedWindow } from './TabbedWindow';
+import { SingleTypeHostPage } from './TabbedWindow';
 import { UID } from './routes';
 
 /**
@@ -173,32 +168,16 @@ function HistoricFields({ form }: { form: HistoricForm }) {
 const IstoricPage: React.FC = () => {
   const page = useSingleType<HistoricPage>(UID.historicPage);
   const form = usePageForm<HistoricPage>(page.data, page.saveState);
-  const ready = !page.loading && !page.error;
-
   return (
-    <AdminPage>
-      <TabbedWindow host="istoric" title="Istoric">
-        {(tab) => (
-          <>
-            <div hidden={tab !== 'pagina'}>
-              {page.loading && <Loading />}
-              {page.error && (
-                <div className="ui-body">
-                  <Notice tone="danger">Nu am putut încărca pagina de istoric.</Notice>
-                </div>
-              )}
-              {ready && <HistoricFields form={form} />}
-            </div>
-            {tab === 'momente' && <MomenteIstoricBody />}
-            {ready && tab === 'pagina' && (
-              <SaveBar {...page.saveState.bar} onSave={() => void page.save(form.value)} onDiscard={form.reset} />
-            )}
-          </>
-        )}
-      </TabbedWindow>
-
-      <UnsavedGuard when={form.dirty} />
-    </AdminPage>
+    <SingleTypeHostPage
+      host="istoric"
+      title="Istoric"
+      page={page}
+      form={form}
+      loadError="Nu am putut încărca pagina de istoric."
+      fields={<HistoricFields form={form} />}
+      bodies={{ momente: <MomenteIstoricBody /> }}
+    />
   );
 };
 

@@ -19,8 +19,9 @@ import { UID } from './routes';
 import { EMPTY_VALUE } from '../../club/empty-value';
 
 /**
- * Momente istoric (/plugins/edusport-momente-istoric): the history-milestone
- * collection, the timeline entries on /despre-noi/istoric.
+ * Momente istoric: the tab of Istoric (/plugins/edusport-istoric?tab=momente) with the
+ * history-milestone collection, the timeline entries on /despre-noi/istoric.
+ * The old route (/plugins/edusport-momente-istoric) redirects to the tab.
  *
  * No dedicated component-preview editor - edited straight in the
  * content-manager list/edit view. List (sorted by `order`, same as the

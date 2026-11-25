@@ -39,3 +39,15 @@ export function tabAddress(base: string, tab: TabId, search = ''): string {
   const query = params.toString();
   return query ? `${base}?${query}` : base;
 }
+
+const VIEW_PARAMS = ['tab', 'id'];
+
+/** Two addresses (path with query) show the same view when the path and every query value but `tab` and `id` match. */
+export function sameView(current: string, next: string): boolean {
+  const a = new URL(current, 'http://view');
+  const b = new URL(next, 'http://view');
+  for (const p of [a, b]) VIEW_PARAMS.forEach((k) => p.searchParams.delete(k));
+  a.searchParams.sort();
+  b.searchParams.sort();
+  return a.pathname === b.pathname && a.search === b.search;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hostTabItems, tabAddress, tabFromSearch, tabSearch } from '../tab-hosts';
+import { hostTabItems, sameView, tabAddress, tabFromSearch, tabSearch } from '../tab-hosts';
 
 describe('tab hosts', () => {
   it('reads the open tab from the address', () => {
@@ -30,5 +30,15 @@ describe('tab hosts', () => {
     expect(tabAddress('/plugins/x', 'sponsori')).toBe('/plugins/x?tab=sponsori');
     expect(tabAddress('/plugins/x', 'momente', '?id=abc')).toBe('/plugins/x?id=abc&tab=momente');
     expect(tabAddress('/plugins/x', 'pagina', '?tab=momente')).toBe('/plugins/x');
+  });
+
+  it('treats tab and id changes on one path as the same view, other moves as leaving', () => {
+    const base = '/admin/plugins/x';
+    expect(sameView(base, `${base}?tab=sponsori`)).toBe(true);
+    expect(sameView(`${base}?tab=momente&id=a`, base)).toBe(true);
+    expect(sameView(`${base}?tab=momente`, `${base}?tab=momente&id=b`)).toBe(true);
+    expect(sameView(base, '/admin/plugins/y')).toBe(false);
+    expect(sameView(base, `${base}?other=1`)).toBe(false);
+    expect(sameView(`${base}/`, base)).toBe(false);
   });
 });

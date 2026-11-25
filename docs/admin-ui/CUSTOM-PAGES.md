@@ -16,14 +16,14 @@ Decisions (companion screen 109, user said "yes do", recommended answers):
 | Istoric | api::historic-page.historic-page | /plugins/edusport-istoric | [x] |
 | Parteneri (pagina) | api::partners-page.partners-page | /plugins/edusport-pagina-parteneri | [x] |
 | Discipline | api::discipline.discipline | /plugins/edusport-discipline | [x] |
-| Momente istoric | api::history-milestone.history-milestone | /plugins/edusport-momente-istoric | [x] |
+| Momente istoric (tab of Istoric, `?tab=momente`) | api::history-milestone.history-milestone | /plugins/edusport-momente-istoric (redirects to the tab) | [x] |
 | Cursuri | api::cursuri-page.cursuri-page | /plugins/edusport-cursuri | [x] |
 | Prețuri | api::price-list.price-list, api::section.section (old api::pricing.pricing URLs land here) | /plugins/edusport-preturi | [x] |
 | Sezoane | api::season.season | /plugins/edusport-sezoane | [x] |
 | Regulament | api::course-regulations.course-regulations | /plugins/edusport-regulament | [x] |
 | Pagina Program | api::program-page.program-page | /plugins/edusport-pagina-program | [x] |
 | Realizări | api::realizari-page.realizari-page | /plugins/edusport-realizari | [x] |
-| Evenimente colaborare | api::collaboration-event.collaboration-event | /plugins/edusport-evenimente-colaborare (+ -edit) | [x] |
+| Evenimente colaborare (tab of Parteneri, `?tab=evenimente`) | api::collaboration-event.collaboration-event | /plugins/edusport-evenimente-colaborare (redirects to the tab; + -edit) | [x] |
 | Articole | api::article.article | /plugins/edusport-articole (+ -edit) | [ ] later |
 
 ## Field removals

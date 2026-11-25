@@ -35,10 +35,8 @@ export const REALIZARI_TO = '/plugins/edusport-realizari';
 export const EVENIMENTE_COLABORARE_TO = '/plugins/edusport-evenimente-colaborare';
 /** Edit page; `?id=<documentId>` edits, no id creates. */
 export const EVENIMENT_COLABORARE_EDIT_TO = '/plugins/edusport-evenimente-colaborare-edit';
-/** The list pages that moved into tabs of Pagina Parteneri and Istoric; their old routes redirect here. */
-export const SPONSORI_TAB_TO = tabAddress(PAGINA_PARTENERI_TO, 'sponsori');
+/** The Evenimente colaborare list is a tab of Pagina Parteneri; its edit page returns here. */
 export const EVENIMENTE_TAB_TO = tabAddress(PAGINA_PARTENERI_TO, 'evenimente');
-export const MOMENTE_TAB_TO = tabAddress(ISTORIC_TO, 'momente');
 /** Admin "Securitate" (6b-1 spec 10.4): 2FA, password, Google, devices, Administratori. */
 export const SECURITATE_TO = '/plugins/edusport-securitate';
 /** Funcții: the club-wide feature switches, Super Admin only. */

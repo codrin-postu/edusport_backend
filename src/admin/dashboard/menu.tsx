@@ -9,6 +9,7 @@ import {
   CURSURI_TO, PRETURI_TO, SEZOANE_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
   REALIZARI_TO, SECURITATE_TO, FUNCTII_TO, UID,
 } from '../pages/routes';
+import { EVENIMENT_COLABORARE_EDIT_TO, EVENIMENTE_COLABORARE_TO, MOMENTE_ISTORIC_TO } from '../pages/routes';
 import { BANI_PATH } from '../../club/bani/routes';
 import { CONTABILITATE_PATH } from '../../club/contabilitate/routes';
 import { TABELE_PATH, TABLES_AREA } from '../../club/tables/routes';
@@ -26,8 +27,8 @@ import { PREZENTA_PATH, ABONAMENTE_PATH, PLATI_PATH, DE_INCASAT_PATH } from '../
 // *_TO lives behind one import. Defined in ../pages/routes (see there).
 export {
   SETARI_SITE_TO, PAGINA_ECHIPA_TO, ISTORIC_TO, PAGINA_PARTENERI_TO, DISCIPLINE_TO,
-  MOMENTE_ISTORIC_TO, CURSURI_TO, PRETURI_TO, SEZOANE_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
-  REALIZARI_TO, EVENIMENTE_COLABORARE_TO, EVENIMENT_COLABORARE_EDIT_TO,
+  CURSURI_TO, PRETURI_TO, SEZOANE_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
+  REALIZARI_TO, EVENIMENT_COLABORARE_EDIT_TO,
   ARTICOLE_TO, ARTICOL_EDIT_TO, SECURITATE_TO,
 } from '../pages/routes';
 
@@ -193,6 +194,17 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: SECURITATE_TO, label: SECURITY_COPY.page.title, icon: Lock, group: 'settings', area: 'any' },
   { to: FUNCTII_TO, label: FEATURES_COPY.page, icon: Lock, group: 'settings', area: 'superAdmin' },
 ];
+
+/** Routes that light up another page's sidebar row: the lists that became tabs, and their edit page. */
+const ROW_ALIASES: Record<string, string[]> = {
+  [PAGINA_PARTENERI_TO]: [SPONSORI_TO, EVENIMENTE_COLABORARE_TO, EVENIMENT_COLABORARE_EDIT_TO],
+  [ISTORIC_TO]: [MOMENTE_ISTORIC_TO],
+};
+
+/** True when the admin path (with /admin) belongs to the sidebar row `to`. */
+export function rowMatches(to: string, pathname: string): boolean {
+  return [to, ...(ROW_ALIASES[to] ?? [])].some((t) => pathname.startsWith(`/admin${t}`));
+}
 
 export function registerEdusportMenu(app: StrapiApp) {
   // Route only, no menu link (see UI_REFERENCE_TO).
@@ -390,13 +402,10 @@ export function registerEdusportMenu(app: StrapiApp) {
     position: 15,
   });
 
-  app.addMenuLink({
-    to: SPONSORI_TO,
-    icon: Duplicate,
-    intlLabel: { id: 'edusport.menu.sponsori', defaultMessage: 'Sponsori' },
-    Component: gated('website', () => import('../pages/TabRedirects').then((m) => ({ default: m.SponsoriRedirect }))),
-    permissions: [],
-    position: 17,
+  // Old Sponsori route, now a tab of Pagina Parteneri: route only, no menu link.
+  app.router.addRoute({
+    path: `${SPONSORI_TO.slice(1)}/*`,
+    lazy: gatedLazy('website', () => import('../pages/TabRedirects').then((m) => ({ default: m.SponsoriRedirect }))),
   });
 
   app.addMenuLink({

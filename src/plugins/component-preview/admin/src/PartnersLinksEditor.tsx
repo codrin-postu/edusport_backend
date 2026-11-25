@@ -18,7 +18,7 @@ export default function PartnersLinksEditor(_props: Props) {
       <LinkOutCard
         title="Sponsori"
         body="Adaugă, ordonează sau editează sponsorii din secțiunea dedicată."
-        href="/admin/plugins/edusport-sponsori"
+        href="/admin/plugins/edusport-pagina-parteneri?tab=sponsori"
         linkLabel="Gestionează sponsorii"
       />
       <LinkOutCard

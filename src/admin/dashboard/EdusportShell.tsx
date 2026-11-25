@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { tabletQuery } from '../../club/ui-breakpoints';
 import { createRoot } from 'react-dom/client';
-import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, UMAMI_URL } from './menu';
+import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, UMAMI_URL, rowMatches } from './menu';
 import type { Group } from './menu';
 import { scaleVars } from '../ui/tokens';
 import { useAreas } from '../lib/useAreas';
@@ -66,7 +66,7 @@ function getInitialOpen(pathname: string): OpenState {
     const raw = localStorage.getItem(NAV_OPEN_KEY);
     if (raw) return JSON.parse(raw) as OpenState;
   } catch { /* ignore */ }
-  const active = EDUSPORT_LINKS.find((l) => pathname.startsWith(`/admin${l.to}`));
+  const active = EDUSPORT_LINKS.find((l) => rowMatches(l.to, pathname));
   return active ? { [active.group]: true } : {};
 }
 
@@ -478,8 +478,8 @@ function EdusportShell() {
     spaNavigate(to);
   };
   const isActive = (to: string) => {
-    const full = to.startsWith('/admin') ? to : `/admin${to}`;
-    return path.startsWith(full);
+    if (to.startsWith('/admin')) return path.startsWith(to);
+    return rowMatches(to, path);
   };
 
   // Never cover the login / auth screens.

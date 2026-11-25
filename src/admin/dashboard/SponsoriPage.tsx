@@ -17,11 +17,11 @@ import {
 import { HeaderAction } from '../pages/TabbedWindow';
 
 /**
- * EduSport admin — "Sponsori" list page (custom, replaces the default
- * content-manager collection view for api::sponsor.sponsor).
+ * EduSport admin: the "Sponsori" tab of Pagina Parteneri (api::sponsor.sponsor).
+ * The old route (SPONSORI_TO) redirects to that tab.
  *
  * The content type is tiny (name, logo, href, order), so create and edit run in
- * a modal on this page rather than in a separate edit route. Everything talks to
+ * a modal on the tab rather than in a separate edit route. Everything talks to
  * the admin content-manager collection API, the same base path SportiviPage and
  * CompetitiiPage use.
  *
@@ -414,7 +414,6 @@ export default function SponsoriBody() {
   ];
 
   return (
-    // `pce` opts the modal's "Salvează" button out of the global admin SaveBar tagger.
     <>
       <style>{SPONSORI_CSS}</style>
       <HeaderAction>
