@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AdminPage, Window, PageHeader, Notice, Button, DataTable, EmptyState, StatusBadge, type DataColumn } from '../ui';
+import { Notice, Button, DataTable, EmptyState, StatusBadge, type DataColumn } from '../ui';
 import { useCollection, type Row } from '../lib';
-import { DASHBOARD_TO } from '../dashboard/menu';
+import { HeaderAction } from './TabbedWindow';
 import { EVENIMENT_COLABORARE_EDIT_TO, UID } from './routes';
 
 /**
@@ -86,7 +86,7 @@ function Status({ row }: { row: EventRow }) {
 
 const editUrl = (documentId?: string) => (documentId ? `${EVENIMENT_COLABORARE_EDIT_TO}?id=${encodeURIComponent(documentId)}` : EVENIMENT_COLABORARE_EDIT_TO);
 
-const EvenimenteColaborarePage: React.FC = () => {
+const EvenimenteColaborareBody: React.FC = () => {
   const navigate = useNavigate();
   const list = useCollection<CollaborationEvent>(UID.collaborationEvent);
 
@@ -100,37 +100,33 @@ const EvenimenteColaborarePage: React.FC = () => {
   ];
 
   return (
-    <AdminPage>
-      <Window>
-        <PageHeader
-          back={{ to: DASHBOARD_TO }}
-          title="Evenimente colaborare"
-          actions={<Button onClick={() => navigate(editUrl())}>+ Adaugă eveniment</Button>}
-        />
-        <div className="ui-body">
-          {list.error ? (
-            <Notice tone="danger">Nu am putut încărca evenimentele.</Notice>
-          ) : (
-            <DataTable<EventRow>
-              columns={columns}
-              rows={list.items}
-              getRowKey={(r) => r.documentId}
-              onRowClick={(r) => navigate(editUrl(r.documentId))}
-              rowLabel={(r) => `Editează ${r.title || 'evenimentul'}`}
-              loading={list.loading}
-              search
-              searchPlaceholder="Caută după titlu, partener sau dată..."
-              empty={
-                <EmptyState action={<Button onClick={() => navigate(editUrl())}>+ Adaugă eveniment</Button>}>
-                  Niciun eveniment adăugat.
-                </EmptyState>
-              }
-            />
-          )}
-        </div>
-      </Window>
-    </AdminPage>
+    <>
+      <HeaderAction>
+        <Button onClick={() => navigate(editUrl())}>+ Adaugă eveniment</Button>
+      </HeaderAction>
+      <div className="ui-body">
+        {list.error ? (
+          <Notice tone="danger">Nu am putut încărca evenimentele.</Notice>
+        ) : (
+          <DataTable<EventRow>
+            columns={columns}
+            rows={list.items}
+            getRowKey={(r) => r.documentId}
+            onRowClick={(r) => navigate(editUrl(r.documentId))}
+            rowLabel={(r) => `Editează ${r.title || 'evenimentul'}`}
+            loading={list.loading}
+            search
+            searchPlaceholder="Caută după titlu, partener sau dată..."
+            empty={
+              <EmptyState action={<Button onClick={() => navigate(editUrl())}>+ Adaugă eveniment</Button>}>
+                Niciun eveniment adăugat.
+              </EmptyState>
+            }
+          />
+        )}
+      </div>
+    </>
   );
 };
 
-export default EvenimenteColaborarePage;
+export default EvenimenteColaborareBody;

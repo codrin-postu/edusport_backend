@@ -1,8 +1,6 @@
 import * as React from 'react';
 import {
   AdminPage,
-  Window,
-  PageHeader,
   Notice,
   Loading,
   SaveBar,
@@ -12,7 +10,10 @@ import {
   normalizeObject,
 } from '../ui';
 import { useSingleType, usePageForm } from '../lib';
-import { DASHBOARD_TO, SPONSORI_TO } from '../dashboard/menu';
+import { SPONSORI_TO } from '../dashboard/menu';
+import SponsoriBody from '../dashboard/SponsoriPage';
+import EvenimenteColaborareBody from './EvenimenteColaborarePage';
+import { TabbedWindow } from './TabbedWindow';
 import { EVENIMENTE_COLABORARE_TO, UID } from './routes';
 
 /**
@@ -56,80 +57,79 @@ const EMPTY_CONTENT: Content = {
   ctaBody: '',
 };
 
+type PartnersForm = ReturnType<typeof usePageForm<PartnersPage>>;
+
+function PartnersFields({ form }: { form: PartnersForm }) {
+  const content = normalizeObject<Content>(form.value.content, EMPTY_CONTENT);
+  const change = (key: keyof Content, v: string) => form.set('content', { ...content, [key]: v });
+  return (
+    <div className="ui-body">
+      <ObjectFieldCard<Content>
+        title="Antet (hero)"
+        value={content}
+        onFieldChange={change}
+        fields={[
+          { key: 'heroTitle', label: 'Titlu', placeholder: 'ex: Parteneri' },
+          { key: 'heroSubtitle', label: 'Subtitlu', type: 'textarea', rows: 3, placeholder: 'ex: Împreună cu partenerii și sponsorii noștri...', span: 2 },
+        ]}
+      />
+
+      <ObjectFieldCard<Content>
+        title="De ce parteneriat"
+        value={content}
+        onFieldChange={change}
+        fields={[
+          { key: 'introEyebrow', label: 'Etichetă mică', placeholder: 'ex: De ce parteneriat' },
+          { key: 'introHeading', label: 'Titlu secțiune', placeholder: 'ex: Susține o comunitate în creștere' },
+          { key: 'introBody', label: 'Text', type: 'textarea', rows: 3, placeholder: 'ex: Un parteneriat cu clubul înseamnă vizibilitate...', span: 2 },
+        ]}
+      />
+
+      <ObjectFieldCard<Content>
+        title="Colaborează (secțiunea formular)"
+        value={content}
+        onFieldChange={change}
+        fields={[
+          { key: 'ctaEyebrow', label: 'Etichetă mică', placeholder: 'ex: Hai să colaborăm' },
+          { key: 'ctaHeading', label: 'Titlu', placeholder: 'ex: Sponsorizează sau organizează un eveniment' },
+          { key: 'ctaBody', label: 'Text', type: 'textarea', rows: 3, placeholder: 'ex: Vrei să sponsorizezi clubul sau să organizăm împreună un eveniment?', span: 2 },
+        ]}
+      />
+
+      <LinkOutCard title="Sponsori" href={`/admin${SPONSORI_TO}`} linkLabel="Gestionează sponsorii" external={false} />
+
+      <LinkOutCard title="Evenimente & colaborări" href={`/admin${EVENIMENTE_COLABORARE_TO}`} linkLabel="Gestionează evenimentele" external={false} />
+    </div>
+  );
+}
+
 const PaginaParteneriPage: React.FC = () => {
   const page = useSingleType<PartnersPage>(UID.partnersPage);
   const form = usePageForm<PartnersPage>(page.data, page.saveState);
-
-  const content = normalizeObject<Content>(form.value.content, EMPTY_CONTENT);
+  const ready = !page.loading && !page.error;
 
   return (
     <AdminPage>
-      <Window>
-        <PageHeader
-          back={{ to: DASHBOARD_TO }}
-          title="Pagina Parteneri"
-        />
-
-        {page.loading ? (
-          <Loading />
-        ) : page.error ? (
-          <div className="ui-body">
-            <Notice tone="danger">Nu am putut încărca pagina de parteneri.</Notice>
-          </div>
-        ) : (
-          <div className="ui-body">
-            <ObjectFieldCard<Content>
-              title="Antet (hero)"
-              value={content}
-              onFieldChange={(key, v) => form.set('content', { ...content, [key]: v })}
-              fields={[
-                { key: 'heroTitle', label: 'Titlu', placeholder: 'ex: Parteneri' },
-                { key: 'heroSubtitle', label: 'Subtitlu', type: 'textarea', rows: 3, placeholder: 'ex: Împreună cu partenerii și sponsorii noștri...', span: 2 },
-              ]}
-            />
-
-            <ObjectFieldCard<Content>
-              title="De ce parteneriat"
-              value={content}
-              onFieldChange={(key, v) => form.set('content', { ...content, [key]: v })}
-              fields={[
-                { key: 'introEyebrow', label: 'Etichetă mică', placeholder: 'ex: De ce parteneriat' },
-                { key: 'introHeading', label: 'Titlu secțiune', placeholder: 'ex: Susține o comunitate în creștere' },
-                { key: 'introBody', label: 'Text', type: 'textarea', rows: 3, placeholder: 'ex: Un parteneriat cu clubul înseamnă vizibilitate...', span: 2 },
-              ]}
-            />
-
-            <ObjectFieldCard<Content>
-              title="Colaborează (secțiunea formular)"
-              value={content}
-              onFieldChange={(key, v) => form.set('content', { ...content, [key]: v })}
-              fields={[
-                { key: 'ctaEyebrow', label: 'Etichetă mică', placeholder: 'ex: Hai să colaborăm' },
-                { key: 'ctaHeading', label: 'Titlu', placeholder: 'ex: Sponsorizează sau organizează un eveniment' },
-                { key: 'ctaBody', label: 'Text', type: 'textarea', rows: 3, placeholder: 'ex: Vrei să sponsorizezi clubul sau să organizăm împreună un eveniment?', span: 2 },
-              ]}
-            />
-
-            <LinkOutCard
-              title="Sponsori"
-              href={`/admin${SPONSORI_TO}`}
-              linkLabel="Gestionează sponsorii"
-              external={false}
-            />
-
-            <LinkOutCard
-              title="Evenimente & colaborări"
-              href={`/admin${EVENIMENTE_COLABORARE_TO}`}
-              linkLabel="Gestionează evenimentele"
-              external={false}
-            />
-          </div>
+      <TabbedWindow host="parteneri" title="Pagina Parteneri">
+        {(tab) => (
+          <>
+            <div hidden={tab !== 'pagina'}>
+              {page.loading && <Loading />}
+              {page.error && (
+                <div className="ui-body">
+                  <Notice tone="danger">Nu am putut încărca pagina de parteneri.</Notice>
+                </div>
+              )}
+              {ready && <PartnersFields form={form} />}
+            </div>
+            {tab === 'sponsori' && <SponsoriBody />}
+            {tab === 'evenimente' && <EvenimenteColaborareBody />}
+            {ready && tab === 'pagina' && (
+              <SaveBar {...page.saveState.bar} onSave={() => void page.save(form.value)} onDiscard={form.reset} />
+            )}
+          </>
         )}
-
-        {!page.loading && !page.error && (
-          <SaveBar {...page.saveState.bar} onSave={() => void page.save(form.value)} onDiscard={form.reset} />
-        )}
-      </Window>
+      </TabbedWindow>
 
       <UnsavedGuard when={form.dirty} />
     </AdminPage>

@@ -2,9 +2,6 @@ import * as React from 'react';
 import { useFetchClient } from '@strapi/admin/strapi-admin';
 import { ConfirmDialog } from '../ConfirmDialog';
 import {
-  AdminPage,
-  Window,
-  PageHeader,
   Button,
   Field,
   HelpTip,
@@ -17,6 +14,7 @@ import {
   useSaveState,
   adminToast,
 } from '../ui';
+import { HeaderAction } from '../pages/TabbedWindow';
 
 /**
  * EduSport admin — "Sponsori" list page (custom, replaces the default
@@ -191,7 +189,7 @@ function SponsorEditor({
 }
 
 // ---- page -------------------------------------------------------------------
-export default function SponsoriPage() {
+export default function SponsoriBody() {
   const { get, post, put, del } = useFetchClient();
 
   const [rows, setRows] = React.useState<Row[]>([]);
@@ -417,36 +415,32 @@ export default function SponsoriPage() {
 
   return (
     // `pce` opts the modal's "Salvează" button out of the global admin SaveBar tagger.
-    <AdminPage>
+    <>
       <style>{SPONSORI_CSS}</style>
-      <Window>
-        <PageHeader
-          title="Sponsori"
-          actions={<Button onClick={openNew}>+ Adaugă sponsor</Button>}
-        />
-
-        <DataTable
-          columns={columns}
-          rows={filtered}
-          getRowKey={(r) => r.documentId}
-          onRowClick={(r) => openEdit(r)}
-          rowLabel={(r) => `Editează ${r.name}`}
-          loading={loading}
-          empty={error ? 'Nu am putut încărca sponsorii.' : rows.length === 0 ? 'Niciun sponsor adăugat.' : 'Niciun sponsor.'}
-          search={false}
-          toolbar={
-            <>
-              <Input
-                placeholder="Caută după nume..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                aria-label="Caută după nume"
-              />
-              {sortLocked && <HelpTip icon="lock" label="Golește căutarea ca să reordonezi." />}
-            </>
-          }
-        />
-      </Window>
+      <HeaderAction>
+        <Button onClick={openNew}>+ Adaugă sponsor</Button>
+      </HeaderAction>
+      <DataTable
+        columns={columns}
+        rows={filtered}
+        getRowKey={(r) => r.documentId}
+        onRowClick={(r) => openEdit(r)}
+        rowLabel={(r) => `Editează ${r.name}`}
+        loading={loading}
+        empty={error ? 'Nu am putut încărca sponsorii.' : rows.length === 0 ? 'Niciun sponsor adăugat.' : 'Niciun sponsor.'}
+        search={false}
+        toolbar={
+          <>
+            <Input
+              placeholder="Caută după nume..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Caută după nume"
+            />
+            {sortLocked && <HelpTip icon="lock" label="Golește căutarea ca să reordonezi." />}
+          </>
+        }
+      />
 
       {draft && (
         <SponsorEditor
@@ -473,6 +467,6 @@ export default function SponsoriPage() {
         onCancel={closeConfirm}
         onConfirm={confirmDelete}
       />
-    </AdminPage>
+    </>
   );
 }

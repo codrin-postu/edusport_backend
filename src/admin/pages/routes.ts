@@ -17,6 +17,7 @@
 import type { AdminArea } from '../../club/admin-area';
 import type { FeatureKey } from '../../club/features/features';
 import { PRETURI_PATH } from '../../club/preturi-routes';
+import { tabAddress } from '../../club/tab-hosts';
 
 // ---- route constants --------------------------------------------------------
 export const SETARI_SITE_TO = '/plugins/edusport-setari';
@@ -34,6 +35,10 @@ export const REALIZARI_TO = '/plugins/edusport-realizari';
 export const EVENIMENTE_COLABORARE_TO = '/plugins/edusport-evenimente-colaborare';
 /** Edit page; `?id=<documentId>` edits, no id creates. */
 export const EVENIMENT_COLABORARE_EDIT_TO = '/plugins/edusport-evenimente-colaborare-edit';
+/** The list pages that moved into tabs of Pagina Parteneri and Istoric; their old routes redirect here. */
+export const SPONSORI_TAB_TO = tabAddress(PAGINA_PARTENERI_TO, 'sponsori');
+export const EVENIMENTE_TAB_TO = tabAddress(PAGINA_PARTENERI_TO, 'evenimente');
+export const MOMENTE_TAB_TO = tabAddress(ISTORIC_TO, 'momente');
 /** Admin "Securitate" (6b-1 spec 10.4): 2FA, password, Google, devices, Administratori. */
 export const SECURITATE_TO = '/plugins/edusport-securitate';
 /** Funcții: the club-wide feature switches, Super Admin only. */
@@ -103,7 +108,7 @@ export const CUSTOM_PAGES: CustomPageRoute[] = [
   { to: ISTORIC_TO, area: 'website', uid: UID.historicPage, kind: 'single', role: 'main', redirect: true, load: () => import('./IstoricPage') },
   { to: PAGINA_PARTENERI_TO, area: 'website', uid: UID.partnersPage, kind: 'single', role: 'main', redirect: true, load: () => import('./PaginaParteneriPage') },
   { to: DISCIPLINE_TO, area: 'website', uid: UID.discipline, kind: 'collection', role: 'main', redirect: true, load: () => import('./DisciplinePage') },
-  { to: MOMENTE_ISTORIC_TO, area: 'website', uid: UID.historyMilestone, kind: 'collection', role: 'main', redirect: true, load: () => import('./MomenteIstoricPage') },
+  { to: MOMENTE_ISTORIC_TO, area: 'website', uid: UID.historyMilestone, kind: 'collection', role: 'main', redirect: true, load: () => import('./TabRedirects').then((m) => ({ default: m.MomenteRedirect })) },
   { to: CURSURI_TO, area: 'website', uid: UID.cursuriPage, kind: 'single', role: 'main', redirect: true, load: () => import('./CursuriPage') },
   // Edits the club price lists now; old content-manager URLs of `pricing` still land here.
   { to: PRETURI_TO, area: 'website', uid: UID.pricing, kind: 'single', role: 'main', redirect: true, load: () => import('./PreturiPage') },
@@ -112,7 +117,7 @@ export const CUSTOM_PAGES: CustomPageRoute[] = [
   { to: REGULAMENT_TO, area: 'website', uid: UID.courseRegulations, kind: 'single', role: 'main', redirect: true, load: () => import('./RegulamentPage') },
   { to: PAGINA_PROGRAM_TO, area: 'website', uid: UID.programPage, kind: 'single', role: 'main', redirect: true, load: () => import('./PaginaProgramPage') },
   { to: REALIZARI_TO, area: 'website', uid: UID.realizariPage, kind: 'single', role: 'main', redirect: true, load: () => import('./RealizariPage') },
-  { to: EVENIMENTE_COLABORARE_TO, area: 'website', uid: UID.collaborationEvent, kind: 'collection', role: 'main', redirect: true, load: () => import('./EvenimenteColaborarePage') },
+  { to: EVENIMENTE_COLABORARE_TO, area: 'website', uid: UID.collaborationEvent, kind: 'collection', role: 'main', redirect: true, load: () => import('./TabRedirects').then((m) => ({ default: m.EvenimenteRedirect })) },
   { to: EVENIMENT_COLABORARE_EDIT_TO, area: 'website', uid: UID.collaborationEvent, kind: 'collection', role: 'edit', redirect: true, load: () => import('./EvenimentColaborareEditPage') },
   { to: ARTICOLE_TO, area: 'website', uid: UID.article, kind: 'collection', role: 'main', redirect: false, load: () => import('./ArticolePage') },
   { to: ARTICOL_EDIT_TO, area: 'website', uid: UID.article, kind: 'collection', role: 'edit', redirect: false, load: () => import('./ArticolEditPage') },

@@ -22,7 +22,7 @@ import {
 } from '../ui';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { useCollectionEntry, usePageForm } from '../lib';
-import { EVENIMENTE_COLABORARE_TO, EVENIMENT_COLABORARE_EDIT_TO, UID } from './routes';
+import { EVENIMENTE_TAB_TO, EVENIMENT_COLABORARE_EDIT_TO, UID } from './routes';
 
 /**
  * Eveniment colaborare: one collaboration-event entry. `?id=<documentId>`
@@ -109,7 +109,7 @@ const EvenimentColaborareEditPage: React.FC = () => {
     setAsking(false);
     if (ok) {
       releaseUnsavedGuards();
-      navigate(EVENIMENTE_COLABORARE_TO);
+      navigate(EVENIMENTE_TAB_TO);
     }
   };
 
@@ -120,7 +120,7 @@ const EvenimentColaborareEditPage: React.FC = () => {
     <AdminPage>
       <Window>
         <PageHeader
-          back={{ to: EVENIMENTE_COLABORARE_TO, label: 'Evenimente colaborare' }}
+          back={{ to: EVENIMENTE_TAB_TO, label: 'Evenimente colaborare' }}
           title={heading}
           actions={
             ready && entry.exists ? (

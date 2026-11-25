@@ -1,8 +1,6 @@
 import * as React from 'react';
 import {
   AdminPage,
-  Window,
-  PageHeader,
   Notice,
   Loading,
   SaveBar,
@@ -14,7 +12,8 @@ import {
   normalizeObject,
 } from '../ui';
 import { useSingleType, usePageForm } from '../lib';
-import { DASHBOARD_TO } from '../dashboard/menu';
+import MomenteIstoricBody from './MomenteIstoricPage';
+import { TabbedWindow } from './TabbedWindow';
 import { UID } from './routes';
 
 /**
@@ -92,104 +91,111 @@ function StringList({
   );
 }
 
-const IstoricPage: React.FC = () => {
-  const page = useSingleType<HistoricPage>(UID.historicPage);
-  const form = usePageForm<HistoricPage>(page.data, page.saveState);
+type HistoricForm = ReturnType<typeof usePageForm<HistoricPage>>;
 
+function HistoricFields({ form }: { form: HistoricForm }) {
   const banner = normalizeObject<Banner>(form.value.banner, EMPTY_BANNER);
   const info = normalizeObject<PageInfo>(form.value.pageInfo, EMPTY_INFO);
   const stats = Array.isArray(form.value.stats) ? form.value.stats : [];
   const eventsOrganized = Array.isArray(form.value.eventsOrganized) ? form.value.eventsOrganized : [];
   const eventsParticipated = Array.isArray(form.value.eventsParticipated) ? form.value.eventsParticipated : [];
+  return (
+    <div className="ui-body">
+      <ObjectFieldCard<Banner>
+        title="Banner pagină"
+        value={banner}
+        onFieldChange={(key, v) => form.set('banner', { ...banner, [key]: v })}
+        fields={[
+          { key: 'title', label: 'Titlu', placeholder: 'ex: Echipa noastră', span: 2 },
+          {
+            key: 'subtitle',
+            label: 'Subtitlu',
+            type: 'textarea',
+            rows: 3,
+            placeholder: 'ex: Antrenorii și instructorii care ghidează cursanții...',
+          },
+        ]}
+      />
+
+      <ObjectFieldCard<PageInfo>
+        title="Secțiunea principală"
+        value={info}
+        onFieldChange={(key, v) => form.set('pageInfo', { ...info, [key]: v })}
+        fields={[
+          { key: 'sectionHeading', label: 'Titlu secțiune principală', placeholder: 'ex: Povestea noastră' },
+          { key: 'sectionSubheading', label: 'Subtitlu secțiune', placeholder: 'ex: De la început până astăzi' },
+          {
+            key: 'introText',
+            label: 'Text introducere',
+            type: 'textarea',
+            rows: 4,
+            placeholder: 'Textul introductiv al secțiunii principale...',
+            span: 2,
+          },
+        ]}
+      />
+
+      <EditorCard title="Statistici club" description="Format: valoare|etichetă, câte una pe rând.">
+        <StringList
+          items={stats}
+          onChange={(next) => form.set('stats', next)}
+          addLabel="Adaugă statistică"
+          itemLabel="statistica"
+          placeholder="ex: 10+|Competiții pe an"
+          rows={1}
+          emptyLabel="Nicio statistică adăugată."
+        />
+      </EditorCard>
+
+      <EditorCard title="Evenimente organizate de ACS EduSport">
+        <StringList
+          items={eventsOrganized}
+          onChange={(next) => form.set('eventsOrganized', next)}
+          addLabel="Adaugă eveniment"
+          itemLabel="evenimentul"
+          emptyLabel="Niciun eveniment adăugat."
+        />
+      </EditorCard>
+
+      <EditorCard title="Participări ale sportivilor EduSport">
+        <StringList
+          items={eventsParticipated}
+          onChange={(next) => form.set('eventsParticipated', next)}
+          addLabel="Adaugă participare"
+          itemLabel="participarea"
+          emptyLabel="Nicio participare adăugată."
+        />
+      </EditorCard>
+    </div>
+  );
+}
+
+const IstoricPage: React.FC = () => {
+  const page = useSingleType<HistoricPage>(UID.historicPage);
+  const form = usePageForm<HistoricPage>(page.data, page.saveState);
+  const ready = !page.loading && !page.error;
 
   return (
     <AdminPage>
-      <Window>
-        <PageHeader
-          back={{ to: DASHBOARD_TO }}
-          title="Istoric"
-        />
-
-        {page.loading ? (
-          <Loading />
-        ) : page.error ? (
-          <div className="ui-body">
-            <Notice tone="danger">Nu am putut încărca pagina de istoric.</Notice>
-          </div>
-        ) : (
-          <div className="ui-body">
-            <ObjectFieldCard<Banner>
-              title="Banner pagină"
-              value={banner}
-              onFieldChange={(key, v) => form.set('banner', { ...banner, [key]: v })}
-              fields={[
-                { key: 'title', label: 'Titlu', placeholder: 'ex: Echipa noastră', span: 2 },
-                {
-                  key: 'subtitle',
-                  label: 'Subtitlu',
-                  type: 'textarea',
-                  rows: 3,
-                  placeholder: 'ex: Antrenorii și instructorii care ghidează cursanții...',
-                },
-              ]}
-            />
-
-            <ObjectFieldCard<PageInfo>
-              title="Secțiunea principală"
-              value={info}
-              onFieldChange={(key, v) => form.set('pageInfo', { ...info, [key]: v })}
-              fields={[
-                { key: 'sectionHeading', label: 'Titlu secțiune principală', placeholder: 'ex: Povestea noastră' },
-                { key: 'sectionSubheading', label: 'Subtitlu secțiune', placeholder: 'ex: De la început până astăzi' },
-                {
-                  key: 'introText',
-                  label: 'Text introducere',
-                  type: 'textarea',
-                  rows: 4,
-                  placeholder: 'Textul introductiv al secțiunii principale...',
-                  span: 2,
-                },
-              ]}
-            />
-
-            <EditorCard title="Statistici club" description="Format: valoare|etichetă, câte una pe rând.">
-              <StringList
-                items={stats}
-                onChange={(next) => form.set('stats', next)}
-                addLabel="Adaugă statistică"
-                itemLabel="statistica"
-                placeholder="ex: 10+|Competiții pe an"
-                rows={1}
-                emptyLabel="Nicio statistică adăugată."
-              />
-            </EditorCard>
-
-            <EditorCard title="Evenimente organizate de ACS EduSport">
-              <StringList
-                items={eventsOrganized}
-                onChange={(next) => form.set('eventsOrganized', next)}
-                addLabel="Adaugă eveniment"
-                itemLabel="evenimentul"
-                emptyLabel="Niciun eveniment adăugat."
-              />
-            </EditorCard>
-
-            <EditorCard title="Participări ale sportivilor EduSport">
-              <StringList
-                items={eventsParticipated}
-                onChange={(next) => form.set('eventsParticipated', next)}
-                addLabel="Adaugă participare"
-                itemLabel="participarea"
-                emptyLabel="Nicio participare adăugată."
-              />
-            </EditorCard>
-          </div>
+      <TabbedWindow host="istoric" title="Istoric">
+        {(tab) => (
+          <>
+            <div hidden={tab !== 'pagina'}>
+              {page.loading && <Loading />}
+              {page.error && (
+                <div className="ui-body">
+                  <Notice tone="danger">Nu am putut încărca pagina de istoric.</Notice>
+                </div>
+              )}
+              {ready && <HistoricFields form={form} />}
+            </div>
+            {tab === 'momente' && <MomenteIstoricBody />}
+            {ready && tab === 'pagina' && (
+              <SaveBar {...page.saveState.bar} onSave={() => void page.save(form.value)} onDiscard={form.reset} />
+            )}
+          </>
         )}
-
-        {!page.loading && !page.error && (
-          <SaveBar {...page.saveState.bar} onSave={() => void page.save(form.value)} onDiscard={form.reset} />
-        )}
-      </Window>
+      </TabbedWindow>
 
       <UnsavedGuard when={form.dirty} />
     </AdminPage>

@@ -1,9 +1,6 @@
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  AdminPage,
-  Window,
-  PageHeader,
   Button,
   Field,
   Input,
@@ -17,7 +14,7 @@ import {
 } from '../ui';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { useCollection, type Row } from '../lib';
-import { DASHBOARD_TO } from '../dashboard/menu';
+import { HeaderAction } from './TabbedWindow';
 import { UID } from './routes';
 import { EMPTY_VALUE } from '../../club/empty-value';
 
@@ -49,7 +46,7 @@ interface Draft {
 
 const EMPTY_DRAFT: Draft = { documentId: null, year: '', title: '', description: '' };
 
-const MomenteIstoricPage: React.FC = () => {
+const MomenteIstoricBody: React.FC = () => {
   const collection = useCollection<Milestone>(UID.historyMilestone);
   const [params, setParams] = useSearchParams();
 
@@ -205,31 +202,26 @@ const MomenteIstoricPage: React.FC = () => {
   ];
 
   return (
-    <AdminPage>
-      <Window>
-        <PageHeader
-          back={{ to: DASHBOARD_TO }}
-          title="Momente istoric"
-          actions={<Button onClick={openNew}>+ Adaugă moment</Button>}
+    <>
+      <HeaderAction>
+        <Button onClick={openNew}>+ Adaugă moment</Button>
+      </HeaderAction>
+      <div className="ui-body">
+        {collection.error && <Notice tone="danger">Nu am putut încărca momentele din istoric.</Notice>}
+
+        <DataTable<Row<Milestone>>
+          columns={columns}
+          rows={collection.items}
+          getRowKey={(r) => r.documentId}
+          onRowClick={(r) => openEdit(r)}
+          rowLabel={(r) => `Editează ${r.title}`}
+          loading={collection.loading}
+          empty="Niciun moment adăugat."
+          noMatches="Niciun moment pentru căutarea curentă."
+          searchPlaceholder="Caută după an sau titlu..."
+          pageSize={0}
         />
-
-        <div className="ui-body">
-          {collection.error && <Notice tone="danger">Nu am putut încărca momentele din istoric.</Notice>}
-
-          <DataTable<Row<Milestone>>
-            columns={columns}
-            rows={collection.items}
-            getRowKey={(r) => r.documentId}
-            onRowClick={(r) => openEdit(r)}
-            rowLabel={(r) => `Editează ${r.title}`}
-            loading={collection.loading}
-            empty="Niciun moment adăugat."
-            noMatches="Niciun moment pentru căutarea curentă."
-            searchPlaceholder="Caută după an sau titlu..."
-            pageSize={0}
-          />
-        </div>
-      </Window>
+      </div>
 
       {draft && (
         <Modal
@@ -284,8 +276,8 @@ const MomenteIstoricPage: React.FC = () => {
         onCancel={() => !deleting && setTarget(null)}
         onConfirm={() => void confirmRemove()}
       />
-    </AdminPage>
+    </>
   );
 };
 
-export default MomenteIstoricPage;
+export default MomenteIstoricBody;

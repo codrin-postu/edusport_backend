@@ -406,7 +406,7 @@ export function registerEdusportMenu(app: StrapiApp) {
     to: SPONSORI_TO,
     icon: Duplicate,
     intlLabel: { id: 'edusport.menu.sponsori', defaultMessage: 'Sponsori' },
-    Component: gated('website', () => import('./SponsoriPage')),
+    Component: gated('website', () => import('../pages/TabRedirects').then((m) => ({ default: m.SponsoriRedirect }))),
     permissions: [],
     position: 17,
   });
