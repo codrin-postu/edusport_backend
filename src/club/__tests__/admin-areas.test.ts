@@ -23,8 +23,8 @@ const labels = (codes: string[]) => visibleLinks(EDUSPORT_LINKS, hasOf(codes), (
 const SITE_EDITOR_LABELS = [
   'Membri echipă', 'Competiții', 'Discipline',
   'Pagina principală', 'Cursuri', 'Prețuri', 'Regulament', 'Pagina Program', 'Pagina Echipă', 'Istoric', 'Realizări', 'Parteneri', 'Voluntariat',
-  'Articole', 'Anunțuri', 'Sponsori', 'Evenimente colaborare', 'Momente istoric',
-  'Media', 'Meniu site', 'Securitate',
+  'Articole', 'Anunțuri',
+  'Imagini', 'Meniu site', 'Securitate',
 ];
 
 describe('menu entries per role', () => {

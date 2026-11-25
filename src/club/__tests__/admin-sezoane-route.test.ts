@@ -1,6 +1,8 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
+
+vi.mock('@strapi/admin/strapi-admin', () => ({ getFetchClient: () => ({}) }));
+
+import { EDUSPORT_LINKS } from '../../admin/dashboard/menu';
 import { CUSTOM_PAGES, PRETURI_TO, SEZOANE_TO } from '../../admin/pages/routes';
 
 it('Sezoane is a custom page; Prețuri keeps its route', () => {
@@ -9,10 +11,11 @@ it('Sezoane is a custom page; Prețuri keeps its route', () => {
   expect(CUSTOM_PAGES.find((p) => p.to === PRETURI_TO)).toBeDefined();
 });
 
-it('the sidebar pins Sezoane at the top, between Setări site and Meniu site, with a calendar icon', () => {
-  const read = (p: string) => readFileSync(join(__dirname, '..', '..', p), 'utf8');
-  expect(read('admin/dashboard/menu.tsx')).toMatch(
-    /\{ to: SETARI_SITE_TO,[^\n]*pinned: true, area: 'settings' \},\n\s*\{ to: SEZOANE_TO, label: 'Sezoane', icon: Calendar, group: 'system', pinned: true, area: 'settings' \},\n\s*\{ to: NAVIGATION_TO,/,
-  );
-  expect(read('admin/dashboard/EdusportShell.tsx')).toContain("[SEZOANE_TO]: 'calendar'");
+it('Sezoane sits in the Setări group, no row is pinned, Imagini replaces Media', () => {
+  const find = (label: string) => EDUSPORT_LINKS.find((l) => l.label === label);
+  expect(find('Sezoane')).toMatchObject({ to: SEZOANE_TO, group: 'settings', area: 'settings' });
+  expect(find('Setări site')?.group).toBe('settings');
+  expect(find('Media')).toBeUndefined();
+  expect(find('Imagini')).toMatchObject({ to: '/plugins/upload', group: 'settings' });
+  expect(EDUSPORT_LINKS.some((l) => 'pinned' in l)).toBe(false);
 });

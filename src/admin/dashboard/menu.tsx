@@ -6,8 +6,8 @@ import {
 import {
   CUSTOM_PAGES,
   SETARI_SITE_TO, PAGINA_ECHIPA_TO, ISTORIC_TO, PAGINA_PARTENERI_TO, DISCIPLINE_TO,
-  MOMENTE_ISTORIC_TO, CURSURI_TO, PRETURI_TO, SEZOANE_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
-  REALIZARI_TO, EVENIMENTE_COLABORARE_TO, SECURITATE_TO, FUNCTII_TO, UID,
+  CURSURI_TO, PRETURI_TO, SEZOANE_TO, REGULAMENT_TO, PAGINA_PROGRAM_TO,
+  REALIZARI_TO, SECURITATE_TO, FUNCTII_TO, UID,
 } from '../pages/routes';
 import { BANI_PATH } from '../../club/bani/routes';
 import { CONTABILITATE_PATH } from '../../club/contabilitate/routes';
@@ -45,7 +45,7 @@ export {
  * app.router.addRoute, route only, since the EduSport sidebar is their nav.
  */
 
-export type Group = 'forms' | 'program' | 'club' | 'team' | 'pages' | 'content' | 'system';
+export type Group = 'forms' | 'club' | 'news' | 'pages' | 'settings';
 
 export interface EdusportLink {
   to: string;
@@ -53,7 +53,6 @@ export interface EdusportLink {
   icon: React.ComponentType;
   group: Group;
   featured?: boolean; // shown in the dashboard "Scurtături" grid
-  pinned?: boolean;   // shown at the top of the sidebar, next to Acasă
   area: AdminArea;    // role area: the sidebar and the phone menu hide the entry outside it, and the page is gated on it
   feature?: FeatureKey; // club switch: the entry is hidden while it is off
   show?: GatedLink['show']; // extra rule over the switches (Tabele)
@@ -63,15 +62,13 @@ export { visibleLinks };
 
 export const GROUP_LABEL: Record<Group, string> = {
   forms: 'Formulare',
-  program: 'Program și calendar',
   club: 'Club și școală',
-  team: 'Sportivi și echipă',
+  news: 'Noutăți',
   pages: 'Pagini site',
-  content: 'Articole și media',
-  system: 'Sistem',
+  settings: 'Setări',
 };
 
-export const GROUP_ORDER: Group[] = ['forms', 'program', 'club', 'team', 'pages', 'content', 'system'];
+export const GROUP_ORDER: Group[] = ['forms', 'club', 'news', 'pages', 'settings'];
 
 // Admin route for the custom dashboard page (basename is /admin at runtime).
 export const DASHBOARD_TO = '/plugins/edusport-dashboard';
@@ -152,58 +149,49 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: PARTENERI_REZULTATE_TO, label: 'Parteneri', icon: Duplicate, group: 'forms', area: 'club' },
   { to: MESAJE_TO, label: 'Contact', icon: Mail, group: 'forms', area: 'club' },
 
-  // Program și calendar
-  { to: PROGRAM_EDIT_TO, label: 'Calendar și serii', icon: Calendar, group: 'program', featured: true, area: 'club' },
-
   // Club și școală
-  { to: GRUPE_TO, label: 'Grupe', icon: GridFour, group: 'club', featured: true, area: 'club' },
   { to: SPORTIVI_TO, label: 'Sportivi', icon: User, group: 'club', featured: true, area: 'club' },
+  { to: GRUPE_TO, label: 'Grupe', icon: GridFour, group: 'club', featured: true, area: 'club' },
   { to: PREZENTA_PATH, label: 'Prezență', icon: Clock, group: 'club', area: 'club', feature: 'prezenta' },
   { to: CONTABILITATE_PATH, label: 'Contabilitate', icon: ChartPie, group: 'club', area: 'club', feature: 'abonamente' },
-  { to: TABELE_PATH, label: 'Tabele', icon: GridFour, group: 'club', area: TABLES_AREA, show: tablesVisible },
+  { to: PROGRAM_EDIT_TO, label: 'Calendar și serii', icon: Calendar, group: 'club', featured: true, area: 'club' },
   { to: PRETURI_TO, label: 'Prețuri', icon: Cursor, group: 'club', featured: true, area: 'website' },
-
-  // Sportivi și echipă
+  { to: TABELE_PATH, label: 'Tabele', icon: GridFour, group: 'club', area: TABLES_AREA, show: tablesVisible },
   // Re-pointed from collection('api::team-member.team-member'): team members are
   // now edited on the custom Membri echipă page.
-  { to: MEMBRI_TO, label: 'Membri echipă', icon: GridFour, group: 'team', featured: true, area: 'website' },
-  { to: COMPETITII_TO, label: 'Competiții', icon: Star, group: 'team', featured: true, area: 'website' },
-  { to: DISCIPLINE_TO, label: 'Discipline', icon: ChartCircle, group: 'team', area: 'website' },
+  { to: MEMBRI_TO, label: 'Membri echipă', icon: GridFour, group: 'club', featured: true, area: 'website' },
+  { to: COMPETITII_TO, label: 'Competiții', icon: Star, group: 'club', featured: true, area: 'website' },
+
+  // Noutăți
+  // Re-pointed from single('api::announcement.announcement'): that single-type
+  // route is dead; announcements are now a hidden collection driven by the
+  // custom Anunțuri page.
+  { to: ANUNTURI_TO, label: 'Anunțuri', icon: Bell, group: 'news', area: 'website' },
+  // Stays on the Strapi editor until the Articole page is built (ARTICOLE_TO
+  // exists as a route already, see CUSTOM-PAGES.md).
+  { to: collection(UID.article), label: 'Articole', icon: Book, group: 'news', featured: true, area: 'website' },
 
   // Pagini site
   { to: HOMEPAGE_EDIT_TO, label: 'Pagina principală', icon: House, group: 'pages', featured: true, area: 'website' },
-  { to: CURSURI_TO, label: 'Cursuri', icon: Book, group: 'pages', featured: true, area: 'website' },
-  { to: REGULAMENT_TO, label: 'Regulament', icon: Feather, group: 'pages', area: 'website' },
-  { to: PAGINA_PROGRAM_TO, label: 'Pagina Program', icon: Calendar, group: 'pages', area: 'website' },
-  { to: PAGINA_ECHIPA_TO, label: 'Pagina Echipă', icon: GridFour, group: 'pages', area: 'website' },
   { to: ISTORIC_TO, label: 'Istoric', icon: Clock, group: 'pages', area: 'website' },
+  { to: PAGINA_ECHIPA_TO, label: 'Pagina Echipă', icon: GridFour, group: 'pages', area: 'website' },
   { to: REALIZARI_TO, label: 'Realizări', icon: Star, group: 'pages', area: 'website' },
-  { to: PAGINA_PARTENERI_TO, label: 'Parteneri', icon: Duplicate, group: 'pages', area: 'website' },
   // Re-pointed from single('api::volunteer-page.volunteer-page'): the page is
   // now edited on the custom, compact Voluntariat editor.
   { to: VOLUNTARIAT_EDIT_TO, label: 'Voluntariat', icon: Bell, group: 'pages', area: 'website' },
+  { to: CURSURI_TO, label: 'Cursuri', icon: Book, group: 'pages', featured: true, area: 'website' },
+  { to: PAGINA_PROGRAM_TO, label: 'Pagina Program', icon: Calendar, group: 'pages', area: 'website' },
+  { to: REGULAMENT_TO, label: 'Regulament', icon: Feather, group: 'pages', area: 'website' },
+  { to: PAGINA_PARTENERI_TO, label: 'Parteneri', icon: Duplicate, group: 'pages', area: 'website' },
+  { to: NAVIGATION_TO, label: 'Meniu site', icon: GridFour, group: 'pages', area: 'website' },
 
-  // Articole și media
-  // Stays on the Strapi editor until the Articole page is built (ARTICOLE_TO
-  // exists as a route already, see CUSTOM-PAGES.md).
-  { to: collection(UID.article), label: 'Articole', icon: Book, group: 'content', featured: true, area: 'website' },
-  // Re-pointed from single('api::announcement.announcement'): that single-type
-  // route is dead — announcements are now a hidden collection driven by the
-  // custom Anunțuri page.
-  { to: ANUNTURI_TO, label: 'Anunțuri', icon: Bell, group: 'content', pinned: true, area: 'website' },
-  // Re-pointed from collection('api::sponsor.sponsor'): sponsors are now edited
-  // on the custom Sponsori list page.
-  { to: SPONSORI_TO, label: 'Sponsori', icon: Duplicate, group: 'content', area: 'website' },
-  { to: EVENIMENTE_COLABORARE_TO, label: 'Evenimente colaborare', icon: Calendar, group: 'content', area: 'website' },
-  { to: MOMENTE_ISTORIC_TO, label: 'Momente istoric', icon: Clock, group: 'content', area: 'website' },
-
-  // Sistem
-  { to: '/plugins/upload', label: 'Media', icon: GridFour, group: 'system', area: 'website' },
-  { to: SETARI_SITE_TO, label: 'Setări site', icon: Pencil, group: 'system', pinned: true, area: 'settings' },
-  { to: SEZOANE_TO, label: 'Sezoane', icon: Calendar, group: 'system', pinned: true, area: 'settings' },
-  { to: NAVIGATION_TO, label: 'Meniu site', icon: GridFour, group: 'system', pinned: true, area: 'website' },
-  { to: SECURITATE_TO, label: SECURITY_COPY.page.title, icon: Lock, group: 'system', area: 'any' },
-  { to: FUNCTII_TO, label: FEATURES_COPY.page, icon: Lock, group: 'system', area: 'superAdmin' },
+  // Setări
+  { to: SETARI_SITE_TO, label: 'Setări site', icon: Pencil, group: 'settings', area: 'settings' },
+  { to: SEZOANE_TO, label: 'Sezoane', icon: Calendar, group: 'settings', area: 'settings' },
+  { to: DISCIPLINE_TO, label: 'Discipline', icon: ChartCircle, group: 'settings', area: 'website' },
+  { to: '/plugins/upload', label: 'Imagini', icon: GridFour, group: 'settings', area: 'website' },
+  { to: SECURITATE_TO, label: SECURITY_COPY.page.title, icon: Lock, group: 'settings', area: 'any' },
+  { to: FUNCTII_TO, label: FEATURES_COPY.page, icon: Lock, group: 'settings', area: 'superAdmin' },
 ];
 
 export function registerEdusportMenu(app: StrapiApp) {

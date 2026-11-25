@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { tabletQuery } from '../../club/ui-breakpoints';
 import { createRoot } from 'react-dom/client';
-import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, UMAMI_URL, ANUNTURI_TO, NAVIGATION_TO, SEZOANE_TO } from './menu';
+import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, UMAMI_URL } from './menu';
 import type { Group } from './menu';
 import { scaleVars } from '../ui/tokens';
 import { useAreas } from '../lib/useAreas';
@@ -210,16 +210,11 @@ function Icon({ name, className }: { name: IconKey; className?: string }) {
 /** One glyph per category. Kept here (not in menu.tsx) for the provider reason above. */
 const GROUP_ICON: Record<Group, IconKey> = {
   forms: 'feather',
-  program: 'calendar',
   club: 'user',
-  team: 'user',
+  news: 'book',
   pages: 'grid',
-  content: 'book',
-  system: 'gear',
+  settings: 'gear',
 };
-
-/** Glyphs for the pinned top-level rows, which sit outside any category. */
-const PINNED_ICON: Record<string, IconKey> = { [ANUNTURI_TO]: 'bell', [NAVIGATION_TO]: 'grid', [SEZOANE_TO]: 'calendar' };
 
 function Chevron({ open }: { open: boolean }) {
   return (
@@ -498,7 +493,7 @@ function EdusportShell() {
     );
   }
 
-  const groupLinks = (group: Group) => links.filter((l) => l.group === group && !l.pinned);
+  const groupLinks = (group: Group) => links.filter((l) => l.group === group);
   const flyLinks = flyGroup ? groupLinks(flyGroup) : [];
 
   return (
@@ -531,17 +526,6 @@ function EdusportShell() {
               <Icon name="chart" /><span className="esd-lbl">Analiză trafic</span>
             </a>
           ) : null}
-          {links.filter((l) => l.pinned).map((l) => (
-            <a
-              key={l.to}
-              href={`/admin${l.to}`}
-              className={isActive(l.to) ? 'on' : ''}
-              onClick={go(l.to)}
-              title={railed ? l.label : undefined}
-            >
-              <Icon name={PINNED_ICON[l.to] ?? 'gear'} /><span className="esd-lbl">{l.label}</span>
-            </a>
-          ))}
           {GROUP_ORDER.map((group) => {
             const links = groupLinks(group);
             if (links.length === 0) return null;

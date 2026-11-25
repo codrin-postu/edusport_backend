@@ -213,10 +213,10 @@ describe('page rules', () => {
 });
 
 describe('menu', () => {
-  it('Securitate sits in the system group on /plugins/edusport-securitate', () => {
+  it('Securitate sits in the settings group on /plugins/edusport-securitate', () => {
     expect(src('pages/routes.ts')).toContain("SECURITATE_TO = '/plugins/edusport-securitate'");
     const menu = src('dashboard/menu.tsx');
-    expect(menu).toContain("{ to: SECURITATE_TO, label: SECURITY_COPY.page.title, icon: Lock, group: 'system', area: 'any' }");
+    expect(menu).toContain("{ to: SECURITATE_TO, label: SECURITY_COPY.page.title, icon: Lock, group: 'settings', area: 'any' }");
     expect(menu).toContain("Component: gated('any', () => import('../pages/SecuritatePage'))");
     expect(SECURITY_COPY.page.title).toBe('Securitate');
   });

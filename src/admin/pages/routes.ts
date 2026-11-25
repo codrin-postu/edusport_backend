@@ -1,6 +1,6 @@
 /**
  * Custom pages that replace the content-manager views of the "Pagini site",
- * "Sistem", "Sportivi și echipă" and "Articole și media" entries
+ * "Setări", "Club și școală" and "Noutăți" entries
  * (docs/admin-ui/CUSTOM-PAGES.md, route table).
  *
  * This file is the ONE central list: menu.tsx registers every entry of
