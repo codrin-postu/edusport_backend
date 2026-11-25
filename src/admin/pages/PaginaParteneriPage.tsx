@@ -6,27 +6,23 @@ import {
   SaveBar,
   UnsavedGuard,
   ObjectFieldCard,
-  LinkOutCard,
   normalizeObject,
 } from '../ui';
 import { useSingleType, usePageForm } from '../lib';
-import { SPONSORI_TO } from '../dashboard/menu';
 import SponsoriBody from '../dashboard/SponsoriPage';
 import EvenimenteColaborareBody from './EvenimenteColaborarePage';
 import { TabbedWindow } from './TabbedWindow';
-import { EVENIMENTE_COLABORARE_TO, UID } from './routes';
+import { UID } from './routes';
 
 /**
  * Pagina Parteneri (/plugins/edusport-pagina-parteneri): the partners-page
  * single type, for /parteneri.
  *
- * Replaces the content-manager view and its two custom fields:
+ * Replaces the content-manager view and its custom field:
  *   content: JSON, { heroTitle, heroSubtitle, introEyebrow, introHeading,
  *            introBody, ctaEyebrow, ctaHeading, ctaBody } (PartnersContentEditor)
- *   links:   nav-only field, no stored value worth editing here
- *            (component-preview PartnersLinksEditor) - kept as two
- *            LinkOutCard pointers to the Sponsori page and the Evenimente
- *            colaborare collection, same as the plugin editor.
+ * The nav-only `links` field has no stored value; Sponsori and Evenimente
+ * colaborare are tabs of this page.
  * Keys the content editor did not know are kept (merged, not rebuilt).
  */
 
@@ -95,10 +91,6 @@ function PartnersFields({ form }: { form: PartnersForm }) {
           { key: 'ctaBody', label: 'Text', type: 'textarea', rows: 3, placeholder: 'ex: Vrei să sponsorizezi clubul sau să organizăm împreună un eveniment?', span: 2 },
         ]}
       />
-
-      <LinkOutCard title="Sponsori" href={`/admin${SPONSORI_TO}`} linkLabel="Gestionează sponsorii" external={false} />
-
-      <LinkOutCard title="Evenimente & colaborări" href={`/admin${EVENIMENTE_COLABORARE_TO}`} linkLabel="Gestionează evenimentele" external={false} />
     </div>
   );
 }
