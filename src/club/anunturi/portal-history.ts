@@ -319,3 +319,37 @@ export async function stopNotice(store: NoticeStore, id: string, when: string): 
   if (notice.stoppedAt === null) await store.stopNotice(id, when);
   return { ok: true, data: { stopped: true } };
 }
+
+/** The announcement as the admin list route answers it (`data`), read by the list page, the editor and the tour's example. */
+export type AnuntGroup = 'active' | 'scheduled' | 'past';
+export interface AnuntStats {
+  views: number;
+  clicks: number;
+  dismisses: number;
+  /** Fraction 0..1, computed server-side as clicks / views. */
+  ctr: number;
+}
+
+export interface Anunt {
+  documentId: string;
+  title: string | null;
+  eyebrow: string | null;
+  slug: string | null;
+  message: string | null;
+  format: string | null;
+  ctaLabel: string | null;
+  ctaUrl: string | null;
+  startAt: string | null;
+  endAt: string | null;
+  priority: number | null;
+  isActive: boolean | null;
+  dismissDays: number | null;
+  showOnSite: boolean | null;
+  showOnPortal: boolean | null;
+  portalGroupIds: string[] | null;
+  portalAuthor: string | null;
+  group: AnuntGroup;
+  stats: AnuntStats | null;
+  /** Counts of the notice made for the portal; null when it was never sent there. */
+  portal: PortalSummary | null;
+}

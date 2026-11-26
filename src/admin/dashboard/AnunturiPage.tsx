@@ -6,7 +6,8 @@ import { AutoNoticeView } from './anunturi/AutoNoticeView';
 import { AdminPage, Window, PageHeader, Button, DataTable, FilterPanel, StatusBadge, Notice, EmptyState, Loading, adminToast, useDragReorder, moveItem, type DataColumn, type FilterSection } from '../ui';
 import { IconGlobe, IconGrip, IconUser } from '../ui/icons';
 import { useAreas } from '../lib/useAreas';
-import { ANUNT_LIST_COPY, filterRows, type ListRow, type PlaceState, type PortalSummary, type RowState, type Where } from '../../club/anunturi/portal-history';
+import { ANUNT_LIST_COPY, filterRows, type Anunt, type AnuntGroup, type AnuntStats, type ListRow, type PlaceState, type PortalSummary, type RowState, type Where } from '../../club/anunturi/portal-history';
+import { isExampleAnunt } from '../../club/onboarding/fixtures';
 import { countWords } from '../../club/ro-count';
 
 /**
@@ -37,40 +38,8 @@ import { countWords } from '../../club/ro-count';
 // request 404s and the page renders its error state.
 export const ANUNT_API = '/api/anunturi';
 
-export type AnuntGroup = 'active' | 'scheduled' | 'past';
+export type { AnuntGroup, AnuntStats, Anunt };
 export type UmamiState = 'ok' | 'not_configured' | 'error';
-
-export interface AnuntStats {
-  views: number;
-  clicks: number;
-  dismisses: number;
-  /** Fraction 0..1, computed server-side as clicks / views. */
-  ctr: number;
-}
-
-export interface Anunt {
-  documentId: string;
-  title: string | null;
-  eyebrow: string | null;
-  slug: string | null;
-  message: string | null;
-  format: string | null;
-  ctaLabel: string | null;
-  ctaUrl: string | null;
-  startAt: string | null;
-  endAt: string | null;
-  priority: number | null;
-  isActive: boolean | null;
-  dismissDays: number | null;
-  showOnSite: boolean | null;
-  showOnPortal: boolean | null;
-  portalGroupIds: string[] | null;
-  portalAuthor: string | null;
-  group: AnuntGroup;
-  stats: AnuntStats | null;
-  /** Counts of the notice made for the portal; null when it was never sent there. */
-  portal: PortalSummary | null;
-}
 
 /**
  * Server-side validation answers with a 400 carrying a Romanian message
@@ -287,7 +256,7 @@ export default function AnunturiPage() {
                 totalLabel={count}
                 showLabel={`Arată ${count}`}
               />
-              <Button onClick={() => navigate(ANUNT_EDIT_TO)}>+ Anunț nou</Button>
+              <Button data-tour={rows.some((r) => isExampleAnunt(r.id)) ? 'anunt-nou' : undefined} onClick={() => navigate(ANUNT_EDIT_TO)}>+ Anunț nou</Button>
             </>
           }
         />

@@ -38,6 +38,8 @@ export interface SaveBarProps {
   disabled?: boolean;
   /** Listen for Cmd/Ctrl+S and Esc. Default true. */
   shortcut?: boolean;
+  /** Marks the Salvează button for the guided tour. */
+  saveTour?: string;
 }
 
 export function SaveBar({
@@ -51,6 +53,7 @@ export function SaveBar({
   extra,
   disabled = false,
   shortcut = true,
+  saveTour,
 }: SaveBarProps) {
   const { confirming, ask, cancel } = useDiscardConfirm(dirty);
   const { mounted, visible } = useSlideIn(dirty || saving || confirming);
@@ -103,6 +106,7 @@ export function SaveBar({
           saveLabel={saveLabel}
           discardLabel={discardLabel}
           keyboard={shortcut}
+          saveTour={saveTour}
         />,
         document.body,
       )}

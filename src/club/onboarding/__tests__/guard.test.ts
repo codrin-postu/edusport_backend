@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decide, refusalResponse } from '../guard';
-import { EXAMPLE_REGISTRATION_ID, FIXTURES, type Fixture } from '../fixtures';
+import { EXAMPLE_REGISTRATION_ID, FIXTURES, isExampleAnunt, type Fixture } from '../fixtures';
 import { CLUB_URLS, openListParams } from '../../inscrieri-panel';
 
 const fixture: Fixture = { method: 'GET', match: /\/content-manager\/collection-types\/api::demo\.demo(\?|$)/, body: { results: [] } };
@@ -136,5 +136,37 @@ describe('prezenta fixtures', () => {
 
   it('hands out frozen bodies', () => {
     for (const f of FIXTURES.prezenta ?? []) expect(Object.isFrozen(f.body)).toBe(true);
+  });
+});
+
+describe('anunt fixtures', () => {
+  const serve = (url: string) => decide({ method: 'GET', url: `http://localhost:1337${url}` }, 'anunt');
+  const bodyOf = <T>(url: string): T => {
+    const d = serve(url);
+    if (d.kind !== 'fixture') throw new Error(`not served: ${url}`);
+    return d.body as T;
+  };
+
+  it('serves the list with two example announcements, the first on the portal', () => {
+    const b = bodyOf<{ data: { documentId: string; showOnPortal: boolean }[]; list: { id: string }[]; umami: string }>('/api/anunturi');
+    expect(b.data).toHaveLength(2);
+    expect(b.data.every((a) => isExampleAnunt(a.documentId))).toBe(true);
+    expect(b.list.map((r) => r.id)).toEqual(b.data.map((a) => a.documentId));
+    expect(b.data[0].showOnPortal).toBe(true);
+  });
+
+  it('serves the groups tree and keeps the two reads apart', () => {
+    expect(bodyOf<{ data: { sections: { groups: unknown[] }[] } }>('/api/anunturi/groups').data.sections[0].groups).toHaveLength(2);
+    expect(Array.isArray(bodyOf<{ data: unknown }>('/api/anunturi').data)).toBe(true);
+  });
+
+  it('refuses the create, update, reorder and delete during the flow', () => {
+    for (const [method, url] of [['POST', '/api/anunturi'], ['PUT', '/api/anunturi/ex-anunt-1'], ['PUT', '/api/anunturi/reorder'], ['DELETE', '/api/anunturi/ex-anunt-1']]) {
+      expect(decide({ method, url }, 'anunt')).toEqual({ kind: 'refuse' });
+    }
+  });
+
+  it('hands out frozen bodies', () => {
+    for (const f of FIXTURES.anunt ?? []) expect(Object.isFrozen(f.body)).toBe(true);
   });
 });

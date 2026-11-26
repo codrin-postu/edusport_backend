@@ -60,6 +60,8 @@ export interface SaveBarViewProps {
   discardLabel?: string;
   /** Listen for Cmd/Ctrl+S and Esc. Default true (always off when inline). */
   keyboard?: boolean;
+  /** Marks the Salvează button for the guided tour. */
+  saveTour?: string;
 }
 
 /** True while a dialog is open, so Esc belongs to it and not to the bar. */
@@ -95,6 +97,7 @@ export function SaveBarView({
   saveLabel = 'Salvează',
   discardLabel = 'Renunță',
   keyboard = true,
+  saveTour,
 }: SaveBarViewProps): React.ReactElement {
   const isSaving = state === 'saving';
   const isIdle = state === 'idle';
@@ -190,6 +193,7 @@ export function SaveBarView({
                 onClick={onSave}
                 disabled={isSaving || !canSave}
                 aria-busy={isSaving || undefined}
+                data-tour={saveTour}
                 aria-label="Salvează modificările"
               >
                 {isSaving && <Spin />}

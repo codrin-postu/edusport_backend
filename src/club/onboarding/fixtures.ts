@@ -5,6 +5,8 @@ import { addDays, weekdayIndex } from '../groups/dates';
 import { todayIso } from '../groups/http';
 import { remainingText } from '../presence/copy/core';
 import type { GroupOptions } from '../groups/api-types';
+import type { Anunt, ListRow } from '../anunturi/portal-history';
+import type { TickTree } from '../calendar/group-ticks';
 import type { PanelRow, PeriodPage, PeriodRow, SessionPanel } from '../presence/attendance/api-types';
 
 /** Example data served to the page while a flow runs; filled per flow by later tasks. */
@@ -191,7 +193,49 @@ const PREZENTA_FIXTURES = (): Fixture[] => [
 /** The marker of the example session: the key up to its date, since the date moves with the week. */
 export const isExampleSession = (key: string | null | undefined): boolean => typeof key === 'string' && key.startsWith('ex-event|');
 
+/** The example announcements of the "Scrie un anunț" flow; the editor knows it is the example by these ids in the list it reads. */
+const ANUNT_ID_PREFIX = 'ex-anunt-';
+export const isExampleAnunt = (id: string | null | undefined): boolean => typeof id === 'string' && id.startsWith(ANUNT_ID_PREFIX);
+
+const DAY_MS = 86_400_000;
+const atDay = (offset: number, hour: number): string => {
+  const d = new Date(Date.now() + offset * DAY_MS);
+  d.setHours(hour, 0, 0, 0);
+  return d.toISOString();
+};
+
+const anuntRow = (n: number, o: Partial<Anunt>): Anunt => ({
+  documentId: `${ANUNT_ID_PREFIX}${n}`, title: null, eyebrow: null, slug: `exemplu-${n}`, message: null, format: 'card', ctaLabel: null, ctaUrl: null,
+  startAt: atDay(-2, 9), endAt: atDay(5, 23), priority: n, isActive: true, dismissDays: 7, showOnSite: true, showOnPortal: false, portalGroupIds: null,
+  portalAuthor: 'Elena Ionescu', group: 'active', stats: null, portal: null, ...o,
+});
+
+const anunturiData = (): Anunt[] => [
+  anuntRow(1, { title: 'Competiție la Reșița', message: 'Sâmbătă are loc competiția de patinaj. Ne întâlnim la ora 9 la patinoar.', showOnPortal: true }),
+  anuntRow(2, { title: 'Ședința de marți se mută', message: 'Antrenamentul de marți se mută miercuri, la aceeași oră.', showOnSite: false, showOnPortal: true, portalGroupIds: ['ex-group-incepatori'], priority: 2 }),
+];
+
+const listRow = (a: Anunt, audience: string, site: ListRow['site']): ListRow => ({
+  id: a.documentId, source: 'anunt', title: a.title ?? '', site, portal: 'active', kind: `Scris de ${a.portalAuthor}`, audience, state: 'active',
+  period: '-', subline: null, results: [], reorderable: site === 'active',
+});
+
+const anunturiBody = () => {
+  const data = anunturiData();
+  return { data, list: [listRow(data[0], 'Toate grupele', 'active'), listRow(data[1], '1 grupă', null)], umami: 'ok' };
+};
+
+const anunturiGroups = (): { data: TickTree } => ({
+  data: { sections: [{ id: 'ex-school', name: SCHOOL.name, groups: [{ id: 'ex-group-incepatori', name: 'Începători' }, { id: 'ex-group-intermediari', name: 'Intermediari' }] }] },
+});
+
+const ANUNT_FIXTURES = (): Fixture[] => [
+  { method: 'GET', match: /^\/api\/anunturi(\?|$)/, body: anunturiBody() },
+  { method: 'GET', match: /^\/api\/anunturi\/groups(\?|$)/, body: anunturiGroups() },
+];
+
 export const FIXTURES: Partial<Record<FlowId, Fixture[]>> = {
   inscriere: deepFreeze(INSCRIERE_FIXTURES.map((f) => ({ ...f }))),
   prezenta: deepFreeze(PREZENTA_FIXTURES()),
+  anunt: deepFreeze(ANUNT_FIXTURES()),
 };

@@ -35,6 +35,7 @@ import { ANUNT_LIST_COPY, type PortalSummary } from '../../club/anunturi/portal-
 import { GroupTickTree } from './GroupTickTree';
 import { GRUPE_CSS } from './grupe/styles';
 import { chosenOfExcept, exceptOfChosen, siteFieldsShown } from '../../club/anunturi/view';
+import { isExampleAnunt } from '../../club/onboarding/fixtures';
 import type { TickTree } from '../../club/calendar/group-ticks';
 import { ANUNT_API, anuntErrorMessage, slugifyRo, type Anunt } from './AnunturiPage';
 
@@ -157,6 +158,12 @@ function localValidation(f: FormState): Problem | null {
   return null;
 }
 
+/** What the tour fills into the new announcement, so the form is complete, ticked for the portal and Salvează is there to point at. */
+function exampleForm(): Partial<FormState> {
+  const day = (offset: number) => dateToYMD(new Date(Date.now() + offset * 86_400_000));
+  return { showOnPortal: true, title: 'Competiție la Reșița', message: 'Sâmbătă are loc competiția de patinaj. Ne întâlnim la ora 9 la patinoar.', startDate: day(0), endDate: day(7) };
+}
+
 function toForm(a: Anunt): FormState {
   const s = splitIso(a.startAt, EMPTY.startHour, EMPTY.startMinute);
   const e = splitIso(a.endAt, EMPTY.endHour, EMPTY.endMinute);
@@ -207,6 +214,7 @@ export default function AnuntEditPage() {
   const loadedFor = React.useRef<string | null>(null);
   const [tree, setTree] = React.useState<TickTree | null>(null);
   const [portal, setPortal] = React.useState<PortalSummary | null>(null);
+  const [example, setExample] = React.useState(false);
   const canSeeAccounts = useAreas().has('club');
   const portalOn = useFeatures().on('portalParinti');
 
@@ -236,6 +244,7 @@ export default function AnuntEditPage() {
   const apply = React.useCallback((docId: string, { rows }: Loaded): boolean => {
     setTakenSlugs(rows.map((r) => r.slug ?? '').filter(Boolean));
     if (!docId) {
+      setExample(rows.some((r) => isExampleAnunt(r.documentId)));
       setLoaded(EMPTY);
       setPortal(null);
       return true;
@@ -264,6 +273,13 @@ export default function AnuntEditPage() {
       off = true;
     };
   }, [id, fetchList, apply]);
+
+  // The tour's example editor starts filled in (Portal sportiv ticked), which also makes the form dirty so the save bar shows.
+  React.useEffect(() => {
+    if (example) upd(exampleForm());
+  }, [example]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const tour = (name: string): string | undefined => (example ? name : undefined);
 
   /** Unique tracking id derived from the title; only ever computed on create. */
   const newSlug = (title: string): string => {
@@ -441,7 +457,7 @@ export default function AnuntEditPage() {
               {portalOn && portal && v.showOnPortal && <PortalRecipients summary={portal} canSeeAccounts={canSeeAccounts} />}
 
               <EditorCard variant="plain" title="Unde apare">
-                <div className="ui-stack">
+                <div className="ui-stack" data-tour={tour('unde')}>
                   <Checkbox
                     label="Site"
                     checked={v.showOnSite}
@@ -462,7 +478,7 @@ export default function AnuntEditPage() {
 
               {portalOn && v.showOnPortal && (
                 <EditorCard variant="plain" title="Pentru cine">
-                  <div className="ui-stack">
+                  <div className="ui-stack" data-tour={tour('pentru')}>
                     <SegmentedControl
                       aria-label="Pentru cine"
                       options={[...AUDIENCE_OPTIONS]}
@@ -509,7 +525,7 @@ export default function AnuntEditPage() {
               )}
 
               <EditorCard variant="plain" title="Text">
-                <div className="ui-stack">
+                <div className="ui-stack" data-tour={tour('text')}>
                   {siteFieldsShown(v) && (
                     <Field label="Etichetă mică (deasupra titlului)">
                       <Input value={v.eyebrow} onChange={(e) => upd({ eyebrow: e.target.value })} placeholder="ex. Înscrieri deschise" />
@@ -530,7 +546,7 @@ export default function AnuntEditPage() {
               </EditorCard>
 
               <EditorCard variant="plain" title="Programare">
-                <div className="ui-stack">
+                <div className="ui-stack" data-tour={tour('programare')}>
                   <DateRangeInput
                     startLabel="Începe"
                     endLabel="Se încheie"
@@ -578,7 +594,7 @@ export default function AnuntEditPage() {
           </div>
         )}
 
-        {ready && <SaveBar {...save.bar} onSave={onSave} onDiscard={discard} />}
+        {ready && <SaveBar {...save.bar} saveTour={tour('anunt-salveaza')} onSave={onSave} onDiscard={discard} />}
       </Window>
 
       <ConfirmDialog
@@ -610,7 +626,7 @@ export default function AnuntEditPage() {
         }}
         onConfirm={confirmStop}
       />
-      <UnsavedGuard when={form.dirty} />
+      <UnsavedGuard when={form.dirty && !example} />
     </AdminPage>
   );
 }

@@ -97,4 +97,11 @@ describe('inscriere flow anchors', () => {
     expect(src('prezenta/SessionPanel.tsx')).toContain("tourOf(panel, 'ses-lista')");
     expect(src('prezenta/SessionPanel.tsx')).toContain("tourOf(panel, 'ses-salveaza')");
   });
+  it('places the anunt anchors, inert outside the example', () => {
+    expect(src('AnunturiPage.tsx')).toContain("isExampleAnunt(r.id)) ? 'anunt-nou'");
+    for (const a of ['unde', 'pentru', 'text', 'programare']) expect(src('AnuntEditPage.tsx')).toContain(`tour('${a}')`);
+    expect(src('AnuntEditPage.tsx')).toContain("saveTour={tour('anunt-salveaza')}");
+    expect(src('AnuntEditPage.tsx')).toContain('when={form.dirty && !example}');
+    expect(readFileSync(join(__dirname, '../../admin/ui/SaveBarView.tsx'), 'utf8')).toContain('data-tour={saveTour}');
+  });
 });
