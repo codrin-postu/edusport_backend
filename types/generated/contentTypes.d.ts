@@ -516,6 +516,7 @@ export interface ApiAdminAccountAdminAccount
       'api::admin-account.admin-account'
     > &
       Schema.Attribute.Private;
+    onboarding: Schema.Attribute.JSON;
     passkeyOfferedAt: Schema.Attribute.DateTime;
     publishedAt: Schema.Attribute.DateTime;
     securityNotes: Schema.Attribute.JSON;

@@ -57,6 +57,9 @@
     },
     "securityNotes": {
       "type": "json"
+    },
+    "onboarding": {
+      "type": "json"
     }
   }
 }
