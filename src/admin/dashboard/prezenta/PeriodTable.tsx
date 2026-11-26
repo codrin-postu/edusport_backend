@@ -8,10 +8,12 @@ type Props<R> = {
   card: (row: R) => React.ReactNode; onOpen?: (row: R) => void; rowLabel: (row: R) => string; rowToday?: (row: R) => boolean;
   /** Id prefix of the day header rows, so a month list can scroll to one. */
   anchor?: string;
+  /** The tour anchor of a row, if it is an example row. */
+  rowAnchor?: (row: R) => string | undefined;
 };
 
 /** Rows under day header rows (a table), or cards under day headings on a phone. A group without a header is a plain table (the Zi view). */
-export function PeriodTable<R>({ groups, columns, phone, getRowKey, card, onOpen, rowLabel, rowToday, anchor }: Props<R>) {
+export function PeriodTable<R>({ groups, columns, phone, getRowKey, card, onOpen, rowLabel, rowToday, anchor, rowAnchor }: Props<R>) {
   const key = (e: React.KeyboardEvent, row: R) => {
     if (e.target !== e.currentTarget || !onOpen) return;
     if (e.key === 'Enter' || e.key === ' ') {
@@ -28,7 +30,7 @@ export function PeriodTable<R>({ groups, columns, phone, getRowKey, card, onOpen
             <ul className="spv-cards">
               {g.rows.map((r) => (
                 <li key={getRowKey(r)}>
-                  <button type="button" className="spv-card" onClick={() => onOpen?.(r)}>{card(r)}</button>
+                  <button type="button" className="spv-card" data-tour={rowAnchor?.(r)} onClick={() => onOpen?.(r)}>{card(r)}</button>
                 </li>
               ))}
             </ul>
@@ -55,7 +57,7 @@ export function PeriodTable<R>({ groups, columns, phone, getRowKey, card, onOpen
                 <tr
                   key={getRowKey(r)} className={`${onOpen ? 'ui-table-click' : ''}${rowToday?.(r) ? ' pz-today' : ''}`.trim() || undefined}
                   tabIndex={onOpen ? 0 : undefined} aria-label={onOpen ? rowLabel(r) : undefined}
-                  onClick={onOpen ? () => onOpen(r) : undefined} onKeyDown={(e) => key(e, r)}
+                  data-tour={rowAnchor?.(r)} onClick={onOpen ? () => onOpen(r) : undefined} onKeyDown={(e) => key(e, r)}
                 >
                   {columns.map((c) => <td key={c.key} style={{ textAlign: c.align }}>{c.render(r)}</td>)}
                 </tr>

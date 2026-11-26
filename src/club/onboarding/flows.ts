@@ -1,7 +1,7 @@
 import type { AdminArea } from '../admin-area';
 import type { FeatureKey } from '../features/features';
 import { visibleLinks, type GatedLink } from '../features/visible';
-import { PREZENTA_PATH } from '../prezenta/routes';
+import { prezentaTo } from '../prezenta/routes';
 
 /** The guided flows of the admin tour, in menu order. */
 export const FLOW_IDS = [
@@ -60,7 +60,7 @@ const INSCRIERE_STEPS: TourStep[] = [
 ];
 
 const PREZENTA_STEPS: TourStep[] = [
-  { anchor: 'ses-1', path: PREZENTA_PATH, where: 'Prezență', title: 'Ședințe de completat', text: 'Aici găsești ședințele la care prezența nu a fost trecută încă.', action: 'Deschide ședința de luni.', waitFor: 'click' },
+  { anchor: 'ses-1', path: prezentaTo({ tab: 'de-completat' }), where: 'Prezență', title: 'Ședințe de completat', text: 'Aici găsești ședințele la care prezența nu a fost trecută încă.', action: 'Deschide ședința de luni.', waitFor: 'click' },
   { anchor: 'ses-antrenor', where: 'Prezență', title: 'Verifică antrenorul', text: 'Asigură-te că este trecut antrenorul care a ținut ședința. Poți adăuga și un al doilea.' },
   { anchor: 'ses-lista', where: 'Prezență', title: 'Bifează prezenții', text: 'Bifează Grup pentru fiecare sportiv prezent. Sub nume vezi câte ședințe mai are în abonament.' },
   { anchor: 'ses-salveaza', where: 'Prezență', title: 'Salvează prezența', text: 'Prezența se reflectă în abonamente și plăți, așa că verifică lista înainte de salvare.', action: 'Apasă Salvează.', waitFor: 'click', final: true, guide: 'completeaza-prezenta' },

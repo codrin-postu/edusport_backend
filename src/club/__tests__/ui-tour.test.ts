@@ -90,4 +90,11 @@ describe('inscriere flow anchors', () => {
     expect(src('inscrieri/confirm/SeasonPart.tsx')).toContain('data-tour="ins-grupa"');
     expect(src('inscrieri/ConfirmWindow.tsx')).toContain('data-tour="ins-confirma-final"');
   });
+  it('places the four prezenta anchors, inert outside the example session', () => {
+    expect(src('prezenta/UndoneTab.tsx')).toContain("'ses-1'");
+    expect(src('prezenta/PeriodTable.tsx')).toContain('data-tour={rowAnchor?.(r)}');
+    expect(src('prezenta/SessionPanel.tsx')).toContain("tourOf(panel, 'ses-antrenor')");
+    expect(src('prezenta/SessionPanel.tsx')).toContain("tourOf(panel, 'ses-lista')");
+    expect(src('prezenta/SessionPanel.tsx')).toContain("tourOf(panel, 'ses-salveaza')");
+  });
 });

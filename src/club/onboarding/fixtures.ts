@@ -1,6 +1,11 @@
 import type { AthleteCard, ConfirmContext, HistoryLine, RegistrationMatchView } from '../athletes/api-types';
 import type { ComparisonRow } from '../confirm/compare';
 import type { FlowId } from './flows';
+import { addDays, weekdayIndex } from '../groups/dates';
+import { todayIso } from '../groups/http';
+import { remainingText } from '../presence/copy/core';
+import type { GroupOptions } from '../groups/api-types';
+import type { PanelRow, PeriodPage, PeriodRow, SessionPanel } from '../presence/attendance/api-types';
 
 /** Example data served to the page while a flow runs; filled per flow by later tasks. */
 export type Fixture = { method: 'GET'; match: RegExp; body: unknown };
@@ -134,4 +139,59 @@ const INSCRIERE_FIXTURES: Fixture[] = [
   { method: 'GET', match: /^\/api\/club\/athletes\/search(\?|$)/, body: { data: [mariaCard()] } },
 ];
 
-export const FIXTURES: Partial<Record<FlowId, Fixture[]>> = { inscriere: deepFreeze(INSCRIERE_FIXTURES.map((f) => ({ ...f }))) };
+/** The example session of the "Completează prezența" flow; the De completat row and the panel mark themselves by its key. */
+const SESSION_TIME = '18:00';
+const GROUP = { documentId: 'ex-group-incepatori-1', name: 'Începători 1' };
+const COACHES = [{ documentId: 'ex-coach-elena', name: 'Elena Ionescu' }, { documentId: 'ex-coach-mihai', name: 'Mihai Barbu' }];
+
+/** The latest Monday before today: the session was held and nothing is saved for it. */
+function lastMonday(today: string): string {
+  const monday = addDays(today, -((weekdayIndex(today) + 6) % 7));
+  return monday < today ? monday : addDays(monday, -7);
+}
+
+const sessionDate = (): string => lastMonday(todayIso());
+const sessionKey = (): string => `ex-event|${sessionDate()}|${SESSION_TIME}`;
+
+const periodRow = (): PeriodRow => ({
+  sessionId: null, occurrenceKey: sessionKey(), groupId: GROUP.documentId, groupName: GROUP.name, date: sessionDate(), startTime: SESSION_TIME,
+  coachNames: [COACHES[0].name], coachIds: [COACHES[0].documentId], present: 0, listed: 5, visitors: 0, state: 'nefacuta', outsideSchedule: false,
+  adminState: 'necompletat',
+});
+
+const periodBody = (): { data: PeriodPage } => {
+  const today = todayIso();
+  return { data: { from: today, to: today, today, startDate: '2026-09-14', groupsWithoutList: 0, undone: [periodRow()], days: [] } };
+};
+
+const EXAMPLE_ATHLETES: [string, number][] = [['Ana Marin', 8], ['Luca Dobre', 5], ['Sara Ene', 3], ['Tudor Vlad', 10], ['Ilinca Rus', 1]];
+
+const panelRow = ([name, left]: [string, number], i: number): PanelRow => ({
+  athleteId: `ex-athlete-${i + 1}`, name, visitor: false, inactive: false, mainGroup: null, abonament: remainingText(left), grup: false, uscat: false, noSubscription: false,
+});
+
+const panelBody = (): { data: SessionPanel } => ({
+  data: {
+    sessionId: null, occurrenceKey: sessionKey(), added: null, groupId: GROUP.documentId, groupName: GROUP.name, kind: 'school',
+    date: sessionDate(), startTime: SESSION_TIME, durationMin: 50, outsideSchedule: false, coachIds: [COACHES[0].documentId],
+    rows: EXAMPLE_ATHLETES.map(panelRow), highlightAthleteId: null, savedLine: null, history: [],
+  },
+});
+
+const optionsBody = (): { data: GroupOptions } => ({
+  data: { groups: [{ ...GROUP, sectionName: SCHOOL.name }], coaches: COACHES, priceLists: [] },
+});
+
+const PREZENTA_FIXTURES = (): Fixture[] => [
+  { method: 'GET', match: /^\/api\/club\/attendance\/period(\?|$)/, body: periodBody() },
+  { method: 'GET', match: /^\/api\/club\/attendance\/session\?occurrence=ex-event(%7C|\|)/, body: panelBody() },
+  { method: 'GET', match: /^\/api\/club\/groups\/options(\?|$)/, body: optionsBody() },
+];
+
+/** The marker of the example session: the key up to its date, since the date moves with the week. */
+export const isExampleSession = (key: string | null | undefined): boolean => typeof key === 'string' && key.startsWith('ex-event|');
+
+export const FIXTURES: Partial<Record<FlowId, Fixture[]>> = {
+  inscriere: deepFreeze(INSCRIERE_FIXTURES.map((f) => ({ ...f }))),
+  prezenta: deepFreeze(PREZENTA_FIXTURES()),
+};

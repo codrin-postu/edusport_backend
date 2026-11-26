@@ -97,3 +97,44 @@ describe('inscriere fixtures', () => {
     expect(() => { 'use strict'; (match.data as { confirmed: boolean }).confirmed = true; }).toThrow();
   });
 });
+
+describe('prezenta fixtures', () => {
+  const serve = (url: string) => decide({ method: 'GET', url: `http://localhost:1337${url}` }, 'prezenta');
+  const key = encodeURIComponent('ex-event|2026-11-23|18:00');
+  const bodyOf = <T>(url: string): T => (serve(url) as { body: T }).body;
+
+  it('answers every GET the Prezență page and the session panel make', () => {
+    const urls = [
+      '/api/club/attendance/period?from=2026-11-26&to=2026-11-26',
+      '/api/club/attendance/period?from=2026-11-23&to=2026-11-29',
+      `/api/club/attendance/session?occurrence=${key}`,
+      '/api/club/groups/options',
+    ];
+    for (const url of urls) expect(serve(url).kind, url).toBe('fixture');
+  });
+
+  it('leaves other sessions to the real server', () => {
+    expect(serve('/api/club/attendance/session?occurrence=real-1%7C2026-11-23%7C18%3A00').kind).toBe('pass');
+    expect(serve('/api/club/attendance/session?id=abc').kind).toBe('pass');
+  });
+
+  it('serves one undone session with five athletes, each with remaining sessions', () => {
+    const period = bodyOf<{ data: { undone: { groupName: string; occurrenceKey: string }[] } }>('/api/club/attendance/period?from=a&to=b');
+    expect(period.data.undone).toHaveLength(1);
+    expect(period.data.undone[0].groupName).toBe('Începători 1');
+    const panel = bodyOf<{ data: { rows: { name: string; abonament: string }[]; occurrenceKey: string } }>(`/api/club/attendance/session?occurrence=${key}`);
+    expect(panel.data.occurrenceKey).toBe(period.data.undone[0].occurrenceKey);
+    expect(panel.data.rows.map((r) => r.name)).toEqual(['Ana Marin', 'Luca Dobre', 'Sara Ene', 'Tudor Vlad', 'Ilinca Rus']);
+    for (const r of panel.data.rows) expect(r.abonament).toMatch(/ședinț[ăe] rămas[ăe]$/);
+  });
+
+  it('refuses the attendance save and the new-session check during the flow', () => {
+    for (const [method, url] of [['PUT', '/api/club/attendance/session'], ['POST', '/api/club/attendance/session/check'], ['POST', '/api/club/undo']]) {
+      expect(decide({ method, url }, 'prezenta')).toEqual({ kind: 'refuse' });
+    }
+  });
+
+  it('hands out frozen bodies', () => {
+    for (const f of FIXTURES.prezenta ?? []) expect(Object.isFrozen(f.body)).toBe(true);
+  });
+});

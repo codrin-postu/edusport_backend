@@ -12,6 +12,7 @@ import {
   addVisitor, answerInactive, coachIdsOf, columnsFor, footerCounts, initialTicks, isDirty, readInactive, refreshAbonamentLines, rowSubLines, saveBody, toggleTick,
   type CoachFields as CoachValue, type InactiveAnswers, type Ticks,
 } from '../../../club/prezenta/panel-view';
+import { isExampleSession } from '../../../club/onboarding/fixtures';
 import { RECORD_COPY } from '../../../club/sportivi/record-view';
 import { PanelShell } from '../grupe/PanelShell';
 import { AthleteSearch } from '../sportivi/AthleteSearch';
@@ -182,6 +183,9 @@ type BodyProps = {
 const linkedCoaches = (ids: string[], options: BodyProps['coachOptions']): { id: string; name: string }[] =>
   ids.flatMap((id) => options.filter((o) => o.documentId === id).map((o) => ({ id, name: o.name })));
 
+/** Tour anchors only exist on the example session of the guided flow. */
+const tourOf = (panel: PanelData, name: string): string | undefined => (isExampleSession(panel.occurrenceKey) ? name : undefined);
+
 function PanelBody({ panel, draft, readOnly, locked, coachError, coachOptions, follow, setDraft }: BodyProps) {
   const pick = (card: AthleteCard) =>
     setDraft({ ...draft, rows: addVisitor(draft.rows, card), ticks: { ...draft.ticks, [card.documentId]: { grup: true, uscat: false } } });
@@ -193,8 +197,12 @@ function PanelBody({ panel, draft, readOnly, locked, coachError, coachOptions, f
         <FollowLink className="pz-link" to={groupPageTo(panel.groupId, null)} follow={follow}>{PANEL_LINKS.openGroup}</FollowLink>
       </div>
       <CoachLinks coaches={linkedCoaches(panel.coachIds, coachOptions)} date={panel.date} follow={follow} />
-      <CoachFields label={PREZENTA_COPY.coach} value={draft.coaches} options={coachOptions} disabled={locked} error={coachError} onChange={(coaches) => setDraft({ ...draft, coaches })} />
-      <TickTable panel={panel} draft={draft} locked={locked} highlightId={panel.highlightAthleteId} onTick={(id, type) => setDraft({ ...draft, ticks: toggleTick(draft.ticks, id, type) })} />
+      <div data-tour={tourOf(panel, 'ses-antrenor')}>
+        <CoachFields label={PREZENTA_COPY.coach} value={draft.coaches} options={coachOptions} disabled={locked} error={coachError} onChange={(coaches) => setDraft({ ...draft, coaches })} />
+      </div>
+      <div data-tour={tourOf(panel, 'ses-lista')}>
+        <TickTable panel={panel} draft={draft} locked={locked} highlightId={panel.highlightAthleteId} onTick={(id, type) => setDraft({ ...draft, ticks: toggleTick(draft.ticks, id, type) })} />
+      </div>
       {!readOnly && <Visitors rows={draft.rows} disabled={locked} onPick={pick} />}
       {panel.savedLine && <p className="pz-saved">{panel.savedLine}</p>}
       {panel.history.length > 0 && (
@@ -227,7 +235,7 @@ export function SessionPanel({ target, coachIds, highlightAthleteId, readOnly = 
     <div className="pz-foot">
       {counts && <span className="pz-foot-count">{footerText(counts.present, counts.listed)}</span>}
       <Button variant="ghost" onClick={requestClose}>{PREZENTA_COPY.close}</Button>
-      {!readOnly && panel && <Button loading={busy} disabled={!!ask} onClick={() => void save()}>{PREZENTA_COPY.save}</Button>}
+      {!readOnly && panel && <Button loading={busy} disabled={!!ask} data-tour={panel && tourOf(panel, 'ses-salveaza')} onClick={() => void save()}>{PREZENTA_COPY.save}</Button>}
     </div>
   );
   const title = panel && (

@@ -6,6 +6,7 @@ import type { PeriodRow } from '../../../club/presence/attendance/api-types';
 import { listDate } from '../../../club/presence/dates';
 import { card, rowKey, targetOf, UNDONE_COLUMNS } from './GroupsList';
 import { PeriodTable } from './PeriodTable';
+import { isExampleSession } from '../../../club/onboarding/fixtures';
 import { SessionPanel, type SessionTarget } from './SessionPanel';
 
 type Props = { rows: PeriodRow[] | null; failed: boolean };
@@ -23,6 +24,7 @@ export function UndoneTab({ rows, failed }: Props) {
       ) : (
         <PeriodTable
           groups={[{ key: 'undone', header: null, rows }]} columns={UNDONE_COLUMNS} phone={phone} getRowKey={rowKey} card={(r) => card(r, true)}
+          rowAnchor={(r) => (isExampleSession(r.occurrenceKey) ? 'ses-1' : undefined)}
           onOpen={(r) => { const target = targetOf(r); if (target) setOpened(target); }}
           rowLabel={(r) => `${listDate(r.date)} ${r.startTime} ${r.groupName}`}
         />
