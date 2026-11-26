@@ -4,6 +4,7 @@ import { getFetchClient } from '@strapi/admin/strapi-admin';
 import { TOUR_COPY, WELCOME_COPY } from '../../club/onboarding/copy';
 import { isFlowId } from '../../club/onboarding/flows';
 import { currentStep, progressOf, tourReducer, type TourEffect, type TourEvent, type TourState } from '../../club/onboarding/machine';
+import { canReleaseGuard } from '../../club/onboarding/release';
 import { placeCard } from '../../club/onboarding/placement';
 import { anchorSelector, welcomeRole } from '../../club/onboarding/role';
 import { PRIMII_PASI_TO } from '../dashboard/menu';
@@ -43,13 +44,35 @@ function handleEffect(prev: TourState, effect: TourEffect | undefined): void {
   }
 }
 
-/** Takes the fetch guard off one tick after the route has changed, so the example form can never be saved after the flow ends. A flow started meanwhile keeps its own guard. */
+const RELEASE_POLL_MS = 50;
+const RELEASE_CAP_MS = 3000;
 let installs = 0;
+let stopWatching: (() => void) | null = null;
+
+/**
+ * Takes the fetch guard off only once the page really is Primii pași (the dirty example page is gone). Past the cap it stays on until the
+ * route moves away from the page the flow ended on; it also goes on unmount, and a flow started meanwhile keeps its own guard.
+ */
 function uninstallAfterRoute(): void {
+  stopWatching?.();
   const mine = installs;
-  window.setTimeout(() => {
-    if (installs === mine) uninstallFetchGuard();
-  }, 0);
+  const start = window.location.pathname;
+  const began = Date.now();
+  const check = () => {
+    if (installs !== mine) return stop();
+    const capped = Date.now() - began > RELEASE_CAP_MS;
+    if (canReleaseGuard({ pathname: window.location.pathname, start, target: PRIMII_PASI_TO, capped })) {
+      stop();
+      uninstallFetchGuard();
+    }
+  };
+  const timer = window.setInterval(check, RELEASE_POLL_MS);
+  const stop = () => {
+    window.clearInterval(timer);
+    stopWatching = null;
+  };
+  stopWatching = stop;
+  check();
 }
 
 /** The state machine plus its side effects: the fetch guard lives while a flow runs and until the route after it has changed (the progress post is on its allow-list). */
@@ -83,6 +106,7 @@ function useTour(): { state: TourState; send: (e: TourEvent) => void } {
     window.addEventListener(START_EVENT, onStart);
     return () => {
       window.removeEventListener(START_EVENT, onStart);
+      stopWatching?.();
       uninstallFetchGuard();
     };
   }, [send]);

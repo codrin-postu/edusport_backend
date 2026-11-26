@@ -33,7 +33,9 @@ describe('leaving a flow', () => {
     expect(leave.indexOf('releaseUnsavedGuards()')).toBeLessThan(leave.indexOf('spaNavigate(PRIMII_PASI_TO)'));
     const send = src.slice(src.indexOf('const send = React.useCallback'));
     expect(send.indexOf('handleEffect(prev, effect)')).toBeLessThan(send.indexOf('uninstallAfterRoute()'));
-    expect(src).toMatch(/setTimeout\(\(\) => \{\s*if \(installs === mine\) uninstallFetchGuard\(\)/);
+    expect(src).not.toMatch(/setTimeout\(/);
+    expect(src).toMatch(/canReleaseGuard\(\{ pathname: window\.location\.pathname[^}]*\}\)\) \{\s*stop\(\);\s*uninstallFetchGuard\(\)/);
+    expect(src).toMatch(/stopWatching\?\.\(\);\s*uninstallFetchGuard\(\)/);
   });
   it('never calls spaNavigate directly for the leave', () => {
     expect(src.match(/spaNavigate\(PRIMII_PASI_TO\)/g)).toHaveLength(1);
