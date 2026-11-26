@@ -6,7 +6,7 @@ import type { Row } from '../SubmissionTable';
 export type PhoneSelection = { ids: Set<string>; toggle: (id: string) => void };
 
 /** Phone list: one card per registration; the card content comes from the page, a tap opens the detail (or ticks the card while selecting). */
-export function PhoneCards({ rows, onOpen, renderCard, selection }: { rows: Row[]; onOpen: (id: string) => void; renderCard: (row: Row) => React.ReactNode; selection?: PhoneSelection }) {
+export function PhoneCards({ rows, onOpen, renderCard, selection, rowAnchor }: { rows: Row[]; onOpen: (id: string) => void; renderCard: (row: Row) => React.ReactNode; selection?: PhoneSelection; rowAnchor?: (row: Row) => string | undefined }) {
   return (
     <div className={selection ? 'sbt-cards sbt-cards--sel' : 'sbt-cards'}>
       {rows.map((r) => {
@@ -15,6 +15,7 @@ export function PhoneCards({ rows, onOpen, renderCard, selection }: { rows: Row[
           <button
             key={r.documentId}
             type="button"
+            data-tour={rowAnchor?.(r)}
             className={on ? 'sbt-card sbt-card--on' : 'sbt-card'}
             aria-pressed={selection ? on : undefined}
             onClick={() => (selection ? selection.toggle(r.documentId) : onOpen(r.documentId))}

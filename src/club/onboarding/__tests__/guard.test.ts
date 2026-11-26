@@ -88,4 +88,12 @@ describe('inscriere fixtures', () => {
     const body = (hit as { body: { data: { documentId: string; childName: string; age: number; schoolName: string }[] } }).body;
     expect(body.data[0]).toMatchObject({ documentId: id, childName: 'Maria Popescu', age: 9, schoolName: 'Școala de Patinaj' });
   });
+
+  it('hands out frozen bodies that share no comparison rows', () => {
+    const bodies = (FIXTURES.inscriere ?? []).map((f) => f.body as { data?: { comparison?: object[] } });
+    const [match, context] = [bodies[1], bodies[3]];
+    expect(Object.isFrozen(match.data)).toBe(true);
+    expect(match.data?.comparison?.[0]).not.toBe(context.data?.comparison?.[0]);
+    expect(() => { 'use strict'; (match.data as { confirmed: boolean }).confirmed = true; }).toThrow();
+  });
 });

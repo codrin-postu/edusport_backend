@@ -2281,6 +2281,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
               rows={rows}
               onOpen={setSelectedId}
               renderCard={(r) => phoneCard(r, api)}
+              rowAnchor={cfg.compact.rowAnchor}
               selection={selecting ? { ids: selectedIds, toggle: toggleSelect } : undefined}
             />
           ) : view === 'compact' ? (

@@ -83,6 +83,8 @@ describe('inscriere flow anchors', () => {
   it('places the five anchors on the real elements', () => {
     expect(src('InscrieriPage.tsx')).toContain("'ins-maria'");
     expect(src('SubmissionTable.tsx')).toContain('data-tour={cfg.compact.rowAnchor?.(r)}');
+    expect(src('SubmissionTable.tsx')).toContain('rowAnchor={cfg.compact.rowAnchor}');
+    expect(src('inscrieri/PhoneList.tsx')).toContain('data-tour={rowAnchor?.(r)}');
     expect(src('inscrieri/RegistrationPanel.tsx')).toContain('data-tour="ins-confirma"');
     expect(src('inscrieri/confirm/AthletePart.tsx')).toContain('data-tour="ins-sportiv"');
     expect(src('inscrieri/confirm/SeasonPart.tsx')).toContain('data-tour="ins-grupa"');

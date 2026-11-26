@@ -57,7 +57,7 @@ const LIST_BODY = {
   allSchoolsTotal: 1,
 };
 
-const MARIA_CARD: AthleteCard = {
+const mariaCard = (): AthleteCard => ({
   documentId: 'ex-athlete-maria',
   name: 'Maria Popescu',
   birthDate: '14.03.2017',
@@ -65,9 +65,9 @@ const MARIA_CARD: AthleteCard = {
   lastRegistrationSeason: '2025-2026',
   contactName: 'Ioana Popescu',
   status: 'activ',
-};
+});
 
-const COMPARISON: ComparisonRow[] = [
+const comparison = (): ComparisonRow[] => [
   { field: 'name', label: 'Nume', athlete: 'Maria Popescu', registration: 'Maria Popescu', differs: false, defaultUpdate: false },
   { field: 'birthDate', label: 'Data nașterii', athlete: '14/03/2017', registration: '14/03/2017', differs: false, defaultUpdate: false },
   { field: 'contactName', label: 'Părinte', athlete: 'Ioana Popescu', registration: 'Ioana Popescu', differs: false, defaultUpdate: false },
@@ -83,10 +83,10 @@ const MATCH_BODY: { data: RegistrationMatchView } = {
     canUndo: false,
     birthDateReadable: true,
     notAttendedLastSeason: false,
-    existing: MARIA_CARD,
+    existing: mariaCard(),
     preselect: null,
-    comparison: COMPARISON,
-    candidates: [MARIA_CARD],
+    comparison: comparison(),
+    candidates: [mariaCard()],
   },
 };
 
@@ -108,7 +108,7 @@ const CONTEXT_BODY: { data: ConfirmContext } = {
     mainGroupNow: null,
     acs: { seasonLabel: SEASON, current: 'in_asteptare', next: 'da', wish: 'da' },
     subscriptionIntent: 'Abonament lunar',
-    comparison: COMPARISON,
+    comparison: comparison(),
     defaultUpdateFields: ['phone'],
     blocked: null,
   },
@@ -118,6 +118,12 @@ const HISTORY_BODY: { data: HistoryLine[] } = {
   data: [{ at: '2026-11-24T15:20:00.000Z', actor: 'Formular', text: 'Înscriere primită' }],
 };
 
+/** Each served body is its own deep-frozen copy, so no consumer can change the example or another body. */
+function deepFreeze<T>(v: T): T {
+  if (v && typeof v === 'object') Object.values(v).forEach(deepFreeze);
+  return Object.freeze(v);
+}
+
 const base = `^/api/club/registrations/${EXAMPLE_REGISTRATION_ID}`;
 
 const INSCRIERE_FIXTURES: Fixture[] = [
@@ -125,7 +131,7 @@ const INSCRIERE_FIXTURES: Fixture[] = [
   { method: 'GET', match: new RegExp(`${base}/match$`), body: MATCH_BODY },
   { method: 'GET', match: new RegExp(`${base}/history$`), body: HISTORY_BODY },
   { method: 'GET', match: new RegExp(`${base}/confirm-context(\\?|$)`), body: CONTEXT_BODY },
-  { method: 'GET', match: /^\/api\/club\/athletes\/search(\?|$)/, body: { data: [MARIA_CARD] } },
+  { method: 'GET', match: /^\/api\/club\/athletes\/search(\?|$)/, body: { data: [mariaCard()] } },
 ];
 
-export const FIXTURES: Partial<Record<FlowId, Fixture[]>> = { inscriere: INSCRIERE_FIXTURES };
+export const FIXTURES: Partial<Record<FlowId, Fixture[]>> = { inscriere: deepFreeze(INSCRIERE_FIXTURES.map((f) => ({ ...f }))) };
