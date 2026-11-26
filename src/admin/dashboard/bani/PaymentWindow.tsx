@@ -80,19 +80,23 @@ function PaymentFields({ f }: { f: FieldsProps }) {
   const options = groupedOptions(f.loaded.options);
   return (
     <div className="bn-form">
-      <AthleteField f={f} />
-      <Field label={PAYMENT_COPY.forWhat} required error={errors.for}>
-        <Select triggerHint value={draft.optionKey ?? ''} options={options} disabled={busy || !draft.athleteId} onChange={f.pickOption} />
-      </Field>
-      <Field label={PAYMENT_COPY.amount} required error={errors.amount}>
-        <Input inputMode="decimal" value={draft.amount} disabled={busy} onChange={(e) => { set({ amount: e.target.value }); f.clearAmountError(); }} />
-      </Field>
-      <Field label={PAYMENT_COPY.date} required error={errors.paidOn}>
-        <DateInput value={draft.paidOn} disabled={busy} onChange={(v) => { if (v) set({ paidOn: v }); }} />
-      </Field>
-      <Field label={PAYMENT_COPY.method}>
-        <SegmentedControl aria-label={PAYMENT_COPY.method} options={METHOD_OPTIONS} value={draft.method} disabled={busy} onChange={(method) => set({ method })} />
-      </Field>
+      <div className="bn-form" data-tour="pl-sportiv">
+        <AthleteField f={f} />
+        <Field label={PAYMENT_COPY.forWhat} required error={errors.for}>
+          <Select triggerHint value={draft.optionKey ?? ''} options={options} disabled={busy || !draft.athleteId} onChange={f.pickOption} />
+        </Field>
+      </div>
+      <div className="bn-form" data-tour="pl-suma">
+        <Field label={PAYMENT_COPY.amount} required error={errors.amount}>
+          <Input inputMode="decimal" value={draft.amount} disabled={busy} onChange={(e) => { set({ amount: e.target.value }); f.clearAmountError(); }} />
+        </Field>
+        <Field label={PAYMENT_COPY.date} required error={errors.paidOn}>
+          <DateInput value={draft.paidOn} disabled={busy} onChange={(v) => { if (v) set({ paidOn: v }); }} />
+        </Field>
+        <Field label={PAYMENT_COPY.method}>
+          <SegmentedControl aria-label={PAYMENT_COPY.method} options={METHOD_OPTIONS} value={draft.method} disabled={busy} onChange={(method) => set({ method })} />
+        </Field>
+      </div>
       {showsRink(draft) && <Checkbox checked={draft.collectedAtRink} disabled={busy} label={PAYMENT_COPY.atRink} onChange={(collectedAtRink) => set({ collectedAtRink })} />}
       <EmailBox f={f} />
       <Field label={PAYMENT_COPY.note}>
@@ -149,7 +153,7 @@ export function PaymentWindow({ mode, athlete = null, preselect = null, payment,
   const footer = (
     <>
       <Button variant="ghost" disabled={submit.busy} onClick={onClose}>{PAYMENT_COPY.cancel}</Button>
-      <Button loading={submit.busy} disabled={!draft.athleteId} onClick={() => void submit.run()}>{mode === 'edit' ? PAYMENT_COPY.save : PAYMENT_COPY.record}</Button>
+      <Button loading={submit.busy} disabled={!draft.athleteId} onClick={() => void submit.run()} data-tour={mode === 'new' ? 'pl-final' : undefined}>{mode === 'edit' ? PAYMENT_COPY.save : PAYMENT_COPY.record}</Button>
     </>
   );
   return (

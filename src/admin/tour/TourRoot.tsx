@@ -71,6 +71,13 @@ function useTour(): { state: TourState; send: (e: TourEvent) => void } {
   return { state, send };
 }
 
+/** True when the step has no `pick`, or the click landed on the radio option labelled so. */
+const picked = (e: Event, pick: string | undefined): boolean => {
+  if (!pick) return true;
+  const radio = e.target instanceof Element ? e.target.closest('[role="radio"]') : null;
+  return radio?.textContent?.trim() === pick;
+};
+
 /** Esc leaves; the real click or change on the anchor advances (typing counts as a change, a text field only fires change on blur). The final step's click never reaches the page. */
 function useStepEvents(state: TourState, send: (e: TourEvent) => void): void {
   const step = currentStep(state);
@@ -81,7 +88,7 @@ function useStepEvents(state: TourState, send: (e: TourEvent) => void): void {
       return t instanceof Node && Array.from(document.querySelectorAll(anchorSelector(step.anchor))).some((el) => el.contains(t));
     };
     const on = (via: 'click' | 'change') => (e: Event) => {
-      if (step.waitFor !== via || !hit(e)) return;
+      if (step.waitFor !== via || !hit(e) || !picked(e, step.pick)) return;
       if (via === 'click' && step.final) {
         e.preventDefault();
         e.stopImmediatePropagation();

@@ -120,7 +120,7 @@ export function PlatiBody({ month, params, setParams, actionsHost }: ContabBodyP
   const sections = platiSections(filters, todayIso()).filter((s) => s.key !== 'month');
   return (
     <>
-      <ActionsSlot host={actionsHost}><Button onClick={() => setDialog({ kind: 'new' })}>{copy.add}</Button></ActionsSlot>
+      <ActionsSlot host={actionsHost}><Button onClick={() => setDialog({ kind: 'new' })} data-tour="pl-plata">{copy.add}</Button></ActionsSlot>
       <div className="bn-toolbar">
         <FilterPanel sections={sections} onChange={change} onClearAll={() => setParams(new URLSearchParams())} totalLabel={count} showLabel={MONEY_UI_COPY.show(count)} />
       </div>

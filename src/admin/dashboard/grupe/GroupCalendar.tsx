@@ -7,6 +7,7 @@ import { calendarOpenDate, inSeasonWindow, type SeasonWindow } from '../../../cl
 import { AgendaList, CompactMonth, MonthGrid, type CalView } from '../../../plugins/component-preview/admin/src/calendar/CalendarView';
 import { RO_MONTHS, ymd, type Occurrence as CalOccurrence } from '../../../plugins/component-preview/admin/src/calendar/model';
 import { CAL_CSS } from '../../../plugins/component-preview/admin/src/calendar/styles';
+import { isExampleDate } from '../../../club/onboarding/fixtures';
 import type { GrupeApi } from './api';
 
 type Props = { groupId: string; api: GrupeApi; reloadKey: number; onOpen: (o: Occurrence) => void; season: SeasonWindow | null };
@@ -24,6 +25,9 @@ function useMonth(api: GrupeApi, groupId: string, ym: Ym, reloadKey: number, sea
   }, [api, groupId, ym, reloadKey, season]);
   return { list, failed };
 }
+
+/** The example Thursday of the "Anulează sau mută o ședință" flow marks its chip; the calendar of a real group never has these ids. */
+const exampleChipAnchor = (o: CalOccurrence): string | undefined => (isExampleDate(o.documentId) ? 'se-data' : undefined);
 
 const byDate = (list: Occurrence[]): Map<string, CalOccurrence[]> => {
   const out = new Map<string, CalOccurrence[]>();
@@ -60,7 +64,7 @@ export function GroupCalendar({ groupId, api, reloadKey, onOpen, season }: Props
   const [view, setView] = React.useState<CalView>('list');
   const [selected, setSelected] = React.useState<string | null>(ymd(now));
   const { list, failed } = useMonth(api, groupId, ym, reloadKey, season);
-  const grid = { y: ym.y, m: ym.m, byDate: byDate(list), todayKey: ymd(now), onEvent: (o: CalOccurrence) => onOpen(o as Occurrence), view: groupChip };
+  const grid = { y: ym.y, m: ym.m, byDate: byDate(list), todayKey: ymd(now), onEvent: (o: CalOccurrence) => onOpen(o as Occurrence), view: groupChip, chipAnchor: exampleChipAnchor };
   const go = (delta: number) => setYm(({ y, m }) => ({ y: new Date(y, m + delta, 1).getFullYear(), m: new Date(y, m + delta, 1).getMonth() }));
   const body = view === 'list' ? <AgendaList {...grid} focusDate={null} weekTitle={weekTitle} />
     : narrow ? <CompactMonth {...grid} selected={selected} onSelect={setSelected} /> : <MonthGrid {...grid} onMore={() => setView('list')} />;

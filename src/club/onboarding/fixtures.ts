@@ -1,10 +1,16 @@
 import type { AthleteCard, AthleteListPage, AthleteListRow, ConfirmContext, HistoryLine, RegistrationMatchView } from '../athletes/api-types';
 import type { ComparisonRow } from '../confirm/compare';
-import type { FlowId } from './flows';
+import { EXAMPLE_GROUP_ID, type FlowId } from './flows';
 import { addDays, weekdayIndex } from '../groups/dates';
 import { todayIso } from '../groups/http';
 import { remainingText } from '../presence/copy/core';
-import type { GroupListPage, GroupListRow, GroupOptions } from '../groups/api-types';
+import type { GroupListPage, GroupListRow, GroupOptions, GroupPage } from '../groups/api-types';
+import type { GroupProgram } from '../groups/program-read';
+import type { Occurrence } from '../../api/calendar-event/services/expand';
+import type { AthletePayments, PaymentList, PaymentRowView } from '../presence/money-api';
+import type { PaymentOption } from '../presence/payments/rules';
+import { PAYMENT_COPY } from '../presence/copy/payments';
+import type { MoneyOverview } from '../money/types';
 import type { Anunt, ListRow } from '../anunturi/portal-history';
 import type { TickTree } from '../calendar/group-ticks';
 import type { PanelRow, PeriodPage, PeriodRow, SessionPanel } from '../presence/attendance/api-types';
@@ -292,10 +298,103 @@ const GRUPA_FIXTURES = (): Fixture[] => [
   { method: 'GET', match: /^\/api\/club\/groups\/options(\?|$)/, body: grupeOptionsBody() },
 ];
 
+/** The "Înregistrează o plată" flow: Contabilitate (Plăți tab) and the payment form, with one example athlete who owes a subscription. */
+const PAY_ATHLETE = { id: 'ex-sportiv-1', name: 'Ana Marin' };
+const SUBSCRIPTION_PRICE = 200;
+
+const monthNow = (): string => todayIso().slice(0, 7);
+
+const moneyOverview = (): { data: MoneyOverview } => ({
+  data: {
+    month: monthNow(),
+    cards: { collected: 1400, collectedPrev: 1200, left: 600, due: 2000, activeSubscriptions: 9, schoolAthletes: 14, expiring: 2, unpaidAthletes: 3 },
+    bySection: [], byMethod: [], byPurpose: [],
+  },
+});
+
+const examplePayment = (n: number, name: string, method: PaymentRowView['method'], daysAgo: number): PaymentRowView => ({
+  paymentId: `ex-plata-${n}`, athleteId: `ex-sportiv-${n + 1}`, athleteName: name, paidOn: addDays(todayIso(), -daysAgo), receiptNo: `2026-00${n}`, purpose: 'abonament',
+  purposeText: 'Abonament lunar', method, collectedAtRink: false, amount: SUBSCRIPTION_PRICE, recordedBy: COACHES[0].name, cancelled: false,
+  for: { kind: 'abonament', subscriptionId: `ex-abonament-${n}` }, note: null,
+});
+
+const paymentsBody = (): { data: PaymentList } => {
+  const rows = [examplePayment(2, 'Luca Dobre', 'card', 1), examplePayment(3, 'Sara Ene', 'numerar', 3)];
+  return { data: { rows, total: rows.reduce((sum, r) => sum + r.amount, 0) } };
+};
+
+const payOptions = (): { data: PaymentOption[] } => ({
+  data: [
+    {
+      for: { kind: 'abonament', subscriptionId: 'ex-abonament-1' }, label: PAYMENT_COPY.optAbonament('Abonament lunar', '1 noiembrie'),
+      amount: SUBSCRIPTION_PRICE, isDefault: true, owed: SUBSCRIPTION_PRICE, paid: 0,
+    },
+    { for: { kind: 'altceva' }, label: 'Altceva', amount: null, isDefault: false, owed: null, paid: 0 },
+  ],
+});
+
+const athletePayments = (): { data: AthletePayments } => ({ data: { months: [], payments: [], hasEmail: true, readOnly: false } });
+
+const payAthleteCard = (): AthleteCard => ({
+  documentId: PAY_ATHLETE.id, name: PAY_ATHLETE.name, birthDate: '12.05.2017', lastGroup: { name: 'Începători', season: SEASON }, lastRegistrationSeason: SEASON,
+  contactName: 'Ioana Marin', status: 'activ',
+});
+
+const PLATA_FIXTURES = (): Fixture[] => [
+  { method: 'GET', match: /^\/api\/club\/money\/overview(\?|$)/, body: moneyOverview() },
+  { method: 'GET', match: /^\/api\/club\/payments(\?|$)/, body: paymentsBody() },
+  { method: 'GET', match: /^\/api\/club\/athletes\/search(\?|$)/, body: { data: [payAthleteCard()] } },
+  { method: 'GET', match: new RegExp(`^/api/club/athletes/${PAY_ATHLETE.id}/payments/options(\\?|$)`), body: payOptions() },
+  { method: 'GET', match: new RegExp(`^/api/club/athletes/${PAY_ATHLETE.id}/payments(\\?|$)`), body: athletePayments() },
+];
+
+/** The "Anulează sau mută o ședință" flow: the example group's page, its Thursday program and the calendar dates; the date panel needs nothing more. */
+const DATE_EVENT_PREFIX = 'ex-event-';
+export const isExampleDate = (id: string | null | undefined): boolean => typeof id === 'string' && id.startsWith(DATE_EVENT_PREFIX);
+const THURSDAY = 4;
+const FIRST_THURSDAY = '2026-09-10';
+const THURSDAYS = 42;
+
+const groupPageBody = (): { data: GroupPage } => ({
+  data: {
+    documentId: EXAMPLE_GROUP_ID, name: 'Începători', section: { documentId: SCHOOL.documentId, name: SCHOOL.name, kind: 'school' },
+    priceList: { documentId: 'ex-prices-scoala', name: 'Preț școală' }, coaches: [COACHES[0]], programPublic: true,
+    season: { documentId: 'ex-season', label: SEASON, past: false }, members: [], historyCount: 0, deletable: false, copyFrom: null,
+  },
+});
+
+const programBody = (): { data: GroupProgram } => ({
+  data: {
+    season: { documentId: 'ex-season', label: SEASON, past: false },
+    series: [{
+      eventId: `${DATE_EVENT_PREFIX}1`, freq: 'weekly', days: ['thu'], weekOfMonth: null, startTime: '18:00', durationMin: 50, from: '2026-09-10', to: '2027-06-30',
+      text: 'Joi 18:00', fromText: '10 sept 2026', nextDate: null,
+    }],
+  },
+});
+
+const thursdayDate = (date: string): Occurrence => ({
+  eventId: 1, documentId: `${DATE_EVENT_PREFIX}1`, title: 'Începători', type: 'scoala', label: null, color: null, order: 0, date, startTime: '18:00', endTime: '18:50',
+  endsNextDay: false, endDate: date, status: 'scheduled', cancelReason: null, state: 'curs', note: null, reason: null, groupId: EXAMPLE_GROUP_ID, groupName: 'Începători',
+  oneOff: false, originalDate: null, originalStartTime: null,
+});
+
+/** Every Thursday of the season, so any month the calendar shows has its dates. */
+const calendarDates = (): Occurrence[] =>
+  Array.from({ length: THURSDAYS }, (_, i) => addDays(FIRST_THURSDAY, i * 7)).filter((d) => weekdayIndex(d) === THURSDAY).map(thursdayDate);
+
+const SEDINTA_FIXTURES = (): Fixture[] => [
+  { method: 'GET', match: new RegExp(`^/api/club/groups/${EXAMPLE_GROUP_ID}(\\?|$)`), body: groupPageBody() },
+  { method: 'GET', match: new RegExp(`^/api/club/groups/${EXAMPLE_GROUP_ID}/program(\\?|$)`), body: programBody() },
+  { method: 'GET', match: /^\/api\/club\/calendar\/occurrences(\?|$)/, body: { data: calendarDates() } },
+];
+
 export const FIXTURES: Partial<Record<FlowId, Fixture[]>> = {
   inscriere: deepFreeze(INSCRIERE_FIXTURES.map((f) => ({ ...f }))),
   sportiv: deepFreeze(SPORTIV_FIXTURES()),
   grupa: deepFreeze(GRUPA_FIXTURES()),
   prezenta: deepFreeze(PREZENTA_FIXTURES()),
+  plata: deepFreeze(PLATA_FIXTURES()),
+  sedinta: deepFreeze(SEDINTA_FIXTURES()),
   anunt: deepFreeze(ANUNT_FIXTURES()),
 };

@@ -1,7 +1,9 @@
 import type { AdminArea } from '../admin-area';
 import type { FeatureKey } from '../features/features';
 import { visibleLinks, type GatedLink } from '../features/visible';
-import { GRUPE_PATH } from '../grupe/routes';
+import { contabTo } from '../contabilitate/routes';
+import { GRUPE_COPY } from '../groups/copy';
+import { GRUPE_PATH, groupPageTo } from '../grupe/routes';
 import { prezentaTo } from '../prezenta/routes';
 import { SPORTIVI_PATH } from '../sportivi/routes';
 
@@ -23,6 +25,8 @@ export interface TourStep {
   action?: string;
   waitFor?: 'click' | 'change';
   final?: true;
+  /** A click advances only on the radio option with this label (the Ține / Anulează / Mută choice waits for Anulează). */
+  pick?: string;
   guide?: string;
   /** The step is dropped while this switch is off (its control is not on the page then). */
   feature?: FeatureKey;
@@ -95,13 +99,31 @@ const GRUPA_STEPS: TourStep[] = [
   { anchor: 'gr-final', where: 'Grupe', title: 'Creează grupa', text: 'După creare, adaugi orele în tabul Program.', action: 'Apasă Creează grupa.', waitFor: 'click', final: true, guide: 'creeaza-o-grupa' },
 ];
 
+/** The example group and Thursday date of the "Anulează sau mută o ședință" flow (fixtures.ts serves them). */
+export const EXAMPLE_GROUP_ID = 'ex-grupa-1';
+
+const PLATA_STEPS: TourStep[] = [
+  { anchor: 'pl-plata', path: contabTo({ tab: 'plati' }), where: 'Contabilitate', title: 'Plată nouă', text: 'Plățile se trec din Contabilitate sau direct din fișa sportivului.', action: 'Apasă + Plată.', waitFor: 'click' },
+  { anchor: 'pl-sportiv', where: 'Contabilitate', title: 'Sportiv și motiv', text: 'Alege sportivul, apoi ce plătește: abonament, cotizație, lecție individuală sau altceva.' },
+  { anchor: 'pl-suma', where: 'Contabilitate', title: 'Suma și metoda', text: 'Suma se completează automat când e cunoscută. Verifică data și alege metoda de plată.' },
+  { anchor: 'pl-final', where: 'Contabilitate', title: 'Înregistrează plata', text: 'Plata apare imediat în fișa sportivului și în Contabilitate.', action: 'Apasă Înregistrează.', waitFor: 'click', final: true, guide: 'inregistreaza-o-plata' },
+];
+
+const SEDINTA_STEPS: TourStep[] = [
+  { anchor: 'se-data', path: groupPageTo(EXAMPLE_GROUP_ID, null, 'program'), where: 'Grupe', title: 'Alege ședința', text: 'Deschide grupa, tabul Program, și apasă data din calendar.', action: 'Apasă pe data de joi.', waitFor: 'click' },
+  { anchor: 'se-alege', where: 'Grupe', title: 'Anulează sau mută', text: 'Alege ce se întâmplă cu ședința: rămâne, se anulează sau se mută în altă zi.', action: 'Alege Anulează.', waitFor: 'click', pick: GRUPE_COPY.cancelDate },
+  { anchor: 'se-motiv', where: 'Grupe', title: 'Scrie motivul', text: 'Scrie pe scurt de ce se anulează sau se mută ședința.' },
+  { anchor: 'se-anunta', where: 'Grupe', title: 'Anunță părinții', text: 'Bifează opțiunea ca părinții să primească un e-mail despre schimbare.' },
+  { anchor: 'se-final', where: 'Grupe', title: 'Salvează', text: 'Ședința apare anulată sau mutată în calendarul grupei și în portal.', action: 'Apasă Salvează.', waitFor: 'click', final: true, guide: 'anuleaza-sau-muta-o-sedinta' },
+];
+
 export const FLOWS: FlowDef[] = [
   { id: 'inscriere', name: 'Confirmă o înscriere', area: 'club', steps: INSCRIERE_STEPS },
   { id: 'sportiv', name: 'Adaugă un sportiv', area: 'club', steps: SPORTIV_STEPS },
   { id: 'grupa', name: 'Creează o grupă', area: 'club', steps: GRUPA_STEPS },
   { id: 'prezenta', name: 'Completează prezența', area: 'club', feature: 'prezenta', steps: PREZENTA_STEPS },
-  { id: 'plata', name: 'Înregistrează o plată', area: 'club', feature: 'abonamente', steps: null },
-  { id: 'sedinta', name: 'Anulează sau mută o ședință', area: 'club', steps: null },
+  { id: 'plata', name: 'Înregistrează o plată', area: 'club', feature: 'abonamente', steps: PLATA_STEPS },
+  { id: 'sedinta', name: 'Anulează sau mută o ședință', area: 'club', steps: SEDINTA_STEPS },
   { id: 'anunt', name: 'Scrie un anunț', area: 'website', steps: ANUNT_STEPS },
   { id: 'parinte', name: 'Invită un părinte în portal', area: 'club', feature: 'portalParinti', steps: null },
   { id: 'functii', name: 'Pornește sau oprește o funcție', area: 'superAdmin', steps: null },

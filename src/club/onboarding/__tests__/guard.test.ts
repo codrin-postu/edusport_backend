@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decide, refusalResponse } from '../guard';
-import { EXAMPLE_REGISTRATION_ID, FIXTURES, isExampleAnunt, type Fixture } from '../fixtures';
+import { EXAMPLE_REGISTRATION_ID, FIXTURES, isExampleAnunt, isExampleDate, type Fixture } from '../fixtures';
 import { CLUB_URLS, openListParams } from '../../inscrieri-panel';
 
 const fixture: Fixture = { method: 'GET', match: /\/content-manager\/collection-types\/api::demo\.demo(\?|$)/, body: { results: [] } };
@@ -14,35 +14,35 @@ describe('decide', () => {
 
   it('refuses writes while a flow runs, case-insensitively', () => {
     for (const method of ['POST', 'put', 'Patch', 'DELETE']) {
-      expect(decide({ method, url: '/admin/x' }, 'plata')).toEqual({ kind: 'refuse' });
+      expect(decide({ method, url: '/admin/x' }, 'parinte')).toEqual({ kind: 'refuse' });
     }
   });
 
   it('lets session upkeep and the progress post through, nothing similar', () => {
     for (const url of ['/admin/access-token', 'http://localhost:1337/admin/renew-token', '/admin/logout', '/club/onboarding', '/admin/logout?x=1']) {
-      expect(decide({ method: 'POST', url }, 'plata')).toEqual({ kind: 'pass' });
+      expect(decide({ method: 'POST', url }, 'parinte')).toEqual({ kind: 'pass' });
     }
     for (const url of ['/club/onboarding/extra', '/club/inscrieri', '/admin/users/me', '/x/admin/logout-all']) {
-      expect(decide({ method: 'POST', url }, 'plata')).toEqual({ kind: 'refuse' });
+      expect(decide({ method: 'POST', url }, 'parinte')).toEqual({ kind: 'refuse' });
     }
   });
 
   it('treats GET, HEAD and OPTIONS as reads', () => {
     for (const method of ['GET', 'head', 'OPTIONS']) {
-      expect(decide({ method, url: '/admin/x' }, 'plata')).toEqual({ kind: 'pass' });
+      expect(decide({ method, url: '/admin/x' }, 'parinte')).toEqual({ kind: 'pass' });
     }
   });
 
   it('refuses a stray write even when its url matches a fixture', () => {
-    FIXTURES['plata'] = [fixture];
+    FIXTURES['parinte'] = [fixture];
     try {
       const url = 'http://localhost:1337/content-manager/collection-types/api::demo.demo?page=1';
-      expect(decide({ method: 'POST', url }, 'plata')).toEqual({ kind: 'refuse' });
-      expect(decide({ method: 'GET', url }, 'plata')).toEqual({ kind: 'fixture', body: fixture.body });
+      expect(decide({ method: 'POST', url }, 'parinte')).toEqual({ kind: 'refuse' });
+      expect(decide({ method: 'GET', url }, 'parinte')).toEqual({ kind: 'fixture', body: fixture.body });
       expect(decide({ method: 'GET', url }, 'grupa')).toEqual({ kind: 'pass' });
-      expect(decide({ method: 'GET', url: '/admin/unrelated' }, 'plata')).toEqual({ kind: 'pass' });
+      expect(decide({ method: 'GET', url: '/admin/unrelated' }, 'parinte')).toEqual({ kind: 'pass' });
     } finally {
-      delete FIXTURES['plata'];
+      delete FIXTURES['parinte'];
     }
   });
 
@@ -192,6 +192,38 @@ describe('sportiv and grupa fixtures', () => {
     expect(decide({ method: 'POST', url: '/api/club/groups' }, 'grupa')).toEqual({ kind: 'refuse' });
     expect(decide({ method: 'POST', url: '/api/club/athletes' }, 'sportiv')).toEqual({ kind: 'refuse' });
     for (const f of [...(FIXTURES.sportiv ?? []), ...(FIXTURES.grupa ?? [])]) {
+      expect(Object.isFrozen(f.body)).toBe(true);
+      expect(f.match.flags).toBe('');
+      expect(f.match.source.startsWith('^')).toBe(true);
+    }
+  });
+});
+
+describe('plata and sedinta fixtures', () => {
+  const bodyOf = <T>(flow: 'plata' | 'sedinta', url: string): T => {
+    const d = decide({ method: 'GET', url: `http://localhost:1337${url}` }, flow);
+    if (d.kind !== 'fixture') throw new Error(`not served: ${url}`);
+    return d.body as T;
+  };
+  it('serves the Contabilitate Plăți tab and the payment form of the example athlete', () => {
+    expect(bodyOf<{ data: { cards: unknown } }>('plata', '/api/club/money/overview?month=2026-11').data.cards).toBeTruthy();
+    expect(bodyOf<{ data: { rows: unknown[] } }>('plata', '/api/club/payments?month=2026-11').data.rows).toHaveLength(2);
+    expect(bodyOf<{ data: { documentId: string }[] }>('plata', '/api/club/athletes/search?q=Ana').data).toHaveLength(1);
+    const options = bodyOf<{ data: { amount: number | null; isDefault: boolean }[] }>('plata', '/api/club/athletes/ex-sportiv-1/payments/options').data;
+    expect(options[0]).toMatchObject({ amount: 200, isDefault: true });
+    expect(bodyOf<{ data: { hasEmail: boolean } }>('plata', '/api/club/athletes/ex-sportiv-1/payments').data.hasEmail).toBe(true);
+  });
+  it('serves the example group page, its program and a Thursday in every month of the season', () => {
+    expect(bodyOf<{ data: { documentId: string } }>('sedinta', '/api/club/groups/ex-grupa-1?season=2026-2027').data.documentId).toBe('ex-grupa-1');
+    expect(bodyOf<{ data: { series: unknown[] } }>('sedinta', '/api/club/groups/ex-grupa-1/program?season=2026-2027').data.series).toHaveLength(1);
+    const dates = bodyOf<{ data: { date: string; documentId: string; status: string }[] }>('sedinta', '/api/club/calendar/occurrences?from=2026-11-01&to=2026-11-30&group=ex-grupa-1').data;
+    expect(dates.every((d) => new Date(`${d.date}T12:00:00Z`).getUTCDay() === 4 && d.status === 'scheduled' && isExampleDate(d.documentId))).toBe(true);
+    for (const month of ['2026-10', '2026-12', '2027-03', '2027-06']) expect(dates.some((d) => d.date.startsWith(month))).toBe(true);
+  });
+  it('refuses the payment and the date save, and freezes and anchors every body', () => {
+    expect(decide({ method: 'POST', url: '/api/club/payments' }, 'plata')).toEqual({ kind: 'refuse' });
+    expect(decide({ method: 'PUT', url: '/api/club/program/ex-event-1/dates/2026-12-03' }, 'sedinta')).toEqual({ kind: 'refuse' });
+    for (const f of [...(FIXTURES.plata ?? []), ...(FIXTURES.sedinta ?? [])]) {
       expect(Object.isFrozen(f.body)).toBe(true);
       expect(f.match.flags).toBe('');
       expect(f.match.source.startsWith('^')).toBe(true);

@@ -117,6 +117,19 @@ describe('inscriere flow anchors', () => {
     for (const a of ['gr-date', 'gr-public']) expect(src('grupe/GroupDialog.tsx')).toContain(`data-tour="${a}"`);
     expect(src('grupe/GroupDialog.tsx')).toContain("props.mode === 'new' ? 'gr-final'");
   });
+  it('places the plata and sedinta anchors, inert outside the example', () => {
+    expect(src('bani/PlatiList.tsx')).toContain('data-tour="pl-plata"');
+    for (const a of ['pl-sportiv', 'pl-suma']) expect(src('bani/PaymentWindow.tsx')).toContain(`data-tour="${a}"`);
+    expect(src('bani/PaymentWindow.tsx')).toContain("mode === 'new' ? 'pl-final'");
+    for (const a of ['se-alege', 'se-motiv', 'se-anunta', 'se-final']) expect(src('grupe/DatePanel.tsx')).toContain(`data-tour="${a}"`);
+    expect(src('grupe/GroupCalendar.tsx')).toContain("isExampleDate(o.documentId) ? 'se-data'");
+    expect(readFileSync(join(__dirname, '../../plugins/component-preview/admin/src/calendar/CalendarView.tsx'), 'utf8').match(/anchor=\{chipAnchor\?\.\(o\)\}/g)).toHaveLength(3);
+  });
+  it('the Anulează step advances only on its radio option', () => {
+    const root = readFileSync(join(dir, 'TourRoot.tsx'), 'utf8');
+    expect(root).toContain("closest('[role=\"radio\"]')");
+    expect(root).toContain('!picked(e, step.pick)');
+  });
   it('typing in an anchored text field advances a change step', () => {
     expect(readFileSync(join(dir, 'TourRoot.tsx'), 'utf8')).toContain("document.addEventListener('input', onChange, true)");
   });

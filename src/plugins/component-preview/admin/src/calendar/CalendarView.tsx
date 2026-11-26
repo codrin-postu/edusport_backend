@@ -123,11 +123,13 @@ interface EventChipProps {
   /** Clamp to two lines (month grid). */
   clamp?: boolean;
   view?: (o: Occurrence) => OccView;
+  /** The tour anchor of this chip, if it is one. */
+  anchor?: string;
   onOpen: () => void;
 }
 
 /** Soft category tint, 3px category edge, dark text; the time in bold first. */
-export function EventChip({ o, range = false, clamp = false, view = occView, onOpen }: EventChipProps) {
+export function EventChip({ o, range = false, clamp = false, view = occView, anchor, onOpen }: EventChipProps) {
   const v = view(o);
   const end = hhmm(o.endTime);
   const time = range && v.time && end ? `${v.time} - ${end}` : v.time;
@@ -137,6 +139,7 @@ export function EventChip({ o, range = false, clamp = false, view = occView, onO
       className={`cal-ev${v.struck ? ' cal-ev--cancel' : ''}${clamp ? ' cal-ev--clamp' : ''}`}
       data-calcat={v.cat}
       title={v.title}
+      data-tour={anchor}
       onClick={(e) => {
         e.stopPropagation();
         onOpen();
@@ -163,6 +166,8 @@ export interface GridProps {
   onAddOn?: (date: string) => void;
   /** How an occurrence shows; the general calendar's by default. */
   view?: (o: Occurrence) => OccView;
+  /** The tour anchor of a chip, if it is one. */
+  chipAnchor?: (o: Occurrence) => string | undefined;
 }
 
 function dayClass(d: Date, m: number, key: string, todayKey: string, extra = ''): string {
@@ -182,7 +187,7 @@ function dayClass(d: Date, m: number, key: string, todayKey: string, extra = '')
 const LANE = 20;
 
 /** Full month grid (desktop and tablet). A multi-day band sits under the day numbers of its week row. */
-export function MonthGrid({ y, m, byDate, todayKey, onEvent, onAddOn, view, onMore, bands = [], bandCat = {} }: GridProps & { onMore: (date: string) => void; bands?: Span[]; bandCat?: Record<string, CalendarCategory> }) {
+export function MonthGrid({ y, m, byDate, todayKey, onEvent, onAddOn, view, chipAnchor, onMore, bands = [], bandCat = {} }: GridProps & { onMore: (date: string) => void; bands?: Span[]; bandCat?: Record<string, CalendarCategory> }) {
   const weeks = React.useMemo(() => monthWeeks(y, m), [y, m]);
   return (
     <div className="cal-month">
@@ -219,7 +224,7 @@ export function MonthGrid({ y, m, byDate, todayKey, onEvent, onAddOn, view, onMo
                   )}
                   {lanes > 0 && <span className="cal-lanes" aria-hidden="true" />}
                   {items.slice(0, MAX_PER_DAY).map((o, i) => (
-                    <EventChip key={i} o={o} clamp view={view} onOpen={() => onEvent(o, key)} />
+                    <EventChip key={i} o={o} clamp view={view} anchor={chipAnchor?.(o)} onOpen={() => onEvent(o, key)} />
                   ))}
                   {rest > 0 && (
                     <button
@@ -263,6 +268,7 @@ export function CompactMonth({
   onEvent,
   onAddOn,
   view,
+  chipAnchor,
   selected,
   onSelect,
 }: GridProps & { selected: string | null; onSelect: (date: string) => void }) {
@@ -307,7 +313,7 @@ export function CompactMonth({
           {dayItems.length === 0 ? (
             <div className="cal-muted">Nimic programat</div>
           ) : (
-            dayItems.map((o, i) => <EventChip key={i} o={o} range view={view} onOpen={() => onEvent(o, selected)} />)
+            dayItems.map((o, i) => <EventChip key={i} o={o} range view={view} anchor={chipAnchor?.(o)} onOpen={() => onEvent(o, selected)} />)
           )}
           {onAddOn && (
             <Button variant="secondary" size="sm" icon={<IconPlus />} onClick={() => onAddOn(selected)}>
@@ -326,7 +332,7 @@ export function CompactMonth({
  * Every event of the month by day, grouped by week. Days without events are
  * left out (a week with none is left out entirely).
  */
-export function AgendaList({ y, m, byDate, todayKey, onEvent, onAddOn, view, focusDate, weekTitle = weekLabel }: GridProps & { focusDate: string | null; weekTitle?: (monday: Date) => string }) {
+export function AgendaList({ y, m, byDate, todayKey, onEvent, onAddOn, view, chipAnchor, focusDate, weekTitle = weekLabel }: GridProps & { focusDate: string | null; weekTitle?: (monday: Date) => string }) {
   const boxRef = React.useRef<HTMLDivElement>(null);
   const weeks = React.useMemo(
     () =>
@@ -382,7 +388,7 @@ export function AgendaList({ y, m, byDate, todayKey, onEvent, onAddOn, view, foc
                 )}
                 <div className="cal-ag-l">
                   {(byDate.get(key) ?? []).map((o, i) => (
-                    <EventChip key={i} o={o} range view={view} onOpen={() => onEvent(o, key)} />
+                    <EventChip key={i} o={o} range view={view} anchor={chipAnchor?.(o)} onOpen={() => onEvent(o, key)} />
                   ))}
                 </div>
               </div>

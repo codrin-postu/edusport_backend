@@ -20,9 +20,11 @@ const MODES: { value: DateMode; label: string }[] = [
 function DateFields({ form, set, readOnly }: { form: DateForm; set: (f: DateForm) => void; readOnly: boolean }) {
   return (
     <div className="grp-form">
-      <Field label={GRUPE_COPY.thisDate}>
-        <SegmentedControl<DateMode> options={MODES} value={form.mode} onChange={(mode) => set({ ...form, mode })} disabled={readOnly} block />
-      </Field>
+      <div data-tour="se-alege">
+        <Field label={GRUPE_COPY.thisDate}>
+          <SegmentedControl<DateMode> options={MODES} value={form.mode} onChange={(mode) => set({ ...form, mode })} disabled={readOnly} block />
+        </Field>
+      </div>
       {form.mode === 'move' && (
         <>
           <Field label={GRUPE_COPY.newDate}><DateInput value={form.newDate} onChange={(v) => set({ ...form, newDate: v ?? '' })} disabled={readOnly} /></Field>
@@ -31,8 +33,8 @@ function DateFields({ form, set, readOnly }: { form: DateForm; set: (f: DateForm
       )}
       {form.mode !== 'keep' && (
         <>
-          <Field label={GRUPE_COPY.reason}><Input value={form.reason} maxLength={120} onChange={(e) => set({ ...form, reason: e.target.value })} disabled={readOnly} /></Field>
-          <Checkbox checked={form.notify} onChange={(v) => set({ ...form, notify: v })} label={GRUPE_COPY.notify} disabled={readOnly} />
+          <div data-tour="se-motiv"><Field label={GRUPE_COPY.reason}><Input value={form.reason} maxLength={120} onChange={(e) => set({ ...form, reason: e.target.value })} disabled={readOnly} /></Field></div>
+          <div data-tour="se-anunta"><Checkbox checked={form.notify} onChange={(v) => set({ ...form, notify: v })} label={GRUPE_COPY.notify} disabled={readOnly} /></div>
         </>
       )}
     </div>
@@ -71,7 +73,7 @@ function PanelFooter({ locked, busy, onClose, onSave }: { locked: boolean; busy:
   return (
     <>
       <Button variant="ghost" onClick={onClose} disabled={busy}>{GRUPE_COPY.cancel}</Button>
-      <Button loading={busy} onClick={onSave}>{GRUPE_COPY.save}</Button>
+      <Button loading={busy} onClick={onSave} data-tour="se-final">{GRUPE_COPY.save}</Button>
     </>
   );
 }
