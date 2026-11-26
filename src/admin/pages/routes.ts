@@ -100,6 +100,8 @@ export interface CustomPageRoute {
 }
 
 export const CUSTOM_PAGES: CustomPageRoute[] = [
+  // Primii pași: every admin (area any). Same path as PRIMII_PASI_TO in menu.tsx, which routes.ts cannot import (React).
+  { to: '/primii-pasi', area: 'any', uid: 'primii-pasi', kind: 'single', role: 'main', redirect: false, load: () => import('./PrimiiPasiPage') },
   { to: FUNCTII_TO, area: 'superAdmin', uid: 'club-features', kind: 'single', role: 'main', redirect: false, load: () => import('./FunctiiPage') },
   { to: SETARI_SITE_TO, area: 'settings', uid: UID.siteSettings, kind: 'single', role: 'main', redirect: true, load: () => import('./SetariSitePage') },
   { to: PAGINA_ECHIPA_TO, area: 'website', uid: UID.teamPage, kind: 'single', role: 'main', redirect: true, load: () => import('./PaginaEchipaPage') },

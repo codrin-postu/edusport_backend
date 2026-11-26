@@ -11,6 +11,7 @@ import { mountEdusportShell, tagShellParent, SHELL_CSS } from './dashboard/Edusp
 import { ensureAdminUi } from './ui/styles';
 import { PALETTE } from './ui/tokens';
 import { mountToastViewport } from './ui/Toast';
+import { mountTourRoot } from './tour/TourRoot';
 import { registerNativeFormBridge } from './nativeFormBridge';
 import { startLegacyRedirects } from './lib/legacyRedirects';
 import { startAuthRedirect } from './lib/authRedirect';
@@ -594,6 +595,7 @@ function setupAdminShell() {
   mountSaveBar();
   mountBlocksToolbarExtra();
   mountEdusportShell();
+  mountTourRoot();
   mountToastViewport();
   tagAdminShellReliably();
   // Also tag Save/Preview now and on every nav-affecting mutation. The same

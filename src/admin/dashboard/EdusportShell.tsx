@@ -7,6 +7,8 @@ import type { Group } from './menu';
 import { scaleVars } from '../ui/tokens';
 import { useAreas } from '../lib/useAreas';
 import { useFeatures } from '../lib/useFeatures';
+import { FooterBadge } from '../tour/FooterBadge';
+import { REVEAL_EVENT } from '../tour/progressStore';
 
 /** --palette-* and --ui-* declarations for the shell's own roots. */
 const SHELL_VARS = Object.entries(scaleVars())
@@ -159,7 +161,7 @@ function initialsOf(user: { firstname?: string; lastname?: string; email?: strin
 const ROUTE_EVENT = 'edusport:routechange';
 
 /** Navigate within Strapi's SPA from outside its Router (pushState + popstate). */
-function spaNavigate(to: string): void {
+export function spaNavigate(to: string): void {
   const full = to.startsWith('/admin') ? to : `/admin${to}`;
   if (window.location.pathname + window.location.search === full) return;
   window.history.pushState({}, '', full);
@@ -406,6 +408,18 @@ function EdusportShell() {
     return next;
   });
 
+  // The tour asks for the sidebar fully open (desktop): unrailed, every group expanded.
+  React.useEffect(() => {
+    const onReveal = (e: Event) => {
+      const d = (e as CustomEvent<{ open: boolean; phone: boolean }>).detail;
+      if (!d.open || d.phone) return;
+      setRailed(false);
+      setOpenGroups(Object.fromEntries(GROUP_ORDER.map((g) => [g, true])) as OpenState);
+    };
+    window.addEventListener(REVEAL_EVENT, onReveal);
+    return () => window.removeEventListener(REVEAL_EVENT, onReveal);
+  }, []);
+
   const toggleRail = () => {
     setFlyGroup(null);
     setRailed((prev) => {
@@ -580,6 +594,7 @@ function EdusportShell() {
           <div className="esd-acts">
             <a className="esd-act" href={`/admin${PRIMII_PASI_TO}`} onClick={go(PRIMII_PASI_TO)} data-tour="primii-pasi">
               Primii pași
+              <FooterBadge has={has} on={features.on} />
             </a>
             <a className="esd-act" href={GHID_URL} target="_blank" rel="noopener noreferrer" data-tour="ghid">
               Ghid EduSport

@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom';
 import { ensureAdminUi } from './ui/styles';
 import { useAreas } from './lib/useAreas';
 import { useFeatures } from './lib/useFeatures';
+import { FooterBadge } from './tour/FooterBadge';
+import { REVEAL_EVENT } from './tour/progressStore';
 import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, PRIMII_PASI_TO, GHID_URL } from './dashboard/menu';
 import EdusportLogo from './edusport-logo.svg';
 import { eduLinkHref } from '../club/admin-href';
@@ -165,6 +167,16 @@ export function MobileNav() {
   // Tokens + theme sync (idempotent; the bootstrap already ran it).
   React.useInsertionEffect(() => ensureAdminUi(), []);
 
+  // The tour opens and closes the phone menu while a step points into it.
+  React.useEffect(() => {
+    const onReveal = (e: Event) => {
+      const d = (e as CustomEvent<{ open: boolean; phone: boolean }>).detail;
+      if (d.phone) setOpen(d.open);
+    };
+    window.addEventListener(REVEAL_EVENT, onReveal);
+    return () => window.removeEventListener(REVEAL_EVENT, onReveal);
+  }, []);
+
   // Re-read every time the menu opens so the Strapi extras reflect the current page.
   React.useEffect(() => {
     if (!open) return;
@@ -224,6 +236,7 @@ export function MobileNav() {
           onClick={() => setOpen(false)}
         >
           {item.label}
+          {item.tour === 'primii-pasi' && <FooterBadge has={has} on={features.on} />}
         </a>
       );
     }
