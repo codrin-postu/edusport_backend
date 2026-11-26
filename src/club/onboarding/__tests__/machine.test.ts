@@ -64,3 +64,18 @@ describe('selectors', () => {
     expect(needsMenuOpen(at('ins-maria'), true)).toBe(false);
   });
 });
+
+describe('feature-gated steps', () => {
+  const stepsOf = (on: (k: string) => boolean) => {
+    const r = tourReducer({ kind: 'idle' }, { type: 'startFlow', id: 'anunt', on: on as never });
+    return r.state.kind === 'flow' ? r.state.steps.map((x) => x.anchor) : [];
+  };
+  it('drops the pentru step when portalParinti is off and keeps it when on', () => {
+    expect(stepsOf((k) => k !== 'portalParinti')).not.toContain('pentru');
+    expect(stepsOf(() => true)).toContain('pentru');
+  });
+  it('keeps every step when no switch function is given', () => {
+    const r = tourReducer({ kind: 'idle' }, { type: 'startFlow', id: 'anunt' });
+    expect(r.state.kind === 'flow' && r.state.steps.map((x) => x.anchor)).toContain('pentru');
+  });
+});

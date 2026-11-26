@@ -1,4 +1,5 @@
-import { FLOWS, INTRO_STEPS, type FlowId, type TourStep } from './flows';
+import type { FeatureKey } from '../features/features';
+import { FLOWS, INTRO_STEPS, stepsFor, type FlowId, type TourStep } from './flows';
 
 export type TourState =
   | { kind: 'idle' }
@@ -6,7 +7,7 @@ export type TourState =
 
 export type TourEvent =
   | { type: 'startIntro' }
-  | { type: 'startFlow'; id: FlowId }
+  | { type: 'startFlow'; id: FlowId; on?: (k: FeatureKey) => boolean }
   | { type: 'next' }
   | { type: 'target'; anchor: string; via: 'click' | 'change' }
   | { type: 'exit' };
@@ -35,14 +36,15 @@ function advance(s: Exclude<TourState, { kind: 'idle' }>): TourResult {
   return { state: IDLE, effect: { flowDone: s.flow } };
 }
 
-function startFlow(id: FlowId): TourResult {
-  const steps = FLOWS.find((f) => f.id === id)?.steps;
-  return steps ? { state: { kind: 'flow', flow: id, steps, index: 0 } } : { state: IDLE };
+function startFlow(id: FlowId, on: (k: FeatureKey) => boolean = () => true): TourResult {
+  const all = FLOWS.find((f) => f.id === id)?.steps;
+  const steps = all && stepsFor(all, on);
+  return steps?.length ? { state: { kind: 'flow', flow: id, steps, index: 0 } } : { state: IDLE };
 }
 
 export function tourReducer(s: TourState, e: TourEvent): TourResult {
   if (e.type === 'startIntro') return { state: { kind: 'intro', steps: INTRO_STEPS, index: 0 } };
-  if (e.type === 'startFlow') return startFlow(e.id);
+  if (e.type === 'startFlow') return startFlow(e.id, e.on);
   if (s.kind === 'idle') return { state: s };
   if (e.type === 'exit') return { state: IDLE, effect: 'left' };
   const step = currentStep(s);

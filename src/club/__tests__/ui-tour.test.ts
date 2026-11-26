@@ -102,6 +102,8 @@ describe('inscriere flow anchors', () => {
     for (const a of ['unde', 'pentru', 'text', 'programare']) expect(src('AnuntEditPage.tsx')).toContain(`tour('${a}')`);
     expect(src('AnuntEditPage.tsx')).toContain("saveTour={tour('anunt-salveaza')}");
     expect(src('AnuntEditPage.tsx')).toContain('when={form.dirty && !example}');
-    expect(readFileSync(join(__dirname, '../../admin/ui/SaveBarView.tsx'), 'utf8')).toContain('data-tour={saveTour}');
+    const view = readFileSync(join(__dirname, '../../admin/ui/SaveBarView.tsx'), 'utf8');
+    expect(view).toMatch(/<button[^>]*ui-savebar-btn--primary[^>]*data-tour=\{saveTour\}[^>]*>/s);
+    expect(readFileSync(join(__dirname, '../../admin/ui/SaveBar.tsx'), 'utf8')).toContain('saveTour={saveTour}');
   });
 });

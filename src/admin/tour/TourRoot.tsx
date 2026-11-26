@@ -10,6 +10,7 @@ import { PRIMII_PASI_TO } from '../dashboard/menu';
 import { spaNavigate } from '../dashboard/EdusportShell';
 import { useIsPhone } from '../dashboard/useIsPhone';
 import { useAreas } from '../lib/useAreas';
+import { useFeatures } from '../lib/useFeatures';
 import { adminToast, ensureAdminUi } from '../ui';
 import { installFetchGuard, uninstallFetchGuard } from './fetchGuard';
 import { loadProgress, markProgress, setTourRunning, START_EVENT, useTourProgress } from './progressStore';
@@ -40,6 +41,9 @@ function handleEffect(prev: TourState, effect: TourEffect | undefined): void {
 function useTour(): { state: TourState; send: (e: TourEvent) => void } {
   const [state, setState] = React.useState<TourState>(IDLE);
   const ref = React.useRef<TourState>(IDLE);
+  const { on } = useFeatures();
+  const onRef = React.useRef(on);
+  onRef.current = on;
   const send = React.useCallback((e: TourEvent) => {
     const prev = ref.current;
     const { state: next, effect } = tourReducer(prev, e);
@@ -56,7 +60,7 @@ function useTour(): { state: TourState; send: (e: TourEvent) => void } {
   React.useEffect(() => {
     const onStart = (ev: Event) => {
       const flow = (ev as CustomEvent<{ flow?: unknown }>).detail?.flow;
-      send(isFlowId(flow) ? { type: 'startFlow', id: flow } : { type: 'startIntro' });
+      send(isFlowId(flow) ? { type: 'startFlow', id: flow, on: onRef.current } : { type: 'startIntro' });
     };
     window.addEventListener(START_EVENT, onStart);
     return () => {

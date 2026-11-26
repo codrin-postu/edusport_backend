@@ -22,6 +22,8 @@ export interface TourStep {
   waitFor?: 'click' | 'change';
   final?: true;
   guide?: string;
+  /** The step is dropped while this switch is off (its control is not on the page then). */
+  feature?: FeatureKey;
 }
 
 export interface FlowDef extends GatedLink {
@@ -69,7 +71,7 @@ const PREZENTA_STEPS: TourStep[] = [
 const ANUNT_STEPS: TourStep[] = [
   { anchor: 'anunt-nou', path: ANUNTURI_PATH, where: 'Anunțuri', title: 'Creează un anunț', text: 'Anunță o competiție, o schimbare de program sau orice noutate pentru părinți și sportivi.', action: 'Apasă + Anunț nou.', waitFor: 'click' },
   { anchor: 'unde', where: 'Anunțuri', title: 'Alege unde apare', text: 'Anunțul poate apărea pe site, în portalul sportivilor sau în ambele locuri.' },
-  { anchor: 'pentru', where: 'Anunțuri', title: 'Alege destinatarii', text: 'Trimite-l tuturor grupelor sau doar celor vizate, de exemplu unei grupe cu ședința anulată.' },
+  { anchor: 'pentru', feature: 'portalParinti', where: 'Anunțuri', title: 'Alege destinatarii', text: 'Trimite-l tuturor grupelor sau doar celor vizate, de exemplu unei grupe cu ședința anulată.' },
   { anchor: 'text', where: 'Anunțuri', title: 'Scrie mesajul', text: 'Un titlu clar și un mesaj scurt: ce s-a schimbat și ce trebuie făcut.' },
   { anchor: 'programare', where: 'Anunțuri', title: 'Stabilește perioada', text: 'Alege de când și până când este afișat. După ultima zi, dispare automat.' },
   { anchor: 'anunt-salveaza', where: 'Anunțuri', title: 'Publică anunțul', text: 'La salvare, anunțul devine vizibil acolo unde l-ai trimis.', action: 'Apasă Salvează.', waitFor: 'click', final: true, guide: 'anunturi' },
@@ -89,6 +91,9 @@ export const FLOWS: FlowDef[] = [
   { id: 'preturi', name: 'Actualizează prețurile', area: 'website', editorOnly: true, steps: null },
   { id: 'membru', name: 'Adaugă un membru în echipă', area: 'website', editorOnly: true, steps: null },
 ];
+
+/** The steps whose switch is on; steps without a `feature` always stay. */
+export const stepsFor = (steps: TourStep[], on: (k: FeatureKey) => boolean): TourStep[] => steps.filter((s) => !s.feature || on(s.feature));
 
 /** The built flows a caller may start: area and switch allow it, and editor-only flows are hidden from club admins. */
 export function flowsFor(has: (a: AdminArea) => boolean, on: (k: FeatureKey) => boolean): FlowDef[] {
