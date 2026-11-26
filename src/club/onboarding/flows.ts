@@ -39,13 +39,13 @@ const ANUNTURI_PATH = '/plugins/edusport-anunturi';
 export const INTRO_STEPS: TourStep[] = [
   {
     anchor: 'primii-pasi',
-    where: 'Primii pași',
+    where: 'Meniul din stânga, jos',
     title: 'Primii pași',
     text: 'Exersează sarcinile de bază pe date de exemplu, fără să modifici nimic în panou.',
   },
   {
     anchor: 'ghid',
-    where: 'Ghidul EduSport',
+    where: 'Meniul din stânga, jos',
     title: 'Ghidul EduSport',
     text: 'Pentru pași detaliați despre orice funcție, deschide ghidul. Îl găsești mereu aici.',
   },
