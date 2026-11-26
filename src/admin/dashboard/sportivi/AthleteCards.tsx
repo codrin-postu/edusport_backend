@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Button, Checkbox, EmptyState, Loading } from '../../ui';
 import type { AthleteListRow } from '../../../club/athletes/api-types';
+import { isExampleInvitee } from '../../../club/onboarding/fixtures';
 import { PERSONAL_DATA_COPY } from '../../../club/personal-data/copy';
 import { LIST_COPY, abonamenteOn, abonamentCell, ageText, groupCell, loadedRange, withPage } from '../../../club/sportivi/list-view';
 import { allSelected } from '../../../club/sportivi/personal-data-view';
@@ -36,7 +37,7 @@ function Card({ r, onOpen, selection }: { r: AthleteListRow; onOpen: (documentId
   return (
     <li className={selection ? 'spv-card-row' : undefined}>
       {selection && <Checkbox checked={selection.ids.has(r.documentId)} onChange={() => selection.toggle(r.documentId)} aria-label={r.name} />}
-      <button type="button" className="spv-card" onClick={() => onOpen(r.documentId)}>
+      <button type="button" className="spv-card" data-tour={isExampleInvitee(r.documentId) ? 'pa-sportiv' : undefined} onClick={() => onOpen(r.documentId)}>
         <span className="spv-name">{r.name}</span>
         {r.dataIncomplete && <MissingMarker row={r} card />}
         <CardLine row={r} />

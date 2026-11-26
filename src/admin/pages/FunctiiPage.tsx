@@ -43,9 +43,10 @@ const FunctiiPage: React.FC = () => {
           <div className="ui-body">
             <EditorCard title={FEATURES_COPY.card}>
               <p className="ui-muted">{FEATURES_COPY.intro}</p>
+              <div data-tour="fu-lista" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}>
               {featureRows(data).map((row) => (
                 <Field key={row.key} label={row.name}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-3)' }}>
+                  <div data-tour={row.key === 'parcurs' ? 'fu-parcurs' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-3)' }}>
                     <Switch
                       checked={row.on}
                       disabled={row.disabled || busy}
@@ -56,6 +57,7 @@ const FunctiiPage: React.FC = () => {
                   </div>
                 </Field>
               ))}
+              </div>
               <p className="ui-muted">{FEATURES_COPY.footer}</p>
               {last && <p className="ui-muted">{last}</p>}
             </EditorCard>

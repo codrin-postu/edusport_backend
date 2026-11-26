@@ -43,6 +43,7 @@ export interface FlowDef extends GatedLink {
 // INSCRIERI_TO and ANUNTURI_TO live in the React file src/admin/dashboard/menu.tsx, so the strings are inlined here.
 const INSCRIERI_PATH = '/plugins/edusport-inscrieri';
 const ANUNTURI_PATH = '/plugins/edusport-anunturi';
+const FUNCTII_PATH = '/plugins/edusport-functii';
 
 export const INTRO_STEPS: TourStep[] = [
   {
@@ -117,6 +118,17 @@ const SEDINTA_STEPS: TourStep[] = [
   { anchor: 'se-final', where: 'Grupe', title: 'Salvează', text: 'Ședința apare anulată sau mutată în calendarul grupei și în portal.', action: 'Apasă Salvează.', waitFor: 'click', final: true, guide: 'anuleaza-sau-muta-o-sedinta' },
 ];
 
+const PARINTE_STEPS: TourStep[] = [
+  { anchor: 'pa-sportiv', path: SPORTIVI_PATH, where: 'Sportivi', title: 'Deschide fișa', text: 'Invitația se trimite din fișa sportivului, la adresa de e-mail din Date.', action: 'Deschide fișa lui Andrei Stan.', waitFor: 'click' },
+  { anchor: 'pa-acces', where: 'Sportivi', title: 'Acces portal', text: 'Cardul arată starea accesului: fără acces, invitat sau activ.' },
+  { anchor: 'pa-invita', where: 'Sportivi', title: 'Trimite invitația', text: 'Părintele primește un e-mail cu linkul de acces în portal.', action: 'Apasă Invită în portal.', waitFor: 'click', final: true, guide: 'invita-un-parinte-in-portal' },
+];
+
+const FUNCTII_STEPS: TourStep[] = [
+  { anchor: 'fu-lista', path: FUNCTII_PATH, where: 'Funcții', title: 'Funcțiile platformei', text: 'Aici pornești sau oprești părți ale platformei, cum ar fi Prezența sau portalurile.' },
+  { anchor: 'fu-parcurs', where: 'Funcții', title: 'Folosește comutatorul', text: 'O funcție oprită dispare din panou și din portaluri, dar datele ei se păstrează.', action: 'Apasă comutatorul de la Parcurs și insigne.', waitFor: 'click', final: true, guide: 'functiile-platformei' },
+];
+
 export const FLOWS: FlowDef[] = [
   { id: 'inscriere', name: 'Confirmă o înscriere', area: 'club', steps: INSCRIERE_STEPS },
   { id: 'sportiv', name: 'Adaugă un sportiv', area: 'club', steps: SPORTIV_STEPS },
@@ -125,8 +137,8 @@ export const FLOWS: FlowDef[] = [
   { id: 'plata', name: 'Înregistrează o plată', area: 'club', feature: 'abonamente', steps: PLATA_STEPS },
   { id: 'sedinta', name: 'Anulează sau mută o ședință', area: 'club', steps: SEDINTA_STEPS },
   { id: 'anunt', name: 'Scrie un anunț', area: 'website', steps: ANUNT_STEPS },
-  { id: 'parinte', name: 'Invită un părinte în portal', area: 'club', feature: 'portalParinti', steps: null },
-  { id: 'functii', name: 'Pornește sau oprește o funcție', area: 'superAdmin', steps: null },
+  { id: 'parinte', name: 'Invită un părinte în portal', area: 'club', feature: 'portalParinti', steps: PARINTE_STEPS },
+  { id: 'functii', name: 'Pornește sau oprește o funcție', area: 'superAdmin', steps: FUNCTII_STEPS },
   { id: 'pagina', name: 'Modifică o pagină', area: 'website', editorOnly: true, steps: null },
   { id: 'preturi', name: 'Actualizează prețurile', area: 'website', editorOnly: true, steps: null },
   { id: 'membru', name: 'Adaugă un membru în echipă', area: 'website', editorOnly: true, steps: null },

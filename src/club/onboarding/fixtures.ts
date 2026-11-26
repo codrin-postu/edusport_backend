@@ -1,4 +1,6 @@
-import type { AthleteCard, AthleteListPage, AthleteListRow, ConfirmContext, HistoryLine, RegistrationMatchView } from '../athletes/api-types';
+import type { AthleteCard, AthleteListPage, AthleteListRow, AthleteRecord, ConfirmContext, HistoryLine, RegistrationMatchView } from '../athletes/api-types';
+import type { AccessBlock } from '../portal/access/api-types';
+import { ALL_ON, type FeaturesResponse } from '../features/features';
 import type { ComparisonRow } from '../confirm/compare';
 import { EXAMPLE_GROUP_ID, type FlowId } from './flows';
 import { addDays, weekdayIndex } from '../groups/dates';
@@ -389,7 +391,57 @@ const SEDINTA_FIXTURES = (): Fixture[] => [
   { method: 'GET', match: /^\/api\/club\/calendar\/occurrences(\?|$)/, body: { data: calendarDates() } },
 ];
 
+/** The "Invită un părinte în portal" flow: the Sportivi list with Andrei Stan, his record (Date tab) and his portal access block, without access. */
+const INVITEE_ID = 'ex-sportiv-andrei';
+export const isExampleInvitee = (id: string | null | undefined): boolean => id === INVITEE_ID;
+
+const inviteeRow = (): AthleteListRow => ({
+  ...athleteRow(3, 'Andrei Stan', 10, '08.02.2016', 'Începători'), documentId: INVITEE_ID, contactName: 'Mihaela Stan', phone: '0723 456 789',
+});
+
+const inviteeListBody = (): AthleteListPage => {
+  const base = sportiviBody();
+  const data = [inviteeRow(), ...base.data];
+  return { ...base, data, pagination: { ...base.pagination, total: data.length }, unfiltered: data.length };
+};
+
+const inviteeRecord = (): { data: AthleteRecord } => ({
+  data: {
+    documentId: INVITEE_ID,
+    fields: { name: 'Andrei Stan', birthDate: '08.02.2016', contactName: 'Mihaela Stan', phone: '0723 456 789', email: 'mihaela.stan@example.com' },
+    missing: [], status: 'activ', dataIncomplete: false,
+    header: { birthDate: '08.02.2016', mainGroup: 'Începători' },
+    season: { documentId: 'ex-season', label: SEASON },
+    acs: { seasonLabel: SEASON, state: 'da' },
+    registrations: [], documents: [], profile: null, duplicates: [], historyCount: 0,
+  },
+});
+
+const inviteeAccess = (): { data: AccessBlock } => ({
+  data: { athleteId: INVITEE_ID, state: 'none', email: 'mihaela.stan@example.com', since: null, adult: false, canInvite: true, hint: null },
+});
+
+const PARINTE_FIXTURES = (): Fixture[] => [
+  { method: 'GET', match: /^\/api\/club\/athletes(\?|$)/, body: inviteeListBody() },
+  { method: 'GET', match: new RegExp(`^/api/club/athletes/${INVITEE_ID}(\\?|$)`), body: inviteeRecord() },
+  { method: 'GET', match: new RegExp(`^/api/club/athletes/${INVITEE_ID}/access(\\?|$)`), body: inviteeAccess() },
+];
+
+/**
+ * The "Pornește sau oprește o funcție" flow: every switch on. The shared switches snapshot (useFeatures) is read once per page load,
+ * so this body only answers a read made while the flow runs; it never reaches another flow.
+ */
+const FUNCTII_FIXTURES = (): Fixture[] => [
+  {
+    method: 'GET',
+    match: /^\/api\/club\/features(\?|$)/,
+    body: { data: { saved: { ...ALL_ON }, features: { ...ALL_ON }, installed: { portalAntrenori: true, portalParinti: true }, lastChange: null } satisfies FeaturesResponse },
+  },
+];
+
 export const FIXTURES: Partial<Record<FlowId, Fixture[]>> = {
+  parinte: deepFreeze(PARINTE_FIXTURES()),
+  functii: deepFreeze(FUNCTII_FIXTURES()),
   inscriere: deepFreeze(INSCRIERE_FIXTURES.map((f) => ({ ...f }))),
   sportiv: deepFreeze(SPORTIV_FIXTURES()),
   grupa: deepFreeze(GRUPA_FIXTURES()),

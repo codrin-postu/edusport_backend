@@ -14,35 +14,35 @@ describe('decide', () => {
 
   it('refuses writes while a flow runs, case-insensitively', () => {
     for (const method of ['POST', 'put', 'Patch', 'DELETE']) {
-      expect(decide({ method, url: '/admin/x' }, 'parinte')).toEqual({ kind: 'refuse' });
+      expect(decide({ method, url: '/admin/x' }, 'membru')).toEqual({ kind: 'refuse' });
     }
   });
 
   it('lets session upkeep and the progress post through, nothing similar', () => {
     for (const url of ['/admin/access-token', 'http://localhost:1337/admin/renew-token', '/admin/logout', '/club/onboarding', '/admin/logout?x=1']) {
-      expect(decide({ method: 'POST', url }, 'parinte')).toEqual({ kind: 'pass' });
+      expect(decide({ method: 'POST', url }, 'membru')).toEqual({ kind: 'pass' });
     }
     for (const url of ['/club/onboarding/extra', '/club/inscrieri', '/admin/users/me', '/x/admin/logout-all']) {
-      expect(decide({ method: 'POST', url }, 'parinte')).toEqual({ kind: 'refuse' });
+      expect(decide({ method: 'POST', url }, 'membru')).toEqual({ kind: 'refuse' });
     }
   });
 
   it('treats GET, HEAD and OPTIONS as reads', () => {
     for (const method of ['GET', 'head', 'OPTIONS']) {
-      expect(decide({ method, url: '/admin/x' }, 'parinte')).toEqual({ kind: 'pass' });
+      expect(decide({ method, url: '/admin/x' }, 'membru')).toEqual({ kind: 'pass' });
     }
   });
 
   it('refuses a stray write even when its url matches a fixture', () => {
-    FIXTURES['parinte'] = [fixture];
+    FIXTURES['membru'] = [fixture];
     try {
       const url = 'http://localhost:1337/content-manager/collection-types/api::demo.demo?page=1';
-      expect(decide({ method: 'POST', url }, 'parinte')).toEqual({ kind: 'refuse' });
-      expect(decide({ method: 'GET', url }, 'parinte')).toEqual({ kind: 'fixture', body: fixture.body });
+      expect(decide({ method: 'POST', url }, 'membru')).toEqual({ kind: 'refuse' });
+      expect(decide({ method: 'GET', url }, 'membru')).toEqual({ kind: 'fixture', body: fixture.body });
       expect(decide({ method: 'GET', url }, 'grupa')).toEqual({ kind: 'pass' });
-      expect(decide({ method: 'GET', url: '/admin/unrelated' }, 'parinte')).toEqual({ kind: 'pass' });
+      expect(decide({ method: 'GET', url: '/admin/unrelated' }, 'membru')).toEqual({ kind: 'pass' });
     } finally {
-      delete FIXTURES['parinte'];
+      delete FIXTURES['membru'];
     }
   });
 
@@ -192,6 +192,37 @@ describe('sportiv and grupa fixtures', () => {
     expect(decide({ method: 'POST', url: '/api/club/groups' }, 'grupa')).toEqual({ kind: 'refuse' });
     expect(decide({ method: 'POST', url: '/api/club/athletes' }, 'sportiv')).toEqual({ kind: 'refuse' });
     for (const f of [...(FIXTURES.sportiv ?? []), ...(FIXTURES.grupa ?? [])]) {
+      expect(Object.isFrozen(f.body)).toBe(true);
+      expect(f.match.flags).toBe('');
+      expect(f.match.source.startsWith('^')).toBe(true);
+    }
+  });
+});
+
+describe('parinte and functii fixtures', () => {
+  const bodyOf = <T>(flow: 'parinte' | 'functii', url: string): T => {
+    const d = decide({ method: 'GET', url: `http://localhost:1337${url}` }, flow);
+    if (d.kind !== 'fixture') throw new Error(`not served: ${url}`);
+    return d.body as T;
+  };
+  it('serves the list with Andrei Stan, his record and his access block', () => {
+    const list = bodyOf<{ data: { name: string; documentId: string }[] }>('parinte', '/api/club/athletes?page=1&pageSize=50').data;
+    expect(list[0].name).toBe('Andrei Stan');
+    expect(bodyOf<{ data: { fields: { email: string } } }>('parinte', `/api/club/athletes/${list[0].documentId}?season=2026-2027`).data.fields.email).toBeTruthy();
+    expect(bodyOf<{ data: { state: string; canInvite: boolean } }>('parinte', `/api/club/athletes/${list[0].documentId}/access`).data).toMatchObject({ state: 'none', canInvite: true });
+    expect(decide({ method: 'GET', url: '/api/club/athletes/other/access' }, 'parinte').kind).toBe('pass');
+  });
+  it('serves all switches on to the functii flow only', () => {
+    const f = bodyOf<{ data: { features: Record<string, boolean> } }>('functii', '/api/club/features').data.features;
+    expect(Object.values(f).every(Boolean)).toBe(true);
+    for (const flow of ['inscriere', 'sportiv', 'grupa', 'prezenta', 'plata', 'sedinta', 'anunt', 'parinte'] as const) {
+      expect(decide({ method: 'GET', url: '/api/club/features' }, flow).kind).toBe('pass');
+    }
+  });
+  it('refuses the invite and the switch save, and freezes and anchors every body', () => {
+    expect(decide({ method: 'POST', url: '/api/club/athletes/ex-sportiv-andrei/access/invite' }, 'parinte')).toEqual({ kind: 'refuse' });
+    expect(decide({ method: 'PUT', url: '/api/club/features' }, 'functii')).toEqual({ kind: 'refuse' });
+    for (const f of [...(FIXTURES.parinte ?? []), ...(FIXTURES.functii ?? [])]) {
       expect(Object.isFrozen(f.body)).toBe(true);
       expect(f.match.flags).toBe('');
       expect(f.match.source.startsWith('^')).toBe(true);

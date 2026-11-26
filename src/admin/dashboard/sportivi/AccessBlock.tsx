@@ -5,6 +5,7 @@ import type { AccessAnswer, AccessBlock as AccessBlockData } from '../../../club
 import { ACCESS_COPY } from '../../../club/portal/access/copy';
 import { ACCESS_LABELS, accessActions, type AccessAction } from '../../../club/sportivi/access-view';
 import { accessBadge, accessBadgeState } from '../../../club/sportivi/access-badge';
+import { isExampleInvitee } from '../../../club/onboarding/fixtures';
 import { requestErrorText } from '../../../club/registration-panel';
 import type { SportiviApi } from './api';
 
@@ -64,14 +65,14 @@ export function AccessBlock({ api, athleteId, athleteName, state }: {
   const click = (a: AccessAction) => (a === 'remove' ? setConfirm(true) : void run(a));
   return (
     <EditorCard title={TITLE}>
-      <div className="spv-access">
+      <div className="spv-access" data-tour={isExampleInvitee(athleteId) ? 'pa-acces' : undefined}>
         <div className="spv-access-who">
           {block.email && <span className="spv-access-mail">{block.email}</span>}
           <StatusBadge tone={badge.tone}>{badge.text}</StatusBadge>
         </div>
         <div className="spv-access-acts">
           {actions.map((a) => (
-            <Button key={a} variant={a === 'remove' ? 'danger' : 'secondary'} disabled={busy} onClick={() => click(a)}>{ACCESS_LABELS[a]}</Button>
+            <Button key={a} variant={a === 'remove' ? 'danger' : 'secondary'} disabled={busy} onClick={() => click(a)} data-tour={a === 'invite' && isExampleInvitee(athleteId) ? 'pa-invita' : undefined}>{ACCESS_LABELS[a]}</Button>
           ))}
         </div>
       </div>

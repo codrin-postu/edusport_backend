@@ -125,6 +125,14 @@ describe('inscriere flow anchors', () => {
     expect(src('grupe/GroupCalendar.tsx')).toContain("isExampleDate(o.documentId) ? 'se-data'");
     expect(readFileSync(join(__dirname, '../../plugins/component-preview/admin/src/calendar/CalendarView.tsx'), 'utf8').match(/anchor=\{chipAnchor\?\.\(o\)\}/g)).toHaveLength(3);
   });
+  it('places the parinte and functii anchors, inert outside the example', () => {
+    expect(src('sportivi/AthleteTable.tsx')).toContain("isExampleInvitee(row.documentId) ? 'pa-sportiv'");
+    expect(src('sportivi/AthleteCards.tsx')).toContain("isExampleInvitee(r.documentId) ? 'pa-sportiv'");
+    expect(src('sportivi/AccessBlock.tsx')).toContain("isExampleInvitee(athleteId) ? 'pa-acces'");
+    expect(src('sportivi/AccessBlock.tsx')).toContain("'pa-invita'");
+    expect(readFileSync(join(__dirname, '../../admin/pages/FunctiiPage.tsx'), 'utf8')).toContain('data-tour="fu-lista"');
+    expect(readFileSync(join(__dirname, '../../admin/pages/FunctiiPage.tsx'), 'utf8')).toContain("row.key === 'parcurs' ? 'fu-parcurs'");
+  });
   it('the Anulează step advances only on its radio option', () => {
     const root = readFileSync(join(dir, 'TourRoot.tsx'), 'utf8');
     expect(root).toContain("closest('[role=\"radio\"]')");

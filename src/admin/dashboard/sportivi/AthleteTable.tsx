@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { Checkbox, EmptyState, Loading, Pager } from '../../ui';
 import type { AthleteListPage, AthleteListRow } from '../../../club/athletes/api-types';
+import { isExampleInvitee } from '../../../club/onboarding/fixtures';
 import { PERSONAL_DATA_COPY } from '../../../club/personal-data/copy';
 import {
   LIST_COPY, abonamenteOn, abonamentCell, acsCell, ageText, groupCell, groupHeader, pageRange, profileCell, withHeaderSort, withPage, type SortKey,
@@ -47,7 +48,7 @@ function Row({ row, onOpen, selection, money }: { row: AthleteListRow; onOpen: O
     onOpen(row.documentId);
   };
   return (
-    <tr className="ui-table-click spv-trow" onClick={() => onOpen(row.documentId)}>
+    <tr className="ui-table-click spv-trow" data-tour={isExampleInvitee(row.documentId) ? 'pa-sportiv' : undefined} onClick={() => onOpen(row.documentId)}>
       {selection && <CheckCell row={row} selection={selection} />}
       <td>
         <Link className="spv-name" to={athleteRecordTo(row.documentId)} onClick={open}>{row.name}</Link>
