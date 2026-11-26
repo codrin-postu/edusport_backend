@@ -12,10 +12,12 @@ export interface TourCardProps {
   placement: Placement;
   onNext: () => void;
   onExit: () => void;
+  /** The introduction has no example to leave: its exit button says Închide. */
+  intro?: boolean;
 }
 
 /** The card beside the target (bottom sheet on a phone): where, ring, title, text, action, guide link, exit and next. */
-export const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(function TourCard({ step, progress, placement, onNext, onExit }, ref) {
+export const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(function TourCard({ step, progress, placement, onNext, onExit, intro }, ref) {
   const style = placement.sheet ? undefined : { top: placement.top, left: placement.left };
   return (
     <div ref={ref} className={placement.sheet ? 'tour-card tour-card--sheet' : 'tour-card'} style={style} role="dialog" aria-label={step.title}>
@@ -32,7 +34,7 @@ export const TourCard = React.forwardRef<HTMLDivElement, TourCardProps>(function
         </a>
       )}
       <div className="tour-foot">
-        <Button variant="ghost" size="sm" onClick={onExit}>{TOUR_COPY.exit}</Button>
+        <Button variant="ghost" size="sm" onClick={onExit}>{intro ? TOUR_COPY.close : TOUR_COPY.exit}</Button>
         {!step.waitFor && <Button size="sm" onClick={onNext}>{TOUR_COPY.next}</Button>}
       </div>
     </div>

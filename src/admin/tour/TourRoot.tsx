@@ -167,7 +167,7 @@ function TourChrome({ state, send }: { state: TourState; send: (e: TourEvent) =>
       <div className="tour-dim" />
       {box && <div className="tour-outline" style={{ top: box.top - 3, left: box.left - 3, width: box.width + 6, height: box.height + 6 }} />}
       {state.kind === 'flow' && <div className="tour-strip">{TOUR_COPY.strip}</div>}
-      <TourCard ref={cardRef} step={step} progress={progressOf(state)} placement={placement} onNext={() => send({ type: 'next' })} onExit={() => send({ type: 'exit' })} />
+      <TourCard ref={cardRef} step={step} progress={progressOf(state)} placement={placement} onNext={() => send({ type: 'next' })} onExit={() => send({ type: 'exit' })} intro={state.kind === 'intro'} />
     </>
   );
 }

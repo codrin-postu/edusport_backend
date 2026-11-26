@@ -14,6 +14,7 @@ export const WELCOME_COPY = {
 
 export const TOUR_COPY = {
   exit: 'Ieși din exemplu',
+  close: 'Închide',
   next: 'Următorul',
   more: 'Mai multe în ghid',
   strip: 'Exemplu: modificările nu se salvează',

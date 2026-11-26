@@ -25,7 +25,7 @@ function useMenuReveal(step: TourStep | null, phone: boolean): void {
   const opened = React.useRef(false);
   React.useEffect(() => {
     const open = !!step && (needsMenuOpen(step, phone) || (!phone && /^(row-|primii-pasi$|ghid$)/.test(step.anchor)));
-    if (open || opened.current) window.dispatchEvent(new CustomEvent(REVEAL_EVENT, { detail: { open, phone } }));
+    if (open || opened.current) window.dispatchEvent(new CustomEvent(REVEAL_EVENT, { detail: { open, phone, anchor: step?.anchor } }));
     opened.current = open;
   }, [step, phone]);
 }

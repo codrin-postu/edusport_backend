@@ -615,6 +615,8 @@ export const zIndex = {
   modal: 100200,
   popover: 100250,
   toast: 100300,
+  /** The guided tour (dim, outline, card, strip): above every app layer, Strapi portals and the toasts. */
+  tour: 100400,
 } as const;
 
 /* ---- CSS custom properties --------------------------------------------- */

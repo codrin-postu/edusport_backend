@@ -41,3 +41,27 @@ describe('leaving a flow', () => {
     expect(src.match(/spaNavigate\(PRIMII_PASI_TO\)/g)).toHaveLength(1);
   });
 });
+
+describe('tour layer, dim, menu groups and intro label', () => {
+  it('puts the tour above every app layer through the zIndex tokens, and lets the card take clicks', async () => {
+    const { zIndex } = await import('../../admin/ui/tokens');
+    for (const k of ['drawer', 'sheet', 'modal', 'popover', 'toast'] as const) expect(zIndex.tour).toBeGreaterThan(zIndex[k]);
+    const css = read('admin/tour/tourCss.ts');
+    expect(css).not.toContain('9000');
+    expect(css).toMatch(/\.tour-card\{pointer-events:auto/);
+    expect(css).toMatch(/\.tour-dim\{[^}]*background:var\(--theme-overlay\);opacity:\.5/);
+  });
+  it('opens only the step row group and restores the previous groups', () => {
+    const shell = read('admin/dashboard/EdusportShell.tsx');
+    expect(shell).not.toMatch(/GROUP_ORDER\.map\(\(g\) => \[g, true\]\)/);
+    expect(shell).toContain('navBefore.current ??= navNow.current');
+    expect(shell).toContain('setOpenGroups(before.openGroups)');
+    expect(read('admin/tour/useAnchor.ts')).toContain('anchor: step?.anchor');
+  });
+  it('says Închide on the intro card and Ieși din exemplu in flows', () => {
+    const card = read('admin/tour/TourCard.tsx');
+    expect(card).toContain('intro ? TOUR_COPY.close : TOUR_COPY.exit');
+    expect(read('admin/tour/TourRoot.tsx')).toContain("intro={state.kind === 'intro'}");
+    expect(read('club/onboarding/copy.ts')).toContain("close: 'Închide'");
+  });
+});

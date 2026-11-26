@@ -410,13 +410,27 @@ function EdusportShell() {
     return next;
   });
 
-  // The tour asks for the sidebar fully open (desktop): unrailed, every group expanded.
+  // The tour asks for the sidebar (desktop): unrailed, and only the group of the step's row opened. The state before is kept and put back when the tour stops asking.
+  const navNow = React.useRef({ openGroups, railed });
+  navNow.current = { openGroups, railed };
+  const navBefore = React.useRef<{ openGroups: OpenState; railed: boolean } | null>(null);
   React.useEffect(() => {
     const onReveal = (e: Event) => {
-      const d = (e as CustomEvent<{ open: boolean; phone: boolean }>).detail;
-      if (!d.open || d.phone) return;
+      const d = (e as CustomEvent<{ open: boolean; phone: boolean; anchor?: string }>).detail;
+      if (d.phone) return;
+      if (!d.open) {
+        const before = navBefore.current;
+        navBefore.current = null;
+        if (before) {
+          setRailed(before.railed);
+          setOpenGroups(before.openGroups);
+        }
+        return;
+      }
+      navBefore.current ??= navNow.current;
+      const group = d.anchor ? EDUSPORT_LINKS.find((l) => rowAnchor(l.to) === d.anchor)?.group : undefined;
       setRailed(false);
-      setOpenGroups(Object.fromEntries(GROUP_ORDER.map((g) => [g, true])) as OpenState);
+      setOpenGroups({ ...navBefore.current.openGroups, ...(group ? { [group]: true } : {}) });
     };
     window.addEventListener(REVEAL_EVENT, onReveal);
     return () => window.removeEventListener(REVEAL_EVENT, onReveal);
