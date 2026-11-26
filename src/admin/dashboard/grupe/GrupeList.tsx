@@ -78,10 +78,12 @@ type BodyProps = { page: GroupListPage; phone: boolean; onSeason: (v: string) =>
 function ListBody({ page, phone, onSeason, onTab, onOpen }: BodyProps) {
   return (
     <>
-      <div className="spv-toolbar">
-        <Select className="spv-season" aria-label={GRUPE_COPY.seasonLabel} value={page.season?.label ?? ''} options={seasonOptions(page)} onChange={onSeason} />
+      <div data-tour="gr-sezon">
+        <div className="spv-toolbar">
+          <Select className="spv-season" aria-label={GRUPE_COPY.seasonLabel} value={page.season?.label ?? ''} options={seasonOptions(page)} onChange={onSeason} />
+        </div>
+        <Tabs items={tabItems(page)} value={page.section ?? ''} onChange={onTab} label={GRUPE_COPY.tabsLabel} className="grp-tabs" />
       </div>
-      <Tabs items={tabItems(page)} value={page.section ?? ''} onChange={onTab} label={GRUPE_COPY.tabsLabel} className="grp-tabs" />
       <p className="spv-count">{countLine(page)}</p>
       {phone ? (
         <GroupCards page={page} onOpen={onOpen} />
@@ -100,7 +102,7 @@ function HeaderActions({ page, api, onNew }: { page: GroupListPage; api: GrupeAp
   return (
     <div className="grp-head-acts">
       <UnassignedButton api={api} season={page.season.label} count={page.unassigned} />
-      <Button size="sm" icon={<IconPlus />} onClick={onNew}>{GRUPE_COPY.newGroup}</Button>
+      <Button size="sm" icon={<IconPlus />} onClick={onNew} data-tour="gr-nou">{GRUPE_COPY.newGroup}</Button>
     </div>
   );
 }

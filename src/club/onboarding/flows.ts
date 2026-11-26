@@ -1,7 +1,9 @@
 import type { AdminArea } from '../admin-area';
 import type { FeatureKey } from '../features/features';
 import { visibleLinks, type GatedLink } from '../features/visible';
+import { GRUPE_PATH } from '../grupe/routes';
 import { prezentaTo } from '../prezenta/routes';
+import { SPORTIVI_PATH } from '../sportivi/routes';
 
 /** The guided flows of the admin tour, in menu order. */
 export const FLOW_IDS = [
@@ -77,10 +79,26 @@ const ANUNT_STEPS: TourStep[] = [
   { anchor: 'anunt-salveaza', where: 'Anunțuri', title: 'Publică anunțul', text: 'La salvare, anunțul devine vizibil acolo unde l-ai trimis.', action: 'Apasă Salvează.', waitFor: 'click', final: true, guide: 'anunturi' },
 ];
 
+const SPORTIV_STEPS: TourStep[] = [
+  { anchor: 'sp-adauga', path: SPORTIVI_PATH, where: 'Sportivi', title: 'Adaugă un sportiv', text: 'Adaugă manual un sportiv care nu a venit printr-o înscriere de pe site.', action: 'Apasă Adaugă sportiv.', waitFor: 'click' },
+  { anchor: 'sp-cauta', where: 'Sportivi', title: 'Caută mai întâi', text: 'Scrie numele. Dacă sportivul apare în listă, deschide-i fișa, ca să nu creezi una nouă.', action: 'Scrie un nume.', waitFor: 'change' },
+  { anchor: 'sp-nou', where: 'Sportivi', title: 'Sportiv nou', text: 'Dacă nu îl găsești, alege Sportiv nou, sub rezultate.', action: 'Apasă Sportiv nou.', waitFor: 'click' },
+  { anchor: 'sp-date', where: 'Sportivi', title: 'Completează datele', text: 'Numele complet și data nașterii sunt obligatorii. Contactul părintelui îl poți adăuga și mai târziu.' },
+  { anchor: 'sp-final', where: 'Sportivi', title: 'Salvează fișa', text: 'După salvare se deschide fișa noului sportiv.', action: 'Apasă Adaugă sportiv.', waitFor: 'click', final: true, guide: 'adauga-un-sportiv' },
+];
+
+const GRUPA_STEPS: TourStep[] = [
+  { anchor: 'gr-sezon', path: GRUPE_PATH, where: 'Grupe', title: 'Alege sezonul', text: 'Grupele sunt pe sezoane. Verifică sezonul și secțiunea înainte să adaugi una nouă.' },
+  { anchor: 'gr-nou', where: 'Grupe', title: 'Grupă nouă', text: 'Fiecare grupă are antrenori, o listă de prețuri și un program.', action: 'Apasă Grupă nouă.', waitFor: 'click' },
+  { anchor: 'gr-date', where: 'Grupe', title: 'Datele grupei', text: 'Scrie numele și alege lista de prețuri și antrenorii, dacă sunt stabiliți.' },
+  { anchor: 'gr-public', where: 'Grupe', title: 'Program public', text: 'Dacă e pornit, programul grupei apare în orarul de pe site.' },
+  { anchor: 'gr-final', where: 'Grupe', title: 'Creează grupa', text: 'După creare, adaugi orele în tabul Program.', action: 'Apasă Creează grupa.', waitFor: 'click', final: true, guide: 'creeaza-o-grupa' },
+];
+
 export const FLOWS: FlowDef[] = [
   { id: 'inscriere', name: 'Confirmă o înscriere', area: 'club', steps: INSCRIERE_STEPS },
-  { id: 'sportiv', name: 'Adaugă un sportiv', area: 'club', steps: null },
-  { id: 'grupa', name: 'Creează o grupă', area: 'club', steps: null },
+  { id: 'sportiv', name: 'Adaugă un sportiv', area: 'club', steps: SPORTIV_STEPS },
+  { id: 'grupa', name: 'Creează o grupă', area: 'club', steps: GRUPA_STEPS },
   { id: 'prezenta', name: 'Completează prezența', area: 'club', feature: 'prezenta', steps: PREZENTA_STEPS },
   { id: 'plata', name: 'Înregistrează o plată', area: 'club', feature: 'abonamente', steps: null },
   { id: 'sedinta', name: 'Anulează sau mută o ședință', area: 'club', steps: null },

@@ -43,7 +43,7 @@ export function SportiviList() {
   const { adding, startAdd, closeAdd } = useAddAthlete(search);
   const season = seasonValue(list.state, list.page) || null;
   const open = (documentId: string) => navigate(athleteRecordTo(documentId), { state: { season } });
-  const add = <Button icon={<IconPlus />} onClick={startAdd}>{LIST_COPY.add}</Button>;
+  const add = <Button icon={<IconPlus />} onClick={startAdd} data-tour="sp-adauga">{LIST_COPY.add}</Button>;
   return (
     <AdminPage fit>
       <style>{SPORTIVI_CSS}</style>

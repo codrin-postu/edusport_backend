@@ -106,4 +106,18 @@ describe('inscriere flow anchors', () => {
     expect(view).toMatch(/<button[^>]*ui-savebar-btn--primary[^>]*data-tour=\{saveTour\}[^>]*>/s);
     expect(readFileSync(join(__dirname, '../../admin/ui/SaveBar.tsx'), 'utf8')).toContain('saveTour={saveTour}');
   });
+  it('places the sportiv and grupa anchors', () => {
+    expect(src('sportivi/SportiviList.tsx')).toContain('data-tour="sp-adauga"');
+    expect(src('sportivi/AthleteSearch.tsx')).toContain('data-tour="sp-cauta"');
+    expect(src('sportivi/AthleteSearch.tsx')).toContain("o.key === '' ? 'sp-nou'");
+    expect(src('sportivi/AddAthleteDialog.tsx')).toContain('data-tour="sp-date"');
+    expect(src('sportivi/AddAthleteDialog.tsx')).toContain('data-tour="sp-final"');
+    expect(src('grupe/GrupeList.tsx')).toContain('data-tour="gr-sezon"');
+    expect(src('grupe/GrupeList.tsx')).toContain('data-tour="gr-nou"');
+    for (const a of ['gr-date', 'gr-public']) expect(src('grupe/GroupDialog.tsx')).toContain(`data-tour="${a}"`);
+    expect(src('grupe/GroupDialog.tsx')).toContain("props.mode === 'new' ? 'gr-final'");
+  });
+  it('typing in an anchored text field advances a change step', () => {
+    expect(readFileSync(join(dir, 'TourRoot.tsx'), 'utf8')).toContain("document.addEventListener('input', onChange, true)");
+  });
 });

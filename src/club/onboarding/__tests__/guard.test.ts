@@ -14,35 +14,35 @@ describe('decide', () => {
 
   it('refuses writes while a flow runs, case-insensitively', () => {
     for (const method of ['POST', 'put', 'Patch', 'DELETE']) {
-      expect(decide({ method, url: '/admin/x' }, 'sportiv')).toEqual({ kind: 'refuse' });
+      expect(decide({ method, url: '/admin/x' }, 'plata')).toEqual({ kind: 'refuse' });
     }
   });
 
   it('lets session upkeep and the progress post through, nothing similar', () => {
     for (const url of ['/admin/access-token', 'http://localhost:1337/admin/renew-token', '/admin/logout', '/club/onboarding', '/admin/logout?x=1']) {
-      expect(decide({ method: 'POST', url }, 'sportiv')).toEqual({ kind: 'pass' });
+      expect(decide({ method: 'POST', url }, 'plata')).toEqual({ kind: 'pass' });
     }
     for (const url of ['/club/onboarding/extra', '/club/inscrieri', '/admin/users/me', '/x/admin/logout-all']) {
-      expect(decide({ method: 'POST', url }, 'sportiv')).toEqual({ kind: 'refuse' });
+      expect(decide({ method: 'POST', url }, 'plata')).toEqual({ kind: 'refuse' });
     }
   });
 
   it('treats GET, HEAD and OPTIONS as reads', () => {
     for (const method of ['GET', 'head', 'OPTIONS']) {
-      expect(decide({ method, url: '/admin/x' }, 'sportiv')).toEqual({ kind: 'pass' });
+      expect(decide({ method, url: '/admin/x' }, 'plata')).toEqual({ kind: 'pass' });
     }
   });
 
   it('refuses a stray write even when its url matches a fixture', () => {
-    FIXTURES['sportiv'] = [fixture];
+    FIXTURES['plata'] = [fixture];
     try {
       const url = 'http://localhost:1337/content-manager/collection-types/api::demo.demo?page=1';
-      expect(decide({ method: 'POST', url }, 'sportiv')).toEqual({ kind: 'refuse' });
-      expect(decide({ method: 'GET', url }, 'sportiv')).toEqual({ kind: 'fixture', body: fixture.body });
+      expect(decide({ method: 'POST', url }, 'plata')).toEqual({ kind: 'refuse' });
+      expect(decide({ method: 'GET', url }, 'plata')).toEqual({ kind: 'fixture', body: fixture.body });
       expect(decide({ method: 'GET', url }, 'grupa')).toEqual({ kind: 'pass' });
-      expect(decide({ method: 'GET', url: '/admin/unrelated' }, 'sportiv')).toEqual({ kind: 'pass' });
+      expect(decide({ method: 'GET', url: '/admin/unrelated' }, 'plata')).toEqual({ kind: 'pass' });
     } finally {
-      delete FIXTURES['sportiv'];
+      delete FIXTURES['plata'];
     }
   });
 
@@ -168,5 +168,33 @@ describe('anunt fixtures', () => {
 
   it('hands out frozen bodies', () => {
     for (const f of FIXTURES.anunt ?? []) expect(Object.isFrozen(f.body)).toBe(true);
+  });
+});
+
+describe('sportiv and grupa fixtures', () => {
+  const bodyOf = <T>(flow: 'sportiv' | 'grupa', url: string): T => {
+    const d = decide({ method: 'GET', url: `http://localhost:1337${url}` }, flow);
+    if (d.kind !== 'fixture') throw new Error(`not served: ${url}`);
+    return d.body as T;
+  };
+  it('serves the Sportivi list and a search that finds nobody', () => {
+    expect(bodyOf<{ data: unknown[] }>('sportiv', '/api/club/athletes?season=x&page=1').data).toHaveLength(2);
+    expect(bodyOf<{ data: unknown[] }>('sportiv', '/api/club/athletes/search?q=Ion').data).toEqual([]);
+  });
+  it('serves the groups list and the form options, price lists of the first section', () => {
+    const list = bodyOf<{ data: { tabs: { documentId: string }[]; rows: unknown[] } }>('grupa', '/api/club/groups?season=2026-2027').data;
+    expect(list.rows).toHaveLength(2);
+    const opts = bodyOf<{ data: { priceLists: { sectionId: string | null }[]; coaches: unknown[] } }>('grupa', '/api/club/groups/options').data;
+    expect(opts.priceLists[0].sectionId).toBe(list.tabs[0].documentId);
+    expect(opts.coaches).toHaveLength(2);
+  });
+  it('refuses the create and add POSTs and freezes the bodies', () => {
+    expect(decide({ method: 'POST', url: '/api/club/groups' }, 'grupa')).toEqual({ kind: 'refuse' });
+    expect(decide({ method: 'POST', url: '/api/club/athletes' }, 'sportiv')).toEqual({ kind: 'refuse' });
+    for (const f of [...(FIXTURES.sportiv ?? []), ...(FIXTURES.grupa ?? [])]) {
+      expect(Object.isFrozen(f.body)).toBe(true);
+      expect(f.match.flags).toBe('');
+      expect(f.match.source.startsWith('^')).toBe(true);
+    }
   });
 });

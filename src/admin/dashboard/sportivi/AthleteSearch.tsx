@@ -87,6 +87,7 @@ function OptionList({ id, options, active, onActive }: ListProps) {
           aria-selected={i === active}
           className="spv-result"
           data-active={i === active || undefined}
+          data-tour={o.key === '' ? 'sp-nou' : undefined}
           onMouseEnter={() => onActive(i)}
           onMouseDown={(e) => e.preventDefault()}
           onClick={o.pick}
@@ -115,7 +116,7 @@ export function AthleteSearch({ api, onPick, onNew, exclude, hideStatus, inputRe
       <Input
         ref={inputRef} type="search" role="combobox" aria-autocomplete="list" aria-expanded={open} aria-controls={open ? listId : undefined}
         aria-activedescendant={open ? `${listId}-${active}` : undefined} autoComplete="off" value={text} onKeyDown={onKeyDown}
-        onChange={(e) => setText(e.target.value)} placeholder={SEARCH_COPY.placeholder} aria-label={SEARCH_COPY.placeholder} autoFocus
+        onChange={(e) => setText(e.target.value)} placeholder={SEARCH_COPY.placeholder} aria-label={SEARCH_COPY.placeholder} autoFocus data-tour="sp-cauta"
       />
       <span className="ui-sr" role="status" aria-live="polite">{statusText(search)}</span>
       {failed && <p className="ui-error">{SEARCH_FAILED}</p>}

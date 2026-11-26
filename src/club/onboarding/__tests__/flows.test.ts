@@ -13,17 +13,17 @@ const allSteps = [...built.flatMap((f) => f.steps ?? []), ...INTRO_STEPS];
 describe('flowsFor', () => {
   it('gives a club admin the built flows only', () => {
     const got = ids(areas('any', 'club', 'website', 'money'));
-    expect(got).toEqual(['inscriere', 'prezenta', 'anunt']);
+    expect(got).toEqual(['inscriere', 'sportiv', 'grupa', 'prezenta', 'anunt']);
     expect(got).not.toContain('pagina');
   });
   it('gives an editor the announcement flow only', () => {
     expect(ids(areas('any', 'website'))).toEqual(['anunt']);
   });
   it('drops prezenta when its switch is off', () => {
-    expect(ids(areas('any', 'club', 'website'), (k) => k !== 'prezenta')).toEqual(['inscriere', 'anunt']);
+    expect(ids(areas('any', 'club', 'website'), (k) => k !== 'prezenta')).toEqual(['inscriere', 'sportiv', 'grupa', 'anunt']);
   });
   it('gives Super Admin the club set', () => {
-    expect(ids(() => true)).toEqual(['inscriere', 'prezenta', 'anunt']);
+    expect(ids(() => true)).toEqual(['inscriere', 'sportiv', 'grupa', 'prezenta', 'anunt']);
   });
 });
 

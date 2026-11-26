@@ -1,10 +1,10 @@
-import type { AthleteCard, ConfirmContext, HistoryLine, RegistrationMatchView } from '../athletes/api-types';
+import type { AthleteCard, AthleteListPage, AthleteListRow, ConfirmContext, HistoryLine, RegistrationMatchView } from '../athletes/api-types';
 import type { ComparisonRow } from '../confirm/compare';
 import type { FlowId } from './flows';
 import { addDays, weekdayIndex } from '../groups/dates';
 import { todayIso } from '../groups/http';
 import { remainingText } from '../presence/copy/core';
-import type { GroupOptions } from '../groups/api-types';
+import type { GroupListPage, GroupListRow, GroupOptions } from '../groups/api-types';
 import type { Anunt, ListRow } from '../anunturi/portal-history';
 import type { TickTree } from '../calendar/group-ticks';
 import type { PanelRow, PeriodPage, PeriodRow, SessionPanel } from '../presence/attendance/api-types';
@@ -234,8 +234,68 @@ const ANUNT_FIXTURES = (): Fixture[] => [
   { method: 'GET', match: /^\/api\/anunturi\/groups(\?|$)/, body: anunturiGroups() },
 ];
 
+/** The "Adaugă un sportiv" flow: the Sportivi list and the dialog's search, which finds nobody, so "Sportiv nou" is the path. */
+const athleteRow = (n: number, name: string, age: number, birthDate: string, group: string): AthleteListRow => ({
+  documentId: `ex-sportiv-${n}`, name, age, birthDate, status: 'activ', dataIncomplete: false, missing: [], mainGroup: { documentId: `ex-group-${group}`, name: group },
+  contactName: 'Ioana Popescu', phone: '0722 123 456', acs: 'da', publicProfile: 'ascuns', possibleDuplicate: false, abonament: null,
+});
+
+const sportiviBody = (): AthleteListPage => ({
+  data: [athleteRow(1, 'Ana Marin', 9, '12.05.2017', 'Începători'), athleteRow(2, 'Luca Dobre', 11, '03.09.2015', 'Intermediari')],
+  pagination: { page: 1, pageSize: 30, total: 2, pageCount: 1 },
+  unfiltered: 2,
+  incomplete: 0,
+  season: { documentId: 'ex-season', label: SEASON },
+  seasons: [{ documentId: 'ex-season', label: SEASON, isCurrent: true }],
+  options: { sections: [{ value: SCHOOL.documentId, label: SCHOOL.name }], groups: [{ value: 'ex-group-Începători', label: 'Începători', sectionName: SCHOOL.name }] },
+  retentionYears: 3,
+});
+
+const SPORTIV_FIXTURES = (): Fixture[] => [
+  { method: 'GET', match: /^\/api\/club\/athletes(\?|$)/, body: sportiviBody() },
+  { method: 'GET', match: /^\/api\/club\/athletes\/search(\?|$)/, body: { data: [] } },
+];
+
+/** The "Creează o grupă" flow: the Grupe list of the running season and the options the new-group form loads. */
+const SECTIONS = [
+  { documentId: SCHOOL.documentId, slug: 'scoala', label: SCHOOL.name, count: 2 },
+  { documentId: 'ex-club', slug: 'club', label: 'Clubul', count: 0 },
+];
+
+const groupRow = (n: number, name: string, program: string, members: number): GroupListRow => ({
+  documentId: `ex-grupa-${n}`, name, program: [program], coaches: [COACHES[0].name], members, priceList: { documentId: 'ex-prices-scoala', name: 'Preț școală' },
+});
+
+const grupeBody = (): { data: GroupListPage } => ({
+  data: {
+    season: { documentId: 'ex-season', label: SEASON, past: false },
+    seasons: [{ documentId: 'ex-season', label: SEASON, isCurrent: true }],
+    tabs: SECTIONS,
+    section: 'scoala',
+    athletes: 14,
+    groups: 2,
+    rows: [groupRow(1, 'Începători', 'Luni 18:00', 8), groupRow(2, 'Intermediari', 'Miercuri 18:00', 6)],
+    unassigned: 0,
+  },
+});
+
+const grupeOptionsBody = (): { data: GroupOptions } => ({
+  data: {
+    groups: [{ ...GROUP, sectionName: SCHOOL.name }],
+    coaches: COACHES,
+    priceLists: [{ documentId: 'ex-prices-scoala', name: 'Preț școală', sectionId: SCHOOL.documentId }],
+  },
+});
+
+const GRUPA_FIXTURES = (): Fixture[] => [
+  { method: 'GET', match: /^\/api\/club\/groups(\?|$)/, body: grupeBody() },
+  { method: 'GET', match: /^\/api\/club\/groups\/options(\?|$)/, body: grupeOptionsBody() },
+];
+
 export const FIXTURES: Partial<Record<FlowId, Fixture[]>> = {
   inscriere: deepFreeze(INSCRIERE_FIXTURES.map((f) => ({ ...f }))),
+  sportiv: deepFreeze(SPORTIV_FIXTURES()),
+  grupa: deepFreeze(GRUPA_FIXTURES()),
   prezenta: deepFreeze(PREZENTA_FIXTURES()),
   anunt: deepFreeze(ANUNT_FIXTURES()),
 };

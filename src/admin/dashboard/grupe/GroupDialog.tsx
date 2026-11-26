@@ -31,16 +31,20 @@ function Fields({ draft, set, options, sectionId }: { draft: Draft; set: (d: Dra
   const coaches = (options?.coaches ?? []).map((c) => ({ documentId: c.documentId, label: c.name }));
   return (
     <div className="grp-form">
-      <Field label={GRUPE_COPY.fieldName} required>
-        <Input value={draft.name} maxLength={80} onChange={(e) => set({ ...draft, name: e.target.value })} />
-      </Field>
-      <Field label={GRUPE_COPY.fieldPriceList}>
-        <SearchableSelect value={draft.priceListId} options={lists} clearable onChange={(v) => set({ ...draft, priceListId: v })} />
-      </Field>
-      <Field label={GRUPE_COPY.fieldCoaches}>
-        <RelationMultiSelect value={draft.coachIds} options={coaches} onChange={(ids) => set({ ...draft, coachIds: ids })} />
-      </Field>
-      <Switch checked={draft.programPublic} onChange={(v) => set({ ...draft, programPublic: v })} label={GRUPE_COPY.fieldPublic} />
+      <div className="grp-form" data-tour="gr-date">
+        <Field label={GRUPE_COPY.fieldName} required>
+          <Input value={draft.name} maxLength={80} onChange={(e) => set({ ...draft, name: e.target.value })} />
+        </Field>
+        <Field label={GRUPE_COPY.fieldPriceList}>
+          <SearchableSelect value={draft.priceListId} options={lists} clearable onChange={(v) => set({ ...draft, priceListId: v })} />
+        </Field>
+        <Field label={GRUPE_COPY.fieldCoaches}>
+          <RelationMultiSelect value={draft.coachIds} options={coaches} onChange={(ids) => set({ ...draft, coachIds: ids })} />
+        </Field>
+      </div>
+      <div data-tour="gr-public">
+        <Switch checked={draft.programPublic} onChange={(v) => set({ ...draft, programPublic: v })} label={GRUPE_COPY.fieldPublic} />
+      </div>
     </div>
   );
 }
@@ -81,7 +85,7 @@ export function GroupDialog(props: Props) {
   const footer = (
     <>
       <Button variant="ghost" onClick={props.onClose} disabled={busy}>{GRUPE_COPY.cancel}</Button>
-      <Button loading={busy} disabled={failed} onClick={() => void submit()}>{props.mode === 'new' ? GRUPE_COPY.create : GRUPE_COPY.save}</Button>
+      <Button loading={busy} disabled={failed} onClick={() => void submit()} data-tour={props.mode === 'new' ? 'gr-final' : undefined}>{props.mode === 'new' ? GRUPE_COPY.create : GRUPE_COPY.save}</Button>
     </>
   );
   return (

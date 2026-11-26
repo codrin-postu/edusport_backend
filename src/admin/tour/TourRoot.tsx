@@ -71,7 +71,7 @@ function useTour(): { state: TourState; send: (e: TourEvent) => void } {
   return { state, send };
 }
 
-/** Esc leaves; the real click or change on the anchor advances. The final step's click never reaches the page. */
+/** Esc leaves; the real click or change on the anchor advances (typing counts as a change, a text field only fires change on blur). The final step's click never reaches the page. */
 function useStepEvents(state: TourState, send: (e: TourEvent) => void): void {
   const step = currentStep(state);
   React.useEffect(() => {
@@ -93,10 +93,12 @@ function useStepEvents(state: TourState, send: (e: TourEvent) => void): void {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !e.defaultPrevented && send({ type: 'exit' });
     document.addEventListener('click', onClick, true);
     document.addEventListener('change', onChange, true);
+    document.addEventListener('input', onChange, true);
     window.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('click', onClick, true);
       document.removeEventListener('change', onChange, true);
+    document.removeEventListener('input', onChange, true);
       window.removeEventListener('keydown', onKey);
     };
   }, [step, send]);

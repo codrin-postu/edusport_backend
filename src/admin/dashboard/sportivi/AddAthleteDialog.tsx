@@ -15,12 +15,14 @@ function AddForm({ form, errors, onChange }: FormProps) {
   const set = (patch: Partial<EditDraft>) => onChange({ ...form, ...patch });
   return (
     <div className="spv-form">
-      <Field label={ADD_COPY.name} required error={errors.name} className="spv-wide">
-        <Input value={form.name} onChange={(e) => set({ name: e.target.value })} />
-      </Field>
-      <Field label={ADD_COPY.birth} required error={errors.birthDate} className="spv-wide">
-        <BirthDatePicker value={form.birth} onChange={(birth) => set({ birth })} />
-      </Field>
+      <div className="spv-form spv-wide" data-tour="sp-date">
+        <Field label={ADD_COPY.name} required error={errors.name} className="spv-wide">
+          <Input value={form.name} onChange={(e) => set({ name: e.target.value })} />
+        </Field>
+        <Field label={ADD_COPY.birth} required error={errors.birthDate} className="spv-wide">
+          <BirthDatePicker value={form.birth} onChange={(birth) => set({ birth })} />
+        </Field>
+      </div>
       <Field label={ADD_COPY.contact}>
         <Input value={form.contactName} onChange={(e) => set({ contactName: e.target.value })} />
       </Field>
@@ -36,7 +38,7 @@ function AddForm({ form, errors, onChange }: FormProps) {
 
 function addFooter(withSubmit: boolean, busy: boolean, onClose: () => void, submit: () => void) {
   const cancel = <Button variant="secondary" onClick={onClose} disabled={busy}>{ADD_COPY.cancel}</Button>;
-  return withSubmit ? <>{cancel}<Button onClick={submit} loading={busy}>{ADD_COPY.submit}</Button></> : cancel;
+  return withSubmit ? <>{cancel}<Button onClick={submit} loading={busy} data-tour="sp-final">{ADD_COPY.submit}</Button></> : cancel;
 }
 
 type AddProps = { api: SportiviApi; season: string | null; onClose: () => void };
