@@ -276,13 +276,13 @@ function MemberEditor({
           <Button variant="secondary" disabled={saving} onClick={onCancel}>
             Anulează
           </Button>
-          <Button disabled={saving} loading={saving} onClick={onSave}>
+          <Button disabled={saving} loading={saving} onClick={onSave} data-tour="me-salveaza">
             {saving ? 'Se salvează...' : 'Salvează'}
           </Button>
         </>
       }
     >
-      <div className="mem-editor-grid">
+      <div className="mem-editor-grid" data-tour="me-date">
         <div className="mem-photo">
           <div className="mem-photo-pv" style={draft.photo ? { backgroundImage: `url(${draft.photo.thumb ?? draft.photo.url})` } : undefined}>
             {!draft.photo && 'fără poză'}
@@ -590,7 +590,7 @@ export default function MembriEchipaPage() {
       <Window>
         <PageHeader
           title="Membri echipă"
-          actions={<Button onClick={openNew}>+ Adaugă membru</Button>}
+          actions={<Button onClick={openNew} data-tour="me-adauga">+ Adaugă membru</Button>}
         />
 
         <div className="ui-table-bar">

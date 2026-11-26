@@ -1,4 +1,4 @@
-import { FIXTURES } from './fixtures';
+import { FIXTURES, type Fixture } from './fixtures';
 import type { FlowId } from './flows';
 
 export type Decision = { kind: 'pass' } | { kind: 'refuse' } | { kind: 'fixture'; body: unknown };
@@ -14,13 +14,13 @@ const pathAndQuery = (url: string): string => {
 /** Writes a running flow must not block: the admin's own session upkeep (token refresh, logout) and the tour's progress post. */
 const SESSION_WRITES = /(^|\/)(admin\/(access-token|renew-token|logout)|club\/onboarding)\/?$/;
 
-export function decide(req: { method: string; url: string }, flow: FlowId | null): Decision {
+export function decide(req: { method: string; url: string }, flow: FlowId | null, fixtures: Partial<Record<FlowId, Fixture[]>> = FIXTURES): Decision {
   if (flow === null) return { kind: 'pass' };
   const method = req.method.toUpperCase();
   if (!READ_METHODS.includes(method)) return SESSION_WRITES.test(pathAndQuery(req.url).replace(/\?.*$/, '')) ? { kind: 'pass' } : { kind: 'refuse' };
   if (method !== 'GET') return { kind: 'pass' };
   const target = pathAndQuery(req.url);
-  const hit = (FIXTURES[flow] ?? []).find((f) => f.match.test(target));
+  const hit = (fixtures[flow] ?? []).find((f) => f.match.test(target));
   return hit ? { kind: 'fixture', body: hit.body } : { kind: 'pass' };
 }
 

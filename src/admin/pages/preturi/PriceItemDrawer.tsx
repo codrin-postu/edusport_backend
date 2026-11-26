@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { ConfirmDialog } from '../../ConfirmDialog';
 import { Button, Drawer, DrawerSection, Field, FieldRow, Input, NumberInput, Select, Textarea, useSaveState } from '../../ui';
+import { isExamplePriceList } from '../../../club/onboarding/fixtures';
 import type { AdminPriceItem, AdminPriceList } from '../../../club/price-admin';
 import type { PriceItemKind } from '../../../club/price-item';
 import { KIND_OPTIONS, priceInput, priceValue, withExpectedName } from './format';
@@ -32,6 +33,7 @@ function DraftFields({ draft, set }: { draft: Draft; set: (patch: Partial<Draft>
           <Select value={draft.kind} options={KIND_OPTIONS} onChange={(v) => set({ kind: v as PriceItemKind })} />
         </Field>
       </FieldRow>
+      <div className="ui-stack" data-tour="pr-valori">
       <FieldRow>
         <Field label="Ședințe">
           <NumberInput value={draft.sessions} min={0} label="Ședințe" onChange={(v) => set({ sessions: v })} />
@@ -43,6 +45,7 @@ function DraftFields({ draft, set }: { draft: Draft; set: (patch: Partial<Draft>
       <Field label="Preț neafiliați">
         <Input inputMode="numeric" value={draft.nonMemberPrice} onChange={(e) => set({ nonMemberPrice: e.target.value })} />
       </Field>
+      </div>
       <Field label="Tooltip">
         <Textarea rows={2} value={draft.tooltip} onChange={(e) => set({ tooltip: e.target.value })} />
       </Field>
@@ -62,9 +65,9 @@ function useItemActions(target: ItemTarget | null, mutate: PricesState['mutate']
   return { save, remove };
 }
 
-type FooterProps = { canDelete: boolean; saving: boolean; onDelete: () => void; onCancel: () => void; onSave: () => void };
+type FooterProps = { tour: boolean; canDelete: boolean; saving: boolean; onDelete: () => void; onCancel: () => void; onSave: () => void };
 
-function ItemFooter({ canDelete, saving, onDelete, onCancel, onSave }: FooterProps) {
+function ItemFooter({ tour, canDelete, saving, onDelete, onCancel, onSave }: FooterProps) {
   return (
     <>
       {canDelete && (
@@ -76,7 +79,7 @@ function ItemFooter({ canDelete, saving, onDelete, onCancel, onSave }: FooterPro
       <Button variant="ghost" size="sm" onClick={onCancel} disabled={saving}>
         Anulează
       </Button>
-      <Button variant="primary" size="sm" loading={saving} onClick={onSave}>
+      <Button variant="primary" size="sm" loading={saving} onClick={onSave} data-tour={tour ? 'pr-salveaza' : undefined}>
         Salvează
       </Button>
     </>
@@ -109,7 +112,7 @@ export function PriceItemDrawer({ target, mutate, onClose }: PriceItemDrawerProp
   const actions = useItemActions(target, mutate);
   const run = async (action: () => Promise<void>) => (await state.run(action)) && onClose();
   const footer = (
-    <ItemFooter canDelete={Boolean(item)} saving={state.saving} onDelete={() => setConfirming(true)} onCancel={onClose} onSave={() => void run(() => actions.save(draft))} />
+    <ItemFooter tour={isExamplePriceList(target?.list.documentId)} canDelete={Boolean(item)} saving={state.saving} onDelete={() => setConfirming(true)} onCancel={onClose} onSave={() => void run(() => actions.save(draft))} />
   );
   return (
     <Drawer open={target !== null} onClose={onClose} title={item?.name || 'Preț nou'} dismissable={!state.saving} footer={footer}>

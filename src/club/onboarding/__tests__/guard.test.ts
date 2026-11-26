@@ -34,16 +34,12 @@ describe('decide', () => {
   });
 
   it('refuses a stray write even when its url matches a fixture', () => {
-    FIXTURES['membru'] = [fixture];
-    try {
-      const url = 'http://localhost:1337/content-manager/collection-types/api::demo.demo?page=1';
-      expect(decide({ method: 'POST', url }, 'membru')).toEqual({ kind: 'refuse' });
-      expect(decide({ method: 'GET', url }, 'membru')).toEqual({ kind: 'fixture', body: fixture.body });
-      expect(decide({ method: 'GET', url }, 'grupa')).toEqual({ kind: 'pass' });
-      expect(decide({ method: 'GET', url: '/admin/unrelated' }, 'membru')).toEqual({ kind: 'pass' });
-    } finally {
-      delete FIXTURES['membru'];
-    }
+    const fixtures = { membru: [fixture] };
+    const url = 'http://localhost:1337/content-manager/collection-types/api::demo.demo?page=1';
+    expect(decide({ method: 'POST', url }, 'membru', fixtures)).toEqual({ kind: 'refuse' });
+    expect(decide({ method: 'GET', url }, 'membru', fixtures)).toEqual({ kind: 'fixture', body: fixture.body });
+    expect(decide({ method: 'GET', url }, 'grupa', fixtures)).toEqual({ kind: 'pass' });
+    expect(decide({ method: 'GET', url: '/admin/unrelated' }, 'membru', fixtures)).toEqual({ kind: 'pass' });
   });
 
   it('refusal response is a 409 with the strip text', () => {
@@ -259,5 +255,33 @@ describe('plata and sedinta fixtures', () => {
       expect(f.match.flags).toBe('');
       expect(f.match.source.startsWith('^')).toBe(true);
     }
+  });
+});
+
+describe('editor flow fixtures', () => {
+  const get = (url: string, flow: 'pagina' | 'preturi' | 'membru') => decide({ method: 'GET', url: `http://localhost:1337${url}` }, flow);
+
+  it('serves the Cursuri editor, the prices and the members list', () => {
+    expect(get('/content-manager/single-types/api::cursuri-page.cursuri-page', 'pagina').kind).toBe('fixture');
+    expect(get('/api/club/prices', 'preturi').kind).toBe('fixture');
+    expect(get('/content-manager/collection-types/api::team-member.team-member?page=1&pageSize=200&sort=order:ASC', 'membru').kind).toBe('fixture');
+  });
+
+  it('keeps each fixture to its own flow and to other endpoints passing', () => {
+    expect(get('/api/club/prices', 'pagina')).toEqual({ kind: 'pass' });
+    expect(get('/content-manager/single-types/api::program.program', 'membru')).toEqual({ kind: 'pass' });
+  });
+
+  it('refuses every save write of the three flows', () => {
+    const writes: Array<[string, string, 'pagina' | 'preturi' | 'membru']> = [
+      ['PUT', '/content-manager/single-types/api::cursuri-page.cursuri-page', 'pagina'],
+      ['POST', '/content-manager/single-types/api::cursuri-page.cursuri-page/actions/publish', 'pagina'],
+      ['PUT', '/api/club/price-lists/ex-lista-1/items/0', 'preturi'],
+      ['POST', '/api/club/price-lists/ex-lista-1/items', 'preturi'],
+      ['DELETE', '/api/club/price-lists/ex-lista-1/items/0', 'preturi'],
+      ['POST', '/content-manager/collection-types/api::team-member.team-member', 'membru'],
+      ['PUT', '/content-manager/collection-types/api::team-member.team-member/ex-membru-1', 'membru'],
+    ];
+    for (const [method, url, flow] of writes) expect(decide({ method, url }, flow), `${method} ${url}`).toEqual({ kind: 'refuse' });
   });
 });

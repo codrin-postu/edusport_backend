@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, DataTable, EditorCard, HelpTip, StatusBadge, type DataColumn } from '../../ui';
 import { IconPlus } from '../../ui/icons';
+import { isExamplePriceList } from '../../../club/onboarding/fixtures';
 import type { AdminPriceItem, AdminPriceList } from '../../../club/price-admin';
 import { GRUPE_COPY } from '../../../club/groups/copy';
 import { groupPageTo } from '../../../club/grupe/routes';
@@ -65,6 +66,7 @@ export function PriceListCard({ list, sectionName, onAdd, onOpen }: PriceListCar
         rows={rows}
         getRowKey={(r) => `${r.index}-${r.name}`}
         onRowClick={(r) => onOpen(r.index)}
+        rowProps={(r) => (isExamplePriceList(list.documentId) && r.index === 0 ? ({ 'data-tour': 'pr-pret' } as React.HTMLAttributes<HTMLTableRowElement>) : {})}
         rowLabel={(r) => `Editează ${r.name}`}
         pageSize={0}
         empty="Niciun preț"

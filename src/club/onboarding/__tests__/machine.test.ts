@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { INTRO_STEPS, type TourStep } from '../flows';
+import { INTRO_STEPS, type FlowId, type TourStep } from '../flows';
 import { currentStep, needsMenuOpen, progressOf, tourReducer, type TourState } from '../machine';
 
 const steps: TourStep[] = [
@@ -17,7 +17,7 @@ describe('tourReducer', () => {
   });
 
   it('stays idle when a flow has no steps', () => {
-    expect(tourReducer(idle, { type: 'startFlow', id: 'membru' }).state).toEqual(idle);
+    expect(tourReducer(idle, { type: 'startFlow', id: 'nope' as FlowId }).state).toEqual(idle);
   });
 
   it('ignores next on a step with waitFor', () => {

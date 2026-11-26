@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { placeCard } from '../onboarding/placement';
-import { welcomeRole } from '../onboarding/role';
+import { rowAnchor, welcomeRole } from '../onboarding/role';
+import { CURSURI_TO } from '../../admin/pages/routes';
 
 const dir = join(__dirname, '../../admin/tour');
 const read = (f: string) => readFileSync(join(dir, f), 'utf8');
@@ -132,6 +133,23 @@ describe('inscriere flow anchors', () => {
     expect(src('sportivi/AccessBlock.tsx')).toContain("'pa-invita'");
     expect(readFileSync(join(__dirname, '../../admin/pages/FunctiiPage.tsx'), 'utf8')).toContain('data-tour="fu-lista"');
     expect(readFileSync(join(__dirname, '../../admin/pages/FunctiiPage.tsx'), 'utf8')).toContain("row.key === 'parcurs' ? 'fu-parcurs'");
+  });
+  it('places the editor flow anchors', () => {
+    const adm = (f: string) => readFileSync(join(__dirname, '../../admin', f), 'utf8');
+    expect(adm('pages/CursuriPage.tsx')).toContain('data-tour="pg-text"');
+    expect(adm('pages/CursuriPage.tsx')).toContain('saveTour="pg-salveaza"');
+    expect(adm('dashboard/EdusportShell.tsx')).toContain('data-tour={rowAnchor(l.to)}');
+    expect(adm('MobileNav.tsx')).toContain('tour: rowAnchor(l.to)');
+    expect(adm('pages/preturi/PriceListCard.tsx')).toContain("isExamplePriceList(list.documentId) && r.index === 0");
+    expect(adm('pages/preturi/PriceItemDrawer.tsx')).toContain('data-tour="pr-valori"');
+    expect(adm('pages/preturi/PriceItemDrawer.tsx')).toContain("tour ? 'pr-salveaza'");
+    expect(adm('dashboard/MembriEchipaPage.tsx')).toContain('data-tour="me-adauga"');
+    expect(adm('dashboard/MembriEchipaPage.tsx')).toContain('data-tour="me-date"');
+    expect(adm('dashboard/MembriEchipaPage.tsx')).toContain('data-tour="me-salveaza"');
+  });
+  it('the Cursuri row anchor matches the route', () => {
+    expect(rowAnchor(CURSURI_TO)).toBe('row-cursuri');
+    expect(rowAnchor('/plugins/edusport-preturi')).toBeUndefined();
   });
   it('the Anulează step advances only on its radio option', () => {
     const root = readFileSync(join(dir, 'TourRoot.tsx'), 'utf8');

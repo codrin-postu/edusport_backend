@@ -4,6 +4,7 @@ import { visibleLinks, type GatedLink } from '../features/visible';
 import { contabTo } from '../contabilitate/routes';
 import { GRUPE_COPY } from '../groups/copy';
 import { GRUPE_PATH, groupPageTo } from '../grupe/routes';
+import { PRETURI_PATH } from '../preturi-routes';
 import { prezentaTo } from '../prezenta/routes';
 import { SPORTIVI_PATH } from '../sportivi/routes';
 
@@ -44,6 +45,7 @@ export interface FlowDef extends GatedLink {
 const INSCRIERI_PATH = '/plugins/edusport-inscrieri';
 const ANUNTURI_PATH = '/plugins/edusport-anunturi';
 const FUNCTII_PATH = '/plugins/edusport-functii';
+const MEMBRI_PATH = '/plugins/edusport-membri';
 
 export const INTRO_STEPS: TourStep[] = [
   {
@@ -129,6 +131,24 @@ const FUNCTII_STEPS: TourStep[] = [
   { anchor: 'fu-parcurs', where: 'Funcții', title: 'Folosește comutatorul', text: 'O funcție oprită dispare din panou și din portaluri, dar datele ei se păstrează.', action: 'Apasă comutatorul de la Parcurs și insigne.', waitFor: 'click', final: true, guide: 'functiile-platformei' },
 ];
 
+const PAGINA_STEPS: TourStep[] = [
+  { anchor: 'row-cursuri', where: 'Pagini site', title: 'Alege pagina', text: 'Fiecare pagină a site-ului are aici textele ei.', action: 'Deschide pagina Cursuri.', waitFor: 'click' },
+  { anchor: 'pg-text', where: 'Pagini site', title: 'Modifică textul', text: 'Schimbă textul direct în câmp. Jos apare bara cu modificările nesalvate.', waitFor: 'change' },
+  { anchor: 'pg-salveaza', where: 'Pagini site', title: 'Salvează', text: 'Paginile nu au ciornă: după salvare, modificarea apare pe site în câteva minute.', action: 'Apasă Salvează.', waitFor: 'click', final: true, guide: 'paginile-site-ului' },
+];
+
+const PRETURI_STEPS: TourStep[] = [
+  { anchor: 'pr-pret', path: PRETURI_PATH, where: 'Prețuri', title: 'Alege prețul', text: 'Prețurile sunt grupate pe secțiuni și liste. Apasă un rând ca să îl modifici.', action: 'Deschide primul preț.', waitFor: 'click' },
+  { anchor: 'pr-valori', where: 'Prețuri', title: 'Membri și neafiliați', text: 'Fiecare preț are o valoare pentru membrii A.C.S. și una pentru ceilalți sportivi.' },
+  { anchor: 'pr-salveaza', where: 'Prețuri', title: 'Salvează', text: 'Abonamentele deja adăugate își păstrează prețul de la data adăugării.', action: 'Apasă Salvează.', waitFor: 'click', final: true, guide: 'preturi' },
+];
+
+const MEMBRU_STEPS: TourStep[] = [
+  { anchor: 'me-adauga', path: MEMBRI_PATH, where: 'Membri echipă', title: 'Membru nou', text: 'Antrenorii și instructorii de aici apar pe pagina Echipă a site-ului.', action: 'Apasă + Adaugă membru.', waitFor: 'click' },
+  { anchor: 'me-date', where: 'Membri echipă', title: 'Datele membrului', text: 'Scrie numele, rolul și o scurtă descriere, apoi alege o fotografie.' },
+  { anchor: 'me-salveaza', where: 'Membri echipă', title: 'Salvează', text: 'Membrul apare pe site, pe pagina Echipă.', action: 'Apasă Salvează.', waitFor: 'click', final: true, guide: 'echipa-sponsori-si-alte-liste' },
+];
+
 export const FLOWS: FlowDef[] = [
   { id: 'inscriere', name: 'Confirmă o înscriere', area: 'club', steps: INSCRIERE_STEPS },
   { id: 'sportiv', name: 'Adaugă un sportiv', area: 'club', steps: SPORTIV_STEPS },
@@ -139,9 +159,9 @@ export const FLOWS: FlowDef[] = [
   { id: 'anunt', name: 'Scrie un anunț', area: 'website', steps: ANUNT_STEPS },
   { id: 'parinte', name: 'Invită un părinte în portal', area: 'club', feature: 'portalParinti', steps: PARINTE_STEPS },
   { id: 'functii', name: 'Pornește sau oprește o funcție', area: 'superAdmin', steps: FUNCTII_STEPS },
-  { id: 'pagina', name: 'Modifică o pagină', area: 'website', editorOnly: true, steps: null },
-  { id: 'preturi', name: 'Actualizează prețurile', area: 'website', editorOnly: true, steps: null },
-  { id: 'membru', name: 'Adaugă un membru în echipă', area: 'website', editorOnly: true, steps: null },
+  { id: 'pagina', name: 'Modifică o pagină', area: 'website', editorOnly: true, steps: PAGINA_STEPS },
+  { id: 'preturi', name: 'Actualizează prețurile', area: 'website', editorOnly: true, steps: PRETURI_STEPS },
+  { id: 'membru', name: 'Adaugă un membru în echipă', area: 'website', editorOnly: true, steps: MEMBRU_STEPS },
 ];
 
 /** The steps whose switch is on; steps without a `feature` always stay. */

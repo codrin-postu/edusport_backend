@@ -14,10 +14,10 @@ describe('flowsFor', () => {
   it('gives a club admin the built flows only', () => {
     const got = ids(areas('any', 'club', 'website', 'money'));
     expect(got).toEqual(['inscriere', 'sportiv', 'grupa', 'prezenta', 'plata', 'sedinta', 'anunt', 'parinte']);
-    expect(got).not.toContain('pagina');
+    for (const id of ['pagina', 'preturi', 'membru']) expect(got).not.toContain(id);
   });
-  it('gives an editor the announcement flow only', () => {
-    expect(ids(areas('any', 'website'))).toEqual(['anunt']);
+  it('gives an editor the announcement flow and the three editor flows', () => {
+    expect(ids(areas('any', 'website'))).toEqual(['anunt', 'pagina', 'preturi', 'membru']);
   });
   it('drops prezenta when its switch is off', () => {
     expect(ids(areas('any', 'club', 'website'), (k) => k !== 'prezenta')).toEqual(['inscriere', 'sportiv', 'grupa', 'plata', 'sedinta', 'anunt', 'parinte']);

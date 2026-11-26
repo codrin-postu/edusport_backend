@@ -8,6 +8,7 @@ import { scaleVars } from '../ui/tokens';
 import { useAreas } from '../lib/useAreas';
 import { useFeatures } from '../lib/useFeatures';
 import { FooterBadge, usePrimiiRow } from '../tour/FooterBadge';
+import { rowAnchor } from '../../club/onboarding/role';
 import { REVEAL_EVENT } from '../tour/progressStore';
 
 /** --palette-* and --ui-* declarations for the shell's own roots. */
@@ -518,7 +519,7 @@ function EdusportShell() {
       return <button key={l.to} type="button" className={`${base} esd-rowbtn`.trim()} onClick={() => setMode('default')}>{l.label}</button>;
     }
     const cls = [base, isActive(l.to) ? 'on' : ''].filter(Boolean).join(' ');
-    return <a key={l.to} href={`/admin${l.to}`} className={cls} onClick={go(l.to)}>{l.label}</a>;
+    return <a key={l.to} href={`/admin${l.to}`} className={cls} onClick={go(l.to)} data-tour={rowAnchor(l.to)}>{l.label}</a>;
   };
   const groupLinks = (group: Group) => links.filter((l) => l.group === group);
   const flyLinks = flyGroup ? groupLinks(flyGroup) : [];

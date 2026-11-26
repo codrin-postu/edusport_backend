@@ -8,6 +8,7 @@ import { FooterBadge, usePrimiiRow } from './tour/FooterBadge';
 import { REVEAL_EVENT } from './tour/progressStore';
 import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, PRIMII_PASI_TO, GHID_URL } from './dashboard/menu';
 import EdusportLogo from './edusport-logo.svg';
+import { rowAnchor } from '../club/onboarding/role';
 import { eduLinkHref } from '../club/admin-href';
 
 interface NavItem {
@@ -187,7 +188,7 @@ export function MobileNav() {
     for (const l of EDUSPORT_LINKS) covered.add(eduLinkHref(l.to));
     const links = visibleLinks(EDUSPORT_LINKS, has, features.on).filter((l) => !l.action);
     for (const group of GROUP_ORDER) {
-      const items = links.filter((l) => l.group === group).map((l) => ({ label: l.label, href: eduLinkHref(l.to) }));
+      const items = links.filter((l) => l.group === group).map((l) => ({ label: l.label, href: eduLinkHref(l.to), tour: rowAnchor(l.to) }));
       if (items.length > 0) next.push({ title: GROUP_LABEL[group], items });
     }
     const extra = readLinksFromContainer(document.querySelector(SIDEBAR_SELECTOR)).filter((l) => !covered.has(l.href ?? ''));

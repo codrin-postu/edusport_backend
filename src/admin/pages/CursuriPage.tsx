@@ -194,6 +194,7 @@ const CursuriPage: React.FC = () => {
           </div>
         ) : (
           <div className="ui-body">
+            <div data-tour="pg-text">
             <ObjectFieldCard<Banner>
               title="Banner Pagina Cursuri"
               value={banner}
@@ -220,6 +221,7 @@ const CursuriPage: React.FC = () => {
                 },
               ]}
             />
+            </div>
 
             <ObjectFieldCard<About>
               title="Secțiunea Despre Cursuri"
@@ -328,7 +330,7 @@ const CursuriPage: React.FC = () => {
         )}
 
         {!page.loading && !page.error && (
-          <SaveBar {...page.saveState.bar} onSave={() => void page.save(form.value)} onDiscard={form.reset} />
+          <SaveBar {...page.saveState.bar} onSave={() => void page.save(form.value)} onDiscard={form.reset} saveTour="pg-salveaza" />
         )}
       </Window>
 

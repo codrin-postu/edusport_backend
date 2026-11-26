@@ -15,6 +15,7 @@ import { PAYMENT_COPY } from '../presence/copy/payments';
 import type { MoneyOverview } from '../money/types';
 import type { Anunt, ListRow } from '../anunturi/portal-history';
 import type { TickTree } from '../calendar/group-ticks';
+import type { AdminPrices } from '../price-admin';
 import type { PanelRow, PeriodPage, PeriodRow, SessionPanel } from '../presence/attendance/api-types';
 
 /** Example data served to the page while a flow runs; filled per flow by later tasks. */
@@ -439,6 +440,57 @@ const FUNCTII_FIXTURES = (): Fixture[] => [
   },
 ];
 
+/** The "Modifică o pagină" flow: the Cursuri editor with example texts. */
+const PAGINA_FIXTURES = (): Fixture[] => [
+  {
+    method: 'GET',
+    match: /^\/content-manager\/single-types\/api::cursuri-page\.cursuri-page(\?|$)/,
+    body: {
+      data: {
+        id: 1,
+        documentId: 'ex-cursuri',
+        banner: { title: 'Cursuri de Patinaj', scheduleDays: 'Sâmbătă și duminică', scheduleTimes: '10:00-10:50 și 11:00-11:50', locationName: 'Patinoar', locationUrl: 'https://example.com/locatie' },
+        aboutSection: { eyebrow: 'Despre noi', heading: 'Școala de patinaj', content: 'Text de exemplu despre cursuri.', locationBullet: 'Patinoar', levelsBullet: 'Toate nivelurile', coachesBullet: 'Antrenori cu experiență', videoUrl: '', videoLabel: '' },
+        infoSection: { sectionLabel: 'Ce trebuie să știi', tips: ['Sfat de exemplu'], closingLine: '' },
+        promoCard: { eyebrow: 'Devino membru', title: 'Abonament', description: 'Descriere de exemplu.', subscriptionInfoTitle: 'Ce include abonamentul', subscriptionBullets: ['Punct de exemplu'] },
+      },
+    },
+  },
+];
+
+/** The "Actualizează prețurile" flow: one school section with one list; the Prețuri page marks the list's first row. */
+export const EXAMPLE_PRICE_LIST_ID = 'ex-lista-1';
+export const isExamplePriceList = (id: string | null | undefined): boolean => id === EXAMPLE_PRICE_LIST_ID;
+
+const pricesBody = (): { data: AdminPrices } => ({
+  data: {
+    sections: [{ documentId: 'ex-sectiune', name: 'Școala de Patinaj', kind: 'school', priceNotes: [] }],
+    lists: [{
+      documentId: EXAMPLE_PRICE_LIST_ID, name: 'Începători', sectionId: 'ex-sectiune', groups: [],
+      items: [
+        { name: 'Abonament lunar', kind: 'subscription', sessions: 8, memberPrice: 200, nonMemberPrice: 250, tooltip: null, incomplete: false },
+        { name: 'Ședință unică', kind: 'subscription', sessions: 1, memberPrice: 40, nonMemberPrice: 50, tooltip: null, incomplete: false },
+      ],
+    }],
+  },
+});
+
+const PRETURI_FIXTURES = (): Fixture[] => [{ method: 'GET', match: /^\/api\/club\/prices(\?|$)/, body: pricesBody() }];
+
+/** The "Adaugă un membru în echipă" flow: the members list. */
+const MEMBRU_FIXTURES = (): Fixture[] => [
+  {
+    method: 'GET',
+    match: /^\/content-manager\/collection-types\/api::team-member\.team-member(\?|$)/,
+    body: {
+      results: [
+        { id: 1, documentId: 'ex-membru-1', name: 'Ana Popescu', role: 'Antrenor principal', bio: 'Text de exemplu.', groups: [], order: 1, photo: null },
+        { id: 2, documentId: 'ex-membru-2', name: 'Mihai Ionescu', role: 'Instructor', bio: 'Text de exemplu.', groups: [], order: 2, photo: null },
+      ],
+    },
+  },
+];
+
 export const FIXTURES: Partial<Record<FlowId, Fixture[]>> = {
   parinte: deepFreeze(PARINTE_FIXTURES()),
   functii: deepFreeze(FUNCTII_FIXTURES()),
@@ -449,4 +501,7 @@ export const FIXTURES: Partial<Record<FlowId, Fixture[]>> = {
   plata: deepFreeze(PLATA_FIXTURES()),
   sedinta: deepFreeze(SEDINTA_FIXTURES()),
   anunt: deepFreeze(ANUNT_FIXTURES()),
+  pagina: deepFreeze(PAGINA_FIXTURES()),
+  preturi: deepFreeze(PRETURI_FIXTURES()),
+  membru: deepFreeze(MEMBRU_FIXTURES()),
 };
