@@ -130,7 +130,7 @@ describe('admin passkeys on Securitate', () => {
     expect(await renameKey(e.c, e.actor(7), id, { name: 'Laptop' })).toEqual({ ok: true, data: { toast: 'Salvat.' } });
     expect(await renameKey(e.c, e.actor(8), id, { name: 'Furat' })).toMatchObject({ ok: false, status: 404 });
     expect(await removeKey(e.c, e.actor(8), id)).toMatchObject({ ok: false, status: 404 });
-    expect(await removeKey(e.c, e.actor(7), id)).toEqual({ ok: true, data: { toast: 'Cheie de acces ștearsă.' } });
+    expect(await removeKey(e.c, e.actor(7), id)).toEqual({ ok: true, data: { toast: 'Passkey șters.' } });
   });
 
   it('a name over 60 characters at create is 400', async () => {

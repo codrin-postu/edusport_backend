@@ -16,7 +16,7 @@ export function reauthAsk(view: Pick<SecurityView, 'totp' | 'emailCode'>): Reaut
 export type AddOutcome = { kind: 'added'; toast: string } | { kind: 'reauth' } | { kind: 'error'; message: string };
 
 /**
- * "Creează o cheie de acces": options, the browser's dialog, register. A server answer of "Confirmă din nou ca să continui." (403) is not an
+ * "Creează un passkey": options, the browser's dialog, register. A server answer of "Confirmă din nou ca să continui." (403) is not an
  * error to show but the step to open (re-confirm, then run this again). A cancelled dialog is the one failure text.
  */
 export async function addKey(api: SecurityApi, wa: Webauthn): Promise<AddOutcome> {

@@ -129,7 +129,7 @@ describe('coach passkeys on Securitate', () => {
     await s.secStore.createPasskey({ subject: { type: 'portal', id: 'other' }, credentialId: 'zz', publicKey: 'k', counter: 0, transports: [], deviceType: 'singleDevice', backedUp: false, rpId: 'codrin.space', name: 'Alt', createdAt: s.clock.t.toISOString() });
     const theirs = (await s.secStore.passkeys({ type: 'portal', id: 'other' }))[0];
     expect(await s.sec.passkeyDelete(theirs.id)).toMatchObject({ ok: false, status: 404 });
-    expect(await s.sec.passkeyDelete(key.id)).toEqual({ ok: true, data: { toast: 'Cheie de acces ștearsă.' } });
+    expect(await s.sec.passkeyDelete(key.id)).toEqual({ ok: true, data: { toast: 'Passkey șters.' } });
   });
 
   it('a register sends the "changed" mail with the key name and writes the history line with the coach as actor', async () => {

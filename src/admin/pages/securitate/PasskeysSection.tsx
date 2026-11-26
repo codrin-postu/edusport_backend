@@ -77,7 +77,7 @@ export function ReauthForm(p: {
 type Panel = { kind: 'idle' } | { kind: 'rename'; id: string; name: string } | { kind: 'reauth'; ask: ReauthAsk; sentTo: string | null; value: string };
 
 /**
- * "Chei de acces": the keys of this admin, "Creează o cheie de acces" on a supporting browser. Adding needs a confirmation no older than 10
+ * "Passkey": the passkeys of this admin, "Creează un passkey" on a supporting browser. Adding needs a confirmation no older than 10
  * minutes; when the server asks for it the section opens the re-confirmation (code or password, or Google), then adds again.
  */
 export function PasskeysSection({ api, webauthn }: { api: SecurityApi; webauthn?: Webauthn }) {

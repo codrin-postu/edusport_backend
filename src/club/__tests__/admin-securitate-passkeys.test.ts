@@ -62,13 +62,13 @@ describe('the key list', () => {
 describe('adding a key', () => {
   const routes = {
     'POST /api/admin-auth/me/passkeys/options': { options: { challenge: 'AA' } },
-    'POST /api/admin-auth/me/passkeys': { toast: 'Cheie de acces creată.', passkey: rows[0] },
+    'POST /api/admin-auth/me/passkeys': { toast: 'Passkey creat.', passkey: rows[0] },
   };
 
   it('options, the dialog, register; the toast is the server text', async () => {
     const { client, calls } = fakeClient(routes);
     const out = await addKey(createSecurityApi(client), wa());
-    expect(out).toEqual({ kind: 'added', toast: 'Cheie de acces creată.' });
+    expect(out).toEqual({ kind: 'added', toast: 'Passkey creat.' });
     expect(calls[1]).toMatchObject({ method: 'POST', url: '/api/admin-auth/me/passkeys', body: { response: { id: 'new' } } });
   });
 
@@ -128,7 +128,7 @@ describe('adding a key', () => {
 
 describe('rename, delete and the other Securitate texts', () => {
   it('rename and delete call the key routes', async () => {
-    const { client, calls } = fakeClient({ 'PUT /api/admin-auth/me/passkeys/a': { toast: 'Salvat.' }, 'DELETE /api/admin-auth/me/passkeys/a': { toast: 'Cheie de acces ștearsă.' } });
+    const { client, calls } = fakeClient({ 'PUT /api/admin-auth/me/passkeys/a': { toast: 'Salvat.' }, 'DELETE /api/admin-auth/me/passkeys/a': { toast: 'Passkey șters.' } });
     const api = createSecurityApi(client);
     await api.passkeyRename('a', 'Telefon');
     await api.passkeyDelete('a');

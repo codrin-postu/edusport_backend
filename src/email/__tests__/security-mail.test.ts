@@ -44,8 +44,8 @@ describe('renderSecurityMail', () => {
   it('changed: passkey and 2FA off', () => {
     const passkey = renderSecurityMail('changed', { passkey: 'Telefon' }, links);
     expect(passkey.subject).toBe('Setările contului tău s-au schimbat');
-    expect(passkey.text).toContain('A fost creată o cheie de acces: Telefon.');
-    expect(passkey.html).toContain('A fost creată o cheie de acces: Telefon.');
+    expect(passkey.text).toContain('A fost creat un passkey: Telefon.');
+    expect(passkey.html).toContain('A fost creat un passkey: Telefon.');
     expect(passkey.text).toContain('Dacă nu ai fost tu, schimbă parola.');
     const off = renderSecurityMail('changed', { twoFactorOff: true }, links);
     expect(off.text).toContain('2FA a fost oprit.');

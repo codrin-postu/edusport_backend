@@ -4,13 +4,15 @@ import { createPortal } from 'react-dom';
 import { ensureAdminUi } from './ui/styles';
 import { useAreas } from './lib/useAreas';
 import { useFeatures } from './lib/useFeatures';
-import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO } from './dashboard/menu';
+import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, PRIMII_PASI_TO, GHID_URL } from './dashboard/menu';
 import EdusportLogo from './edusport-logo.svg';
 import { eduLinkHref } from '../club/admin-href';
 
 interface NavItem {
   label: string;
   href?: string;
+  external?: boolean;
+  tour?: string;
   onClick?: () => void;
 }
 
@@ -170,7 +172,7 @@ export function MobileNav() {
     const next: NavGroup[] = [];
     const covered = new Set<string>();
     for (const l of EDUSPORT_LINKS) covered.add(eduLinkHref(l.to));
-    const links = visibleLinks(EDUSPORT_LINKS, has, features.on);
+    const links = visibleLinks(EDUSPORT_LINKS, has, features.on).filter((l) => !l.action);
     for (const group of GROUP_ORDER) {
       const items = links.filter((l) => l.group === group).map((l) => ({ label: l.label, href: eduLinkHref(l.to) }));
       if (items.length > 0) next.push({ title: GROUP_LABEL[group], items });
@@ -180,6 +182,8 @@ export function MobileNav() {
     next.push({
       title: 'Cont',
       items: [
+        { label: 'Primii pași', href: eduLinkHref(PRIMII_PASI_TO), tour: 'primii-pasi' },
+        { label: 'Ghid EduSport', href: GHID_URL, external: true, tour: 'ghid' },
         { label: 'Profilul meu', href: '/admin/me' },
         { label: 'Deconectare', onClick: logout },
       ],
@@ -211,7 +215,14 @@ export function MobileNav() {
   const renderItem = (item: NavItem) => {
     if (item.href) {
       return (
-        <a key={item.label + item.href} href={item.href} className="edu-mnav-item" onClick={() => setOpen(false)}>
+        <a
+          key={item.label + item.href}
+          href={item.href}
+          className="edu-mnav-item"
+          data-tour={item.tour}
+          {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+          onClick={() => setOpen(false)}
+        >
           {item.label}
         </a>
       );

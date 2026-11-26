@@ -24,7 +24,7 @@ const SITE_EDITOR_LABELS = [
   'Membri echipă', 'Competiții', 'Discipline',
   'Pagina principală', 'Cursuri', 'Prețuri', 'Regulament', 'Pagina Program', 'Pagina Echipă', 'Istoric', 'Realizări', 'Parteneri', 'Voluntariat',
   'Articole', 'Anunțuri',
-  'Imagini', 'Meniu site', 'Securitate',
+  'Imagini', 'Meniu site', 'Securitate', 'Primii pași',
 ];
 
 describe('menu entries per role', () => {
@@ -32,7 +32,7 @@ describe('menu entries per role', () => {
     expect(labels([ROLE_CODES.superAdmin])).toEqual(EDUSPORT_LINKS.map((l) => l.label));
   });
   it('Administrator club sees every entry but Funcții (Securitate Administratori is inside the page)', () => {
-    expect(labels([ROLE_CODES.clubAdmin])).toEqual(EDUSPORT_LINKS.map((l) => l.label).filter((l) => l !== 'Funcții'));
+    expect(labels([ROLE_CODES.clubAdmin])).toEqual(EDUSPORT_LINKS.map((l) => l.label).filter((l) => l !== 'Funcții' && l !== 'Meniul Strapi'));
   });
   it('Funcții is for the Super Admin only', () => {
     expect(EDUSPORT_LINKS.find((l) => l.label === 'Funcții')?.area).toBe('superAdmin');
@@ -47,7 +47,7 @@ describe('menu entries per role', () => {
     expect(area('Sezoane')).toBe('settings');
   });
   it('before the read answers only area any shows', () => {
-    expect(visibleLinks(EDUSPORT_LINKS, (a) => a === 'any', () => true).map((l) => l.label)).toEqual(['Securitate']);
+    expect(visibleLinks(EDUSPORT_LINKS, (a) => a === 'any', () => true).map((l) => l.label)).toEqual(['Securitate', 'Primii pași']);
   });
 });
 

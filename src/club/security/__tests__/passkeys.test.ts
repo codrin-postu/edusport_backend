@@ -201,7 +201,7 @@ describe('registration and sign-in', () => {
     const env = setup();
     for (let i = 0; i < 10; i += 1) expect((await enrol(env, owner(), `K${i}`)).res.ok).toBe(true);
     const out = await registerOptions(env.c, RP, owner());
-    expect(out).toEqual({ ok: false, status: 409, error: 'Ai deja 10 chei de acces. Șterge una ca să adaugi alta.' });
+    expect(out).toEqual({ ok: false, status: 409, error: 'Ai deja 10 passkey-uri. Șterge unul ca să adaugi altul.' });
     const rows = await passkeyRows(env.c, RP, PORTAL_SUBJECT);
     expect((await deletePasskey(env.c, PORTAL_SUBJECT, rows[0].id)).ok).toBe(true);
     expect((await registerOptions(env.c, RP, owner())).ok).toBe(true);

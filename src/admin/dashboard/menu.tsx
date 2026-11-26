@@ -54,6 +54,7 @@ export interface EdusportLink {
   icon: React.ComponentType;
   group: Group;
   featured?: boolean; // shown in the dashboard "Scurtături" grid
+  action?: 'strapiMenu'; // not a route: the row runs this shell action instead of navigating
   area: AdminArea;    // role area: the sidebar and the phone menu hide the entry outside it, and the page is gated on it
   feature?: FeatureKey; // club switch: the entry is hidden while it is off
   show?: GatedLink['show']; // extra rule over the switches (Tabele)
@@ -69,7 +70,7 @@ export const GROUP_LABEL: Record<Group, string> = {
   settings: 'Setări',
 };
 
-export const GROUP_ORDER: Group[] = ['forms', 'club', 'news', 'pages', 'settings'];
+export const GROUP_ORDER: Group[] = ['news', 'forms', 'club', 'pages', 'settings'];
 
 // Admin route for the custom dashboard page (basename is /admin at runtime).
 export const DASHBOARD_TO = '/plugins/edusport-dashboard';
@@ -136,6 +137,15 @@ export const SPONSORI_TO = '/plugins/edusport-sponsori';
 // appears in no sidebar or menu. Open it by URL: /admin/plugins/edusport-ui.
 export const UI_REFERENCE_TO = '/plugins/edusport-ui';
 
+// Admin route of the Primii pași page (built in a later task; until then a link to it opens no page).
+export const PRIMII_PASI_TO = '/primii-pasi';
+
+// Placeholder `to` of the "Meniul Strapi" row: it is an action row (see EdusportLink.action), never navigated to.
+export const STRAPI_MENU_TO = '/strapi-menu';
+
+// The public guide, opened in a new tab from the sidebar footer and the phone menu.
+export const GHID_URL = 'https://edusport.codrin.space/ghid';
+
 // Umami analytics dashboard URL. Leave empty until connected; the UI degrades
 // gracefully and shows a "coming soon" state rather than a broken link.
 export const UMAMI_URL = '';
@@ -144,19 +154,19 @@ const collection = (uid: string) => `/content-manager/collection-types/${uid}`;
 
 export const EDUSPORT_LINKS: EdusportLink[] = [
   // Formulare (hub + results)
-  { to: FORMULARE_TO, label: 'Formulare', icon: Feather, group: 'forms', featured: true, area: 'club' },
   { to: INSCRIERI_TO, label: 'Înscrieri', icon: Mail, group: 'forms', featured: true, area: 'club' },
   { to: VOLUNTARI_TO, label: 'Voluntari', icon: User, group: 'forms', area: 'club' },
   { to: PARTENERI_REZULTATE_TO, label: 'Parteneri', icon: Duplicate, group: 'forms', area: 'club' },
   { to: MESAJE_TO, label: 'Contact', icon: Mail, group: 'forms', area: 'club' },
+  { to: FORMULARE_TO, label: 'Întrebările formularelor', icon: Feather, group: 'forms', featured: true, area: 'club' },
 
   // Club și școală
   { to: SPORTIVI_TO, label: 'Sportivi', icon: User, group: 'club', featured: true, area: 'club' },
   { to: GRUPE_TO, label: 'Grupe', icon: GridFour, group: 'club', featured: true, area: 'club' },
+  { to: PRETURI_TO, label: 'Prețuri', icon: Cursor, group: 'club', featured: true, area: 'website' },
   { to: PREZENTA_PATH, label: 'Prezență', icon: Clock, group: 'club', area: 'club', feature: 'prezenta' },
   { to: CONTABILITATE_PATH, label: 'Contabilitate', icon: ChartPie, group: 'club', area: 'club', feature: 'abonamente' },
   { to: PROGRAM_EDIT_TO, label: 'Calendar și serii', icon: Calendar, group: 'club', featured: true, area: 'club' },
-  { to: PRETURI_TO, label: 'Prețuri', icon: Cursor, group: 'club', featured: true, area: 'website' },
   { to: TABELE_PATH, label: 'Tabele', icon: GridFour, group: 'club', area: TABLES_AREA, show: tablesVisible },
   // Re-pointed from collection('api::team-member.team-member'): team members are
   // now edited on the custom Membri echipă page.
@@ -193,6 +203,8 @@ export const EDUSPORT_LINKS: EdusportLink[] = [
   { to: '/plugins/upload', label: 'Imagini', icon: GridFour, group: 'settings', area: 'website' },
   { to: SECURITATE_TO, label: SECURITY_COPY.page.title, icon: Lock, group: 'settings', area: 'any' },
   { to: FUNCTII_TO, label: FEATURES_COPY.page, icon: Lock, group: 'settings', area: 'superAdmin' },
+  { to: PRIMII_PASI_TO, label: 'Primii pași', icon: Star, group: 'settings', area: 'any' },
+  { to: STRAPI_MENU_TO, label: 'Meniul Strapi', icon: GridFour, group: 'settings', area: 'superAdmin', action: 'strapiMenu' },
 ];
 
 /** Routes that light up another page's sidebar row: the lists that became tabs, and their edit page. */

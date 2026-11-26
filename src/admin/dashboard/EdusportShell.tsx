@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { tabletQuery } from '../../club/ui-breakpoints';
 import { createRoot } from 'react-dom/client';
-import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, UMAMI_URL, rowMatches } from './menu';
+import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, UMAMI_URL, PRIMII_PASI_TO, GHID_URL, rowMatches } from './menu';
+import type { EdusportLink } from './menu';
 import type { Group } from './menu';
 import { scaleVars } from '../ui/tokens';
 import { useAreas } from '../lib/useAreas';
@@ -282,6 +283,10 @@ html[${MODE_ATTR}="custom"][${RAIL_ATTR}="1"] [${SHELL_PARENT_ATTR}] { padding-l
 /* page links inside a category: plain indented text, no glyph */
 .esd-nav a.esd-sub { padding-left: 32px; font-size: 13px; color: var(--palette-shell-text-sub); }
 .esd-nav a.esd-sub:hover, .esd-nav a.esd-sub.on { color: var(--palette-grey-0); }
+.esd-nav button.esd-rowbtn { display: flex; width: 100%; align-items: center; padding: 9px 18px 9px 32px; font-size: 13px; font-family: inherit; text-align: left; background: none; border: none; border-left: 3px solid transparent; color: var(--palette-shell-text-sub); cursor: pointer; white-space: nowrap; }
+.esd-nav button.esd-rowbtn:hover { background: color-mix(in srgb, var(--palette-grey-0) 5%, transparent); color: var(--palette-grey-0); }
+.esd-fly button.esd-rowbtn { display: block; width: 100%; padding: 7px 16px; font-size: 13px; font-family: inherit; text-align: left; background: none; border: none; color: var(--palette-shell-text); cursor: pointer; white-space: nowrap; }
+.esd-fly button.esd-rowbtn:hover { background: color-mix(in srgb, var(--palette-grey-0) 6%, transparent); color: var(--palette-grey-0); }
 .esd-lbl { transition: opacity .16s ease; }
 .esd-foot { padding: 12px 14px; border-top: 1px solid color-mix(in srgb, var(--palette-grey-0) 8%, transparent); flex-shrink: 0; }
 .esd-switch { width: 100%; padding: 9px 12px; background: color-mix(in srgb, var(--palette-grey-0) 6%, transparent); color: var(--palette-shell-text); border: 1px solid color-mix(in srgb, var(--palette-grey-0) 14%, transparent); border-radius: var(--ui-radius-md); font-size: 12.5px; cursor: pointer; font-family: inherit; white-space: nowrap; }
@@ -493,6 +498,13 @@ function EdusportShell() {
     );
   }
 
+  const renderRow = (l: EdusportLink, base: string) => {
+    if (l.action === 'strapiMenu') {
+      return <button key={l.to} type="button" className={`${base} esd-rowbtn`.trim()} onClick={() => setMode('default')}>{l.label}</button>;
+    }
+    const cls = [base, isActive(l.to) ? 'on' : ''].filter(Boolean).join(' ');
+    return <a key={l.to} href={`/admin${l.to}`} className={cls} onClick={go(l.to)}>{l.label}</a>;
+  };
   const groupLinks = (group: Group) => links.filter((l) => l.group === group);
   const flyLinks = flyGroup ? groupLinks(flyGroup) : [];
 
@@ -544,11 +556,7 @@ function EdusportShell() {
                   <span className="esd-glabel">{GROUP_LABEL[group]}</span>
                   <Chevron open={open} />
                 </button>
-                {!railed && open && links.map((l) => (
-                  <a key={l.to} href={`/admin${l.to}`} className={isActive(l.to) ? 'esd-sub on' : 'esd-sub'} onClick={go(l.to)}>
-                    {l.label}
-                  </a>
-                ))}
+                {!railed && open && links.map((l) => renderRow(l, 'esd-sub'))}
               </div>
             );
           })}
@@ -570,6 +578,12 @@ function EdusportShell() {
             </div>
           ) : null}
           <div className="esd-acts">
+            <a className="esd-act" href={`/admin${PRIMII_PASI_TO}`} onClick={go(PRIMII_PASI_TO)} data-tour="primii-pasi">
+              Primii pași
+            </a>
+            <a className="esd-act" href={GHID_URL} target="_blank" rel="noopener noreferrer" data-tour="ghid">
+              Ghid EduSport
+            </a>
             <a className="esd-act" href="/admin/me" onClick={go('/me')}>
               Contul meu
             </a>
@@ -577,19 +591,17 @@ function EdusportShell() {
               Ieși din cont
             </button>
           </div>
-          <button className="esd-switch" type="button" onClick={() => setMode('default')}>
-            Comută la meniul Strapi
-          </button>
+          {has('superAdmin') ? (
+            <button className="esd-switch" type="button" onClick={() => setMode('default')}>
+              Comută la meniul Strapi
+            </button>
+          ) : null}
         </div>
       </aside>
       {railed && flyGroup ? (
         <nav className="esd-fly" aria-label={GROUP_LABEL[flyGroup]}>
           <div className="esd-fly-title">{GROUP_LABEL[flyGroup]}</div>
-          {flyLinks.map((l) => (
-            <a key={l.to} href={`/admin${l.to}`} className={isActive(l.to) ? 'on' : ''} onClick={go(l.to)}>
-              {l.label}
-            </a>
-          ))}
+          {flyLinks.map((l) => renderRow(l, ''))}
         </nav>
       ) : null}
     </>

@@ -43,7 +43,7 @@ describe('the sign-in page with keys', () => {
     expect(off).not.toContain('webauthn');
   });
 
-  it('a cancelled dialog shows "Nu am putut folosi cheia de acces."', async () => {
+  it('a cancelled dialog shows "Nu am putut folosi passkey-ul."', async () => {
     const { post } = posts({ '/api/admin-auth/passkey/options': { ok: true, data: { options: { challenge: 'AA' } } } });
     const next = await signInWithKey(post, fake({ authenticate: async () => { throw new Error('NotAllowedError'); } }), false);
     expect(next).toEqual({ kind: 'error', message: SECURITY_ERRORS.passkeyFailed });
