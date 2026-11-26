@@ -94,9 +94,9 @@ function RowName({ row, highlight }: { row: PanelRow; highlight: boolean }) {
   );
 }
 
-type TableProps = { panel: PanelData; draft: Draft; locked: boolean; highlightId: string | null; onTick: (athleteId: string, type: 'grup' | 'uscat') => void };
+type TableProps = { panel: PanelData; draft: Draft; locked: boolean; highlightId: string | null; onTick: (athleteId: string, type: 'grup' | 'uscat') => void; tour?: string };
 
-function TickTable({ panel, draft, locked, highlightId, onTick }: TableProps) {
+function TickTable({ panel, draft, locked, highlightId, onTick, tour }: TableProps) {
   const moneyOn = useFeatures().on('abonamente');
   const [name, ...types] = columnsFor(panel.kind);
   const typeKeys = ['grup', 'uscat'] as const;
@@ -116,7 +116,7 @@ function TickTable({ panel, draft, locked, highlightId, onTick }: TableProps) {
     key: 'menu', header: <span className="ui-sr">{RECORD_COPY.menu.button}</span>, width: '1%',
     render: (r) => <RowMoneyMenu row={r} kind={panel.kind} date={panel.date} />,
   };
-  return <DataTable<PanelRow> columns={moneyOn ? [...columns, menu] : columns} rows={draft.rows} getRowKey={(r) => r.athleteId} pageSize={0} className="pz-ticks" />;
+  return <DataTable<PanelRow> columns={moneyOn ? [...columns, menu] : columns} rows={draft.rows} getRowKey={(r) => r.athleteId} pageSize={0} className="pz-ticks" tour={tour} />;
 }
 
 type VisitorProps = { rows: PanelRow[]; disabled: boolean; onPick: (card: AthleteCard) => void };
@@ -197,12 +197,8 @@ function PanelBody({ panel, draft, readOnly, locked, coachError, coachOptions, f
         <FollowLink className="pz-link" to={groupPageTo(panel.groupId, null)} follow={follow}>{PANEL_LINKS.openGroup}</FollowLink>
       </div>
       <CoachLinks coaches={linkedCoaches(panel.coachIds, coachOptions)} date={panel.date} follow={follow} />
-      <div data-tour={tourOf(panel, 'ses-antrenor')}>
-        <CoachFields label={PREZENTA_COPY.coach} value={draft.coaches} options={coachOptions} disabled={locked} error={coachError} onChange={(coaches) => setDraft({ ...draft, coaches })} />
-      </div>
-      <div data-tour={tourOf(panel, 'ses-lista')}>
-        <TickTable panel={panel} draft={draft} locked={locked} highlightId={panel.highlightAthleteId} onTick={(id, type) => setDraft({ ...draft, ticks: toggleTick(draft.ticks, id, type) })} />
-      </div>
+      <CoachFields tour={tourOf(panel, 'ses-antrenor')} label={PREZENTA_COPY.coach} value={draft.coaches} options={coachOptions} disabled={locked} error={coachError} onChange={(coaches) => setDraft({ ...draft, coaches })} />
+      <TickTable tour={tourOf(panel, 'ses-lista')} panel={panel} draft={draft} locked={locked} highlightId={panel.highlightAthleteId} onTick={(id, type) => setDraft({ ...draft, ticks: toggleTick(draft.ticks, id, type) })} />
       {!readOnly && <Visitors rows={draft.rows} disabled={locked} onPick={pick} />}
       {panel.savedLine && <p className="pz-saved">{panel.savedLine}</p>}
       {panel.history.length > 0 && (

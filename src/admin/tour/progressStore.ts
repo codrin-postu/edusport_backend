@@ -16,11 +16,11 @@ function publish(next: Snapshot): void {
 
 const fromResponse = (data: unknown): Progress => parseProgress((data as { data?: unknown } | null)?.data);
 
-/** One GET /club/onboarding per page load, shared by the tour root, the footer row and the Primii pași page. */
+/** One GET /api/club/onboarding per page load, shared by the tour root, the footer row and the Primii pași page. */
 export function loadProgress(): Promise<void> {
   if (!pending) {
     pending = getFetchClient()
-      .get('/club/onboarding')
+      .get('/api/club/onboarding')
       .then((r) => publish({ ...snapshot, ready: true, progress: fromResponse(r.data) }))
       .catch(() => undefined)
       .finally(() => {
@@ -33,7 +33,7 @@ export function loadProgress(): Promise<void> {
 /** Marks the intro or a flow done (the server keeps the first date) and shares the answer. A failed post changes nothing. */
 export async function markProgress(body: { intro: true } | { flow: FlowId }): Promise<void> {
   try {
-    const r = await getFetchClient().post('/club/onboarding', body);
+    const r = await getFetchClient().post('/api/club/onboarding', body);
     publish({ ...snapshot, ready: true, progress: fromResponse(r.data) });
   } catch {
     // Progress is a convenience: the tour goes on, the next load shows the saved state.

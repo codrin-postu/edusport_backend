@@ -33,18 +33,19 @@ function DraftFields({ draft, set }: { draft: Draft; set: (patch: Partial<Draft>
           <Select value={draft.kind} options={KIND_OPTIONS} onChange={(v) => set({ kind: v as PriceItemKind })} />
         </Field>
       </FieldRow>
-      <div className="ui-stack" data-tour="pr-valori">
-      <FieldRow>
-        <Field label="Ședințe">
-          <NumberInput value={draft.sessions} min={0} label="Ședințe" onChange={(v) => set({ sessions: v })} />
+      {/* The one anchor wrapper left: it spans three fields, so it repeats the section gap (--ui-space-3) and adds no spacing. */}
+      <div data-tour="pr-valori" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)', minWidth: 0 }}>
+        <FieldRow>
+          <Field label="Ședințe">
+            <NumberInput value={draft.sessions} min={0} label="Ședințe" onChange={(v) => set({ sessions: v })} />
+          </Field>
+          <Field label="Preț membri">
+            <Input inputMode="numeric" value={draft.memberPrice} onChange={(e) => set({ memberPrice: e.target.value })} />
+          </Field>
+        </FieldRow>
+        <Field label="Preț neafiliați">
+          <Input inputMode="numeric" value={draft.nonMemberPrice} onChange={(e) => set({ nonMemberPrice: e.target.value })} />
         </Field>
-        <Field label="Preț membri">
-          <Input inputMode="numeric" value={draft.memberPrice} onChange={(e) => set({ memberPrice: e.target.value })} />
-        </Field>
-      </FieldRow>
-      <Field label="Preț neafiliați">
-        <Input inputMode="numeric" value={draft.nonMemberPrice} onChange={(e) => set({ nonMemberPrice: e.target.value })} />
-      </Field>
       </div>
       <Field label="Tooltip">
         <Textarea rows={2} value={draft.tooltip} onChange={(e) => set({ tooltip: e.target.value })} />

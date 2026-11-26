@@ -12,8 +12,8 @@ const tourFiles = readdirSync(dir);
 describe('tour sources', () => {
   it('TourRoot installs the guard only while a flow runs and restores fetch on exit and unmount', () => {
     const src = read('TourRoot.tsx');
-    expect(src).toMatch(/next\.kind === 'flow'[^\n]*installFetchGuard/);
-    expect(src).toMatch(/else uninstallFetchGuard\(\)/);
+    expect(src).toMatch(/next\.kind === 'flow' && next\.flow\) \{\s*installs \+= 1;\s*installFetchGuard/);
+    expect(src).toMatch(/uninstallAfterRoute\(\)/);
     expect(src).toMatch(/return \(\) => \{[^}]*uninstallFetchGuard\(\)/s);
     expect(src).toMatch(/capture|click', onClick, true/);
     expect(src).toMatch(/e\.preventDefault\(\);\s*e\.stopImmediatePropagation\(\)/);
@@ -131,12 +131,12 @@ describe('inscriere flow anchors', () => {
     expect(src('sportivi/AthleteCards.tsx')).toContain("isExampleInvitee(r.documentId) ? 'pa-sportiv'");
     expect(src('sportivi/AccessBlock.tsx')).toContain("isExampleInvitee(athleteId) ? 'pa-acces'");
     expect(src('sportivi/AccessBlock.tsx')).toContain("'pa-invita'");
-    expect(readFileSync(join(__dirname, '../../admin/pages/FunctiiPage.tsx'), 'utf8')).toContain('data-tour="fu-lista"');
+    expect(readFileSync(join(__dirname, '../../admin/pages/FunctiiPage.tsx'), 'utf8')).toContain('tour="fu-lista"');
     expect(readFileSync(join(__dirname, '../../admin/pages/FunctiiPage.tsx'), 'utf8')).toContain("row.key === 'parcurs' ? 'fu-parcurs'");
   });
   it('places the editor flow anchors', () => {
     const adm = (f: string) => readFileSync(join(__dirname, '../../admin', f), 'utf8');
-    expect(adm('pages/CursuriPage.tsx')).toContain('data-tour="pg-text"');
+    expect(adm('pages/CursuriPage.tsx')).toContain('tour="pg-text"');
     expect(adm('pages/CursuriPage.tsx')).toContain('saveTour="pg-salveaza"');
     expect(adm('dashboard/EdusportShell.tsx')).toContain('data-tour={rowAnchor(l.to)}');
     expect(adm('MobileNav.tsx')).toContain('tour: rowAnchor(l.to)');

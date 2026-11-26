@@ -194,8 +194,8 @@ const CursuriPage: React.FC = () => {
           </div>
         ) : (
           <div className="ui-body">
-            <div data-tour="pg-text">
             <ObjectFieldCard<Banner>
+              tour="pg-text"
               title="Banner Pagina Cursuri"
               value={banner}
               onFieldChange={(key, v) => form.set('banner', { ...banner, [key]: v })}
@@ -221,7 +221,6 @@ const CursuriPage: React.FC = () => {
                 },
               ]}
             />
-            </div>
 
             <ObjectFieldCard<About>
               title="Secțiunea Despre Cursuri"

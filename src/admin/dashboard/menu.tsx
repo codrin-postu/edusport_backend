@@ -137,7 +137,7 @@ export const SPONSORI_TO = '/plugins/edusport-sponsori';
 // appears in no sidebar or menu. Open it by URL: /admin/plugins/edusport-ui.
 export const UI_REFERENCE_TO = '/plugins/edusport-ui';
 
-// Admin route of the Primii pași page (built in a later task; until then a link to it opens no page).
+// Admin route of the Primii pași page.
 export const PRIMII_PASI_TO = '/primii-pasi';
 
 // Placeholder `to` of the "Meniul Strapi" row: it is an action row (see EdusportLink.action), never navigated to.

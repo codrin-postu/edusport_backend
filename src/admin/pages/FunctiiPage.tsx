@@ -16,7 +16,7 @@ const FunctiiPage: React.FC = () => {
   const save = async (key: FeatureKey, on: boolean) => {
     setBusy(true);
     try {
-      await getFetchClient().put('/club/features', { key, on });
+      await getFetchClient().put('/api/club/features', { key, on });
       await refreshFeatures();
     } catch {
       adminToast.error('Nu am putut salva. Încearcă din nou.');
@@ -41,9 +41,8 @@ const FunctiiPage: React.FC = () => {
         )}
         {data && (
           <div className="ui-body">
-            <EditorCard title={FEATURES_COPY.card}>
+            <EditorCard title={FEATURES_COPY.card} tour="fu-lista">
               <p className="ui-muted">{FEATURES_COPY.intro}</p>
-              <div data-tour="fu-lista" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-space-3)' }}>
               {featureRows(data).map((row) => (
                 <Field key={row.key} label={row.name}>
                   <div data-tour={row.key === 'parcurs' ? 'fu-parcurs' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 'var(--ui-space-3)' }}>
@@ -57,7 +56,6 @@ const FunctiiPage: React.FC = () => {
                   </div>
                 </Field>
               ))}
-              </div>
               <p className="ui-muted">{FEATURES_COPY.footer}</p>
               {last && <p className="ui-muted">{last}</p>}
             </EditorCard>

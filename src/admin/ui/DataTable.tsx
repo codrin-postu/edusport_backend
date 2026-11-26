@@ -53,6 +53,8 @@ export interface DataTableProps<T> {
   initialSort?: { key: string; dir: SortDir };
   caption?: string;
   className?: string;
+  /** Guided-tour anchor (`data-tour`), set on the table root. */
+  tour?: string;
 }
 
 const fold = (s: string) =>
@@ -92,6 +94,7 @@ export function DataTable<T>({
   initialSort,
   caption,
   className,
+  tour,
 }: DataTableProps<T>) {
   const [q, setQ] = React.useState('');
   const [sort, setSort] = React.useState(initialSort ?? null);
@@ -129,7 +132,7 @@ export function DataTable<T>({
   const showBar = search || toolbar;
 
   return (
-    <div className={cx('ui-table-root', className)}>
+    <div className={cx('ui-table-root', className)} data-tour={tour}>
       {showBar && (
         <div className="ui-table-bar">
           {search && (

@@ -17,7 +17,7 @@ function route(flow: FlowId, original: Fetch, life: { active: boolean }): Fetch 
   return (input, init) => {
     if (!life.active) return original(input, init);
     try {
-      const d = decide(methodAndUrl(input, init), flow);
+      const d = decide(methodAndUrl(input, init), flow, undefined, window.location.origin);
       if (d.kind === 'pass') return original(input, init);
       if (d.kind === 'fixture') return Promise.resolve(json(200, d.body));
     } catch {

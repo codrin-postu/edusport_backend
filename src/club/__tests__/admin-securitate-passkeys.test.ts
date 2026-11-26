@@ -51,7 +51,7 @@ describe('the key list', () => {
   });
 
   it('a key never used says "niciodată"; the rename form has "Nume" at 60 characters and flat buttons', () => {
-    expect(keySub('2026-11-01T10:00:00Z', null, (iso) => iso)).toBe('Creată 2026-11-01, folosită niciodată');
+    expect(keySub('2026-11-01T10:00:00Z', null, (iso) => iso)).toBe('Creat 2026-11-01, folosit niciodată');
     const m = render(React.createElement(RenameForm, { name: 'iPhone', busy: false, onName: noop, onSave: noop, onCancel: noop }));
     expect(has(m, SECURITY_COPY.passkeys.nameField)).toBe(true);
     expect(m).toContain('maxLength="60"');

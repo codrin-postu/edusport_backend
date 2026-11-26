@@ -74,6 +74,8 @@ export interface ObjectFieldCardProps<T extends object> {
   children?: React.ReactNode;
   disabled?: boolean;
   className?: string;
+  /** Guided-tour anchor (`data-tour`), set on the card itself. */
+  tour?: string;
 }
 
 function FieldControl<T extends object>({
@@ -130,6 +132,7 @@ export function ObjectFieldCard<T extends object>({
   children,
   disabled,
   className,
+  tour,
 }: ObjectFieldCardProps<T>) {
   const byKey = new Map(fields.map((f) => [f.key, f]));
   const groups: ObjectFieldSection<T>[] = sections ?? [{ keys: fields.map((f) => f.key) }];
@@ -155,7 +158,7 @@ export function ObjectFieldCard<T extends object>({
   );
 
   return (
-    <EditorCard title={title} description={description} headerAction={headerAction} className={className}>
+    <EditorCard title={title} description={description} headerAction={headerAction} className={className} tour={tour}>
       <div className="ui-ofc">
         {groups.map((g, i) => (
           <div key={i} className="ui-ofc-sec">

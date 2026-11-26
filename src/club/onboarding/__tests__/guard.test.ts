@@ -5,6 +5,23 @@ import { CLUB_URLS, openListParams } from '../../inscrieri-panel';
 
 const fixture: Fixture = { method: 'GET', match: /\/content-manager\/collection-types\/api::demo\.demo(\?|$)/, body: { results: [] } };
 
+describe('same origin only', () => {
+  const origin = 'http://localhost:1337';
+  it('guards relative and same-origin urls, passes other origins', () => {
+    for (const url of ['/api/club/x', 'http://localhost:1337/api/club/x', '//localhost:1337/api/x']) {
+      expect(decide({ method: 'POST', url }, 'membru', {}, origin)).toEqual({ kind: 'refuse' });
+    }
+    for (const url of ['https://glitchtip.example.com/api/1/envelope/', 'http://localhost:3000/api/send', 'https://localhost:1337/x', '//umami.example.com/api/send']) {
+      expect(decide({ method: 'POST', url }, 'membru', {}, origin)).toEqual({ kind: 'pass' });
+    }
+  });
+  it('passes non-http schemes and guards everything when the origin is unreadable', () => {
+    expect(decide({ method: 'POST', url: 'data:text/plain,x' }, 'membru', {}, origin).kind).toBe('pass');
+    expect(decide({ method: 'POST', url: '/x' }, 'membru', {}, 'garbage')).toEqual({ kind: 'refuse' });
+    expect(decide({ method: 'POST', url: 'https://other.example/x' }, 'membru', {}, 'garbage')).toEqual({ kind: 'refuse' });
+  });
+});
+
 describe('decide', () => {
   it('passes everything when no flow runs', () => {
     for (const method of ['POST', 'PUT', 'PATCH', 'DELETE', 'GET']) {
@@ -19,10 +36,10 @@ describe('decide', () => {
   });
 
   it('lets session upkeep and the progress post through, nothing similar', () => {
-    for (const url of ['/admin/access-token', 'http://localhost:1337/admin/renew-token', '/admin/logout', '/club/onboarding', '/admin/logout?x=1']) {
+    for (const url of ['/admin/access-token', 'http://localhost:1337/admin/renew-token', '/admin/logout', '/api/club/onboarding', '/admin/logout?x=1']) {
       expect(decide({ method: 'POST', url }, 'membru')).toEqual({ kind: 'pass' });
     }
-    for (const url of ['/club/onboarding/extra', '/club/inscrieri', '/admin/users/me', '/x/admin/logout-all']) {
+    for (const url of ['/api/club/onboarding/extra', '/club/onboarding', '/club/inscrieri', '/admin/users/me', '/x/admin/logout-all']) {
       expect(decide({ method: 'POST', url }, 'membru')).toEqual({ kind: 'refuse' });
     }
   });
@@ -208,11 +225,10 @@ describe('parinte and functii fixtures', () => {
     expect(bodyOf<{ data: { state: string; canInvite: boolean } }>('parinte', `/api/club/athletes/${list[0].documentId}/access`).data).toMatchObject({ state: 'none', canInvite: true });
     expect(decide({ method: 'GET', url: '/api/club/athletes/other/access' }, 'parinte').kind).toBe('pass');
   });
-  it('serves all switches on to the functii flow only', () => {
-    const f = bodyOf<{ data: { features: Record<string, boolean> } }>('functii', '/api/club/features').data.features;
-    expect(Object.values(f).every(Boolean)).toBe(true);
-    for (const flow of ['inscriere', 'sportiv', 'grupa', 'prezenta', 'plata', 'sedinta', 'anunt', 'parinte'] as const) {
+  it('never serves the switches snapshot from a fixture, in any flow', () => {
+    for (const flow of ['inscriere', 'sportiv', 'grupa', 'prezenta', 'plata', 'sedinta', 'anunt', 'parinte', 'functii', 'pagina', 'preturi', 'membru'] as const) {
       expect(decide({ method: 'GET', url: '/api/club/features' }, flow).kind).toBe('pass');
+      expect(decide({ method: 'GET', url: 'http://localhost:1337/api/club/features?x=1' }, flow).kind).toBe('pass');
     }
   });
   it('refuses the invite and the switch save, and freezes and anchors every body', () => {

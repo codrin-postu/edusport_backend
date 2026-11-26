@@ -12,10 +12,26 @@ const pathAndQuery = (url: string): string => {
 };
 
 /** Writes a running flow must not block: the admin's own session upkeep (token refresh, logout) and the tour's progress post. */
-const SESSION_WRITES = /(^|\/)(admin\/(access-token|renew-token|logout)|club\/onboarding)\/?$/;
+const SESSION_WRITES = /(^|\/)(admin\/(access-token|renew-token|logout)|api\/club\/onboarding)\/?$/;
 
-export function decide(req: { method: string; url: string }, flow: FlowId | null, fixtures: Partial<Record<FlowId, Fixture[]>> = FIXTURES): Decision {
+/** True when `url` goes to `origin` (the admin's own): relative urls always do, absolute ones only on the same scheme, host and port. */
+export function isSameOrigin(url: string, origin: string): boolean {
+  const m = /^(?:([a-z][a-z0-9+.-]*:)?\/\/)([^/?#]*)/i.exec(url);
+  if (!m) return !/^[a-z][a-z0-9+.-]*:/i.test(url);
+  const o = /^([a-z][a-z0-9+.-]*:)\/\/(.*)$/i.exec(origin);
+  if (!o) return true; // an origin it cannot read guards everything, never passes
+  return (m[1] ?? o[1]).toLowerCase() === o[1].toLowerCase() && m[2].toLowerCase() === o[2].toLowerCase();
+}
+
+/** `origin` is the admin's own origin: with it, a request to another origin (GlitchTip, Umami) is never guarded. */
+export function decide(
+  req: { method: string; url: string },
+  flow: FlowId | null,
+  fixtures: Partial<Record<FlowId, Fixture[]>> = FIXTURES,
+  origin?: string,
+): Decision {
   if (flow === null) return { kind: 'pass' };
+  if (origin !== undefined && !isSameOrigin(req.url, origin)) return { kind: 'pass' };
   const method = req.method.toUpperCase();
   if (!READ_METHODS.includes(method)) return SESSION_WRITES.test(pathAndQuery(req.url).replace(/\?.*$/, '')) ? { kind: 'pass' } : { kind: 'refuse' };
   if (method !== 'GET') return { kind: 'pass' };

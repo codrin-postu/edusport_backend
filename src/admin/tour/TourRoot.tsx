@@ -11,7 +11,7 @@ import { spaNavigate } from '../dashboard/EdusportShell';
 import { useIsPhone } from '../dashboard/useIsPhone';
 import { useAreas } from '../lib/useAreas';
 import { useFeatures } from '../lib/useFeatures';
-import { adminToast, ensureAdminUi } from '../ui';
+import { adminToast, ensureAdminUi, releaseUnsavedGuards } from '../ui';
 import { installFetchGuard, uninstallFetchGuard } from './fetchGuard';
 import { loadProgress, markProgress, setTourRunning, START_EVENT, useTourProgress } from './progressStore';
 import { TourCard } from './TourCard';
@@ -23,21 +23,36 @@ const ROOT_ID = 'edusport-tour-root';
 const IDLE: TourState = { kind: 'idle' };
 const CARD_WIDTH = 320;
 
+/** Leaving a flow: stand the unsaved-changes guards down first so the move always happens, then go to Primii pași. */
+function leaveToPrimiiPasi(): void {
+  releaseUnsavedGuards();
+  spaNavigate(PRIMII_PASI_TO);
+}
+
 function handleEffect(prev: TourState, effect: TourEffect | undefined): void {
   if (effect === 'introDone') {
     adminToast.success(TOUR_COPY.introDone);
     void markProgress({ intro: true });
   } else if (effect === 'left') {
     if (prev.kind === 'intro') void markProgress({ intro: true });
-    else spaNavigate(PRIMII_PASI_TO);
+    else leaveToPrimiiPasi();
   } else if (effect) {
     adminToast.success(TOUR_COPY.doneToast);
     void markProgress({ flow: effect.flowDone });
-    spaNavigate(PRIMII_PASI_TO);
+    leaveToPrimiiPasi();
   }
 }
 
-/** The state machine plus its side effects: the fetch guard lives only while a flow runs and is back before any progress post. */
+/** Takes the fetch guard off one tick after the route has changed, so the example form can never be saved after the flow ends. A flow started meanwhile keeps its own guard. */
+let installs = 0;
+function uninstallAfterRoute(): void {
+  const mine = installs;
+  window.setTimeout(() => {
+    if (installs === mine) uninstallFetchGuard();
+  }, 0);
+}
+
+/** The state machine plus its side effects: the fetch guard lives while a flow runs and until the route after it has changed (the progress post is on its allow-list). */
 function useTour(): { state: TourState; send: (e: TourEvent) => void } {
   const [state, setState] = React.useState<TourState>(IDLE);
   const ref = React.useRef<TourState>(IDLE);
@@ -49,13 +64,16 @@ function useTour(): { state: TourState; send: (e: TourEvent) => void } {
     const { state: next, effect } = tourReducer(prev, e);
     const flowOf = (t: TourState) => (t.kind === 'flow' ? t.flow : undefined);
     if (flowOf(next) !== flowOf(prev)) {
-      if (next.kind === 'flow' && next.flow) installFetchGuard(next.flow);
-      else uninstallFetchGuard();
+      if (next.kind === 'flow' && next.flow) {
+        installs += 1;
+        installFetchGuard(next.flow);
+      }
     }
     setTourRunning(next.kind !== 'idle');
     ref.current = next;
     setState(next);
     handleEffect(prev, effect);
+    if (flowOf(prev) && !(next.kind === 'flow' && next.flow)) uninstallAfterRoute();
   }, []);
   React.useEffect(() => {
     const onStart = (ev: Event) => {
@@ -105,7 +123,7 @@ function useStepEvents(state: TourState, send: (e: TourEvent) => void): void {
     return () => {
       document.removeEventListener('click', onClick, true);
       document.removeEventListener('change', onChange, true);
-    document.removeEventListener('input', onChange, true);
+      document.removeEventListener('input', onChange, true);
       window.removeEventListener('keydown', onKey);
     };
   }, [step, send]);

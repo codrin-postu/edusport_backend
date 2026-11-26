@@ -16,6 +16,8 @@ export interface EditorCardProps {
   variant?: 'plain';
   className?: string;
   id?: string;
+  /** Guided-tour anchor (`data-tour`), set on the card itself. */
+  tour?: string;
 }
 
 /**
@@ -25,13 +27,14 @@ export interface EditorCardProps {
  * around it) and on dashboard pages. Port of the plugin's
  * components/EditorCard, on tokens.
  */
-export function EditorCard({ title, description, headerAction, footer, children, flush = false, variant, className, id }: EditorCardProps) {
+export function EditorCard({ title, description, headerAction, footer, children, flush = false, variant, className, id, tour }: EditorCardProps) {
   React.useInsertionEffect(() => ensureAdminUi(), []);
   const headingId = React.useId().replace(/:/g, '');
   const hasHeader = title || headerAction;
   return (
     <section
       id={id}
+      data-tour={tour}
       className={cx('ui-root', 'ui-ecard', variant === 'plain' && 'ui-ecard--plain', className)}
       aria-labelledby={title ? `ui-ech${headingId}` : undefined}
     >

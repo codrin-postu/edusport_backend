@@ -1,6 +1,5 @@
 import type { AthleteCard, AthleteListPage, AthleteListRow, AthleteRecord, ConfirmContext, HistoryLine, RegistrationMatchView } from '../athletes/api-types';
 import type { AccessBlock } from '../portal/access/api-types';
-import { ALL_ON, type FeaturesResponse } from '../features/features';
 import type { ComparisonRow } from '../confirm/compare';
 import { EXAMPLE_GROUP_ID, type FlowId } from './flows';
 import { addDays, weekdayIndex } from '../groups/dates';
@@ -428,17 +427,7 @@ const PARINTE_FIXTURES = (): Fixture[] => [
   { method: 'GET', match: new RegExp(`^/api/club/athletes/${INVITEE_ID}/access(\\?|$)`), body: inviteeAccess() },
 ];
 
-/**
- * The "Pornește sau oprește o funcție" flow: every switch on. The shared switches snapshot (useFeatures) is read once per page load,
- * so this body only answers a read made while the flow runs; it never reaches another flow.
- */
-const FUNCTII_FIXTURES = (): Fixture[] => [
-  {
-    method: 'GET',
-    match: /^\/api\/club\/features(\?|$)/,
-    body: { data: { saved: { ...ALL_ON }, features: { ...ALL_ON }, installed: { portalAntrenori: true, portalParinti: true }, lastChange: null } satisfies FeaturesResponse },
-  },
-];
+// The Funcții flow has no fixtures: GET /api/club/features always passes the guard, so a reload during a flow never puts example data into the menu snapshot.
 
 /** The "Modifică o pagină" flow: the Cursuri editor with example texts. */
 const PAGINA_FIXTURES = (): Fixture[] => [
@@ -493,7 +482,6 @@ const MEMBRU_FIXTURES = (): Fixture[] => [
 
 export const FIXTURES: Partial<Record<FlowId, Fixture[]>> = {
   parinte: deepFreeze(PARINTE_FIXTURES()),
-  functii: deepFreeze(FUNCTII_FIXTURES()),
   inscriere: deepFreeze(INSCRIERE_FIXTURES.map((f) => ({ ...f }))),
   sportiv: deepFreeze(SPORTIV_FIXTURES()),
   grupa: deepFreeze(GRUPA_FIXTURES()),

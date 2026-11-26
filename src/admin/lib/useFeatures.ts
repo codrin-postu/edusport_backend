@@ -13,11 +13,11 @@ function publish(next: Snapshot): void {
   listeners.forEach((l) => l());
 }
 
-/** One GET /club/features per page load, shared by every caller. A failed read opens every switch (fail open): the server still refuses a disabled route. */
+/** One GET /api/club/features per page load, shared by every caller. A failed read opens every switch (fail open): the server still refuses a disabled route. */
 function load(): Promise<void> {
   if (!pending) {
     pending = getFetchClient()
-      .get('/club/features')
+      .get('/api/club/features')
       .then((r) => publish({ ready: true, data: (r.data as { data: FeaturesResponse }).data }))
       .catch(() => publish({ ready: true, data: null }))
       .finally(() => {
