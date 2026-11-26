@@ -24,6 +24,7 @@ import {
   wishText,
   type ListMeta,
 } from '../../club/inscrieri-panel';
+import { EXAMPLE_REGISTRATION_ID } from '../../club/onboarding/fixtures';
 import { cardFacts } from '../../club/inscrieri-card';
 import { shortSchoolName } from '../../club/inscrieri-school';
 import { BlankFormItems } from './inscrieri/BlankFormsMenu';
@@ -186,6 +187,7 @@ const CFG: SubmissionTableCfg = {
   compact: {
     headers: (api) => compactHeaders(readListMeta(api.pageMeta).multipleSchools),
     renderCells,
+    rowAnchor: (row) => (row.documentId === EXAMPLE_REGISTRATION_ID ? 'ins-maria' : undefined),
     renderDetail,
   },
 };

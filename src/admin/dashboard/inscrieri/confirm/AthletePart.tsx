@@ -74,7 +74,7 @@ function WithAthlete({ state, dispatch, ctx, athlete, notAttended, onLeave, busy
   return (
     <>
       <ProposedCard card={athlete} onLeave={onLeave} busy={busy} />
-      <RadioGroup<Choice> variant="card" aria-label={CONFIRM_COPY.athleteSection} value={state.choice} onChange={choose} options={choiceOptions(ctx, notAttended)} disabled={busy} />
+      <RadioGroup<Choice> data-tour="ins-sportiv" variant="card" aria-label={CONFIRM_COPY.athleteSection} value={state.choice} onChange={choose} options={choiceOptions(ctx, notAttended)} disabled={busy} />
       {state.compareOpen && comparable && <CompareTable rows={ctx.comparison} ticks={ticks} />}
       <div className="ins-links">
         {comparable && <CompareLink open={state.compareOpen} busy={busy} onToggle={() => dispatch({ type: 'toggleCompare' })} />}

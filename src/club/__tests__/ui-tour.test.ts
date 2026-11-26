@@ -77,3 +77,15 @@ describe('placement and role', () => {
     expect(welcomeRole(() => false)).toBe('editor');
   });
 });
+
+describe('inscriere flow anchors', () => {
+  const src = (f: string) => readFileSync(join(__dirname, '../../admin/dashboard', f), 'utf8');
+  it('places the five anchors on the real elements', () => {
+    expect(src('InscrieriPage.tsx')).toContain("'ins-maria'");
+    expect(src('SubmissionTable.tsx')).toContain('data-tour={cfg.compact.rowAnchor?.(r)}');
+    expect(src('inscrieri/RegistrationPanel.tsx')).toContain('data-tour="ins-confirma"');
+    expect(src('inscrieri/confirm/AthletePart.tsx')).toContain('data-tour="ins-sportiv"');
+    expect(src('inscrieri/confirm/SeasonPart.tsx')).toContain('data-tour="ins-grupa"');
+    expect(src('inscrieri/ConfirmWindow.tsx')).toContain('data-tour="ins-confirma-final"');
+  });
+});

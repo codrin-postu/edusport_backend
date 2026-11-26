@@ -272,6 +272,8 @@ export interface SubmissionTableCfg {
     headers: CompactHeader[] | ((api: TableApi) => CompactHeader[]);
     /** The compact list row cells (the <td>s matching `headers`). */
     renderCells: (row: Row, api: TableApi) => React.ReactNode;
+    /** The guided tour's anchor name for a row, when it is one the tour points at. */
+    rowAnchor?: (row: Row) => string | undefined;
     /** The detail panel content (header + body + footer) for the selected row. */
     renderDetail: (row: Row, api: TableApi) => React.ReactNode;
   };
@@ -2048,6 +2050,7 @@ export default function SubmissionTablePage({ cfg, extras }: { cfg: SubmissionTa
                   key={r.documentId}
                   className="ui-table-click"
                   aria-selected={selectedId === r.documentId}
+                  data-tour={cfg.compact.rowAnchor?.(r)}
                   onClick={() => setSelectedId(r.documentId)}
                 >
                   {cfg.bulk && (

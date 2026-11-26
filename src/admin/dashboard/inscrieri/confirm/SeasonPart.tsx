@@ -13,16 +13,18 @@ function GroupAndAcs({ state, dispatch, ctx, busy }: Props) {
   return (
     <>
       {mainNow && <p className="ins-line">{mainNow}</p>}
-      <Field label={CONFIRM_COPY.group} className="ins-fl">
-        <SearchableSelect
-          aria-label={CONFIRM_COPY.group}
-          value={state.groupId}
-          onChange={(groupId) => dispatch({ type: 'group', groupId: groupId || null })}
-          options={groupChoices(ctx.groups)}
-          placeholder={CONFIRM_COPY.noGroup}
-          disabled={busy}
-        />
-      </Field>
+      <div data-tour="ins-grupa">
+        <Field label={CONFIRM_COPY.group} className="ins-fl">
+          <SearchableSelect
+            aria-label={CONFIRM_COPY.group}
+            value={state.groupId}
+            onChange={(groupId) => dispatch({ type: 'group', groupId: groupId || null })}
+            options={groupChoices(ctx.groups)}
+            placeholder={CONFIRM_COPY.noGroup}
+            disabled={busy}
+          />
+        </Field>
+      </div>
       {mainNow && <Checkbox checked={state.makeMain} disabled={busy || !state.groupId} onChange={(on) => dispatch({ type: 'main', on })} label={CONFIRM_COPY.mainTick} />}
       {acs && (
         <div className="ins-acs">

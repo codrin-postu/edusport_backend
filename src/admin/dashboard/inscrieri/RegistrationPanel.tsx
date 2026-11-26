@@ -43,7 +43,7 @@ function PanelFooter({ row, api, onConfirm }: FooterProps) {
           </Button>
         )}
         {actions.confirm && (
-          <Button size="sm" onClick={onConfirm} disabled={!onConfirm}>
+          <Button size="sm" onClick={onConfirm} disabled={!onConfirm} data-tour="ins-confirma">
             {PANEL_COPY.confirm}
           </Button>
         )}

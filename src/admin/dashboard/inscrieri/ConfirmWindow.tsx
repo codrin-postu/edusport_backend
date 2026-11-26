@@ -16,7 +16,7 @@ function WindowFooter({ gate, busy, onCancel, onConfirm }: FooterProps) {
     <>
       {gate.hint && <span className="ins-foot-hint">{gate.hint}</span>}
       <Button variant="secondary" onClick={onCancel} disabled={busy}>{CONFIRM_COPY.cancel}</Button>
-      <Button onClick={onConfirm} loading={busy} disabled={gate.disabled}>{CONFIRM_COPY.confirm}</Button>
+      <Button onClick={onConfirm} loading={busy} disabled={gate.disabled} data-tour="ins-confirma-final">{CONFIRM_COPY.confirm}</Button>
     </>
   );
 }

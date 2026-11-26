@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { decide, refusalResponse } from '../guard';
-import { FIXTURES, type Fixture } from '../fixtures';
+import { EXAMPLE_REGISTRATION_ID, FIXTURES, type Fixture } from '../fixtures';
+import { CLUB_URLS, openListParams } from '../../inscrieri-panel';
 
 const fixture: Fixture = { method: 'GET', match: /\/content-manager\/collection-types\/api::demo\.demo(\?|$)/, body: { results: [] } };
 
@@ -47,5 +48,44 @@ describe('decide', () => {
 
   it('refusal response is a 409 with the strip text', () => {
     expect(refusalResponse()).toEqual({ status: 409, body: { error: { message: 'Exemplu: modificările nu se salvează' } } });
+  });
+});
+
+describe('inscriere fixtures', () => {
+  const id = EXAMPLE_REGISTRATION_ID;
+  const serve = (url: string) => decide({ method: 'GET', url: `http://localhost:1337${url}` }, 'inscriere');
+  const isFixture = (url: string) => serve(url).kind === 'fixture';
+
+  it('answers every GET the Înscrieri page and panel build, with the page urls', () => {
+    const urls = [
+      '/api/forms/inscrieri?page=1&pageSize=25&sort=newest&archived=false&season=2026-2027',
+      '/api/forms/inscrieri?pageSize=1&archived=false',
+      `/api/forms/inscrieri?${new URLSearchParams(openListParams(id)).toString()}&page=1`,
+      CLUB_URLS.match(id),
+      CLUB_URLS.history(id),
+      CLUB_URLS.confirmContext(id, null),
+      CLUB_URLS.confirmContext(id, 'ex-athlete-maria'),
+      CLUB_URLS.athleteSearch('', id),
+      CLUB_URLS.athleteSearch('Maria', id),
+    ];
+    for (const url of urls) expect(isFixture(url), url).toBe(true);
+  });
+
+  it('leaves other registrations and the csv export to the real server', () => {
+    for (const url of ['/api/forms/inscrieri/export.csv', CLUB_URLS.match('other'), '/api/forms/inscrieri/ex-maria']) {
+      expect(serve(url), url).toEqual({ kind: 'pass' });
+    }
+  });
+
+  it('refuses the confirm and undo posts during the flow', () => {
+    for (const url of [CLUB_URLS.confirm(id), CLUB_URLS.undo(id)]) {
+      expect(decide({ method: 'POST', url }, 'inscriere')).toEqual({ kind: 'refuse' });
+    }
+  });
+
+  it('serves a list row the page reads as the example registration', () => {
+    const hit = serve('/api/forms/inscrieri?page=1');
+    const body = (hit as { body: { data: { documentId: string; childName: string; age: number; schoolName: string }[] } }).body;
+    expect(body.data[0]).toMatchObject({ documentId: id, childName: 'Maria Popescu', age: 9, schoolName: 'Școala de Patinaj' });
   });
 });
