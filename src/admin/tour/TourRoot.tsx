@@ -12,7 +12,7 @@ import { useIsPhone } from '../dashboard/useIsPhone';
 import { useAreas } from '../lib/useAreas';
 import { adminToast, ensureAdminUi } from '../ui';
 import { installFetchGuard, uninstallFetchGuard } from './fetchGuard';
-import { markProgress, START_EVENT, useTourProgress } from './progressStore';
+import { loadProgress, markProgress, setTourRunning, START_EVENT, useTourProgress } from './progressStore';
 import { TourCard } from './TourCard';
 import { TOUR_CSS } from './tourCss';
 import { useAnchor } from './useAnchor';
@@ -43,8 +43,12 @@ function useTour(): { state: TourState; send: (e: TourEvent) => void } {
   const send = React.useCallback((e: TourEvent) => {
     const prev = ref.current;
     const { state: next, effect } = tourReducer(prev, e);
-    if (next.kind === 'flow' && next.flow) installFetchGuard(next.flow);
-    else uninstallFetchGuard();
+    const flowOf = (t: TourState) => (t.kind === 'flow' ? t.flow : undefined);
+    if (flowOf(next) !== flowOf(prev)) {
+      if (next.kind === 'flow' && next.flow) installFetchGuard(next.flow);
+      else uninstallFetchGuard();
+    }
+    setTourRunning(next.kind !== 'idle');
     ref.current = next;
     setState(next);
     handleEffect(prev, effect);
@@ -68,18 +72,21 @@ function useStepEvents(state: TourState, send: (e: TourEvent) => void): void {
   const step = currentStep(state);
   React.useEffect(() => {
     if (!step) return undefined;
-    const hit = (e: Event): boolean => e.target instanceof Node && !!document.querySelector(anchorSelector(step.anchor))?.contains(e.target);
+    const hit = (e: Event): boolean => {
+      const t = e.target;
+      return t instanceof Node && Array.from(document.querySelectorAll(anchorSelector(step.anchor))).some((el) => el.contains(t));
+    };
     const on = (via: 'click' | 'change') => (e: Event) => {
       if (step.waitFor !== via || !hit(e)) return;
       if (via === 'click' && step.final) {
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
       }
       send({ type: 'target', anchor: step.anchor, via });
     };
     const onClick = on('click');
     const onChange = on('change');
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && send({ type: 'exit' });
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !e.defaultPrevented && send({ type: 'exit' });
     document.addEventListener('click', onClick, true);
     document.addEventListener('change', onChange, true);
     window.addEventListener('keydown', onKey);
@@ -110,24 +117,33 @@ function TourChrome({ state, send }: { state: TourState; send: (e: TourEvent) =>
   );
 }
 
-function useFirstName(): string | null {
+/** Reads once the admin is signed in (`ready`), so a root mounted before the login retries afterwards. */
+function useFirstName(ready: boolean): string | null {
   const [name, setName] = React.useState<string | null>(null);
   React.useEffect(() => {
+    if (!ready) return undefined;
+    let off = false;
     getFetchClient()
       .get('/admin/users/me')
       .then((r) => {
         const u = (r.data as { data?: { firstname?: string; email?: string } }).data;
-        setName(u?.firstname?.trim() || u?.email?.split('@')[0] || '');
+        if (!off) setName(u?.firstname?.trim() || u?.email?.split('@')[0] || '');
       })
-      .catch(() => setName(null));
-  }, []);
+      .catch(() => undefined);
+    return () => {
+      off = true;
+    };
+  }, [ready]);
   return name;
 }
 
 function TourRoot() {
   const { ready, has } = useAreas();
   const { ready: progressReady, progress } = useTourProgress();
-  const firstName = useFirstName();
+  const firstName = useFirstName(ready);
+  React.useEffect(() => {
+    if (ready && !progressReady) void loadProgress();
+  }, [ready, progressReady]);
   const { state, send } = useTour();
   const [later, setLater] = React.useState(false);
   useStepEvents(state, send);

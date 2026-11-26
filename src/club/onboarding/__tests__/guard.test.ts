@@ -17,6 +17,15 @@ describe('decide', () => {
     }
   });
 
+  it('lets session upkeep and the progress post through, nothing similar', () => {
+    for (const url of ['/admin/access-token', 'http://localhost:1337/admin/renew-token', '/admin/logout', '/club/onboarding', '/admin/logout?x=1']) {
+      expect(decide({ method: 'POST', url }, 'sportiv')).toEqual({ kind: 'pass' });
+    }
+    for (const url of ['/club/onboarding/extra', '/club/inscrieri', '/admin/users/me', '/x/admin/logout-all']) {
+      expect(decide({ method: 'POST', url }, 'sportiv')).toEqual({ kind: 'refuse' });
+    }
+  });
+
   it('treats GET, HEAD and OPTIONS as reads', () => {
     for (const method of ['GET', 'head', 'OPTIONS']) {
       expect(decide({ method, url: '/admin/x' }, 'sportiv')).toEqual({ kind: 'pass' });

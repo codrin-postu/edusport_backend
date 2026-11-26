@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { ensureAdminUi } from './ui/styles';
 import { useAreas } from './lib/useAreas';
 import { useFeatures } from './lib/useFeatures';
-import { FooterBadge } from './tour/FooterBadge';
+import { FooterBadge, usePrimiiRow } from './tour/FooterBadge';
 import { REVEAL_EVENT } from './tour/progressStore';
 import { EDUSPORT_LINKS, visibleLinks, GROUP_LABEL, GROUP_ORDER, DASHBOARD_TO, PRIMII_PASI_TO, GHID_URL } from './dashboard/menu';
 import EdusportLogo from './edusport-logo.svg';
@@ -163,6 +163,7 @@ export function MobileNav() {
   const [groups, setGroups] = React.useState<NavGroup[]>([]);
   const { ready, has } = useAreas();
   const features = useFeatures();
+  const primiiRow = usePrimiiRow(has, features.on);
 
   // Tokens + theme sync (idempotent; the bootstrap already ran it).
   React.useInsertionEffect(() => ensureAdminUi(), []);
@@ -194,7 +195,7 @@ export function MobileNav() {
     next.push({
       title: 'Cont',
       items: [
-        { label: 'Primii pași', href: eduLinkHref(PRIMII_PASI_TO), tour: 'primii-pasi' },
+        ...(primiiRow.visible ? [{ label: 'Primii pași', href: eduLinkHref(PRIMII_PASI_TO), tour: 'primii-pasi' }] : []),
         { label: 'Ghid EduSport', href: GHID_URL, external: true, tour: 'ghid' },
         { label: 'Profilul meu', href: '/admin/me' },
         { label: 'Deconectare', onClick: logout },
@@ -202,7 +203,7 @@ export function MobileNav() {
     });
 
     setGroups(next);
-  }, [open, ready, has, features.on]);
+  }, [open, ready, has, features.on, primiiRow.visible]);
 
   React.useEffect(() => {
     if (!open) return;

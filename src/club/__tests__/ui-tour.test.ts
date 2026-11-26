@@ -15,7 +15,9 @@ describe('tour sources', () => {
     expect(src).toMatch(/else uninstallFetchGuard\(\)/);
     expect(src).toMatch(/return \(\) => \{[^}]*uninstallFetchGuard\(\)/s);
     expect(src).toMatch(/capture|click', onClick, true/);
-    expect(src).toMatch(/e\.preventDefault\(\);\s*e\.stopPropagation\(\)/);
+    expect(src).toMatch(/e\.preventDefault\(\);\s*e\.stopImmediatePropagation\(\)/);
+    expect(src).toContain('!e.defaultPrevented');
+    expect(src).toContain('querySelectorAll(anchorSelector');
   });
 
   it('the guard defaults the method, survives a throwing decide and clones the fixture per response', () => {
@@ -24,6 +26,8 @@ describe('tour sources', () => {
     expect(src).toMatch(/try \{[\s\S]*decide\([\s\S]*\} catch/);
     expect(src).toContain('JSON.stringify(body)');
     expect(src).toContain('window.fetch = original');
+    expect(src).toMatch(/if \(!life\.active\) return original/);
+    expect(src).toMatch(/life\.active = false;[\s\S]*restore\?\.\(\)/);
   });
 
   it('TourCard renders where, ring, title, text, action, guide link, exit, and next only without waitFor', () => {
@@ -31,6 +35,12 @@ describe('tour sources', () => {
     for (const part of ['step.where', '<ProgressRing', 'step.title', 'step.text', 'step.action', 'TOUR_COPY.exit', 'TOUR_COPY.next']) expect(src).toContain(part);
     expect(src).toContain('${GHID_URL}/${step.guide}');
     expect(src).toMatch(/!step\.waitFor && /);
+  });
+
+  it('the anchor wait gives up after a ceiling and the footer row stays while a tour runs', () => {
+    expect(read('useAnchor.ts')).toContain('WAIT_CEILING_MS');
+    expect(read('FooterBadge.tsx')).toMatch(/visible: !allDone \|\| running/);
+    expect(read('TourRoot.tsx')).toContain('setTourRunning(next.kind !== \'idle\')');
   });
 
   it('no tour file names Strapi', () => {

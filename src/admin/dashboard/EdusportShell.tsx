@@ -7,7 +7,7 @@ import type { Group } from './menu';
 import { scaleVars } from '../ui/tokens';
 import { useAreas } from '../lib/useAreas';
 import { useFeatures } from '../lib/useFeatures';
-import { FooterBadge } from '../tour/FooterBadge';
+import { FooterBadge, usePrimiiRow } from '../tour/FooterBadge';
 import { REVEAL_EVENT } from '../tour/progressStore';
 
 /** --palette-* and --ui-* declarations for the shell's own roots. */
@@ -371,6 +371,7 @@ export function tagShellParent(): void {
 function EdusportShell() {
   const { has } = useAreas();
   const features = useFeatures();
+  const primiiRow = usePrimiiRow(has, features.on);
   const links = visibleLinks(EDUSPORT_LINKS, has, features.on);
   const [mode, setMode] = React.useState<Mode>(getStoredMode);
   const [path, setPath] = React.useState<string>(() => window.location.pathname);
@@ -592,10 +593,12 @@ function EdusportShell() {
             </div>
           ) : null}
           <div className="esd-acts">
-            <a className="esd-act" href={`/admin${PRIMII_PASI_TO}`} onClick={go(PRIMII_PASI_TO)} data-tour="primii-pasi">
-              Primii pași
-              <FooterBadge has={has} on={features.on} />
-            </a>
+            {primiiRow.visible ? (
+              <a className="esd-act" href={`/admin${PRIMII_PASI_TO}`} onClick={go(PRIMII_PASI_TO)} data-tour="primii-pasi">
+                Primii pași
+                <FooterBadge has={has} on={features.on} />
+              </a>
+            ) : null}
             <a className="esd-act" href={GHID_URL} target="_blank" rel="noopener noreferrer" data-tour="ghid">
               Ghid EduSport
             </a>

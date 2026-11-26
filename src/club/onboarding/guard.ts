@@ -11,10 +11,13 @@ const pathAndQuery = (url: string): string => {
   return (m ? m[1] : url).replace(/#.*$/, '') || '/';
 };
 
+/** Writes a running flow must not block: the admin's own session upkeep (token refresh, logout) and the tour's progress post. */
+const SESSION_WRITES = /(^|\/)(admin\/(access-token|renew-token|logout)|club\/onboarding)\/?$/;
+
 export function decide(req: { method: string; url: string }, flow: FlowId | null): Decision {
   if (flow === null) return { kind: 'pass' };
   const method = req.method.toUpperCase();
-  if (!READ_METHODS.includes(method)) return { kind: 'refuse' };
+  if (!READ_METHODS.includes(method)) return SESSION_WRITES.test(pathAndQuery(req.url).replace(/\?.*$/, '')) ? { kind: 'pass' } : { kind: 'refuse' };
   if (method !== 'GET') return { kind: 'pass' };
   const target = pathAndQuery(req.url);
   const hit = (FIXTURES[flow] ?? []).find((f) => f.match.test(target));

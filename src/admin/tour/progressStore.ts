@@ -3,9 +3,9 @@ import { getFetchClient } from '@strapi/admin/strapi-admin';
 import { parseProgress, type Progress } from '../../club/onboarding/progress';
 import type { FlowId } from '../../club/onboarding/flows';
 
-type Snapshot = { ready: boolean; progress: Progress };
+type Snapshot = { ready: boolean; progress: Progress; running: boolean };
 
-let snapshot: Snapshot = { ready: false, progress: parseProgress(null) };
+let snapshot: Snapshot = { ready: false, progress: parseProgress(null), running: false };
 let pending: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 
@@ -21,7 +21,7 @@ export function loadProgress(): Promise<void> {
   if (!pending) {
     pending = getFetchClient()
       .get('/club/onboarding')
-      .then((r) => publish({ ready: true, progress: fromResponse(r.data) }))
+      .then((r) => publish({ ...snapshot, ready: true, progress: fromResponse(r.data) }))
       .catch(() => undefined)
       .finally(() => {
         pending = null;
@@ -34,10 +34,15 @@ export function loadProgress(): Promise<void> {
 export async function markProgress(body: { intro: true } | { flow: FlowId }): Promise<void> {
   try {
     const r = await getFetchClient().post('/club/onboarding', body);
-    publish({ ready: true, progress: fromResponse(r.data) });
+    publish({ ...snapshot, ready: true, progress: fromResponse(r.data) });
   } catch {
     // Progress is a convenience: the tour goes on, the next load shows the saved state.
   }
+}
+
+/** Tells the footer row a tour is running, so it stays for the intro even when every flow is done. */
+export function setTourRunning(running: boolean): void {
+  if (snapshot.running !== running) publish({ ...snapshot, running });
 }
 
 export function useTourProgress(): Snapshot {

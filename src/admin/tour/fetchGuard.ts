@@ -13,8 +13,9 @@ function methodAndUrl(input: RequestInfo | URL, init?: RequestInit): { method: s
 const json = (status: number, body: unknown): Response =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
-function route(flow: FlowId, original: Fetch): Fetch {
+function route(flow: FlowId, original: Fetch, life: { active: boolean }): Fetch {
   return (input, init) => {
+    if (!life.active) return original(input, init);
     try {
       const d = decide(methodAndUrl(input, init), flow);
       if (d.kind === 'pass') return original(input, init);
@@ -28,12 +29,16 @@ function route(flow: FlowId, original: Fetch): Fetch {
 }
 
 let restore: (() => void) | null = null;
+/** Per install; `active` goes false on uninstall, so a wrapper that could not be taken off (something wrapped fetch after it) just delegates. */
+let life: { active: boolean } | null = null;
 
 /** Puts the guard in front of window.fetch for `flow`: fixtures for reads, refusal for writes. Replaces a guard already installed. */
 export function installFetchGuard(flow: FlowId): void {
   uninstallFetchGuard();
   const original = window.fetch;
-  window.fetch = route(flow, original.bind(window));
+  const mine = { active: true };
+  life = mine;
+  window.fetch = route(flow, original.bind(window), mine);
   const guarded = window.fetch;
   restore = () => {
     if (window.fetch === guarded) window.fetch = original;
@@ -42,6 +47,8 @@ export function installFetchGuard(flow: FlowId): void {
 
 /** Puts the original fetch back; safe to call when nothing is installed. */
 export function uninstallFetchGuard(): void {
+  if (life) life.active = false;
+  life = null;
   restore?.();
   restore = null;
 }

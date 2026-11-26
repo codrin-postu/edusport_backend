@@ -7,6 +7,8 @@ import { spaNavigate } from '../dashboard/EdusportShell';
 import { REVEAL_EVENT } from './progressStore';
 
 const POLL_MS = 150;
+/** An anchor that never shows up within this long is given up on: the card shows centered, without a highlight. */
+const WAIT_CEILING_MS = 10000;
 
 const sameBox = (a: Box | null, b: Box | null): boolean =>
   a === b || (!!a && !!b && a.top === b.top && a.left === b.left && a.width === b.width && a.height === b.height);
@@ -39,8 +41,12 @@ export function useAnchor(step: TourStep | null, phone: boolean): Box | null {
     setBox(null);
     if (!step) return undefined;
     if (step.path) spaNavigate(step.path);
+    const started = Date.now();
+    let found = false;
     const tick = () => {
       const next = measure(step.anchor);
+      if (next) found = true;
+      else if (!found && Date.now() - started > WAIT_CEILING_MS) window.clearInterval(timer);
       setBox((prev) => (sameBox(prev, next) ? prev : next));
     };
     const timer = window.setInterval(tick, POLL_MS);
